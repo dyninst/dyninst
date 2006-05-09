@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.634 2006/05/05 19:59:47 bernat Exp $
+// $Id: process.C,v 1.635 2006/05/09 09:52:55 jaw Exp $
 
 #include <ctype.h>
 
@@ -5922,14 +5922,16 @@ dyn_lwp *process::lookupLWP(unsigned lwp_id)
 }
 
 // fictional lwps aren't saved in the real_lwps vector
-dyn_lwp *process::createFictionalLWP(unsigned lwp_id) {
+dyn_lwp *process::createFictionalLWP(unsigned lwp_id) 
+{
    dyn_lwp *lwp = new dyn_lwp(lwp_id, this);
    if (theRpcMgr) // We may not have a manager yet (fork case)
        theRpcMgr->addLWP(lwp);
    return lwp;
 }
 
-dyn_lwp *process::createRealLWP(unsigned lwp_id, int /*lwp_index*/) {
+dyn_lwp *process::createRealLWP(unsigned lwp_id, int /*lwp_index*/) 
+{
    dyn_lwp *lwp = new dyn_lwp(lwp_id, this);
    real_lwps[lwp_id] = lwp;
    if (theRpcMgr) // We may not have a manager (fork case)
@@ -5937,7 +5939,8 @@ dyn_lwp *process::createRealLWP(unsigned lwp_id, int /*lwp_index*/) {
    return lwp;
 }
 
-void process::deleteLWP(dyn_lwp *lwp_to_delete) {
+void process::deleteLWP(dyn_lwp *lwp_to_delete) 
+{
    // remove lwp from internal structures
    if(real_lwps.size() > 0 && lwp_to_delete!=NULL) {
       theRpcMgr->deleteLWP(lwp_to_delete);
@@ -5967,7 +5970,7 @@ void process::deleteThread(dynthread_t tid)
         dyn_lwp *lwp = thr->get_lwp();
 
         //Find the deleted thread
-        if(thr->get_tid() != tid) 
+        if (thr->get_tid() != tid) 
             {
                 //Update the process state, since deleting a thread may change it.
                 if (lwp->status() == stopped)
@@ -5975,7 +5978,7 @@ void process::deleteThread(dynthread_t tid)
                 continue;
             } 
         threads.erase(iter);  
-        removeThreadIndexMapping(thr);
+        removeThreadIndexMapping(thr->get_tid(), thr->get_index());
 
         deleteThread_(thr);
         //Delete the thread
@@ -5995,14 +5998,17 @@ void process::deleteThread(dynthread_t tid)
     */
 }
 
-bool process::removeThreadIndexMapping(dyn_thread *thr)
+bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
 {
+    //fprintf(stderr, "%s[%d]:  welcome to removeThreadIndexMapping for %lu\n", FILE__, __LINE__, (unsigned long) tid);
     if (!runtime_lib)
         return false;
-    assert(thr);
 
     // Don't worry 'bout it if we're cleaning up and exiting anyway.
-    if (exiting_) return true;
+    if (exiting_) {
+       //fprintf(stderr, "%s[%d]:  ignoring remove... we are exiting\n", FILE__, __LINE__);
+       return true;
+    }
     signal_printf("%s[%d]: past wait loop, deleting thread....\n", FILE__, __LINE__);
 
     bool res = false;
@@ -6014,10 +6020,10 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
 
     signal_printf("%s[%d]:  removing thread index %d for tid %lu: status is %s\n", 
                   FILE__, __LINE__, 
-                  thr->get_index(), thr->get_tid(), 
+                  index, tid, 
                   getStatusAsString().c_str());
 
-    if (-1 == thr->get_index()) {
+    if (-1 == index) {
         goto done;
     }
 
@@ -6056,7 +6062,7 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
     // were stopped. 
 
     // Okay, we have the base addr. Now get the addr of the "real" structure
-    thread_struct_addr = thread_structs_base + (thr->get_index()*sizeof(dyninst_thread_t));
+    thread_struct_addr = thread_structs_base + (index*sizeof(dyninst_thread_t));
     // Mmm array math
 
     // Double-check: read it out of the process....
@@ -6069,10 +6075,12 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
         goto done;
     }
 
-    assert(doublecheck.tid == (dyntid_t) thr->get_tid());
+    assert(doublecheck.tid == (dyntid_t) tid);
 
     if (doublecheck.thread_state != THREAD_COMPLETE) {
         // On platforms where we need to implement thread exit...
+        //fprintf(stderr, "%s[%d]:  SKIPPING CLEANUP for thread %lu, thread state is %d, not THREAD_COMPLETE\n", FILE__, __LINE__, tid, doublecheck.thread_state);
+       //goto done;
     }
 
     doublecheck.thread_state = LWP_EXITED;
@@ -6093,6 +6101,9 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
     if (continueLWP && lwpToUse) {
         sh->continueProcessAsync(-1, lwpToUse);
     }
+
+    if (!res) 
+       fprintf(stderr, "%s[%d]:  ERROR resetting thread state\n", FILE__, __LINE__);
 
     return res;
 }

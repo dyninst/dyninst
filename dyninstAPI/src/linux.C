@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.227 2006/05/04 02:28:41 bernat Exp $
+// $Id: linux.C,v 1.228 2006/05/09 09:52:54 jaw Exp $
 
 #include <fstream>
 
@@ -344,6 +344,27 @@ bool SignalGenerator:: remove_lwp_from_poll_list(int lwp_id)
       }
    }
    return found;
+}
+
+bool SignalGenerator::exists_dead_lwp()
+{
+   struct stat buf;
+   char filename[64];
+   int lwpid;
+
+   for (unsigned i=0; i<attached_lwp_ids.size(); i++)
+   {
+      lwpid = attached_lwp_ids[i];
+      if (lwpid >= 0)
+         snprintf(filename, 64, "/proc/%d", lwpid);
+      else
+         snprintf(filename, 64, "/proc/.%d", -1 * lwpid);
+      if (stat(filename, &buf) != 0)
+      {
+         return true;
+      }
+   }
+   return false;
 }
 
 int SignalGenerator::find_dead_lwp()
@@ -1633,7 +1654,7 @@ bool dyn_lwp::realLWP_attach_() {
       if (evt != evtThreadDetect) {
          //  process can exit here while we are waiting...  no??
          if (evt == evtProcessExit) {
-            fprintf(stderr, "%s[%d]:  process exited before thread detect event... bye...\n", FILE__, __LINE__);
+            //fprintf(stderr, "%s[%d]:  process exited before thread detect event... bye...\n", FILE__, __LINE__);
             return false;
          }
          fprintf(stderr, "%s[%d]:  received unexpected event %s\n", 

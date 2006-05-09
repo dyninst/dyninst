@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.7 2006/05/05 02:13:49 bernat Exp $
+/* $Id: signalgenerator-unix.h,v 1.8 2006/05/09 09:52:55 jaw Exp $
  */
 
 
@@ -61,6 +61,7 @@ class SignalGenerator : public SignalGeneratorCommon
 
    bool waitingForStop() {return waiting_for_stop;}
    void setWaitingForStop(bool flag) {waiting_for_stop = flag;}
+   void expectFakeSignal() {expect_fake_signal = true;}
   private:
   //  SignalGenerator should only be constructed by process
   SignalGenerator(char *idstr, pdstring file, pdstring dir,
@@ -118,11 +119,14 @@ class SignalGenerator : public SignalGeneratorCommon
    void clearCachedLocations();
 
 
+   bool expect_fake_signal;
+
 #if defined (os_linux)
    public:
    bool add_lwp_to_poll_list(dyn_lwp *lwp);
    bool remove_lwp_from_poll_list(int lwp_id);
    bool resendSuppressedSignals();
+   bool exists_dead_lwp();
    private:
    pdvector<int> suppressed_sigs;
    pdvector<dyn_lwp *> suppressed_lwps;

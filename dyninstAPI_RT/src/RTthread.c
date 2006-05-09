@@ -95,8 +95,8 @@ int DYNINSTthreadIndex()
    curr_index = DYNINSTthreadIndexSLOW(tid);
    if (curr_index == DYNINST_max_num_threads)
    {
-     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): doing threadCreate\n", 
-                 __FILE__, __LINE__);
+     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): doing threadCreate for %lu\n", 
+                 __FILE__, __LINE__, tid);
        curr_index = threadCreate(tid);
    }
 

@@ -489,8 +489,10 @@ void func3_1()
 
   sleep_ms(999);
   unlockLock(&test3lock);
+  dprintf("%s[%d]:  func3_1\n", __FILE__, __LINE__);
   while (mutateeIdle) {}
 
+  dprintf("%s[%d]:  leaving func3_1\n", __FILE__, __LINE__);
 }
 
 Lock_t test4lock;
@@ -516,6 +518,7 @@ void func4_1()
 #if defined(os_linux) && defined(arch_x86)
 #else
 */
+  dprintf("%s[%d]:  welcome to func4_1\n", __FILE__, __LINE__);
   createLock(&test4lock);
 
 
@@ -782,7 +785,9 @@ int main(int iargc, char *argv[])
     if (runTest[7]) func7_1();
     if (runTest[8]) func8_1();
 
+#if 0
     while(1);
+#endif
 
     return(0);
 }

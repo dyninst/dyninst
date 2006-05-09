@@ -263,7 +263,8 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
    process *proc = ev.proc;
    assert(proc);
 
-   fprintf(stderr,"Process %d dying on signal %d\n", proc->getPid(), ev.what);
+   fprintf(stderr,"%s[%d]: Process %d dying on signal %d\n", FILE__, __LINE__,
+           proc->getPid(), ev.what);
 
    if (dyn_debug_signal) {
        pdvector<pdvector<Frame> > stackWalks;
@@ -308,6 +309,7 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
    process *proc = ev.proc;
    dyn_lwp *lwp = ev.lwp;
    dyn_thread *thr = NULL;
+
    //Find the exiting thread
    for (unsigned i=0; i<proc->threads.size(); i++) {
        if (proc->threads[i]->get_lwp()->get_lwp_id() == lwp->get_lwp_id()) {
@@ -315,8 +317,8 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
            break;
        }
    }
-   if (!thr)
-   {
+
+   if (!thr) {
        fprintf(stderr, "%s[%d]: No matching thread! for lwp exit\n", FILE__, __LINE__);
        continueHint = true;
        return false;

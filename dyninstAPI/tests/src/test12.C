@@ -319,11 +319,11 @@ bool mutatorTest1()
 
   proc->continueExecution();
 
-   sleep (3);
+   //sleep (3);
    int timeout = 0;
    while (timeout < TIMEOUT) {
-     sleep_ms(1000/*ms*/);
-     timeout += 1000;
+     sleep_ms(SLEEP_INTERVAL/*ms*/);
+     timeout += SLEEP_INTERVAL;
      if (proc->isTerminated()) 
         break;
      if (proc->isStopped()) {
@@ -337,7 +337,6 @@ bool mutatorTest1()
                 __FILE__, __LINE__);
         abort();
      }
-     fprintf(stderr, "%s[%d]:  sleeping some more....\n", __FILE__, __LINE__);
    }
 
    if (proc->isTerminated()) {
@@ -372,10 +371,9 @@ bool mutatorTest1()
      return false;
    }
 
-  sleep_ms(1000/*ms*/);
+  //sleep_ms(1000/*ms*/);
   PASS(TESTNO,TESTNAME);
-  fprintf(stderr, "%s[%d]:  commented out delete\n", __FILE__, __LINE__);
-  //delete(proc);
+  delete(proc);
   return true;
 }
 
@@ -536,6 +534,9 @@ void threadCreateCB(BPatch_process * /*proc*/, BPatch_thread *thr)
                thr->getTid(), thr->getPid());
   test3_threadCreateCounter++;
   callback_tids.push_back(thr->getTid());
+  if (thr->isDeadOnArrival()) {
+     dprintf("%s[%d]:  thread %lu is doa \n", __FILE__, __LINE__, thr->getTid());
+  }
 }
 
 bool mutatorTest3and4(int testno, const char *testname)
@@ -564,20 +565,46 @@ bool mutatorTest3and4(int testno, const char *testname)
   //  wait until we have received the desired number of events
   //  (or timeout happens)
 
-  while(test3_threadCreateCounter < TEST3_THREADS && (timeout < TIMEOUT)) {
+  BPatch_Vector<BPatch_thread *> threads;
+  BPatch_process *appProc = appThread->getProcess();
+  assert(appProc);
+  appProc->getThreads(threads);
+  int active_threads = 11;
+  threads.clear();
+  while (((test3_threadCreateCounter < TEST3_THREADS)
+         || (active_threads > 1)) 
+         && (timeout < TIMEOUT)) {
+    dprintf("%s[%d]: waiting for completion for test %d, num active threads = %d\n", 
+            __FILE__, __LINE__, testno, active_threads);
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
+    if (appThread->isTerminated()) {
+       fprintf(stderr, "%s[%d]:  BAD NEWS:  somehow the process died\n", __FILE__, __LINE__);
+       err = 1;
+       break;
+    }
     bpatch->pollForStatusChange();
+    if (appThread->isStopped()) {
+       //  this should cause the test to fail, but for the moment we're
+       //  just gonna continue it and complain
+       fprintf(stderr, "%s[%d]:  BAD NEWS:  somehow the process stopped\n", __FILE__, __LINE__);
+       appThread->continueExecution();
+    }
+    appProc->getThreads(threads);
+    active_threads = threads.size();
+    threads.clear();
   }
 
   if (timeout >= TIMEOUT) {
     FAIL(testno, testname);
-    fprintf(stderr, "%s[%d]:  test timed out.\n",
-           __FILE__, __LINE__);
+    fprintf(stderr, "%s[%d]:  test timed out. got %d/10 events\n",
+           __FILE__, __LINE__, test3_threadCreateCounter);
     err = 1;
   }
 
-  sleep_ms(100);
+  dprintf("%s[%d]: ending test %d, num active threads = %d\n", 
+            __FILE__, __LINE__, testno, active_threads);
+  //sleep_ms(500);
   dprintf("%s[%d]:  stop execution for test %d\n", __FILE__, __LINE__, testno);
   appThread->stopExecution();
 
@@ -589,8 +616,9 @@ bool mutatorTest3and4(int testno, const char *testname)
   if (testno == 4)
      threads_varname = "test4_threads";
   assert(threads_varname);
-  getVar(threads_varname, (void *) mutatee_tids, (sizeof(unsigned long) * TEST3_THREADS),
-          testno, testname);
+  getVar(threads_varname, (void *) mutatee_tids, 
+         (sizeof(unsigned long) * TEST3_THREADS),
+         testno, testname);
 
   if (debugPrint) {
     fprintf(stderr, "%s[%d]:  read following tids for test%d from mutatee\n", __FILE__, __LINE__, testno);
@@ -632,7 +660,7 @@ bool mutatorTest3and4(int testno, const char *testname)
   if (!err)  {
     PASS(testno, testname);
     //sleep(5);
-    sleep_ms(200);
+    //sleep_ms(200);
     return true;
   }
   return false;
@@ -964,7 +992,7 @@ void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
      destroy_counter++;
   if (destroy_counter == TEST8_THREADS)
     test8done = true;
-  sleep_ms(10);
+  //sleep_ms(10);
 }
 
 bool mutatorTest8()
@@ -1020,8 +1048,8 @@ bool mutatorTest8()
 
   if (timeout >= TIMEOUT) {
     FAIL(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  test timed out.\n",
-           __FILE__, __LINE__);
+    fprintf(stderr, "%s[%d]:  test timed out. Took longer than %d ms\n",
+           __FILE__, __LINE__, TIMEOUT);
     test8err = true;
   }
 
@@ -1118,7 +1146,8 @@ int mutatorMAIN(char *pathname, bool useAttach)
         } else {
             dprintf("New mutatee process pid %d started; attaching...\n", pid);
         }
-        P_sleep(1); // let the mutatee catch its breath for a moment
+        sleep_ms(100); // let the mutatee catch its breath for a moment
+        //P_sleep(1); // let the mutatee catch its breath for a moment
         appThread = bpatch->attachProcess(pathname, pid);
     } else {
         child_argv[n++] = const_cast<char *>("-attachrun");
@@ -1169,8 +1198,19 @@ int mutatorMAIN(char *pathname, bool useAttach)
     if (runTest[8]) passedTest[8] = mutatorTest8();
 
     cleanup:
-    if (appThread && !appThread->isTerminated())
-      appThread->terminateExecution();
+
+     //  unset mutateeIdle -- should exit gracefully
+     int zero = 0;
+      setVar("mutateeIdle", (void *) &zero, -1, "general test12 infrastructure");
+
+     if (appThread->isStopped())  {
+         appThread->continueExecution();
+      }
+        
+
+     while (!appThread->isTerminated()) {
+        bpatch->waitForStatusChange();
+     }
 
     printf("\n");
 

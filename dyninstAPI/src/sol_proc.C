@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.102 2006/05/05 19:59:50 bernat Exp $
+// $Id: sol_proc.C,v 1.103 2006/05/09 09:52:56 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -782,7 +782,7 @@ bool dyn_lwp::realLWP_attach_()
    sprintf(temp, "/proc/%d/lwp/%d/lwpctl", (int)proc_->getPid(), lwp_id_);
    ctl_fd_ = P_open(temp, O_WRONLY, 0);
    if (ctl_fd_ < 0) {
-      fprintf(stderr, "%s[%d]: Opening lwpctl: %s\n", FILE__, __LINE__, strerror(errno));
+      //fprintf(stderr, "%s[%d]: Opening lwpctl: %s\n", FILE__, __LINE__, strerror(errno));
       return false;
    }
 

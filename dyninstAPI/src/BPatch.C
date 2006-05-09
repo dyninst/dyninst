@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.147 2006/05/05 02:13:45 bernat Exp $
+// $Id: BPatch.C,v 1.148 2006/05/09 09:52:54 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1496,6 +1496,37 @@ bool BPatch::pollForStatusChangeInt()
         mutateeStatusChange = false;
         return true;
     }
+#if defined (os_linux)
+   //  This might only be needed on linux 2.4, but we need to manually check
+   //  to see if any threads exited here, and, if they have...  kick the 
+   //  appropriate signal generator to wake up
+   dictionary_hash_iter<int, BPatch_process *> ti(info->procsByPid);
+
+   int pid;
+   BPatch_process *proc;
+   
+   while (ti.next(pid, proc))
+   {
+      assert(proc);
+      process *p = proc->llproc;
+      assert(p);
+      //  if the process has a rep lwp, it is not mt
+      dyn_lwp *replwp = p->getRepresentativeLWP();
+      if (replwp) continue;
+      SignalGenerator *sg = p->getSG();
+      assert(sg);
+      if (sg->exists_dead_lwp()) {
+        if (sg->isWaitingForOS()) {
+          //  the signal generator is inside a waitpid, kick the mutatee to wake
+          //  it up.
+          sg->expectFakeSignal();
+          P_kill(pid, DYNINST_BREAKPOINT_SIGNUM);
+        }
+        else
+          sg->signalActiveProcess();
+      }
+   }
+#endif
     return false;
 }
 

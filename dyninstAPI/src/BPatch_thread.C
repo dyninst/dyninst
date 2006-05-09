@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.159 2006/05/05 19:59:46 bernat Exp $
+// $Id: BPatch_thread.C,v 1.160 2006/05/09 09:52:54 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -159,6 +159,10 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
     deleted_callback_made(false)
 {
    proc = parent;
+   legacy_destructor = true;
+   updated = false;
+   reported_to_user = false;
+   index = (unsigned) -1; // is this safe ??  might want index = -1??
    is_deleted = false;
    doa_tid = (dynthread_t) -1;
    dyn_lwp *lwp = NULL;
@@ -190,9 +194,6 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
 
    index = llthread->get_index();
 
-   legacy_destructor = true;
-   updated = false;
-   reported_to_user = false;
 }
 
 BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr) :

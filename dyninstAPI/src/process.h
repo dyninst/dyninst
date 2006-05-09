@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.376 2006/05/04 17:13:06 bernat Exp $
+/* $Id: process.h,v 1.377 2006/05/09 09:52:55 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -184,6 +184,7 @@ class process {
     // Fork constructor
     process(const process *parentProc, SignalGenerator *sg_, int iTrace_fd);
 
+    SignalGenerator *getSG() {return sh;}
     // Creation work
     bool setupCreated(int iTraceLink);
     bool setupAttached();
@@ -228,7 +229,7 @@ class process {
 
   void deleteThread(dynthread_t tid);
   void deleteThread_(dyn_thread *thr);
-  bool removeThreadIndexMapping(dyn_thread *thr);
+  bool removeThreadIndexMapping(dynthread_t tid, unsigned index);
 
   // Thread index functions
   // Current implementations _cannot_ be correct; also, unused

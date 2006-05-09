@@ -378,6 +378,7 @@ void SignalGeneratorCommon::waitForActivation() {
 
 bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith, dyn_lwp *lwp) {
     if (exitRequested()) {
+        //fprintf(stderr, "%s[%d]:  continueProcessAsync: exit requested, ignoring\n", FILE__, __LINE__);
         // We're going away... so don't do anything
         return true;
     }
@@ -1760,6 +1761,7 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp
 {
     if (exitRequested()) {
         // We're going away... so don't do anything
+        fprintf(stderr, "%s[%d]:  continueProcessBlocking:  program exiting... ignoring\n", FILE__, __LINE__);
         return true;
     }
 

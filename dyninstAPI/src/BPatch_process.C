@@ -488,11 +488,15 @@ bool BPatch_process::stopExecutionInt()
 bool BPatch_process::continueExecutionInt()
 {
 
-    if (isTerminated()) return true;
+    if (isTerminated()) {
+       fprintf(stderr, "%s[%d]:  continueExecution:: process is terminated\n", FILE__, __LINE__);
+      return true;
+    }
 
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
        isVisiblyStopped = false;
+       fprintf(stderr, "%s[%d]:  continueExecution:: process is not stopped\n", FILE__, __LINE__);
        return true;
    }
 
@@ -1797,11 +1801,18 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
    if (!bpthr)
       bpthr = this->getThreadByIndex(index);
 
-   //Needs creating
-   if (!bpthr) 
+   if (!bpthr)
    {
       bpthr = BPatch_thread::createNewThread(this, index, lwp, tid);
+
+#if 0
+      fprintf(stderr, "%s[%d]:  CREATE THREAD: tid=%lu, index=%d, reported %s, doa %s\n", 
+             FILE__, __LINE__, tid, index, bpthr->reported_to_user ? "true" : "false",
+             bpthr->doa ? "true" : "false");
+#endif
+
       if (bpthr->doa) {
+          bpthr->getProcess()->llproc->removeThreadIndexMapping(tid, index);
           return bpthr;
       }
          
@@ -1934,6 +1945,14 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
   if (newthr->reported_to_user) {
      async_printf("%s[%d]:  NOT ISSUING CALLBACK:  thread %lu exists\n", 
                   FILE__, __LINE__, (long) threadid);
+     fprintf(stderr, "%s[%d]:  NOT ISSUING CALLBACK:  thread %lu exists\n", 
+                  FILE__, __LINE__, (long) threadid);
+     unsigned newthr_start_pc = newthr->llthread ? newthr->llthread->get_start_pc() : 0;
+     fprintf(stderr, "\tindex = %d/%d\n\tlwpid = %d/%d\n\tstack_top = %p/%p\n\tstart_pc = %p/%p\n",
+             newthr->getBPatchID(), index, 
+             newthr->getLWP(), lwpid, 
+             newthr->getStackTopAddr(), stack_top,
+             newthr_start_pc, start_pc);
      return newthr;
   }
 
