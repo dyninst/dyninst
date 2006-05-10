@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.168 2006/02/21 16:22:27 darnold Exp $
+// $Id: DMmain.C,v 1.169 2006/05/10 11:40:05 darnold Exp $
 
 #include <assert.h>
 extern "C" {
@@ -637,7 +637,7 @@ void dataManager::displayDaemonStartInfo()
 {
     const pdstring machine = getNetworkName();
     const pdstring port    = pdstring(dataManager::dm->sock_port);
-    pdstring command = pdstring("paradynd -z<flavor> -l2")
+    pdstring command = pdstring("paradynd -z<flavor> -l1")
                        + pdstring(" -m") + machine + pdstring(" -p") + port;
 #if !defined(i386_unknown_nt4_0)
     pdstring term_port = pdstring(dataManager::termWin_port);
@@ -666,7 +666,7 @@ void dataManager::printDaemonStartInfo(const char *filename)
 {
     const pdstring machine = getNetworkName();
     const pdstring port  = pdstring(dataManager::dm->sock_port);
-    pdstring command = pdstring("paradynd -z<flavor> -l2")
+    pdstring command = pdstring("paradynd -z<flavor> -l1")
                      + pdstring(" -m") + machine + pdstring(" -p") + port;
 #if !defined(i386_unknown_nt4_0)
     pdstring term_port = pdstring(dataManager::termWin_port);
@@ -881,9 +881,7 @@ DMmain( void* varg )
 	      NULL,
 	      userConstant);
 
-    //fprintf(stderr, "DM: calling DM_post_thread_create_init() started\n");
     dataManager::DM_post_thread_create_init( dmArgs );
-    //fprintf(stderr, "DM: DM_post_thread_create_init() done\n");
 
     thread_t tid;
     unsigned int tag;
@@ -906,7 +904,6 @@ DMmain( void* varg )
         tag = MSG_TAG_ANY;
         //msg_dump_state();
         err = msg_poll_preference(&tid, &tag, true,fd_first);
-        //fprintf(stderr, ".");
         assert(err != THR_ERR);
         fd_first = !fd_first;
 	
