@@ -545,6 +545,35 @@ sharedLibHook::~sharedLibHook()
 // address space.  This routine reads the link maps from the application 
 // process to find the shared object file base mappings. It returns 0 on error.
 bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
+   // Use proc maps file instead of r_debug.  It's more detailed, and some
+   // kernels don't report correct info in r_debug
+
+   // Apparently the r_debug stuff keeps things in some wacked out order
+   // that we need.  Use proc/maps to augment r_debug instead
+
+   unsigned maps_size = 0;
+   maps_entries *maps= getLinuxMaps(proc->getPid(), maps_size);
+   //   pdstring aout = process::tryToFindExecutable("", proc->getPid());
+
+   /*
+   if (maps) {
+      for (unsigned i = 0; i < maps_size; i++) {
+         if (maps[i].prems & PREMS_EXEC &&
+             strlen(maps[i].path) &&
+             aout != maps[i].path) {
+
+            descs.push_back(fileDescriptor(maps[i].path,
+                                           maps[i].start,
+                                           maps[i].start,
+                                           true));
+         }
+      }
+      free(maps);
+      //      return true;
+      descs.clear();
+   }
+   */
+
    assert(r_debug_addr); // needs to be set before we're called
 
    r_debug_x *debug_elm;
@@ -570,10 +599,34 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
 
    do {
       pdstring obj_name = pdstring(link_elm->l_name());
-      if (obj_name == "" && link_elm->l_addr() == 0) {
+      Address text = link_elm->l_addr();
+      if (obj_name == "" && text == 0) {
          continue;
       }
 
+      if (obj_name == "") { // Augment using maps
+         for (unsigned i = 0; i < maps_size; i++) {
+            if (text == maps[i].start) {
+               obj_name = maps[i].path;
+               break;
+            }
+         }
+      } /* else if (text == 0) { // Augment using maps
+         // r_debug will show symlinks, but maps shows the actual file
+         char symlink[PATH_MAX];
+         if (realpath(obj_name.c_str(), symlink) != NULL)
+            obj_name = symlink;
+         for (unsigned i = 0; i < maps_size; i++) {
+            if (maps[i].prems & PREMS_EXEC &&
+                !strcmp(symlink,maps[i].path)) {
+               text = maps[i].start;
+               break;
+            }
+         }
+         }*/
+
+      if (obj_name.c_str()[0] == '[')
+         continue;
       if (!link_elm->is_valid()) {
          delete link_elm;
          delete debug_elm;
@@ -581,7 +634,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
          return 0;
       }
       descs.push_back(fileDescriptor(obj_name, 
-                                     link_elm->l_addr(), link_elm->l_addr(),
+                                     text, text,
                                      true));
    } while (link_elm->load_next());
     

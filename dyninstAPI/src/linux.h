@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.28 2006/05/10 02:31:01 jaw Exp $
+// $Id: linux.h,v 1.29 2006/05/10 16:56:13 jodom Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -112,9 +112,27 @@ bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
 bool attachToChild(int pid);
 
 void calcVSyscallFrame(process *p);
+struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size);
 
 //  no /proc, dummy function
 typedef int procProcStatus_t;
+
+#define PREMS_PRIVATE (1 << 4)
+#define PREMS_SHARED  (1 << 3)
+#define PREMS_READ    (1 << 2)
+#define PREMS_WRITE   (1 << 1)
+#define PREMS_EXEC    (1 << 0)
+
+typedef struct maps_entries {
+   Address start;
+   Address end;
+   unsigned prems;
+   Address offset;
+   int dev_major;
+   int dev_minor;
+   int inode;
+   char path[512];
+} map_entries;
 
 #define INDEPENDENT_LWP_CONTROL true
 #endif

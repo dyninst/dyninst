@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.228 2006/05/09 09:52:54 jaw Exp $
+// $Id: linux.C,v 1.229 2006/05/10 16:56:13 jodom Exp $
 
 #include <fstream>
 
@@ -1732,23 +1732,6 @@ bool dyn_lwp::representativeLWP_attach_() {
    return true;
 }
 
-#define PREMS_PRIVATE (1 << 4)
-#define PREMS_SHARED  (1 << 3)
-#define PREMS_READ    (1 << 2)
-#define PREMS_WRITE   (1 << 1)
-#define PREMS_EXEC    (1 << 0)
-
-typedef struct maps_entries {
-   Address start;
-   Address end;
-   unsigned prems;
-   Address offset;
-   int dev_major;
-   int dev_minor;
-   int inode;
-   char path[512];
-} map_entries;
-
 #define LINE_LEN 1024
 struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    char line[LINE_LEN], prems[16], *s;
@@ -1781,6 +1764,7 @@ struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size) {
       if (!fgets(line, LINE_LEN, f))
          break;
       line[LINE_LEN - 1] = '\0';
+      maps[i].path[0] = '\0';
       sscanf(line, "%lx-%lx %16s %lx %x:%x %u %512s\n", 
              (Address *) &maps[i].start, (Address *) &maps[i].end, prems, 
              (Address *) &maps[i].offset, &maps[i].dev_major,
