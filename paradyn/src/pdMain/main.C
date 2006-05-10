@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.74 2006/04/13 23:05:36 legendre Exp $
+// $Id: main.C,v 1.75 2006/05/10 11:40:01 darnold Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -52,6 +52,7 @@
 #include "pdthread/h/thread.h"
 #include "dataManager.thread.SRVR.h"
 #include "VM.thread.SRVR.h"
+#include "paradyn/src/DMthread/DMdaemon.h"
 #include "paradyn/src/DMthread/BufferPool.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 #include "paradyn/src/PCthread/PCextern.h"
@@ -96,6 +97,7 @@ pdstring pclStartupFileName = "";
 pdstring tclStartupFileName = "";
 pdstring daemonStartupInfoFileName = "";
 bool useGUITermWin = true;
+bool manualDaemonStartup=false;
 
 // default_host defines the host where programs run when no host is
 // specified in a PCL process definition, or in the process definition window.
@@ -253,8 +255,6 @@ main(int argc, char* argv[])
     msg_send (DMtid, MSG_TAG_ALL_CHILDREN_READY, (char *) NULL, 0);
     dataMgr = new dataManagerUser (DMtid);
     uiMgr->DMready();
-    // context = dataMgr->createApplicationContext(eFunction);
-
 
     // Spawn the Performance Consultant
     PCthreadArgs pcArgs( MAINtid );
@@ -317,9 +317,9 @@ main(int argc, char* argv[])
         dataMgr->printDaemonStartInfo( daemonStartupInfoFileName.c_str() );
     }
 
-    //At this point, mrnet should be running as well as the application daemon
-    //We can re-enable the pause/run button
-    //TODO: handle case where application is not yet running at this point (darnold)
+    if( manualDaemonStartup == true ) {
+        dataMgr->instantiateMRNetforManualDaemon();
+    }
 
     // Block until the UI thread exits, indicating we should shut down
     thr_join(UIMtid, NULL, NULL);
@@ -383,6 +383,12 @@ ParseCommandLine( int /* argc */, char* argv[] )
 #endif
             a_ct += 1;
         }
+        else if (!strcmp(argv[a_ct], "--manual-daemon-startup") ||
+                 !strcmp(argv[a_ct], "-mds"))
+        {
+            manualDaemonStartup=true;
+            a_ct += 1;
+        }
         else
         {
             // unrecognized command line switch
@@ -392,6 +398,7 @@ ParseCommandLine( int /* argc */, char* argv[] )
                 << " [-x <connect_filename>]"
                 << " [-cl]"
                 << " [-default_host <hostname>]"
+                << " [--manual-daemon-startup|-mds]"
                 << std::endl;
             exit(-1);
         }
