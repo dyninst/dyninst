@@ -214,15 +214,14 @@ resource *resource::newResource(resource *parent, void *handle,
 }
 
 void resource::send_now() {
-
-  tp->severalResourceInfoCallback(defaultStream, resourceInfoCallbackBuffer);
-  resourceInfoCallbackBuffer.resize(0);
+    tp->severalResourceInfoCallback(defaultStream, resourceInfoCallbackBuffer);
+    resourceInfoCallbackBuffer.resize(0);
 }
 
 void resource::updateResource(resource * old, const pdstring & abstraction,
                               pdvector<pdstring>& name,
                               ResourceType * /* type */,
-                        pdvector <pdstring>& displayname, int retired)
+                              pdvector <pdstring>& displayname, int retired)
 {
 
     if(retired){ /* if it's retiring, we're not going to change anything else */
@@ -340,65 +339,58 @@ void resource::report_ChecksumToFE( void )
 	extern unsigned sdm_id;
 	resource::ChecksumType checksum = 0;
 
-  resourceInfoCallbackBuffer.resize(0);
+    resourceInfoCallbackBuffer.resize(0);
 
 
 	// add all resource's contributio to the checksum
 	dictionary_hash_iter<pdstring, resource*> iter = allResources;
 	
-	//fprintf(stderr, "CCC: in report_ChecksumToFE(). %d resources\n", allResources.size() );
-
-	for( ; iter != allResources.end(); iter++ ) 
-		{
-			resource* curResource = *iter;
-			if( curResource->is_CodeResource() )
-				{
-					resource::ChecksumType cur_checksum;
-					cur_checksum = curResource->get_Checksum();
-					checksum += cur_checksum;
-				}
-			else
-				{
-					T_dyninstRPC::resourceInfoCallbackStruct cbstruct;
-					pdvector<pdstring> *res_components = new pdvector<pdstring>;
+	for( ; iter != allResources.end(); iter++ ) {
+        resource* curResource = *iter;
+        if( curResource->is_CodeResource() ) {
+            resource::ChecksumType cur_checksum;
+            cur_checksum = curResource->get_Checksum();
+            checksum += cur_checksum;
+        }
+        else {
+            T_dyninstRPC::resourceInfoCallbackStruct cbstruct;
+            pdvector<pdstring> *res_components = new pdvector<pdstring>;
 					
-					*res_components = curResource->parent()->names();
+            *res_components = curResource->parent()->names();
 										
-					*res_components += curResource->name();
+            *res_components += curResource->name();
 					
-					cbstruct.temporaryId = curResource->id();
-					cbstruct.resource_name = *res_components;
-					cbstruct.abstraction = curResource->abstraction();
-					cbstruct.type = curResource->type();
-					cbstruct.mdlType = curResource->mdlType();
+            cbstruct.temporaryId = curResource->id();
+            cbstruct.resource_name = *res_components;
+            cbstruct.abstraction = curResource->abstraction();
+            cbstruct.type = curResource->type();
+            cbstruct.mdlType = curResource->mdlType();
 
-					resourceInfoCallbackBuffer += cbstruct;
-					if( resourceInfoCallbackBuffer.size()>=100 )
-						{
-							tp->resourceBatchMode(defaultStream, true);
-							resource::send_now();
-							tp->resourceBatchMode(defaultStream, false);
-						}					
-				}
+            resourceInfoCallbackBuffer += cbstruct;
+            if( resourceInfoCallbackBuffer.size()>=100 ) {
+                tp->resourceBatchMode(defaultStream, true);
+                resource::send_now();
+                tp->resourceBatchMode(defaultStream, false);
+            }					
+        }
 			
-		}
+    }
 	
-	if( resourceInfoCallbackBuffer.size() > 0 )
-		{
-			tp->resourceBatchMode(defaultStream, true);
-			resource::send_now();
-			tp->resourceBatchMode(defaultStream, false);
-		}
+	if( resourceInfoCallbackBuffer.size() > 0 ) {
+        tp->resourceBatchMode(defaultStream, true);
+        resource::send_now();
+        tp->resourceBatchMode(defaultStream, false);
+    }
 
 	//checksum calculated, send to FE
-	pdvector<T_dyninstRPC::equiv_class_entry> entries;
-	T_dyninstRPC::equiv_class_entry entry;
+    pdvector<T_dyninstRPC::equiv_class_entry> entries;
+    T_dyninstRPC::equiv_class_entry entry;
 	
-	entry.val = checksum;
-	entry.class_rep = sdm_id;
-	entries.push_back( entry );
+    entry.val = checksum;
+    entry.class_rep = sdm_id;
+    entries.push_back( entry );
 
-	tp->resourceEquivClassReportCallback( equivClassReportStream, entries );
+    tp->resourceEquivClassReportCallback( equivClassReportStream, entries );
 }
 
 resource::ChecksumType resource::calculate_Checksum( void )
@@ -437,7 +429,6 @@ resource::ChecksumType resource::calculate_Checksum( void )
 
 void resource::report_ResourcesToFE( void )
 {
-
     T_dyninstRPC::resourceInfoCallbackStruct cbstruct;
     //pdvector<pdstring> res_components;
 
@@ -445,38 +436,34 @@ void resource::report_ResourcesToFE( void )
 
     tp->resourceBatchMode(defaultStream, true);
 
-    for( ; iter != resource::allResources.end();iter++ )
-      {
+    for( ; iter != resource::allResources.end();iter++ ) {
         resource * cur_resource = *iter;
 
-	
-        if( cur_resource->is_CodeResource() )
-					{
-						pdvector<pdstring> *res_components = new pdvector<pdstring>;
+        if( cur_resource->is_CodeResource() ) {
+            pdvector<pdstring> *res_components = new pdvector<pdstring>;
 						
-						*res_components = cur_resource->parent()->names();
+            *res_components = cur_resource->parent()->names();
 						
-						*res_components += cur_resource->name();
+            *res_components += cur_resource->name();
 						
-						cbstruct.temporaryId = cur_resource->id();
-						cbstruct.resource_name = *res_components;
-						cbstruct.abstraction = cur_resource->abstraction();
-						cbstruct.type = cur_resource->type();
-						cbstruct.mdlType = cur_resource->mdlType();
-						resourceInfoCallbackBuffer += cbstruct;
+            cbstruct.temporaryId = cur_resource->id();
+            cbstruct.resource_name = *res_components;
+            cbstruct.abstraction = cur_resource->abstraction();
+            cbstruct.type = cur_resource->type();
+            cbstruct.mdlType = cur_resource->mdlType();
+            resourceInfoCallbackBuffer += cbstruct;
 						
-					}
-				if( resourceInfoCallbackBuffer.size()==100 )
-					{
-						resource::send_now();
-					}
-      }
+        }
+        if( resourceInfoCallbackBuffer.size()==100 ) {
+            resource::send_now();
+        }
+    }
     if( resourceInfoCallbackBuffer.size() > 0 )
-      resource::send_now();
+        resource::send_now();
     
     tp->resourceBatchMode(defaultStream, false);
     
     tp->resourceReportsDone(defaultStream,0);
-		extern bool ok_toSendNewResources;
-		ok_toSendNewResources = true;
+    extern bool ok_toSendNewResources;
+    ok_toSendNewResources = true;
 }

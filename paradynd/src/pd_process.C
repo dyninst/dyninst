@@ -258,25 +258,25 @@ void pd_process::init()
 	
 
 	if(multithread_capable() && !has_mt_resource_heirarchies_been_defined) {
-			resource::newResource(syncRoot, NULL, nullString, "Mutex", 
-														timeStamp::ts1970(), "", 
-														CategoryResourceType,
-														MDL_T_STRING,
-														false);
-			resource::newResource(syncRoot, NULL, nullString, "RwLock", 
-														timeStamp::ts1970(), "",
-														CategoryResourceType,
-														MDL_T_STRING,
-														false);
-			resource::newResource(syncRoot, NULL, nullString, "CondVar", 
-														timeStamp::ts1970(), "",
-														CategoryResourceType,
-														MDL_T_STRING,
-														false);
-			has_mt_resource_heirarchies_been_defined = true;
-		}
-	//FillInCallGraphStatic(true,&temp);
-	findThreads();
+        resource::newResource(syncRoot, NULL, nullString, "Mutex", 
+                              timeStamp::ts1970(), "", 
+                              CategoryResourceType,
+                              MDL_T_STRING,
+                              false);
+        resource::newResource(syncRoot, NULL, nullString, "RwLock", 
+                              timeStamp::ts1970(), "",
+                              CategoryResourceType,
+                              MDL_T_STRING,
+                              false);
+        resource::newResource(syncRoot, NULL, nullString, "CondVar", 
+                              timeStamp::ts1970(), "",
+                              CategoryResourceType,
+                              MDL_T_STRING,
+                              false);
+        has_mt_resource_heirarchies_been_defined = true;
+    }
+
+    findThreads();
 }
 
 
