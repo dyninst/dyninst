@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.122 2006/02/08 21:27:38 darnold Exp $
+ * $Id: dataManager.I,v 1.123 2006/05/10 11:40:03 darnold Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -181,6 +181,7 @@ $remote dataManager {
     $base 2500;
     $version 60;
 
+    bool instantiateMRNetforManualDaemon();
 
     // 
     // Define a daemon in the daemon dictionary

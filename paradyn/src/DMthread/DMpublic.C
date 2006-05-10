@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.156 2006/03/14 01:30:22 darnold Exp $
+// $Id: DMpublic.C,v 1.157 2006/05/10 11:40:04 darnold Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -170,6 +170,12 @@ void traceDataCallBack(const void *data,
                                data,length);
          }
     }
+}
+
+bool dataManager::instantiateMRNetforManualDaemon( )
+{
+    //This function will block until the daemon "phones home"
+    return paradynDaemon::instantiateMRNetforManualDaemon();
 }
 
 void dataManager::setResourceSearchSuppress(resourceHandle res, bool newValue)
