@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.204 2006/05/09 09:52:56 jaw Exp $
+// $Id: unix.C,v 1.205 2006/05/10 02:31:02 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -73,7 +73,6 @@
 #if defined(os_aix)
 #include "dyninstAPI/src/arch-power.h"
 #endif
-#include "dyninstAPI/src/sol_proc.h"
 
 #include <sys/poll.h>
 
@@ -133,10 +132,14 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
        
        pdvector<int_variable *> vars;
        if (!proc->findVarsByAll(status_str, vars)) {
+           fprintf(stderr, "%s[%d]:  could not find var %s\n", 
+                   FILE__, __LINE__, status_str.c_str());
            return false;
        }
        
        if (vars.size() != 1) {
+           fprintf(stderr, "%s[%d]:  ERROR, found %d copies of var %s\n", 
+                   FILE__, __LINE__, vars.size(), status_str.c_str());
            return false;
        }
 
@@ -150,7 +153,7 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
        return false;
    }
 
-   switch(breakpoint) {
+   switch (breakpoint) {
    case 0:
        return false;
    case 1:
@@ -176,7 +179,9 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
    // Further processing may narrow this down some more.
 
    // Make sure we don't get this event twice....
-   proc->writeDataSpace((void *)sync_event_breakpoint_addr, sizeof(int), &zero);
+   if (!proc->writeDataSpace((void *)sync_event_breakpoint_addr, sizeof(int), &zero)) {
+       fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+   }
 
    if (sync_event_id_addr == 0) {
        pdstring status_str = pdstring("DYNINST_synch_event_id");
@@ -184,6 +189,8 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
        
        pdvector<int_variable *> vars;
        if (!proc->findVarsByAll(status_str, vars)) {
+           fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
+                   FILE__, __LINE__, status_str.c_str());
            return false;
        }
        
@@ -207,13 +214,18 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
    }
 
    // Make sure we don't get this event twice....
-   proc->writeDataSpace((void *)sync_event_id_addr, sizeof(int), &zero);
+   if (!proc->writeDataSpace((void *)sync_event_id_addr, sizeof(int), &zero)) {
+       fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+       return false;
+   }
 
    if (sync_event_arg1_addr == 0) {
        pdstring arg_str = pdstring("DYNINST_synch_event_arg1");
        
        pdvector<int_variable *> vars;
        if (!proc->findVarsByAll(arg_str, vars)) {
+           fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
+                   FILE__, __LINE__, arg_str.c_str());
            return false;
        }
        
@@ -241,12 +253,15 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
        // We only use stop on fork...
        if (status != DSE_forkExit) return false;
        // ... of the child
-       if (arg != 0) return false;
+       if (arg != 0) {
+          return false;
+       }
    }
    else if (ev.what == DYNINST_BREAKPOINT_SIGNUM) {
        if ((status == DSE_forkExit) &&
-           (arg == 0))
+           (arg == 0)) {
            return false;
+       }
    }
    else {
        assert(0);
@@ -288,6 +303,10 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
    case DSE_lwpExit:
         ev.type = evtSyscallEntry;
         ev.what = SYS_lwp_exit;
+        break;
+   case DSE_snippetBreakpoint:
+        ev.type = evtProcessStop;
+        return true;
         break;
    default:
         assert(0);

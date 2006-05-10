@@ -23,10 +23,12 @@
 #include "util.h"
 #include "showerror.h"
 #include <stdlib.h>
+
 #if !defined (os_windows)
 #include <unistd.h>
 #include <sys/types.h>
 #endif
+
 #if defined  (arch_ia64)
 #include <libunwind.h>
 #include <libunwind-ptrace.h>
@@ -37,9 +39,12 @@
 
 #if defined (os_linux)
 #define CREATE_DBI_THREAD createThread(); 
+#define DBI_PLATFORM_TARGET_THREAD TARGET_DBI_THREAD
 #else
 #define CREATE_DBI_THREAD 
+#define DBI_PLATFORM_TARGET_THREAD TARGET_ANY_THREAD
 #endif
+
 extern unsigned long dbi_thread_id;
 
 typedef enum {
@@ -74,27 +79,25 @@ class DBIEvent {
 
 class DebuggerInterface;
 
-#if defined (os_linux)
-#define DBI_PLATFORM_TARGET_THREAD TARGET_DBI_THREAD
-#else
-#define DBI_PLATFORM_TARGET_THREAD TARGET_ANY_THREAD
-#endif
 extern CallbackCompletionCallback dbi_signal_done;
 
 class DBICallbackBase : public SyncCallback
 {
   friend class DebuggerInterface;
-  //friend void dbi_signal_done_(CallbackBase *cb);
 
   public:
+
   DBICallbackBase(DBIEventType t, eventLock *l) 
-    : SyncCallback(true /*synchronous*/, l, DBI_PLATFORM_TARGET_THREAD, dbi_signalCompletion), 
-      type(t) { }  
+    : SyncCallback(true /*synchronous*/, l, DBI_PLATFORM_TARGET_THREAD, 
+                   dbi_signalCompletion), 
+      type(t) {}  
+
   virtual ~DBICallbackBase() {};
   static void dbi_signalCompletion(CallbackBase *cb);
   virtual bool waitForCompletion();
   virtual bool execute();
   virtual bool execute_real() = 0;
+
   protected:
   DBIEventType type;
 };
@@ -104,15 +107,17 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
   friend class DBICallbackBase;
 
   public:
+
   DebuggerInterface() : EventHandler<DBIEvent>(&dbilock, "DBI", false),   
                         isReady(false),
-                        isBusy(false), evt(dbiUndefined) 
-  {
+                        isBusy(false), evt(dbiUndefined) {
     CREATE_DBI_THREAD
     dbi_thread_id = getThreadID(); 
     dbi_printf("%s[%d][%s]:  created DBI thread, dbi_thread_id = %lu, -1UL = %lu\n", 
-            __FILE__, __LINE__, getThreadStr(getExecThreadID()), dbi_thread_id, (unsigned long)-1L);
- }
+            __FILE__, __LINE__, getThreadStr(getExecThreadID()), 
+            dbi_thread_id, (unsigned long)-1L);
+  }
+
   virtual ~DebuggerInterface() {}
 
   bool forkNewProcess(pdstring file, pdstring dir, pdvector<pdstring> *argv, 

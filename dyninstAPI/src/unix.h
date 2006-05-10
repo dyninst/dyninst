@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: unix.h,v 1.1 2006/04/26 03:43:03 jaw Exp $
+/* $Id: unix.h,v 1.2 2006/05/10 02:31:02 jaw Exp $
  */
 
 #ifndef _UNIX_H_
@@ -99,6 +99,56 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status, EventRecord &ev);
 extern int SYSSET_MAP(int, int);
 #else
 #define SYSSET_MAP(x, pid)  (x)
+#endif
+
+typedef unsigned long eventInfo_t;
+typedef unsigned int eventWhat_t;
+#define THREAD_RETURN void *
+#define DO_THREAD_RETURN return NULL
+
+typedef void *(*thread_main_t)(void *);
+typedef pthread_t internal_thread_t;
+
+#define VSNPRINTF vsnprintf
+#define SNPRINTF snprinf
+
+typedef pthread_mutex_t EventLock_t;
+typedef pthread_cond_t EventCond_t;
+
+#if defined(os_linux) 
+#define PTHREAD_MUTEX_TYPE PTHREAD_MUTEX_RECURSIVE_NP
+#define STRERROR_BUFSIZE 512
+#define ERROR_BUFFER char buf[STRERROR_BUFSIZE]
+#define STRERROR(x,y) strerror_r(x,y,STRERROR_BUFSIZE)
+#else
+#define ERROR_BUFFER
+#define PTHREAD_MUTEX_TYPE PTHREAD_MUTEX_RECURSIVE
+#define STRERROR_BUFSIZE 0
+#define STRERROR(x,y) strerror(x)
+#endif
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <pthread.h>
+typedef int PDSOCKET;
+
+#define PDSOCKET_ERRNO errno
+#define INVALID_PDSOCKET (-1)
+#define PDSOCKET_ERROR (-1)
+#define SOCKET_TYPE PF_UNIX
+#define THREAD_RETURN void *
+#define DO_THREAD_RETURN return NULL
+
+#if defined(os_osf)
+#define SOCKLEN_T size_t 
+#else
+#define SOCKLEN_T socklen_t 
+#endif
+
+#include <ext/hash_set>
+
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE -1
 #endif
 
 #endif

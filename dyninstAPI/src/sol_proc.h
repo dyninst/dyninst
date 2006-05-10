@@ -39,8 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sol_proc.h,v 1.5 2006/05/03 00:31:22 jodom Exp $
+// $Id: sol_proc.h,v 1.6 2006/05/10 02:31:02 jaw Exp $
 
+
+#ifndef _SOL_PROC_H_
+#define _SOL_PROC_H_
+
+#define INDEPENDENT_LWP_CONTROL false
 
 /*
  * COMPATIBILITY SECTION
@@ -80,9 +85,11 @@
 #define PR_MSACCT           0 // Again, not defined
 #define proc_sigset_t          pr_sigset_t
 #define SYSSET_DECLAREPID(x,y) int x=y
-extern int SYSSET_SIZE(sysset_t *);
+extern unsigned int SYSSET_SIZE(sysset_t *);
 extern sysset_t *SYSSET_ALLOC(int);
 #define SYSSET_FREE(x)      (free(x))
+#endif
+
 #endif
 
 

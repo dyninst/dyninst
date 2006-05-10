@@ -46,13 +46,19 @@
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME EVENT_HANDLER
+
 #include "common/h/Types.h" /*for Address */
 #include "common/h/Pair.h" /*for pdpair */
 #include "common/h/Vector.h" /*for pdvector */
 #include "common/h/headers.h" /*for DEBUG_EVENT */
 #include "common/h/Dictionary.h" /* threadmap */
+#include "os.h"
 #include "BPatch_eventLock.h"
 #include "mailbox.h"
+
+#define NULL_STATUS_INITIALIZER statusUnknown
+typedef int eventFileDesc_t;
+
 class process;
 class dyn_lwp;
 
@@ -115,21 +121,7 @@ typedef enum {
   statusError
 } eventStatusCode_t;
 
-#define NULL_STATUS_INITIALIZER statusUnknown
-#if defined (os_windows)
 
-typedef DEBUG_EVENT eventInfo_t;
-typedef DWORD eventWhat_t;
-#define THREAD_RETURN void
-#define DO_THREAD_RETURN return
-#else // !windows
-
-typedef unsigned long eventInfo_t;
-typedef unsigned int eventWhat_t;
-#define THREAD_RETURN void *
-#define DO_THREAD_RETURN return NULL
-#endif
-typedef int eventFileDesc_t;
 class EventRecord {
   public:
    EventRecord(); 
@@ -148,13 +140,6 @@ class EventRecord {
    void clear();
 }; 
 
-#if defined (os_windows)
-typedef void (*thread_main_t)(void *);
-#else
-typedef void *(*thread_main_t)(void *);
-#endif
-
-//template <class S>
 class InternalThread {
   public:
   //  InternalThread::getThreadID(), return thread id
@@ -162,6 +147,9 @@ class InternalThread {
   unsigned long getThreadID() { return tid;}
   bool isRunning() {return _isRunning;}
   const char *getName() {return idstr;}
+
+  internal_thread_t handler_thread;
+
   protected:
   InternalThread(const char *id);
   virtual ~InternalThread();
@@ -176,13 +164,9 @@ class InternalThread {
   eventLock *startupLock;
   
   bool init_ok;
+
   private:
   
-#if defined (os_windows)
-  unsigned long handler_thread;
-#else
-  pthread_t handler_thread;
-#endif
 };
 
 #ifdef DYNINST_CLASS_NAME
@@ -235,4 +219,5 @@ typedef struct {
 
 const char *getThreadStr(unsigned long tid);
 unsigned long getExecThreadID();
+
 #endif

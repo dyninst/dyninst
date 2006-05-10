@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.12 2006/05/04 16:38:21 bernat Exp $
+/* $Id: signalgenerator.h,v 1.13 2006/05/10 02:31:02 jaw Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -275,9 +275,6 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    void exitOSBlock();
 
    virtual bool postSignalHandler();
-#if defined(os_windows)
-   bool SuspendThreadFromEvent(LPDEBUG_EVENT ev, dyn_lwp *lwp);
-#endif
 
  private:
    

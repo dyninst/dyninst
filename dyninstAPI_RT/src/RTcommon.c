@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.67 2006/05/05 02:13:56 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.68 2006/05/10 02:31:03 jaw Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -238,6 +238,17 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
 int DYNINSTreturnZero()
 {
    return 0;
+}
+
+/* Used to by dyninst breakpoint snippet */
+void DYNINST_snippetBreakpoint() {
+   /* Set the state so the mutator knows what's up */
+   DYNINST_synch_event_id = DSE_snippetBreakpoint;
+   DYNINST_synch_event_arg1 = NULL;
+   /* Stop ourselves */
+   DYNINSTbreakPoint();
+   /* Once the stop completes, clean up */
+   DYNINST_synch_event_id = DSE_undefined;
 }
 
 /* Used to instrument (and report) the entry of fork */

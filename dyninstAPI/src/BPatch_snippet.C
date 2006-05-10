@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.81 2006/05/05 23:48:05 legendre Exp $
+// $Id: BPatch_snippet.C,v 1.82 2006/05/10 02:31:01 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -1238,7 +1238,7 @@ void BPatch_breakPointExpr::BPatch_breakPointExprInt()
 {
     pdvector<AstNode *> null_args;
 
-    ast = new AstNode("DYNINSTbreakPoint", null_args);
+    ast = new AstNode("DYNINST_snippetBreakpoint", null_args);
 
     assert(BPatch::bpatch != NULL);
 

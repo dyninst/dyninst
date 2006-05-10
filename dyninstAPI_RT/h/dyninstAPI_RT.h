@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.40 2006/05/05 02:13:55 bernat Exp $
+ * $Id: dyninstAPI_RT.h,v 1.41 2006/05/10 02:31:03 jaw Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -82,7 +82,7 @@ struct DYNINST_bootstrapStruct {
    int ppid; /* parent of forked process */
 };
 
-typedef enum {DSE_undefined, DSE_forkEntry, DSE_forkExit, DSE_execEntry, DSE_execExit, DSE_exitEntry, DSE_loadLibrary, DSE_lwpExit} DYNINST_synch_event_t;
+typedef enum {DSE_undefined, DSE_forkEntry, DSE_forkExit, DSE_execEntry, DSE_execExit, DSE_exitEntry, DSE_loadLibrary, DSE_lwpExit, DSE_snippetBreakpoint} DYNINST_synch_event_t;
 
 extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
 #if !defined(RTprintf)

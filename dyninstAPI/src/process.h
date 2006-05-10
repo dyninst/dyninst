@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.377 2006/05/09 09:52:55 jaw Exp $
+/* $Id: process.h,v 1.378 2006/05/10 02:31:02 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -418,13 +418,7 @@ class process {
   bool readTextSpace(const void *inTracedProcess, u_int amount,
                      const void *inSelf);
 
-  static bool IndependentLwpControl() {
-#if defined(os_linux) || defined(os_windows)
-     return true;
-#else
-     return false;
-#endif
-  }
+  static bool IndependentLwpControl() { return INDEPENDENT_LWP_CONTROL; }
   void independentLwpControlInit();
 
   // Internal calls only; this is an asynchronous call that says "run when everyone
@@ -1132,10 +1126,6 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   bootstrapState_t bootstrapState;
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
   Address loadDyninstLibAddr;
-#if defined(arch_x86) && defined(os_windows)
-  dictionary_hash<Address, unsigned char> main_breaks;
-  pdvector<unsigned> cached_lwps;
-#endif
   dyn_saved_regs *savedRegs;
 
   Address dyninstlib_brk_addr;
@@ -1144,6 +1134,9 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   char * systemPrelinkCommand;
 
 #if defined(os_windows)
+  dictionary_hash<Address, unsigned char> main_breaks;
+  pdvector<unsigned> cached_lwps;
+
   // On windows we need to temporarily keep details of process creation in
   // order to handle their debug mechanism. We create the process, then get a message
   // about it (instead of our "pull" mechanism on other platforms). This gives us

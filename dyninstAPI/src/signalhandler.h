@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.28 2006/05/05 02:13:53 bernat Exp $
+/* $Id: signalhandler.h,v 1.29 2006/05/10 02:31:02 jaw Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -164,12 +164,5 @@ class SignalHandler : public EventHandler<EventRecord>
   bool waitNextEvent(EventRecord &);
 };
 
-#if 0 // PDSEP
-#if defined(os_windows)
-#include "dyninstAPI/src/signalhandler-winnt.h"
-#else
-#include "dyninstAPI/src/signalhandler-unix.h"
-#endif
-#endif
 
 #endif

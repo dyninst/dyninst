@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.41 2006/05/03 00:31:19 jodom Exp $
+// $Id: arch-ia64.h,v 1.42 2006/05/10 02:31:01 jaw Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -241,7 +241,6 @@ class IA64_bundle {
 	}; /* end the 128 bit bundle */
 
 
-#include "inst-ia64.h"
 
 /* Required by symtab.h, which seems to use it to check
    _instruction_ alignment. */

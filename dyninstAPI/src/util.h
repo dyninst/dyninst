@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.34 2006/02/14 23:50:16 jaw Exp $
+// $Id: util.h,v 1.35 2006/05/10 02:31:02 jaw Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -63,13 +63,6 @@ bool isInitFirstRecordTime();
 const timeStamp &getFirstRecordTime();
 #endif
 
-#if defined (os_windows)
-#define VSNPRINTF _vsnprintf
-#define SNPRINTF _snprinf
-#else
-#define VSNPRINTF vsnprintf
-#define SNPRINTF snprinf
-#endif
 #define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
 extern void logLine(const char *line);
 extern void statusLine(const char *line, bool force = false);

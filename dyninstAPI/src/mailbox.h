@@ -40,50 +40,27 @@
  */
 #ifndef __EVENT_MAILBOX_H__
 #define __EVENT_MAILBOX_H__
+#include "os.h"
 #include "EventHandler.h"
 #include "BPatch_process.h"
 #include "BPatch.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 
-#if defined (os_windows)
-//typedef HANDLE EventLock_t; 
-typedef CRITICAL_SECTION EventLock_t; 
-typedef HANDLE EventCond_t;
-#else
-#include <pthread.h>
-#if defined(os_linux) //&& defined (arch_x86)
-#define PTHREAD_MUTEX_TYPE PTHREAD_MUTEX_RECURSIVE_NP
-#define STRERROR_BUFSIZE 512
-#define ERROR_BUFFER char buf[STRERROR_BUFSIZE]
-#define STRERROR(x,y) strerror_r(x,y,STRERROR_BUFSIZE)
-#else
-#define ERROR_BUFFER
-#define PTHREAD_MUTEX_TYPE PTHREAD_MUTEX_RECURSIVE
-#define STRERROR_BUFSIZE 0
-#define STRERROR(x,y) strerror(x)
-#endif
-
-typedef pthread_mutex_t EventLock_t;
-typedef pthread_cond_t EventCond_t;
-#endif
-
 class BPatch_eventLock;
 class DebuggerInterface;
 class DBIEvent;
-//class eventCond;
 
 class eventLock {
   friend class BPatch_eventLock;
-  //friend class eventCond;
   friend class DebuggerInterface;
 
-public:
+  public:
 
   eventLock();
   virtual ~eventLock();
 
-public:
+  public:
   unsigned int depth() {return lock_depth;}
   int _Lock(const char *__file__, unsigned int __line__);
   int _Trylock(const char *__file__, unsigned int __line__);
@@ -92,11 +69,14 @@ public:
   int _WaitForSignal(const char *__file__, unsigned int __line__);
 
   void printLockStack();
-private:
+
+  private:
+
   EventLock_t mutex;
   EventCond_t cond;
 
   unsigned int lock_depth;
+
   typedef struct {
     const char *file;
     unsigned int line;
@@ -108,6 +88,7 @@ private:
     lock_depth--;
     return el;
   }
+
   inline void pushLockStack(lock_stack_elem elm) {
     lock_stack.push_back(elm);
     lock_depth++;
@@ -135,11 +116,12 @@ typedef void (*CallbackCompletionCallback)(CallbackBase *);
 class CallbackBase
 {
   public:
-    CallbackBase(unsigned long target = (unsigned long) -1L, CallbackCompletionCallback cb = NULL) 
+    CallbackBase(unsigned long target = (unsigned long) -1L, 
+                 CallbackCompletionCallback cb = NULL) 
                  : target_thread (target),
                    exec_flag(false),
                    ok_to_delete(true),
-                   cleanup_callback(cb){}
+                   cleanup_callback(cb) {}
     virtual ~CallbackBase() {}
     virtual bool execute()=0;
     virtual CallbackBase *copy()=0;
@@ -147,7 +129,9 @@ class CallbackBase
     unsigned long execThread() {return execution_thread;}
     void setTargetThread(unsigned long t) {target_thread = t;}
     bool isExecuting() {return exec_flag;}
-    void setExecuting(bool flag = true, unsigned long exec_thread_id = (unsigned long) -1L) {
+
+    void setExecuting(bool flag = true, 
+                      unsigned long exec_thread_id = (unsigned long) -1L) {
       execution_thread = exec_thread_id;
       exec_flag = flag;
     }
@@ -167,13 +151,16 @@ class CallbackBase
 class ThreadMailbox
 {
   public:
+
     ThreadMailbox() {}
     ~ThreadMailbox(); 
 
      void executeOrRegisterCallback(CallbackBase *cb); 
      void executeCallbacks(const char *file, unsigned int line); 
      CallbackBase *runningInsideCallback();
+
   private:
+
     CallbackBase *executeCallback(CallbackBase *cb);
     void cleanUpCalled();
     pdvector<CallbackBase *> cbs;
@@ -182,13 +169,12 @@ class ThreadMailbox
     eventLock mb_lock;
 };
 
+ThreadMailbox *getMailbox();
 
 #define TARGET_ANY_THREAD (unsigned long) -1L
-//extern unsigned long primary_thread_id;
-//extern unsigned long dbi_thread_id;
-//extern unsigned long sync_thread_id;
 #define TARGET_UI_THREAD  primary_thread_id
 #define TARGET_DBI_THREAD  dbi_thread_id
 #define TARGET_SYNC_THREAD  sync_thread_id
-ThreadMailbox *getMailbox();
+
+
 #endif

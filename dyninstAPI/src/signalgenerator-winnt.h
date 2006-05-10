@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-winnt.h,v 1.6 2006/05/04 01:41:27 legendre Exp $
+/* $Id: signalgenerator-winnt.h,v 1.7 2006/05/10 02:31:02 jaw Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_WINNT_H
@@ -84,6 +84,7 @@ class SignalGenerator : public SignalGeneratorCommon
    bool waitingForStop() {return false;}
    void setWaitingForStop(bool flag) {;}
 
+  bool SuspendThreadFromEvent(LPDEBUG_EVENT ev, dyn_lwp *lwp);
   private:
   SignalHandler *newSignalHandler(char *name, int id);
   virtual bool forkNewProcess();
@@ -96,7 +97,6 @@ class SignalGenerator : public SignalGeneratorCommon
   bool decodeEvent(EventRecord &event);
   bool decodeBreakpoint(EventRecord &);
   bool decodeException(EventRecord &);
-  bool SuspendThreadFromEvent(LPDEBUG_EVENT ev, dyn_lwp *lwp);
 
   void clearCachedLocations() {};
 

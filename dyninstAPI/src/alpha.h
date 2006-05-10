@@ -127,4 +127,5 @@ struct dyn_saved_regs
 
 typedef prstatus_t procProcStatus_t;
 
+#define INDEPENDENT_LWP_CONTROL false
 #endif

@@ -44,8 +44,9 @@
 #ifndef LINUX_IA64_HDR
 #define LINUX_IA64_HDR
 
-#include "arch-ia64.h"
 #include "inst-ia64.h"
+#include "arch-ia64.h"
+
 #include <sys/ptrace.h>
 
 /* Why is this here? */

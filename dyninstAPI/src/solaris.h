@@ -47,7 +47,9 @@
 
 #include <procfs.h>
 #include <sys/param.h>
-#include "unix.h"
+
+#include "dyninstAPI/src/sol_proc.h"
+#include "dyninstAPI/src/unix.h"
 
 #define EXIT_NAME "_exithandle"
 

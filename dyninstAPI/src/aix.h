@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.22 2006/04/26 03:43:00 jaw Exp $
+// $Id: aix.h,v 1.23 2006/05/10 02:31:01 jaw Exp $
 
 #if !defined(os_aix)
 #error "invalid architecture-os inclusion"
@@ -54,6 +54,7 @@
 
 #include <sys/param.h>
 #include "unix.h"
+#include "sol_proc.h"
 #define EXIT_NAME "exit"
 
 #define SIGNAL_HANDLER  0

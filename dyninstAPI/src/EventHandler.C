@@ -190,8 +190,6 @@ inline THREAD_RETURN eventHandlerWrapper(void *h)
 }
 
 InternalThread::InternalThread(const char *id) :
-//template <class S>
-//InternalThread<S>::InternalThread(const char *id) :
   _isRunning(false),
   tid ((unsigned long ) -1),
   init_ok(true)
@@ -200,8 +198,6 @@ InternalThread::InternalThread(const char *id) :
 }
 
 InternalThread::~InternalThread() 
-//template <class S>
-//InternalThread<S>::~InternalThread() 
 {
   if (isRunning()) {
     //if (!killThread()) {
@@ -213,8 +209,6 @@ InternalThread::~InternalThread()
 }
 
 bool InternalThread::createThread()
-//template <class S>
-//bool InternalThread<S>::createThread()
 {
     thread_printf("%s[%d]  welcome to createThread(%s)\n", __FILE__, __LINE__, idstr);
   if (isRunning()) {
@@ -290,8 +284,6 @@ bool InternalThread::createThread()
 }
 
 bool InternalThread::killThread()
-//template <class S>
-//bool InternalThread<S>::killThread()
 {
   if (!isRunning()) {
     fprintf(stderr, "%s[%d]:  request to kill already-stopped thread\n", __FILE__, __LINE__);
@@ -315,12 +307,8 @@ bool InternalThread::killThread()
   return true; 
 }
 
-//template class InternalThread<EventRecord>;
-//template class InternalThread<DBIEvent>;
-
 template <class T>
 EventHandler<T>::EventHandler(eventLock *_lock, const char *id, bool create) :
-  //InternalThread<T>(id),
   InternalThread(id),
   eventlock(_lock),
   stop_request(false)
@@ -360,8 +348,6 @@ bool EventHandler<T>::_Broadcast(const char *__file__, unsigned int __line__)
   return eventlock->_Broadcast(__file__, __line__);
 }
 
-//bool EventHandler::waitNextEvent(EventRecord &ev)
-//bool EventHandler::handleEvent(EventRecord &ev)
 template <class T>
 void EventHandler<T>::main()
 {
@@ -394,7 +380,6 @@ void EventHandler<T>::main()
     
     thread_printf("%s[%d]:  before main loop for %s\n", __FILE__, __LINE__, idstr);
     while (1) {
-        //fprintf(stderr, "%s[%d]:  %s waiting for an event\n", __FILE__, __LINE__, idstr);
         if (!this->waitNextEvent(ev)) {
             fprintf(stderr, "%s[%d][%s]:  waitNextEvent failed \n", __FILE__, __LINE__,getThreadStr(getExecThreadID()));
             if (!stop_request)
@@ -429,7 +414,8 @@ void EventHandler<T>::main()
 }
 
 template <class T>
-void EventHandler<T>::addToThreadMap() {
+void EventHandler<T>::addToThreadMap() 
+{
     assert(tid == (unsigned long) -1);
     assert(threadMapLock != NULL);
     tid = getExecThreadID();
@@ -461,13 +447,12 @@ void EventHandler<T>::addToThreadMap() {
 }
 
 template <class T>
-void EventHandler<T>::removeFromThreadMap() {
+void EventHandler<T>::removeFromThreadMap() 
+{
     //  remove ourselves from the threadmap before exiting\n"
     assert(threadMapLock != NULL);
     threadMapLock->_Lock(FILE__, __LINE__);
 
-    //fprintf(stderr, "removeFromThreadMap for 0x%lx\n", getExecThreadID());
-    
     if (threadmap->defines(getExecThreadID())) {
         (*threadmap)[getExecThreadID()]->active = false;
 
@@ -485,7 +470,8 @@ void EventHandler<T>::removeFromThreadMap() {
 }
 
 template <class T>
-void EventHandler<T>::setName(char *newIdStr) {
+void EventHandler<T>::setName(char *newIdStr) 
+{
     free(idstr);
     idstr = strdup(newIdStr);
 
@@ -501,12 +487,10 @@ void EventHandler<T>::setName(char *newIdStr) {
 }
 
 
-//EventHandler::
-//EventHandler::
-//EventHandler::
 #if !defined (CASE_RETURN_STR)
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
+
 char *eventType2str(eventType x)
 {
   switch(x) {
@@ -551,7 +535,7 @@ char *eventType2str(eventType x)
   CASE_RETURN_STR(evtThreadDetect);
   CASE_RETURN_STR(evtLastEvent);
   default:
-    fprintf(stderr, "%s[%d]:  unknown event type\n", __FILE__, __LINE__);
+    fprintf(stderr, "%s[%d]:  unknown event type\n", FILE__, __LINE__);
   }
   return "unknown_event_type";
 }

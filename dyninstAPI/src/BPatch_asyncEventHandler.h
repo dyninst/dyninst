@@ -53,53 +53,13 @@
 #include <BPatch_process.h>
 #include <BPatch_image.h>
 #include <BPatch_Vector.h>
-#include "common/h/Pair.h"
-#include "common/h/Vector.h"
+
+#include "os.h"
 #include "EventHandler.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for BPatch_asyncEventType
                                            //  and BPatch_asyncEventRecord
-#if defined(os_windows)
-
-#include <winsock2.h>
-#define ssize_t int
-typedef SOCKET PDSOCKET;
-#define DYNINST_ASYNC_PORT 28003
-#define PDSOCKET_ERRNO WSAGetLastError()
-#define INVALID_PDSOCKET (INVALID_SOCKET)
-#define PDSOCKET_ERROR SOCKET_ERROR
-#define SOCKET_TYPE PF_INET
-#define THREAD_RETURN void
-#define DO_THREAD_RETURN return
-#define SOCKLEN_T unsigned int
-
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <pthread.h>
-typedef int PDSOCKET;
-
-#define PDSOCKET_ERRNO errno
-#define INVALID_PDSOCKET (-1)
-#define PDSOCKET_ERROR (-1)
-#define SOCKET_TYPE PF_UNIX
-#define THREAD_RETURN void *
-#define DO_THREAD_RETURN return NULL
-#if defined(os_osf)
-#define SOCKLEN_T size_t 
-#elif defined(os_irix)
-#define SOCKLEN_T std::size_t 
-#else
-#define SOCKLEN_T socklen_t 
-#endif
-#endif
-
-#if defined (os_windows)
-#define THREAD_LIB_NAME "MSVCRT"
-#elif defined (os_solaris)
-#define THREAD_LIB_NAME "libthread"
-#else
-#define THREAD_LIB_NAME "libpthread"
-#endif
+#include "common/h/Pair.h"
+#include "common/h/Vector.h"
 
 typedef enum {
     REsuccess,
@@ -201,11 +161,18 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
     //  created) so we do not need to worry about locking them:
     PDSOCKET sock;
     bool shutDownFlag;
+
+#if defined (os_windows)
+    unsigned int listen_port;
+#endif
+
+#if 0 // PDSEP
 #if defined (os_windows)
     unsigned int listen_port;
     unsigned long handler_thread;
 #else
     pthread_t handler_thread;
+#endif
 #endif
 
     //  The rest:  Data in this class that is not exclusively set during init

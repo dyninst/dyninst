@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.27 2006/04/27 07:47:10 nater Exp $
+// $Id: linux.h,v 1.28 2006/05/10 02:31:01 jaw Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -115,4 +115,6 @@ void calcVSyscallFrame(process *p);
 
 //  no /proc, dummy function
 typedef int procProcStatus_t;
+
+#define INDEPENDENT_LWP_CONTROL true
 #endif

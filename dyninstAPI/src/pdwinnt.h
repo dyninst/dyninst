@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.15 2006/04/26 03:43:02 jaw Exp $
+// $Id: pdwinnt.h,v 1.16 2006/05/10 02:31:02 jaw Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -72,5 +72,39 @@ struct dyn_saved_regs {
 
 #define INFO_TO_EXIT_CODE(info) info.u.ExitProcess.dwExitCode
 #define INFO_TO_PID(info) -1
+
+typedef DEBUG_EVENT eventInfo_t;
+typedef DWORD eventWhat_t;
+#define THREAD_RETURN void
+#define DO_THREAD_RETURN return
+
+typedef void (*thread_main_t)(void *);
+typedef unsigned long internal_thread_t;
+
+#define VSNPRINTF _vsnprintf
+#define SNPRINTF _snprinf
+
+#define INDEPENDENT_LWP_CONTROL true
+
+typedef CRITICAL_SECTION EventLock_t;
+typedef HANDLE EventCond_t;
+
+#include <winsock2.h>
+#define ssize_t int
+typedef SOCKET PDSOCKET;
+#define DYNINST_ASYNC_PORT 28003
+#define PDSOCKET_ERRNO WSAGetLastError()
+#define INVALID_PDSOCKET (INVALID_SOCKET)
+#define PDSOCKET_ERROR SOCKET_ERROR
+#define SOCKET_TYPE PF_INET
+#define THREAD_RETURN void
+#define DO_THREAD_RETURN return
+#define SOCKLEN_T unsigned int
+
+
+/* We don't compile with gcc on Windows.  *sigh*  This will be slower,
+   but should be functionally identical. */
+#include <set>
+#include <vector>
 
 #endif /* PDWINNT_H */

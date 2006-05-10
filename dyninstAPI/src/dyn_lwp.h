@@ -41,13 +41,13 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.55 2006/05/02 19:17:18 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.56 2006/05/10 02:31:01 jaw Exp $
  */
 
 #if !defined(DYN_LWP_H)
 #define DYN_LWP_H
 
-#include "os.h"
+#include "dyninstAPI/src/os.h"
 #include "frame.h"
 #include "common/h/vectorSet.h"
 #include "syscalltrap.h"
@@ -73,12 +73,6 @@
 #if !defined(BPATCH_LIBRARY)
 #ifdef PAPI
 class papiMgr;
-#endif
-#endif
-
-#if !defined(os_windows)
-#ifndef INVALID_HANDLE_VALUE
-#define INVALID_HANDLE_VALUE -1
 #endif
 #endif
 

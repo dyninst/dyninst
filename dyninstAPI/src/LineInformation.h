@@ -42,15 +42,7 @@
 #if ! defined( LINE_INFORMATION_H )
 #define LINE_INFORMATION_H
 
-#if ! defined( os_windows )
-#include <ext/hash_set>
-#else
-/* We don't compile with gcc on Windows.  *sigh*  This will be slower,
-   but should be functionally identical. */
-#include <set>
-#include <vector>
-#endif
-
+#include "os.h"
 #include "RangeLookup.h"
 
 /* This is clumsy. */
