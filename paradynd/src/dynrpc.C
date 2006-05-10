@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.126 2006/03/12 03:40:06 darnold Exp $ */
+/* $Id: dynrpc.C,v 1.127 2006/05/10 11:40:06 darnold Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -392,35 +392,40 @@ void dynRPC::reportInitialResources( MRN::Stream * /* stream */ )
 // and get and send daemon information
 //
 T_dyninstRPC::daemonInfo
-dynRPC::getDaemonInfo(MRN::Stream *, pdvector<T_dyninstRPC::daemonSetupStruc> dss )
+dynRPC::getDaemonInfo(MRN::Stream *,
+                      pdvector<T_dyninstRPC::daemonSetupStruc> dss )
 {
-  extern pdstring machine_name_out;
-  extern pdstring program_name;
-  extern pdstring flavor_name;
-  extern unsigned sdm_id;
+    extern pdstring machine_name_out;
+    extern pdstring program_name;
+    extern pdstring flavor_name;
+    extern unsigned sdm_id;
 	extern bool sdm_id_set;
 
-	for(unsigned i = 0 ; i < dss.size() ; i++)
-		{
-			if(machine_name_out == dss[i].daemonName)
-				{
-					if(!sdm_id_set)
-						{
-							sdm_id = dss[i].daemonId;
-							sdm_id_set = true;
-						}
-					break;
-				}
-		}
+	for(unsigned i = 0 ; i < dss.size() ; i++) {
+        if(machine_name_out == dss[i].daemonName) {
+            if(!sdm_id_set) {
+                sdm_id = dss[i].daemonId;
+                sdm_id_set = true;
+            }
+            break;
+        }
+    }
 	
-  T_dyninstRPC::daemonInfo * di = new T_dyninstRPC::daemonInfo;
+    if( !sdm_id_set ) {
+        extern MRN::Rank myRank;
+        //darnold: we should only get here for manually started daemons
+        sdm_id = myRank;
+        sdm_id_set=true;
+    }
+
+    T_dyninstRPC::daemonInfo * di = new T_dyninstRPC::daemonInfo;
 	
-  di->machine = machine_name_out;
-  di->program = program_name;
-  di->pid = getpid();
-  di->flavor = flavor_name;
-	di->d_id = sdm_id;	
-  return *di;
+    di->machine = machine_name_out;
+    di->program = program_name;
+    di->pid = getpid();
+    di->flavor = flavor_name;
+    di->d_id = sdm_id;	
+    return *di;
 }
 
 //
