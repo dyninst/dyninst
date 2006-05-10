@@ -299,6 +299,14 @@ void deallocateLocationList( Dwarf_Debug & dbg, Dwarf_Locdesc * locationList, Dw
 	dwarf_dealloc( dbg, locationList, DW_DLA_LOCDESC );
 	} /* end deallocateLocationList() */
 
+void deallocateLocationList( Dwarf_Debug & dbg, Dwarf_Locdesc ** locationList, Dwarf_Signed listLength ) {
+	for( int i = 0; i < listLength; i++ ) {
+		dwarf_dealloc( dbg, locationList[i]->ld_s, DW_DLA_LOC_BLOCK );
+		dwarf_dealloc( dbg, locationList[i], DW_DLA_LOCDESC );
+		}
+	dwarf_dealloc( dbg, locationList, DW_DLA_LIST );
+	} /* end deallocateLocationList() */
+
 /* An investigative function. */
 void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLength ) {
 	for( int i = 0; i < listLength; i++ ) {
@@ -937,9 +945,9 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			if( status == DW_DLV_OK ) {
-				Dwarf_Locdesc * locationList;
+				Dwarf_Locdesc ** locationList;
 				Dwarf_Signed listLength;
-				status = dwarf_loclist( frameBaseAttribute, & locationList, & listLength, NULL );
+				status = dwarf_loclist_n( frameBaseAttribute, & locationList, & listLength, NULL );
 				if( status != DW_DLV_OK ) {
 					/* I think DWARF 3 generically allows this abomination of empty loclists. */
 					break;
@@ -950,7 +958,13 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					
 #if defined(ia64_unknown_linux2_4)
 				/* Convert location list to an AST for later code generation. */
-				newFunction->lowlevel_func()->framePointerCalculator = convertFrameBaseToAST( locationList, listLength );
+				newFunction->lowlevel_func()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength );
+#else
+				static bool warned_no_locals = false;
+				if (listLength > 1 && !warned_no_locals) {
+				   fprintf(stderr, "WARNING:\tmutatee contains advanced frame pointer definitions\n\tlocal variable support unavailable\n");
+				   warned_no_locals = true;
+				}
 #endif
 				
 				deallocateLocationList( dbg, locationList, listLength );
