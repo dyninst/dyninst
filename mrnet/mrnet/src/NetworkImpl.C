@@ -295,7 +295,7 @@ leafInfoCompare( const Network::LeafInfo * a,
 
 
 int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
-                               unsigned int *nLeaves )
+							   unsigned int *nLeaves )
 {
 	int ret = -1;
 
@@ -306,8 +306,7 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
 	// request that our leaves give us their leaf info
 	Packet pkt( 0, PROT_GET_LEAF_INFO, "" );
 
-	if( front_end->proc_getLeafInfo( pkt ) != -1 ) 
-		{
+	if( front_end->proc_getLeafInfo( pkt ) != -1 ) {
 
 		// Gather the response from the tree
 		//
@@ -320,98 +319,84 @@ int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
 		// using the network.  The only packets flowing should be our own.
 		// 
 		Packet resp = front_end->get_leafInfoPacket(  );
-		while( resp == *Packet::NullPacket )
-			{
-
-				if( front_end->recv(  ) == -1 )
-					{
-						mrn_dbg( 1, mrn_printf(FLF, stderr,
-																	 "failed to receive leaf info from front end node\n" ));
-					}
-
-				// now - sleep?  how do we block while still processing
-				// packets?  calling receive on frontend node?
-				resp = front_end->get_leafInfoPacket(  );
+		while( resp == *Packet::NullPacket ) {
+			if( front_end->recv(  ) == -1 ) {
+				mrn_dbg( 1, mrn_printf(FLF, stderr,
+									   "failed to receive leaf info from front end node\n" ));
 			}
-		if( resp != *Packet::NullPacket ) 
-			{
-				// we got the response successfully -
-				// build the return value from the response packet
-				char **hosts = NULL;
-				unsigned int nHosts = 0;
-				int *ports = NULL;
-				unsigned int nPorts = 0;
-				int *ranks = NULL;
-				unsigned int nRanks = 0;
-				char **phosts = NULL;
-				unsigned int nPHosts = 0;
-				int *pports = NULL;
-				unsigned int nPPorts = 0;
 
-				int nret = resp.ExtractArgList( "%as %ad %ad %as %ad",
-																				&hosts, &nHosts,
-																				&ports, &nPorts,
-																				&ranks, &nRanks,
-																				&phosts, &nPHosts,
-																				&pports, &nPPorts );
-				if( nret == 0 ) 
-					{
+			// now - sleep?	 how do we block while still processing
+			// packets?	 calling receive on frontend node?
+			resp = front_end->get_leafInfoPacket(  );
+		}
+		if( resp != *Packet::NullPacket ) {
+			// we got the response successfully -
+			// build the return value from the response packet
+			char **hosts = NULL;
+			unsigned int nHosts = 0;
+			int *ports = NULL;
+			unsigned int nPorts = 0;
+			int *ranks = NULL;
+			unsigned int nRanks = 0;
+			char **phosts = NULL;
+			unsigned int nPHosts = 0;
+			int *pports = NULL;
+			unsigned int nPPorts = 0;
 
-						if( ( nHosts == nRanks ) &&
-								( nHosts == nPHosts ) &&
-								( nHosts == nPPorts ) ) 
-							{
+			int nret = resp.ExtractArgList( "%as %ad %ad %as %ad",
+											&hosts, &nHosts,
+											&ports, &nPorts,
+											&ranks, &nRanks,
+											&phosts, &nPHosts,
+											&pports, &nPPorts );
+			if( nret == 0 ) {
+				if( ( nHosts == nRanks ) &&
+					( nHosts == nPHosts ) &&
+					( nHosts == nPPorts ) ) {
+					// build un-ordered leaf info vector
+					std::vector < Network::LeafInfo * >linfov;
+					for( unsigned int i = 0; i < nHosts; i++ ) {
+						assert( hosts[i] != NULL );
+						assert( phosts[i] != NULL );
 
-								// build un-ordered leaf info vector
-								std::vector < Network::LeafInfo * >linfov;
-								for( unsigned int i = 0; i < nHosts; i++ ) 
-									{
-							
-										assert( hosts[i] != NULL );
-										assert( phosts[i] != NULL );
-
-										Network::LeafInfo * li =
-											new NetworkImpl::LeafInfoImpl( hosts[i],
-																										 ports[i],
-																										 ranks[i],
-																										 phosts[i],
-																										 pports[i] );
-										linfov.push_back( li );
-									}
-
-								// sort the leaf info array by backend id
-								std::sort( linfov.begin(  ), linfov.end(  ),
-													 leafInfoCompare );
-
-								// copy sorted vector to output array
-								*linfo = new Network::LeafInfo *[nHosts];
-								for( unsigned int h = 0; h < nHosts; h++ ) 
-									{
-										( *linfo )[h] = linfov[h];
-									}
-								*nLeaves = linfov.size(  );
-								ret = 0;
-								return ret;
-							}
-						else 
-							{
-								mrn_dbg( 1, mrn_printf(FLF, stderr,
-																			 "leaf info packet corrupt: array size mismatch\n" ));
-							}
-
+						Network::LeafInfo * li =
+							new NetworkImpl::LeafInfoImpl( hosts[i],
+														   ports[i],
+														   ranks[i],
+														   phosts[i],
+														   pports[i] );
+						linfov.push_back( li );
 					}
-				else 
-					{
-						mrn_dbg( 1, mrn_printf(FLF, stderr,
-																	 "failed to extract arrays from leaf info packet\n" ));
+
+					// sort the leaf info array by backend id
+					std::sort( linfov.begin(  ), linfov.end(  ),
+							   leafInfoCompare );
+
+					// copy sorted vector to output array
+					*linfo = new Network::LeafInfo *[nHosts];
+					for( unsigned int h = 0; h < nHosts; h++ ) {
+						( *linfo )[h] = linfov[h];
 					}
+					*nLeaves = linfov.size(	 );
+					ret = 0;
+					return ret;
+				}
+				else {
+					mrn_dbg( 1, mrn_printf(FLF, stderr,
+										   "leaf info packet corrupt: array size mismatch\n" ));
+				}
+
+			}
+			else {
+				mrn_dbg( 1, mrn_printf(FLF, stderr,
+									   "failed to extract arrays from leaf info packet\n" ));
 			}
 		}
-	else 
-		{
-			// we failed to deliver the request 
-			mrn_dbg( 1, mrn_printf(FLF, stderr, "failed to deliver request\n" ));
-		}
+	}
+	else {
+		// we failed to deliver the request 
+		mrn_dbg( 1, mrn_printf(FLF, stderr, "failed to deliver request\n" ));
+	}
 	return ret;
 }
 
