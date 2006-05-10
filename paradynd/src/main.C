@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.147 2006/05/10 11:40:07 darnold Exp $
+// $Id: main.C,v 1.148 2006/05/10 18:43:38 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -795,7 +795,7 @@ static int break_at_mpi_init(BPatch_process *bproc)
   BPatch_function *mpi_comm_rank = mpi_comm_ranks[0];
 
   BPatch_Vector<BPatch_function *> dyninst_breakpoints;
-  img->findFunction("DYNINSTbreakPoint", dyninst_breakpoints);
+  img->findFunction("DYNINST_snippetBreakpoint", dyninst_breakpoints);
   assert(dyninst_breakpoints.size() == 1); //TODO: me too
 
   BPatch_function *dyninst_breakpoint = dyninst_breakpoints[0];
