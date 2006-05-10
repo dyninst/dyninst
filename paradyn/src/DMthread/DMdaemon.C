@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.167 2006/05/03 20:56:56 mjbrim Exp $
+ * $Id: DMdaemon.C,v 1.168 2006/05/10 11:40:02 darnold Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -705,6 +705,7 @@ bool paradynDaemon::instantiateMRNetforMPIDaemons(daemonEntry * ide,
             mrnet_top_buf += buf;
         }
         mrnet_top_buf += ";";
+
         network = new MRN::Network(mrnet_top_buf.c_str(), false,
                                    &leafInfo, &nLeaves );
     }
@@ -763,7 +764,45 @@ bool paradynDaemon::instantiateDefaultDaemon( daemonEntry * ide,
     return true;
 }
 
-bool paradynDaemon::initializeDaemon(daemonEntry * de)
+bool paradynDaemon::instantiateMRNetforManualDaemon( )
+{
+    MRN::Network * network=NULL;
+    MRN::Network::LeafInfo **leafInfo=NULL;
+    unsigned int nLeaves = 0;
+
+    pdstring mrnet_top_buf=getNetworkName()+":0 => dummyhost0:0 ;";
+
+    network = new MRN::Network( mrnet_top_buf.c_str(), false,
+                                &leafInfo, &nLeaves );
+
+    //Print out paradynd command line and wait for daemon to connect
+    char buf[1024];
+    sprintf(buf,
+            "To start a paradyn daemon, logon to chosen machine and "
+            "run paradynd with the following arguments:\n\n"
+            "\tparadynd -z<flavor> -l1 -P%d %s %d %d\n\n"
+            "(where flavor is one of: unix, mpi, or winnt).\n",
+            dataManager::termWin_port, leafInfo[0]->get_ParHost(),
+            leafInfo[0]->get_ParPort(), leafInfo[0]->get_Rank() );
+
+    uiMgr->showError(99, buf);
+
+    if( network->connect_Backends() < 0 ) {
+        fprintf(stderr,"MRN::Network::connect_Backends() failed\n");
+        return false;
+    }
+
+    daemonEntry * de = new daemonEntry( );
+    de->setMRNetNetwork( network );
+    de->setMRNetLeafInfo( leafInfo );
+    de->setMRNetNumLeaves( nLeaves );
+
+    initializeDaemon( de, true );
+
+    return true;
+}
+
+bool paradynDaemon::initializeDaemon(daemonEntry * de, bool started_manually)
 {
     //Bind the socket that the MRNet front-end uses
     //Not an actual "network" bind, but just lets thr_mailbox::poll()
@@ -787,7 +826,10 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de)
     paradynDaemon * pd = NULL;
     for( unsigned int j=0; j<endpoints.size(); j++) {
         pdstring daemon_machine = endpoints[j]->get_HostName() ;
-
+        
+        fprintf( stderr,
+                 "Creating paradynDaemon: host:%s, name:%s, flavor:%s\n",
+                 daemon_machine.c_str(), de->getName(), de->getFlavor() );
         pd = new paradynDaemon(de->getMRNetNetwork(), endpoints[j],
                                daemon_machine,
                                (pdstring&)de->getLoginString(),
@@ -815,11 +857,10 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de)
 		
     pdvector <T_dyninstRPC::daemonInfo> daemon_info =
         pd->getDaemonInfo( bcStream, di );
-    pdvector<pdstring> holdStatus;
 		
     for( unsigned ij =0 ; ij < daemon_info.size() ; ij++) {
         pd = paradynDaemon::allDaemons[ij];
-        if(de->getFlavorString() == "mpi") {
+        if( started_manually || ( de->getFlavorString() == "mpi") ) {
             if(ij != (unsigned)daemon_info[ij].d_id) {
                 MRN::Communicator * temp =
                     paradynDaemon::allDaemons[daemon_info[ij].d_id]->
@@ -831,15 +872,15 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de)
                 paradynDaemon::allDaemons[ij]->setCommunicator(temp);
             }
 
-            holdStatus.push_back(pd->status);
             pd->machine = daemon_info[daemon_info[ij].d_id].machine;
+            fprintf(stderr, "daemon[%d] machine:%s\n", ij,pd->machine.c_str() );
             if (pd->machine.suffixed_by(local_domain)) {
                 const unsigned namelength = pd->machine.length() - local_domain.length() - 1;
               const pdstring localname = pd->machine.substr(0,namelength);
-              pd->status = localname;
+              pd->status = localname + ":" + pdstring( pd->get_id() );
             } 
             else {
-                pd->status = pd->machine;
+                pd->status = pd->machine + ":" + pdstring(pd->get_id() );
             }
             uiMgr->createProcessStatusLine(pd->status.c_str());
         }
@@ -848,21 +889,18 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de)
     //TODO: we shoud make this persistent for default async downcalls
     delete bcStream;
 		
-    for( unsigned ik =0 ; ik < daemon_info.size() ; ik++) {
-        pd = paradynDaemon::allDaemons[ik];
-    }		
-    pd->setEquivClassReportStream(eqcStream);
+    paradynDaemon::allDaemons[0]->setEquivClassReportStream(eqcStream);
 
     // Send the initial metrics, constraints, and other neato things
     MRN::Stream * nbcStream = de->getMRNetNetwork()->
         new_Stream( de->getMRNetNetwork()->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
-    pd->SendMDLFiles(nbcStream);
+    paradynDaemon::allDaemons[0]->SendMDLFiles(nbcStream);
     delete nbcStream;	 
 		
     nbcStream = de->getMRNetNetwork()->
         new_Stream( de->getMRNetNetwork()->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
     pdvector<pdvector<T_dyninstRPC::metricInfo> > info =
-        pd->getAvailableMetrics(nbcStream);
+        paradynDaemon::allDaemons[0]->getAvailableMetrics(nbcStream);
 		
     for (unsigned kl = 0 ; kl < info.size() ; kl ++) {
         unsigned size = info[kl].size();
@@ -871,7 +909,7 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de)
         }
     }		
     delete nbcStream;
-    pd->updateTimeAdjustment();
+    paradynDaemon::allDaemons[0]->updateTimeAdjustment();
     return true;
 }
 
@@ -1228,9 +1266,9 @@ void addMRNetInfoToScript(pdstring &script, MRN::Network::LeafInfo **leafInfo,
    script += pdstring("\n");
    for (int i=0; i<nLeaves; i++)
    {
-      script += pdstring("# MRN ") + pdstring(leafInfo[i]->get_ParHost()) + 
-         pdstring(" ") + pdstring(leafInfo[i]->get_ParPort()) + pdstring(" ") + 
-         pdstring(leafInfo[i]->get_Rank()) + pdstring("\n");
+       script += pdstring("# MRN ") + pdstring(leafInfo[i]->get_ParHost()) + 
+           pdstring(" ") + pdstring(leafInfo[i]->get_ParPort()) + pdstring(" ") + 
+           pdstring(leafInfo[i]->get_Rank()) + pdstring("\n");
    }
 }
 
@@ -2568,22 +2606,21 @@ void paradynDaemon::addProcessInfo(const pdvector<pdstring> &resource_name) {
 void paradynDaemon::resourceEquivClassReportCallback(MRN::Stream * /*s*/, 
 						     pdvector<T_dyninstRPC::equiv_class_entry> eqclasses )
 {
-  if(eqclasses.size() == 0)
-    return;
+    if(eqclasses.size() == 0)
+        return;
 
-  MRN::Communicator * comm = allDaemons[0]->getNetwork()->new_Communicator();
+    MRN::Communicator * comm = allDaemons[0]->getNetwork()->new_Communicator();
 
-  extern unsigned num_dmns_to_report_resources;
+    extern unsigned num_dmns_to_report_resources;
 
-  for(unsigned i = 0 ; i < eqclasses.size() ; i++)
-    {
-      comm->add_EndPoint(  paradynDaemon::allDaemons[eqclasses[i].class_rep]->endpoint );
-      num_dmns_to_report_resources++;
+    for(unsigned i = 0 ; i < eqclasses.size() ; i++) {
+        comm->add_EndPoint(  paradynDaemon::allDaemons[eqclasses[i].class_rep]->endpoint );
+        num_dmns_to_report_resources++;
     }
-  MRN::Stream * stream = network->new_Stream( comm ,MRN::TFILTER_NULL);
-  reportInitialResources(stream);
-  delete stream;
-  delete comm;
+    MRN::Stream * stream = network->new_Stream( comm ,MRN::TFILTER_NULL);
+    reportInitialResources(stream);
+    delete stream;
+    delete comm;
 }
 //
 // upcall from paradynd reporting new resource
@@ -2639,13 +2676,13 @@ void paradynDaemon::resourceInfoCallback(MRN::Stream * /*s*/,
 void paradynDaemon::severalResourceInfoCallback(MRN::Stream *s,
 						pdvector<T_dyninstRPC::resourceInfoCallbackStruct> items)
 {
-   for (unsigned lcv=0; lcv < items.size(); lcv++)
-       resourceInfoCallback(s,
-                            items[lcv].temporaryId,
-                            items[lcv].resource_name,
-                            items[lcv].abstraction,
-                            items[lcv].type,
-                            items[lcv].mdlType);
+    for (unsigned lcv=0; lcv < items.size(); lcv++)
+        resourceInfoCallback(s,
+                             items[lcv].temporaryId,
+                             items[lcv].resource_name,
+                             items[lcv].abstraction,
+                             items[lcv].type,
+                             items[lcv].mdlType);
 }
 
 
@@ -3161,13 +3198,14 @@ paradynDaemon::paradynDaemon(MRN::Network *net, MRN::EndPoint *e, pdstring &m,
         status = machine;
     }
 
-    if(flavor != "mpi")
-        uiMgr->createProcessStatusLine(status.c_str());
-
     paradynDaemon::allDaemons += this;
     id = paradynDaemon::allDaemons.size()-1;
 
     paradynDaemon::daemonsById[ id ] = this;
+
+    status += ":" + pdstring( id ) ;
+    if(flavor != "mpi")
+        uiMgr->createProcessStatusLine(status.c_str());
 }
 
 paradynDaemon::paradynDaemon(const pdstring &m, const pdstring &u,
@@ -3532,10 +3570,8 @@ void paradynDaemon::resourceReportsDone( MRN::Stream *,int )
     extern unsigned num_dmns_to_report_resources;
     num_dmns_to_report_resources--;
     if( num_dmns_to_report_resources == 0 ){
-        //For now, we broadcast to all daemons to send their callgraph
         MRN::Stream * stream = network->new_Stream( network->get_BroadcastCommunicator() );
-        //reportStaticCallgraph( stream );
-				reportCallGraphEquivClass( stream);
+        reportCallGraphEquivClass( stream);
         delete stream;
     }
 }
