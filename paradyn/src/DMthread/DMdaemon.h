@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.76 2006/05/05 18:22:40 mjbrim Exp $
+// $Id: DMdaemon.h,v 1.77 2006/05/10 11:40:00 darnold Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -78,7 +78,17 @@ inline unsigned uiHash(const unsigned &ptr) {
 class daemonEntry {
 
 public:
-  daemonEntry (){ }
+  daemonEntry (){ 
+      //darnold: This cnstr was added to support manually started daemons
+      //right now we don't support this for MPI so this hack works 
+#if defined(i386_unknown_nt4_0)
+      name="winntd";
+      flavor="winnt";
+#else
+      name="defd";
+      flavor="unix";
+#endif
+  }
 
   daemonEntry (const pdstring &m, const pdstring &c, const pdstring &n,
                const pdstring &l, const pdstring &, const pdstring &r,
@@ -358,11 +368,12 @@ class paradynDaemon: public dynRPCUser {
                                      pdstring name,
                                      pdstring flavor,
                                      pdstring mrnet_topology );
-   static bool instantiateMRNetforMPIDaemons(daemonEntry *,
-                                                       unsigned int );
+   static bool instantiateMRNetforMPIDaemons(daemonEntry *, unsigned int );
+   static bool instantiateMRNetforManualDaemon( );
    static bool instantiateDefaultDaemon(daemonEntry *,
                                         const pdvector<pdstring> * host_list);
-   static bool initializeDaemon(daemonEntry *);
+   static bool initializeDaemon(daemonEntry *de=NULL,
+                                bool started_manually=false );
    static bool startMPIDaemonsandApplication(daemonEntry *, processMet* );
 
 
