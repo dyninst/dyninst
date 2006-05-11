@@ -1006,12 +1006,19 @@ void mutatorTest9(BPatch_thread *, BPatch_image *appImage)
           found = true;
           break;
        }
-       index ++;
+       index++;
    }
    
    if ( !found ) {
      fprintf(stderr, "**Failed** test #9 (derivation)\n");
      fprintf(stderr, "    Can't find inherited class member functions\n");
+     fprintf(stderr, "%s[%d]:  have the following (not 'call_cpp')\n", __FILE__, __LINE__);
+     index = 0;
+     while ( index < fields->size() ) {
+       fprintf(stderr, "\t\%s\n", (*fields)[index]->getName());
+       index++;
+     }
+     exit(1);
   }
 }
 #else

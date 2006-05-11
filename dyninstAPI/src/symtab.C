@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.279 2006/05/03 00:31:22 jodom Exp $
+ // $Id: symtab.C,v 1.280 2006/05/11 13:00:19 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,7 +109,7 @@ pdmodule *image::newModule(const pdstring &name, const Address addr, supportedLa
     fullNm = name;
     fileNm = extract_pathname_tail(name);
 
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", __FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
     ret = new pdmodule(lang, addr, fullNm, fileNm, this);
     modsByFileName[ret->fileName()] = ret;
     modsByFullName[ret->fullName()] = ret;
@@ -173,7 +173,7 @@ bool buildDemangledName( const pdstring &mangled,
                            (int)(atat - mangled.c_str())/*len*/);
       //char msg[256];
       //sprintf(msg, "%s[%d]: 'demangling' versioned symbol: %s, to %s",
-      //	    __FILE__, __LINE__, mangled.c_str(), use.c_str());
+      //	    FILE__, __LINE__, mangled.c_str(), use.c_str());
       //cerr << msg << endl;
       //logLine(msg);
       
@@ -222,7 +222,7 @@ image_func *image::makeOneFunction(pdvector<Symbol> &mods,
   // find module name
   Address modAddr = 0;
   pdstring modName = lookUp.module();
-  // /* DEBUG */ fprintf( stderr, "%s[%d]: makeOneFunction()'s module: %s\n", __FILE__, __LINE__, modName.c_str() );
+  // /* DEBUG */ fprintf( stderr, "%s[%d]: makeOneFunction()'s module: %s\n", FILE__, __LINE__, modName.c_str() );
   
   if (modName == "") {
     modName = name_ + "_module";
@@ -376,7 +376,7 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
     }
     else {
         if (lookUp.type() == Symbol::PDST_FUNCTION) {
-            // /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", __FILE__, __LINE__, lookUp.name().c_str(), lookUp.module().c_str() );
+            // /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", FILE__, __LINE__, lookUp.name().c_str(), lookUp.module().c_str() );
             
             pdstring msg;
             char tempBuffer[40];
@@ -393,7 +393,7 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
             
             image_func *new_func = makeOneFunction(mods, lookUp);
             if (!new_func)
-                cerr << __FILE__ << __LINE__ << ":  makeOneFunction returned NULL!" << endl;
+                fprintf(stderr, "%s[%d]:  makeOneFunction failed\n", FILE__, __LINE__);
             else
                 raw_funcs->push_back(new_func);
         }
@@ -408,9 +408,8 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
                 // kludge has been set if the symbol could be a function
                 // WHERE DO WE USE THESE KLUDGES? WHAT PLATFORM???
                 
-                cerr << "Found <KLUDGE> function " << lookUp.name().c_str() 
-                     << ".  All <KLUDGE>  functions currently ignored!  see " 
-                     << __FILE__ << __LINE__ << endl;
+                fprintf(stderr, "%s[%d]:  Found KLUDGE function: %s, ignoring\n", 
+                        FILE__, __LINE__, lookUp.name().c_str());
                 //kludge_symbols.push_back(lookUp);
                 
             }
@@ -425,7 +424,7 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
   unsigned long difftime = lendtime - lstarttime;
   double dursecs = difftime/(1000 );
-  cout << __FILE__ << ":" << __LINE__ <<": symbolsToFunctions took "<<dursecs <<" msecs" << endl;
+  cout << FILE__ << ":" << __LINE__ <<": symbolsToFunctions took "<<dursecs <<" msecs" << endl;
 #endif
   return true;
 }
@@ -509,7 +508,7 @@ bool image::addSymtabVariables()
    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
    unsigned long difftime = lendtime - lstarttime;
    double dursecs = difftime/(1000 );
-   cout << __FILE__ << ":" << __LINE__ <<": addSymtabVariables took "<<dursecs <<" msecs" << endl;
+   cout << FILE__ << ":" << __LINE__ <<": addSymtabVariables took "<<dursecs <<" msecs" << endl;
 #endif
 
    return true;
@@ -1112,17 +1111,17 @@ supportedLanguages pickLanguage(pdstring &working_module, char *working_options,
   //  have the "pretty" names, we need to detect this in order to properly read the debug.
   if (working_lang == lang_Fortran) {
     if (sticky_fortran_modifier_flag) {
-      //cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug." << endl;
+      //cerr << FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug." << endl;
       working_lang = lang_Fortran_with_pretty_debug;
     }
     else if (working_options) {
       char *dbg_gen = NULL;
-      //      cerr << __FILE__ << __LINE__ << ":  OPT: " << working_options << endl; 
+      //      cerr << FILE__ << __LINE__ << ":  OPT: " << working_options << endl; 
       if (NULL != (dbg_gen = strstr(working_options, "DBG_GEN="))) {
-	//cerr << __FILE__ << __LINE__ << ":  OPT: " << dbg_gen << endl; 
+	//cerr << FILE__ << __LINE__ << ":  OPT: " << dbg_gen << endl; 
 	// Sun fortran compiler (probably), need to examine version
 	char *dbg_gen_ver_maj = dbg_gen + strlen("DBG_GEN=");
-	//cerr << __FILE__ << __LINE__ << ":  OPT: " << dbg_gen_ver_maj << endl; 
+	//cerr << FILE__ << __LINE__ << ":  OPT: " << dbg_gen_ver_maj << endl; 
 	char *next_dot = strchr(dbg_gen_ver_maj, '.');
 	if (NULL != next_dot) {
 	  next_dot = '\0';  //terminate major version number string
@@ -1131,7 +1130,7 @@ supportedLanguages pickLanguage(pdstring &working_module, char *working_options,
 	  if (ver_maj < 3) {
 	    working_lang = lang_Fortran_with_pretty_debug;
 	    sticky_fortran_modifier_flag = 1;
-	    //cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  "
+	    //cerr << FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  "
 	    //	 <<"Major Debug Ver. "<<ver_maj<< endl;
 	  }
 	}
@@ -1258,7 +1257,7 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
             continue;
          } 
          else {
-            //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr->desc(i) << endl;  
+            //cerr << FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr->desc(i) << endl;  
             switch (stabptr->desc(i)) {
               case N_SO_FORTRAN: 
                  working_lang = lang_Fortran;
@@ -1300,6 +1299,7 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
    //   XXXXXXXXXXX
 
    if (fortran_kludge_flag) {
+      //  XXX  This code does not appear to be used anymore??  
       // go through map and change all lang_Fortran to lang_Fortran_with_pretty_symtab
       dictionary_hash_iter<pdstring, supportedLanguages> iter(*mod_langs);
       pdstring aname;
@@ -1307,7 +1307,7 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
       while (iter.next(aname, alang)) {
          if (lang_Fortran == alang) {
             (*mod_langs)[aname] = lang_Fortran_with_pretty_debug;
-            cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  " << endl;
+            fprintf(stderr, "%s[%d]:  UPDATE: lang_Fortran->langFortran_with_pretty_debug\n", FILE__, __LINE__);
          }
       }
    }
@@ -1318,7 +1318,7 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
    unsigned long difftime = lendtime - lstarttime;
    double dursecs = difftime/(1000 );
-   cout << __FILE__ << ":" << __LINE__ <<": getModuleLanguageInfo took "<<dursecs <<" msecs" << endl;
+   cout << FILE__ << ":" << __LINE__ <<": getModuleLanguageInfo took "<<dursecs <<" msecs" << endl;
 #endif
    delete stabptr;
 
@@ -1471,7 +1471,7 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
       currmod->setLanguage(currLang);
     }
     else {
-      //cerr << __FILE__ << __LINE__ << ":  module " << currmod->fileName() 
+      //cerr << FILE__ << __LINE__ << ":  module " << currmod->fileName() 
       //	   << " not found in module<->language map" << endl;
       //dump = 1;
       //  here we should probably try to guess, based on filename conventions
@@ -2071,7 +2071,7 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &na
 
     //    fprintf(stderr,"findFuncVectorByMangled %s\n",name.c_str());
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-  bperr( "%s[%d]:  inside findFuncVectorByMangled\n", __FILE__, __LINE__);
+  bperr( "%s[%d]:  inside findFuncVectorByMangled\n", FILE__, __LINE__);
 #endif
   if (funcsByMangled.defines(name)) {
       //analyzeIfNeeded();
@@ -2085,7 +2085,7 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const pdstring &
 {
     //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-  bperr( "%s[%d]:  inside findVariableVectorByPretty\n", __FILE__, __LINE__);
+  bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
 #endif
   if (varsByPretty.defines(name)) {
       //analyzeIfNeeded();
@@ -2098,7 +2098,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const pdstring 
 {
     //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-  bperr( "%s[%d]:  inside findVariableVectorByPretty\n", __FILE__, __LINE__);
+  bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
 #endif
   if (varsByMangled.defines(name)) {
       //analyzeIfNeeded();
@@ -2124,8 +2124,8 @@ image_func *image::findOnlyOneFunction(const pdstring &name) {
   if (pdfv != NULL && pdfv->size() > 0) {
     // fail if more than one match
     if (pdfv->size() > 1) {
-      cerr << __FILE__ << ":" << __LINE__ << ": findOnlyOneFunction(" << name
-	   << ")...  found more than one... failing... " << endl;
+      fprintf(stderr, "%s[%d]:  findOnlyOneFunction(%s), found more than one, failing\n",
+              FILE__, __LINE__, name.c_str());
       return NULL;
     }
     //analyzeIfNeeded();
@@ -2135,8 +2135,8 @@ image_func *image::findOnlyOneFunction(const pdstring &name) {
   pdfv = findFuncVectorByMangled(name);
   if (pdfv != NULL && pdfv->size() > 0) {
     if (pdfv->size() > 1) {
-      cerr << __FILE__ << ":" << __LINE__ << ": findOnlyOneFunction(" << name
-	   << ")...  found more than one... failing... " << endl;
+      fprintf(stderr, "%s[%d]:  findOnlyOneFunction(%s), found more than one, failing\n",
+              FILE__, __LINE__, name.c_str());
       return NULL;
     }
     //analyzeIfNeeded();
@@ -2173,7 +2173,7 @@ int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, pdstring p
   // errors fall through
   char errbuf[80];
   regerror( err, &comp_pat, errbuf, 80 );
-  cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+  cerr << FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
   
   return -1;
 }
@@ -2198,7 +2198,7 @@ int image::findFuncVectorByMangledRegex(pdvector<image_func *> *found, pdstring 
   // errors fall through
   char errbuf[80];
   regerror( err, &comp_pat, errbuf, 80 );
-  cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+  cerr << FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
   
   return -1;
 }

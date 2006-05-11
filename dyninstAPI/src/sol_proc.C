@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.103 2006/05/09 09:52:56 jaw Exp $
+// $Id: sol_proc.C,v 1.104 2006/05/11 13:00:19 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1196,7 +1196,7 @@ bool dyn_lwp::writeTextWord(caddr_t inTraced, int data)
    //  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
    bool ret =  writeDataSpace(inTraced, sizeof(int), (caddr_t) &data);
    if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
-                     __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+                     FILE__, __LINE__, getThreadStr(getExecThreadID()));
         assert(ret);
    return ret;
 }
@@ -1207,7 +1207,7 @@ bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
    //       << " len=" << amount << endl; cerr.flush();
    bool ret =  writeDataSpace(inTraced, amount, inSelf);
    if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
-                     __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+                     FILE__, __LINE__, getThreadStr(getExecThreadID()));
         assert(ret);
    return ret;
 }
@@ -1219,7 +1219,7 @@ bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf)
 
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 {
-   //fprintf(stderr, "%s[%d][%s]:  writeDataSpace: %p\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()), inTraced);
+   //fprintf(stderr, "%s[%d][%s]:  writeDataSpace: %p\n", FILE__, __LINE__, getThreadStr(getExecThreadID()), inTraced);
    ptraceOps++; ptraceBytes += amount;
 
    //  cerr << "process::writeDataSpace_ pid " << getPid() << " writing "
@@ -1255,7 +1255,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 
    int written = pwrite64(as_fd(), inSelf, amount, loc);
    if(written != (int)amount) {
-      fprintf(stderr, "%s[%d][%s]:  writeDataSpace: %s\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()), strerror(errno));
+      fprintf(stderr, "%s[%d][%s]:  writeDataSpace: %s\n", FILE__, __LINE__, getThreadStr(getExecThreadID()), strerror(errno));
       perror("writeDataSpace");
       assert(0);
       return false;
@@ -1406,7 +1406,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
                        gen.used(),
                        gen.start_ptr());
         if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
-                          __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+                          FILE__, __LINE__, getThreadStr(getExecThreadID()));
         writeDataSpace((void *)(callerFrame.getFP() + 8), 
                        sizeof(Address),
                        (void *)&trapAddr);
@@ -1415,7 +1415,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
                       FILE__, __LINE__, trapAddr);
 
         if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
-                          __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+                          FILE__, __LINE__, getThreadStr(getExecThreadID()));
         assert(ret);
 #else
         sysset_t *cur_syscalls = SYSSET_ALLOC(getPid());

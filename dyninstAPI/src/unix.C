@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.205 2006/05/10 02:31:02 jaw Exp $
+// $Id: unix.C,v 1.206 2006/05/11 13:00:19 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -558,7 +558,7 @@ bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
 
   int retWait = waitpid(getPid(), &status, waitpid_flags);
   if (retWait == -1) {
-       fprintf(stderr, "%s[%d]:  waitpid failed\n", __FILE__, __LINE__);
+       fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
        return false;
    }
    else if (retWait > 1) {
@@ -569,7 +569,7 @@ bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
       ev.info = 0;
       return true;
    }
-     fprintf(stderr, "[%s:%u] - Finished waitpid with %d\n", __FILE__, __LINE__, retWait);
+     fprintf(stderr, "[%s:%u] - Finished waitpid with %d\n", FILE__, __LINE__, retWait);
 
   return false;
 }
@@ -1175,7 +1175,7 @@ bool forkNewProcess_real(pdstring file,
 #endif
 {
   forkexec_printf("%s[%d][%s]:  welcome to forkNewProcess(%s)\n",
-          __FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
+          FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
 #ifndef BPATCH_LIBRARY
    int tracePipe[2];
    int r = P_pipe(tracePipe);
@@ -1194,7 +1194,7 @@ bool forkNewProcess_real(pdstring file,
    if (pid != 0) {
       // *** parent
       startup_printf("%s[%d][%s]:  ForkNewProcessCallback::execute(%s): FORK PARENT\n",
-               __FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
+               FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
 
 
 //#if defined(os_linux)
@@ -1217,7 +1217,7 @@ bool forkNewProcess_real(pdstring file,
 #endif
          {
       fprintf(stderr, "%s[%d][%s]:  ForkNewProcessCallback::execute(%s): FORK ERROR\n",
-               __FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
+               FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
             sprintf(errorLine, "Unable to start %s: %s\n", file.c_str(), 
                     strerror(errno));
             logLine(errorLine);
@@ -1375,14 +1375,14 @@ bool forkNewProcess_real(pdstring file,
          args[ai] = P_strdup((*argv)[ai].c_str());
       args[argv->size()] = NULL;
 
-     startup_printf("%s[%d]:  before exec\n", __FILE__, __LINE__);
+     startup_printf("%s[%d]:  before exec\n", FILE__, __LINE__);
      char argstr[2048];
      argstr[0] = '\0';
      for (unsigned int ji=0; ji < argv->size(); ji++) {
        pdstring &s = (*argv)[ji];
        sprintf(argstr, "%s %s", argstr, s.c_str());
      }
-     startup_printf("%s[%d]:  EXEC: %s %s\n", __FILE__, __LINE__, file.c_str(), argstr);
+     startup_printf("%s[%d]:  EXEC: %s %s\n", FILE__, __LINE__, file.c_str(), argstr);
       if (envp) {
 	  P_execve(file.c_str(), args, envs);
       }else
@@ -1611,7 +1611,7 @@ bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int /* 
 #endif
   if (!ret) {
       signal_printf("%s[%d]:  readDataSpace at %s[%d] failing\n", 
-                    __FILE__, __LINE__, file, line);
+                    FILE__, __LINE__, file, line);
   }
 
   return ret;

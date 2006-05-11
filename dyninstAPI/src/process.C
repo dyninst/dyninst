@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.636 2006/05/11 02:09:34 tlmiller Exp $
+// $Id: process.C,v 1.637 2006/05/11 13:00:18 jaw Exp $
 
 #include <ctype.h>
 
@@ -881,7 +881,7 @@ void process::saveWorldCreateHighMemSections(
 	for(int i=0;i< max_number_of_threads;i++){
 		err = writeDataSpace((void*) &( ((int *)guardFlagAddr)[i]), sizeof(unsigned int),
                   (void*) &numberUpdates);
-        	if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        	if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
         		assert(err);
 
 		saveWorldData( (Address) &( ((int *)guardFlagAddr)[i]),sizeof(unsigned int), &numberUpdates); //ccw 7 jul 2003
@@ -1012,7 +1012,7 @@ void process::saveWorldCreateHighMemSections(
 #if 0
    err = writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int), 
                   (void*)&trampGuardValue);
-   if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+   if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
         assert(err);
 #endif 
 }
@@ -1278,13 +1278,13 @@ bool inferiorMallocCallbackFlag = false;
 void process::inferiorMallocCallback(process * /*p proc*/, unsigned /* rpc_id */,
                                      void *data, void *result)
 {
-  global_mutex->_Lock(__FILE__, __LINE__);
-  inferiorrpc_printf("%s[%d]:  inside inferior malloc callback\n", __FILE__, __LINE__);
+  global_mutex->_Lock(FILE__, __LINE__);
+  inferiorrpc_printf("%s[%d]:  inside inferior malloc callback\n", FILE__, __LINE__);
   imd_rpc_ret *ret = (imd_rpc_ret *)data;
   ret->result = result;
   ret->ready = true;
   inferiorMallocCallbackFlag = true;
-  global_mutex->_Unlock(__FILE__, __LINE__);
+  global_mutex->_Unlock(FILE__, __LINE__);
 }
 
 void alignUp(int &val, int align)
@@ -1306,13 +1306,13 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
     * #if !defined(mips..., but should be properly fixed in the future, just
     * no time now
     */
-   inferiorrpc_printf("%s[%d]:  welcome to inferiorMallocDynamic\n", __FILE__, __LINE__);
+   inferiorrpc_printf("%s[%d]:  welcome to inferiorMallocDynamic\n", FILE__, __LINE__);
 #if !defined(mips_sgi_irix6_4)
   // Fun (not) case: there's no space for the RPC to execute.
   // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
   // Avoid this with a static bool.
   if (inInferiorMallocDynamic) {
-      fprintf(stderr, "%s[%d]:  recursion guard\n", __FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  recursion guard\n", FILE__, __LINE__);
       return;
   }
   inInferiorMallocDynamic = true;
@@ -1364,7 +1364,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
       getMailbox()->executeCallbacks(FILE__, __LINE__);
       
       if(hasExited()) {
-          fprintf(stderr, "%s[%d]:  BAD NEWS, process has exited\n", __FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  BAD NEWS, process has exited\n", FILE__, __LINE__);
           return;
       }
       if (inferiorMallocCallbackFlag) {
@@ -1483,7 +1483,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   lo = ADDRESS_LO;
 	   hi = ADDRESS_HI;
 	   if (err) {
-              fprintf(stderr, "%s[%d]: ERROR!\n", __FILE__, __LINE__);
+              fprintf(stderr, "%s[%d]: ERROR!\n", FILE__, __LINE__);
 	      *err = true;
 	   }
 	   break;
@@ -1507,7 +1507,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 		   "freed, %d bytes requested \n", hp->freed, size);
 	   logLine(errorLine);
 	   showErrorCallback(66, (const char *) errorLine);    
-              fprintf(stderr,"%s[%d]: ERROR!\n", __FILE__, __LINE__);
+              fprintf(stderr,"%s[%d]: ERROR!\n", FILE__, __LINE__);
         fprintf(stderr, "%s\n", errorLine);
 #if defined(BPATCH_LIBRARY)
 	   return(0);
@@ -2668,7 +2668,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     statusLine("initializing process data structures");
 
     if (!theProc->setupGeneral()) {
-        startup_printf("[%s:%u] - Couldn't setupGeneral\n", __FILE__, __LINE__);
+        startup_printf("[%s:%u] - Couldn't setupGeneral\n", FILE__, __LINE__);
         cleanupBPatchHandle(theProc->sh->getPid());
         processVec.pop_back();
         delete theProc;
@@ -2896,7 +2896,7 @@ bool process::loadDyninstLib() {
 	// Make sure the library was actually loaded
 	if (!runtime_lib) {
 	    fprintf(stderr, "%s[%d]:  Don't have runtime library handle\n",
-		    __FILE__, __LINE__);
+		    FILE__, __LINE__);
 	    return false;
 	}
     }    
@@ -2908,10 +2908,10 @@ bool process::loadDyninstLib() {
     buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", finalizing RT library");
     statusLine(buffer.c_str());    
-    startup_printf("(%d) finalizing dyninst RT library\n", getPid());
+    startup_printf("%s[%d]: (%d) finalizing dyninst RT library\n", FILE__, __LINE__, getPid());
 
     if (!finalizeDyninstLib())
-      startup_printf("%s[%d]:  failed to finalize dyninst lib\n", __FILE__, __LINE__);
+      startup_printf("%s[%d]:  failed to finalize dyninst lib\n", FILE__, __LINE__);
 
     if (!reachedBootstrapState(bootstrapped_bs)) {
         // For some reason we haven't run dyninstInit successfully.
@@ -3018,7 +3018,7 @@ bool process::setDyninstLibInitParams() {
 
 // Call DYNINSTinit via an inferiorRPC
 bool process::iRPCDyninstInit() {
-    startup_printf("[%s:%u] - Running DYNINSTinit via irpc\n", __FILE__, __LINE__);
+    startup_printf("[%s:%u] - Running DYNINSTinit via irpc\n", FILE__, __LINE__);
     // Duplicates the parameter code in setDyninstLibInitParams()
     int pid = getpid();
     int maxthreads = maxNumberOfThreads();
@@ -3068,7 +3068,7 @@ bool process::iRPCDyninstInit() {
 
     while (!reachedBootstrapState(bootstrapped_bs)) {
         if(hasExited()) {
-            fprintf(stderr, "%s[%d][%s]:  unexpected exit\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+            fprintf(stderr, "%s[%d][%s]:  unexpected exit\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
            return false;
         }
         getMailbox()->executeCallbacks(FILE__, __LINE__);
@@ -3078,8 +3078,8 @@ bool process::iRPCDyninstInit() {
         sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
-    startup_printf("%s[%d][%s]:  bootstrapped\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    startup_printf("[%s:%u] - Ran DYNINSTinit via irpc\n", __FILE__, __LINE__);
+    startup_printf("%s[%d][%s]:  bootstrapped\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    startup_printf("%s[%u]: - Ran DYNINSTinit via irpc\n", FILE__, __LINE__);
     return true;
 }
 
@@ -3123,8 +3123,8 @@ bool process::attach()
 
 bool process::finalizeDyninstLib() 
 {
-   startup_printf("%s[%d]:  isAttached() = %s\n", __FILE__, __LINE__, isAttached() ? "true" : "false");
-   startup_printf("%s[%d]: %s\n", __FILE__, __LINE__, getStatusAsString().c_str());
+   startup_printf("%s[%d]:  isAttached() = %s\n", FILE__, __LINE__, isAttached() ? "true" : "false");
+   startup_printf("%s[%d]: %s\n", FILE__, __LINE__, getStatusAsString().c_str());
    
     assert (isStopped());
     if (reachedBootstrapState(bootstrapped_bs)) {
@@ -3138,7 +3138,7 @@ bool process::finalizeDyninstLib()
    // Read the structure; if event 0 then it's undefined! (not yet written)
    if (bs_record.event == 0)
    {
-       startup_printf("[%s:%u] - bs_record.event is undefined\n", FILE__, __LINE__);
+       startup_printf("%s[%d]: - bs_record.event is undefined\n", FILE__, __LINE__);
        return false;
    }
 
@@ -3229,7 +3229,7 @@ bool process::finalizeDyninstLib()
        statusLine(str.c_str());
    }
 
-   startup_printf("%s[%d]:  bootstrap done\n", __FILE__, __LINE__);
+   startup_printf("%s[%d]:  bootstrap done\n", FILE__, __LINE__);
    // Ready to rock
    setBootstrapState(bootstrapped_bs);
    sh->signalEvent(evtProcessInitDone);
@@ -3250,7 +3250,7 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
                                             void* /*ret*/) // return value from DYNINSTinit
 {
     //global_mutex->_Lock(FILE__, __LINE__);
-    startup_printf("%s[%d]:  about to finalize Dyninst Lib\n", __FILE__, __LINE__);
+    startup_printf("%s[%d]:  about to finalize Dyninst Lib\n", FILE__, __LINE__);
     theProc->finalizeDyninstLib();
     //FinalizeRTLibCallback *cbp = new FinalizeRTLibCallback(finalizeDyninstLibWrapper);
     //FinalizeRTLibCallback &cb = *cbp;
@@ -3750,7 +3750,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
          pdstring msg =
             pdstring("System error: unable to write to process data "
                      "space (WDS): couldn't stop an lwp\n");
-         fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", __FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
          return false;
       }
@@ -3763,7 +3763,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
        cerr << endl;
        pdstring msg = pdstring("System error: unable to write to process data "
                                "space (WDS):") + pdstring(strerror(errno));
-         fprintf(stderr, "%s[%d]:  wds failed\n", __FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  wds failed\n", FILE__, __LINE__);
        showErrorCallback(38, msg);
        return false;
    }
@@ -3781,7 +3781,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
 
    if (!isAttached()) {
       fprintf(stderr, "%s[%d][%s]:  readDataSpace() failing, not attached\n",
-             __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+             FILE__, __LINE__, getThreadStr(getExecThreadID()));
       return false;
    }
 
@@ -4003,7 +4003,7 @@ void process::set_status(processState st, bool override /* = false */)
     }
 
    proccontrol_printf("[%s:%u] - Setting everyone to state %s\n",
-                      __FILE__, __LINE__, 
+                      FILE__, __LINE__, 
                       processStateAsString(status_));
 
    pdvector<dyn_thread *>::iterator iter = threads.begin();
@@ -4031,7 +4031,7 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st)
       status_ = stopped;
 
    proccontrol_printf("[%s:%u] - Setting %d to state %s (%d)\n",
-                      __FILE__, __LINE__, whichLWP->get_lwp_id(),
+                      FILE__, __LINE__, whichLWP->get_lwp_id(),
                       lwp_st == running ? "running" : 
                       lwp_st == stopped ? "stopped" : 
                       lwp_st == exited ? "exited" : "other",
@@ -4196,7 +4196,7 @@ bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
        }
        return true;
      default:
-       signal_printf( "%s[%d]:  UNKNOWN\n", __FILE__, __LINE__);
+       signal_printf( "%s[%d]:  UNKNOWN\n", FILE__, __LINE__);
        return true;
        //return false;
    };
@@ -4587,14 +4587,14 @@ int_function *process::findOnlyOneFunction(const pdstring &name) const {
                 if(pdf){
                     // fail if we already found a match
                     if (ret) {
-                        cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
+                        cerr << FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
                              << " found more than one match for function " << func_name <<endl;
                         return NULL;
                     }
                     ret = pdf;
                 }
                 else {
-                    // cerr << __FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
+                    // cerr << FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
                     //<< " could not find function " << func_name << endl;
                 }
             }
@@ -4614,7 +4614,7 @@ int_function *process::findOnlyOneFunction(const pdstring &name) const {
                     int_function *fb = so->findOnlyOneFunction(func_name);
                     if (fb) {
                         if (ret) {
-                            cerr << __FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
+                            cerr << FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
                                  << " found more than one match for function " << func_name <<endl;
                             return NULL;
                         }
@@ -4622,7 +4622,7 @@ int_function *process::findOnlyOneFunction(const pdstring &name) const {
                         //cerr << "Found " << func_name << " in " << lib_name << endl;
                     }
                     else {
-                        //cerr << __FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
+                        //cerr << FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
                         //  << " could not find function " << func_name << " in module " << so->getName()<<endl;
                     }
                 }
@@ -5212,7 +5212,7 @@ void process::triggerNormalExitCallback(int exitCode)
     exiting_ = true;
     // special case where can't wait to continue process
     if (status() == exited) {
-        fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process is gone...\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process is gone...\n", FILE__, __LINE__);
         return;
     }
 
@@ -6079,7 +6079,11 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
         goto done;
     }
 
-    assert(doublecheck.tid == (dyntid_t) tid);
+    if (doublecheck.tid != (dyntid_t) tid) {
+      fprintf(stderr, "%s[%d]:  ERROR:  mismatch between tids %lu != %lu\n", 
+              FILE__, __LINE__, doublecheck.tid, tid);
+      goto done;
+    }
 
     if (doublecheck.thread_state != THREAD_COMPLETE) {
         // On platforms where we need to implement thread exit...
@@ -6131,7 +6135,7 @@ void process::setIndexToThread(unsigned index, unsigned value)
    bool err =  writeDataSpace((void *)(threadIndexAddr + (index * sizeof(unsigned))),
                    sizeof(unsigned),
                    (void *)&value);
-   if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+   if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
         assert(err);
 }
 
@@ -6453,7 +6457,7 @@ Address process::stepi(bool verbose, int lwp) {
    {
       if (verbose) {
          fprintf(stderr, "[stepi @ %s:%u] - Error. Process %d no longer " 
-                 "exists.\n",  __FILE__, __LINE__, getPid());
+                 "exists.\n",  FILE__, __LINE__, getPid());
       }
       return (Address) -1;
    }
@@ -6461,14 +6465,14 @@ Address process::stepi(bool verbose, int lwp) {
    {
       if (verbose) {
          fprintf(stderr, "[stepi @ %s:%u] - Warning. Process %d was running.\n",
-                 __FILE__, __LINE__, getPid());
+                 FILE__, __LINE__, getPid());
       }
       bool result = pause();
       if (!result)
       {
          if (verbose) {
             fprintf(stderr, "[stepi @ %s:%u] - Error. Couldn't stop %d.\n", 
-                    __FILE__, __LINE__, getPid());
+                    FILE__, __LINE__, getPid());
          }
          return (Address) -1;
       }
@@ -6485,8 +6489,8 @@ Address process::stepi(bool verbose, int lwp) {
       lwp_to_step = lookupLWP(lwp);
       if (!lwp_to_step) {
          if (verbose)
-            fprintf(stderr, "[step @ %s:%u] - Couldn't find lwp %d\n",
-                    __FILE__, __LINE__, lwp);
+            fprintf(stderr, "%s[%u]: - Couldn't find lwp %d\n",
+                    FILE__, __LINE__, lwp);
          return (Address) -1;
       }
    }
@@ -6496,8 +6500,8 @@ Address process::stepi(bool verbose, int lwp) {
    if ((nexti == (Address) -1) || lwp_to_step->status() != stopped)
    {
       if (verbose) {
-         fprintf(stderr, "[stepi @ %s:%u] - Warning. Couldn't step %d.\n",
-                 __FILE__, __LINE__, getPid());
+         fprintf(stderr, "%s[%u]: - Warning. Couldn't step %d.\n",
+                 FILE__, __LINE__, getPid());
       }
    }
 

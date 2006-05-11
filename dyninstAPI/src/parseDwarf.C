@@ -958,7 +958,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					
 #if defined(ia64_unknown_linux2_4)
 				/* Convert location list to an AST for later code generation. */
-				newFunction->lowlevel_func()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength );
+				newFunction->lowlevel_func()->ifunc()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength );
 #else
 				static bool warned_no_locals = false;
 				if (listLength > 1 && !warned_no_locals) {
