@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.635 2006/05/09 09:52:55 jaw Exp $
+// $Id: process.C,v 1.636 2006/05/11 02:09:34 tlmiller Exp $
 
 #include <ctype.h>
 
@@ -1377,8 +1377,12 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
       
       res = sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
       getMailbox()->executeCallbacks(FILE__, __LINE__);
-  } while (res != evtRPCSignal); // Loop until callback has fired.
-
+      /* If, as we used to, we loop while res != evtRPCSignal, we could
+         be kicked out of the loop by some other (random) RPC completing,
+         rather than the malloc() call, and we'll fail based on the random
+         garbage in the return structure that the callback hasn't filled in yet. */
+  } while( ! inferiorMallocCallbackFlag );
+  
   sh->overrideSyncContinueState(oldState);
   inferiorMallocCallbackFlag = false;
 
@@ -6292,11 +6296,11 @@ void process::recognize_threads(const process *parent)
      }
 
      // Really really really don't call this; apparently it hoses things but good - bernat, 4MAY06
-     //getMailbox()->executeCallbacks(FILE__, __LINE__);
+     // getMailbox()->executeCallbacks(FILE__, __LINE__);
 
      // Don't assert these... the RPCs can fail (well DYNINSTthreadIndex can fail).
-     //assert(ret_lwps.size() == expected);
-     //assert(ret_indexes.size() == expected);
+     // assert(ret_lwps.size() == expected);
+     // assert(ret_indexes.size() == expected);
 
      assert(status() == stopped);
      
@@ -6308,7 +6312,7 @@ void process::recognize_threads(const process *parent)
          // Wait for the thread to show up...
          int timeout = 0;
          while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
-             //getMailbox()->executeCallbacks(FILE__, __LINE__);
+            // getMailbox()->executeCallbacks(FILE__, __LINE__);
             sh->waitForEvent(evtThreadCreate);
             timeout++;
             if (timeout > 1000) break;
