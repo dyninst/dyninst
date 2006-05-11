@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.9 2006/05/03 00:31:21 jodom Exp $
+// $Id: mapped_module.C,v 1.10 2006/05/11 21:03:06 jodom Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -579,10 +579,11 @@ void mapped_module::parseLineInformation(process * /* proc */,
         int initialLine = 0;
         int initialLineIndex = 0;
         Address funcStartAddress = 0;
+        Address funcEndAddress = 0;
         
         for( int j = -1; ; --j ) {
             SYMENT * extSym = (SYMENT *)( ((Address)sym) + (j * SYMESZ) );
-            if( extSym->n_sclass == C_EXT ) {
+            if( extSym->n_sclass == C_EXT || extSym->n_sclass == C_HIDEXT ) {
                 aux = (union auxent *)( ((Address)extSym) + SYMESZ );
 #ifndef __64BIT__
                 initialLineIndex = ( aux->x_sym.x_fcnary.x_fcn.x_lnnoptr - linesfdptr )/LINESZ;
@@ -598,6 +599,10 @@ void mapped_module::parseLineInformation(process * /* proc */,
             bperr("unable to process line info for %s\n", symbolName);
             return;
         }
+        SYMENT * efSym = (SYMENT *)( ((Address)bfSym) + (2 * SYMESZ) );
+        while (efSym->n_sclass != C_FCN)
+           efSym = (SYMENT *) ( ((Address)efSym) + SYMESZ );
+        funcEndAddress = efSym->n_value;
         
         aux = (union auxent *)( ((Address)bfSym) + SYMESZ );
         initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
@@ -648,7 +653,10 @@ void mapped_module::parseLineInformation(process * /* proc */,
                bigger range, but it's not clear how.  (If the function has inlined code, we won't know about
                it until we see the next section, so claiming "until the end of the function" will give bogus results.) */
             // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, previousLineAddr + 4 );
+           while (previousLineAddr < funcEndAddress) {
             currentLineInformation.addLine( whichFile.c_str(), previousLineNo, previousLineAddr, previousLineAddr + 4 );
+            previousLineAddr += 4;
+           }
         }
     } /* end if we found a C_FUN symbol */
 } /* end parseLineInformation() */

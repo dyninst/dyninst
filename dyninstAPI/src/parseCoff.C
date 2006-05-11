@@ -332,7 +332,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
     }
 
     if (!currInfo.isExternal)
-	FindLineInfo(ldptr, currInfo, exeName, lineInformation);
+	FindLineInfo(ldptr, currInfo, modName, lineInformation);
 
     // STAB parse preparation.
     current_func_name = NULL;
@@ -606,6 +606,11 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
 	    		   
 	    		   Since I don't know how to get function addresses out of ECOFF, however,
 	    		   this'll have to wait. */
+
+                   if (tempSym->st == stEnd && tempSym->sc == scText) {
+                      lineInformation.addLine( fileName.c_str(), prevLineNo, prevLineAddr, procedureDesc->adr + tempSym->value );
+                   }
+
 	    		}
 
 			} else {
