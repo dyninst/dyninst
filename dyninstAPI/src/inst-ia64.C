@@ -204,10 +204,10 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 
   case loadFrameRelativeOp: {
 	/* Load size bytes from the address fp + src1 into the register dest. */
-	assert( location->func()->framePointerCalculator != NULL );			
+	assert( location->func()->getFramePointerCalculator() != NULL );			
 			
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
-	Register framePointer = (Register) location->func()->framePointerCalculator->generateCode( proc, rs, gen, false, true, location );
+	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( proc, rs, gen, false, true, location );
 			
 	instruction_x longConstant = generateLongConstantInRegister( src2, src1 );
 	instruction calculateAddress = generateArithmetic( plusOp, framePointer, src2, framePointer ); 
@@ -265,10 +265,10 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 
   case loadFrameAddr: {
 	/* Write the value of the fp + the immediate src1 into the register dest. */
-	assert( location->func()->framePointerCalculator != NULL );
+	assert( location->func()->getFramePointerCalculator() != NULL );
 
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
-	Register framePointer = (Register) location->func()->framePointerCalculator->generateCode( proc, rs, gen, false, true, location );
+	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( proc, rs, gen, false, true, location );
 			
 	instruction memoryNop( NOP_M );
 	instruction integerNop( NOP_I );
@@ -2433,7 +2433,7 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
   whichToPreserve[ 30 ] = false;
   whichToPreserve[ 31 ] = false;
 																	
-  functionBase->usedFPregs = whichToPreserve;
+  functionBase->ifunc()->usedFPregs = whichToPreserve;
   return whichToPreserve;
 } /* end doFloatingPointStaticAnalysis() */ 
 
@@ -2984,7 +2984,7 @@ void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
   // Remove basetramp's frame on memory stack.
   /* FIXME: we should make use of the unwind_region information here, but this 
 	 is the only minitramp which alters the frame. */
-  generatePreservationTrailer( gen, location->func()->usedFPregs, NULL );
+  generatePreservationTrailer( gen, location->func()->getUsedFPregs(), NULL );
 
   int outputRegisters = 8;
   int extraOuts = outputRegisters % 3;
@@ -3232,10 +3232,10 @@ void emitVstore( opCode op, Register src1, Register src2, Address dest,
   case storeFrameRelativeOp: {
 	/* Store size bytes at the address fp + the immediate dest from the register src1,
 	   using the scratch register src2. */
-	assert( location->func()->framePointerCalculator != NULL );			
+	assert( location->func()->getFramePointerCalculator() != NULL );			
 
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
-	Register framePointer = (Register) location->func()->framePointerCalculator->generateCode( proc, rs, gen, false, true, location );
+	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( proc, rs, gen, false, true, location );
 
 	/* See the frameAddr case in emitVload() for an optimization. */
 	instruction memoryNop( NOP_M );
@@ -3456,7 +3456,7 @@ bool baseTramp::generateSaves( codeGen & gen, registerSpace * rs ) {
 	  whichToPreserve[i] = false;
 	
 	if( BPatch::bpatch->isSaveFPROn() ) {
-	  	return generatePreservationHeader( gen, point()->func()->usedFPregs, baseTrampRegion );
+	  	return generatePreservationHeader( gen, point()->func()->getUsedFPregs(), baseTrampRegion );
 	  	}
 	else {
 		bool returnVal = generatePreservationHeader( gen, whichToPreserve, baseTrampRegion );
@@ -3486,7 +3486,7 @@ bool baseTramp::generateRestores( codeGen & gen, registerSpace * rs ) {
 		}
 	
 	if( BPatch::bpatch->isSaveFPROn() ) { 
-		return generatePreservationTrailer( gen, point()->func()->usedFPregs, baseTrampRegion );
+		return generatePreservationTrailer( gen, point()->func()->getUsedFPregs(), baseTrampRegion );
 		}
 	else {
 		bool returnVal = generatePreservationTrailer( gen, whichToPreserve, baseTrampRegion );

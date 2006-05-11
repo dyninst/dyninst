@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.48 2005/10/13 21:12:25 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.49 2006/05/11 02:09:30 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -618,7 +618,7 @@ Address instruction_x::getTargetAddress() const {
 
 /* private refactoring function, for dBTRSF() */
 int_basicBlock * findBasicBlockInCFG( Address addr, 
-									  const pdvector<int_basicBlock *> &blocks) {
+									  const pdvector<int_basicBlock *> &blocks ) {
 	for (unsigned i = 0; i < blocks.size(); i++) {
 		if ((blocks[i]->origInstance()->firstInsnAddr() <= addr) &&
 			(addr < blocks[i]->origInstance()->endAddr()))
@@ -726,10 +726,12 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 
 	int_function * pdf = location->func();
 	assert( pdf != NULL );
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: image func %p (in int_function %p)\n", __FILE__, __LINE__, pdf->ifunc(), pdf );
 	
 	/* Determine used FP regs, if needed */
-	if( !pdf->usedFPregs )
-		pdf->usedFPregs = doFloatingPointStaticAnalysis( location );
+	if( pdf->getUsedFPregs() == NULL ) {
+		pdf->ifunc()->usedFPregs = doFloatingPointStaticAnalysis( location );
+		}
 	
 	const pdvector<int_basicBlock *> &blocks = pdf->blocks();
 
@@ -750,18 +752,17 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: ... listing complete.\n", __FILE__, __LINE__ );
 
 	/* Initialize the alloc blocks. */
-	for( unsigned int i = 0; i < pdf->allocs.size(); i++ ) {
-		Address absoluteAddress = pdf->allocs[i];
+	for( unsigned int i = 0; i < pdf->getAllocs().size(); i++ ) {
+		Address absoluteAddress = pdf->getAllocs()[i];
 		// /* DEBUG */ fprintf( stderr, "%s[%d]: absolute address of alloc: 0x%lx (in function starting at 0x%lx)\n", __FILE__, __LINE__, absoluteAddress, pdf->getAddress() );
-		int_basicBlock * currentAlloc = 
-			findBasicBlockInCFG( absoluteAddress, blocks);
+		int_basicBlock * currentAlloc = findBasicBlockInCFG( absoluteAddress, blocks );
 		
 		/* The old parser uses the frequently-incorrect symbol table size information,
 		   so we can get allocs in unreachable basic blocks.  Since they're unreachable, 
 		   the CFG doesn't create them and we can't find them.  */
 		if( currentAlloc == NULL ) { continue; }
 		/* Switch back to me when the new parser arrives. */
-		// assert( currentAlloc != NULL );
+		assert( currentAlloc != NULL );
 		
 		/* Generically, these should be functors from sets to sets. */
 		currentAlloc->setDataFlowGen( currentAlloc );
@@ -794,7 +795,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 		}
 
 		if( workBlock->getDataFlowGen() != NULL ) {	
-			newOutputSet.insert(workBlock->getDataFlowGen() ); 
+			newOutputSet.insert( workBlock->getDataFlowGen() ); 
 		}
 
 		// /* DEBUG */ fprintf( stderr, "After gen/kill sets, %d in (new) output set.\n", newOutputSet.size() );
@@ -837,7 +838,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 
 			/* Construct the registerSpace reflecting the desired frame. */
 			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
-			initBaseTrampStorageMap( regSpace, 8, pdf->usedFPregs );
+			initBaseTrampStorageMap( regSpace, 8, pdf->getUsedFPregs() );
 
 			/* If we did not have a frame originally, create one such that wrapper functions
 			   will work correctly. */
@@ -882,7 +883,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 				}
 
 			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
-			initBaseTrampStorageMap( regSpace, sizeOfFrame, pdf->usedFPregs );
+			initBaseTrampStorageMap( regSpace, sizeOfFrame, pdf->getUsedFPregs() );
 
 			/* Note that we assume that having extra registers can't be harmful;
 			   that is, that 'restoring' the alloc instruction's frame before

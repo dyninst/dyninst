@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.27 2006/03/12 23:31:55 legendre Exp $
+// $Id: function.h,v 1.28 2006/05/11 02:09:32 tlmiller Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -506,18 +506,26 @@ class int_function {
 #if defined(arch_ia64)
    // We need to know where all the alloc instructions in the
    // function are to do a reasonable job of register allocation
-   // in the base tramp.  
-   pdvector< Address > allocs;
+   // in the base tramp.
+   
+ private:
+   Address baseAddr_;
+   pdvector< Address > cachedAllocs;
+    
+ public:
+   // Accessor function that ensures that the cachedAllocs are
+   // up-to-date.  Necessary because of delayed parsing.
+   pdvector< Address > & getAllocs();
    
    // Since the IA-64 ABI does not define a frame pointer register,
    // we use DWARF debug records (DW_AT_frame_base entries) to 
    // construct an AST which calculates the frame pointer.
-   AstNode * framePointerCalculator;
+   AstNode * getFramePointerCalculator();
    
    // Place to store the results of doFloatingPointStaticAnalysis().
    // This way, if they are ever needed in a mini-tramp, emitFuncJump()
    // for example, the expensive operation doesn't need to happen again.
-   bool * usedFPregs;
+   bool * getUsedFPregs();
 #endif
 
 #if defined(cap_relocation)

@@ -65,11 +65,11 @@ int int_function_count = 0;
 int_function::int_function(image_func *f,
 			   Address baseAddr,
 			   mapped_module *mod) :
-#if defined(arch_ia64)
-	/* image_funcs are reference-counted, so we don't have to clone these. */
-    framePointerCalculator( assignAst( f->framePointerCalculator ) ),
-    usedFPregs( f->usedFPregs ),
-#endif
+#if defined( arch_ia64 )
+	/* We can generate int_functions before parsing, so we need to be able
+	   to update the allocs list, which needs the base address. */
+	baseAddr_(baseAddr),
+#endif			   
     ifunc_(f),
     mod_(mod),
     blockIDmap(intHash),
@@ -94,17 +94,8 @@ int_function::int_function(image_func *f,
     //parsing_printf("Function offset: 0x%x; base: 0x%x\n",
     //f->getOffset(), baseAddr);
     addr_ = f->getOffset() + baseAddr;
-#if defined(arch_ia64)
-    parsing_printf("%s: creating new proc-specific function at 0x%llx\n",
+    parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
                    symTabName().c_str(), addr_);
-#else
-    parsing_printf("%s: creating new proc-specific function at 0x%x\n",
-                   symTabName().c_str(), addr_);
-#endif
-    /*
-    fprintf(stderr, "%s: creating new proc-specific function at 0x%llx\n",
-	    symTabName().c_str(), addr_);
-    */
     // We delay the creation of instPoints until they are requested;
     // this saves memory, and really, until something is asked for we
     // don't need it.  TODO: creation of an arbitrary instPoint should
@@ -113,23 +104,13 @@ int_function::int_function(image_func *f,
 
     // Same with the flowGraph; we clone it from the image_func when
     // we need it.
-
-#if defined(arch_ia64)
-    for( unsigned i = 0; i < f->allocs.size(); i++ ) {
-        allocs.push_back( baseAddr + f->allocs[i] );
-    }        
-#endif
-
+    
+    /* IA-64: create the cached allocs lazily. */
 }
 
 
 int_function::int_function(const int_function *parFunc,
                            mapped_module *childMod) :
-#if defined(arch_ia64)
-	/* image_funcs are reference-counted, so we don't have to clone these. */
-    framePointerCalculator( assignAst( parFunc->ifunc_->framePointerCalculator ) ),
-    usedFPregs( parFunc->ifunc_->usedFPregs ),
-#endif
     addr_(parFunc->addr_),
     ifunc_(parFunc->ifunc_),
     mod_(childMod),
@@ -184,22 +165,9 @@ int_function::int_function(const int_function *parFunc,
      }
 
 #if defined(arch_ia64)
-	for( unsigned i = 0; i < parFunc->allocs.size(); i++ ) {
-		allocs.push_back( parFunc->allocs[i] );
+	for( unsigned i = 0; i < parFunc->cachedAllocs.size(); i++ ) {
+		cachedAllocs.push_back( parFunc->cachedAllocs[i] );
 		}
-     
-	if( usedFPregs == NULL && parFunc->usedFPregs != NULL ) {
-		/* Clone the usedFPregs, since int_functions can go away. */
-		usedFPregs = (bool *)malloc( 128 * sizeof( bool ) );
-		assert( usedFPregs != NULL );
-		memcpy( usedFPregs, parFunc->usedFPregs, 128 * sizeof( bool ) );
-		}
-     
-    /* ASTs are reference-counted, so assignAst() will prevent fPC from
-       vanishing even if f does. */
-	if( framePointerCalculator == NULL && parFunc->framePointerCalculator != NULL ) {
-            framePointerCalculator = assignAst( parFunc->framePointerCalculator );
-        }
 #endif
      // TODO: relocated functions
 }
@@ -216,6 +184,29 @@ int_function::~int_function() {
     enlargeMods_.zap();
 #endif
 }
+
+#if defined( arch_ia64 )
+
+pdvector< Address > & int_function::getAllocs() {
+	if( cachedAllocs.size() != ifunc_->allocs.size() ) {
+		cachedAllocs.clear();
+	    for( unsigned i = 0; i < ifunc_->allocs.size(); i++ ) {
+    	    cachedAllocs.push_back( baseAddr_ + ifunc_->allocs[i] );
+		    }        
+		}
+
+	return cachedAllocs;
+	} /* end getAllocs() */
+
+AstNode * int_function::getFramePointerCalculator() {
+	return ifunc_->framePointerCalculator;
+	}
+	
+bool * int_function::getUsedFPregs() {
+	return ifunc_->usedFPregs;
+	}
+
+#endif /* defined( arch_ia64 ) */
 
 // This needs to go away: how is "size" defined? Used bytes? End-start?
 
