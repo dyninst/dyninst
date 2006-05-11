@@ -86,27 +86,40 @@ instruction::insnType InstrucIter::getInsnType()
     return ret;
 }
 
-bool InstrucIter::isAReturnInstruction()
-{
-    switch( getInsnType() ) {
-    case instruction::RETURN:
-        return true;
-        break;
-	
-    default:
-        break;
-    } /* end instruction-type switch */
-    return false;
-}
+bool InstrucIter::isAReturnInstruction() {
+
+	switch( getInsnType() ) {
+		case instruction::RETURN: {
+			instruction * itmp = getInsnPtr();
+			if( itmp->getPredicate() == 0 ) { return true; }
+			} break;
+			
+		default:
+			break;
+		} /* end instruction-type switch */
+		
+	return false;
+	} /* end isAReturnInstruction() */
 
 /** is the instruction used to return from the functions,
     dependent upon a condition register
   * @param i the instruction value 
   */
-bool InstrucIter::isACondReturnInstruction()
-{
-  return false; // Not implemented yet
-}
+bool InstrucIter::isACondReturnInstruction() {
+	switch( getInsnType() ) {
+		case instruction::RETURN: {
+			instruction * itmp = getInsnPtr();
+			if( itmp->getPredicate() != 0 ) {
+				return true;
+				}
+			} break;
+			
+		default:
+			break;
+		} /* end instruction-type switch */
+		
+	return false;
+	} /* end isAReturnInstruction() */
 
 bool InstrucIter::isAIndirectJumpInstruction()
 {
