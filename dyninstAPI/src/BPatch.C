@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.148 2006/05/09 09:52:54 jaw Exp $
+// $Id: BPatch.C,v 1.149 2006/05/11 19:09:41 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1608,7 +1608,7 @@ bool BPatch::waitForStatusChangeInt()
     return true;
   }
   //  we waited for a change, but didn't get it
-  fprintf(stderr, "%s[%d]:  Error in status change reporting\n", __FILE__, __LINE__);
+  fprintf(stderr, "%s[%d]:  Error in status change reporting\n", FILE__, __LINE__);
   return false;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.637 2006/05/11 13:00:18 jaw Exp $
+// $Id: process.C,v 1.638 2006/05/11 19:09:41 jaw Exp $
 
 #include <ctype.h>
 
@@ -126,7 +126,11 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
+#if defined (arch_ia64)
+#define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
+#else
 #define P_offsetof(s, m) (unsigned) &(((s *) NULL)->m)
+#endif
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
@@ -6411,7 +6415,8 @@ dynthread_t process::mapIndexToTid(int index)
 {
    dynthread_t tid = (dynthread_t) -1;
    pdvector<AstNode *> ast_args;
-   AstNode arg1(AstNode::Constant, (void *) index);
+   void *index_arg = (void *) index;
+   AstNode arg1(AstNode::Constant, index_arg);
    ast_args.push_back(&arg1);
    AstNode call_get_tid("DYNINST_getThreadFromIndex", ast_args);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.45 2006/05/05 17:50:33 rchen Exp $
+// $Id: arch-x86.h,v 1.46 2006/05/11 19:09:41 jaw Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -825,8 +825,14 @@ inline Address region_hi(const Address /*x*/) { return 0xf0000000; }
 
 #if defined(arch_x86_64)
 // range functions for AMD64
+
+#if 0
 inline Address region_lo_64(const Address x) { return 0x0; }
 inline Address region_hi_64(const Address x) { return ~0x0; }
+#endif
+inline Address region_lo_64(const Address x) { return x & 0xffffffff80000000; }
+inline Address region_hi_64(const Address x) { return x | 0x000000007fffffff; }
+
 #endif
 
 bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
