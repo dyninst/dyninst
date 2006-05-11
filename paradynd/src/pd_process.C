@@ -2058,7 +2058,11 @@ void pd_process::pdNewThread(BPatch_process *proc, BPatch_thread *thr)
          break;
       }
    }
-   assert(pd_proc);
+   if( ! pd_proc ) {
+     /* We're still creating the pd_process (e.g., MPI startup) when
+        Dyninst notices the initial thread. */
+     return;
+     }
 
    int thread_id = thr->getBPatchID();
    pd_thread *foundThr = pd_proc->findThread(thread_id);
