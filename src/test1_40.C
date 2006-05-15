@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_40.C,v 1.5 2006/03/22 14:07:30 bpellin Exp $
+// $Id: test1_40.C,v 1.6 2006/05/15 16:16:56 bpellin Exp $
 /*
  * #Name: test1_40
  * #Desc: Verify that we can monitor call sites
@@ -56,7 +56,6 @@
 #include "test_lib.h"
 
 int mutateeFortran;
-// TODO: Fix mutateeXLC so that it is set
 int mutateeXLC = 0;
 
 
@@ -101,9 +100,9 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
 
 #if !defined(alpha_dec_osf4_0) \
- && !defined(ia64_unknown_linux2_4) \
- && !defined(mips_sgi_irix6_4) \
- && !defined(os_windows)
+   && !defined(ia64_unknown_linux2_4) \
+   && !defined(mips_sgi_irix6_4) \
+   && !defined(os_windows)
 
    if (mutateeFortran) return 0;
    // xlc does not produce the intended dynamic call points for this example

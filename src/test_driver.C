@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.29 2006/05/04 01:41:54 legendre Exp $
+// $Id: test_driver.C,v 1.30 2006/05/15 16:16:57 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -211,7 +211,6 @@ int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, Process
              appThread->continueExecution();
              bpatch->waitForStatusChange();
          } while (!appThread->isTerminated());
-         
 
          int retVal;
          if(appThread->terminationStatus() == ExitedNormally) {
@@ -329,7 +328,6 @@ void printLogOptionHeader(test_data_t &test, char *mutatee, bool useAttach)
    fflush(stderr);
    // Full test description
    printf("\"%s", test.name);
-   // TODO: Add use relocation option here
    if ( mutatee != "" )
    {
       printf(" -mutatee %s", mutatee);
