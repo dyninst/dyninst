@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.206 2006/05/11 13:00:19 jaw Exp $
+// $Id: unix.C,v 1.207 2006/05/15 17:51:01 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -747,9 +747,11 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
       ev.type = evtNullEvent;
       break;
     }
-    if (!decodeRTSignal(ev)) {
-      ev.type = evtCritical; // Got a real SIGBUS
-    }
+    ev.type = evtCritical;
+
+    // This may override the type..
+    decodeRTSignal(ev);
+
     break;
   case SIGSEGV:
     ev.type = evtCritical;
