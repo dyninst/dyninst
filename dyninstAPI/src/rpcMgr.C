@@ -730,7 +730,7 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
             // vector (For bookkeeping)
             // And pick out whether the process should be run
 
-            inferiorrpc_printf("%s[%d]: Result of posting RPC on thread %u: %s\n",
+            inferiorrpc_printf("%s[%d]: Result of posting RPC on thread %lu: %s\n",
                                FILE__, __LINE__, 
                                curThr->get_thr()->get_tid(),
                                irpcLaunchStateAsString(thrState));
