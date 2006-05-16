@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.168 2006/05/10 11:40:02 darnold Exp $
+ * $Id: DMdaemon.C,v 1.169 2006/05/16 19:50:35 tlmiller Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -827,9 +827,9 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de, bool started_manually)
     for( unsigned int j=0; j<endpoints.size(); j++) {
         pdstring daemon_machine = endpoints[j]->get_HostName() ;
         
-        fprintf( stderr,
-                 "Creating paradynDaemon: host:%s, name:%s, flavor:%s\n",
-                 daemon_machine.c_str(), de->getName(), de->getFlavor() );
+        // /* DEBUG */ fprintf( stderr,
+        //         "Creating paradynDaemon: host:%s, name:%s, flavor:%s\n",
+        //         daemon_machine.c_str(), de->getName(), de->getFlavor() );
         pd = new paradynDaemon(de->getMRNetNetwork(), endpoints[j],
                                daemon_machine,
                                (pdstring&)de->getLoginString(),
