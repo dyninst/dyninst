@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.28 2006/05/11 02:09:32 tlmiller Exp $
+// $Id: function.h,v 1.29 2006/05/16 21:19:11 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -431,6 +431,13 @@ class int_function {
    const pdvector<instPoint*> &funcCalls();
    const pdvector<instPoint*> &funcArbitraryPoints();
    
+   instPoint *findInstPByAddr(Address addr);
+
+   // And for adding... we map by address to instPoint
+   // as a single instPoint may have multiple instances
+   void registerInstPointAddr(Address addr, instPoint *inst);
+   void unregisterInstPointAddr(Address addr, instPoint *inst);
+
    bool isInstrumentable() const { return ifunc_->isInstrumentable(); }
 
 
@@ -589,6 +596,8 @@ class int_function {
    pdvector<instPoint*> exitPoints_;	/* return point(s). */
    pdvector<instPoint*> callPoints_;	/* pointer to the calls */
    pdvector<instPoint*> arbitraryPoints_;	       /* pointer to the calls */
+
+   dictionary_hash<Address, instPoint *> instPsByAddr_;
 
 #if defined(cap_relocation)
    // Status tracking variables

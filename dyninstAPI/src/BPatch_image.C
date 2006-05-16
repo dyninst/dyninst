@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.89 2006/04/26 03:43:00 jaw Exp $
+// $Id: BPatch_image.C,v 1.90 2006/05/16 21:19:09 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -405,11 +405,21 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
 
   unsigned i;
   process *llproc = proc->llproc;
+  int_function *func = NULL;
+
+  if (bpf) {
+    func = bpf->func;
+  }
+  else {
+    func = llproc->findFuncByAddr(address_int);
+  }
+
+  if (func == NULL) return NULL;
 
   /* See if there is an instPoint at this address */
   instPoint *p = NULL;
 
-  if ((p = llproc->findInstPByAddr(address_int))) {
+  if ((p = func->findInstPByAddr(address_int))) {
     return proc->findOrCreateBPPoint(NULL, p, BPatch_locInstruction);
   }
 
@@ -417,29 +427,11 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   /* This has an interesting side effect: "instrument the first
      instruction" may return with "entry instrumentation", which can
      have different semantics. */
-  int_function *func;
-  if(bpf)
-      func = (int_function *) bpf->lowlevel_func();
-  else {
-      codeRange *range = llproc->findCodeRangeByAddress(address_int);
-      if (!range) {
-          return NULL;
-    }
-    
-    int_function *function_ptr = range->is_function();
-    if (!function_ptr)
-      // Address doesn't correspond to a function
-      return NULL;
-    func = function_ptr;
-  }
   
   // If it's in an uninstrumentable function, just return an error.
-  if ( !func || !((int_function*)func)->isInstrumentable()){ 
+  if (!func->isInstrumentable()) { 
     return NULL;
   }
-  
-  if(!func || !func->mod())
-    return NULL;
   
   const pdvector<instPoint *> entries = func->funcEntries();
   for (unsigned t = 0; t < entries.size(); t++) {

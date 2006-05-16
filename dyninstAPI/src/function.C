@@ -73,6 +73,7 @@ int_function::int_function(image_func *f,
     ifunc_(f),
     mod_(mod),
     blockIDmap(intHash),
+    instPsByAddr_(addrHash4),
 #if defined(cap_relocation)
     generatedVersion_(0),
     installedVersion_(0),
@@ -115,6 +116,7 @@ int_function::int_function(const int_function *parFunc,
     ifunc_(parFunc->ifunc_),
     mod_(childMod),
     blockIDmap(intHash),
+    instPsByAddr_(addrHash4),
 #if defined(cap_relocation)
     generatedVersion_(parFunc->generatedVersion_),
     installedVersion_(parFunc->installedVersion_),
@@ -314,6 +316,30 @@ const pdvector<instPoint*> &int_function::funcArbitraryPoints() {
   // We add these per-process, so there's no chance to have
   // a parse-level list
     return arbitraryPoints_;
+}
+
+instPoint *int_function::findInstPByAddr(Address addr) {
+    // This only finds instPoints that have been previously created...
+    // so don't bother parsing. 
+    
+    if (instPsByAddr_.find(addr))
+        return instPsByAddr_[addr];
+
+    return NULL;
+}
+
+void int_function::registerInstPointAddr(Address addr, instPoint *inst) {
+    instPoint *oldInstP = findInstPByAddr(addr);
+    if (oldInstP) assert(inst == oldInstP);
+
+    instPsByAddr_[addr] = inst;
+}
+
+void int_function::unregisterInstPointAddr(Address addr, instPoint* inst) {
+    instPoint *oldInstP = findInstPByAddr(addr);
+    assert(oldInstP == inst);
+
+    instPsByAddr_.undef(addr);
 }
 
 void print_func_vector_by_pretty_name(pdstring prefix,
