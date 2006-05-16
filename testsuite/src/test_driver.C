@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.30 2006/05/15 16:16:57 bpellin Exp $
+// $Id: test_driver.C,v 1.31 2006/05/16 14:46:20 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -643,7 +643,7 @@ void updateResumeLog(int testnum, int mutateenum, int optionnum)
    if ( resume == NULL )
    {
       perror("Failed to update the resume log");
-      exit(1);
+      exit(NOTESTS);
    }
    fprintf(resume, "%d,%d,%d\n", testnum,mutateenum,optionnum);
 
