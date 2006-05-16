@@ -172,21 +172,21 @@ bool rpcThr::isWaitingForBreakpoint() const {
 
 bool rpcThr::isReadyForIRPC() const {
     if (isProcessingIRPC()) {
-      inferiorrpc_printf("... thr %u currently processing, sorry\n",
+      inferiorrpc_printf("... thr %lu currently processing, sorry\n",
 			 get_thr()->get_tid());
         return false;
     }
     if (postedRPCs_.size() > 0) {
-      inferiorrpc_printf("... thr %u with a thread RPC\n",
+      inferiorrpc_printf("... thr %lu with a thread RPC\n",
 			 get_thr()->get_tid());
         return true;
     }
     if (mgr_->postedProcessRPCs_.size() > 0) {
-      inferiorrpc_printf("... thr %u picking up a process RPC\n",
+      inferiorrpc_printf("... thr %lu picking up a process RPC\n",
 			 get_thr()->get_tid());
         return true;
     }
-    inferiorrpc_printf("... thr %u with nothing to do\n",
+    inferiorrpc_printf("... thr %lu with nothing to do\n",
 		       get_thr()->get_tid());
     return false;
 }
@@ -292,7 +292,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
         return irpcNoIRPC;
     }
 
-    inferiorrpc_printf("%s[%d]: running a pending IRPC on thread %u\n",
+    inferiorrpc_printf("%s[%d]: running a pending IRPC on thread %lu\n",
                        FILE__, __LINE__, thr_->get_tid());
     
     dyn_lwp *lwp = thr_->get_lwp();
@@ -347,7 +347,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
     // the PC back to the original value
     Frame curFrame = lwp->getActiveFrame();
     runningRPC_->origPC = curFrame.getPC();
-    inferiorrpc_printf("%s[%d]: thread %u at PC 0x%lx, saving and setting to 0x%lx\n",
+    inferiorrpc_printf("%s[%d]: thread %lu at PC 0x%lx, saving and setting to 0x%lx\n",
                        FILE__, __LINE__, thr_->get_tid(), runningRPC_->origPC, runningRPC_->rpcStartAddr);
 #endif    
 
@@ -448,7 +448,7 @@ bool rpcThr::handleCompletedIRPC() {
 #endif
 #endif
 
-    inferiorrpc_printf("Completed thread RPC %d on thread %u\n", runningRPC_->rpc->id, thr_->get_tid());
+    inferiorrpc_printf("Completed thread RPC %d on thread %lu\n", runningRPC_->rpc->id, thr_->get_tid());
 
     // step 1) restore registers:
     if (runningRPC_->savedRegs) {
@@ -520,17 +520,12 @@ bool rpcThr::getReturnValueIRPC() {
        return false;
     }
     
-    inferiorrpc_printf("%s[%d]: Getting return value for irpc %d, thr %u\n",
+    inferiorrpc_printf("%s[%d]: Getting return value for irpc %d, thr %lu\n",
                        FILE__, __LINE__, runningRPC_->rpc->id, thr_->get_tid());
 
     if (runningRPC_->resultRegister != Null_Register) {
         // We have a result that we care about
         returnValue = thr_lwp->readRegister(runningRPC_->resultRegister);
-        // Okay, this bit I don't understand. 
-        // Oh, crud... we should have a register space for each thread.
-        // Or not do this at all. 
-        extern registerSpace *regSpace;
-        regSpace->freeRegister(runningRPC_->resultRegister);
     }
     runningRPC_->resultValue = (void *)returnValue;
     // we continue the process...but not quite at the PC where we left off,
@@ -577,7 +572,7 @@ irpcLaunchState_t rpcThr::launchProcIRPC(bool runProcWhenDone) {
     // the system call. If we can't set the breakpoint we poll.
     dyn_lwp *lwp = thr_->get_lwp();
     
-    inferiorrpc_printf("Thread %u, lwp %u, checking status...\n", thr_->get_tid(), lwp->get_lwp_id());
+    inferiorrpc_printf("Thread %lu, lwp %u, checking status...\n", thr_->get_tid(), lwp->get_lwp_id());
     
     // Check if we're in a system call
     if (lwp->executingSystemCall()) {
