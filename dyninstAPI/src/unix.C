@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.207 2006/05/15 17:51:01 bernat Exp $
+// $Id: unix.C,v 1.208 2006/05/16 21:14:36 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1390,27 +1390,29 @@ bool forkNewProcess_real(pdstring file,
       }else
 	  P_execvp(file.c_str(), args);
 
-      sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
-      //logLine(errorLine);
-	fprintf(stderr,"%s",errorLine);
     
-      //logLine(strerror(errno));
+      char argline[2048];
       {
          int i=0;
+         int cum_len = 0;
          while (args[i]) {
-            sprintf(errorLine, "argv %d = %s\n", i, args[i]);
-		fprintf(stderr,"%s",errorLine);
-            //logLine(errorLine);
+            if (cum_len + strlen(args[i]) > 2047) break;
+            cum_len += sprintf(argline, "%s %s", argline, args[i] ? args[i] : "<nil>");
             i++;
          }
       }
+
+      sprintf(errorLine, "%s[%d]:  execv of command '%s' failed, errno=%d\n", 
+              FILE__, __LINE__, argline, errno);
+      fprintf(stderr,"%s",errorLine);
+
       {
           if ( envp )
           {
 	      for(unsigned i = 0; envs[i] != NULL; ++i) {
+            
 	          sprintf(errorLine, "envp %d = %s\n", i, envs[i]);
-	          //logLine(errorLine);
-			fprintf(stderr,"%s",errorLine);
+                  fprintf(stderr,"%s",errorLine);
 	      }
            }
       }	      

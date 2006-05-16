@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.71 2006/05/03 00:31:19 jodom Exp $
+// $Id: aixDL.C,v 1.72 2006/05/16 21:14:34 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -309,9 +309,10 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
     codeGen gen(instruction::size());
     instruction::generateTrap(gen);
     
-    proc_->writeDataSpace((caddr_t)breakAddr_,
+    if (!proc_->writeDataSpace((caddr_t)breakAddr_,
                           gen.used(),
-                          gen.start_ptr());
+                          gen.start_ptr()))
+        fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     
 }
 
@@ -324,7 +325,8 @@ sharedLibHook::~sharedLibHook() {
         return;
     
     if (breakAddr_)
-        proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
+        if (!proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_))
+          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     else if (loadinst_) {
         miniTramp *handle;
         for (unsigned i = 0; i < loadinst_->miniTramps.size(); i++) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.78 2006/05/03 00:31:18 jodom Exp $
+// $Id: BPatch_function.C,v 1.79 2006/05/16 21:14:34 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -608,8 +608,11 @@ BPatch_function::voidVoidFunctionPointer BPatch_function::getFunctionRefInt() {
 	Address remoteAddress = proc->llproc->inferiorMalloc( sizeof( Address ) * 2 );
 	assert( remoteAddress != (Address)NULL );
 
-	proc->llproc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint );
-	proc->llproc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), sizeof( Address ), & gp );
+	if (!proc->llproc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint ))
+          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+	if (!proc->llproc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), 
+                                           sizeof( Address ), & gp ))
+          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
 
 	return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
 #else

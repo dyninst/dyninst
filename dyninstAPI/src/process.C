@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.638 2006/05/11 19:09:41 jaw Exp $
+// $Id: process.C,v 1.639 2006/05/16 21:14:35 jaw Exp $
 
 #include <ctype.h>
 
@@ -2513,9 +2513,10 @@ bool process::setupGeneral()
     // should move it up to this function to make things more obvious.
     bool res = loadDyninstLib();
     if(res == false) {
+        startup_printf("%s[%d]: ERROR: failed to load DYNINST lib\n", FILE__, __LINE__);
         return false;
     }
-    startup_printf("Waiting for bootstrapped state...\n");
+    startup_printf("%s[%d]: Waiting for bootstrapped state...\n", FILE__, __LINE__);
     while (!reachedBootstrapState(bootstrapped_bs)) {
        // We're waiting for something... so wait
        // true: block until a signal is received (efficiency)
@@ -2786,12 +2787,13 @@ process *ll_attachProcess(const pdstring &progpath, int pid, void *container_pro
 // Return val: false=error condition
 
 bool process::loadDyninstLib() {
-  startup_printf("Entry to loadDyninstLib\n");
+  startup_printf("%s[%d]: Entry to loadDyninstLib\n", FILE__, __LINE__);
     // Wait for the process to get to an initialized (dlopen exists)
     // state
 
     while (!reachedBootstrapState(initialized_bs)) {
-      startup_printf("Waiting for process to reach initialized state...\n");
+      startup_printf("%s[%d]: Waiting for process to reach initialized state...\n", 
+                     FILE__, __LINE__);
        if(hasExited()) {
            return false;
        }
@@ -2806,7 +2808,7 @@ bool process::loadDyninstLib() {
     }
 
 
-    startup_printf("Stopped at entry of main\n");
+    startup_printf("%s[%d]: Stopped at entry of main\n", FILE__, __LINE__);
 
     // We've hit the initialization trap, so load dyninst lib and
     // force initialization
@@ -2991,21 +2993,24 @@ bool process::setDyninstLibInitParams() {
 
            assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
-   writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&cause);
+   if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&cause))
+     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    vars.clear();
 
    if (!findVarsByAll("libdyninstAPI_RT_init_localPid", vars))
        if (!findVarsByAll("_libdyninstAPI_RT_init_localPid", vars))
            assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
-   writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&pid);
+   if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&pid))
+     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    vars.clear();   
 
    if (!findVarsByAll("libdyninstAPI_RT_init_maxthreads", vars))
        if (!findVarsByAll("_libdyninstAPI_RT_init_maxthreads", vars))
            assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
-   writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &max_number_of_threads);
+   if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &max_number_of_threads))
+     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    vars.clear();   
 
    extern int dyn_debug_rtlib;
@@ -3013,7 +3018,8 @@ bool process::setDyninstLibInitParams() {
        if (!findVarsByAll("_libdyninstAPI_RT_init_debug_flag", vars))
            assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
-   writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &dyn_debug_rtlib);
+   if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &dyn_debug_rtlib))
+     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    vars.clear();   
 
    startup_cerr << "process::installBootstrapInst() complete" << endl;   
@@ -3737,7 +3743,8 @@ bool process::terminateProc()
  * Copy data from controller process to the named process.
  */
 bool process::writeDataSpace(void *inTracedProcess, unsigned size,
-                             const void *inSelf) {
+                             const void *inSelf) 
+{
    bool needToCont = false;
 
    /*
@@ -5684,9 +5691,11 @@ bool process::uninstallMutations() {
         assert(rfcAddr);
         assert(rfcVal);
         assert(rfcAddr == rfcVal->callAddr);
-        writeDataSpace((void *)rfcAddr,
+        if (!writeDataSpace((void *)rfcAddr,
                        rfcVal->oldCall.used(),
-                       rfcVal->oldCall.start_ptr());
+                       rfcVal->oldCall.start_ptr())) {
+           fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
+        }
     }
 
     return true;
@@ -5711,9 +5720,10 @@ bool process::reinstallMutations() {
         assert(rfcAddr);
         assert(rfcVal);
         assert(rfcAddr == rfcVal->callAddr);
-        writeDataSpace((void *)rfcAddr,
+        if (!writeDataSpace((void *)rfcAddr,
                        rfcVal->newCall.used(),
-                       rfcVal->newCall.start_ptr());
+                       rfcVal->newCall.start_ptr()))
+           fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
     }
 
     return true;

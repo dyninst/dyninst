@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.20 2006/05/04 02:28:47 bernat Exp $
+ * $Id: RTwinnt.c,v 1.21 2006/05/16 21:14:36 jaw Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
@@ -253,6 +253,6 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
    platform but is always constant for that platform. Wrap that
    platform-ness here. 
 */
-int DYNINST_am_initial_thread(int tid) {
+int DYNINST_am_initial_thread(dyntid_t tid) {
     return (tid == initial_thread_tid);
 }

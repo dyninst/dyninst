@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.245 2006/05/03 00:31:19 jodom Exp $
+ * $Id: inst-power.C,v 1.246 2006/05/16 21:14:35 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -617,7 +617,8 @@ void resetBR(process  *p,    //Process to write instruction into
 
   (*i).raw = BRraw;
   
-  p->writeDataSpace((void *)loc, instruction::size(), i.ptr());
+  if (!p->writeDataSpace((void *)loc, instruction::size(), i.ptr()))
+     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
 }
 
 void saveRegister(codeGen &gen,
@@ -1165,9 +1166,10 @@ void baseTrampInstance::updateTrampCost(unsigned cost) {
             REG_COST_VALUE, gen, false);
 
     // And write
-    proc()->writeDataSpace((void *)trampCostAddr,
+    if (!proc()->writeDataSpace((void *)trampCostAddr,
                            gen.used(),
-                           gen.start_ptr());
+                           gen.start_ptr()))
+     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
 }
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
@@ -2828,7 +2830,8 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
    buffer[1] = toc;
    buffer[2] = 0x0;
 
-   p->writeDataSpace((void *) addr, sizeof(buffer), buffer);
+   if (!p->writeDataSpace((void *) addr, sizeof(buffer), buffer))
+     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    return true;
 }
 

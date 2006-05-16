@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.219 2006/04/20 02:59:43 bernat Exp $
+// $Id: aix.C,v 1.220 2006/05/16 21:14:34 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -278,8 +278,9 @@ bool Frame::setPC(Address newpc) {
     }
     else {    
         // The LR is stored at pcAddr
-        getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), 
-                                  &newpc);
+        if (!getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), 
+                                  &newpc))
+                  fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     }
     
     pc_ = newpc;
@@ -1173,8 +1174,10 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *)
     if (!main_brk_addr) return false;
     // Put back the original insn
     if (!writeDataSpace((void *)main_brk_addr, 
-                        instruction::size(), (char *)savedCodeBuffer))
+                        instruction::size(), (char *)savedCodeBuffer)) {
+        fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
         return false;
+    }
     
     // And zero out the main_brk_addr so we don't accidentally
     // trigger on it.
@@ -1217,7 +1220,8 @@ bool process::insertTrapAtEntryPointOfMain()
     codeGen gen(instruction::size());
     instruction::generateTrap(gen);
 
-    writeDataSpace((void *)addr, gen.used(), gen.start_ptr());  
+    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr()))
+        fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     main_brk_addr = addr;
     
     return true;
@@ -1337,8 +1341,9 @@ bool process::loadDYNINSTlib()
 
     readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
     
-    writeDataSpace((void *)codeBase, scratchCodeBuffer.used(), 
-                   scratchCodeBuffer.start_ptr());
+    if (!writeDataSpace((void *)codeBase, scratchCodeBuffer.used(), 
+                   scratchCodeBuffer.start_ptr()))
+        fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     
     // save registers
     assert(savedRegs == NULL);
@@ -1377,7 +1382,8 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *lwp)
     // Round it up to the nearest instruction. 
     Address codeBase = scratch->getAddress();
     
-    writeDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer);
+    if (!writeDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer))
+        fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
 
     // But before we go, reset the dyninstlib_brk_addr so we don't
     // accidentally trigger it, eh?
@@ -1802,9 +1808,10 @@ void process::copyDanglingMemory(process *parent) {
             char *buffer = new char[items[i]->length];
             parent->readDataSpace((void *)items[i]->addr, items[i]->length,
                           buffer, true);
-            writeDataSpace((void *)items[i]->addr, 
+            if (! writeDataSpace((void *)items[i]->addr, 
                                   items[i]->length,
-                                  buffer);
+                                  buffer))
+              fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
             delete [] buffer;
         }
     }
@@ -1822,9 +1829,10 @@ void process::copyDanglingMemory(process *parent) {
         parent->readDataSpace((void *)mods[j]->get_address_cr(),
                               mods[j]->get_size_cr(),
                               (void *)buffer, true);
-        writeDataSpace((void *)mods[j]->get_address_cr(),
+        if (!writeDataSpace((void *)mods[j]->get_address_cr(),
                        mods[j]->get_size_cr(),
-                       (void *)buffer);
+                       (void *)buffer))
+            fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     }
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.96 2006/05/05 16:15:14 bernat Exp $
+// $Id: osf.C,v 1.97 2006/05/16 21:14:35 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -655,7 +655,8 @@ bool dyn_lwp::realLWP_attach_() {
 // in procfs.C
 bool lwp_isRunning_(int);
 
-bool dyn_lwp::representativeLWP_attach_() {
+bool dyn_lwp::representativeLWP_attach_() 
+{
    /*
      Open the /proc file correspoding to process pid, 
      set the signals to be caught to be only SIGSTOP,
@@ -672,9 +673,13 @@ bool dyn_lwp::representativeLWP_attach_() {
 
    is_attached_ = true;
 
-   // If we're running, then stop
-   if (lwp_isRunning_(fd_))
-     stop_();
+   // If we attached to a running process, then stop
+   // (If we created the process, we know its stopped already, so don't do anything)
+   if (proc()->wasCreatedViaAttach()) {
+     if (lwp_isRunning_(fd_)) {
+       stop_();
+     }
+   }
 
    return true;
 }

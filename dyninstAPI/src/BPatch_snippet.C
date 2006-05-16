@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.82 2006/05/10 02:31:01 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.83 2006/05/16 21:14:34 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -1119,7 +1119,8 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
   }
 
     if (size) {
-	appProcess->lowlevel_process()->writeDataSpace(address, size, src);
+	if (!appProcess->lowlevel_process()->writeDataSpace(address, size, src))
+          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -1168,7 +1169,8 @@ bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool /*
 	appProcess->lowlevel_process()->saveWorldData((Address) address,len,src);
     }
 #endif
-    appProcess->lowlevel_process()->writeDataSpace(address, len, src);
+    if (!appProcess->lowlevel_process()->writeDataSpace(address, len, src))
+       fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     return true;
 }
 

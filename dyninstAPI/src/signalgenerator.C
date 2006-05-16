@@ -1026,7 +1026,7 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
   process *proc = ev.proc;
   bootstrapState_t bootstrapState = proc->getBootstrapState();
 
-  //fprintf(stderr, "%s[%d]:  decodeIfDueToProcessStartup: state: %s\n", FILE__, __LINE__, proc->getBootstrapStateAsString().c_str());
+  startup_printf("%s[%d]:  decodeIfDueToProcessStartup: state: %s\n", FILE__, __LINE__, proc->getBootstrapStateAsString().c_str());
   switch(bootstrapState) {
     case bootstrapped_bs:  
         break;
@@ -1079,8 +1079,8 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
       break;
   };
   
-  if (ret)
-     signal_printf("%s[%d]:  decodeIfDueToProcessStartup got %s, status = %s\n",
+  if (ret) 
+     startup_printf("%s[%d]:  decodeIfDueToProcessStartup got %s, status = %s\n",
                    FILE__, __LINE__, ev.sprint_event(buf), 
                    proc->getBootstrapStateAsString().c_str());
 

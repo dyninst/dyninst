@@ -210,6 +210,6 @@ int dyn_pthread_getthrds_np(pthread_t *thread, int mode,
    platform but is always constant for that platform. Wrap that
    platform-ness here. 
 */
-int DYNINST_am_initial_thread(int tid) {
+int DYNINST_am_initial_thread(dyntid_t tid) {
     return (tid == (dyntid_t) 1);
 }

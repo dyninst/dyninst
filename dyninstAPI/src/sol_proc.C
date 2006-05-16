@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.104 2006/05/11 13:00:19 jaw Exp $
+// $Id: sol_proc.C,v 1.105 2006/05/16 21:14:35 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -859,7 +859,7 @@ bool dyn_lwp::representativeLWP_attach_()
    }
    //map_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
    map_fd_ = P_open(temp, O_RDONLY, 0);
-   if (map_fd_ < 0) perror("map fd");
+   if (map_fd_ < 0) fprintf(stderr, "%s[%d]:  map_fd: %s\n", FILE__, __LINE__, strerror(errno));
 
    sprintf(temp, "/proc/%d/psinfo", getPid());
    if (!waitForFileToExist(temp, 5 /*seconds */)) {
@@ -884,12 +884,16 @@ bool dyn_lwp::representativeLWP_attach_()
 
    if (((stat.pr_why == PR_SIGNALLED) ||
         (stat.pr_why == PR_JOBCONTROL)) &&
-       (stat.pr_what == SIGSTOP)) {
+        (stat.pr_what == SIGSTOP)) {
        clearSignal();
    }
 
-  // Abort a system call if we're in it
-  abortSyscall();
+   //  if we attached to a running process, it might be stuck in a syscall,
+   //  try to abort it
+   if (proc()->wasCreatedViaAttach()) {
+     // Abort a system call if we're in it
+     abortSyscall();
+   }
 
    return true;
 }
@@ -1257,7 +1261,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
    if(written != (int)amount) {
       fprintf(stderr, "%s[%d][%s]:  writeDataSpace: %s\n", FILE__, __LINE__, getThreadStr(getExecThreadID()), strerror(errno));
       perror("writeDataSpace");
-      assert(0);
+      //assert(0);
       return false;
    }
     

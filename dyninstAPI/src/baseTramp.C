@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.33 2006/05/03 16:15:39 bernat Exp $
+// $Id: baseTramp.C,v 1.34 2006/05/16 21:14:35 jaw Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -1194,9 +1194,10 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
             else {
                 codeGen gen(instruction::maxJumpSize());
                 generateBranchToMT(gen);
-                proc()->writeDataSpace((void *)(trampPreAddr() + baseT->instStartOffset),
+                if (!proc()->writeDataSpace((void *)(trampPreAddr() + baseT->instStartOffset),
                                        gen.used(),
-                                       gen.start_ptr());
+                                       gen.start_ptr()))
+                  fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
             }
         }
     }
