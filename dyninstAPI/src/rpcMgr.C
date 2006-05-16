@@ -61,7 +61,7 @@ rpcMgr::rpcMgr(process *proc) :
     lwps_(rpcLwpHash),
     recursionGuard(false) {
     // We use a base tramp skeleton to generate iRPCs.
-    irpcTramp = new baseTramp();
+    irpcTramp = new baseTramp(NULL);
     irpcTramp->rpcMgr_ = this;
     irpcTramp->setRecursive(true);
 }
@@ -75,7 +75,7 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
     lwps_(rpcLwpHash),
     recursionGuard(pRM->recursionGuard) {
     // We use a base tramp skeleton to generate iRPCs.
-    irpcTramp = new baseTramp();
+    irpcTramp = new baseTramp(NULL);
     irpcTramp->rpcMgr_ = this;
     irpcTramp->setRecursive(true);
 

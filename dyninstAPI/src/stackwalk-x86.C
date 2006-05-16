@@ -221,15 +221,12 @@ static bool isInEntryExitInstrumentation(Frame f)
          return false;
       baseTI = miniTI->baseTI;
    }
-   const instPoint *preInst = baseTI->baseT->preInstP;
-   if (preInst && 
-       (preInst->getPointType() == functionEntry ||
-        preInst->getPointType() == functionExit)) 
+   const instPoint *instP = baseTI->baseT->instP();
+   if (!instP) return false; // Could be iRPC
+
+   if (instP->getPointType() == functionEntry ||
+       instP->getPointType() == functionExit)
        // Not sure yet if function exit will be preInst or postInst...
-       return true;
-   const instPoint *postInst = baseTI->baseT->postInstP;
-   if (postInst &&
-       postInst->getPointType() == functionExit) 
        return true;
 
    return false;

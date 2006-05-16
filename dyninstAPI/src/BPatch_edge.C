@@ -154,7 +154,6 @@ BPatch_point *BPatch_edge::getPoint()
         process *ll_proc = flowGraph->getBProcess()->lowlevel_process();
         assert(ll_proc);
 
-        //instPoint *ip = ll_proc->findInstPByAddr(lastInsnAddr);
         instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, ll_proc);
                                                           
         if (ip == NULL) {

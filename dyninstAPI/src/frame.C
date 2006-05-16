@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.17 2006/04/12 16:59:22 bernat Exp $
+// $Id: frame.C,v 1.18 2006/05/16 21:19:05 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -199,7 +199,7 @@ instPoint *Frame::getPoint() {
     miniTrampInstance *mt_ptr = range->is_minitramp();
 
     if (mt_ptr) {
-        return mt_ptr->mini->instP;
+        return mt_ptr->mini->instP();
     }
     else if (m_ptr) {
         // We're in a multiTramp, so between instPoints. 

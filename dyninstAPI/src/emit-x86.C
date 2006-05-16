@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.24 2006/05/03 00:31:19 jodom Exp $
+ * $Id: emit-x86.C,v 1.25 2006/05/16 21:19:04 bernat Exp $
  */
 
 #include <assert.h>
@@ -320,10 +320,8 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
     // For now, we'll do all saves then do the guard. Could inline
     // Return addr for stack frame walking; for lack of a better idea,
     // we grab the original instPoint address
-    if (bt->preInstP)
-        emitPushImm(bt->preInstP->addr(), gen);
-    else if (bt->postInstP) {
-        emitPushImm(bt->postInstP->addr(), gen);
+    if (bt->instP()) {
+        emitPushImm(bt->instP()->addr(), gen);
     }
     else {
         assert(bt->rpcMgr_);
@@ -1494,12 +1492,8 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
       }
     
     // push a return address for stack walking
-    if (bt->preInstP) {
-	emitMovImmToReg64(REGNUM_RAX, bt->preInstP->addr(), true, gen);
-	emitPushReg64(REGNUM_RAX, gen);
-    }
-    else if (bt->postInstP) {
-	emitMovImmToReg64(REGNUM_RAX, bt->postInstP->addr(), true, gen);
+    if (bt->instP()) {
+	emitMovImmToReg64(REGNUM_RAX, bt->instP()->addr(), true, gen);
 	emitPushReg64(REGNUM_RAX, gen);
     }
     else {

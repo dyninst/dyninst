@@ -100,7 +100,7 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
     if (bt) mt = bt->firstMini;
 
     while (mt) {
-        if (mt->instP == point)
+        if (mt->instP() == point)
             mts.push_back(mt);
         mt = mt->next;
     }
@@ -118,7 +118,7 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
     if (bt) mt = bt->firstMini;
     
     while (mt) {
-        if (mt->instP == point)
+        if (mt->instP() == point)
             mts.push_back(mt);
         mt = mt->next;
     }
@@ -156,7 +156,7 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func,
   if (bt) mt = bt->firstMini;
 
   while (mt) {
-      if (mt->instP == point)
+      if (mt->instP() == point)
           mts.push_back(mt);
       mt = mt->next;
   }

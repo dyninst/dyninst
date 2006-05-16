@@ -131,7 +131,7 @@ BPatch_point *BPatch_instruction::getInstPointInt()
  /* See if there is an instPoint at this address */
   instPoint *p = NULL;
 
-  if ((p = proc->findInstPByAddr((Address)addr))) {
+  if ((p = func->findInstPByAddr((Address)addr))) {
     return bpproc->findOrCreateBPPoint(NULL, p, BPatch_locInstruction);
   }
 

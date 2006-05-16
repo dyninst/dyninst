@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.230 2006/05/16 19:50:29 tlmiller Exp $
+// $Id: linux.C,v 1.231 2006/05/16 21:19:06 bernat Exp $
 
 #include <fstream>
 
@@ -1520,21 +1520,10 @@ int_function *instPoint::findCallee() {
    assert(img_p_);
    image_func *icallee = img_p_->getCallee(); 
    if (icallee) {
-      // Now we have to look up our specialized version
-      // Can't do module lookup because of DEFAULT_MODULE...
-      const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName());
-      if (!possibles) {
-         return NULL;
-      }
-      for (unsigned i = 0; i < possibles->size(); i++) {
-         if ((*possibles)[i]->ifunc() == icallee) {
-            callee_ = (*possibles)[i];
-            return callee_;
-         }
-      }
-      // No match... very odd
-      assert(0);
-      return NULL;
+     callee_ = proc()->findFuncByInternalFunc(icallee);
+
+     assert(callee_);
+     return callee_;
    }
    // Do this the hard way - an inter-module jump
    // get the target address of this function
