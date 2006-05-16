@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.229 2006/05/10 16:56:13 jodom Exp $
+// $Id: linux.C,v 1.230 2006/05/16 19:50:29 tlmiller Exp $
 
 #include <fstream>
 
@@ -585,6 +585,11 @@ static int lwp_kill(int pid, int sig)
      result = P_kill(pid, sig);
      proccontrol_printf("%s[%d]: Sent %d to %d via kill\n", FILE__, __LINE__, 
                         sig, pid);
+  }
+  else if ( result == -1 )
+  {
+  fprintf( stderr, "%s[%d]: failed to tkill( %d, %d ): ", FILE__, __LINE__, pid, sig );
+  perror( "" );
   }
   else
      proccontrol_printf("%s[%d]: Sent %d to %d via tkill\n", FILE__, __LINE__, 
