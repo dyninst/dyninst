@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.46 2006/05/16 19:50:32 tlmiller Exp $
+ * $Id: RTlinux.c,v 1.47 2006/05/16 20:15:15 tlmiller Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -88,7 +88,7 @@ void mark_heaps_exec() {
 	/* Mark _both_ heaps executable. */
 	alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_512K_lowmemHeap_1;
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
-	adjustedSize = (unsigned long int) DYNINSTstaticHeap_512K_lowmemHeap_1 - alignedHeapPointer + sizeOfAnyHeap1;
+	adjustedSize = (unsigned long int) DYNINSTstaticHeap_512K_lowmemHeap_1 - alignedHeapPointer + sizeOfLowMemHeap1;
 
 	/* Make the heap's page executable. */
 	result = mprotect( (void *) alignedHeapPointer, (size_t) adjustedSize, PROT_READ | PROT_WRITE | PROT_EXEC );
