@@ -73,6 +73,6 @@ int tc_lock_unlock(tc_lock_t*);
 int tc_lock_destroy(tc_lock_t*);
 
 
-int DYNINST_am_initial_thread(int tid);
+int DYNINST_am_initial_thread(dyntid_t tid);
 
 #endif

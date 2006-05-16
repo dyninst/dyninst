@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.45 2006/05/04 01:41:33 legendre Exp $
+ * $Id: RTlinux.c,v 1.46 2006/05/16 19:50:32 tlmiller Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -58,58 +58,46 @@
 
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_4M_anyHeap_1[];
+extern unsigned long sizeOfLowMemHeap1;
+extern unsigned long sizeOfAnyHeap1;
 
-void mark_heaps_exec(void) 
-{
-   int result;
-	RTprintf("*** Initializing dyninstAPI runtime.\n" );
+void mark_heaps_exec() {
+	RTprintf( "*** Initializing dyninstAPI runtime.\n" );
 
 	/* Grab the page size, to align the heap pointer. */
 	long int pageSize = sysconf( _SC_PAGESIZE );
 	if( pageSize == 0 || pageSize == - 1 ) {
 		fprintf( stderr, "*** Failed to obtain page size, guessing 16K.\n" );
-		perror( "_start" );
+		perror( "mark_heaps_exec" );
 		pageSize = 1024 * 16;
-   } /* end pageSize initialization */
+		} /* end pageSize initialization */
 
 	/* Align the heap pointer. */
-	unsigned long int alignedHeapPointer = 
-      (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1;
+	unsigned long int alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1;
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
-        unsigned long int adjustedSize = (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1 - alignedHeapPointer + (4 * 1024 * 1024);
+	unsigned long int adjustedSize = (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1 - alignedHeapPointer + sizeOfAnyHeap1;
 
 	/* Make the heap's page executable. */
-   result = mprotect((void *) alignedHeapPointer, (size_t) adjustedSize, 
-                     PROT_READ | PROT_WRITE | PROT_EXEC);
-   if (result != 0)
-   {
-		fprintf(stderr, 
-        "[%s:%d]: Couldn't make DYNINSTstaticHeap_4M_anyHeap_1 executable!\n",
-              __FILE__, __LINE__);
-		perror( "_start" );
-   }
-	RTprintf("*** Marked memory from 0x%lx to 0x%lx executable.\n", 
-            alignedHeapPointer, 
-            alignedHeapPointer + adjustedSize );
+	int result = mprotect( (void *) alignedHeapPointer, (size_t) adjustedSize, PROT_READ | PROT_WRITE | PROT_EXEC );
+	if( result != 0 ) {
+		fprintf( stderr, "%s[%d]: Couldn't make DYNINSTstaticHeap_4M_anyHeap_1 executable!\n", __FILE__, __LINE__);
+		perror( "mark_heaps_exec" );
+		}
+	RTprintf( "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
 
 	/* Mark _both_ heaps executable. */
 	alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_512K_lowmemHeap_1;
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
-        adjustedSize = (unsigned long int) DYNINSTstaticHeap_512K_lowmemHeap_1 - alignedHeapPointer + 32 * 1024;
+	adjustedSize = (unsigned long int) DYNINSTstaticHeap_512K_lowmemHeap_1 - alignedHeapPointer + sizeOfAnyHeap1;
 
 	/* Make the heap's page executable. */
-   result = mprotect((void *) alignedHeapPointer, (size_t) adjustedSize, 
-                     PROT_READ | PROT_WRITE | PROT_EXEC );
-   if (result != 0 ) 
-   {
-		fprintf(stderr, 
-        "[%s:%d]: Couldn't make DYNINSTstaticHeap_4M_anyHeap_1 executable!\n",
-              __FILE__, __LINE__);
-		perror( "_start" );
-   }
-	RTprintf("*** Marked memory from 0x%lx to 0x%lx executable.\n", 
-            alignedHeapPointer, alignedHeapPointer + adjustedSize );
-}
+	result = mprotect( (void *) alignedHeapPointer, (size_t) adjustedSize, PROT_READ | PROT_WRITE | PROT_EXEC );
+	if( result != 0 ) {
+		fprintf( stderr, "%s[%d]: Couldn't make DYNINSTstaticHeap_512K_lowmemHeap_1 executable!\n", __FILE__, __LINE__ );
+		perror( "mark_heaps_exec" );
+		}
+	RTprintf( "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
+	} /* end mark_heaps_exec() */
 
 #if defined(arch_ia64)
 /* Ensure we an executable block of memory. */
@@ -118,7 +106,6 @@ void R_BRK_TARGET() {
         asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
         asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
         }
-
 #endif /*arch_ia64*/
 
 /************************************************************************
@@ -263,21 +250,20 @@ dyntid_t dyn_pthread_self()
    platform but is always constant for that platform. Wrap that
    platform-ness here. 
 */
-int DYNINST_am_initial_thread(int tid) {
-    static int already_matched = -1; 
-    if (dyn_lwp_self() == getpid()) {
-        if ((already_matched != (dyntid_t) -1) && 
-            (already_matched != tid)) {
-            /* This can only happen in 2.4; we don't have lwp_self(),
-               or multiple tids share the same lwp. Error case. */
-            assert(0);
-            return 0;
-        }
-        already_matched = tid;
-        return 1;
-    }
-    return 0;
-}
+int DYNINST_am_initial_thread( dyntid_t tid ) {
+	static dyntid_t already_matched = (dyntid_t) -1;
+	if( dyn_lwp_self() == getpid() ) {
+		if( already_matched != (dyntid_t) -1 && already_matched != tid ) {
+			/* This can only happen in 2.4; we don't have lwp_self(),
+			   or multiple tids share the same lwp. Error case. */
+			assert(0);
+			return 0;
+			}
+		already_matched = tid;
+		return 1;
+		}
+	return 0;
+	} /* end DYNINST_am_initial_thread() */
 
 /**
  * We need to extract certain pieces of information from the usually opaque 
