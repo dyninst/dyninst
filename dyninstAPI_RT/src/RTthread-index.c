@@ -118,12 +118,8 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    /**
     * Search the hash table
     **/
-#if defined( arch_ia64 )
-   /* Hash a little better. */
-   hash_id = (tid_val >> 2) % DYNINST_thread_hash_size;
-#else    
+
    hash_id = tid_val % DYNINST_thread_hash_size;
-#endif
    orig = hash_id;
    for (;;) 
    {
