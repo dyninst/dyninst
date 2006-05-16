@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.22 2006/05/03 00:31:21 jodom Exp $
+// $Id: miniTramp.C,v 1.23 2006/05/16 21:19:15 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -109,8 +109,6 @@ bool miniTramp::uninstrument() {
       // Correcting of jumps will be handled by removeCode calls
   }
 
-  if (baseT->firstPreMini == this)
-      baseT->firstPreMini = next;
   
   // DON'T delete the miniTramp. When it is deleted, the callback
   // is made... which should only happen when the memory is freed.
@@ -151,7 +149,7 @@ bool miniTramp::generateMT() {
     miniTrampCode_.allocate(MAX_MINITRAMP_SIZE);
  
     /* VG(11/06/01): Added location, needed by effective address AST node */
-    returnOffset = ast_->generateTramp(proc(), instP,
+    returnOffset = ast_->generateTramp(proc(), instP(),
                                        miniTrampCode_, &cost, 
                                        false); // noCost -- we can always ignore it later
 
@@ -338,7 +336,7 @@ bool miniTrampInstance::installCode() {
     else {
 
 #if defined(os_aix)
-        if (mini->instP->func()->prettyName() == pdstring("__fork")) {
+        if (mini->instP()->func()->prettyName() == pdstring("__fork")) {
             nearAddr = 0;
             htype = dataHeap;
         }
@@ -616,15 +614,13 @@ miniTrampInstance::miniTrampInstance(const miniTrampInstance *origMTI,
 miniTramp::miniTramp(callWhen when_,
                      AstNode *ast,
                      baseTramp *base,
-                     instPoint *inst,
                      bool noCost) :
     miniTrampCode_(),
     ID(_id++), 
     returnOffset(0), 
     size_(0),
     baseT(base),
-    instP(inst), 
-    proc_(inst->proc()),
+    proc_(NULL),
     when(when_),
     cost(0), 
     noCost_(noCost),
@@ -632,6 +628,8 @@ miniTramp::miniTramp(callWhen when_,
     callback(NULL), callbackData(NULL),
     deleteInProgress(false) {
     ast_ = assignAst(ast);
+    assert(baseT);
+    proc_ = baseT->proc();
 }
 
 miniTramp::miniTramp(const miniTramp *parMini,
@@ -655,9 +653,6 @@ miniTramp::miniTramp(const miniTramp *parMini,
     assert(parMini->ast_);
     ast_ = assignAst(parMini->ast_);
 
-    // Fix up instP
-    instP = proc->findInstPByAddr(parMini->instP->addr());
-    assert(instP);
     // Uhh... what about callbacks?
     // Can either set them to null or have them returning 
     // the same void * as their parent...
@@ -674,29 +669,24 @@ miniTramp::~miniTramp() {
 // process (matching by the ID member). Fill in childMT.
   
 bool getInheritedMiniTramp(const miniTramp *parentMT, 
-                             miniTramp * &childMT, 
-                             process *childProc) {
-    pdvector<instPoint *> instPs;
-    if (parentMT->baseT->preInstP)
-        instPs.push_back(parentMT->baseT->preInstP);
-    if (parentMT->baseT->postInstP)
-        instPs.push_back(parentMT->baseT->postInstP);
+			   miniTramp * &childMT, 
+			   process *childProc) {
+    int_function *childF = childProc->findFuncByInternalFunc(parentMT->func()->ifunc());
+    assert(childF);
+    instPoint *childP = childF->findInstPByAddr(parentMT->instP()->addr());
     
-    for (unsigned i = 0; i < instPs.size(); i++) {
-        
-        instPoint *childP = childProc->findInstPByAddr(instPs[i]->addr());
-        baseTramp *childB = childP->getBaseTramp(parentMT->when);
-        miniTramp *mt = childB->firstMini;
-        
-        while (mt) {
-            if (mt->ID == parentMT->ID) {
-                childMT = mt;
-                return true;
-            }
-            mt = mt->next;
-        }
+    baseTramp *childB = childP->getBaseTramp(parentMT->when);
+    miniTramp *mt = childB->firstMini;
+  
+  while (mt) {
+    if (mt->ID == parentMT->ID) {
+      childMT = mt;
+      return true;
     }
-    return false;
+    mt = mt->next;
+  }
+  
+  return false;
 }
 
 Address miniTrampInstance::uninstrumentedAddr() const {
@@ -736,3 +726,12 @@ void *miniTrampInstance::getPtrToInstruction(Address addr) const {
     assert(mini->miniTrampCode_ != NULL);
     return mini->miniTrampCode_.get_ptr(addr);
 }
+
+instPoint *miniTramp::instP() const {
+    return baseT->instP();
+}
+
+int_function *miniTramp::func() const {
+    return baseT->instP()->func();
+}
+

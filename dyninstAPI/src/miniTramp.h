@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.8 2005/12/14 22:44:14 bernat Exp $
+// $Id: miniTramp.h,v 1.9 2006/05/16 21:19:16 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -144,7 +144,6 @@ class miniTramp {
   miniTramp(callWhen when_,
             AstNode *ast,
 	    baseTramp *base,
-	    instPoint *inst,
             bool noCost);
   
   // Fork constructor
@@ -193,8 +192,9 @@ class miniTramp {
   // Base tramp we're installed at
   baseTramp *baseT;
 
-  // And the instPoint we belong to.
-  instPoint *instP;
+  // Sucks it out of the baseTramp
+  instPoint *instP() const;
+  int_function *func() const;
 
   // instPs can go away... keep a local process pointer to let us
   // use it in the future.

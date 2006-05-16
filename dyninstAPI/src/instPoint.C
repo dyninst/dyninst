@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.23 2006/05/03 00:31:20 jodom Exp $
+// $Id: instPoint.C,v 1.24 2006/05/16 21:19:14 bernat Exp $
 // instPoint code
 
 
@@ -93,7 +93,6 @@ miniTramp *instPoint::addInst(AstNode *&ast,
     miniTramp *miniT = new miniTramp(when,
                                      ast,
                                      baseT,
-                                     this,
                                      noCost);
     
     assert (miniT);
@@ -112,18 +111,39 @@ miniTramp *instPoint::addInst(AstNode *&ast,
 // multiTramps existing.
 
 baseTramp *instPoint::getBaseTramp(callWhen when) {
-    if (when == callPreInsn) {
-        if (preBaseTramp_)
-            return preBaseTramp_;
+  switch(when) {
+  case callPreInsn:
+    if (!preBaseTramp_) {
+      preBaseTramp_ = new baseTramp(this);
     }
-    else if (when == callPostInsn) {
-        if (postBaseTramp_)
-            return postBaseTramp_;
+    return preBaseTramp_;
+    break;
+  case callPostInsn:
+    if (!postBaseTramp_) {
+      postBaseTramp_ = new baseTramp(this);
     }
-    else if (when == callBranchTargetInsn) {
-        if (targetBaseTramp_)
-            return targetBaseTramp_;
+    return postBaseTramp_;
+    break;
+  case callBranchTargetInsn:
+    if (!targetBaseTramp_) {
+      targetBaseTramp_ = new baseTramp(this);
     }
+    return targetBaseTramp_;
+    break;
+  default:
+    assert(0);
+    break;
+  }
+  return NULL;
+
+#if 0
+    // We no longer share baseTramps. It causes problems when
+    // a relocated function is padded out. Instead of adding the
+    // code to ignore noop padding, we simply don't share baseTramps.
+    // This almost never has an effect as we would have to get
+    // pre-instrumentation and post-instrumentation at neighboring 
+    // instructions; and the effect is to double up on saves and
+    // restores. 
 
     // We do the if tree twice to keep the function structure clean
     /////////////////////////////////////////////////
@@ -197,6 +217,7 @@ baseTramp *instPoint::getBaseTramp(callWhen when) {
             }
         }
     }
+
     
     // We now may have a base tramp; check again, make if not, and return.
 
@@ -222,6 +243,7 @@ baseTramp *instPoint::getBaseTramp(callWhen when) {
     
     assert(0);
     return NULL;
+#endif
 }
 
 bool instPoint::match(Address a) const { 
@@ -236,19 +258,18 @@ bool instPoint::match(Address a) const {
 instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
   // See if we get lucky
 
-    inst_printf("Creating arbitrary point at 0x%x\n", addr);
-    instPoint *newIP = proc->findInstPByAddr(addr);
-    if (newIP) return newIP;
+  int_function *func = proc->findFuncByAddr(addr);
+  // TODO: multiple functions... 
+  if (!func) return NULL;
 
-    // Check to see if we're creating the new instPoint on an
-    // instruction boundary. First, find the containing function.
-    codeRange *range = proc->findCodeRangeByAddress(addr);
-    if (!range) {
-        inst_printf("Failed to find address, ret null\n");
-        fprintf(stderr, "%s[%d]: Failed to find address, ret null\n", FILE__, __LINE__);
-        return NULL;
-    }
-    bblInstance *bbl = range->is_basicBlockInstance();
+  inst_printf("Creating arbitrary point at 0x%x\n", addr);
+  instPoint *newIP = func->findInstPByAddr(addr);
+  if (newIP) return newIP;
+
+  // Check to see if we're creating the new instPoint on an
+  // instruction boundary. First, get the instance...
+
+    bblInstance *bbl = func->findBlockInstanceByAddr(addr);
     if (!bbl) {
         inst_printf("Address not in known code, ret null\n");
         fprintf(stderr, "%s[%d]: Address not in known code, ret null\n", FILE__, __LINE__);
@@ -271,8 +292,6 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
         fprintf(stderr, "%s[%d]: Address not in original basic block instance\n", FILE__, __LINE__);
         return NULL;
     }
-    int_function *func = bbl->func();
-    assert(func); // If we're in a basic block, we have to be able to follow it back.
 
     InstrucIter newIter(bbl);
     while ((*newIter) < addr) newIter++;
@@ -313,38 +332,8 @@ bool instPoint::commonIPCreation(instPoint *ip) {
     //newIP->updateInstances();
 
     // But tell people we exist.
-    ip->proc()->registerInstPointAddr(ip->addr(), ip);
+    ip->func()->registerInstPointAddr(ip->addr(), ip);
 
-#if 0
-    // Now handled in getBaseTramp_, left here
-    // for commenting and clarity
-    if (newIter.isACondBranchInstruction() || 
-        newIter.isAJumpInstruction()) {
-        inst_printf("Jump instruction requires target BT at addr 0x%x\n", *newIter);
-        // In this case, also set the target baseTramp
-        // Should also assert we're the last person in the basicBlock, actually.
-        assert(!newIP->targetBaseTramp_);
-        newIP->targetBaseTramp_ = new baseTramp();
-    }
-    
-    
-    // Set backchain pointers
-    if (newIP->preBaseTramp_)
-        newIP->preBaseTramp_->preInstP = newIP;
-    if (newIP->postBaseTramp_)
-        newIP->postBaseTramp_->postInstP = newIP;
-    if (newIP->targetBaseTramp_)
-        newIP->targetBaseTramp_->postInstP = newIP;
-    
-    // Okay, so we have an aligned address. Perform the following steps:
-    // Make a new instPoint
-    
-    // Register us by address with the process -- good for finding other
-    // instPoints
-    proc()->registerInstPointAddr(newIP->addr(), newIP);
-#endif
-
-    //// Do we want this? proc->registerNewInstPoint(original, newIP, ...);
     return true;
 }
 
@@ -369,7 +358,7 @@ bool instPoint::updateInstances() {
             instPointInstance *inst = instances[i-1];
             instances.pop_back();
             // Delete...
-            proc()->unregisterInstPointAddr(inst->addr(), this);
+            func()->unregisterInstPointAddr(inst->addr(), this);
         }
 
         // Safety check....
@@ -406,7 +395,7 @@ bool instPoint::updateInstances() {
                 // Register with the process before asking for a multitramp
                 inst_printf("Registering IP %p at 0x%lx (%d)\n",
                             this, newAddr, i);
-                proc()->registerInstPointAddr(newAddr, this);
+                func()->registerInstPointAddr(newAddr, this);
             }
         }
         
@@ -675,7 +664,7 @@ instPoint *instPoint::createParsePoint(int_function *func,
     Address offsetInFunc = img_p->offset() - img_p->func()->getOffset();
     Address absAddr = offsetInFunc + func->getAddress();
 
-    instPoint *newIP = proc->findInstPByAddr(absAddr);
+    instPoint *newIP = func->findInstPByAddr(absAddr);
     if (newIP) return newIP;
 
     inst_printf("Parsed offset: 0x%x, in func 0x%x, absolute addr 0x%x\n",
@@ -705,7 +694,9 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
     // which is okay; just get the ID right.
     instPoint *newIP = new instPoint(parP, child);
     process *proc = child->proc();
-    
+    assert(proc);
+    int_function *func = proc->findFuncByInternalFunc(parP->func()->ifunc());
+
     // Add to the process
     for (unsigned i = 0; i < parP->instances.size(); i++) {
         instPointInstance *pI = parP->instances[i];
@@ -716,7 +707,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
 
         nI->multiID_ = pI->multiID_;
         newIP->instances.push_back(nI);
-        proc->registerInstPointAddr(pI->addr_, newIP);
+        func->registerInstPointAddr(pI->addr_, newIP);
     }
 
     // And make baseTramp-age. If we share one, the first guy
@@ -726,82 +717,30 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
     
     baseTramp *parPre = parP->preBaseTramp_;
     if (parPre) {
-        assert(parPre->preInstP == parP);
+        assert(parPre->instP() == parP);
         
-        if (parPre->postInstP) {
-            // We've already made this guy... so pick him up. Somehow.
-            // Did I mention argh?
-            Address nextAddr = parPre->postInstP->addr();
-            assert(nextAddr > newIP->addr());
-            instPoint *neighbor = proc->findInstPByAddr(nextAddr);
-            if (neighbor) {
-                // We're second. So make and fix up their side.
-                newIP->preBaseTramp_ = new baseTramp(parPre, proc);
-                newIP->preBaseTramp_->preInstP = newIP;
-                neighbor->postBaseTramp_ = newIP->preBaseTramp_;
-                neighbor->postBaseTramp_->postInstP = neighbor;
-            }
-            else {
-                // We're first, so wait.
-                // ...
-            }
-        }
-        else {
-            // Nobody else, so make a copy
-            newIP->preBaseTramp_ = new baseTramp(parPre, proc);
-            newIP->preBaseTramp_->preInstP = newIP;
-        }
+	newIP->preBaseTramp_ = new baseTramp(parPre, proc);
+	newIP->preBaseTramp_->instP_ = newIP;
     }
 
 
     baseTramp *parPost = parP->postBaseTramp_;
     if (parPost) {
-        assert(parPost->postInstP == parP);
+        assert(parPost->instP() == parP);
         
-        if (parPost->preInstP) {
-            // We've already made this guy... so pick him up. Somehow.
-            // Did I mention argh?
-            Address prevAddr = parPre->preInstP->addr();
-            assert(prevAddr < newIP->addr());
-            instPoint *neighbor = proc->findInstPByAddr(prevAddr);
-            if (neighbor) {
-                // We're second. Make and fix
-                newIP->postBaseTramp_ = new baseTramp(parPost, proc);
-                newIP->postBaseTramp_->postInstP = newIP;
-                neighbor->preBaseTramp_ = newIP->postBaseTramp_;
-                neighbor->preBaseTramp_->postInstP = neighbor;
-            }
-            else {
-                // First...
-            }
-        }
-        else {
-            // No neighbor
-            newIP->postBaseTramp_ = new baseTramp(parPost, proc);
-            newIP->postBaseTramp_->postInstP = newIP;
-        }
+	newIP->postBaseTramp_ = new baseTramp(parPost, proc);
+	newIP->postBaseTramp_->instP_ = newIP;
     }
 
     baseTramp *parTarget = parP->targetBaseTramp_;
     if (parTarget) {
-        assert(parTarget->postInstP == parP);
+        assert(parTarget->instP() == parP);
 
         // Unlike others, can't share, so make now.
         newIP->targetBaseTramp_ = new baseTramp(parTarget, proc);
-        newIP->targetBaseTramp_->postInstP = newIP;
+        newIP->targetBaseTramp_->instP_ = newIP;
     }
 
-    if (newIP->preBaseTramp_)
-        newIP->preBaseTramp_->preInstP = newIP;
-
-    if (newIP->postBaseTramp_)
-        newIP->postBaseTramp_->postInstP = newIP;
-
-    if (newIP->targetBaseTramp_)
-        newIP->targetBaseTramp_->postInstP = newIP;
-
-
-    // Still don't have the baseTramp structures... ARGH.
     return newIP;
 }    
     

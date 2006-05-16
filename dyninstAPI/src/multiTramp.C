@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.44 2006/05/05 18:22:35 mjbrim Exp $
+// $Id: multiTramp.C,v 1.45 2006/05/16 21:19:17 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -226,15 +226,13 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
            unsigned exists_at;
            if(! find(deletedObjs, obj, exists_at)) {
               deletedObjs.push_back(obj);
+	      obj->removeCode(this);
            }
         }
         generatedCFG_.setStart(NULL);
 
         proc()->deleteGeneratedCode(this);
         proc()->removeMultiTramp(this);
-
-        for (unsigned i = 0; i < deletedObjs.size(); i++) 
-            deletedObjs[i]->removeCode(this);
     }   
     return;
 }
@@ -517,7 +515,7 @@ void multiTramp::updateInstInstances() {
         }
 
         Address insnAddr = insn->origAddr;
-        instPoint *instP = proc()->findInstPByAddr(insnAddr);
+        instPoint *instP = func()->findInstPByAddr(insnAddr);
         if (!instP) {
             prev = obj;
             continue;
@@ -1288,13 +1286,9 @@ Address multiTramp::instToUninstAddr(Address addr) {
             // If we're pre for an insn, return that;
             // else return the insn we're post/target for.
             baseTramp *baseT = bti->baseT;
-            instPoint *point = NULL;
-            if (baseT->preInstP)
-                point = baseT->preInstP;
-            else if (baseT->postInstP)
-                point = baseT->postInstP;
-            else
-                assert(0);
+            instPoint *point = baseT->instP();
+	    assert(point);
+
             for (unsigned i = 0; i < point->instances.size(); i++) {
                 // We check by ID instead of pointer because we may
                 // have been replaced by later instrumentation, but 
@@ -1330,13 +1324,8 @@ Address multiTramp::instToUninstAddr(Address addr) {
             // If we're pre for an insn, return that;
             // else return the insn we're post/target for.
             baseTramp *baseT = bti->baseT;
-            instPoint *point = NULL;
-            if (baseT->preInstP)
-                point = baseT->preInstP;
-            else if (baseT->postInstP)
-                point = baseT->postInstP;
-            else
-                assert(0);
+            instPoint *point = baseT->instP();
+	    assert(point);
 
             return point->addr();
             // We used to check by instances... thing is, we can remove instances
@@ -1438,7 +1427,7 @@ instPoint *multiTramp::findInstPointByAddr(Address addr) {
             assert(insn || bti);
 
             if (insn)
-                return proc()->findInstPByAddr(addr);
+                return func()->findInstPByAddr(addr);
             else if (bti) {
                 return bti->findInstPointByAddr(addr);
             }
@@ -1705,24 +1694,23 @@ generatedCodeObject *generatedCFG_t::fork_int(const generatedCodeObject *parObj,
         baseTramp *parBT = bti->baseT;
         instPoint *cIP = NULL;
         baseTramp *childBT = NULL;
-        if (parBT->postInstP) {
-            cIP = child->findInstPByAddr(parBT->postInstP->addr());
-            assert(cIP);
-            // We split here... post and target show up as "pre" to the BT
-            if (parBT->postInstP->postBaseTramp() == parBT)
-                childBT = cIP->postBaseTramp();
-            else if (parBT->postInstP->targetBaseTramp() == parBT)
-                childBT = cIP->targetBaseTramp();
-            else 
-                assert(0);
-        } else if (parBT->preInstP) {
-            cIP = child->findInstPByAddr(parBT->preInstP->addr());
-            assert(cIP);
-            childBT = cIP->preBaseTramp();
-        }
-        else {
-            assert(0);
-        }
+
+	int_function *cFunc = childMulti->func();
+	assert(cFunc);
+
+	cIP = cFunc->findInstPByAddr(parBT->instP()->addr());
+	assert(cIP);
+	
+	// We split here... post and target show up as "pre" to the BT
+	if (parBT->instP()->preBaseTramp() == parBT) 
+	  childBT = cIP->preBaseTramp();
+	else if (parBT->instP()->postBaseTramp() == parBT)
+	  childBT = cIP->postBaseTramp();
+	else if (parBT->instP()->targetBaseTramp() == parBT)
+	  childBT = cIP->targetBaseTramp();
+	else 
+	  assert(0);
+	
         assert(childBT);
         childObj = new baseTrampInstance(bti,
                                          childBT,
@@ -2121,7 +2109,7 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
         
         // Check to see if we're at an equivalent miniTramp. If not, 
         // fall through
-        if (rangeMTI->mini->instP == newMT->instP) {
+        if (rangeMTI->mini->instP() == newMT->instP()) {
             // This is easier
             return miniTramp::catchupRequired(rangeMTI->mini, newMT);
         }

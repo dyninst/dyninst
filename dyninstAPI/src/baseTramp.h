@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.14 2006/05/03 16:15:41 bernat Exp $
+// $Id: baseTramp.h,v 1.15 2006/05/16 21:19:13 bernat Exp $
 
 // baseTramp class definition
 
@@ -232,10 +232,11 @@ class baseTramp {
 
     Address origInstAddr(); // For faking an in-function address
 
-    // Inst point for which we are pre-instrumentation
-    instPoint *preInstP;
-    // And post-instrumentation
-    instPoint *postInstP;
+    // Our instPoint
+    instPoint *instP_;
+
+    instPoint *instP() const { return instP_; }
+
     // You know, a conservative tramp is equivalent to an iRPC...
     rpcMgr *rpcMgr_;
 
@@ -276,17 +277,11 @@ class baseTramp {
     bool inBasetramp( Address addr );
     bool inSavedRegion( Address addr );
 
-    // We can combine minitramps from multiple instPoints
-    // (pre and post tramps). firstMini and lastMini are the
-    // ends of the chain; firstPreMini is the first mini for
-    // pre instrumentation. If NULL, there is none. 
-    // Order is: all post, then all pre.
     miniTramp *firstMini;
-    miniTramp *firstPreMini;
     miniTramp *lastMini;
 
     // Normal constructor
-    baseTramp();
+    baseTramp(instPoint *iP);
     // Fork constructor
     baseTramp(const baseTramp *parentT, process *proc);
 
@@ -336,10 +331,6 @@ class baseTramp {
 
     void setRecursive(bool trampRecursive);
     bool getRecursive() const;
-
-    // Return one or the other; undefined which one if both are set.
-    // Returns null if an rpcMgr tramp
-    instPoint *point() const;
 
     // Easier to do logic this way...
     bool guarded() const { return (guardState_ == guarded_BTR); }
