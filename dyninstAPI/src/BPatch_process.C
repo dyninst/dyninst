@@ -1945,14 +1945,6 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
   if (newthr->reported_to_user) {
      async_printf("%s[%d]:  NOT ISSUING CALLBACK:  thread %lu exists\n", 
                   FILE__, __LINE__, (long) threadid);
-     fprintf(stderr, "%s[%d]:  NOT ISSUING CALLBACK:  thread %lu exists\n", 
-                  FILE__, __LINE__, (long) threadid);
-     unsigned newthr_start_pc = newthr->llthread ? newthr->llthread->get_start_pc() : 0;
-     fprintf(stderr, "\tindex = %d/%d\n\tlwpid = %d/%d\n\tstack_top = %p/%p\n\tstart_pc = %p/%p\n",
-             newthr->getBPatchID(), index, 
-             newthr->getLWP(), lwpid, 
-             newthr->getStackTopAddr(), stack_top,
-             newthr_start_pc, start_pc);
      return newthr;
   }
 
