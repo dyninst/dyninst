@@ -77,11 +77,13 @@ void DYNINST_initialize_index_list()
   if (init_index_done) return;
   init_index_done = 1;
 
-  DYNINST_thread_structs = (dyninst_thread_t *) malloc(DYNINST_max_num_threads * sizeof(dyninst_thread_t));
-  memset(DYNINST_thread_structs, 0, DYNINST_max_num_threads * sizeof(dyninst_thread_t));
+  DYNINST_thread_structs = (dyninst_thread_t *) malloc((DYNINST_max_num_threads+1) * sizeof(dyninst_thread_t));
+  assert( DYNINST_thread_structs != NULL );
+  memset(DYNINST_thread_structs, 0, (DYNINST_max_num_threads+1) * sizeof(dyninst_thread_t));
 
   DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
   DYNINST_thread_hash = (int *) malloc(DYNINST_thread_hash_size * sizeof(int));
+  assert( DYNINST_thread_hash != NULL );
 
   for (i=0; i < DYNINST_thread_hash_size; i++)
       DYNINST_thread_hash[i] = NONE;
@@ -116,7 +118,12 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    /**
     * Search the hash table
     **/
+#if defined( arch_ia64 )
+   /* Hash a little better. */
+   hash_id = (tid_val >> 2) % DYNINST_thread_hash_size;
+#else    
    hash_id = tid_val % DYNINST_thread_hash_size;
+#endif
    orig = hash_id;
    for (;;) 
    {
