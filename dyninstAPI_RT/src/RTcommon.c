@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.68 2006/05/10 02:31:03 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.69 2006/05/16 19:50:31 tlmiller Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -86,6 +86,9 @@ HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 HEAP_TYPE DYNINSTstaticHeap_512K_lowmemHeap_1[512*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 HEAP_TYPE DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 
+/* These are necessary because of silly C-style 'extern'/linking conventions. */
+const unsigned long sizeOfLowMemHeap1 = sizeof( DYNINSTstaticHeap_512K_lowmemHeap_1 );
+const unsigned long sizeOfAnyHeap1 = sizeof( DYNINSTstaticHeap_4M_anyHeap_1 );
 
 /**
  * One some platforms we can tell when a fork or exec is occurring through 
