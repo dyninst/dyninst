@@ -399,8 +399,6 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   pdvector<AstNode *> args;
   if ( (!proc->llproc->getDynamicCallSiteArgs( point,args )) || 
        (args.size() != 2) ) {
-     fprintf(stderr,"%s[%d]:  could not get address arguments for dynamic call site\n",  
-             __FILE__, __LINE__);
      return NULL;
   }
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.241 2006/05/03 00:31:20 jodom Exp $
+ * $Id: inst-x86.C,v 1.242 2006/05/16 18:51:15 legendre Exp $
  */
 #include <iomanip>
 
@@ -1796,6 +1796,11 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
    unsigned Mod;
 
    const instruction &i = callSite->insn();
+
+   if (i.type() & PREFIX_SEG) {
+      return false;
+   }
+
    if(i.isCallIndir()){
       addr_mode = get_instruction_operand(i.ptr(), base_reg, index_reg,
                                           displacement, scale, Mod);
