@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.34 2006/05/16 21:14:35 jaw Exp $
+// $Id: baseTramp.C,v 1.35 2006/05/17 01:37:23 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -113,7 +113,7 @@ void baseTramp::unregisterInstance(baseTrampInstance *inst) {
 #define PRE_TRAMP_SIZE 4096
 #define POST_TRAMP_SIZE 4096
 
-baseTramp::baseTramp() :
+baseTramp::baseTramp(instPoint *iP) :
     preSize(0),
     postSize(0),
     saveStartOffset(0),
@@ -144,12 +144,10 @@ baseTramp::baseTramp() :
 #if defined( cap_unwind )
     baseTrampRegion( NULL ),
 #endif /* defined( cap_unwind ) */
-    preInstP(NULL),
-    postInstP(NULL),
+    instP_(iP),
     rpcMgr_(NULL),
     isMerged(false),
     firstMini(NULL),
-    firstPreMini(NULL),
     lastMini(NULL),
     preTrampCode_(),
     postTrampCode_(),
@@ -234,10 +232,8 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
 	addressRegister( pt->addressRegister ),
 	valueRegister( pt->valueRegister ),
 #endif /* defined( arch_ia64 ) */    
-    preInstP(NULL),
-    postInstP(NULL),
+    instP_(NULL),
     firstMini(NULL),
-    firstPreMini(NULL),
     lastMini(NULL),
     preTrampCode_(pt->preTrampCode_),
     postTrampCode_(pt->postTrampCode_),
@@ -270,11 +266,6 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
         else {
             firstMini = childMini;
         }
-
-        if (!firstPreMini &&
-            (childMini->instP == preInstP))
-            firstPreMini = childMini;
-            
 
         childMini->prev = childPrev;
         childPrev = childMini;
@@ -470,30 +461,27 @@ void baseTrampInstance::generateBranchToMT(codeGen &gen) {
 }
 
 process *baseTramp::proc() const { 
-    if (preInstP)
-        return preInstP->proc();
-    if (postInstP)
-        return postInstP->proc();
-    if (rpcMgr_)
-        return rpcMgr_->proc();
-    return NULL;
+  if (instP_)
+    return instP_->proc();
+  if (rpcMgr_)
+    return rpcMgr_->proc();
+  return NULL;
 }
 
 Address baseTramp::origInstAddr() {
-    // Where we would be if we weren't relocated, if we were in the
-    // original spot, etc. etc. etc.  Base tramp instances aren't
-    // necessarily sorted by anything meaningful, so check the long
-    // way.
+  // Where we would be if we weren't relocated, if we were in the
+  // original spot, etc. etc. etc.  Base tramp instances aren't
+  // necessarily sorted by anything meaningful, so check the long
+  // way.
+  
+  // TODO: a post tramp _should_ return the next addr, but hey...
 
-    instPoint *setInstP = preInstP;
-    if (!setInstP) setInstP = postInstP;
-
-    if (!setInstP) {
-        assert(rpcMgr_ != NULL);
-        return 0;
-    }
-
-    return setInstP->addr();
+  if (!instP_) {
+    assert(rpcMgr_ != NULL);
+    return 0;
+  }
+  
+  return instP()->addr();
 }
 
 bool baseTramp::inBasetramp( Address addr ) {
@@ -539,88 +527,23 @@ bool baseTramp::addMiniTramp(miniTramp *newMT, callOrder order) {
     if (firstMini == NULL) {
         // Life is easy...
         assert(lastMini == NULL);
-        assert(firstPreMini == NULL);
         firstMini = lastMini = newMT;
-        
-        if (newMT->instP == preInstP) {
-            firstPreMini = newMT;
-        }
     }
     else {
-        if (newMT->instP == preInstP) {
-            // pre-instrumentation.
-            if (order == orderFirstAtPoint) {
-                miniTramp *oldFirstPre = firstPreMini;
-                firstPreMini = newMT;
-                if (oldFirstPre) {
-                    // We're inserting into the chain...
-                    if (oldFirstPre->prev) {
-                        oldFirstPre->prev->next = newMT;
-                        newMT->prev = oldFirstPre->prev;
-                    }
-                    else {
-                        newMT->prev = NULL;
-                        firstMini = newMT;
-                    }
-
-                    oldFirstPre->prev = newMT;
-                    newMT->next = oldFirstPre;
-                }
-                else {
-                    // No pre-instrumentation; if there is post,
-                    // hook this guy on
-                    assert(lastMini);
-                    
-                    lastMini->next = newMT;
-                    newMT->prev = lastMini;
-                    lastMini = newMT;
-                }
-            }
-            else {
-                // orderLastAtPoint, pre-instrumentation
-                if (firstPreMini == NULL)
-                    firstPreMini = newMT;
-                assert(lastMini);
-                lastMini->next = newMT;
-                newMT->prev = lastMini;
-                lastMini = newMT;
-            }
-        }
-        else { // newMT->instP == postInstP
-            if (order == orderFirstAtPoint) {
-                // orderFirstAtPoint, post-instrumentation
-                assert(firstMini);
-                firstMini->prev = newMT;
-                newMT->next = firstMini;
-                firstMini = newMT;
-            }
-            else {
-                // orderLastAtPoint, post-instrumentation
-                if (firstPreMini) {
-                    miniTramp *lastPost = firstPreMini->prev;
-                    if (lastPost) {
-                        newMT->next = lastPost->next;
-                        newMT->prev = lastPost;
-                        lastPost->next = newMT;
-                        newMT->next->prev = newMT;
-                    }
-                    else {
-                        // First one...
-                        assert(firstMini == firstPreMini);
-                        newMT->next = firstMini;
-                        firstMini->prev = newMT;
-                        firstMini = newMT;
-                    }
-                }
-                else {
-                    // No pre-instrumentation
-                    assert(lastMini);
-                    lastMini->next = newMT;
-                    newMT->prev = lastMini;
-                    lastMini = newMT;
-                }
-            }
-        }
+      if (order == orderFirstAtPoint) {
+	// orderFirstAtPoint, post-instrumentation
+	assert(firstMini);
+	firstMini->prev = newMT;
+	newMT->next = firstMini;
+	firstMini = newMT;
+      }
+      else {
+	// orderLastAtPoint, post-instrumentation
+	assert(lastMini);
+	lastMini->next = newMT;
+	newMT->prev = lastMini;
+	lastMini = newMT;
+      }
     }
 
     // Push to baseTrampInstances
@@ -650,28 +573,7 @@ bool baseTrampInstance::isInInstru(Address pc) {
 
 instPoint *baseTrampInstance::findInstPointByAddr(Address addr) {
     assert(baseT);
-    // Weird, this.
-    // If we're in pre-instru, return the prior instP (if it exists)
-    // If we're in post, return the next one
-    // If only one exists, well...
-    if (baseT->preInstP != NULL &&
-        baseT->postInstP == NULL) return baseT->preInstP;
-    else if (baseT->preInstP == NULL &&
-             baseT->postInstP != NULL) return baseT->postInstP;
-    else if (baseT->preInstP != NULL &&
-             baseT->postInstP != NULL) {
-        assert(addr > trampPreAddr());
-        if (addr <= (trampPreAddr() + baseT->preSize))
-            return baseT->preInstP;
-        assert(addr > trampPostAddr());
-        if (addr <= (trampPostAddr() + baseT->postSize))
-            return baseT->postInstP;
-        assert(0);
-    }
-    else {
-        return NULL;
-    }
-    return NULL;
+    return baseT->instP_;
 }
 
 bool baseTrampInstance::isEmpty() {
@@ -694,31 +596,19 @@ void baseTramp::deleteIfEmpty() {
     // can garbage collect the code).
 
     // Clean up this guy
-    if (preInstP) {
-        assert(preInstP->preBaseTramp() == this);
-        preInstP->preBaseTramp_ = NULL;
+    if (instP()) {
+        if (instP()->preBaseTramp() == this)
+            instP()->preBaseTramp_ = NULL;
+        
+        if (instP()->postBaseTramp() == this)
+            instP()->postBaseTramp_ = NULL;
+      
+      if (instP()->targetBaseTramp() == this)
+	instP()->targetBaseTramp_ = NULL;
     }
-    if (postInstP) {
-        assert(postInstP->postBaseTramp() == this);
-        postInstP->postBaseTramp_ = NULL;
-    }
-    
+
     delete this;
 }
-
-#if 0
-// Global fixing of all BT jumps
-bool baseTramp::correctBTJumps() {
-    for (unsigned i = 0; i < instances.size(); i++) {
-        codeGen gen(instruction::maxJumpSize());
-        instances[i]->generateBranchToMT(gen);
-        proc()->writeDataSpace((void *)(instances[i]->trampPreAddr() + instStartOffset),
-                               gen.used(),
-                               gen.start_ptr());
-    }
-    return true;
-}
-#endif
 
 // Where should the minitramps jump back to?
 Address baseTrampInstance::miniTrampReturnAddr() {
@@ -727,31 +617,26 @@ Address baseTrampInstance::miniTrampReturnAddr() {
 }
 
 bool baseTramp::isConservative() {
-    if (preInstP && preInstP->getPointType() == otherPoint)
-        return true;
-    if (postInstP && postInstP->getPointType() == otherPoint)
-        return true;
-    if (rpcMgr_)
-        return true;
-    return false;
+  if (instP() && instP()->getPointType() == otherPoint)
+    return true;
+  if (rpcMgr_)
+    return true;
+  return false;
 }
 
 bool baseTramp::isCallsite() {
-    if (preInstP && preInstP->getPointType() == callSite)
+    if (instP() && instP()->getPointType() == callSite)
         return true;
-    if (postInstP && postInstP->getPointType() == callSite)
-        return true;
+
     return false;
 }
 
 bool baseTramp::isEntryExit() {
-    if (preInstP && ((preInstP->getPointType() == functionEntry) ||
-                     (preInstP->getPointType() == functionExit)))
-        return true;
-    if (postInstP && ((postInstP->getPointType() == functionEntry) ||
-                      (postInstP->getPointType() == functionExit)))
-        return true;
-    return false;
+  if (instP() && ((instP()->getPointType() == functionEntry) ||
+		(instP()->getPointType() == functionExit)))
+    return true;
+  
+  return false;
 }
 
 bool baseTrampInstance::shouldGenerate() {
@@ -988,7 +873,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     else
         theRegSpace = regSpace;
 
-    instPoint * location = point();
+    instPoint * location = instP();
 
     if (location != NULL)
       {
@@ -1001,7 +886,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
 #endif
 
 #if defined(arch_x86_64)
-    instPoint * location = point();
+    instPoint * location = instP();
     if (location != NULL)
       {
 	regSpace->resetLiveDeadInfo(location->liveRegisters,
@@ -1194,10 +1079,9 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
             else {
                 codeGen gen(instruction::maxJumpSize());
                 generateBranchToMT(gen);
-                if (!proc()->writeDataSpace((void *)(trampPreAddr() + baseT->instStartOffset),
+                proc()->writeDataSpace((void *)(trampPreAddr() + baseT->instStartOffset),
                                        gen.used(),
-                                       gen.start_ptr()))
-                  fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+                                       gen.start_ptr());
             }
         }
     }
@@ -1332,13 +1216,6 @@ void baseTrampInstance::deleteMTI(miniTrampInstance *mti) {
     }
     assert(0);
     return;
-}
-
-instPoint *baseTramp::point() const {
-  if (preInstP) return preInstP;
-  else if (postInstP) return postInstP;
-  else
-    return NULL;
 }
 
 Address baseTrampInstance::uninstrumentedAddr() const {

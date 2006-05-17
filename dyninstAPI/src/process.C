@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.639 2006/05/16 21:14:35 jaw Exp $
+// $Id: process.C,v 1.640 2006/05/17 01:37:24 bernat Exp $
 
 #include <ctype.h>
 
@@ -1834,22 +1834,6 @@ void process::deleteProcess()
 
   trampTrapMapping.clear();
 
-  // Each instPoint may have several instances -- this gets instances and makes
-  // a unique set
-  std::set<instPoint *> allInstPoints;
-  dictionary_hash_iter<Address, instPoint *> ipIter(instPMapping_);
-  for (; ipIter; ipIter++) {
-      instPoint *p = ipIter.currval();
-      allInstPoints.insert(p);
-  }
-
-  // And this deletes the set.
-  for (std::set<instPoint *>::iterator ip = allInstPoints.begin();
-       ip != allInstPoints.end();
-       ip++) {
-      delete (*ip);
-  }
-  instPMapping_.clear();
   
   codeRangesByAddr_.clear();
   
@@ -2004,7 +1988,6 @@ process::process(SignalGenerator *sh_) :
     requestTextMiniTramp(false),
     traceLink(0),
     trampTrapMapping(addrHash4),
-    instPMapping_(addrHash4),
     multiTrampDict(intHash),
     replacedFunctionCalls_(addrHash4),
     bootstrapState(unstarted_bs),
@@ -2568,7 +2551,6 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     requestTextMiniTramp(parentProc->requestTextMiniTramp),
     traceLink(childTrace_fd),
     trampTrapMapping(parentProc->trampTrapMapping),
-    instPMapping_(addrHash4), // Later
     multiTrampDict(intHash), // Later
     replacedFunctionCalls_(addrHash4), // Also later
     bootstrapState(parentProc->bootstrapState),
@@ -4863,6 +4845,29 @@ int_basicBlock *process::findBasicBlockByAddr(Address addr) {
         return NULL;
 }
 
+int_function *process::findFuncByInternalFunc(image_func *ifunc) {
+    assert(ifunc);
+  
+    // Now we have to look up our specialized version
+    // Can't do module lookup because of DEFAULT_MODULE...
+    pdvector<int_function *> possibles;
+    if (!findFuncsByMangled(ifunc->symTabName(),
+                            possibles,
+                            ifunc->img()->file()))
+        return NULL;
+
+    assert(possibles.size());
+  
+    for (unsigned i = 0; i < possibles.size(); i++) {
+        if (possibles[i]->ifunc() == ifunc) {
+            return possibles[i];
+        }
+    }
+    return NULL;
+}
+
+
+
 bool process::addCodeRange(codeRange *codeobj) {
 
    codeRangesByAddr_.insert(codeobj);
@@ -5011,14 +5016,6 @@ bool process::wasCallReplaced(Address origAddr) const {
         return false;
 }
 
-instPoint *process::findInstPByAddr(Address addr) {
-    if (instPMapping_.defines(addr))
-        return instPMapping_[addr];
-    else 
-        return NULL;
-}
-
-    
 // findModule: returns the module associated with mod_name 
 // this routine checks both the a.out image and any shared object
 // images for this resource
@@ -5369,24 +5366,6 @@ bool process::checkTrappedSyscallsInternal(Address syscall)
 BPatchSnippetHandle *handle; //ccw 17 jul 2002
 #endif
 
-void process::registerInstPointAddr(Address addr, instPoint *inst) {
-    if (instPMapping_.defines(addr)) {
-        // No silently overriding instPoints
-        assert(instPMapping_[addr] == inst);
-    }
-    else {
-        instPMapping_[addr] = inst;
-    }
-}
-
-void process::unregisterInstPointAddr(Address addr, instPoint *inst) {
-    if (instPMapping_.defines(addr)) {
-        // No silently overriding instPoints
-        assert(instPMapping_[addr] == inst);
-        instPMapping_.undef(addr);
-    }
-}
-
 #if 0
 void process::installInstrRequests(const pdvector<instMapping*> &requests) {
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
@@ -5549,11 +5528,11 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
         for (unsigned m = 0; m < minis.size(); m++) {
             miniTramp *mt = minis[m];
             
-            if (!mt->instP->generateInst())
+            if (!mt->instP()->generateInst())
                 continue;
-            if (!mt->instP->installInst())
+            if (!mt->instP()->installInst())
                 continue;
-            if (!mt->instP->linkInst())
+            if (!mt->instP()->linkInst())
                 continue;
             
             req->miniTramps.push_back(mt);

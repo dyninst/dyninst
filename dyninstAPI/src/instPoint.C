@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.24 2006/05/16 21:19:14 bernat Exp $
+// $Id: instPoint.C,v 1.25 2006/05/17 01:37:23 bernat Exp $
 // instPoint code
 
 
@@ -695,7 +695,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
     instPoint *newIP = new instPoint(parP, child);
     process *proc = child->proc();
     assert(proc);
-    int_function *func = proc->findFuncByInternalFunc(parP->func()->ifunc());
+    int_function *func = child->func();
 
     // Add to the process
     for (unsigned i = 0; i < parP->instances.size(); i++) {
