@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.232 2006/05/17 04:13:03 legendre Exp $
+// $Id: linux.C,v 1.233 2006/05/17 19:39:24 legendre Exp $
 
 #include <fstream>
 
@@ -2533,7 +2533,6 @@ void SignalGenerator::removePidGen(int pid) {
       }
    }
 
-   assert(found);
    pthread_mutex_unlock(&waiter_mutex);
 }
 
