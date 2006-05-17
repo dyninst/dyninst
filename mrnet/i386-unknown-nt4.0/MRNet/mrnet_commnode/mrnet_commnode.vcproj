@@ -117,7 +117,7 @@
 				HeaderFileName=""/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy mrnet_commnode.exe ../../../../../i386-unknown-nt4.0/bin"/>
+				CommandLine="copy mrnet_commnode.exe ..\..\..\..\..\i386-unknown-nt4.0\bin"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

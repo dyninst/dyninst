@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.19 2006/04/13 23:05:52 legendre Exp $
+ * $Id: RTetc-winnt.c,v 1.20 2006/05/17 21:46:33 legendre Exp $
  *
  ************************************************************************/
 
@@ -86,30 +86,6 @@ void PARADYN_forkEarlyInit() {
 unsigned DYNINSTgetCurrentThreadId() {
   return GetCurrentThreadId();
 }
-
-#ifndef SHM_SAMPLING
-void CALLBACK DYNINSTalarmExpireCallback(UINT id, UINT msg, 
-				 DWORD usr, DWORD w1, DWORD w2) {
-  void DYNINSTalarmExpire();
-  DYNINSTalarmExpire();
-}
-
-/************************************************************************
- * void DYNINST_install_ualarm(unsigned interval)
- *
- * install an alarm with period 'interval' microseconds
-************************************************************************/
-
-void DYNINST_install_ualarm(unsigned interval) {
-  if (timeSetEvent(interval/1000, 100, DYNINSTalarmExpireCallback, 
-		   0, TIME_PERIODIC) == (int)NULL) {
-    fprintf( stderr, "DYNINST: unable to create periodic timer\n");
-    abort();
-  }
-
-}
-#endif /* SHM_SAMPLING */
-
 
 #define FILETIME2rawTime64(FT) \
    (((rawTime64)(FT).dwHighDateTime<<32) | ((rawTime64)(FT).dwLowDateTime))

@@ -84,7 +84,7 @@
 				OutputFile="i386-unknown-nt4.0\rthist.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="TRUE"
-				SubSystem="2"/>
+				SubSystem="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -145,7 +145,8 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -250,7 +251,8 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -266,7 +268,8 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -350,7 +353,8 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -400,7 +404,8 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 		</Filter>

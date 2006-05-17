@@ -165,6 +165,12 @@ cd ..
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\i386-unknown-nt4.0\visi.xdr.CLNT.C">
@@ -175,6 +181,12 @@ cd ..
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\i386-unknown-nt4.0\visi.xdr.SRVR.C">
@@ -183,6 +195,12 @@ cd ..
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAsManaged="0"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>

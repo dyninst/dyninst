@@ -79,7 +79,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Iphlpapi.lib Ws2_32.lib tcl84t.lib tk84t.lib"
+				AdditionalDependencies="Iphlpapi.lib Ws2_32.lib ONCRPC.LIB tcl84t.lib tk84t.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="TRUE"
@@ -128,7 +128,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						ExceptionHandling="FALSE"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -168,7 +168,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						ExceptionHandling="FALSE"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -187,7 +187,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						ExceptionHandling="FALSE"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -206,7 +206,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						ExceptionHandling="FALSE"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -224,6 +224,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -241,6 +242,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -258,6 +260,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -275,6 +278,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -293,7 +297,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						ExceptionHandling="FALSE"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -312,7 +316,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						ExceptionHandling="FALSE"
+						ExceptionHandling="TRUE"
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
@@ -330,7 +334,9 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						ExceptionHandling="TRUE"
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 		</Filter>

@@ -20,8 +20,8 @@
 			ManagedExtensions="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="-I.\h\  -I..\"
 				Optimization="0"
+				AdditionalIncludeDirectories="./h;.."
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
@@ -77,6 +77,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			ManagedExtensions="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="./h;.."
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
 				MinimalRebuild="FALSE"
 				RuntimeLibrary="0"
@@ -95,8 +96,10 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy $(PLATFORM)\libdyninstAPI.dll ..\..\$(PLATFORM)\lib
-copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
+				CommandLine="echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 "/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
@@ -135,6 +138,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -150,6 +154,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -165,6 +170,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -180,6 +186,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -195,6 +202,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -210,6 +218,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -225,6 +234,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -240,6 +250,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -255,6 +266,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -270,6 +282,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -285,6 +298,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -300,6 +314,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -315,6 +330,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -330,6 +346,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -345,6 +362,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -360,6 +378,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -375,6 +394,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -390,6 +410,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -405,6 +426,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -420,6 +442,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -435,6 +458,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -450,6 +474,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -465,6 +490,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -480,6 +506,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -495,6 +522,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -510,6 +538,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -525,6 +554,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -540,6 +570,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -555,6 +586,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -570,6 +602,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -585,6 +618,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -600,6 +634,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -615,6 +650,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -630,6 +666,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -645,6 +682,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -660,6 +698,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -675,6 +714,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -690,6 +730,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -705,6 +746,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -720,6 +762,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -735,6 +778,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -750,6 +794,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -765,6 +810,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -780,6 +826,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -795,6 +842,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -810,6 +858,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -825,6 +874,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -840,6 +890,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -855,6 +906,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -870,6 +922,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -885,6 +938,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -900,6 +954,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -915,6 +970,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -930,6 +986,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -945,6 +1002,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -960,6 +1018,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -975,6 +1034,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -990,6 +1050,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1005,6 +1066,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1020,6 +1082,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1035,6 +1098,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1050,6 +1114,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1065,6 +1130,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1080,6 +1146,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1095,6 +1162,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1110,6 +1178,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1125,6 +1194,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1140,6 +1210,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1155,6 +1226,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1170,6 +1242,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1185,6 +1258,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1200,6 +1274,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1215,6 +1290,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1230,6 +1306,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1245,6 +1322,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1260,6 +1338,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1275,6 +1354,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1290,6 +1370,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1305,6 +1386,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1320,6 +1402,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1335,6 +1418,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1350,6 +1434,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1365,6 +1450,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1380,6 +1466,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1395,6 +1482,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1410,6 +1498,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1425,6 +1514,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1440,6 +1530,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1455,6 +1546,7 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>

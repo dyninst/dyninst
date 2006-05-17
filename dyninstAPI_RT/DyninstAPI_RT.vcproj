@@ -20,8 +20,8 @@
 			ManagedExtensions="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="-I.."
 				Optimization="0"
+				AdditionalIncludeDirectories=".."
 				PreprocessorDefinitions="WIN32;_DEBUG;os_windows;arch_x86;cap_relocation;cap_stripped_binaries;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;cap_threads"
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
@@ -69,10 +69,11 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
 			CharacterSet="2"
-			ManagedExtensions="TRUE">
+			ManagedExtensions="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="WIN32;NDEBUG;os_windows;arch_x86;cap_relocation;cap_stripped_binaries;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD"
+				AdditionalIncludeDirectories=".."
+				PreprocessorDefinitions="WIN32;NDEBUG;os_windows;arch_x86;cap_relocation;cap_stripped_binaries;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;cap_threads"
 				MinimalRebuild="FALSE"
 				RuntimeLibrary="0"
 				WarningLevel="3"
@@ -81,6 +82,7 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="Ws2_32.lib"
 				OutputFile="$(OutDir)\libdyninstAPI_RT.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="TRUE"
@@ -95,7 +97,7 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 "/>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="..\..\scripts\buildstaamp.bat 0 libdyninstAPI_RT.dll"/>
+				CommandLine="..\..\scripts\buildstamp.bat 0 libdyninstAPI_RT.dll"/>
 			<Tool
 				Name="VCPreLinkEventTool"/>
 			<Tool
@@ -121,6 +123,13 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
 				RelativePath=".\src\RTcommon.c">
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="1"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\RTheap-win.c">
@@ -134,23 +143,59 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAsManaged="0"
+						CompileAs="1"/>
 				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\RTheap.c">
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="1"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\RTthread-index.c">
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="1"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\RTthread-x86.c">
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="1"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\RTthread.c">
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="1"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\RTwinnt.c">
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="1"/>
+				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter

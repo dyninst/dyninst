@@ -27,7 +27,10 @@
 			IntermediateDirectory="Release"
 			ConfigurationType="0">
 			<Tool
-				Name="VCNMakeTool"/>
+				Name="VCNMakeTool"
+				BuildCommandLine="nmake install"
+				ReBuildCommandLine="nmake install"
+				CleanCommandLine="nmake clean"/>
 		</Configuration>
 	</Configurations>
 	<References>

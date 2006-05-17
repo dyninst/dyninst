@@ -85,6 +85,7 @@
 				AdditionalDependencies="Iphlpapi.lib Ws2_32.lib ONCRPC.LIB tcl84t.lib tk84t.lib shlwapi.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
+				IgnoreDefaultLibraryNames="libc.lib"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"/>
 			<Tool

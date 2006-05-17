@@ -22,7 +22,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\mrnet\mrnet\h;..;..\dyninstAPI\h;&quot;i386-unknown-nt4.0&quot;"
-				PreprocessorDefinitions="os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_DLL_BUILD;PARADYND;WIN32"
+				PreprocessorDefinitions="os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_DLL_BUILD;PARADYND;WIN32;snprintf=_snprintf"
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
@@ -40,7 +40,8 @@
 				IgnoreAllDefaultLibraries="FALSE"
 				IgnoreDefaultLibraryNames="libc.lib"
 				GenerateDebugInformation="TRUE"
-				AssemblyDebug="1"/>
+				AssemblyDebug="1"
+				SubSystem="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -74,7 +75,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="..\mrnet\mrnet\h;..;..\dyninstAPI\h;&quot;i386-unknown-nt4.0&quot;"
-				PreprocessorDefinitions="os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_DLL_BUILD;PARADYND;WIN32"
+				PreprocessorDefinitions="os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_DLL_BUILD;PARADYND;WIN32;snprintf=_snprintf"
 				MinimalRebuild="FALSE"
 				RuntimeLibrary="0"
 				RuntimeTypeInfo="TRUE"
@@ -90,7 +91,8 @@
 				LinkIncremental="1"
 				IgnoreAllDefaultLibraries="FALSE"
 				IgnoreDefaultLibraryNames="libc.lib"
-				GenerateDebugInformation="TRUE"/>
+				GenerateDebugInformation="TRUE"
+				SubSystem="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -175,7 +177,8 @@ cd ..
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
