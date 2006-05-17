@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.8 2006/05/09 09:52:55 jaw Exp $
+/* $Id: signalgenerator-unix.h,v 1.9 2006/05/17 04:13:05 legendre Exp $
  */
 
 
@@ -47,6 +47,18 @@
 #define _SIGNAL_GENERATOR_UNIX_H_
 
 #include "dyninstAPI/src/os.h"
+
+class SignalGenerator;
+
+typedef struct waitpid_ret_pair {
+   int pid;
+   int status;
+} waitpid_ret_pair_t;
+
+typedef struct pid_generator_pair {
+   int pid;
+   SignalGenerator *sg;
+} pid_generator_pair_t;
 
 class SignalGenerator : public SignalGeneratorCommon
 {
@@ -140,6 +152,27 @@ class SignalGenerator : public SignalGeneratorCommon
    int find_dead_lwp();
    pid_t waitpid_kludge(pid_t, int *, int, int *);
    pdvector<int> attached_lwp_ids;
+
+ public:
+   static int waitpid_demultiplex(SignalGenerator *me, int *status);
+
+   pdvector<waitpid_ret_pair> event_queue;
+   bool isInWaitpid;
+   bool isInWaitLock;
+   bool forcedExit;
+   static pdvector<waitpid_ret_pair> unassigned_events;
+   static pdvector<SignalGenerator *> first_timers;
+
+   static volatile int waiter_exists;
+   static pthread_cond_t waiter_condvar;
+   static pthread_mutex_t waiter_mutex;
+   static pdvector<pid_generator_pair_t> pidgens;
+   void addPidGen(int pid);
+   void removePidGen(int pid);
+   void removePidGen();
+   bool hasFirstTimer();
+   void forceWaitpidReturn();
+
 #endif
 
 };

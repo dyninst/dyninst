@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.231 2006/05/16 21:19:06 bernat Exp $
+// $Id: linux.C,v 1.232 2006/05/17 04:13:03 legendre Exp $
 
 #include <fstream>
 
@@ -116,7 +116,12 @@
 static bool debug_ptrace = false;
 #endif
 
-
+volatile int SignalGenerator::waiter_exists = 0;
+pdvector<SignalGenerator *> SignalGenerator::first_timers;
+pthread_cond_t SignalGenerator::waiter_condvar = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t SignalGenerator::waiter_mutex = PTHREAD_MUTEX_INITIALIZER;
+pdvector<pid_generator_pair_t> SignalGenerator::pidgens;
+pdvector<waitpid_ret_pair> SignalGenerator::unassigned_events;
 
 /* ********************************************************************** */
 
@@ -161,47 +166,51 @@ void OS::osTraceMe(void)
   }
 }
 
-bool attachToChild(int pid)
+bool attachToChild(int pid, SignalGenerator *sg)
 {
    //  wait for child process to stop itself, attach to it, and continue
-     int wait_options = __WALL | WUNTRACED;
-     int status = 0;
-     int res = waitpid(pid, &status, wait_options);
-     if (res <= 0) {
-        fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
-        abort();
-     }
+   int status = 0;
 
-     if (!WIFSTOPPED(status)) {
-       fprintf(stderr, "%s[%d]:  status is not stopped\n", FILE__, __LINE__);
-     }
-     if ( SIGSTOP != WSTOPSIG(status)) {
-       fprintf(stderr, "%s[%d]:  signal is not SIGILL: stopsig = %d\n", FILE__, __LINE__, WSTOPSIG(status));
-     }
-
-     if (0 != P_ptrace(PTRACE_ATTACH, pid, 0, 0, 4 )) {
-       fprintf(stderr, "%s[%d]:  ptrace (ATTACH) failed\n", FILE__, __LINE__);
-       abort();
-    }
-
-    if (0 != P_ptrace(PTRACE_CONT, pid, 0, SIGCONT, 4 ) )  {
-       perror("ptrace(CONT)");
-       fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
-       abort();
-    }
-
-    if (0 > waitpid(pid, NULL, 0)) {
-       perror("process::attach - waitpid");
-       exit(1);
-    }
-
-    if (0 != P_ptrace(PTRACE_CONT, pid, 0, SIGCONT, 4 ) )  {
-       perror("ptrace(CONT)");
-       fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
-       abort();
-    }
-
-    return true;
+   sg->addPidGen(pid);
+   /*
+   int res = SignalGenerator::waitpid_demultiplex(sg, &status);
+   if (res <= 0) {
+      fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
+      return false;
+   }
+   if (!WIFSTOPPED(status)) {
+      fprintf(stderr, "%s[%d]:  status is not stopped\n", FILE__, __LINE__);
+   }
+   if ( SIGSTOP != WSTOPSIG(status)) {
+      fprintf(stderr, "%s[%d]:  signal is not SIGILL: stopsig = %d\n", 
+              FILE__, __LINE__, WSTOPSIG(status));
+   }
+   */
+   
+   if (0 != P_ptrace(PTRACE_ATTACH, pid, 0, 0)) {
+      fprintf(stderr, "%s[%d]:  ptrace (ATTACH) failed\n", FILE__, __LINE__);
+      return false;
+   }
+   /*
+   if (0 != P_ptrace(PTRACE_CONT, pid, 0, SIGCONT)) {
+      perror("ptrace(CONT)");
+      fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
+      return false;
+   }
+   */
+   int res = SignalGenerator::waitpid_demultiplex(sg, &status);
+   if (0 > res) {
+      perror("process::attach - waitpid");
+      return false;
+   }
+   
+   if (0 != P_ptrace(PTRACE_CONT, pid, 0, SIGCONT)) {
+      perror("ptrace(CONT)");
+      fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
+      return false;
+   }
+   
+   return true;
 }
 
 bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
@@ -389,10 +398,12 @@ int SignalGenerator::find_dead_lwp()
    return 0;
 }
 
-pid_t SignalGenerator::waitpid_kludge(pid_t pid_arg, int *status, int options, int *dead_lwp)
+pid_t SignalGenerator::waitpid_kludge(pid_t /*pid_arg*/, 
+                                      int *status, 
+                                      int /*options*/, 
+                                      int *dead_lwp)
 {
   pid_t ret = 0;
-  int wait_options = options;
 
   do {
    *dead_lwp = find_dead_lwp();
@@ -405,8 +416,8 @@ pid_t SignalGenerator::waitpid_kludge(pid_t pid_arg, int *status, int options, i
        break;
     }
 
-    ret = waitpid(pid_arg, status, wait_options); 
-  } while (ret == 0);
+   ret = waitpid_demultiplex(this, status);
+  } while (ret == 0 || (ret == -1 && errno == EINTR));
 
   return ret; 
 }
@@ -490,23 +501,18 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
 
   ev.proc->set_lwp_status(ev.lwp, stopped);
     
-  if (!ev.lwp->is_attached()) {
-     //  Hijack thread detection events here (very platform specific)
-     ev.type = evtThreadDetect;
-  }
-  else {
-      bool process_exited = WIFEXITED(status) || dead_lwp;
-      if ((process_exited) && (waitpid_pid != ev.proc->getPid())) {
-          proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
-                             FILE__, __LINE__, ev.lwp->get_lwp_id());
-          signal_printf("%s[%d]: Received a thread deletion event for %d\n", 
+  bool process_exited = WIFEXITED(status) || dead_lwp;
+  if ((process_exited) && (waitpid_pid != ev.proc->getPid())) {
+     proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
                         FILE__, __LINE__, ev.lwp->get_lwp_id());
-          // Thread exited via signal
-          ev.type = evtSyscallEntry;      
-          ev.what = SYS_lwp_exit;
-          decodeSyscall(ev);
-      }
+     signal_printf("%s[%d]: Received a thread deletion event for %d\n", 
+                   FILE__, __LINE__, ev.lwp->get_lwp_id());
+     // Thread exited via signal
+     ev.type = evtSyscallEntry;      
+     ev.what = SYS_lwp_exit;
+     decodeSyscall(ev);
   }
+
   events.push_back(ev);
   return true;
 }
@@ -855,7 +861,7 @@ bool SignalGenerator::waitForStopInline()
     int retval = 0;
     int status = 0;
     
-    retval = waitpid(getPid(), &status, 0);
+    retval = waitpid_demultiplex(this, &status);
     if (retval < 0) {
         //  should do some better checking here....
         perror("waitpid");
@@ -1616,6 +1622,7 @@ bool dyn_lwp::realLWP_attach_() {
    if (fd_ < 0)
      fd_ = INVALID_HANDLE_VALUE;
 
+   proc()->sh->addPidGen(get_lwp_id());
    startup_printf("%s[%d]:  realLWP_attach doing PTRACE_ATTACH to %lu\n", 
                   FILE__, __LINE__, get_lwp_id());
    int ptrace_errno = 0;
@@ -1628,41 +1635,16 @@ bool dyn_lwp::realLWP_attach_() {
    
    proc()->sh->add_lwp_to_poll_list(this);
 
-   if(proc_->wasCreatedViaAttach()) {
-      int result;
-      result = waitpid(get_lwp_id(), NULL, __WALL);
-      if (result < 0) {
-         perror("dyn_lwp::realLWP_attach_() - waitpid");
-         exit(1);
-      }
-      //fprintf(stderr, "[%s:%u] - waitpid returned %d, called from dyn_lwp::realLWP_attach_()\n", __FILE__, __LINE__, result);
-   }
-   else {
-
-      eventType evt;
-      signal_printf("%s[%d]: attaching to LWP, waiting for evtThreadDetect\n",
-                 FILE__, __LINE__);
-      // Be sure that the signal generator is actually waiting for things. 
-      proc()->sh->signalActiveProcess();
-      evt = proc()->sh->waitForEvent(evtThreadDetect, proc_, this);
-      if (evt != evtThreadDetect) {
-         //  process can exit here while we are waiting...  no??
-         if (evt == evtProcessExit) {
-            //fprintf(stderr, "%s[%d]:  process exited before thread detect event... bye...\n", FILE__, __LINE__);
-            return false;
-         }
-         fprintf(stderr, "%s[%d]:  received unexpected event %s\n", 
-                 __FILE__, __LINE__, eventType2str(evt));
-         abort();
-      }
-      if (proc_->status() == running) {
-         signal_printf("%s[%d]: overall status is running, so continuing detected LWP\n",
-                       FILE__, __LINE__);
-         continueLWP();
-      }
-      else 
-         signal_printf("%s[%d]: overall status is stopped (%s), so not continuing detected LWP\n",
-                       FILE__, __LINE__, proc_->getStatusAsString().c_str());
+   eventType evt;
+   proc()->sh->signalActiveProcess();
+   do {
+      evt = proc()->sh->waitForEvent(evtLwpAttach, proc_, this);
+      if (evt == evtProcessExit) 
+         return false;
+   } while (!is_attached());
+   
+   if (proc_->status() == running) {
+      continueLWP();
    }
    return true;
 }
@@ -1674,7 +1656,7 @@ bool dyn_lwp::representativeLWP_attach_() {
    sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
    fd_ = P_open(procName, O_RDWR, 0);
    if (fd_ < 0) 
-     fd_ = INVALID_HANDLE_VALUE;
+    fd_ = INVALID_HANDLE_VALUE;
    
    bool running = false;
    if( proc_->wasCreatedViaAttach() )
@@ -1691,7 +1673,6 @@ bool dyn_lwp::representativeLWP_attach_() {
    
    // Only if we are really attaching rather than spawning the inferior
    // process ourselves do we need to call PTRACE_ATTACH
-
    if(proc_->wasCreatedViaAttach() || 
       proc_->wasCreatedViaFork() || 
       proc_->wasCreatedViaAttachToCreated())
@@ -1701,7 +1682,7 @@ bool dyn_lwp::representativeLWP_attach_() {
       assert(address_width);
       startup_printf("%s[%d]: process attach doing PT_ATTACH to %d\n",
                      FILE__, __LINE__, get_lwp_id());
-
+      proc()->sh->addPidGen(get_lwp_id());
       if( 0 != DBI_ptrace(PTRACE_ATTACH, getPid(), 0, 0, &ptrace_errno, address_width, __FILE__, __LINE__) )
       {
          startup_printf("%s[%d]:  ptrace attach to pid %d failing\n", FILE__, __LINE__, getPid());
@@ -1713,7 +1694,7 @@ bool dyn_lwp::representativeLWP_attach_() {
 
       int status = 0;
       int retval = 0;
-      retval = waitpid(getPid(), &status, 0);
+      retval = SignalGenerator::waitpid_demultiplex(proc_->sh, &status);
       if (retval < 0) {
           perror("process::attach - waitpid");
           exit(1);
@@ -2240,32 +2221,38 @@ bool ForkNewProcessCallback::operator()(pdstring file,
                     pdstring dir, pdvector<pdstring> *argv,
                     pdvector<pdstring> *envp,
                     pdstring inputFile, pdstring outputFile, int &traceLink,
-                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
+                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd,
+                    SignalGenerator *sg)
 {
-    lock->_Lock(FILE__, __LINE__);
-    file_ = &file;
-    dir_ = &dir;
-    argv_ = argv;
-    envp_ = envp;
-    inputFile_ = &inputFile;
-    outputFile_ = &outputFile;
-    traceLink_ = &traceLink;
-    pid_ = &pid;
-    stdin_fd_ = stdin_fd;
-    stdout_fd_ = stdout_fd;
-    stderr_fd_ = stderr_fd;
-    
+  lock->_Lock(FILE__, __LINE__);
+   
+  file_ = &file;
+  dir_ = &dir;
+  argv_ = argv;
+  envp_ = envp;
+  inputFile_ = &inputFile;
+  outputFile_ = &outputFile;
+  traceLink_ = &traceLink;
+  pid_ = &pid;
+  sg_ = sg;
+  stdin_fd_ = stdin_fd;
+  stdout_fd_ = stdout_fd;
+  stderr_fd_ = stderr_fd;
+  bool result = true;
+  
   startup_printf("%s[%d]:  ForkNewProcessCallback, target thread is %lu(%s)\n", 
-__FILE__, __LINE__, targetThread(), getThreadStr(targetThread()));
-  //DBIEvent ev(dbiForkNewProcess);
+                  __FILE__, __LINE__, targetThread(), 
+                 getThreadStr(targetThread()));
   getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__
-);
-    waitForCompletion();
+
+  if (synchronous) 
+  {
+     dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+     waitForCompletion();
   }
+
   lock->_Unlock(FILE__, __LINE__);
-  return true;
+  return result;
 }
 
 bool ForkNewProcessCallback::execute_real()
@@ -2274,11 +2261,8 @@ bool ForkNewProcessCallback::execute_real()
     ret = forkNewProcess_real(*file_,*dir_,argv_,envp_,*inputFile_,
             *outputFile_,*traceLink_,*pid_,stdin_fd_,stdout_fd_,
             stderr_fd_); 
-   
-    // attach
-    if(ret && !attachToChild(*pid_))
-        assert(0 && "failed to ptrace attach to child process");
-
+    if (ret)
+       ret = attachToChild(*pid_, sg_);
     return ret;
 }
 
@@ -2286,7 +2270,8 @@ bool DebuggerInterface::forkNewProcess(pdstring file,
                     pdstring dir, pdvector<pdstring> *argv,
                     pdvector<pdstring> *envp,
                     pdstring inputFile, pdstring outputFile, int &traceLink,
-                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
+                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd,
+                    SignalGenerator *sg)
 {
     dbi_printf("%s[%d][%s]:  welcome to DebuggerInterface::forkNewProcess()\n",
           FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -2298,7 +2283,7 @@ bool DebuggerInterface::forkNewProcess(pdstring file,
 
     fnp.enableDelete(false);
     fnp(file, dir, argv, envp, inputFile, outputFile, traceLink, pid,
-        stdin_fd, stdout_fd, stderr_fd);
+        stdin_fd, stdout_fd, stderr_fd, sg);
 
     ret = fnp.getReturnValue();
     fnp.enableDelete();
@@ -2307,7 +2292,265 @@ bool DebuggerInterface::forkNewProcess(pdstring file,
     return ret;  
 }
 
-bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, bool & /*continueHint */) 
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, 
+                                          bool & /*continueHint */) 
 {
-    return true;
+   sg->removePidGen();
+   return true;
 }
+
+static int P_gettid()
+{
+   static int gettid_not_valid = 0;
+   int result;
+
+   if (gettid_not_valid)
+      return getpid();
+
+   result = syscall((long int) SYS_gettid);
+   if (result == -1 && errno == ENOSYS)
+   {
+      gettid_not_valid = 1;
+      return getpid();
+   }
+   return result;  
+}
+
+void chld_handler(int) {
+}
+
+void chld_handler2(int, siginfo_t *, void *) {
+}
+
+static void kickWaitpider(int pid) {
+   struct sigaction handler;
+
+
+   //   handler.sa_handler = chld_handler;
+   sigfillset(& handler.sa_mask);
+   handler.sa_sigaction = chld_handler2;
+   handler.sa_flags = 0; 
+   sigaction(SIGCHLD, &handler, NULL);
+
+   proccontrol_printf("[%s:%u] - kicking %d for wakeup\n",
+                      FILE__, __LINE__, pid);
+   lwp_kill(pid, SIGCHLD);
+}
+
+//Force the SignalGenerator to return -1, EINTR from waitpid
+void SignalGenerator::forceWaitpidReturn() {
+   pthread_mutex_lock(&waiter_mutex);
+   if (isInWaitpid) {
+      kickWaitpider(waiter_exists);
+   }
+   else if (isInWaitLock) {
+      forcedExit = true;
+      pthread_cond_broadcast(&waiter_condvar);
+   }
+   pthread_mutex_unlock(&waiter_mutex);
+}
+
+int SignalGenerator::waitpid_demultiplex(SignalGenerator *me, int *status)
+{   
+   int result;
+   int options = __WALL;
+   SignalGenerator *event_owner;
+
+   pthread_mutex_lock(&waiter_mutex);
+   
+   proccontrol_printf("[%s:%u] waitpid_demultiplex called for %d\n", 
+                      FILE__, __LINE__, me->getPid());
+   for (;;) {
+      if (me->event_queue.size()) {
+         //Someone put an event into our queue (thank you), we'll
+         //go ahead and dequeue and return it.
+         waitpid_ret_pair ret = me->event_queue[0];
+         me->event_queue.erase(0, 0);
+         *status = ret.status;
+         pthread_mutex_unlock(&waiter_mutex);
+         
+         proccontrol_printf("[%s:%u] %d found an event %d in my queue\n",
+                            FILE__, __LINE__, me->getPid(), *status);
+         return ret.pid;
+      }
+
+      if (me->forcedExit) {
+         //Someone wants to force us out of waitpid.  Go along with it.
+         // In most cases, we'll just return to the waitpid_kludge function
+         // and then re-enter this one.
+         proccontrol_printf("[%s:%u] %d forced out of waitpid\n",
+                            FILE__, __LINE__, me->getPid());
+         me->forcedExit = false;
+         pthread_mutex_unlock(&waiter_mutex);
+         return 0;
+      }
+      
+
+      if (!waiter_exists) {
+         // There's no events for us and no one is doing the waitpid.
+         // Let's break out of this foolish loop and do
+         // a waitpid.  We've still got the mutex, so we'll be the
+         // only ones who can get out and set waiter_exists to true.
+         proccontrol_printf("[%s:%u] %d becoming new waitpider\n",
+                            FILE__, __LINE__, me->getPid());
+         break;
+      }
+
+      if (me->hasFirstTimer()) {
+         //Darn Linux annoyances.  If a thread is blocked in waitpid, and
+         // someone else PTRACE_ATTACH's to a new thread, then we won't get
+         // any events until waitpid is re-entered.  We'll send a SIGILL
+         // to a mutatee to force waitPid to return, then drop the signal.
+         kickWaitpider(waiter_exists);
+      }
+      // Someone else is currently doing a waitpid for us.  Block until
+      // they either put an event into our event queue, or we find that they've
+      // left and we need to become the new waitpider.
+      me->isInWaitLock = true;
+      pthread_cond_wait(&waiter_condvar, &waiter_mutex);
+      me->isInWaitLock = false;
+   }
+
+   assert(!waiter_exists);
+   waiter_exists = P_gettid();
+   for (;;) {
+      //If we're in this loop, then we are the process doing a waitpid.
+      // It's up to us to recieve events for all SignalGenerators, and put 
+      // them on the event queue until we get one that belongs to us.
+      // Once we get an event that belongs to us, we'll set a waiter_exists
+      // to false (which will let someone else become the new waitpid'er)
+      // and return the waitpid result.
+
+      //A first-timer is someone who was created while we were are 
+      // waitpid.  Since no one is in waitpid right now (we're 
+      // about to enter) there are no first-timers.
+      first_timers.clear();
+
+      me->isInWaitpid = true;
+      pthread_mutex_unlock(&waiter_mutex);
+      result = waitpid(-1, status, options);
+      pthread_mutex_lock(&waiter_mutex);
+      me->isInWaitpid = false;
+
+      proccontrol_printf("[%s:%u] waitpid by %d returned status %d for %d\n",
+                         FILE__, __LINE__, me->getPid(), *status, result);
+
+         
+      //We got an event.  Map that back to the signal generator that it
+      // belongs to.
+      event_owner = NULL;
+      for (unsigned i=0; i<pidgens.size(); i++) {
+         if (pidgens[i].pid == result) {
+            event_owner = pidgens[i].sg;
+            break;
+         }
+      }
+      if (me == event_owner || result == -1) {
+         //We got an event for ourselves, Yea!  Let's go ahead and return it.
+         //We broadcast here to let other people know that someone else needs
+         //to take over as a the guy on the waitpid.
+         proccontrol_printf("[%s:%u] Got event for ourself (%d), result = %d\n",
+                            FILE__, __LINE__, me->getPid(), result);
+         waiter_exists = 0;
+         pthread_cond_broadcast(&waiter_condvar);
+         pthread_mutex_unlock(&waiter_mutex);
+         return result;
+      }
+
+      waitpid_ret_pair ev;
+      ev.status = *status;
+      ev.pid = result;
+      
+      if (event_owner) {
+         //This event belongs to someone else.  Let's put it into
+         // their queue so that they can get it next time they call
+         // this function.
+         proccontrol_printf("[%s:%u] Giving event to %d\n",
+                            FILE__, __LINE__, event_owner->getPid());
+         event_owner->event_queue.push_back(ev);
+         pthread_cond_broadcast(&waiter_condvar);
+      }
+      else {
+         //Race condition happened here.  We can start getting events
+         // for a process the moment we fork it off, and before we
+         // ever know it's PID.  In this case we'll just cache the event
+         // and add it to the event's queue when it calls addPidGen.
+         proccontrol_printf("[%s:%u] - Caching event for %d\n",
+                            FILE__, __LINE__, result);
+         unassigned_events.push_back(ev);
+      }
+   }
+   assert(0);
+   return -1;
+}
+
+bool SignalGenerator::hasFirstTimer() {
+   for (unsigned i=0; i<first_timers.size(); i++) 
+      if (first_timers[i] == this)
+         return true;
+   return false;
+}
+
+void SignalGenerator::addPidGen(int pid) {
+   pthread_mutex_lock(&waiter_mutex);
+   proccontrol_printf("[%s:%u] Adding pidgen %d for sg %d\n",
+                      FILE__, __LINE__, pid, getPid());
+
+   first_timers.push_back(this);
+   for (unsigned i=0; i<pidgens.size(); i++) 
+      assert (pidgens[i].pid != pid);
+   
+   for (unsigned i=0; i<unassigned_events.size(); i++)
+      if (unassigned_events[i].pid == pid) {
+         proccontrol_printf("[%s:%u] - Found early event for %d, restoring\n",
+                            __FILE__, __LINE__, pid);
+         event_queue.push_back(unassigned_events[i]);
+         unassigned_events.erase(i, i);
+         i--;
+      }
+
+   pid_generator_pair_t new_pidgen;
+   new_pidgen.pid = pid;
+   new_pidgen.sg = this;
+   pidgens.push_back(new_pidgen);
+
+   pthread_mutex_unlock(&waiter_mutex);
+}
+
+void SignalGenerator::removePidGen(int pid) {
+   bool found = false;
+
+   pthread_mutex_lock(&waiter_mutex);
+   proccontrol_printf("[%s:%u] Removing pidgen %d for sg %d\n",
+                      FILE__, __LINE__, pid, getPid());
+
+   for (unsigned i=0; i<pidgens.size(); i++) {
+      if (pidgens[i].pid == pid) {
+         assert(pidgens[i].sg == this);
+         assert(!found);
+         pidgens.erase(i, i);
+         found = true;
+      }
+   }
+
+   assert(found);
+   pthread_mutex_unlock(&waiter_mutex);
+}
+
+void SignalGenerator::removePidGen() {
+   proccontrol_printf("[%s:%u] Removing all pidgens for sg %d\n",
+                      FILE__, __LINE__, getPid());
+
+   pthread_mutex_lock(&waiter_mutex);
+   for (unsigned i=0; i<pidgens.size(); i++) {
+      if (pidgens[i].sg == this) {
+         proccontrol_printf("\t[%s:%u] Removing pidgen %d for sg %d\n",
+                            FILE__, __LINE__, pidgens[i].pid, getPid());
+         pidgens.erase(i, i);
+         i--;
+      }
+   }
+
+   pthread_mutex_unlock(&waiter_mutex);
+}
+

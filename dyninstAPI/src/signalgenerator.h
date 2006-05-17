@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.13 2006/05/10 02:31:02 jaw Exp $
+/* $Id: signalgenerator.h,v 1.14 2006/05/17 04:13:07 legendre Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -125,6 +125,7 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    bool pauseProcessAsync();
    bool pauseProcessBlocking();
 
+   void pingIfContinueBlocked();
    processRunState_t overrideSyncContinueState(processRunState_t state); 
    processRunState_t overrideAsyncContinueState(processRunState_t state); 
 
@@ -240,7 +241,11 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // ... and often want to continue a single LWP
    pdvector<dyn_lwp *> lwpsToContinue_;
    bool continueWholeProcess_;
-   
+
+   // Keep track of who's blocked waiting for synchronous continues.
+   bool continueCompleted_;
+   unsigned numBlockedForContinue;
+
    // The BPatch layer can (basically) asynchronously stop the process
    // without knowledge of the current signal handling state. We mark that
    // here.

@@ -75,6 +75,7 @@ typedef enum {
   evtBreakpoint,
   evtProcessCreate,
   evtProcessAttach,
+  evtLwpAttach,
   evtProcessExit, /* used to have exited normally, or via signal, now in status */
   evtProcessStop,
   evtProcessSelfTermination,

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.56 2006/05/10 02:31:01 jaw Exp $
+ * $Id: dyn_lwp.h,v 1.57 2006/05/17 04:13:02 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -221,6 +221,7 @@ class dyn_lwp
   handleT get_fd() const { return fd_;  };
 
   bool is_attached() const    { return is_attached_; }
+  void setIsAttached(bool newst) { is_attached_ = newst; }
 
   handleT ctl_fd() const { 
      assert(is_attached());

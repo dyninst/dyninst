@@ -534,6 +534,7 @@ char *eventType2str(eventType x)
   CASE_RETURN_STR(evtProcessInitDone);
   CASE_RETURN_STR(evtThreadDetect);
   CASE_RETURN_STR(evtLastEvent);
+  CASE_RETURN_STR(evtLwpAttach);
   default:
     fprintf(stderr, "%s[%d]:  unknown event type\n", FILE__, __LINE__);
   }

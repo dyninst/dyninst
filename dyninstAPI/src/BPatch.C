@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.149 2006/05/11 19:09:41 jaw Exp $
+// $Id: BPatch.C,v 1.150 2006/05/17 04:12:55 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1496,7 +1496,7 @@ bool BPatch::pollForStatusChangeInt()
         mutateeStatusChange = false;
         return true;
     }
-#if defined (os_linux)
+#if defined(os_linux)
    //  This might only be needed on linux 2.4, but we need to manually check
    //  to see if any threads exited here, and, if they have...  kick the 
    //  appropriate signal generator to wake up
@@ -1519,11 +1519,8 @@ bool BPatch::pollForStatusChangeInt()
         if (sg->isWaitingForOS()) {
           //  the signal generator is inside a waitpid, kick the mutatee to wake
           //  it up.
-          sg->expectFakeSignal();
-          P_kill(pid, DYNINST_BREAKPOINT_SIGNUM);
+          sg->forceWaitpidReturn();
         }
-        else
-          sg->signalActiveProcess();
       }
    }
 #endif
@@ -1548,7 +1545,7 @@ bool BPatch::waitForStatusChangeInt()
   if (mutateeStatusChange) {
     mutateeStatusChange = false;
     clearNotificationFD();
-
+    signal_printf("[%s:%u] - Returning due to immediate mutateeStatusChange\n", FILE__, __LINE__);
     return true;
   }
 
@@ -1593,12 +1590,14 @@ bool BPatch::waitForStatusChangeInt()
    waitingForStatusChange = true;
    getMailbox()->executeCallbacks(FILE__, __LINE__);
    if (mutateeStatusChange) break;
+   signal_printf("Blocking in waitForStatusChange\n");
    evt = SignalGeneratorCommon::globalWaitForOneOf(evts);
   } while ((    evt != evtProcessStop ) 
             && (evt != evtProcessExit)
             && (evt != evtThreadExit)
             && (evt != evtThreadCreate));
 
+  signal_printf("Returning from waitForStatusChange, evt = %s, mutateeStatusChange = %d\n", eventType2str(evt), (int) mutateeStatusChange);
   waitingForStatusChange = false;
 
   clearNotificationFD();

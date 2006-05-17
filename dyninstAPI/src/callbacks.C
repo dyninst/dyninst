@@ -99,8 +99,10 @@ bool SyncCallback::waitForCompletion()
         }
     }
     signal_printf("%s[%d]: SyncCallback, waiting for completion, sh = %p\n", FILE__, __LINE__, sh ? sh->getName() : "null");
-    if (sh)
+    if (sh) {
       sh->wait_cb = (CallbackBase *) this;
+      sh->sg->pingIfContinueBlocked();
+    }
 
     while (!completion_signalled) {
       if (!lock) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.208 2006/05/16 21:14:36 jaw Exp $
+// $Id: unix.C,v 1.209 2006/05/17 04:13:10 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -132,8 +132,6 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
        
        pdvector<int_variable *> vars;
        if (!proc->findVarsByAll(status_str, vars)) {
-           fprintf(stderr, "%s[%d]:  could not find var %s\n", 
-                   FILE__, __LINE__, status_str.c_str());
            return false;
        }
        
@@ -849,6 +847,11 @@ bool SignalGenerator::decodeSigStopNInt(EventRecord &ev)
                 FILE__, __LINE__, ev.proc->getPid(), 
                 proc->getBootstrapStateAsString().c_str());
 
+  if (ev.lwp && !ev.lwp->is_attached() && ev.what == SIGSTOP) {
+     //The result of a PTRACE_ATTACH
+     ev.type = evtLwpAttach;
+     return true;
+  }
 
   ev.type = evtProcessStop;
 
@@ -1424,25 +1427,30 @@ bool forkNewProcess_real(pdstring file,
    return false;
 }
 
+#if !defined (os_linux)
 bool SignalGenerator::forkNewProcess()
 {
-#if !defined (os_linux)
     return forkNewProcess_real(file_, dir_, 
                                argv_, envp_, 
                                inputFile_, outputFile_,
                                traceLink_, pid_, 
                                stdin_fd_, stdout_fd_, stderr_fd_);
-#else
-    // Linux platforms MUST execute fork() calls on the debugger interface
-    // (ptrace) thread; see comment above DebuggerInterface::forkNewProcess
-    // in debuginterface.h for details. -- nater 22.feb.06
-    return getDBI()->forkNewProcess(file_, dir_, 
-                                    argv_, envp_, 
-                                    inputFile_, outputFile_, 
-                                    traceLink_, pid_,
-                                    stdin_fd_, stdout_fd_, stderr_fd_);
-#endif
 }
+#else
+bool SignalGenerator::forkNewProcess()
+{
+    // Linux platforms MUST execute fork() calls on the debugger interface
+   // (ptrace) thread; see comment above DebuggerInterface::forkNewProcess
+   // in debuginterface.h for details. -- nater 22.feb.06
+   bool result = getDBI()->forkNewProcess(file_, dir_, 
+                                          argv_, envp_, 
+                                          inputFile_, outputFile_, 
+                                          traceLink_, pid_,
+                                          stdin_fd_, stdout_fd_, stderr_fd_,
+                                          this);
+   return result;
+}
+#endif
 
 #if !defined (os_linux)
 //  linux version of this function needs to use waitpid();
@@ -1686,10 +1694,17 @@ const char *dbiEventType2str(DBIEventType t)
 SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
     : SignalGeneratorCommon(idstr),
       waiting_for_stop(false),
-      expect_fake_signal(false),
       sync_event_id_addr(0),
       sync_event_arg1_addr(0),
-      sync_event_breakpoint_addr(0){
+      sync_event_breakpoint_addr(0),
+      expect_fake_signal(false)
+{
+#if defined(os_linux)
+    isInWaitpid = false;
+    isInWaitLock = false;
+    forcedExit = false;
+#endif
+
     char buffer[128];
     sprintf(buffer, "/proc/%d", pid);
 

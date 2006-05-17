@@ -58,7 +58,7 @@ class SyncCallback : public CallbackBase
    bool synchronous;
    eventLock *lock;
    bool completion_signalled;
-  private:
+ public:
    SignalHandler *sh;
 };
 

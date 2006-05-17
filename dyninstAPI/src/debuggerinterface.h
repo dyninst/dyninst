@@ -123,7 +123,8 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
   bool forkNewProcess(pdstring file, pdstring dir, pdvector<pdstring> *argv, 
                       pdvector<pdstring> *envp,
                       pdstring inputFile, pdstring outputFile, int &traceLink,
-                      int &pid, int stdin_fd, int stdout_fd, int stderr_fd);
+                      int &pid, int stdin_fd, int stdout_fd, int stderr_fd,
+                      SignalGenerator *sg = NULL);
 
   PTRACE_RETURN ptrace(int req, pid_t pid, Address addr, Address data, 
                        int word_len = -1, int *ptrace_errno = NULL);
@@ -247,7 +248,8 @@ class ForkNewProcessCallback : public DBICallbackBase
    bool operator()(pdstring file, pdstring dir, pdvector<pdstring> *argv, 
                    pdvector<pdstring> *envp,
                    pdstring inputFile, pdstring outputFile, int &traceLink,
-                   pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd);
+                   pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd,
+                   SignalGenerator *sg = NULL);
 
    bool getReturnValue() {return ret;}
 
@@ -261,6 +263,7 @@ class ForkNewProcessCallback : public DBICallbackBase
    pdstring *outputFile_;
    int *traceLink_;
    int *pid_;
+   SignalGenerator *sg_;
    int stdin_fd_;
    int stdout_fd_;
    int stderr_fd_;

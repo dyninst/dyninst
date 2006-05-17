@@ -1445,6 +1445,8 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     shuttingDown_(false),
     continueSig_(-1),
     continueWholeProcess_(false),
+    continueCompleted_(false),
+    numBlockedForContinue(0),
     syncRunWhenFinished_(unsetRequest),
     asyncRunWhenFinished_(unsetRequest),
     activeProcessSignalled_(false),
@@ -1759,6 +1761,7 @@ bool SignalGeneratorCommon::handleEvent(EventRecord &) {
 
 bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp *lwp /* = NULL */) 
 {
+    static int num_waiting_for_continue = 0;
     if (exitRequested()) {
         // We're going away... so don't do anything
         fprintf(stderr, "%s[%d]:  continueProcessBlocking:  program exiting... ignoring\n", FILE__, __LINE__);
@@ -1858,8 +1861,18 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp
     assert(activationLock->depth() == 1);
     activationLock->_Unlock(FILE__, __LINE__);
 
-    signal_printf("%s[%d]: continueProcessBlocking, waiting...\n", FILE__, __LINE__);
-    waitForContinueLock->_WaitForSignal(FILE__, __LINE__);
+    numBlockedForContinue++;
+    do {
+       signal_printf("%s[%d]: continueProcessBlocking, waiting...\n", FILE__, __LINE__);
+       getMailbox()->executeCallbacks(FILE__, __LINE__);
+       waitForContinueLock->_WaitForSignal(FILE__, __LINE__);
+    } while (!continueCompleted_);
+
+    numBlockedForContinue--;
+    if (!numBlockedForContinue) {
+       //Everyone's excepted the continue.  Reset the continueCompleted flag
+       continueCompleted_ = false;
+    }
     
     signal_printf("%s[%d]: continueProcessBlocking, woken up and releasing waitForContinue lock.\n", FILE__, __LINE__);
 
@@ -2032,6 +2045,7 @@ bool SignalGeneratorCommon::continueProcessInternal() {
     activationLock->_Unlock(FILE__, __LINE__);
     signal_printf("%s[%d]: waking up everyone who was waiting for continue, broadcasting...\n",
                   FILE__, __LINE__);
+    continueCompleted_ = true;
     waitForContinueLock->_Broadcast(FILE__, __LINE__);
     signal_printf("%s[%d]: waking up everyone who was waiting for continue, unlocking\n",
                   FILE__, __LINE__);
@@ -2120,4 +2134,12 @@ void SignalGeneratorCommon::unmarkProcessStop() {
     independentLwpStop_--; 
     assert(independentLwpStop_ >= 0); 
     signal_printf("%s[%d]: unmarkProcessStop => %d\n", FILE__, __LINE__, independentLwpStop_);
+}
+
+void SignalGeneratorCommon::pingIfContinueBlocked() {
+   waitForContinueLock->_Lock(FILE__, __LINE__);
+   if (numBlockedForContinue) {
+      waitForContinueLock->_Broadcast(FILE__, __LINE__);     
+   }
+   waitForContinueLock->_Unlock(FILE__, __LINE__);
 }

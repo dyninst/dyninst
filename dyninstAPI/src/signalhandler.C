@@ -164,7 +164,6 @@ bool SignalHandler::handleSingleStep(EventRecord &ev, bool &continueHint)
 bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
 {
    process *proc = ev.proc;
-   bool retval = false;
 
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
@@ -205,7 +204,7 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
       return notifyBPatchOfStop(ev, continueHint);
 }
 
-bool SignalHandler::notifyBPatchOfStop(EventRecord &ev, bool &continueHint) {
+bool SignalHandler::notifyBPatchOfStop(EventRecord &ev, bool & /*contHint*/) {
     bool exists = false;
     BPatch_process *bproc = BPatch::bpatch->getProcessByPid(ev.proc->getPid(), &exists);
     if (bproc) {
@@ -302,6 +301,14 @@ bool SignalHandler::handleForkEntry(EventRecord &ev, bool &continueHint)
      return ev.proc->handleForkEntry();
 }
 
+bool SignalHandler::handleLwpAttach(EventRecord &ev, bool &continueHint)
+{
+   assert(ev.lwp);
+   ev.lwp->setIsAttached(true);
+   continueHint = false;
+   return true;
+}
+
 bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
 {
    thread_printf("%s[%d]:  welcome to handleLwpExit\n", FILE__, __LINE__);
@@ -317,9 +324,10 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
            break;
        }
    }
-
-   if (!thr) {
-       fprintf(stderr, "%s[%d]: No matching thread! for lwp exit\n", FILE__, __LINE__);
+   if (!thr)
+   {
+       fprintf(stderr, "%s[%d]: No matching thread! for lwp exit\n", 
+               FILE__, __LINE__);
        continueHint = true;
        return false;
    }
@@ -340,7 +348,9 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
       sg->signalActiveProcess();
    }
 #endif
-
+#if defined(os_linux)
+   sg->removePidGen(lwp->get_lwp_id());
+#endif
    continueHint = true;
 
    return true;
@@ -576,6 +586,9 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         break;
     case evtThreadExit:
         ret = handleLwpExit(ev, continueHint);
+        break;
+     case evtLwpAttach:
+        ret = handleLwpAttach(ev, continueHint);
         break;
     case evtProcessAttach:
         proc->setBootstrapState(initialized_bs);

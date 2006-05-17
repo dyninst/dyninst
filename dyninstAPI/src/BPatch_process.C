@@ -1582,6 +1582,12 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       return false;
    }
    
+   if (!libname) {
+      fprintf(stderr, "[%s:%u] - loadLibrary called with NULL library name\n",
+              __FILE__, __LINE__);
+      return false;
+   }
+
    /**
     * Find the DYNINSTloadLibrary function
     **/

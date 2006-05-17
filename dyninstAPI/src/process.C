@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.640 2006/05/17 01:37:24 bernat Exp $
+// $Id: process.C,v 1.641 2006/05/17 04:13:04 legendre Exp $
 
 #include <ctype.h>
 
@@ -125,12 +125,7 @@
 #include "common/h/Timer.h"
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-
-#if defined (arch_ia64)
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
-#else
-#define P_offsetof(s, m) (unsigned) &(((s *) NULL)->m)
-#endif
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
