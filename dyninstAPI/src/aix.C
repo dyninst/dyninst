@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.220 2006/05/16 21:14:34 jaw Exp $
+// $Id: aix.C,v 1.221 2006/05/17 05:03:42 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -169,7 +169,7 @@ Frame Frame::getCallerFrame()
 
       // Instrumentation makes its own frame; we want to skip the
       // function frame if there is one as well.
-      instPoint *point = bti->baseT->point();
+      instPoint *point = bti->baseT->instP();
       assert(point); // Will only be null if we're in an inferior RPC, which can't be.
       // If we're inside the function (callSite or arbitrary; bad assumption about
       // arbitrary but we don't know exactly where the frame was constructed) and the
