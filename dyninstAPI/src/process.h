@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.379 2006/05/16 21:19:12 bernat Exp $
+/* $Id: process.h,v 1.380 2006/05/17 14:35:15 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -109,7 +109,7 @@ typedef enum { unstarted_bs,
                initialized_bs, 
                loadingRT_bs, 
                loadedRT_bs, 
-               bootstrapped_bs } bootstrapState_t;
+               bootstrapped_bs} bootstrapState_t;
 
 typedef enum { terminateFailed, terminateSucceeded, alreadyTerminated } terminateProcStatus_t;
 
@@ -541,6 +541,10 @@ class process {
   void resetBootstrapState(bootstrapState_t state) {
       // Every so often we need to force this to a particular value
       bootstrapState = state;
+  }
+
+  void suppressBPatchCallbacks(bool state) { 
+      suppress_bpatch_callbacks_ = state; 
   }
 
  // Callbacks for higher level code (like BPatch) to learn about new 
@@ -1127,6 +1131,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   // Startup and initialization
   //////////////////
   bootstrapState_t bootstrapState;
+  bool suppress_bpatch_callbacks_;
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
   Address loadDyninstLibAddr;
   dyn_saved_regs *savedRegs;

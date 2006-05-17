@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.641 2006/05/17 04:13:04 legendre Exp $
+// $Id: process.C,v 1.642 2006/05/17 14:35:13 bernat Exp $
 
 #include <ctype.h>
 
@@ -1986,6 +1986,7 @@ process::process(SignalGenerator *sh_) :
     multiTrampDict(intHash),
     replacedFunctionCalls_(addrHash4),
     bootstrapState(unstarted_bs),
+    suppress_bpatch_callbacks_(false),
     loadDyninstLibAddr(0),
 #if defined(os_windows)
     main_breaks(addrHash4),
@@ -2549,6 +2550,7 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     multiTrampDict(intHash), // Later
     replacedFunctionCalls_(addrHash4), // Also later
     bootstrapState(parentProc->bootstrapState),
+    suppress_bpatch_callbacks_(parentProc->suppress_bpatch_callbacks_),
     loadDyninstLibAddr(0),
 #if defined(os_windows)
     main_breaks(addrHash4),
@@ -4325,7 +4327,7 @@ bool process::addASharedObject(mapped_object *new_obj)
     }
 #endif
 
-    if (!reachedBootstrapState(bootstrapped_bs)) 
+    if (!reachedBootstrapState(bootstrapped_bs) || suppress_bpatch_callbacks_) 
         // Don't let BPatch know about modules before we've
         // loaded
         return true;
@@ -6159,6 +6161,8 @@ void process::recognize_threads(const process *parent)
   unsigned i;
   int result;
 
+  suppress_bpatch_callbacks_ = true;
+
   startup_printf("%s[%d]: Recognizing threads in process\n",
                  FILE__, __LINE__);
 
@@ -6172,6 +6176,7 @@ void process::recognize_threads(const process *parent)
         //The constructor automatically adds the thread to the process list,
         // thus it's safe to not keep a pointer to the new thread
      }
+     suppress_bpatch_callbacks_ =false;
      return;
   }
 
@@ -6179,6 +6184,7 @@ void process::recognize_threads(const process *parent)
   if (!result)
   {
       startup_printf("Error. Recognize_threads couldn't determine LWPs\n");
+     suppress_bpatch_callbacks_ = false;
       return;
   }     
 
@@ -6277,6 +6283,7 @@ void process::recognize_threads(const process *parent)
      while (getRpcMgr()->existsActiveIRPC()) {
          if(hasExited()) {
              fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
+             suppress_bpatch_callbacks_ =false;
              return;
          }
          
@@ -6312,6 +6319,7 @@ void process::recognize_threads(const process *parent)
      }
      
      assert(status() == stopped);
+     suppress_bpatch_callbacks_ =false;
      return;
   }
 
@@ -6372,6 +6380,7 @@ void process::recognize_threads(const process *parent)
                         thr_iter, par_thread->get_tid());
      }
   }
+  suppress_bpatch_callbacks_ =false;
   return;
 }
 
