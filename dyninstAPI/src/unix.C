@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.209 2006/05/17 04:13:10 legendre Exp $
+// $Id: unix.C,v 1.210 2006/05/17 14:19:36 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1799,4 +1799,10 @@ void SignalGenerator::clearCachedLocations()  {
     sync_event_arg1_addr = 0;
     sync_event_breakpoint_addr = 0;
     // waiting_for_stop = false; ?
+}
+
+SignalGenerator::~SignalGenerator() {
+#if defined(os_linux)
+    removePidGen();
+#endif
 }

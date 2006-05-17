@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.9 2006/05/17 04:13:05 legendre Exp $
+/* $Id: signalgenerator-unix.h,v 1.10 2006/05/17 14:19:35 bernat Exp $
  */
 
 
@@ -67,7 +67,7 @@ class SignalGenerator : public SignalGeneratorCommon
   friend class process;
 
   public:
-   virtual ~SignalGenerator() {}
+  virtual ~SignalGenerator();
 
    bool checkForExit(EventRecord &ev, bool block =false);
 
