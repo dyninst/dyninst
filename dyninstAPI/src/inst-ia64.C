@@ -3443,10 +3443,10 @@ bool baseTramp::generateSaves( codeGen & gen, registerSpace * rs ) {
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList );
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( instP(), regSpace, deadRegisterList );
 	if( ! staticallyAnalyzed ) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
-		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
+		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", instP()->addr() );
 		return false;
 		} 
 
@@ -3456,7 +3456,7 @@ bool baseTramp::generateSaves( codeGen & gen, registerSpace * rs ) {
 	  whichToPreserve[i] = false;
 	
 	if( BPatch::bpatch->isSaveFPROn() ) {
-	  	return generatePreservationHeader( gen, point()->func()->getUsedFPregs(), baseTrampRegion );
+	  	return generatePreservationHeader( gen, instP()->func()->getUsedFPregs(), baseTrampRegion );
 	  	}
 	else {
 		bool returnVal = generatePreservationHeader( gen, whichToPreserve, baseTrampRegion );
@@ -3472,10 +3472,10 @@ bool baseTramp::generateRestores( codeGen & gen, registerSpace * rs ) {
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList );
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( instP(), regSpace, deadRegisterList );
 	if( ! staticallyAnalyzed ) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
-		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
+		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", instP()->addr() );
 		return false;
 		} 
 	
@@ -3486,7 +3486,7 @@ bool baseTramp::generateRestores( codeGen & gen, registerSpace * rs ) {
 		}
 	
 	if( BPatch::bpatch->isSaveFPROn() ) { 
-		return generatePreservationTrailer( gen, point()->func()->getUsedFPregs(), baseTrampRegion );
+		return generatePreservationTrailer( gen, instP()->func()->getUsedFPregs(), baseTrampRegion );
 		}
 	else {
 		bool returnVal = generatePreservationTrailer( gen, whichToPreserve, baseTrampRegion );
