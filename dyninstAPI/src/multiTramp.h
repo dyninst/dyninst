@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.13 2006/02/26 05:06:39 bernat Exp $
+// $Id: multiTramp.h,v 1.14 2006/05/17 15:22:36 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -109,13 +109,13 @@ class generatedCodeObject : public codeRange {
     // Any new code is not linked by this call; installCode can be
     // safely run on multiple points without any new code actually being
     // executed by the application.
-    virtual bool installCode() { return true; }
+    virtual bool installCode() { installed_ = true; return true; }
 
     // If we generated or installed, then decided something didn't work.
     virtual void invalidateCode();
     
     // Link new code into the application
-    virtual bool linkCode() { return true; } 
+    virtual bool linkCode() { linked_ = true; return true; } 
 
     // Begin the deletion process; argument is the child that
     // was just removed

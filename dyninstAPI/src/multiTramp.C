@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.45 2006/05/16 21:19:17 bernat Exp $
+// $Id: multiTramp.C,v 1.46 2006/05/17 15:22:36 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1047,6 +1047,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             return false;
         }
 #endif /* ! defined( cap_unwind ) */
+        assert(obj->generated());
+
         Address tempAddr = 0;
         if (dynamic_cast<relocatedInstruction *>(obj)) {
             tempAddr = (dynamic_cast<relocatedInstruction *>(obj))->uninstrumentedAddr();
@@ -1191,6 +1193,7 @@ bool multiTramp::linkCode() {
     
     while ((obj = cfgIter++)) {
         obj->linkCode();
+        assert(obj->linked());
     }
     return true;
 }

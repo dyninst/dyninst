@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.35 2006/05/17 01:37:23 bernat Exp $
+// $Id: baseTramp.C,v 1.36 2006/05/17 15:22:35 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -303,6 +303,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     
   if (isEmpty()) {
     hasChanged_ = false;
+    generated_ = true;
     return true;
   }
 
