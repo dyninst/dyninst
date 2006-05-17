@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.642 2006/05/17 14:35:13 bernat Exp $
+// $Id: process.C,v 1.643 2006/05/17 19:39:25 legendre Exp $
 
 #include <ctype.h>
 
@@ -6149,6 +6149,7 @@ static void doneRegistering(process *, unsigned, void *data, void *result)
    long int index = (long int) result;
    int lwp_id = pairs->this_lwp;
 
+   startup_printf("[%s:%u] - RPC for LWP %d completed\n", FILE__, __LINE__, lwp_id);
    pairs->lwps->push_back(lwp_id);
    pairs->indexes->push_back((int)index);
    (*pairs->num_completed)++;
@@ -6186,7 +6187,14 @@ void process::recognize_threads(const process *parent)
       startup_printf("Error. Recognize_threads couldn't determine LWPs\n");
      suppress_bpatch_callbacks_ = false;
       return;
-  }     
+  }
+
+  if (dyn_debug_startup) {
+    startup_printf("[%s:%u] - determineLWPs found %d lwps\n", FILE__, 
+		       __LINE__, lwp_ids.size());
+    for (unsigned i=0; i<lwp_ids.size(); i++)
+      startup_printf("\tLWP #%d = %d\n", i, lwp_ids[i]);
+  }
 
   // Is there someone out there already?
   if (getRpcMgr()->existsActiveIRPC()) {
@@ -6264,7 +6272,7 @@ void process::recognize_threads(const process *parent)
         expected++;
      }
 
-     inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
+     startup_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
 
      // We hit a problem here. On Solaris, some LWPs are "fake" and permanently
      // in a system call. We can't run iRPCs on those threads at all, and if we
@@ -6306,10 +6314,13 @@ void process::recognize_threads(const process *parent)
      BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid());
      assert(bproc);
 
+     startup_printf("[%s:%u] - All LWPs completed.  Waiting for threads\n", FILE__, __LINE__);
      for (i = 0; i < ret_lwps.size(); ++i) {         
          BPatch_thread *bpthrd = NULL;
          // Wait for the thread to show up...
          int timeout = 0;
+	 startup_printf("[%s:%u] - Waiting for thread for LWP %d\n", FILE__, __LINE__, 
+			ret_lwps[i]);
          while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
             // getMailbox()->executeCallbacks(FILE__, __LINE__);
             sh->waitForEvent(evtThreadCreate);
@@ -6317,7 +6328,7 @@ void process::recognize_threads(const process *parent)
             if (timeout > 1000) break;
          }
      }
-     
+     startup_printf("[%s:%u] - All threads found.  Returning.\n", FILE__, __LINE__);
      assert(status() == stopped);
      suppress_bpatch_callbacks_ =false;
      return;
