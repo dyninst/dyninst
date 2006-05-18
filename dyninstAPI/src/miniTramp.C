@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.23 2006/05/16 21:19:15 bernat Exp $
+// $Id: miniTramp.C,v 1.24 2006/05/18 21:11:58 mjbrim Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -168,19 +168,24 @@ bool miniTramp::correctMTJumps() {
     return true;
 }
 
-miniTrampInstance *miniTramp::getMTInstanceByBTI(baseTrampInstance *bti) {
+miniTrampInstance *miniTramp::getMTInstanceByBTI(baseTrampInstance *bti,
+                                                 bool create_if_not_found) {
     for (unsigned i = 0; i < instances.size(); i++) {
         if (instances[i]->baseTI == bti)
             return instances[i];
     }
-    // Didn't find it... add it if the miniTramp->baseTramp mapping
-    // is correct
-    assert(baseT == bti->baseT);
 
-    miniTrampInstance *mtInst = new miniTrampInstance(this, bti);
+    if(create_if_not_found) {
+       // Didn't find it... add it if the miniTramp->baseTramp mapping
+       // is correct
+       assert(baseT == bti->baseT);
 
-    instances.push_back(mtInst);
-    return mtInst;
+       miniTrampInstance *mtInst = new miniTrampInstance(this, bti);
+
+       instances.push_back(mtInst);
+       return mtInst;
+    }
+    return NULL;
 }
 
 miniTrampInstance::~miniTrampInstance() {
@@ -448,9 +453,9 @@ void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
         
         // Make sure our previous guy jumps to the next guy
         if (mini->prev) {
-            miniTrampInstance *prevI = mini->prev->getMTInstanceByBTI(baseTI);
-            assert(prevI);
-            prevI->linkCode();
+            miniTrampInstance *prevI = mini->prev->getMTInstanceByBTI(baseTI, false);
+            if(prevI != NULL)
+                prevI->linkCode();
         }
         if (!merged) 
             proc()->deleteGeneratedCode(this);

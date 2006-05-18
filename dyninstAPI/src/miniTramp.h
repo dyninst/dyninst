@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.9 2006/05/16 21:19:16 bernat Exp $
+// $Id: miniTramp.h,v 1.10 2006/05/18 21:11:59 mjbrim Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -183,7 +183,8 @@ class miniTramp {
   // Returns true if all's well.
   bool checkMTStatus();
 
-  miniTrampInstance *getMTInstanceByBTI(baseTrampInstance *instance);
+  miniTrampInstance *getMTInstanceByBTI(baseTrampInstance *instance,
+                                        bool create_if_not_found = true);
 
   int ID;                    // used to match up miniTramps in forked procs
   Address returnOffset;      // Offset from base to the return addr
