@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.24 2006/05/18 21:11:58 mjbrim Exp $
+// $Id: miniTramp.C,v 1.25 2006/05/18 23:23:22 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -740,3 +740,10 @@ int_function *miniTramp::func() const {
     return baseT->instP()->func();
 }
 
+bool miniTramp::instrumentedViaTrap() const {
+    for (unsigned i = 0; i < instances.size(); i++) {
+        if (!instances[i]->baseTI->multiT->usesTrap())
+            return false;
+    }
+    return true;
+}

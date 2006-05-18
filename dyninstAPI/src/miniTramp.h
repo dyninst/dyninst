@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.10 2006/05/18 21:11:59 mjbrim Exp $
+// $Id: miniTramp.h,v 1.11 2006/05/18 23:23:23 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -172,6 +172,12 @@ class miniTramp {
     assert(returnOffset);
     return returnOffset;
   }
+
+  // Returns true if we were put in via a trap. Actually... returns if
+  // all miniTrampInstances have multiTramps that were trapped to.
+  // Since we can relocate (and not use a trap in one instance, but 
+  // do in another).
+  bool instrumentedViaTrap() const;
 
   // Register a callback for when the mini is finally deleted...
   void registerCallback(miniTrampFreeCallback cb, void *data) {
