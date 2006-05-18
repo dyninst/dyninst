@@ -68,7 +68,7 @@ BPatch_edgeType
 BPatch_edge::getType()
 {
     EdgeTypeEnum lltype;
-    lltype = source->lowlevel_block()->getEdgeType(target->lowlevel_block());
+    lltype = source->lowlevel_block()->getTargetEdgeType(target->lowlevel_block());
 
     switch(lltype) {
         case ET_NOEDGE: { return NonJump; break; }
