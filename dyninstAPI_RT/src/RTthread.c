@@ -69,16 +69,14 @@ int DYNINSTthreadIndex()
    dyntid_t tid;
    int curr_index;
 
-  rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", 
-                 __FILE__, __LINE__);
+   rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
    if (!DYNINSThasInitialized) 
    {
        return 0;
    }
    
    tid = dyn_pthread_self();
-  rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", 
-                 __FILE__, __LINE__, (unsigned long) tid);
+   rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", __FILE__, __LINE__, (unsigned long) tid);
    if (tid == (dyntid_t) DYNINST_SINGLETHREADED) {
        return 0;
    }
@@ -87,21 +85,24 @@ int DYNINSTthreadIndex()
    if ((curr_index >= 0) && (curr_index < DYNINST_max_num_threads) &&
        (DYNINST_getThreadFromIndex(curr_index) == tid))
    {
-     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): index exists already, returning %d\n", 
-                 __FILE__, __LINE__, curr_index);
-      return curr_index;
+       rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): index exists already, returning %d\n", __FILE__, __LINE__, curr_index);
+       return curr_index;
    }
    
    curr_index = DYNINSTthreadIndexSLOW(tid);
-   if (curr_index == DYNINST_max_num_threads)
+   if( curr_index == DYNINST_NOT_IN_HASHTABLE )
    {
-     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): doing threadCreate for %lu\n", 
-                 __FILE__, __LINE__, tid);
+       rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): doing threadCreate for %lu\n", __FILE__, __LINE__, tid);
        curr_index = threadCreate(tid);
+       rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n",  __FILE__, __LINE__, curr_index);
    }
+		
+   /* While DYNINST_max_num_threads is also an error return for
+      DYNINSTthreadIndexSLOW(), there's not really anything we
+      can do about it at the moment, so just return it
+      and let the mutatee scribble into the so-allocated memory. */
 
-     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n", 
-                 __FILE__, __LINE__, curr_index);
+   rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n",  __FILE__, __LINE__, curr_index);
    return curr_index;
 }
 
@@ -164,11 +165,12 @@ static unsigned threadCreate(dyntid_t tid)
                  __FILE__, __LINE__);
    if (!DYNINSThasInitialized)
    {
+      /* ERROR_HANDLING_BAD */
       return DYNINST_max_num_threads;
    }
    
    /* Get an index */
-   index = DYNINST_alloc_index(tid);   
+   index = DYNINST_alloc_index(tid);
 
    /**
     * Trigger the mutator and mutatee side callbacks.
@@ -183,6 +185,7 @@ static unsigned threadCreate(dyntid_t tid)
    res = DYNINSTthreadInfo(&ev);
    if (!res)
    {
+      /* ERROR_HANDLING_BAD */
       return DYNINST_max_num_threads;
    }
    
