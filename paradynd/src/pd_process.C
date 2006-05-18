@@ -1125,7 +1125,7 @@ void pd_process::verifyTimerLevels() {
    if(curCpuTimerLevel < hintBestCpuTimerLevel) {
       char errLine[150];
       sprintf(errLine, "Chosen cpu timer level (%d) is not available in the rt"
-              " library (%d is best).\n", curCpuTimerLevel,
+              " library (%ld is best).\n", curCpuTimerLevel,
               hintBestCpuTimerLevel);
       fprintf(stderr, errLine);
       assert(0);
@@ -1147,7 +1147,7 @@ void pd_process::verifyTimerLevels() {
    if(curWallTimerLevel < hintBestWallTimerLevel) {
       char errLine[150];
       sprintf(errLine, "Chosen wall timer level (%d) is not available in the"
-              " rt library (%d is best).\n", curWallTimerLevel,
+              " rt library (%ld is best).\n", curWallTimerLevel,
               hintBestWallTimerLevel);
       fprintf(stderr, errLine);
       assert(0);
@@ -1327,7 +1327,7 @@ void pd_process::FillInCallGraphStatic(bool init_graph, unsigned *checksum )
     }
 
   entry_bpf = entry_bpfs[0];
-  int_function *entry_pdf = entry_bpf->PDSEP_pdf();
+  //int_function *entry_pdf = entry_bpf->PDSEP_pdf();
 
   if(!init_graph)
 		{
