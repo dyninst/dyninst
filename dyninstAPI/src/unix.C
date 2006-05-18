@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.210 2006/05/17 14:19:36 bernat Exp $
+// $Id: unix.C,v 1.211 2006/05/18 14:26:16 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -332,11 +332,10 @@ bool SignalGenerator::decodeSigIll(EventRecord &ev)
  // doing a (for i in $path; do exec $i/<progname>
  // This means that the entry will be called multiple times
  // until the exec call gets the path right.
-bool SignalHandler::handleExecEntry(EventRecord &ev, bool & /*continueHint*/) 
+bool SignalHandler::handleExecEntry(EventRecord &ev, bool &continueHint) 
 {
   bool retval = ev.proc->handleExecEntry((char *)ev.info);
-  // continuation is handled at the BPatch layer via callbacks
-  // continueHint = true;
+  continueHint = true;
   return retval;
 }
 
