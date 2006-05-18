@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.644 2006/05/18 21:12:03 mjbrim Exp $
+// $Id: process.C,v 1.645 2006/05/18 22:01:19 bernat Exp $
 
 #include <ctype.h>
 
@@ -6165,7 +6165,17 @@ void process::recognize_threads(const process *parent)
   startup_printf("%s[%d]: Recognizing threads in process\n",
                  FILE__, __LINE__);
 
-  if (!multithread_capable()) {
+  if (multithread_capable()) {
+      result = determineLWPs(lwp_ids);
+      if (!result) {
+          startup_printf("Error. Recognize_threads couldn't determine LWPs\n");
+          suppress_bpatch_callbacks_ = false;
+          return;
+      }
+  }
+
+  if (!multithread_capable() || 
+      ((lwp_ids.size() == 1) && parent)) {
       startup_printf("%s[%d]: process not multithread capable, creating default thread\n",
                      FILE__, __LINE__);
      // Easy case
@@ -6177,14 +6187,6 @@ void process::recognize_threads(const process *parent)
      }
      suppress_bpatch_callbacks_ =false;
      return;
-  }
-
-  result = determineLWPs(lwp_ids);
-  if (!result)
-  {
-      startup_printf("Error. Recognize_threads couldn't determine LWPs\n");
-     suppress_bpatch_callbacks_ = false;
-      return;
   }
 
   if (dyn_debug_startup) {
@@ -6330,39 +6332,51 @@ void process::recognize_threads(const process *parent)
      assert(status() == stopped);
      suppress_bpatch_callbacks_ =false;
      return;
-  }
+  } // end non-fork case
 
   // Fork case
   
   // We have LWPs with objects. The parent has a vector of threads.
   // Hook them up.
+
+  threads.clear();
+
+  // Two cases: one thread made it (pthreads) or multiple threads got copied
+  // over. The multiple case is tricky... here we handle the common single case.
+
   for (unsigned thr_iter = 0; thr_iter < parent->threads.size(); thr_iter++) {
      unsigned matching_lwp = 0;
      dyn_thread *par_thread = parent->threads[thr_iter];
      forkexec_printf("Updating thread %d (tid %d)\n",
                      thr_iter, par_thread->get_tid());
-     threads.clear();
-  
+     
      for (unsigned lwp_iter = 0; lwp_iter < lwp_ids.size(); lwp_iter++) {
-        if (lwp_ids[lwp_iter] == 0) continue;
-        dyn_lwp *lwp = getLWP(lwp_ids[lwp_iter]);
-        
-        forkexec_printf("... checking against LWP %d\n", lwp->get_lwp_id());
-        
-        if (par_thread->get_lwp()->executingSystemCall()) {
-           // Must be the forking thread. Look for an LWP in a matching call
-           Address par_syscall = par_thread->get_lwp()->getCurrentSyscall();
-           if (!lwp->executingSystemCall())
-              continue;
-           Address cur_syscall = lwp->getCurrentSyscall();
-           if (par_syscall == cur_syscall) {
-              matching_lwp = lwp_ids[lwp_iter];
-              forkexec_printf("... Match: syscall %d = %d\n",
-                              par_syscall, cur_syscall);
-              break;
-           }
-        }
-        else {
+         forkexec_printf("%s[%d]: checking lwp %d, %d of %d\n", 
+                         lwp_ids[lwp_iter],
+                         lwp_iter+1,
+                         lwp_ids.size());
+         
+         if (lwp_ids[lwp_iter] == 0) {
+             continue;
+         }
+         dyn_lwp *lwp = getLWP(lwp_ids[lwp_iter]);
+         
+         if (par_thread->get_lwp()->executingSystemCall()) {
+             forkexec_printf("%s[%d]: parent lwp executing system call\n",
+                             FILE__, __LINE__);
+             // Must be the forking thread. Look for an LWP in a matching call
+             Address par_syscall = par_thread->get_lwp()->getCurrentSyscall();
+             if (!lwp->executingSystemCall())
+                 continue;
+             Address cur_syscall = lwp->getCurrentSyscall();
+             if (par_syscall == cur_syscall) {
+                 matching_lwp = lwp_ids[lwp_iter];
+                 forkexec_printf("... Match: syscall %d = %d\n",
+                                 par_syscall, cur_syscall);
+                 break;
+             }
+         }
+         else {
            // Not in a system call, match active frames
            Frame parFrame = par_thread->get_lwp()->getActiveFrame();
            Frame lwpFrame = lwp->getActiveFrame();
