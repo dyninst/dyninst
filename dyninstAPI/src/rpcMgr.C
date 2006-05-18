@@ -80,7 +80,7 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
     irpcTramp->setRecursive(true);
 
     // Make all necessary thread and LWP managelets.
-    
+
     for (unsigned i = 0; i < pRM->thrs_.size(); i++) {
       if (pRM->thrs_[i]) {
         dynthread_t tid = pRM->thrs_[i]->thr_->get_tid();
@@ -91,8 +91,9 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
                                   cthr);
         thrs_.push_back(newT);
       }
-      else
-	thrs_.push_back(NULL); // Can happen if indices were skipped
+      else {
+          thrs_.push_back(NULL); // Can happen if indices were skipped
+      }
     }
 
     // Check LWPS
@@ -233,12 +234,9 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     // Stick it in the global listing as well
     allPostedRPCs_.push_back(theStruct);
 
-    inferiorrpc_printf("%s[%d]: Posting new RPC: seq %d", FILE__, __LINE__, theStruct->id);
-    if (thr)
-      inferiorrpc_printf(", thread %u", thr->get_tid());
-    if (lwp)
-      inferiorrpc_printf(", lwp %u", lwp->get_lwp_id());
-    inferiorrpc_printf("\n");
+    inferiorrpc_printf("%s[%d]: Posting new RPC: seq %d, thr %u, lwp %u\n", FILE__, __LINE__, theStruct->id,
+                       thr ? thr->get_tid() : -1,
+                       lwp ? lwp->get_lwp_id() : -1);
 
     return theStruct->id;
 }
@@ -630,6 +628,7 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
     if (!readyLWPRPC && !processingLWPRPC && !readyProcessRPC && !processingProcessRPC) {
         inferiorrpc_printf("%s[%d]: examining %d threads for RPCs...\n",
                            FILE__, __LINE__, thrs_.size());
+        assert(thrs_.size());
        for (unsigned i = 0; i < thrs_.size(); i++) {
           rpcThr *curThr = thrs_[i];
           if(curThr == NULL) {
@@ -666,6 +665,8 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
             needsToRun = true;
         }
         recursionGuard = false;
+        inferiorrpc_printf("%s[%d]: Nothing to do, going home\n",
+                           FILE__, __LINE__);
         return true;
     }
 
