@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.69 2006/05/16 19:50:31 tlmiller Exp $ */
+/* $Id: RTcommon.c,v 1.70 2006/05/18 22:51:31 tlmiller Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -56,7 +56,7 @@
 
 unsigned int DYNINSTobsCostLow;
 unsigned int DYNINSThasInitialized;
-unsigned DYNINST_max_num_threads;
+extern unsigned DYNINST_max_num_threads;
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 void *gBRKptr;
