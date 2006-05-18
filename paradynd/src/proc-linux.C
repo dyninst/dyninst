@@ -117,22 +117,42 @@ rawTime64 pd_thread::getRawCpuTime_hw()
 
 unsigned cputime_access = 0;
 
-rawTime64 pd_thread::getRawCpuTime_sw()
-{
+rawTime64 pd_thread::getRawCpuTime_sw() {
+   static int use_task_stat = 0;
+   int status, fd;
    rawTime64 result = 0;
    int bufsize = 255;
    unsigned long utime, stime;
    char procfn[bufsize], *buf;
 
    cputime_access++;
-   //if ((cputime_access % 10) == 0)
-       //fprintf(stderr, "CPU time access: %d\n", cputime_access);
-
    
-   sprintf( procfn, "/proc/%d/stat", dyninst_thread->getLWP());
+   unsigned lwpId = dyninst_thread->getLWP();
    
-   int fd;
-
+   if( use_task_stat == 0 ) {
+      // Check if we should use /proc/*/task/*stat.
+      status = snprintf( procfn, 254, "/proc/%d/task/%d/stat", lwpId, lwpId );
+      assert(! (status < 0 || status > 254));
+      fd = P_open( procfn, O_RDONLY, 0 );
+      if( fd < 0 ) {
+         use_task_stat = -1;
+      } else {
+         P_close( fd );
+         use_task_stat = 1;
+      }
+   }
+   
+   if( use_task_stat == -1 ) {
+      // /* DEBUG */ fprintf( stderr, "%s[%d]: using /proc/*/stat\n", __FILE__, __LINE__ );
+      status = snprintf( procfn, 254, "/proc/%d/stat", lwpId );
+      assert(! (status < 0 || status > 254));
+   }
+   else if( use_task_stat == 1 ) {
+      // /* DEBUG */ fprintf( stderr, "%s[%d]: using /proc/*/task/*/stat\n", __FILE__, __LINE__ );
+      status = snprintf( procfn, 254, "/proc/%d/task/%d/stat", lwpId, lwpId );
+      assert(! (status < 0 || status > 254));
+   }
+      
    // The reason for this complicated method of reading and sseekf-ing is
    // to ensure that we read enough of the buffer 'atomically' to make sure
    // the data is consistent.  Is this necessary?  I *think* so. - nash
