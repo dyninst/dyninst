@@ -116,7 +116,7 @@ resource *resource::newResource(resource *parent, void *handle,
                                 const pdstring &unique,
                                 ResourceType type,
                                 unsigned int mdlType,
-                                bool /* send_it_now */)
+                                bool send_it_now)
 {
 
 
@@ -171,7 +171,6 @@ resource *resource::newResource(resource *parent, void *handle,
 	
 	
   assert(ret);
-	
   allResources[res_string] = ret;
 	
 	
@@ -209,6 +208,9 @@ resource *resource::newResource(resource *parent, void *handle,
   cbstruct.mdlType = ret->mdlType();
 	
   resourceInfoCallbackBuffer.push_back(cbstruct);
+
+  if(send_it_now)
+     send_now();
 	
   return(ret);
 }
@@ -335,17 +337,17 @@ void resource::make_canonical(const pdvector< pdvector<pdstring> >& focus,
 }
 void resource::report_ChecksumToFE( void )
 {
-	extern MRN::Stream * equivClassReportStream;
-	extern unsigned sdm_id;
-	resource::ChecksumType checksum = 0;
+    extern MRN::Stream * equivClassReportStream;
+    extern unsigned sdm_id;
+    resource::ChecksumType checksum = 0;
 
     resourceInfoCallbackBuffer.resize(0);
 
 
-	// add all resource's contributio to the checksum
-	dictionary_hash_iter<pdstring, resource*> iter = allResources;
-	
-	for( ; iter != allResources.end(); iter++ ) {
+    // add all resource's contributio to the checksum
+    dictionary_hash_iter<pdstring, resource*> iter = allResources;
+   
+    for( ; iter != allResources.end(); iter++ ) {
         resource* curResource = *iter;
         if( curResource->is_CodeResource() ) {
             resource::ChecksumType cur_checksum;
@@ -375,8 +377,8 @@ void resource::report_ChecksumToFE( void )
         }
 			
     }
-	
-	if( resourceInfoCallbackBuffer.size() > 0 ) {
+   
+    if( resourceInfoCallbackBuffer.size() > 0 ) {
         tp->resourceBatchMode(defaultStream, true);
         resource::send_now();
         tp->resourceBatchMode(defaultStream, false);
