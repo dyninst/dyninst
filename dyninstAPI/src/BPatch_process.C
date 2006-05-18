@@ -496,7 +496,7 @@ bool BPatch_process::continueExecutionInt()
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
        isVisiblyStopped = false;
-       fprintf(stderr, "%s[%d]:  continueExecution:: process is not stopped\n", FILE__, __LINE__);
+       //fprintf(stderr, "%s[%d]:  continueExecution:: process is not stopped\n", FILE__, __LINE__);
        return true;
    }
 
@@ -1944,7 +1944,7 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
                                                   unsigned long stack_top, 
                                                   unsigned long start_pc, process *proc_)
 {
-  bool thread_exists = (getThread(threadid) != NULL);
+   //bool thread_exists = (getThread(threadid) != NULL);
   if (!llproc && proc_) llproc = proc_;
   BPatch_thread *newthr = 
       createOrUpdateBPThread(lwpid, threadid, index, stack_top, start_pc);
