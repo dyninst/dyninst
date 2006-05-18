@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.643 2006/05/17 19:39:25 legendre Exp $
+// $Id: process.C,v 1.644 2006/05/18 21:12:03 mjbrim Exp $
 
 #include <ctype.h>
 
@@ -3748,12 +3748,10 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
    
    bool res = stopped_lwp->writeDataSpace(inTracedProcess, size, inSelf);
    if (!res) {
-       fprintf(stderr, "WDS: %d bytes from %p to %p, lwp %p\n",
-               size, inSelf, inTracedProcess, stopped_lwp);
-       cerr << endl;
+       fprintf(stderr, "%s[%d]: WDS failure - %d bytes from %p to %p, lwp %p\n",
+               FILE__, __LINE__, size, inSelf, inTracedProcess, stopped_lwp);
        pdstring msg = pdstring("System error: unable to write to process data "
                                "space (WDS):") + pdstring(strerror(errno));
-         fprintf(stderr, "%s[%d]:  wds failed\n", FILE__, __LINE__);
        showErrorCallback(38, msg);
        return false;
    }
@@ -6017,7 +6015,7 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
                   index, tid, 
                   getStatusAsString().c_str());
 
-    if (-1 == index) {
+    if ((unsigned)-1 == index) {
         goto done;
     }
 
@@ -6071,7 +6069,7 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
 
     if (doublecheck.tid != (dyntid_t) tid) {
       fprintf(stderr, "%s[%d]:  ERROR:  mismatch between tids %lu != %lu\n", 
-              FILE__, __LINE__, doublecheck.tid, tid);
+              FILE__, __LINE__, (unsigned long) doublecheck.tid, tid);
       goto done;
     }
 
@@ -6381,7 +6379,6 @@ void process::recognize_threads(const process *parent)
         // Make a new thread with details from the old
         dyn_thread *new_thr = new dyn_thread(par_thread, this);
         new_thr->update_lwp(getLWP(matching_lwp));
-        threads.push_back(new_thr);
         forkexec_printf("Creating new thread %d (tid %d) on lwp %d, parent was on %d\n",
                         thr_iter, new_thr->get_tid(), new_thr->get_lwp()->get_lwp_id(),
                         par_thread->get_lwp()->get_lwp_id());
