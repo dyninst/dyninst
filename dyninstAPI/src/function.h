@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.29 2006/05/16 21:19:11 bernat Exp $
+// $Id: function.h,v 1.30 2006/05/18 23:23:19 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -231,11 +231,18 @@ class int_basicBlock {
 
     void getSources(pdvector<int_basicBlock *> &ins) const;
     void getTargets(pdvector<int_basicBlock *> &outs) const;
-    EdgeTypeEnum getEdgeType(int_basicBlock * target) const;
+    EdgeTypeEnum getSourceEdgeType(int_basicBlock *source) const;
+    EdgeTypeEnum getTargetEdgeType(int_basicBlock *target) const;
 
     int_basicBlock *getFallthrough() const;
 
     int id() const { return id_; }
+
+#if defined(cap_relocation)
+    // True if we need to put a jump in here. If we're an entry block
+    // or the target of an indirect jump (for now).
+    bool needsJumpToNewVersion();
+#endif
 
     // A block will need relocation (when instrumenting) if
     // its underlying image_basicBlock is shared (this is independant

@@ -443,13 +443,25 @@ void int_basicBlock::getTargets(pdvector<int_basicBlock *> &outs) const {
     }
 }
 
-EdgeTypeEnum int_basicBlock::getEdgeType(int_basicBlock * target) const {
+EdgeTypeEnum int_basicBlock::getTargetEdgeType(int_basicBlock * target) const {
     pdvector<image_edge *> ib_outs;
 
     ib_->getTargets(ib_outs);
     for(unsigned i=0; i< ib_outs.size(); i++) {
         if(ib_outs[i]->getTarget() == target->ib_)
             return ib_outs[i]->getType();
+    }
+
+    return ET_NOEDGE;
+}
+
+EdgeTypeEnum int_basicBlock::getSourceEdgeType(int_basicBlock *source) const {
+    pdvector<image_edge *> ib_ins;
+
+    ib_->getSources(ib_ins);
+    for(unsigned i=0; i< ib_ins.size(); i++) {
+        if(ib_ins[i]->getSource() == source->ib_)
+            return ib_ins[i]->getType();
     }
 
     return ET_NOEDGE;
