@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.20 2006/05/05 17:50:33 rchen Exp $
+// $Id: reloc-func.C,v 1.21 2006/05/18 23:23:24 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -227,7 +227,7 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
     // image_function knows what it is, maybe it should be available at
     // this level so we didn't have to do all this.
     for (i = 0; i < blockList.size(); i++) {
-        if (!blockList[i]->isEntryBlock()) continue;
+        if (!blockList[i]->needsJumpToNewVersion()) continue;
         functionReplacement *funcRep = new functionReplacement(blockList[i], 
                                                              blockList[i],
                                                              sourceVersion,
@@ -764,12 +764,18 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
             if (curInst) {
                 // Okay, we've got another block in this function. Check
                 // to see if it's shared.
-                if (curInst->block()->hasSharedBase())
-                {
+                if (curInst->block()->hasSharedBase()) {
                     // add functions to needReloc list
                     curInst->block()->func()->getSharingFuncs(curInst->block(),
                                                           needReloc);
                 } 
+
+                if (curInst->block()->needsJumpToNewVersion()) {
+                    // Ooopsie... we're going to stop on another block
+                    // that jumps over. This we cannot do.
+                    return false;
+                }
+
                 // Otherwise keep going
                 // Inefficient...
                 currAddr = curInst->endAddr();
@@ -867,3 +873,21 @@ bool enlargeBlock::update(int_basicBlock *block,
     }
     return false;
 }
+
+// If we're an entry block, we need a jump (to catch the
+// entry point). Also true if we are the target of an indirect jump.
+
+bool int_basicBlock::needsJumpToNewVersion() {
+    if (isEntryBlock())
+        return true;
+    
+    assert(ib_);
+    pdvector<int_basicBlock *> sources;
+    getSources(sources);
+    for (unsigned i = 0; i < sources.size(); i++) {
+        if (getSourceEdgeType(sources[i]) == ET_INDIR)
+            return true;
+    }
+    return false;
+}
+    
