@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.23 2006/05/03 00:19:00 jodom Exp $
+ * $Id: image-flowGraph.C,v 1.24 2006/05/18 23:23:20 bernat Exp $
  */
 
 #include <stdio.h>
@@ -928,10 +928,16 @@ bool image_func::buildCFG(
                     break;
                 }
 
+#if 0
                 // Whether or not we are able to determine the targets
                 // of this indirect branch instruction, it is not safe
                 // to relocate this function.
+                
+                // We're now relocating by redirecting targets. We now only
+                // label unrelocateable if the jump table can't be parsed.
+
                 canBeRelocated_ = false;
+#endif
 
                 BPatch_Set< Address > targets;
                 BPatch_Set< Address >::iterator iter;
@@ -941,6 +947,7 @@ bool image_func::buildCFG(
                                                allInstructions))
                 {
                     instLevel_ = HAS_BR_INDIR;
+                    canBeRelocated_ = false;
                 }
                 
                 iter = targets.begin();
