@@ -115,6 +115,12 @@ private:
 public:
     API_EXPORT_DTOR(_dtor, (),
     ~,BPatchSnippetHandle,());
+
+    // Returns whether the installed miniTramps use traps.
+    // Not 100% accurate due to internal Dyninst design; we can
+    // have multiple instances of instrumentation due to function
+    // relocation.
+    API_EXPORT(Int, (), bool, usesTrap, ());
 };
 
 typedef enum {

@@ -1477,6 +1477,9 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    // predict what the user will do; if there is a BPatch-pause it overrides internal pauses. However,
    // here we give back control to the internals so that the rpc will complete.
 
+   inferiorrpc_printf("%s[%d]: launching RPC on process pid %d\n",
+                      FILE__, __LINE__, llproc->getPid());
+
    llproc->getRpcMgr()->postRPCtoDo(expr.ast,
                                     false, 
                                     BPatch_process::oneTimeCodeCallbackDispatch,
@@ -1986,4 +1989,14 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
 
   }
   return newthr;
+}
+
+// Return true if any sub-minitramp uses a trap? Other option
+// is "if all"...
+bool BPatchSnippetHandle::usesTrapInt() {
+    for (unsigned i = 0; i < mtHandles_.size(); i++) {
+        if (mtHandles_[i]->instrumentedViaTrap())
+            return true;
+    }
+    return false;
 }
