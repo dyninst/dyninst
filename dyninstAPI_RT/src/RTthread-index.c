@@ -108,13 +108,17 @@ void DYNINST_initialize_index_list()
 unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
 {
    unsigned hash_id, orig;
-   unsigned retval = DYNINST_max_num_threads;
+   unsigned retval = DYNINST_NOT_IN_HASHTABLE;
    int index, result;
    unsigned long tid_val = (unsigned long) tid;
 
    result = tc_lock_lock(&DYNINST_index_lock);
-   if (result == DYNINST_DEAD_LOCK)
+   if (result == DYNINST_DEAD_LOCK) {
+      /* We specifically return DYNINST_max_num_threads so that instrumentation has someplace safe to scribble
+         in case of an error. */
+      /* DEBUG */ fprintf( stderr, "%s[%d]: DYNINSTthreadIndexSLOW(%lu) returning deadlock.\n", __FILE__, __LINE__ );
       return DYNINST_max_num_threads;
+      }
    /**
     * Search the hash table
     **/
@@ -204,13 +208,17 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
    unsigned t, retval;
    unsigned long tid_val = (unsigned long) tid;
 
-   //Return an error if this tid already exists.
-   if (DYNINSTthreadIndexSLOW(tid) != DYNINST_max_num_threads)
+   // Return an error if this tid already exists.
+   if( DYNINSTthreadIndexSLOW(tid) != DYNINST_NOT_IN_HASHTABLE ) {
+      /* ERROR_HANDLING_BAD */
       return DYNINST_max_num_threads;
+      }
 
    result = tc_lock_lock(&DYNINST_index_lock);
-   if (result == DYNINST_DEAD_LOCK)
+   if (result == DYNINST_DEAD_LOCK) {
+      /* ERROR_HANDLING_BAD */
       return DYNINST_max_num_threads;
+      }
 
    if (DYNINST_am_initial_thread(tid)) {
        t = 0;
@@ -227,6 +235,8 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
        t = get_free_index();
    }
    else {
+       /* This might actually be a reasonable thing to do, although we should
+          probably mention that the user needs to recompile Dyninst/Paradyn. */
        retval = DYNINST_max_num_threads;
        goto done;
    }
@@ -247,6 +257,7 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
            hash_id = 0;
        if (orig == hash_id) {
            /* Isn't this an error case? - bernat */
+           /* ERROR_HANDLING_BAD */
            retval = DYNINST_max_num_threads;
            goto done;
        }
