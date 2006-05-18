@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.26 2006/05/03 19:16:38 tlmiller Exp $
+// $Id: varInstanceHKs.C,v 1.27 2006/05/18 21:12:01 mjbrim Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -281,6 +281,10 @@ bool wallTimerHK::perform(const tTimer *theTimer, pd_process *) {
    if (prot1 != prot2)
       // We read a (possibly) inconsistent value for the timer, so we reject it.
       return false;
+   
+   if (rawCurrWallTime == 0)
+      // can happen if mutatee process exited
+      return false;
 
    /* don't use 'theTimer' after this point! (avoid race condition).  To ensure
       this, we call calcTimeValueToUse(), which doesn't use 'theTimer' */
@@ -426,6 +430,10 @@ bool processTimerHK::perform(const tTimer *theTimer,
    if (protector1 != protector2) {
       return false;
    }
+
+   if (inferiorCPUtime == 0)
+      // can happen if mutatee process exited
+      return false;
 
    // Also cheating; see below.
    // the fudge factor is needed only if count > 0.
