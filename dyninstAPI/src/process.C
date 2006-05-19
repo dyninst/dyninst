@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.645 2006/05/18 22:01:19 bernat Exp $
+// $Id: process.C,v 1.646 2006/05/19 23:00:39 mjbrim Exp $
 
 #include <ctype.h>
 
@@ -6176,12 +6176,15 @@ void process::recognize_threads(const process *parent)
 
   if (!multithread_capable() || 
       ((lwp_ids.size() == 1) && parent)) {
-      startup_printf("%s[%d]: process not multithread capable, creating default thread\n",
+      startup_printf("%s[%d]: creating default thread\n",
                      FILE__, __LINE__);
      // Easy case
      if (parent) {
         assert(parent->threads.size() == 1);
-        new dyn_thread(parent->threads[0], this);
+        if(process::IndependentLwpControl() && (lwp_ids.size() == 1))
+           new dyn_thread(parent->threads[0], this, getLWP(lwp_ids[0]));
+        else
+           new dyn_thread(parent->threads[0], this);
         //The constructor automatically adds the thread to the process list,
         // thus it's safe to not keep a pointer to the new thread
      }
