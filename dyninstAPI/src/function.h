@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.30 2006/05/18 23:23:19 bernat Exp $
+// $Id: function.h,v 1.31 2006/05/19 15:15:21 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -238,11 +238,9 @@ class int_basicBlock {
 
     int id() const { return id_; }
 
-#if defined(cap_relocation)
     // True if we need to put a jump in here. If we're an entry block
     // or the target of an indirect jump (for now).
     bool needsJumpToNewVersion();
-#endif
 
     // A block will need relocation (when instrumenting) if
     // its underlying image_basicBlock is shared (this is independant
