@@ -70,12 +70,15 @@ dyn_thread::dyn_thread(process *proc_, unsigned index_, dyn_lwp *lwp_) :
    proc->addThread(this);
 }
 
-dyn_thread::dyn_thread(dyn_thread *src, process *child)
+dyn_thread::dyn_thread(dyn_thread *src, process *child, dyn_lwp *lwp_)
 {
    assert(src && child);
    tid = src->tid;
    index = src->index;
-   lwp  = child->getRepresentativeLWP();
+   if(lwp_ == NULL)
+      lwp = child->getRepresentativeLWP();
+   else
+      lwp = lwp_;
    stack_addr = src->stack_addr;
    start_pc = src->start_pc;
    resumestate_p = src->resumestate_p;

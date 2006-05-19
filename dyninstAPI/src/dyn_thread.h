@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.27 2006/05/04 01:41:20 legendre Exp $
+// $Id: dyn_thread.h,v 1.28 2006/05/19 23:00:38 mjbrim Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -60,7 +60,7 @@ class dyn_thread {
   //
   dyn_thread(process *pproc);
   dyn_thread(process *proc_, unsigned index_, dyn_lwp *lwp_);
-  dyn_thread(dyn_thread *src, process *child);
+  dyn_thread(dyn_thread *src, process *child, dyn_lwp *lwp_ = NULL);
   ~dyn_thread();
 
   
