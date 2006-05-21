@@ -48,7 +48,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI_RT/h/dyninstRTExport.h"
 
-unsigned DYNINST_max_num_threads;
+extern unsigned DYNINST_max_num_threads;
 int DYNINST_multithread_capable;
 extern unsigned int DYNINSThasInitialized;
 
