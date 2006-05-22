@@ -29,6 +29,9 @@
   */
 DLLEXPORT int DYNINSTuserMessage(void *msg, unsigned int msg_size);
 
+/* Returns the number of threads DYNINST currently knows about.  (Which
+   may differ at certain times from the number of threads actually present.) */
+DLLEXPORT int DYNINSTthreadCount();
 
 /**
  * These function implement a locking mechanism that can be used by 
