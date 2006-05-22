@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.33 2005/10/13 21:12:36 tlmiller Exp $ */
+/* $Id: RTetc-linux.c,v 1.34 2006/05/22 14:59:34 tlmiller Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -283,43 +283,93 @@ rawTime64 DYNINSTgetWalltime_sw(void)
   return(now);
 }
 
-/* Software Level --- 
-   method:      times()
-   return unit: jiffies  
 
-   this version doesn't check for rollbacks
-*/
-rawTime64 DYNINSTgetCPUtimeMT_sw(void) 
-{
-  rawTime64 now=0;
-  struct tms tm;
-  
-  times( &tm );
-  now = (rawTime64)tm.tms_utime + (rawTime64)tm.tms_stime;
-  
-  return now;
-}
+/* Private refactoring function, should be inline. */
+rawTime64 use_times() {
+	struct tms tm;
+	clock_t status = times( & tm );
+	assert( status != -1 );
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: times(): utime %lu + stime %lu = cpu time %lu\n", __FILE__, __LINE__, tm.tms_utime, tm.tms_stime, tm.tms_utime + tm.tms_stime );
+	return (rawTime64)tm.tms_utime + (rawTime64)tm.tms_stime;
+	} /* end use_times() */
 
+/* Private refactoring function, should be inline. */
+rawTime64 use_proc_task_stat( int fd ) {
+	char procStat[1024], * strPtr;
+	int j, numSpaces, status;
+	unsigned long utime = (unsigned long)-1, stime = (unsigned long)-1;
 
-rawTime64 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd)
-{
-   int cur_lwp = P_lwp_self();
-   rawTime64 result = 0;
+	status = lseek( fd, 0, SEEK_SET );
+	assert( status != -1 );
 
-   /* since threads stay locked to one lwp on linux, we can depend on the
-      current lwp being the same as the lwp that is requested for the callers
-      of DYNINSTgetCPUtime_LWP */
-   if(cur_lwp != lwp_id) {
-      fprintf(stderr, "   error: DYNINSTgetCPUtime_LWP lwp_arg: %d, but on lwp: %d\n", lwp_id, cur_lwp);
-      assert(0);
-   }
+	/* FIXME: should have retries in here (atomic reads), for either method. */
+	status = read( fd, procStat, 1023 );
+	assert( status >= 0 );
 
-   result = DYNINSTgetCPUtimeMT_sw();
-   return result;
-}
+#if defined( SLOW_BUT_STEADY )
+	status = sscanf( procStat, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu ", & utime, & stime );
+	assert( status == 2 );
+#else
+	for( j = 0, numSpaces = 0; j < (status - 1); ++j ) {
+		if( procStat[j] == ' ' ) { ++numSpaces; }
 
-/* Need to implement the following */
-unsigned PARADYNgetFD(unsigned lwp)
-{
-  return 0;
-}
+		/* Magic constant.  See 'man proc'. */
+		if( numSpaces == 13 ) {
+			/* We could repeat utime (and get the stime value)
+			   if we don't do stime and break the loop right away. */
+			utime = strtol( & procStat[j + 1], & strPtr, 10 );
+			assert( errno == 0 );
+			stime = strtol( strPtr, NULL, 10 );
+			assert( errno == 0 );
+			break;
+			}
+		}
+	assert( j != numSpaces );
+#endif /* defined( SLOW_BUT_STEADY ) */
+
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: proc//task//stat: utime %lu + stime %lu = cpu time %lu\n", __FILE__, __LINE__, utime, stime, utime + stime );
+	return (rawTime64)utime + (rawTime64)stime;
+	} /* end use_proc_task_stat() */
+
+/* We're trying to minimize the amount of time we spend figuring out
+   how much CPU lwp_id has been scheduled for.  On cap_threaded_times
+   systems and on Linux 2.4, we can just use times().  Otherwise, we
+   can only use /proc//task//stat to get per-thread CPU information.
+   However, accessing this is quite slow, so we use times() until
+   we have more than one thread. */
+rawTime64 DYNINSTgetCPUtime_LWP( unsigned lwp_id, unsigned fd ) {
+	/* Threads stay locked to one LWP on Linux. */
+	assert( P_lwp_self() == lwp_id );
+
+#if defined( cap_threaded_times )
+	return use_times();
+#else
+	if( fd == -1 ) {
+		/* Then we failed to open() /proc//task//stat, and are on Linux 2.4. */
+		return use_times();
+		}
+	
+	/* If we're only Linux 2.6 without cap_threaded_times, we switch
+	   between methods depending on if we're actually multi-threaded or not. */
+	if( DYNINSTthreadCount() > 1 ) {
+		return use_proc_task_stat( fd );
+		}
+	else {
+		return use_times();
+		}
+#endif /* defined( cap_threaded_times ) */
+	} /* end DYNINSTgetCPUtime_LWP() */
+
+/* See above.  Note that while '-1' is the normal error value,
+   the fd of '0' is also considered special ('unitialized';
+   see code in RTthread-timer.c). */
+unsigned PARADYNgetFD( unsigned lwp ) {
+	char procTaskStat[512];
+	int status;
+	
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: P_lwp_self() = %d\n", __FILE__, __LINE__, P_lwp_self() );
+	status = snprintf( procTaskStat, 511, "/proc/%d/task/%d/stat", P_lwp_self(), P_lwp_self() );
+	assert(! (status < 0 || status > 511) );
+
+	return open( procTaskStat, O_RDONLY );
+	} /* end PARADYNgetFD() */
