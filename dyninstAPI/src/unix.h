@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: unix.h,v 1.2 2006/05/10 02:31:02 jaw Exp $
+/* $Id: unix.h,v 1.3 2006/05/22 04:45:23 jaw Exp $
  */
 
 #ifndef _UNIX_H_
@@ -50,6 +50,7 @@
 
 #define INFO_TO_EXIT_CODE(info) info
 #define INFO_TO_PID(info) info
+#define INFO_TO_ADDRESS(info) (Address) 0
 
 // process exits do not cause poll events on alpha-osf, so we have a timeout
 #if defined (os_osf)

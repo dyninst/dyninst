@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.233 2006/05/17 19:39:24 legendre Exp $
+// $Id: linux.C,v 1.234 2006/05/22 04:45:22 jaw Exp $
 
 #include <fstream>
 
@@ -416,9 +416,12 @@ pid_t SignalGenerator::waitpid_kludge(pid_t /*pid_arg*/,
        break;
     }
 
+   errno = 0;
    ret = waitpid_demultiplex(this, status);
   } while (ret == 0 || (ret == -1 && errno == EINTR));
 
+  if (ret == -1)
+    fprintf(stderr, "%s[%d]: waitpid_kludge got -1\n", FILE__, __LINE__);
   return ret; 
 }
 
@@ -485,8 +488,9 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
   ev.proc = proc;
   ev.lwp = proc->lookupLWP(waitpid_pid);
 
-  if (!ev.lwp) {
+  if (!ev.lwp || stop_request) {
       // Process was deleted? Run away in any case...
+      fprintf(stderr, "%s[%d]:  got STOP REQUEST\n", FILE__, __LINE__);
       ev.type = evtShutDown;
       return true;
   }
@@ -2338,7 +2342,8 @@ static void kickWaitpider(int pid) {
 }
 
 //Force the SignalGenerator to return -1, EINTR from waitpid
-void SignalGenerator::forceWaitpidReturn() {
+void SignalGenerator::forceWaitpidReturn() 
+{
    pthread_mutex_lock(&waiter_mutex);
    if (isInWaitpid) {
       kickWaitpider(waiter_exists);
@@ -2414,6 +2419,10 @@ int SignalGenerator::waitpid_demultiplex(SignalGenerator *me, int *status)
    assert(!waiter_exists);
    waiter_exists = P_gettid();
    for (;;) {
+      if (me->stop_request) {
+         fprintf(stderr, "%s[%d]:  got request to stop doing waitpid()\n", FILE__, __LINE__);
+         return -1;
+      }
       //If we're in this loop, then we are the process doing a waitpid.
       // It's up to us to recieve events for all SignalGenerators, and put 
       // them on the event queue until we get one that belongs to us.
@@ -2517,7 +2526,8 @@ void SignalGenerator::addPidGen(int pid) {
    pthread_mutex_unlock(&waiter_mutex);
 }
 
-void SignalGenerator::removePidGen(int pid) {
+void SignalGenerator::removePidGen(int pid) 
+{
    bool found = false;
 
    pthread_mutex_lock(&waiter_mutex);
@@ -2536,7 +2546,8 @@ void SignalGenerator::removePidGen(int pid) {
    pthread_mutex_unlock(&waiter_mutex);
 }
 
-void SignalGenerator::removePidGen() {
+void SignalGenerator::removePidGen() 
+{
    proccontrol_printf("[%s:%u] Removing all pidgens for sg %d\n",
                       FILE__, __LINE__, getPid());
 

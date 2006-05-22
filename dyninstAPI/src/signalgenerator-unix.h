@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.10 2006/05/17 14:19:35 bernat Exp $
+/* $Id: signalgenerator-unix.h,v 1.11 2006/05/22 04:45:23 jaw Exp $
  */
 
 
@@ -112,14 +112,6 @@ class SignalGenerator : public SignalGeneratorCommon
 
 #if !defined (os_linux) 
    bool decodeProcStatus(procProcStatus_t status, EventRecord &ev);
-#endif
-
-#if 0 // PDSEP
-#if !defined (os_linux) 
-   bool updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use);
-   bool updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
-                                  pdvector<EventRecord> &events);
-#endif
 #endif
 
    bool waiting_for_stop;

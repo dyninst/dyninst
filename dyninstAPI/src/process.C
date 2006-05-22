@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.646 2006/05/19 23:00:39 mjbrim Exp $
+// $Id: process.C,v 1.647 2006/05/22 04:45:22 jaw Exp $
 
 #include <ctype.h>
 
@@ -1894,6 +1894,13 @@ void process::deleteProcess()
   vsyscall_end_ = 0;
   vsyscall_text_ = 0;
   vsyscall_data_ = 0;
+
+  //  if the sg is inside a waitpid(-1), tell it to shut down and kick it.
+  if (sh->isInWaitpid) {
+    fprintf(stderr, "%s[%d]:  FORCING SG SHUTDOWN\n", FILE__, __LINE__);
+    sh->stopThreadNextIter();
+    sh->forceWaitpidReturn();
+  }
 #endif
   
   set_status(deleted);
@@ -2841,16 +2848,18 @@ bool process::loadDyninstLib() {
 
 	startup_printf("%s[%d]: Starting load of Dyninst library...\n",
 		       FILE__, __LINE__);
-	loadDYNINSTlib();
-	startup_printf("Think we have Dyninst RT lib set up...\n");
-
+	if (!loadDYNINSTlib()) {
+            fprintf(stderr, "%s[%d]:  FIXME:  loadDYNINSTlib failed\n", FILE__, __LINE__);
+        }
+	startup_printf("%s[%d]: Think we have Dyninst RT lib set up...\n", FILE__, __LINE__);
 
 	setBootstrapState(loadingRT_bs);
 
-    if (!sh->continueProcessAsync()) {
-        assert(0);
-    }
-    // Loop until the dyninst lib is loaded
+        if (!sh->continueProcessAsync()) {
+            assert(0);
+        }
+
+       // Loop until the dyninst lib is loaded
 	while (!reachedBootstrapState(loadedRT_bs)) {
 	    if(hasExited()) {
 		startup_printf("Odd, process exited while waiting for "

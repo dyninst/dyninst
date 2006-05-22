@@ -145,6 +145,7 @@ void SignalGeneratorCommon::main() {
     signal_printf("%s[%d]:  about to do init for %s\n", FILE__, __LINE__, idstr);
     if (!initialize_event_handler()) {
         signal_printf("%s[%d]: initialize event handler failed, %s returning\n", FILE__, __LINE__, idstr);
+        fprintf(stderr,"%s[%d]: initialize event handler failed, %s returning\n", FILE__, __LINE__, idstr);
         _isRunning = false;
         init_ok = false; 
 
@@ -262,7 +263,8 @@ void SignalGeneratorCommon::main() {
     thread_printf("%s[%d][%s]:  SignalGenerator::main exiting\n", FILE__, __LINE__, idstr);
 }
 
-bool SignalGeneratorCommon::exitRequested() {
+bool SignalGeneratorCommon::exitRequested() 
+{
     // Commented out for reference: we handle this at
     // dispatch time. 
     //    if (ev.type == evtShutdown) return true;
@@ -1026,7 +1028,9 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
   process *proc = ev.proc;
   bootstrapState_t bootstrapState = proc->getBootstrapState();
 
-  startup_printf("%s[%d]:  decodeIfDueToProcessStartup: state: %s\n", FILE__, __LINE__, proc->getBootstrapStateAsString().c_str());
+  startup_printf("%s[%d]:  decodeIfDueToProcessStartup: state: %s\n", 
+                 FILE__, __LINE__, proc->getBootstrapStateAsString().c_str());
+
   switch(bootstrapState) {
     case bootstrapped_bs:  
         break;
@@ -1039,6 +1043,12 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
         ret = true;
         break;
     case begun_bs:
+       if (proc->trapAtEntryPointOfMain(ev.lwp, INFO_TO_ADDRESS(ev.info))) {
+          ev.type = evtProcessInit; 
+          ret = true;
+       }
+
+#if 0 // PDSEP
 #if defined (os_windows)
        if (proc->trapAtEntryPointOfMain(NULL, (Address)ev.info.u.Exception.ExceptionRecord.ExceptionAddress)) {
           ev.type = evtProcessInit; 
@@ -1049,6 +1059,7 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
           ev.type = evtProcessInit; 
           ret = true;
        }
+#endif
 #endif
        else {
 
@@ -1583,6 +1594,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
       
       if (!proc->setupCreated(traceLink_)) {
           signal_printf("%s[%d]: Failed to do basic process setup\n", FILE__, __LINE__);
+          fprintf(stderr,"%s[%d]: Failed to do basic process setup\n", FILE__, __LINE__);
 #if !defined(os_windows)
           P_kill(getPid(), SIGKILL);
 #endif
@@ -1595,6 +1607,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
       fileDescriptor desc;
       if (!getExecFileDescriptor(file_, getPid(), true, status, desc)) {
           signal_printf("%s[%d]: Failed to find exec descriptor\n", FILE__, __LINE__);
+          fprintf(stderr,"%s[%d]: Failed to find exec descriptor\n", FILE__, __LINE__);
 #if !defined(os_windows)
           P_kill(getPid(), SIGKILL);
 #endif
@@ -1606,9 +1619,11 @@ bool SignalGeneratorCommon::initialize_event_handler()
       }
 
       if (!proc->setAOut(desc)) {
+          sleep(1);
           startup_printf("%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
+          fprintf(stderr,"%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
 #if !defined(os_windows)
-          P_kill(getPid(), SIGKILL);
+          //P_kill(getPid(), SIGKILL);
 #endif
           // cleanupBPatchHandle(theProc->sh->getPid());
           // processVec.pop_back();

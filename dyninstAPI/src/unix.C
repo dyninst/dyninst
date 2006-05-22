@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.211 2006/05/18 14:26:16 bernat Exp $
+// $Id: unix.C,v 1.212 2006/05/22 04:45:23 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1418,7 +1418,9 @@ bool forkNewProcess_real(pdstring file,
 	      }
            }
       }	      
-      P__exit(-1);
+      
+      P_abort();
+      //P__exit(-1);
       // not reached
     
       return false;
@@ -1800,8 +1802,12 @@ void SignalGenerator::clearCachedLocations()  {
     // waiting_for_stop = false; ?
 }
 
-SignalGenerator::~SignalGenerator() {
+SignalGenerator::~SignalGenerator() 
+{
 #if defined(os_linux)
     removePidGen();
+    //  if this SG is waiting, make it stop
+    fprintf(stderr, "%s[%d]:  SG DTOR:  forcing waitpid to stop\n", FILE__, __LINE__);
+    forceWaitpidReturn();
 #endif
 }

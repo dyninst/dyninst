@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.16 2006/05/10 02:31:02 jaw Exp $
+// $Id: pdwinnt.h,v 1.17 2006/05/22 04:45:22 jaw Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -71,6 +71,7 @@ struct dyn_saved_regs {
 #define sleep Sleep
 
 #define INFO_TO_EXIT_CODE(info) info.u.ExitProcess.dwExitCode
+#define INFO_TO_ADDRESS(info) info.u.Exception.ExceptionRecord.ExceptionAddress
 #define INFO_TO_PID(info) -1
 
 typedef DEBUG_EVENT eventInfo_t;

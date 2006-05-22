@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.380 2006/05/17 14:35:15 bernat Exp $
+/* $Id: process.h,v 1.381 2006/05/22 04:45:23 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -534,8 +534,8 @@ class process {
                << bootstrapState << " to " << state << endl;
       else
           bootstrapState = state;
-      startup_cerr << "(" << getPid() << ") Setting bootstrap state to " 
-		   << getBootstrapStateAsString() << endl;
+      startup_printf("%s[%d]:  setting bootstrap state for process %d to %s\n",
+                     FILE__, __LINE__, getPid(), getBootstrapStateAsString().c_str());
   }  
 
   void resetBootstrapState(bootstrapState_t state) {

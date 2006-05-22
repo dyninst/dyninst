@@ -5459,6 +5459,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     mem_usage = sbrk(0);
    fprintf(stderr, "Post test: sbrk %p\n", mem_usage);
 #endif
+    //fprintf(stderr, "%s[%d]:  mutatorMAIN returning %d\n", __FILE__, __LINE__, retVal);
     return retVal;
 }
 

@@ -369,7 +369,7 @@ void EventHandler<T>::main()
         return;
     }
     
-    init_ok = true;;
+    init_ok = true;
     thread_printf("%s[%d]:  init success for %s\n", __FILE__, __LINE__, idstr);
     
     _isRunning = true;
@@ -449,7 +449,7 @@ void EventHandler<T>::addToThreadMap()
 template <class T>
 void EventHandler<T>::removeFromThreadMap() 
 {
-    //  remove ourselves from the threadmap before exiting\n"
+    //  remove ourselves from the threadmap before exiting
     assert(threadMapLock != NULL);
     threadMapLock->_Lock(FILE__, __LINE__);
 
