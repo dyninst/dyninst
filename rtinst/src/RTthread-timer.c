@@ -113,6 +113,13 @@ void _VirtualTimerStop(virtualTimer* timer) {
     else
       timer->total += (now - timer->start);
     timer->lwp = 0;
+#if defined( os_linux )
+	/* Not sure why Solaris doesn't care about this... */
+	if( timer->rt_fd != -1 && timer->rt_fd != 0 ) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: closing timer fd %d on virtual timer stop.\n", __FILE__, __LINE__, timer->rt_fd );
+		close( timer->rt_fd );
+		}
+#endif
     timer->rt_fd = 0;
   }
   timer->counter--;
@@ -162,7 +169,7 @@ rawTime64 getThreadCPUTime(unsigned index, int *valid) {
   
   *valid = 1 ;
   if (count > 0) {
-#if defined(os_solaris)
+#if defined(os_solaris) || defined(os_linux)
     /* Might not have set the file descriptor */
     if (!vt->rt_fd)
       vt->rt_fd = PARADYNgetFD(vt->lwp);
