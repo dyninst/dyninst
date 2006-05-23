@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.57 2006/05/23 19:14:19 bernat Exp $
+// $Id: arch-x86.C,v 1.58 2006/05/23 22:31:14 cooksey Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3736,6 +3736,7 @@ bool instruction::generate(codeGen &gen,
      return true;
    }
 
+#if defined(arch_x86_64)
    if (insnType & REL_D_DATA) {
      // We may need to change these from 32-bit relative
      // to 64-bit absolute. This happens with the jumps and calls
@@ -3835,6 +3836,7 @@ bool instruction::generate(codeGen &gen,
      }
      return true;
    }
+#endif
    // Should we get here?
 
    assert(0);
