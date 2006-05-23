@@ -51,6 +51,10 @@
 rawTime64 pd_process::getAllLwpRawCpuTime_hw() {
    rawTime64 total = 0;
    threadMgr::thrIter itr = thrMgr().begin();
+
+   if(itr == thrMgr().end()) //process exiting, threads already gone
+      return (rawTime64)-1;
+
    for(; itr != thrMgr().end(); itr++) {
       pd_thread *thr = *itr;
       total += thr->getRawCpuTime_hw();
@@ -61,6 +65,9 @@ rawTime64 pd_process::getAllLwpRawCpuTime_hw() {
 rawTime64 pd_process::getAllLwpRawCpuTime_sw() {
    rawTime64 total = 0;
    threadMgr::thrIter itr = thrMgr().begin();
+
+   if(itr == thrMgr().end()) //process exiting, threads already gone
+      return (rawTime64)-1;
 
    for(; itr != thrMgr().end(); itr++) {
       pd_thread *thr = *itr;
@@ -117,8 +124,9 @@ rawTime64 pd_thread::getRawCpuTime_hw()
 
 unsigned cputime_access = 0;
 
+static int use_task_stat = 0;
+
 rawTime64 pd_thread::getRawCpuTime_sw() {
-   static int use_task_stat = 0;
    int status, fd;
    rawTime64 result = 0;
    int bufsize = 255;
@@ -160,14 +168,14 @@ rawTime64 pd_thread::getRawCpuTime_sw() {
       fd = P_open(procfn, O_RDONLY, 0);
       if (fd < 0) {
          perror("getInferiorProcessCPUtime (open)");
-         return false;
+         return sw_previous_;
       }
       
       buf = new char[ bufsize ];
       
       if ((int)P_read( fd, buf, bufsize ) < 0) {
          perror("getInferiorProcessCPUtime");
-         return false;
+         return sw_previous_;
       }
       
       /* While I'd bet that any of the numbers preceding utime and stime 
@@ -199,6 +207,6 @@ rawTime64 pd_thread::getRawCpuTime_sw() {
    }
    else 
       sw_previous_ = result;
-   
+
    return result;
 }
