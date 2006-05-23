@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.105 2006/05/04 01:41:22 legendre Exp $
+// $Id: linux-x86.C,v 1.106 2006/05/23 22:31:15 cooksey Exp $
 
 #include <fstream>
 
@@ -1184,29 +1184,6 @@ bool process::loadDYNINSTlib_hidden() {
 
   startup_printf("(%d) after copy, %d used\n", getPid(), scratchCodeBuffer.used());
 
-  // Since we are punching our way down to an internal function, we
-  // may run into problems due to stack execute protection. Basically,
-  // glibc knows that it needs to be able to execute on the stack in
-  // in order to load libraries with dl_open(). It has code in
-  // _dl_map_object_from_fd (the workhorse of dynamic library loading)
-  // that unprotects a global, exported variable (__stack_prot), sets
-  // the execute flag, and reprotects it. This only happens, however,
-  // when the higher-level dl_open() functions (which we skip) are called,
-  // as they append an undocumented flag to the library open mode. Otherwise,
-  // assignment to the variable happens without protection, which will
-  // cause a fault.
-  //
-  // Instead of chasing the value of the undocumented flag, we will
-  // unprotect the __stack_prot variable ourselves (if we can find it).
-
-  if(!( mprotect_call_addr = tryUnprotectStack(scratchCodeBuffer,codeBase) )) {
-    startup_printf("Failed to disable stack protection.\n");
-  }
-
-  // Now the real work begins...
-  dlopen_call_addr = codeBase + scratchCodeBuffer.used();
-
-#if defined(bug_syscall_changepc_rewind)
   // Reported by SGI, during attach to a process in a system call:
 
   // Insert eight NOP instructions before the actual call to dlopen(). Loading
@@ -1225,7 +1202,26 @@ bool process::loadDYNINSTlib_hidden() {
   // And since we apparently execute at (addr - <width>), shift dlopen_call_addr
   // up past the NOPs.
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
-#endif
+
+
+  // Since we are punching our way down to an internal function, we
+  // may run into problems due to stack execute protection. Basically,
+  // glibc knows that it needs to be able to execute on the stack in
+  // in order to load libraries with dl_open(). It has code in
+  // _dl_map_object_from_fd (the workhorse of dynamic library loading)
+  // that unprotects a global, exported variable (__stack_prot), sets
+  // the execute flag, and reprotects it. This only happens, however,
+  // when the higher-level dl_open() functions (which we skip) are called,
+  // as they append an undocumented flag to the library open mode. Otherwise,
+  // assignment to the variable happens without protection, which will
+  // cause a fault.
+  //
+  // Instead of chasing the value of the undocumented flag, we will
+  // unprotect the __stack_prot variable ourselves (if we can find it).
+
+  if(!( mprotect_call_addr = tryUnprotectStack(scratchCodeBuffer,codeBase) )) {
+    startup_printf("Failed to disable stack protection.\n");
+  }
 
 #if defined(arch_x86_64)
   if (getAddressWidth() == 4) {
@@ -1250,6 +1246,7 @@ bool process::loadDYNINSTlib_hidden() {
 		     getPid(), codeBase + scratchCodeBuffer.used(), dlopen_addr);
       instruction::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
       
+
 #if defined(arch_x86_64)
   } else {
 
