@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.56 2006/05/05 17:50:33 rchen Exp $
+// $Id: arch-x86.C,v 1.57 2006/05/23 19:14:19 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -57,7 +57,6 @@
 #include "InstrucIter.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "process.h"
-
 
 // groups
 enum {
@@ -1857,7 +1856,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   unsigned int table, nxtab;
   unsigned int idx, sseidx = 0;
   ia32_entry *gotit = NULL;
-  int condbits;
+  int condbits = 0;
 
   if(capa & IA32_DECODE_MEMACCESS)
     assert(instruct.mac != NULL);
@@ -2908,7 +2907,7 @@ int displacement(const unsigned char *instr, unsigned type) {
   int disp = 0;
   //skip prefix
   instr = skip_headers( instr );
-  
+
   if (type & IS_JUMP) {
     if (type & REL_B) {
       disp = *(const char *)(instr+1);
@@ -2931,8 +2930,16 @@ int displacement(const unsigned char *instr, unsigned type) {
     } else if (type & REL_D) {
       disp = *(const int *)(instr+1);
     }
-  }
-  
+  } else if (type & REL_D_DATA) {
+    // Some SIMD instructions have a mandatory 0xf2 prefix; the call to skip_headers
+    // doesn't skip it and I don't feel confident in changing that - bernat, 22MAY06
+    if (*instr == 0xf2) instr++;
+    // And the "0x0f is a 2-byte opcode" skip
+    if (*instr == 0x0F) instr++;
+    // Skip the instr opcode and the MOD/RM byte
+    disp = *(const int *)(instr+2);
+  }  
+
   return disp;
 }
 
@@ -2942,6 +2949,62 @@ int displacement(const unsigned char *instr, unsigned type) {
 int get_disp(instruction *insn) {
   return displacement(insn->ptr(), insn->type());
 }
+
+int count_prefixes(unsigned insnType) {
+  unsigned nPrefixes = 0;
+  if (insnType & PREFIX_OPR)
+    nPrefixes++;
+  if (insnType & PREFIX_SEG)
+    nPrefixes++;
+  if (insnType & PREFIX_OPCODE)
+    nPrefixes++;
+  if (insnType & PREFIX_REX)
+    nPrefixes++;
+  if (insnType & PREFIX_INST)
+    nPrefixes++;
+  if (insnType & PREFIX_ADDR)
+    nPrefixes++;
+  return nPrefixes;
+}
+
+unsigned copy_prefixes(const unsigned char *&origInsn, unsigned char *&newInsn, unsigned insnType) {
+  // Skip prefixes
+  unsigned nPrefixes = count_prefixes(insnType);
+
+  //inst_printf(".... %d bytes in prefixes\n", nPrefixes);
+  for (unsigned u = 0; u < nPrefixes; u++)
+    *newInsn++ = *origInsn++;
+  return nPrefixes;
+}
+
+bool convert_to_rel8(const unsigned char*&origInsn, unsigned char *&newInsn) {
+  if (*origInsn == 0x0f)
+    origInsn++;
+
+  // We think that an opcode in the 0x8? range can be mapped to an equivalent
+  // opcode in the 0x7? range...
+
+  if ((*origInsn >= 0x70) &&
+      (*origInsn < 0x80)) {
+    *newInsn++ = *origInsn++;
+    return true;
+  }
+
+  if ((*origInsn >= 0x80) &&
+      (*origInsn < 0x90)) {
+    *newInsn++ = *origInsn++ - 0x10;
+    return true;
+  }
+
+
+
+  // Oops...
+  fprintf(stderr, "Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
+  assert(0 && "Unhandled jump conversion case!");
+  return false;
+}
+  
+
 
 //Determine appropriate scale, index, and base given SIB byte.
 void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg){
@@ -3328,8 +3391,9 @@ void instruction::generateBranch(codeGen &gen,
   long disp = toAddr - (fromAddr + JUMP_REL32_SZ);
 
 #if defined(arch_x86_64)
-  if (!is_disp32(disp))
+  if (!is_disp32(disp)) {
       return generateBranch64(gen, toAddr);
+  }
 #endif
   
   generateBranch(gen, disp);
@@ -3350,33 +3414,65 @@ void instruction::generateBranch(codeGen &gen,
     return;
 }
 
+// Unified the 64-bit push between branch and call
+void instruction::generatePush64(codeGen &gen, Address val) {
+  GET_PTR(insn, gen);
+  for (int i = 3; i >= 0; i--) {
+    short word = (short) (val >> (16 * i)) & 0xffff;
+    *insn++ = 0x66; // operand size override
+    *insn++ = 0x68; // push immediate (16-bits b/c of prefix)
+    *(short *)insn = word;
+    insn += 2;
+  }
+  SET_PTR(insn, gen);
+}
+
 void instruction::generateBranch64(codeGen &gen, Address to)
 {
     // "long jump" - generates sequence to jump to any 64-bit address
     // pushes the value on the stack (using 4 16-bit pushes) the uses a 'RET'
 
-    GET_PTR(insn, gen);
-    for (int i = 3; i >= 0; i--) {
-      short word = (short) (to >> (16 * i)) & 0xffff;
-      *insn++ = 0x66; // operand size override
-      *insn++ = 0x68; // push immediate (16-bits b/c of prefix)
-      *(short *)insn = word;
-      insn += 2;
-    }
-    *insn++ = 0xC3; // RET
-    SET_PTR(insn, gen);
+  generatePush64(gen, to);
+
+  GET_PTR(insn, gen);
+  *insn++ = 0xC3; // RET
+  SET_PTR(insn, gen);
+
 }
 
 void instruction::generateCall(codeGen &gen,
                                Address from,
                                Address target) {
-    // TODO 64bit fixme
-    int disp = target - (from + CALL_REL32_SZ);
+  // TODO 64bit fixme
+  long disp = target - (from + CALL_REL32_SZ);
+  
+  if (is_disp32(disp)) {
     GET_PTR(insn, gen);
     *insn++ = 0xE8;
-    *((int *)insn) = disp;
+    *((int *)insn) = (int) disp;
     insn += sizeof(int);
     SET_PTR(insn, gen);
+  }
+  else {
+    // Wheee....
+    // We use a technique similar to our 64-bit
+    // branch; push the return addr onto the stack (from),
+    // then push to, then return. 
+    
+    // This looks like
+    // A: push D
+    // B: push <...>
+    // C: return
+    // D:
+
+#if defined(arch_x86_64)
+    // So we need to know where D is off of "from"
+    generatePush64(gen, from+CALL_ABS64_SZ);
+    generateBranch64(gen, target);
+#else
+    assert(0 && "Impossible case");
+#endif
+  }
 }
 
 void instruction::generateNOOP(codeGen &gen, unsigned size) {
@@ -3413,93 +3509,44 @@ unsigned instruction::spaceToRelocate() const {
 #endif
 
 
-   const unsigned char *origInsn = ptr();
+    // Assumption: rewriting calls into immediates will
+    // not be larger than rewriting a call into a call...
 
-   unsigned maxSize = 0;
-   unsigned nPrefixes = 0;
-
-
-   if ((type() && REL_B) ||
-       (type() && REL_W) ||
-       (type() && REL_D)) {
-       if (type() & PREFIX_OPR)
-           nPrefixes++;
-       if (type() & PREFIX_SEG)
-           nPrefixes++;
-       if (type() & PREFIX_OPCODE)
-           nPrefixes++;
-       if (type() & PREFIX_REX)
-           nPrefixes++;
-       if (type() & PREFIX_INST)
-           nPrefixes++;
-       if (type() & PREFIX_ADDR)
-           nPrefixes++;
-   }
-
-   // Skip prefixes or none of the later matches will work.
-   for (unsigned u = 0; u < nPrefixes; u++)
-       *origInsn++;
-
-   //inst_printf("%d bytes in prefixes\n", nPrefixes);
-
-   if (type() & REL_B) {
-       /* replace with rel32 instruction, opcode is one byte. */
-       if (*origInsn == JCXZ) {
-           // Replace with:
-           // jcxz 2    2 bytes
-           //  jmp 5    2 bytes
-           // jmp rel32 5 bytes
-           
-           return 4 + longJumpSize + nPrefixes;
-      }
-      else {
-          if (type() & IS_JCC) {
-              /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
-                 0x0F followed by (old opcode + 16) */
-              //inst_printf("... JCC, returning %d\n", 6+nPrefixes);
-
+    if (!((type() & REL_B) ||
+	  (type() & REL_W) ||
+	  (type() & REL_D) ||
+	  (type() & REL_D_DATA))) {
+      return size();
+    }
+    
+    // Now that the easy case is out of the way...
+    
+    if (type() & IS_JUMP) {
+      // Worst-case: prefixes + max-displacement branch
+      return count_prefixes(type()) + longJumpSize;
+    }
+    if (type() & IS_JCC) {
+      // Jump conditional; jump past jump; long jump
+      return count_prefixes(type()) + 2 + 2 + longJumpSize;
+    }
+    if (type() & IS_CALL) {
+      // Worst case is approximated by two long jumps (AMD64) or a REL32 (x86)
 #if defined(arch_x86_64)
-	      return 6 + nPrefixes + 1; // Add one for additional REX Prefix
+      return 2*JUMP_ABS64_SZ+count_prefixes(type());
 #else
-              return 6 + nPrefixes;
+      return JUMP_REL32_SZ+count_prefixes(type());
 #endif
-          }
-          else if (type() & IS_JUMP) {
-              /* change opcode to 0xE9 */
-              //inst_printf(".... JUMP, returning %d\n", 5+nPrefixes);
-              return longJumpSize + nPrefixes;
-          }
-          assert(0);
-      }
-   }
-   else if (type() & REL_W) {
-       //inst_printf("... REL_W\n");
-      /* opcode is unchanged, just relocate the displacement */
-      if (*origInsn == (unsigned char)0x0F)
-          maxSize++;
+    }
+#if defined(arch_x86_64)
+    if (type() & REL_D_DATA) {
+      // Worst-case: replace RIP with push of IP, use, and cleanup
+      // 8: unknown; previous constant
+      return count_prefixes(type()) + size() + 8;
+    }
+#endif
 
-      // opcode, 32-bit displacement
-      maxSize += longJumpSize;
-
-      return maxSize + nPrefixes;
-   } else if (type() & REL_D) {
-       //inst_printf("... REL_D\n");
-       /* opcode is unchanged, just relocate the displacement */
-       if (*origInsn == 0x0F)
-           maxSize++;
-       
-       maxSize += longJumpSize;
-       return maxSize + nPrefixes;
-
-   } else if (type() & REL_D_DATA) {
-       // AMD64 Only.  RIP relative data.
-       return size() + 8;
-
-   } else {
-       return size();
-   }
-   assert(0);
-   return 0;
+    assert(0);
+    return 0;
 }
 
 bool instruction::generate(codeGen &gen,
@@ -3547,8 +3594,8 @@ bool instruction::generate(codeGen &gen,
    // This moves as we emit code
    unsigned char *newInsn = insnBuf;
 
-   int oldDisp;
-   int newDisp;
+   Address oldDisp = 0;
+   Address newDisp = 0;
 
    bool done = false;
     
@@ -3614,278 +3661,206 @@ bool instruction::generate(codeGen &gen,
          }
       }
    }
-   if (!done) {
-      // If call-specialization didn't take care of us
-      if (insnType & REL_B) {
-         // Skip prefixes
-         unsigned nPrefixes = 0;
-         if (insnType & PREFIX_OPR)
-            nPrefixes++;
-         if (insnType & PREFIX_SEG)
-            nPrefixes++;
-         if (insnType & PREFIX_OPCODE)
-            nPrefixes++;
-         if (insnType & PREFIX_REX)
-            nPrefixes++;
-         if (insnType & PREFIX_INST)
-            nPrefixes++;
-         if (insnType & PREFIX_ADDR)
-            nPrefixes++;
-         //inst_printf(".... %d bytes in prefixes\n", nPrefixes);
-         for (unsigned u = 0; u < nPrefixes; u++)
-            *newInsn++ = *origInsn++;
-
-
-         /* replace with rel32 instruction, opcode is one byte. */
-         if (*origInsn == JCXZ) {
-            if (targetOverride == 0) {
-               oldDisp = (int)*(const char *)(origInsn+1);
-               newDisp = (origAddr + size()) // end of instruction...
-                  + oldDisp - (newAddr + 9);
-            }
-            else {
-               // Override the target to go somewhere else
-               oldDisp = 0;
-               newDisp = targetOverride - (newAddr + 9);
-            }
-            *newInsn++ = *origInsn; *(newInsn++) = 2; // jcxz 2
-            *newInsn++ = 0xEB; *newInsn++ = 5;        // jmp 5
-            *newInsn++ = 0xE9;                        // jmp rel32
-            *((int *)newInsn) = newDisp;
-            newInsn += sizeof(int);
-         }
-         else {
-            unsigned newSz=UINT_MAX;
-            if (insnType & IS_JCC) {
-               /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
-                  0x0F followed by (old opcode + 16) */
-               unsigned char opcode = *origInsn++;
-               *newInsn++ = 0x0F;
-               *newInsn++ = opcode + 0x10;
-               newSz = 6 + nPrefixes;
-            }
-            else if (insnType & IS_JUMP) {
-               /* change opcode to 0xE9 */
-               origInsn++;
-               *newInsn++ = 0xE9;
-               newSz = 5 + nPrefixes;
-            }
-            assert(newSz!=UINT_MAX);
-            if (targetOverride == 0) {
-               oldDisp = (int)*(const char *)origInsn;
-               newDisp = (origAddr + size()) + oldDisp - (newAddr + newSz);
-            }
-            else {
-               oldDisp = 0;
-               newDisp = targetOverride - (newAddr + newSz);
-            }
-            *((int *)newInsn) = newDisp;
-            newInsn += sizeof(int);
-         }
-      }
-      else if (insnType & REL_W) {
-         // Skip prefixes
-         unsigned nPrefixes = 0;
-         if (insnType & PREFIX_OPR)
-            nPrefixes++;
-         if (insnType & PREFIX_SEG)
-            nPrefixes++;
-         if (insnType & PREFIX_OPCODE)
-            nPrefixes++;
-         if (insnType & PREFIX_REX)
-            nPrefixes++;
-         if (insnType & PREFIX_INST)
-            nPrefixes++;
-         if (insnType & PREFIX_ADDR)
-            nPrefixes++;
-
-         for (unsigned u = 0; u < nPrefixes; u++)
-            *newInsn++ = *origInsn++;
-
-         /* opcode is unchanged, just relocate the displacement */
-         if (*origInsn == (unsigned char)0x0F)
-            *newInsn++ = *origInsn++;
-         *newInsn++ = *origInsn++;
-         if (targetOverride == 0) {
-            oldDisp = *((const short *)origInsn);
-            newDisp = (origAddr + 5) + oldDisp - (newAddr + 3);
-         }
-         else {
-            oldDisp = 0;
-            newDisp = targetOverride -  (newAddr + 3);
-         }
-         *((int *)newInsn) = newDisp;
-         newInsn += sizeof(int);
-      } else if (insnType & REL_D || insnType & REL_D_DATA) {
-	    
-         // count prefixes
-         int nPrefixes = 0;
-         if (insnType & PREFIX_OPR)
-            nPrefixes++;
-         if (insnType & PREFIX_SEG)
-            nPrefixes++;
-         if (insnType & PREFIX_OPCODE)
-            nPrefixes++;
-         if (insnType & PREFIX_REX)
-            nPrefixes++;
-         if (insnType & PREFIX_INST)
-            nPrefixes++;
-         if (insnType & PREFIX_ADDR)
-            nPrefixes++;
-
-         // count opcode bytes (1 or 2)
-         int nOpcodeBytes = 1;
-         if (*(origInsn + nPrefixes) == 0x0F)
-            nOpcodeBytes = 2;
-
-         // is there a ModRM byte?
-         int nModRMBytes = (insnType & REL_D_DATA) ? 1 : 0;
-
-         // figure out the new displacement
-         // note: newDispLong is only valid if the size of the relocated instruction
-         // is the sae as that of the original
-         long newDispLong;
-         if (targetOverride == 0) {
-            oldDisp = *((const int *)(origInsn + nPrefixes + nOpcodeBytes + nModRMBytes));
-            newDispLong = (origAddr + insnSz) + oldDisp - (newAddr + insnSz);
-         }
-         else {
-            oldDisp = targetOverride - (origAddr + insnSz);
-            newDispLong = targetOverride - (newAddr + insnSz);
-         }
-
-         if ((insnType & REL_D) && !is_disp32(newDispLong)) {
-
-            // case where we need to generate a sequence for a
-            // 64-bit absolute jump
-            // FIXME: restructuring this function would avoid the
-            // need to do a SET/GET here
-            SET_PTR(newInsn, gen);
-            generateBranch(gen, origAddr + insnSz + oldDisp);
-            return true;
-         }
-         else {
-
-            // in all other cases, we output a modified version of the original instruction
-            // these cases are:
-            //   * 5-byte jump with new displacement
-            //   * rip-relative addressing mode with new displacement
-            //   * rip-relative addressing mode changed to 32-bit absolute addressing mode
-            //   * rip-relative addressing mode changed to 64-bit absolute addressing using
-            //     an instruction sequence
-
-            // variables for weird rip-relative data case
-            bool is_data_abs64 = false;
-            Register pointer_reg = (Register)-1;
-#if defined(arch_x86_64)
-            if ((insnType & REL_D_DATA) && !is_disp32(newDispLong) && !is_addr32(origAddr + oldDisp)) {
-
-               // ugly case for rip-relative addressing
-               // need to:
-               //   1) save a register (use RAX unless it is also being used in the instruction - then use RBX)
-               //   2) load it with the full 64-bit address
-               //   3) use it as a pointer in an emulated version of the original instruction
-               //   4) then restore the register
-               // here, we do steps 1 and 2
-               is_data_abs64 = true;
-               unsigned char mod_rm = *(origInsn + nPrefixes + nOpcodeBytes);
-               pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
-               SET_PTR(newInsn, gen);
-               emitPushReg64(pointer_reg, gen);
-               emitMovImmToReg64(pointer_reg, origAddr + oldDisp, true, gen);
-               REGET_PTR(newInsn, gen);
-            }
-#endif
-
-            const unsigned char* origInsnStart = origInsn;
-
-            // copy any prefixes and the opcode byte(s) to new instruction
-            for (int i = 0; i < nPrefixes + nOpcodeBytes; i++)
-               *newInsn++ = *origInsn++;		
-		
-            // handle the instruction modifications
-            if (insnType & REL_D_DATA) {
-		    
-               if (is_data_abs64) {
-                  // change ModRM byte to use [pointer_reg]: requires
-                  // us to change last three bits (the r/m field)
-                  // to the value of pointer_reg
-                  unsigned char mod_rm = *origInsn++;
-                  assert(pointer_reg != (Register)-1);
-                  mod_rm = (mod_rm & 0xf8) + pointer_reg;
-                  *newInsn++ = mod_rm;
-               }
-               else if (!is_disp32(newDispLong)) {
-
-                  // we can use the [disp32] addresing mode
-                  assert(is_addr32(origAddr + oldDisp));
-                  unsigned char mod_rm = *origInsn++;
-
-                  // change ModRM byte to use SIB addressing (r/m == 4)
-                  mod_rm = (mod_rm & 0xf8) + 4;
-                  *newInsn++ = mod_rm;
-			
-                  // SIB == 0x25 specifies [disp32] addressing when mod == 0
-                  *newInsn++ = 0x25;
-
-                  // now throw in the displacement (the absolute 32-bit address)
-                  *((int *)newInsn) = (int)(origAddr + oldDisp);
-                  newInsn += 4;
-               }
-               else {
-                  // "normal" rip-relative case
-                  // just copy the ModRM as is and put in the modified displacement
-                  *newInsn++ = *origInsn++;
-                  *((int *)newInsn) = (int)newDispLong;
-                  newInsn += 4;
-               }
-
-               // there may be an immediate after the displacement for RIP-relative
-               // so we copy over the rest of the instruction here
-               origInsn += 4;
-               while (origInsn - origInsnStart < (int)insnSz)
-                  *newInsn++ = *origInsn++;
-#if defined(arch_x86_64)
-               // restore pointer_reg if is was used
-               if (is_data_abs64) {
-                  assert(pointer_reg != (Register)-1);
-                  SET_PTR(newInsn, gen);
-                  emitPopReg64(pointer_reg, gen);
-                  return true;
-               }
-#endif
-            }
-            else {
-               // REL_D (relative jump) case
-               // just throw in newDispLong
-               assert(is_disp32(newDispLong));
-               *((int *)newInsn) = (int)newDispLong;
-               newInsn += sizeof(int);
-            }
-         }
-      }
-      else {
-         /* instruction is unchanged */
-         for (unsigned u = 0; u < insnSz; u++)
-            *newInsn++ = *origInsn++;
-      }
+   if (done) {
+     // Reset the generator and return
+     SET_PTR(newInsn, gen);
+     return true;
    }
-	    
-   SET_PTR(newInsn, gen);
-   return true;
+
+   if (!((insnType & REL_B) ||
+	 (insnType & REL_W) ||
+	 (insnType & REL_D) ||
+	 (insnType & REL_D_DATA))) {
+     // Normal insn, not addr relative
+     for (unsigned u = 0; u < insnSz; u++)
+       *newInsn++ = *origInsn++;
+     SET_PTR(newInsn, gen);
+     return true;
+   }
+
+   // We're addr-relative...
+   
+   Address newTarget = 0; // 64-bit jumps are absolute
+
+   if (targetOverride == 0) {
+     newTarget = origAddr + size() + get_disp(this);
+   }
+   else {
+     newTarget = targetOverride;
+   }
+
+   newDisp = newTarget - newAddr;
+   
+   if (insnType & IS_JUMP) {
+     // Replace it....
+
+     copy_prefixes(origInsn, newInsn, insnType);
+     
+     SET_PTR(newInsn, gen);
+     generateBranch(gen, newAddr, newTarget);
+     return true;
+   }
+
+   if (insnType & IS_JCC) {
+     // We use a three-step branch system that looks like so:
+     // jump conditional <A> 
+     // becomes
+     // jump conditional <B>
+     // jump <C>
+     // B: jump <A>
+     // C: ... next insn
+     // We could optimize, but this works and is clear to read.
+
+     unsigned nPrefixes = copy_prefixes(origInsn, newInsn, insnType);
+
+     // Moves as appropriate...
+     convert_to_rel8(origInsn, newInsn);
+     // We now want a 2-byte branch past the branch at B
+     *newInsn++ = 2;
+
+     // Now for the branch at B- <jumpSize> unconditional branch
+     *newInsn++ = 0xEB; *newInsn++ = (char) jumpSize(newDisp);
+
+     // And the branch at C
+     SET_PTR(newInsn, gen);
+     // Original address is a little skewed... 
+     // We've moved past the original address (to the tune of nPrefixes + 2 (JCC) + 2 (J))
+     generateBranch(gen, newAddr + nPrefixes + 2 + 2, newTarget);
+     return true;
+   }
+
+   if (insnType & IS_CALL) {
+     unsigned nPrefixes = copy_prefixes(origInsn, newInsn, insnType);
+     SET_PTR(newInsn, gen);
+     generateCall(gen, newAddr + nPrefixes, newTarget);
+     return true;
+   }
+
+   if (insnType & REL_D_DATA) {
+     // We may need to change these from 32-bit relative
+     // to 64-bit absolute. This happens with the jumps and calls
+     // as well, but it's better encapsulated there.
+
+     // We have three options:
+     // A) 64-bit absolute version
+     // b) 32-bit absolute version (where 32-bit relative would fail but we're low)
+     // c) 32-bit relative (AKA "original").
+
+
+     unsigned nPrefixes = count_prefixes(insnType);
+
+     // count opcode bytes (1 or 2)
+     unsigned nOpcodeBytes = 1;
+     if (*(origInsn + nPrefixes) == 0x0F)
+       nOpcodeBytes = 2;
+
+     bool is_data_abs64 = false;
+     Register pointer_reg = (Register)-1;
+
+     if (!(is_disp32(newDisp+insnSz) || is_addr32(newTarget))) {
+       assert(!is_disp32(newDisp));
+       assert(!is_addr32(newDisp));
+       // Case A: replace with 64-bit.
+       is_data_abs64 = true;
+       unsigned char mod_rm = *(origInsn + nPrefixes + nOpcodeBytes);
+       pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
+       SET_PTR(newInsn, gen);
+       emitPushReg64(pointer_reg, gen);
+       emitMovImmToReg64(pointer_reg, newTarget, true, gen);
+       REGET_PTR(newInsn, gen);
+     }
+
+     const unsigned char* origInsnStart = origInsn;
+
+     // In other cases, we can rewrite the insn directly; in the 64-bit case, we
+     // still need to copy the insn
+     copy_prefixes(origInsn, newInsn, insnType);
+
+     if (*origInsn == 0x0F) {
+       *newInsn++ = *origInsn++;
+     }
+     
+     // And the normal opcode
+     *newInsn++ = *origInsn++;
+
+     if (is_data_abs64) {
+       // change ModRM byte to use [pointer_reg]: requires
+       // us to change last three bits (the r/m field)
+       // to the value of pointer_reg
+       unsigned char mod_rm = *origInsn++;
+       assert(pointer_reg != (Register)-1);
+       mod_rm = (mod_rm & 0xf8) + pointer_reg;
+       *newInsn++ = mod_rm;
+     }
+     else if (is_disp32(newDisp+insnSz)) {
+       // Whee easy case
+       *newInsn++ = *origInsn++;
+       // Size doesn't change....
+       *((int *)newInsn) = (int)(newDisp - insnSz);
+       newInsn += 4;
+     }
+     else if (is_addr32(newTarget)) {
+       assert(!is_disp32(newDisp+insnSz));
+
+       unsigned char mod_rm = *origInsn++;
+       
+       // change ModRM byte to use SIB addressing (r/m == 4)
+       mod_rm = (mod_rm & 0xf8) + 4;
+       *newInsn++ = mod_rm;
+       
+       // SIB == 0x25 specifies [disp32] addressing when mod == 0
+       *newInsn++ = 0x25;
+       
+       // now throw in the displacement (the absolute 32-bit address)
+       *((int *)newInsn) = (int)(newTarget);
+       newInsn += 4;
+     }
+     else {
+       // Should never be reached...
+       assert(0);
+     }
+
+     // there may be an immediate after the displacement for RIP-relative
+     // so we copy over the rest of the instruction here
+     origInsn += 4;
+     while (origInsn - origInsnStart < (int)insnSz)
+       *newInsn++ = *origInsn++;
+
+     SET_PTR(newInsn, gen);
+     
+     if (is_data_abs64) {
+       // Cleanup on aisle pointer_reg...
+       assert(pointer_reg != (Register)-1);
+       emitPopReg64(pointer_reg, gen);
+     }
+     return true;
+   }
+   // Should we get here?
+
+   assert(0);
+   return false;
 }
 
 #if defined(arch_x86)
+unsigned instruction::jumpSize(long disp) {
+  return JUMP_REL32_SZ;
+}
+
 unsigned instruction::jumpSize(Address /*from*/, Address /*to*/) {
     return JUMP_REL32_SZ;
 }
 #else
+
+unsigned instruction::jumpSize(long disp) {
+  if (is_disp32(disp))
+    return JUMP_REL32_SZ;
+  else
+    return JUMP_ABS64_SZ;
+}
+
 unsigned instruction::jumpSize(Address from, Address to) {
     long disp = to - (from + JUMP_REL32_SZ);
-    if (is_disp32(disp))
-      return JUMP_REL32_SZ;
-    else
-      return JUMP_ABS64_SZ;
+    return jumpSize(disp);
 }
 #endif
 

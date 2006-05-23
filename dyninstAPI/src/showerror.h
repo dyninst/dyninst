@@ -60,7 +60,7 @@ extern int dyn_debug_forkexec;
 extern int dyn_debug_proccontrol;
 extern int dyn_debug_stackwalk;
 extern int dyn_debug_inst;
-extern int dyn_debug_relocation;
+extern int dyn_debug_reloc;
 extern int dyn_debug_dyn_unw;
 extern int dyn_debug_dyn_dbi;
 extern int dyn_debug_mutex;

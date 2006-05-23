@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.46 2006/05/11 19:09:41 jaw Exp $
+// $Id: arch-x86.h,v 1.47 2006/05/23 19:14:19 bernat Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -649,6 +649,8 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 // size of instruction seqeunce to get anywhere in address space
 // without touching any registers
 #define JUMP_ABS64_SZ (17)
+// Jump is push/return; call is push/push/return, so subtract a return
+#define CALL_ABS64_SZ (JUMP_ABS64_SZ+JUMP_ABS64_SZ-1)
 #endif
 
 #define PUSH_RM_OPC1 (0xFF)
@@ -709,6 +711,9 @@ class instruction {
   // return a pointer to the instruction's opcode
   const unsigned char* op_ptr() const { return op_ptr_; }
 
+  // More code generation
+  static void generatePush64(codeGen &gen, Address val);
+
   // Code generation
   static void generateBranch(codeGen &gen, Address from, Address to); 
   static void generateBranch(codeGen &gen, int disp); 
@@ -721,7 +726,7 @@ class instruction {
 
   // And tell us how much space we'll need...
   static unsigned jumpSize(Address from, Address to);
-  static unsigned jumpSize(int disp);
+  static unsigned jumpSize(long disp);
   static unsigned maxJumpSize();
 
 
