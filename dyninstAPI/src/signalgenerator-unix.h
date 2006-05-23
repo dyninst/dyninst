@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.11 2006/05/22 04:45:23 jaw Exp $
+/* $Id: signalgenerator-unix.h,v 1.12 2006/05/23 06:39:50 jaw Exp $
  */
 
 
@@ -48,6 +48,7 @@
 
 #include "dyninstAPI/src/os.h"
 
+#if 0
 class SignalGenerator;
 
 typedef struct waitpid_ret_pair {
@@ -59,6 +60,7 @@ typedef struct pid_generator_pair {
    int pid;
    SignalGenerator *sg;
 } pid_generator_pair_t;
+#endif
 
 class SignalGenerator : public SignalGeneratorCommon
 {
@@ -122,16 +124,20 @@ class SignalGenerator : public SignalGeneratorCommon
 
    void clearCachedLocations();
 
-
    bool expect_fake_signal;
 
 #if defined (os_linux)
    public:
+   bool attachToChild(int pid);
+   bool registerLWP(int lwpid) { return waitpid_mux.registerLWP(lwpid, this);}
+   bool unregisterLWP(int lwpid) { return waitpid_mux.unregisterLWP(lwpid, this);}
    bool add_lwp_to_poll_list(dyn_lwp *lwp);
    bool remove_lwp_from_poll_list(int lwp_id);
    bool resendSuppressedSignals();
    bool exists_dead_lwp();
+   bool forceWaitpidReturn() {waitpid_mux.forceWaitpidReturn(); return true;}
    private:
+   static WaitpidMux waitpid_mux;
    pdvector<int> suppressed_sigs;
    pdvector<dyn_lwp *> suppressed_lwps;
    //  SignalHandler::suppressSignalWhenStopping
@@ -144,27 +150,6 @@ class SignalGenerator : public SignalGeneratorCommon
    int find_dead_lwp();
    pid_t waitpid_kludge(pid_t, int *, int, int *);
    pdvector<int> attached_lwp_ids;
-
- public:
-   static int waitpid_demultiplex(SignalGenerator *me, int *status);
-
-   pdvector<waitpid_ret_pair> event_queue;
-   bool isInWaitpid;
-   bool isInWaitLock;
-   bool forcedExit;
-   static pdvector<waitpid_ret_pair> unassigned_events;
-   static pdvector<SignalGenerator *> first_timers;
-
-   static volatile int waiter_exists;
-   static pthread_cond_t waiter_condvar;
-   static pthread_mutex_t waiter_mutex;
-   static pdvector<pid_generator_pair_t> pidgens;
-   void addPidGen(int pid);
-   void removePidGen(int pid);
-   void removePidGen();
-   bool hasFirstTimer();
-   void forceWaitpidReturn();
-
 #endif
 
 };

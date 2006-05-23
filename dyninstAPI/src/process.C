@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.647 2006/05/22 04:45:22 jaw Exp $
+// $Id: process.C,v 1.648 2006/05/23 06:39:50 jaw Exp $
 
 #include <ctype.h>
 
@@ -1894,13 +1894,6 @@ void process::deleteProcess()
   vsyscall_end_ = 0;
   vsyscall_text_ = 0;
   vsyscall_data_ = 0;
-
-  //  if the sg is inside a waitpid(-1), tell it to shut down and kick it.
-  if (sh->isInWaitpid) {
-    fprintf(stderr, "%s[%d]:  FORCING SG SHUTDOWN\n", FILE__, __LINE__);
-    sh->stopThreadNextIter();
-    sh->forceWaitpidReturn();
-  }
 #endif
   
   set_status(deleted);

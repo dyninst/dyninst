@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.212 2006/05/22 04:45:23 jaw Exp $
+// $Id: unix.C,v 1.213 2006/05/23 06:39:50 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1700,11 +1700,6 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
       sync_event_breakpoint_addr(0),
       expect_fake_signal(false)
 {
-#if defined(os_linux)
-    isInWaitpid = false;
-    isInWaitLock = false;
-    forcedExit = false;
-#endif
 
     char buffer[128];
     sprintf(buffer, "/proc/%d", pid);
@@ -1805,9 +1800,6 @@ void SignalGenerator::clearCachedLocations()  {
 SignalGenerator::~SignalGenerator() 
 {
 #if defined(os_linux)
-    removePidGen();
-    //  if this SG is waiting, make it stop
-    fprintf(stderr, "%s[%d]:  SG DTOR:  forcing waitpid to stop\n", FILE__, __LINE__);
-    forceWaitpidReturn();
+   waitpid_mux.unregisterProcess(this);
 #endif
 }

@@ -182,6 +182,7 @@ class EventHandler : public InternalThread {
 
   public:
   void stopThreadNextIter() {stop_request = true;}
+  bool stopRequested() {return stop_request;}
   protected:
 
   //  initialize_event_handler is called before the main event handling

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.29 2006/05/10 16:56:13 jodom Exp $
+// $Id: linux.h,v 1.30 2006/05/23 06:39:50 jaw Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -54,6 +54,7 @@ class process;
 #define LINUX_PD_HDR
 
 #include <sys/param.h>
+#include <pthread.h>
 #include "common/h/Types.h"
 
 #if !defined( ia64_unknown_linux2_4 )
@@ -135,4 +136,56 @@ typedef struct maps_entries {
 } map_entries;
 
 #define INDEPENDENT_LWP_CONTROL true
+
+class SignalGenerator;
+class eventLock;
+
+class WaitpidMux {
+
+  typedef struct waitpid_ret_pair {
+     int pid;
+     int status;
+  } waitpid_ret_pair_t;
+
+  typedef struct pid_generator_pair {
+     int pid;
+     SignalGenerator *sg;
+  } pid_generator_pair_t;
+
+  public:
+   int waitpid(SignalGenerator *me, int *status);
+   
+   bool registerProcess(SignalGenerator *me); 
+   bool registerLWP(unsigned lwp_id, SignalGenerator *me);
+   bool unregisterLWP(unsigned lwp_id, SignalGenerator *me);
+   bool unregisterProcess(SignalGenerator *me);
+   void forceWaitpidReturn();
+
+   WaitpidMux() :
+     isInWaitpid(false),
+     isInWaitLock(false),
+     waitpid_thread_id(0L),
+     forcedExit(false),
+     waiter_exists(0)
+   {}
+
+  private:
+   pdvector< pdpair< SignalGenerator *, pdvector<waitpid_ret_pair> > > waitpid_results;
+   bool isInWaitpid;
+   bool isInWaitLock;
+   unsigned long waitpid_thread_id;
+   bool forcedExit;
+   pdvector<waitpid_ret_pair> unassigned_events;
+   pdvector<SignalGenerator *> first_timers;
+
+   volatile int waiter_exists;
+   static eventLock waiter_lock;
+   pdvector<pid_generator_pair_t> pidgens;
+   void addPidGen(int pid, SignalGenerator *sg);
+   void removePidGen(int pid, SignalGenerator *sg);
+   void removePidGen(SignalGenerator *sg);
+   bool hasFirstTimer(SignalGenerator *me);
+
+};
+
 #endif

@@ -1047,20 +1047,6 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
           ev.type = evtProcessInit; 
           ret = true;
        }
-
-#if 0 // PDSEP
-#if defined (os_windows)
-       if (proc->trapAtEntryPointOfMain(NULL, (Address)ev.info.u.Exception.ExceptionRecord.ExceptionAddress)) {
-          ev.type = evtProcessInit; 
-          ret = true;
-       }
-#else
-       if (proc->trapAtEntryPointOfMain(ev.lwp)) {
-          ev.type = evtProcessInit; 
-          ret = true;
-       }
-#endif
-#endif
        else {
 
          fprintf(stderr, "%s[%d]:  begun_bs, but no trap!!!!!\n", FILE__, __LINE__);
@@ -1163,6 +1149,9 @@ bool SignalGenerator::attachProcess()
       proc->stateWhenAttached_ = running;
     }
 
+#if defined (os_linux)
+   waitpid_mux.registerProcess(this);
+#endif
     if (!proc->attach()) {
       proc->set_status( detached);
       
@@ -1623,7 +1612,11 @@ bool SignalGeneratorCommon::initialize_event_handler()
           startup_printf("%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
           fprintf(stderr,"%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
 #if !defined(os_windows)
-          //P_kill(getPid(), SIGKILL);
+          P_kill(getPid(), SIGKILL);
+#if defined (os_linux)
+          int waitpid_status = 0;
+          waitpid(getPid(), &waitpid_status, 0);
+#endif
 #endif
           // cleanupBPatchHandle(theProc->sh->getPid());
           // processVec.pop_back();

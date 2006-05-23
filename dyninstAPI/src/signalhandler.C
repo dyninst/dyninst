@@ -349,7 +349,7 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
    }
 #endif
 #if defined(os_linux)
-   sg->removePidGen(lwp->get_lwp_id());
+   sg->unregisterLWP(lwp->get_lwp_id());
 #endif
    continueHint = true;
 

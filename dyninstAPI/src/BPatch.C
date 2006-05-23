@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.150 2006/05/17 04:12:55 legendre Exp $
+// $Id: BPatch.C,v 1.151 2006/05/23 06:39:49 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1570,7 +1570,7 @@ bool BPatch::waitForStatusChangeInt()
     clearNotificationFD();
     return false;
   }
-  eventType evt;
+  eventType evt = evtUndefined;
   do {
    pdvector<eventType> evts;
    //evts.push_back(evtProcessStop);

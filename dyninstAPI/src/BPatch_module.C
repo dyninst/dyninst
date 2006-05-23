@@ -632,15 +632,6 @@ void BPatch_module::parseTypes()
                 moduleTypes->clearNumberedTypes();
 	 } else {
               parseActive = false;
-#ifdef NOTDEF // PDSEP
-#if defined (os_aix)
-              if (mod->fileName() == "libdyninstAPI_RT.so.1") {
-                 if (moduleName[0] == 'R' && moduleName[1] == 'T')
-                   parseActive = true;
-              }
-              fprintf(stderr, "%s[%d]:  parse %s for %s\n", FILE__, __LINE__, parseActive ? "active" : "not active", moduleName);
-#endif
-#endif
 	 }
       }
 

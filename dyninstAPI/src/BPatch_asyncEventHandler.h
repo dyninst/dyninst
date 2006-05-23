@@ -166,15 +166,6 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
     unsigned int listen_port;
 #endif
 
-#if 0 // PDSEP
-#if defined (os_windows)
-    unsigned int listen_port;
-    unsigned long handler_thread;
-#else
-    pthread_t handler_thread;
-#endif
-#endif
-
     //  The rest:  Data in this class that is not exclusively set during init
     //   will have to be locked.  
     pdvector<process_record> process_fds;
