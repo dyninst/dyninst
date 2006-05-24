@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.12 2006/05/23 06:39:50 jaw Exp $
+/* $Id: signalgenerator-unix.h,v 1.13 2006/05/24 00:04:42 jaw Exp $
  */
 
 
@@ -136,6 +136,9 @@ class SignalGenerator : public SignalGeneratorCommon
    bool resendSuppressedSignals();
    bool exists_dead_lwp();
    bool forceWaitpidReturn() {waitpid_mux.forceWaitpidReturn(); return true;}
+   bool pauseAllWaitpid() { return waitpid_mux.suppressWaitpidActivity();}
+   bool resumeWaitpid() { return waitpid_mux.resumeWaitpidActivity();}
+
    private:
    static WaitpidMux waitpid_mux;
    pdvector<int> suppressed_sigs;

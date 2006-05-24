@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.30 2006/05/23 06:39:50 jaw Exp $
+// $Id: linux.h,v 1.31 2006/05/24 00:04:41 jaw Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -160,12 +160,15 @@ class WaitpidMux {
    bool unregisterLWP(unsigned lwp_id, SignalGenerator *me);
    bool unregisterProcess(SignalGenerator *me);
    void forceWaitpidReturn();
+   bool suppressWaitpidActivity();
+   bool resumeWaitpidActivity();
 
    WaitpidMux() :
      isInWaitpid(false),
      isInWaitLock(false),
      waitpid_thread_id(0L),
      forcedExit(false),
+     pause_flag(false),
      waiter_exists(0)
    {}
 
@@ -175,6 +178,7 @@ class WaitpidMux {
    bool isInWaitLock;
    unsigned long waitpid_thread_id;
    bool forcedExit;
+   bool pause_flag;
    pdvector<waitpid_ret_pair> unassigned_events;
    pdvector<SignalGenerator *> first_timers;
 

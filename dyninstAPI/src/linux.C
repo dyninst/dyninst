@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.235 2006/05/23 06:39:50 jaw Exp $
+// $Id: linux.C,v 1.236 2006/05/24 00:04:41 jaw Exp $
 
 #include <fstream>
 
@@ -2475,6 +2475,26 @@ void WaitpidMux::forceWaitpidReturn()
    waiter_lock._Unlock(FILE__, __LINE__);
 }
 
+bool WaitpidMux::suppressWaitpidActivity()
+{     
+   waiter_lock._Lock(FILE__, __LINE__);
+   pause_flag = true;
+   if (waiter_exists) {
+      kickWaitpider(waiter_exists);
+   }
+   waiter_lock._Unlock(FILE__, __LINE__);
+  return true;           
+}
+
+bool WaitpidMux::resumeWaitpidActivity()
+{     
+   waiter_lock._Lock(FILE__, __LINE__);
+   pause_flag = false;
+   waiter_lock._Broadcast(FILE__, __LINE__);
+   waiter_lock._Unlock(FILE__, __LINE__);
+   return true;
+}        
+
 int WaitpidMux::waitpid(SignalGenerator *me, int *status)
 {   
    int result;
@@ -2569,8 +2589,18 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
 
       isInWaitpid = true;
       waitpid_thread_id = me->getThreadID();
+
+      // Now everyone thinks we're doing waitpid, that's good because it means they
+      // won't try...  but before we really do waitpid(), need to make sure that 
+      // some other part of the system doesn't want us to:
+      while (pause_flag) {
+        waiter_lock._WaitForSignal(FILE__, __LINE__);
+      }
+
       waiter_lock._Unlock(FILE__, __LINE__);
+
       result = ::waitpid(-1, status, options);
+
       waiter_lock._Lock(FILE__, __LINE__);
       isInWaitpid = false;
       waitpid_thread_id = 0;

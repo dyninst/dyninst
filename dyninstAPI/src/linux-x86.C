@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.106 2006/05/23 22:31:15 cooksey Exp $
+// $Id: linux-x86.C,v 1.107 2006/05/24 00:04:41 jaw Exp $
 
 #include <fstream>
 
@@ -75,6 +75,7 @@
 #include "dyninstAPI/src/InstrucIter.h"
 
 #include "dyninstAPI/src/mapped_object.h" 
+#include "dyninstAPI/src/signalgenerator.h" 
 
 #ifndef BPATCH_LIBRARY
 #include "common/h/Time.h"
@@ -633,9 +634,13 @@ bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath,
 	//fprintf(stderr, "%s[%d]: RUNNING COMMAND: %s\n", FILE__, __LINE__, command);
 
 	//cp originalLibNameFullPath newLibName
+        fprintf(stderr, "%s[%d]:  suppressing waitpids\n", FILE__, __LINE__);
+        sh->pauseAllWaitpid(); 
 	system(command);
 	delete [] command;
 
+        fprintf(stderr, "%s[%d]:  resuming waitpids\n", FILE__, __LINE__);
+        sh->resumeWaitpid(); 
 	if(systemPrelinkCommand){
 		char *prelinkCommand = new char[strlen(systemPrelinkCommand) + 65+strlen(newLibName) ];
 		memset(prelinkCommand, '\0', strlen(systemPrelinkCommand) + 64+strlen(newLibName) );
@@ -645,8 +650,12 @@ bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath,
               (unsigned) baseAddr, newLibName);
 
 	        //fprintf(stderr, "%s[%d]: RUNNING COMMAND: %s\n", FILE__, __LINE__, prelinkCommand);
+               fprintf(stderr, "%s[%d]:  suppressing waitpids\n", FILE__, __LINE__);
+                sh->pauseAllWaitpid(); 
 		system(prelinkCommand);
 		delete [] prelinkCommand;
+                fprintf(stderr, "%s[%d]:  resuming waitpids\n", FILE__, __LINE__);
+                sh->resumeWaitpid(); 
 	}
 	res = true;
 
