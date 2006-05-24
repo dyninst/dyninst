@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.169 2006/05/16 19:50:35 tlmiller Exp $
+ * $Id: DMdaemon.C,v 1.170 2006/05/24 20:43:12 mjbrim Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -3272,10 +3272,6 @@ void printSampleArrivalCallback(bool newVal) {
 void paradynDaemon::batchSampleDataCallbackFunc(MRN::Stream *, int ,
 																								pdvector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer)
 {
-
-    our_print_sample_arrival = true;
-
-
     sampleVal_cerr << "batchSampleDataCallbackFunc(), burst size: " 
                    << theBatchBuffer.size() << "   earliestFirstTime: " 
                    << getEarliestStartTime() << "\n";
