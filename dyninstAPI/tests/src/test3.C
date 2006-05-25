@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.44 2006/05/03 00:31:24 jodom Exp $
+// $Id: test3.C,v 1.45 2006/05/25 12:47:39 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -85,7 +85,7 @@ const unsigned int MAX_MUTATEES = 32;
 unsigned int Mutatees=3;
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 5;
+const unsigned int MAX_TEST = 6;
 bool passedTest[MAX_TEST+1];
 
 template class BPatch_Vector<BPatch_variableExpr*>;
@@ -705,6 +705,108 @@ void mutatorTest5(char *pathname, BPatch *bpatch)
     passedTest[5] = true;
 }
 
+//
+// Start Test Case #6 - attach processes and process events from each
+//     Just let them run a while, then kill them, no instrumentation added.
+//
+int forkNewMutatee(const char *filename, const char *child_argv[])
+{
+  int pid;
+  static int pgid = 0;
+  pid = fork();
+  if (pid == 0) {
+    // child, do exec
+    dprintf("%s[%d]:  before exec in new mutatee %s, pgid = %d\n", __FILE__, __LINE__, filename, getpgid(0));
+
+    //  sanity check, make sure that all forked processes have the same process group id
+    if (!pgid) pgid = getpgid(0);
+    else if (pgid != getpgid(0)) {
+       fprintf(stderr, "%s[%d]:  Something is broken with the test -- all forked processes should belong to the same group\n", __FILE__, __LINE__);
+       abort();
+    }
+
+    execv (filename, (char * const *)child_argv);
+    //  if we get here, error
+    fprintf(stderr, "%s[%d]:  exec failed: %s\n", __FILE__, __LINE__, strerror(errno));
+    exit (-1);
+  }
+  else if (pid < 0) {
+    //  fork error, fail test
+    fprintf(stderr, "%s[%d]:  fork failed: %s\n", __FILE__, __LINE__, strerror(errno));
+    return -1;
+  }
+  
+  return pid;
+}
+
+void mutatorTest6(char *pathname, BPatch *bpatch)
+{
+    unsigned int n=0;
+    int pids[Mutatees];
+    const char *child_argv[5];
+    child_argv[n++] = pathname;
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("1");       // use -run 1, it just spins, ok for our purpose
+    child_argv[n++] = NULL;
+
+    BPatch_thread *appThread[MAX_MUTATEES];
+
+    for (n=0; n<MAX_MUTATEES; n++) appThread[n]=NULL;
+
+    // Start the mutatees
+    for (n=0; n<Mutatees; n++) {
+      pids[n] = forkNewMutatee(pathname, child_argv);
+      if (pids[n] < 0) {
+         fprintf(stderr, "%s[%d]:  failed to fork/exec\n", __FILE__, __LINE__);
+         abort();
+      }
+    }
+
+    P_sleep(2);
+    //  Attach to them
+    for (n=0; n<Mutatees; n++) {
+        dprintf("Attaching \"%s\" %d/%d\n", pathname, n, Mutatees);
+        appThread[n] = bpatch->attachProcess(pathname, pids[n]);
+        if (!appThread[n]) {
+            printf("*ERROR*: unable to create handle%d for executable\n", n);
+            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            MopUpMutatees(n-1,appThread);
+            return;
+        }
+        dprintf("Mutatee %d attached, pid=%d\n", n, appThread[n]->getPid());
+    }
+
+    dprintf("Letting mutatee processes run a short while (5s).\n");
+    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
+
+    P_sleep(5);
+    dprintf("Terminating mutatee processes.\n");
+
+    unsigned int numTerminated=0;
+    for (n=0; n<Mutatees; n++) {
+        bool dead = appThread[n]->terminateExecution();
+        if (!dead || !(appThread[n]->isTerminated())) {
+            printf("**Failed** test #6 (simultaneous multiple-process management - attach terminate)\n");
+            printf("    mutatee process [%d] was not terminated\n", n);
+            continue;
+        }
+        if(appThread[n]->terminationStatus() != ExitedViaSignal) {
+            printf("**Failed** test #6 (simultaneous multiple-process management - attach terminate)\n");
+            printf("    mutatee process [%d] didn't get notice of termination\n", n);
+            continue;
+        }
+        int signalNum = appThread[n]->getExitSignal();
+        dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
+        numTerminated++;
+	delete appThread[n];
+    }
+
+    if (numTerminated == Mutatees) {
+	printf("Passed Test #6 (simultaneous multiple-process management - attach terminate)\n");
+	passedTest[6] = true;
+    }
+}
 int main(unsigned int argc, char *argv[])
 {
     bool ABI_32=false;
@@ -870,6 +972,7 @@ int main(unsigned int argc, char *argv[])
     if (runTest[3]) mutatorTest3(mutateeName, bpatch);
     if (runTest[4]) mutatorTest4(mutateeName, bpatch);
     if (runTest[5]) mutatorTest5(mutateeName, bpatch);
+    if (runTest[6]) mutatorTest6(mutateeName, bpatch);
 
     unsigned int testsFailed = 0;
     for (i=1; i <= MAX_TEST; i++) {

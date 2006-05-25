@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test10.C,v 1.8 2006/05/03 00:31:23 jodom Exp $
+// $Id: test10.C,v 1.9 2006/05/25 12:47:39 jaw Exp $
 //
 // libdyninst validation suite test #10
 //    Author: Jeff Hollingsworth Williams (14 aug 2003) 
@@ -225,7 +225,12 @@ void instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, c
   BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
   
   dprintf("Inserted snippet2\n");
-  appThread->insertSnippet(call1Expr, *point1_1);
+  if (!appThread->insertSnippet(call1Expr, *point1_1)) {
+    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+    fprintf(stderr, "    Unable to insert call to %s\n", patch);
+    exit(1);
+
+  }
 
 }
 
