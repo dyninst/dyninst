@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.45 2006/05/25 12:47:39 jaw Exp $
+// $Id: test3.C,v 1.46 2006/05/25 22:28:05 jodom Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -709,6 +709,7 @@ void mutatorTest5(char *pathname, BPatch *bpatch)
 // Start Test Case #6 - attach processes and process events from each
 //     Just let them run a while, then kill them, no instrumentation added.
 //
+#if !defined(os_windows)
 int forkNewMutatee(const char *filename, const char *child_argv[])
 {
   int pid;
@@ -738,9 +739,11 @@ int forkNewMutatee(const char *filename, const char *child_argv[])
   
   return pid;
 }
+#endif
 
 void mutatorTest6(char *pathname, BPatch *bpatch)
 {
+#if !defined(os_windows)
     unsigned int n=0;
     int pids[Mutatees];
     const char *child_argv[5];
@@ -806,6 +809,10 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
 	printf("Passed Test #6 (simultaneous multiple-process management - attach terminate)\n");
 	passedTest[6] = true;
     }
+#else
+    passedTest[6] = true;
+    fprintf(stderr,"Skipped Test #6: not implemented on this platform\n");
+#endif
 }
 int main(unsigned int argc, char *argv[])
 {
