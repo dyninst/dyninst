@@ -1171,8 +1171,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
             jumpStart = *((Address *)jumpStartPtr);
         //fprintf(stderr, "jumpStart 0x%x, initialAddr 0x%x\n",
         //jumpStart, initialAddress);
-        if (jumpStartPtr == NULL ||
-            (jumpStart != (initialAddress+instruction::size()))) {
+        if (jumpStartPtr == NULL) {
             setCurrentAddress(initialAddress);
             return false;
         }
