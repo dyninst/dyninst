@@ -1043,7 +1043,7 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
         ret = true;
         break;
     case begun_bs:
-       if (proc->trapAtEntryPointOfMain(ev.lwp, INFO_TO_ADDRESS(ev.info))) {
+       if (proc->trapAtEntryPointOfMain(ev.lwp, (Address) INFO_TO_ADDRESS(ev.info))) {
           ev.type = evtProcessInit; 
           ret = true;
        }

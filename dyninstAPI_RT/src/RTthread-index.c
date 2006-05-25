@@ -66,7 +66,7 @@ static int num_deleted;
 
 DLLEXPORT int DYNINSTthreadCount() { return (DYNINST_max_num_threads - num_free); }
 
-dyntid_t DYNINST_getThreadFromIndex(int index)
+dyntid_t DYNINST_getThreadFromIndex(unsigned index)
 {
     return (dyntid_t) DYNINST_thread_structs[index].tid;
 }

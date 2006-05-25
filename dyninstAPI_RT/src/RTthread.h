@@ -53,7 +53,7 @@ unsigned DYNINSTthreadIndexFAST();
 unsigned DYNINSTthreadIndexSLOW();
 int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev);
 
-dyntid_t DYNINST_getThreadFromIndex(int index);
+dyntid_t DYNINST_getThreadFromIndex(unsigned index);
 unsigned DYNINST_alloc_index(dyntid_t tid);
 int DYNINST_free_index(dyntid_t tid);
 void DYNINST_initialize_index_list();

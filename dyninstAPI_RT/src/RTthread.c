@@ -67,7 +67,7 @@ void setNewthrCB(void (*cb)(int)) {
 int DYNINSTthreadIndex()
 {
    dyntid_t tid;
-   int curr_index;
+   unsigned curr_index;
 
    rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
    if (!DYNINSThasInitialized) 
@@ -82,8 +82,8 @@ int DYNINSTthreadIndex()
    }
 
    curr_index = DYNINSTthreadIndexFAST();
-   if ((curr_index >= 0) && (curr_index < DYNINST_max_num_threads) &&
-       (DYNINST_getThreadFromIndex(curr_index) == tid))
+   if (curr_index < DYNINST_max_num_threads &&
+       DYNINST_getThreadFromIndex(curr_index) == tid)
    {
        rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): index exists already, returning %d\n", __FILE__, __LINE__, curr_index);
        return curr_index;

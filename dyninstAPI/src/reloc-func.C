@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.23 2006/05/25 20:23:04 bernat Exp $
+// $Id: reloc-func.C,v 1.24 2006/05/25 22:33:13 jodom Exp $
 
 
 
@@ -474,7 +474,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    assert(origInstance());
    // First, build the insns vector
 
-   for (unsigned i = 0; i < relocs().size(); i++) {
+   for (i = 0; i < relocs().size(); i++) {
      delete relocs()[i];
    }
 
