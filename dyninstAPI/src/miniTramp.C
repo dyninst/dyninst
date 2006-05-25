@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.25 2006/05/18 23:23:22 bernat Exp $
+// $Id: miniTramp.C,v 1.26 2006/05/25 20:11:43 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -349,17 +349,14 @@ bool miniTrampInstance::installCode() {
 
     }
 #endif
-    bool err = false;
-    trampBase = mini->proc()->inferiorMalloc(mini->size_, htype, nearAddr, &err);
+    trampBase = mini->proc()->inferiorMalloc(mini->size_, htype, nearAddr);
 
-    if (err) {
-        cerr << "inst.C: failed allocation" << endl;
-        return false;
-    }
     if (!proc()->writeTextSpace((void *)trampBase,
                                 mini->miniTrampCode_.used(),
-                                (void *)mini->miniTrampCode_.start_ptr()))
-        return false;
+                                (void *)mini->miniTrampCode_.start_ptr())) {
+      trampBase = 0;
+      return false;
+    }
 
 #if defined( cap_unwind )
 	/* TODO: Minitramps don't change the unwind state of the program (except
@@ -409,7 +406,11 @@ bool miniTrampInstance::installCode() {
 
     miniTrampDynamicInfo->u.pi.regions = aliasRegion;
     bool status = mini->proc()->insertAndRegisterDynamicUnwindInformation( miniTrampDynamicInfo );
-	if( ! status ) { return false; }
+	if( ! status ) { 
+	  trampBase = 0;
+	  
+	  return false; 
+	}
 
 	free( trampRegion );
     free( aliasRegion );
