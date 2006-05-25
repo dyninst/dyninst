@@ -64,6 +64,26 @@ call35_1:
 	pushq	%rbp
 .LCFI2:
 	movq	%rsp, %rbp
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 .LCFI3:
 .ForceRelocation:
 	subq	$16, %rsp
