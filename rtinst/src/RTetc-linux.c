@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.34 2006/05/22 14:59:34 tlmiller Exp $ */
+/* $Id: RTetc-linux.c,v 1.35 2006/05/25 22:47:01 mjbrim Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -295,7 +295,7 @@ rawTime64 use_times() {
 
 /* Private refactoring function, should be inline. */
 rawTime64 use_proc_task_stat( int fd ) {
-	char procStat[1024], * strPtr;
+	char procStat[1024], * strPtr, *strPtr2;
 	int j, numSpaces, status;
 	unsigned long utime = (unsigned long)-1, stime = (unsigned long)-1;
 
@@ -315,16 +315,16 @@ rawTime64 use_proc_task_stat( int fd ) {
 
 		/* Magic constant.  See 'man proc'. */
 		if( numSpaces == 13 ) {
-			/* We could repeat utime (and get the stime value)
-			   if we don't do stime and break the loop right away. */
-			utime = strtol( & procStat[j + 1], & strPtr, 10 );
-			assert( errno == 0 );
-			stime = strtol( strPtr, NULL, 10 );
-			assert( errno == 0 );
+			/* We could repeat utime (and get the stime value) if
+			   we don't do stime and break the loop right away. */
+                        utime = strtol( & procStat[j + 1], & strPtr, 10 );
+			assert( &procStat[j+1] != strPtr );
+			stime = strtol( strPtr, &strPtr2, 10 );
+			assert( strPtr != strPtr2 );
 			break;
 			}
 		}
-	assert( j != numSpaces );
+	assert( j != status );
 #endif /* defined( SLOW_BUT_STEADY ) */
 
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: proc//task//stat: utime %lu + stime %lu = cpu time %lu\n", __FILE__, __LINE__, utime, stime, utime + stime );
