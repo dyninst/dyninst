@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.19 2006/04/21 18:56:55 nater Exp $
+// $Id: image-func.h,v 1.20 2006/05/25 20:11:45 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -139,6 +139,9 @@ class image_basicBlock : public codeRange {
     
     bool isEntryBlock(image_func * f) const;
     bool isExitBlock() const { return isExitBlock_; }
+
+    // Reverse if isEntryBlock; if we're the entry for a function return it.
+    image_func *getEntryFunc() const;
 
     bool isShared() const { return isShared_; }
 

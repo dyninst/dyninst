@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.34 2006/05/18 23:23:21 bernat Exp $
+// $Id: image-func.C,v 1.35 2006/05/25 20:11:44 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -1224,6 +1224,14 @@ bool image_basicBlock::isEntryBlock(image_func * f) const
 
     return false;
 } 
+
+image_func *image_basicBlock::getEntryFunc() const {
+  for (unsigned i = 0; i < funcs_.size(); i++) {
+    if (funcs_[i]->entryBlock() == this)
+      return funcs_[i];
+  }
+  return NULL;
+}
 
 void image_basicBlock::getFuncs(pdvector<image_func *> &funcs) const
 {
