@@ -136,7 +136,7 @@
 				RelativePath=".\src\test6.mutatee.c">
 			</File>
 			<File
-				RelativePath=".\src\test6LS-x86.asm">
+				RelativePath=".\src\test6LS-masm.asm">
 			</File>
 			<File
 				RelativePath=".\src\test7.C">

@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.17 2005/02/09 03:27:48 jaw Exp $
+# $Id: Makefile,v 1.18 2006/05/25 22:27:50 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -41,7 +41,7 @@ LDFLAGS = -nologo -debug -pdb:none
 MUTATEE_OBJ=$(MUTATEE_ASM:.asm=.obj)
 MUTATEE_LST=$(MUTATEE_ASM:.asm=.lst)
 $(MUTATEE_OBJ): ../src/$(MUTATEE_ASM)
-	$(NASM) -o $(MUTATEE_OBJ) -l $(MUTATEE_LST) -fwin32 -dPLATFORM=$(PLATFORM) ../src/$(MUTATEE_ASM)
+	ml -nologo -Fo$(MUTATEE_OBJ) -Fl$(MUTATEE_LST) -c ../src/$(MUTATEE_ASM)
 $(TARGET2): ../src/$(TARGET2:_VC.exe=.c) $(MUTATEE_OBJ) 
 	cl -TC $(MUTATEE_CFLAGS) ../src/$(TARGET2:_VC.exe=.c) \
 		-o $(TARGET2) -link $(LDFLAGS) $(MUTATEE_OBJ)
