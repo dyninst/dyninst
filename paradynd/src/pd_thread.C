@@ -234,7 +234,11 @@ bool pd_thread::walkStack(BPatch_Vector<BPatch_frame> &stackWalk)
 
 bool pd_thread::walkStack_ll(pdvector<Frame> &stackWalk)
 {
-    if (savedStack_.size()) {
+    if (savedStackRefCount_) {
+        fprintf(stderr, "Returning saved stack (%d frames) on thread %d, refcount %d\n",
+                savedStack_.size(),
+                dyninst_thread->ll_thread()->get_tid(), 
+                savedStackRefCount_);
         stackWalk = savedStack_;
         return true;
     }
@@ -244,6 +248,10 @@ bool pd_thread::walkStack_ll(pdvector<Frame> &stackWalk)
 bool pd_thread::saveStack(pdvector<Frame> &stackToSave) {
         
     savedStackRefCount_++;
+
+    fprintf(stderr, "Saving stack with %d frames on thread %d, ref count %d\n", 
+            stackToSave.size(), dyninst_thread->ll_thread()->get_tid(), savedStackRefCount_);
+
     if (pd_debug_catchup)
         fprintf(stderr, "Saving stack for thread %d: ref count %d\n",
                 get_tid(), savedStackRefCount_);
@@ -274,12 +282,16 @@ bool pd_thread::saveStack(pdvector<Frame> &stackToSave) {
 bool pd_thread::clearSavedStack() {
     // Refcount...
 
+    assert(savedStackRefCount_ > 0);
+    savedStackRefCount_--;
+
+    fprintf(stderr, "Clearing stack on thread %d, ref count %d\n", 
+            dyninst_thread->ll_thread()->get_tid(), savedStackRefCount_);
+
     if (pd_debug_catchup)
         fprintf(stderr, "Clearing stack for thread %d: ref count %d\n",
                 get_tid(), savedStackRefCount_);
 
-    assert(savedStackRefCount_ > 0);
-    savedStackRefCount_--;
 
     if (savedStackRefCount_ == 0) {
         savedStack_.clear();
