@@ -39,14 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.22 2006/05/25 20:11:40 bernat Exp $
+// $Id: reloc-func.C,v 1.23 2006/05/25 20:23:04 bernat Exp $
 
-// We'll also try to limit this to relocation-capable platforms
-// in the Makefile. Just in case, though....
+
 
 #include "common/h/Types.h"
 #include "function.h"
-#include "reloc-func.h"
 #include "process.h"
 #include "showerror.h"
 #include "codeRange.h"
@@ -58,7 +56,11 @@
 class int_basicBlock;
 class instruction;
 
+// We'll also try to limit this to relocation-capable platforms
+// in the Makefile. Just in case, though....
 #if defined(cap_relocation)
+#include "reloc-func.h"
+
 
 
 // And happy fun time. Relocate a function: make a physical copy somewhere else
@@ -672,6 +674,38 @@ bool bblInstance::link(pdvector<codeRange *> &overwrittenObjs) {
     return jumpToBlock()->linkFuncRep(overwrittenObjs);
 }
 
+bool enlargeBlock::modifyBBL(int_basicBlock *block,
+                             pdvector<bblInstance::reloc_info_t::relocInsn *> &,
+                             unsigned &size)
+{
+    if (block == targetBlock_) {
+        if (targetSize_ == (unsigned) -1) {
+            return true;
+        }
+
+        if (size < targetSize_) {
+            size = targetSize_;
+        }
+
+        return true;
+    }
+    return false;
+}
+
+bool enlargeBlock::update(int_basicBlock *block,
+                          pdvector<bblInstance::reloc_info_t::relocInsn *> &,
+                          unsigned size) {
+    if (block == targetBlock_) {
+        if (size == (unsigned) -1) {
+            // Nothing we can do about it, we're just fudging...
+            return true;
+        }
+        targetSize_ = (targetSize_ > size) ? targetSize_ : size;
+        return true;
+    }
+    return false;
+}
+
 
 #endif // cap_relocation
 
@@ -885,37 +919,6 @@ bool functionReplacement::linkFuncRep(pdvector<codeRange *> &overwrittenObjs) {
         return false;
 }
 
-bool enlargeBlock::modifyBBL(int_basicBlock *block,
-                             pdvector<bblInstance::reloc_info_t::relocInsn *> &,
-                             unsigned &size)
-{
-    if (block == targetBlock_) {
-        if (targetSize_ == (unsigned) -1) {
-            return true;
-        }
-
-        if (size < targetSize_) {
-            size = targetSize_;
-        }
-
-        return true;
-    }
-    return false;
-}
-
-bool enlargeBlock::update(int_basicBlock *block,
-                          pdvector<bblInstance::reloc_info_t::relocInsn *> &,
-                          unsigned size) {
-    if (block == targetBlock_) {
-        if (size == (unsigned) -1) {
-            // Nothing we can do about it, we're just fudging...
-            return true;
-        }
-        targetSize_ = (targetSize_ > size) ? targetSize_ : size;
-        return true;
-    }
-    return false;
-}
 
 // If we're an entry block, we need a jump (to catch the
 // entry point). Also true if we are the target of an indirect jump.
@@ -934,3 +937,4 @@ bool int_basicBlock::needsJumpToNewVersion() {
     return false;
 }
     
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.47 2006/05/25 20:11:38 bernat Exp $
+// $Id: multiTramp.C,v 1.48 2006/05/25 20:23:04 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -359,7 +359,10 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
     // We're in a relocated function, but want to use the original instruction
     // representations (with new targets and sizes. Oy.)
 
+    bool done = false;
+#if defined(cap_relocation)
     if (bbl->version() > 0) {
+        done = true;
       // Relocated!
       
       // We assert that we're going over the entire block. This is okay, as the only
@@ -390,7 +393,9 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
         prev = reloc;
       }
     }
-    else {
+#endif
+    if (!done) {
+
       for (InstrucIter insnIter(startAddr, size, proc);
 	   insnIter.hasMore(); 
 	   insnIter++) {
