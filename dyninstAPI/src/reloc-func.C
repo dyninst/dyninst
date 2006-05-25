@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.21 2006/05/18 23:23:24 bernat Exp $
+// $Id: reloc-func.C,v 1.22 2006/05/25 20:11:40 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -242,6 +242,7 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
 }
 
 bool int_function::relocationInstall() {
+
     // Okay, we now have a new copy of the function. Go through 
     // the version to be replaced, and replace each basic block
     // with a "jump to new basic block" combo.
@@ -298,6 +299,7 @@ bool int_function::relocationCheck(pdvector<Address> &checkPCs) {
         
 
 bool int_function::relocationLink(pdvector<codeRange *> &overwritten_objs) {
+
     unsigned i;
 
     if (linkedVersion_ == installedVersion_) {
@@ -427,7 +429,7 @@ bool int_function::expandForInstrumentation() {
         if (bblI->getSize() < multi->sizeDesired()) {
             reloc_printf("Enlarging basic block %d\n",
                          i);
-            pdvector<instruction *> whocares;
+            pdvector<bblInstance::reloc_info_t::relocInsn *> whocares;
             bool found = false;
             // Check to see if there's already a request for it...
             for (unsigned j = 0; j < enlargeMods_.size(); j++) {
@@ -456,7 +458,6 @@ bool int_function::expandForInstrumentation() {
 // relocatedInstructions... ah, well :)
 unsigned bblInstance::sizeRequired() {
     assert(getMaxSize());
-    assert(getInsns().size());
     return getMaxSize();
 }
 
@@ -470,33 +471,50 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    origInstance() = orig;
    assert(origInstance());
    // First, build the insns vector
-   insns().clear();
+
+   for (unsigned i = 0; i < relocs().size(); i++) {
+     delete relocs()[i];
+   }
+
+   relocs().clear();
+
    // Keep a running count of how big things are...
    maxSize() = 0;
    InstrucIter insnIter(orig);
    while (insnIter.hasMore()) {
-      instruction *insnPtr = insnIter.getInsnPtr();
-      assert(insnPtr);
-      insns().push_back(insnPtr);
-      maxSize() += insnPtr->spaceToRelocate();
-      insnIter++;
+     instruction *insnPtr = insnIter.getInsnPtr();
+     assert(insnPtr);
+     reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+
+     reloc->origAddr = *insnIter;
+     reloc->relocAddr = 0;
+     reloc->origInsn = insnPtr;
+     reloc->origPtr = insnPtr->ptr();
+     reloc->relocTarget = 0;
+     reloc->relocSize = 0;
+
+     relocs().push_back(reloc);
+
+     maxSize() += insnPtr->spaceToRelocate();
+     insnIter++;
    }
 
    // Apply any hanging-around relocations from our previous instance
     for (i = 0; i < orig->appliedMods().size(); i++) {
-        if (orig->appliedMods()[i]->modifyBBL(block_, insns(), maxSize())) {
-            appliedMods().push_back(orig->appliedMods()[i]);
-        }
+      if (orig->appliedMods()[i]->modifyBBL(block_, relocs(), maxSize())) {
+	appliedMods().push_back(orig->appliedMods()[i]);
+      }
     }
 
     // So now we have a rough size and a list of insns. See if any of
     // those mods want to play.
     for (i = 0; i < mods.size(); i++) {
-        if (mods[i]->modifyBBL(block_, insns(), maxSize())) {
+        if (mods[i]->modifyBBL(block_, relocs(), maxSize())) {
             // Store for possible further relocations.
             appliedMods().push_back(mods[i]);
         }
     }
+
     return true;
 }
 
@@ -513,7 +531,7 @@ void bblInstance::setStartAddr(Address addr) {
 
 bool bblInstance::generate() {
     assert(firstInsnAddr_);
-    assert(insns().size());
+    assert(relocs().size());
     assert(maxSize());
     assert(block_);
     assert(origInstance());
@@ -522,82 +540,92 @@ bool bblInstance::generate() {
     generatedBlock().allocate(maxSize());
 
     Address origAddr = origInstance()->firstInsnAddr();
-    for (i = 0; i < insns().size(); i++) {
-        Address currAddr = generatedBlock().currAddr(firstInsnAddr_);
-        Address fallthroughOverride = 0;
-        Address targetOverride = 0;
-        if (i == (insns().size()-1)) {
-            // Check to see if we need to fix up the target....
-            pdvector<int_basicBlock *> targets;
-            block_->getTargets(targets);
-            if (targets.size() > 2) {
-                // Multiple jump... we can't handle this yet
-                fprintf(stderr, "ERROR: attempt to relocate function %s with indirect jump!\n",
-                        block_->func()->symTabName().c_str());
-                       
-                return false;
-            }
-            // We have edge types on the internal data, so we drop down and get that. 
-            // We want to find the "branch taken" edge and override the destination
-            // address for that guy.
-            pdvector<image_edge *> out_edges;
-            block_->llb()->getTargets(out_edges);
+    for (i = 0; i < relocs().size(); i++) {
+      Address currAddr = generatedBlock().currAddr(firstInsnAddr_);
+      relocs()[i]->relocAddr = currAddr;
+      Address fallthroughOverride = 0;
+      Address targetOverride = 0;
+      if (i == (relocs().size()-1)) {
+	// Check to see if we need to fix up the target....
+	pdvector<int_basicBlock *> targets;
+	block_->getTargets(targets);
+	if (targets.size() > 2) {
+	  // Multiple jump... we can't handle this yet
+	  fprintf(stderr, "ERROR: attempt to relocate function %s with indirect jump!\n",
+		  block_->func()->symTabName().c_str());
+	  
+	  return false;
+	}
+	// We have edge types on the internal data, so we drop down and get that. 
+	// We want to find the "branch taken" edge and override the destination
+	// address for that guy.
+	pdvector<image_edge *> out_edges;
+	block_->llb()->getTargets(out_edges);
+	
+	// May be greater; we add "extra" edges for things like function calls, etc.
+	assert (out_edges.size() >= targets.size());
+	
+	int_basicBlock *hlTarget = NULL;
+	
+	for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
+	  EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
+	  // Update to Nate's commit...
+	  if ((edgeType == ET_COND_TAKEN) ||
+	      (edgeType == ET_DIRECT)) {
+	    // Got the right edge... now find the matching high-level
+	    // basic block
+	    image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
+	    for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
+	      // Should be the same index, but this is a small set...
+	      if (targets[t_iter]->llb() == llTarget)
+		hlTarget = targets[t_iter];
+	    }
+	    assert(hlTarget != NULL);
+	    break;
+	  }
+	}
+	if (hlTarget != NULL) {
+	  // Remap its destination
+	  // This is a jump target; get the start addr for the
+	  // new block.
+	  assert(targetOverride == 0);
+	  targetOverride = hlTarget->instVer(version_)->firstInsnAddr();
+	  reloc_printf("... found jmp target 0x%lx->0x%lx, now to 0x%lx\n",
+		       origInstance()->endAddr(),
+		       hlTarget->origInstance()->firstInsnAddr(),
+		       targetOverride);
+	}
+      }
+      reloc_printf("... generating insn %d, orig addr 0x%lx, new addr 0x%lx, " 
+		   "fallthrough 0x%lx, target 0x%lx\n",
+		   i, origAddr, currAddr, fallthroughOverride, targetOverride);
+      unsigned usedBefore = generatedBlock().used();
+      relocs()[i]->origInsn->generate(generatedBlock(),
+				      proc(),
+				      origAddr,
+				      currAddr,
+				      fallthroughOverride,
+				      targetOverride); // targetOverride
 
-            // May be greater; we add "extra" edges for things like function calls, etc.
-            assert (out_edges.size() >= targets.size());
+      relocs()[i]->relocTarget = targetOverride;
+      
+      // And set the remaining bbl variables correctly
+      // This may be overwritten multiple times, but will end
+      // correct.
+      lastInsnAddr_ = currAddr;
 
-            int_basicBlock *hlTarget = NULL;
-
-            for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
-                EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
-                // Update to Nate's commit...
-                if ((edgeType == ET_COND_TAKEN) ||
-                    (edgeType == ET_DIRECT)) {
-                    // Got the right edge... now find the matching high-level
-                    // basic block
-                    image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
-                    for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
-                        // Should be the same index, but this is a small set...
-                        if (targets[t_iter]->llb() == llTarget)
-                            hlTarget = targets[t_iter];
-                    }
-                    assert(hlTarget != NULL);
-                    break;
-                }
-            }
-            if (hlTarget != NULL) {
-                // Remap its destination
-                // This is a jump target; get the start addr for the
-                // new block.
-                assert(targetOverride == 0);
-                targetOverride = hlTarget->instVer(version_)->firstInsnAddr();
-                reloc_printf("... found jmp target 0x%lx->0x%lx, now to 0x%lx\n",
-                             origInstance()->endAddr(),
-                             hlTarget->origInstance()->firstInsnAddr(),
-                             targetOverride);
-            }
-        }
-        reloc_printf("... generating insn %d, orig addr 0x%lx, new addr 0x%lx, " 
-                     "fallthrough 0x%lx, target 0x%lx\n",
-                     i, origAddr, currAddr, fallthroughOverride, targetOverride);
-        insns()[i]->generate(generatedBlock(),
-                             proc(),
-                             origAddr,
-                             currAddr,
-                             fallthroughOverride,
-                             targetOverride); // targetOverride
-
-        // And set the remaining bbl variables correctly
-        // This may be overwritten multiple times, but will end
-        // correct.
-        lastInsnAddr_ = currAddr;
-
-        changedAddrs()[origAddr] = currAddr;
-        origAddr += insns()[i]->size();
+      relocs()[i]->relocSize = generatedBlock().used() - usedBefore;
+      
+      origAddr += relocs()[i]->origInsn->size();
     }
+
+
     generatedBlock().fillRemaining(codeGen::cgNOP);
 
+
     blockEndAddr_ = firstInsnAddr_ + maxSize();
+
+    relocs().back()->relocSize = blockEndAddr_ - lastInsnAddr_;
     
     // Post conditions
     assert(firstInsnAddr_);
@@ -723,7 +751,12 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
     assert(targetInst);
 
     jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize());
-    reloc_printf("******* generating interFunctionJump...\n");
+    reloc_printf("******* generating interFunctionJump from 0x%lx (%d) to 0x%lx (%d)\n",
+		 sourceInst->firstInsnAddr(),
+		 sourceVersion_,
+		 targetInst->firstInsnAddr(),
+		 targetVersion_);
+
     instruction::generateInterFunctionBranch(jumpToRelocated,
                                              sourceInst->firstInsnAddr(),
                                              targetInst->firstInsnAddr());
@@ -765,9 +798,19 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
                 // Okay, we've got another block in this function. Check
                 // to see if it's shared.
                 if (curInst->block()->hasSharedBase()) {
-                    // add functions to needReloc list
-                    curInst->block()->func()->getSharingFuncs(curInst->block(),
-                                                          needReloc);
+		  // This can get painful. If we're the entry block for another
+		  // function (e.g., __write_nocancel on Linux), we _really_ don't
+		  // want to be writing a jump here. So, check to see if the
+		  // internal block is an entry for a function that is _not_ us.
+		  image_func *possibleEntry = curInst->block()->llb()->getEntryFunc();
+		  if (possibleEntry != sourceBlock_->func()->ifunc()) {
+		    // Yeah, this ain't gonna work
+		    return false;
+		  }
+
+		  // add functions to needReloc list
+		  curInst->block()->func()->getSharingFuncs(curInst->block(),
+							    needReloc);
                 } 
 
                 if (curInst->block()->needsJumpToNewVersion()) {
@@ -843,7 +886,7 @@ bool functionReplacement::linkFuncRep(pdvector<codeRange *> &overwrittenObjs) {
 }
 
 bool enlargeBlock::modifyBBL(int_basicBlock *block,
-                             pdvector<instruction *> &,
+                             pdvector<bblInstance::reloc_info_t::relocInsn *> &,
                              unsigned &size)
 {
     if (block == targetBlock_) {
@@ -861,7 +904,7 @@ bool enlargeBlock::modifyBBL(int_basicBlock *block,
 }
 
 bool enlargeBlock::update(int_basicBlock *block,
-                          pdvector<instruction *> &,
+                          pdvector<bblInstance::reloc_info_t::relocInsn *> &,
                           unsigned size) {
     if (block == targetBlock_) {
         if (size == (unsigned) -1) {

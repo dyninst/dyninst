@@ -898,8 +898,11 @@ Address bblInstance::equivAddr(bblInstance *origBBL, Address origAddr) const {
          return origAddr;
 #if defined(cap_relocation)
     if (origBBL == getOrigInstance()) {
-       assert(getChangedAddrs().find(origAddr));
-       return getChangedAddrs()[origAddr];
+      for (unsigned i = 0; i < get_relocs().size(); i++) {
+	if (get_relocs()[i]->origAddr == origAddr)
+	  return get_relocs()[i]->relocAddr;
+      }
+      assert(0);
     }
 #endif
     assert(0 && "Unhandled case in equivAddr");
@@ -912,27 +915,84 @@ void *bblInstance::getPtrToInstruction(Address addr) const {
     if (addr >= blockEndAddr_) return NULL;
 
 #if defined(cap_relocation)
-    // We might be relocated...
-    if (getGeneratedBlock() != NULL) {
+    if (version_ > 0) {
+      // We might be relocated...
+      if (getGeneratedBlock() != NULL) {
         addr -= firstInsnAddr();
         return getGeneratedBlock().get_ptr(addr);
+      }
     }
 #endif
+    
     return func()->obj()->getPtrToInstruction(addr);
+
 }
 
 #if defined(cap_relocation)
 
-dictionary_hash<Address, Address> &bblInstance::changedAddrs() {
-   if (!reloc_info)
-      reloc_info = new reloc_info_t();
-   return reloc_info->changedAddrs_;
+const void *bblInstance::getPtrToOrigInstruction(Address addr) const {
+  if (version_ > 0) {
+    fprintf(stderr, "getPtrToOrigInstruction 0x%lx, version %d\n",
+	    addr, version_);
+    for (unsigned i = 0; i < get_relocs().size(); i++) {
+      if (get_relocs()[i]->relocAddr == addr) {
+	fprintf(stderr, "... returning 0x%lx off entry %d\n",
+		i, get_relocs()[i]->origAddr);
+	return (void *)get_relocs()[i]->origPtr;
+      }
+    }
+    assert(0);
+    return NULL;
+  }
+
+  return getPtrToInstruction(addr);
 }
 
-pdvector<instruction *> &bblInstance::insns() {
-   if (!reloc_info)
-      reloc_info = new reloc_info_t();
-   return reloc_info->insns_;
+unsigned bblInstance::getRelocInsnSize(Address addr) const {
+  if (version_ > 0) {
+    for (unsigned i = 0; i < get_relocs().size()-1; i++) {
+      if (get_relocs()[i]->relocAddr == addr)
+	return get_relocs()[i+1]->relocAddr - get_relocs()[i]->relocAddr;
+    }
+    if (get_relocs()[get_relocs().size()-1]->relocAddr == addr) {
+      return blockEndAddr_ - get_relocs()[get_relocs().size()-1]->relocAddr;
+    }
+    assert(0);
+    return 0;
+  }
+  // ... uhh...
+  // This needs to get handled by the caller
+
+  return 0;
+}
+
+void bblInstance::getOrigInstructionInfo(Address addr, void *&ptr, Address &origAddr, unsigned &origSize) const {
+  if (version_ > 0) {
+    fprintf(stderr, "getPtrToOrigInstruction 0x%lx, version %d\n",
+	    addr, version_);
+    for (unsigned i = 0; i < get_relocs().size(); i++) {
+      if (get_relocs()[i]->relocAddr == addr) {
+	fprintf(stderr, "... returning 0x%lx off entry %d\n",
+		i, get_relocs()[i]->origAddr);
+	ptr = (void *) get_relocs()[i]->origPtr;
+	origAddr = get_relocs()[i]->origAddr;
+	if (i == (get_relocs().size()-1)) {
+	  origSize = blockEndAddr_ - get_relocs()[i]->relocAddr;
+	}
+	else
+	  origSize = get_relocs()[i+1]->relocAddr - get_relocs()[i]->relocAddr;
+	return;
+      }
+    }
+    assert(0);
+    return;
+  }
+
+  // Must be handled by caller
+  ptr = NULL;
+  origAddr = 0;
+  origSize = 0;
+  return;
 }
 
 unsigned &bblInstance::maxSize() {
@@ -965,14 +1025,15 @@ functionReplacement *&bblInstance::jumpToBlock() {
   return reloc_info->jumpToBlock_;
 }
 
-dictionary_hash<Address, Address> &bblInstance::getChangedAddrs() const {
-   assert(reloc_info);
-   return reloc_info->changedAddrs_;
+pdvector<bblInstance::reloc_info_t::relocInsn *> &bblInstance::get_relocs() const {
+  assert(reloc_info);
+  return reloc_info->relocs_;
 }
 
-pdvector<instruction *> &bblInstance::getInsns() const {
-   assert(reloc_info);
-   return reloc_info->insns_;
+pdvector<bblInstance::reloc_info_t::relocInsn *> &bblInstance::relocs() {
+  if (!reloc_info)
+    reloc_info = new reloc_info_t();
+  return get_relocs();
 }
 
 unsigned bblInstance::getMaxSize() const {
@@ -1008,19 +1069,15 @@ int bblInstance::version() const {
 }
 
 bblInstance::reloc_info_t::reloc_info_t() : 
-   changedAddrs_(addrHash4), 
    maxSize_(0), 
    origInstance_(NULL), 
-   jumpToBlock_(NULL) 
+   jumpToBlock_(NULL)
 {};
 
 bblInstance::reloc_info_t::reloc_info_t(reloc_info_t *parent, 
                                         int_basicBlock *block)  :
-   changedAddrs_(addrHash4), 
    maxSize_(0)
 {
-   changedAddrs_ = parent->changedAddrs_;
-
    if (parent->origInstance_)
       origInstance_ = block->instVer(parent->origInstance_->version());
    else
@@ -1030,12 +1087,20 @@ bblInstance::reloc_info_t::reloc_info_t(reloc_info_t *parent,
        jumpToBlock_ = new functionReplacement(*(parent->jumpToBlock_));
    else
        jumpToBlock_ = NULL;
+
+   for (unsigned i = 0; i < parent->relocs_.size(); i++) {
+     relocs_[i] = parent->relocs_[i];
+   }
+
 }
 
 bblInstance::reloc_info_t::~reloc_info_t() {
-   for (unsigned i = 0; i < insns_.size(); i++)
-      delete insns_[i];
-   insns_.zap();
+  for (unsigned i = 0; i < relocs_.size(); i++) {
+    delete relocs_[i];
+  }
+
+  relocs_.zap();
+
    // appliedMods is deleted by the function....
    // jumpToBlock is deleted by the process....
 };

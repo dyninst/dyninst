@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.46 2006/05/17 15:22:36 bernat Exp $
+// $Id: multiTramp.C,v 1.47 2006/05/25 20:11:38 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -301,14 +301,22 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
     if (!range) {
         return 0;
     }
+    bblInstance *bbl = range->is_basicBlockInstance();
+    if (!bbl) {
+        fprintf(stderr, "No bblInstance in createMultiTramp, ret NULL\n");
+        return 0;
+    }
+
     int_function *func = range->is_function();
     if (!func) {
         fprintf(stderr, "No function in createMultiTramp, ret NULL\n");
         return 0;
     }
 
-    Address startAddr;
-    unsigned size;
+    Address startAddr = 0;
+    unsigned size = 0;
+    Address instrucStart = 0;
+    unsigned instrucSize = 0;
 
     // On most platforms we instrument an entire basic block at a
     // time. IA64 does bundles. This is controlled by the static
@@ -319,7 +327,9 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
     if (!multiTramp::getMultiTrampFootprint(pointAddr,
                                             proc,
                                             startAddr,
-                                            size)) {
+                                            size,
+					    instrucStart,
+					    instrucSize)) {
         // Assert fail?
         fprintf(stderr, "Could not get multiTramp footprint at 0x%lx, ret false\n", pointAddr);
         return 0;
@@ -342,26 +352,64 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
                               func);
     
     // Iterate over the covered instructions and pull each one
-    InstrucIter insnIter(startAddr,
-                         size,
-                         proc);
     relocatedInstruction *prev = NULL;
 
-    for (InstrucIter insnIter(startAddr, size, proc);
-         insnIter.hasMore(); 
-         insnIter++) {
+    // There are two ways of handling this... if we're in original code,
+    // run an instructIter over the thing. If not, things get tricky...
+    // We're in a relocated function, but want to use the original instruction
+    // representations (with new targets and sizes. Oy.)
+
+    if (bbl->version() > 0) {
+      // Relocated!
+      
+      // We assert that we're going over the entire block. This is okay, as the only
+      // platform where we wouldn't is IA-64, which doesn't do function relocation.
+
+      // uhh....
+      pdvector<bblInstance::reloc_info_t::relocInsn *> &relocInsns = bbl->get_relocs();
+      assert(relocInsns[0]->relocAddr == startAddr);
+      for (unsigned i = 0; i < relocInsns.size(); i++) {
+	relocatedInstruction *reloc = new relocatedInstruction(relocInsns[i]->origInsn,
+							       // Original address...
+							       relocInsns[i]->origAddr,
+							       // Current address...
+							       relocInsns[i]->relocAddr,
+							       // Target, if set
+							       relocInsns[i]->relocTarget,
+							       newMulti);
+        newMulti->insns_[relocInsns[i]->relocAddr] = reloc;
+        
+        if (prev) {
+	  prev->setFallthrough(reloc);
+        }
+        else {
+	  // Other initialization?
+	  newMulti->setFirstInsn(reloc);
+        }
+        reloc->setPrevious(prev);
+        prev = reloc;
+      }
+    }
+    else {
+      for (InstrucIter insnIter(startAddr, size, proc);
+	   insnIter.hasMore(); 
+	   insnIter++) {
         instruction *insn = insnIter.getInsnPtr();
         Address insnAddr = *insnIter;
-
-        relocatedInstruction *reloc = new relocatedInstruction(insn, insnAddr, newMulti);
+	
+        relocatedInstruction *reloc = new relocatedInstruction(insn, 
+							       insnAddr,
+							       insnAddr, 
+							       0,
+							       newMulti);
         newMulti->insns_[insnAddr] = reloc;
         
         if (prev) {
-            prev->setFallthrough(reloc);
+	  prev->setFallthrough(reloc);
         }
         else {
-            // Other initialization?
-            newMulti->setFirstInsn(reloc);
+	  // Other initialization?
+	  newMulti->setFirstInsn(reloc);
         }
         reloc->setPrevious(prev);
         prev = reloc;
@@ -374,19 +422,19 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
         // we're gluing delay slot and jump together.
         
         if (insn->isDCTI()) {
-            instruction *ds, *agg;
-            insnIter.getAndSkipDSandAgg(ds, agg);
-
-            if (ds) {
-                reloc->ds_insn = ds;
-            }
-            if (agg) {
-                reloc->agg_insn = agg;
-            }
+	  instruction *ds, *agg;
+	  insnIter.getAndSkipDSandAgg(ds, agg);
+	  
+	  if (ds) {
+	    reloc->ds_insn = ds;
+	  }
+	  if (agg) {
+	    reloc->agg_insn = agg;
+	  }
         }
 #endif
-    }   
-
+      }   
+    }
     
     // Put this off until we generate
     //newMulti->updateInstInstances();
@@ -402,12 +450,16 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 bool multiTramp::getMultiTrampFootprint(Address instAddr,
                                         process * /* proc */,
                                         Address &startAddr,
-                                        unsigned &size)
+                                        unsigned &size,
+					Address &instructStart,
+					unsigned &instructSize)
 #else
 bool multiTramp::getMultiTrampFootprint(Address instAddr,
                                         process *proc,
                                         Address &startAddr,
-                                        unsigned &size)
+                                        unsigned &size,
+					Address &instructStart,
+					unsigned &instructSize)
 #endif
 {
 #if defined(arch_ia64)
@@ -455,6 +507,12 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
     startAddr = bbl->firstInsnAddr();
     size = (unsigned) bbl->getSize();
 
+    // If we're relocating, _iterate_ over the original version.
+    bblInstance *origInstance = bbl->block()->origInstance();
+    assert(origInstance);
+    instructStart = origInstance->firstInsnAddr();
+    instructSize = origInstance->getSize();
+
     return true;
 #endif
 }
@@ -484,6 +542,8 @@ void multiTramp::updateInstInstances() {
                 // This is the end of a chain but we don't have an end
                 // marker. Add one.
 
+
+#if 0
                 // The question is, where do we jump? We want to go to the
                 // next instruction from the relocated insn. First, find the
                 // relocated instruction (as obj might be a baseTramp)
@@ -496,13 +556,15 @@ void multiTramp::updateInstInstances() {
                 assert(insn);
                 
                 // Let's get the next insn... we can do this with an InstrucIter
-                InstrucIter iter(insn->origAddr, func());
+                InstrucIter iter(insn->fromAddr, func());
                 // The delay slot came along with us; don't branch back to it
                 if(iter.isDelaySlot())
                 {
                     iter++;
                 }
-                obj->setFallthrough(new trampEnd(this, iter.peekNext()));
+#endif
+		// Shouldn't this be immediately after the multiTramp?
+                obj->setFallthrough(new trampEnd(this, instAddr_ + instSize_));
                 obj->fallthrough_->setPrevious(obj);
                 changedSinceLastGeneration_ = true;
             }
@@ -514,7 +576,7 @@ void multiTramp::updateInstInstances() {
             continue;
         }
 
-        Address insnAddr = insn->origAddr;
+        Address insnAddr = insn->fromAddr_;
         instPoint *instP = func()->findInstPByAddr(insnAddr);
         if (!instP) {
             prev = obj;
@@ -710,106 +772,6 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
 }
 
 ////////////
-
-#if 0
-// Add a new instInstance to our list of instrumented spots. Should be
-// tolerant of re-added instPIs.
-void multiTramp::addInstInstance(instPointInstance *instInstance) {
-    instPoint *instP = instInstance->point;
-    // Just in case it wasn't already set...
-    
-    if (!instInstance->multi())
-        instInstance->updateMulti(id());
-    else {
-        assert(instInstance->multi() == this);
-    }
-    
-    Address addr = instInstance->addr();
-    for (unsigned i = 0; i < insns_.size(); i++) {
-        if (insns_[i]->origAddr() == addr) {
-            bookkeeping *relocInfo = insns_[i];
-            if (relocInfo->inst) {
-                // Already done
-                assert(relocInfo->inst == instInstance);
-            }
-            else {
-                relocInfo->inst = instInstance;
-                changedSinceLastGeneration_ = true;
-            }
-
-            // We found the instInstance. Now see if
-            // it's changed recently. That includes:
-            // New: has changed.
-            // Has added or removed a baseTrampInstance;
-            // the baseTrampInstance reports an update
-
-            // Set up baseTrampInstances, making sure that no overlaps occur
-            baseTramp *preBT = instP->preBaseTramp();
-            baseTramp *postBT = instP->postBaseTramp();
-            baseTramp *targetBT = instP->targetBaseTramp();
-            
-            // Don't double-create...
-            // Note: this can be done more efficiently. For now, correctness.
-            for (unsigned foo = 0; foo < allTramps.size(); foo++) {
-                if (preBT &&
-                    allTramps[foo]->baseT == preBT) {
-
-                    assert(allTramps[foo]->multiT == this);
-                    assert(!relocInfo->preBTI ||
-                           relocInfo->preBTI == allTramps[foo]);
-
-                    if (!relocInfo->preBTI) {
-                        relocInfo->preBTI = allTramps[foo];
-                        changedSinceLastGeneration_ = true;
-                    }
-                }
-                if (postBT &&
-                    allTramps[foo]->baseT == postBT) {
-                    assert(allTramps[foo]->multiT == this);
-                    assert(!relocInfo->postBTI ||
-                           relocInfo->postBTI == allTramps[foo]);
-                    if (!relocInfo->postBTI) {
-                        relocInfo->postBTI = allTramps[foo];
-                        changedSinceLastGeneration_ = true;
-                    }
-                }
-                if (targetBT &&
-                    allTramps[foo]->baseT == targetBT) {
-                    assert(allTramps[foo]->multiT == this);
-                    assert(!relocInfo->targetBTI ||
-                           relocInfo->targetBTI == allTramps[foo]);
-                    if (!relocInfo->targetBTI) {
-                        relocInfo->targetBTI = allTramps[foo];
-                        changedSinceLastGeneration_ = true;
-                    }
-                }
-            }
-            // Constructor adds this to the BT instance list
-            if (preBT && !relocInfo->preBTI) {
-                relocInfo->preBTI = preBT->findOrCreateInstance(this);
-                allTramps.push_back(relocInfo->preBTI);
-                changedSinceLastGeneration_ = true;
-            }
-            if (postBT && !relocInfo->postBTI) {
-                relocInfo->postBTI = postBT->findOrCreateInstance(this);
-                allTramps.push_back(relocInfo->postBTI);
-                changedSinceLastGeneration_ = true;
-            }
-            if (targetBT && !relocInfo->targetBTI) {
-                relocInfo->targetBTI = targetBT->findOrCreateInstance(this);
-                allTramps.push_back(relocInfo->targetBTI);
-                changedSinceLastGeneration_ = true;
-            }
-            
-            return;
-        }// If we found the right insn
-    }
-    // Uhh... we added an instPointInstance to the wrong multiTramp!
-    assert(0);
-    return;
-}
-
-#endif
 
 // To avoid mass include inclusion
 int_function *multiTramp::func() const { return func_; }
@@ -1143,6 +1105,7 @@ bool multiTramp::installCode() {
 // possible).
 
 bool multiTramp::linkCode() {
+
     // Relocation should be done before this is called... not sure when though.
 
     // We may already be linked in, and getting called because of a regeneration.
@@ -1224,8 +1187,9 @@ multiTramp::mtErrorCode_t multiTramp::installMultiTramp() {
     // See if there is enough room to fit the jump in... then
     // decide whether to go ahead or not.
 
-    if (installCode())
-        return mtSuccess;
+    if (installCode()) {
+      return mtSuccess;
+    }
     else {
         fprintf(stderr, "multiTramp::install failed!\n");
         return mtError;
@@ -1284,7 +1248,7 @@ Address multiTramp::instToUninstAddr(Address addr) {
         if (insn && 
             (addr >= insn->relocAddr()) &&
             (addr < insn->relocAddr() + insn->get_size_cr()))
-            return insn->origAddr;
+            return insn->fromAddr_;
         if (bti && bti->isInInstance(addr)) {
             // If we're pre for an insn, return that;
             // else return the insn we're post/target for.
@@ -1322,7 +1286,7 @@ Address multiTramp::instToUninstAddr(Address addr) {
         if (insn && 
             (addr >= insn->relocAddr()) &&
             (addr < insn->relocAddr() + insn->get_size_cr()))
-            return insn->origAddr;
+            return insn->fromAddr_;
         if (bti && bti->isInInstance(addr)) {
             // If we're pre for an insn, return that;
             // else return the insn we're post/target for.
@@ -1783,9 +1747,9 @@ void multiTramp::updateInsnDict() {
     while ((obj = cfgIter++)) {
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
         if (insn){
-            if (insns_.find(insn->origAddr))
-                assert(insns_[insn->origAddr] == insn);
-            insns_[insn->origAddr] = insn;
+            if (insns_.find(insn->fromAddr_))
+                assert(insns_[insn->fromAddr_] == insn);
+            insns_[insn->fromAddr_] = insn;
         }
     }
 }
@@ -1875,7 +1839,9 @@ relocatedInstruction::relocatedInstruction(const relocatedInstruction *parRI,
                                            multiTramp *cMT,
                                            process *child) :
     generatedCodeObject(parRI, child),
-    origAddr(parRI->origAddr),
+    origAddr_(parRI->origAddr_),
+    fromAddr_(parRI->fromAddr_),
+    targetAddr_(parRI->targetAddr_),
     multiT(cMT),
     targetOverride_(parRI->targetOverride_)
 {
@@ -1950,7 +1916,7 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                 fprintf(stderr, "current is a base tramp\n");
             else if (reloc)
                 fprintf(stderr, "current is relocated insn from 0x%lx\n",
-                        reloc->origAddr);
+                        reloc->fromAddr_);
             else if (te)
                 fprintf(stderr, "current is tramp end\n");
 
@@ -1961,7 +1927,7 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                 fprintf(stderr, "previous is a base tramp\n");
             else if (reloc)
                 fprintf(stderr, "previous is relocated insn from 0x%lx\n",
-                        reloc->origAddr);
+                        reloc->fromAddr_);
             else if (te)
                 fprintf(stderr, "previous is tramp end\n");
             
@@ -1978,7 +1944,7 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                 fprintf(stderr, "next is a base tramp\n");
             else if (reloc)
                 fprintf(stderr, "next is relocated insn from 0x%lx\n",
-                        reloc->origAddr);
+                        reloc->fromAddr_);
             else if (te)
                 fprintf(stderr, "next is tramp end\n");
 
@@ -1989,7 +1955,7 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                 fprintf(stderr, "next->previous is a base tramp\n");
             else if (reloc)
                 fprintf(stderr, "next->previous is relocated insn from 0x%lx\n", 
-                        reloc->origAddr);
+                        reloc->fromAddr_);
             else if (te)
                 fprintf(stderr, "next->previous is tramp end\n");
         }
@@ -2216,11 +2182,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     // addrInMutatee_ == base for this insn
     if (!insn->generate(gen,
 			multiT->proc(),
-			origAddr,
+			origAddr_,
 			addrInMutatee_,
 			0, // fallthrough is not overridden
 			targetOverride_)) {
-      fprintf(stderr, "WARNING: returned false from relocate insn (orig at 0x%lx, now 0x%lx)\n", origAddr, addrInMutatee_);
+      fprintf(stderr, "WARNING: returned false from relocate insn (orig at 0x%lx, from 0x%lx, now 0x%lx)\n", origAddr_, fromAddr_, addrInMutatee_);
       return false;
     }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.14 2006/05/17 15:22:36 bernat Exp $
+// $Id: multiTramp.h,v 1.15 2006/05/25 20:11:39 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -247,16 +247,18 @@ class relocatedInstruction : public generatedCodeObject {
     relocatedInstruction() {};
  public:
     relocatedInstruction(instruction *i,
-                         Address o,
+                         Address o, // The original location in the untouched mutatee
+			 Address f, // Where we're coming from (function relocation)
+			 Address t, // Target (if already set)
                          multiTramp *m) :
-        generatedCodeObject(),
-        insn(i),
+      generatedCodeObject(),
+      insn(i),
 #if defined(arch_sparc)
-        ds_insn(NULL),
-        agg_insn(NULL),
+      ds_insn(NULL),
+      agg_insn(NULL),
 #endif
-        origAddr(o), 
-        multiT(m), targetOverride_(0) {}
+      origAddr_(o), fromAddr_(f), targetAddr_(t),
+      multiT(m), targetOverride_(0) {}
     relocatedInstruction(relocatedInstruction *prev,
                          multiTramp *m) :
         generatedCodeObject(),
@@ -265,9 +267,10 @@ class relocatedInstruction : public generatedCodeObject {
         ds_insn(prev->ds_insn),
         agg_insn(prev->agg_insn),
 #endif
-        origAddr(prev->origAddr),
-        multiT(m),
-        targetOverride_(prev->targetOverride_) {}
+      origAddr_(prev->origAddr_), fromAddr_(prev->fromAddr_),
+      targetAddr_(prev->targetAddr_),
+      multiT(m),
+      targetOverride_(prev->targetOverride_) {}
 
     relocatedInstruction(const relocatedInstruction *parRI,
                          multiTramp *cMT,
@@ -284,7 +287,9 @@ class relocatedInstruction : public generatedCodeObject {
     instruction *agg_insn;
 #endif
 
-    Address origAddr;
+    Address origAddr_;
+    Address fromAddr_;
+    Address targetAddr_;
     multiTramp *multiT;
 
     Address relocAddr() const;
@@ -303,7 +308,7 @@ class relocatedInstruction : public generatedCodeObject {
 
     generatedCodeObject *replaceCode(generatedCodeObject *newParent);
     
-    virtual Address uninstrumentedAddr() const { return origAddr; }
+    virtual Address uninstrumentedAddr() const { return fromAddr_; }
 
     void *getPtrToInstruction(Address addr) const;
 
@@ -434,7 +439,9 @@ class multiTramp : public generatedCodeObject {
   static bool getMultiTrampFootprint(Address instAddr,
                                      process *proc,
                                      Address &startAddr,
-                                     unsigned &size);
+                                     unsigned &size,
+				     Address &instructStart,
+				     unsigned &instrucSize);
 
   static multiTramp *getMulti(int id, process *proc);
 

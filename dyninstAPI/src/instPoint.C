@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.25 2006/05/17 01:37:23 bernat Exp $
+// $Id: instPoint.C,v 1.26 2006/05/25 20:11:37 bernat Exp $
 // instPoint code
 
 
@@ -881,6 +881,7 @@ bool instPointInstance::generateInst() {
     // This allows us to regenerate multiTramps without having to 
     // worry about changing pointers.
 
+
 #if defined(cap_relocation)
 
     // Moved from ::generate; we call ::generate multiple times, then ::install.
@@ -970,6 +971,7 @@ bool instPointInstance::linkInst() {
         force_reloc[i]->relocationLink(overwrittenObjs);
     }
 #endif
+
 
     // Funny thing is, we might very well try to link a multiTramp
     // multiple times...

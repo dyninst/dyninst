@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.31 2006/05/19 15:15:21 bernat Exp $
+// $Id: function.h,v 1.32 2006/05/25 20:11:35 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -96,6 +96,7 @@ typedef enum callType {
 class bblInstance : public codeRange {
     friend class int_basicBlock;
     friend class int_function;
+    friend class multiTramp;
 
     // "We'll set things up later" constructor. Private because only int_basicBlock
     // should be playing in here
@@ -121,7 +122,11 @@ class bblInstance : public codeRange {
     Address get_address_cr() const { return firstInsnAddr(); }
     unsigned get_size_cr() const { return getSize(); }
     void *getPtrToInstruction(Address addr) const;
-    
+    const void *getPtrToOrigInstruction(Address addr) const;
+    unsigned getRelocInsnSize(Address addr) const;
+
+    void getOrigInstructionInfo(Address addr, void *&ptr, Address &origAddr, unsigned &origSize) const;
+
     process *proc() const;
     int_function *func() const;
     int_basicBlock *block() const;
@@ -147,12 +152,9 @@ class bblInstance : public codeRange {
     bool link(pdvector<codeRange *> &overwrittenObjs);
 #endif
 
- private:
 #if defined(cap_relocation)
     class reloc_info_t {
-    public:
-       dictionary_hash<Address, Address> changedAddrs_;
-       pdvector<instruction *> insns_;
+    public:       
        unsigned maxSize_;
        bblInstance *origInstance_;
        pdvector<funcMod *> appliedMods_;
@@ -160,23 +162,36 @@ class bblInstance : public codeRange {
        // in the future.
        functionReplacement *jumpToBlock_; // Kept here between generate->link
 
+       struct relocInsn {
+	 // Where we ended up; can derive size from next - this one
+	 Address origAddr;
+	 Address relocAddr;
+	 instruction *origInsn;
+	 const void *origPtr;
+	 Address relocTarget;
+	 unsigned relocSize;
+       };
+       
+       pdvector<relocInsn *> relocs_;
+
        reloc_info_t();
        reloc_info_t(reloc_info_t *parent, int_basicBlock *block);
        ~reloc_info_t();
     };
 
+ private:
+
     //Setter functions for relocation information
-    dictionary_hash<Address, Address> &changedAddrs();
-    pdvector<instruction *> &insns();
+    pdvector<reloc_info_t::relocInsn *> &relocs();
     unsigned &maxSize();
     bblInstance *&origInstance();
     pdvector<funcMod *> &appliedMods();
     codeGen &generatedBlock();
     functionReplacement *&jumpToBlock();
 
-    //Getter functions for relocation information
-    dictionary_hash<Address, Address> &getChangedAddrs() const;
-    pdvector<instruction *> &getInsns() const;
+
+    pdvector<reloc_info_t::relocInsn *> &get_relocs() const;
+
     unsigned getMaxSize() const;
     bblInstance *getOrigInstance() const;
     pdvector<funcMod *> &getAppliedMods() const;

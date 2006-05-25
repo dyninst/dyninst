@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.57 2005/10/05 21:46:40 bernat Exp $
+// $Id: templates0.C,v 1.58 2006/05/25 20:11:42 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -228,3 +228,8 @@ template class pdvector<fileOpener *>;
 class funcMod;
 template class pdvector<funcMod *>;
 
+// Clean this up...
+#if defined(cap_relocation)
+class bblInstance::reloc_info_t::relocInsn;
+template class pdvector<bblInstance::reloc_info_t::relocInsn *>;
+#endif
