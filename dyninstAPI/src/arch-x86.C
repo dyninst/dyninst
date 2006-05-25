@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.59 2006/05/24 17:03:36 bernat Exp $
+// $Id: arch-x86.C,v 1.60 2006/05/25 20:11:33 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2998,7 +2998,10 @@ bool convert_to_rel8(const unsigned char*&origInsn, unsigned char *&newInsn) {
     return true;
   }
 
-
+  if (*origInsn == 0xE3) {
+    *newInsn++ = *origInsn++;
+    return true;
+  }
 
   // Oops...
   fprintf(stderr, "Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
@@ -3389,7 +3392,6 @@ void instruction::generateTrap(codeGen &gen) {
 
 void instruction::generateBranch(codeGen &gen,
                                  Address fromAddr, Address toAddr) {
-
   long disp = toAddr - (fromAddr + JUMP_REL32_SZ);
 
 #if defined(arch_x86_64)
@@ -3661,6 +3663,10 @@ bool instruction::generate(codeGen &gen,
                }
             }
          }
+      }
+      else {
+	fprintf(stderr, "Warning: call at 0x%lx (reloc 0x%lx) did not have a valid calculated target addr 0x%lx\n",
+		origAddr, newAddr, target);
       }
    }
    if (done) {
