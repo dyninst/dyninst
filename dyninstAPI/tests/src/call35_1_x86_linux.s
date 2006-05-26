@@ -85,6 +85,11 @@ call35_1:
 .LM3:
 	pushl %ebp
 	movl %esp,%ebp
+        nop
+        nop
+        nop
+        nop
+        nop
 .ForceRelocation:
 	subl $24,%esp
 .stabn 68,0,11,.LM4-call35_1
