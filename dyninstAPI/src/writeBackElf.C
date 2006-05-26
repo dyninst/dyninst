@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.30 2006/04/25 14:31:29 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.31 2006/05/26 02:48:26 chadd Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -114,6 +114,8 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 	elf_fill(0);
 	newHeapAddr = 0;
 	newHeapAddrIncr = 0;
+	newElfNewData_d_buf = NULL;
+	newElfNewData_d_buf_count = 0;
 	parseOldElf();
 }
 
@@ -134,6 +136,24 @@ writeBackElf::~writeBackElf(){
 			delete [] newSections;
 		}
 	}
+	if(newElfNewData_d_buf){
+		if(MALLOC){
+			for(unsigned int i = 0;i<newElfNewData_d_buf_count;i++){
+				if( newElfNewData_d_buf[i] ){
+					free(newElfNewData_d_buf[i]);
+				}
+			}
+			free(newElfNewData_d_buf);
+		}else{
+			for(unsigned int i = 0;i<newElfNewData_d_buf_count;i++){
+				if( newElfNewData_d_buf[i] ){
+					delete [] (char*) newElfNewData_d_buf[i];
+				}
+			}
+			delete [] newElfNewData_d_buf;
+		}
+	}
+
 	//elf_end(newElf); //closed in addLibrary::driver()
 	P_close(newfd);
 
@@ -141,6 +161,10 @@ writeBackElf::~writeBackElf(){
 	elf_end(oldElf);
 }
 
+
+Elf* writeBackElf::getElf(){
+	return newElf;
+}
 
 int writeBackElf::addSection(unsigned int addr, void *data, unsigned int dataSize, const char* name, bool loadable) {
 	ELF_Section *tmp;
@@ -239,6 +263,13 @@ void writeBackElf::driver(){
 	}
 	memcpy(newEhdr, ehdr, sizeof(Elf32_Ehdr));
 
+	newElfNewData_d_buf_count = newEhdr->e_shnum+1;
+	if( MALLOC ) {
+		newElfNewData_d_buf = (char**) malloc(sizeof(char*) * (newEhdr->e_shnum+1));
+	}else{
+		newElfNewData_d_buf = new char*[newEhdr->e_shnum+1];
+	}
+	memset(newElfNewData_d_buf, '\0', (newEhdr->e_shnum+1) *sizeof(char*));
 
 	scn = NULL;
 	int currentOffset=-1;
@@ -261,8 +292,9 @@ void writeBackElf::driver(){
 			if(MALLOC){
 				newdata->d_buf = (char*) malloc(olddata->d_size);
 			}else{
-				newdata->d_buf = new char[olddata->d_size];
+				newdata->d_buf = new char[olddata->d_size]; 
 			} 
+			newElfNewData_d_buf[cnt] = (char*) newdata->d_buf; 
 			memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
 		}
 
@@ -304,6 +336,7 @@ void writeBackElf::driver(){
 		
 		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".shstrtab")){
 			addSectionNames(newdata,olddata);
+			newElfNewData_d_buf[cnt] = (char*) newdata->d_buf; 
 		}
 		if(!strcmp( (char *)data->d_buf + shdr->sh_name, ".data")){
 			dataData = newdata;
@@ -456,14 +489,18 @@ void writeBackElf::createSections(){
 			newsh->sh_flags = 0;
 			newsh->sh_type = SHT_PROGBITS; //SHT_NOTE
 		}
-		if(MALLOC){
+		/*if(MALLOC){
 			newdata->d_buf = (char*)malloc(newSections[i].dataSize);
 		}else{
-			newdata->d_buf = new char[newSections[i].dataSize];
+			newdata->d_buf = new char[newSections[i].dataSize]; 
 		}
 		memset(newdata->d_buf,'\0',newSections[i].dataSize);
 		newdata->d_size = newSections[i].dataSize;
-		memcpy((char*) newdata->d_buf, (char*) newSections[i].data, newdata->d_size);
+		memcpy((char*) newdata->d_buf, (char*) newSections[i].data, newdata->d_size);*/
+
+		newdata->d_buf = newSections[i].data; 
+		newdata->d_size = newSections[i].dataSize;
+
 		elf_update(newElf, ELF_C_NULL);
 		if(DEBUG_MSG){
 			bpinfo("ADDED: size %lx Addr %lx size %x data; %x\n",newsh->sh_size, newsh->sh_addr,
@@ -487,7 +524,7 @@ void writeBackElf::addSectionNames(Elf_Data *newdata, Elf_Data*olddata){
 	if(MALLOC){
 		newdata->d_buf = (char*) malloc(totalSize);
 	}else{
-		newdata->d_buf =new char[totalSize];
+		newdata->d_buf =new char[totalSize]; 
 	}
 	memset(newdata->d_buf,'\0', totalSize);
 	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);

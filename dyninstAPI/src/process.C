@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.648 2006/05/23 06:39:50 jaw Exp $
+// $Id: process.C,v 1.649 2006/05/26 02:48:27 chadd Exp $
 
 #include <ctype.h>
 
@@ -685,13 +685,6 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
             Address textAddr, textSize;
             char *newName = saveWorldFindNewSharedLibraryName(sh_obj->fileName(),directoryName);
 
-			/*new char[strlen(sh_obj->fileName().c_str()) + 
-                                     strlen(directoryName) + 1];
-            memcpy(newName, directoryName, strlen(directoryName)+1);
-            const char *file = strrchr(sh_obj->fileName().c_str(), '/');
-            strcat(newName, file);*/
-           
-
 		/* 	what i need to do:
 			open the ORIGINAL shared lib --> sh_obj->fileName()
 			read the text section out.
@@ -705,35 +698,27 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
 
             	sharedObj->openBothLibraries();
             
-			sharedObj->getTextInfo(textAddr, textSize);
-			char* textSection ;//= sharedObj->getTextSection(); /* get the text section from the ORIGINAL library */
-			textSection = new char[textSize]; //ccw 14 dec 2005
+		sharedObj->getTextInfo(textAddr, textSize);
+		char* textSection ;//= sharedObj->getTextSection(); /* get the text section from the ORIGINAL library */
+		textSection = new char[textSize]; //ccw 14 dec 2005
 
-			if(textSection){
+		if(textSection){
 
-				//applyMutationsToTextSection(textSection, textAddr, textSize);
+			//applyMutationsToTextSection(textSection, textAddr, textSize);
 
-				readDataSpace((void*)textAddr, textSize, (void*)textSection, true); //ccw 14 dec 2005
+			readDataSpace((void*)textAddr, textSize, (void*)textSection, true); //ccw 14 dec 2005
 	          	sharedObj->saveMutations(textSection);
-     	       	sharedObj->closeNewLibrary();
-	            /*			
-     	       //this is for the dlopen problem....
-          	  if(strstr(sh_obj->fileName().c_str(), "ld-linux.so") ){
-	            //find the offset of _dl_debug_state in the .plt
-     	       dl_debug_statePltEntry = 
-          	  sh_obj->parse_img()->getObject().getPltSlot("_dl_debug_state");
-	            }
-     	       */			
-				delete [] textSection;
-			}else{
-				char msg[strlen(sh_obj->fileName().c_str())+100];
-				sprintf(msg,"dumpPatchedImage: could not retreive .text section for %s\n",sh_obj->fileName().c_str());
-            		BPatch_reportError(BPatchWarning,123,msg);
-				sharedObj->closeNewLibrary();
-			}
-			sharedObj->closeOriginalLibrary();
-		  delete sharedObj;
-            delete [] newName;
+     		       	sharedObj->closeNewLibrary();
+			delete [] textSection;
+		}else{
+			char msg[strlen(sh_obj->fileName().c_str())+100];
+			sprintf(msg,"dumpPatchedImage: could not retreive .text section for %s\n",sh_obj->fileName().c_str());
+       			BPatch_reportError(BPatchWarning,123,msg);
+			sharedObj->closeNewLibrary();
+		}
+		//sharedObj->closeOriginalLibrary();
+	  	delete sharedObj;
+       		delete [] newName;
          }
          mutatedSharedObjectsSize += strlen(sh_obj->fileName().c_str()) +1 ;
          mutatedSharedObjectsSize += sizeof(int); //a flag to say if this is only DirtyCalled

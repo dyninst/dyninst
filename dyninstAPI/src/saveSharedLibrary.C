@@ -46,9 +46,45 @@
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
+saveSharedLibrary::saveSharedLibrary(sharedLibrary sharedLib, char* newname){
+	soObject.setpathname(sharedLib.getpathname());
+	soObject.setbase_addr(sharedLib.getbase_addr());
+	if(newname){
+		newpathname = new char[strlen(newname) +1];
+		strcpy(newpathname, newname);	
+	}else{
+		newpathname = NULL;
+	}	
+	newShstrtabData_d_buf=NULL;
+}
+
+saveSharedLibrary::saveSharedLibrary(Address baseAddr, const char* oldname,
+			char* newname){
+	soObject.setbase_addr(baseAddr);
+	soObject.setpathname(oldname);
+	newpathname = new char[strlen(newname) +1];
+	strcpy(newpathname, newname);	
+	newShstrtabData_d_buf=NULL;
+}
+
+saveSharedLibrary::saveSharedLibrary(): newpathname(NULL),newShstrtabData_d_buf(NULL) {}
+
+void saveSharedLibrary::getTextInfo(Address &textScnAddr, Address &textScnSize){
+	textScnAddr = textAddr;
+	textScnSize = textSize;
+}
+
+void saveSharedLibrary::setnewname(char *newname){
+	if(newpathname){
+		delete [] newpathname;
+	}
+	newpathname = new char[strlen(newname) +1];
+	strcpy(newpathname, newname);	
+}
+
 bool saveSharedLibrary::openElf(){
 	   elf_version(EV_CURRENT);
-	   if((oldfd = open(soObject.getpathname(), O_RDONLY)) == -1){ 
+	   /*if((oldfd = open(soObject.getpathname(), O_RDONLY)) == -1){ 
 			 fprintf(stderr,"cannot open Old SO: %s\n",soObject.getpathname());
 			 perror(" FAIL ");
 			 return false;;
@@ -56,7 +92,7 @@ bool saveSharedLibrary::openElf(){
 	  if((oldElf = elf_begin(oldfd, ELF_C_READ, NULL)) ==NULL){
 			 fprintf(stderr,"cannot open ELF %s \n", soObject.getpathname());
 			 return false;;
-	   }
+	   }*/
 
 	   if((newfd = (open(newpathname, O_RDWR)))==-1){
 			 fprintf(stderr,"%s[%d]: cannot open new SO : %s\n",FILE__, __LINE__,newpathname);
@@ -70,12 +106,20 @@ bool saveSharedLibrary::openElf(){
 	  return readNewLib();
 }
 
+saveSharedLibrary::~saveSharedLibrary(){
+	if(newpathname){
+		delete []newpathname;
+	}
+	if( newShstrtabData_d_buf ){
+		delete [] newShstrtabData_d_buf;
+	}
+}
+
 bool saveSharedLibrary::readNewLib(){
 	Elf32_Shdr *newsh, *shdr;
 	Elf_Scn *scn, *newScn;
 	Elf32_Ehdr *ehdr;
-
-        // 	Elf32_Ehdr  *newEhdr;
+	Elf32_Phdr *oldPhdr;
 	Elf_Data  *strdata, *newdata, *olddata;
 
 	if ((ehdr = elf32_getehdr(newElf)) == NULL){ 
@@ -93,12 +137,18 @@ bool saveSharedLibrary::readNewLib(){
 		fprintf(stderr," FAILED obtaining .shstrtab scn\n");
 	}
 
-        //	Elf32_Phdr *tmp, *newphdr;
-
-
 	unsigned int newScnName =0;
 	scn = NULL;
 	Elf_Data shstrtabData;
+
+	/* save the PHDR from the library */
+     oldPhdr = elf32_getphdr(newElf);
+	Elf32_Phdr phdrBuffer[ehdr->e_phnum];
+	/* 	copy it over to a buffer because, on linux, we will close newElf and reopen it.
+		This closing of newElf should dealloc the data pointed to by oldPhdr
+	*/
+	memcpy(phdrBuffer, oldPhdr, ehdr->e_phnum * ehdr->e_phentsize);
+
 	for (int cnt = 1; (scn = elf_nextscn(newElf, scn)); cnt++) {
 		 //copy sections from newElf to newElf.
 
@@ -115,7 +165,8 @@ bool saveSharedLibrary::readNewLib(){
 		 if(!strcmp( (char*) strdata->d_buf + shdr->sh_name, ".shstrtab")){
 			    const char *secname =".dyninst_mutated\0";
 			    shstrtabData.d_size = olddata->d_size+strlen(secname)+1;
-			    shstrtabData.d_buf = new  char[shstrtabData.d_size];
+				newShstrtabData_d_buf = new  char[shstrtabData.d_size];
+			    shstrtabData.d_buf = newShstrtabData_d_buf;
 			    memcpy( shstrtabData.d_buf,  olddata->d_buf, olddata->d_size);
 			    memcpy(&(((char*) shstrtabData.d_buf)[olddata->d_size]), secname,
 					  strlen(secname)+1);
@@ -125,6 +176,9 @@ bool saveSharedLibrary::readNewLib(){
 			    olddata->d_size = shstrtabData.d_size;
 
 			    shdr->sh_size +=strlen(secname)+1;
+
+				/* 	if the section header table is past this section in the
+					ELF file, calculate the new offset*/
 				if(ehdr ->e_shoff > shdr->sh_offset){
 					ehdr->e_shoff += strlen(secname)+1;
 				}
@@ -148,7 +202,6 @@ bool saveSharedLibrary::readNewLib(){
 	newdata->d_size =0;
 	newdata->d_buf=0;
 
-        //	Elf32_Phdr *phdr = elf32_getphdr(newElf);
 	elf_update(newElf, ELF_C_NULL);
 
 	/* 	elfutils on linux does not write data back to an ELF file you
@@ -216,7 +269,13 @@ bool saveSharedLibrary::readNewLib(){
 	shdr->sh_addr = 0x0;
 	shdr->sh_type = 7;
 
-        //	phdr = elf32_getphdr(newElf);
+	/* 	update the PHDR, well just make sure it is reset to 
+		what was in the original library */
+     Elf32_Phdr *newPhdr = elf32_getphdr(newElf);
+	memcpy(newPhdr,phdrBuffer, ehdr->e_phnum * ehdr->e_phentsize);
+
+	/* be extra sure, set the DIRTY flag */
+	elf_flagphdr(newElf, ELF_C_SET,ELF_F_DIRTY);
 	elf_flagscn(scn,ELF_C_SET,ELF_F_DIRTY);
 	elf_update(newElf, ELF_C_NULL);
 #endif
@@ -233,8 +292,8 @@ void saveSharedLibrary::closeElf(){
 }
 
 void saveSharedLibrary::closeOriginalLibrary(){
-	elf_end(oldElf);
-	P_close(oldfd);
+	/*elf_end(oldElf);
+	P_close(oldfd);*/
 }
 
 
@@ -245,7 +304,6 @@ void saveSharedLibrary::openBothLibraries(){
 	}
 	
 	openElf();
-	//copyElf();
 }
 
 void saveSharedLibrary::closeNewLibrary(){
@@ -260,7 +318,7 @@ void saveSharedLibrary::saveMutations(char *textInsn){
 }
 
 /* get the text section from the ORIGINAL library */
-char* saveSharedLibrary::getTextSection(){
+/*char* saveSharedLibrary::getTextSection(){
 	Elf32_Shdr  *shdr;
 	Elf_Scn *scn; 
 	   Elf32_Ehdr *ehdr = elf32_getehdr(oldElf);
@@ -298,7 +356,7 @@ char* saveSharedLibrary::getTextSection(){
 	}
 
 	return textSection;
-}
+}*/
 
 #endif
 

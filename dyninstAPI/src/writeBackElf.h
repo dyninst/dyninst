@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.h,v 1.19 2006/01/13 14:37:48 chadd Exp $ */
+/* $Id: writeBackElf.h,v 1.20 2006/05/26 02:48:26 chadd Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -115,6 +115,8 @@ private:
 	int mutateeTextSize;
 	unsigned int mutateeTextAddr;
 	unsigned int newHeapAddrIncr;
+	char **newElfNewData_d_buf;
+	int newElfNewData_d_buf_count;
 
 	void updateSymbols(Elf_Data* symtabData,Elf_Data* strData);
 	void updateDynamic(Elf_Data* dynamicData);
@@ -141,7 +143,7 @@ public:
 	void compactLoadableSections(pdvector<imageUpdate*> imagePatches,
 										  pdvector<imageUpdate*> &newPatches);
 	void alignHighMem(pdvector<imageUpdate*> imagesPatches);
-	Elf* getElf(){ return newElf; };
+	Elf* getElf();
 };
 
 #endif

@@ -106,9 +106,9 @@ class saveSharedLibrary {
 
 		sharedLibrary soObject;
 		char* newpathname;
-		Elf *oldElf;
+		//Elf *oldElf;
 		Elf *newElf;
-		int oldfd, newfd;
+		int /*oldfd, */ newfd;
 		Address textSize;
 		Address textAddr;
 		Elf_Data* textData;
@@ -117,52 +117,27 @@ class saveSharedLibrary {
 		void copyElf();
 		void closeElf();	
 		bool readNewLib();
+
+		char *newShstrtabData_d_buf;
 	public:
-		saveSharedLibrary(sharedLibrary sharedLib, char* newname=NULL){
-			soObject.setpathname(sharedLib.getpathname());
-			soObject.setbase_addr(sharedLib.getbase_addr());
-			if(newname){
-				newpathname = new char[strlen(newname) +1];
-				strcpy(newpathname, newname);	
-			}else{
-				newpathname = NULL;
-			}	
-		}
+		saveSharedLibrary(sharedLibrary sharedLib, char* newname=NULL);
 
 		saveSharedLibrary(Address baseAddr, const char* oldname,
-					char* newname){
-			soObject.setbase_addr(baseAddr);
-			soObject.setpathname(oldname);
-			newpathname = new char[strlen(newname) +1];
-			strcpy(newpathname, newname);	
-		}
-		saveSharedLibrary(): newpathname(NULL) {}
+					char* newname);
+		saveSharedLibrary(); 
 
-		~saveSharedLibrary(){
-			if(newpathname){
-				delete []newpathname;
-			}
-		}
+		~saveSharedLibrary();
 
-		void setnewname(char *newname){
-			if(newpathname){
-				delete [] newpathname;
-			}
-			newpathname = new char[strlen(newname) +1];
-			strcpy(newpathname, newname);	
-		}
+		void setnewname(char *newname);
 
 		void openBothLibraries();
 		void closeOriginalLibrary();
 
-		void getTextInfo(Address &textScnAddr, Address &textScnSize){
-			textScnAddr = textAddr;
-			textScnSize = textSize;
-		}
+		void getTextInfo(Address &textScnAddr, Address &textScnSize);
 		void closeNewLibrary();
 		void saveMutations(char *textInsn);
 
-		char* getTextSection();
+		//char* getTextSection();
 };
 
 #endif
