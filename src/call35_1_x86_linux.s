@@ -1,4 +1,31 @@
-	.file	"call35_1_x86_linux.s"
+/* This routine has been mangled to encourage Dyninst to relocate call35_1
+   when instrumenting the call sites. There are two scenarios in which 
+   relocation is necessary:
+
+   1) If insufficient space exists in the basic block to be instrumented,
+      the function must be relocated. The minimum space required is 5 bytes
+      on x86.
+
+   2) If a basic block is shared between two functions, instrumentation of
+      that basic block will require relocation.
+
+   Since call instructions (which are instrumented in this test) are five
+   bytes long, we will not need to relocate even if the basic block
+   containing the target instruction is only one instruction long. Note that
+   call instructions with a word (16-bit in x86 assembly parlance) argument
+   take up only four bytes, so we technically could come up with four-byte
+   instructions that would force relocation. However, since this is not
+   possible on x86-64, we have chosen to adopt the shared code route to
+   force relocation, to maintain consistant tests across these two
+   platforms.
+
+   The appearance of shared code is created by adding a never-taken branch
+   from the body of call35_2 into the body of call35_1. The parser will
+   follow that branch during static analysis and mark the body of call35_1
+   as being shared, but control flow will never follow that branch during
+   execution.
+*/
+    .file	"call35_1_x86_linux.s"
 	.version	"01.01"
 .stabs "/p/paradyn/development/gurari/core/dyninstAPI/tests/src/",100,0,0,.Ltext0
 .stabs "call35_1_x86_linux.s",100,0,0,.Ltext0
@@ -33,6 +60,13 @@ call35_2:
 .LM1:
 	pushl %ebp
 	movl %esp,%ebp
+    /* this comparison should never be equal */
+    cmpl $0,%esp
+    jne .L2
+    /* this branch should never be taken, but tricks
+       the parser into thinking call35_2 and call35_1 share code
+    */
+	jmp .ForceRelocation
 .stabn 68,0,3,.LM2-call35_2
 .LM2:
 .L2:
@@ -51,6 +85,11 @@ call35_1:
 .LM3:
 	pushl %ebp
 	movl %esp,%ebp
+        nop
+        nop
+        nop
+        nop
+        nop
 .ForceRelocation:
 	subl $24,%esp
 .stabn 68,0,11,.LM4-call35_1
@@ -84,141 +123,10 @@ call35_1:
 .LM12:
 	movl -16(%ebp),%edx
 	movl %edx,%eax
-	jmp .L3
-	jmp .ForceRelocation
-	jmp .InsertNops1
-.InsertNops2:
-        ret
-        jmp .InsertNops2
-.InsertNops1:
-        jmp .InsertNops3
-.InsertNops4:
-        ret
-        jmp .InsertNops4        
-.InsertNops3:   
-.SplitPointsApart:
-        ret
-        ret
-.FillTenBytes1:
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes2: 
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes3: 
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes4:
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes5:
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes6:
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes7: 
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes8:
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes9: 
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes10:
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.Fill10Bytes11:
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
+    jmp .L3
+/* Never parsed or reached during execution, of unknown provenance;
+   left as historical curiosity.
+*/
 .CauseProblemsIfExecuted:               
         subl $24,%esp
 		
