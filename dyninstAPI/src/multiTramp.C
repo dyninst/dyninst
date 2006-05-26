@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.48 2006/05/25 20:23:04 bernat Exp $
+// $Id: multiTramp.C,v 1.49 2006/05/26 16:36:03 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -2190,7 +2190,9 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 			origAddr_,
 			addrInMutatee_,
 			0, // fallthrough is not overridden
-			targetOverride_)) {
+                        targetOverride_ ? targetOverride_ : originalTarget())) {
+        // We use the override if present, otherwise the original target (which may be
+        // overridden in function relocation....)
       fprintf(stderr, "WARNING: returned false from relocate insn (orig at 0x%lx, from 0x%lx, now 0x%lx)\n", origAddr_, fromAddr_, addrInMutatee_);
       return false;
     }
