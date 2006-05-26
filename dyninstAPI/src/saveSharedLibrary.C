@@ -140,7 +140,8 @@ bool saveSharedLibrary::readNewLib(){
 	unsigned int newScnName =0;
 	scn = NULL;
 	Elf_Data shstrtabData;
-
+#if  defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) 
 	/* save the PHDR from the library */
      oldPhdr = elf32_getphdr(newElf);
 	Elf32_Phdr phdrBuffer[ehdr->e_phnum];
@@ -148,6 +149,7 @@ bool saveSharedLibrary::readNewLib(){
 		This closing of newElf should dealloc the data pointed to by oldPhdr
 	*/
 	memcpy(phdrBuffer, oldPhdr, ehdr->e_phnum * ehdr->e_phentsize);
+#endif
 
 	for (int cnt = 1; (scn = elf_nextscn(newElf, scn)); cnt++) {
 		 //copy sections from newElf to newElf.
@@ -194,10 +196,19 @@ bool saveSharedLibrary::readNewLib(){
 	newScn = elf_newscn(newElf);
 
 	newsh = elf32_getshdr(newScn);
+
 	newsh->sh_name = newScnName;
+	newsh->sh_type = SHT_NOBITS; // SHT_NOTE;
+	newsh->sh_flags=0;
 	newsh->sh_addr = 0x0;
-	newsh->sh_type = 7;
 	newsh->sh_offset = shdr->sh_offset;
+	newsh->sh_size=0;
+	newsh->sh_link=0;
+	newsh->sh_info=0;
+	newsh->sh_addralign = 0x1; //Values 0 and 1 mean the section has no alignment constraints.
+	newsh->sh_entsize = 0;
+
+
 	newdata = elf_newdata(newScn);
 	newdata->d_size =0;
 	newdata->d_buf=0;
