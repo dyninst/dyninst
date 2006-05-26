@@ -1089,7 +1089,7 @@ bblInstance::reloc_info_t::reloc_info_t(reloc_info_t *parent,
        jumpToBlock_ = NULL;
 
    for (unsigned i = 0; i < parent->relocs_.size(); i++) {
-     relocs_[i] = parent->relocs_[i];
+     relocs_.push_back( parent->relocs_[i] );
    }
 
 }
