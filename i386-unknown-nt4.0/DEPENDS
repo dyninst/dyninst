@@ -1944,7 +1944,7 @@ test5.mutatee_VC.exe: ../src/test5.mutatee.c ../../common/h/string.h \
 test6.mutatee_VC.exe: ../src/test6.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h test6LS-x86.obj
+  ../../common/h/refCounter.h test6LS-masm.obj
 test8.mutatee_VC.exe: ../src/test8.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
@@ -1982,7 +1982,7 @@ test8.mutatee_VC++.exe: ../src/test8.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
   ../../common/h/refCounter.h ../src/mutatee_util.h
-test6LS-x86.obj: ../src/test6LS-x86.asm
+test6LS-masm.obj: ../src/test6LS-masm.asm
 test13_1.dll: ../src/test13_1.c ../../dyninstAPI/h/BPatch.h \
   ../../dyninstAPI/h/BPatch_dll.h ../../dyninstAPI/h/BPatch_Vector.h \
   ../../dyninstAPI/h/BPatch_thread.h ../../dyninstAPI/h/BPatch_image.h \

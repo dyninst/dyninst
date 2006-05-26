@@ -1,5 +1,5 @@
-test6LS-x86.obj:
-  $(NASM) -o test6LS-x86.obj -l test6LS-x86.lst -fwin32 -dPLATFORM=$(PLATFORM) ../src/test6LS-x86.asm
+test6LS-masm.obj:
+  ml -nologo -Fotest6LS-masm.obj -Fltest6LS-masm.lst -c ../src/test6LS-masm.asm
 
 test1.mutatee_VC.exe:
   cl ../src/test1.mutatee.c ../src/test1.mutateeCommon.c ../src/mutatee_util.c -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test1.mutatee_VC.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
@@ -17,7 +17,7 @@ test4b.mutatee_VC.exe:
   cl ../src/test4b.mutatee.c  -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test4b.mutatee_VC.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
 
 test6.mutatee_VC.exe:
-  cl ../src/test6.mutatee.c  -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test6.mutatee_VC.exe -link test6LS-x86.obj -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
+  cl ../src/test6.mutatee.c  -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test6.mutatee_VC.exe -link test6LS-masm.obj -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
 
 test8.mutatee_VC.exe:
   cl ../src/test8.mutatee.c ../src/mutatee_util.c -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test8.mutatee_VC.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib  
