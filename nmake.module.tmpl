@@ -3,14 +3,14 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.6 2006/04/04 01:10:35 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.7 2006/05/26 21:10:43 jodom Exp $
 #
 
 SUITE_NAME	= Dyninst
 RELEASE_NUM	= 4.2
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
-DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs
+DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs_new
 
 CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h /D_DEBUG /Zi
 CXXFLAGS_NORM = $(CXXFLAGS)
@@ -40,7 +40,7 @@ UNCOMMON_INSTALL=true
 
 install: all
 	-$(MKDIR) $(DEST)
-# $(CP) $(TARGETS) $(DEST)
+	for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
 LIBS    = libdyninstAPI.lib
 
