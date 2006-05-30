@@ -16,7 +16,7 @@ test4a.mutatee_VC.exe:
 test4b.mutatee_VC.exe:
   cl ../src/test4b.mutatee.c  -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test4b.mutatee_VC.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
 
-test6.mutatee_VC.exe:
+test6.mutatee_VC.exe: test6LS-masm.obj
   cl ../src/test6.mutatee.c  -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test6.mutatee_VC.exe -link test6LS-masm.obj -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
 
 test8.mutatee_VC.exe:
