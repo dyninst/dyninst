@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.26 2006/05/25 20:11:43 bernat Exp $
+// $Id: miniTramp.C,v 1.27 2006/05/30 23:33:57 mjbrim Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -507,30 +507,39 @@ bool miniTrampInstance::linkCode() {
         miniTrampInstance *nextI = mini->next->getMTInstanceByBTI(baseTI);
         assert(nextI);
 
-        inst_printf("Writing branch from 0x%x (0x%x,0x%x) to 0x%x, miniT -> miniT\n",
-                    trampBase + mini->returnOffset,
-                    trampBase,
-                    mini->returnOffset,
-                    nextI->trampBase);
+        // if 'this' or 'next' has a zero trampBase, it's in the process of 
+        // being deleted and we don't need to do the link
+        if((trampBase != 0) && (nextI->trampBase != 0)) {
 
-        generateAndWriteBranch(mini->proc(), 
-                               trampBase + mini->returnOffset,
-                               nextI->trampBase,
-                               instruction::maxJumpSize());
+            inst_printf("Writing branch from 0x%x (0x%x,0x%x) to 0x%x, miniT -> miniT\n",
+                        trampBase + mini->returnOffset,
+                        trampBase,
+                        mini->returnOffset,
+                        nextI->trampBase);
+
+            generateAndWriteBranch(mini->proc(), 
+                                   trampBase + mini->returnOffset,
+                                   nextI->trampBase,
+                                   instruction::maxJumpSize());
+        }
     }
     else {
         // Last one; go to the base tramp
 
-        inst_printf("Writing branch from 0x%x to 0x%x, miniT (%p) -> baseT (%p)\n",
-                    trampBase + mini->returnOffset,
-                    baseTI->miniTrampReturnAddr(),
-                    this,
-                    baseTI);
+        // if 'this' has a zero trampBase, it's in the process of being deleted
+        // and we don't need to do the link
+        if(trampBase != 0) {
+           inst_printf("Writing branch from 0x%x to 0x%x, miniT (%p) -> baseT (%p)\n",
+                       trampBase + mini->returnOffset,
+                       baseTI->miniTrampReturnAddr(),
+                       this,
+                       baseTI);
 
-        generateAndWriteBranch(mini->proc(),
-                               (trampBase + mini->returnOffset),
-                               baseTI->miniTrampReturnAddr(),
-                               instruction::maxJumpSize());
+           generateAndWriteBranch(mini->proc(),
+                                  (trampBase + mini->returnOffset),
+                                  baseTI->miniTrampReturnAddr(),
+                                  instruction::maxJumpSize());
+        }
     }
 
     linked_ = true;
