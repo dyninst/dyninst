@@ -708,13 +708,12 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 	BPatch_newThreadEventRecord call_rec;
 	asyncReadReturnValue_t retval;
 	
-         // This can take some arbitrary amount of time to finish; release lockage.
          int lock_depth = eventlock->depth();
          for (int i = 0; i < lock_depth; i++) {
 	   eventlock->_Unlock(FILE__, __LINE__);
          }
 
-		//is the mutatee 32 or 64 bit?
+         //is the mutatee 32 or 64 bit?
 #if defined(x86_64_unknown_linux2_4)
 	if( appProc->getAddressWidth() == 4){//32 bit
 		BPatch_newThreadEventRecord32 call_rec_32;
@@ -776,9 +775,18 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
      {
         fprintf(stderr, "%s[%d]:  got a thread exit event\n", FILE__, __LINE__);
         BPatch_deleteThreadEventRecord rec;
+         int lock_depth = eventlock->depth();
+         for (int i = 0; i < lock_depth; i++) {
+	   eventlock->_Unlock(FILE__, __LINE__);
+         }
          asyncReadReturnValue_t retval = readEvent(ev.fd/*fd*/, 
                                                    (void *) &rec, 
                                                    sizeof(BPatch_deleteThreadEventRecord));
+         async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
+         for (int i = 0; i < lock_depth; i++) {
+	   eventlock->_Lock(FILE__, __LINE__);
+         }
+         
          if (retval != REsuccess) {
              bperr("%s[%d]:  failed to read thread event call record\n",
                    FILE__, __LINE__);
@@ -816,7 +824,12 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        BPatch_dynamicCallRecord call_rec;
        asyncReadReturnValue_t retval ;
 
-	//is the mutatee 32 or 64 bit?
+       int lock_depth = eventlock->depth();
+       for (int i = 0; i < lock_depth; i++) {
+          eventlock->_Unlock(FILE__, __LINE__);
+       }
+
+       //is the mutatee 32 or 64 bit?
 #if defined(x86_64_unknown_linux2_4)
 	if( appProc->getAddressWidth() == 4 ){
        		BPatch_dynamicCallRecord32 call_rec_32;
@@ -831,7 +844,10 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 		retval = readEvent(ev.fd/*fd*/, 
                                                  (void *) &call_rec, 
                                                    sizeof(BPatch_dynamicCallRecord));
-	
+        async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
+        for (int i = 0; i < lock_depth; i++) {
+	   eventlock->_Lock(FILE__, __LINE__);
+        }
 
          if (retval != REsuccess) {
              bperr("%s[%d]:  failed to read dynamic call record\n",
@@ -891,9 +907,16 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 #if !defined (os_windows)
        assert(ev.info > 0);
        int *userbuf = new int[ev.info];
-
+         
+       int lock_depth = eventlock->depth();
+       for (int i = 0; i < lock_depth; i++) {
+          eventlock->_Unlock(FILE__, __LINE__);
+       }
        //  Read auxilliary packet with user specifiedbuffer
        asyncReadReturnValue_t retval = readEvent(ev.what, (void *) userbuf, ev.info);
+       for (int i = 0; i < lock_depth; i++) {
+          eventlock->_Lock(FILE__, __LINE__);
+       }
        if (retval != REsuccess) {
            bperr("%s[%d]:  failed to read user specified data\n",
                  FILE__, __LINE__);
