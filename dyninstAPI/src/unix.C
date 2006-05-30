@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.213 2006/05/23 06:39:50 jaw Exp $
+// $Id: unix.C,v 1.214 2006/05/30 23:33:59 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -751,6 +751,7 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
 
     break;
   case SIGSEGV:
+  case SIGABRT:
     ev.type = evtCritical;
     break;
     
@@ -1169,7 +1170,7 @@ bool forkNewProcess_real(pdstring file,
                     pdstring dir, pdvector<pdstring> *argv,
                     pdvector<pdstring> *envp,
                     pdstring inputFile, pdstring outputFile, int &traceLink,
-                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
+                    pid_t &pid, int /*stdin_fd*/, int stdout_fd, int /*stderr_fd*/)
 #else
 bool forkNewProcess_real(pdstring file,
                     pdstring /* dir */, pdvector<pdstring> *argv,
