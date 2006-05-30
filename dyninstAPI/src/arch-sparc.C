@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.11 2006/05/03 00:31:19 jodom Exp $
+ * $Id: arch-sparc.C,v 1.12 2006/05/30 20:48:58 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -561,7 +561,7 @@ bool instruction::generate(codeGen &gen,
                            Address relocAddr,
                            Address /* fallthroughOverride */,
                            Address targetOverride) {
-    long long newLongOffset = 0;
+    long newLongOffset = 0;
 
     instruction newInsn(insn_);
 
@@ -601,8 +601,8 @@ bool instruction::generate(codeGen &gen,
                                      LOW10(origAddr), REG_O(7));
 
             // We've generated two instructions; update the offset accordingly
-            newLongOffset = (long long)target - (relocAddr + 2*instruction::size());
-            //inst_printf("storing PC (0x%lx) into o7, adding branch to target 0x%lx (offset 0x%llx)\n",origAddr,target,newLongOffset);
+            newLongOffset = (long)target - (relocAddr + 2*instruction::size());
+            //inst_printf("storing PC (0x%lx) into o7, adding branch to target 0x%lx (offset 0x%lx)\n",origAddr,target,newLongOffset);
             instruction::generateBranch(gen,newLongOffset);
         }
         else if (proc->isValidAddress(target)) {
@@ -655,7 +655,7 @@ bool instruction::generate(codeGen &gen,
         newLongOffset = (long long)getTarget(origAddr) - relocAddr;
       else
 	newLongOffset = targetOverride - relocAddr;
-        inst_printf("Orig 0x%x, target 0x%x (offset 0x%x), relocated 0x%x, new dist %lld\n",
+        inst_printf("Orig 0x%x, target 0x%x (offset 0x%x), relocated 0x%x, new dist 0x%lx\n",
                     origAddr, getTarget(origAddr), getOffset(), relocAddr, newLongOffset);
 	// if the branch is too far, then allocate more space in inferior
 	// heap for a call instruction to branch target.  The base tramp 
@@ -664,10 +664,9 @@ bool instruction::generate(codeGen &gen,
 
     // XXX doesn't instruction::generateBranch take care of this for you?
 
-	if ((newLongOffset < (long long)(-0x7fffffff-1)) ||
-	    (newLongOffset > (long long)0x7fffffff) ||
-	    !instruction::offsetWithinRangeOfBranchInsn((int)newLongOffset)){
-            inst_printf("Relocating branch; new offset %lld farther than branch range; replacing with call\n", newLongOffset);
+	if (!instruction::offsetWithinRangeOfBranchInsn((int)newLongOffset)){
+            inst_printf("Relocating branch (orig 0x%lx to 0x%lx, now 0x%lx to 0x%lx); new offset 0x%lx farther than branch range; replacing with call\n", 
+                        origAddr, getTarget(origAddr), relocAddr, targetOverride ? targetOverride : getTarget(origAddr), newLongOffset);
             // Replace with a multi-branch series
             instruction::generateImm(gen,
                                      SAVEop3,
@@ -677,7 +676,7 @@ bool instruction::generate(codeGen &gen,
             // Don't use relocAddr here, since we've moved the IP since then.
             instruction::generateCall(gen,
                                       relocAddr + instruction::size(),
-                                      newLongOffset);
+                                      targetOverride ? targetOverride : getTarget(origAddr));
             instruction::generateSimple(gen,
                                         RESTOREop3,
                                         0, 0, 0);
