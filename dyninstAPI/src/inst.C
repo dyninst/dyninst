@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.153 2006/05/25 20:11:36 bernat Exp $
+// $Id: inst.C,v 1.154 2006/05/30 20:48:59 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -129,7 +129,11 @@ trampEnd::trampEnd(multiTramp *multi, Address target) :
 {}
 
 Address relocatedInstruction::originalTarget() const {
-  if (targetAddr_) return targetAddr_;
+#if defined(cap_relocation)
+    if (targetAddr_) return targetAddr_;
+#else
+    assert(targetAddr_ == 0);
+#endif
   return insn->getTarget(origAddr_);
 }
 
