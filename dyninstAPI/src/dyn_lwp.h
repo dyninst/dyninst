@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.57 2006/05/17 04:13:02 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.58 2006/05/30 23:33:55 mjbrim Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -353,6 +353,7 @@ class dyn_lwp
   // process and return that if anyone asks for a stack walk
   pdvector<Frame> cachedStackWalk;
   bool isRunningIRPC;
+  bool isDoingAttach_;
 
   bool is_attached_;
 };

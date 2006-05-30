@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.236 2006/05/24 00:04:41 jaw Exp $
+// $Id: linux.C,v 1.237 2006/05/30 23:33:56 mjbrim Exp $
 
 #include <fstream>
 
@@ -1646,6 +1646,8 @@ bool dyn_lwp::realLWP_attach_() {
       fprintf(stderr, "%s[%d]:  failed to register lwp %d here\n", FILE__, __LINE__, get_lwp_id());
    }
 
+   isDoingAttach_ = true;
+
    startup_printf("%s[%d]:  realLWP_attach doing PTRACE_ATTACH to %lu\n", 
                   FILE__, __LINE__, get_lwp_id());
    int ptrace_errno = 0;
@@ -1653,6 +1655,7 @@ bool dyn_lwp::realLWP_attach_() {
                        proc_->getAddressWidth(),  __FILE__, __LINE__) )
    {
       //Any thread could have exited before we attached to it.
+      isDoingAttach_ = false;
       return false;
    }
    
@@ -1662,10 +1665,14 @@ bool dyn_lwp::realLWP_attach_() {
    proc()->sh->signalActiveProcess();
    do {
       evt = proc()->sh->waitForEvent(evtLwpAttach, proc_, this);
-      if (evt == evtProcessExit) 
+      if (evt == evtProcessExit) {
+         isDoingAttach_ = false;
          return false;
+      }
    } while (!is_attached());
    
+   isDoingAttach_ = false;
+
    if (proc_->status() == running) {
       continueLWP();
    }

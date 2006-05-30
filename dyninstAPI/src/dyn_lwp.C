@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.58 2006/05/04 01:41:18 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.59 2006/05/30 23:33:54 mjbrim Exp $
  */
 
 #include "common/h/headers.h"
@@ -70,7 +70,7 @@ dyn_lwp::dyn_lwp() :
   waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  isRunningIRPC(false), is_attached_(false)  
+  isRunningIRPC(false), isDoingAttach_(false), is_attached_(false)  
 {
 };
 
@@ -93,7 +93,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  isRunningIRPC(false), is_attached_(false)
+  isRunningIRPC(false), isDoingAttach_(false), is_attached_(false)
 {
 }
 
@@ -116,7 +116,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  isRunningIRPC(false), is_attached_(false)
+  isRunningIRPC(false), isDoingAttach_(false), is_attached_(false)
 {
 }
 
@@ -215,10 +215,19 @@ bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
     assert(proc()->IndependentLwpControl() ||
            (this == proc()->getRepresentativeLWP()));
 
+    
+    eventType evt;
+    while (isDoingAttach_) {
+       evt = proc()->sh->waitForEvent(evtAnyEvent, proc_, this);
+       if (evt == evtProcessExit)
+          return false;
+    }
+
    // Not checking lwp status_ for neonatal because it breaks attach with the
    // dyninst tests.  My guess is that somewhere we set the process status to
    // running.  If we can find this, then we can set the lwp status to
    // running also.
+
     if(status_ == stopped || status_ == exited) {
         return true;
     }
