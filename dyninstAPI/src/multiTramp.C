@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.49 2006/05/26 16:36:03 bernat Exp $
+// $Id: multiTramp.C,v 1.50 2006/05/30 20:49:00 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -547,11 +547,13 @@ void multiTramp::updateInstInstances() {
                 // This is the end of a chain but we don't have an end
                 // marker. Add one.
 
-
-#if 0
                 // The question is, where do we jump? We want to go to the
                 // next instruction from the relocated insn. First, find the
                 // relocated instruction (as obj might be a baseTramp)
+#if defined(cap_relocation)
+		// Shouldn't this be immediately after the multiTramp?
+                obj->setFallthrough(new trampEnd(this, instAddr_ + instSize_));
+#else                
                 relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
                 if (!insn) {
                     assert(dynamic_cast<baseTrampInstance *>(obj));
@@ -561,16 +563,17 @@ void multiTramp::updateInstInstances() {
                 assert(insn);
                 
                 // Let's get the next insn... we can do this with an InstrucIter
-                InstrucIter iter(insn->fromAddr, func());
+                InstrucIter iter(insn->origAddr_, func());
                 // The delay slot came along with us; don't branch back to it
-                if(iter.isDelaySlot())
-                {
+                if(iter.isDelaySlot()) {
                     iter++;
                 }
+                
+                obj->setFallthrough(new trampEnd(this, iter.peekNext()));
 #endif
-		// Shouldn't this be immediately after the multiTramp?
-                obj->setFallthrough(new trampEnd(this, instAddr_ + instSize_));
+
                 obj->fallthrough_->setPrevious(obj);
+
                 changedSinceLastGeneration_ = true;
             }
         }
