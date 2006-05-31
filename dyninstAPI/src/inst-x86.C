@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.242 2006/05/16 18:51:15 legendre Exp $
+ * $Id: inst-x86.C,v 1.243 2006/05/31 21:49:40 bernat Exp $
  */
 #include <iomanip>
 
@@ -110,8 +110,11 @@ unsigned relocatedInstruction::maxSizeRequired() {
 }
 
 registerSpace *regSpace32;
+registerSpace *regSpace32IRPC;
 registerSpace *regSpace64;
+registerSpace *regSpace64IRPC;
 registerSpace *regSpace;
+registerSpace *regSpaceIRPC;
 
 bool registerSpace::readOnlyRegister(Register) {
   return false;
@@ -150,17 +153,22 @@ void initTramps(bool is_multithreaded)
 
     regSpace32 = new registerSpace(deadList32Size/sizeof(Register), deadList32,
 				   0, NULL, is_multithreaded);
+    regSpace32IRPC = new registerSpace(deadList32Size/sizeof(Register), deadList32,
+				   0, NULL, is_multithreaded);
 
     /* We'll use this later to determine how we save FP's. */
     regSpace32->hasXMM = xmmCapable();
+    regSpace32IRPC->hasXMM = xmmCapable();
 
 
     regSpace64 = new registerSpace(deadList64Size/sizeof(Register), deadList64,
 				   0, NULL, is_multithreaded);
+    regSpace64IRPC = new registerSpace(deadList64Size/sizeof(Register), deadList64,
+				   0, NULL, is_multithreaded);
 
     // default to 32-bit
     regSpace = regSpace32;
-
+    regSpaceIRPC = regSpace32IRPC;
 }
 
 

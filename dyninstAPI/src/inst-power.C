@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.246 2006/05/16 21:14:35 jaw Exp $
+ * $Id: inst-power.C,v 1.247 2006/05/31 21:49:38 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -211,6 +211,7 @@ unsigned relocatedInstruction::maxSizeRequired() {
 Register deadRegs[] = {10, REG_GUARD_ADDR, REG_GUARD_VALUE, REG_GUARD_OFFSET};
 
 registerSpace *regSpace;
+registerSpace *regSpaceIRPC;
 
 registerSpace *floatRegSpace;
 
@@ -272,6 +273,12 @@ void initTramps(bool is_multithreaded)
                          sizeof(liveRegList)/sizeof(Register), liveRegList,
                          is_multithreaded);
 
+
+    regSpaceIRPC = 
+       new registerSpace(dead_reg_count, deadRegList, 
+                         sizeof(liveRegList)/sizeof(Register), liveRegList,
+                         is_multithreaded);
+
     /*
       floatRegSpace = 
       new registerSpace(0, floatingDeadRegList,
@@ -279,6 +286,9 @@ void initTramps(bool is_multithreaded)
       is_multithreaded); */
 
     regSpace->initFloatingPointRegisters(sizeof(floatingLiveRegList)/sizeof(Register), 
+					floatingLiveRegList);
+
+    regSpaceIRPC->initFloatingPointRegisters(sizeof(floatingLiveRegList)/sizeof(Register), 
 					floatingLiveRegList);
     
 #if defined (__XLC__) || defined(__xlC__)

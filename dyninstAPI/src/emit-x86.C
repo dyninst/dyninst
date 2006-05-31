@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.25 2006/05/16 21:19:04 bernat Exp $
+ * $Id: emit-x86.C,v 1.26 2006/05/31 21:49:35 bernat Exp $
  */
 
 #include <assert.h>
@@ -1002,16 +1002,17 @@ void Emitter64::emitLoadPreviousStackFrameRegister(Address register_num, Registe
 	      registerSlot * reg = regSpace->getRegSlot(i);
 	      if (reg->startsLive) {
 		  if (reg->number == register_num) {
-		      stackPlace = numLive;
-		      break;
+		    stackPlace = numLive;
+		    break;
 		  }
 		  ++numLive;
 	      }
 	  }
       }
   
-      if (stackPlace != -1)
+      if (stackPlace != -1) {
 	  emitMovRMToReg64(dest, REGNUM_RBP, (GPR_SAVE_REGION_OFFSET - stackPlace) * 8, true, gen);
+      }
       else
 	  // we didn't save the register - we assume its live and just grab it
 	  emitMovRegToReg64(dest, register_num, true, gen);
@@ -1079,7 +1080,7 @@ bool Emitter64::clobberAllFuncCall( registerSpace *rs,
        if (funcc) 
 	 {           
 	   InstrucIter ah(funcc);
-	 
+
 	   //while there are still instructions to check for in the
 	   //address space of the function
 	 
@@ -1111,6 +1112,7 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
 			     process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
 			     const instPoint *location)
 {
+
     assert(op == callOp);
     pdvector <Register> srcs;
    
@@ -1787,11 +1789,14 @@ int Emitter64::Register_DWARFtoMachineEnc(int n)
 
 Emitter64 emitter64;
 
+extern registerSpace *regSpaceIRPC;
+
 // change code generator to 32-bit mode
 void emit32()
 {
     x86_emitter = &emitter32;
     regSpace = regSpace32;
+    regSpaceIRPC = regSpace32IRPC;
 }
 
 // change code generator to 64-bit mode
@@ -1799,6 +1804,7 @@ void emit64()
 {
     x86_emitter = &emitter64;
     regSpace = regSpace64;
+    regSpaceIRPC = regSpace64IRPC;
 }
 
 #endif

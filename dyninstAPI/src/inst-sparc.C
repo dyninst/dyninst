@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.182 2006/04/12 16:59:21 bernat Exp $
+// $Id: inst-sparc.C,v 1.183 2006/05/31 21:49:39 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -59,6 +59,7 @@
 static dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 
 registerSpace *regSpace;
+registerSpace *regSpaceIRPC;
 
 
 /****************************************************************************/
@@ -221,6 +222,8 @@ void initTramps(bool is_multithreaded)
     }
 
     regSpace = new registerSpace(dead_reg_count, deadList, 0, NULL,
+                                 is_multithreaded);
+    regSpaceIRPC = new registerSpace(dead_reg_count, deadList, 0, NULL,
                                  is_multithreaded);
     assert(regSpace);
 }

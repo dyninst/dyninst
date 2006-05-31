@@ -165,6 +165,7 @@ Address relocateBaseTrampTemplateTo( Address buffer, Address target ) {
 
 /* Required by process, ast .C, et al */
 registerSpace * regSpace;
+registerSpace * regSpaceIRPC;
 
 /* Required by ast.C; used for memory instrumentation. */
 void emitCSload( const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool noCost ) {
@@ -431,6 +432,7 @@ void initTramps( bool /* is_multithreaded */ ) {
   if( haveInitializedTramps ) { return; } else { haveInitializedTramps = true; }
 
   regSpace = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
+  regSpaceIRPC = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
 } /* end initTramps() */
 
 /* Required by ast.C */

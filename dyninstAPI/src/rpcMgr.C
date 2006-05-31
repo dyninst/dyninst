@@ -59,7 +59,8 @@ rpcMgr::rpcMgr(process *proc) :
     processingProcessRPC(false),
     proc_(proc),
     lwps_(rpcLwpHash),
-    recursionGuard(false) {
+    recursionGuard(false)
+{
     // We use a base tramp skeleton to generate iRPCs.
     irpcTramp = new baseTramp(NULL);
     irpcTramp->rpcMgr_ = this;
@@ -73,7 +74,8 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
     processingProcessRPC(pRM->processingProcessRPC),
     proc_(child),
     lwps_(rpcLwpHash),
-    recursionGuard(pRM->recursionGuard) {
+    recursionGuard(pRM->recursionGuard)
+{
     // We use a base tramp skeleton to generate iRPCs.
     irpcTramp = new baseTramp(NULL);
     irpcTramp->rpcMgr_ = this;
@@ -802,6 +804,8 @@ Address rpcMgr::createRPCImage(AstNode *action,
     // initializes "regSpace", but only the 1st time called
     initTramps(proc_->multithread_capable()); 
 
+    
+
 #if defined(arch_x86_64)
     if (proc()->getAddressWidth() == 8)
 	emit64();
@@ -809,9 +813,15 @@ Address rpcMgr::createRPCImage(AstNode *action,
 	emit32();
 #endif
 
-    extern registerSpace *regSpace;
-    regSpace->resetSpace();
+    extern registerSpace *regSpace;    
+    extern registerSpace *regSpaceIRPC;
+
+    registerSpace *oldRegSpace = regSpace;
+    regSpace = regSpaceIRPC;
     
+    regSpace->resetSpace();
+       
+
     // Saves registers (first half of the base tramp) and whatever other
     // irpc-specific magic is necessary
     if (!emitInferiorRPCheader(irpcBuf)) {
@@ -908,6 +918,10 @@ Address rpcMgr::createRPCImage(AstNode *action,
         cerr << "createRPCtempTramp failed because writeDataSpace failed" <<endl;
         return 0;
     }
+
+
+    regSpace = oldRegSpace;
+
     return tempTrampBase;
 }
 
@@ -925,7 +939,9 @@ bool rpcMgr::emitInferiorRPCheader(codeGen &gen)
 {
     assert(irpcTramp);
     irpcTramp->invalidateBT();
+
     irpcTramp->generateBT(gen);
+
     gen.copy(irpcTramp->preTrampCode_);
     return true;
 }

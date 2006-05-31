@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.25 2006/04/04 17:32:22 rutar Exp $
+// $Id: inst-x86.h,v 1.26 2006/05/31 21:49:41 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -177,6 +177,10 @@
 // 32 and 64-bit register spaces
 extern registerSpace* regSpace32;
 extern registerSpace* regSpace64;
+
+// for IRPCs
+extern registerSpace* regSpace32IRPC;
+extern registerSpace* regSpace64IRPC;
 
 class codeGen;
 

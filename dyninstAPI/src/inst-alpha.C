@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.99 2006/02/17 17:17:06 rutar Exp $
+// $Id: inst-alpha.C,v 1.100 2006/05/31 21:49:36 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -140,6 +140,7 @@ bool skipSaveCalls = false;
 
 const char *registerNames[] = { "ren", "stimpy" };
 registerSpace *regSpace;
+registerSpace *regSpaceIRPC;
 Register regList[] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 pdstring getStrOp(int /* op */) {
@@ -291,6 +292,8 @@ void initTramps(bool is_multithreaded) {
   init_done = true;
 
   regSpace = new registerSpace(sizeof(regList)/sizeof(Register), regList,
+                               0, NULL, is_multithreaded);
+  regSpaceIRPC = new registerSpace(sizeof(regList)/sizeof(Register), regList,
                                0, NULL, is_multithreaded);
 }
 
