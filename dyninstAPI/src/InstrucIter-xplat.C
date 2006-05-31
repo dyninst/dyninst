@@ -73,6 +73,18 @@ void InstrucIter::initializeInsn() {
         }
         else instPtr = img_->getPtrToInstruction(current);
     }            
+
+    // ARGH 64-bit/32-bit...
+#if defined(arch_x86_64)
+    if (proc_) {
+      ia32_set_mode_64(proc_->getAddressWidth() == 8);
+    }
+    else {
+      assert(img_);
+      ia32_set_mode_64(img_->getAddressWidth() == 8);
+    }
+#endif
+
     if (instPtr) 
         insn.setInstruction((codeBuf_t *)instPtr, current);
 

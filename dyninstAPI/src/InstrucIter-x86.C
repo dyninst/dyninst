@@ -650,12 +650,9 @@ Address InstrucIter::operator++()
     prev.prevPtr = instPtr;
     prevInsns.push_back(prev);
 
-    Address tmp = (Address) instPtr;
-    tmp += insn.size();
-    instPtr = (void *) tmp;
     current += insn.size();
-    insn.setInstruction( (unsigned char *) instPtr );
-    
+    initializeInsn();
+
     return current;
 }
 
