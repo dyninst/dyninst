@@ -96,7 +96,8 @@ bool dyn_lwp::getRegisters_( struct dyn_saved_regs *regs ) {
 
 	errno = 0;
 	regs->pc = getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_CR_IIP, 0, -1, & errno );
-	assert( ! errno );
+   if (errno != 0)
+      return false;
 
 	/* If the PC may have rewound, handle it intelligently. */
 	needToHandleSyscall( this, & regs->pcMayHaveRewound );
@@ -107,10 +108,11 @@ bool dyn_lwp::getRegisters_( struct dyn_saved_regs *regs ) {
 	   (We predicate break instructions based on if the kernel attempted to
 	   restart the system call.) */
 	regs->pr = getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_PR, 0, -1, & errno );
-	assert( ! errno );
+   if (errno != 0)
+      return false;
 
 	return true;
-	} /* end getRegisters_() */
+} /* end getRegisters_() */
 
 bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
   /* Restore the PC. */
@@ -125,7 +127,8 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
        adjust regs->pc appropriately.  No other cases are possible. */
     errno = 0;
     uint64_t ipsr = getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_CR_IPSR, 0, -1, & errno );
-    assert( ! errno );
+    if (errno != 0)
+       return false;
 
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: pcMayHaveRewound.\n", FILE__, __LINE__ );
 
@@ -152,8 +155,9 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
 
   /* Restore the predicate registers. */
   int status = getDBI()->ptrace( PTRACE_POKEUSER, get_lwp_id(), PT_PR, regs.pr );
-  assert( status == 0 );
-		
+  if (status != 0)
+     return false;
+
   return true;
 } /* end restoreRegisters_() */
 
