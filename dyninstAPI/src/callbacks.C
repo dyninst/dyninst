@@ -325,6 +325,7 @@ bool AsyncThreadEventCallback::operator()(BPatch_process *process, BPatch_thread
 
   proc = process;
   thr = thread;
+  synchronous = false;
 
   return do_it();
 }
