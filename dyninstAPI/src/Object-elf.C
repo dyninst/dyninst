@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.104 2006/05/03 00:31:18 jodom Exp $
+ * $Id: Object-elf.C,v 1.105 2006/05/31 17:15:57 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2668,9 +2668,12 @@ static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *exce
     bool result = false;
 
     if (except_scn == NULL) {
-	//likely to happen if we're not using gcc
-	return true;
+       //likely to happen if we're not using gcc
+       return true;
     }
+#if defined(arch_x86_64)
+    return true;
+#endif
 
     eh_frame_base = eh_frame->sh_addr();
     except_base = except_scn->sh_addr();
@@ -2679,14 +2682,12 @@ static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *exce
     status = dwarf_elf_init(elf.e_elfp(), DW_DLC_READ, &pd_dwarf_handler, NULL,
 			    &dbg, &err);
     if( status != DW_DLV_OK ) {
-#if !defined(x86_64_unknown_linux2_4)
-	// GCC 3.3.3 seems to generate incorrect DWARF entries
-	// on the x86_64 platform right now.  Hopefully this will
-	// be fixed, and this #if macro can be removed.
-
-	pd_dwarf_handler(err, NULL);
-#endif
-	goto err_noclose;
+       // GCC 3.3.3 seems to generate incorrect DWARF entries
+       // on the x86_64 platform right now.  Hopefully this will
+       // be fixed, and this #if macro can be removed.
+       
+       pd_dwarf_handler(err, NULL);
+       goto err_noclose;
     }
 
     //Read the FDE and CIE information
