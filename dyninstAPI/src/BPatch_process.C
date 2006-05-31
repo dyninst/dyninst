@@ -489,14 +489,12 @@ bool BPatch_process::continueExecutionInt()
 {
 
     if (isTerminated()) {
-       fprintf(stderr, "%s[%d]:  continueExecution:: process is terminated\n", FILE__, __LINE__);
       return true;
     }
 
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
        isVisiblyStopped = false;
-       //fprintf(stderr, "%s[%d]:  continueExecution:: process is not stopped\n", FILE__, __LINE__);
        return true;
    }
 
@@ -1518,7 +1516,8 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    while (!info->isCompleted()) {
        inferiorrpc_printf("%s[%d]: waiting for RPC to complete\n",
                           FILE__, __LINE__);
-       llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
+       llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, 
+                                statusRPCDone);
        if (statusIsTerminated()) break;
        getMailbox()->executeCallbacks(FILE__, __LINE__);
    }

@@ -628,10 +628,6 @@ bool SignalHandler::handleEvent(EventRecord &ev)
          // First, we scream... this is undesired behavior.
          signal_printf("%s[%d]: WARNING: inst point trap detected at 0x%lx, trap to 0x%lx\n",
                        FILE__, __LINE__, ev.address, proc->trampTrapMapping[ev.address]);
-         /*codeRange *from = proc->findCodeRangeByAddress(ev.address);
-           codeRange *to = proc->findCodeRangeByAddress(ev.address);
-           from->print_range();
-           to->print_range();*/
          ev.lwp->changePC(proc->trampTrapMapping[ev.address], NULL);
          continueHint = true;
          ret = true;

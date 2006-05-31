@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.214 2006/05/30 23:33:59 mjbrim Exp $
+// $Id: unix.C,v 1.215 2006/05/31 17:15:56 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1070,77 +1070,77 @@ void reportPreloadError(const pdstring &msg)
 // Modify pnum_entries and envs if not null, putenv otherwise
 bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
 {
-    unsigned num_entries = *pnum_entries;
-    char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
-    if (rt_lib_name == 0) {
-	reportPreloadError(pdstring("setEnvPreload: DYNINSTAPI_RT_LIB is "
-				    "undefined"));
-	return false;
-    }
-    // Check to see if the library given exists.
-    if (access(rt_lib_name, R_OK)) {
-        pdstring msg = pdstring("Runtime library ") + pdstring(rt_lib_name) +
-	    pdstring(" does not exist or cannot be accessed!");
-	reportPreloadError(msg);
-        return false;
-    }
+   unsigned num_entries = *pnum_entries;
+   char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
+   if (rt_lib_name == 0) {
+      reportPreloadError(pdstring("setEnvPreload: DYNINSTAPI_RT_LIB is "
+                                  "undefined"));
+      return false;
+   }
+   // Check to see if the library given exists.
+   if (access(rt_lib_name, R_OK)) {
+      pdstring msg = pdstring("Runtime library ") + pdstring(rt_lib_name) +
+         pdstring(" does not exist or cannot be accessed!");
+      reportPreloadError(msg);
+      return false;
+   }
 
-    const char *var_name = "LD_PRELOAD";
-    if (envs != 0) {
-	// Check if some LD_PRELOAD is already part of the environment.
-	unsigned ivar;
-	for (ivar=0; ivar < num_entries &&
-		 strncmp(envs[ivar], var_name, strlen(var_name)) != 0;
-	     ivar++);
-	if (ivar == num_entries) {
-	    // Not found, append an entry to envs
-	    pdstring ld_preload = pdstring(var_name) + pdstring("=") +
-		pdstring(rt_lib_name);
-	    if (num_entries >= max_entries) {
-		reportPreloadError(pdstring("setEnvPreload: out of space"));
-		return false;
-	    }
-	    if ((envs[num_entries++] = P_strdup(ld_preload.c_str())) == 0) {
-		reportPreloadError(pdstring("setEnvPreload: out of memory"));
-		return false;
-	    }
-	    envs[num_entries] = NULL;
-	    *pnum_entries = num_entries;
-	}
-	else {
-	    // Found, modify envs in-place
-	    pdstring ld_preload = pdstring(envs[ivar]) + pdstring(":") + 
-		pdstring(rt_lib_name);
-	    if ((envs[ivar] = P_strdup(ld_preload.c_str())) == 0) {
-		reportPreloadError(pdstring("setEnvPreload: out of memory"));
-		return false;
-	    }
-	}
-    }
-    else {
-	// Environment inherited from this process, do putenv
-	char *ld_preload_orig = getenv("LD_PRELOAD");
-	pdstring ld_preload;
+   const char *var_name = "LD_PRELOAD";
+   if (envs != 0) {
+      // Check if some LD_PRELOAD is already part of the environment.
+      unsigned ivar;
+      for (ivar=0; ivar < num_entries &&
+              strncmp(envs[ivar], var_name, strlen(var_name)) != 0;
+           ivar++);
+      if (ivar == num_entries) {
+         // Not found, append an entry to envs
+         pdstring ld_preload = pdstring(var_name) + pdstring("=") +
+            pdstring(rt_lib_name);
+         if (num_entries >= max_entries) {
+            reportPreloadError(pdstring("setEnvPreload: out of space"));
+            return false;
+         }
+         if ((envs[num_entries++] = P_strdup(ld_preload.c_str())) == 0) {
+            reportPreloadError(pdstring("setEnvPreload: out of memory"));
+            return false;
+         }
+         envs[num_entries] = NULL;
+         *pnum_entries = num_entries;
+      }
+      else {
+         // Found, modify envs in-place
+         pdstring ld_preload = pdstring(envs[ivar]) + pdstring(":") + 
+            pdstring(rt_lib_name);
+         if ((envs[ivar] = P_strdup(ld_preload.c_str())) == 0) {
+            reportPreloadError(pdstring("setEnvPreload: out of memory"));
+            return false;
+         }
+      }
+   }
+   else {
+      // Environment inherited from this process, do putenv
+      char *ld_preload_orig = getenv("LD_PRELOAD");
+      pdstring ld_preload;
 
-	if (ld_preload_orig != 0) {
-	    // Append to existing var
-	    ld_preload = pdstring(var_name) + pdstring("=") +
-		pdstring(ld_preload_orig) + pdstring(":") +
-		pdstring(rt_lib_name);
-	}
-	else {
-	    // Define a new var
-	    ld_preload = pdstring(var_name) + pdstring("=") +
-		pdstring(rt_lib_name);
-	}
-	char *ld_preload_cstr = P_strdup(ld_preload.c_str());
-	if (ld_preload_cstr == 0 ||
-	    P_putenv(ld_preload_cstr) < 0) {
-	    reportPreloadError(pdstring("setEnvPreload: out of memory"));
-	    return false;
-	}
-    }
-    return true;
+      if (ld_preload_orig != 0) {
+         // Append to existing var
+         ld_preload = pdstring(var_name) + pdstring("=") +
+            pdstring(ld_preload_orig) + pdstring(":") +
+            pdstring(rt_lib_name);
+      }
+      else {
+         // Define a new var
+         ld_preload = pdstring(var_name) + pdstring("=") +
+            pdstring(rt_lib_name);
+      }
+      char *ld_preload_cstr = P_strdup(ld_preload.c_str());
+      if (ld_preload_cstr == 0 ||
+          P_putenv(ld_preload_cstr) < 0) {
+         reportPreloadError(pdstring("setEnvPreload: out of memory"));
+         return false;
+      }
+   }
+   return true;
 }
 
 /*****************************************************************************
@@ -1172,22 +1172,23 @@ bool forkNewProcess_real(pdstring file,
                     pdstring inputFile, pdstring outputFile, int &traceLink,
                     pid_t &pid, int /*stdin_fd*/, int stdout_fd, int /*stderr_fd*/)
 #else
-bool forkNewProcess_real(pdstring file,
-                    pdstring /* dir */, pdvector<pdstring> *argv,
-                    pdvector<pdstring> *envp,
-                    pdstring /* inputFile */, pdstring /* outputFile */, int &/* traceLink */,
-                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
+   bool forkNewProcess_real(pdstring file,
+                            pdstring /* dir */, pdvector<pdstring> *argv,
+                            pdvector<pdstring> *envp,
+                            pdstring /* inputFile */, pdstring /* outputFile */,
+                            int &/* traceLink */,
+                            pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
 #endif
 {
-  forkexec_printf("%s[%d][%s]:  welcome to forkNewProcess(%s)\n",
-          FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
+   forkexec_printf("%s[%d][%s]:  welcome to forkNewProcess(%s)\n",
+                   FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
 #ifndef BPATCH_LIBRARY
    int tracePipe[2];
    int r = P_pipe(tracePipe);
    if (r) {
       // P_perror("socketpair");
-      pdstring msg = pdstring("Unable to create trace pipe for program '") + file +
-         pdstring("': ") + pdstring(strerror(errno));
+      pdstring msg = pdstring("Unable to create trace pipe for program '") + 
+         file + pdstring("': ") + pdstring(strerror(errno));
       showErrorCallback(68, msg);
       return false;
    }
@@ -1198,14 +1199,9 @@ bool forkNewProcess_real(pdstring file,
 
    if (pid != 0) {
       // *** parent
-      startup_printf("%s[%d][%s]:  ForkNewProcessCallback::execute(%s): FORK PARENT\n",
-               FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
-
-
-//#if defined(os_linux)
-//      if (!attachToChild(pid)) 
-//        assert (0 && "failed to ptrace attach to child process");
-//#endif
+      startup_printf("%s[%d][%s]:  ForkNewProcessCallback::execute(%s): " \
+                     "FORK PARENT\n", FILE__, __LINE__, 
+                     getThreadStr(getExecThreadID()), file.c_str());
 
 #if (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
       /*
@@ -1221,8 +1217,9 @@ bool forkNewProcess_real(pdstring file,
          if (errno)
 #endif
          {
-      fprintf(stderr, "%s[%d][%s]:  ForkNewProcessCallback::execute(%s): FORK ERROR\n",
-               FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
+            fprintf(stderr, "%s[%d][%s]:  ForkNewProcessCallback::execute(%s):" \
+                    "FORK ERROR\n", FILE__, __LINE__, 
+                    getThreadStr(getExecThreadID()), file.c_str());
             sprintf(errorLine, "Unable to start %s: %s\n", file.c_str(), 
                     strerror(errno));
             logLine(errorLine);
@@ -1272,7 +1269,7 @@ bool forkNewProcess_real(pdstring file,
 
       if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
          bpwarn("cannot chdir to '%s': %s\n", dir.c_str(), 
-                 strerror(errno));
+                strerror(errno));
          P__exit(-1);
       }
 #endif
@@ -1331,20 +1328,20 @@ bool forkNewProcess_real(pdstring file,
       unsigned num_envs_entries = 0; // not including terminating NULL
       unsigned max_envs_entries = 0;
       if (envp) {
-	  max_envs_entries = envp->size() + 3;
-	  // +3: Allocate room for PARADYN_MASTER_INFO, LD_PRELOAD, and NULL
-	  envs = new char*[max_envs_entries];
-	  for(unsigned ei = 0; ei < envp->size(); ++ei)
-	      envs[ei] = P_strdup((*envp)[ei].c_str());
-	  num_envs_entries = envp->size();
-	  envs[num_envs_entries] = NULL;
+         max_envs_entries = envp->size() + 3;
+         // +3: Allocate room for PARADYN_MASTER_INFO, LD_PRELOAD, and NULL
+         envs = new char*[max_envs_entries];
+         for(unsigned ei = 0; ei < envp->size(); ++ei)
+            envs[ei] = P_strdup((*envp)[ei].c_str());
+         num_envs_entries = envp->size();
+         envs[num_envs_entries] = NULL;
       }
 #if (defined(os_linux) && !defined(arch_x86_64)) || defined(os_solaris)
       // Platforms that use LD_PRELOAD. We exclude x86_64 since we do
       // not yet know which kind of the RT lib to load (we determine
       // whether the mutatee is 32 or 64-bit only after starting it).
       if (!setEnvPreload(max_envs_entries, envs, &num_envs_entries)) {
-	  P__exit(-1);
+         P__exit(-1);
       }
 #endif
 
@@ -1367,10 +1364,10 @@ bool forkNewProcess_real(pdstring file,
       }
 
       if (envp) {
-	  envs[num_envs_entries++] = P_strdup(paradynInfo);
-	  envs[num_envs_entries] = NULL;
+         envs[num_envs_entries++] = P_strdup(paradynInfo);
+         envs[num_envs_entries] = NULL;
       } else {
-	  P_putenv(paradynInfo);
+         P_putenv(paradynInfo);
       }
 #endif
 
@@ -1380,18 +1377,19 @@ bool forkNewProcess_real(pdstring file,
          args[ai] = P_strdup((*argv)[ai].c_str());
       args[argv->size()] = NULL;
 
-     startup_printf("%s[%d]:  before exec\n", FILE__, __LINE__);
-     char argstr[2048];
-     argstr[0] = '\0';
-     for (unsigned int ji=0; ji < argv->size(); ji++) {
-       pdstring &s = (*argv)[ji];
-       sprintf(argstr, "%s %s", argstr, s.c_str());
-     }
-     startup_printf("%s[%d]:  EXEC: %s %s\n", FILE__, __LINE__, file.c_str(), argstr);
+      startup_printf("%s[%d]:  before exec\n", FILE__, __LINE__);
+      char argstr[2048];
+      argstr[0] = '\0';
+      for (unsigned int ji=0; ji < argv->size(); ji++) {
+         pdstring &s = (*argv)[ji];
+         sprintf(argstr, "%s %s", argstr, s.c_str());
+      }
+      startup_printf("%s[%d]:  EXEC: %s %s\n", FILE__, __LINE__, 
+                     file.c_str(), argstr);
       if (envp) {
-	  P_execve(file.c_str(), args, envs);
+         P_execve(file.c_str(), args, envs);
       }else
-	  P_execvp(file.c_str(), args);
+         P_execvp(file.c_str(), args);
 
     
       char argline[2048];
@@ -1408,16 +1406,15 @@ bool forkNewProcess_real(pdstring file,
       sprintf(errorLine, "%s[%d]:  execv of command '%s' failed, errno=%d\n", 
               FILE__, __LINE__, argline, errno);
       fprintf(stderr,"%s",errorLine);
-
       {
-          if ( envp )
-          {
-	      for(unsigned i = 0; envs[i] != NULL; ++i) {
-            
-	          sprintf(errorLine, "envp %d = %s\n", i, envs[i]);
-                  fprintf(stderr,"%s",errorLine);
-	      }
-           }
+         if ( envp )
+         {
+            for(unsigned i = 0; envs[i] != NULL; ++i) {
+               
+               sprintf(errorLine, "envp %d = %s\n", i, envs[i]);
+               fprintf(stderr,"%s",errorLine);
+            }
+         }
       }	      
       
       P_abort();
