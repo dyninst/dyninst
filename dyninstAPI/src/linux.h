@@ -39,19 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.31 2006/05/24 00:04:41 jaw Exp $
+// $Id: linux.h,v 1.32 2006/05/31 17:16:01 legendre Exp $
 
-#if !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
-
+#if !defined(os_linux)
 #error "invalid architecture-os inclusion"
 #endif
 
-class process;
 
 #ifndef LINUX_PD_HDR
 #define LINUX_PD_HDR
+
+class process;
 
 #include <sys/param.h>
 #include <pthread.h>
@@ -140,17 +138,17 @@ typedef struct maps_entries {
 class SignalGenerator;
 class eventLock;
 
+typedef struct waitpid_ret_pair {
+   int pid;
+   int status;
+} waitpid_ret_pair_t;
+
+typedef struct pid_generator_pair {
+   int pid;
+   SignalGenerator *sg;
+} pid_generator_pair_t;
+
 class WaitpidMux {
-
-  typedef struct waitpid_ret_pair {
-     int pid;
-     int status;
-  } waitpid_ret_pair_t;
-
-  typedef struct pid_generator_pair {
-     int pid;
-     SignalGenerator *sg;
-  } pid_generator_pair_t;
 
   public:
    int waitpid(SignalGenerator *me, int *status);
@@ -162,6 +160,10 @@ class WaitpidMux {
    void forceWaitpidReturn();
    bool suppressWaitpidActivity();
    bool resumeWaitpidActivity();
+   int enqueueWaitpidValue(waitpid_ret_pair ev, SignalGenerator *event_owner);
+
+   pthread_mutex_t waiter_mutex;
+   pthread_cond_t waiter_condvar;
 
    WaitpidMux() :
      isInWaitpid(false),
@@ -173,7 +175,6 @@ class WaitpidMux {
    {}
 
   private:
-   pdvector< pdpair< SignalGenerator *, pdvector<waitpid_ret_pair> > > waitpid_results;
    bool isInWaitpid;
    bool isInWaitLock;
    unsigned long waitpid_thread_id;
@@ -183,13 +184,11 @@ class WaitpidMux {
    pdvector<SignalGenerator *> first_timers;
 
    volatile int waiter_exists;
-   static eventLock waiter_lock;
    pdvector<pid_generator_pair_t> pidgens;
    void addPidGen(int pid, SignalGenerator *sg);
    void removePidGen(int pid, SignalGenerator *sg);
    void removePidGen(SignalGenerator *sg);
    bool hasFirstTimer(SignalGenerator *me);
-
 };
 
 #endif

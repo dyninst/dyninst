@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.13 2006/05/24 00:04:42 jaw Exp $
+/* $Id: signalgenerator-unix.h,v 1.14 2006/05/31 17:16:02 legendre Exp $
  */
 
 
@@ -67,7 +67,7 @@ class SignalGenerator : public SignalGeneratorCommon
   friend class SignalHandler;
   friend class SignalGeneratorCommon;
   friend class process;
-
+  
   public:
   virtual ~SignalGenerator();
 
@@ -139,8 +139,11 @@ class SignalGenerator : public SignalGeneratorCommon
    bool pauseAllWaitpid() { return waitpid_mux.suppressWaitpidActivity();}
    bool resumeWaitpid() { return waitpid_mux.resumeWaitpidActivity();}
 
-   private:
+
+   pdvector<waitpid_ret_pair> event_queue;
+ private:
    static WaitpidMux waitpid_mux;
+
    pdvector<int> suppressed_sigs;
    pdvector<dyn_lwp *> suppressed_lwps;
    //  SignalHandler::suppressSignalWhenStopping

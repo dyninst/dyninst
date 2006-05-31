@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.237 2006/05/30 23:33:56 mjbrim Exp $
+// $Id: linux.C,v 1.238 2006/05/31 17:16:00 legendre Exp $
 
 #include <fstream>
 
@@ -80,6 +80,7 @@
 #include "common/h/pathName.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
+#include "linux.h"
 
 #include "dynamiclinking.h"
 
@@ -117,8 +118,6 @@ static bool debug_ptrace = false;
 #endif
 
 WaitpidMux SignalGenerator::waitpid_mux;
-eventLock WaitpidMux::waiter_lock;
-
 
 /* ********************************************************************** */
 
@@ -156,75 +155,54 @@ void OS::osDisconnect(void)
 
 void OS::osTraceMe(void) 
 { 
-  int result = P_kill(getpid(), SIGSTOP);
-  if (0 != result) {
-    fprintf(stderr, "%s[%d]:  failed to stop child\n", FILE__, __LINE__);
-    abort();
-  }
+   int result = P_ptrace(PTRACE_TRACEME, 0, 0, 0);
+   if (result == -1) {
+      perror("Couldn't ptrace(PTRACE_TRACEME)\n");
+   }
 }
 
 bool SignalGenerator::attachToChild(int pid)
 {
    //  wait for child process to stop itself, attach to it, and continue
-   int wait_options = WUNTRACED;
-   int status = 0;
-
-   
-   //  NOTE:  the first waitpid is for an untraced process -- thus we do not 
-   //  need to worry about interference with the underlying waitpid multiplexing
-   //  
-   //  This differs from the second waitpid() in this function (below) which 
-   //  is called after PTRACE_ATTACH, and thus must go thru the multiplexor.
-   int res = waitpid(pid, &status, wait_options);
-   if (res <= 0) {
-      fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
-      return false;
-   }
-   if (!WIFSTOPPED(status)) {
-      fprintf(stderr, "%s[%d]:  status is not stopped\n", FILE__, __LINE__);
-   }
-   if ( SIGSTOP != WSTOPSIG(status)) {
-      fprintf(stderr, "%s[%d]:  signal is not SIGSTOP: stopsig = %d\n", 
-              FILE__, __LINE__, WSTOPSIG(status));
-      return false;
-   }
-   
+   int status = 0, res;
    
    waitpid_mux.registerProcess(this);
-
-   if (0 != P_ptrace(PTRACE_ATTACH, pid, 0, 0)) {
-      fprintf(stderr, "%s[%d]:  ptrace (ATTACH) failed\n", FILE__, __LINE__);
-      return false;
-   }
-
    
-   if (0 != P_ptrace(PTRACE_CONT, pid, 0, SIGCONT)) {
-      perror("ptrace(CONT)");
-      fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
-      return false;
-   }
-  
-
-
-   try_again_if_interrupted:
-   errno = 0;
-   res = waitpid_mux.waitpid(this, &status);
-   if (0 > res) {
-      if (errno == EINTR) {
-        fprintf(stderr, "%s[%d]:  waitpid interrrupted\n", FILE__, __LINE__);
-        goto try_again_if_interrupted;
+   /**
+    * Recieve the SIGSTOP event associated with a PTRACE_TRACEME/exec
+    * pair here.  We'll then add it back to the signalgenerator so that it
+    * can be found again latter when we're waiting for a process create event.
+    **/
+   do {
+      res = waitpid_mux.waitpid(this, &status);
+      if ((res == -1 && errno == EINTR) || (res == 0))
+         continue; //waitpid returned without a value
+      if (res == -1) {
+         perror("Couldn't successfully waitpid on starting process");
+         break;
       }
-      fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
-      perror("process::attach - waitpid");
-      return false;
-   }
-   
-   if (0 != P_ptrace(PTRACE_CONT, pid, 0, SIGCONT)) {
-      perror("ptrace(CONT)");
-      fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
-      return false;
-   }
+      if (WIFSIGNALED(status) || WIFEXITED(status)) {
+          startup_printf("[%s:%u] - Process terminated during attach\n", 
+                 FILE__, __LINE__);
+         return false;
+      }
+      if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
+         startup_printf("[%s:%u] - Recieved notice of successful exec after "
+                        "fork.\n", FILE__, __LINE__);
+         //Normal case, we got the sigtrap
+         break;
+      }
+      if (WIFSTOPPED(status)) {
+         startup_printf("[%s:%u] - Recieved unexpected signal %d, "
+                        "throwing back\n", FILE__, __LINE__, WSTOPSIG(status));
+         P_ptrace(PTRACE_CONT, pid, (Address) NULL, WSTOPSIG(status));
+      }
+   } while (!WIFSTOPPED(status) || (WSTOPSIG(status) != SIGTRAP));
 
+   waitpid_ret_pair ev;
+   ev.status = status;
+   ev.pid = pid;
+   waitpid_mux.enqueueWaitpidValue(ev, this);
 
    return true;
 }
@@ -2362,7 +2340,6 @@ void chld_handler2(int, siginfo_t *, void *) {
 static void kickWaitpider(int pid) {
    struct sigaction handler;
 
-
    //   handler.sa_handler = chld_handler;
    sigfillset(& handler.sa_mask);
    handler.sa_sigaction = chld_handler2;
@@ -2378,127 +2355,93 @@ static void kickWaitpider(int pid) {
 bool WaitpidMux::registerProcess(SignalGenerator *me) 
 {
 
-  waiter_lock._Lock(FILE__, __LINE__);
-  SignalGenerator *sg_test = NULL;
-  bool found = false;
-  //  Verify that we do not already have an event queue for this sg
-  for (unsigned int i = 0; i < waitpid_results.size(); ++i) {
-    sg_test = waitpid_results[i].first;
-    if (sg_test == me) {
-      fprintf(stderr, "%s[%d]:  FIXME:  already have an event queue\n", FILE__, __LINE__);
-      found = true;
-    }
-  }
-
-  if (!found) {
-    pdpair<SignalGenerator *, pdvector<waitpid_ret_pair> > new_queue;
-    new_queue.first = me;
-    waitpid_results.push_back(new_queue);
-
-    for (unsigned i=0; i<unassigned_events.size(); i++)
-      if (unassigned_events[i].pid == me->getPid()) {
-         proccontrol_printf("[%s:%u] - Found early event for %d, restoring\n",
-                            __FILE__, __LINE__, me->getPid());
-         new_queue.second.push_back(unassigned_events[i]);
-         unassigned_events.erase(i, i);
-         i--;
-      }
-  }
-  waiter_lock._Unlock(FILE__, __LINE__);
-
+  pthread_mutex_lock(&waiter_mutex);
+   
+  for (unsigned i=0; i<unassigned_events.size(); i++)
+     if (unassigned_events[i].pid == me->getPid()) {
+        proccontrol_printf("[%s:%u] - Found early event for %d, restoring\n",
+                           FILE__, __LINE__, me->getPid());
+        me->event_queue.push_back(unassigned_events[i]);
+        unassigned_events.erase(i, i);
+        i--;
+     }
   addPidGen(me->getPid(), me);
+
+  pthread_mutex_unlock(&waiter_mutex);
+
   return true;
 }
 
 bool WaitpidMux::registerLWP(unsigned lwpid, SignalGenerator *me) 
 {
-  waiter_lock._Lock(FILE__, __LINE__);
-    //  find our event queue and add any pre-existing events
-    pdvector<waitpid_ret_pair> *event_queue = NULL;
-    for (unsigned int i  = 0; i < waitpid_results.size(); ++i) {
-      if (waitpid_results[i].first == me) {
-        event_queue = &waitpid_results[i].second;
-      }
-    }  
-    if (!event_queue) {
-      fprintf(stderr, "%s[%d]:  NO QUEUE\n", FILE__, __LINE__);
-      return false;
-    }
+   pthread_mutex_lock(&waiter_mutex);
 
-    for (unsigned i=0; i<unassigned_events.size(); i++)
+   for (unsigned i=0; i<unassigned_events.size(); i++)
       if (unassigned_events[i].pid == me->getPid()) {
          proccontrol_printf("[%s:%u] - Found early event for %d, restoring\n",
-                            __FILE__, __LINE__, me->getPid());
-         event_queue->push_back(unassigned_events[i]);
+                            FILE__, __LINE__, me->getPid());
+         me->event_queue.push_back(unassigned_events[i]);
          unassigned_events.erase(i, i);
          i--;
       }
-
-    waiter_lock._Unlock(FILE__, __LINE__);
-    addPidGen(lwpid, me);
-    return true;
+   
+   addPidGen(lwpid, me);
+   
+   pthread_mutex_unlock(&waiter_mutex);
+   return true;
 }
 
 bool WaitpidMux::unregisterLWP(unsigned lwpid, SignalGenerator *me) 
 {
+  pthread_mutex_lock(&waiter_mutex);
   removePidGen(lwpid, me);
+  pthread_mutex_unlock(&waiter_mutex);
   return true;
 }
 
 bool WaitpidMux::unregisterProcess(SignalGenerator *me) 
 {
+  pthread_mutex_lock(&waiter_mutex);
   removePidGen(me);
 
-  waiter_lock._Lock(FILE__, __LINE__);
   if (waitpid_thread_id == me->getThreadID()) {
     forceWaitpidReturn();
   }
-  //  remove event queue for this 
-  bool ret = false;
-  for (int i = waitpid_results.size() -1; i >= 0; --i) {
-    SignalGenerator *sg_test = waitpid_results[i].first;
-    if (sg_test == me) {
-      waitpid_results.erase(i,i); 
-      ret = true;
-    }
-  }
-  waiter_lock._Unlock(FILE__, __LINE__);
-  if (!ret) {
-     fprintf(stderr, "%s[%d]:  FIXME:  sg not found\n", FILE__, __LINE__);
-  }
-  return ret;
+
+  pthread_mutex_unlock(&waiter_mutex);
+  return true;
 }
 
 void WaitpidMux::forceWaitpidReturn() 
 {
-  waiter_lock._Lock(FILE__, __LINE__);
-   if (isInWaitpid) {
-      kickWaitpider(waiter_exists);
-   }
-   else if (isInWaitLock) {
-      forcedExit = true;
-      waiter_lock._Broadcast(FILE__, __LINE__);
-   }
-   waiter_lock._Unlock(FILE__, __LINE__);
+  pthread_mutex_lock(&waiter_mutex);
+  if (isInWaitpid) {
+     kickWaitpider(waiter_exists);
+  }
+  else if (isInWaitLock) {
+     forcedExit = true;
+     pthread_cond_broadcast(&waiter_condvar);
+  }
+  pthread_mutex_unlock(&waiter_mutex);
 }
 
 bool WaitpidMux::suppressWaitpidActivity()
 {     
-   waiter_lock._Lock(FILE__, __LINE__);
+   pthread_mutex_lock(&waiter_mutex);
    pause_flag = true;
    if (waiter_exists) {
       kickWaitpider(waiter_exists);
    }
-   waiter_lock._Unlock(FILE__, __LINE__);
-  return true;           
+   pthread_mutex_unlock(&waiter_mutex);
+   return true;           
 }
 
 bool WaitpidMux::resumeWaitpidActivity()
-{     
-   waiter_lock._Lock(FILE__, __LINE__);
+{  
+   pthread_mutex_lock(&waiter_mutex);
    pause_flag = false;
-   waiter_lock._Broadcast(FILE__, __LINE__);
-   waiter_lock._Unlock(FILE__, __LINE__);
+   pthread_cond_broadcast(&waiter_condvar);
+   pthread_mutex_unlock(&waiter_mutex);
    return true;
 }        
 
@@ -2508,33 +2451,21 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
    int options = __WALL;
    SignalGenerator *event_owner;
 
-   waiter_lock._Lock(FILE__, __LINE__);
+   pthread_mutex_lock(&waiter_mutex);
    
    proccontrol_printf("[%s:%u] waitpid_demultiplex called for %d\n", 
                       FILE__, __LINE__, me->getPid());
    for (;;) {
       //  Find the queue for this signalgenerator
-      pdvector<waitpid_ret_pair> *event_queue = NULL;
-      for (unsigned int i  = 0; i < waitpid_results.size(); ++i) {
-        if (waitpid_results[i].first == me) {
-          event_queue = &waitpid_results[i].second;
-        }
-      }  
-      if (!event_queue) {
-        fprintf(stderr, "%s[%d]:  NO QUEUE\n", FILE__, __LINE__);
-        return -1;
-      }
-
-      if (event_queue->size()) {
+      if (me->event_queue.size()) {
          //Someone put an event into our queue (thank you), we'll
          //go ahead and dequeue and return it.
-         waitpid_ret_pair ret = (*event_queue)[0];
-         event_queue->erase(0, 0);
+         waitpid_ret_pair ret = me->event_queue[0];
+         me->event_queue.erase(0, 0);
          *status = ret.status;
-         waiter_lock._Unlock(FILE__, __LINE__);
-         
          proccontrol_printf("[%s:%u] %d found an event %d in my queue\n",
                             FILE__, __LINE__, me->getPid(), *status);
+         pthread_mutex_unlock(&waiter_mutex);
          return ret.pid;
       }
 
@@ -2545,10 +2476,9 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
          proccontrol_printf("[%s:%u] %d forced out of waitpid\n",
                             FILE__, __LINE__, me->getPid());
          forcedExit = false;
-         waiter_lock._Unlock(FILE__, __LINE__);
+         pthread_mutex_unlock(&waiter_mutex);         
          return 0;
       }
-      
 
       if (!waiter_exists) {
          // There's no events for us and no one is doing the waitpid.
@@ -2571,7 +2501,7 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
       // they either put an event into our event queue, or we find that they've
       // left and we need to become the new waitpider.
       isInWaitLock = true;
-      waiter_lock._WaitForSignal(FILE__, __LINE__);
+      pthread_cond_wait(&waiter_condvar, &waiter_mutex);
       isInWaitLock = false;
    }
 
@@ -2601,21 +2531,19 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
       // won't try...  but before we really do waitpid(), need to make sure that 
       // some other part of the system doesn't want us to:
       while (pause_flag) {
-        waiter_lock._WaitForSignal(FILE__, __LINE__);
+         pthread_cond_wait(&waiter_condvar, &waiter_mutex);        
       }
 
-      waiter_lock._Unlock(FILE__, __LINE__);
-
+      pthread_mutex_unlock(&waiter_mutex);
       result = ::waitpid(-1, status, options);
+      pthread_mutex_lock(&waiter_mutex);
 
-      waiter_lock._Lock(FILE__, __LINE__);
       isInWaitpid = false;
       waitpid_thread_id = 0;
 
       proccontrol_printf("[%s:%u] waitpid by %d returned status %d for %d\n",
                          FILE__, __LINE__, me->getPid(), *status, result);
 
-         
       //We got an event.  Map that back to the signal generator that it
       // belongs to.
       event_owner = NULL;
@@ -2632,8 +2560,8 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
          proccontrol_printf("[%s:%u] Got event for ourself (%d), result = %d\n",
                             FILE__, __LINE__, me->getPid(), result);
          waiter_exists = 0;
-         waiter_lock._Broadcast(FILE__, __LINE__);
-         waiter_lock._Unlock(FILE__, __LINE__);
+         pthread_cond_broadcast(&waiter_condvar);
+         pthread_mutex_unlock(&waiter_mutex);
          return result;
       }
 
@@ -2645,23 +2573,13 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
          //This event belongs to someone else.  Let's put it into
          // their queue so that they can get it next time they call
          // this function.
-
-         //  Find the queue for this signalgenerator
-         pdvector<waitpid_ret_pair> *event_queue = NULL;
-         for (unsigned int i  = 0; i < waitpid_results.size(); ++i) {
-           if (waitpid_results[i].first == event_owner) {
-             event_queue = &waitpid_results[i].second;
-           }
-         }  
-         if (!event_queue) {
-           fprintf(stderr, "%s[%d]:  NO QUEUE\n", FILE__, __LINE__);
-           return -1;
+         int res = enqueueWaitpidValue(ev, event_owner);
+         if (res == -1) {
+            pthread_cond_broadcast(&waiter_condvar);
+            pthread_mutex_unlock(&waiter_mutex);
+            return -1;
          }
-
-         proccontrol_printf("[%s:%u] Giving event to %d\n",
-                            FILE__, __LINE__, event_owner->getPid());
-         event_queue->push_back(ev);
-         waiter_lock._Broadcast(FILE__, __LINE__);
+         pthread_cond_broadcast(&waiter_condvar);
       }
       else {
          //Race condition happened here.  We can start getting events
@@ -2687,7 +2605,6 @@ bool WaitpidMux::hasFirstTimer(SignalGenerator *me)
 
 void WaitpidMux::addPidGen(int pid, SignalGenerator *sg) 
 {
-   waiter_lock._Lock(FILE__, __LINE__);
    proccontrol_printf("[%s:%u] Adding pidgen %d for sg %d\n",
                       FILE__, __LINE__, pid, sg->getPid());
 
@@ -2700,15 +2617,12 @@ void WaitpidMux::addPidGen(int pid, SignalGenerator *sg)
    new_pidgen.pid = pid;
    new_pidgen.sg = sg;
    pidgens.push_back(new_pidgen);
-
-   waiter_lock._Unlock(FILE__, __LINE__);
 }
 
 void WaitpidMux::removePidGen(int pid, SignalGenerator *sg) 
 {
    bool found = false;
 
-   waiter_lock._Lock(FILE__, __LINE__);
    proccontrol_printf("[%s:%u] Removing pidgen %d for sg %d\n",
                       FILE__, __LINE__, pid, sg->getPid());
 
@@ -2720,8 +2634,6 @@ void WaitpidMux::removePidGen(int pid, SignalGenerator *sg)
          found = true;
       }
    }
-
-   waiter_lock._Unlock(FILE__, __LINE__);
 }
 
 void WaitpidMux::removePidGen(SignalGenerator *sg) 
@@ -2729,7 +2641,6 @@ void WaitpidMux::removePidGen(SignalGenerator *sg)
    proccontrol_printf("[%s:%u] Removing all pidgens for sg %d\n",
                       FILE__, __LINE__, sg->getPid());
 
-   waiter_lock._Lock(FILE__, __LINE__);
    for (unsigned i=0; i<pidgens.size(); i++) {
       if (pidgens[i].sg == sg) {
          proccontrol_printf("\t[%s:%u] Removing pidgen %d for sg %d\n",
@@ -2738,7 +2649,13 @@ void WaitpidMux::removePidGen(SignalGenerator *sg)
          i--;
       }
    }
-
-   waiter_lock._Unlock(FILE__, __LINE__);
 }
 
+int WaitpidMux::enqueueWaitpidValue(waitpid_ret_pair ev, 
+                                    SignalGenerator *event_owner) 
+{
+   proccontrol_printf("[%s:%u] Giving event to %d\n",
+                      FILE__, __LINE__, event_owner->getPid());
+   event_owner->event_queue.push_back(ev);
+   return 0;
+}
