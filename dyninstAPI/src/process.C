@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.649 2006/05/26 02:48:27 chadd Exp $
+// $Id: process.C,v 1.650 2006/06/01 18:24:18 bernat Exp $
 
 #include <ctype.h>
 
@@ -5115,8 +5115,11 @@ bool process::continueProc(int signalToContinueWith)
 #if !defined(os_linux) && !defined(os_windows)
 bool process::continueProc_(int sig)
 {
-  if (status_ == running)
+    if (status_ == running) {
+        signal_printf("%s[%d]: Continue of already running process, skipping\n",
+                      FILE__, __LINE__);
     return true;
+    }
   bool ret =  getRepresentativeLWP()->continueLWP(sig);
   return ret;
 }
@@ -6223,23 +6226,31 @@ void process::recognize_threads(const process *parent)
 	// threads...
 #if defined(os_aix) || defined(os_solaris)
 	if (lwp->executingSystemCall()) {
+            startup_printf("%s[%d]: LWP %d in a system call, skipping in recognize_threads\n",
+                           FILE__, __LINE__, lwp_id);
+            fprintf(stderr, "LWP %d: system call\n", lwp_id);
             continue;
         }
 #endif
 
+        // So Solaris has these extra threads....
+        // #3 appears to be a scheduler, though I couldn't find documentation
+        // on what it does. For now, we're hard-skipping 3.
 #if defined(os_solaris)
-        // I've identified points where LWPs aren't reported as being in a 
-        // system call but really are; in particular, LWP 2 spends a lot of
-        // time in __signotifywait, immediately _after_ the trap into the kernel
-        // but not making any forward process... funny, that.
-        // So we skip a thread if it's in any of the reported "problem children".
-        Frame frame = lwp->getActiveFrame();
-        if (frame.getFunc() &&
-            ((frame.getFunc()->symTabName() == "__signotifywait") ||
-             (frame.getFunc()->symTabName() == "_sysconf")))
+        if (lwp_id == 3)
             continue;
-
 #endif
+            
+
+        // Debuggering...
+
+        Frame frame = lwp->getActiveFrame();
+
+        fprintf(stderr, "******* LWP %d in %s\n",
+                lwp_id,
+                frame.getFunc() ? frame.getFunc()->symTabName().c_str() : "<NULL>");
+
+        if (lwp->is_asLWP()) continue;
 
         pdvector<AstNode *> ast_args;
         AstNode *ast = new AstNode("DYNINSTthreadIndex", ast_args);
@@ -6312,6 +6323,7 @@ void process::recognize_threads(const process *parent)
 	 startup_printf("[%s:%u] - Waiting for thread for LWP %d\n", FILE__, __LINE__, 
 			ret_lwps[i]);
          while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
+             startup_printf("%s[%d]: waiting for bp thread at index %d\n", FILE__, __LINE__, ret_indexes[i]);
             // getMailbox()->executeCallbacks(FILE__, __LINE__);
             sh->waitForEvent(evtThreadCreate);
             timeout++;
