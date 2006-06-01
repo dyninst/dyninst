@@ -237,7 +237,7 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     allPostedRPCs_.push_back(theStruct);
 
     inferiorrpc_printf("%s[%d]: Posting new RPC: seq %d, thr %u, lwp %u\n", FILE__, __LINE__, theStruct->id,
-                       thr ? thr->get_tid() : -1,
+                       thr ? thr->get_tid() : 0,
                        lwp ? lwp->get_lwp_id() : -1);
 
     return theStruct->id;
@@ -700,27 +700,6 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
             lwp_iter++;
         }
     }
-#if 0
-#if defined(sparc_sun_solaris2_4)
-    else if (proc_->multithread_capable() && readyProcessRPC) {
-        // Loop over all threads until one can run the process RPC
-        for (unsigned iter = 0; iter < thrs_.size(); iter++) {
-            rpcThr *curThr = thrs_[iter];
-            if (curThr == NULL) continue;
-
-            irpcLaunchState_t thrState = curThr->launchProcIRPC(wasRunning);
-	    inferiorrpc_printf("%s[%d]: Result of posting process-wide RPC on thread %d: %s\n",
-			       FILE__, __LINE__, 
-                               curThr->get_thr()->get_tid(),
-			       irpcLaunchStateAsString(thrState));
-            if (thrState == irpcStarted) {
-                processingProcessRPC = true;
-                break;
-            }
-        }
-    }
-#endif
-#endif
     else if (readyThrRPC) {
         // Loop over all threads and try to run an inferior RPC
         for (unsigned iter = 0; iter < thrs_.size(); iter++) {
