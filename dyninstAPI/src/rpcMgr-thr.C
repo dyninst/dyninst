@@ -229,6 +229,12 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
     if (lwp->executingSystemCall()) {
         // We can't do any work. If there is a pending RPC try
         // to set a breakpoint at the exit of the call
+
+        // See if we have a thread-specific iRPC. If not, we're talking process...
+        // and that means that we just went into a system call. 
+
+        if (postedRPCs_.size() == 0) 
+            return irpcNoIRPC;
         
         if (lwp->setSyscallExitTrap(launchThrIRPCCallbackDispatch,
                                     (void *)this)) {
@@ -236,13 +242,12 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
             // and record it
             if (!pendingRPC_) {
                 pendingRPC_ = new inferiorRPCinProgress;
+                assert(postedRPCs_.size());
                 pendingRPC_->rpc = postedRPCs_[0];
                 pendingRPC_->runProcWhenDone = runProcWhenDone;
                 // Delete that iRPC (clunky)
                 pdvector<inferiorRPCtoDo *> newRPCs;
-                for (unsigned k = 1; k < postedRPCs_.size(); k++)
-                    newRPCs.push_back(postedRPCs_[k]);
-                postedRPCs_ = newRPCs;
+                postedRPCs_.erase(0,0);
                 mgr_->addPendingRPC(pendingRPC_);
             }
             if (mgr_->proc()->IndependentLwpControl() && runProcWhenDone)
