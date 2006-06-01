@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.16 2006/03/31 02:09:30 bernat Exp $
+// $Id: dynamiclinking.C,v 1.17 2006/06/01 14:59:13 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -269,7 +269,11 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
 #endif
               mapped_object *newobj = mapped_object::createMappedObject(new_descs[i],
                                                                         proc);
-              changed_objects.push_back(newobj);
+              if (newobj)
+                  changed_objects.push_back(newobj);
+              else {
+                  // ... we failed parsing an object, could be a problem
+              }
 
 
           // SaveTheWorld bookkeeping
