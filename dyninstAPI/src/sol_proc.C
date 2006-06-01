@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.105 2006/05/16 21:14:35 jaw Exp $
+// $Id: sol_proc.C,v 1.106 2006/06/01 18:24:17 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -793,6 +793,20 @@ bool dyn_lwp::realLWP_attach_()
      safeClose(ctl_fd_);
      return false;
    }
+
+#if defined(os_solaris)
+   // Find out if we're the as lwp... see comment in dyn_lwp.h
+
+   pstatus_t procstatus;
+
+   if (!proc_->get_status(&procstatus)) {
+       // Uhh....
+       return true;
+   }
+
+   if (procstatus.pr_aslwpid == get_lwp_id())
+       is_as_lwp_ = true;
+#endif
 
    return true;
 }

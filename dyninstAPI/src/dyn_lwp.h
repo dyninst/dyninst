@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.58 2006/05/30 23:33:55 mjbrim Exp $
+ * $Id: dyn_lwp.h,v 1.59 2006/06/01 18:24:16 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -293,6 +293,11 @@ class dyn_lwp
   bool isSingleStepping() { return singleStepping; }
   void setSingleStepping(bool nval) { singleStepping = nval; }
 
+  // Solaris uses a dedicated LWP to handle signal dispatch. Read all about it:
+  // http://developers.sun.com/solaris/articles/signalprimer.html
+  // For ease of use, returns false on non-Solaris platforms.
+  bool is_asLWP();
+
 
   //  dumpRegisters:  dump a select set of registers, useful for when 
   //  the mutatee crashes, or for debug output.
@@ -356,6 +361,8 @@ class dyn_lwp
   bool isDoingAttach_;
 
   bool is_attached_;
+
+  bool is_as_lwp_;
 };
 
 #endif

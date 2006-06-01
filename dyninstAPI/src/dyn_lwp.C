@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.59 2006/05/30 23:33:54 mjbrim Exp $
+ * $Id: dyn_lwp.C,v 1.60 2006/06/01 18:24:15 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -70,7 +70,8 @@ dyn_lwp::dyn_lwp() :
   waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  isRunningIRPC(false), isDoingAttach_(false), is_attached_(false)  
+  isRunningIRPC(false), isDoingAttach_(false), is_attached_(false),
+  is_as_lwp_(false)
 {
 };
 
@@ -93,7 +94,9 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  isRunningIRPC(false), isDoingAttach_(false), is_attached_(false)
+  isRunningIRPC(false), isDoingAttach_(false), is_attached_(false),
+  is_as_lwp_(false)
+
 {
 }
 
@@ -116,7 +119,8 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  isRunningIRPC(false), isDoingAttach_(false), is_attached_(false)
+  isRunningIRPC(false), isDoingAttach_(false), is_attached_(false),
+  is_as_lwp_(false)
 {
 }
 
@@ -419,4 +423,8 @@ Address dyn_lwp::step_next_insn() {
 
 void dyn_lwp::internal_lwp_set_status___(processState st) {
 	status_ = st;
+}
+
+bool dyn_lwp::is_asLWP() {
+    return is_as_lwp_;
 }
