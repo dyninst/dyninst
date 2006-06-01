@@ -1518,7 +1518,11 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                           FILE__, __LINE__);
        llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, 
                                 statusRPCDone);
+       inferiorrpc_printf("%s[%d]: got RPC event from system: terminated %d\n",
+                          FILE__, __LINE__, statusIsTerminated());
        if (statusIsTerminated()) break;
+
+       inferiorrpc_printf("%s[%d]: executing callbacks\n", FILE__, __LINE__);
        getMailbox()->executeCallbacks(FILE__, __LINE__);
    }
 
