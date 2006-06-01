@@ -440,6 +440,9 @@ bool SignalHandler::handleForkExit(EventRecord &ev, bool &continueHint)
    
              proc->handleForkExit(theChild);
 
+             // This may have been mucked with during the fork callback
+             proc->sh->overrideSyncContinueState(runRequest);
+
              continueHint = true;
              // Unlike normal, we want to start this guy up running (the user can pause if desired in
              // the callback)
