@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.281 2006/06/01 14:59:12 bernat Exp $
+ // $Id: symtab.C,v 1.282 2006/06/01 15:02:47 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -994,14 +994,14 @@ image *image::parseImage(fileDescriptor &desc)
 
   if (err || !ret) {
       if (err)
-          fprintf(stderr, "Error parsing file %s, skipping...\n", desc.file());
+          fprintf(stderr, "Error parsing file %s, skipping...\n", desc.file().c_str());
 
      if (ret) {
         delete ret;
      }
      else {
          fprintf(stderr, "Failed to allocate memory for parsing %s!\n", 
-                 desc.file());
+                 desc.file().c_str());
      }
      return NULL;
   }
@@ -1828,7 +1828,7 @@ image::image(fileDescriptor &desc, bool &err)
 
    // define all of the functions, this also defines all of the modules
    if (!symbolsToFunctions(uniq, &raw_funcs)) {
-       fprintf(stderr, "Error converting symbols to functions in file %s\n", desc.file());
+       fprintf(stderr, "Error converting symbols to functions in file %s\n", desc.file().c_str());
       err = true;
       return;
    }
@@ -1852,7 +1852,7 @@ image::image(fileDescriptor &desc, bool &err)
    // Also identifies aliases (multiple names with equal addresses)
 
    if (!buildFunctionLists(raw_funcs)) {
-       fprintf(stderr, "Error building function lists in file %s\n", desc.file());
+       fprintf(stderr, "Error building function lists in file %s\n", desc.file().c_str());
      err = true;
      return;
    }
