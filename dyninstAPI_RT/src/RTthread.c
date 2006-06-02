@@ -118,8 +118,6 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    aev.event_fd = 0;
    aev.size = ev_size;
 
-  rtdebug_printf("%s[%d]:  welcome to DYNINSTsendThreadEvent(%s)\n", 
-                 __FILE__, __LINE__, asyncEventType2str(type));
    result = tc_lock_lock(&DYNINST_trace_lock);
    if (result == DYNINST_DEAD_LOCK)
    {

@@ -172,7 +172,7 @@ void SignalGeneratorCommon::main() {
         signal_printf("%s[%d]: signal generator at top of loop\n", FILE__, __LINE__);
         assert(haveLock());
         
-        if (exitRequested()) {
+        if (exitRequested() && !requested_wait_until_active) {
             signal_printf("%s[%d]: exit request (loop top)\n", FILE__, __LINE__);
             break;
         }
@@ -1772,7 +1772,6 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp
     static int num_waiting_for_continue = 0;
     if (exitRequested()) {
         // We're going away... so don't do anything
-        fprintf(stderr, "%s[%d]:  continueProcessBlocking:  program exiting... ignoring\n", FILE__, __LINE__);
         return true;
     }
 
