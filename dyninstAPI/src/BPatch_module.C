@@ -1280,6 +1280,21 @@ void BPatch_module::setDefaultNamespacePrefix(char *name)
     img->setDefaultNamespacePrefix(name); 
 }
 
+bool BPatch_module::isSystemLib() {
+    pdstring str = mod->fileName();
+
+    if (strstr(str.c_str(), "libdyninstAPI_RT"))
+        return true;
+#if defined(os_windows)
+    if (strstr(str.c_str(), "kernel32.dll"))
+        return true;
+    if (strstr(str.c_str(), "user32.dll"))
+        return true;
+#endif
+
+    return false;
+}
+
 #ifdef IBM_BPATCH_COMPAT
 
 bool BPatch_module::getLineNumbersInt( unsigned int & startLine, unsigned int & endLine )
@@ -1382,6 +1397,4 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
     // Return the statements to the caller
     return statements;
 }
-
 #endif
-

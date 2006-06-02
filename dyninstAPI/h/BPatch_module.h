@@ -75,6 +75,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_flowGraph;
     friend class BPatch_image;
     friend class InstrucIter;
+    friend class BPatch_thread;
 
     BPatch_process *proc;
     mapped_module      	 *mod;
@@ -264,6 +265,7 @@ private:
     // in both DWARF and STABS format.
     void parseStabTypes();
     void parseDwarfTypes();
+    bool isSystemLib();
     
 };
 
