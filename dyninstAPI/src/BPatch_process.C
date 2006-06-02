@@ -606,6 +606,7 @@ bool BPatch_process::statusIsTerminated()
              FILE__, __LINE__);
      return true;
    }
+   fprintf(stderr, "llproc is %s\n", llproc->getStatusAsString().c_str());
    return llproc->status() == exited;
 }
 
@@ -1439,6 +1440,8 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                           void *userData,
                                           bool synchronous)
 {
+    if (statusIsTerminated()) return NULL;
+
     if (!isVisiblyStopped) resumeAfterCompleted_ = true;
 
    inferiorrpc_printf("%s[%d]: UI top of oneTimeCode...\n", FILE__, __LINE__);
@@ -1446,6 +1449,8 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
        inferiorrpc_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, llproc->getPid());
        llproc->sh->waitForEvent(evtAnyEvent);
    }
+
+    if (statusIsTerminated()) return NULL;
 
    inferiorrpc_printf("%s[%d]: oneTimeCode, handlers quiet, sync %d, statusIsStopped %d, resumeAfterCompleted %d\n",
                       FILE__, __LINE__, synchronous, statusIsStopped(), resumeAfterCompleted_);
@@ -1516,11 +1521,18 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    while (!info->isCompleted()) {
        inferiorrpc_printf("%s[%d]: waiting for RPC to complete\n",
                           FILE__, __LINE__);
-       llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, 
-                                statusRPCDone);
+       if (statusIsTerminated()) return NULL;
+       
+       eventType ev = llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, 
+                                               statusRPCDone);
        inferiorrpc_printf("%s[%d]: got RPC event from system: terminated %d\n",
                           FILE__, __LINE__, statusIsTerminated());
-       if (statusIsTerminated()) break;
+       if (statusIsTerminated()) return NULL;
+
+       if (ev == evtProcessExit) {
+           fprintf(stderr, "Process exited, returning NULL\n");
+           return NULL;
+       }
 
        inferiorrpc_printf("%s[%d]: executing callbacks\n", FILE__, __LINE__);
        getMailbox()->executeCallbacks(FILE__, __LINE__);
