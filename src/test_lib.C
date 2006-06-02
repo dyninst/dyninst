@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.16 2006/05/04 01:41:56 legendre Exp $
+// $Id: test_lib.C,v 1.17 2006/06/02 22:59:57 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -106,7 +106,7 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
         printf("thread is not stopped\n");
         return -1;
     }
-#if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
+#if defined(os_windows) //ccw 10 apr 2001
     else if (appThread->stopSignal() != EXCEPTION_BREAKPOINT && appThread->stopSignal() != -1) {
 	printf("**Failed test #%d (%s)\n", testnum, testname);
 	printf("    process stopped on signal %d, not SIGTRAP\n", 
@@ -239,7 +239,7 @@ pid_t fork_mutatee() {
 //
  int startNewProcessForAttach(const char *pathname, const char *argv[])
     {
-#if defined(i386_unknown_nt4_0)
+#if defined(os_windows)
        char child_args[1024];
        strcpy(child_args, "");
        if (argv[0] != NULL) {

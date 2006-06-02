@@ -142,8 +142,12 @@ void parse_args(int argc, char *argv[])
    {
       if (strstr(argv[i], "-attach"))
       {
+#if defined(os_windows)
+         attached_fd = -1;
+#else
          if (++i == argc) break;
          attached_fd = atoi(argv[i]);
+#endif
       }
    }
 }
@@ -179,7 +183,6 @@ int main(int argc, char *argv[])
    }
    thrds[0].is_in_instr = 0;
    thrds[0].tid = threadSelf();
-   
 
 #ifndef os_windows
    if (attached_fd) {
@@ -188,10 +191,11 @@ int main(int argc, char *argv[])
          exit(-1);
       }
       close(attached_fd);
-      printf("Waiting for mutator to attach...\n");
       while (!checkIfAttached()) ;
-      printf("Mutator attached.  Mutatee continuing.\n");
    }
+#else
+   if (attached_fd)
+      while (!checkIfAttached());
 #endif
 
    ok_to_go = 1;
