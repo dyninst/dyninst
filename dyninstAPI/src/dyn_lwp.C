@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.60 2006/06/01 18:24:15 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.61 2006/06/02 17:57:50 mjbrim Exp $
  */
 
 #include "common/h/headers.h"
@@ -143,7 +143,7 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
     assert(proc()->IndependentLwpControl() ||
            (this == proc()->getRepresentativeLWP()));
 
-   if(status_ == running) {
+   if(status_ == running || isDoingAttach_) {
       return true;
    }
 /*
@@ -220,11 +220,9 @@ bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
            (this == proc()->getRepresentativeLWP()));
 
     
-    eventType evt;
-    while (isDoingAttach_) {
-       evt = proc()->sh->waitForEvent(evtAnyEvent, proc_, this);
-       if (evt == evtProcessExit)
-          return false;
+    if (isDoingAttach_) {
+       // We'll get to it later...
+       return true;
     }
 
    // Not checking lwp status_ for neonatal because it breaks attach with the
