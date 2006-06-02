@@ -516,28 +516,28 @@ public:
     // Create Enum types. 
     API_EXPORT(Int, (name, elementNames, elementIds),
 
-    BPatch_type *,createEnum,(const char * name, BPatch_Vector<char *> elementNames,
-                              BPatch_Vector<int> elementIds));
+    BPatch_type *,createEnum,(const char * name, BPatch_Vector<char *> &elementNames,
+                              BPatch_Vector<int> &elementIds));
 
     // BPatch::createEnum:
     // API selects elementIds
     API_EXPORT(AutoId, (name, elementNames),
 
-    BPatch_type *,createEnum,(const char * name, BPatch_Vector<char *> elementNames));
+    BPatch_type *,createEnum,(const char * name, BPatch_Vector<char *> &elementNames));
 
     // BPatch::createStruct:
     // Create Struct types. 
     API_EXPORT(Int, (name, fieldNames, fieldTypes),
 
-    BPatch_type *,createStruct,(const char * name, BPatch_Vector<char *> fieldNames,
-                                BPatch_Vector<BPatch_type *> fieldTypes));
+    BPatch_type *,createStruct,(const char * name, BPatch_Vector<char *> &fieldNames,
+                                BPatch_Vector<BPatch_type *> &fieldTypes));
 
     // BPatch::createUnion:
     // Create Union types. 
     API_EXPORT(Int, (name, fieldNames, fieldTypes),
 
-    BPatch_type *,createUnion,(const char * name, BPatch_Vector<char *> fieldNames,
-                               BPatch_Vector<BPatch_type *> fieldTypes));
+    BPatch_type *,createUnion,(const char * name, BPatch_Vector<char *> &fieldNames,
+                               BPatch_Vector<BPatch_type *> &fieldTypes));
 
     // BPatch::createArray:
     // Creates BPatch_array type or symtyperanges ( scalars with upper and

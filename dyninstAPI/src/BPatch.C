@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.151 2006/05/23 06:39:49 jaw Exp $
+// $Id: BPatch.C,v 1.152 2006/06/02 22:59:40 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1203,6 +1203,13 @@ void BPatch::registerThreadExit(process *proc, long tid, bool exiting)
         return;
     }
     BPatch_thread *thrd = bpprocess->getThread(tid);
+    if (!thrd) {
+        //If we don't have an BPatch thread, then it might have been an internal
+        // thread that we decided not to report to the user (happens during 
+        //  windows attach).  Just trigger the lower level clean up in this case.
+        if (!exiting) proc->deleteThread(tid);        
+        return;
+    }
 
     if (thrd->deleted_callback_made) { 
         // Thread exits; we make the callback, then the process exits and
@@ -1210,27 +1217,17 @@ void BPatch::registerThreadExit(process *proc, long tid, bool exiting)
         return;
     }
     thrd->deleted_callback_made = true;
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+        signalNotificationFD();
 
-
-    if (thrd) {
-        pdvector<CallbackBase *> cbs;
-        getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
-        for (unsigned int i = 0; i < cbs.size(); ++i) {
-            signalNotificationFD();
-
-            AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
-            mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
-            if (cb)
-                (*cb)(bpprocess, thrd);
-        }
-        if (!exiting) bpprocess->deleteBPThread(thrd);
+        AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
+        mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
+        if (cb)
+            (*cb)(bpprocess, thrd);
     }
-    else {
-        //If we don't have an BPatch thread, then it might have been an internal
-        // thread that we decided not to report to the user (happens during 
-        //  windows attach).  Just trigger the lower level clean up in this case.
-        if (!exiting) proc->deleteThread(tid);
-    }
+    if (!exiting) bpprocess->deleteBPThread(thrd);
 }
 
 
@@ -1621,8 +1618,8 @@ bool BPatch::waitForStatusChangeInt()
  * collection.
  */
 BPatch_type * BPatch::createEnumInt( const char * name, 
-				     BPatch_Vector<char *> elementNames,
-				     BPatch_Vector<int> elementIds)
+				     BPatch_Vector<char *> &elementNames,
+				     BPatch_Vector<int> &elementIds)
 {
 
     if (elementNames.size() != elementIds.size()) {
@@ -1653,7 +1650,7 @@ BPatch_type * BPatch::createEnumInt( const char * name,
  * collection.
  */
 BPatch_type * BPatch::createEnumAutoId( const char * name, 
-				        BPatch_Vector<char *> elementNames)
+				        BPatch_Vector<char *> &elementNames)
 {
     BPatch_fieldListType * newType = new BPatch_typeEnum(name);
 
@@ -1680,8 +1677,8 @@ BPatch_type * BPatch::createEnumAutoId( const char * name,
  */
 
 BPatch_type * BPatch::createStructInt( const char * name,
-				       BPatch_Vector<char *> fieldNames,
-				       BPatch_Vector<BPatch_type *> fieldTypes)
+				       BPatch_Vector<char *> &fieldNames,
+				       BPatch_Vector<BPatch_type *> &fieldTypes)
 {
     unsigned int i;
     int offset, size;
@@ -1728,8 +1725,8 @@ BPatch_type * BPatch::createStructInt( const char * name,
  */
 
 BPatch_type * BPatch::createUnionInt( const char * name, 
-				      BPatch_Vector<char *> fieldNames,
-				      BPatch_Vector<BPatch_type *> fieldTypes)
+				      BPatch_Vector<char *> &fieldNames,
+				      BPatch_Vector<BPatch_type *> &fieldTypes)
 {
     unsigned int i;
     int offset, size, newsize;
