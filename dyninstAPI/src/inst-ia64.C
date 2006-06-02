@@ -929,7 +929,6 @@ void rewriteShortOffset(	instruction insnToRewrite, Address originalLocation,
 	// don't break.
 
 	if( branchTarget != 0x0 ) {
-		/* DEBUG */ fprintf( stderr, "%s[%d]: retargeting branch to 0x%lx\n", __FILE__, __LINE__, branchTarget );
 		originalTarget = branchTarget;
 		}
 
