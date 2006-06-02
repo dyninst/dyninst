@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.46 2006/05/25 22:28:05 jodom Exp $
+// $Id: test3.C,v 1.47 2006/06/02 18:58:41 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -743,7 +743,7 @@ int forkNewMutatee(const char *filename, const char *child_argv[])
 
 void mutatorTest6(char *pathname, BPatch *bpatch)
 {
-#if !defined(os_windows)
+#if !defined(os_windows) && !defined (os_linux)
     unsigned int n=0;
     int pids[Mutatees];
     const char *child_argv[5];
