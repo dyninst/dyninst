@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.239 2006/06/02 17:57:52 mjbrim Exp $
+// $Id: linux.C,v 1.240 2006/06/02 22:54:19 bernat Exp $
 
 #include <fstream>
 
@@ -1651,19 +1651,11 @@ bool dyn_lwp::realLWP_attach_() {
    
    isDoingAttach_ = false;
 
-   startup_printf("%s[%d]: attaching to LWP %d, process status is %s\n",
-                  FILE__, __LINE__, get_lwp_id(), 
-                  proc_->getStatusAsString().c_str());
-   /*
-     // Don't use process status; we set it to stopped when we got
-     // the above event. Instead, key off user-visible state.
-     if (proc_->status() == running) {
-     continueLWP();
-     }
-   */
+   // Make sure nobody has mucked with our process state.
+   status_ = stopped;
 
    if (proc_->sh->syncRunWhenFinished_ == runRequest) {
-      continueLWP();
+       continueLWP();
    }
 
    return true;
