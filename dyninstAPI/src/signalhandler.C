@@ -594,13 +594,7 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         ret = handleLwpAttach(ev, continueHint);
         break;
     case evtProcessAttach:
-        proc->setBootstrapState(initialized_bs);
-#if defined(os_windows)
-        continueHint = true;
-#else
-        continueHint = false;
-#endif
-        ret = true;
+        ret = handleProcessAttach(ev, continueHint);
         break;
      case evtProcessInit:
         proc->handleTrapAtEntryPointOfMain(ev.lwp);

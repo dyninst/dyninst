@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.216 2006/06/02 17:57:54 mjbrim Exp $
+// $Id: unix.C,v 1.217 2006/06/02 22:59:47 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1404,26 +1404,12 @@ bool forkNewProcess_real(pdstring file,
          }
       }
 
-      sprintf(errorLine, "%s[%d]:  execv of command '%s' failed, errno=%d\n", 
-              FILE__, __LINE__, argline, errno);
-      fprintf(stderr,"%s",errorLine);
-      {
-         if ( envp )
-         {
-            for(unsigned i = 0; envs[i] != NULL; ++i) {
-               
-               sprintf(errorLine, "envp %d = %s\n", i, envs[i]);
-               fprintf(stderr,"%s",errorLine);
-            }
-         }
-      }	      
-      
       P_abort();
       //P__exit(-1);
       // not reached
     
       return false;
-   } 
+   }
    return false;
 }
 
@@ -1801,4 +1787,10 @@ SignalGenerator::~SignalGenerator()
 #if defined(os_linux)
    waitpid_mux.unregisterProcess(this);
 #endif
+}
+
+bool SignalHandler::handleProcessAttach(EventRecord &ev, bool &continueHint) {
+    ev.proc->setBootstrapState(initialized_bs);
+    continueHint = false;
+    return true;
 }
