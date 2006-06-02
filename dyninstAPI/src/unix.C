@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.215 2006/05/31 17:15:56 legendre Exp $
+// $Id: unix.C,v 1.216 2006/06/02 17:57:54 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -147,7 +147,8 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
    if (!proc->readDataSpace((void *)sync_event_breakpoint_addr, 
                             sizeof(int),
                             &breakpoint, true)) {
-       fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+       fprintf(stderr, "%s[%d]:  readDataSpace failed (ev.proc %d, ev.lwp %d)\n", 
+               FILE__, __LINE__, ev.proc->getPid(), ev.lwp->get_lwp_id());
        return false;
    }
 
