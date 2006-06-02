@@ -156,11 +156,11 @@ _loadsnstores   PROC NEAR
     mov ecx,4
     mov esi,12
 
-    mov eax,[ebx+esi]           ; l22 a28
+    mov eax,[esi+ebx]         ; l22 a28
     mov eax,[esp]
     mov eax,[ebx+2*ecx]
     mov eax,[_divarw+2*ecx] ; nosplit prevents nasm from optimizing this as ecx+ecx+divarw
-    mov eax,[ebx+ecx+4]
+    mov eax,[ecx+ebx+4]
     mov eax,[edx+edx*8+_divarw]
     mov ecx,1
     mov eax,[ebp+ecx*2+2]       ; l28
