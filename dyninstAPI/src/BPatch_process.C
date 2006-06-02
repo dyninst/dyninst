@@ -495,6 +495,7 @@ bool BPatch_process::continueExecutionInt()
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
        isVisiblyStopped = false;
+       llproc->sh->overrideSyncContinueState(runRequest);
        return true;
    }
 
