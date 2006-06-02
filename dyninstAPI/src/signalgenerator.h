@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.14 2006/05/17 04:13:07 legendre Exp $
+/* $Id: signalgenerator.h,v 1.15 2006/06/02 17:57:53 mjbrim Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -63,6 +63,7 @@ char *processRunStateStr(processRunState_t);
 class SignalGeneratorCommon : public EventHandler<EventRecord> {
  friend class process;
  friend class SignalHandler;
+ friend class dyn_lwp;
 
  public:
    static process *newProcess(pdstring file_, pdstring dir, 
