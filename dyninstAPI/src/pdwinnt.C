@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.155 2006/05/04 01:41:24 legendre Exp $
+// $Id: pdwinnt.C,v 1.156 2006/06/02 22:59:35 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -178,6 +178,7 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
    Address initial_func = 0, stack_top = 0;
    BPatch_process *bproc = (BPatch_process *) ev.proc->container_proc;
    HANDLE lwpid = ev.info.u.CreateThread.hThread;
+   int_function *func = NULL;
    int tid = ev.info.dwThreadId;
    
    //Create the lwp early on Windows
@@ -188,24 +189,36 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
    ev.lwp = lwp;
    proc->set_lwp_status(lwp, stopped);
 
-   cont.ContextFlags = CONTEXT_FULL;
-   if (GetThreadContext(lwpid, &cont))
+   continueHint = true;
+   if (proc->reachedBootstrapState(bootstrapped_bs)) 
    {
-       initial_func = cont.Eax;
-       stack_top = cont.Esp;
+        //The process is already running when this thread was created.  It's at
+        //its initial entry point where we can read the initial function out of EAX
+        cont.ContextFlags = CONTEXT_FULL;
+        if (GetThreadContext(lwpid, &cont))
+        {
+            initial_func = cont.Eax;
+            stack_top = cont.Esp;           
+        }
+   }
+
+   if (initial_func) {
+     func = proc->findJumpTargetFuncByAddr(initial_func);
+     if (!func)
+        return false;
    }
 
    //Create the dyn_thread early as well.
    dyn_thread *thr = new dyn_thread(proc, -1, lwp);
    thr->update_tid(tid);
    thr->update_start_pc(initial_func);
+   thr->update_start_func(func);
    thr->update_stack_addr(stack_top);
 
-   if (initial_func) {
-       proc->instrumentThreadInitialFunc(initial_func);
+   if (func) {
+       proc->instrumentThreadInitialFunc(func);
    }
 
-   continueHint = true;
    return true;
 }
 
@@ -481,6 +494,7 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
         ev.type = evtProcessExit;
         ev.what = ev.info.u.ExitProcess.dwExitCode;
         ev.status = statusNormal;
+        requested_wait_until_active = true;
         ret = true;
         break;
      case LOAD_DLL_DEBUG_EVENT:
@@ -559,8 +573,6 @@ bool SignalGenerator::decodeException(EventRecord &ev)
      case EXCEPTION_ACCESS_VIOLATION:
      {
          Frame af = ev.lwp->getActiveFrame();
-         fprintf(stderr, "%s[%d]:  ACCESS VIOLATION\n", FILE__, __LINE__);
-         
          signal_printf("DECODE CRITICAL --  ILLEGAL INSN OR ACCESS VIOLATION\n");
          ev.type = evtCritical;
          ev.address = (eventAddress_t) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
@@ -1124,6 +1136,7 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
            dyn_thread *t = new dyn_thread(proc, 
                                           0, // POS (main thread is always 0)
                                           rep_lwp);
+           t->update_tid(snarf_event.dwThreadId);
        }
     
        //This must be called on each process in order to use the 
@@ -2098,6 +2111,8 @@ bool SignalHandler::handleProcessExitPlat(EventRecord &ev, bool &continueHint)
 {
     ReleaseSymbolHandler(ev.proc->processHandle_);
     continueHint = false;
+    ev.proc->continueHandles.push_back(ev.info.dwThreadId);
+    ev.proc->continueTypes.push_back(DBG_CONTINUE);
     return true;
 }
 
@@ -2210,8 +2225,7 @@ int_function *dyn_thread::map_initial_func(int_function *ifunc) {
     return (*mains)[0];
 }
 
-bool process::instrumentThreadInitialFunc(Address addr) {
-    int_function *f = findJumpTargetFuncByAddr(addr);
+bool process::instrumentThreadInitialFunc(int_function *f) {
     if (!f)
         return false;
 
@@ -2242,5 +2256,23 @@ bool process::instrumentThreadInitialFunc(Address addr) {
        }
     }
     initial_thread_functions.push_back(f);
+    return true;
+}
+
+bool SignalHandler::handleProcessAttach(EventRecord &ev, bool &continueHint) {
+    process *proc = ev.proc;
+    proc->setBootstrapState(initialized_bs);
+    
+    dyn_lwp *rep_lwp = proc->getRepresentativeLWP();
+    assert(rep_lwp);
+
+    //We're starting up, convert the representative lwp to a real one.
+    rep_lwp->set_lwp_id((int) rep_lwp->get_fd());
+    proc->real_lwps[rep_lwp->get_lwp_id()] = rep_lwp;
+    proc->representativeLWP = NULL;
+    if (proc->theRpcMgr)
+       proc->theRpcMgr->addLWP(rep_lwp);
+    continueHint = true;
+
     return true;
 }

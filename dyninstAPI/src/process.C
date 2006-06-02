@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.650 2006/06/01 18:24:18 bernat Exp $
+// $Id: process.C,v 1.651 2006/06/02 22:59:36 legendre Exp $
 
 #include <ctype.h>
 
@@ -1930,6 +1930,9 @@ process::~process()
             processVec[lcv] = NULL;
         }        
     }
+
+    if (sh)
+        sh->proc = NULL;
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -4057,8 +4060,12 @@ bool process::pause() {
    // Let's try having stopped mean all lwps stopped and running mean
    // atleast one lwp running.
    
-   if (status_ == stopped || status_ == neonatal) {
+   if (status_ == neonatal) {
       return true;
+   }
+
+   if (status_ == stopped && !IndependentLwpControl()) {
+       return true;
    }
 
    signal_printf("%s[%d]: stopping process\n", FILE__, __LINE__);
@@ -6202,6 +6209,12 @@ void process::recognize_threads(const process *parent)
      //Parallel arrays for simplicity
      pdvector<int> ret_indexes;
      pdvector<int> ret_lwps;
+
+#if defined(os_windows)
+     //We continue Windows threads when we find them (so we can keep recieving
+     // events on them).  Stop them all now.
+     pause();
+#endif
      assert(status() == stopped);
 
 
@@ -6215,7 +6228,7 @@ void process::recognize_threads(const process *parent)
       *         lwps
       **/
      unsigned expected = 0;
-     
+
      for (i = 0; i < lwp_ids.size(); i++)
      {
         unsigned lwp_id = lwp_ids[i];
@@ -6241,15 +6254,6 @@ void process::recognize_threads(const process *parent)
             continue;
 #endif
             
-
-        // Debuggering...
-
-        Frame frame = lwp->getActiveFrame();
-
-        fprintf(stderr, "******* LWP %d in %s\n",
-                lwp_id,
-                frame.getFunc() ? frame.getFunc()->symTabName().c_str() : "<NULL>");
-
         if (lwp->is_asLWP()) continue;
 
         pdvector<AstNode *> ast_args;
@@ -6325,12 +6329,13 @@ void process::recognize_threads(const process *parent)
          while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
              startup_printf("%s[%d]: waiting for bp thread at index %d\n", FILE__, __LINE__, ret_indexes[i]);
             // getMailbox()->executeCallbacks(FILE__, __LINE__);
-            sh->waitForEvent(evtThreadCreate);
+            sh->waitForEvent(evtThreadCreate, NULL, NULL, NULL_STATUS_INITIALIZER, false);
             timeout++;
             if (timeout > 1000) break;
          }
      }
      startup_printf("[%s:%u] - All threads found.  Returning.\n", FILE__, __LINE__);
+
      assert(status() == stopped);
      suppress_bpatch_callbacks_ =false;
      return;

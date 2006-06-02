@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.161 2006/05/22 04:45:22 jaw Exp $
+// $Id: BPatch_thread.C,v 1.162 2006/06/02 22:59:34 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -167,6 +167,7 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
    doa_tid = (dynthread_t) -1;
    dyn_lwp *lwp = NULL;
 
+   llthread = proc->llproc->getThread(async_tid);
 #if defined(os_windows)
   //On Windows the initial LWP has two possible handles, one associated
   // with the thread and one associated with the process.  We use the
@@ -175,8 +176,11 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
   if (!ind)
       lwp = proc->llproc->getInitialLwp();
 #endif
-   if (!lwp)
+   if (llthread && llthread->get_lwp())
+      lwp = llthread->get_lwp();
+   else if (!lwp)
       lwp = proc->llproc->getLWP(lwp_id);
+
    doa = (lwp == NULL);
    doa_tid = async_tid;
    if (doa) {
@@ -185,7 +189,7 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
       return;
    }
 
-   llthread = proc->llproc->getThread(async_tid);
+   
    if (!llthread)
        llthread = new dyn_thread(proc->llproc, ind, lwp);
 
@@ -227,8 +231,9 @@ void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
   if (!index)
       lwp = proc->llproc->getInitialLwp();
 #endif
-
-   if (!lwp)
+   if (llthread && llthread->get_lwp())
+       lwp = llthread->get_lwp();
+   else if (!lwp)
        lwp = proc->llproc->getLWP(lwp_id);
 
    updated = true;
@@ -295,6 +300,7 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
        BPatch_Vector<BPatch_frame> stackWalk;
 
        getCallStackInt(stackWalk);
+
        unsigned long stack_start = 0;
        BPatch_function *initial_func = NULL;
        
@@ -306,12 +312,10 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
                stack_start = (unsigned long) stackWalk[pos].getFP();
            }
            if (!initial_func) {
-               initial_func = stackWalk[pos].findFunction();
-               if (initial_func) {
-                   char fname[2048];
-                   initial_func->getName(fname, 2048);
-                   //fprintf(stderr, "%s[%d]:  setting initial func to %s\n", FILE__, __LINE__, fname);
-               }
+               BPatch_function *func = stackWalk[pos].findFunction();
+               BPatch_module *mod = func ? func->getModule() : NULL;
+               if (mod && !mod->isSystemLib())
+                  initial_func = func;
            }
            pos--;
        }

@@ -244,6 +244,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration

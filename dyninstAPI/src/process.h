@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.381 2006/05/22 04:45:23 jaw Exp $
+/* $Id: process.h,v 1.382 2006/06/02 22:59:37 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -515,7 +515,7 @@ class process {
 #endif
 
 #if defined(os_windows)
-  bool instrumentThreadInitialFunc(Address addr);
+  bool instrumentThreadInitialFunc(int_function *f);
   pdvector<int_function *> initial_thread_functions;
 #endif
 

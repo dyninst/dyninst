@@ -514,21 +514,21 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
   // "run iRPC" and waits for it to finish, on a thread in a
   // syscall.... we need to re-investigate aborting syscalls.
 
-#if defined(os_linux)
-  // Linux can be harmlessly activated; this is _bad_ on 
-  // Solaris/AIX (as we'll immediately get the latest event again)
+  if (process::IndependentLwpControl()) {
+    // Linux can be harmlessly activated; this is _bad_ on 
+    // Solaris/AIX (as we'll immediately get the latest event again)
 
-  if (existsActiveIRPC()) {
+    if (existsActiveIRPC()) {
       // Be sure that we keep consuming events on other threads,
       // even if we're paused in this one...
       ev.proc->sh->signalActiveProcess();
-  }
-  else {
+    }
+    else {
       ev.proc->sh->belayActiveProcess();
+    }
   }
-#endif
-
-  if (!process::IndependentLwpControl()) {
+  else 
+  {
       // We stopped everything, and there's an iRPC that needs
       // running...
       // Should this be moved to whoever's waiting on the iRPC?
