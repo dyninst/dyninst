@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_19.C,v 1.9 2006/05/16 14:46:19 bpellin Exp $
+// $Id: test1_19.C,v 1.10 2006/06/02 22:59:59 legendre Exp $
 /*
  * #Name: test1_19
  * #Desc: Mutator Side - oneTimeCode
@@ -68,10 +68,7 @@ void test19_oneTimeCodeCallback(BPatch_thread * /*thread*/,
 //
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if !defined(os_windows)
-   //No extra pause on windows
-   appThread->continueExecution();
-#endif
+    appThread->continueExecution();
     RETURNONFAIL(waitUntilStopped(bpatch, appThread, 19, "oneTimeCode"));
 
     BPatch_Vector<BPatch_function *> bpfv;
