@@ -87,7 +87,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  welcome to newthr, error13 = %d\n", __FILE__, __LINE__, error13);
    unsigned my_dyn_id = thr->getBPatchID();
 
-   if (create_proc && proc && (my_proc != proc))
+   if (my_proc != proc)
    {
       fprintf(stderr, "[%s:%u] - Got invalid process\n", 
               __FILE__, __LINE__);
@@ -221,7 +221,6 @@ static BPatch_process *getProcess()
    }
    else
    {
-#if !defined(os_windows)
       dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
       int pid = startNewProcessForAttach(filename, (const char **) args);
       if (pid < 0)
@@ -230,6 +229,9 @@ static BPatch_process *getProcess()
          perror("couldn't be started");
          return NULL;
       }
+#if defined(os_windows)
+      P_sleep(1);
+#endif
       dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
       proc = bpatch->processAttach(filename, pid);  
       if(proc == NULL) {
@@ -240,7 +242,6 @@ static BPatch_process *getProcess()
       dprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
       BPatch_image *appimg = proc->getImage();
       signalAttached(NULL, appimg);    
-#endif
    }
    return proc;
 }
@@ -359,12 +360,10 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
    return 0;
 #endif
 
-#if !defined(os_windows)
    if ( param["useAttach"]->getInt() != 0 )
    {
       create_proc = false;
    }
-#endif
 
    if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent,
 					    newthr) ||

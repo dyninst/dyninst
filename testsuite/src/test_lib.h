@@ -75,7 +75,7 @@
 TESTLIB_DLL_EXPORT int waitUntilStopped(BPatch *, BPatch_thread *appThread, 
                       int testnum, const char *testname);
 TESTLIB_DLL_EXPORT bool signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
-int startNewProcessForAttach(const char *pathname, const char *argv[]);
+TESTLIB_DLL_EXPORT int startNewProcessForAttach(const char *pathname, const char *argv[]);
 
 
 TESTLIB_DLL_EXPORT void dprintf(const char *fmt, ...);

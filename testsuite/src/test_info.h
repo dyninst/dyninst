@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.17 2006/05/04 01:41:55 legendre Exp $
+// $Id: test_info.h,v 1.18 2006/06/02 22:59:56 legendre Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -178,7 +178,18 @@ platforms_t test5_12_platforms =
      /*sparc_sun_solaris2_8    =*/ true,
    };
 
-platforms_t test7_8_platforms =
+platforms_t test7_platforms =
+   { /*alpha_dec_osf5_1        =*/ false,
+     /*i386_unknown_linux2_4   =*/ true, 
+     /*i386_unknown_nt4_0      =*/ false, 
+     /*ia64_unknown_linux2_4   =*/ true,
+     /*x86_64_unknown_linux2_4 =*/ true,
+     /*mips_sgi_irix6_5        =*/ true,
+     /*rs6000_ibm_aix5_1       =*/ true,
+     /*sparc_sun_solaris2_8    =*/ true,
+   };
+
+platforms_t test8_platforms =
    { /*alpha_dec_osf5_1        =*/ false,
      /*i386_unknown_linux2_4   =*/ true, 
      /*i386_unknown_nt4_0      =*/ true, 
@@ -192,7 +203,7 @@ platforms_t test7_8_platforms =
 platforms_t test9_platforms =
    { /*alpha_dec_osf5_1        =*/ false,
      /*i386_unknown_linux2_4   =*/ true, 
-     /*i386_unknown_nt4_0      =*/ true, 
+     /*i386_unknown_nt4_0      =*/ false, 
      /*ia64_unknown_linux2_4   =*/ false,
      /*x86_64_unknown_linux2_4 =*/ true,
      /*mips_sgi_irix6_5        =*/ false,
@@ -303,18 +314,18 @@ test_data_t tests[] = {
    test_data_t("test6_6", "test6_6.so", test6_mutatee, all_platforms, STOPPED, 6, 6, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test6_7", "test6_7.so", test6_mutatee, all_platforms, STOPPED, 6, 7, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test6_8", "test6_8.so", test6_mutatee, all_platforms, STOPPED, 6, 8, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test7_1", "test7_1.so", test7_mutatee, test7_8_platforms, STOPPED, 7, 1, NONE, CREATE, ENABLED),
-   test_data_t("test7_2", "test7_2.so", test7_mutatee, test7_8_platforms, STOPPED, 7, 2, NONE, CREATE, ENABLED),
-   test_data_t("test7_3", "test7_3.so", test7_mutatee, test7_8_platforms, STOPPED, 7, 3, NONE, CREATE, ENABLED),
-   test_data_t("test7_4", "test7_4.so", test7_mutatee, test7_8_platforms, STOPPED, 7, 4, NONE, CREATE, ENABLED),
-   test_data_t("test7_5", "test7_5.so", test7_mutatee, test7_8_platforms, STOPPED, 7, 5, NONE, CREATE, ENABLED),
-   test_data_t("test7_6", "test7_6.so", test7_mutatee, test7_8_platforms, STOPPED, 7, 6, NONE, CREATE, ENABLED),
-   test_data_t("test7_7", "test7_7.so", test7_mutatee, test7_8_platforms, STOPPED, 7, 7, NONE, CREATE, ENABLED),
-   test_data_t("test7_8", "test7_8.so", test7_mutatee, test7_8_platforms, STOPPED, 7, 8, NONE, CREATE, ENABLED),
-   test_data_t("test7_9", "test7_9.so", test7_mutatee, test7_8_platforms, STOPPED, 7, 8, NONE, CREATE, ENABLED),
-   test_data_t("test8_1", "test8_1.so", test8_mutatee, test7_8_platforms, STOPPED, 8, 1, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test8_2", "test8_2.so", test8_mutatee, test7_8_platforms, STOPPED, 8, 2, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test8_3", "test8_3.so", test8_mutatee, test7_8_platforms, STOPPED, 8, 3, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test7_1", "test7_1.so", test7_mutatee, test7_platforms, STOPPED, 7, 1, NONE, CREATE, ENABLED),
+   test_data_t("test7_2", "test7_2.so", test7_mutatee, test7_platforms, STOPPED, 7, 2, NONE, CREATE, ENABLED),
+   test_data_t("test7_3", "test7_3.so", test7_mutatee, test7_platforms, STOPPED, 7, 3, NONE, CREATE, ENABLED),
+   test_data_t("test7_4", "test7_4.so", test7_mutatee, test7_platforms, STOPPED, 7, 4, NONE, CREATE, ENABLED),
+   test_data_t("test7_5", "test7_5.so", test7_mutatee, test7_platforms, STOPPED, 7, 5, NONE, CREATE, ENABLED),
+   test_data_t("test7_6", "test7_6.so", test7_mutatee, test7_platforms, STOPPED, 7, 6, NONE, CREATE, ENABLED),
+   test_data_t("test7_7", "test7_7.so", test7_mutatee, test7_platforms, STOPPED, 7, 7, NONE, CREATE, ENABLED),
+   test_data_t("test7_8", "test7_8.so", test7_mutatee, test7_platforms, STOPPED, 7, 8, NONE, CREATE, ENABLED),
+   test_data_t("test7_9", "test7_9.so", test7_mutatee, test7_platforms, STOPPED, 7, 8, NONE, CREATE, ENABLED),
+   test_data_t("test8_1", "test8_1.so", test8_mutatee, test8_platforms, STOPPED, 8, 1, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test8_2", "test8_2.so", test8_mutatee, test8_platforms, STOPPED, 8, 2, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test8_3", "test8_3.so", test8_mutatee, test8_platforms, STOPPED, 8, 3, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test9_1", "test9_1.so", test9_mutatee, test9_platforms, SELFSTART, 9, 1, NONE, CREATE, ENABLED),
    test_data_t("test9_2", "test9_2.so", test9_mutatee, test9_platforms, SELFSTART, 9, 2, NONE, CREATE, ENABLED),
    test_data_t("test9_3", "test9_3.so", test9_mutatee, test9_platforms, SELFSTART, 9, 3, NONE, CREATE, ENABLED),
@@ -330,15 +341,9 @@ test_data_t tests[] = {
    test_data_t("test12_2", "test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, KILL_MUTATEE, CREATE, DISABLED),
    test_data_t("test12_3", "test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, KILL_MUTATEE, CREATE, DISABLED),
    test_data_t("test12_4", "test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, KILL_MUTATEE, CREATE, DISABLED),
-#if !defined(os_windows)
    test_data_t("test13_1", "test13_1.so", test13_mutatee, all_platforms, SELFSTART, 13, 1, NONE, BOTH, ENABLED),
    test_data_t("test14_1", "test14_1.so", test14_mutatee, all_platforms, SELFSTART, 14, 1, NONE, BOTH, ENABLED),
    test_data_t("test15_1", "test15_1.so", test15_mutatee, all_platforms, SELFSTART, 15, 1, NONE, BOTH, ENABLED)
-#else
-   test_data_t("test13_1", "test13_1.so", test13_mutatee, all_platforms, SELFSTART, 13, 1, NONE, CREATE, ENABLED),
-   test_data_t("test14_1", "test14_1.so", test14_mutatee, all_platforms, SELFSTART, 14, 1, NONE, CREATE, ENABLED),
-   test_data_t("test15_1", "test15_1.so", test15_mutatee, all_platforms, SELFSTART, 15, 1, NONE, CREATE, ENABLED)
-#endif
 };
 const unsigned int num_tests = sizeof(tests)/sizeof(test_data_t);
 

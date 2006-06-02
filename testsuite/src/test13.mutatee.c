@@ -18,7 +18,7 @@ volatile int proc_current_state;
 
 void *init_func(void *arg)
 {
-   while (!done) { }
+   while (!done);
    return arg;
 }
 
@@ -28,11 +28,12 @@ void parse_args(int argc, char *argv[])
    int i;
    for (i=0; i<argc; i++)
    {
-      if (strstr(argv[i], "-attach"))
-      {
+#if defined(os_windows)
+         attached_fd = -1;
+#else
          if (++i == argc) break;
          attached_fd = atoi(argv[i]);
-      }
+#endif
    }
 }
 
@@ -75,6 +76,9 @@ int main(int argc, char *argv[])
       while (!checkIfAttached()) ;
       printf("Mutator attached.  Mutatee continuing.\n");
    }
+#else
+   if (attached_fd)
+      while (!checkIfAttached());
 #endif
 
    fprintf(stderr, "[%s:%d]: stage 1 - all threads created\n", __FILE__, __LINE__);
