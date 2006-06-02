@@ -607,7 +607,6 @@ bool BPatch_process::statusIsTerminated()
              FILE__, __LINE__);
      return true;
    }
-   fprintf(stderr, "llproc is %s\n", llproc->getStatusAsString().c_str());
    return llproc->status() == exited;
 }
 
