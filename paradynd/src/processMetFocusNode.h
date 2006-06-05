@@ -63,10 +63,23 @@ class pd_thread;
 class instReqNode;
 class dyn_lwp;
 
-struct catchup_t {
+class catchup_t {
+    static pdvector<Frame> uninitialized;
+ public:
     AstNode *ast;
     dyn_thread *thread;
-    pdvector<Frame> stackWalk;
+    const pdvector<Frame> &stackWalk;
+
+ catchup_t(AstNode *a, dyn_thread *t, const pdvector<Frame> &s) :
+    ast(a), thread(t), stackWalk(s) {};
+
+    // Vector-required...
+ catchup_t() :
+    ast(NULL), thread(NULL), stackWalk(uninitialized) {};
+
+ catchup_t(const catchup_t &c) :
+    ast(c.ast), thread(c.thread), stackWalk(c.stackWalk) {};
+
 };
 
 struct sideEffect_t {
@@ -94,7 +107,7 @@ class processMetFocusNode : public metricFocusNode {
   bool dontInsertData_;
   bool runWhenFinished_;
   bool instrInserted_;  // ie. instr:  loaded & tramps hookedup & catchuped
-  pdvector<catchup_t >   catchupASTList;
+  pdvector<catchup_t *>   catchupASTList;
   pdvector<unsigned> rpc_id_buf;
 
   bool isBeingDeleted_;
@@ -104,7 +117,7 @@ class processMetFocusNode : public metricFocusNode {
 		      bool arg_dontInsertData);
 
   void manuallyTrigger(int mid);
-  void prepareCatchupInstr(pdvector<pdvector<Frame> >&stackWalks);  // do catchup on given thread
+  void prepareCatchupInstr(const pdvector<pdvector<Frame> >&stackWalks);  // do catchup on given thread
   bool postCatchupRPCs();
 
   threadMetFocusNode *getThrNode(unsigned tid);
@@ -188,11 +201,12 @@ class processMetFocusNode : public metricFocusNode {
   // If false: loading failed (very odd case)
   bool loadInstrIntoApp();
   // If false: jumps failed, try again later.
-  bool insertJumpsToTramps(pdvector<pdvector<Frame > >&stackWalks);
+  bool insertJumpsToTramps(const pdvector<pdvector<Frame > >&stackWalks);
   // If false: instrumentation fixup failed (assert failure)
+  // Not a constant stackWalk as we can tweak frames
   bool doInstrumentationFixup(pdvector<pdvector<Frame> > &stackWalks);
   // If false: catchup failed (assert failure)
-  bool doCatchupInstrumentation(pdvector<pdvector<Frame> > &stackWalks);
+  bool doCatchupInstrumentation(const pdvector<pdvector<Frame> > &stackWalks);
   
   inst_insert_result_t insertInstrumentation();
   

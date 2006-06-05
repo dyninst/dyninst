@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.47 2006/03/09 22:01:06 bernat Exp $
+// $Id: templatesPD.C,v 1.48 2006/06/05 22:30:10 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -214,7 +214,7 @@ template class  pdvector<catchupReq>;
 template class  pdvector<catchupReq*>;
 template class  pdvector<pdvector<catchupReq *> >;
 // Temporary structs used in processMetFocusNode.C
-template class  pdvector<catchup_t>;
+template class  pdvector<catchup_t *>;
 template class  pdvector<sideEffect_t>;
 template class  pdvector<threadMetFocusNode_Val *>;
 template class  pdvector<const threadMetFocusNode_Val *>;

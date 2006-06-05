@@ -484,6 +484,7 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
 //    Note that #2 overwrites #1; but if we perform the fixes in this order
 //    then everything works.
 
+// Not const stackWalks as they can be changed in catchupSideEffect...
 bool processMetFocusNode::doInstrumentationFixup(pdvector<pdvector<Frame> >&stackWalks) {
     bool modified = false;
     // These return true if anything was modified
@@ -493,8 +494,9 @@ bool processMetFocusNode::doInstrumentationFixup(pdvector<pdvector<Frame> >&stac
         for (unsigned iIter = 0; iIter < instRequests.size(); iIter++) {
             for (unsigned thrIter = 0; thrIter < stackWalks.size(); thrIter++) {
                 for (unsigned sIter = 0; sIter < stackWalks[thrIter].size(); sIter++) {
-                    modified |= proc_->catchupSideEffect(stackWalks[thrIter][sIter],
-                                                         instRequests[iIter]);
+                    if (proc_->catchupSideEffect(stackWalks[thrIter][sIter],
+                                                 instRequests[iIter]))
+                        modified = true;
                 }
             }
         }
@@ -503,8 +505,9 @@ bool processMetFocusNode::doInstrumentationFixup(pdvector<pdvector<Frame> >&stac
     for (unsigned iIter2 = 0; iIter2 < instRequests2.size(); iIter2++) {
         for (unsigned thrIter2 = 0; thrIter2 < stackWalks.size(); thrIter2++) {
             for (unsigned sIter2 = 0; sIter2 < stackWalks[thrIter2].size(); sIter2++) {
-                modified |= proc_->catchupSideEffect(stackWalks[thrIter2][sIter2],
-                                                     instRequests2[iIter2]);
+                if (proc_->catchupSideEffect(stackWalks[thrIter2][sIter2],
+                                             instRequests2[iIter2]))
+                    modified = true;
             }
         }
     }
@@ -532,7 +535,7 @@ bool processMetFocusNode::doInstrumentationFixup(pdvector<pdvector<Frame> >&stac
 //       No -> don't manually trigger n's instrumentation.
 //       Yes -> run (a copy) of n's instrumentation via inferior RPC
 //         
-bool processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&stackWalks) {
+bool processMetFocusNode::doCatchupInstrumentation(const pdvector<pdvector<Frame> >&stackWalks) {
     // doCatchupInstrumentation is now the primary control
     // of whether a process runs or not. 
     // The process may have been paused when we inserted instrumentation.
@@ -587,9 +590,9 @@ bool processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
 //       Yes ->
 //         
 
-void processMetFocusNode::prepareCatchupInstr(pdvector<pdvector<Frame> > &stackWalks) {
+void processMetFocusNode::prepareCatchupInstr(const pdvector<pdvector<Frame> > &stackWalks) {
     for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
-        pdvector<Frame> &stackWalk = stackWalks[thr_iter];
+        const pdvector<Frame> &stackWalk = stackWalks[thr_iter];
         
         
         // Convert the stack walks into a similar list of catchupReq nodes, which
@@ -645,7 +648,7 @@ void processMetFocusNode::prepareCatchupInstr(pdvector<pdvector<Frame> > &stackW
             catchup.ast = conglomerate;
             catchup.thread = catchupWalk[0]->frame.getThread();
             // Store the stackwalk for caching later
-            catchup.stackWalk = stackWalks[thr_iter];
+            catchup.stackWalk = stackWalk;
             catchupASTList.push_back(catchup);      
         }
 #else
@@ -662,11 +665,14 @@ void processMetFocusNode::prepareCatchupInstr(pdvector<pdvector<Frame> > &stackW
                 // an RPC.
                 for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
                     AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
-                    catchup_t catchup;
-                    catchup.ast = AST;
-                    catchup.thread = catchupWalk[0]->frame.getThread();
-                    // Store the stackwalk for caching later
-                    catchup.stackWalk = stackWalks[thr_iter];
+
+                    fprintf(stderr, "Catchup on thread %d: stack has %d frames\n",
+                            catchupWalk[0]->frame.getThread()->get_tid(),
+                            stackWalk.size());
+
+                    catchup_t *catchup = new catchup_t(AST, 
+                                                       catchupWalk[0]->frame.getThread(),
+                                                       stackWalk);
                     catchupASTList.push_back(catchup);
                 }
             }
@@ -712,7 +718,7 @@ bool processMetFocusNode::postCatchupRPCs()
       if (pd_debug_catchup) {
          cerr << "metricID: " << getMetricID() << ", posting ast " << i 
               << " on thread: " 
-              << catchupASTList[i].thread->get_tid() << endl;
+              << catchupASTList[i]->thread->get_tid() << endl;
          
       }
 
@@ -723,24 +729,26 @@ bool processMetFocusNode::postCatchupRPCs()
       // by using a post-RPC allback.
 
       // Get the pd_thread for this thread's tid
-      pd_thread *thr = proc_->findThread(catchupASTList[i].thread->get_tid());
+      pd_thread *thr = proc_->findThread(catchupASTList[i]->thread->get_tid());
       assert(thr);
 
-      thr->saveStack(catchupASTList[i].stackWalk);
+      thr->saveStack(catchupASTList[i]->stackWalk);
       
       unsigned rpc_id =
-          proc_->postRPCtoDo(catchupASTList[i].ast,
+          proc_->postRPCtoDo(catchupASTList[i]->ast,
                              false, // noCost
                              processMetFocusNode::postCatchupRPCDispatch, // callbackFunc
                              (void *)thr, // user data
                              true, // Run when done
                              false,  // lowmem parameter
-                             catchupASTList[i].thread, 
+                             catchupASTList[i]->thread, 
                              NULL);
       rpc_id_buf.push_back(rpc_id);
+
+      delete catchupASTList[i];
    }
-   
-   catchupASTList.resize(0);
+
+   catchupASTList.clear();
 
    return true;
 }
@@ -870,7 +878,7 @@ pdvector<const instrDataNode*> processMetFocusNode::getFlagDataNodes() const {
 // and the necessary info is stored there. There is also a checkInst call
 // that returns whether it is safe to put in instrumentation.
 
-bool processMetFocusNode::insertJumpsToTramps(pdvector<pdvector<Frame > >&stackWalks) {
+bool processMetFocusNode::insertJumpsToTramps(const pdvector<pdvector<Frame > >&stackWalks) {
     assert(!instrLinked());
 
    // pause once for all primitives for this component

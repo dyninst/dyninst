@@ -79,7 +79,7 @@ class pd_thread {
    // Used for catchup
    bool walkStack_ll(pdvector<Frame> &stackWalk);
 
-   bool saveStack(pdvector<Frame> &stackToSave);
+   bool saveStack(const pdvector<Frame> &stackToSave);
    bool clearSavedStack();
 
    void update_rid(resource *rid_) { rid = rid_; } 

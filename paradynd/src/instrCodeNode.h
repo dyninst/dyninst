@@ -210,7 +210,7 @@ class instrCodeNode {
   bool instrCatchuped() { return V.instrCatchuped_; }
 
   //bool needToWalkStack(); // const;
-  bool insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks);
+  bool insertJumpsToTramps(const pdvector<pdvector<Frame> > &stackWalks);
   void addInst(BPatch_point *point, BPatch_snippet *, 
                BPatch_callWhen when, BPatch_snippetOrder o);
   timeLength cost() const;

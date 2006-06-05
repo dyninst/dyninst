@@ -519,7 +519,7 @@ void instrCodeNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
       V.sampledDataNode->stopSampling(thrNodeVal->getThreadIndex());
 }
 
-bool instrCodeNode::insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks) {
+bool instrCodeNode::insertJumpsToTramps(const pdvector<pdvector<Frame> > &stackWalks) {
     if (instrLinked()) return true;
 
     unsigned rsize = V.instRequests.size();

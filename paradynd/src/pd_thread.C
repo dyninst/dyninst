@@ -235,26 +235,15 @@ bool pd_thread::walkStack(BPatch_Vector<BPatch_frame> &stackWalk)
 bool pd_thread::walkStack_ll(pdvector<Frame> &stackWalk)
 {
     if (savedStackRefCount_) {
-        fprintf(stderr, "Returning saved stack (%d frames) on thread %d, refcount %d\n",
-                savedStack_.size(),
-                dyninst_thread->ll_thread()->get_tid(), 
-                savedStackRefCount_);
         stackWalk = savedStack_;
         return true;
     }
    return dyninst_thread->ll_thread()->walkStack(stackWalk);
 }
 
-bool pd_thread::saveStack(pdvector<Frame> &stackToSave) {
+bool pd_thread::saveStack(const pdvector<Frame> &stackToSave) {
         
     savedStackRefCount_++;
-
-    fprintf(stderr, "Saving stack with %d frames on thread %d, ref count %d\n", 
-            stackToSave.size(), dyninst_thread->ll_thread()->get_tid(), savedStackRefCount_);
-
-    if (pd_debug_catchup)
-        fprintf(stderr, "Saving stack for thread %d: ref count %d\n",
-                get_tid(), savedStackRefCount_);
 
     if (savedStack_.size() > 0) {
         // Should assert the two stacks are the same... for now, use
@@ -266,9 +255,13 @@ bool pd_thread::saveStack(pdvector<Frame> &stackToSave) {
             for (unsigned i = 0; i < savedStack_.size(); i++) {
                 cerr << savedStack_[i] << endl;
             }
-            for (unsigned i = 0; i < savedStack_.size(); i++) {
-                cerr << stackToSave[i] << endl;
+            cerr << endl;            
+            for (unsigned i = 0; i < stackToSave.size(); i++) {
+                // Make a copy...
+                Frame frame = stackToSave[i];
+                cerr << frame << endl;
             }
+            cerr << endl;            
         }
 
         assert(stackToSave.size() == savedStack_.size());
@@ -285,12 +278,9 @@ bool pd_thread::clearSavedStack() {
     assert(savedStackRefCount_ > 0);
     savedStackRefCount_--;
 
-    fprintf(stderr, "Clearing stack on thread %d, ref count %d\n", 
-            dyninst_thread->ll_thread()->get_tid(), savedStackRefCount_);
-
     if (pd_debug_catchup)
-        fprintf(stderr, "Clearing stack for thread %d: ref count %d\n",
-                get_tid(), savedStackRefCount_);
+        fprintf(stderr, "Clearing stack for thread %d (%p/%p): ref count %d\n",
+                get_tid(),this, dyninst_thread, savedStackRefCount_);
 
 
     if (savedStackRefCount_ == 0) {

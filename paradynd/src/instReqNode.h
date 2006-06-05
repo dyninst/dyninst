@@ -124,7 +124,7 @@ class instReqNode {
    // if the stack is walked multiple times, then we'd be cool
    // with letting the low-level code check for its own stuff.
    // As it is, this is safer.
-   bool checkInstr(pdvector<pdvector<Frame> > &stackWalks);
+   bool checkInstr(const pdvector<pdvector<Frame> > &stackWalks);
    bool linkInstr();
 
    void disable();

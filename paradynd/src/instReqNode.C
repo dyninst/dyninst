@@ -182,7 +182,7 @@ bool instReqNode::generateInstr() {
     return true;
 }
 
-bool instReqNode::checkInstr(pdvector<pdvector<Frame> > &stackWalks) {
+bool instReqNode::checkInstr(const pdvector<pdvector<Frame> > &stackWalks) {
     if (instrLinked())
         return true;
     
