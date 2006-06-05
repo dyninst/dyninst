@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.50 2006/05/30 20:49:00 bernat Exp $
+// $Id: multiTramp.C,v 1.51 2006/06/05 22:30:13 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -2125,14 +2125,12 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
         if (insn && 
             (pc >= insn->relocAddr()) &&
             (pc < insn->relocAddr() + insn->get_size_cr())) {
-            assert(pcObj == NULL);
             pcObj = insn;
         }
         else if (bti) {
             // Can be either the instPoint or the original instruction,
             // so check both
             if (bti->isInInstance(pc)) {
-                assert(pcObj == NULL);
                 pcObj = bti;
             }
             if (bti->baseT == newMT->baseT)
@@ -2141,7 +2139,6 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
         else if (end) {
             if ((end->addrInMutatee_ <= pc) &&
                 (pc < (end->addrInMutatee_ + end->size_))) {
-                assert(pcObj == NULL);
                 pcObj = end;
             }
         }
