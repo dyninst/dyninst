@@ -28,12 +28,15 @@ void parse_args(int argc, char *argv[])
    int i;
    for (i=0; i<argc; i++)
    {
+     if (strstr(argv[i], "-attach"))
+     {
 #if defined(os_windows)
-         attached_fd = -1;
+        attached_fd = -1;
 #else
-         if (++i == argc) break;
-         attached_fd = atoi(argv[i]);
+        if (++i == argc) break;
+        attached_fd = atoi(argv[i]);
 #endif
+     }
    }
 }
 
@@ -67,13 +70,14 @@ int main(int argc, char *argv[])
 
 #ifndef os_windows
    if (attached_fd) {
+      fprintf(stderr, "[%s:%u] - Writing byte to pipe\n", __FILE__, __LINE__);
       if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
          fprintf(stderr, "*ERROR*: Writing to pipe\n");
          exit(-1);
       }
       close(attached_fd);
       printf("Waiting for mutator to attach...\n");
-      while (!checkIfAttached()) ;
+      while (!checkIfAttached());
       printf("Mutator attached.  Mutatee continuing.\n");
    }
 #else
