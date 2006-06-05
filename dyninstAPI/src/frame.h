@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.29 2006/04/15 01:07:48 legendre Exp $
+// $Id: frame.h,v 1.30 2006/06/05 22:30:12 bernat Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -85,6 +85,42 @@ class Frame {
 	Address sp, Address pcAddr,
 	Frame *calleeFrame);
 
+ Frame(const Frame &f) :
+  frameType_(f.frameType_),
+  uppermost_(f.uppermost_),
+      pc_(f.pc_),
+      fp_(f.fp_),
+      sp_(f.sp_),
+      pid_(f.pid_),
+      proc_(f.proc_),
+      thread_(f.thread_),
+      lwp_(f.lwp_),
+      range_(f.range_),
+#if defined(arch_ia64)
+      hasValidCursor(f.hasValidCursor),
+      unwindCursor(f.unwindCursor),
+#endif
+      pcAddr_(f.pcAddr_) {};
+
+  const Frame &operator=(const Frame &f) {
+      frameType_ = f.frameType_;
+      uppermost_ = f.uppermost_;
+      pc_ = f.pc_;
+      fp_ = f.fp_;
+      sp_ = f.sp_;
+      pid_ = f.pid_;
+      proc_ = f.proc_;
+      thread_ = f.thread_;
+      lwp_ = f.lwp_;
+      range_ = f.range_;
+#if defined(arch_ia64)
+      hasValidCursor = f.hasValidCursor;
+      unwindCursor = f.unwindCursor;
+#endif
+      pcAddr_ = f.pcAddr_;
+      return *this;
+  }
+  
   bool operator==(const Frame &F) {
     return ((uppermost_ == F.uppermost_) &&
 	    (pc_      == F.pc_) &&
@@ -93,8 +129,7 @@ class Frame {
 	    (pid_     == F.pid_) &&
 	    (proc_    == F.proc_) &&
 	    (thread_  == F.thread_) &&
-	    (lwp_     == F.lwp_) &&
-	    (saved_fp == F.saved_fp) );
+	    (lwp_     == F.lwp_));
   }
 
   Address  getPC() const { return pc_; }
@@ -154,10 +189,9 @@ class Frame {
   dyn_thread *	thread_;			// user-level thread
   dyn_lwp *		lwp_;				// kernel-level thread (LWP)
   codeRange *	range_;				// If we've done a by-address lookup, keep it here
-                                        
-  Address		saved_fp;			// IRIX
-  bool			hasValidCursor;		// IA-64
+
 #if defined( arch_ia64 )  
+  bool			hasValidCursor;		// IA-64
   unw_cursor_t	unwindCursor;
 #endif  
   Address		pcAddr_;
