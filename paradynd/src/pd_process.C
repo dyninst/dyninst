@@ -1783,7 +1783,8 @@ bool pd_process::walkStacks(BPatch_Vector<BPatch_Vector<BPatch_frame> > &stackWa
          iter != thr_mgr.end();
          iter++) {
         BPatch_Vector<BPatch_frame> walk;
-        success &= (*iter)->walkStack(walk);
+        if (!(*iter)->walkStack(walk))
+            success = false;
         stackWalks.push_back(walk);
     }
     return success;
@@ -1795,7 +1796,8 @@ bool pd_process::walkStacks_ll(pdvector<pdvector<Frame> > &stackWalks) {
          iter != thr_mgr.end();
          iter++) {
         pdvector<Frame> walk;
-        success &= (*iter)->walkStack_ll(walk);
+        if  (!(*iter)->walkStack_ll(walk))
+            success = false;
         stackWalks.push_back(walk);
     }
     return success;
@@ -2064,7 +2066,8 @@ void pd_process::pdNewThread(BPatch_process *proc, BPatch_thread *thr)
      return;
      }
 
-   int thread_id = thr->getBPatchID();
+   int thread_id = thr->getTid();
+
    pd_thread *foundThr = pd_proc->findThread(thread_id);
    if(foundThr) {
       // received a duplicate thread create, can happen if rpcs launched on
@@ -2079,7 +2082,10 @@ void pd_process::pdNewThread(BPatch_process *proc, BPatch_thread *thr)
    //   return;
 
    //Create pd_thread object
+
+
    pd_thread *pd_thr = new pd_thread(thr, pd_proc);
+
    pd_proc->addThread(pd_thr);
 
 	 //We don't report resources yet if these are the initial threads, but we do
