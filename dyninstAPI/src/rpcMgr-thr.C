@@ -536,8 +536,11 @@ bool rpcThr::getReturnValueIRPC() {
     // we continue the process...but not quite at the PC where we left off,
     // since that will just re-do the trap!  Instead, we need to continue at
     // the location of the next instruction.
-    if (! thr_lwp->changePC(runningRPC_->rpcContPostResultAddr, NULL))
-        assert(false);
+    if (! thr_lwp->changePC(runningRPC_->rpcContPostResultAddr, NULL)) {
+        // What if we're exited?
+        return false;
+    }
+
     return true;
 }
 
