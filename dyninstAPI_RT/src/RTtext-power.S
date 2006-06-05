@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTtext-power.S,v 1.4 2004/03/23 01:12:16 eli Exp $
+/* $Id: RTtext-power.S,v 1.5 2006/06/05 22:30:20 bernat Exp $
  * create an array to use as a heap for new instructions.
  *
  *    This file is required since AIX has instructions and data are in
@@ -52,8 +52,8 @@
  */
 
 .csect .text[PR]
-	.globl DYNINSTstaticHeap_4M_textHeap_1
-	.globl .DYNINSTstaticHeap_4M_textHeap_1
-DYNINSTstaticHeap_4M_textHeap_1:
-.DYNINSTstaticHeap_4M_textHeap_1:
-	.space	4194304
+	.globl DYNINSTstaticHeap_16M_textHeap_1
+	.globl .DYNINSTstaticHeap_16M_textHeap_1
+DYNINSTstaticHeap_16M_textHeap_1:
+.DYNINSTstaticHeap_16M_textHeap_1:
+	.space	16777216

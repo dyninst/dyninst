@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.71 2006/05/21 19:59:31 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.72 2006/06/05 22:30:17 bernat Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -84,11 +84,11 @@ typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
 
 HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 HEAP_TYPE DYNINSTstaticHeap_512K_lowmemHeap_1[512*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
-HEAP_TYPE DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+HEAP_TYPE DYNINSTstaticHeap_16M_anyHeap_1[16*1024*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 
 /* These are necessary because of silly C-style 'extern'/linking conventions. */
 const unsigned long sizeOfLowMemHeap1 = sizeof( DYNINSTstaticHeap_512K_lowmemHeap_1 );
-const unsigned long sizeOfAnyHeap1 = sizeof( DYNINSTstaticHeap_4M_anyHeap_1 );
+const unsigned long sizeOfAnyHeap1 = sizeof( DYNINSTstaticHeap_16M_anyHeap_1 );
 
 /**
  * One some platforms we can tell when a fork or exec is occurring through 

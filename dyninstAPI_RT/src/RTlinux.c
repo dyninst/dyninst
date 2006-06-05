@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.47 2006/05/16 20:15:15 tlmiller Exp $
+ * $Id: RTlinux.c,v 1.48 2006/06/05 22:30:18 bernat Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -57,7 +57,7 @@
 #include <sys/mman.h>
 
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
-extern double DYNINSTstaticHeap_4M_anyHeap_1[];
+extern double DYNINSTstaticHeap_16M_anyHeap_1[];
 extern unsigned long sizeOfLowMemHeap1;
 extern unsigned long sizeOfAnyHeap1;
 
@@ -73,14 +73,14 @@ void mark_heaps_exec() {
 		} /* end pageSize initialization */
 
 	/* Align the heap pointer. */
-	unsigned long int alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1;
+	unsigned long int alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_16M_anyHeap_1;
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
-	unsigned long int adjustedSize = (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1 - alignedHeapPointer + sizeOfAnyHeap1;
+	unsigned long int adjustedSize = (unsigned long int) DYNINSTstaticHeap_16M_anyHeap_1 - alignedHeapPointer + sizeOfAnyHeap1;
 
 	/* Make the heap's page executable. */
 	int result = mprotect( (void *) alignedHeapPointer, (size_t) adjustedSize, PROT_READ | PROT_WRITE | PROT_EXEC );
 	if( result != 0 ) {
-		fprintf( stderr, "%s[%d]: Couldn't make DYNINSTstaticHeap_4M_anyHeap_1 executable!\n", __FILE__, __LINE__);
+		fprintf( stderr, "%s[%d]: Couldn't make DYNINSTstaticHeap_16M_anyHeap_1 executable!\n", __FILE__, __LINE__);
 		perror( "mark_heaps_exec" );
 		}
 	RTprintf( "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
