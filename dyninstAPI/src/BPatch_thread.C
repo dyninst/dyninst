@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.162 2006/06/02 22:59:34 legendre Exp $
+// $Id: BPatch_thread.C,v 1.163 2006/06/05 19:50:35 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -231,9 +231,14 @@ void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
   if (!index)
       lwp = proc->llproc->getInitialLwp();
 #endif
+#if !defined(cap_proc_fd)
    if (llthread && llthread->get_lwp())
        lwp = llthread->get_lwp();
-   else if (!lwp)
+#endif
+   // For solaris-style /proc we _always_ use the process-grabbed
+   // LWP. Thread 1 is created with the representative LWP initially,
+   // and then needs to be updated.
+   if (!lwp)
        lwp = proc->llproc->getLWP(lwp_id);
 
    updated = true;
