@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.17 2006/06/02 22:59:57 legendre Exp $
+// $Id: test_lib.C,v 1.18 2006/06/05 20:31:18 tlmiller Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -316,8 +316,22 @@ pid_t fork_mutatee() {
           fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
           return -1;
        }
+       
+#if defined( os_linux )
+       /* Random Linux-ism: it's possible to close the pipe before the 
+          mutatee returns from the write() system call matching the above
+          read().  In this case, rather than ignore the close() because the
+          write() is on its way out the kernel, Linux sends a SIGPIPE
+          to the mutatee, which causes us no end of trouble.  read()ing
+          an EOF from the pipe seems to alleviate this problem, and seems
+          more reliable than a sleep(1).  The condition test if we somehow
+          got any /extra/ bytes on the pipe. */
+       if( read( fds[0], & ch, sizeof( char ) ) != 0 ) {
+          return -1;
+       }
+#endif /* defined( os_linux ) */
 
-       close(fds[0]);  // We're done with the pipe
+       close( fds[0] ); // We're done with the pipe
 
        return pid;
 #endif
