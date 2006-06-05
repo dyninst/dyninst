@@ -613,18 +613,6 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
        rpc_iter++;
     }
 
-#if 0
-#if defined(os_solaris)
-    if(proc_->multithread_capable()) {
-       if (!readyLWPRPC && !processingLWPRPC) {
-          if (postedProcessRPCs_.size()) {
-             inferiorrpc_printf("SOLARIS: waiting process RPC\n");
-             readyProcessRPC = true;
-          }
-       }
-    }
-#endif
-#endif
     // Only run thread RPCs if there are no LWP RPCs either waiting or in flight.
 
     if (!readyLWPRPC && !processingLWPRPC && !readyProcessRPC && !processingProcessRPC) {
