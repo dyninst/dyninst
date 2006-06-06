@@ -127,7 +127,7 @@ TESTLIB_DLL_EXPORT BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr 
 
 
 
-TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len);
+TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len, int psize);
 
 // Function to preload some libraries for test1_21 and test1_22
 TESTLIB_DLL_EXPORT int readyTest21or22(BPatch_thread *appThread, 
@@ -185,6 +185,8 @@ TESTLIB_DLL_EXPORT int instEffAddr(BPatch_thread* bpthr, const char* fname,
 TESTLIB_DLL_EXPORT int instByteCnt(BPatch_thread* bpthr, const char* fname,
 		 const BPatch_Vector<BPatch_point*>* res,
                  bool conditional);
+
+TESTLIB_DLL_EXPORT int pointerSize(BPatch_image *img);
 
 typedef struct {
     bool             valid;

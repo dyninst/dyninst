@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_2.C,v 1.3 2006/03/08 16:44:19 bpellin Exp $
+// $Id: test1_2.C,v 1.4 2006/06/06 00:45:46 legendre Exp $
 /*
  * #Name: test1_2
  * #Desc: Mutator Side (call a four argument function)
@@ -99,36 +99,20 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   }
   BPatch_function *call2_func = bpfv[0];
 
-    void *ptr;
+  void *ptr;
 
-#if defined(mips_sgi_irix6_4)
-    BPatch_variableExpr *pointerSizeVar = appImage->findVariable("pointerSize");
-    if (!pointerSizeVar) {
-	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
-	fprintf(stderr, "    Unable to locate variable pointerSize\n");
-	return -1;
-    }
-
-    int pointerSize;
-    if (!pointerSizeVar->readValue(&pointerSize)) {
-	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
-	fprintf(stderr, "    Unable to read value of variable pointerSize\n");
-	return -1;
-    }
-
-    assert(sizeof(void *) == sizeof(unsigned long) &&
-	   sizeof(void *) == TEST_PTR_SIZE);
-
-    /* Determine the size of pointer we should use dynamically. */
-    if (pointerSize == 4) {
-	ptr = TEST_PTR_32BIT;
-    } else if (pointerSize == 8) {
-	ptr = TEST_PTR_64BIT;
-    } else {
-	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
-	fprintf(stderr, "    Unexpected value for pointerSize\n");
-	return -1;
-    }
+#if defined(mips_sgi_irix6_4) || defined(arch_x86_64)
+  unsigned pointer_size = pointerSize(appImage);
+  /* Determine the size of pointer we should use dynamically. */
+  if (pointer_size == 4) {
+     ptr = TEST_PTR_32BIT;
+  } else if (pointer_size == 8) {
+     ptr = TEST_PTR_64BIT;
+  } else {
+     fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
+     fprintf(stderr, "    Unexpected value for pointerSize\n");
+     return -1;
+  }
 #else
     /* For platforms where there is only one possible size for a pointer. */
     ptr = TEST_PTR;
