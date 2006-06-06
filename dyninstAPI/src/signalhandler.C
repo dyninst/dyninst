@@ -262,9 +262,6 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
    process *proc = ev.proc;
    assert(proc);
 
-   fprintf(stderr,"%s[%d]: Process %d dying on signal %d\n", FILE__, __LINE__,
-           proc->getPid(), ev.what);
-
    if (dyn_debug_signal) {
        pdvector<pdvector<Frame> > stackWalks;
        proc->walkStacks(stackWalks);

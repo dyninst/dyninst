@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
 
 #ifndef os_windows
    if (attached_fd) {
-      fprintf(stderr, "[%s:%u] - Writing byte to pipe\n", __FILE__, __LINE__);
       if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
          fprintf(stderr, "*ERROR*: Writing to pipe\n");
          exit(-1);
