@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.652 2006/06/06 00:45:42 legendre Exp $
+// $Id: process.C,v 1.653 2006/06/06 12:11:53 bernat Exp $
 
 #include <ctype.h>
 
@@ -4083,11 +4083,11 @@ bool process::pause() {
 #if !defined(os_linux) && !defined(os_windows)
 bool process::stop_(bool waitUntilStop)
 {
-   assert(status_ == running);      
-
    if (status_ == stopped) {
        return true;
    }
+
+   assert(status_ == running);      
 
    bool res = getRepresentativeLWP()->pauseLWP(waitUntilStop);
    if (!res) {
