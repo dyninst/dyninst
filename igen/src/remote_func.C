@@ -611,7 +611,7 @@ bool remote_func::gen_stub_helper_many(ofstream &out_srvr, ofstream &out_clnt,
    else
      {
        if (!is_async_call() && !is_void()) 
-	 out_str << return_arg_.type() << " ret_arg;\n";
+	 out_str << "   " << return_arg_.type() << " ret_arg;\n";
      }
    out_str << "   if (get_err_state() != igen_no_err) {" << endl
            << "      IGEN_ERR_ASSERT;" << endl;
@@ -691,7 +691,7 @@ bool remote_func::gen_stub_helper_many(ofstream &out_srvr, ofstream &out_clnt,
 	   // set direction decode 
 	   if (!is_void()) 
 	     {
-	       out_str << Options::set_dir_decode() << ";\n";
+	       out_str << "   " << Options::set_dir_decode() << ";\n";
 	       
 	       // decode something
 	       out_str << "   if (!"
@@ -728,24 +728,24 @@ bool remote_func::gen_stub_helper_many(ofstream &out_srvr, ofstream &out_clnt,
 											 "stream_return_vector",
 											 return_arg_.stars());
 		 }
-	    }
-	   if ((!is_async_call()) && (Options::ml->name() == "mrnet"))
-	     {
-	       if(return_arg_.type() != "void")
-		 out_str << "\tstream_return_vector.push_back(*"+return_value()+");\n";
-	       out_str << "\tstream_return_size--;\n";
-	       out_str << "\tif(stream_return_size < 1)\n";
-	       out_str << "\t\tbreak;\n\t}//End of while loop\n";
-	       pdstring pass_return = "";
-	       if(return_arg_.type() != "void")
-		 pass_return = "stream_return_vector";
-	       out_str << "return "+pass_return+";\n";
-	     }
-	   else
-	     {
-	       out_str << "   return " << return_value() << ";\n";
-	     }
-	 }
+             }
+         }
+       if ((!is_async_call()) && (Options::ml->name() == "mrnet"))
+          {
+             if(return_arg_.type() != "void")
+                out_str << "\tstream_return_vector.push_back(*"+return_value()+");\n";
+             out_str << "\tstream_return_size--;\n";
+             out_str << "\tif(stream_return_size < 1)\n";
+             out_str << "\t\tbreak;\n\t}//End of while loop\n";
+             pdstring pass_return = "";
+             if(return_arg_.type() != "void")
+                pass_return = "stream_return_vector";
+             out_str << "return "+pass_return+";\n";
+          }
+       else
+          {
+             out_str << "   return " << return_value() << ";\n";
+          }
      }
    
    out_str << "}" << endl;
@@ -770,7 +770,7 @@ bool remote_func::gen_stub_helper_one(ofstream &out_srvr, ofstream &out_clnt,
 
   if (!is_async_call()) {
 
-	out_str << "thread_t tid = THR_TID_UNSPEC;\n";
+    out_str << "thread_t tid = THR_TID_UNSPEC;\n";
     out_str << Options::ml->tag_type() << " tag = " << response_tag() << ";\n";
     if( !is_void() )
     {
