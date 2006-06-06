@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.31 2006/05/16 14:46:20 bpellin Exp $
+// $Id: test_driver.C,v 1.32 2006/06/06 00:45:49 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -1121,6 +1121,7 @@ int main(unsigned int argc, char *argv[]) {
         int len = strlen(temp);
         libRTname = (char *) malloc(len+1);
         strncpy(libRTname, temp, len);
+        libRTname[len] = '\0';
     }
     else {
        fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
@@ -1139,6 +1140,7 @@ int main(unsigned int argc, char *argv[]) {
         int len = strlen(temp);
         libRTname_m_abi = (char *) malloc(len+1);
         strncpy(libRTname_m_abi, temp, len);
+        libRTname_m_abi[len] = '\0';
     } else
     {
        fprintf(stderr,"Warning: Environment variable DYNINSTAPI_RT_LIB_MABI undefined:\n"

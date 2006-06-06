@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.18 2006/06/05 20:31:18 tlmiller Exp $
+// $Id: test_lib.C,v 1.19 2006/06/06 00:45:50 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -623,13 +623,19 @@ BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail)
 }
 
 // Build Architecture specific libname
-void addLibArchExt(char *dest, unsigned int dest_max_len)
+void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
 {
    int dest_len;
 
    dest_len = strlen(dest);
 
    // Patch up alternate ABI filenames
+#if defined(arch_x86_64)
+   if (psize == 4) {
+      strncat(dest,"_m32", dest_max_len - dest_len);
+      dest_len += 3;   
+   }
+#endif
 
 #if defined(mips_sgi_irix6_4)
    strncat(dest,"_n32", dest_max_len - dest_len);
@@ -642,6 +648,29 @@ void addLibArchExt(char *dest, unsigned int dest_max_len)
 #else
    strncat(dest, ".so", dest_max_len - dest_len);
    dest_len += 3;
+#endif
+}
+
+int pointerSize(BPatch_image *img) {
+#if defined(mips_sgi_irix6_4) || defined(arch_x86_64)
+   BPatch_variableExpr *pointerSizeVar = img->findVariable("pointerSize");
+
+   if (!pointerSizeVar) {
+      fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
+      fprintf(stderr, "    Unable to locate variable pointerSize\n");
+      return -1;
+   }
+
+   int pointerSize;
+   if (!pointerSizeVar->readValue(&pointerSize)) {
+      fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
+      fprintf(stderr, "    Unable to read value of variable pointerSize\n");
+      return -1;
+   }
+
+   return pointerSize;
+#else
+   return sizeof(void*);
 #endif
 }
 

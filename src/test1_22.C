@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_22.C,v 1.6 2006/04/01 06:33:06 bpellin Exp $
+// $Id: test1_22.C,v 1.7 2006/06/06 00:45:48 legendre Exp $
 /*
  * #Name: test1_22
  * #Desc: Mutator Side - Replace Function
@@ -231,10 +231,14 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 // Wrapper to call readyTest
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
+   int pointer_size = 0;
+#if defined(arch_x86_64)
+   pointer_size = pointerSize(appImage);
+#endif
    strncpy(libNameA, libNameAroot, 128);
-   addLibArchExt(libNameA,128);
+   addLibArchExt(libNameA,128, pointer_size);
    strncpy(libNameB, libNameBroot, 128);
-   addLibArchExt(libNameB,128);
+   addLibArchExt(libNameB,128, pointer_size);
 
    RETURNONFAIL(readyTest21or22(appThread, libNameA, libNameB,
             mutateeFortran));
