@@ -148,6 +148,8 @@ void SignalGeneratorCommon::main() {
         fprintf(stderr,"%s[%d]: initialize event handler failed, %s returning\n", FILE__, __LINE__, idstr);
         _isRunning = false;
         init_ok = false; 
+        // For anyone who asks later
+        stop_request = true; 
 
         removeFromThreadMap();
 
@@ -269,14 +271,19 @@ bool SignalGeneratorCommon::exitRequested()
     // dispatch time. 
     //    if (ev.type == evtShutdown) return true;
 
-    assert(proc);
+    if (stop_request)
+        return true;
+
+    if (!proc) {
+        // This can be called if there is no process; failed fork, for instance.
+        return false;
+    }
+
     if (proc->status() == deleted)
         return true;
     if (proc->status() == exited)
         return true;
     if (proc->status() == detached)
-        return true;
-    if (stop_request)
         return true;
 
     return false;
@@ -459,6 +466,9 @@ bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith, dyn_l
 //    b) The SH is not blocked in a callback.
 
 bool SignalGeneratorCommon::processIsPaused() { 
+
+    if (stop_request) return false;
+
     assert(proc);
 
     if (!proc->reachedBootstrapState(attached_bs)) {
@@ -557,23 +567,8 @@ bool SignalGeneratorCommon::getEvents(pdvector<EventRecord> &events)
 
     // should be empty; we dispatch simultaneously
     assert(events.size() == 0);
-#if 0
     
-    //  If we have events left over from the last call of this fn,
-    //  just return one.
-    if (events_to_handle.size()) {
-        //  if per-call ordering is important this should grab events from the front
-        //  of events_to_handle.  Guessing that (if possible) multiple events generated
-        //  "simultaneously" can be handled in any order, however.
-        ev = events_to_handle[events_to_handle.size() - 1];
-        events_to_handle.pop_back();
-        char buf[128];
-        signal_printf("%s[%d][%s]:  waitNextEvent: had existing event %s\n", FILE__, __LINE__,
-                      getThreadStr(getExecThreadID()), ev.sprint_event(buf));
-        return true;
-    }
-#endif
-    
+    if (stop_request) return false;
     assert(proc);
     
     bool ret = waitForEventsInternal(events);
@@ -1083,43 +1078,6 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
 
   return ret;
 }
-
-#if 0
-// Old version
-bool SignalGenerator::attachProcess()
-{
-  assert(proc);
-
-    proc->creationMechanism_ = process::attached_cm;
-    // We're post-main... run the bootstrapState forward
-
-#if !defined(os_windows)
-    proc->bootstrapState = initialized_bs;
-#else
-    // We need to wait for the CREATE_PROCESS debug event.
-    // Set to "begun" here, and fix up in the signal loop
-    proc->bootstrapState = attached_bs;
-#endif
-
-  if (!proc->attach()) {
-     proc->set_status( detached);
-
-     startup_printf("%s[%d] attach failing here: thread %s\n", 
-                    FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     pdstring msg = pdstring("Warning: unable to attach to specified process: ")
-                  + pdstring(getPid());
-     showErrorCallback(26, msg.c_str());
-     return false;
-  }
-
-  // Things are stopped when we're done attaching. Because we say so.
-
-  proc->stateWhenAttached_ = stopped;
-  proc->set_status(stopped);
-
-  return true;
-}
-#endif
 
 bool SignalGenerator::attachProcess()
 {

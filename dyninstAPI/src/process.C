@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.653 2006/06/06 12:11:53 bernat Exp $
+// $Id: process.C,v 1.654 2006/06/06 19:39:29 bernat Exp $
 
 #include <ctype.h>
 
@@ -1931,8 +1931,11 @@ process::~process()
         }        
     }
 
-    if (sh)
+    if (sh) {
+        // Set this to TRUE before setting proc to null so that it knows to go away...
+        sh->stop_request = true;
         sh->proc = NULL;
+    }
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
