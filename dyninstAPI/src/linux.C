@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.240 2006/06/02 22:54:19 bernat Exp $
+// $Id: linux.C,v 1.241 2006/06/06 00:45:40 legendre Exp $
 
 #include <fstream>
 
@@ -751,7 +751,8 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
    ptraceOtherOps++;
 
    int ptrace_errno = 0;
-   int ret = DBI_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4, &ptrace_errno, proc_->getAddressWidth(),  FILE__, __LINE__);
+   int ret = DBI_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4, &ptrace_errno, 
+                        proc_->getAddressWidth(),  FILE__, __LINE__);
    if (ret == 0)
       return true;
 
@@ -875,6 +876,10 @@ bool SignalGenerator::waitForStopInline()
 bool process::stop_(bool waitUntilStop)
 {
   int result;
+  
+  if (status_ == stopped) {
+     return true;
+  }
   
   //Stop the main process
   result = P_kill(getPid(), SIGSTOP);
@@ -1706,7 +1711,8 @@ bool dyn_lwp::representativeLWP_attach_()
 
       int status = 0;
       int retval = 0;
-      retval = waitpid(getPid(), &status, 0);
+      int dead_lwp = 0;
+      retval = proc_->sh->waitpid_kludge(getPid(), &status, 0, &dead_lwp);
       if (retval < 0) {
           fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
           perror("process::attach - waitpid");

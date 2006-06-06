@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.14 2006/05/31 17:16:02 legendre Exp $
+/* $Id: signalgenerator-unix.h,v 1.15 2006/06/06 00:45:41 legendre Exp $
  */
 
 
@@ -154,8 +154,9 @@ class SignalGenerator : public SignalGeneratorCommon
    //  SignalHandler::resendSuppressedSignals
    //  called upon receipt of a SIGSTOP.  Sends all deferred signals to the stopped process.
    int find_dead_lwp();
-   pid_t waitpid_kludge(pid_t, int *, int, int *);
    pdvector<int> attached_lwp_ids;
+ public:
+   pid_t waitpid_kludge(pid_t, int *, int, int *);
 #endif
 
 };
