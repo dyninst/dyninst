@@ -246,6 +246,8 @@ extern int tramp_pre_frame_size_64;
 Frame Frame::getCallerFrame()
 {
     int_function *cur_func = getProc()->findFuncByAddr(pc_);
+    int addr_size = getProc()->getAddressWidth();
+
 #if defined(os_linux)
     // assume _start is never called, so just return if we're there
     if (cur_func &&
@@ -276,6 +278,8 @@ Frame Frame::getCallerFrame()
    Address newSP=0;
    Address newpcAddr=0;
    Address pcLoc=0;
+   addrs.fp = 0;
+   addrs.rtn = 0;
 
    status = getFrameStatus(getProc(), getPC());
 
@@ -291,12 +295,12 @@ Frame Frame::getCallerFrame()
          * on Linux 2.4) we'll go ahead and treat the vsyscall page 
          * as a leaf
          **/
-        if (!getProc()->readDataSpace((void *) sp_, sizeof(int), 
+        if (!getProc()->readDataSpace((void *) sp_, addr_size, 
                              (void *) &addrs.rtn, true))
           return Frame();
         newFP = fp_;
         newPC = addrs.rtn;
-        newSP = sp_+4;
+        newSP = sp_+addr_size;
         goto done;
       }
       else
@@ -336,7 +340,7 @@ Frame Frame::getCallerFrame()
    else if (status == frame_sighandler)
    {
       int fp_offset, pc_offset, frame_size;
-      if (getProc()->getAddressWidth() == 4) {
+      if (addr_size == 4) {
          fp_offset = SIG_HANDLER_FP_OFFSET_32;
          pc_offset = SIG_HANDLER_PC_OFFSET_32;
          frame_size = SIG_HANDLER_FRAME_SIZE_32;
@@ -347,15 +351,13 @@ Frame Frame::getCallerFrame()
          frame_size = SIG_HANDLER_FRAME_SIZE_64;
       }
       
-      if (!getProc()->readDataSpace((caddr_t)(sp_+fp_offset), sizeof(Address),
+      if (!getProc()->readDataSpace((caddr_t)(sp_+fp_offset), addr_size,
                                     &addrs.fp, true)) {
-         // FIXME
-         assert(0);
+         return Frame();
       }
-      if (!getProc()->readDataSpace((caddr_t)(sp_+pc_offset), sizeof(Address),
+      if (!getProc()->readDataSpace((caddr_t)(sp_+pc_offset), addr_size,
                                     &addrs.rtn, true)) {
-         // FIXME
-         assert(0);
+         return Frame();
       }
       
       
@@ -384,7 +386,7 @@ Frame Frame::getCallerFrame()
           (prevFrameValid && isInEntryExitInstrumentation(prevFrame)))
       {
          addrs.fp = offset + sp_;
-         if (!getProc()->readDataSpace((caddr_t) addrs.fp, sizeof(Address), 
+         if (!getProc()->readDataSpace((caddr_t) addrs.fp, addr_size, 
                                &addrs.rtn, true))
             return Frame();
          newPC = addrs.rtn;
@@ -396,13 +398,16 @@ Frame Frame::getCallerFrame()
       {
          if (!fp_)
             return Frame();
-         if (!getProc()->readDataSpace((caddr_t) fp_, 2*sizeof(Address), 
-                                       &addrs, true))
+         if (!getProc()->readDataSpace((caddr_t) fp_, addr_size, 
+                                       &addrs.fp, true))
+            return Frame();
+         if (!getProc()->readDataSpace((caddr_t) fp_ + addr_size, addr_size, 
+                                       &addrs.rtn, true))
             return Frame();
          newFP = addrs.fp;
          newPC = addrs.rtn;
-         newSP = fp_+ (2 * sizeof(Address));
-         pcLoc = fp_ + sizeof(Address);
+         newSP = fp_+ (2 * addr_size);
+         pcLoc = fp_ + addr_size;
       }
       if (status == frame_tramp)
          newSP += getProc()->getAddressWidth() == 8 ? 
@@ -429,7 +434,6 @@ Frame Frame::getCallerFrame()
       Address stack_top;
       int_function *callee = NULL;
       bool result;
-      int addr_size = getProc()->getAddressWidth();
 
       /**
        * Calculate the top of the stack.
@@ -467,8 +471,9 @@ Frame Frame::getCallerFrame()
       estimated_sp = sp_;
       for (; estimated_sp <= stack_top; estimated_sp++)
       {
-          result = getProc()->readDataSpace((caddr_t) estimated_sp, addr_size, 
-					    &estimated_ip, false);
+         estimated_ip = 0;
+         result = getProc()->readDataSpace((caddr_t) estimated_sp, addr_size, 
+                                           &estimated_ip, false);
          
          if (!result) break;
 
