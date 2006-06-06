@@ -1465,7 +1465,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_fieldListType *newType,
     int beg_offset=0;
     BPatch_visibility _vis = BPatch_visUnknown;
     BPatch_dataClass typedescr;
-
+    bool hasVirtuals = false;
 
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
       bperr( "%s[%d]:  inside parseFieldList\n", __FILE__, __LINE__);
@@ -1554,81 +1554,53 @@ static char *parseFieldList(BPatch_module *mod, BPatch_fieldListType *newType,
 	// should be a typeDescriptor
 	comptype = parseTypeUse(mod, stabstr, cnt, "");
 
-	if (stabstr[cnt] == ':') {
-		cnt++; //Discard ':'
-
-		beg_offset = 0;
-		size = 0;
-		if (typedescr == BPatch_dataMethod) {
-			while(1) {
-				//Mangling of arguments
-				while(stabstr[cnt] != ';') cnt++;
-
-				cnt++; //Skip ';'
-				cnt++; //Skip visibility
-				cnt++; //Skip method modifier
-				if (stabstr[cnt] == '*') {
-					//Virtual fcn definition
-					cnt++;
-					while(stabstr[cnt] != ';') cnt++; //Skip vtable index
-					cnt++; //Skip ';'
-					while(stabstr[cnt] != ';') cnt++; //Skip type number to 
-									  //the base class
-					while(stabstr[cnt] == ';') cnt++; //Skip all ';'
-				}
-				else if ( (stabstr[cnt] == '.') ||
-					  (stabstr[cnt] == '?') )
-					cnt++; //Skip '.' or '?'
-
-				if (isSymId(stabstr[cnt])) {
-					//Still more to process, but what is this?
-					//It seems, it is another fcn definition
-					parseTypeUse(mod, stabstr, cnt, "");
-					if (stabstr[cnt] == ':') 
-						cnt++; //Discard ':'
-				}
-				else {
-					if (stabstr[cnt] == '~')
-						cnt--; //Get back to ';'
-					else if (stabstr[cnt] == ';') {
-						//Skip all ';' except last one or two
-						while(stabstr[cnt] == ';') cnt++;
-						if (!stabstr[cnt] || (stabstr[cnt] == ',') )
-							cnt--; //There must be two ';'
-						cnt--;
-					}
-					else {
-						//Something wrong! Skip entire stab record and exit
-						while(stabstr[cnt]) cnt++;
-						return (&stabstr[cnt]);
-					}
-
-					break;
-				}
-			} //While 1
-			if (!stabstr[cnt]) {
-			    bperr("error got to end of %s\n", stabstr);
-			}
-		}
-		else {
-			//Static member var
-			pdstring varName = getIdentifier(stabstr, cnt);
-			//Don't know what to do!
-		}
-	}
-	else if (stabstr[cnt] == ',') {
-		assert(stabstr[cnt] == ',');
-		cnt++;	// skip ','
-		beg_offset = parseSymDesc(stabstr, cnt);
-
-		if (stabstr[cnt] == ',') {
-			cnt++;	// skip ','
-			size = parseSymDesc(stabstr, cnt);
-		}
-		else
-			size = 0;
-	}
-
+        if (stabstr[cnt] == ':') {
+           while (stabstr[cnt] == ':') {
+              cnt++; //Discard ':'
+              beg_offset = 0;
+              size = 0;
+              pdstring varName = getIdentifier(stabstr, cnt);
+              if (typedescr == BPatch_dataMethod) {
+                 // Additional qualifiers for methods
+                 cnt++; //Skip ';'
+                 cnt++; //Skip visibility
+                 cnt++; //Skip method modifier
+                 if (stabstr[cnt] == '*') {
+                    //Virtual fcn definition
+                    hasVirtuals = true;
+                    cnt++; //Skip '*'
+                    while(stabstr[cnt] != ';') cnt++; //Skip vtable index
+                    cnt++; //Skip ';'
+                    if (stabstr[cnt] != ';') {
+                       parseTypeUse(mod, stabstr, cnt, ""); //Skip type number to the base class
+                    }
+                    cnt++; //Skip ';'
+                    if (isSymId(stabstr[cnt])) {
+                       parseTypeUse(mod, stabstr, cnt, "");
+                    }
+                 } else if ( (stabstr[cnt] == '.') || 
+                             (stabstr[cnt] == '?') ) {
+                    cnt++; //Skip '.' or '?'
+                    if (isSymId(stabstr[cnt])) {
+                       parseTypeUse(mod, stabstr, cnt, "");
+                    }
+                 }
+              }
+              if (stabstr[cnt] == ';')
+                 cnt++; //Skip ';'
+           }
+        } else if (stabstr[cnt] == ',') {
+           cnt++;	// skip ','
+           beg_offset = parseSymDesc(stabstr, cnt);
+           
+           if (stabstr[cnt] == ',') {
+              cnt++;	// skip ','
+              size = parseSymDesc(stabstr, cnt);
+           }
+           else
+              size = 0;
+        }
+           
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
 	bperr( "%s[%d]:  asserting last char of stabstr == ';':  stabstr = %s\n", 
 		__FILE__, __LINE__, stabstr);
@@ -1657,6 +1629,13 @@ static char *parseFieldList(BPatch_module *mod, BPatch_fieldListType *newType,
         free(compname);
      }
 
+     if (hasVirtuals && 
+         stabstr[cnt] == ';' &&
+         stabstr[cnt+1] == '~' &&
+         stabstr[cnt+2] == '%') {
+        cnt+=3;
+        while (stabstr[cnt] != ';') cnt++;
+     }         
 
     // should end with a ';'
     if (stabstr[cnt] == ';') {
@@ -2011,7 +1990,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
                    newType->decrRefCount();
 
 		// skip to end - SunPro Compilers output extra info here - jkh 6/9/3
-		cnt = strlen(stabstr);
+		// cnt = strlen(stabstr);
 
 		break;
 
