@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.654 2006/06/06 19:39:29 bernat Exp $
+// $Id: process.C,v 1.655 2006/06/06 20:43:15 bernat Exp $
 
 #include <ctype.h>
 
@@ -5991,6 +5991,108 @@ void process::deleteThread(dynthread_t tid)
     */
 }
 
+bool process::readThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
+    // If we match the mutatee, this is a straightforward write. If not, we need
+    // to fiddle ourselves into a 32-bit structure.
+    // Double-check: read it out of the process....
+    if (getAddressWidth() == sizeof(dyntid_t)) {
+        if (!readDataSpace((void *)baseAddr,
+                           sizeof(dyninst_thread_t),
+                           (void *)&struc,
+                           false)) {
+            fprintf(stderr, "Warning: failed to read data space\n");
+            return false;
+        }
+    }
+    else {
+        assert(getAddressWidth() == sizeof(int));
+        assert(sizeof(dyntid_t) == sizeof(void *));
+
+        // Structure copy for comparison:
+        /*
+          typedef struct {
+          int thread_state;
+          int next_free;
+          int lwp;
+          dyntid_t tid;
+          } dyninst_thread_t;
+        */
+        // Aaand the structure better be as big as we think it is - 4*4=16
+        // But of course we can't assert it. 
+
+        // We want all the bits. We can read the entire thing, then drop
+        // back the pointer at the end.
+        if (!readDataSpace((void *)baseAddr,
+                           3*sizeof(int),
+                           (void *)&struc,
+                           false)) {
+            fprintf(stderr, "Warning: failed to read data space\n");
+            return false;
+        }
+        // We got the first three; slurp the fourth.
+        int temp;
+        if (!readDataSpace((void *)(baseAddr + (3*sizeof(int))),
+                           sizeof(int),
+                           (void *)&temp,
+                           false)) {
+            fprintf(stderr, "Warning: failed to read data space\n");
+            return false;
+        }
+        struc.tid = (void *)temp;
+    }
+    return true;
+}
+
+bool process::writeThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
+    // If we match the mutatee, this is a straightforward write. If not, we need
+    // to fiddle ourselves into a 32-bit structure.
+    // Double-check: read it out of the process....
+    if (getAddressWidth() == sizeof(dyntid_t)) {
+        if (!writeDataSpace((void *)baseAddr,
+                            sizeof(dyninst_thread_t),
+                            (void *)&struc)) {
+            fprintf(stderr, "Warning: failed to read data space\n");
+            return false;
+        }
+    }
+    else {
+        assert(getAddressWidth() == sizeof(int));
+        assert(sizeof(dyntid_t) == sizeof(void *));
+
+        // Structure copy for comparison:
+        /*
+          typedef struct {
+          int thread_state;
+          int next_free;
+          int lwp;
+          dyntid_t tid;
+          } dyninst_thread_t;
+        */
+        // Aaand the structure better be as big as we think it is - 4*4=16
+        // Can't assert that... 
+
+        // We want all the bits. We can read the entire thing, then drop
+        // back the pointer at the end.
+        if (!writeDataSpace((void *)baseAddr,
+                            3*sizeof(int),
+                            (void *)&struc)) {
+            fprintf(stderr, "Warning: failed to read data space\n");
+            return false;
+        }
+        // We got the first three; slurp the fourth.
+        int temp = (int) struc.tid;
+        if (!writeDataSpace((void *)(baseAddr +  + (3*sizeof(int))),
+                            sizeof(int),
+                            (void *)&temp)) {
+            fprintf(stderr, "Warning: failed to read data space\n");
+            return false;
+        }
+    }
+    return true;
+}
+        
+        
+
 bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
 {
     //fprintf(stderr, "%s[%d]:  welcome to removeThreadIndexMapping for %lu\n", FILE__, __LINE__, (unsigned long) tid);
@@ -6036,16 +6138,31 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
         if (!thread_structs_var) {
             goto done;
         }
-
-        // Now get the address that pointer points to....
         
-        if (!readDataSpace((void *)thread_structs_var->getAddress(),
-                           getAddressWidth(),
-                           (void *)&thread_structs_base,
-                           false)) {
-            goto done;
+        // Now get the address that pointer points to....
+        if (getAddressWidth() == sizeof(thread_structs_base)) {
+            if (!readDataSpace((void *)thread_structs_var->getAddress(),
+                               getAddressWidth(),
+                               (void *)&thread_structs_base,
+                               false)) {
+                goto done;
+            }
+        }
+        else {
+            // We must be 64-bit, they're 32.
+            assert(getAddressWidth() == 4);
+            assert(sizeof(thread_structs_base) == 8);
+            int temp;
+            if (!readDataSpace((void *)thread_structs_var->getAddress(),
+                               getAddressWidth(),
+                               (void *)&temp,
+                               false)) {
+                goto done;
+            }
+            thread_structs_base = temp;
         }
     }
+
     if (thread_structs_base == 0) {
         goto done;
     }    
@@ -6055,18 +6172,21 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
     // were stopped. 
 
     // Okay, we have the base addr. Now get the addr of the "real" structure
-    thread_struct_addr = thread_structs_base + (index*sizeof(dyninst_thread_t));
+    if (getAddressWidth() == sizeof(dyntid_t)) {
+        thread_struct_addr = thread_structs_base + (index*sizeof(dyninst_thread_t));
+    }
+    else {
+        // Assert AMD64/32
+        assert(getAddressWidth() == 4);
+        assert(sizeof(dyntid_t) == 8);
+        thread_struct_addr = thread_structs_base + (index * (4*sizeof(int)));
+    }
     // Mmm array math
 
-    // Double-check: read it out of the process....
     dyninst_thread_t doublecheck;
-    if (!readDataSpace((void *)thread_struct_addr, 
-                       sizeof(dyninst_thread_t),
-                       (void *)&doublecheck,
-                       false)) {
-        fprintf(stderr, "Warning: failed to read data space\n");
+    
+    if (!readThreadStruct(thread_struct_addr, doublecheck))
         goto done;
-    }
 
     if (doublecheck.tid != (dyntid_t) tid) {
       fprintf(stderr, "%s[%d]:  ERROR:  mismatch between tids %lu != %lu\n", 
