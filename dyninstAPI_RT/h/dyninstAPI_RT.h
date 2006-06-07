@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.42 2006/05/18 22:51:29 tlmiller Exp $
+ * $Id: dyninstAPI_RT.h,v 1.43 2006/06/07 20:35:07 bernat Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -153,10 +153,11 @@ typedef struct {
 #define LWP_EXITED 3
 
 typedef struct {
-    dyntid_t tid;
     int thread_state;
     int next_free;
     int lwp;
+    /* Put the pointer (variable size) last */
+    dyntid_t tid;
 } dyninst_thread_t;
 
 extern dyninst_thread_t *DYNINST_thread_structs;
