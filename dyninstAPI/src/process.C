@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.655 2006/06/06 20:43:15 bernat Exp $
+// $Id: process.C,v 1.656 2006/06/07 15:21:32 bernat Exp $
 
 #include <ctype.h>
 
@@ -6373,7 +6373,7 @@ void process::recognize_threads(const process *parent)
         // So Solaris has these extra threads....
         // #3 appears to be a scheduler, though I couldn't find documentation
         // on what it does. For now, we're hard-skipping 3.
-#if defined(os_solaris)
+#if (os_solaris==8)
         if (lwp_id == 3)
             continue;
 #endif
