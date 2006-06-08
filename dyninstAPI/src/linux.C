@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.241 2006/06/06 00:45:40 legendre Exp $
+// $Id: linux.C,v 1.242 2006/06/08 00:49:15 legendre Exp $
 
 #include <fstream>
 
@@ -735,7 +735,6 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
    if (! ignore_suppress) {
       if (proc()->sh->waitingForStop())
       {
-         fprintf(stderr, "%s[%d]:  suppressing continue\n", FILE__, __LINE__);
          return false;
       }
    }
