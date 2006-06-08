@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.3 2006/02/03 22:33:27 mjbrim Exp $
+# $Id: Makefile,v 1.4 2006/06/08 00:49:18 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,7 +27,7 @@ LIBGCCLOC ?= /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.3
 LIBGCCLOC_ALT ?= .
 MUTATEE_NATIVE_FC_FLAGS += -L$(LIBGCCLOC) -L(LIBGCCLOC_ALT) -ldl -lgcc
 
-M_G77 = g77
+#M_G77 = g77
 
 # Native compilers are set here, but will be unset later if not found
 NATIVE_CC = cc
