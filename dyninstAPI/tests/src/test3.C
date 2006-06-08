@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.48 2006/06/08 12:25:12 jaw Exp $
+// $Id: test3.C,v 1.49 2006/06/08 21:18:48 bernat Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -892,17 +892,16 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
 //
 unsigned int num_callbacks_issued = 0;
 bool test7done = false;
-#define TEST7_NUM_ONETIMECODE 400
+#define TEST7_NUM_ONETIMECODE 100
 #define TIMEOUT 20 /*seconds */
 
 void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
                                 void *userData,
-                                void * /*returnValue*/)
-{
-  num_callbacks_issued++;
-  if (num_callbacks_issued == TEST7_NUM_ONETIMECODE) {
-    *((bool *)userData) = true; // we are done
-  }
+                                void * /*returnValue*/) {
+    num_callbacks_issued++;
+    if (num_callbacks_issued == TEST7_NUM_ONETIMECODE) {
+        *((bool *)userData) = true; // we are done
+    }
 }
 
 void mutatorTest7(char *pathname, BPatch *bpatch)
@@ -942,27 +941,39 @@ void mutatorTest7(char *pathname, BPatch *bpatch)
    ////////////////////////////
    ////////////////////////////
 
-    //  our oneTimeCode will just be a simple call to a function that increments a global variable
-    BPatch_image *appImage = appThread[0]->getImage();
-    BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction("call7_1", bpfv) || !bpfv.size()
-        || NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function call7_1\n" );
-      exit(1);
+    BPatch_snippet *irpcSnippets[Mutatees];
+
+    // Build snippets for each mutatee
+    for (unsigned i = 0; i < Mutatees; i++) {
+        //  our oneTimeCode will just be a simple call to a function that increments a global variable
+        BPatch_image *appImage = appThread[i]->getImage();
+        BPatch_Vector<BPatch_function *> bpfv;
+        if (NULL == appImage->findFunction("call7_1", bpfv) || !bpfv.size()
+            || NULL == bpfv[0]){
+            fprintf(stderr, "    Unable to find function call7_1\n" );
+            exit(1);
+        }
+        
+        BPatch_function *call7_1 = bpfv[0];
+        
+        BPatch_Vector<BPatch_snippet *> nullArgs;
+        BPatch_funcCallExpr *call7_1_snip = new BPatch_funcCallExpr(*call7_1, nullArgs);
+        irpcSnippets[i] = call7_1_snip;
     }
 
-    BPatch_function *call7_1 = bpfv[0];
-
-    BPatch_Vector<BPatch_snippet *> nullArgs;
-    BPatch_funcCallExpr call7_1_snip(*call7_1, nullArgs);
+    dprintf("Pausing apps pre-iRPC...\n");
+    for (n=0; n<Mutatees; n++) appThread[n]->stopExecution();
 
     //  Submit inferior RPCs to all of our mutatees equally...
     unsigned doneFlag = 0;
     for (unsigned int i = 0; i < TEST7_NUM_ONETIMECODE; ++i) {
       int index = i % (Mutatees);
       //fprintf(stderr, "%s[%d]:  issuing oneTimeCode to thread %d\n", __FILE__, __LINE__, index);
-      appThread[index]->oneTimeCodeAsync(call7_1_snip, (void *)&doneFlag);
+      appThread[index]->oneTimeCodeAsync(*(irpcSnippets[index]), (void *)&doneFlag);
     }
+
+    dprintf("Running mutatees post-iRPC...\n");
+    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
 
    ////////////////////////////
    ////////////////////////////
