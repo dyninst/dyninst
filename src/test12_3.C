@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_3.C,v 1.3 2006/03/08 16:44:54 bpellin Exp $
+// $Id: test12_3.C,v 1.4 2006/06/08 12:25:13 jaw Exp $
 /*
  * #Name: test12_3
  * #Desc: thread create callback
@@ -48,6 +48,8 @@
  * #Notes:
  */
 
+#include <vector>
+using std::vector;
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
@@ -61,79 +63,210 @@
 
 int debugPrint;
 BPatch *bpatch;
+BPatch_thread *appThread;
+BPatch_image *appImage;
 
-int test3_threadCreateCounter = 0;
-void threadCreateCB(BPatch_process * /*proc*/, BPatch_thread *thr)
+void dumpVars(void)
 {
-  if (debugPrint)
-     fprintf(stderr, "%s[%d]:  thread %lu start event for pid %d", __FILE__, __LINE__,
-               thr->getTid(), thr->getPid());
-  test3_threadCreateCounter++;
-//  fprintf(stderr, "%s[%d]:  got a thread start event: %d\n", __FILE__, __LINE__,
-//          test3_threadCreateCounter);
+  BPatch_Vector<BPatch_variableExpr *> vars;
+  appImage->getVariables(vars);
+  for (unsigned int i = 0; i < vars.size(); ++i) {
+    fprintf(stderr, "\t%s\n", vars[i]->getName());
+  }
 }
 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+
+void setVar(const char *vname, void *addr, int testno, const char *testname)
 {
+   BPatch_variableExpr *v;
+   void *buf = addr;
+   if (NULL == (v = appImage->findVariable(vname))) {
+      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
+      fprintf(stderr, "  cannot find variable %s, avail vars:\n", vname);
+      dumpVars();
+         exit(1);
+   }
+
+   if (! v->writeValue(buf, sizeof(int),true)) {
+      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
+      fprintf(stderr, "  failed to write call site var to mutatee\n");
+      exit(1);
+   }
+}
+
+void getVar(const char *vname, void *addr, int len, int testno, const char *testname)
+{
+   BPatch_variableExpr *v;
+   if (NULL == (v = appImage->findVariable(vname))) {
+      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
+      fprintf(stderr, "  cannot find variable %s: avail vars:\n", vname);
+      dumpVars();
+         exit(1);
+   }
+
+   if (! v->readValue(addr, len)) {
+      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
+      fprintf(stderr, "  failed to read var in mutatee\n");
+      exit(1);
+   }
+}
+
+
+
+vector<unsigned long> callback_tids;
+int test3_threadCreateCounter = 0;
+void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
+{
+  assert(thr);  
+  if (debugPrint)
+     fprintf(stderr, "%s[%d]:  thread %lu start event for pid %d\n", __FILE__, __LINE__,
+               thr->getTid(), thr->getPid());
+  test3_threadCreateCounter++;
+  callback_tids.push_back(thr->getTid());
+  if (thr->isDeadOnArrival()) {
+     dprintf("%s[%d]:  thread %lu is doa \n", __FILE__, __LINE__, thr->getTid());
+  }
+}
+
+bool mutatorTest3and4(int testno, const char *testname)
+{
+  test3_threadCreateCounter = 0;
+  callback_tids.clear();
+
   unsigned int timeout = 0; // in ms
   int err = 0;
 
   BPatchAsyncThreadEventCallback createcb = threadCreateCB;
-  if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, createcb)) 
+  if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, createcb))
   {
-    FAIL_MES(TESTNO, TESTNAME);
+    FAIL_MES(testno, testname);
     fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
            __FILE__, __LINE__);
-    return -1;
+    return false;
   }
+
+#if 0
   //  unset mutateeIde to trigger thread (10) spawn.
   int zero = 0;
-  if ( !setVar(appImage, "mutateeIdle", (void *) &zero, TESTNO, TESTNAME) )
-  {
-     return -1;
-  }
+  setVar("mutateeIdle", (void *) &zero, testno, testname);
+  dprintf("%s[%d]:  continue execution for test %d\n", __FILE__, __LINE__, testno);
   appThread->continueExecution();
+#endif
 
   //  wait until we have received the desired number of events
   //  (or timeout happens)
 
-  while(test3_threadCreateCounter < TEST3_THREADS && (timeout < TIMEOUT)) {
+  BPatch_Vector<BPatch_thread *> threads;
+  BPatch_process *appProc = appThread->getProcess();
+  assert(appProc);
+  appProc->getThreads(threads);
+  int active_threads = 11;
+  threads.clear();
+  while (((test3_threadCreateCounter < TEST3_THREADS)
+         || (active_threads > 1))
+         && (timeout < TIMEOUT)) {
+    dprintf("%s[%d]: waiting for completion for test %d, num active threads = %d\n",
+            __FILE__, __LINE__, testno, active_threads);
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
+    if (appThread->isTerminated()) {
+       fprintf(stderr, "%s[%d]:  BAD NEWS:  somehow the process died\n", __FILE__, __LINE__);
+       err = 1;
+       break;
+    }
     bpatch->pollForStatusChange();
+    if (appThread->isStopped()) {
+       //  this should cause the test to fail, but for the moment we're
+       //  just gonna continue it and complain
+       fprintf(stderr, "%s[%d]:  BAD NEWS:  somehow the process stopped\n", __FILE__, __LINE__);
+       appThread->continueExecution();
+    }
+    appProc->getThreads(threads);
+    active_threads = threads.size();
+    threads.clear();
   }
 
   if (timeout >= TIMEOUT) {
-    FAIL_MES(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  test timed out.\n",
-           __FILE__, __LINE__);
+    FAIL_MES(testno, testname);
+    fprintf(stderr, "%s[%d]:  test timed out. got %d/10 events\n",
+           __FILE__, __LINE__, test3_threadCreateCounter);
     err = 1;
   }
 
+  dprintf("%s[%d]: ending test %d, num active threads = %d\n",
+            __FILE__, __LINE__, testno, active_threads);
+  dprintf("%s[%d]:  stop execution for test %d\n", __FILE__, __LINE__, testno);
   appThread->stopExecution();
 
+  //   read all tids from the mutatee and verify that we got them all
+  unsigned long mutatee_tids[TEST3_THREADS];
+  const char *threads_varname = NULL;
+  if (testno == 3)
+     threads_varname = "test3_threads";
+  if (testno == 4)
+     threads_varname = "test4_threads";
+  assert(threads_varname);
+  getVar(threads_varname, (void *) mutatee_tids,
+         (sizeof(unsigned long) * TEST3_THREADS),
+         testno, testname);
+
+  if (debugPrint) {
+    fprintf(stderr, "%s[%d]:  read following tids for test%d from mutatee\n", __FILE__, __LINE__, testno);
+
+    for (unsigned int i = 0; i < TEST3_THREADS; ++i) {
+       fprintf(stderr, "\t%lu\n", mutatee_tids[i]);
+    }
+  }
+
+  for (unsigned int i = 0; i < TEST3_THREADS; ++i) {
+     bool found = false;
+     for (unsigned int j = 0; j < callback_tids.size(); ++j) {
+       if (callback_tids[j] == mutatee_tids[i]) {
+         found = true;
+         break;
+       }
+     }
+
+    if (!found) {
+      FAIL_MES(testno, testname);
+      fprintf(stderr, "%s[%d]:  could not find record for tid %lu: have these:\n",
+             __FILE__, __LINE__, mutatee_tids[i]);
+       for (unsigned int j = 0; j < callback_tids.size(); ++j) {
+          fprintf(stderr, "%lu\n", callback_tids[j]);
+       }
+      err = true;
+      break;
+    }
+  }
+
+  dprintf("%s[%d]: removing thread callback\n", __FILE__, __LINE__);
   if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, createcb)) {
-    FAIL_MES(TESTNO, TESTNAME);
+    FAIL_MES(testno, testname);
     fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
            __FILE__, __LINE__);
-    return -1;
+    err = true;
   }
+
   if (!err)  {
-    PASS_MES(TESTNO, TESTNAME);
-    return 0;
+    PASS_MES(testno, testname);
+    return true;
   }
-  return -1;
+  return false;
+}
+int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+{
+  return mutatorTest3and4(TESTNO, TESTNAME);
 }
 
 extern "C" int mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
-    BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+    appThread = (BPatch_thread *)(param["appThread"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
 
     // Read the program's image and get an associated image object
-    BPatch_image *appImage = appThread->getImage();
+    appImage = appThread->getImage();
 
     // Signal the child that we've attached
     if (useAttach) {

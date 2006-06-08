@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_2.C,v 1.3 2006/03/08 16:44:53 bpellin Exp $
+// $Id: test12_2.C,v 1.4 2006/06/08 12:25:13 jaw Exp $
 /*
  * #Name: test12_2
- * #Desc: rtlib spinlocks
+ * #Desc: dynamic callsite callback
  * #Dep: 
  * #Arch: !(os_windows,os_irix)
  * #Notes:
@@ -57,39 +57,136 @@
 #include "test12.h"
 
 #define TESTNO 2
-#define TESTNAME "rtlib spinlocks"
-#define THREADS 10
+#define TESTNAME "dynamic callsite callback"
+
+static const char *expected_fnames[] = {"call2_1","call2_2","call2_3","call2_4"};
+int test2done = 0;
+int test2err = 0;
+int mutateeXLC = 0;
+int debugPrint;
+template class BPatch_Vector<void *>;
+BPatch_Vector<BPatch_point *> test2handles;
+BPatch_Vector<BPatch_point *> dyncalls;
+BPatch_thread *globalThread = NULL;
+extern BPatch *bpatch;
+
+void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
+{
+  //fprintf(stderr, "%s[%d]:  dynSiteCB: pt = %p. func = %p.\n",
+  //                 __FILE__, __LINE__, dyn_site, called_function);
+  static int counter = 0;
+  static int counter2 = 0;
+  BPatch_point *pt = dyn_site;
+  BPatch_function *func = called_function;
+  assert(pt);
+  assert(func);
+
+  void *callsite_addr = pt->getAddress();
+  dprintf("%s[%d]:  callsite addr = %p\n", __FILE__, __LINE__, callsite_addr);
+
+  char buf[2048];
+  func->getName(buf, 2048);
+  //fprintf(stderr, "%s[%d]:  got func %s, expect func %s\n", __FILE__, __LINE__, buf,
+  //        expected_fnames[counter]);
+  if (strcmp(expected_fnames[counter], buf)) {
+    FAIL_MES(TESTNO, TESTNAME);
+    printf("\t%s[%d]:  got func %s, expect func %s\n", __FILE__, __LINE__, buf,
+          expected_fnames[counter]);
+    globalThread->stopExecution();
+    test2done = 1;
+  }
+  counter++;
+  if (counter > 3) {
+    counter = 0;
+    counter2++;
+  }
+
+  if (counter2 >= 2) {
+    bool removal_error = false;
+    globalThread->stopExecution();
+    //  not passed yet, now remove dynamic call monitoring handles
+    assert (test2handles.size());
+    for (unsigned int i = 0; i < test2handles.size(); ++i) {
+      if (!test2handles[i]->stopMonitoring()) {
+        removal_error = true;
+      }
+    }
+    if (removal_error) {
+      FAIL_MES(TESTNO, TESTNAME);
+      test2err = 1;
+    }else {
+      PASS_MES(TESTNO, TESTNAME);
+    }
+    test2done = 1;
+  }
+}
+
 
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if !defined (os_windows) && !defined(os_irix)
+#if !defined (os_windows) 
+  dprintf("%s[%d]:  welcome to test12_2\n", __FILE__, __LINE__);
+  int timeout = 0;
+  globalThread = appThread;
 
-  //  unset mutateeIde to trigger thread (10) spawn.
-  int zero = 0;
-  if ( !setVar(appImage,"mutateeIdle", (void *) &zero, TESTNO, TESTNAME) )
-  {
-     return -1;
+  if (mutateeXLC) {
+     appThread->continueExecution();
+     SKIP(TESTNO, TESTNAME);
+     fprintf(stderr, "\txlc optimizes out dynamic call sites for this test\n");
+     sleep_ms(100);
+     return true;
   }
 
-  appThread->getProcess()->continueExecution();
+  if (!bpatch->registerDynamicCallCallback(dynSiteCB)) {
+     FAIL_MES(TESTNO, TESTNAME);
+     fprintf(stderr, "  failed to register callsite callback\n");
+     exit(1);
+  }
 
-  int test2counter = 0;
-  int test2err = 0;
-  int timeout = 0;
+  BPatch_function *func2_1 = findFunction("call2_dispatch", appThread->getImage(), TESTNO, TESTNAME);
+  BPatch_function *targetFunc = func2_1;
 
-  while((test2counter < THREADS) && !test2err && (timeout < TIMEOUT)) {
-    sleep_ms(1000/*ms*/);
-    timeout += 1000;
-    appThread->getProcess()->stopExecution();
-    if ( !getVar(appImage, "subtest2counter", (void *) &test2counter, TESTNO, TESTNAME) )
-    {
-       return false;
+  BPatch_Vector<BPatch_point *> *calls = targetFunc->findPoint(BPatch_subroutine);
+  if (!calls) {
+     FAIL_MES(TESTNO, TESTNAME);
+     fprintf(stderr, "  cannot find call points for func1_1\n");
+     exit(1);
+  }
+
+
+  for (unsigned int i = 0; i < calls->size(); ++i) {
+    BPatch_point *pt = (*calls)[i];
+    if (pt->isDynamic()){
+      bool ret;
+      ret = pt->monitorCalls();
+      if (!ret) {
+        FAIL_MES(TESTNO, TESTNAME);
+        fprintf(stderr, "  failed monitorCalls\n");
+        exit(1);
+      }
+      test2handles.push_back(pt);
+      dyncalls.push_back(pt);
     }
-    if ( !getVar(appImage, "subtest2err", (void *) &test2err, TESTNO, TESTNAME) )
-    {
-       return false;
-    }
-    appThread->getProcess()->continueExecution();
+  }
+
+  if (dyncalls.size() != 3) {
+     FAIL_MES(TESTNO, TESTNAME);
+     fprintf(stderr, "  wrong number of dynamic points found (%d -- not 3)\n",
+             dyncalls.size());
+     fprintf(stderr, "  total number of calls found: %d\n", calls->size());
+        exit(1);
+  }
+
+  fprintf(stderr, "%s[%d]:  before continue execution\n", __FILE__, __LINE__);
+  appThread->continueExecution();
+
+  //  wait until we have received the desired number of events
+  //  (or timeout happens)
+
+  while(!test2done && (timeout < TIMEOUT)) {
+    bpatch->pollForStatusChange();
+    sleep_ms(SLEEP_INTERVAL/*ms*/);
+    timeout += SLEEP_INTERVAL;
   }
 
   if (timeout >= TIMEOUT) {
@@ -99,17 +196,10 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     test2err = 1;
   }
 
+  return (test2err == 0);
 
-  if (test2err) {
-    FAIL_MES(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  mutatee side error\n", __FILE__, __LINE__);
-    return -1;
-  }
-  else {
-    PASS_MES(TESTNO, TESTNAME);
-  }
 #else
-    SKIP(TESTNO, TESTNAME);
+    SKIP_MES(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  This test is not supported on this platform\n",
                     __FILE__, __LINE__);
 #endif
@@ -118,13 +208,24 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
 extern "C" int mutatorMAIN(ParameterDict &param)
 {
-    BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+    debugPrint = param["debugPrint"]->getInt();
+    mutateeXLC = param["mutateeXLC"]->getInt();
 
+
+    
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    //  sanity checks?? -- should not be necesssary, but if they're not mentioned here, they aren't always found
+    //  later, suggests issue with delayed parsing?
+    BPatch_function *f;
+    if (NULL == (f = findFunction("call2_1", appImage, TESTNO, TESTNAME))) abort();
+    if (NULL == (f = findFunction("call2_2", appImage, TESTNO, TESTNAME))) abort();
+    if (NULL == (f = findFunction("call2_3", appImage, TESTNO, TESTNAME))) abort();
+    if (NULL == (f = findFunction("call2_4", appImage, TESTNO, TESTNAME))) abort();
 
     // Signal the child that we've attached
     if (useAttach) {

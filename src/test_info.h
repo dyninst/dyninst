@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.19 2006/06/08 00:49:20 legendre Exp $
+// $Id: test_info.h,v 1.20 2006/06/08 12:25:14 jaw Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -297,6 +297,8 @@ test_data_t tests[] = {
    test_data_t("test3_3", "test3_3.so", test3_mutatee, all_platforms, SELFSTART, 3, 3, NONE, CREATE, ENABLED),
    test_data_t("test3_4", "test3_4.so", test3_mutatee, all_platforms, SELFSTART, 3, 4, NONE, CREATE, ENABLED),
    test_data_t("test3_5", "test3_5.so", test3_mutatee, all_platforms, SELFSTART, 3, 5, NONE, CREATE, ENABLED),
+   test_data_t("test3_6", "test3_6.so", test3_mutatee, all_platforms, SELFSTART, 3, 6, NONE, CREATE, ENABLED),
+   test_data_t("test3_7", "test3_7.so", test3_mutatee, all_platforms, SELFSTART, 3, 7, NONE, CREATE, ENABLED),
    test_data_t("test4_1", "test4_1.so", test4_mutatee, all_platforms, SELFSTART, 4, 1, NONE, CREATE, ENABLED),
    test_data_t("test4_2", "test4_2.so", test4_mutatee, all_platforms, SELFSTART, 4, 2, NONE, CREATE, ENABLED),
    test_data_t("test4_3", "test4_3.so", test4_mutatee, all_platforms, SELFSTART, 4, 3, NONE, CREATE, ENABLED),
@@ -341,10 +343,14 @@ test_data_t tests[] = {
    test_data_t("test10_2", "test10_2.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 2, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test10_3", "test10_3.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 3, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test10_4", "test10_4.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 4, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test12_1", "test12_1.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 1, KILL_MUTATEE, CREATE, DISABLED),
-   test_data_t("test12_2", "test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, KILL_MUTATEE, CREATE, DISABLED),
-   test_data_t("test12_3", "test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, KILL_MUTATEE, CREATE, DISABLED),
-   test_data_t("test12_4", "test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, KILL_MUTATEE, CREATE, DISABLED),
+   test_data_t("test12_1", "test12_1.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 1, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_2", "test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_3", "test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_4", "test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_5", "test12_5.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 5, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_6", "test12_6.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 6, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_7", "test12_7.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 7, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_8", "test12_8.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 8, KILL_MUTATEE, CREATE, ENABLED),
    test_data_t("test13_1", "test13_1.so", test13_mutatee, all_platforms, SELFSTART, 13, 1, NONE, BOTH, ENABLED),
    test_data_t("test14_1", "test14_1.so", test14_mutatee, all_platforms, SELFSTART, 14, 1, NONE, BOTH, ENABLED),
    test_data_t("test15_1", "test15_1.so", test15_mutatee, all_platforms, SELFSTART, 15, 1, NONE, BOTH, ENABLED)

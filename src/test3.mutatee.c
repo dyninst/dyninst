@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.1 2005/09/29 20:37:54 bpellin Exp $ */
+/* $Id: test3.mutatee.c,v 1.2 2006/06/08 12:25:14 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -147,6 +147,13 @@ void test5()
      dprintf("Mutatee aborting.\n");
      abort();
 }
+
+unsigned int test7counter = 0;
+void call7_1()
+{
+  test7counter++;
+}
+
 
 int main(int iargc, char *argv[])
 {                                       /* despite different conventions */

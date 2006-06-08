@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_1.C,v 1.4 2006/04/06 10:08:47 jaw Exp $
+// $Id: test12_1.C,v 1.5 2006/06/08 12:25:13 jaw Exp $
 /*
  * #Name: test12_1
- * #Desc: dynamic call site callback
+ * #Desc: rtlib spinlocks
  * #Dep: 
  * #Arch:
  * #Notes:
@@ -57,10 +57,10 @@
 #include "test12.h"
 
 #define TESTNO 1
-#define TESTNAME "dynamic call site callback"
+#define TESTNAME "rtlib spinlocks"
 
 int mutateeXLC;
-BPatch *bpatch;
+extern BPatch *bpatch;
 int debugPrint;
 
 BPatch_thread *appThread;
@@ -71,130 +71,76 @@ template class BPatch_Vector<void *>;
 BPatch_Vector<void *> test1handles;
 BPatch_Vector<BPatch_point *> dyncalls;
 
-void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
-{
-  //fprintf(stderr, "%s[%d]:  dynSiteCB: pt = %p. func = %p.\n",
-  //                 __FILE__, __LINE__, dyn_site, called_function);
-  static int counter = 0;
-  static int counter2 = 0;
-  BPatch_point *pt = dyn_site;
-  BPatch_function *func = called_function;
-  assert(pt);
-  assert(func);
-  void *callsite_addr = pt->getAddress();
-  if (debugPrint) 
-    fprintf(stderr, "%s[%d]:  callsite addr = %p\n", __FILE__, __LINE__, callsite_addr);
-  char buf[2048];
-  func->getName(buf, 2048);
-  //fprintf(stderr, "%s[%d]:  got func %s, expect func %s\n", __FILE__, __LINE__, buf,
-  //        expected_fnames[counter]);
-  if (strcmp(expected_fnames[counter], buf)) {
-    FAIL_MES(TESTNO, TESTNAME);
-    printf("\t%s[%d]:  got func %s, expect func %s\n", __FILE__, __LINE__, buf,
-          expected_fnames[counter]);
-    appThread->stopExecution();      
-    test1done = 1;
-  }
-  counter++;
-  if (counter > 3) {
-    counter = 0;
-    counter2++;
-  }
-
-  if (counter2 >= 2) {
-    bool removal_error = false;
-    appThread->stopExecution();      
-    //  not passed yet, now remove dynamic call monitoring handles
-    assert (test1handles.size());
-#if 0
-    for (unsigned int i = 0; i < test1handles.size(); ++i) {
-      if (!dyncalls[i]->removeDynamicCallCallback(test1handles[i])) {
-        removal_error = true;
-      }
-    }
-#endif
-    if (removal_error) {
-      FAIL_MES(TESTNO, TESTNAME);
-      test1err = 1;
-    }else {
-      PASS_MES(TESTNO, TESTNAME);
-    }
-    test1done = 1;
-  }
-}
-
 int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
 {
-  int timeout = 0;
-  appThread = appT;
+  //  Just continue the process and wait for the (mutatee side) test to complete
+  BPatch_process *proc = appT->getProcess();
+  int childpid = proc->getPid();
+  dprintf("%s[%d]:  mutatee process: %d\n", __FILE__, __LINE__, childpid);
 
-  if (mutateeXLC) {
-     appThread->continueExecution();
-     SKIP(TESTNO, TESTNAME);
-     fprintf(stderr, "\txlc optimizes out dynamic call sites for this test\n");
-     sleep_ms(100);
+  proc->continueExecution();
+
+   int timeout = 0;
+   while (timeout < TIMEOUT) {
+     sleep_ms(SLEEP_INTERVAL/*ms*/);
+     timeout += SLEEP_INTERVAL;
+     if (proc->isTerminated())
+        break;
+     if (proc->isStopped()) {
+        //  This really shouldn't happen
+        fprintf(stderr, "%s[%d]:  BAD NEWS:  process is stopped, something is broken\n",
+                __FILE__, __LINE__);
+        proc->continueExecution();
+     }
+     if (proc->isDetached()) {
+        fprintf(stderr, "%s[%d]:  BAD NEWS:  process is detached, something is broken\n",
+                __FILE__, __LINE__);
+        abort();
+     }
+   }
+   if (proc->isTerminated()) {
+     switch(proc->terminationStatus()) {
+       case ExitedNormally:
+         {
+          int code = proc->getExitCode();
+          dprintf("%s[%d]:  exited normally with code %d\n",
+                  __FILE__, __LINE__, code);
+          if (code != 0) return 0;
+          break;
+         }
+       case ExitedViaSignal:
+         {
+          int code = proc->getExitSignal();
+          fprintf(stderr, "%s[%d]:  exited with signal %d\n",
+                  __FILE__, __LINE__, code);
+          return 0;
+          break;
+         }
+       case NoExit:
+       default:
+          fprintf(stderr, "%s[%d]:  did not exit ???\n",
+                  __FILE__, __LINE__);
+          return 0;
+          break;
+     };
+   }
+
+   if (timeout >= TIMEOUT) {
+     FAIL_MES(TESTNO, TESTNAME);
+     fprintf(stderr, "%s[%d]:  test timed out.\n",
+            __FILE__, __LINE__);
      return 0;
-  }
+   }
 
-  BPatch_function *func1_1 = findFunction("call1_dispatch", appImage, TESTNO, TESTNAME);
-  if ( func1_1 == NULL ) return -1;
-  BPatch_function *targetFunc = func1_1;
-
-  BPatch_Vector<BPatch_point *> *calls = targetFunc->findPoint(BPatch_subroutine);
-  if (!calls) {
-     FAIL_MES(TESTNO, TESTNAME);
-     fprintf(stderr, "  cannot find call points for func1_1\n");
-     return -1;
-  }
-
-  for (unsigned int i = 0; i < calls->size(); ++i) {
-    BPatch_point *pt = (*calls)[i];
-    if (pt->isDynamic()){
-      void *handle = NULL;
-#if 0
-      handle = pt->registerDynamicCallCallback(dynSiteCB);
-      if (!handle) {
-        FAIL_MES(TESTNO, TESTNAME);
-        fprintf(stderr, "  registerDynamicCallCallback failed\n");
-        return -1;
-      } 
-#endif
-      test1handles.push_back(handle);
-      dyncalls.push_back(pt);
-    }
-  }
-
-  if (dyncalls.size() != 3) {
-     FAIL_MES(TESTNO, TESTNAME);
-     fprintf(stderr, "  wrong number of dynamic points found (%d -- not 3)\n",
-             dyncalls.size());
-     fprintf(stderr, "  total number of calls found: %d\n", calls->size());
-     return -1;
-  }
-
-  appThread->continueExecution();
-
-  //  wait until we have received the desired number of events
-  //  (or timeout happens)
-
-  while(!test1done && (timeout < TIMEOUT)) {
-    bpatch->pollForStatusChange();
-    sleep_ms(SLEEP_INTERVAL/*ms*/);
-    timeout += SLEEP_INTERVAL;
-  }
-
-  if (timeout >= TIMEOUT) {
-    FAIL_MES(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  test timed out.\n",
-           __FILE__, __LINE__);
-    test1err = 1;
-  }
-
-  return (test1err == 0);
+  PASS_MES(TESTNO,TESTNAME);
+  delete(proc);
+  return 1;
 }
+
 
 extern "C" int mutatorMAIN(ParameterDict &param)
 {
+   fprintf(stderr, "%s[%d]:  welcome to mutatorMAIN for test12_1\n", __FILE__, __LINE__);
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
