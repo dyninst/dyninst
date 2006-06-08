@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.156 2006/06/02 22:59:35 legendre Exp $
+// $Id: pdwinnt.C,v 1.157 2006/06/08 21:54:39 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -301,7 +301,7 @@ bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint)
    }
 
    int iresult = SymLoadModule64(procHandle, ev.info.u.LoadDll.hFile, 
-                                 imageName.c_str(), NULL,
+                                 (PSTR) imageName.c_str(), NULL,
                                  (DWORD64) ev.info.u.LoadDll.lpBaseOfDll, 0);
    if (!iresult) {
        fprintf(stderr, "[%s:%u] - Couldn't SymLoadModule64\n");
