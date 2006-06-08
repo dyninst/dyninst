@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.17 2006/06/01 14:59:13 bernat Exp $
+// $Id: dynamiclinking.C,v 1.18 2006/06/08 21:17:55 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -178,6 +178,7 @@ bool dynamic_linking::getSharedObjects(pdvector<mapped_object *> &mapped_objects
                     descs[i].pid() == proc->getAOut()->getFileDesc().pid());
 #endif
             mapped_object *newobj = mapped_object::createMappedObject(descs[i], proc);
+            if (newobj == NULL) continue;
             mapped_objects.push_back(newobj);
 #if defined(cap_save_the_world)
             setlowestSObaseaddr(descs[i].code());
@@ -269,12 +270,9 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
 #endif
               mapped_object *newobj = mapped_object::createMappedObject(new_descs[i],
                                                                         proc);
-              if (newobj)
-                  changed_objects.push_back(newobj);
-              else {
-                  // ... we failed parsing an object, could be a problem
-              }
+              if (!newobj) continue;
 
+              changed_objects.push_back(newobj);
 
           // SaveTheWorld bookkeeping
 #if defined(cap_save_the_world)
