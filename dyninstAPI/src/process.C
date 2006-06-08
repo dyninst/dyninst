@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.659 2006/06/08 18:36:27 bernat Exp $
+// $Id: process.C,v 1.660 2006/06/08 22:13:51 bernat Exp $
 
 #include <ctype.h>
 
@@ -6392,7 +6392,6 @@ void process::recognize_threads(const process *parent)
 	if (lwp->executingSystemCall()) {
             startup_printf("%s[%d]: LWP %d in a system call, skipping in recognize_threads\n",
                            FILE__, __LINE__, lwp_id);
-            fprintf(stderr, "LWP %d: system call\n", lwp_id);
             continue;
         }
 #endif

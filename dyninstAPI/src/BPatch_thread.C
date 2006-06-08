@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.164 2006/06/08 12:25:10 jaw Exp $
+// $Id: BPatch_thread.C,v 1.165 2006/06/08 22:13:51 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -53,6 +53,7 @@
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
 #include "BPatch_libInfo.h"
+#include "function.h"
 
 #if defined(IBM_BPATCH_COMPAT)
 #include <algorithm>
@@ -310,6 +311,14 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
        BPatch_function *initial_func = NULL;
        
        int pos = stackWalk.size() - 1;
+
+#if defined(DEBUG)
+       for (unsigned foo = 0; foo < stackWalk.size(); foo++) {
+	 BPatch_function *func = stackWalk[foo].findFunction();
+	 fprintf(stderr, "Function at %d is %s\n", foo, func ? func->lowlevel_func()->symTabName().c_str() : "<NULL>");
+       }
+#endif
+
        //Consider stack_start as starting at the first
        //function with a stack frame.
        while ((!stack_start || !initial_func) && (pos >= 0)) {
@@ -317,14 +326,15 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
                stack_start = (unsigned long) stackWalk[pos].getFP();
            }
            if (!initial_func) {
-               BPatch_function *func = stackWalk[pos].findFunction();
-               BPatch_module *mod = func ? func->getModule() : NULL;
-               if (mod && !mod->isSystemLib())
-                  initial_func = func;
+	     BPatch_function *func = stackWalk[pos].findFunction();
+	     BPatch_module *mod = func ? func->getModule() : NULL;
+	     if (mod && !mod->isSystemLib())
+	       initial_func = func;
+	       
+	     pos--;
            }
-           pos--;
        }
-
+       
 #if defined(os_linux)
        // RH9 once again does it half-right.  The "initial function" by our
        // heuristics is start_thread, but in reality is actually the called

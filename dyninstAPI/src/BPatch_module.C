@@ -1283,6 +1283,13 @@ void BPatch_module::setDefaultNamespacePrefix(char *name)
 bool BPatch_module::isSystemLib() {
     pdstring str = mod->fileName();
 
+    // Solaris 2.8... we don't grab the initial func always,
+    // so fix up this code as well...
+#if defined(os_solaris)
+    if (strstr(str.c_str(), "libthread"))
+      return true;
+#endif
+
     if (strstr(str.c_str(), "libdyninstAPI_RT"))
         return true;
 #if defined(os_windows)
