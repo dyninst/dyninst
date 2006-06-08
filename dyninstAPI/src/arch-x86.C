@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.60 2006/05/25 20:11:33 bernat Exp $
+// $Id: arch-x86.C,v 1.61 2006/06/08 20:47:08 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2650,13 +2650,20 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
         nib += wordSzB * addrSzAttr;
         if(mac) {
           int offset;
-          assert(addrSzAttr < 3);
-          if(addrSzAttr == 1) // 16-bit offset
-            offset = *((const short int*)addr);
-          else if (addrSzAttr == 2) // 32-bit offset
-            offset = *((const int*)addr);
-	  else
+          switch(addrSzAttr) {
+          case 1: // 16-bit offset
+              offset = *((const short int*)addr);
+              break;
+          case 2: // 32-bit offset
+              offset = *((const int*)addr);
+              break;
+          case 4: // 64-bit
 	      offset = *((const long*)addr);
+              break;
+          default:
+              assert(0);
+              break;
+          }
           mac[i].set(-1, offset, addrSzAttr);
           mac[i].size = type2size(op.optype, operSzAttr);
         }
