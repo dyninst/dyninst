@@ -1833,7 +1833,7 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp
     numBlockedForContinue++;
     do {
        signal_printf("%s[%d]: continueProcessBlocking, waiting...\n", FILE__, __LINE__);
-       getMailbox()->executeCallbacks(FILE__, __LINE__);
+       //getMailbox()->executeCallbacks(FILE__, __LINE__);
        waitForContinueLock->_WaitForSignal(FILE__, __LINE__);
     } while (!continueCompleted_);
 
