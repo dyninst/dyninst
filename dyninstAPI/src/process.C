@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.656 2006/06/07 15:21:32 bernat Exp $
+// $Id: process.C,v 1.657 2006/06/08 00:49:16 legendre Exp $
 
 #include <ctype.h>
 
@@ -2210,9 +2210,6 @@ bool process::finishExec() {
         if(hasExited()) {
             return false;
         }
-        fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtProcessInitDone)\n", 
-                FILE__, __LINE__, getThreadStr(getExecThreadID()));
-
         sh->waitForEvent(evtProcessInitDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
@@ -3551,16 +3548,25 @@ dyn_lwp *process::query_for_stopped_lwp()
 {
    dyn_lwp *foundLWP = NULL;
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
-   dyn_lwp *lwp;
+   dyn_lwp *lwp, *backup_lwp = NULL;
    unsigned index;
 
    if(IndependentLwpControl()) {
       while (lwp_iter.next(index, lwp)) {
-         if(lwp->status() == stopped || lwp->status() == neonatal) {
+         if (lwp->status() == stopped || lwp->status() == neonatal)
+         {
+            if (lwp->isDoingAttach_) {
+               backup_lwp = lwp;
+               continue;
+            }
             foundLWP = lwp;
             break;
          }
       }
+      if (!foundLWP && backup_lwp) {
+         foundLWP = backup_lwp;
+      }
+     
       if(foundLWP == NULL  &&  getRepresentativeLWP() != NULL) {
          if(getRepresentativeLWP()->status() == stopped ||
             getRepresentativeLWP()->status() == neonatal)
@@ -5888,13 +5894,6 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
         return NULL;
     }
 
-  if (IndependentLwpControl())
-  {
-     if (status_ == running)
-        set_lwp_status(foundLWP, running);
-     else if (status_ == stopped)
-        set_lwp_status(foundLWP, stopped);
-  }
   return foundLWP;
 }
 
