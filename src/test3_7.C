@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_7.C,v 1.1 2006/06/08 12:25:14 jaw Exp $
+// $Id: test3_7.C,v 1.2 2006/06/08 21:54:47 legendre Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -63,12 +63,12 @@ BPatch_exitType expectedSignal = ExitedViaSignal;
 #endif
 
 const unsigned int MAX_MUTATEES = 32;
-unsigned int Mutatees=3;
+const unsigned int Mutatees=3;
 int debugPrint;
 
 unsigned int num_callbacks_issued = 0;
 bool test7done = false;
-#define TEST7_NUM_ONETIMECODE 400
+#define TEST7_NUM_ONETIMECODE 100
 #define TIMEOUT 20 /*seconds */
 
 void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
@@ -107,12 +107,16 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread[n]) {
             printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** test #7 (simultaneous multiple-process management - terminate)\n");
+            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
             MopUpMutatees(n-1,appThread);
             return -1;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
     }
+
+	// Register a callback that we will use to check for done-ness
+    BPatchOneTimeCodeCallback oldCallback =
+        bpatch->registerOneTimeCodeCallback(test7_oneTimeCodeCallback);
 
     dprintf("Letting mutatee processes run a short while (2s).\n");
     for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
@@ -121,26 +125,38 @@ int mutatorTest(char *pathname, BPatch *bpatch)
    ////////////////////////////
 
     //  our oneTimeCode will just be a simple call to a function that increments a global variable
-    BPatch_image *appImage = appThread[0]->getImage();
-    BPatch_Vector<BPatch_function *> bpfv;
-    if (NULL == appImage->findFunction("call7_1", bpfv) || !bpfv.size()
-        || NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function call7_1\n" );
-      exit(1);
-    }
+    BPatch_snippet *irpcSnippets[Mutatees];
+ 
+    // Build snippets for each mutatee
+    for (unsigned i = 0; i < Mutatees; i++) {
+      BPatch_image *appImage = appThread[i]->getImage();
+      //  our oneTimeCode will just be a simple call to a function that increment
+      BPatch_Vector<BPatch_function *> bpfv;
+      if (NULL == appImage->findFunction("call7_1", bpfv) || !bpfv.size()
+          || NULL == bpfv[0]){
+        fprintf(stderr, "    Unable to find function call7_1\n" );
+        exit(1);
+      }
+      BPatch_function *call7_1 = bpfv[0];
 
-    BPatch_function *call7_1 = bpfv[0];
+      BPatch_Vector<BPatch_snippet *> nullArgs;
+      BPatch_funcCallExpr *call7_1_snip = new BPatch_funcCallExpr(*call7_1, nullArgs);
+      irpcSnippets[i] = call7_1_snip;
+	}
 
-    BPatch_Vector<BPatch_snippet *> nullArgs;
-    BPatch_funcCallExpr call7_1_snip(*call7_1, nullArgs);
+    dprintf("Pausing apps pre-iRPC...\n");
+    for (n=0; n<Mutatees; n++) appThread[n]->stopExecution();
 
-    //  Submit inferior RPCs to all of our mutatees equally...
+	//  Submit inferior RPCs to all of our mutatees equally...
     unsigned doneFlag = 0;
     for (unsigned int i = 0; i < TEST7_NUM_ONETIMECODE; ++i) {
       int index = i % (Mutatees);
       dprintf("%s[%d]:  issuing oneTimeCode to thread %d\n", __FILE__, __LINE__, index);
-      appThread[index]->oneTimeCodeAsync(call7_1_snip, (void *)&doneFlag);
+      appThread[index]->oneTimeCodeAsync(*(irpcSnippets[index]), (void *)&doneFlag);
     }
+
+    dprintf("Running mutatees post-iRPC...\n");
+    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
 
    ////////////////////////////
    ////////////////////////////
@@ -161,28 +177,28 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
     dprintf("Terminating mutatee processes.\n");
 
-    appThread[0]->getProcess();
+
     unsigned int numTerminated=0;
     for (n=0; n<Mutatees; n++) {
         bool dead = appThread[n]->terminateExecution();
         if (!dead || !(appThread[n]->isTerminated())) {
-            printf("**Failed** test #7 (simultaneous multiple-process management - terminate)\n");
+            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
             printf("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
         if(appThread[n]->terminationStatus() != expectedSignal) {
-            printf("**Failed** test #7 (simultaneous multiple-process management - terminate)\n");
+            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
             printf("    mutatee process [%d] didn't get notice of termination\n", n);
             continue;
         }
         int signalNum = appThread[n]->getExitSignal();
         dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
         numTerminated++;
-	delete appThread[n];
+        delete appThread[n];
     }
 
     if (numTerminated == Mutatees && !test7err) {
-	printf("Passed Test #7 (simultaneous multiple-process management - terminate)\n");
+	printf("Passed Test #7 (simultaneous multiple-process management - oneTimeCode)\n");
         return 0;
     }
 
