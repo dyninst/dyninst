@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.20 2006/06/08 12:25:14 jaw Exp $
+// $Id: test_info.h,v 1.21 2006/06/08 21:54:46 legendre Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -171,7 +171,7 @@ void initialize_mutatees()
 platforms_t all_platforms =
    { true, true, true, true, true, true, true, true};
 
-platforms_t test5_12_platforms =
+platforms_t test5_platforms =
    { /*alpha_dec_osf5_1        =*/ false,
      /*i386_unknown_linux2_4   =*/ true, 
      /*i386_unknown_nt4_0      =*/ true, 
@@ -223,6 +223,17 @@ platforms_t test10_11_platforms =
      /*x86_64_unknown_linux2_4 =*/ false,
      /*mips_sgi_irix6_5        =*/ false,
      /*rs6000_ibm_aix5_1       =*/ false,
+     /*sparc_sun_solaris2_8    =*/ true,
+   };
+
+platforms_t test12_platforms =
+   { /*alpha_dec_osf5_1        =*/ false,
+     /*i386_unknown_linux2_4   =*/ true, 
+     /*i386_unknown_nt4_0      =*/ false, 
+     /*ia64_unknown_linux2_4   =*/ true,
+     /*x86_64_unknown_linux2_4 =*/ true,
+     /*mips_sgi_irix6_5        =*/ false,
+     /*rs6000_ibm_aix5_1       =*/ true,
      /*sparc_sun_solaris2_8    =*/ true,
    };
 
@@ -303,15 +314,15 @@ test_data_t tests[] = {
    test_data_t("test4_2", "test4_2.so", test4_mutatee, all_platforms, SELFSTART, 4, 2, NONE, CREATE, ENABLED),
    test_data_t("test4_3", "test4_3.so", test4_mutatee, all_platforms, SELFSTART, 4, 3, NONE, CREATE, ENABLED),
    test_data_t("test4_4", "test4_4.so", test4_mutatee, all_platforms, SELFSTART, 4, 4, NONE, CREATE, ENABLED),
-   test_data_t("test5_1", "test5_1.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 1, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test5_2", "test5_2.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 2, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test5_3", "test5_3.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 3, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test5_4", "test5_4.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 4, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test5_5", "test5_5.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 5, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test5_6", "test5_6.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 6, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test5_7", "test5_7.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 7, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test5_8", "test5_8.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 8, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test5_9", "test5_9.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 9, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test5_1", "test5_1.so", test5_mutatee, test5_platforms, STOPPED, 5, 1, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test5_2", "test5_2.so", test5_mutatee, test5_platforms, STOPPED, 5, 2, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test5_3", "test5_3.so", test5_mutatee, test5_platforms, STOPPED, 5, 3, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test5_4", "test5_4.so", test5_mutatee, test5_platforms, STOPPED, 5, 4, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test5_5", "test5_5.so", test5_mutatee, test5_platforms, STOPPED, 5, 5, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test5_6", "test5_6.so", test5_mutatee, test5_platforms, STOPPED, 5, 6, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test5_7", "test5_7.so", test5_mutatee, test5_platforms, STOPPED, 5, 7, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test5_8", "test5_8.so", test5_mutatee, test5_platforms, STOPPED, 5, 8, COLLECT_EXITCODE, CREATE, ENABLED),
+   test_data_t("test5_9", "test5_9.so", test5_mutatee, test5_platforms, STOPPED, 5, 9, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test6_1", "test6_1.so", test6_mutatee, all_platforms, STOPPED, 6, 1, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test6_2", "test6_2.so", test6_mutatee, all_platforms, STOPPED, 6, 2, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test6_3", "test6_3.so", test6_mutatee, all_platforms, STOPPED, 6, 3, COLLECT_EXITCODE, CREATE, ENABLED),
@@ -343,14 +354,14 @@ test_data_t tests[] = {
    test_data_t("test10_2", "test10_2.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 2, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test10_3", "test10_3.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 3, COLLECT_EXITCODE, CREATE, ENABLED),
    test_data_t("test10_4", "test10_4.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 4, COLLECT_EXITCODE, CREATE, ENABLED),
-   test_data_t("test12_1", "test12_1.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 1, KILL_MUTATEE, CREATE, ENABLED),
-   test_data_t("test12_2", "test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, KILL_MUTATEE, CREATE, ENABLED),
-   test_data_t("test12_3", "test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, KILL_MUTATEE, CREATE, ENABLED),
-   test_data_t("test12_4", "test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, KILL_MUTATEE, CREATE, ENABLED),
-   test_data_t("test12_5", "test12_5.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 5, KILL_MUTATEE, CREATE, ENABLED),
-   test_data_t("test12_6", "test12_6.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 6, KILL_MUTATEE, CREATE, ENABLED),
-   test_data_t("test12_7", "test12_7.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 7, KILL_MUTATEE, CREATE, ENABLED),
-   test_data_t("test12_8", "test12_8.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 8, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_1", "test12_1.so", test12_mutatee, test12_platforms, STOPPED, 12, 1, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_2", "test12_2.so", test12_mutatee, test12_platforms, STOPPED, 12, 2, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_3", "test12_3.so", test12_mutatee, test12_platforms, STOPPED, 12, 3, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_4", "test12_4.so", test12_mutatee, test12_platforms, STOPPED, 12, 4, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_5", "test12_5.so", test12_mutatee, test12_platforms, STOPPED, 12, 5, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_6", "test12_6.so", test12_mutatee, test12_platforms, STOPPED, 12, 6, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_7", "test12_7.so", test12_mutatee, test12_platforms, STOPPED, 12, 7, KILL_MUTATEE, CREATE, ENABLED),
+   test_data_t("test12_8", "test12_8.so", test12_mutatee, test12_platforms, STOPPED, 12, 8, KILL_MUTATEE, CREATE, ENABLED),
    test_data_t("test13_1", "test13_1.so", test13_mutatee, all_platforms, SELFSTART, 13, 1, NONE, BOTH, ENABLED),
    test_data_t("test14_1", "test14_1.so", test14_mutatee, all_platforms, SELFSTART, 14, 1, NONE, BOTH, ENABLED),
    test_data_t("test15_1", "test15_1.so", test15_mutatee, all_platforms, SELFSTART, 15, 1, NONE, BOTH, ENABLED)

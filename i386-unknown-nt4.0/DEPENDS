@@ -1312,6 +1312,50 @@ test3_5.dll: ../src/test3_5.c ../../dyninstAPI/h/BPatch.h \
   ../src/test_lib_dll.h ../src/ParameterDict.h ../../common/h/String.h \
   ../../common/h/Dictionary.h ../../common/h/language.h \
   ../../common/h/Vector.h ../../common/h/Pair.h ../src/TestData.h
+test3_6.dll: ../src/test3_6.c ../../dyninstAPI/h/BPatch.h \
+  ../../dyninstAPI/h/BPatch_dll.h ../../dyninstAPI/h/BPatch_Vector.h \
+  ../../dyninstAPI/h/BPatch_thread.h ../../dyninstAPI/h/BPatch_image.h \
+  ../../dyninstAPI/h/BPatch_sourceObj.h ../../dyninstAPI/h/BPatch_point.h \
+  ../../dyninstAPI/h/BPatch_eventLock.h ../../common/h/string.h \
+  ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
+  ../../common/h/Types.h ../../common/h/headers.h \
+  ../../common/h/refCounter.h ../../dyninstAPI/h/BPatch_snippet.h \
+  ../../dyninstAPI/h/BPatch_type.h ../../dyninstAPI/h/BPatch_module.h \
+  ../../dyninstAPI/h/BPatch_Set.h ../../dyninstAPI/h/BPatch_process.h \
+  ../../dyninstAPI/h/BPatch_frame.h ../src/test_lib.h \
+  ../../dyninstAPI/h/BPatch_function.h \
+  ../../dyninstAPI/h/BPatch_flowGraph.h \
+  ../../dyninstAPI/h/BPatch_basicBlock.h \
+  ../../dyninstAPI/h/BPatch_sourceBlock.h \
+  ../../dyninstAPI/h/BPatch_instruction.h \
+  ../../dyninstAPI/h/BPatch_basicBlockLoop.h \
+  ../../dyninstAPI/h/BPatch_loopTreeNode.h \
+  ../../dyninstAPI/h/BPatch_memoryAccess_NP.h ../src/Process_data.h \
+  ../src/test_lib_dll.h ../src/ParameterDict.h ../../common/h/String.h \
+  ../../common/h/Dictionary.h ../../common/h/language.h \
+  ../../common/h/Vector.h ../../common/h/Pair.h ../src/TestData.h
+test3_7.dll: ../src/test3_7.c ../../dyninstAPI/h/BPatch.h \
+  ../../dyninstAPI/h/BPatch_dll.h ../../dyninstAPI/h/BPatch_Vector.h \
+  ../../dyninstAPI/h/BPatch_thread.h ../../dyninstAPI/h/BPatch_image.h \
+  ../../dyninstAPI/h/BPatch_sourceObj.h ../../dyninstAPI/h/BPatch_point.h \
+  ../../dyninstAPI/h/BPatch_eventLock.h ../../common/h/string.h \
+  ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
+  ../../common/h/Types.h ../../common/h/headers.h \
+  ../../common/h/refCounter.h ../../dyninstAPI/h/BPatch_snippet.h \
+  ../../dyninstAPI/h/BPatch_type.h ../../dyninstAPI/h/BPatch_module.h \
+  ../../dyninstAPI/h/BPatch_Set.h ../../dyninstAPI/h/BPatch_process.h \
+  ../../dyninstAPI/h/BPatch_frame.h ../src/test_lib.h \
+  ../../dyninstAPI/h/BPatch_function.h \
+  ../../dyninstAPI/h/BPatch_flowGraph.h \
+  ../../dyninstAPI/h/BPatch_basicBlock.h \
+  ../../dyninstAPI/h/BPatch_sourceBlock.h \
+  ../../dyninstAPI/h/BPatch_instruction.h \
+  ../../dyninstAPI/h/BPatch_basicBlockLoop.h \
+  ../../dyninstAPI/h/BPatch_loopTreeNode.h \
+  ../../dyninstAPI/h/BPatch_memoryAccess_NP.h ../src/Process_data.h \
+  ../src/test_lib_dll.h ../src/ParameterDict.h ../../common/h/String.h \
+  ../../common/h/Dictionary.h ../../common/h/language.h \
+  ../../common/h/Vector.h ../../common/h/Pair.h ../src/TestData.h  
 test4_1.dll: ../src/test4_1.c ../../dyninstAPI/h/BPatch.h \
   ../../dyninstAPI/h/BPatch_dll.h ../../dyninstAPI/h/BPatch_Vector.h \
   ../../dyninstAPI/h/BPatch_thread.h ../../dyninstAPI/h/BPatch_image.h \
