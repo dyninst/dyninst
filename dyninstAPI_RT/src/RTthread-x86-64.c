@@ -41,27 +41,29 @@
 
 #include "dyninstAPI_RT/src/RTthread.h"
 
-int atomic_set(volatile int *val)
+long atomic_set(volatile int *val)
 {
-   static long result;
+  static long result = 0;
 #if defined(MUTATEE_32)
    __asm("movl $1,%%eax\n"
-         "movl %1,%%ebx\n"
+         "movl %1,%%ecx\n"
          "lock\n"
-         "xchgl %%eax, (%%ebx)\n"
+         "xchgl %%eax, (%%ecx)\n"
          "movl %%eax, %0\n"
          : "=r" (result)
          : "r" (val)
-         : "%eax");
+         : "%eax",
+           "%ecx");
 #else
    __asm("mov $1,%%rax\n"
-         "mov %1,%%rbx\n"
+         "mov %1,%%rcx\n"
          "lock\n"
-         "xchg %%rax, (%%rbx)\n"
+         "xchg %%rax, (%%rcx)\n"
          "mov %%rax, %0\n"
          : "=r" (result)
          : "r" (val)
-         : "%rax");
+         : "%rax",
+           "%rcx");
 #endif
    return !result;
 }
@@ -97,14 +99,12 @@ int atomic_set(volatile int *val)
 int tc_lock_lock(tc_lock_t *tc)
 {
    dyntid_t me;
-   int lock_val;
 
    me = dyn_pthread_self();
    if (me == tc->tid)
       return DYNINST_DEAD_LOCK;
 
    while (1) {
-      lock_val = 1;
       if (tc->mutex == 0 && atomic_set(&tc->mutex))
       {
          tc->tid = me;
