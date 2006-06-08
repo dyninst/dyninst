@@ -492,6 +492,10 @@ bool BPatch_process::continueExecutionInt()
       return true;
     }
 
+    if (!llproc->reachedBootstrapState(bootstrapped_bs)) {
+       return false;
+    }
+
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
        isVisiblyStopped = false;
