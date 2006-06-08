@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.18 2006/06/02 22:59:56 legendre Exp $
+// $Id: test_info.h,v 1.19 2006/06/08 00:49:20 legendre Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -125,10 +125,15 @@ void initialize_mutatees()
    test2_mutatee.push_back("test2.mutatee" xstr(native_cxx));
    test3_mutatee.push_back("test3.mutatee" xstr(native_cxx));
    test4_mutatee.push_back("test4a.mutatee" xstr(native_cxx));
+#if !defined(os_linux) && !defined(arch_x86)
+   //Don't run Portland Group C++ on Linux/x86, not ready yet
    test5_mutatee.push_back("test5.mutatee" xstr(native_cxx));
+#endif
    test7_mutatee.push_back("test7.mutatee" xstr(native_cxx));
    test8_mutatee.push_back("test8.mutatee" xstr(native_cxx));
+#if !defined(os_linux) && !defined(arch_x86)
    test9_mutatee.push_back("test9.mutatee" xstr(native_cxx));
+#endif
    test12_mutatee.push_back("test12.mutatee" xstr(native_cxx));
    test13_mutatee.push_back("test13.mutatee" xstr(native_cxx));
    test14_mutatee.push_back("test14.mutatee" xstr(native_cxx));
@@ -140,7 +145,6 @@ void initialize_mutatees()
    test2_mutatee.push_back("test2.mutatee" xstr(gnu_abi_cc));
    test3_mutatee.push_back("test3.mutatee" xstr(gnu_abi_cc));
    test4_mutatee.push_back("test4a.mutatee" xstr(gnu_abi_cc));
-   test6_mutatee.push_back("test6.mutatee" xstr(gnu_abi_cc));
    test7_mutatee.push_back("test7.mutatee" xstr(gnu_abi_cc));
    test8_mutatee.push_back("test8.mutatee" xstr(gnu_abi_cc));
    test9_mutatee.push_back("test9.mutatee" xstr(gnu_abi_cc));
