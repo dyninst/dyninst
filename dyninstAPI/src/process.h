@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.383 2006/06/06 20:43:15 bernat Exp $
+/* $Id: process.h,v 1.384 2006/06/08 18:36:27 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -251,7 +251,7 @@ class process {
 
   // update the status on the whole process (ie. process state and all lwp
   // states)
-  void set_status(processState st, bool overrideState = false);
+  void set_status(processState st, bool global = true, bool overrideState = false);
 
   // update the status of the process and one particular lwp in the process
   void set_lwp_status(dyn_lwp *whichLWP, processState st);

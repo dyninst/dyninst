@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.658 2006/06/08 12:25:10 jaw Exp $
+// $Id: process.C,v 1.659 2006/06/08 18:36:27 bernat Exp $
 
 #include <ctype.h>
 
@@ -2186,7 +2186,7 @@ bool process::prepareExec(fileDescriptor &desc)
     createInitialThread();
 
     // Status: stopped.
-    set_status(stopped, true); // Revert and ignore
+    set_status(stopped, true, true); // Revert and ignore
 
     // Annoying; most of our initialization code is in unix.C, and it
     // knows how to get us to main. Problem is, it triggers on a trap...
@@ -3774,7 +3774,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
-      stopped_lwp = stop_an_lwp(&needToCont);
+     stopped_lwp = stop_an_lwp(&needToCont);
       if (stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to read to process data "
@@ -3793,6 +3793,10 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
                    "<>unable to read %d@%s from process data space: %s (pid=%d)",
                    size, Address_str((Address)inTracedProcess), 
                    strerror(errno), getPid());
+
+	   fprintf(stderr, "Failed to read %d from %p: LWP %d\n", 
+		   size, inTracedProcess, stopped_lwp->get_lwp_id());
+
            pdstring msg(errorLine);
            showErrorCallback(38, msg);
        }
@@ -3922,7 +3926,9 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
    return true;
 }
 
-void process::set_status(processState st, bool override /* = false */) 
+void process::set_status(processState st,
+			 bool global /* = true */,
+			 bool override /* = false */) 
 {
     // There's a state machine:
     // neonatal
@@ -3989,6 +3995,8 @@ void process::set_status(processState st, bool override /* = false */)
         }
     }
 
+    if (!global) return;
+
    proccontrol_printf("[%s:%u] - Setting everyone to state %s\n",
                       FILE__, __LINE__, 
                       processStateAsString(status_));
@@ -4014,8 +4022,9 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st)
    assert(whichLWP != NULL);
 
    // update the process status
-   if(lwp_st == stopped)
-      status_ = stopped;
+   if(lwp_st == stopped) {
+     set_status(stopped, false);
+   }
 
    proccontrol_printf("[%s:%u] - Setting %d to state %s (%d)\n",
                       FILE__, __LINE__, whichLWP->get_lwp_id(),
@@ -4040,7 +4049,7 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st)
          }
       }
       if(!stopped_lwp_exists && lwp_st==running) {
-          status_ = running;
+	set_status(running, false);
       }
    } else {
       // if can't do independent lwp control, should only be able to set
@@ -4081,7 +4090,7 @@ bool process::pause() {
        fprintf(stderr, "%s[%d]:  pause() failing here\n", FILE__, __LINE__);
      return false;
    }
-   status_ = stopped;
+   set_status(stopped, false);
 
    signal_printf("%s[%d]: process stopped\n", FILE__, __LINE__);
 
@@ -5121,8 +5130,7 @@ bool process::continueProc(int signalToContinueWith)
     return false;
   }
 
-  if (status_ != exited)
-     status_ = running;
+  set_status(running);
 #endif
 
   return true;
@@ -5217,6 +5225,7 @@ bool process::detach(const bool leaveRunning )
 
 void process::triggerNormalExitCallback(int exitCode) 
 {
+
     sh->overrideSyncContinueState(stopRequest);
 
     exiting_ = true;
@@ -5253,7 +5262,6 @@ void process::triggerSignalExitCallback(int signalnum)
 
 bool process::handleProcessExit() 
 {
-
    // special case where can't wait to continue process
    if (status() == exited) {
       signal_printf("%s[%d]:  cannot detach from process, process already exited\n", 
@@ -5955,6 +5963,8 @@ void process::deleteThread_(dyn_thread * /*thr*/) {
 
 void process::deleteThread(dynthread_t tid)
 {
+  if (status() == exited) return;
+
     processState newst = running;
     pdvector<dyn_thread *>::iterator iter = threads.end();
     while(iter != threads.begin()) {
@@ -6033,6 +6043,8 @@ bool process::readThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
         }
         // We got the first three; slurp the fourth.
         int temp;
+	fprintf(stderr, "Reading thread ID at 0x%lx, base 0x%lx\n",
+		baseAddr+(3*sizeof(int)), baseAddr);
         if (!readDataSpace((void *)(baseAddr + (3*sizeof(int))),
                            sizeof(int),
                            (void *)&temp,
@@ -6106,6 +6118,7 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
        //fprintf(stderr, "%s[%d]:  ignoring remove... we are exiting\n", FILE__, __LINE__);
        return true;
     }
+
     signal_printf("%s[%d]: past wait loop, deleting thread....\n", FILE__, __LINE__);
 
     bool res = false;
@@ -6121,11 +6134,13 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
                   getStatusAsString().c_str());
 
     if ((unsigned)-1 == index) {
+      fprintf(stderr, "Error: removing index -1 impossible\n");
         goto done;
     }
 
     lwpToUse = stop_an_lwp(&continueLWP);
     if (!lwpToUse) {
+      fprintf(stderr, "Error: no stopped LWP to use in memory write\n");
         goto done;
     }
 
@@ -6146,7 +6161,7 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
             if (!readDataSpace((void *)thread_structs_var->getAddress(),
                                getAddressWidth(),
                                (void *)&thread_structs_base,
-                               false)) {
+                               true)) {
                 goto done;
             }
         }
@@ -6158,14 +6173,15 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
             if (!readDataSpace((void *)thread_structs_var->getAddress(),
                                getAddressWidth(),
                                (void *)&temp,
-                               false)) {
-                goto done;
+                               true)) {
+	      goto done;
             }
             thread_structs_base = temp;
         }
     }
 
     if (thread_structs_base == 0) {
+      fprintf(stderr, "Error: thread structs at 0?\n");
         goto done;
     }    
 
@@ -6187,8 +6203,10 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
 
     dyninst_thread_t doublecheck;
     
-    if (!readThreadStruct(thread_struct_addr, doublecheck))
+    if (!readThreadStruct(thread_struct_addr, doublecheck)) {
+      fprintf(stderr, "Error: failed to read thread structure\n");
         goto done;
+    }
 
     if (doublecheck.tid != (dyntid_t) tid) {
       fprintf(stderr, "%s[%d]:  ERROR:  mismatch between tids %lu != %lu\n", 
@@ -6216,13 +6234,20 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
     res = true;
 
  done:
+    // We do this again, as a reschedule during a read may have caused us to
+    // realize the process exited. Fun, eh?
+    if (exiting_) {
+      return true;
+    }
 
     if (continueLWP && lwpToUse) {
         sh->continueProcessAsync(-1, lwpToUse);
     }
 
+
     if (!res) 
        fprintf(stderr, "%s[%d]:  ERROR resetting thread state\n", FILE__, __LINE__);
+
 
     return res;
 }
