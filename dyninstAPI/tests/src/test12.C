@@ -523,10 +523,11 @@ bool mutatorTest2()
 #undef  TESTNAME
 #define TESTNAME "thread create callback"
 
-vector<unsigned long> callback_tids;
-int test3_threadCreateCounter = 0;
 
-void threadCreateCB(BPatch_process * /*proc*/, BPatch_thread *thr)
+vector<unsigned long> callback_tids;
+
+int test3_threadCreateCounter = 0;
+void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
 {
   assert(thr);
   if (debugPrint)

@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.106 2006/06/01 18:24:17 bernat Exp $
+// $Id: sol_proc.C,v 1.107 2006/06/08 12:25:11 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1639,6 +1639,7 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
                 //  but really it _should_ be our child since 
                 ev.type = evtProcessExit;
                 ev.what = 0;
+                ev.status = statusSignalled; // but we don't know which signal??
                 status = 0;
                 continue;
             }

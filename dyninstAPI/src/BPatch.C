@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.152 2006/06/02 22:59:40 legendre Exp $
+// $Id: BPatch.C,v 1.153 2006/06/08 12:25:10 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1207,6 +1207,9 @@ void BPatch::registerThreadExit(process *proc, long tid, bool exiting)
         //If we don't have an BPatch thread, then it might have been an internal
         // thread that we decided not to report to the user (happens during 
         //  windows attach).  Just trigger the lower level clean up in this case.
+        if (tid == 0) {
+          fprintf(stderr, "%s[%d]:  about to deleteThread(0)\n", FILE__, __LINE__);
+        }
         if (!exiting) proc->deleteThread(tid);        
         return;
     }

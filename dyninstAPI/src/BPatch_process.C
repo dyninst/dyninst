@@ -1720,7 +1720,8 @@ void BPatch_process::enableDumpPatchedImageInt(){
 	llproc->collectSaveWorldData=true;
 }
 
-void BPatch_process::setExitedViaSignal(int signalnumber) {
+void BPatch_process::setExitedViaSignal(int signalnumber) 
+{
    exitedViaSignal = true;
    lastSignal = signalnumber;
 }
@@ -1840,6 +1841,8 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
 #endif
 
       if (bpthr->doa) {
+          if (tid == 0) 
+            fprintf(stderr, "%s[%d]:  trying to remove index mapping for tid 0\n", FILE__, __LINE__);
           bpthr->getProcess()->llproc->removeThreadIndexMapping(tid, index);
           return bpthr;
       }
@@ -1889,6 +1892,8 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
       return;
    }
 
+   if (thrd->getTid() == 0)
+     fprintf(stderr, "%s[%d]:  about to delete thread %lu: DOA: %s\n", FILE__, __LINE__, thrd->getTid(), thrd->isDeadOnArrival() ? "true" : "false");
    thrd->deleteThread();
 }
 

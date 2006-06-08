@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_4.C,v 1.4 2006/06/08 12:25:13 jaw Exp $
+// $Id: test12_5.C,v 1.1 2006/06/08 12:25:13 jaw Exp $
 /*
- * #Name: test12_4
- * #Desc: thread create callback -- doa
+ * #Name: test12_5
+ * #Desc: thread exit callback 
  * #Dep: 
  * #Arch: all
  * #Notes:
@@ -58,8 +58,8 @@ using std::vector;
 #include "test_lib.h"
 #include "test12.h"
 
-#define TESTNO 4
-#define TESTNAME "thread create callback - doa"
+#define TESTNO 5
+#define TESTNAME "thread exit callback"
 
 int debugPrint;
 BPatch *bpatch;
@@ -111,151 +111,83 @@ void getVar(const char *vname, void *addr, int len, int testno, const char *test
    }
 }
 
-
-
-vector<unsigned long> callback_tids;
-int test3_threadCreateCounter = 0;
-void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
+int test5_threadDestroyCounter = 0;
+void threadDestroyCB(BPatch_process * /*proc*/, BPatch_thread *thr)
 {
-  assert(thr);  
-  if (debugPrint)
-     fprintf(stderr, "%s[%d]:  thread %lu start event for pid %d\n", __FILE__, __LINE__,
-               thr->getTid(), thr->getPid());
-  test3_threadCreateCounter++;
-  callback_tids.push_back(thr->getTid());
-  if (thr->isDeadOnArrival()) {
-     dprintf("%s[%d]:  thread %lu is doa \n", __FILE__, __LINE__, thr->getTid());
-  }
-}
-
-bool mutatorTest3and4(int testno, const char *testname)
-{
-  test3_threadCreateCounter = 0;
-  callback_tids.clear();
-
+  if (debugPrint) 
+    fprintf(stderr, "%s[%d]:  thread %lu destroy event for pid %d\n",
+            __FILE__, __LINE__, thr->getTid(), thr->getPid());
+  test5_threadDestroyCounter++;
+}  
+      
+bool mutatorTest5and6(int testno, const char *testname)
+{     
   unsigned int timeout = 0; // in ms
   int err = 0;
 
-  BPatchAsyncThreadEventCallback createcb = threadCreateCB;
-  if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, createcb))
-  {
+  BPatchAsyncThreadEventCallback destroycb = threadDestroyCB;
+  if (!bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent, destroycb))
+  {   
     FAIL_MES(testno, testname);
     fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
            __FILE__, __LINE__);
     return false;
   }
 
-#if 0
-  //  unset mutateeIde to trigger thread (10) spawn.
+
+
+   if (debugPrint)
+    fprintf(stderr, "%s[%d]:  registered threadDestroy callback\n",
+            __FILE__, __LINE__);
+      
+  //  unset mutateeIdle to trigger thread (10) spawn.
+         
   int zero = 0;
   setVar("mutateeIdle", (void *) &zero, testno, testname);
-  dprintf("%s[%d]:  continue execution for test %d\n", __FILE__, __LINE__, testno);
   appThread->continueExecution();
-#endif
 
   //  wait until we have received the desired number of events
   //  (or timeout happens)
-
-  BPatch_Vector<BPatch_thread *> threads;
-  BPatch_process *appProc = appThread->getProcess();
-  assert(appProc);
-  appProc->getThreads(threads);
-  int active_threads = 11;
-  threads.clear();
-  while (((test3_threadCreateCounter < TEST3_THREADS)
-         || (active_threads > 1))
-         && (timeout < TIMEOUT)) {
-    dprintf("%s[%d]: waiting for completion for test %d, num active threads = %d\n",
-            __FILE__, __LINE__, testno, active_threads);
+  while(test5_threadDestroyCounter < TEST5_THREADS && (timeout < TIMEOUT)) {
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
-    if (appThread->isTerminated()) {
-       fprintf(stderr, "%s[%d]:  BAD NEWS:  somehow the process died\n", __FILE__, __LINE__);
-       err = 1;
-       break;
-    }
+    fprintf(stderr, "%s[%d]:  polliing\n", __FILE__, __LINE__);
     bpatch->pollForStatusChange();
-    if (appThread->isStopped()) {
-       //  this should cause the test to fail, but for the moment we're
-       //  just gonna continue it and complain
-       fprintf(stderr, "%s[%d]:  BAD NEWS:  somehow the process stopped\n", __FILE__, __LINE__);
-       appThread->continueExecution();
-    }
-    appProc->getThreads(threads);
-    active_threads = threads.size();
-    threads.clear();
   }
 
   if (timeout >= TIMEOUT) {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  test timed out. got %d/10 events\n",
-           __FILE__, __LINE__, test3_threadCreateCounter);
+    fprintf(stderr, "%s[%d]:  test timed out.\n",
+           __FILE__, __LINE__);
     err = 1;
   }
 
-  dprintf("%s[%d]: ending test %d, num active threads = %d\n",
-            __FILE__, __LINE__, testno, active_threads);
-  dprintf("%s[%d]:  stop execution for test %d\n", __FILE__, __LINE__, testno);
   appThread->stopExecution();
 
-  //   read all tids from the mutatee and verify that we got them all
-  unsigned long mutatee_tids[TEST3_THREADS];
-  const char *threads_varname = NULL;
-  if (testno == 3)
-     threads_varname = "test3_threads";
-  if (testno == 4)
-     threads_varname = "test4_threads";
-  assert(threads_varname);
-  getVar(threads_varname, (void *) mutatee_tids,
-         (sizeof(unsigned long) * TEST3_THREADS),
-         testno, testname);
-
-  if (debugPrint) {
-    fprintf(stderr, "%s[%d]:  read following tids for test%d from mutatee\n", __FILE__, __LINE__, testno);
-
-    for (unsigned int i = 0; i < TEST3_THREADS; ++i) {
-       fprintf(stderr, "\t%lu\n", mutatee_tids[i]);
-    }
-  }
-
-  for (unsigned int i = 0; i < TEST3_THREADS; ++i) {
-     bool found = false;
-     for (unsigned int j = 0; j < callback_tids.size(); ++j) {
-       if (callback_tids[j] == mutatee_tids[i]) {
-         found = true;
-         break;
-       }
-     }
-
-    if (!found) {
-      FAIL_MES(testno, testname);
-      fprintf(stderr, "%s[%d]:  could not find record for tid %lu: have these:\n",
-             __FILE__, __LINE__, mutatee_tids[i]);
-       for (unsigned int j = 0; j < callback_tids.size(); ++j) {
-          fprintf(stderr, "%lu\n", callback_tids[j]);
-       }
-      err = true;
-      break;
-    }
-  }
-
-  dprintf("%s[%d]: removing thread callback\n", __FILE__, __LINE__);
-  if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, createcb)) {
+  if (!bpatch->removeThreadEventCallback(BPatch_threadDestroyEvent, destroycb)) {
     FAIL_MES(testno, testname);
     fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
            __FILE__, __LINE__);
-    err = true;
+    return false;
   }
 
-  if (!err)  {
+  if (!err) {
     PASS_MES(testno, testname);
     return true;
   }
   return false;
 }
+
+
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-  return mutatorTest3and4(TESTNO, TESTNAME);
+#if defined (os_none)
+  return mutatorTest5and6(TESTNO, TESTNAME);
+#else
+  SKIP(TESTNO, TESTNAME);
+  return true;
+
+#endif
 }
 
 extern "C" int mutatorMAIN(ParameterDict &param)

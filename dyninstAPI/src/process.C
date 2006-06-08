@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.657 2006/06/08 00:49:16 legendre Exp $
+// $Id: process.C,v 1.658 2006/06/08 12:25:10 jaw Exp $
 
 #include <ctype.h>
 
@@ -5970,6 +5970,9 @@ void process::deleteThread(dynthread_t tid)
                 continue;
             } 
         threads.erase(iter);  
+        if (thr->get_tid() == 0) {
+           fprintf(stderr, "%s[%d]:  trying to remove index mapping for tid 0\n", FILE__, __LINE__);
+        }
         removeThreadIndexMapping(thr->get_tid(), thr->get_index());
 
         deleteThread_(thr);

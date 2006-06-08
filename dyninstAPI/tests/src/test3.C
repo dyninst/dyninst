@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.47 2006/06/02 18:58:41 jaw Exp $
+// $Id: test3.C,v 1.48 2006/06/08 12:25:12 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -60,6 +60,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #ifdef i386_unknown_nt4_0
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -85,7 +87,7 @@ const unsigned int MAX_MUTATEES = 32;
 unsigned int Mutatees=3;
 
 bool runAllTests = true;
-const unsigned int MAX_TEST = 6;
+const unsigned int MAX_TEST = 7;
 bool passedTest[MAX_TEST+1];
 
 template class BPatch_Vector<BPatch_variableExpr*>;
@@ -739,11 +741,78 @@ int forkNewMutatee(const char *filename, const char *child_argv[])
   
   return pid;
 }
+ 
+bool grandparentForkMutatees(int num, int *pids, const char *filename, const char *child_argv[])
+{
+    //  this is like fork_mutatee in test_util.C, except it guarantees that mutatees are all
+    //  in the same process group.
+
+    //  need a pipe to get grandchild pids back to grandparent
+    int filedes[2];
+    pipe(filedes);
+
+    int childpid = fork();
+    if (childpid > 0) {
+      //parent -- read grandchild pids
+      for (unsigned int i = 0; i < num; ++i) {
+        if (0 > read(filedes[0], &pids[i], sizeof(int))) {
+           fprintf(stderr, "%s[%d]:  read failed %s\n", __FILE__, __LINE__, strerror(errno));
+           abort();
+        }
+        dprintf("%s[%d]:  parent -- have new pid %d\n", __FILE__, __LINE__, pids[i]);
+      }
+
+      //  and wait for child exit
+      int status;
+      int waitpid_ret = waitpid(childpid, &status, 0);
+      if (waitpid_ret != childpid) {
+        fprintf(stderr, "%s[%d]:  waitpid failed: %s\n", __FILE__, __LINE__, strerror(errno));
+        exit (0);
+      }
+      if (!WIFEXITED(status)) {
+         fprintf(stderr, "%s[%d]:  not exited\n", __FILE__, __LINE__);
+         exit(-1);
+      }
+      close(filedes[0]);
+      close(filedes[1]);
+      return true;
+    }
+
+    else if (childpid == 0) {
+      int gchild_pid;
+      //  child -- run as its own session, fork children (mutatees), and exit.
+      setsid();
+      for (int n=0; n<num; n++) {
+        gchild_pid = forkNewMutatee(filename, child_argv);
+        if (gchild_pid < 0) {
+           fprintf(stderr, "%s[%d]:  failed to fork/exec\n", __FILE__, __LINE__);
+           return false;
+        }
+        dprintf("%s[%d]:  forked mutatee %d\n", __FILE__, __LINE__, gchild_pid);
+        //  let parent know the grandchild pid
+        if (0 > write(filedes[1], &gchild_pid, sizeof(int))) {
+            fprintf(stderr, "%s[%d]:  write failed\n", __FILE__, __LINE__);
+            abort();
+        }
+      }
+      close (filedes[0]);
+      close (filedes[1]);
+      exit(0);
+   }
+   else if (childpid < 0) {
+     //  fork error, fail test
+     close (filedes[0]);
+     close (filedes[1]);
+     fprintf(stderr, "%s[%d]:  fork failed: %s\n", __FILE__, __LINE__, strerror(errno));
+     return false;
+   }
+   return true;
+}
 #endif
 
 void mutatorTest6(char *pathname, BPatch *bpatch)
 {
-#if !defined(os_windows) && !defined (os_linux)
+#if !defined(os_windows) 
     unsigned int n=0;
     int pids[Mutatees];
     const char *child_argv[5];
@@ -758,12 +827,9 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
     for (n=0; n<MAX_MUTATEES; n++) appThread[n]=NULL;
 
     // Start the mutatees
-    for (n=0; n<Mutatees; n++) {
-      pids[n] = forkNewMutatee(pathname, child_argv);
-      if (pids[n] < 0) {
-         fprintf(stderr, "%s[%d]:  failed to fork/exec\n", __FILE__, __LINE__);
-         abort();
-      }
+    if (!grandparentForkMutatees(Mutatees, pids, pathname, child_argv)) {
+      fprintf(stderr, "%s[%d]:  failed to fork mutatees\n", __FILE__, __LINE__);
+      exit(1);
     }
 
     P_sleep(2);
@@ -772,8 +838,9 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
         dprintf("Attaching \"%s\" %d/%d\n", pathname, n, Mutatees);
         appThread[n] = bpatch->attachProcess(pathname, pids[n]);
         if (!appThread[n]) {
-            printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            printf("%s[%d]: *ERROR*: unable to create handle %d for executable, pid = %d\n", 
+                   __FILE__, __LINE__, n, pids[n]);
+            printf("**Failed** test #6 (simultaneous multiple-process management - terminate)\n");
             MopUpMutatees(n-1,appThread);
             return;
         }
@@ -786,6 +853,7 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
     P_sleep(5);
     dprintf("Terminating mutatee processes.\n");
 
+    //  And kill them
     unsigned int numTerminated=0;
     for (n=0; n<Mutatees; n++) {
         bool dead = appThread[n]->terminateExecution();
@@ -797,6 +865,10 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
         if(appThread[n]->terminationStatus() != ExitedViaSignal) {
             printf("**Failed** test #6 (simultaneous multiple-process management - attach terminate)\n");
             printf("    mutatee process [%d] didn't get notice of termination\n", n);
+            if (appThread[n]->terminationStatus() == ExitedNormally)
+               fprintf(stderr, "%s[%d]:  exited normally\n", __FILE__, __LINE__);
+            if (appThread[n]->terminationStatus() == NoExit)
+               fprintf(stderr, "%s[%d]:  no exit type reported\n", __FILE__, __LINE__);
             continue;
         }
         int signalNum = appThread[n]->getExitSignal();
@@ -814,6 +886,129 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
     fprintf(stderr,"Skipped Test #6: not implemented on this platform\n");
 #endif
 }
+//
+// Start Test Case #7 - create processes and process events from each
+//     Run a whole ton of asynchronous OneTimeCodes to test signal handling
+//
+unsigned int num_callbacks_issued = 0;
+bool test7done = false;
+#define TEST7_NUM_ONETIMECODE 400
+#define TIMEOUT 20 /*seconds */
+
+void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
+                                void *userData,
+                                void * /*returnValue*/)
+{
+  num_callbacks_issued++;
+  if (num_callbacks_issued == TEST7_NUM_ONETIMECODE) {
+    *((bool *)userData) = true; // we are done
+  }
+}
+
+void mutatorTest7(char *pathname, BPatch *bpatch)
+{
+    unsigned int n=0;
+    const char *child_argv[5];
+    child_argv[n++] = pathname;
+    if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
+    child_argv[n++] = const_cast<char*>("-run");
+    child_argv[n++] = const_cast<char*>("1");       // run test1 in mutatee
+    child_argv[n++] = NULL;
+
+    BPatch_thread *appThread[MAX_MUTATEES];
+
+    for (n=0; n<MAX_MUTATEES; n++) appThread[n]=NULL;
+
+    // Start the mutatees
+    for (n=0; n<Mutatees; n++) {
+        dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
+        appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
+        if (!appThread[n]) {
+            printf("*ERROR*: unable to create handle%d for executable\n", n);
+            printf("**Failed** test #7 (simultaneous multiple-process management - terminate)\n");
+            MopUpMutatees(n-1,appThread);
+            return;
+        }
+        dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
+    }
+
+    // Register a callback that we will use to check for done-ness
+    BPatchOneTimeCodeCallback oldCallback =
+        bpatch->registerOneTimeCodeCallback(test7_oneTimeCodeCallback);
+
+    dprintf("Letting mutatee processes run a short while (5s).\n");
+    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
+
+   ////////////////////////////
+   ////////////////////////////
+
+    //  our oneTimeCode will just be a simple call to a function that increments a global variable
+    BPatch_image *appImage = appThread[0]->getImage();
+    BPatch_Vector<BPatch_function *> bpfv;
+    if (NULL == appImage->findFunction("call7_1", bpfv) || !bpfv.size()
+        || NULL == bpfv[0]){
+      fprintf(stderr, "    Unable to find function call7_1\n" );
+      exit(1);
+    }
+
+    BPatch_function *call7_1 = bpfv[0];
+
+    BPatch_Vector<BPatch_snippet *> nullArgs;
+    BPatch_funcCallExpr call7_1_snip(*call7_1, nullArgs);
+
+    //  Submit inferior RPCs to all of our mutatees equally...
+    unsigned doneFlag = 0;
+    for (unsigned int i = 0; i < TEST7_NUM_ONETIMECODE; ++i) {
+      int index = i % (Mutatees);
+      //fprintf(stderr, "%s[%d]:  issuing oneTimeCode to thread %d\n", __FILE__, __LINE__, index);
+      appThread[index]->oneTimeCodeAsync(call7_1_snip, (void *)&doneFlag);
+    }
+
+   ////////////////////////////
+   ////////////////////////////
+
+   // and wait for completion/timeout
+   int timeout = 0;
+   while (!doneFlag && (timeout < TIMEOUT)) {
+     P_sleep(1);
+     bpatch->pollForStatusChange();
+     timeout++;
+   }
+   int test7err = false;
+   if (!doneFlag) {
+            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
+            printf("   did not receive the right # of events: got %d, expected %d ", num_callbacks_issued, TEST7_NUM_ONETIMECODE);
+            test7err = true;
+   }
+
+    dprintf("Terminating mutatee processes.\n");
+
+
+    unsigned int numTerminated=0;
+    for (n=0; n<Mutatees; n++) {
+        bool dead = appThread[n]->terminateExecution();
+        if (!dead || !(appThread[n]->isTerminated())) {
+            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
+            printf("    mutatee process [%d] was not terminated\n", n);
+            continue;
+        }
+        if(appThread[n]->terminationStatus() != ExitedViaSignal) {
+            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
+            printf("    mutatee process [%d] didn't get notice of termination\n", n);
+            continue;
+        }
+        int signalNum = appThread[n]->getExitSignal();
+        dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
+        numTerminated++;
+        delete appThread[n];
+    }
+
+    if  (numTerminated == Mutatees && !test7err) {
+        printf("Passed Test #7 (simultaneous multiple-process management - oneTimeCode)\n");
+        passedTest[7] = true;
+    }
+}
+
 int main(unsigned int argc, char *argv[])
 {
     bool ABI_32=false;
@@ -980,6 +1175,7 @@ int main(unsigned int argc, char *argv[])
     if (runTest[4]) mutatorTest4(mutateeName, bpatch);
     if (runTest[5]) mutatorTest5(mutateeName, bpatch);
     if (runTest[6]) mutatorTest6(mutateeName, bpatch);
+    if (runTest[7]) mutatorTest7(mutateeName, bpatch);
 
     unsigned int testsFailed = 0;
     for (i=1; i <= MAX_TEST; i++) {
