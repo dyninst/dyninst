@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_6.C,v 1.1 2006/06/08 12:25:14 jaw Exp $
+// $Id: test3_6.C,v 1.2 2006/06/08 21:54:45 legendre Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -48,8 +48,11 @@
  * #Notes:useAttach does not apply
  */
 
+#if !defined(os_windows)
 #include <sys/types.h>
 #include <sys/wait.h>
+#endif
+
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"

@@ -22,6 +22,9 @@ test6.mutatee_VC.exe: test6LS-masm.obj
 test8.mutatee_VC.exe:
   cl ../src/test8.mutatee.c ../src/mutatee_util.c -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test8.mutatee_VC.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib  
 
+test12.mutatee_VC.exe:
+  cl ../src/test12.mutatee.c ../src/mutatee_util.c -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test12.mutatee_VC.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib  
+
 test13.mutatee_VC.exe:
   cl ../src/test13.mutatee.c ../src/mutatee_util_mt.c -TC -nologo -Zi -W3 $(UNIFIED_DEF) -GR -MD -DCOMPILER=\"Microsoft_R_32-bit_C_Optimizing_Compiler\" -o test13.mutatee_VC.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
 
@@ -51,6 +54,9 @@ test5.mutatee_VC++.exe:
 
 test8.mutatee_VC++.exe:
   cl ../src/test8.mutatee.c ../src/mutatee_util.c -TP -nologo -Zi -W3 $(UNIFIED_DEF) -GR -GX -MD -DCOMPILER=\"Microsoft_(R)_32-bit_C++_Optimizing_Compiler\" -o test8.mutatee_VC++.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
+
+test12.mutatee_VC++.exe:
+  cl ../src/test12.mutatee.c ../src/mutatee_util.c -TP -nologo -Zi -W3 $(UNIFIED_DEF) -GR -GX -MD -DCOMPILER=\"Microsoft_(R)_32-bit_C++_Optimizing_Compiler\" -o test12.mutatee_VC++.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
 
 test13.mutatee_VC++.exe:
   cl ../src/test13.mutatee.c ../src/mutatee_util_mt.c -TP -nologo -Zi -W3 $(UNIFIED_DEF) -GR -GX -MD -DCOMPILER=\"Microsoft_(R)_32-bit_C++_Optimizing_Compiler\" -o test13.mutatee_VC++.exe -link  -nologo -debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib
