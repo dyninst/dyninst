@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2006/03/12 23:33:06 legendre Exp $
+# $Id: Makefile,v 1.5 2006/06/08 00:49:17 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,7 +15,7 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 # Uncomment M_G77 (at yr own risk) to do g77 build
-M_G77 = g77
+#M_G77 = g77
 
 NATIVE_FC = xlf90
 NATIVE_FORTRAN_CC = gcc
