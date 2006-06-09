@@ -370,6 +370,10 @@ test12_8.dll:
   $(CXX) $(CXXFLAGS_NORM) -c ../src/test13_1.C
   $(LINK) $(LDFLAGS) -DLL -out:test13_1.dll test13_1.obj $(TEST_LINKS)
 
+test13_1.dll:
+  $(CXX) $(CXXFLAGS_NORM) -c ../src/test13_1.C
+  $(LINK) $(LDFLAGS) -DLL -out:test13_1.dll test13_1.obj $(TEST_LINKS)
+  
 test14_1.dll:
   $(CXX) $(CXXFLAGS_NORM) -c ../src/test14_1.C
   $(LINK) $(LDFLAGS) -DLL -out:test14_1.dll test14_1.obj $(TEST_LINKS)
