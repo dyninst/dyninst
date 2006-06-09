@@ -299,7 +299,9 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
     
     if (!MPI_proc) {
         if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
-            sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
+            sprintf(errorLine, "Cannot chdir to '%s': %s\n", dir.c_str(), 
+                    strerror(errno));
+            fprintf(stderr, "Cannot chdir to '%s': %s\n", dir.c_str(), 
                     strerror(errno));
             logLine(errorLine);
             P__exit(-1);
