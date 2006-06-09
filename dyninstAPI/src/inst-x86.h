@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.26 2006/05/31 21:49:41 bernat Exp $
+// $Id: inst-x86.h,v 1.27 2006/06/09 03:50:48 jodom Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -188,10 +188,10 @@ class codeGen;
 #define GET_GPR(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EAX_OFFSET-(x*4), insn)
 
 // Define access method for virtual registers (stack-based)
-#define LOAD_VIRTUAL32(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(x*4), insn)
-#define SAVE_VIRTUAL32(x, insn) emitMovRegToRM(REGNUM_EBP, -(x*4), REGNUM_EAX, insn)
-#define LOAD_VIRTUAL64(x, insn) emitMovRMToReg(REGNUM_RAX, REGNUM_RBP, -(x*8), insn)
-#define SAVE_VIRTUAL64(x, insn) emitMovRegToRM(REGNUM_RBP, -(x*8), REGNUM_RAX, insn)
+#define LOAD_VIRTUAL32(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(x*4), insn)
+#define SAVE_VIRTUAL32(x, insn) emitMovRegToRM(REGNUM_EBP, -1*(x*4), REGNUM_EAX, insn)
+#define LOAD_VIRTUAL64(x, insn) emitMovRMToReg(REGNUM_RAX, REGNUM_RBP, -1*(x*8), insn)
+#define SAVE_VIRTUAL64(x, insn) emitMovRegToRM(REGNUM_RBP, -1*(x*8), REGNUM_RAX, insn)
 
 // low-level code generation functions
 void emitOpRegReg(unsigned opcode, Register dest, Register src, codeGen &gen);

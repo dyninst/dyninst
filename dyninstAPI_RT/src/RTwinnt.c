@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.21 2006/05/16 21:14:36 jaw Exp $
+ * $Id: RTwinnt.c,v 1.22 2006/06/09 03:50:49 jodom Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
@@ -78,11 +78,11 @@ void DYNINSTsafeBreakPoint() {
     DYNINSTbreakPoint();
 }
 
-static int initial_thread_tid;
+static dyntid_t initial_thread_tid;
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
   RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-  initial_thread_tid = GetCurrentThreadId();
+  initial_thread_tid = (dyntid_t) GetCurrentThreadId();
 }
 
 /* this function is automatically called when windows loads this dll

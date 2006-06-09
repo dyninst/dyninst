@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.157 2006/06/08 21:54:39 legendre Exp $
+// $Id: pdwinnt.C,v 1.158 2006/06/09 03:50:48 jodom Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -300,7 +300,7 @@ bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint)
      return true;
    }
 
-   int iresult = SymLoadModule64(procHandle, ev.info.u.LoadDll.hFile, 
+   DWORD64 iresult = SymLoadModule64(procHandle, ev.info.u.LoadDll.hFile, 
                                  (PSTR) imageName.c_str(), NULL,
                                  (DWORD64) ev.info.u.LoadDll.lpBaseOfDll, 0);
    if (!iresult) {
@@ -1146,7 +1146,7 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
            fprintf(stderr, "Couldn't SymInitialize\n");
            printSysError(GetLastError());
        } 
-       int iresult = SymLoadModule64(proc->processHandle_, proc->mainFileHandle_,
+       DWORD64 iresult = SymLoadModule64(proc->processHandle_, proc->mainFileHandle_,
                                     imageName, NULL,
                                     (DWORD64) proc->mainFileBase_, 0);
        /*

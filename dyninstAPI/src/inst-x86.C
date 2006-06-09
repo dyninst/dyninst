@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.243 2006/05/31 21:49:40 bernat Exp $
+ * $Id: inst-x86.C,v 1.244 2006/06/09 03:50:48 jodom Exp $
  */
 #include <iomanip>
 
@@ -958,7 +958,7 @@ Register Emitter32::emitCall(opCode op,
 
    // allocate a (virtual) register to store the return value
    Register ret = rs->allocateRegister(gen, noCost);
-   emitMovRegToRM(REGNUM_EBP, -((int) ret*4), REGNUM_EAX, gen);
+   emitMovRegToRM(REGNUM_EBP, -1*(ret*4), REGNUM_EAX, gen);
 
    // Figure out if we need to save FPR in base tramp
    bool useFPR = clobberAllFuncCall(rs, proc, callee_addr,0);
@@ -1144,7 +1144,7 @@ void Emitter32::emitASload(int ra, int rb, int sc, long imm, Register dest, code
    emitLEA((havera ? REGNUM_EAX : Null_Register), (haverb ? REGNUM_EDX : Null_Register),
            sc, (long)imm, REGNUM_EAX, gen);
 
-   emitMovRegToRM(REGNUM_EBP, -((int) dest<<2), REGNUM_EAX, gen); // mov (virtual reg) dest, eax
+   emitMovRegToRM(REGNUM_EBP, -1*(dest<<2), REGNUM_EAX, gen); // mov (virtual reg) dest, eax
 }
 
 void emitCSload(const BPatch_countSpec_NP *as, Register dest,
@@ -1205,7 +1205,7 @@ void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
               emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
 
            // mov (virtual reg) dest, eax
-           emitMovRegToRM(REGNUM_EBP, -((int) dest<<2), REGNUM_EAX, gen);
+           emitMovRegToRM(REGNUM_EBP, -1*(dest<<2), REGNUM_EAX, gen);
 
            break;
         case IA32_NECMPS:
@@ -1241,7 +1241,7 @@ void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
               emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
 
            // mov (virtual reg) dest, eax
-           emitMovRegToRM(REGNUM_EBP, -((int) dest<<2), REGNUM_EAX, gen);
+           emitMovRegToRM(REGNUM_EBP, -1*(dest<<2), REGNUM_EAX, gen);
 
            break;
         default:
@@ -1257,10 +1257,10 @@ void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
          emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
 
       // mov (virtual reg) dest, eax
-      emitMovRegToRM(REGNUM_EBP, -((int) dest<<2), REGNUM_EAX, gen);
+      emitMovRegToRM(REGNUM_EBP, -1*(dest<<2), REGNUM_EAX, gen);
    }
    else
-      emitMovImmToRM(REGNUM_EBP, -(dest<<2), (int)imm, gen);
+      emitMovImmToRM(REGNUM_EBP, -1*(dest<<2), (int)imm, gen);
 }
 #endif
 

@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.26 2006/05/31 21:49:35 bernat Exp $
+ * $Id: emit-x86.C,v 1.27 2006/06/09 03:50:48 jodom Exp $
  */
 
 #include <assert.h>
@@ -72,7 +72,7 @@ codeBufIndex_t Emitter32::emitIf(Register expr_reg, Register target, codeGen &ge
     emitOpRegReg(0x29, REGNUM_EAX, REGNUM_EAX, gen);
 
     // cmp -(expr*4)[REGNUM_EBP], REGNUM_EAX
-    emitOpRegRM(0x3B, REGNUM_EAX, REGNUM_EBP, -(expr_reg*4), gen);
+    emitOpRegRM(0x3B, REGNUM_EAX, REGNUM_EBP, -1*(expr_reg*4), gen);
 
     // Retval: where the jump is in this sequence
     codeBufIndex_t retval = gen.getIndex();
@@ -94,22 +94,22 @@ codeBufIndex_t Emitter32::emitIf(Register expr_reg, Register target, codeGen &ge
 
 void Emitter32::emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
 {
-      emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src1*4), gen);
-      emitOpRegRM(opcode, REGNUM_EAX, REGNUM_EBP, -(src2*4), gen);
-      emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+      emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
+      emitOpRegRM(opcode, REGNUM_EAX, REGNUM_EBP, -1*(src2*4), gen);
+      emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 }
 
 void Emitter32::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen)
 {
     emitOpRegReg(0x29, REGNUM_ECX, REGNUM_ECX, gen);           // clear REGNUM_ECX
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src1*4), gen);    // mov eax, -(src1*4)[ebp]
-    emitOpRegRM(0x3B, REGNUM_EAX, REGNUM_EBP, -(src2*4), gen); // cmp eax, -(src2*4)[ebp]
+    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);    // mov eax, -(src1*4)[ebp]
+    emitOpRegRM(0x3B, REGNUM_EAX, REGNUM_EBP, -1*(src2*4), gen); // cmp eax, -(src2*4)[ebp]
     unsigned char opcode = jccOpcodeFromRelOp(op);
     GET_PTR(insn, gen);
     *insn++ = opcode; *insn++ = 1;                // jcc 1
     SET_PTR(insn, gen);
     emitSimpleInsn(0x40+REGNUM_ECX, gen);               // inc REGNUM_ECX
-    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_ECX, gen);    // mov -(dest*4)[ebp], ecx
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_ECX, gen);    // mov -(dest*4)[ebp], ecx
 }
 
 void Emitter32::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)
@@ -118,33 +118,33 @@ void Emitter32::emitDiv(Register dest, Register src1, Register src2, codeGen &ge
     // cdq   ; edx = sign extend of eax
     // idiv eax, src2 ; eax = edx:eax div src2, edx = edx:eax mod src2
     // mov dest, eax
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src1*4), gen);
+    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
     emitSimpleInsn(0x99, gen);
-    emitOpRegRM(0xF7, 0x7 /*opcode extension*/, REGNUM_EBP, -(src2*4), gen);
-    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+    emitOpRegRM(0xF7, 0x7 /*opcode extension*/, REGNUM_EBP, -1*(src2*4), gen);
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 }
 
 void Emitter32::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			  codeGen &gen)
 {
     if (src1 != dest) {
-	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src1*4), gen);
-	emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
+	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
     }
-    emitOpRMImm(opcode1, opcode2, REGNUM_EBP, -(dest*4), src2imm, gen);
+    emitOpRMImm(opcode1, opcode2, REGNUM_EBP, -1*(dest*4), src2imm, gen);
 }
 
 void Emitter32::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
    emitOpRegReg(0x29, REGNUM_ECX, REGNUM_ECX, gen);           // clear REGNUM_ECX
-   emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src1*4), gen);    // mov eax, -(src1*4)[ebp]
+   emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);    // mov eax, -(src1*4)[ebp]
    emitOpRegImm(0x3D, REGNUM_EAX, src2imm, gen);       // cmp eax, src2
    unsigned char opcode = jccOpcodeFromRelOp(op);
    GET_PTR(insn, gen);
    *insn++ = opcode; *insn++ = 1;                // jcc 1
    SET_PTR(insn, gen);
    emitSimpleInsn(0x40+REGNUM_ECX, gen);               // inc REGNUM_ECX
-   emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_ECX, gen);    // mov -(dest*4)[ebp], ecx   
+   emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_ECX, gen);    // mov -(dest*4)[ebp], ecx   
 }
 
 // where is this defined?
@@ -159,16 +159,16 @@ void Emitter32::emitTimesImm(Register dest, Register src1, RegValue src2imm, cod
 
     if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
 	if (src1 != dest) {
-	    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src1*4), gen);
-	    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+	    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
+	    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 	}
 	// sal dest, result
-	emitOpRMImm8(0xC1, 4, REGNUM_EBP, -(dest*4), result, gen);
+	emitOpRMImm8(0xC1, 4, REGNUM_EBP, -1*(dest*4), result, gen);
     }
     else {
 	// imul REGNUM_EAX, -(src1*4)[ebp], src2imm
-	emitOpRegRMImm(0x69, REGNUM_EAX, REGNUM_EBP, -(src1*4), src2imm, gen);
-	emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+	emitOpRegRMImm(0x69, REGNUM_EAX, REGNUM_EBP, -1*(src1*4), src2imm, gen);
+	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
     } 
 }
 
@@ -177,11 +177,11 @@ void Emitter32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeG
     int result = -1;
     if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
 	if (src1 != dest) {
-	    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src1*4), gen);
-	    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+	    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
+	    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 	}
 	// sar dest, result
-	emitOpRMImm8(0xC1, 7, REGNUM_EBP, -(dest*4), result, gen);
+	emitOpRMImm8(0xC1, 7, REGNUM_EBP, -1*(dest*4), result, gen);
     }
     else {
 	// dest = src1 div src2imm
@@ -190,12 +190,12 @@ void Emitter32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeG
 	// mov ebx, src2imm
 	// idiv eax, ebx ; eax = edx:eax div src2, edx = edx:eax mod src2
 	// mov dest, eax
-	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src1*4), gen);
+	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
 	emitSimpleInsn(0x99, gen);
 	emitMovImmToReg(REGNUM_EBX, src2imm, gen);
 	// idiv eax, ebx
 	emitOpRegReg(0xF7, 0x7 /*opcode extension*/, REGNUM_EBX, gen); 
-	emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
     }
 }
 
@@ -208,19 +208,19 @@ void Emitter32::emitLoad(Register dest, Address addr, int size, codeGen &gen)
    } else {
       emitMovMToReg(REGNUM_EAX, addr, gen);               // mov eax, addr
    }
-   emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
+   emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
 void Emitter32::emitLoadConst(Register dest, Address imm, codeGen &gen)
 {
-    emitMovImmToRM(REGNUM_EBP, -(dest*4), imm, gen);
+    emitMovImmToRM(REGNUM_EBP, -1*(dest*4), imm, gen);
 }
 
 void Emitter32::emitLoadIndir(Register dest, Register addr_reg, codeGen &gen)
 {
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(addr_reg*4), gen); // mov eax, -(addr_reg*4)[ebp]
+    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(addr_reg*4), gen); // mov eax, -(addr_reg*4)[ebp]
     emitMovRMToReg(REGNUM_EAX, REGNUM_EAX, 0, gen);         // mov eax, [eax]
-    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen); // mov -(dest*4)[ebp], eax
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen); // mov -(dest*4)[ebp], eax
 }
 
 void Emitter32::emitLoadFrameRelative(Register dest, Address offset, codeGen &gen)
@@ -229,7 +229,7 @@ void Emitter32::emitLoadFrameRelative(Register dest, Address offset, codeGen &ge
     // dest = [eax](offset)
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, 0, gen);       // mov (%ebp), %eax 
     emitMovRMToReg(REGNUM_EAX, REGNUM_EAX, offset, gen);    // mov <offset>(%eax), %eax 
-    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
 void Emitter32::emitLoadRegRelative(Register dest, Address offset,
@@ -248,14 +248,14 @@ void Emitter32::emitLoadRegRelative(Register dest, Address offset,
         // dest = [reg] + offset
         emitAddRegImm32(REGNUM_EAX, offset, gen);
     }
-    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 } 
 
 void Emitter32::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, 0, gen);       // mov (%ebp), %eax 
     emitAddRegImm32(REGNUM_EAX, offset, gen);        // add #<offset>, %eax
-    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
 void Emitter32::emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen)
@@ -267,19 +267,19 @@ void Emitter32::emitLoadPreviousStackFrameRegister(Address register_num, Registe
     unsigned offset = SAVED_EAX_OFFSET - (register_num * 4);
 
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, offset, gen); //mov eax, offset[ebp]
-    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen); //mov dest, 0[eax]
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen); //mov dest, 0[eax]
 }
 
 void Emitter32::emitStore(Address addr, Register src, codeGen &gen)
 {
-      emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src*4), gen);    // mov eax, -(src*4)[ebp]
+      emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);    // mov eax, -(src*4)[ebp]
       emitMovRegToM(addr, REGNUM_EAX, gen);               // mov addr, eax
 }
 
 void Emitter32::emitStoreIndir(Register addr_reg, Register src, codeGen &gen)
 {
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src*4), gen);   // mov eax, -(src*4)[ebp]
-    emitMovRMToReg(REGNUM_ECX, REGNUM_EBP, -(addr_reg*4), gen);   // mov ecx, -(addr_reg*4)[ebp]
+    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);   // mov eax, -(src*4)[ebp]
+    emitMovRMToReg(REGNUM_ECX, REGNUM_EBP, -1*(addr_reg*4), gen);   // mov ecx, -(addr_reg*4)[ebp]
     emitMovRegToRM(REGNUM_ECX, 0, REGNUM_EAX, gen);           // mov [ecx], eax
 }
 
@@ -288,14 +288,14 @@ void Emitter32::emitStoreFrameRelative(Address offset, Register src, Register sc
       // scratch = [ebp]	- saved bp
       // (offset)[scratch] = src
       emitMovRMToReg(scratch, REGNUM_EBP, 0, gen);    	    // mov scratch, (ebp)
-      emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(src*4), gen);    // mov eax, -(src*4)[ebp]
+      emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);    // mov eax, -(src*4)[ebp]
       emitMovRegToRM(scratch, offset, REGNUM_EAX, gen);        // mov (offset)[scratch], eax
 }
 
 void Emitter32::emitGetRetVal(Register dest, codeGen &gen)
 {
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EAX_OFFSET, gen);
-    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 }
 
 void Emitter32::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen)
@@ -304,11 +304,11 @@ void Emitter32::emitGetParam(Register dest, Register param_num, instPointType_t 
     // the first is PARAM_OFFSET[ebp]
     if(pt_type == callSite) {
 	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, CALLSITE_PARAM_OFFSET + param_num*4, gen);
-	emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
     } else {
 	// assert(pt_type == functionEntry)
 	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, FUNC_PARAM_OFFSET + param_num*4, gen);
-	emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
     }
 }
 

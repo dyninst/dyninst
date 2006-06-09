@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.41 2006/04/04 01:10:17 legendre Exp $
+// $Id: Object-nt.C,v 1.42 2006/06/09 03:50:47 jodom Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -612,7 +612,7 @@ void Object::ParseDebugInfo( void )
 
         if (!found_main)
         {
-            Address curr = eAddr + dw64BaseAddr;
+            Address curr = eAddr + (Address) dw64BaseAddr;
             p = (const unsigned char*) ImageRvaToVa(peHdr, mapAddr, eAddr, 0);
             instruction insn((const void *)p);
             while( !insn.isReturn() )
@@ -658,7 +658,7 @@ void Object::ParseDebugInfo( void )
             if (!symbols_.defines("start")) {
                 //use 'start' for mainCRTStartup.
                 ::Symbol startSym( "start", curModule->GetName().c_str(), ::Symbol::PDST_FUNCTION,
-                                ::Symbol::SL_GLOBAL, eAddr + dw64BaseAddr, 0, UINT_MAX );
+                                ::Symbol::SL_GLOBAL, eAddr + (Address) dw64BaseAddr, 0, UINT_MAX );
                 symbols_[ "start" ].push_back( startSym );
             }
             if (!symbols_.defines("winStart")) {
