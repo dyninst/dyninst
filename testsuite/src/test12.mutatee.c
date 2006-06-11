@@ -71,7 +71,11 @@ void stop_process()
 #error
 #else
 typedef void *(*ThreadMain_t)(void *);
+#if defined(m32_test)
+typedef unsigned long long Thread_t;
+#else
 typedef pthread_t Thread_t;
+#endif
 typedef pthread_mutex_t Lock_t;
   /*
     createThreads()
@@ -119,12 +123,15 @@ Thread_t *createThreads(unsigned int num, ThreadMain_t tmain, Thread_t *tbuf)
   /* start a bunch of threads */
   for (i = 0; i < num; ++i) {
 
-    if (0 != pthread_create(&(threads[i]), &attr, (void *(*)(void*))tmain, NULL)) {
+    if (0 != pthread_create((pthread_t *) &threads[i], 
+	                    &attr, (void *(*)(void*))tmain, NULL))    
+    {
       err = 1;
       fprintf(stderr, "%s[%d]:pthread_create\n", __FILE__, __LINE__);
       goto cleanup;
     }
-    dprintf("%s[%d]:  PTHREAD_CREATE: %lu\n", __FILE__, __LINE__, threads[i]); 
+    dprintf("%s[%d]:  PTHREAD_CREATE: %lu\n", __FILE__, __LINE__, 
+	    (unsigned long)threads[i]); 
   }
 
   cleanup:
@@ -222,7 +229,7 @@ void sleep_ms(int _ms)
 
 unsigned long current_locks[TEST1_THREADS];
 /*Thread_t  *test2threads; */
-pthread_t test1threads[TEST1_THREADS];
+Thread_t test1threads[TEST1_THREADS];
 pthread_mutex_t real_lock;
 
 int subtest1counter = 0;
@@ -272,10 +279,10 @@ static DECLARE_DYNINST_LOCK(test1lock);
 
 void *thread_main1 (void *arg)
 {
-   int lockres =    (*DYNINSTlock_thelock)(&test1lock);
-
+   (*DYNINSTlock_thelock)(&test1lock);
    register_my_lock((unsigned long)pthread_self(),1);
    pthread_mutex_lock(&real_lock);
+   arg = NULL; /*Silence warnings*/
 
   /*sleep_ms(1); */
 
@@ -304,7 +311,7 @@ void func1_1()
   int lockres;
   int bigTIMEOUT;
   int timeout;
-
+  char *libname;
   /*pthread_attr_t attr;*/
   unsigned int i;
   void *RTlib;
@@ -316,7 +323,12 @@ void func1_1()
 
 #if !defined (os_windows) && !defined(os_irix)
 
-  RTlib = dlopen("libdyninstAPI_RT.so.1", RTLD_NOW);
+#if defined(m32_test)
+  libname = "libdyninstAPI_RT_m32.so.1";
+#else
+  libname = "libdyninstAPI_RT.so.1";
+#endif
+  RTlib = dlopen(libname, RTLD_NOW);
   if (!RTlib) {
     fprintf(stderr, "%s[%d]:  could not open dyninst RT lib: %s\n", __FILE__, __LINE__, dlerror());
     exit(1);
@@ -363,8 +375,6 @@ void func1_1()
 #endif
   lockres = (*DYNINSTlock_thelock)(&test1lock);
   createThreads(TEST1_THREADS, thread_main1, test1threads);
-  assert(test1threads);
-
 
   sleep_ms(5);
 
@@ -460,7 +470,8 @@ Lock_t test3lock;
 
 void *thread_main3(void *arg)
 {
-  int x, i;
+  long x, i;
+  arg = NULL; /*silence warnings*/
   lockLock(&test3lock);
   x = 0;
 
@@ -496,7 +507,8 @@ void func3_1()
 Lock_t test4lock;
 void *thread_main4(void *arg)
 {
-  int x, i;
+  long x, i;
+  arg = NULL; 
   lockLock(&test4lock); 
   x = 0;
 
@@ -505,7 +517,8 @@ void *thread_main4(void *arg)
   }
 
   unlockLock(&test4lock); 
-  dprintf("%s[%d]:  %lu exiting...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+  dprintf("%s[%d]:  %p exiting...\n", __FILE__, __LINE__, 
+	  (void *) pthread_self());
   return (void *) x;
 }
 
@@ -536,7 +549,8 @@ void func4_1()
 Lock_t test5lock;
 void *thread_main5(void *arg)
 {
-  int x, i;
+  long x, i;
+  arg = NULL;
   lockLock(&test5lock); 
   x = 0;
   for (i = 0; i < 0xfffffff; ++i) {
@@ -568,7 +582,8 @@ void func5_1()
 Lock_t test6lock;
 void *thread_main6(void *arg)
 {
-  int x, i;
+  long x, i;
+  arg = NULL;
   lockLock(&test6lock); 
   x = 0;
   for (i = 0; i < 0xf; ++i) {
@@ -638,6 +653,7 @@ void *thread_main8(void *arg)
       deletion, locking and unlocking.  Thus far, we are only considering reporting of events
       so actual contention is meaningless */
   Lock_t newmutex;
+  arg = NULL;
   if (!createLock(&newmutex)) {
      fprintf(stderr, "%s[%d]:  createLock failed\n", __FILE__, __LINE__);
      return NULL;

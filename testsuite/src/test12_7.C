@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_7.C,v 1.1 2006/06/08 12:25:13 jaw Exp $
+// $Id: test12_7.C,v 1.2 2006/06/11 00:35:35 legendre Exp $
 /*
  * #Name: test12_7
  * #Desc: user defined message callback -- st
@@ -226,18 +226,23 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
     // load libtest12.so -- currently only used by subtest 5, but make it generally
     // available
-    dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, TEST12_LIBNAME);
-    if (!appThread->loadLibrary(TEST12_LIBNAME)) {
-      fprintf(stderr, "%s[%d]:  failed to load library %s, cannot proceed\n", __FILE__, __LINE__,
-              TEST12_LIBNAME);
-      return false;
+    char *libname = "./libTest12.so";    
+#if defined(arch_x86_64)
+    if (appThread->getProcess()->getAddressWidth() == 4)
+      libname = "./libTest12_m32.so";
+#endif
+    dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, libname);
+    if (!appThread->loadLibrary(libname)) {
+      fprintf(stderr, "%s[%d]:  failed to load library %s, cannot proceed\n", 
+	      __FILE__, __LINE__, libname);
+      return -1;
     }
 
   BPatchUserEventCallback cb = test7cb;
   if (!bpatch->registerUserEventCallback(cb)) {
     FAIL_MES(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]: could not register callback\n", __FILE__, __LINE__);
-    return false;
+    return -1;
   }
 
   //  instrument entry and exit of call7_1, as well as call points inside call7_1
@@ -290,16 +295,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     FAIL_MES(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to remove callback\n",
            __FILE__, __LINE__);
-    return false;
+    return -1;
   }
 
   if (!test7err) {
     PASS_MES(TESTNO, TESTNAME);
-    return true;
+    return 0;
   }
 
   FAIL_MES(TESTNO, TESTNAME);
-  return false;
+  return -1;
 }
 
 extern "C" int mutatorMAIN(ParameterDict &param)

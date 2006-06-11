@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_2.C,v 1.4 2006/06/08 12:25:13 jaw Exp $
+// $Id: test12_2.C,v 1.5 2006/06/11 00:35:30 legendre Exp $
 /*
  * #Name: test12_2
  * #Desc: dynamic callsite callback
@@ -134,7 +134,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
      SKIP(TESTNO, TESTNAME);
      fprintf(stderr, "\txlc optimizes out dynamic call sites for this test\n");
      sleep_ms(100);
-     return true;
+     return 0;
   }
 
   if (!bpatch->registerDynamicCallCallback(dynSiteCB)) {
@@ -177,7 +177,6 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         exit(1);
   }
 
-  fprintf(stderr, "%s[%d]:  before continue execution\n", __FILE__, __LINE__);
   appThread->continueExecution();
 
   //  wait until we have received the desired number of events
@@ -196,7 +195,9 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     test2err = 1;
   }
 
-  return (test2err == 0);
+  if (test2err)
+    return -1;
+  return 0;
 
 #else
     SKIP_MES(TESTNO, TESTNAME);
