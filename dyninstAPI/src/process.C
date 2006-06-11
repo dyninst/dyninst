@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.660 2006/06/08 22:13:51 bernat Exp $
+// $Id: process.C,v 1.661 2006/06/11 00:35:25 legendre Exp $
 
 #include <ctype.h>
 
@@ -6043,8 +6043,6 @@ bool process::readThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
         }
         // We got the first three; slurp the fourth.
         int temp;
-	fprintf(stderr, "Reading thread ID at 0x%lx, base 0x%lx\n",
-		baseAddr+(3*sizeof(int)), baseAddr);
         if (!readDataSpace((void *)(baseAddr + (3*sizeof(int))),
                            sizeof(int),
                            (void *)&temp,
@@ -6056,56 +6054,6 @@ bool process::readThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
     }
     return true;
 }
-
-bool process::writeThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
-    // If we match the mutatee, this is a straightforward write. If not, we need
-    // to fiddle ourselves into a 32-bit structure.
-    // Double-check: read it out of the process....
-    if (getAddressWidth() == sizeof(dyntid_t)) {
-        if (!writeDataSpace((void *)baseAddr,
-                            sizeof(dyninst_thread_t),
-                            (void *)&struc)) {
-            fprintf(stderr, "Warning: failed to read data space\n");
-            return false;
-        }
-    }
-    else {
-        assert(getAddressWidth() == sizeof(int));
-        assert(sizeof(dyntid_t) == sizeof(void *));
-
-        // Structure copy for comparison:
-        /*
-          typedef struct {
-          int thread_state;
-          int next_free;
-          int lwp;
-          dyntid_t tid;
-          } dyninst_thread_t;
-        */
-        // Aaand the structure better be as big as we think it is - 4*4=16
-        // Can't assert that... 
-
-        // We want all the bits. We can read the entire thing, then drop
-        // back the pointer at the end.
-        if (!writeDataSpace((void *)baseAddr,
-                            3*sizeof(int),
-                            (void *)&struc)) {
-            fprintf(stderr, "Warning: failed to read data space\n");
-            return false;
-        }
-        // We got the first three; slurp the fourth.
-        int temp = (int) struc.tid;
-        if (!writeDataSpace((void *)(baseAddr +  + (3*sizeof(int))),
-                            sizeof(int),
-                            (void *)&temp)) {
-            fprintf(stderr, "Warning: failed to read data space\n");
-            return false;
-        }
-    }
-    return true;
-}
-        
-        
 
 bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
 {

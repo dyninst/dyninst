@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.108 2006/05/31 17:15:46 legendre Exp $
+// $Id: linux-x86.C,v 1.109 2006/06/11 00:35:24 legendre Exp $
 
 #include <fstream>
 
@@ -124,7 +124,7 @@ const int FPREGS_STRUCT_SIZE = sizeof( user_fpregs_struct );
 const int FPREGS_STRUCT_SIZE = sizeof( user_i387_struct );
 #endif
 
-#define P_offsetof(s, m) (unsigned) &(((s *) NULL)->m)
+#define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
 /* ********************************************************************** */
 
@@ -177,7 +177,9 @@ bool dyn_lwp::changePC(Address loc,
    Address regaddr = P_offsetof(struct user_regs_struct, PTRACE_REG_IP);
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
-   if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__ )) {
+   if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc, 
+		       &ptrace_errno, proc_->getAddressWidth(),  
+		       __FILE__, __LINE__ )) {
       fprintf(stderr, "dyn_lwp::changePC - PTRACE_POKEUSER failure for %u",
               get_lwp_id());
       return false;

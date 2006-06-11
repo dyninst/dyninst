@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.20 2006/05/25 20:11:45 bernat Exp $
+// $Id: image-func.h,v 1.21 2006/06/11 00:35:07 legendre Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -332,12 +332,12 @@ class image_func : public codeRange {
    // Parsing support methods
    ////////////////////////////////////////////////
 
-   void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
+   void parseSharedBlocks(image_basicBlock * firstBlock,
                 BPatch_Set< Address > &leaders,
                 dictionary_hash< Address, image_basicBlock * > &leadersToBlock,
                 BPatch_Set< image_basicBlock* > &parserVisited,
                 Address & funcEnd);
-   void image_func::parseSharedBlocks(image_basicBlock * firstBlock);
+   void parseSharedBlocks(image_basicBlock * firstBlock);
 
    // Helper function: create a new basic block and add to various data
    // structures (if the new addr is valid)
