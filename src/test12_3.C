@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_3.C,v 1.4 2006/06/08 12:25:13 jaw Exp $
+// $Id: test12_3.C,v 1.5 2006/06/11 00:35:31 legendre Exp $
 /*
  * #Name: test12_3
  * #Desc: thread create callback
@@ -176,9 +176,6 @@ bool mutatorTest3and4(int testno, const char *testname)
     }
     bpatch->pollForStatusChange();
     if (appThread->isStopped()) {
-       //  this should cause the test to fail, but for the moment we're
-       //  just gonna continue it and complain
-       fprintf(stderr, "%s[%d]:  BAD NEWS:  somehow the process stopped\n", __FILE__, __LINE__);
        appThread->continueExecution();
     }
     appProc->getThreads(threads);
@@ -255,7 +252,9 @@ bool mutatorTest3and4(int testno, const char *testname)
 }
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-  return mutatorTest3and4(TESTNO, TESTNAME);
+  if (mutatorTest3and4(TESTNO, TESTNAME))
+    return 0;
+  return -1;
 }
 
 extern "C" int mutatorMAIN(ParameterDict &param)

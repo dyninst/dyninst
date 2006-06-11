@@ -28,7 +28,6 @@
 #define MUTEX_LOCK_FUNC "pthread_mutex_lock"
 #define MUTEX_UNLOCK_FUNC "pthread_mutex_unlock"
 #define MUTEX_DESTROY_FUNC "pthread_mutex_destroy"
-#define TEST12_LIBNAME "./libTest12.so"
 #endif
 typedef enum {
    null_event = 3,
@@ -44,10 +43,18 @@ typedef enum {
    test3_event3
 } user_event_t;
 
+#if defined(m32_test)
+typedef struct {
+  unsigned int id;
+  user_event_t what; 
+  unsigned long long int tid;
+} user_msg_t;
+#else
 typedef struct {
   unsigned int id;
   user_event_t what; 
   unsigned long tid;
 } user_msg_t;
+#endif
 
 #endif

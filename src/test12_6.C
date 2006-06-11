@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_6.C,v 1.1 2006/06/08 12:25:13 jaw Exp $
+// $Id: test12_6.C,v 1.2 2006/06/11 00:35:34 legendre Exp $
 /*
  * #Name: test12_6
  * #Desc: thread exit callback -- doa
@@ -182,11 +182,12 @@ bool mutatorTest5and6(int testno, const char *testname)
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined (os_none)
-  return mutatorTest5and6(TESTNO, TESTNAME);
+  if (mutatorTest5and6(TESTNO, TESTNAME))
+    return 0;
+  return -1;
 #else
   SKIP(TESTNO, TESTNAME);
-  return true;
-
+  return 0;
 #endif
 }
 

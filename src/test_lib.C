@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.19 2006/06/06 00:45:50 legendre Exp $
+// $Id: test_lib.C,v 1.20 2006/06/11 00:35:37 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -1627,6 +1627,7 @@ void dumpVars(BPatch_image *appImage)
 bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
+   int addr_size = appImage->getProcess()->getAddressWidth();
    void *buf = addr;
    if (NULL == (v = appImage->findVariable(vname))) {
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
@@ -1635,7 +1636,7 @@ bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
       return false;
    }
 
-   if (! v->writeValue(buf, sizeof(int),true)) {
+   if (! v->writeValue(buf, addr_size, true)) {
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
       fprintf(stderr, "  failed to write call site var to mutatee\n");
       return false;
@@ -1647,6 +1648,7 @@ bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
 bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
+   int addr_size = appImage->getProcess()->getAddressWidth();
    if (NULL == (v = appImage->findVariable(vname))) {
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
       fprintf(stderr, "  cannot find variable %s: avail vars:\n", vname);
@@ -1654,7 +1656,7 @@ bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
       return false;
    }
 
-   if (! v->readValue(addr, sizeof(int))) {
+   if (! v->readValue(addr, addr_size)) {
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
       fprintf(stderr, "  failed to read var in mutatee\n");
       return false;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_1.C,v 1.5 2006/06/08 12:25:13 jaw Exp $
+// $Id: test12_1.C,v 1.6 2006/06/11 00:35:29 legendre Exp $
 /*
  * #Name: test12_1
  * #Desc: rtlib spinlocks
@@ -105,7 +105,7 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
           int code = proc->getExitCode();
           dprintf("%s[%d]:  exited normally with code %d\n",
                   __FILE__, __LINE__, code);
-          if (code != 0) return 0;
+          if (code != 0) return -1;
           break;
          }
        case ExitedViaSignal:
@@ -113,14 +113,14 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
           int code = proc->getExitSignal();
           fprintf(stderr, "%s[%d]:  exited with signal %d\n",
                   __FILE__, __LINE__, code);
-          return 0;
+          return -1;
           break;
          }
        case NoExit:
        default:
           fprintf(stderr, "%s[%d]:  did not exit ???\n",
                   __FILE__, __LINE__);
-          return 0;
+          return -1;
           break;
      };
    }
@@ -129,18 +129,16 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
      FAIL_MES(TESTNO, TESTNAME);
      fprintf(stderr, "%s[%d]:  test timed out.\n",
             __FILE__, __LINE__);
-     return 0;
+     return -1;
    }
 
   PASS_MES(TESTNO,TESTNAME);
-  delete(proc);
-  return 1;
+  return 0;
 }
 
 
 extern "C" int mutatorMAIN(ParameterDict &param)
 {
-   fprintf(stderr, "%s[%d]:  welcome to mutatorMAIN for test12_1\n", __FILE__, __LINE__);
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
