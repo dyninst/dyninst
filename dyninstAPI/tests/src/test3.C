@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.50 2006/06/12 17:46:59 jaw Exp $
+// $Id: test3.C,v 1.51 2006/06/12 20:02:28 jodom Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -61,13 +61,13 @@
 #include <string.h>
 #include <stdarg.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #ifdef i386_unknown_nt4_0
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winbase.h>
 #define unlink _unlink
 #else
+#include <sys/wait.h>
 #include <unistd.h>
 #endif
 
@@ -944,7 +944,7 @@ void mutatorTest7(char *pathname, BPatch *bpatch)
    ////////////////////////////
    ////////////////////////////
 
-    BPatch_snippet *irpcSnippets[Mutatees];
+    BPatch_snippet **irpcSnippets = new BPatch_snippet*[Mutatees];
 
     // Build snippets for each mutatee
     for (unsigned i = 0; i < Mutatees; i++) {
@@ -1021,6 +1021,8 @@ void mutatorTest7(char *pathname, BPatch *bpatch)
         printf("Passed Test #7 (simultaneous multiple-process management - oneTimeCode)\n");
         passedTest[7] = true;
     }
+
+	delete irpcSnippets;
 }
 
 int main(unsigned int argc, char *argv[])
