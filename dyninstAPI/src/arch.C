@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.4 2006/04/12 16:59:13 bernat Exp $
+// $Id: arch.C,v 1.5 2006/06/12 17:46:57 jaw Exp $
 // Code generation
 
 //////////////////////////
@@ -51,7 +51,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common/h/Types.h"
+#if defined (os_osf)
+#include <malloc.h>
+#endif
 #include "arch.h"
+#include "util.h"
 
 #if defined(arch_x86) || defined(arch_x86_64)
 #define CODE_GEN_OFFSET_SIZE 1
@@ -144,13 +148,27 @@ codeGen &codeGen::operator=(const codeGen &g) {
     return *this;
 }
 
-void codeGen::allocate(unsigned size) {
+void codeGen::allocate(unsigned size) 
+{
     // No implicit reallocation
     assert(buffer_ == NULL);
     size_ = size;
     offset_ = 0;
     buffer_ = (codeBuf_t *)malloc(size);
     allocated_ = true;
+    if (!buffer_) {
+      fprintf(stderr, "%s[%d]:  malloc (%d) failed: %s\n", FILE__, __LINE__, size, strerror(errno));
+#if defined (os_osf)
+    //struct mallinfo my_mallinfo  = mallinfo();
+    //extern struct mallinfo = mallinfo();
+    fprintf(stderr, "malloc info:\n");
+    fprintf(stderr, "\t arena = %d\n", mallinfo().arena);
+    fprintf(stderr, "\t ordblocks = %d\n", mallinfo().ordblks);
+    fprintf(stderr, "\t free ordblocks = %d\n", mallinfo().fordblks);
+    fprintf(stderr, "\t smblocks = %d\n", mallinfo().smblks);
+    fprintf(stderr, "\t free smblocks = %d\n", mallinfo().fsmblks);
+#endif
+    }
     assert(buffer_);
 }
 

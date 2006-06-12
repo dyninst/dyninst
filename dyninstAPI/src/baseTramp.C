@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.37 2006/05/24 18:13:59 mjbrim Exp $
+// $Id: baseTramp.C,v 1.38 2006/06/12 17:46:57 jaw Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -294,7 +294,8 @@ unsigned baseTrampInstance::get_size_cr() const {
 
 bool baseTrampInstance::generateCode(codeGen &gen,
                                      Address baseInMutatee,
-                                     UNW_INFO_TYPE ** unwindRegion) {
+                                     UNW_INFO_TYPE ** unwindRegion) 
+{
   inst_printf("baseTrampInstance %p ::generateCode(%p, 0x%x, %d)\n",
 	      this, gen.start_ptr(), baseInMutatee, gen.used());
   

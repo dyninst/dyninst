@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.27 2006/05/30 23:33:57 mjbrim Exp $
+// $Id: miniTramp.C,v 1.28 2006/06/12 17:46:57 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -140,7 +140,8 @@ void miniTramp::deleteMTI(miniTrampInstance *mti) {
 // Defined in multiTramp.C, dinky "get the debugger to stop here" function.
 extern void debugBreakpoint();
 
-bool miniTramp::generateMT() {
+bool miniTramp::generateMT() 
+{
     //inst_printf("AST pointer is %p\n", ast_);
 
     // This can be called multiple times

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.661 2006/06/11 00:35:25 legendre Exp $
+// $Id: process.C,v 1.662 2006/06/12 17:46:57 jaw Exp $
 
 #include <ctype.h>
 
@@ -3927,7 +3927,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
 }
 
 void process::set_status(processState st,
-			 bool global /* = true */,
+			 bool global_st /* = true */,
 			 bool override /* = false */) 
 {
     // There's a state machine:
@@ -3950,7 +3950,8 @@ void process::set_status(processState st,
         case stopped:
             if (st == neonatal) {
                 fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %s to %s\n",
-                        FILE__, __LINE__, processStateAsString(status_), processStateAsString(st));
+                        FILE__, __LINE__, processStateAsString(status_), 
+                        processStateAsString(st));
             }
             else
                 status_ = st;
@@ -3960,7 +3961,8 @@ void process::set_status(processState st,
                 (st == running) ||
                 (st == stopped)) {
                 fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %s to %s\n",
-                        FILE__, __LINE__, processStateAsString(status_), processStateAsString(st));
+                        FILE__, __LINE__, processStateAsString(status_), 
+                        processStateAsString(st));
             }
             else
                 status_ = st;
@@ -3971,7 +3973,8 @@ void process::set_status(processState st,
                 (st == stopped) ||
                 (st == detached)) {
                 fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %s to %s\n",
-                        FILE__, __LINE__, processStateAsString(status_), processStateAsString(st));
+                        FILE__, __LINE__, processStateAsString(status_), 
+                        processStateAsString(st));
             }
             else
                 status_ = st;
@@ -3983,7 +3986,8 @@ void process::set_status(processState st,
                 (st == detached) ||
                 (st == exited)) {
                 fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %s to %s\n",
-                        FILE__, __LINE__, processStateAsString(status_), processStateAsString(st));
+                        FILE__, __LINE__, processStateAsString(status_), 
+                        processStateAsString(st));
             }
             else
                 status_ = st;
@@ -3992,10 +3996,10 @@ void process::set_status(processState st,
             // ???
             assert(0);
             break;
-        }
+        };
     }
 
-    if (!global) return;
+    if (!global_st) return;
 
    proccontrol_printf("[%s:%u] - Setting everyone to state %s\n",
                       FILE__, __LINE__, 

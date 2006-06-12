@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.51 2006/06/05 22:30:13 bernat Exp $
+// $Id: multiTramp.C,v 1.52 2006/06/12 17:46:57 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -801,7 +801,8 @@ void debugBreakpoint() {
 // a jump into the inputs.
 bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
                               Address /*baseInMutatee*/,
-                              UNW_INFO_TYPE * * /* ignored */) {
+                              UNW_INFO_TYPE * * /* ignored */) 
+{
     unsigned size_required = 0;
 
     generatedCFG_t::iterator cfgIter;
@@ -1464,7 +1465,8 @@ Address multiTramp::uninstToInstAddr(Address addr) {
 // instrumentation state. If not, regenerate the multiTramp; this may be
 // done in-place or via replacement.
 
-multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() {
+multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() 
+{
     updateInstInstances();
     if (hasChanged()
 #if defined(os_aix) && defined(BPATCH_LIBRARY) 
