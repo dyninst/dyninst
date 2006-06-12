@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.51 2006/06/12 20:02:28 jodom Exp $
+// $Id: test3.C,v 1.52 2006/06/12 21:28:40 bernat Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -863,7 +863,9 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
             printf("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
-#if 0
+#if !defined(os_aix) && !defined(os_solaris) && !defined(os_alpha)
+        // This will work on Linux (and others?), but not AIX/Solaris due to waitpid not working
+        // on non-children.
         if(appThread[n]->terminationStatus() != ExitedViaSignal) {
             printf("**Failed** test #6 (simultaneous multiple-process management - attach terminate)\n");
             printf("    mutatee process [%d] didn't get notice of termination\n", n);
