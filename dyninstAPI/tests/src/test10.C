@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test10.C,v 1.11 2006/06/13 10:12:15 jaw Exp $
+// $Id: test10.C,v 1.12 2006/06/13 15:57:12 bernat Exp $
 //
 // libdyninst validation suite test #10
 //    Author: Jeff Hollingsworth Williams (14 aug 2003) 
@@ -318,8 +318,8 @@ int mutatorMAIN(char *pathname)
     appImage = appThread->getImage();
 
     if (runTest[1]) mutatorTest1(appThread, appImage);
-    if (runTest[3]) mutatorTest3(appThread, appImage);
     if (runTest[2]) mutatorTest2(appThread, appImage);
+    if (runTest[3]) mutatorTest3(appThread, appImage);
     if (runTest[4]) mutatorTest4(appThread, appImage);
 
     appThread->continueExecution();
