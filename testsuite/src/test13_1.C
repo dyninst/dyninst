@@ -54,6 +54,9 @@ unsigned error13 = 0;
 unsigned thread_count;
 static char dyn_tids[NUM_THREADS];
 static char deleted_tids[NUM_THREADS];
+// We can get extra threads; add a layer of indirection. Yay.
+static int our_tid_max = 0;
+static char thread_mapping[NUM_THREADS];
 static int deleted_threads;
 bool create_proc = true;
 
@@ -63,6 +66,13 @@ bool debug_flag = false;
 #define NUM_FUNCS 6
 char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "mainCRTStartup"};
 
+int bpindex_to_myindex(int index) {
+    for (unsigned i = 0; i < our_tid_max; i++) {
+        if (thread_mapping[i] == index) return i;
+    }
+    return -1;
+}
+
 void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    dprintf(stderr, "%s[%d]:  welcome to deadthr\n", __FILE__, __LINE__);
@@ -71,10 +81,15 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
             __FILE__, __LINE__);
      return;
    }
-   unsigned my_dyn_id = thr->getBPatchID();
+   unsigned my_dyn_id = bpindex_to_myindex(thr->getBPatchID());
+   if (-1 == my_dyn_id) {
+      return;
+   }
+
    if (my_proc != proc)
    {
-      fprintf(stderr, "[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
+      fprintf(stderr, "[%s:%u] - Got invalid process: %p vs %p\n", __FILE__,
+	      __LINE__, my_proc, proc);
       error13 = 1;
    }
    deleted_tids[my_dyn_id] = 1;
@@ -85,12 +100,11 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    dprintf(stderr, "%s[%d]:  welcome to newthr, error13 = %d\n", __FILE__, __LINE__, error13);
-   unsigned my_dyn_id = thr->getBPatchID();
 
    if (my_proc != proc)
    {
-      fprintf(stderr, "[%s:%u] - Got invalid process\n", 
-              __FILE__, __LINE__);
+      fprintf(stderr, "[%s:%u] - Got invalid process: %p vs %p\n", 
+              __FILE__, __LINE__, my_proc, proc);
       error13 = 1;
    }
 
@@ -100,7 +114,8 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       error13 = 1;
       return;
    }
-   dprintf(stderr, "%s[%d]:  newthr: BPatchID = %d\n", __FILE__, __LINE__, my_dyn_id);
+
+   dprintf(stderr, "%s[%d]:  newthr: BPatchID = %d\n", __FILE__, __LINE__, thr->getBPatchID());
    //Check initial function
    static char name[1024];
    BPatch_function *f = thr->getInitialFunc();   
@@ -120,25 +135,24 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    //currently leaving disabled.
    if (!found_name)
    {
-      fprintf(stderr, "[%s:%d] - Thread %d has '%s' as initial function\n",
-              __FILE__, __LINE__, my_dyn_id, name);
-      error13 = 1;
+       // We can get unexpected threads with different initial functions; do not include
+       // them (but don't consider it an error). If we don't walk the stack right, then
+       // we won't have enough expected threads and so check it later.
+      fprintf(stderr, "[%s:%d] - Thread %d has unexpected initial function '%s'; ignoring\n",
+              __FILE__, __LINE__, thr->getBPatchID(), name);
+      //      error13 = 1; // This shouldn't be an error, according to the comment above.
+      return;
    }
 
-   //Check that thread_id is unique
-   if (my_dyn_id >= NUM_THREADS)
-   {
-      fprintf(stderr, "[%s:%d] - WARNING: Thread ID %d out of range\n",
-              __FILE__, __LINE__, my_dyn_id);
-      return;
-   }
-   if (dyn_tids[my_dyn_id])
-   {
+   if (bpindex_to_myindex(thr->getBPatchID()) != -1) {
       fprintf(stderr, "[%s:%d] - WARNING: Thread %d called in callback twice\n",
-              __FILE__, __LINE__, my_dyn_id);
+              __FILE__, __LINE__, thr->getBPatchID());
       return;
    }
-   dyn_tids[my_dyn_id] = 1;
+
+   unsigned my_dyn_id = our_tid_max; our_tid_max++;
+
+   thread_mapping[my_dyn_id] = thr->getBPatchID();
 
    //Stacks should be unique and non-zero
    static unsigned long stack_addrs[NUM_THREADS];
@@ -154,7 +168,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       for (unsigned i=0; i<NUM_THREADS; i++)
          if (stack_addrs[i] == my_stack)
          {
-            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a stack at %x\n",
+            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a stack at %lx\n",
                     __FILE__, __LINE__, my_dyn_id, i, my_stack);
             error13 = 1;
          }
@@ -174,13 +188,14 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
-            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a tid of %u\n",
+            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a tid of %lu\n",
                     __FILE__, __LINE__, my_dyn_id, i, mytid);
             error13 = 1;
       }
    pthread_ids[my_dyn_id] = mytid;
 
    thread_count++;
+   dyn_tids[my_dyn_id] = 1;
    dprintf(stderr, "%s[%d]:  leaving newthr: error13 = %d\n", __FILE__, __LINE__, error13);
 }
 
@@ -205,6 +220,8 @@ void upgrade_mutatee_state()
 #define MAX_ARGS 32
 char *filename = "test13.mutatee_gcc";
 char *args[MAX_ARGS];
+char *create_arg = "-create";
+unsigned num_args = 0; 
 
 static BPatch_process *getProcess()
 {
@@ -212,6 +229,7 @@ static BPatch_process *getProcess()
 
    BPatch_process *proc;
    if (create_proc) {
+      args[1] = create_arg; // I don't think this does anything.
       proc = bpatch->processCreate(filename, (const char **) args);
       if(proc == NULL) {
          fprintf(stderr, "%s[%d]: processCreate(%s) failed\n", 
@@ -254,7 +272,7 @@ static int mutatorTest(BPatch *bpatch)
    proc = getProcess();
    if (!proc)
       return -1;
-   
+
    proc->continueExecution();
 
    // Wait for NUM_THREADS new thread callbacks to run
