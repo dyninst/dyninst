@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.664 2006/06/13 08:46:37 jaw Exp $
+// $Id: process.C,v 1.665 2006/06/13 19:36:14 bernat Exp $
 
 #include <ctype.h>
 
@@ -1898,8 +1898,9 @@ process::~process()
 
     // We require explicit detaching if the process still exists.
     // On the other hand, if it never started...
-    if (reachedBootstrapState(bootstrapped_bs))
+    if (reachedBootstrapState(bootstrapped_bs)) {
         assert(!isAttached());
+    }
 
 #if defined( ia64_unknown_linux2_4 )
 	upaIterator iter = unwindProcessArgs.begin();
@@ -3680,7 +3681,8 @@ bool process::terminateProc()
 {
    if(status() == exited || status() == deleted || status() == detached
       || !sh->isRunning()) {
-     return false;
+       set_status(exited);
+       return false;
    }
    terminateProcStatus_t retVal = terminateProc_();
    switch (retVal) {
@@ -3699,6 +3701,7 @@ bool process::terminateProc()
           sh->signalActiveProcess();
       }
       sh->waitForEvent(evtProcessExit);
+      set_status(exited);
      return true;
      }
      break;
@@ -3709,6 +3712,7 @@ bool process::terminateProc()
      return true;
      break;
    case terminateFailed:
+       set_status(exited);
      return false;
      break;
 
