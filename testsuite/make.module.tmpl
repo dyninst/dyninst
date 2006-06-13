@@ -216,11 +216,12 @@ MUTATEES_FORTRAN = test1.mutatee
 
 FORALL_MUTATEES = mutatee_util
 
-TESTLIB_STEMS 	+= libtestA libtestB libTest12 libInstMe libLoadMe
+TESTLIB_STEMS 	+= libtestA libtestB libInstMe libLoadMe
 TESTLIBS = $(addsuffix .so, $(TESTLIB_STEMS))
 
 ifdef M_ABI
 TESTLIBS_ABI = $(addsuffix _$(M_ABI).so, $(TESTLIB_STEMS))
+TESTLIBS_ABI += libTest12_$(M_ABI).so
 endif
 
 SRCS_LIBTESTSUITE = test_lib.C \
@@ -313,6 +314,7 @@ OBJS_ALL_MUTATORS               = $(OBJS_MUTATORS) \
 
 ALL_TARGETS			= $(MUTATORS_SO) $(MUTATEES_GCC) $(MUTATEES_GXX)
 ALL_TARGETS			+= $(TESTLIBS)
+ALL_TARGETS			+= libTest12.so
 ALL_TARGETS			+= test11
 ALL_TARGETS                     += runTests
 ALL_TARGETS                     += test_driver
@@ -440,7 +442,7 @@ mutators: $(MUTATORS_SO) test11
 mutatees: gnu_mutatees native_mutatees
 gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
 native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
-testlibs: $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE)
+testlibs: $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) libTest12.so
 
 drivers: test_driver runTests
 
@@ -487,6 +489,14 @@ $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
 	$(CXX) -shared $(LIBDIR) -ldyninstAPI $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
+
+libTest12.so: libTest12.c $(DEPENDDIR)/libTest12.dep
+ifdef MAKE_SHARED_LIB
+	$(CC) -g -c $(CFLAGS) -I$(TO_CORE)/dyninst_RT/h $(CFLAGS_TESTLIBS) $(filter %.c, $^)  -o libTest12.o
+	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $(LIBTEST12_FLAGS) libTest12.o -o $@
+else
+	$(CC) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $(LIBTEST12_FLAGS) $(filter %.c, $^) -o $@
+endif
 
 #######################################################################
 ###  Special Prerequisites for specific Mutatees:
@@ -762,6 +772,7 @@ DEPS_MUTATEES_GCC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _gcc.dep, $(MUTATEES_
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX)))
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX_ONLY)))
 DEPS_TESTLIBS	 	+= $(addprefix $(DEPENDDIR)/,$(addsuffix .dep,$(TESTLIB_STEMS)))
+DEPS_TESTLIBS		+= $(DEPENDDIR)/libTest12.dep
 DEPS_LIBTESTSUITE        = $(addprefix $(DEPENDDIR)/,$(SRCS_LIBTESTSUITE:%.C=%.dep))
 
 ifdef M_G77

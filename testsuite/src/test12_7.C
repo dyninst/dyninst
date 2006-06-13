@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_7.C,v 1.2 2006/06/11 00:35:35 legendre Exp $
+// $Id: test12_7.C,v 1.3 2006/06/13 18:45:47 jaw Exp $
 /*
  * #Name: test12_7
  * #Desc: user defined message callback -- st
@@ -61,8 +61,8 @@ using std::vector;
 #define TESTNO 7
 #define TESTNAME "user defined message callback -- st"
 
-int debugPrint;
-BPatch *bpatch;
+extern int debugPrint;
+extern BPatch *bpatch;
 BPatch_thread *appThread;
 BPatch_image *appImage;
 
@@ -269,11 +269,12 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   }
  //  unset mutateeIdle to trigger mutatee to issue messages.
 
+  dprintf("%s[%d]:  un-setting mutateeIdle...  to wait for completion\n", __FILE__, __LINE__);
   int zero = 0;
-  int timeout = 0;
   setVar("mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
   appThread->getProcess()->continueExecution();
 
+  int timeout = 0;
   //  wait until we have received the desired number of events
   //  (or timeout happens)
   while(!test7err && !test7done && (timeout < TIMEOUT)) {
@@ -284,8 +285,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
   if (timeout >= TIMEOUT) {
     FAIL_MES(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  test timed out.\n",
-           __FILE__, __LINE__);
+    fprintf(stderr, "%s[%d]:  test timed out: %d ms\n",
+           __FILE__, __LINE__, TIMEOUT);
     test7err = true;
   }
 

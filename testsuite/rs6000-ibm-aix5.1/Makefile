@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2006/06/08 00:49:17 legendre Exp $
+# $Id: Makefile,v 1.6 2006/06/13 18:45:47 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -64,7 +64,8 @@ MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CFLAGS_GNU)
 MUTATEE_LDFLAGS_NATIVE += -bnoobjreorder -bgcbypass:3 -g -DAIX5 -Drs6000_ibm_aix4_1 -D__XLC__
  
 CFLAGS_TESTLIBS = -I../src -I$(TO_CORE)/dyninstAPI_RT/h
-TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok
+TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok -bnoobjreorder
+LIBTEST12_FLAGS = $(TESTLIB_FLAGS) -lc -L$(TO_CORE)/dyninstAPI_RT/$(PLATFORM) -ldyninstAPI_RT -lpthread
 MAKE_SHARED_LIB = ld
 
 
