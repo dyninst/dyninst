@@ -46,6 +46,7 @@ Global
 		{04AFA4EA-A91A-4F10-A494-9BBE70B49CCD}.Debug.ActiveCfg = Debug
 		{04AFA4EA-A91A-4F10-A494-9BBE70B49CCD}.Release.ActiveCfg = Release
 		{CE1446AB-D215-436F-9965-DD7C3CEC08A4}.Debug.ActiveCfg = Debug|Win32
+		{CE1446AB-D215-436F-9965-DD7C3CEC08A4}.Debug.Build.0 = Debug|Win32
 		{CE1446AB-D215-436F-9965-DD7C3CEC08A4}.Release.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
