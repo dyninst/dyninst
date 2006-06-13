@@ -639,6 +639,7 @@ void func7_1()
       functions
   */
   int x = 0;
+  dprintf("%s[%d]:  before call7_1\n", __FILE__, __LINE__);
   x = call7_1();
 
   mutateeIdle = 1;
