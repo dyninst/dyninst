@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.13 2006/06/13 08:46:37 jaw Exp $
+ * $Id: arch-sparc.C,v 1.14 2006/06/13 15:56:54 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -960,3 +960,28 @@ void instruction::get_register_operands(InsnRegister* rd,
         }
         return;
 }
+
+unsigned instruction::spaceToRelocate() const {
+    
+    unsigned size_required = 0;
+
+    if (isInsnType(CALLmask, CALLmatch)) {
+        // We can use the same format.
+        size_required += instruction::size();
+    } else if (isInsnType(BRNCHmask, BRNCHmatch) ||
+               isInsnType(FBRNCHmask, FBRNCHmatch)) {
+        // Worst case: 3 insns (save, call, restore)
+        size_required += 3*instruction::size();
+    }
+    else {
+        // Relocate "in place"
+        size_required += instruction::size();
+    }
+    
+    if (isDCTI()) {
+        size_required += 2*instruction::size();
+    }
+
+    return size_required;
+}
+

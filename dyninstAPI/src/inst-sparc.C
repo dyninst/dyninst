@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.183 2006/05/31 21:49:39 bernat Exp $
+// $Id: inst-sparc.C,v 1.184 2006/06/13 15:56:54 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -781,32 +781,8 @@ extern void sorted_ips_vector(pdvector<instPoint*>&fill_in);
 // anywhere in the address space.
 
 unsigned relocatedInstruction::maxSizeRequired() {
-
-    unsigned size_required = 0;
-
-    if (insn->isInsnType(CALLmask, CALLmatch)) {
-        // We can use the same format.
-        size_required += instruction::size();
-    } else if (insn->isInsnType(BRNCHmask, BRNCHmatch) ||
-               insn->isInsnType(FBRNCHmask, FBRNCHmatch)) {
-        // Worst case: 3 insns (save, call, restore)
-        size_required += 3*instruction::size();
-    }
-    else {
-        // Relocate "in place"
-        size_required += instruction::size();
-    }
-
-    if (insn->isDCTI()) {
-        if (ds_insn)
-            size_required += instruction::size();
-        if (agg_insn)
-            size_required += instruction::size();
-    }
-
-    return size_required;
+    return insn->spaceToRelocate();
 }
-
 
 
 /****************************************************************************/
