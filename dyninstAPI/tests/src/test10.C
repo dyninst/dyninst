@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test10.C,v 1.9 2006/05/25 12:47:39 jaw Exp $
+// $Id: test10.C,v 1.10 2006/06/13 08:46:39 jaw Exp $
 //
 // libdyninst validation suite test #10
 //    Author: Jeff Hollingsworth Williams (14 aug 2003) 
@@ -212,6 +212,13 @@ void instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, c
     exit(1);
   }
 
+  if (((*point1_1).size() > 1)) {
+    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo,testName);
+    fprintf(stderr, "    Too many entry points for \"%s.\"\n",instrumentee);
+    exit(1);
+  }
+
+  fprintf(stderr, "%s[%d]:  address of entry point = 0x%x\n", __FILE__, __LINE__, (*point1_1)[0]->getAddress());
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(patch, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
@@ -311,8 +318,8 @@ int mutatorMAIN(char *pathname)
     appImage = appThread->getImage();
 
     if (runTest[1]) mutatorTest1(appThread, appImage);
-    if (runTest[2]) mutatorTest2(appThread, appImage);
     if (runTest[3]) mutatorTest3(appThread, appImage);
+    if (runTest[2]) mutatorTest2(appThread, appImage);
     if (runTest[4]) mutatorTest4(appThread, appImage);
 
     appThread->continueExecution();

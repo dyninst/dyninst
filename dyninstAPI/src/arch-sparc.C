@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.12 2006/05/30 20:48:58 bernat Exp $
+ * $Id: arch-sparc.C,v 1.13 2006/06/13 08:46:37 jaw Exp $
  */
 
 #include "common/h/Types.h"
@@ -612,7 +612,7 @@ bool instruction::generate(codeGen &gen,
             instruction nextInsn = callTarget.getNextInstruction();
 
             if (callInsn.isInsnType(RETLmask, RETLmatch)) {
-                inst_printf("Call to immediate return\n");
+                inst_printf("%s[%d]: Call to immediate return\n", FILE__, __LINE__);
                 // The old version (in LocalAlteration-Sparc.C)
                 // is _incredibly_ confusing. This should work, 
                 // assuming an iterator-unwound delay slot.
@@ -638,7 +638,7 @@ bool instruction::generate(codeGen &gen,
               (*newInsn).call.disp30 = (int)(newLongOffset >> 2);
               
               newInsn.generate(gen);
-              inst_printf("Relocating call, displacement 0x%x\n", newLongOffset);
+              inst_printf("%s[%d]: Relocating call, displacement 0x%x, relocAddr = 0x%x\n", FILE__, __LINE__, newLongOffset, relocAddr);
             }
         }
     } else if (isInsnType(BRNCHmask, BRNCHmatch)||

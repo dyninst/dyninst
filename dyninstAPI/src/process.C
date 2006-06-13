@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.663 2006/06/13 04:21:10 legendre Exp $
+// $Id: process.C,v 1.664 2006/06/13 08:46:37 jaw Exp $
 
 #include <ctype.h>
 
@@ -6648,11 +6648,13 @@ Address process::stepi(bool verbose, int lwp) {
    return nexti;
 }
 
-void process::disass(Address start, Address end) {
+void process::disass(Address start, Address end) 
+{
    disass(start, end, false);
 }
 
-void process::disass(Address start, Address end, bool leave_files) {
+void process::disass(Address start, Address end, bool leave_files) 
+{
    int size = end - start;
    if (size < 0)
       return;
