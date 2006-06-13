@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.18 2006/06/08 21:17:55 bernat Exp $
+// $Id: dynamiclinking.C,v 1.19 2006/06/13 04:21:00 legendre Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -205,11 +205,32 @@ bool dynamic_linking::didLinkMapsChange(u_int &change_type, pdvector<fileDescrip
       return false;
   }
 
-  //  override change_type if we have definite evidence of a size chanage
+  unsigned curr_size = curr_list.size();
+  unsigned descs_size = new_descs.size();
+#if defined(os_linux)
+  // The current mapped object list contains the a.out, the 
+  // result from processLinkMaps does not.  Correct this  
+  // when accounting for size.
+  for (unsigned i = 0; i < curr_list.size(); i++) {
+    if (curr_list[i] == proc->getAOut()) {
+      curr_size--;
+      break;
+    }
+  }
+
+  //Also make sure that we don't start accidently counting the a.out
+  for (unsigned i = 0; i < new_descs.size(); i++) {
+    if (!new_descs[i].isSharedObject()) {
+      descs_size--;
+      break;
+    }
+  }
+#endif
+ //  override change_type if we have definite evidence of a size chanage
   //  in the link maps
-  if (curr_list.size() > new_descs.size())
+  if (curr_size > descs_size)
        change_type = SHAREDOBJECT_REMOVED;
-   else if (curr_list.size() < new_descs.size())
+  else if (curr_size < descs_size)
        change_type = SHAREDOBJECT_ADDED;
 
   return true;

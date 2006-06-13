@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.662 2006/06/12 17:46:57 jaw Exp $
+// $Id: process.C,v 1.663 2006/06/13 04:21:10 legendre Exp $
 
 #include <ctype.h>
 
@@ -4177,8 +4177,6 @@ bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
 
      case SHAREDOBJECT_ADDED:
        signal_printf("%s[%d]:  SHAREDOBJECT_ADDED\n", FILE__, __LINE__);
-       assert(changed_objs.size());
-
        for(u_int i=0; i < changed_objs.size(); i++) {
  	   if (changed_objs[i]->fileName().length()==0) {
                cerr << "Warning: new shared object with no name!" << endl;
