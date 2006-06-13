@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test10.C,v 1.10 2006/06/13 08:46:39 jaw Exp $
+// $Id: test10.C,v 1.11 2006/06/13 10:12:15 jaw Exp $
 //
 // libdyninst validation suite test #10
 //    Author: Jeff Hollingsworth Williams (14 aug 2003) 
@@ -218,7 +218,7 @@ void instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, c
     exit(1);
   }
 
-  fprintf(stderr, "%s[%d]:  address of entry point = 0x%x\n", __FILE__, __LINE__, (*point1_1)[0]->getAddress());
+  //fprintf(stderr, "%s[%d]:  address of entry point = 0x%x\n", __FILE__, __LINE__, (*point1_1)[0]->getAddress());
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(patch, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
