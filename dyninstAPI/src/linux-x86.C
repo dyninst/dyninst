@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.109 2006/06/11 00:35:24 legendre Exp $
+// $Id: linux-x86.C,v 1.110 2006/06/13 04:21:11 legendre Exp $
 
 #include <fstream>
 
@@ -1383,6 +1383,9 @@ bool process::loadDYNINSTlib_exported()
     // The library name goes first
     dyninstlib_str_addr = codeBase;
     scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+
+    //Fill in with NOPs, see loadDYNINSTlib_hidden
+    scratchCodeBuffer.fill(getAddressWidth(), codeGen::cgNOP);
 
     // Now the real code
     dlopen_call_addr = codeBase + scratchCodeBuffer.used();
