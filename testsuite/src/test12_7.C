@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_7.C,v 1.3 2006/06/13 18:45:47 jaw Exp $
+// $Id: test12_7.C,v 1.4 2006/06/13 19:36:24 bernat Exp $
 /*
  * #Name: test12_7
  * #Desc: user defined message callback -- st
@@ -79,10 +79,10 @@ BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
   }
 
   if (pts->size() != 1) {
-    FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  %d points matching requested location, not 1\n", __FILE__, __LINE__,
-           pts->size());
-    exit(1);
+      FAIL_MES(testno, testname);
+      fprintf(stderr, "%s[%d]:  %d points matching requested location, not 1\n", __FILE__, __LINE__,
+              pts->size());
+      exit(1);
   }
 
   return (*pts)[0];
@@ -262,19 +262,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   BPatchSnippetHandle *exitHandle = at(exit, reportExit, TESTNO, TESTNAME);
   BPatchSnippetHandle *callsiteHandle = at(callsite, reportCallsite, TESTNO, TESTNAME);
 
-
   if (debugPrint) {
      int one = 1;
      setVar("libraryDebug", (void *) &one, TESTNO, TESTNAME);
   }
  //  unset mutateeIdle to trigger mutatee to issue messages.
 
-  dprintf("%s[%d]:  un-setting mutateeIdle...  to wait for completion\n", __FILE__, __LINE__);
-  int zero = 0;
-  setVar("mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
+  int timeout = 0;
+
   appThread->getProcess()->continueExecution();
 
-  int timeout = 0;
   //  wait until we have received the desired number of events
   //  (or timeout happens)
   while(!test7err && !test7done && (timeout < TIMEOUT)) {
@@ -299,6 +296,13 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     return -1;
   }
 
+  int one = 1;
+  setVar("mutateeIdle", (void *) &one, TESTNO, TESTNAME);
+
+  // And let it run out
+  appThread->getProcess()->continueExecution();
+
+  
   if (!test7err) {
     PASS_MES(TESTNO, TESTNAME);
     return 0;
