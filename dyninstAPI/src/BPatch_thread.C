@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.165 2006/06/08 22:13:51 bernat Exp $
+// $Id: BPatch_thread.C,v 1.166 2006/06/13 18:16:43 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -326,13 +326,12 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
                stack_start = (unsigned long) stackWalk[pos].getFP();
            }
            if (!initial_func) {
-	     BPatch_function *func = stackWalk[pos].findFunction();
-	     BPatch_module *mod = func ? func->getModule() : NULL;
-	     if (mod && !mod->isSystemLib())
-	       initial_func = func;
-	       
-	     pos--;
+               BPatch_function *func = stackWalk[pos].findFunction();
+               BPatch_module *mod = func ? func->getModule() : NULL;
+               if (mod && !mod->isSystemLib())
+                   initial_func = func;	       
            }
+           pos--;
        }
        
 #if defined(os_linux)
