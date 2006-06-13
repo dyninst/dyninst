@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.25 2006/05/03 10:57:11 jodom Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.26 2006/06/13 04:21:12 legendre Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -544,12 +544,12 @@ int checkMutatedFile(){
      if(! elfHandle){
         error_msg = dlerror();
         if (error_msg) {
-          fprintf(stderr,"Could not open lib: %s- %s\n","libelf",error_msg);
+          //fprintf(stderr,"Could not open lib: %s- %s\n","libelf",error_msg);
         }
         else{
-          fprintf(stderr, "failure\n");
+          //fprintf(stderr, "failure\n");
         }
-        exit(1);
+	return 0;
      }
 
      Elf_version = (unsigned (*)(unsigned)) dlsym(elfHandle, "elf_version");
