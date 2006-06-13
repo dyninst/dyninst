@@ -626,6 +626,7 @@ int call7_1()
   int x = 0;
   int z = 0;
   int i;
+
   for (i = 0; i < TEST7_NUMCALLS; ++i) {
     z += call7_2(x); 
   }
@@ -639,11 +640,8 @@ void func7_1()
       functions
   */
   int x = 0;
-  dprintf("%s[%d]:  before call7_1\n", __FILE__, __LINE__);
   x = call7_1();
-
-  mutateeIdle = 1;
-  while (mutateeIdle);
+  while (mutateeIdle == 0);
 
   /*free (threads);*/
 }
@@ -687,8 +685,7 @@ void func8_1()
   threads = createThreads(TEST8_THREADS, thread_main8,threads);
   assert (threads);
 
-  mutateeIdle = 1;
-  while (mutateeIdle);
+  while (mutateeIdle == 0);
 
   /*free (threads);*/
 }

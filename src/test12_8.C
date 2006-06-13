@@ -282,9 +282,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   }
 
 
-  int zero = 0;
   int timeout = 0;
-  setVar("mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
   appThread->getProcess()->continueExecution();
 
   //  wait until we have received the desired number of events
@@ -304,6 +302,9 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
   appThread->getProcess()->stopExecution();
 
+  int one = 1;
+  setVar("mutateeIdle", (void *) &one, TESTNO, TESTNAME);
+
   if (!bpatch->removeUserEventCallback(test8cb)) {
     FAIL_MES(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to remove callback\n",
@@ -319,6 +320,9 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   appThread->getProcess()->deleteSnippet(destroyHandle);
   appThread->getProcess()->deleteSnippet(lockHandle);
   appThread->getProcess()->deleteSnippet(unlockHandle);
+
+  appThread->getProcess()->continueExecution();
+
   if (!test8err) {
     PASS_MES(TESTNO, TESTNAME);
     return 0;
