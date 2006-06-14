@@ -1289,6 +1289,12 @@ bool BPatch_module::isSystemLib() {
     if (strstr(str.c_str(), "libthread"))
       return true;
 #endif
+#if defined(os_linux)
+    if (strstr(str.c_str(), "libc.so"))
+      return true;
+    if (strstr(str.c_str(), "libpthread"))
+      return true;
+#endif
 
     if (strstr(str.c_str(), "libdyninstAPI_RT"))
         return true;
