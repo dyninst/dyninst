@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.14 2006/06/13 15:56:54 bernat Exp $
+ * $Id: arch-sparc.C,v 1.15 2006/06/14 18:14:45 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -967,7 +967,8 @@ unsigned instruction::spaceToRelocate() const {
 
     if (isInsnType(CALLmask, CALLmatch)) {
         // We can use the same format.
-        size_required += instruction::size();
+      // We may need 3 more words if it's a getPC jump.
+        size_required += 4*instruction::size();
     } else if (isInsnType(BRNCHmask, BRNCHmatch) ||
                isInsnType(FBRNCHmask, FBRNCHmatch)) {
         // Worst case: 3 insns (save, call, restore)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.52 2006/06/12 17:46:57 jaw Exp $
+// $Id: multiTramp.C,v 1.53 2006/06/14 18:14:45 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -440,6 +440,26 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 #endif
       }   
     }
+
+    assert(prev);
+
+    // Add a trampEnd object for fallthroughs
+    trampEnd *end = NULL;
+    bblInstance *fallthroughInstance = NULL;
+    int_basicBlock *fallthroughBlock = bbl->block()->getFallthrough();
+    if (fallthroughBlock) {
+      fallthroughInstance = fallthroughBlock->instVer(bbl->version());
+      // We really need one of these...
+      assert(fallthroughInstance);
+      end = new trampEnd(newMulti, fallthroughInstance->firstInsnAddr());
+    }
+    else {
+      // No fallthrough... 
+      end = new trampEnd(newMulti, 0);
+    }
+    assert(end);
+    prev->setFallthrough(end);
+    end->setPrevious(prev);
     
     // Put this off until we generate
     //newMulti->updateInstInstances();
@@ -543,39 +563,9 @@ void multiTramp::updateInstInstances() {
         // add a trampEnd if there isn't already one.
         if (!obj->fallthrough_) {
             trampEnd *end = dynamic_cast<trampEnd *>(obj);
-            if (!end) {
-                // This is the end of a chain but we don't have an end
-                // marker. Add one.
 
-                // The question is, where do we jump? We want to go to the
-                // next instruction from the relocated insn. First, find the
-                // relocated instruction (as obj might be a baseTramp)
-#if defined(cap_relocation)
-		// Shouldn't this be immediately after the multiTramp?
-                obj->setFallthrough(new trampEnd(this, instAddr_ + instSize_));
-#else                
-                relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
-                if (!insn) {
-                    assert(dynamic_cast<baseTrampInstance *>(obj));
-                    assert(obj->previous_);
-                    insn = dynamic_cast<relocatedInstruction *>(obj->previous_);
-                }
-                assert(insn);
-                
-                // Let's get the next insn... we can do this with an InstrucIter
-                InstrucIter iter(insn->origAddr_, func());
-                // The delay slot came along with us; don't branch back to it
-                if(iter.isDelaySlot()) {
-                    iter++;
-                }
-                
-                obj->setFallthrough(new trampEnd(this, iter.peekNext()));
-#endif
-
-                obj->fallthrough_->setPrevious(obj);
-
-                changedSinceLastGeneration_ = true;
-            }
+	    // Should have been added in initial generation.
+	    assert(end);
         }
         
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);

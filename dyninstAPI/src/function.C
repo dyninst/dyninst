@@ -469,13 +469,25 @@ EdgeTypeEnum int_basicBlock::getSourceEdgeType(int_basicBlock *source) const {
 
 int_basicBlock *int_basicBlock::getFallthrough() const {
     // We could keep it special...
-    pdvector<int_basicBlock *> outs;
-    getTargets(outs);
-    for (unsigned i = 0; i < outs.size(); i++) {
-        if (outs[i]->origInstance()->firstInsnAddr() == origInstance()->endAddr())
-            return outs[i];
-    }
-    return NULL;
+  pdvector<image_edge *> ib_outs;
+  ib_->getTargets(ib_outs);
+  for (unsigned i = 0; i < ib_outs.size(); i++) {
+    if (ib_outs[i]->getType() == ET_FALLTHROUGH ||
+	ib_outs[i]->getType() == ET_FUNLINK ||
+	ib_outs[i]->getType() == ET_COND_NOT_TAKEN)
+      if (ib_outs[i]->getTarget()->containedIn(func()->ifunc())) {
+	// Get the int_basicBlock equivalent of that image_basicBlock
+	unsigned img_id = ib_outs[i]->getTarget()->id();
+	unsigned int_id = func()->blockIDmap[img_id];
+	return func()->blockList[int_id];
+      }
+      else {
+	// Odd... fallthrough, but not in our function???
+	assert(0);
+      }
+  }
+  
+  return NULL;
 }
 
 bool int_basicBlock::needsRelocation() const {
