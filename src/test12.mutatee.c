@@ -446,7 +446,6 @@ int call2_dispatch(intFuncArg callme, int arg)
 
 void func2_1()
 {
-#if !defined(arch_ia64)
   /*  want to trigger a lot of dynamic calls, and then stop the process. */
   /*  to make sure we test possible race in event handling. */
 
@@ -463,7 +462,6 @@ void func2_1()
   
   mutateeIdle = 1;
   while (mutateeIdle);
-#endif
 }
 
 Lock_t test3lock;
