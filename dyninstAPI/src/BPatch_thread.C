@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.166 2006/06/13 18:16:43 bernat Exp $
+// $Id: BPatch_thread.C,v 1.167 2006/06/14 19:06:55 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -301,6 +301,21 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
       return NULL;
    }
    int_function *ifunc = llthread->get_start_func();
+
+   if (!ifunc && llthread->get_indirect_start_addr())
+   {
+      //Currently should only be true on IA-64
+      process *llproc = getProcess()->llproc;
+      Address func_struct = llthread->get_indirect_start_addr();
+      Address functionEntry = 0;
+      bool readDataSpace = llproc->readDataSpace((void *) func_struct, 
+                                                 sizeof(Address), 
+                                                 &functionEntry, false);
+      if( readDataSpace ) {
+         ifunc = llproc->findFuncByAddr(functionEntry);
+         llthread->update_start_func(ifunc);
+      }
+   }
 
    if (!ifunc) {
        BPatch_Vector<BPatch_frame> stackWalk;

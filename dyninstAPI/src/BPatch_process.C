@@ -1834,41 +1834,28 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
    {
       bpthr = BPatch_thread::createNewThread(this, index, lwp, tid);
 
-#if 0
-      fprintf(stderr, "%s[%d]:  CREATE THREAD: tid=%lu, index=%d, reported %s, doa %s\n", 
-             FILE__, __LINE__, tid, index, bpthr->reported_to_user ? "true" : "false",
-             bpthr->doa ? "true" : "false");
-#endif
-
       if (bpthr->doa) {
           if (tid == 0) 
-            fprintf(stderr, "%s[%d]:  trying to remove index mapping for tid 0\n", FILE__, __LINE__);
-          bpthr->getProcess()->llproc->removeThreadIndexMapping(tid, index);
+             bpthr->getProcess()->llproc->removeThreadIndexMapping(tid, index);
           return bpthr;
-      }
-         
-      threads.push_back(bpthr);
+      }         
    }
 
-   //Update the non-esential values for the thread
-   // /* DEBUG */ fprintf( stderr, "%s[%d]: start address = 0x%lx\n", __FILE__, __LINE__, start_addr );
-#if defined( arch_ia64 )
+   bool found = false;
+   for (unsigned i=0; i<threads.size(); i++)
+      if (threads[i] == bpthr) {
+         found = true;
+         break;
+      }
+   if (!found)
+      threads.push_back(bpthr);
 
-	/* On IA-64, function pointers point to descriptors.  Since we could
-	   segfault the mutatee it we derefenced start_addr there, do so here. */
-	Address functionEntry = 0;
-	bool readDataSpace = llproc->readDataSpace( (void *) start_addr, sizeof( Address ), & functionEntry, false );
-	if( readDataSpace ) {
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: function entry actually 0x%lx\n", __FILE__, __LINE__, functionEntry );
-		start_addr = functionEntry;
-		}
-	else {
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: unable to read function descriptor at 0x%lx\n", __FILE__, __LINE__, start_addr );
-		}
-
+   BPatch_function *initial_func = NULL;
+#if defined(arch_ia64)
+   bpthr->llthread->update_sfunc_indir(start_addr);
+#else
+   initial_func = getImage()->findFunction(start_addr);
 #endif
-   
-   BPatch_function *initial_func = getImage()->findFunction(start_addr);
 
    if (!initial_func) {
      //fprintf(stderr, "%s[%d][%s]:  WARNING:  no function at %p found for thread\n",

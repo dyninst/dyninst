@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.28 2006/05/19 23:00:38 mjbrim Exp $
+// $Id: dyn_thread.h,v 1.29 2006/06/14 19:06:57 legendre Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -62,7 +62,6 @@ class dyn_thread {
   dyn_thread(process *proc_, unsigned index_, dyn_lwp *lwp_);
   dyn_thread(dyn_thread *src, process *child, dyn_lwp *lwp_ = NULL);
   ~dyn_thread();
-
   
   // Get the active frame (PC, SP, FP) of the thread
   // calls dyn_lwp::getActiveFrame if necessary
@@ -83,6 +82,7 @@ class dyn_thread {
   int_function*  get_start_func()          { return(start_func); }
   unsigned       get_start_pc()      const { return(start_pc); }
   void*          get_resumestate_p()       { return resumestate_p; }
+  Address        get_indirect_start_addr() const { return indirect_start_func; }
 
   void update_tid          (dynthread_t tid_)        { tid = tid_; }
   void update_index        (unsigned index_);
@@ -90,6 +90,7 @@ class dyn_thread {
   void update_stack_addr   (unsigned stack_addr_) { stack_addr=stack_addr_; }
   void update_start_pc     (unsigned start_pc_)   { start_pc=start_pc_; }
   void update_start_func   (int_function *pdf)   { start_func=pdf; }
+  void update_sfunc_indir  (Address addr)        {indirect_start_func = addr; }
   void update_resumestate_p(void* resumestate_p_) { resumestate_p=resumestate_p_; }
   
   Address get_pending_tramp_addr( void ) const	{ return pending_tramp_addr; }
@@ -110,6 +111,7 @@ class dyn_thread {
   int_function *start_func ;
   process *proc;
   Address pending_tramp_addr;	// address of pending instrumentation
+  Address indirect_start_func;
   // currently used on NT only  
 };
 

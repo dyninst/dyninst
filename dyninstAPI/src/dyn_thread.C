@@ -50,7 +50,8 @@ dyn_thread::dyn_thread(process *pproc) :
    stack_addr(0),
    start_pc(0), 
    start_func(NULL),
-   pending_tramp_addr(ADDR_NULL)
+   pending_tramp_addr(ADDR_NULL),
+   indirect_start_func(0)
 { 
    proc = pproc; 
    lwp  = pproc->getRepresentativeLWP();
@@ -64,7 +65,8 @@ dyn_thread::dyn_thread(process *proc_, unsigned index_, dyn_lwp *lwp_) :
     stack_addr(0),
     start_pc(0),
     start_func(NULL),
-    pending_tramp_addr( ADDR_NULL )
+    pending_tramp_addr( ADDR_NULL ),
+    indirect_start_func(0)
 {
    proc = proc_;
    proc->addThread(this);
@@ -83,6 +85,7 @@ dyn_thread::dyn_thread(dyn_thread *src, process *child, dyn_lwp *lwp_)
    start_pc = src->start_pc;
    resumestate_p = src->resumestate_p;
    start_func = src->start_func;
+   indirect_start_func = src->indirect_start_func;
    proc = child;
    pending_tramp_addr = ADDR_NULL;
    proc->addThread(this);
