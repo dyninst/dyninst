@@ -3403,7 +3403,7 @@ bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> 
 	AstNode * source = new AstNode( AstNode::Constant, (void *)(callSite->addr()) );
 	assert( source != NULL );
 	// arguments[1] = source;
-	arguments.push_back( target );
+	arguments.push_back( source );
 
 #if defined( OLD_DYNAMIC_CALLSITE_MONITORING )
 	AstNode * callToMonitor = new AstNode( "DYNINSTRegisterCallee", arguments );
