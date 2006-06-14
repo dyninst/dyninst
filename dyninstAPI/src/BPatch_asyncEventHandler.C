@@ -752,10 +752,11 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        bool thread_exists = (p->getThread(tid) != NULL);
 
        //Create the new BPatch_thread object
-       async_printf("%s[%d]:  before createOrUpdateBPThread: start_pc = %p," \
-                    "addr = %p, tid = %lu, index = %d, lwp = %d\n", FILE__, __LINE__, 
-                    (void *) start_pc, (void *) stack_addr, tid, 
-                    index, lwpid);
+       async_printf("%s[%d]:  before createOrUpdateBPThread: pid = %d, " \
+                    "start_pc = %p, addr = %p, tid = %lu, index = %d, " \
+                    "lwp = %d\n", 
+                    FILE__, __LINE__, ev.proc->getPid(), (void *) start_pc, 
+                    (void *) stack_addr, tid, index, lwpid);
 
        BPatch_thread *thr = p->handleThreadCreate(index, lwpid, tid, stack_addr, start_pc);
        if (!thr) {
@@ -773,18 +774,17 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
      }
      case evtThreadExit: 
      {
-        fprintf(stderr, "%s[%d]:  got a thread exit event\n", FILE__, __LINE__);
         BPatch_deleteThreadEventRecord rec;
          int lock_depth = eventlock->depth();
          for (int i = 0; i < lock_depth; i++) {
-	   eventlock->_Unlock(FILE__, __LINE__);
+            eventlock->_Unlock(FILE__, __LINE__);
          }
          asyncReadReturnValue_t retval = readEvent(ev.fd/*fd*/, 
                                                    (void *) &rec, 
                                                    sizeof(BPatch_deleteThreadEventRecord));
          async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
          for (int i = 0; i < lock_depth; i++) {
-	   eventlock->_Lock(FILE__, __LINE__);
+            eventlock->_Lock(FILE__, __LINE__);
          }
          
          if (retval != REsuccess) {
