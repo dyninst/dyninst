@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.53 2006/06/14 18:14:45 bernat Exp $
+// $Id: multiTramp.C,v 1.54 2006/06/14 19:19:31 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -443,6 +443,11 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 
     assert(prev);
 
+#if defined(arch_ia64)
+    // We go to the next bundle...
+    trampEnd *end = new trampEnd(newMulti, startAddr + size);
+#else
+
     // Add a trampEnd object for fallthroughs
     trampEnd *end = NULL;
     bblInstance *fallthroughInstance = NULL;
@@ -457,6 +462,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
       // No fallthrough... 
       end = new trampEnd(newMulti, 0);
     }
+#endif
     assert(end);
     prev->setFallthrough(end);
     end->setPrevious(prev);
