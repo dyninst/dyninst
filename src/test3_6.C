@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_6.C,v 1.4 2006/06/12 21:33:19 bernat Exp $
+// $Id: test3_6.C,v 1.5 2006/06/15 12:47:50 jaw Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -230,7 +230,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
             printf("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
-#if !defined(os_aix) && !defined(os_solaris) && !defined(os_alpha)
+#if !defined(os_aix) && !defined(os_solaris) && !defined(os_osf)
         if(appThread[n]->terminationStatus() != expectedSignal) {
             printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
             printf("    mutatee process [%d] didn't get notice of termination\n", n);
