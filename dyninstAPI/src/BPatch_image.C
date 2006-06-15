@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.91 2006/06/15 19:09:01 bernat Exp $
+// $Id: BPatch_image.C,v 1.92 2006/06/15 19:11:18 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -435,7 +435,7 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   
   const pdvector<instPoint *> entries = func->funcEntries();
   for (unsigned t = 0; t < entries.size(); t++) {
-      assert(entries[i]);
+      assert(entries[t]);
       if (entries[t]->match(address_int)) {
           return proc->findOrCreateBPPoint(NULL, entries[t], BPatch_entry);
       }
@@ -453,8 +453,7 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   for (i = 0; i < calls.size(); i++) {
       assert(calls[i]);
       if (calls[i]->match(address_int))  {
-          return proc->findOrCreateBPPoint(NULL, calls[i],
-                                           BPatch_subroutine);
+          return proc->findOrCreateBPPoint(NULL, calls[i], BPatch_subroutine);
       }
   }
   
