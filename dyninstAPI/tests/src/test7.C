@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7.C,v 1.23 2006/05/03 01:25:36 bernat Exp $
+// $Id: test7.C,v 1.24 2006/06/15 15:13:56 bernat Exp $
 //
 
 #include <stdio.h>
@@ -1142,8 +1142,9 @@ void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
     prepareTests(Child_p,  child,  PostFork);
     dprintf("Fork handler finished (parent %p, child %p)\n", parent, child);
 
-    childThread->continueExecution();
-    parentThread->continueExecution();
+    // DO NOT continue here. The fork function should NOT continue.
+    //childThread->continueExecution();
+    //parentThread->continueExecution();
 }
 
 /* And verify them when they exit */
