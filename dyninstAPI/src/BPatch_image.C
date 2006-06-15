@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.90 2006/05/16 21:19:09 bernat Exp $
+// $Id: BPatch_image.C,v 1.91 2006/06/15 19:09:01 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -435,29 +435,27 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   
   const pdvector<instPoint *> entries = func->funcEntries();
   for (unsigned t = 0; t < entries.size(); t++) {
-      if (entries[t]->match(address_int))
-          {
-              return proc->findOrCreateBPPoint(NULL, entries[t], BPatch_entry);
-          }
+      assert(entries[i]);
+      if (entries[t]->match(address_int)) {
+          return proc->findOrCreateBPPoint(NULL, entries[t], BPatch_entry);
+      }
   }
+  
   const pdvector<instPoint*> &exits = func->funcExits();
   for (i = 0; i < exits.size(); i++) {
-    assert(exits[i]);
-    if (exits[i]->match(address_int)) {
-      {
-	return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
+      assert(exits[i]);
+      if (exits[i]->match(address_int)) {
+          return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
       }
-    }
-      
-    const pdvector<instPoint*> &calls = func->funcCalls();
-    for (i = 0; i < calls.size(); i++) {
+  }
+  
+  const pdvector<instPoint*> &calls = func->funcCalls();
+  for (i = 0; i < calls.size(); i++) {
       assert(calls[i]);
-      if (calls[i]->match(address_int)) 
-	{
-	  return proc->findOrCreateBPPoint(NULL, calls[i],
-					   BPatch_subroutine);
-	}
-    }
+      if (calls[i]->match(address_int))  {
+          return proc->findOrCreateBPPoint(NULL, calls[i],
+                                           BPatch_subroutine);
+      }
   }
   
   if(alternative)
