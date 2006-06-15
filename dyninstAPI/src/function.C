@@ -940,6 +940,11 @@ void *bblInstance::getPtrToInstruction(Address addr) const {
 
 }
 
+int bblInstance::version() const 
+{
+   return version_;
+}
+
 #if defined(cap_relocation)
 
 const void *bblInstance::getPtrToOrigInstruction(Address addr) const {
@@ -1076,9 +1081,6 @@ functionReplacement *bblInstance::getJumpToBlock() const {
    return reloc_info->jumpToBlock_;
 }
 
-int bblInstance::version() const {
-   return version_;
-}
 
 bblInstance::reloc_info_t::reloc_info_t() : 
    maxSize_(0), 
