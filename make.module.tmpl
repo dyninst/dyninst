@@ -488,7 +488,7 @@ $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
-	$(CXX) -shared $(LIBDIR) -ldyninstAPI $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
+	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) -ldyninstAPI $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
 
 libTest12.so: libTest12.c $(DEPENDDIR)/libTest12.dep
 ifdef MAKE_SHARED_LIB
