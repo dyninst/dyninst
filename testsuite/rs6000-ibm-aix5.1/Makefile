@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2006/06/13 18:45:47 jaw Exp $
+# $Id: Makefile,v 1.7 2006/06/15 23:33:55 igor Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -68,6 +68,7 @@ TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok -bnoobjreorder
 LIBTEST12_FLAGS = $(TESTLIB_FLAGS) -lc -L$(TO_CORE)/dyninstAPI_RT/$(PLATFORM) -ldyninstAPI_RT -lpthread
 MAKE_SHARED_LIB = ld
 
+TESTSUITE_FLAGS += -Wl,-bexpall   
 
 LIBS_LIBTESTSUITE = -ldl 
 USE_LIBTESTSUITE_EXT_A = true
