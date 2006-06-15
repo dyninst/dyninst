@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.53 2006/06/13 10:09:17 jaw Exp $
+// $Id: test3.C,v 1.54 2006/06/15 12:47:49 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -863,7 +863,7 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
             printf("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
-#if !defined(os_aix) && !defined(os_solaris) && !defined(os_alpha)
+#if !defined(os_aix) && !defined(os_solaris) && !defined(os_osf)
         // This will work on Linux (and others?), but not AIX/Solaris due to waitpid not working
         // on non-children.
         if(appThread[n]->terminationStatus() != ExitedViaSignal) {
@@ -898,7 +898,7 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
 unsigned int num_callbacks_issued = 0;
 bool test7done = false;
 #define TEST7_NUM_ONETIMECODE 400
-#define TIMEOUT 40 /*seconds */
+#define TIMEOUT 60 /*seconds */
 
 void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
                                 void *userData,
