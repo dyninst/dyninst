@@ -438,12 +438,21 @@ bool SignalHandler::handleForkExit(EventRecord &ev, bool &continueHint)
              proc->handleForkExit(theChild);
 
              // This may have been mucked with during the fork callback
-             proc->sh->overrideSyncContinueState(runRequest);
-
+	     // If we're still paused, then hit run. It'd be nice if there was a 
+	     // way to let the user say "stay paused!" -- bernat
+	     if (proc->sh->syncRunWhenFinished_ != runRequest) {
+	       signal_printf("%s[%d]: running parent post-FORK: overriding syncContinueState\n",
+			     FILE__, __LINE__);
+	       proc->sh->overrideSyncContinueState(runRequest);
+	     }
              continueHint = true;
              // Unlike normal, we want to start this guy up running (the user can pause if desired in
              // the callback)
-             theChild->sh->overrideSyncContinueState(runRequest);
+	     if (theChild->sh->syncRunWhenFinished_ != runRequest) {
+	       signal_printf("%s[%d]: running child post-FORK: overriding syncContinueState\n",
+			     FILE__, __LINE__);
+	       theChild->sh->overrideSyncContinueState(runRequest);
+	     }
              theChild->continueProc();
         }
      }
