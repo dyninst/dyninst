@@ -118,8 +118,9 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    if (result == DYNINST_DEAD_LOCK) {
       /* We specifically return DYNINST_max_num_threads so that instrumentation has someplace safe to scribble
          in case of an error. */
-      /* DEBUG */ fprintf( stderr, "%s[%d]: DYNINSTthreadIndexSLOW(%lu) returning deadlock.\n", __FILE__, __LINE__ );
-      return DYNINST_max_num_threads;
+       /* DO NOT USE print statements here. That's horribly unsafe if we've instrumented
+          the output functions, as we'll infinite recurse and die */
+       return DYNINST_max_num_threads;
       }
    /**
     * Search the hash table
