@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.169 2006/05/03 00:31:19 jodom Exp $
+// $Id: ast.C,v 1.170 2006/06/16 16:13:29 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -2389,4 +2389,11 @@ registerSpace &registerSpace::operator=(const registerSpace &src)
 {
    src.copyInfo(this);
    return *this;
+}
+
+bool registerSpace::getDisregardLiveness() {
+    // Let BPatch override, then go to local flag.
+    if (BPatch::bpatch->disregardLiveness_NP())
+        return true;
+    return disregardLiveness;
 }

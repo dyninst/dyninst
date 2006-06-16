@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.153 2006/06/08 12:25:10 jaw Exp $
+// $Id: BPatch.C,v 1.154 2006/06/16 16:13:27 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -97,8 +97,7 @@ BPatch::BPatch()
     debugParseOn(true),
     baseTrampDeletionOn(false),
     trampRecursiveOn(false),
-    forceRelocation_NP(false),
-    autoRelocation_NP(true),
+    disregardLiveness_NP_(false),
     trampMergeOn(false),
     saveFloatingPointsOn(true),
     asyncActive(false),
@@ -399,22 +398,8 @@ void BPatch::setTrampRecursiveInt(bool x)
 {
   trampRecursiveOn = x;
 }
-bool BPatch::hasForcedRelocation_NPInt()
-{
-  return forceRelocation_NP;
-}
-void BPatch::setForcedRelocation_NPInt(bool x)
-{
-  forceRelocation_NP = x;
-}
-bool BPatch::autoRelocationOnInt()
-{
-  return autoRelocation_NP;
-}
-void BPatch::setAutoRelocation_NPInt(bool x)
-{
-  autoRelocation_NP = x;
-}
+bool BPatch::disregardLiveness_NPInt() { return disregardLiveness_NP_; }
+void BPatch::setDisregardLiveness_NPInt(bool x) { disregardLiveness_NP_ = x; }
 void BPatch::setDelayedParsingInt(bool x)
 {
   delayedParsing_ = x;
@@ -1595,7 +1580,7 @@ bool BPatch::waitForStatusChangeInt()
   } while ((    evt != evtProcessStop ) 
             && (evt != evtProcessExit)
             && (evt != evtThreadExit)
-            && (evt != evtThreadCreate));
+           && (evt != evtThreadCreate));
 
   signal_printf("Returning from waitForStatusChange, evt = %s, mutateeStatusChange = %d\n", eventType2str(evt), (int) mutateeStatusChange);
   waitingForStatusChange = false;

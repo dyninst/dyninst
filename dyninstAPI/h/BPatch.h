@@ -164,10 +164,10 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     /* If true, trampolines can recurse to their heart's content.
        Defaults to false */
     bool        trampRecursiveOn;
-    bool        forceRelocation_NP;
-    /* If true, allows automatic relocation of functions if dyninst
-       deems it necessary.  Defaults to true */
-    bool        autoRelocation_NP;
+
+    /* If true, ignore all liveness calculations. Will seriously impact performance
+       but is necessary if the user has information we don't about optimized code. */
+    bool        disregardLiveness_NP_;
 
     /* If true, base tramps and mini tramps are merged 
        Defaults to false */
@@ -302,6 +302,9 @@ public:
 
     bool,isTrampRecursive,());
 
+    API_EXPORT(Int, (),
+    bool, disregardLiveness_NP, ());
+
     // BPatch::isMergeTramp:
     // returns whether base tramp and mini-tramp is merged
     API_EXPORT(Int, (),
@@ -313,18 +316,6 @@ public:
     API_EXPORT(Int, (),
 
     bool,isSaveFPROn,());        
-
-    // BPatch::hasForcedRelocation_NP:
-    // returns whether all instrumented functions will be relocated
-    API_EXPORT(Int, (),
-
-    bool,hasForcedRelocation_NP,());
-
-    // BPatch::autoRelocationsOn:
-    // returns whether functions will be relocated when appropriate
-    API_EXPORT(Int, (),
-
-    bool,autoRelocationOn,());
 
     // BPatch::delayedParsingOn:
     // returns whether inst info is parsed a priori, or on demand
@@ -451,6 +442,9 @@ public:
 
     void,setTrampRecursive,(bool x));
 
+    API_EXPORT_V(Int, (x),
+    void, setDisregardLiveness_NP, (bool x));
+
     //  BPatch::setMergeTramp:
     //  Turn on/off merged base & mini-tramps
     API_EXPORT_V(Int, (x),
@@ -462,19 +456,6 @@ public:
     API_EXPORT_V(Int, (x),
 
     void,setSaveFPR,(bool x));
-
-
-    //  BPatch::setForcedRelocation_NP:
-    //  Turn on/off forced relocation of instrumted functions
-    API_EXPORT_V(Int, (x),
-
-    void,setForcedRelocation_NP,(bool x));
-
-    //  BPatch::setAutoRelocation_NP:
-    //  Turn on/off function relocations, performed when necessary
-    API_EXPORT_V(Int, (x),
-
-    void,setAutoRelocation_NP,(bool x));
 
     //  BPatch::setDelayedParsing:
     //  Turn on/off delayed parsing

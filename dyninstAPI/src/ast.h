@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.88 2006/04/04 17:32:22 rutar Exp $
+// $Id: ast.h,v 1.89 2006/06/16 16:13:30 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -143,7 +143,8 @@ class registerSpace {
 
 	// Check to see if the register is free
 	bool isFreeRegister(Register k);
-	bool getDisregardLiveness() {return disregardLiveness;}
+	//bool getDisregardLiveness() {return disregardLiveness;}
+	bool getDisregardLiveness();
 	void setDisregardLiveness(bool dl) {disregardLiveness = dl;}
 	
 	// Inits the values for the clobbered variables for the floating point registers
