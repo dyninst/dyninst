@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.24 2006/05/25 22:33:13 jodom Exp $
+// $Id: reloc-func.C,v 1.25 2006/06/16 16:13:36 bernat Exp $
 
 
 
@@ -553,10 +553,10 @@ bool bblInstance::generate() {
 	block_->getTargets(targets);
 	if (targets.size() > 2) {
 	  // Multiple jump... we can't handle this yet
-	  fprintf(stderr, "ERROR: attempt to relocate function %s with indirect jump!\n",
-		  block_->func()->symTabName().c_str());
-	  
-	  return false;
+            // Actually, I believe we can....
+            reloc_printf("WARNING: attempt to relocate function %s with indirect jump!\n",
+                         block_->func()->symTabName().c_str());
+            //return false;
 	}
 	// We have edge types on the internal data, so we drop down and get that. 
 	// We want to find the "branch taken" edge and override the destination
