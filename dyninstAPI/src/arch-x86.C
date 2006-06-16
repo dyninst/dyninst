@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.61 2006/06/08 20:47:08 bernat Exp $
+// $Id: arch-x86.C,v 1.62 2006/06/16 16:13:34 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2941,6 +2941,8 @@ int displacement(const unsigned char *instr, unsigned type) {
     // Some SIMD instructions have a mandatory 0xf2 prefix; the call to skip_headers
     // doesn't skip it and I don't feel confident in changing that - bernat, 22MAY06
       // 0xf3 as well...
+      // Some 3-byte opcodes start with 0x66... skip
+      if (*instr == 0x66) instr++;
       if (*instr == 0xf2) instr++;
       else if (*instr == 0xf3) instr++;
     // And the "0x0f is a 2-byte opcode" skip
