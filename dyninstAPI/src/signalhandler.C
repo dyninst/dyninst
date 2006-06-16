@@ -651,9 +651,6 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         ret = forwardSigToProcess(ev, continueHint);
         break;
      }
-    case evtBreakpoint:
-        ret = notifyBPatchOfStop(ev, continueHint);
-        break;
     case evtProcessStop:
        ret = handleProcessStop(ev, continueHint);
        if (!ret) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.217 2006/06/02 22:59:47 legendre Exp $
+// $Id: unix.C,v 1.218 2006/06/16 16:13:33 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -173,7 +173,7 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
    }
 
    // Definitely a breakpoint... set that up and clear the flag
-   ev.type = evtBreakpoint;
+   ev.type = evtProcessStop;
 
    // Further processing may narrow this down some more.
 

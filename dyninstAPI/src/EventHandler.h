@@ -72,7 +72,6 @@ typedef enum {
   evtSignalled,
   evtException,
   evtCritical,
-  evtBreakpoint,
   evtProcessCreate,
   evtProcessAttach,
   evtLwpAttach,
