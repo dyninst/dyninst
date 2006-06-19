@@ -666,10 +666,6 @@ void processMetFocusNode::prepareCatchupInstr(const pdvector<pdvector<Frame> > &
                 for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
                     AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
 
-                    fprintf(stderr, "Catchup on thread %d: stack has %d frames\n",
-                            catchupWalk[0]->frame.getThread()->get_tid(),
-                            stackWalk.size());
-
                     catchup_t *catchup = new catchup_t(AST, 
                                                        catchupWalk[0]->frame.getThread(),
                                                        stackWalk);
