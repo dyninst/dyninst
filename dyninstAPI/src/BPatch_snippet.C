@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.83 2006/05/16 21:14:34 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.84 2006/06/19 21:30:41 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -60,6 +60,20 @@
 #include "common/h/timing.h"
 
 #include "mapped_object.h" // for savetheworld
+
+// Need REG_MT_POS, defined in inst-<arch>...
+
+#if defined(arch_x86) || defined(arch_86_64)
+#include "inst-x86.h"
+#elif defined(arch_power)
+#include "inst-power.h"
+#elif defined(arch_ia64)
+#include "inst-ia64.h"
+#elif defined(arch_sparc)
+#include "inst-sparc.h"
+#elif defined(arch_alpha)
+#include "inst-alpha.h"
+#endif
 
 //  This will be removed:
 
@@ -1293,8 +1307,10 @@ void BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExprInt(const BPatc
   ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 };
 
-void BPatch_threadIndexExpr::BPatch_threadIndexExprInt(BPatch_process *proc)
+void BPatch_threadIndexExpr::BPatch_threadIndexExprInt()
 {
+#if 0
+    // We can grab the register value directly... we're not in a function call. 
   BPatch_Vector<BPatch_function *> thread_funcs;
   proc->getImage()->findFunction("DYNINSTthreadIndex", thread_funcs);
   if (thread_funcs.size() != 1)
@@ -1308,6 +1324,9 @@ void BPatch_threadIndexExpr::BPatch_threadIndexExprInt(BPatch_process *proc)
   
   pdvector<AstNode *> args;
   ast = new AstNode(thread_index->lowlevel_func(), args);
+#endif
+
+  ast = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
 
   assert(BPatch::bpatch != NULL);
   ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
