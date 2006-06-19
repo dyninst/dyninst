@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.10 2006/05/03 19:16:40 tlmiller Exp $
+// $Id: varInstanceHKs.h,v 1.11 2006/06/19 21:30:56 bernat Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -98,7 +98,7 @@ class genericHK {
 class intCounterHK : public genericHK {
  public:
   typedef intCounter rawType;
-  static const intCounter initValue;
+  static intCounter initValue(unsigned index);
 
   intCounterHK() : genericHK() {
   }
@@ -127,7 +127,7 @@ class wallTimerHK : public genericHK {
   
  public:
   typedef tTimer rawType;
-  static const tTimer initValue;
+  static tTimer initValue(unsigned index);
 
   wallTimerHK() : genericHK(), lastTimeValueUsed(timeLength::Zero()) {
   }
@@ -166,7 +166,7 @@ class processTimerHK : public genericHK {
 
  public:
   typedef tTimer rawType;
-  static const tTimer initValue;
+  static tTimer initValue(unsigned index);
 
   /*
   { // class cons
@@ -218,7 +218,7 @@ class hwTimerHK : public genericHK {
 
  public:
   typedef tHwTimer rawType;
-  static const tHwTimer initValue;
+  static tHwTimer initValue(unsigned index);
 
   hwTimerHK() : genericHK(), lastTimeValueUsed(timeLength::Zero()),
     vTimer(NULL) {
@@ -248,7 +248,7 @@ class hwTimerHK : public genericHK {
 class hwCounterHK : public genericHK {
  public:
   typedef tHwCounter rawType;
-  static const tHwCounter initValue;
+  static tHwCounter initValue(unsigned index);
 
   hwCounterHK() : genericHK() {
   }

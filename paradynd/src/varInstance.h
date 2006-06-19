@@ -85,7 +85,7 @@ class varInstance : public baseVarInstance {
   pdvector<HK*> hkBuf;
   bool elementsToBeSampled;  // true if currentSamplingSet > 0
   pd_process *proc;
-  RAWTYPE  initValue;
+  //RAWTYPE  initValue;
   shmMgr &theShmMgr;
   HwEvent* hwEvent;
 
@@ -102,7 +102,9 @@ class varInstance : public baseVarInstance {
   // --------------------------------------
 
  public:
-  varInstance(variableMgr &varMgr, const RAWTYPE &initValue, HwEvent* hwEvent);
+  varInstance(variableMgr &varMgr, 
+              //RAWTYPE (*initFunc)(unsigned),
+              HwEvent* hwEvent);
   varInstance(const varInstance<HK> &par, shmMgr &sMgr, pd_process *p);
 
   ~varInstance();

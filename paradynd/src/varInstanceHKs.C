@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.28 2006/05/23 21:44:33 mjbrim Exp $
+// $Id: varInstanceHKs.C,v 1.29 2006/06/19 21:30:55 bernat Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -82,7 +82,10 @@ void genericHK::setThrClient(threadMetFocusNode_Val *thrclient) {
 
 /* ************************************************************************* */
 
-const intCounter intCounterHK::initValue = { 0 };
+intCounter intCounterHK::initValue(unsigned /*index*/) {
+    intCounter c = {0};
+    return c;
+};
 
 intCounterHK &intCounterHK::operator=(const intCounterHK &src) {
    if (&src == this)
@@ -169,9 +172,13 @@ bool intCounterHK::perform(const intCounter *dataValue,
 
 /* ************************************************************************* */
 
-const tTimer wallTimerHK::initValue = { 0, 0, 0,
-					0, /* pos */
-					0, 0 };
+tTimer wallTimerHK::initValue(unsigned index) {
+    tTimer w =  { 0, 0, 0,
+                  0, /* pos */
+                  0, 0 };
+    w.index = index;
+    return w;
+}
 
 wallTimerHK &wallTimerHK::operator=(const wallTimerHK &src) {
    if (&src == this)
@@ -319,9 +326,13 @@ bool wallTimerHK::perform(const tTimer *theTimer, pd_process *) {
 
 /* ************************************************************************** */
 
-const tTimer processTimerHK::initValue = { 0, 0, 0,
-					   0, /* pos */
-					   0, 0 };
+tTimer processTimerHK::initValue(unsigned index) {
+    tTimer t = { 0, 0, 0,
+                 0, /* pos */
+                 0, 0 };
+    t.index = index;
+    return t;
+}
 
 processTimerHK &processTimerHK::operator=(const processTimerHK &src) {
    if (&src == this)
@@ -623,10 +634,17 @@ bool hwTimerHK::perform(const tHwTimer *theTimer, pd_process *inferiorProc) {
    return true;
 }
 
-const tHwTimer hwTimerHK::initValue = { 0, 0, 0,
-                                        0, 0, 0, 0 };
+tHwTimer hwTimerHK::initValue(unsigned index) {
+    tHwTimer h = { 0, 0, 0,
+                   0, 0, 0, 0 };
+    h.pos = index;
+    return h;
+}
 
-const tHwCounter hwCounterHK::initValue = { 0, 0 };
+const tHwCounter hwCounterHK::initValue(unsigned /*index*/) {
+    tHwCounter c = { 0, 0 };
+    return c;
+}
 
 hwCounterHK &hwCounterHK::operator=(const hwCounterHK &src) {
    if (&src == this)

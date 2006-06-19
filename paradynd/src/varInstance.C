@@ -45,26 +45,29 @@
 #include "paradynd/src/pd_process.h"
  
 template <class HK>
-varInstance<HK>::varInstance(variableMgr &varMgr, const RAWTYPE &initValue_, HwEvent* hw)
+varInstance<HK>::varInstance(variableMgr &varMgr,
+                             //const RAWTYPE &initValue_,
+                             HwEvent* hw)
   : numElems(varMgr.getMaxNumberOfThreads()),  hkBuf(1, NULL), 
     elementsToBeSampled(false), proc(varMgr.getApplicProcess()), 
-    initValue(initValue_), theShmMgr(varMgr.getShmMgr()), hwEvent(hw)
+    //initValue(initValue_), 
+    theShmMgr(varMgr.getShmMgr()), hwEvent(hw)
 {
-  unsigned mem_amount = sizeof(RAWTYPE) * varMgr.getMaxNumberOfThreads();
-  //  Address baseAddrInApp_;
-  Address alloced_addr = theShmMgr.malloc(mem_amount);
-  baseAddrInDaemon = (void*) alloced_addr;
-  baseAddrInApplic = (void*) theShmMgr.daemonToApplic(alloced_addr);
+    unsigned mem_amount = sizeof(RAWTYPE) * varMgr.getMaxNumberOfThreads();
+    //  Address baseAddrInApp_;
+    Address alloced_addr = theShmMgr.malloc(mem_amount);
+    baseAddrInDaemon = (void*) alloced_addr;
+    baseAddrInApplic = (void*) theShmMgr.daemonToApplic(alloced_addr);
 
-  if (!baseAddrInDaemon) {
-      fprintf(stderr, "Critical error: failed to allocate shared memory variable. Terminating....\n");
-      assert(0 && "Failure to allocate in varInstance::varInstance\n");
-  }
-
-  for(unsigned i=0; i<numElems; i++) {
-    RAWTYPE *curElem = static_cast<RAWTYPE*>( elementAddressInDaemon(i));
-    (*curElem) = initValue;
-  }
+    if (!baseAddrInDaemon) {
+        fprintf(stderr, "Critical error: failed to allocate shared memory variable. Terminating....\n");
+        assert(0 && "Failure to allocate in varInstance::varInstance\n");
+    }
+    
+    for(unsigned i=0; i<numElems; i++) {
+        RAWTYPE *curElem = static_cast<RAWTYPE*>( elementAddressInDaemon(i));
+        (*curElem) = HK::initValue(i);
+    }
 }
 
 // Fork constructor!
@@ -75,7 +78,8 @@ varInstance<HK>::varInstance(const varInstance<HK> &par, shmMgr &sMgr,
         numElems(par.numElems), baseAddrInApplic(par.baseAddrInApplic),
         // start with not sampling anything, let the sample requests be 
         // reinitiated, ... so leave hkBuf as empty
-        elementsToBeSampled(false), proc(p), initValue(par.initValue), 
+        elementsToBeSampled(false), proc(p), 
+        //initValue(par.initValue), 
         theShmMgr(sMgr), hwEvent(par.hwEvent), permanentSamplingSet(), currentSamplingSet() {
     baseAddrInDaemon = (void *)theShmMgr.translateFromParentDaemon((Address) par.baseAddrInDaemon,
                                                                    &par.theShmMgr);
@@ -180,7 +184,7 @@ void varInstance<HK>::deleteThread(unsigned thrPos) {
    markVarAsNotSampled(thrPos);
    void *voidVarAddr = elementAddressInDaemon(thrPos);
    RAWTYPE *shmVarAddr = static_cast<RAWTYPE*>( voidVarAddr);
-   (*shmVarAddr) = initValue;
+   (*shmVarAddr) = HK::initValue(thrPos);
 }
 
 template <class HK>

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.h,v 1.8 2004/03/23 01:12:38 eli Exp $
+// $Id: varTable.h,v 1.9 2006/06/19 21:30:58 bernat Exp $
 
 // The varTable class consists of an array of superVectors. The varTable
 // class is a template class. It has a levelMap vector that keeps track of
@@ -124,7 +124,7 @@ class varTable : public baseVarTable {
   void forkHasCompleted();
   void deleteThread(unsigned thrPos);
 
-  unsigned getVarSize() { return sizeof(HK::initValue); }
+  unsigned getVarSize() { return sizeof(HK::initValue(0)); }
   void initializeVarsAfterFork();
 };
 

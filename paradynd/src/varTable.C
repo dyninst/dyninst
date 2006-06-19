@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varTable.C,v 1.12 2005/01/11 22:47:26 legendre Exp $
+// $Id: varTable.C,v 1.13 2006/06/19 21:30:57 bernat Exp $
 // The superTable class consists of an array of superVectors
 
 #include <sys/types.h>
@@ -63,9 +63,9 @@ varTable<HK>::varTable(const varTable<HK> &parent, variableMgr &vMgr) :
   for (unsigned i=0; i<parent.varInstanceBuf.size(); i++) {
     baseVarInstance *varInst = NULL;
     if(parent.varInstanceBuf[i] != NULL) {  // can be holes in varInstanceBuf
-        varInst = new varInstance<HK>(*dynamic_cast<varInstance<HK>*>(
-                                          parent.varInstanceBuf[i]),
-                                      varMgr.getShmMgr(), varMgr.getApplicProcess());
+        varInst = new varInstance<HK>(*dynamic_cast<varInstance<HK>*>(parent.varInstanceBuf[i]),
+                                      varMgr.getShmMgr(), 
+                                      varMgr.getApplicProcess());
     }
     varInstanceBuf.push_back(varInst);
   }
@@ -101,7 +101,9 @@ inst_var_index varTable<HK>::allocateVar(HwEvent* hw)
   inst_var_index new_index = getFreeIndex();
   // HK tells the varInstance how much memory to allocate.
  
-  baseVarInstance *newVar = new varInstance<HK>(varMgr, HK::initValue, hw);
+  baseVarInstance *newVar = new varInstance<HK>(varMgr, 
+                                                //HK::initValue, 
+                                                hw);
   varInstanceBuf[new_index] = newVar;
   return new_index;
 }
