@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.185 2006/05/05 18:22:43 mjbrim Exp $
+// $Id: mdl.C,v 1.186 2006/06/19 21:30:51 bernat Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -69,14 +69,6 @@
 #include "dyninstAPI/h/BPatch_basicBlock.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 #include "dyninstAPI/h/BPatch_function.h"
-// for REG_MT_POS
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
-#include "dyninstAPI/src/inst-sparc.h"
-#elif defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-#include "dyninstAPI/src/inst-power.h"
-#elif defined(i386_unknown_solaris2_5) || defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0)
-#include "dyninstAPI/src/inst-x86.h"
-#endif
 
 #include <ctype.h>
 
@@ -300,102 +292,50 @@ BPatch_function *mdlFindFunction(const char *name, BPatch_image *appImage,
    return ret;
 }
 
-
-/*
- * Simple: return base + (POS * size). ST: POS==0, so return base
- */
- 
-BPatch_snippet *getTimerSlow(BPatch_variableExpr *base,
-                             BPatch_image *appImage,
+BPatch_snippet *getStructure(BPatch_variableExpr *base,
                              bool for_multithreaded)
 {
-   if(! for_multithreaded) {
-      return base;
-      //return new BPatch_constExpr(base->getBaseAddr());
-   }
-
-   static BPatch_function *pthread_self_fn = NULL;
-   static BPatch_function *index_slow_fn = NULL;
-
-   if (!pthread_self_fn)
-     if (! (pthread_self_fn = mdlFindFunction("pthread_self", appImage, true)))
-       return NULL;
-
-   if (!index_slow_fn)
-     if (! (index_slow_fn = mdlFindFunction("DYNINSTthreadIndexSLOW", appImage)))
-       return NULL;
-
-   //  construct expr:
-   //  (base) + DYNINSTthreadIndexSLOW(pthread_self()) * struct_size
-
-   BPatch_Vector<BPatch_snippet *> snip_args;
-   BPatch_snippet *get_thr = new BPatch_funcCallExpr(*pthread_self_fn, snip_args);
-   snip_args.push_back(get_thr);
-   BPatch_snippet *get_index = new BPatch_funcCallExpr(*index_slow_fn, snip_args);
-
-   BPatch_snippet *var = new BPatch_arithExpr(BPatch_ref, *base, *get_index);
-   if (var->is_trivial()) {
-     delete var;
-     delete get_index;
-     delete get_thr;
-     fprintf(stderr, "%s[%d]:  generate array reference failed\n", __FILE__, __LINE__);
-     return NULL;
-   }
-   return var;
+    BPatch_snippet *temp = NULL;
+    
+    if(for_multithreaded) {
+        BPatch_snippet *reg_mt = new BPatch_threadIndexExpr();
+        temp = new BPatch_arithExpr(BPatch_ref, *base, *reg_mt);
+    }
+    else {
+        temp = base;
+    }
+    
+    if (!temp) {
+        fprintf(stderr, "%s[%d]:  Fatal internal error in getStructure()\n",
+                __FILE__, __LINE__);
+        return NULL;
+    }
+    
+    if (temp->is_trivial()) {
+        return NULL;
+    }
+    
+    return temp;
 }
 
-BPatch_snippet *getTimerFast(BPatch_variableExpr *base,
-                             bool for_multithreaded)
+BPatch_snippet *getStructureAddress(BPatch_variableExpr *base,
+                                    bool for_multithreaded)
 {
-   if(! for_multithreaded)
-      //return new BPatch_constExpr(base->getBaseAddr());
-      return base;
-      //return new BPatch_snippet(*base);
-
-   // Return base + struct_size*POS. Problem is, POS is unknown
-   // until we are running the instrumentation
-
-   //  construct expr:
-   //  (base) + register[REG_MT_POS] * struct_size
-
-   /* Strictly speaking, REG_MT_POS doesn't exist on IA-64;
-      the thread index is stored into a constant position in the
-      registerSpace, which changes from function to function.  */
-   BPatch_snippet *reg_mt = new BPatch_regExpr(REG_MT_POS);
-   BPatch_snippet *var = new BPatch_arithExpr(BPatch_ref, *base, *reg_mt);
-
-   // delete reg_mt;
-   if (var->is_trivial()) {
-     delete reg_mt;
-     delete var;
-     fprintf(stderr, "%s[%d]:  generate array reference failed\n", __FILE__, __LINE__);
-     return NULL;
-   }
-
-   return var;
-}
-
-BPatch_snippet *getTimerAddress(BPatch_variableExpr *base,
-                                BPatch_image *appImage,
-                                bool for_multithreaded)
-{
-  BPatch_snippet *temp;
-
-#if defined(i386_unknown_linux2_0)
-  temp =  getTimerSlow(base, appImage, for_multithreaded);
-#else
-  temp =  getTimerFast(base, for_multithreaded);
-#endif
-
-  if (!temp) {
-    fprintf(stderr, "%s[%d]:  Fatal internal error in getTimerAddress()\n",
-           __FILE__, __LINE__);
-    return NULL;
-  }
-
-  BPatch_snippet * ret = new BPatch_arithExpr(BPatch_address, (*temp));
-  //delete temp;
-  return ret;
+    BPatch_snippet *temp = getStructure(base, for_multithreaded);
+    
+    if (!temp) {
+        fprintf(stderr, "%s[%d]:  Fatal internal error in getStructureAddress()\n",
+                __FILE__, __LINE__);
+        return NULL;
+    }
+    
+    if (temp->is_trivial()) {
+        return NULL;
+    }
+    
+    BPatch_snippet * ret = new BPatch_arithExpr(BPatch_address, (*temp));
+    
+    return ret;
 }
 
 BPatch_snippet *createTimer(const pdstring &func, BPatch_variableExpr *dataPtr,
@@ -409,8 +349,8 @@ BPatch_snippet *createTimer(const pdstring &func, BPatch_variableExpr *dataPtr,
    if (NULL == timer_fn)
      return NULL;
 
-   if (NULL == (var_base = getTimerAddress(dataPtr, appImage, for_multithreaded))){
-     fprintf(stderr, "%s[%d]:  getTimerAddress() failed\n", __FILE__, __LINE__);
+   if (NULL == (var_base = getStructureAddress(dataPtr, for_multithreaded))){
+     fprintf(stderr, "%s[%d]:  getStructureAddress() failed\n", __FILE__, __LINE__);
      return NULL;
    }
 
@@ -507,86 +447,9 @@ BPatch_snippet *createHwTimer(const pdstring &func, void *dataPtr,
   return(timer);
 }
 
-BPatch_snippet *getCounterSlow(BPatch_variableExpr *base, BPatch_image *appImage)
-{
-   static BPatch_function *pthread_self_fn = NULL;
-   static BPatch_function *index_slow_fn = NULL;
-
-   if (!pthread_self_fn)
-     if (! (pthread_self_fn = mdlFindFunction("pthread_self", appImage, true)))
-       return NULL;
-
-   if (!index_slow_fn)
-     if (! (index_slow_fn = mdlFindFunction("DYNINSTthreadIndexSLOW", appImage)))
-       return NULL;
-
-   //  construct expr:
-   //  (base) + DYNINSTthreadIndexSLOW(pthread_self()) * struct_size
-
-   BPatch_Vector<BPatch_snippet *> snip_args;
-   BPatch_snippet *get_thr = new BPatch_funcCallExpr(*pthread_self_fn, snip_args);
-   snip_args.push_back(get_thr);
-   BPatch_snippet *get_index = new BPatch_funcCallExpr(*index_slow_fn, snip_args);
-
-   //delete get_thr;
-   //delete get_index;
-
-   BPatch_snippet *var = new BPatch_arithExpr(BPatch_ref, *base, *get_index);
-   if (var->is_trivial()) {
-     delete get_thr;
-     delete var;
-     fprintf(stderr, "%s[%d]:  generate array reference failed\n", __FILE__, __LINE__);
-     return NULL;
-   }
-   return var;
-}
-
-BPatch_snippet *getCounterFast(BPatch_variableExpr *base)
-{
-   //  construct expr:
-   //  (base) + register[REG_MT_POS] * struct_size
-
-   BPatch_snippet *reg_mt = new BPatch_regExpr(REG_MT_POS);
-   BPatch_snippet *var = new BPatch_arithExpr(BPatch_ref, *base, *reg_mt);
-
-   if (var->is_trivial()) {
-     delete reg_mt;
-     fprintf(stderr, "%s[%d]:  generate array reference failed\n", __FILE__, __LINE__);
-     return NULL;
-   }
-
-   //delete reg_mt;
-   return var;
-}
-
-BPatch_snippet *getCounter(BPatch_variableExpr *base,
-                           BPatch_image *appImage,
-                           bool for_multithreaded)
-{
-   BPatch_snippet *ret;
-
-   if (!for_multithreaded) {
-     //ret= new BPatch_arithExpr(BPatch_deref, *base);
-     //  try just returning base here -- not sure if copy is necessary
-     return base;
-     //return ret;
-     //return new BPatch_constExpr(base->getBaseAddr());
-   }
-   else {
-#if defined(i386_unknown_linux2_0)
-     ret = getCounterSlow(base, appImage);
-#else
-     ret = getCounterFast(base);
-#endif
-   }
-
-   return ret;
-}
-
 BPatch_snippet *createCounter(const pdstring &func,
                               BPatch_variableExpr *dataPtr,
-                              BPatch_snippet *arg, bool for_multithreaded,
-                              BPatch_image *appImage)
+                              BPatch_snippet *arg, bool for_multithreaded)
 {
    BPatch_snippet *calc=NULL, *store=NULL;
    BPatch_snippet *counter_base = NULL;
@@ -594,7 +457,7 @@ BPatch_snippet *createCounter(const pdstring &func,
    // We keep the different MT__THREAD code, because otherwise we really
    // de-optimize the singlethread case
 
-   counter_base = getCounter(dataPtr, appImage, for_multithreaded);
+   counter_base = getStructure(dataPtr, for_multithreaded);
    if (!counter_base) {
      fprintf(stderr, "%s[%d]:  fatal internal error in createCounter()\n",
              __FILE__, __LINE__);
@@ -1061,8 +924,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
 
 
         snip = createCounter(func_str, (BPatch_variableExpr *)base_var, snip_arg,
-                             global_proc->multithread_capable(),
-                             global_proc->get_dyn_process()->getImage());
+                             global_proc->multithread_capable());
         return (snip != NULL);
      }
   case MDL_EXPR_VAR:
@@ -1092,7 +954,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
              }
              //case MDL_T_COUNTER:
           case MDL_T_DATANODE:
-             {
+              {
                 instrDataNode* dn;
                 if (!get_dn.get(dn))
                 {
@@ -1108,10 +970,10 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                    return false;
                 }
 
-                snip = getCounter(base_var, global_proc->get_dyn_process()->getImage(),
+                snip = getStructure(base_var,
                                   global_proc->multithread_capable());
                 if (!snip) {
-                   fprintf(stderr, "%s[%d]:  getCounter() failed!\n", __FILE__, __LINE__);
+                   fprintf(stderr, "%s[%d]:  getStructure() failed!\n", __FILE__, __LINE__);
                    return false;
                 }
                 return true;
@@ -1146,7 +1008,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                 {
                    return false;
                 }
-                snip = getTimerAddress(base_var, global_proc->get_dyn_process()->getImage(),
+                snip = getStructureAddress(base_var, 
                                        global_proc->multithread_capable());
                 if (!snip) {
                    return false;
@@ -1195,8 +1057,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                 BPatch_snippet* snip_arg = new BPatch_constExpr(value);
                 BPatch_variableExpr *base_var = dn->getVariableExpr();
                 snip = createCounter("addCounter",(BPatch_variableExpr *)base_var,
-                                    snip_arg, global_proc->multithread_capable(),
-                                    global_proc->get_dyn_process()->getImage());
+                                     snip_arg, global_proc->multithread_capable());
                 if (!snip) {
                    fprintf(stderr, "%s[%d]:  createCounter failed!\n",
                            __FILE__, __LINE__);
@@ -1817,7 +1678,7 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
         }
 
         BPatch_snippet *temp1 = NULL;
-        temp1 = getCounter(base_var, global_proc->get_dyn_process()->getImage(),
+        temp1 = getStructure(base_var,
                            global_proc->multithread_capable());
 
         BPatch_snippet *temp2 = code;
