@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2006/05/03 00:20:56 jodom Exp $
+# $Id: Makefile,v 1.11 2006/06/19 21:30:48 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -53,8 +53,6 @@ SRCS		+= ../src/RTposix.c \
 			../src/RTthread-index.c \
 			../src/RTthread-sparc-asm.S
 
-RTthread-sparc-asm.o: ../src/RTthread-sparc-asm.S
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -66,3 +64,6 @@ include ../make.module.tmpl
 
 include ../../make.library.tmpl
 
+
+RTthread-sparc-asm.o: ../src/RTthread-sparc-asm.S
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
