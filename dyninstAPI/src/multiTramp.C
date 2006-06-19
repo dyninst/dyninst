@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.54 2006/06/14 19:19:31 bernat Exp $
+// $Id: multiTramp.C,v 1.55 2006/06/19 21:30:46 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -381,7 +381,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 							       relocInsns[i]->relocTarget,
 							       newMulti);
         newMulti->insns_[relocInsns[i]->relocAddr] = reloc;
-        
+
         if (prev) {
 	  prev->setFallthrough(reloc);
         }
@@ -429,7 +429,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
         if (insn->isDCTI()) {
 	  instruction *ds, *agg;
 	  insnIter.getAndSkipDSandAgg(ds, agg);
-	  
+
 	  if (ds) {
 	    reloc->ds_insn = ds;
 	  }
@@ -443,26 +443,29 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 
     assert(prev);
 
-#if defined(arch_ia64)
-    // We go to the next bundle...
-    trampEnd *end = new trampEnd(newMulti, startAddr + size);
-#else
-
     // Add a trampEnd object for fallthroughs
     trampEnd *end = NULL;
     bblInstance *fallthroughInstance = NULL;
-    int_basicBlock *fallthroughBlock = bbl->block()->getFallthrough();
+    int_basicBlock *fallthroughBlock = NULL;
+#if !defined(arch_ia64)
+    fallthroughBlock = bbl->block()->getFallthrough();
+#endif
+    
     if (fallthroughBlock) {
-      fallthroughInstance = fallthroughBlock->instVer(bbl->version());
-      // We really need one of these...
-      assert(fallthroughInstance);
-      end = new trampEnd(newMulti, fallthroughInstance->firstInsnAddr());
+        fallthroughInstance = fallthroughBlock->instVer(bbl->version());
+        // We really need one of these...
+        assert(fallthroughInstance);
+        end = new trampEnd(newMulti, fallthroughInstance->firstInsnAddr());
     }
     else {
-      // No fallthrough... 
-      end = new trampEnd(newMulti, 0);
+        // No fallthrough... 
+        // Could be a real case of no fallthrough, or we could be instrumenting
+        // an instruction at a time due to an indirect jump. Or we could be
+        // on IA-64.
+        
+        end = new trampEnd(newMulti, startAddr + size);
     }
-#endif
+    
     assert(end);
     prev->setFallthrough(end);
     end->setPrevious(prev);
