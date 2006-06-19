@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.93 2005/12/19 19:42:54 pack Exp $
+// $Id: init.C,v 1.94 2006/06/19 21:30:50 bernat Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -105,12 +105,12 @@ void initBPatch() {
   bpatch = new BPatch;
   // Don't trust defaults
   bpatch->setDebugParsing(false);
-  bpatch->setBaseTrampDeletion(false); // Untested
+  bpatch->setBaseTrampDeletion(true);
   bpatch->setTypeChecking(false);
   bpatch->setTrampRecursive(false);
-  bpatch->setForcedRelocation_NP(false);
-  bpatch->setAutoRelocation_NP(true);
-  bpatch->setDelayedParsing(false);
+  //bpatch->setForcedRelocation_NP(false);
+  //bpatch->setAutoRelocation_NP(true);
+  bpatch->setDelayedParsing(true);
 
 #if defined( cap_async_events )
   bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, 
