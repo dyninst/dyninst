@@ -1172,6 +1172,7 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 template class pdvector<BPatch_type *>;
 BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 {
+   static BPatch_module *mod_cache = NULL;
    static pdvector<BPatch_type *> local_type_cache;
 
    int endIndex;
@@ -1193,10 +1194,17 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
       return NULL;
    }
 
+   //  Local type cache should only be valid within the same BPatch_module.
+   //  If the BPatch_module changes, we should invalidate the cache.
+   if (mod_cache != mod) {  // Works for initial and change conditions.
+       local_type_cache.clear();
+       mod_cache = mod;
+   }
+
    //  check our local type cache for a type of this name/id
    //  if we have one that matches, return it (this is a recursion guard)
    for (unsigned int i = 0; i < local_type_cache.size(); ++i) {
-      if (symbol.name == local_type_cache[i]->getName()) {
+      if (symbol.id() == local_type_cache[i]->getID()) {
 #if 0
          fprintf(stderr, "%s[%d]:  RECURSION GUARD HIT FOR TYPE %s\n", FILE__, __LINE__, symbol.name.c_str());
 #endif
@@ -1267,7 +1275,7 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
    //  add our newly created type to the recursion guard so that if we 
    //  hit a recurring instance of it in the member list, 
    //  we will not regard it as a new type
-   if (result) 
+   if (result)
       local_type_cache.push_back(result);
 
    endIndex = symbol.sym->index - 1;
