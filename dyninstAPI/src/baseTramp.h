@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.15 2006/05/16 21:19:13 bernat Exp $
+// $Id: baseTramp.h,v 1.16 2006/06/19 21:30:44 bernat Exp $
 
 // baseTramp class definition
 
@@ -161,6 +161,11 @@ class baseTrampInstance : public generatedCodeObject {
     // We need to keep these around to tell whether it's
     // safe to delete yet.
     pdvector<miniTrampInstance *> deletedMTIs;
+
+    // We may remove ourselves from the baseTramp's list of instances
+    // either directly (via removeCode) or during deletion -- but
+    // don't do it twice!!!
+    bool alreadyDeleted_;
 };
 
 class baseTramp {

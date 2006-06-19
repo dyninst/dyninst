@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.39 2006/06/16 16:13:35 bernat Exp $
+// $Id: baseTramp.C,v 1.40 2006/06/19 21:30:43 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -59,7 +59,8 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
     trampAddr_(0), // Unallocated
     baseT(tramp),
     multiT(multi),
-    genVersion(0)
+    genVersion(0),
+    alreadyDeleted_(false)
 {
 }
 
@@ -96,16 +97,16 @@ baseTrampInstance::~baseTrampInstance() {
     // What about mtis?
     for (unsigned i = 0; i < mtis.size(); i++)
         delete mtis[i];
-    
-    if (baseT)
+
+    if (!alreadyDeleted_ && baseT) {
         baseT->unregisterInstance(this);
+    }
 }
 
 void baseTramp::unregisterInstance(baseTrampInstance *inst) {
     for (unsigned i = 0; i < instances.size(); i++) {
         if (instances[i] == inst) {
             instances.erase(i, i);
-            inst->baseT = NULL;
             return;
         }
     }
@@ -1112,6 +1113,7 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
         mtis.clear();
 
         baseT->unregisterInstance(this);
+        alreadyDeleted_ = true;
     }
            
 }
