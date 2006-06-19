@@ -1387,8 +1387,9 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
    if (!info->isSynchronous()) {
       pdvector<CallbackBase *> cbs;
       getCBManager()->dispenseCallbacksMatching(evtOneTimeCode, cbs);
+      if (cbs.size() > 0)  BPatch::bpatch->signalNotificationFD();
+
       for (unsigned int i = 0; i < cbs.size(); ++i) {
-          BPatch::bpatch->signalNotificationFD();
 
           OneTimeCodeCallback *cb = dynamic_cast<OneTimeCodeCallback *>(cbs[i]);
           if (cb) {
@@ -1970,8 +1971,9 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
 
   pdvector<CallbackBase *> cbs;
   getCBManager()->dispenseCallbacksMatching(evtThreadCreate, cbs);
+  if (cbs.size() > 0) BPatch::bpatch->signalNotificationFD();
+
   for (unsigned int i = 0; i < cbs.size(); ++i) {
-      BPatch::bpatch->signalNotificationFD();
 
      AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
      async_printf("%s[%d]:  before issuing thread create callback: tid %lu\n", 
@@ -1991,15 +1993,16 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
     //  with the thread object.
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
+    if (cbs.size() > 0) BPatch::bpatch->signalNotificationFD();
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-      BPatch::bpatch->mutateeStatusChange = true;
-      llproc->sh->signalEvent(evtThreadExit);
-       AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
-       async_printf("%s[%d]:  before issuing thread exit callback: tid %lu\n", 
-                   FILE__, __LINE__, newthr->getTid());
-       cb(this, newthr);
+        BPatch::bpatch->mutateeStatusChange = true;
+        llproc->sh->signalEvent(evtThreadExit);
+        AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
+        async_printf("%s[%d]:  before issuing thread exit callback: tid %lu\n", 
+                     FILE__, __LINE__, newthr->getTid());
+        cb(this, newthr);
     }
-
+    
   }
   return newthr;
 }

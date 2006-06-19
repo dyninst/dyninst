@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.155 2006/06/16 16:47:21 bernat Exp $
+// $Id: BPatch.C,v 1.156 2006/06/19 21:34:16 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -945,9 +945,11 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtPostFork,cbs);
+
+    if (cbs.size() > 0)
+        signalNotificationFD();
     
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
 
         ForkCallback *cb = dynamic_cast<ForkCallback *>(cbs[i]);
         if (cb) {
@@ -977,12 +979,11 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
 
     forking->isVisiblyStopped = true;
 
-    signalNotificationFD();
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtPreFork,cbs);
+    if (cbs.size() > 0) signalNotificationFD();
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
 
         assert(cbs[i]);
         ForkCallback *cb = dynamic_cast<ForkCallback *>(cbs[i]);
@@ -1029,13 +1030,11 @@ void BPatch::registerExecExit(process *proc)
    process->image = new BPatch_image(process);
 
    // The async pipe should be gone... handled in registerExecEntry
-   
-    signalNotificationFD();
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
+    if (cbs.size() > 0) signalNotificationFD();
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
 
         ExecCallback *cb = dynamic_cast<ExecCallback *>(cbs[i]);
         if (cb)
@@ -1069,21 +1068,20 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
 
    pdvector<CallbackBase *> cbs;
 
-    signalNotificationFD();
+   bool madeCallback = false;
 
    getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
-
-     AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
-     if (cb)
-         (*cb)(process, thrd);
+       madeCallback = true;
+       AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
+       if (cb)
+           (*cb)(process, thrd);
    }
 
    cbs.clear();
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
-       signalNotificationFD();
+       madeCallback = true;
 
        ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
        if (cb) {
@@ -1108,6 +1106,9 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
        }
 #endif           
    }
+
+   if (madeCallback)
+       signalNotificationFD();
 
    // We now run the process out; set its state to terminated. Really, the user shouldn't
    // try to do anything else with this, but we can get that happening.
@@ -1137,10 +1138,12 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    bpprocess->isVisiblyStopped = true;
    bpprocess->terminated = true;
 
+   bool madeCallback = false;
+
    pdvector<CallbackBase *> cbs;
    getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
-           signalNotificationFD();
+       madeCallback = true;
 
        AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
        if (cb) 
@@ -1150,7 +1153,7 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    cbs.clear();
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
-           signalNotificationFD();
+       madeCallback = true;
 
        ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
        if (cb) 
@@ -1171,9 +1174,8 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
            signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
        }
 #endif           
-
-
    }
+   if (madeCallback) signalNotificationFD();
 
    // We now run the process out; set its state to terminated. Really, the user shouldn't
    // try to do anything else with this, but we can get that happening.
@@ -1225,8 +1227,9 @@ void BPatch::registerThreadExit(process *proc, long tid, bool exiting)
     thrd->deleted_callback_made = true;
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
+    if (cbs.size() > 0) signalNotificationFD();
+
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
 
         AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
         mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
@@ -1258,9 +1261,9 @@ void BPatch::registerLoadedModule(process *process, mapped_module *mod) {
     if (! getCBManager()->dispenseCallbacksMatching(evtLoadLibrary, cbs)) {
         return;
     }
-    
+    if (cbs.size() > 0) signalNotificationFD();
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-           signalNotificationFD();
+
 
         DynLibraryCallback *cb = dynamic_cast<DynLibraryCallback *>(cbs[i]);
         if (cb)
@@ -1292,10 +1295,8 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
     if (! getCBManager()->dispenseCallbacksMatching(evtLoadLibrary, cbs)) {
         return;
     }
-    
+    if (cbs.size() > 0) signalNotificationFD();
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-           signalNotificationFD();
-
         DynLibraryCallback *cb = dynamic_cast<DynLibraryCallback *>(cbs[i]);
         if (cb)
             (*cb)(bProc->threads[0], bpmod, false);
