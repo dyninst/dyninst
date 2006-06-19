@@ -205,8 +205,6 @@ void DYNINSTstartThreadTimer(tTimer* timer)
    rawTime64 start;
    int valid = 0;  
    int i;
-   
-   unsigned index = dyninst_threadIndex();
 
    if(!timer)
       i = *((int *)0); /* abort() sometimes doesn't leave good stack traces */
@@ -215,12 +213,6 @@ void DYNINSTstartThreadTimer(tTimer* timer)
    timer->protector1++;
    MEMORY_BARRIER;
    if (timer->counter == 0) {
-      if (!(timer->index)) { /* No INDEX associated with this timer yet */
-         /* INDEX could be set in daemon, which would make this much easier */
-         timer->index = index;
-         /* fprintf(stderr, "Setting timer INDEX to %d, tid %d\n", timer->index, 
-                    P_thread_self()); */
-      }
       /* We sample the virtual timer, so we may need to retry */
       while (!valid) {
          start = getThreadCPUTime(timer->index, &valid);
@@ -241,8 +233,6 @@ void DYNINSTstopThreadTimer(tTimer* timer)
 {
     int i;
 
-    unsigned index = dyninst_threadIndex();
-   
     if (!timer)
         i = *((int *)0);
     
