@@ -611,7 +611,7 @@ bool BPatch_process::statusIsTerminated()
              FILE__, __LINE__);
      return true;
    }
-   return llproc->status() == exited;
+   return llproc->hasExited();
 }
 
 /*
@@ -1971,6 +1971,8 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
   pdvector<CallbackBase *> cbs;
   getCBManager()->dispenseCallbacksMatching(evtThreadCreate, cbs);
   for (unsigned int i = 0; i < cbs.size(); ++i) {
+      BPatch::bpatch->signalNotificationFD();
+
      AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
      async_printf("%s[%d]:  before issuing thread create callback: tid %lu\n", 
                  FILE__, __LINE__, newthr->getTid());
