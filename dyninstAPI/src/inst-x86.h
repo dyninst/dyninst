@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.27 2006/06/09 03:50:48 jodom Exp $
+// $Id: inst-x86.h,v 1.28 2006/06/19 21:30:45 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -68,8 +68,10 @@
 
 */
 
-#define TRAMP_FRAME_SIZE (128)
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
+
+/* Add one for the REG_MT_POS 'reserved' reg */
+#define TRAMP_FRAME_SIZE ((NUM_VIRTUAL_REGISTERS+1)*4)
 
 /*
    Function arguments are in the stack and are addressed with a displacement
