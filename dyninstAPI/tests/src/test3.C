@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.54 2006/06/15 12:47:49 jaw Exp $
+// $Id: test3.C,v 1.55 2006/06/20 04:49:39 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -897,8 +897,12 @@ void mutatorTest6(char *pathname, BPatch *bpatch)
 //
 unsigned int num_callbacks_issued = 0;
 bool test7done = false;
+#if defined (os_osf)
+#define TEST7_NUM_ONETIMECODE 100
+#else
 #define TEST7_NUM_ONETIMECODE 400
-#define TIMEOUT 60 /*seconds */
+#endif
+#define TIMEOUT 120 /*seconds */
 
 void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
                                 void *userData,
