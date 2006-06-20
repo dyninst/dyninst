@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_7.C,v 1.3 2006/06/15 12:47:50 jaw Exp $
+// $Id: test3_7.C,v 1.4 2006/06/20 04:54:16 jaw Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -68,8 +68,12 @@ int debugPrint;
 
 unsigned int num_callbacks_issued = 0;
 bool test7done = false;
+#if defined (os_osf)
+#define TEST7_NUM_ONETIMECODE 100
+#else
 #define TEST7_NUM_ONETIMECODE 400
-#define TIMEOUT 60 /*seconds */
+#endif
+#define TIMEOUT 120 /*seconds */
 
 void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
                                 void *userData,
