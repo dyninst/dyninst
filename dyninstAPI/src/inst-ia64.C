@@ -3129,7 +3129,9 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 
 	   This should be valid for the general case. */
 			   
-	Register retVal = (Register)8;
+	  //Register retVal = (Register)8;
+	  assert(regSpace->storageMap[REGISTER_RV] > 0);
+	  Register retVal = regSpace->storageMap[REGISTER_RV];
 	emitRegisterToRegisterCopy(retVal, dest, gen, NULL);
 	return dest;
   } break;

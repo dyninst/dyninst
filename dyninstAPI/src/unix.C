@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.218 2006/06/16 16:13:33 bernat Exp $
+// $Id: unix.C,v 1.219 2006/06/21 21:19:46 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -267,6 +267,7 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
    }
 
    ev.info = (eventInfo_t)arg;
+
    switch(status) {
      case DSE_forkEntry:
         /* Entry to fork */
@@ -732,19 +733,8 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
 #endif
       break;
   }
-  case SIGCHLD:
-#if defined (os_linux)
-     // Linux fork() sends a SIGCHLD once the fork has been created
-     ev.type = evtPreFork;
-#endif
-     break;
   case DYNINST_BREAKPOINT_SIGNUM: /*SIGBUS2*/
     signal_printf("%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
-    if (expect_fake_signal) {
-      expect_fake_signal = false;
-      ev.type = evtNullEvent;
-      break;
-    }
     ev.type = evtCritical;
 
     // This may override the type..
@@ -1682,8 +1672,7 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
       waiting_for_stop(false),
       sync_event_id_addr(0),
       sync_event_arg1_addr(0),
-      sync_event_breakpoint_addr(0),
-      expect_fake_signal(false)
+      sync_event_breakpoint_addr(0)
 {
 
     char buffer[128];
