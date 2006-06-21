@@ -1280,7 +1280,8 @@ void BPatch_module::setDefaultNamespacePrefix(char *name)
     img->setDefaultNamespacePrefix(name); 
 }
 
-bool BPatch_module::isSystemLib() {
+bool BPatch_module::isSystemLib() 
+{
     pdstring str = mod->fileName();
 
     // Solaris 2.8... we don't grab the initial func always,

@@ -1837,7 +1837,6 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
       bpthr = BPatch_thread::createNewThread(this, index, lwp, tid);
 
       if (bpthr->doa) {
-          if (tid == 0) 
              bpthr->getProcess()->llproc->removeThreadIndexMapping(tid, index);
           return bpthr;
       }         
