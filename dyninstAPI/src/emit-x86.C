@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.27 2006/06/09 03:50:48 jodom Exp $
+ * $Id: emit-x86.C,v 1.28 2006/06/21 16:53:51 rutar Exp $
  */
 
 #include <assert.h>
@@ -981,7 +981,7 @@ void Emitter64::emitLoadRegRelative(Register dest, Address offset,
 
 void Emitter64::emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen)
 {
-  if (regSpace->getDisregardLiveness()) {
+  if (regSpace->getDisregardLiveness() || regSpace->getSPFlag()) {
       emitMovRMToReg64(dest, REGNUM_RBP, (GPR_SAVE_REGION_OFFSET - register_num) * 8, true, gen);
   }
   else {
@@ -1071,7 +1071,7 @@ bool Emitter64::clobberAllFuncCall( registerSpace *rs,
 		    int level)
 		   
 {
-   int_function *funcc;  
+  int_function *funcc;  
    codeRange *range = proc->findCodeRangeByAddress(callee_addr);
    if (range)
      {
@@ -1231,7 +1231,7 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     // pop "fake" return address
     emitPopReg64(REGNUM_RAX, gen);
 
-    if (regSpace->getDisregardLiveness())
+    if (regSpace->getDisregardLiveness() || regSpace->getSPFlag())
       {
 	// restore saved registers (POP R15, POP R14, ...)
 	for (int reg = 15; reg >= 0; reg--) {
@@ -1244,10 +1244,11 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 	  // Count the saved registers
 	  int num_saved = 4; // RAX, RSP, RBP always saved
 	  for(int i = regSpace->getRegisterCount()-1; i >= 0; i--) {
-	      registerSlot * reg = regSpace->getRegSlot(i);
-	      if (reg->startsLive) {
-		  num_saved++;
-	      }
+	    
+	    registerSlot * reg = regSpace->getRegSlot(i);
+	    if (reg->startsLive) {
+	      num_saved++;
+	    }
 	  }
 	  
 	  // move SP up to end of GPR save area
@@ -1458,7 +1459,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     // save flags (PUSHFQ)
     emitSimpleInsn(0x9C, gen);
     
-    if (regSpace->getDisregardLiveness())
+    if (regSpace->getDisregardLiveness() || regSpace->getSPFlag())
       {
 	for (int reg = 0; reg < 16; reg++) {
 	  emitPushReg64(reg, gen);
@@ -1478,6 +1479,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 	for(u_int i = 0; i < regSpace->getRegisterCount(); i++)
 	  {
 	    registerSlot * reg = regSpace->getRegSlot(i);
+	    
 	    if (reg->startsLive)
 	      {
 		//printf(" %d ",reg->number);
@@ -1575,7 +1577,7 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
     if (!bt->rpcMgr_)
 	emitPopReg64(REGNUM_RAX, gen);
     
-    if (regSpace->getDisregardLiveness())
+    if (regSpace->getDisregardLiveness() || regSpace->getSPFlag())
       {
 	// restore saved registers (POP R15, POP R14, ...)
 	for (int reg = 15; reg >= 0; reg--) {
@@ -1587,7 +1589,8 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 	  // Count the saved registers
 	  int num_saved = 4; // RAX, RBX, RSP, RBP always saved
 	  for(int i = regSpace->getRegisterCount()-1; i >= 0; i--) {
-	      registerSlot * reg = regSpace->getRegSlot(i);
+
+	    registerSlot * reg = regSpace->getRegSlot(i);
 	      if (reg->startsLive) {
 		  num_saved++;
 	      }
@@ -1602,6 +1605,7 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 	for(int i = regSpace->getRegisterCount()-1; i >= 0; i--)
 	  {
 	    registerSlot * reg = regSpace->getRegSlot(i);
+	    
 	    if (reg->startsLive)
 	      {
 		emitPopReg64(reg->number,gen);
