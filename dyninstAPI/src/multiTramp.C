@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.55 2006/06/19 21:30:46 bernat Exp $
+// $Id: multiTramp.C,v 1.56 2006/06/21 16:01:59 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -315,8 +315,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 
     Address startAddr = 0;
     unsigned size = 0;
-    Address instrucStart = 0;
-    unsigned instrucSize = 0;
+    bool basicBlockTramp = false;
 
     // On most platforms we instrument an entire basic block at a
     // time. IA64 does bundles. This is controlled by the static
@@ -328,8 +327,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
                                             proc,
                                             startAddr,
                                             size,
-					    instrucStart,
-					    instrucSize)) {
+					    basicBlockTramp)) {
         // Assert fail?
         fprintf(stderr, "Could not get multiTramp footprint at 0x%lx, ret false\n", pointAddr);
         return 0;
@@ -447,10 +445,11 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
     trampEnd *end = NULL;
     bblInstance *fallthroughInstance = NULL;
     int_basicBlock *fallthroughBlock = NULL;
-#if !defined(arch_ia64)
-    fallthroughBlock = bbl->block()->getFallthrough();
-#endif
-    
+
+    if (basicBlockTramp) {
+      fallthroughBlock = bbl->block()->getFallthrough();
+    }
+
     if (fallthroughBlock) {
         fallthroughInstance = fallthroughBlock->instVer(bbl->version());
         // We really need one of these...
@@ -485,21 +484,20 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
                                         process * /* proc */,
                                         Address &startAddr,
                                         unsigned &size,
-					Address &instructStart,
-					unsigned &instructSize)
+					bool &basicBlock)
 #else
 bool multiTramp::getMultiTrampFootprint(Address instAddr,
                                         process *proc,
                                         Address &startAddr,
                                         unsigned &size,
-					Address &instructStart,
-					unsigned &instructSize)
+					bool &basicBlock)
 #endif
 {
 #if defined(arch_ia64)
     // IA64 bundle-izes
     startAddr = instAddr - (instAddr % 16);
     size = 16; // bundlesize
+    basicBlock = false;
     return true;
 #else
     // We use basic blocks
@@ -534,18 +532,14 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
         InstrucIter ah(instAddr,proc);
         startAddr = instAddr;
         size = ah.getInstruction().size();
+	basicBlock = false;
         return true;
     }
     
     // start is the start of the basic block, size is the size
     startAddr = bbl->firstInsnAddr();
     size = (unsigned) bbl->getSize();
-
-    // If we're relocating, _iterate_ over the original version.
-    bblInstance *origInstance = bbl->block()->origInstance();
-    assert(origInstance);
-    instructStart = origInstance->firstInsnAddr();
-    instructSize = origInstance->getSize();
+    basicBlock = true;
 
     return true;
 #endif

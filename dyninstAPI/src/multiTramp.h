@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.15 2006/05/25 20:11:39 bernat Exp $
+// $Id: multiTramp.h,v 1.16 2006/06/21 16:01:59 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -440,8 +440,7 @@ class multiTramp : public generatedCodeObject {
                                      process *proc,
                                      Address &startAddr,
                                      unsigned &size,
-				     Address &instructStart,
-				     unsigned &instrucSize);
+				     bool &basicBlock);
 
   static multiTramp *getMulti(int id, process *proc);
 
