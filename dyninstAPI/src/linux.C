@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.242 2006/06/08 00:49:15 legendre Exp $
+// $Id: linux.C,v 1.243 2006/06/22 22:53:40 bernat Exp $
 
 #include <fstream>
 
@@ -275,7 +275,7 @@ bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers)
       subsubvers = subsub;
       return true;
    }
-   f = fopen("/proc/version", "r");
+   f = P_fopen("/proc/version", "r");
    if (!f) goto error;
    result = fscanf(f, "Linux version %d.%d.%d.%d", &major, &minor, &subvers,
                     &subsubvers);
@@ -978,6 +978,12 @@ void dyn_lwp::realLWP_detach_()
       fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", __FILE__, __LINE__, strerror(ptrace_errno));
     }
     proc()->sh->remove_lwp_from_poll_list(get_lwp_id());
+
+    if (fd_ != INVALID_HANDLE_VALUE) {
+        close(fd_);
+        fd_ = INVALID_HANDLE_VALUE;
+    }
+
     return;
 }
 
@@ -1380,7 +1386,7 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
      if (!lwp_id) 
          continue;
      sprintf(name, "/proc/%d/status", lwp_id);
-     FILE *fd = fopen(name, "r");
+     FILE *fd = P_fopen(name, "r");
      if (!fd) {
          continue;
      }
@@ -1432,11 +1438,17 @@ bool process::dumpImage( pdstring imageFileName ) {
    pdstring originalFileName = mapped_objects[0]->fullName();
 	
 	/* Use system() to execute the copy. */
-	pdstring copyCommand = "cp " + originalFileName + " " + imageFileName;
-   system( copyCommand.c_str() );
+	//pdstring copyCommand = "cp " + originalFileName + " " + imageFileName;
+        //system( copyCommand.c_str() );
+   if (P_copy(originalFileName.c_str(), imageFileName.c_str()) == -1) {
+       fprintf(stderr, "Failure in copying file %s to %s\n",
+              originalFileName.c_str(), imageFileName.c_str());
+       perror("error");
+       return false;
+   }
 
    /* Open the copy so we can use libelf to find the .text section. */
-   int copyFD = open( imageFileName.c_str(), O_RDWR, 0 );
+   int copyFD = P_open( imageFileName.c_str(), O_RDWR, 0 );
    if( copyFD < 0 ) { return false; }
    
    /* Start up the elven widgetry. */
@@ -1621,6 +1633,9 @@ bool dyn_lwp::realLWP_attach_() {
    char procName[128];
    sprintf(procName, "/proc/%d/mem", get_lwp_id());
    fd_ = P_open(procName, O_RDWR, 0);
+
+   fprintf(stderr, "File descriptor for %s: %d\n", procName, fd_);
+
    if (fd_ < 0)
      fd_ = INVALID_HANDLE_VALUE;
 
@@ -1741,7 +1756,7 @@ struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    
   
    sprintf(line, "/proc/%d/maps", pid);
-   f = fopen(line, "r");
+   f = P_fopen(line, "r");
    if (!f)
       return NULL;
    
@@ -1860,7 +1875,7 @@ bool process::readAuxvInfo()
    * so we have to resort to more "extreme" measures.
    **/
   sprintf(buffer, "/proc/%d/auxv", getPid());
-  fd = open(buffer, O_RDONLY);
+  fd = P_open(buffer, O_RDONLY, 0);
   if (fd != -1) {
      //Try to read the location out of /proc/pid/auxv
      do {
