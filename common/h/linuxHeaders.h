@@ -83,7 +83,9 @@ extern const char *sys_errlist[];
 /* POSIX */
 int P_getopt(int argc, char *argv[], const char *optstring);
 inline void P_abort (void) { abort();}
-inline int P_close (int FILEDES) { return (close(FILEDES));}
+inline int P_close (int FILEDES) { 
+    return (close(FILEDES));
+}
 inline int P_dup2 (int OLD, int NEW) { return (dup2(OLD, NEW));}
 inline int P_execvp (const char *FILENAME, char *const ARGV[]) {
   return (execvp(FILENAME, ARGV));}
@@ -97,7 +99,10 @@ inline int P_fcntl (int FILEDES, int COMMAND, int ARG2) {
 inline FILE * P_fdopen (int FILEDES, const char *OPENTYPE) {
   return (fdopen(FILEDES, OPENTYPE));}
 inline FILE * P_fopen (const char *FILENAME, const char *OPENTYPE) {
-  return (fopen(FILENAME, OPENTYPE));}
+    return fopen(FILENAME, OPENTYPE);
+}
+int P_copy(const char *from, const char *to);
+int P_system(const char *string);
 inline int P_fstat (int FILEDES, struct stat *BUF) { return (fstat(FILEDES, BUF));}
 inline pid_t P_getpid () { return (getpid());}
 inline int P_kill(pid_t PID, int SIGNUM) { return (kill(PID, SIGNUM));}
@@ -105,7 +110,10 @@ inline int P_tkill(pid_t PID, int SIGNUM) { return (syscall(SYS_tkill, PID, SIGN
 inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
   return (lseek(FILEDES, OFFSET, WHENCE));}
 inline int P_open(const char *FILENAME, int FLAGS, mode_t MODE) {
-  return (open(FILENAME, FLAGS, MODE));}
+    return open(FILENAME, FLAGS, MODE);
+}
+
+
 inline int P_pclose (FILE *STREAM) { return (pclose(STREAM));}
 inline FILE *P_popen (const char *COMMAND, const char *MODE) {
   return (popen(COMMAND, MODE));}
