@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_4.C,v 1.5 2006/06/11 00:35:32 legendre Exp $
+// $Id: test12_4.C,v 1.6 2006/06/22 21:23:44 bernat Exp $
 /*
  * #Name: test12_4
  * #Desc: thread create callback -- doa
@@ -185,8 +185,9 @@ bool mutatorTest3and4(int testno, const char *testname)
 
   if (timeout >= TIMEOUT) {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  test timed out. got %d/10 events\n",
-           __FILE__, __LINE__, test3_threadCreateCounter);
+    fprintf(stderr, "%s[%d]:  test timed out. got %d/10 events\n", __FILE__, __LINE__, test3_threadCreateCounter);
+    fprintf(stderr, "test3_createCounter is %d, expected %d; active threads %d, expected %d\n",
+            test3_threadCreateCounter, TEST3_THREADS, active_threads, 1);
     err = 1;
   }
 
