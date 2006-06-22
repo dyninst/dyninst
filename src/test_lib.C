@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.20 2006/06/11 00:35:37 legendre Exp $
+// $Id: test_lib.C,v 1.21 2006/06/22 16:04:02 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -194,7 +194,9 @@ pid_t fork_mutatee() {
 
    if (child_pid) {
       //Read the grandchild pid from the child.
-      result = read(filedes[0], &gchild_pid, sizeof(pid_t));
+      do {
+         result = read(filedes[0], &gchild_pid, sizeof(pid_t));
+      } while (result == -1 && errno == EINTR);
       if (result == -1) {
          perror("Couldn't read from pipe");
       }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_6.C,v 1.5 2006/06/15 12:47:50 jaw Exp $
+// $Id: test3_6.C,v 1.6 2006/06/22 16:04:01 legendre Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -115,13 +115,18 @@ bool grandparentForkMutatees(int num, int *pids, const char *filename, const cha
 
     //  need a pipe to get grandchild pids back to grandparent
     int filedes[2];
+    int result;
     pipe(filedes);
 
     int childpid = fork();
     if (childpid > 0) {
       //parent -- read grandchild pids
       for (unsigned int i = 0; i < num; ++i) {
-        if (0 > read(filedes[0], &pids[i], sizeof(int))) {
+        result = 0;
+        do {
+           result = read(filedes[0], &pids[i], sizeof(int));
+        } while (result == -1 && errno == EINTR);
+        if (0 > result) {
            fprintf(stderr, "%s[%d]:  read failed %s\n", __FILE__, __LINE__, strerror(errno));
            abort();
         }
