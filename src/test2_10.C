@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_10.C,v 1.3 2006/06/22 21:48:52 bernat Exp $
+// $Id: test2_10.C,v 1.4 2006/06/22 22:54:01 bernat Exp $
 /*
  * #Name: test2_10
  * #Desc: Dump image
@@ -88,7 +88,7 @@ int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
   }
 
     // dump image
-  /*
+
     if (access("myimage", F_OK) == 0) {
 	dprintf("File \"myimage\" exists.  Deleting it.\n");
 	if (unlink("myimage") != 0) {
@@ -96,7 +96,6 @@ int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
             return -1;
 	}
     }
-  */
 
     clearError();
     thread->dumpImage("myimage");
@@ -111,8 +110,7 @@ int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
         return -1;
     } else {
     	printf("Passed test #10 (dump image)\n");
-        /* Commented out 21JUN06 - for some reason this call hangs out at Maryland - bernat */
-        /*	unlink("myimage");*/
+        	unlink("myimage");
         return 0;
     }
 #endif
