@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.243 2006/06/22 22:53:40 bernat Exp $
+// $Id: linux.C,v 1.244 2006/06/23 22:16:20 bernat Exp $
 
 #include <fstream>
 
@@ -1633,8 +1633,6 @@ bool dyn_lwp::realLWP_attach_() {
    char procName[128];
    sprintf(procName, "/proc/%d/mem", get_lwp_id());
    fd_ = P_open(procName, O_RDWR, 0);
-
-   fprintf(stderr, "File descriptor for %s: %d\n", procName, fd_);
 
    if (fd_ < 0)
      fd_ = INVALID_HANDLE_VALUE;
