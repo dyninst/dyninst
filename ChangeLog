@@ -1,0 +1,22 @@
+5.0
+	Support for multithreaded executables
+	Lazy parsing of binaries to speed up startup time
+	Optimized liveness analysis spills only necessary registers
+	Minitramp inlining
+	Preliminary transaction support
+	64-bit support for x86_64 binaries
+	Support newer Windows debug formats
+	gcc 4.x support
+	Binary distribution in RPM, deb, and msi formats
+
+4.2.1
+	Added support for GNU Fortran on x86 Linux
+	Added support for building DyninstAPI library with xlC on AIX
+
+4.2
+	Added asynchronous event handler
+	Added ability to parse stripped PowerPC binaries
+	Improved startup speed via incremental parsing
+	Easier installation and build process
+	Smarter register allocation on AIX
+	[BETA] Preliminary 32-bit functionality for x86_64/Linux platform
