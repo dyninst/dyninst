@@ -321,17 +321,17 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
            break;
        }
    }
-   if (!thr)
-   {
-       fprintf(stderr, "%s[%d]: No matching thread! for lwp exit\n", 
-               FILE__, __LINE__);
-       continueHint = true;
-       return false;
-   }
 
    if (proc->IndependentLwpControl()) {
-      proc->set_lwp_status(ev.lwp, exited);
-    }
+     proc->set_lwp_status(ev.lwp, exited);
+   }
+   ev.lwp->set_dead();
+
+   if (!thr) {
+     // DOA thread...
+     continueHint = true;
+     return true;
+   }
 
    BPatch::bpatch->registerThreadExit(proc, thr->get_tid(), false);
 

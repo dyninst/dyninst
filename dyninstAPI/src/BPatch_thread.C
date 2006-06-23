@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.167 2006/06/14 19:06:55 legendre Exp $
+// $Id: BPatch_thread.C,v 1.168 2006/06/23 21:04:31 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -182,7 +182,14 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
    else if (!lwp)
       lwp = proc->llproc->getLWP(lwp_id);
 
-   doa = (lwp == NULL);
+   if (lwp == NULL) {
+     doa = true;
+   } 
+   else if (lwp->is_dead()) {
+     doa = true;
+   }
+   else doa = false;
+
    doa_tid = async_tid;
    if (doa) {
       is_deleted = true;
@@ -190,7 +197,6 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
       return;
    }
 
-   
    if (!llthread)
        llthread = new dyn_thread(proc->llproc, ind, lwp);
 

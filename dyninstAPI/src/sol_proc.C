@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.109 2006/06/09 19:51:21 bernat Exp $
+// $Id: sol_proc.C,v 1.110 2006/06/23 21:04:31 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1711,35 +1711,10 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
             if (ev.proc->real_lwps.find((unsigned) procstatus.pr_lwpid))
                 lwp_to_use  = ev.proc->real_lwps[procstatus.pr_lwpid];
             else {
-                // Odd case....  we can get thread exit events before thread
-                //  creation has been reported.  This will be handled by the
-                //  Dead On Arrival mode of thread creation.  So we can just
-                //  act as if this didn't happen.
-                //fprintf(stderr, "%s[%d]: no lwp for lwp id %d, ignoring event\n",
-                //        FILE__, __LINE__, procstatus.pr_lwpid);
-                ev.type = evtNullEvent;
-                continue;
+	      lwp_to_use = ev.proc->getLWP(procstatus.pr_lwpid);
             }
         }
 
-        // Debugging... let's see if multiple LWPs are showing an event.
-        // They shouldn't, but....
-        dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(ev.proc->real_lwps);
-        dyn_lwp *cur_lwp;
-        unsigned index;
-        unsigned num_lwps_with_event = 0;
-
-        while(lwp_iter.next(index, cur_lwp)) {
-            signal_printf("%s[%d]: checking LWP %d for event, %d so far...\n",
-                          FILE__, __LINE__, index, num_lwps_with_event);
-            lwpstatus_t lwpstatus;
-            cur_lwp->get_status(&lwpstatus);
-            if (lwpstatus.pr_why != PR_REQUESTED) {
-                num_lwps_with_event++;
-                //showProcStatus(lwpstatus);
-            }
-        }
-        
         ev.lwp = lwp_to_use;
         if (!ev.lwp) {
           fprintf(stderr, "%s[%d]:  no lwp, returning NULL event\n", FILE__, __LINE__);

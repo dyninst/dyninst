@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.59 2006/06/01 18:24:16 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.60 2006/06/23 21:04:31 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -275,7 +275,9 @@ class dyn_lwp
      lwp_id_ = newid;
   }
 
-  
+  bool is_dead() const { return is_dead_; }
+  void set_dead() { is_dead_ = true; }
+
   // Open and close (if necessary) the file descriptor/handle. Used
   // by /proc-based platforms. Moved outside the constructor for
   // error reporting reasons. 
@@ -363,6 +365,8 @@ class dyn_lwp
   bool is_attached_;
 
   bool is_as_lwp_;
+
+  bool is_dead_;
 };
 
 #endif

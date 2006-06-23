@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.61 2006/06/02 17:57:50 mjbrim Exp $
+ * $Id: dyn_lwp.C,v 1.62 2006/06/23 21:04:31 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -71,7 +71,8 @@ dyn_lwp::dyn_lwp() :
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), isDoingAttach_(false), is_attached_(false),
-  is_as_lwp_(false)
+  is_as_lwp_(false),
+  is_dead_(false)
 {
 };
 
@@ -95,8 +96,8 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), isDoingAttach_(false), is_attached_(false),
-  is_as_lwp_(false)
-
+  is_as_lwp_(false),
+  is_dead_(false)
 {
 }
 
@@ -120,7 +121,8 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), isDoingAttach_(false), is_attached_(false),
-  is_as_lwp_(false)
+  is_as_lwp_(false),
+  is_dead_(false)
 {
 }
 
