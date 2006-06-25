@@ -401,7 +401,7 @@ Frame Frame::getCallerFrame()
          if (!getProc()->readDataSpace((caddr_t) fp_, addr_size, 
                                        &addrs.fp, true))
             return Frame();
-         if (!getProc()->readDataSpace((caddr_t) fp_ + addr_size, addr_size, 
+         if (!getProc()->readDataSpace((caddr_t) (fp_ + addr_size), addr_size, 
                                        &addrs.rtn, true))
             return Frame();
          newFP = addrs.fp;
