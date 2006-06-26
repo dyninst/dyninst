@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_6.C,v 1.2 2005/11/22 19:42:14 bpellin Exp $
+// $Id: test2_6.C,v 1.3 2006/06/26 20:16:00 rchen Exp $
 /*
  * #Name: test2_6
  * #Desc: Load a dynamically linked library from the mutatee
@@ -103,10 +103,13 @@ int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 
     if (found) {
     	printf("Passed test #6 (load a dynamically linked library from the mutatee)\n");
+	
+	thread->continueExecution();
         return 0;
     } else {
     	printf("**Failed** test #6 (load a dynamically linked library from the mutatee)\n");
 	printf("    image::getModules() did not indicate that the library had been loaded\n");
+	thread->continueExecution();
         return -1;
     }
 #endif
