@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.665 2006/06/13 19:36:14 bernat Exp $
+// $Id: process.C,v 1.666 2006/06/26 20:50:22 bernat Exp $
 
 #include <ctype.h>
 
@@ -4167,7 +4167,9 @@ bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
        return false;
    }
 
-   ev.what = 0;
+   // Uh, noo....
+   //ev.what = 0;
+
    //if (!dyn->getChangedObjects(ev,changed_objs)) {
    if (!dyn->handleIfDueToSharedObjectMapping(ev,changed_objs)) {
        fprintf(stderr, "%s[%d]: change in mapping but no changed objs??\n", FILE__, __LINE__);
