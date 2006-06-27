@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.220 2006/06/23 20:14:50 jaw Exp $
+// $Id: unix.C,v 1.221 2006/06/27 22:10:07 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -733,12 +733,6 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
 #endif
       break;
   }
-#if defined (os_linux) && defined (arch_ia64)
-  case SIGCHLD:
-     // Linux fork() sends a SIGCHLD once the fork has been created
-     ev.type = evtPreFork;
-     break;
-#endif
 
   case DYNINST_BREAKPOINT_SIGNUM: /*SIGBUS2*/
     signal_printf("%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
