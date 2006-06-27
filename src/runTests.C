@@ -83,6 +83,16 @@ void parseParameters(int argc, char *argv[])
             logfile = argv[++i];
          }
       }
+      else if (strncmp(argv[i], "-limit", 6) == 0) {
+          if (i == (argc-1)) {
+              fprintf(stderr, "Error: -limit requires a parameter\n");
+          }
+          else {
+              unsigned int limit = atoi(argv[i+1]);
+              testLimit = limit;
+              i++;
+          }
+      }
       else
       {
          // Pass uninterpreted arguments to test_driver
@@ -130,7 +140,7 @@ int RunTest(unsigned int iteration)
    string shellString;
 
    generateTestString(iteration > 0, useLog, logfile, 
-         testLimit, child_argv, shellString);
+                      testLimit, child_argv, shellString);
 
    int ret = system(SimpleShellEscape(shellString).c_str());
 
