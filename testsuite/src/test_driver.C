@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.32 2006/06/06 00:45:49 legendre Exp $
+// $Id: test_driver.C,v 1.33 2006/06/27 19:13:01 bernat Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -820,7 +820,8 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
 
    dprintf("Done.\n");
    
-   delete bpatch;
+   // We delay this; other threads can be running at this point.
+   //delete bpatch;
    if ( testsRun == 0 )
    {
       // Return special code if no tests were run
