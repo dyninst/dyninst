@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.53 2006/03/12 23:31:41 legendre Exp $
+ * $Id: Object.h,v 1.54 2006/06/27 22:03:35 bernat Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -138,18 +138,7 @@ class fileDescriptor {
      int pid_;
      Address loadAddr_;
      
-     bool IsEqual( const fileDescriptor &fd ) const
-         {
-             // Don't test isShared, only file name and addresses
-             if ((file_ == fd.file_) &&
-                 (code_ == fd.code_) &&
-                 (data_ == fd.data_) &&
-                 (member_ == fd.member_) &&
-                 (pid_ == fd.pid_))
-                 return true;
-             else
-                 return false;
-         }
+     bool IsEqual( const fileDescriptor &fd ) const;
 };
 
 // relocation information for calls to functions not in this image

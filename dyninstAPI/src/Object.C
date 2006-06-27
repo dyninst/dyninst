@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.15 2005/07/29 19:18:04 bernat Exp $
+// $Id: Object.C,v 1.16 2006/06/27 22:03:35 bernat Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -48,6 +48,26 @@ pdstring fileDescriptor::emptyString(pdstring(""));
 fileDescriptor::fileDescriptor() {
     // This shouldn't be called... must be public for pdvector, though
 }
+
+bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
+  // Don't test isShared, only file name and addresses
+  bool file_match_ = false;
+
+  // Annoying... we often get "foo vs ./foo" or such. So consider it a match
+  // if either file name is prefixed by the other; we don't get trailing crud.
+  if (fd.file_.suffixed_by(file_) ||
+      file_.suffixed_by(fd.file_)) file_match_ = true;
+
+  if (file_match_ &&
+      (code_ == fd.code_) &&
+      (data_ == fd.data_) &&
+      (member_ == fd.member_) &&
+      (pid_ == fd.pid_))
+    return true;
+  else
+    return false;
+}
+
 
 int symbol_compare(const Symbol &s1, const Symbol &s2) {
     // select the symbol with the lowest address
