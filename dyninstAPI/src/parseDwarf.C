@@ -147,7 +147,9 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring 
 			return false;
 			} break;
 
-		case DW_FORM_block: {
+		case DW_FORM_block:
+		case DW_FORM_block1:
+		   {
 			/* PGI extends DWARF to allow some bounds to be location lists.  Since we can't
 			   do anything sane with them, ignore them. */
 			// Dwarf_Locdesc * locationList;
@@ -1023,6 +1025,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
 			} break;
 
+
 		case DW_TAG_common_block: {
 			char * commonBlockName;
 			status = dwarf_diename( dieEntry, & commonBlockName, NULL );
@@ -1030,19 +1033,28 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			BPatch_image * wholeProgram = (BPatch_image *) module->getObjParent();
 			BPatch_variableExpr * commonBlockVar = 
-					wholeProgram->findVariable( commonBlockName );
+					wholeProgram->findVariable( commonBlockName, false );
+			if (!commonBlockVar) {
+			   //pgcc 6 is naming common blocks with a trailing underscore
+			   pdstring cbvname = pdstring(commonBlockName) + pdstring("_");
+			   commonBlockVar = wholeProgram->findVariable( cbvname.c_str(),
+															false );
+			}
+
+			DWARF_FALSE_IF( !commonBlockVar, "%s[%d]: Couldn't find variable for common block\n", __FILE__, __LINE__);
 
 			BPatch_type * commonBlockType = NULL;
-			if( commonBlockVar != NULL ) {
-				commonBlockType = const_cast< BPatch_type * >( commonBlockVar->getType() );
-				} /* end if there might be a pre-existing type */
+			commonBlockType = const_cast< BPatch_type * >( commonBlockVar->getType() );
 
-			if( commonBlockType == NULL || commonBlockType->getDataClass() == BPatch_dataCommon ) {
+			if( commonBlockType == NULL || 
+				commonBlockType->getDataClass() == BPatch_dataCommon ||
+				commonBlockType->getDataClass() == BPatch_dataNullType) 
+			{
 				commonBlockType = new BPatch_typeCommon( dieOffset, commonBlockName );
 				assert( commonBlockType != NULL );
 				commonBlockVar->setType( commonBlockType );
 				module->getModuleTypes()->addGlobalVariable( commonBlockName, commonBlockType );
-				} /* end if we re-define the type. */
+			} /* end if we re-define the type. */
 
 			dwarf_dealloc( dbg, commonBlockName, DW_DLA_STRING );
 
