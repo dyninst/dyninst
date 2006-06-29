@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.24 2006/05/18 23:23:20 bernat Exp $
+ * $Id: image-flowGraph.C,v 1.25 2006/06/29 22:44:24 legendre Exp $
  */
 
 #include <stdio.h>
@@ -1241,7 +1241,7 @@ bool image_func::buildCFG(
                 retStatus_ = RS_NORETURN;
                 break;
             }
-            #if defined(arch_ia64)
+#if defined(arch_ia64)
             else if( ah.isAnAllocInstruction() )
             {
                 // IA64 only, sad to say
@@ -1268,8 +1268,27 @@ bool image_func::buildCFG(
                     break;
                 }
             }
-            #endif
+#endif
+            if (!img()->isValidAddress(ah.peekNext())) {
+               //The next instruction is not in the.text segment.  We'll 
+               // abort this basic block as if it were terminating with 
+               // an illegal instruction.
+               parsing_printf("Next instruction is invalid, ending basic block\n");
+               
+               currBlk->lastInsnOffset_ = currAddr;
+               currBlk->blockEndOffset_ = ah.peekNext();
 
+               if( currAddr >= funcEnd )
+                  funcEnd = ah.peekNext();
+                parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
+                p = new image_instPoint( currAddr,
+                                         ah.getInstruction(),
+                                         this,
+                                         functionExit);
+                funcReturns.push_back( p );
+                retStatus_ = RS_NORETURN;
+                break;
+            }
             ah++;
         }
     }
