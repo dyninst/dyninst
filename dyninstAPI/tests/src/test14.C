@@ -188,9 +188,26 @@ int main(int argc, char *argv[])
 
    proc->continueExecution();
 
+   static int TIMEOUT = 20; // seconds
+   int timeout = 0;
    do {
-      bpatch.waitForStatusChange();
-   } while (!proc->isTerminated());
+      bpatch.pollForStatusChange();
+
+      if (proc->isStopped()) {
+        fprintf(stderr, "%s[%d]:  Process stopped.\n", __FILE__, __LINE__);
+        fprintf(stdout, "*** Failed test #1 (Multithreaded tramp guards)\n");
+        return -1;
+      }
+
+      P_sleep(1);
+      timeout++;
+   } while (!proc->isTerminated() && (timeout < TIMEOUT));
+
+   if (timeout == TIMEOUT) {
+     fprintf(stderr, "%s[%d]:  Test timed out.\n", __FILE__, __LINE__);
+     fprintf(stdout, "*** Failed test #1 (Multithreaded tramp guards)\n");
+     return -1;
+   }
 
    int exitCode = proc->getExitCode();
    if (exitCode)
