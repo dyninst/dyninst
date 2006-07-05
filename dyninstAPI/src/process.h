@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.386 2006/06/12 17:46:58 jaw Exp $
+/* $Id: process.h,v 1.387 2006/07/05 17:59:12 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -182,7 +182,7 @@ class process {
     process(SignalGenerator *sh_);
 
     // Fork constructor
-    process(const process *parentProc, SignalGenerator *sg_, int iTrace_fd);
+    process(process *parentProc, SignalGenerator *sg_, int iTrace_fd);
 
     SignalGenerator *getSG() {return sh;}
     // Creation work
@@ -346,7 +346,7 @@ class process {
 #endif
 
   void installInstrRequests(const pdvector<instMapping*> &requests);
-  void recognize_threads(const process *parent = NULL);
+  void recognize_threads(process *parent = NULL);
   // Get LWP handles from /proc (or as appropriate)
 
   bool determineLWPs(pdvector<unsigned> &lwp_ids);
@@ -1005,7 +1005,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   ///////////////////////////////
   // Core process data
   ///////////////////////////////
-  const process *parent;
+  process *parent;
   SignalGenerator *sh;
   pdvector<mapped_object *> mapped_objects;
   // And deleted...
@@ -1029,6 +1029,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 
   int_function *main_function; // Usually, but not always, "main"
   int_function *thread_index_function;
+  dyn_thread *lastForkingThread;
 
   ///////////////////////////////
   // Shared library handling

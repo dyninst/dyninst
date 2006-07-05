@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.666 2006/06/26 20:50:22 bernat Exp $
+// $Id: process.C,v 1.667 2006/07/05 17:59:10 legendre Exp $
 
 #include <ctype.h>
 
@@ -1958,6 +1958,7 @@ process::process(SignalGenerator *sh_) :
     stateWhenAttached_(unknown_ps),
     main_function(NULL),
     thread_index_function(NULL),
+    lastForkingThread(NULL),
     dyn(NULL),
     representativeLWP(NULL),
     real_lwps(CThash),
@@ -2510,7 +2511,7 @@ bool process::setupGeneral()
 //
 // Needs to strictly duplicate all process information; this is a _lot_ of work.
 
-process::process(const process *parentProc, SignalGenerator *sg_, int childTrace_fd) : 
+process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) : 
     cached_result(parentProc->cached_result), // MOVE ME
     parent(parentProc),
     sh(sg_),
@@ -6258,7 +6259,7 @@ static void doneRegistering(process *, unsigned, void *data, void *result)
    free(pairs);
 }
 
-void process::recognize_threads(const process *parent) 
+void process::recognize_threads(process *parent) 
 {
   pdvector<unsigned> lwp_ids;
   unsigned i;
@@ -6284,11 +6285,15 @@ void process::recognize_threads(const process *parent)
                      FILE__, __LINE__);
      // Easy case
      if (parent) {
-        assert(parent->threads.size() == 1);
+        assert(parent->threads.size() > 0);
+        dyn_thread *base_thread = parent->lastForkingThread;
+        parent->lastForkingThread = NULL;
+        if (!base_thread)
+           base_thread = parent->threads[0];
         if(process::IndependentLwpControl() && (lwp_ids.size() == 1))
-           new dyn_thread(parent->threads[0], this, getLWP(lwp_ids[0]));
+           new dyn_thread(base_thread, this, getLWP(lwp_ids[0]));
         else
-           new dyn_thread(parent->threads[0], this);
+           new dyn_thread(base_thread, this);
         //The constructor automatically adds the thread to the process list,
         // thus it's safe to not keep a pointer to the new thread
      }

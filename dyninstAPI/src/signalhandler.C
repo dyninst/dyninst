@@ -295,6 +295,11 @@ bool SignalHandler::handleForkEntry(EventRecord &ev, bool &continueHint)
      signal_printf("Welcome to FORK ENTRY for process %d\n",
                    ev.proc->getPid());
      continueHint = true;
+     for (unsigned i=0; i<ev.proc->threads.size(); i++)
+        if (ev.proc->threads[i]->get_lwp() == ev.lwp) {
+           ev.proc->lastForkingThread = ev.proc->threads[i];
+           
+        }
      return ev.proc->handleForkEntry();
 }
 
