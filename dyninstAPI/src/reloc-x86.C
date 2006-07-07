@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: reloc-x86.C,v 1.1 2005/07/29 19:23:06 bernat Exp $
+ * $Id: reloc-x86.C,v 1.2 2006/07/07 00:01:08 jaw Exp $
  */
 
 /* x86 */
@@ -50,10 +50,6 @@
 
 #include <limits.h>
 #include "common/h/headers.h"
-
-#ifndef BPATCH_LIBRARY
-#include "rtinst/h/rtinst.h"
-#endif
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"

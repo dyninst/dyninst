@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.26 2006/05/04 01:41:21 legendre Exp $
+// $Id: inst-winnt.C,v 1.27 2006/07/07 00:01:04 jaw Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -53,42 +53,6 @@
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/instPoint.h"
 
-#ifdef NOTDEF // PDSEP
-#ifndef BPATCH_LIBRARY
-#include "rtinst/h/trace.h"
-#include "paradynd/src/main.h"
-#include "paradynd/src/perfStream.h"
-#include "dyninstAPI/src/showerror.h"
-
-#ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
-//defined in inst-mips.C
-
-pdstring process::getProcessStatus() const {
-   char ret[80];
-
-   switch (status()) {
-	case running:
-	    sprintf(ret, "%d running", pid);
-	    break;
-	case neonatal:
-	    sprintf(ret, "%d neonatal", pid);
-	    break;
-	case stopped:
-	    sprintf(ret, "%d stopped", pid);
-	    break;
-	case exited:
-	    sprintf(ret, "%d exited", pid);
-	    break;
-	default:
-	    sprintf(ret, "%d UNKNOWN State", pid);
-	    break;
-    }
-    return(ret);
-}
-#endif
-
-#endif
-#endif
 #ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
 //defined in inst-mips.C
 
@@ -143,13 +107,6 @@ void initPrimitiveCost()
 }
 #endif
 
-/*
- * Define the various classes of library functions to inst. 
- *
- */
-void initLibraryFunctions()
-{
-}
  
 
 // hasBeenBound: returns false

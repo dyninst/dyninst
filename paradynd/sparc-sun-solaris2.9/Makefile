@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2006/03/12 23:32:57 legendre Exp $
+# $Id: Makefile,v 1.8 2006/07/07 00:01:10 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,26 +15,8 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =		../../dyninstAPI/src/solaris.C \
-		../../dyninstAPI/src/solarisDL.C \
-		../../dyninstAPI/src/dynamiclinking.C \
-		../../dyninstAPI/src/sol_proc.C \
-		../src/init-sunos.C \
-		../../dyninstAPI/src/solarisMT.C \
-		../src/proc-solaris.C \
-		../../dyninstAPI/src/inst-sparc.C \
-		../../dyninstAPI/src/inst-sunos.C \
-		../../dyninstAPI/src/arch-sparc.C \
-		../../dyninstAPI/src/image-sparc.C \
-		../../dyninstAPI/src/parseStab.C \
-		../../dyninstAPI/src/Object-elf.C \
-		../../dyninstAPI/src/unix.C \
-		../../dyninstAPI/src/InstrucIter-sparc.C \
-      ../../dyninstAPI/src/writeBackElf.C \
-      ../../dyninstAPI/src/addLibrary.C \
-      ../../dyninstAPI/src/saveSharedLibrary.C \
-		../../dyninstAPI/src/syscall-solproc.C \
-		../../dyninstAPI/src/editSharedLibrary.C
+SRCS =		../src/init-sunos.C \
+		../src/proc-solaris.C 
 
 
 CXXFLAGS 	+= -DNO_MDL_PRINT

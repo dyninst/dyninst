@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.3 2006/04/20 22:44:52 bernat Exp $
+// $Id: mapped_module.h,v 1.4 2006/07/07 00:01:05 jaw Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -58,15 +58,8 @@ class image;
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/Object.h"
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/mdld.h"
-#endif
 
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/resource.h"
-
-#define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
-#endif
+#define CHECK_ALL_CALL_POINTS  // paradyn might need it
 
 
 // pdmodule equivalent The internals tend to use images, while the
@@ -148,14 +141,6 @@ class mapped_module {
     
     void addFunction(int_function *func);
     void addVariable(int_variable *var);
-
-#ifndef BPATCH_LIBRARY
-   resource *getResource() { return modResource; }
-#endif
-
-#ifndef BPATCH_LIBRARY
-   resource *modResource;
-#endif
 
  private:
    void parseFileLineInfo();

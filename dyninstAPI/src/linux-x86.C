@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.110 2006/06/13 04:21:11 legendre Exp $
+// $Id: linux-x86.C,v 1.111 2006/07/07 00:01:04 jaw Exp $
 
 #include <fstream>
 
@@ -60,7 +60,6 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/symtab.h"
-//#include "dyninstAPI/src/func-reloc.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -77,12 +76,6 @@
 #include "dyninstAPI/src/mapped_object.h" 
 #include "dyninstAPI/src/signalgenerator.h" 
 
-#ifndef BPATCH_LIBRARY
-#include "common/h/Time.h"
-#include "common/h/timing.h"
-#include "paradynd/src/init.h"
-#endif
-
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/linux.h"
 #include <sstream>
@@ -90,7 +83,6 @@
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
 #include "dyninstAPI/src/debuggerinterface.h"
-//#include "saveSharedLibrary.h" 
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 

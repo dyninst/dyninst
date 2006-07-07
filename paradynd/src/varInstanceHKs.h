@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.11 2006/06/19 21:30:56 bernat Exp $
+// $Id: varInstanceHKs.h,v 1.12 2006/07/07 00:01:15 jaw Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -53,7 +53,6 @@
 
 class threadMetFocusNode_Val;
 class pd_process;
-class Frame;
 
 // The following should provide a useful building-block for intCounterHK,
 // wallTimerHK, processTimerHK, etc.

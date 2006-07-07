@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.32 2006/05/25 20:11:35 bernat Exp $
+// $Id: function.h,v 1.33 2006/07/07 00:01:02 jaw Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -51,11 +51,6 @@
 #include "codeRange.h"
 #include "arch.h" // instruction
 #include "util.h"
-
-#if !defined(BPATCH_LIBRARY)
-#include "paradynd/src/resource.h"
-#endif
-
 #include "image-func.h"
 
 class process;
@@ -489,14 +484,6 @@ class int_function {
 
    unsigned getNumDynamicCalls();
 
-#ifndef BPATCH_LIBRARY
-   // Fill in <callees> vector with pointers to all other pd functions
-   //  statically determined to be called from any call sites in 
-   //  this function.
-   // Returns false if unable to fill in that information....
-   bool getStaticCallees(pdvector <int_function *> &callees);
-#endif
-
     // Fill the <callers> vector with pointers to the statically-determined
     // list of functions that call this function.
     void getStaticCallers(pdvector <int_function *> &callers);
@@ -513,22 +500,6 @@ class int_function {
 #endif
 
    void updateForFork(process *childProcess, const process *parentProcess);
-
-#ifndef BPATCH_LIBRARY
-   void SetFuncResource(resource *r) {
-      assert(r != NULL); 
-      funcResource = r;
-   }
-
-   pdstring ResourceFullName() {
-      assert(funcResource); 
-      return funcResource->full_name();
-   }
-
-   bool FuncResourceSet() {
-      return (funcResource != NULL);
-   }
-#endif
 
 #if defined(arch_ia64)
    // We need to know where all the alloc instructions in the
@@ -641,9 +612,6 @@ class int_function {
    void addBBLInstance(bblInstance *instance);
    void deleteBBLInstance(bblInstance *instance);
 
-#ifndef BPATCH_LIBRARY
-   resource *funcResource;
-#endif
 #if defined(os_windows) 
    callType callingConv;
    int paramSize;

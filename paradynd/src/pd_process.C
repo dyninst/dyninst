@@ -48,23 +48,9 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/pd_image.h"
-//#include "paradynd/src/CallGraph.h"
 #include "paradynd/src/pd_module.h" 
 
-
-//#include "dyninstAPI/src/process.h"
-
-#include "dyninstAPI/src/dyn_thread.h"
-
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/signalgenerator.h"
-
 #include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/InstrucIter.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #if defined(i386_unknown_nt4_0)
 #include <Windows.h>
 #endif
@@ -74,6 +60,9 @@
 #include "paradynd/src/mdld.h"
 
 #include "common/h/Symbol.h"
+#include "common/h/timing.h"
+extern void setFirstRecordTime(const timeStamp &ts);
+extern bool isInitFirstRecordTime();
 
 // Set in main.C
 extern int termWin_port;
@@ -193,8 +182,7 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir)
     // Run necessary initialization
     proc->init();
     
-    process *llproc = proc->get_dyn_process()->lowlevel_process();
-    if(!costMetric::addProcessToAll(llproc))
+    if(!costMetric::addProcessToAll(proc->get_dyn_process()))
         assert(false);
     
     return proc;
@@ -217,15 +205,14 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid)
 	proc->loadParadynLib(pd_process::attach_load);
 	proc->init();
 	
-	process *llproc = proc->get_dyn_process()->lowlevel_process();
-	if (!costMetric::addProcessToAll(llproc))
+	if (!costMetric::addProcessToAll(proc->get_dyn_process()))
 		assert(false);
 	
 	getProcMgr().addProcess(proc);
 	
 	pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
 	buffer += pdstring(", ready");
-	statusLine(buffer.c_str());
+	pdstatusLine(buffer.c_str());
 	
 	return proc;
 }
@@ -248,13 +235,13 @@ void pd_process::init()
 	static bool has_mt_resource_heirarchies_been_defined = false;
 	pdstring buffer = pdstring("PID=") + pdstring(getPid());
 	buffer += pdstring(", initializing daemon-side data");
-	statusLine(buffer.c_str());
+	pdstatusLine(buffer.c_str());
 	
 	theVariableMgr = new variableMgr(this, getSharedMemMgr(),
 																	 maxNumberOfThreads());
 	buffer = pdstring("PID=") + pdstring(getPid());
 	buffer += pdstring(", posting call graph information");
-	statusLine(buffer.c_str());
+	pdstatusLine(buffer.c_str());
 	
 
 	if(multithread_capable() && !has_mt_resource_heirarchies_been_defined) {
@@ -293,6 +280,8 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
       papi(NULL),
 #endif
       paradynRTState(libUnloaded),
+      cumulativeObsCost(0),
+      lastObsCostLow(0),
       inExec(false),
       canReportResources_(false)
 {
@@ -303,7 +292,7 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
                     strerror(errno));
             fprintf(stderr, "Cannot chdir to '%s': %s\n", dir.c_str(), 
                     strerror(errno));
-            logLine(errorLine);
+            pdlogLine(errorLine);
             P__exit(-1);
         }
         
@@ -315,6 +304,29 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
         char *path = new char[  argv0.length() + 5];
         strcpy(path, argv0.c_str());
         getBPatch().setTypeChecking(false);
+
+        // hand off info about how to start a paradynd to the application.
+        //   used to catch rexec calls, and poe events.
+        //
+        char* paradynInfo = new char[1024];
+        sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
+        for (unsigned i=0; i < pd_process::arg_list.size(); i++) {
+           const char *str;
+
+           str = P_strdup(pd_process::arg_list[i].c_str());
+           if (!strcmp(str, "-l1")) {
+              strcat(paradynInfo, "-l0");
+           } else {
+              strcat(paradynInfo, str);
+           }
+           strcat(paradynInfo, " ");
+        }
+
+        fprintf(stderr, "%s[%d]:  setting '%s' in env\n", FILE__, __LINE__, paradynInfo);
+        //  since we are not using the envp arg to processCreate, we can just stick
+        //  it in our own environment and it will be transferred
+        P_putenv(paradynInfo);
+
         dyninst_process = getBPatch().processCreate(path, 
                                                     (const char **) argv_array, NULL, 
                                                     stdin_fd, stdout_fd, stderr_fd);
@@ -392,6 +404,8 @@ pd_process::pd_process(const pdstring &progpath, int pid)
           papi(NULL),
 #endif
           paradynRTState(libUnloaded),
+          cumulativeObsCost(0),
+          lastObsCostLow(0),
           inExec(false),
 					canReportResources_(false)
 {
@@ -452,7 +466,10 @@ pd_process::pd_process(const pd_process &parent, BPatch_process *childDynProc) :
 #ifdef PAPI
         papi(NULL),
 #endif
-        paradynRTState(libLoaded), inExec(false),
+        paradynRTState(libLoaded),
+        cumulativeObsCost(0), //  should costs be copied from parents ??
+        lastObsCostLow(0),    //  guessing not.
+        inExec(false),
         paradynRTname(parent.paradynRTname),
         canReportResources_(true)
 {
@@ -537,15 +554,74 @@ pd_process::~pd_process() {
    closeOSHandle();
 }
 
-bool pd_process::doMajorShmSample() {
-   if( !isBootstrappedYet() || !isPARADYNBootstrappedYet()) {
+void pd_process::processCost(unsigned obsCostLow,
+                          timeStamp wallTime,
+                          timeStamp processTime) 
+{
+
+  // wallTime and processTime should compare to DYNINSTgetWallTime() and
+  // DYNINSTgetCPUtime().
+
+  // check for overflow, add to running total, convert cycles to seconds, and
+  // report.  Member vrbles of class process: lastObsCostLow and cumulativeObsCost
+  // (the latter a 64-bit value).
+
+  // code to handle overflow used to be in rtinst; we borrow it pretty much
+  // verbatim. (see rtinst/RTposix.c)
+  if (obsCostLow < lastObsCostLow) {
+    // we have a wraparound
+    cumulativeObsCost += ((unsigned)0xffffffff - lastObsCostLow) + obsCostLow + 1;
+  }
+  else
+    cumulativeObsCost += (obsCostLow - lastObsCostLow);
+
+  lastObsCostLow = obsCostLow;
+  //  sampleVal_cerr << "processCost- cumulativeObsCost: " << cumulativeObsCost << "\n;
+  timeLength observedCost((int64_t) cumulativeObsCost, getCyclesPerSecond());
+  // timeUnit tu = getCyclesPerSecond(); // just used to print out
+  //  sampleVal_cerr << "processCost: cyclesPerSecond=" << tu
+  //             << "; cum obs cost=" << observedCost << "\n";
+
+  // Notice how most of the rest of this is copied from processCost() of
+  // metric.C.  Be sure to keep the two "in sync"!
+
+  extern costMetric *totalPredictedCost; // init.C
+  extern costMetric *observed_cost;      // init.C
+
+  const timeStamp lastProcessTime =
+    totalPredictedCost->getLastSampleProcessTime(dyninst_process);
+  //  sampleVal_cerr << "processCost- lastProcessTime: " <<lastProcessTime << "\n";
+  // find the portion of uninstrumented time for this interval
+  timeLength userPredCost = timeLength::sec() + getCurrentPredictedCost();
+  //  sampleVal_cerr << "processCost- userPredCost: " << userPredCost << "\n";
+  const double unInstTime = (processTime - lastProcessTime) / userPredCost;
+  //  sampleVal_cerr << "processCost- unInstTime: " << unInstTime << "\n";
+  // update predicted cost
+  // note: currentPredictedCost is the same for all processes
+  //       this should be changed to be computed on a per process basis
+  pdSample newPredCost = totalPredictedCost->getCumulativeValue(dyninst_process);
+  //  sampleVal_cerr << "processCost- newPredCost: " << newPredCost << "\n";
+  timeLength tempPredCost = getCurrentPredictedCost() * unInstTime;
+  //  sampleVal_cerr << "processCost- tempPredCost: " << tempPredCost << "\n";
+  newPredCost += pdSample(tempPredCost.getI(timeUnit::ns()));
+  //  sampleVal_cerr << "processCost- tempPredCost: " << newPredCost << "\n";
+  totalPredictedCost->updateValue(dyninst_process, wallTime, newPredCost, processTime);
+  // update observed cost
+  pdSample sObsCost(observedCost);
+  observed_cost->updateValue(dyninst_process, wallTime, sObsCost, processTime);
+}
+
+ 
+
+bool pd_process::doMajorShmSample() 
+{
+
+   if( !isPARADYNBootstrappedYet()) {
       return false;
    }
 
    bool result = true; // will be set to false if any processAll() doesn't complete
                        // successfully.
-
-   process *dyn_proc = get_dyn_process()->lowlevel_process();
 
    if(! getVariableMgr().doMajorSample())
       result = false;
@@ -556,7 +632,8 @@ bool pd_process::doMajorShmSample() {
 
    // need to check this again, process could have execed doMajorSample
    // and it may be midway through setting up for the exec
-   if( !isBootstrappedYet() || !isPARADYNBootstrappedYet()) {
+
+   if( !isPARADYNBootstrappedYet()) {
       return false;
    }
 
@@ -572,14 +649,14 @@ bool pd_process::doMajorShmSample() {
 
    // need to check this again, process could have execed doMajorSample
    // and it may be midway through setting up for the exec
-   if( !isBootstrappedYet() || !isPARADYNBootstrappedYet()) {
+   if( !isPARADYNBootstrappedYet()) {
       return false;
    }
 
    // Now sample the observed cost.
    const unsigned theCost = *(shmMetaData->getObservedCost());
 
-   dyn_proc->processCost(theCost, curWallTime, theProcTime);
+   processCost(theCost, curWallTime, theProcTime);
 
    return result;
 }
@@ -620,16 +697,9 @@ void pd_process::handleExit(int exitStatus) {
 
    reportInternalMetrics(true);
 
-   // close down the trace stream:
-   if(getTraceLink() >= 0) {
-      //processTraceStream(proc); // can't do since it's a blocking read 
-                                  // (deadlock)
-      P_close(getTraceLink());      
-      setTraceLink(-1);
-   }
    metricFocusNode::handleExitedProcess(this);
 
-   if(multithread_ready()) {
+   if(multithread_capable()) {
       // retire any thread resources which haven't been retired yet
       threadMgr::thrIter itr = beginThr();
       while(itr != endThrMark()) {
@@ -721,7 +791,7 @@ void pd_process::postForkHandler(BPatch_process *child) {
 
    pd_process *parentProc = getProcMgr().find_pd_process(parent->getPid());
    if (!parentProc) {
-     logLine("Error in forkProcess: could not find parent process\n");
+     pdlogLine("Error in forkProcess: could not find parent process\n");
      return;
    }
 
@@ -782,7 +852,7 @@ bool pd_process::loadParadynLib(load_cause_t ldcause)
    
    pdstring buffer = pdstring("PID=") + pdstring(getPid());
    buffer += pdstring(", loading Paradyn RT lib via iRPC");
-   statusLine(buffer.c_str());
+   pdstatusLine(buffer.c_str());
    
    setLibState(paradynRTState, libLoading);
    
@@ -806,7 +876,7 @@ bool pd_process::loadParadynLib(load_cause_t ldcause)
    
    buffer = pdstring("PID=") + pdstring(getPid());
    buffer += pdstring(", finalizing Paradyn RT lib");
-   statusLine(buffer.c_str());
+   pdstatusLine(buffer.c_str());
    
    // Now call finalizeParadynLib which will handle any initialization
    finalizeParadynLib(ldcause);
@@ -848,7 +918,7 @@ bool pd_process::runParadynInit(load_cause_t ldcause)
    //Argument 4 is the Observed cost
    Address daemonCost = (Address) shmMetaData->getObservedCost();
    Address appObsCost = getSharedMemMgr()->daemonToApplic(daemonCost);
-   dyninst_process->lowlevel_process()->updateObservedCostAddr(appObsCost);
+   dyninst_process->PDSEP_updateObservedCostAddr(appObsCost);
    BPatch_constExpr cost_param(appObsCost);
    args.push_back(&cost_param);
 
@@ -885,7 +955,7 @@ bool pd_process::finalizeParadynLib(load_cause_t ldcause)
       installInstrRequests(initialRequestsPARADYN); 
       str=pdstring("PID=") + pdstring(dyninst_process->getPid()) + 
          ", propagating mi's...";
-      statusLine(str.c_str());
+      pdstatusLine(str.c_str());
    }
 
    if (ldcause == exec_load) {
@@ -894,7 +964,7 @@ bool pd_process::finalizeParadynLib(load_cause_t ldcause)
 
    str=pdstring("PID=") + pdstring(dyninst_process->getPid()) + 
       ", executing new-prog callback...";
-   statusLine(str.c_str());
+   pdstatusLine(str.c_str());
     
    timeStamp currWallTime = (ldcause==exec_load) ? timeStamp::ts1970() 
                                                  : getWallTime();
@@ -910,8 +980,9 @@ bool pd_process::finalizeParadynLib(load_cause_t ldcause)
    // If the state of the application as a whole is 'running' paradyn will
    // soon issue an igen call to us that'll continue this process.
    if (ldcause != exec_load)
-		 tp->setDaemonStartTime(defaultStream,getPid(), currWallTime.getD(timeUnit::sec(), 
-																																			timeBase::bStd()));
+      tp->setDaemonStartTime(defaultStream,getPid(), 
+                             currWallTime.getD(timeUnit::sec(), 
+                             timeBase::bStd()));
    
    // verify that the wall and cpu timer levels chosen by the daemon
    // are available in the rt library
@@ -920,11 +991,11 @@ bool pd_process::finalizeParadynLib(load_cause_t ldcause)
    
    // Set library state to "ready"
    setLibState(paradynRTState, libReady);
-	 return true;
+   return true;
 }
 
-bool pd_process::getParadynRTname() {
-    
+bool pd_process::getParadynRTname() 
+{
     // Replace with better test for MT-ness
    char ParadynEnvVar[20];
    strcpy(ParadynEnvVar, "PARADYN_LIB");
@@ -1329,7 +1400,6 @@ void pd_process::FillInCallGraphStatic(bool init_graph, unsigned *checksum )
     }
 
   entry_bpf = entry_bpfs[0];
-  //int_function *entry_pdf = entry_bpf->PDSEP_pdf();
 
   if(!init_graph)
 		{
@@ -1459,14 +1529,6 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
                     __FILE__, __LINE__,function_name.c_str());
           }
 
-#ifdef NOTDEF // PDSEP
-         process *llproc = get_dyn_process()->lowlevel_process();
-         if(! llproc->MonitorCallSite((*callPoints)[i]->PDSEP_instPoint())) {
-            fprintf(stderr,
-              "ERROR in daemon, unable to monitorCallSite for function :%s\n",
-                    function_name.c_str());
-         }
-#endif
       }
    }
 
@@ -1474,7 +1536,14 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
       continueProc();
 }
 
-bool reachedLibState(libraryState_t lib, libraryState_t state) {
+void setLibState(libraryState_t &lib, libraryState_t state) 
+{
+    if (lib > state) cerr << "Error: attempting to revert library state" << endl;
+    else lib = state;
+}
+
+bool reachedLibState(libraryState_t lib, libraryState_t state) 
+{
    return (lib >= state);
 }
 
@@ -1779,7 +1848,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
 
 #endif
 
-bool pd_process::walkStacks(BPatch_Vector<BPatch_Vector<BPatch_frame> > &stackWalks) {
+bool pd_process::walkStacks(pdvector<BPatch_Vector<BPatch_frame> > &stackWalks) {
     bool success = true;
     for (threadMgr::thrIter iter = thr_mgr.begin();
          iter != thr_mgr.end();
@@ -1791,20 +1860,6 @@ bool pd_process::walkStacks(BPatch_Vector<BPatch_Vector<BPatch_frame> > &stackWa
     }
     return success;
 }
-
-bool pd_process::walkStacks_ll(pdvector<pdvector<Frame> > &stackWalks) {
-    bool success = true;
-    for (threadMgr::thrIter iter = thr_mgr.begin();
-         iter != thr_mgr.end();
-         iter++) {
-        pdvector<Frame> walk;
-        if  (!(*iter)->walkStack_ll(walk))
-            success = false;
-        stackWalks.push_back(walk);
-    }
-    return success;
-}
-
 
 BPatch_Vector<BPatch_function *> *pd_process::getIncludedFunctions(BPatch_module *mod)
 {
@@ -2244,63 +2299,54 @@ unsigned pd_process::calculate_Checksum( pdstring graph)
     return ret;
 }
 
-
-bool pd_process::launchRPCs(bool wasRunning) {
-    PDSEP_LOCK(__FILE__, __LINE__);
-    process *llproc = dyninst_process->lowlevel_process();
-    bool runProcess = false;
-    bool retval = llproc->getRpcMgr()->launchRPCs(runProcess,
-                                                  wasRunning);
-    // Let's go toplevel continue for a bit...
-    //if (runProcess) llproc->continueProc();
-    PDSEP_UNLOCK(__FILE__, __LINE__);
-    return retval;
-}
-
-unsigned pd_process::postRPCtoDo(AstNode *action, bool noCost,
-                                 inferiorRPCcallbackFunc callbackFunc,
+unsigned pd_process::postRPCtoDo(BPatch_snippet &action, bool noCost,
+                                 BPatchOneTimeCodeCallback callbackFunc,
                                  void *userData, 
                                  bool runWhenFinished,
                                  bool lowmem,
-                                 dyn_thread *thr, dyn_lwp *lwp) {
-    PDSEP_LOCK(__FILE__, __LINE__);
-    process *llproc = dyninst_process->lowlevel_process();
-    unsigned retval = llproc->getRpcMgr()->postRPCtoDo(action, noCost,
-                                                       callbackFunc, userData,
-                                                       runWhenFinished,
-                                                       lowmem,
-                                                       thr, lwp);
-    PDSEP_UNLOCK(__FILE__, __LINE__);
+                                 BPatch_thread *thr) 
+{
+    unsigned retval = (unsigned)-1;
+
+    if (NULL == callbackFunc) {
+       void *return_value = thr->oneTimeCode(action);
+       if (!return_value) {
+         fprintf(stderr, "%s[%d]:  oneTimeCode failed\n", FILE__, __LINE__);
+       }
+       else
+         retval = 0;
+    }
+    else {
+       fprintf(stderr, "%s[%d]:  PDSEP:  FIXME:  check oneTimeCode callback mapping\n", FILE__, __LINE__);
+       //  need to ensure that this callback is properly associated with this oneTimeCode
+       bool ok = thr->oneTimeCodeAsync(action, userData, callbackFunc);
+       if (!ok) {
+         fprintf(stderr, "%s[%d]:  oneTimeCodeAsync failed\n", FILE__, __LINE__);
+       }
+       else
+         retval = 0;
+    }
+
     return retval;
 }
 
-
-void pd_process::PDSEP_LOCK(char *file, unsigned line) {
-    global_mutex->_Lock(file, line);
-
-    while (dyninst_process->lowlevel_process()->sh->isActivelyProcessing()) {
-        dyninst_process->lowlevel_process()->sh->waitForEvent(evtAnyEvent);
-    }
-}
-
-void pd_process::PDSEP_UNLOCK(char *file, unsigned line) {
-    global_mutex->_Unlock(file, line);
-}
-
-unsigned long pd_process::getOSHandle() {
+unsigned long pd_process::getOSHandle() 
+{
     if (!os_handle)
         initOSHandle();
     return os_handle;
 }
 
-void pd_process::initOSHandle() {
+void pd_process::initOSHandle() 
+{
     os_handle = dyninst_process->getPid();
 #if defined(os_windows)
     os_handle = (unsigned long) OpenProcess(PROCESS_ALL_ACCESS, false, os_handle);
 #endif
 }
 
-void pd_process::closeOSHandle() {
+void pd_process::closeOSHandle() 
+{
 #if defined(os_windows)
     if (os_handle)
         CloseHandle((HANDLE) os_handle);

@@ -133,17 +133,6 @@ typedef enum BPatch_opCode {
    needs to link instPoint back pointer (and we don't want to include
    that here) */
 
-class BPatch_point;
-
-#ifdef NOTDEF // PDSEP
-typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point, 
-                                              BPatch_function *called_function);
-typedef struct {
-  BPatchDynamicCallSiteCallback cb;
-  int handle;
-} callback_record;
-#endif
-
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
@@ -159,6 +148,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class BPatch_asyncEventHandler;
     friend class process;
     friend class BPatch_edge;
+    friend class BPatch_snippet;
     
     static BPatch_point* createInstructionInstPoint(BPatch_process*proc,
                                                     void*address,
@@ -199,9 +189,6 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     //  a snippet used in monitoring of dynamic calls
     //  maybe we want BPatchSnippetHandle here
     miniTramp *dynamic_point_monitor_func;
-#ifdef NOTDEF // PDSEP
-    BPatch_Vector<miniTramp *> dynamicMonitoringCalls; // This should be BPatchSnippetHandle
-#endif
 
     instPoint * getPoint() {return point;}
 
@@ -219,10 +206,6 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 
 public:
     //~BPatch_point() { delete memacc; };
-
-    //  This function should go away when paradyn lives on top of dyninst
-    //  DO NOT USE
-    instPoint * PDSEP_instPoint() {return point;}
 
     // Hack to get edge information. DO NOT USE.
     const BPatch_edge *edge() const { return edge_; }
@@ -325,28 +308,6 @@ public:
 
     bool,stopMonitoring,());
 
-#ifdef NOTDEF // PDSEP
-    //  BPatch_point::registerDynamicCallCallback
-    //  Specifies a user-supplied function to be called when a dynamic call is
-    //  executed.
-    //
-    //  Returns a handle (useful for de-registering callback), NULL if error
-
-    API_EXPORT(Int, (cb),
-
-    void *,registerDynamicCallCallback,(BPatchDynamicCallSiteCallback cb));
-
-    //  BPatch_point::removeDynamicCallCallback
-    //  Argument is (void *) handle to previously specified callback function to be
-    //  de-listed.
-    //
-    //  Returns true upon success, false if handle is not currently represented
-
-    API_EXPORT(Int, (handle),
-
-    bool,removeDynamicCallCallback,(void *handle));
-
-#endif
     //  BPatch_point::getDisplacedInstructions
     //  Returns the instructions to be relocated when instrumentation is inserted
     //  at this point.  Returns the number of bytes taken up by these instructions.

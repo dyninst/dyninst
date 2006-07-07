@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.10 2006/04/27 02:09:50 bernat Exp $
+// $Id: mapped_object.h,v 1.11 2006/07/07 00:01:05 jaw Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -48,15 +48,9 @@
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/Object.h"
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/mdld.h"
-#endif
 
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/resource.h"
-
+//  we really do not want to have this defined, but I'm defining it for the moment to get thru paradyn seperation
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
-#endif
 
 class mapped_module;
 

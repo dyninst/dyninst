@@ -39,36 +39,56 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.186 2006/06/19 21:30:51 bernat Exp $
+// $Id: mdl.C,v 1.187 2006/07/07 00:01:12 jaw Exp $
 
 #include <iostream>
 #include <stdio.h>
+
 #include "dyninstRPC.mrnet.SRVR.h"
 #include "pdutil/h/mdl_data.h"
+#include "pdutil/h/pdDebugOstream.h"
+
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/instrCodeNode.h"
 #include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/main.h"
-#include "common/h/Timer.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_thread.h"
-#include "common/h/debugOstream.h"
-#include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/focus.h"
 #include "paradynd/src/papiMgr.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/mdld_data.h"
 #include "paradynd/src/debug.h"
 
-#include "dyninstAPI/src/function.h"
-
-#include "dyninstAPI/h/BPatch_basicBlock.h"
-#include "dyninstAPI/h/BPatch_flowGraph.h"
+#include "common/h/debugOstream.h"
+#include "common/h/Timer.h"
 #include "dyninstAPI/h/BPatch_function.h"
+
+//  probably need a better way of defining these...  maybe on the bpatch layer
+#if defined (arch_sparc)
+#define REG_MT_POS REG_G(6)
+#elif defined (arch_power)
+#define REG_MT_POS 12
+#elif defined (arch_x86)
+#define NUM_VIRTUAL_REGISTERS 32
+#define REG_MT_POS NUM_VIRTUAL_REGISTERS
+#elif defined (arch_ia64)
+#define REG_MT_POS 13
+#endif
+
+#if defined (os_aix)
+#define EXIT_NAME "exit"
+#elif defined (os_linux)
+#define EXIT_NAME "_exit"
+#elif defined (os_windows)
+#define EXIT_NAME "_exit"
+#elif defined (os_solaris)
+#define EXIT_NAME "_exithandle"
+#endif
 
 #include <ctype.h>
 
@@ -789,7 +809,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
               // relying on global_proc to be set in mdl_metric::apply
               if (global_proc) 
               {
-                 fprintf(stderr, "%s[%d]:  PDSEP:  getSymbolInfo(%s)\n",
+                 fprintf(stderr, "%s[%d]:  getSymbolInfo(%s)\n",
                          __FILE__, __LINE__, symbol_name.c_str());
 
                  pd_image *pdimg = global_proc->getImage();
@@ -811,7 +831,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
            else if (var_ == "readAddress")
            {
 
-             fprintf(stderr, "%s[%d]:  PDSEP -- FIXME -- readAddress()\n",
+             fprintf(stderr, "%s[%d]:   -- FIXME -- readAddress()\n",
                      __FILE__, __LINE__);
              //  I've never seen this clause executed.  The following
              //  formulation _should_ work, but its flagged with a warning
@@ -2081,7 +2101,7 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    }
 #endif
 
-   if (proc->multithread_ready()) {
+   if (proc->multithread_capable()) {
        for (unsigned start_iter = 0; 
             start_iter < start_funcs.size();
             start_iter++) {
@@ -3360,7 +3380,12 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                       	}
                       
                       /* Assuming, of course, that the MDL doesn't specify mangled names. */
-                      pdvector< pdstring > calleeNames = callee->lowlevel_func()->prettyNameVector();
+                      BPatch_Vector<const char *> calleeNames;
+                      if (!callee->getNames(calleeNames)) {
+                        fprintf(stderr, "%s[%d]:  no callee names!!!\n", FILE__, __LINE__);
+                        continue;
+                      }
+
                       for( unsigned int i = 0; i < calleeNames.size(); i++ ) {
                       	pdstring calleeName = calleeNames[i];
                       	// /* DEBUG */ fprintf( stderr, "%s[%d]: calleeName[%d] = %s\n", __FILE__, __LINE__, i, calleeName.c_str() );

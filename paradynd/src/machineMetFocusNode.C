@@ -56,8 +56,9 @@
 
 extern pdRPC *tp;
 
+extern const timeStamp &getFirstRecordTime();
 dictionary_hash<unsigned, machineMetFocusNode*> 
-                                machineMetFocusNode::allMachNodes(uiHash);
+                                machineMetFocusNode::allMachNodes(pd_uiHash);
 
 machineMetFocusNode::machineMetFocusNode(int metricID, 
 					 const pdstring& metric_name, 
@@ -504,7 +505,8 @@ void machineMetFocusNode::adjustForExecedProcess(pd_process *proc) {
    }
 }
 
-void machineMetFocusNode::adjustForExitedProcess(pd_process *proc) {
+void machineMetFocusNode::adjustForExitedProcess(pd_process *proc) 
+{
    for(unsigned i=0; i<procNodes.size(); i++) {
       processMetFocusNode *procNode = procNodes[i];
       
@@ -513,12 +515,4 @@ void machineMetFocusNode::adjustForExitedProcess(pd_process *proc) {
       }
    }
 }
-
-void machineMetFocusNode::cancelPendingRPCs() {
-   for(unsigned i=0; i<procNodes.size(); i++) {
-      processMetFocusNode *procNode = procNodes[i];
-      procNode->cancelPendingRPCs();
-   }
-}
-
 

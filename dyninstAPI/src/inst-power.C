@@ -41,16 +41,11 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.247 2006/05/31 21:49:38 bernat Exp $
+ * $Id: inst-power.C,v 1.248 2006/07/07 00:01:03 jaw Exp $
  */
 
 #include "common/h/headers.h"
-
-#ifndef BPATCH_LIBRARY
-#include "rtinst/h/rtinst.h"
-#else
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#endif
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -1751,7 +1746,6 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
     return 0; // Compiler happiness
 }
 
-#ifdef BPATCH_LIBRARY
 void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &)
 {
   // Not needed for memory instrumentation, otherwise TBD
@@ -1883,7 +1877,6 @@ void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
 {
     emitASload(as, dest, gen, noCost);
 }
-#endif
 
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
                codeGen &gen, bool /*noCost*/, 
@@ -2761,75 +2754,6 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
             return false;
         }
 }
-
-#ifdef NOTDEF // PDSEP
-bool process::MonitorCallSite(instPoint *callSite){
-  instruction i = callSite->originalInstruction;
-  pdvector<AstNode *> the_args(2);
-  Register branch_target;
-
-  // Is this a branch conditional link register (BCLR)
-  // BCLR uses the xlform (6,5,5,5,10,1)
-  if((*i).xlform.op == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
-  {
-      if ((*i).xlform.xo == BCLRxop) // BLR (bclr)
-      {
-          //bperr( "Branch target is the link register\n");
-          branch_target = REG_LR;
-      }
-      else if ((*i).xlform.xo == BCCTRxop)
-      {
-          // We handle global linkage branches (BCTR) as static call
-          // sites. They're currently registered when the static call
-          // graph is built (Paradyn), after all objects have been read
-          // and parsed.
-          //bperr( "Branch target is the count register\n");
-          branch_target = REG_CTR;
-      }
-      else
-      {
-          // Used to print an error, but the opcode (19) is also used
-          // for other instructions, and errors could confuse people.
-          // So just return false instead.
-          return false;
-      }
-      // Where we're jumping to (link register, count register)
-      the_args[0] = new AstNode(AstNode::PreviousStackFrameDataReg,
-                                (void *) branch_target); 
-      // Where we are now
-      the_args[1] = new AstNode(AstNode::Constant,
-                                (void *) callSite->absPointAddr(this));
-      // Monitoring function
-      AstNode *func = new AstNode("DYNINSTRegisterCallee", 
-                                  the_args);
-      miniTramp *mtHandle;
-      addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                  orderFirstAtPoint,
-                  true,                        /* noCost flag   */
-                  false,                       /* trampRecursiveDesired flag */
-                  true);                       /* allowTrap */
-      return true;
-  }
-  else if ((*i).xlform.op == Bop) {
-      /// Why didn't we catch this earlier? In any case, don't print an error
-
-      // I have seen this legally -- branches to the FP register saves.
-      // Since we ignore the save macros, we have no idea where the branch
-      // goes. For now, return true -- means no error.
-
-      return true;
-  }
-  else
-  {
-      cerr << "MonitorCallSite: Unknown opcode " << (*i).xlform.op << endl; 
-      cerr << "opcode extension: " << (*i).xlform.xo << endl;
-      bperr( "Address is 0x%x, insn 0x%x\n", 
-              callSite->absPointAddr(this), 
-              (*i).raw);
-      return false;
-  }
-}
-#endif // NOTDEF // PDSEP
 
 bool writeFunctionPtr(process *p, Address addr, int_function *f)
 {

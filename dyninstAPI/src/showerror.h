@@ -68,6 +68,7 @@ extern int dyn_debug_mailbox;
 extern int dyn_debug_async;
 extern int dyn_debug_dwarf;
 extern int dyn_debug_thread;
+extern int dyn_debug_catchup;
 
 // C++ prototypes
 #define signal_cerr       if (dyn_debug_signal) cerr
@@ -98,6 +99,7 @@ extern int mailbox_printf(const char *format, ...);
 extern int async_printf(const char *format, ...);
 extern int dwarf_printf(const char *format, ...);
 extern int thread_printf(const char *format, ...);
+extern int catchup_printf(const char *format, ...);
 
 // And initialization
 extern bool init_debug();

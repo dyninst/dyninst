@@ -43,9 +43,11 @@
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
-#include "dyninstAPI/src/dyn_thread.h"
-#include "dyninstAPI/src/dyn_lwp.h"
-
+#include "paradynd/src/debug.h"
+#include <sys/procfs.h>
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE -1
+#endif
 
 void pd_process::initCpuTimeMgrPlt() {
    cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &pd_process::yesAvail, 
@@ -116,7 +118,7 @@ rawTime64 pd_thread::getRawCpuTime_sw()
           sprintf(errLine,"process::getRawCpuTime_sw - time going backwards in "
                   "daemon - cur: %lld, prev: %lld\n", result, sw_previous_);
           cerr << errLine;
-          logLine(errLine);
+          pdlogLine(errLine);
       }
       result = sw_previous_;
   }

@@ -136,7 +136,6 @@ class machineMetFocusNode : public metricFocusNode {
   void adjustForExitedThread(pd_process *proc, pd_thread *thr);
   void adjustForExecedProcess(pd_process *proc);
   void adjustForExitedProcess(pd_process *proc);
-  void cancelPendingRPCs();
 };
 
 

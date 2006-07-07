@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.21 2006/06/11 00:35:07 legendre Exp $
+// $Id: image-func.h,v 1.22 2006/07/07 00:01:02 jaw Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -50,11 +50,6 @@
 #include "common/h/Pair.h"
 #include "codeRange.h"
 #include "arch.h" // instruction
-
-#if !defined(BPATCH_LIBRARY)
-#include "paradynd/src/resource.h"
-#endif
-
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "common/h/Dictionary.h"
 

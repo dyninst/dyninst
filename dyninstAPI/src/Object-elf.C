@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.105 2006/05/31 17:15:57 legendre Exp $
+ * $Id: Object-elf.C,v 1.106 2006/07/07 00:01:01 jaw Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -430,12 +430,10 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& dataddr,
   cout << "main loop of loaded elf took "<<dursecs <<" msecs" << endl;
 #endif
 
-#ifndef BPATCH_LIBRARY /* Some objects really don't have all sections. */
   if (!dataddr || !symscnp || !strscnp) {
     log_elferror(err_func_, "no text/bss/symbol/string section");
     return false;
   }
-#endif
 
   //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit loaded_elf() successful\n");
   return true;

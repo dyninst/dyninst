@@ -44,6 +44,9 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
+ * Revision 1.13  2006/07/07 00:01:13  jaw
+ * make paradynd link against libdyninstAPI
+ *
  * Revision 1.12  2005/12/19 19:43:02  pack
  * MRNet replaces xdr for frontend to daemon communication.  New igen  - - -
  * MRNet changes
@@ -114,23 +117,17 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/critPath.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
 #include "rtinst/h/trace.h"
 #include "paradynd/src/metricDef.h"
-#include "dyninstAPI/src/os.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/resource.h"
 
 #define MILLION	1000000.0
 
-dictionary_hash<unsigned, cpSample*> contextToSample(uiHash);
+dictionary_hash<unsigned, cpSample*> contextToSample(pd_uiHash);
 
 void processCP(pd_process *, traceHeader *hdr, cpSample *sample)
 {

@@ -47,8 +47,7 @@
 #include "common/h/Time.h"
 #include "dyninstAPI/h/BPatch_snippet.h"
 #include "dyninstAPI/h/BPatch_process.h"
-#include "dyninstAPI/src/instP.h" // for mtHandle
-#include "dyninstAPI/src/miniTramp.h"
+#include "dyninstAPI/h/BPatch_frame.h"
 
 class instrDataNode;
 class instReqNode;
@@ -63,7 +62,7 @@ typedef enum { unknown_res,  // Default
 class catchupReq {
  public:
    catchupReq() : frame(), handledFunctionEntry(false), handledLoopEntry(false) {};
-   catchupReq(Frame frame2) :
+   catchupReq(BPatch_frame frame2) :
       frame(frame2), handledFunctionEntry(false), handledLoopEntry(false) {};
    catchupReq(const catchupReq &src) {
        frame = src.frame;
@@ -74,7 +73,7 @@ class catchupReq {
    }
    
    pdvector<instReqNode*> reqNodes;
-   Frame        frame;
+   BPatch_frame        frame;
    bool handledFunctionEntry;
    bool handledLoopEntry;
 };
@@ -90,9 +89,7 @@ class instReqNode {
                BPatch_callWhen iWhen, BPatch_snippetOrder o) :
        point(iPoint), snip(iSnip),
        when(iWhen), order(o), 
-       instrAdded_(false),
-       instrGenerated_(false),
-       instrLinked_(false),
+       instrLoaded_(false),
        rpcCount(0), loadInstAttempts(0) 
    {
    }
@@ -102,10 +99,8 @@ class instReqNode {
    // normal copy constructor, used eg. in vector<instReqNode> expansion
    instReqNode(const instReqNode &par) : 
        point(par.point), snip(par.snip), when(par.when), 
-       order(par.order), mtHandle(par.mtHandle), 
-       instrAdded_(par.instrAdded_),
-       instrGenerated_(par.instrGenerated_),
-       instrLinked_(par.instrLinked_),                       
+       order(par.order), snipHandle(par.snipHandle), 
+       instrLoaded_(par.instrLoaded_),                       
        rpcCount(par.rpcCount), 
        loadInstAttempts(par.loadInstAttempts)
    { }
@@ -113,36 +108,20 @@ class instReqNode {
    // special copy constructor used for fork handling
    instReqNode(const instReqNode &par, pd_process *childProc);
 
-   bool instrAdded()    const { return instrAdded_; }
-   bool instrGenerated()    const { return instrGenerated_; }
-   bool instrLinked()       const { return instrLinked_; }
+   bool instrLoaded()       const { return instrLoaded_; }
 
-   bool addInstr(pd_process *theProc);
-   bool generateInstr();
-   // This is handed down... if we optimized the stack walking
-   // code to realize that we could return the same one
-   // if the stack is walked multiple times, then we'd be cool
-   // with letting the low-level code check for its own stuff.
-   // As it is, this is safer.
-   bool checkInstr(const pdvector<pdvector<Frame> > &stackWalks);
-   bool linkInstr();
+   bool loadInstrIntoApp(pd_process *theProc);
 
    void disable();
    timeLength cost(pd_process *theProc) const;
-   //returnInstance *getRInstance() const { return rinstance; }
-   void setAffectedDataNodes(miniTrampFreeCallback cb, void *v); 
-   
+
    void catchupRPCCallback(void *returnValue);
-   
-   bool triggeredInStackFrame(Frame &frame,
-                              pd_process *p);
    
    BPatch_point *Point() {return point;}
    BPatch_snippet* Snippet()  {return snip;}
    BPatch_callWhen When() {return when;}
    BPatch_snippetOrder Order() { return order; }
-   // This is what needs to change...
-   miniTramp *MiniTramp() { return mtHandle; }
+   BPatchSnippetHandle *snippetHandle() { return snipHandle; }
 
  private:
    BPatch_point *point;
@@ -150,17 +129,16 @@ class instReqNode {
    BPatch_callWhen  when;
    BPatch_snippetOrder order;
    
-   miniTramp *mtHandle;
+   BPatchSnippetHandle *snipHandle;
 
-   bool instrAdded_;
-   bool instrGenerated_;
-   bool instrLinked_;
+   bool instrLoaded_;
    
    // Counts the number of rpcs which have successfully completed for this
    // node.  This is needed because we may need to manually trigger multiple
    // times for recursive functions.
    int rpcCount;
    
+   //  This is temporarily not relevant -- need to fix 
    int loadInstAttempts;  // count of deferred load instrumentation attempts
 };
 

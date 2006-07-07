@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.184 2006/06/13 15:56:54 bernat Exp $
+// $Id: inst-sparc.C,v 1.185 2006/07/07 00:01:04 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -612,56 +612,6 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite, pdvector<AstNode *> &a
     return true;
 }
 
-#ifdef NOTDEF // PDSEP
-bool process::MonitorCallSite(instPoint *callSite){
- 
-  if(isJmplInsn(callSite->firstInstruction)){
-    pdvector<AstNode *> the_args(2);
-    
-    //this instruction is a jmpl with i == 1, meaning it
-    //calling function register rs1+simm13
-    if((*insn).rest.i == 1){
-      
-      AstNode *base =  new AstNode(AstNode::PreviousStackFrameDataReg,
-			  (void *) (*insn).rest.rs1);
-      AstNode *offset = new AstNode(AstNode::Constant, 
-			(void *) (*insn).resti.simm13);
-      the_args[0] = new AstNode(plusOp, base, offset);
-    } 
-    
-    //This instruction is a jmpl with i == 0, meaning its
-    //two operands are registers
-    else if((*insn).rest.i == 0){
-      //Calculate the byte offset from the contents of the %fp reg
-      //that the registers from the previous stack frame 
-      //specified by rs1 and rs2 are stored on the stack
-      AstNode *callee_addr1 = 
-	new AstNode(AstNode::PreviousStackFrameDataReg,
-		    (void *) (*insn).rest.rs1);
-      AstNode *callee_addr2 = 
-	new AstNode(AstNode::PreviousStackFrameDataReg, 
-		    (void *) (*insn).rest.rs2);
-      the_args[0] = new AstNode(plusOp, callee_addr1, callee_addr2);
-    }
-    else assert(0);
-    
-    the_args[1] = new AstNode(AstNode::Constant,
-			      (void *) callSite->pointAddr());
-    AstNode *func = new AstNode("DYNINSTRegisterCallee", 
-				the_args);
-    miniTramp *mtHandle;
-    addInstFunc(this, mtHandle, callSite, func, callPreInsn,
-                orderFirstAtPoint, true, false, true);
-  }
-  else if(isTrueCallInsn(callSite->firstInstruction)){
-    //True call destinations are always statically determinable.
-    return true;
-  }
-  else return false;
-
-  return true;
-}
-#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1361,7 +1311,6 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
     }
 }
 
-#ifdef BPATCH_LIBRARY
 void emitJmpMC(int /*condition*/, int /*offset*/, codeGen & /*baseInsn*/)
 {
     // Not needed for memory instrumentation, otherwise TBD
@@ -1460,7 +1409,6 @@ void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
 {
   emitASload(as, dest, gen, noCost);
 }
-#endif
 
 /****************************************************************************/
 /****************************************************************************/

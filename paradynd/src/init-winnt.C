@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.18 2006/04/13 23:05:37 legendre Exp $
+// $Id: init-winnt.C,v 1.19 2006/07/07 00:01:12 jaw Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
@@ -48,22 +48,10 @@
 #include "rtinst/h/RThwtimer-winnt.h"
 #include "dyninstAPI/h/BPatch_process.h"
 
-#ifdef NOTDEF // PDSEP
-   // why were these here?
-// NOTE - the tagArg integer number starting with 0.  
-static AstNode *tagArg = new AstNode(AstNode::Param, (void *) 1);
-static AstNode *cmdArg = new AstNode(AstNode::Param, (void *) 4);
-static AstNode *retVal = new AstNode(AstNode::ReturnVal, (void *) 0);
-#endif
-
 bool initOS() {
    //ccw 29 apr 2002 : SPLIT3 initialRequestsPARADYN is changed to
    // initialRequestsPARADYNPARADYN
 
-#ifdef NOTDEF // PDSEP
-   // why was this here?
-   BPatch_paramExpr *tidArg = new BPatch_paramExpr(0);
-#endif
    pdinstMapping *mapping = new pdinstMapping("execve", "DYNINSTexecFailed",
                                               FUNC_EXIT, BPatch_callAfter, BPatch_firstSnippet);
    initialRequestsPARADYN.push_back(mapping);

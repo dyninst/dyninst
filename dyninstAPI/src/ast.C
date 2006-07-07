@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.170 2006/06/16 16:13:29 bernat Exp $
+// $Id: ast.C,v 1.171 2006/07/07 00:01:01 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -55,13 +55,8 @@
 #include "dyninstAPI/h/BPatch_type.h"
 #include "dyninstAPI/src/BPatch_libInfo.h" // For instPoint->BPatch_point mapping
 
-#if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch_point.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#else
-#include "dyninstAPI/src/dyn_thread.h"
-#include "rtinst/h/rtinst.h"
-#endif
 
 #if defined(sparc_sun_sunos4_1_3) \
  || defined(sparc_sun_solaris2_4)
@@ -867,50 +862,6 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
    doTypeCheck = true;
 };
 
-#if !defined(BPATCH_LIBRARY)
-
-AstNode::AstNode(AstNode *src) {
-#if defined(ASTDEBUG)
-   ASTcounter();
-#endif
-
-   referenceCount = 1;
-   useCount = 0;
-   kept_register = Null_Register;
-
-   type = src->type;   
-   if (type == opCodeNode)
-      op = src->op;             // defined only for operand nodes
-
-   if (type == callNode) {
-      callee = src->callee;     // defined only for call nodes
-      calleefunc = src->calleefunc;
-      calleefuncAddr = src->calleefuncAddr;
-      for (unsigned i=0;i<src->operands.size();i++) {
-        if (src->operands[i]) operands.push_back(assignAst(src->operands[i]));
-      }
-   }
-
-   if (type == operandNode) {
-      oType = src->oType;
-      // XXX This is for the pdstring type.  If/when we fix the pdstring type to
-      // make it less of a hack, we'll need to change this.
-      if (oType == ConstantString)
-	  oValue = P_strdup((char *)src->oValue);
-      else
-	  oValue = src->oValue;
-   }
-
-   loperand = assignAst(src->loperand);
-   roperand = assignAst(src->roperand);
-   eoperand = assignAst(src->eoperand);
-   size = 4;
-   bptype = src->bptype;
-   doTypeCheck = src->doTypeCheck;
-}
-
-#endif
-
 #if defined(ASTDEBUG)
 #define AST_PRINT
 #endif
@@ -1294,9 +1245,7 @@ Address AstNode::generateCode_phase2(process *proc,
          if (useCount == 0) { 
             Register tmp=kept_register;
             unkeepRegister();
-#ifdef BPATCH_LIBRARY_F
             assert(!rs->isFreeRegister(tmp));
-#endif
             return (Address)tmp;
          }
          return (Address)kept_register;
@@ -1369,7 +1318,6 @@ Address AstNode::generateCode_phase2(process *proc,
             gen.setIndex(endIndex);
          }
       }
-#ifdef BPATCH_LIBRARY
       else if (op == ifMCOp) {
           assert(location);
 
@@ -1412,7 +1360,6 @@ Address AstNode::generateCode_phase2(process *proc,
              rs->freeRegister(tmp);
          }
       }
-#endif          
       else if (op == whileOp) {
           codeBufIndex_t top = gen.getIndex();
           src = (Register)loperand->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
@@ -1699,12 +1646,10 @@ Address AstNode::generateCode_phase2(process *proc,
      Register temp;
      int tSize;
      int len;
-#if defined(BPATCH_LIBRARY)
      BPatch_type *Type;
      const BPatch_memoryAccess* ma;
      const BPatch_addrSpec_NP *start;
      const BPatch_countSpec_NP *count;
-#endif
      switch (oType) {
      case Constant:
        emitVload(loadConstOp, (Address)oValue, dest, dest, 
@@ -1721,16 +1666,12 @@ Address AstNode::generateCode_phase2(process *proc,
 	break;
       case DataIndir:
            src = (Register)loperand->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
-#if defined(BPATCH_LIBRARY)
            Type = const_cast<BPatch_type *> (getType());
            // Internally generated calls will not have type information set
            if(Type)
                 tSize = Type->getSize();
            else
                 tSize = sizeof(long);
-#else
-           tSize = sizeof(long);
-#endif
            emitV(loadIndirOp, src, 0, dest, gen, noCost, rs, tSize, location, proc); 
            rs->freeRegister(src);
            break;
@@ -1793,7 +1734,6 @@ Address AstNode::generateCode_phase2(process *proc,
 
            // VG(11/05/01): get effective address
            // VG(07/31/02): take care which one
-#ifdef BPATCH_LIBRARY
            // 1. get the point being instrumented & memory access info
            assert(location);
 	   
@@ -1813,14 +1753,9 @@ Address AstNode::generateCode_phase2(process *proc,
            }
            start = ma->getStartAddr(whichMA);
            emitASload(start, dest, gen, noCost);
-#else
-           bpfatal( "Effective address feature not supported w/o BPatch!\n");
-           assert(0);
-#endif
            break;
       }
       case BytesAccessed: {
-#ifdef BPATCH_LIBRARY
            // 1. get the point being instrumented & memory access info
            assert(location);
 
@@ -1840,10 +1775,6 @@ Address AstNode::generateCode_phase2(process *proc,
            }
            count = ma->getByteCount(whichMA);
            emitCSload(count, dest, gen, noCost);
-#else
-           bpfatal( "Byte count feature not supported w/o BPatch!\n");
-           assert(0);
-#endif
            break;
       }
         case ConstantString:
@@ -1851,7 +1782,7 @@ Address AstNode::generateCode_phase2(process *proc,
            // to make it less of a hack, we'll need to change this.
            len = strlen((char *)oValue) + 1;
 
-#if defined(BPATCH_LIBRARY) && defined(rs6000_ibm_aix4_1) //ccw 30 jul 2002
+#if defined(rs6000_ibm_aix4_1) //ccw 30 jul 2002
            if(proc->requestTextMiniTramp){
               bool mallocFlag;
               addr = (Address) proc->inferiorMalloc(len, (inferiorHeapType) (textHeap | uncopiedHeap), 0x10000000, &mallocFlag); //textheap
@@ -1921,7 +1852,7 @@ Address AstNode::generateCode_phase2(process *proc,
          emitImm(orOp, tmp, 0, dest, gen, noCost, rs);
       }
    } else if (type == sequenceNode) {
-#if 0 && defined(BPATCH_LIBRARY_F) // mirg: Aren't we losing a reg here?
+#if 0 && defined(nomoreBPATCH_LIBRARY_F) // mirg: Aren't we losing a reg here?
       (void) loperand->generateCode_phase2(proc, rs, gen, noCost, 
                                            ifForks, location);
 #else
@@ -2245,7 +2176,6 @@ BPatch_type *AstNode::checkType()
     return ret;
 }
 
-#ifndef BPATCH_LIBRARY
 // This is not the most efficient way to traverse a DAG
 bool AstNode::accessesParam(void)
 {
@@ -2268,7 +2198,6 @@ bool AstNode::accessesParam(void)
 
   return ret;
 }
-#endif
 
 // Record the register to share as well as the path that lead
 // to its computation

@@ -44,8 +44,7 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/pd_thread.h"
-#include "dyninstAPI/src/dyn_thread.h"
-#include "dyninstAPI/src/dyn_lwp.h"
+#include "paradynd/src/debug.h"
 #include <unistd.h>
 
 rawTime64 pd_process::getAllLwpRawCpuTime_hw() {
@@ -113,7 +112,7 @@ rawTime64 pd_thread::getRawCpuTime_hw()
   
    if (result < hw_previous_) 
    {
-      logLine("********* time going backwards in paradynd **********\n");
+      pdlogLine("********* time going backwards in paradynd **********\n");
       result = hw_previous_;
    }
    else 
@@ -202,7 +201,7 @@ rawTime64 pd_thread::getRawCpuTime_sw() {
    P_close(fd);
    
    if (result < sw_previous_) {
-      logLine("********* time going backwards in paradynd **********\n");
+      pdlogLine("********* time going backwards in paradynd **********\n");
       result = sw_previous_;
    }
    else 

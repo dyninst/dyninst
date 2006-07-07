@@ -105,10 +105,6 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 
  public:
 
-    // Don't use this......
-    // PDSEP
-    dyn_thread *ll_thread() { return llthread; }
-
     /**
      * The following functions are all deprecated.  They've been replaced
      * by equivently named functions in BPatch_process.  See BPatch_process.h
@@ -222,17 +218,14 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 
     //  BPatch_thread::oneTimeCodeAsync
     //  Have mutatee execute specified code expr once.  Dont wait until done.
-    API_EXPORT(Int, (expr, userData),
-    bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL));
+    API_EXPORT(Int, (expr, userData, cb),
+    bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL, BPatchOneTimeCodeCallback cb = NULL));
 
 
     // DO NOT USE
     // this function should go away as soon as Paradyn links against Dyninst
     process *lowlevel_process() { return proc->llproc; }
 
-    // DO NOT USE
-    // this function should go away as soon as Paradyn links against Dyninst
-    process *PDSEP_process() { return proc->llproc; }
 };
 
 #endif /* BPatch_thread_h_ */

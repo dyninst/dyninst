@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.56 2006/01/16 17:50:19 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.57 2006/07/07 00:01:10 jaw Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -33,16 +33,12 @@ IGEN_ISRCS    = dyninstRPC.I
 
 IFLAGS          = $(IFLAGS) -I..\..\dyninstAPI\h  -I../../mrnet/mrnet/h/ -I../../mrnet -I../../mrnet/mrnet/src/
 
-OBJS      = $(OBJS) ast.obj \
+OBJS = $(OBJS) \
       CodeView.obj \
       comm.obj \
       context.obj \
       dynrpc.obj \
       init.obj \
-      arch.obj \
-      dominator.obj \
-      inst.obj \
-		instPoint.obj \
 		main.obj \
 		metricFocusNode.obj \
       machineMetFocusNode.obj \
@@ -54,61 +50,12 @@ OBJS      = $(OBJS) ast.obj \
 		internalMetrics.obj \
 		costmetrics.obj \
 		metricDefs-critPath.obj \
-      api_showerror.obj \
-      BPatch.obj \
-      BPatch_type.obj \
-      BPatch_thread.obj \
-      BPatch_process.obj \
-      BPatch_snippet.obj \
-      BPatch_function.obj \
-      BPatch_point.obj \
-      BPatch_image.obj \
-      BPatch_module.obj \
-      BPatch_collections.obj \
-      BPatch_edge.obj \
-      BPatch_loopTreeNode.obj \
-      BPatch_frame.obj \
-		BPatch_sourceBlock.obj \
-		BPatch_basicBlock.obj \
-		BPatch_basicBlockLoop.obj \
-		BPatch_flowGraph.obj \
-		BPatch_eventLock.obj \
-		BPatch_asyncEventHandler.obj \
-		Object.obj \
-		MemoryAccess.obj \
-		BPatch_instruction.obj \
-		dyn_thread.obj \
-		perfStream-def.obj \
-		resource.obj \
-		stats.obj \
-		symtab.obj \
-		function.obj \
-		image-func.obj \
-		variable.obj \
-		InstrucIter-xplat.obj \
-		multiTramp.obj \
-		baseTramp.obj \
-		miniTramp.obj \
-		mapped_object.obj \
-		mapped_module.obj \
-		util.obj \
  		mdl.obj \
  		mdld_data.obj \
  		focus.obj \
-		showerror.obj \
 		perfStream.obj \
-		process.obj \
-      bitArray.obj \
- 		frame.obj \
-		dyn_lwp.obj \
-      image-flowGraph.obj \
-		signalhandler.obj \
-		rpcMgr.obj \
-		rpcMgr-thr.obj \
-		rpcMgr-lwp.obj \
-		reloc-func.obj \
-      bitArray.obj \
-		LineInformation.obj \
+		perfStream-def.obj \
+		resource.obj \
 		processMgr.obj \
       pd_process.obj \
 		threadMgr.obj \
@@ -116,11 +63,8 @@ OBJS      = $(OBJS) ast.obj \
 		pd_image.obj \
 		pd_module.obj \
 		dyninstRPC.mrnet.SRVR.obj \
-		BPatch_templates.obj \
 		templatesIGEN.obj \
-      templatesPD-nt.obj \
-		templates-nt.obj \
-		codeRange.obj 
+      templatesPD-nt.obj 
 
 !ifdef USES_SHM_SAMPLING
 OBJS	= $(OBJS) \
@@ -134,7 +78,7 @@ OBJS	= $(OBJS) \
 		sharedMetaData.obj
 !endif
 
-LIBS		= $(LIBS) libpdutil.lib libmrnet.lib libxplat.lib
+LIBS		= $(LIBS) libdyninstAPI.lib libpdutil.lib libmrnet.lib libxplat.lib
 
 SYSLIBS		= $(SYSLIBS) oncrpc.lib ws2_32.lib dbghelp.lib shlwapi.lib
 
@@ -151,6 +95,4 @@ dyninstRPC.mrnet.SRVR.C: ..\..\paradyn\h\dyninstRPC.I
 {..\..\paradyn\h\}.I.h:
 	igen -mrnet ..\..\paradyn\h\dyninstRPC.I
 
-{..\..\dyninstAPI\src\}.C.obj:
-	$(CXX) $(CXXFLAGS) -c $<
 

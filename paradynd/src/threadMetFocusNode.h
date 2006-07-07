@@ -47,7 +47,7 @@
 #include "paradynd/src/focus.h"
 
 class processMetFocusNode;
-
+class BPatch_process;
 class pd_thread;
 
 template<class ParentType> class parentDataRec {
@@ -85,7 +85,7 @@ class threadMetFocusNode_Val {
     allAggInfoInitialized(false), pdThr(pdthr), referenceCount(0)
   { }
 
-  threadMetFocusNode_Val(const threadMetFocusNode_Val &par,process *childProc,
+  threadMetFocusNode_Val(const threadMetFocusNode_Val &par,BPatch_process *childProc,
 			 pd_thread *pdThr);
 
   ~threadMetFocusNode_Val();

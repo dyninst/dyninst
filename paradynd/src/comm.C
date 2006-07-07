@@ -43,15 +43,14 @@
 
 #include "common/h/headers.h"
 #include "paradynd/src/comm.h"
-#include "dyninstAPI/src/util.h" // logLine, errorLine, etc
 #include "paradynd/src/main.h"
 #include "paradynd/src/resource.h"
+#include "paradynd/src/debug.h"
 
 extern resource *machineResource;
 
 void dump_profile(pdRPC *pdr) {
   delete pdr;
-  //cleanUpAndExit(-1);
   cleanUpAndExit(0);
   return;
 }
@@ -88,35 +87,35 @@ void pdRPC::handle_error()
     case igen_decode_err:
       sprintf(errorLine, "Could not (un)marshall parameters, dumping core, pid=%ld\n",
 	      (long) P_getpid());
-      logLine(errorLine);
+      pdlogLine(errorLine);
       showErrorCallback(defaultStream, 73,(const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_proto_err:
       sprintf(errorLine, "Internal error: protocol verification failed, pid=%ld\n", (long) P_getpid());
-      logLine(errorLine);
+      pdlogLine(errorLine);
       showErrorCallback(defaultStream, 74, (const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_call_err:
       sprintf(errorLine, "Internal error: cannot do sync call here, pid=%ld\n", (long) P_getpid());
-      logLine(errorLine);
+      pdlogLine(errorLine);
       showErrorCallback(defaultStream, 75, (const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_request_err:
       sprintf(errorLine, "Internal error: unknown message tag pid=%ld\n", (long) P_getpid());
-      logLine(errorLine);
+      pdlogLine(errorLine);
       showErrorCallback(defaultStream, 76, (const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_no_err:
       sprintf(errorLine, "Internal error: handle error called for err_state = igen_no_err\n");
-      logLine(errorLine);
+      pdlogLine(errorLine);
       showErrorCallback(defaultStream, 77, (const char *) errorLine, resPartName);
       // fall thru
     case igen_send_err:
@@ -125,7 +124,7 @@ void pdRPC::handle_error()
     default:
       frontendExited = true;
       sprintf(errorLine, "Error: err_state = %d\n", get_err_state());
-      logLine(errorLine);
+      pdlogLine(errorLine);
       dump_profile(this);
       cleanUpAndExit(-1);
     }

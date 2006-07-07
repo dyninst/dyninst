@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.14 2006/01/30 19:44:59 jaw Exp $
+// $Id: inst-linux.C,v 1.15 2006/07/07 00:01:03 jaw Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -54,41 +54,6 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
-
-#ifdef NOTDEF // PDSEP
-#ifndef BPATCH_LIBRARY
-#include "rtinst/h/trace.h"
-#include "paradynd/src/main.h"
-#include "paradynd/src/perfStream.h"
-#include "dyninstAPI/src/showerror.h"
-
-//  This seems redunant now with getProcessStatusAsString().
-pdstring process::getProcessStatus() const 
-{
-   char ret[80];
-
-   switch (status()) {
-	case running:
-	    sprintf(ret, "%d running", getPid());
-	    break;
-	case neonatal:
-	    sprintf(ret, "%d neonatal", getPid());
-	    break;
-	case stopped:
-	    sprintf(ret, "%d stopped", getPid());
-	    break;
-	case exited:
-	    sprintf(ret, "%d exited", getPid());
-	    break;
-	default:
-	    sprintf(ret, "%d UNKNOWN State", getPid());
-	    break;
-    }
-    return(ret);
-}
-
-#endif
-#endif
 
 //
 // All costs are based on Measurements on a SPARC station 10/40.
@@ -145,50 +110,3 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportNewTags"] = 40; 
 }
 
-#ifndef BPATCH_LIBRARY
-/*
- * Define the various classes of library functions to inst. 
- *
- */
-void initLibraryFunctions()
-{
-    /* should record waiting time in read/write, but have a conflict with
-     *   use of these functions by our inst code.
-     *   This happens when a CPUtimer that is stopped is stopped again by the
-     *   write.  It is then started again at the end of the write and should
-     *   not be running then.  We could let timers go negative, but this
-     *   causes a problem when inst is inserted into already running code.
-     *   Not sure what the best fix is - jkh 10/4/93
-     *
-     */
-#ifdef notdef
-    tagDict["write"] = TAG_LIB_FUNC | TAG_IO_OUT;
-    tagDict["read"] = TAG_LIB_FUNC | TAG_IO_IN;
-
-    tagDict["send"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_SEND;
-    tagDict["sendmsg"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_SEND;
-    tagDict["sendto"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_SEND;
-
-    tagDict["rev"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_RECV;
-    tagDict["recvmsg"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_RECV;
-    tagDict["recvfrom"] = TAG_LIB_FUNC | TAG_CPU_STATE | TAG_MSG_RECV;
-
-    tagDict["DYNINSTalarmExpire"] = TAG_LIB_FUNC;
-    tagDict["DYNINSTsampleValues"] = TAG_LIB_FUNC;
-    tagDict[EXIT_NAME] = TAG_LIB_FUNC;
-    tagDict["fork"] = TAG_LIB_FUNC;
-
-    tagDict["cmmd_debug"] = TAG_LIB_FUNC;
-    tagDict["CMRT_init"] = TAG_LIB_FUNC;
-    tagDict["CMMD_send"] = TAG_LIB_FUNC;
-    tagDict["CMMD_receive"] = TAG_LIB_FUNC;
-    tagDict["CMMD_receive_block"] = TAG_LIB_FUNC;
-    tagDict["CMMD_send_block"] = TAG_LIB_FUNC;
-    tagDict["CMMD_send_async"] = TAG_LIB_FUNC;
-    tagDict["CMMD_send_async"] = TAG_LIB_FUNC;
-
-    tagDict["main"] = 0;
-#endif
-}
- 
-#endif

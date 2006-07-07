@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.261 2006/05/02 21:57:54 mjbrim Exp $
+// $Id: metricFocusNode.C,v 1.262 2006/07/07 00:01:13 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -75,12 +75,12 @@
 #  include <sstream>
 #endif
 
-#include "dyninstAPI/src/instPoint.h"
+extern bool isInitFirstRecordTime();
 
 extern unsigned inferiorMemAvailable;
 extern pdvector<Address> getAllTrampsAtPoint(miniTrampHandle *);
 
-unsigned int metResPairsEnabled = 0; // PDSEP from stats.C
+unsigned int metResPairsEnabled = 0; 
 
 void flush_batch_buffer();
 void batchSampleData(pdstring metname, int mid, timeStamp startTimeStamp, 
@@ -240,8 +240,7 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
          pd_process *curProc = *itr++;
          if(!curProc) continue;
          if (!curProc->isTerminated() 
-             && !curProc->isDetached()
-             && curProc->isBootstrappedYet())
+             && !curProc->isDetached())
          {
             procs += curProc;
          }
@@ -250,8 +249,8 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
       // there are no processes to instrument
       if (procs.size() == 0)
       {	    
-         fprintf(stderr, "createMetricInstance failed, no "
-                 "processes to instrument\n");
+         fprintf(stderr, "%s[%d]: createMetricInstance failed, no "
+                 "processes to instrument\n", FILE__, __LINE__);
          return NULL;
       }
 
@@ -259,10 +258,10 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
          makeMachineMetFocusNode(mid, focus, metric_name, procs, false, enable);
       if (!machNode)
       {
-         cerr << "createMetricInstance failed since mdl_do failed\n";
-         cerr << "metric name was " << metric_name << "; focus was ";
-         cerr << focus.getName() << endl;
-         cerr << "createMetricInstance failed since mdl_do failed\n";
+         fprintf(stderr, "%s[%d]: createMetricInstance failed "
+                 "because mdl_do failed\n", FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]: metricName was %s, focus was %s\n",
+                 FILE__, __LINE__, metric_name.c_str(), focus.getName().c_str());
       }
       return machNode;
    } 
@@ -279,24 +278,25 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
       
       if (machNode == (machineMetFocusNode*)-2) 
       {
-         //          cerr << "createMetricInstance: internal metric " 
-         //               << metric_name << " isn't defined for focus: " 
-         //               << focus.getName() << "\n";
+                   cerr << "createMetricInstance: internal metric " 
+                        << metric_name << " isn't defined for focus: " 
+                        << focus.getName() << "\n";
          machNode = NULL; // straighten up the return value
       }
       else if (machNode == (machineMetFocusNode*)-1) 
       {
-         //          cerr << " createMetricInstance: internal metric not enable: " 
-         //                      << metric_name << endl;
+         fprintf(stderr, "%s[%d]: internal metric %s not enabled\n",
+                 FILE__, __LINE__, metric_name.c_str());
          assert(!enable); // no error msg needed
          machNode = NULL; // straighten up the return value
       }
       else if (machNode == NULL)
       {
          //more serious error...do a printout
-         cerr << "createMetricInstance failed since doInternalMetric failed\n";
-         cerr << "metric name was " << metric_name << "; focus was "
-              << focus.getName() << "\n";
+         fprintf(stderr, "%s[%d]: createMetricInstance failed "
+                 "because doInternalMetric failed\n", FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]: metricName was %s, focus was %s\n",
+                 FILE__, __LINE__, metric_name.c_str(), focus.getName().c_str());
       }
       if(machNode)
          machNode->markAsInternalMetric();
@@ -335,12 +335,11 @@ void metricFocusNode::handleExitedProcess(pd_process *proc) {
    }
 
    // what about internal metrics?
-   process *llproc = proc->get_dyn_process()->lowlevel_process();
-   costMetric::removeProcessFromAll(llproc);
+   costMetric::removeProcessFromAll(proc->get_dyn_process());
 }
 
 void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
-   assert(proc->multithread_ready());
+   assert(proc->multithread_capable());
    pdvector<machineMetFocusNode *> all_mach_nodes;
    machineMetFocusNode::getMachineNodes(&all_mach_nodes);
    for(unsigned i=0; i<all_mach_nodes.size(); i++) {
@@ -350,7 +349,7 @@ void metricFocusNode::handleNewThread(pd_process *proc, pd_thread *thr) {
 }
 
 void metricFocusNode::handleExitedThread(pd_process *proc, pd_thread *thr) {
-   assert(proc->multithread_ready());   
+   assert(proc->multithread_capable());   
    pdvector<machineMetFocusNode *> all_mach_nodes;
    machineMetFocusNode::getMachineNodes(&all_mach_nodes);
    for(unsigned i=0; i<all_mach_nodes.size(); i++) {
@@ -474,7 +473,8 @@ bool startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
 }
 
 
-timeLength guessCost(pdstring& metric_name, pdvector<u_int>& focus) {
+timeLength guessCost(pdstring& metric_name, pdvector<u_int>& focus) 
+{
     // called by dynrpc.C (getPredictedDataCost())
    static int tempMetFocus_ID = -1;
 
@@ -483,7 +483,10 @@ timeLength guessCost(pdstring& metric_name, pdvector<u_int>& focus) {
    tempMetFocus_ID--;
 
     if (!mi) {
-       metric_cerr << "guessCost returning 0.0 since createMetricInstance failed" << endl;
+         fprintf(stderr, "%s[%d]: guessCost returning 0.0 "
+                 "because createMetricInstance failed\n", FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]: metricName was %s\n",
+                 FILE__, __LINE__, metric_name.c_str() );
        return timeLength::Zero();
     }
 

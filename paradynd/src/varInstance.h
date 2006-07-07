@@ -49,7 +49,6 @@
 #include "rtinst/h/rtinst.h"
 
 class threadMetFocusNode_Val;
-class Frame;
 
 class baseVarInstance {
  public:

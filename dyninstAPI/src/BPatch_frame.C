@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_frame.C,v 1.2 2005/09/09 18:06:19 legendre Exp $
+// $Id: BPatch_frame.C,v 1.3 2006/07/07 00:01:00 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -67,6 +67,15 @@ BPatch_frameType BPatch_frame::getFrameTypeInt()
 	else { return BPatch_frameNormal; } 
 }
 
+BPatch_thread *BPatch_frame::getThreadInt() 
+{
+  return thread;
+}
+
+BPatch_point *BPatch_frame::getPointInt() 
+{
+  return point_;
+}
 void *BPatch_frame::getPCInt() 
 {
   return pc;

@@ -48,6 +48,7 @@
 #include "BPatch_thread.h"
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
+#include "BPatch_process.h"
 
 class BPatch_typeCollection;
 class BPatch_libInfo;
@@ -79,9 +80,6 @@ typedef void (*BPatchExitCallback)(BPatch_thread *proc,
                                    BPatch_exitType exit_type);
 
 typedef void (*BPatchSignalCallback)(BPatch_thread *proc, int sigNum);
-
-typedef void (*BPatchOneTimeCodeCallback)(BPatch_thread *proc, 
-                                          void *userData, void *returnValue);
 
 typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point,
                                               BPatch_function *called_function);
@@ -141,25 +139,10 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
 
     BPatch_libInfo *info; 
 
-#ifdef NOTDEF // PDSEP
-    BPatchErrorCallback      	errorHandler;
-    BPatchDynLibraryCallback 	dynLibraryCallback;
-    BPatchForkCallback   	postForkCallback;
-    BPatchForkCallback    	preForkCallback;
-    BPatchExecCallback		execCallback;
-    BPatchExitCallback		exitCallback;
-    BPatchOneTimeCodeCallback   oneTimeCodeCallback;
-#endif
     bool	typeCheckOn;
     int		lastError;
     bool	debugParseOn;
     bool	baseTrampDeletionOn;
-
-#ifdef NOTDEF // PDSEP
-    bool	getThreadEvent(bool block);
-    bool	getThreadEventOnly(bool block);
-    bool	havePendingEvent();
-#endif
 
     /* If true, trampolines can recurse to their heart's content.
        Defaults to false */

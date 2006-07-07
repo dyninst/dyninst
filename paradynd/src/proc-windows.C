@@ -42,7 +42,6 @@
 // $Id: proc-windows.C,v
 
 
-#include "dyninstAPI/src/os.h"
 #include "common/h/timing.h"
 #include "common/h/Types.h"
 #include "paradynd/src/pd_process.h"
@@ -107,7 +106,7 @@ rawTime64 pd_thread::getRawCpuTime_sw()
   // time shouldn't go backwards, but we'd better handle it if it does
 //  printf(" %I64d %I64d \n", now, previous);
   if (now < sw_previous_) {
-     logLine("********* time going backwards in paradynd **********\n");
+     pdlogLine("********* time going backwards in paradynd **********\n");
      now = sw_previous_;
   }
   else {

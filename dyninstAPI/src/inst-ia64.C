@@ -53,10 +53,6 @@
 #include <limits.h>
 
 #include "common/h/headers.h"
-
-#ifndef BPATCH_LIBRARY
-#include "rtinst/h/rtinst.h"
-#endif
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"

@@ -40,11 +40,13 @@
  */
 
 #include "common/h/Types.h"
+#include "dyninstAPI/h/BPatch.h"
+
+#include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/instrDataNode.h"
 #include "paradynd/src/instrCodeNode.h"
-#include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/pd_process.h"
-#include "dyninstAPI/src/BPatch_typePrivate.h"
+#include "paradynd/src/debug.h"
 
 
 instrDataNode::instrDataNode(pd_process *proc_, unsigned type,
@@ -106,7 +108,6 @@ instrDataNode::~instrDataNode() {
 
 // obligatory definition of static member vrble:
 int instrDataNode::counterId=0;
-extern process *global_proc;
 
 Address instrDataNode::getInferiorPtr() const {
   // counterPtr could be NULL if we are building AstNodes just to compute
@@ -155,17 +156,13 @@ BPatch_variableExpr *instrDataNode::getVariableExpr()
 
 
   char type_str_ptr_name[128];
-/*  PDSEP -- CLEAN ME
-  base_type = proc->get_dyn_process()->getImage()->findType(type_str);
+
+  assert(BPatch::bpatch);
+  base_type = BPatch::bpatch->createScalar(type_str, getSize());
   if (!base_type) {
-    fprintf(stderr, "%s[%d]:  FIXME:  cannot find %s data type!\n",
-            __FILE__, __LINE__, type_str);
-    // try making this type up (we really just need a placeholder for its size)
-    base_type = new BPatch_typeScalar(getSize(), type_str);
+     fprintf(stderr, "%s[%d]:  failed to create scalar type: %s\n", FILE__, __LINE__, type_str);
+     return NULL;
   }
-  else {
-*/
-  base_type = new BPatch_typeScalar(getSize(), type_str);
 
   // get address of counter/timer:
   void *counterAddr = (void *) getInferiorPtr();
@@ -181,8 +178,14 @@ BPatch_variableExpr *instrDataNode::getVariableExpr()
 
   sprintf(type_str_ptr_name, "%sPtr", type_str);
   //  make a new type that is an array of intCounter (or tTimer, etc)
-  BPatch_type *base_type_ptr_type = new BPatch_typeArray(base_type, 0, 1024,
-                                                          type_str_ptr_name);
+
+  BPatch_type *base_type_ptr_type = NULL;
+  base_type_ptr_type = BPatch::bpatch->createArray(type_str_ptr_name, base_type, 0, 1024);
+  if (!base_type) {
+     fprintf(stderr, "%s[%d]:  failed to create scalar type: %s\n", FILE__, __LINE__, 
+             type_str_ptr_name);
+     return NULL;
+  }
 
   // "create" a variable at the counter address.
   varExpr = new BPatch_variableExpr(counterName, proc->get_dyn_process(),

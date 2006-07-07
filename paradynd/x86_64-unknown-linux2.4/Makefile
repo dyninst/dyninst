@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2006/03/12 23:32:58 legendre Exp $
+# $Id: Makefile,v 1.5 2006/07/07 00:01:15 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,29 +29,9 @@ include ../../make.config
 
 VPATH        += ../../rtinst/h:../../rtinst/src
 
-SRCS =		../../dyninstAPI/src/linux.C \
-		../../dyninstAPI/src/linux-x86.C \
-		../../dyninstAPI/src/linuxDL.C \
-		../../dyninstAPI/src/dynamiclinking.C \
-		../src/init-linux.C \
-		../../dyninstAPI/src/linuxMT.C \
-		../../dyninstAPI/src/inst-linux.C \
-		../../paradynd/src/proc-linux.C \
-		../../dyninstAPI/src/inst-x86.C \
-		../../dyninstAPI/src/emit-x86.C \
-		../../dyninstAPI/src/arch-x86.C \
-		../../dyninstAPI/src/parseDwarf.C \
-		../../dyninstAPI/src/stackwalk-x86.C \
-		../../dyninstAPI/src/parseStab.C \
-		../../dyninstAPI/src/Object-elf.C \
-		../../dyninstAPI/src/image-x86.C \
-		../../dyninstAPI/src/unix.C  \
+SRCS =		../src/init-linux.C \
 		../../rtinst/src/RThwtimer-linux.c \
-		../../dyninstAPI/src/InstrucIter-x86.C \
-		../../dyninstAPI/src/addLibraryLinux.C \
-		../../dyninstAPI/src/writeBackElf.C \
-		../../dyninstAPI/src/saveSharedLibrary.C \
-		../../dyninstAPI/src/syscall-linux.C 
+		../../paradynd/src/proc-linux.C 
 
 MYFLAGS		+= -DNO_MDL_PRINT
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)

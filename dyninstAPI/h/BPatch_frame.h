@@ -103,6 +103,18 @@ public:
     API_EXPORT(Int, (),
     bool, isSynthesized, ());
 
+    //  BPatch_frame::getThread
+    //  Returns:  value of program counter
+    API_EXPORT(Int, (),
+
+    BPatch_thread *,getThread,()); 
+
+    //  BPatch_frame::getThread
+    //  Returns:  value of program counter
+    API_EXPORT(Int, (),
+
+    BPatch_point *,getPoint,()); 
+
     //  BPatch_frame::getPC
     //  Returns:  value of program counter
     API_EXPORT(Int, (),

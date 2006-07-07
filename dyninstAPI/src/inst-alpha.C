@@ -39,15 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.100 2006/05/31 21:49:36 bernat Exp $
+// $Id: inst-alpha.C,v 1.101 2006/07/07 00:01:02 jaw Exp $
 
 #include "common/h/headers.h"
 
-#ifdef BPATCH_LIBRARY
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#else
-#include "rtinst/h/rtinst.h"
-#endif
+
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -531,7 +528,6 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 }
 
 
-#ifdef BPATCH_LIBRARY
 void emitJmpMC(int /*condition*/, int /*disp*/,codeGen & /*gen*/)
 {
   // Not needed for memory instrumentation, otherwise TBD
@@ -550,8 +546,6 @@ void emitCSload(const BPatch_addrSpec_NP *as, unsigned dest, codeGen &gen,
 {
   emitASload(as, dest, gen, noCost);
 }
-#endif
-
 
 void emitVload(opCode op, Address src1, Register, Register dest,
 	       codeGen &gen, bool, 

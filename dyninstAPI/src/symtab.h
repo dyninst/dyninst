@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.193 2006/04/21 18:57:03 nater Exp $
+// $Id: symtab.h,v 1.194 2006/07/07 00:01:09 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -460,17 +460,6 @@ class image : public codeRange {
    const pdvector<image_variable *> &getExportedVariables() const;
    const pdvector<image_variable *> &getCreatedVariables();
 
-#ifndef BPATCH_LIBRARY
-
-   // get all modules, including excluded ones....
-   const pdvector<pdmodule *> &getAllModules();
-
-   // Called from the mdl -- lists of functions to look for
-   static void watch_functions(pdstring& name, pdvector<pdstring> *vs, bool is_lib,
-                               pdvector<image_func*> *updateDict);
-#else
-
-#endif 
    const pdvector<pdmodule*> &getModules();
 
     int getNextBlockID() { return nextBlockID_++; }

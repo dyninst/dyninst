@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.129 2006/03/12 03:40:05 darnold Exp $ */
+/* $Id: context.C,v 1.130 2006/07/07 00:01:11 jaw Exp $ */
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -53,10 +53,8 @@
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_module.h"
-#include "dyninstAPI/h/BPatch_function.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "paradynd/src/comm.h"
+#include "paradynd/src/debug.h"
 
 #if !defined(i386_unknown_nt4_0)
 extern int termWin_port; //defined in main.C
@@ -64,7 +62,6 @@ extern pdstring pd_machine;
 #endif
 
 extern pdRPC *tp;
-
 extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid);
 
 void doDelayedReport()
@@ -108,6 +105,29 @@ void deleteThread(traceThread *fr)
 }
 #endif
 
+static unsigned addrHashCommon(Address addr) 
+{
+   // inspired by hashs of string class
+
+   register unsigned result = 5381;
+
+   register Address accumulator = addr;
+   while (accumulator > 0) {
+      // We use 3 bits at a time from the address
+      result = (result << 4) + result + (accumulator & 0x07);
+      accumulator >>= 3;
+   }
+
+   return result;
+}
+
+unsigned addrHash16(const Address &iaddr) 
+{
+   // call when you know that the low 4 bits are 0 (meaning they contribute
+   // nothing to an even hash distribution)
+   return addrHashCommon(iaddr >> 4);
+}
+
 unsigned miniTrampHandlePtrHash(miniTrampHandle * const &ptr) {
    // would be a static fn but for now aix.C needs it.
    unsigned addr = (unsigned)(Address)ptr;
@@ -116,7 +136,7 @@ unsigned miniTrampHandlePtrHash(miniTrampHandle * const &ptr) {
 
 void pd_execCallback(pd_process *pd_proc) {
    if (!pd_proc) {
-      logLine("Error in pd_execCallback: could not find pd_process\n");
+      pdlogLine("Error in pd_execCallback: could not find pd_process\n");
       return;
    }
 
@@ -201,11 +221,26 @@ bool markApplicationPaused()
     // get the time when we paused it.
     startPause = getWallTime();
     // sprintf(errorLine, "paused at %f\n", startPause);
-    // logLine(errorLine);
+    // pdlogLine(errorLine);
     appPause = true;
     return true;
   } else 
     return false;
+}
+
+timeStamp *pFirstRecordTime = NULL;
+
+void setFirstRecordTime(const timeStamp &ts) {
+  if(pFirstRecordTime != NULL) delete pFirstRecordTime;
+  pFirstRecordTime = new timeStamp(ts);
+}
+bool isInitFirstRecordTime() {
+  if(pFirstRecordTime == NULL) return false;
+  else return true;
+}
+const timeStamp &getFirstRecordTime() {
+  if(pFirstRecordTime == NULL) assert(0);
+  return *pFirstRecordTime;
 }
 
 bool markApplicationRunning()
@@ -248,7 +283,7 @@ bool continueAllProcesses()
         }
     }
     
-    statusLine("application running");
+    pdstatusLine("application running");
     if (!markApplicationRunning()) {
         return false;
     }
@@ -269,7 +304,7 @@ bool pauseAllProcesses()
     }
     
     if (changed){
-        statusLine("application paused");
+        pdstatusLine("application paused");
     }
     
     return(changed);
@@ -308,7 +343,7 @@ void processNewTSConnection(int tracesocket_fd) {
    {
 #if !defined(i386_unknown_nt4_0)
       str = "getting unexpected process connection";
-      statusLine(str.c_str());
+      pdstatusLine(str.c_str());
 #else
       // we expect a 0 cookie value on Windows where CreateProcess
       // is not the same semantics as fork.
@@ -340,12 +375,5 @@ void processNewTSConnection(int tracesocket_fd) {
    if (ptr_size != P_recv(fd, ptr_dst, ptr_size, 0))
       assert(false);
 
-   process *curr = NULL;
-
-   // This routine gets called when the attached process is in
-   // the middle of running DYNINSTinit.
-   curr = process::findProcess(pid);
-   assert(curr);
-   curr->traceLink = fd;
-   statusLine("ready");
+   pdstatusLine("ready");
 }

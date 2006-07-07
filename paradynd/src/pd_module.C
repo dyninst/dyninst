@@ -48,8 +48,7 @@
 #include "paradynd/src/resource.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/comm.h"
-#include "dyninstAPI/src/symtab.h" // for ResourceFullName()
-#include "dyninstAPI/src/process.h" // for isDynamicCallSite()
+
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 
 extern bool module_is_excluded(BPatch_module *m);

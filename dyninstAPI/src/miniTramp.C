@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.28 2006/06/12 17:46:57 jaw Exp $
+// $Id: miniTramp.C,v 1.29 2006/07/07 00:01:05 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -713,7 +713,8 @@ Address miniTrampInstance::uninstrumentedAddr() const {
 // Returns true if the "current" is after the "new". Currently does not
 // handle in-lining, where you might need catchup even if you're 
 // "before".
-bool miniTramp::catchupRequired(miniTramp *curMT, miniTramp *newMT) {
+bool miniTramp::catchupRequired(miniTramp *curMT, miniTramp *newMT) 
+{
     // We start at current and iterate. If we see new, stop. If
     // we hit the end, stop.
     miniTramp *iterMT = newMT;

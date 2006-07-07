@@ -95,7 +95,7 @@ threadMetFocusNode *threadMetFocusNode::copyThreadMetFocusNode(
 }
 
 threadMetFocusNode_Val::threadMetFocusNode_Val(
-                         const threadMetFocusNode_Val &par, process *childProc,
+                         const threadMetFocusNode_Val &par, BPatch_process *childProc,
 			 pd_thread *pdthr)
   : metric_name(par.metric_name), 
     focus(adjustFocusForPid(par.focus, childProc->getPid())),

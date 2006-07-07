@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.23 2006/01/30 19:44:59 jaw Exp $
+/* $Id: inst-aix.C,v 1.24 2006/07/07 00:01:02 jaw Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -60,40 +60,6 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include <sys/ldr.h>
-
-#ifdef NOTDEF // PDSEP
-#ifndef BPATCH_LIBRARY
-#include "dyninstRPC.xdr.SRVR.h"
-#include "paradynd/src/main.h"
-#include "paradynd/src/perfStream.h"
-#include "paradynd/src/context.h"
-
-
-pdstring process::getProcessStatus() const {
-   char ret[80];
-
-   switch (status()) {
-	case running:
-	    sprintf(ret, "%d running", pid);
-	    break;
-	case neonatal:
-	    sprintf(ret, "%d neonatal", pid);
-	    break;
-	case stopped:
-	    sprintf(ret, "%d stopped", pid);
-	    break;
-	case exited:
-	    sprintf(ret, "%d exited", pid);
-	    break;
-	default:
-	    sprintf(ret, "%d UNKNOWN State", pid);
-	    break;
-    }
-    return(ret);
-}
-
-#endif
-#endif
 
 //
 // All costs are based on Measurements on a SPARC station 10/40.
@@ -147,14 +113,3 @@ void initPrimitiveCost()
     primitiveCosts["DYNINSTreportNewTags"] = 42;
 }
 
-/*
- * Define the various classes of library functions to inst. 
- *
- */
-void initLibraryFunctions()
-{
-    /* XXXX - This function seems to be obsolete with the addition of MDL.
-     *   Why is it still here? - jkh 6/30/95
-     */
-}
- 

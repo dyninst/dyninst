@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.28 2006/06/21 16:53:51 rutar Exp $
+ * $Id: emit-x86.C,v 1.29 2006/07/07 00:01:02 jaw Exp $
  */
 
 #include <assert.h>
@@ -1304,7 +1304,6 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     SET_PTR(insn, gen);
 }
 
-#ifdef BPATCH_LIBRARY
 
 void Emitter64::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
 {
@@ -1442,7 +1441,6 @@ void Emitter64::emitRestoreFlags(codeGen &gen)
     emitSimpleInsn(POPFD, gen);
 }
 
-#endif
 
 bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 {

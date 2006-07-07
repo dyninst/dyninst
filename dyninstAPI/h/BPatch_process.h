@@ -54,6 +54,9 @@
 #include <stdio.h>
 #include <signal.h>
 
+typedef void (*BPatchOneTimeCodeCallback)(BPatch_thread *proc,
+                                          void *userData, void *returnValue);
+
 class process;
 class dyn_thread;
 class miniTrampHandle;
@@ -65,9 +68,6 @@ class BPatch_funcMap;
 class BPatch_instpMap;
 class int_function;
 struct batchInsertionRecord;
-
-// PDSEP
-class pd_process;
 
 typedef enum {
   BPatch_nullEvent,
@@ -107,6 +107,11 @@ private:
     BPatch_process *proc_;
     // low-level mappings for removal
     BPatch_Vector<miniTramp *> mtHandles_;
+
+    //  a flag for catchuo
+    bool catchupNeeded;
+    //  and a list of threads to apply catchup to
+   BPatch_Vector<BPatch_thread *> catchup_threads;
                              
     BPatchSnippetHandle(BPatch_process *proc);
 
@@ -121,6 +126,15 @@ public:
     // have multiple instances of instrumentation due to function
     // relocation.
     API_EXPORT(Int, (), bool, usesTrap, ());
+
+    API_EXPORT(Int, (),
+    BPatch_process *, getProcess, ());
+
+    API_EXPORT(Int, (),
+    BPatch_Vector<BPatch_thread *> &, getCatchupThreads, ());
+
+    API_EXPORT(Int, (),
+    bool, activeInStackDuringInsertion, ());
 };
 
 typedef enum {
@@ -130,7 +144,7 @@ typedef enum {
 } BPatch_exitType;
 
 class EventRecord;
-
+class OneTimeCodeCallback;
 /*
  * class OneTimeCodeInfo
  *
@@ -141,11 +155,12 @@ class OneTimeCodeInfo {
    bool synchronous;
    bool completed;
    void *userData;
+   OneTimeCodeCallback *cb;
    void *returnValue;
    unsigned thrID;
 public:
-   OneTimeCodeInfo(bool _synchronous, void *_userData, unsigned _thrID) :
-      synchronous(_synchronous), completed(false), userData(_userData),
+   OneTimeCodeInfo(bool _synchronous, void *_userData, OneTimeCodeCallback *_cb, unsigned _thrID) :
+      synchronous(_synchronous), completed(false), userData(_userData), cb(_cb),
       thrID(_thrID) { };
 
    bool isSynchronous() { return synchronous; }
@@ -159,8 +174,10 @@ public:
    void *getReturnValue() { return returnValue; }
 
    unsigned getThreadID() { return thrID; }
-};
 
+   OneTimeCodeCallback *getCallback() { return cb;}
+   
+};
 
 
 /*
@@ -195,11 +212,10 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend class AstNode; // AST needs to translate instPoint to
 		      // BPatch_point via instp_map
 
-    // PDSEP
-    // As long as the pd_process needs to reach into the lower-level
-    // objects, we'll need this
-    friend class pd_process;
-    
+    public:
+    void PDSEP_updateObservedCostAddr(unsigned long a);
+    private:
+
     //References to lower level objects
     process *llproc;
     BPatch_funcMap *func_map;
@@ -258,14 +274,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     void *oneTimeCodeInternal(const BPatch_snippet &expr,
                               BPatch_thread *thread, // == NULL if proc-wide
                               void *userData,
-                              bool synchronous);
+                              BPatchOneTimeCodeCallback cb = NULL,
+                              bool synchronous = true);
 
     void oneTimeCodeCompleted();
 
-#ifdef NOTDEF // PDSEP
-    static void deleteThreadCB(process *p, dyn_thread *thr);
-    static void newThreadCB(process *p, int id, int lwp);
-#endif
     protected:
     // for creating a process
     BPatch_process(const char *path, const char *argv[], const char **envp = NULL, 
@@ -302,10 +315,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     // DO NOT USE
     // this function should go away as soon as Paradyn links against Dyninst
     process *lowlevel_process() { return llproc; }
-
-    // DO NOT USE
-    // this function should go away as soon as Paradyn links against Dyninst
-    process *PDSEP_process() { return llproc; }
 
     // DO NOT USE
     // this function should go away as soon as Paradyn links against Dyninst
@@ -411,6 +420,13 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //  
     //  Detach from the mutatee process, optionally leaving it running
 
+    API_EXPORT(Int, (),
+    bool,wasRunningWhenAttached,());
+
+    //  BPatch_process::detach
+    //  
+    //  Detach from the mutatee process, optionally leaving it running
+
     API_EXPORT(Int, (cont),
     bool,detach,(bool cont));
 
@@ -433,6 +449,13 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //  Returns true if this process has more than one thread
     API_EXPORT(Int, (),
     bool, isMultithreaded, ());
+
+    //  BPatch_prOcess::isMultithreadCapable
+    //
+    //  Returns true if this process is linked against a thread library
+    //  (and thus might be multithreaded)
+    API_EXPORT(Int, (),
+    bool, isMultithreadCapable, ());
 
     //  BPatch_process::getThread
     //
@@ -555,9 +578,14 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //  returned from individual calls to insertSnippet.
     //
     //  atomic: if true, all instrumentation will be removed if any fails to go in.
+    //  modified: if provided, and set to true by finalizeInsertionSet, additional
+    //            steps were taken to make the installation work, such as modifying
+    //            process state.  Note that such steps will be taken whether or not
+    //            a variable is provided.
 
-    API_EXPORT(Int, (atomic),
-               bool, finalizeInsertionSet, (bool atomic));
+    API_EXPORT(Int, (atomic, modified, analyzeCatchup),
+               bool, finalizeInsertionSet, (bool atomic, bool *modified = NULL,
+                                            bool analyzeCatchup = false));
                                        
     
     //  BPatch_process::deleteSnippet
@@ -606,8 +634,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //  
     //  Have the specified code be executed by the mutatee once.  Dont wait until done.
 
-    API_EXPORT(Int, (expr, userData),
-    bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL));
+    API_EXPORT(Int, (expr, userData, cb),
+    bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL,
+                          BPatchOneTimeCodeCallback cb = NULL));
 
     //  BPatch_process::loadLibrary
     //  

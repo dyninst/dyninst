@@ -78,7 +78,6 @@ class instrCodeNode_Val {
 
 
   bool instrLoaded_;
-  bool instrLinked_;
   bool instrDeferred_;
   bool instrCatchuped_;
 
@@ -111,7 +110,7 @@ class instrCodeNode_Val {
   int getRefCount() { return referenceCount; }
   void getDataNodes(pdvector<instrDataNode *> *saveBuf);
   void cleanupDataRefNodes();
-  void cleanupMiniTrampHandle(miniTramp *mt);
+  void cleanupSnippetHandle(BPatchSnippetHandle *sh);
 
   // Perform partial cleanup when somebody deletes instrCodeNode. We
   // cannot free the memory right away, because of outstanding
@@ -121,8 +120,8 @@ class instrCodeNode_Val {
   // Add a minitramp deletion callback
   void registerCallback(instReqNode *newInstReq);
 
-  // A minitramp is being deleted
-  void handleCallback(miniTramp *mt);
+  // A snippet is being deleted
+  void handleCallback(BPatchSnippetHandle *sh);
 
   // Check if the node can now be safely deleted -- has no outstanding
   // callbacks and the deletion has already been initiated.
@@ -160,7 +159,7 @@ class instrCodeNode {
   instrCodeNode_Val *getInternalData() { return &V; }
   // should make it private
 
-  void prepareCatchupInstr(pdvector<catchupReq *> &); 
+  void prepareCatchupInstr(pdvector<instReqNode *> &); 
 
   pdstring getName() const { return V.getName(); }
   int numDataNodes() { 
@@ -196,7 +195,6 @@ class instrCodeNode {
   const Focus& getFocus() const { return V.focus; }
   static pdstring collectThreadName;
   const instrDataNode* getFlagDataNode() const;
-  void markTrampsAsHookedUp() { V.instrLinked_ = true; }
   void markAsCatchupDone() { V.instrCatchuped_ = true; }
 
   void unmarkAsDeferred() {
@@ -206,11 +204,8 @@ class instrCodeNode {
   // these aren't thread specific because the instrumentation deals with the
   // code and the code is shared by all the threads
   bool instrLoaded() { return V.instrLoaded_; }
-  bool instrLinked() { return V.instrLinked_; }
   bool instrCatchuped() { return V.instrCatchuped_; }
 
-  //bool needToWalkStack(); // const;
-  bool insertJumpsToTramps(const pdvector<pdvector<Frame> > &stackWalks);
   void addInst(BPatch_point *point, BPatch_snippet *, 
                BPatch_callWhen when, BPatch_snippetOrder o);
   timeLength cost() const;

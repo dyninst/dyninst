@@ -43,11 +43,14 @@
  * Igen derived class.  Used to provide virtual functions to replace the
  * defaults.
  * 
- * $Id: comm.h,v 1.15 2006/05/05 18:22:41 mjbrim Exp $
+ * $Id: comm.h,v 1.16 2006/07/07 00:01:11 jaw Exp $
  */
 
 #ifndef _COMM_H_IGEN_
 #define _COMM_H_IGEN_
+
+
+extern char errorLine[1024];
 
 #include "dyninstRPC.mrnet.SRVR.h"
 

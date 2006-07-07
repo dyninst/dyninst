@@ -46,7 +46,6 @@
 #include "common/h/Vector.h"
 
 class pd_process;
-class process;
 class BPatch_process;
 
 class processMgr {

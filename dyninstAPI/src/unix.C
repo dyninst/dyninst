@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.221 2006/06/27 22:10:07 jaw Exp $
+// $Id: unix.C,v 1.222 2006/07/07 00:01:09 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -54,11 +54,6 @@
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"  // for DYNINST_BREAKPOINT_SIGNUM
 
-
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/main.h"  // for "tp" ?
-#include "paradynd/src/pd_process.h" // for class pd_process
-#endif
 
 // the following are needed for handleSigChild
 #include "dyninstAPI/src/signalhandler.h"
@@ -1174,17 +1169,7 @@ bool forkNewProcess_real(pdstring file,
 {
    forkexec_printf("%s[%d][%s]:  welcome to forkNewProcess(%s)\n",
                    FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
-#ifndef BPATCH_LIBRARY
-   int tracePipe[2];
-   int r = P_pipe(tracePipe);
-   if (r) {
-      // P_perror("socketpair");
-      pdstring msg = pdstring("Unable to create trace pipe for program '") + 
-         file + pdstring("': ") + pdstring(strerror(errno));
-      showErrorCallback(68, msg);
-      return false;
-   }
-#endif
+
    errno = 0;
 
    pid = fork();
@@ -1195,7 +1180,7 @@ bool forkNewProcess_real(pdstring file,
                      "FORK PARENT\n", FILE__, __LINE__, 
                      getThreadStr(getExecThreadID()), file.c_str());
 
-#if (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
+#if !defined(alpha_dec_osf4_0)
       /*
        * On Irix, errno sometimes seems to have a non-zero value after
        * the fork even though it succeeded.  For now, if we're using fork
@@ -1219,11 +1204,6 @@ bool forkNewProcess_real(pdstring file,
             return false; 
          }
 
-#ifndef BPATCH_LIBRARY
-      // parent never writes trace records; it only receives them.
-      P_close(tracePipe[1]);
-      traceLink = tracePipe[0];
-#endif
       return true;
 
    } else if (pid == 0) {
@@ -1334,32 +1314,6 @@ bool forkNewProcess_real(pdstring file,
       // whether the mutatee is 32 or 64-bit only after starting it).
       if (!setEnvPreload(max_envs_entries, envs, &num_envs_entries)) {
          P__exit(-1);
-      }
-#endif
-
-#ifndef BPATCH_LIBRARY
-      // hand off info about how to start a paradynd to the application.
-      //   used to catch rexec calls, and poe events.
-      //
-      char* paradynInfo = new char[1024];
-      sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
-      for (unsigned i=0; i < pd_process::arg_list.size(); i++) {
-         const char *str;
-
-         str = P_strdup(pd_process::arg_list[i].c_str());
-         if (!strcmp(str, "-l1")) {
-            strcat(paradynInfo, "-l0");
-         } else {
-            strcat(paradynInfo, str);
-         }
-         strcat(paradynInfo, " ");
-      }
-
-      if (envp) {
-         envs[num_envs_entries++] = P_strdup(paradynInfo);
-         envs[num_envs_entries] = NULL;
-      } else {
-         P_putenv(paradynInfo);
       }
 #endif
 

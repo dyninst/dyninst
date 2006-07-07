@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.57 2006/06/22 22:53:40 bernat Exp $
+// $Id: multiTramp.C,v 1.58 2006/07/07 00:01:06 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -805,7 +805,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 
     // We might be getting called but nothing changed...
     if (!generated_  
-#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+#if defined(os_aix) 
 	/* 	this is part of the code to ensure that when we add the call to dlopen
 		at the entry of main on AIX during save the world, any multi that was
 		already there gets regenerated
@@ -814,7 +814,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 #endif
 	){
 
-#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+#if defined(os_aix) 
 	/* 	this is part of the code to ensure that when we add the call to dlopen
 		at the entry of main on AIX during save the world, any multi that was
 		already there gets regenerated
@@ -826,7 +826,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         assert(generatedMultiT_ == NULL);
         assert(jumpBuf_ == NULL);
 
-#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+#if defined(os_aix) 
 	}
 #endif
         // A multiTramp is the code sequence for a set of instructions in
@@ -894,7 +894,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         }
 #endif
 
-#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+#if defined(os_aix) 
     if (proc()->requestTextMiniTramp ){ //ccw 8 oct 2005
         heapToUse = anyHeap;
         //nearAddr = 0x10000000;
@@ -1461,7 +1461,7 @@ multiTramp::mtErrorCode_t multiTramp::generateMultiTramp()
 {
     updateInstInstances();
     if (hasChanged()
-#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+#if defined(os_aix)
 	/* 	this is part of the code to ensure that when we add the call to dlopen
 		at the entry of main on AIX during save the world, any multi that was
 		already there gets regenerated
@@ -2062,7 +2062,8 @@ bool generatedCodeObject::objIsChild(generatedCodeObject *obj) {
 }
 
 bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
-                                 codeRange *range) {
+                                 codeRange *range) 
+{
     // range is optional, and might be NULL. It's provided to avoid
     // having to do two billion codeRange lookups
     if (range == NULL)

@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: libState.h,v 1.7 2005/12/01 00:56:24 jaw Exp $
+/* $Id: libState.h,v 1.8 2006/07/07 00:01:04 jaw Exp $
  */
 
 #ifndef _LIBSTATE_H_
 #define _LIBSTATE_H_
 
+#if 0 // PDSEP
 #include "common/h/Types.h"
 
 class process;
@@ -56,5 +57,6 @@ typedef enum { libUnloaded, libLoading, libInitializing, libLoaded, libReady } l
 // Defined in process.C
 bool reachedLibState(libraryState_t lib, libraryState_t state);
 void setLibState(libraryState_t &lib, libraryState_t state);
+#endif
 
 #endif

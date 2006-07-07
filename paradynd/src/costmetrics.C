@@ -39,17 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.34 2005/12/19 19:42:49 pack Exp $
+// $Id: costmetrics.C,v 1.35 2006/07/07 00:01:11 jaw Exp $
 
 #include "common/h/Types.h"
 #include "common/h/int64iostream.h"
+
+#include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/machineMetFocusNode.h"
-#include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/dynrpc.h"
 #include "paradynd/src/focus.h"
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
+#include "paradynd/src/debug.h"
 
 pdvector<costMetric*> costMetric::allCostMetrics;
 
@@ -72,7 +74,7 @@ costMetric::costMetric(const pdstring n, aggregateOp a, const pdstring units,
    while(itr != getProcMgr().end()) {
       pd_process *p = *itr++;
       if(p && !p->isTerminated()) {
-         components += p->get_dyn_process()->lowlevel_process();
+         components += p->get_dyn_process();
          //aggComponent *s = new aggComponent;
          aggComponent *s = aggregator.newComponent();
          parts += s;
@@ -126,7 +128,7 @@ bool costMetric::legalToInst(const Focus& focus) {
     return true;
 }
 
-bool costMetric::addProcess(process *p){
+bool costMetric::addProcess(BPatch_process *p){
 
     for(unsigned i = 0; i < components.size(); i++){
        if(p == components[i])
@@ -140,7 +142,8 @@ bool costMetric::addProcess(process *p){
     return true;
 }
 
-bool costMetric::removeProcess(process *p){
+bool costMetric::removeProcess(BPatch_process *p)
+{
     unsigned size = components.size();
     for(unsigned i = 0; i < size; i++){
        if(p == components[i]){
@@ -167,7 +170,7 @@ bool costMetric::removeProcess(process *p){
 }
 
 
-bool costMetric::addProcessToAll(process *p){
+bool costMetric::addProcessToAll(BPatch_process *p){
 
     for(unsigned i=0; i < allCostMetrics.size(); i++){
         costMetric *next_met = allCostMetrics[i];
@@ -176,7 +179,7 @@ bool costMetric::addProcessToAll(process *p){
     return true;
 }
 
-bool costMetric::removeProcessFromAll(process *p){
+bool costMetric::removeProcessFromAll(BPatch_process *p){
     for(unsigned i=0; i < allCostMetrics.size(); i++){
         costMetric *next_met = allCostMetrics[i];
 	next_met->removeProcess(p);
@@ -184,7 +187,29 @@ bool costMetric::removeProcessFromAll(process *p){
     return true;
 }
 
-void costMetric::updateValue(process *proc, timeStamp timeOfSample, 
+timeStamp costMetric::getLastSampleProcessTime(BPatch_process *proc)
+{
+  for (unsigned i = 0; i < components.size(); i++){
+    if (proc == components[i]){
+       return (lastProcessTime[i]);
+    }
+  }
+  fprintf(stderr, "%s[%d]:  WARNING:  could not find process time\n", FILE__, __LINE__);
+  return timeStamp::ts1970();
+}
+
+pdSample costMetric::getCumulativeValue(BPatch_process *proc)
+{
+  for (unsigned i = 0; i < components.size(); i++){
+     if (proc == components[i]){
+        return (cumulative_values[i]);
+     }
+  }
+  fprintf(stderr, "%s[%d]:  WARNING:  could not find cumulative time\n", FILE__, __LINE__);
+  return pdSample::Zero();
+}
+
+void costMetric::updateValue(BPatch_process *proc, timeStamp timeOfSample, 
 			     pdSample value, timeStamp processTime) 
 {
   int proc_num = -1;
@@ -192,7 +217,10 @@ void costMetric::updateValue(process *proc, timeStamp timeOfSample,
   for(unsigned i=0; i < components.size(); i++) {
     if(proc == components[i]) proc_num = i;
   }
-  if(proc_num == -1) return;
+  if (proc_num == -1) {
+    fprintf(stderr, "%s[%d]:  WARNING:  failure to update cost value\n", FILE__, __LINE__);
+    return;
+  }
   
   lastProcessTime[proc_num] = processTime;
   // only use delta from last sample
@@ -220,7 +248,8 @@ void costMetric::updateValue(process *proc, timeStamp timeOfSample,
   while(aggregateAndBatch());
 }
 
-bool costMetric::aggregateAndBatch() {
+bool costMetric::aggregateAndBatch() 
+{
   // update value if we have a new value from each part
   struct sampleInterval aggSample;
   bool valid = aggregator.aggregate(&aggSample);

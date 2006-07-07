@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2006/03/31 20:10:06 bernat Exp $
+# $Id: Makefile,v 1.14 2006/07/07 00:01:10 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,24 +24,8 @@ LDFLAGS += -Xlinker -bbigtoc
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =		../../dyninstAPI/src/aix.C \
-		../../dyninstAPI/src/sol_proc.C \
-		../../dyninstAPI/src/aixMT.C \
-		../../dyninstAPI/src/aixDL.C \
-		../../dyninstAPI/src/dynamiclinking.C \
-		../../paradynd/src/init-aix.C \
-		../../paradynd/src/proc-aix.C \
-		../../dyninstAPI/src/inst-power.C \
-		../../dyninstAPI/src/parseStab.C \
-		../../dyninstAPI/src/inst-aix.C \
-		../../dyninstAPI/src/Object-xcoff.C \
-		../../dyninstAPI/src/unix.C \
-		../../dyninstAPI/src/InstrucIter-power.C \
-		../../dyninstAPI/src/writeBackXCOFF.C \
-		../../dyninstAPI/src/syscall-solproc.C \
-		../../dyninstAPI/src/image-power.C \
-		../../dyninstAPI/src/arch-power.C
-
+SRCS =		../../paradynd/src/init-aix.C \
+		../../paradynd/src/proc-aix.C 
 
 ifdef GCC_2_95
 CXXFLAGS	+= -fno-exceptions

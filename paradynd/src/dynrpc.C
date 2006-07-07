@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.127 2006/05/10 11:40:06 darnold Exp $ */
+/* $Id: dynrpc.C,v 1.128 2006/07/07 00:01:11 jaw Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -47,10 +47,10 @@
 #include "paradynd/src/internalMetrics.h"
 #include "dyninstRPC.mrnet.SRVR.h"
 
-#include "dyninstAPI/src/dyninst.h"
-#include "dyninstAPI/src/stats.h"
+#include "common/h/Timer.h"
 
 #include "paradynd/src/resource.h"
+#include "paradynd/src/debug.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/costmetrics.h"
@@ -62,8 +62,6 @@
 #include "pdutil/h/mdlParse.h"
 #include "paradynd/src/mdld_data.h"
 #include "mrnet/MRNet.h"
-#include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/stats.h"
 
 int StartOrAttach( void );
 extern bool startOnReportSelfDone;
@@ -98,7 +96,7 @@ const timeLength &getCurrSamplingRate() {
 
 void dynRPC::printStats(MRN::Stream * /* stream */)
 {
-  printDyninstStats();
+   fprintf(stderr, "%s[%d]:  If we had 'em, we'd print some stats here\n", FILE__, __LINE__);
 }
 
 
@@ -182,7 +180,6 @@ void deleteMetricFocus(machineMetFocusNode *mi) {
     else 
         subCurrentPredictedCost(cost);
 
-    mi->cancelPendingRPCs();
     // If this MID is on the deferred list, rip it out
     
     pdvector<int>::iterator itr = deferredMetricIDs.end();
@@ -446,7 +443,7 @@ void dynRPC::continueProgram(MRN::Stream * stream,int pid)
       } else {
          sprintf(errorLine,
                  "Internal error: cannot continue PID %d\n", pid);
-         logLine(errorLine);
+         pdlogLine(errorLine);
          showErrorCallback(stream, 62,(const char *) errorLine,
                            machineResource->part_name());
          return;
@@ -457,7 +454,7 @@ void dynRPC::continueProgram(MRN::Stream * stream,int pid)
          sprintf(errorLine,
                  "%s[%d]: Internal error: PID %d terminated\n", 
                  __FILE__, __LINE__, pid);
-         logLine(errorLine);
+         pdlogLine(errorLine);
          showErrorCallback(stream,62,(const char *) errorLine,
                            machineResource->part_name());
 
@@ -466,7 +463,7 @@ void dynRPC::continueProgram(MRN::Stream * stream,int pid)
        proc->continueProc();
    }
    // we are no longer paused, are we?
-   statusLine("application running");
+   pdstatusLine("application running");
    if (!markApplicationRunning()) {
        return;
    }
@@ -489,7 +486,7 @@ bool dynRPC::pauseProgram(MRN::Stream * stream,int program)
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (!proc) {
       sprintf(errorLine, "Internal error: cannot pause PID %d\n", program);
-      logLine(errorLine);
+      pdlogLine(errorLine);
       showErrorCallback(stream,63,(const char *) errorLine,
 		        machineResource->part_name());
       return false;
@@ -499,7 +496,7 @@ bool dynRPC::pauseProgram(MRN::Stream * stream,int program)
 
 bool dynRPC::startProgram(MRN::Stream * /* stream */,int /* dummy */ )
 {
-    statusLine("starting application");
+    pdstatusLine("starting application");
     continueAllProcesses();
     return(false);
 }
@@ -743,7 +740,7 @@ void dynRPC::staticCallgraphReportsComplete( MRN::Stream * )
     p->reportInitialThreads();
     pdstring buffer = pdstring("PID=") + pdstring(p->getPid());
     buffer += pdstring(", ready");
-    statusLine(buffer.c_str());
+    pdstatusLine(buffer.c_str());
 
     extern bool readyToRun;
     readyToRun = false;

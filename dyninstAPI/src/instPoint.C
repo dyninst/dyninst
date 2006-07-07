@@ -39,13 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.26 2006/05/25 20:11:37 bernat Exp $
+// $Id: instPoint.C,v 1.27 2006/07/07 00:01:04 jaw Exp $
 // instPoint code
 
 
 #include <assert.h>
-//#include <sys/signal.h>
-//#include <sys/param.h>
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -62,10 +60,6 @@
 #include "dyninstAPI/src/image-func.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/mapped_object.h"
-
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/init.h"
-#endif
 
 unsigned int instPointBase::id_ctr = 1;
 
@@ -511,7 +505,8 @@ bool instPoint::installInst() {
 
 // Return false if the PC is within the jump range of any of our
 // multiTramps
-bool instPoint::checkInst(pdvector<Address> &checkPCs) {
+bool instPoint::checkInst(pdvector<Address> &checkPCs) 
+{
     
     for (unsigned sI = 0; sI < checkPCs.size(); sI++) {
         Address pc = checkPCs[sI];
@@ -790,7 +785,8 @@ bool instPoint::instrSideEffect(Frame &frame)
 }
 
 instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
-                                                       miniTramp *mt) {
+                                                       miniTramp *mt) 
+{
     // If the PC isn't in a multiTramp that corresponds to one of
     // our instances, return noMatch_c
 

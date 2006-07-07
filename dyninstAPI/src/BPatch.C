@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.157 2006/06/19 21:39:43 bernat Exp $
+// $Id: BPatch.C,v 1.158 2006/07/07 00:01:00 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -698,7 +698,15 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
     assert(bpatch != NULL);
     assert(global_mutex);
-    assert(global_mutex->depth());
+    //assert(global_mutex->depth());
+
+    bool do_unlock = false;
+    if (!global_mutex->depth()) {
+      fprintf(stderr, "%s[%d]:  WARN:  reportError called w/0 lock\n", FILE__, __LINE__);
+      global_mutex->_Lock(FILE__, __LINE__);
+      do_unlock = true;
+    }
+
     // don't log BPatchWarning or BPatchInfo messages as "errors"
     if ((severity == BPatchFatal) || (severity == BPatchSerious))
         bpatch->lastError = number;
@@ -707,6 +715,8 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
     if (! getCBManager()->dispenseCallbacksMatching(evtError, cbs)) {
         fprintf(stdout, "%s[%d]:  DYNINST ERROR:\n %s\n", FILE__, __LINE__, str);
         fflush(stdout);
+        if (do_unlock) 
+          global_mutex->_Unlock(FILE__, __LINE__);
         return; 
     }
     
@@ -715,6 +725,9 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
         if (cb)
             (*cb)(severity, number, str); 
     }
+
+    if (do_unlock) 
+       global_mutex->_Unlock(FILE__, __LINE__);
 }
 
 

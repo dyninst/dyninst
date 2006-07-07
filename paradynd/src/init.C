@@ -39,8 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.94 2006/06/19 21:30:50 bernat Exp $
+// $Id: init.C,v 1.95 2006/07/07 00:01:12 jaw Exp $
 
+
+#include "pdutil/h/pdDebugOstream.h"
+#include "pdutil/h/aggregationDefines.h"
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/costmetrics.h"
@@ -49,23 +52,22 @@
 #include "paradynd/src/resource.h"
 #include "paradynd/src/comm.h"
 #include "paradynd/src/context.h"
-#include "common/h/timing.h"
-#include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/context.h"    // elapsedPauseTime, startPause
 #include "paradynd/src/dynrpc.h"
-#include "pdutil/h/aggregationDefines.h"
 #include "paradynd/src/processMgr.h"
 #include "paradynd/src/pd_process.h"
-#include "dyninstAPI/h/BPatch.h"
 #include "paradynd/src/debug.h"
 #include "paradynd/src/main.h"
+
+#include "common/h/timing.h"
+#include "dyninstAPI/h/BPatch.h"
 
 #ifdef PAPI
 #include "papi.h"
 #endif
 
-
+extern bool isInitFirstRecordTime();
 extern pdRPC *tp;
 extern int getNumberOfCPUs();
 
@@ -452,9 +454,10 @@ bool paradyn_init() {
 
   numberOfCPUs = getNumberOfCPUs();
 
-  initDefaultPointFrequencyTable();
 
-  return (initOS());
+  bool ret =   initOS();
+  fprintf(stderr, "%s[%d]:  paradyn_init returning %s\n", FILE__, __LINE__, ret ? "true" : "false");
+  return ret;
 }
 
 void instMPI() {

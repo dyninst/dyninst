@@ -314,11 +314,11 @@ int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
    num_waiters--;
    release_num--;
    if (num_waiters < 0) {
-      fprintf(stderr, "FIXME!\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]: FIXME!\n", FILE__, __LINE__);
       num_waiters = 0;
    }
    if (release_num < 0) {
-      fprintf(stderr, "FIXME!\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]: FIXME!\n", FILE__, __LINE__);
       num_waiters = 0;
    }
 

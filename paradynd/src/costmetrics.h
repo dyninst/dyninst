@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.h,v 1.20 2004/10/07 00:45:57 jaw Exp $
+// $Id: costmetrics.h,v 1.21 2006/07/07 00:01:11 jaw Exp $
 
 #ifndef COST_METRICS_HDR 
 #define COST_METRICS_HDR
@@ -50,6 +50,7 @@
 #include "common/h/Time.h"
 #include "pdutil/h/sampleAggregator.h"
 
+#include "dyninstAPI/h/BPatch_process.h"
 class Focus;
 
 class costMetric {
@@ -99,29 +100,17 @@ class costMetric {
   bool isDeveloperMode() { return developermode_; }
 
   // add new entries to components, lastProcessTime, and parts
-  bool addProcess(process *p);
-  static bool addProcessToAll(process *newproc);
+  bool addProcess(BPatch_process *p);
+  static bool addProcessToAll(BPatch_process *newproc);
   // remove new entries to components, lastProcessTime, and parts
-  bool removeProcess(process *p);
-  static bool removeProcessFromAll(process *proc);
+  bool removeProcess(BPatch_process *p);
+  static bool removeProcessFromAll(BPatch_process *proc);
 
-  timeStamp getLastSampleProcessTime(process *proc){
-      for(unsigned i = 0; i < components.size(); i++){
-	  if(proc == components[i]){
-              return(lastProcessTime[i]);
-      } }
-      return timeStamp::ts1970();
-  }
-  pdSample getCumulativeValue(process *proc){
-      for(unsigned i = 0; i < components.size(); i++){
-	  if(proc == components[i]){
-	      return(cumulative_values[i]);
-      } }
-      return pdSample::Zero();
-  }
+  timeStamp getLastSampleProcessTime(BPatch_process *proc);
+  pdSample getCumulativeValue(BPatch_process *proc);
 
   // proc: process sending cost data
-  void updateValue(process *proc, timeStamp timeOfSample, pdSample value, 
+  void updateValue(BPatch_process *proc, timeStamp timeOfSample, pdSample value, 
 		   timeStamp processTime);
   // returns false when no more aggregation can be done
   bool aggregateAndBatch();
@@ -136,7 +125,7 @@ class costMetric {
 
 private:
   // list of processes and values contributing to metric value
-  pdvector<process *> components;
+  pdvector<BPatch_process *> components;
   pdvector<aggComponent *> parts;
   sampleAggregator aggregator;
 

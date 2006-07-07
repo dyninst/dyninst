@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.282 2006/06/01 15:02:47 bernat Exp $
+ // $Id: symtab.C,v 1.283 2006/07/07 00:01:09 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,13 +59,6 @@
 #include "common/h/debugOstream.h"
 #include "common/h/pathName.h"          // extract_pathname_tail()
 #include "dyninstAPI/src/function.h"
-
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/mdld.h"
-#include "paradynd/src/main.h"
-#include "paradynd/src/init.h"
-#include "common/h/Dictionary.h"
-#endif
 
 #include "LineInformation.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
@@ -254,26 +247,6 @@ image_func *image::makeOneFunction(pdvector<Symbol> &mods,
 
   return func;
 }
-
-#ifndef BPATCH_LIBRARY
-
-//Add an extra pretty name to a known function (needed for handling
-//overloaded functions in paradyn)
-void image::addTypedPrettyName( image_func *func, const char *typedName) {
-   pdvector<image_func*> *funcsByPrettyEntry = NULL;
-   pdstring typed(typedName);
-
-   //XXX
-   //   fprintf(stderr,"addTypedPrettyName %s\n",typedName);
-   if (!funcsByPretty.find(typed, funcsByPrettyEntry)) {
-      funcsByPrettyEntry = new pdvector<image_func*>;
-      funcsByPretty[typed] = funcsByPrettyEntry;
-   }
-   assert(funcsByPrettyEntry);
-   (*funcsByPrettyEntry).push_back(func);
-}
-
-#endif
 
 /*
  * Add all the functions (*) in the list of symbols to our data
@@ -595,128 +568,6 @@ pdmodule *image::findModule(const pdstring &name, bool wildcard)
   return NULL;
 }
 
-#if 0
-#ifndef BPATCH_LIBRARY
-/* 
- * return 0 if symbol <symname> exists in image, non-zero if it does not
- */
-bool image::symbolExists(const pdstring &symname)
-{
-  pdvector<image_func *> *pdfv;
-  if (NULL != (pdfv = findFuncVectorByPretty(symname)) && pdfv->size())
-    return true;
-
-  if (NULL != (pdfv = findFuncVectorByMangled(symname)) && pdfv->size())
-    return true;
-
-  return false;
-}
-
-void image::postProcess(const pdstring pifname)
-{
-  FILE *Fil;
-  pdstring fname, errorstr;
-  char key[5000];
-  char tmp1[5000], abstraction[500];
-  resource *parent;
-
-  return;
-
-  /* What file to open? */
-  if (!(pifname == (char*)NULL)) {
-      fname = pifname;
-  } else {
-      fname = desc_.file() + ".pif";
-  }
-
-  /* Open the file */
-  Fil = P_fopen(fname.c_str(), "r");
-
-  if (Fil == NULL) {
-    errorstr = pdstring("Tried to open PIF file ") + fname;
-    errorstr += pdstring(", but could not (continuing)\n");
-    logLine(P_strdup(errorstr.c_str()));
-    showErrorCallback(35, errorstr); 
-    return;
-  }
-
-  /* Process the file */
-  while (!feof(Fil)) {
-    fscanf(Fil, "%s", key);
-    switch (key[0]) {
-    case 'M':
-      /* Ignore mapping information for right now */
-      fgets(tmp1, 5000, Fil);
-      break;
-    case 'R':
-#ifndef BPATCH_LIBRARY
-      /* Create a new resource */
-      fscanf(Fil, "%s {", abstraction);
-      parent = rootResource;
-      do {
-	fscanf(Fil, "%s", tmp1);
-        if (tmp1[0] != '}') {
-          parent = resource::newResource(parent, NULL,
-					 abstraction,
-					 tmp1, timeStamp::ts1970(),
-					 nullString, // uniqifier
-#if READY
-                     0,         // what type to use?
-#else
-                     OtherResourceType,
-#endif // READY
-					 MDL_T_STRING,
-					 true);
-        } else {
-	  parent = NULL;
-	}
-      } while (parent != NULL);
-#endif
-      break;
-    default:
-      errorstr = pdstring("Ignoring bad line key (") + fname;
-      errorstr += pdstring(") in file %s\n");
-      logLine(P_strdup(errorstr.c_str()));
-      fgets(tmp1, 5000, Fil);
-      break;
-    }
-  }
-  return;
-}
-#endif
-#endif
-
-#ifndef BPATCH_LIBRARY
-void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
-                            image_func *pdf)
-{
-    resource *r = res;
-
-    if (n->loop != NULL) {
-        r = resource::newResource(res, pdf,
-                                  nullString, // abstraction
-                                  pdstring(n->name()),
-                                  timeStamp::ts1970(),
-                                  nullString, // uniquifier
-                                  LoopResourceType,
-                                  MDL_T_LOOP,
-                                  false );
-    }
-
-    for (unsigned i = 0; i < n->children.size(); i++) {
-        // loop resource objects are nested under their parent function rather
-        // than each other. using r instead of res would cause the resource
-        // hierarchy to have loops nested under each other.
-        // dfsCreateLoopResources(n->children[i], r, pdf);
-        dfsCreateLoopResources(n->children[i], res, pdf);
-    }
-}
-#endif
-
-#ifndef BPATCH_LIBRARY
-extern bool should_report_loops;
-#endif
-
 const pdvector<image_func*> &image::getAllFunctions() 
 {
   analyzeIfNeeded();
@@ -751,7 +602,8 @@ const pdvector <pdmodule*> &image::getModules()
 }
 
 void print_module_vector_by_short_name(pdstring prefix ,
-				       pdvector<pdmodule*> *mods) {
+				       pdvector<pdmodule*> *mods) 
+{
     unsigned int i;
     pdmodule *mod;
     for(i=0;i<mods->size();i++) {
@@ -759,148 +611,6 @@ void print_module_vector_by_short_name(pdstring prefix ,
 	cerr << prefix << mod->fileName() << endl;
     }
 }
-
-
-#ifndef BPATCH_LIBRARY
-// rip module name out of constraint....
-// Assumes that constraint is of form module/function, or
-// module.... 
-pdstring getModuleName(pdstring constraint) {
-    pdstring ret;
-
-    const char *data = constraint.c_str();
-    const char *first_slash = P_strchr(data, RH_SEPERATOR);
-    
-    // no "/", assume string holds module name....
-    if (first_slash == NULL) {
-	return constraint;
-    }    
-    // has "/", assume everything up to "/" is module name....
-    return pdstring(data, first_slash - data);
-}
-
-// rip function name out of constraint....
-// Assumes that constraint is of form module/function, or
-// module.... 
-pdstring getFunctionName(pdstring constraint) {
-    pdstring ret;
-
-    const char *data = constraint.c_str();
-    const char *first_slash = P_strchr(data, RH_SEPERATOR);
-    
-    // no "/", assume constraint is module only....
-    if (first_slash == NULL) {
-	return pdstring("");
-    }    
-    // has "/", assume everything after "/" is function....
-    return pdstring(first_slash+1);
-}
-
-
-
-
-// mcheyney, Oct. 6, 1997
-static dictionary_hash<pdstring, pdstring> func_constraint_hash(pdstring::hash);
-static bool cache_func_constraint_hash() {
-    static bool func_constraint_hash_loaded = FALSE;
-
-    // strings holding exclude constraints....
-    pdvector<pdstring> func_constraints;
-    // if unble to get list of excluded functions, assume all functions
-    //  are NOT excluded!!!!
-    if(mdl_get_lib_constraints(func_constraints) == FALSE) {
-	return FALSE;
-    }
-    func_constraint_hash_loaded = TRUE;
-
-    unsigned i;
-    for(i=0;i<func_constraints.size();i++) {
-	func_constraint_hash[func_constraints[i]] = func_constraints[i];
-    }
-    return TRUE;
-}
-
-// mcheyney, Oct. 3, 1997
-// Return boolean value indicating whether function is found to
-//  be excluded via "exclude module_name/function_name" (but NOT
-//  via "exclude module_name").
-bool function_is_excluded(image_func *func, pdstring module_name) {
-    static bool func_constraint_hash_loaded = FALSE;
-
-    pdstring function_name = func->prettyName();
-    pdstring full_name = module_name + pdstring("/") + function_name;
-
-    if (func_constraint_hash_loaded == FALSE) {
-        if (!cache_func_constraint_hash()) {
-	    return FALSE;
-        }
-    }
-
-    if (func_constraint_hash.defines(full_name)) {
-        return TRUE;
-    }
-    return FALSE;
-}
-
-
-bool module_is_excluded(pdmodule *module) {
-    static bool func_constraint_hash_loaded = FALSE;
-
-    pdstring full_name = module->fileName();
-
-    if (func_constraint_hash_loaded == FALSE) {
-        if (!cache_func_constraint_hash()) {
-	    return FALSE;
-        }
-    }
-
-    if (func_constraint_hash.defines(full_name)) {
-        return TRUE;
-    }
-    return FALSE;
-}
-
-//
-// mcheyney, Sep 28, 1997
-// Take a list of functions (in vector <all_funcs>.  Copy all
-//  of those functions which are not excluded (via "exclude" 
-//  {module==module_name}/{function==function_name) into
-//  <some_functions>.  DONT filter out those excluded via
-//  exclude module==module_name...., eh????
-// Returns status of mdl_get_lib_constraints() call.
-//  If this status == FALSE< some_funcs is not modified....
-// We assume that all_funcs is generally longer than the list
-//  of constrained functions.  As such, internally proc. copies
-//  all funcs into some funcs, then runs over excluded funcs
-//  removing any matches, as opposed to doing to checking 
-//  while adding to some_funcs....
-
-bool filter_excluded_functions(pdvector<image_func*> all_funcs,
-    pdvector<image_func*>& some_funcs, pdstring module_name) {
-    unsigned i;
-
-    pdstring full_name;
-    static bool func_constraint_hash_loaded = FALSE;
-
-    if (func_constraint_hash_loaded == FALSE) {
-        if (!cache_func_constraint_hash()) {
-	    return FALSE;
-        }
-    }
-
-    // run over all_funcs, check if module/function is caught
-    //  by an exclude....
-    for(i=0;i<all_funcs.size();i++) {
-        full_name = module_name + pdstring("/") + all_funcs[i]->prettyName();
-	if (!(func_constraint_hash.defines(full_name))) {
-            some_funcs += all_funcs[i];
-        }
-    }
-    
-    return TRUE;
-}
-
-#endif /* BPATCH_LIBRARY */
 
 // identify module name from symbol address (binary search)
 // based on module tags found in file format (ELF/COFF)
@@ -1732,11 +1442,7 @@ image::image(fileDescriptor &desc, bool &err)
       msg += "\n";
       logLine(msg.c_str());
       err = true;
-#if defined(BPATCH_LIBRARY)
       BPatch_reportError(BPatchWarning, 27, msg.c_str()); 
-#else
-      showErrorCallback(27, msg); 
-#endif
       return; 
    }
   

@@ -43,10 +43,11 @@
 #include "paradynd/src/pd_thread.h"
 #include "dyninstAPI/h/BPatch_function.h"
 #include "paradynd/src/pd_process.h"
-#include "dyninstAPI/src/dyn_thread.h"
 #include "paradynd/src/debug.h"
 
-// Moved from the .h to get rid of cross-.h includes
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE -1
+#endif
 
 /*
 // Useful for debugging.  Keeps a history of last VT_MAXRECS of virtual
@@ -232,16 +233,8 @@ bool pd_thread::walkStack(BPatch_Vector<BPatch_frame> &stackWalk)
    return dyninst_thread->getCallStack(stackWalk);
 }
 
-bool pd_thread::walkStack_ll(pdvector<Frame> &stackWalk)
+bool pd_thread::saveStack(const BPatch_Vector<BPatch_frame> &stackToSave) 
 {
-    if (savedStackRefCount_) {
-        stackWalk = savedStack_;
-        return true;
-    }
-   return dyninst_thread->ll_thread()->walkStack(stackWalk);
-}
-
-bool pd_thread::saveStack(const pdvector<Frame> &stackToSave) {
         
     savedStackRefCount_++;
 
@@ -253,13 +246,13 @@ bool pd_thread::saveStack(const pdvector<Frame> &stackToSave) {
             fprintf(stderr, "ERROR: previously saved stack size %d conflicts with new stack size %d\n",
                     savedStack_.size(), stackToSave.size());
             for (unsigned i = 0; i < savedStack_.size(); i++) {
-                cerr << savedStack_[i] << endl;
+                fprintf(stderr, "%s[%d]:  Frame[PC = %p]\n", FILE__, __LINE__, savedStack_[i].getPC());
             }
             cerr << endl;            
             for (unsigned i = 0; i < stackToSave.size(); i++) {
                 // Make a copy...
-                Frame frame = stackToSave[i];
-                cerr << frame << endl;
+                BPatch_frame frame = stackToSave[i];
+                fprintf(stderr, "%s[%d]:  Frame[PC = %p]\n", FILE__, __LINE__, frame.getPC());
             }
             cerr << endl;            
         }

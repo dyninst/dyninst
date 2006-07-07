@@ -39,16 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.30 2006/03/12 23:32:23 legendre Exp $
+/* $Id: util.C,v 1.31 2006/07/07 00:01:09 jaw Exp $
  * util.C - support functions.
  */
 
 #include "common/h/headers.h"
-#ifndef BPATCH_LIBRARY
-#include "rtinst/h/rtinst.h" // for time64
-#endif
-#include "dyninstAPI/src/util.h"
 #include "common/h/Time.h"
+#include "dyninstAPI/src/util.h"
 
 // TIMING code
 
@@ -124,24 +121,8 @@ int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds)
 }
 #endif
 
-#ifndef BPATCH_LIBRARY
-timeStamp *pFirstRecordTime = NULL;
-
-void setFirstRecordTime(const timeStamp &ts) {
-  if(pFirstRecordTime != NULL) delete pFirstRecordTime;
-  pFirstRecordTime = new timeStamp(ts);
-}
-bool isInitFirstRecordTime() {
-  if(pFirstRecordTime == NULL) return false;
-  else return true;
-}
-const timeStamp &getFirstRecordTime() {
-  if(pFirstRecordTime == NULL) assert(0);
-  return *pFirstRecordTime;
-}
-#endif
-
-static unsigned addrHashCommon(Address addr) {
+static unsigned addrHashCommon(Address addr) 
+{
    // inspired by hashs of string class
 
    register unsigned result = 5381;
@@ -156,17 +137,20 @@ static unsigned addrHashCommon(Address addr) {
    return result;
 }
 
-unsigned addrHash(const Address & iaddr) {
+unsigned addrHash(const Address & iaddr) 
+{
    return addrHashCommon(iaddr);
 }
 
-unsigned addrHash4(const Address &iaddr) {
+unsigned addrHash4(const Address &iaddr) 
+{
    // call when you know that the low 2 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)
    return addrHashCommon(iaddr >> 2);
 }
 
-unsigned addrHash16(const Address &iaddr) {
+unsigned addrHash16(const Address &iaddr) 
+{
    // call when you know that the low 4 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)
    return addrHashCommon(iaddr >> 4);

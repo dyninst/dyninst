@@ -889,7 +889,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
       bool res = findChangeToLinkMaps((u_int &)ev.what,
 				      changed_objects);
       if (!res) return false;
-#if defined(BPATCH_LIBRARY)
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -903,7 +902,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
 	  setlowestSObaseaddr(changed_objects[index]->getBaseAddress());
 	}	
       }
-#endif
 #endif
     }
     

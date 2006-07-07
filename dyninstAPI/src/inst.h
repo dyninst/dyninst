@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.93 2006/03/02 23:52:34 bernat Exp $
+// $Id: inst.h,v 1.94 2006/07/07 00:01:04 jaw Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -254,7 +254,6 @@ void     emitImm(opCode op, Register src, RegValue src2imm, Register dst,
                  registerSpace *rs = NULL);
 
 
-#ifdef BPATCH_LIBRARY
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 class BPatch_addrSpec_NP;
 //class BPatch_countSpec_NP;
@@ -265,7 +264,6 @@ void emitJmpMC(int condition, int offset, codeGen &gen);
 void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool noCost);
 
 void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool noCost);
-#endif
 
 // VG(11/06/01): moved here and added location
 Register emitFuncCall(opCode op, registerSpace *rs, codeGen &gen,
@@ -288,8 +286,6 @@ extern pdstring getProcessStatus(const process *p);
 // TODO - what about mangled names ?
 // expects the symbol name advanced past the underscore
 extern unsigned findTags(const pdstring funcName);
-
-extern void initLibraryFunctions();
 
 extern Address getMaxBranch();
 

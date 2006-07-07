@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2005/07/29 19:17:21 bernat Exp $
+# $Id: Makefile,v 1.10 2006/07/07 00:01:10 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -26,23 +26,7 @@ VPATH	+= ../../rtinst/h:../../rtinst/src
 SRCS 	= \
 		../src/init-linux.C \
 		../src/proc-linux.C \
-		../../rtinst/src/RThwtimer-linux.c \
-		../../dyninstAPI/src/linux.C \
-		../../dyninstAPI/src/linux-ia64.C \
-		../../dyninstAPI/src/linuxDL.C \
-		../../dyninstAPI/src/linuxMT.C \
-		../../dyninstAPI/src/syscall-linux.C \
-		../../dyninstAPI/src/inst-linux.C \
-		../../dyninstAPI/src/unix.C  \
-		../../dyninstAPI/src/Object-elf.C \
-		../../dyninstAPI/src/parseStab.C \
-		../../dyninstAPI/src/parseDwarf.C \
-		../../dyninstAPI/src/dynamiclinking.C \
-		../../dyninstAPI/src/inst-ia64.C \
-		../../dyninstAPI/src/arch-ia64.C \
-		../../dyninstAPI/src/InstrucIter-ia64.C \
-		../../dyninstAPI/src/ia64-template.s \
-		../../dyninstAPI/src/image-ia64.C
+		../../rtinst/src/RThwtimer-linux.c 
 
 # The different debug flags.
 #MYFLAGS	+= -DPDYN_DEBUG
@@ -57,7 +41,6 @@ SRCS 	= \
 
 MYFLAGS		+=	-DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) -I$(LIBUNWIND_INC) -I$(LIBELF_INC)
 MYFLAGS		+=	-DNO_MDL_PRINT
-MYFLAGS		+= 	-I../../dyninstAPI/src
 
 CFLAGS		+= $(MYFLAGS)
 CXXFLAGS	+= $(MYFLAGS)

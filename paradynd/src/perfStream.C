@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.190 2006/05/04 01:41:46 legendre Exp $
+// $Id: perfStream.C,v 1.191 2006/07/07 00:01:14 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h"
@@ -64,8 +64,6 @@
 #include "pdutil/h/airtStreambuf.h"
 #include "pdutil/h/mdl_data.h"
 #include "pdutil/h/pdDebugOstream.h"
-
-#include "dyninstAPI/src/mapped_object.h"
 
 // trace data streams
 #include "common/h/Dictionary.h"
@@ -127,29 +125,8 @@ void logLine(const char *line) {
 		logLineN(line, strlen(line), true);
 }
 
-
-void statusLineN(const char *line, int n, bool) {
-  if (frontendExited) {
-    fprintf(stderr, "Skipping status line, frontend exited:\n%s\n", line);
-    return;
-  }
-
-	//cerr << "statusLineN: " << n << "- " << line << "\n"; 
-	static char buff[300];
-	if(n>299) n=299;
-	strncpy(buff, line, n+1);
-	if(defaultStream != NULL)
-		{
-			tp->reportStatus(defaultStream, buff);
-		}
-}
-
-
-void statusLine(const char *line, bool force) {
-  statusLineN(line, strlen(line), force);
-}
-
 airtStreambuf logLineStreamBuf(&logLineN);
+extern void statusLineN(const char *line, int n, bool);
 airtStreambuf statusLineStreamBuf(&statusLineN);
 ostream logStream(&logLineStreamBuf);
 ostream statusStream(&logLineStreamBuf);
@@ -296,24 +273,8 @@ void DyninstRTMessageCB(BPatch_process *p, void *msg, unsigned msg_size)
 
 extern pdvector<int> deferredMetricIDs;
 
-static void doDeferredRPCs() {
-    return;
-
-
-    processMgr::procIter itr = getProcMgr().begin();
-    while(itr != getProcMgr().end()) {
-        pd_process *theProc = *itr;
-        itr++;
-        if (!theProc) continue;
-
-        if (theProc->isTerminated()) continue;
-        // PDSEP!!!
-        theProc->launchRPCs(!theProc->get_dyn_process()->lowlevel_process()->isStopped());
-    }
-}
-
-
-static void doDeferredInstrumentation() {
+static void doDeferredInstrumentation() 
+{
    pdvector<int>::iterator itr = deferredMetricIDs.end();
    while(itr != deferredMetricIDs.begin()) {
       itr--;
@@ -421,7 +382,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
 	 //sample_cerr << "(-" << theProc->getStatusAsString() << "-)";
            continue;
        }
-       else if (!theProc->isBootstrappedYet() || !theProc->isPARADYNBootstrappedYet()) { //ccw 1 may 2002 : SPLIT
+       else if (!theProc->isPARADYNBootstrappedYet()) { //ccw 1 may 2002 : SPLIT
 	 sample_cerr << "(-*-)" << endl;
            continue;
        }
@@ -437,7 +398,7 @@ static void checkAndDoShmSampling(timeLength *pollTime) {
 	 //sample_cerr << "(-" << theProc->getStatusAsString() << "-)";
            continue;
        }
-       else if (!theProc->isBootstrappedYet() || !theProc->isPARADYNBootstrappedYet()) { //ccw 1 may 2002 : SPLIT
+       else if (!theProc->isPARADYNBootstrappedYet()) { //ccw 1 may 2002 : SPLIT
            sample_cerr << "(-*-)" << endl;
            continue;
        }
@@ -533,6 +494,7 @@ void controllerMainLoop(bool check_buffer_first)
    fd_set errorSet;
    struct timeval pollTimeStruct;
    
+   fprintf(stderr, "%s[%d]:  welcome to controllerMainLoop\n", FILE__, __LINE__);
    while (1) {
 
       // we have moved this code at the beginning of the loop, so we will
@@ -597,7 +559,7 @@ void controllerMainLoop(bool check_buffer_first)
           while (processed_data) {
               T_dyninstRPC::message_tags ret =tp->waitLoop(ntwrk, &processed_data);
               if (ret == T_dyninstRPC::error) {
-                  //fprintf(stderr,"%u In controllerMainLoop (perfStream.C) ERROR 1\n",getpid());
+                  fprintf(stderr,"%u In controllerMainLoop (perfStream.C) ERROR 1\n",getpid());
                   // assume the client has exited, and leave.
                   cleanUpAndExit(-1);
               }
@@ -606,8 +568,9 @@ void controllerMainLoop(bool check_buffer_first)
       
       // TODO - move this into an os dependent area
       ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
-      if (ct <= 0)
+      if (ct <= 0) {
          continue;
+      }
 
 #if !defined(os_windows)
       if (FD_ISSET(ntwrk->get_SocketFd(), &errorSet)) {

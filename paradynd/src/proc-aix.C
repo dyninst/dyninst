@@ -44,6 +44,7 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
 #include "paradynd/src/init.h"
+#include "paradynd/src/debug.h"
 #include "paradynd/src/instReqNode.h"
 #include "common/h/timing.h"
 #include "common/h/Time.h"
@@ -166,8 +167,6 @@ rawTime64 pd_thread::getRawCpuTime_hw()
          pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
          fprintf(stderr, "Attempted pm_get_data(%d, %d, %d)\n",
                  pd_proc->getPid(), get_lwp(), lwp_to_use);
-         fprintf(stderr, "needToCont is %d, internal process state %s\n",
-                 needToCont, pd_proc->get_dyn_process()->lowlevel_process()->getStatusAsString().c_str());
       }
       return -1;
    }
@@ -293,7 +292,7 @@ rawTime64 pd_thread::getRawCpuTime_sw()
 	sprintf(errLine,"process::getRawCpuTime_sw - time going backwards in "
 		"daemon - cur: %lld, prev: %lld\n", result, sw_previous_);
 	cerr << errLine;
-	logLine(errLine);
+	pdlogLine(errLine);
       }
       result = sw_previous_;
     }

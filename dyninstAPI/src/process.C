@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.667 2006/07/05 17:59:10 legendre Exp $
+// $Id: process.C,v 1.668 2006/07/07 00:01:06 jaw Exp $
 
 #include <ctype.h>
 
@@ -101,25 +101,6 @@
 
 #include "dyninstAPI/src/syscallNotification.h"
 
-#if !defined(BPATCH_LIBRARY)
-#include "rtinst/h/rtinst.h"
-#include "rtinst/h/trace.h"
-#include "paradynd/src/perfStream.h"
-#include "paradynd/src/metricFocusNode.h"
-#include "paradynd/src/costmetrics.h"
-#include "paradynd/src/mdld.h"
-#include "paradynd/src/main.h"
-#include "paradynd/src/init.h"
-#include "pdutil/h/pdDebugOstream.h"
-#include "common/h/int64iostream.h"
-#endif
-
-#ifndef BPATCH_LIBRARY
-#ifdef PAPI
-#include "paradynd/src/papiMgr.h"
-#endif
-#endif
-
 #include "common/h/debugOstream.h"
 
 #include "common/h/Timer.h"
@@ -134,11 +115,6 @@ static const timeLength MaxDeletingTime(2, timeUnit::sec());
 
 unsigned activeProcesses; // number of active processes
 pdvector<process*> processVec;
-
-
-#ifndef BPATCH_LIBRARY
-extern pdstring osName;
-#endif
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -157,12 +133,6 @@ void printLoadDyninstLibraryError() {
     cerr << "   libDyninstText.a must exist in a directory in the LIBPATH environment variable" << endl;
 #endif
     cerr << "Please check your environment and try again." << endl;
-}
-
-
-void setLibState(libraryState_t &lib, libraryState_t state) {
-    if (lib > state) cerr << "Error: attempting to revert library state" << endl;
-    else lib = state;
 }
 
 /* AIX method defined in aix.C; hijacked for IA-64's GP. */
@@ -1493,11 +1463,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   showErrorCallback(66, (const char *) errorLine);    
               fprintf(stderr,"%s[%d]: ERROR!\n", FILE__, __LINE__);
         fprintf(stderr, "%s\n", errorLine);
-#if defined(BPATCH_LIBRARY)
 	   return(0);
-#else
-	   P__exit(-1);
-#endif
       }
       freeIndex = findFreeIndex(size, type, lo, hi);
 //	bperr("  type %x",type);
@@ -1533,11 +1499,6 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    // create imageUpdate here:
    // imageUpdate(h->addr,size)
    
-#ifdef BPATCH_LIBRARY
-//	if( h->addr > 0xd0000000){
-//		bperr(" \n ALLOCATION: %lx %lx ntry: %d\n", h->addr, size,ntry);
-//		fflush(stdout);
-//	}
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -1571,7 +1532,6 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
       }
       //fflush(stdout);
    }
-#endif
 #endif
    return(h->addr);
 }
@@ -1655,11 +1615,6 @@ bool process::inferiorRealloc(Address block, unsigned newSize)
    // create imageUpdate here:
    // imageUpdate(h->addr,size)
    
-#ifdef BPATCH_LIBRARY
-//	if( h->addr > 0xd0000000){
-//		bperr(" \n ALLOCATION: %lx %lx ntry: %d\n", h->addr, size,ntry);
-//		fflush(stdout);
-//	}
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -1689,7 +1644,6 @@ bool process::inferiorRealloc(Address block, unsigned newSize)
 		 highmemUpdates.push_back(imagePatch);
       }
    }
-#endif
 #endif
 
 
@@ -1868,8 +1822,6 @@ void process::deleteProcess()
   }
   pendingGCInstrumentation.clear();
 
-  cumulativeObsCost = 0;
-  lastObsCostLow = 0;
   costAddr_ = 0;
   threadIndexAddr = 0;
   trampGuardBase_ = 0;
@@ -1996,8 +1948,6 @@ process::process(SignalGenerator *sh_) :
     heapInitialized_(false),
     inInferiorMallocDynamic(false),
     tracedSyscalls_(NULL),
-    cumulativeObsCost(0),
-    lastObsCostLow(0),
     costAddr_(0),
     threadIndexAddr(0),
     trampGuardBase_(0)
@@ -2054,12 +2004,6 @@ bool process::setupCreated(int iTraceLink)
 
     creationMechanism_ = created_cm;
     
-#if !defined(BPATCH_LIBRARY)
-    if (iTraceLink == -1 ) {
-        creationMechanism_ = attachedToCreated_cm;
-    }
-#endif
-
     // Post-setup state variables
     stateWhenAttached_ = stopped; 
     
@@ -2553,8 +2497,6 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     heapInitialized_(parentProc->heapInitialized_),
     inInferiorMallocDynamic(parentProc->inInferiorMallocDynamic),
     tracedSyscalls_(NULL),  // Later
-    cumulativeObsCost(parentProc->cumulativeObsCost),
-    lastObsCostLow(parentProc->lastObsCostLow),
     costAddr_(parentProc->costAddr_),
     threadIndexAddr(parentProc->threadIndexAddr),
     trampGuardBase_(parentProc->trampGuardBase_)
@@ -3403,63 +3345,7 @@ dyn_thread *process::STdyn_thread() {
    return threads[0];
 }
 
-#if !defined(BPATCH_LIBRARY)
-void process::processCost(unsigned obsCostLow,
-                          timeStamp wallTime,
-                          timeStamp processTime) {
-  // wallTime and processTime should compare to DYNINSTgetWallTime() and
-  // DYNINSTgetCPUtime().
 
-  // check for overflow, add to running total, convert cycles to seconds, and
-  // report.  Member vrbles of class process: lastObsCostLow and cumulativeObsCost
-  // (the latter a 64-bit value).
-
-  // code to handle overflow used to be in rtinst; we borrow it pretty much
-  // verbatim. (see rtinst/RTposix.c)
-  if (obsCostLow < lastObsCostLow) {
-    // we have a wraparound
-    cumulativeObsCost += ((unsigned)0xffffffff - lastObsCostLow) + obsCostLow + 1;
-  }
-  else
-    cumulativeObsCost += (obsCostLow - lastObsCostLow);
-  
-  lastObsCostLow = obsCostLow;
-  //  sampleVal_cerr << "processCost- cumulativeObsCost: " << cumulativeObsCost << "\n"; 
-  timeLength observedCost((int64_t) cumulativeObsCost, getCyclesPerSecond());
-  // timeUnit tu = getCyclesPerSecond(); // just used to print out
-  //  sampleVal_cerr << "processCost: cyclesPerSecond=" << tu
-  //		 << "; cum obs cost=" << observedCost << "\n";
-  
-  // Notice how most of the rest of this is copied from processCost() of
-  // metric.C.  Be sure to keep the two "in sync"!
-
-  extern costMetric *totalPredictedCost; // init.C
-  extern costMetric *observed_cost;      // init.C
-  
-  const timeStamp lastProcessTime = 
-    totalPredictedCost->getLastSampleProcessTime(this);
-  //  sampleVal_cerr << "processCost- lastProcessTime: " <<lastProcessTime << "\n";
-  // find the portion of uninstrumented time for this interval
-  timeLength userPredCost = timeLength::sec() + getCurrentPredictedCost();
-  //  sampleVal_cerr << "processCost- userPredCost: " << userPredCost << "\n";
-  const double unInstTime = (processTime - lastProcessTime) / userPredCost; 
-  //  sampleVal_cerr << "processCost- unInstTime: " << unInstTime << "\n";
-  // update predicted cost
-  // note: currentPredictedCost is the same for all processes
-  //       this should be changed to be computed on a per process basis
-  pdSample newPredCost = totalPredictedCost->getCumulativeValue(this);
-  //  sampleVal_cerr << "processCost- newPredCost: " << newPredCost << "\n";
-  timeLength tempPredCost = getCurrentPredictedCost() * unInstTime;
-  //  sampleVal_cerr << "processCost- tempPredCost: " << tempPredCost << "\n";
-  newPredCost += pdSample(tempPredCost.getI(timeUnit::ns()));
-  //  sampleVal_cerr << "processCost- tempPredCost: " << newPredCost << "\n";
-  totalPredictedCost->updateValue(this, wallTime, newPredCost, processTime);
-  // update observed cost
-  pdSample sObsCost(observedCost);
-  observed_cost->updateValue(this, wallTime, sObsCost, processTime);
-}
-#endif
-        
 // If true is passed for ignore_if_mt_not_set, then an error won't be
 // initiated if we're unable to determine if the program is multi-threaded.
 // We are unable to determine this if the daemon hasn't yet figured out what
@@ -4438,7 +4324,7 @@ bool process::processSharedObjects()
 // static and dynamically linked objects, this should return NULL
 // if the function being sought is excluded....
 #if 0
-#ifndef BPATCH_LIBRARY
+#ifndef nomoreBPATCH_LIBRARY
 #include "paradynd/src/resource.h"
 int_function *process::findOnlyOneFunction(resource *func, resource *mod){
     if((!func) || (!mod)) { return 0; }
@@ -4499,7 +4385,7 @@ bool process::findAllFuncsByName(resource *func, resource *mod,
 }
 #endif
 
-#endif /* BPATCH_LIBRARY */
+#endif /* nomoreBPATCH_LIBRARY */
 #endif
 
 // Parse name into library name and function name. If no library is specified,
@@ -5365,7 +5251,7 @@ bool process::checkTrappedSyscallsInternal(Address syscall)
     return false;
 }
 
-#if defined(rs6000_ibm_aix4_1) && defined(BPATCH_LIBRARY)
+#if defined(rs6000_ibm_aix4_1) 
 //When we save the world on AIX we must instrument the
 //beginning of main() to call dlopen() to load the
 //dyninst rt shared library.  The file format of an
@@ -5468,7 +5354,8 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
 }
 #endif
 
-void process::installInstrRequests(const pdvector<instMapping*> &requests) {
+void process::installInstrRequests(const pdvector<instMapping*> &requests) 
+{
     // Anyone know why we're explicitly backing off on this?
     bool mtramp = BPatch::bpatch->isMergeTramp();
     BPatch::bpatch->setMergeTramp(false);

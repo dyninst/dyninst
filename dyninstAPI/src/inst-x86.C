@@ -41,16 +41,12 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.244 2006/06/09 03:50:48 jodom Exp $
+ * $Id: inst-x86.C,v 1.245 2006/07/07 00:01:04 jaw Exp $
  */
 #include <iomanip>
 
 #include <limits.h>
 #include "common/h/headers.h"
-
-#ifndef BPATCH_LIBRARY
-#include "rtinst/h/rtinst.h"
-#endif
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1055,7 +1051,6 @@ void emitLEA(Register base, Register index, unsigned int scale,
     emitAddressingMode(base, index, scale, disp, (int)dest, gen);
 }
 
-#ifdef BPATCH_LIBRARY
 static inline void emitSHL(Register dest, unsigned char pos,
                            codeGen &gen)
 {
@@ -1262,7 +1257,6 @@ void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
    else
       emitMovImmToRM(REGNUM_EBP, -1*(dest<<2), (int)imm, gen);
 }
-#endif
 
 
 void emitVload(opCode op, Address src1, Register src2, Register dest, 

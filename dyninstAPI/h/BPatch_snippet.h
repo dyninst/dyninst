@@ -130,7 +130,6 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
 
     public:
 
-    AstNode *PDSEP_ast() {return ast;} // This will go away
     int PDSEP_astMinCost(); // This will go away too
 
     //  BPatch_snippet::BPatch_snippet
@@ -162,6 +161,12 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     API_EXPORT(Int, (),
 
     float,getCost,());
+
+    //  BPatch_snippet::getCostAtPoint
+    //  Returns an estimated cost of executing the snippet at a specified point, in seconds.
+    API_EXPORT(Int, (pt),
+
+    float,getCostAtPoint,(BPatch_point *pt));
 
     //  BPatch_snippet::is_trivial
     //  allows users to check to see if

@@ -68,6 +68,11 @@
 #include "BPatch_function.h"
 #include "callbacks.h"
 
+void BPatch_process::PDSEP_updateObservedCostAddr(unsigned long a)
+{
+  if (llproc)
+    llproc->updateObservedCostAddr(a);
+}
 
 /*
  * BPatch_process::getImage
@@ -675,6 +680,12 @@ int BPatch_process::getExitSignalInt()
    return lastSignal;
 }
 
+bool BPatch_process::wasRunningWhenAttachedInt()
+{
+  if (!llproc) return false;
+  return llproc->wasRunningWhenAttached();
+}
+
 /*
  * BPatch_process::detach
  *
@@ -996,6 +1007,11 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
             return false;
         }
     }
+
+    if (!points.size()) {
+      fprintf(stderr, "%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
+      return false;
+    }
     
     
     batchInsertionRecord *rec = new batchInsertionRecord;
@@ -1033,7 +1049,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
             return NULL;
         }
 
-        rec->points_.push_back(point->point);
+        rec->points_.push_back(point);
         rec->when_.push_back(ipWhen);
         rec->order_ = ipOrder;
 
@@ -1085,7 +1101,8 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPoints(
  *
  */
 
-void BPatch_process::beginInsertionSetInt() {
+void BPatch_process::beginInsertionSetInt() 
+{
     if (pendingInsertions == NULL)
         pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
     // Nothing else to do...
@@ -1096,32 +1113,116 @@ void BPatch_process::beginInsertionSetInt() {
  * 
  * Installs all instrumentation specified since the last beginInsertionSet call.
  *
+ * modified gets set as a result of the catchup/fixup logic and is helpful in
+ * interpreting a false return value...  if finalizeInsertionSet returns false,
+ * but modified comes back true, then something horrible happened, because, if
+ * we go thru the trouble to modify the process state to make everything work
+ * then the function really should work.
  */
 
-bool BPatch_process::finalizeInsertionSetInt(bool atomic) {
+bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool analyzeCatchup) 
+{
     // Can't insert code when mutations are not active.
     if (!mutationsActive)
         return false;
     
-    unsigned i, j;
-
-    pdvector<miniTramp *> workDone;
-    bool err = false;
-
     if (pendingInsertions == NULL)
         return false;
 
-    // Two loops: first addInst, then generate/install/link
+    // Check where the application is _right_now_ to make sure that its "legal"
+    // to insert code.  If any thread is executing instrumentation at the
+    // requested inst point, then its _not_ ok to insert code.  So we have to do
+    // a stack walk for each of the threads and check each frame to see if its
+    // currently inside instrumentation at this point.
+    //
+    //  This info _might_ become available by simply examining the BPatch_frame
+    //  structures, but we'll just do it the old way for now.
+    //
+    //  This check was imported from higher level code in paradyn.
+    //
+    //  To make this more efficient, we should cache the current set of stackwalks
+    //  and derived info, but don't yet.  Need to find a good refresh condition.
 
-    for (i = 0; i < pendingInsertions->size(); i++) {
+    /*static*/ pdvector<pdvector<Frame> >  stacks;
+    /*static*/ pdvector<Address> pcs;
+
+    //if (!walked_once)
+    if (!llproc->walkStacks(stacks)) {
+       fprintf(stderr, "%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
+       return false;
+    }
+
+    //  extract all PCs from all frames in our stack walks
+    for (unsigned int i = 0; i < stacks.size(); ++i) {
+       pdvector<Frame> &stack = stacks[i];
+       for (unsigned int j = 0; j < stack.size(); ++j) {
+         pcs.push_back( (Address) stack[i].getPC());
+       }
+    }
+
+    // now extract all BPatch_point's from our set of pending insertions
+    //  (need to check them all to do legal insertion atomically)
+    pdvector<instPoint *> pts;
+
+    for (unsigned int i = 0; i < pendingInsertions->size(); ++i) 
+    {
+       pdvector<BPatch_point *> &candidate_pts =  (*pendingInsertions)[i]->points_;
+       for (unsigned int j = 0; j < candidate_pts.size(); ++j) 
+       {
+           instPoint *candidate_point = candidate_pts[j]->point;
+
+           assert(candidate_point);
+           bool found = false;
+
+           //  check for duplicates...  
+           for (unsigned int k = 0; k < pts.size(); ++k) 
+           {
+              if (pts[k] == candidate_point) {
+                  //  already have this point, ignore it
+                  found = true;
+                  break;
+              }
+           }
+           if (!found)  {
+              pts.push_back(candidate_point);
+           }
+       }
+    }
+
+    //  Now...  for each instPoint in this insertion set, check the installed
+    //  instrumentation vs. the current stack frames to make sure that we're not
+    //  doing anything crazy...
+
+    for (unsigned int i = 0; i < pts.size(); ++i) 
+    {
+       instPoint *pt = pts[i];
+
+       if (!pt->checkInst(pcs)) {
+           fprintf(stderr, "%s[%d]:  CANNOT perform code insertion while in instrumentation\n", 
+                  FILE__, __LINE__);
+           return false;
+       }  
+    }
+
+    // Two loops: first addInst, then generate/install/link
+    pdvector<miniTramp *> workDone;
+    bool err = false;
+
+    for (unsigned i = 0; i < pendingInsertions->size(); i++) {
         batchInsertionRecord *&bir = (*pendingInsertions)[i];
         assert(bir);
 
         // Don't handle thread inst yet...
         assert(!bir->thread_);
 
-        for (j = 0; j < bir->points_.size(); j++) {
-            instPoint *point = bir->points_[j];
+        if (!bir->points_.size()) {
+          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  failing to addInst\n", FILE__, __LINE__);
+        }
+
+        for (unsigned j = 0; j < bir->points_.size(); j++) {
+            BPatch_point *bppoint = bir->points_[j];
+            instPoint *point = bppoint->point;
             callWhen when = bir->when_[j];
             
             miniTramp *mini = point->addInst(bir->ast_,
@@ -1144,53 +1245,407 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic) {
             break;
     }
     
-    if (!atomic || !err) {
-        // All generation first. Actually, all generation per function...
-        // but this is close enough.
-        for (i = 0; i < pendingInsertions->size(); i++) {
-            batchInsertionRecord *&bir = (*pendingInsertions)[i];
-            assert(bir);
-            for (unsigned j = 0; j < bir->points_.size(); j++) {
-                instPoint *point = bir->points_[j];
-                
-                if (!point->generateInst()) {
-                    fprintf(stderr, "ERROR: failed to insert instrumentation: generate\n");
-                    err = true;
-                    if (atomic && err) break;
-                }
-            }
-            if (atomic && err) break;
+   if (atomic && err) goto cleanup;
+
+   // All generation first. Actually, all generation per function...
+   // but this is close enough.
+   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+       batchInsertionRecord *&bir = (*pendingInsertions)[i];
+       assert(bir);
+        if (!bir->points_.size()) {
+          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  failing to generateInst\n", FILE__, __LINE__);
         }
-        for (i = 0; i < pendingInsertions->size(); i++) {
-            batchInsertionRecord *&bir = (*pendingInsertions)[i];
-            assert(bir);
-            for (unsigned j = 0; j < bir->points_.size(); j++) {
-                instPoint *point = bir->points_[j];
+       for (unsigned j = 0; j < bir->points_.size(); j++) {
+           BPatch_point *bppoint = bir->points_[j];
+           instPoint *point = bppoint->point;
                 
-                if (!point->installInst()) {
-                    fprintf(stderr, "ERROR: failed to insert instrumentation: install\n");
-                    err = true;
-                }
-                if (!point->linkInst()) {
-                    err = true;
-                }
-                if (atomic && err) break;
-            }
-            if (atomic && err) break;
-            else delete bir;
+           if (!point->generateInst()) {
+               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: generate\n",
+                       FILE__, __LINE__);
+               err = true;
+               if (atomic && err) break;
+           }
+       }
+       if (atomic && err) break;
+   }
+
+   if (atomic && err) goto cleanup;
+
+   //  next, all installing 
+   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+       batchInsertionRecord *&bir = (*pendingInsertions)[i];
+       assert(bir);
+        if (!bir->points_.size()) {
+          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  failing to installInst\n", FILE__, __LINE__);
+        }
+       for (unsigned j = 0; j < bir->points_.size(); j++) {
+           BPatch_point *bppoint = bir->points_[j];
+           instPoint *point = bppoint->point;
+             
+           if (!point->installInst()) {
+               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: install\n",
+                      FILE__, __LINE__);
+              err = true;
+           }
+
+           if (atomic && err) break;
+       }
+       if (atomic && err) break;
+   }
+
+   if (atomic && err) goto cleanup;
+
+   //  Before we link it all together, we have to do some final checks and 
+   //  fixes....  this is imported from paradyn's original ketchup logic
+
+   // We may need to modify certain pieces of the process state to ensure
+   // that instrumentation runs properly. Two known cases:
+   // 1) If an active call site (call site on the stack) is instrumented,
+   //    we need to modify the return address to be in instrumentation
+   //    and not at the original return addr.
+   // 2) AIX only: if we instrument with an entry/exit pair, modify the
+   //    return address of the function to point into the exit tramp rather
+   //    than the return addr. 
+   //    Note that #2 overwrites #1; but if we perform the fixes in this order
+   //    then everything works.
+
+   // Note that stackWalks can be changed in catchupSideEffect...
+
+    if (modified) *modified = false; 
+    for (unsigned ptIter = 0; ptIter < pts.size(); ptIter++) {
+        instPoint *pt = pts[ptIter];
+        for (unsigned thrIter = 0; thrIter < stacks.size(); thrIter++) {
+            for (unsigned sIter = 0; sIter < stacks[thrIter].size(); sIter++) {
+                if (pt->instrSideEffect(stacks[thrIter][sIter]))
+                    if (modified) *modified = true;
+             }
         }
     }
+
+   //  finally, do all linking 
+   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+       batchInsertionRecord *&bir = (*pendingInsertions)[i];
+       assert(bir);
+        if (!bir->points_.size()) {
+          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  failing to linklInst\n", FILE__, __LINE__);
+        }
+       for (unsigned j = 0; j < bir->points_.size(); j++) {
+           BPatch_point *bppoint = bir->points_[j];
+           instPoint *point = bppoint->point;
+             
+          if (!point->linkInst()) {
+               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: link\n",
+                       FILE__, __LINE__);
+               err = true;
+           }
+
+           if (atomic && err) break;
+       }
+       if (atomic && err) break;
+   }
+
+   if (atomic && err) 
+      goto cleanup;
+
+   //  Now, optionally, flag insertions as needing catchup, if requested.
+   //  This, again, is imported from higher level code in paradyn and should
+   //  probably be modified from this first-stab importation...  which is more
+   //  concerned with keeping it logically exact to what paradyn was doing, 
+   //  rather than elegant, or even efficient (tho it is just about as efficient
+   //  as the original paradyn catchup logic.
+
+   //  Store the need-to-catchup flag in the BPatchSnippetHandle for the time being
+
+   if (!analyzeCatchup)
+      goto cleanup;
+
+   if (dyn_debug_catchup) {
+      fprintf(stderr, "%s[%d]:  BEGIN CATCHUP ANALYSIS:  num inst req: %d\n", 
+              FILE__, __LINE__, pendingInsertions->size());
+      for (unsigned int i = 0; i < stacks.size(); ++i) {
+        fprintf(stderr, "%s[%d]:Stack for thread %d\n", FILE__, __LINE__, i);
+        pdvector<Frame> &one_stack = stacks[i];
+        for (unsigned int j = 0; j < one_stack.size(); ++j) {
+          int_function *my_f = one_stack[j].getFunc();
+          const char *fname = my_f ? my_f->prettyName().c_str() : "no function";
+          fprintf(stderr, "\t\tPC: %p\tFP: %p\t [%s]\n",  
+                  one_stack[j].getPC(), one_stack[j].getFP(), fname);
+        }
+      }
+   }
+
+   //  For each stack frame, check to see if our just-inserted instrumentation
+   //  is before or after the point that we will return to in the calling
+   //  order
+   for (unsigned int k = 0; k < pendingInsertions->size(); ++k) 
+   {
+       batchInsertionRecord *bir = (*pendingInsertions)[k];
+       assert(bir);
+
+      if (dyn_debug_catchup) {
+        assert(bir->points_.size() == 1);
+        BPatch_point *bppoint = bir->points_[0];
+        instPoint *pt = bppoint->point;
+        assert(pt);
+        char *point_type = "no type";
+        switch(pt->getPointType()) {
+            case noneType: point_type = "noneType"; break;
+            case functionEntry: point_type = "funcEntry"; break;
+            case functionExit: point_type = "funcExit"; break;
+            case callSite: point_type = "callSite"; break;
+            case otherPoint: point_type = "otherPoint"; break;
+        }
+        int_function *f = pt->func();
+        const char *point_func = f->prettyName().c_str();
+        fprintf(stderr, "%s[%d]:  Catchup for instPoint %p [ %s ], func = %s\n",
+                FILE__, __LINE__, (void *)pt->addr(), point_type, point_func);
+      }
+       ///*static*/ pdvector<pdvector<Frame> > > stacks;
+      for (unsigned int i = 0; i < stacks.size(); ++i) 
+      {
+          pdvector<Frame> &one_stack = stacks[i];
+          catchup_printf("%s[%d]:  Have %d frames to look at for this fn\n", FILE__, __LINE__, one_stack.size());
+          for (unsigned int j = 0; j < one_stack.size(); ++j) 
+          {
+              Frame &frame = one_stack[j];
+              if (frame.getPC() == 0) continue;
+
+               //  Things we have:
+               //  frame:  currentFrame
+               //  bir->handle_:  current BPatchSnippetHandle (with mtHandles)
+               //  bir->point_:  matching insertion point
+
+               // First, if we're not even in the right _function_, then break out.
+               //assert(bir->points_.size());
+               if (!bir->points_.size()) {
+                 //  how can this happen?
+                 fprintf(stderr, "%s[%d]:  WARN:  insertion record w/o any points!\n", FILE__, __LINE__);
+                 continue;
+               }
+               if (bir->points_.size() > 1) {
+                  fprintf(stderr, "%s[%d]:  WARNING:  have more than one point!\n", FILE__, __LINE__);
+               }
+               BPatch_point *bppoint = bir->points_[0];
+               assert(bppoint);
+               instPoint *iP = bppoint->point;
+               assert(iP);
+               if (frame.getFunc() != iP->func()) {
+                   if (dyn_debug_catchup) {
+                     const char *f1 =  frame.getFunc() ? frame.getFunc()->prettyName().c_str()
+                                                       :"no function";
+                     const char *f2 = iP->func()->prettyName().c_str();
+                     catchup_printf("%s[%d]: skipping frame, funcs don't match [%s, %s]\n",
+                             FILE__, __LINE__, f1, f2);
+                   }
+                   continue;
+               }
+
+               BPatchSnippetHandle *&sh = bir->handle_;
+               dyn_thread *thr = frame.getThread();
+               assert(thr);
+               dynthread_t tid = thr->get_tid();
+               BPatch_process *bpproc = sh->getProcess();
+               assert(bpproc);
+               BPatch_thread *bpthread = bpproc->getThread(tid);
+               assert(bpthread);
+               // I guess for the sake of absolute correctness, we need
+               // to iterate over possibly more than one mtHandle:
+
+               //  Actually NO...  this is incorrect -- disable catchup for
+               //  snippet handles that have more than one mtHandle
+               BPatch_Vector<miniTramp *> &mtHandles = bir->handle_->mtHandles_;
+               assert(mtHandles.size() == 1);
+               for (unsigned int m = 0; m < mtHandles.size(); ++m) 
+               {
+                  miniTramp *&mtHandle = mtHandles[m];
+                  bool &catchupNeeded  = bir->handle_->catchupNeeded;
+                  catchupNeeded = false;
+
+                  //  Before we do any analysis at all, check a couple things:
+                  //  (1)  If this snippet accesses function parameters, then
+                  //       we just skip it for catchup (function parameters live on
+                  //       the stack too)
+
+                  if (bir->ast_->accessesParam())
+                      continue;
+
+#if 0
+                  //  (2)  If this is a function entry, make sure that we only
+                  //       register it once -- why??-- don't know -- from paradyn
+                  //  (3)  If this is a loop entry, make sure that we only
+                  //       register it once -- why??-- don't know -- from paradyn
+                  if ((bir->points_[0]->getPointType() == BPatch_locEntry)
+                      && (bir->somethings_wrong_here))
+                      continue;
+
+                  if ((bir->point_->getPointType() == BPatch_locLoopEntry)
+                      && (bir->somethings_wrong_here))
+                      continue;
+#endif
+
+                  // If we're inside the function, find whether we're before, 
+                  // inside, or after the point.
+                  // This is done by address comparison and used to demultiplex 
+                  // the logic below.
+
+                  typedef enum {
+                    nowhere_l = 1,
+                    beforePoint_l = 2,
+                    notMissed_l = 3,
+                    missed_l = 4,
+                    afterPoint_l =5
+                  } logicalPCLocation_t;
+
+                  logicalPCLocation_t location;
+
+                  assert(iP);
+                  instPoint::catchup_result_t iPresult = iP->catchupRequired(frame.getPC(), 
+                                                                             mtHandle);
+
+
+                  if (iPresult == instPoint::notMissed_c)
+                      location = notMissed_l;
+                  else if (iPresult == instPoint::missed_c)
+                      location = missed_l;
+                  else
+                      location = nowhere_l;
+
+                 // We check for the instPoint before this because we use instrumentation
+                 // that may cover multiple instructions.
+                 // USE THE UNINSTRUMENTED ADDR :)
+                 if (location == nowhere_l) 
+                 {
+                      // Back off to address comparison
+                    if ((Address)iP->addr() < frame.getUninstAddr())
+                        location = afterPoint_l;
+                    else
+                        location = beforePoint_l;
+                 }
+
+                  if (dyn_debug_catchup) {
+                     char *str_iPresult = "error";
+                     switch(location) {
+                     case nowhere_l: str_iPresult = "nowhere_l"; break;
+                     case beforePoint_l: str_iPresult = "beforePoint_l"; break;
+                     case notMissed_l: str_iPresult = "notMissed_l"; break;
+                     case missed_l: str_iPresult = "missed_l"; break;
+                     case afterPoint_l: str_iPresult = "afterPoint_l"; break;
+                     default: break;
+                     };
+                     fprintf(stderr, "\t\tFor PC = %p, iPresult = %s ", 
+                             frame.getPC(), str_iPresult);
+                  }
+
+		 // We split cases out by the point type
+		 // All of these must fit the following criteria:
+		 // An object with a well-defined entry and exit;
+		 // An object where we can tell if a PC is "within".
+		 // Examples: functions, basic blocks, loops
+		 switch(bppoint->getPointType()) {
+		 case BPatch_locEntry:
+		   // Entry is special, since it's one of the rare
+		   // cases where "after" is good enough. TODO:
+		   // check whether we're "in" a function in a manner
+		   // similar to loops.
+		   // We know we can get away with >= because we're in the
+		   // function; if not we'd have already returned.
+		   if (location >= missed_l) {
+		       catchupNeeded = true;
+                       sh->catchup_threads.push_back(bpthread);
+                   }
+		   break;
+		  case BPatch_locExit:
+			// Only do this if we triggered "missed". If we're
+			// after, we might well be later in the function.
+			// If this is true, we're cancelling an earlier entry
+			// catchup.
+			if (location == missed_l) {
+			    catchupNeeded = true;
+                            sh->catchup_threads.push_back(bpthread);
+                        }
+			break;
+		    case BPatch_subroutine:
+			// Call sites. Again, only if missed; otherwise we may
+			// just be elsewhere
+			if (location == missed_l) {
+			    catchupNeeded = true;
+                            sh->catchup_threads.push_back(bpthread);
+                        }
+			break;
+		    case BPatch_locLoopEntry:
+		    case BPatch_locLoopStartIter:
+			if (location == missed_l) {
+			    catchupNeeded = true;
+                            sh->catchup_threads.push_back(bpthread);
+                        }
+			if (location == afterPoint_l) {
+			    BPatch_basicBlockLoop *loop = bppoint->getLoop();
+			    if (loop->containsAddressInclusive(frame.getUninstAddr())) {
+				catchupNeeded = true;
+                                sh->catchup_threads.push_back(bpthread);
+                            }
+			}
+			break;
+		    case BPatch_locLoopExit:
+		    case BPatch_locLoopEndIter:
+			// See earlier treatment of, well, everything else
+			if (location == missed_l) {
+			    catchupNeeded = true;
+                            sh->catchup_threads.push_back(bpthread);
+                        }
+			break;
+
+		    case BPatch_locBasicBlockEntry:
+		    case BPatch_locBasicBlockExit:
+		    default:
+			// Nothing here
+			break;
+		    }
+
+		    if (dyn_debug_catchup) {
+			if (catchupNeeded) {
+			    fprintf(stderr, "catchup needed, ret true\n========\n");
+                            if (!bir->handle_->catchupNeeded) {
+                               fprintf(stderr, "%s[%d]:  SERIOUS MISTAKE with reference\n", FILE__, __LINE__);
+                            }
+			} else
+			    fprintf(stderr, "catchup not needed, ret false\n=======\n");
+		    }
+
+
+
+
+               }
+
+
+           }
+       }
+   }
+
+  cleanup:
+    bool ret = true;
+
     if (atomic && err) {
-        // Cleanup...
+        // Something failed...   Cleanup...
         for (unsigned k = 0; k < workDone.size(); k++) {
             workDone[k]->uninstrument();
         }
-        return false;
+        ret = false;
+    }
+
+    for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+       batchInsertionRecord *&bir = (*pendingInsertions)[i];
+       assert(bir);
+       delete(bir);
     }
 
     delete pendingInsertions;
     pendingInsertions = NULL;
-    return true;
+    catchup_printf("%s[%d]:  leaving finalizeInsertionSet -- CATCHUP DONE\n", FILE__, __LINE__);
+    return ret;
 }
 
 /*
@@ -1342,7 +1797,7 @@ bool BPatch_process::replaceFunctionInt(BPatch_function &oldFunc,
  */
 void *BPatch_process::oneTimeCodeInt(const BPatch_snippet &expr)
 {
-    return oneTimeCodeInternal(expr, NULL, NULL, true);
+    return oneTimeCodeInternal(expr, NULL, NULL, NULL, true);
 }
 
 /*
@@ -1385,6 +1840,15 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
    info->setCompleted(true);
    
    if (!info->isSynchronous()) {
+      //  if we have a specific callback for (just) this oneTimeCode, call it
+      OneTimeCodeCallback *specific_cb = info->getCallback();
+      if (specific_cb) {
+          specific_cb->setTargetThread(TARGET_UI_THREAD);
+          specific_cb->setSynchronous(true);
+          (*specific_cb)(bproc->threads[0], info->getUserData(), returnValue);
+      }
+
+      //  get global oneTimeCode callbacks
       pdvector<CallbackBase *> cbs;
       getCBManager()->dispenseCallbacksMatching(evtOneTimeCode, cbs);
       BPatch::bpatch->signalNotificationFD();
@@ -1444,6 +1908,7 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
 void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                           BPatch_thread *thread, 
                                           void *userData,
+                                          BPatchOneTimeCodeCallback cb,
                                           bool synchronous)
 {
     if (statusIsTerminated()) return NULL;
@@ -1478,8 +1943,9 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    }
 #endif
 
-   OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, 
-                                               (thread) ? thread->index : 0);
+   OneTimeCodeCallback *otc_cb =  cb ? new OneTimeCodeCallback(cb) : NULL;
+   OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, otc_cb,
+                                                 (thread) ? thread->index : 0);
 
    // inferior RPCs are a bit of a pain; we need to hand off control of process pause/continue
    // to the internal layers. In general BPatch takes control of the process _because_ we can't
@@ -1578,9 +2044,9 @@ void BPatch_process::oneTimeCodeCompleted() {
 //  Have the specified code be executed by the mutatee once.  Don't wait 
 //  until done.
 bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
-                                         void *userData)
+                                         void *userData, BPatchOneTimeCodeCallback cb)
 {
-    if (NULL == oneTimeCodeInternal(expr, NULL, userData, false)) {
+    if (NULL == oneTimeCodeInternal(expr, NULL, userData,  cb, false)) {
       //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
       return false;
    }
@@ -1594,7 +2060,7 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * libname	The name of the library to load.
  */
-#if defined(cap_save_the_world) && defined(BPATCH_LIBRARY)
+#if defined(cap_save_the_world)
 bool BPatch_process::loadLibraryInt(const char *libname, bool reload)
 #else
 bool BPatch_process::loadLibraryInt(const char *libname, bool)
@@ -1638,7 +2104,7 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    args.push_back(&nameArg);   
    BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
     
-   if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, true)) {
+   if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, NULL, true)) {
       BPatch_variableExpr *dlerror_str_var = 
          image->findVariable("gLoadLibraryErrorString");
       assert(NULL != dlerror_str_var);      
@@ -1653,7 +2119,7 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    void *brk_ptr;
    brk_ptr_var->readValue(&brk_ptr, sizeof(void *));
 
-#if defined(cap_save_the_world) && defined(BPATCH_LIBRARY)
+#if defined(cap_save_the_world) 
 	if(llproc->collectSaveWorldData && reload){
 		llproc->saveWorldloadLibrary(libname, brk_ptr);	
 	}
@@ -1742,6 +2208,12 @@ void BPatch_process::getThreadsInt(BPatch_Vector<BPatch_thread *> &thrds)
 bool BPatch_process::isMultithreadedInt()
 {
    return (threads.size() > 1);
+}
+
+bool BPatch_process::isMultithreadCapableInt()
+{
+   if (!llproc) return false;
+   return llproc->multithread_capable();
 }
 
 BPatch_thread *BPatch_process::getThreadInt(dynthread_t tid)
@@ -1923,6 +2395,21 @@ BPatchSnippetHandle::BPatchSnippetHandle(BPatch_process *proc) :
 void BPatchSnippetHandle::BPatchSnippetHandle_dtor()
 {
    // don't delete inst instances since they are might have been copied
+}
+
+BPatch_process *BPatchSnippetHandle::getProcessInt()
+{
+  return proc_;
+}
+
+BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
+{
+  return catchup_threads;
+}
+
+bool BPatchSnippetHandle::activeInStackDuringInsertionInt()
+{
+  return catchupNeeded;
 }
 
 BPatch_function *BPatch_process::get_function(int_function *f) 

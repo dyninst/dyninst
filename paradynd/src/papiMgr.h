@@ -52,7 +52,7 @@
 #include "papi.h"
 #endif
 
-class process;
+class BPatch_process;
 class papiMgr;
 
 
@@ -94,7 +94,7 @@ class papiMgr {
 
   void enableSampling();
 
-  papiMgr(process *proc);
+  papiMgr(BPatch_process *proc);
   ~papiMgr(); 
 
   unsigned int getNumHwEvents();
@@ -120,7 +120,7 @@ class papiMgr {
   int addHwEvent(int EventCode);
   bool removeHwEvent(int EventCode);
    
-  process* proc_;
+  BPatch_process* proc_;
   
   long_long* values_; 
 

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.92 2006/05/04 01:41:40 legendre Exp $
+# $Id: make.module.tmpl,v 1.93 2006/07/07 00:01:10 jaw Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -19,102 +19,39 @@ TARGET	      = paradynd
 IFILE	+=-I../mrnet/mrnet/h/mrnet -I../mrnet/mrnet
 IFILE	+=-I../../mrnet/mrnet/h/mrnet -I../../mrnet/mrnet
 
-VPATH	     += ../../paradynd/src:../../paradyn/h:../../dyninstAPI/src:\
-		../../dyninstAPI/h
+VPATH	     += ../../paradynd/src:../../paradyn/h
 
-SRCS        += ../../dyninstAPI/src/ast.C \
-		../src/comm.C \
+SRCS	+=	../src/comm.C \
 		../src/context.C \
 		../src/dynrpc.C \
-    	../src/init.C \
-      ../../dyninstAPI/src/arch.C \
-		../../dyninstAPI/src/inst.C \
-		../../dyninstAPI/src/instPoint.C \
-		../../dyninstAPI/src/baseTramp.C \
-      ../../dyninstAPI/src/multiTramp.C \
-		../../dyninstAPI/src/miniTramp.C \
-		../../dyninstAPI/src/codeRange.C \
+		../src/init.C \
 		../src/main.C \
+		../src/debug.C \
+		../src/costmetrics.C \
+		../src/resource.C \
+ 		../src/mdl.C \
+ 		../src/mdld_data.C \
+ 		../src/focus.C \
+		../src/showerror.C \
+		../src/processMgr.C \
+		../src/threadMgr.C \
+		../src/pd_image.C \
+		../src/pd_module.C \
+		../src/pd_thread.C \
+		../src/pd_process.C \
+		../src/internalMetrics.C \
 		../src/metricFocusNode.C \
 		../src/machineMetFocusNode.C \
 		../src/processMetFocusNode.C \
 		../src/threadMetFocusNode.C \
 		../src/instrCodeNode.C \
 		../src/instrDataNode.C \
-		../src/instReqNode.C \
-		../src/internalMetrics.C \
-		../src/costmetrics.C \
-      ../../dyninstAPI/src/api_showerror.C \
-		../../dyninstAPI/src/BPatch.C \
-		../../dyninstAPI/src/BPatch_type.C \
-		../../dyninstAPI/src/BPatch_thread.C \
-		../../dyninstAPI/src/BPatch_process.C \
-		../../dyninstAPI/src/BPatch_snippet.C \
-		../../dyninstAPI/src/BPatch_function.C \
-		../../dyninstAPI/src/BPatch_point.C \
-		../../dyninstAPI/src/BPatch_image.C \
-		../../dyninstAPI/src/BPatch_module.C \
-		../../dyninstAPI/src/BPatch_collections.C \
-		../../dyninstAPI/src/BPatch_sourceBlock.C \
-		../../dyninstAPI/src/BPatch_basicBlock.C \
-		../../dyninstAPI/src/BPatch_basicBlockLoop.C \
-		../../dyninstAPI/src/BPatch_edge.C \
-		../../dyninstAPI/src/BPatch_loopTreeNode.C \
-		../../dyninstAPI/src/BPatch_flowGraph.C \
-		../../dyninstAPI/src/BPatch_asyncEventHandler.C \
-		../../dyninstAPI/src/BPatch_eventLock.C \
-		../../dyninstAPI/src/BPatch_frame.C \
-		../../dyninstAPI/src/Object.C \
-		../../dyninstAPI/src/MemoryAccess.C \
-		../../dyninstAPI/src/BPatch_instruction.C \
 		../src/perfStream-def.C \
 		../src/perfStream.C \
-		../../dyninstAPI/src/process.C \
-      ../../dyninstAPI/src/bitArray.C \
-		../../dyninstAPI/src/frame.C \
-		../../dyninstAPI/src/dyn_lwp.C \
-		../../dyninstAPI/src/dyn_thread.C \
-		../../dyninstAPI/src/signalhandler.C \
-		../../dyninstAPI/src/signalgenerator.C \
-      ../../dyninstAPI/src/eventgate.C \
-		../../dyninstAPI/src/rpcMgr.C \
-		../../dyninstAPI/src/rpcMgr-thr.C \
-		../../dyninstAPI/src/rpcMgr-lwp.C \
-		../src/resource.C \
-		../../dyninstAPI/src/stats.C \
-		../../dyninstAPI/src/symtab.C \
-		../../dyninstAPI/src/function.C \
-		../../dyninstAPI/src/dominator.C \
-      ../../dyninstAPI/src/image-flowGraph.C \
-      ../../dyninstAPI/src/reloc-func.C \
-      ../../dyninstAPI/src/image-func.C \
-      ../../dyninstAPI/src/mapped_object.C \
-      ../../dyninstAPI/src/mapped_module.C \
-      ../../dyninstAPI/src/variable.C \
-		../../dyninstAPI/src/util.C \
-      ../../dyninstAPI/src/InstrucIter-xplat.C \
-		../../dyninstAPI/src/LineInformation.C \
-		../../dyninstAPI/src/EventHandler.C \
-		../../dyninstAPI/src/callbacks.C \
-		../../dyninstAPI/src/mailbox.C \
- 		../src/mdl.C \
- 		../src/mdld_data.C \
- 		../src/focus.C \
-		../src/showerror.C \
-		../../dyninstAPI/src/BPatch_templates.C \
-		../../dyninstAPI/src/templates0.C \
-		../../dyninstAPI/src/templates1.C \
-		../../dyninstAPI/src/templates2.C \
 		../src/templatesPD.C \
-		../src/templatesIGEN.C \
-		../src/papiMgr.C \
-		../src/processMgr.C \
-		../src/pd_process.C \
-		../src/pd_image.C \
-		../src/pd_module.C \
-		../src/threadMgr.C \
-		../src/pd_thread.C \
-		../src/debug.C
+		../src/instReqNode.C \
+		../src/papiMgr.C
+
 
 ifdef USES_SHM_SAMPLING
 SRCS 		+= ../src/varInstanceHKs.C ../src/varInstance.C \
@@ -144,7 +81,7 @@ PREREQUISITES = $(IGEN_GEN_SRCS)
 
 
 LIBS		+= -lpdutil
-LIBS 		+= -lmrnet -lxplat -lpthread
+LIBS 		+= -lmrnet -lxplat -lpthread -ldyninstAPI
 
 ifdef CROSSCOMPILER
 SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
@@ -152,7 +89,8 @@ else
 SYSLIBS         += -liberty
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../../dyninstAPI/h -I../../mrnet/mrnet/h
+#IFLAGS       += -I../$(PLATFORM) -I../src -I../../dyninstAPI/h -I../../mrnet/mrnet/h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../../mrnet/mrnet/h
 
 all:    $(TARGET)
 
@@ -161,17 +99,18 @@ all:    $(TARGET)
 # LineInformation, but apparently the compiler can.  Since the
 # function is only used internally by LineInformation, the
 # templates won't be duplicated.
-LineInformation.o : ../../dyninstAPI/src/LineInformation.C
-	$(CXX) $(TFLAGS) -c $<
 
-templates0.o: ../../dyninstAPI/src/templates0.C
-	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates0.C
+#LineInformation.o : ../../dyninstAPI/src/LineInformation.C
+#	$(CXX) $(TFLAGS) -c $<
 
-templates1.o: ../../dyninstAPI/src/templates1.C
-	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates1.C
+#templates0.o: ../../dyninstAPI/src/templates0.C
+#	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates0.C
 
-templates2.o: ../../dyninstAPI/src/templates2.C
-	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates2.C
+#templates1.o: ../../dyninstAPI/src/templates1.C
+#	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates1.C
+
+#templates2.o: ../../dyninstAPI/src/templates2.C
+#	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates2.C
 
 templatesPD.o: ../src/templatesPD.C
 	$(CXX) $(TFLAGS) -c ../src/templatesPD.C

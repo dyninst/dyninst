@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.25 2006/06/29 22:44:24 legendre Exp $
+ * $Id: image-flowGraph.C,v 1.26 2006/07/07 00:01:02 jaw Exp $
  */
 
 #include <stdio.h>
@@ -57,10 +57,6 @@
 #include "dyninstAPI/src/showerror.h"
 
 #include "dyninstAPI/src/InstrucIter.h"
-
-#ifndef BPATCH_LIBRARY
-#include "common/h/Dictionary.h"
-#endif
 
 #include "LineInformation.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"

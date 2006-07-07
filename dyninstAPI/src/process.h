@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.387 2006/07/05 17:59:12 legendre Exp $
+/* $Id: process.h,v 1.388 2006/07/07 00:01:07 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -66,16 +66,9 @@
 #include "dyninstAPI/src/libState.h"
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/codeRange.h"
-
-//#include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/imageUpdate.h"
-
 #include "dyninstAPI/src/infHeap.h"
-//#include "dyninstAPI/src/signalgenerator.h"
 
-#if (! defined( BPATCH_LIBRARY )) && defined( PAPI )
-#include "paradynd/src/papiMgr.h"
-#endif
 
 // Annoying... Solaris has two /proc header files, one for the
 // multiple-FD /proc and one for an ioctl-based compatibility /proc.
@@ -144,10 +137,8 @@ class syscallNotification;
 
 class SignalGenerator;
 
-#ifdef BPATCH_LIBRARY
 class BPatch_thread;
 class BPatch_function;
-#endif
 
 #if 0
 static inline unsigned ipHash(const instPoint * const &ip)
@@ -666,19 +657,6 @@ class process {
   // getMainFunction: returns the main function for this process
   int_function *getMainFunction() const { return main_function; }
 
-#if !defined(BPATCH_LIBRARY)
-  // findOneFunction: returns the function associated with function "func"
-  // and module "mod".  This routine checks both the a.out image and any
-  // shared object images for this function.  
-  // mcheyney - should return NULL if function is excluded!!!!
-  class resource;
-  int_function *findOnlyOneFunction(resource *func,resource *mod);
-
-  //this routine searches for a function in a module.  Note that res is a vector
-  // due to gcc emitting duplicate constructors/destructors
-  bool findAllFuncsByName(resource *func, resource *mod, pdvector<int_function *> &res);
-#endif
-
  private:
   enum mt_cache_result { not_cached, cached_mt_true, cached_mt_false };
   enum mt_cache_result cached_result;
@@ -790,12 +768,6 @@ class process {
   // this function makes no callback to dyninst but only does cleanup work
   bool handleProcessExit();
 
-#ifndef BPATCH_LIBRARY
-  bool SearchRelocationEntries(const image *owner, instPoint &instr,
-                               int_function *&target,
-                               Address target_addr, Address base_addr);
-#endif
-
   // Checks the mapped object for signal handlers
   void findSignalHandler(mapped_object *obj);
 
@@ -852,9 +824,6 @@ class process {
   const process *getParent() const {return parent;}
 
  public:
-
-  void processCost(unsigned obsCostLow, timeStamp wallTime, 
-                   timeStamp processTime);
 
    bool extractBootstrapStruct(DYNINST_bootstrapStruct *);
    bool isBootstrappedYet() const;
@@ -1184,11 +1153,6 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   pdvector<instMapping *> tracingRequests;
   pdvector<generatedCodeObject *> pendingGCInstrumentation;
 
-  // Total observed cost. To avoid 64-bit math in the base tramps, we
-  // use a 32-bit temporary accumulator and periodically dump it to
-  // this variable.
-  uint64_t cumulativeObsCost;
-  unsigned lastObsCostLow; // Value of counter last time we checked it
   Address costAddr_; // Address of global cost in the mutatee
 
   Address threadIndexAddr; // Thread ID->index mapping

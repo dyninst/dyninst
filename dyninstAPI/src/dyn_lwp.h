@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.60 2006/06/23 21:04:31 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.61 2006/07/07 00:01:02 jaw Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -52,11 +52,6 @@
 #include "common/h/vectorSet.h"
 #include "syscalltrap.h"
 #include "signalhandler.h"
-
-#if !defined(BPATCH_LIBRARY)
-//rawtime64
-#include "rtinst/h/rtinst.h"
-#endif
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5)
@@ -69,12 +64,6 @@
 
 // note: handleT is normally unsigned on unix platforms, void * for 
 // NT (as needed) defined in os.h
-
-#if !defined(BPATCH_LIBRARY)
-#ifdef PAPI
-class papiMgr;
-#endif
-#endif
 
 
 /*
@@ -285,12 +274,6 @@ class dyn_lwp
   bool attach();
   void detach();
   process *proc() { return proc_; }
-
-#if !defined(BPATCH_LIBRARY)
-#ifdef PAPI
-  papiMgr* papi();
-#endif
-#endif
 
   bool isSingleStepping() { return singleStepping; }
   void setSingleStepping(bool nval) { singleStepping = nval; }

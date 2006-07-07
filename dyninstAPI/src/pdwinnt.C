@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.158 2006/06/09 03:50:48 jodom Exp $
+// $Id: pdwinnt.C,v 1.159 2006/07/07 00:01:06 jaw Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -63,17 +63,10 @@
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/main.h"
-#include "paradynd/src/init.h"
-#include "paradynd/src/perfStream.h" //SPLIT ccw 4 jun 2002
-#endif
 
-#ifdef BPATCH_LIBRARY
 /* XXX This is only needed for emulating signals. */
 #include "BPatch_thread.h"
 #include "nt_signal_emul.h"
-#endif
 
 #include "dyninstAPI/src/rpcMgr.h"
 

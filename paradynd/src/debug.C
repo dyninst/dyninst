@@ -47,6 +47,7 @@
 int pd_debug_metric = 0;
 int pd_debug_catchup = 0;
 int pd_debug_sample = 0;
+int pd_debug_startup = 0;
 
 bool init_daemon_debug() {
   char *p;

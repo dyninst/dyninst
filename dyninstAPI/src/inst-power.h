@@ -41,16 +41,14 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.26 2005/12/19 23:45:38 rutar Exp $
+ * $Id: inst-power.h,v 1.27 2006/07/07 00:01:03 jaw Exp $
  */
 
 #ifndef INST_POWER_H
 #define INST_POWER_H
 
 
-#ifdef BPATCH_LIBRARY
 #include "BPatch_function.h"
-#endif
 
 /* "pseudo" instructions that are placed in the tramp code for the inst funcs
  *   to patch up.   This must be invalid instructions (any instruction with

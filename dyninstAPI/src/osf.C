@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.97 2006/05/16 21:14:35 jaw Exp $
+// $Id: osf.C,v 1.98 2006/07/07 00:01:06 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -362,11 +362,7 @@ bool process::dumpCore_(const pdstring coreFile)
 {
   //bperr( ">>> process::dumpCore_()\n");
   bool ret;
-#ifdef BPATCH_LIBRARY
   ret = dumpImage(coreFile);
-#else
-  ret = dumpImage();
-#endif
   return ret;
 
 }
@@ -417,15 +413,8 @@ pdstring process::tryToFindExecutable(const pdstring &progpath, int pid)
 // Write out the current contents of the text segment to disk.  This is useful
 //    for debugging dyninst.
 //
-#ifdef BPATCH_LIBRARY
 bool process::dumpImage(pdstring outFile)
-#else
-bool process::dumpImage()
-#endif
 {
-#if !defined(BPATCH_LIBRARY)
-  pdstring outFile = getImage()->file() + ".real";
-#endif
   int i;
   int rd;
   int ifd;
@@ -575,58 +564,6 @@ dyn_lwp *process::createRepresentativeLWP() {
    representativeLWP = createFictionalLWP(0);
    return representativeLWP;
 }
-
-#if !defined(BPATCH_LIBRARY)
-rawTime64 dyn_lwp::getRawCpuTime_hw()
-{
-  return 0;
-}
-
-/* return unit: nsecs */
-rawTime64 dyn_lwp::getRawCpuTime_sw() 
-{
-  // returns user+sys time from the u or proc area of the inferior process,
-  // which in turn is presumably obtained by mmapping it (sunos)
-  // or by using a /proc ioctl to obtain it (solaris).
-  // It must not stop the inferior process in order to obtain the result,
-  // nor can it assue that the inferior has been stopped.
-  // The result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
-  
-  // We use the PIOCUSAGE /proc ioctl
-  
-  // Other /proc ioctls that should work too: PIOCPSINFO and the
-  // lower-level PIOCGETPR and PIOCGETU which return copies of the proc
-  // and u areas, respectively.
-  // PIOCSTATUS does _not_ work because its results are not in sync
-  // with DYNINSTgetCPUtime
-  
-  rawTime64 now;
-  
-  prpsinfo_t procinfo;
-  
-  if (ioctl(fd_, PIOCPSINFO, &procinfo) == -1) {
-    perror("process::getInferiorProcessCPUtime - PIOCPSINFO");
-    abort();
-  }
-  
-  /* Put secs and nsecs into usecs */
-  now = procinfo.pr_time.tv_sec;
-  now *= I64_C(1000000000);
-  now += procinfo.pr_time.tv_nsec;
-  
-  if (now<sw_previous_) {
-    // time shouldn't go backwards, but we have seen this happening
-    // before, so we better check it just in case - naim 5/30/97
-    logLine("********* time going backwards in paradynd **********\n");
-    now=sw_previous_;
-  }
-  else {
-    sw_previous_=now;
-  }
-  
-  return now;
-}
-#endif
 
 bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
                                     int /*pid*/,
@@ -1021,11 +958,7 @@ bool process::loadDYNINSTlib()
   
   // step 1: DYNINST library string (data)
   Address libAddr = baseAddr + gen.used();
-#ifdef BPATCH_LIBRARY
   char *libVar = "DYNINSTAPI_RT_LIB";
-#else
-  char *libVar = "PARADYN_LIB";
-#endif
   char *libName = getenv(libVar);
   if (!libName) {
     pdstring msg = pdstring("Environment variable DYNINSTAPI_RT_LIB is not defined,"

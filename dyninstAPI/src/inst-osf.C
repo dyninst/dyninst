@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-osf.C,v 1.13 2006/01/30 19:44:59 jaw Exp $
+// $Id: inst-osf.C,v 1.14 2006/07/07 00:01:03 jaw Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -47,35 +47,6 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 
-#ifdef NOTDEF // PDSEP
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/perfStream.h"
-
-pdstring process::getProcessStatus() const {
-   char ret[80];
-
-   switch (status()) {
-	case running:
-	    sprintf(ret, "%d running", pid);
-	    break;
-	case neonatal:
-	    sprintf(ret, "%d neonatal", pid);
-	    break;
-	case stopped:
-	    sprintf(ret, "%d stopped", pid);
-	    break;
-	case exited:
-	    sprintf(ret, "%d exited", pid);
-	    break;
-	default:
-	    sprintf(ret, "%d UNKNOWN State", pid);
-	    break;
-    }
-    return(ret);
-}
-
-#endif
-#endif
 //
 // All costs are based on Measurements on a SPARC station 10/40.
 // These probably should be adjusted for an alpha
@@ -118,30 +89,4 @@ void initPrimitiveCost()
 
 }
 
-#ifdef notdef
-int flushPtrace()
-{
-    return(0);
-}
 
-void forkNodeProcesses(process *curr, 
-traceHeader *hr, 
-traceFork *fr)
-{
-  abort();
-}
-#endif
-
-/*
- * Define the various classes of library functions to inst. 
- *
- */
-void initLibraryFunctions()
-{
-
-}
-
-#ifdef notdef
-void osDependentInst(process *proc) {
-}
-#endif

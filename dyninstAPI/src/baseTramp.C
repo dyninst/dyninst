@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.40 2006/06/19 21:30:43 bernat Exp $
+// $Id: baseTramp.C,v 1.41 2006/07/07 00:01:01 jaw Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -740,14 +740,14 @@ void baseTramp::setRecursive(bool trampRecursive) {
             guardState_ = recursive_BTR;
         else {
             if (guardState_ == guarded_BTR) {
-#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+#if defined(os_aix) 
 		/* 	this is part of the code to ensure that when we add the call to dlopen
 			at the entry of main on AIX during save the world, an UNGUARDED tramp is produced
 		*/
 		if( !proc()->requestTextMiniTramp ){
 #endif
                 cerr << "WARNING: collision between pre-existing guarded miniTramp and new miniTramp, keeping guarded!" << endl;
-#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+#if defined(os_aix) 
 		}else{
 			//override the tramp guard state if we are doing savetheworld on AIX
 
@@ -791,7 +791,7 @@ bool baseTramp::getRecursive() const {
 bool baseTramp::generateBT(codeGen &baseGen) {
 
   if (valid && !(BPatch::bpatch->isMergeTramp())
-#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+#if defined(os_aix) 
 	/* 	this is part of the code to ensure that when we add the call to dlopen
 		at the entry of main on AIX during save the world, any multi that was
 		already there gets regenerated
@@ -917,7 +917,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     inst_printf("Starting MT: offset %d\n", saveEndOffset);
     
 
-#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+#if defined(os_aix) 
 	/* 	if requestTextMiniTramp is set then we are instrumenting the
 		entry point of main for save the world on AIX.
 		
@@ -932,7 +932,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
 #endif
   // Multithread
     generateMTCode(preTrampCode_, regSpace);
-#if defined(os_aix) && defined(BPATCH_LIBRARY)   //ccw 8 oct 2005
+#if defined(os_aix) 
    }else{
 	proc()->setRequestTextMiniTramp(proc()->requestTextMiniTramp+1);
    }
@@ -958,7 +958,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
 
     costUpdateOffset = preTrampCode_.used();
 
-#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+#if defined(os_aix) 
     if (!proc()->requestTextMiniTramp ){
 #endif
 
@@ -978,7 +978,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
         costSize = 0;
         costValueOffset = 0;
     }
-#if defined(os_aix)  && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+#if defined(os_aix) 
     }else{  //ccw 8 oct 2005
        costSize=0;
        costValueOffset=0;

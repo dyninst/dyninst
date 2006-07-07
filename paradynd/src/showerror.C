@@ -39,15 +39,48 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: showerror.C,v 1.7 2005/12/19 19:43:26 pack Exp $
+// $Id: showerror.C,v 1.8 2006/07/07 00:01:15 jaw Exp $
 
 #include "paradynd/src/comm.h"
 #include "paradynd/src/resource.h"
+#include "paradynd/src/debug.h"
+#include "dyninstAPI/h/BPatch.h"
 
 extern resource *machineResource;
 extern pdRPC *tp;
 extern MRN::Stream * defaultStream;
+
 void showErrorCallback(int num, pdstring msg)
 {
     tp->showErrorCallback(defaultStream, num,msg,machineResource->part_name());
 }
+
+void pdlogLine(char *line)
+{
+    fprintf(stderr, "%s[%d]: %s\n", FILE__, __LINE__, line);
+}
+
+extern bool frontendExited;
+void statusLineN(const char *line, int n, bool) 
+{
+  if (frontendExited) {
+    fprintf(stderr, "Skipping status line, frontend exited:\n%s\n", line);
+    return;
+  }
+
+        //cerr << "statusLineN: " << n << "- " << line << "\n";
+        static char buff[300];
+        if(n>299) n=299;
+        strncpy(buff, line, n+1);
+        if(defaultStream != NULL)
+                {
+                        tp->reportStatus(defaultStream, buff);
+                }
+}
+
+
+void pdstatusLine(const char *line, bool force )
+{
+  statusLineN(line, strlen(line), force);
+}
+

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.202 2006/05/03 00:31:22 jodom Exp $
+// $Id: solaris.C,v 1.203 2006/07/07 00:01:08 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -179,7 +179,7 @@ bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirNam
     BPatch_funcCallExpr call_dldump(*dldump_func, args);
     
     /*fprintf(stderr,"CALLING dldump\n"); */
-    if (!bproc->oneTimeCodeInternal(call_dldump, NULL, NULL, true)) {
+    if (!bproc->oneTimeCodeInternal(call_dldump, NULL, NULL, NULL,true)) {
         fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
         // dldump FAILED
         // find the (global var) error string in the RT Lib and send it to the
@@ -1231,13 +1231,11 @@ int_function *instPoint::findCallee() {
                 bool found = proc()->findFuncsByMangled((*fbt)[i].name(), pdfv);
                 if(found) {
                     assert(pdfv.size());
-#ifdef BPATCH_LIBRARY
                     if(pdfv.size() > 1)
                         cerr << __FILE__ << ":" << __LINE__ 
                              << ": WARNING:  findAllFuncsByName found " 
                              << pdfv.size() << " references to function " 
                              << (*fbt)[i].name() << ".  Using the first.\n";
-#endif
                     callee_ = pdfv[0];
                     return callee_;
                 }

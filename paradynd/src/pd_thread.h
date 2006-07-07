@@ -50,11 +50,14 @@
 #include "rtinst/h/rtinst.h" // virtualTimer, must include or conflict
 #include "common/h/Vector.h"
 
+#if defined(os_windows)
+typedef HANDLE handleT;
+#else
+typedef int handleT;
+#endif
+
 class resource;
-class dyn_thread;
 class pd_process;
-class Frame;
-class int_function;
 
 class pd_thread {
    BPatch_thread *dyninst_thread;
@@ -76,10 +79,7 @@ class pd_thread {
    BPatch_function* get_start_func() {return dyninst_thread->getInitialFunc();}
 
    bool walkStack(BPatch_Vector<BPatch_frame> &stackWalk);
-   // Used for catchup
-   bool walkStack_ll(pdvector<Frame> &stackWalk);
-
-   bool saveStack(const pdvector<Frame> &stackToSave);
+   bool saveStack(const BPatch_Vector<BPatch_frame> &stackToSave);
    bool clearSavedStack();
 
    void update_rid(resource *rid_) { rid = rid_; } 
@@ -95,7 +95,7 @@ class pd_thread {
 
  private:
    // Saved stack walk (for catchup)
-   pdvector<Frame> savedStack_;
+   BPatch_Vector<BPatch_frame> savedStack_;
    int savedStackRefCount_;
 
    // Cross-platform... if there's an OS fd/handle that you ping to get

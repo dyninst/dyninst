@@ -48,13 +48,10 @@
 #define __PD_PROCESS__
 
 #include "common/h/Vector.h"
-#include "dyninstAPI/src/rpcMgr.h"  //for inferiorRPCcallbackFunc
-#include "dyninstAPI/src/libState.h"  //for libraryState_t
-#include "dyninstAPI/src/process.h" // for getRpcMgr and everything else
-
 #include "dyninstAPI/h/BPatch_Vector.h"
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/h/BPatch_snippet.h"
+
 #include "paradynd/src/threadMgr.h"
 #include "paradynd/src/timeMgr.h"
 #include "paradynd/src/shmMgr.h"
@@ -68,6 +65,18 @@
 #define FUNC_EXIT       0x2             /* exit from function */
 #define FUNC_CALL       0x4             /* subroutines called from func */
 #define FUNC_ARG        0x8             /* use arg as argument */
+
+typedef enum  {
+  libUnloaded, 
+  libLoading, 
+  libInitializing, 
+  libLoaded, 
+  libReady 
+} libraryState_t;
+
+bool reachedLibState(libraryState_t lib, libraryState_t state);
+void setLibState(libraryState_t &lib, libraryState_t state);
+
 
 static unsigned  MAX_NUMBER_OF_THREADS =  32;
 class pdinstMapping {
@@ -314,9 +323,6 @@ class pd_process {
    bool continueProc();
    bool pauseProc();
 
-   // PDSEP
-   void overrideInternalRunningState(bool isRunning) { dyninst_process->isVisiblyStopped = !isRunning; }
-
    int getPid() const { return dyninst_process->getPid(); }
 
    shmMgr *getSharedMemMgr() { return sharedMemManager; }
@@ -329,47 +335,27 @@ class pd_process {
       return dyninst_process->detach(leaveRunning);
    }
 
-   bool isBootstrappedYet() const {
-      return dyninst_process->PDSEP_process()->isBootstrappedYet();
-   }
    bool hasExited() { return dyninst_process->isTerminated();}
    bool wasCreatedViaAttach() const {return created_via_attach;}
-
-   bool launchRPCs(bool wasRunning); 
 
    bool isPARADYNBootstrappedYet() const {
        // Good enough approximation (should use a flag here)
        return reachedLibState(paradynRTState, libReady);       
    }
 
-   bool catchupSideEffect(Frame &frame, instReqNode *inst) {
-      return inst->Point()->PDSEP_instPoint()->instrSideEffect(frame);
-   }
-
-   int getTraceLink() {
-      return dyninst_process->lowlevel_process()->traceLink;
-   }
-   void setTraceLink(int v) {
-      dyninst_process->lowlevel_process()->traceLink = v;
-   }
-   dyn_lwp *getRepresentativeLWP() const {
-      return dyninst_process->lowlevel_process()->getRepresentativeLWP();
-   }
-
    bool installInstrRequests(const pdvector<pdinstMapping*> &requests); 
 
-   unsigned postRPCtoDo(AstNode *action, bool noCost,
-                        inferiorRPCcallbackFunc callbackFunc,
+   unsigned postRPCtoDo(BPatch_snippet &action, bool noCost,
+                        BPatchOneTimeCodeCallback callbackFunc,
                         void *userData, 
                         bool runWhenFinished,
                         bool lowmem,
-                        dyn_thread *thr, dyn_lwp *lwp);
+                        BPatch_thread *thr);
    
-   //bool triggeredInStackFrame(Frame &frame, BPatch_point *point,
+   //bool triggeredInStackFrame(BPatch_frame &frame, BPatch_point *point,
    //BPatch_callWhen when, BPatch_snippetOrder order);
    
-   bool walkStacks(BPatch_Vector<BPatch_Vector<BPatch_frame> > &stackWalks);
-   bool walkStacks_ll(pdvector<pdvector<Frame> > &stackWalks);
+   bool walkStacks(pdvector<BPatch_Vector<BPatch_frame> > &stackWalks);
    
    /*
    int_function *findOnlyOneFunction(resource *func, resource *mod) {
@@ -498,11 +484,11 @@ class pd_process {
    BPatch_function *getMainFunction() const {
       BPatch_Vector<BPatch_function *> bpfv;
       if (!dyninst_process->getImage()->findFunction("main", bpfv) || !bpfv.size()) {
-        bperr("%s[%d]:  findFunction(main... ) failed\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]:  findFunction(main... ) failed\n", __FILE__, __LINE__);
         return NULL;
       }
       if (bpfv.size() > 1) {
-        bpwarn("%s[%d]:  findFunction(main... ) got %d matches\n", __FILE__, __LINE__, bpfv.size());
+        fprintf(stderr, "%s[%d]:  findFunction(main... ) got %d matches\n", __FILE__, __LINE__, bpfv.size());
       }
       return bpfv[0];
    }
@@ -518,16 +504,12 @@ class pd_process {
 #endif
 
    bool multithread_capable() {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->multithread_capable();
-   }
-   bool multithread_ready() {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->multithread_ready();
+      return dyninst_process->isMultithreadCapable();
    }
 
    bool wasRunningWhenAttached() { 
-       return dyninst_process->lowlevel_process()->wasRunningWhenAttached();
+       //  this is only used by newProgramCallbackFunc, but we still need it???
+       return dyninst_process->wasRunningWhenAttached();
    }
 
    pd_thread *STthread() { 
@@ -594,6 +576,16 @@ class pd_process {
    /*************************************************************
     **** Process state variables                             ****
     *************************************************************/
+
+  // Total observed cost. To avoid 64-bit math in the base tramps, we
+  // use a 32-bit temporary accumulator and periodically dump it to
+  // this variable.
+  uint64_t cumulativeObsCost;
+  unsigned lastObsCostLow; // Value of counter last time we checked it
+
+  void processCost(unsigned obsCostLow, timeStamp wallTime,
+                   timeStamp processTime);
+
  private:
    
    bool inExec;
@@ -606,20 +598,6 @@ class pd_process {
     *************************************************************/
    shmMgr *sharedMemManager;
    sharedMetaData *shmMetaData;
-
-
-   /*******************************************
-    ***** PDSEP LOCK HANDLING *****************
-    *******************************************/
- public:
-
-   // Special functions used to acquire the BPatch global lock before
-   // we use internal code. The lock "backs off" until there are no
-   // low-level signal handlers processing; this avoids a problem
-   // where the UI thread "intercepts" in the middle of the SignalGenerator
-   // to signalHandler handoff.
-   void PDSEP_LOCK(char *, unsigned);
-   void PDSEP_UNLOCK(char *, unsigned);
 
 };
 

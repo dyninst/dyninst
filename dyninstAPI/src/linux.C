@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.244 2006/06/23 22:16:20 bernat Exp $
+// $Id: linux.C,v 1.245 2006/07/07 00:01:05 jaw Exp $
 
 #include <fstream>
 
@@ -83,12 +83,6 @@
 #include "linux.h"
 
 #include "dynamiclinking.h"
-
-#ifndef BPATCH_LIBRARY
-#include "common/h/Time.h"
-#include "common/h/timing.h"
-#include "paradynd/src/init.h"
-#endif
 
 #include "Elf_X.h"
 #include "dyninstAPI/src/addLibraryLinux.h"
@@ -1128,7 +1122,6 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
    //cerr << "writeDataSpace pid=" << getPid() << ", @ " << (void *)inTraced
    //    << " len=" << nbytes << endl; cerr.flush();
 
-#if defined(BPATCH_LIBRARY)
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
    if (proc_->collectSaveWorldData) {
@@ -1146,7 +1139,6 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 	       }
 	}
    }
-#endif
 #endif
 
    ptraceOps++; ptraceBytes += nbytes;
@@ -1411,18 +1403,9 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
   return true;
 }
 
-#if !defined(BPATCH_LIBRARY)
-#ifdef PAPI
-papiMgr* dyn_lwp::papi() {
 
-  return proc()->getPapiMgr();
-
-}
-#endif
-#endif
-
-
-bool process::dumpImage( pdstring imageFileName ) {
+bool process::dumpImage( pdstring imageFileName ) 
+{
 	/* What we do is duplicate the original file,
 	   and replace the copy's .text section with
 	   the (presumably instrumented) in-memory

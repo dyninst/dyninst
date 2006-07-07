@@ -45,9 +45,6 @@
 #include "papi.h"
 #endif
 #include "papiMgr.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/process.h"
 
 
 bool HwEvent::enable() {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.148 2006/05/10 18:43:38 mjbrim Exp $
+// $Id: main.C,v 1.149 2006/07/07 00:01:12 jaw Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -95,7 +95,7 @@ MRN::Rank myRank = 0;
 
 static pdstring machine_name;
 pdstring osName;
-int pd_debug=0;
+int pd_debug=1;
 
 int ready;
 
@@ -196,7 +196,13 @@ void cleanUpAndExit(int status) {
    }
 
    for(unsigned k=0; k<pidToKill.size(); k++) {
-      OS::osKill(pidToKill[k]);
+
+#if defined (os_windows)
+#error
+#else
+      P_kill(pidToKill[k], 9);
+#endif
+
    }
 
    P_exit(status);
@@ -227,11 +233,17 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
     case 'p':
       // Port number to connect to for the Paradyn command port
       well_known_socket = P_strtol(optarg, &ptr, 10);
-      if (ptr == optarg) err = true;
+      if (ptr == optarg) {
+         fprintf(stderr, "%s[%d]:  bad conversion for string %s\n", FILE__, __LINE__, optarg);
+         err = true;
+      }
       break;
     case 'P':
       termWin_port = P_strtol(optarg, &ptr, 10);
-      if (ptr == optarg) err = true;
+      if (ptr == optarg) {
+        fprintf(stderr, "%s[%d]:  bad conversion for string %s\n", FILE__, __LINE__, optarg);
+        err = true;
+      }
       break;
     case 'v':
       // Obsolete argument
@@ -283,15 +295,22 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
        MPIscript_name = optarg;
        break;
     default:
+      fprintf(stderr, "%s[%d]:  no such options -%c\n", FILE__, __LINE__, c);
       err = true;
       break;
     }
-  if (err)
+  if (err) {
+    fprintf(stderr, "%s[%d]:  error parsing args for paradynd\n", FILE__, __LINE__);
     return false;
+  }
 
   // verify required parameters
   // This define should be something like ENABLE_TERMWIN, but hey
 #if !defined(i386_unknown_nt4_0)
+  if (!termWin_port)
+    fprintf(stderr, "%s[%d]:  No termwin port specified\n", FILE__, __LINE__);
+  if (!well_known_socket)
+    fprintf(stderr, "%s[%d]:  Invalid socket specified\n", FILE__, __LINE__);
   if (!well_known_socket && !termWin_port)
     return false;
 #else
@@ -489,6 +508,11 @@ main( int argc, char* argv[] )
                               pd_known_socket_portnum, termWin_port, 
                               daemon_start_mode, pd_attpid, MPI_impl, newProcDir );
 
+   fprintf(stderr, "%s[%d]:  paradynd args = ", FILE__, __LINE__);
+   for (int i = 0; i < argc; ++i) {
+     fprintf(stderr, "%s ", argv[i]);
+   }
+   fprintf(stderr, "\n");
    if (!aflag || pd_debug )
    {
       if (!aflag)
@@ -671,10 +695,30 @@ main( int argc, char* argv[] )
     if( pd_flavor != "mpi" )
     {
        parHostname = argv[argc-3];
-       parPort = (MRN::Port)strtoul( argv[argc-2], NULL, 10 );
-       myRank = (MRN::Rank)strtoul( argv[argc-1], NULL, 10 );
+       char *portstr = NULL;
+       if (argv[argc-2][0] == '-' && argv[argc-2][1] == 'p')
+         portstr = argv[argc-2] +2;
+       else
+         portstr = argv[argc-2];
+       parPort = (MRN::Port)strtoul( portstr/*argv[argc-2]*/, NULL, 10 );
+
+       if (argv[argc-1][0] == '-' && argv[argc-1][1] == 'P')
+         portstr = argv[argc-1] +2;
+       else
+         portstr = argv[argc-1];
+       myRank = (MRN::Rank)strtoul( portstr/*argv[argc-1]*/, NULL, 10 );
     }
 
+    if (parHostname[0] == '-' && parHostname[1] == 'm') {
+       fprintf(stderr, "%s[%d]:  WARNING:  bad hostname %s!\n", FILE__, __LINE__, parHostname.c_str());
+       pdstring temp = parHostname.c_str() + 2;
+       parHostname = temp;
+       fprintf(stderr, "%s[%d]:  changed to %s\n", FILE__, __LINE__, parHostname.c_str());
+    }
+
+    fprintf(stderr, "%s[%d]:  about to do MRN::Network(%s, %d, %d)\n", 
+            FILE__, __LINE__, 
+            parHostname.c_str(), parPort, myRank);
     ntwrk = new MRN::Network( parHostname.c_str(), parPort, myRank );
     if( ntwrk->fail() ) {
         fprintf(stderr, "backend_init() failed\n");
@@ -690,7 +734,7 @@ main( int argc, char* argv[] )
 
 	 tp->wait_for(ntwrk, T_dyninstRPC::setEquivClassReportStream_REQ);
 
-	 statusLine(V_paradynd);
+	 pdstatusLine(V_paradynd);
 
    // Note -- it is important that this daemon receives all mdl info
    // before starting a process
@@ -698,7 +742,6 @@ main( int argc, char* argv[] )
    assert(aflag);
    assert( saw_mdl == true );
    
-   initLibraryFunctions();
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
 	 sighupInit();
 #endif
@@ -738,11 +781,12 @@ main( int argc, char* argv[] )
          }
      }
 
-	 // start handling requests
-	 controllerMainLoop( true );
+
+     // start handling requests
+     controllerMainLoop( true );
 	 
-	 RPC_undo_environment_work();
-	 return 0;
+     RPC_undo_environment_work();
+     return 0;
 }
 
 BPatch_process *MPI_proc = NULL;
@@ -868,12 +912,34 @@ int StartRunPastMPIinit( pdvector<pdstring> &argv, pdstring dir)
     if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
         sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
                 strerror(errno));
-        logLine(errorLine);
+        pdlogLine(errorLine);
         P__exit(-1);
     }
 			
 	//TODO: Change stdout to go to termwin
-	
+
+        // hand off info about how to start a paradynd to the application.
+        //   used to catch rexec calls, and poe events.
+        //
+        char* paradynInfo = new char[1024];
+        sprintf(paradynInfo, "PARADYN_MASTER_INFO= ");
+        for (unsigned i=0; i < pd_process::arg_list.size(); i++) {
+           const char *str;
+
+           str = P_strdup(pd_process::arg_list[i].c_str());
+           if (!strcmp(str, "-l1")) {
+              strcat(paradynInfo, "-l0");
+           } else {
+              strcat(paradynInfo, str);
+           }
+           strcat(paradynInfo, " ");
+        }
+
+        fprintf(stderr, "%s[%d]:  setting '%s' in env\n", FILE__, __LINE__, paradynInfo);
+        //  since we are not using the envp arg to processCreate, we can just stick
+        //  it in our own environment and it will be transferred
+        P_putenv(paradynInfo);
+
 	MPI_proc = getBPatch().processCreate(path, 
                                          (const char **) argv_array, NULL, 
                                          0, 1,2);

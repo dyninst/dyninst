@@ -403,18 +403,11 @@ bool int_function::PA_attachBranchOverlaps(
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-#ifdef BPATCH_LIBRARY
 bool int_function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *p,
                                                  Address baseAddress,
                                                  Address firstAddress,
                                                  process *proc)
-#else
-bool int_function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *,
-                                                 Address, Address,
-                                                 process *)
-#endif
 {
-#ifdef BPATCH_LIBRARY
    //registerNewFunction will return an existing one if it already exists.
    BPatch_function *bpfunc = proc->registerNewFunction(this);
 
@@ -461,7 +454,6 @@ bool int_function::PA_attachBasicBlockEndRewrites(LocalAlterationSet *,
          p->AddAlteration(blockNop);
       }
    }   
-#endif // BPATCH_LIBRARY
 
    return true;
 }

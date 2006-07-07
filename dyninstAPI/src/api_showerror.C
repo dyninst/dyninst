@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.27 2006/04/21 22:22:59 bernat Exp $
+// $Id: api_showerror.C,v 1.28 2006/07/07 00:01:01 jaw Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -60,7 +60,6 @@ void showInfoCallback(pdstring msg)
     BPatch::reportError(BPatchWarning, 0, msg.c_str());
 }
 
-#if defined(BPATCH_LIBRARY)
 char errorLine[1024];
 
 void showErrorCallback(int num, pdstring msg)
@@ -79,7 +78,6 @@ void statusLine(const char *line, bool /* unused */ )
     BPatch::reportError(BPatchInfo, 0, line);
 }
 
-#endif
 //  bpfatal, bpsevere, bpwarn, and bpinfo are intended as drop-in 
 //  replacements for printf.
 #define ERR_BUF_SIZE 2048 // egad -- 1024 is not large enough
@@ -227,6 +225,7 @@ int dyn_debug_async = 0;
 int dyn_debug_dwarf = 0;
 int dyn_debug_thread = 0;
 int dyn_debug_rtlib = 0;
+int dyn_debug_catchup = 0;
 
 bool init_debug() {
   char *p;
@@ -309,6 +308,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_RTLIB"))) {
       fprintf(stderr, "Enabling DyninstAPI RTlib debug\n");
       dyn_debug_rtlib = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_CATCHUP"))) {
+      fprintf(stderr, "Enabling DyninstAPI catchup debug\n");
+      dyn_debug_catchup = 1;
   }
 
   debugPrintLock = new eventLock();
@@ -609,3 +612,20 @@ int thread_printf(const char *format, ...)
   return ret;
 }
 
+int catchup_printf(const char *format, ...)
+{
+  if (!dyn_debug_catchup) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->_Lock(FILE__, __LINE__);
+  
+  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}

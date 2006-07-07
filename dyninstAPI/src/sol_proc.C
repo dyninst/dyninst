@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.110 2006/06/23 21:04:31 bernat Exp $
+// $Id: sol_proc.C,v 1.111 2006/07/07 00:01:08 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1242,7 +1242,6 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 
    //  cerr << "process::writeDataSpace_ pid " << getPid() << " writing "
    //       << amount << " bytes at loc " << inTraced << endl;
-#if defined(BPATCH_LIBRARY)
 #if defined (sparc_sun_solaris2_4)
    if(proc_->collectSaveWorldData &&  ((Address) inTraced) >
       proc_->getDyn()->getlowestSObaseaddr() ) {
@@ -1262,7 +1261,6 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
            }
        }
    }
-#endif
 #endif
    off64_t loc;
    // Problem: we may be getting a address with the high bit

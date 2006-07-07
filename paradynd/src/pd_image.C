@@ -44,6 +44,7 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_module.h"
+#include "paradynd/src/debug.h"
 
 pdvector<pd_image *> pd_image::all_pd_images;
 extern bool mdl_get_lib_constraints(pdvector<pdstring> &);
@@ -134,7 +135,7 @@ void pd_image::FillInCallGraphStatic(pd_process *proc, bool init_graph, unsigned
 			 if(!init_graph)
 				 {
 					 buffer = "building call graph module: " + curmod->fileName();
-					 statusLine(buffer.c_str());
+					 pdstatusLine(buffer.c_str());
 				 }
 			 curmod->FillInCallGraphStatic(proc,init_graph,checksum);
 		 }

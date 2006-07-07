@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.35 2006/05/10 02:31:02 jaw Exp $
+// $Id: util.h,v 1.36 2006/07/07 00:01:09 jaw Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -52,16 +52,6 @@
 
 bool waitForFileToExist(char *fname, int timeout_seconds);
 int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds);
-
-#ifndef BPATCH_LIBRARY
-// DON'T access through this global variable
-extern timeStamp *pFirstRecordTime;
-
-// ACCESS through these functions
-void setFirstRecordTime(const timeStamp &ts);
-bool isInitFirstRecordTime();
-const timeStamp &getFirstRecordTime();
-#endif
 
 #define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
 extern void logLine(const char *line);

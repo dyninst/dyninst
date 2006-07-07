@@ -39,17 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyninst.h,v 1.19 2004/03/23 01:12:03 eli Exp $
+// $Id: dyninst.h,v 1.20 2006/07/07 00:01:02 jaw Exp $
 // dyninst.h - exported interface to instrumentation.
 
 #ifndef INSTRUMENTATION_H
 #define INSTRUMENTATION_H
 
-#ifdef BPATCH_LIBRARY
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#else
-#include "rtinst/h/trace.h"
-#endif
 #include "common/h/stringDecl.h"
 
 
