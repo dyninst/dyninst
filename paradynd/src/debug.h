@@ -62,6 +62,7 @@ extern int pd_debug_startup;
 
 extern int metric_printf(const char *format, ...);
 extern int catchup_printf(const char *format, ...);
+extern int startup_printf(const char *format, ...);
 extern int sample_printf(const char *format, ...);
 
 extern bool init_daemon_debug();

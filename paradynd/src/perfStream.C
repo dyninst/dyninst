@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.191 2006/07/07 00:01:14 jaw Exp $
+// $Id: perfStream.C,v 1.192 2006/07/07 20:21:21 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h"
@@ -494,7 +494,6 @@ void controllerMainLoop(bool check_buffer_first)
    fd_set errorSet;
    struct timeval pollTimeStruct;
    
-   fprintf(stderr, "%s[%d]:  welcome to controllerMainLoop\n", FILE__, __LINE__);
    while (1) {
 
       // we have moved this code at the beginning of the loop, so we will

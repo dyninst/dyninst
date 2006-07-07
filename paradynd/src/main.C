@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.149 2006/07/07 00:01:12 jaw Exp $
+// $Id: main.C,v 1.150 2006/07/07 20:21:21 jaw Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -716,7 +716,7 @@ main( int argc, char* argv[] )
        fprintf(stderr, "%s[%d]:  changed to %s\n", FILE__, __LINE__, parHostname.c_str());
     }
 
-    fprintf(stderr, "%s[%d]:  about to do MRN::Network(%s, %d, %d)\n", 
+    startup_printf("%s[%d]:  about to do MRN::Network(%s, %d, %d)\n", 
             FILE__, __LINE__, 
             parHostname.c_str(), parPort, myRank);
     ntwrk = new MRN::Network( parHostname.c_str(), parPort, myRank );

@@ -59,6 +59,10 @@ bool init_daemon_debug() {
     fprintf(stderr, "Enabling Paradyn catchup debugging\n");
     pd_debug_catchup = 1;
   }
+  if ( (p=getenv("PD_DEBUG_STARTUP"))) {
+    fprintf(stderr, "Enabling Paradyn startup debugging\n");
+    pd_debug_startup = 1;
+  }
   if ( (p=getenv("PD_DEBUG_SAMPLE"))) {
     fprintf(stderr, "Enabling Paradyn sample debugging\n");
     pd_debug_sample = 1;
@@ -84,6 +88,21 @@ int metric_printf(const char *format, ...)
 int catchup_printf(const char *format, ...)
 {
   if (!pd_debug_catchup) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+
+  int ret = vfprintf(stderr, format, va);
+
+  va_end(va);
+
+  return ret;
+}
+
+int startup_printf(const char *format, ...)
+{
+  if (!pd_debug_startup) return 0;
   if (NULL == format) return -1;
 
   va_list va;

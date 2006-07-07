@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.95 2006/07/07 00:01:12 jaw Exp $
+// $Id: init.C,v 1.96 2006/07/07 20:21:20 jaw Exp $
 
 
 #include "pdutil/h/pdDebugOstream.h"
@@ -456,7 +456,7 @@ bool paradyn_init() {
 
 
   bool ret =   initOS();
-  fprintf(stderr, "%s[%d]:  paradyn_init returning %s\n", FILE__, __LINE__, ret ? "true" : "false");
+  startup_printf("%s[%d]:  paradyn_init returning %s\n", FILE__, __LINE__, ret ? "true" : "false");
   return ret;
 }
 

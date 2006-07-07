@@ -445,11 +445,7 @@ bool processMetFocusNode::doCatchupInstrumentation(const pdvector<BPatch_Vector<
     assert(!instrCatchuped());
     
     prepareCatchupInstr(stackWalks);
-    bool catchupPosted = postCatchupRPCs();
-    
-    if (catchupPosted) {
-        fprintf(stderr, "%s[%d]:  NOT launching catchup RPCs -- assuming synchronous oneTimeCode\n", FILE__, __LINE__);
-    }
+    postCatchupRPCs();
     
     // Get them all cleared out
     // Logic: there are three states (that we care about) for an iRPC
@@ -561,8 +557,8 @@ void processMetFocusNode::prepareCatchupInstr(const pdvector<BPatch_Vector<BPatc
 
                for (unsigned int j = 0; j < catchup_threads.size(); ++j) {
                     BPatch_thread *catchup_thread = catchup_threads[j];
-                    fprintf(stderr, "Catchup on thread %d: stack has %d frames\n",
-                            catchup_thread->getTid(),
+                    catchup_printf("%s[%d]: Catchup on thread %d: stack has %d frames\n",
+                            FILE__, __LINE__, catchup_thread->getTid(),
                             stackWalk.size());
                     catchup_t *catchup = new catchup_t(SNIP, 
                                                        catchup_thread,
@@ -638,9 +634,7 @@ bool processMetFocusNode::postCatchupRPCs()
                              true, // Run when done
                              false,  // lowmem parameter
                              catchupASTList[i]->thread);
-      fprintf(stderr, "%s[%d]:  WARNING:  using rpc id -- not appropriate\n", FILE__, __LINE__);
-      rpc_id_buf.push_back(rpc_id);
-      fprintf(stderr, "%s[%d]:  WARNING:  manually executing callback\n", FILE__, __LINE__);
+      catchup_printf("%s[%d]:  manually executing post catchup callback\n", FILE__, __LINE__);
       postCatchupRPCDispatch(NULL, 0, (void *)thr, NULL);
       delete catchupASTList[i];
    }

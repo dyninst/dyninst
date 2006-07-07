@@ -322,7 +322,7 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
            strcat(paradynInfo, " ");
         }
 
-        fprintf(stderr, "%s[%d]:  setting '%s' in env\n", FILE__, __LINE__, paradynInfo);
+        startup_printf("%s[%d]:  setting '%s' in env\n", FILE__, __LINE__, paradynInfo);
         //  since we are not using the envp arg to processCreate, we can just stick
         //  it in our own environment and it will be transferred
         P_putenv(paradynInfo);

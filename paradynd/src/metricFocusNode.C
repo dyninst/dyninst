@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.262 2006/07/07 00:01:13 jaw Exp $
+// $Id: metricFocusNode.C,v 1.263 2006/07/07 20:21:21 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -285,7 +285,7 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
       }
       else if (machNode == (machineMetFocusNode*)-1) 
       {
-         fprintf(stderr, "%s[%d]: internal metric %s not enabled\n",
+         metric_printf("%s[%d]: internal metric %s not enabled\n",
                  FILE__, __LINE__, metric_name.c_str());
          assert(!enable); // no error msg needed
          machNode = NULL; // straighten up the return value
@@ -483,10 +483,9 @@ timeLength guessCost(pdstring& metric_name, pdvector<u_int>& focus)
    tempMetFocus_ID--;
 
     if (!mi) {
-         fprintf(stderr, "%s[%d]: guessCost returning 0.0 "
-                 "because createMetricInstance failed\n", FILE__, __LINE__);
-         fprintf(stderr, "%s[%d]: metricName was %s\n",
-                 FILE__, __LINE__, metric_name.c_str() );
+         metric_printf("%s[%d]: guessCost returning 0.0 "
+                 "because createMetricInstance failed for %s\n", FILE__, __LINE__,
+                  metric_name.c_str());
        return timeLength::Zero();
     }
 
