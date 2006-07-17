@@ -91,6 +91,7 @@ extern unsigned long primary_thread_id;
 
 class eventLock;
 extern eventLock *global_mutex;
+extern int bpatch_printf(const char *format, ...);
 
 class BPATCH_DLL_EXPORT BPatch_eventLock {
 protected:
@@ -112,17 +113,30 @@ public:
   unsigned int lockDepth() const;
 };
 
+#define pp2str(s) #s
 
 #define LOCK_FUNCTION(t,x,w)     \
-                                  __LOCK; \
-                                  t ret = x w; \
-                                  __UNLOCK; \
-                                  return ret \
+  __LOCK; \
+  if (lockDepth() == 1) \
+    bpatch_printf("Calling %s %s::%s %s...\n", \
+                  #t, pp2str(DYNINST_CLASS_NAME), #x, #w); \
+  t ret = x w; \
+  if (lockDepth() == 1) \
+   bpatch_printf("  Finished call %s::%s\n", \
+                 pp2str(DYNINST_CLASS_NAME), #x); \
+  __UNLOCK; \
+  return ret
 
 #define LOCK_FUNCTION_V(x,w)     \
-                                  __LOCK; \
-                                  x w; \
-                                  __UNLOCK \
+  __LOCK; \
+  if (lockDepth() == 1) \
+    bpatch_printf("Calling void %s::%s %s\n", \
+                  pp2str(DYNINST_CLASS_NAME), #x, #w); \
+  x w; \
+  if (lockDepth() == 1) \
+    bpatch_printf("  Finished call %s::%s\n", \
+                  pp2str(DYNINST_CLASS_NAME), #x); \
+  __UNLOCK
 
 //  API_EXPORT is a multithread-lock wrapper.
 //  Argument summary:

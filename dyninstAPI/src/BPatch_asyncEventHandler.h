@@ -127,7 +127,7 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
     //  requires accessing lower level dyninst data structures), this is
     //  where it should be done.
     virtual bool handleEvent(EventRecord &ev)
-         { LOCK_FUNCTION(bool, handleEventLocked, (ev)); }
+       { __LOCK; bool ret = handleEventLocked(ev); __UNLOCK; return ret; }
     bool handleEventLocked(EventRecord &ev);
 
     //  BPatch_asyncEventHandler::readEvent()

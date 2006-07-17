@@ -159,7 +159,7 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
   bool isBusy;
   virtual bool waitNextEvent(DBIEvent &ev);
   virtual bool handleEvent(DBIEvent &ev)
-    { LOCK_FUNCTION(bool, handleEventLocked, (ev));}
+    { __LOCK; bool ret = handleEventLocked(ev); __UNLOCK; return ret; }
   bool handleEventLocked(DBIEvent &ev);
 
   void getBusy() {
