@@ -325,11 +325,11 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 	   will be in place. */
 	   
 	/* There is only one location. */
-	DWARF_NULL_IF( listLength != 1, "%s[%d]: unable to handle location lists of more than one element in frame base.\n" );
+	DWARF_NULL_IF( listLength != 1, "%s[%d]: unable to handle location lists of more than one element in frame base.\n", __FILE__, __LINE__ );
 	Dwarf_Locdesc locationDescriptor = locationList[0];
 	
 	/* It is defined by a single operation. */
-	DWARF_NULL_IF( locationDescriptor.ld_cents != 1, "%s[%d]: unable to handle multioperation locations in frame base.\n" );
+	DWARF_NULL_IF( locationDescriptor.ld_cents != 1, "%s[%d]: unable to handle multioperation locations in frame base.\n", __FILE__, __LINE__ );
 	Dwarf_Loc location = locationDescriptor.ld_s[0];
 
 	/* That operation is naming a register. */
