@@ -45,6 +45,7 @@
 #include "paradynd/src/init.h"
 #include "paradynd/src/pd_thread.h"
 #include "paradynd/src/debug.h"
+#include "debug.h"
 #include <unistd.h>
 
 rawTime64 pd_process::getAllLwpRawCpuTime_hw() {

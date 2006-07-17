@@ -1156,7 +1156,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
     for (unsigned int i = 0; i < stacks.size(); ++i) {
        pdvector<Frame> &stack = stacks[i];
        for (unsigned int j = 0; j < stack.size(); ++j) {
-         pcs.push_back( (Address) stack[i].getPC());
+         pcs.push_back( (Address) stack[j].getPC());
        }
     }
 
