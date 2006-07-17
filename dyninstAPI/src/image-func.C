@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.35 2006/05/25 20:11:44 bernat Exp $
+// $Id: image-func.C,v 1.36 2006/07/17 22:46:31 legendre Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -273,9 +273,6 @@ bool image_func::isInstrumentableByFunctionName()
     if (prettyName() == "_setcontext" || prettyName() == "setcontext")
         return false;
 #endif /* i386_unknown_solaris2_5 */
-    
-    if( prettyName() == "__libc_free" )
-        return false;
     
     // XXXXX kludge: these functions are called by DYNINSTgetCPUtime, 
     // they can't be instrumented or we would have an infinite loop
