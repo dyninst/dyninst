@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.27 2006/07/07 00:01:04 jaw Exp $
+// $Id: instPoint.C,v 1.28 2006/07/26 20:58:45 bernat Exp $
 // instPoint code
 
 
@@ -647,7 +647,6 @@ instPoint::instPoint(instPoint *parP,
 
 instPoint *instPoint::createParsePoint(int_function *func,
                                        image_instPoint *img_p) {    
-    process *proc = func->proc();
     // Now we need the addr and block so we can toss this to
     // commonIPCreation.
 
@@ -693,16 +692,24 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
     int_function *func = child->func();
 
     // Add to the process
-    for (unsigned i = 0; i < parP->instances.size(); i++) {
-        instPointInstance *pI = parP->instances[i];
-        instPointInstance *nI = new instPointInstance(pI->addr_,
-                                                      child->instVer(i), 
-                                                      newIP);
-        // could also call child->func()->findBlockInstance...
-
-        nI->multiID_ = pI->multiID_;
-        newIP->instances.push_back(nI);
-        func->registerInstPointAddr(pI->addr_, newIP);
+    if (parP->instances.size() == 0) {
+        // We created but never actually instrumented. However, 
+        // we still need to let the function know we exist, mimicing the
+        // behavior in commonIPcreation
+        func->registerInstPointAddr(newIP->addr(), newIP);
+    }
+    else {
+        for (unsigned i = 0; i < parP->instances.size(); i++) {
+            instPointInstance *pI = parP->instances[i];
+            instPointInstance *nI = new instPointInstance(pI->addr_,
+                                                          child->instVer(i), 
+                                                          newIP);
+            // could also call child->func()->findBlockInstance...
+            
+            nI->multiID_ = pI->multiID_;
+            newIP->instances.push_back(nI);
+            func->registerInstPointAddr(pI->addr_, newIP);
+        }
     }
 
     // And make baseTramp-age. If we share one, the first guy
