@@ -491,6 +491,7 @@ void processMetFocusNode::prepareCatchupInstr(const pdvector<BPatch_Vector<BPatc
     for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
         const BPatch_Vector<BPatch_frame> &stackWalk = stackWalks[thr_iter];
         
+#if 0  // PDSEP
         pdvector<instReqNode *> nodes_for_catchup;
 
         // Now go through all associated code nodes, and add appropriate bits to
@@ -499,6 +500,7 @@ void processMetFocusNode::prepareCatchupInstr(const pdvector<BPatch_Vector<BPatc
             constraintCodeNodes[cIter]->prepareCatchupInstr(nodes_for_catchup);
         // Get the metric code node catchup list
         metricVarCodeNode->prepareCatchupInstr(nodes_for_catchup);
+#endif
 
         // Note: stacks are delivered to us in bottom-up order (most recent to
         // main()), and we want to execute from main down. So loop through
@@ -547,16 +549,12 @@ void processMetFocusNode::prepareCatchupInstr(const pdvector<BPatch_Vector<BPatc
         // tree. So we post as individual iRPCs
         
 
-        for (unsigned int i = 0; i < nodes_for_catchup.size(); ++i) {
+        for (unsigned int i = 0; i < catchup_handles.size(); ++i) {
 
-               BPatch_snippet *SNIP = nodes_for_catchup[i]->Snippet();
-               BPatchSnippetHandle *SH = nodes_for_catchup[i]->snippetHandle();
+               BPatch_snippet *SNIP = catchup_handles[i].snip;
+               BPatchSnippetHandle *SH = catchup_handles[i].sh;
 
-
-               BPatch_Vector<BPatch_thread *> &catchup_threads = SH->getCatchupThreads();
-
-               for (unsigned int j = 0; j < catchup_threads.size(); ++j) {
-                    BPatch_thread *catchup_thread = catchup_threads[j];
+                    BPatch_thread *catchup_thread = catchup_handles[i].thread;
                     catchup_printf("%s[%d]: Catchup on thread %d: stack has %d frames\n",
                             FILE__, __LINE__, catchup_thread->getTid(),
                             stackWalk.size());
@@ -564,7 +562,6 @@ void processMetFocusNode::prepareCatchupInstr(const pdvector<BPatch_Vector<BPatc
                                                        catchup_thread,
                                                        stackWalk);
                     catchupASTList.push_back(catchup);
-               }
 
         }
 
@@ -689,6 +686,12 @@ void processMetFocusNode::initAggInfoObjects(timeStamp startTime,
 
 bool processMetFocusNode::loadInstrIntoApp(bool *modified)
 {
+    //  sanity check...  make sure that we don't have any leftover catchup
+    if (catchup_handles.size()) {
+       fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+       return false;
+    }
+
     pdvector<instrCodeNode *> codeNodes;
     getAllCodeNodes(&codeNodes);
     
@@ -703,12 +706,12 @@ bool processMetFocusNode::loadInstrIntoApp(bool *modified)
         
         if (!res) {
             fprintf(stderr, "%s[%d]:  WARNING:  possible unsafe finalizeInsertionSet()\n", FILE__, __LINE__);
-            proc()->get_dyn_process()->finalizeInsertionSet(true /*true = atomic*/, modified, true /*analyze catchup*/);
+            proc()->get_dyn_process()->finalizeInsertionSetWithCatchup(true /*true = atomic*/, modified, catchup_handles);
             return false;
         }
     }
     
-    bool ret  = proc()->get_dyn_process()->finalizeInsertionSet(true /*true = atomic*/, modified, true /*analyze catchup */);
+    bool ret  = proc()->get_dyn_process()->finalizeInsertionSetWithCatchup(true /*true = atomic*/, modified, catchup_handles);
     if (!ret)
        fprintf(stderr, "WARNING:  finalizeInsertionSet failed\n", FILE__, __LINE__);
     return ret;

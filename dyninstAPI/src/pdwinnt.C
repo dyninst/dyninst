@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.159 2006/07/07 00:01:06 jaw Exp $
+// $Id: pdwinnt.C,v 1.160 2006/08/03 08:18:21 jaw Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1819,6 +1819,7 @@ Address dyn_lwp::step_next_insn() {
    return getActiveFrame().getPC();
 }
 
+#if defined (cap_dynamic_heap)
 void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
                                         inferiorHeapType /* type */ ) 
 {
@@ -1831,6 +1832,7 @@ void process::inferiorMallocAlign(unsigned &size)
     size = (size & ~31) + 32;
   }
 }
+#endif
 
 /**
  stdcall:

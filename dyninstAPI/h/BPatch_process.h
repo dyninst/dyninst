@@ -133,9 +133,21 @@ public:
     API_EXPORT(Int, (),
     BPatch_Vector<BPatch_thread *> &, getCatchupThreads, ());
 
+#if 0 // PDSEP
     API_EXPORT(Int, (),
     bool, activeInStackDuringInsertion, ());
+#endif
 };
+
+#if 0
+class BPatchSnippetHandle;
+class BPatch_snippet;
+#endif
+typedef struct {
+  BPatch_snippet *snip;
+  BPatchSnippetHandle *sh;
+  BPatch_thread *thread;
+} BPatch_catchupInfo;
 
 typedef enum {
    NoExit,
@@ -583,11 +595,13 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //            process state.  Note that such steps will be taken whether or not
     //            a variable is provided.
 
-    API_EXPORT(Int, (atomic, modified, analyzeCatchup),
-               bool, finalizeInsertionSet, (bool atomic, bool *modified = NULL,
-                                            bool analyzeCatchup = false));
+    API_EXPORT(Int, (atomic, modified),
+               bool, finalizeInsertionSet, (bool atomic, bool *modified = NULL));
                                        
     
+    API_EXPORT(Int, (atomic, modified, catchup_handles),
+               bool, finalizeInsertionSetWithCatchup, (bool atomic, bool *modified,
+                                            BPatch_Vector<BPatch_catchupInfo> &catchup_handles));
     //  BPatch_process::deleteSnippet
     //  
     //  Remove instrumentation from the mutatee process

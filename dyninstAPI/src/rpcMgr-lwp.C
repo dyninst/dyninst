@@ -450,10 +450,11 @@ bool rpcLWP::handleCompletedIRPC()
 }
 
 // Get the return value (preperatory for a callback)
-bool rpcLWP::getReturnValueIRPC() {
+bool rpcLWP::getReturnValueIRPC() 
+{
     if (!runningRPC_ || !runningRPC_->rpc->callbackFunc)
         return false;
-    Address returnValue = 0;
+    Address returnValue = (Address) -1;
     
     if (runningRPC_->resultRegister != Null_Register) {
         // We have a result that we care about
@@ -462,6 +463,10 @@ bool rpcLWP::getReturnValueIRPC() {
         extern registerSpace *regSpace;
         regSpace->freeRegister(runningRPC_->resultRegister);
     }
+    else {
+      returnValue = (Address) 0;
+    }
+
     runningRPC_->resultValue = (void *)returnValue;
     // we continue the process...but not quite at the PC where we left off,
     // since that will just re-do the trap!  Instead, we need to continue at

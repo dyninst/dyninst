@@ -439,7 +439,8 @@ bool rpcThr::cancelThrIRPC(unsigned id) {
   return handleCompletedIRPC();
 }
 
-bool rpcThr::handleCompletedIRPC() {
+bool rpcThr::handleCompletedIRPC() 
+{
     // The LWP can be a different one than the lwp the RPC was originally
     // started on if the thread was migrated.
     dyn_lwp *lwp = thr_->get_lwp();
@@ -513,10 +514,12 @@ bool rpcThr::handleCompletedIRPC() {
 }
 
 // Get the return value (preperatory for a callback)
-bool rpcThr::getReturnValueIRPC() {
+bool rpcThr::getReturnValueIRPC() 
+{
     if (!runningRPC_ || !runningRPC_->rpc->callbackFunc)
         return false;
-    Address returnValue = 0;
+
+    Address returnValue = (Address) -1;
 
     dyn_lwp *thr_lwp = thr_->get_lwp();
 
@@ -532,6 +535,10 @@ bool rpcThr::getReturnValueIRPC() {
         // We have a result that we care about
         returnValue = thr_lwp->readRegister(runningRPC_->resultRegister);
     }
+    else {
+      returnValue = 0;
+    }
+
     runningRPC_->resultValue = (void *)returnValue;
     // we continue the process...but not quite at the PC where we left off,
     // since that will just re-do the trap!  Instead, we need to continue at

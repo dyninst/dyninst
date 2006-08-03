@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.h,v 1.20 2006/07/07 00:01:08 jaw Exp $
+// $Id: solarisDL.h,v 1.21 2006/08/03 08:18:22 jaw Exp $
 
 #if !defined(solaris_dl_hdr)
 #define solaris_dl_hdr
@@ -111,7 +111,6 @@ private:
 	bool dlopenUsed; 
 
 
-#if defined(nomoreBPATCH_LIBRARY)
 #if defined(i386_unknown_solaris2_5)
    static const u_int R_BRK_SAVE_BYTES = 4;
 #else /* Sparc */
@@ -119,7 +118,6 @@ private:
 #endif
 
    char r_brk_save[R_BRK_SAVE_BYTES];
-#endif /* nomoreBPATCH_LIBRARY */
 
 
    // get_ld_name: Returns the name (in /proc/pid/object/ format) of

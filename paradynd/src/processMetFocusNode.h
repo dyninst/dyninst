@@ -104,6 +104,7 @@ class processMetFocusNode : public metricFocusNode {
   bool runWhenFinished_;
   bool instrInserted_;  // ie. instr:  loaded & tramps hookedup & catchuped
   pdvector<catchup_t *>   catchupASTList;
+  BPatch_Vector<BPatch_catchupInfo> catchup_handles;
   pdvector<unsigned> rpc_id_buf;
 
   bool isBeingDeleted_;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.668 2006/07/07 00:01:06 jaw Exp $
+// $Id: process.C,v 1.669 2006/08/03 08:18:22 jaw Exp $
 
 #include <ctype.h>
 
@@ -4316,77 +4316,6 @@ bool process::processSharedObjects()
 
     return true;
 }
-
-// findOneFunction: returns the function associated with func  
-// this routine checks both the a.out image and any shared object
-// images for this resource.
-// Semantics of excluded functions - Once "exclude" works for both
-// static and dynamically linked objects, this should return NULL
-// if the function being sought is excluded....
-#if 0
-#ifndef nomoreBPATCH_LIBRARY
-#include "paradynd/src/resource.h"
-int_function *process::findOnlyOneFunction(resource *func, resource *mod){
-    if((!func) || (!mod)) { return 0; }
-    if(func->mdlType() != MDL_T_PROCEDURE) { return 0; }
-    if(mod->mdlType() != MDL_T_MODULE) { return 0; }
-
-    const pdvector<pdstring> &f_names = func->names();
-    const pdvector<pdstring> &m_names = mod->names();
-    pdstring func_name = f_names[f_names.size() -1]; 
-    pdstring mod_name = m_names[m_names.size() -1]; 
-
-    return findOnlyOneFunction(func_name, mod_name);
-}
-
-#if 0
-bool process::findAllFuncsByName(resource *func, resource *mod, 
-                                 pdvector<int_function *> &res) {
-   
-  pdvector<int_function *> *pdfv=NULL;
-  if((!func) || (!mod)) { return 0; }
-    if(func->mdlType() != MDL_T_PROCEDURE) { return 0; }
-    if(mod->mdlType() != MDL_T_MODULE) { return 0; }
-
-    const pdvector<pdstring> &f_names = func->names();
-    const pdvector<pdstring> &m_names = mod->names();
-    pdstring func_name = f_names[f_names.size() -1]; 
-    pdstring mod_name = m_names[m_names.size() -1]; 
-
-    //cerr << "process::findOneFunction called.  function name = " 
-    //   << func_name.c_str() << endl;
-    
-    // KLUDGE: first search any shared libraries for the module name 
-    //  (there is only one module in each shared library, and that 
-    //  is the library name)
-    if(dynamiclinking && shared_objects){
-        for(u_int j=0; j < shared_objects->size(); j++){
-            module *next = 0;
-            next = ((*shared_objects)[j])->findModule(mod_name);
-
-            if(next){
-               if (NULL != (pdfv = ((*shared_objects)[j])->findFuncVectorByPretty(func_name))) {
-                 for (unsigned int i = 0; i < pdfv->size(); ++i) {
-                    res.push_back((*pdfv)[i]);
-                 }
-                 return true;
-               }
-            }
-        }
-    }
-
-    if (NULL != (pdfv = symbols->findFuncVectorByPretty(func_name))) {
-       for (unsigned int i = 0; i < pdfv->size(); ++i) {
-          res.push_back((*pdfv)[i]);
-       }
-       return true;
-    }
-    return false;
-}
-#endif
-
-#endif /* nomoreBPATCH_LIBRARY */
-#endif
 
 // Parse name into library name and function name. If no library is specified,
 // lib gets the empty string "". 

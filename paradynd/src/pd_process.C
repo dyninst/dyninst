@@ -2310,7 +2310,7 @@ unsigned pd_process::postRPCtoDo(BPatch_snippet &action, bool noCost,
 
     if (NULL == callbackFunc) {
        void *return_value = thr->oneTimeCode(action);
-       if (!return_value) {
+       if (return_value == (void *) -1L) {
          fprintf(stderr, "%s[%d]:  oneTimeCode failed\n", FILE__, __LINE__);
        }
        else

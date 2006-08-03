@@ -1016,7 +1016,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
     
     batchInsertionRecord *rec = new batchInsertionRecord;
     rec->thread_ = NULL;
-    rec->ast_ = expr.ast;
+    rec->snip = (BPatch_snippet *)&expr;
     rec->trampRecursive_ = BPatch::bpatch->isTrampRecursive();
 
     BPatchSnippetHandle *ret = new BPatchSnippetHandle(this);
@@ -1119,8 +1119,11 @@ void BPatch_process::beginInsertionSetInt()
  * we go thru the trouble to modify the process state to make everything work
  * then the function really should work.
  */
+bool doingCatchup = false;
+/*static*/ pdvector<pdvector<Frame> >  stacks;
+/*static*/ pdvector<Address> pcs;
 
-bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool analyzeCatchup) 
+bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified) 
 {
     // Can't insert code when mutations are not active.
     if (!mutationsActive)
@@ -1143,8 +1146,6 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
     //  To make this more efficient, we should cache the current set of stackwalks
     //  and derived info, but don't yet.  Need to find a good refresh condition.
 
-    /*static*/ pdvector<pdvector<Frame> >  stacks;
-    /*static*/ pdvector<Address> pcs;
 
     //if (!walked_once)
     if (!llproc->walkStacks(stacks)) {
@@ -1225,7 +1226,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
             instPoint *point = bppoint->point;
             callWhen when = bir->when_[j];
             
-            miniTramp *mini = point->addInst(bir->ast_,
+            miniTramp *mini = point->addInst(bir->snip->ast,
                                              when,
                                              bir->order_,
                                              bir->trampRecursive_,
@@ -1350,7 +1351,47 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
    if (atomic && err) 
       goto cleanup;
 
-   //  Now, optionally, flag insertions as needing catchup, if requested.
+  cleanup:
+    bool ret = true;
+
+    if (atomic && err) {
+        // Something failed...   Cleanup...
+        for (unsigned k = 0; k < workDone.size(); k++) {
+            workDone[k]->uninstrument();
+        }
+        ret = false;
+    }
+
+    if (!doingCatchup) {
+      //  if we're doing catchup, we need to keep these around (delete them later
+      //    after catchup).
+      for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+         batchInsertionRecord *&bir = (*pendingInsertions)[i];
+         assert(bir);
+         delete(bir);
+      }
+
+      delete pendingInsertions;
+      pendingInsertions = NULL;
+    }
+    catchup_printf("%s[%d]:  leaving finalizeInsertionSet -- CATCHUP DONE\n", FILE__, __LINE__);
+    return ret;
+}
+
+bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modified, 
+                                               BPatch_Vector<BPatch_catchupInfo> &catchup_handles)
+{
+   //  set the doingCatchup flag so that finalizeInsertionSet knows to leave the insertion
+   //  records around for us (we delete them at the end of this function)
+
+   doingCatchup = true;
+   if (!finalizeInsertionSetInt(atomic, modified)) {
+      fprintf(stderr, "%s[%d]:  finalizeInsertionSet failed!\n", FILE__, __LINE__);
+      return false;
+   }
+   doingCatchup = false;
+
+   //  Now, flag insertions as needing catchup, if requested.
    //  This, again, is imported from higher level code in paradyn and should
    //  probably be modified from this first-stab importation...  which is more
    //  concerned with keeping it logically exact to what paradyn was doing, 
@@ -1358,9 +1399,6 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
    //  as the original paradyn catchup logic.
 
    //  Store the need-to-catchup flag in the BPatchSnippetHandle for the time being
-
-   if (!analyzeCatchup)
-      goto cleanup;
 
    if (dyn_debug_catchup) {
       fprintf(stderr, "%s[%d]:  BEGIN CATCHUP ANALYSIS:  num inst req: %d\n", 
@@ -1469,7 +1507,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
                   //       we just skip it for catchup (function parameters live on
                   //       the stack too)
 
-                  if (bir->ast_->accessesParam())
+                  if (bir->snip->ast->accessesParam())
                       continue;
 
 #if 0
@@ -1539,6 +1577,8 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
                              frame.getPC(), str_iPresult);
                   }
 
+                 BPatch_catchupInfo catchup_info;
+
 		 // We split cases out by the point type
 		 // All of these must fit the following criteria:
 		 // An object with a well-defined entry and exit;
@@ -1554,7 +1594,13 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
 		   // function; if not we'd have already returned.
 		   if (location >= missed_l) {
 		       catchupNeeded = true;
+                       catchup_info.snip = bir->snip;
+                       catchup_info.sh = sh;
+                       catchup_info.thread = bpthread;
+                       catchup_handles.push_back(catchup_info);
+#if 0 // PDSEP
                        sh->catchup_threads.push_back(bpthread);
+#endif
                    }
 		   break;
 		  case BPatch_locExit:
@@ -1564,7 +1610,13 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
 			// catchup.
 			if (location == missed_l) {
 			    catchupNeeded = true;
+                            catchup_info.snip = bir->snip;
+                            catchup_info.sh = sh;
+                            catchup_info.thread = bpthread;
+                            catchup_handles.push_back(catchup_info);
+#if  0 // PDSEP
                             sh->catchup_threads.push_back(bpthread);
+#endif
                         }
 			break;
 		    case BPatch_subroutine:
@@ -1572,20 +1624,38 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
 			// just be elsewhere
 			if (location == missed_l) {
 			    catchupNeeded = true;
+                            catchup_info.snip = bir->snip;
+                            catchup_info.sh = sh;
+                            catchup_info.thread = bpthread;
+                            catchup_handles.push_back(catchup_info);
+#if 0 // PDSEP
                             sh->catchup_threads.push_back(bpthread);
+#endif
                         }
 			break;
 		    case BPatch_locLoopEntry:
 		    case BPatch_locLoopStartIter:
 			if (location == missed_l) {
 			    catchupNeeded = true;
+                            catchup_info.snip = bir->snip;
+                            catchup_info.sh = sh;
+                            catchup_info.thread = bpthread;
+                            catchup_handles.push_back(catchup_info);
+#if 0 // PDSEP
                             sh->catchup_threads.push_back(bpthread);
+#endif
                         }
 			if (location == afterPoint_l) {
 			    BPatch_basicBlockLoop *loop = bppoint->getLoop();
 			    if (loop->containsAddressInclusive(frame.getUninstAddr())) {
 				catchupNeeded = true;
+                                catchup_info.snip = bir->snip;
+                                catchup_info.sh = sh;
+                                catchup_info.thread = bpthread;
+                                catchup_handles.push_back(catchup_info);
+#if 0 // PDSEP
                                 sh->catchup_threads.push_back(bpthread);
+#endif
                             }
 			}
 			break;
@@ -1594,7 +1664,13 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
 			// See earlier treatment of, well, everything else
 			if (location == missed_l) {
 			    catchupNeeded = true;
+                            catchup_info.snip = bir->snip;
+                            catchup_info.sh = sh;
+                            catchup_info.thread = bpthread;
+                            catchup_handles.push_back(catchup_info);
+#if 0 // PDSEP
                             sh->catchup_threads.push_back(bpthread);
+#endif
                         }
 			break;
 
@@ -1625,16 +1701,8 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified, bool a
        }
    }
 
-  cleanup:
+  //cleanup:
     bool ret = true;
-
-    if (atomic && err) {
-        // Something failed...   Cleanup...
-        for (unsigned k = 0; k < workDone.size(); k++) {
-            workDone[k]->uninstrument();
-        }
-        ret = false;
-    }
 
     for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
        batchInsertionRecord *&bir = (*pendingInsertions)[i];
@@ -1836,6 +1904,8 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
 
    assert(info && !info->isCompleted());
 
+   if (returnValue == (void *) -1L)
+     fprintf(stderr, "%s[%d]:  WARNING:  no return value for rpc\n", FILE__, __LINE__);
    info->setReturnValue(returnValue);
    info->setCompleted(true);
    
@@ -1911,8 +1981,13 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                           BPatchOneTimeCodeCallback cb,
                                           bool synchronous)
 {
-    if (statusIsTerminated()) return NULL;
-
+    if (statusIsTerminated()) {
+       fprintf(stderr, "%s[%d]:  oneTimeCode failing because process is terminated\n", FILE__, __LINE__);
+       return (void *) -1L;
+#if 0 // PDSEP
+       return NULL;
+#endif
+    }
     if (!isVisiblyStopped) resumeAfterCompleted_ = true;
 
    inferiorrpc_printf("%s[%d]: UI top of oneTimeCode...\n", FILE__, __LINE__);
@@ -1921,7 +1996,13 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
        llproc->sh->waitForEvent(evtAnyEvent);
    }
 
-    if (statusIsTerminated()) return NULL;
+    if (statusIsTerminated()) {
+       fprintf(stderr, "%s[%d]:  oneTimeCode failing because process is terminated\n", FILE__, __LINE__);
+       return (void *) -1L;
+#if 0 // PDSEP
+       return NULL;
+#endif
+    }
 
    inferiorrpc_printf("%s[%d]: oneTimeCode, handlers quiet, sync %d, statusIsStopped %d, resumeAfterCompleted %d\n",
                       FILE__, __LINE__, synchronous, statusIsStopped(), resumeAfterCompleted_);
@@ -1993,17 +2074,33 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    while (!info->isCompleted()) {
        inferiorrpc_printf("%s[%d]: waiting for RPC to complete\n",
                           FILE__, __LINE__);
-       if (statusIsTerminated()) return NULL;
+       if (statusIsTerminated()) {
+           fprintf(stderr, "%s[%d]:  process terminated with outstanding oneTimeCode\n", FILE__, __LINE__);
+           return (void *) -1L;
+#if 0 // PDSEP
+           return NULL;
+#endif
+       }
        
        eventType ev = llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, 
                                                statusRPCDone);
        inferiorrpc_printf("%s[%d]: got RPC event from system: terminated %d\n",
                           FILE__, __LINE__, statusIsTerminated());
-       if (statusIsTerminated()) return NULL;
+       if (statusIsTerminated()) {
+           fprintf(stderr, "%s[%d]:  process terminated with outstanding oneTimeCode\n", FILE__, __LINE__);
+           return (void *) -1L;
+#if 0 // PDSEP
+           return NULL;
+#endif
+       }
 
        if (ev == evtProcessExit) {
+           fprintf(stderr, "%s[%d]:  process terminated with outstanding oneTimeCode\n", FILE__, __LINE__);
            fprintf(stderr, "Process exited, returning NULL\n");
+           return (void *) -1L;
+#if 0 // PDSEP
            return NULL;
+#endif
        }
 
        inferiorrpc_printf("%s[%d]: executing callbacks\n", FILE__, __LINE__);
@@ -2407,10 +2504,13 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
   return catchup_threads;
 }
 
+#if 0 //PDSEP -- this function should be removed?
 bool BPatchSnippetHandle::activeInStackDuringInsertionInt()
 {
   return catchupNeeded;
+  return true;
 }
+#endif
 
 BPatch_function *BPatch_process::get_function(int_function *f) 
 { 

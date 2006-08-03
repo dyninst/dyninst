@@ -361,9 +361,11 @@ void instrCodeNode::prepareCatchupInstr(pdvector<instReqNode *> &nodes_for_catch
       }
 
       BPatchSnippetHandle *sh = curInstReq->snippetHandle();
+#if 0 // PDSEP
       if (sh->activeInStackDuringInsertion()) {
         nodes_for_catchup.push_back(curInstReq);
       }
+#endif
    }
    // don't mark catchup as having completed because we don't want to mark
    // this until the processMetFocusNode has completed initiating catchup for
