@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2006/06/11 00:35:38 legendre Exp $
+# $Id: Makefile,v 1.7 2006/08/08 08:41:11 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -26,12 +26,12 @@ M_ABI_FLAG = -m32 -Di386_unknown_linux2_4 -Dm32_test
 # there is no "native" or OS-provided compiler for Linux!
 # we use the Portland Group compilers, as that's what we've currently got
 # (in future we probably also want to test with the KAI/Intel compilers)
-ifdef PGI
-NATIVE_CC = pgcc
-NATIVE_CXX = pgCC
-COMPILERT_NATIVE_CC = $(shell $(NATIVE_CC) -V 2>/dev/null | grep '^pg' | head -1)
-COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>/dev/null | grep '^pg' | head -1)
-endif
+#ifdef PGI
+#NATIVE_CC = pgcc
+#NATIVE_CXX = pgCC
+#COMPILERT_NATIVE_CC = $(shell $(NATIVE_CC) -V 2>/dev/null | grep '^pg' | head -1)
+#COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>/dev/null | grep '^pg' | head -1)
+#endif
 
 GNU_WARNING_FLAGS = -W -Wall
 MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS)
