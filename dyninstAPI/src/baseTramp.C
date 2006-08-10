@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.41 2006/07/07 00:01:01 jaw Exp $
+// $Id: baseTramp.C,v 1.42 2006/08/10 17:31:24 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -663,30 +663,25 @@ unsigned baseTrampInstance::maxSizeRequired() {
     unsigned size = 0;
 
 
-#if defined(arch_power) || defined(arch_x86_64) || defined(arch_x86)
-    if (BPatch::bpatch->isMergeTramp())
-      {
+    if (BPatch::bpatch->isMergeTramp()) {
 	// TEMPORARY HACK!!! WILL NEED TO GET SOMETHING BETTER THAT
 	// FIGURES OUT THE SIZE FOR THE BASE TRAMP WITHOUT MAKING IT
 	// SO THE MINI-TRAMP IS GENERATED AFTER THE BASE TRAMP,
 	// FOR NOW, WE'LL JUST ERR ON THE SAFE SIDE FOR THE BUFFER
 	size += 1024;
-      }
-    else
-      {
+#if defined(arch_ia64)
+        // Good lord, these things get HUGE
+        size += 4096;
+#endif
+    }
+    else {
 	if (!baseT->valid)
             baseT->generateBT(codeGen::baseTemplate);
-
+        
 	assert(baseT->valid);
 	size += baseT->preSize + baseT->postSize;
-      }
-#else    
-    if (!baseT->valid)
-        baseT->generateBT(codeGen::baseTemplate);
-    
-    assert(baseT->valid);
-    size += baseT->preSize + baseT->postSize;
-#endif
+    }
+
 
     for (unsigned i = 0; i < mtis.size(); i++)
       size += mtis[i]->maxSizeRequired();
@@ -805,6 +800,13 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     {
       preTrampCode_.invalidate();
       postTrampCode_.invalidate();
+
+#if defined(arch_ia64)
+      if (baseTrampRegion != NULL) {
+          free(baseTrampRegion);
+          baseTrampRegion = NULL;
+      }
+#endif
     }
     //inst_printf("Generating a baseTramp, guarded %d\n", guardState_);
     // Make a base tramp. That is, a save/restore pair that includes the base

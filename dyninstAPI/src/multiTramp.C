@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.58 2006/07/07 00:01:06 jaw Exp $
+// $Id: multiTramp.C,v 1.59 2006/08/10 17:31:24 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -692,6 +692,7 @@ multiTramp::multiTramp(Address addr,
     func_(func),
     proc_(func->proc()),
     insns_(addrHash4),
+    previousInsnAddrs_(NULL),
     generatedMultiT_(),
     savedCodeBuf_(NULL),
 #if defined( cap_unwind )
@@ -718,6 +719,7 @@ multiTramp::multiTramp(multiTramp *oM) :
     func_(oM->func_),
     proc_(oM->proc_),
     insns_(addrHash4),
+    previousInsnAddrs_(NULL),
     generatedMultiT_(), // Not copied
     jumpBuf_(), // Not copied
     savedCodeBuf_(NULL),
@@ -743,6 +745,7 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
     func_(NULL),
     proc_(child),
     insns_(addrHash4),
+    previousInsnAddrs_(NULL),
     generatedMultiT_(parMulti->generatedMultiT_),
     jumpBuf_(parMulti->jumpBuf_),
     savedCodeBuf_(NULL),
@@ -769,6 +772,10 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
 
     // Now that the CFG is right, we get insns
     updateInsnDict();
+
+    // And we should not have been replacing a previous one and had a fork
+    // hit...
+    assert(parMulti->previousInsnAddrs_ == NULL);
 }
 
 ////////////
@@ -1151,6 +1158,45 @@ bool multiTramp::linkCode() {
         
         linked_ = true;
     }
+
+    // Time to stomp old multiTramps with traps...
+    if (previousInsnAddrs_ && BPatch::bpatch->isMergeTramp()) {
+        codeGen gen(16); // Overkill, it's either 1, 4, or 16.
+        instruction::generateTrap(gen);
+
+        for (unsigned i = 0; i < previousInsnAddrs_->size(); i++) {
+            pdpair<Address, Address> addrs = (*previousInsnAddrs_)[i];
+            Address uninst = addrs.first;
+            Address oldMultiAddr = addrs.second;
+
+            if (oldMultiAddr == 0) continue;
+            if (!insns_.find(uninst)) {
+                assert(0);
+            }
+            Address newMultiAddr = insns_[uninst]->relocAddr();
+            
+            /*
+            if (!proc()->writeTextSpace((void *)oldMultiAddr,
+                                        gen.used(),
+                                        gen.start_ptr())) {
+                fprintf(stderr, "ERROR: failed to write %d to %p\n",
+                        gen.used(), gen.start_ptr());
+                return false;
+            }
+            */
+            
+#if (defined(arch_x86) || defined(arch_x86_64)) 
+            // x86: traps read at PC + 1
+            proc()->trampTrapMapping[oldMultiAddr+1] = newMultiAddr;
+#else
+            proc()->trampTrapMapping[oldMultiAddr] = newMultiAddr;
+#endif
+        }
+
+        delete previousInsnAddrs_;
+        previousInsnAddrs_ = NULL;
+    }
+
 
     generatedCFG_t::iterator cfgIter(generatedCFG_);
     generatedCodeObject *obj = NULL;
@@ -1785,6 +1831,8 @@ generatedCodeObject *multiTramp::replaceCode(generatedCodeObject *newParent) {
     // Update addrs
     newMulti->updateInsnDict();
 
+    newMulti->constructPreviousInsnList(this);
+
     // Buffers: generatedMultiT_, savedCodeBuf_, and jumpBuf_.
     // generatedMultiT_ and jumpBuf_ are multiTramp specific.
     assert(newMulti->generatedMultiT_ == NULL);
@@ -1804,7 +1852,39 @@ generatedCodeObject *multiTramp::replaceCode(generatedCodeObject *newParent) {
 
     return newMulti;
 }
-    
+
+void multiTramp::constructPreviousInsnList(multiTramp *oldMulti) {
+    // Only if we're using merged tramps...
+    if (!BPatch::bpatch->isMergeTramp())
+        return;
+
+
+    if (previousInsnAddrs_ == NULL) {
+        previousInsnAddrs_ = new pdvector<pdpair<Address, Address> >();
+    }
+
+    dictionary_hash_iter<Address, relocatedInstruction *> insnIter(oldMulti->insns_);
+    Address uninstAddr;
+    relocatedInstruction *oldRelocInsn;
+    for (; insnIter; insnIter++) {
+        uninstAddr = insnIter.currkey();
+        oldRelocInsn = insnIter.currval();
+        assert(oldRelocInsn);
+
+        // Okay... we want (reloc addr in old multi), (reloc addr in new multi)
+        Address oldAddr = oldRelocInsn->relocAddr();
+
+        if (!insns_.find(uninstAddr)) {
+            // Existed in the old, not in the new?
+            assert(0);
+        }
+
+        Address newAddr = insns_[uninstAddr]->relocAddr();
+        previousInsnAddrs_->push_back(pdpair<Address, Address> (uninstAddr, oldAddr));
+    }
+}
+        
+
 
 bool multiTramp::hasChanged() {
     if (changedSinceLastGeneration_) {

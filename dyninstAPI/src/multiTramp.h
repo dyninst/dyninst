@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.16 2006/06/21 16:01:59 bernat Exp $
+// $Id: multiTramp.h,v 1.17 2006/08/10 17:31:25 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -549,6 +549,17 @@ class multiTramp : public generatedCodeObject {
   dictionary_hash<Address, relocatedInstruction *> insns_;
   void updateInsnDict();
 
+  // Insert jumps/traps/whatever from previous multiTramp to new multiTramp.
+  // Allows correct instrumentation semantics - "if you add to a later point,
+  // the new code will execute". We add to this vector from the previous 
+  // multiTramp and put traps in when linking the new one. Then we nuke the
+  // vector.
+  // Format: <uninst addr, addr in old multiTramp>
+  // We need to map old mT to new mT - however, the "new mT" isn't done until
+  // we generate. So instead we go "uninst, oldMT", as we can map uninst -> newMT
+  // via insns_
+  pdvector<pdpair<Address, Address> > *previousInsnAddrs_;
+  void constructPreviousInsnList(multiTramp *oldMulti);
 
   codeGen generatedMultiT_;
   codeGen jumpBuf_;
