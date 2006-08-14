@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.245 2006/07/07 00:01:05 jaw Exp $
+// $Id: linux.C,v 1.246 2006/08/14 18:51:39 legendre Exp $
 
 #include <fstream>
 
@@ -696,8 +696,6 @@ bool SignalGenerator::resendSuppressedSignals()
   assert(suppressed_sigs.size() == suppressed_lwps.size());
   for (unsigned int i = 0; i < suppressed_sigs.size(); ++i)
   {
-    fprintf(stderr, "%s[%d]:  resending %d to %d via lwp_kill\n", FILE__, __LINE__,
-            suppressed_sigs[i], suppressed_lwps[i]->get_lwp_id());
     //Throw back the extra signals we caught.
     lwp_kill(suppressed_lwps[i]->get_lwp_id(), suppressed_sigs[i]);
   }
