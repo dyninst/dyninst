@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.158 2006/07/07 00:01:00 jaw Exp $
+// $Id: BPatch.C,v 1.159 2006/08/14 18:51:34 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1313,7 +1313,7 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
  * is called only by the constructor for BPatch_process).
  *
  * process	A pointer to the process to register.
- */
+ */ 
 void BPatch::registerProcess(BPatch_process *process, int pid)
 {
    if (!pid)
@@ -1334,18 +1334,18 @@ void BPatch::registerProcess(BPatch_process *process, int pid)
  */
 void BPatch::unRegisterProcess(int pid)
 {
-    if (!info->procsByPid.defines(pid)) {
-       fprintf(stderr, "%s[%d]:  ERROR, no process %d defined in procsByPid\n", FILE__,  __LINE__, pid);
-       dictionary_hash_iter<int, BPatch_process *> iter(info->procsByPid);
+   if (!info->procsByPid.defines(pid)) {
+      fprintf(stderr, "%s[%d]:  ERROR, no process %d defined in procsByPid\n", FILE__,  __LINE__, pid);
+      dictionary_hash_iter<int, BPatch_process *> iter(info->procsByPid);
        BPatch_process *p;
        int pid;
        while (iter.next(pid, p)) {
-         fprintf(stderr, "%s[%d]:  have process %d\n", FILE__, __LINE__, pid);
+          fprintf(stderr, "%s[%d]:  have process %d\n", FILE__, __LINE__, pid);
        }
-    }
-    assert(info->procsByPid.defines(pid));
-    info->procsByPid.undef(pid);	
-    assert(!info->procsByPid.defines(pid));
+   }
+   assert(info->procsByPid.defines(pid));
+   info->procsByPid.undef(pid);	
+   assert(!info->procsByPid.defines(pid));
 }
 
 
@@ -1439,6 +1439,14 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
 {
    clearError();
    
+   if (info->procsByPid.defines(pid)) {
+      char msg[256];
+      sprintf(msg, "attachProcess failed.  Dyninst is already attached to %d.",
+              pid);
+      reportError(BPatchWarning, 26, msg);      
+      return NULL;
+   }
+
    BPatch_process *ret = new BPatch_process(path, pid);
 
    if (!ret->llproc ||
