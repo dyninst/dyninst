@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.10 2006/05/11 21:03:06 jodom Exp $
+// $Id: mapped_module.C,v 1.11 2006/08/14 18:51:40 legendre Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -676,16 +676,12 @@ void mapped_module::parseLineInformation(process * /* proc */,
 
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 void mapped_module::parseFileLineInfo() {
-	static dictionary_hash< pdstring, bool > haveParsedFileMap( pdstring::hash );
-	
 	/* Determine if we've parsed this file already. */
 	image * moduleImage = obj()->parse_img();
 	assert( moduleImage != NULL );
 	const Object & moduleObject = moduleImage->getObject();	
 	const char * fileName = moduleObject.getFileName();
 
-    if( haveParsedFileMap.defines( fileName ) ) { return; }
-	
 	/* We have not parsed this file already, so wind up libdwarf. */
 	int fd = open( fileName, O_RDONLY );
 	assert( fd != -1 );
@@ -781,6 +777,7 @@ void mapped_module::parseFileLineInfo() {
 					
 					/* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
 					currentModule->lineInfo_.addLine( canonicalLineSource, previousLineNo, previousLineAddr, lineAddr );
+               currentModule->lineInfoValid_ = true;
 				
 					// /* DEBUG */ fprintf( stderr, "%s[%d]: inserted address range [0x%lx, 0x%lx) for source '%s:%u' into module '%s'.\n", __FILE__, __LINE__, previousLineAddr, lineAddr, canonicalLineSource, previousLineNo, currentModule->fileName().c_str() );
 					} /* end if we found the function by its address */
@@ -821,7 +818,6 @@ void mapped_module::parseFileLineInfo() {
 	P_close( fd );
 	
 	/* Note that we've parsed this file. */
-	haveParsedFileMap[ fileName ] = true;
 	} /* end parseFileLineInfo() */
 #elif defined(arch_alpha)
 void mapped_module::parseFileLineInfo() {
