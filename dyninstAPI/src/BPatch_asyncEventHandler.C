@@ -434,12 +434,21 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     //event_queue.pop_back();
     ev = event_queue[0];
     event_queue.erase(0,0);
-#if 0
-    async_printf("%s[%d]: waitnextEvent, stale event %s from last time\n", 
-                 FILE__, __LINE__, eventType2str(ev.type));
-#endif
-    __UNLOCK;
-    return true;
+    bool found = false;
+    for (unsigned i=0; i<process_fds.size(); i++) {
+       if (process_fds[i].process &&
+           process_fds[i].process->getPid() == ev.proc->getPid()) 
+       {
+          found = true;
+          break;
+       }
+       
+    }
+    if (found) {
+       __UNLOCK;
+       return true;
+    }
+    event_queue.push_back(ev);
   }
 
   int width = 0;
@@ -661,6 +670,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
      for (unsigned int i = 0; i < event_queue.size(); ++i) {
        temp.push_back(event_queue[i]);
      }
+     event_queue.clear();
      event_queue.push_back(ev);
      for (unsigned int i = 0; i < temp.size(); ++i) {
        event_queue.push_back(temp[i]);
