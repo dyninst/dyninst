@@ -52,7 +52,6 @@ template< class Value, class ValueRange > RangeLookup< Value, ValueRange >::Rang
 /* Private refactoring function: erase()s value from map. */
 template< class M >
 bool removeByValue( M & map, const typename M::value_type & value ) {
-	bool removedValue = false;
 #if ! defined( os_windows )
 	std::pair< typename M::iterator, typename M::iterator > range = map.equal_range( value.first );	
 #else
@@ -61,10 +60,10 @@ bool removeByValue( M & map, const typename M::value_type & value ) {
 	for( ; range.first != range.second && range.first != map.end(); ++range.first ) {
 		if( * range.first == value ) {
 			map.erase( range.first );
-			removedValue = true;
+			return true;
 			}
 		}
-	return removedValue;
+   return false;
 	} /* end removeByValue() */
 
 /* We maintain the invariant that low and high address sort orders are the same.  (If we
