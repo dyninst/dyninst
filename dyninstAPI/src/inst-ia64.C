@@ -2444,11 +2444,11 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	
 	/* Extract the CFM. */
 	errno = 0;
-	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, lwpToUse->get_lwp_id(), PT_CFM, 0 ) };
-	if( errno != 0 ) { return false; } // note that this doesn't work.
-
-	/* FIXME: */ if( ! ( 0 == reg.CFM.rrb_pr == reg.CFM.rrb_fr == reg.CFM.rrb_gr ) ) { assert( 0 ); }
-	/* FIXME: */ if( reg.raw == INVALID_CFM ) { assert( 0 ); }
+	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, lwpToUse->get_lwp_id(), PT_CFM, 0, -1, & errno ) };
+	if( errno != 0 || reg.raw == INVALID_CFM ) {
+		/* Not sure that this helps, but what else can we do? */
+		return false;
+		}
 
 	/* Set regSpace for the code generator. */
 	int baseReg = 32 + reg.CFM.sof + NUM_PRESERVED;
@@ -2465,7 +2465,7 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	initBaseTrampStorageMap( &rs, reg.CFM.sof, NULL );
 	rs.originalLocals = reg.CFM.sol;
 	rs.originalOutputs = reg.CFM.sof - reg.CFM.sol;
-	rs.originalRotates = reg.CFM.sor;
+	rs.originalRotates = reg.CFM.sor << 3;  // the SOR is stored in multiples of eight
 
 	/* The code generator needs to know about the register space
 	   as well, so just take advantage of the existing globals. */
