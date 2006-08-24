@@ -133,16 +133,8 @@ public:
     API_EXPORT(Int, (),
     BPatch_Vector<BPatch_thread *> &, getCatchupThreads, ());
 
-#if 0 // PDSEP
-    API_EXPORT(Int, (),
-    bool, activeInStackDuringInsertion, ());
-#endif
 };
 
-#if 0
-class BPatchSnippetHandle;
-class BPatch_snippet;
-#endif
 typedef struct {
   BPatch_snippet *snip;
   BPatchSnippetHandle *sh;
@@ -287,7 +279,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                               BPatch_thread *thread, // == NULL if proc-wide
                               void *userData,
                               BPatchOneTimeCodeCallback cb = NULL,
-                              bool synchronous = true);
+                              bool synchronous = true, bool *err = NULL);
 
     void oneTimeCodeCompleted();
 
@@ -641,8 +633,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //  
     //  Have the specified code be executed by the mutatee once.  Wait until done.
 
-    API_EXPORT(Int, (expr),
-    void *,oneTimeCode,(const BPatch_snippet &expr));
+    API_EXPORT(Int, (expr, err),
+    void *,oneTimeCode,(const BPatch_snippet &expr, bool *err = NULL));
 
     //  BPatch_process::oneTimeCodeAsync
     //  

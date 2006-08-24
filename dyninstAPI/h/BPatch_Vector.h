@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.21 2006/04/13 23:05:10 legendre Exp $
+// $Id: BPatch_Vector.h,v 1.22 2006/08/24 11:19:24 jaw Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -49,28 +49,15 @@
 #include <assert.h>
 
 #if !defined(USE_DEPRECATED_BPATCH_VECTOR)
-//#include <stl.h>
 #include <vector>
 #include <algorithm>
-//#if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
 #define BPatch_Vector std::vector
-//#else
-//#define BPatch_Vector	vector
-//#endif
 
 #else
 #include "BPatch_dll.h"
 #ifdef external_templates
 #pragma interface
 #endif /* external_templates */
-
-/*
- * This causes problems when including this file in code that uses STL,
- * so I'm taking it out for now.  - brb
-#ifndef BPATCH_LIBRARY
-#define vector	BPatch_Vector
-#endif
- */
 
 template<class T>
 class BPATCH_DLL_EXPORT BPatch_Vector {

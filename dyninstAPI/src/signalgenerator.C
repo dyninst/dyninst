@@ -1219,7 +1219,6 @@ process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir,
    // check for I/O redirection in arg list.
    pdstring inputFile;
    pdstring outputFile;
-//#if !defined(nomoreBPATCH_LIBRARY) || defined(BPATCH_REDIRECT_IO) PDSEP clean me
    // TODO -- this assumes no more than 1 of each "<", ">"
    // also, do we want this behavior in general, or should there be a switch to enable/disable?
    for (unsigned i1=0; i1<argv->size(); i1++) {
@@ -1238,7 +1237,6 @@ process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir,
        argv->resize(argv->size()-2);
      }
    }
-//#endif
 
 
   SignalGenerator *sg = newSignalGenerator(file, dir, argv, envp, inputFile, outputFile,

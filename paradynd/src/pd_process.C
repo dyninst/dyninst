@@ -1590,7 +1590,7 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
     // We still use int_function and instPoint. TODO: replace frame
     // with the BPatch frame, int_function with BPatch_function, etc.
 
-    instPoint *point = bpPoint->PDSEP_instPoint();
+    instPoint *point = bpPoint->PdSEP_instPoint();
     
     // Most of the checking is based on "Am I before, after, or during the
     // instrumentation point". We check that first to see if we need to care.
@@ -2309,15 +2309,16 @@ unsigned pd_process::postRPCtoDo(BPatch_snippet &action, bool noCost,
     unsigned retval = (unsigned)-1;
 
     if (NULL == callbackFunc) {
-       void *return_value = thr->oneTimeCode(action);
-       if (return_value == (void *) -1L) {
+       bool otc_err = false;
+       void *return_value = thr->oneTimeCode(action, &otc_err);
+       if (otc_err) {
          fprintf(stderr, "%s[%d]:  oneTimeCode failed\n", FILE__, __LINE__);
        }
        else
          retval = 0;
     }
     else {
-       fprintf(stderr, "%s[%d]:  PDSEP:  FIXME:  check oneTimeCode callback mapping\n", FILE__, __LINE__);
+       fprintf(stderr, "%s[%d]:  FIXME:  check oneTimeCode callback mapping\n", FILE__, __LINE__);
        //  need to ensure that this callback is properly associated with this oneTimeCode
        bool ok = thr->oneTimeCodeAsync(action, userData, callbackFunc);
        if (!ok) {

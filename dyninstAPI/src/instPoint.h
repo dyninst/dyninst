@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.28 2006/08/03 08:18:21 jaw Exp $
+// $Id: instPoint.h,v 1.29 2006/08/24 11:19:26 jaw Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -459,9 +459,6 @@ struct batchInsertionRecord {
     // This has to be vectorized to handle the multiple-point insertion + edges.
     pdvector<callWhen> when_;
     callOrder order_;
-#if 0 // PDSEP
-    AstNode *ast_;
-#endif
     BPatch_snippet *snip;
     BPatchSnippetHandle *handle_; // handle to fill in
 

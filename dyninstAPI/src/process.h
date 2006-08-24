@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.388 2006/07/07 00:01:07 jaw Exp $
+/* $Id: process.h,v 1.389 2006/08/24 11:19:26 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -63,7 +63,6 @@
 #include "dyninstAPI/src/inst.h" // callWhen
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/libState.h"
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/imageUpdate.h"

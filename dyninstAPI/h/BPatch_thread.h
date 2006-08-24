@@ -213,8 +213,8 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 
     //  BPatch_thread::oneTimeCode
     //  Have mutatee execute specified code expr once.  Wait until done.
-    API_EXPORT(Int, (expr),
-    void *,oneTimeCode,(const BPatch_snippet &expr));
+    API_EXPORT(Int, (expr, err),
+    void *,oneTimeCode,(const BPatch_snippet &expr, bool *err = NULL));
 
     //  BPatch_thread::oneTimeCodeAsync
     //  Have mutatee execute specified code expr once.  Dont wait until done.

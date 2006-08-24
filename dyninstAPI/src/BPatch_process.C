@@ -1598,9 +1598,6 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                        catchup_info.sh = sh;
                        catchup_info.thread = bpthread;
                        catchup_handles.push_back(catchup_info);
-#if 0 // PDSEP
-                       sh->catchup_threads.push_back(bpthread);
-#endif
                    }
 		   break;
 		  case BPatch_locExit:
@@ -1614,9 +1611,6 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                             catchup_info.sh = sh;
                             catchup_info.thread = bpthread;
                             catchup_handles.push_back(catchup_info);
-#if  0 // PDSEP
-                            sh->catchup_threads.push_back(bpthread);
-#endif
                         }
 			break;
 		    case BPatch_subroutine:
@@ -1628,9 +1622,6 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                             catchup_info.sh = sh;
                             catchup_info.thread = bpthread;
                             catchup_handles.push_back(catchup_info);
-#if 0 // PDSEP
-                            sh->catchup_threads.push_back(bpthread);
-#endif
                         }
 			break;
 		    case BPatch_locLoopEntry:
@@ -1641,9 +1632,6 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                             catchup_info.sh = sh;
                             catchup_info.thread = bpthread;
                             catchup_handles.push_back(catchup_info);
-#if 0 // PDSEP
-                            sh->catchup_threads.push_back(bpthread);
-#endif
                         }
 			if (location == afterPoint_l) {
 			    BPatch_basicBlockLoop *loop = bppoint->getLoop();
@@ -1653,9 +1641,6 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                                 catchup_info.sh = sh;
                                 catchup_info.thread = bpthread;
                                 catchup_handles.push_back(catchup_info);
-#if 0 // PDSEP
-                                sh->catchup_threads.push_back(bpthread);
-#endif
                             }
 			}
 			break;
@@ -1668,9 +1653,6 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                             catchup_info.sh = sh;
                             catchup_info.thread = bpthread;
                             catchup_handles.push_back(catchup_info);
-#if 0 // PDSEP
-                            sh->catchup_threads.push_back(bpthread);
-#endif
                         }
 			break;
 
@@ -1863,9 +1845,9 @@ bool BPatch_process::replaceFunctionInt(BPatch_function &oldFunc,
  * execute argument <expr> once.
  *
  */
-void *BPatch_process::oneTimeCodeInt(const BPatch_snippet &expr)
+void *BPatch_process::oneTimeCodeInt(const BPatch_snippet &expr, bool *err)
 {
-    return oneTimeCodeInternal(expr, NULL, NULL, NULL, true);
+    return oneTimeCodeInternal(expr, NULL, NULL, NULL, true, err);
 }
 
 /*
@@ -1979,14 +1961,13 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                           BPatch_thread *thread, 
                                           void *userData,
                                           BPatchOneTimeCodeCallback cb,
-                                          bool synchronous)
+                                          bool synchronous,
+                                          bool *err)
 {
     if (statusIsTerminated()) {
        fprintf(stderr, "%s[%d]:  oneTimeCode failing because process is terminated\n", FILE__, __LINE__);
-       return (void *) -1L;
-#if 0 // PDSEP
+       if (err) *err = true;
        return NULL;
-#endif
     }
     if (!isVisiblyStopped) resumeAfterCompleted_ = true;
 
@@ -1998,10 +1979,8 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 
     if (statusIsTerminated()) {
        fprintf(stderr, "%s[%d]:  oneTimeCode failing because process is terminated\n", FILE__, __LINE__);
-       return (void *) -1L;
-#if 0 // PDSEP
+       if (err) *err = true;
        return NULL;
-#endif
     }
 
    inferiorrpc_printf("%s[%d]: oneTimeCode, handlers quiet, sync %d, statusIsStopped %d, resumeAfterCompleted %d\n",
@@ -2076,10 +2055,8 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                           FILE__, __LINE__);
        if (statusIsTerminated()) {
            fprintf(stderr, "%s[%d]:  process terminated with outstanding oneTimeCode\n", FILE__, __LINE__);
-           return (void *) -1L;
-#if 0 // PDSEP
+           if (err) *err = true;
            return NULL;
-#endif
        }
        
        eventType ev = llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, 
@@ -2088,19 +2065,15 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                           FILE__, __LINE__, statusIsTerminated());
        if (statusIsTerminated()) {
            fprintf(stderr, "%s[%d]:  process terminated with outstanding oneTimeCode\n", FILE__, __LINE__);
-           return (void *) -1L;
-#if 0 // PDSEP
+           if (err) *err = true;
            return NULL;
-#endif
        }
 
        if (ev == evtProcessExit) {
            fprintf(stderr, "%s[%d]:  process terminated with outstanding oneTimeCode\n", FILE__, __LINE__);
            fprintf(stderr, "Process exited, returning NULL\n");
-           return (void *) -1L;
-#if 0 // PDSEP
+           if (err) *err = true;
            return NULL;
-#endif
        }
 
        inferiorrpc_printf("%s[%d]: executing callbacks\n", FILE__, __LINE__);
@@ -2112,6 +2085,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    inferiorrpc_printf("%s[%d]: RPC completed, process status %s\n",
                       FILE__, __LINE__, statusIsStopped() ? "stopped" : "running");
    
+   if (err) *err = false;
    delete info;
    return ret;
 }
@@ -2503,14 +2477,6 @@ BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
 {
   return catchup_threads;
 }
-
-#if 0 //PDSEP -- this function should be removed?
-bool BPatchSnippetHandle::activeInStackDuringInsertionInt()
-{
-  return catchupNeeded;
-  return true;
-}
-#endif
 
 BPatch_function *BPatch_process::get_function(int_function *f) 
 { 

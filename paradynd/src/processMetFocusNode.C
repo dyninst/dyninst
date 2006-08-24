@@ -491,17 +491,6 @@ void processMetFocusNode::prepareCatchupInstr(const pdvector<BPatch_Vector<BPatc
     for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
         const BPatch_Vector<BPatch_frame> &stackWalk = stackWalks[thr_iter];
         
-#if 0  // PDSEP
-        pdvector<instReqNode *> nodes_for_catchup;
-
-        // Now go through all associated code nodes, and add appropriate bits to
-        // the catchup request list.
-        for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
-            constraintCodeNodes[cIter]->prepareCatchupInstr(nodes_for_catchup);
-        // Get the metric code node catchup list
-        metricVarCodeNode->prepareCatchupInstr(nodes_for_catchup);
-#endif
-
         // Note: stacks are delivered to us in bottom-up order (most recent to
         // main()), and we want to execute from main down. So loop through
         // backwards and add to the main list. We can go one thread at a time,

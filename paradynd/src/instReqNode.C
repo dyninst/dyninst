@@ -71,7 +71,7 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
         return;
     }
     
-   fprintf(stderr, "%s[%d]:  PDSEP ERROR:  need to figure out copying of instrumentation handles in fork of %d\n", FILE__, __LINE__, childProc->getPid());
+   fprintf(stderr, "%s[%d]:  ERROR:  need to figure out copying of instrumentation handles in fork of %d\n", FILE__, __LINE__, childProc->getPid());
 }
 
 bool instReqNode::loadInstrIntoApp(pd_process *theProc)

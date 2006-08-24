@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.222 2006/07/07 00:01:09 jaw Exp $
+// $Id: unix.C,v 1.223 2006/08/24 11:19:28 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1151,21 +1151,12 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
  // *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
 
-//bool SignalGenerator::forkNewProcess()
-#ifndef BPATCH_LIBRARY
 bool forkNewProcess_real(pdstring file,
-                    pdstring dir, pdvector<pdstring> *argv,
-                    pdvector<pdstring> *envp,
-                    pdstring inputFile, pdstring outputFile, int &traceLink,
-                    pid_t &pid, int /*stdin_fd*/, int stdout_fd, int /*stderr_fd*/)
-#else
-   bool forkNewProcess_real(pdstring file,
                             pdstring /* dir */, pdvector<pdstring> *argv,
                             pdvector<pdstring> *envp,
                             pdstring /* inputFile */, pdstring /* outputFile */,
                             int &/* traceLink */,
                             pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
-#endif
 {
    forkexec_printf("%s[%d][%s]:  welcome to forkNewProcess(%s)\n",
                    FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
@@ -1209,80 +1200,13 @@ bool forkNewProcess_real(pdstring file,
    } else if (pid == 0) {
       // *** child
 
-#ifndef BPATCH_LIBRARY
-      //setup output redirection to termWin
-      dup2(stdout_fd,1);
-      dup2(stdout_fd,2);
 
-      // Now that stdout is going to a pipe, it'll (unfortunately) be block
-      // buffered instead of the usual line buffered (when it goes to a tty).
-      // In effect the stdio library is being a little too clever for our
-      // purposes.  We don't want the "bufferedness" to change.  So we set it
-      // back to line-buffered.  The command to do this is setlinebuf(stdout)
-      // [stdio.h call] But we don't do it here, since the upcoming execve()
-      // would undo our work [execve keeps fd's but resets higher-level stdio
-      // information, which is recreated before execution of main()] So when
-      // do we do it?  In rtinst's DYNINSTinit (RTposix.c et al.)
-
-      // setup stderr for rest of exec try.
-      FILE *childError = P_fdopen(2, "w");
-
-      P_close(tracePipe[0]);
-
-      if (P_dup2(tracePipe[1], 3) != 3) {
-         fprintf(childError, "dup2 failed\n");
-         fflush(childError);
-         P__exit(-1);
-      }
-
-      /* close if higher */
-      if (tracePipe[1] > 3) P_close(tracePipe[1]);
-
-
-      if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
-         bpwarn("cannot chdir to '%s': %s\n", dir.c_str(), 
-                strerror(errno));
-         P__exit(-1);
-      }
-#endif
-
-#if !defined(BPATCH_LIBRARY)
-      /* see if I/O needs to be redirected */
-      if (inputFile.length()) {
-         int fd = P_open(inputFile.c_str(), O_RDONLY, 0);
-         if (fd < 0) {
-            fprintf(childError, "stdin open of %s failed\n", inputFile.c_str());
-            fflush(childError);
-            P__exit(-1);
-         } else {
-            dup2(fd, 0);
-            P_close(fd);
-         }
-      }
-
-      if (outputFile.length()) {
-         int fd = P_open(outputFile.c_str(), O_WRONLY|O_CREAT, 0444);
-         if (fd < 0) {
-            fprintf(childError, "stdout open of %s failed\n", outputFile.c_str());
-            fflush(childError);
-            P__exit(-1);
-         } else {
-            dup2(fd, 1); // redirect fd 1 (stdout) to a copy of descriptor "fd"
-            P_close(fd); // not using descriptor fd any more; close it.
-         }
-      }
-#endif
-
-#if defined (BPATCH_LIBRARY)
-      // Should unify with (fancier) Paradyn handling
-      /* see if we should use alternate file decriptors */
       if (stdin_fd != 0) dup2(stdin_fd, 0);
       if (stdout_fd != 1) dup2(stdout_fd, 1);
       if (stderr_fd != 2) dup2(stderr_fd, 2);
-#endif
 
-      // define our own session id so we don't get the mutators signals
 #ifndef rs6000_ibm_aix4_1
+      // define our own session id so we don't get the mutators signals
       setsid();
 #endif
       /* indicate our desire to be traced */

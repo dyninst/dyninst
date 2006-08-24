@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.171 2006/07/07 00:01:01 jaw Exp $
+// $Id: ast.C,v 1.172 2006/08/24 11:19:26 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1852,14 +1852,9 @@ Address AstNode::generateCode_phase2(process *proc,
          emitImm(orOp, tmp, 0, dest, gen, noCost, rs);
       }
    } else if (type == sequenceNode) {
-#if 0 && defined(nomoreBPATCH_LIBRARY_F) // mirg: Aren't we losing a reg here?
-      (void) loperand->generateCode_phase2(proc, rs, gen, noCost, 
-                                           ifForks, location);
-#else
       Register tmp = loperand->generateCode_phase2(proc, rs, gen, 
                                                    noCost, ifForks,location);
       rs->freeRegister(tmp);
-#endif
       dest = roperand->generateCode_phase2(proc, rs, gen, 
                                            noCost, ifForks, location);
    }

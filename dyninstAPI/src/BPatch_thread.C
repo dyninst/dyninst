@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.169 2006/07/07 00:01:00 jaw Exp $
+// $Id: BPatch_thread.C,v 1.170 2006/08/24 11:19:26 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -607,9 +607,9 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
  * Have the mutatee execute specified code expr once.  Wait until done.
  *
  */
-void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr)
+void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr, bool *err)
 {
-    return proc->oneTimeCodeInternal(expr, this, NULL, NULL, true);
+    return proc->oneTimeCodeInternal(expr, this, NULL, NULL, true, err);
 }
 
 /*

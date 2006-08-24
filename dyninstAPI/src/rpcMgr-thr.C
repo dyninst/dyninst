@@ -519,7 +519,7 @@ bool rpcThr::getReturnValueIRPC()
     if (!runningRPC_ || !runningRPC_->rpc->callbackFunc)
         return false;
 
-    Address returnValue = (Address) -1;
+    Address returnValue = 0;
 
     dyn_lwp *thr_lwp = thr_->get_lwp();
 
@@ -534,9 +534,6 @@ bool rpcThr::getReturnValueIRPC()
     if (runningRPC_->resultRegister != Null_Register) {
         // We have a result that we care about
         returnValue = thr_lwp->readRegister(runningRPC_->resultRegister);
-    }
-    else {
-      returnValue = 0;
     }
 
     runningRPC_->resultValue = (void *)returnValue;

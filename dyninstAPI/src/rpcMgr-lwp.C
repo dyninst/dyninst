@@ -454,7 +454,7 @@ bool rpcLWP::getReturnValueIRPC()
 {
     if (!runningRPC_ || !runningRPC_->rpc->callbackFunc)
         return false;
-    Address returnValue = (Address) -1;
+    Address returnValue = 0;
     
     if (runningRPC_->resultRegister != Null_Register) {
         // We have a result that we care about
@@ -462,9 +462,6 @@ bool rpcLWP::getReturnValueIRPC()
         // Okay, this bit I don't understand. 
         extern registerSpace *regSpace;
         regSpace->freeRegister(runningRPC_->resultRegister);
-    }
-    else {
-      returnValue = (Address) 0;
     }
 
     runningRPC_->resultValue = (void *)returnValue;
