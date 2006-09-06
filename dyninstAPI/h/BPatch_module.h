@@ -85,9 +85,6 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     BPatch_Vector<BPatch_function *> *retfuncs;
 
     bool nativeCompiler;
-
-    bool hasBeenRemoved_;
-     
 public:
 
     //  This function should go away when paradyn is on top of dyninst
@@ -229,7 +226,7 @@ public:
     unsigned long, getSize, (void));
 
     API_EXPORT(Int, (), 
-               bool, hasBeenRemoved, ());
+               bool, isValid, ());
 
 
 #ifdef IBM_BPATCH_COMPAT
