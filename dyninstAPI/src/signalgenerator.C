@@ -1091,11 +1091,11 @@ bool SignalGenerator::attachProcess()
     // We're post-main... run the bootstrapState forward
 
 #if !defined(os_windows)
-    proc->bootstrapState = initialized_bs;
+    proc->setBootstrapState(initialized_bs);
 #else
     // We need to wait for the CREATE_PROCESS debug event.
     // Set to "begun" here, and fix up in the signal loop
-    proc->bootstrapState = attached_bs;
+    proc->setBootstrapState(attached_bs);
 #endif
 
     // Record the process state here so that we can replicate

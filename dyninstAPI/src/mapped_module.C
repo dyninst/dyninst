@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.11 2006/08/14 18:51:40 legendre Exp $
+// $Id: mapped_module.C,v 1.12 2006/09/06 19:14:44 bernat Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -684,7 +684,12 @@ void mapped_module::parseFileLineInfo() {
 
 	/* We have not parsed this file already, so wind up libdwarf. */
 	int fd = open( fileName, O_RDONLY );
-	assert( fd != -1 );
+        if (fd == -1) {
+            // Odd case, mark as "parsed" and return. We saw this happen when
+            // the .so was deleted from the filesystem before parsing
+            haveParsedFileMap[fileName] = true;
+            return;
+        }
 	
 	Dwarf_Debug dbg;
 	int status = dwarf_init(	fd, DW_DLC_READ, & pd_dwarf_handler,

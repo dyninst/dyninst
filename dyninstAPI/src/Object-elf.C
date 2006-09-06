@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.106 2006/07/07 00:01:01 jaw Exp $
+ * $Id: Object-elf.C,v 1.107 2006/09/06 19:14:43 bernat Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -899,25 +899,51 @@ void Object::findMain( pdvector< Symbol > &allsymbols )
         }
     }
     
-    if( !foundMain )
+    if( !foundMain)
     {
         //find and add main to allsymbols
         const unsigned char* p;
         p = ( const unsigned char* )elf_vaddr_to_ptr( text_addr_ );
+        const unsigned char *lastP = 0;
         
-        const int pushCodeSize = 1;
-        
+        switch(addressWidth_nbytes) {
+        case 4:
+            // 32-bit...
+            ia32_set_mode_64(false);
+            break;
+        case 8:
+            ia32_set_mode_64(true);
+            break;
+        default:
+            assert(0 && "Illegal address width");
+            break;
+        }
+
         instruction insn;
         insn.setInstruction( p );
     
         while( !insn.isCall() )
         {
+            lastP = p;
             p += insn.size();
             insn.setInstruction( p );
         }
-        p -= insn.size() - pushCodeSize;
-        
-        Address mainAddress =  *( const Address* )p;
+
+        // We _really_ can't handle a call with nothing before it....
+        assert(lastP);
+
+        // FIXME: this assumes that the instruction immediately before the call sets
+        // the main address - this may not be true. 
+        instruction preCall;
+        preCall.setInstruction(lastP);
+
+        Address mainAddress;
+        if (addressWidth_nbytes == 8)
+            mainAddress = get_disp(&preCall);
+        else 
+            // get_disp doesn't work here... skip the "push" opcode and grab the immediate
+            mainAddress = *(Address *)(lastP+1);
+            
 
         logLine( "No main symbol found: creating symbol for main\n" );
     
