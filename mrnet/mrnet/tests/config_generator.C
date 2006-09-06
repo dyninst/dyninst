@@ -14,19 +14,19 @@
 #include "common/h/ntHeaders.h"
 #endif
 
-#include <vector>
+#include <list>
 #include <string>
 
+#include "mrnet/MRNet.h"
 #include "Topology.h"
-#include "Tree.h"
 
-static std::vector<std::string> get_HostsFromFile( FILE *);
+static std::list<std::string> get_HostsFromFile( FILE *);
 static void print_usage();
 
 int main(int argc, char **argv)
 {
     std::string machine_file="", output_file="", topology="", topology_type="";
-    std::vector<std::string> hosts;
+    std::list<std::string> hosts;
     int c;
     FILE * infile, *outfile;
 
@@ -145,22 +145,12 @@ int main(int argc, char **argv)
 
     tree->create_TopologyFile( outfile );
 
-    if ( !tree->validate() ){
-        if( tree->contains_Cycle() ){
-            fprintf(stderr, "Tree contains cycle: check hostfile for duplicate machine specifications\n");
-            exit(-1);
-        }
-        if( tree->contains_UnreachableNodes() ){
-            fprintf(stderr, "Tree contains unreachable nodes: check hostfile for duplicate machine specifications\n");
-            exit(-1);
-        }
-    }
     return 0;
 }
 
-std::vector<std::string> get_HostsFromFile(FILE * f)
+std::list<std::string> get_HostsFromFile(FILE * f)
 {
-    std::vector<std::string> hosts;
+    std::list<std::string> hosts;
     char tmp_str[128], tmp_str2[128], *num_proc_str;
     char * cur_host;
     unsigned int num_procs;
