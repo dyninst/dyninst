@@ -86,7 +86,13 @@ LIBMRNET    = $(LIBDIR)/libmrnet.a
 LIBXPLAT    = $(MRNET_ROOT)/xplat/libxplat.a
 COMMNODE    = $(BINDIR)/mrnet_commnode 
 TARGETS     = $(LIBMRNET) $(COMMNODE)
-INCDIR      = -I$(SRCDIR)/h -I$(SRCDIR) -I$(SRCDIR)/.. -I$(SRCDIR)/xplat/include -I$(MRNET_ROOT)
+INCDIR      = -I$(SRCDIR)/h -I$(SRCDIR)/src -I$(SRCDIR)/xplat/include -I$(SRCDIR)/tests
+FILTERSO_HEADERS = $(SRCDIR)/src/Packet.h \
+	               $(SRCDIR)/src/DataElement.h \
+	               $(SRCDIR)/src/Error.h \
+	               $(SRCDIR)/src/pdr.h \
+	               $(SRCDIR)/src/refCounter.h \
+	               $(SRCDIR)/src/Types.h
 
 TESTS   = $(BINDIR)/microbench_FE \
 	      $(BINDIR)/microbench_BE \
@@ -131,7 +137,8 @@ LIBMRNET_SRCS = \
 	         $(SRCDIR)/src/Filter.C \
 	         $(SRCDIR)/src/FilterDefinitions.C \
 	         $(SRCDIR)/src/ParadynFilterDefinitions.C \
-	         $(SRCDIR)/src/InternalNode.C 
+	         $(SRCDIR)/src/InternalNode.C \
+	         $(SRCDIR)/src/Tree.C 
 
 LIBMRNET_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(LIBMRNET_SRCS)))))
  
@@ -174,6 +181,7 @@ install-local: all
 	for hdr in @srcdir@/h/mrnet/*.h ; do \
 	    $(INSTALL) -p -m 444 $$hdr $(IINCDIR)/mrnet/ ; \
 	done
+	$(INSTALL) -p -m 444 $(FILTERSO_HEADERS) $(IINCDIR)/mrnet
 
 
 xplat-install:
