@@ -892,12 +892,8 @@ int bblInstance::version() const
 
 const void *bblInstance::getPtrToOrigInstruction(Address addr) const {
   if (version_ > 0) {
-    fprintf(stderr, "getPtrToOrigInstruction 0x%lx, version %d\n",
-	    addr, version_);
     for (unsigned i = 0; i < get_relocs().size(); i++) {
       if (get_relocs()[i]->relocAddr == addr) {
-	fprintf(stderr, "... returning 0x%lx off entry %d\n",
-		i, get_relocs()[i]->origAddr);
 	return (void *)get_relocs()[i]->origPtr;
       }
     }

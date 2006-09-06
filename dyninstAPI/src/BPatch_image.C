@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.92 2006/06/15 19:11:18 bernat Exp $
+// $Id: BPatch_image.C,v 1.93 2006/09/06 20:16:17 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -1028,5 +1028,6 @@ void BPatch_image::removeModule(BPatch_module *mod) {
         }
     }
 #endif
+    mod->handleUnload();
 }
 

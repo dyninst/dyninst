@@ -237,6 +237,8 @@ BPatch_function *BPatch_point::getFunctionInt()
 BPatch_function *BPatch_point::getCalledFunctionInt()
 {
    assert(point);
+
+   if (func->getModule()->hasBeenRemoved()) return NULL;
    
    if (point->getPointType() != callSite)
       return NULL;
@@ -262,6 +264,8 @@ void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
 
 const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
 {
+   if (func->getModule()->hasBeenRemoved()) return NULL;
+
     if (memacc) { 
         return memacc;
     }
@@ -279,6 +283,9 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
 const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt() 
 {
     allSnippets.clear();
+
+    if (func->getModule()->hasBeenRemoved()) return allSnippets;
+
 
     for (unsigned pre = 0; pre < preSnippets.size(); pre++) 
         allSnippets.push_back(preSnippets[pre]);
@@ -343,6 +350,8 @@ bool BPatch_point::usesTrap_NPInt()
  */
 bool BPatch_point::isDynamicInt()
 {
+   if (func->getModule()->hasBeenRemoved()) return false;
+
     if (!dynamic_call_site_flag) return false;
     if (dynamic_call_site_flag == 1) return true;
     
@@ -368,6 +377,8 @@ bool BPatch_point::isDynamicInt()
 void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) 
 {
   BPatch_function *func_to_use = user_cb;
+
+   if (func->getModule()->hasBeenRemoved()) return NULL;
 
   if ( !isDynamic() ) {
     fprintf(stderr, "%s[%d]:  call site is not dynamic, cannot monitor\n", 
@@ -585,6 +596,9 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
 BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_process *proc,
                                                        void *address,
                                                        BPatch_function *bpf) {
+
+   if (bpf->getModule()->hasBeenRemoved()) return NULL;
+
     // The useful prototype for instPoints:
     // createArbitraryInstPoint(addr, proc);
     
