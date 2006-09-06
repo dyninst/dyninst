@@ -6,11 +6,11 @@
 #include <vector>
 
 #include "mrnet/MRNet.h"
-#include "mrnet/src/Filter.h"
-#include "mrnet/src/CommunicationNode.h"
-#include "mrnet/src/ParentNode.h"
-#include "mrnet/src/utils.h"
 #include "xplat/SharedObject.h"
+#include "Filter.h"
+#include "CommunicationNode.h"
+#include "ParentNode.h"
+#include "utils.h"
 
 
 namespace MRN
@@ -61,7 +61,9 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
     func_ptr = so_handle->GetSymbol( func );
     if( func_ptr == NULL ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr,
-                    "XPlat::SharedObject::GetSymbol() failed.\n" ));
+                               "XPlat::SharedObject::GetSymbol(\"%s\"): %s\n",
+                               func, XPlat::SharedObject::GetErrorString() ));
+
         char buf[1024];
         sprintf( buf, "XPlat::SharedObject::GetSymbol(\"%s\"): %s\n",
                  so_file, XPlat::SharedObject::GetErrorString() );
@@ -75,7 +77,8 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
     fmt_str = ( const char * )so_handle->GetSymbol( func_fmt_str.c_str() );
     if( fmt_str == NULL ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr,
-                    "XPlat::SharedObject::GetSymbol() failed.\n" ));
+                               "XPlat::SharedObject::GetSymbol(\"%s\"): %s\n",
+                               func_fmt_str.c_str(), XPlat::SharedObject::GetErrorString()));
         char buf[1024];
         sprintf( buf, "XPlat::SharedObject::GetSymbol(\"%s\"): %s\n",
                  so_file, XPlat::SharedObject::GetErrorString() );
