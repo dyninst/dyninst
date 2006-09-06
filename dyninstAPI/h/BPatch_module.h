@@ -85,6 +85,8 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     BPatch_Vector<BPatch_function *> *retfuncs;
 
     bool nativeCompiler;
+
+    bool hasBeenRemoved_;
      
 public:
 
@@ -103,6 +105,8 @@ public:
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
     void setDefaultNamespacePrefix(char *name);    
     LineInformation & getLineInformation();
+    void handleUnload();
+
     // End functions for internal use only
   
     // BPatch_module::getName
@@ -223,6 +227,10 @@ public:
     // function minus the start of the first function.
     API_EXPORT(Int, (),
     unsigned long, getSize, (void));
+
+    API_EXPORT(Int, (), 
+               bool, hasBeenRemoved, ());
+
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
