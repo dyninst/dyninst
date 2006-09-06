@@ -12,6 +12,8 @@
 
 #include <string>
 #include <vector>
+#include <list>
+#include <map>
 #include "mrnet/FilterIds.h"
 
 //TODO: dynamically load paradyn filters
@@ -236,6 +238,58 @@ class Network{
     void print_error( const char * );
 };
 
+class TreeNode{
+ private:
+    std::string _name;
+    std::list<TreeNode*> children;
+    bool visited;
+
+ public:
+    TreeNode( std::string n);
+    void add_Child( TreeNode * );
+    void print_ToFile(FILE *);
+    std::string name(){ return _name; } 
+
+    unsigned int visit();
+};
+
+class BalancedTree;
+class GenericTree;
+
+class Tree{
+    friend class BalancedTree;
+    friend class GenericTree;
+ private:
+    TreeNode * root;
+    static std::map<std::string, TreeNode *> NodesByName;
+    bool _contains_cycle, _contains_unreachable_nodes;
+
+    bool validate();
+    bool contains_Cycle() { return _contains_cycle; }
+    bool contains_UnreachableNodes() { return _contains_unreachable_nodes; }
+
+ public:
+    static TreeNode * get_Node( std::string &);
+
+    Tree();
+    void create_TopologyFile( FILE * );
+    void get_TopologyBuffer( char ** buf );
+};
+
+class BalancedTree: public Tree{
+ private:
+    unsigned int _fanout, _num_leaves, _depth;
+
+ public:
+    BalancedTree( std::list<std::string> &hosts, std::string &topology_spec );
+};
+
+class GenericTree: public Tree{
+ private:
+
+ public:
+    GenericTree( std::list<std::string> &hosts, std::string &topology_spec );
+};
 } /* namespace MRN */
 
 #endif /* mrnet_h */
