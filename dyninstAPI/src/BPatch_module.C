@@ -141,8 +141,7 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
                               BPatch_image *_img ) :
    proc( _proc ), mod( _mod ), img( _img ), 
    retfuncs(NULL),
-   moduleTypes(NULL),
-   hasBeenRemoved_(false)
+   moduleTypes(NULL)
 {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -221,11 +220,15 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
 void BPatch_module::handleUnload() {
     // Hrm... what to do. For now, mark us as "deleted" so that
     // any other calls return an error.
-    hasBeenRemoved_ = true;
+
+    // Brainstorm: we can set mod to NULL (as it really is, 
+    // having been deleted...) and key off that. Saves a boolean.
+
+    mod = NULL;
 }
 
-bool BPatch_module::hasBeenRemovedInt() { 
-    return hasBeenRemoved_;
+bool BPatch_module::isValidInt() { 
+    return mod != NULL;
 }
 
 BPatch_module::~BPatch_module()
@@ -244,7 +247,7 @@ void BPatch_module::parseTypesIfNecessary() {
     if( moduleTypes != NULL ) { 
     	return;
     	}
-    if (hasBeenRemoved_) return;
+    if (!isValid()) return;
     
     moduleTypes = BPatch_typeCollection::getModTypeCollection( this );
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing module '%s' @ %p (file %s) with type collection %p\n",	__FILE__, __LINE__, mod->fileName().c_str(), this, mod->obj()->fileName().c_str(), moduleTypes );
@@ -330,7 +333,7 @@ BPatch_typeCollection *BPatch_module::getModuleTypesInt() {
 BPatch_Vector<BPatch_function *> *
 BPatch_module::getProceduresInt(bool incUninstrumentable)
 {
-    if (hasBeenRemoved_) return NULL;
+    if (!isValid()) return NULL;
 
     if (retfuncs)
        return retfuncs;
@@ -365,7 +368,7 @@ BPatch_module::findFunctionInt(const char *name,
         bool notify_on_failure, bool regex_case_sensitive,
         bool incUninstrumentable, bool dont_use_regex)
 {
-    if (hasBeenRemoved_) return NULL;
+    if (!isValid()) return NULL;
 
   unsigned size = funcs.size();
 
@@ -503,7 +506,7 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
 				     bool notify_on_failure, 
 				     bool incUninstrumentable)
 {
-    if (hasBeenRemoved_) return NULL;
+    if (!isValid()) return NULL;
 
   int_function *pdfunc = NULL;
   BPatch_function *bpfunc = NULL;
@@ -530,7 +533,7 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
 BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_name,
 						       bool incUninstrumentable)
 {
-    if (hasBeenRemoved_) return NULL;
+    if (!isValid()) return NULL;
  
   BPatch_function *bpfunc = NULL;
 
@@ -1198,7 +1201,7 @@ void BPatch_module::parseTypes()
 
 bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
-    if (hasBeenRemoved_) return false;
+    if (!isValid()) return false;
 
      BPatch_variableExpr *var;
      parseTypesIfNecessary();
@@ -1238,7 +1241,7 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 
 /* This function should be deprecated. */
 bool BPatch_module::getLineToAddrInt( unsigned int lineNo, BPatch_Vector< unsigned long > & buffer, bool ) {
-    if (hasBeenRemoved_) return false;
+    if (!isValid()) return false;
 
 	std::vector< std::pair< Address, Address > > ranges;
 	if( ! getAddressRangesInt( NULL, lineNo, ranges ) ) { return false; }
@@ -1251,14 +1254,14 @@ bool BPatch_module::getLineToAddrInt( unsigned int lineNo, BPatch_Vector< unsign
 	} /* end getLineToAddr() */
 
 bool BPatch_module::getSourceLinesInt( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ) {
-    if (hasBeenRemoved_) return false;
+    if (!isValid()) return false;
 
 	LineInformation & li = mod->getLineInformation();
 	return li.getSourceLines( addr, lines );
 	} /* end getSourceLines() */
 
 bool BPatch_module::getAddressRangesInt( const char * fileName, unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) {
-    if (hasBeenRemoved_) return false;
+    if (!isValid()) return false;
 
 	LineInformation & li = mod->getLineInformation();
 	if( fileName == NULL ) { fileName = mod->fileName().c_str(); }

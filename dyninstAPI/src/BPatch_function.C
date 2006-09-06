@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.80 2006/09/06 20:16:17 bernat Exp $
+// $Id: BPatch_function.C,v 1.81 2006/09/06 20:39:55 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -325,7 +325,7 @@ BPatch_module *BPatch_function::getModuleInt()
 
 BPatch_Vector<BPatch_localVar *> * BPatch_function::getParamsInt()
 {
-    if (mod->hasBeenRemoved()) return NULL;
+    if (!mod->isValid()) return NULL;
     mod->parseTypesIfNecessary();
     return funcParameters->getAllVars();
 }
@@ -356,7 +356,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
     // function does not exist!
     if (func == NULL) return NULL;
 
-    if (mod->hasBeenRemoved()) return NULL;
+    if (!mod->isValid()) return NULL;
 
     // if the function is not instrumentable, we won't find the point
     if (!isInstrumentable())
@@ -443,7 +443,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
   // function does not exist!
   if (func == NULL) return NULL;
 
-    if (mod->hasBeenRemoved()) return NULL;
+    if (!mod->isValid()) return NULL;
 
   // function is generally uninstrumentable (with current technology)
   if (func->funcEntries().size() == 0) return NULL;
@@ -479,7 +479,7 @@ void BPatch_function::addParam(const char * _name, BPatch_type *_type,
  */
 BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
 {
-    if (mod->hasBeenRemoved()) return NULL;
+    if (!mod->isValid()) return NULL;
     mod->parseTypesIfNecessary();
     BPatch_localVar * var = localVariables->findLocalVar(name);
     return (var);
@@ -493,7 +493,7 @@ BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
  */
 BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
 {
-    if (mod->hasBeenRemoved()) return NULL;
+    if (!mod->isValid()) return NULL;
     mod->parseTypesIfNecessary();
     BPatch_localVar * var = funcParameters->findLocalVar(name);
     return (var);
@@ -501,7 +501,7 @@ BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
 
 BPatch_flowGraph* BPatch_function::getCFGInt()
 {
-    if (mod->hasBeenRemoved()) return NULL;
+    if (!mod->isValid()) return NULL;
     if (cfg)
         return cfg;
     bool valid = false;
@@ -518,7 +518,7 @@ BPatch_flowGraph* BPatch_function::getCFGInt()
 
 BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt() 
 {
-    if (mod->hasBeenRemoved()) return NULL;
+    if (!mod->isValid()) return NULL;
     mod->parseTypesIfNecessary();
     return localVariables->getAllVars(); 
 }
@@ -526,7 +526,7 @@ BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt()
 BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(
         const char *name)
 {
-    if (mod->hasBeenRemoved()) return NULL;
+    if (!mod->isValid()) return NULL;
    getModule()->parseTypesIfNecessary();
    BPatch_Vector<BPatch_variableExpr *> *ret;
    BPatch_localVar *lv = findLocalVar(name);
