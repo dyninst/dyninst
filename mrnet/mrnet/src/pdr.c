@@ -11,8 +11,8 @@
  * pdr.
  */
 
-#include "mrnet/src/pdr.h"
-#include "mrnet/src/pdr_mem.h"
+#include "pdr.h"
+#include "pdr_mem.h"
 
 #include <stdio.h>
 #include <stdlib.h>

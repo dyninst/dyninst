@@ -7,10 +7,10 @@
 #include <stdio.h>
 
 
-#include "mrnet/src/NetworkGraph.h"
-#include "mrnet/src/CommunicationNode.h"
-#include "mrnet/src/utils.h"
-#include "src/config.h"
+#include "NetworkGraph.h"
+#include "CommunicationNode.h"
+#include "utils.h"
+#include "config.h"
 #include "xplat/Tokenizer.h"
 
 namespace MRN

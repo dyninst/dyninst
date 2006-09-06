@@ -8,8 +8,8 @@
 
 #include <string>
 
-#include "mrnet/src/Message.h"
-#include "mrnet/src/RemoteNode.h"
+#include "Message.h"
+#include "RemoteNode.h"
 
 namespace MRN
 {

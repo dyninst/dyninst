@@ -6,7 +6,7 @@
 #include <iostream>
 #include "mrnet/MRNet.h"
 #include "mrnet/MRNetC.h"
-#include "mrnet/src/StreamImpl.h"
+#include "StreamImpl.h"
 #include <assert.h>
 
 int

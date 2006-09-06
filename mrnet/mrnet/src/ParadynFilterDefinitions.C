@@ -13,12 +13,12 @@
 #include <math.h>
 
 
-#include "mrnet/src/FilterDefinitions.h"
-#include "mrnet/src/utils.h"
-#include "mrnet/src/DataElement.h"
-#include "mrnet/src/Packet.h"
+#include "FilterDefinitions.h"
+#include "utils.h"
+#include "DataElement.h"
+#include "Packet.h"
 
-#include "mrnet/src/ParadynFilterDefinitions.h"
+#include "ParadynFilterDefinitions.h"
 
 #define MAXDOUBLE   1.701411834604692293e+308
 

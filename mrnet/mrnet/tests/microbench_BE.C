@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 #include "mrnet/MRNet.h"
-#include "mrnet/tests/microbench.h"
+#include "microbench.h"
 
 using namespace MRN;
 

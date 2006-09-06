@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "mrnet/src/byte_order.h"
-#include "src/config.h"
+#include "byte_order.h"
+#include "config.h"
 
 void byte_swap(char * out, char * in, uint32_t nelems, uint32_t elemsize)
 {

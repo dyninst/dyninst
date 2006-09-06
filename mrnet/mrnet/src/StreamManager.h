@@ -8,7 +8,7 @@
 
 #include <vector>
 #include <list>
-#include "mrnet/src/Filter.h"
+#include "Filter.h"
 
 namespace MRN
 {

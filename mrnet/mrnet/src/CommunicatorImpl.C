@@ -8,9 +8,9 @@
 /*===========================================================*/
 
 #include <stdio.h>
-#include "mrnet/src/CommunicatorImpl.h"
-#include "mrnet/src/NetworkImpl.h"
-#include "mrnet/src/utils.h"
+#include "CommunicatorImpl.h"
+#include "NetworkImpl.h"
+#include "utils.h"
 
 namespace MRN
 {

@@ -6,8 +6,8 @@
 #include <assert.h>
 
 #include "mrnet/MRNet.h"
-#include "mrnet/src/Types.h"
-#include "mrnet/tests/test_basic.h"
+#include "Types.h"
+#include "test_basic.h"
 
 using namespace MRN;
 

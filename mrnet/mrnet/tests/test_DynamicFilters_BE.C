@@ -7,7 +7,7 @@
 #include <time.h>
 
 #include "mrnet/MRNet.h"
-#include "mrnet/tests/test_DynamicFilters.h"
+#include "test_DynamicFilters.h"
 
 using namespace MRN;
 

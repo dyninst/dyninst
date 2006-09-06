@@ -5,7 +5,7 @@
 
 #include <list>
 
-#include "mrnet/src/EventImpl.h"
+#include "EventImpl.h"
 
 namespace MRN {
 

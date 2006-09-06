@@ -10,8 +10,8 @@
 #include <assert.h>
 
 #include "mrnet/MRNet.h"
-#include "mrnet/tests/timer.h"
-#include "mrnet/tests/microbench.h"
+#include "timer.h"
+#include "microbench.h"
 
 using namespace MRN;
 const unsigned int kMaxRecvTries = 1000000;

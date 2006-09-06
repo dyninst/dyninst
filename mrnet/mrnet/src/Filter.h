@@ -10,11 +10,11 @@
 #include <list>
 #include <map>
 #include <vector>
-#include "mrnet/src/Message.h"
-#include "mrnet/src/FilterDefinitions.h"
+#include "Message.h"
+#include "FilterDefinitions.h"
 #include "xplat/Mutex.h"
 
-#include "mrnet/src/ParadynFilterDefinitions.h"
+#include "ParadynFilterDefinitions.h"
 
 namespace MRN
 {

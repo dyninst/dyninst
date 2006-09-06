@@ -4,8 +4,8 @@
  **********************************************************************/
 
 #include "mrnet/MRNet.h"
-#include "mrnet/src/Types.h"
-#include "mrnet/src/DataElement.h"
+#include "Types.h"
+#include "DataElement.h"
 #include "test_common.h"
 #include "test_arrays.h"
 

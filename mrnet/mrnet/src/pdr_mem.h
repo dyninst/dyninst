@@ -7,7 +7,7 @@
 #define __pdr_mem_h 
 
 
-#include "mrnet/src/pdr.h"
+#include "pdr.h"
 
 
 bool_t   pdrmem_putchar(PDR *, char *);

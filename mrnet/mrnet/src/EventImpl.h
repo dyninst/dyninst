@@ -8,7 +8,7 @@
 
 #include <string>
 #include "mrnet/MRNet.h"
-#include "mrnet/src/utils.h"
+#include "utils.h"
 
 namespace MRN
 {

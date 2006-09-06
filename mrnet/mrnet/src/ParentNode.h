@@ -10,10 +10,10 @@
 #include <list>
 #include <string>
 
-#include "mrnet/src/Message.h"
-#include "mrnet/src/StreamManager.h"
-#include "mrnet/src/Filter.h"
-#include "mrnet/src/RemoteNode.h"
+#include "Message.h"
+#include "StreamManager.h"
+#include "Filter.h"
+#include "RemoteNode.h"
 #include "xplat/Monitor.h"
 #include "xplat/Mutex.h"
 

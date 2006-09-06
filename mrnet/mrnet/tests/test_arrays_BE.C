@@ -4,8 +4,8 @@
  **********************************************************************/
 
 #include "mrnet/MRNet.h"
-#include "mrnet/src/Types.h"
-#include "mrnet/tests/test_arrays.h"
+#include "Types.h"
+#include "test_arrays.h"
 
 using namespace MRN;
 

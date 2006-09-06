@@ -5,8 +5,8 @@
  ****************************************************************************/
 #include <list>
 
-#include "mrnet/src/NetworkGraph.h"
-#include "mrnet/src/NetworkImpl.h"
+#include "NetworkGraph.h"
+#include "NetworkImpl.h"
 
 static std::list <MRN::NetworkNode *> hostlist;
 static std::list <MRN::NetworkNode *> potential_root;

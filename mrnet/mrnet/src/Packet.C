@@ -3,9 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-#include "mrnet/src/Packet.h"
-#include "mrnet/src/DataElement.h"
-#include "mrnet/src/utils.h"
+#include "Packet.h"
+#include "DataElement.h"
+#include "utils.h"
 #include "xplat/Tokenizer.h"
 
 namespace MRN

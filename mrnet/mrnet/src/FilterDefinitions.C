@@ -6,10 +6,10 @@
 #include <map>
 #include <string>
 
-#include "mrnet/src/FilterDefinitions.h"
-#include "mrnet/src/utils.h"
-#include "mrnet/src/DataElement.h"
-#include "mrnet/src/Packet.h"
+#include "FilterDefinitions.h"
+#include "utils.h"
+#include "DataElement.h"
+#include "Packet.h"
 
 namespace MRN
 {

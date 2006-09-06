@@ -5,8 +5,8 @@
 
 #include <stdio.h>
 
-#include "mrnet/src/InternalNode.h"
-#include "mrnet/src/utils.h"
+#include "InternalNode.h"
+#include "utils.h"
 
 namespace MRN
 {

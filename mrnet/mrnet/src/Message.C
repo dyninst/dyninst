@@ -3,14 +3,14 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-#include "mrnet/src/Types.h"
+#include "Types.h"
 #include <stdarg.h>
 #include <errno.h>
 #include <limits.h>
 #include <fcntl.h>
 
-#include "mrnet/src/utils.h"
-#include "mrnet/src/Message.h"
+#include "utils.h"
+#include "Message.h"
 #include "xplat/NCIO.h"
 
 namespace MRN

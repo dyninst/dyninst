@@ -11,7 +11,7 @@
 extern "C" {
 #endif /* defined(__cplusplus) */
 
-#include "mrnet/src/Types.h"
+#include "Types.h"
 
 enum pdr_op {
     PDR_FREE=0,

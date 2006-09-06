@@ -10,7 +10,7 @@
 #if defined(USE_XDR)
 #include <rpc/xdr.h>
 #else
-#include "mrnet/src/pdr.h"
+#include "pdr.h"
 #endif
 
 enum test_enum{ZERO,ONE,TWO};

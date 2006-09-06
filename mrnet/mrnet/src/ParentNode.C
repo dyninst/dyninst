@@ -6,11 +6,11 @@
 #include <stdio.h>
 
 #include "xplat/Process.h"
-#include "mrnet/src/ParentNode.h"
-#include "mrnet/src/ChildNode.h"
-#include "mrnet/src/NetworkGraph.h"
-#include "mrnet/src/utils.h"
-#include "src/config.h"
+#include "ParentNode.h"
+#include "ChildNode.h"
+#include "NetworkGraph.h"
+#include "utils.h"
+#include "config.h"
 
 namespace MRN
 {

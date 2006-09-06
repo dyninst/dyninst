@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "mrnet/src/DataElement.h"
+#include "DataElement.h"
 
 namespace MRN
 {

@@ -5,8 +5,8 @@
 
 #include <stdio.h>
 
-#include "mrnet/src/ChildNode.h"
-#include "mrnet/src/utils.h"
+#include "ChildNode.h"
+#include "utils.h"
 
 namespace MRN
 {

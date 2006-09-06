@@ -11,8 +11,8 @@
 #include <string>
 
 #include "mrnet/MRNet.h"
-#include "mrnet/src/utils.h"
-#include "mrnet/src/Error.h"
+#include "utils.h"
+#include "Error.h"
 
 namespace MRN
 {

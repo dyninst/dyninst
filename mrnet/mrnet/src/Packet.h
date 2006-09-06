@@ -9,10 +9,10 @@
 #include <stdarg.h>
 #include <vector>
 
-#include "mrnet/src/Error.h"
-#include "mrnet/src/pdr.h"
-#include "mrnet/src/refCounter.h"
-#include "mrnet/src/DataElement.h"
+#include "Error.h"
+#include "pdr.h"
+#include "refCounter.h"
+#include "DataElement.h"
 
 #include "xplat/Mutex.h"
 

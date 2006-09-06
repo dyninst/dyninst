@@ -5,10 +5,10 @@
 
 #include <stdio.h>
 
-#include "mrnet/src/BackEndNode.h"
-#include "mrnet/src/RemoteNode.h"
-#include "mrnet/src/StreamImpl.h"
-#include "mrnet/src/utils.h"
+#include "BackEndNode.h"
+#include "RemoteNode.h"
+#include "StreamImpl.h"
+#include "utils.h"
 
 namespace MRN
 {

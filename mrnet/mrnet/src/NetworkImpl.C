@@ -10,16 +10,17 @@
 #include <algorithm>
 #include <errno.h>
 
-#include "mrnet/src/NetworkImpl.h"
-#include "mrnet/src/CommunicatorImpl.h"
-#include "mrnet/src/StreamImpl.h"
-#include "mrnet/src/utils.h"
-#include "src/config.h"
+#include "NetworkImpl.h"
+#include "CommunicatorImpl.h"
+#include "StreamImpl.h"
+#include "utils.h"
+#include "config.h"
 
 #include "xplat/NetUtils.h"
 #include <signal.h>
 
 extern FILE *mrnin;
+extern int mrn_flex_debug;
 
 namespace MRN
 {
@@ -179,7 +180,8 @@ void NetworkImpl::InitFE( Network * _network, const char **argv,
 int NetworkImpl::parse_configfile( const char* cfg )
 {
     int status;
-    // mrndebug=1;
+    mrndebug=0;
+    //mrn_flex_debug=0;
 
     if( cfg != NULL )
     {

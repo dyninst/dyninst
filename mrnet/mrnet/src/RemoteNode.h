@@ -6,8 +6,8 @@
 #if !defined(__remotenode_h) 
 #define __remotenode_h 1
 
-#include "mrnet/src/CommunicationNode.h"
-#include "mrnet/src/Message.h"
+#include "CommunicationNode.h"
+#include "Message.h"
 #include "xplat/Thread.h"
 #include "xplat/Monitor.h"
 #include "xplat/Mutex.h"

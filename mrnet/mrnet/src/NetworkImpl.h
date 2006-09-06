@@ -11,11 +11,11 @@
 
 #include "mrnet/MRNet.h"
 
-#include "mrnet/src/Error.h"
-#include "mrnet/src/Message.h"
-#include "mrnet/src/NetworkGraph.h"
-#include "mrnet/src/BackEndNode.h"
-#include "mrnet/src/FrontEndNode.h"
+#include "Error.h"
+#include "Message.h"
+#include "NetworkGraph.h"
+#include "BackEndNode.h"
+#include "FrontEndNode.h"
 
 
 namespace MRN

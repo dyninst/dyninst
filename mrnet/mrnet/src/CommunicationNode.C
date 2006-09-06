@@ -3,8 +3,8 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-#include "mrnet/src/CommunicationNode.h"
-#include "mrnet/src/utils.h"
+#include "CommunicationNode.h"
+#include "utils.h"
 
 namespace MRN
 {

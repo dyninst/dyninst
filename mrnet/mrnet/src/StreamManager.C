@@ -3,9 +3,9 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-#include "mrnet/src/StreamManager.h"
-#include "mrnet/src/StreamImpl.h"
-#include "mrnet/src/utils.h"
+#include "StreamManager.h"
+#include "StreamImpl.h"
+#include "utils.h"
 
 namespace MRN
 {

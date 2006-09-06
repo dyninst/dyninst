@@ -6,11 +6,11 @@
 #include <stdio.h>
 
 
-#include "mrnet/src/RemoteNode.h"
-#include "mrnet/src/ChildNode.h"
-#include "mrnet/src/ParentNode.h"
-#include "mrnet/src/utils.h"
-#include "src/config.h"
+#include "RemoteNode.h"
+#include "ChildNode.h"
+#include "ParentNode.h"
+#include "utils.h"
+#include "config.h"
 #include "xplat/Process.h"
 #include "xplat/SocketUtils.h"
 #include "xplat/Error.h"
@@ -329,9 +329,9 @@ const
     new_args.push_back(std::string(rank_str));
 
     mrn_dbg(5, mrn_printf(FLF, stderr, "new_Application() calling create ...\n"
-               "\thost: %s:%d,\n"
-               "\tcmd: %s)\n",
-               hostname.c_str(), cmd.c_str()));
+                          "\thost: %s:%d,\n"
+                          "\tcmd: %s)\n",
+                          hostname.c_str(), port, cmd.c_str()));
   
     if( XPlat::Process::Create( hostname, cmd, new_args ) != 0 ){
         mrn_dbg(1, mrn_printf(FLF, stderr, "XPlat::Process::Create() failed\n");) 

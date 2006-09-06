@@ -3,8 +3,8 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-#include "mrnet/src/utils.h"
-#include "mrnet/src/Types.h"
+#include "utils.h"
+#include "Types.h"
 
 #include "xplat/NetUtils.h"
 #include "xplat/PathUtils.h"
@@ -14,7 +14,7 @@
 
 #include "mrnet/MRNet.h"
 
-#include "src/config.h"
+#include "config.h"
 #include <ctype.h>
 #include <sys/types.h>
 #include <stdio.h>

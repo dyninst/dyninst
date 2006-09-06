@@ -4,9 +4,9 @@
  **********************************************************************/
 
 #include "mrnet/MRNet.h"
-#include "mrnet/src/Types.h"
-#include "mrnet/src/DataElement.h"
-#include "mrnet/tests/test_NativeFilters.h"
+#include "Types.h"
+#include "DataElement.h"
+#include "test_NativeFilters.h"
 
 using namespace MRN;
 

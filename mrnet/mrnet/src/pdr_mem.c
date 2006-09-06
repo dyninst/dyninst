@@ -10,9 +10,9 @@
 #include <sys/types.h>
 //#include <unistd.h>
 
-#include "mrnet/src/byte_order.h"
-#include "mrnet/src/pdr_mem.h"
-#include "src/config.h"
+#include "byte_order.h"
+#include "pdr_mem.h"
+#include "config.h"
 
 static struct pdr_ops pdrmem_ops = {
     pdrmem_putchar,

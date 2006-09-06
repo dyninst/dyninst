@@ -11,11 +11,11 @@
 #include <map>
 
 #include "mrnet/MRNet.h"
-#include "mrnet/src/Message.h"
-#include "mrnet/src/CommunicatorImpl.h"
-#include "mrnet/src/FrontEndNode.h"
-#include "mrnet/src/BackEndNode.h"
-#include "mrnet/src/NetworkImpl.h"
+#include "Message.h"
+#include "CommunicatorImpl.h"
+#include "FrontEndNode.h"
+#include "BackEndNode.h"
+#include "NetworkImpl.h"
 
 namespace MRN
 {

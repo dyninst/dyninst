@@ -13,15 +13,15 @@
 #include <stdio.h>
 
 #include "mrnet/MRNet.h"
-#include "mrnet/src/Types.h"
-#include "mrnet/src/utils.h"
-#include "src/config.h"
-#include "mrnet/src/NetworkImpl.h"
-#include "mrnet/src/BackEndNode.h"
-#include "mrnet/src/StreamImpl.h"
-#include "mrnet/src/CommunicatorImpl.h"
-#include "mrnet/src/EndPointImpl.h"
-#include "mrnet/src/EventImpl.h"
+#include "Types.h"
+#include "utils.h"
+#include "config.h"
+#include "NetworkImpl.h"
+#include "BackEndNode.h"
+#include "StreamImpl.h"
+#include "CommunicatorImpl.h"
+#include "EndPointImpl.h"
+#include "EventImpl.h"
 
 namespace MRN
 {

@@ -7,7 +7,7 @@
 /*      EndPointImpl CLASS METHOD DEFINITIONS            */
 /*==========================================================*/
 
-#include "mrnet/src/EndPointImpl.h"
+#include "EndPointImpl.h"
 
 namespace MRN
 {

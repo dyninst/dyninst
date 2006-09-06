@@ -7,9 +7,9 @@
 #include <stdio.h>
 
 
-#include "mrnet/src/pdr.h"
-#include "mrnet/src/pdr_mem.h"
-#include "src/config.h"
+#include "pdr.h"
+#include "pdr_mem.h"
+#include "config.h"
 
 static bool_t _putchar(PDR *pdrs, char *)
 {

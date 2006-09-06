@@ -9,10 +9,10 @@
 #include <string>
 #include <list>
 
-#include "mrnet/src/CommunicationNode.h"
-#include "mrnet/src/ParentNode.h"
-#include "mrnet/src/ChildNode.h"
-#include "mrnet/src/Message.h"
+#include "CommunicationNode.h"
+#include "ParentNode.h"
+#include "ChildNode.h"
+#include "Message.h"
 
 namespace MRN
 {

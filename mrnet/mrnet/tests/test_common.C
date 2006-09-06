@@ -3,8 +3,8 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-#include "mrnet/tests/test_common.h"
-#include "mrnet/tests/timer.h"
+#include "test_common.h"
+#include "timer.h"
 
 #include <stdio.h>
 #include <math.h>

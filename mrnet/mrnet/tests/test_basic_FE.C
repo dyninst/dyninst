@@ -4,7 +4,7 @@
  **********************************************************************/
 
 #include "mrnet/MRNet.h"
-#include "mrnet/src/Types.h"
+#include "Types.h"
 #include "test_common.h"
 #include "test_basic.h"
 

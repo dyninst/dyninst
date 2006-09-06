@@ -6,7 +6,7 @@
 #if !defined(test_nativefilters_h )
 #define test_nativefilters_h 1
 
-#include "mrnet/tests/timer.h"
+#include "timer.h"
 
 enum{
     PROT_CHAR_SUM=FIRST_APPL_TAG,

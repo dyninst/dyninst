@@ -4,9 +4,9 @@
  ****************************************************************************/
 
 #include <stdio.h>
-#include "mrnet/src/FrontEndNode.h"
-#include "mrnet/src/StreamImpl.h"
-#include "mrnet/src/utils.h"
+#include "FrontEndNode.h"
+#include "StreamImpl.h"
+#include "utils.h"
 
 namespace MRN
 {

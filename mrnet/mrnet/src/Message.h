@@ -9,8 +9,8 @@
 #include <list>
 #include <vector>
 
-#include "mrnet/src/Packet.h"
-#include "mrnet/src/Error.h"
+#include "Packet.h"
+#include "Error.h"
 
 namespace MRN
 {

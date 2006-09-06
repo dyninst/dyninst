@@ -6,9 +6,9 @@
 #if !defined(__frontendnode_h)
 #define __frontendnode_h 1
 
-#include "mrnet/src/CommunicationNode.h"
-#include "mrnet/src/ParentNode.h"
-#include "mrnet/src/Message.h"
+#include "CommunicationNode.h"
+#include "ParentNode.h"
+#include "Message.h"
 
 namespace MRN
 {

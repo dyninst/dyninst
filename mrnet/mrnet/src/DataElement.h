@@ -6,7 +6,7 @@
 #if !defined(dataelement_h)
 #define dataelement_h 1
 
-#include "mrnet/src/Types.h"
+#include "Types.h"
 
 namespace MRN {
 

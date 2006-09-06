@@ -7,7 +7,7 @@
 #define __timer_h 1
 
 #include <sys/time.h>
-#include "mrnet/src/utils.h"
+#include "utils.h"
 
 using namespace MRN;
 

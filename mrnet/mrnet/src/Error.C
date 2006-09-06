@@ -7,7 +7,7 @@
 #include <stdarg.h>
 
 
-#include "mrnet/src/Error.h"
+#include "Error.h"
 
 namespace MRN
 {
