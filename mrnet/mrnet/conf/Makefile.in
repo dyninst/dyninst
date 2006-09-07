@@ -86,7 +86,8 @@ LIBMRNET    = $(LIBDIR)/libmrnet.a
 LIBXPLAT    = $(MRNET_ROOT)/xplat/libxplat.a
 COMMNODE    = $(BINDIR)/mrnet_commnode 
 TARGETS     = $(LIBMRNET) $(COMMNODE)
-INCDIR      = -I$(SRCDIR)/h -I$(SRCDIR)/src -I$(SRCDIR)/xplat/include -I$(SRCDIR)/tests
+INCDIR      = -I$(MRNET_ROOT)/src -I$(SRCDIR)/h -I$(SRCDIR)/src -I$(SRCDIR)/xplat/include -I$(SRCDIR)/tests
+#INCDIR      = -I$(SRCDIR)/h -I$(SRCDIR)/src -I$(SRCDIR)/xplat/include -I$(SRCDIR)/tests
 FILTERSO_HEADERS = $(SRCDIR)/src/Packet.h \
 	               $(SRCDIR)/src/DataElement.h \
 	               $(SRCDIR)/src/Error.h \
