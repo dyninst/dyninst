@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.74 2006/07/07 00:01:09 jaw Exp $
+//$Id: templates1.C,v 1.75 2006/10/04 20:41:16 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -201,9 +201,9 @@ class image_basicBlock;
 template class dictionary_hash<Address, image_basicBlock *>;
 template class pdvector<dictionary_hash<Address, image_basicBlock *>::entry>;
 
-class relocatedInstruction;
-template class dictionary_hash<Address, relocatedInstruction *>;
-template class pdvector<dictionary_hash<Address, relocatedInstruction *>::entry>;
+class relocatedCode;
+template class dictionary_hash<Address, relocatedCode *>;
+template class pdvector<dictionary_hash<Address, relocatedCode *>::entry>;
 
 class int_basicBlock;
 template class BPatch_Set<int_basicBlock *>;
