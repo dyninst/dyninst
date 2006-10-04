@@ -1409,7 +1409,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
         for (unsigned int j = 0; j < one_stack.size(); ++j) {
           int_function *my_f = one_stack[j].getFunc();
           const char *fname = my_f ? my_f->prettyName().c_str() : "no function";
-          fprintf(stderr, "\t\tPC: %p\tFP: %p\t [%s]\n",  
+          fprintf(stderr, "\t\tPC: 0x%lx\tFP: 0x%lx\t [%s]\n",  
                   one_stack[j].getPC(), one_stack[j].getFP(), fname);
         }
       }
@@ -1573,7 +1573,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                      case afterPoint_l: str_iPresult = "afterPoint_l"; break;
                      default: break;
                      };
-                     fprintf(stderr, "\t\tFor PC = %p, iPresult = %s ", 
+                     fprintf(stderr, "\t\tFor PC = 0x%lx, iPresult = %s ", 
                              frame.getPC(), str_iPresult);
                   }
 
@@ -1719,6 +1719,43 @@ bool BPatch_process::deleteSnippetInt(BPatchSnippetHandle *handle)
     // Handle isn't to a snippet instance in this process
     cerr << "Error: wrong process in deleteSnippet" << endl;     
     return false;
+}
+
+/*
+ * BPatch_process::replaceCode
+ *
+ * Replace a given instruction with a BPatch_snippet.
+ *
+ * point       Represents the instruction to be replaced
+ * snippet     The replacing snippet
+ */
+
+bool BPatch_process::replaceCodeInt(BPatch_point *point,
+                                    BPatch_snippet *snippet) {
+   if (!mutationsActive)
+      return false;
+
+    if (!point) {
+        return false;
+    }
+    if (terminated) {
+        return true;
+    }
+
+    if (point->edge_) {
+        return false;
+    }
+
+    // ... what about entry/exit/call site?
+    // For now we don't stop here, as the BPPoint for
+    // an entry/exit/callsite is equivalent to the
+    // low-level instruction.
+#if 0
+    if (point->point->getPointType() != otherPoint) {
+        return false;
+    }
+#endif
+    return point->point->replaceCode(snippet->ast);
 }
 
 

@@ -601,6 +601,13 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     API_EXPORT(Int, (handle),
     bool,deleteSnippet,(BPatchSnippetHandle *handle));
 
+    //  BPatch_process::replaceCode
+    //
+    //  Replace a point (must be an instruction...) with a given BPatch_snippet
+
+    API_EXPORT(Int, (point, snippet), 
+    bool, replaceCode, (BPatch_point *point, BPatch_snippet *snippet));
+
     //  BPatch_process::setMutationsActive
     //  
     //  Turn on/off instrumentation
