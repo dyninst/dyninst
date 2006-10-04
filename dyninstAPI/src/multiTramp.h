@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.17 2006/08/10 17:31:25 bernat Exp $
+// $Id: multiTramp.h,v 1.18 2006/10/04 20:41:13 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -61,6 +61,7 @@ class miniTramp;
 class codeRange;
 class process;
 class int_function;
+class multiTramp;
 
 #if defined( cap_unwind )
 #include <libunwind.h>
@@ -242,7 +243,27 @@ class trampEnd : public generatedCodeObject {
     Address target_;
 };
 
-class relocatedInstruction : public generatedCodeObject {
+class relocatedInstruction;
+
+// Wrapper for "original code pieces" (or replacements),
+// AKA not instrumentation.
+// Things that have an original address
+class relocatedCode : public generatedCodeObject {
+ public:
+    relocatedCode() :
+        generatedCodeObject() {};
+
+    relocatedCode(const relocatedCode *old,
+                  process *proc) :
+        generatedCodeObject(old, proc) 
+        {};
+    
+    virtual Address relocAddr() const = 0;
+
+    virtual const relocatedInstruction *relocInsn() const = 0;
+};
+
+class relocatedInstruction : public relocatedCode {
  private:
     relocatedInstruction() {};
  public:
@@ -251,17 +272,17 @@ class relocatedInstruction : public generatedCodeObject {
 			 Address f, // Where we're coming from (function relocation)
 			 Address t, // Target (if already set)
                          multiTramp *m) :
-      generatedCodeObject(),
-      insn(i),
+        relocatedCode(),
+        insn(i),
 #if defined(arch_sparc)
-      ds_insn(NULL),
-      agg_insn(NULL),
+        ds_insn(NULL),
+        agg_insn(NULL),
 #endif
-      origAddr_(o), fromAddr_(f), targetAddr_(t),
-      multiT(m), targetOverride_(0) {}
+        origAddr_(o), fromAddr_(f), targetAddr_(t),
+        multiT(m), targetOverride_(0) {}
     relocatedInstruction(relocatedInstruction *prev,
                          multiTramp *m) :
-        generatedCodeObject(),
+        relocatedCode(),
         insn(prev->insn),
 #if defined(arch_sparc)
         ds_insn(prev->ds_insn),
@@ -270,12 +291,12 @@ class relocatedInstruction : public generatedCodeObject {
       origAddr_(prev->origAddr_), fromAddr_(prev->fromAddr_),
       targetAddr_(prev->targetAddr_),
       multiT(m),
-      targetOverride_(prev->targetOverride_) {}
-
+        targetOverride_(prev->targetOverride_) {}
+    
     relocatedInstruction(const relocatedInstruction *parRI,
                          multiTramp *cMT,
                          process *child);
-
+    
     ~relocatedInstruction();
 
     instruction *insn;
@@ -306,6 +327,8 @@ class relocatedInstruction : public generatedCodeObject {
     // And get the original target
     Address originalTarget() const;
 
+    const relocatedInstruction *relocInsn() const { return this; }
+
     generatedCodeObject *replaceCode(generatedCodeObject *newParent);
     
     virtual Address uninstrumentedAddr() const { return fromAddr_; }
@@ -316,6 +339,80 @@ class relocatedInstruction : public generatedCodeObject {
     // TODO: move to vector of instructions
     Address targetOverride_;
 };
+
+// Preliminary code to replace an instruction with an AST. 
+
+
+// Good luck....
+// Implemented in replacedInstruction.C ; header file is here
+// so that we can build off generatedCodeObject.
+
+class replacedInstruction : public relocatedCode {
+ private: 
+    replacedInstruction() {};
+ public:
+    // We take a relocatedInstruction in; first it's
+    // moved into the multiTramp, then it's replaced by
+    // something else.
+    replacedInstruction(const relocatedInstruction *i,
+                        AstNode *ast,
+                        instPoint *p, // Needed for memory instrumentation
+                        multiTramp *m) :
+        relocatedCode(),
+        oldInsn_(i),
+        ast_(ast),
+        point_(p),
+        multiT_(m) {}
+    
+    // Update constructor
+    replacedInstruction(replacedInstruction *prev,
+                        multiTramp *m) :
+        relocatedCode(),
+        oldInsn_(prev->oldInsn_),
+        ast_(NULL),
+        multiT_(m) {
+        ast_ = assignAst(prev->ast_);
+    };
+
+    // Fork constructor
+    replacedInstruction(replacedInstruction *parRI,
+                        multiTramp *cMT,
+                        process *child);
+
+    ~replacedInstruction();
+
+    const relocatedInstruction *relocInsn() const { return oldInsn_; }
+    AstNode *ast() const { return ast_; }
+    instPoint *point() const { return point_; }
+    multiTramp *multi() const { return multiT_; }
+    process *proc() const;
+
+    Address relocAddr() const { return get_address_cr(); }
+    Address uninstrumentedAddr() { return relocInsn()->uninstrumentedAddr(); }
+
+    // Overridden from generatedCodeObject
+    generatedCodeObject *replaceCode(generatedCodeObject *newParent);
+    bool generateCode(codeGen &gen,
+                      Address baseInMutatee,
+                      UNW_INFO_TYPE **unwindInformation);
+    unsigned maxSizeRequired();
+    Address uninstrumentedAddr() const { return oldInsn_->uninstrumentedAddr(); }
+    Address get_address_cr() const { return addrInMutatee_; };
+    unsigned get_size_cr() const { return size_; };
+
+    bool safeToFree(codeRange *range);
+
+
+    const relocatedInstruction *oldInsn_;
+    AstNode *ast_;
+    instPoint *point_;
+    multiTramp *multiT_;
+    
+    Address addr_;
+    unsigned size_;
+};
+
+
 
 // Code generation. Code generation is really just a special case
 // of a baby control flow graph, and we treat it as such. This is
@@ -349,6 +446,7 @@ class generatedCFG_t {
         iterator() : cur_(NULL) {};
         void initialize(generatedCFG_t &cfg);
         // (int) : post-increment
+        void find(generatedCFG_t &cfg, generatedCodeObject *pointer);
         generatedCodeObject *operator++(int);
         generatedCodeObject *operator*();
     };
@@ -546,7 +644,7 @@ class multiTramp : public generatedCodeObject {
   // A mini-CFG for code generation
   generatedCFG_t generatedCFG_;
   // And track all the instructions we cover.
-  dictionary_hash<Address, relocatedInstruction *> insns_;
+  dictionary_hash<Address, relocatedCode *> insns_;
   void updateInsnDict();
 
   // Insert jumps/traps/whatever from previous multiTramp to new multiTramp.

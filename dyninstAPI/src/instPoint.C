@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.28 2006/07/26 20:58:45 bernat Exp $
+// $Id: instPoint.C,v 1.29 2006/10/04 20:41:10 bernat Exp $
 // instPoint code
 
 
@@ -101,6 +101,28 @@ miniTramp *instPoint::addInst(AstNode *&ast,
     return miniT;
 }
 
+bool instPoint::replaceCode(AstNode *&ast) {
+    // We inject a "replacedInstruction" into all known multitramps,
+    // then trigger generation and installation.
+    
+    // Actually, the multiTramp is set up to pull information out
+    // of the instPoints (rather than "push"), so we set up our 
+    // data structures and let 'er rip.
+
+    replacedCode_ = ast;
+    
+    if (!generateInst())
+        return false;
+
+    if (!installInst())
+        return false;
+
+    if (!linkInst())
+        return false;
+
+    return true;
+}
+
 // Get the appropriate base tramp structure. Cannot rely on
 // multiTramps existing.
 
@@ -129,115 +151,6 @@ baseTramp *instPoint::getBaseTramp(callWhen when) {
     break;
   }
   return NULL;
-
-#if 0
-    // We no longer share baseTramps. It causes problems when
-    // a relocated function is padded out. Instead of adding the
-    // code to ignore noop padding, we simply don't share baseTramps.
-    // This almost never has an effect as we would have to get
-    // pre-instrumentation and post-instrumentation at neighboring 
-    // instructions; and the effect is to double up on saves and
-    // restores. 
-
-    // We do the if tree twice to keep the function structure clean
-    /////////////////////////////////////////////////
-    // See if there's already a baseTramp out there...
-    // We see if there is a neighboring instPoint, and then
-    // check it's pre/post tramp directly. If we called getTramp,
-    // we'd hit recursion....
-
-    // Only do this for pre/post; target by definition cannot share.
-    // Also, if we're the first/last insn and looking for pre/post,
-    // don't bother...
-
-    // This is by multiTramp footprint, not actually a basic
-    // block. Even if we have a neighbor, if they're in a different
-    // multiTramp, we _really_ don't want to be sharing
-    // baseTramps. It's a limitation of the current system,
-    // actually... but for now I'll be pessimistic.
-
-    Address mtStartAddr;
-    unsigned mtSize;
-    if (!multiTramp::getMultiTrampFootprint(addr(),
-                                            proc(),
-                                            mtStartAddr,
-                                            mtSize)) {
-        return NULL;
-    }
-
-    // Time to iterate
-    InstrucIter insnIter(mtStartAddr,
-                         mtSize,
-                         proc());
-    // On x86 this crawls the block so that we can figure out
-    // previous instructions. Other platforms are easier.
-    insnIter.setCurrentAddress(addr());
-
-    Address neighborAddr = 0;
-    if (when == callPreInsn) {
-        neighborAddr = insnIter.peekPrev();
-    }
-    else if (when == callPostInsn) {
-        neighborAddr = insnIter.peekNext();
-    }
-    else {
-        assert(when == callBranchTargetInsn);
-        neighborAddr = 0;
-    }
-    // Check for illegal values - outside the MT
-    if ((neighborAddr < mtStartAddr) ||
-        (neighborAddr >= (mtStartAddr + mtSize)))
-        neighborAddr = 0;
-    
-    if (neighborAddr) {
-        instPoint *neighbor = proc()->findInstPByAddr(neighborAddr);
-        if (neighbor) {
-            if (when == callPreInsn) {
-                // Our pre is their post
-                preBaseTramp_ = neighbor->postBaseTramp_;
-                if (preBaseTramp_) {
-                    // Safety checking and invariant maintenance
-                    assert(!preBaseTramp_->preInstP);
-                    preBaseTramp_->preInstP = this;
-                }
-            }
-            else {
-                assert(when == callPostInsn);
-                postBaseTramp_ = neighbor->preBaseTramp_;
-                if (postBaseTramp_) {
-                    assert(!postBaseTramp_->postInstP);
-                    postBaseTramp_->postInstP = this;
-                }
-            }
-        }
-    }
-
-    
-    // We now may have a base tramp; check again, make if not, and return.
-
-    if (when == callPreInsn) {
-        if (preBaseTramp_) return preBaseTramp_;
-        preBaseTramp_ = new baseTramp();
-        preBaseTramp_->preInstP = this;
-        return preBaseTramp_;
-    }
-    else if (when == callPostInsn) {
-        if (postBaseTramp_) return postBaseTramp_;
-        postBaseTramp_ = new baseTramp();
-        postBaseTramp_->postInstP = this;
-        return postBaseTramp_;
-    }
-    else {
-        assert(!targetBaseTramp_);
-        assert(when == callBranchTargetInsn);
-        targetBaseTramp_ = new baseTramp();
-        targetBaseTramp_->postInstP = this;
-        return targetBaseTramp_;
-    }
-    
-    assert(0);
-    return NULL;
-#endif
 }
 
 bool instPoint::match(Address a) const { 
@@ -575,6 +488,7 @@ instPoint::instPoint(process *proc,
     preBaseTramp_(NULL),
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
+    replacedCode_(NULL),
     proc_(proc),
     img_p_(NULL),
     block_(block),
@@ -606,6 +520,7 @@ instPoint::instPoint(process *proc,
     preBaseTramp_(NULL),
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
+    replacedCode_(NULL),
     proc_(proc),
     img_p_(img_p),
     block_(block),
@@ -634,6 +549,7 @@ instPoint::instPoint(instPoint *parP,
     preBaseTramp_(NULL),
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
+    replacedCode_(NULL),
     proc_(child->proc()),
     img_p_(parP->img_p_),
     block_(child),
@@ -642,6 +558,7 @@ instPoint::instPoint(instPoint *parP,
     liveFPRegisters(NULL),
     liveSPRegisters(NULL)
  {
+     assert(parP->replacedCode_ == NULL);
 }
                   
 

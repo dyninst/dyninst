@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.29 2006/08/24 11:19:26 jaw Exp $
+// $Id: instPoint.h,v 1.30 2006/10/04 20:41:11 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -351,6 +351,11 @@ class instPoint : public instPointBase {
                      bool trampRecursive,
                      bool noCost);
 
+  // Step 1.5 (alternate)
+  // Instead of adding new instrumentation, replace the instruction at the current
+  // point with the provided AST.
+  bool replaceCode(AstNode *&ast);
+
   // Step 2:
   bool generateInst();
   // And 3:
@@ -420,11 +425,13 @@ class instPoint : public instPointBase {
   baseTramp *postBaseTramp() const { return postBaseTramp_; }
   baseTramp *targetBaseTramp() const { return targetBaseTramp_; }
 
+  AstNode *replacedCode() const { return replacedCode_; }
   
  private:
   baseTramp *preBaseTramp_;
   baseTramp *postBaseTramp_;
   baseTramp *targetBaseTramp_;
+  AstNode *replacedCode_;
 
   process *proc_;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.59 2006/08/10 17:31:24 bernat Exp $
+// $Id: multiTramp.C,v 1.60 2006/10/04 20:41:12 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -65,7 +65,7 @@ baseTrampInstance *multiTramp::getBaseTrampInstance(instPointInstance *point,
     // And a safety note;
     assert(point->multi() == this);
 
-    relocatedInstruction *insn = insns_[point->addr()];
+    generatedCodeObject *insn = insns_[point->addr()];
     assert(insn);
 
     switch (when) {
@@ -121,10 +121,15 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
     baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(subObject);
     relocatedInstruction *reloc = dynamic_cast<relocatedInstruction *>(subObject);
     trampEnd *te = dynamic_cast<trampEnd *>(subObject);
+    replacedInstruction *ri = dynamic_cast<replacedInstruction *>(subObject);
 
     // Have _no_ idea how to handle one of these guys going away.
     assert(!reloc);
     assert(!te);
+
+    // Un-replace an instruction? Not right now...
+    // TODO
+    assert(!ri);
 
     bool doWeDelete = false;
 
@@ -555,12 +560,16 @@ void multiTramp::updateInstInstances() {
     // We need to regenerate if anything changes; that defined as a baseTrampInstance
     // appearing or disappearing.
 
+
     generatedCodeObject *obj = NULL;
     generatedCodeObject *prev = NULL;
 
     while ((obj = cfgIter++)) {
         // If we're a relocInsn, see if there's a new pre or post
         // tramp. If so, stick it in line.
+        // If we've been replaced (replacedInstruction), then swap the
+        // relocInsn for the replacedInstruction
+
         // If we're the last thing in a chain (of which there may be many),
         // add a trampEnd if there isn't already one.
         if (!obj->fallthrough_) {
@@ -570,18 +579,23 @@ void multiTramp::updateInstInstances() {
 	    assert(end);
         }
         
-        relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
-        if (!insn) { 
+        relocatedCode *c = dynamic_cast<relocatedCode *>(obj);
+        if (!c) {
             prev = obj;
             continue;
         }
+            
+        const relocatedInstruction *insn = c->relocInsn();
+        assert(insn);
 
         Address insnAddr = insn->fromAddr_;
         instPoint *instP = func()->findInstPByAddr(insnAddr);
         if (!instP) {
+            // There's no instPoint for here, so there's (by definition)
+            // no instrumentation/replacement
             prev = obj;
             continue;
-        }
+        }            
 
         baseTramp *preBT = instP->preBaseTramp();
         
@@ -620,7 +634,6 @@ void multiTramp::updateInstInstances() {
 
             // Append to us.
             if (obj->fallthrough_ != postBTI) {
-
                 postBTI->setFallthrough(obj->fallthrough_);
                 obj->fallthrough_->setPrevious(postBTI);
                 obj->setFallthrough(postBTI);
@@ -654,11 +667,46 @@ void multiTramp::updateInstInstances() {
                 changedSinceLastGeneration_ = true;
             }
         }
+
+        // See if we've been replaced....
+        AstNode *replacedAST = instP->replacedCode_;
+        replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
+        if (ri) assert(replacedAST); // We don't un-replace yet...
         
+        if (replacedAST && (ri == NULL)) {
+            // We've been asked to replace the current instruction...
+            replacedInstruction *newRI = new replacedInstruction(insn, 
+                                                                 replacedAST,
+                                                                 instP,
+                                                                 this);
+            assert(newRI);
+
+            // And now swap into line...
+            newRI->setPrevious(obj->previous_);
+            newRI->setFallthrough(obj->fallthrough_);
+            newRI->setTarget(obj->target_);
+
+            // We can't be the target - only base tramps can be a target...
+            if (newRI->previous_) 
+                newRI->previous_->setFallthrough(newRI);
+            if (newRI->fallthrough_)
+                newRI->fallthrough_->setPrevious(newRI);
+            if (newRI->target_)
+                newRI->target_->setPrevious(newRI);
+
+            cfgIter.find(generatedCFG_, 
+                         newRI);
+            // We stepped back one...
+            cfgIter++;
+            prev = newRI; 
+            continue;
+        }        
         prev = obj;
     }
 
 #if 0
+    fprintf(stderr, "Updated:\n");
+
     cfgIter.initialize(generatedCFG_);
     while ((obj = cfgIter++)) {
         fprintf(stderr, "obj: %p (prev %p, next %p)...", obj,
@@ -666,10 +714,13 @@ void multiTramp::updateInstInstances() {
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
         baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
+        replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
         if (insn) fprintf(stderr, "insn\n");
         if (bti) fprintf(stderr, "bti\n");
         if (end) fprintf(stderr, "end\n");
+        if (ri) fprintf(stderr, "replaced instruction, orig insn %p\n", ri->oldInsn_);
     }
+    fprintf(stderr, "-----\n");
 #endif
     updateInsnDict();
 
@@ -1003,6 +1054,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         
         // Target override if necessary
         if (obj->target_) {
+            // TODO: what does replaced code mean here?
             relocatedInstruction *relocInsn = dynamic_cast<relocatedInstruction *>(obj);
             assert(relocInsn);
             relocInsn->overrideTarget(trampAddr_ + obj->target_->pinnedOffset);
@@ -1019,10 +1071,10 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 #endif /* ! defined( cap_unwind ) */
         assert(obj->generated());
 
-        Address tempAddr = 0;
-        if (dynamic_cast<relocatedInstruction *>(obj)) {
-            tempAddr = (dynamic_cast<relocatedInstruction *>(obj))->uninstrumentedAddr();
-        }
+        //Address tempAddr = 0;
+        //if (dynamic_cast<relocatedInstruction *>(obj)) {
+        //tempAddr = (dynamic_cast<relocatedInstruction *>(obj))->uninstrumentedAddr();
+        //}
         //inst_printf("After node: mutatee 0x%lx (0x%lx), offset %d, size req %d\n",
         //generatedMultiT_.currAddr(trampAddr_),
         //tempAddr,
@@ -1291,11 +1343,17 @@ Address multiTramp::instToUninstAddr(Address addr) {
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
         baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
+        replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
 
         if (insn && 
             (addr >= insn->relocAddr()) &&
             (addr < insn->relocAddr() + insn->get_size_cr()))
             return insn->fromAddr_;
+        if (ri && 
+            (addr >= ri->get_address_cr()) &&
+            (addr < ri->get_address_cr() + ri->get_size_cr()))
+            return ri->uninstrumentedAddr();
+
         if (bti && bti->isInInstance(addr)) {
             // If we're pre for an insn, return that;
             // else return the insn we're post/target for.
@@ -1329,7 +1387,13 @@ Address multiTramp::instToUninstAddr(Address addr) {
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
         baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
-        
+        replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
+
+        if (ri && 
+            (addr >= ri->get_address_cr()) &&
+            (addr < ri->get_address_cr() + ri->get_size_cr()))
+            return ri->uninstrumentedAddr();
+
         if (insn && 
             (addr >= insn->relocAddr()) &&
             (addr < insn->relocAddr() + insn->get_size_cr()))
@@ -1372,7 +1436,13 @@ Address multiTramp::instToUninstAddr(Address addr) {
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
         baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
-        
+        replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
+
+        if (ri) {
+            fprintf(stderr, "Replaced instruction from 0x%lx to 0x%lx\n",
+                    ri->get_address_cr(),
+                    ri->get_address_cr() + ri->get_size_cr());
+        }
         if (insn) {
             fprintf(stderr, "Relocated instruction from 0x%lx to 0x%lx\n",
                     insn->relocAddr(), insn->relocAddr() + insn->get_size_cr());
@@ -1395,7 +1465,14 @@ Address multiTramp::instToUninstAddr(Address addr) {
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
         baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
-        
+        replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
+
+        if (ri) {
+            fprintf(stderr, "<DELETED> Replaced instruction from 0x%lx to 0x%lx\n",
+                    ri->get_address_cr(),
+                    ri->get_address_cr() + ri->get_size_cr());
+        }
+
         if (insn) {
             fprintf(stderr, "<DELETED> Relocated instruction from 0x%lx to 0x%lx\n",
                     insn->relocAddr(), insn->relocAddr() + insn->get_size_cr());
@@ -1429,9 +1506,15 @@ instPoint *multiTramp::findInstPointByAddr(Address addr) {
     while ((obj = cfgIter++)) {
         if ((obj->get_address_cr() <= addr) &&
             (addr < (obj->get_address_cr() + obj->get_size_cr()))) {
-            relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
+            const relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
             baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
             trampEnd *end = dynamic_cast<trampEnd *>(obj);
+            replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
+            
+            if (ri) {
+                // We can pull what we need out of oldInsn...
+                insn = ri->oldInsn_;
+            }
             if (end) {
                 // We don't want the tramp end; so see if there is a previous
                 // base tramp or instruction
@@ -1461,14 +1544,14 @@ Address multiTramp::uninstToInstAddr(Address addr) {
 
     assert(generated_);
 
-    relocatedInstruction *insn = NULL;
+    relocatedCode *insn = NULL;
     while (!insns_.find(addr)) {
         addr--;
         if (addr < instAddr()) return trampAddr_;
     }
-
+    
     insn = insns_[addr];
-
+    
     if (!insn) {
         // This is expected
         return 0;
@@ -1478,6 +1561,7 @@ Address multiTramp::uninstToInstAddr(Address addr) {
     if (pre && pre->trampPreAddr()) {
         return pre->trampPreAddr();
     }
+
     assert(insn->relocAddr());
     return insn->relocAddr();
 }
@@ -1697,6 +1781,8 @@ generatedCodeObject *generatedCFG_t::fork_int(const generatedCodeObject *parObj,
     const baseTrampInstance *bti = dynamic_cast<const baseTrampInstance *>(parObj);
     const trampEnd *te = dynamic_cast<const trampEnd *>(parObj);
     const relocatedInstruction *ri = dynamic_cast<const relocatedInstruction *>(parObj);
+    const replacedInstruction *repI = dynamic_cast<const replacedInstruction *>(parObj);
+    assert(!repI);
 
     generatedCodeObject *childObj = NULL;
 
@@ -1743,6 +1829,7 @@ generatedCodeObject *generatedCFG_t::fork_int(const generatedCodeObject *parObj,
         childObj = new relocatedInstruction(ri, childMulti, child);
     }
     else {
+        // TODO: replaced instructions and forking...
         assert(0);
     }
 
@@ -1799,6 +1886,10 @@ void multiTramp::updateInsnDict() {
                 assert(insns_[insn->fromAddr_] == insn);
             insns_[insn->fromAddr_] = insn;
         }
+        replacedInstruction *replacement = dynamic_cast<replacedInstruction *>(obj);
+        if (replacement) {
+            insns_[replacement->oldInsn_->fromAddr_] = replacement;
+        }            
     }
 }
 
@@ -1863,12 +1954,13 @@ void multiTramp::constructPreviousInsnList(multiTramp *oldMulti) {
         previousInsnAddrs_ = new pdvector<pdpair<Address, Address> >();
     }
 
-    dictionary_hash_iter<Address, relocatedInstruction *> insnIter(oldMulti->insns_);
+    dictionary_hash_iter<Address, relocatedCode *> insnIter(oldMulti->insns_);
     Address uninstAddr;
-    relocatedInstruction *oldRelocInsn;
     for (; insnIter; insnIter++) {
         uninstAddr = insnIter.currkey();
-        oldRelocInsn = insnIter.currval();
+        
+        const relocatedInstruction *oldRelocInsn = insnIter.currval()->relocInsn();
+        
         assert(oldRelocInsn);
 
         // Okay... we want (reloc addr in old multi), (reloc addr in new multi)
@@ -1879,7 +1971,6 @@ void multiTramp::constructPreviousInsnList(multiTramp *oldMulti) {
             assert(0);
         }
 
-        Address newAddr = insns_[uninstAddr]->relocAddr();
         previousInsnAddrs_->push_back(pdpair<Address, Address> (uninstAddr, oldAddr));
     }
 }
@@ -1920,7 +2011,7 @@ bool multiTramp::hasChanged() {
 relocatedInstruction::relocatedInstruction(const relocatedInstruction *parRI,
                                            multiTramp *cMT,
                                            process *child) :
-    generatedCodeObject(parRI, child),
+    relocatedCode(parRI, child),
     origAddr_(parRI->origAddr_),
     fromAddr_(parRI->fromAddr_),
     targetAddr_(parRI->targetAddr_),
@@ -2001,6 +2092,8 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                         reloc->fromAddr_);
             else if (te)
                 fprintf(stderr, "current is tramp end\n");
+            else 
+                fprintf(stderr, "current is unknown\n");
 
             bti = dynamic_cast<baseTrampInstance *>(cur_->previous_);
             reloc = dynamic_cast<relocatedInstruction *>(cur_->previous_);
@@ -2012,6 +2105,8 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                         reloc->fromAddr_);
             else if (te)
                 fprintf(stderr, "previous is tramp end\n");
+            else
+                fprintf(stderr, "previous is unknown\n");
             
             if (cur_->previous_) 
                 fprintf(stderr, "Previous pointers: fallthrough %p, target %p\n",
@@ -2029,6 +2124,8 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                         reloc->fromAddr_);
             else if (te)
                 fprintf(stderr, "next is tramp end\n");
+            else 
+                fprintf(stderr, "next is unknown type\n");
 
             bti = dynamic_cast<baseTrampInstance *>(cur_->fallthrough_->previous_);
             reloc = dynamic_cast<relocatedInstruction *>(cur_->fallthrough_->previous_);
@@ -2040,6 +2137,8 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                         reloc->fromAddr_);
             else if (te)
                 fprintf(stderr, "next->previous is tramp end\n");
+            else
+                fprintf(stderr, "next->previous is unknown type\n");
         }
         assert(cur_->fallthrough_->previous_ == cur_);
         cur_ = cur_->fallthrough_;
@@ -2064,6 +2163,24 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
 
 generatedCodeObject *generatedCFG_t::iterator::operator*() {
     return cur_;
+}
+
+void generatedCFG_t::iterator::find(generatedCFG_t &cfg,
+                                        generatedCodeObject *pointer) {
+    // This sucks.... and is slow. Reason is we need to keep things synced.
+    stack_.clear();
+    cur_ = cfg.start_;
+
+    generatedCodeObject *tmp = NULL;
+
+    while (cur_ != pointer)
+        tmp = (*this)++;
+    
+    if (!tmp) {
+        // We hit the end and didn't hit the provided pointer
+        assert(0);
+    }
+
 }
 
 void generatedCFG_t::iterator::initialize(generatedCFG_t &cfg) {
