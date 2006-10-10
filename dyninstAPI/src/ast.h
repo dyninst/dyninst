@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.89 2006/06/16 16:13:30 bernat Exp $
+// $Id: ast.h,v 1.90 2006/10/10 22:04:24 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -55,6 +55,8 @@
 #include "common/h/Types.h"
 #include "dyninstAPI/h/BPatch_type.h"
 
+#include "registerSpace.h"
+
 class process;
 class instPoint;
 class int_function;
@@ -63,213 +65,77 @@ class codeGen;
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "common/h/Types.h"
 
-typedef enum { 
-               invalidOp,
-               plusOp,
-               minusOp,
-               timesOp,
-               divOp,
-               lessOp,
-               leOp,
-               greaterOp,
-               geOp,
-               eqOp,
-               neOp,
-               loadOp,           
-               loadConstOp,
-	       loadFrameRelativeOp,
-	       loadFrameAddr,
-	       loadRegRelativeOp,	// More general form of loadFrameRelativeOp
-	       loadRegRelativeAddr,	// More general form of loadFrameAddr
-               storeOp,
-	       storeFrameRelativeOp,
-               ifOp,
-	       whileOp,  // Simple control structures will be useful
-	       doOp,     // Zhichen
-	       callOp,
-	       trampPreamble,
-	       trampTrailer,
-	       noOp,
-	       orOp,
-	       andOp,
-	       getRetValOp,
-	       getSysRetValOp,
-	       getParamOp,
-	       getSysParamOp,	   
-	       getAddrOp,	// return the address of the operand
-	       loadIndirOp,
-	       storeIndirOp,
-	       saveRegOp,
-	       updateCostOp,
-	       funcJumpOp,        // Jump to function without linkage
-	       branchOp,
-               ifMCOp,
-	       undefOp
-} opCode;
-
-class registerSlot {
- public:
-    Register number;    // what register is it
-    int refCount;      	// == 0 if free
-    bool needsSaving;	// been used since last restore
-    bool mustRestore;   // need to restore it before we are done.		
-    bool startsLive;	// starts life as a live register.
-    bool beenClobbered; // registers clobbered
-};
-
-#if defined(ia64_unknown_linux2_4)
-#include "inst-ia64.h"
-#endif
-
-class registerSpace {
- public:
-	registerSpace(const unsigned int dCount, Register *deads,
-                 const unsigned int lCount, Register *lives,
-                 bool multithreaded = false);
-   ~registerSpace();
-	Register allocateRegister(codeGen &gen, bool noCost);
-    bool allocateSpecificRegister(codeGen &gen, Register r, bool noCost);
-	// Free the specified register (decrement its refCount)
-	void freeRegister(Register k);
-	// Free the register even if its refCount is greater that 1
-	void forceFreeRegister(Register k);
-	void resetSpace();
-	void resetClobbers();
-	void setAllLive();
-	void saveClobberInfo(const instPoint * location);
-	void resetLiveDeadInfo(const int* liveRegs,
-			       const int *, const int *, bool);
-
-
-	// Check to see if the register is free
-	bool isFreeRegister(Register k);
-	//bool getDisregardLiveness() {return disregardLiveness;}
-	bool getDisregardLiveness();
-	void setDisregardLiveness(bool dl) {disregardLiveness = dl;}
-	
-	// Inits the values for the clobbered variables for the floating point registers
-	void initFloatingPointRegisters(const unsigned int count, Register *fp);
-
-	
-	//Makes register unClobbered
-	void unClobberRegister(Register reg);
-	void unClobberFPRegister(Register reg);
-
-	// Checks to see if register has been clobbered and clobbers it 
-	// if it hasn't been clobbered yet, returns true if we clobber it
-	// false if it has already been clobbered
-	bool clobberRegister(Register reg);
-	bool clobberFPRegister(Register reg);
-
-	// Checks to see if given register has been clobbered, true if it has
-	bool beenSaved(Register reg);
-	bool beenSavedFP(Register reg);
-
-	// Checks to see if register starts live
-	bool isRegStartsLive(Register reg);
-	int fillDeadRegs(Register * deadRegs, int num);
-	
-	// Manually set the reference count of the specified register
-	// we need to do so when reusing an already-allocated register
-	void fixRefCount(Register k, int iRefCount);
-	
-	// Bump up the reference count. Occasionally, we underestimate it
-	// and call this routine to correct this.
-	void incRefCount(Register k);
-
-	u_int getRegisterCount() { return numRegisters; }
-	u_int getFPRegisterCount() { return numFPRegisters; }
-
-	registerSlot *getRegSlot(Register k) { return (&registers[k]); }
-	registerSlot *getFPRegSlot(Register k) { return (&fpRegisters[k]); }
-
-	int getSPFlag() {return spFlag;}
-	
-	void copyInfo(registerSpace *rs) const;
-
-
-	bool readOnlyRegister(Register k);
-	// Make sure that no registers remain allocated, except "to_exclude"
-	// Used for assertion checking.
-	void checkLeaks(Register to_exclude);
-   bool for_multithreaded() { return is_multithreaded; }
-
-   registerSpace &operator=(const registerSpace &src);
- private:
-	u_int numRegisters;
-	u_int numFPRegisters;
-	Register highWaterRegister;
-	registerSlot *registers;
-	registerSlot *fpRegisters;
-	int spFlag;
-	bool disregardLiveness; // for RPC base tramps
-	bool is_multithreaded;
- public:
-	bool hasXMM;  // for Intel architectures, XMM registers
- 
-
-#if defined(ia64_unknown_linux2_4)
-
-public:
-	int originalLocals;
-	int originalOutputs;
-	int originalRotates;
-	int sizeOfStack;
-
-	// storageMap[] needs to be of type 'int' as opposed to
-	// 'Register' becuase negative values may be used.
-	int storageMap[ BP_R_MAX ];
-#endif
-
-};
+#include "opcode.h"
 
 class dataReqNode;
 class AstNode {
     public:
-        enum nodeType { sequenceNode, opCodeNode, operandNode, callNode };
-        enum operandType { Constant, ConstantPtr, ConstantString,
-			   OffsetConstant,      // add a OffsetConstant type for offset
-			                        // generated for level or index:
-			                        //   it is  MAX#THREADS * level * tSize  for level
-			                        //     or                 index * tSize  for index
-			   DataValue, DataPtr,  // restore AstNode::DataValue and AstNode::DataPtr
-                           DataId, DataIndir, DataReg,
-			   Param, ReturnVal, DataAddr, FrameAddr, RegOffset,
-			   SharedData, PreviousStackFrameDataReg,
-			   EffectiveAddr, BytesAccessed };
+        enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t };
+        enum operandType { Constant, 
+                           ConstantString,
+                           DataReg,
+                           DataIndir,
+			   Param, 
+                           ReturnVal, 
+                           DataAddr,  // ?
+                           FrameAddr, // Calculate FP 
+                           RegOffset, // Calculate *reg + offset; oValue is reg, loperand->oValue is offset. 
+                           PreviousStackFrameDataReg,
+                           undefOperandType };
+
+        enum memoryType {
+            EffectiveAddr,
+            BytesAccessed };
+
         AstNode(); // mdl.C
-	AstNode(const pdstring &func, AstNode *l, AstNode *r);
-        AstNode(const pdstring &func, AstNode *l); // needed by inst.C
-	AstNode(operandType ot, void *arg);
-	AstNode(AstNode *l, AstNode *r);
 
-        AstNode(opCode, AstNode *left); 
-        // assumes "NULL" for right child ptr
-        // needed by inst.C and stuff in ast.C
+        // Factory methods....
+        static AstNode *nullNode();
 
-        AstNode(operandType ot, AstNode *l);
-	AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e = NULL);
-        AstNode(const pdstring &func, pdvector<AstNode *> &ast_args);
-        AstNode(int_function *func, pdvector<AstNode *> &ast_args);
-        // And for a blind jump to a known address
-        AstNode(Address funcAddr, pdvector<AstNode *> &ast_args);
-	AstNode(int_function *func); // FuncJump (for replaceFunction)
+        static AstNode *operandNode(operandType ot, void *arg);
+        static AstNode *operandNode(operandType ot, AstNode *ast);
+
+        static AstNode *memoryNode(memoryType ot, int which);
+
+        static AstNode *sequenceNode(pdvector<AstNode *> &sequence);
+
+        static AstNode *operatorNode(opCode ot, AstNode *l=NULL, AstNode *r=NULL, AstNode *e=NULL);
+
+        static AstNode *funcCallNode(const pdstring &func, pdvector<AstNode *> &args, process *proc = NULL);
+        static AstNode *funcCallNode(int_function *func, pdvector<AstNode *> &args);
+
+        static AstNode *funcReplacementNode(int_function *func);
+
+        // TODO...
+        // Needs some way of marking what to save and restore... should be a registerSpace, really
+#if 0
+        static AstNode *saveStateNode();
+        static AstNode *restoreStateNode();
+        static AstNode *threadIndexNode();
+        static AstNode *trampGuardNode();
+#endif
+
+        static AstNode *miniTrampNode(AstNode *tramp);
+
 
         AstNode(AstNode *src);
-        AstNode &operator=(const AstNode &src);
-
-       ~AstNode();
-
-        Address generateTramp(process *proc, const instPoint *location, codeGen &gen, 
-                              int *trampCost, bool noCost);
-	Address generateCode(process *proc, registerSpace *rs, codeGen &gen, 
-                             bool noCost, bool root,
-			     const instPoint *location = NULL);
-	Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
-                                    bool noCost,
-				    const pdvector<AstNode*> &ifForks,
-				    const instPoint *location = NULL);
+        //virtual AstNode &operator=(const AstNode &src);
         
+        virtual ~AstNode();
+        
+        virtual Address generateCode(process *proc, registerSpace *rs, codeGen &gen, 
+                                     bool noCost, bool root,
+                                     const instPoint *location = NULL);
+        virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                            bool noCost,
+                                            const pdvector<AstNode*> &ifForks,
+                                            const instPoint *location = NULL);
+       
+        bool previousComputationValid(Register &reg,
+                                      const pdvector<AstNode *> &ifForks,
+                                      registerSpace *rs);
+        
+        virtual AstNode *operand() const { return NULL; }
 	
 
 	enum CostStyleType { Min, Avg, Max };
@@ -278,7 +144,7 @@ class AstNode {
 	int maxCost() const {  return costHelper(Max);  }
 
 	// return the # of instruction times in the ast.
-	int costHelper(enum CostStyleType costStyle) const;	
+	virtual int costHelper(enum CostStyleType) const { return 0; };	
 	void print() const;
         int referenceCount;     // Reference count for freeing memory
         int useCount;           // Reference count for generating code
@@ -319,7 +185,7 @@ class AstNode {
 
 	// Check if the node can be kept at all. Some nodes (e.g., storeOp)
 	// can not be cached
-	bool canBeKept() const;
+	virtual bool canBeKept() const { return true; }
 
 	// Allocate a register and make it available for sharing if our
         // node is shared
@@ -332,17 +198,13 @@ class AstNode {
 		     const pdvector<AstNode*> &path2) const;
 
 	// Return all children of this node ([lre]operand, ..., operands[])
-	void getChildren(pdvector<AstNode*> *children);
+	virtual void getChildren(pdvector<AstNode*> &); 
 
-        void updateOperandsRC(bool flag); // Update operand's referenceCount
-                                          // if "flag" is true, increments the
-                                          // counter, otherwise it decrements 
-                                          // the counter.
         void printRC(void);
-	bool accessesParam(void);         // Does this AST access "Param"
+	virtual bool accessesParam(void);
 
-	void setOValue(void *arg) { oValue = (void *) arg; }
-	const void *getOValue() { return oValue; }
+	virtual void setOValue(void *) { assert(0); }
+	virtual const void *getOValue() const { assert(0); return NULL; }
 	// only function that's defined in metric.C (only used in metri.C)
 	bool condMatch(AstNode* a,
 		       pdvector<dataReqNode*> &data_tuple1,
@@ -352,48 +214,256 @@ class AstNode {
 
 
 	// DEBUG
-	operandType getoType() const { return oType; };
-    private:
-        AstNode(opCode); // like AstNode(opCode, const AstNode &, 
-                         //              const AstNode &)
-                         // but assumes "NULL" for both child ptrs
-	nodeType type;
-	opCode op;		    // only for opCode nodes
-	pdstring callee;		    // only for call nodes
-	int_function *calleefunc;  // only for call nodes
-        Address calleefuncAddr;
-	pdvector<AstNode *> operands; // only for call nodes
-	operandType oType;	    // for operand nodes
-	void *oValue;	            // operand value for operand nodes
-        unsigned int whichMA;       // only for memory access nodes
+        virtual operandType getoType() const { return undefOperandType; }
+
+ protected:
 	BPatch_type *bptype;  // type of corresponding BPatch_snippet
 	bool doTypeCheck;	    // should operands be type checked
 	int size;		    // size of the operations (in bytes)
 
-        // These 2 vrbles must be pointers; otherwise, we'd have a recursive
-        // data structure with an infinite size.
-        // The only other option is to go with references, which would have
-        // to be initialized in the constructor and can't use NULL as a
-        // sentinel value...
-	AstNode *loperand;
-	AstNode *roperand;
-	AstNode *eoperand;
-
     public:
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
-	AstNode(operandType ot, int which); // for memory access
+	//AstNode(operandType ot, int which); // for memory access
 	BPatch_type *getType() { return bptype; };
 	void		  setType(BPatch_type *t) { 
 				bptype = t; 
 				if( t != NULL ) { size = t->getSize(); } }
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
-	BPatch_type	  *checkType();
+	virtual BPatch_type	  *checkType();
 };
+
 
 AstNode *assignAst(AstNode *src);
 void removeAst(AstNode *&ast);
 void terminateAst(AstNode *&ast);
+
+
+class AstNullNode : public AstNode {
+ public:
+    AstNullNode() : AstNode() {};
+
+ private:
+    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks,
+                                        const instPoint *location = NULL);
+};
+
+class AstOperatorNode : public AstNode {
+ public:
+    AstOperatorNode(opCode opC, AstNode *l, AstNode *r = NULL, AstNode *e = NULL);
+    
+    ~AstOperatorNode() {
+        if (loperand) removeAst(loperand);
+        if (roperand) removeAst(roperand);
+        if (eoperand) removeAst(eoperand);
+    }
+
+    virtual int costHelper(enum CostStyleType costStyle) const;	
+
+    virtual BPatch_type	  *checkType();
+    virtual bool accessesParam(void);         // Does this AST access "Param"
+
+    virtual bool canBeKept() const;
+
+    virtual void getChildren(pdvector<AstNode*> &children);
+
+ private:
+    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks,
+                                        const instPoint *location = NULL);
+    AstOperatorNode() {};
+    opCode op;
+    AstNode *loperand;
+    AstNode *roperand;
+    AstNode *eoperand;
+};
+
+
+class AstOperandNode : public AstNode {
+    friend class AstOperatorNode; // ARGH
+ public:
+    // Direct operand
+    AstOperandNode(operandType ot, void *arg);
+
+    // And an indirect (say, a load)
+    AstOperandNode(operandType ot, AstNode *l);
+
+    ~AstOperandNode() {
+        if (oType == ConstantString) free((char *)oValue);
+        if (operand_) removeAst(operand_);
+    }
+        
+    // Arguably, the previous should be an operation...
+    // however, they're kinda endemic.
+
+    virtual operandType getoType() const { return oType; };
+
+    virtual void setOValue(void *o) { oValue = o; }
+    virtual const void *getOValue() const { return oValue; };
+
+    virtual AstNode *operand() const { return operand_; }
+
+    virtual int costHelper(enum CostStyleType costStyle) const;	
+        
+    virtual BPatch_type	  *checkType();
+
+    virtual bool accessesParam(void) { return (oType == Param); };
+    virtual bool canBeKept() const;
+        
+    virtual void getChildren(pdvector<AstNode*> &children);
+        
+ private:
+    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks,
+                                        const instPoint *location = NULL);
+    AstOperandNode() {};
+    
+    operandType oType;
+    void *oValue;
+    AstNode *operand_;
+    
+};
+
+
+class AstCallNode : public AstNode {
+ public:
+    AstCallNode(int_function *func, pdvector<AstNode *>&args);
+    AstCallNode(const pdstring &str, pdvector<AstNode *>&args);
+    
+    ~AstCallNode() {
+        for (unsigned i = 0; i < args_.size(); i++) {
+            removeAst(args_[i]);
+        }
+    }
+
+    virtual int costHelper(enum CostStyleType costStyle) const;	
+        
+    virtual BPatch_type	  *checkType();
+    virtual bool accessesParam(); 
+    virtual bool canBeKept() const;
+
+    virtual void getChildren(pdvector<AstNode*> &children);
+
+ private:
+    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks,
+                                        const instPoint *location = NULL);
+    AstCallNode() {};
+    // Sometimes we just don't have enough information...
+    const pdstring func_name_;
+
+    int_function *func_;
+    pdvector<AstNode *> args_;
+};
+
+class AstReplacementNode : public AstNode {
+ public:
+    AstReplacementNode(int_function *rep) :
+        AstNode(),
+        replacement(rep) {};
+
+    virtual bool canBeKept() const;
+
+ private:
+    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks,
+                                        const instPoint *location = NULL);
+    int_function *replacement;
+    AstReplacementNode() {};
+};
+
+
+class AstSequenceNode : public AstNode {
+ public:
+    AstSequenceNode(pdvector<AstNode *> &sequence);
+
+    ~AstSequenceNode() {
+        for (unsigned i = 0; i < sequence_.size(); i++) {
+            removeAst(sequence_[i]);
+        }
+    }
+
+    virtual int costHelper(enum CostStyleType costStyle) const;	
+
+    virtual BPatch_type	  *checkType();
+    virtual bool accessesParam();
+    virtual bool canBeKept() const;
+
+    virtual void getChildren(pdvector<AstNode*> &children);
+
+ private:
+    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks,
+                                        const instPoint *location = NULL);
+    AstSequenceNode() {};
+    pdvector<AstNode *> sequence_;
+};
+
+class instruction;
+
+class AstInstructionNode : public AstNode {
+ public: 
+    AstInstructionNode(instruction *insn);
+    
+ private:
+    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks,
+                                        const instPoint *location = NULL);
+
+
+    AstInstructionNode() {};
+    instruction *insn_;
+    
+};
+ 
+class AstMiniTrampNode : public AstNode {
+ public:
+    AstMiniTrampNode(AstNode *ast) {
+        ast_ = assignAst(ast);
+    }
+
+    Address generateTramp(process *proc, const instPoint *location, 
+                          codeGen &gen, int &trampCost, 
+                          bool noCost, bool merged);
+            
+    virtual ~AstMiniTrampNode() {
+        if (ast_) removeAst(ast_);
+    }    
+
+    virtual bool accessesParam(void) { return ast_->accessesParam(); } 
+
+    virtual void getChildren(pdvector<AstNode*> &children);
+
+ private:
+    AstMiniTrampNode() {};
+
+    bool inline_;
+    AstNode *ast_;
+};
+
+class AstMemoryNode : public AstNode {
+ public:
+    AstMemoryNode(memoryType mem, unsigned which);
+
+ private:
+    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks,
+                                        const instPoint *location = NULL);
+    
+    AstMemoryNode() {};
+    memoryType mem_;
+    unsigned which_;
+};
+
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,
@@ -403,5 +473,6 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 void emitFuncJump(opCode op, codeGen &gen,
 		  const int_function *func, process *proc,
 		  const instPoint *loc, bool noCost);
+
 
 #endif /* AST_HDR */
