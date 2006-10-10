@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.65 2006/07/07 00:01:04 jaw Exp $
+// $Id: inst-sparc.h,v 1.66 2006/10/10 22:04:01 bernat Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -52,7 +52,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/ast.h"
+
 #include "dyninstAPI/src/arch-sparc.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
@@ -103,8 +103,10 @@ inline Address ABS(int x) {
 #define REG_SPTR          14
 #define REG_FPTR          30
 
+class registerSpace;
 extern registerSpace *regSpace;
 extern Register deadList[];
+class AstNode;
 
 bool processOptimaRet(instPoint *location, AstNode *&ast);
 

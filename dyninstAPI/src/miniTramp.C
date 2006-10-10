@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.30 2006/08/10 17:31:24 bernat Exp $
+// $Id: miniTramp.C,v 1.31 2006/10/10 22:04:10 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -47,6 +47,7 @@
 #include "instP.h"
 #include "instPoint.h"
 #include "process.h"
+#include "ast.h"
 
 // for AIX
 #include "function.h"
@@ -151,8 +152,9 @@ bool miniTramp::generateMT()
  
     /* VG(11/06/01): Added location, needed by effective address AST node */
     returnOffset = ast_->generateTramp(proc(), instP(),
-                                       miniTrampCode_, &cost, 
-                                       false); // noCost -- we can always ignore it later
+                                       miniTrampCode_, 
+                                       cost, false,
+                                       BPatch::bpatch->isMergeTramp());
 
     size_ = miniTrampCode_.used();
     miniTrampCode_.finalize();
@@ -648,7 +650,7 @@ miniTramp::miniTramp(callWhen when_,
     prev(NULL), next(NULL),
     callback(NULL), callbackData(NULL),
     deleteInProgress(false) {
-    ast_ = assignAst(ast);
+    ast_ = dynamic_cast<AstMiniTrampNode *>(AstNode::miniTrampNode(ast));
     assert(baseT);
     proc_ = baseT->proc();
 }
@@ -672,7 +674,7 @@ miniTramp::miniTramp(const miniTramp *parMini,
     deleteInProgress(parMini->deleteInProgress)
 {
     assert(parMini->ast_);
-    ast_ = assignAst(parMini->ast_);
+    ast_ = dynamic_cast<AstMiniTrampNode *>(assignAst(parMini->ast_));
 
     // Uhh... what about callbacks?
     // Can either set them to null or have them returning 
@@ -683,7 +685,8 @@ miniTramp::miniTramp(const miniTramp *parMini,
 miniTramp::~miniTramp() {
     if (callback)
         (*callback)(callbackData, this);  
-    removeAst(ast_);
+    // FIXME
+    //removeAst(ast_);
 }
 
 // Given a miniTramp parentMT, find the equivalent in the child

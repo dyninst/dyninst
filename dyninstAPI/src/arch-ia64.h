@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.43 2006/05/17 14:19:32 bernat Exp $
+// $Id: arch-ia64.h,v 1.44 2006/10/10 22:03:53 bernat Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -319,7 +319,7 @@ instruction generateShortImmediateBranch( int64_t target25 );
 
 instruction generateShiftLeftAndAdd( Register destination, Register shifted, uint64_t count, Register added );
 
-#include "ast.h"
+#include "opcode.h"
 instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs );
 instruction generateArithmetic( opCode op, Register destination, Register lhs, Register rhs );
 

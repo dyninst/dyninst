@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.11 2006/05/18 23:23:23 bernat Exp $
+// $Id: miniTramp.h,v 1.12 2006/10/10 22:04:12 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -47,7 +47,6 @@
 #include "common/h/Types.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/inst.h" // callOrder and callWhen
-#include "dyninstAPI/src/ast.h" // assignAST
 #include "dyninstAPI/src/instPoint.h" // generatedCodeObject
 #include "dyninstAPI/src/multiTramp.h" // generatedCodeObject
 
@@ -58,6 +57,8 @@
 
 // Callback func for deletion of a minitramp
 class miniTramp;
+class AstNode;
+class AstMiniTrampNode;
 typedef void (*miniTrampFreeCallback)(void *, miniTramp *);
 
 // The new miniTramp class -- description of a particular minitramp.
@@ -235,7 +236,7 @@ class miniTramp {
 
   bool deleteInProgress; // Don't double-delete
 
-  AstNode *ast_; // For regenerating miniTs
+  AstMiniTrampNode *ast_; // For regenerating miniTs
 };
 
 

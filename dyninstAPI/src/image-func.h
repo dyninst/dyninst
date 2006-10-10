@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.22 2006/07/07 00:01:02 jaw Exp $
+// $Id: image-func.h,v 1.23 2006/10/10 22:03:57 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -250,6 +250,8 @@ bool isRealCall(instruction insn,
                 Address addr, 
                 image *owner, 
                 bool &validTarget);
+
+class AstNode; // For IA-64
 
 // Parse-level function object. Knows about offsets, names, and suchlike; 
 // does _not_ do function relocation.

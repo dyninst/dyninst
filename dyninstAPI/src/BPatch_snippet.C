@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.85 2006/07/07 00:01:00 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.86 2006/10/10 22:03:49 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -246,11 +246,14 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
     // Convert a[i] into *(&a + (* i sizeof(element)))
     //
 
-    AstNode *elementExpr = new AstNode(AstNode::Constant, (void *) elementSize);
-    AstNode *offsetExpr = new AstNode(timesOp, elementExpr, rOperand.ast);
-    AstNode *addrExpr = new AstNode(plusOp, 
-	new AstNode(getAddrOp, lOperand.ast), offsetExpr);
-    ast = new AstNode(AstNode::DataIndir, addrExpr);
+    ast = AstNode::operandNode(AstNode::DataIndir,
+                               AstNode::operatorNode(plusOp,
+                                                     AstNode::operatorNode(getAddrOp,
+                                                                           lOperand.ast),
+                                                     AstNode::operatorNode(timesOp,
+                                                                           AstNode::operandNode(AstNode::Constant,
+                                                                                                (void *)elementSize),
+                                                                           rOperand.ast)));
     ast->setType(elementType);
 
     return ast;
@@ -310,12 +313,12 @@ AstNode *generateFieldRef(const BPatch_snippet &lOperand,
 
     //
     // Convert s.f into *(&s + offset(s,f))
-    // Convert a[i] into *(&a + (* i sizeof(element)))
     //
-    AstNode *offsetExpr = new AstNode(AstNode::Constant, (void *) offset);
-    AstNode *addrExpr = new AstNode(plusOp, 
-	new AstNode(getAddrOp, lOperand.ast), offsetExpr);
-    ast = new AstNode(AstNode::DataIndir, addrExpr);
+    ast = AstNode::operandNode(AstNode::DataIndir,
+                               AstNode::operatorNode(plusOp,
+                                                     AstNode::operatorNode(getAddrOp, lOperand.ast),
+                                                     AstNode::operandNode(AstNode::Constant,
+                                                                          (void *)offset)));
     ast->setType(field->getType());
 
     return ast;
@@ -380,37 +383,22 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
         }
         break;
       case BPatch_seq:
-        ast = new AstNode(lOperand.ast, rOperand.ast);
-        ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
-        return;
-      default:
+          {
+              pdvector<AstNode *> sequence;
+              sequence.push_back(lOperand.ast);
+              sequence.push_back(rOperand.ast);
+              ast = AstNode::sequenceNode(sequence);
+              ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+              return;
+          }
+    default:
         /* XXX handle error */
         assert(0);
     };
 
-#ifdef alpha_dec_osf4_0
-    /* XXX
-     * A special kludge for the Alpha: there's no hardware divide on the
-     * Alpha, and our code in inst-alpha.C to call a software divide doesn't
-     * work right (yet?).  So, we never generate a divOp AstNode; instead we
-     * generate a callNode AST that calls a divide function.
-     */
-    if (astOp == divOp) {
-        pdvector<AstNode *> args;
-
-        args.push_back(assignAst(lOperand.ast));
-        args.push_back(assignAst(rOperand.ast));
-
-        ast = new AstNode("divide", args);
-
-        //removeAst(args[0]);
-        //removeAst(args[1]);
-    } else {
-        ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
-    }
-#else
-    ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
-#endif
+    ast = AstNode::operatorNode(astOp,
+                                lOperand.ast,
+                                rOperand.ast);
 
     ast->setType(lOperand.ast->getType());
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -432,34 +420,37 @@ void BPatch_arithExpr::BPatch_arithExprUn(BPatch_unOp op,
    
    switch(op) {
       case BPatch_negate: {
-         AstNode *negOne = new AstNode(AstNode::Constant, (void *) -1);
-         BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
-         assert(type != NULL);         
-         negOne->setType(type);
-         ast = new AstNode(timesOp, negOne, lOperand.ast);
-         break;
+          AstNode *negOne = AstNode::operandNode(AstNode::Constant, 
+                                                 (void *)-1);
+          BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+          assert(type != NULL);         
+          negOne->setType(type);
+          ast = AstNode::operatorNode(timesOp,
+                                      negOne,
+                                      lOperand.ast);
+          break;
       }         
-      case BPatch_addr:  {
-         ast = new AstNode(getAddrOp, lOperand.ast);
-         // create a new type which is a pointer to type 
-         BPatch_type *baseType = const_cast<BPatch_type *> 
-            (lOperand.ast->getType());
-         BPatch_type *type = BPatch::bpatch->createPointer("<PTR>", 
-                            baseType, sizeof(void *));
-         assert(type);
-         ast->setType(type);
-         break;
-      }
+   case BPatch_addr:  {
+       ast = AstNode::operatorNode(getAddrOp, lOperand.ast);
+       // create a new type which is a pointer to type 
+       BPatch_type *baseType = const_cast<BPatch_type *> 
+           (lOperand.ast->getType());
+       BPatch_type *type = BPatch::bpatch->createPointer("<PTR>", 
+                                                         baseType, sizeof(void *));
+       assert(type);
+       ast->setType(type);
+       break;
+   }
 
       case BPatch_deref: {
-         ast = new AstNode(AstNode::DataIndir, lOperand.ast);
-         BPatch_type *type = const_cast<BPatch_type *> ((lOperand.ast)->getType());
-         if (!type || (type->getDataClass() != BPatch_dataPointer)) {
-            ast->setType(BPatch::bpatch->stdTypes->findType("int"));
-         } else {
-            ast->setType(dynamic_cast<BPatch_typePointer *>(type)->getConstituentType());
-         }
-         break;
+          ast = AstNode::operandNode(AstNode::DataIndir, lOperand.ast);
+          BPatch_type *type = const_cast<BPatch_type *> ((lOperand.ast)->getType());
+          if (!type || (type->getDataClass() != BPatch_dataPointer)) {
+              ast->setType(BPatch::bpatch->stdTypes->findType("int"));
+          } else {
+              ast->setType(dynamic_cast<BPatch_typePointer *>(type)->getConstituentType());
+          }
+          break;
       }
          
       default:
@@ -514,7 +505,7 @@ void BPatch_boolExpr::BPatch_boolExprInt(BPatch_relOp op,
         assert( 0 );
     };
     
-    ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
+    ast = AstNode::operatorNode(astOp, lOperand.ast, rOperand.ast);
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
@@ -531,18 +522,20 @@ void BPatch_boolExpr::BPatch_boolExprInt(BPatch_relOp op,
 void BPatch_constExpr::BPatch_constExprSignedInt( signed int value ) {
 	assert( BPatch::bpatch != NULL );
 	
-	ast = new AstNode( AstNode::Constant, (void *)(unsigned long) value );	
+        ast = AstNode::operandNode(AstNode::Constant,
+                                   (void *)(unsigned long) value);
 	ast->setTypeChecking( BPatch::bpatch->isTypeChecked() );
 	
 	BPatch_type * type = BPatch::bpatch->stdTypes->findType( "int" );
 	assert( type != NULL );
 	ast->setType( type );
-	}
+}
 
 void BPatch_constExpr::BPatch_constExprUnsignedInt( unsigned int value ) {
 	assert( BPatch::bpatch != NULL );
 	
-	ast = new AstNode( AstNode::Constant, (void *)(unsigned long) value );	
+        ast = AstNode::operandNode(AstNode::Constant,
+                                   (void *)(unsigned long) value);
 	ast->setTypeChecking( BPatch::bpatch->isTypeChecked() );
 	
 	BPatch_type * type = BPatch::bpatch->stdTypes->findType( "unsigned int" );
@@ -553,7 +546,8 @@ void BPatch_constExpr::BPatch_constExprUnsignedInt( unsigned int value ) {
 void BPatch_constExpr::BPatch_constExprSignedLong( signed long value ) {
 	assert( BPatch::bpatch != NULL );
 	
-	ast = new AstNode( AstNode::Constant, (void *)(unsigned long) value );	
+        ast = AstNode::operandNode(AstNode::Constant,
+                                   (void *)(unsigned long) value);
 	ast->setTypeChecking( BPatch::bpatch->isTypeChecked() );
 	
 	BPatch_type * type = BPatch::bpatch->stdTypes->findType( "long" );
@@ -564,7 +558,8 @@ void BPatch_constExpr::BPatch_constExprSignedLong( signed long value ) {
 void BPatch_constExpr::BPatch_constExprUnsignedLong( unsigned long value ) {
 	assert( BPatch::bpatch != NULL );
 	
-	ast = new AstNode( AstNode::Constant, (void *)(unsigned long) value );	
+        ast = AstNode::operandNode(AstNode::Constant,
+                                   (void *)(unsigned long) value);
 	ast->setTypeChecking( BPatch::bpatch->isTypeChecked() );
 	
 	BPatch_type * type = BPatch::bpatch->stdTypes->findType( "unsigned long" );
@@ -581,7 +576,7 @@ void BPatch_constExpr::BPatch_constExprUnsignedLong( unsigned long value ) {
  */
 void BPatch_constExpr::BPatch_constExprCharStar(const char *value)
 {
-    ast = new AstNode(AstNode::ConstantString, (void*)const_cast<char*>(value));
+    ast = AstNode::operandNode(AstNode::ConstantString, (void *)const_cast<char *>(value));
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -602,7 +597,7 @@ void BPatch_constExpr::BPatch_constExprCharStar(const char *value)
  */
 void BPatch_constExpr::BPatch_constExprVoidStar(const void *value)
 {
-    ast = new AstNode(AstNode::Constant, (void*)const_cast<void*>(value));
+    ast = AstNode::operandNode(AstNode::Constant, (void *)const_cast<void *>(value));
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -637,7 +632,7 @@ void *BPatch_variableExpr::getAddressInt()
 
 void BPatch_constExpr::BPatch_constExprLongLong(long long value) 
 {
-    ast = new AstNode(AstNode::Constant, (void*)value);
+    ast = AstNode::operandNode(AstNode::Constant, (void *)value)
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -675,7 +670,7 @@ void BPatch_constExpr::BPatch_constExprFloat(float value)
 
 void BPatch_regExpr::BPatch_regExprInt(unsigned int value)
 {
-    ast = new AstNode(AstNode::DataReg, (void*)(unsigned long int)value);
+    ast = AstNode::operandNode(AstNode::DataReg, (void *)(unsigned long int) value);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -707,7 +702,7 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
     //  jaw 08/03  part of cplusplus bugfix -- using pretyName
     //  to generate function calls can lead to non uniqueness probs
     //  in the case of overloaded callee functions.
-    ast = new AstNode(func.lowlevel_func(), ast_args);
+    ast = AstNode::funcCallNode(func.lowlevel_func(), ast_args);
 
     for (i = 0; i < args.size(); i++)
         removeAst(ast_args[i]);
@@ -750,7 +745,7 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
     const BPatch_function &func)
 {
-    ast = new AstNode(func.lowlevel_func());
+    ast = AstNode::funcReplacementNode(func.lowlevel_func());
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
@@ -775,7 +770,7 @@ void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
 void BPatch_ifExpr::BPatch_ifExprInt(const BPatch_boolExpr &conditional,
                                      const BPatch_snippet &tClause)
 {
-    ast = new AstNode(ifOp, conditional.ast, tClause.ast);
+    ast = AstNode::operatorNode(ifOp, conditional.ast, tClause.ast);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -795,7 +790,7 @@ void BPatch_ifExpr::BPatch_ifExprWithElse(const BPatch_boolExpr &conditional,
                                           const BPatch_snippet &tClause,
                                           const BPatch_snippet &fClause)
 {
-    ast = new AstNode(ifOp, conditional.ast, tClause.ast, fClause.ast);
+    ast = AstNode::operatorNode(ifOp, conditional.ast, tClause.ast, fClause.ast);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -809,7 +804,7 @@ void BPatch_ifExpr::BPatch_ifExprWithElse(const BPatch_boolExpr &conditional,
  */
 void BPatch_nullExpr::BPatch_nullExprInt()
 {
-    ast = new AstNode;
+    ast = AstNode::nullNode();
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -827,7 +822,8 @@ void BPatch_nullExpr::BPatch_nullExprInt()
  */
 void BPatch_paramExpr::BPatch_paramExprInt(int n)
 {
-    ast = new AstNode(AstNode::Param, (void *)(long int)n);
+    ast = AstNode::operandNode(AstNode::Param, 
+                               (void *)(long)n);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -843,7 +839,7 @@ void BPatch_paramExpr::BPatch_paramExprInt(int n)
  */
 void BPatch_retExpr::BPatch_retExprInt()
 {
-    ast = new AstNode(AstNode::ReturnVal, (void *)0);
+    ast = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -865,15 +861,13 @@ void BPatch_sequence::BPatch_sequenceInt(const BPatch_Vector<BPatch_snippet *> &
 
     assert(BPatch::bpatch != NULL);
 
-    ast = assignAst(items[0]->ast);
-    // ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
-
-    for (unsigned int i = 1; i < items.size(); i++) {
-        AstNode *tempAst = new AstNode(ast, items[i]->ast);
-        tempAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
-        removeAst(ast);
-        ast = tempAst;
+    pdvector<AstNode *>sequence;
+    for (unsigned i = 0; i < items.size(); i++) {
+        sequence.push_back(items[i]->ast);
     }
+    ast = AstNode::sequenceNode(sequence);
+
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }
 
 
@@ -898,7 +892,7 @@ void BPatch_variableExpr::BPatch_variableExprInt(char *in_name,
     scope = NULL;
     isLocal = false;
 
-    ast = new AstNode(AstNode::DataAddr, address);
+    ast = AstNode::operandNode(AstNode::DataAddr, address);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1023,7 +1017,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
 {
     switch (in_storage) {
 	case BPatch_storageAddr:
-	    ast = new AstNode(AstNode::DataAddr, address);
+            ast = AstNode::operandNode(AstNode::DataAddr, address);
 	    isLocal = false;
 	    break;
 	case BPatch_storageAddrRef:
@@ -1031,7 +1025,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
 	    isLocal = false;
 	    break;
 	case BPatch_storageReg:
-	    ast = new AstNode(AstNode::PreviousStackFrameDataReg, in_register);
+	    ast = AstNode::operandNode(AstNode::PreviousStackFrameDataReg, (void *)in_register);
 	    isLocal = true;
 	    break;
 	case BPatch_storageRegRef:
@@ -1039,13 +1033,14 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
 	    isLocal = true;
 	    break;
 	case BPatch_storageRegOffset:
-	    ast = new AstNode(AstNode::DataAddr, address);
-	    ast = new AstNode(AstNode::RegOffset, ast);
+	    ast = AstNode::operandNode(AstNode::RegOffset, 
+                                       AstNode::operandNode(AstNode::DataAddr,
+                                                            address));
 	    ast->setOValue( (void *)(long int)in_register );
 	    isLocal = true;
 	    break;
 	case BPatch_storageFrameOffset:
-	    ast = new AstNode(AstNode::FrameAddr, address);
+            ast = AstNode::operandNode(AstNode::FrameAddr, address);
 	    isLocal = true;
 	    break;
     }
@@ -1072,7 +1067,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
                                          int in_size) :
     appProcess(in_process), address(in_address), scope(NULL), isLocal(false)
 {
-    ast = new AstNode(AstNode::DataAddr, address);
+    ast = AstNode::operandNode(AstNode::DataAddr, address);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1252,10 +1247,10 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
 	BPatch_variableExpr *newVar;
 
 	// convert to *(&basrVar + offset)
-	AstNode *offsetExpr = new AstNode(AstNode::Constant, (void *) offset);
-        AstNode *addrExpr = new AstNode(plusOp,
-		new AstNode(getAddrOp, ast), offsetExpr);
-	AstNode *fieldExpr = new AstNode(AstNode::DataIndir, addrExpr);
+        AstNode *fieldExpr = AstNode::operandNode(AstNode::DataIndir,
+                                                  AstNode::operatorNode(plusOp,
+                                                                        AstNode::operatorNode(getAddrOp, ast),
+                                                                        AstNode::operandNode(AstNode::Constant, (void *)offset)));
 
         // VG(03/02/02): What about setting the base address??? Here we go:
 	if( field->_type != NULL ) {
@@ -1281,7 +1276,7 @@ void BPatch_breakPointExpr::BPatch_breakPointExprInt()
 {
     pdvector<AstNode *> null_args;
 
-    ast = new AstNode("DYNINST_snippetBreakpoint", null_args);
+    ast = AstNode::funcCallNode("DYNINST_snippetBreakpoint", null_args);
 
     assert(BPatch::bpatch != NULL);
 
@@ -1304,7 +1299,7 @@ void BPatch_effectiveAddressExpr::BPatch_effectiveAddressExprInt(int _which)
 #else
   assert(_which >= 0 && _which <= (int) BPatch_instruction::nmaxacc_NP);
 #endif
-  ast = new AstNode(AstNode::EffectiveAddr, _which);
+  ast = AstNode::memoryNode(AstNode::EffectiveAddr, _which);
 };
 
 
@@ -1322,16 +1317,16 @@ void BPatch_bytesAccessedExpr::BPatch_bytesAccessedExprInt(int _which)
 #else
   assert(_which >= 0 && _which <= (int)BPatch_instruction::nmaxacc_NP);
 #endif
-  ast = new AstNode(AstNode::BytesAccessed, _which);
+  ast = AstNode::memoryNode(AstNode::BytesAccessed, _which);
 };
 
 
 void BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExprInt(const BPatch_snippet &tClause)
 {
-  ast = new AstNode(ifMCOp, tClause.ast);
-  
-  assert(BPatch::bpatch != NULL);
-  ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    ast = AstNode::operatorNode(ifMCOp, tClause.ast);
+    
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 };
 
 void BPatch_threadIndexExpr::BPatch_threadIndexExprInt()
@@ -1352,8 +1347,7 @@ void BPatch_threadIndexExpr::BPatch_threadIndexExprInt()
   pdvector<AstNode *> args;
   ast = new AstNode(thread_index->lowlevel_func(), args);
 #endif
-
-  ast = new AstNode(AstNode::DataReg, (void *)REG_MT_POS);
+  ast = AstNode::operandNode(AstNode::DataReg, (void *)REG_MT_POS);
 
   assert(BPatch::bpatch != NULL);
   ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -1376,7 +1370,7 @@ void BPatch_tidExpr::BPatch_tidExprInt(BPatch_process *proc)
   BPatch_function *thread_func = thread_funcs[0];
   
   pdvector<AstNode *> args;
-  ast = new AstNode(thread_func->lowlevel_func(), args);
+  ast = AstNode::funcCallNode(thread_func->lowlevel_func(), args);
 
   assert(BPatch::bpatch != NULL);
   ast->setTypeChecking(BPatch::bpatch->isTypeChecked());

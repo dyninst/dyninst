@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.94 2006/07/07 00:01:04 jaw Exp $
+// $Id: inst.h,v 1.95 2006/10/10 22:04:04 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -47,7 +47,7 @@
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
-#include "ast.h" // enum opCode now defined here.
+#include "opcode.h" // enum opCode now defined here.
 #include "common/h/Types.h"
 #include "arch.h" // codeBufIndex_t 
 
@@ -62,6 +62,7 @@ class process;
 class int_function;
 class metricFocusNode;
 class codeGen;
+class registerSpace;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn, callBranchTargetInsn, callUnset } callWhen;
@@ -269,7 +270,7 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool
 Register emitFuncCall(opCode op, registerSpace *rs, codeGen &gen,
                       pdvector<AstNode *> &operands, 
 		      process *proc, bool noCost, 
-		      Address callee_addr,
+                      int_function *callee,
 		      const pdvector<AstNode *> &ifForks, // control-flow path
 		      const instPoint *location = NULL);
 

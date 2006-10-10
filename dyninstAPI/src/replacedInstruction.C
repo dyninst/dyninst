@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.C,v 1.1 2006/10/04 20:41:14 bernat Exp $
+// $Id: replacedInstruction.C,v 1.2 2006/10/10 22:04:18 bernat Exp $
 
 #include "multiTramp.h"
 #include "process.h"
 #include "instPoint.h"
+#include "ast.h"
 
 // Necessary methods
 

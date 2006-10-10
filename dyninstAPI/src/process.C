@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.669 2006/08/03 08:18:22 jaw Exp $
+// $Id: process.C,v 1.670 2006/10/10 22:04:16 bernat Exp $
 
 #include <ctype.h>
 
@@ -77,6 +77,7 @@
 #include "dyninstAPI/src/debuggerinterface.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI/src/InstrucIter.h"
+#include "dyninstAPI/src/ast.h"
 
 // #include "paradynd/src/mdld.h"
 #include "common/h/Timer.h"
@@ -167,9 +168,15 @@ Address process::getTOCoffsetInfo(Address dest)
     }
     // Very odd case if this is not defined.
     assert(mobj); 
-    
-    Address TOCoffset = mobj->parse_img()->getObject().getTOCoffset();
-    return TOCoffset + mobj->dataBase();
+
+    return mobj->parse_img()->getObject().getTOCoffset() + mobj->dataBase();
+
+}
+
+Address process::getTOCoffsetInfo(int_function *func) {
+    mapped_object *mobj = func->obj();
+
+    return mobj->parse_img()->getObject().getTOCoffset() + mobj->dataBase();
 }
 
 #endif
@@ -1278,10 +1285,10 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   // build AstNode for "DYNINSTos_malloc" call
   pdstring callee = "DYNINSTos_malloc";
   pdvector<AstNode*> args(3);
-  args[0] = new AstNode(AstNode::Constant, (void *)(Address)size);
-  args[1] = new AstNode(AstNode::Constant, (void *)lo);
-  args[2] = new AstNode(AstNode::Constant, (void *)hi);
-  AstNode *code = new AstNode(callee, args);
+  args[0] = AstNode::operandNode(AstNode::Constant, (void *)(Address)size);
+  args[1] = AstNode::operandNode(AstNode::Constant, (void *)lo);
+  args[2] = AstNode::operandNode(AstNode::Constant, (void *)hi);
+  AstNode *code = AstNode::funcCallNode(callee, args);
   removeAst(args[0]);
   removeAst(args[1]);
   removeAst(args[2]);
@@ -2965,11 +2972,11 @@ bool process::iRPCDyninstInit() {
    }
 
     pdvector<AstNode*> the_args(4);
-    the_args[0] = new AstNode(AstNode::Constant, (void*)(Address)cause);
-    the_args[1] = new AstNode(AstNode::Constant, (void*)(Address)pid);
-    the_args[2] = new AstNode(AstNode::Constant, (void*)(Address)maxthreads);
-    the_args[3] = new AstNode(AstNode::Constant, (void*)(Address)dyn_debug_rtlib);
-    AstNode *dynInit = new AstNode("DYNINSTinit", the_args);
+    the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)cause);
+    the_args[1] = AstNode::operandNode(AstNode::Constant, (void*)(Address)pid);
+    the_args[2] = AstNode::operandNode(AstNode::Constant, (void*)(Address)maxthreads);
+    the_args[3] = AstNode::operandNode(AstNode::Constant, (void*)(Address)dyn_debug_rtlib);
+    AstNode *dynInit = AstNode::funcCallNode("DYNINSTinit", the_args);
     removeAst(the_args[0]); removeAst(the_args[1]); removeAst(the_args[2]);
     removeAst(the_args[3]);
     getRpcMgr()->postRPCtoDo(dynInit,
@@ -5221,10 +5228,10 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
          // should be silently handled or not
          AstNode *ast;
          if ((req->where & FUNC_ARG) && req->args.size()>0) {
-            ast = new AstNode(req->inst, req->args);
+            ast = AstNode::funcCallNode(req->inst, req->args, this);
          } else {
             AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
-            ast = new AstNode(req->inst, tmp);
+            ast = AstNode::funcCallNode(req->inst, tmp, this);
             removeAst(tmp);
          }
          if (req->where & FUNC_EXIT) {
@@ -5311,54 +5318,69 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
             // should be silently handled or not
             AstNode *ast;
             if ((req->where & FUNC_ARG) && req->args.size()>0) {
-                ast = new AstNode(req->inst, req->args);
-            } else {
-                AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
-                ast = new AstNode(req->inst, tmp);
-                removeAst(tmp);
+                ast = AstNode::funcCallNode(req->inst, 
+                                            req->args,
+                                            this);
             }
-            if (req->where & FUNC_EXIT) {
-                const pdvector<instPoint*> func_rets = func->funcExits();
-                for (unsigned j=0; j < func_rets.size(); j++) {
-                    miniTramp *mt = func_rets[j]->addInst(ast,
-                                                          req->when,
-                                                          req->order,
-                                                          (!req->useTrampGuard),
-                                                          false);
-                    if (mt) 
-                        minis.push_back(mt);
-                }
+            else {
+                pdvector<AstNode *> def_args;
+                def_args.push_back(AstNode::operandNode(AstNode::Constant,
+                                                        (void *)0));
+                ast = AstNode::funcCallNode(req->inst,
+                                            def_args);
             }
-            
-            if (req->where & FUNC_ENTRY) {
-                const pdvector<instPoint *> func_entries = func->funcEntries();
-                for (unsigned k=0; k < func_entries.size(); k++) {
-                    miniTramp *mt = func_entries[k]->addInst(ast,
-                                                             req->when,
-                                                             req->order,
-                                                             (!req->useTrampGuard),
-                                                             false);
-                    if (mt) 
-                        minis.push_back(mt);
+            // We mask to strip off the FUNC_ARG bit...
+            switch ( ( req->where & 0x7) ) {
+            case FUNC_EXIT:
+                {
+                    const pdvector<instPoint*> func_rets = func->funcExits();
+                    for (unsigned j=0; j < func_rets.size(); j++) {
+                        miniTramp *mt = func_rets[j]->addInst(ast,
+                                                              req->when,
+                                                              req->order,
+                                                              (!req->useTrampGuard),
+                                                              false);
+                        if (mt) 
+                            minis.push_back(mt);
+                    }
                 }
-            }
-            
-            if (req->where & FUNC_CALL) {
-                pdvector<instPoint*> func_calls = func->funcCalls();
-                for (unsigned l=0; l < func_calls.size(); l++) {
-                    miniTramp *mt = func_calls[l]->addInst(ast,
-                                                           req->when,
-                                                           req->order,
-                                                           (!req->useTrampGuard),
-                                                           false);
-                    if (mt) 
-                        minis.push_back(mt);
+                break;
+            case FUNC_ENTRY:
+                {
+                    const pdvector<instPoint *> func_entries = func->funcEntries();
+                    for (unsigned k=0; k < func_entries.size(); k++) {
+                        miniTramp *mt = func_entries[k]->addInst(ast,
+                                                                 req->when,
+                                                                 req->order,
+                                                                 (!req->useTrampGuard),
+                                                                 false);
+                        if (mt) 
+                            minis.push_back(mt);
+                    }
                 }
+                break;
+            case FUNC_CALL:
+                {
+                    pdvector<instPoint*> func_calls = func->funcCalls();
+                    for (unsigned l=0; l < func_calls.size(); l++) {
+                        miniTramp *mt = func_calls[l]->addInst(ast,
+                                                               req->when,
+                                                               req->order,
+                                                               (!req->useTrampGuard),
+                                                               false);
+                        if (mt) 
+                            minis.push_back(mt);
+                    }
+                }
+                break;
+            default:
+                fprintf(stderr, "Unknown where: %d\n",
+                        req->where);
             }
             
             removeAst(ast);
             
-            }
+        }
         
         for (unsigned m = 0; m < minis.size(); m++) {
             miniTramp *mt = minis[m];
@@ -6184,7 +6206,7 @@ void process::recognize_threads(process *parent)
         if (lwp->is_asLWP()) continue;
 
         pdvector<AstNode *> ast_args;
-        AstNode *ast = new AstNode("DYNINSTthreadIndex", ast_args);
+        AstNode *ast = AstNode::funcCallNode("DYNINSTthreadIndex", ast_args);
 
         done_reg_bundle_t *bundle = (done_reg_bundle_t*) 
            malloc(sizeof(done_reg_bundle_t));
@@ -6364,12 +6386,10 @@ dynthread_t process::mapIndexToTid(int index)
 {
    dynthread_t tid = (dynthread_t) -1;
    pdvector<AstNode *> ast_args;
-   void *index_arg = (void *) index;
-   AstNode arg1(AstNode::Constant, index_arg);
-   ast_args.push_back(&arg1);
-   AstNode call_get_tid("DYNINST_getThreadFromIndex", ast_args);
-
-   getRpcMgr()->postRPCtoDo(&call_get_tid, true, mapIndexToTid_cb, &tid,
+   ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)index));
+   AstNode *call_get_tid = AstNode::funcCallNode("DYNINST_getThreadFromIndex", ast_args, this);
+   
+   getRpcMgr()->postRPCtoDo(call_get_tid, true, mapIndexToTid_cb, &tid,
                             false, // Don't run when done
                             false, NULL, NULL);
 

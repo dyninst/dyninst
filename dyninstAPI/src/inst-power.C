@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.248 2006/07/07 00:01:03 jaw Exp $
+ * $Id: inst-power.C,v 1.249 2006/10/10 22:03:59 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1047,7 +1047,7 @@ bool baseTramp::generateMTCode(codeGen &gen,
         emitVload(loadConstOp, thr->get_index(), REG_MT_POS, REG_MT_POS, gen, false);
     }
     else {
-        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+        threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
         src = threadPOS->generateCode(proc(), regSpace, gen,
                                       false, // noCost 
                                       true); // root node
@@ -1274,53 +1274,43 @@ void cleanUpAndExit(int status);
 to figure out what registers are clobbered there, and in any function
 that it calls, to a certain depth ... at which point we clobber everything*/
 bool clobberAllFuncCall( registerSpace *rs,
-		   process *proc, 
-		   Address callee_addr,
-		    int level)
+                         process *, 
+                         int_function * callee,
+                         int level)
 		   
 {
-   int_function *funcc;  
-   codeRange *range = proc->findCodeRangeByAddress(callee_addr);
-   if (range)
-     {
-       funcc = range->is_function();
-       //cout << "Function Name is " << funcc->prettyName() << endl;
-       
-       if (funcc) 
-	 {           
-	   InstrucIter ah(funcc);
-	 
-	   //while there are still instructions to check for in the
-	   //address space of the function
-	 
-	 while (ah.hasMore()) 
-	   {
+    if (!callee) return true;
 
-	     if (ah.isA_RT_WriteInstruction())
-	       rs->clobberRegister(ah.getRTValue());
-	     if (ah.isA_RA_WriteInstruction())
-	       rs->clobberRegister(ah.getRAValue());
-	     if (ah.isA_FRT_WriteInstruction())
-	       rs->clobberFPRegister(ah.getRTValue());
-	     if (ah.isA_FRA_WriteInstruction())
-	       rs->clobberFPRegister(ah.getRAValue());
-	     if (ah.isACallInstruction()){
-	       if (level >= 0)
-		 return true;
-	       else
-		 {
-		   //TODO:  Implement getCallTarget for Power
-		   //Address callAddr = ah.getCallTarget();
-		   //if (clobberAllFuncCall(rs,proc,callAddr, level+1))
-		   // return true;
-		 }
-	     }
-	     
-	     ah++;
-	   }
-	 }
-     }
-   return false;
+    InstrucIter ah(callee);
+    
+    //while there are still instructions to check for in the
+    //address space of the function
+    
+    while (ah.hasMore()) {
+        
+        if (ah.isA_RT_WriteInstruction())
+            rs->clobberRegister(ah.getRTValue());
+        if (ah.isA_RA_WriteInstruction())
+            rs->clobberRegister(ah.getRAValue());
+        if (ah.isA_FRT_WriteInstruction())
+            rs->clobberFPRegister(ah.getRTValue());
+        if (ah.isA_FRA_WriteInstruction())
+            rs->clobberFPRegister(ah.getRAValue());
+        if (ah.isACallInstruction()){
+            if (level >= 0)
+                return true;
+            else
+                {
+                    //TODO:  Implement getCallTarget for Power
+                    //Address callAddr = ah.getCallTarget();
+                    //if (clobberAllFuncCall(rs,proc,callAddr, level+1))
+                    // return true;
+                }
+        }
+        
+        ah++;
+    }
+    return false;
 }
 
 
@@ -1349,7 +1339,7 @@ Register emitFuncCall(opCode /* ocode */,
                       codeGen &gen,
 		      pdvector<AstNode *> &operands, 
 		      process *proc, bool noCost,
-		      Address callee_addr,
+		      int_function *callee,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
 {
@@ -1359,10 +1349,10 @@ Register emitFuncCall(opCode /* ocode */,
 
    
     //  Sanity check for NULL address argument
-    if (!callee_addr) {
+    if (!callee) {
         char msg[256];
         sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-                "callee_addr argument", __FILE__, __LINE__);
+                "callee argument", __FILE__, __LINE__);
         showErrorCallback(80, msg);
         assert(0);
     }
@@ -1373,7 +1363,7 @@ Register emitFuncCall(opCode /* ocode */,
    // file() -> pdmodule "parent"
    // exec() -> image "parent"
    //toc_anchor = ((int_function *)calleefunc)->file()->exec()->getObject().getTOCoffset();
-   toc_anchor = proc->getTOCoffsetInfo(callee_addr);
+    toc_anchor = proc->getTOCoffsetInfo(callee);
    
    // Generate the code for all function parameters, and keep a list
    // of what registers they're in.
@@ -1566,7 +1556,7 @@ Register emitFuncCall(opCode /* ocode */,
    // generate a branch to the subroutine to be called.
    // load r0 with address, then move to link reg and branch and link.
 
-   emitVload(loadConstOp, callee_addr, 0, 0, gen, false);
+   emitVload(loadConstOp, callee->getAddress(), 0, 0, gen, false);
    //inst_printf("addr setup (%d)....");
   
    // Move to link register
@@ -1577,7 +1567,7 @@ Register emitFuncCall(opCode /* ocode */,
 
    // Linear Scan on the functions to see which registers get clobbered
      
-   clobberAll = clobberAllFuncCall(rs, proc, callee_addr, 0);
+   clobberAll = clobberAllFuncCall(rs, proc, callee, 0);
       
    /////////////// Clobber the registers if needed
 
@@ -2725,11 +2715,11 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
                     return false;
                 }
             // Where we're jumping to (link register, count register)
-            args.push_back( new AstNode(AstNode::PreviousStackFrameDataReg,
-                                        (void *) branch_target));
+            args.push_back( AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                 (void *) branch_target));
             // Where we are now
-            args.push_back( new AstNode(AstNode::Constant,
-                                        (void *) callSite->addr()));
+            args.push_back( AstNode::operandNode(AstNode::Constant,
+                                                 (void *) callSite->addr()));
             return true;
         }
     else if ((*i).xlform.op == Bop) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.203 2006/07/07 00:01:08 jaw Exp $
+// $Id: solaris.C,v 1.204 2006/10/10 22:04:20 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -80,6 +80,8 @@
 #include <strings.h> //ccw 11 mar 2005
 
 #include "dyn_lwp.h"
+
+#include "ast.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
@@ -762,9 +764,9 @@ bool process::loadDYNINSTlib() {
     int_function *dlopenFunc = findFuncByAddr(dlopen_func_addr);
     //fprintf(stderr, "Attempt to find func pointer: %p\n", dlopenFunc);
 
-    dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
-    dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-    dlopenAst = new AstNode(dlopen_func_addr, dlopenAstArgs);
+    dlopenAstArgs[0] = AstNode::operandNode(AstNode::Constant, (void *)(dyninstlib_addr));
+    dlopenAstArgs[1] = AstNode::operandNode(AstNode::Constant, (void*)DLOPEN_MODE);
+    dlopenAst = AstNode::funcCallNode(dlopenFunc, dlopenAstArgs);
     removeAst(dlopenAstArgs[0]);
     removeAst(dlopenAstArgs[1]);
 
@@ -1324,13 +1326,12 @@ bool process::initMT()
    for (i=0; i<thread_init_funcs.size(); i++)
    {
       pdvector<AstNode *> args;
-      AstNode call_dummy_create(dummy_create, args);
-      AstNode *ast = &call_dummy_create;
+      AstNode *call_dummy_create = AstNode::funcCallNode(dummy_create, args);
       const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
       for (unsigned j=0; j<ips.size(); j++)
       {
          miniTramp *mt;
-         mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
+         mt = ips[j]->instrument(call_dummy_create, callPreInsn, orderFirstAtPoint, false, 
                                  false);
          if (!mt)
          {

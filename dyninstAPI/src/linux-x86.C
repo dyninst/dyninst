@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.111 2006/07/07 00:01:04 jaw Exp $
+// $Id: linux-x86.C,v 1.112 2006/10/10 22:04:06 bernat Exp $
 
 #include <fstream>
 
@@ -83,6 +83,8 @@
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
 #include "dyninstAPI/src/debuggerinterface.h"
+
+#include "dyninstAPI/src/ast.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 

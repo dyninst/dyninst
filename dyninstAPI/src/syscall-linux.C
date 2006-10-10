@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.14 2006/03/09 16:34:37 bernat Exp $
+// $Id: syscall-linux.C,v 1.15 2006/10/10 22:04:21 bernat Exp $
 
 #if defined( arch_x86 ) || defined( arch_x86_64 )
 #define FORK_FUNC "__libc_fork"
@@ -58,6 +58,7 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/ast.h"
 
 extern bool getInheritedMiniTramp(const miniTramp *parentMT,
                                   miniTramp *&childMT,
@@ -112,14 +113,14 @@ bool syscallNotification::installPreFork() {
 /////////// Postfork instrumentation
 
 bool syscallNotification::installPostFork() {
-    AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
+    AstNode *returnVal = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
     postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
                                    FUNC_EXIT|FUNC_ARG,
                                    returnVal);
     postForkInst->dontUseTrampGuard();
     postForkInst->canUseTrap(false);
     removeAst(returnVal);
-
+    
     pdvector<instMapping *> instReqs;
     instReqs.push_back(postForkInst);
     
@@ -134,7 +135,7 @@ bool syscallNotification::installPostFork() {
 /////////// Pre-exec instrumentation
 
 bool syscallNotification::installPreExec() {
-    AstNode *arg0 = new AstNode(AstNode::Param, (void *)0);
+    AstNode *arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
     preExecInst = new instMapping(EXEC_FUNC, "DYNINST_instExecEntry",
                                    FUNC_ENTRY|FUNC_ARG,
                                    arg0);
@@ -162,7 +163,7 @@ bool syscallNotification::installPostExec() {
 /////////// Pre-exit instrumentation
 
 bool syscallNotification::installPreExit() {
-    AstNode *arg0 = new AstNode(AstNode::Param, (void *)0);
+    AstNode *arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
     preExitInst = new instMapping(EXIT_FUNC, "DYNINST_instExitEntry",
                                   FUNC_ENTRY|FUNC_ARG,
                                   arg0);

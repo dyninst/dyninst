@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.32 2006/05/31 17:16:01 legendre Exp $
+// $Id: linux.h,v 1.33 2006/10/10 22:04:08 bernat Exp $
 
 #if !defined(os_linux)
 #error "invalid architecture-os inclusion"
@@ -54,6 +54,7 @@ class process;
 #include <sys/param.h>
 #include <pthread.h>
 #include "common/h/Types.h"
+#include "common/h/Vector.h"
 
 #if !defined( ia64_unknown_linux2_4 )
 #define BYTES_TO_SAVE   256

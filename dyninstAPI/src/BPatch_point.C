@@ -66,6 +66,7 @@
 #include "miniTramp.h"
 #include "InstrucIter.h"
 #include "BPatch_edge.h"
+#include "ast.h"
 
 /*
  * Private constructor, insn
@@ -417,7 +418,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   int_function * fb = func_to_use->lowlevel_func();
 
   // Monitoring function
-  AstNode * ast = new AstNode( fb, args );
+  AstNode *ast = AstNode::funcCallNode(fb, args);
   miniTramp *res = point->instrument(ast,
 				     callPreInsn,
 				     orderLastAtPoint,

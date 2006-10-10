@@ -39,12 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.28 2006/06/19 21:30:45 bernat Exp $
+// $Id: inst-x86.h,v 1.29 2006/10/10 22:04:03 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
-
-#include "dyninstAPI/src/ast.h"
 
 // some x86 definitions
 
@@ -175,6 +173,8 @@
 #define REGNUM_R13 (13)
 #define REGNUM_R14 (14)
 #define REGNUM_R15 (15)
+
+class registerSpace;
 
 // 32 and 64-bit register spaces
 extern registerSpace* regSpace32;

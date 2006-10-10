@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.245 2006/07/07 00:01:04 jaw Exp $
+ * $Id: inst-x86.C,v 1.246 2006/10/10 22:04:02 bernat Exp $
  */
 #include <iomanip>
 
@@ -821,11 +821,11 @@ Register emitFuncCall(opCode op,
                       pdvector<AstNode *> &operands, 
                       process *proc,
                       bool noCost,
-                      Address callee_addr,
+                      int_function *callee,
                       const pdvector<AstNode *> &ifForks,
                       const instPoint *location)
 {
-  return x86_emitter->emitCall(op, rs, gen, operands, proc, noCost, callee_addr, ifForks, location);
+  return x86_emitter->emitCall(op, rs, gen, operands, proc, noCost, callee, ifForks, location);
 }
 
 
@@ -834,42 +834,34 @@ Register emitFuncCall(opCode op,
 to figure out what registers are clobbered there, and in any function
 that it calls, to a certain depth ... at which point we clobber everything*/
 bool Emitter32::clobberAllFuncCall( registerSpace *rs,
-		   process *proc, 
-		   Address callee_addr,
+                                    process *proc, 
+                                    int_function *callee,
 		    int level)
 		   
 {
-   int_function *funcc;  
-   codeRange *range = proc->findCodeRangeByAddress(callee_addr);
-   if (range)
-     {
-       funcc = range->is_function();
-
-       if (funcc) 
-	 {           
-	   InstrucIter ah(funcc);
-	 
-	   //while there are still instructions to check for in the
-	   //address space of the function
-	   while (ah.hasMore()) 
-	   {
-	     if (ah.isFPWrite())
-	       return true;
-	     if (ah.isACallInstruction())
-	       {
-		 if (level >= 1)
-		   return true;
-		 else
-		   {
-		     Address callAddr = ah.getCallTarget();
-		     if (clobberAllFuncCall(rs, proc, callAddr,level+1))
-		       return true;
-		   }
-	       }
-	     ah++;
-	   }  
-	 }
-     }
+    if (callee == NULL) return false;
+    InstrucIter ah(callee);
+    
+    //while there are still instructions to check for in the
+    //address space of the function
+    while (ah.hasMore()) 
+        {
+            if (ah.isFPWrite())
+                return true;
+            if (ah.isACallInstruction())
+                {
+                    if (level >= 1)
+                        return true;
+                    else
+                        {
+                            Address callAddr = ah.getCallTarget();
+                            int_function *call = proc->findFuncByAddr(callAddr);
+                            if (call && clobberAllFuncCall(rs, proc, call,level+1))
+                                return true;
+                        }
+                }
+            ah++;
+        }  
    return false;
 }
 
@@ -892,21 +884,20 @@ Register Emitter32::emitCall(opCode op,
                              codeGen &gen,
                              const pdvector<AstNode *> &operands, 
                              process *proc,
-                             bool noCost, Address callee_addr,
+                             bool noCost, int_function *callee,
                              const pdvector<AstNode *> &ifForks,
                              const instPoint *location)
 {
    assert(op == callOp);
    pdvector <Register> srcs;
    int param_size;
-   int_function *target_func;
    pdvector<Register> saves;
 
    //  Sanity check for NULL address arg
-   if (!callee_addr) {
+   if (!callee) {
       char msg[256];
       sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-              "callee_addr argument", __FILE__, __LINE__);
+              "callee argument", __FILE__, __LINE__);
       showErrorCallback(80, msg);
       assert(0);
    }
@@ -920,9 +911,7 @@ Register Emitter32::emitCall(opCode op,
                    bool noCost);
                    */
 
-   target_func = proc->findFuncByAddr(callee_addr);
-   assert(target_func);
-   param_size = emitCallParams(rs, gen, operands, proc, target_func, ifForks, saves,
+   param_size = emitCallParams(rs, gen, operands, proc, callee, ifForks, saves,
                   location, noCost);
 
    /*
@@ -942,7 +931,7 @@ Register Emitter32::emitCall(opCode op,
    // we are using an indirect call here because we don't know the
    // address of this instruction, so we can't use a relative call.
    // TODO: change this to use a direct call
-   emitMovImmToReg(REGNUM_EAX, callee_addr, gen);       // mov eax, addr
+   emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);       // mov eax, addr
    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
 
    /*
@@ -950,14 +939,14 @@ Register Emitter32::emitCall(opCode op,
    if (srcs.size() > 0)
       emitOpRegImm(0, REGNUM_ESP, srcs.size()*4, gen); // add esp, srcs.size()*4
   */
-   emitCallCleanup(gen, proc, target_func, param_size, saves);
+   emitCallCleanup(gen, proc, callee, param_size, saves);
 
    // allocate a (virtual) register to store the return value
    Register ret = rs->allocateRegister(gen, noCost);
    emitMovRegToRM(REGNUM_EBP, -1*(ret*4), REGNUM_EAX, gen);
 
    // Figure out if we need to save FPR in base tramp
-   bool useFPR = clobberAllFuncCall(rs, proc, callee_addr,0);
+   bool useFPR = clobberAllFuncCall(rs, proc, callee, 0);
    
    if (location != NULL)
       setFPSaveOrNot(location->liveFPRegisters, useFPR);
@@ -1812,36 +1801,32 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
 	  // constructor below avoids a mess of compiler warnings on AMD64
         case REGISTER_DIRECT:
            {
-              args.push_back( new AstNode(AstNode::PreviousStackFrameDataReg,
-                                        (void *)(long) base_reg));
-              break;
+               args.push_back(AstNode::operandNode(AstNode::PreviousStackFrameDataReg, (void *)(long)base_reg));
+               break;
            }
         case REGISTER_INDIRECT:
            {
-              AstNode *prevReg =
-                 new AstNode(AstNode::PreviousStackFrameDataReg,
-                             (void *)(long) base_reg);
-              args.push_back( new AstNode(AstNode::DataIndir, prevReg));
+               args.push_back(AstNode::operandNode(AstNode::DataIndir,
+                                                   AstNode::operandNode(AstNode::PreviousStackFrameDataReg, 
+                                                                        (void *)(long)base_reg)));
               break;
            }
         case REGISTER_INDIRECT_DISPLACED:
            {
-              AstNode *prevReg =
-                 new AstNode(AstNode::PreviousStackFrameDataReg,
-                             (void *)(long) base_reg);
-              AstNode *offset = new AstNode(AstNode::Constant,
-                                            (void *)(long) displacement);
-              AstNode *sum = new AstNode(plusOp, prevReg, offset);
-
-              args.push_back( new AstNode(AstNode::DataIndir, sum));
-              break;
+               args.push_back(AstNode::operandNode(AstNode::DataIndir, 
+                                                   AstNode::operatorNode(plusOp,
+                                                                         AstNode::operandNode(AstNode::Constant,
+                                                                                              (void *)displacement),
+                                                                         AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                                                              (void *)(long)base_reg))));
+               break;
            }
         case DISPLACED:
            {
-              AstNode *offset = new AstNode(AstNode::Constant,
-                                            (void *)(long) displacement);
-              args.push_back( new AstNode(AstNode::DataIndir, offset));
-              break;
+               args.push_back(AstNode::operandNode(AstNode::DataIndir,
+                                                   AstNode::operandNode(AstNode::Constant,
+                                                                        (void *)(long) displacement)));
+               break;
            }
         case SIB:
            {
@@ -1855,63 +1840,67 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
                     useBaseReg = false;
                  }
 
-                 AstNode *index =
-                    new AstNode(AstNode::PreviousStackFrameDataReg,
-                                (void *)(long) index_reg);
-                 AstNode *base =
-                    new AstNode(AstNode::PreviousStackFrameDataReg,
-                                (void *)(long) base_reg);
+                 AstNode *index = AstNode::operandNode(AstNode::PreviousStackFrameDataReg, 
+                                                       (void *)(long) index_reg);
+                 AstNode *base = AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                      (void *)(long) base_reg);
 
-                 AstNode *disp = new AstNode(AstNode::Constant,
-                                             (void *)(long) displacement);
-
+                 AstNode *disp = AstNode::operandNode(AstNode::Constant,
+                                                      (void *)(long) displacement);
+                 
                  if(scale == 1){ //No need to do the multiplication
-                    if(useBaseReg){
-                       AstNode *base_index_sum = new AstNode(plusOp, index,
-                                                             base);
-                       effective_address = new AstNode(plusOp, base_index_sum,
-                                                       disp);
-                    }
-                    else
-                       effective_address = new AstNode(plusOp, index, disp);
-
-                    args.push_back( new AstNode(AstNode::DataIndir,
-                                              effective_address));
-
+                     if(useBaseReg){
+                         effective_address = AstNode::operatorNode(plusOp,
+                                                                   AstNode::operatorNode(plusOp,
+                                                                                         index,
+                                                                                         base),
+                                                                   disp);
+                     }
+                     else
+                         effective_address = AstNode::operatorNode(plusOp, index, disp);
+                     
+                     args.push_back(AstNode::operandNode(AstNode::DataIndir,
+                                                         effective_address));
+                     
                  }
                  else {
-                    AstNode *scale_factor
-                       = new AstNode(AstNode::Constant, (void *)(long) scale);
-                    AstNode *index_scale_product = new AstNode(timesOp, index,
-                                                               scale_factor);
-                    if(useBaseReg){
-                       AstNode *base_index_sum =
-                          new AstNode(plusOp, index_scale_product, base);
-                       effective_address = new AstNode(plusOp, base_index_sum,
-                                                       disp);
-                    }
-                    else
-                       effective_address = new AstNode(plusOp,
-                                                       index_scale_product,
-                                                       disp);
-                    args.push_back( new AstNode(AstNode::DataIndir,
-                                              effective_address));
+                     AstNode *scale_factor = AstNode::operandNode(AstNode::Constant, (void *)(long) scale);
 
+                     AstNode *index_scale_product = AstNode::operatorNode(timesOp,
+                                                                          index,
+                                                                          scale_factor);
+                     if(useBaseReg){
+                         effective_address = AstNode::operatorNode(plusOp,
+                                                                   AstNode::operatorNode(plusOp,
+                                                                                         index_scale_product,
+                                                                                         base),
+                                                                   disp);
+                     }
+                     else
+                         effective_address = AstNode::operatorNode(plusOp,
+                                                                   index_scale_product,
+                                                                   disp);
+                     args.push_back( AstNode::operandNode(AstNode::DataIndir,
+                                                          effective_address));
+                     removeAst(scale_factor);
+                     removeAst(index_scale_product);
                  }
+                 removeAst(index);
+                 removeAst(base);
+                 removeAst(disp);
               }
               else { //We do not use a scaled index.
                  cerr << "Inserting untested call site monitoring "
                       << "instrumentation at address " << std::hex
                       << callSite->addr() << std::dec << endl;
-                 AstNode *base =
-                    new AstNode(AstNode::PreviousStackFrameDataReg,
-                                (void *)(long) base_reg);
-                 AstNode *disp = new AstNode(AstNode::Constant,
-                                             (void *)(long) displacement);
-                 AstNode *effective_address =  new AstNode(plusOp, base,
-                                                           disp);
-                 args.push_back( new AstNode(AstNode::DataIndir,
-                                           effective_address));
+                 args.push_back(AstNode::operandNode(AstNode::DataIndir,
+                                                     AstNode::operatorNode(plusOp,
+                                                                           AstNode::operandNode(AstNode::Constant,
+                                                                                                (void *)(long)displacement),
+                                                                           AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                                                                (void *)(long)base_reg))));
+
+                 
               }
            }
            break;
@@ -1926,9 +1915,8 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
       }
       
       // Second AST
-      args.push_back( new AstNode(AstNode::Constant,
-				  (void *) callSite->addr()));
-
+      args.push_back( AstNode::operandNode(AstNode::Constant,
+                                           (void *) callSite->addr()));
    }
    else if(i.isCall()){
       //Regular callees are statically determinable, so no need to

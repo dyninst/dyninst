@@ -44,6 +44,7 @@
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/callbacks.h"
+#include "dyninstAPI/src/registerSpace.h"
 
 rpcLWP::rpcLWP(rpcLWP *parL, rpcMgr *cM, dyn_lwp *cL) :
     mgr_(cM),

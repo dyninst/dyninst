@@ -59,6 +59,9 @@
 /* For emitInferiorRPC*(). */
 #include "rpcMgr.h"
 
+#include "ast.h"
+#include "registerSpace.h"
+
 #include <asm/ptrace_offsets.h>
 #include <dlfcn.h>
 
@@ -532,9 +535,9 @@ bool process::loadDYNINSTlib() {
   pdvector< AstNode * > dlOpenArguments( 4 );
   AstNode * dlOpenCall;
 	
-  dlOpenArguments[ 0 ] = new AstNode( AstNode::Constant, (void *)dyninstlib_addr );
-  dlOpenArguments[ 1 ] = new AstNode( AstNode::Constant, (void *)DLOPEN_MODE );
-  dlOpenArguments[ 2 ] = new AstNode( AstNode::Constant, (void *)0xFFFFFFFFFFFFFFFF );
+  dlOpenArguments[ 0 ] = AstNode::operandNode(AstNode::Constant, (void *)dyninstlib_addr);
+  dlOpenArguments[ 1 ] = AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE );
+  dlOpenArguments[ 2 ] = AstNode::operandNode(AstNode::Constant, (void *)0xFFFFFFFFFFFFFFFF );
   if( useFourArguments ) { 
   	/* I derived the -2 as follows: from dlfcn/dlopen.c in the glibc sources, line 59,
   	   we find the call to _dl_open(), whose last argument is 'args->file == NULL ? LM_ID_BASE : NS'.
@@ -542,9 +545,9 @@ bool process::loadDYNINSTlib() {
   	   is defined to be __LM_ID_CALLER in the same file, line 48.  (Since glibc must be shared
   	   for us to be calling _dl_open(), we fall into the second case of the #ifdef.)  __LM_ID_CALLER
   	   is defined in include/dlfcn.h, where it has the value -2. */
-    dlOpenArguments[ 3 ] = new AstNode( AstNode::Constant, (void *)(long unsigned int)-2 );
+    dlOpenArguments[ 3 ] = AstNode::operandNode( AstNode::Constant, (void *)(long unsigned int)-2 );
     }
-  dlOpenCall = new AstNode( "_dl_open", dlOpenArguments );
+  dlOpenCall = AstNode::funcCallNode( "_dl_open", dlOpenArguments );
 	
   /* Remember where we originally generated the call. */
   codeBufIndex_t index = gen.getIndex();
@@ -561,8 +564,8 @@ bool process::loadDYNINSTlib() {
   removeAst( dlOpenCall );
   removeAst( dlOpenArguments[ 2 ] );
 	
-  dlOpenArguments[ 2 ] = new AstNode( AstNode::Constant, (void *)dlopenRet );
-  dlOpenCall = new AstNode( "_dl_open", dlOpenArguments );
+  dlOpenArguments[ 2 ] = AstNode::operandNode( AstNode::Constant, (void *)dlopenRet );
+  dlOpenCall = AstNode::funcCallNode( "_dl_open", dlOpenArguments );
 	
   /* Regenerate the call at the same original location with the correct constants. */
   dlOpenCall->generateCode( this, regSpace, gen, true, true );

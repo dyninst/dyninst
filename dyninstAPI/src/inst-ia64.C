@@ -323,21 +323,21 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
 					   pdvector< AstNode * > & operands,
 					   process * proc, bool /* noCost */,
-					   Address callee_addr, 
+					   int_function *callee,
 					   const pdvector< AstNode * > & ifForks,
 					   const instPoint *location) { 
   /* Consistency check. */
   assert( op == callOp );
 
   /* Sanity check for non-NULL address argument */
-  if( ! callee_addr ) {
+  if( ! callee ) {
 	char msg[256];
-	snprintf( msg, 255, "%s[%d]: internal error:  emitFuncCall called without callee_addr argument", __FILE__, __LINE__ );
+	snprintf( msg, 255, "%s[%d]: internal error:  emitFuncCall called without callee argument", __FILE__, __LINE__ );
 	showErrorCallback( 80, msg );
 	assert(0);
   }
  
-  Address calleeGP = proc->getTOCoffsetInfo( callee_addr );
+  Address calleeGP = proc->getTOCoffsetInfo( callee );
 
   /* Generate the code for the arguments. */
   pdvector< Register > sourceRegisters;
@@ -369,7 +369,7 @@ Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
   instruction memoryNOP( NOP_M );
 
   // fprintf( stderr, "Loading function address into register %d\n", rsRegister );
-  instruction_x loadCalleeInsn = generateLongConstantInRegister( rsRegister, callee_addr );
+  instruction_x loadCalleeInsn = generateLongConstantInRegister( rsRegister, callee->getAddress() );
   IA64_bundle loadCalleeBundle( MLXstop, memoryNOP, loadCalleeInsn );
 	
   loadCalleeBundle.generate(gen);
@@ -529,8 +529,8 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 
 	/* Generate the operand ASTs. */
 	pdvector< AstNode * > operands;
-	operands.push_back( new AstNode( AstNode::DataReg, (void *)(long long int)src1 ) );
-	operands.push_back( new AstNode( AstNode::DataReg, (void *)(long long int)src2 ) );
+	operands.push_back(AstNode::operandNode( AstNode::DataReg, (void *)(long long int)src1 ) );
+	operands.push_back(AstNode::operandNode( AstNode::DataReg, (void *)(long long int)src2 ) );
 
 	/* Generate the empty ifForks AST. */
 	pdvector< AstNode * > ifForks;
@@ -549,13 +549,11 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 	  showErrorCallback(100, msg);
 	  assert(0);  // can probably be more graceful
 	}
-	Address callee_addr = calleefunc->getAddress();
-
 	/* Might want to use funcCall AstNode here */
 
 	/* Call emitFuncCall(). */
 	rs->incRefCount( src1 ); rs->incRefCount( src2 );
-	Register returnRegister = emitFuncCall( op, rs, gen, operands, proc, noCost, callee_addr, ifForks, location );
+	Register returnRegister = emitFuncCall( op, rs, gen, operands, proc, noCost, calleefunc, ifForks, location );
 	/* A function call does not require any conditional branches, so ensure
 	   that we're not screwing up the current AST by not telling it about stuff. */
 	assert( ifForks.size() == 0 );
@@ -2787,7 +2785,7 @@ bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
 	  setIndexBundle.generate( gen );
   }
   else {
-	  AstNode * threadPos = new AstNode( "DYNINSTthreadIndex", dummy );
+	  AstNode * threadPos = AstNode::funcCallNode( "DYNINSTthreadIndex", dummy );
 	  assert( threadPos != NULL );
 	  
 	  Register src = threadPos->generateCode(	this->proc(), rs, gen,
@@ -3391,20 +3389,20 @@ bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> 
 	/* This should be the only place on the IA-64 using this poorly-named constant.
 	   Note that the cast to void * is necessary to avoid picking up the (x86) memory
 	   instrumentation node constructor. */
-	AstNode * target = new AstNode( AstNode::PreviousStackFrameDataReg, (void *)(BP_BR0 + targetAddrRegister) );
+	AstNode * target = AstNode::operandNode( AstNode::PreviousStackFrameDataReg, (void *)(BP_BR0 + targetAddrRegister) );
 	assert( target != NULL );
 	// arguments[0] = target;
 	arguments.push_back( target );
 	
 	/* Note that the cast to void * is necessary to avoid picking up the (x86) memory
 	   instrumentation node constructor. */
-	AstNode * source = new AstNode( AstNode::Constant, (void *)(callSite->addr()) );
+	AstNode * source = AstNode::operandNode( AstNode::Constant, (void *)(callSite->addr()) );
 	assert( source != NULL );
 	// arguments[1] = source;
 	arguments.push_back( source );
 
 #if defined( OLD_DYNAMIC_CALLSITE_MONITORING )
-	AstNode * callToMonitor = new AstNode( "DYNINSTRegisterCallee", arguments );
+	AstNode * callToMonitor = AstNode::operandNode( "DYNINSTRegisterCallee", arguments );
 	assert( callToMonitor != NULL );
 	
 	miniTramp * mtHandle = NULL;

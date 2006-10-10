@@ -59,6 +59,8 @@
 #include "symtab.h"
 #include "process.h"
 
+#include "ast.h"
+
 /* For location decode. */
 #include <stack>
 
@@ -360,11 +362,13 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 
 	/* We have to make sure no arithmetic is actually done to the frame pointer,
 	   so add zero to it and shove it in some other register. */
-	AstNode * constantZero = new AstNode( AstNode::Constant, (void *)0 );
+	AstNode *constantZero = AstNode::operandNode(AstNode::Constant, (void *)0);
 	assert( constantZero != NULL );
-	AstNode * framePointer = new AstNode( AstNode::DataReg, (void *)(long unsigned int)registerNumber );
+	AstNode *framePointer = AstNode::operandNode(AstNode::DataReg, (void *)(long unsigned int)registerNumber);
 	assert( framePointer != NULL );
-	AstNode * moveFPtoDestination = new AstNode( orOp, constantZero, framePointer );
+	AstNode *moveFPtoDestination = AstNode::operatorNode(plusOp,
+														 constantZero,
+														 framePointer);
 	
 	return moveFPtoDestination;
 	} /* end convertFrameBaseToAST(). */

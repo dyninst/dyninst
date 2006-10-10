@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.390 2006/09/06 19:14:44 bernat Exp $
+/* $Id: process.h,v 1.391 2006/10/10 22:04:17 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -324,6 +324,7 @@ class process {
   // this is only used on aix so far - naim
   // And should really be defined in a arch-dependent place, not process.h - bernat
   Address getTOCoffsetInfo(Address);
+  Address getTOCoffsetInfo(int_function *);
 
   bool dyninstLibAlreadyLoaded() { return runtime_lib != 0; }
 

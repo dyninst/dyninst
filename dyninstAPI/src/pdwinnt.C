@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.160 2006/08/03 08:18:21 jaw Exp $
+// $Id: pdwinnt.C,v 1.161 2006/10/10 22:04:15 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -63,6 +63,7 @@
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 
+#include "dyninstAPI/src/ast.h"
 
 /* XXX This is only needed for emulating signals. */
 #include "BPatch_thread.h"
@@ -2236,13 +2237,12 @@ bool process::instrumentThreadInitialFunc(int_function *f) {
     } 
 
     pdvector<AstNode *> args;
-    AstNode call_dummy_create(dummy_create, args);
-    AstNode *ast = &call_dummy_create;
+    AstNode *call_dummy_create = AstNode::funcCallNode(dummy_create, args);
     const pdvector<instPoint *> &ips = f->funcEntries();
     for (unsigned j=0; j<ips.size(); j++)
     {
        miniTramp *mt;
-       mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
+       mt = ips[j]->instrument(call_dummy_create, callPreInsn, orderFirstAtPoint, false, 
                                false);
        if (!mt)
        {

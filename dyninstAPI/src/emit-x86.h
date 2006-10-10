@@ -41,19 +41,20 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.13 2006/07/07 00:01:02 jaw Exp $
+ * $Id: emit-x86.h,v 1.14 2006/10/10 22:03:56 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
 #define _EMIT_X86_H
 
 #include "common/h/headers.h"
-#include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/baseTramp.h"
 
 class codeGen;
+class AstNode;
+class registerSpace;
 
 // class for encapsulating
 // platform dependent code generation functions
@@ -81,7 +82,7 @@ class Emitter {
     virtual void emitStoreIndir(Register addr_reg, Register src, codeGen &gen) = 0;
     virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen) = 0;
     virtual Register emitCall(opCode op, registerSpace *rs, codeGen &gen, const pdvector<AstNode *> &operands,
-			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
+			      process *proc, bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks,
 			      const instPoint *location) = 0;
     virtual void emitGetRetVal(Register dest, codeGen &gen) = 0;
     virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen) = 0;
@@ -132,11 +133,11 @@ public:
     void emitStore(Address addr, Register src, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
-    bool clobberAllFuncCall(registerSpace *rs, process *proc, Address callee_addr, int level);
+    bool clobberAllFuncCall(registerSpace *rs, process *proc, int_function *callee, int level);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, registerSpace *rs, codeGen &gen,
 			      const pdvector<AstNode *> &operands,
-			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
+			      process *proc, bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks,
 			      const instPoint *location);
     int emitCallParams(registerSpace *rs, codeGen &gen, 
                    const pdvector<AstNode *> &operands, process *proc,
@@ -194,11 +195,11 @@ public:
     void emitStore(Address addr, Register src, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
-    bool clobberAllFuncCall(registerSpace *rs, process *proc, Address callee_addr, int level);
+    bool clobberAllFuncCall(registerSpace *rs, process *proc, int_function *callee, int level);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, registerSpace *rs, codeGen &gen,
 			      const pdvector<AstNode *> &operands,
-			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
+			      process *proc, bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks,
 			      const instPoint *location);
     void emitGetRetVal(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);

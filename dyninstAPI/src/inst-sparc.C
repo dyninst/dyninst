@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.185 2006/07/07 00:01:04 jaw Exp $
+// $Id: inst-sparc.C,v 1.186 2006/10/10 22:04:00 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -51,6 +51,8 @@
 #include "dyninstAPI/src/InstrucIter.h"
 
 #include "dyninstAPI/src/dyn_thread.h" // get_index
+
+#include "dyninstAPI/src/ast.h"
 
 /****************************************************************************/
 /****************************************************************************/
@@ -574,11 +576,11 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite, pdvector<AstNode *> &a
         //calling function register rs1+simm13
         if((*insn).rest.i == 1){
             
-            AstNode *base =  new AstNode(AstNode::PreviousStackFrameDataReg,
-                                         (void *) (*insn).rest.rs1);
-            AstNode *offset = new AstNode(AstNode::Constant,
+            AstNode *base =  AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                  (void *) (*insn).rest.rs1);
+            AstNode *offset = AstNode::operandNode(AstNode::Constant,
                                           (void *) (*insn).resti.simm13);
-            args.push_back( new AstNode(plusOp, base, offset));
+            args.push_back( AstNode::operatorNode(plusOp, base, offset));
         }
         
         //This instruction is a jmpl with i == 0, meaning its
@@ -587,18 +589,16 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite, pdvector<AstNode *> &a
             //Calculate the byte offset from the contents of the %fp reg
             //that the registers from the previous stack frame
             //specified by rs1 and rs2 are stored on the stack
-            AstNode *callee_addr1 =
-                new AstNode(AstNode::PreviousStackFrameDataReg,
-                            (void *) (*insn).rest.rs1);
-            AstNode *callee_addr2 =
-                new AstNode(AstNode::PreviousStackFrameDataReg,
-                            (void *) (*insn).rest.rs2);
-            args.push_back( new AstNode(plusOp, callee_addr1, callee_addr2));
+            args.push_back( AstNode::operatorNode(plusOp, 
+                                                  AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                                       (void *) (*insn).rest.rs1),
+                                                  AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                                       (void *) (*insn).rest.rs2)));
         }
         else assert(0);
         
-        args.push_back( new AstNode(AstNode::Constant,
-                                    (void *) callSite->addr()));
+        args.push_back( AstNode::operandNode(AstNode::Constant,
+                                             (void *) callSite->addr()));
     }
     else if(insn.isTrueCallInsn()){
         //True call destinations are always statically determinable.
@@ -760,7 +760,7 @@ bool baseTramp::generateMTCode(codeGen &gen,
         emitVload(loadConstOp, thr->get_index(), REG_MT_POS, REG_MT_POS, gen, false);
     }    
     else {
-        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+        threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
         src = threadPOS->generateCode(proc(), regSpace, gen,
                                       false, // noCost 
                                       true); // root node
@@ -1115,7 +1115,13 @@ Register emitFuncCall(opCode op,
    
    // return value is the register with the return value from the function.
    // This needs to be %o0 since it is back in the caller's scope.
-   return(REG_O(0));
+
+   Register retReg = rs->allocateRegister(gen, noCost);
+   
+   // Move tmp to dest
+   emitImm(orOp, retReg, 0, REG_O(0), gen, noCost, rs);
+
+   return retReg;
 }
  
 /****************************************************************************/

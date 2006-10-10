@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.221 2006/05/17 05:03:42 jaw Exp $
+// $Id: aix.C,v 1.222 2006/10/10 22:03:50 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -69,6 +69,8 @@
 
 #include "mapped_module.h"
 #include "mapped_object.h"
+
+#include "ast.h"
 
 #if defined(cap_proc)
 #include <sys/procfs.h>
@@ -1314,9 +1316,9 @@ bool process::loadDYNINSTlib()
     pdvector<AstNode*> dlopenAstArgs(2);
     AstNode *dlopenAst;
     
-    dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
-    dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-    dlopenAst = new AstNode("dlopen", dlopenAstArgs);
+    dlopenAstArgs[0] = AstNode::operandNode(AstNode::Constant, (void *)(dyninstlib_addr));
+    dlopenAstArgs[1] = AstNode::operandNode(AstNode::Constant, (void*)DLOPEN_MODE);
+    dlopenAst = AstNode::funcCallNode("dlopen", dlopenAstArgs);
     removeAst(dlopenAstArgs[0]);
     removeAst(dlopenAstArgs[1]);
 
@@ -2026,13 +2028,12 @@ bool process::initMT()
    for (i=0; i<thread_init_funcs.size(); i++)
    {
       pdvector<AstNode *> args;
-      AstNode call_dummy_create(dummy_create, args);
-      AstNode *ast = &call_dummy_create;
+      AstNode *call_dummy_create = AstNode::funcCallNode(dummy_create, args);
       const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
       for (unsigned j=0; j<ips.size(); j++)
       {
          miniTramp *mt;
-         mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
+         mt = ips[j]->instrument(call_dummy_create, callPreInsn, orderFirstAtPoint, false, 
                                  false);
          if (!mt)
          {

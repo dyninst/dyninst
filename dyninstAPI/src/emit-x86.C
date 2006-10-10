@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.29 2006/07/07 00:01:02 jaw Exp $
+ * $Id: emit-x86.C,v 1.30 2006/10/10 22:03:55 bernat Exp $
  */
 
 #include <assert.h>
@@ -424,7 +424,7 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
         emitVload(loadConstOp, thr->get_index(), REG_MT_POS, REG_MT_POS, gen, false);
     }    
     else {
-        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+        threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy, bt->proc());
         src = threadPOS->generateCode(bt->proc(), regSpace, gen,
                                       false, // noCost 
                                       true); // root
@@ -1067,41 +1067,33 @@ to figure out what registers are clobbered there, and in any function
 that it calls, to a certain depth ... at which point we clobber everything*/
 bool Emitter64::clobberAllFuncCall( registerSpace *rs,
 		   process *proc, 
-		   Address callee_addr,
+		   int_function *callee,
 		    int level)
 		   
 {
-  int_function *funcc;  
-   codeRange *range = proc->findCodeRangeByAddress(callee_addr);
-   if (range)
-     {
-       funcc = range->is_function();
-
-       if (funcc) 
-	 {           
-	   InstrucIter ah(funcc);
-
-	   //while there are still instructions to check for in the
-	   //address space of the function
-	 
-	 while (ah.hasMore()) 
-	   {
-	     if (ah.isFPWrite())
-	       return true;
-	     if (ah.isACallInstruction()){
-	       if (level >= 1)
-		 return true;
-	       else
-		 {
-		   Address callAddr = ah.getCallTarget();
-		   if (clobberAllFuncCall(rs, proc, callAddr,level+1))
-		     return true;
-		 }
-	     }
-	     ah++;
-	   }
-	 }
-     }
+    if (callee == NULL) return false;
+    InstrucIter ah(callee);
+    
+    //while there are still instructions to check for in the
+    //address space of the function
+    
+    while (ah.hasMore()) 
+        {
+            if (ah.isFPWrite())
+                return true;
+            if (ah.isACallInstruction()){
+                if (level >= 1)
+                    return true;
+                else
+                    {
+                        Address callAddr = ah.getCallTarget();
+                        int_function *call = proc->findFuncByAddr(callAddr);
+                        if (call && clobberAllFuncCall(rs, proc, call, level+1))
+                            return true;
+                    }
+            }
+            ah++;
+        }
    return false;
 }
 
@@ -1109,7 +1101,7 @@ bool Emitter64::clobberAllFuncCall( registerSpace *rs,
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
 Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const pdvector<AstNode *> &operands,
-			     process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
+			     process *proc, bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks,
 			     const instPoint *location)
 {
 
@@ -1117,10 +1109,10 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
     pdvector <Register> srcs;
    
     //  Sanity check for NULL address arg
-    if (!callee_addr) {
+    if (!callee) {
 	char msg[256];
 	sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-		"callee_addr argument", __FILE__, __LINE__);
+		"callee argument", __FILE__, __LINE__);
 	showErrorCallback(80, msg);
 	assert(0);
     }
@@ -1155,7 +1147,7 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
       }
 
     // make the call (using an indirect call)
-    emitMovImmToReg64(REGNUM_EAX, callee_addr, true, gen);
+    emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
     emitSimpleInsn(0xff, gen); // group 5
     emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
     
@@ -1168,7 +1160,7 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
     emitMovRegToReg64(ret, REGNUM_EAX, true, gen);
 
     // Figure out if we need to save FPR in base tramp
-    bool useFPR = clobberAllFuncCall(rs, proc, callee_addr,0);
+    bool useFPR = clobberAllFuncCall(rs, proc, callee, 0);
 
     if (location != NULL)
       setFPSaveOrNot(location->liveFPRegisters, useFPR);
@@ -1654,7 +1646,7 @@ bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
         emitMovImmToReg64(REGNUM_RAX, thr->get_index(), true, gen);
     }    
     else {
-        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+        threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy, bt->proc());
         src = threadPOS->generateCode(bt->proc(), regSpace, gen,
                                       false, // noCost 
                                       true); // root
