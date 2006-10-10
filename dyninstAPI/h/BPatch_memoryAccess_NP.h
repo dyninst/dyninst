@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: BPatch_memoryAccess_NP.h,v 1.20 2006/04/13 23:05:12 legendre Exp $ */
+/* $Id: BPatch_memoryAccess_NP.h,v 1.21 2006/10/10 22:03:45 bernat Exp $ */
 
 #ifndef _MemoryAccess_h_
 #define _MemoryAccess_h_
@@ -93,8 +93,8 @@ typedef BPatch_addrSpec_NP BPatch_countSpec_NP;
 class BPATCH_DLL_EXPORT BPatch_memoryAccess : public BPatch_instruction
 {
   friend class BPatch_function;
-  friend class AstNode;
   friend class InstrucIter;
+  friend class AstMemoryNode;
 
  public:
 

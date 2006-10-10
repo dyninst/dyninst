@@ -215,6 +215,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend class AsyncThreadEventCallback;
     friend class AstNode; // AST needs to translate instPoint to
 		      // BPatch_point via instp_map
+    friend class AstOperatorNode;
+    friend class AstMemoryNode;
 
     public:
     void PDSEP_updateObservedCostAddr(unsigned long a);
