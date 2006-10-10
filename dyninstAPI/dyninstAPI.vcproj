@@ -1232,6 +1232,15 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\registerSpace.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\reloc-func.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -1779,6 +1788,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\Object.h">
 			</File>
 			<File
+				RelativePath=".\src\opcode.h">
+			</File>
+			<File
 				RelativePath=".\src\os.h">
 			</File>
 			<File
@@ -1786,6 +1798,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\process.h">
+			</File>
+			<File
+				RelativePath=".\src\registerSpace.h">
 			</File>
 			<File
 				RelativePath=".\src\reloc-func.h">
