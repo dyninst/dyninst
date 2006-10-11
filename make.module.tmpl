@@ -95,6 +95,7 @@ MUTATORS =      test1_1 \
                 test1_38\
                 test1_39\
                 test1_40\
+                test1_41\
                 test2_1 \
                 test2_2 \
                 test2_3 \
@@ -317,7 +318,7 @@ ALL_TARGETS			+= $(TESTLIBS)
 ALL_TARGETS			+= libTest12.so
 ALL_TARGETS			+= test11
 ALL_TARGETS                     += runTests
-ALL_TARGETS                     += test_driver
+ALL_TARGETS                     += test_driver test_driver_static
 ifdef M_ABI
 ALL_TARGETS			+= $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
 ALL_TARGETS			+= $(TESTLIBS_ABI)
@@ -414,9 +415,11 @@ symlink: $(TEST_DEST) $(LIBTESTSUITE_DEST) $(ALL_TARGETS)
 	@$(RM) $(LIB_DEST)/$(LIBTESTSUITE)
 	$(LN) $(PWD)/$(LIBTESTSUITE) $(LIB_DEST)/$(LIBTESTSUITE)
 
+static: testlibs mutatees drivers_static
+
 clean:
 	$(RM) *.da *.bb. *.bbg 
-	$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests
+	$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver test_driver_static runTests
 	$(RM) $(MUTATORS_SO) $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI) $(MUTATEES_G77) $(MUTATEES_GXX_ONLY)
 	$(RM) *.o $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
 	$(RM) test11
@@ -445,6 +448,7 @@ native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_
 testlibs: $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) libTest12.so
 
 drivers: test_driver runTests
+drivers_static: test_driver_static runTests_static
 
 .PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees echo
 
@@ -733,20 +737,34 @@ ifdef NATIVE_FC
 MUTATEE_DEFS += -Dnative_fc=_$(NATIVE_FC)
 endif
 
+ifdef STATIC_TEST_DRIVER
+STATIC_FLAGS = -DSTATIC_TEST_DRIVER
+endif
+
 runTests.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests.C
+runTests_static.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) -DSTATIC_TEST_DRIVER ../src/runTests.C
 
 runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
 
 runTests: runTests.o runTests-utils.o test_driver_templates.o 
 	$(CXX) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
+runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
+	$(CXX) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
 
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
+test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
+	$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+
 test_driver: test_driver.o test_driver_templates.o $(LIBTESTSUITE_DEST) $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
 	$(CXX) -o $@ test_driver.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
+
+test_driver_static: test_driver_static.o test_driver_templates.o $(OBJS_ALL_MUTATORS) $(LIBTESTSUITE_DEST) $(DEPENDDIR)/test_driver_static.dep $(LIBTESTSUITE)
+	$(CXX) -o $@ test_driver_static.o test_driver_templates.o $(OBJS_ALL_MUTATORS) $(MUTATOR_LDFLAGS) $(LIBS)
 
 $(MUTATORS_SO): test%.so : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep $(LIBTESTSUITE)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) 
@@ -804,8 +822,10 @@ depend_dir:
           echo "Made \"$(DEPENDDIR)\" directory..."; \
          fi
 
+$(DEPENDDIR)/test_driver_static.dep: test_driver.C
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) -DSTATIC_TEST_DRIVER $(DEPENDFLAGS) $*.o > $@
 
-         
 $(DEPS_MUTATORS): $(DEPENDDIR)/%.dep : %.C 
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
