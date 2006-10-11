@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_6.C,v 1.3 2006/03/08 16:44:44 bpellin Exp $
+// $Id: test1_6.C,v 1.4 2006/10/11 21:53:13 cooksey Exp $
 /*
  * #Name: test1_6
  * #Desc: Mutator Side - Arithmetic Operators
@@ -57,46 +57,46 @@
 //
 // Start Test Case #6 - mutator side (arithmetic operators)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func6_2"
 
     
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction("func6_2", found_funcs)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",
+    logerror("    Unable to find function %s\n",
 	    "func6_2");
     return -1;
   }
   
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), "func6_2");
   }
   
   BPatch_Vector<BPatch_point *> *point6_1 = found_funcs[0]->findPoint(BPatch_entry);  
 
   if (!point6_1 || ((*point6_1).size() == 0)) {
-    fprintf(stderr, "Unable to find entry point to \"func6_2\".\n");
+    logerror("Unable to find entry point to \"func6_2\".\n");
     return -1;
   }
 
   BPatch_Vector<BPatch_function *> found_funcs2;
   if ((NULL == appImage->findFunction("func6_1", found_funcs2)) || !found_funcs2.size()) {
-     fprintf(stderr, "    Unable to find function %s\n",
+     logerror("    Unable to find function %s\n",
 	    "func6_1");
     return -1;
   }
   
   if (1 < found_funcs2.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs2.size(), "func6_1");
   }
   
   BPatch_Vector<BPatch_point *> *point6_2 = found_funcs2[0]->findPoint(BPatch_subroutine);  
 
     if (!point6_2 || ((*point6_2).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func6_1\".\n");
+	logerror("Unable to find entry point to \"func6_1\".\n");
 	return -1;
     }
 
@@ -132,16 +132,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     if (!expr6_1 || !expr6_2 || !expr6_3 || !expr6_4 ||
 	!expr6_5 || !expr6_6 || !expr6_1a || !expr6_2a || !expr6_3a ||
 	!expr6_4a || !expr6_5a || !expr6_6a) {
-	fprintf(stderr, "**Failed** test #6 (arithmetic operators)\n");
-	fprintf(stderr, "    Unable to locate one of globalVariable6_?\n");
+	logerror("**Failed** test #6 (arithmetic operators)\n");
+	logerror("    Unable to locate one of globalVariable6_?\n");
 	return -1;
     }
 
     if (!constVar1 || !constVar2 || !constVar3 || !constVar5 ||
 	!constVar6 || !constVar10 || !constVar60 || !constVar64 || 
 	!constVar66 || !constVar67) {
-	fprintf(stderr, "**Failed** test #6 (arithmetic operators)\n");
-	fprintf(stderr, "    Unable to locate one of constVar?\n");
+	logerror("**Failed** test #6 (arithmetic operators)\n");
+	logerror("    Unable to locate one of constVar?\n");
 	return -1;
     }
 
@@ -217,13 +217,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_6_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

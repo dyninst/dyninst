@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_22.C,v 1.7 2006/06/06 00:45:48 legendre Exp $
+// $Id: test1_22.C,v 1.8 2006/10/11 21:52:50 cooksey Exp $
 /*
  * #Name: test1_22
  * #Desc: Mutator Side - Replace Function
@@ -55,11 +55,11 @@
 
 #include "test_lib.h"
 
-const char *libNameAroot = "libtestA";
-const char *libNameBroot = "libtestB";
-int mutateeFortran;
+static const char *libNameAroot = "libtestA";
+static const char *libNameBroot = "libtestB";
+static int mutateeFortran;
 
-char libNameA[128], libNameB[128];
+static char libNameA[128], libNameB[128];
 //
 // Start Test Case #22 - mutator side (replace function)
 //
@@ -67,7 +67,7 @@ char libNameA[128], libNameB[128];
 // invalid input to replaceFunction is a non-existent BPatch_function.
 // But this is already checked by the "non-existent function" test in
 // test2.
-int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(os_solaris) \
  || defined(alpha_dec_osf4_0) \
@@ -82,8 +82,8 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
     // libraries libtestA.so and libtestB.so into the mutator.
     BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
     if (!mods || mods->size() == 0) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't find shlib in mutatee\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't find shlib in mutatee\n");
          return -1;
     }
     // Lookup the libtestA.so and libtestB.so modules
@@ -98,8 +98,8 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 	      modB = m;
     }
     if (! modA || ! modB) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't find dynamically loaded modules\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't find dynamically loaded modules\n");
 	 return -1;
     }
     
@@ -129,8 +129,8 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed test #22 (replace function)\n");
-      fprintf(stderr, "    Unable to find function %s\n", fn);
+      logerror("**Failed test #22 (replace function)\n");
+      logerror("    Unable to find function %s\n", fn);
       return -1;
     }
 
@@ -139,16 +139,16 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
     bpfv.clear();
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed test #22 (replace function)\n");
-      fprintf(stderr, "    Unable to find function %s\n", fn2);
+      logerror("**Failed test #22 (replace function)\n");
+      logerror("    Unable to find function %s\n", fn2);
       return -1;
     }
 
     BPatch_function *call22_2func = bpfv[0];
 
     if (! appThread->replaceFunction(*call22_1func, *call22_2func)) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't replaceFunction (a.out -> a.out)\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't replaceFunction (a.out -> a.out)\n");
 	 return -1;
     }
 
@@ -157,8 +157,8 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn3 = "call22_3";
     if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed test #22 (replace function)\n");
-      fprintf(stderr, "    Unable to find function %s\n", fn3);
+      logerror("**Failed test #22 (replace function)\n");
+      logerror("    Unable to find function %s\n", fn3);
       return -1;
     }
 
@@ -166,45 +166,45 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_function *> bpmv;
     if (NULL == modA->findFunction("call22_4", bpmv) || !bpmv.size()) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't find functions in mutatee\n");
 	 return -1;
     }
     BPatch_function *call22_4func = bpmv[0];
     
     if (! appThread->replaceFunction(*call22_3func, *call22_4func)) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't replaceFunction (a.out -> shlib)\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't replaceFunction (a.out -> shlib)\n");
 	 return -1;
     }
 
     // Replace a shlib function with a shlib function
     bpmv.clear();
     if (NULL == modA->findFunction("call22_5", bpmv) || !bpmv.size()) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't find functions in mutatee\n");
 	 return -1;
     }
     BPatch_function *call22_5Afunc = bpmv[0];
 
     bpmv.clear();
     if (NULL == modB->findFunction("call22_5", bpmv) || !bpmv.size()) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't find functions in mutatee\n");
 	 return -1;
     }
     BPatch_function *call22_5Bfunc = bpmv[0];
 
     if (! appThread->replaceFunction(*call22_5Afunc, *call22_5Bfunc)) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> shlib)\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't replaceFunction (shlib -> shlib)\n");
     }
 
     // Replace a shlib function with an a.out function
     bpmv.clear();
     if (NULL == modA->findFunction("call22_6", bpmv) || !bpmv.size()) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't find functions in mutatee\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't find functions in mutatee\n");
 	 return -1;
     }
     BPatch_function *call22_6func = bpmv[0];
@@ -213,14 +213,14 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn4 = "call22_7";
     if (NULL == appImage->findFunction(fn4, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed test #22 (replace function)\n");
-      fprintf(stderr, "    Unable to find function %s\n", fn4);
+      logerror("**Failed test #22 (replace function)\n");
+      logerror("    Unable to find function %s\n", fn4);
       return -1;
     }
     BPatch_function *call22_7func = bpfv[0];
     if (! appThread->replaceFunction(*call22_6func, *call22_7func)) {
-	 fprintf(stderr, "**Failed test #22 (replace function)\n");
-	 fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> a.out)\n");
+	 logerror("**Failed test #22 (replace function)\n");
+	 logerror("  Mutator couldn't replaceFunction (shlib -> a.out)\n");
 	 return -1;
     }
 #endif
@@ -229,7 +229,7 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 
 
 // Wrapper to call readyTest
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
    int pointer_size = 0;
 #if defined(arch_x86_64)
@@ -248,13 +248,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_22_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

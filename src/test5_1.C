@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_1.C,v 1.3 2006/03/12 23:33:35 legendre Exp $
+// $Id: test5_1.C,v 1.4 2006/10/11 21:53:47 cooksey Exp $
 /*
  * #Name: test5_1
  * #Desc: C++ Argument Pass
@@ -58,7 +58,7 @@
 //  
 // Start Test Case #1 - (C++ argument pass)
 //       
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(os_solaris) || defined(os_linux) || defined(os_windows)
 
@@ -66,8 +66,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   char *fn = "arg_test::call_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #1\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn);
+    logerror("**Failed** test #1\n");
+    logerror("    Unable to find function %s\n", fn);
     return -1;
   }
   BPatch_function *f1 = bpfv[0];  
@@ -88,17 +88,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
        "m");
 
    if (!arg0 || !arg1 || !arg2 || !arg3 || !arg4) {
-      fprintf(stderr, "**Failed** test #1 (argument passing)\n");
+      logerror("**Failed** test #1 (argument passing)\n");
       if ( !arg0 )
-         fprintf(stderr, "  can't find local variable arg0\n");
+         logerror("  can't find local variable arg0\n");
       if ( !arg1 )
-         fprintf(stderr, "  can't find local variable arg1\n");
+         logerror("  can't find local variable arg1\n");
       if ( !arg2 )
-         fprintf(stderr, "  can't find local variable arg2\n");
+         logerror("  can't find local variable arg2\n");
       if ( !arg3 )
-         fprintf(stderr, "  can't find local variable arg3\n");
+         logerror("  can't find local variable arg3\n");
       if ( !arg4 )
-         fprintf(stderr, "  can't find local variable arg4\n");
+         logerror("  can't find local variable arg4\n");
       return -1;
    }
 
@@ -109,14 +109,14 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    assert(type1_0 && type1_1 && type1_2 && type1_3);
 
    if (!type1_1->isCompatible(type1_3)) {
-       fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
-       fprintf(stderr,"    type1_1 reported as incompatibile with type1_3\n");
+       logerror("**Failed** test #1 (C++ argument pass)\n");
+       logerror("    type1_1 reported as incompatibile with type1_3\n");
        return -1;
    }
 
    if (!type1_2->isCompatible(type1_0)) {
-        fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
-        fprintf(stderr,"    type1_2 reported as incompatibile with type1_0\n")
+        logerror("**Failed** test #1 (C++ argument pass)\n");
+        logerror("    type1_2 reported as incompatibile with type1_0\n")
 ;
         return -1;
    }
@@ -130,16 +130,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    char *fn2 = "arg_test::func_cpp";
    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
-     fprintf(stderr, "    Unable to find function %s\n", fn2);
+     logerror("**Failed** test #1 (C++ argument pass)\n");
+     logerror("    Unable to find function %s\n", fn2);
      return -1;
    }
    BPatch_function *f2 = bpfv[0];  
    BPatch_Vector<BPatch_point *> *point1_2 = f2->findPoint(BPatch_subroutine);
 
    if (!point1_2 || (point1_2->size() < 1)) {
-     fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
-      fprintf(stderr, "Unable to find point arg_test::func_cpp - exit.\n");
+     logerror("**Failed** test #1 (C++ argument pass)\n");
+      logerror("Unable to find point arg_test::func_cpp - exit.\n");
       exit(-1);
    }
 
@@ -147,16 +147,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    char *fn3 = "arg_test::arg_pass";
    if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
        || NULL == bpfv[0]) {
-     fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
-     fprintf(stderr, "    Unable to find function %s\n", fn3);
+     logerror("**Failed** test #1 (C++ argument pass)\n");
+     logerror("    Unable to find function %s\n", fn3);
      return -1;
    }
    BPatch_function *call1_func = bpfv[0];  
 
    BPatch_variableExpr *this1 = appImage->findVariable("test1");
    if (this1 == NULL) {
-      fprintf(stderr, "**Failed** test #1 (C++ argument pass)\n");
-      fprintf(stderr, "Unable to find variable \"test1\"\n");
+      logerror("**Failed** test #1 (C++ argument pass)\n");
+      logerror("Unable to find variable \"test1\"\n");
       return -1;
    }
 
@@ -170,24 +170,30 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    checkCost(call1Expr);
    appThread->insertSnippet(call1Expr, *point1_2);
 #else
-   fprintf(stderr, "Not supported on this platform\n");
+   logerror("Not supported on this platform\n");
 #endif
    return 0;
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test5_1_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
 
         // Run mutator code
     int result = mutatorTest(appThread, appImage);
-        /*fprintf(stderr, "Kaboom\n");
+        /*logerror("Kaboom\n");
         appThread->getProcess()->debugSuicide();
         exit(0);*/
     return result;

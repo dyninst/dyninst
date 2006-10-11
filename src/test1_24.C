@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_24.C,v 1.4 2006/03/08 16:44:24 bpellin Exp $
+// $Id: test1_24.C,v 1.5 2006/10/11 21:52:52 cooksey Exp $
 /*
  * #Name: test1_24
  * #Desc: Mutator Side - Array Variables
@@ -55,12 +55,12 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #24 - array variables
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(mips_sgi_irix6_4)
     if (!mutateeFortran) {
@@ -69,7 +69,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
       char *fn = "call24_1";
       if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	  || NULL == bpfv[0]){
-	fprintf(stderr, "    Unable to find function %s\n", fn);
+	logerror("    Unable to find function %s\n", fn);
 	return -1;
       }
       
@@ -79,8 +79,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
       
       //     Then verify that we can find a local variable in call24_1
       if (!temp) {
-            fprintf(stderr, "**Failed** test #24 (array variables)\n");
-            fprintf(stderr, "  can't find function call24_1\n");
+            logerror("**Failed** test #24 (array variables)\n");
+            logerror("  can't find function call24_1\n");
             return -1;
         } else {
             dprintf("Found %d callsites in function call24_1\n", temp->size());
@@ -104,16 +104,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
             sprintf(name, "globalVariable24_%d", i);
             gvar[i] = appImage->findVariable(name);
             if (!gvar[i]) {
-                fprintf(stderr, "**Failed** test #24 (array variables)\n");
-                fprintf(stderr, "  can't find variable globalVariable24_%d\n", i);
+                logerror("**Failed** test #24 (array variables)\n");
+                logerror("  can't find variable globalVariable24_%d\n", i);
                 return -1;
             }
         }
 
         lvar = appImage->findVariable(*(*point24_1)[0], "localVariable24_1");
         if (!lvar) {
-            fprintf(stderr, "**Failed** test #24 (array variables)\n");
-            fprintf(stderr, "  can't find variable localVariable24_1\n");
+            logerror("**Failed** test #24 (array variables)\n");
+            logerror("  can't find variable localVariable24_1\n");
             return -1;
         }
 
@@ -193,13 +193,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_24_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

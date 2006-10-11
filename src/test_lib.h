@@ -75,7 +75,7 @@
 TESTLIB_DLL_EXPORT int waitUntilStopped(BPatch *, BPatch_thread *appThread, 
                       int testnum, const char *testname);
 TESTLIB_DLL_EXPORT bool signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
-TESTLIB_DLL_EXPORT int startNewProcessForAttach(const char *pathname, const char *argv[]);
+TESTLIB_DLL_EXPORT int startNewProcessForAttach(const char *pathname, const char *argv[], FILE *outlog, FILE *errlog);
 
 
 TESTLIB_DLL_EXPORT void dprintf(const char *fmt, ...);
@@ -90,6 +90,15 @@ TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage,
 
 
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
+
+// Set up the log files for test library output
+TESTLIB_DLL_EXPORT void setOutputLog(FILE *log_fp);
+TESTLIB_DLL_EXPORT void setErrorLog(FILE *log_fp);
+// Functions to print messages to the log files
+TESTLIB_DLL_EXPORT int logstatus(const char *fmt, ...);
+TESTLIB_DLL_EXPORT int logerror(const char *fmt, ...);
+TESTLIB_DLL_EXPORT void flushOutputLog();
+TESTLIB_DLL_EXPORT void flushErrorLog();
 
 //
 //
@@ -225,21 +234,29 @@ char *searchPath(const char *path, const char *file);
 // Functions in test_lib_soExecution.C below
 //           or test_lib_dllExecution.C
 
+TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_list);
    
 TESTLIB_DLL_EXPORT int loadLibRunTest(test_data_t &testLib, ParameterDict &param);
 
 // Function in MutateeStart.C
-BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach);
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach, char *logfilename);
 
-BPatch_thread *startMutateeTestAll(BPatch *bpatch, char *pathname, bool useAttach, ProcessList &procList);
-
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *pathname, int subtestno, 
-      bool useAttach);
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestAll(BPatch *bpatch, char *pathname, bool useAttach, ProcessList &procList, char *logfilename);
 
 TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *pathname, int subtestno, 
-      bool useAttach, ProcessList &procList);
+      bool useAttach, char *logfilename);
 
-BPatch_thread *startMutateeEnabledTests(BPatch *bpatch, char *pathname, bool useAttach, test_data_t tests[], unsigned int num_tests, int oldtest);
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *pathname, int subtestno, 
+      bool useAttach, ProcessList &procList, char *logfilename);
+
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestSet(BPatch *bpatch, char *pathname, 
+				   test_data_t tests[],
+				   int first_test, int last_test,
+				   bool useAttach, ProcessList &procList,
+				   char *logfilename, bool runAllTests,
+				   std::vector<char *> test_list);
+
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeEnabledTests(BPatch *bpatch, char *pathname, bool useAttach, test_data_t tests[], unsigned int num_tests, int oldtest, char *logfilename);
 
 TESTLIB_DLL_EXPORT void killMutatee(BPatch_thread *appThread);
 

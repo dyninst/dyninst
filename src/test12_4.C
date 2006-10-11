@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_4.C,v 1.6 2006/06/22 21:23:44 bernat Exp $
+// $Id: test12_4.C,v 1.7 2006/10/11 21:52:25 cooksey Exp $
 /*
  * #Name: test12_4
  * #Desc: thread create callback -- doa
@@ -61,65 +61,65 @@ using std::vector;
 #define TESTNO 4
 #define TESTNAME "thread create callback - doa"
 
-int debugPrint;
-BPatch *bpatch;
-BPatch_thread *appThread;
-BPatch_image *appImage;
+static int debugPrint;
+static BPatch *bpatch;
+static BPatch_thread *appThread;
+static BPatch_image *appImage;
 
-void dumpVars(void)
+static void dumpVars(void)
 {
   BPatch_Vector<BPatch_variableExpr *> vars;
   appImage->getVariables(vars);
   for (unsigned int i = 0; i < vars.size(); ++i) {
-    fprintf(stderr, "\t%s\n", vars[i]->getName());
+    logerror("\t%s\n", vars[i]->getName());
   }
 }
 
 
-void setVar(const char *vname, void *addr, int testno, const char *testname)
+static void setVar(const char *vname, void *addr, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    void *buf = addr;
    if (NULL == (v = appImage->findVariable(vname))) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  cannot find variable %s, avail vars:\n", vname);
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  cannot find variable %s, avail vars:\n", vname);
       dumpVars();
          exit(1);
    }
 
    if (! v->writeValue(buf, sizeof(int),true)) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  failed to write call site var to mutatee\n");
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  failed to write call site var to mutatee\n");
       exit(1);
    }
 }
 
-void getVar(const char *vname, void *addr, int len, int testno, const char *testname)
+static void getVar(const char *vname, void *addr, int len, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    if (NULL == (v = appImage->findVariable(vname))) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  cannot find variable %s: avail vars:\n", vname);
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  cannot find variable %s: avail vars:\n", vname);
       dumpVars();
          exit(1);
    }
 
    if (! v->readValue(addr, len)) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  failed to read var in mutatee\n");
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  failed to read var in mutatee\n");
       exit(1);
    }
 }
 
 
 
-vector<unsigned long> callback_tids;
-int test3_threadCreateCounter = 0;
-void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
+static vector<unsigned long> callback_tids;
+static int test3_threadCreateCounter = 0;
+static void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
 {
   assert(thr);  
   if (debugPrint)
-     fprintf(stderr, "%s[%d]:  thread %lu start event for pid %d\n", __FILE__, __LINE__,
+     dprintf("%s[%d]:  thread %lu start event for pid %d\n", __FILE__, __LINE__,
                thr->getTid(), thr->getPid());
   test3_threadCreateCounter++;
   callback_tids.push_back(thr->getTid());
@@ -128,7 +128,7 @@ void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
   }
 }
 
-bool mutatorTest3and4(int testno, const char *testname)
+static bool mutatorTest3and4(int testno, const char *testname)
 {
   test3_threadCreateCounter = 0;
   callback_tids.clear();
@@ -140,7 +140,7 @@ bool mutatorTest3and4(int testno, const char *testname)
   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, createcb))
   {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
+    logerror("%s[%d]:  failed to register thread callback\n",
            __FILE__, __LINE__);
     return false;
   }
@@ -170,7 +170,7 @@ bool mutatorTest3and4(int testno, const char *testname)
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
     if (appThread->isTerminated()) {
-       fprintf(stderr, "%s[%d]:  BAD NEWS:  somehow the process died\n", __FILE__, __LINE__);
+       dprintf("%s[%d]:  BAD NEWS:  somehow the process died\n", __FILE__, __LINE__);
        err = 1;
        break;
     }
@@ -185,8 +185,8 @@ bool mutatorTest3and4(int testno, const char *testname)
 
   if (timeout >= TIMEOUT) {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  test timed out. got %d/10 events\n", __FILE__, __LINE__, test3_threadCreateCounter);
-    fprintf(stderr, "test3_createCounter is %d, expected %d; active threads %d, expected %d\n",
+    logerror("%s[%d]:  test timed out. got %d/10 events\n", __FILE__, __LINE__, test3_threadCreateCounter);
+    logerror("test3_createCounter is %d, expected %d; active threads %d, expected %d\n",
             test3_threadCreateCounter, TEST3_THREADS, active_threads, 1);
     err = 1;
   }
@@ -209,10 +209,10 @@ bool mutatorTest3and4(int testno, const char *testname)
          testno, testname);
 
   if (debugPrint) {
-    fprintf(stderr, "%s[%d]:  read following tids for test%d from mutatee\n", __FILE__, __LINE__, testno);
+    dprintf("%s[%d]:  read following tids for test%d from mutatee\n", __FILE__, __LINE__, testno);
 
     for (unsigned int i = 0; i < TEST3_THREADS; ++i) {
-       fprintf(stderr, "\t%lu\n", mutatee_tids[i]);
+       dprintf("\t%lu\n", mutatee_tids[i]);
     }
   }
 
@@ -227,10 +227,10 @@ bool mutatorTest3and4(int testno, const char *testname)
 
     if (!found) {
       FAIL_MES(testno, testname);
-      fprintf(stderr, "%s[%d]:  could not find record for tid %lu: have these:\n",
+      logerror("%s[%d]:  could not find record for tid %lu: have these:\n",
              __FILE__, __LINE__, mutatee_tids[i]);
        for (unsigned int j = 0; j < callback_tids.size(); ++j) {
-          fprintf(stderr, "%lu\n", callback_tids[j]);
+          logerror("%lu\n", callback_tids[j]);
        }
       err = true;
       break;
@@ -240,7 +240,7 @@ bool mutatorTest3and4(int testno, const char *testname)
   dprintf("%s[%d]: removing thread callback\n", __FILE__, __LINE__);
   if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, createcb)) {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
+    logerror("%s[%d]:  failed to remove thread callback\n",
            __FILE__, __LINE__);
     err = true;
   }
@@ -251,19 +251,26 @@ bool mutatorTest3and4(int testno, const char *testname)
   }
   return false;
 }
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
   if (mutatorTest3and4(TESTNO, TESTNAME))
     return 0;
   return -1;
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test12_4_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     appThread = (BPatch_thread *)(param["appThread"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     appImage = appThread->getImage();

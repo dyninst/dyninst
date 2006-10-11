@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_8.C,v 1.2 2005/11/22 19:42:16 bpellin Exp $
+// $Id: test2_8.C,v 1.3 2006/10/11 21:53:30 cooksey Exp $
 /*
  * #Name: test2_8
  * #Desc: BPatch_breakPointExpr
@@ -55,7 +55,7 @@
 
 #include "test_lib.h"
 
-BPatch *bpatch;
+static BPatch *bpatch;
 
 // Start of test #8 - BPatch_breakPointExpr
 //
@@ -65,7 +65,7 @@ BPatch *bpatch;
 //     to be reached.  The first part is run before the processes is continued
 //     (i.e. just after process creation or attach).
 //
-int test8a(BPatch_thread *appThread, BPatch_image *appImage)
+static int test8a(BPatch_thread *appThread, BPatch_image *appImage)
 {
     /*
      * Instrument a function with a BPatch_breakPointExpr.
@@ -73,46 +73,46 @@ int test8a(BPatch_thread *appThread, BPatch_image *appImage)
 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func8_1", found_funcs, 1)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func8_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func8_1");
     }
 
     BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_entry);
 
     if (points == NULL) {
-	printf("**Failed** test #8 (BPatch_breakPointExpr)\n");
-	printf("    unable to locate function \"func8_1\".\n");
+	logerror("**Failed** test #8 (BPatch_breakPointExpr)\n");
+	logerror("    unable to locate function \"func8_1\".\n");
         return -1;
     }
 
     BPatch_breakPointExpr bp;
 
     if (appThread->insertSnippet(bp, *points) == NULL) {
-	printf("**Failed** test #8 (BPatch_breakPointExpr)\n");
-	printf("    unable to insert breakpoint snippet\n");
+	logerror("**Failed** test #8 (BPatch_breakPointExpr)\n");
+	logerror("    unable to insert breakpoint snippet\n");
         return -1;
     }
 
     return 0;
 }
 
-int test8b(BPatch_thread *thread)
+static int test8b(BPatch_thread *thread)
 {
     // Wait for process to finish
     waitUntilStopped(bpatch, thread, 8, "BPatch_breakPointExpr");
 
     // waitUntilStopped would not return is we didn't stop
-    printf("Passed test #8 (BPatch_breakPointExpr)\n");
+    logerror("Passed test #8 (BPatch_breakPointExpr)\n");
     return 0;
 }
 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
    if ( test8a(appThread, appImage) < 0 ) 
    {
@@ -124,7 +124,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_8_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
@@ -133,6 +133,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Signal the child that we've attached
     if (useAttach) {

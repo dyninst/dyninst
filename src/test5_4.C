@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_4.C,v 1.3 2006/03/12 23:33:38 legendre Exp $
+// $Id: test5_4.C,v 1.4 2006/10/11 21:53:50 cooksey Exp $
 /*
  * #Name: test5_4
  * #Desc: Static Member
@@ -58,7 +58,7 @@
 //  
 // Start Test Case #4 - (static member)
 // 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(os_solaris) || defined(os_linux) || defined(os_windows)
 
@@ -66,8 +66,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   char *fn = "static_test::func_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #4 (static member)\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn);
+    logerror("**Failed** test #4 (static member)\n");
+    logerror("    Unable to find function %s\n", fn);
     return FAIL;
   }
   BPatch_function *f1 = bpfv[0];  
@@ -83,8 +83,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   
   while ((index < bound) && (vect4_1.size() < 2)) {
     if ((func = (*point4_1)[index]->getCalledFunction()) == NULL) {
-      fprintf(stderr, "**Failed** test #4 (static member)\n");
-      fprintf(stderr, "    Can't find the invoked function\n");
+      logerror("**Failed** test #4 (static member)\n");
+      logerror("    Can't find the invoked function\n");
       return FAIL;
     }
 
@@ -98,8 +98,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
       BPatch_variableExpr *var4_1 = appImage->findVariable(*(*point4_2)[0],
 							   "count");
       if (!var4_1) {
-	fprintf(stderr, "**Failed** test #4 (static member)\n");
-	fprintf(stderr, "  Can't find static variable count\n");
+	logerror("**Failed** test #4 (static member)\n");
+	logerror("  Can't find static variable count\n");
 	return FAIL;
       }
       vect4_1.push_back(var4_1);
@@ -108,13 +108,13 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   }
   
   if (2 != vect4_1.size()) {
-    fprintf(stderr, "**Failed** test #4 (static member)\n");
-    fprintf(stderr, "  Incorrect size of an vector\n");
+    logerror("**Failed** test #4 (static member)\n");
+    logerror("  Incorrect size of an vector\n");
     return FAIL;
   }
   if (vect4_1[0]->getBaseAddr() != vect4_1[1]->getBaseAddr()) {
-    fprintf(stderr, "**Failed** test #4 (static member)\n");
-    fprintf(stderr, "  Static member does not have a same address\n");
+    logerror("**Failed** test #4 (static member)\n");
+    logerror("  Static member does not have a same address\n");
     return FAIL;
   };
   
@@ -122,8 +122,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   char *fn2 = "static_test_call_cpp";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #4 (static member)\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    logerror("**Failed** test #4 (static member)\n");
+    logerror("    Unable to find function %s\n", fn2);
     return FAIL;
   }
   BPatch_function *call4_func = bpfv[0];  
@@ -142,12 +142,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test5_4_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

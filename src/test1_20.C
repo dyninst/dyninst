@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.8 2006/03/12 23:33:20 legendre Exp $
+// $Id: test1_20.C,v 1.9 2006/10/11 21:52:48 cooksey Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -55,13 +55,13 @@
 #include "test_lib.h"
 #include "Callbacks.h"
 
-BPatch *bpatch;
-int mergeTramp;
+static BPatch *bpatch;
+static int mergeTramp;
 
 //
 // Start Test Case #20 - mutator side (instrumentation at arbitrary points)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     if (mergeTramp == 1)
         bpatch->setMergeTramp(true);
@@ -69,7 +69,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn = "call20_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
          || NULL == bpfv[0]){
-         fprintf(stderr, "    Unable to find function %s\n", fn);
+         logerror("    Unable to find function %s\n", fn);
          return -1;
   }
 
@@ -84,7 +84,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn2 = "func20_2";
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size() ||
 	    NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn2);
+      logerror("    Unable to find function %s\n", fn2);
       return -1;
     }
 
@@ -94,8 +94,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     // do this right.
     BPatch_flowGraph *cfg = f->getCFG();
     if (!cfg) {
-	fprintf(stderr, "**Failed** test #20 (instrumentation at arbitrary points)\n");
-	fprintf(stderr, "    no flowgraph for function 20_2\n");
+	logerror("**Failed** test #20 (instrumentation at arbitrary points)\n");
+	logerror("    no flowgraph for function 20_2\n");
 	return -1;
     }
 
@@ -111,8 +111,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     if (!cfg->getAllBasicBlocks(blocks))
         assert(0); // This can't return false :)
     if (blocks.size() == 0) {
-        fprintf(stderr, "**Failed** test #20 (instrumentation at arbitrary points)\n");
-        fprintf(stderr, "    no blocks for function 20_2\n");
+        logerror("**Failed** test #20 (instrumentation at arbitrary points)\n");
+        logerror("    no blocks for function 20_2\n");
         return -1;
     }
     
@@ -134,19 +134,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
             if (pt->getPointType() == BPatch_arbitrary) {
                 found_one = true;
                 if (appThread->insertSnippet(call20_1Expr, *pt) == NULL) {
-                    fprintf(stderr,
-                            "%s[%d]: Unable to insert snippet into function \"func20_2.\"\n",
+                    logerror("%s[%d]: Unable to insert snippet into function \"func20_2.\"\n",
                              __FILE__, __LINE__);
                     return -1;
                 }
                 dprintf("%s[%d]:  SUCCESS installing inst at address %p/%p\n", __FILE__, __LINE__, insn->getAddress(), pt->getAddress());
             }
             else
-              fprintf(stderr, "%s[%d]:  non-arbitrary point (%d) being ignored\n", __FILE__, __LINE__);
+              logerror("%s[%d]:  non-arbitrary point (%d) being ignored\n", __FILE__, __LINE__);
 
           }
           else {
-             fprintf(stderr, "%s[%d]:  no instruction for point\n", __FILE__, __LINE__);
+             logerror("%s[%d]:  no instruction for point\n", __FILE__, __LINE__);
           }
         }
 
@@ -157,7 +156,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     bpatch->registerErrorCallback(oldError);
 
     if (!found_one) {
-	fprintf(stderr, "Unable to find a point to instrument in function \"func20_2.\"\n");
+	logerror("Unable to find a point to instrument in function \"func20_2.\"\n");
 	return -1;
     }
 
@@ -167,13 +166,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_20_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
     mergeTramp = param["mergeTramp"]->getInt();
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

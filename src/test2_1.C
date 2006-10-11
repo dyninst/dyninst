@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_1.C,v 1.2 2005/11/22 19:42:04 bpellin Exp $
+// $Id: test2_1.C,v 1.3 2006/10/11 21:53:18 cooksey Exp $
 /*
  * #Name: test2_1
  * #Desc: Run an executable that does not exist
@@ -62,38 +62,44 @@
 //	null values from createProcess (called via mutatorMAIN)
 //
 
-int mutatorTest(BPatch *bpatch, bool useAttach)
+static int mutatorTest(BPatch *bpatch, bool useAttach)
 {
    
     if (useAttach) {
-	printf("Skipping test #1 (run an executable that does not exist)\n");
-	printf("    not relevant with -attach option\n");
+	logerror("Skipping test #1 (run an executable that does not exist)\n");
+	logerror("    not relevant with -attach option\n");
         return 0;
     } else {
 	// try to run a program that does not exist
         
         clearError();
-	BPatch_thread *ret = startMutateeTest(bpatch, "./noSuchFile", 1, useAttach);
+	BPatch_thread *ret = startMutateeTest(bpatch, "./noSuchFile", 1, useAttach, NULL);
         bool gotError = getError();
 	if (ret || !gotError) {
-	    printf("**Failed** test #1 (run an executable that does not exist)\n");
+	    logerror("**Failed** test #1 (run an executable that does not exist)\n");
 	    if (ret)
-		printf("    created a thread handle for a non-existant file\n");
+		logerror("    created a thread handle for a non-existant file\n");
 	    if (!gotError)
-		printf("    the error callback should have been called but wasn't\n");
+		logerror("    the error callback should have been called but wasn't\n");
             return -1;
 	} else {
-	    printf("Passed test #1 (run an executable that does not exist)\n");
+	    logerror("Passed test #1 (run an executable that does not exist)\n");
             return 0;
 	}
     }
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_1_mutatorMAIN(ParameterDict &param)
 {
   bool useAttach = param["useAttach"]->getInt();
   BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
   
+  // Get log file pointers
+  FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+  FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+  setOutputLog(outlog);
+  setErrorLog(errlog);
+
   return mutatorTest(bpatch, useAttach);
 
 }

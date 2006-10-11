@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_10.C,v 1.3 2006/03/12 23:33:17 legendre Exp $
+// $Id: test1_10.C,v 1.4 2006/10/11 21:52:37 cooksey Exp $
 /*
  * #Name: test1_10
  * #Desc: Mutator Side - Insert Snippet Order
@@ -57,25 +57,25 @@
 //
 // Start Test Case #10 - mutator side (insert snippet order)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func10_1"
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func10_1", found_funcs)) || !found_funcs.size()) {
-       fprintf(stderr, "    Unable to find function %s\n",
+       logerror("    Unable to find function %s\n",
 	      "func10_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func10_1");
     }
 
     BPatch_Vector<BPatch_point *> *point10_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point10_1 || ((*point10_1).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func10_1\".\n");
+	logerror("Unable to find entry point to \"func10_1\".\n");
 	return -1;
     }
 
@@ -84,7 +84,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn = "call10_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn);
+      logerror("    Unable to find function %s\n", fn);
       return -1;
     }
 
@@ -94,7 +94,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn2 = "call10_2";
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn2);
+      logerror("    Unable to find function %s\n", fn2);
       return -1;
     }
 
@@ -104,7 +104,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn3 = "call10_3";
     if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn3);
+      logerror("    Unable to find function %s\n", fn3);
       return -1;
     }
 
@@ -130,13 +130,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_10_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

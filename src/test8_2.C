@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8_2.C,v 1.2 2006/03/12 23:33:50 legendre Exp $
+// $Id: test8_2.C,v 1.3 2006/10/11 21:54:17 cooksey Exp $
 /*
  * #Name: test8_2
  * #Desc: getCallStack in signal handler
@@ -55,15 +55,20 @@
 
 #include "test_lib.h"
 
-BPatch *bpatch;
+static BPatch *bpatch;
 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(sparc_sun_solaris2_4) \
  || defined(ia64_unknown_linux2_4)
+
+    while (!appThread->isStopped()) { // Necessary in fast & loose mode
+      bpatch->waitForStatusChange();
+    }
     appThread->continueExecution();
+
     static const frameInfo_t correct_frame_info[] = {
 
 #if defined( os_linux ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
@@ -88,26 +93,31 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 		   correct_frame_info,
 		   sizeof(correct_frame_info)/sizeof(frameInfo_t),
 		   2, "getCallStack in signal handler")) {
-	printf("Passed test #2 (getCallStack in signal handler)\n");
+	logerror("Passed test #2 (getCallStack in signal handler)\n");
     } else {
        return -1;
     }
 
     appThread->continueExecution();
 #else
-    printf("Skipping test #2 (getCallStack in signal handler)\n");
-    printf("    feature not implemented on this platform\n");
+    logerror("Skipping test #2 (getCallStack in signal handler)\n");
+    logerror("    feature not implemented on this platform\n");
 #endif
 
     return 0;
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test8_2_mutatorMAIN(ParameterDict &param)
 {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

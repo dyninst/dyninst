@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_7.C,v 1.4 2006/06/20 04:54:16 jaw Exp $
+// $Id: test3_7.C,v 1.5 2006/10/11 21:53:39 cooksey Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -57,17 +57,17 @@
 //#include "test3.h"
 
 #if defined(os_windows)
-BPatch_exitType expectedSignal = ExitedNormally;
+static BPatch_exitType expectedSignal = ExitedNormally;
 #else
-BPatch_exitType expectedSignal = ExitedViaSignal;
+static BPatch_exitType expectedSignal = ExitedViaSignal;
 #endif
 
-const unsigned int MAX_MUTATEES = 32;
-const unsigned int Mutatees=3;
-int debugPrint;
+static const unsigned int MAX_MUTATEES = 32;
+static const unsigned int Mutatees=3;
+static int debugPrint;
 
-unsigned int num_callbacks_issued = 0;
-bool test7done = false;
+static unsigned int num_callbacks_issued = 0;
+static bool test7done = false;
 #if defined (os_osf)
 #define TEST7_NUM_ONETIMECODE 100
 #else
@@ -75,7 +75,7 @@ bool test7done = false;
 #endif
 #define TIMEOUT 120 /*seconds */
 
-void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
+static void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
                                 void *userData,
                                 void * /*returnValue*/)
 {
@@ -91,7 +91,7 @@ void test7_oneTimeCodeCallback(BPatch_thread * /*thread*/,
 //     Run a whole ton of asynchronous OneTimeCodes to test signal handling
 //
 
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
     const char *child_argv[5];
@@ -105,13 +105,15 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
     for (n=0; n<MAX_MUTATEES; n++) appThread[n]=NULL;
 
+    num_callbacks_issued = 0;
+
     // Start the mutatees
     for (n=0; n<Mutatees; n++) {
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
         appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread[n]) {
-            printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
+            logerror("*ERROR*: unable to create handle%d for executable\n", n);
+            logerror("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
             MopUpMutatees(n-1,appThread);
             return -1;
         }
@@ -138,7 +140,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
       BPatch_Vector<BPatch_function *> bpfv;
       if (NULL == appImage->findFunction("call7_1", bpfv) || !bpfv.size()
           || NULL == bpfv[0]){
-        fprintf(stderr, "    Unable to find function call7_1\n" );
+        logerror("    Unable to find function call7_1\n" );
         exit(1);
       }
       BPatch_function *call7_1 = bpfv[0];
@@ -174,8 +176,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
    }
    int test7err = false;
    if (!doneFlag) {
-            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
-            printf("   did not receive the right # of events: got %d, expected %d\n", num_callbacks_issued, TEST7_NUM_ONETIMECODE);
+            logerror("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
+            logerror("   did not receive the right # of events: got %d, expected %d\n", num_callbacks_issued, TEST7_NUM_ONETIMECODE);
             test7err = true;
    }
 
@@ -186,13 +188,13 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     for (n=0; n<Mutatees; n++) {
         bool dead = appThread[n]->terminateExecution();
         if (!dead || !(appThread[n]->isTerminated())) {
-            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
-            printf("    mutatee process [%d] was not terminated\n", n);
+            logerror("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
+            logerror("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
         if(appThread[n]->terminationStatus() != expectedSignal) {
-            printf("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
-            printf("    mutatee process [%d] didn't get notice of termination\n", n);
+            logerror("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
+            logerror("    mutatee process [%d] didn't get notice of termination\n", n);
             continue;
         }
         int signalNum = appThread[n]->getExitSignal();
@@ -202,19 +204,25 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     }
 
     if (numTerminated == Mutatees && !test7err) {
-	printf("Passed Test #7 (simultaneous multiple-process management - oneTimeCode)\n");
+	logerror("Passed Test #7 (simultaneous multiple-process management - oneTimeCode)\n");
         return 0;
     }
 
     return -1;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test3_7_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

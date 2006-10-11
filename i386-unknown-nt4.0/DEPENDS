@@ -1964,68 +1964,73 @@ test1.mutatee_VC.exe: ../src/test1.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
   ../../common/h/refCounter.h ../src/mutatee_util.h ../src/test1.h \
-  ../src/test1.mutateeCommon.h
+  ../src/test1.mutateeCommon.h ../src/mutatee_util.c
 test2.mutatee_VC.exe: ../src/test2.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h ../src/test2.h
+  ../../common/h/refCounter.h ../src/test2.h \
+  ../src/mutatee_util.h ../src/mutatee_util.c
 test3.mutatee_VC.exe: ../src/test3.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h
+  ../../common/h/refCounter.h ../src/mutatee_util.h ../src/mutatee_util.c
 test4a.mutatee_VC.exe: ../src/test4a.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h
+  ../../common/h/refCounter.h ../src/mutatee_util.h ../src/mutatee_util.c
 test4b.mutatee_VC.exe: ../src/test4b.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h
+  ../../common/h/refCounter.h ../src/mutatee_util.h ../src/mutatee_util.c
 test5.mutatee_VC.exe: ../src/test5.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h ../src/cpp_test.h
+  ../../common/h/refCounter.h ../src/cpp_test.h ../src/mutatee_util.h \
+  ../src/mutatee_util.c
 test6.mutatee_VC.exe: ../src/test6.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h test6LS-masm.obj
+  ../../common/h/refCounter.h test6LS-masm.obj ../src/mutatee_util.h \
+  ../src/mutatee_util.c
 test8.mutatee_VC.exe: ../src/test8.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h ../src/mutatee_util.h
+  ../../common/h/refCounter.h ../src/mutatee_util.h ../src/mutatee_util.c
 test1.mutatee_VC++.exe: ../src/test1.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
   ../../common/h/refCounter.h ../src/mutatee_util.h ../src/test1.h \
-  ../src/test1.mutateeCommon.h
+  ../src/test1.mutateeCommon.h ../src/mutatee_util.c
 test2.mutatee_VC++.exe: ../src/test2.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h ../src/test2.h
+  ../../common/h/refCounter.h ../src/test2.h ../src/mutatee_util.h \
+  ../src/mutatee_util.c
 test3.mutatee_VC++.exe: ../src/test3.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h
+  ../../common/h/refCounter.h ../src/mutatee_util.h ../src/mutatee_util.c
 test4a.mutatee_VC++.exe: ../src/test4a.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h
+  ../../common/h/refCounter.h ../src/mutatee_util.h ../src/mutatee_util.c
 test4b.mutatee_VC++.exe: ../src/test4b.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h
+  ../../common/h/refCounter.h ../src/mutatee_util.h ../src/mutatee_util.c
 test5.mutatee_VC++.exe: ../src/test5.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h ../src/cpp_test.h
+  ../../common/h/refCounter.h ../src/cpp_test.h ../src/mutatee_util.h \
+  ../src/mutatee_util.c
 test6.mutatee_VC++.exe: ../src/test6.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h
+  ../../common/h/refCounter.h ../src/mutatee_util.h ../src/mutatee_util.c
 test8.mutatee_VC++.exe: ../src/test8.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
-  ../../common/h/refCounter.h ../src/mutatee_util.h
+  ../../common/h/refCounter.h ../src/mutatee_util.h ../src/mutatee_util.c
 test6LS-masm.obj: ../src/test6LS-masm.asm
 test13_1.dll: ../src/test13_1.c ../../dyninstAPI/h/BPatch.h \
   ../../dyninstAPI/h/BPatch_dll.h ../../dyninstAPI/h/BPatch_Vector.h \
@@ -2053,29 +2058,29 @@ test13.mutatee_VC++.exe: ../src/test13.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
   ../../common/h/refCounter.h ../src/mutatee_util.h \
-  ../src/mutatee_util_mt.c
+  ../src/mutatee_util_mt.c ../src/mutatee_util.c
 test13.mutatee_VC.exe: ../src/test13.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
   ../../common/h/refCounter.h ../src/mutatee_util.h \
-  ../src/mutatee_util_mt.c
+  ../src/mutatee_util_mt.c ../src/mutatee_util.c
 test14.mutatee_VC.exe: ../src/test14.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
   ../../common/h/refCounter.h ../src/mutatee_util.h \
-  ../src/mutatee_util_mt.c  
+  ../src/mutatee_util_mt.c ../src/mutatee_util.c
 test14.mutatee_VC++.exe: ../src/test14.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
   ../../common/h/refCounter.h ../src/mutatee_util.h \
-  ../src/mutatee_util_mt.c
+  ../src/mutatee_util_mt.c ../src/mutatee_util.c
 test15.mutatee_VC.exe: ../src/test15.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
   ../../common/h/refCounter.h ../src/mutatee_util.h \
-  ../src/mutatee_util_mt.c  
+  ../src/mutatee_util_mt.c ../src/mutatee_util.c
 test15.mutatee_VC++.exe: ../src/test15.mutatee.c ../../common/h/string.h \
   ../../common/h/debugOstream.h ../../common/h/std_namesp.h \
   ../../common/h/Types.h ../../common/h/headers.h \
   ../../common/h/refCounter.h ../src/mutatee_util.h \
-  ../src/mutatee_util_mt.c
+  ../src/mutatee_util_mt.c ../src/mutatee_util.c

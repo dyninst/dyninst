@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_3.C,v 1.4 2006/03/12 23:33:47 legendre Exp $
+// $Id: test6_3.C,v 1.5 2006/10/11 21:53:59 cooksey Exp $
 /*
  * #Name: test6_3
  * #Desc: Prefetch Instrumentation
@@ -56,12 +56,11 @@
 #include "test_lib.h"
 #include "test6.h"
 
-
 #ifdef sparc_sun_solaris2_4
-const unsigned int nprefes = 2;
-BPatch_memoryAccess* prefeList[nprefes];
+static const unsigned int nprefes = 2;
+static BPatch_memoryAccess* prefeList[nprefes];
 
-void init_test_data()
+static void init_test_data()
 {
   int k=-1;
   prefeList[++k] = MK_PF(0,17,0,2);
@@ -70,22 +69,22 @@ void init_test_data()
 #endif
 
 #ifdef rs6000_ibm_aix4_1
-const unsigned int nprefes = 0;
+static const unsigned int nprefes = 0;
 #if defined(__XLC__) || defined(__xlC__)
-BPatch_memoryAccess* *prefeList;
+static BPatch_memoryAccess* *prefeList;
 #else
-BPatch_memoryAccess* prefeList[nprefes];
+static BPatch_memoryAccess* prefeList[nprefes];
 #endif
 
-void init_test_data()
+static void init_test_data()
 {
 }
 
 #endif
 
-void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
+static void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
 
-void get_vars_addrs(BPatch_image* bip) // from mutatee
+static void get_vars_addrs(BPatch_image* bip) // from mutatee
 {
   BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
   BPatch_variableExpr* bpvep_diwars = bip->findVariable("dfvars");
@@ -109,10 +108,10 @@ void get_vars_addrs(BPatch_image* bip) // from mutatee
 
 #if defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0)
-const unsigned int nprefes = 2;
-BPatch_memoryAccess* prefeList[nprefes + 1]; // for NT
+static const unsigned int nprefes = 2;
+static BPatch_memoryAccess* prefeList[nprefes + 1]; // for NT
 
-void init_test_data()
+static void init_test_data()
 {
   int k=-1;
 
@@ -122,9 +121,9 @@ void init_test_data()
 #endif
 
 #ifdef ia64_unknown_linux2_4
-const unsigned int nprefes = 3;
-BPatch_memoryAccess* prefeList[nprefes];
-void init_test_data() {
+static const unsigned int nprefes = 3;
+static BPatch_memoryAccess* prefeList[nprefes];
+static void init_test_data() {
 	prefeList[0] = MK_PF( 0, 14, -1, 0 );
 	prefeList[1] = MK_PF( 0, 14, -1, 0 );
 	prefeList[2] = MK_PF( 0, 14, -1, 0 );
@@ -133,11 +132,11 @@ void init_test_data() {
 #endif
 
 #ifdef x86_64_unknown_linux2_4
-const unsigned int nprefes = 2;
+static const unsigned int nprefes = 2;
 
-BPatch_memoryAccess* prefeList[nprefes + 1]; // for NT
+static BPatch_memoryAccess* prefeList[nprefes + 1]; // for NT
 
-void init_test_data()
+static void init_test_data()
 {
   int k=-1;
 
@@ -148,20 +147,20 @@ void init_test_data()
 #endif
 
 #ifdef mips_sgi_irix6_4
-void init_test_data()
+static void init_test_data()
 {
 }
 #endif
 
 #ifdef alpha_dec_osf4_0
-void init_test_data()
+static void init_test_data()
 {
 }
 #endif
 
 
 // Find and instrument loads with a simple function call snippet
-int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
+static int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 {
   int testnum = 3;
   const char* testdesc = "prefetch instrumentation";
@@ -184,13 +183,13 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",
+    logerror("    Unable to find function %s\n",
 	    inFunction);
     return -1;
   }
        
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), inFunction);
   }
        
@@ -215,12 +214,17 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test6_3_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

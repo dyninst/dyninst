@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_9.C,v 1.2 2005/11/22 19:42:17 bpellin Exp $
+// $Id: test2_9.C,v 1.3 2006/10/11 21:53:31 cooksey Exp $
 /*
  * #Name: test2_9
  * #Desc: dump core but do not terminate
@@ -62,12 +62,12 @@
 //	the process terminate exuection.  It looks for the creation of the file
 //	"mycore" in the current directory.
 //      
-int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage*/)
+static int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage*/)
 {
 #if !defined(sparc_sun_sunos4_1_3) \
  && !defined(sparc_sun_solaris2_4) 
-    printf("Skipping test #9 (dump core but do not terminate)\n");
-    printf("    BPatch_thread::dumpCore not implemented on this platform\n");
+    logerror("Skipping test #9 (dump core but do not terminate)\n");
+    logerror("    BPatch_thread::dumpCore not implemented on this platform\n");
     return 0;
 #else
 
@@ -76,32 +76,32 @@ int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage*/)
     if (access("mycore", F_OK) == 0) {
         dprintf("File \"mycore\" exists.  Deleting it.\n");
 	if (unlink("mycore") != 0) {
-	    printf("Couldn't delete the file \"mycore\".  Exiting.\n");
+	    fprintf(stderr, "Couldn't delete the file \"mycore\".  Exiting.\n");
 	    exit(-1);
 	}
     }
 
     clearError();
-    thread->dumpCore("mycore", true);
+    thread->dumpCore("mycore", true); // FIXME deprecated function; also, true should terminate the process(?)
     bool coreExists = (access("mycore", F_OK) == 0);
     int gotError = getError();
     if (gotError || !coreExists) {
-	printf("**Failed** test #9 (dump core but do not terminate)\n");
+	logerror("**Failed** test #9 (dump core but do not terminate)\n");
 	if (gotError)
-	    printf("    error reported by dumpCore\n");
+	    logerror("    error reported by dumpCore\n");
 	if (!coreExists)
-	    printf("    the core file wasn't written\n");
+	    logerror("    the core file wasn't written\n");
         return -1;
     } else {
 	unlink("mycore");
-    	printf("Passed test #9 (dump core but do not terminate)\n");
+    	logerror("Passed test #9 (dump core but do not terminate)\n");
         return 0;
     }
 
 #endif
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_9_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
@@ -110,6 +110,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Signal the child that we've attached
     if (useAttach) {

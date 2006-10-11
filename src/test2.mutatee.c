@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.2 2006/02/22 22:06:28 bpellin Exp $ */
+/* $Id: test2.mutatee.c,v 1.3 2006/10/11 21:53:17 cooksey Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -81,6 +81,7 @@ int mutateeCplusplus = 0;
 const char *Builder_id=COMPILER; /* defined on compile line */
 
 #include "test2.h"
+#include "mutatee_util.h"
 
 /* Empty functions are sometimes compiled too tight for entry and exit
    points.  The following macro is used to flesh out these
@@ -144,14 +145,14 @@ dotf_stop_process()
 	  /* Obtain the name of the runtime library linked with this process */
 	  rtlib = getenv("DYNINSTAPI_RT_LIB");
 	  if (!rtlib) {
-	       fprintf(stderr, "ERROR: Mutatee can't find the runtime library pathname\n");
+	       logerror("ERROR: Mutatee can't find the runtime library pathname\n");
 	       assert(0);
 	  }
 
 	  /* Obtain a handle for the runtime library */
 	  h = dlopen(rtlib, RTLD_LAZY); /* It should already be loaded */
 	  if (!h) {
-	       fprintf(stderr, "ERROR: Mutatee can't find its runtime library: %s\n",
+	       logerror("ERROR: Mutatee can't find its runtime library: %s\n",
 		       dlerror());
 	       assert(0);
 	  }
@@ -159,7 +160,7 @@ dotf_stop_process()
 	  /* Obtain a pointer to the function DYNINSTsigill in the runtime library */
 	  DYNINSTsigill = (void(*)()) dlsym(h, "DYNINSTsigill");
 	  if (!DYNINSTsigill) {
-	       fprintf(stderr, "ERROR: Mutatee can't find DYNINSTsigill in the runtime library: %s\n",
+	       logerror("ERROR: Mutatee can't find DYNINSTsigill in the runtime library: %s\n",
 		       dlerror());
 	       assert(0);
 	  }
@@ -213,8 +214,7 @@ void func6_1()
 #endif
 
     if (!ref) {
-	fprintf(stderr, "%s[%d]: %s\n", __FILE__, __LINE__, dlerror() );
-	fflush(stderr);
+	logerror("%s[%d]: %s\n", __FILE__, __LINE__, dlerror() );
     }
 #endif
 }
@@ -243,6 +243,20 @@ void func12_1()
 #define USAGE "Usage: test2.mutatee [-attach <fd>] [-verbose] -run <num> .."
 #endif
 
+/* Check to see whether we're running any tests after testno
+ * (in range (testno, maxtest]) */
+int runAnyAfter(int testno, int maxtest) {
+  int retval = 0;
+  int i;
+  for (i = testno + 1; i <= maxtest; i++) {
+    if (runTest[i]) {
+      retval = 1;
+      break;
+    }
+  }
+  return retval;
+}
+
 int main(int iargc, char *argv[])
 {                                       /* despite different conventions */
     unsigned argc=(unsigned)iargc;      /* make argc consistently unsigned */
@@ -251,17 +265,26 @@ int main(int iargc, char *argv[])
     int pfd;
 #endif
     int useAttach = FALSE;
- 
+    char *logfilename = NULL;
+
     for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
 
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = 1;
+	} else if (!strcmp(argv[i], "-log")) {
+	  /* Read the log file name so we can set it up later */
+	  if ((i + 1) >= argc) {
+	    fprintf(stderr, "Missing log file name\n");
+	    exit(-1);
+	  }
+	  i += 1;
+	  logfilename = argv[i];
         } else if (!strcmp(argv[i], "-attach")) {
             useAttach = TRUE;
 #ifndef i386_unknown_nt4_0
 	    if (++i >= argc) {
-		printf("attach usage\n");
+		fprintf(stderr, "attach usage\n");
 		fprintf(stderr, "%s\n", USAGE);
 		exit(-1);
 	    }
@@ -275,7 +298,7 @@ int main(int iargc, char *argv[])
                         dprintf("selecting test %d\n", testId);
                         runTest[testId] = TRUE;
                     } else {
-                        printf("%s[%d]: invalid test %d requested\n", __FILE__, __LINE__, testId);
+                        fprintf(stderr, "%s[%d]: invalid test %d requested\n", __FILE__, __LINE__, testId);
                         exit(-1);
                     }
                 } else {
@@ -284,16 +307,31 @@ int main(int iargc, char *argv[])
                 }
             }
             i = j-1;
+	} else if (!strcmp(argv[i], "-fast")) {
+	  fastAndLoose = 1;
         } else {
-	    printf("unexpected parameter '%s'\n", argv[i]);
+	    fprintf(stderr, "unexpected parameter '%s'\n", argv[i]);
             fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
     }
 
+    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      /* Set up the log file */
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	exit(-1);
+      }
+      errlog = outlog;
+    } else {
+      outlog = stdout;
+      errlog = stderr;
+    }
+
     if ((argc==1) || debugPrint)
-        printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
-                mutateeCplusplus ? "C++" : "C", Builder_id);
+        logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+		  mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
 
     /* see if we should wait for the attach */
@@ -306,22 +344,33 @@ int main(int iargc, char *argv[])
 	}
 	close(pfd);
 #endif
-	printf("Waiting for mutator to attach...\n"); fflush(stdout);
+	logstatus("Waiting for mutator to attach...\n");
+	flushOutputLog();
 	while (!checkIfAttached()) ;
-	printf("Mutator attached.  Mutatee continuing.\n");
+	logstatus("Mutator attached.  Mutatee continuing.\n");
     }
 
-
-    if (runTest[6] || runTest[7]) {
-	if (runTest[6]) func6_1();
-
-	/* Stop and wait for the mutator to check that we linked the library */
+    
+    if (runTest[6]) {
+      func6_1();
+      stop_process();
+      if (fastAndLoose && runAnyAfter(6, 14)) {
 	stop_process();
+      }
+    }
+    if (runTest[7]) { /* FIXME I don't think this is necessary.. */
+      stop_process(); /* test2_7 doesn't continue the process..  */
     }
 
-    if (runTest[8]) func8_1();
+    if (runTest[8]) {
+      func8_1();
+    }
 
     while(1);
+
+    if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+    }
 
     return(0);
 }

@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.2 2006/06/08 12:25:14 jaw Exp $ */
+/* $Id: test3.mutatee.c,v 1.3 2006/10/11 21:53:32 cooksey Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -49,6 +49,8 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "mutatee_util.h"
 
 #if defined(i386_unknown_nt4_0) && !defined(__GNUC__)
 #define WIN32_LEAN_AND_MEAN
@@ -160,14 +162,22 @@ int main(int iargc, char *argv[])
     unsigned argc=(unsigned)iargc;      /* make argc consistently unsigned */
     unsigned int i;
     unsigned int testNum=0;
+    char *logfilename = NULL;
 
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = TRUE;
+	} else if (!strcmp(argv[i], "-log")) {
+	  if ((i + 1) >= argc) {
+	    fprintf(stderr, "Missing log file name\n");
+	    exit(-1);
+	  }
+	  i += 1;
+	  logfilename = argv[i];
         } else if (!strcmp(argv[i], "-run")) {
             if ((testNum = atoi(argv[i+1]))) {
                 if ((testNum <= 0) || (testNum > MAX_TEST)) {
-                    printf("invalid test %d requested\n", testNum);
+                    fprintf(stderr, "invalid test %d requested\n", testNum);
                     exit(-1);
                 }
             } else {
@@ -181,9 +191,21 @@ int main(int iargc, char *argv[])
         }
     }
 
+    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	exit(-1);
+      }
+      errlog = outlog;
+    } else {
+      outlog = stdout;
+      errlog = stderr;
+    }
+
     if ((argc==1) || debugPrint)
-        printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
-                mutateeCplusplus ? "C++" : "C", Builder_id);
+        logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+		  mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
 
     switch (testNum) {
@@ -206,9 +228,14 @@ int main(int iargc, char *argv[])
 		break;
 
 	default:
-		printf("invalid test number %d in mutatee\n", testNum);
+		fprintf(stderr, "invalid test number %d in mutatee\n", testNum);
 		break;
     }
     dprintf("Mutatee %s terminating.\n", argv[0]);
+
+    if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+    }
+    
     return(0);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_5.C,v 1.4 2006/03/12 23:33:31 legendre Exp $
+// $Id: test3_5.C,v 1.5 2006/10/11 21:53:37 cooksey Exp $
 /*
  * #Name: test3_5
  * #Desc: sequential multiple-process management - abort
@@ -56,9 +56,9 @@
 #include "test_lib.h"
 //#include "test3.h"
 
-const unsigned int MAX_MUTATEES = 32;
-unsigned int Mutatees=3;
-int debugPrint;
+static const unsigned int MAX_MUTATEES = 32;
+static unsigned int Mutatees=3;
+static int debugPrint;
 
 //
 // Start Test Case #5 - create one process, wait for it to exit.  Then 
@@ -66,7 +66,7 @@ int debugPrint;
 //     Differs from test 3 in that the mutatee processes terminate with
 //     abort rather than exit.
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
     const char *child_argv[5];
@@ -83,12 +83,12 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
         appThread = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread) {
-            printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** Test #5 (sequential multiple-process management - abort)\n");
+            logerror("*ERROR*: unable to create handle%d for executable\n", n);
+            logerror("**Failed** Test #5 (sequential multiple-process management - abort)\n");
             return -1;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
-        fprintf(stderr, "[%s]%d: Mutatee %d started, pid=%d\n", __FILE__, __LINE__,n, appThread->getPid());
+        logerror("[%s]%d: Mutatee %d started, pid=%d\n", __FILE__, __LINE__,n, appThread->getPid());
 
         appThread->continueExecution();
 
@@ -110,16 +110,22 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	delete appThread;
     }
 
-    printf("Passed Test #5 (sequential multiple-process management - abort)\n");
+    logerror("Passed Test #5 (sequential multiple-process management - abort)\n");
     return 0;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test3_5_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

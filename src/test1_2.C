@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_2.C,v 1.4 2006/06/06 00:45:46 legendre Exp $
+// $Id: test1_2.C,v 1.5 2006/10/11 21:52:47 cooksey Exp $
 /*
  * #Name: test1_2
  * #Desc: Mutator Side (call a four argument function)
@@ -56,14 +56,12 @@
 #include "test_lib.h"
 #include "test1.h"
 
-
-
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #2 - mutator side (call a four argument function)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
   const char* testName = "four parameter function";
   int testNo = 2;
@@ -71,21 +69,21 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction("func2_1", found_funcs)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",
+    logerror("    Unable to find function %s\n",
 	    "func2_1");
     return -1;
   }
   
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), "func2_1");
   }
   
   BPatch_Vector<BPatch_point *> *point2_1 = found_funcs[0]->findPoint(BPatch_entry);
 
   if (!point2_1 || ((*point2_1).size() == 0)) {
-    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-    fprintf(stderr, "    Unable to find entry point to \"func2_1.\"\n");
+    logerror("**Failed** test #%d (%s)\n", testNo, testName);
+    logerror("    Unable to find entry point to \"func2_1.\"\n");
     return -1;
   }
 
@@ -93,8 +91,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   char *fn = "call2_1";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-    fprintf(stderr, "    Unable to find function %s\n", fn);
+    logerror("**Failed** test #%d (%s)\n", testNo, testName);
+    logerror("    Unable to find function %s\n", fn);
     return -1;
   }
   BPatch_function *call2_func = bpfv[0];
@@ -109,8 +107,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   } else if (pointer_size == 8) {
      ptr = TEST_PTR_64BIT;
   } else {
-     fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
-     fprintf(stderr, "    Unexpected value for pointerSize\n");
+     logerror("**Failed** test #2 (four parameter function)\n");
+     logerror("    Unexpected value for pointerSize\n");
      return -1;
   }
 #else
@@ -159,13 +157,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_2_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

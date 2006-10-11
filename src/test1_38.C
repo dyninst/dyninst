@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_38.C,v 1.3 2006/03/08 16:44:39 bpellin Exp $
+// $Id: test1_38.C,v 1.4 2006/10/11 21:53:08 cooksey Exp $
 /*
  * #Name: test1_38
  * #Desc: CFG Loop Callee Tree
@@ -55,14 +55,14 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #38 - (CFG loop/callee tree)
 //
 
 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     if (mutateeFortran) {
 	return 0;
@@ -76,8 +76,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     appImage->findFunction("call38_1", funcs0);
 
     if (!funcs0.size()) {
-        fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-        fprintf(stderr,"    cannot find function call38_1.\n");
+        logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+        logerror("    cannot find function call38_1.\n");
         return -1;
     }
 
@@ -89,8 +89,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_loopTreeNode *root = cfg->getLoopTree();
 
     if (!root->children.size()) {
-        fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-        fprintf(stderr,"    no kids.\n");
+        logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+        logerror("    no kids.\n");
         return -1;
     }
 
@@ -100,8 +100,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     // for loop, this is platform dependent
 
     if (firstForLoop->children.size() < 2) {
-        fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-        fprintf(stderr,"    not enough kids.\n");
+        logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+        logerror("    not enough kids.\n");
         return -1;
     }
 
@@ -118,8 +118,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
     // root loop has 1 child, the outer for loop
     if (1 != root->children.size()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    root loop should have 1 child, found %d.\n",
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    root loop should have 1 child, found %d.\n",
 		root->children.size());
 	return -1;
     }
@@ -129,32 +129,32 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     const char * f38_7 = root->getCalleeName(1);
 
     if (2 != root->numCallees()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    root loop should have 2 functions, found %d.\n",
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    root loop should have 2 functions, found %d.\n",
 		root->numCallees());
 	return -1;
     }
     if (0 != strcmp("funCall38_1",f38_1)) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    expected funCall38_1 not %s.\n",f38_1);
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    expected funCall38_1 not %s.\n",f38_1);
 	return -1;
     }
     if (0 != strcmp("funCall38_7",f38_7)) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    expected funCall38_7 not %s.\n",f38_7);
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    expected funCall38_7 not %s.\n",f38_7);
 	return -1;
     }
 
     // the first for loop should have 3 children and 2 functions
     if (3 != firstForLoop->numCallees()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    first for loop found %d funcs not 3.\n", 
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    first for loop found %d funcs not 3.\n", 
 		firstForLoop->numCallees());
 	return -1;
     }
     if (2 != firstForLoop->children.size()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    first for loop had %d children, not 2.\n",
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    first for loop had %d children, not 2.\n",
 		firstForLoop->children.size());
 	return -1;
     }
@@ -165,31 +165,31 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     const char * f38_6 = firstForLoop->getCalleeName(2);
 
     if (0 != strcmp("funCall38_2",f38_2)) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    expected funCall38_2 not %s.\n",f38_2);
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    expected funCall38_2 not %s.\n",f38_2);
 	return -1;
     }
     if (0 != strcmp("funCall38_4",f38_4)) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    expected funCall38_4 not %s.\n",f38_4);
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    expected funCall38_4 not %s.\n",f38_4);
 	return -1;
     }
     if (0 != strcmp("funCall38_6",f38_6)) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    expected funCall38_6 not %s.\n",f38_6);
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    expected funCall38_6 not %s.\n",f38_6);
 	return -1;
     }
 
     // the second for loop should have one child and no nested functions
     if (1 != secondForLoop->children.size()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    second for loop had %d children, not 1.\n",
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    second for loop had %d children, not 1.\n",
 		secondForLoop->children.size());
 	return -1;
     }
     if (0 != secondForLoop->numCallees()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    second for loop had %d funcs (%s), should be 0.\n",
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    second for loop had %d funcs (%s), should be 0.\n",
 		secondForLoop->numCallees(),
 		secondForLoop->getCalleeName(0));
 	return -1;
@@ -197,43 +197,43 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
     // third for loop has no children and one function funCall38_3
     if (0 != thirdForLoop->children.size()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    third for loop had %d children, not 0.\n",
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    third for loop had %d children, not 0.\n",
 		thirdForLoop->children.size());
 	return -1;
     }
     if (1 != thirdForLoop->numCallees()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    third for loop had %d funcs, not 1.\n",
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    third for loop had %d funcs, not 1.\n",
 		thirdForLoop->numCallees());
 	return -1;
     }
 
     const char * f38_3 = thirdForLoop->getCalleeName(0);
     if (0 != strcmp("funCall38_3",f38_3)) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    expected funCall38_3 not %s.\n",f38_3);
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    expected funCall38_3 not %s.\n",f38_3);
 	return -1;
     }
 
     // the while loop has no children and one function (funCall38_5)
     if (0 != whileLoop->children.size()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    while loop had %d children, not 0.\n",
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    while loop had %d children, not 0.\n",
 		whileLoop->children.size());
 	return -1;
     }
     if (1 != whileLoop->numCallees()) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    while loop had %d functions, not 1.\n",
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    while loop had %d functions, not 1.\n",
 		whileLoop->numCallees());
 	return -1;
     }
 
     const char * f38_5 = whileLoop->getCalleeName(0);
     if (0 != strcmp("funCall38_5",f38_5)) {
-	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
-	fprintf(stderr,"    expected funCall38_5 not %s.\n",f38_5);
+	logerror("**Failed** test #38 (CFG loop/callee tree)\n");
+	logerror("    expected funCall38_5 not %s.\n",f38_5);
 	return -1;
     }
 
@@ -241,13 +241,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_38_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

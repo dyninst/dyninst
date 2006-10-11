@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_39.C,v 1.3 2006/03/08 16:44:40 bpellin Exp $
+// $Id: test1_39.C,v 1.4 2006/10/11 21:53:09 cooksey Exp $
 /*
  * #Name: test1_39
- * #Desc: Mutator Side - If without else
+ * #Desc: Regex search
  * #Dep: 
  * #Arch: sparc_sun_solaris2_4,alpha_dec_osf4_0,i386_unknown_solaris2_5,,i386_unknown_linux2_0,ia64_unknown_linux2_4,mips_sgi_irix6_4,rs6000_ibm_aix4_1,x86_64_unknown_linux2_4
  * #Notes:
@@ -55,13 +55,13 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 //  Test case 39:  verify that regex search is working
 //
 
-int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
   //  Note:  regex search by module is covered in test 21
 #if defined(sparc_sun_solaris2_4) \
@@ -78,15 +78,15 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
    //  Not meant to be an extensive check of all regex usage, just that
     //  the basic mechanism that deals with regexes is not broken
 
-    //   regex "^fucn12" should match all functions that begin with "func12"
+    //   regex "^func12" should match all functions that begin with "func12"
     if (NULL == appImage->findFunction("^func12", bpmv) || (bpmv.size() != 2)) {
 
-         fprintf(stderr, "**Failed test #39 (regex function search)\n");
-         fprintf(stderr, "  Expected 2 functions matching ^func12, got %d\n",
+         logerror("**Failed test #39 (regex function search)\n");
+         logerror("  Expected 2 functions matching ^func12, got %d\n",
                             bpmv.size());
         char buf[128];
          for (unsigned int i = 0; i < bpmv.size(); ++i)
-            fprintf(stderr, "  matched function: %s\n",
+            logerror("  matched function: %s\n",
                    bpmv[i]->getName(buf, 128));
          return -1;
     }
@@ -94,8 +94,8 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
     bpmv.clear();
     if (NULL == appImage->findFunction("^func12_1", bpmv) 
        || (bpmv.size() != 1)) {
-         fprintf(stderr, "**Failed test #39 (regex function search)\n");
-         fprintf(stderr, "  Expected 1 function matching ^func12_1, got %d\n",
+         logerror("**Failed test #39 (regex function search)\n");
+         logerror("  Expected 1 function matching ^func12_1, got %d\n",
                             bpmv.size());
          return -1;
     }
@@ -110,8 +110,8 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
     const char *libc_regex = "^sp";
     if (NULL == appImage->findFunction(libc_regex, bpmv) 
        || (!bpmv.size())) {
-         fprintf(stderr, "**Failed test #39 (regex function search)\n");
-         fprintf(stderr, "  Expected function(s) matching %s\n",libc_regex);
+         logerror("**Failed test #39 (regex function search)\n");
+         logerror("  Expected function(s) matching %s\n",libc_regex);
          return -1;
     }
 
@@ -121,13 +121,18 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_39_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

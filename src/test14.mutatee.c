@@ -41,7 +41,7 @@ void my_barrier(volatile int *br)
    {
       if (n_sleeps++ == TIMEOUT)
       {
-         fprintf(stderr, "[%s:%u] - Not all threads reported.  Perhaps "
+         logerror("[%s:%u] - Not all threads reported.  Perhaps "
                  "tramp guards are incorrectly preventing some threads "
                  "from running\n",
                  __FILE__, __LINE__);
@@ -82,20 +82,20 @@ void level1()
 
    thread_t me = threadSelf();
    for (i=0; i<NTHRD; i++) {
-      /* fprintf(stderr, "Comparing %lu to %lu\n", thread_int(thrds[i].tid), thread_int(me)); */
+      /* dprintf("Comparing %lu to %lu\n", thread_int(thrds[i].tid), thread_int(me)); */
       if (threads_equal(thrds[i].tid, me))
          break;
    }
 
    if (i == NTHRD)
    {
-      fprintf(stderr, "[%s:%d] - Error, couldn't find thread id %lu\n",
+      logerror("[%s:%d] - Error, couldn't find thread id %lu\n",
               __FILE__, __LINE__, thread_int(me));
       exit(1);
    }
    if (thrds[i].is_in_instr)
    {
-      fprintf(stderr, "[%s:%d] - Error, thread %lu reentered instrumentation\n",
+      logerror("[%s:%d] - Error, thread %lu reentered instrumentation\n",
               __FILE__, __LINE__, thread_int(me));
       exit(1);
    }
@@ -138,9 +138,18 @@ int attached_fd = 0;
 void parse_args(int argc, char *argv[])
 {
    int i;
+   char *logfilename = NULL;
+
    for (i=0; i<argc; i++)
    {
-      if (strstr(argv[i], "-attach"))
+     if (!strcmp(argv[i], "-log")) {
+       if ((i + 1) >= argc) {
+	 fprintf(stderr, "Missing log file name\n");
+	 exit(-1);
+       }
+       i += 1;
+       logfilename = argv[i];
+     } else if (strstr(argv[i], "-attach"))
       {
 #if defined(os_windows)
          attached_fd = -1;
@@ -149,6 +158,18 @@ void parse_args(int argc, char *argv[])
          attached_fd = atoi(argv[i]);
 #endif
       }
+   }
+
+   if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+     outlog = fopen(logfilename, "a");
+     if (NULL == outlog) {
+       fprintf(stderr, "Error opening log file %s\n", logfilename);
+       exit(-1);
+     }
+     errlog = outlog;
+   } else {
+     outlog = stdout;
+     errlog = stderr;
    }
 }
 
@@ -207,10 +228,13 @@ int main(int argc, char *argv[])
    
    if (times_level1_called != NTHRD*N_INSTR)
    {
-      fprintf(stderr, "[%s:%u] - level1 called %u times.  Expected %u\n",
+      logerror("[%s:%u] - level1 called %u times.  Expected %u\n",
               __FILE__, __LINE__, times_level1_called, NTHRD*N_INSTR);
       exit(1);
    }
 
+   if ((outlog != NULL) && (outlog != stdout)) {
+     fclose(outlog);
+   }
    return 0;
 }

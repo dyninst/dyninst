@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_2.C,v 1.3 2006/03/12 23:33:36 legendre Exp $
+// $Id: test5_2.C,v 1.4 2006/10/11 21:53:48 cooksey Exp $
 /*
  * #Name: test5_2
  * #Desc: Overload Functions
@@ -58,7 +58,7 @@
 //
 // Start Test Case #2 - (overload function)
 // 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
 #if defined(sparc_sun_solaris2_4) \
@@ -69,21 +69,22 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   char *fn = "overload_func_test::func_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn);
+    logerror( "**Failed** test #2 (overloaded functions)\n");
+    logerror( "    Unable to find function %s\n", fn);
     return -1;
   }
   BPatch_function *f1 = bpfv[0];  
   BPatch_Vector<BPatch_point *> *point2_1 = f1->findPoint(BPatch_subroutine);
 
+  // Shouldn't this size comparison be < 3?  There's three function calls..
   if (!point2_1 || (point2_1->size() < 2)) {
-    fprintf(stderr, "Unable to find point overload_func_test::func_cpp - calls. \n");
+    logerror( "Unable to find point overload_func_test::func_cpp - calls. \n");
     return -1;
   }
 
   BPatch_Vector<BPatch_point *> *point2_3 = f1->findPoint(BPatch_exit);
   if (!point2_3 || point2_3->size() <1) {
-    fprintf(stderr, "Unable to find point overload_func_test::func_cpp - exit.\n");
+    logerror( "Unable to find point overload_func_test::func_cpp - exit.\n");
     return -1;
   }
 
@@ -94,13 +95,13 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
        char fn[256];
        if (func->getName(fn, 256) == NULL) {
-            fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
-            fprintf(stderr, "    Can't get name of called function in overload_func_test::func_cpp\n");
+            logerror( "**Failed** test #2 (overloaded functions)\n");
+            logerror( "    Can't get name of called function in overload_func_test::func_cpp\n");
             return -1;
        }
        if (strcmp(fn, "overload_func_test::call_cpp")) {
-           fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
-           fprintf(stderr, "    The called function was named \"%s\""
+           logerror( "**Failed** test #2 (overloaded functions)\n");
+           logerror( "    The called function was named \"%s\""
                            " not \"overload_func_test::call_cpp\"\n", fn);
            //return -1;
            continue;
@@ -117,8 +118,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 		 //First param might be "this"!
 		 break;
 	      else {
-                 fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
-                 fprintf(stderr, "    The overloaded function has wrong number of parameters %d\n", param->size());
+                 logerror( "**Failed** test #2 (overloaded functions)\n");
+                 logerror( "    The overloaded function has wrong number of parameters %d\n", param->size());
                  return -1;
               }
           }
@@ -128,8 +129,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
                  //First param might be "this"!
                  break;
               else {
-                 fprintf(stderr, "**Failed** test #2 (overloaded functions)\n"); 
-                 fprintf(stderr, "    The overloaded function has wrong number of parameters\n");
+                 logerror( "**Failed** test #2 (overloaded functions)\n"); 
+                 logerror( "    The overloaded function has wrong number of parameters\n");
                  return -1;
               }
           }
@@ -139,14 +140,14 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
                  //First param might be "this"!
                  break;
               else {
-                 fprintf(stderr, "**Failed** test #2 (overloaded functions)\n"); 
-                 fprintf(stderr, "    The overloaded function has wrong number of parameters\n");
+                 logerror( "**Failed** test #2 (overloaded functions)\n"); 
+                 logerror( "    The overloaded function has wrong number of parameters\n");
                  return -1;
               }
           }
           default : {
-              fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
-              fprintf(stderr, "    Incorrect number of subroutine calls from overload_func_test::func_cpp\n");
+              logerror( "**Failed** test #2 (overloaded functions)\n");
+              logerror( "    Incorrect number of subroutine calls from overload_func_test::func_cpp\n");
               return -1;
           }
        };
@@ -156,16 +157,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn2 = "cpp_test_util::call_cpp";
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
-      fprintf(stderr, "    Unable to find function %s\n", fn2);
+      logerror( "**Failed** test #2 (overloaded functions)\n");
+      logerror( "    Unable to find function %s\n", fn2);
       return -1;
     }
     BPatch_function *call2_func = bpfv[0];  
 
     BPatch_variableExpr *this2 = appImage->findVariable("test2");
     if (this2 == NULL) {
-       fprintf(stderr, "**Failed** test #2 (overloaded functions)\n");
-       fprintf(stderr, "Unable to find variable \"test2\"\n");
+       logerror( "**Failed** test #2 (overloaded functions)\n");
+       logerror( "Unable to find variable \"test2\"\n");
        return -1;
     }
 
@@ -184,12 +185,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test5_2_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

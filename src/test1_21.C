@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_21.C,v 1.8 2006/06/06 00:45:47 legendre Exp $
+// $Id: test1_21.C,v 1.9 2006/10/11 21:52:49 cooksey Exp $
 /*
  * #Name: test1_21
  * #Desc: findFunction in module
@@ -55,11 +55,11 @@
 
 #include "test_lib.h"
 
-const char *libNameAroot = "libtestA";
-const char *libNameBroot = "libtestB";
-int mutateeFortran;
+static const char *libNameAroot = "libtestA";
+static const char *libNameBroot = "libtestB";
+static int mutateeFortran;
 
-char libNameA[128], libNameB[128];
+static char libNameA[128], libNameB[128];
 
 //
 // Start Test Case #21 - mutator side (findFunction in module)
@@ -70,7 +70,7 @@ char libNameA[128], libNameB[128];
 // test2.
 
 
-int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
+static int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 {
 #if defined(os_aix) \
  || defined(os_osf) \
@@ -84,8 +84,8 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     BPatch_module *modB = NULL;
     BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
     if (!mods || mods->size() == 0) {
-	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	 fprintf(stderr, "  Mutator couldn't search modules of mutatee\n");
+	 logerror("**Failed test #21 (findFunction in module)\n");
+	 logerror("  Mutator couldn't search modules of mutatee\n");
      return -1;
     }
     /*
@@ -93,7 +93,7 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
         char buf2[1024];
         BPatch_module *m = (*mods)[j];
         m->getName(buf2, 1024);
-        fprintf(stderr, "%s[%d]:  module: %s\n", __FILE__, __LINE__, buf2);
+        logerror("%s[%d]:  module: %s\n", __FILE__, __LINE__, buf2);
     }
     */
 
@@ -108,17 +108,17 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 	      modB = m;
     }
     if (! modA || ! modB ) {
-	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	 fprintf(stderr, "  Mutator couldn't find shlib in mutatee\n");
-	 fflush(stdout);
+	 logerror("**Failed test #21 (findFunction in module)\n");
+	 logerror("  Mutator couldn't find shlib in mutatee\n");
+	 flushErrorLog();
 	 return -1;
     }
 
     // Find the function CALL21_1 in each of the modules
     BPatch_Vector<BPatch_function *> bpmv;
     if (NULL == modA->findFunction("call21_1", bpmv, false, false, true) || !bpmv.size()) {
-      fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-      fprintf(stderr, "  %s[%d]: Mutator couldn't find a function in %s\n", 
+      logerror("**Failed test #21 (findFunction in module)\n");
+      logerror("  %s[%d]: Mutator couldn't find a function in %s\n", 
                          __FILE__, __LINE__, libNameA);
       return -1;
     }
@@ -126,8 +126,8 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 
     bpmv.clear();
     if (NULL == modB->findFunction("call21_1", bpmv, false, false, true) || !bpmv.size()) {
-      fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-      fprintf(stderr, "  %s[%d]: Mutator couldn't find a function in %s\n", 
+      logerror("**Failed test #21 (findFunction in module)\n");
+      logerror("  %s[%d]: Mutator couldn't find a function in %s\n", 
                           __FILE__, __LINE__, libNameB);
       return -1;
     } 
@@ -135,9 +135,8 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 
     // Kludgily test whether the functions are distinct
     if (funcA->getBaseAddr() == funcB->getBaseAddr()) {
-	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	 fprintf(stderr,
-	        "  Mutator cannot distinguish two functions from different shlibs\n");
+	 logerror("**Failed test #21 (findFunction in module)\n");
+	 logerror("  Mutator cannot distinguish two functions from different shlibs\n");
 	 return -1;
     }
 
@@ -152,20 +151,20 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     //   linux, we also find call_gmon_start().  Thus the dummy fns.
     if (NULL == modB->findFunction("^cb", bpmv, false, false, true) || (bpmv.size() != 2)) {
 
-	 fprintf(stderr, "**Failed test #21 (findFunction in module, regex)\n");
-         fprintf(stderr, "  Expected 2 functions matching ^cb, got %d\n",
+	 logerror("**Failed test #21 (findFunction in module, regex)\n");
+         logerror("  Expected 2 functions matching ^cb, got %d\n",
                             bpmv.size());
          char buf[128];
          for (unsigned int i = 0; i < bpmv.size(); ++i) 
-            fprintf(stderr, "  matched function: %s\n", 
+            logerror("  matched function: %s\n", 
                    bpmv[i]->getName(buf, 128));
          return -1;
     }
 
     bpmv.clear();
     if (NULL == modB->findFunction("^cbll21", bpmv, false, false, true) || (bpmv.size() != 1)) {
-	 fprintf(stderr, "**Failed test #21 (findFunction in module, regex)\n");
-         fprintf(stderr, "  Expected 1 function matching ^cbll21, got %d\n",
+	 logerror("**Failed test #21 (findFunction in module, regex)\n");
+         logerror("  Expected 1 function matching ^cbll21, got %d\n",
                             bpmv.size());
          return -1;
     }
@@ -177,7 +176,7 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 
 
 // Wrapper to call readyTest
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
    int pointer_size = 0;
 #if defined(arch_x86_64)
@@ -195,13 +194,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_21_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

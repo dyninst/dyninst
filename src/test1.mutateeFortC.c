@@ -41,10 +41,11 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeFortC.c,v 1.1 2005/09/29 20:37:51 bpellin Exp $ */
+/* $Id: test1.mutateeFortC.c,v 1.2 2006/10/11 21:52:14 cooksey Exp $ */
 
 #include <stdlib.h>
 #include "test1.mutateeCommon.h"
+#include "mutatee_util.h"
 
 struct struct26_1 {
     int field1_;
@@ -292,17 +293,31 @@ void runTests()
     if (runTest[9]) func9_1(pp1, pp2, pp3, pp4, pp5, pp6, pp7, pp8, pp9, pp10);
     if (runTest[10]) func10_1();
     if (runTest[11]) func11_1();
-    if (runTest[12]) func12_1();
-
+    if (runTest[12]) {
+      func12_1();
+      if (fastAndLoose && runAnyAfter(12, 40)) {
+	stop_process_();
+      }
+    }
     *pp1 = 131; *pp2 = 132; *pp3 = 133; *pp4 = 134; *pp5 = 135;
 
     if (runTest[13]) func13_1(pp1, pp2, pp3, pp4, pp5);
     if (runTest[14]) func14_1();
-    if (runTest[15]) func15_1();
+    if (runTest[15]) {
+      func15_1();
+      if (fastAndLoose && runAnyAfter(15, 40)) {
+	stop_process_();
+      }
+    }
     if (runTest[16]) func16_1();
     if (runTest[17]) func17_1();
     if (runTest[18]) func18_1();
-    if (runTest[19]) func19_1();
+    if (runTest[19]) {
+      func19_1();
+      if (fastAndLoose && runAnyAfter(19, 40)) {
+	stop_process_();
+      }
+    }
     if (runTest[20]) func20_1();
     if (runTest[21]) func21_1();
     if (runTest[22]) func22_1();

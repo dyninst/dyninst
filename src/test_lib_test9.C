@@ -1,6 +1,9 @@
 #include "test_lib.h"
 #include "test_lib_test9.h"
 
+extern FILE *outlog;
+extern FILE *errlog;
+
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(sparc_sun_solaris2_4)
@@ -43,18 +46,18 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 
 	switch((pid=fork())){
 		case -1: 
-		fprintf(stderr,"can't fork\n");
+		logerror("can't fork\n");
     	    		exit(-1);
 		case 0 : 
 			//child
-			fprintf(stderr," running: %s %s %s\n", mutatedBinary, realfileName, testID);
+			logerror(" running: %s %s %s\n", mutatedBinary, realfileName, testID);
 #if defined(rs6000_ibm_aix5_1) \
  || defined(rs6000_ibm_aix4_1)
 			changePath(path);
 #endif
 
 			execl(mutatedBinary, realfileName,"-run", testID, 0); 
-			fprintf(stderr,"ERROR!\n");
+			logerror("ERROR!\n");
 			perror("execl");
 			exit(-1);
 
@@ -81,7 +84,7 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 			return 1;
 		}
 	}else if(WIFSIGNALED(status)){
-		fprintf(stderr," terminated with signal: %d \n", WTERMSIG(status));
+		logerror(" terminated with signal: %d \n", WTERMSIG(status));
 	}
 #endif
 	return 0; 
@@ -114,13 +117,12 @@ static int preloadMutatedRT(const char *path)
 {
     char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
     if (rt_lib_name == 0) {
-	fprintf(stderr, "preloadMutatedRT: DYNINSTAPI_RT_LIB is undefined\n");
+	logerror("preloadMutatedRT: DYNINSTAPI_RT_LIB is undefined\n");
 	return (-1);
     }
     char *rt_lib_base = strrchr(rt_lib_name, '/');
     if (rt_lib_base == 0) {
-	fprintf(stderr,
-		"preloadMutatedRT: DYNINSTAPI_RT_LIB not a full path\n");
+	logerror("preloadMutatedRT: DYNINSTAPI_RT_LIB not a full path\n");
 	return (-1);
     }
     const char *var_prefix = "LD_PRELOAD=";
@@ -173,13 +175,19 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 	sprintf(command,"%s -run %s", mutatedBinary, testID);
 
 	int retVal =0;
+	int outlog_fd = fileno(outlog);
+	int errlog_fd = fileno(errlog);
 	switch((pid=fork())){
 		case -1: 
-		fprintf(stderr,"can't fork\n");
+		logerror("can't fork\n");
                         return 0;
 		case 0 : 
 			//child
-			fprintf(stderr," running: %s %s %s\n", mutatedBinary, realFileName, testID);
+			logerror(" running: %s %s %s\n", mutatedBinary, realFileName, testID);
+
+			// redirect output to log files
+			dup2(outlog_fd, 1); // stdout
+			dup2(errlog_fd, 2); // stderr
 
 #if defined(rs6000_ibm_aix5_1) \
  || defined(rs6000_ibm_aix4_1)
@@ -201,14 +209,14 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 			if(retVal != -1 ){
 				execl("/usr/bin/setarch","setarch","i386",mutatedBinary, "-run", testID,0); 
 			}else{
-				fprintf(stderr," Running without /usr/bin/setarch\n");
+				logerror(" Running without /usr/bin/setarch\n");
 				execl(mutatedBinary, realFileName,"-run", testID,0); 
 			}
 #else
 
 			execl(mutatedBinary, realFileName,"-run", testID,0); 
 #endif
-			fprintf(stderr,"ERROR!\n");
+			logerror("ERROR!\n");
 			perror("execl");
                         return 0;
 
@@ -237,7 +245,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 			return 1;
 		}
 	}else if(WIFSIGNALED(status)){
-		fprintf(stderr," terminated with signal: %d \n", WTERMSIG(status));
+		logerror(" terminated with signal: %d \n", WTERMSIG(status));
 	}
 #endif
 	return 0; 
@@ -271,7 +279,7 @@ void sleep_ms(int ms)
 
   if (0 != nanosleep(&ts, &rem)) {
     if (errno == EINTR) {
-      fprintf(stderr, "%s[%d]:  sleep interrupted\n", __FILE__, __LINE__);
+      dprintf("%s[%d]:  sleep interrupted\n", __FILE__, __LINE__);
       ts.tv_sec = rem.tv_sec;
       ts.tv_nsec = rem.tv_nsec;
       goto sleep;

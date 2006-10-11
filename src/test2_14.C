@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_14.C,v 1.2 2005/11/22 19:42:09 bpellin Exp $
+// $Id: test2_14.C,v 1.3 2006/10/11 21:53:23 cooksey Exp $
 /*
  * #Name: test2_14
  * #Desc: Delete Thread
@@ -60,39 +60,45 @@
 //    been deleted as required.
 
 
-BPatch *bpatch;
+static BPatch *bpatch;
 
-int mutatorTest(BPatch_thread *thread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *thread, BPatch_image *appImage)
 {
 
-    killMutatee(thread);
+    killMutatee(thread); // FIXME Uses deprecated BPatch_thread::terminateExecution()
     delete thread;
    
     bool failed_this = false;
     BPatch_Vector<BPatch_thread *> *threads = bpatch->getThreads();
     for (unsigned int i=0; i < threads->size(); i++) {
 	if ((*threads)[i] == thread) {
-	    printf("**Failed** test #14 (delete thread)\n"); 
-	    printf("    thread %d was deleted, but getThreads found it\n",
+	    logerror("**Failed** test #14 (delete thread)\n"); 
+	    logerror("    thread %d was deleted, but getThreads found it\n",
 		thread->getPid());
 	    failed_this = true;
 	}
     }
 
     if (!failed_this) {
-	printf("Passed test #14 (delete thread)\n");
+	logerror("Passed test #14 (delete thread)\n");
         return 0;
     } else {
         return -1;
     }
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_14_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

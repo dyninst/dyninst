@@ -54,28 +54,32 @@
 #define NUM_THREADS 5 // one controller, four workers
 #define TIMEOUT 20
 
-BPatch *bpatch;
-BPatch_process *proc;
-unsigned thread_count;
+static FILE *outlog = NULL;
+static FILE *errlog = NULL;
+static char *logfilename = NULL;
+
+static BPatch *bpatch;
+static BPatch_process *proc;
+static unsigned thread_count;
 static char dyn_tids[NUM_THREADS];
 static long pthread_ids[NUM_THREADS];
 static char deleted_tids[NUM_THREADS];
 static int deleted_threads;
 
-unsigned error15 = 0;
-bool create_proc = true;
+static unsigned error15 = 0;
+static bool create_proc = true;
 
-bool debug_flag = false;
+static bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
-void newthr(BPatch_process *my_proc, BPatch_thread *thr)
+static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    dprintf(stderr, "%s[%d]:  welcome to newthr, error15 = %d\n", __FILE__, __LINE__, error15);
    unsigned my_dyn_id = thr->getBPatchID();
 
    if (create_proc && (my_proc != proc))
    {
-      fprintf(stderr, "[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
+      logerror("[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
       error15 = 1;
    }
 
@@ -84,13 +88,13 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    //Check that BPatch id is unique
    if (my_dyn_id >= NUM_THREADS)
    {
-      fprintf(stderr, "[%s:%d] - WARNING: Thread ID %d out of range\n",
+      logerror("[%s:%d] - WARNING: Thread ID %d out of range\n",
               __FILE__, __LINE__, my_dyn_id);
       return;
    }
    if (dyn_tids[my_dyn_id])
    {
-      fprintf(stderr, "[%s:%d] - WARNING: Thread %d called in callback twice\n",
+      logerror("[%s:%d] - WARNING: Thread %d called in callback twice\n",
               __FILE__, __LINE__, my_dyn_id);
       return;
    }
@@ -100,7 +104,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    long mytid = thr->getTid();
    if (mytid == -1)
    {
-      fprintf(stderr, "[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
+      logerror("[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
               __FILE__, __LINE__, my_dyn_id);
    }
    dprintf(stderr, "%s[%d]:  newthr: tid = %lu\n", 
@@ -108,7 +112,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
-            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a tid of %u\n",
+            logerror("[%s:%d] - WARNING: Thread %d and %d share a tid of %u\n",
                     __FILE__, __LINE__, my_dyn_id, i, mytid);
             error15 = 1;
       }
@@ -119,18 +123,24 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 }
 
 #define MAX_ARGS 32
-char *filename = "test15.mutatee_gcc";
-char *args[MAX_ARGS];
+static char *filename = "test15.mutatee_gcc";
+static char *args[MAX_ARGS];
 
 static BPatch_process *getProcess()
 {
-   args[0] = NULL;
+  int n = 0;
+  args[n++] = filename;
+  if (logfilename != NULL) {
+    args[n++] = "-log";
+    args[n++] = logfilename;
+  }
+   args[n] = NULL;
 
    BPatch_process *proc;
    if (create_proc) {
       proc = bpatch->processCreate(filename, (const char **) args);
       if(proc == NULL) {
-         fprintf(stderr, "%s[%d]: processCreate(%s) failed\n", 
+         logerror("%s[%d]: processCreate(%s) failed\n", 
                  __FILE__, __LINE__, filename);
          return NULL;
       }
@@ -138,10 +148,11 @@ static BPatch_process *getProcess()
    else
    {
       dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
-      int pid = startNewProcessForAttach(filename, (const char **) args);
+      int pid = startNewProcessForAttach(filename, (const char **) args,
+					 outlog, errlog);
       if (pid < 0)
       {
-         fprintf(stderr, "%s ", filename);
+         logerror("%s ", filename);
          perror("couldn't be started");
          return NULL;
       }
@@ -151,7 +162,7 @@ static BPatch_process *getProcess()
       dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
       proc = bpatch->processAttach(filename, pid);  
       if(proc == NULL) {
-         fprintf(stderr, "%s[%d]: processAttach(%s, %d) failed\n", 
+         logerror("%s[%d]: processAttach(%s, %d) failed\n", 
                  __FILE__, __LINE__, filename, pid);
          return NULL;
       }
@@ -162,10 +173,10 @@ static BPatch_process *getProcess()
    return proc;
 }
 
-unsigned failed_tests = 2;
-int error_exit()
+static unsigned failed_tests;
+static int error_exit()
 {
-   printf("**Failed** %d tests\n", failed_tests);
+   logerror("**Failed** %d tests\n", failed_tests);
    if(proc && !proc->isTerminated()) 
       proc->terminateExecution();
    return -1;
@@ -175,6 +186,11 @@ static int mutatorTest(BPatch *bpatch)
 {
    unsigned num_attempts = 0;
    bool missing_threads = false;
+   thread_count = 0;
+   memset(dyn_tids, 0, sizeof(dyn_tids));
+   memset(pthread_ids, 0, sizeof(pthread_ids));
+   failed_tests = 2;
+   error15 = 0;
 
    proc = getProcess();
    if (!proc)
@@ -185,7 +201,7 @@ static int mutatorTest(BPatch *bpatch)
    BPatch_Vector<BPatch_function *> syncfuncs;
    img->findFunction("check_sync", syncfuncs);
    if (syncfuncs.size() != 1) {
-      fprintf(stderr, "ERROR: Didn't find 1 'check_sync' function\n");
+      logerror("ERROR: Didn't find 1 'check_sync' function\n");
       return error_exit();
    }
    BPatch_function *check_sync = syncfuncs[0];
@@ -193,7 +209,7 @@ static int mutatorTest(BPatch *bpatch)
    BPatch_Vector<BPatch_function *> asyncfuncs;
    img->findFunction("check_async", asyncfuncs);
    if (asyncfuncs.size() != 1) {
-      fprintf(stderr, "ERROR: Didn't find 1 'check_async' function\n");
+      logerror("ERROR: Didn't find 1 'check_async' function\n");
       return error_exit();
    }
    BPatch_function *check_async = asyncfuncs[0];   
@@ -201,12 +217,12 @@ static int mutatorTest(BPatch *bpatch)
    BPatch_variableExpr *sync_var, *async_var;
    sync_var = img->findVariable("sync_test");
    if(sync_var == NULL) {
-      fprintf(stderr, "ERROR: Didn't find 'sync_test' variable\n");
+      logerror("ERROR: Didn't find 'sync_test' variable\n");
       return error_exit();
    }
    async_var = img->findVariable("async_test");
    if(async_var == NULL) {
-      fprintf(stderr, "ERROR: Didn't find 'async_test' variable\n");
+      logerror("ERROR: Didn't find 'async_test' variable\n");
       return error_exit();
    }
 
@@ -217,14 +233,14 @@ static int mutatorTest(BPatch *bpatch)
       bpatch->waitForStatusChange();
       if (proc->isTerminated())
       {
-         fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);
+         logerror("[%s:%d] - App exited early\n", __FILE__, __LINE__);
          return error_exit();
       }
       if (num_attempts++ == TIMEOUT)
       {
-         fprintf(stderr, "[%s:%d] - Timed out waiting for threads\n", 
+         logerror("[%s:%d] - Timed out waiting for threads\n", 
                  __FILE__, __LINE__);
-         fprintf(stderr, "[%s:%d] - Only have %u threads, expected %u!\n",
+         logerror("[%s:%d] - Only have %u threads, expected %u!\n",
               __FILE__, __LINE__, thread_count, NUM_THREADS);
          return error_exit();
       }
@@ -237,18 +253,18 @@ static int mutatorTest(BPatch *bpatch)
    BPatch_Vector<BPatch_thread *> thrds;
    proc->getThreads(thrds);
    if (thrds.size() != NUM_THREADS)
-      fprintf(stderr, "[%s:%d] - Have %u threads, expected %u!\n",
+      logerror("[%s:%d] - Have %u threads, expected %u!\n",
               __FILE__, __LINE__, thrds.size(), NUM_THREADS);
    for (unsigned i=0; i<NUM_THREADS; i++)
    {
       if (!dyn_tids[i]) {
-         fprintf(stderr, "[%s:%d] - Thread %u was never created!\n",
+         logerror("[%s:%d] - Thread %u was never created!\n",
                  __FILE__, __LINE__, i);
          missing_threads = true;
       }
    }
    if(missing_threads) {
-      fprintf(stderr, "%s[%d]: ERROR during thread create stage, can not run test\n", __FILE__, __LINE__);
+      logerror("%s[%d]: ERROR during thread create stage, can not run test\n", __FILE__, __LINE__);
       return error_exit();
    }
 
@@ -260,7 +276,7 @@ static int mutatorTest(BPatch *bpatch)
          long tid = pthread_ids[i];
          BPatch_thread *thr = proc->getThread(tid);
          if(thr == NULL) {
-            fprintf(stderr, "%s[%d]: ERROR - can't find thread with tid %lu\n",
+            logerror("%s[%d]: ERROR - can't find thread with tid %lu\n",
                     __FILE__, __LINE__, (unsigned long)tid);
             error15 = 1;
             continue;
@@ -280,7 +296,7 @@ static int mutatorTest(BPatch *bpatch)
    }
    if(!error15) {
       failed_tests--;
-      printf("Passed test #1 (thread-specific oneTimeCodeAsync)\n");
+      logerror("Passed test #1 (thread-specific oneTimeCodeAsync)\n");
    }
 
    P_sleep(10);
@@ -293,7 +309,7 @@ static int mutatorTest(BPatch *bpatch)
          long tid = pthread_ids[i];
          BPatch_thread *thr = proc->getThread(tid);
          if(thr == NULL) {
-            fprintf(stderr, "%s[%d]: ERROR - can't find thread with tid %lu\n",
+            logerror("%s[%d]: ERROR - can't find thread with tid %lu\n",
                     __FILE__, __LINE__, (unsigned long)tid);
             error15 = 1;
             continue;
@@ -314,7 +330,7 @@ static int mutatorTest(BPatch *bpatch)
    }
    if(!error15) {
       failed_tests--;
-      printf("Passed test #2 (thread-specific oneTimeCode)\n");
+      logerror("Passed test #2 (thread-specific oneTimeCode)\n");
    }
 
    dprintf(stderr, "%s[%d]:  Now waiting for threads to die.\n", __FILE__, __LINE__);
@@ -325,19 +341,26 @@ static int mutatorTest(BPatch *bpatch)
    if (error15 || failed_tests) 
       return error_exit();
 
-   printf("Test completed without errors\n");
+   logerror("Test completed without errors\n");
    return 0;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test15_1_mutatorMAIN(ParameterDict &param)
 {
    /* Grab info from param */
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
    filename = param["pathname"]->getString();
 
+   // Get log file pointers
+   outlog = (FILE *)(param["outlog"]->getPtr());
+   errlog = (FILE *)(param["errlog"]->getPtr());
+   setOutputLog(outlog);
+   setErrorLog(errlog);
+   logfilename = param["logfilename"]->getString();
+
 #if defined(os_osf)
-   printf("Skipped test #1 (thread-specific oneTimeCode)\n");
-   printf("\t- Not implemented on this platform\n");
+   logerror("Skipped test #1 (thread-specific oneTimeCode)\n");
+   logerror("\t- Not implemented on this platform\n");
    return 0;
 #endif
 
@@ -348,7 +371,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
    if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, newthr))
    {
-      fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
+      logerror("%s[%d]:  failed to register thread callback\n",
 	      __FILE__, __LINE__);
       return (-1);
    }
@@ -357,7 +380,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
    if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, newthr))
    {
-      fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
+      logerror("%s[%d]:  failed to remove thread callback\n",
 	      __FILE__, __LINE__);
       return (-1);
    }

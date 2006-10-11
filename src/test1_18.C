@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_18.C,v 1.6 2006/04/20 02:59:53 bernat Exp $
+// $Id: test1_18.C,v 1.7 2006/10/11 21:52:45 cooksey Exp $
 /*
  * #Name: test1_18
  * #Desc: Mutator Side - Read/Write a variable in the mutatee
@@ -54,29 +54,29 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #18 - mutator side (read/write a variable in the mutatee)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func18_1", found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func18_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func18_1");
     }
 
     BPatch_Vector<BPatch_point *> *func18_1 = found_funcs[0]->findPoint(BPatch_subroutine);
 
     if (!func18_1 || ((*func18_1).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func18_1\".\n");
+	logerror("Unable to find entry point to \"func18_1\".\n");
 	return -1;
     }
 
@@ -86,8 +86,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 /* Initialization must be done, because C would have done initialization at declaration */
 
     if (expr18_1 == NULL) {
-	fprintf(stderr, "**Failed** test #18 (read/write a variable in the mutatee)\n");
-	fprintf(stderr, "    Unable to locate globalVariable18_1\n");
+	logerror("**Failed** test #18 (read/write a variable in the mutatee)\n");
+	logerror("    Unable to locate globalVariable18_1\n");
 	return -1;
     }
 
@@ -100,8 +100,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     expr18_1->readValue(&n);
 
     if (n != 42) {
-	fprintf(stderr, "**Failed** test #18 (read/write a variable in the mutatee)\n");
-	fprintf(stderr, "    value read from globalVariable18_1 was %d, not 42 as expected\n", n);
+	logerror("**Failed** test #18 (read/write a variable in the mutatee)\n");
+	logerror("    value read from globalVariable18_1 was %d, not 42 as expected\n", n);
 	return -1;
     }
 
@@ -112,13 +112,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_18_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

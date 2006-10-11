@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test10_1.C,v 1.1 2005/09/29 20:38:47 bpellin Exp $
+// $Id: test10_1.C,v 1.2 2006/10/11 21:52:16 cooksey Exp $
 /*
  * #Name: test10_1
  * #Desc: ?
@@ -58,18 +58,23 @@
 //
 // Start Test Case #1 - ()
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     return instrumentToCallZeroArg(appThread, appImage, "func1", "call1", 1, "test10.1");
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test10_1_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

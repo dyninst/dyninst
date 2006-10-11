@@ -48,8 +48,9 @@ int dummy = 0;
 #include <string.h>
 #include <stdlib.h>
 
+#include "mutatee_util.h"
 
-#define USAGE "Usage: test10.mutatee [-attach] [-verbose] -run <num> .."
+#define USAGE "Usage: test10.mutatee [-attach] [-verbose] [-log <file>] -run <num> .."
 
 #define MAX_TEST 4
 #define TRUE 1
@@ -59,7 +60,6 @@ int debugPrint = 0;
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 const char Builder_id[]=COMPILER; /* defined on compile line */
-
 
 #if defined(sparc_sun_solaris2_4) 
 
@@ -139,25 +139,25 @@ void call0()
 void call1()
 {
     passedTest[1] = TRUE;
-    printf("\nPassed test #1 \n");
+    logerror("\nPassed test #1 \n");
 }
 
 void call2()
 {
     passedTest[2] = TRUE;
-    printf("\nPassed test #2 \n");
+    logerror("\nPassed test #2 \n");
 }
 
 void call3()
 {
     passedTest[3] = TRUE;
-    printf("\nPassed test #3 \n");
+    logerror("\nPassed test #3 \n");
 }
 
 void call4()
 {
     passedTest[4] = TRUE;
-    printf("\nPassed test #4 \n");
+    logerror("\nPassed test #4 \n");
 }
 
 #else
@@ -190,25 +190,25 @@ void call0()
 void call1()
 {
     passedTest[1] = TRUE;
-    printf("\nSkipped test #1 N/A\n");
+    logerror("\nSkipped test #1 N/A\n");
 }
 
 void call2()
 {
     passedTest[2] = TRUE;
-    printf("\nSkipped test #2 N/A\n");
+    logerror("\nSkipped test #2 N/A\n");
 }
 
 void call3()
 {
     passedTest[3] = TRUE;
-    printf("\nSkipped test #3 N/A\n");
+    logerror("\nSkipped test #3 N/A\n");
 }
 
 void call4()
 {
     passedTest[4] = TRUE;
-    printf("\nSkipped test #4 N/A\n");
+    logerror("\nSkipped test #4 N/A\n");
 }
 
 #endif
@@ -223,22 +223,22 @@ void runTests()
 
     if (runTest[1]) {
 	func1();
-	if (!passedTest[1]) printf("\n **Failed** test #1\n");
+	if (!passedTest[1]) logerror("\n **Failed** test #1\n");
     }
 
     if (runTest[2]) {
 	func2();
-	if (!passedTest[2]) printf("\n **Failed** test #2\n");
+	if (!passedTest[2]) logerror("\n **Failed** test #2\n");
     }
 
     if (runTest[3]) {
 	func3();
-	if (!passedTest[3]) printf("\n **Failed** test #3\n");
+	if (!passedTest[3]) logerror("\n **Failed** test #3\n");
     }
 
     if (runTest[4]) {
 	func4();
-	if (!passedTest[4]) printf("\n **Failed** test #4\n");
+	if (!passedTest[4]) logerror("\n **Failed** test #4\n");
     }
 }
 
@@ -249,6 +249,7 @@ int main(int iargc, char *argv[])
     unsigned int i, j;
     unsigned int testsFailed = 0;
     int useAttach = FALSE;
+    char *logfilename = NULL;
 #ifndef i386_unknown_nt4_0
     int pfd;
 #endif
@@ -260,6 +261,13 @@ int main(int iargc, char *argv[])
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = TRUE;
+	} else if (!strcmp(argv[i], "-log")) {
+	  if ((i + 1) >= argc) {
+	    fprintf(stderr, "Missing log file name\n%s\n", USAGE);
+	    exit(-1);
+	  }
+	  i += 1;
+	  logfilename = argv[i];
         } else if (!strcmp(argv[i], "-attach")) {
             useAttach = TRUE;
 #ifndef i386_unknown_nt4_0
@@ -280,7 +288,7 @@ int main(int iargc, char *argv[])
                         dprintf("selecting test %d\n", testId);
                         runTest[testId] = TRUE;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                        fprintf(stderr, "invalid test %d requested\n", testId);
                         exit(-1);
                     }
                 } else {
@@ -289,14 +297,28 @@ int main(int iargc, char *argv[])
                 }
             }
             i=j-1;
-		} else {
+	} else if (!strcmp(argv[i], "-fast")) {
+	  fastAndLoose = 1;
+	} else {
             fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
     }
 
+    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	exit(-1);
+      }
+      errlog = outlog;
+    } else {
+      outlog = stdout;
+      errlog = stderr;
+    }
+
     if ((argc==1) || debugPrint)
-        printf("Mutatee %s [C]:\"%s\"\n", argv[0], Builder_id);
+        logerror("Mutatee %s [C]:\"%s\"\n", argv[0], Builder_id);
     if (argc==1) exit(0);
 
     /* actually invoke the tests.  This function is implemented in two
@@ -313,13 +335,16 @@ int main(int iargc, char *argv[])
     }
 
     if (!testsFailed) {
-	/*printf("All tests passed\n");*/
+	/*logerror("All tests passed\n");*/
     } else {
-	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
+	logerror("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
  
 
-    fflush(stdout);
+    flushErrorLog();
+    if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+    }
     dprintf("Mutatee %s terminating.\n", argv[0]);
     exit(testsFailed ? 127 :0); /* 1 is success! 127 is failure*/ 
 }

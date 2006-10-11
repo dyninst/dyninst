@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_1.C,v 1.4 2006/03/08 16:44:57 bpellin Exp $
+// $Id: test9_1.C,v 1.5 2006/10/11 21:54:20 cooksey Exp $
 /*
  * #Name: test9_1
  * #Desc: Instrument one simple function call and save the world
@@ -57,11 +57,10 @@
 #include "test_lib.h"
 #include "test9.h"
 
-
 //
 // Start Test Case #1 - (instrument one simple function call and save the world)
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
   char* testName = "instrument one simple function call and save the world";
   int testNo = 1;
@@ -73,56 +72,62 @@ int mutatorTest(char *pathname, BPatch *bpatch)
  || defined(i386_unknown_linux2_0) \
  || defined(rs6000_ibm_aix5_1)
 
-	const char* child_argv[MAX_TEST+5];
-	
-	buildArgs(child_argv, pathname, testNo);
+    const char* child_argv[MAX_TEST+5];
+    
+    buildArgs(child_argv, pathname, testNo);
 
-	BPatch_thread *appThread;
-	BPatch_image *appImage;
+    BPatch_thread *appThread;
+    BPatch_image *appImage;
 
-	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
+    if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
         {
-           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
            return -1;
         }
-	
-	instrumentToCallZeroArg(appThread, appImage, "func1_1", "call1_1", testNo, testName);
+    
+    instrumentToCallZeroArg(appThread, appImage, "func1_1", "call1_1", testNo, testName);
 
-	char* dirname=saveWorld(appThread);	
-	savedDirectory = dirname;
+    char* dirname=saveWorld(appThread); 
+    savedDirectory = dirname;
 
 
-	/* finish original mutatee to see if it runs */
-	int retValue = letOriginalMutateeFinish(appThread);
-	/***********/
+    /* finish original mutatee to see if it runs */
+    int retValue = letOriginalMutateeFinish(appThread);
+    /***********/
 
-	if( retValue == 0){
-	
-		if ( runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST1))
+    if( retValue == 0){
+    
+        if ( runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST1))
                 {
                   return 0;
                 }
                 else {
-		  fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+          logerror("**Failed Test #%d: Saved Mutatee failed subtest: %d\n\n", testNo,testNo);
                   return -1;
                 }
-	}else{
-		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+    }else{
+        logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                 return -1;
-	}
+    }
 
-	//appThread->terminateExecution();
+    //appThread->terminateExecution();
 #else
-	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
+    logerror("Skipped Test #%d: not implemented on this platform\n",testNo);
         return 0;
-#endif	
+#endif  
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test9_1_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

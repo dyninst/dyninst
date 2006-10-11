@@ -39,15 +39,15 @@ void check_sync()
    }
 
    if(threads_equal(tid, sync_test)) {
-      printf("Thread %d [tid %lu] - oneTimeCode completed successfully\n", 
+      logerror("Thread %d [tid %lu] - oneTimeCode completed successfully\n", 
              id, tid);
       ok_to_exit[id] = 1;
       return;
    }
    else if( thread_int(sync_test) != 0)
-      fprintf(stderr, "%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCode for thread with tid %lu\n", __FILE__, __LINE__, id, thread_int(tid), thread_int(sync_test));
+      logerror("%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCode for thread with tid %lu\n", __FILE__, __LINE__, id, thread_int(tid), thread_int(sync_test));
    else
-      fprintf(stderr, "%s[%d]: ERROR: Thread %d [tid %lu] - sync_test is 0\n", __FILE__, __LINE__, id, thread_int(tid));
+      logerror("%s[%d]: ERROR: Thread %d [tid %lu] - sync_test is 0\n", __FILE__, __LINE__, id, thread_int(tid));
    sync_failure++;
 }
 
@@ -63,17 +63,15 @@ void check_async()
    }
 
    if(threads_equal(tid, async_test)) {
-      printf("Thread %d [tid %lu] - oneTimeCodeAsync completed successfully\n",
+      logerror("Thread %d [tid %lu] - oneTimeCodeAsync completed successfully\n",
              id, thread_int(tid));
       return;
    }
    else if(thread_int(async_test) != 0)
-      fprintf(stderr, 
-              "%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCodeAsync for thread with tid %lu\n", 
+      logerror("%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCodeAsync for thread with tid %lu\n", 
               __FILE__, __LINE__, id, thread_int(tid), thread_int(async_test));
    else
-      fprintf(stderr, 
-              "%s[%d]: ERROR: Thread %d [tid %lu] - async_test is 0\n", 
+      logerror("%s[%d]: ERROR: Thread %d [tid %lu] - async_test is 0\n", 
               __FILE__, __LINE__, id, thread_int(tid));
    async_failure++;
 }
@@ -91,9 +89,8 @@ void thr_loop(int id, thread_t tid)
       }
    }
    if(num_timeout == MAX_TIMEOUTS)
-      fprintf(stderr, 
-              "%s[%d]: ERROR: Thread %d [tid %lu] - timed-out in thr_loop\n", 
-              __FILE__, __LINE__, id, thread_int(tid));
+     logerror("%s[%d]: ERROR: Thread %d [tid %lu] - timed-out in thr_loop\n", 
+	     __FILE__, __LINE__, id, thread_int(tid));
 }
 
 void thr_func(void *arg)
@@ -116,21 +113,38 @@ void *init_func(void *arg)
 }
 
 int attached_fd = 0;
-void parse_args(int argc, char *argv[])
-{
-   int i;
-   for (i=0; i<argc; i++)
-   {
-      if (strstr(argv[i], "-attach"))
-      {         
-#if defined(os_windows)
-         attached_fd = -1;
-#else
-         if (++i == argc) break;
-         attached_fd = atoi(argv[i]);
-#endif
+void parse_args(int argc, char *argv[]) {
+  int i;
+  char *logfilename = NULL;
+
+  for (i=0; i<argc; i++) {
+    if (!strcmp(argv[i], "-log")) {
+      if ((i + 1) >= argc) {
+	fprintf(stderr, "Missing log file name\n");
+	exit(-1);
       }
-   }
+      i += 1;
+      logfilename = argv[i];
+    } else if (strstr(argv[i], "-attach")) {         
+#if defined(os_windows)
+      attached_fd = -1;
+#else
+      if (++i == argc) break;
+      attached_fd = atoi(argv[i]);
+#endif
+    }
+  }
+  if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+    outlog = fopen(logfilename, "a");
+    if (NULL == outlog) {
+      fprintf(stderr, "Error opening log file '%s'\n", logfilename);
+      exit(-1);
+    }
+    errlog = outlog;
+  } else {
+    outlog = stdout;
+    errlog = stderr;
+  }
 }
 
 int isAttached = 0;
@@ -170,9 +184,9 @@ int main(int argc, char *argv[])
          exit(-1);
       }
       close(attached_fd);
-      printf("Waiting for mutator to attach...\n");
+      logstatus("Waiting for mutator to attach...\n");
       while (!checkIfAttached()) ;
-      printf("Mutator attached.  Mutatee continuing.\n");
+      logstatus("Mutator attached.  Mutatee continuing.\n");
    }
 #else
    if (attached_fd)
@@ -190,13 +204,15 @@ int main(int argc, char *argv[])
    }
    
    if(sync_failure)
-      fprintf(stderr, 
-              "%s[%d]: ERROR: oneTimeCode failed for %d threads\n", 
+      logerror("%s[%d]: ERROR: oneTimeCode failed for %d threads\n", 
               __FILE__, __LINE__, sync_failure);
    if(async_failure)
-      fprintf(stderr, 
-              "%s[%d]: ERROR: oneTimeCodeAsync failed for %d threads\n", 
+      logerror("%s[%d]: ERROR: oneTimeCodeAsync failed for %d threads\n", 
               __FILE__, __LINE__, async_failure);
 
+   if ((outlog != NULL) && (outlog != stdout)) {
+     fclose(outlog);
+   }
+   
    return 0;
 }

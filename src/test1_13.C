@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_13.C,v 1.3 2006/03/08 16:44:12 bpellin Exp $
+// $Id: test1_13.C,v 1.4 2006/10/11 21:52:40 cooksey Exp $
 /*
  * #Name: test1_13
  * #Desc: Mutator Side - paramExpr,retExpr,nullExpr
@@ -54,30 +54,30 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #13 - mutator side (paramExpr,retExpr,nullExpr)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func13_1"
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func13_1", found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func13_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func13_1");
     }
 
     BPatch_Vector<BPatch_point *> *point13_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point13_1 || (point13_1->size() < 1)) {
-	fprintf(stderr, "Unable to find point func13_1 - entry.\n");
+	logerror("Unable to find point func13_1 - entry.\n");
 	return -1;
     }
 
@@ -85,7 +85,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn = "call13_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn);
+      logerror("    Unable to find function %s\n", fn);
       return -1;
     }
 
@@ -110,20 +110,20 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     // now test that a return value can be read.
     BPatch_Vector<BPatch_function *> found_funcs2;
     if ((NULL == appImage->findFunction("func13_2", found_funcs2)) || !found_funcs2.size()) {
-        fprintf(stderr, "    Unable to find function %s\n",
+        logerror("    Unable to find function %s\n",
 	      "func13_2");
       return -1;
     }
 
     if (1 < found_funcs2.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs2.size(), "func13_2");
     }
 
     BPatch_Vector<BPatch_point *> *point13_2 = found_funcs2[0]->findPoint(BPatch_exit);
 
     if (!point13_2 || (point13_2->size() < 1)) {
-	fprintf(stderr, "Unable to find point func13_2 - exit.\n");
+	logerror("Unable to find point func13_2 - exit.\n");
 	return -1;
     }
 
@@ -132,7 +132,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn2 = "call13_2";
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn2);
+      logerror("    Unable to find function %s\n", fn2);
       return -1;
     }
 
@@ -164,13 +164,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_13_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

@@ -41,13 +41,15 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.h,v 1.2 2006/03/12 23:33:14 legendre Exp $ */
+/* $Id: test1.mutateeCommon.h,v 1.3 2006/10/11 21:52:13 cooksey Exp $ */
 
 /* Empty functions are sometimes compiled too tight for entry and exit
    points.  The following macro is used to flesh out these
    functions. (expanded to use on all platforms for non-gcc compilers jkh 10/99)
  */
 static volatile int dummy3__;
+
+#include <stdio.h>
 
 #define DUMMY_FN_BODY \
   int dummy1__ = 1; \
@@ -68,6 +70,8 @@ extern void verifyScalarValue(const char *name, int a, int value, int testNum,
                               const char *testName);
 extern void verifyValue(const char *name, int *a, int index, int value, 
                         int tst, const char *tn);
+
+extern int runAnyAfter(int testno, int maxtest);
 
 #define TRUE	1
 #define FALSE	0

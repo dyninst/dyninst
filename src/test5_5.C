@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_5.C,v 1.3 2006/03/12 23:33:39 legendre Exp $
+// $Id: test5_5.C,v 1.4 2006/10/11 21:53:51 cooksey Exp $
 /*
  * #Name: test5_5
  * #Desc: Namespace
@@ -55,11 +55,10 @@
 
 #include "test_lib.h"
 
-
 //  
 // Start Test Case #5 - (namespace)
 // 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(os_solaris) || defined(os_linux) || defined(os_windows)
 
@@ -67,8 +66,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   char *fn = "namespace_test::func_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #5 (namespace)\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn);
+    logerror("**Failed** test #5 (namespace)\n");
+    logerror("    Unable to find function %s\n", fn);
     return FAIL;
   }
   BPatch_function *f1 = bpfv[0];  
@@ -83,13 +82,13 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
                                                       "CPP_DEFLT_ARG");
    
    if (!var1 || !var2 || !var3) {
-      fprintf(stderr, "**Failed** test #5 (namespace)\n");
+      logerror("**Failed** test #5 (namespace)\n");
       if (!var1)
-         fprintf(stderr, "  can't find local variable local_fn_var\n");
+         logerror("  can't find local variable local_fn_var\n");
       if (!var2)
-         fprintf(stderr, "  can't find local variable file local_file_var\n");
+         logerror("  can't find local variable file local_file_var\n");
       if (!var3)
-         fprintf(stderr, "  can't find global variable CPP_DEFLT_ARG\n");
+         logerror("  can't find global variable CPP_DEFLT_ARG\n");
       return FAIL;
     }
 
@@ -97,27 +96,27 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    char *fn2 = "main";
    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	 || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #5 (namespace)\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    logerror("**Failed** test #5 (namespace)\n");
+    logerror("    Unable to find function %s\n", fn2);
     return FAIL;
   }
   BPatch_function *f2 = bpfv[0];  
   BPatch_Vector<BPatch_point *> *point5_2 = f2->findPoint(BPatch_allLocations);
 
    if (!point5_2 || (point5_2->size() < 1)) {
-      fprintf(stderr, "Unable to find point in main.\n");
+      logerror("Unable to find point in main.\n");
       return FAIL;
    }
    BPatch_variableExpr *expr5_1=appImage->findVariable(*(*point5_2)[0], "test5");
    if (!expr5_1) {
-      fprintf(stderr, "**Failed** test #5 (namespace)\n");
-      fprintf(stderr, "    Unable to locate test5 in main\n");
+      logerror("**Failed** test #5 (namespace)\n");
+      logerror("    Unable to locate test5 in main\n");
    }
    
    BPatch_Vector<BPatch_variableExpr *> *fields = expr5_1->getComponents();
    if (!fields || fields->size() == 0 ) {
-      fprintf(stderr, "**Failed** test #5 (namespace)\n");
-      fprintf(stderr, "  struct lacked correct number of elements\n");
+      logerror("**Failed** test #5 (namespace)\n");
+      logerror("  struct lacked correct number of elements\n");
       return FAIL;
    }
    
@@ -129,16 +128,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	char *fn3 = "cpp_test_util::call_cpp";
 	if (NULL == appImage->findFunction(fn3, bpfv2) || !bpfv2.size()
 	    || NULL == bpfv2[0]){
-	  fprintf(stderr, "**Failed** test #5 (namespace)\n");
-	  fprintf(stderr, "    Unable to find function %s\n", fn3);
+	  logerror("**Failed** test #5 (namespace)\n");
+	  logerror("    Unable to find function %s\n", fn3);
 	  return FAIL;
 	}
 	BPatch_function *call5_func = bpfv2[0];  
             
          BPatch_variableExpr *this5 = appImage->findVariable("test5");
          if (this5 == NULL) {
-            fprintf(stderr, "**Failed** test #5 (namespace)\n");
-            fprintf(stderr, "Unable to find variable \"test5\"\n");
+            logerror("**Failed** test #5 (namespace)\n");
+            logerror("Unable to find variable \"test5\"\n");
             return FAIL;
          }
          
@@ -155,8 +154,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
       }
       index ++;
    }
-   fprintf(stderr, "**Failed** test #5 (namespace)\n");
-   fprintf(stderr, "    Can't find class member variables\n");
+   logerror("**Failed** test #5 (namespace)\n");
+   logerror("    Can't find class member variables\n");
    return FAIL;
 #endif
 
@@ -164,12 +163,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test5_5_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

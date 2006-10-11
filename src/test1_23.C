@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_23.C,v 1.3 2006/03/08 16:44:23 bpellin Exp $
+// $Id: test1_23.C,v 1.4 2006/10/11 21:52:51 cooksey Exp $
 /*
  * #Name: test1_23
- * #Desc: Local Variabels
+ * #Desc: Local Variables
  * #Dep: !mips_sgi_irix6_4
  * #Notes:
  */
@@ -54,33 +54,33 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #23 - local variables
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(mips_sgi_irix6_4)
     if (!mutateeFortran) {
         BPatch_Vector<BPatch_function *> found_funcs;
         if ((NULL == appImage->findFunction("call23_1", found_funcs, 1)) 
             || !found_funcs.size()) {
-            fprintf(stderr, "    Unable to find function %s\n",
+            logerror("    Unable to find function %s\n",
                     "call23_1");
             return -1;
         }
         
         if (1 < found_funcs.size()) {
-            fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+            logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
                     __FILE__, __LINE__, found_funcs.size(), "call23_1");
 
         }
 
         BPatch_Vector<BPatch_point *> *point23_calls = found_funcs[0]->findPoint(BPatch_subroutine);    
         if (!point23_calls || (point23_calls->size() < 1)) {
-            fprintf(stderr, "**Failed** test #23 (local variables)\n");
-            fprintf(stderr, "  Unable to find point call23_1 - subroutine calls\n");
+            logerror("**Failed** test #23 (local variables)\n");
+            logerror("  Unable to find point call23_1 - subroutine calls\n");
             return -1;
         }
         /* We only want the first one... */
@@ -95,13 +95,13 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_variableExpr *var4 = appImage->findVariable("globalVariable23_1");
     
     if (!var1 || !var2 || !var3 || !var4) {
-        fprintf(stderr, "**Failed** test #23 (local variables)\n");
+        logerror("**Failed** test #23 (local variables)\n");
         if (!var1)
-            fprintf(stderr, "  can't find local variable localVariable23_1\n");
+            logerror("  can't find local variable localVariable23_1\n");
         if (!var2)
-            fprintf(stderr, "  can't find local variable shadowVariable23_1\n");
+            logerror("  can't find local variable shadowVariable23_1\n");
         if (!var3)
-            fprintf(stderr,"  can't find global variable shadowVariable23_2\n");
+            logerror("  can't find global variable shadowVariable23_2\n");
         return -1;
     }
     
@@ -129,13 +129,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_23_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

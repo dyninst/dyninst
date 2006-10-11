@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_4.C,v 1.3 2006/03/08 16:44:41 bpellin Exp $
+// $Id: test1_4.C,v 1.4 2006/10/11 21:53:10 cooksey Exp $
 /*
  * #Name: test1_4
  * #Desc: Mutator Side (Sequence) Use the BPatch sequence operation to glue expressions together.  The test is constructed to verify the correct execution order.
@@ -59,33 +59,33 @@
 //	Use the BPatch sequence operation to glue to expressions togehter.
 //	The test is constructed to verify the correct execution order.
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func4_1"
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction("func4_1", found_funcs)) || !found_funcs.size()) {
-     fprintf(stderr, "    Unable to find function %s\n",
+     logerror("    Unable to find function %s\n",
 	    "func4_1");
     return -1;
   }
   
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), "func4_1");
   }
   
   BPatch_Vector<BPatch_point *> *point4_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point4_1 || ((*point4_1).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func4_1\".\n");
+	logerror("Unable to find entry point to \"func4_1\".\n");
 	return -1;
     }
 
     BPatch_variableExpr *expr4_1 = findVariable (appImage, "globalVariable4_1", point4_1);
 
     if (!expr4_1) {
-	fprintf(stderr, "**Failed** test #4 (sequence)\n");
-	fprintf(stderr, "    Unable to locate variable globalVariable4_1\n");
+	logerror("**Failed** test #4 (sequence)\n");
+	logerror("    Unable to locate variable globalVariable4_1\n");
 	return -1;
     }
 
@@ -104,13 +104,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_4_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

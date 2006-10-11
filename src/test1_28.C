@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_28.C,v 1.3 2006/03/08 16:44:28 bpellin Exp $
+// $Id: test1_28.C,v 1.4 2006/10/11 21:52:56 cooksey Exp $
 /*
  * #Name: test1_28
  * #Desc: User Defined Fields
@@ -55,13 +55,13 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
-BPatch *bpatch;
+static int mutateeFortran;
+static BPatch *bpatch;
 
 //
 // Start Test Case #28 - user defined fields
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     int i;
 
@@ -112,19 +112,21 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     //     Next verify that we can find a local variable in call28
     BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("call28_1", found_funcs)) || !found_funcs.size()) {
-       fprintf(stderr, "    Unable to find function %s\n",
+       logerror("    Unable to find function %s\n",
 	      "call28_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "call28_1");
     }
 
     BPatch_Vector<BPatch_point *> *point28 = found_funcs[0]->findPoint(BPatch_entry);
 
     assert(point28 && (point28->size() == 1));
+
+    // FIXME We didn't look up a local variable!?
 
     BPatch_variableExpr *gvar[8];
 
@@ -134,8 +136,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	sprintf(name, "globalVariable28_%d", i);
 	gvar[i] = appImage->findVariable(name);
 	if (!gvar[i]) {
-	    fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
-	    fprintf(stderr, "  can't find variable globalVariable28_%d\n", i);
+	    logerror("**Failed** test #28 (user defined fields)\n");
+	    logerror("  can't find variable globalVariable28_%d\n", i);
 	    return -1;
 	}
     }
@@ -148,7 +150,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	 char fieldName[80];
 	 sprintf(fieldName, "field%d", i+1);
 	 if (strcmp(fieldName, (*fields)[i]->getName())) {
-	      printf("field %d of the struct is %s, not %s\n",
+	      logerror("field %d of the struct is %s, not %s\n",
 		  i+1, fieldName, (*fields)[i]->getName());
 	      return -1;
 	 }
@@ -193,8 +195,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     ((*unionfields)[0])->writeValue(&n,true);
     ((*unionfields)[0])->readValue(&val1);
     if (val1 != 1) {
-	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
-	fprintf(stderr, "  union field1 has wrong value after first set\n");
+	logerror("**Failed** test #28 (user defined fields)\n");
+	logerror("  union field1 has wrong value after first set\n");
 	return -1;
     }
 
@@ -202,15 +204,15 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     ((*unionfields)[1])->writeValue(&n,true);
     ((*unionfields)[1])->readValue(&val2);
     if (val2 != 2) {
-	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
-	fprintf(stderr, "  union field2 has wrong value after second set\n");
+	logerror("**Failed** test #28 (user defined fields)\n");
+	logerror("  union field2 has wrong value after second set\n");
 	return -1;
     }
 
     ((*unionfields)[1])->readValue(&val3);
     if (val3 != 2) {
-	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
-	fprintf(stderr, "  union field1 has wrong value after second set\n");
+	logerror("**Failed** test #28 (user defined fields)\n");
+	logerror("  union field1 has wrong value after second set\n");
 	return -1;
     }
 
@@ -219,8 +221,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     assert(newScalar1);
     int scalarSize = newScalar1->getSize();
     if (scalarSize != 8) {
-	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
-	fprintf(stderr, "  created scalar is %d bytes, expected %d\n", scalarSize, 8);
+	logerror("**Failed** test #28 (user defined fields)\n");
+	logerror("  created scalar is %d bytes, expected %d\n", scalarSize, 8);
 	return -1;
     }
 
@@ -240,20 +242,20 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_type *newEnum2 = bpatch->createEnum("enum2", enumItems, enumVals);
 
     if (!newEnum1 || !newEnum2) {
-	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
-	fprintf(stderr, "  failed to create enums as expected\n");
+	logerror("**Failed** test #28 (user defined fields)\n");
+	logerror("  failed to create enums as expected\n");
 	return -1;
     }
 
     if (!newEnum1->isCompatible(newEnum1)) {
-	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
-	fprintf(stderr, "  identical enums reported incompatible\n");
+	logerror("**Failed** test #28 (user defined fields)\n");
+	logerror("  identical enums reported incompatible\n");
 	return -1;
     }
 
     if (newEnum1->isCompatible(newEnum2)) {
-	fprintf(stderr, "**Failed** test #28 (user defined fields)\n");
-	fprintf(stderr, "  different enums declared compatible\n");
+	logerror("**Failed** test #28 (user defined fields)\n");
+	logerror("  different enums declared compatible\n");
 	return -1;
 	
     }
@@ -262,12 +264,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_28_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

@@ -35,13 +35,13 @@ bool isDir(const string& filename);
 
 void getInput(const char *filename, string& output);
 
-void generateTestString(bool resume, bool useLog, string& logfile,
+void generateTestString(bool resume, bool useLog, bool staticTests, char *logfile,
       int testLimit, vector<char *>& child_argv, string& shellString);
 
 char *setResumeEnv();
 
 char *setLibPath();
 
-void setupVars(bool useLog, string& logfile);
+void setupVars(bool useLog, char *logfile);
 
 #endif /* RUNTESTS_UTILS_H */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_5.C,v 1.2 2005/11/22 19:42:13 bpellin Exp $
+// $Id: test2_5.C,v 1.3 2006/10/11 21:53:27 cooksey Exp $
 /*
  * #Name: test2_5
  * #Desc: Look up nonexistent function
@@ -61,7 +61,7 @@
 //	Try to call findFunction on a function that is not defined for the
 //	process.
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *img)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *img)
 {
     int result;
     clearError();
@@ -73,17 +73,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *img)
 
     BPatch_Vector<BPatch_function *> bpfv, *res;
     char *fn = "NoSuchFunction";
-    printf("Looking for function\n");
+    logerror("Looking for function\n");
     if (!(NULL == (res=img->findFunction(fn, bpfv)) || !bpfv.size()
 	|| NULL == bpfv[0]) || !getError()){
-      printf("**Failed** test #5 (look up nonexistent function)\n");
+      logerror("**Failed** test #5 (look up nonexistent function)\n");
       if (res)
-	printf("    non-null for findFunction on non-existant func\n");
+	logerror("    non-null for findFunction on non-existant func\n");
       if (!getError())
-	printf("    the error callback should have been called but wasn't\n");
+	logerror("    the error callback should have been called but wasn't\n");
       result = -1;
     } else {
-	printf("Passed test #5 (look up nonexistent function)\n");
+	logerror("Passed test #5 (look up nonexistent function)\n");
         result = 0;
     }
 
@@ -91,7 +91,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *img)
     return result;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_5_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
@@ -100,6 +100,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Signal the child that we've attached
     if (useAttach) {

@@ -13,8 +13,9 @@
 // To prevent run away never run test_driver more the MAX_ITER times
 #define MAX_ITER 1000
 
+bool staticTests = false;
 bool useLog = false;
-string logfile = "";
+char *logfile = "";
 string pdscrdir;
 
 // Run No more than testLimit tests before re-exec'ing test_driver
@@ -72,13 +73,18 @@ void getInput(const char *filename, string& output)
 // to test_driver.
 void parseParameters(int argc, char *argv[])
 {
+#if defined(STATIC_TEST_DRIVER)
+  staticTests = true;
+#endif
+
    for ( int i = 1; i < argc; i++ )
    {
       if ( strncmp(argv[i], "-log", 4) == 0 )
       {
          useLog = true;
          // Check to see if next line provides a logfile name
-         if ( i + 1 < argc && argv[i+1][0] != '-' )
+         if ((i + 1 < argc)
+	     && ((argv[i+1][0] != '-' ) || (strcmp(argv[i+1], "-") == 0)))
          {
             logfile = argv[++i];
          }
@@ -92,6 +98,17 @@ void parseParameters(int argc, char *argv[])
               testLimit = limit;
               i++;
           }
+      } else if (strcmp(argv[i], "-help") == 0) {
+	printf("Usage: runTests [-log [file]] [-limit <limit>] [-static | -dynamic] ...\n");
+	printf("\t-log: enable logging, and use the file specified if one is provided\n");
+	printf("\t\t(to log to standard output, use '-log -')\n");
+	printf("runTests also passes parameters to test_driver:\n");
+	system("test_driver -help");
+	exit(0);
+      } else if (strcmp(argv[i], "-static") == 0) {
+	staticTests = true;
+      } else if (strcmp(argv[i], "-dynamic") == 0) {
+	staticTests = false;
       }
       else
       {
@@ -139,7 +156,7 @@ int RunTest(unsigned int iteration)
 {
    string shellString;
 
-   generateTestString(iteration > 0, useLog, logfile, 
+   generateTestString(iteration > 0, useLog, staticTests, logfile,
                       testLimit, child_argv, shellString);
 
    int ret = system(SimpleShellEscape(shellString).c_str());

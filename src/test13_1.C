@@ -48,32 +48,39 @@
 #define NUM_THREADS 5
 #define TIMEOUT 20
 
-BPatch *bpatch;
-BPatch_process *proc;
-unsigned error13 = 0;
-unsigned thread_count;
+static FILE *outlog = NULL;
+static FILE *errlog = NULL;
+static char *logfilename = NULL;
+
+static BPatch *bpatch;
+static BPatch_process *proc;
+static unsigned error13 = 0;
+static unsigned thread_count;
 static char dyn_tids[NUM_THREADS];
 static char deleted_tids[NUM_THREADS];
 // We can get extra threads; add a layer of indirection. Yay.
 static int our_tid_max = 0;
 static char thread_mapping[NUM_THREADS];
 static int deleted_threads;
-bool create_proc = true;
 
-bool debug_flag = false;
+static unsigned long stack_addrs[NUM_THREADS];
+
+static bool create_proc = true;
+
+static bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
 #define NUM_FUNCS 6
-char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "mainCRTStartup"};
+static char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "mainCRTStartup"};
 
-int bpindex_to_myindex(int index) {
+static int bpindex_to_myindex(int index) {
     for (unsigned i = 0; i < our_tid_max; i++) {
         if (thread_mapping[i] == index) return i;
     }
     return -1;
 }
 
-void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
+static void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    dprintf(stderr, "%s[%d]:  welcome to deadthr\n", __FILE__, __LINE__);
    if (!thr) {
@@ -88,7 +95,7 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 
    if (my_proc != proc)
    {
-      fprintf(stderr, "[%s:%u] - Got invalid process: %p vs %p\n", __FILE__,
+      logerror("[%s:%u] - Got invalid process: %p vs %p\n", __FILE__,
 	      __LINE__, my_proc, proc);
       error13 = 1;
    }
@@ -97,19 +104,19 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  leaving to deadthr, %d is dead\n", __FILE__, __LINE__, my_dyn_id);
 }
 
-void newthr(BPatch_process *my_proc, BPatch_thread *thr)
+static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    dprintf(stderr, "%s[%d]:  welcome to newthr, error13 = %d\n", __FILE__, __LINE__, error13);
 
    if (my_proc != proc)
    {
-      fprintf(stderr, "[%s:%u] - Got invalid process: %p vs %p\n", 
+      logerror("[%s:%u] - Got invalid process: %p vs %p\n", 
               __FILE__, __LINE__, my_proc, proc);
       error13 = 1;
    }
 
    if (thr->isDeadOnArrival()) {
-      fprintf(stderr, "[%s:%u] - Got a dead on arival thread\n", 
+      logerror("[%s:%u] - Got a dead on arival thread\n", 
               __FILE__, __LINE__);
       error13 = 1;
       return;
@@ -138,14 +145,14 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
        // We can get unexpected threads with different initial functions; do not include
        // them (but don't consider it an error). If we don't walk the stack right, then
        // we won't have enough expected threads and so check it later.
-      fprintf(stderr, "[%s:%d] - Thread %d has unexpected initial function '%s'; ignoring\n",
+      logerror("[%s:%d] - Thread %d has unexpected initial function '%s'; ignoring\n",
               __FILE__, __LINE__, thr->getBPatchID(), name);
       //      error13 = 1; // This shouldn't be an error, according to the comment above.
       return;
    }
 
    if (bpindex_to_myindex(thr->getBPatchID()) != -1) {
-      fprintf(stderr, "[%s:%d] - WARNING: Thread %d called in callback twice\n",
+      logerror("[%s:%d] - WARNING: Thread %d called in callback twice\n",
               __FILE__, __LINE__, thr->getBPatchID());
       return;
    }
@@ -155,11 +162,12 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    thread_mapping[my_dyn_id] = thr->getBPatchID();
 
    //Stacks should be unique and non-zero
-   static unsigned long stack_addrs[NUM_THREADS];
+   // Moving this variable to global scope
+   //static unsigned long stack_addrs[NUM_THREADS];
    unsigned long my_stack = thr->getStackTopAddr();
    if (!my_stack)
    {
-      fprintf(stderr, "[%s:%d] - WARNING: Thread %d has no stack\n",
+      logerror("[%s:%d] - WARNING: Thread %d has no stack\n",
               __FILE__, __LINE__, my_dyn_id);
       error13 = 1;
    }
@@ -168,7 +176,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       for (unsigned i=0; i<NUM_THREADS; i++)
          if (stack_addrs[i] == my_stack)
          {
-            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a stack at %lx\n",
+            logerror("[%s:%d] - WARNING: Thread %d and %d share a stack at %lx\n",
                     __FILE__, __LINE__, my_dyn_id, i, my_stack);
             error13 = 1;
          }
@@ -180,7 +188,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    long mytid = thr->getTid();
    if (mytid == -1)
    {
-      fprintf(stderr, "[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
+      logerror("[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
               __FILE__, __LINE__, my_dyn_id);
    }
    dprintf(stderr, "%s[%d]:  newthr: tid = %lu\n", 
@@ -188,7 +196,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
-            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a tid of %lu\n",
+            logerror("[%s:%d] - WARNING: Thread %d and %d share a tid of %lu\n",
                     __FILE__, __LINE__, my_dyn_id, i, mytid);
             error13 = 1;
       }
@@ -199,7 +207,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  leaving newthr: error13 = %d\n", __FILE__, __LINE__, error13);
 }
 
-void upgrade_mutatee_state()
+static void upgrade_mutatee_state()
 {
    dprintf(stderr, "%s[%d]:  welcome to upgrade_mutatee_state\n", __FILE__, __LINE__);
    BPatch_variableExpr *var;
@@ -218,48 +226,63 @@ void upgrade_mutatee_state()
 }
 
 #define MAX_ARGS 32
-char *filename = "test13.mutatee_gcc";
-char *args[MAX_ARGS];
-char *create_arg = "-create";
-unsigned num_args = 0; 
+static char *filename = "test13.mutatee_gcc";
+static char *args[MAX_ARGS];
+static char *create_arg = "-create";
+static unsigned num_args = 0; 
 
 static BPatch_process *getProcess()
 {
-   args[0] = filename;
+  int n = 0;
+   args[n++] = filename;
+   if (logfilename != "-") {
+     args[n++] = "-log";
+     args[n++] = logfilename;
+   }
 
    BPatch_process *proc;
    if (create_proc) {
-      args[1] = create_arg; // I don't think this does anything.
+      args[n++] = create_arg; // I don't think this does anything.
+      args[n] = NULL;
       proc = bpatch->processCreate(filename, (const char **) args);
       if(proc == NULL) {
-         fprintf(stderr, "%s[%d]: processCreate(%s) failed\n", 
+         logerror("%s[%d]: processCreate(%s) failed\n", 
                  __FILE__, __LINE__, filename);
          return NULL;
       }
    }
    else
    {
-      dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
-      int pid = startNewProcessForAttach(filename, (const char **) args);
+      dprintf(stderr, "%s[%d]: starting process for attach\n",
+	      __FILE__, __LINE__);
+      args[n] = NULL;
+      int pid = startNewProcessForAttach(filename, (const char **) args,
+					 outlog, errlog);
       if (pid < 0)
       {
          fprintf(stderr, "%s ", filename);
-         perror("couldn't be started");
+         fprintf(stderr, "couldn't be started");
          return NULL;
       }
 #if defined(os_windows)
       P_sleep(1);
 #endif
       dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
+      //fprintf(stderr, "filename = %s, pid = %d\n", filename, pid);
+      //fflush(stderr);
       proc = bpatch->processAttach(filename, pid);  
+      //fprintf(stderr, "test13_1: returned from processAttach()\n"); /* *DEBUG* */
+      //fflush(stderr);
       if(proc == NULL) {
-         fprintf(stderr, "%s[%d]: processAttach(%s, %d) failed\n", 
+         logerror("%s[%d]: processAttach(%s, %d) failed\n", 
                  __FILE__, __LINE__, filename, pid);
          return NULL;
       }
-      dprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
+      //fprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
       BPatch_image *appimg = proc->getImage();
+      //fprintf(stderr, "test13_1: calling signalAttached()\n"); /* *DEBUG* */
       signalAttached(NULL, appimg);    
+      //fprintf(stderr, "test13_1: called signalAttached()\n"); /* *DEBUG* */
    }
    return proc;
 }
@@ -268,6 +291,15 @@ static int mutatorTest(BPatch *bpatch)
 {
    unsigned num_attempts = 0;
    bool missing_threads = false;
+
+   error13 = 0;
+   thread_count = 0;
+   memset(dyn_tids, 0, sizeof(dyn_tids));
+   memset(deleted_tids, 0, sizeof(deleted_tids));
+   our_tid_max = 0;
+   memset(thread_mapping, 0, sizeof(thread_mapping));
+   deleted_threads = 0;
+   memset(stack_addrs, 0, sizeof(stack_addrs));
 
    proc = getProcess();
    if (!proc)
@@ -282,15 +314,15 @@ static int mutatorTest(BPatch *bpatch)
       dprintf(stderr, "Back from waitForStatusChange...\n");
       if (proc->isTerminated())
       {
-         fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);
+         logerror("[%s:%d] - App exited early\n", __FILE__, __LINE__);
          error13 = 1;
          break;
       }
       if (num_attempts++ == TIMEOUT)
       {
-         fprintf(stderr, "[%s:%d] - Timed out waiting for threads\n", 
+         logerror("[%s:%d] - Timed out waiting for threads\n", 
                  __FILE__, __LINE__);
-         fprintf(stderr, "[%s:%d] - Only have %u threads, expected %u!\n",
+         logerror("[%s:%d] - Only have %u threads, expected %u!\n",
               __FILE__, __LINE__, thread_count, NUM_THREADS);
          return -1;
       }
@@ -303,7 +335,7 @@ static int mutatorTest(BPatch *bpatch)
    proc->getThreads(thrds);
    if (thrds.size() != NUM_THREADS)
    {
-      fprintf(stderr, "[%s:%d] - Have %u threads, expected %u!\n",
+      logerror("[%s:%d] - Have %u threads, expected %u!\n",
               __FILE__, __LINE__, thrds.size(), NUM_THREADS);
       error13 = 1;
    }
@@ -312,14 +344,14 @@ static int mutatorTest(BPatch *bpatch)
    {
       if (!dyn_tids[i])
       {
-         fprintf(stderr, "[%s:%d] - Thread %u was never created!\n",
+         logerror("[%s:%d] - Thread %u was never created!\n",
                  __FILE__, __LINE__, i);
          missing_threads = true;
       }
    }
    if(error13 || missing_threads) {
-      fprintf(stderr, "%s[%d]: ERROR during thread create stage, exiting\n", __FILE__, __LINE__);
-      printf("*** Failed test #1 (Threading Callbacks)\n");
+      logerror("%s[%d]: ERROR during thread create stage, exiting\n", __FILE__, __LINE__);
+      logerror("*** Failed test #1 (Threading Callbacks)\n");
       if(proc && !proc->isTerminated())
          proc->terminateExecution();
       return -1;
@@ -341,7 +373,7 @@ static int mutatorTest(BPatch *bpatch)
    {
       if (!deleted_tids[i])
       {
-         fprintf(stderr, "[%s:%d] - Thread %d wasn't deleted\n",
+         logerror("[%s:%d] - Thread %d wasn't deleted\n",
                  __FILE__, __LINE__, i);
          error13 = 1;
       }
@@ -349,7 +381,7 @@ static int mutatorTest(BPatch *bpatch)
 
    if (deleted_threads != NUM_THREADS || !deleted_tids[0])
    {
-      fprintf(stderr, "[%s:%d] - %d threads deleted at termination." 
+      logerror("[%s:%d] - %d threads deleted at termination." 
            "  Expected %d\n", __FILE__, __LINE__, deleted_threads, NUM_THREADS);
       error13 = 1;
    }
@@ -357,24 +389,31 @@ static int mutatorTest(BPatch *bpatch)
 
    if (error13)
    {
-       printf("*** Failed test #1 (Threading Callbacks)\n");
+       logerror("*** Failed test #1 (Threading Callbacks)\n");
    } else {
-       printf("Passed test #1 (Threading Callbacks)\n");
-       printf("Test completed without errors\n");
+       logerror("Passed test #1 (Threading Callbacks)\n");
+       logerror("Test completed without errors\n");
        return 0;
    }
    return -1;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test13_1_mutatorMAIN(ParameterDict &param)
 {
    /* Grab info from param */
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
    filename = param["pathname"]->getString();
 
+   // Get log file pointers
+   FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+   FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+   setOutputLog(outlog);
+   setErrorLog(errlog);
+   logfilename = param["logfilename"]->getString();
+   
 #if defined(os_osf)
-   printf("Skipped test #1 (Threading Callbacks)\n");
-   printf("\t- Not implemented on this platform\n");
+   logerror("Skipped test #1 (Threading Callbacks)\n");
+   logerror("\t- Not implemented on this platform\n");
    return 0;
 #endif
 
@@ -388,7 +427,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
        !bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent,
 					    deadthr))
    {
-      fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
+      logerror("%s[%d]:  failed to register thread callback\n",
 	      __FILE__, __LINE__);
       return -1;
    }
@@ -398,7 +437,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
    if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, newthr) ||
        !bpatch->removeThreadEventCallback(BPatch_threadDestroyEvent, deadthr))
    {
-      fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
+      logerror("%s[%d]:  failed to remove thread callback\n",
 	      __FILE__, __LINE__);
       return -1;
    }

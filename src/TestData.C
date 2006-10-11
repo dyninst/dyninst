@@ -10,7 +10,8 @@ TestData::TestData(
       int sub,
       cleanup_mode_t clean,
       create_mode_t use,
-      enabled_t en
+      enabled_t en,
+      grouped_test_t gr
       ) : mutatee(m), platforms(p)
 
 {
@@ -22,4 +23,5 @@ TestData::TestData(
    cleanup = clean;
    useAttach = use;
    enabled = en;
+   grouped = gr;
 }

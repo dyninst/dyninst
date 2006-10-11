@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_15.C,v 1.3 2006/03/08 16:44:14 bpellin Exp $
+// $Id: test1_15.C,v 1.4 2006/10/11 21:52:42 cooksey Exp $
 /*
  * #Name: test1_15
  * #Desc: Mutator Side - setMutationsActive
@@ -54,12 +54,12 @@
 
 #include "test_lib.h"
 
-BPatch *bpatch;
+static BPatch *bpatch;
 
 //
 // Start Test Case #15 - mutator side (setMutationsActive)
 //
-int mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
 {
     RETURNONFAIL(insertCallSnippetAt(appThread, appImage, "func15_2", BPatch_entry,
             "call15_1", 15, "setMutationsActive"));
@@ -85,7 +85,7 @@ int mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
     return 0;
 }
 
-int mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
+static int mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 {
     RETURNONFAIL(waitUntilStopped(bpatch, appThread, 15, "setMutationsActive"));
 
@@ -102,9 +102,12 @@ int mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
     return 0;
 }
 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
    RETURNONFAIL(mutatorTest15a(appThread, appImage));
+   while (!appThread->isStopped()) { // Necessary in fast & loose mode
+     bpatch->waitForStatusChange();
+   }
    appThread->continueExecution();
    RETURNONFAIL(mutatorTest15b(appThread, appImage));
 
@@ -113,12 +116,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_15_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8_3.C,v 1.5 2006/03/12 23:33:51 legendre Exp $
+// $Id: test8_3.C,v 1.6 2006/10/11 21:54:18 cooksey Exp $
 /*
  * #Name: test8_3
  * #Desc: getCallStack through instrumentation
@@ -55,19 +55,23 @@
 
 #include "test_lib.h"
 
-BPatch *bpatch;
+static BPatch *bpatch;
 
 #if defined( DEBUG )
 #include <sys/ptrace.h>
 #endif
-int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
+static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
 
 #if (defined( arch_alpha ) && defined( os_osf )) 
-	printf("Skipping test #3 (getCallStack through instrumentation)\n");
-	printf("    unwinding through base & minitramps not implemented on this platform\n");
+	logerror("Skipping test #3 (getCallStack through instrumentation)\n");
+	logerror("    unwinding through base & minitramps not implemented on this platform\n");
         return 0;
 #else
     bool passedTest;
+
+    while (!appThread->isStopped()) { // Necessary in fast & loose mode
+      bpatch->waitForStatusChange();
+    }
     appThread->continueExecution();
 	static const frameInfo_t correct_frame_info[] = {
 	
@@ -139,7 +143,7 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
 	    BPatch_Vector<BPatch_frame> stack;
 	    appThread->getCallStack( stack );
 		
-		fprintf( stderr, "single-step stack walk, %d instructions after stop for instrumentation.\n", i );
+		dprintf("single-step stack walk, %d instructions after stop for instrumentation.\n", i );
 		for( unsigned i = 0; i < stack.size(); i++ ) {
 			char name[ 40 ];
 			BPatch_function * func = stack[i].findFunction();
@@ -147,9 +151,9 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
 			if( func == NULL ) { strcpy( name, "[UNKNOWN]" ); }
 			else { func->getName( name, 40 ); }
 			
-			fprintf( stderr, "  %10p: %s, fp = %p\n", stack[i].getPC(), name, stack[i].getFP() );
+			dprintf("  %10p: %s, fp = %p\n", stack[i].getPC(), name, stack[i].getFP() );
 			} /* end stack walk dumper */
-		fprintf( stderr, "end of stack walk.\n" );
+		dprintf("end of stack walk.\n" );
 		} /* end single-step iterator */
 #endif /* defined( DEBUG ) */		
 
@@ -190,7 +194,7 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
     	}
 
 	if (passedTest)
-	    printf("Passed test #3 (unwind through base and mini tramps)\n");
+	    logerror("Passed test #3 (unwind through base and mini tramps)\n");
 
 	/* Return the mutatee to its normal state. */
 	appThread->continueExecution();	
@@ -201,11 +205,16 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
 } /* end mutatorTest3() */
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test8_3_mutatorMAIN(ParameterDict &param)
 {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

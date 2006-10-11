@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.2 2006/01/30 04:55:33 bpellin Exp $ */
+/* $Id: test9.mutatee.c,v 1.3 2006/10/11 21:54:19 cooksey Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -62,6 +62,7 @@
 #include <iostream>
 #endif
 
+#include "mutatee_util.h"
 #include "test1.h"
 
 #ifdef __cplusplus
@@ -69,7 +70,7 @@ int mutateeCplusplus = 1;
 #else
 int mutateeCplusplus = 0;
 #endif
-#define USAGE "Usage: test1.mutatee [-attach] [-verbose] -run <num> .."
+#define USAGE "Usage: test9.mutatee [-attach] [-verbose] [-log <file>] -run <num> .."
 
 #define MAX_TEST 7 
 #define TRUE 1
@@ -107,24 +108,22 @@ void funcIncrGlobalMainBy2(){
 }
 
 void func7_1(){
+  if( globalVariable_Main != 3){
+    if( globalVariable_Main == 1 ){
+      logerror("**Failed Test #7 (instrument entry point of main)\n");
+    }else if(globalVariable_Main==2){
 
-	if( globalVariable_Main != 3){
-		if( globalVariable_Main == 1 ){
-			fprintf(stderr,"**Failed Test #7 (instrument entry point of main)\n");
-		}else if(globalVariable_Main==2){
-
-			fprintf(stderr,"**Failed Test #7 (instrument first basic block in main)\n");
-		}else{
-			fprintf(stderr,"**Failed Test #7 (instrument entry point of main and instrument first basic block in main)\n");
-		}
-	}else{
+      logerror("**Failed Test #7 (instrument first basic block in main)\n");
+    }else{
+      logerror("**Failed Test #7 (instrument entry point of main and instrument first basic block in main)\n");
+    }
+  }else{
 		
-		if( ! originalMutatee){
-			fprintf(stderr,"Passed Test #7 (instrument entry point of main and instrument first basic block in main)\n");
-		}
-		passedTest[7] = TRUE;
-	}
-
+    if( ! originalMutatee){
+      logerror("Passed Test #7 (instrument entry point of main and instrument first basic block in main)\n");
+    }
+    passedTest[7] = TRUE;
+  }
 } 
 
 void func6_1(){
@@ -134,21 +133,21 @@ void func6_1(){
  && !defined(sparc_sun_solaris2_4) 
 /* Blind duplication - Ray */
 
-	fprintf(stderr,"Skipped test #6 (instrument a shared library and save the world)\n");
-	fprintf(stderr,"\t- not implemented on this platform\n");
-	passedTest[6] = TRUE;
+  logerror("Skipped test #6 (instrument a shared library and save the world)\n");
+  logerror("\t- not implemented on this platform\n");
+  passedTest[6] = TRUE;
 #else
 
-	func6_2(); /*this is in libInstMe.so */
+  func6_2(); /*this is in libInstMe.so */
 
-	if(globalVariable6_1 == 22){
-		if( ! originalMutatee){
-			fprintf(stderr,"Passed Test #6 (instrument a shared library and save the world)\n");
-		}
-		passedTest[6] = TRUE;	
-	}else{
-		fprintf(stderr,"**Failed Test #6 (instrument a shared library and save the world)\n");
-	}
+  if(globalVariable6_1 == 22){
+    if( ! originalMutatee){
+      logerror("Passed Test #6 (instrument a shared library and save the world)\n");
+    }
+    passedTest[6] = TRUE;	
+  }else{
+    logerror("**Failed Test #6 (instrument a shared library and save the world)\n");
+  }
 #endif
 	
 }
@@ -12152,30 +12151,30 @@ int func2_1(){
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(rs6000_ibm_aix5_1)
 
-   fprintf(stderr,"Skipped test #2 (instrument many simple function calls and save the world)\n");
-   fprintf(stderr,"\t- not implemented on this platform\n");
-    passedTest[2] = TRUE;
+   logerror("Skipped test #2 (instrument many simple function calls and save the world)\n");
+   logerror("\t- not implemented on this platform\n");
+   passedTest[2] = TRUE;
 
 #else
-	int ret = 0;
+    int ret = 0;
 
-	if(globalVariable2_1 == 1){
+    if(globalVariable2_1 == 1){
 
-		ret = func2_2();
-		if(ret == 1){
-			if( ! originalMutatee){
-			fprintf(stderr,"Passed Test #2 (instrument many simple function calls and save the world)\n");
-			}
-			passedTest[2] = TRUE;
-		}else{
-		fprintf(stderr,"Failed Test #2 (instrument many simple function calls and save the world)\n");
-		}
-		return ret;
-
-	}else{
-	fprintf(stderr,"Failed Test #2 (instrument many simple function calls and save the world)\n");
-		return 0;
+      ret = func2_2();
+      if(ret == 1){
+	if( ! originalMutatee){
+	  logerror("Passed Test #2 (instrument many simple function calls and save the world)\n");
 	}
+	passedTest[2] = TRUE;
+      }else{
+	logerror("Failed Test #2 (instrument many simple function calls and save the world)\n");
+      }
+      return ret;
+
+    }else{
+      logerror("Failed Test #2 (instrument many simple function calls and save the world)\n");
+      return 0;
+    }
 #endif
 }
 
@@ -12193,21 +12192,21 @@ int func1_1(){
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(rs6000_ibm_aix5_1)
 
-   fprintf(stderr,"Skipped test #1 (instrument one simple function call and save the world)\n");
-   fprintf(stderr,"\t- not implemented on this platform\n");
+   logerror("Skipped test #1 (instrument one simple function call and save the world)\n");
+   logerror("\t- not implemented on this platform\n");
     passedTest[1] = TRUE;
 
 #else
 
 	if(globalVariable1_1 == 42) {
 		if( ! originalMutatee){
-		fprintf(stderr,"Passed Test #1 (instrument one simple function call and save the world)\n");
+		logerror("Passed Test #1 (instrument one simple function call and save the world)\n");
 		}
 		passedTest[1] = TRUE;
 
 		return 1;
 	}else{
-	fprintf(stderr,"Failed Test #1 (instrument one simple function call and save the world)\n");
+	logerror("Failed Test #1 (instrument one simple function call and save the world)\n");
 		return 0;
 	}
 #endif
@@ -12227,8 +12226,8 @@ void func3_1() {
 	mutated binary works fine when it is run by hand 
 */
 
-   fprintf(stderr,"Skipped test #3 (instrument four parameter function call and save the world)\n");
-   fprintf(stderr,"\t- not implemented on this platform\n");
+   logerror("Skipped test #3 (instrument four parameter function call and save the world)\n");
+   logerror("\t- not implemented on this platform\n");
     passedTest[3] = TRUE;
 
 #else
@@ -12244,19 +12243,19 @@ void call3_1(int arg1, int arg2, char *arg3, void *arg4)
     if ((arg1 == 1) && (arg2 == 2) && (!strcmp(arg3, "testString3_1")) &&
 	(arg4 == TEST_PTR)) {
 	if( ! originalMutatee){
-	fprintf(stderr,"Passed test #3 (four parameter function)\n");
+	logerror("Passed test #3 (four parameter function)\n");
 	}
 	passedTest[3] = TRUE;
     } else {
-fprintf(stderr,"**Failed** test #3 (four parameter function)\n");
+      logerror("**Failed** test #3 (four parameter function)\n");
 	if (arg1 != 1)
-	   fprintf(stderr,"    arg1 = %d, should be 1\n", arg1);
+	   logerror("    arg1 = %d, should be 1\n", arg1);
 	if (arg2 != 2)
-	   fprintf(stderr,"    arg2 = %d, should be 2\n", arg2);
+	   logerror("    arg2 = %d, should be 2\n", arg2);
 	if (strcmp(arg3, "testString3_1"))
-	   fprintf(stderr,"    arg3 = %s, should be \"testString3_1\"\n", arg3);
+	   logerror("    arg3 = %s, should be \"testString3_1\"\n", arg3);
 	if (arg4 != TEST_PTR)
-	   fprintf(stderr,"    arg4 = 0x%p, should be 0x%p\n", arg4, TEST_PTR);
+	   logerror("    arg4 = 0x%p, should be 0x%p\n", arg4, TEST_PTR);
     }
 }
 
@@ -12274,8 +12273,8 @@ void func4_1()
 	mutated binary works fine when it is run by hand 
 */
 
-   fprintf(stderr,"Skipped test #4 (read/write a variable in the mutatee and save the world)\n");
-   fprintf(stderr,"\t- not implemented on this platform\n");
+   logerror("Skipped test #4 (read/write a variable in the mutatee and save the world)\n");
+   logerror("\t- not implemented on this platform\n");
     passedTest[4] = TRUE;
 
 #else
@@ -12283,16 +12282,16 @@ void func4_1()
 
     if (globalVariable4_1 == 17) {
 		if( ! originalMutatee){
-    		fprintf(stderr,"Passed test #4 (read/write a variable in the mutatee)\n");
+    		logerror("Passed test #4 (read/write a variable in the mutatee)\n");
 		}
 		passedTest[4] = TRUE;
     } else {
-	fprintf(stderr,"**Failed test #4 (read/write a variable in the mutatee)\n");
-		if (globalVariable4_1 == 42)
-	    fprintf(stderr,"    globalVariable4_1 still contains 42 (probably it was not written to)\n");
-		else
-		   fprintf(stderr,"    globalVariable4_1 contained %d, not 17 as expected\n",
-			    globalVariable4_1);
+      logerror("**Failed test #4 (read/write a variable in the mutatee)\n");
+      if (globalVariable4_1 == 42)
+	logerror("    globalVariable4_1 still contains 42 (probably it was not written to)\n");
+      else
+	logerror("    globalVariable4_1 contained %d, not 17 as expected\n",
+		 globalVariable4_1);
     }
 #endif
 }
@@ -12303,8 +12302,8 @@ void func5_1(){
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(rs6000_ibm_aix4_1)
 
-   fprintf(stderr,"Skipped test #5 (use loadLibrary and save the world)\n");
-   fprintf(stderr,"\t- not implemented on this platform\n");
+   logerror("Skipped test #5 (use loadLibrary and save the world)\n");
+   logerror("\t- not implemented on this platform\n");
     passedTest[5] = TRUE;
 
 #else
@@ -12341,11 +12340,11 @@ void func5_1(){
 		/* init in libLoadMe.so should set globalVariable5_1 */
 		if( ! originalMutatee){
 
-		fprintf(stderr,"Passed test #5 (use loadLibrary)\n");
+		logerror("Passed test #5 (use loadLibrary)\n");
 		}
 		passedTest[5] = TRUE;
 	}else{
-	fprintf(stderr,"**Failed test #5 (use loadLibrary) %d\n",globalVariable5_1);
+	  logerror("**Failed test #5 (use loadLibrary) %d\n",globalVariable5_1);
 	}
 		
 #endif
@@ -12387,6 +12386,7 @@ int main(int iargc, char *argv[])
     unsigned int i, j;
     unsigned int testsFailed = 0;
     int useAttach = FALSE;
+    char *logfilename = NULL;
 #ifndef i386_unknown_nt4_0
     int pfd;
 #endif
@@ -12408,6 +12408,13 @@ int main(int iargc, char *argv[])
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = TRUE;
+	} else if (!strcmp(argv[i], "-log")) {
+	  if ((i + 1) >= argc) {
+	    fprintf(stderr, "Missing log file name\n%s\n", USAGE);
+	    exit(-1);
+	  }
+	  i += 1;
+	  logfilename = argv[i];
         } else if (!strcmp(argv[i], "-attach")) {
             useAttach = TRUE;
 #ifndef i386_unknown_nt4_0
@@ -12446,8 +12453,20 @@ int main(int iargc, char *argv[])
         }
     }
 
+    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	exit(-1);
+      }
+      errlog = outlog;
+    } else {
+      outlog = stdout;
+      errlog = stderr;
+    }
+
     if ((argc==1) || debugPrint)
-       fprintf(stderr,"Mutatee %s [%s]:\"%s\"\n", argv[0],
+       logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
 
@@ -12465,7 +12484,12 @@ int main(int iargc, char *argv[])
     }
 
 
-    fflush(stdout);
+    flushErrorLog();
     dprintf("Mutatee %s terminating.\n", argv[0]);
+
+    if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+    }
+    
     exit(testsFailed ? 127 :0); /* 1 is success! 127 is failure*/ 
 }

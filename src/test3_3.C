@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_3.C,v 1.3 2006/03/12 23:33:29 legendre Exp $
+// $Id: test3_3.C,v 1.4 2006/10/11 21:53:35 cooksey Exp $
 /*
  * #Name: test3_3
  * #Desc: instrument multiple processes
@@ -56,14 +56,14 @@
 #include "test_lib.h"
 //#include "test3.h"
 
-const unsigned int MAX_MUTATEES = 32;
-unsigned int Mutatees=3;
-int debugPrint;
+static const unsigned int MAX_MUTATEES = 32;
+static unsigned int Mutatees=3;
+static int debugPrint;
 
 //
 // read the result code written to the file test3.out.<pid> and return it
 //
-int readResult(int pid)
+static int readResult(int pid)
 {
     int ret;
     FILE *fp;
@@ -72,7 +72,7 @@ int readResult(int pid)
     sprintf(filename, "test3.out.%d", pid);
     fp = fopen(filename, "r");
     if (!fp) {
-	printf("ERROR: unable to open output file %s\n", filename);
+	logerror("ERROR: unable to open output file %s\n", filename);
 	return -1;
     }
     fscanf(fp, "%d\n", &ret);
@@ -91,7 +91,7 @@ int readResult(int pid)
 //     The first mutator should write a 1 to the file, the second a 2, etc.
 //     If no code is patched into the mutatees, the value is 0xdeadbeef.
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
     const char *child_argv[5];
@@ -111,8 +111,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
         appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread[n]) {
-            printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** test #3 (instrument multiple processes)\n");
+            logerror("*ERROR*: unable to create handle%d for executable\n", n);
+            logerror("**Failed** test #3 (instrument multiple processes)\n");
             MopUpMutatees(n-1,appThread);
             return -1;
         }
@@ -131,28 +131,28 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == img->findFunction(Func, found_funcs, 1)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      Func);
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), Func);
     }
 
     BPatch_Vector<BPatch_point *> *point = found_funcs[0]->findPoint(BPatch_entry);
 
         if (!point || (*point).size() == 0) {
-            printf("  Unable to find entry point to \"%s\".\n", Func);
-            printf("**Failed** test #3 (instrument multiple processes)\n");
+            logerror("  Unable to find entry point to \"%s\".\n", Func);
+            logerror("**Failed** test #3 (instrument multiple processes)\n");
             MopUpMutatees(Mutatees,appThread);
             return -1;
         }
         BPatch_variableExpr *var = img->findVariable(Var);
         if (var == NULL) {
-            printf("  Unable to find variable \"%s\".\n", Var);
-            printf("**Failed** test #3 (instrument multiple processes)\n");
+            logerror("  Unable to find variable \"%s\".\n", Var);
+            logerror("**Failed** test #3 (instrument multiple processes)\n");
             MopUpMutatees(Mutatees,appThread);
             return -1;
         }
@@ -160,8 +160,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	BPatch_Vector<BPatch_function *> bpfv;
 	if (NULL == img->findFunction(Call, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
-	  printf("  Unable to find target function \"%s\".\n", Call);
-	  printf("**Failed** test #3 (instrument multiple processes)\n");
+	  logerror("  Unable to find target function \"%s\".\n", Call);
+	  logerror("**Failed** test #3 (instrument multiple processes)\n");
           return -1;
 	}
 
@@ -171,8 +171,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         BPatch_arithExpr snip(BPatch_assign, *var, BPatch_constExpr((int)n));
         BPatchSnippetHandle *inst = appThread[n]->insertSnippet(snip, *point);
         if (inst == NULL) {
-            printf("  Failed to insert simple snippet.\n");
-            printf("**Failed** test #3 (instrument multiple processes)\n");
+            logerror("  Failed to insert simple snippet.\n");
+            logerror("**Failed** test #3 (instrument multiple processes)\n");
             MopUpMutatees(Mutatees,appThread);
             return -1;
         }
@@ -185,8 +185,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         BPatchSnippetHandle *call = 
                 appThread[n]->insertSnippet(callExpr, *point);
         if (call == NULL) {
-            printf("  Failed to insert call snippet.\n");
-            printf("**Failed** test #3 (instrument multiple processes)\n");
+            logerror("  Failed to insert call snippet.\n");
+            logerror("**Failed** test #3 (instrument multiple processes)\n");
             MopUpMutatees(Mutatees,appThread);
             return -1;
         }
@@ -228,7 +228,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     for (n=0; n<Mutatees; n++) {
         ret[n]=readResult(pid[n]);
         if (ret[n] != (int)n) {
-            printf("    mutatee process %d produced %d, not %d\n",
+            dprintf("    mutatee process %d produced %d, not %d\n",
                 pid[n], ret[n], n);
             allCorrect=false;
         } else {
@@ -238,21 +238,26 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     }
 
     if (allCorrect) {
-        printf("Passed Test #3 (instrument multiple processes)\n");
+        logerror("Passed Test #3 (instrument multiple processes)\n");
         return 0;
     } else {
-        printf("**Failed** test #3 (instrument multiple processes)\n");
+        logerror("**Failed** test #3 (instrument multiple processes)\n");
         return -1;
     }
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test3_3_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
     
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

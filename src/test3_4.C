@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_4.C,v 1.4 2006/03/12 23:33:30 legendre Exp $
+// $Id: test3_4.C,v 1.5 2006/10/11 21:53:36 cooksey Exp $
 /*
  * #Name: test3_4
  * #Desc: sequential multiple-process management - exit
@@ -56,15 +56,15 @@
 #include "test_lib.h"
 //#include "test3.h"
 
-const unsigned int MAX_MUTATEES = 32;
-unsigned int Mutatees=3;
-int debugPrint;
+static const unsigned int MAX_MUTATEES = 32;
+static unsigned int Mutatees=3;
+static int debugPrint;
 
 //
 // Start Test Case #4 - create one process, wait for it to exit.  Then 
 //     create a second one and wait for it to exit.  Repeat as required.
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
     const char *child_argv[5];
@@ -81,8 +81,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
         appThread = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread) {
-            printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** Test #4 (sequential multiple-process management - exit)\n");
+            logerror("*ERROR*: unable to create handle%d for executable\n", n);
+            logerror("**Failed** Test #4 (sequential multiple-process management - exit)\n");
             return -1;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
@@ -107,16 +107,22 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	delete appThread;
     }
 
-    printf("Passed Test #4 (sequential multiple-process management - exit)\n");
+    logerror("Passed Test #4 (sequential multiple-process management - exit)\n");
     return 0;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test3_4_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

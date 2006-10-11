@@ -61,12 +61,12 @@ using std::vector;
 #define TESTNO 8
 #define TESTNAME "user defined message callback -- mt"
 
-int debugPrint;
-BPatch *bpatch;
-BPatch_thread *appThread;
-BPatch_image *appImage;
+static int debugPrint;
+static BPatch *bpatch;
+static BPatch_thread *appThread;
+static BPatch_image *appImage;
 
-BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
+static BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
                         int testno, const char *testname)
 {
   assert(f);
@@ -74,13 +74,13 @@ BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
 
   if (!pts) {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  no points matching requested location\n", __FILE__, __LINE__);
+    logerror("%s[%d]:  no points matching requested location\n", __FILE__, __LINE__);
     exit(1);
   }
 
   if (pts->size() != 1) {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  %d points matching requested location, not 1\n", __FILE__, __LINE__,
+    logerror("%s[%d]:  %d points matching requested location, not 1\n", __FILE__, __LINE__,
            pts->size());
     exit(1);
   }
@@ -90,7 +90,7 @@ BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
 
 //  at -- simple instrumentation.  As written, only can insert funcs without args -- 
 //     -- modify to take snippet vector args if necessary.
-BPatchSnippetHandle *at(BPatch_point * pt, BPatch_function *call,
+static BPatchSnippetHandle *at(BPatch_point * pt, BPatch_function *call,
                         int testno, const char *testname)
 {
   BPatch_Vector<BPatch_snippet *> args;
@@ -107,65 +107,64 @@ BPatchSnippetHandle *at(BPatch_point * pt, BPatch_function *call,
 
   if (!ret) {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  could not insert instrumentation\n", __FILE__, __LINE__);
+    logerror("%s[%d]:  could not insert instrumentation\n", __FILE__, __LINE__);
     exit(1);
   }
 
   return ret;
 }
 
-void dumpVars(void)
+static void dumpVars(void)
 {
   BPatch_Vector<BPatch_variableExpr *> vars;
   appImage->getVariables(vars);
   for (unsigned int i = 0; i < vars.size(); ++i) {
-    fprintf(stderr, "\t%s\n", vars[i]->getName());
+    logerror("\t%s\n", vars[i]->getName());
   }
 }
 
-
-void setVar(const char *vname, void *addr, int testno, const char *testname)
+static void setVar(const char *vname, void *addr, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    void *buf = addr;
    if (NULL == (v = appImage->findVariable(vname))) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  cannot find variable %s, avail vars:\n", vname);
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  cannot find variable %s, avail vars:\n", vname);
       dumpVars();
          exit(1);
    }
 
    if (! v->writeValue(buf, sizeof(int),true)) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  failed to write call site var to mutatee\n");
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  failed to write call site var to mutatee\n");
       exit(1);
    }
 }
 
-void getVar(const char *vname, void *addr, int len, int testno, const char *testname)
+static void getVar(const char *vname, void *addr, int len, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    if (NULL == (v = appImage->findVariable(vname))) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  cannot find variable %s: avail vars:\n", vname);
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  cannot find variable %s: avail vars:\n", vname);
       dumpVars();
          exit(1);
    }
 
    if (! v->readValue(addr, len)) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  failed to read var in mutatee\n");
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  failed to read var in mutatee\n");
       exit(1);
    }
 }
 
 
-bool test8done = false;
-bool test8err = false;
-unsigned long tids[TEST8_THREADS];
-user_event_t last_event[TEST8_THREADS];
+static bool test8done = false;
+static bool test8err = false;
+static unsigned long tids[TEST8_THREADS];
+static user_event_t last_event[TEST8_THREADS];
 
-bool findThreadIndex(unsigned long tid, unsigned int &index)
+static bool findThreadIndex(unsigned long tid, unsigned int &index)
 {
  //  find the index with tid <tid>, if it exists, otherwise, the index of
  //  an empty slot.  If no empty slot, return false (fail);
@@ -173,7 +172,7 @@ bool findThreadIndex(unsigned long tid, unsigned int &index)
     if (0 == tids[index]) {
       tids[index] = tid;
       if (debugPrint)
-        fprintf(stderr, "%s[%d]:  giving new slot to thread id %lu\n",
+        dprintf("%s[%d]:  giving new slot to thread id %lu\n",
                 __FILE__, __LINE__, tid);
       return true;
     }
@@ -183,15 +182,15 @@ bool findThreadIndex(unsigned long tid, unsigned int &index)
   return false;
 }
 
-void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
+static void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
 {
   static int destroy_counter = 0;
   if (debugPrint)
-    fprintf(stderr, "%s[%d]:  inside test8cb\n", __FILE__, __LINE__);
+    dprintf("%s[%d]:  inside test8cb\n", __FILE__, __LINE__);
 
   if (bufsize != sizeof(user_msg_t)) {
     //  something is incredibly wrong
-    fprintf(stderr, "%s[%d]:  unexpected message size %d not %d\n",
+    logerror("%s[%d]:  unexpected message size %d not %d\n",
             __FILE__, __LINE__, bufsize, sizeof(user_msg_t));
     test8err = true;
     return;
@@ -202,20 +201,20 @@ void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
   unsigned long tid = msg->tid;
 
   if (debugPrint)
-    fprintf(stderr, "%s[%d]:  thread = %lu, what = %d\n", __FILE__, __LINE__, tid, what);
+    dprintf("%s[%d]:  thread = %lu, what = %d\n", __FILE__, __LINE__, tid, what);
   unsigned int index;
   if (!findThreadIndex(tid, index)) {
     test8err = true;
-    fprintf(stderr, "%s[%d]:  failed to find record for tid %lu (or empty slot)\n",
+    logerror("%s[%d]:  failed to find record for tid %lu (or empty slot)\n",
             __FILE__, __LINE__,tid);
     return;
   }
 
   if (debugPrint)
-    fprintf(stderr, "%s[%d]:  thread id %lu: index %d\n", __FILE__, __LINE__, tid, index);
+    dprintf("%s[%d]:  thread id %lu: index %d\n", __FILE__, __LINE__, tid, index);
   if (last_event[index] != (what - 1)) {
     test8err = true;
-    fprintf(stderr, "%s[%d]:  out of order messsage received for thread %lu, last = %d, now = %d\n",
+    logerror("%s[%d]:  out of order messsage received for thread %lu, last = %d, now = %d\n",
            __FILE__, __LINE__, tid, last_event[index], what);
     return;
   }
@@ -229,8 +228,10 @@ void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
 }
 
 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
+  test8done = false;
+  test8err = false;
 
     // load libtest12.so -- currently only used by subtest 5, but make it generally
     // available
@@ -241,7 +242,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
     dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, libname);
     if (!appThread->loadLibrary(libname)) {
-      fprintf(stderr, "%s[%d]:  failed to load library %s, cannot proceed\n", 
+      logerror("%s[%d]:  failed to load library %s, cannot proceed\n", 
 	      __FILE__, __LINE__, libname);
       return -1;
     }
@@ -277,7 +278,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   BPatchUserEventCallback cb = test8cb;
   if (!bpatch->registerUserEventCallback(cb)) {
     FAIL_MES(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]: could not register callback\n", __FILE__, __LINE__);
+    logerror("%s[%d]: could not register callback\n", __FILE__, __LINE__);
     return -1;
   }
 
@@ -295,7 +296,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
   if (timeout >= TIMEOUT) {
     FAIL_MES(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  test timed out. Took longer than %d ms\n",
+    logerror("%s[%d]:  test timed out. Took longer than %d ms\n",
            __FILE__, __LINE__, TIMEOUT);
     test8err = true;
   }
@@ -307,7 +308,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
   if (!bpatch->removeUserEventCallback(test8cb)) {
     FAIL_MES(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  failed to remove callback\n",
+    logerror("%s[%d]:  failed to remove callback\n",
            __FILE__, __LINE__);
     return -1;
   }
@@ -330,12 +331,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   return -1;
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test12_8_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     appThread = (BPatch_thread *)(param["appThread"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     appImage = appThread->getImage();
