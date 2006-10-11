@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_1.C,v 1.6 2006/06/11 00:35:29 legendre Exp $
+// $Id: test12_1.C,v 1.7 2006/10/11 21:52:22 cooksey Exp $
 /*
  * #Name: test12_1
  * #Desc: rtlib spinlocks
@@ -59,19 +59,19 @@
 #define TESTNO 1
 #define TESTNAME "rtlib spinlocks"
 
-int mutateeXLC;
+static int mutateeXLC;
 extern BPatch *bpatch;
-int debugPrint;
+static int debugPrint;
 
-BPatch_thread *appThread;
+static BPatch_thread *appThread;
 static const char *expected_fnames[] = {"call1_1","call1_2","call1_3","call1_4"};
-int test1done = 0;
-int test1err = 0;
+static int test1done = 0;
+static int test1err = 0;
 template class BPatch_Vector<void *>;
-BPatch_Vector<void *> test1handles;
-BPatch_Vector<BPatch_point *> dyncalls;
+static BPatch_Vector<void *> test1handles;
+static BPatch_Vector<BPatch_point *> dyncalls;
 
-int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
 {
   //  Just continue the process and wait for the (mutatee side) test to complete
   BPatch_process *proc = appT->getProcess();
@@ -88,12 +88,12 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
         break;
      if (proc->isStopped()) {
         //  This really shouldn't happen
-        fprintf(stderr, "%s[%d]:  BAD NEWS:  process is stopped, something is broken\n",
+        dprintf("%s[%d]:  BAD NEWS:  process is stopped, something is broken\n",
                 __FILE__, __LINE__);
         proc->continueExecution();
      }
      if (proc->isDetached()) {
-        fprintf(stderr, "%s[%d]:  BAD NEWS:  process is detached, something is broken\n",
+        dprintf("%s[%d]:  BAD NEWS:  process is detached, something is broken\n",
                 __FILE__, __LINE__);
         abort();
      }
@@ -111,14 +111,14 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
        case ExitedViaSignal:
          {
           int code = proc->getExitSignal();
-          fprintf(stderr, "%s[%d]:  exited with signal %d\n",
+          dprintf("%s[%d]:  exited with signal %d\n",
                   __FILE__, __LINE__, code);
           return -1;
           break;
          }
        case NoExit:
        default:
-          fprintf(stderr, "%s[%d]:  did not exit ???\n",
+          dprintf("%s[%d]:  did not exit ???\n",
                   __FILE__, __LINE__);
           return -1;
           break;
@@ -127,7 +127,7 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
 
    if (timeout >= TIMEOUT) {
      FAIL_MES(TESTNO, TESTNAME);
-     fprintf(stderr, "%s[%d]:  test timed out.\n",
+     dprintf("%s[%d]:  test timed out.\n",
             __FILE__, __LINE__);
      return -1;
    }
@@ -137,13 +137,19 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
 }
 
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test12_1_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
     mutateeXLC = param["mutateeXLC"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

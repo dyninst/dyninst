@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test7.mutatee.c,v 1.2 2006/05/03 00:31:26 jodom Exp $ */
+/* $Id: test7.mutatee.c,v 1.3 2006/10/11 21:54:05 cooksey Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -51,6 +51,8 @@
 #include <stdlib.h>
 #include <sys/msg.h>
 #include <stdarg.h>
+
+#include "mutatee_util.h"
 
 #if defined(i386_unknown_nt4_0) && !defined(__GNUC__)
 #define WIN32_LEAN_AND_MEAN
@@ -156,9 +158,9 @@ void mutateeMAIN()
   return;
 #endif
   int pid;
-  /* fprintf(stderr, "mutatee:  starting fork\n"); */
+  /* dprintf("mutatee:  starting fork\n"); */
   pid = fork();
-  /* fprintf(stderr, "mutatee:  stopping fork\n"); */
+  /* dprintf("mutatee:  stopping fork\n"); */
 
   /* mutatee will get paused here, temporarily, when the mutator receives
      the postForkCallback */
@@ -188,7 +190,7 @@ void mutateeMAIN()
     func7_9();
     dprintf("Parent: done with tests, exiting\n");
   } else if(pid < 0) {
-    fprintf(stderr, "error on fork\n");
+    logerror("error on fork\n");
     exit(pid);  /* error case */
   }
 }
@@ -196,17 +198,45 @@ void mutateeMAIN()
 int main(int argc, char *argv[])
 {                                       
     int i;
+    char *logfilename = NULL;
 
     for (i=1; i < argc; i++) {
       if (!strcmp(argv[i], "-verbose")) {
 	debugPrint = TRUE;
+      } else if (!strcmp(argv[i], "-log")) {
+	if ((i + 1) >= argc) {
+	  fprintf(stderr, "Missing log file name\n");
+	  exit(-1);
+	}
+	i += 1;
+	logfilename = argv[i];
+      } else if (!strcmp(argv[i], "-fast")) {
+	fastAndLoose = 1;
       }
     }
+
+    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	exit(-1);
+      }
+      errlog = outlog;
+    } else {
+      outlog = stdout;
+      errlog = stderr;
+    }
+
     if(debugPrint) {
-        printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
-                mutateeCplusplus ? "C++" : "C", Builder_id);
+        logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+		  mutateeCplusplus ? "C++" : "C", Builder_id);
     }
     mutateeMAIN();
+
+    if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+    }
+
     return 0;
 }
 

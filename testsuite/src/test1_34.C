@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_34.C,v 1.3 2006/03/08 16:44:35 bpellin Exp $
+// $Id: test1_34.C,v 1.4 2006/10/11 21:53:03 cooksey Exp $
 /*
  * #Name: test1_34
  * #Desc: Loop Information
@@ -55,7 +55,7 @@
 
 #include "test_lib.h"
 
-int numContainedLoops(BPatch_basicBlockLoop *loop)
+static int numContainedLoops(BPatch_basicBlockLoop *loop)
 {
     BPatch_Vector<BPatch_basicBlockLoop*> containedLoops;
     loop->getContainedLoops(containedLoops);
@@ -66,7 +66,7 @@ int numContainedLoops(BPatch_basicBlockLoop *loop)
 //
 // Start Test Case #34 - (loop information)
 //
-int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
+static int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage)
 {
 #if !defined(os_windows) && !defined(os_aix)
     unsigned int i;
@@ -75,8 +75,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     char *fn = "func34_2";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed** test #34 (loop information)\n");
-      fprintf(stderr, "    Unable to find function %s\n", fn);
+      logerror("**Failed** test #34 (loop information)\n");
+      logerror("    Unable to find function %s\n", fn);
       return -1;
     }
     
@@ -84,16 +84,16 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 
     BPatch_flowGraph *cfg = func2->getCFG();
     if (cfg == NULL) {
-	fprintf(stderr, "**Failed** test #34 (loop information)\n");
-	fprintf(stderr, "  Unable to get control flow graph of func34_2\n");
+	logerror("**Failed** test #34 (loop information)\n");
+	logerror("  Unable to get control flow graph of func34_2\n");
 	return -1;
     }
 
     BPatch_Vector<BPatch_basicBlockLoop*> loops;
     cfg->getLoops(loops);
     if (loops.size() != 4) {
-	fprintf(stderr, "**Failed** test #34 (loop information)\n");
-	fprintf(stderr, "  Detected %d loops, should have been four.\n",
+	logerror("**Failed** test #34 (loop information)\n");
+	logerror("  Detected %d loops, should have been four.\n",
 		loops.size());
 	return -1;
     }
@@ -111,14 +111,14 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     }
 
     if (outerLoop == NULL) {
-	fprintf(stderr, "**Failed** test #34 (loop information)\n");
-	fprintf(stderr, "  Unable to find a loop containing two other loops.\n");
+	logerror("**Failed** test #34 (loop information)\n");
+	logerror("  Unable to find a loop containing two other loops.\n");
 	return -1;
     }
 
 //     if (numBackEdges(outerLoop) != 1) {
-// 	fprintf(stderr, "**Failed** test #34 (loop information)\n");
-// 	fprintf(stderr, "  There should be exactly one backedge in the outer loops, but there are %d\n", numBackEdges(outerLoop));
+// 	logerror("**Failed** test #34 (loop information)\n");
+// 	logerror("  There should be exactly one backedge in the outer loops, but there are %d\n", numBackEdges(outerLoop));
 // 	return -1;
 //     }
 
@@ -134,59 +134,59 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 
 	if (tmpLoops.size() == 1) { /* The first loop has one nested inside. */
 	    if (foundFirstLoop) {
-		fprintf(stderr, "**Failed** test #34 (loop information)\n");
-		fprintf(stderr, "  Found more than one second-level loop with one nested inside.\n");
+		logerror("**Failed** test #34 (loop information)\n");
+		logerror("  Found more than one second-level loop with one nested inside.\n");
 		return -1;
 	    }
 	    foundFirstLoop = true;
 
 // 	    if (numBackEdges(insideOuterLoop[i]) != 1) {
-// 		fprintf(stderr, "**Failed** test #34 (loop information)\n");
-// 		fprintf(stderr, "  There should be exactly one backedge in the first inner loop, but there are %d\n", numBackEdges(tmpLoops[0]));
+// 		logerror("**Failed** test #34 (loop information)\n");
+// 		logerror("  There should be exactly one backedge in the first inner loop, but there are %d\n", numBackEdges(tmpLoops[0]));
 // 		return -1;
 // 	    }
 
 // 	    if (numBackEdges(tmpLoops[0]) != 1) {
-// 		fprintf(stderr, "**Failed** test #34 (loop information)\n");
-// 		fprintf(stderr, "  There should be exactly one backedge in the third level loop, but there are %d\n", numBackEdges(tmpLoops[0]));
+// 		logerror("**Failed** test #34 (loop information)\n");
+// 		logerror("  There should be exactly one backedge in the third level loop, but there are %d\n", numBackEdges(tmpLoops[0]));
 // 		return -1;
 // 	    }
 
 	    if (numContainedLoops(tmpLoops[0]) != 0) {
-		fprintf(stderr, "**Failed** test #34 (loop information)\n");
-		fprintf(stderr, "  The first loop at the third level should not have any loops nested inside,\n");
-		fprintf(stderr, "  but %d were detected.\n",
+		logerror("**Failed** test #34 (loop information)\n");
+		logerror("  The first loop at the third level should not have any loops nested inside,\n");
+		logerror("  but %d were detected.\n",
 			numContainedLoops(tmpLoops[0]));
 		return -1;
 	    }
 
 	} else if(tmpLoops.size() == 0) { /* The second loop has none nested. */
 	    if (deepestLoops >= 2) {
-		fprintf(stderr, "**Failed** test #34 (loop information)\n");
-		fprintf(stderr, "  Found more than two loops without any nested inside.\n");
+		logerror("**Failed** test #34 (loop information)\n");
+		logerror("  Found more than two loops without any nested inside.\n");
 		return -1;
 	    }
 	    deepestLoops++;
 
 // 	    if (numBackEdges(insideOuterLoop[i]) != 1) {
-// 		fprintf(stderr, "**Failed** test #34 (loop information)\n");
-// 		fprintf(stderr, "  Unexpected number of backedges in loop (%d)\n", numBackEdges(insideOuterLoop[i]));
+// 		logerror("**Failed** test #34 (loop information)\n");
+// 		logerror("  Unexpected number of backedges in loop (%d)\n", numBackEdges(insideOuterLoop[i]));
 // 		return -1;
 // 	    }
 	} else { /* All loops should be recognized above. */
-	    fprintf(stderr, "**Failed** test #34 (loop information)\n");
-	    fprintf(stderr, "  Found a loop containing %d loops, should be one or  none.\n", tmpLoops.size());
+	    logerror("**Failed** test #34 (loop information)\n");
+	    logerror("  Found a loop containing %d loops, should be one or  none.\n", tmpLoops.size());
 	    return -1;
 	}
     }
 
     if (!foundFirstLoop || deepestLoops < 2) {
 	/* We shouldn't be able to get here. */
-	fprintf(stderr, "**Failed** test #34 (loop information)\n");
+	logerror("**Failed** test #34 (loop information)\n");
 	if (!foundFirstLoop)
-	    fprintf(stderr, "  Could not find the first nested loop.\n");
+	    logerror("  Could not find the first nested loop.\n");
 	if (deepestLoops < 2)
-	    fprintf(stderr, "  Could not find all the deepest level loops.\n");
+	    logerror("  Could not find all the deepest level loops.\n");
 	return -1;
     }
 
@@ -198,8 +198,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     cfg->getOuterLoops(outerLoops);
 
     if (outerLoops.size() != 1) {
-	fprintf(stderr, "**Failed** test #34 (loop information)\n");
-	fprintf(stderr, "  Detected %d outer loops, should have been one.\n",
+	logerror("**Failed** test #34 (loop information)\n");
+	logerror("  Detected %d outer loops, should have been one.\n",
 		outerLoops.size());
 	return -1;
     }
@@ -208,8 +208,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     outerLoops[0]->getOuterLoops(outerLoopChildren);
 
     if (outerLoopChildren.size() != 2) {
-	fprintf(stderr, "**Failed** test #34 (loop information)\n");
-	fprintf(stderr, "  Detected %d outer loops, should have been two.\n",
+	logerror("**Failed** test #34 (loop information)\n");
+	logerror("  Detected %d outer loops, should have been two.\n",
 		outerLoopChildren.size());
 	return -1;
     }
@@ -225,8 +225,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	   outerLoopGrandChildren1.size() == 0) &&
 	  (outerLoopGrandChildren0.size() == 1 || 
 	   outerLoopGrandChildren1.size() == 1))) {
-	fprintf(stderr, "**Failed** test #34 (loop information)\n");
-	fprintf(stderr, "  Detected %d and %d outer loops, should have been zero and one.\n",
+	logerror("**Failed** test #34 (loop information)\n");
+	logerror("  Detected %d and %d outer loops, should have been zero and one.\n",
 		outerLoopGrandChildren0.size(), 
 		outerLoopGrandChildren1.size());
 	return -1;
@@ -237,13 +237,18 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_34_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

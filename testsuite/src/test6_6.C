@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_6.C,v 1.2 2005/11/22 19:42:41 bpellin Exp $
+// $Id: test6_6.C,v 1.3 2006/10/11 21:54:02 cooksey Exp $
 /*
  * #Name: test6_6
  * #Desc: Instrumentation w/ byte count snippet
@@ -56,9 +56,8 @@
 #include "test_lib.h"
 #include "test6.h"
 
-
 // Find and instrument loads with a simple function call snippet
-int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
+static int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 {
   int testnum = 6;
   const char* testdesc ="instrumentation w/byte count snippet";
@@ -78,13 +77,13 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",
+    logerror("    Unable to find function %s\n",
 	    inFunction);
     return -1;
   }
        
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), inFunction);
   }
        
@@ -97,7 +96,7 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
     failtest(testnum, testdesc,
              "Number of accesses seems wrong in function \"loadsnstores\".\n");
 
-  //fprintf(stderr, "Doing test %d!!!!!!\n", testnum);
+  //logerror("Doing test %d!!!!!!\n", testnum);
   RETURNONFAIL(instByteCnt(bpthr, "ByteCnt", res1, false));
 #endif
 
@@ -105,12 +104,17 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test6_6_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

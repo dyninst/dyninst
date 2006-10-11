@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_test7.C,v 1.3 2006/03/03 00:24:04 bpellin Exp $
+// $Id: test_lib_test7.C,v 1.4 2006/10/11 21:54:34 cooksey Exp $
 #include "test_lib_test7.h"
 #include "test_lib.h"
 #include <sys/msg.h>
@@ -57,7 +57,7 @@ bool setupMessaging(int *msgid) {
 
 bool doError(bool *passedTest, bool cond, const char *str) {
    if(cond == true) {
-      fprintf(stderr, str);
+      logerror("%s", str);
       *passedTest = false;
       return true;
    }
@@ -90,7 +90,7 @@ bool verifyProcMemory(BPatch_thread *appThread, const char *name,
    var->readValue(&actualVal);
    
    if (expectedVal != actualVal) {
-      fprintf(stderr,"*** for %s (%s), expected val = %d, but actual was %d\n",
+      logerror("*** for %s (%s), expected val = %d, but actual was %d\n",
 	      name, procName[proc_type], expectedVal, actualVal);
       return false;
    } else {
@@ -112,7 +112,7 @@ bool verifyProcMemory(const char *name, BPatch_variableExpr *var,
    var->readValue(&actualVal);
    
    if (expectedVal != actualVal) {
-      fprintf(stderr,"*** for %s (%s), expected val = %d, but actual was %d\n",
+      logerror("*** for %s (%s), expected val = %d, but actual was %d\n",
 	      name, procName[proc_type], expectedVal, actualVal);
       return false;
    } else {
@@ -137,8 +137,8 @@ char *subTestNames[10] = {
 
 void showFinalResults(bool passedTest, int i) {
    if(passedTest==false) {
-      printf("Failed test #%d (%s)\n", i, subTestNames[i]);
+      logerror("Failed test #%d (%s)\n", i, subTestNames[i]);
    } else {
-      printf("Passed test #%d (%s)\n", i, subTestNames[i]);
+      logerror("Passed test #%d (%s)\n", i, subTestNames[i]);
    }
 }

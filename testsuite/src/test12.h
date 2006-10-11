@@ -4,9 +4,9 @@
 
 #include "test_lib_test9.h"
 
-#define FAIL_MES(x,y) fprintf(stdout, "**Failed test #%d (%s)\n", x,y);
-#define PASS_MES(x,y) fprintf(stdout, "Passed test #%d (%s)\n", x,y);
-#define SKIP(x,y) fprintf(stdout, "Skipped test #%d (%s)\n", x,y);
+#define FAIL_MES(x,y) logerror("**Failed test #%d (%s)\n", x,y);
+#define PASS_MES(x,y) logerror("Passed test #%d (%s)\n", x,y);
+#define SKIP(x,y) logerror("Skipped test #%d (%s)\n", x,y);
 
 #define TEST1_THREADS 10
 #define TEST3_THREADS 10

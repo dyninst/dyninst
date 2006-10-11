@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_4.C,v 1.2 2005/11/22 19:42:12 bpellin Exp $
+// $Id: test2_4.C,v 1.3 2006/10/11 21:53:26 cooksey Exp $
 /*
  * #Name: test2_4
  * #Desc: Attach to a protected pid
@@ -56,7 +56,6 @@
 #include "test_lib.h"
 #include "Callbacks.h"
 
-
 //
 // Test #4 - attach to a protected pid
 //	Try to attach to a "protected pid" number.  This should test the
@@ -65,17 +64,17 @@
 //	can't read or write.
 //
 
-int mutatorTest(BPatch *bpatch, bool useAttach)
+static int mutatorTest(BPatch *bpatch, bool useAttach)
 {
 #if defined(sparc_sun_sunos4_1_3)
-    printf("Skipping test #4 (attach to a protected pid)\n");
-    printf("    attach is not supported on this platform\n");
+    logerror("Skipping test #4 (attach to a protected pid)\n");
+    logerror("    attach is not supported on this platform\n");
     return 0;
 #else
     if ( !useAttach )
     {
-      printf("Skipping test #4 (attach to a protected pid)\n");
-      printf("    test doesn't make sense without useAttach\n");
+      logerror("Skipping test #4 (attach to a protected pid)\n");
+      logerror("    test doesn't make sense without useAttach\n");
       return 0;
     }
 
@@ -84,24 +83,30 @@ int mutatorTest(BPatch *bpatch, bool useAttach)
     BPatch_thread *ret = bpatch->attachProcess(NULL, 1);
     int gotError = getError();
     if (ret || !gotError) {
-	printf("**Failed** test #4 (attach to a protected pid)\n");
+	logerror("**Failed** test #4 (attach to a protected pid)\n");
 	if (ret)
-    	    printf("    created a thread handle for invalid executable\n");
+    	    logerror("    created a thread handle for invalid executable\n");
 	if (!gotError)
-	    printf("    the error callback should have been called but wasn't\n");
+	    logerror("    the error callback should have been called but wasn't\n");
         return -1;
     } else {
-	printf("Passed test #4 (attach to a protected pid)\n");
+	logerror("Passed test #4 (attach to a protected pid)\n");
         return 0;
     }
 #endif
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_4_mutatorMAIN(ParameterDict &param)
 {
   bool useAttach = param["useAttach"]->getInt();
   BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
   
+  // Get log file pointers
+  FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+  FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+  setOutputLog(outlog);
+  setErrorLog(errlog);
+
   return mutatorTest(bpatch, useAttach);
 
 }

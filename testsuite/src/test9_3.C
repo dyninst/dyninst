@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_3.C,v 1.3 2006/03/08 16:44:59 bpellin Exp $
+// $Id: test9_3.C,v 1.4 2006/10/11 21:54:22 cooksey Exp $
 /*
  * #Name: test9_3
  * #Desc: instrument a function with arguments and save the world
@@ -61,7 +61,7 @@
 //
 // Start Test Case #3 - (instrument a function with arguments and save the world)
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
   const char* testName = "four parameter function";
   int testNo = 3;
@@ -84,27 +84,27 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
 	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
         {
-           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
            return -1;
         }
 
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction("func3_1", found_funcs)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",
+    logerror("    Unable to find function %s\n",
 	    "func3_1");
     return -1;
   }
   
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), "func3_1");
   }
   
   BPatch_Vector<BPatch_point *> *point3_1 = found_funcs[0]->findPoint(BPatch_entry);
 
   if (!point3_1 || ((*point3_1).size() == 0)) {
-    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-    fprintf(stderr, "    Unable to find entry point to \"func3_1.\"\n");
+    logerror("**Failed** test #%d (%s)\n", testNo, testName);
+    logerror("    Unable to find entry point to \"func3_1.\"\n");
     return -1;
   }
 
@@ -112,8 +112,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
   char *fn = "call3_1";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-    fprintf(stderr, "    Unable to find function %s\n", fn);
+    logerror("**Failed** test #%d (%s)\n", testNo, testName);
+    logerror("    Unable to find function %s\n", fn);
     return -1;
   }
   BPatch_function *call2_func = bpfv[0];
@@ -172,25 +172,31 @@ int mutatorTest(char *pathname, BPatch *bpatch)
                 {
                    return 0;
                 } else {
-		  fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+		  logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                   return -1;
                 }
 	}else{
-		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+		logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                 return -1;
 
 	}
 #else
-	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
+	logerror("Skipped Test #%d: not implemented on this platform\n",testNo);
         return 0;
 #endif	
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test9_3_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

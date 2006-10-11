@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4b.mutatee.c,v 1.2 2006/02/22 22:06:33 bpellin Exp $ */
+/* $Id: test4b.mutatee.c,v 1.3 2006/10/11 21:53:45 cooksey Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -50,6 +50,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+
+#include "mutatee_util.h"
 
 #if defined(i386_unknown_nt4_0) && !defined(__GNUC__)
 #define WIN32_LEAN_AND_MEAN
@@ -134,12 +136,20 @@ void func4_1()
 int main(int argc, char *argv[])
 {                                       
     int i, j;
+    char *logfilename = NULL;
 
     dprintf("test4b.mutatee started...\n");
 
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = TRUE;
+	} else if (!strcmp(argv[i], "-log")) {
+	  if ((i + 1) >= argc) {
+	    fprintf(stderr, "Missing log file name\n");
+	    exit(-1);
+	  }
+	  i += 1;
+	  logfilename = argv[i];
         } else if (!strcmp(argv[i], "-run")) {
             runAllTests = FALSE;
             for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
@@ -149,7 +159,7 @@ int main(int argc, char *argv[])
                     if ((testId > 0) && (testId <= MAX_TEST)) {
                         runTest[testId] = TRUE;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                        fprintf(stderr, "invalid test %d requested\n", testId);
                         exit(-1);
                     }
                 } else {
@@ -164,14 +174,31 @@ int main(int argc, char *argv[])
         }
     }
 
+    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	exit(-1);
+      }
+      errlog = outlog;
+    } else {
+      outlog = stdout;
+      errlog = stderr;
+    }
+
     if ((argc==1) || debugPrint)
-        printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
-                mutateeCplusplus ? "C++" : "C", Builder_id);
+        logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+		  mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
 
     if (runTest[3]) func3_1();
     if (runTest[4]) func4_1();
 
     dprintf("Mutatee %s terminating.\n", argv[0]);
+
+    if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+    }
+
     return 0;
 }

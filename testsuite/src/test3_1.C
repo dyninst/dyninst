@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_1.C,v 1.5 2006/03/12 23:33:27 legendre Exp $
+// $Id: test3_1.C,v 1.6 2006/10/11 21:53:33 cooksey Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -57,20 +57,20 @@
 //#include "test3.h"
 
 #if defined(os_windows)
-BPatch_exitType expectedSignal = ExitedNormally;
+static BPatch_exitType expectedSignal = ExitedNormally;
 #else
-BPatch_exitType expectedSignal = ExitedViaSignal;
+static BPatch_exitType expectedSignal = ExitedViaSignal;
 #endif
 
-const unsigned int MAX_MUTATEES = 32;
-unsigned int Mutatees=3;
-int debugPrint;
+static const unsigned int MAX_MUTATEES = 32;
+static unsigned int Mutatees=3;
+static int debugPrint;
 
 //
 // Start Test Case #1 - create processes and process events from each
 //     Just let them run a while, then kill them, no instrumentation added.
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
     const char *child_argv[5];
@@ -89,8 +89,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
         appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread[n]) {
-            printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            logerror("*ERROR*: unable to create handle%d for executable\n", n);
+            logerror("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
             MopUpMutatees(n-1,appThread);
             return -1;
         }
@@ -108,13 +108,13 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     for (n=0; n<Mutatees; n++) {
         bool dead = appThread[n]->terminateExecution();
         if (!dead || !(appThread[n]->isTerminated())) {
-            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
-            printf("    mutatee process [%d] was not terminated\n", n);
+            logerror("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            logerror("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
         if(appThread[n]->terminationStatus() != expectedSignal) {
-            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
-            printf("    mutatee process [%d] didn't get notice of termination\n", n);
+            logerror("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            logerror("    mutatee process [%d] didn't get notice of termination\n", n);
             continue;
         }
         int signalNum = appThread[n]->getExitSignal();
@@ -124,19 +124,25 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     }
 
     if (numTerminated == Mutatees) {
-	printf("Passed Test #1 (simultaneous multiple-process management - terminate)\n");
+	logerror("Passed Test #1 (simultaneous multiple-process management - terminate)\n");
         return 0;
     }
 
     return -1;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test3_1_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

@@ -12,11 +12,17 @@ int timeout = 1200;
 
 string ReplaceAllWith(const string &in, const string &replace, const string &with);
 
-void generateTestString(bool resume, bool useLog, string& logfile,
+void generateTestString(bool resume, bool useLog, bool staticTests,
+      char *logfile,
       int testLimit, vector<char *>& child_argv, string& shellString)
 {
    stringstream testString;
-   testString << "test_driver -enable-resume -limit " << testLimit;
+   if (staticTests) {
+     testString << "test_driver_static";
+   } else {
+     testString << "test_driver";
+   }
+   testString << " -enable-resume -limit " << testLimit;
 
    if ( resume )
    {
@@ -25,6 +31,9 @@ void generateTestString(bool resume, bool useLog, string& logfile,
    if ( useLog )
    {
       testString << " -log";
+   }
+   if (useLog) {
+     testString << " -logfile " << logfile;
    }
 
    // Add child's arguments
@@ -36,11 +45,12 @@ void generateTestString(bool resume, bool useLog, string& logfile,
    stringstream timerString;
    timerString << pdscrdir << "/timer.pl -t " << timeout;
    shellString = timerString.str() + " " + testString.str();
-
-   if ( useLog )
-   {
-      shellString += " >> " + logfile + " 2>&1";
-   }
+   
+//    if ( useLog )
+//    {
+//      // shellString += " >> " + logfile + " 2>&1";
+//      shellString += " -logfile " + logfile;
+//    }
 
 }
 
@@ -84,9 +94,10 @@ char *setLibPath()
    return l_tmp;
 }
 
-void setupVars(bool useLog, string& logfile)
+void setupVars(bool useLog, char *logfile)
 {
    string base_dir, tlog_dir;
+   string logfile_s(logfile);
 
 #if defined(m_abi)
    if ( getenv("DYNINSTAPI_RT_LIB") )
@@ -149,15 +160,15 @@ void setupVars(bool useLog, string& logfile)
    if ( useLog ) 
    {
 
-      if ( logfile == "" )
+      if ( logfile_s == "" )
       {
-         logfile = tlog_dir + "/" + getenv("PLATFORM") + "/" + build_id;
+         logfile_s = tlog_dir + "/" + getenv("PLATFORM") + "/" + build_id;
       }
 
-      cout << "   ... output to " << logfile << endl;
+      cout << "   ... output to " << logfile_s << endl;
 
       string testslogdir, cmd;
-      cmd = "dirname " + logfile;
+      cmd = "dirname " + logfile_s;
       getInput(cmd.c_str(), testslogdir);
    
       if ( ! isDir(testslogdir) )
@@ -174,17 +185,17 @@ void setupVars(bool useLog, string& logfile)
          }
       }
 
-      if ( isRegFile(logfile) )
+      if ( isRegFile(logfile_s) )
       {
          cout << "File exists" << endl;
       }
       else
       {
-         cmd = "touch " + logfile;
+         cmd = "touch " + logfile_s;
          system(cmd.c_str());
       }
    
-      cmd = logfile + ".gz";
+      cmd = logfile_s + ".gz";
       if ( isRegFile(cmd) )
       {
          cout << "File.gz exists" << endl;

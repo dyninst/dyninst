@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_2.C,v 1.2 2005/11/22 19:42:10 bpellin Exp $
+// $Id: test2_2.C,v 1.3 2006/10/11 21:53:24 cooksey Exp $
 /*
  * #Name: test2_2
  * #Desc: Try to run a createProcess on a file that is not an executable file
@@ -61,11 +61,11 @@
 //	Try to run a createProcess on a file that is not an executable file 
 //	(via mutatorMAIN).
 //
-int mutatorTest(BPatch *bpatch, bool useAttach)
+static int mutatorTest(BPatch *bpatch, bool useAttach)
 {
     if (useAttach) {
-	printf("Skipping test #2 (try to execute a file that is not a valid program)\n");
-	printf("    not relevant with -attach option\n");
+	logerror("Skipping test #2 (try to execute a file that is not a valid program)\n");
+	logerror("    not relevant with -attach option\n");
 	return 0;
     }
 
@@ -79,27 +79,33 @@ int mutatorTest(BPatch *bpatch, bool useAttach)
 #endif
 
     clearError();
-    BPatch_thread *ret = startMutateeTest(bpatch, mutatee_name, 2, useAttach);
+    BPatch_thread *ret = startMutateeTest(bpatch, mutatee_name, 2, useAttach, NULL);
 
     int gotError = getError();
     if (ret || !gotError) {
-	printf("**Failed** test #2 (try to execute a file that is not a valid program)\n");
+	logerror("**Failed** test #2 (try to execute a file that is not a valid program)\n");
 	if (ret)
-	    printf("    created a thread handle for invalid executable\n");
+	    logerror("    created a thread handle for invalid executable\n");
 	if (!gotError)
-	    printf("    the error callback should have been called but wasn't\n");
+	    logerror("    the error callback should have been called but wasn't\n");
         return -1;
     } else {
-	printf("Passed test #2 (try to execute a file that is not a valid program)\n");
+	logerror("Passed test #2 (try to execute a file that is not a valid program)\n");
         return 0;
     }
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_2_mutatorMAIN(ParameterDict &param)
 {
   bool useAttach = param["useAttach"]->getInt();
   BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
   
+  // Get log file pointers
+  FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+  FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+  setOutputLog(outlog);
+  setErrorLog(errlog);
+
   return mutatorTest(bpatch, useAttach);
 
 }

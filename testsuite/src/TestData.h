@@ -29,11 +29,14 @@ enum cleanup_mode_t {
    NONE,
 };
       
-
-
 enum enabled_t {
    DISABLED = 0,
    ENABLED = 1,
+};
+
+enum grouped_test_t {
+  GROUPED,
+  SOLO
 };
 
 typedef std::vector<char*> mutatee_list_t;
@@ -61,6 +64,7 @@ struct TESTLIB_DLL_EXPORT TestData {
    cleanup_mode_t cleanup;
    create_mode_t useAttach;
    enabled_t enabled;
+   grouped_test_t grouped;
 
    TestData(char *name, 
          char *soname, 
@@ -71,7 +75,8 @@ struct TESTLIB_DLL_EXPORT TestData {
          int subtest,
          cleanup_mode_t cleanup,
          create_mode_t useAttach,
-         enabled_t enabled
+	 enabled_t enabled,
+	 grouped_test_t grouped
          );
 };
 

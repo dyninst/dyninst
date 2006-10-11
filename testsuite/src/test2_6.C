@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_6.C,v 1.3 2006/06/26 20:16:00 rchen Exp $
+// $Id: test2_6.C,v 1.4 2006/10/11 21:53:28 cooksey Exp $
 /*
  * #Name: test2_6
  * #Desc: Load a dynamically linked library from the mutatee
@@ -56,7 +56,7 @@
 #include "test_lib.h"
 #include "test2.h"
 
-BPatch *bpatch;
+static BPatch *bpatch;
 
 //
 // Test #6 - load a dynamically linked library from the mutatee
@@ -64,7 +64,7 @@ BPatch *bpatch;
 //	into itself.  We should then be able to see the new functions from the
 //	library via getModules.
 //
-int mutatorTest(BPatch_thread *thread, BPatch_image *img)
+static int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 {
 #if !defined(sparc_sun_solaris2_4) \
  && !defined(i386_unknown_solaris2_5) \
@@ -75,8 +75,8 @@ int mutatorTest(BPatch_thread *thread, BPatch_image *img)
  && !defined(rs6000_ibm_aix4_1) \
  && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 
-    printf("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
-    printf("    feature not implemented on this platform\n");
+    logerror("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
+    logerror("    feature not implemented on this platform\n");
     return 0;
 #else
 
@@ -84,7 +84,7 @@ int mutatorTest(BPatch_thread *thread, BPatch_image *img)
     waitUntilStopped(bpatch, thread, 6, "load a dynamically linked library");
     bool found = false;
 
-    // see if the dlopen happended.
+    // see if the dlopen happened.
     char match2[256];
     sprintf(match2, "%s_module", TEST_DYNAMIC_LIB);
     BPatch_Vector<BPatch_module *> *m = img->getModules();
@@ -102,20 +102,20 @@ int mutatorTest(BPatch_thread *thread, BPatch_image *img)
     }
 
     if (found) {
-    	printf("Passed test #6 (load a dynamically linked library from the mutatee)\n");
+    	logerror("Passed test #6 (load a dynamically linked library from the mutatee)\n");
 	
 	thread->continueExecution();
         return 0;
     } else {
-    	printf("**Failed** test #6 (load a dynamically linked library from the mutatee)\n");
-	printf("    image::getModules() did not indicate that the library had been loaded\n");
+    	logerror("**Failed** test #6 (load a dynamically linked library from the mutatee)\n");
+	logerror("    image::getModules() did not indicate that the library had been loaded\n");
 	thread->continueExecution();
         return -1;
     }
 #endif
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_6_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
@@ -124,6 +124,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Signal the child that we've attached
     if (useAttach) {

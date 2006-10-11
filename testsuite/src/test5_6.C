@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_6.C,v 1.4 2006/03/23 23:57:43 legendre Exp $
+// $Id: test5_6.C,v 1.5 2006/10/11 21:53:52 cooksey Exp $
 /*
  * #Name: test5_6
  * #Desc: Exception
@@ -55,11 +55,10 @@
 
 #include "test_lib.h"
 
-
 //  
 // Start Test Case #6 - (exception)
 // 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(os_linux) && defined(arch_x86)
 
@@ -67,8 +66,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   char *fn2 = "exception_test::func_cpp";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #6 (exception)\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    logerror("**Failed** test #6 (exception)\n");
+    logerror("    Unable to find function %s\n", fn2);
     return FAIL;
   }
   BPatch_function *f1 = bpfv[0];  
@@ -82,8 +81,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    BPatch_variableExpr *testno = appImage->findVariable(*(*point6_1)[0],
                                                         "testno");
    if (!testno) {
-      fprintf(stderr, "**Failed** test #6 (exception)\n");
-      fprintf(stderr, "    Can't find the variable in try branch of exception statement\n");
+      logerror("**Failed** test #6 (exception)\n");
+      logerror("    Can't find the variable in try branch of exception statement\n");
       return FAIL;
    }
 
@@ -102,8 +101,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
          char *fn3 = "exception_test_call_cpp";
          if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
              || NULL == bpfv[0]){
-           fprintf(stderr, "**Failed** test #6 (exception)\n");
-           fprintf(stderr, "    Unable to find function %s\n", fn3);
+           logerror("**Failed** test #6 (exception)\n");
+           logerror("    Unable to find function %s\n", fn3);
            return FAIL;
          }
          BPatch_function *call6_func = bpfv[0];
@@ -124,12 +123,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test5_6_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

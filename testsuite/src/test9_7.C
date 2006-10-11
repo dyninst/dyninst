@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_7.C,v 1.3 2006/03/08 16:45:03 bpellin Exp $
+// $Id: test9_7.C,v 1.4 2006/10/11 21:54:26 cooksey Exp $
 /*
  * #Name: test9_7
  * #Desc: instrument entry point of main and first basic block in main
@@ -59,7 +59,7 @@
 //
 // Start Test Case #7 - (instrument entry point of main and first basic block in main)
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
   char* testName = "instrument entry point of main and first basic block in main";
   int testNo = 7;
@@ -78,18 +78,18 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	BPatch_image *appImage;
 	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
         {
-           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
            return -1;
         }
 	
 	BPatch_Vector<BPatch_function *> found_funcs;
 	if ((NULL == appImage->findFunction("main", found_funcs)) || !found_funcs.size()) {
-		fprintf(stderr, "    Unable to find function main\n");
+		logerror("    Unable to find function main\n");
                 return -1;
 	}
   
 	if (1 < found_funcs.size()) {
-		fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named main.  Using the first.\n", 
+		logerror("%s[%d]:  WARNING  : found %d functions named main.  Using the first.\n", 
 			__FILE__, __LINE__, found_funcs.size());
 	}
   
@@ -109,16 +109,16 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	}
 
 	if (!point ){
-		fprintf(stderr, "**Failed** test #%d (%s)\n", testNo,testName);
-		fprintf(stderr, "    Unable to find call to firstBasicBlock() in main()\n");
+		logerror("**Failed** test #%d (%s)\n", testNo,testName);
+		logerror("    Unable to find call to firstBasicBlock() in main()\n");
                 return -1;
 	}
 
 	BPatch_Vector<BPatch_function *> bpfv;
 	if (NULL == appImage->findFunction("funcIncrGlobalMain", bpfv) || !bpfv.size()
      		|| NULL == bpfv[0]){
-		fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-		fprintf(stderr, "    Unable to find function funcIncrGlobalMain\n");
+		logerror("**Failed** test #%d (%s)\n", testNo, testName);
+		logerror("    Unable to find function funcIncrGlobalMain\n");
                 return -1;
 	}
 	BPatch_function *call1_func = bpfv[0];
@@ -145,23 +145,29 @@ int mutatorTest(char *pathname, BPatch *bpatch)
                    return -1;
                 }
 	}else{
-		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+		logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                 return -1;
 	}
 
 	//appThread->terminateExecution();
 #else
-	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
+	logerror("Skipped Test #%d: not implemented on this platform\n",testNo);
         return 0;
 
 #endif	
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test9_7_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

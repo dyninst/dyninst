@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_11.C,v 1.3 2005/11/22 19:42:06 bpellin Exp $
+// $Id: test2_11.C,v 1.4 2006/10/11 21:53:20 cooksey Exp $
 /*
  * #Name: test2_11
  * #Desc: getDisplacedInstructions
@@ -60,26 +60,26 @@
 //	This function tests the getDisplacedInstructions instructions methods.
 //	Currently this tests is only enabled on AIX platforms.
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func11_1", found_funcs, 1)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func11_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func11_1");
     }
 
     BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_entry);
 
     if (points == NULL) {
-	printf("**Failed** test #11 (getDisplacedInstructions)\n");
-	printf("    unable to locate function \"func11_1\".\n");
+	logerror("**Failed** test #11 (getDisplacedInstructions)\n");
+	logerror("    unable to locate function \"func11_1\".\n");
         return -1;
     }
 
@@ -87,8 +87,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     memset(buf, 128, 0);
     int nbytes = (*points)[0]->getDisplacedInstructions(128, buf);
     if (nbytes < 0 || nbytes > 128) {
-	printf("**Failed** test #11 (getDisplacedInstructions)\n");
-	printf("    getDisplacedInstructions returned a strange number of bytes (%d)\n", nbytes);
+	logerror("**Failed** test #11 (getDisplacedInstructions)\n");
+	logerror("    getDisplacedInstructions returned a strange number of bytes (%d)\n", nbytes);
         return -1;
     }
     int i;
@@ -96,20 +96,26 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	if (buf[i] != 0) break;
     }
     if (i == nbytes) {
-	printf("**Failed** test #11 (getDisplacedInstructions)\n");
-	printf("    getDisplacedInstructions doesn't seem to have returned any instructions\n");
+	logerror("**Failed** test #11 (getDisplacedInstructions)\n");
+	logerror("    getDisplacedInstructions doesn't seem to have returned any instructions\n");
         return -1;
     }
-    printf("Passed test #11 (getDisplacedInstructions)\n");
+    logerror("Passed test #11 (getDisplacedInstructions)\n");
     return 0;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_11_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

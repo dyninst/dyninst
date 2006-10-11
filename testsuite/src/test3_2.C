@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_2.C,v 1.5 2006/03/12 23:33:28 legendre Exp $
+// $Id: test3_2.C,v 1.6 2006/10/11 21:53:34 cooksey Exp $
 /*
  * #Name: test3_2
  * #Desc: simultaneous multiple-process management - exit
@@ -56,15 +56,15 @@
 #include "test_lib.h"
 //#include "test3.h"
 
-const unsigned int MAX_MUTATEES = 32;
-unsigned int Mutatees=3;
-int debugPrint;
+static const unsigned int MAX_MUTATEES = 32;
+static unsigned int Mutatees=3;
+static int debugPrint;
 
 //
 // Start Test Case #2 - create processes and process events from each
 //     Just let them run to finish, no instrumentation added.
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
     unsigned int n=0;
     const char *child_argv[5];
@@ -83,8 +83,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
         appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
         if (!appThread[n]) {
-            printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** test #2 (simultaneous multiple-process management - exit)\n");
+            logerror("*ERROR*: unable to create handle%d for executable\n", n);
+            logerror("**Failed** test #2 (simultaneous multiple-process management - exit)\n");
             MopUpMutatees(n-1,appThread);
             return -1;
         }
@@ -100,7 +100,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     // monitor the mutatee termination reports
     while (numTerminated < Mutatees) {
         bpatch->waitForStatusChange();
-        fprintf(stderr, "%s[%d]:  got status change\n", __FILE__, __LINE__);
+        dprintf("%s[%d]:  got status change\n", __FILE__, __LINE__);
         for (n=0; n<Mutatees; n++)
             if (!terminated[n] && (appThread[n]->isTerminated())) {
                 if(appThread[n]->terminationStatus() == ExitedNormally) {
@@ -125,18 +125,24 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     }
 
     if (numTerminated == Mutatees) {
-	printf("Passed Test #2 (simultaneous multiple-process management - exit)\n");
+	logerror("Passed Test #2 (simultaneous multiple-process management - exit)\n");
         return 0;
     }
 	return -1;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test3_2_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

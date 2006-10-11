@@ -40,6 +40,7 @@
  */
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <assert.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -61,6 +62,46 @@
 #if defined(alpha_dec_osf4_0) && defined(__GNUC__)
 static long long int  beginFP;
 #endif
+
+/* Provide standard output functions that respect the specified output files */
+FILE *outlog = NULL;
+FILE *errlog = NULL;
+int logstatus(const char *fmt, ...) {
+  int retval;
+  va_list args;
+  va_start(args, fmt);
+  if (outlog != NULL) {
+    retval = vfprintf(outlog, fmt, args);
+  } else {
+    retval = vprintf(fmt, args);
+  }
+  va_end(args);
+  return retval;
+}
+int logerror(const char *fmt, ...) {
+  int retval;
+  va_list args;
+  va_start(args, fmt);
+  if (errlog != NULL) {
+    retval = vfprintf(errlog, fmt, args);
+  } else {
+    retval = vfprintf(stderr, fmt, args);
+  }
+  va_end(args);
+  return retval;
+}
+void flushOutputLog() {
+  if (outlog != NULL) {
+    fflush(outlog);
+  }
+}
+void flushErrorLog() {
+  if (errlog != NULL) {
+    fflush(errlog);
+  }
+}
+
+int fastAndLoose = 0;
 
 #ifdef DETACH_ON_THE_FLY
 /*

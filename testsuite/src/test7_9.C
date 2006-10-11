@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7_9.C,v 1.5 2006/03/19 18:35:01 mirg Exp $
+// $Id: test7_9.C,v 1.6 2006/10/11 21:54:14 cooksey Exp $
 /*
  * #Name: test7_9
  * #Desc: Memory deallocate in parent
@@ -55,12 +55,12 @@
 #include "test_lib.h"
 #include "test_lib_test7.h"
 
-bool parentDone = false;
-bool childDone = false;
-bool passedTest = true;
-BPatch_thread *parentThread = NULL;
-BPatch_thread *childThread = NULL;
-int msgid = -1;
+static bool parentDone = false;
+static bool childDone = false;
+static bool passedTest = true;
+static BPatch_thread *parentThread = NULL;
+static BPatch_thread *childThread = NULL;
+static int msgid = -1;
 
 
 /* Verify that if a variable in the parent process is freed with 
@@ -78,10 +78,10 @@ int msgid = -1;
    (no way to verify the child variable has indeed been freed)
 */
 
-BPatch_variableExpr *var7_9p;
-BPatch_variableExpr *var7_9c;
+static BPatch_variableExpr *var7_9p;
+static BPatch_variableExpr *var7_9c;
 
-void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen when)
+static void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen when)
 {
 
    if(proc_type == Parent_p  &&  when == PreFork) {
@@ -105,13 +105,13 @@ void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "func7_9";
       if ((NULL == childImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-	fprintf(stderr, "    Unable to find function %s\n",
+	logerror("    Unable to find function %s\n",
 		inFunction);
 	exit(1);
       }
       
       if (1 < found_funcs.size()) {
-	fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 		__FILE__, __LINE__, found_funcs.size(), inFunction);
       }
       
@@ -128,7 +128,7 @@ void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen when)
    }
 }
 
-void checkTestCase9(procType proc_type, BPatch_thread */*thread*/) {
+static void checkTestCase9(procType proc_type, BPatch_thread */*thread*/) {
    char varname[50];
    sprintf(varname,"test%d malloced var",9);
 
@@ -140,9 +140,9 @@ void checkTestCase9(procType proc_type, BPatch_thread */*thread*/) {
 }
 
 /* We make changes at post-fork */
-void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
+static void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
 {
-    //fprintf(stderr, "in postForkFunc\n");
+    //dprintf("in postForkFunc\n");
     /* For later identification */
     childThread = child;
     dprintf("Preparing tests on parent\n");
@@ -153,7 +153,7 @@ void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
 }
 
 /* And verify them when they exit */
-void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
+static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
     dprintf("Exit func called\n");
     if (thread == parentThread) {
         dprintf("Parent exit reached, checking...\n");
@@ -168,14 +168,14 @@ void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
         childDone = true;
     }
     else {
-        fprintf(stderr, "Thread ptr 0x%x, parent 0x%x, child 0x%x\n",
+        dprintf("Thread ptr 0x%x, parent 0x%x, child 0x%x\n",
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }
     return;
 }
 
-void initialPreparation(BPatch_thread *parent)
+static void initialPreparation(BPatch_thread *parent)
 {
    //cerr << "in initialPreparation\n";
    assert(parent->isStopped());
@@ -184,7 +184,7 @@ void initialPreparation(BPatch_thread *parent)
    prepareTestCase9(Parent_p, parent, PreFork);
 }
 
-int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
+static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
 {
     if ( !setupMessaging(&msgid) )
     {
@@ -228,11 +228,17 @@ int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     return passedTest;
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test7_9_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Register callbacks
     bpatch->registerPostForkCallback(postForkFunc);

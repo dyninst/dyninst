@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_7.C,v 1.3 2006/03/12 23:33:26 legendre Exp $
+// $Id: test2_7.C,v 1.4 2006/10/11 21:53:29 cooksey Exp $
 /*
  * #Name: test2_7
  * #Desc: Load a dynamically linked lbibraryr from the mutator
@@ -63,19 +63,19 @@ static void lcase(char *s) {
         s++;
     }
 }
-int mutatorTest(BPatch_thread *thread, BPatch_image *img)
+static int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 {
 #if !defined(os_solaris) && !defined(os_linux) && !defined(os_irix) && \
     !defined(os_aix) && !defined(os_windows)
-    printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
-    printf("    feature not implemented on this platform\n");
+    logerror("Skipping test #7 (load a dynamically linked library from the mutator)\n");
+    logerror("    feature not implemented on this platform\n");
     return 0;
 #else
     int result;
 
     if (!thread->loadLibrary(TEST_DYNAMIC_LIB2)) {
-    	printf("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
-	printf("    BPatch_thread::loadLibrary returned an error\n");
+    	logerror("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
+	logerror("    BPatch_thread::loadLibrary returned an error\n");
         result = -1;
     } else {
 	// see if it worked
@@ -101,11 +101,11 @@ int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 		}
 	}
 	if (found) {
-	    printf("Passed test #7 (load a dynamically linked library from the mutator)\n");
+	    logerror("Passed test #7 (load a dynamically linked library from the mutator)\n");
             result = 0;
 	} else {
-	    printf("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
-	    printf("    image::getModules() did not indicate that the library had been loaded\n");
+	    logerror("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
+	    logerror("    image::getModules() did not indicate that the library had been loaded\n");
             result = -1;
 	}
     }
@@ -114,7 +114,7 @@ int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 #endif
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_7_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
@@ -123,6 +123,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Signal the child that we've attached
     if (useAttach) {

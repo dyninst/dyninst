@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_5.C,v 1.3 2006/03/08 16:44:43 bpellin Exp $
+// $Id: test1_5.C,v 1.4 2006/10/11 21:53:12 cooksey Exp $
 /*
  * #Name: test1_5
  * #Desc: Mutator Side - If without else
@@ -58,46 +58,46 @@
 //
 // Start Test Case #5 - mutator side (if w.o. else)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
     // Find the entry point to the procedure "func5_2"
     
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction("func5_2", found_funcs)) || !found_funcs.size()) {
-     fprintf(stderr, "    Unable to find function %s\n",
+     logerror("    Unable to find function %s\n",
 	    "func5_2");
     return -1;
   }
   
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), "func5_2");
   }
   
   BPatch_Vector<BPatch_point *> *point5_1 = found_funcs[0]->findPoint(BPatch_entry);  
 
     if (!point5_1 || ((*point5_1).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func5_2\".\n");
+	logerror("Unable to find entry point to \"func5_2\".\n");
 	return -1;
     }
 
  BPatch_Vector<BPatch_function *> found_funcs2;
   if ((NULL == appImage->findFunction("func5_1", found_funcs2)) || !found_funcs2.size()) {
-     fprintf(stderr, "    Unable to find function %s\n",
+     logerror("    Unable to find function %s\n",
 	    "func5_1");
     return -1;
   }
   
   if (1 < found_funcs2.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs2.size(), "func5_1");
   }
   
   BPatch_Vector<BPatch_point *> *point5_2 = found_funcs2[0]->findPoint(BPatch_subroutine);  
     
   if (!point5_2 || ((*point5_2).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func5_1\".\n");
+	logerror("Unable to find entry point to \"func5_1\".\n");
 	return -1;
     }
 
@@ -105,9 +105,9 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_variableExpr *expr5_2 = findVariable (appImage, "globalVariable5_2", point5_2);
 
     if (!expr5_1 || !expr5_2) {
-	fprintf(stderr, "**Failed** test #5 (1f w.o. else)\n");
-	fprintf(stderr, "    Unable to locate variable globalVariable5_1 or ");
-	fprintf(stderr, "    variable globalVariable5_2\n");
+	logerror("**Failed** test #5 (1f w.o. else)\n");
+	logerror("    Unable to locate variable globalVariable5_1 or ");
+	logerror("    variable globalVariable5_2\n");
 	return -1;
     }
 
@@ -134,13 +134,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_5_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

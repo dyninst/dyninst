@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_27.C,v 1.5 2006/04/04 20:17:15 jodom Exp $
+// $Id: test1_27.C,v 1.6 2006/10/11 21:52:55 cooksey Exp $
 /*
  * #Name: test1_27
  * #Desc: Type compatibility
@@ -56,12 +56,12 @@
 #include "test_lib.h"
 #include "Callbacks.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #27 - type compatibility
 //
-int mutatorTest(BPatch_thread *, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 {
 #if !defined(mips_sgi_irix6_4)
 
@@ -75,58 +75,58 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
     BPatch_type *type27_4 = appImage->findType("type27_4");
 
     if (!type27_1 || !type27_2 || !type27_3 || !type27_4) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr, "    Unable to locate one of type27_{1,2,3,4}\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    Unable to locate one of type27_{1,2,3,4}\n");
 	return -1;
     }
 
     if (!type27_1->isCompatible(type27_2)) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_1 reported as incompatibile with type27_2\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    type27_1 reported as incompatibile with type27_2\n");
 	return -1;
     }
 
     if (!type27_2->isCompatible(type27_1)) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_2 reported as incompatibile with type27_1\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    type27_2 reported as incompatibile with type27_1\n");
 	return -1;
     }
 
     if (!type27_3->isCompatible(type27_3)) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_3 reported as incompatibile with type27_4\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    type27_3 reported as incompatibile with type27_4\n");
 	return -1;
     }
 
     if (!type27_4->isCompatible(type27_3)) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_4 reported as incompatibile with type27_3\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    type27_4 reported as incompatibile with type27_3\n");
 	return -1;
     }
 
     setExpectError(112); // We're expecting type conflicts here
     if (type27_1->isCompatible(type27_3)) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_1 reported as compatibile with type27_3\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    type27_1 reported as compatibile with type27_3\n");
 	return -1;
     }
 
     if (type27_4->isCompatible(type27_2)) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_4 reported as compatibile with type27_2\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    type27_4 reported as compatibile with type27_2\n");
 	return -1;
     }
     setExpectError(DYNINST_NO_ERROR);
 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func27_1", found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func27_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func27_1");
     }
 
@@ -151,23 +151,23 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
     assert(type27_5 && type27_6 && type27_7 && type27_8);
 
     if (!type27_5->isCompatible(type27_6)) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_5 reported as incompatibile with type27_6\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    type27_5 reported as incompatibile with type27_6\n");
 	return -1;
     }
 
     // difderent number of elements
     setExpectError(112); // We're expecting type conflicts here
     if (type27_5->isCompatible(type27_7)) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_5 reported as compatibile with type27_7\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    type27_5 reported as compatibile with type27_7\n");
 	return -1;
     }
 
     // same # of elements, different type
     if (type27_5->isCompatible(type27_8)) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr,"    type27_5 reported as compatibile with type27_8\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    type27_5 reported as compatibile with type27_8\n");
 	return -1;
     }
 
@@ -176,8 +176,8 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
           "globalVariable27_1", point27_1);
 
     if (expr27_1 == NULL) {
-	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");
-	fprintf(stderr, "    Unable to locate globalVariable27_1\n");
+	logerror("**Failed** test #27 (type compatibility)\n");
+	logerror("    Unable to locate globalVariable27_1\n");
 	return -1;
     }
     setExpectError(DYNINST_NO_ERROR);
@@ -190,13 +190,18 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_27_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

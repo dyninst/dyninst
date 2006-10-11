@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.10 2006/05/30 19:58:41 jodom Exp $ */
+/* $Id: test1.mutatee.c,v 1.11 2006/10/11 21:52:11 cooksey Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -336,30 +336,30 @@ void call2_1(int arg1, int arg2, char *arg3, void *arg4)
 
     if ((arg1 == 1) && (arg2 == 2) && (!strcmp(arg3, "testString2_1")) &&
 	(arg4 == TEST_PTR)) {
-	printf("Passed test #2 (four parameter function)\n");
+	logerror("Passed test #2 (four parameter function)\n");
 	passedTest[2] = TRUE;
     } else {
-	printf("**Failed** test #2 (four parameter function)\n");
+	logerror("**Failed** test #2 (four parameter function)\n");
 	if (arg1 != 1)
-	    printf("    arg1 = %d, should be 1\n", arg1);
+	    logerror("    arg1 = %d, should be 1\n", arg1);
 	if (arg2 != 2)
-	    printf("    arg2 = %d, should be 2\n", arg2);
+	    logerror("    arg2 = %d, should be 2\n", arg2);
 	if (strcmp(arg3, "testString2_1"))
-	    printf("    arg3 = %s, should be \"testString2_1\"\n", arg3);
+	    logerror("    arg3 = %s, should be \"testString2_1\"\n", arg3);
 	if (arg4 != TEST_PTR)
-	    printf("    arg4 = %p, should be %p\n", arg4, TEST_PTR);
+	    logerror("    arg4 = %p, should be %p\n", arg4, TEST_PTR);
     }
 }
 
 void call3_1(int arg1, int arg2)
 {
     if ((arg1 == 31) && (arg2 == 32))  {
-	printf("Passed test #3 (passing variables to functions)\n");
+	logerror("Passed test #3 (passing variables to functions)\n");
 	passedTest[3] = TRUE;
     } else {
-	printf("**Failed** test #3 (passing variables to functions)\n");
-	printf("    arg1 = %d, should be 31\n", arg1);
-	printf("    arg2 = %d, should be 32\n", arg2);
+	logerror("**Failed** test #3 (passing variables to functions)\n");
+	logerror("    arg1 = %d, should be 31\n", arg1);
+	logerror("    arg2 = %d, should be 32\n", arg2);
     }
 }
 
@@ -368,12 +368,12 @@ int call9_1(int p1, int p2, int p3, int p4, int p5)
     int x;
     x = (((p1 + p2) + (p3 + p4) + (p5)));
     if (x != (91 + 92 + 93 + 94 + 95 )) {
-      printf("**Failed** test case #9 (preserve registers - funcCall)\n");
-      if (p1 != 91) printf("    call9_1 parameter 1 is %d not 91\n", p1);
-      if (p2 != 92) printf("    call9_1 parameter 2 is %d not 92\n", p2);
-      if (p3 != 93) printf("    call9_1 parameter 3 is %d not 93\n", p3);
-      if (p4 != 94) printf("    call9_1 parameter 4 is %d not 94\n", p4);
-      if (p5 != 95) printf("    call9_1 parameter 5 is %d not 95\n", p5);
+      logerror("**Failed** test case #9 (preserve registers - funcCall)\n");
+      if (p1 != 91) logerror("    call9_1 parameter 1 is %d not 91\n", p1);
+      if (p2 != 92) logerror("    call9_1 parameter 2 is %d not 92\n", p2);
+      if (p3 != 93) logerror("    call9_1 parameter 3 is %d not 93\n", p3);
+      if (p4 != 94) logerror("    call9_1 parameter 4 is %d not 94\n", p4);
+      if (p5 != 95) logerror("    call9_1 parameter 5 is %d not 95\n", p5);
       exit(-1);
     }
     dprintf("inside call9_1\n");
@@ -426,18 +426,18 @@ void call11_4()
 
     if (globalVariable11_2 && globalVariable11_3 &&
 	globalVariable11_4 && globalVariable11_5) {
-        printf("Passed test #11 (snippets at entry,exit,call)\n");
+        logerror("Passed test #11 (snippets at entry,exit,call)\n");
 	passedTest[11] = TRUE;
     } else {
-        printf("**Failed test #11 (snippets at entry,exit,call)\n");
+        logerror("**Failed test #11 (snippets at entry,exit,call)\n");
 	if (!globalVariable11_2)
-	    printf("    entry snippet not called at the correct time\n");
+	    logerror("    entry snippet not called at the correct time\n");
 	if (!globalVariable11_3)
-	    printf("    pre call snippet not called at the correct time\n");
+	    logerror("    pre call snippet not called at the correct time\n");
 	if (!globalVariable11_4)
-	    printf("    post call snippet not called at the correct time\n");
+	    logerror("    post call snippet not called at the correct time\n");
 	if (!globalVariable11_5)
-	    printf("    exit snippet not called at the correct time\n");
+	    logerror("    exit snippet not called at the correct time\n");
     }
 }
 
@@ -615,11 +615,12 @@ void func1_1()
     dprintf("Value of globalVariable1_1 is now %d.\n", globalVariable1_1);
 
     if (globalVariable1_1 == 11) {
-        printf("\nPassed test #1 (zero arg function call)\n");
+        logerror("\nPassed test #1 (zero arg function call)\n");
 		passedTest[1] = TRUE;
     } else {
-        printf("\n**Failed** test #1 (zero arg function call)\n");
+        logerror("\n**Failed** test #1 (zero arg function call)\n");
     }
+    flushOutputLog();
 }
 
 void func1_2() { dprintf("func1_2 () called\n"); }
@@ -647,13 +648,13 @@ void func4_1()
     func4_2();
 
     if (globalVariable4_1 == 41) {
-	printf("**Failed** test #4 (sequence)\n");
-	printf("    none of the items were executed\n");
+	logerror("**Failed** test #4 (sequence)\n");
+	logerror("    none of the items were executed\n");
     } else if (globalVariable4_1 == 42) {
-	printf("**Failed** test #4 (sequence)\n");
-	printf("    first item was the last (or only) one to execute\n");
+	logerror("**Failed** test #4 (sequence)\n");
+	logerror("    first item was the last (or only) one to execute\n");
     } else if (globalVariable4_1 == 43) {
-        printf("Passed test #4 (sequence)\n");
+        logerror("Passed test #4 (sequence)\n");
 	passedTest[4] = TRUE;
     }
 }
@@ -670,15 +671,15 @@ void func5_1()
     func5_2();
 
     if ((globalVariable5_1 == 51) && (globalVariable5_2 == 53)) {
-        printf("Passed test #5 (if w.o. else)\n");
+        logerror("Passed test #5 (if w.o. else)\n");
 		passedTest[5] = TRUE;
     } else {
-	printf("**Failed** test #5 (if w.o. else)\n");
+	logerror("**Failed** test #5 (if w.o. else)\n");
 	if (globalVariable5_1 != 51) {
-	    printf("    condition executed for false\n");
+	    logerror("    condition executed for false\n");
 	}
 	if (globalVariable5_2 != 53) {
-	    printf("    condition not executed for true\n");
+	    logerror("    condition not executed for true\n");
 	}
     }
 }
@@ -715,34 +716,34 @@ void func6_1()
     	(globalVariable6_1a == 60+2) && (globalVariable6_2a == 64-1) &&
 	(globalVariable6_3a == 66/3) && (globalVariable6_4a == 67/3) &&
 	(globalVariable6_5a == 6 * 5) && (globalVariable6_6a == 3)) {
-	printf("Passed test #6 (arithmetic operators)\n");
+	logerror("Passed test #6 (arithmetic operators)\n");
 	passedTest[6] = TRUE;
     } else {
-	printf("**Failed** test #6 (arithmetic operators)\n");
+	logerror("**Failed** test #6 (arithmetic operators)\n");
 	if (globalVariable6_1 != 60+2)
-	    printf("    addition error 60+2 got %d\n", globalVariable6_1);
+	    logerror("    addition error 60+2 got %d\n", globalVariable6_1);
 	if (globalVariable6_2 != 64-1)
-	    printf("    subtraction error 64-1 got %d\n", globalVariable6_2);
+	    logerror("    subtraction error 64-1 got %d\n", globalVariable6_2);
 	if (globalVariable6_3 != 66/3)
-	    printf("    division error 66/3 got %d\n", globalVariable6_3);
+	    logerror("    division error 66/3 got %d\n", globalVariable6_3);
 	if (globalVariable6_4 != 67/3)
-	    printf("    division error 67/3 got %d\n", globalVariable6_4);
+	    logerror("    division error 67/3 got %d\n", globalVariable6_4);
 	if (globalVariable6_5 != 6 * 5)
-	    printf("    mult error 6*5 got %d\n", globalVariable6_5);
+	    logerror("    mult error 6*5 got %d\n", globalVariable6_5);
 	if (globalVariable6_6 != 3)
-	    printf("    comma error 10,3 got %d\n", globalVariable6_6);
+	    logerror("    comma error 10,3 got %d\n", globalVariable6_6);
 	if (globalVariable6_1a != 60+2)
-	    printf("    addition error 60+2 got %d\n", globalVariable6_1a);
+	    logerror("    addition error 60+2 got %d\n", globalVariable6_1a);
 	if (globalVariable6_2a != 64-1)
-	    printf("    subtraction error 64-1 got %d\n", globalVariable6_2a);
+	    logerror("    subtraction error 64-1 got %d\n", globalVariable6_2a);
 	if (globalVariable6_3a != 66/3)
-	    printf("    division error 66/3 got %d\n", globalVariable6_3a);
+	    logerror("    division error 66/3 got %d\n", globalVariable6_3a);
 	if (globalVariable6_4a != 67/3)
-	    printf("    division error 67/3 got %d\n", globalVariable6_4a);
+	    logerror("    division error 67/3 got %d\n", globalVariable6_4a);
 	if (globalVariable6_5a != 6 * 5)
-	    printf("    mult error 6*5 got %d\n", globalVariable6_5a);
+	    logerror("    mult error 6*5 got %d\n", globalVariable6_5a);
 	if (globalVariable6_6a != 3)
-	    printf("    comma error 10,3 got %d\n", globalVariable6_6a);
+	    logerror("    comma error 10,3 got %d\n", globalVariable6_6a);
     }
 }
 
@@ -757,19 +758,19 @@ void func6_2() { dprintf("func6_2 () called\n"); }
 void fail7Print(int tCase, int fCase, const char *op)
 {
     if (tCase != 72)
-	printf(" operator %s was not true when it should be - const expr\n",
+	logerror(" operator %s was not true when it should be - const expr\n",
 	    op);
     if (fCase != 71)
-       printf(" operator %s was not false when it should be - const expr\n",
+       logerror(" operator %s was not false when it should be - const expr\n",
 	    op);
 }
 
 void fail7aPrint(int tCase, int fCase, const char *op)
 {
     if (tCase != 74)
-	printf(" operator %s was not true when it should be - var expr\n", op);
+	logerror(" operator %s was not true when it should be - var expr\n", op);
     if (fCase != 73)
-	printf(" operator %s was not false when it should be - var expr\n",op);
+	logerror(" operator %s was not false when it should be - var expr\n",op);
 }
 
 void func7_1()
@@ -793,10 +794,10 @@ void func7_1()
 	(globalVariable7_11a == 74) && (globalVariable7_12a == 73) &&
 	(globalVariable7_13a == 74) && (globalVariable7_14a == 73) &&
 	(globalVariable7_15a == 74) && (globalVariable7_16a == 73)) {
-	printf("Passed test #7 (relational operators)\n");
+	logerror("Passed test #7 (relational operators)\n");
 	passedTest[7] = TRUE;
     } else {
-	printf("**Failed** test #7 (relational operators)\n");
+	logerror("**Failed** test #7 (relational operators)\n");
 	fail7Print(globalVariable7_1, globalVariable7_2, "BPatch_lt");
 	fail7Print(globalVariable7_3, globalVariable7_4, "BPatch_eq");
 	fail7Print(globalVariable7_5, globalVariable7_6, "BPatch_gt");
@@ -830,20 +831,20 @@ void func8_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
     dprintf("func8_1 (...) called\n");
     if ((p1 == 1) && (p2 == 2) && (p3 == 3) && (p4 == 4) && (p5 == 5) &&
 	(p6 == 6) && (p7 == 7) && (p8 == 8) && (p9 == 9) && (p10 == 10))  {
-        printf("Passed test #8 (preserve registers - expr)\n");
+        logerror("Passed test #8 (preserve registers - expr)\n");
 	passedTest[8] = TRUE;
     } else {
-	printf("**Failed** test #8 (preserve registers - expr )\n");
-	if (p1 != 1)  printf("    parameter #1 is %d not 1\n", p1);
-	if (p2 != 2)  printf("    parameter #2 is %d not 2\n", p2);
-	if (p3 != 3)  printf("    parameter #3 is %d not 3\n", p3);
-	if (p4 != 4)  printf("    parameter #4 is %d not 4\n", p4);
-	if (p5 != 5)  printf("    parameter #5 is %d not 5\n", p5);
-	if (p6 != 6)  printf("    parameter #6 is %d not 6\n", p6);
-	if (p7 != 7)  printf("    parameter #7 is %d not 7\n", p7);
-	if (p8 != 8)  printf("    parameter #8 is %d not 8\n", p8);
-	if (p9 != 9)  printf("    parameter #9 is %d not 9\n", p9);
-	if (p10 != 10)  printf("    parameter #10 is %d not 10\n", p10);
+	logerror("**Failed** test #8 (preserve registers - expr )\n");
+	if (p1 != 1)  logerror("    parameter #1 is %d not 1\n", p1);
+	if (p2 != 2)  logerror("    parameter #2 is %d not 2\n", p2);
+	if (p3 != 3)  logerror("    parameter #3 is %d not 3\n", p3);
+	if (p4 != 4)  logerror("    parameter #4 is %d not 4\n", p4);
+	if (p5 != 5)  logerror("    parameter #5 is %d not 5\n", p5);
+	if (p6 != 6)  logerror("    parameter #6 is %d not 6\n", p6);
+	if (p7 != 7)  logerror("    parameter #7 is %d not 7\n", p7);
+	if (p8 != 8)  logerror("    parameter #8 is %d not 8\n", p8);
+	if (p9 != 9)  logerror("    parameter #9 is %d not 9\n", p9);
+	if (p10 != 10) logerror("    parameter #10 is %d not 10\n", p10);
     }
 }
 
@@ -858,20 +859,20 @@ void func9_1(int p1, int p2, int p3, int p4, int p5, int p6, int p7,
     dprintf("func9_1 (...) called\n");
     if ((p1 == 1) && (p2 == 2) && (p3 == 3) && (p4 == 4) && (p5 == 5) &&
 	(p6 == 6) && (p7 == 7) && (p8 == 8) && (p9 == 9) && (p10 == 10))  {
-        printf("Passed test #9 (preserve registers - funcCall)\n");
+        logerror("Passed test #9 (preserve registers - funcCall)\n");
 	passedTest[9] = TRUE;
     } else {
-	printf("**Failed** test #9 (preserve registers - funcCall )\n");
-	if (p1 != 1)  printf("    parameter #1 is %d not 1\n", p1);
-	if (p2 != 2)  printf("    parameter #2 is %d not 2\n", p2);
-	if (p3 != 3)  printf("    parameter #3 is %d not 3\n", p3);
-	if (p4 != 4)  printf("    parameter #4 is %d not 4\n", p4);
-	if (p5 != 5)  printf("    parameter #5 is %d not 5\n", p5);
-	if (p6 != 6)  printf("    parameter #6 is %d not 6\n", p6);
-	if (p7 != 7)  printf("    parameter #7 is %d not 7\n", p7);
-	if (p8 != 8)  printf("    parameter #8 is %d not 8\n", p8);
-	if (p9 != 9)  printf("    parameter #9 is %d not 9\n", p9);
-	if (p10 != 10)  printf("    parameter #10 is %d not 10\n", p10);
+	logerror("**Failed** test #9 (preserve registers - funcCall )\n");
+	if (p1 != 1)  logerror("    parameter #1 is %d not 1\n", p1);
+	if (p2 != 2)  logerror("    parameter #2 is %d not 2\n", p2);
+	if (p3 != 3)  logerror("    parameter #3 is %d not 3\n", p3);
+	if (p4 != 4)  logerror("    parameter #4 is %d not 4\n", p4);
+	if (p5 != 5)  logerror("    parameter #5 is %d not 5\n", p5);
+	if (p6 != 6)  logerror("    parameter #6 is %d not 6\n", p6);
+	if (p7 != 7)  logerror("    parameter #7 is %d not 7\n", p7);
+	if (p8 != 8)  logerror("    parameter #8 is %d not 8\n", p8);
+	if (p9 != 9)  logerror("    parameter #9 is %d not 9\n", p9);
+	if (p10 != 10)  logerror("    parameter #10 is %d not 10\n", p10);
     }
 }
 
@@ -885,16 +886,16 @@ void func10_1()
 {
     if ((globalVariable10_1 == 1) && (globalVariable10_2 == 1) &&
 	(globalVariable10_3 == 1) && (globalVariable10_4 == 3)) {
-	printf("Passed test #10 (insert snippet order)\n");
+	logerror("Passed test #10 (insert snippet order)\n");
 	passedTest[10] = TRUE;
     } else {
-	printf("** Failed test #10 (insert snippet order)\n");
+	logerror("** Failed test #10 (insert snippet order)\n");
 	if (!globalVariable10_1)
-	    printf("    call10_1 was not called first\n");
+	    logerror("    call10_1 was not called first\n");
 	if (!globalVariable10_2)
-	    printf("    call10_2 was not called second\n");
+	    logerror("    call10_2 was not called second\n");
 	if (!globalVariable10_3)
-	    printf("    call10_3 was not called third\n");
+	    logerror("    call10_3 was not called third\n");
     }
 }
 
@@ -928,11 +929,11 @@ void func12_1()
     stop_process_();
     func12_2();
     if (globalVariable12_1 == 1) {
-        printf("Passed test #12 (insert/remove and malloc/free)\n");
+        logerror("Passed test #12 (insert/remove and malloc/free)\n");
 	passedTest[12] = TRUE;
     } else {
-        printf("**Failed test #12 (insert/remove and malloc/free)\n");
-	printf("ZANDY: #12 failed because globalVariable12_1 == %d\n", globalVariable12_1);
+        logerror("**Failed test #12 (insert/remove and malloc/free)\n");
+	logerror("ZANDY: #12 failed because globalVariable12_1 == %d\n", globalVariable12_1);
     }
 }
 
@@ -951,21 +952,21 @@ void func13_1(int p1, int p2, int p3, int p4, int p5)
 
     if ((p1 == 131) && (p2 == 132) && (p3 == 133) &&
 	(p4 == 134) && (p5 == 135) && (globalVariable13_1 == 63)) {
-	printf("Passed test #13 (paramExpr,retExpr,nullExpr)\n");
+	logerror("Passed test #13 (paramExpr,retExpr,nullExpr)\n");
 	passedTest[13] = TRUE;
     } else {
-	printf("**Failed test #13 (paramExpr,retExpr,nullExpr)\n");
-	if (p1 != 131) printf("  parameter 1 is %d, not 131\n", p1);
-	if (p2 != 132) printf("  parameter 2 is %d, not 132\n", p2);
-	if (p3 != 133) printf("  parameter 3 is %d, not 133\n", p3);
-	if (p4 != 134) printf("  parameter 4 is %d, not 134\n", p4);
-	if (p5 != 135) printf("  parameter 5 is %d, not 135\n", p5);
-	if (!(globalVariable13_1 & 1)) printf("    passed param a1 wrong\n");
-	if (!(globalVariable13_1 & 2)) printf("    passed param a2 wrong\n");
-	if (!(globalVariable13_1 & 4)) printf("    passed param a3 wrong\n");
-	if (!(globalVariable13_1 & 8)) printf("    passed param a4 wrong\n");
-	if (!(globalVariable13_1 & 16)) printf("    passed param a5 wrong\n");
-	if (!(globalVariable13_1 & 32)) printf("    return value wrong\n");
+	logerror("**Failed test #13 (paramExpr,retExpr,nullExpr)\n");
+	if (p1 != 131) logerror("  parameter 1 is %d, not 131\n", p1);
+	if (p2 != 132) logerror("  parameter 2 is %d, not 132\n", p2);
+	if (p3 != 133) logerror("  parameter 3 is %d, not 133\n", p3);
+	if (p4 != 134) logerror("  parameter 4 is %d, not 134\n", p4);
+	if (p5 != 135) logerror("  parameter 5 is %d, not 135\n", p5);
+	if (!(globalVariable13_1 & 1)) logerror("    passed param a1 wrong\n");
+	if (!(globalVariable13_1 & 2)) logerror("    passed param a2 wrong\n");
+	if (!(globalVariable13_1 & 4)) logerror("    passed param a3 wrong\n");
+	if (!(globalVariable13_1 & 8)) logerror("    passed param a4 wrong\n");
+	if (!(globalVariable13_1 & 16)) logerror("    passed param a5 wrong\n");
+	if (!(globalVariable13_1 & 32)) logerror("    return value wrong\n");
     }
 }
 
@@ -992,14 +993,14 @@ void func14_1()
     func14_3();
 
     if (globalVariable14_1 == 1 && globalVariable14_2 == 0) {
-        printf("Passed test #14 (replace/remove function call)\n");
+        logerror("Passed test #14 (replace/remove function call)\n");
 	passedTest[14] = TRUE;
     } else {
-        printf("**Failed test #14 (replace/remove function call)\n");
+        logerror("**Failed test #14 (replace/remove function call)\n");
 	if (globalVariable14_1 != 1)
-    	    printf("    call to func14_2() was not replaced\n");
+    	    logerror("    call to func14_2() was not replaced\n");
 	if (globalVariable14_2 != 0)
-	    printf("    call to func14_3() was not removed\n");
+	    logerror("    call to func14_3() was not removed\n");
     }
 }
 
@@ -1011,10 +1012,10 @@ void check15result(const char *varname, int value, int expected,
 {
     if (value != expected) {
 	if (!*failed)
-	    printf("**failed test #15 (setMutationsActive)\n");
+	    logerror("**failed test #15 (setMutationsActive)\n");
 	*failed = TRUE;
 
-	printf("    %s = %d %s\n", varname, value, errstr);
+	logerror("    %s = %d %s\n", varname, value, errstr);
     }		
 }
 
@@ -1104,7 +1105,7 @@ void func15_1()
 		  "after third call to instrumented function", &failed);
 
     if (!failed) {
-        printf("Passed test #15 (setMutationsActive)\n");
+        logerror("Passed test #15 (setMutationsActive)\n");
 	passedTest[15] = TRUE;
     }
 }
@@ -1123,21 +1124,21 @@ void func16_1()
 
     func16_2();
     if (globalVariable16_1 != 1 || globalVariable16_2 != 0) {
-        printf("**Failed test #16 (if-else)\n");
+        logerror("**Failed test #16 (if-else)\n");
 	if (globalVariable16_1 != 1)
-	    printf("    True clause of first if should have been executed but was not.\n");
+	    logerror("    True clause of first if should have been executed but was not.\n");
 	if (globalVariable16_2 != 0)
-	    printf("    False clause of first if should not have been executed but was.\n");
+	    logerror("    False clause of first if should not have been executed but was.\n");
 	failed = 1;
     }
 
     func16_3();
     if (globalVariable16_3 != 0 || globalVariable16_4 != 1) {
-        printf("**Failed test #16 (if-else)\n");
+        logerror("**Failed test #16 (if-else)\n");
 	if (globalVariable16_3 != 1)
-	    printf("    True clause of second if should not have been executed but was.\n");
+	    logerror("    True clause of second if should not have been executed but was.\n");
 	if (globalVariable16_4 != 0)
-	    printf("    False clause of second if should have been executed but was not.\n");
+	    logerror("    False clause of second if should have been executed but was not.\n");
 	failed = 1;
     }
 
@@ -1145,12 +1146,12 @@ void func16_1()
     if ((globalVariable16_5 != 0 || globalVariable16_6 != 1) ||
         (globalVariable16_7 != 0 || globalVariable16_8 != 1) ||
         (globalVariable16_9 != 0 || globalVariable16_10 != 1)) {
-	    printf("    failed large if clauses tests.\n");
+	    logerror("    failed large if clauses tests.\n");
 	failed = 1;
     }
 
     if (!failed)
-    	printf("Passed test #16 (if-else)\n");
+    	logerror("Passed test #16 (if-else)\n");
 	passedTest[16] = TRUE;
 }
 
@@ -1173,19 +1174,19 @@ void func17_1()
     if ((ret17_1 != RET17_1) ||
 	(globalVariable17_1 != RET17_2) ||
 	(globalVariable17_2 != RAN17_1)) {
-        printf("**Failed** test case #17 (return values from func calls)\n");
+        logerror("**Failed** test case #17 (return values from func calls)\n");
         if (ret17_1 != RET17_1) {
-            printf("  return value was %d, not %d\n", ret17_1, RET17_1);
+            logerror("  return value was %d, not %d\n", ret17_1, RET17_1);
         }
         if (globalVariable17_1 != RET17_2) {
-            printf("  return value was %d, not %d\n",
+            logerror("  return value was %d, not %d\n",
                 globalVariable17_1, RET17_2);
         }
         if (globalVariable17_2 != RAN17_1) {
-            printf("  function call17_2 was not inserted\n");
+            logerror("  function call17_2 was not inserted\n");
         }
     } else {
-        printf("Passed test #17 (return values from func calls)\n");
+        logerror("Passed test #17 (return values from func calls)\n");
 	passedTest[17] = TRUE;
     }
 }
@@ -1212,14 +1213,14 @@ void func17_3()
 void func18_1()
 {
     if (globalVariable18_1 == 17) {
-    	printf("Passed test #18 (read/write a variable in the mutatee)\n");
+    	logerror("Passed test #18 (read/write a variable in the mutatee)\n");
 	passedTest[18] = TRUE;
     } else {
-	printf("**Failed test #18 (read/write a variable in the mutatee)\n");
+	logerror("**Failed test #18 (read/write a variable in the mutatee)\n");
 	if (globalVariable18_1 == 42)
-	    printf("    globalVariable18_1 still contains 42 (probably it was not written to)\n");
+	    logerror("    globalVariable18_1 still contains 42 (probably it was not written to)\n");
 	else
-	    printf("    globalVariable18_1 contained %d, not 17 as expected\n",
+	    logerror("    globalVariable18_1 contained %d, not 17 as expected\n",
 		    globalVariable18_1);
     }
 }
@@ -1232,19 +1233,19 @@ void func19_1()
     stop_process_();
 
     if (globalVariable19_1 != MAGIC19_1) {
-	printf("**Failed test #19 (oneTimeCode)\n");
-	printf("    globalVariable19_1 contained %d, not %d as expected\n",
+	logerror("**Failed test #19 (oneTimeCode)\n");
+	logerror("    globalVariable19_1 contained %d, not %d as expected\n",
 		globalVariable19_1, MAGIC19_1);
     }
 
     stop_process_();
 
     if (globalVariable19_2 == MAGIC19_2) {
-	printf("Passed test #19 (oneTimeCode)\n");
+	logerror("Passed test #19 (oneTimeCode)\n");
 	passedTest[19] = TRUE;
     } else {
-	printf("**Failed test #19 (oneTimeCode)\n");
-	printf("    globalVariable19_2 contained %d, not %d as expected\n",
+	logerror("**Failed test #19 (oneTimeCode)\n");
+	logerror("    globalVariable19_2 contained %d, not %d as expected\n",
 		globalVariable19_2, MAGIC19_2);
     }
 }
@@ -1304,24 +1305,24 @@ void func20_1()
 	int_val == (TEST20_C * TEST20_TIMES) &&
 	eq_doubles(double_val, (TEST20_D * (double)TEST20_TIMES)) &&
 	ret == TEST20_ANSWER) {
-	printf("Passed test #20 (instrument arbitrary points)\n");
+	logerror("Passed test #20 (instrument arbitrary points)\n");
 	passedTest[20] = TRUE;
     } else {
-	printf("**Failed test #20 (instrument arbitrary points)\n");
+	logerror("**Failed test #20 (instrument arbitrary points)\n");
 	if (globalVariable20_1 != (TEST20_A * TEST20_TIMES))
-    	    printf("    globalVariable20_1 contained %d, not %d as expected\n",
+    	    logerror("    globalVariable20_1 contained %d, not %d as expected\n",
 		   globalVariable20_1, TEST20_A * TEST20_TIMES);
 	if (!eq_doubles(globalVariable20_2, (TEST20_B * (double)TEST20_TIMES)))
-    	    printf("    globalVariable20_2 contained %g, not %g as expected\n",
+    	    logerror("    globalVariable20_2 contained %g, not %g as expected\n",
 		   globalVariable20_2, TEST20_B * (double)TEST20_TIMES);
 	if (int_val != (TEST20_C * TEST20_TIMES))
-    	    printf("    int_val contained %d, not %d as expected\n",
+    	    logerror("    int_val contained %d, not %d as expected\n",
 		   int_val, TEST20_C * TEST20_TIMES);
 	if (!eq_doubles(double_val, (TEST20_D * (double)TEST20_TIMES)))
-    	    printf("    double_val contained %g, not %g as expected\n",
+    	    logerror("    double_val contained %g, not %g as expected\n",
 		   double_val, TEST20_D * (double)TEST20_TIMES);
 	if (ret != TEST20_ANSWER)
-    	    printf("    ret contained %d, not %d as expected\n",
+    	    logerror("    ret contained %d, not %d as expected\n",
 		   ret, TEST20_ANSWER);
     }
 
@@ -1338,11 +1339,11 @@ void func21_1()
  || defined(os_solaris) \
  || defined(os_linux) \
  || defined(os_windows)
-     printf("Passed test #21 (findFunction in module)\n");
+     logerror("Passed test #21 (findFunction in module)\n");
      passedTest[21] = TRUE;
 #else
-    printf("Skipped test #21 (findFunction in module)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #21 (findFunction in module)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[21] = TRUE;
 #endif
 }
@@ -1378,18 +1379,18 @@ void func22_1()
 
     handleA = loadDynamicLibrary(dlopenName);
     if (! handleA) {
-	 printf("**Failed test #22 (replaceFunction)\n");
-	 printf("  Mutatee couldn't get handle for %s\n", libNameA);
+	 logerror("**Failed test #22 (replaceFunction)\n");
+	 logerror("  Mutatee couldn't get handle for %s\n", libNameA);
     }
     call22_5 = (int(*)(int)) getFuncFromDLL(handleA, "call22_5");
     if (! call22_5) {
-	 printf("**Failed test #22 (replaceFunction)\n");
-	 printf("  Mutatee couldn't get handle for call22_5 in %s\n", libNameA);
+	 logerror("**Failed test #22 (replaceFunction)\n");
+	 logerror("  Mutatee couldn't get handle for call22_5 in %s\n", libNameA);
     }
     call22_6 = (int(*)(int)) getFuncFromDLL(handleA, "call22_6");
     if (! call22_6) {
-	 printf("**Failed test #22 (replaceFunction)\n");
-	 printf("  Mutatee couldn't get handle for call22_6 in %s\n", libNameA);
+	 logerror("**Failed test #22 (replaceFunction)\n");
+	 logerror("  Mutatee couldn't get handle for call22_6 in %s\n", libNameA);
     }
 
     /* Call functions that have been replaced by the mutator.  The
@@ -1397,29 +1398,29 @@ void func22_1()
        otherwise) are independent of each other. */
     result = call22_1(10);  /* replaced by call22_2 */
     if (result != 10 + MAGIC22_2) {
-	 printf("**Failed test #22 (replace function) (a.out -> a.out)\n");
+	 logerror("**Failed test #22 (replace function) (a.out -> a.out)\n");
 	 return;
     }
     result = call22_3(20);  /* replaced by call22_4 */
     if (result != 20 + MAGIC22_4) {
-	 printf("**Failed test #22 (replace function) (a.out -> shlib)\n");
+	 logerror("**Failed test #22 (replace function) (a.out -> shlib)\n");
 	 return;
     }
     result = call22_5(30);  /* replaced by call22_5 (in libtestB) */
     if (result != 30 + MAGIC22_5B) {
-	 printf("**Failed test #22 (replace function) (shlib -> shlib)\n");
+	 logerror("**Failed test #22 (replace function) (shlib -> shlib)\n");
 	 return;
     }
     result = call22_6(40);  /* replaced by call22_7 */
     if (result != 40 + MAGIC22_7) {
-	 printf("**Failed test #22 (replace function) (shlib -> a.out)\n");
+	 logerror("**Failed test #22 (replace function) (shlib -> a.out)\n");
 	 return;
     }
-    printf("Passed test #22 (replace function)\n");
+    logerror("Passed test #22 (replace function)\n");
     passedTest[22] = TRUE;
 #else
-    printf("Skipped test #22 (replace function)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #22 (replace function)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[22] = TRUE;
 #endif
 }
@@ -1484,13 +1485,13 @@ void call23_1()
 void func23_1()
 {
 #if defined(mips_sgi_irix6_4)
-    printf("Skipped test #23 (local variables)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #23 (local variables)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[23] = TRUE;
 #else
     call23_1();
 
-    if (passedTest[23]) printf("Passed test #23 (local variables)\n");
+    if (passedTest[23]) logerror("Passed test #23 (local variables)\n");
 #endif
 }
 
@@ -1561,8 +1562,8 @@ void func24_1()
  && !defined(i386_unknown_nt4_0) \
  && !defined(ia64_unknown_linux2_4)
 
-    printf("Skipped test #24 (arrary variables)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #24 (array variables)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[24] = TRUE;
 #else
     int i, j;
@@ -1626,7 +1627,7 @@ void func24_1()
 	 2400011);
     verifyScalarValue24("globalVariable24_9", globalVariable24_9, 2400012);
 
-    if (passedTest[24]) printf("Passed test #24 (array variables)\n");
+    if (passedTest[24]) logerror("Passed test #24 (array variables)\n");
 #endif
 }
 
@@ -1649,8 +1650,8 @@ void call25_1()
 void func25_1()
 {
 #if defined(mips_sgi_irix6_4)
-    printf("Skipped test #25 (unary operators)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #25 (unary operators)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[25] = TRUE;
 #else
 
@@ -1675,34 +1676,34 @@ void func25_1()
     call25_1();
 
     if ((int *) globalVariable25_2 != &globalVariable25_1) {
-	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
+	if (passedTest[25]) logerror("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
-	printf("    globalVariable25_2 = %p, not %p\n",
+	logerror("    globalVariable25_2 = %p, not %p\n",
 	    globalVariable25_2, (void *) &globalVariable25_1);
     }
 
     if (globalVariable25_3 != globalVariable25_1) {
-	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
+	if (passedTest[25]) logerror("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
-	printf("    globalVariable25_3 = %d, not %d\n",
+	logerror("    globalVariable25_3 = %d, not %d\n",
 	    globalVariable25_3, globalVariable25_1);
     }
 
     if (globalVariable25_5 != -globalVariable25_4) {
-	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
+	if (passedTest[25]) logerror("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
-	printf("    globalVariable25_5 = %d, not %d\n",
+	logerror("    globalVariable25_5 = %d, not %d\n",
 	    globalVariable25_5, -globalVariable25_4);
     }
 
     if (globalVariable25_7 != -globalVariable25_6) {
-	if (passedTest[25]) printf("**Failed** test #25 (unary operators)\n");
+	if (passedTest[25]) logerror("**Failed** test #25 (unary operators)\n");
 	passedTest[25] = FALSE;
-	printf("    globalVariable25_7 = %d, not %d\n",
+	logerror("    globalVariable25_7 = %d, not %d\n",
 	    globalVariable25_7, -globalVariable25_6);
     }
 
-    if (passedTest[25]) printf("Passed test #25 (unary operators)\n");
+    if (passedTest[25]) logerror("Passed test #25 (unary operators)\n");
 #endif
 }
 
@@ -1763,8 +1764,8 @@ void func26_1()
  && !defined(i386_unknown_nt4_0) \
  && !defined(ia64_unknown_linux2_4)
 
-    printf("Skipped test #26 (struct elements)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #26 (struct elements)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[26] = TRUE;
 #else
     int i;
@@ -1794,7 +1795,7 @@ void func26_1()
     verifyScalarValue26("globalVariable26_12", globalVariable26_12, 26002013);
     verifyScalarValue26("globalVariable26_13", globalVariable26_13, 26002014);
 
-    if (passedTest[26]) printf("Passed test #26 (field operators)\n");
+    if (passedTest[26]) logerror("Passed test #26 (field operators)\n");
 #endif
 }
 
@@ -1850,13 +1851,13 @@ void func27_1()
  && !defined(i386_unknown_nt4_0) \
  && !defined(ia64_unknown_linux2_4)
 
-    printf("Skipped test #27 (type compatibility)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #27 (type compatibility)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[27] = TRUE;
 #else
     passedTest[27] = (globalVariable27_1 == 1);
 
-    if (passedTest[27]) printf("Passed test #27 (type compatibility)\n");
+    if (passedTest[27]) logerror("Passed test #27 (type compatibility)\n");
 #endif
 }
 
@@ -1923,7 +1924,7 @@ void func28_1()
     verifyScalarValue28("globalVariable28_6", globalVariable28_6, 28000013);
     verifyScalarValue28("globalVariable28_7", globalVariable28_7, 28000014);
 
-    if (passedTest[28]) printf("Passed test #28 (user defined fields)\n");
+    if (passedTest[28]) logerror("Passed test #28 (user defined fields)\n");
 }
 
 int globalVariable29_1;
@@ -1932,7 +1933,7 @@ int func29_1()
 {
     passedTest[29] = (globalVariable29_1 == 1);
 
-    if (passedTest[29]) printf("Passed test #29 (BPatch_srcObj class)\n");
+    if (passedTest[29]) logerror("Passed test #29 (BPatch_srcObj class)\n");
 
     return 0;
 }
@@ -1970,7 +1971,7 @@ int func30_1()
 		      (globalVariable30_3 <= globalVariable30_9));
 
     if (!passedTest[30]){
-    	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+    	logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
 
@@ -1983,7 +1984,7 @@ int func30_1()
 		      (globalVariable30_4 <= globalVariable30_9));
 
     if (!passedTest[30]){
-    	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+    	logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
 	return 0;
     }
 
@@ -1996,8 +1997,8 @@ int func30_1()
 		      (globalVariable30_5 <= globalVariable30_9));
 
 		      if (!passedTest[30]){
-			printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-			printf("gv30_5 = %lu, gv30_2 = %lu, gv30_9 = %lu\n", globalVariable30_5,
+			logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+			logerror("gv30_5 = %lu, gv30_2 = %lu, gv30_9 = %lu\n", globalVariable30_5,
 			       globalVariable30_2, globalVariable30_9);
 			return 0;
 		      }
@@ -2005,17 +2006,17 @@ int func30_1()
     passedTest[30] = !globalVariable30_6 ||
 		     (globalVariable30_1 == globalVariable30_6);
     if (!passedTest[30]){
-    	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-	printf("gv30_6 = %lu, gv30_1 = %lu, should be equal and nonzero!\n", globalVariable30_6,
+    	logerror("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
+	logerror("gv30_6 = %lu, gv30_1 = %lu, should be equal and nonzero!\n", globalVariable30_6,
 	       globalVariable30_1);
 	return 0;
     }
 
-    printf("Passed test #30 (line information)\n");
+    logerror("Passed test #30 (line information)\n");
 
 #else
-    printf("Skipped test #30 (line information)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #30 (line information)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[30] = TRUE;
 #endif
     return 1;
@@ -2035,7 +2036,7 @@ void func31_4( int value )
 {
   if( value == 0 )
     {
-      printf( "func_31_4 called with value = 0 !\n" );
+      logerror( "func_31_4 called with value = 0 !\n" );
     }
   globalVariable31_4 += value;
 }
@@ -2043,8 +2044,8 @@ void func31_4( int value )
 int func31_1()
 {
 #if defined(alpha_dec_osf4_0)
-    printf( "Skipped test #31 (non-recursive base tramp guard)\n" );
-    printf( "\t- not implemented on this platform\n" );
+    logerror( "Skipped test #31 (non-recursive base tramp guard)\n" );
+    logerror( "\t- not implemented on this platform\n" );
     passedTest[ 31 ] = TRUE;
 
     return 1;
@@ -2057,8 +2058,8 @@ int func31_1()
   passedTest[ 31 ] = ( globalVariable31_3 == 1 );
   if( ! passedTest[ 31 ] )
     {
-      printf( "**Failed** test #31 (non-recursive base tramp guard)\n" );
-      printf( "    globalVariable31_3 = %d, should be 1 (no instrumentation got executed?).\n",
+      logerror( "**Failed** test #31 (non-recursive base tramp guard)\n" );
+      logerror( "    globalVariable31_3 = %d, should be 1 (no instrumentation got executed?).\n",
 	      globalVariable31_3 );
       return 0;
     }
@@ -2066,22 +2067,22 @@ int func31_1()
   passedTest[ 31 ] = ( globalVariable31_4 == 0 );
   if( ! passedTest[ 31 ] )
     {
-      printf( "**Failed** test #31 (non-recursive base tramp guard)\n" );
-      printf( "    globalVariable31_4 = %d, should be 0.\n",
+      logerror( "**Failed** test #31 (non-recursive base tramp guard)\n" );
+      logerror( "    globalVariable31_4 = %d, should be 0.\n",
 	      globalVariable31_4 );
       switch( globalVariable31_4 )
 	{
-	case 0: printf( "    Recursive guard works fine.\n" ); break;
-	case 1: printf( "    Pre-instr recursive guard does not work.\n" ); break;
-	case 2: printf( "    Post-instr recursive guard does not work.\n" ); break;
-	case 3: printf( "    None of the recursive guards work.\n" ); break;
-	default: printf( "    Something is really wrong.\n" ); break;
+	case 0: logerror( "    Recursive guard works fine.\n" ); break;
+	case 1: logerror( "    Pre-instr recursive guard does not work.\n" ); break;
+	case 2: logerror( "    Post-instr recursive guard does not work.\n" ); break;
+	case 3: logerror( "    None of the recursive guards work.\n" ); break;
+	default: logerror( "    Something is really wrong.\n" ); break;
 	}
       return 0;
     }
 
   passedTest[ 31 ] = TRUE;
-  printf( "Passed test #31 (non-recursive base tramp guard)\n" );
+  logerror( "Passed test #31 (non-recursive base tramp guard)\n" );
 
   return 1;
 #endif
@@ -2101,7 +2102,7 @@ void func32_4( int value )
 {
   if( value == 0 )
     {
-      printf( "func_32_4 called with value = 0 !\n" );
+      logerror( "func_32_4 called with value = 0 !\n" );
     }
 
   globalVariable32_4 += value;
@@ -2119,8 +2120,8 @@ int func32_1()
   passedTest[ 32 ] = ( globalVariable32_3 == 1 );
   if( ! passedTest[ 32 ] )
     {
-      printf( "**Failed** test #32 (non-recursive base tramp guard)\n" );
-      printf( "    globalVariable32_3 = %d, should be 1 (no instrumentation got executed?).\n",
+      logerror( "**Failed** test #32 (non-recursive base tramp guard)\n" );
+      logerror( "    globalVariable32_3 = %d, should be 1 (no instrumentation got executed?).\n",
 	      globalVariable32_3 );
       return 0;
     }
@@ -2128,22 +2129,22 @@ int func32_1()
   passedTest[ 32 ] = ( globalVariable32_4 == 3 );
   if( ! passedTest[ 32 ] )
     {
-      printf( "**Failed** test #32 (non-recursive base tramp guard)\n" );
-      printf( "    globalVariable32_4 = %d, should be 3.\n",
+      logerror( "**Failed** test #32 (non-recursive base tramp guard)\n" );
+      logerror( "    globalVariable32_4 = %d, should be 3.\n",
 	      globalVariable32_4 );
       switch( globalVariable32_4 )
 	{
-	case 0: printf( "    Recursive guard works fine.\n" ); break;
-	case 1: printf( "    Pre-instr recursive guard does not work.\n" ); break;
-	case 2: printf( "    Post-instr recursive guard does not work.\n" ); break;
-	case 3: printf( "    None of the recursive guards work.\n" ); break;
-	default: printf( "    Something is really wrong.\n" ); break;
+	case 0: logerror( "    Recursive guard works fine.\n" ); break;
+	case 1: logerror( "    Pre-instr recursive guard does not work.\n" ); break;
+	case 2: logerror( "    Post-instr recursive guard does not work.\n" ); break;
+	case 3: logerror( "    None of the recursive guards work.\n" ); break;
+	default: logerror( "    Something is really wrong.\n" ); break;
 	}
       return 0;
     }
 
   passedTest[ 32 ] = TRUE;
-  printf( "Passed test #32 (recursive base tramp guard)\n" );
+  logerror( "Passed test #32 (recursive base tramp guard)\n" );
 
   return 1;
 }
@@ -2151,110 +2152,112 @@ int func32_1()
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-
+int global33_2 = 0;
 void func33_2(int x)
 {
-    printf("Hello\n");
+    /* dprintf("Hello\n"); */
 
     if (x == 1) {
-	printf("Goodbye.\n");
+        /* dprintf("Goodbye.\n"); */
+	global33_2 = 1;
     } else {
-	printf("See you.\n");
+        /* dprintf("See you.\n"); */
+	global33_2 = 2;
     }
 
-    printf("That's all.\n");
+    /* dprintf("That's all.\n"); */
 }
 
 int func33_3(int x)
 {
-    printf("Entry.\n");
+    /* dprintf("Entry.\n"); */
 
     /* The Intel compiler for IA-64 requires at least 18 entries to
        trigger the generation of a jump table. */
     switch (x) {
       case 0:
-	printf("0\n");
+	/* dprintf("0\n"); */
 	x += 11;
 	break;
       case 1:
-	printf("1\n");
+	/* dprintf("1\n"); */
 	x += 10;
 	break;
       case 2:
-	printf("2\n");
+	/* dprintf("2\n"); */
 	x-= 12;
 	break;
       case 3:
-	printf("3\n");
+	/* dprintf("3\n"); */
 	x *= 33;
 	break;
       case 4:
-	printf("4\n");
+	/* dprintf("4\n"); */
 	x /= 42;
 	break;
       case 5:
-	printf("5\n");
+	/* dprintf("5\n"); */
 	x %= 57;
 	break;
       case 6:
-	printf("6\n");
+	/* dprintf("6\n"); */
 	x <<= 2;
 	break;
       case 7:
-	printf("7\n");
+	/* dprintf("7\n"); */
 	x >>= 3;
 	break;
       case 8:
-	printf("8\n");
+	/* dprintf("8\n"); */
 	x ^= 0xfe;
 	break;
       case 9:
-	printf("9\n");
+	/* dprintf("9\n"); */
 	x &= 0x44;
 	break;
       case 10:
-	printf("10\n");
+	/* dprintf("10\n"); */
 	x |= 0x11;
 	break;
       case 11:
-	printf("11\n");
+	/* dprintf("11\n"); */
 	x += 110;
 	break;
       case 12:
-	printf("12\n");
+	/* dprintf("12\n"); */
 	x-= 112;
 	break;
       case 13:
-	printf("13\n");
+	/* dprintf("13\n"); */
 	x *= 133;
 	break;
       case 14:
-	printf("14\n");
+	/* dprintf("14\n"); */
 	x /= 142;
 	break;
       case 15:
-	printf("15\n");
+	/* dprintf("15\n"); */
 	x %= 157;
 	break;
       case 16:
-	printf("16\n");
+	/* dprintf("16\n"); */
 	x <<= 12;
 	break;
       case 17:
-	printf("17\n");
+	/* dprintf("17\n"); */
 	x >>= 13;
 	break;
       case 18:
-	printf("18\n");
+	/* dprintf("18\n"); */
 	x ^= 0x1fe;
 	break;
       case 19:
-	printf("19\n");
+	/* dprintf("19\n"); */
 	x &= 0x144;
 	break;
     };
 
-    printf("Exit.\n");
+    /* dprintf("Exit.\n"); */
 
     return x;
 }
@@ -2263,16 +2266,16 @@ void func33_1()
 {
 #if defined(os_osf)
     passedTest [ 33 ] = TRUE;
-    printf( "Skipped test #33 (control flow graphs)\n" );
-    printf( "\t- known to be a problem on this platform-- hah!\n" );
+    logerror( "Skipped test #33 (control flow graphs)\n" );
+    logerror( "\t- known to be a problem on this platform-- hah!\n" );
 #else
     /* The only possible failures occur in the mutator. */
 
     passedTest[ 33 ] = globalVariable33_1;
     if ( passedTest[33] ) {
-       printf( "Passed test #33 (control flow graphs)\n" );
+       logerror( "Passed test #33 (control flow graphs)\n" );
     } else {
-       printf( "Failed test #33 (control flow graphs)\n" );
+       logerror( "Failed test #33 (control flow graphs)\n" );
     }
 #endif
 }
@@ -2286,21 +2289,21 @@ void func34_2()
 
     /* There are four loops in total. */
     for (i = 0; i < 10; i++) { /* Contains two loops. */
-	printf("i = %d\n", i);
+	dprintf("i = %d\n", i);
 
 	for (j = 0; j < 10; j++) { /* Contains one loop. */
-	    printf("j = %d\n", j);
+	    dprintf("j = %d\n", j);
 
 	    k = 0;
 	    while (k < 10) {
-		printf("k = %d\n", k);
+		dprintf("k = %d\n", k);
 		k++;
 	    }
 	}
 
 	do {
 	    j++;
-	    printf("j = %d\n", j);
+	    dprintf("j = %d\n", j);
 
 	} while (j < 10);
     }
@@ -2311,7 +2314,7 @@ void func34_1()
     /* The only possible failures occur in the mutator. */
 
     passedTest[ 34 ] = TRUE;
-    printf( "Passed test #34 (loop information)\n" );
+    logerror( "Passed test #34 (loop information)\n" );
 }
 
 #if defined(i386_unknown_solaris2_5) \
@@ -2342,33 +2345,33 @@ void func35_1()
 
     if( value != 35 )
     {
-      printf( "**Failed** test #35 (function relocation)\n" );
+      logerror( "**Failed** test #35 (function relocation)\n" );
 
-      printf( "    total = %d, should be 35.\n", value );
+      logerror( "    total = %d, should be 35.\n", value );
 
       switch(value)
       {
-        case 1: printf( "    Entry instrumentation did not work.\n" ); break;
-        case 2: printf( "    Exit instrumentation did not work.\n" ); break;
-        default: printf("    Take a look at the call to call35_2.\n" ); break;
+        case 1: logerror( "    Entry instrumentation did not work.\n" ); break;
+        case 2: logerror( "    Exit instrumentation did not work.\n" ); break;
+        default: logerror("    Take a look at the call to call35_2.\n" ); break;
       }
       passedTest[ 35 ] = FALSE;
       return;
     }
 
     passedTest[ 35 ] = TRUE;
-    printf( "Passed test #35 (function relocation)\n" );
+    logerror( "Passed test #35 (function relocation)\n" );
 #endif
 #else
     passedTest[ 35 ] = TRUE;
-    printf( "Skipped test #35 (function relocation)\n" );
+    logerror( "Skipped test #35 (function relocation)\n" );
 #if defined(i386_unknown_nt4_0)
-    printf( "\t- test not implemented for this platform\n" );
+    logerror( "\t- test not implemented for this platform\n" );
 #else
 #if defined(ia64_unknown_linux2_4)
-    printf( "\t- not applicable to this platform.\n" );
+    logerror( "\t- not applicable to this platform.\n" );
 #else
-    printf( "\t- not implemented on this platform\n" );
+    logerror( "\t- not implemented on this platform\n" );
 #endif
 #endif
 #endif
@@ -2388,81 +2391,79 @@ void func36_1()
    int result = call36_1(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
    if(result != 55) {
-      fprintf(stderr, "  expecting a value of 55 from call36_1, got %d\n",
+      logerror("  expecting a value of 55 from call36_1, got %d\n",
               result);
       failure = 1;
    }
 
    if(globalVariable36_1 != 1) {
-      fprintf(stderr, "   for test 36, expecting arg1 value of 1, got %d\n",
+      logerror("   for test 36, expecting arg1 value of 1, got %d\n",
               globalVariable36_1);
       failure = 1;      
    }
    if(globalVariable36_2 != 2) {
-      fprintf(stderr, "   for test 36, expecting arg2 value of 2, got %d\n",
+      logerror("   for test 36, expecting arg2 value of 2, got %d\n",
               globalVariable36_2);
       failure = 1;      
    }
    if(globalVariable36_3 != 3) {
-      fprintf(stderr, "   for test 36, expecting arg3 value of 3, got %d\n",
+      logerror("   for test 36, expecting arg3 value of 3, got %d\n",
               globalVariable36_3);
       failure = 1;      
    }
    if(globalVariable36_4 != 4) {
-      fprintf(stderr, "   for test 36, expecting arg4 value of 4, got %d\n",
+      logerror("   for test 36, expecting arg4 value of 4, got %d\n",
               globalVariable36_4);
       failure = 1;
    }
    if(globalVariable36_5 != 5) {
-      fprintf(stderr, "   for test 36, expecting arg5 value of 5, got %d\n",
+      logerror("   for test 36, expecting arg5 value of 5, got %d\n",
               globalVariable36_5);
       failure = 1;
    }
    if(globalVariable36_6 != 6) {
-      fprintf(stderr, "   for test 36, expecting arg6 value of 6, got %d\n",
+      logerror("   for test 36, expecting arg6 value of 6, got %d\n",
               globalVariable36_6);
       failure = 1;
    }
 #if !defined(alpha_dec_osf4_0) && !defined(arch_x86_64)  /* alpha and AMD64 don't handle more than 6 */
    if(globalVariable36_7 != 7) {
-      fprintf(stderr, "   for test 36, expecting arg7 value of 7, got %d\n",
+      logerror("   for test 36, expecting arg7 value of 7, got %d\n",
               globalVariable36_7);
       failure = 1;
    }
    if(globalVariable36_8 != 8) {
-      fprintf(stderr, "   for test 36, expecting arg8 value of 8, got %d\n",
+      logerror("   for test 36, expecting arg8 value of 8, got %d\n",
               globalVariable36_8);
       failure = 1;
    }
    if(globalVariable36_9 != 9) {
-      fprintf(stderr, "   for test 36, expecting arg9 value of 9, got %d\n",
+      logerror("   for test 36, expecting arg9 value of 9, got %d\n",
               globalVariable36_9);
       failure = 1;
    }
    if(globalVariable36_10 != 10) {
-      fprintf(stderr, "   for test 36, expecting arg10 value of 10, got %d\n",
+      logerror("   for test 36, expecting arg10 value of 10, got %d\n",
               globalVariable36_10);
 #if defined(sparc_sun_solaris2_4)
-      fprintf(stderr, "   not marking as an error since this needs "
+      logerror("   not marking as an error since this needs "
               "to be implemented for sparc-sol\n");
 #else
       failure = 1;
 #endif
    }
 #else
-   fprintf(stderr,
-   "    test 36: AMD64 and alpha currently do not handle referencing more than\n");
+   logerror("    test 36: AMD64 and alpha currently do not handle referencing more than\n");
    
-   fprintf(stderr,
-   "    6 callsite args, so not testing past 6 args\n");
+   logerror("    6 callsite args, so not testing past 6 args\n");
 #endif
 
    if(failure == 0) {
       passedTest[ 36 ] = TRUE;
-      printf( "Passed test #36 (callsite parameter referencing)\n" );    
+      logerror( "Passed test #36 (callsite parameter referencing)\n" );    
    } else {
       passedTest[ 36 ] = FALSE;
-      printf( "**Failed** test #36 (callsite parameter referencing)\n");
+      logerror( "**Failed** test #36 (callsite parameter referencing)\n");
    }
 }
 
@@ -2580,8 +2581,8 @@ void call37_3()
 void func37_1() {
 #if defined(os_osf)
     passedTest [ 37 ] = TRUE;
-    printf( "Skipped test #37 (instrument loops)\n" );
-    printf( "\t- known to be a problem on this platform-- hah!\n" );
+    logerror( "Skipped test #37 (instrument loops)\n" );
+    logerror( "\t- known to be a problem on this platform-- hah!\n" );
 #else
     const int ANSWER37_1 = 11002;
     const int ANSWER37_2 = 26;
@@ -2595,25 +2596,25 @@ void func37_1() {
 
     if (globalVariable37_1 != ANSWER37_1) {
 	passedTest[ 37 ] = FALSE;
-	printf( "**Failed** test #37 (instrument loops)\n");
-	printf( "  globalVariable37_1 is %d, should have been %d.\n",
+	logerror( "**Failed** test #37 (instrument loops)\n");
+	logerror( "  globalVariable37_1 is %d, should have been %d.\n",
 		globalVariable37_1, ANSWER37_1);
     }
     if (globalVariable37_2 != ANSWER37_2) {
 	passedTest[ 37 ] = FALSE;
-	printf( "**Failed** test #37 (instrument loops)\n");
-	printf( "  globalVariable37_2 is %d, should have been %d.\n",
+	logerror( "**Failed** test #37 (instrument loops)\n");
+	logerror( "  globalVariable37_2 is %d, should have been %d.\n",
 		globalVariable37_2, ANSWER37_2);
     } 
     if (globalVariable37_3 != ANSWER37_3) {
 	passedTest[ 37 ] = FALSE;
-	printf( "**Failed** test #37 (instrument loops)\n");
-	printf( "  globalVariable37_3 is %d, should have been %d.\n",
+	logerror( "**Failed** test #37 (instrument loops)\n");
+	logerror( "  globalVariable37_3 is %d, should have been %d.\n",
 		globalVariable37_3, ANSWER37_3);
     } 
     
     if (passedTest[ 37 ]) {
-	printf( "Passed test #37 (instrument loops)\n" );    
+	logerror( "Passed test #37 (instrument loops)\n" );    
     }
 #endif
 }
@@ -2665,7 +2666,7 @@ void call38_1() {
 void func38_1() {
     /* The only possible failures occur in the mutator. */
     passedTest[ 38 ] = TRUE;
-    printf( "Passed test #38 (basic block addresses)\n" );
+    logerror( "Passed test #38 (basic block addresses)\n" );
 }
 
 
@@ -2682,11 +2683,11 @@ void func39_1() {
 
     /* The only possible failures occur in the mutator. */
     passedTest[ 39 ] = TRUE;
-    printf( "Passed test #39 (regex function search)\n" );
+    logerror( "Passed test #39 (regex function search)\n" );
 #else
    /*  no regex for windows */
-   printf("Skipped test #39 (regex function search)\n");
-   printf("\t- not implemented on this platform\n");
+   logerror("Skipped test #39 (regex function search)\n");
+   logerror("\t- not implemented on this platform\n");
    passedTest[ 39 ] = TRUE;
 #endif
 }
@@ -2721,7 +2722,7 @@ int call40_5(intFuncArg callme)
   call40_4(); /* lets have a non-dynamic call site here too */
 
   if (!tocall) {
-    fprintf(stderr, "%s[%d]:  FIXME!\n", __FILE__, __LINE__);
+    logerror("%s[%d]:  FIXME!\n", __FILE__, __LINE__);
     return ret;
   }
 
@@ -2755,7 +2756,7 @@ void func_40_monitorFunc(unsigned int callee_addr, unsigned int callsite_addr)
     call_counter++;
     return;
   }
-   fprintf(stderr, "%s[%d]:  FIXME! call counter = %d\n", __FILE__, __LINE__, call_counter);
+   logerror("%s[%d]:  FIXME! call counter = %d\n", __FILE__, __LINE__, call_counter);
   return;
 }
 
@@ -2765,8 +2766,8 @@ void func40_1(void)
   /*  xlc does not produce dynamic inst points with this example, 
       so we just ignore it.
   */
-   printf("Skipped test #40 (monitor dynamic call sites)\n");
-   printf("\t- not implemented for mutatees compiled with xlc \n");
+   logerror("Skipped test #40 (monitor dynamic call sites)\n");
+   logerror("\t- not implemented for mutatees compiled with xlc \n");
    passedTest[ 40 ] = TRUE;
    return;
 #endif
@@ -2783,43 +2784,43 @@ void func40_1(void)
     call40_5(call40_3);
 
     if (gv_addr_of_call40_1 != gv40_call40_1_addr) {
-      printf( "Failed test #40 (monitor dynamic call site)\n" );
-      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+      logerror( "Failed test #40 (monitor dynamic call site)\n" );
+      logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
               (void *)gv_addr_of_call40_1, (void *)gv40_call40_1_addr);
       passedTest[ 40 ] = FALSE;
     }
 
     if (gv_addr_of_call40_2 != gv40_call40_2_addr) {
-      printf( "Failed test #40 (monitor dynamic call site)\n" );
-      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+      logerror( "Failed test #40 (monitor dynamic call site)\n" );
+      logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
               (void *)gv_addr_of_call40_2, (void *)gv40_call40_2_addr);
       passedTest[ 40 ] = FALSE;
     }
 
     if (gv_addr_of_call40_3 != gv40_call40_3_addr) {
-      printf( "Failed test #40 (monitor dynamic call site)\n" );
-      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+      logerror( "Failed test #40 (monitor dynamic call site)\n" );
+      logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
               (void *)gv_addr_of_call40_3, (void *)gv40_call40_3_addr);
       passedTest[ 40 ] = FALSE;
     }
 
     if (callsite40_5_addr != gv40_call40_5_addr1) {
-      printf( "Failed test #40 (monitor dynamic call site)\n" );
-      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+      logerror( "Failed test #40 (monitor dynamic call site)\n" );
+      logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
               (void *)callsite40_5_addr, (void *)gv40_call40_5_addr1);
       passedTest[ 40 ] = FALSE;
     }
 
     if (callsite40_5_addr != gv40_call40_5_addr2) {
-      printf( "Failed test #40 (monitor dynamic call site)\n" );
-      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+      logerror( "Failed test #40 (monitor dynamic call site)\n" );
+      logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
               (void *)callsite40_5_addr, (void *)gv40_call40_5_addr2);
       passedTest[ 40 ] = FALSE;
     }
 
     if (callsite40_5_addr != gv40_call40_5_addr3) {
-      printf( "Failed test #40 (monitor dynamic call site)\n" );
-      printf( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
+      logerror( "Failed test #40 (monitor dynamic call site)\n" );
+      logerror( "%s[%d]: addr %p != addr %p\n", __FILE__, __LINE__,
               (void *)callsite40_5_addr, (void *)gv40_call40_5_addr3);
       passedTest[ 40 ] = FALSE;
     }
@@ -2827,12 +2828,12 @@ void func40_1(void)
       return;
 
     passedTest[ 40 ] = TRUE;
-    printf( "Passed test #40 (monitor dynamic call site)\n" );
+    logerror( "Passed test #40 (monitor dynamic call site)\n" );
     fflush(NULL);
 #else
    /*  no alpha yet */
-   printf("Skipped test #40 (monitor dynamic call sites)\n");
-   printf("\t- not implemented on this platform\n");
+   logerror("Skipped test #40 (monitor dynamic call sites)\n");
+   logerror("\t- not implemented on this platform\n");
    passedTest[ 40 ] = TRUE;
 #endif
 }
@@ -2881,15 +2882,30 @@ void runTests()
     if (runTest[9]) func9_1(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     if (runTest[10]) func10_1();
     if (runTest[11]) func11_1();
-    if (runTest[12]) func12_1();
-
+    if (runTest[12]) {
+      func12_1();
+      /* I need to insert a stop_process_() here for fast-and-loose mode */
+      if (fastAndLoose && runAnyAfter(12, 40)) {
+	stop_process_();
+      }
+    }
     if (runTest[13]) func13_1(131, 132, 133, 134, 135);
     if (runTest[14]) func14_1();
-    if (runTest[15]) func15_1();
+    if (runTest[15]) {
+      func15_1();
+      if (fastAndLoose && runAnyAfter(15, 40)) {
+	stop_process_();
+      }
+    }
     if (runTest[16]) func16_1();
     if (runTest[17]) func17_1();
     if (runTest[18]) func18_1();
-    if (runTest[19]) func19_1();
+    if (runTest[19]) {
+      func19_1();
+      if (fastAndLoose && runAnyAfter(19, 40)) {
+	stop_process_();
+      }
+    }
     if (runTest[20]) func20_1();
     if (runTest[21]) func21_1();
     if (runTest[22]) func22_1();

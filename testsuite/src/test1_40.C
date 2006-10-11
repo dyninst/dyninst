@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_40.C,v 1.6 2006/05/15 16:16:56 bpellin Exp $
+// $Id: test1_40.C,v 1.7 2006/10/11 21:53:11 cooksey Exp $
 /*
  * #Name: test1_40
  * #Desc: Verify that we can monitor call sites
@@ -55,48 +55,48 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
-int mutateeXLC = 0;
+static int mutateeFortran;
+static int mutateeXLC = 0;
 
 
 //
 //  Test case 40:  verify that we can monitor call sites
 //
 
-BPatch_function *findFunction40(const char *fname, 
+static BPatch_function *findFunction40(const char *fname, 
                                 BPatch_image *appImage)
 {
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
 
-      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
-      fprintf(stderr, "  Expected 1 functions matching call40_1, got %d\n",
-              bpfv.size());
+      logerror("**Failed test #40 (monitor call sites)\n");
+      logerror("  Expected 1 functions matching %s, got %d\n",
+	       fname, bpfv.size());
          return NULL;
   }
   return bpfv[0];
 }
 
-int setVar40(const char *vname, void *addr, BPatch_image *appImage)
+static int setVar40(const char *vname, void *addr, BPatch_image *appImage)
 {
    BPatch_variableExpr *v;
    void *buf = addr;
    if (NULL == (v = appImage->findVariable(vname))) {
-      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
-      fprintf(stderr, "  cannot find variable %s\n", vname);
+      logerror("**Failed test #40 (monitor call sites)\n");
+      logerror("  cannot find variable %s\n", vname);
       return -1;
    }
 
    if (! v->writeValue(&buf, sizeof(unsigned int),false)) {
-      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
-      fprintf(stderr, "  failed to write call site var to mutatee\n");
+      logerror("**Failed test #40 (monitor call sites)\n");
+      logerror("  failed to write call site var to mutatee\n");
       return -1;
    }
 
    return 0;
 }
 
-int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
 
 #if !defined(alpha_dec_osf4_0) \
@@ -136,8 +136,8 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 
    BPatch_Vector<BPatch_point *> *calls = targetFunc->findPoint(BPatch_subroutine);
    if (!calls) {
-      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
-      fprintf(stderr, "  cannot find call points for call40_5\n");
+      logerror("**Failed test #40 (monitor call sites)\n");
+      logerror("  cannot find call points for call40_5\n");
          return -1;
    }
 
@@ -149,10 +149,10 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
    }
 
    if (dyncalls.size() != 1) {
-      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
-      fprintf(stderr, "  wrong number of dynamic points found (%d -- not 1)\n",
+      logerror("**Failed test #40 (monitor call sites)\n");
+      logerror("  wrong number of dynamic points found (%d -- not 1)\n",
               dyncalls.size());
-      fprintf(stderr, "  total number of calls found: %d\n", calls->size());
+      logerror("  total number of calls found: %d\n", calls->size());
          return -1;
    }
 
@@ -162,8 +162,8 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 
    //  issue command to monitor calls at this site, and we're done.
    if (! dyncalls[0]->monitorCalls(monitorFunc)) {
-      fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
-      fprintf(stderr, "  cannot monitor calls\n");
+      logerror("**Failed test #40 (monitor call sites)\n");
+      logerror("  cannot monitor calls\n");
       return -1;
    }
 #endif
@@ -172,7 +172,7 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_40_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
@@ -180,6 +180,11 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
     mutateeXLC = param["mutateeXLC"]->getInt();
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

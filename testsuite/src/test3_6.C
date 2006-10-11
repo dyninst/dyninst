@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_6.C,v 1.6 2006/06/22 16:04:01 legendre Exp $
+// $Id: test3_6.C,v 1.7 2006/10/11 21:53:38 cooksey Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -62,15 +62,15 @@
 //#include "test3.h"
 
 #if defined(os_windows)
-BPatch_exitType expectedSignal = ExitedNormally;
+static BPatch_exitType expectedSignal = ExitedNormally;
 #else
-BPatch_exitType expectedSignal = ExitedViaSignal;
+static BPatch_exitType expectedSignal = ExitedViaSignal;
 #endif
 
-const unsigned int MAX_MUTATEES = 32;
-unsigned int Mutatees=3;
-int debugPrint;
-BPatch *bpatch;
+static const unsigned int MAX_MUTATEES = 32;
+static unsigned int Mutatees=3;
+static int debugPrint;
+static BPatch *bpatch;
 
 //
 // Start Test Case #1 - create processes and process events from each
@@ -78,7 +78,7 @@ BPatch *bpatch;
 //
 
 #if !defined (os_windows)
-int forkNewMutatee(const char *filename, const char *child_argv[])
+static int forkNewMutatee(const char *filename, const char *child_argv[])
 {
   int pid;
   static int pgid = 0;
@@ -90,25 +90,25 @@ int forkNewMutatee(const char *filename, const char *child_argv[])
     //  sanity check, make sure that all forked processes have the same process group id
     if (!pgid) pgid = getpgid(0);
     else if (pgid != getpgid(0)) {
-       fprintf(stderr, "%s[%d]:  Something is broken with the test -- all forked processes should belong to the same group\n",                __FILE__, __LINE__);
+       logerror("%s[%d]:  Something is broken with the test -- all forked processes should belong to the same group\n",                __FILE__, __LINE__);
        abort();
     }
 
     execv (filename, (char * const *)child_argv);
     //  if we get here, error
-    fprintf(stderr, "%s[%d]:  exec failed: %s\n", __FILE__, __LINE__, strerror(errno));
+    logerror("%s[%d]:  exec failed: %s\n", __FILE__, __LINE__, strerror(errno));
     exit (-1);
   }
   else if (pid < 0) {
     //  fork error, fail test
-    fprintf(stderr, "%s[%d]:  fork failed: %s\n", __FILE__, __LINE__, strerror(errno));
+    logerror("%s[%d]:  fork failed: %s\n", __FILE__, __LINE__, strerror(errno));
     return -1;
   }
 
   return pid;
 }
 
-bool grandparentForkMutatees(int num, int *pids, const char *filename, const char *child_argv[])
+static bool grandparentForkMutatees(int num, int *pids, const char *filename, const char *child_argv[])
 {
     //  this is like fork_mutatee in test_util.C, except it guarantees that mutatees are all
     //  in the same process group.
@@ -127,7 +127,7 @@ bool grandparentForkMutatees(int num, int *pids, const char *filename, const cha
            result = read(filedes[0], &pids[i], sizeof(int));
         } while (result == -1 && errno == EINTR);
         if (0 > result) {
-           fprintf(stderr, "%s[%d]:  read failed %s\n", __FILE__, __LINE__, strerror(errno));
+           logerror("%s[%d]:  read failed %s\n", __FILE__, __LINE__, strerror(errno));
            abort();
         }
         dprintf("%s[%d]:  parent -- have new pid %d\n", __FILE__, __LINE__, pids[i]);
@@ -137,11 +137,11 @@ bool grandparentForkMutatees(int num, int *pids, const char *filename, const cha
       int status;
       int waitpid_ret = waitpid(childpid, &status, 0);
       if (waitpid_ret != childpid) {
-        fprintf(stderr, "%s[%d]:  waitpid failed: %s\n", __FILE__, __LINE__, strerror(errno));
+        logerror("%s[%d]:  waitpid failed: %s\n", __FILE__, __LINE__, strerror(errno));
         exit (0);
       }
       if (!WIFEXITED(status)) {
-         fprintf(stderr, "%s[%d]:  not exited\n", __FILE__, __LINE__);
+         logerror("%s[%d]:  not exited\n", __FILE__, __LINE__);
          exit(-1);
       }
       close(filedes[0]);
@@ -156,13 +156,13 @@ bool grandparentForkMutatees(int num, int *pids, const char *filename, const cha
       for (int n=0; n<num; n++) {
         gchild_pid = forkNewMutatee(filename, child_argv);
         if (gchild_pid < 0) {
-           fprintf(stderr, "%s[%d]:  failed to fork/exec\n", __FILE__, __LINE__);
+           logerror("%s[%d]:  failed to fork/exec\n", __FILE__, __LINE__);
            return false;
         }
         dprintf("%s[%d]:  forked mutatee %d\n", __FILE__, __LINE__, gchild_pid);
         //  let parent know the grandchild pid
         if (0 > write(filedes[1], &gchild_pid, sizeof(int))) {
-            fprintf(stderr, "%s[%d]:  write failed\n", __FILE__, __LINE__);
+            logerror("%s[%d]:  write failed\n", __FILE__, __LINE__);
             abort();
         }
       }
@@ -174,7 +174,7 @@ bool grandparentForkMutatees(int num, int *pids, const char *filename, const cha
      //  fork error, fail test
      close (filedes[0]);
      close (filedes[1]);
-     fprintf(stderr, "%s[%d]:  fork failed: %s\n", __FILE__, __LINE__, strerror(errno));
+     logerror("%s[%d]:  fork failed: %s\n", __FILE__, __LINE__, strerror(errno));
      return false;
    }
    return true;
@@ -182,7 +182,7 @@ bool grandparentForkMutatees(int num, int *pids, const char *filename, const cha
 
 #endif
 
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
 #if !defined (os_windows)
     unsigned int n=0;
@@ -200,7 +200,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
     // Start the mutatees
     if (!grandparentForkMutatees(Mutatees, pids, pathname, child_argv)) {
-      fprintf(stderr, "%s[%d]:  failed to fork mutatees\n", __FILE__, __LINE__);
+      logerror("%s[%d]:  failed to fork mutatees\n", __FILE__, __LINE__);
       exit(1);
     }
 
@@ -210,8 +210,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         dprintf("Attaching \"%s\" %d/%d\n", pathname, n, Mutatees);
         appThread[n] = bpatch->attachProcess(pathname, pids[n]);
         if (!appThread[n]) {
-            printf("*ERROR*: unable to create handle%d for executable\n", n);
-            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            logerror("*ERROR*: unable to create handle%d for executable\n", n);
+            logerror("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
             MopUpMutatees(n-1,appThread);
             return -1;
         }
@@ -231,14 +231,14 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     for (n=0; n<Mutatees; n++) {
         bool dead = appThread[n]->terminateExecution();
         if (!dead || !(appThread[n]->isTerminated())) {
-            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
-            printf("    mutatee process [%d] was not terminated\n", n);
+            logerror("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            logerror("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
 #if !defined(os_aix) && !defined(os_solaris) && !defined(os_osf)
         if(appThread[n]->terminationStatus() != expectedSignal) {
-            printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
-            printf("    mutatee process [%d] didn't get notice of termination\n", n);
+            logerror("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
+            logerror("    mutatee process [%d] didn't get notice of termination\n", n);
             continue;
         }
         int signalNum = appThread[n]->getExitSignal();
@@ -249,22 +249,28 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     }
 
     if (numTerminated == Mutatees) {
-	printf("Passed Test #1 (simultaneous multiple-process management - terminate)\n");
+	logerror("Passed Test #1 (simultaneous multiple-process management - terminate)\n");
         return 0;
     }
 
     return -1;
 #else
-    printf("Skipped Test #6 (simultaneous multiple-process management - terminate)\n");
+    logerror("Skipped Test #6 (simultaneous multiple-process management - terminate)\n");
     return 0;
 #endif
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test3_6_mutatorMAIN(ParameterDict &param)
 {
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

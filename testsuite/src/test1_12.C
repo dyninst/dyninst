@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_12.C,v 1.5 2006/03/13 21:05:43 bpellin Exp $
+// $Id: test1_12.C,v 1.6 2006/10/11 21:52:39 cooksey Exp $
 /*
  * #Name: test1_12
  * #Desc: Mutator Side - Insert/Remove and Malloc/Free
@@ -55,40 +55,40 @@
 #include "test_lib.h"
 #include "Callbacks.h"
 
-BPatch *bpatch;
-BPatchSnippetHandle *snippetHandle12_1;
-BPatch_variableExpr *varExpr12_1;
+static BPatch *bpatch;
+static BPatchSnippetHandle *snippetHandle12_1;
+static BPatch_variableExpr *varExpr12_1;
 
-const int HEAP_TEST_UNIT_SIZE = 5000;
+static const int HEAP_TEST_UNIT_SIZE = 5000;
 
 //
 // Start Test Case #12 - mutator side (insert/remove and malloc/free)
 //
-int mutatorTesta(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTesta(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func12_2"
     BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func12_2", found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func12_2");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func12_2");
     }
 
     BPatch_Vector<BPatch_point *> *point12_2 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point12_2 || (point12_2->size() < 1)) {
-	fprintf(stderr, "Unable to find point func12_2 - entry.\n");
+	logerror("Unable to find point func12_2 - entry.\n");
         return -1;
     }
 
     varExpr12_1 = appThread->malloc(100);
     if (!varExpr12_1) {
-	fprintf(stderr, "Unable to allocate 100 bytes in mutatee\n");
+	logerror("Unable to allocate 100 bytes in mutatee\n");
         return -1;
     }
 
@@ -101,7 +101,7 @@ int mutatorTesta(BPatch_thread *appThread, BPatch_image *appImage)
     for (count = 0; count < 2000; count++) {
         temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
         if (!temp) {
-            printf("*** Inferior malloc stress test failed\n"); 
+            logerror("*** Inferior malloc stress test failed\n"); 
             exit(-1);
         }
         memStuff[count] = temp;
@@ -116,14 +116,14 @@ int mutatorTesta(BPatch_thread *appThread, BPatch_image *appImage)
 
     temp = appThread->malloc(500); 
     if (!temp) {
-	printf("*** Unable to allocate memory after using then freeing heap\n");
+	logerror("*** Unable to allocate memory after using then freeing heap\n");
     }
 
     BPatch_Vector<BPatch_function *> bpfv;
     char *fn = "call12_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn);
+      logerror("    Unable to find function %s\n", fn);
       return -1;
     }
 
@@ -135,22 +135,21 @@ int mutatorTesta(BPatch_thread *appThread, BPatch_image *appImage)
     checkCost(call12_1Expr);
     snippetHandle12_1 = appThread->insertSnippet(call12_1Expr, *point12_2);
     if (!snippetHandle12_1) {
-	fprintf(stderr,
-		"Unable to insert snippet to call function \"call12_1.\"\n");
+	logerror("Unable to insert snippet to call function \"call12_1.\"\n");
         return -1;
     }
 
     return 0;
 }
 
-int mutatorTestb(BPatch_thread *appThread, BPatch_image * /*appImage*/)
+static int mutatorTestb(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 {
     waitUntilStopped(bpatch, appThread, 12, "insert/remove and malloc/free");
 
     // remove instrumentation and free memory
     if (!appThread->deleteSnippet(snippetHandle12_1)) {
-	printf("**Failed test #12 (insert/remove and malloc/free)\n");
-	printf("    deleteSnippet returned an error\n");
+	logerror("**Failed test #12 (insert/remove and malloc/free)\n");
+	logerror("    deleteSnippet returned an error\n");
         return -1;
     }
     appThread->free(*varExpr12_1);
@@ -162,12 +161,17 @@ int mutatorTestb(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_12_mutatorMAIN(ParameterDict &param)
 {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     bool useAttach = param["useAttach"]->getInt();
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

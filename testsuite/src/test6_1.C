@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_1.C,v 1.6 2006/03/12 23:33:45 legendre Exp $
+// $Id: test6_1.C,v 1.7 2006/10/11 21:53:57 cooksey Exp $
 /*
  * #Name: test6_1
  * #Desc: Load Instrumentation
@@ -56,11 +56,10 @@
 #include "test_lib.h"
 #include "test6.h"
 
-
 #ifdef sparc_sun_solaris2_4
-const unsigned int nloads = 15;
-BPatch_memoryAccess* loadList[nloads];
-void init_test_data()
+static const unsigned int nloads = 15;
+static BPatch_memoryAccess* loadList[nloads];
+static void init_test_data()
 {
   int k=-1;
 
@@ -86,9 +85,9 @@ void init_test_data()
 #endif
 
 #ifdef rs6000_ibm_aix4_1
-const unsigned int nloads = 41;
-BPatch_memoryAccess* loadList[nloads];
-void init_test_data()
+static const unsigned int nloads = 41;
+static BPatch_memoryAccess* loadList[nloads];
+static void init_test_data()
 {
   int k=-1;
 
@@ -155,12 +154,12 @@ void init_test_data()
 
 #if defined(i386_unknown_linux2_0) \
  || defined(i386_unknown_nt4_0)
-const unsigned int nloads = 65;
-BPatch_memoryAccess* loadList[nloads];
+static const unsigned int nloads = 65;
+static BPatch_memoryAccess* loadList[nloads];
 
-void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
+static void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
 
-void get_vars_addrs(BPatch_image* bip) // from mutatee
+static void get_vars_addrs(BPatch_image* bip) // from mutatee
 {
   BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
   BPatch_variableExpr* bpvep_diwars = bip->findVariable("dfvars");
@@ -175,7 +174,7 @@ void get_vars_addrs(BPatch_image* bip) // from mutatee
   dlargep = bpvep_dlarge->getBaseAddr();
 }
 
-void init_test_data()
+static void init_test_data()
 {
   int k=-1;
 
@@ -275,9 +274,9 @@ void init_test_data()
 #endif
 
 #ifdef ia64_unknown_linux2_4
-const unsigned int nloads = 6;
-BPatch_memoryAccess* loadList[nloads];
-void init_test_data() {
+static const unsigned int nloads = 6;
+static BPatch_memoryAccess* loadList[nloads];
+static void init_test_data() {
 	loadList[0] = MK_LD( 0, 16, -1, 8 );
 	loadList[1] = MK_LD( 0, 14, -1, 8 );
 	loadList[2] = MK_LD( 0, 15, -1, 8 );
@@ -289,13 +288,13 @@ void init_test_data() {
 #endif
 
 #ifdef x86_64_unknown_linux2_4
-const unsigned int nloads = 73;
+static const unsigned int nloads = 73;
 
-BPatch_memoryAccess* loadList[nloads];
+static BPatch_memoryAccess* loadList[nloads];
 
-void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
+static void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
 
-void get_vars_addrs(BPatch_image* bip) // from mutatee
+static void get_vars_addrs(BPatch_image* bip) // from mutatee
 {
 
   BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
@@ -310,7 +309,7 @@ void get_vars_addrs(BPatch_image* bip) // from mutatee
   dlargep = bpvep_dlarge->getBaseAddr();
 }
 
-void init_test_data()
+static void init_test_data()
 {
   int k=-1;
 
@@ -427,20 +426,20 @@ void init_test_data()
 #endif
 
 #ifdef mips_sgi_irix6_4
-void init_test_data()
+static void init_test_data()
 {
 }
 #endif
 
 #ifdef alpha_dec_osf4_0
-void init_test_data()
+static void init_test_data()
 {
 }
 #endif
 
 
 // Find and instrument loads with a simple function call snippet
-int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
+static int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 {
   int testnum = 1;
   const char* testdesc = "load instrumentation";
@@ -457,7 +456,7 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
   get_vars_addrs(bpimg);
 #endif
 
-  printf("test6_1 is running\n");
+  dprintf("test6_1 is running\n");
   init_test_data();
   
   BPatch_Set<BPatch_opCode> loads;
@@ -466,13 +465,13 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",
+    logerror("    Unable to find function %s\n",
 	    inFunction);
     return -1;
   }
        
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), inFunction);
   }
        
@@ -496,11 +495,17 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test6_1_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

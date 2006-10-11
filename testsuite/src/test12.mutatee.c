@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <errno.h>
 
+#include "mutatee_util.h"
+
 #include "../src/test12.h"
 #include "../../dyninstAPI_RT/h/dyninstRTExport.h"
 #define TRUE 1
@@ -46,7 +48,6 @@ int debugPrint = 0;
 int isAttached = 0;
 int mutateeIdle = 0;
 int mutateeXLC = 0;
-
 
 /*
  * Stop the process (in order to wait for the mutator to finish what it's
@@ -97,7 +98,7 @@ Thread_t *createThreads(unsigned int num, ThreadMain_t tmain, Thread_t *tbuf)
     threads = tbuf;
     
   if (!threads) {
-    fprintf(stderr, "%s[%d]:  could not alloc space for %d thread handles\n",
+    logerror("%s[%d]:  could not alloc space for %d thread handles\n",
             __FILE__, __LINE__, num);
     return NULL;
   }
@@ -127,7 +128,7 @@ Thread_t *createThreads(unsigned int num, ThreadMain_t tmain, Thread_t *tbuf)
 	                    &attr, (void *(*)(void*))tmain, NULL))    
     {
       err = 1;
-      fprintf(stderr, "%s[%d]:pthread_create\n", __FILE__, __LINE__);
+      logerror("%s[%d]:pthread_create\n", __FILE__, __LINE__);
       goto cleanup;
     }
     dprintf("%s[%d]:  PTHREAD_CREATE: %lu\n", __FILE__, __LINE__, 
@@ -147,7 +148,7 @@ Thread_t *createThreads(unsigned int num, ThreadMain_t tmain, Thread_t *tbuf)
 int createLock(Lock_t *lock)
 {
   if (debugPrint)
-    fprintf(stderr, "%s[%d]:  creating lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+    dprintf("%s[%d]:  creating lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
   if (0 != pthread_mutex_init(lock, NULL)) {
     perror("pthread_mutex_init");
     return FALSE;
@@ -158,7 +159,7 @@ int createLock(Lock_t *lock)
 int destroyLock(Lock_t *lock)
 {
   if (debugPrint)
-    fprintf(stderr, "%s[%d]:  destroying lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+    dprintf("%s[%d]:  destroying lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
   if (0 != pthread_mutex_destroy(lock)) {
     perror("pthread_mutex_destroy");
     return FALSE;
@@ -169,7 +170,7 @@ int destroyLock(Lock_t *lock)
 int lockLock(Lock_t *lock)
 {
   if (debugPrint)
-    fprintf(stderr, "%s[%d]:  locking lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+    dprintf("%s[%d]:  locking lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
   if (0 != pthread_mutex_lock(lock)) {
     perror("pthread_mutex_lock");
     return FALSE;
@@ -180,7 +181,7 @@ int lockLock(Lock_t *lock)
 int unlockLock(Lock_t *lock)
 {
   if (debugPrint)
-    fprintf(stderr, "%s[%d]:  unlocking lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+    dprintf("%s[%d]:  unlocking lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
   if (0 != pthread_mutex_unlock(lock)) {
     perror("pthread_mutex_unlock");
     return FALSE;
@@ -249,7 +250,7 @@ void register_my_lock(unsigned long id, unsigned int val)
     }
   }
   if (!found)
-    fprintf(stderr, "%s[%d]: FIXME\n", __FILE__, __LINE__);
+    logerror("%s[%d]: FIXME\n", __FILE__, __LINE__);
 }
 
 int done_threads = 0;
@@ -330,7 +331,7 @@ void func1_1()
 #endif
   RTlib = dlopen(libname, RTLD_NOW);
   if (!RTlib) {
-    fprintf(stderr, "%s[%d]:  could not open dyninst RT lib: %s\n", __FILE__, __LINE__, dlerror());
+    logerror("%s[%d]:  could not open dyninst RT lib: %s\n", __FILE__, __LINE__, dlerror());
     exit(1);
   }
 
@@ -339,15 +340,15 @@ void func1_1()
   DYNINSTunlock_thelock = (void (*)(dyninst_lock_t *))dlsym(RTlib, "dyninst_unlock");
   DYNINST_pthread_self = (dyntid_t (**)(void))dlsym(RTlib, "DYNINST_pthread_self");
   if (!DYNINSTinit_thelock) {
-    fprintf(stderr, "%s[%d]:  could not DYNINSTinit_thelock: %s\n", __FILE__, __LINE__, dlerror());
+    logerror("%s[%d]:  could not DYNINSTinit_thelock: %s\n", __FILE__, __LINE__, dlerror());
     exit(1);
   }
   if (!DYNINSTlock_thelock) {
-    fprintf(stderr, "%s[%d]:  could not DYNINSTlock_thelock: %s\n", __FILE__, __LINE__, dlerror());
+    logerror("%s[%d]:  could not DYNINSTlock_thelock: %s\n", __FILE__, __LINE__, dlerror());
     exit(1);
   }
   if (!DYNINSTunlock_thelock) {
-    fprintf(stderr, "%s[%d]:  could not DYNINSTunlock_thelock:%s\n", __FILE__, __LINE__, dlerror());
+    logerror("%s[%d]:  could not DYNINSTunlock_thelock:%s\n", __FILE__, __LINE__, dlerror());
     exit(1);
   }
 
@@ -418,7 +419,7 @@ int call2_4(int arg) {return arg+4;}
 
 int call2_dispatch(intFuncArg callme, int arg) 
 {
-  /*fprintf(stderr, "%s[%d]:  inside call2_dispatch\n", __FILE__, __LINE__);*/
+  /*dprintf("%s[%d]:  inside call2_dispatch\n", __FILE__, __LINE__);*/
   static int callsite_selector = 0;
   int ret = -1;
   intFuncArg tocall = (intFuncArg) callme;
@@ -426,7 +427,7 @@ int call2_dispatch(intFuncArg callme, int arg)
   ret = call2_zero(); /* lets have a non-dynamic call site here too */
 
   if (!tocall) {
-    fprintf(stderr, "%s[%d]:  FIXME!\n", __FILE__, __LINE__);
+    logerror("%s[%d]:  FIXME!\n", __FILE__, __LINE__);
     return -1;
   }
 
@@ -476,7 +477,7 @@ void *thread_main3(void *arg)
   for (i = 0; i < 0xffff; ++i) {
     x = x + i;
   }
-  /*fprintf(stderr, "%s[%d]:  PTHREAD_DESTROY\n", __FILE__, __LINE__); */
+  /*dprintf("%s[%d]:  PTHREAD_DESTROY\n", __FILE__, __LINE__); */
 
   unlockLock(&test3lock);
   dprintf("%s[%d]:  %lu exiting...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
@@ -652,22 +653,22 @@ void *thread_main8(void *arg)
   Lock_t newmutex;
   arg = NULL;
   if (!createLock(&newmutex)) {
-     fprintf(stderr, "%s[%d]:  createLock failed\n", __FILE__, __LINE__);
+     logerror("%s[%d]:  createLock failed\n", __FILE__, __LINE__);
      return NULL;
   }
   sleep_ms(100);
   if (!lockLock(&newmutex)) {
-     fprintf(stderr, "%s[%d]:  lockLock failed\n", __FILE__, __LINE__);
+     logerror("%s[%d]:  lockLock failed\n", __FILE__, __LINE__);
      return NULL;
   }
   sleep_ms(100);
   if (!unlockLock(&newmutex)) {
-     fprintf(stderr, "%s[%d]:  unlockLock failed\n", __FILE__, __LINE__);
+     logerror("%s[%d]:  unlockLock failed\n", __FILE__, __LINE__);
      return NULL;
   }
   sleep_ms(100); 
   if (!destroyLock(&newmutex)) {
-     fprintf(stderr, "%s[%d]:  destroyLock failed\n", __FILE__, __LINE__);
+     logerror("%s[%d]:  destroyLock failed\n", __FILE__, __LINE__);
      return NULL;
   }
 
@@ -693,9 +694,9 @@ void func8_1()
 /********************************************************************/
 /********************************************************************/
 #ifdef i386_unknown_nt4_0
-#define USAGE "Usage: test12.mutatee [-attach] [-verbose] -run <num> .."
+#define USAGE "Usage: test12.mutatee [-attach] [-verbose] [-log <file>] -run <num> .."
 #else
-#define USAGE "Usage: test12.mutatee [-attach <fd>] [-verbose] -run <num> .."
+#define USAGE "Usage: test12.mutatee [-attach <fd>] [-verbose] [-log <file>] -run <num> .."
 #endif
 
 int main(int iargc, char *argv[])
@@ -707,17 +708,25 @@ int main(int iargc, char *argv[])
 #endif
     int useAttach = FALSE;
     int doAttachCheck = TRUE;
+    char *logfilename = NULL;
 
     for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
 
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = 1;
+	} else if (!strcmp(argv[i], "-log")) {
+	  if ((i + 1) >= argc) {
+	    fprintf(stderr, "Missing log file name\n%s\n", USAGE);
+	    exit(-1);
+	  }
+	  i += 1;
+	  logfilename = argv[i];
         } else if (!strcmp(argv[i], "-attach")) {
             useAttach = TRUE;
 #ifndef i386_unknown_nt4_0
             if (++i >= argc) {
-                printf("attach usage\n");
+                fprintf(stderr, "attach usage\n");
                 fprintf(stderr, "%s\n", USAGE);
                 exit(-1);
             }
@@ -733,7 +742,7 @@ int main(int iargc, char *argv[])
                         dprintf("selecting test %d\n", testId);
                         runTest[testId] = TRUE;
                     } else {
-                        printf("%s[%d]: invalid test %d requested\n", __FILE__, __LINE__, testId);
+                        fprintf(stderr, "%s[%d]: invalid test %d requested\n", __FILE__, __LINE__, testId);
                         exit(-1);
                     }
                 } else {
@@ -744,15 +753,29 @@ int main(int iargc, char *argv[])
             i = j-1;
        } else if (!strcmp(argv[i], "-runall")) {
           for (j=0; j <= MAX_TEST; j++) runTest[j] = TRUE;
+       } else if (!strcmp(argv[i], "-fast")) {
+	 fastAndLoose = 1;
        } else {
-            printf("unexpected parameter '%s'\n", argv[i]);
+            fprintf(stderr, "unexpected parameter '%s'\n", argv[i]);
             fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
     }
 
+    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	exit(-1);
+      }
+      errlog = outlog;
+    } else {
+      outlog = stdout;
+      errlog = stderr;
+    }
+
     if ((argc==1) || debugPrint)
-        printf("Mutatee %s [%s]:\"%s\"\n", argv[0],
+        logerror("Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
 
@@ -772,9 +795,9 @@ int main(int iargc, char *argv[])
         close(pfd);
 #endif
         if (doAttachCheck) {
-          printf("Waiting for mutator to attach...\n"); fflush(stdout);
+          dprintf("Waiting for mutator to attach...\n"); fflush(stdout);
           while (!checkIfAttached()) ;
-          printf("Mutator attached.  Mutatee continuing.\n");
+          dprintf("Mutator attached.  Mutatee continuing.\n");
         }
     }
 
@@ -798,6 +821,10 @@ int main(int iargc, char *argv[])
 #if 0
     while(1);
 #endif
+
+    if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+    }
 
     return(0);
 }

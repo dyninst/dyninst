@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_5.C,v 1.5 2006/03/08 16:45:01 bpellin Exp $
+// $Id: test9_5.C,v 1.6 2006/10/11 21:54:24 cooksey Exp $
 /*
  * #Name: test9_5
  * #Desc: call loadLibrary and save the world
@@ -62,7 +62,7 @@
 //
 // Start Test Case #5 - (call loadLibrary and save the world)
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
   const char* testName = "call loadLibrary and save the world";
   int testNo = 5;
@@ -77,18 +77,19 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
 
-
-        std::cout << appThread << "," << appImage << std::endl;
+	logerror("%u,%u\n", appThread, appImage);
+	// outs << appThread << "," << appImage << std::endl;
 	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
         {
-           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
            return -1;
         }
-        std::cout << appThread << "," << appImage << std::endl;
+	logerror("%u,%u\n", appThread, appImage);
+        // outs << appThread << "," << appImage << std::endl;
 	if (! appThread->loadLibrary("./libLoadMe.so", true)) {
-	     fprintf(stderr, "**Failed test #5 (use loadLibrary)\n");
-	     fprintf(stderr, "  Mutator couldn't load libLoadMe.so into mutatee\n");
-             return -1;
+	     logerror("**Failed test #5 (use loadLibrary)\n");
+	     logerror("  Mutator couldn't load libLoadMe.so into mutatee\n");
+	   return -1;
 	}
 
 	char * dirname = saveWorld(appThread);
@@ -104,25 +105,31 @@ int mutatorTest(char *pathname, BPatch *bpatch)
                 {
                    return 0;
                 } else {
-		  fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+		  logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                   return -1;
                 }
 	}else{
-		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+		logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                 return -1;
 
 	}
 #else
-	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
+	logerror("Skipped Test #%d: not implemented on this platform\n",testNo);
         return 0;
 #endif	
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test9_5_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

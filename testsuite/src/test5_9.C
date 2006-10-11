@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_9.C,v 1.3 2006/03/12 23:33:43 legendre Exp $
+// $Id: test5_9.C,v 1.4 2006/10/11 21:53:55 cooksey Exp $
 /*
  * #Name: test5_9
  * #Desc: Derivation
@@ -58,7 +58,7 @@
 //
 // Start Test Case #9 - (derivation)
 //
-int mutatorTest(BPatch_thread *, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 {
 #if defined(os_solaris) || defined(os_windows) || defined(os_linux)
    bool found = false;
@@ -67,14 +67,14 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
   char *fn = "derivation_test::func_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #9 (derivation)\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn);
+    logerror("**Failed** test #9 (derivation)\n");
+    logerror("    Unable to find function %s\n", fn);
     return FAIL;
   }
   BPatch_function *f1 = bpfv[0];  
   BPatch_Vector<BPatch_point *> *point9_1 = f1->findPoint(BPatch_exit);
   if (!point9_1 || (point9_1->size() < 1)) {
-    fprintf(stderr, "Unable to find point derivation_test::func_cpp - exit.\n");
+    logerror("Unable to find point derivation_test::func_cpp - exit.\n");
     return FAIL;
   }
    
@@ -82,28 +82,28 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
   char *fn2 = "main";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #9 (derivation)\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    logerror("**Failed** test #9 (derivation)\n");
+    logerror("    Unable to find function %s\n", fn2);
     return FAIL;
   }
   BPatch_function *f2 = bpfv[0];  
   BPatch_Vector<BPatch_point *> *point9_2 = f2->findPoint(BPatch_allLocations);
   if (!point9_2 || (point9_2->size() < 1)) {
-    fprintf(stderr, "Unable to find point in main.\n");
+    logerror("Unable to find point in main.\n");
     return FAIL;
   }
 
    BPatch_variableExpr *expr9_0=appImage->findVariable(*(*point9_2)[0], "test9");
    if (!expr9_0) {
-      fprintf(stderr, "**Failed** test #9 (derivation)\n");
-      fprintf(stderr, "    Unable to locate one of variables\n");
+      logerror("**Failed** test #9 (derivation)\n");
+      logerror("    Unable to locate one of variables\n");
       return FAIL;
    }
 
    BPatch_Vector<BPatch_variableExpr *> *fields = expr9_0->getComponents();
    if (!fields || fields->size() == 0 ) {
-         fprintf(stderr, "**Failed** test #9 (derivation)\n");
-         fprintf(stderr, "  struct lacked correct number of elements\n");
+         logerror("**Failed** test #9 (derivation)\n");
+         logerror("  struct lacked correct number of elements\n");
          return FAIL;
    }
 
@@ -118,8 +118,8 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
    }
    
    if ( !found ) {
-     fprintf(stderr, "**Failed** test #9 (derivation)\n");
-     fprintf(stderr, "    Can't find inherited class member functions\n");
+     logerror("**Failed** test #9 (derivation)\n");
+     logerror("    Can't find inherited class member functions\n");
      return FAIL;
   }
 #endif
@@ -127,12 +127,17 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test5_9_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

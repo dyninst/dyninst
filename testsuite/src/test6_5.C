@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_5.C,v 1.2 2005/11/22 19:42:40 bpellin Exp $
+// $Id: test6_5.C,v 1.3 2006/10/11 21:54:01 cooksey Exp $
 /*
  * #Name: test6_5
  * #Desc: Instrumentation w/effective address snippet
@@ -57,7 +57,7 @@
 #include "test6.h"
 
 // Instrument all accesses with an effective address snippet
-int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
+static int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 {
   int testnum = 5;
   const char* testdesc = "instrumentation w/effective address snippet";
@@ -78,13 +78,13 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
   if ((NULL == bpimg->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",
+    logerror("    Unable to find function %s\n",
 	    inFunction);
     return -1;
   }
        
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), inFunction);
   }
        
@@ -93,7 +93,7 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
-  //fprintf(stderr, "Doing test %d!!!!!!\n", testnum);
+  //logerror("Doing test %d!!!!!!\n", testnum);
   RETURNONFAIL(instEffAddr(bpthr, "EffAddr", res1, false));
 #endif
   //bpthr->detach(false);
@@ -102,12 +102,17 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test6_5_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

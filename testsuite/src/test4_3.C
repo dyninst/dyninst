@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_3.C,v 1.5 2006/03/19 18:34:51 mirg Exp $
+// $Id: test4_3.C,v 1.6 2006/10/11 21:53:42 cooksey Exp $
 /*
  * #Name: test4_3
  * #Desc: Exec Callback
@@ -55,14 +55,14 @@
 
 #include "test_lib.h"
 
-bool passedTest = false;
-const unsigned int MAX_TEST = 4;
-int threadCount = 0;
-BPatch_thread *mythreads[25];
-int debugPrint;
-BPatch *bpatch;
+static bool passedTest = false;
+static const unsigned int MAX_TEST = 4;
+static int threadCount = 0;
+static BPatch_thread *mythreads[25];
+static int debugPrint;
+static BPatch *bpatch;
 
-void forkFunc(BPatch_thread *parent, BPatch_thread *child)
+static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 {
     dprintf("forkFunc called with parent %p, child %p\n", parent, child);
     BPatch_image *appImage;
@@ -78,7 +78,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     }
 }
 
-void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
+static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
 {
   dprintf("exitFunc called\n");
     // Read out the values of the variables.
@@ -88,17 +88,17 @@ void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
 
     // simple exec 
     if(exit_type == ExitedViaSignal) {
-        printf("Failed test #3 (exec callback), exited via signal %d\n",
+        logerror("Failed test #3 (exec callback), exited via signal %d\n",
                thread->getExitSignal());
     } else if (!verifyChildMemory(thread, "globalVariable3_1", 3000002)) {
-        printf("Failed test #3 (exec callback)\n");
+        logerror("Failed test #3 (exec callback)\n");
     } else {
-        printf("Passed test #3 (exec callback)\n");
+        logerror("Passed test #3 (exec callback)\n");
         passedTest = true;
     }
 }
 
-void execFunc(BPatch_thread *thread)
+static void execFunc(BPatch_thread *thread)
 {
         BPatch_Vector<BPatch_function *> bpfv;
 	dprintf("in exec callback for %d\n", thread->getPid());
@@ -111,7 +111,7 @@ void execFunc(BPatch_thread *thread)
 	char *fn = "func3_2";
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
-	  fprintf(stderr, "    Unable to find function %s\n",fn);
+	  logerror("    Unable to find function %s\n",fn);
 	  exit(1);
 	}
 
@@ -122,7 +122,7 @@ void execFunc(BPatch_thread *thread)
 	char *fn2 = "func3_1";
 	if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
-	  fprintf(stderr, "    Unable to find function %s\n",fn2);
+	  logerror("    Unable to find function %s\n",fn2);
 	  exit(1);
 	}
 
@@ -134,13 +134,13 @@ void execFunc(BPatch_thread *thread)
 	dprintf("%s[%d]:  MUTATEE: exec callback for %d, done with insert snippet\n", __FILE__, __LINE__, thread->getPid());
 }
 
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
 #if defined(i386_unknown_nt4_0) \
  || defined(alpha_dec_osf4_0)
    
-    printf("Skipping test #3 (exec callback)\n");
-    printf("    not implemented on this platform\n");
+    logerror("Skipping test #3 (exec callback)\n");
+    logerror("    not implemented on this platform\n");
     return 0;
 #else
 
@@ -157,11 +157,11 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     child_argv[n] = NULL;
 
     // Start the mutatee
-    printf("Starting \"%s\"\n", pathname);
+    logerror("Starting \"%s\"\n", pathname);
 
     BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
     if (appThread == NULL) {
-	fprintf(stderr, "Unable to run test program.\n");
+	logerror("Unable to run test program.\n");
         return -1;
     }
 
@@ -169,19 +169,25 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
     if ( !passedTest )
     {
-        printf("**Failed** test #3 (exec callback)\n");
-        printf("    exec callback not executed\n");
+        logerror("**Failed** test #3 (exec callback)\n");
+        logerror("    exec callback not executed\n");
         return -1;
     }
     return 0;
 #endif
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test4_3_mutatorMAIN(ParameterDict &param)
 {
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Register the proper callbacks for this test
     bpatch->registerPreForkCallback(forkFunc);

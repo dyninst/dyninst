@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_25.C,v 1.3 2006/03/08 16:44:25 bpellin Exp $
+// $Id: test1_25.C,v 1.4 2006/10/11 21:52:53 cooksey Exp $
 /*
  * #Name: test1_25
  * #Desc: Unary Operators
@@ -55,11 +55,11 @@
 
 #include "test_lib.h"
 
-BPatch *bpatch;
+static BPatch *bpatch;
 //
 // Start Test Case #25 - unary operators
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 	// Used as hack for Fortran to allow assignment of a pointer to an int
 	bpatch->setTypeChecking (false);
@@ -67,13 +67,13 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     //     First verify that we can find a local variable in call25_1
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("call25_1", found_funcs)) || !found_funcs.size()) {
-       fprintf(stderr, "    Unable to find function %s\n",
+       logerror("    Unable to find function %s\n",
 	      "call25_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "call25_1");
     }
 
@@ -91,8 +91,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         gvar [i] = findVariable (appImage, name, point25_1);
 
 	if (!gvar[i]) {
-	    fprintf(stderr, "**Failed** test #25 (unary operaors)\n");
-	    fprintf(stderr, "  can't find variable globalVariable25_%d\n", i);
+	    logerror("**Failed** test #25 (unary operaors)\n");
+	    logerror("  can't find variable globalVariable25_%d\n", i);
 	    return -1;
 	}
     }
@@ -141,12 +141,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_25_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

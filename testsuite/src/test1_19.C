@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_19.C,v 1.10 2006/06/02 22:59:59 legendre Exp $
+// $Id: test1_19.C,v 1.11 2006/10/11 21:52:46 cooksey Exp $
 /*
  * #Name: test1_19
  * #Desc: Mutator Side - oneTimeCode
@@ -54,9 +54,9 @@
 
 #include "test_lib.h"
 
-BPatch *bpatch;
+static BPatch *bpatch;
 
-void test19_oneTimeCodeCallback(BPatch_thread * /*thread*/,
+static void test19_oneTimeCodeCallback(BPatch_thread * /*thread*/,
 				void *userData,
 				void * /*returnValue*/)
 {
@@ -66,8 +66,13 @@ void test19_oneTimeCodeCallback(BPatch_thread * /*thread*/,
 //
 // Start Test Case #19 - mutator side (oneTimeCode)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
+    // Avoid a race condition in fast & loose mode
+    while (!appThread->isStopped()) {
+      bpatch->waitForStatusChange();
+    }
+
     appThread->continueExecution();
     RETURNONFAIL(waitUntilStopped(bpatch, appThread, 19, "oneTimeCode"));
 
@@ -75,7 +80,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn = "call19_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn);
+      logerror("    Unable to find function %s\n", fn);
       return -1;
     }
 
@@ -97,7 +102,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     char *fn2 = "call19_2";
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "    Unable to find function %s\n", fn2);
+      logerror("    Unable to find function %s\n", fn2);
       return -1;
     }
 
@@ -132,12 +137,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_19_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

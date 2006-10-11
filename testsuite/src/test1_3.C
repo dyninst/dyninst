@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_3.C,v 1.6 2006/04/04 20:17:15 jodom Exp $
+// $Id: test1_3.C,v 1.7 2006/10/11 21:52:58 cooksey Exp $
 /*
  * #Name: test1_3
  * #Desc: Mutator Side (passing variables to a function)
@@ -55,32 +55,31 @@
 
 #include "test_lib.h"
 
-
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #3 - mutator side (passing variables to function)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
   // Find the entry point to the procedure "func3_1"
 
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction("func3_1", found_funcs)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",
+    logerror("    Unable to find function %s\n",
 	    "func3_1");
     return -1;
   }
   
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), "func3_1");
   }
   
   BPatch_Vector<BPatch_point *> *point3_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point3_1 || ((*point3_1).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func3_1.\"\n");
+	logerror("Unable to find entry point to \"func3_1.\"\n");
 	return -1;
     }
 
@@ -88,7 +87,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   char *fn = "call3_1";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "    Unable to find function %s\n", fn);
+    logerror("    Unable to find function %s\n", fn);
     return -1;
   }
   BPatch_function *call3_func = bpfv[0];
@@ -97,20 +96,20 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
   BPatch_Vector<BPatch_function *> found_funcs2;
   if ((NULL == appImage->findFunction("call3_1", found_funcs2)) || !found_funcs2.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",
+    logerror("    Unable to find function %s\n",
 	    "call3_1");
     return -1;
   }
   
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs2.size(), "call3_1");
   }
   
   BPatch_Vector<BPatch_point *> *call3_1 = found_funcs2[0]->findPoint(BPatch_subroutine);
 
     if (!call3_1 || ((*call3_1).size() == 0)) {
-        fprintf(stderr, "    Unable to find entry point to \"call3_1.\"\n");
+        logerror("    Unable to find entry point to \"call3_1.\"\n");
         return -1;
     }
 
@@ -118,21 +117,21 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
           "globalVariable3_1", call3_1);
 
     if (!expr3_1) {
-        fprintf(stderr, "**Failed** test #3 (passing variables)\n");
-        fprintf(stderr, "    Unable to locate variable globalVariable3_1\n");
+        logerror("**Failed** test #3 (passing variables)\n");
+        logerror("    Unable to locate variable globalVariable3_1\n");
         return -1;
     }
 
     // see if we can find the address
     if (expr3_1->getBaseAddr() <= 0) {
-        printf("*Error*: address %p for globalVariable3_1 is not valid\n",
+        logerror("*Error*: address %p for globalVariable3_1 is not valid\n",
             expr3_1->getBaseAddr());
     }
 
     BPatch_variableExpr *expr3_2 = appThread->malloc(*appImage->findType("int"));
     if (!expr3_2) {
-	fprintf(stderr, "**Failed** test #3 (passing variables)\n");
-	fprintf(stderr, "    Unable to create new int variable\n");
+	logerror("**Failed** test #3 (passing variables)\n");
+	logerror("    Unable to create new int variable\n");
 	return -1;
     }
 
@@ -161,12 +160,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_3_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

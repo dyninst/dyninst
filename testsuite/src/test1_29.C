@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_29.C,v 1.3 2006/03/08 16:44:29 bpellin Exp $
+// $Id: test1_29.C,v 1.4 2006/10/11 21:52:57 cooksey Exp $
 /*
  * #Name: test1_29
  * #Desc: getParent/Child
@@ -56,8 +56,7 @@
 #include "test_lib.h"
 #include "Callbacks.h"
 
-
-bool printSrcObj(BPatch_sourceObj *p, int level)
+static bool printSrcObj(BPatch_sourceObj *p, int level)
 {
     unsigned int i;
     bool ret = true;
@@ -80,7 +79,7 @@ bool printSrcObj(BPatch_sourceObj *p, int level)
 	    break;
 
 	default:
-	    printf("<unknown type>");
+	    logerror("<unknown type>");
     }
 
     if (!p->getSourceObj(curr)) {
@@ -99,7 +98,7 @@ bool printSrcObj(BPatch_sourceObj *p, int level)
 //
 // Start Test Case #29 - getParent/Child
 //
-int mutatorTest(BPatch_thread *, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 {
     BPatch_sourceObj *p;
     bool passedTest;
@@ -109,19 +108,19 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
     passedTest = printSrcObj(p, 0);
 
     if (!passedTest) {
-	fprintf(stderr, "**Failed** test #29 (class BPatch_srcObj)\n");
+	logerror("**Failed** test #29 (class BPatch_srcObj)\n");
 	return -1;
     }
 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func29_1", found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func29_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func29_1");
     }
 
@@ -132,8 +131,8 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
     BPatch_variableExpr *expr29_1 = findVariable(appImage, "globalVariable29_1", point29_1);
 
     if (expr29_1 == NULL) {
-	fprintf(stderr, "**Failed** test #29 (class BPatch_srcObj)\n");
-	fprintf(stderr, "    Unable to locate globalVariable29_1\n");
+	logerror("**Failed** test #29 (class BPatch_srcObj)\n");
+	logerror("    Unable to locate globalVariable29_1\n");
 	return -1;
     }
     setExpectError(DYNINST_NO_ERROR);
@@ -145,13 +144,18 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_29_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

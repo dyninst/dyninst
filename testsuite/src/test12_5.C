@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_5.C,v 1.2 2006/06/11 00:35:33 legendre Exp $
+// $Id: test12_5.C,v 1.3 2006/10/11 21:52:26 cooksey Exp $
 /*
  * #Name: test12_5
  * #Desc: thread exit callback 
@@ -61,66 +61,65 @@ using std::vector;
 #define TESTNO 5
 #define TESTNAME "thread exit callback"
 
-int debugPrint;
-BPatch *bpatch;
-BPatch_thread *appThread;
-BPatch_image *appImage;
+static int debugPrint;
+static BPatch *bpatch;
+static BPatch_thread *appThread;
+static BPatch_image *appImage;
 
-void dumpVars(void)
+static void dumpVars(void)
 {
   BPatch_Vector<BPatch_variableExpr *> vars;
   appImage->getVariables(vars);
   for (unsigned int i = 0; i < vars.size(); ++i) {
-    fprintf(stderr, "\t%s\n", vars[i]->getName());
+    logerror("\t%s\n", vars[i]->getName());
   }
 }
 
-
-void setVar(const char *vname, void *addr, int testno, const char *testname)
+static void setVar(const char *vname, void *addr, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    void *buf = addr;
    if (NULL == (v = appImage->findVariable(vname))) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  cannot find variable %s, avail vars:\n", vname);
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  cannot find variable %s, avail vars:\n", vname);
       dumpVars();
          exit(1);
    }
 
    if (! v->writeValue(buf, sizeof(int),true)) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  failed to write call site var to mutatee\n");
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  failed to write call site var to mutatee\n");
       exit(1);
    }
 }
 
-void getVar(const char *vname, void *addr, int len, int testno, const char *testname)
+static void getVar(const char *vname, void *addr, int len, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    if (NULL == (v = appImage->findVariable(vname))) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  cannot find variable %s: avail vars:\n", vname);
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  cannot find variable %s: avail vars:\n", vname);
       dumpVars();
          exit(1);
    }
 
    if (! v->readValue(addr, len)) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  failed to read var in mutatee\n");
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  failed to read var in mutatee\n");
       exit(1);
    }
 }
 
-int test5_threadDestroyCounter = 0;
-void threadDestroyCB(BPatch_process * /*proc*/, BPatch_thread *thr)
+static int test5_threadDestroyCounter = 0;
+static void threadDestroyCB(BPatch_process * /*proc*/, BPatch_thread *thr)
 {
   if (debugPrint) 
-    fprintf(stderr, "%s[%d]:  thread %lu destroy event for pid %d\n",
+    dprintf("%s[%d]:  thread %lu destroy event for pid %d\n",
             __FILE__, __LINE__, thr->getTid(), thr->getPid());
   test5_threadDestroyCounter++;
 }  
       
-bool mutatorTest5and6(int testno, const char *testname)
+static bool mutatorTest5and6(int testno, const char *testname)
 {     
   unsigned int timeout = 0; // in ms
   int err = 0;
@@ -129,7 +128,7 @@ bool mutatorTest5and6(int testno, const char *testname)
   if (!bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent, destroycb))
   {   
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
+    logerror("%s[%d]:  failed to register thread callback\n",
            __FILE__, __LINE__);
     return false;
   }
@@ -137,7 +136,7 @@ bool mutatorTest5and6(int testno, const char *testname)
 
 
    if (debugPrint)
-    fprintf(stderr, "%s[%d]:  registered threadDestroy callback\n",
+    dprintf("%s[%d]:  registered threadDestroy callback\n",
             __FILE__, __LINE__);
       
   //  unset mutateeIdle to trigger thread (10) spawn.
@@ -151,13 +150,13 @@ bool mutatorTest5and6(int testno, const char *testname)
   while(test5_threadDestroyCounter < TEST5_THREADS && (timeout < TIMEOUT)) {
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
-    fprintf(stderr, "%s[%d]:  polliing\n", __FILE__, __LINE__);
+    dprintf("%s[%d]:  polling\n", __FILE__, __LINE__);
     bpatch->pollForStatusChange();
   }
 
   if (timeout >= TIMEOUT) {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  test timed out.\n",
+    logerror("%s[%d]:  test timed out.\n",
            __FILE__, __LINE__);
     err = 1;
   }
@@ -166,7 +165,7 @@ bool mutatorTest5and6(int testno, const char *testname)
 
   if (!bpatch->removeThreadEventCallback(BPatch_threadDestroyEvent, destroycb)) {
     FAIL_MES(testno, testname);
-    fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
+    logerror("%s[%d]:  failed to remove thread callback\n",
            __FILE__, __LINE__);
     return false;
   }
@@ -179,7 +178,7 @@ bool mutatorTest5and6(int testno, const char *testname)
 }
 
 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined (os_none)
   if (mutatorTest5and6(TESTNO, TESTNAME))
@@ -191,12 +190,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test12_5_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     appThread = (BPatch_thread *)(param["appThread"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     appImage = appThread->getImage();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_14.C,v 1.4 2006/03/12 23:33:19 legendre Exp $
+// $Id: test1_14.C,v 1.5 2006/10/11 21:52:41 cooksey Exp $
 /*
  * #Name: test1_14
  * #Desc: Mutator Side - Replace Function Call
@@ -57,7 +57,7 @@
 //
 // Start Test Case #14 - mutator side (replace function call)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     if ( replaceFunctionCalls(appThread, appImage, "func14_1", "func14_2", "call14_1", 
 	14, "replace/remove function call", 1) < 0 )
@@ -70,12 +70,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_14_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

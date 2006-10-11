@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_30.C,v 1.3 2006/03/08 16:44:31 bpellin Exp $
+// $Id: test1_30.C,v 1.4 2006/10/11 21:52:59 cooksey Exp $
 /*
  * #Name: test1_30
  * #Desc: Line Information
@@ -59,12 +59,12 @@
 
 using namespace std;
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #30 - (line information)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 
 #if defined(sparc_sun_solaris2_4) \
@@ -87,13 +87,13 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	} 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func30_1", found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func30_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func30_1");
     }
 
@@ -102,7 +102,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	//instrument with the function that will set the line number
 
 	if (!point30_1 || (point30_1->size() < 1)) {
-		fprintf(stderr, "Unable to find point func30_1 - entry.\n");
+		logerror("Unable to find point func30_1 - entry.\n");
 		return -1;
 	}
 
@@ -110,7 +110,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	char *fn = "call30_1";
 	if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	    || NULL == bpfv[0]){
-	  fprintf(stderr, "    Unable to find function %s\n", fn);
+	  logerror("    Unable to find function %s\n", fn);
 	  return -1;
 	}
 	
@@ -126,8 +126,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	BPatch_variableExpr *expr30_7 = 
 		appImage->findVariable("globalVariable30_7");
 	if (expr30_7 == NULL) {
-        	fprintf(stderr, "**Failed** test #30 (line information)\n");
-        	fprintf(stderr, "    Unable to locate globalVariable30_7\n");
+        	logerror("**Failed** test #30 (line information)\n");
+        	logerror("    Unable to locate globalVariable30_7\n");
         	return -1;
     	}
 	expr30_7->readValue(&n);
@@ -141,15 +141,15 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	BPatch_variableExpr *expr30_8 = 
 			appImage->findVariable("globalVariable30_8");
 	if (expr30_8 == NULL) {
-		fprintf(stderr, "**Failed** test #30 (line information)\n");
-		fprintf(stderr, "    Unable to locate globalVariable30_8\n");
+		logerror("**Failed** test #30 (line information)\n");
+		logerror("    Unable to locate globalVariable30_8\n");
 	}
 
 	BPatch_variableExpr *expr30_9 = 
 			appImage->findVariable("globalVariable30_9");
 	if (expr30_9 == NULL) {
-		fprintf(stderr, "**Failed** test #30 (line information)\n");
-		fprintf(stderr, "    Unable to locate globalVariable30_9\n");
+		logerror("**Failed** test #30 (line information)\n");
+		logerror("    Unable to locate globalVariable30_9\n");
 	}
 
 	expr30_8->writeValue(&baseAddr);
@@ -160,8 +160,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	BPatch_variableExpr *expr30_3 =
 			appImage->findVariable("globalVariable30_3");
 	if (expr30_3 == NULL) {
-        	fprintf(stderr, "**Failed** test #30 (line information)\n");
-        	fprintf(stderr, "    Unable to locate globalVariable30_3\n");
+        	logerror("**Failed** test #30 (line information)\n");
+        	logerror("    Unable to locate globalVariable30_3\n");
         	return -1;
     	}
 
@@ -178,8 +178,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	BPatch_variableExpr *expr30_4 =
 			appImage->findVariable("globalVariable30_4");
 	if (expr30_4 == NULL) {
-        	fprintf(stderr, "**Failed** test #30 (line information)\n");
-        	fprintf(stderr, "    Unable to locate globalVariable30_4\n");
+        	logerror("**Failed** test #30 (line information)\n");
+        	logerror("    Unable to locate globalVariable30_4\n");
         	return -1;
     	}
 	BPatch_Vector<BPatch_module*>* appModules = appImage->getModules();
@@ -192,7 +192,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 				n = ranges[0].first;
 				expr30_4->writeValue( & n );
 			}
-			else cerr << "BPatch_module->getLineToAddr returned false!" << endl;
+			else cerr << "BPatch_module->getAddressRanges returned false!" << endl;
 			break;
 		}
 	}
@@ -201,16 +201,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	BPatch_variableExpr *expr30_5 =
 		appImage->findVariable("globalVariable30_5");
 	if (expr30_5 == NULL) {
-        	fprintf(stderr, "**Failed** test #30 (line information)\n");
-        	fprintf(stderr, "    Unable to locate globalVariable30_5\n");
+        	logerror("**Failed** test #30 (line information)\n");
+        	logerror("    Unable to locate globalVariable30_5\n");
         	return -1;
 	}
 	//check whether getLineFile works for appThread
 	BPatch_variableExpr *expr30_6 =
 		appImage->findVariable("globalVariable30_6");
 	if (expr30_6 == NULL) {
-        	fprintf(stderr, "**Failed** test #30 (line information)\n");
-        	fprintf(stderr, "    Unable to locate globalVariable30_6\n");
+        	logerror("**Failed** test #30 (line information)\n");
+        	logerror("    Unable to locate globalVariable30_6\n");
         	return -1;
 	}
 	/* since the first line address of a function changes with the
@@ -228,13 +228,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_30_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

@@ -48,14 +48,17 @@
 
 #include "test_lib.h"
 
-BPatch *bpatch;
-BPatch_process *proc;
-bool create_proc = true;
+static FILE *outlog = NULL;
+static FILE *errlog = NULL;
 
-bool debug_flag = false;
+static BPatch *bpatch;
+static BPatch_process *proc;
+static bool create_proc = true;
+
+static bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
-void instr_func(BPatch_function *func, BPatch_function *lvl1func)
+static void instr_func(BPatch_function *func, BPatch_function *lvl1func)
 {
    BPatch_Vector<BPatch_point *> *points;
    points = func->findPoint(BPatch_entry);
@@ -71,9 +74,9 @@ void instr_func(BPatch_function *func, BPatch_function *lvl1func)
 }
 
 #define MAX_ARGS 32
-char *filename = "test14.mutatee_gcc";
-char *args[MAX_ARGS];
-unsigned num_args = 0; 
+static char *filename = "test14.mutatee_gcc";
+static char *args[MAX_ARGS];
+static unsigned num_args = 0; 
 
 static BPatch_process *getProcess()
 {
@@ -82,7 +85,7 @@ static BPatch_process *getProcess()
    if (create_proc) {
       proc = bpatch->processCreate(filename, (const char **) args);
       if(proc == NULL) {
-         fprintf(stderr, "%s[%d]: processCreate(%s) failed\n", 
+         logerror("%s[%d]: processCreate(%s) failed\n", 
                  __FILE__, __LINE__, filename);
          return NULL;
       }
@@ -90,11 +93,14 @@ static BPatch_process *getProcess()
    else
    {
       dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
-      int pid = startNewProcessForAttach(filename, (const char **) args);
-      if (pid < 0)
-      {
-         fprintf(stderr, "%s ", filename);
-         perror("couldn't be started");
+      int pid = startNewProcessForAttach(filename, (const char **) args,
+					 outlog, errlog);
+      if (pid < 0) {
+	 int errnum = errno;
+	 errno = 0;
+	 char *errstr = strerror(errnum);
+	 logerror("%s couldn't be started: %s\n", filename,
+		  errno ? "<unknown error>" : errstr);
          return NULL;
       }
 #if defined(os_windows)
@@ -103,7 +109,7 @@ static BPatch_process *getProcess()
       dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
       proc = bpatch->processAttach(filename, pid);  
       if(proc == NULL) {
-         fprintf(stderr, "%s[%d]: processAttach(%s, %d) failed\n", 
+         logerror("%s[%d]: processAttach(%s, %d) failed\n", 
                  __FILE__, __LINE__, filename, pid);
          return NULL;
       }
@@ -114,14 +120,20 @@ static BPatch_process *getProcess()
    return proc;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test14_1_mutatorMAIN(ParameterDict &param)
 {
    const char *child_prog;
    const char *child_args[2] = { NULL, NULL };
 
+   // Get log file pointers
+   outlog = (FILE *)(param["outlog"]->getPtr());
+   errlog = (FILE *)(param["errlog"]->getPtr());
+   setOutputLog(outlog);
+   setErrorLog(errlog);
+
 #if defined(os_osf)
-   printf("Skipped test #1 (Multithreaded Tramp Guards)\n");
-   printf("\t- Not implemented on this platform\n");
+   logerror("Skipped test #1 (Multithreaded Tramp Guards)\n");
+   logerror("\t- Not implemented on this platform\n");
    return 0;
 #endif
 
@@ -142,7 +154,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
    image->findFunction("level1", lvl1funcs);
    if (lvl1funcs.size() != 1)
    {
-      fprintf(stderr, "[%s:%u] - Found %d level0 functions.  Expected 1\n",
+      logerror("[%s:%u] - Found %d level0 functions.  Expected 1\n",
               __FILE__, __LINE__, lvl1funcs.size());
       return -1;
    }
@@ -171,13 +183,13 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
    int exitCode = proc->getExitCode();
    if (exitCode)
    {
-       fprintf(stdout, "*** Failed test #1 (Multithreaded tramp guards)\n");
+       logstatus("*** Failed test #1 (Multithreaded tramp guards)\n");
        return -1;
    }
    else
    {
-       fprintf(stdout, "Passed test #1 (Multithreaded tramp guards)\n");
-       fprintf(stdout, "All tests passed.\n");
+       logstatus("Passed test #1 (Multithreaded tramp guards)\n");
+       logstatus("All tests passed.\n");
    }
    return 0;
 }

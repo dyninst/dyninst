@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8_1.C,v 1.2 2006/03/12 23:33:49 legendre Exp $
+// $Id: test8_1.C,v 1.3 2006/10/11 21:54:16 cooksey Exp $
 /*
  * #Name: test8_1
  * #Desc: getCallStack
@@ -55,9 +55,9 @@
 
 #include "test_lib.h"
 
-BPatch *bpatch;
+static BPatch *bpatch;
 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(alpha_dec_osf4_0)
     appThread->continueExecution();
@@ -83,7 +83,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 		   correct_frame_info,
 		   sizeof(correct_frame_info)/sizeof(frameInfo_t),
 		   1, "getCallStack")) {
-	printf("Passed test #1 (getCallStack)\n");
+	logerror("Passed test #1 (getCallStack)\n");
 
     } else {
        return -1;
@@ -91,19 +91,24 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
     appThread->continueExecution();
 #else
-    printf("Skipping test #1 (getCallStack)\n");
-    printf("    feature not implemented on this platform\n");
+    logerror("Skipping test #1 (getCallStack)\n");
+    logerror("    feature not implemented on this platform\n");
 #endif
 
     return 0;
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test8_1_mutatorMAIN(ParameterDict &param)
 {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_8.C,v 1.3 2006/03/08 16:44:46 bpellin Exp $
+// $Id: test1_8.C,v 1.4 2006/10/11 21:53:15 cooksey Exp $
 /*
  * #Name: test1_8
  * #Desc: Mutator Side - Preserve Registers - expr
@@ -59,26 +59,26 @@
 //
 // Start Test Case #8 - mutator side (preserve registers - expr)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func8_1"
 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func8_1", found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func8_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func8_1");
     }
 
     BPatch_Vector<BPatch_point *> *point8_1 = found_funcs[0]->findPoint(BPatch_entry);
 
     if (!point8_1 || ((*point8_1).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func8_1\".\n");
+	logerror("Unable to find entry point to \"func8_1\".\n");
 	return -1;
     }
 
@@ -87,8 +87,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_variableExpr *expr8_1 = findVariable(appImage, "globalVariable8_1", point8_1);
 
     if (!expr8_1) {
-	fprintf(stderr, "**Failed** test #3 (passing variables)\n");
-	fprintf(stderr, "    Unable to locate variable globalVariable8_1\n");
+	logerror("**Failed** test #3 (passing variables)\n");
+	logerror("    Unable to locate variable globalVariable8_1\n");
 	return -1;
     }
 
@@ -113,13 +113,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_8_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

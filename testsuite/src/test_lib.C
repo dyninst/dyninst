@@ -40,13 +40,18 @@
  */
 
 //
-// $Id: test_lib.C,v 1.21 2006/06/22 16:04:02 legendre Exp $
+// $Id: test_lib.C,v 1.22 2006/10/11 21:54:29 cooksey Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <stdarg.h>
+
+#if !defined(i386_unknown_nt4_0)
+#include <fnmatch.h>
+#endif
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
 #ifndef mips_unknown_ce2_11 //ccw 10 apr 2001
@@ -91,6 +96,63 @@ int expectError = DYNINST_NO_ERROR;
 /* Control Debug printf statements */
 int debugPrint = 0;
 
+// output logging
+FILE *outlog = NULL;
+FILE *errlog = NULL;
+
+void setOutputLog(FILE *log_fp) {
+  if (log_fp != NULL) {
+    outlog = log_fp;
+  } else {
+    outlog = stdout;
+  }
+}
+
+void setErrorLog(FILE *log_fp) {
+  if (log_fp != NULL) {
+    errlog = log_fp;
+  } else {
+    errlog = stderr;
+  }
+}
+
+int logstatus(const char *fmt, ...) {
+  va_list args;
+  int retval;
+  va_start(args, fmt);
+  if (outlog != NULL) {
+    retval = vfprintf(outlog, fmt, args);
+  } else {
+    retval = vprintf(fmt, args);
+  }
+  va_end(args);
+  return retval;
+}
+
+int logerror(const char *fmt, ...) {
+  va_list args;
+  int retval;
+  va_start(args, fmt);
+  if (errlog != NULL) {
+    retval = vfprintf(errlog, fmt, args);
+  } else {
+    retval = vfprintf(stderr, fmt, args);
+  }
+  va_end(args);
+  return retval;
+}
+
+void flushOutputLog() {
+  if (outlog != NULL) {
+    fflush(outlog);
+  }
+}
+void flushErrorLog() {
+  if (errlog != NULL) {
+    fflush(errlog);
+  }
+}
+
 //
 // Wait for the mutatee to stop.
 //
@@ -101,15 +163,15 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
         bpatch->waitForStatusChange();
     
     if (!appThread->isStopped()) {
-        printf("**Failed test #%d (%s)\n", testnum, testname);
-        printf("    process did not signal mutator via stop\n");
-        printf("thread is not stopped\n");
+        logerror("**Failed test #%d (%s)\n", testnum, testname);
+        logerror("    process did not signal mutator via stop\n");
+        logerror("thread is not stopped\n");
         return -1;
     }
 #if defined(os_windows) //ccw 10 apr 2001
     else if (appThread->stopSignal() != EXCEPTION_BREAKPOINT && appThread->stopSignal() != -1) {
-	printf("**Failed test #%d (%s)\n", testnum, testname);
-	printf("    process stopped on signal %d, not SIGTRAP\n", 
+	logerror("**Failed test #%d (%s)\n", testnum, testname);
+	logerror("    process stopped on signal %d, not SIGTRAP\n", 
 		appThread->stopSignal());
         return -1;
     }
@@ -128,8 +190,8 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
 #endif
 	     (appThread->stopSignal() != SIGHUP)) {
 #endif /* DETACH_ON_THE_FLY */
-	printf("**Failed test #%d (%s)\n", testnum, testname);
-	printf("    process stopped on signal %d, not SIGSTOP\n", 
+	logerror("**Failed test #%d (%s)\n", testnum, testname);
+	logerror("    process stopped on signal %d, not SIGSTOP\n", 
 		appThread->stopSignal(), SIGSTOP);
         return -1;
     }
@@ -146,15 +208,17 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
 //
 bool signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
 {
+  //fprintf(stderr, "test_lib: in signalAttached()\n"); /* *DEBUG* */
     BPatch_variableExpr *isAttached = appImage->findVariable("isAttached");
     if (isAttached == NULL) {
-	printf("*ERROR*: unable to start tests because variable \"isAttached\""
+	logerror("*ERROR*: unable to start tests because variable \"isAttached\""
                " could not be found in the child process\n");
         return false;
     }
 
     int yes = 1;
     isAttached->writeValue(&yes);
+    //fprintf(stderr, "test_lib: leaving signalAttached()\n"); /* *DEBUG* */
     return true;
 }
 
@@ -165,7 +229,7 @@ void setDebugPrint(int debug) {
 #if !defined(os_windows)
 #if !defined(os_linux)
 pid_t fork_mutatee() {
-   return fork();
+  return fork();
 }
 #else
 pid_t fork_mutatee() {
@@ -235,13 +299,31 @@ pid_t fork_mutatee() {
 #endif
 #endif
 
+bool inTestList(test_data_t &test, std::vector<char *> &test_list)
+{
+   for (unsigned int i = 0; i < test_list.size(); i++ )
+   {
+#if defined(i386_unknown_nt4_0)
+      if ( strcmp(test_list[i], test.name) == 0 )
+#else
+      if ( fnmatch(test_list[i], test.name, 0) == 0 )
+#endif
+      {
+         return true;
+      }
+   }
+
+   return false;
+}
+
 //
 // Create a new process and return its process id.  If process creation 
 // fails, this function returns -1.
 //
- int startNewProcessForAttach(const char *pathname, const char *argv[])
-    {
+int startNewProcessForAttach(const char *pathname, const char *argv[],
+			     FILE *outlog, FILE *errlog) {
 #if defined(os_windows)
+      // TODO Fix Windows code to work with log file
        char child_args[1024];
        strcpy(child_args, "");
        if (argv[0] != NULL) {
@@ -275,7 +357,7 @@ pid_t fork_mutatee() {
        /* Make a pipe that we will use to signal that the mutatee has started. */
        int fds[2];
        if (pipe(fds) != 0) {
-          fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
+	 fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
           return -1;
        }
 
@@ -297,6 +379,18 @@ pid_t fork_mutatee() {
        if (pid == 0) {
           // child
           close(fds[0]); // We don't need the read side
+	  if (outlog != NULL) {
+	    int outlog_fd = fileno(outlog);
+	    if (dup2(outlog_fd, 1) == -1) {
+	      fprintf(stderr, "Error duplicating log fd(1)\n");
+	    }
+	  }
+	  if (errlog != NULL) {
+	    int errlog_fd = fileno(errlog);
+	    if (dup2(errlog_fd, 2) == -1) {
+	      fprintf(stderr, "Error duplicating log fd(2)\n");
+	    }
+	  }
           execvp(pathname, (char * const *)attach_argv);
           return -1;
        } else if (pid < 0) {
@@ -337,7 +431,7 @@ pid_t fork_mutatee() {
 
        return pid;
 #endif
-    }
+}
 
 
 // control debug printf statements
@@ -364,9 +458,9 @@ void checkCost(BPatch_snippet snippet)
    cost = snippet.getCost();
    dprintf("Snippet cost=%g\n", cost);
     if (cost < 0.0) {
-        printf("*Error*: negative snippet cost\n");
+        fprintf(stderr, "*Error*: negative snippet cost\n");
     } else if (cost > 0.01) {
-        printf("*Error*: snippet cost of %f, exceeds max expected of 0.1",
+        fprintf(stderr, "*Error*: snippet cost of %f, exceeds max expected of 0.1",
             cost);
     }
 }
@@ -430,22 +524,22 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 
     BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction(inFunction, found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("**Failed** test #%d (%s)\n", testNo, testName);
+      logerror("    Unable to find function %s\n",
 	      inFunction);
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), inFunction);
     }
 
     BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
 
     if (!points || (!points->size() )) {
-	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	fprintf(stderr, "    %s[%d]: Unable to find point in %s - subroutine calls: pts = %p\n",
+	logerror("**Failed** test #%d (%s)\n", testNo, testName);
+	logerror("    %s[%d]: Unable to find point in %s - subroutine calls: pts = %p\n",
 		__FILE__, __LINE__, inFunction,points);
         return -1;
     }
@@ -456,8 +550,8 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
       BPatch_Vector<BPatch_function *> bpfv;
       if (NULL == appImage->findFunction(replacement, bpfv) || !bpfv.size()
 	  || NULL == bpfv[0]){
-	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	fprintf(stderr, "    Unable to find function %s\n", replacement);
+	logerror("**Failed** test #%d (%s)\n", testNo, testName);
+	logerror("    Unable to find function %s\n", replacement);
         return -1;
       }
       call_replacement = bpfv[0];
@@ -470,8 +564,8 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 
 	char fn[256];
 	if (func->getName(fn, 256) == NULL) {
-	    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	    fprintf(stderr, "    Can't get name of called function in %s\n",
+	    logerror("**Failed** test #%d (%s)\n", testNo, testName);
+	    logerror("    Can't get name of called function in %s\n",
 		    inFunction);
             return -1;
 	}
@@ -488,8 +582,8 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
     }
 
     if (callsExpected > 0 && callsExpected != numReplaced) {
-	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	fprintf(stderr, "    Expected to find %d %s to %s in %s, found %d\n",
+	logerror("**Failed** test #%d (%s)\n", testNo, testName);
+	logerror("    Expected to find %d %s to %s in %s, found %d\n",
 		callsExpected, callsExpected == 1 ? "call" : "calls",
 		callTo, inFunction, numReplaced);
         return -1;
@@ -534,22 +628,22 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
 
     BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction(inFunction, found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("**Failed** test #%d (%s)\n", testNo, testName);
+      logerror("    Unable to find function %s\n",
 	      inFunction);
       return NULL;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), inFunction);
     }
 
     BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(loc);
 
     if (!points) {
-	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	fprintf(stderr, "    Unable to find point %s - %s\n",
+	logerror("**Failed** test #%d (%s)\n", testNo, testName);
+	logerror("    Unable to find point %s - %s\n",
 		inFunction, locationName(loc));
         return NULL;
     }
@@ -567,8 +661,8 @@ BPatch_snippet *makeCallSnippet(BPatch_image *appImage, const char *funcName,
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(funcName, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-    fprintf(stderr, "    Unable to find function %s\n", funcName);
+    logerror("**Failed** test #%d (%s)\n", testNo, testName);
+    logerror("    Unable to find function %s\n", funcName);
     return NULL;
   }
   BPatch_function *call_func = bpfv[0];
@@ -577,8 +671,8 @@ BPatch_snippet *makeCallSnippet(BPatch_image *appImage, const char *funcName,
     BPatch_snippet *ret = new BPatch_funcCallExpr(*call_func, nullArgs);
 
     if (ret == NULL) {
-	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	fprintf(stderr, "    Unable to create snippet to call %s\n", funcName);
+	logerror("**Failed** test #%d (%s)\n", testNo, testName);
+	logerror("    Unable to create snippet to call %s\n", funcName);
         return NULL;
     }
 
@@ -603,8 +697,8 @@ int insertCallSnippetAt(BPatch_thread *appThread,
 					       inFunction, loc, *call_expr,
 					       testNo, testName);
     if (ret == NULL) {
-	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	fprintf(stderr, "    Unable to insert snippet to call function %s\n",
+	logerror("**Failed** test #%d (%s)\n", testNo, testName);
+	logerror("    Unable to insert snippet to call function %s\n",
 		funcName);
         return -1;
     }
@@ -658,15 +752,15 @@ int pointerSize(BPatch_image *img) {
    BPatch_variableExpr *pointerSizeVar = img->findVariable("pointerSize");
 
    if (!pointerSizeVar) {
-      fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
-      fprintf(stderr, "    Unable to locate variable pointerSize\n");
+      logerror("**Failed** test #2 (four parameter function)\n");
+      logerror("    Unable to locate variable pointerSize\n");
       return -1;
    }
 
    int pointerSize;
    if (!pointerSizeVar->readValue(&pointerSize)) {
-      fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
-      fprintf(stderr, "    Unable to read value of variable pointerSize\n");
+      logerror("**Failed** test #2 (four parameter function)\n");
+      logerror("    Unable to read value of variable pointerSize\n");
       return -1;
    }
 
@@ -684,13 +778,13 @@ int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB,
     snprintf(libB, 128, "./%s", libNameB);
     if (!mutateeFortran) {
 	if (! appThread->loadLibrary(libA)) {
-	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	     fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameA);
+	     logerror("**Failed test #21 (findFunction in module)\n");
+	     logerror("  Mutator couldn't load %s into mutatee\n", libNameA);
              return -1;
 	}
 	if (! appThread->loadLibrary(libB)) {
-	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
-	     fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameB);
+	     logerror("**Failed test #21 (findFunction in module)\n");
+	     logerror("  Mutator couldn't load %s into mutatee\n", libNameB);
              return -1;
 	}
     }
@@ -821,7 +915,7 @@ void killMutatee(BPatch_thread *appThread)
     dprintf("Detaching from process %d (leaving it running).\n", pid);
     appThread->detach(true);
 #else
-    printf("[Process detach not yet implemented.]\n");
+    fprintf(stderr, "[Process detach not yet implemented.]\n");
 #endif
 
     // now kill the process.
@@ -915,11 +1009,11 @@ void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[])
                 int signalNum = appThread[n]->getExitSignal();
                 dprintf("Mutatee terminated from signal 0x%x\n", signalNum);
             } else {
-                printf("Failed to mop up mutatee %d (pid=%d)!\n",
+                fprintf(stderr, "Failed to mop up mutatee %d (pid=%d)!\n",
                         n, appThread[n]->getPid());
             }
         } else {
-            printf("Mutatee %d already terminated?\n", n);
+            fprintf(stderr, "Mutatee %d already terminated?\n", n);
         }
     }
     dprintf("MopUpMutatees(%d) done\n", mutatees);
@@ -991,7 +1085,7 @@ bool verifyChildMemory(BPatch_thread *appThread,
      var->readValue(&actualVal);
 
      if (expectedVal != actualVal) {
-	 printf("*** for %s, expected val = %d, but actual was %d\n",
+	 logerror("*** for %s, expected val = %d, but actual was %d\n",
 		name, expectedVal, actualVal);
 	 return false;
      } else {
@@ -1075,7 +1169,7 @@ bool validate(BPatch_Vector<BPatch_point*>* res,
       BPatch_point* bpoint = (*res)[i];
       ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
       if(!ok) {
-	printf("Validation failed at %s #%d.\n", msg, i+1);
+	logerror("Validation failed at %s #%d.\n", msg, i+1);
         dumpxpct(acc, res->size(), "Expected");
         return ok;
       }
@@ -1117,7 +1211,7 @@ int instCall(BPatch_thread* bpthr, const char* fname,
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "    Unable to find function %s\n", buf);
+    logerror("    Unable to find function %s\n", buf);
     return -1;
   }
   BPatch_function *countXXXFunc = bpfv[0];  
@@ -1156,7 +1250,7 @@ int instEffAddr(BPatch_thread* bpthr, const char* fname,
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "    Unable to find function %s\n", buf);
+    logerror("    Unable to find function %s\n", buf);
     return -1;
   }
   BPatch_function *listXXXFunc = bpfv[0];  
@@ -1220,7 +1314,7 @@ int instByteCnt(BPatch_thread* bpthr, const char* fname,
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "    Unable to find function %s\n", buf);
+    logerror("    Unable to find function %s\n", buf);
     return -1;
   }
   BPatch_function *listXXXFunc = bpfv[0];  
@@ -1322,7 +1416,7 @@ bool checkStack(BPatch_thread *appThread,
     appThread->getCallStack(stack);
 
     if (debugPrint) {
-	printf("Stack in test %d (%s):\n", test_num, test_name);
+	dprintf("Stack in test %d (%s):\n", test_num, test_name);
 	for( unsigned i = 0; i < stack.size(); i++) {
 	    char name[name_max];
 	    BPatch_function *func = stack[i].findFunction();
@@ -1330,27 +1424,27 @@ bool checkStack(BPatch_thread *appThread,
 		strcpy(name, "[UNKNOWN]");
 	    else
 		func->getName(name, name_max);
-	    printf("  %10p: %s, fp = %p, type %s\n",
+	    dprintf("  %10p: %s, fp = %p, type %s\n",
                stack[i].getPC(),
                name,
                stack[i].getFP(),
                frameTypeString(stack[i].getFrameType()));
         
 	}
-	printf("End of stack dump.\n");
+	dprintf("End of stack dump.\n");
     }
 
     if (stack.size() < num_correct_names) {
-	fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
-	fprintf(stderr, "    Stack trace should contain more frames.\n");
+	logerror("**Failed** test %d (%s)\n", test_num, test_name);
+	logerror("    Stack trace should contain more frames.\n");
 	failed = true;
     }
 
     for (i = 0, j = 0; i < num_correct_names; i++, j++) {
 #if !defined(i386_unknown_nt4_0)
 	if (j < stack.size()-1 && stack[j].getFP() == 0) {
-	    fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
-	    fprintf(stderr, "    A stack frame other than the lowest has a null FP.\n");
+	    logerror("**Failed** test %d (%s)\n", test_num, test_name);
+	    logerror("    A stack frame other than the lowest has a null FP.\n");
 	    failed = true;
 	    break;
 	}
@@ -1372,25 +1466,25 @@ bool checkStack(BPatch_thread *appThread,
 
 	    if ((func == NULL && func2 != NULL) ||
 		(func != NULL && func2 == NULL)) {
-		fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
-		fprintf(stderr, "    frame->findFunction() disagrees with thread->findFunctionByAddr()\n");
-		fprintf(stderr, "    frame->findFunction() returns %s\n",
+		logerror("**Failed** test %d (%s)\n", test_num, test_name);
+		logerror("    frame->findFunction() disagrees with thread->findFunctionByAddr()\n");
+		logerror("    frame->findFunction() returns %s\n",
 			name);
-		fprintf(stderr, "    thread->findFunctionByAddr() return %s\n",
+		logerror("    thread->findFunctionByAddr() return %s\n",
 			name2);
 		failed = true;
 		break;
 	    } else if (func!=NULL && func2!=NULL && strcmp(name, name2)!=0) {
-		fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
-		fprintf(stderr, "    BPatch_frame::findFunction disagrees with BPatch_thread::findFunctionByAddr\n");
+		logerror("**Failed** test %d (%s)\n", test_num, test_name);
+		logerror("    BPatch_frame::findFunction disagrees with BPatch_thread::findFunctionByAddr\n");
 		failed = true;
 		break;
 	    }
 
 	    if (correct_frame_info[i].type != stack[j].getFrameType()) {
-		fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
-		fprintf(stderr, "    Stack frame #%d has wrong type, is %s, should be %s\n", i+1, frameTypeString(stack[i].getFrameType()), frameTypeString(correct_frame_info[i].type));
-		fprintf(stderr, "    Stack frame 0x%lx, 0x%lx\n", stack[i].getPC(), stack[i].getFP() );
+		logerror("**Failed** test %d (%s)\n", test_num, test_name);
+		logerror("    Stack frame #%d has wrong type, is %s, should be %s\n", i+1, frameTypeString(stack[i].getFrameType()), frameTypeString(correct_frame_info[i].type));
+		logerror("    Stack frame 0x%lx, 0x%lx\n", stack[i].getPC(), stack[i].getFP() );
 		failed = true;
 		break;
 	    }
@@ -1400,9 +1494,9 @@ bool checkStack(BPatch_thread *appThread,
 		// No further checking for these types right now
 	    } else {
 		if (func == NULL) {
-		    fprintf(stderr, "**Failed** test %d (%s)\n",
+		    logerror("**Failed** test %d (%s)\n",
 			    test_num, test_name);
-		    fprintf(stderr, "    Stack frame #%d refers to an unknown function, should refer to %s\n", j+1, correct_frame_info[i].function_name);
+		    logerror("    Stack frame #%d refers to an unknown function, should refer to %s\n", j+1, correct_frame_info[i].function_name);
 		    failed = true;
 		    break;
 		} else { /* func != NULL */
@@ -1414,8 +1508,8 @@ bool checkStack(BPatch_thread *appThread,
 			    j--;
                             continue;
 			}
-			fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
-			fprintf(stderr, "    Stack frame #%d refers to function %s, should be %s\n", j+1, name, correct_frame_info[i].function_name);
+			logerror("**Failed** test %d (%s)\n", test_num, test_name);
+			logerror("    Stack frame #%d refers to function %s, should be %s\n", j+1, name, correct_frame_info[i].function_name);
 			failed = true;
 			break;
 		    }
@@ -1473,12 +1567,12 @@ int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, ch
 
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction(instrumentee, found_funcs)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n",instrumentee);
+    logerror("    Unable to find function %s\n",instrumentee);
     return -1;
   }
   
   if (1 < found_funcs.size()) {
-    fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+    logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	    __FILE__, __LINE__, found_funcs.size(), instrumentee);
   }
   
@@ -1486,16 +1580,16 @@ int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, ch
 
 
   if (!point1_1 || ((*point1_1).size() == 0)) {
-    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo,testName);
-    fprintf(stderr, "    Unable to find entry point to \"%s.\"\n",instrumentee);
+    logerror("**Failed** test #%d (%s)\n", testNo,testName);
+    logerror("    Unable to find entry point to \"%s.\"\n",instrumentee);
     return -1;
   }
 
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(patch, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-    fprintf(stderr, "    Unable to find function %s\n", patch);
+    logerror("**Failed** test #%d (%s)\n", testNo, testName);
+    logerror("    Unable to find function %s\n", patch);
     return -1;
   }
   BPatch_function *call1_func = bpfv[0];
@@ -1515,9 +1609,10 @@ char* saveWorld(BPatch_thread *appThread){
 	char *mutatedName = new char[strlen("test9_mutated") +1];
 	memset(mutatedName, '\0',strlen("test9_mutated") +1);
 	strcat(mutatedName, "test9_mutated");
-	   char* dirName = appThread->dumpPatchedImage(mutatedName);
+	// FIXME dumpPatchedImage returns bool, not char *(?)
+	char* dirName = appThread->dumpPatchedImage(mutatedName);
 	if(!dirName){
-		fprintf(stderr,"Error: No directory name returned\n");
+		logerror("Error: No directory name returned\n");
 	}
 
 	return dirName;
@@ -1539,7 +1634,7 @@ int letOriginalMutateeFinish(BPatch_thread *appThread){
 	} else if(appThread->terminationStatus() == ExitedViaSignal) {
 		int signalNum = appThread->getExitSignal();
 		if (signalNum){
-			fprintf(stderr,"Mutatee exited from signal 0x%x\n", signalNum);
+			logerror("Mutatee exited from signal 0x%x\n", signalNum);
 		}
 	       	retVal = signalNum;
     	}
@@ -1595,8 +1690,8 @@ BPatch_function *findFunction(const char *fname, BPatch_image *appImage, int tes
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
 
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  Expected 1 functions matching %s, got %d\n",
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  Expected 1 functions matching %s, got %d\n",
               fname, bpfv.size());
       return NULL;
   }
@@ -1608,8 +1703,8 @@ BPatch_function *findFunction(const char *fname, BPatch_module *inmod, int testn
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == inmod->findFunction(fname, bpfv) || (bpfv.size() != 1)) {
 
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  Expected 1 functions matching %s, got %d\n",
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  Expected 1 functions matching %s, got %d\n",
               fname, bpfv.size());
       return NULL;
   }
@@ -1632,15 +1727,15 @@ bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
    int addr_size = appImage->getProcess()->getAddressWidth();
    void *buf = addr;
    if (NULL == (v = appImage->findVariable(vname))) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  cannot find variable %s, avail vars:\n", vname);
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  cannot find variable %s, avail vars:\n", vname);
       dumpVars(appImage);
       return false;
    }
 
    if (! v->writeValue(buf, addr_size, true)) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  failed to write call site var to mutatee\n");
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  failed to write call site var to mutatee\n");
       return false;
    }
 
@@ -1652,15 +1747,15 @@ bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
    BPatch_variableExpr *v;
    int addr_size = appImage->getProcess()->getAddressWidth();
    if (NULL == (v = appImage->findVariable(vname))) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  cannot find variable %s: avail vars:\n", vname);
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  cannot find variable %s: avail vars:\n", vname);
       dumpVars(appImage);
       return false;
    }
 
    if (! v->readValue(addr, addr_size)) {
-      fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
-      fprintf(stderr, "  failed to read var in mutatee\n");
+      logerror("**Failed test #%d (%s)\n", testno, testname);
+      logerror("  failed to read var in mutatee\n");
       return false;
    }
 

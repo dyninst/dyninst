@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_13.C,v 1.4 2006/05/03 00:31:26 jodom Exp $
+// $Id: test2_13.C,v 1.5 2006/10/11 21:53:22 cooksey Exp $
 /*
  * #Name: test2_13
  * #Desc: loadLibrary failure test
@@ -55,10 +55,10 @@
 
 #include "test_lib.h"
 
-BPatch *bpatch;
+static BPatch *bpatch;
 
-char loadLibErrStr[256] = "no error";
-void llErrorFunc(BPatchErrorLevel level, int num, const char * const *params)
+static char loadLibErrStr[256] = "no error";
+static void llErrorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
 
   char line[256];
@@ -69,56 +69,62 @@ void llErrorFunc(BPatchErrorLevel level, int num, const char * const *params)
     strcpy(loadLibErrStr, line);
   }
   else {
-    printf("Unexpected Error #%d (level %d): %s\n", num, level, line);
+    logerror("Unexpected Error #%d (level %d): %s\n", num, level, line);
   }
 
 }
 
 // Start Test Case #13 - (loadLibrary failure test)
-int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
+static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 {
     int retval;
 #if !defined(alpha_dec_osf4_0)
 
   if (appThread->isTerminated()) {
-    printf( "**Failed** test #13 (dlopen failure reporting test)\n" );
-    printf("%s[%d]: mutatee in unexpected (terminated) state\n", __FILE__, __LINE__);
+    logerror( "**Failed** test #13 (dlopen failure reporting test)\n" );
+    logerror("%s[%d]: mutatee in unexpected (terminated) state\n", __FILE__, __LINE__);
     return -1;
   }
 
   BPatchErrorCallback oldErrorFunc = bpatch->registerErrorCallback(llErrorFunc);
   
   if (appThread->loadLibrary("noSuchLibrary.Ever")) {
-    fprintf(stderr, "**Failed** test #13 (failure reporting for loadLibrary)\n");
+    logerror("**Failed** test #13 (failure reporting for loadLibrary)\n");
     retval = -1;
   }
   else {
     if (!strcmp(loadLibErrStr, "no error") || !strcmp(loadLibErrStr, "")) {
-      printf( "**Failed** test #13 (dlopen failure reporting test)\n" );
-      printf( "\tno error string produced\n" );
+      logerror( "**Failed** test #13 (dlopen failure reporting test)\n" );
+      logerror( "\tno error string produced\n" );
       retval = -1;
     }
     else {
-      printf( "Passed test #13 (dlopen failure test: %s)\n", loadLibErrStr);
+      logerror( "Passed test #13 (dlopen failure test: %s)\n", loadLibErrStr);
       retval = 0;
     }
   }
   bpatch->registerErrorCallback(oldErrorFunc);
   return retval;
 #else
-  printf( "Skipped test #13 (dlopen failure reporting test)\n" );
-  printf( "\t- not implemented on this platform\n" );
+  logerror( "Skipped test #13 (dlopen failure reporting test)\n" );
+  logerror( "\t- not implemented on this platform\n" );
   return 0;
 #endif
 
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_13_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

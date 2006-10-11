@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_37.C,v 1.6 2006/03/30 18:00:06 nater Exp $
+// $Id: test1_37.C,v 1.7 2006/10/11 21:53:07 cooksey Exp $
 /*
  * #Name: test1_37
  * #Desc: Instrument Loops
@@ -56,15 +56,15 @@
 #include "test_lib.h"
 #include "Callbacks.h"
 
-int mutateeFortran;
-BPatch *bpatch;
+static int mutateeFortran;
+static BPatch *bpatch;
 
 //
 // Start Test Case #37 - (loop instrumentation)
 //
 
 // sort basic blocks ascending by block number
-void sort_blocks(BPatch_Vector<BPatch_basicBlock*> &a, int n) {
+static void sort_blocks(BPatch_Vector<BPatch_basicBlock*> &a, int n) {
     for (int i=0; i<n-1; i++) {
 	for (int j=0; j<n-1-i; j++)
 	    if (a[j+1]->getBlockNumber() < a[j]->getBlockNumber()) {    
@@ -82,7 +82,7 @@ void sort_blocks(BPatch_Vector<BPatch_basicBlock*> &a, int n) {
    those edges. So effectively, this is a test of both our loop detection
    and edge instrumentation facilities. Two for one, yay!
 */
-void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
+static void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
              BPatch_Vector<BPatch_basicBlockLoop*> &loops,
              BPatch_funcCallExpr &callInc) 
 {            
@@ -102,12 +102,12 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
         // instrument those points      
         
         if(entries->size() == 0) {
-            fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-            fprintf(stderr,"   Unable to find loop entry inst point.\n");
+            logerror("**Failed** test #37 (instrument loops)\n");
+            logerror("   Unable to find loop entry inst point.\n");
         }
         if(exits->size() == 0) {
-            fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-            fprintf(stderr,"   Unable to find loop exit inst point.\n");
+            logerror("**Failed** test #37 (instrument loops)\n");
+            logerror("   Unable to find loop exit inst point.\n");
         }
 
         unsigned int j;
@@ -120,8 +120,8 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
 
             // did we insert the snippet?
             if (han == NULL) {
-                fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-                fprintf(stderr,"   Unable to insert snippet at loop entry.\n");
+                logerror("**Failed** test #37 (instrument loops)\n");
+                logerror("   Unable to insert snippet at loop entry.\n");
             }
         }
         for(j=0;j<exits->size();j++) {
@@ -132,8 +132,8 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
 
             // did we insert the snippet?
             if (han == NULL) {
-                fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-                fprintf(stderr,"   Unable to insert snippet at loop exit.\n");
+                logerror("**Failed** test #37 (instrument loops)\n");
+                logerror("   Unable to insert snippet at loop exit.\n");
             }
         }
 
@@ -149,7 +149,7 @@ void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
     }
 }
 
-int instrumentFuncLoopsWithCall(BPatch_thread *appThread, 
+static int instrumentFuncLoopsWithCall(BPatch_thread *appThread, 
 				 BPatch_image *appImage,
 				 char *call_func,
 				 char *inc_func)
@@ -166,8 +166,8 @@ int instrumentFuncLoopsWithCall(BPatch_thread *appThread,
     BPatch_function *incVar = funcs2[0];
 
     if (func == NULL || incVar == NULL) {
-	fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-	fprintf(stderr,"    Unable to get funcions.\n");
+	logerror("**Failed** test #37 (instrument loops)\n");
+	logerror("    Unable to get funcions.\n");
         return -1;
     }
 
@@ -187,7 +187,7 @@ int instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 }
 
 
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     if (mutateeFortran) {
 	return 0;
@@ -203,12 +203,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_37_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

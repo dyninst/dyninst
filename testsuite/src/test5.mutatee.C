@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.6 2006/05/03 00:31:26 jodom Exp $ */
+/* $Id: test5.mutatee.C,v 1.7 2006/10/11 21:53:46 cooksey Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -59,10 +59,9 @@
 
 #include "cpp_test.h"
 #include <iostream>
+#include <fstream>
 
-using std::cerr;
-using std::cout;
-using std::endl;
+#include "mutatee_util.h"
 
 int isAttached = 0;
 int mutateeCplusplus = 1;
@@ -130,54 +129,54 @@ void cpp_test_util::call_cpp(int test)
    switch (test) {
 
     case  1 : {
-                 cout << "Passed test #1 (C++ argument pass)" << endl;
-		 break;
+      logerror("Passed test #1 (C++ argument pass)\n");
+      break;
     }
 
     case  2 : {
-		 cout << "Passed test #2 (overload function)" << endl;
-		 break;
+      logerror("Passed test #2 (overload function)\n");
+      break;
     }
     
     case  3 : {
-		 cout << "Passed test #3 (overload operator)" << endl;
-		 break;
+      logerror("Passed test #3 (overload operator)\n");
+      break;
     }
 
     case  4 : {
-		 cout << "Passed test #4 (static member)" << endl;
-		 break;
+      logerror("Passed test #4 (static member)\n");
+      break;
     }
     
     case  5 : {
-		 cout << "Passed test #5 (namespace)" << endl;
-		 break;
+      logerror("Passed test #5 (namespace)\n");
+      break;
     }
 
     case  7 : {
-		 cout << "Passed test #7 (template)" << endl;
-		 break;
+      logerror("Passed test #7 (template)\n");
+      break;
     }
 
     case  8 : {
-		 cout << "Passed test #8 (declaration)" << endl;
-		 break;
+      logerror("Passed test #8 (declaration)\n");
+      break;
     }
 
     case  9 : {
-		 cout << "Passed test #9 (derivation)" << endl;
-		 break;
+      logerror("Passed test #9 (derivation)\n");
+      break;
     }
 
     case  12 : {
-		 cout << "Passed test #12 (C++ member function)" << endl;
-		 break;
+      logerror("Passed test #12 (C++ member function)\n");
+      break;
     }
 
     default : {
-                 cerr << "\tInvalid test "<< test <<" requested" << endl;
-                 cerr << "\tThis invalid test# is most likely caused by the C++ class member function argument passing" << endl;
-		 break;
+      logerror("\tInvalid test %d requested\n", test);
+      logerror("\tThis invalid test# is most likely caused by the C++ class member function argument passing\n");
+      break;
     }
 
   }
@@ -187,8 +186,8 @@ void cpp_test_util::call_cpp(int test)
 void arg_test::func_cpp()
 {
 #if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
-    printf("Skipped test #1 (argument)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #1 (argument)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[1] = TRUE;
 
 #else
@@ -203,10 +202,12 @@ void arg_test::func_cpp()
 void arg_test::arg_pass(int test)
 {
    if (test != 1 || value != 5) {
-      cerr << "**Failed** test #1 (C++ argument pass)" << endl;
-      cerr << "    Passed in an incorrect parameter value: " << endl;
-      cerr << "    test = " << test << ", this = " << (void *) this;
-      cerr << ", test1 = " << (void *) &test1;
+     logerror("**Failed** test #1 (C++ argument pass)\n");
+     logerror("    Passed in an incorrect parameter value:\n");
+     logerror("    test = %d, this = %u, test1 = %u\n",
+	      test, (void *)this, (void *)&test1);
+//      cerr << "    test = " << test << ", this = " << (void *) this;
+//       cerr << ", test1 = " << (void *) &test1;
       return;
    }
    cpp_test_util::call_cpp(test);
@@ -226,8 +227,8 @@ void arg_test::call_cpp(const int arg1, int & arg2, int arg3)
    dummy(); // place to change the value of arg3 from CPP_DEFLT_ARG to 1 
 
    if ( 1 != arg3 ) {
-     cerr << "**Failed** test #1 (C++ argument pass)" << endl;
-     cerr << "    Default argument value is not changed " << endl;
+     logerror("**Failed** test #1 (C++ argument pass)\n");
+     logerror("    Default argument value is not changed\n");
    }
 
    if ( arg1 == arg2 )  arg2 = CPP_DEFLT_ARG;
@@ -238,8 +239,8 @@ void overload_func_test::func_cpp()
 {
 #if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
 
-    printf("Skipped test #2 (function overload)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #2 (function overload)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[2] = TRUE;
 
 #else
@@ -282,10 +283,10 @@ void overload_op_test_call_cpp(int arg)
 {
    if ( arg == 3 ) {
      passedTest[arg] = TRUE;
-     cout << "Passed test #3 (overload operator)" << endl;
+     logerror("Passed test #3 (overload operator)\n");
    } else {
-     cerr << "**Failed** test #3 (overload operator)" << endl;
-     cerr << "    Overload operator++ return wrong value " << endl;
+     logerror("**Failed** test #3 (overload operator)\n");
+     logerror("    Overload operator++ return wrong value\n");
    }
 }
 
@@ -298,7 +299,7 @@ int overload_op_test::operator++()
 void static_test_call_cpp(int test)
 {
    passedTest[test] = TRUE;
-   cout << "Passed test #4 (static member)" << endl;
+   logerror("Passed test #4 (static member)\n");
 }
 
 int static_test::count = 0;
@@ -307,8 +308,8 @@ void static_test::func_cpp()
 {
 #if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
 
-    printf("Skipped test #4 (static member)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #4 (static member)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[4] = TRUE;
 
 #else
@@ -316,8 +317,8 @@ void static_test::func_cpp()
    static_test obj1, obj2;
 
    if ((obj1.call_cpp()+1) != obj2.call_cpp()) {
-      cerr << "**Failed** test #4 (static member)" << endl;
-      cerr << "    C++ objects of the same class have different static members " << endl;
+     logerror("**Failed** test #4 (static member)\n");
+     logerror("    C++ objects of the same class have different static members\n");
    }
 #endif
 }
@@ -332,12 +333,12 @@ void namespace_test::func_cpp()
   class_variable = local_fn_var;
 
   if ( 1024 != ::CPP_DEFLT_ARG)
-    cout << "::CPP_DEFLT_ARG init value wrong" <<endl;
+    logerror("::CPP_DEFLT_ARG init value wrong\n");
   if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
-    cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
+    logerror("cpp_test_util::CPP_TEST_UTIL_VAR int value wrong\n");
 #else
-    printf("Skipped test #5 (namespace)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #5 (namespace)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[5] = TRUE;
 #endif
 }
@@ -353,9 +354,9 @@ void exception_test_call_cpp(int arg)
 {
    if ( arg == 6 ) {
       passedTest[arg] = TRUE;
-      cout << "Passed test #6 (exception)" << endl;
+      logerror("Passed test #6 (exception)\n");
    } else {
-      cerr << "**Failed** test #6 (exception)" << endl;
+     logerror("**Failed** test #6 (exception)\n");
    }
 }
 
@@ -378,14 +379,14 @@ void exception_test::func_cpp()
       return;
    }
    catch ( ... ) {
-     cerr << "**Failed** test #6 (exception)" << endl;
-     cerr << "    Does not catch appropriate exception" << endl;
+     logerror("**Failed** test #6 (exception)\n");
+     logerror("    Does not catch appropriate exception\n");
      throw;
    }
-   fprintf(stderr, "Missed proper exception\n");
+   logerror("Missed proper exception\n");
 #else
-    printf("Skipped test #6 (exception)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #6 (exception)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[6] = TRUE;
 #endif
 }
@@ -410,8 +411,8 @@ template class sample_template <double>;
 void template_test::func_cpp()
 {
 #if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
-    printf("Skipped test #7 (template)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #7 (template)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[7] = TRUE;
 
 #else
@@ -429,14 +430,14 @@ void template_test::func_cpp()
 void template_test_call_cpp(int test)
 {
    passedTest[test] = TRUE;
-   cout << "Passed test #7 (template)" << endl;
+   logerror("Passed test #7 (template)\n");
 }
 
 void decl_test::func_cpp()
 {
 #if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
-    printf("Skipped test #8 (declaration)\n");
-    printf("\t- not implemented on this platform\n");
+    logerror("Skipped test #8 (declaration)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[8] = TRUE;
 
 #else
@@ -444,20 +445,20 @@ void decl_test::func_cpp()
    int CPP_DEFLT_ARG = 8;
 
    if ( 8 != CPP_DEFLT_ARG )
-     cout <<"CPP_DEFLT_ARG init value wrong"<<endl;
+     logerror("CPP_DEFLT_ARG init value wrong\n");
    if ( 1024 != ::CPP_DEFLT_ARG )
-     cout <<"::CPP_DEFLT_ARG init value wrong"<<endl;
+     logerror("::CPP_DEFLT_ARG init value wrong\n");
    if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
-     cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
+     logerror("cpp_test_util::CPP_TEST_UTIL_VAR int value wrong\n");
 #endif
 }
 
 void decl_test::call_cpp(int test)
 {
    if (test != 8) {
-       cerr << "**Failed** test #8 (C++ argument pass)" << endl;
-       cerr << "    Pass in an incorrect parameter value" << endl;
-       return;
+     logerror("**Failed** test #8 (C++ argument pass)\n");
+     logerror("    Pass in an incorrect parameter value\n");
+     return;
    }
    cpp_test_util::CPP_TEST_UTIL_VAR = ::CPP_DEFLT_ARG;
    cpp_test_util::call_cpp(test);
@@ -467,18 +468,18 @@ void decl_test::call_cpp(int test)
 void derivation_test::func_cpp()
 {
    passedTest[9] = TRUE;
-   cout << "Passed test #9 (derivation)" << endl;
+   logerror("Passed test #9 (derivation)\n");
 
 }
 
 void stdlib_test1::func_cpp()
 {
 #if defined(os_solaris) || defined(os_linux) || defined(os_windows) || defined(os_osf)
-     cout << "Passed test #10 (find standard C++ library)" << endl;
+     logerror("Passed test #10 (find standard C++ library)\n");
      passedTest[10] = TRUE;
 #else
-    cout << "Skipped test #10 (find standard C++ library)" << endl;
-    cout << "\t- not implemented on this platform" << endl;
+    logerror("Skipped test #10 (find standard C++ library)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[10] = TRUE;
 #endif
 
@@ -493,11 +494,11 @@ void stdlib_test2::func_cpp()
 {
 #if defined(os_windows) || defined(os_linux) || defined(os_osf) || defined(os_solaris)
 
-    cout<<"Passed test #11 (replace function in standard C++ library)"<<endl;
+    logerror("Passed test #11 (replace function in standard C++ library)\n");
     passedTest[11] = TRUE;
 #else
-    cout<<"Skipped test #11 (replace function in standard C++ library)"<<endl;
-    cout<<"\t- not implemented on this platform"<<endl;
+    logerror("Skipped test #11 (replace function in standard C++ library)\n");
+    logerror("\t- not implemented on this platform\n");
     passedTest[11] = TRUE;
 #endif
 }
@@ -531,6 +532,7 @@ int main(int iargc, char *argv[])
     unsigned int i, j;
     unsigned int testsFailed = 0;
     int useAttach = FALSE;
+    char *logfilename = NULL;
 #ifndef i386_unknown_nt4_0
     int pfd;
 #endif
@@ -543,6 +545,13 @@ int main(int iargc, char *argv[])
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = TRUE;
+	} else if (!strcmp(argv[i], "-log")) {
+	  if ((i + 1) >= argc) {
+	    fprintf(stderr, "Missing log file name\n");
+	    exit(-1);
+	  }
+	  i += 1;
+	  logfilename = argv[i];
         } else if (!strcmp(argv[i], "-attach")) {
             useAttach = TRUE;
 #ifndef i386_unknown_nt4_0
@@ -563,7 +572,7 @@ int main(int iargc, char *argv[])
                         dprintf("selecting test %d\n", testId);
                         runTest[testId] = TRUE;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                        fprintf(stderr, "invalid test %d requested\n", testId);
                         exit(-1);
                     }
                 } else {
@@ -572,14 +581,28 @@ int main(int iargc, char *argv[])
                 }
             }
             i=j-1;
+	} else if (!strcmp(argv[i], "-fast")) {
+	  fastAndLoose = 1;
         } else {
             fprintf(stderr, "%s\n", USAGE);
             exit(-1);
         }
     }
 
+    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	exit(-1);
+      }
+      errlog = outlog;
+    } else {
+      outlog = stdout;
+      errlog = stderr;
+    }
+    
     if ((argc==1) || debugPrint)
-        printf("Mutatee %s [C++]:\"%s\"\n", argv[0], Builder_id);
+        logstatus("Mutatee %s [C++]:\"%s\"\n", argv[0], Builder_id);
     if (argc==1) exit(0);
 
     if (useAttach) {
@@ -591,9 +614,9 @@ int main(int iargc, char *argv[])
 	}
 	close(pfd);
 #endif
-	printf("Waiting for mutator to attach...\n");
+	dprintf("Waiting for mutator to attach...\n");
     	while (!checkIfAttached()) ;
-	printf("Mutator attached.  Mutatee continuing.\n");
+	dprintf("Mutator attached.  Mutatee continuing.\n");
     }
 
     if (runTest[1]) test1.func_cpp();
@@ -615,16 +638,21 @@ int main(int iargc, char *argv[])
     }
 
     if (!testsFailed) {
-        /*printf("All tests passed\n");*/
+        /*logerror("All tests passed\n");*/
     } else {
-	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
+	logerror("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
 	    for (i=1; i <= MAX_TEST; i++) {
-	      printf("%s ", runTest[i] ?  (passedTest[i] ? "P" : "F") : "*"); 
+	      logerror("%s ", runTest[i] ?  (passedTest[i] ? "P" : "F") : "*"); 
 	    }
-	    printf("\n");
+	    logerror("\n");
     }
 
-    fflush(stdout);
+    flushErrorLog();
     dprintf("Mutatee %s terminating.\n", argv[0]);
+
+    if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+    }
+
     return (testsFailed ? 127 : 0);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_dllExecution.C,v 1.1 2005/11/22 19:41:21 bpellin Exp $
+// $Id: test_lib_dllExecution.C,v 1.2 2006/10/11 21:54:31 cooksey Exp $
 #include "test_lib.h"
 #include "ParameterDict.h"
 #include <windows.h>
@@ -69,10 +69,12 @@ int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
       return -1;
    }
 
-   mutatorM_t mutTest = (mutatorM_t)GetProcAddress(handle, "mutatorMAIN");
+   char mutator_name[256];
+   _snprintf(mutator_name, 256, "%s_mutatorMAIN", testLib.name);
+   mutatorM_t mutTest = (mutatorM_t)GetProcAddress(handle, mutator_name);
    if ( !mutTest )
    {
-      printf("Error finding function: mutatorMAIN, in %s\n", testLib.name);
+      printf("Error finding function: %s, in %s\n", mutator_name, testLib.name);
       free(dllname);
       FreeLibrary(handle);
       return -1;

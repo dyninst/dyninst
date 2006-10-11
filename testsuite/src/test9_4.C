@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_4.C,v 1.4 2006/03/08 16:45:00 bpellin Exp $
+// $Id: test9_4.C,v 1.5 2006/10/11 21:54:23 cooksey Exp $
 /*
  * #Name: test9_4
  * #Desc: call writeValue and save the world
@@ -60,7 +60,7 @@
 //
 // Start Test Case #4 - (call writeValue and save the world)
 //
-int mutatorTest(char *pathname, BPatch *bpatch)
+static int mutatorTest(char *pathname, BPatch *bpatch)
 {
   const char* testName = "call writeValue and save the world";
   int testNo = 4;
@@ -81,34 +81,34 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
 	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
         {
-           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
            return -1;
         }
 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func4_1", found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
 	      "func4_1");
       return -1;
     }
 
     if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	      __FILE__, __LINE__, found_funcs.size(), "func4_1");
     }
 
     BPatch_Vector<BPatch_point *> *func4_1 = found_funcs[0]->findPoint(BPatch_subroutine);
 
     if (!func4_1 || ((*func4_1).size() == 0)) {
-	fprintf(stderr, "Unable to find entry point to \"func4_1\".\n");
+	logerror("Unable to find entry point to \"func4_1\".\n");
         return -1;
     }
 
     BPatch_variableExpr *expr4_1 = findVariable(appImage, "globalVariable4_1", func4_1);
 
     if (expr4_1 == NULL) {
-	fprintf(stderr, "**Failed** test #4 (read/write a variable in the mutatee)\n");
-	fprintf(stderr, "    Unable to locate globalVariable4_1\n");
+	logerror("**Failed** test #4 (read/write a variable in the mutatee)\n");
+	logerror("    Unable to locate globalVariable4_1\n");
         return -1;
     }
 
@@ -116,8 +116,8 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     expr4_1->readValue(&n);
 
     if (n != 42) {
-	fprintf(stderr, "**Failed** test #4 (read/write a variable in the mutatee)\n");
-	fprintf(stderr, "    value read from globalVariable4_1 was %d, not 42 as expected\n", n);
+	logerror("**Failed** test #4 (read/write a variable in the mutatee)\n");
+	logerror("    value read from globalVariable4_1 was %d, not 42 as expected\n", n);
         return -1;
     }
 
@@ -137,25 +137,31 @@ int mutatorTest(char *pathname, BPatch *bpatch)
                 {
                    return 0;
                 } else {
-		  fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+		  logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                   return -1;
                 }
 	}else{
-		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+		logerror("**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                 return -1;
 
 	}
 #else
-	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
+	logerror("Skipped Test #%d: not implemented on this platform\n",testNo);
         return 0;
 #endif	
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test9_4_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
 #if defined (sparc_sun_solaris2_4)
     // we use some unsafe type operations in the test cases.

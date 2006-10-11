@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_31.C,v 1.3 2006/03/08 16:44:32 bpellin Exp $
+// $Id: test1_31.C,v 1.4 2006/10/11 21:53:00 cooksey Exp $
 /*
  * #Name: test1_31
  * #Desc: Mutator Side - Non-Recursive Base Tramp
@@ -58,7 +58,7 @@
 //
 // Start Test Case #31 - (non-recursive base tramp)
 //
-int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
+static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 {
    const char * func31_2_name = "func31_2";
    const char * func31_3_name = "func31_3";
@@ -70,7 +70,7 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
    BPatch_Vector<BPatch_function *> bpfv;
    if (NULL == appImage->findFunction(func31_2_name, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "    Unable to find function %s\n", func31_2_name);
+     logerror("    Unable to find function %s\n", func31_2_name);
      return -1;
    }
 	
@@ -80,7 +80,7 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 
    if (NULL == appImage->findFunction(func31_3_name, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "    Unable to find function %s\n", func31_3_name);
+     logerror("    Unable to find function %s\n", func31_3_name);
      return -1;
    }
    
@@ -90,7 +90,7 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
    
    if (NULL == appImage->findFunction(func31_4_name, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "    Unable to find function %s\n", func31_4_name);
+     logerror("    Unable to find function %s\n", func31_4_name);
      return -1;
    }
    
@@ -125,13 +125,18 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_31_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

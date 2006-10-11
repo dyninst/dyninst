@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_26.C,v 1.6 2006/04/04 20:17:15 jodom Exp $
+// $Id: test1_26.C,v 1.7 2006/10/11 21:52:54 cooksey Exp $
 /*
  * #Name: test1_26
  * #Desc: Struct Elements
@@ -56,12 +56,12 @@
 #include "test_lib.h"
 #include "Callbacks.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #26 - struct elements
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined(mips_sgi_irix6_4)
 
@@ -69,13 +69,13 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         //     First verify that we can find a local variable in call26_1
 	BPatch_Vector<BPatch_function *> found_funcs;
 	if ((NULL == appImage->findFunction("call26_1", found_funcs, 1)) || !found_funcs.size()) {
-	   fprintf(stderr, "    Unable to find function %s\n",
+	   logerror("    Unable to find function %s\n",
 		  "call26_1");
 	  return -1;
 	}
 
 	if (1 < found_funcs.size()) {
-	  fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+	  logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 		  __FILE__, __LINE__, found_funcs.size(), "call26_1");
 	}
 
@@ -84,14 +84,14 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
 	if ( !(point26_1 && (point26_1->size() == 1)) )
         {
-		fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-		fprintf(stderr, "  point26_1 incorrect\n");
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  point26_1 incorrect\n");
 		return -1;
         }
 	if ( ! point26_2 )
         {
-		fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-		fprintf(stderr, "  point26_2 NULL\n");
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  point26_2 NULL\n");
 		return -1;
         }
         
@@ -107,8 +107,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	    gvar [i] = findVariable(appImage, name, point26_2);
 
 	    if (!gvar[i]) {
-		fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-		fprintf(stderr, "  can't find variable globalVariable26_%d\n", i);
+		logerror("**Failed** test #26 (struct elements)\n");
+		logerror("  can't find variable globalVariable26_%d\n", i);
 		return -1;
 	    }
 	}
@@ -116,8 +116,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         // start of code for globalVariable26_1
         BPatch_Vector<BPatch_variableExpr *> *fields = gvar[1]->getComponents();
     	if (!fields) {
-	    fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-	    fprintf(stderr, "  struct lacked correct number of elements\n");
+	    logerror("**Failed** test #26 (struct elements)\n");
+	    logerror("  struct lacked correct number of elements\n");
 	    return -1;
     	}
 
@@ -125,10 +125,10 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
             char fieldName[80];
             sprintf(fieldName, "field%d", i+1);
             if (!(*fields)[i]->getName())
-                printf("NULL NAME!\n");
+                logerror("NULL NAME!\n");
             if (strcmp(fieldName, (*fields)[i]->getName())) {
-                printf("field %d of the struct is %s, not %s\n",
-                    i+1, fieldName, (*fields)[i]->getName());
+                logerror("field %d of the struct is %s, not %s\n",
+			 i+1, fieldName, (*fields)[i]->getName());
                 return -1;
             }
         }
@@ -154,8 +154,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	    BPatch_Vector<BPatch_variableExpr *> *subfields =
 		(*fields)[3]->getComponents();
 	    if (subfields == NULL) {
-	       fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-	       fprintf(stderr, "  struct lacked correct number of elements\n");
+	       logerror("**Failed** test #26 (struct elements)\n");
+	       logerror("  struct lacked correct number of elements\n");
 	       return -1;
             }
     	
@@ -174,16 +174,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         if (!lvar)
             lvar = appImage->findVariable(*(*point26_1) [0], "localvariable26_1");
 	if (!lvar) {
-	    fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-	    fprintf(stderr, "  could not find localVariable26_1\n");
+	    logerror("**Failed** test #26 (struct elements)\n");
+	    logerror("  could not find localVariable26_1\n");
 	    return -1;
     	}
 	setExpectError(DYNINST_NO_ERROR);
 
     	fields = lvar->getComponents();
     	if (!fields || (fields->size() < 4)) {
-	    fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-	    fprintf(stderr, "  struct lacked correct number of elements\n");
+	    logerror("**Failed** test #26 (struct elements)\n");
+	    logerror("  struct lacked correct number of elements\n");
 	    return -1;
     	}
 
@@ -191,8 +191,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	    char fieldName[80];
 	    sprintf(fieldName, "field%d", i+1);
 	    if (strcmp(fieldName, (*fields)[i]->getName())) {
-		printf("field %d of the local struct is %s, not %s\n",
-		      i+1, fieldName, (*fields)[i]->getName());
+		logerror("field %d of the local struct is %s, not %s\n",
+			 i+1, fieldName, (*fields)[i]->getName());
 	        return -1;
 	    }
     	}
@@ -217,8 +217,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
 	subfields = (*fields)[3]->getComponents();
     	if (subfields == NULL) {
-	    fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-	    fprintf(stderr, "  subfields NULL \n");
+	    logerror("**Failed** test #26 (struct elements)\n");
+	    logerror("  subfields NULL \n");
 	    return -1;
     	}
 
@@ -236,13 +236,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_26_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: test6.mutatee.c,v 1.4 2006/05/03 00:31:26 jodom Exp $ */
+/* $Id: test6.mutatee.c,v 1.5 2006/10/11 21:53:56 cooksey Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#include "mutatee_util.h"
 
 #define dprintf	if (debugPrint) printf
 int debugPrint = 0;
@@ -57,7 +59,7 @@ int passedTest[MAX_TEST+1];
 #define TRUE	1
 #define FALSE	0
 
-#define USAGE "Usage: test6.mutatee [-verbose] -run <num> .."
+#define USAGE "Usage: test6.mutatee [-verbose] [-log <file>] -run <num> .."
 
 /*
  * Verify that a scalar value of a variable is what is expected
@@ -68,8 +70,8 @@ void verifyScalarValue(const char *name, int a, int value, int testNum,
 {
     if (a != value) {
 	if (passedTest[testNum])
-	    printf("**Failed** test %d (%s)\n", testNum, testName);
-	printf("  %s = %d, not %d\n", name, a, value);
+	    logerror("**Failed** test %d (%s)\n", testNum, testName);
+	logerror("  %s = %d, not %d\n", name, a, value);
 	passedTest[testNum] = FALSE;
     }
 }
@@ -124,10 +126,10 @@ extern long double dfvarq;
   int i=0;
 
   /*
-  printf("&divarw = %p\n", &divarw);
-  printf("&dfvars = %p\n", &dfvars);
-  printf("&dfvard = %p\n", &dfvard);
-  printf("&dfvarq = %p\n", &dfvarq);
+  dprintf("&divarw = %p\n", &divarw);
+  dprintf("&dfvars = %p\n", &dfvars);
+  dprintf("&dfvard = %p\n", &dfvard);
+  dprintf("&dfvarq = %p\n", &dfvarq);
   */
 
   for(; i<10; ++i)
@@ -644,30 +646,30 @@ void init_test_data()
 /* Sun Forte/WorkShop cc releases older than 6.2 do not like these defines: */
 #if !defined(__SUNPRO_C) || (__SUNPRO_C >= 0x530)
 #define passorfail(i,p,d,r) if((p)) { \
-                              printf("Passed test #%d (%s)\n", (i), (d)); \
+                              logerror("Passed test #%d (%s)\n", (i), (d)); \
                               passedTest[(i)] = TRUE; \
                             } else { \
-                              printf("\n**Failed** test #%d (%s): %s\n", (i), (d), (r)); \
+                              logerror("\n**Failed** test #%d (%s): %s\n", (i), (d), (r)); \
                             }
 
-#define skiptest(i,d) { printf("Skipping test #%d (%s)\n", (i), (d)); \
-                        printf("    not implemented on this platform\n"); \
+#define skiptest(i,d) { logerror("Skipping test #%d (%s)\n", (i), (d)); \
+                        logerror("    not implemented on this platform\n"); \
                         passedTest[(i)] = TRUE; }
 #else
 void passorfail(int i, int p, char* d, char* r)
 {
   if(p) {
-    printf("Passed test #%d (%s)\n", (i), (d));
+    logerror("Passed test #%d (%s)\n", (i), (d));
     passedTest[(i)] = TRUE;
   } else {
-    printf("\n**Failed** test #%d (%s): %s\n", (i), (d), (r));
+    logerror("\n**Failed** test #%d (%s): %s\n", (i), (d), (r));
   }
 }
 
 void skiptest(int i, char* d)
 {
-  printf("Skipping test #%d (%s)\n", (i), (d));
-  printf("    not implemented on this platform\n");
+  logerror("Skipping test #%d (%s)\n", (i), (d));
+  logerror("    not implemented on this platform\n");
   passedTest[(i)] = TRUE;
 }
 #endif
@@ -680,7 +682,8 @@ int validateEA(void* ea1[], void* ea2[], unsigned int n)
   for(; i<n; ++i) {
     ok = (ok && ((ea1[i] == ea2[i]) || ea1[i] == NULL));
     if(!ok) {
-      printf("EA Validation failed at access #%u. Expecting: %p. Got: %p.\n", i+1, ea1[i], ea2[i]);
+      logerror("EA Validation failed at access #%u. Expecting: %p. Got: %p.\n",
+	      i+1, ea1[i], ea2[i]);
       return 0;
     }
   }
@@ -695,7 +698,8 @@ int validateBC(unsigned int bc1[], unsigned int bc2[], unsigned int n)
   for(; i<n; ++i) {
     ok = (ok && (bc1[i] == bc2[i]));
     if(!ok) {
-printf("BC Validation failed at access #%d. Expecting: %d. Got: %d.\n", i+1, bc1[i], bc2[i]);
+      logerror("BC Validation failed at access #%d. Expecting: %d. Got: %d.\n",
+	      i+1, bc1[i], bc2[i]);
       return 0;
     }
   }
@@ -868,6 +872,7 @@ int main(int iargc, char *argv[])
   unsigned argc=(unsigned)iargc;      /* make argc consistently unsigned */
   unsigned int i, j;
   unsigned int testsFailed = 0;
+  char *logfilename = NULL;
   
   for (j=0; j <= MAX_TEST; j++) {
     passedTest [j] = FALSE;
@@ -877,6 +882,13 @@ int main(int iargc, char *argv[])
   for (i=1; i < argc; i++) {
     if (!strcmp(argv[i], "-verbose")) {
       debugPrint = TRUE;
+    } else if (!strcmp(argv[i], "-log")) {
+      if ((i + 1) >= argc) {
+	fprintf(stderr, "Missing log file name\n%s\n", USAGE);
+	exit(-1);
+      }
+      i += 1;
+      logfilename = argv[i];
     } else if (!strcmp(argv[i], "-runall")) {
       dprintf("selecting all tests\n");
       for (j=1; j <= MAX_TEST; j++) runTest[j] = TRUE;
@@ -888,7 +900,7 @@ int main(int iargc, char *argv[])
             dprintf("selecting test %d\n", testId);
             runTest[testId] = TRUE;
           } else {
-            printf("invalid test %d requested\n", testId);
+            fprintf(stderr, "invalid test %d requested\n", testId);
             exit(-1);
           }
         } else {
@@ -897,10 +909,24 @@ int main(int iargc, char *argv[])
         }
       }
       i=j-1;
+    } else if (!strcmp(argv[i], "-fast")) {
+      fastAndLoose = 1;
     } else {
       fprintf(stderr, "%s\n", USAGE);
       exit(-1);
     }
+  }
+
+  if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+    outlog = fopen(logfilename, "a");
+    if (NULL == outlog) {
+      fprintf(stderr, "Error opening log file %s\n", logfilename);
+      exit(-1);
+    }
+    errlog = outlog;
+  } else {
+    outlog = stdout;
+    errlog = stderr;
   }
 
   if (argc==1) exit(0);
@@ -932,12 +958,18 @@ int main(int iargc, char *argv[])
   }
 
   if (!testsFailed) {
-    /*printf("All tests passed\n");*/
+    /*logerror("All tests passed\n");*/
   } else {
-    printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
+    logerror("**Failed** %d test%c\n",
+	    testsFailed,(testsFailed>1)?'s':' ');
   }
 
-  fflush(stdout);
+  flushErrorLog();
   dprintf("Mutatee %s terminating.\n", argv[0]);
+
+  if ((outlog != NULL) && (outlog != stdout)) {
+    fclose(outlog);
+  }
+
   return (testsFailed ? 127 : 0);
 }

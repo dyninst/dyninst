@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test10_3.C,v 1.1 2005/09/29 20:38:49 bpellin Exp $
+// $Id: test10_3.C,v 1.2 2006/10/11 21:52:18 cooksey Exp $
 /*
  * #Name: test10_3
  * #Desc: ?
@@ -58,13 +58,13 @@
 //
 // Start Test Case #3 
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
     return instrumentToCallZeroArg(appThread, appImage, "func3", "call3", 3, "test10.3");
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" int test10_3_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

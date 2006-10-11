@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_36.C,v 1.5 2006/04/04 20:17:15 jodom Exp $
+// $Id: test1_36.C,v 1.6 2006/10/11 21:53:05 cooksey Exp $
 /*
  * #Name: test1_36
  * #Desc: Callsite Parameter Referencing
@@ -55,9 +55,9 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
-BPatch_arithExpr *makeTest36paramExpr(BPatch_snippet *expr, int paramId)
+static BPatch_arithExpr *makeTest36paramExpr(BPatch_snippet *expr, int paramId)
 {
    if (mutateeFortran) {
        // Fortran is call by reference
@@ -72,18 +72,18 @@ BPatch_arithExpr *makeTest36paramExpr(BPatch_snippet *expr, int paramId)
 //
 // Start Test Case #36 - (callsite parameter referencing)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
    // Find the entry point to the procedure "func13_1"
    BPatch_Vector<BPatch_function *> found_funcs;
    if ((NULL == appImage->findFunction("func36_1", found_funcs)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
+      logerror("    Unable to find function %s\n",
               "func36_1");
       return -1;
    }
    
    if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+      logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
               __FILE__, __LINE__, found_funcs.size(), "func36_1");
    }
    
@@ -91,7 +91,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
       found_funcs[0]->findPoint(BPatch_subroutine);
    
    if (!all_points36_1 || (all_points36_1->size() < 1)) {
-      fprintf(stderr, "Unable to find point func36_1 - entry.\n");
+      logerror("Unable to find point func36_1 - entry.\n");
       return -1;
    }
 
@@ -109,7 +109,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
       }
    }
    if(point36_1 == NULL) {
-      fprintf(stderr, "Unable to find callsite %s\n",
+      logerror("Unable to find callsite %s\n",
               "call36_1");
       return -1;
    }
@@ -140,8 +140,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
        expr36_7 == NULL || expr36_8 == NULL || expr36_9 == NULL ||
        expr36_10 == NULL)
    {
-      fprintf(stderr,"**Failed** test #36 (callsite parameter referencing)\n");
-      fprintf(stderr, "    Unable to locate at least one of "
+      logerror("**Failed** test #36 (callsite parameter referencing)\n");
+      logerror("    Unable to locate at least one of "
               "globalVariable36_{1...10}\n");
       return -1;
    }
@@ -176,13 +176,18 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_36_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

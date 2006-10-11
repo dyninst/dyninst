@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_33.C,v 1.5 2006/03/13 21:05:46 bpellin Exp $
+// $Id: test1_33.C,v 1.6 2006/10/11 21:53:02 cooksey Exp $
 /*
  * #Name: test1_33 
  * #Desc: Control Flow Graphs
@@ -55,13 +55,13 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 //
 // Start Test Case #33 - (control flow graphs)
 //
 
-bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
+static bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
 {
     if (visited.contains(bb->getBlockNumber()))
 	return true;
@@ -80,7 +80,7 @@ bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
     return false;
 }
 
-int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
+static int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
     int pvalue;
     unsigned int i;
@@ -93,8 +93,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     char *fn = "func33_2";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-      fprintf(stderr, "    Unable to find function %s\n", fn);
+      logerror("**Failed** test #33 (control flow graphs)\n");
+      logerror("    Unable to find function %s\n", fn);
       return -1;
     }
     
@@ -102,8 +102,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 
     BPatch_flowGraph *cfg = func2->getCFG();
     if (cfg == NULL) {
-	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	fprintf(stderr, "  Unable to get control flow graph of func33_2\n");
+	logerror("**Failed** test #33 (control flow graphs)\n");
+	logerror("  Unable to get control flow graph of func33_2\n");
 	return -1;
     }
 
@@ -114,8 +114,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     cfg->getEntryBasicBlock(entry_blocks);
 
     if (entry_blocks.size() != 1) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Detected %d entry basic blocks in func33_2, should have been one.\n", entry_blocks.size());
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Detected %d entry basic blocks in func33_2, should have been one.\n", entry_blocks.size());
             return -1;
     }
 
@@ -123,16 +123,16 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	BPatch_Vector<BPatch_basicBlock*> sources;
 	entry_blocks[i]->getSources(sources);
 	if (sources.size() > 0) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  An entry basic block has incoming edges in the control flow graph\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  An entry basic block has incoming edges in the control flow graph\n");
 	    return -1;
 	}
 
     	BPatch_Vector<BPatch_basicBlock*> targets;
 	entry_blocks[i]->getTargets(targets);
 	if (targets.size() < 1) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs\n");
-	    fprintf(stderr, "  An entry basic block has no outgoing edges in the control flow graph\n");
+	    logerror("**Failed** test #33 (control flow graphs\n");
+	    logerror("  An entry basic block has no outgoing edges in the control flow graph\n");
 	    return -1;
 	}
     }
@@ -144,8 +144,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     cfg->getExitBasicBlock(exit_blocks);
 
     if (exit_blocks.size() != 1) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Detected %d exit basic blocks in func33_2, should have been one.\n", exit_blocks.size());
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Detected %d exit basic blocks in func33_2, should have been one.\n", exit_blocks.size());
             return -1;
     }
 
@@ -153,16 +153,16 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	BPatch_Vector<BPatch_basicBlock*> sources;
 	exit_blocks[i]->getSources(sources);
 	if (sources.size() < 1) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  An exit basic block has no incoming edges in the control flow graph\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  An exit basic block has no incoming edges in the control flow graph\n");
 	    return -1;
 	}
 
 	BPatch_Vector<BPatch_basicBlock*> targets;
 	exit_blocks[i]->getTargets(targets);
 	if (targets.size() > 0) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  An exit basic block has outgoing edges in the control flow graph\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  An exit basic block has outgoing edges in the control flow graph\n");
 	    return -1;
 	}
     }
@@ -173,8 +173,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     BPatch_Set<BPatch_basicBlock*> blocks;
     cfg->getAllBasicBlocks(blocks);
     if (blocks.size() < 4) {
-	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	fprintf(stderr, "  Detected %d basic blocks in func33_2, should be at least four.\n", blocks.size());
+	logerror("**Failed** test #33 (control flow graphs)\n");
+	logerror("  Detected %d basic blocks in func33_2, should be at least four.\n", blocks.size());
 	return -1;
     }
 
@@ -184,7 +184,7 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     bool foundOutDegreeTwo = false;
     bool foundInDegreeTwo = false;
     int blocksNoIn = 0, blocksNoOut = 0;
-
+    
     for (i = 0; i < (unsigned int) blocks.size(); i++) {
 	BPatch_Vector<BPatch_basicBlock*> in;
 	BPatch_Vector<BPatch_basicBlock*> out;
@@ -199,56 +199,56 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	    blocksNoOut++;
 
 	if (in.size() > 2 || out.size() > 2) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
-	    fprintf(stderr, "  outgoing edges - neither should be greater than two.\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
+	    logerror("  outgoing edges - neither should be greater than two.\n");
 	    return -1;
 	} else if (in.size() > 1 && out.size() > 1) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
-	    fprintf(stderr, "  outgoing edges - only one should be greater than one.\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
+	    logerror("  outgoing edges - only one should be greater than one.\n");
 	    return -1;
 	} else if (in.size() == 0 && out.size() == 0) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Detected a basic block in func33_2 with no incoming or outgoing edges.\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Detected a basic block in func33_2 with no incoming or outgoing edges.\n");
 	    return -1;
 	} else if (in.size() == 2) {
 	    assert(out.size() <= 1);
 
 	    if (foundInDegreeTwo) {
-		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-		fprintf(stderr, "  Detected two basic blocks in func33_2 with in degree two, there should only\n");
-		fprintf(stderr, "  be one.\n");
+		logerror("**Failed** test #33 (control flow graphs)\n");
+		logerror("  Detected two basic blocks in func33_2 with in degree two, there should only\n");
+		logerror("  be one.\n");
 		return -1;
 	    }
 	    foundInDegreeTwo = true;
 
 	    if (in[0]->getBlockNumber() == in[1]->getBlockNumber()) {
-		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-		fprintf(stderr, "  Two edges go to the same block (number %d).\n", in[0]->getBlockNumber());
+		logerror("**Failed** test #33 (control flow graphs)\n");
+		logerror("  Two edges go to the same block (number %d).\n", in[0]->getBlockNumber());
 		return -1;
 	    }
 	} else if (out.size() == 2) {
 	    assert(in.size() <= 1);
 
 	    if (foundOutDegreeTwo) {
-		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-		fprintf(stderr, "  Detected two basic blocks in func33_2 with out degree two, there should only\n");
-		fprintf(stderr, "  be one.\n");
+		logerror("**Failed** test #33 (control flow graphs)\n");
+		logerror("  Detected two basic blocks in func33_2 with out degree two, there should only\n");
+		logerror("  be one.\n");
 		return -1;
 	    }
 	    foundOutDegreeTwo = true;
 
 	    if (out[0]->getBlockNumber() == out[1]->getBlockNumber()) {
-		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-		fprintf(stderr, "  Two edges go to the same block (number %d).\n", out[0]->getBlockNumber());
+		logerror("**Failed** test #33 (control flow graphs)\n");
+		logerror("  Two edges go to the same block (number %d).\n", out[0]->getBlockNumber());
 		return -1;
 	    }
 	} else if (in.size() > 1 || out.size() > 1) {
 	    /* Shouldn't be able to get here. */
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
-	    fprintf(stderr, "  outgoing edges.\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
+	    logerror("  outgoing edges.\n");
 	    return -1;
 	}
     }
@@ -256,20 +256,20 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     delete [] block_elements;
     
     if (blocksNoIn > 1) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Detected more than one block in func33_2 with no incoming edges.\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Detected more than one block in func33_2 with no incoming edges.\n");
 	    return -1;
     }
 
     if (blocksNoOut > 1) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Detected more than block in func33_2 with no outgoing edges.\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Detected more than block in func33_2 with no outgoing edges.\n");
 	    return -1;
     }
 
     if (!foundOutDegreeTwo) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Did not detect the \"if\" statement in func33_2.\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Did not detect the \"if\" statement in func33_2.\n");
 	    return -1;
     }
 
@@ -278,8 +278,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
      */
     BPatch_Set<int> empty;
     if (hasBackEdge(entry_blocks[0], empty)) {
-	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	fprintf(stderr, "  Detected a loop in func33_2, there should not be one.\n");
+	logerror("**Failed** test #33 (control flow graphs)\n");
+	logerror("  Detected a loop in func33_2, there should not be one.\n");
 	return -1;
     }
 
@@ -291,8 +291,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     // Bernat, 8JUN05 -- include uninstrumentable here...
     if (NULL == appImage->findFunction(fn2, bpfv, false, false, true) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-      fprintf(stderr, "    Unable to find function %s\n", fn2);
+      logerror("**Failed** test #33 (control flow graphs)\n");
+      logerror("    Unable to find function %s\n", fn2);
       return -1;
     }
     
@@ -300,16 +300,16 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 
     BPatch_flowGraph *cfg3 = func3->getCFG();
     if (cfg3 == NULL) {
-	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	fprintf(stderr, "  Unable to get control flow graph of func33_3\n");
+	logerror("**Failed** test #33 (control flow graphs)\n");
+	logerror("  Unable to get control flow graph of func33_3\n");
 	return -1;
     }
 
     BPatch_Set<BPatch_basicBlock*> blocks3;
     cfg3->getAllBasicBlocks(blocks3);
     if (blocks3.size() < 10) {
-	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	fprintf(stderr, "  Detected %d basic blocks in func33_3, should be at least ten.\n", blocks3.size());
+	logerror("**Failed** test #33 (control flow graphs)\n");
+	logerror("  Detected %d basic blocks in func33_3, should be at least ten.\n", blocks3.size());
 	return -1;
     }
 
@@ -333,20 +333,20 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	} else if (!foundRangeCheck && out.size() == 2 && in.size() <= 1) {
 	    foundRangeCheck = true;
 	} else if (in.size() > 1 && out.size() > 1) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Found basic block in func33_3 with unexpected number of edges.\n");
-	    fprintf(stderr, "  %d incoming edges, %d outgoing edges.\n",
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Found basic block in func33_3 with unexpected number of edges.\n");
+	    logerror("  %d incoming edges, %d outgoing edges.\n",
 		    in.size(), out.size());
 	    return -1;
 	}
     }
 
     if (!foundSwitchIn || !foundSwitchOut) {
-	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+	logerror("**Failed** test #33 (control flow graphs)\n");
 	if (!foundSwitchIn)
-	    fprintf(stderr,"  Did not find \"switch\" statement in func33_3.\n");
+	    logerror("  Did not find \"switch\" statement in func33_3.\n");
 	if (!foundSwitchOut)
-	    fprintf(stderr,"  Did not find block afer \"switch\" statement.\n");
+	    logerror("  Did not find block after \"switch\" statement.\n");
 	return -1;
     }
 
@@ -354,15 +354,15 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     BPatch_Vector<BPatch_basicBlock*> entry3;
     cfg3->getEntryBasicBlock(entry3);
     if (entry3.size() != 1) {
-	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	fprintf(stderr, "  Detected %d entry basic blocks in func33_3, should have been one.\n", entry_blocks.size());
+	logerror("**Failed** test #33 (control flow graphs)\n");
+	logerror("  Detected %d entry basic blocks in func33_3, should have been one.\n", entry_blocks.size());
 	return -1;
     }
 
     for (i = 0; i < (unsigned int) blocks3.size(); i++) {
 	if (!entry3[0]->dominates(block_elements[i])) {
-	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-	    fprintf(stderr, "  Entry block does not dominate all blocks in func33_3\n");
+	    logerror("**Failed** test #33 (control flow graphs)\n");
+	    logerror("  Entry block does not dominate all blocks in func33_3\n");
 	    return -1;
 	}
     }
@@ -370,15 +370,15 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     BPatch_Vector<BPatch_basicBlock*> exit3;
     cfg3->getExitBasicBlock(exit3);
     if (exit3.size() != 1) {
-       fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-       fprintf(stderr, "  Detected %d exit basic blocks in func33_3, should have been one.\n", exit3.size());
+       logerror("**Failed** test #33 (control flow graphs)\n");
+       logerror("  Detected %d exit basic blocks in func33_3, should have been one.\n", exit3.size());
        return -1;
     }
 
     for (i = 0; i < (unsigned int) exit3.size(); i++) {
        if (!exit3[i]->postdominates(entry3[0])) {
-          fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-          fprintf(stderr, "  Exit block %d does not postdominate all entry blocks in func33_3\n", i);
+          logerror("**Failed** test #33 (control flow graphs)\n");
+          logerror("  Exit block %d does not postdominate all entry blocks in func33_3\n", i);
           return -1;
        }
     }
@@ -386,8 +386,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     BPatch_variableExpr *expr33_1 = 
     appImage->findVariable("globalVariable33_1");
     if (expr33_1 == NULL) {
-          fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
-          fprintf(stderr, "    Unable to locate globalVariable33_1\n");
+          logerror("**Failed** test #33 (control flow graphs)\n");
+          logerror("    Unable to locate globalVariable33_1\n");
           return -1;
     } 
 
@@ -401,13 +401,18 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_33_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

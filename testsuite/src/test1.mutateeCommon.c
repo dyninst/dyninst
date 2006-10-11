@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.5 2006/06/06 00:45:45 legendre Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.6 2006/10/11 21:52:12 cooksey Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include "test1.mutateeCommon.h"
 
+#include "mutatee_util.h"
 
 extern int mutateeCplusplus;
 
@@ -94,7 +95,6 @@ extern "C" void runTests();
 extern void runTests();
 #endif
 
-
 int debugPrint;
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
@@ -113,6 +113,20 @@ int checkIfAttached()
     return isAttached;
 }
 
+/* Check to see whether we're running any tests after testno
+ * (in range (testno, maxtest]) */
+int runAnyAfter(int testno, int maxtest) {
+  int retval = 0;
+  int i;
+  for (i = testno + 1; i <= maxtest; i++) {
+    if (runTest[i]) {
+      retval = 1;
+      break;
+    }
+  }
+  return retval;
+}
+
 /*
  * Verify that a scalar value of a variable is what is expected
  *
@@ -122,8 +136,8 @@ void verifyScalarValue(const char *name, int a, int value, int testNum,
 {
     if (a != value) {
 	if (passedTest[testNum])
-	    printf("**Failed** test %d (%s)\n", testNum, testName);
-	printf("  %s = %d, not %d\n", name, a, value);
+	    logerror("**Failed** test %d (%s)\n", testNum, testName);
+	logerror("  %s = %d, not %d\n", name, a, value);
 	passedTest[testNum] = FALSE;
     }
 }
@@ -136,9 +150,11 @@ void verifyValue(const char *name, int *a, int index, int value, int tst,
                  const char *tn)
 {
     if (a[index] != value) {
-	if (passedTest[tst]) printf("**Failed** test #%d (%s)\n", tst, tn);
-	printf("  %s[%d] = %d, not %d\n", 
-	    name, index, a[index], value);
+	if (passedTest[tst]) {
+	  logerror("**Failed** test #%d (%s)\n", tst, tn);
+	}
+	logerror("  %s[%d] = %d, not %d\n", 
+		name, index, a[index], value);
 	passedTest[tst] = FALSE;
     }
 }
@@ -163,6 +179,9 @@ int main(int iargc, char *argv[])
 #ifndef i386_unknown_nt4_0
     int pfd;
 #endif
+    char *logfilename = NULL;
+
+    /* fprintf(stderr, "Starting test1.mutatee\n"); */
 
     for (j=0; j <= MAX_TEST; j++) {
 	runTest [j] = FALSE;
@@ -171,7 +190,16 @@ int main(int iargc, char *argv[])
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = TRUE;
-        } else if (!strcmp(argv[i], "-attach")) {
+        } else if (!strcmp(argv[i], "-log")) {
+	  /* A file was specified that this program should send output to */
+	  i += 1;
+	  if (i >= argc) {
+	    /* We reached the end of the parameters; no filename */
+	    fprintf(stderr, "Missing log file name\n");
+	    exit(-1);
+	  }
+	  logfilename = argv[i];
+	} else if (!strcmp(argv[i], "-attach")) {
             useAttach = TRUE;
 #ifndef i386_unknown_nt4_0
 	    if (++i >= argc) {
@@ -196,7 +224,7 @@ int main(int iargc, char *argv[])
                         dprintf("selecting test %d\n", testId);
                         runTest[testId] = TRUE;
                     } else {
-                        printf("invalid test %d requested\n", testId);
+                        fprintf(stderr, "invalid test %d requested\n", testId);
                         exit(-1);
                     }
                 } else {
@@ -205,7 +233,9 @@ int main(int iargc, char *argv[])
                 }
             }
             i=j-1;
-		} else {
+	} else if (!strcmp(argv[i], "-fast")) {
+	  fastAndLoose = 1;
+	} else {
             fprintf(stderr, "%s\n", USAGE);
              fprintf(stderr, "Offending invocation:\n\t");
              for (e = 0; e < argc; e++) {
@@ -217,9 +247,21 @@ int main(int iargc, char *argv[])
     }
 
     if ((argc==1) || debugPrint)
-        printf("Mutatee %s [%s]:\"%s\"\n", argv[0],
+        fprintf(stderr, "Mutatee %s [%s]:\"%s\"\n", argv[0],
                 mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
+
+    if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+      outlog = fopen(logfilename, "a");
+      if (NULL == outlog) {
+	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	exit(-1);
+      }
+      errlog = outlog;
+    } else {
+      errlog = stderr;
+      outlog = stdout;
+    }
 
     if (useAttach) {
 #ifndef i386_unknown_nt4_0
@@ -242,18 +284,20 @@ int main(int iargc, char *argv[])
     /* See how we did running the tests. */
     for (i=1; i <= MAX_TEST; i++) {
         if (runTest[i] && !passedTest[i]) {
-	    printf("failure on %d\n", i);
+	    logerror("failure on %d\n", i);
 	    testsFailed++;
 	}
     }
 
     if (!testsFailed) {
-        printf("All tests passed\n");
+        logstatus("All tests passed\n");
     } else {
-	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
+	logstatus("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
 
-    fflush(stdout);
     dprintf("Mutatee %s terminating.\n", argv[0]);
+    if ((outlog != NULL) && (outlog != stdout)) {
+      fclose(outlog);
+    }
     return (testsFailed ? 127 : 0);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_7.C,v 1.3 2006/03/12 23:33:41 legendre Exp $
+// $Id: test5_7.C,v 1.4 2006/10/11 21:53:53 cooksey Exp $
 /*
  * #Name: test5_7
  * #Desc: Template
@@ -55,11 +55,10 @@
 
 #include "test_lib.h"
 
-
 //
 // Start Test Case #7 - (template)
 //
-int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if defined(os_solaris) || defined(os_windows) || defined(os_linux)
 
@@ -67,8 +66,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   char *fn2 = "template_test::func_cpp";
   if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #7 (template)\n");
-    fprintf(stderr, "    Unable to find function %s\n", fn2);
+    logerror("**Failed** test #7 (template)\n");
+    logerror("    Unable to find function %s\n", fn2);
     return FAIL;
   }
   BPatch_function *f1 = bpfv[0];  
@@ -84,8 +83,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
    while (index < bound) {
      if ((func = (*point7_1)[index]->getCalledFunction()) == NULL) {
-        fprintf(stderr, "**Failed** test #7 (template)\n");
-        fprintf(stderr, "    Can't find the invoked function\n");
+        logerror("**Failed** test #7 (template)\n");
+        logerror("    Can't find the invoked function\n");
         return FAIL;
      }
 
@@ -96,8 +95,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
          content7_1 = appImage->findVariable(*(*point7_2)[0], "ret");
          if (!content7_1) {
-            fprintf(stderr, "**Failed** test #7 (template)\n");
-            fprintf(stderr, "  Can't find local variable ret\n");
+            logerror("**Failed** test #7 (template)\n");
+            logerror("  Can't find local variable ret\n");
             return FAIL;
          }
          flag++;
@@ -108,8 +107,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
             content7_2 = appImage->findVariable(*(*point7_3)[0], "ret");
             if (!content7_2) {
-               fprintf(stderr, "**Failed** test #7 (template)\n");
-               fprintf(stderr, "  Can't find local variable ret\n");
+               logerror("**Failed** test #7 (template)\n");
+               logerror("  Can't find local variable ret\n");
 	       return FAIL;;
             }
             flag++;
@@ -118,7 +117,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   }
 
   if (flag != 2) {
-     fprintf(stderr, "**Failed** test #7 (template)\n");
+     logerror("**Failed** test #7 (template)\n");
      return FAIL;;
   }
 
@@ -128,16 +127,16 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    BPatch_type *type7_3 = const_cast<BPatch_type *> (content7_2->getType());
 
    if (!type7_0->isCompatible(type7_1)) {
-      fprintf(stderr, "**Failed** test #7 (template)\n");
-      fprintf(stderr,"    type7_0 reported as incompatibile with type7_1\n");
-      fprintf(stderr,"    '%s' reported as incompatibile with '%s'\n", type7_0->getName(), type7_1->getName());
-      fprintf(stderr,"    dataClasses: '%d'/ '%d', dataScalar = %d, dataUnknownType = %d\n", (int) type7_0->getDataClass(), (int)type7_1->getDataClass(), (int) BPatch_dataScalar, (int) BPatch_dataUnknownType);
+      logerror("**Failed** test #7 (template)\n");
+      logerror("    type7_0 reported as incompatibile with type7_1\n");
+      logerror("    '%s' reported as incompatibile with '%s'\n", type7_0->getName(), type7_1->getName());
+      logerror("    dataClasses: '%d'/ '%d', dataScalar = %d, dataUnknownType = %d\n", (int) type7_0->getDataClass(), (int)type7_1->getDataClass(), (int) BPatch_dataScalar, (int) BPatch_dataUnknownType);
       return FAIL;;
    }
 
    if (!type7_2->isCompatible(type7_3)) {
-      fprintf(stderr, "**Failed** test #7 (template)\n");
-      fprintf(stderr,"    type7_2 reported as incompatibile with type7_3\n");
+      logerror("**Failed** test #7 (template)\n");
+      logerror("    type7_2 reported as incompatibile with type7_3\n");
       return FAIL;;
    }
    
@@ -145,12 +144,12 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    char *fn3 = "template_test_call_cpp";
    if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "**Failed** test #7 (template)\n");
-     fprintf(stderr, "    Unable to find function %s\n", fn3);
+     logerror("**Failed** test #7 (template)\n");
+     logerror("    Unable to find function %s\n", fn3);
      return FAIL;;
    }
    if (bpfv.size() > 1) {
-     fprintf(stderr, "WARNING:  found %d functions matching '%s'\n", bpfv.size(), fn3);
+     logerror("WARNING:  found %d functions matching '%s'\n", bpfv.size(), fn3);
    }
    BPatch_function *call7_func = bpfv[0];  
 
@@ -170,12 +169,17 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test5_7_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_35.C,v 1.4 2006/03/08 16:44:36 bpellin Exp $
+// $Id: test1_35.C,v 1.5 2006/10/11 21:53:04 cooksey Exp $
 /*
  * #Name: test1_35
  * #Desc: Function Relocation
@@ -55,10 +55,10 @@
 
 #include "test_lib.h"
 
-int mutateeFortran;
+static int mutateeFortran;
 
 // Start Test Case #35 - (function relocation)
-int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
+static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 {
 #if defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
@@ -72,8 +72,8 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
     char *fn = "call35_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed** test #35 (function relocation)\n");
-      fprintf(stderr, "    Unable to find function %s\n", fn);
+      logerror("**Failed** test #35 (function relocation)\n");
+      logerror("    Unable to find function %s\n", fn);
       return -1;
     }
     
@@ -94,15 +94,15 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 	"total35_2");
 
     if (!var1 || !var2 || !var3 || !var4 ) {
-	fprintf(stderr, "**Failed** test #35 (function relocation)\n");
+	logerror("**Failed** test #35 (function relocation)\n");
 	if (!var1) 
-	    fprintf(stderr, "  can't find local variable localVariable35_1\n");
+	    logerror("  can't find local variable localVariable35_1\n");
 	if (!var2) 
-	    fprintf(stderr, "  can't find local variable localVariable35_2\n");
+	    logerror("  can't find local variable localVariable35_2\n");
         if (!var3) 
-	    fprintf(stderr, "  can't find local variable total35_1\n");
+	    logerror("  can't find local variable total35_1\n");
         if (!var4) 
-	    fprintf(stderr, "  can't find local variable total35_2\n");
+	    logerror("  can't find local variable total35_2\n");
 	return -1;
     }
 
@@ -131,13 +131,18 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 }    
 
 // External Interface
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test1_35_mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();

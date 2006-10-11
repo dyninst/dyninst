@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_10.C,v 1.4 2006/06/22 22:54:01 bernat Exp $
+// $Id: test2_10.C,v 1.5 2006/10/11 21:53:19 cooksey Exp $
 /*
  * #Name: test2_10
  * #Desc: Dump image
@@ -65,7 +65,7 @@
 //	really only useful for checking the state of instrumentation code
 //	via gdb. It will crash if you try to run it.
 //
-int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
+static int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
 {
 #if !defined(rs6000_ibm_aix4_1) \
  && !defined(sparc_sun_sunos4_1_3) \
@@ -76,14 +76,14 @@ int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
  && !defined(alpha_dec_osf4_0) \
  && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
 
-    printf("Skipping test #10 (dump image)\n");
-    printf("    BPatch_thread::dumpImage not implemented on this platform\n");
+    logerror("Skipping test #10 (dump image)\n");
+    logerror("    BPatch_thread::dumpImage not implemented on this platform\n");
     return 0;
 #else
 
   if (thread->isTerminated()) {
-    printf( "**Failed** test #10 (dump image)\n" );
-    printf("%s[%d]: mutatee in unexpected (terminated) state\n", __FILE__, __LINE__);
+    logerror( "**Failed** test #10 (dump image)\n" );
+    logerror("%s[%d]: mutatee in unexpected (terminated) state\n", __FILE__, __LINE__);
     return -1;
   }
 
@@ -92,31 +92,31 @@ int mutatorTest(BPatch_thread *thread, BPatch_image * /*appImage */)
     if (access("myimage", F_OK) == 0) {
 	dprintf("File \"myimage\" exists.  Deleting it.\n");
 	if (unlink("myimage") != 0) {
-	    printf("Couldn't delete the file \"myimage\".  Exiting.\n");
+	    fprintf(stderr, "Couldn't delete the file \"myimage\".  Exiting.\n");
             return -1;
 	}
     }
 
     clearError();
-    thread->dumpImage("myimage");
+    thread->dumpImage("myimage"); // FIXME deprecated function
     int gotError = getError();
     bool imageExists = (access("myimage", F_OK) == 0);
     if (gotError || !imageExists) {
-	printf("**Failed** test #10 (dump image)\n");
+	logerror("**Failed** test #10 (dump image)\n");
 	if (gotError)
-	    printf("    error reported by dumpImage\n");
+	    logerror("    error reported by dumpImage\n");
 	if (!imageExists)
-	    printf("    the image file wasn't written\n");
+	    logerror("    the image file wasn't written\n");
         return -1;
     } else {
-    	printf("Passed test #10 (dump image)\n");
+    	logerror("Passed test #10 (dump image)\n");
         	unlink("myimage");
         return 0;
     }
 #endif
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int test2_10_mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
@@ -125,6 +125,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    // Get log file pointers
+    FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    setOutputLog(outlog);
+    setErrorLog(errlog);
 
     // Signal the child that we've attached
     if (useAttach) {

@@ -67,6 +67,15 @@ typedef pthread_t thread_t;
 
 #endif
 
+extern FILE *outlog;
+extern FILE *errlog;
+extern int logstatus(const char *fmt, ...);
+extern int logerror(const char *fmt, ...);
+extern void flushOutputLog();
+extern void flushErrorLog();
+
+extern int fastAndLoose;
+
 extern void stop_process_();
 
 extern thread_t spawnNewThread(void *initial_func, void *param);
