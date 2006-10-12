@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.112 2006/10/10 22:04:06 bernat Exp $
+// $Id: linux-x86.C,v 1.113 2006/10/12 02:44:12 bernat Exp $
 
 #include <fstream>
 
@@ -1534,33 +1534,31 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase) {
     return ret_addr;
 }
 
-int Emitter32::emitCallParams(registerSpace *rs, codeGen &gen, 
-                   const pdvector<AstNode *> &operands, process *proc,
-                   int_function */*target*/, 
-                   const pdvector<AstNode *> &ifForks,
-                   pdvector<Register> &/*extra_saves*/, 
-                   const instPoint *location,
-                   bool noCost)
+int Emitter32::emitCallParams(codeGen &gen, 
+                              const pdvector<AstNode *> &operands,
+                              int_function */*target*/, 
+                              const pdvector<AstNode *> &ifForks,
+                              pdvector<Register> &/*extra_saves*/, 
+                              bool noCost)
 {
-  pdvector <Register> srcs;
-  unsigned frame_size = 0;
-  for (unsigned u = 0; u < operands.size(); u++)
-    srcs.push_back((Register)operands[u]->generateCode_phase2(proc, rs, gen,
-                                                              noCost,
-                                                              ifForks,
-                                                              location));
-
-   // push arguments in reverse order, last argument first
-   // must use int instead of unsigned to avoid nasty underflow problem:
-   for (int i=srcs.size() - 1; i >= 0; i--) {
-       emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -( (int) srcs[i]*4), PUSH_RM_OPC2, gen);
-       frame_size += 4;
-       rs->freeRegister(srcs[i]);
-   }
-   return frame_size;
+    pdvector <Register> srcs;
+    unsigned frame_size = 0;
+    for (unsigned u = 0; u < operands.size(); u++)
+        srcs.push_back((Register)operands[u]->generateCode_phase2(gen,
+                                                                  noCost,
+                                                                  ifForks));
+    
+    // push arguments in reverse order, last argument first
+    // must use int instead of unsigned to avoid nasty underflow problem:
+    for (int i=srcs.size() - 1; i >= 0; i--) {
+        emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -( (int) srcs[i]*4), PUSH_RM_OPC2, gen);
+        frame_size += 4;
+        gen.rs()->freeRegister(srcs[i]);
+    }
+    return frame_size;
 }
 
-bool Emitter32::emitCallCleanup(codeGen &gen, process * /*p*/,
+bool Emitter32::emitCallCleanup(codeGen &gen,
                                 int_function * /*target*/, 
                                 int frame_size, 
                                 pdvector<Register> &/*extra_saves*/)

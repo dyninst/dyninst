@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.43 2006/10/10 22:03:54 bernat Exp $
+// $Id: baseTramp.C,v 1.44 2006/10/12 02:44:06 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -867,10 +867,13 @@ bool baseTramp::generateBT(codeGen &baseGen) {
   preTrampCode_.allocate(PRE_TRAMP_SIZE);
   postTrampCode_.applyTemplate(baseGen);
   postTrampCode_.allocate(POST_TRAMP_SIZE);
-  
+
   extern registerSpace *regSpace;
 
-
+  preTrampCode_.setProcess(proc());
+  preTrampCode_.setRegisterSpace(regSpace);
+  postTrampCode_.setProcess(proc());
+  postTrampCode_.setRegisterSpace(regSpace);
 
 
 #if defined(arch_power) 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.C,v 1.2 2006/10/10 22:04:18 bernat Exp $
+// $Id: replacedInstruction.C,v 1.3 2006/10/12 02:44:15 bernat Exp $
 
 #include "multiTramp.h"
 #include "process.h"
@@ -86,10 +86,12 @@ bool replacedInstruction::generateCode(codeGen &gen,
     // Easy-peasy. 
     assert(ast_);
 
+    gen.setPoint(point());
+
     int cost = 0;
     unsigned start = gen.used();
     addrInMutatee_ = baseInMutatee + start;
-    ast_->generateCode(proc(), regSpace, gen, true, true, point());
+    ast_->generateCode(gen, true, true);
     //ast_->generateTramp(proc(), point(), gen, &cost, false);
     size_ = gen.used() - start;
 

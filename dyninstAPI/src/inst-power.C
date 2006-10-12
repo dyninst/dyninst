@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.249 2006/10/10 22:03:59 bernat Exp $
+ * $Id: inst-power.C,v 1.250 2006/10/12 02:44:09 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1037,7 +1037,7 @@ bool baseTramp::generateMTCode(codeGen &gen,
     // registers cleanup
     regSpace->resetSpace();
     
-    dyn_thread *thr = gen.getThread();
+    dyn_thread *thr = gen.thread();
     if (!threaded()) {
         /* Get the hashed value of the thread */
         emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
@@ -1048,7 +1048,7 @@ bool baseTramp::generateMTCode(codeGen &gen,
     }
     else {
         threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
-        src = threadPOS->generateCode(proc(), regSpace, gen,
+        src = threadPOS->generateCode(gen,
                                       false, // noCost 
                                       true); // root node
         if ((src) != REG_MT_POS) {
@@ -1376,8 +1376,8 @@ Register emitFuncCall(opCode /* ocode */,
          
          instruction::generateImm(gen, CALop, dummyReg, 0, 0);
       }
-      srcs.push_back(operands[u]->generateCode_phase2(proc, rs, gen,
-                                                      false, ifForks, location));
+      srcs.push_back(operands[u]->generateCode_phase2(gen,
+                                                      false, ifForks));
       //bperr( "Generated operand %d, base %d\n", u, base);
    }
 

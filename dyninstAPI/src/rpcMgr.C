@@ -766,6 +766,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
    // already done a GETREGS and we'll restore with a SETREGS, right?
    // unsigned char insnBuffer[4096];
     codeGen irpcBuf(MAX_IRPC_SIZE);
+    irpcBuf.setProcess(proc());
     irpcBuf.setLWP(lwp);
     irpcBuf.setThread(thr);
     // initializes "regSpace", but only the 1st time called
@@ -788,6 +789,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
     
     regSpace->resetSpace();
        
+    irpcBuf.setRegisterSpace(regSpace);
 
     // Saves registers (first half of the base tramp) and whatever other
     // irpc-specific magic is necessary
@@ -798,8 +800,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
         return 0;
     }
 
-    resultReg = (Register)action->generateCode(proc_, regSpace,
-                                               irpcBuf,
+    resultReg = (Register)action->generateCode(irpcBuf,
                                                noCost, true);
     
     if (!shouldStopForResult) {

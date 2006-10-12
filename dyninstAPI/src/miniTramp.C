@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.31 2006/10/10 22:04:10 bernat Exp $
+// $Id: miniTramp.C,v 1.32 2006/10/12 02:44:13 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -141,6 +141,8 @@ void miniTramp::deleteMTI(miniTrampInstance *mti) {
 // Defined in multiTramp.C, dinky "get the debugger to stop here" function.
 extern void debugBreakpoint();
 
+extern registerSpace *regSpace;
+
 bool miniTramp::generateMT() 
 {
     //inst_printf("AST pointer is %p\n", ast_);
@@ -149,10 +151,12 @@ bool miniTramp::generateMT()
     if (miniTrampCode_ != NULL) return true;
 
     miniTrampCode_.allocate(MAX_MINITRAMP_SIZE);
- 
+    miniTrampCode_.setProcess(proc());
+    miniTrampCode_.setRegisterSpace(regSpace);
+    miniTrampCode_.setPoint(instP());
+
     /* VG(11/06/01): Added location, needed by effective address AST node */
-    returnOffset = ast_->generateTramp(proc(), instP(),
-                                       miniTrampCode_, 
+    returnOffset = ast_->generateTramp(miniTrampCode_, 
                                        cost, false,
                                        BPatch::bpatch->isMergeTramp());
 

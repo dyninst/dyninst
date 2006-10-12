@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.222 2006/10/10 22:03:50 bernat Exp $
+// $Id: aix.C,v 1.223 2006/10/12 02:44:01 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1292,6 +1292,9 @@ bool process::loadDYNINSTlib()
                    getPid(), codeBase);
 
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
+    scratchCodeBuffer.setProcess(this);
+    scratchCodeBuffer.setAddr(codeBase);
+
     Address dyninstlib_addr = 0;
     Address dlopencall_addr = 0;
     
@@ -1312,6 +1315,8 @@ bool process::loadDYNINSTlib()
     registerSpace *dlopenRegSpace = new registerSpace(deadRegListSize, deadRegList, 
                                                       liveRegListSize, liveRegList);
     dlopenRegSpace->resetSpace();
+
+    scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);
     
     pdvector<AstNode*> dlopenAstArgs(2);
     AstNode *dlopenAst;
@@ -1329,7 +1334,7 @@ bool process::loadDYNINSTlib()
     // We need to push down the stack before we call this
     pushStack(scratchCodeBuffer);
 
-    dlopenAst->generateCode(this, dlopenRegSpace, scratchCodeBuffer,
+    dlopenAst->generateCode(scratchCodeBuffer,
                             true, true);
     removeAst(dlopenAst);
 

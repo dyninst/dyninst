@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.30 2006/10/10 22:03:55 bernat Exp $
+ * $Id: emit-x86.C,v 1.31 2006/10/12 02:44:07 bernat Exp $
  */
 
 #include <assert.h>
@@ -414,7 +414,7 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
     assert(regSpace != NULL);
     regSpace->resetSpace();
 
-    dyn_thread *thr = gen.getThread();
+    dyn_thread *thr = gen.thread();
     if (!bt->threaded()) {
         /* Get the hashed value of the thread */
         emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
@@ -425,7 +425,7 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
     }    
     else {
         threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy, bt->proc());
-        src = threadPOS->generateCode(bt->proc(), regSpace, gen,
+        src = threadPOS->generateCode(gen,
                                       false, // noCost 
                                       true); // root
         // AST generation uses a base pointer and a current address; the lower-level
@@ -1100,9 +1100,8 @@ bool Emitter64::clobberAllFuncCall( registerSpace *rs,
 
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
-Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const pdvector<AstNode *> &operands,
-			     process *proc, bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks,
-			     const instPoint *location)
+Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> &operands,
+			     bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks)
 {
 
     assert(op == callOp);
@@ -1119,10 +1118,9 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
 
     // generate code for arguments
     for (unsigned u = 0; u < operands.size(); u++) {
-	srcs.push_back((Register)operands[u]->generateCode_phase2(proc, rs, gen,
+	srcs.push_back((Register)operands[u]->generateCode_phase2(gen,
 								  noCost, 
-								  ifForks, 
-								  location));
+								  ifForks));
     }
 
     // here we save the argument registers we're going to use
@@ -1156,14 +1154,14 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
 	emitPopReg64(amd64_arg_regs[i], gen);   
     
     // allocate a (virtual) register to store the return value
-    Register ret = rs->allocateRegister(gen, noCost);
+    Register ret = gen.rs()->allocateRegister(gen, noCost);
     emitMovRegToReg64(ret, REGNUM_EAX, true, gen);
 
     // Figure out if we need to save FPR in base tramp
-    bool useFPR = clobberAllFuncCall(rs, proc, callee, 0);
+    bool useFPR = clobberAllFuncCall(gen.rs(), gen.proc(), callee, 0);
 
-    if (location != NULL)
-      setFPSaveOrNot(location->liveFPRegisters, useFPR);
+    if (gen.point() != NULL)
+      setFPSaveOrNot(gen.point()->liveFPRegisters, useFPR);
 
     return ret;
 }
@@ -1634,7 +1632,7 @@ bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
     // registers cleanup
     regSpace->resetSpace();
     
-    dyn_thread *thr = gen.getThread();
+    dyn_thread *thr = gen.thread();
     if (!bt->threaded()) {
         /* Get the hashed value of the thread */
         //emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
@@ -1647,7 +1645,7 @@ bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
     }    
     else {
         threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy, bt->proc());
-        src = threadPOS->generateCode(bt->proc(), regSpace, gen,
+        src = threadPOS->generateCode(gen,
                                       false, // noCost 
                                       true); // root
         // AST generation uses a base pointer and a current address; the lower-level

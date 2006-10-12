@@ -509,7 +509,10 @@ bool process::loadDYNINSTlib() {
         
   /* Write the string to entry, and then move the PC to the next bundle. */
   codeGen gen(BYTES_TO_SAVE);
-        
+  gen.setProcess(this);
+  gen.setAddr(codeBase);
+  gen.setRegisterSpace(regSpace);
+  
   Address dyninstlib_addr = gen.used() + codeBase;
   gen.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
         
@@ -532,12 +535,12 @@ bool process::loadDYNINSTlib() {
   // segment, not dyninstlib_brk_addr (or we skip all the restores).
   // Of course, we're not sure what this addr represents....
 
-  pdvector< AstNode * > dlOpenArguments( 4 );
+  pdvector< AstNode * > dlOpenArguments;
   AstNode * dlOpenCall;
 	
-  dlOpenArguments[ 0 ] = AstNode::operandNode(AstNode::Constant, (void *)dyninstlib_addr);
-  dlOpenArguments[ 1 ] = AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE );
-  dlOpenArguments[ 2 ] = AstNode::operandNode(AstNode::Constant, (void *)0xFFFFFFFFFFFFFFFF );
+  dlOpenArguments.push_back(AstNode::operandNode(AstNode::Constant, (void *)dyninstlib_addr));
+  dlOpenArguments.push_back(AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE ));
+  dlOpenArguments.push_back(AstNode::operandNode(AstNode::Constant, (void *)0xFFFFFFFFFFFFFFFF ));
   if( useFourArguments ) { 
   	/* I derived the -2 as follows: from dlfcn/dlopen.c in the glibc sources, line 59,
   	   we find the call to _dl_open(), whose last argument is 'args->file == NULL ? LM_ID_BASE : NS'.
@@ -545,15 +548,16 @@ bool process::loadDYNINSTlib() {
   	   is defined to be __LM_ID_CALLER in the same file, line 48.  (Since glibc must be shared
   	   for us to be calling _dl_open(), we fall into the second case of the #ifdef.)  __LM_ID_CALLER
   	   is defined in include/dlfcn.h, where it has the value -2. */
-    dlOpenArguments[ 3 ] = AstNode::operandNode( AstNode::Constant, (void *)(long unsigned int)-2 );
+      dlOpenArguments.push_back(AstNode::operandNode( AstNode::Constant, (void *)(long unsigned int)-2 ));
     }
+  
   dlOpenCall = AstNode::funcCallNode( "_dl_open", dlOpenArguments );
 	
   /* Remember where we originally generated the call. */
   codeBufIndex_t index = gen.getIndex();
 	
   /* emitInferiorRPCheader() configures (the global) registerSpace for us. */
-  dlOpenCall->generateCode( this, regSpace, gen, true, true );
+  dlOpenCall->generateCode( gen, true, true );
 
   // Okay, we're done with the generation, and we know where we'll be.
   // Go back and regenerate it
@@ -568,7 +572,7 @@ bool process::loadDYNINSTlib() {
   dlOpenCall = AstNode::funcCallNode( "_dl_open", dlOpenArguments );
 	
   /* Regenerate the call at the same original location with the correct constants. */
-  dlOpenCall->generateCode( this, regSpace, gen, true, true );
+  dlOpenCall->generateCode( gen, true, true );
 
   /* Clean up the reference counting. */
   removeAst( dlOpenCall );

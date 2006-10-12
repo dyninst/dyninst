@@ -40,10 +40,12 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.21 2006/04/12 16:59:14 bernat Exp $
+// $Id: arch.h,v 1.22 2006/10/12 02:44:03 bernat Exp $
 
 #if !defined(arch_h)
 #define arch_h
+
+#include <assert.h>
 
 #if defined(sparc_sun_sunos4_1_3) \
  || defined(sparc_sun_solaris2_4)
@@ -76,6 +78,9 @@
 
 class dyn_lwp;
 class dyn_thread;
+class process;
+class instPoint;
+class registerSpace;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -156,7 +161,8 @@ class codeGen {
     // For code generation -- given the current state of 
     // generation and a base address in the mutatee, 
     // produce a "current" address.
-    Address currAddr(const Address base) const;
+    Address currAddr() const;
+    Address currAddr(Address base) const;
     
     enum { cgNOP, cgTrap, cgIllegal };
 
@@ -164,10 +170,24 @@ class codeGen {
     // Since we have a known size
     void fillRemaining(int fillType);
 
-    dyn_lwp * getLWP() const;
-    void setLWP( dyn_lwp * lwp );
-    dyn_thread *getThread() const;
-    void setThread(dyn_thread *thr);
+    void setData(process *proc, dyn_thread *thr, dyn_lwp *lwp,
+                 Address startAddr,
+                 instPoint *point,
+                 registerSpace *rs);
+
+    void setProcess(process *p) { proc_ = p; }
+    void setThread(dyn_thread *t) { thr_ = t; }
+    void setLWP(dyn_lwp *l) { lwp_ = l; }
+    void setRegisterSpace(registerSpace *r) { rs_ = r; }
+    void setAddr(Address a) { addr_ = a; }
+    void setPoint(instPoint *i) { ip_ = i; }
+
+    dyn_lwp *lwp() { return lwp_; }
+    dyn_thread *thread() { return thr_; }
+    process *proc() { assert(proc_); return proc_; }
+    Address startAddr() const { return addr_; }
+    const instPoint *point() const { return ip_; }
+    registerSpace *rs() { assert(rs_); return rs_; }
 
  private:
     codeBuf_t *buffer_;
@@ -176,8 +196,12 @@ class codeGen {
 
     bool allocated_;
 
+    process *proc_;
     dyn_thread *thr_;
-    dyn_lwp * lwp;
+    dyn_lwp * lwp_;
+    registerSpace *rs_;
+    Address addr_;
+    instPoint *ip_;
 };
 
 // For platforms that require bit-twiddling. These should go away in the future.

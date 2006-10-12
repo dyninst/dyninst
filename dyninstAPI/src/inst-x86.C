@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.246 2006/10/10 22:04:02 bernat Exp $
+ * $Id: inst-x86.C,v 1.247 2006/10/12 02:44:10 bernat Exp $
  */
 #include <iomanip>
 
@@ -816,16 +816,16 @@ static inline void emitEnter(short imm16, codeGen &gen) {
 
 // this function just multiplexes between the 32-bit and 64-bit versions
 Register emitFuncCall(opCode op, 
-                      registerSpace *rs,
+                      registerSpace *,
                       codeGen &gen,
                       pdvector<AstNode *> &operands, 
-                      process *proc,
+                      process *,
                       bool noCost,
                       int_function *callee,
                       const pdvector<AstNode *> &ifForks,
-                      const instPoint *location)
+                      const instPoint *)
 {
-  return x86_emitter->emitCall(op, rs, gen, operands, proc, noCost, callee, ifForks, location);
+    return x86_emitter->emitCall(op, gen, operands, noCost, callee, ifForks);
 }
 
 
@@ -880,27 +880,23 @@ void Emitter32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 
 
 Register Emitter32::emitCall(opCode op, 
-                             registerSpace *rs,
                              codeGen &gen,
                              const pdvector<AstNode *> &operands, 
-                             process *proc,
                              bool noCost, int_function *callee,
-                             const pdvector<AstNode *> &ifForks,
-                             const instPoint *location)
-{
-   assert(op == callOp);
-   pdvector <Register> srcs;
-   int param_size;
-   pdvector<Register> saves;
-
-   //  Sanity check for NULL address arg
-   if (!callee) {
-      char msg[256];
-      sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-              "callee argument", __FILE__, __LINE__);
-      showErrorCallback(80, msg);
-      assert(0);
-   }
+                             const pdvector<AstNode *> &ifForks) {
+    assert(op == callOp);
+    pdvector <Register> srcs;
+    int param_size;
+    pdvector<Register> saves;
+    
+    //  Sanity check for NULL address arg
+    if (!callee) {
+        char msg[256];
+        sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+                "callee argument", __FILE__, __LINE__);
+        showErrorCallback(80, msg);
+        assert(0);
+    }
  
 
    /*
@@ -911,8 +907,7 @@ Register Emitter32::emitCall(opCode op,
                    bool noCost);
                    */
 
-   param_size = emitCallParams(rs, gen, operands, proc, callee, ifForks, saves,
-                  location, noCost);
+   param_size = emitCallParams(gen, operands, callee, ifForks, saves, noCost);
 
    /*
    for (unsigned u = 0; u < operands.size(); u++)
@@ -939,17 +934,17 @@ Register Emitter32::emitCall(opCode op,
    if (srcs.size() > 0)
       emitOpRegImm(0, REGNUM_ESP, srcs.size()*4, gen); // add esp, srcs.size()*4
   */
-   emitCallCleanup(gen, proc, callee, param_size, saves);
+   emitCallCleanup(gen, callee, param_size, saves);
 
    // allocate a (virtual) register to store the return value
-   Register ret = rs->allocateRegister(gen, noCost);
+   Register ret = gen.rs()->allocateRegister(gen, noCost);
    emitMovRegToRM(REGNUM_EBP, -1*(ret*4), REGNUM_EAX, gen);
 
    // Figure out if we need to save FPR in base tramp
-   bool useFPR = clobberAllFuncCall(rs, proc, callee, 0);
+   bool useFPR = clobberAllFuncCall(gen.rs(), gen.proc(), callee, 0);
    
-   if (location != NULL)
-      setFPSaveOrNot(location->liveFPRegisters, useFPR);
+   if (gen.point() != NULL)
+      setFPSaveOrNot(gen.point()->liveFPRegisters, useFPR);
 
    return ret;
 }

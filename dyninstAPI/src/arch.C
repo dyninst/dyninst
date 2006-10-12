@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.5 2006/06/12 17:46:57 jaw Exp $
+// $Id: arch.C,v 1.6 2006/10/12 02:44:02 bernat Exp $
 // Code generation
 
 //////////////////////////
@@ -71,16 +71,28 @@ codeGen::codeGen() :
     offset_(0),
     size_(0),
     allocated_(false),
+    proc_(NULL),
     thr_(NULL),
-    lwp(NULL) {}
+    lwp_(NULL),
+    rs_(NULL),
+    addr_((Address)-1),
+    ip_(NULL)
+{}
 
 // size is in bytes
 codeGen::codeGen(unsigned size) :
+    buffer_(NULL),
     offset_(0),
     size_(size),
     allocated_(true),
+    proc_(NULL),
     thr_(NULL),
-    lwp(NULL) {
+    lwp_(NULL),
+    rs_(NULL),
+    addr_((Address)-1),
+    ip_(NULL)
+
+{
     buffer_ = (codeBuf_t *)malloc(size);
     memset(buffer_, 0, size);
     if (!buffer_)
@@ -93,8 +105,13 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     offset_(0),
     size_(size),
     allocated_(true),
+    proc_(NULL),
     thr_(NULL),
-    lwp(NULL)
+    lwp_(NULL),
+    rs_(NULL),
+    addr_((Address)-1),
+    ip_(NULL)
+
 {
     buffer_ = buffer;
 }
@@ -108,8 +125,12 @@ codeGen::codeGen(const codeGen &g) :
     offset_(g.offset_),
     size_(g.size_),
     allocated_(g.allocated_),
+    proc_(g.proc_),
     thr_(g.thr_),
-    lwp(g.lwp)
+    lwp_(g.lwp_),
+    rs_(g.rs_),
+    addr_(g.addr_),
+    ip_(g.ip_)
 {
     if (size_ != 0) {
         assert(allocated_); 
@@ -135,8 +156,7 @@ codeGen &codeGen::operator=(const codeGen &g) {
     size_ = g.size_;
     allocated_ = g.allocated_;
     thr_ = g.thr_;
-    lwp = g.lwp;
-
+    lwp_ = g.lwp_;
 
     if (size_ != 0) {
         assert(allocated_); 
@@ -292,7 +312,12 @@ int codeGen::getDisplacement(codeBufIndex_t from, codeBufIndex_t to) {
     return ((to - from) * CODE_GEN_OFFSET_SIZE);
 }
 
-Address codeGen::currAddr(const Address base) const {
+Address codeGen::currAddr() const {
+    assert(addr_ != (Address) -1);
+    return currAddr(addr_);
+}
+
+Address codeGen::currAddr(Address base) const { 
     return (offset_ * CODE_GEN_OFFSET_SIZE) + base;
 }
 
@@ -330,26 +355,16 @@ void codeGen::fillRemaining(int fillType) {
     }
 }
 
-void codeGen::applyTemplate(codeGen &codeTemplate) {
+void codeGen::applyTemplate(codeGen &c) {
     // Copy off necessary bits...
-    setLWP(codeTemplate.getLWP());
-    setThread(codeTemplate.getThread());
+
+    proc_ = c.proc_;
+    thr_ = c.thr_;
+    lwp_ = c.lwp_;
+    rs_ = c.rs_;
+    addr_ = c.addr_;
+    ip_ = c.ip_;
 }
 
 codeGen codeGen::baseTemplate;
 
-void codeGen::setLWP( dyn_lwp * lwp ) {
-	this->lwp = lwp;
-}
-	
-dyn_lwp * codeGen::getLWP() const {
-	return this->lwp;
-}
-
-void codeGen::setThread(dyn_thread *thr) {
-    thr_ = thr;
-}
-
-dyn_thread *codeGen::getThread() const {
-    return thr_;
-}

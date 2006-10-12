@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.60 2006/10/04 20:41:12 bernat Exp $
+// $Id: multiTramp.C,v 1.61 2006/10/12 02:44:14 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -48,6 +48,8 @@
 #include "instPoint.h"
 #include "process.h"
 #include "InstrucIter.h"
+
+extern registerSpace *regSpace;
 
 unsigned int multiTramp::id_ctr = 1;
 
@@ -969,6 +971,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             return false;
         }
         generatedMultiT_.allocate(size_required);
+        generatedMultiT_.setProcess(proc());
+        generatedMultiT_.setRegisterSpace(regSpace);
 
         // We don't want to generate the jump buffer until after
         // we've done the multiTramp; we may need to know

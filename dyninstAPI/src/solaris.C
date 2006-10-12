@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.204 2006/10/10 22:04:20 bernat Exp $
+// $Id: solaris.C,v 1.205 2006/10/12 02:44:17 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -722,6 +722,8 @@ bool process::loadDYNINSTlib() {
     readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
     
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
+    scratchCodeBuffer.setProcess(this);
+    scratchCodeBuffer.setAddr(codeBase);
 
     // First we write in the dyninst lib string. Vewy simple.
     Address dyninstlib_addr = codeBase;
@@ -730,6 +732,7 @@ bool process::loadDYNINSTlib() {
 
     // Were we're calling into
     Address dlopencall_addr = codeBase + scratchCodeBuffer.used();
+
     /*
       fprintf(stderr, "dlopen call addr at 0x%x, for codeBase of 0x%x\n",
             dlopencall_addr, codeBase);
@@ -749,6 +752,7 @@ bool process::loadDYNINSTlib() {
         new registerSpace(dead_reg_count, deadList, (unsigned)0,
                           NULL, multithread_capable());
     dlopenRegSpace->resetSpace();
+    scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);
 
     pdvector<AstNode*> dlopenAstArgs(2);
     AstNode *dlopenAst;
@@ -770,7 +774,7 @@ bool process::loadDYNINSTlib() {
     removeAst(dlopenAstArgs[0]);
     removeAst(dlopenAstArgs[1]);
 
-    dlopenAst->generateCode(this, dlopenRegSpace, scratchCodeBuffer,
+    dlopenAst->generateCode(scratchCodeBuffer,
                             true, true);
     removeAst(dlopenAst);
 

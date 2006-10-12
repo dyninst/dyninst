@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.90 2006/10/10 22:04:24 bernat Exp $
+// $Id: ast.h,v 1.91 2006/10/12 02:44:05 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -61,6 +61,7 @@ class process;
 class instPoint;
 class int_function;
 class codeGen;
+class codeRange;
 
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "common/h/Types.h"
@@ -91,6 +92,8 @@ class AstNode {
 
         // Factory methods....
         static AstNode *nullNode();
+
+        static AstNode *labelNode(pdstring &label);
 
         static AstNode *operandNode(operandType ot, void *arg);
         static AstNode *operandNode(operandType ot, AstNode *ast);
@@ -123,13 +126,13 @@ class AstNode {
         
         virtual ~AstNode();
         
-        virtual Address generateCode(process *proc, registerSpace *rs, codeGen &gen, 
-                                     bool noCost, bool root,
-                                     const instPoint *location = NULL);
-        virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+        virtual Address generateCode(codeGen &gen, 
+                                     bool noCost, 
+                                     bool root);
+
+        virtual Address generateCode_phase2(codeGen &gen,
                                             bool noCost,
-                                            const pdvector<AstNode*> &ifForks,
-                                            const instPoint *location = NULL);
+                                            const pdvector<AstNode*> &ifForks);
        
         bool previousComputationValid(Register &reg,
                                       const pdvector<AstNode *> &ifForks,
@@ -244,10 +247,22 @@ class AstNullNode : public AstNode {
     AstNullNode() : AstNode() {};
 
  private:
-    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+    virtual Address generateCode_phase2(codeGen &gen,
                                         bool noCost,
-                                        const pdvector<AstNode*> &ifForks,
-                                        const instPoint *location = NULL);
+                                        const pdvector<AstNode*> &ifForks);
+};
+
+class AstLabelNode : public AstNode {
+ public:
+    AstLabelNode(pdstring &label) : AstNode(), label_(label), addr_(-1) {};
+
+ private:
+    virtual Address generateCode_phase2(codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks);
+    pdstring label_;
+    Address addr_;
+
 };
 
 class AstOperatorNode : public AstNode {
@@ -270,10 +285,9 @@ class AstOperatorNode : public AstNode {
     virtual void getChildren(pdvector<AstNode*> &children);
 
  private:
-    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+    virtual Address generateCode_phase2(codeGen &gen,
                                         bool noCost,
-                                        const pdvector<AstNode*> &ifForks,
-                                        const instPoint *location = NULL);
+                                        const pdvector<AstNode*> &ifForks);
     AstOperatorNode() {};
     opCode op;
     AstNode *loperand;
@@ -316,10 +330,10 @@ class AstOperandNode : public AstNode {
     virtual void getChildren(pdvector<AstNode*> &children);
         
  private:
-    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks,
-                                        const instPoint *location = NULL);
+        virtual Address generateCode_phase2(codeGen &gen,
+                                            bool noCost,
+                                            const pdvector<AstNode*> &ifForks);
+
     AstOperandNode() {};
     
     operandType oType;
@@ -349,10 +363,10 @@ class AstCallNode : public AstNode {
     virtual void getChildren(pdvector<AstNode*> &children);
 
  private:
-    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks,
-                                        const instPoint *location = NULL);
+        virtual Address generateCode_phase2(codeGen &gen,
+                                            bool noCost,
+                                            const pdvector<AstNode*> &ifForks);
+
     AstCallNode() {};
     // Sometimes we just don't have enough information...
     const pdstring func_name_;
@@ -370,10 +384,10 @@ class AstReplacementNode : public AstNode {
     virtual bool canBeKept() const;
 
  private:
-    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks,
-                                        const instPoint *location = NULL);
+        virtual Address generateCode_phase2(codeGen &gen,
+                                            bool noCost,
+                                            const pdvector<AstNode*> &ifForks);
+
     int_function *replacement;
     AstReplacementNode() {};
 };
@@ -398,40 +412,57 @@ class AstSequenceNode : public AstNode {
     virtual void getChildren(pdvector<AstNode*> &children);
 
  private:
-    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks,
-                                        const instPoint *location = NULL);
+        virtual Address generateCode_phase2(codeGen &gen,
+                                            bool noCost,
+                                            const pdvector<AstNode*> &ifForks);
+
     AstSequenceNode() {};
     pdvector<AstNode *> sequence_;
 };
 
 class instruction;
 
-class AstInstructionNode : public AstNode {
+class AstInsnNode : public AstNode {
  public: 
-    AstInstructionNode(instruction *insn);
-    
- private:
-    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks,
-                                        const instPoint *location = NULL);
+    AstInsnNode(instruction *insn);
 
+    // This is a question... we're monolithic-ing again. I wonder if we
+    // can figure out what kind of instruction we're on, so that we can 
+    // build a (say) branchNode rather than an instructionNode with some
+    // overriding stuff.
 
-    AstInstructionNode() {};
+ protected:
+        virtual Address generateCode_phase2(codeGen &gen,
+                                            bool noCost,
+                                            const pdvector<AstNode*> &ifForks);
+
+    AstInsnNode() {};
     instruction *insn_;
-    
 };
- 
+
+class AstInsnBranchNode : public AstInsnNode {
+ public:
+    AstInsnBranchNode(instruction *insn) : AstInsnNode(insn), target_((Address) -1) {};
+
+    void updateBranchTarget(Address addr)  {target_ = addr; }
+
+ protected:
+        virtual Address generateCode_phase2(codeGen &gen,
+                                            bool noCost,
+                                            const pdvector<AstNode*> &ifForks);
+    
+    Address target_;
+};
+
+
 class AstMiniTrampNode : public AstNode {
  public:
     AstMiniTrampNode(AstNode *ast) {
         ast_ = assignAst(ast);
     }
 
-    Address generateTramp(process *proc, const instPoint *location, 
-                          codeGen &gen, int &trampCost, 
+    Address generateTramp(codeGen &gen, 
+                          int &trampCost, 
                           bool noCost, bool merged);
             
     virtual ~AstMiniTrampNode() {
@@ -454,10 +485,9 @@ class AstMemoryNode : public AstNode {
     AstMemoryNode(memoryType mem, unsigned which);
 
  private:
-    virtual Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks,
-                                        const instPoint *location = NULL);
+        virtual Address generateCode_phase2(codeGen &gen,
+                                            bool noCost,
+                                            const pdvector<AstNode*> &ifForks);
     
     AstMemoryNode() {};
     memoryType mem_;
