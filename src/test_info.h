@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.22 2006/10/11 21:54:28 cooksey Exp $
+// $Id: test_info.h,v 1.23 2006/10/12 20:00:42 cooksey Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -341,7 +341,7 @@ test_data_t tests[] = {
    test_data_t("test7_6", "test7_6.so", test7_mutatee, test7_platforms, STOPPED, 7, 6, NONE, CREATE, ENABLED, SOLO),
    test_data_t("test7_7", "test7_7.so", test7_mutatee, test7_platforms, STOPPED, 7, 7, NONE, CREATE, ENABLED, SOLO),
    test_data_t("test7_8", "test7_8.so", test7_mutatee, test7_platforms, STOPPED, 7, 8, NONE, CREATE, ENABLED, SOLO),
-   test_data_t("test7_9", "test7_9.so", test7_mutatee, test7_platforms, STOPPED, 7, 8, NONE, CREATE, ENABLED, SOLO),
+   test_data_t("test7_9", "test7_9.so", test7_mutatee, test7_platforms, STOPPED, 7, 9, NONE, CREATE, ENABLED, SOLO),
    test_data_t("test8_1", "test8_1.so", test8_mutatee, test8_platforms, STOPPED, 8, 1, COLLECT_EXITCODE, CREATE, ENABLED, GROUPED),
    test_data_t("test8_2", "test8_2.so", test8_mutatee, test8_platforms, STOPPED, 8, 2, COLLECT_EXITCODE, CREATE, ENABLED, GROUPED),
    test_data_t("test8_3", "test8_3.so", test8_mutatee, test8_platforms, STOPPED, 8, 3, COLLECT_EXITCODE, CREATE, ENABLED, GROUPED),
