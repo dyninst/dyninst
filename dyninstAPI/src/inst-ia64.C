@@ -204,7 +204,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 	assert( location->func()->getFramePointerCalculator() != NULL );			
 			
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
-	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( proc, rs, gen, false, true, location );
+	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode(gen, false, true);
 			
 	instruction_x longConstant = generateLongConstantInRegister( src2, src1 );
 	instruction calculateAddress = generateArithmetic( plusOp, framePointer, src2, framePointer ); 
@@ -265,7 +265,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 	assert( location->func()->getFramePointerCalculator() != NULL );
 
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
-	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( proc, rs, gen, false, true, location );
+	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( gen, false, true );
 			
 	instruction memoryNop( NOP_M );
 	instruction integerNop( NOP_I );
@@ -342,7 +342,7 @@ Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
   /* Generate the code for the arguments. */
   pdvector< Register > sourceRegisters;
   for( unsigned int i = 0; i < operands.size(); i++ ) {
-	sourceRegisters.push_back( operands[i]->generateCode_phase2( proc, rs, gen, false, ifForks, location ) );
+	sourceRegisters.push_back( operands[i]->generateCode_phase2( gen, false, ifForks ) );
   }
 
   /* source-to-output register copy */
@@ -2437,7 +2437,7 @@ extern void initBaseTrampStorageMap( registerSpace *, int, bool * );
 
 /* Required by process.C */
 bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
-	dyn_lwp * lwpToUse = gen.getLWP() != NULL ? gen.getLWP() : proc_->getRepresentativeLWP();
+	dyn_lwp * lwpToUse = gen.lwp() != NULL ? gen.lwp() : proc_->getRepresentativeLWP();
 	assert( lwpToUse->status() != running );
 	
 	/* Extract the CFM. */
@@ -2571,7 +2571,7 @@ bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
 									 unsigned & breakOffset, bool shouldStopForResult,
 									 unsigned & stopForResultOffset,
 									 unsigned & justAfter_stopForResultOffset ) {
-	dyn_lwp * lwpToUse = gen.getLWP() != NULL ? gen.getLWP() : proc_->getRepresentativeLWP();
+	dyn_lwp * lwpToUse = gen.lwp() != NULL ? gen.lwp() : proc_->getRepresentativeLWP();
 	assert( lwpToUse->status() != running );
 	
   /* We'll need two of these. */
@@ -2773,7 +2773,7 @@ bool baseTramp::generateCostCode( codeGen & gen, unsigned & costUpdateOffset, re
 bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
   pdvector< AstNode * > dummy;
 
-  dyn_thread *thr = gen.getThread();
+  dyn_thread *thr = gen.thread();
   if( !this->threaded() ) {
 	  /* Stick a zero in the Known Thread Index register. */
 	  emitRegisterToRegisterCopy( BP_GR0, CALCULATE_KTI_REGISTER, gen, rs );		
@@ -2788,8 +2788,8 @@ bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
 	  AstNode * threadPos = AstNode::funcCallNode( "DYNINSTthreadIndex", dummy );
 	  assert( threadPos != NULL );
 	  
-	  Register src = threadPos->generateCode(	this->proc(), rs, gen,
-												false /* no cost */, true /* root node */ );
+	  Register src = threadPos->generateCode(gen, 
+											 false /* no cost */, true /* root node */ );
 	  
 	  /* Ray: I'm asserting that we don't use the 35th preserved register for anything. */
 	  emitRegisterToRegisterCopy( src, CALCULATE_KTI_REGISTER, gen, rs );
@@ -3232,7 +3232,7 @@ void emitVstore( opCode op, Register src1, Register src2, Address dest,
 	assert( location->func()->getFramePointerCalculator() != NULL );			
 
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
-	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( proc, rs, gen, false, true, location );
+	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( gen, false, true );
 
 	/* See the frameAddr case in emitVload() for an optimization. */
 	instruction memoryNop( NOP_M );
