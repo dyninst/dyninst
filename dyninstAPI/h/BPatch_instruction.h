@@ -130,4 +130,25 @@ class BPATCH_DLL_EXPORT BPatch_instruction : public BPatch_eventLock{
   int  conditionCode_NP(int which = 0) const { return condition[which]; }
 };
 
+class BPATCH_DLL_EXPORT BPatch_branchInstruction : public BPatch_instruction{
+    friend class BPatch_basicBlock;
+
+ public:
+    BPatch_branchInstruction(const void *_buffer,
+                             unsigned char _length,
+                             long unsigned int _addr,
+                             void *target) :
+        BPatch_instruction(_buffer, _length, _addr),
+        target_(target) {}
+
+    ~BPatch_branchInstruction() {};
+
+    void *getTarget() { return target_; }
+
+ protected:
+
+    void *target_;
+};
+
+
 #endif
