@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.3 2006/10/11 21:53:17 cooksey Exp $ */
+/* $Id: test2.mutatee.c,v 1.4 2006/10/12 20:00:41 cooksey Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -357,9 +357,6 @@ int main(int iargc, char *argv[])
       if (fastAndLoose && runAnyAfter(6, 14)) {
 	stop_process();
       }
-    }
-    if (runTest[7]) { /* FIXME I don't think this is necessary.. */
-      stop_process(); /* test2_7 doesn't continue the process..  */
     }
 
     if (runTest[8]) {
