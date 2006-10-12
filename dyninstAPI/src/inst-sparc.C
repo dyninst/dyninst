@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.186 2006/10/10 22:04:00 bernat Exp $
+// $Id: inst-sparc.C,v 1.187 2006/10/12 02:43:59 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -750,7 +750,7 @@ bool baseTramp::generateMTCode(codeGen &gen,
     // registers cleanup
     regSpace->resetSpace();
 
-    dyn_thread *thr = gen.getThread();
+    dyn_thread *thr = gen.thread();
     if (!threaded()) {
     /* Get the hashed value of the thread */
         emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
@@ -761,7 +761,7 @@ bool baseTramp::generateMTCode(codeGen &gen,
     }    
     else {
         threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
-        src = threadPOS->generateCode(proc(), regSpace, gen,
+        src = threadPOS->generateCode(gen,
                                       false, // noCost 
                                       true); // root node
         if ((src) != REG_MT_POS) {
@@ -1069,7 +1069,7 @@ Register emitFuncCall(opCode op,
 		      codeGen &gen, 
 		      pdvector<AstNode *> &operands, 
 		      process *proc,
-		      bool noCost, Address callee_addr,
+		      bool noCost, int_function *callee,
 		      const pdvector<AstNode *> &ifForks,
 		      const instPoint *location)
 {
@@ -1078,18 +1078,17 @@ Register emitFuncCall(opCode op,
    void cleanUpAndExit(int status);
    
    // sanity check for NULL address argument
-   if (!callee_addr) {
+   if (!callee) {
      char msg[256];
      sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-             "callee_addr argument", __FILE__, __LINE__);
+             "callee argument", __FILE__, __LINE__);
      showErrorCallback(80, msg);
      assert(0);
    }
  
    for (unsigned u = 0; u < operands.size(); u++)
-       srcs.push_back(operands[u]->generateCode_phase2(proc, rs, gen,
-                                                       noCost, ifForks,
-                                                       location));
+       srcs.push_back(operands[u]->generateCode_phase2(gen,
+                                                       noCost, ifForks));
    
    for (unsigned u=0; u<srcs.size(); u++){
       if (u >= 5) {
@@ -1109,8 +1108,8 @@ Register emitFuncCall(opCode op,
    // We can do better:
    //   call <addr>    (but note that the call true-instr is pc-relative jump)
    //   nop
-   instruction::generateSetHi(gen, callee_addr, 13);
-   instruction::generateImm(gen, JMPLop3, 13, LOW10(callee_addr), 15); 
+   instruction::generateSetHi(gen, callee->getAddress(), 13);
+   instruction::generateImm(gen, JMPLop3, 13, LOW10(callee->getAddress()), 15); 
    instruction::generateNOOP(gen);
    
    // return value is the register with the return value from the function.
