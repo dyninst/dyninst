@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.174 2006/10/12 02:44:04 bernat Exp $
+// $Id: ast.C,v 1.175 2006/10/16 20:17:23 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -143,6 +143,10 @@ AstNode *AstNode::funcCallNode(int_function *func, pdvector<AstNode *> &args) {
     return new AstCallNode(func, args);
 }
 
+AstNode *AstNode::funcCallNode(Address addr, pdvector<AstNode *> &args) {
+    return new AstCallNode(addr, args);
+}
+
 AstNode *AstNode::funcReplacementNode(int_function *func) {
     if (func == NULL) return NULL;
     return new AstReplacementNode(func);
@@ -155,6 +159,15 @@ AstNode *AstNode::memoryNode(memoryType ma, int which) {
 AstNode *AstNode::miniTrampNode(AstNode *tramp) {
     if (tramp == NULL) return NULL;
     return new AstMiniTrampNode(tramp);
+}
+
+AstNode *AstNode::insnNode(BPatch_instruction *insn) {
+    // Figure out what kind of instruction we've got...
+    if (dynamic_cast<BPatch_memoryAccess *>(insn)) {
+        return new AstInsnMemoryNode(insn->insn(), (Address) insn->getAddress());
+    } 
+    
+    return new AstInsnNode(insn->insn(), (Address) insn->getAddress());
 }
 
 //
@@ -362,6 +375,7 @@ AstOperandNode::AstOperandNode(operandType ot, AstNode *l) :
 AstCallNode::AstCallNode(int_function *func,
                          pdvector<AstNode *> &args) :
     AstNode(),
+    func_addr_(0),
     func_(func)
 {
     for (unsigned i = 0; i < args.size(); i++) {
@@ -373,6 +387,18 @@ AstCallNode::AstCallNode(const pdstring &func,
                          pdvector<AstNode *> &args) :
     AstNode(),
     func_name_(func),
+    func_addr_(0),
+    func_(NULL)
+{
+    for (unsigned i = 0; i < args.size(); i++) {
+        args_.push_back(assignAst(args[i]));
+    }
+}
+
+AstCallNode::AstCallNode(Address addr,
+                         pdvector<AstNode *> &args) :
+    AstNode(),
+    func_addr_(addr),
     func_(NULL)
 {
     for (unsigned i = 0; i < args.size(); i++) {
@@ -388,9 +414,10 @@ AstSequenceNode::AstSequenceNode(pdvector<AstNode *> &sequence) :
     }
 }
 
-AstInsnNode::AstInsnNode(instruction *insn) :
+AstInsnNode::AstInsnNode(instruction *insn, Address addr) :
     AstNode(),
-    insn_(insn) {
+    insn_(insn),
+    origAddr_(addr) {
 }
 
 AstMemoryNode::AstMemoryNode(memoryType mem,
@@ -776,7 +803,7 @@ Address AstNullNode::generateCode_phase2(codeGen &, bool,
 Address AstLabelNode::generateCode_phase2(codeGen &g, bool,
                                           const pdvector<AstNode*> &) {
     // Pick up the address we were added at
-    addr_ = g.currAddr();
+    generatedAddr_ = g.currAddr();
     return 0;
 }
 
@@ -1315,7 +1342,20 @@ Address AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
         // are process independent, and functions kinda are.
         use_func = gen.proc()->findOnlyOneFunction(func_name_);
     }
-    if (!use_func) {
+
+    Register tmp = 0;
+
+    if (use_func) {
+        tmp = emitFuncCall(callOp, gen.rs(), gen, args_,  
+                           gen.proc(), noCost, use_func, ifForks, 
+                           gen.point());
+    }
+    else if (func_addr_) {
+        tmp = emitFuncCall(callOp, gen.rs(), gen, args_,  
+                           gen.proc(), noCost, func_addr_, ifForks, 
+                           gen.point());
+    }
+    else {
         char msg[256];
         sprintf(msg, "%s[%d]:  internal error:  unable to find %s",
                 __FILE__, __LINE__, func_name_.c_str());
@@ -1323,9 +1363,6 @@ Address AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
         assert(0);  // can probably be more graceful
     }
     
-    Register tmp = emitFuncCall(callOp, gen.rs(), gen, args_,  
-                                gen.proc(), noCost, use_func, ifForks, 
-                                gen.point());
     if (useCount > 0) {
         gen.rs()->fixRefCount(tmp, useCount+1);
         keepRegister(tmp, ifForks);
@@ -1360,9 +1397,41 @@ Address AstInsnNode::generateCode_phase2(codeGen &gen, bool noCost,
                                          const pdvector<AstNode*> &ifForks) {
     assert(insn_);
 
-    assert(0 && "Unimplemented");
+    insn_->generate(gen, gen.proc(), origAddr_, gen.currAddr());
+    
     return 0;
 }
+
+Address AstInsnBranchNode::generateCode_phase2(codeGen &gen, bool noCost,
+                                               const pdvector<AstNode*> &ifForks) {
+    assert(insn_);
+    
+    // Generate side 2 and get the result...
+    Address dest = 0;
+    if (target_) {
+        // TODO: address vs. register...
+        dest = target_->generateCode_phase2(gen, noCost, ifForks);
+    }
+    
+    insn_->generate(gen, gen.proc(), origAddr_, gen.currAddr(), 0, 0);
+    
+    return 0;
+}
+
+Address AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
+                                               const pdvector<AstNode *> &ifForks) {
+    Register loadDest = 0;
+    Register storeDest = 0;
+
+    if (load_)
+        loadDest = (Register) load_->generateCode_phase2(gen, noCost, ifForks);
+    if (store_)
+        storeDest = (Register) load_->generateCode_phase2(gen, noCost, ifForks);
+
+    assert(insn_);
+    insn_->generateMem(gen, origAddr_, gen.currAddr(), loadDest, storeDest);
+}
+    
 
 
 #if defined(AST_PRINT)

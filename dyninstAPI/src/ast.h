@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.91 2006/10/12 02:44:05 bernat Exp $
+// $Id: ast.h,v 1.92 2006/10/16 20:17:24 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -62,6 +62,8 @@ class instPoint;
 class int_function;
 class codeGen;
 class codeRange;
+class instruction;
+class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
 
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "common/h/Types.h"
@@ -106,8 +108,12 @@ class AstNode {
 
         static AstNode *funcCallNode(const pdstring &func, pdvector<AstNode *> &args, process *proc = NULL);
         static AstNode *funcCallNode(int_function *func, pdvector<AstNode *> &args);
+        static AstNode *funcCallNode(Address addr, pdvector<AstNode *> &args); // For when you absolutely need
+        // to jump somewhere.
 
         static AstNode *funcReplacementNode(int_function *func);
+
+        static AstNode *insnNode(BPatch_instruction *insn);
 
         // TODO...
         // Needs some way of marking what to save and restore... should be a registerSpace, really
@@ -254,15 +260,14 @@ class AstNullNode : public AstNode {
 
 class AstLabelNode : public AstNode {
  public:
-    AstLabelNode(pdstring &label) : AstNode(), label_(label), addr_(-1) {};
+    AstLabelNode(pdstring &label) : AstNode(), label_(label), generatedAddr_(0) {};
 
  private:
     virtual Address generateCode_phase2(codeGen &gen,
                                         bool noCost,
                                         const pdvector<AstNode*> &ifForks);
     pdstring label_;
-    Address addr_;
-
+    Address generatedAddr_;
 };
 
 class AstOperatorNode : public AstNode {
@@ -347,6 +352,7 @@ class AstCallNode : public AstNode {
  public:
     AstCallNode(int_function *func, pdvector<AstNode *>&args);
     AstCallNode(const pdstring &str, pdvector<AstNode *>&args);
+    AstCallNode(Address addr, pdvector<AstNode *> &args);
     
     ~AstCallNode() {
         for (unsigned i = 0; i < args_.size(); i++) {
@@ -370,7 +376,8 @@ class AstCallNode : public AstNode {
     AstCallNode() {};
     // Sometimes we just don't have enough information...
     const pdstring func_name_;
-
+    Address func_addr_; // Sigh... some 
+    
     int_function *func_;
     pdvector<AstNode *> args_;
 };
@@ -424,12 +431,13 @@ class instruction;
 
 class AstInsnNode : public AstNode {
  public: 
-    AstInsnNode(instruction *insn);
+    AstInsnNode(instruction *insn, Address addr);
 
-    // This is a question... we're monolithic-ing again. I wonder if we
-    // can figure out what kind of instruction we're on, so that we can 
-    // build a (say) branchNode rather than an instructionNode with some
-    // overriding stuff.
+    // Template methods...
+    virtual bool overrideBranchTarget(AstNode *) { return false; }
+    virtual bool overrideLoadAddr(AstNode *) { return false; }
+    virtual bool overrideStoreAddr(AstNode *) { return false; }
+
 
  protected:
         virtual Address generateCode_phase2(codeGen &gen,
@@ -438,20 +446,39 @@ class AstInsnNode : public AstNode {
 
     AstInsnNode() {};
     instruction *insn_;
+    Address origAddr_; // The instruction class should wrap an address, but _wow_
+    // reengineering
 };
 
 class AstInsnBranchNode : public AstInsnNode {
  public:
-    AstInsnBranchNode(instruction *insn) : AstInsnNode(insn), target_((Address) -1) {};
+    AstInsnBranchNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), target_(NULL) {};
 
-    void updateBranchTarget(Address addr)  {target_ = addr; }
+    virtual bool overrideBranchTarget(AstNode *t) { target_ = t; return true; }
+    
+ protected:
+    virtual Address generateCode_phase2(codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks);
+    
+    AstNode *target_;
+};
+
+class AstInsnMemoryNode : public AstInsnNode {
+ public:
+    AstInsnMemoryNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), load_(NULL), store_(NULL) {};
+    
+    virtual bool overrideLoadAddr(AstNode *l) { load_ = l; return true; }
+    virtual bool overrideStoreAddr(AstNode *s) { store_ = s; return true; }
+    
 
  protected:
-        virtual Address generateCode_phase2(codeGen &gen,
-                                            bool noCost,
-                                            const pdvector<AstNode*> &ifForks);
+    virtual Address generateCode_phase2(codeGen &gen,
+                                        bool noCost,
+                                        const pdvector<AstNode*> &ifForks);
     
-    Address target_;
+    AstNode *load_;
+    AstNode *store_;
 };
 
 

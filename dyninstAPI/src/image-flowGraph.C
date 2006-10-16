@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.26 2006/07/07 00:01:02 jaw Exp $
+ * $Id: image-flowGraph.C,v 1.27 2006/10/16 20:17:25 bernat Exp $
  */
 
 #include <stdio.h>
@@ -200,7 +200,7 @@ bool image::analyzeImage()
                 instPtr = (const unsigned char *)getPtrToInstruction( pos );
               
                 instruction insn;
-                insn.setInstruction( instPtr );
+                insn.setInstruction( instPtr, pos );
 
                 if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
                 {
