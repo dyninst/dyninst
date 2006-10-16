@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.86 2006/10/10 22:03:49 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.87 2006/10/16 20:17:09 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -1377,4 +1377,8 @@ void BPatch_tidExpr::BPatch_tidExprInt(BPatch_process *proc)
   BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
   assert(type != NULL);
   ast->setType(type);
+}
+
+void BPatch_insnExpr::BPatch_insnExprInt(BPatch_instruction *insn) {
+    ast = AstNode::insnNode(insn);
 }

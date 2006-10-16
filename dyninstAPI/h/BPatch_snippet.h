@@ -600,4 +600,20 @@ class BPATCH_DLL_EXPORT BPatch_tidExpr : public BPatch_snippet {
   BPatch_tidExpr,(BPatch_process *proc));
 };
 
+class BPatch_instruction;
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_insnExpr
+
+class BPATCH_DLL_EXPORT BPatch_insnExpr : public BPatch_snippet {
+  //
+  // BPatch_tidExpr::BPatch_tidExpr
+    API_EXPORT_CTOR(Int, (insn),
+                    BPatch_insnExpr,(BPatch_instruction *insn));
+};
+
+
+
 #endif /* _BPatch_snippet_h_ */

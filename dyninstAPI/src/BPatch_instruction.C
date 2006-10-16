@@ -65,12 +65,9 @@ const unsigned int BPatch_instruction::nmaxacc_NP = 2;
 const unsigned int BPatch_instruction::nmaxacc_NP = 1;
 #endif
 
-BPatch_instruction::BPatch_instruction(const void *_buffer,
-				       unsigned char _length,
-                                       Address addr_) : nacc(0), length(_length), addr(addr_)
+BPatch_instruction::BPatch_instruction(instruction *insn,
+                                       Address addr_) : nacc(0), insn_(insn), addr(addr_)
 {
-  assert(_buffer);
-
   isLoad = new bool[nmaxacc_NP];
   isStore = new bool[nmaxacc_NP];
   preFcn = new int[nmaxacc_NP];
@@ -85,13 +82,11 @@ BPatch_instruction::BPatch_instruction(const void *_buffer,
     nonTemporal[i] = false;
   }
 
-  buffer = new unsigned char[length];
-  memcpy(buffer, _buffer, length * sizeof(unsigned char));
 }
 
+instruction *BPatch_instruction::insn() { return insn_; }
+
 BPatch_instruction::~BPatch_instruction() {
-   if (buffer)
-      delete[] buffer;
 
    delete[] isLoad;
    delete[] isStore;
