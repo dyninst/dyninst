@@ -451,6 +451,8 @@ bool process::getDyninstRTLibName() {
 }
 
 extern registerSpace * regSpace;
+extern void initTramps(bool);
+
 bool process::loadDYNINSTlib() {
   /* Look for a function we can hijack to forcibly load dyninstapi_rt. 
      This is effectively an inferior RPC with the caveat that we're
@@ -506,11 +508,14 @@ bool process::loadDYNINSTlib() {
      the DLOPEN_MODE, and the return address of the current frame
      (that is, the location of the SIGILL-generating bundle we'll use
      to handleIfDueToDyninstLib()).  We construct the first here. */
-        
+
   /* Write the string to entry, and then move the PC to the next bundle. */
   codeGen gen(BYTES_TO_SAVE);
   gen.setProcess(this);
   gen.setAddr(codeBase);
+
+  initTramps(false); // Ignored parameter
+
   gen.setRegisterSpace(regSpace);
   
   Address dyninstlib_addr = gen.used() + codeBase;
@@ -610,6 +615,7 @@ bool process::loadDYNINSTlib() {
 
   /* Let them know we're working on it. */
   setBootstrapState( loadingRT_bs );
+
   return true;
 } /* end dlopenDYNINSTlib() */
 

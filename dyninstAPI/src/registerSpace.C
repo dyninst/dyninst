@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.1 2006/10/10 22:04:26 bernat Exp $
+// $Id: registerSpace.C,v 1.2 2006/10/16 20:17:33 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -266,13 +266,13 @@ void registerSpace::forceFreeRegister(Register reg)
 }
 
 bool registerSpace::isFreeRegister(Register reg) {
-   for (u_int i=0; i < numRegisters; i++) {
-       if ((registers[i].number == reg) &&
-           (registers[i].refCount > 0)) {
-          return false;
-       }
-   }
-   return true;
+    for (u_int i=0; i < numRegisters; i++) {
+        if ((registers[i].number == reg) &&
+            (registers[i].refCount > 0)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 // Manually set the reference count of the specified register

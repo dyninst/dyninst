@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.113 2006/10/12 02:44:12 bernat Exp $
+// $Id: linux-x86.C,v 1.114 2006/10/16 20:17:32 bernat Exp $
 
 #include <fstream>
 
@@ -1031,11 +1031,6 @@ bool process::hasBeenBound(const relocationEntry &entry,
     }
     return false;
 }
-
-instruction generateTrapInstruction() {
-	return instruction((const unsigned char*)"\017\013\0220\0220", ILLEGAL, 4);
-	} /* end generateTrapInstruction() */
-
 
 bool process::getDyninstRTLibName() {
     startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
