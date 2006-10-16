@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.250 2006/10/12 02:44:09 bernat Exp $
+ * $Id: inst-power.C,v 1.251 2006/10/16 20:17:27 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1333,6 +1333,10 @@ bool clobberAllFuncCall( registerSpace *rs,
 //   based - offset into the code generated.
 //
 
+Register emitFuncCall(opCode, registerSpace *, codeGen &, pdvector<AstNode *> &, process *, bool, Address, 
+					  const pdvector<AstNode *> &, const instPoint *) {
+	assert(0);
+}
 
 Register emitFuncCall(opCode /* ocode */, 
 		      registerSpace *rs,

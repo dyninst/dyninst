@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.187 2006/10/12 02:43:59 bernat Exp $
+// $Id: inst-sparc.C,v 1.188 2006/10/16 20:17:28 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -1122,6 +1122,67 @@ Register emitFuncCall(opCode op,
 
    return retReg;
 }
+
+Register emitFuncCall(opCode op, 
+		      registerSpace *rs,
+		      codeGen &gen, 
+		      pdvector<AstNode *> &operands, 
+		      process *proc,
+		      bool noCost, Address callee_addr_,
+		      const pdvector<AstNode *> &ifForks,
+		      const instPoint *location) {
+    // Argh... our dlopen installation uses an address version :/
+    
+    assert(op == callOp);
+    pdvector <Register> srcs;
+    void cleanUpAndExit(int status);
+    
+   // sanity check for NULL address argument
+   if (!callee_addr_) {
+     char msg[256];
+     sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+             "callee address argument", __FILE__, __LINE__);
+     showErrorCallback(80, msg);
+     assert(0);
+   }
+ 
+   for (unsigned u = 0; u < operands.size(); u++)
+       srcs.push_back(operands[u]->generateCode_phase2(gen,
+                                                       noCost, ifForks));
+   
+   for (unsigned u=0; u<srcs.size(); u++){
+      if (u >= 5) {
+         pdstring msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
+         bperr( msg.c_str());
+         showErrorCallback(94,msg);
+         cleanUpAndExit(-1);
+      }
+      instruction::generateSimple(gen, ORop3, 0, srcs[u], u+8);
+      rs->freeRegister(srcs[u]);
+   }
+   
+   // As Ling pointed out to me, the following is rather inefficient.  It does:
+   //   sethi %hi(addr), %o5
+   //   jmpl %o5 + %lo(addr), %o7   ('call' pseudo-instr)
+   //   nop
+   // We can do better:
+   //   call <addr>    (but note that the call true-instr is pc-relative jump)
+   //   nop
+   instruction::generateSetHi(gen, callee_addr_, 13);
+   instruction::generateImm(gen, JMPLop3, 13, LOW10(callee_addr_), 15); 
+   instruction::generateNOOP(gen);
+   
+   // return value is the register with the return value from the function.
+   // This needs to be %o0 since it is back in the caller's scope.
+
+   Register retReg = rs->allocateRegister(gen, noCost);
+   
+   // Move tmp to dest
+   emitImm(orOp, retReg, 0, REG_O(0), gen, noCost, rs);
+
+   return retReg;
+}
+
  
 /****************************************************************************/
 /****************************************************************************/

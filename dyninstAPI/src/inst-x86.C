@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.247 2006/10/12 02:44:10 bernat Exp $
+ * $Id: inst-x86.C,v 1.248 2006/10/16 20:17:29 bernat Exp $
  */
 #include <iomanip>
 
@@ -814,6 +814,10 @@ static inline void emitEnter(short imm16, codeGen &gen) {
     SET_PTR(insn, gen);
 }
 
+Register emitFuncCall(opCode, registerSpace *, codeGen &, pdvector<AstNode *> &, process *, bool, Address, 
+					  const pdvector<AstNode *> &, const instPoint *) {
+	assert(0);
+}
 // this function just multiplexes between the 32-bit and 64-bit versions
 Register emitFuncCall(opCode op, 
                       registerSpace *,

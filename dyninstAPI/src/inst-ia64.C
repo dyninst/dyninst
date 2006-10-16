@@ -319,6 +319,12 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
   return freeLocalRegister;
 } /* end findFreeLocal() */
 
+/* Obsolete addr-based version */
+Register emitFuncCall(opCode, registerSpace *, codeGen &, pdvector<AstNode *> &, process *, bool, Address, 
+					  const pdvector<AstNode *> &, const instPoint *) {
+	assert(0);
+}
+
 /* Required by ast.C */
 Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
 					   pdvector< AstNode * > & operands,

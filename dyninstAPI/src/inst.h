@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.95 2006/10/10 22:04:04 bernat Exp $
+// $Id: inst.h,v 1.96 2006/10/16 20:17:30 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -270,7 +270,15 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool
 Register emitFuncCall(opCode op, registerSpace *rs, codeGen &gen,
                       pdvector<AstNode *> &operands, 
 		      process *proc, bool noCost, 
-                      int_function *callee,
+                      int_function *func,
+		      const pdvector<AstNode *> &ifForks, // control-flow path
+		      const instPoint *location = NULL);
+
+// Obsolete version that uses an address. DON'T USE THIS or expect it to survive.
+Register emitFuncCall(opCode op, registerSpace *rs, codeGen &gen,
+                      pdvector<AstNode *> &operands, 
+		      process *proc, bool noCost, 
+                      Address callee_addr_,
 		      const pdvector<AstNode *> &ifForks, // control-flow path
 		      const instPoint *location = NULL);
 
