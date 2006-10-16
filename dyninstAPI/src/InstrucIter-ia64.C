@@ -232,12 +232,12 @@ void initOpCodeInfo() {
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
     assert(instPtr);
-    instruction insn = getInstruction();
+    instruction *insn = getInsnPtr();
     instruction::insnType type = getInsnType();
     
     BPatch_memoryAccess * bpma = NULL;
     
-    insn_tmpl tmpl = { insn.getMachineCode() };
+    insn_tmpl tmpl = { insn->getMachineCode() };
     uint8_t size = 0x1 << (tmpl.M1.x6 & 0x3);
     
     switch( type ) {
@@ -245,7 +245,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
         size = 16;
     case instruction::INTEGER_LOAD:
     case instruction::FP_LOAD:
-        bpma = new BPatch_memoryAccess( &insn, sizeof( instruction ), current, true, false, size, 0, tmpl.M1.r3, -1 );
+        bpma = new BPatch_memoryAccess( insn, current, true, false, size, 0, tmpl.M1.r3, -1 );
         assert( bpma != NULL );
         break;
         
@@ -253,7 +253,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
         size = 16;
     case instruction::INTEGER_STORE:
     case instruction::FP_STORE:
-        bpma = new BPatch_memoryAccess( &insn, sizeof( instruction ), current, false, true, size, 0, tmpl.M1.r3, -1 );
+        bpma = new BPatch_memoryAccess( insn, current, false, true, size, 0, tmpl.M1.r3, -1 );
         assert( bpma != NULL );
         break;
         
@@ -261,14 +261,14 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
     case instruction::INTEGER_PAIR_LOAD:
         /* The load pair instructions encode sizes a little differently. */
         size = (tmpl.M1.x6 & 0x1) ? 16 : 8;
-        bpma = new BPatch_memoryAccess( &insn, sizeof( instruction ), current,true, false, size, 0, tmpl.M1.r3, -1 );
+        bpma = new BPatch_memoryAccess( insn, current,true, false, size, 0, tmpl.M1.r3, -1 );
         assert( bpma != NULL );
         break;
         
     case instruction::PREFETCH:
-			bpma = new BPatch_memoryAccess( &insn, sizeof( instruction), current,false, false, 0, tmpl.M1.r3, -1, 0, 0, -1, -1, 0, -1, false, 0 );
-			assert( bpma != NULL );
-			break;
+        bpma = new BPatch_memoryAccess( insn, current,false, false, 0, tmpl.M1.r3, -1, 0, 0, -1, -1, 0, -1, false, 0 );
+        assert( bpma != NULL );
+        break;
                         
     default:
         return BPatch_memoryAccess::none;
@@ -285,10 +285,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     if (ma != BPatch_memoryAccess::none)
         return ma;
     
-    instruction i = getInstruction();
-    /* Work around compiler idiocy.  FIXME: ignoring long instructions. */
-    uint64_t raw = i.getMachineCode();
-    in = new BPatch_instruction( & raw, sizeof( raw ), current );
+    in = new BPatch_instruction( getInsnPtr(), current );
     
     return in;
 }

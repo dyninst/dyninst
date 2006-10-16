@@ -159,44 +159,44 @@ const unsigned int fishyBytes[] = { 0, 1, 8, 4 };
 
 #define btst(x, bit) ((x) & (1<<(bit)))
 
-#define MK_LDi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, true, false, (bytes), 0, (rs1), (rs2)))
-#define MK_STi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, false, true, (bytes), 0, (rs1), (rs2)))
-#define MK_LDi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, true, false, (bytes), (simm13), (rs1), -1))
-#define MK_STi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, false, true, (bytes), (simm13), (rs1), -1))
-#define MK_PFi0(in, rs1, rs2, f) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, false, false, true, 0, (rs1), (rs2), \
+#define MK_LDi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(i,current, true, false, (bytes), 0, (rs1), (rs2)))
+#define MK_STi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(i,current, false, true, (bytes), 0, (rs1), (rs2)))
+#define MK_LDi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(i,current, true, false, (bytes), (simm13), (rs1), -1))
+#define MK_STi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(i,current, false, true, (bytes), (simm13), (rs1), -1))
+#define MK_PFi0(in, rs1, rs2, f) (new BPatch_memoryAccess(i,current, false, false, true, 0, (rs1), (rs2), \
                                            0, -1, -1, (f)))
-#define MK_PFi1(in, rs1, simm13, f) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, false, false, true, (simm13), (rs1), -1, \
+#define MK_PFi1(in, rs1, simm13, f) (new BPatch_memoryAccess(i,current, false, false, true, (simm13), (rs1), -1, \
                                               0, -1, -1, (f)))
 
-#define MK_LD(bytes, in) ((*in).rest.i ? MK_LDi1(bytes, in, (*in).resti.rs1, (*in).resti.simm13) : \
-                                      MK_LDi0(bytes, in, (*in).rest.rs1, (*in).rest.rs2))
-#define MK_ST(bytes, in) ((*in).rest.i ? MK_STi1(bytes, in, (*in).resti.rs1, (*in).resti.simm13) : \
-                                      MK_STi0(bytes, in, (*in).rest.rs1, (*in).rest.rs2))
+#define MK_LD(bytes, in) ((**in).rest.i ? MK_LDi1(bytes, in, (**in).resti.rs1, (**in).resti.simm13) : \
+                                      MK_LDi0(bytes, in, (**in).rest.rs1, (**in).rest.rs2))
+#define MK_ST(bytes, in) ((**in).rest.i ? MK_STi1(bytes, in, (**in).resti.rs1, (**in).resti.simm13) : \
+                                      MK_STi0(bytes, in, (**in).rest.rs1, (**in).rest.rs2))
 #define MK_MA(bytes, in, load, store) \
-          ((*in).rest.i ? \
-              new BPatch_memoryAccess(&(*in).raw, instruction::size(), current,(load), (store), (bytes), (*in).resti.simm13, (*in).resti.rs1, -1) \
+          ((**in).rest.i ? \
+              new BPatch_memoryAccess(i, current,(load), (store), (bytes), (**in).resti.simm13, (**in).resti.rs1, -1) \
               : \
-              new BPatch_memoryAccess(&(*in).raw, instruction::size(), current,(load), (store), (bytes), 0, (*in).rest.rs1, (*in).rest.rs2))
-#define MK_PF(in) ((*in).rest.i ? MK_PFi1(in, (*in).resti.rs1, (*in).resti.simm13, (*in).resti.rd) : \
-                               MK_PFi0(in, (*in).rest.rs1, (*in).rest.rs2, (*in).rest.rd))
+              new BPatch_memoryAccess(i, current,(load), (store), (bytes), 0, (**in).rest.rs1, (**in).rest.rs2))
+#define MK_PF(in) ((**in).rest.i ? MK_PFi1(in, (**in).resti.rs1, (**in).resti.simm13, (**in).resti.rd) : \
+                               MK_PFi0(in, (**in).rest.rs1, (**in).rest.rs2, (**in).rest.rd))
 
 
 // VG(09/20/01): SPARC V9 decoding after the architecture manual.
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-  const instruction i = getInstruction();
+    instruction *i = getInsnPtr();
 
-  if((*i).rest.op != 0x3) // all memory opcodes have op bits 11
+  if((**i).rest.op != 0x3) // all memory opcodes have op bits 11
     return BPatch_memoryAccess::none;
 
-  unsigned int op3 = (*i).rest.op3;
+  unsigned int op3 = (**i).rest.op3;
 
   if(btst(op3, 4)) { // bit 4 set means alternate space
-    if((*i).rest.i) {
+    if((**i).rest.i) {
       logLine("SPARC: Alternate space instruction using ASI register currently unhandled...");
       return BPatch_memoryAccess::none;
     }
-    else if((*i).rest.unused != ASI_PRIMARY) { // unused is actually imm_asi
+    else if((**i).rest.unused != ASI_PRIMARY) { // unused is actually imm_asi
       logLine("SPARC: Alternate space instruction using ASI != PRIMARY currently unhandled...");
       return BPatch_memoryAccess::none;
     }
@@ -218,15 +218,15 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
         // the address should always be a doubleword on V9...
         unsigned int b = btst(op3, 1) ? 8 : 4;
         // VG(12/08/01): CAS(X)A uses rs2 as value not address...
-        return new BPatch_memoryAccess(&(*i).raw, instruction::size(), current,true, 
-                                       true, b, 0, (*i).resti.rs1, -1);
+        return new BPatch_memoryAccess(i, current,true, 
+                                       true, b, 0, (**i).resti.rs1, -1);
       }
     }
     else { // bit 3 zero (1u0xyz) means fp memory op
       bool isStore = btst(op3, 2); // bit 2 gives L/S
       // bits 0-1 encode #bytes except for state register ops,
       // where the number of bits is given by bit 0 from rd
-      unsigned int b = fpBytes[op3 & 0x3][(*i).rest.rd & 0x1];
+      unsigned int b = fpBytes[op3 & 0x3][(**i).rest.rd & 0x1];
       return isStore ? MK_ST(b, i) : MK_LD(b, i);
     }
   }
@@ -259,8 +259,8 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
   if (ma != BPatch_memoryAccess::none)
     return ma;
 
-  const instruction i = getInstruction();
-  in = new BPatch_instruction(&(*i).raw, instruction::size(),  current);
+  instruction *i = getInsnPtr();
+  in = new BPatch_instruction(i,  current);
 
   return in;
 }
