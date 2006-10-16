@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.205 2006/10/12 02:44:17 bernat Exp $
+// $Id: solaris.C,v 1.206 2006/10/16 20:17:34 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -685,6 +685,8 @@ bool process::getDyninstRTLibName() {
    return true;
 }
 
+extern registerSpace *regSpace;
+
 bool process::loadDYNINSTlib() {
     // we will write the following into a buffer and copy it into the
     // application process's address space
@@ -724,6 +726,7 @@ bool process::loadDYNINSTlib() {
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
     scratchCodeBuffer.setProcess(this);
     scratchCodeBuffer.setAddr(codeBase);
+    scratchCodeBuffer.setRegisterSpace(regSpace);
 
     // First we write in the dyninst lib string. Vewy simple.
     Address dyninstlib_addr = codeBase;
@@ -765,12 +768,10 @@ bool process::loadDYNINSTlib() {
 
     //fprintf(stderr, "We want to call 0x%x\n", dlopen_func_addr);
     // See if we can get a function for it.
-    int_function *dlopenFunc = findFuncByAddr(dlopen_func_addr);
-    //fprintf(stderr, "Attempt to find func pointer: %p\n", dlopenFunc);
 
     dlopenAstArgs[0] = AstNode::operandNode(AstNode::Constant, (void *)(dyninstlib_addr));
     dlopenAstArgs[1] = AstNode::operandNode(AstNode::Constant, (void*)DLOPEN_MODE);
-    dlopenAst = AstNode::funcCallNode(dlopenFunc, dlopenAstArgs);
+    dlopenAst = AstNode::funcCallNode(dlopen_func_addr, dlopenAstArgs);
     removeAst(dlopenAstArgs[0]);
     removeAst(dlopenAstArgs[1]);
 
