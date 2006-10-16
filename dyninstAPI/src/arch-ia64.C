@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.51 2006/10/10 22:03:52 bernat Exp $
+// $Id: arch-ia64.C,v 1.52 2006/10/16 20:17:15 bernat Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -1369,3 +1369,9 @@ instruction generateShiftLeftAndAdd( Register destination, Register shifted, uin
 
 	return instruction( shladd.raw );
 	} /* end generateShiftLeftAndAdd() */
+
+bool instruction::generateMem(codeGen &,
+                              Address, 
+                              Address,
+                              Register,
+                  Register) {return false; }

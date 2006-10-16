@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.62 2006/06/16 16:13:34 bernat Exp $
+// $Id: arch-x86.C,v 1.63 2006/10/16 20:17:21 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3910,3 +3910,9 @@ bool instruction::isCmp() const {
 
     return false;
 }
+
+bool instruction::generateMem(codeGen &,
+                              Address, 
+                              Address,
+                              Register,
+                  Register) {return false; }

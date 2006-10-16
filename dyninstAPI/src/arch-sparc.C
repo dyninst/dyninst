@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.15 2006/06/14 18:14:45 bernat Exp $
+ * $Id: arch-sparc.C,v 1.16 2006/10/16 20:17:19 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -986,3 +986,8 @@ unsigned instruction::spaceToRelocate() const {
     return size_required;
 }
 
+bool instruction::generateMem(codeGen &,
+                              Address, 
+                              Address,
+                              Register,
+                  Register) {return false; }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.47 2006/05/23 19:14:19 bernat Exp $
+// $Id: arch-x86.h,v 1.48 2006/10/16 20:17:22 bernat Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -749,6 +749,12 @@ class instruction {
                 Address fallthroughOverride = 0,
                 Address targetOverride = 0);
 
+  bool generateMem(codeGen &gen,
+                   Address origAddr,
+                   Address newAddr,
+                   Register newLoadReg,
+                   Register newStoreReg);
+  
   bool isCall() const { return type_ & IS_CALL; }
   bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
   bool isReturn() const { return (type_ & IS_RET) || (type_ & IS_RETF); }

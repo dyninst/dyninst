@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.10 2006/05/03 00:31:19 jodom Exp $
+ * $Id: arch-power.C,v 1.11 2006/10/16 20:17:17 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -627,3 +627,8 @@ bool instruction::generate(codeGen &gen,
     return true;
 }
                            
+bool instruction::generateMem(codeGen &,
+                              Address, 
+                              Address,
+                              Register,
+                  Register) {return false; }

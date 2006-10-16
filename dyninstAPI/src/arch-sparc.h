@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.42 2006/03/12 23:31:47 legendre Exp $
+// $Id: arch-sparc.h,v 1.43 2006/10/16 20:17:20 bernat Exp $
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -414,6 +414,12 @@ class instruction {
                   Address newAddr,
                   Address fallthroughOverride = 0,
                   Address targetOverride = 0);
+
+    bool generateMem(codeGen &gen,
+                     Address origAddr,
+                     Address newAddr,
+                     Register newLoadReg,
+                     Register newStoreReg);
 
   // return the type of the instruction
   unsigned type() const;
