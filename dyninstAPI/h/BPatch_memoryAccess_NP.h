@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: BPatch_memoryAccess_NP.h,v 1.21 2006/10/10 22:03:45 bernat Exp $ */
+/* $Id: BPatch_memoryAccess_NP.h,v 1.22 2006/10/16 20:17:06 bernat Exp $ */
 
 #ifndef _MemoryAccess_h_
 #define _MemoryAccess_h_
@@ -50,6 +50,7 @@
 #include "BPatch_instruction.h"
 
 class BPatch_point;
+class instruction;
 
 /* Pseudoregisters definitions */
 #define POWER_XER2531	9999
@@ -130,27 +131,27 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess : public BPatch_instruction
   static BPatch_memoryAccess* init_tables();
 
   // initializes only the first access; #bytes is a constant
-  BPatch_memoryAccess(const void *buf, int _sz, long unsigned int _addr,
+  BPatch_memoryAccess(instruction *, long unsigned int _addr,
 		      bool _isLoad, bool _isStore, unsigned int _bytes,
 		      long _imm, int _ra, int _rb, unsigned int _scale = 0,
 		      int _cond = -1, bool _nt = false);
 
   // initializes only the first access; #bytes is an expression w/scale
-  BPatch_memoryAccess(const void *buf, int _sz, long unsigned int _addr,
+  BPatch_memoryAccess(instruction *insn, long unsigned int _addr,
                       bool _isLoad, bool _isStore,
                       long _imm_s, int _ra_s, int _rb_s, unsigned int _scale_s,
                       long _imm_c, int _ra_c, int _rb_c, unsigned int _scale_c,
                       int _cond, bool _nt, int _preFcn = -1);
 
   // initializes only the first access; #bytes is an expression
-  BPatch_memoryAccess(const void *buf, int _sz, long unsigned int _addr,
+  BPatch_memoryAccess(instruction *insn, long unsigned int _addr,
 		      bool _isLoad, bool _isStore, bool _isPrefetch,
 		      long _imm_s, int _ra_s, int _rb_s,
 		      long _imm_c, int _ra_c, int _rb_c,
 		      unsigned short _preFcn);
 
   // initializes only the first access; #bytes is an expression & not a prefetch
-  BPatch_memoryAccess(const void *buf, int _sz, long unsigned int _addr,
+  BPatch_memoryAccess(instruction *insn, long unsigned int _addr,
 		      bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s,
 		      long _imm_c, int _ra_c, int _rb_c);
 
@@ -165,14 +166,14 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess : public BPatch_instruction
               int _cond, bool _nt);
 
   // initializes both accesses; #bytes is a constant
-  BPatch_memoryAccess(const void *buf, int _sz, long unsigned int _addr,
+  BPatch_memoryAccess(instruction *insn, long unsigned int _addr,
                       bool _isLoad, bool _isStore, unsigned int _bytes,
                       long _imm, int _ra, int _rb, unsigned int _scale,
                       bool _isLoad2, bool _isStore2, unsigned int _bytes2,
                       long _imm2, int _ra2, int _rb2, unsigned int _scale2);
 
   // initializes both accesses; #bytes is an expression & not a prefetch
-  BPatch_memoryAccess(const void *buf, int _sz, long unsigned int _addr, bool _isLoad, bool _isStore,
+  BPatch_memoryAccess(instruction *insn, long unsigned int _addr, bool _isLoad, bool _isStore,
                       long _imm_s, int _ra_s, int _rb_s, unsigned int _scale_s,
                       long _imm_c, int _ra_c, int _rb_c, unsigned int _scale_c,
                       bool _isLoad2, bool _isStore2, long _imm2_s, int _ra2_s, 
