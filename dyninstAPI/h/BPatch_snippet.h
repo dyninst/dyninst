@@ -608,10 +608,19 @@ class BPatch_instruction;
 #define DYNINST_CLASS_NAME BPatch_insnExpr
 
 class BPATCH_DLL_EXPORT BPatch_insnExpr : public BPatch_snippet {
-  //
-  // BPatch_tidExpr::BPatch_tidExpr
+    //
+    // BPatch_insnExpr::BPatch_insnExpr
     API_EXPORT_CTOR(Int, (insn),
                     BPatch_insnExpr,(BPatch_instruction *insn));
+    
+    // Replace the effective address of a load with the provided snippet
+    API_EXPORT(Int, (l), 
+    bool, overrideLoadAddress, (BPatch_snippet &l));
+
+    // Replace the effective address of a store with the provided snippet
+    API_EXPORT(Int, (s), 
+    bool, overrideStoreAddress, (BPatch_snippet &s));
+
 };
 
 
