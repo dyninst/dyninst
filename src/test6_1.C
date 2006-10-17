@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_1.C,v 1.7 2006/10/11 21:53:57 cooksey Exp $
+// $Id: test6_1.C,v 1.8 2006/10/17 19:16:05 bernat Exp $
 /*
  * #Name: test6_1
  * #Desc: Load Instrumentation
@@ -128,7 +128,7 @@ static void init_test_data()
 
   loadList[++k] = MK_LD(-76, 1, -1, 76);  // l27
   loadList[++k] = MK_LD(0, 4, -1, 24);
-  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
+  loadList[++k] = new BPatch_memoryAccess(NULL, 0,
 				   true, false,
 				   (long)0, 1, 9,
 				   (long)0, POWER_XER2531, -1);
@@ -240,12 +240,12 @@ static void init_test_data()
 
   //loadList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // l50
   loadList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
-  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
+  loadList[++k] = new BPatch_memoryAccess(NULL, 0,
 					  true, false,
                                           0, 7, -1, 0,
                                           0, -1, IA32_NESCAS, 0, 
                                           -1, false);
-  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
+  loadList[++k] = new BPatch_memoryAccess(NULL, 0,
 					  true, false,
                                           0, 6, -1, 0,
                                           0, -1, IA32_ECMPS, 0,
@@ -386,12 +386,12 @@ static void init_test_data()
 
   // REP prefixes
   loadList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
-  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
+  loadList[++k] = new BPatch_memoryAccess(NULL,0,
 					  true, false,
                                           0, 7, -1, 0,
                                           0, -1, IA32_NESCAS, 0, 
                                           -1, false);
-  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
+  loadList[++k] = new BPatch_memoryAccess(NULL,0,
 					  true, false,
                                           0, 6, -1, 0,
                                           0, -1, IA32_ECMPS, 0,
