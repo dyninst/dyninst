@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.88 2006/10/17 16:38:36 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.89 2006/10/17 16:44:13 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -1387,16 +1387,16 @@ void BPatch_insnExpr::BPatch_insnExprInt(BPatch_instruction *insn) {
 
 bool BPatch_insnExpr::overrideLoadAddressInt(BPatch_snippet &l) {
     // We can assert our AST is an insn type...
-    AstInsnNode *insn = dynamic_cast<AstInsnNode *>(insn);
-    assert(insn);
+    AstInsnNode *insnAst = dynamic_cast<AstInsnNode *>(ast);
+    assert(insnAst);
 
-    return insn->overrideLoadAddr(l.ast);
+    return insnAst->overrideLoadAddr(l.ast);
 }
 
 bool BPatch_insnExpr::overrideStoreAddressInt(BPatch_snippet &s) {
     // We can assert our AST is an insn type...
-    AstInsnNode *insn = dynamic_cast<AstInsnNode *>(insn);
-    assert(insn);
+    AstInsnNode *insnAst = dynamic_cast<AstInsnNode *>(ast);
+    assert(insnAst);
 
-    return insn->overrideStoreAddr(l.ast);
+    return insnAst->overrideStoreAddr(s.ast);
 }

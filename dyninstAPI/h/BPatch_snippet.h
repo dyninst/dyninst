@@ -123,6 +123,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend class BPatch_ifExpr;
     friend class BPatch_ifMachineConditionExpr;
     friend class BPatch_sequence;
+    friend class BPatch_insnExpr;
     friend AstNode *generateArrayRef(const BPatch_snippet &lOperand, 
                                      const BPatch_snippet &rOperand);
     friend AstNode *generateFieldRef(const BPatch_snippet &lOperand, 
@@ -607,7 +608,7 @@ class BPatch_instruction;
 #endif
 #define DYNINST_CLASS_NAME BPatch_insnExpr
 
-class BPATCH_DLL_EXPORT BPatch_insnExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_insnExpr : protected BPatch_snippet {
     //
     // BPatch_insnExpr::BPatch_insnExpr
     API_EXPORT_CTOR(Int, (insn),
