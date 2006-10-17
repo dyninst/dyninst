@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.h,v 1.3 2006/01/09 19:48:15 bpellin Exp $
+// $Id: test6.h,v 1.4 2006/10/17 19:16:05 bernat Exp $
 #ifndef TEST6_H
 #define TEST6_H
 
@@ -52,35 +52,35 @@
                           return -1; \
                          }
 
-#define MK_LD(imm, rs1, rs2, bytes) (new BPatch_memoryAccess("", 0, 0,\
+#define MK_LD(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(NULL, 0,\
 							     true, false, \
                                                              (bytes), (imm), (rs1), (rs2)))
-#define MK_ST(imm, rs1, rs2, bytes) (new BPatch_memoryAccess("", 0, 0,\
+#define MK_ST(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(NULL, 0,\
 							     false, true, \
                                                              (bytes), (imm), (rs1), (rs2)))
-#define MK_LS(imm, rs1, rs2, bytes) (new BPatch_memoryAccess("", 0, 0,\
+#define MK_LS(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(NULL, 0,\
 							     true, true, \
                                                              (bytes), (imm), (rs1), (rs2)))
-#define MK_PF(imm, rs1, rs2, f) (new BPatch_memoryAccess("", 0, 0,\
+#define MK_PF(imm, rs1, rs2, f) (new BPatch_memoryAccess(NULL, 0,\
 							 false, false, true, \
                                                          (imm), (rs1), (rs2), \
                                                          0, -1, -1, (f)))
 
-#define MK_LDsc(imm, rs1, rs2, scale, bytes) (new BPatch_memoryAccess("", 0, 0,\
+#define MK_LDsc(imm, rs1, rs2, scale, bytes) (new BPatch_memoryAccess(NULL, 0,\
 								      true, false, \
                                                                       (bytes), \
                                                                       (imm), (rs1), (rs2), \
                                                                       (scale)))
 
-#define MK_LDsccnd(imm, rs1, rs2, scale, bytes, cond) (new BPatch_memoryAccess("", 0, 0,true, false, (bytes), (imm), (rs1), (rs2), (scale), (cond), false))
+#define MK_LDsccnd(imm, rs1, rs2, scale, bytes, cond) (new BPatch_memoryAccess(NULL, 0,true, false, (bytes), (imm), (rs1), (rs2), (scale), (cond), false))
 
 
-#define MK_LD2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess("", 0, 0,true, false, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
-#define MK_SL2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess("", 0, 0,false, true, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
+#define MK_LD2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(NULL, 0,true, false, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
+#define MK_SL2(imm, rs1, rs2, bytes, imm_2, rs1_2, rs2_2, bytes_2) (new BPatch_memoryAccess(NULL, 0,false, true, (bytes), (imm), (rs1), (rs2), 0, true, false, (bytes_2), (imm_2), (rs1_2), (rs2_2), 0))
 
-#define MK_SL2vECX(imm, rs1, rs2, imm_2, rs1_2, rs2_2, bop) (new BPatch_memoryAccess("", 0, 0,false, true, (imm), (rs1), (rs2), 0, 0, -1, 1, (bop),  true, false, (imm_2), (rs1_2), (rs2_2), 0, 0, -1, 1, (bop)))
+#define MK_SL2vECX(imm, rs1, rs2, imm_2, rs1_2, rs2_2, bop) (new BPatch_memoryAccess(NULL, 0,false, true, (imm), (rs1), (rs2), 0, 0, -1, 1, (bop),  true, false, (imm_2), (rs1_2), (rs2_2), 0, 0, -1, 1, (bop)))
 
-#define MK_STnt(imm, rs1, rs2, bytes) (new BPatch_memoryAccess("", 0, 0,\
+#define MK_STnt(imm, rs1, rs2, bytes) (new BPatch_memoryAccess(NULL, 0,\
 							       false, true, \
                                                                (bytes), (imm), (rs1), (rs2), 0, \
                                                                -1, true))
