@@ -1953,22 +1953,6 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
               cb->setSynchronous(false);
               (*cb)(bproc->threads[0], info->getUserData(), returnValue);
           }
-#ifdef IBM_BPATCH_COMPAT
-          // A different prototype...
-          DPCLProcessEventCallback *pcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[i]);
-          if (pcb) {
-              pcb->setTargetThread(TARGET_UI_THREAD);
-              pcb->setSynchronous(false);
-              (*pcb)(bproc, (void *)info->getUserData(), (void *)returnValue);
-          }
-          // A different prototype...
-          DPCLThreadEventCallback *tcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[i]);
-          if (tcb) {
-              tcb->setTargetThread(TARGET_UI_THREAD);
-              tcb->setSynchronous(false);
-              (*tcb)(bproc->threads[0], (void *)info->getUserData(), (void *)returnValue);
-          }
-#endif
 
       }
 

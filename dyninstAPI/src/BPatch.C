@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.159 2006/08/14 18:51:34 legendre Exp $
+// $Id: BPatch.C,v 1.160 2006/10/18 16:06:50 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -349,6 +349,10 @@ void BPatch::BPatch_dtor()
         delete [] systemPrelinkCommand;
     }
     bpatch = NULL;
+}
+
+BPatch *BPatch::getBPatch() {
+	return bpatch;
 }
 
 char * BPatch::getPrelinkCommandInt(){
@@ -970,6 +974,7 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     }
 
     parent->isVisiblyStopped = false;
+    child->isVisiblyStopped = false;
     forkexec_printf("BPatch: finished registering fork, parent %d, child %d\n",
                     parentPid, childPid);
 }
@@ -1080,14 +1085,15 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
 
    pdvector<CallbackBase *> cbs;
 
-   getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
-   for (unsigned int i = 0; i < cbs.size(); ++i) {
-       signalNotificationFD();
-       AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
-       if (cb)
-           (*cb)(process, thrd);
+   if (thrd) {
+      getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
+      for (unsigned int i = 0; i < cbs.size(); ++i) {
+         signalNotificationFD();
+         AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
+         if (cb)
+            (*cb)(process, thrd);
+      }
    }
-
    cbs.clear();
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
@@ -1098,22 +1104,6 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
            (*cb)(process->threads[0], ExitedNormally);
            signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
        }
-#if defined(IBM_BPATCH_COMPAT)
-       // A different (compatibility) callback type. 
-       DPCLThreadEventCallback *tcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[i]);
-       if (tcb) {
-           signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
-           (*tcb)(process->threads[0], NULL, NULL);
-           signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
-       }
-       // A different (compatibility) callback type. 
-       DPCLProcessEventCallback *pcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[i]);
-       if (pcb) {
-           signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
-           (*pcb)(process, NULL, NULL);
-           signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
-       }
-#endif           
    }
 
 
@@ -1146,15 +1136,16 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    bpprocess->terminated = true;
 
    pdvector<CallbackBase *> cbs;
-   getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
-   for (unsigned int i = 0; i < cbs.size(); ++i) {
-       signalNotificationFD();
-
-       AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
-       if (cb) 
-           (*cb)(bpprocess, thrd);
+   if (thrd) {
+      getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
+      for (unsigned int i = 0; i < cbs.size(); ++i) {
+         signalNotificationFD();
+         
+         AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
+         if (cb) 
+            (*cb)(bpprocess, thrd);
+      }
    }
-   
    cbs.clear();
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
@@ -1163,22 +1154,6 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
        ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
        if (cb) 
            (*cb)(bpprocess->threads[0], ExitedViaSignal);
-#if defined(IBM_BPATCH_COMPAT)
-       // A different (compatibility) callback type. 
-       DPCLThreadEventCallback *tcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[i]);
-       if (tcb) {
-           signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
-           (*tcb)(bpprocess->threads[0], NULL, NULL);
-           signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
-       }
-       // A different (compatibility) callback type. 
-       DPCLProcessEventCallback *pcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[i]);
-       if (pcb) {
-           signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
-           (*pcb)(bpprocess, NULL, NULL);
-           signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
-       }
-#endif           
    }
    
    // We now run the process out; set its state to terminated. Really, the user shouldn't
@@ -2158,160 +2133,3 @@ int BPatch::getNotificationFDInt() {
     return -1;
 #endif
 }
-
-/*********************************************************************
- *** DPCL COMPATIBILITY 
- ***
- *** These functions exist for source-level compatibility with IBM's DPCL
- *** library. Do not use them if you are not using DPCL. If you are using
- *** DPCL, consider moving to the new event interfaces.
- *********************************************************************/
-
-#ifdef IBM_BPATCH_COMPAT
-
-BPatchProcessEventCallback BPatch::registerExitCallbackDPCL(BPatchProcessEventCallback func)
-{
-
-    BPatchProcessEventCallback ret = NULL;
-
-    pdvector<CallbackBase *> cbs;
-    getCBManager()->removeCallbacks(evtProcessExit, cbs);
-    
-    if (func != 0) {
-	DPCLProcessEventCallback *cb = new DPCLProcessEventCallback(func);
-	getCBManager()->registerCallback(evtProcessExit, cb);
-    }
-    // If func is zero, we assume it is a remove-callback request
-
-    if (cbs.size()) {
-        DPCLProcessEventCallback *fcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[0]);
-        if (!fcb) return NULL;
-        ret =  fcb->getFunc();
-    }
-
-    return ret;
-}
-
-/*
- * Register a function to call when an RPC (i.e. oneshot) is done.
- *
- * dyninst version is a callback that is defined for BPatch_thread
- *
- */
-
-BPatchProcessEventCallback BPatch::registerRPCTerminationCallbackInt(BPatchProcessEventCallback func)
-{
-    BPatchProcessEventCallback ret = NULL;
-
-    pdvector<CallbackBase *> cbs;
-    getCBManager()->removeCallbacks(evtOneTimeCode, cbs);
-
-    if (func != 0) {
-	DPCLProcessEventCallback *cb = new DPCLProcessEventCallback(func);
-	getCBManager()->registerCallback(evtOneTimeCode, cb);
-    }
-    // If func is zero, we assume it is a remove-callback request
-    
-    if (cbs.size()) {
-        DPCLProcessEventCallback *fcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[0]);
-        if (!fcb) return NULL;
-        ret =  fcb->getFunc();
-    }
-
-    return ret;
-}
-
-
-void setLogging_NP(BPatchLoggingCallback, int)
-{
-    return;
-}
-
-int BPatch::getLastErrorCodeInt()
-{
-  return lastError;
-}
-BPatchProcessEventCallback BPatch::registerDetachDoneCallbackInt(BPatchProcessEventCallback)
-{
-    //fprintf(stderr, "%s[%d]:  WARNING:  registerDetachDoneCallback is not implemented yet\n", __FILE__, __LINE__);
-  return NULL;
-}
-BPatchProcessEventCallback BPatch::registerSnippetRemovedCallbackInt(BPatchProcessEventCallback)
-{
-    //fprintf(stderr, "%s[%d]:  WARNING:  registerSnippetRemovedCallback is not implemented yet\n", __FILE__, __LINE__);
-  return NULL;
-}
-BPatchProcessEventCallback BPatch::registerSignalCallbackInt(BPatchProcessEventCallback, int signum)
-{
-    //fprintf(stderr, "%s[%d]:  WARNING:  registerSignalCallback is not implemented yet\n", __FILE__, __LINE__);
-  return NULL;
-}
-
-/***************************************************************
- ********** DEPRECATED VERSIONS!!!!!!!
- ***************************************************************/
-
-
-BPatchThreadEventCallback BPatch::registerExitCallbackDPCL(BPatchThreadEventCallback func)
-{
-
-    BPatchThreadEventCallback ret = NULL;
-
-    pdvector<CallbackBase *> cbs;
-    getCBManager()->removeCallbacks(evtProcessExit, cbs);
-    
-    if (func != NULL) {
-	DPCLThreadEventCallback *cb = new DPCLThreadEventCallback(func);
-	getCBManager()->registerCallback(evtProcessExit, cb);
-    }
-    // If func is zero, we assume it is a remove-callback request
-
-    if (cbs.size()) {
-        DPCLThreadEventCallback *fcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[0]);
-        if (!fcb) return NULL;
-        ret =  fcb->getFunc();
-    }
-
-    return ret;
-}
-
-BPatchThreadEventCallback BPatch::registerRPCTerminationCallbackInt(BPatchThreadEventCallback func)
-{
-    BPatchThreadEventCallback ret = NULL;
-
-    pdvector<CallbackBase *> cbs;
-    getCBManager()->removeCallbacks(evtOneTimeCode, cbs);
-
-    if (func != 0) {
-	DPCLThreadEventCallback *cb = new DPCLThreadEventCallback(func);
-	getCBManager()->registerCallback(evtOneTimeCode, cb);
-    }
-    // If func is zero, we assume it is a remove-callback request
-
-    if (cbs.size()) {
-        DPCLThreadEventCallback *fcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[0]);
-        if (!fcb) return NULL;
-        ret =  fcb->getFunc();
-    }
-    
-    return ret;
-}
-
-BPatchThreadEventCallback BPatch::registerDetachDoneCallbackInt(BPatchThreadEventCallback)
-{
-    //fprintf(stderr, "%s[%d]:  WARNING:  registerDetachDoneCallback is not implemented yet\n", __FILE__, __LINE__);
-  return NULL;
-}
-BPatchThreadEventCallback BPatch::registerSnippetRemovedCallbackInt(BPatchThreadEventCallback)
-{
-    //fprintf(stderr, "%s[%d]:  WARNING:  registerSnippetRemovedCallback is not implemented yet\n", __FILE__, __LINE__);
-  return NULL;
-}
-BPatchThreadEventCallback BPatch::registerSignalCallbackInt(BPatchThreadEventCallback, int signum)
-{
-    //fprintf(stderr, "%s[%d]:  WARNING:  registerSignalCallback is not implemented yet\n", __FILE__, __LINE__);
-  return NULL;
-}
-
-#endif
-

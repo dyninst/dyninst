@@ -85,22 +85,6 @@ typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point,
                                               BPatch_function *called_function);
 #ifdef IBM_BPATCH_COMPAT
 typedef void *BPatch_Address;
-typedef void (*BPatchLoggingCallback)(char *msg, int);
-extern void setLogging_NP(BPatchLoggingCallback func, int);
-
-typedef void (*BPatchThreadEventCallback)(BPatch_thread *thr, void *arg1, void *arg2);
-typedef void (*BPatchProcessEventCallback)(BPatch_process *proc, void *arg1, void *arg2);
-
-#define BP_OK			0
-#define BP_Pending		1
-#define BP_Delayed		2
-#define BP_child		3
-#define BP_state		4
-#define BP_pthdbBadContext	5
-#define BP_lastCode		6
-
-extern int eCodes[BP_lastCode];
-
 #endif
 
 //  BPatch_stats is a collection of instrumentation statistics.
@@ -203,6 +187,7 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
 public:
     static BPatch		 *bpatch;
 
+	static BPatch *getBPatch();
     BPatch_builtInTypeCollection *builtInTypes;
     BPatch_typeCollection	 *stdTypes;
     BPatch_typeCollection        *APITypes; //API/User defined types
@@ -594,47 +579,6 @@ public:
     API_EXPORT(Int, (),
 
     BPatch_stats &,getBPatchStatistics,());
-
-#ifdef IBM_BPATCH_COMPAT
-
-    API_EXPORT(Int, (),
-    int,getLastErrorCode,());
-
-    // New-style, BPatch_process versions. Use these.
-
-    API_EXPORT(Int, (cb),
-    BPatchProcessEventCallback,registerDetachDoneCallback,(BPatchProcessEventCallback cb)); 
-
-    API_EXPORT(Int, (cb),
-    BPatchProcessEventCallback,registerSnippetRemovedCallback,(BPatchProcessEventCallback cb));
-
-    API_EXPORT(Int, (func, sigNum),
-    BPatchProcessEventCallback,registerSignalCallback,(BPatchProcessEventCallback func, int sigNum)); 
-
-    API_EXPORT(DPCL, (func),
-    BPatchProcessEventCallback,registerExitCallback,(BPatchProcessEventCallback func));
-
-    API_EXPORT(Int, (cb),
-    BPatchProcessEventCallback,registerRPCTerminationCallback,(BPatchProcessEventCallback cb));
-
-    // DEPRECATED!!!
-
-    API_EXPORT(Int, (cb),
-    BPatchThreadEventCallback,registerDetachDoneCallback,(BPatchThreadEventCallback cb)); 
-
-    API_EXPORT(Int, (cb),
-    BPatchThreadEventCallback,registerSnippetRemovedCallback,(BPatchThreadEventCallback cb));
-
-    API_EXPORT(Int, (func, sigNum),
-    BPatchThreadEventCallback,registerSignalCallback,(BPatchThreadEventCallback func, int sigNum)); 
-
-    API_EXPORT(DPCL, (func),
-    BPatchThreadEventCallback,registerExitCallback,(BPatchThreadEventCallback func));
-
-    API_EXPORT(Int, (cb),
-    BPatchThreadEventCallback,registerRPCTerminationCallback,(BPatchThreadEventCallback cb));
-
-#endif
 
 };
 
