@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.23 2006/04/13 23:05:09 legendre Exp $
+// $Id: ntHeaders.h,v 1.24 2006/10/18 16:06:27 legendre Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -132,6 +132,7 @@ inline FILE *P__popen (const char *COMMAND, const char *MODE) {
 inline size_t P_write (int FILEDES, const void *BUFFER, size_t SIZE) {
   return (write(FILEDES, BUFFER, SIZE));}
 inline int P_chdir(const char *path) { return (chdir(path)); }
+inline int P_putenv(char *str) { return putenv(str); }
 
 /* ANSI */
 inline void P_exit (int STATUS) { exit(STATUS);}

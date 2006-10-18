@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.31 2006/06/02 22:59:49 legendre Exp $
+/* $Id: signalhandler.h,v 1.32 2006/10/18 16:06:33 legendre Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -108,7 +108,7 @@ class SignalHandler : public EventHandler<EventRecord>
   protected:
     //  SignalHandler is only constructed by derived classes
   SignalHandler(char *name, int shid, SignalGenerator *sg_) : 
-      EventHandler<EventRecord>(global_mutex, 
+      EventHandler<EventRecord>(BPatch_eventLock::getLock(), 
                                 name, 
                                 false /*start thread?*/), 
           id(shid), sg(sg_),idle_flag(true),

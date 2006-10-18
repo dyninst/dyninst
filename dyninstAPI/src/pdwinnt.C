@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.161 2006/10/10 22:04:15 bernat Exp $
+// $Id: pdwinnt.C,v 1.162 2006/10/18 16:06:32 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -298,8 +298,8 @@ bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint)
                                  (PSTR) imageName.c_str(), NULL,
                                  (DWORD64) ev.info.u.LoadDll.lpBaseOfDll, 0);
    if (!iresult) {
-       fprintf(stderr, "[%s:%u] - Couldn't SymLoadModule64\n");
        printSysError(GetLastError());
+	   fprintf(stderr, "[%s:%u] - Couldn't SymLoadModule64\n", FILE__, __LINE__);
    }
 
    fileDescriptor desc(imageName, 
@@ -685,13 +685,6 @@ bool process::waitUntilStopped() {
    return true;
 }
 
-int getNumberOfCPUs() {
-    SYSTEM_INFO info;
-    GetSystemInfo(&info);
-    return info.dwNumberOfProcessors;
-}  
-
-
 Frame dyn_lwp::getActiveFrame()
 {
   w32CONTEXT cont; //ccw 27 july 2000 : 29 mar 2001
@@ -719,7 +712,7 @@ bool Frame::setPC(Address newpc) {
   return false;
 }
 
-bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
    // we must set ContextFlags to indicate the registers we want returned,
    // in this case, the control registers.
    // The values for ContextFlags are defined in winnt.h
@@ -764,7 +757,7 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
   return true;
 }
 
-bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeFP) {
   if (!SetThreadContext((HANDLE)get_fd(), &(regs.cont)))
   {
     //printf("SetThreadContext failed\n");
@@ -1942,11 +1935,12 @@ callType int_function::getCallingConvention() {
 static void emitNeededCallSaves(codeGen &gen, Register reg, pdvector<Register> &extra_saves);
 static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves);
 
-int Emitter32::emitCallParams(registerSpace *rs, codeGen &gen, 
-                   const pdvector<AstNode *> &operands, process *proc,
-                   int_function *target, const pdvector<AstNode *> &ifForks,
-                   pdvector<Register> &extra_saves, const instPoint *location,
-                   bool noCost)
+int Emitter32::emitCallParams(codeGen &gen, 
+                              const pdvector<AstNode *> &operands,
+                              int_function *target, 
+                              const pdvector<AstNode *> &ifForks,
+                              pdvector<Register> &extra_saves, 
+                              bool noCost)
 {
     callType call_conven = target->getCallingConvention();
     int estimatedFrameSize = 0;
@@ -1959,57 +1953,58 @@ int Emitter32::emitCallParams(registerSpace *rs, codeGen &gen,
         case unknown_call:
         case cdecl_call:
         case stdcall_call:
-            //Push all registers onto stack
-            for (unsigned u = 0; u < operands.size(); u++) {
-                srcs.push_back((Register)operands[u]->generateCode_phase2(proc, 
-                               rs, gen, noCost, ifForks, location));
-            }
-            break;
+          //Push all registers onto stack
+          for (unsigned u = 0; u < operands.size(); u++) {
+             srcs.push_back((Register)operands[u]->generateCode_phase2(gen, 
+                                                     noCost, ifForks));
+          }
+          break;
         case thiscall_call:
             //Allocate the ecx register for the 'this' parameter
             if (num_operands) {
-              result = rs->allocateSpecificRegister(gen, REGNUM_ECX, false);
+              result = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
               if (!result) {
                   emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
               }
-              ecx_target = (Register) operands[0]->generateCode_phase2(proc,
-                  rs, gen, noCost, ifForks, location);
+              ecx_target = (Register) operands[0]->generateCode_phase2(gen, 
+                                                                       noCost, 
+                                                                       ifForks);
             }
 
             //Push other registers onto the stack
             for (unsigned u = 1; u < operands.size(); u++) {
-                srcs.push_back((Register)operands[u]->generateCode_phase2(proc, 
-                               rs, gen, noCost, ifForks, location));
+                srcs.push_back((Register)operands[u]->generateCode_phase2(gen, 
+                                                         noCost, ifForks));
             }     
             break;
         case fastcall_call:
             if (num_operands) {
                 //Allocate the ecx register for the first parameter
-                result = rs->allocateSpecificRegister(gen, REGNUM_ECX, false);
+                result = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
                 if (!result) {
                     emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
                 }
             }
             if (num_operands > 1) {
                //Allocate the edx register for the second parameter
-               result = rs->allocateSpecificRegister(gen, REGNUM_EDX, false);
+               result = gen.rs()->allocateSpecificRegister(gen, REGNUM_EDX, false);
                if (!result) {
                   emitNeededCallSaves(gen, REGNUM_EDX, extra_saves);
                }
             }
             if (num_operands) {
-              ecx_target = (Register) operands[0]->generateCode_phase2(proc,
-                  rs, gen, noCost, ifForks, location);
+              ecx_target = (Register) operands[0]->generateCode_phase2(gen, 
+                                           noCost, ifForks);
             }
             if (num_operands > 1) {
-              edx_target = (Register) operands[1]->generateCode_phase2(proc,
-                  rs, gen, noCost, ifForks, location);
+              edx_target = (Register) operands[1]->generateCode_phase2(gen, 
+                                           noCost, ifForks);
             }
 
             //Push other registers onto the stack
             for (unsigned u = 2; u < operands.size(); u++) {
-                srcs.push_back((Register)operands[u]->generateCode_phase2(proc, 
-                               rs, gen, noCost, ifForks, location));
+                srcs.push_back((Register)operands[u]->generateCode_phase2(gen, 
+                                           noCost, ifForks));
             }
             break;
         default:
@@ -2022,7 +2017,7 @@ int Emitter32::emitCallParams(registerSpace *rs, codeGen &gen,
     for (int i=srcs.size() - 1; i >= 0; i--) {
         emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -( (int) srcs[i]*4), PUSH_RM_OPC2, gen);
         estimatedFrameSize += 4;
-        rs->freeRegister(srcs[i]);
+        gen.rs()->freeRegister(srcs[i]);
     }
 
     if (ecx_target) {
@@ -2040,7 +2035,7 @@ int Emitter32::emitCallParams(registerSpace *rs, codeGen &gen,
     return estimatedFrameSize;
 }
 
-bool Emitter32::emitCallCleanup(codeGen &gen, process *p, int_function *target, 
+bool Emitter32::emitCallCleanup(codeGen &gen, int_function *target, 
                      int frame_size, pdvector<Register> &extra_saves)
 {
     callType call_conv = target->getCallingConvention();

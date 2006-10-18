@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.150 2006/07/07 20:21:21 jaw Exp $
+// $Id: main.C,v 1.151 2006/10/18 16:06:37 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -198,7 +198,6 @@ void cleanUpAndExit(int status) {
    for(unsigned k=0; k<pidToKill.size(); k++) {
 
 #if defined (os_windows)
-#error
 #else
       P_kill(pidToKill[k], 9);
 #endif
@@ -882,7 +881,7 @@ static int break_at_mpi_init(BPatch_process *bproc)
   
   
   for (;;) {
-      BPatch::bpatch->waitForStatusChange();
+      BPatch::getBPatch()->waitForStatusChange();
       if (bproc->isTerminated())
           break;
       if (!bproc->isStopped())

@@ -90,8 +90,7 @@ extern unsigned long primary_thread_id;
 #define __WAIT_FOR_SIGNAL _WaitForSignal(__FILE__, __LINE__)
 
 class eventLock;
-extern eventLock *global_mutex;
-extern int bpatch_printf(const char *format, ...);
+BPATCH_DLL_EXPORT int bpatch_printf(const char *format, ...);
 
 class BPATCH_DLL_EXPORT BPatch_eventLock {
 protected:
@@ -100,7 +99,7 @@ protected:
   virtual ~BPatch_eventLock();
 
 public:
-  static eventLock *getLock() {assert(global_mutex); return global_mutex;}
+  static eventLock *getLock();
   unsigned long threadID() const;
 
   int _Lock(const char *__file__, unsigned int __line__) const; 

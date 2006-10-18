@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.96 2006/07/07 20:21:20 jaw Exp $
+// $Id: init.C,v 1.97 2006/10/18 16:06:35 legendre Exp $
 
 
 #include "pdutil/h/pdDebugOstream.h"
@@ -153,8 +153,7 @@ pdSample computeActiveProcessesProc(const machineMetFocusNode *node) {
    // will never happen.
    // So, if we reach this point, we just return the total number of
    // processes on this machine.
-   extern unsigned activeProcesses; // process.C (same as processVec.size())
-   return pdSample(activeProcesses * 1);
+   return pdSample(BPatch::getBPatch()->getProcesses()->size());   
 }
 
 pdSample computePauseTimeMetric(const machineMetFocusNode *) {

@@ -78,6 +78,9 @@ template class dictionary_hash<unsigned int, _cpSample *>;
 template class dictionary_hash<unsigned int, metricFocusNode *>;
 template class dictionary_hash<unsigned int, pdvector<mdl_type_desc> >;
 
+template class dictionary_hash<unsigned int, unsigned int>;
+template class dictionary_hash<pdstring, pdstring>;
+
 template class dictionary_hash<pdstring, metricFocusNode *>;
 template class dictionary_hash<pdstring, instrCodeNode *>;
 

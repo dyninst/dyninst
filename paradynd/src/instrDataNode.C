@@ -157,8 +157,8 @@ BPatch_variableExpr *instrDataNode::getVariableExpr()
 
   char type_str_ptr_name[128];
 
-  assert(BPatch::bpatch);
-  base_type = BPatch::bpatch->createScalar(type_str, getSize());
+  assert(BPatch::getBPatch());
+  base_type = BPatch::getBPatch()->createScalar(type_str, getSize());
   if (!base_type) {
      fprintf(stderr, "%s[%d]:  failed to create scalar type: %s\n", FILE__, __LINE__, type_str);
      return NULL;
@@ -180,7 +180,7 @@ BPatch_variableExpr *instrDataNode::getVariableExpr()
   //  make a new type that is an array of intCounter (or tTimer, etc)
 
   BPatch_type *base_type_ptr_type = NULL;
-  base_type_ptr_type = BPatch::bpatch->createArray(type_str_ptr_name, base_type, 0, 1024);
+  base_type_ptr_type = BPatch::getBPatch()->createArray(type_str_ptr_name, base_type, 0, 1024);
   if (!base_type) {
      fprintf(stderr, "%s[%d]:  failed to create scalar type: %s\n", FILE__, __LINE__, 
              type_str_ptr_name);

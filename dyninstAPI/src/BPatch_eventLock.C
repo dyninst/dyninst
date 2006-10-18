@@ -93,6 +93,12 @@ BPatch_eventLock::BPatch_eventLock()
 
 BPatch_eventLock::~BPatch_eventLock() {};
 
+eventLock *BPatch_eventLock::getLock() 
+{
+	assert(global_mutex); 
+	return global_mutex;
+}
+
 int BPatch_eventLock::_Lock(const char *__file__, unsigned int __line__) const
 {
   return global_mutex->_Lock(__file__, __line__);

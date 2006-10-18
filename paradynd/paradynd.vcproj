@@ -831,23 +831,6 @@ cd ..
 					</FileConfiguration>
 				</File>
 				<File
-					RelativePath="..\dyninstAPI\src\variable.C">
-					<FileConfiguration
-						Name="Debug|Win32">
-						<Tool
-							Name="VCCLCompilerTool"
-							CompileAsManaged="0"
-							CompileAs="2"/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32">
-						<Tool
-							Name="VCCLCompilerTool"
-							CompileAsManaged="0"
-							CompileAs="2"/>
-					</FileConfiguration>
-				</File>
-				<File
 					RelativePath=".\src\variableMgr.C">
 					<FileConfiguration
 						Name="Debug|Win32">

@@ -673,7 +673,6 @@ bool pd_process::doMinorShmSample() {
 }
 
 extern pdRPC *tp;
-extern unsigned activeProcesses; // process.C (same as processVec.size())
 extern void disableAllInternalMetrics();
 
 void pd_process::handleExit(int exitStatus) {
@@ -714,7 +713,7 @@ void pd_process::handleExit(int exitStatus) {
    tp->retiredResource(defaultStream, get_rid()->full_name());
    tp->processStatus(defaultStream, getPid(), procExited);
 
-   if (activeProcesses == 0)
+   if (BPatch::getBPatch()->getProcesses()->size() == 0)
       disableAllInternalMetrics();
 
 }
