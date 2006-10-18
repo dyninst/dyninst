@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.107 2006/09/06 19:14:43 bernat Exp $
+ * $Id: Object-elf.C,v 1.108 2006/10/18 16:06:55 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2334,7 +2334,6 @@ bool parseCompilerType(Object *objPtr)
          const pdstring &lookUpName = lookUp.name();
          if(lookUpName == "pgCC_compiled.")
          {
-            fprintf(stderr,"setting native!\n");
             return true;
          }
       }

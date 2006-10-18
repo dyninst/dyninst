@@ -145,7 +145,6 @@ void SignalGeneratorCommon::main() {
     signal_printf("%s[%d]:  about to do init for %s\n", FILE__, __LINE__, idstr);
     if (!initialize_event_handler()) {
         signal_printf("%s[%d]: initialize event handler failed, %s returning\n", FILE__, __LINE__, idstr);
-        fprintf(stderr,"%s[%d]: initialize event handler failed, %s returning\n", FILE__, __LINE__, idstr);
         _isRunning = false;
         init_ok = false; 
         // For anyone who asks later
@@ -1531,8 +1530,6 @@ bool SignalGeneratorCommon::initialize_event_handler()
 
   if (getPid() == -1) {
       if (!forkNewProcess()) {
-          fprintf(stderr, "%s[%d]:  failed to fork a new process for %s\n", FILE__, __LINE__,
-                  file_.c_str());
           return false;
       }
 
