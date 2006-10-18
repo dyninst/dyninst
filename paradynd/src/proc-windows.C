@@ -48,7 +48,7 @@
 #include "paradynd/src/pd_thread.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_process.h"
-
+#include "paradynd/src/debug.h"
 
 rawTime64
 FILETIME2rawTime64( FILETIME& ft )
@@ -115,3 +115,9 @@ rawTime64 pd_thread::getRawCpuTime_sw()
 
   return now;
 }
+
+int getNumberOfCPUs() {
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+    return info.dwNumberOfProcessors;
+}  

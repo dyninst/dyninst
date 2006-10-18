@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.223 2006/10/12 02:44:01 bernat Exp $
+// $Id: aix.C,v 1.224 2006/10/18 16:06:41 legendre Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -368,12 +368,6 @@ void OS::osDisconnect(void) {
   int ttyfd = open ("/dev/tty", O_RDONLY);
   ioctl (ttyfd, TIOCNOTTY, NULL); 
   P_close (ttyfd);
-}
-
-
-int getNumberOfCPUs()
-{
-  return(1);
 }
 
 // #include "paradynd/src/costmetrics.h"

@@ -210,3 +210,8 @@ rawTime64 pd_thread::getRawCpuTime_sw() {
 
    return result;
 }
+
+int getNumberOfCPUs()
+{
+  return sysconf(_SC_NPROCESSORS_ONLN);
+}

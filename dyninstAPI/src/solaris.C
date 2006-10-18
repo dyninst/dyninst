@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.206 2006/10/16 20:17:34 bernat Exp $
+// $Id: solaris.C,v 1.207 2006/10/18 16:06:43 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -885,19 +885,6 @@ bool process::dumpCore_(const pdstring coreName)
 
   return false;
 }
-
-int getNumberOfCPUs()
-{
-  // _SC_NPROCESSORS_CONF is the number of processors configured in the
-  // system and _SC_NPROCESSORS_ONLN is the number of those processors that
-  // are online.
-  int numberOfCPUs;
-  numberOfCPUs = (int) sysconf(_SC_NPROCESSORS_ONLN);
-  if (numberOfCPUs) 
-    return(numberOfCPUs);
-  else 
-    return(1);
-}  
 
 Frame Frame::getCallerFrame()
 {

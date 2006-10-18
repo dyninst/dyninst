@@ -49,6 +49,7 @@
 #include "common/h/timing.h"
 #include "common/h/Time.h"
 #include <procinfo.h>
+#include <sys/sysconfig.h>
 
 #ifdef USES_PMAPI
 #include <pmapi.h>
@@ -301,4 +302,12 @@ rawTime64 pd_thread::getRawCpuTime_sw()
 
 }
 
-
+int getNumberOfCPUs()
+{
+  struct var sysvars;
+  int result;
+  result = sysconfig(SYS_GETPARMS, &sysvars, sizeof(struct var));
+  if (result == -1)
+	  return 1;
+  return sysvars.v_ncpus;
+}

@@ -126,3 +126,16 @@ rawTime64 pd_thread::getRawCpuTime_sw()
   
   return result;
 }
+
+int getNumberOfCPUs()
+{
+  // _SC_NPROCESSORS_CONF is the number of processors configured in the
+  // system and _SC_NPROCESSORS_ONLN is the number of those processors that
+  // are online.
+  int numberOfCPUs;
+  numberOfCPUs = (int) sysconf(_SC_NPROCESSORS_ONLN);
+  if (numberOfCPUs) 
+    return(numberOfCPUs);
+  else 
+    return(1);
+}  

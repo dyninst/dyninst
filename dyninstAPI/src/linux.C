@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.247 2006/10/10 22:04:07 bernat Exp $
+// $Id: linux.C,v 1.248 2006/10/18 16:06:42 legendre Exp $
 
 #include <fstream>
 
@@ -1481,11 +1481,6 @@ bool process::dumpImage( pdstring imageFileName )
    elf.end();
    P_close( copyFD );
    return true;
-}
-
-int getNumberOfCPUs()
-{
-  return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
 //Returns true if the function is part of the PLT table
