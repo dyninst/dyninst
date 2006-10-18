@@ -40,10 +40,11 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.29 2006/05/05 02:13:57 bernat Exp $
+ * $Id: RTposix.c,v 1.30 2006/10/18 16:07:16 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
+#include <signal.h>
 #include <assert.h>
 #include <errno.h>
 #include <memory.h>
@@ -51,7 +52,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
