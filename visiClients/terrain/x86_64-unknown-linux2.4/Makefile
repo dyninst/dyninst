@@ -1,5 +1,8 @@
 #
 # $Log: Makefile,v $
+# Revision 1.3  2006/10/18 16:07:13  legendre
+# AMD64 terrain visi build problem.
+#
 # Revision 1.2  2006/03/27 17:32:45  igor
 # Add uses USES_TCLTK
 #
@@ -38,7 +41,7 @@ VPATH		+= ..
 CXXFLAGS	+= $(TCLFRIENDLYWARNINGS)
 TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
-SYSLIBS		+= -ldl
+SYSLIBS		+= -ldl -lSM -lICE -lXpm
 #SYSLIBS		= -lsocket -lnsl
 
 # Include the module-specific Makefile, which defines everything about
