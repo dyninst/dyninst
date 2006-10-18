@@ -399,10 +399,10 @@ Frame Frame::getCallerFrame()
          if (!fp_)
             return Frame();
          if (!getProc()->readDataSpace((caddr_t) fp_, addr_size, 
-                                       &addrs.fp, true))
+                                       &addrs.fp, false))
             return Frame();
          if (!getProc()->readDataSpace((caddr_t) (fp_ + addr_size), addr_size, 
-                                       &addrs.rtn, true))
+                                       &addrs.rtn, false))
             return Frame();
          newFP = addrs.fp;
          newPC = addrs.rtn;
