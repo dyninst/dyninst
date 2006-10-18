@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.63 2006/10/16 20:17:21 bernat Exp $
+// $Id: arch-x86.C,v 1.64 2006/10/18 16:06:58 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2149,6 +2149,11 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 
   if (addr[0] <= 0xBF) { // modrm
     nib += ia32_decode_modrm(addrSzAttr, addr, mac, &pref);
+    // also need to check for AMD64 rip-relative data addressing
+    // occurs when mod == 0 and r/m == 101
+    if (mode_64)
+       if ((addr[0] & 0xc7) == 0x05)
+          instruct.rip_relative_data = true;
     // operand size has to be determined from opcode
     if(mac)
       {
