@@ -325,6 +325,21 @@ instPoint *int_function::findInstPByAddr(Address addr) {
     if (instPsByAddr_.find(addr))
         return instPsByAddr_[addr];
 
+    // The above should have been sufficient... however, if we forked and have
+    // a baseTramp that does not contain instrumentation, then there will never
+    // be a instPointInstance created, and so no entry in instPsByAddr_. Argh.
+    // So, if the lookup above failed, do the slow search through entries, 
+    // exits, and calls - arbitraries should already exist.
+    for (unsigned i = 0; i < entryPoints_.size(); i++) {
+	if (entryPoints_[i]->addr() == addr) return entryPoints_[i];
+    }
+    for (unsigned i = 0; i < exitPoints_.size(); i++) {
+	if (exitPoints_[i]->addr() == addr) return exitPoints_[i];
+    }
+    for (unsigned i = 0; i < callPoints_.size(); i++) {
+	if (callPoints_[i]->addr() == addr) return callPoints_[i];
+    }
+    
     return NULL;
 }
 
