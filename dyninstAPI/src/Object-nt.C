@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.42 2006/06/09 03:50:47 jodom Exp $
+// $Id: Object-nt.C,v 1.43 2006/10/18 16:06:57 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -1196,7 +1196,7 @@ static BPatch_type *getArrayType(HANDLE p, Address base, int typeIndex, BPatch_m
     }
     else {
       size = (unsigned) size64;
-      num_elements = size / baseType->getSize();
+	  num_elements = baseType->getSize() ? size / baseType->getSize() : 0;
     }
 
     newType = new BPatch_typeArray(typeIndex, baseType, 0, num_elements-1, name);
