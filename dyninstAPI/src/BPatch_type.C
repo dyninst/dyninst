@@ -326,6 +326,11 @@ void BPatch_typeArray::merge(BPatch_type *other) {
 
 void BPatch_typeArray::updateSize()
 {    
+   if (updatingSize) {
+      size = 0;
+      return;
+   }
+   updatingSize = true;
     // Is our array element's type still a placeholder?
     if(arrayElem->getDataClass() == BPatch_dataUnknownType)
 	size = 0;
@@ -340,6 +345,7 @@ void BPatch_typeArray::updateSize()
 	size = elemSize * (atoi(hi) ? (atoi(hi) - atoi(low) + 1) : 1);
 	
     }
+   updatingSize = false;
 }
 
 bool BPatch_typeArray::isCompatibleInt(BPatch_type *otype) {
@@ -381,10 +387,14 @@ void BPatch_typeArray::fixupUnknowns(BPatch_module *module) {
  */
 
 BPatch_typeStruct::BPatch_typeStruct(int _ID, const char *_name) 
-   : BPatch_fieldListType(_name, _ID, BPatch_dataStructure) { }
+   : BPatch_fieldListType(_name, _ID, BPatch_dataStructure) 
+{ 
+}
 
 BPatch_typeStruct::BPatch_typeStruct(const char *_name) 
-   : BPatch_fieldListType(_name, USER_BPATCH_TYPE_ID--, BPatch_dataStructure) {}
+   : BPatch_fieldListType(_name, USER_BPATCH_TYPE_ID--, BPatch_dataStructure) 
+{
+}
 
 void BPatch_typeStruct::merge(BPatch_type *other) {
    // Merging is only for forward references
@@ -411,6 +421,12 @@ void BPatch_typeStruct::merge(BPatch_type *other) {
 
 void BPatch_typeStruct::updateSize()
 {
+   if (updatingSize) {
+      size = 0;
+      return;
+   }
+   updatingSize = true;
+
     // Calculate the size of the entire structure
     size = 0;
     for(unsigned int i = 0; i < fieldList.size(); ++i) {
@@ -419,10 +435,10 @@ void BPatch_typeStruct::updateSize()
 	// Is the type of this field still a placeholder?
 	if(fieldList[i]->getType()->getDataClass() == BPatch_dataUnknownType) {
 	    size = 0;
-	    return;
+         break;
 	}
-
     }
+   updatingSize = false;
 }
 
 bool BPatch_typeStruct::isCompatibleInt(BPatch_type *otype) 
@@ -502,6 +518,12 @@ void BPatch_typeUnion::merge(BPatch_type *other) {
 
 void BPatch_typeUnion::updateSize()
 {
+   if (updatingSize) {
+      size = 0;
+      return;
+   }
+   updatingSize = true;
+
     // Calculate the size of the union
     size = 0;
     for(unsigned int i = 0; i < fieldList.size(); ++i) {
@@ -511,10 +533,10 @@ void BPatch_typeUnion::updateSize()
 	// Is the type of this field still a placeholder?
         if(fieldList[i]->getType()->getDataClass() == BPatch_dataUnknownType) {
             size = 0;
-            return;
+         break;
         }
-
     }
+   updatingSize = false;
 }
 
 bool BPatch_typeUnion::isCompatibleInt(BPatch_type *otype) {
@@ -732,17 +754,22 @@ const char *BPatch_typeTypedef::getHigh() const {
 
 void BPatch_typeTypedef::updateSize()
 {
+   if (updatingSize) {
+      size = 0;
+      return;
+   }
+   updatingSize = true;
+
     // Is our base type still a placeholder?
     if(base->getDataClass() == BPatch_dataUnknownType)
 	size = 0;
 
     // Otherwise we can now calculate the type definition's size
     else {
-
 	// Calculate the size of the type definition
 	size = sizeHint ? sizeHint : base->getSize();
-	
     }
+   updatingSize = false;
 }
 
 void BPatch_typeTypedef::fixupUnknowns(BPatch_module *module) {
@@ -823,7 +850,7 @@ void BPatch_typeRef::fixupUnknowns(BPatch_module *module) {
  * 
  */
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
-   ID(_ID), size(sizeof(/*long*/ int)), type_(_type), refCount(1)
+   ID(_ID), size(sizeof(/*long*/ int)), updatingSize(false), type_(_type), refCount(1)
 {
   if (_name != NULL)
      name = strdup(_name);

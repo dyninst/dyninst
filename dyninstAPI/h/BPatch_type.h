@@ -293,7 +293,16 @@ class BPATCH_DLL_EXPORT BPatch_type : public BPatch_eventLock{
 protected:
   char		*name;
   int           ID;                /* unique ID of type */
-  unsigned int  size;              /* size of type */
+  unsigned int  size;              /* size of typee */
+
+  /**
+   * We set updatingSize to true when we're in the process of 
+   * calculating the size of container structures.  This helps avoid
+   * infinite recursion for self referencial types.  Getting a 
+   * self-referencial type probably signifies an error in another
+   * part of the type processing code (or an error in the binary).
+   **/
+  bool updatingSize;
   
   BPatch_dataClass   type_;
 
