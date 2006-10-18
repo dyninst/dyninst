@@ -239,7 +239,7 @@ inline int P_recv(int s, void *buf, size_t len, int flags) {
 }
 
 /* Ugly */
-#if 1
+#if 0
 inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int word_len = -1) {
     if (word_len != -1 && word_len != sizeof(Address)) {
 	return (ptrace((enum __ptrace_request)req, pid, (uint32_t)addr, (uint32_t)data));
