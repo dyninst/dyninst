@@ -22,7 +22,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../mrnet,../../../mrnet/h,../..,../../../,../../../mrnet/xplat/include,C:\Program Files\Microsoft SDK\Include,C:\Program Files\Microsoft Visual Studio\VC98\Include"
+				AdditionalIncludeDirectories="../../src;../../../mrnet;../../../mrnet/src;../../../mrnet/h;../..;../../../;../../../mrnet/xplat/include;&quot;C:\Program Files\Microsoft SDK\Include&quot;;&quot;C:\Program Files\Microsoft Visual Studio\VC98\Include&quot;"
 				PreprocessorDefinitions="_DEBUG;os_windows;_WIN32_WINNT=0x0500;WIN32;_LIB"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -76,7 +76,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="../../../mrnet,../../../mrnet/h,../..,../../../,../../../mrnet/xplat/include,C:\Program Files\Microsoft SDK\Include,C:\Program Files\Microsoft Visual Studio\VC98\Include"
+				AdditionalIncludeDirectories="../../../mrnet;../../../mrnet/src;../../../mrnet/h;../..;../../../;../../../mrnet/xplat/include;&quot;C:\Program Files\Microsoft SDK\Include&quot;;&quot;C:\Program Files\Microsoft Visual Studio\VC98\Include&quot;"
 				PreprocessorDefinitions="NDEBUG;os_windows;_WIN32_WINNT=0x0500;WIN32;_LIB"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -609,6 +609,23 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\parser.C">
+			</File>
+			<File
+				RelativePath="..\..\..\mrnet\src\parser.y">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="bison.exe -p mrn -d -y ..\..\..\mrnet\src\parser.y
+perl ..\..\..\..\..\scripts\vcStripStd.pl &lt; y.tab.c &gt; parser.C
+del y.tab.c
+move y.tab.h parser.tab.h
+"
+						Outputs="parser.tab.h; parser.C"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\..\..\mrnet\src\pdr.c">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -705,23 +722,19 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\scanner.C">
+			</File>
+			<File
 				RelativePath="..\..\..\mrnet\src\scanner.l">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="bison.exe -p mrn -d -y ..\..\..\mrnet\src\parser.y
-perl ..\..\..\..\..\scripts\vcStripStd.pl &lt; y.tab.c &gt; parser.C
-del y.tab.c
-move y.tab.h parser.tab.h
-cl /nologo /D &quot;WIN32&quot; /D &quot;os_windows&quot; /D &quot;NDEBUG&quot; /D &quot;_MBCS&quot; /D &quot;MSDOS&quot; /D &quot;_LIB&quot; /D &quot;NOMINMAX&quot; /D &quot;_WIN32_WINNT=0x0500&quot; /I &quot;C:\Program Files\Microsoft SDK\Include&quot; /I &quot;C:\Program Files\Microsoft Visual Studio\VC98\Include&quot; /I &quot;..\..\..&quot; /I &quot;..\..\..\mrnet\h&quot; /I &quot;..\..\..\mrnet\xplat\include&quot; /GX /TP /c parser.C
-flex  -Pmrn ..\..\..\mrnet\src\scanner.l
+						CommandLine="flex  -Pmrn ..\..\..\mrnet\src\scanner.l
 perl ..\..\..\..\..\scripts\vcStripStd.pl &lt; lex.mrn.c &gt; scanner.temp.C
 perl ..\..\..\..\..\scripts\vcStripUnistd.pl &lt; scanner.temp.C &gt; scanner.C
-del lex.mrn.c scanner.temp.C
-cl /nologo /D &quot;MSDOS&quot; /D &quot;WIN32&quot; /D &quot;os_windows&quot; /D &quot;NDEBUG&quot; /D &quot;_MBCS&quot; /D &quot;_LIB&quot; /D &quot;NOMINMAX&quot; /D &quot;_WIN32_WINNT=0x0500&quot; /I &quot;C:\Program Files\Microsoft SDK\Include&quot; /I &quot;C:\Program Files\Microsoft Visual Studio\VC98\Include&quot; /I &quot;..\..\..&quot; /I &quot;..\..\..\mrnet\h&quot; /I &quot;..\..\..\mrnet\xplat\include&quot; /GX /TP /c scanner.C
-"
-						Outputs="scanner.obj;scanner.C;parser.obj;parser.tab.h;parser.C"/>
+del lex.mrn.c scanner.temp.C"
+						Outputs="scanner.C"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
@@ -731,14 +744,8 @@ cl /nologo /D &quot;MSDOS&quot; /D &quot;WIN32&quot; /D &quot;os_windows&quot; /
 perl ..\..\..\..\..\scripts\vcStripStd.pl &lt; y.tab.c &gt; parser.C
 del y.tab.c
 move y.tab.h parser.tab.h
-cl /nologo /D &quot;WIN32&quot; /D &quot;os_windows&quot; /D &quot;NDEBUG&quot; /D &quot;_MBCS&quot; /D &quot;MSDOS&quot; /D &quot;_LIB&quot; /D &quot;NOMINMAX&quot; /D &quot;_WIN32_WINNT=0x0500&quot; /I &quot;C:\Program Files\Microsoft SDK\Include&quot; /I &quot;C:\Program Files\Microsoft Visual Studio\VC98\Include&quot; /I &quot;..\..\..&quot; /I &quot;..\..\..\mrnet\h&quot; /I &quot;..\..\..\mrnet\xplat\include&quot; /GX /TP /c parser.C
-flex  -Pmrn ..\..\..\mrnet\src\scanner.l
-perl ..\..\..\..\..\scripts\vcStripStd.pl &lt; lex.mrn.c &gt; scanner.temp.C
-perl ..\..\..\..\..\scripts\vcStripUnistd.pl &lt; scanner.temp.C &gt; scanner.C
-del lex.mrn.c scanner.temp.C
-cl /nologo /D &quot;MSDOS&quot; /D &quot;WIN32&quot; /D &quot;os_windows&quot; /D &quot;NDEBUG&quot; /D &quot;_MBCS&quot; /D &quot;_LIB&quot; /D &quot;NOMINMAX&quot; /D &quot;_WIN32_WINNT=0x0500&quot; /I &quot;C:\Program Files\Microsoft SDK\Include&quot; /I &quot;C:\Program Files\Microsoft Visual Studio\VC98\Include&quot; /I &quot;..\..\..&quot; /I &quot;..\..\..\mrnet\h&quot; /I &quot;..\..\..\mrnet\xplat\include&quot; /GX /TP /c scanner.C
 "
-						Outputs="scanner.obj;scanner.C;parser.obj;parser.tab.h;parser.C"/>
+						Outputs="parser.tab.h;parser.C"/>
 				</FileConfiguration>
 			</File>
 			<File
