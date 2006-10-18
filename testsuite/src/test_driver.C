@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.34 2006/10/11 21:54:27 cooksey Exp $
+// $Id: test_driver.C,v 1.35 2006/10/18 16:06:52 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -680,7 +680,7 @@ void printResultHumanLog(test_data_t tests[], int first_test, int last_test,
    if (!strcmp(humanlog_name, "-")) {
      human = stdout;
    } else {
-     human = fopen(humanlog_name, "r+");
+     human = fopen(humanlog_name, "a");
    }
    // Backup stream to overwrite crash result
    // No longer necessary
