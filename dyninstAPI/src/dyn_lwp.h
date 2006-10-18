@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.61 2006/07/07 00:01:02 jaw Exp $
+ * $Id: dyn_lwp.h,v 1.62 2006/10/18 16:07:01 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -78,8 +78,8 @@ class dyn_lwp
 {
   friend class DebuggerInterface;
   friend class process;
-  bool getRegisters_(struct dyn_saved_regs *regs);
-  bool restoreRegisters_(const struct dyn_saved_regs &regs);
+  bool getRegisters_(struct dyn_saved_regs *regs, bool includeFP);
+  bool restoreRegisters_(const struct dyn_saved_regs &regs, bool includeFP);
 
  public:
   // default constructor
@@ -90,9 +90,9 @@ class dyn_lwp
   ~dyn_lwp();       // we only want process::deleteLWP to do this
 
   // Returns a struct used by changePC/restoreRegisters
-  bool getRegisters(struct dyn_saved_regs *regs);
+  bool getRegisters(struct dyn_saved_regs *regs, bool includeFP = true);
   // Sets register file to values retrieved by getRegisters
-  bool restoreRegisters(const struct dyn_saved_regs &regs);
+  bool restoreRegisters(const struct dyn_saved_regs &regs, bool includeFP = true);
   // Changes PC to the given address. If regs is non-NULL,
   // sets register values as above (restoreRegisters), then changes PC
   bool changePC(Address addr, struct dyn_saved_regs *regs);

@@ -90,6 +90,7 @@ struct inferiorRPCtoDo {
     bool lowmem; /* Steers allocation of memory for the RPC to run in */
     unsigned id;
     bool runProcessWhenDone; 
+    bool saveFPState;
     dyn_thread *thr;
     dyn_lwp *lwp;
 };

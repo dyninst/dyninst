@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.670 2006/10/10 22:04:16 bernat Exp $
+// $Id: process.C,v 1.671 2006/10/18 16:07:04 legendre Exp $
 
 #include <ctype.h>
 
@@ -4691,8 +4691,7 @@ int_function *process::findFuncByInternalFunc(image_func *ifunc) {
     // Can't do module lookup because of DEFAULT_MODULE...
     pdvector<int_function *> possibles;
     if (!findFuncsByMangled(ifunc->symTabName(),
-                            possibles,
-                            ifunc->img()->file()))
+                            possibles))
         return NULL;
 
     assert(possibles.size());
@@ -6637,3 +6636,7 @@ int_function *process::findJumpTargetFuncByAddr(Address addr) {
 
     return findFuncByAddr(addr2);
 }
+bool process::shouldSaveFPState() {
+   return BPatch::bpatch->isSaveFPROn();
+}
+

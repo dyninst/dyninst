@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.62 2006/06/23 21:04:31 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.63 2006/10/18 16:07:00 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -317,14 +317,14 @@ int dyn_lwp::getPid() const {
    return proc_->getPid();
 }
 
-bool dyn_lwp::getRegisters(struct dyn_saved_regs *regs) {
+bool dyn_lwp::getRegisters(struct dyn_saved_regs *regs, bool includeFP) {
 	/* Don't cache registers.  It's broken on most platforms. */
-    return getRegisters_(regs);
+    return getRegisters_(regs, includeFP);
 	}
 
-bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs) {
+bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs, bool includeFP) {
 	/* Don't cache registers.  It's broken on most platforms. */
-    return restoreRegisters_(regs);
+    return restoreRegisters_(regs, includeFP);
 	}
 
 // Find out some info about the system call we're waiting on,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.114 2006/10/16 20:17:32 bernat Exp $
+// $Id: linux-x86.C,v 1.115 2006/10/18 16:07:03 legendre Exp $
 
 #include <fstream>
 
@@ -122,29 +122,34 @@ const int FPREGS_STRUCT_SIZE = sizeof( user_i387_struct );
 
 /* ********************************************************************** */
 
-bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
    // Cycle through all registers, reading each from the
    // process user space with ptrace(PTRACE_PEEKUSER ...
    int error;
    bool errorFlag = false;
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
-   error = DBI_ptrace(PTRACE_GETREGS, get_lwp_id(), 0, (long)&(regs->gprs), &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__ );
+   error = DBI_ptrace(PTRACE_GETREGS, get_lwp_id(), 0, (long)&(regs->gprs), 
+			&ptrace_errno, proc_->getAddressWidth(),  
+			__FILE__, __LINE__ );
    if( error ) {
       perror("dyn_lwp::getRegisters PTRACE_GETREGS" );
       errorFlag = true;
-   } else {
-      error = DBI_ptrace(PTRACE_GETFPREGS, get_lwp_id(), 0, (long)&(regs->fprs), &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
+      return false;
+   }
+
+    if (includeFP)
+    {
+      error = DBI_ptrace(PTRACE_GETFPREGS, get_lwp_id(), 0,
+                         (long)&(regs->fprs), &ptrace_errno,
+                         proc_->getAddressWidth(),  __FILE__, __LINE__);
+
       if( error ) {
          perror("dyn_lwp::getRegisters PTRACE_GETFPREGS" );
-         errorFlag = true;
+	 return false;
       }
    }
-   
-   if( errorFlag )
-      return false;
-   else
-      return true;
+   return true;
 }
 
 void dyn_lwp::dumpRegisters()
@@ -224,7 +229,7 @@ bool dyn_lwp::executingSystemCall()
   return false;
 }
 
-bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeFP) {
    // Cycle through all registers, writing each from the
    // buffer with ptrace(PTRACE_POKEUSER ...
 
@@ -233,18 +238,23 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
    
 
    assert(get_lwp_id() != 0);
-   if( DBI_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(long)&(regs.gprs), &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__ ) )
+   if( DBI_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(long)&(regs.gprs), 
+		   &ptrace_errno, proc_->getAddressWidth(),  
+                   __FILE__, __LINE__ ) )
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
       retVal = false;
    }
    
-   if( DBI_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (long)&(regs.fprs), &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__))
-   {
-      perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
-      retVal = false;
+   if (includeFP) {
+      if( DBI_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (long)&(regs.fprs), 
+                      &ptrace_errno, proc_->getAddressWidth(),  
+                      __FILE__, __LINE__))
+     {
+        perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
+        retVal = false;
+     }
    }
-
    return retVal;
 }
 

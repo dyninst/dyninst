@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.111 2006/07/07 00:01:08 jaw Exp $
+// $Id: sol_proc.C,v 1.112 2006/10/18 16:07:11 legendre Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -520,7 +520,7 @@ Frame dyn_lwp::getActiveFrame()
 }
 
 // Get the registers of the stopped thread and return them.
-bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP)
 {
     lwpstatus_t stat;
 
@@ -579,7 +579,7 @@ bool process::determineLWPs(pdvector<unsigned > &lwp_ids) {
 }
 
 // Restore registers saved as above.
-bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeFP)
 {
     assert(status() != running);
 

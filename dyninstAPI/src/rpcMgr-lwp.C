@@ -264,7 +264,8 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
     Frame frame = lwp_->getActiveFrame();
     inferiorrpc_printf("%s[%d]: original PC at start of iRPC is 0x%lx\n", FILE__, __LINE__, frame.getPC());
     
-    bool status = lwp_->getRegisters(theSavedRegs);
+    bool saveFP = pendingRPC_->rpc->saveFPState;
+    bool status = lwp_->getRegisters(theSavedRegs, saveFP);
     if(status != true) {
         // Can happen if we're in a syscall, which is caught above
         return irpcError;
@@ -393,7 +394,8 @@ bool rpcLWP::handleCompletedIRPC()
 
     // step 1) restore registers:
     if (runningRPC_->savedRegs) {
-        if (!lwp_->restoreRegisters(*runningRPC_->savedRegs)) {
+        bool savedFP = runningRPC_->rpc->saveFPState;
+        if (!lwp_->restoreRegisters(*runningRPC_->savedRegs, savedFP)) {
             cerr << "handleCompletedIRPC failed because restoreRegisters failed" << endl;
             assert(false);
         }

@@ -204,6 +204,7 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
                              dyn_thread *thr, dyn_lwp *lwp)
 {
     static int sequence_num = 0;
+    process *proc = NULL;
     // posts an RPC, but does NOT make any effort to launch it.
     inferiorRPCtoDo *theStruct = new inferiorRPCtoDo;
     theStruct->action = action;
@@ -215,6 +216,11 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
     theStruct->thr = thr;
     theStruct->lwp = lwp;
     theStruct->runProcessWhenDone = runWhenFinished;
+    if (thr)
+       proc = thr->get_proc();
+    else if (lwp)
+       proc = lwp->proc();
+    theStruct->saveFPState = proc ? proc->shouldSaveFPState() : true;
  
     if (thr) {
        int index = thr->get_index();

@@ -94,7 +94,7 @@ bool dyn_lwp::executingSystemCall() {
  * pt_regs only, but only syscalls are that well behaved.
  * We must support running arbitrary code.
  */
-bool dyn_lwp::getRegisters_( struct dyn_saved_regs *regs ) {
+bool dyn_lwp::getRegisters_( struct dyn_saved_regs *regs, bool includeFP ) {
 	assert( status_ != running );
 
 	errno = 0;
@@ -117,7 +117,7 @@ bool dyn_lwp::getRegisters_( struct dyn_saved_regs *regs ) {
 	return true;
 } /* end getRegisters_() */
 
-bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
+bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs, bool includeFP ) {
   /* Restore the PC. */
   if( ! regs.pcMayHaveRewound ) {
     changePC( regs.pc, NULL );

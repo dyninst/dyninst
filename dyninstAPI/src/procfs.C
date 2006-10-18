@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.46 2006/04/26 18:55:15 jaw Exp $
+// $Id: procfs.C,v 1.47 2006/10/18 16:07:06 legendre Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -143,7 +143,7 @@ bool process::isRunning_() const {
    return lwp_isRunning_(getRepresentativeLWP()->get_fd());
 }
 
-bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) 
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeFP) 
 {
 #ifdef __alpha 
    prstatus info;
@@ -254,7 +254,7 @@ bool dyn_lwp::stop_() {
   return 1;
 }
 
-bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
    if (ioctl(fd_, PIOCGREG, &(regs->theIntRegs)) == -1) {
       perror("dyn_lwp::getRegisters PIOCGREG");
       if (errno == EBUSY) {
