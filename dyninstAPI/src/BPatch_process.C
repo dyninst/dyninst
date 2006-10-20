@@ -1148,8 +1148,11 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
     //  To make this more efficient, we should cache the current set of stackwalks
     //  and derived info, but don't yet.  Need to find a good refresh condition.
 
+    // Suggestion: when the process is continued...
 
-    //if (!walked_once)
+    stacks.clear();
+    pcs.clear();
+
     if (!llproc->walkStacks(stacks)) {
        fprintf(stderr, "%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
        return false;
