@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.64 2006/10/18 16:06:58 legendre Exp $
+// $Id: arch-x86.C,v 1.65 2006/10/23 23:18:28 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -1941,7 +1941,8 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 	  if(capa & IA32_DECODE_CONDITION) {
         ; // FIXME: translation to tttn & set it
 	  }
-      return ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
+      instruct = ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
+      return instruct;
     case t_3dnow:
       // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
       // Right now we don't care what the actual opcode is, so there's no table
@@ -1957,6 +1958,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   }
 
   // addr points after the opcode, and the size has been adjusted accordingly
+  instruct.opcode_size = instruct.size - pref.getCount();
 
   assert(gotit != NULL);
   instruct.legacy_type = gotit->legacyType;
@@ -2622,8 +2624,17 @@ static inline int type2size(unsigned int optype, unsigned int operSzAttr)
 }
 
 
-unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
-                                   const unsigned char* addr, ia32_instruction& instruct,
+int getOperSz(const ia32_prefixes &pref) 
+{
+   if (pref.rexW()) return 4;
+   else if (pref.getPrefix(2) == PREFIX_SZOPER) return 1;
+   else return 2;
+}
+
+unsigned int ia32_decode_operands (const ia32_prefixes& pref, 
+                                   const ia32_entry& gotit, 
+                                   const unsigned char* addr, 
+                                   ia32_instruction& instruct,
                                    ia32_memacc *mac)
 {
   unsigned int nib = 0 /* # of bytes in instruction */;
@@ -2633,10 +2644,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
   if (mode_64)
     addrSzAttr *= 2;
 
-  int operSzAttr;
-  if (pref.rexW()) operSzAttr = 4;
-  else if (pref.getPrefix(2) == PREFIX_SZOPER) operSzAttr = 1;
-  else operSzAttr = 2;
+  int operSzAttr = getOperSz(pref);
 
   if(gotit.hasModRM)
     nib += byteSzB;
@@ -2689,20 +2697,20 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
       case am_M: /* memory operand, decoding needed; size includes modRM byte */
       case am_Q: /* MMX register or memory location */
       case am_W: /* XMM register or memory location */
-        if(mac) {
-          nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref);
-          mac[i].size = type2size(op.optype, operSzAttr);
-        }
-        else
-          nib += ia32_decode_modrm(addrSzAttr, addr);
-
-	// also need to check for AMD64 rip-relative data addressing
-	// occurs when mod == 0 and r/m == 101
-	if (mode_64)
-	    if ((addr[0] & 0xc7) == 0x05)
-		instruct.rip_relative_data = true;
-
-        break;
+         if(mac) {
+            nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref);
+            mac[i].size = type2size(op.optype, operSzAttr);
+         }
+         else
+            nib += ia32_decode_modrm(addrSzAttr, addr);
+         
+         // also need to check for AMD64 rip-relative data addressing
+         // occurs when mod == 0 and r/m == 101
+         if (mode_64)
+            if ((addr[0] & 0xc7) == 0x05)
+               instruct.rip_relative_data = true;
+         
+         break;
       case am_I: /* immediate data */
       case am_J: /* instruction pointer offset */
         nib += type2size(op.optype, operSzAttr);
@@ -3612,7 +3620,6 @@ bool instruction::generate(codeGen &gen,
    // This moves as we emit code
    unsigned char *newInsn = insnBuf;
 
-   Address oldDisp = 0;
    Address newDisp = 0;
 
    bool done = false;
@@ -3866,7 +3873,7 @@ bool instruction::generate(codeGen &gen,
 }
 
 #if defined(arch_x86)
-unsigned instruction::jumpSize(long disp) {
+unsigned instruction::jumpSize(long /*disp*/ ) {
   return JUMP_REL32_SZ;
 }
 
@@ -3916,8 +3923,333 @@ bool instruction::isCmp() const {
     return false;
 }
 
-bool instruction::generateMem(codeGen &,
-                              Address, 
-                              Address,
-                              Register,
-                  Register) {return false; }
+#define MODRM_MOD(x) ((x) >> 6)
+#define MODRM_RM(x) ((x) & 7)
+#define MODRM_REG(x) (((x) & (7 << 3)) >> 3)
+#define MODRM_SET_MOD(x, y) ((x) |= ((y) << 6))
+#define MODRM_SET_RM(x, y) ((x) |= (y))
+#define MODRM_SET_REG(x, y) ((x) |= ((y) << 3))
+
+#define REX_ISREX(x) (((x) >> 4) == 8)
+#define REX_OPS64(x) (((x) >> 3) & 1)
+#define REX_MODRM_EXT(x) (((x) >> 2) & 1)
+#define REX_SIB_EXT(x) (((x) >> 1) & 1)
+#define REX_EXT(x) ((x) & 1)
+
+#define REX_INIT(x) ((x) = 0x40)
+#define REX_SET_W(x, v) ((x) |= ((v) ? 0x8 : 0))
+#define REX_SET_R(x, v) ((x) |= ((v) ? 0x4 : 0))
+#define REX_SET_X(x, v) ((x) |= ((v) ? 0x2 : 0))
+#define REX_SET_B(x, v) ((x) |= ((v) ? 0x1 : 0))
+
+#define SIB_SET_REG(x, y) ((x) |= ((y) & 7))
+#define SIB_SET_INDEX(x, y) ((x) |= (((y) & 7) << 3))
+#define SIB_SET_SS(x, y) ((x) | (((y) & 3) << 6))
+
+/**
+ * The comments and naming schemes in this function assume some familiarity with
+ * the IA32/IA32e instruction encoding.  If you don't understand this, I suggest
+ * you start with Chapter 2 of:
+ *  _IA-32 Intel Architecture Software Developer's Manual, Volume 2a_
+ * and appendix A of:
+ *  _IA-32 Intel Architecture Software Developer's Manual, Volume 2b_
+ *
+ * This function takes an instruction that accesses memory, and emits a 
+ * copy of that instruction that has the load/store replaces with a load/store
+ * through a register.  For example, if this function were called with 'loadExpr = r12'
+ * on the instruction 'mov 12(%rax)->%rbx', we would emit 'mov (%r12)->%rbx'.
+ * Note that we strip off any displacements, indexs, etc...  The register is assumed
+ * to contain the final address that will be loaded/stored.
+ **/
+bool instruction::generateMem(codeGen &gen,
+                              Address /*origAddr*/, 
+                              Address /*newAddr*/,
+                              Register loadExpr,
+                              Register storeExpr) 
+{
+   /********************************
+    * Section 1.  Read the instruction into our internal data structures.
+    ********************************/
+   GET_PTR(insnBuf, gen);
+   const unsigned char *insn_ptr = ptr();
+
+   int num_prefixes = 0, opcode_size = 0;
+   int disp_position = 0,  disp_size = 0;
+   int imm_position = 0, imm_size = 0;
+
+   unsigned char sib_byte = 0, modrm_byte = 0;
+   int sib_position = 0, modrm_position = 0;
+
+   int address_size = 0;  //1 = 16 bit instruc, 2 = 32 bits, 4 = 64 bits
+   int modrm_operand = -1; //which entry->operands that refers to the MOD/RM
+
+   //Rex prefix encodings
+   int rex_position = -1, rex_byte;
+   int rex_w = 0, rex_r = 0, rex_x = 0, rex_b = 0;
+
+   struct ia32_memacc memacc[3];
+   struct ia32_condition cond;
+   Register newreg = Null_Register;
+
+   if (gen.proc()->getAddressWidth() != 8)
+      return false; //Currently works only on IA-32e
+
+   /**
+    * Check parameters
+    **/
+   if (loadExpr != Null_Register && storeExpr != Null_Register) 
+      return false; //Can only do one memory replace per instruction now
+   else if (loadExpr == Null_Register && storeExpr == Null_Register) 
+      return false; //None specified
+   else if (loadExpr != Null_Register && storeExpr == Null_Register) 
+      newreg = loadExpr;
+   else if (loadExpr == Null_Register && storeExpr != Null_Register) 
+      newreg = storeExpr;
+
+   ia32_instruction orig_instr(memacc, &cond);
+   ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
+               insn_ptr, orig_instr);
+   ia32_entry *entry = orig_instr.getEntry();
+   num_prefixes = orig_instr.getPrefixCount();
+
+   /**
+    * Look through the operands and see if we have a memory access.
+    **/
+   for (unsigned i=0; i<3; i++) {
+      if (entry->operands[i].admet == am_E ||
+          entry->operands[i].admet == am_M) {
+         modrm_operand = i;
+         break;
+      }
+   }
+
+   if (orig_instr.getPrefix()->getPrefix(1) != 0) {
+      //The instruction accesses memory via segment registers.  Disallow.
+      return false;
+   }
+   
+   if (modrm_operand != -1) {
+      opcode_size = orig_instr.getOpcodeSize();
+      address_size = memacc[modrm_operand].addr_size;
+
+      if (address_size == 1) {
+         //Don't yet handle 16 bit MODR/Ms
+         return false;
+      }
+
+      /**
+       * Parse any REX prefix
+       **/
+      rex_byte = orig_instr.getPrefix()->getPrefix(4);
+      if (rex_byte) {
+         for (int i=0; i<num_prefixes; i++)
+            if (insn_ptr[i] == rex_byte) {
+               rex_position = i;
+               break;
+            }
+         rex_w = orig_instr.getPrefix()->rexW();
+         rex_r = orig_instr.getPrefix()->rexR();
+         rex_x = orig_instr.getPrefix()->rexX();
+         rex_b = orig_instr.getPrefix()->rexB();
+      }
+
+      /**
+       * Get the Mod/RM byte
+       **/
+      modrm_position = num_prefixes + opcode_size;
+      modrm_byte = insn_ptr[modrm_position];
+      int mod = MODRM_MOD(modrm_byte);
+      int rm = MODRM_RM(modrm_byte);
+      int reg = MODRM_REG(modrm_byte);
+
+      /**
+       * Do we use an SIB byte? (Used to build index accesses i.e: 0x100(%eax,%ecx,4))
+       **/
+      if (rm == 4 && address_size != 1) //We use a SIB
+      {
+         sib_position = modrm_position + 1;
+         sib_byte = insn_ptr[sib_position]; 
+      }
+      
+      /**
+       * Parse the MOD part of the byte (this tells us the base register being used)
+       **/
+      switch (mod) {
+         case 0: //(%reg).
+            /**
+             * An exception to the (%reg) occurs when rm == 6 in 16 bit addressing
+             * and rm == 5 in 32 bit addressing.  In these cases the MOD/RM encodes
+             * a raw 16 or 32 bit displacement.
+             **/
+            if (rm == 6 && address_size == 1) {
+               disp_size = 2;
+               disp_position = (sib_position ? sib_position : modrm_position) + 1;
+            }
+            else if (rm == 5 && address_size != 1) {
+               disp_size = 4;
+               disp_position = (sib_position ? sib_position : modrm_position) + 1;
+            }
+            break;
+         case 1: //(%reg)+disp8.
+            disp_size = 1;
+            disp_position = (sib_position ? sib_position : modrm_position) + 1;
+            break;
+         case 2://(%reg)+dispX
+            if (address_size == 1)
+               disp_size = 2;
+            else if (address_size == 2 || address_size == 4)
+               disp_size = 4;
+            disp_position = (sib_position ? sib_position : modrm_position) + 1;
+            break;
+         case 3://%reg - doesn't use memory.
+            return false;
+            break;
+      }
+      
+      if (reg == 4 && !rex_r) {
+         //The non-memory access register is %rsp/%esp, we can't work with
+         // this register due to our register saving techniques.
+         return false;
+      }
+
+      /**
+       * Parse out any immediate value
+       **/
+      for (unsigned i=0; i<3; i++) {
+         if (entry->operands[i].admet == am_I) {
+            int opr_size = getOperSz(*orig_instr.getPrefix());
+            imm_size = type2size(entry->operands[i].optype, opr_size);
+
+            if (disp_position)
+               imm_position = disp_position + disp_size;
+            else if (sib_position)
+               imm_position = sib_position + 1;
+            else if (modrm_position)
+               imm_position = modrm_position + 1;
+            else
+               imm_position = num_prefixes + opcode_size + 1;
+         }
+      }
+      
+      /*********************************
+       * Section 2.  We understand the instruction.  Output it
+       *********************************/
+      int emit_displacement = 0;
+      int emit_mod = 0;
+      int emit_sib = 0;
+      int new_sib = 0;
+
+      unsigned char *walker = insnBuf;
+
+      /**
+       * Handle two special cases, where we emit a memory instruction
+       * that loads from/to RBP/R13 or RSP/R12
+       **/
+      if (newreg == REGNUM_RBP || newreg == REGNUM_R13) {
+         //You can't encode rbp or r13 normally i.e. 'mov (%r13)->%rax'
+         // Instead we encode using a displacement, so 'mov 0(%r13)->%rax'
+         emit_displacement = 1;
+         emit_mod = 1; //1 encodes the 0(%reg) format
+      }
+
+      if (newreg == REGNUM_RSP || newreg == REGNUM_R12) {
+         //You can't encode rsp or r12 normally.  We'll emit a SIB instruction.
+         // So instead of 'mov (%r12)->%rax' we'll emit 'mov (%r12,0,0)->%rax
+         emit_sib = 1;
+         SIB_SET_REG(new_sib, newreg & 7);
+         SIB_SET_INDEX(new_sib, newreg & 4); //4 encodes to no-index
+         //SIB_SET_SS(new_sib, 0); //Gives gcc warning statement w/ no effect
+         rex_x = 0; //If we emit a rex, don't extend the index.
+      }
+
+      /**
+       * Emit prefixes
+       **/
+      unsigned char new_rex = 0;
+
+      //Emit all prefixes except for rex
+      for (int i=0; i<num_prefixes; i++) {
+         if (i != rex_position)
+            *walker++ = insn_ptr[i];
+      }
+
+      //Emit the rex
+      if (rex_position != -1 || (newreg & 8)) {
+         //If there was no REX byte, and the high bit of the new register
+         // is set, then we'll need to make a rex byte to encode that high bit.
+         rex_b = newreg & 8;
+         REX_INIT(new_rex);
+         REX_SET_W(new_rex, rex_w);
+         REX_SET_R(new_rex, rex_r);
+         REX_SET_X(new_rex, rex_x);
+         REX_SET_B(new_rex, rex_b); 
+         *walker++ = new_rex;
+      }
+
+      /**
+       * Copy opcode
+       **/
+      for (int i=num_prefixes; i<num_prefixes+opcode_size; i++) {
+         *walker++ = insn_ptr[i];
+      }
+
+      /**
+       * Emit MOD/RM byte
+       **/
+      unsigned char new_modrm = 0;
+      MODRM_SET_MOD(new_modrm, emit_mod); 
+      MODRM_SET_RM(new_modrm, newreg & 7); //The new register replacing the memaccess
+                                           // Only the bottom 3 bits go here
+      MODRM_SET_REG(new_modrm, reg); //The bottom old register
+      *walker++ = new_modrm;
+
+      /**
+       * Emit SIB byte
+       **/
+      if (emit_sib) {
+         *walker++ = new_sib;
+      }
+
+      /**
+       * Emit displacement
+       **/
+      if (emit_displacement) {
+         *walker++ = 0x0; //We only need 0 displacements now.
+      }
+      
+      /**
+       * Emit immediate
+       **/
+      for (int i=0; i<imm_size; i++)
+      {
+         *walker++ = insn_ptr[imm_position + i];
+      }
+
+      /*
+      //Debug output.  Fix the end of testdump.c, compile it, the do an
+      // objdump -D
+      static FILE *f = NULL;
+      if (f == NULL)
+      {
+         f = fopen("testdump.c", "w+");
+         if (!f)
+            perror("Couldn't open");
+         fprintf(f, "char buffer[] = {\n");
+      }
+      fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");
+      for (unsigned i=0; i<orig_instr.getSize(); i++) {
+         fprintf(f, "%u, ", (unsigned) insn_ptr[i]);
+      }
+      fprintf(f, "\n");
+      for (int i=0; i<(walker-insnBuf); i++) {
+        fprintf(f, "%u, ", (unsigned) insnBuf[i]);
+      }
+      fprintf(f, "\n");
+      fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");
+      return true;
+      */
+   }
+
+
+   return false; 
+}

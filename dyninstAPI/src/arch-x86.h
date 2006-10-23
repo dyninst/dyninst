@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.48 2006/10/16 20:17:22 bernat Exp $
+// $Id: arch-x86.h,v 1.49 2006/10/23 23:18:31 legendre Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -563,8 +563,10 @@ struct ia32_entry {
 
 class ia32_instruction
 {
-  friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
-                                            const char* addr, ia32_instruction& instruct);
+  friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, 
+                                            const ia32_entry& gotit, 
+                                            const char* addr, 
+                                            ia32_instruction& instruct);
   friend ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr,
 		  		       ia32_instruction& instruct);
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
@@ -587,6 +589,7 @@ class ia32_instruction
   ia32_entry     *entry;
   unsigned int   legacy_type;
   bool           rip_relative_data;
+  unsigned char  opcode_size;
 
 
  public:
@@ -601,6 +604,7 @@ class ia32_instruction
   bool hasRipRelativeData() const { return rip_relative_data; }
   const ia32_memacc& getMac(int which) const { return mac[which]; }
   const ia32_condition& getCond() const { return *cond; }
+  int getOpcodeSize() const { return opcode_size; }
 };
 
 // VG(02/07/2002): Information that the decoder can return is
