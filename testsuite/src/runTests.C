@@ -15,7 +15,7 @@
 
 bool staticTests = false;
 bool useLog = false;
-char *logfile = "";
+string logfile;
 string pdscrdir;
 
 // Run No more than testLimit tests before re-exec'ing test_driver
