@@ -13,7 +13,7 @@ int timeout = 1200;
 string ReplaceAllWith(const string &in, const string &replace, const string &with);
 
 void generateTestString(bool resume, bool useLog, bool staticTests,
-      char *logfile,
+      string &logfile,
       int testLimit, vector<char *>& child_argv, string& shellString)
 {
    stringstream testString;
@@ -94,10 +94,9 @@ char *setLibPath()
    return l_tmp;
 }
 
-void setupVars(bool useLog, char *logfile)
+void setupVars(bool useLog, string &logfile)
 {
    string base_dir, tlog_dir;
-   string logfile_s(logfile);
 
 #if defined(m_abi)
    if ( getenv("DYNINSTAPI_RT_LIB") )
@@ -160,15 +159,15 @@ void setupVars(bool useLog, char *logfile)
    if ( useLog ) 
    {
 
-      if ( logfile_s == "" )
+      if ( logfile == "" )
       {
-         logfile_s = tlog_dir + "/" + getenv("PLATFORM") + "/" + build_id;
+         logfile = tlog_dir + "/" + getenv("PLATFORM") + "/" + build_id;
       }
 
-      cout << "   ... output to " << logfile_s << endl;
+      cout << "   ... output to " << logfile << endl;
 
       string testslogdir, cmd;
-      cmd = "dirname " + logfile_s;
+      cmd = "dirname " + logfile;
       getInput(cmd.c_str(), testslogdir);
    
       if ( ! isDir(testslogdir) )
@@ -185,17 +184,17 @@ void setupVars(bool useLog, char *logfile)
          }
       }
 
-      if ( isRegFile(logfile_s) )
+      if ( isRegFile(logfile) )
       {
          cout << "File exists" << endl;
       }
       else
       {
-         cmd = "touch " + logfile_s;
+         cmd = "touch " + logfile;
          system(cmd.c_str());
       }
    
-      cmd = logfile_s + ".gz";
+      cmd = logfile + ".gz";
       if ( isRegFile(cmd) )
       {
          cout << "File.gz exists" << endl;
