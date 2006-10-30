@@ -2027,7 +2027,8 @@ typedef struct dwarfEHFrame_t
    char *buffer;
 } dwarfEHFrame_t;
 
-static void patchVSyscallImage(char *mem_image, size_t image_size);
+static void patchVSyscallImage(char *mem_image, size_t image_size, 
+							   unsigned address_width);
 void cleanupVsysinfo(void *ehf);
 
 /**
@@ -2055,7 +2056,7 @@ void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p)
    eh_frame->text_start = p->getVsyscallText();
 
    //Fix up some linux bugs before we load the image.
-   patchVSyscallImage(eh_frame->buffer, dso_size);   
+   patchVSyscallImage(eh_frame->buffer, dso_size, p->getAddressWidth());   
 
    //Get a handle to the dwarf object
    eh_frame->elf = elf_memory(eh_frame->buffer, dso_size);
@@ -2098,7 +2099,8 @@ void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p)
  *   4, so reg_map[4] should contain the current value of %esp. 
  * 'error' is set to true if an error occurs.
  **/
-Address getRegValueAtFrame(void *ehf, Address pc, int reg, int *reg_map,
+Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
+						   Address *reg_map,
                            process *p, bool *error)
 {
    int result;
@@ -2153,10 +2155,10 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg, int *reg_map,
 	 return reg_map[registr];
    }
 
-   Address calced_value = reg_map[target_reg] + (offset_relevant ? offset : 0);
+   Address calced_value = ((unsigned long) reg_map[target_reg]) + (offset_relevant ? offset : 0);
    if (registr != DW_FRAME_CFA_COL)
    {
-	 p->readDataSpace((caddr_t) calced_value, sizeof(int),
+	 p->readDataSpace((caddr_t) calced_value, p->getAddressWidth(),
 					  (caddr_t) &calced_value, true);
    }
    return calced_value;
@@ -2200,6 +2202,66 @@ void cleanupVsysinfo(void *ehf)
   free(eh_frame);
 }
 
+struct section_starts {
+   Address start;
+   unsigned size;
+};
+
+static bool getTextAndEHFrameStart(Elf *elf, 
+								   pdvector<Address> &text_starts,
+								   pdvector<unsigned> &text_sizes,
+								   Address &ehframe_start,
+								   unsigned &ehframe_size,
+								   unsigned &ehframe_offset,
+								   unsigned address_width) 
+{
+   Elf32_Ehdr *ehdr32;
+   Elf32_Shdr *shdr32;
+   Elf64_Ehdr *ehdr64;
+   Elf64_Shdr *shdr64;
+   Elf_Scn *sec;
+   char *sname;
+   unsigned offset, size;
+   Address start;
+   
+   if (address_width == 4)
+	  ehdr32 = elf32_getehdr(elf);
+   else
+	  ehdr64 = elf64_getehdr(elf);
+
+   sec = elf_nextscn(elf, NULL);
+   for (; sec != NULL; sec = elf_nextscn(elf, sec))      
+   {
+	  if (address_width == 4) {	  
+		 shdr32 = elf32_getshdr(sec);
+		 sname = elf_strptr(elf, ehdr32->e_shstrndx, shdr32->sh_name);
+		 start = shdr32->sh_addr;
+		 offset = shdr32->sh_offset;
+		 size = shdr32->sh_size;
+	  }
+	  else {	  
+		 shdr64 = elf64_getshdr(sec);
+		 sname = elf_strptr(elf, ehdr64->e_shstrndx, shdr64->sh_name);
+		 start = shdr64->sh_addr;
+		 offset = shdr64->sh_offset;
+		 size = shdr64->sh_size;
+	  }
+
+      if (strstr(sname, ".text"))
+      {
+		 text_starts.push_back(start);
+		 text_sizes.push_back(size);
+      }
+      else if (strcmp(sname, ".eh_frame") == 0)
+      {
+         ehframe_start = start;
+         ehframe_size = size;
+         ehframe_offset = offset;
+      }
+   }
+   return true;
+}
+
 /**
  * Work around for an x86 Linux 2.6 bug.  The FDEs, which map a PC value to a 
  *  unwinding rule in the VSyscall DSO don't have the correct value for
@@ -2212,45 +2274,29 @@ void cleanupVsysinfo(void *ehf)
  *  we'll fix it us.  As an extra, we'll also fix absolute addresses
  *  so that they become relative (not that I've actually seen that happen).
  **/
-static void patchVSyscallImage(char *mem_image, size_t image_size)
+static void patchVSyscallImage(char *mem_image, size_t image_size, 
+							   unsigned address_width)
 {
    Elf *elf;
-   Elf32_Ehdr *ehdr;
-   Elf32_Shdr *shdr;
-   Elf_Scn *sec;
-   Address text_start, eh_frame_start, *addr;
+   Address eh_frame_start;
    unsigned eh_frame_size, eh_frame_offset, eh_offset;
-   unsigned text_size;
-   int *size, *type;
-   char *sname, *eh_ptr;
+   char *eh_ptr;
+   pdvector<Address> text_starts;
+   pdvector<unsigned> text_sizes;
+   
 
    elf = elf_memory(mem_image, image_size);
-   ehdr = elf32_getehdr(elf);
    
    /**
     * Get the starting address and size of the .text and .eh_frame
     *  sections.  Also get the file offset at which the .eh_frame
     *  is stored.
     **/
-   eh_frame_size = eh_frame_offset = eh_offset = text_size =
-     text_start = eh_frame_start = 0x0;
-   for (sec = elf_nextscn(elf, NULL); sec != NULL; sec = elf_nextscn(elf, sec))      
-   {
-      shdr = elf32_getshdr(sec);
-      sname = elf_strptr(elf, ehdr->e_shstrndx, shdr->sh_name);
-      if (strcmp(sname, ".text") == 0)
-      {
-         text_start = shdr->sh_addr;
-         text_size = shdr->sh_size;
-      }
-      else if (strcmp(sname, ".eh_frame") == 0)
-      {
-         eh_frame_start = shdr->sh_addr;
-         eh_frame_size = shdr->sh_size;
-         eh_frame_offset = shdr->sh_offset;
-      }
-   }
-   assert(text_start != 0x0 && eh_frame_start != 0x0);
+   eh_frame_size = eh_frame_offset = eh_offset = eh_frame_start = 0x0;
+
+   getTextAndEHFrameStart(elf, text_starts, text_sizes,
+						  eh_frame_start, eh_frame_size, eh_frame_offset,
+						  address_width);
    elf_end(elf);
 
    /**
@@ -2264,37 +2310,45 @@ static void patchVSyscallImage(char *mem_image, size_t image_size)
     **/
    eh_offset = 0;
    eh_ptr = &(mem_image[eh_frame_offset]);
-   while (eh_offset < eh_frame_size)
-   {
-      size = (int *) &eh_ptr[eh_offset];
-      eh_offset += sizeof(int);
-      type = (int *) &eh_ptr[eh_offset];
-      addr = (Address *) &eh_ptr[eh_offset+sizeof(int)];
 
-      assert(*size % sizeof(int) == 0);
-
-      if (*type == 0x0)
-      {
-         //If this is a CIE then skip it
-         eh_offset += *size;            
-         continue;
-      }
-
-      Address cur_pos = eh_frame_start + eh_offset + 4;
-      if (((signed) *addr) + cur_pos >= text_start  &&
-          ((signed) *addr) + cur_pos <  text_start+text_size)
-      {
-         //If the address apears to be relative to the FDE data structure
-         // (cur_pos) we'll fix it.
-         *addr = ((signed) *addr) + cur_pos - text_start;
-      }
-      else if (*addr >= text_start && *addr < text_start+text_size)
-      {
-         //If the address appears to be absolute, we'll also fix up.
-         *addr = *addr - text_start;
-      }
-      
-      eh_offset += *size;
+   if (address_width == 4) {
+	  uint32_t *size, *type, *addr;
+	  while (eh_offset < eh_frame_size)
+	  {
+		 size = (uint32_t *) &eh_ptr[eh_offset];
+		 eh_offset += sizeof(int32_t);
+		 type = (uint32_t *) &eh_ptr[eh_offset];
+		 addr = (uint32_t *) &eh_ptr[eh_offset+sizeof(int32_t)];
+		 
+		 assert(*size % sizeof(int32_t) == 0);
+		 
+		 if (*type == 0x0)
+		 {
+			//If this is a CIE then skip it
+			eh_offset += *size;            
+			continue;
+		 }
+		 
+		 for (unsigned i=0; i<text_starts.size(); i++) 
+		 {
+			Address cur_pos = eh_frame_start + eh_offset + sizeof(int32_t);
+			if (((signed) *addr) + cur_pos >= text_starts[i]  &&
+				((signed) *addr) + cur_pos <  text_starts[i]+text_sizes[i])
+			{
+			   //If the address apears to be relative to the FDE data 
+			   // structure (cur_pos) we'll fix it.
+			   *addr = ((signed) *addr) + cur_pos - text_starts[i];
+			}
+			else if (*addr >= text_starts[i] && 
+					 *addr < text_starts[i]+text_sizes[i])
+			{
+			   //If the address appears to be absolute, we'll also fix up.
+			   *addr = *addr - text_starts[i];
+			}
+		 }
+		 
+		 eh_offset += *size;
+	  }
    }
 }
 

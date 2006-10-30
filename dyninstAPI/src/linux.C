@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.248 2006/10/18 16:06:42 legendre Exp $
+// $Id: linux.C,v 1.249 2006/10/30 22:14:10 legendre Exp $
 
 #include <fstream>
 
@@ -1808,8 +1808,6 @@ static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address pagesiz
          return false;
       if (entry->path[0] != '\0')
          return false;
-      if (((entry->end - entry->start) / pagesize) > 0xf)
-         return false;
    }
    if (entry->offset != 0)
       return false;
@@ -1833,10 +1831,16 @@ bool process::readAuxvInfo()
   int fd;
   Address dso_start = 0x0, text_start = 0x0;
   unsigned page_size = 0x0;
+
   struct {
     int type;
     Address value;
   } auxv_entry;
+
+  struct {
+    int type;
+    uint32_t value;
+  } auxv_entry_32;
 
   if (vsys_status_ != vsys_unknown) {
      // If we've already found the vsyscall page, just return.
@@ -1855,7 +1859,21 @@ bool process::readAuxvInfo()
   if (fd != -1) {
      //Try to read the location out of /proc/pid/auxv
      do {
-        read(fd, &auxv_entry, sizeof(auxv_entry));
+        
+        /**Fill in the auxv_entry structure.  We may have to do different
+         * size reads depending on the address space.  No matter which
+         * size we read, we'll fill the data in to auxv_entry, which is 
+         * guarenteed to be larger than or equal to auxv_entry_32.
+         **/
+        if (getAddressWidth() == 4) {
+           read(fd, &auxv_entry_32, sizeof(auxv_entry_32));
+           auxv_entry.type = auxv_entry_32.type;
+           auxv_entry.value = auxv_entry_32.value;
+        }
+        else {
+           read(fd, &auxv_entry, sizeof(auxv_entry));
+        }
+
         if (auxv_entry.type == AT_SYSINFO)
            text_start = auxv_entry.value;
         else if (auxv_entry.type == AT_SYSINFO_EHDR)
@@ -1915,6 +1933,9 @@ bool process::readAuxvInfo()
   guessed_addrs.push_back(0xa000000000000000); 
   guessed_addrs.push_back(0xa000000000010000); 
   guessed_addrs.push_back(0xa000000000020000); //Juniper & Hogan
+#endif
+#if defined(arch_x86_64)
+  guessed_addrs.push_back(0xffffffffff600000);
 #endif
 
   /**

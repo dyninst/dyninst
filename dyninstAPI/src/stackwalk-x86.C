@@ -311,7 +311,7 @@ Frame Frame::getCallerFrame()
          * getRegValueAtFrame to parse the data and get the correct
          * values for %esp, %ebp, and %eip
          **/
-        int reg_map[MAX_DW_VALUE+1];
+        Address reg_map[MAX_DW_VALUE+1];
         bool error;
 
         //Set up the register values array for getRegValueAtFrame
@@ -321,16 +321,16 @@ Frame Frame::getCallerFrame()
         reg_map[DW_PC] = pc_;
 
         //Calc frame start
-        reg_map[DW_CFA] = getRegValueAtFrame(vsys_data, pc_, DW_CFA, reg_map, 
-                                 getProc(), &error);
+        reg_map[DW_CFA] = getRegValueAtFrame(vsys_data, pc_, DW_CFA, 
+                                             reg_map, getProc(), &error);
         if (error) return Frame();
 
         //Calc registers values.
-        newPC = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, getProc(), 
-				     &error);
+        newPC = getRegValueAtFrame(vsys_data, pc_, DW_PC, reg_map, 
+                                   getProc(), &error);
         if (error) return Frame();
-        newFP = getRegValueAtFrame(vsys_data, pc_, DW_EBP, reg_map, getProc(), 
-				     &error);
+        newFP = getRegValueAtFrame(vsys_data, pc_, DW_EBP, reg_map, 
+                                   getProc(), &error);
         if (error) return Frame();
         newSP = reg_map[DW_CFA];	
         goto done;

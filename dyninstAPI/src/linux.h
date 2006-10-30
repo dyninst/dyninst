@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.33 2006/10/10 22:04:08 bernat Exp $
+// $Id: linux.h,v 1.34 2006/10/30 22:14:11 legendre Exp $
 
 #if !defined(os_linux)
 #error "invalid architecture-os inclusion"
@@ -78,9 +78,16 @@ class process;
 #define DW_ESP 4
 #define DW_EBP 5
 #define DW_PC  8
-#define MAX_DW_VALUE 8
+#if 0
+#define DW_RSP 7
+#define DW_RBP 6
+#define DW_PC  16
+#endif
 
-Address getRegValueAtFrame(void *ehf, Address pc, int reg, int *reg_map,
+#define MAX_DW_VALUE 17
+
+Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
+                           Address *reg_map,
                            process *p, bool *error);
 #endif
 

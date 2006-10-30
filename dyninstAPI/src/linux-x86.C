@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.115 2006/10/18 16:07:03 legendre Exp $
+// $Id: linux-x86.C,v 1.116 2006/10/30 22:14:09 legendre Exp $
 
 #include <fstream>
 
@@ -391,8 +391,6 @@ void emitCallRel32(unsigned disp32, unsigned char *&insn);
 
 extern bool isFramePush(instruction &i);
 void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p);
-extern Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
-				  int *reg_map, process *p, bool *error);
 
 /**
  * Signal handler return points can be found in the vsyscall page.
@@ -534,12 +532,14 @@ void calcVSyscallFrame(process *p)
   if (p->getVsyscallStatus() != vsys_unknown)
      return;
 
-#if defined(arch_x86_64)
-  // FIXME: HACK to disable vsyscall page for AMD64, for now
-  p->setVsyscallRange(0x1000, 0x0);
-  p->setVsyscallData(NULL);
-  return;
-#endif
+  if (p->getAddressWidth() == 8) {
+     // FIXME: HACK to disable vsyscall page for AMD64, for now.
+     //  Reading the VSyscall data on ginger seems to trigger a
+     //  kernel panic.
+     p->setVsyscallRange(0x1000, 0x0);
+     p->setVsyscallData(NULL);
+     return;
+  }
 
   /**
    * Read the location of the vsyscall page from /proc/.
