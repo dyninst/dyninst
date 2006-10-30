@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2006/10/18 16:07:15 legendre Exp $
+# $Id: Makefile,v 1.13 2006/10/30 22:14:14 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -68,4 +68,4 @@ include ../../make.library.tmpl
 #	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
 
 RTthread-sparc-asm.o: ../src/RTthread-sparc-asm.S
-	$(CC) -fpic -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
