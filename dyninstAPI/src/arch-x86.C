@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.65 2006/10/23 23:18:28 legendre Exp $
+// $Id: arch-x86.C,v 1.66 2006/11/06 23:14:59 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -1834,13 +1834,14 @@ static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const unsigned char* addr,
                                       ia32_memacc* macadr,
-				      const ia32_prefixes* pref);
+                                      const ia32_prefixes* pref,
+                                      ia32_locations *pos);
 
 /* shortcut version: just decodes instruction size info */
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
 				      const unsigned char* addr)
 {
-    return ia32_decode_modrm(addrSzAttr, addr, NULL, NULL);
+    return ia32_decode_modrm(addrSzAttr, addr, NULL, NULL, NULL);
 }
 
 void ia32_memacc::print()
@@ -1861,12 +1862,13 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
   if(capa & IA32_DECODE_MEMACCESS)
     assert(instruct.mac != NULL);
 
-  if (!ia32_decode_prefixes(addr, pref)) {
+  if (!ia32_decode_prefixes(addr, pref, instruct.loc)) {
     instruct.size = 1;
     instruct.legacy_type = ILLEGAL;
     return instruct;
   }
- 
+
+  if (instruct.loc) instruct.loc->num_prefixes = pref.getCount();
   instruct.size = pref.getCount();
   addr += instruct.size;
 
@@ -1957,11 +1959,12 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     }
   }
 
-  // addr points after the opcode, and the size has been adjusted accordingly
-  instruct.opcode_size = instruct.size - pref.getCount();
-
   assert(gotit != NULL);
   instruct.legacy_type = gotit->legacyType;
+
+  // addr points after the opcode, and the size has been adjusted accordingly
+  if (instruct.loc) instruct.loc->opcode_size = instruct.size - pref.getCount();
+  if (instruct.loc) instruct.loc->opcode_position = pref.getCount();
 
   // make adjustments for instruction redefined in 64-bit mode
   if (mode_64)
@@ -2150,7 +2153,12 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
   unsigned int operSzAttr = (pref.getPrefix(2) == PREFIX_SZOPER ? 1 : 2); // 32-bit mode implicit
 
   if (addr[0] <= 0xBF) { // modrm
-    nib += ia32_decode_modrm(addrSzAttr, addr, mac, &pref);
+    if (instruct.loc) {
+       instruct.loc->modrm_position = instruct.loc->opcode_position +
+          instruct.loc->opcode_size;
+       instruct.loc->modrm_operand = 0;
+    }
+    nib += ia32_decode_modrm(addrSzAttr, addr, mac, &pref, instruct.loc);
     // also need to check for AMD64 rip-relative data addressing
     // occurs when mod == 0 and r/m == 101
     if (mode_64)
@@ -2313,16 +2321,31 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
   return instruct;
 }
 
+#define MODRM_MOD(x) ((x) >> 6)
+#define MODRM_RM(x) ((x) & 7)
+#define MODRM_REG(x) (((x) & (7 << 3)) >> 3)
+#define MODRM_SET_MOD(x, y) ((x) |= ((y) << 6))
+#define MODRM_SET_RM(x, y) ((x) |= (y))
+#define MODRM_SET_REG(x, y) ((x) |= ((y) << 3))
+
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const unsigned char* addr,
                                       ia32_memacc* macadr,
-				      const ia32_prefixes* pref)
+                                      const ia32_prefixes* pref,
+                                      ia32_locations *loc)
 {
  
   unsigned char modrm = addr[0];
-  unsigned char mod = modrm >> 6;
-  unsigned char rm  = modrm & 7;
-  //unsigned char reg = (modrm >> 3) & 7;
+  unsigned char mod = MODRM_MOD(modrm);
+  unsigned char rm  = MODRM_RM(modrm);
+  unsigned char reg = MODRM_REG(modrm);
+  if (loc) {
+     loc->modrm_byte = modrm;
+     loc->modrm_mod = mod;
+     loc->modrm_rm = rm;
+     loc->modrm_reg = reg;
+     loc->address_size = addrSzAttr;
+  }
   ++addr;
 
   if(addrSzAttr == 1) { // 16-bit, cannot have SIB
@@ -2350,11 +2373,17 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
         case 5:
           macadr->set16(mDI, -1, 0);
           break;
-        case 6: { // disp16
-          const short int *pdisp16 = (const short int*)addr;
-          //bperr( "16bit addr - case6!\n");
-          macadr->set16(-1, -1, *pdisp16);
-          break; }
+        case 6: { 
+           // disp16
+           const short int *pdisp16 = (const short int*)addr;
+           //bperr( "16bit addr - case6!\n");
+           macadr->set16(-1, -1, *pdisp16);
+           if (loc) { 
+              loc->disp_position = loc->modrm_position + 1;
+              loc->disp_size = 2;
+           }
+           break; 
+        }
         case 7:
           macadr->set16(mBX, -1, 0);
           break;
@@ -2364,6 +2393,10 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
       //bperr( "16bit addr - case1!\n");
       if(macadr) {
         const char *pdisp8 = (const char*)addr;
+        if (loc) { 
+           loc->disp_position = loc->modrm_position + 1;
+           loc->disp_size = 1;
+        }
         switch (rm) {
         case 0: 
           macadr->set16(mBX, mSI, *pdisp8);
@@ -2396,6 +2429,10 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
       //bperr( "16bit addr - case2!\n");
       if(macadr) {
         const short int *pdisp16 = (const short int*)addr;
+        if (loc) { 
+           loc->disp_position = loc->modrm_position + 1;
+           loc->disp_size = 2;
+        }
         switch (rm) {
         case 0: 
           macadr->set16(mBX, mSI, *pdisp16);
@@ -2441,6 +2478,10 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
     if(hassib) {
       nsib = byteSzB;
       sib = addr[0];
+      if (loc) { 
+         loc->sib_position = loc->modrm_position + 1;
+         loc->sib_byte = sib;
+      }
       ++addr;
       base = sib & 7;
       if(macadr) {
@@ -2471,28 +2512,42 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
           macadr->set(apply_rex_bit(mEBX, pref->rexB()), 0, addrSzAttr);
           break;
         case 4: // SIB
-          if(base == 5) { // disp32[index<<scale]
-            const int *pdisp32 = (const int*)addr;	    
-            macadr->set_sib(-1, scale, apply_rex_bit(index, pref->rexX()), *pdisp32, addrSzAttr);
+          if(base == 5) 
+          { 
+             // disp32[index<<scale]
+             const int *pdisp32 = (const int*)addr;
+             if (loc) { 
+                loc->disp_position = loc->sib_position + 1;
+                loc->disp_size = 4;
+             }
+             macadr->set_sib(-1, scale, apply_rex_bit(index, pref->rexX()), 
+                             *pdisp32, addrSzAttr);
           }
           else
-            macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
-			    0, addrSzAttr);
+            macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, 
+                            apply_rex_bit(index, pref->rexX()),
+                            0, addrSzAttr);
           break;
-        case 5: { // disp32 (or [RIP + disp32] for 64-bit mode)
-          const int *pdisp32 = (const int*)addr;
-	  if (mode_64)
-	      macadr->set(mRIP, *pdisp32, addrSzAttr);
-	  else
-	      macadr->set(-1, *pdisp32, addrSzAttr);
-          break; }
-        case 6:
-          macadr->set(apply_rex_bit(mESI, pref->rexB()), 0, addrSzAttr);
-          break;
-        case 7:
-          macadr->set(apply_rex_bit(mEDI, pref->rexB()), 0, addrSzAttr);
-          break;
+        case 5: { 
+           // disp32 (or [RIP + disp32] for 64-bit mode)
+           if (loc) { 
+              loc->disp_position = loc->modrm_position + 1;
+              loc->disp_size = 4;
+           }
+           const int *pdisp32 = (const int*)addr;
+           if (mode_64)
+              macadr->set(mRIP, *pdisp32, addrSzAttr);
+           else
+              macadr->set(-1, *pdisp32, addrSzAttr);
+           break; 
         }
+        case 6:
+           macadr->set(apply_rex_bit(mESI, pref->rexB()), 0, addrSzAttr);
+           break;
+        case 7:
+           macadr->set(apply_rex_bit(mEDI, pref->rexB()), 0, addrSzAttr);
+           break;
+      }
       return nsib + ((check5 == 5) ? dwordSzB : 0);
     }
     case 1:
@@ -2513,6 +2568,10 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
           break;
         case 4:
           // disp8[EBP + index<<scale] happens naturally here when base=5
+           if (loc) { 
+              loc->disp_position = loc->sib_position + 1;
+              loc->disp_size = 1;
+           }           
           macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
 			  *pdisp8, addrSzAttr);
           break;
@@ -2546,6 +2605,10 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
           break;
         case 4:
           // disp32[EBP + index<<scale] happens naturally here when base=5
+           if (loc) { 
+              loc->disp_position = loc->sib_position + 1;
+              loc->disp_size = 4;
+           }
           macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
 			  *pdisp32, addrSzAttr);
           break;
@@ -2637,6 +2700,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                                    ia32_instruction& instruct,
                                    ia32_memacc *mac)
 {
+  ia32_locations *loc = instruct.loc;
   unsigned int nib = 0 /* # of bytes in instruction */;
 
   int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
@@ -2697,9 +2761,14 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       case am_M: /* memory operand, decoding needed; size includes modRM byte */
       case am_Q: /* MMX register or memory location */
       case am_W: /* XMM register or memory location */
+         if (loc) {
+            loc->modrm_position = loc->opcode_size + loc->opcode_position;
+            loc->modrm_operand = i;
+         }
          if(mac) {
-            nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref);
+            nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref, loc);
             mac[i].size = type2size(op.optype, operSzAttr);
+            if (loc) loc->address_size = mac[i].size;
          }
          else
             nib += ia32_decode_modrm(addrSzAttr, addr);
@@ -2712,9 +2781,15 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
          
          break;
       case am_I: /* immediate data */
-      case am_J: /* instruction pointer offset */
-        nib += type2size(op.optype, operSzAttr);
-        break;
+      case am_J: { /* instruction pointer offset */
+         int imm_size = type2size(op.optype, operSzAttr);
+         if (loc) {
+            loc->imm_position = nib + loc->opcode_position + loc->opcode_size;
+            loc->imm_size = imm_size;
+         }
+         nib += imm_size;
+         break;
+      }
       /* TODO: rep prefixes, deal with them here? */
       case am_X: /* memory at DS:(E)SI*/
         if(mac)
@@ -2778,7 +2853,8 @@ static const unsigned char sse_prefix[256] = {
 
 
 // FIXME: lookahead might blow up...
-bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref)
+bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
+                          ia32_locations *loc)
 {
   pref.count = 0;
   pref.prfx[0] = pref.prfx[1] = pref.prfx[2] = pref.prfx[3] = pref.prfx[4] = 0;
@@ -2789,62 +2865,86 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref)
     switch(addr[0]) {
     case PREFIX_REPNZ:
     case PREFIX_REP:
-	if(addr[1]==0x0F && sse_prefix[addr[2]]) {
-	    pref.opcode_prefix = addr[0];
-	    break;
-	}
+       if(addr[1]==0x0F && sse_prefix[addr[2]]) {
+          pref.opcode_prefix = addr[0];
+          break;
+       }
     case PREFIX_LOCK:
-      ++pref.count;
-      pref.prfx[0] = addr[0];
-      break;
+       ++pref.count;
+       pref.prfx[0] = addr[0];
+       break;
     case PREFIX_SEGCS:
     case PREFIX_SEGSS:
     case PREFIX_SEGDS:
     case PREFIX_SEGES:
     case PREFIX_SEGFS:
     case PREFIX_SEGGS:
-      ++pref.count;
-      pref.prfx[1] = addr[0];
-      break;
+       ++pref.count;
+       pref.prfx[1] = addr[0];
+       break;
     case PREFIX_SZOPER:
-	if(addr[1]==0x0F && sse_prefix[addr[2]]) {
-	    pref.opcode_prefix = addr[0];
-	    break;
-	}
-	++pref.count;
-	pref.prfx[2] = addr[0];
-      break;
+       if(addr[1]==0x0F && sse_prefix[addr[2]]) {
+          pref.opcode_prefix = addr[0];
+          break;
+       }
+       ++pref.count;
+       pref.prfx[2] = addr[0];
+       break;
     case PREFIX_SZADDR:
-      ++pref.count;
-      pref.prfx[3] = addr[0];
-      break;
+       ++pref.count;
+       pref.prfx[3] = addr[0];
+       break;
     default:
-      in_prefix=false;
+       in_prefix=false;
     }
     ++addr;
   }
-  
-  if (mode_64)
-      return ia32_decode_rex(addr - 1, pref);
 
-  return true;
+  bool result = true;
+  if (mode_64)
+     result = ia32_decode_rex(addr - 1, pref, loc);
+  if (loc) loc->num_prefixes = pref.count;
+
+  return result;
 }
 
-bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref)
+#define REX_ISREX(x) (((x) >> 4) == 4)
+#define REX_W(x) ((x) & 0x8)
+#define REX_R(x) ((x) & 0x4)
+#define REX_X(x) ((x) & 0x2)
+#define REX_B(x) ((x) & 0x1)
+
+#define REX_INIT(x) ((x) = 0x40)
+#define REX_SET_W(x, v) ((x) |= ((v) ? 0x8 : 0))
+#define REX_SET_R(x, v) ((x) |= ((v) ? 0x4 : 0))
+#define REX_SET_X(x, v) ((x) |= ((v) ? 0x2 : 0))
+#define REX_SET_B(x, v) ((x) |= ((v) ? 0x1 : 0))
+
+bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
+                     ia32_locations *loc)
 {
-    if ((addr[0] & (unsigned char)0xF0) == (unsigned char)0x40) {
-	++pref.count;
-	pref.prfx[4] = addr[0];
+   if (REX_ISREX(addr[0])) {
+      ++pref.count;
+      pref.prfx[4] = addr[0];
 
-	// it is an error to have legacy prefixes after a REX prefix
-	// in particular, ia32_decode will get confused if a prefix
-	// that could be used as an SSE opcode extension follows our
-	// REX
-	if (addr[1] == PREFIX_SZOPER || addr[1] == PREFIX_REPNZ || addr[1] == PREFIX_REP)
-	  return false;
-    }
+      if (loc) {
+         loc->rex_byte = addr[0];
+         loc->rex_w = REX_W(addr[0]);
+         loc->rex_r = REX_R(addr[0]);
+         loc->rex_x = REX_X(addr[0]);
+         loc->rex_b = REX_B(addr[0]);
+         loc->rex_position = pref.count - 1;
+      }
+      
+      // it is an error to have legacy prefixes after a REX prefix
+      // in particular, ia32_decode will get confused if a prefix
+      // that could be used as an SSE opcode extension follows our
+      // REX
+      if (addr[1] == PREFIX_SZOPER || addr[1] == PREFIX_REPNZ || addr[1] == PREFIX_REP)
+         return false;
+   }
 
-    return true;
+   return true;
 }
 
 unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
@@ -3923,28 +4023,144 @@ bool instruction::isCmp() const {
     return false;
 }
 
-#define MODRM_MOD(x) ((x) >> 6)
-#define MODRM_RM(x) ((x) & 7)
-#define MODRM_REG(x) (((x) & (7 << 3)) >> 3)
-#define MODRM_SET_MOD(x, y) ((x) |= ((y) << 6))
-#define MODRM_SET_RM(x, y) ((x) |= (y))
-#define MODRM_SET_REG(x, y) ((x) |= ((y) << 3))
-
-#define REX_ISREX(x) (((x) >> 4) == 8)
-#define REX_OPS64(x) (((x) >> 3) & 1)
-#define REX_MODRM_EXT(x) (((x) >> 2) & 1)
-#define REX_SIB_EXT(x) (((x) >> 1) & 1)
-#define REX_EXT(x) ((x) & 1)
-
-#define REX_INIT(x) ((x) = 0x40)
-#define REX_SET_W(x, v) ((x) |= ((v) ? 0x8 : 0))
-#define REX_SET_R(x, v) ((x) |= ((v) ? 0x4 : 0))
-#define REX_SET_X(x, v) ((x) |= ((v) ? 0x2 : 0))
-#define REX_SET_B(x, v) ((x) |= ((v) ? 0x1 : 0))
-
 #define SIB_SET_REG(x, y) ((x) |= ((y) & 7))
 #define SIB_SET_INDEX(x, y) ((x) |= (((y) & 7) << 3))
 #define SIB_SET_SS(x, y) ((x) | (((y) & 3) << 6))
+
+typedef struct parsed_instr_t {
+   int num_prefixes;
+   int opcode_size;
+   int disp_position;
+   int disp_size;
+   int imm_position;
+   int imm_size;
+
+   unsigned char sib_byte;
+   unsigned char modrm_byte;
+   int sib_position; 
+   int modrm_position;
+
+   int address_size;
+   int modrm_operand;
+
+   int rex_position;
+   int rex_byte;
+   int rex_w;
+   int rex_r;
+   int rex_x;
+   int rex_b;
+
+   ia32_instruction orig_instr;
+   ia32_entry *entry;
+} parse_instr_t;
+
+bool instruction::getUsedRegs(pdvector<int> &regs) {
+   const unsigned char *insn_ptr = ptr();
+
+   struct ia32_memacc memacc[3];
+   struct ia32_condition cond;
+   struct ia32_locations loc;
+   ia32_entry *entry;
+   ia32_instruction orig_instr(memacc, &cond, &loc);
+   ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
+               insn_ptr, orig_instr);
+   entry = orig_instr.getEntry();
+
+   if (orig_instr.getPrefix()->getPrefix(1) != 0)
+      //The instruction accesses memory via segment registers.  Disallow.
+      return false;
+   
+   if (loc.modrm_position == -1)
+      //Only supporting MOD/RM instructions now
+      return false; 
+
+   if (loc.address_size == 1)
+      //Don't support 16-bit instructions yet
+      return false;
+
+   if (loc.modrm_reg == 4 && !loc.rex_r)
+      //The non-memory access register is %rsp/%esp, we can't work with
+      // this register due to our register saving techniques.
+      return false;
+
+   if (loc.modrm_mod == 3)
+      //This instruction doesn't use the MOD/RM to access memory
+      return false;
+
+   for (unsigned i=0; i<3; i++) {
+      const ia32_operand& op = entry->operands[i];
+      if (op.admet == am_O) {
+         //The MOD/RM specifies a register that's used
+         int regused = loc.modrm_reg;
+         if (loc.address_size == 4) {
+            regused |= loc.rex_r << 4;
+         }
+         regs.push_back(regused);
+      }
+      else if (op.admet == am_reg) {
+         //The instruction implicitely references a memory instruction
+         switch (op.optype) {
+            case r_AH:   
+            case r_AL:   
+            case r_eAX:
+            case r_EAX:
+               regs.push_back(REGNUM_RAX);
+               if (loc.rex_byte) regs.push_back(REGNUM_R8);
+               break;
+            case r_BH:
+            case r_BL:
+            case r_eBX:
+            case r_EBX:
+               regs.push_back(REGNUM_RBX);
+               if (loc.rex_byte) regs.push_back(REGNUM_R11);
+               break;
+            case r_CH:   
+            case r_CL:   
+            case r_eCX:
+            case r_ECX:
+               regs.push_back(REGNUM_RCX);
+               if (loc.rex_byte) regs.push_back(REGNUM_R9);
+               break;
+            case r_DL:
+            case r_DH:
+            case r_eDX:
+            case r_EDX:
+               regs.push_back(REGNUM_RDX);
+               if (loc.rex_byte) regs.push_back(REGNUM_R10);
+               break;
+            case r_eSP:
+            case r_ESP:
+               regs.push_back(REGNUM_RSP);
+               if (loc.rex_byte) regs.push_back(REGNUM_R12);
+               break;
+            case r_eBP:
+            case r_EBP:
+               regs.push_back(REGNUM_RBP);
+               if (loc.rex_byte) regs.push_back(REGNUM_R13);
+               break;
+            case r_eSI:
+            case r_ESI:
+               regs.push_back(REGNUM_RSI);
+               if (loc.rex_byte) regs.push_back(REGNUM_R14);
+               break;
+            case r_EDI:
+            case r_eDI:
+               regs.push_back(REGNUM_RDI);
+               if (loc.rex_byte) regs.push_back(REGNUM_R15);
+               break;
+            case r_EDXEAX:
+               regs.push_back(REGNUM_RAX);
+               regs.push_back(REGNUM_RDX);
+               break;
+            case r_ECXEBX:
+               regs.push_back(REGNUM_RBX);
+               regs.push_back(REGNUM_RCX);
+               break;
+         }
+      }
+   }
+   return true;
+}
 
 /**
  * The comments and naming schemes in this function assume some familiarity with
@@ -3967,36 +4183,10 @@ bool instruction::generateMem(codeGen &gen,
                               Register loadExpr,
                               Register storeExpr) 
 {
-   /********************************
-    * Section 1.  Read the instruction into our internal data structures.
-    ********************************/
-   GET_PTR(insnBuf, gen);
-   const unsigned char *insn_ptr = ptr();
-
-   int num_prefixes = 0, opcode_size = 0;
-   int disp_position = 0,  disp_size = 0;
-   int imm_position = 0, imm_size = 0;
-
-   unsigned char sib_byte = 0, modrm_byte = 0;
-   int sib_position = 0, modrm_position = 0;
-
-   int address_size = 0;  //1 = 16 bit instruc, 2 = 32 bits, 4 = 64 bits
-   int modrm_operand = -1; //which entry->operands that refers to the MOD/RM
-
-   //Rex prefix encodings
-   int rex_position = -1, rex_byte;
-   int rex_w = 0, rex_r = 0, rex_x = 0, rex_b = 0;
-
-   struct ia32_memacc memacc[3];
-   struct ia32_condition cond;
-   Register newreg = Null_Register;
-
-   if (gen.proc()->getAddressWidth() != 8)
-      return false; //Currently works only on IA-32e
-
-   /**
+   /**********
     * Check parameters
-    **/
+    **********/
+   Register newreg = Null_Register;
    if (loadExpr != Null_Register && storeExpr != Null_Register) 
       return false; //Can only do one memory replace per instruction now
    else if (loadExpr == Null_Register && storeExpr == Null_Register) 
@@ -4006,250 +4196,162 @@ bool instruction::generateMem(codeGen &gen,
    else if (loadExpr == Null_Register && storeExpr != Null_Register) 
       newreg = storeExpr;
 
-   ia32_instruction orig_instr(memacc, &cond);
+   /********************************
+    * Section 1.  Read the instruction into our internal data structures.
+    ********************************/
+   GET_PTR(insnBuf, gen);
+   const unsigned char *insn_ptr = ptr();
+
+   struct ia32_memacc memacc[3];
+   struct ia32_condition cond;
+   struct ia32_locations loc;
+
+   ia32_entry *entry;
+   ia32_instruction orig_instr(memacc, &cond, &loc);
    ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
                insn_ptr, orig_instr);
-   ia32_entry *entry = orig_instr.getEntry();
-   num_prefixes = orig_instr.getPrefixCount();
+   entry = orig_instr.getEntry();
 
-   /**
-    * Look through the operands and see if we have a memory access.
-    **/
-   for (unsigned i=0; i<3; i++) {
-      if (entry->operands[i].admet == am_E ||
-          entry->operands[i].admet == am_M) {
-         modrm_operand = i;
-         break;
-      }
+   if (gen.proc()->getAddressWidth() != 8)
+      //Currently works only on IA-32e
+      return false; 
+
+   if (orig_instr.getPrefix()->getPrefix(1) != 0)
+      //The instruction accesses memory via segment registers.  Disallow.
+      return false;
+   
+   if (loc.modrm_position == -1)
+      //Only supporting MOD/RM instructions now
+      return false; 
+
+   if (loc.address_size == 1)
+      //Don't support 16-bit instructions yet
+      return false;
+
+   if (loc.modrm_reg == 4 && !loc.rex_r) {
+      //The non-memory access register is %rsp/%esp, we can't work with
+      // this register due to our register saving techniques.
+      return false;
    }
 
-   if (orig_instr.getPrefix()->getPrefix(1) != 0) {
-      //The instruction accesses memory via segment registers.  Disallow.
+   if (loc.modrm_mod == 3) {
+      //This instruction doesn't use the MOD/RM to access memory
       return false;
    }
    
-   if (modrm_operand != -1) {
-      opcode_size = orig_instr.getOpcodeSize();
-      address_size = memacc[modrm_operand].addr_size;
-
-      if (address_size == 1) {
-         //Don't yet handle 16 bit MODR/Ms
-         return false;
-      }
-
-      /**
-       * Parse any REX prefix
-       **/
-      rex_byte = orig_instr.getPrefix()->getPrefix(4);
-      if (rex_byte) {
-         for (int i=0; i<num_prefixes; i++)
-            if (insn_ptr[i] == rex_byte) {
-               rex_position = i;
-               break;
-            }
-         rex_w = orig_instr.getPrefix()->rexW();
-         rex_r = orig_instr.getPrefix()->rexR();
-         rex_x = orig_instr.getPrefix()->rexX();
-         rex_b = orig_instr.getPrefix()->rexB();
-      }
-
-      /**
-       * Get the Mod/RM byte
-       **/
-      modrm_position = num_prefixes + opcode_size;
-      modrm_byte = insn_ptr[modrm_position];
-      int mod = MODRM_MOD(modrm_byte);
-      int rm = MODRM_RM(modrm_byte);
-      int reg = MODRM_REG(modrm_byte);
-
-      /**
-       * Do we use an SIB byte? (Used to build index accesses i.e: 0x100(%eax,%ecx,4))
-       **/
-      if (rm == 4 && address_size != 1) //We use a SIB
-      {
-         sib_position = modrm_position + 1;
-         sib_byte = insn_ptr[sib_position]; 
-      }
-      
-      /**
-       * Parse the MOD part of the byte (this tells us the base register being used)
-       **/
-      switch (mod) {
-         case 0: //(%reg).
-            /**
-             * An exception to the (%reg) occurs when rm == 6 in 16 bit addressing
-             * and rm == 5 in 32 bit addressing.  In these cases the MOD/RM encodes
-             * a raw 16 or 32 bit displacement.
-             **/
-            if (rm == 6 && address_size == 1) {
-               disp_size = 2;
-               disp_position = (sib_position ? sib_position : modrm_position) + 1;
-            }
-            else if (rm == 5 && address_size != 1) {
-               disp_size = 4;
-               disp_position = (sib_position ? sib_position : modrm_position) + 1;
-            }
-            break;
-         case 1: //(%reg)+disp8.
-            disp_size = 1;
-            disp_position = (sib_position ? sib_position : modrm_position) + 1;
-            break;
-         case 2://(%reg)+dispX
-            if (address_size == 1)
-               disp_size = 2;
-            else if (address_size == 2 || address_size == 4)
-               disp_size = 4;
-            disp_position = (sib_position ? sib_position : modrm_position) + 1;
-            break;
-         case 3://%reg - doesn't use memory.
-            return false;
-            break;
-      }
-      
-      if (reg == 4 && !rex_r) {
-         //The non-memory access register is %rsp/%esp, we can't work with
-         // this register due to our register saving techniques.
-         return false;
-      }
-
-      /**
-       * Parse out any immediate value
-       **/
-      for (unsigned i=0; i<3; i++) {
-         if (entry->operands[i].admet == am_I) {
-            int opr_size = getOperSz(*orig_instr.getPrefix());
-            imm_size = type2size(entry->operands[i].optype, opr_size);
-
-            if (disp_position)
-               imm_position = disp_position + disp_size;
-            else if (sib_position)
-               imm_position = sib_position + 1;
-            else if (modrm_position)
-               imm_position = modrm_position + 1;
-            else
-               imm_position = num_prefixes + opcode_size + 1;
-         }
-      }
-      
-      /*********************************
-       * Section 2.  We understand the instruction.  Output it
-       *********************************/
-      int emit_displacement = 0;
-      int emit_mod = 0;
-      int emit_sib = 0;
-      int new_sib = 0;
-
-      unsigned char *walker = insnBuf;
-
-      /**
-       * Handle two special cases, where we emit a memory instruction
-       * that loads from/to RBP/R13 or RSP/R12
-       **/
-      if (newreg == REGNUM_RBP || newreg == REGNUM_R13) {
-         //You can't encode rbp or r13 normally i.e. 'mov (%r13)->%rax'
-         // Instead we encode using a displacement, so 'mov 0(%r13)->%rax'
-         emit_displacement = 1;
-         emit_mod = 1; //1 encodes the 0(%reg) format
-      }
-
-      if (newreg == REGNUM_RSP || newreg == REGNUM_R12) {
-         //You can't encode rsp or r12 normally.  We'll emit a SIB instruction.
-         // So instead of 'mov (%r12)->%rax' we'll emit 'mov (%r12,0,0)->%rax
-         emit_sib = 1;
-         SIB_SET_REG(new_sib, newreg & 7);
-         SIB_SET_INDEX(new_sib, newreg & 4); //4 encodes to no-index
-         //SIB_SET_SS(new_sib, 0); //Gives gcc warning statement w/ no effect
-         rex_x = 0; //If we emit a rex, don't extend the index.
-      }
-
-      /**
-       * Emit prefixes
-       **/
-      unsigned char new_rex = 0;
-
-      //Emit all prefixes except for rex
-      for (int i=0; i<num_prefixes; i++) {
-         if (i != rex_position)
-            *walker++ = insn_ptr[i];
-      }
-
-      //Emit the rex
-      if (rex_position != -1 || (newreg & 8)) {
-         //If there was no REX byte, and the high bit of the new register
-         // is set, then we'll need to make a rex byte to encode that high bit.
-         rex_b = newreg & 8;
-         REX_INIT(new_rex);
-         REX_SET_W(new_rex, rex_w);
-         REX_SET_R(new_rex, rex_r);
-         REX_SET_X(new_rex, rex_x);
-         REX_SET_B(new_rex, rex_b); 
-         *walker++ = new_rex;
-      }
-
-      /**
-       * Copy opcode
-       **/
-      for (int i=num_prefixes; i<num_prefixes+opcode_size; i++) {
+   /*********************************
+    * Section 2.  We understand the instruction.  Output it
+    *********************************/
+   int emit_displacement = 0;
+   int emit_mod = 0;
+   int emit_sib = 0;
+   int new_sib = 0;
+   
+   unsigned char *walker = insnBuf;
+   
+   /**
+    * Handle two special cases, where we emit a memory instruction
+    * that loads from/to RBP/R13 or RSP/R12
+    **/
+   if (newreg == REGNUM_RBP || newreg == REGNUM_R13) {
+      //You can't encode rbp or r13 normally i.e. 'mov (%r13)->%rax'
+      // Instead we encode using a displacement, so 'mov 0(%r13)->%rax'
+      emit_displacement = 1;
+      emit_mod = 1; //1 encodes the 0(%reg) format
+   }
+   
+   if (newreg == REGNUM_RSP || newreg == REGNUM_R12) {
+      //You can't encode rsp or r12 normally.  We'll emit a SIB instruction.
+      // So instead of 'mov (%r12)->%rax' we'll emit 'mov (%r12,0,0)->%rax
+      emit_sib = 1;
+      SIB_SET_REG(new_sib, newreg & 7);
+      SIB_SET_INDEX(new_sib, newreg & 4); //4 encodes to no-index
+      //SIB_SET_SS(new_sib, 0); //Gives gcc warning statement w/ no effect
+      loc.rex_x = 0; //If we emit a rex, don't extend the index.
+   }
+   
+   /**
+    * Emit prefixes
+    **/
+   unsigned char new_rex = 0;
+   
+   //Emit all prefixes except for rex
+   for (int i=0; i<loc.num_prefixes; i++) {
+      if (i != loc.rex_position)
          *walker++ = insn_ptr[i];
-      }
-
-      /**
-       * Emit MOD/RM byte
-       **/
-      unsigned char new_modrm = 0;
-      MODRM_SET_MOD(new_modrm, emit_mod); 
-      MODRM_SET_RM(new_modrm, newreg & 7); //The new register replacing the memaccess
-                                           // Only the bottom 3 bits go here
-      MODRM_SET_REG(new_modrm, reg); //The bottom old register
-      *walker++ = new_modrm;
-
-      /**
-       * Emit SIB byte
-       **/
-      if (emit_sib) {
-         *walker++ = new_sib;
-      }
-
-      /**
-       * Emit displacement
-       **/
-      if (emit_displacement) {
-         *walker++ = 0x0; //We only need 0 displacements now.
-      }
-      
-      /**
-       * Emit immediate
-       **/
-      for (int i=0; i<imm_size; i++)
-      {
-         *walker++ = insn_ptr[imm_position + i];
-      }
-
-      /*
-      //Debug output.  Fix the end of testdump.c, compile it, the do an
-      // objdump -D
-      static FILE *f = NULL;
-      if (f == NULL)
-      {
-         f = fopen("testdump.c", "w+");
-         if (!f)
-            perror("Couldn't open");
-         fprintf(f, "char buffer[] = {\n");
-      }
-      fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");
-      for (unsigned i=0; i<orig_instr.getSize(); i++) {
-         fprintf(f, "%u, ", (unsigned) insn_ptr[i]);
-      }
-      fprintf(f, "\n");
-      for (int i=0; i<(walker-insnBuf); i++) {
-        fprintf(f, "%u, ", (unsigned) insnBuf[i]);
-      }
-      fprintf(f, "\n");
-      fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");
-      return true;
-      */
+   }
+   
+   //Emit the rex
+   if (loc.rex_position != -1 || (newreg & 8)) {
+      //If there was no REX byte, and the high bit of the new register
+      // is set, then we'll need to make a rex byte to encode that high bit.
+      loc.rex_b = newreg & 8;
+      REX_INIT(new_rex);
+      REX_SET_W(new_rex, loc.rex_w);
+      REX_SET_R(new_rex, loc.rex_r);
+      REX_SET_X(new_rex, loc.rex_x);
+      REX_SET_B(new_rex, loc.rex_b); 
+      *walker++ = new_rex;
+   }
+   
+   /**
+    * Copy opcode
+    **/
+   for (int i=loc.num_prefixes; i<loc.num_prefixes+(int)loc.opcode_size; i++) {
+      *walker++ = insn_ptr[i];
+   }
+   
+   /**
+    * Emit MOD/RM byte
+    **/
+   unsigned char new_modrm = 0;
+   MODRM_SET_MOD(new_modrm, emit_mod); 
+   MODRM_SET_RM(new_modrm, newreg & 7); //The new register replacing the memaccess
+   // Only the bottom 3 bits go here
+   MODRM_SET_REG(new_modrm, loc.modrm_reg); //The bottom old register
+   *walker++ = new_modrm;
+   
+   /**
+    * Emit SIB byte
+    **/
+   if (emit_sib) {
+      *walker++ = new_sib;
+   }
+   
+   /**
+    * Emit displacement
+    **/
+   if (emit_displacement) {
+      *walker++ = 0x0; //We only need 0 displacements now.
+   }
+   
+   /**
+    * Emit immediate
+    **/
+   for (unsigned i=0; i<loc.imm_size; i++)
+   {
+      *walker++ = insn_ptr[loc.imm_position + i];
    }
 
-
-   return false; 
+   //Debug output.  Fix the end of testdump.c, compile it, the do an
+   // objdump -D
+   /*   static FILE *f = NULL;
+   if (f == NULL)
+   {
+      f = fopen("testdump.c", "w+");
+      if (!f)
+         perror("Couldn't open");
+      fprintf(f, "char buffer[] = {\n");
+   }
+   fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");
+   for (unsigned i=0; i<orig_instr.getSize(); i++) {
+      fprintf(f, "%u, ", (unsigned) insn_ptr[i]);
+   }
+   fprintf(f, "\n");
+   for (int i=0; i<(walker-insnBuf); i++) {
+      fprintf(f, "%u, ", (unsigned) insnBuf[i]);
+   }
+   fprintf(f, "\n");
+   fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");*/
+   return true;
 }

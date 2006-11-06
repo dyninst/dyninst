@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.49 2006/10/23 23:18:31 legendre Exp $
+// $Id: arch-x86.h,v 1.50 2006/11/06 23:15:00 legendre Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
+#include <common/h/Vector.h>
 
 #if !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
@@ -413,10 +414,53 @@ struct sIBByte {
 };
 
 
+/**
+ * This structure can be passed to ia32_decode to have it fill in the 
+ * locations of where it found the individual parts of an instruction.
+ **/
+typedef struct ia32_locations {
+   ia32_locations() : num_prefixes(0), opcode_size(0), opcode_position(-1),
+        disp_size(0), disp_position(-1), imm_position(-1), imm_size(0),
+        modrm_position(-1), modrm_operand(-1), modrm_byte(0), modrm_mod(0),
+        modrm_rm(0), modrm_reg(0), sib_byte(0), sib_position(-1), 
+        rex_position(-1), rex_byte(0), rex_w(0), rex_r(0), rex_x(0), rex_b(0),
+        address_size(0) {}
+   int num_prefixes;
+   unsigned opcode_size;
+   int opcode_position;
+   
+   unsigned disp_size;
+   int disp_position;
+
+   int imm_position;
+   unsigned imm_size;
+   
+   int modrm_position;
+   int modrm_operand;
+   unsigned char modrm_byte;
+   unsigned char modrm_mod;
+   unsigned char modrm_rm;
+   unsigned char modrm_reg;
+
+   unsigned char sib_byte;
+   int sib_position;
+   
+   int rex_position;
+   unsigned char rex_byte;
+   unsigned char rex_w;
+   unsigned char rex_r;
+   unsigned char rex_x;
+   unsigned char rex_b;
+
+   int address_size;
+} ia32_locations;
+
 class ia32_prefixes
 {
-  friend bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
-  friend bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes&);
+  friend bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&,
+                                   ia32_locations *loc);
+  friend bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes&,
+                              ia32_locations *loc);
  private:
   unsigned int count;
   // At most 4 prefixes are allowed for Intel 32-bit CPUs
@@ -536,7 +580,8 @@ struct ia32_condition
   void set(int _tttn) { is = true; tttn = _tttn; }
 };
 
-bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
+bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&,
+                          ia32_locations *loc = NULL);
 
 
 struct ia32_operand {  // operand as given in Intel book tables
@@ -587,14 +632,15 @@ class ia32_instruction
   ia32_memacc    *mac;
   ia32_condition *cond;
   ia32_entry     *entry;
+  ia32_locations *loc;
   unsigned int   legacy_type;
   bool           rip_relative_data;
-  unsigned char  opcode_size;
 
 
  public:
-  ia32_instruction(ia32_memacc* _mac = NULL, ia32_condition* _cnd = NULL)
-    : mac(_mac), cond(_cnd), entry(NULL), rip_relative_data(false) {}
+  ia32_instruction(ia32_memacc* _mac = NULL, ia32_condition* _cnd = NULL,
+                   ia32_locations *loc_ = NULL)
+    : mac(_mac), cond(_cnd), entry(NULL), loc(loc_), rip_relative_data(false) {}
 
   ia32_entry * getEntry() { return entry; }
   unsigned int getSize() const { return size; }
@@ -604,7 +650,7 @@ class ia32_instruction
   bool hasRipRelativeData() const { return rip_relative_data; }
   const ia32_memacc& getMac(int which) const { return mac[which]; }
   const ia32_condition& getCond() const { return *cond; }
-  int getOpcodeSize() const { return opcode_size; }
+  const ia32_locations& getLocationInfo() const { return *loc; }
 };
 
 // VG(02/07/2002): Information that the decoder can return is
@@ -753,6 +799,7 @@ class instruction {
                 Address fallthroughOverride = 0,
                 Address targetOverride = 0);
 
+  bool getUsedRegs(pdvector<int> &regs);
   bool generateMem(codeGen &gen,
                    Address origAddr,
                    Address newAddr,
