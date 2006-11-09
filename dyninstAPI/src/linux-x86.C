@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.116 2006/10/30 22:14:09 legendre Exp $
+// $Id: linux-x86.C,v 1.117 2006/11/09 17:16:13 bernat Exp $
 
 #include <fstream>
 
@@ -1548,10 +1548,17 @@ int Emitter32::emitCallParams(codeGen &gen,
 {
     pdvector <Register> srcs;
     unsigned frame_size = 0;
-    for (unsigned u = 0; u < operands.size(); u++)
-        srcs.push_back((Register)operands[u]->generateCode_phase2(gen,
-                                                                  noCost,
-                                                                  ifForks));
+    for (unsigned u = 0; u < operands.size(); u++) {
+        Address unused = ADDR_NULL;
+        Register reg = REG_NULL;
+        if (!operands[u]->generateCode_phase2(gen,
+                                              noCost,
+                                              ifForks,
+                                              unused,
+                                              reg)) assert(0); // ARGH....
+        assert (reg != REG_NULL); // Give me a real return path!
+        srcs.push_back(reg);
+    }
     
     // push arguments in reverse order, last argument first
     // must use int instead of unsigned to avoid nasty underflow problem:
@@ -1568,8 +1575,9 @@ bool Emitter32::emitCallCleanup(codeGen &gen,
                                 int frame_size, 
                                 pdvector<Register> &/*extra_saves*/)
 {
-   emitOpRegImm(0, REGNUM_ESP, frame_size, gen); // add esp, frame_size
-   return true;
+    if (frame_size)
+        emitOpRegImm(0, REGNUM_ESP, frame_size, gen); // add esp, frame_size
+    return true;
 }
 
 Frame process::preStackWalkInit(Frame startFrame) 

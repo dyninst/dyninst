@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.251 2006/10/16 20:17:27 bernat Exp $
+ * $Id: inst-power.C,v 1.252 2006/11/09 17:16:11 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -300,7 +300,14 @@ void initTramps(bool is_multithreaded)
 
     conservativeRegSpace->initFloatingPointRegisters(sizeof(floatingLiveRegList)/sizeof(Register), 
 					floatingLiveRegList);
+    fprintf(stderr, "regSpace %p, conservativeRegSpace %p\n", regSpace, conservativeRegSpace);
+}
 
+registerSpace *registerSpace::conservativeRegSpace(instPoint *) {
+    return new registerSpace(sizeof(conservativeDeadRegList)/sizeof(Register),
+                             conservativeDeadRegList, 
+                             sizeof(conservativeLiveRegList)/sizeof(Register),
+                             conservativeLiveRegList);
 }
 
 /*
@@ -798,7 +805,6 @@ unsigned saveFPRegisters(codeGen &gen,
                          registerSpace * theRegSpace,
                          int save_off)
 {
-  
   unsigned numRegs = 0;
   for(u_int i = 0; i < theRegSpace->getFPRegisterCount(); i++) {
     registerSlot *reg = theRegSpace->getFPRegSlot(i);
@@ -806,10 +812,10 @@ unsigned saveFPRegisters(codeGen &gen,
       saveFPRegister(gen, reg->number, save_off);
       numRegs++;
     }
-  }
+  }  
   
   return numRegs;
-  
+    
   /*
   unsigned numRegs = 0;
     for (unsigned i = 0; i <= 13; i++) {
@@ -829,7 +835,7 @@ unsigned saveFPRegisters(codeGen &gen,
 unsigned restoreFPRegisters(codeGen &gen, 
                             registerSpace *theRegSpace,
                             int save_off)
-{
+    {
   
   unsigned numRegs = 0;
   for(u_int i = 0; i < theRegSpace->getFPRegisterCount(); i++) {
@@ -1048,9 +1054,10 @@ bool baseTramp::generateMTCode(codeGen &gen,
     }
     else {
         threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
-        src = threadPOS->generateCode(gen,
-                                      false, // noCost 
-                                      true); // root node
+        if (!threadPOS->generateCode(gen,
+                                     false, // noCost 
+                                     true, // root node
+                                     src)) return false;
         if ((src) != REG_MT_POS) {
             // This is always going to happen... we reserve REG_MT_POS, so the
             // code generator will never use it as a destination
@@ -1336,6 +1343,7 @@ bool clobberAllFuncCall( registerSpace *rs,
 Register emitFuncCall(opCode, registerSpace *, codeGen &, pdvector<AstNode *> &, process *, bool, Address, 
 					  const pdvector<AstNode *> &, const instPoint *) {
 	assert(0);
+        return 0;
 }
 
 Register emitFuncCall(opCode /* ocode */, 
@@ -1380,8 +1388,12 @@ Register emitFuncCall(opCode /* ocode */,
          
          instruction::generateImm(gen, CALop, dummyReg, 0, 0);
       }
-      srcs.push_back(operands[u]->generateCode_phase2(gen,
-                                                      false, ifForks));
+
+      Register src = REG_NULL;
+      Address unused = ADDR_NULL;
+      if (!operands[u]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+      assert(src != REG_NULL);
+      srcs.push_back(src);
       //bperr( "Generated operand %d, base %d\n", u, base);
    }
 
@@ -2489,38 +2501,6 @@ bool registerSpace::beenSavedFP(Register reg)
   }
   assert(0 && "Unreachable");
   return false;
-}
-
-
-//
-// This is specific to some processors that have info in registers that we
-//   can read, but should not write.
-//   On power, registers r3-r11 are parameters that must be read only.
-//     However, sometimes we have spilled to paramter registers back to the
-//     stack to use them as scratch registers.  In this case they are writeable.
-//
-bool registerSpace::readOnlyRegister(Register reg_number) 
-{
-    registerSlot *regSlot = NULL;
-
-    // it's not a parameter registers so it is read/write
-    if ((reg_number > 11) || (reg_number < 3)) return false;
-
-    // find the registerSlot for this register.
-    for (u_int i = 0; i < regSpace->getRegisterCount(); i++) {
-	regSlot = regSpace->getRegSlot(i);
-	if (regSlot->number == reg_number) {
-	    break;
-	}
-    }
-
-    if (regSlot->mustRestore) {
-	// we have already wrriten this to the stack so its OK to clobber it.
-	return(false);
-    } else {
-	// its a live parameter register.
-        return true;
-    }
 }
 
 bool doNotOverflow(int value)

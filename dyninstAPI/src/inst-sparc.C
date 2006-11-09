@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.188 2006/10/16 20:17:28 bernat Exp $
+// $Id: inst-sparc.C,v 1.189 2006/11/09 17:16:12 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -228,6 +228,13 @@ void initTramps(bool is_multithreaded)
     regSpaceIRPC = new registerSpace(dead_reg_count, deadList, 0, NULL,
                                  is_multithreaded);
     assert(regSpace);
+}
+
+registerSpace *registerSpace::conservativeRegSpace(instPoint *) {
+    Register liveList[10] = { 16, 17, 18, 19, 20, 21, 22, 0, 0, 0 };
+    unsigned live_reg_count = 7;
+
+    return new registerSpace(0, NULL, live_reg_count, liveList);
 }
 
 /****************************************************************************/
@@ -450,24 +457,6 @@ bool isBranchInsn(instruction instr) {
                 && ((*instr).branch.op2 == 2 || (*instr).branch.op2 == 6)) 
           return true;
     return false;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-// Certain registers (i0-i7 on a SPARC) may be available to be read
-// as an operand, but cannot be written.
-bool registerSpace::readOnlyRegister(Register /*reg_number*/) {
-// -- this code removed, since it seems incorrect
-//if ((reg_number < REG_L(0)) || (reg_number > REG_L(7)))
-//    return true;
-//else
-      return false;
 }
 
 /****************************************************************************/
@@ -761,9 +750,10 @@ bool baseTramp::generateMTCode(codeGen &gen,
     }    
     else {
         threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
-        src = threadPOS->generateCode(gen,
-                                      false, // noCost 
-                                      true); // root node
+        if (!threadPOS->generateCode(gen,
+                                     false, // noCost 
+                                     true, // root node
+                                     src)) return false;
         if ((src) != REG_MT_POS) {
             // This is always going to happen... we reserve REG_MT_POS, so the
             // code generator will never use it as a destination
@@ -1086,9 +1076,13 @@ Register emitFuncCall(opCode op,
      assert(0);
    }
  
-   for (unsigned u = 0; u < operands.size(); u++)
-       srcs.push_back(operands[u]->generateCode_phase2(gen,
-                                                       noCost, ifForks));
+   for (unsigned u = 0; u < operands.size(); u++) {
+       Register src = REG_NULL;
+       Address unused = ADDR_NULL;
+       if (!operands[u]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+       assert(src != REG_NULL);
+       srcs.push_back(src);
+   }
    
    for (unsigned u=0; u<srcs.size(); u++){
       if (u >= 5) {
@@ -1146,9 +1140,13 @@ Register emitFuncCall(opCode op,
      assert(0);
    }
  
-   for (unsigned u = 0; u < operands.size(); u++)
-       srcs.push_back(operands[u]->generateCode_phase2(gen,
-                                                       noCost, ifForks));
+   for (unsigned u = 0; u < operands.size(); u++) {
+       Register src = REG_NULL;
+       Address unused = ADDR_NULL;
+       if (!operands[u]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+       assert(src != REG_NULL);
+       srcs.push_back(src);
+   }
    
    for (unsigned u=0; u<srcs.size(); u++){
       if (u >= 5) {

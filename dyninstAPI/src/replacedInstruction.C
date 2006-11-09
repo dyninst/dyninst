@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.C,v 1.3 2006/10/12 02:44:15 bernat Exp $
+// $Id: replacedInstruction.C,v 1.4 2006/11/09 17:16:15 bernat Exp $
 
 #include "multiTramp.h"
 #include "process.h"
@@ -88,12 +88,23 @@ bool replacedInstruction::generateCode(codeGen &gen,
 
     gen.setPoint(point());
 
+    // Build a registerSpace to be used during code generation. For
+    // now, just assume everything is live. TODO: pull out the
+    // instPoint-stored register information
+
+    registerSpace *localRegSpace = registerSpace::conservativeRegSpace(point());
+    gen.setRegisterSpace(localRegSpace);
+
     int cost = 0;
     unsigned start = gen.used();
     addrInMutatee_ = baseInMutatee + start;
-    ast_->generateCode(gen, true, true);
+
+    if (!ast_->generateCode(gen, true, true)) return false;
     //ast_->generateTramp(proc(), point(), gen, &cost, false);
     size_ = gen.used() - start;
+
+    gen.setRegisterSpace(NULL);
+    free(localRegSpace);
 
     generated_ = true;
     hasChanged_ = false;

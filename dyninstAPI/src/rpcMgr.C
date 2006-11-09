@@ -805,9 +805,13 @@ Address rpcMgr::createRPCImage(AstNode *action,
              << endl;
         return 0;
     }
-
-    resultReg = (Register)action->generateCode(irpcBuf,
-                                               noCost, true);
+    
+    Address unused = ADDR_NULL;
+    resultReg = REG_NULL;
+    if (!action->generateCode(irpcBuf,
+                              noCost, true,
+                              unused,
+                              resultReg)) assert(0);
     
     if (!shouldStopForResult) {
         regSpace->freeRegister(resultReg);

@@ -204,8 +204,10 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 	assert( location->func()->getFramePointerCalculator() != NULL );			
 			
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
-	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode(gen, false, true);
-			
+
+	Register framePointer = REG_NULL;
+	location->func()->getFramePointerCalculator()->generateCode(gen, false, true, framePointer);
+
 	instruction_x longConstant = generateLongConstantInRegister( src2, src1 );
 	instruction calculateAddress = generateArithmetic( plusOp, framePointer, src2, framePointer ); 
 	instruction loadFromAddress = generateRegisterLoad( dest, framePointer, size );
@@ -265,8 +267,9 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 	assert( location->func()->getFramePointerCalculator() != NULL );
 
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
-	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( gen, false, true );
-			
+	Register framePointer = REG_NULL;
+	location->func()->getFramePointerCalculator()->generateCode( gen, false, true, framePointer);
+
 	instruction memoryNop( NOP_M );
 	instruction integerNop( NOP_I );
 
@@ -348,7 +351,11 @@ Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
   /* Generate the code for the arguments. */
   pdvector< Register > sourceRegisters;
   for( unsigned int i = 0; i < operands.size(); i++ ) {
-	sourceRegisters.push_back( operands[i]->generateCode_phase2( gen, false, ifForks ) );
+	  Register src = REG_NULL;
+	  Address unused = ADDR_NULL;
+	  if (!operands[i]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+	  assert(src != REG_NULL);
+	  sourceRegisters.push_back(src);
   }
 
   /* source-to-output register copy */
@@ -436,6 +443,13 @@ void initTramps( bool /* is_multithreaded */ ) {
   regSpace = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
   regSpaceIRPC = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
 } /* end initTramps() */
+
+registerSpace *registerSpace::conservativeRegSpace(instPoint *) {
+	// Errrr....
+	assert(0 && "Implement me!");
+	return NULL;
+}
+
 
 /* Required by ast.C */
 void emitV( opCode op, Register src1, Register src2, Register dest,
@@ -2794,8 +2808,9 @@ bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
 	  AstNode * threadPos = AstNode::funcCallNode( "DYNINSTthreadIndex", dummy );
 	  assert( threadPos != NULL );
 	  
-	  Register src = threadPos->generateCode(gen, 
-											 false /* no cost */, true /* root node */ );
+	  Register src = REG_NULL;
+	  if (!threadPos->generateCode(gen, 
+								   false /* no cost */, true /* root node */, src )) return false;
 	  
 	  /* Ray: I'm asserting that we don't use the 35th preserved register for anything. */
 	  emitRegisterToRegisterCopy( src, CALCULATE_KTI_REGISTER, gen, rs );
@@ -3238,8 +3253,9 @@ void emitVstore( opCode op, Register src1, Register src2, Address dest,
 	assert( location->func()->getFramePointerCalculator() != NULL );			
 
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
-	Register framePointer = (Register) location->func()->getFramePointerCalculator()->generateCode( gen, false, true );
-
+	Register framePointer = REG_NULL;
+	location->func()->getFramePointerCalculator()->generateCode( gen, false, true, 
+																 framePointer);
 	/* See the frameAddr case in emitVload() for an optimization. */
 	instruction memoryNop( NOP_M );
 	instruction_x loadOffset = generateLongConstantInRegister( src2, dest );

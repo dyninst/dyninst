@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.162 2006/10/18 16:06:32 legendre Exp $
+// $Id: pdwinnt.C,v 1.163 2006/11/09 17:16:14 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1946,7 +1946,8 @@ int Emitter32::emitCallParams(codeGen &gen,
     int estimatedFrameSize = 0;
     pdvector <Register> srcs;
     bool result;
-    Register ecx_target = 0, edx_target = 0;
+    Register ecx_target = REG_NULL, edx_target = REG_NULL;
+    Address unused = ADDR_NULL;
     const int num_operands = operands.size();
 
     switch (call_conven) {
@@ -1955,61 +1956,71 @@ int Emitter32::emitCallParams(codeGen &gen,
         case stdcall_call:
           //Push all registers onto stack
           for (unsigned u = 0; u < operands.size(); u++) {
-             srcs.push_back((Register)operands[u]->generateCode_phase2(gen, 
-                                                     noCost, ifForks));
+              Register src = REG_NULL;
+              Address unused = ADDR_NULL;
+              if (!operands[i]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+              assert(src != REG_NULL);
+              srcs.push_back(src);
           }
           break;
-        case thiscall_call:
-            //Allocate the ecx register for the 'this' parameter
-            if (num_operands) {
-              result = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
-              if (!result) {
-                  emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
-              }
-              ecx_target = (Register) operands[0]->generateCode_phase2(gen, 
-                                                                       noCost, 
-                                                                       ifForks);
+    case thiscall_call:
+        //Allocate the ecx register for the 'this' parameter
+        if (num_operands) {
+            result = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
+            if (!result) {
+                emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
             }
-
-            //Push other registers onto the stack
-            for (unsigned u = 1; u < operands.size(); u++) {
-                srcs.push_back((Register)operands[u]->generateCode_phase2(gen, 
-                                                         noCost, ifForks));
-            }     
-            break;
-        case fastcall_call:
-            if (num_operands) {
-                //Allocate the ecx register for the first parameter
-                result = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
-                if (!result) {
-                    emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
-                }
+            if (!operands[0]->generateCode_phase2(gen, 
+                                                  noCost, 
+                                                  ifForks, unused, ecx_target)) assert(0);
+        }
+        
+        //Push other registers onto the stack
+        for (unsigned u = 1; u < operands.size(); u++) {
+              Register src = REG_NULL;
+              Address unused = ADDR_NULL;
+              if (!operands[i]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+              assert(src != REG_NULL);
+              srcs.push_back(src);
+        }     
+        break;
+    case fastcall_call:
+        if (num_operands) {
+            //Allocate the ecx register for the first parameter
+            ecx_target = gen.rs()->allocateSpecificRegister(gen, REGNUM_ECX, false);
+            if (!ecx_target) {
+                emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
             }
-            if (num_operands > 1) {
-               //Allocate the edx register for the second parameter
-               result = gen.rs()->allocateSpecificRegister(gen, REGNUM_EDX, false);
-               if (!result) {
-                  emitNeededCallSaves(gen, REGNUM_EDX, extra_saves);
-               }
+        }
+        if (num_operands > 1) {
+            //Allocate the edx register for the second parameter
+            edx_target = gen.rs()->allocateSpecificRegister(gen, REGNUM_EDX, false);
+            if (!edx_target) {
+                emitNeededCallSaves(gen, REGNUM_EDX, extra_saves);
             }
-            if (num_operands) {
-              ecx_target = (Register) operands[0]->generateCode_phase2(gen, 
-                                           noCost, ifForks);
-            }
-            if (num_operands > 1) {
-              edx_target = (Register) operands[1]->generateCode_phase2(gen, 
-                                           noCost, ifForks);
-            }
-
-            //Push other registers onto the stack
-            for (unsigned u = 2; u < operands.size(); u++) {
-                srcs.push_back((Register)operands[u]->generateCode_phase2(gen, 
-                                           noCost, ifForks));
-            }
-            break;
-        default:
-            fprintf(stderr, "Internal error.  Unknown calling convention\n");
-            assert(0);
+        }
+        if (num_operands) {
+            if (!operands[0]->generateCode_phase2(gen, 
+                                                  noCost, ifForks, 
+                                                  unused, ecx_target)) assert(0);
+        }
+        if (num_operands > 1) {
+            if (!operands[1]->generateCode_phase2(gen, 
+                                                  noCost, ifForks, unused, edx_target)) assert(0);
+        }
+        
+        //Push other registers onto the stack
+        for (unsigned u = 2; u < operands.size(); u++) {
+              Register src = REG_NULL;
+              Address unused = ADDR_NULL;
+              if (!operands[i]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+              assert(src != REG_NULL);
+              srcs.push_back(src);
+        }
+        break;
+    default:
+        fprintf(stderr, "Internal error.  Unknown calling convention\n");
+        assert(0);
     }
 
     // push arguments in reverse order, last argument first
