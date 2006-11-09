@@ -608,7 +608,7 @@ class BPatch_instruction;
 #endif
 #define DYNINST_CLASS_NAME BPatch_insnExpr
 
-class BPATCH_DLL_EXPORT BPatch_insnExpr : protected BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_insnExpr : public BPatch_snippet {
     //
     // BPatch_insnExpr::BPatch_insnExpr
     API_EXPORT_CTOR(Int, (insn),
