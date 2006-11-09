@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.15 2006/10/12 02:44:08 bernat Exp $
+ * $Id: emit-x86.h,v 1.16 2006/11/09 17:16:09 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -52,54 +52,14 @@
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/baseTramp.h"
 
+#include "dyninstAPI/src/emitter.h"
+
 class codeGen;
 class AstNode;
 class registerSpace;
 
-// class for encapsulating
-// platform dependent code generation functions
-class Emitter {
+// Emitter moved to emitter.h - useful on other platforms as well
 
- public:
-    virtual ~Emitter() {};
-    virtual codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen) = 0;
-    virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen) = 0;
-    virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
-			   codeGen &gen) = 0;
-    virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen) = 0;
-    virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
-    virtual void emitDiv(Register dest, Register src1, Register src2, codeGen &gen) = 0;
-    virtual void emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
-    virtual void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
-    virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen) = 0;
-    virtual void emitLoadConst(Register dest, Address imm, codeGen &gen) = 0;
-    virtual void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen) = 0;
-    virtual void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen) = 0;
-    virtual void emitLoadRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store) = 0;
-    virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
-    virtual void emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen) = 0;
-    virtual void emitStore(Address addr, Register src, codeGen &gen) = 0;
-    virtual void emitStoreIndir(Register addr_reg, Register src, codeGen &gen) = 0;
-    virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen) = 0;
-    virtual Register emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> &operands,
-			      bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks) = 0;
-    virtual void emitGetRetVal(Register dest, codeGen &gen) = 0;
-    virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen) = 0;
-    virtual void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen) = 0;
-    virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
-    virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
-    virtual void emitRestoreFlags(codeGen &gen) = 0;
-    virtual bool emitBTSaves(baseTramp* bt, codeGen &gen) = 0;
-    virtual bool emitBTRestores(baseTramp* bt, codeGen &gen) = 0;
-    virtual bool emitBTMTCode(baseTramp* bt, codeGen &gen) = 0;
-    virtual bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpIndex) = 0;
-    virtual bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex) = 0;
-    virtual bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue) = 0;
-    virtual int Register_DWARFtoMachineEnc(int n) = 0;
-};
-
-// current set of code generation functions
-extern Emitter* x86_emitter;
 
 // switches code generator to 32-bit mode
 void emit32();
@@ -107,8 +67,16 @@ void emit32();
 // switches code generator to 64-bit mode
 void emit64();
 
+class EmitterX86 : public Emitter {
+
+ public:
+    virtual ~EmitterX86() {};
+    virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
+
+};
+
 // 32-bit class declared here since its implementation is in both inst-x86.C and emit-x86.C
-class Emitter32 : public Emitter {
+class Emitter32 : public EmitterX86 {
 
 public:
     virtual ~Emitter32() {};
@@ -125,10 +93,13 @@ public:
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
-    void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen);
-    void emitLoadRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
+    bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
-    void emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen);
+    
+    void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
+    void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
+    void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
+
     void emitStore(Address addr, Register src, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
@@ -150,7 +121,9 @@ public:
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
-    void emitRestoreFlags(codeGen &gen);
+    void emitPushFlags(codeGen &gen);
+    void emitRestoreFlags(codeGen &gen, unsigned offset);
+    void emitRestoreFlagsFromStackSlot(codeGen &gen);
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
     bool emitBTMTCode(baseTramp* bt, codeGen &gen);
@@ -160,6 +133,10 @@ public:
     void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
 				  Register dest, codeGen &gen);
     int Register_DWARFtoMachineEnc(int n);
+
+    bool emitPush(codeGen &gen, Register pushee);
+    bool emitPop(codeGen &gen, Register popee);
+
 };
 
 // some useful 64-bit codegen functions
@@ -170,7 +147,7 @@ void emitPushReg64(Register src, codeGen &gen);
 void emitPopReg64(Register dest, codeGen &gen);
 
 #if defined(arch_x86_64)
-class Emitter64 : public Emitter {
+class Emitter64 : public EmitterX86 {
 
 public:
     virtual ~Emitter64() {};
@@ -187,10 +164,13 @@ public:
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
-    void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen);
-    void emitLoadRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
+    bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
-    void emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen);
+
+    void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
+    void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
+    void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
+
     void emitStore(Address addr, Register src, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
@@ -204,7 +184,9 @@ public:
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
-    void emitRestoreFlags(codeGen &gen);
+    void emitPushFlags(codeGen &gen);
+    void emitRestoreFlags(codeGen &gen, unsigned offset);
+    void emitRestoreFlagsFromStackSlot(codeGen &gen);
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
     bool emitBTMTCode(baseTramp* bt, codeGen &gen);
@@ -217,6 +199,9 @@ public:
        maps the number that DWARF reports for a register to the actual
        register number. */
     int Register_DWARFtoMachineEnc(int n);
+
+    bool emitPush(codeGen &gen, Register pushee);
+    bool emitPop(codeGen &gen, Register popee);
 };
 #endif
 
