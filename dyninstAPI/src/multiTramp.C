@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.61 2006/10/12 02:44:14 bernat Exp $
+// $Id: multiTramp.C,v 1.62 2006/11/09 17:16:20 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -973,6 +973,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         generatedMultiT_.allocate(size_required);
         generatedMultiT_.setProcess(proc());
         generatedMultiT_.setRegisterSpace(regSpace);
+        generatedMultiT_.setAddr(trampAddr_);
 
         // We don't want to generate the jump buffer until after
         // we've done the multiTramp; we may need to know
@@ -1373,6 +1374,10 @@ Address multiTramp::instToUninstAddr(Address addr) {
                     return point->addr();
             }
             // No match: bad data structures.
+            fprintf(stderr, "ERROR: data structures corrupted!\n");
+            fprintf(stderr, "Looking for 0x%lx\n", addr);
+            fprintf(stderr, "multiTramp %p reports being 0x%lx to 0x%lx, from 0x%lx to 0x%lx in orig func\n",
+                    this, trampAddr_, trampAddr_ + trampSize_, instAddr_, instAddr_ + instSize_);
             assert(0);
         }
         if (end) {
