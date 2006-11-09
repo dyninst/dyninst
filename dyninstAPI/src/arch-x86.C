@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.66 2006/11/06 23:14:59 legendre Exp $
+// $Id: arch-x86.C,v 1.67 2006/11/09 17:16:04 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -4332,26 +4332,62 @@ bool instruction::generateMem(codeGen &gen,
    {
       *walker++ = insn_ptr[loc.imm_position + i];
    }
-
+   
+   /**
+    * Emit MOD/RM byte
+    **/
+   unsigned char new_modrm = 0;
+   MODRM_SET_MOD(new_modrm, emit_mod); 
+   MODRM_SET_RM(new_modrm, newreg & 7); //The new register replacing the memaccess
+   // Only the bottom 3 bits go here
+   MODRM_SET_REG(new_modrm, reg); //The bottom old register
+   *walker++ = new_modrm;
+   
+   /**
+    * Emit SIB byte
+    **/
+   if (emit_sib) {
+       *walker++ = new_sib;
+   }
+   
+   /**
+    * Emit displacement
+    **/
+   if (emit_displacement) {
+       *walker++ = 0x0; //We only need 0 displacements now.
+   }
+   
+   /**
+    * Emit immediate
+    **/
+   for (int i=0; i<imm_size; i++) {
+       *walker++ = insn_ptr[imm_position + i];
+   }
+   
+   /*
    //Debug output.  Fix the end of testdump.c, compile it, the do an
    // objdump -D
-   /*   static FILE *f = NULL;
+   static FILE *f = NULL;
    if (f == NULL)
    {
-      f = fopen("testdump.c", "w+");
-      if (!f)
-         perror("Couldn't open");
-      fprintf(f, "char buffer[] = {\n");
+   f = fopen("testdump.c", "w+");
+   if (!f)
+   perror("Couldn't open");
+   fprintf(f, "char buffer[] = {\n");
    }
    fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");
    for (unsigned i=0; i<orig_instr.getSize(); i++) {
-      fprintf(f, "%u, ", (unsigned) insn_ptr[i]);
+   fprintf(f, "%u, ", (unsigned) insn_ptr[i]);
    }
    fprintf(f, "\n");
    for (int i=0; i<(walker-insnBuf); i++) {
-      fprintf(f, "%u, ", (unsigned) insnBuf[i]);
+   fprintf(f, "%u, ", (unsigned) insnBuf[i]);
    }
    fprintf(f, "\n");
-   fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");*/
+   fprintf(f, "144, 144, 144, 144, 144, 144, 144, 144, 144,\n");
+   return true;
+   */
+   SET_PTR(walker, gen);
    return true;
 }
+
