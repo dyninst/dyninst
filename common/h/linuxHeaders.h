@@ -249,7 +249,7 @@ inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int wor
 }
 // long int P_ptrace(int req, pid_t pid, Address addr, Address data, int word_len);
 #else
-inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int word_len = -1) {
+inline long int P_ptrace(int req, pid_t pid, Address addr, Address data, int = -1) {
 	return (ptrace((enum __ptrace_request)req, pid, addr, data));}
 #endif
 
