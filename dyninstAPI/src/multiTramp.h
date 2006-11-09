@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.18 2006/10/04 20:41:13 bernat Exp $
+// $Id: multiTramp.h,v 1.19 2006/11/09 17:16:21 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -370,6 +370,7 @@ class replacedInstruction : public relocatedCode {
         relocatedCode(),
         oldInsn_(prev->oldInsn_),
         ast_(NULL),
+        point_(prev->point_),
         multiT_(m) {
         ast_ = assignAst(prev->ast_);
     };
