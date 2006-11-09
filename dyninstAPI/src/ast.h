@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.92 2006/10/16 20:17:24 bernat Exp $
+// $Id: ast.h,v 1.93 2006/11/09 17:16:06 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -78,12 +78,13 @@ class AstNode {
                            ConstantString,
                            DataReg,
                            DataIndir,
-			   Param, 
+			   			   Param, 
                            ReturnVal, 
                            DataAddr,  // ?
                            FrameAddr, // Calculate FP 
                            RegOffset, // Calculate *reg + offset; oValue is reg, loperand->oValue is offset. 
                            PreviousStackFrameDataReg,
+						   RegValue, // A possibly spilled, possibly saved register.
                            undefOperandType };
 
         enum memoryType {
@@ -132,13 +133,33 @@ class AstNode {
         
         virtual ~AstNode();
         
-        virtual Address generateCode(codeGen &gen, 
-                                     bool noCost, 
-                                     bool root);
+        virtual bool generateCode(codeGen &gen, 
+                                  bool noCost, 
+                                  bool root,
+                                  Address &retAddr,
+                                  Register &retReg);
 
-        virtual Address generateCode_phase2(codeGen &gen,
-                                            bool noCost,
-                                            const pdvector<AstNode*> &ifForks);
+        // Can't use default references....
+        virtual bool generateCode(codeGen &gen, 
+                                  bool noCost, 
+                                  bool root);
+
+        // Can't use default references....
+        virtual bool generateCode(codeGen &gen, 
+                                  bool noCost, 
+                                  bool root,
+                                  Register &retReg) { 
+            Address unused = ADDR_NULL;
+            return generateCode(gen, noCost, root, unused, retReg);
+        }
+
+        // I don't know if there is an overload between address and register...
+        // so we'll toss in two different return types.
+        virtual bool generateCode_phase2(codeGen &gen,
+                                         bool noCost,
+                                         const pdvector<AstNode*> &ifForks,
+                                         Address &retAddr,
+                                         Register &retReg);
        
         bool previousComputationValid(Register &reg,
                                       const pdvector<AstNode *> &ifForks,
@@ -146,6 +167,7 @@ class AstNode {
         
         virtual AstNode *operand() const { return NULL; }
 	
+		virtual bool containsFuncCall() const { return false; }
 
 	enum CostStyleType { Min, Avg, Max };
 	int minCost() const {  return costHelper(Min);  }
@@ -253,9 +275,11 @@ class AstNullNode : public AstNode {
     AstNullNode() : AstNode() {};
 
  private:
-    virtual Address generateCode_phase2(codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
 };
 
 class AstLabelNode : public AstNode {
@@ -263,9 +287,11 @@ class AstLabelNode : public AstNode {
     AstLabelNode(pdstring &label) : AstNode(), label_(label), generatedAddr_(0) {};
 
  private:
-    virtual Address generateCode_phase2(codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
     pdstring label_;
     Address generatedAddr_;
 };
@@ -289,10 +315,15 @@ class AstOperatorNode : public AstNode {
 
     virtual void getChildren(pdvector<AstNode*> &children);
 
+	virtual bool containsFuncCall() const;
+
  private:
-    virtual Address generateCode_phase2(codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
+
     AstOperatorNode() {};
     opCode op;
     AstNode *loperand;
@@ -333,11 +364,15 @@ class AstOperandNode : public AstNode {
     virtual bool canBeKept() const;
         
     virtual void getChildren(pdvector<AstNode*> &children);
+
+	virtual bool containsFuncCall() const;
         
  private:
-        virtual Address generateCode_phase2(codeGen &gen,
-                                            bool noCost,
-                                            const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
 
     AstOperandNode() {};
     
@@ -368,10 +403,14 @@ class AstCallNode : public AstNode {
 
     virtual void getChildren(pdvector<AstNode*> &children);
 
+	virtual bool containsFuncCall() const { return true; }
+
  private:
-        virtual Address generateCode_phase2(codeGen &gen,
-                                            bool noCost,
-                                            const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
 
     AstCallNode() {};
     // Sometimes we just don't have enough information...
@@ -390,10 +429,14 @@ class AstReplacementNode : public AstNode {
 
     virtual bool canBeKept() const;
 
+    virtual bool containsFuncCall() const { return true; };
+
  private:
-        virtual Address generateCode_phase2(codeGen &gen,
-                                            bool noCost,
-                                            const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
 
     int_function *replacement;
     AstReplacementNode() {};
@@ -418,10 +461,14 @@ class AstSequenceNode : public AstNode {
 
     virtual void getChildren(pdvector<AstNode*> &children);
 
+	virtual bool containsFuncCall() const;
+
  private:
-        virtual Address generateCode_phase2(codeGen &gen,
-                                            bool noCost,
-                                            const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
 
     AstSequenceNode() {};
     pdvector<AstNode *> sequence_;
@@ -438,11 +485,12 @@ class AstInsnNode : public AstNode {
     virtual bool overrideLoadAddr(AstNode *) { return false; }
     virtual bool overrideStoreAddr(AstNode *) { return false; }
 
-
  protected:
-        virtual Address generateCode_phase2(codeGen &gen,
-                                            bool noCost,
-                                            const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
 
     AstInsnNode() {};
     instruction *insn_;
@@ -455,11 +503,15 @@ class AstInsnBranchNode : public AstInsnNode {
     AstInsnBranchNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), target_(NULL) {};
 
     virtual bool overrideBranchTarget(AstNode *t) { target_ = t; return true; }
+
+	virtual bool containsFuncCall() const;
     
  protected:
-    virtual Address generateCode_phase2(codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
     
     AstNode *target_;
 };
@@ -471,11 +523,14 @@ class AstInsnMemoryNode : public AstInsnNode {
     virtual bool overrideLoadAddr(AstNode *l) { load_ = l; return true; }
     virtual bool overrideStoreAddr(AstNode *s) { store_ = s; return true; }
     
+	virtual bool containsFuncCall() const;
 
  protected:
-    virtual Address generateCode_phase2(codeGen &gen,
-                                        bool noCost,
-                                        const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
     
     AstNode *load_;
     AstNode *store_;
@@ -500,6 +555,8 @@ class AstMiniTrampNode : public AstNode {
 
     virtual void getChildren(pdvector<AstNode*> &children);
 
+	virtual bool containsFuncCall() const;
+
  private:
     AstMiniTrampNode() {};
 
@@ -512,9 +569,11 @@ class AstMemoryNode : public AstNode {
     AstMemoryNode(memoryType mem, unsigned which);
 
  private:
-        virtual Address generateCode_phase2(codeGen &gen,
-                                            bool noCost,
-                                            const pdvector<AstNode*> &ifForks);
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     const pdvector<AstNode*> &ifForks,
+                                     Address &retAddr,
+                                     Register &retReg);
     
     AstMemoryNode() {};
     memoryType mem_;
