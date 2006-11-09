@@ -67,7 +67,7 @@
 #if defined(arch_x86_64)
 #include "emit-x86.h"
 #define DWARF_TO_MACHINE_ENC(n) \
-    (x86_emitter->Register_DWARFtoMachineEnc(n))
+    (code_emitter->Register_DWARFtoMachineEnc(n))
 #else
 #define DWARF_TO_MACHINE_ENC(n) (n)
 #endif

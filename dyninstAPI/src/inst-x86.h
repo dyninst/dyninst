@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.29 2006/10/10 22:04:03 bernat Exp $
+// $Id: inst-x86.h,v 1.30 2006/11/09 17:16:18 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -173,6 +173,11 @@
 #define REGNUM_R13 (13)
 #define REGNUM_R14 (14)
 #define REGNUM_R15 (15)
+
+// Let's define the flags register as a "fake" register number - so we
+// can treat it as a register entry in our registerSpace, and get all
+// that good "saved/restored/spilled" loveliness.
+#define REGNUM_FLAGS (100)
 
 class registerSpace;
 

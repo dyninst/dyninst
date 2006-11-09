@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.248 2006/10/16 20:17:29 bernat Exp $
+ * $Id: inst-x86.C,v 1.249 2006/11/09 17:16:17 bernat Exp $
  */
 #include <iomanip>
 
@@ -112,13 +112,12 @@ registerSpace *regSpace64IRPC;
 registerSpace *regSpace;
 registerSpace *regSpaceIRPC;
 
-bool registerSpace::readOnlyRegister(Register) {
-  return false;
-}
+registerSpace *regSpace64Conservative;
 
 Register deadList32[NUM_VIRTUAL_REGISTERS];
 int deadList32Size = sizeof(deadList32);
 
+#if 0
 // we do non-arg registers here first - followed by arg registers in reverse order
 Register deadList64[] = {/* callee saved */REGNUM_RBX, 
 			 /* caller saved */REGNUM_R10, REGNUM_R11, 
@@ -126,7 +125,16 @@ Register deadList64[] = {/* callee saved */REGNUM_RBX,
 			 /* params, caller saved*/REGNUM_R9, REGNUM_R8, REGNUM_RCX, 
 			 /* params, caller saved*/REGNUM_RDX, REGNUM_RSI, REGNUM_RDI};
 int deadList64Size = sizeof(deadList64);
+#endif
 
+Register deadList64[] = {REGNUM_RAX, REGNUM_R10, REGNUM_R11};
+int deadList64Size = sizeof(deadList64);
+
+Register liveList64[] = {REGNUM_RCX, REGNUM_RDX, REGNUM_RBX, REGNUM_RSP, 
+                         REGNUM_RBP, REGNUM_RSI, REGNUM_RDI,
+                         REGNUM_R8,REGNUM_R9,REGNUM_R10,REGNUM_R11,REGNUM_R12,
+                         REGNUM_R13,REGNUM_R14,REGNUM_R15};
+int liveList64Size = sizeof(liveList64);
 
 
 void initTramps(bool is_multithreaded)
@@ -155,18 +163,45 @@ void initTramps(bool is_multithreaded)
     /* We'll use this later to determine how we save FP's. */
     regSpace32->hasXMM = xmmCapable();
     regSpace32IRPC->hasXMM = xmmCapable();
-
+    regSpace32->initSpecialPurposeRegisters();
+    regSpace32IRPC->initSpecialPurposeRegisters();
 
     regSpace64 = new registerSpace(deadList64Size/sizeof(Register), deadList64,
-				   0, NULL, is_multithreaded);
+				   liveList64Size/sizeof(Register), liveList64, 
+                                   is_multithreaded);
     regSpace64IRPC = new registerSpace(deadList64Size/sizeof(Register), deadList64,
-				   0, NULL, is_multithreaded);
+                                       liveList64Size/sizeof(Register), liveList64, 
+                                       is_multithreaded);
+
+    regSpace64->initSpecialPurposeRegisters();
+    regSpace64IRPC->initSpecialPurposeRegisters();
 
     // default to 32-bit
     regSpace = regSpace32;
     regSpaceIRPC = regSpace32IRPC;
 }
 
+
+registerSpace *registerSpace::conservativeRegSpace(instPoint *) {
+    // If 32-bit... ARGH. Well, we'll go with register "slots" on the stack
+    // for now and assume someone has created 'em.
+    if (regSpace == regSpace32) {
+        // In 32-bit mode...
+        registerSpace *r = new registerSpace(0,  NULL, deadList32Size/sizeof(Register), deadList32, false);
+        r->initSpecialPurposeRegisters();
+        return r;
+    }
+    else {
+        // Let's rock. Everything should be considered live for now, 
+        // to underestimate. 
+        registerSpace *r = new registerSpace(0, NULL, deadList64Size/sizeof(Register), deadList64, false);
+        r->initSpecialPurposeRegisters();
+        return r;
+    }
+    assert(0);
+    return NULL;
+}
+    
 
 
 /* This makes a call to the cpuid instruction, which returns an int where each bit is 
@@ -203,31 +238,30 @@ bool xmmCapable()
 
 
 bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
-
-    return x86_emitter->emitBTSaves(this, gen);
+    return code_emitter->emitBTSaves(this, gen);
 }
 
 bool baseTramp::generateRestores(codeGen &gen, registerSpace*) {
 
-    return x86_emitter->emitBTRestores(this, gen);
+    return code_emitter->emitBTRestores(this, gen);
 }
 
 bool baseTramp::generateMTCode(codeGen &gen, registerSpace*) {
-    return x86_emitter->emitBTMTCode(this, gen);
+    return code_emitter->emitBTMTCode(this, gen);
 }
 
 bool baseTramp::generateGuardPreCode(codeGen &gen,
                                      codeBufIndex_t &guardJumpOffset,
 				     registerSpace*) {
 
-    return x86_emitter->emitBTGuardPreCode(this, gen, guardJumpOffset);
+    return code_emitter->emitBTGuardPreCode(this, gen, guardJumpOffset);
 }
 
 bool baseTramp::generateGuardPostCode(codeGen &gen,
 				      codeBufIndex_t &guardTargetIndex,
 				      registerSpace *) {
 
-    return x86_emitter->emitBTGuardPostCode(this, gen, guardTargetIndex);
+    return code_emitter->emitBTGuardPostCode(this, gen, guardTargetIndex);
 }
 
 bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
@@ -265,7 +299,7 @@ bool baseTramp::generateCostCode(codeGen &gen, unsigned &costUpdateOffset,
     Address costAddr = proc()->getObservedCostAddr();
     if (!costAddr) return false;
 
-    return x86_emitter->emitBTCostCode(this, gen, costUpdateOffset);
+    return code_emitter->emitBTCostCode(this, gen, costUpdateOffset);
 }
 
 // And update the same in an atomic action
@@ -829,7 +863,7 @@ Register emitFuncCall(opCode op,
                       const pdvector<AstNode *> &ifForks,
                       const instPoint *)
 {
-    return x86_emitter->emitCall(op, gen, operands, noCost, callee, ifForks);
+    return code_emitter->emitCall(op, gen, operands, noCost, callee, ifForks);
 }
 
 
@@ -913,23 +947,11 @@ Register Emitter32::emitCall(opCode op,
 
    param_size = emitCallParams(gen, operands, callee, ifForks, saves, noCost);
 
-   /*
-   for (unsigned u = 0; u < operands.size(); u++)
-       srcs.push_back((Register)operands[u]->generateCode_phase2(proc, rs, gen,
-                                                                 noCost, 
-                                                                 ifForks, 
-                                                                 location));
-   // push arguments in reverse order, last argument first
-   // must use int instead of unsigned to avoid nasty underflow problem:
-   for (int i=srcs.size() - 1 ; i >= 0; i--) {
-       emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -( (int) srcs[i]*4), PUSH_RM_OPC2, gen);
-       rs->freeRegister(srcs[i]);
-   }
-*/
    // make the call
    // we are using an indirect call here because we don't know the
    // address of this instruction, so we can't use a relative call.
    // TODO: change this to use a direct call
+
    emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);       // mov eax, addr
    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
 
@@ -974,7 +996,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	 // if src1 == 0 jump to dest
 	 // src1 is a temporary
 	 // dest is a target address
-	 retval = x86_emitter->emitIf(src1, dest, gen);
+	 retval = code_emitter->emitIf(src1, dest, gen);
 	 break;
      }
      case branchOp: {
@@ -1013,17 +1035,23 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       case getRetValOp: {
          // dest is a register where we can store the value
          // the return value is in the saved EAX
-          x86_emitter->emitGetRetVal(dest, gen);
+          code_emitter->emitGetRetVal(dest, gen);
           return dest;
       }
       case getParamOp: {
          // src1 is the number of the argument
          // dest is a register where we can store the value
-          x86_emitter->emitGetParam(dest, src1, location->getPointType(), gen);
+          code_emitter->emitGetParam(dest, src1, location->getPointType(), gen);
           return dest;
       }
-      default:
-         abort();                  // unexpected op for this emit!
+    case loadRegOp: {
+        assert(src1 == 0);
+
+        assert(0);
+        return dest;
+    }
+    default:
+        abort();                  // unexpected op for this emit!
     }
     return(Null_Register);        // should never be reached!
 }
@@ -1051,11 +1079,20 @@ static inline void emitSHL(Register dest, unsigned char pos,
     SET_PTR(insn, gen);
 }
 
-void Emitter32::emitRestoreFlags(codeGen &gen)
+void Emitter32::emitPushFlags(codeGen &gen) {
+    // These crank the saves forward
+    emitSimpleInsn(PUSHFD, gen);
+}
+
+void Emitter32::emitRestoreFlags(codeGen &gen, unsigned offset)
 {
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EFLAGS_OFFSET, gen); // mov eax, offset[ebp]
-    emitSimpleInsn(0x50, gen);  // push eax
+    emitOpRMReg(PUSH_RM_OPC1, REGNUM_ESP, offset*4, PUSH_RM_OPC2, gen);
     emitSimpleInsn(POPFD, gen); // popfd
+}
+
+void Emitter32::emitRestoreFlagsFromStackSlot(codeGen &gen)
+{
+    emitRestoreFlags(gen, SAVED_EFLAGS_OFFSET);
 }
 
 // VG(8/15/02): Emit the jcc over a conditional snippet
@@ -1072,7 +1109,7 @@ void emitJmpMC(int condition, int offset, codeGen &gen)
     //bperr("OC: %x, NC: %x\n", condition, condition ^ 0x01);
     condition ^= 0x01; // flip last bit to negate the tttn condition
     
-    x86_emitter->emitRestoreFlags(gen);
+    code_emitter->emitRestoreFlagsFromStackSlot(gen);
     emitJcc(condition, offset, gen);
 }
 
@@ -1097,7 +1134,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool 
     int rb  = as->getReg(1);
     int sc  = as->getScale();
 
-    x86_emitter->emitASload(ra, rb, sc, imm, dest, gen);
+    code_emitter->emitASload(ra, rb, sc, imm, dest, gen);
 }
 
 void Emitter32::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
@@ -1140,7 +1177,7 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
    int rb  = as->getReg(1);
    int sc  = as->getScale();
 
-   x86_emitter->emitCSload(ra, rb, sc, imm, dest, gen);
+   code_emitter->emitCSload(ra, rb, sc, imm, dest, gen);
 }
 
 void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
@@ -1256,33 +1293,33 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
       // dest is a temporary
       // src1 is an immediate value 
       // dest = src1:imm32
-       x86_emitter->emitLoadConst(dest, src1, gen);
+       code_emitter->emitLoadConst(dest, src1, gen);
       return;
    } else if (op ==  loadOp) {
       // dest is a temporary
       // src1 is the address of the operand
       // dest = [src1]
-       x86_emitter->emitLoad(dest, src1, size, gen);
+       code_emitter->emitLoad(dest, src1, size, gen);
       return;
    } else if (op == loadFrameRelativeOp) {
       // dest is a temporary
       // src1 is the offset of the from the frame of the variable
-       x86_emitter->emitLoadFrameRelative(dest, src1, gen);
+       code_emitter->emitLoadOrigFrameRelative(dest, src1, gen);
        return;
    } else if (op == loadRegRelativeOp) {
       // dest is a temporary
       // src2 is the register 
       // src1 is the offset from the address in src2
-      x86_emitter->emitLoadRegRelative(dest, src1, src2, gen, true);
+      code_emitter->emitLoadOrigRegRelative(dest, src1, src2, gen, true);
       return;
    } else if (op == loadRegRelativeAddr) {
       // dest is a temporary
       // src2 is the register 
       // src1 is the offset from the address in src2
-      x86_emitter->emitLoadRegRelative(dest, src1, src2, gen, false);
+      code_emitter->emitLoadOrigRegRelative(dest, src1, src2, gen, false);
       return;
    } else if (op == loadFrameAddr) {
-       x86_emitter->emitLoadFrameAddr(dest, src1, gen);
+       code_emitter->emitLoadFrameAddr(dest, src1, gen);
        return;
    } else {
       abort();                // unexpected op for this emit!
@@ -1299,13 +1336,13 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
       // dest has the address where src1 is to be stored
       // src1 is a temporary
       // src2 is a "scratch" register, we don't need it in this architecture
-       x86_emitter->emitStore(dest, src1, gen);
+       code_emitter->emitStore(dest, src1, gen);
       return;
    } else if (op == storeFrameRelativeOp) {
        // src1 is a temporary
        // src2 is a "scratch" register, we don't need it in this architecture
        // dest is the frame offset 
-       x86_emitter->emitStoreFrameRelative(dest, src1, src2, gen);
+       code_emitter->emitStoreFrameRelative(dest, src1, src2, gen);
        return;
    } else {
        abort();                // unexpected op for this emit!
@@ -1329,18 +1366,19 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     
     if (op ==  loadIndirOp) {
         // same as loadOp, but the value to load is already in a register
-        x86_emitter->emitLoadIndir(dest, src1, gen);
+        code_emitter->emitLoadIndir(dest, src1, gen);
     } 
     else if (op ==  storeIndirOp) {
         // same as storeOp, but the address where to store is already in a
         // register
-        x86_emitter->emitStoreIndir(dest, src1, gen);
+        code_emitter->emitStoreIndir(dest, src1, gen);
     } else if (op == noOp) {
         emitSimpleInsn(NOP, gen); // nop
     } else if (op == saveRegOp) {
-        // should not be used on this platform
-        assert(0);
-        
+        // Push....
+        assert(src2 == 0);
+        assert(dest == 0);
+        code_emitter->emitPush(gen, src1);
     } else {
         unsigned opcode = 0;//initialize to placate gcc warnings
         switch (op) {
@@ -1363,7 +1401,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
         case divOp: {
            // dest = src1 div src2
-	   x86_emitter->emitDiv(dest, src1, src2, gen);
+	   code_emitter->emitDiv(dest, src1, src2, gen);
            return;
            break;
         }
@@ -1384,7 +1422,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         case leOp:
         case greaterOp:
         case geOp: {
-            x86_emitter->emitRelOp(op, dest, src1, src2, gen);
+            code_emitter->emitRelOp(op, dest, src1, src2, gen);
             return;
             break;
         }
@@ -1392,7 +1430,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             abort();
             break;
         }
-        x86_emitter->emitOp(opcode, dest, src1, src2, gen);
+        code_emitter->emitOp(opcode, dest, src1, src2, gen);
     }
     return;
 }
@@ -1425,12 +1463,12 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
            break;
 
       case timesOp: {
-          x86_emitter->emitTimesImm(dest, src1, src2imm, gen);
+          code_emitter->emitTimesImm(dest, src1, src2imm, gen);
           return;
           break;
       }
       case divOp: {
-          x86_emitter->emitDivImm(dest, src1, src2imm, gen);
+          code_emitter->emitDivImm(dest, src1, src2imm, gen);
            return;
            break;
       }
@@ -1453,7 +1491,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case leOp:
         case greaterOp:
       case geOp: {
-          x86_emitter->emitRelOpImm(op, dest, src1, src2imm, gen);
+          code_emitter->emitRelOpImm(op, dest, src1, src2imm, gen);
           return;
           break;
       }
@@ -1461,7 +1499,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
           abort();
           break;
       }
-      x86_emitter->emitOpImm(opcode1, opcode2, dest, src1, src2imm, gen);
+      code_emitter->emitOpImm(opcode1, opcode2, dest, src1, src2imm, gen);
    }
    return;
 }
@@ -1742,7 +1780,7 @@ void emitFuncJump(opCode op,
 
     Address addr = callee->getAddress();
     instPointType_t ptType = loc->getPointType();
-    x86_emitter->emitFuncJump(addr, ptType, gen);
+    code_emitter->emitFuncJump(addr, ptType, gen);
 }
 
 void Emitter32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
@@ -1764,13 +1802,34 @@ void Emitter32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     instruction::generateIllegal(gen);
 }
 
+bool Emitter32::emitPush(codeGen &gen, Register r) {
+    GET_PTR(insn, gen);   
+    if (r >= 8) {
+        fprintf(stderr, "ERROR: attempt to push register %d\n", r);
+    }
+    assert(r < 8);
+
+    *insn++ = 0x58 + r; // 0x58 is push EAX, and it increases from there.
+
+    SET_PTR(insn, gen);
+    return true;
+}
+
+bool Emitter32::emitPop(codeGen &gen, Register r) {
+    GET_PTR(insn, gen);
+    assert(r < 8);
+    *insn++ = 0x50 + r;
+    
+    SET_PTR(insn, gen);
+    return true;
+}
+
 void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,
                                         codeGen &gen,
                                         int,
                                         bool){
-  
-  x86_emitter->emitLoadPreviousStackFrameRegister(register_num, dest, gen);
+    code_emitter->emitLoadOrigRegister(register_num, dest, gen);
 }
 
 // First AST node: target of the call
