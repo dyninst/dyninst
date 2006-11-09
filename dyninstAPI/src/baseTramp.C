@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.44 2006/10/12 02:44:06 bernat Exp $
+// $Id: baseTramp.C,v 1.45 2006/11/09 17:16:07 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -58,6 +58,7 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
                                      multiTramp *multi) :    
     generatedCodeObject(),
     trampAddr_(0), // Unallocated
+    trampPostOffset(0),
     baseT(tramp),
     multiT(multi),
     genVersion(0),
@@ -566,6 +567,11 @@ bool baseTramp::addMiniTramp(miniTramp *newMT, callOrder order) {
 
 bool baseTrampInstance::isInInstance(Address pc) {
     assert(baseT);
+    if (trampPreAddr() == 0) {
+        // Not allocated yet...
+        return false;
+    }
+
     return (pc >= trampPreAddr() &&
             pc < (trampPostAddr() + baseT->postSize));
 }
@@ -896,9 +902,9 @@ bool baseTramp::generateBT(codeGen &baseGen) {
 				       threaded());
 	
       }
-#endif
-
-#if defined(arch_x86_64)
+    preTrampCode_.setRegisterSpace(theRegSpace);
+    postTrampCode_.setRegisterSpace(theRegSpace);
+#elif defined(arch_x86_64)
     instPoint * location = instP();
     if (location != NULL)
       {
@@ -911,7 +917,14 @@ bool baseTramp::generateBT(codeGen &baseGen) {
       {
 	regSpace->setDisregardLiveness(true); // For tramps that just do RPC we don't want to do liveness
       }
+    preTrampCode_.setRegisterSpace(regSpace);
+    postTrampCode_.setRegisterSpace(regSpace);
+#else
+    preTrampCode_.setRegisterSpace(regSpace);
+    postTrampCode_.setRegisterSpace(regSpace);
 #endif
+
+    
     
     saveStartOffset = preTrampCode_.used();
     inst_printf("Starting saves: offset %d\n", saveStartOffset);
