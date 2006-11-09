@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: opcode.h,v 1.1 2006/10/10 22:04:25 bernat Exp $
+// $Id: opcode.h,v 1.2 2006/11/09 17:16:22 bernat Exp $
 
 #ifndef OPCODE_H
 #define OPCODE_H
@@ -81,6 +81,9 @@ typedef enum {
 	       loadIndirOp,
 	       storeIndirOp,
 	       saveRegOp,
+               loadRegOp,
+               saveStateOp,  // For saving of non-register state (flags reg, condition reg)
+               loadStateOp,  // And the corresponding load
 	       updateCostOp,
 	       funcJumpOp,        // Jump to function without linkage
 	       branchOp,
