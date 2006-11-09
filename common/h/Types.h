@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.24 2006/03/12 23:31:13 legendre Exp $
+ * $Id: Types.h,v 1.25 2006/11/09 17:15:58 bernat Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -191,6 +191,8 @@ typedef long int RegValue;      /* register content */
    to the code generator (i.e. if-statement) - jkh 5/24/99 */
 typedef unsigned int Register;  /* a register number, e.g., [0..31]  */
 static const Register Null_Register = (Register)(-1);   /* '255' */
+/* Easily noticeable name... */
+static const Register REG_NULL = (Register)(-1);
 
 /* This file is now included by the rtinst library also, so all
    C++ constructs need to be in #ifdef _cplusplus... 7/9/99 -bhs */
