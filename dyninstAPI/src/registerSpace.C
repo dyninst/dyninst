@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.2 2006/10/16 20:17:33 bernat Exp $
+// $Id: registerSpace.C,v 1.3 2006/11/09 17:16:23 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -74,19 +74,51 @@
    || defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4)
 #include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/emit-x86.h"
 
 #elif defined(ia64_unknown_linux2_4) /* Why is this done here, instead of, e.g., inst.h? */
 #include "dyninstAPI/src/inst-ia64.h"
 #endif
 
+#include "showerror.h"
+
 extern registerSpace *regSpace;
 
+/*
+  registerSpace *registerSpace::regSpace() {
+    return regSpace;
+}
+*/
+registerSlot registerSlot::deadReg(Register i) {
+    registerSlot retval;
+    // Override number
+    retval.number = i;
+    // Everything else is okay.
+    return retval;
+}
+
+registerSlot registerSlot::liveReg(Register i) {
+    registerSlot retval;
+    retval.number = i;
+    // Override needsSaving and startsLive
+    retval.startsLive = true;
+    retval.needsSaving = true;
+    return retval;
+}
+
+registerSlot registerSlot::thrIndexReg(Register i) {
+    registerSlot retval = liveReg(i);
+    // Implicit refCount so we don't allocate it elsewhere
+    retval.refCount = 1;
+    return retval;
+}
+    
 
 registerSpace::registerSpace(const unsigned int deadCount, Register *dead, 
                              const unsigned int liveCount, Register *live,
                              bool multithreaded) :
-   highWaterRegister(0), registers(NULL), fpRegisters(NULL), 
-   is_multithreaded(multithreaded)
+    currStackPointer(0),
+    is_multithreaded(multithreaded)
 {
 #if defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
@@ -99,150 +131,219 @@ registerSpace::registerSpace(const unsigned int deadCount, Register *dead,
   
   unsigned i;
   numRegisters = deadCount + liveCount;
-  registers = new registerSlot[numRegisters];
+  flagsID = numRegisters + 1;
   spFlag = 1;   // Save SPR (right now for Power) unless we hear different
   numFPRegisters = 0;
   disregardLiveness = false;
   hasXMM = true;
 
-   // load dead ones
-   for (i=0; i < deadCount; i++) {
-      registers[i].number = dead[i];
-      registers[i].refCount = 0;
-      registers[i].mustRestore = false;
-      registers[i].needsSaving = false;
-      registers[i].startsLive = false;
-      registers[i].beenClobbered = false;
-   }
-   
+  registerSlot deadReg;
+
+  // load dead ones
+  for (i=0; i < deadCount; i++) {
+      registers.push_back(registerSlot::deadReg(dead[i]));
+  }
+  
    // load live ones;
-   for (i=0; i < liveCount; i++) {
-      registers[i+deadCount].number = live[i];
-      registers[i+deadCount].refCount = 0;
-      registers[i+deadCount].mustRestore = false;
-      registers[i+deadCount].needsSaving = true;
-      registers[i+deadCount].startsLive = true;
-      registers[i+deadCount].beenClobbered = false;
-      if(is_multithreaded) {
-         if (registers[i+deadCount].number == REG_MT_POS) {
-            registers[i+deadCount].refCount = 1;
-            registers[i+deadCount].needsSaving = true;
-         }
+  for (i=0; i < liveCount; i++) {
+      
+      if(is_multithreaded && 
+         (live[i] == REG_MT_POS)) {
+          registers.push_back(registerSlot::thrIndexReg(live[i]));
       }
-   }
+      else {
+          registers.push_back(registerSlot::liveReg(live[i]));
+      }
+  }
 }
 
 registerSpace::~registerSpace()
 {
-  if (registers)
-     delete [] registers;
-  if (fpRegisters)
-     delete [] fpRegisters; 
 }
 
 void registerSpace::initFloatingPointRegisters(const unsigned int count, Register *fp)
 {
-  unsigned i;
-  fpRegisters = new registerSlot[count];
-  numFPRegisters = count;
-  for (i = 0; i < count; i++)
-    {
-      fpRegisters[i].needsSaving = true;
-      fpRegisters[i].startsLive = true;
-      fpRegisters[i].number = fp[i];
-      fpRegisters[i].beenClobbered = false;
+    numFPRegisters = count;
+    for (unsigned i = 0; i < count; i++) {
+        // All FPs start live!
+        fpRegisters.push_back(registerSlot::liveReg(fp[i]));
     }
 }
 
-#if !defined(arch_power) && !defined(arch_ia64)
 bool registerSpace::allocateSpecificRegister(codeGen &gen, Register reg, 
                                              bool noCost)
-#else
-bool registerSpace::allocateSpecificRegister(codeGen & /* gen */, Register reg, 
-                                             bool /* noCost */)
-#endif
 {
-    if (registers[reg].refCount != 0) {
-        return false;
+    for (unsigned i = 0; i < registers.size(); i++) {
+        if (registers[i].number == reg) {
+            if (registers[i].offLimits) return false;
+            if (registers[i].refCount != 0) return false;
+            
+            registers[i].refCount = 1;
+            
+            if (registers[i].needsSaving) {
+                spillRegister(i, gen, noCost);
+            }
+            return true;
+        }
     }
+    return true;
+}
 
-    registers[reg].refCount = 1;
-    if (reg > highWaterRegister)
-        highWaterRegister = reg;
+Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
+  unsigned i;
+  unsigned spareReg = registers.size();
+  
+  for (i=0; i < numRegisters; i++) {
+      if (registers[i].refCount == 0 && (!registers[i].offLimits)) {
+          // Optimization: if this one needs saving, but we can use it, stick it
+          // in spareReg for later.
+          if (registers[i].needsSaving) {
+              spareReg = i;
+          }
+          else {
+              regalloc_printf("Returning scratch register %d\n", registers[i].number);
+              return(registers[i].number);
+          }
+      }
+  }
+  
+  if (spareReg != registers.size()) {
+      if (spillRegister(spareReg, gen, noCost)) {
+          return registers[spareReg].number;
+      }
+  }
+  
+  assert(0);
+  return Null_Register;
+}
 
-    if (registers[reg].needsSaving) {
-#if !defined(arch_power) && !defined(arch_ia64)
-        emitV(saveRegOp, registers[reg].number, 0, 0, gen, noCost);
-        registers[reg].mustRestore = true;
-#endif
-            registers[reg].needsSaving = false;
-    }
+Register registerSpace::allocateRegister(codeGen &gen, bool noCost) 
+{
+
+  // Technically, we could have failed to spill this guy... but I
+  // assume in that case we can't spill anything.
+  
+  // DEBUG
+
+  unsigned i;
+  unsigned spareReg = registers.size();
+  
+  for (i=0; i < numRegisters; i++) {
+      if (registers[i].refCount == 0 && (!registers[i].offLimits)) {
+          // Optimization: if this one needs saving, but we can use it, stick it
+          // in spareReg for later.
+          if (registers[i].needsSaving) {
+              spareReg = i;
+          }
+          else {
+              registers[i].refCount = 1;
+              clobberRegister(registers[i].number);
+              regalloc_printf("Allocated register %d\n", registers[i].number);
+              return(registers[i].number);
+          }
+      }
+  }
+  
+  if (spareReg != registers.size()) {
+      if (spillRegister(spareReg, gen, noCost)) {
+          registers[spareReg].refCount = 1; // We're using it...
+          clobberRegister(registers[spareReg].number);
+          return registers[spareReg].number;
+      }
+  }
+ 
+
+  logLine("==> WARNING! run out of registers...\n");
+  debugPrint();
+  abort();
+  return(Null_Register);
+}
+
+bool registerSpace::spillRegister(unsigned index, codeGen &gen, bool noCost) {
+    assert(index < registers.size());
+    assert(!registers[index].offLimits);
+
+    // TODO for other platforms that build a stack frame for saving
+
+    emitV(saveRegOp, registers[index].number, 0, 0, gen, noCost);
+    
+    registers[index].mustRestore = true; // Need to restore later
+    registers[index].needsSaving = false; // And don't save at func call (?)
+    registers[index].saveOffset_ = currStackPointer;
+
+    // Push architecture
+    currStackPointer--;
 
     return true;
 }
 
-#if !defined(rs6000_ibm_aix4_1) \
- && !defined(ia64_unknown_linux2_4) \
- && !defined(arch_x86_64)
-Register registerSpace::allocateRegister(codeGen &gen, bool noCost) 
-#else
-Register registerSpace::allocateRegister(codeGen & /* gen */, bool /* noCost */) 
-#endif
-{
+// This might mean something different later, but for now means
+// "Save special purpose registers". We may want to define a "volatile"
+// later - something like "can be unintentionally nuked". For example,
+// x86 flags register. 
+bool registerSpace::saveVolatileRegisters(codeGen &gen) {
+    // Two things: first, save the flags register(s)
+    // Second: add this to the save list for order-important platforms.
 
-  unsigned i;
+	assert(spRegisters.size());
 
-    for (i=0; i < numRegisters; i++) {
-	if (registers[i].refCount == 0 && !registers[i].needsSaving) {
-	    registers[i].refCount = 1;
-	    highWaterRegister = (highWaterRegister > i) ? 
-		 highWaterRegister : i;
-	    clobberRegister(registers[i].number);
-	    return(registers[i].number);
+#if defined(arch_x86) || defined(arch_x86_64)
+	// Wave of the future, man....
+	assert(spRegisters.size() == 1);
+	for (unsigned i = 0; i < spRegisters.size(); i++) {
+		// Should decide whether to push or store in a frame...
+		code_emitter->emitPushFlags(gen);
+		spRegisters[i].origValueSpilled_ = registerSlot::stackPointer;
+		spRegisters[i].saveOffset_ = currStackPointer;
+                currStackPointer--;
 	}
-    }
-
-    // now consider ones that need saving
-    for (i=0; i < numRegisters; i++) {
-      if (registers[i].refCount == 0) {
-#if !defined(rs6000_ibm_aix4_1) \
- && !defined(ia64_unknown_linux2_4) \
- && !defined(arch_x86_64)
-	// MT_AIX: we are not saving registers on demand on the power
-	// architecture. Instead, we save/restore registers in the base
-	// trampoline - naim
-	// 
-	// Same goes for ia64 - rchen
-	// And x86_64 - rutar
-	emitV(saveRegOp, registers[i].number, 0, 0, gen, noCost);
+#else
+	assert(0 && "Unimplemented");
 #endif
-	registers[i].refCount = 1;
-#if !defined(rs6000_ibm_aix4_1) \
- && !defined(ia64_unknown_linux2_4) \
- && !defined(arch_x86_64)
-	// MT_AIX
-	registers[i].mustRestore = true;
-#endif
-	// prevent general spill (func call) from saving this register.
-	registers[i].needsSaving = false;
-	highWaterRegister = (highWaterRegister > i) ? 
-	  highWaterRegister : i;
-	clobberRegister(registers[i].number);
-	return(registers[i].number);
-      }
-    }
-    
-    logLine("==> WARNING! run out of registers...\n");
-    abort();
-    return(Null_Register);
+    return true;
 }
+
+bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
+    // Okay, we need to figure out where we stuck the flags
+    // register. Assume other things have been saved since. We go
+    // through the saveOrder vector and pull out how far we are from
+    // the end.
+    assert(spRegisters.size());
+    
+    for (unsigned i = 0; i < spRegisters.size(); i++) {
+        registerSlot &reg = spRegisters[i];
+        if (reg.origValueSpilled_ == registerSlot::unspilled) continue;
+
+        // TODO: find out where it was pushed compared to current, then emit code to
+        // restore it (possibly higher up the stack)
+        assert (reg.saveOffset_ >= currStackPointer);
+        int difference = reg.saveOffset_ - currStackPointer;
+#if defined(arch_x86) || defined(arch_x86_64)
+        code_emitter->emitRestoreFlags(gen, difference);
+#else
+        assert(0 && "Unimplemented");
+#endif
+
+        reg.origValueSpilled_ = registerSlot::unspilled;
+        reg.saveOffset_ = 0;
+    }
+    return true;
+}
+
 
 // Free the specified register (decrement its refCount)
 void registerSpace::freeRegister(Register reg) 
 {
+    if (reg == REG_NULL) {
+        // This is okay - it's easier to unconditionally free
+        // even if the guy didn't allocate. So just return.
+        return;
+    }
+
     for (u_int i=0; i < numRegisters; i++) {
        if (registers[i].number == reg) {
           registers[i].refCount--;
+          regalloc_printf("Freed register %d: refcount now %d\n", registers[i].number, registers[i].refCount);
 #if defined(ia64_unknown_linux2_4)
           if( registers[i].refCount < 0 ) {
              bperr( "Freed free register!\n" );
@@ -252,6 +353,8 @@ void registerSpace::freeRegister(Register reg)
           return;
        }
     }
+    // Hrm... let's squawk.
+    fprintf(stderr, "[%s:%d] WARNING: attempt to free unknown register %u\n", __FILE__, __LINE__, reg);
 }
 
 // Free the register even if its refCount is greater that 1
@@ -294,6 +397,8 @@ void registerSpace::incRefCount(Register reg)
    for (u_int i=0; i < numRegisters; i++) {
       if (registers[i].number == reg) {
          registers[i].refCount++;
+         regalloc_printf("Incrementing refcount on register %d: %d\n", registers[i].number, 
+                         registers[i].refCount);
          return;
       }
    }
@@ -304,15 +409,13 @@ void registerSpace::copyInfo( registerSpace *rs ) const {
    /* Not quite sure why this isn't a copy constructor. */
    rs->numRegisters = this->numRegisters;
    rs->numFPRegisters = this->numFPRegisters;
-   rs->highWaterRegister = this->highWaterRegister;
-   
-   rs->registers = this->numRegisters ? 
-      new registerSlot[ this->numRegisters ] :
-      NULL;
-   rs->fpRegisters = this->numFPRegisters ? 
-      new registerSlot[ this->numFPRegisters ] :
-      NULL;
-   
+   rs->flagsID = this->flagsID;
+
+   rs->registers = registers;
+   rs->fpRegisters = fpRegisters;
+   rs->spRegisters = spRegisters;
+   rs->currStackPointer = currStackPointer;
+
    rs->is_multithreaded = this->is_multithreaded;
    rs->spFlag = this->spFlag;
 
@@ -324,24 +427,6 @@ void registerSpace::copyInfo( registerSpace *rs ) const {
    memcpy(rs->storageMap, this->storageMap, BP_R_MAX * sizeof(int));
 #endif
 
-   /* Duplicate the registerSlot arrays. */
-   for( unsigned int i = 0; i < this->numRegisters; i++ ) {
-      rs->registers[i].number = registers[i].number;
-      rs->registers[i].refCount = registers[i].refCount;
-      rs->registers[i].needsSaving = registers[i].needsSaving;
-      rs->registers[i].mustRestore = registers[i].mustRestore;
-      rs->registers[i].startsLive = registers[i].startsLive;
-      rs->registers[i].beenClobbered = registers[i].beenClobbered;
-   }
-   
-   for( unsigned int j = 0; j < this->numFPRegisters; j++ ) {
-      rs->fpRegisters[j].number = fpRegisters[j].number;
-      rs->fpRegisters[j].refCount = fpRegisters[j].refCount;
-      rs->fpRegisters[j].needsSaving = fpRegisters[j].needsSaving;
-      rs->fpRegisters[j].mustRestore = fpRegisters[j].mustRestore;
-      rs->fpRegisters[j].startsLive = fpRegisters[j].startsLive;
-      rs->fpRegisters[j].beenClobbered = fpRegisters[j].beenClobbered;
-   }
 } /* end registerSpace::copyInfo() */
 
 
@@ -361,7 +446,8 @@ void registerSpace::setAllLive(){
 
 
 void registerSpace::resetSpace() {
-   for (u_int i=0; i < numRegisters; i++) {
+    regalloc_printf("============== RESET %p ==============\n", this);
+   for (u_int i=0; i < registers.size(); i++) {
 
       // Drew, do you still want this for anything?  -- TLM ( 03/18/2002 )
       // (Should be #if defined(MT__THREAD) - protected, if you do.)
@@ -372,16 +458,35 @@ void registerSpace::resetSpace() {
       
       registers[i].refCount = 0;
       registers[i].mustRestore = false;
+      registers[i].offLimits = false;
       //registers[i].beenClobbered = false;
       registers[i].needsSaving = registers[i].startsLive;
       if(is_multithreaded) {
-         if (registers[i].number == REG_MT_POS) {
-            registers[i].refCount = 1;
-            registers[i].needsSaving = true;
-         }
+          if (registers[i].number == REG_MT_POS) {
+              registers[i].refCount = 1;
+              registers[i].needsSaving = true;
+          }
+      }
+
+      registers[i].origValueSpilled_ = registerSlot::unspilled;
+      registers[i].saveOffset_ = 0;
+
+	  registers[i].offLimits = false;
+
+   }
+}
+
+void registerSpace::cleanSpace() {
+    regalloc_printf("============== CLEAN ==============\n");
+   for (u_int i=0; i < registers.size(); i++) {
+      registers[i].refCount = 0;
+      if(is_multithreaded) {
+          if (registers[i].number == REG_MT_POS) {
+              registers[i].refCount = 1;
+              registers[i].needsSaving = true;
+          }
       }
    }
-   highWaterRegister = 0;
 }
 
 
@@ -461,3 +566,208 @@ bool registerSpace::getDisregardLiveness() {
     return disregardLiveness;
 }
 
+bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
+    for (unsigned i = 0; i < registers.size(); i++) {
+        restoreRegister(GPRindex(i), gen, noCost);
+    }
+    for (unsigned i = 0; i < fpRegisters.size(); i++) {
+        restoreRegister(FPRindex(i), gen, noCost);
+    }
+    for (unsigned i = 0; i < spRegisters.size(); i++) {
+        restoreRegister(SPRindex(i), gen, noCost);
+    }
+
+    currStackPointer = 0;
+
+    return true;
+}
+
+bool registerSpace::restoreRegister(unsigned index, codeGen &gen, bool noCost) {
+    // We can get an index > than the number of registers - we use those as fake
+    // slots for (e.g.) flags register.
+    // TODO: push register info and methods into a register slot class... hey....
+    if (index >= registers.size()) 
+        return true; // Don't do FPRs or SPRs yet
+    
+    if (!readRegister(gen, registers[index].number, registers[index].number))
+        return false;
+
+    registers[index].mustRestore = false;
+    registers[index].needsSaving = true;
+    registers[index].origValueSpilled_ = registerSlot::unspilled;
+    
+    return true;
+}
+
+bool registerSpace::readOnlyRegister(Register num) {
+    // This was apparently useful on Alpha...
+
+    for (unsigned i = 0; i < registers.size(); i++) {
+        if (registers[i].number == num) {
+            return registers[i].offLimits;
+        }
+    }
+    return false;
+}
+
+bool registerSpace::markReadOnly(Register num) {
+    for (unsigned i = 0; i < registers.size(); i++) {
+        if (registers[i].number == num) {
+            registers[i].offLimits = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool registerSpace::readRegister(codeGen &gen, 
+                                 Register source,
+                                 Register destination) {
+#if defined(arch_x86) || defined(arch_x86_64)
+
+    // First step: identify the registerSlot that contains information
+    // about the source register.
+    
+    registerSlot *s = findRegister(source);
+    if (s == NULL) {
+        fprintf(stderr, "No information about this register!\n");
+        return false;
+    }
+
+    // Okay. We need to know where the register is compared with our
+    // current location vis-a-vis the stack pointer. Now, on most
+    // platforms this doesn't matter, as the SP never moves. Well, not
+    // so x86. 
+
+
+    // Option 1: still alive
+    if (s->origValueSpilled_ == registerSlot::unspilled) {
+        code_emitter->emitMoveRegToReg(source, destination, gen);
+        return true;
+    }
+    else if (s->origValueSpilled_ == registerSlot::stackPointer) {
+        // Emit load from stack pointer...
+        // The math here is straightforward: saveOffset_ in the
+        // registerSlot is the offset where the guy was stored (from
+        // theoretical stack pointer 0), and currStackPointer is the
+        // offset of the stack pointer from that 0. So the actual
+        // displacement is (saveOffset_ - currStackPointer). 
+        int offset = s->saveOffset_ - currStackPointer;
+        if (offset < 0) { 
+            // Uhh... below the stack pointer?
+            fprintf(stderr, "WARNING: weird math in readRegister, offset %d and SP %d\n", s->saveOffset_, currStackPointer);
+        }
+        code_emitter->emitLoadRelative(destination, s->saveOffset_, REGNUM_RSP, gen);
+        return true;
+    }
+    else if (s->origValueSpilled_ == registerSlot::framePointer) {
+        // We can't use existing mechanisms because they're all built
+        // off the "non-instrumented" case - emit a load from the
+        // "original" frame pointer, whereas we want the current one. 
+        code_emitter->emitLoadRelative(destination, s->saveOffset_, REGNUM_RBP, gen);
+        return true;
+    }
+
+    // Can't be reached
+    assert(0);
+    return false;
+#else
+    assert(0 && "Unimplemented");
+    return false;
+#endif
+}
+
+registerSlot *registerSpace::findRegister(Register source) {
+    if (source < numRegisters) {
+        for (unsigned i = 0; i < registers.size(); i++) {
+            if (registers[i].number == source) {
+                return &(registers[i]);
+            }
+        }
+    } else if (source < (registers.size() + fpRegisters.size())) {
+        for (unsigned i = 0; i < fpRegisters.size(); i++) {
+            if (fpRegisters[i].number == source) {
+                return &(fpRegisters[i]);
+            }
+        }
+    }        
+    else if (source < (registers.size() + fpRegisters.size() + spRegisters.size())) {
+        for (unsigned i = 0; i < spRegisters.size(); i++) {
+            if (spRegisters[i].number == source) {
+                return &(spRegisters[i]);
+            }
+        }
+    }        
+    return NULL;
+}
+
+bool registerSpace::markSavedRegister(Register num, int offsetFromFP) {
+    regalloc_printf("Marking register %d as saved, %d from frame pointer\n",
+                    num, offsetFromFP);
+    // Find the register slot
+    registerSlot *s = findRegister(num);
+    if (s == NULL)  {
+        fprintf(stderr, "ERROR: unable to find register %d\n", num);
+        return false;
+    }
+
+    if (s->origValueSpilled_ != registerSlot::unspilled) {
+        // Huh?
+        assert(0);
+    }
+
+    s->needsSaving = false;
+    // We used an alternative storage method - so to us it's dead.
+    s->mustRestore = false;
+    s->startsLive = false;
+
+    s->origValueSpilled_ = registerSlot::framePointer;
+    s->saveOffset_ = offsetFromFP;
+    return true;
+}
+
+
+
+// If x86...
+#if defined(arch_x86) || defined(arch_x86_64) 
+void registerSpace::initSpecialPurposeRegisters() {
+    // We only have one: flags register. Technically we should push
+    // the save/restore logic into here too. For now, we just have 1. 
+    
+    registerSlot sprReg;
+    sprReg.number = 1;
+    sprReg.offLimits = true;
+    spRegisters.push_back(sprReg);
+}
+#endif
+
+void registerSlot::debugPrint(char *prefix) {
+	if (prefix) fprintf(stderr, "%s", prefix);
+	fprintf(stderr, "Num: %d, ref %d, needsSaving %d, mustRestore %d, startsLive %d\n", 
+			number, refCount, needsSaving, mustRestore, startsLive);
+	if (prefix) fprintf(stderr, "%s", prefix);
+	fprintf(stderr, "beenClobbered %d, offLimits %d, origVSpilled %d, saveOffset %d, type %d\n",
+			beenClobbered, offLimits, origValueSpilled_, saveOffset_, type_);	
+}
+
+void registerSpace::debugPrint() {
+	// Dump out our data
+	fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
+	fprintf(stderr, "GPRs: %d (%d), FPRs: %d (%d), SPRs: (%d)\n", 
+			numRegisters, registers.size(), numFPRegisters, fpRegisters.size(), spRegisters.size());
+	fprintf(stderr, "Stack pointer is at %d, spFlag %d, disregardLiveness %d, is_multithreaded %d",
+			currStackPointer, spFlag, disregardLiveness, is_multithreaded);
+	fprintf(stderr, "Register dump:");
+	fprintf(stderr, "=====GPRs=====\n");
+	for (unsigned i = 0; i < registers.size(); i++) {
+		registers[i].debugPrint("\t");
+	}
+	fprintf(stderr, "=====FPRs=====\n");
+	for (unsigned i = 0; i < fpRegisters.size(); i++) {
+		fpRegisters[i].debugPrint("\t");
+	}
+	fprintf(stderr, "=====SPRs=====\n");
+	for (unsigned i = 0; i < spRegisters.size(); i++) {
+		spRegisters[i].debugPrint("\t");
+	}
+}
