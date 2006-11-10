@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.34 2006/10/16 20:17:18 bernat Exp $
+// $Id: arch-power.h,v 1.35 2006/11/10 16:28:43 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -681,6 +681,7 @@ class instruction {
                      Address newAddr,
                      Register newLoadReg,
                      Register newStoreReg);
+    bool getUsedRegs(pdvector<int> &regs);
     
     
     /* -- CHECK !!!!!

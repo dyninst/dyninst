@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.43 2006/10/16 20:17:20 bernat Exp $
+// $Id: arch-sparc.h,v 1.44 2006/11/10 16:28:45 bernat Exp $
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -420,6 +420,8 @@ class instruction {
                      Address newAddr,
                      Register newLoadReg,
                      Register newStoreReg);
+  bool getUsedRegs(pdvector<int> &regs);
+
 
   // return the type of the instruction
   unsigned type() const;

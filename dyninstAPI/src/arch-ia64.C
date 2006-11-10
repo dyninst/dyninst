@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.52 2006/10/16 20:17:15 bernat Exp $
+// $Id: arch-ia64.C,v 1.53 2006/11/10 16:28:39 bernat Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -1375,3 +1375,7 @@ bool instruction::generateMem(codeGen &,
                               Address,
                               Register,
                   Register) {return false; }
+
+bool instruction::getUsedRegs(pdvector<int> &) {
+	return false;
+}
