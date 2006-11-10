@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.3 2006/11/09 17:16:23 bernat Exp $
+// $Id: registerSpace.C,v 1.4 2006/11/10 16:28:52 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -269,10 +269,8 @@ bool registerSpace::spillRegister(unsigned index, codeGen &gen, bool noCost) {
     
     registers[index].mustRestore = true; // Need to restore later
     registers[index].needsSaving = false; // And don't save at func call (?)
-    registers[index].saveOffset_ = currStackPointer;
-
-    // Push architecture
-    currStackPointer--;
+    registers[index].origValueSpilled_ = registerSlot::stackPointer;
+    registers[index].saveOffset_ = ++currStackPointer;
 
     return true;
 }
@@ -294,8 +292,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen) {
 		// Should decide whether to push or store in a frame...
 		code_emitter->emitPushFlags(gen);
 		spRegisters[i].origValueSpilled_ = registerSlot::stackPointer;
-		spRegisters[i].saveOffset_ = currStackPointer;
-                currStackPointer--;
+		spRegisters[i].saveOffset_ = ++currStackPointer;
 	}
 #else
 	assert(0 && "Unimplemented");
@@ -316,8 +313,8 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
 
         // TODO: find out where it was pushed compared to current, then emit code to
         // restore it (possibly higher up the stack)
-        assert (reg.saveOffset_ >= currStackPointer);
-        int difference = reg.saveOffset_ - currStackPointer;
+        assert (reg.saveOffset_ <= currStackPointer);
+        int difference = currStackPointer - reg.saveOffset_;
 #if defined(arch_x86) || defined(arch_x86_64)
         code_emitter->emitRestoreFlags(gen, difference);
 #else
@@ -567,9 +564,48 @@ bool registerSpace::getDisregardLiveness() {
 }
 
 bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
+	// This will only restore "saved" registers, not "spilled" registers.
+	// We should do both, but the individual "restoreRegister" can't build
+	// the list necessary for popping registers...
+
+	// We have some registers saved off the frame pointer, some saved
+	// on the stack, and some unsaved. We want to go over the list
+	// of registers and build up the spill list (in order so we can pop
+	// em), then pop all and then spill from the frame pointer.
+	
+	int numPushed = currStackPointer;
+
+	int pushedReg[numPushed];
+	for (unsigned i = 0; i < numPushed; i++) pushedReg[i] = -1;
+
+	for (unsigned i = 0; i < registers.size(); i++) {
+		// Each register may be:
+		switch(registers[i].origValueSpilled_) {
+			case registerSlot::unspilled:
+				break;
+			case registerSlot::stackPointer: {
+                            assert(registers[i].saveOffset_ <= numPushed);
+                            pushedReg[registers[i].saveOffset_] = i;
+                            break;
+			}
+			case registerSlot::framePointer:
+				restoreRegister(GPRindex(i), gen, noCost);
+				break;
+			default:
+				assert(0);
+				break;
+		}
+	}
+	for (unsigned i = 0; i < numPushed; i++) {
+		if (pushedReg[i] != -1)
+			popRegister(pushedReg[i], gen, noCost);
+	}
+
     for (unsigned i = 0; i < registers.size(); i++) {
         restoreRegister(GPRindex(i), gen, noCost);
     }
+
+	// Oh, right. FP and SPR. :)
     for (unsigned i = 0; i < fpRegisters.size(); i++) {
         restoreRegister(FPRindex(i), gen, noCost);
     }
@@ -577,6 +613,11 @@ bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
         restoreRegister(SPRindex(i), gen, noCost);
     }
 
+#if defined(arch_x86) || defined(arch_x86_64)
+	if (currStackPointer > 0) {
+		code_emitter->emitAdjustStackPointer(currStackPointer, gen);
+	}
+#endif
     currStackPointer = 0;
 
     return true;
@@ -586,8 +627,15 @@ bool registerSpace::restoreRegister(unsigned index, codeGen &gen, bool noCost) {
     // We can get an index > than the number of registers - we use those as fake
     // slots for (e.g.) flags register.
     // TODO: push register info and methods into a register slot class... hey....
+
     if (index >= registers.size()) 
         return true; // Don't do FPRs or SPRs yet
+
+	if (registers[index].origValueSpilled_ == registerSlot::unspilled) return true;
+	if (registers[index].origValueSpilled_ == registerSlot::stackPointer) {
+		// We don't know how to handle this in an individual restore yet...
+		return false;
+	}
     
     if (!readRegister(gen, registers[index].number, registers[index].number))
         return false;
@@ -598,6 +646,36 @@ bool registerSpace::restoreRegister(unsigned index, codeGen &gen, bool noCost) {
     
     return true;
 }
+
+bool registerSpace::popRegister(unsigned index, codeGen &gen, bool noCost) {
+    assert(index < registers.size());
+    assert(!registers[index].offLimits);
+
+	// Make sure we're at the right point... currStackPointer should
+	// be 1 greater than the register.
+	while (currStackPointer > (registers[index].saveOffset_+1)) {
+		emitV(loadRegOp, 0, 0, registers[index].number, gen, noCost);
+		currStackPointer--;
+	}
+
+	assert((currStackPointer == (registers[index].saveOffset_-1)) ||
+		   (currStackPointer == (registers[index].saveOffset_+1)));
+
+    // TODO for other platforms that build a stack frame for saving
+
+    emitV(loadRegOp, 0, 0, registers[index].number, gen, noCost);
+    
+    registers[index].mustRestore = false; // Need to restore later
+    registers[index].needsSaving = true; // And don't save at func call (?)
+    registers[index].origValueSpilled_ = registerSlot::unspilled;
+    registers[index].saveOffset_ = 0;
+
+    // Push architecture, so popping modified the SP
+    currStackPointer--;
+
+    return true;
+}
+
 
 bool registerSpace::readOnlyRegister(Register num) {
     // This was apparently useful on Alpha...
@@ -627,10 +705,10 @@ bool registerSpace::readRegister(codeGen &gen,
 
     // First step: identify the registerSlot that contains information
     // about the source register.
-    
+
     registerSlot *s = findRegister(source);
     if (s == NULL) {
-        fprintf(stderr, "No information about this register!\n");
+        fprintf(stderr, "No information about register %d!\n", source);
         return false;
     }
 
@@ -642,7 +720,8 @@ bool registerSpace::readRegister(codeGen &gen,
 
     // Option 1: still alive
     if (s->origValueSpilled_ == registerSlot::unspilled) {
-        code_emitter->emitMoveRegToReg(source, destination, gen);
+        if (source != destination)
+            code_emitter->emitMoveRegToReg(source, destination, gen);
         return true;
     }
     else if (s->origValueSpilled_ == registerSlot::stackPointer) {
@@ -678,12 +757,15 @@ bool registerSpace::readRegister(codeGen &gen,
 }
 
 registerSlot *registerSpace::findRegister(Register source) {
-    if (source < numRegisters) {
-        for (unsigned i = 0; i < registers.size(); i++) {
-            if (registers[i].number == source) {
-                return &(registers[i]);
-            }
+    // Oh, oops... we're handed a register number... and we can't tell if it's
+    // GPR, FPR, or SPR...
+    for (unsigned i = 0; i < registers.size(); i++) {
+        if (registers[i].number == source) {
+            return &(registers[i]);
         }
+    }
+
+#if 0
     } else if (source < (registers.size() + fpRegisters.size())) {
         for (unsigned i = 0; i < fpRegisters.size(); i++) {
             if (fpRegisters[i].number == source) {
@@ -698,6 +780,10 @@ registerSlot *registerSpace::findRegister(Register source) {
             }
         }
     }        
+#endif
+    // DEBUG
+//debugPrint();
+
     return NULL;
 }
 

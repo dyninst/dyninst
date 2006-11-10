@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.2 2006/11/09 17:16:24 bernat Exp $
+// $Id: registerSpace.h,v 1.3 2006/11/10 16:28:53 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -252,6 +252,7 @@ class registerSpace {
     bool spillRegister(unsigned index, codeGen &gen, bool noCost);
 
     bool restoreRegister(unsigned index, codeGen &gen, bool noCost); 
+	bool popRegister(unsigned index, codeGen &gen, bool noCost);
 
     u_int numRegisters;
     u_int numFPRegisters;
