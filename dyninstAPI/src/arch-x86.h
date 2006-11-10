@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.50 2006/11/06 23:15:00 legendre Exp $
+// $Id: arch-x86.h,v 1.51 2006/11/10 16:28:46 bernat Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -710,6 +710,15 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 #define PUSH_EBP (0x50+REGNUM_EBP)
 #define SUB_REG_IMM32 (5)
 #define LEAVE (0xC9)
+
+#define EXTENDED_0x81_ADD 0
+#define EXTENDED_0x81_OR 1
+#define EXTENDED_0x81_ADDC 2
+#define EXTENDED_0x81_SHIFT 3
+#define EXTENDED_0x81_AND 4
+#define EXTENDED_0x81_SUB 5
+#define EXTENDED_0x81_XOR 6
+#define EXTENDED_0x81_CMP 7
 
 class instruction {
  public:
