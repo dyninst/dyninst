@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.16 2006/11/09 17:16:09 bernat Exp $
+ * $Id: emit-x86.h,v 1.17 2006/11/10 16:28:49 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -137,6 +137,8 @@ public:
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
 
+    bool emitAdjustStackPointer(int index, codeGen &gen);
+
 };
 
 // some useful 64-bit codegen functions
@@ -202,6 +204,8 @@ public:
 
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
+
+    bool emitAdjustStackPointer(int index, codeGen &gen);
 };
 #endif
 

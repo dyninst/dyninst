@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.249 2006/11/09 17:16:17 bernat Exp $
+ * $Id: inst-x86.C,v 1.250 2006/11/10 16:28:51 bernat Exp $
  */
 #include <iomanip>
 
@@ -1379,6 +1379,10 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         assert(src2 == 0);
         assert(dest == 0);
         code_emitter->emitPush(gen, src1);
+	} else if (op == loadRegOp) {
+		assert(src1 == 0);
+		assert(src2 == 0);
+		code_emitter->emitPop(gen, dest);
     } else {
         unsigned opcode = 0;//initialize to placate gcc warnings
         switch (op) {
@@ -1823,6 +1827,16 @@ bool Emitter32::emitPop(codeGen &gen, Register r) {
     SET_PTR(insn, gen);
     return true;
 }
+
+bool Emitter32::emitAdjustStackPointer(int index, codeGen &gen) {
+	// The index will be positive for "needs popped" and negative
+	// for "needs pushed". However, positive + SP works, so don't
+	// invert.
+	int popVal = index * gen.proc()->getAddressWidth();
+	emitOpRegImm(EXTENDED_0x81_ADD, REGNUM_ESP, popVal, gen);
+	return true;
+}
+
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,

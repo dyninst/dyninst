@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.32 2006/11/09 17:16:08 bernat Exp $
+ * $Id: emit-x86.C,v 1.33 2006/11/10 16:28:48 bernat Exp $
  */
 
 #include <assert.h>
@@ -356,7 +356,7 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
       if (gen.rs()->hasXMM)
 	{
 	  // Allocate space for temporaries
-	  emitOpRegImm(5, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
+	  emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
 
 	  // need to save the floating point state (x87, MMX, SSE)
 	  // we do this on the stack, but the problem is that the save
@@ -369,8 +369,8 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
 	  //   push %eax               ; save the old stack pointer
 	  
 	  emitMovRegToReg(REGNUM_EAX, REGNUM_ESP, gen);
-	  emitOpRegImm(5, REGNUM_ESP, 512, gen);
-	  emitOpRegImm(4, REGNUM_ESP, -16, gen);
+	  emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, 512, gen);
+	  emitOpRegImm(EXTENDED_0x81_AND, REGNUM_ESP, -16, gen);
 	  
 	  // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
 	  GET_PTR(insn, gen);
@@ -385,12 +385,12 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
       else
 	{
 	  // Allocate space for temporaries and floating points
-	  emitOpRegImm(5, REGNUM_ESP, TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
+	  emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
 	  emitOpRegRM(FSAVE, FSAVE_OP, REGNUM_EBP, -(TRAMP_FRAME_SIZE) - FSAVE_STATE_SIZE, gen);
 	}
     } else {
         // Allocate space for temporaries
-        emitOpRegImm(5, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
+        emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
     }
     return true;
 }
@@ -1566,7 +1566,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     //Save space on the stack for the thread index
     if (bt->threaded())
     {
-       emitOpRegImm64(0x81, 5, REGNUM_RSP, 8, true, gen);
+       emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 8, true, gen);
     }
 
     if (bt->isConservative() && BPatch::bpatch->isSaveFPROn()) {
@@ -1583,8 +1583,8 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 	  //   push %rax               ; save the old stack pointer
 	  
 	  emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
-	  emitOpRegImm64(0x81, 5, REGNUM_RSP, 512, true, gen);
-	  emitOpRegImm64(0x81, 4, REGNUM_RSP, -16, true, gen);
+	  emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 512, true, gen);
+	  emitOpRegImm64(0x81, EXTENDED_0x81_AND, REGNUM_RSP, -16, true, gen);
 	  
 	  // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
 	  REGET_PTR(buffer, gen);
@@ -1861,6 +1861,15 @@ bool Emitter64::emitPush(codeGen &gen, Register reg) {
 bool Emitter64::emitPop(codeGen &gen, Register reg) {
     emitPopReg64(reg, gen);
     return true;
+}
+
+bool Emitter64::emitAdjustStackPointer(int index, codeGen &gen) {
+	// The index will be positive for "needs popped" and negative
+	// for "needs pushed". However, positive + SP works, so don't
+	// invert.
+	int popVal = index * gen.proc()->getAddressWidth();
+	emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_ESP, popVal, true, gen);
+	return true;
 }
 
 Emitter64 emitter64;
