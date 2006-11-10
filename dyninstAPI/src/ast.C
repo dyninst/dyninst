@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.176 2006/11/09 17:16:05 bernat Exp $
+// $Id: ast.C,v 1.177 2006/11/10 16:28:47 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1541,16 +1541,29 @@ bool AstInsnBranchNode::generateCode_phase2(codeGen &gen, bool noCost,
 }
 
 bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
-                                               const pdvector<AstNode *> &ifForks,
+                                            const pdvector<AstNode *> &ifForks,
                                             Address &, Register &) {
     Register loadReg = REG_NULL;
     Register storeReg = REG_NULL;
     Address loadAddr = ADDR_NULL;
     Address storeAddr = ADDR_NULL;
+    assert(insn_);
 
-    // Step 1: save machine-specific state (AKA flags)
+    // Step 1: save machine-specific state (AKA flags) and mark registers used in
+    // the instruction itself as off-limits.
 
     gen.rs()->saveVolatileRegisters(gen);
+    pdvector<int> usedRegisters;
+    if (insn_->getUsedRegs(usedRegisters)) {
+        for (unsigned i = 0; i < usedRegisters.size(); i++) {
+            gen.rs()->markReadOnly(usedRegisters[i]);
+        }
+    }
+    else {
+        // We don't know who to avoid... return false?
+        fprintf(stderr, "WARNING: unknown \"off limits\" register set, returning false from memory modification\n");
+        return false;
+    }
 
     // Step 2: generate code (this may spill registers)
 
@@ -1565,7 +1578,6 @@ bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     gen.rs()->restoreVolatileRegisters(gen);
 
     // Step 4: generate the memory instruction
-    assert(insn_);
     if (!insn_->generateMem(gen, origAddr_, gen.currAddr(), loadReg, storeReg)) {
         fprintf(stderr, "ERROR: generateMem call failed\n");
         return false;
@@ -1573,8 +1585,11 @@ bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
 
     // Step 5: restore any registers that were st0mped. 
 
+    fprintf(stderr, "===== restoring regs =====\n");
+
     gen.rs()->restoreAllRegisters(gen, true);
     
+    fprintf(stderr, "===== restoring regs done =====\n");
     return true;
 }
     
