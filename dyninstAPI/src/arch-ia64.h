@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.46 2006/11/10 16:28:41 bernat Exp $
+// $Id: arch-ia64.h,v 1.47 2006/11/13 15:45:16 paradyn Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -54,6 +54,7 @@
 class process; 
 
 #include "common/h/Types.h"
+#include "common/h/Vector.h"
 
 /* So the IA-64 has these cute ideas about ILP, one consequence of which
    is the design of its instruction set.  Instructions execute in parallel
