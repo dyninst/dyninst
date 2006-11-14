@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.189 2006/11/09 17:16:12 bernat Exp $
+// $Id: inst-sparc.C,v 1.190 2006/11/14 20:37:09 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -752,7 +752,6 @@ bool baseTramp::generateMTCode(codeGen &gen,
         threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
         if (!threadPOS->generateCode(gen,
                                      false, // noCost 
-                                     true, // root node
                                      src)) return false;
         if ((src) != REG_MT_POS) {
             // This is always going to happen... we reserve REG_MT_POS, so the
@@ -1055,13 +1054,9 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 /****************************************************************************/
 
 Register emitFuncCall(opCode op, 
-		      registerSpace *rs,
 		      codeGen &gen, 
 		      pdvector<AstNode *> &operands, 
-		      process *proc,
-		      bool noCost, int_function *callee,
-		      const pdvector<AstNode *> &ifForks,
-		      const instPoint *location)
+		      bool noCost, int_function *callee)
 {
    assert(op == callOp);
    pdvector <Register> srcs;
@@ -1079,7 +1074,7 @@ Register emitFuncCall(opCode op,
    for (unsigned u = 0; u < operands.size(); u++) {
        Register src = REG_NULL;
        Address unused = ADDR_NULL;
-       if (!operands[u]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+       if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
        assert(src != REG_NULL);
        srcs.push_back(src);
    }
@@ -1092,7 +1087,7 @@ Register emitFuncCall(opCode op,
          cleanUpAndExit(-1);
       }
       instruction::generateSimple(gen, ORop3, 0, srcs[u], u+8);
-      rs->freeRegister(srcs[u]);
+      gen.rs()->freeRegister(srcs[u]);
    }
    
    // As Ling pointed out to me, the following is rather inefficient.  It does:
@@ -1109,22 +1104,18 @@ Register emitFuncCall(opCode op,
    // return value is the register with the return value from the function.
    // This needs to be %o0 since it is back in the caller's scope.
 
-   Register retReg = rs->allocateRegister(gen, noCost);
+   Register retReg = gen.rs()->allocateRegister(gen, noCost);
    
    // Move tmp to dest
-   emitImm(orOp, retReg, 0, REG_O(0), gen, noCost, rs);
+   emitImm(orOp, retReg, 0, REG_O(0), gen, noCost, gen.rs());
 
    return retReg;
 }
 
 Register emitFuncCall(opCode op, 
-		      registerSpace *rs,
 		      codeGen &gen, 
 		      pdvector<AstNode *> &operands, 
-		      process *proc,
-		      bool noCost, Address callee_addr_,
-		      const pdvector<AstNode *> &ifForks,
-		      const instPoint *location) {
+		      bool noCost, Address callee_addr_) {
     // Argh... our dlopen installation uses an address version :/
     
     assert(op == callOp);
@@ -1143,7 +1134,7 @@ Register emitFuncCall(opCode op,
    for (unsigned u = 0; u < operands.size(); u++) {
        Register src = REG_NULL;
        Address unused = ADDR_NULL;
-       if (!operands[u]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+       if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
        assert(src != REG_NULL);
        srcs.push_back(src);
    }
@@ -1156,7 +1147,7 @@ Register emitFuncCall(opCode op,
          cleanUpAndExit(-1);
       }
       instruction::generateSimple(gen, ORop3, 0, srcs[u], u+8);
-      rs->freeRegister(srcs[u]);
+      gen.rs()->freeRegister(srcs[u]);
    }
    
    // As Ling pointed out to me, the following is rather inefficient.  It does:
@@ -1173,10 +1164,10 @@ Register emitFuncCall(opCode op,
    // return value is the register with the return value from the function.
    // This needs to be %o0 since it is back in the caller's scope.
 
-   Register retReg = rs->allocateRegister(gen, noCost);
+   Register retReg = gen.rs()->allocateRegister(gen, noCost);
    
    // Move tmp to dest
-   emitImm(orOp, retReg, 0, REG_O(0), gen, noCost, rs);
+   emitImm(orOp, retReg, 0, REG_O(0), gen, noCost, gen.rs());
 
    return retReg;
 }

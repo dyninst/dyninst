@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.96 2006/10/16 20:17:30 bernat Exp $
+// $Id: inst.h,v 1.97 2006/11/14 20:37:11 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -267,20 +267,16 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool 
 void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool noCost);
 
 // VG(11/06/01): moved here and added location
-Register emitFuncCall(opCode op, registerSpace *rs, codeGen &gen,
-                      pdvector<AstNode *> &operands, 
-		      process *proc, bool noCost, 
-                      int_function *func,
-		      const pdvector<AstNode *> &ifForks, // control-flow path
-		      const instPoint *location = NULL);
+Register emitFuncCall(opCode op, codeGen &gen,
+                      pdvector<AstNode *> &operands,
+					  bool noCost, 
+                      int_function *func);
 
 // Obsolete version that uses an address. DON'T USE THIS or expect it to survive.
-Register emitFuncCall(opCode op, registerSpace *rs, codeGen &gen,
+Register emitFuncCall(opCode op, codeGen &gen,
                       pdvector<AstNode *> &operands, 
-		      process *proc, bool noCost, 
-                      Address callee_addr_,
-		      const pdvector<AstNode *> &ifForks, // control-flow path
-		      const instPoint *location = NULL);
+		      		  bool noCost, 
+                      Address callee_addr_);
 
 int getInsnCost(opCode t);
 

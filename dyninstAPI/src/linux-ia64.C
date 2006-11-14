@@ -562,7 +562,7 @@ bool process::loadDYNINSTlib() {
   codeBufIndex_t index = gen.getIndex();
 	
   /* emitInferiorRPCheader() configures (the global) registerSpace for us. */
-  dlOpenCall->generateCode( gen, true, true );
+  dlOpenCall->generateCode( gen, true );
 
   // Okay, we're done with the generation, and we know where we'll be.
   // Go back and regenerate it
@@ -577,7 +577,7 @@ bool process::loadDYNINSTlib() {
   dlOpenCall = AstNode::funcCallNode( "_dl_open", dlOpenArguments );
 	
   /* Regenerate the call at the same original location with the correct constants. */
-  dlOpenCall->generateCode( gen, true, true );
+  dlOpenCall->generateCode( gen, true );
 
   /* Clean up the reference counting. */
   removeAst( dlOpenCall );

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.252 2006/11/09 17:16:11 bernat Exp $
+ * $Id: inst-power.C,v 1.253 2006/11/14 20:37:08 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1056,7 +1056,6 @@ bool baseTramp::generateMTCode(codeGen &gen,
         threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy);
         if (!threadPOS->generateCode(gen,
                                      false, // noCost 
-                                     true, // root node
                                      src)) return false;
         if ((src) != REG_MT_POS) {
             // This is always going to happen... we reserve REG_MT_POS, so the
@@ -1340,21 +1339,15 @@ bool clobberAllFuncCall( registerSpace *rs,
 //   based - offset into the code generated.
 //
 
-Register emitFuncCall(opCode, registerSpace *, codeGen &, pdvector<AstNode *> &, process *, bool, Address, 
-					  const pdvector<AstNode *> &, const instPoint *) {
+Register emitFuncCall(opCode, codeGen &, pdvector<AstNode *> &, bool, Address) {
 	assert(0);
         return 0;
 }
 
 Register emitFuncCall(opCode /* ocode */, 
-		      registerSpace *rs,
                       codeGen &gen,
-		      pdvector<AstNode *> &operands, 
-		      process *proc, bool noCost,
-		      int_function *callee,
-		      const pdvector<AstNode *> &ifForks,
-		      const instPoint *location)
-{
+		      pdvector<AstNode *> &operands, bool noCost,
+		      int_function *callee) {
     Address toc_anchor;
     bool clobberAll = false;
     pdvector <Register> srcs;
@@ -1375,7 +1368,7 @@ Register emitFuncCall(opCode /* ocode */,
    // file() -> pdmodule "parent"
    // exec() -> image "parent"
    //toc_anchor = ((int_function *)calleefunc)->file()->exec()->getObject().getTOCoffset();
-    toc_anchor = proc->getTOCoffsetInfo(callee);
+    toc_anchor = gen.proc()->getTOCoffsetInfo(callee);
    
    // Generate the code for all function parameters, and keep a list
    // of what registers they're in.
@@ -1383,7 +1376,7 @@ Register emitFuncCall(opCode /* ocode */,
       if (operands[u]->getSize() == 8) {
          // What does this do?
          bperr( "in weird code\n");
-         Register dummyReg = rs->allocateRegister(gen, noCost);
+         Register dummyReg = gen.rs()->allocateRegister(gen, noCost);
 	 srcs.push_back(dummyReg);
          
          instruction::generateImm(gen, CALop, dummyReg, 0, 0);
@@ -1391,7 +1384,7 @@ Register emitFuncCall(opCode /* ocode */,
 
       Register src = REG_NULL;
       Address unused = ADDR_NULL;
-      if (!operands[u]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+      if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
       assert(src != REG_NULL);
       srcs.push_back(src);
       //bperr( "Generated operand %d, base %d\n", u, base);
@@ -1414,15 +1407,15 @@ Register emitFuncCall(opCode /* ocode */,
    saveRegister(gen, 2, FUNC_CALL_SAVE);
    savedRegs.push_back(2);
 
-   if(proc->multithread_capable()) {
+   if(gen.proc()->multithread_capable()) {
       // save REG_MT_POS
       saveRegister(gen, REG_MT_POS, FUNC_CALL_SAVE);
       savedRegs += REG_MT_POS;
    }
 
    // see what others we need to save.
-   for (u_int i = 0; i < rs->getRegisterCount(); i++) {
-      registerSlot *reg = rs->getRegSlot(i);
+   for (u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
+      registerSlot *reg = gen.rs()->getRegSlot(i);
       if (reg->needsSaving) {
          // needsSaving -> caller saves register
          // we MUST save restore this and the end of the function call
@@ -1521,7 +1514,7 @@ Register emitFuncCall(opCode /* ocode */,
      
      if (srcs[u] == (unsigned int) u+3) 
        {
-	 rs->freeRegister(srcs[u]);
+	 gen.rs()->freeRegister(srcs[u]);
 	 continue;
        }
 
@@ -1532,7 +1525,7 @@ Register emitFuncCall(opCode /* ocode */,
      if (scratchReg[u] != -1)
        {
 	 instruction::generateImm(gen, ORILop, scratchReg[u], u+3, 0);
-	 rs->freeRegister(scratchReg[u]);
+	 gen.rs()->freeRegister(scratchReg[u]);
        }
      else
        {
@@ -1546,20 +1539,20 @@ Register emitFuncCall(opCode /* ocode */,
 	   }
 	 if (!hasSourceBeenCopied)
 	   {
-	     scratch = rs->allocateRegister(gen, noCost);
+	     scratch = gen.rs()->allocateRegister(gen, noCost);
 	     instruction::generateImm(gen, ORILop, u+3, scratch, 0);
-	     rs->freeRegister(u+3);
+	     gen.rs()->freeRegister(u+3);
 	     scratchReg[whichSource] = scratch;
 	     hasSourceBeenCopied = true;
 	     
 	     instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
-	     rs->freeRegister(srcs[u]);
+	     gen.rs()->freeRegister(srcs[u]);
 	   }
 	 else
 	   {
 	     instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
-	     rs->freeRegister(srcs[u]);
-	     rs->clobberRegister(u+3);
+	     gen.rs()->freeRegister(srcs[u]);
+	     gen.rs()->clobberRegister(u+3);
 	   }
        } 
    }
@@ -1583,20 +1576,20 @@ Register emitFuncCall(opCode /* ocode */,
 
    // Linear Scan on the functions to see which registers get clobbered
      
-   clobberAll = clobberAllFuncCall(rs, proc, callee, 0);
+   clobberAll = clobberAllFuncCall(gen.rs(), gen.proc(), callee, 0);
       
    /////////////// Clobber the registers if needed
 
    if (clobberAll)
      {
-       for(u_int i = 0; i < rs->getRegisterCount(); i++){
-	 registerSlot * reg = rs->getRegSlot(i);
-	 rs->clobberRegister(reg->number);
+       for(u_int i = 0; i < gen.rs()->getRegisterCount(); i++){
+	 registerSlot * reg = gen.rs()->getRegSlot(i);
+	 gen.rs()->clobberRegister(reg->number);
        }
        
-       for(u_int i = 0; i < rs->getFPRegisterCount(); i++){
-	 registerSlot * reg = rs->getFPRegSlot(i);
-	 rs->clobberFPRegister(reg->number);
+       for(u_int i = 0; i < gen.rs()->getFPRegisterCount(); i++){
+	 registerSlot * reg = gen.rs()->getFPRegSlot(i);
+	 gen.rs()->clobberFPRegister(reg->number);
        }
      }
    
@@ -1607,7 +1600,7 @@ Register emitFuncCall(opCode /* ocode */,
    brl.generate(gen);
 
    // get a register to keep the return value in.
-   Register retReg = rs->allocateRegister(gen, noCost);
+   Register retReg = gen.rs()->allocateRegister(gen, noCost);
   
    // put the return value from register 3 to the newly allocated register.
    instruction::generateImm(gen, ORILop, 3, retReg, 0);

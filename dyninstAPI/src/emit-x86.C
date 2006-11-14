@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.33 2006/11/10 16:28:48 bernat Exp $
+ * $Id: emit-x86.C,v 1.34 2006/11/14 20:37:04 bernat Exp $
  */
 
 #include <assert.h>
@@ -450,7 +450,6 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
         Address unused;
         threadPOS->generateCode(gen,
                                 false, // noCost 
-                                true, // root
                                 unused,
                                 src);
         // AST generation uses a base pointer and a current address; the lower-level
@@ -1111,7 +1110,7 @@ bool Emitter64::clobberAllFuncCall( registerSpace *rs,
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
 Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> &operands,
-			     bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks)
+			     bool noCost, int_function *callee)
 {
 
     assert(op == callOp);
@@ -1133,7 +1132,6 @@ Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> 
         Register reg = REG_NULL;
 	if (!operands[u]->generateCode_phase2(gen,
                                               noCost, 
-                                              ifForks,
                                               unused,
                                               reg)) assert(0);
         srcs.push_back(reg);
@@ -1713,7 +1711,6 @@ bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
         threadPOS = AstNode::funcCallNode("DYNINSTthreadIndex", dummy, bt->proc());
         src = threadPOS->generateCode(gen,
                                       false, // noCost 
-                                      true, // root
                                       unused,
                                       src);
         // AST generation uses a base pointer and a current address; the lower-level

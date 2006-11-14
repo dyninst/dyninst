@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.117 2006/11/09 17:16:13 bernat Exp $
+// $Id: linux-x86.C,v 1.118 2006/11/14 20:37:13 bernat Exp $
 
 #include <fstream>
 
@@ -1542,7 +1542,6 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase) {
 int Emitter32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNode *> &operands,
                               int_function */*target*/, 
-                              const pdvector<AstNode *> &ifForks,
                               pdvector<Register> &/*extra_saves*/, 
                               bool noCost)
 {
@@ -1553,7 +1552,6 @@ int Emitter32::emitCallParams(codeGen &gen,
         Register reg = REG_NULL;
         if (!operands[u]->generateCode_phase2(gen,
                                               noCost,
-                                              ifForks,
                                               unused,
                                               reg)) assert(0); // ARGH....
         assert (reg != REG_NULL); // Give me a real return path!

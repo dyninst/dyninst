@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emitter.h,v 1.2 2006/11/10 16:28:50 bernat Exp $
+ * $Id: emitter.h,v 1.3 2006/11/14 20:37:06 bernat Exp $
  */
 
 #ifndef _EMITTER_H
@@ -88,7 +88,7 @@ class Emitter {
     virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
 
     virtual Register emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> &operands,
-			      bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks) = 0;
+			      bool noCost, int_function *callee) = 0;
     virtual void emitGetRetVal(Register dest, codeGen &gen) = 0;
     virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen) = 0;
     virtual void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen) = 0;

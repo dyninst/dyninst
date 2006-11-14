@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.17 2006/11/10 16:28:49 bernat Exp $
+ * $Id: emit-x86.h,v 1.18 2006/11/14 20:37:05 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -107,11 +107,10 @@ public:
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, codeGen &gen,
                       const pdvector<AstNode *> &operands,
-                      bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks);
+                      bool noCost, int_function *callee);
     int emitCallParams(codeGen &gen, 
                        const pdvector<AstNode *> &operands,
                        int_function *target, 
-                       const pdvector<AstNode *> &ifForks,
                        pdvector<Register> &extra_saves,
                        bool noCost);
     bool emitCallCleanup(codeGen &gen, int_function *target, 
@@ -180,7 +179,7 @@ public:
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, codeGen &gen,
                       const pdvector<AstNode *> &operands,
-                      bool noCost, int_function *callee, const pdvector<AstNode *> &ifForks);
+                      bool noCost, int_function *callee);
     void emitGetRetVal(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);

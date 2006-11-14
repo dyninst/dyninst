@@ -806,11 +806,9 @@ Address rpcMgr::createRPCImage(AstNode *action,
         return 0;
     }
     
-    Address unused = ADDR_NULL;
     resultReg = REG_NULL;
     if (!action->generateCode(irpcBuf,
-                              noCost, true,
-                              unused,
+                              noCost,
                               resultReg)) assert(0);
     
     if (!shouldStopForResult) {

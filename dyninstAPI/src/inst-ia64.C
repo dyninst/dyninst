@@ -206,7 +206,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
 
 	Register framePointer = REG_NULL;
-	location->func()->getFramePointerCalculator()->generateCode(gen, false, true, framePointer);
+	location->func()->getFramePointerCalculator()->generateCode(gen, false, framePointer);
 
 	instruction_x longConstant = generateLongConstantInRegister( src2, src1 );
 	instruction calculateAddress = generateArithmetic( plusOp, framePointer, src2, framePointer ); 
@@ -268,7 +268,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
 	Register framePointer = REG_NULL;
-	location->func()->getFramePointerCalculator()->generateCode( gen, false, true, framePointer);
+	location->func()->getFramePointerCalculator()->generateCode( gen, false, framePointer);
 
 	instruction memoryNop( NOP_M );
 	instruction integerNop( NOP_I );
@@ -323,18 +323,15 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 } /* end findFreeLocal() */
 
 /* Obsolete addr-based version */
-Register emitFuncCall(opCode, registerSpace *, codeGen &, pdvector<AstNode *> &, process *, bool, Address, 
-					  const pdvector<AstNode *> &, const instPoint *) {
+Register emitFuncCall(opCode, codeGen &, pdvector<AstNode *> &, bool, Address) {
 	assert(0);
 }
 
 /* Required by ast.C */
-Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
+Register emitFuncCall( opCode op, codeGen & gen,
 					   pdvector< AstNode * > & operands,
-					   process * proc, bool /* noCost */,
-					   int_function *callee,
-					   const pdvector< AstNode * > & ifForks,
-					   const instPoint *location) { 
+					   bool /* noCost */,
+					   int_function *callee) { 
   /* Consistency check. */
   assert( op == callOp );
 
@@ -346,25 +343,25 @@ Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
 	assert(0);
   }
  
-  Address calleeGP = proc->getTOCoffsetInfo( callee );
+  Address calleeGP = gen.proc()->getTOCoffsetInfo( callee );
 
   /* Generate the code for the arguments. */
   pdvector< Register > sourceRegisters;
   for( unsigned int i = 0; i < operands.size(); i++ ) {
 	  Register src = REG_NULL;
 	  Address unused = ADDR_NULL;
-	  if (!operands[i]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+	  if (!operands[i]->generateCode_phase2( gen, false, unused, src)) assert(0);
 	  assert(src != REG_NULL);
 	  sourceRegisters.push_back(src);
   }
 
   /* source-to-output register copy */
-  unsigned int outputZero = rs->getRegSlot( NUM_LOCALS )->number;
+  unsigned int outputZero = gen.rs()->getRegSlot( NUM_LOCALS )->number;
   for( unsigned int i = 0; i < sourceRegisters.size(); i++ ) {
 	// fprintf( stderr, "Copying argument in local register %d to output register %d\n", sourceRegisters[i], outputZero + i );
-	emitRegisterToRegisterCopy( sourceRegisters[i], outputZero + i, gen, rs );
-	rs->freeRegister( sourceRegisters[i] );
-	rs->incRefCount( outputZero + i );
+	emitRegisterToRegisterCopy( sourceRegisters[i], outputZero + i, gen, gen.rs() );
+	gen.rs()->freeRegister( sourceRegisters[i] );
+	gen.rs()->incRefCount( outputZero + i );
   } /* end source-to-output register copy */
 
 	/* Since the BT was kind enough to save the GP, return value,
@@ -375,8 +372,8 @@ Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
 
   /* Grab a register -- temporary for transfer to branch register,
 	 and a registerSpace register for the return value. */
-  Register rsRegister = findFreeLocal( rs, "Unable to find local register in which to store callee address, aborting.\n" );
-  rs->incRefCount( rsRegister );
+  Register rsRegister = findFreeLocal( gen.rs(), "Unable to find local register in which to store callee address, aborting.\n" );
+  gen.rs()->incRefCount( rsRegister );
 
   instruction integerNOP( NOP_I );
   instruction memoryNOP( NOP_M );
@@ -405,11 +402,11 @@ Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
   
   for( unsigned int i = 0; i < sourceRegisters.size(); i++ ) {
 	/* Free all the output registers. */
-	rs->freeRegister( outputZero + i );
+	gen.rs()->freeRegister( outputZero + i );
   }
 
   /* copy the result (r8) to a registerSpace register */
-  emitRegisterToRegisterCopy( REGISTER_RV, rsRegister, gen, rs );
+  emitRegisterToRegisterCopy( REGISTER_RV, rsRegister, gen, gen.rs() );
 
   /* return that register (still allocated) */
   return rsRegister;
@@ -552,8 +549,6 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 	operands.push_back(AstNode::operandNode( AstNode::DataReg, (void *)(long long int)src1 ) );
 	operands.push_back(AstNode::operandNode( AstNode::DataReg, (void *)(long long int)src2 ) );
 
-	/* Generate the empty ifForks AST. */
-	pdvector< AstNode * > ifForks;
 
 	/* Callers of emitV() expect the register space to be unchanged
 	   afterward, so make sure eFC() doesn't use the source registers
@@ -573,10 +568,9 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 
 	/* Call emitFuncCall(). */
 	rs->incRefCount( src1 ); rs->incRefCount( src2 );
-	Register returnRegister = emitFuncCall( op, rs, gen, operands, proc, noCost, calleefunc, ifForks, location );
+	Register returnRegister = emitFuncCall( op, gen, operands, noCost, calleefunc);
 	/* A function call does not require any conditional branches, so ensure
 	   that we're not screwing up the current AST by not telling it about stuff. */
-	assert( ifForks.size() == 0 );
 			
 	if( returnRegister != dest ) {
 	  emitRegisterToRegisterCopy( returnRegister, dest, gen, rs );
@@ -2810,7 +2804,7 @@ bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
 	  
 	  Register src = REG_NULL;
 	  if (!threadPos->generateCode(gen, 
-								   false /* no cost */, true /* root node */, src )) return false;
+								   false /* no cost */, src )) return false;
 	  
 	  /* Ray: I'm asserting that we don't use the 35th preserved register for anything. */
 	  emitRegisterToRegisterCopy( src, CALCULATE_KTI_REGISTER, gen, rs );
@@ -3254,7 +3248,7 @@ void emitVstore( opCode op, Register src1, Register src2, Address dest,
 
 	/* framePointerCalculator will leave the frame pointer in framePointer. */
 	Register framePointer = REG_NULL;
-	location->func()->getFramePointerCalculator()->generateCode( gen, false, true, 
+	location->func()->getFramePointerCalculator()->generateCode( gen, false,
 																 framePointer);
 	/* See the frameAddr case in emitVload() for an optimization. */
 	instruction memoryNop( NOP_M );

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.207 2006/10/18 16:06:43 legendre Exp $
+// $Id: solaris.C,v 1.208 2006/11/14 20:37:17 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -776,7 +776,7 @@ bool process::loadDYNINSTlib() {
     removeAst(dlopenAstArgs[1]);
 
     dlopenAst->generateCode(scratchCodeBuffer,
-                            true, true);
+                            true);
     removeAst(dlopenAst);
 
     // Slap in a breakpoint

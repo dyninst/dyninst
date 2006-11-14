@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.163 2006/11/09 17:16:14 bernat Exp $
+// $Id: pdwinnt.C,v 1.164 2006/11/14 20:37:14 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1938,7 +1938,6 @@ static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves);
 int Emitter32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNode *> &operands,
                               int_function *target, 
-                              const pdvector<AstNode *> &ifForks,
                               pdvector<Register> &extra_saves, 
                               bool noCost)
 {
@@ -1958,7 +1957,7 @@ int Emitter32::emitCallParams(codeGen &gen,
           for (unsigned u = 0; u < operands.size(); u++) {
               Register src = REG_NULL;
               Address unused = ADDR_NULL;
-              if (!operands[i]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+              if (!operands[i]->generateCode_phase2( gen, false, unused, src)) assert(0);
               assert(src != REG_NULL);
               srcs.push_back(src);
           }
@@ -1972,14 +1971,14 @@ int Emitter32::emitCallParams(codeGen &gen,
             }
             if (!operands[0]->generateCode_phase2(gen, 
                                                   noCost, 
-                                                  ifForks, unused, ecx_target)) assert(0);
+                                                  unused, ecx_target)) assert(0);
         }
         
         //Push other registers onto the stack
         for (unsigned u = 1; u < operands.size(); u++) {
               Register src = REG_NULL;
               Address unused = ADDR_NULL;
-              if (!operands[i]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+              if (!operands[i]->generateCode_phase2( gen, false, unused, src)) assert(0);
               assert(src != REG_NULL);
               srcs.push_back(src);
         }     
@@ -2001,19 +2000,19 @@ int Emitter32::emitCallParams(codeGen &gen,
         }
         if (num_operands) {
             if (!operands[0]->generateCode_phase2(gen, 
-                                                  noCost, ifForks, 
+                                                  noCost, 
                                                   unused, ecx_target)) assert(0);
         }
         if (num_operands > 1) {
             if (!operands[1]->generateCode_phase2(gen, 
-                                                  noCost, ifForks, unused, edx_target)) assert(0);
+                                                  noCost, unused, edx_target)) assert(0);
         }
         
         //Push other registers onto the stack
         for (unsigned u = 2; u < operands.size(); u++) {
               Register src = REG_NULL;
               Address unused = ADDR_NULL;
-              if (!operands[i]->generateCode_phase2( gen, false, ifForks, unused, src)) assert(0);
+              if (!operands[i]->generateCode_phase2( gen, false, unused, src)) assert(0);
               assert(src != REG_NULL);
               srcs.push_back(src);
         }

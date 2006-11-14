@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.250 2006/11/10 16:28:51 bernat Exp $
+ * $Id: inst-x86.C,v 1.251 2006/11/14 20:37:10 bernat Exp $
  */
 #include <iomanip>
 
@@ -848,22 +848,17 @@ static inline void emitEnter(short imm16, codeGen &gen) {
     SET_PTR(insn, gen);
 }
 
-Register emitFuncCall(opCode, registerSpace *, codeGen &, pdvector<AstNode *> &, process *, bool, Address, 
-					  const pdvector<AstNode *> &, const instPoint *) {
+Register emitFuncCall(opCode, codeGen &, pdvector<AstNode *> &, bool, Address) {
 	assert(0);
 }
 // this function just multiplexes between the 32-bit and 64-bit versions
 Register emitFuncCall(opCode op, 
-                      registerSpace *,
                       codeGen &gen,
                       pdvector<AstNode *> &operands, 
-                      process *,
                       bool noCost,
-                      int_function *callee,
-                      const pdvector<AstNode *> &ifForks,
-                      const instPoint *)
+                      int_function *callee)
 {
-    return code_emitter->emitCall(op, gen, operands, noCost, callee, ifForks);
+    return code_emitter->emitCall(op, gen, operands, noCost, callee);
 }
 
 
@@ -920,8 +915,7 @@ void Emitter32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 Register Emitter32::emitCall(opCode op, 
                              codeGen &gen,
                              const pdvector<AstNode *> &operands, 
-                             bool noCost, int_function *callee,
-                             const pdvector<AstNode *> &ifForks) {
+                             bool noCost, int_function *callee) {
     assert(op == callOp);
     pdvector <Register> srcs;
     int param_size;
@@ -945,7 +939,7 @@ Register Emitter32::emitCall(opCode op,
                    bool noCost);
                    */
 
-   param_size = emitCallParams(gen, operands, callee, ifForks, saves, noCost);
+   param_size = emitCallParams(gen, operands, callee, saves, noCost);
 
    // make the call
    // we are using an indirect call here because we don't know the
@@ -2044,7 +2038,6 @@ bool int_function::setReturnValue(int val)
     
     return proc()->writeTextSpace((void *) addr, gen.used(), gen.start_ptr());
 }
-
 
 bool registerSpace::clobberRegister(Register reg) 
 {
