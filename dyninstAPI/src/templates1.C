@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.75 2006/10/04 20:41:16 bernat Exp $
+//$Id: templates1.C,v 1.76 2006/11/14 20:37:03 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -219,3 +219,7 @@ template class  BPatch_Set<image_basicBlock *>;
 
 class image_edge;
 template class  pdvector<image_edge*>;
+
+#include "ast.h"
+template class dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>;
+template class pdvector<dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>::entry >;
