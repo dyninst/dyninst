@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.6 2006/10/12 02:44:02 bernat Exp $
+// $Id: arch.C,v 1.7 2006/11/14 20:36:59 bernat Exp $
 // Code generation
 
 //////////////////////////
@@ -75,6 +75,7 @@ codeGen::codeGen() :
     thr_(NULL),
     lwp_(NULL),
     rs_(NULL),
+	t_(NULL),
     addr_((Address)-1),
     ip_(NULL)
 {}
@@ -89,6 +90,7 @@ codeGen::codeGen(unsigned size) :
     thr_(NULL),
     lwp_(NULL),
     rs_(NULL),
+	t_(NULL),
     addr_((Address)-1),
     ip_(NULL)
 
@@ -109,6 +111,7 @@ codeGen::codeGen(codeBuf_t *buffer, int size) :
     thr_(NULL),
     lwp_(NULL),
     rs_(NULL),
+	t_(NULL),
     addr_((Address)-1),
     ip_(NULL)
 
@@ -129,6 +132,7 @@ codeGen::codeGen(const codeGen &g) :
     thr_(g.thr_),
     lwp_(g.lwp_),
     rs_(g.rs_),
+	t_(g.t_),
     addr_(g.addr_),
     ip_(g.ip_)
 {

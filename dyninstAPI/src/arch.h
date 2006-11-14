@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.22 2006/10/12 02:44:03 bernat Exp $
+// $Id: arch.h,v 1.23 2006/11/14 20:37:00 bernat Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -81,6 +81,8 @@ class dyn_thread;
 class process;
 class instPoint;
 class registerSpace;
+class regTracker_t;
+class AstNode;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -89,6 +91,7 @@ class registerSpace;
 class codeGen {
     // Instruction modifies these.
     friend class instruction;
+    friend class AstNode;
  public:
     // Default constructor -- makes an empty generation area
     codeGen();
@@ -181,6 +184,7 @@ class codeGen {
     void setRegisterSpace(registerSpace *r) { rs_ = r; }
     void setAddr(Address a) { addr_ = a; }
     void setPoint(instPoint *i) { ip_ = i; }
+	void setRegTracker(regTracker_t *t) { t_ = t; }
 
     dyn_lwp *lwp() { return lwp_; }
     dyn_thread *thread() { return thr_; }
@@ -188,6 +192,7 @@ class codeGen {
     Address startAddr() const { return addr_; }
     const instPoint *point() const { return ip_; }
     registerSpace *rs() { assert(rs_); return rs_; }
+    regTracker_t *tracker() { assert(t_); return t_;}
 
  private:
     codeBuf_t *buffer_;
@@ -200,6 +205,7 @@ class codeGen {
     dyn_thread *thr_;
     dyn_lwp * lwp_;
     registerSpace *rs_;
+	regTracker_t *t_;
     Address addr_;
     instPoint *ip_;
 };
