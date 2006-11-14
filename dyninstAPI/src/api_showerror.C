@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.30 2006/11/09 17:16:02 bernat Exp $
+// $Id: api_showerror.C,v 1.31 2006/11/14 20:36:57 bernat Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -228,6 +228,7 @@ int dyn_debug_rtlib = 0;
 int dyn_debug_catchup = 0;
 int dyn_debug_bpatch = 0;
 int dyn_debug_regalloc = 0;
+int dyn_debug_ast = 0;
 
 bool init_debug() {
   char *p;
@@ -322,6 +323,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_REGALLOC"))) {
       fprintf(stderr, "Enabling DyninstAPI register allocation debug\n");
       dyn_debug_regalloc = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_AST"))) {
+      fprintf(stderr, "Enabling DyninstAPI ast debug\n");
+      dyn_debug_ast = 1;
   }
 
   debugPrintLock = new eventLock();
@@ -661,6 +666,24 @@ int bpatch_printf(const char *format, ...)
 int regalloc_printf(const char *format, ...)
 {
   if (!dyn_debug_regalloc) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->_Lock(FILE__, __LINE__);
+  
+  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}
+
+int ast_printf(const char *format, ...)
+{
+  if (!dyn_debug_ast) return 0;
   if (NULL == format) return -1;
 
   debugPrintLock->_Lock(FILE__, __LINE__);

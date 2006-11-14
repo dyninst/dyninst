@@ -70,6 +70,7 @@ extern int dyn_debug_dwarf;
 extern int dyn_debug_thread;
 extern int dyn_debug_catchup;
 extern int dyn_debug_regalloc;
+extern int dyn_debug_ast;
 
 // C++ prototypes
 #define signal_cerr       if (dyn_debug_signal) cerr
@@ -102,6 +103,7 @@ extern int dwarf_printf(const char *format, ...);
 extern int thread_printf(const char *format, ...);
 extern int catchup_printf(const char *format, ...);
 extern int regalloc_printf(const char *format, ...);
+extern int ast_printf(const char *format, ...);
 
 // And initialization
 extern bool init_debug();
