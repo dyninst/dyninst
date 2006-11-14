@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.4 2006/11/10 16:28:52 bernat Exp $
+// $Id: registerSpace.C,v 1.5 2006/11/14 20:37:18 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -173,90 +173,124 @@ void registerSpace::initFloatingPointRegisters(const unsigned int count, Registe
 bool registerSpace::allocateSpecificRegister(codeGen &gen, Register reg, 
                                              bool noCost)
 {
+    unsigned index = registers.size();
     for (unsigned i = 0; i < registers.size(); i++) {
+        
         if (registers[i].number == reg) {
-            if (registers[i].offLimits) return false;
-            if (registers[i].refCount != 0) return false;
-            
-            registers[i].refCount = 1;
-            
-            if (registers[i].needsSaving) {
-                spillRegister(i, gen, noCost);
-            }
-            return true;
+            index = i;
+            break;
         }
     }
+    if (index == registers.size()) return false;
+
+    if (registers[index].offLimits) return false;
+    else if (registers[index].refCount > 0) {
+		return false;
+    }
+    else if (registers[index].needsSaving) {
+        assert(registers[index].refCount == 0);
+        if (!spillRegister(index, gen, noCost)) {
+            return false;
+        }
+    }
+	else if (registers[index].keptValue) {
+		if (!stealRegister(index, gen, noCost)) return false;
+	}
+
+    // So... we've either got a clear register, or we spilled it,
+    // or we stole it. Nice. 
+    assert(registers[index].refCount == 0);
+    assert(registers[index].needsSaving == false);
+    
+    registers[index].refCount = 1;
+    registers[index].beenClobbered = true;
+    regalloc_printf("Allocated register %d\n", registers[index].number);
+
     return true;
 }
 
 Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
-  unsigned i;
-  unsigned spareReg = registers.size();
-  
-  for (i=0; i < numRegisters; i++) {
-      if (registers[i].refCount == 0 && (!registers[i].offLimits)) {
-          // Optimization: if this one needs saving, but we can use it, stick it
-          // in spareReg for later.
-          if (registers[i].needsSaving) {
-              spareReg = i;
-          }
-          else {
-              regalloc_printf("Returning scratch register %d\n", registers[i].number);
-              return(registers[i].number);
-          }
-      }
-  }
-  
-  if (spareReg != registers.size()) {
-      if (spillRegister(spareReg, gen, noCost)) {
-          return registers[spareReg].number;
-      }
-  }
-  
-  assert(0);
-  return Null_Register;
+    unsigned toUse = registers.size(); 
+
+	regalloc_printf("Allocating register...\n");
+	for (unsigned i=0; i < registers.size(); i++) {
+		regalloc_printf("%d: reg %d, refCount %d, needsSaving %d, keptValue %d, offLimits %d\n",
+						i, registers[i].number,
+						registers[i].refCount,
+						registers[i].needsSaving,
+						registers[i].keptValue,
+						registers[i].offLimits);
+	}
+
+    for (unsigned i=0; i < registers.size(); i++) {
+        if (registers[i].offLimits) continue;
+        if (registers[i].needsSaving) continue;
+		if (registers[i].keptValue) continue;
+        if (registers[i].refCount == 0) {
+            toUse = i; 
+            break;
+        }
+    }
+    
+	// TODO: spill vs. recalculate?
+    if (toUse == registers.size()) {
+        for (unsigned i = 0; i < registers.size(); i++) {
+            // Okay, time to look for a spillable one...
+            if (registers[i].offLimits) continue;
+            if (registers[i].refCount > 0) continue;
+			if (registers[i].keptValue) continue;
+            assert(registers[i].needsSaving);
+            if (spillRegister(i, gen, noCost)) {
+                toUse = i;
+                break;
+            }
+        }
+    }
+    if (toUse == registers.size()) {
+        // Getting desperate...
+        for (unsigned i = 0; i < registers.size(); i++) {
+            if (registers[i].offLimits) continue;
+			if (registers[i].refCount > 0) continue;
+            if (registers[i].keptValue) {
+                // Kick him out. TODO: priority mechanism. 
+                if (stealRegister(i, gen, noCost)) {
+                    toUse = i;
+                    break;
+                }
+            }
+        }
+    }
+    
+    if (toUse == registers.size()) {
+        // Crap.
+        debugPrint();
+        assert(0 && "Failed to allocate register!");
+        return REG_NULL;
+    }
+    
+    assert(registers[toUse].refCount == 0);
+    assert(registers[toUse].needsSaving == false);
+    registers[toUse].beenClobbered = true;
+	regalloc_printf("Returning register %d\n", registers[toUse].number);
+    return registers[toUse].number;
 }
 
-Register registerSpace::allocateRegister(codeGen &gen, bool noCost) 
+Register registerSpace::allocateRegister(codeGen &gen, 
+                                         bool noCost) 
 {
+    Register reg = getScratchRegister(gen, noCost);
+	if (reg == REG_NULL) return REG_NULL;
 
-  // Technically, we could have failed to spill this guy... but I
-  // assume in that case we can't spill anything.
-  
-  // DEBUG
-
-  unsigned i;
-  unsigned spareReg = registers.size();
-  
-  for (i=0; i < numRegisters; i++) {
-      if (registers[i].refCount == 0 && (!registers[i].offLimits)) {
-          // Optimization: if this one needs saving, but we can use it, stick it
-          // in spareReg for later.
-          if (registers[i].needsSaving) {
-              spareReg = i;
-          }
-          else {
-              registers[i].refCount = 1;
-              clobberRegister(registers[i].number);
-              regalloc_printf("Allocated register %d\n", registers[i].number);
-              return(registers[i].number);
-          }
-      }
-  }
-  
-  if (spareReg != registers.size()) {
-      if (spillRegister(spareReg, gen, noCost)) {
-          registers[spareReg].refCount = 1; // We're using it...
-          clobberRegister(registers[spareReg].number);
-          return registers[spareReg].number;
-      }
-  }
- 
-
-  logLine("==> WARNING! run out of registers...\n");
-  debugPrint();
-  abort();
-  return(Null_Register);
+    // Argh stupid iteration
+    for (unsigned i = 0; i < registers.size(); i++) {
+        if (registers[i].number == reg) { 
+            registers[i].refCount = 1;
+            regalloc_printf("Allocated register %d\n", registers[i].number);
+            return(registers[i].number);
+        }
+    }
+	assert(0); // This means we got a register, but couldn't find it again.
+	return REG_NULL;
 }
 
 bool registerSpace::spillRegister(unsigned index, codeGen &gen, bool noCost) {
@@ -274,6 +308,20 @@ bool registerSpace::spillRegister(unsigned index, codeGen &gen, bool noCost) {
 
     return true;
 }
+
+bool registerSpace::stealRegister(unsigned index, codeGen &gen, bool /*noCost*/) {
+    // Can be made a return false; this for correctness.
+    assert(registers[index].refCount == 0);
+    assert(registers[index].needsSaving == false);
+	assert(registers[index].keptValue == true);
+
+    // Let the AST know it just lost...
+	if (!gen.tracker()->stealKeptRegister(registers[index].number)) return false;
+	registers[index].keptValue = false;
+
+    return true;
+}
+
 
 // This might mean something different later, but for now means
 // "Save special purpose registers". We may want to define a "volatile"
@@ -341,12 +389,10 @@ void registerSpace::freeRegister(Register reg)
        if (registers[i].number == reg) {
           registers[i].refCount--;
           regalloc_printf("Freed register %d: refcount now %d\n", registers[i].number, registers[i].refCount);
-#if defined(ia64_unknown_linux2_4)
           if( registers[i].refCount < 0 ) {
              bperr( "Freed free register!\n" );
              registers[i].refCount = 0;
           }
-#endif
           return;
        }
     }
@@ -445,44 +491,14 @@ void registerSpace::setAllLive(){
 void registerSpace::resetSpace() {
     regalloc_printf("============== RESET %p ==============\n", this);
    for (u_int i=0; i < registers.size(); i++) {
-
-      // Drew, do you still want this for anything?  -- TLM ( 03/18/2002 )
-      // (Should be #if defined(MT__THREAD) - protected, if you do.)
-      //        if (registers[i].inUse && (registers[i].number != REG_MT_POS)) {
-      //sprintf(errorLine,"WARNING: register %d is still in use\n",registers[i].number);
-      //logLine(errorLine);
-      //        }
-      
-      registers[i].refCount = 0;
-      registers[i].mustRestore = false;
-      registers[i].offLimits = false;
-      //registers[i].beenClobbered = false;
-      registers[i].needsSaving = registers[i].startsLive;
-      if(is_multithreaded) {
-          if (registers[i].number == REG_MT_POS) {
-              registers[i].refCount = 1;
-              registers[i].needsSaving = true;
-          }
-      }
-
-      registers[i].origValueSpilled_ = registerSlot::unspilled;
-      registers[i].saveOffset_ = 0;
-
-	  registers[i].offLimits = false;
-
+       registers[i].resetSlot();
    }
 }
 
 void registerSpace::cleanSpace() {
     regalloc_printf("============== CLEAN ==============\n");
-   for (u_int i=0; i < registers.size(); i++) {
-      registers[i].refCount = 0;
-      if(is_multithreaded) {
-          if (registers[i].number == REG_MT_POS) {
-              registers[i].refCount = 1;
-              registers[i].needsSaving = true;
-          }
-      }
+    for (u_int i=0; i < registers.size(); i++) {
+        registers[i].cleanSlot();
    }
 }
 
@@ -765,22 +781,6 @@ registerSlot *registerSpace::findRegister(Register source) {
         }
     }
 
-#if 0
-    } else if (source < (registers.size() + fpRegisters.size())) {
-        for (unsigned i = 0; i < fpRegisters.size(); i++) {
-            if (fpRegisters[i].number == source) {
-                return &(fpRegisters[i]);
-            }
-        }
-    }        
-    else if (source < (registers.size() + fpRegisters.size() + spRegisters.size())) {
-        for (unsigned i = 0; i < spRegisters.size(); i++) {
-            if (spRegisters[i].number == source) {
-                return &(spRegisters[i]);
-            }
-        }
-    }        
-#endif
     // DEBUG
 //debugPrint();
 
@@ -811,6 +811,7 @@ bool registerSpace::markSavedRegister(Register num, int offsetFromFP) {
     s->saveOffset_ = offsetFromFP;
     return true;
 }
+
 
 
 
@@ -857,3 +858,30 @@ void registerSpace::debugPrint() {
 		spRegisters[i].debugPrint("\t");
 	}
 }
+
+
+void registerSpace::printAllocedRegisters() {
+    for (unsigned i = 0; i < registers.size(); i++) {
+        if (registers[i].refCount > 0)
+            fprintf(stderr, "Register %d is in use (%d references)\n",
+                    registers[i].number, registers[i].refCount);
+		if (registers[i].keptValue)
+			fprintf(stderr, "Register %d contains a kept value\n", registers[i].number);
+    }
+}
+
+bool registerSpace::markKeptRegister(Register reg) {
+	regalloc_printf("Marking register %d as kept\n", reg);
+	registerSlot *r = findRegister(reg);
+	assert(r);
+	r->keptValue = true;
+	return true;
+}
+
+void registerSpace::unKeepRegister(Register reg) {
+	regalloc_printf("Marking register %d as unkept\n", reg);
+	registerSlot *r = findRegister(reg);
+	assert(r);
+	r->keptValue = false;
+}
+

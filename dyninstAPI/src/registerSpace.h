@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.3 2006/11/10 16:28:53 bernat Exp $
+// $Id: registerSpace.h,v 1.4 2006/11/14 20:37:19 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -62,6 +62,13 @@ class instPoint;
 // 3) Pushed on the stack at a relative offset from the current stack pointer.
 // 4) TODO: we could subclass this and make "get me the current value" a member function; not sure it's really worth it for the minimal amount of memory multiple types will use.
 
+// We also need a better way of tracking what state a register is in. Here's some possibilities, not at all mutually independent:
+
+// Live at the start of instrumentation, or dead;
+// Used during the generation of a subexpression
+// Currently reserved by another AST, but we could recalculate if necessary
+// At a function call node, is it carrying a value?
+
 class registerSlot {
  public:
     Register number;    // what register is it
@@ -71,6 +78,9 @@ class registerSlot {
     bool startsLive;	// starts life as a live register; if dead, then we can freely use it. 
     bool beenClobbered; // Have we overwritten it (implying restore at end)
     // Unsure how beenClobbered is different from mustRestore...
+	bool keptValue;     // Are we keeping this (as long as we can) to save
+	                    // the pre-calculated value? Note: refCount can be 0 and
+	                    // this still set.
 
     // Are we off limits for allocation in this particular instance?
     bool offLimits; 
@@ -84,9 +94,23 @@ class registerSlot {
     typedef enum { invalid, GPR, FPR, SPR } regType_t;
     regType_t type_; 
 
+
     static registerSlot deadReg(Register number);
     static registerSlot liveReg(Register number);
     static registerSlot thrIndexReg(Register number);
+
+    void cleanSlot() {
+    }
+
+    void resetSlot() {
+        refCount = 0;
+        mustRestore = false;
+        offLimits = false;
+		keptValue = false;
+        needsSaving = startsLive;
+        origValueSpilled_ = unspilled;
+        saveOffset_ = 0;
+    }
 
     registerSlot() : 
         number((Register) -1),
@@ -95,6 +119,7 @@ class registerSlot {
         mustRestore(false),
         startsLive(false),
         beenClobbered(false),
+		keptValue(false),
         offLimits(false),
         origValueSpilled_(unspilled),
         saveOffset_(0),
@@ -108,11 +133,13 @@ class registerSlot {
         mustRestore(r.mustRestore),
         startsLive(r.startsLive),
         beenClobbered(r.beenClobbered),
+		keptValue(r.keptValue),
         offLimits(r.offLimits),
         origValueSpilled_(r.origValueSpilled_),
         saveOffset_(r.saveOffset_),
-        type_(invalid) 
-        {}
+        type_(r.type_)
+        {
+        }
 	void debugPrint(char *str = NULL);
 
 };
@@ -152,6 +179,7 @@ class registerSpace {
     Register allocateRegister(codeGen &gen, bool noCost);
     bool allocateSpecificRegister(codeGen &gen, Register r, bool noCost);
 
+
     // Like allocate, but don't keep it around; if someone else tries to
     // allocate they might get this one. 
     Register getScratchRegister(codeGen &gen, bool noCost = true); 
@@ -161,6 +189,8 @@ class registerSpace {
 
     // For now, we save registers elsewhere and mark them here. 
     bool markSavedRegister(Register num, int offsetFromSP);
+	// 
+	bool markKeptRegister(Register num);
 
     // Things that will be modified implicitly by anything else we
     // generate - condition registers, etc.
@@ -171,6 +201,8 @@ class registerSpace {
     void freeRegister(Register k);
     // Free the register even if its refCount is greater that 1
     void forceFreeRegister(Register k);
+	// And mark a register as not being kept any more
+	void unKeepRegister(Register k);
 	// Set a registerSpace back to defaults; equivalent to allocating a new
 	// one
     void resetSpace();
@@ -238,7 +270,9 @@ class registerSpace {
     
     registerSpace &operator=(const registerSpace &src);
 
-	void debugPrint();
+    void debugPrint();
+    void printAllocedRegisters();
+
  private:
 
     unsigned GPRindex(unsigned index) const { return index; }
@@ -250,6 +284,7 @@ class registerSpace {
     registerSlot *findRegister(Register reg); 
 
     bool spillRegister(unsigned index, codeGen &gen, bool noCost);
+    bool stealRegister(unsigned index, codeGen &gen, bool noCost);
 
     bool restoreRegister(unsigned index, codeGen &gen, bool noCost); 
 	bool popRegister(unsigned index, codeGen &gen, bool noCost);
