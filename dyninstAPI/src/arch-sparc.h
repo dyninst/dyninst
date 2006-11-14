@@ -39,7 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.44 2006/11/10 16:28:45 bernat Exp $
+// $Id: arch-sparc.h,v 1.45 2006/11/14 19:52:42 legendre Exp $
+
+#include "common/h/Vector.h"
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"

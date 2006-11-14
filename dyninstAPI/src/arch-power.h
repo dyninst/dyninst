@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.35 2006/11/10 16:28:43 bernat Exp $
+// $Id: arch-power.h,v 1.36 2006/11/14 19:52:40 legendre Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
 
 // Code generation
 
+#include "common/h/Vector.h"
 class process;
 
 /*
