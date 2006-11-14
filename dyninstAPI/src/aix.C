@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.224 2006/10/18 16:06:41 legendre Exp $
+// $Id: aix.C,v 1.225 2006/11/14 20:36:56 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1329,7 +1329,7 @@ bool process::loadDYNINSTlib()
     pushStack(scratchCodeBuffer);
 
     dlopenAst->generateCode(scratchCodeBuffer,
-                            true, true);
+                            true);
     removeAst(dlopenAst);
 
     popStack(scratchCodeBuffer);
