@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.35 2006/10/18 16:06:52 legendre Exp $
+// $Id: test_driver.C,v 1.36 2006/11/22 04:03:36 bernat Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -108,7 +108,7 @@ char *libRTname_m_abi;
 #endif
 
 int saveTheWorld = 0;
-int mergeTramp = 0;
+int mergeTramp = 1;
 int debugPrint = 0;
 int errorPrint = 0;
 
@@ -409,6 +409,8 @@ void setupGeneralTest(BPatch *bpatch)
 
    if (mergeTramp)
      bpatch->setMergeTramp(true);
+   else
+       bpatch->setMergeTramp(false);
 
 }
 

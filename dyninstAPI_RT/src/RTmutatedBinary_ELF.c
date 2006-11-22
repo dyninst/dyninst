@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.26 2006/06/13 04:21:12 legendre Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.27 2006/11/22 04:03:34 bernat Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -185,7 +185,8 @@ void fixInstrumentation(char* soName, unsigned long currAddr, unsigned long oldA
 	printf("\n run correctly if shared libraries are loaded at a different address\n");
 	printf("\n Exiting.....\n");
 	fflush(stdout);
-	exit(9);
+        //while(1);
+	//exit(9);
 }
 
 /* 	this function checks the shared library (soName) to see if it
@@ -512,6 +513,10 @@ int checkSO(char* soName){
 
 int checkMutatedFile(){
 
+    /* Apparently a future section stomps on the tramp guard. Whoops. Instead,
+       we'll keep the address around and initialize the guard at the end. */
+    int *trampGuardBase_ = NULL;
+    int trampGuardSize_ = 0;
 
 	ElfW(Shdr) *shdr;
 	ElfW(Ehdr) *   ehdr;
@@ -602,7 +607,9 @@ int checkMutatedFile(){
 			dataAddress = shdr->sh_addr;
 			elfData = Elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
-			//fprintf(stderr,"tramp guard addr %x \n", dataAddress);
+			//fprintf(stderr,"tramp guard addr %x, tmpPtr %p (%d)\n", dataAddress, tmpPtr, *tmpPtr);
+                        trampGuardBase_ = (int *)dataAddress;
+                        trampGuardSize_ = *(int *)tmpPtr;
 
 
 			/* 	we already own it. 
@@ -612,8 +619,9 @@ int checkMutatedFile(){
 
 			/* set tramp guard to 1 */
 			for(i=0;i<*(int*)tmpPtr;i++){
-				((unsigned*) dataAddress)[i]=1;
-			}
+                            ((unsigned*) dataAddress)[i]=1;
+                        }
+                        /* This may get reverted, so we'll re-do the work below. */
 
 		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
 			elfData = Elf_getdata(scn, NULL);
@@ -1170,6 +1178,11 @@ int checkMutatedFile(){
 	if(soError){
 		exit(2);
 	}
+
+        for(i=0;i < trampGuardSize_; i++){
+            trampGuardBase_[i]=1;
+        }
+        
 	return retVal;
 }
 /* vim:set ts=5: */
