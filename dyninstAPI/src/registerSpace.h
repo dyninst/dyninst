@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.4 2006/11/14 20:37:19 bernat Exp $
+// $Id: registerSpace.h,v 1.5 2006/11/22 04:03:29 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -99,18 +99,9 @@ class registerSlot {
     static registerSlot liveReg(Register number);
     static registerSlot thrIndexReg(Register number);
 
-    void cleanSlot() {
-    }
+    void cleanSlot();
 
-    void resetSlot() {
-        refCount = 0;
-        mustRestore = false;
-        offLimits = false;
-		keptValue = false;
-        needsSaving = startsLive;
-        origValueSpilled_ = unspilled;
-        saveOffset_ = 0;
-    }
+    void resetSlot();
 
     registerSlot() : 
         number((Register) -1),
@@ -147,20 +138,54 @@ class registerSlot {
 class instPoint;
 
 class registerSpace {
+	friend void initRegisters();
+#if defined(arch_x86_64) 
+	friend void emit32();
+	friend void emit64();
+#endif
+
  private:
-    
+	// A global mapping of register names to slots
+	static registerSpace *globalRegSpace_;
+
+	// Pre-set commonly used register spaces
+	// Everyone live...
+    static registerSpace *conservativeRegSpace_;
+	// Function boundary...
+	static registerSpace *optimisticRegSpace_;
+	// And the one we should use.
+	static registerSpace *actualRegSpace_;
+	// Oh, and everything _dead_ for out-of-line BTs.
+	static registerSpace *savedRegSpace_;
+
  public:
     // Legacy...
     //static registerSpace *regSpace();
 
-    // Pre-set register state at the start of a base tramp
-    static registerSpace *baseTrampRegSpace(instPoint *p);
-    // Pre-set unknown register state
-    static registerSpace *conservativeRegSpace(instPoint *p);
+    // Pre-set unknown register state:
+	// Everything is live...
+    static registerSpace *conservativeRegSpace();
+	// Everything is dead...
+	static registerSpace *optimisticRegSpace();
+	// IRPC-specific - everything live for now
+	static registerSpace *irpcRegSpace();
+	// Aaand instPoint-specific
+	static registerSpace *actualRegSpace(instPoint *iP);
+	// DO NOT DELETE THESE. 
+	static registerSpace *savedRegSpace();
 
-    registerSpace(const unsigned int dCount, Register *deads,
-                  const unsigned int lCount, Register *lives,
-                  bool multithreaded = false);
+    registerSpace();
+
+	registerSpace(const registerSpace &);
+	// Specialize a register space given a particular list of
+	// dead registers (everyone else is assumed live);
+	// Returns a copy.
+	static registerSpace *specializeRegisterSpace(Register *deadRegs,
+												  const unsigned int numDead);
+	static registerSpace *createAllLive(Register *liveRegs,
+										const unsigned int liveCount);
+	static registerSpace *createAllDead(Register *deadRegs,
+										const unsigned int deadCount);
 
     // Inits the values for the clobbered variables for the floating point registers
     void initFloatingPointRegisters(const unsigned int count, Register *fp);
@@ -213,14 +238,12 @@ class registerSpace {
     void setAllLive();
     void saveClobberInfo(const instPoint * location);
     void resetLiveDeadInfo(const int* liveRegs,
-                           const int *, const int *, bool);
+                           const int *, 
+                           const int *);
     
     
     // Check to see if the register is free
     bool isFreeRegister(Register k);
-    //bool getDisregardLiveness() {return disregardLiveness;}
-    bool getDisregardLiveness();
-    void setDisregardLiveness(bool dl) {disregardLiveness = dl;}
     
     //Makes register unClobbered
     void unClobberRegister(Register reg);
@@ -248,8 +271,8 @@ class registerSpace {
     // and call this routine to correct this.
     void incRefCount(Register k);
     
-    u_int getRegisterCount() { return numRegisters; }
-    u_int getFPRegisterCount() { return numFPRegisters; }
+    u_int getRegisterCount() { return registers.size(); }
+    u_int getFPRegisterCount() { return fpRegisters.size(); }
     
     registerSlot *getRegSlot(Register k) { return (&registers[k]); }
     registerSlot *getFPRegSlot(Register k) { return (&fpRegisters[k]); }
@@ -266,7 +289,6 @@ class registerSpace {
     // Make sure that no registers remain allocated, except "to_exclude"
     // Used for assertion checking.
     void checkLeaks(Register to_exclude);
-    bool for_multithreaded() { return is_multithreaded; }
     
     registerSpace &operator=(const registerSpace &src);
 
@@ -276,8 +298,8 @@ class registerSpace {
  private:
 
     unsigned GPRindex(unsigned index) const { return index; }
-    unsigned FPRindex(unsigned index) const { return index+numRegisters; }
-    unsigned SPRindex(unsigned index) const { return index+numFPRegisters; }
+    unsigned FPRindex(unsigned index) const { return index+registers.size(); }
+    unsigned SPRindex(unsigned index) const { return index+registers.size()+fpRegisters.size(); }
     
     registerSlot &getRegisterSlot(unsigned index);
 
@@ -288,11 +310,6 @@ class registerSpace {
 
     bool restoreRegister(unsigned index, codeGen &gen, bool noCost); 
 	bool popRegister(unsigned index, codeGen &gen, bool noCost);
-
-    u_int numRegisters;
-    u_int numFPRegisters;
-
-    unsigned flagsID;
     
     // Track available registers
     pdvector<registerSlot> registers;
@@ -302,10 +319,8 @@ class registerSpace {
     int currStackPointer; 
     
     int spFlag;
-    bool disregardLiveness; // for RPC base tramps
-    bool is_multithreaded;
  public:
-    bool hasXMM;  // for Intel architectures, XMM registers
+    static bool hasXMM;  // for Intel architectures, XMM registers
     
     
 #if defined(ia64_unknown_linux2_4)

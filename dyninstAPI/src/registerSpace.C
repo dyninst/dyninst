@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.5 2006/11/14 20:37:18 bernat Exp $
+// $Id: registerSpace.C,v 1.6 2006/11/22 04:03:28 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -82,8 +82,12 @@
 
 #include "showerror.h"
 
-extern registerSpace *regSpace;
-
+registerSpace *registerSpace::globalRegSpace_ = NULL;
+registerSpace *registerSpace::conservativeRegSpace_ = NULL;
+registerSpace *registerSpace::optimisticRegSpace_ = NULL;
+registerSpace *registerSpace::actualRegSpace_ = NULL;
+registerSpace *registerSpace::savedRegSpace_ = NULL;
+bool registerSpace::hasXMM = false;
 /*
   registerSpace *registerSpace::regSpace() {
     return regSpace;
@@ -112,49 +116,153 @@ registerSlot registerSlot::thrIndexReg(Register i) {
     retval.refCount = 1;
     return retval;
 }
-    
 
-registerSpace::registerSpace(const unsigned int deadCount, Register *dead, 
-                             const unsigned int liveCount, Register *live,
-                             bool multithreaded) :
-    currStackPointer(0),
-    is_multithreaded(multithreaded)
-{
-#if defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) \
- || defined(os_windows)
-  initTramps(is_multithreaded);
+void registerSlot::cleanSlot() {
+    assert(this);
+    // Undo anything set during code generation
+    refCount = 0;
+    // needsSaving...
+    mustRestore = false;
+    // startsLive...
+    beenClobbered = false;
+    keptValue = false;
+    //offLimits = false;
+    //origValueSpilled_ = unspilled;
+    //saveOffset_ = 0;	
+}
+    
+void registerSlot::resetSlot() {
+	cleanSlot();
+	offLimits = false;
+	needsSaving = startsLive;
+	origValueSpilled_ = unspilled;
+	saveOffset_ = 0;
+}
+
+registerSpace *registerSpace::conservativeRegSpace() {
+	if (conservativeRegSpace_ == NULL) initRegisters();	
+	assert(conservativeRegSpace_);
+	conservativeRegSpace_->resetSpace();
+	return conservativeRegSpace_;	
+}
+
+registerSpace *registerSpace::optimisticRegSpace() {
+	if (optimisticRegSpace_ == NULL) initRegisters();
+	assert(optimisticRegSpace_);
+	optimisticRegSpace_->resetSpace();
+	return optimisticRegSpace_;	
+}
+
+registerSpace *registerSpace::irpcRegSpace() {
+	return conservativeRegSpace();
+}
+
+registerSpace *registerSpace::actualRegSpace(instPoint *iP) {
+	if (iP == NULL) return conservativeRegSpace();
+
+	if (actualRegSpace_ == NULL) initRegisters();
+#if defined(arch_power) || defined(arch_x86_64)
+	assert(actualRegSpace_);
+	actualRegSpace_->resetLiveDeadInfo(iP->liveGPRegisters(),
+										iP->liveFPRegisters(),
+										iP->liveSPRegisters());
+	actualRegSpace_->cleanSpace();
+	return actualRegSpace_;
+#else
+
+	// Use one of the other registerSpaces...
+	// If we're entry/exit/call site, return the optimistic version
+    if (iP->getPointType() == functionEntry)
+        return optimisticRegSpace();
+    if (iP->getPointType() == functionExit)
+        return optimisticRegSpace();
+    if (iP->getPointType() == callSite)
+        return optimisticRegSpace();
+
+    return conservativeRegSpace();
 #endif
 
+}
+
+registerSpace *registerSpace::savedRegSpace() {
+	if (savedRegSpace_ == NULL) initRegisters();
+	assert(savedRegSpace_);
+	savedRegSpace_->resetSpace();
+	return savedRegSpace_;
+}
+
+registerSpace *registerSpace::specializeRegisterSpace(Register *deadRegs,
+                                                      const unsigned int numDead) {
+	assert(globalRegSpace_);
+	registerSpace *newRegSpace = new registerSpace(*globalRegSpace_);
+	assert(newRegSpace);
+	
+	// Now set the dead registers
+	for (unsigned i = 0; i < numDead; i++) {
+            for (unsigned j = 0; j < newRegSpace->registers.size(); j++) {
+                if (newRegSpace->registers[j].number == deadRegs[i]) {
+                    newRegSpace->registers[j] = registerSlot::deadReg(deadRegs[i]);
+                    break;
+                }
+            }
+	}
+	return newRegSpace;
+}
+
+registerSpace *registerSpace::createAllLive(Register *liveList, unsigned int num) {
+	registerSpace *rs = new registerSpace();
+
+  	for (unsigned i=0; i < num; i++) {
+    	rs->registers.push_back(registerSlot::liveReg(liveList[i]));
+  	}
+	return rs;
+}
+
+registerSpace *registerSpace::createAllDead(Register *liveList, unsigned int num) {
+	registerSpace *rs = new registerSpace();
+
+  	for (unsigned i=0; i < num; i++) {
+    	rs->registers.push_back(registerSlot::deadReg(liveList[i]));
+  	}
+	return rs;
+}
+
+registerSpace::registerSpace() :
+    currStackPointer(0)
+{
+
+#if defined(arch_x86_64)
+    initSpecialPurposeRegisters();
+#endif
   
-  unsigned i;
-  numRegisters = deadCount + liveCount;
-  flagsID = numRegisters + 1;
   spFlag = 1;   // Save SPR (right now for Power) unless we hear different
-  numFPRegisters = 0;
-  disregardLiveness = false;
-  hasXMM = true;
+  // Assume live unless told otherwise
+}
 
-  registerSlot deadReg;
+registerSpace::registerSpace(const registerSpace &src) :
+	currStackPointer(src.currStackPointer),
+	spFlag(src.spFlag)
+{
+    for (unsigned i = 0; i < src.registers.size(); i++) {
+        registers.push_back(src.registers[i]);
+    }
+    
+    for (unsigned i = 0; i < src.fpRegisters.size(); i++) {
+        fpRegisters.push_back(src.fpRegisters[i]);
+  }
 
-  // load dead ones
-  for (i=0; i < deadCount; i++) {
-      registers.push_back(registerSlot::deadReg(dead[i]));
-  }
-  
-   // load live ones;
-  for (i=0; i < liveCount; i++) {
-      
-      if(is_multithreaded && 
-         (live[i] == REG_MT_POS)) {
-          registers.push_back(registerSlot::thrIndexReg(live[i]));
-      }
-      else {
-          registers.push_back(registerSlot::liveReg(live[i]));
-      }
-  }
+    for (unsigned i = 0; i < src.spRegisters.size(); i++) {
+        spRegisters.push_back(src.spRegisters[i]);
+    }
+
+#if defined(arch_ia64)
+    originalLocals = src.originalLocals;
+    originalOutputs = src.originalOutputs;
+    originalRotates = src.originalRotates;
+    sizeOfStack = src.sizeOfStack;
+    memcpy(storageMap, src.storageMap, BP_R_MAX * sizeof(int));
+#endif
+    
 }
 
 registerSpace::~registerSpace()
@@ -163,7 +271,6 @@ registerSpace::~registerSpace()
 
 void registerSpace::initFloatingPointRegisters(const unsigned int count, Register *fp)
 {
-    numFPRegisters = count;
     for (unsigned i = 0; i < count; i++) {
         // All FPs start live!
         fpRegisters.push_back(registerSlot::liveReg(fp[i]));
@@ -240,6 +347,8 @@ Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
             if (registers[i].refCount > 0) continue;
 			if (registers[i].keptValue) continue;
             assert(registers[i].needsSaving);
+			// We're going to spill... this is bad for testing
+			debugPrint();
             if (spillRegister(i, gen, noCost)) {
                 toUse = i;
                 break;
@@ -294,10 +403,13 @@ Register registerSpace::allocateRegister(codeGen &gen,
 }
 
 bool registerSpace::spillRegister(unsigned index, codeGen &gen, bool noCost) {
+	assert(0);
     assert(index < registers.size());
     assert(!registers[index].offLimits);
 
     // TODO for other platforms that build a stack frame for saving
+
+    regalloc_printf("Spilling register %d\n", registers[index].number);
 
     emitV(saveRegOp, registers[index].number, 0, 0, gen, noCost);
     
@@ -385,7 +497,7 @@ void registerSpace::freeRegister(Register reg)
         return;
     }
 
-    for (u_int i=0; i < numRegisters; i++) {
+    for (u_int i=0; i < registers.size(); i++) {
        if (registers[i].number == reg) {
           registers[i].refCount--;
           regalloc_printf("Freed register %d: refcount now %d\n", registers[i].number, registers[i].refCount);
@@ -397,13 +509,16 @@ void registerSpace::freeRegister(Register reg)
        }
     }
     // Hrm... let's squawk.
+#if !defined(arch_ia64)
+    // IA-64 gets this with the (actual) frame pointer...
     fprintf(stderr, "[%s:%d] WARNING: attempt to free unknown register %u\n", __FILE__, __LINE__, reg);
+#endif
 }
 
 // Free the register even if its refCount is greater that 1
 void registerSpace::forceFreeRegister(Register reg) 
 {
-   for (u_int i=0; i < numRegisters; i++) {
+   for (u_int i=0; i < registers.size(); i++) {
       if (registers[i].number == reg) {
          registers[i].refCount = 0;
          return;
@@ -412,7 +527,7 @@ void registerSpace::forceFreeRegister(Register reg)
 }
 
 bool registerSpace::isFreeRegister(Register reg) {
-    for (u_int i=0; i < numRegisters; i++) {
+    for (u_int i=0; i < registers.size(); i++) {
         if ((registers[i].number == reg) &&
             (registers[i].refCount > 0)) {
             return false;
@@ -425,7 +540,7 @@ bool registerSpace::isFreeRegister(Register reg) {
 // we need to do so when reusing an already-allocated register
 void registerSpace::fixRefCount(Register reg, int iRefCount)
 {
-   for (u_int i=0; i < numRegisters; i++) {
+   for (u_int i=0; i < registers.size(); i++) {
       if (registers[i].number == reg) {
          registers[i].refCount = iRefCount;
          return;
@@ -437,7 +552,7 @@ void registerSpace::fixRefCount(Register reg, int iRefCount)
 // and call this routine to correct this.
 void registerSpace::incRefCount(Register reg)
 {
-   for (u_int i=0; i < numRegisters; i++) {
+   for (u_int i=0; i < registers.size(); i++) {
       if (registers[i].number == reg) {
          registers[i].refCount++;
          regalloc_printf("Incrementing refcount on register %d: %d\n", registers[i].number, 
@@ -450,16 +565,12 @@ void registerSpace::incRefCount(Register reg)
 
 void registerSpace::copyInfo( registerSpace *rs ) const {
    /* Not quite sure why this isn't a copy constructor. */
-   rs->numRegisters = this->numRegisters;
-   rs->numFPRegisters = this->numFPRegisters;
-   rs->flagsID = this->flagsID;
 
    rs->registers = registers;
    rs->fpRegisters = fpRegisters;
    rs->spRegisters = spRegisters;
    rs->currStackPointer = currStackPointer;
 
-   rs->is_multithreaded = this->is_multithreaded;
    rs->spFlag = this->spFlag;
 
 #if defined(arch_ia64)
@@ -474,12 +585,12 @@ void registerSpace::copyInfo( registerSpace *rs ) const {
 
 
 void registerSpace::setAllLive(){
-  for (u_int i = 0; i < numRegisters; i++)
+  for (u_int i = 0; i < registers.size(); i++)
     {
       registers[i].needsSaving = true;
       registers[i].startsLive = true;
     }
-  for (u_int i = 0; i < numFPRegisters; i++)
+  for (u_int i = 0; i < fpRegisters.size(); i++)
     {
       fpRegisters[i].needsSaving = true;
       fpRegisters[i].startsLive = true;
@@ -489,6 +600,7 @@ void registerSpace::setAllLive(){
 
 
 void registerSpace::resetSpace() {
+	assert(this);
     regalloc_printf("============== RESET %p ==============\n", this);
    for (u_int i=0; i < registers.size(); i++) {
        registers[i].resetSlot();
@@ -512,7 +624,7 @@ bool registerSpace::isRegStartsLive(Register reg)
 int registerSpace::fillDeadRegs(Register * deadRegs, int num)
 {
   int filled = 0;
-  for (u_int i=0; i < numRegisters && filled < num; i++) {
+  for (u_int i=0; i < registers.size() && filled < num; i++) {
     if (registers[i].startsLive == false) {
       deadRegs[filled] = registers[i].number;
       filled++;
@@ -525,12 +637,12 @@ int registerSpace::fillDeadRegs(Register * deadRegs, int num)
 void registerSpace::resetClobbers()
 {
   u_int i;
-  for (i=0; i < numRegisters; i++)
+  for (i=0; i < registers.size(); i++)
     {
       registers[i].beenClobbered = false;
     }
 
-  for (i=0; i < numFPRegisters; i++)
+  for (i=0; i < fpRegisters.size(); i++)
     {
       fpRegisters[i].beenClobbered = false;
     }
@@ -539,7 +651,7 @@ void registerSpace::resetClobbers()
 
 void registerSpace::unClobberRegister(Register reg)
 {
-  for (u_int i=0; i < numRegisters; i++) {
+  for (u_int i=0; i < registers.size(); i++) {
     if (registers[i].number == reg) {
       registers[i].beenClobbered = false;
     }
@@ -548,7 +660,7 @@ void registerSpace::unClobberRegister(Register reg)
 
 void registerSpace::unClobberFPRegister(Register reg)
 {
-  for (u_int i=0; i < numFPRegisters; i++) {
+  for (u_int i=0; i < fpRegisters.size(); i++) {
     if (fpRegisters[i].number == reg) {
       fpRegisters[i].beenClobbered = false;
     }
@@ -560,7 +672,7 @@ void registerSpace::unClobberFPRegister(Register reg)
 // Used for assertion checking.
 void registerSpace::checkLeaks(Register to_exclude) 
 {
-    for (u_int i=0; i<numRegisters; i++) {
+    for (u_int i=0; i<registers.size(); i++) {
 	assert(registers[i].refCount == 0 || 
 	       registers[i].number == to_exclude);
     }
@@ -568,15 +680,31 @@ void registerSpace::checkLeaks(Register to_exclude)
 
 registerSpace &registerSpace::operator=(const registerSpace &src)
 {
-   src.copyInfo(this);
-   return *this;
-}
+    spFlag = src.spFlag;
+    currStackPointer = src.currStackPointer;
 
-bool registerSpace::getDisregardLiveness() {
-    // Let BPatch override, then go to local flag.
-    if (BPatch::bpatch->disregardLiveness_NP())
-        return true;
-    return disregardLiveness;
+    for (unsigned i = 0; i < src.registers.size(); i++) {
+        registers.push_back(src.registers[i]);
+    }
+
+    for (unsigned i = 0; i < src.fpRegisters.size(); i++) {
+        fpRegisters.push_back(src.fpRegisters[i]);
+    }
+
+    for (unsigned i = 0; i < src.spRegisters.size(); i++) {
+        spRegisters.push_back(src.spRegisters[i]);
+    }
+
+#if defined(arch_ia64)
+    originalLocals = src.originalLocals;
+    originalOutputs = src.originalOutputs;
+    originalRotates = src.originalRotates;
+    sizeOfStack = src.sizeOfStack;
+    memcpy(storageMap, src.storageMap, BP_R_MAX * sizeof(int));
+#endif
+    
+
+    return *this;
 }
 
 bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
@@ -793,19 +921,21 @@ bool registerSpace::markSavedRegister(Register num, int offsetFromFP) {
     // Find the register slot
     registerSlot *s = findRegister(num);
     if (s == NULL)  {
-        fprintf(stderr, "ERROR: unable to find register %d\n", num);
+        // We get this on platforms where we save registers we don't use in
+        // code generation... like, say, RSP or RBP on AMD-64.
+        //fprintf(stderr, "ERROR: unable to find register %d\n", num);
         return false;
     }
 
     if (s->origValueSpilled_ != registerSlot::unspilled) {
-        // Huh?
-        assert(0);
+        // Things to do... add this check in, yo. Right now we don't clean
+        // properly.
+        //assert(0);
     }
 
     s->needsSaving = false;
     // We used an alternative storage method - so to us it's dead.
     s->mustRestore = false;
-    s->startsLive = false;
 
     s->origValueSpilled_ = registerSlot::framePointer;
     s->saveOffset_ = offsetFromFP;
@@ -841,9 +971,9 @@ void registerSpace::debugPrint() {
 	// Dump out our data
 	fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
 	fprintf(stderr, "GPRs: %d (%d), FPRs: %d (%d), SPRs: (%d)\n", 
-			numRegisters, registers.size(), numFPRegisters, fpRegisters.size(), spRegisters.size());
-	fprintf(stderr, "Stack pointer is at %d, spFlag %d, disregardLiveness %d, is_multithreaded %d",
-			currStackPointer, spFlag, disregardLiveness, is_multithreaded);
+			registers.size(), registers.size(), fpRegisters.size(), fpRegisters.size(), spRegisters.size());
+	fprintf(stderr, "Stack pointer is at %d, spFlag %d",
+			currStackPointer, spFlag);
 	fprintf(stderr, "Register dump:");
 	fprintf(stderr, "=====GPRs=====\n");
 	for (unsigned i = 0; i < registers.size(); i++) {
