@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.89 2006/10/17 16:44:13 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.90 2006/11/22 04:02:54 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -1329,7 +1329,7 @@ void BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExprInt(const BPatc
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 };
 
-void BPatch_threadIndexExpr::BPatch_threadIndexExprInt()
+void BPatch_threadIndexExpr::BPatch_threadIndexExprInt(BPatch_process *proc)
 {
 #if 0
     // We can grab the register value directly... we're not in a function call. 
@@ -1346,14 +1346,24 @@ void BPatch_threadIndexExpr::BPatch_threadIndexExprInt()
   
   pdvector<AstNode *> args;
   ast = new AstNode(thread_index->lowlevel_func(), args);
+
 #endif
-  ast = AstNode::operandNode(AstNode::DataReg, (void *)REG_MT_POS);
+
+  /// Alternate version...
+  //ast = AstNode::operandNode(AstNode::DataReg, (void *)REG_MT_POS);
+
+
+  assert(proc);
+  
+  // call does the assignAst...
+  ast = proc->lowlevel_process()->threadIndexAST();
 
   assert(BPatch::bpatch != NULL);
   ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
   BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
   assert(type != NULL);
-  ast->setType(type);
+  //ast->setType(type);
+
 }
 
 void BPatch_tidExpr::BPatch_tidExprInt(BPatch_process *proc)

@@ -585,8 +585,8 @@ class BPATCH_DLL_EXPORT BPatch_ifMachineConditionExpr : public BPatch_snippet {
 class BPATCH_DLL_EXPORT BPatch_threadIndexExpr : public BPatch_snippet {
   //
   // BPatch_threadIndexExpr::BPatch_threadIndexExpr
-  API_EXPORT_CTOR(Int, (),
-  BPatch_threadIndexExpr,());
+  API_EXPORT_CTOR(Int, (proc),
+  BPatch_threadIndexExpr,(BPatch_process *proc));
 };
 
 #ifdef DYNINST_CLASS_NAME
