@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.45 2006/11/09 17:16:07 bernat Exp $
+// $Id: baseTramp.C,v 1.46 2006/11/22 04:03:09 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -47,6 +47,8 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/dyn_thread.h"
 
 #if defined(os_aix)
   extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
@@ -58,6 +60,7 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
                                      multiTramp *multi) :    
     generatedCodeObject(),
     trampAddr_(0), // Unallocated
+    trampSize_(0),
     trampPostOffset(0),
     baseT(tramp),
     multiT(multi),
@@ -76,7 +79,8 @@ baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
     trampPostOffset(parBTI->trampPostOffset),
     baseT(cBT),
     multiT(cMT),
-    genVersion(parBTI->genVersion)
+    genVersion(parBTI->genVersion),
+    alreadyDeleted_(parBTI->alreadyDeleted_)
 {
     // Register with parent
     cBT->instances.push_back(this);
@@ -155,6 +159,7 @@ baseTramp::baseTramp(instPoint *iP) :
     lastMini(NULL),
     preTrampCode_(),
     postTrampCode_(),
+	regSpace_(NULL),
     valid(false),
     guardState_(unset_BTR),
     suppress_threads_(false),
@@ -241,17 +246,22 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     lastMini(NULL),
     preTrampCode_(pt->preTrampCode_),
     postTrampCode_(pt->postTrampCode_),
+	regSpace_(NULL),
     valid(pt->valid),
     guardState_(pt->guardState_),
     suppress_threads_(pt->suppress_threads_),
     instVersion_(pt->instVersion_)
 {
-
     if (pt->clobberedGPR)
         assert(0); // Don't know how to copy these
     if (pt->clobberedFPR)
         assert(0);
         
+	if (pt->regSpace_)
+		regSpace_ = new registerSpace(*(pt->regSpace_));
+	else
+		regSpace_ = NULL;
+
 #if defined( cap_unwind )
     baseTrampRegion = duplicateRegionList( pt->baseTrampRegion );
 #endif /* defined( cap_unwind ) */
@@ -276,6 +286,11 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
         parMini = parMini->next;
     }
     lastMini = childMini;
+
+    rpcMgr_ = NULL;
+    if (pt->rpcMgr_) {
+        rpcMgr_ = proc->getRpcMgr();
+    }
 }
 
 baseTramp::~baseTramp() {
@@ -300,24 +315,38 @@ bool baseTrampInstance::generateCode(codeGen &gen,
                                      Address baseInMutatee,
                                      UNW_INFO_TYPE ** unwindRegion) 
 {
-  inst_printf("baseTrampInstance %p ::generateCode(%p, 0x%x, %d)\n",
-	      this, gen.start_ptr(), baseInMutatee, gen.used());
-  
-  updateMTInstances();
-  
+    inst_printf("baseTrampInstance %p ::generateCode(%p, 0x%x, %d)\n",
+                this, gen.start_ptr(), baseInMutatee, gen.used());
     
-  if (isEmpty()) {
-    hasChanged_ = false;
-    generated_ = true;
-    return true;
-  }
+    updateMTInstances();
+    
+    if (isEmpty()) {
+        hasChanged_ = false;
+        generated_ = true;
+        return true;
+    }
 
 
-  if (!generated_) {
-      baseT->generateBT(gen);
+    gen.setPoint(baseT->instP());
+	gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP()));
     
-    // if in-line...
-    // For now BTs are in-lined; they could be made out-of-line
+    if (BPatch::bpatch->isMergeTramp()) {
+        return generateCodeInlined(gen, baseInMutatee, unwindRegion);
+    }
+    else {
+	    return generateCodeOutlined(gen, baseInMutatee, unwindRegion);
+    }
+
+}
+
+bool baseTrampInstance::generateCodeOutlined(codeGen &gen,
+                                             Address baseInMutatee,
+                                             UNW_INFO_TYPE **unwindRegion) {    
+    if (!generated_) {
+        baseT->generateBT(gen);
+        
+        // if in-line...
+        // For now BTs are in-lined; they could be made out-of-line
         
         assert(baseT);
         if (!baseT->valid) return false;
@@ -331,7 +360,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     
     codeBufIndex_t preIndex = gen.getIndex();
     unsigned preStart = gen.used();
-
+    
     // preTramp
     if (!generated_) {
         // Only copy if we haven't been here before. 
@@ -344,33 +373,43 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     //unsigned preEnd = offset;
     
 #if defined( cap_unwind )
-	// This should become preTrampRegion, if the basetramp stops using only one region.
-	/* appendRegionList() returns the last valid region it duplicated.
-	   This leaves unwindRegion pointing to the end of the list. */
-	* unwindRegion = appendRegionList( * unwindRegion, baseT->baseTrampRegion );
+    // This should become preTrampRegion, if the basetramp stops using only one region.
+    /* appendRegionList() returns the last valid region it duplicated.
+       This leaves unwindRegion pointing to the end of the list. */
+    * unwindRegion = appendRegionList( * unwindRegion, baseT->baseTrampRegion );
 #endif /* defined( cap_unwind ) */
-
+    
     // miniTramps
     // If we go backwards, life gets much easier because each miniTramp
     // needs to know where to jump to (if we're doing out-of-line). 
     // Problem is, we can't if we're doing in-line. 
     
     // So we'll get to it later.
-       
+    
+	// We're using a pre-generated code template and copying it in -
+	// which means the register information is _all_ screwed up.
+	// For now, we cheese out by assuming everything is saved (well, 
+	// it is) and swapping register spaces. The baseTramp keeps one,
+	// since it needs to know where registers are saved.
+	registerSpace *curRegSpace = gen.rs();
+	assert(baseT->regSpace_);
+	baseT->regSpace_->cleanSpace();
+	gen.setRegisterSpace(baseT->regSpace_);
+
+
     for (unsigned miter = 0; miter < mtis.size(); miter++) {
         mtis[miter]->generateCode(gen, baseInMutatee, unwindRegion);
         // Will increment offset if it writes to baseInMutator;
         // if in-lined each mini will increment offset.
         inst_printf("mti %d, offset %d\n", miter, gen.used());
     }
+    gen.setRegisterSpace(curRegSpace);
+
     
-       
     codeBufIndex_t postIndex = gen.getIndex();
     unsigned postStart = gen.used();
     
       
-
-
     if (!generated_) {
         gen.copy(baseT->postTrampCode_);
     }
@@ -425,6 +464,183 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     hasChanged_ = false;
 
     return true;
+}
+
+bool baseTrampInstance::generateCodeInlined(codeGen &gen,
+                                            Address baseInMutatee,
+                                            UNW_INFO_TYPE **unwindRegion) {
+
+    if (!hasChanged() && generated_) {
+        assert(gen.currAddr(baseInMutatee) == trampAddr_);
+        gen.moveIndex(trampSize_);
+        return true;
+    }
+
+    // Experiment: use AST-based code generation....
+
+    // We're generating something like so:
+    //
+    // <Save state>
+    // <If>
+    //    <compare>
+    //      <load>
+    //        <add>
+    //          <tramp guard addr>
+    //          <multiply>
+    //            <thread index>
+    //            <sizeof (int)>
+    //      <0>
+    //    <sequence>
+    //      <store>
+    //        <... tramp guard addr>
+    //        <1>
+    //      <mini tramp sequence>
+    //      <store>
+    //        <... tramp guard addr>
+    //        <0>
+    // <Cost section>
+    // <Load state>
+
+
+    // Break it down...
+    // <Save state>
+    //   -- TODO: an AST for saves that knows how many registers
+    //      we're using...
+
+    // Now we start building up the ASTs to generate. Let's get the
+    // pieces.
+
+    // Specialize for the instPoint...
+	
+    gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP()));
+
+    pdvector<AstNode *> miniTramps;
+    for (unsigned miter = 0; miter < mtis.size(); miter++) {
+        miniTramps.push_back(mtis[miter]->mini->ast_->getAST());
+        // And nuke the hasChanged flag in there - we don't generate
+        // code that way
+        mtis[miter]->hasChanged_ = false;
+    }
+    AstNode *minis = AstNode::sequenceNode(miniTramps);
+
+    // Let's build the tramp guard addr (if we want it)
+    AstNode *threadIndex = NULL;
+    AstNode *trampGuardAddr = NULL;
+    if (baseT->guarded() &&
+        minis->containsFuncCall() &&
+        (proc()->trampGuardAST() != NULL)) {
+        // If we don't have a function call, then we don't
+        // need the guard....
+
+        // Now, the guard flag. 
+        // If we're multithreaded, we need to index off
+        // the base address.
+        if (!baseT->threaded()) {
+            // ...
+        }
+        else if (gen.thread()) {
+            // Constant override...
+            threadIndex = AstNode::operandNode(AstNode::Constant,
+                                               (void *)gen.thread()->get_index());
+        }
+        else {
+            // TODO: we can get clever with this, and have the generation of
+            // the thread index depend on whether gen has a thread defined...
+            threadIndex = proc()->threadIndexAST();
+        }
+        
+        if (threadIndex) {
+            trampGuardAddr = AstNode::operandNode(AstNode::DataIndir,
+                                                  AstNode::operatorNode(plusOp,
+                                                                        AstNode::operatorNode(getAddrOp,
+                                                                                              proc()->trampGuardAST()),
+                                                                        AstNode::operatorNode(timesOp,
+                                                                                              threadIndex,
+                                                                                              AstNode::operandNode(AstNode::Constant, 
+                                                                                                                   (void *)sizeof(unsigned)))));
+        }
+        else {
+            trampGuardAddr = proc()->trampGuardAST();
+        }
+    }
+
+
+    AstNode *baseTrampSequence = NULL;
+    pdvector<AstNode *> baseTrampElements;
+
+    if (trampGuardAddr) {
+        // First, set it to 0
+        baseTrampElements.push_back(AstNode::operatorNode(storeOp, 
+                                                          trampGuardAddr,
+                                                          AstNode::operandNode(AstNode::Constant,
+                                                                               (void *)0)));
+    }
+    
+    // Run the minitramps
+    baseTrampElements.push_back(minis);
+    
+    // Cost code...
+    //
+    
+    if (trampGuardAddr) {
+        // And set the tramp guard flag to 1
+        baseTrampElements.push_back(AstNode::operatorNode(storeOp,
+                                                          trampGuardAddr,
+                                                          AstNode::operandNode(AstNode::Constant,
+                                                                               (void *)1)));
+    }
+
+    baseTrampSequence = AstNode::sequenceNode(baseTrampElements);
+
+    AstNode *baseTramp = NULL;
+
+    // If trampAddr is non-NULL, then we wrap this with an IF. If not, 
+    // we just run the minitramps.
+    if (trampGuardAddr == NULL) {
+        baseTramp = baseTrampSequence;
+        baseTrampSequence = NULL;
+    }
+    else {
+        // Oh, boy. 
+        baseTramp = AstNode::operatorNode(ifOp,
+                                          AstNode::operatorNode(eqOp,
+                                                                AstNode::operandNode(AstNode::Constant, (void *)1),
+                                                                trampGuardAddr),
+                                          baseTrampSequence);
+    }
+
+
+#if defined(arch_ia64)
+      if (baseT->baseTrampRegion != NULL) {
+          free(baseT->baseTrampRegion);
+          baseT->baseTrampRegion = NULL;
+      }
+#endif
+
+
+    trampAddr_ = gen.currAddr();
+
+    baseT->generateSaves(gen, gen.rs());
+    bool retval = true;
+    if (!baseTramp->generateCode(gen, false)) {
+        fprintf(stderr, "Gripe: base tramp creation failed\n");
+        retval = false;
+    }
+
+    baseT->generateRestores(gen, gen.rs());
+
+    trampSize_ = gen.currAddr() - trampAddr_;
+
+    // And now to clean up after us
+    //if (minis) delete minis;
+    //if (trampGuardAddr) delete trampGuardAddr;
+    //if (baseTrampSequence) delete baseTrampSequence;
+    //if (baseTramp) delete baseTramp;
+
+    generated_ = true;
+    hasChanged_ = false;
+
+    return retval;
 }
 
 bool baseTrampInstance::installCode() {
@@ -572,6 +788,11 @@ bool baseTrampInstance::isInInstance(Address pc) {
         return false;
     }
 
+    if (trampSize_) { // Inline
+        return ((pc >= trampAddr_) &&
+                (pc < (trampAddr_ + trampSize_)));
+    }
+
     return (pc >= trampPreAddr() &&
             pc < (trampPostAddr() + baseT->postSize));
 }
@@ -675,24 +896,23 @@ unsigned baseTrampInstance::maxSizeRequired() {
 	// FIGURES OUT THE SIZE FOR THE BASE TRAMP WITHOUT MAKING IT
 	// SO THE MINI-TRAMP IS GENERATED AFTER THE BASE TRAMP,
 	// FOR NOW, WE'LL JUST ERR ON THE SAFE SIDE FOR THE BUFFER
-	size += 1024;
-#if defined(arch_ia64)
-        // Good lord, these things get HUGE
-        size += 4096;
-#endif
+		size += 100; // For the base tramp
     }
     else {
-	if (!baseT->valid)
+		if (!baseT->valid)
             baseT->generateBT(codeGen::baseTemplate);
         
-	assert(baseT->valid);
-	size += baseT->preSize + baseT->postSize;
+		assert(baseT->valid);
+		size += baseT->preSize + baseT->postSize;
     }
 
 
     for (unsigned i = 0; i < mtis.size(); i++)
       size += mtis[i]->maxSizeRequired();
     
+#if defined(arch_ia64)
+	size *= 8; // Enormous on this platform...
+#endif
     inst_printf("Pre-size %d, post-size %d, total size %d\n",
 		baseT->preSize,
 		baseT->postSize,
@@ -711,16 +931,18 @@ void baseTrampInstance::updateMTInstances() {
     while (mini) {
         miniTrampInstance *mti = mini->getMTInstanceByBTI(this);
         mtis.push_back(mti);
-        if (mti->hasChanged())
+        if (mti->hasChanged()) {
             hasChanged_ = true;
+        }
         mini = mini->next;
     }
 
     // If we now have an MTI, we've changed (as previously
     // we wouldn't bother generating code)
     if ((oldNum == 0) &&
-        (mtis.size() != 0))
+        (mtis.size() != 0)) {
         hasChanged_ = true;
+    }
     inst_printf("BTI %p update: %d originally, %d now\n",
                 this, oldNum, mtis.size());
 }
@@ -866,6 +1088,11 @@ bool baseTramp::generateBT(codeGen &baseGen) {
 
     // We should catch if we're regenerating
     
+	// Set up the registerSpace for the baseGen structure
+	// If we're calling generateBT, we're out-of-lining... so 
+	// we can't take advantage of instr-unused registers
+	baseGen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
+	
 
   assert(preTrampCode_ == NULL);
   assert(postTrampCode_ == NULL);
@@ -874,62 +1101,16 @@ bool baseTramp::generateBT(codeGen &baseGen) {
   postTrampCode_.applyTemplate(baseGen);
   postTrampCode_.allocate(POST_TRAMP_SIZE);
 
-  extern registerSpace *regSpace;
-
   preTrampCode_.setProcess(proc());
-  preTrampCode_.setRegisterSpace(regSpace);
   postTrampCode_.setProcess(proc());
-  postTrampCode_.setRegisterSpace(regSpace);
 
-
-#if defined(arch_power) 
-    // For tracking saves/restores.
-    // Could be used on other platforms as well, but isn't yet.
-    extern registerSpace *conservativeRegSpace;
-
-    if (isConservative())
-        theRegSpace = conservativeRegSpace;
-    else
-        theRegSpace = regSpace;
-
-    instPoint * location = instP();
-
-    if (location != NULL)
-      {
-	theRegSpace->resetLiveDeadInfo(location->liveRegisters,
-				       location->liveFPRegisters,
-				       location->liveSPRegisters,
-				       threaded());
-	
-      }
-    preTrampCode_.setRegisterSpace(theRegSpace);
-    postTrampCode_.setRegisterSpace(theRegSpace);
-#elif defined(arch_x86_64)
-    instPoint * location = instP();
-    if (location != NULL)
-      {
-	regSpace->resetLiveDeadInfo(location->liveRegisters,
-				    location->liveFPRegisters,
-				    location->liveSPRegisters,
-				    threaded());
-      }
-    else
-      {
-	regSpace->setDisregardLiveness(true); // For tramps that just do RPC we don't want to do liveness
-      }
-    preTrampCode_.setRegisterSpace(regSpace);
-    postTrampCode_.setRegisterSpace(regSpace);
-#else
-    preTrampCode_.setRegisterSpace(regSpace);
-    postTrampCode_.setRegisterSpace(regSpace);
-#endif
-
+    preTrampCode_.setRegisterSpace(baseGen.rs());
     
     
     saveStartOffset = preTrampCode_.used();
     inst_printf("Starting saves: offset %d\n", saveStartOffset);
 
-    generateSaves(preTrampCode_, regSpace);
+    generateSaves(preTrampCode_, preTrampCode_.rs());
 
     // Done with save
     saveEndOffset = preTrampCode_.used();
@@ -950,7 +1131,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     if (proc()->requestTextMiniTramp==0 || proc()->requestTextMiniTramp>2 ){
 #endif
   // Multithread
-    generateMTCode(preTrampCode_, regSpace);
+    generateMTCode(preTrampCode_, preTrampCode_.rs());
 #if defined(os_aix) 
    }else{
 	proc()->setRequestTextMiniTramp(proc()->requestTextMiniTramp+1);
@@ -964,7 +1145,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     if (guarded() &&
         generateGuardPreCode(preTrampCode_,
                              guardBranchIndex,
-                             regSpace)) {
+                             preTrampCode_.rs())) {
         // Cool.
     }
     else {
@@ -988,7 +1169,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     // In general, instrumentation wants cost code. The minitramps may be 
     // null, but we put in the stub anyway.
     if (rpcMgr_ == NULL &&
-        generateCostCode(preTrampCode_, costValueOffset, regSpace)) {
+        generateCostCode(preTrampCode_, costValueOffset, preTrampCode_.rs())) {
         costSize = preTrampCode_.used() - costUpdateOffset;
         // If this is zero all sorts of bad happens
         assert(costValueOffset);
@@ -1010,22 +1191,31 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     inst_printf("Starting inst: offset %d\n", instStartOffset);
     inst_printf("preSize is: %d\n", preSize);    
 
+// IA-64...
+	if (preTrampCode_.rs() != baseGen.rs()) {
+		// Grab any updates that were made
+		baseGen.setRegisterSpace(preTrampCode_.rs());
+	}
+
+    postTrampCode_.setRegisterSpace(baseGen.rs());
+
+
     // Post...
     // Guard redux
     if (guarded())
         generateGuardPostCode(postTrampCode_, 
                               guardTargetIndex,
-                              regSpace);
+                              postTrampCode_.rs());
     else
         guardTargetIndex = 0;
 
     // Restore registers
     restoreStartOffset = postTrampCode_.used();
-    generateRestores(postTrampCode_, regSpace);
+    generateRestores(postTrampCode_, postTrampCode_.rs());
 
-#if defined(arch_power)
-    regSpace->setAllLive();
-#endif 
+//#if defined(arch_power)
+//    baseGen.rs()->setAllLive();
+//#endif 
 
     restoreEndOffset = postTrampCode_.used();
     //inst_printf("Ending restores: %d\n", restoreEndOffset);
@@ -1037,7 +1227,10 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     preTrampCode_.finalize();
     postTrampCode_.finalize();
 
-    
+	if (regSpace_)
+		delete regSpace_;
+    regSpace_ = new registerSpace(*(baseGen.rs()));
+
     /*
       inst_printf("pre size: %d, post size: %d\n",
       preSize, postSize);
@@ -1100,8 +1293,9 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
         else {
             // When we in-line, this will need to change. For now,
             // we can always fix jumps by hand
-            if (BPatch::bpatch->isMergeTramp())
+            if (BPatch::bpatch->isMergeTramp()) {
                 hasChanged_ = true;
+            }
             else {
                 // we occasionally see a case where this->trampAddr_ has 
                 // already been reset to zero, assume no need to update
@@ -1167,6 +1361,8 @@ process *baseTrampInstance::proc() const {
 void baseTrampInstance::invalidateCode() {
     generatedCodeObject::invalidateCode();
     trampAddr_ = 0;
+    trampSize_ = 0;
+    trampPostOffset = 0;
     for (unsigned i = 0; i < mtis.size(); i++)
         mtis[i]->invalidateCode();
 }

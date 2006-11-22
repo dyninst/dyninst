@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.16 2006/06/19 21:30:44 bernat Exp $
+// $Id: baseTramp.h,v 1.17 2006/11/22 04:03:10 bernat Exp $
 
 // baseTramp class definition
 
@@ -83,6 +83,7 @@ class baseTrampInstance : public generatedCodeObject {
 
 
     Address trampAddr_;
+    unsigned trampSize_;
     unsigned trampPostOffset;
     Address trampPreAddr() const { return trampAddr_; }
     Address trampPostAddr() const { return trampPreAddr() + trampPostOffset; }
@@ -111,6 +112,15 @@ class baseTrampInstance : public generatedCodeObject {
     bool generateCode(codeGen &gen,
                       Address baseInMutatee,
                       UNW_INFO_TYPE * * unwindInformation);
+
+    // Get some code out of the way...
+    bool generateCodeOutlined(codeGen &gen,
+                              Address baseInMutatee,
+                              UNW_INFO_TYPE **unwindInformation);
+
+    bool generateCodeInlined(codeGen &gen,
+                             Address baseInMutatee,
+                             UNW_INFO_TYPE **unwindInformation);
 
     bool installCode();
 
@@ -325,6 +335,7 @@ class baseTramp {
 
     codeGen preTrampCode_;
     codeGen postTrampCode_;
+	registerSpace *regSpace_;
     bool valid;
 
     typedef enum {unset_BTR, recursive_BTR, guarded_BTR} guardState_t;
