@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.253 2006/11/14 20:37:08 bernat Exp $
+ * $Id: inst-power.C,v 1.254 2006/11/22 04:03:17 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -67,6 +67,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 
 #include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/registerSpace.h"
 
 #include "InstrucIter.h"
 
@@ -203,41 +204,18 @@ unsigned relocatedInstruction::maxSizeRequired() {
     return insn->spaceToRelocate();
 }
 
-Register deadRegs[] = {10, REG_GUARD_ADDR, REG_GUARD_VALUE, REG_GUARD_OFFSET};
-
-registerSpace *regSpace;
-registerSpace *regSpaceIRPC;
-
-registerSpace *floatRegSpace;
-
-// This register space should be used with the conservative base trampoline.
-// Right now it's only used for purposes of determining which registers must
-// be saved and restored in the base trampoline.
-registerSpace *conservativeRegSpace;
-
-// allocate in reverse order since we use them to build arguments.
-Register liveRegList[] = { 11, 10, 9, 8, 7, 6, 5, 4, 3 };
-
-// If we're being conservative, we don't assume that any registers are dead.
-#if defined( __XLC__) || defined(__xlC__)
-//  XLC does not like empty initializer of unbounded array so this is init'd in initTramps
-Register * conservativeDeadRegList;
-#else
-Register conservativeDeadRegList[] = { };
-#endif
-
-// The registers that aren't preserved by called functions are considered live.
-Register conservativeLiveRegList[] = { 11, 10, 9, 8, 7, 6, 5, 4, 3, 0 };
-
-#if defined(__XLC__) || defined(__xlC__)
-Register *floatingDeadRegList;
-#else
-Register floatingDeadRegList[] = { };
-#endif
-
 Register floatingLiveRegList[] = {13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+unsigned int floatingLiveRegListSize = 14;
 
-void initTramps(bool is_multithreaded)
+Register regList[] = {12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+unsigned int regListSize = 13;
+
+Register deadABIList[] = {12, 0};
+unsigned int deadABIListSize = 2;
+Register offLimitsList[] = {2, 1};
+unsigned int offLimitsListSize = 2;
+
+void initRegisters()
 {
     static bool inited=false;
     if (inited) return;
@@ -251,63 +229,47 @@ void initTramps(bool is_multithreaded)
     //   sites.
     // reg 3-10 are used to pass arguments to functions.
     //   We must save them before we can use them.
-    
-    
-    Register deadRegList[1];
-    unsigned dead_reg_count = 0;
 
-    /*
-    if(! is_multithreaded) {
-       dead_reg_count++;
-       deadRegList[0] = 12;
+	// Overwrite time
+	registerSpace::globalRegSpace_ = registerSpace::createAllLive(regList,
+													regListSize);
+	// Don't use these guys in code generation...
+	for (unsigned i = 0; i < offLimitsListSize; i++) {
+		registerSpace::globalRegSpace_->markReadOnly(offLimitsList[i]);
+	}
+
+	registerSpace::globalRegSpace_->initFloatingPointRegisters(floatingLiveRegListSize, 
+					floatingLiveRegList);
+
+	// Everyone is live in conservative land
+	registerSpace::conservativeRegSpace_ = registerSpace::specializeRegisterSpace(NULL, 0);
+
+	// This being ABI time
+	registerSpace::optimisticRegSpace_ = registerSpace::specializeRegisterSpace(deadABIList,
+															deadABIListSize);
+
+	// The actual starts life as conservative
+	registerSpace::actualRegSpace_ = registerSpace::specializeRegisterSpace(NULL, 0);
+
+	// And post-tramp
+	registerSpace::savedRegSpace_ = registerSpace::specializeRegisterSpace(regList, regListSize);
+	
+	// This is a bit of overlap - unfortunate. Create the instPoint
+	// live sets
+	instPoint::optimisticGPRLiveSet_ = new int[regListSize];
+    instPoint::pessimisticGPRLiveSet_ = new int[regListSize];
+    
+    // First, initialize to 1 (live)
+    for (unsigned i = 0; i < regListSize; i++) {
+        instPoint::optimisticGPRLiveSet_[i] = 1;
+        instPoint::pessimisticGPRLiveSet_[i] = 1;
     }
-    */
-    
-    regSpace = 
-       new registerSpace(dead_reg_count, deadRegList, 
-                         sizeof(liveRegList)/sizeof(Register), liveRegList,
-                         is_multithreaded);
 
-
-    regSpaceIRPC = 
-       new registerSpace(dead_reg_count, deadRegList, 
-                         sizeof(liveRegList)/sizeof(Register), liveRegList,
-                         is_multithreaded);
-
-    /*
-      floatRegSpace = 
-      new registerSpace(0, floatingDeadRegList,
-      sizeof(floatingLiveRegList)/sizeof(Register), floatingLiveRegList,
-      is_multithreaded); */
-
-    regSpace->initFloatingPointRegisters(sizeof(floatingLiveRegList)/sizeof(Register), 
-					floatingLiveRegList);
-
-    regSpaceIRPC->initFloatingPointRegisters(sizeof(floatingLiveRegList)/sizeof(Register), 
-					floatingLiveRegList);
-    
-#if defined (__XLC__) || defined(__xlC__)
-    conservativeDeadRegList = new Register[0]; //  is this just too weird?
-#endif
-
-    // Note that we don't always use this with the conservative base tramp --
-    // see the message where we declare conservativeRegSpace.
-    conservativeRegSpace =
-      new registerSpace(sizeof(conservativeDeadRegList)/sizeof(Register),
-		        conservativeDeadRegList, 
-		        sizeof(conservativeLiveRegList)/sizeof(Register),
-			conservativeLiveRegList);
-
-    conservativeRegSpace->initFloatingPointRegisters(sizeof(floatingLiveRegList)/sizeof(Register), 
-					floatingLiveRegList);
-    fprintf(stderr, "regSpace %p, conservativeRegSpace %p\n", regSpace, conservativeRegSpace);
-}
-
-registerSpace *registerSpace::conservativeRegSpace(instPoint *) {
-    return new registerSpace(sizeof(conservativeDeadRegList)/sizeof(Register),
-                             conservativeDeadRegList, 
-                             sizeof(conservativeLiveRegList)/sizeof(Register),
-                             conservativeLiveRegList);
+    // ABI dead-ness
+	for (unsigned i = 0; i < deadABIListSize; i++) {
+		instPoint::optimisticGPRLiveSet_[deadABIList[i]] = 0;
+	}
+	
 }
 
 /*
@@ -640,6 +602,7 @@ void saveRegister(codeGen &gen,
     instruction::generateImm(gen, STop, 
                              reg, 1, 
                              save_off + reg*GPRSIZE);
+
     //  bperr("Saving reg %d at 0x%x off the stack\n", reg, offset + reg*GPRSIZE);
 }
 
@@ -739,12 +702,12 @@ unsigned saveGPRegisters(codeGen &gen,
     for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
         registerSlot *reg = theRegSpace->getRegSlot(i);
         if (reg->startsLive) {
-	  saveRegister(gen, reg->number, save_off);
-	  numRegs++;
-        }
+			saveRegister(gen, reg->number, save_off);
+        	gen.rs()->markSavedRegister(reg->number, save_off + reg->number*GPRSIZE);
+        	numRegs++;
+		}
     }
 #endif
-    
     return numRegs;
 }
 
@@ -786,8 +749,8 @@ unsigned restoreGPRegisters(codeGen &gen,
     for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
         registerSlot *reg = theRegSpace->getRegSlot(i);
         if (reg->startsLive) {
-	  restoreRegister(gen, reg->number, save_off);
-	  numRegs++;
+	  		restoreRegister(gen, reg->number, save_off);
+	  		numRegs++;
         }
     }
 #endif
@@ -807,17 +770,17 @@ unsigned saveFPRegisters(codeGen &gen,
 {
   unsigned numRegs = 0;
   for(u_int i = 0; i < theRegSpace->getFPRegisterCount(); i++) {
-    registerSlot *reg = theRegSpace->getFPRegSlot(i);
-    if (reg->startsLive) {
-      saveFPRegister(gen, reg->number, save_off);
-      numRegs++;
-    }
+      registerSlot *reg = theRegSpace->getFPRegSlot(i);
+      if (reg->startsLive) {
+      	saveFPRegister(gen, reg->number, save_off);
+      	numRegs++;
+      }
   }  
   
   return numRegs;
-    
+  
   /*
-  unsigned numRegs = 0;
+    unsigned numRegs = 0;
     for (unsigned i = 0; i <= 13; i++) {
         numRegs++;
         saveFPRegister(gen, i, save_off);
@@ -953,22 +916,21 @@ bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
 
 bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *) {
+    regalloc_printf("========== baseTramp::generateSaves\n");
+    
     // Make a stack frame.
     pushStack(gen);
 
-    // Multithread GPR -- always save
-    saveRegister(gen, REG_MT_POS, TRAMP_GPR_OFFSET);
-
     // Save GPRs
     saveGPRegisters(gen,
-                    theRegSpace,
+                    gen.rs(),
                     TRAMP_GPR_OFFSET);
 
     if(BPatch::bpatch->isSaveFPROn())
       {
 	// Save FPRs
 	saveFPRegisters(gen,
-			theRegSpace,
+			gen.rs(),
 			TRAMP_FPR_OFFSET);
       }
     
@@ -979,7 +941,7 @@ bool baseTramp::generateSaves(codeGen &gen,
     // No more cookie. FIX aix stackwalking.
     if (isConservative()) {
         saveSPRegisters(gen,
-			theRegSpace,
+                        gen.rs(),
                         TRAMP_SPR_OFFSET);
     }
     // If we're at a callsite (or unknown) save the count register
@@ -998,7 +960,7 @@ bool baseTramp::generateRestores(codeGen &gen,
                    SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
     }
     if (isConservative()) {
-        restoreSPRegisters(gen, theRegSpace, TRAMP_SPR_OFFSET);
+        restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET);
     }
 
     // LR
@@ -1007,14 +969,17 @@ bool baseTramp::generateRestores(codeGen &gen,
     if(BPatch::bpatch->isSaveFPROn())
       {
 	// FPRs
-	restoreFPRegisters(gen, theRegSpace, TRAMP_FPR_OFFSET);
+	restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET);
       }
 
     // GPRs
-    restoreGPRegisters(gen, theRegSpace, TRAMP_GPR_OFFSET);
+    restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET);
+
+    /*
 
     // Multithread GPR -- always save
     restoreRegister(gen, REG_MT_POS, TRAMP_GPR_OFFSET);
+    */
 
     popStack(gen);
 
@@ -1040,9 +1005,6 @@ bool baseTramp::generateMTCode(codeGen &gen,
     pdvector<AstNode *> dummy;
     Register src = Null_Register;
     
-    // registers cleanup
-    regSpace->resetSpace();
-    
     dyn_thread *thr = gen.thread();
     if (!threaded()) {
         /* Get the hashed value of the thread */
@@ -1061,9 +1023,10 @@ bool baseTramp::generateMTCode(codeGen &gen,
             // This is always going to happen... we reserve REG_MT_POS, so the
             // code generator will never use it as a destination
             instruction::generateImm(gen, ORILop, src, REG_MT_POS, 0);
+			gen.rs()->freeRegister(src);
         }
     }
-    regSpace->resetSpace();
+
     return true;
 }
 
@@ -1210,10 +1173,9 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             return;
         }
         else {
-            Register dest2 = regSpace->allocateRegister(gen, noCost);
+            Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
             emitV(op, src1, dest2, dest, gen, noCost);
-            regSpace->freeRegister(dest2);
             return;
         }
         break;
@@ -1224,10 +1186,9 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             return;
         }
         else {
-            Register dest2 = regSpace->allocateRegister(gen, noCost);
+            Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
             emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
             emitV(op, src1, dest2, dest, gen, noCost);
-            regSpace->freeRegister(dest2);
             return;
         }
         break;
@@ -1247,10 +1208,9 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         return;
         break;
     default:
-        Register dest2 = regSpace->allocateRegister(gen, noCost);
+        Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
         emitVload(loadConstOp, src2imm, dest2, dest2, gen, noCost);
         emitV(op, src1, dest2, dest, gen, noCost);
-        regSpace->freeRegister(dest2);
         return;
         break;
     }
@@ -1407,62 +1367,45 @@ Register emitFuncCall(opCode /* ocode */,
    saveRegister(gen, 2, FUNC_CALL_SAVE);
    savedRegs.push_back(2);
 
+#if 0
    if(gen.proc()->multithread_capable()) {
       // save REG_MT_POS
       saveRegister(gen, REG_MT_POS, FUNC_CALL_SAVE);
       savedRegs += REG_MT_POS;
    }
+#endif
 
    // see what others we need to save.
    for (u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
       registerSlot *reg = gen.rs()->getRegSlot(i);
-      if (reg->needsSaving) {
-         // needsSaving -> caller saves register
-         // we MUST save restore this and the end of the function call
-         //     rather than delay it to the end of the tramp due to:
-         //        (1) we could be in a conditional & the restores would
-         //            be unconditional (i.e. restore bad data)
-         //        (2) $arg[n] code depends on paramters being in registers
-         //
-         // MT_AIX: we are not saving registers on demand on the power
-         // architecture anymore - naim
-         // saveRegister(gen,reg->number,8+(46*4));
-         // savedRegs += reg->number;
-      } else if (reg->refCount > 0 && !reg->mustRestore) {
-         // inUse && !mustRestore -> in use scratch register 
-         //		(i.e. part of an expression being evaluated).
 
-         // no reason to save the register if we are going to free it in a bit
-         // we should keep it free, otherwise we might overwrite the register
-         // we allocate for the return value -- we can't request that register
-         // before, since we then might run out of registers
-         unsigned u;
-         for(u=0; u < srcs.size(); u++) {
-            if(reg->number == srcs[u]) break;
-         }
-         // since the register should be free
-         // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
-         if(u == srcs.size()) {
-             saveRegister(gen, reg->number, FUNC_CALL_SAVE);
-            savedRegs.push_back(reg->number);
+      if (reg->refCount > 0) {
+          // inUse && !mustRestore -> in use scratch register 
+          //		(i.e. part of an expression being evaluated).
+          
+          // no reason to save the register if we are going to free it in a bit
+          // we should keep it free, otherwise we might overwrite the register
+          // we allocate for the return value -- we can't request that register
+          // before, since we then might run out of registers
+          unsigned u;
+          for(u=0; u < srcs.size(); u++) {
+              if(reg->number == srcs[u]) break;
+          }
+          // since the register should be free
+          // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
+          if(u == srcs.size()) {
+              saveRegister(gen, reg->number, FUNC_CALL_SAVE);
+              savedRegs.push_back(reg->number);
             //cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
-         }
-      } else if (reg->refCount > 0) {
-         // only inuse registers permitted here are the parameters.
-         unsigned u;
-         for (u=0; u<srcs.size(); u++){
-            if (reg->number == srcs[u]) break;
-         }
-         if (u == srcs.size()) {
-            // XXXX - caller saves register that is in use.  We have no
-            //    place to save this, but we must save it!!!.  Should
-            //    find a place to push this on the stack - jkh 7/31/95
-            pdstring msg = "Too many registers required for MDL expression\n";
-            bpfatal( msg.c_str());
-            showErrorCallback(94,msg);
-            cleanUpAndExit(-1);
-         }
+          }
       }
+      if (reg->keptValue) {
+          // We're keeping this value for later. Either save it
+          // or invalidate it... we'll save.
+          saveRegister(gen, reg->number, FUNC_CALL_SAVE);
+          savedRegs.push_back(reg->number);
+      }
+
    }
   
    if(srcs.size() > 8) {
@@ -1576,8 +1519,9 @@ Register emitFuncCall(opCode /* ocode */,
 
    // Linear Scan on the functions to see which registers get clobbered
      
-   clobberAll = clobberAllFuncCall(gen.rs(), gen.proc(), callee, 0);
-      
+   //clobberAll = clobberAllFuncCall(gen.rs(), gen.proc(), callee, 0);
+   clobberAll = true; // Speed kills...
+
    /////////////// Clobber the registers if needed
 
    if (clobberAll)
@@ -1687,8 +1631,8 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	registerSlot *regSlot = NULL;
 
 	// find the registerSlot for this register.
-	for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
-	    regSlot = regSpace->getRegSlot(i);
+	for (unsigned i = 0; i < gen.rs()->getRegisterCount(); i++) {
+	    regSlot = gen.rs()->getRegSlot(i);
 	    if (regSlot->number == reg) {
 		break;
 	    }
@@ -1715,12 +1659,12 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       if(src1 < 8) {
 	registerSlot * regSlot = NULL;
 	// find the registerSlot for this register.
-	for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
-	  regSlot = regSpace->getRegSlot(i);
+	for (unsigned i = 0; i < gen.rs()->getRegisterCount(); i++) {
+	  regSlot = gen.rs()->getRegSlot(i);
 	  if (regSlot->number == src1+3) 
 	    {
                 // FIXME
-                if (regSpace->beenSaved(regSlot->number) || 1) {
+                if (gen.rs()->beenSaved(regSlot->number) || 1) {
                     restoreRegister(gen, src1+3, dest, 
                                     TRAMP_GPR_OFFSET);
                 }
@@ -1818,7 +1762,7 @@ static inline void emitAddOriginal(Register src, Register acc,
     
     if(nr) {
         // this needs gen because it uses emitV...
-        temp = regSpace->allocateRegister(gen, noCost);
+        temp = gen.rs()->allocateRegister(gen, noCost);
         
         // Emit code to restore the original ra register value in temp.
         // The offset compensates for the gap 0, 3, 4, ...
@@ -1840,7 +1784,7 @@ static inline void emitAddOriginal(Register src, Register acc,
     emitV(plusOp, temp, acc, acc, gen, noCost, 0);
     
     if(nr)
-        regSpace->freeRegister(temp);
+        gen.rs()->freeRegister(temp);
 }
 
 // VG(11/07/01): Load in destination the effective address given
@@ -1977,7 +1921,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 	}
 
 	// temp register to hold base address for store (added 6/26/96 jkh)
-	Register temp = regSpace->allocateRegister(gen, noCost);
+	Register temp = gen.rs()->getScratchRegister(gen, noCost);
 
 	// set upper 16 bits of  temp to be the top high.
 	instruction::generateImm(gen, CAUop, 
@@ -1987,7 +1931,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 	// generate -- st src1, low(temp)
 	instruction::generateImm(gen, STop, 
                                  src1, temp, LOW(dest));
-	regSpace->freeRegister(temp);
+
         return;
     } else if (op == storeFrameRelativeOp) {
 	// offsets are signed!
@@ -2218,7 +2162,7 @@ int getInsnCost(opCode op)
       //   inside the code generator to know this amount.
       //
       // We know it is at *least* every live register (i.e. parameter reg)
-      cost += sizeof(liveRegList)/sizeof(int);
+      cost += regListSize;
       
       // clr r5
       // clr r6
@@ -2240,7 +2184,7 @@ int getInsnCost(opCode op)
       //   inside the code generator to know this amount.
       //
       // We know it is at *least* every live register (i.e. parameter reg)
-      cost += sizeof(liveRegList)/sizeof(int);
+      cost += regListSize;
       
       // mtlr	0 
       cost++;
@@ -2283,7 +2227,7 @@ int getInsnCost(opCode op)
 //If return false, it's been clobbered and we do nothing
 bool registerSpace::clobberRegister(Register reg) 
 {
-  for (u_int i=0; i < numRegisters; i++)
+  for (u_int i=0; i < registers.size(); i++)
     {
       if(registers[i].number == reg)
 	{
@@ -2300,7 +2244,7 @@ bool registerSpace::clobberRegister(Register reg)
 //If return false, it's been clobbered and we do nothing
 bool registerSpace::clobberFPRegister(Register reg) 
 {
-  for (u_int i=0; i < numFPRegisters; i++) 
+  for (u_int i=0; i < fpRegisters.size(); i++) 
     {
       if (fpRegisters[i].number == reg)
 	{
@@ -2319,66 +2263,66 @@ void registerSpace::saveClobberInfo(const instPoint *location)
   registerSlot *regFPSlot = NULL;
   if (location == NULL)
     return;
-  if (location->liveRegisters != NULL && location->liveFPRegisters != NULL)
+  if (location->actualGPRLiveSet_ != NULL && location->actualFPRLiveSet_ != NULL)
     {
       
       // REG guard registers, if live, must be saved
-      if (location->liveRegisters[ REG_GUARD_ADDR ] == LIVE_REG)
-	location->liveRegisters[ REG_GUARD_ADDR ] = LIVE_CLOBBERED_REG;
+      if (location->actualGPRLiveSet_[ REG_GUARD_ADDR ] == LIVE_REG)
+	location->actualGPRLiveSet_[ REG_GUARD_ADDR ] = LIVE_CLOBBERED_REG;
       
-      if (location->liveRegisters[ REG_GUARD_OFFSET ] == LIVE_REG)
-	location->liveRegisters[ REG_GUARD_OFFSET ] = LIVE_CLOBBERED_REG;
+      if (location->actualGPRLiveSet_[ REG_GUARD_OFFSET ] == LIVE_REG)
+	location->actualGPRLiveSet_[ REG_GUARD_OFFSET ] = LIVE_CLOBBERED_REG;
 
       // GPR and FPR scratch registers, if live, must be saved
-      if (location->liveRegisters[ REG_SCRATCH ] == LIVE_REG)
-	location->liveRegisters[ REG_SCRATCH ] = LIVE_CLOBBERED_REG;
+      if (location->actualGPRLiveSet_[ REG_SCRATCH ] == LIVE_REG)
+	location->actualGPRLiveSet_[ REG_SCRATCH ] = LIVE_CLOBBERED_REG;
 
-      if (location->liveFPRegisters[ REG_SCRATCH ] == LIVE_REG)
-	location->liveFPRegisters[ REG_SCRATCH ] = LIVE_CLOBBERED_REG;
+      if (location->actualFPRLiveSet_[ REG_SCRATCH ] == LIVE_REG)
+	location->actualFPRLiveSet_[ REG_SCRATCH ] = LIVE_CLOBBERED_REG;
 
       // Return func call register, since we make a call because
       // of multithreading (regardless if it's threaded) from BT
       // we must save return register
-      if (location->liveRegisters[ 3 ] == LIVE_REG)
-	location->liveRegisters[ 3 ] = LIVE_CLOBBERED_REG;
+      if (location->actualGPRLiveSet_[ 3 ] == LIVE_REG)
+	location->actualGPRLiveSet_[ 3 ] = LIVE_CLOBBERED_REG;
 
     
-      for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
+      for (u_int i = 0; i < getRegisterCount(); i++)
 	{
-	  regSlot = regSpace->getRegSlot(i);
+	  regSlot = getRegSlot(i);
 
-	  if (  location->liveRegisters[ (int) registers[i].number ] == LIVE_REG )
+	  if (  location->actualGPRLiveSet_[ (int) registers[i].number ] == LIVE_REG )
 	    {
 	      if (!registers[i].beenClobbered)
-		location->liveRegisters[ (int) registers[i].number ] = LIVE_UNCLOBBERED_REG;
+		location->actualGPRLiveSet_[ (int) registers[i].number ] = LIVE_UNCLOBBERED_REG;
 	      else
-		location->liveRegisters[ (int) registers[i].number ] = LIVE_CLOBBERED_REG;
+		location->actualGPRLiveSet_[ (int) registers[i].number ] = LIVE_CLOBBERED_REG;
 	    }
 
 
-	  if (  location->liveRegisters[ (int) registers[i].number ] == LIVE_UNCLOBBERED_REG ) 
+	  if (  location->actualGPRLiveSet_[ (int) registers[i].number ] == LIVE_UNCLOBBERED_REG ) 
 	    {
 	      if (registers[i].beenClobbered)
-		location->liveRegisters[ (int) registers[i].number ] = LIVE_CLOBBERED_REG;
+		location->actualGPRLiveSet_[ (int) registers[i].number ] = LIVE_CLOBBERED_REG;
 	    }
 	}
 	  
-      for (u_int i = 0; i < regSpace->getFPRegisterCount(); i++)
+      for (u_int i = 0; i < getFPRegisterCount(); i++)
 	{
-	  regFPSlot = regSpace->getFPRegSlot(i);
+	  regFPSlot = getFPRegSlot(i);
 	  
-	  if (  location->liveFPRegisters[ (int) fpRegisters[i].number ] == LIVE_REG )
+	  if (  location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] == LIVE_REG )
 	    {
 	      if (!fpRegisters[i].beenClobbered)
-		location->liveFPRegisters[ (int) fpRegisters[i].number ] = LIVE_UNCLOBBERED_REG;
+		location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] = LIVE_UNCLOBBERED_REG;
 	      else
-		location->liveFPRegisters[ (int) fpRegisters[i].number ] = LIVE_CLOBBERED_REG;
+		location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] = LIVE_CLOBBERED_REG;
 	    }
 	  
-	  if (  location->liveFPRegisters[ (int) fpRegisters[i].number ] == LIVE_UNCLOBBERED_REG )
+	  if (  location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] == LIVE_UNCLOBBERED_REG )
 	    {
 	      if (fpRegisters[i].beenClobbered)
-		location->liveFPRegisters[ (int) fpRegisters[i].number ] = LIVE_CLOBBERED_REG;
+		location->actualFPRLiveSet_[ (int) fpRegisters[i].number ] = LIVE_CLOBBERED_REG;
 	    }
 	}
     }
@@ -2392,14 +2336,14 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 // Right now, all the registers are assumed to be live by default
 void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
 				      const int * liveFPRegs,
-				      const int * liveSPRegs,
-				      bool isThreaded)
+				      const int * liveSPRegs)
 {
+    assert(liveRegs != NULL);
+
+
   registerSlot *regSlot = NULL;
   registerSlot *regFPSlot = NULL;
 
-  if (liveRegs != NULL && liveFPRegs != NULL)
-    {
       /*
       printf("GPR  ");
       for (int a = 0; a < 32; a++)
@@ -2412,51 +2356,32 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
 	printf("\n");
       */
 
-      for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
-	{
-	  regSlot = regSpace->getRegSlot(i);
-	  if (  liveRegs[ (int) registers[i].number ] == LIVE_REG ||
-		liveRegs[ (int) registers[i].number ] == LIVE_CLOBBERED_REG )
-	    {
-	      registers[i].needsSaving = true;
-	      registers[i].startsLive = true;
-	    }
-	  else if (liveRegs[ (int) registers[i].number ] == LIVE_UNCLOBBERED_REG  &&
-		   isThreaded)
-	    {
-	      registers[i].needsSaving = true;
-	      registers[i].startsLive = true;
-	    }
-	  else
-	    {
-	      registers[i].needsSaving = false;
-	      registers[i].startsLive = false;
-	    }
+	for (u_int i = 0; i < getRegisterCount(); i++) {
+		regSlot = getRegSlot(i);
+		if (  liveRegs[ (int) registers[i].number ] == LIVE_REG ||
+			liveRegs[ (int) registers[i].number ] == LIVE_CLOBBERED_REG ) {
+				registers[i].needsSaving = true;
+				registers[i].startsLive = true;
+		}
+		else {
+			registers[i].needsSaving = false;
+			registers[i].startsLive = false;
+		}
 	}
 
-       for (u_int i = 0; i < regSpace->getFPRegisterCount(); i++)
-	{
-	  regFPSlot = regSpace->getFPRegSlot(i);
+	for (u_int i = 0; i < getFPRegisterCount(); i++) {
+		regFPSlot = getFPRegSlot(i);
 	  
-	  if (  liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_REG ||
-		liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_CLOBBERED_REG)
-	    {
-	      fpRegisters[i].needsSaving = true;
-	      fpRegisters[i].startsLive = true;
-	    }
-	  else if (liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_UNCLOBBERED_REG  &&
-		   isThreaded)
-	    {
-	      fpRegisters[i].needsSaving = true;
-	      fpRegisters[i].startsLive = true;
-	    }
-	  else
-	    {
-	      fpRegisters[i].needsSaving = false;
-	      fpRegisters[i].startsLive = false;
+		if (  liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_REG ||
+			liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_CLOBBERED_REG) {
+				fpRegisters[i].needsSaving = true;
+				fpRegisters[i].startsLive = true;
+		}
+		else {
+			fpRegisters[i].needsSaving = false;
+			fpRegisters[i].startsLive = false;
 	    }
 	}
-    }
   if (liveSPRegs != NULL)
     {
       spFlag = liveSPRegs[0];
@@ -2466,34 +2391,30 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
 
 bool registerSpace::beenSaved(Register reg)
 {
-  if (reg == 10 || reg == deadRegs[1] || reg == deadRegs[2] || reg == 11 || reg == 12)
-    return true;
-  for (u_int i = 0; i < numRegisters; i++){
-    if (registers[i].number == reg){
-      if (registers[i].beenClobbered == true)
-	return true;
-      else
-	return false;
-    }
-  }
-  assert(0 && "Unreachable");
-  return false;
+	for (u_int i = 0; i < registers.size(); i++){
+		if (registers[i].number == reg){
+			if (registers[i].beenClobbered == true)
+				return true;
+      		else
+				return false;
+    	}
+  	}
+  	assert(0 && "Unreachable");
+  	return false;
 }
 
 bool registerSpace::beenSavedFP(Register reg)
 {
-  if (reg == 10)
-    return true;
-  for (u_int i = 0; i < numFPRegisters; i++){
-    if (fpRegisters[i].number == reg){
-      if (fpRegisters[i].beenClobbered == true)
-	return true;
-      else
-	return false;
-    }
-  }
-  assert(0 && "Unreachable");
-  return false;
+	for (u_int i = 0; i < fpRegisters.size(); i++){
+    	if (fpRegisters[i].number == reg){
+      		if (fpRegisters[i].beenClobbered == true)
+				return true;
+      		else
+				return false;
+    	}
+  	}
+  	assert(0 && "Unreachable");
+  	return false;
 }
 
 bool doNotOverflow(int value)
@@ -2638,18 +2559,18 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
       offset = TRAMP_SPR_OFFSET + STK_LR; 
       // Get address (SP + offset) and stick in register dest.
       emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
-	      gen, noCost, regSpace);
+	      gen, noCost, gen.rs());
       // Load LR into register dest
-      emitV(loadIndirOp, dest, 0, dest, gen, noCost, regSpace, size);
+      emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(), size);
       break;
     case REG_CTR:
       // CTR is saved down the stack
         offset = TRAMP_SPR_OFFSET + STK_CTR;
         // Get address (SP + offset) and stick in register dest.
         emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
-                gen, noCost, regSpace);
+                gen, noCost, gen.rs());
         // Load LR into register dest
-        emitV(loadIndirOp, dest, 0, dest, gen, noCost, regSpace, size);
+        emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(), size);
       break;
     default:
       cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
@@ -3073,28 +2994,27 @@ bitArray * int_basicBlock::getInFPSet()
    rare.  If there are alot of hits we can do full liveness
    analysis on it and other SPR
 */
-int int_basicBlock::liveSPRegistersIntoSet(int *& liveSPReg, 
-					       unsigned long address)
+int int_basicBlock::liveSPRegistersIntoSet(instPoint *iP,
+                                           unsigned long address)
 {
-  if (liveSPReg == NULL)
-    {
-      liveSPReg = new int[1]; // only care about MQ for Power for now
-      liveSPReg[0] = 0;
-      InstrucIter ii(this);
-      
-      while (ii.hasMore() &&
-	     *ii <= address)
-	{
-	  if (ii.isA_MX_Instruction())
-	    {
-	      liveSPReg[0] = 1;
-	      break;
-	    }
-	  ii++;
-	}
-        return liveSPReg[0];
+   if (iP->hasSpecializedSPRegisters()) return 0;
+
+
+    int *liveSPReg = new int[1]; // only care about MQ for Power for now
+    liveSPReg[0] = 0;
+    InstrucIter ii(this);
+    
+    while (ii.hasMore() &&
+           *ii <= address) {
+        if (ii.isA_MX_Instruction()) {
+            liveSPReg[0] = 1;
+            break;
+        }
+        ii++;
     }
-  return -1;
+
+    iP->actualSPRLiveSet_ = liveSPReg;
+	return 1;
 }
 
 
@@ -3103,73 +3023,70 @@ int int_basicBlock::liveSPRegistersIntoSet(int *& liveSPReg,
 /* The liveReg int * is a instance variable in the instPoint classes.
    This puts the liveness information into that variable so 
    we can access it from every instPoint without recalculation */
-int int_basicBlock::liveRegistersIntoSet(int *& liveReg, 
-					       int *& liveFPReg,
-					       unsigned long address)
+int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
+                                         unsigned long address)
 {
   int numLive = 0;
-  if (liveReg == NULL)
-    {
-      liveReg = new int[maxGPR];
-      liveFPReg = new int[maxFPR];
 
-      bitArray newIn;
-      bitArray newInFP;
+  if (iP->hasSpecializedGPRegisters()) return 0;
+
   
-      newIn.bitarray_init(maxGPR, &newIn);
-      newIn.bitarray_copy(&newIn,in);
-
-      newInFP.bitarray_init(maxFPR, &newInFP);
-      inFP->bitarray_copy(&newInFP,inFP);
+  int *liveReg = new int[maxGPR];
+  int *liveFPReg = new int[maxFPR];
+  
+  bitArray newIn;
+  bitArray newInFP;
+  
+  newIn.bitarray_init(maxGPR, &newIn);
+  newIn.bitarray_copy(&newIn,in);
+  
+  newInFP.bitarray_init(maxFPR, &newInFP);
+  inFP->bitarray_copy(&newInFP,inFP);
+  
+  InstrucIter ii(this);
+  
+  /* The liveness information from the bitarrays are for the
+     basic block, we need to do some more gen/kills until
+     we get to the individual instruction within the 
+     basic block that we want the liveness info for. */
+  
+  while(ii.hasMore() &&
+        *ii <= address) {
+      if (ii.isA_RT_WriteInstruction())
+          newIn.bitarray_set(ii.getRTValue(),&newIn);
+      if (ii.isA_RA_WriteInstruction())
+          newIn.bitarray_set(ii.getRAValue(),&newIn);
       
-      InstrucIter ii(this);
+      if (ii.isA_FRT_WriteInstruction())
+          newInFP.bitarray_set(ii.getFRTValue(),&newInFP);
+      if (ii.isA_FRA_WriteInstruction())
+          newInFP.bitarray_set(ii.getFRAValue(),&newInFP);
+      ii++;
+  }    
+  numLive = 0;
+  for (int a = 0; a < maxGPR; a++) {
+      if (newIn.bitarray_check(a,&newIn)) {
+          //printf("1 ");
+          liveReg[a] = 1;
+          numLive++;
+      }
+      else {
+          //printf("0 ");
+          liveReg[a] = 0;
+      }
+      if (newInFP.bitarray_check(a,&newInFP)) {
+          //printf("1 ");
+          liveFPReg[a] = 1;
+      }
+      else {
+          	//printf("0 ");
+          liveFPReg[a] = 0;
+      }
+  } 
 
-      /* The liveness information from the bitarrays are for the
-	 basic block, we need to do some more gen/kills until
-	 we get to the individual instruction within the 
-	 basic block that we want the liveness info for. */
-      
-      while(ii.hasMore() &&
-            *ii <= address)
-	{
-	  if (ii.isA_RT_WriteInstruction())
-	    newIn.bitarray_set(ii.getRTValue(),&newIn);
-	  if (ii.isA_RA_WriteInstruction())
-	    newIn.bitarray_set(ii.getRAValue(),&newIn);
+  iP->actualGPRLiveSet_ = liveReg;
+  iP->actualFPRLiveSet_ = liveReg;
 
-	  if (ii.isA_FRT_WriteInstruction())
-	    newInFP.bitarray_set(ii.getFRTValue(),&newInFP);
-	  if (ii.isA_FRA_WriteInstruction())
-	    newInFP.bitarray_set(ii.getFRAValue(),&newInFP);
-	  ii++;
-	}    
-      numLive = 0;
-      for (int a = 0; a < maxGPR; a++)
-	{
-	  if (newIn.bitarray_check(a,&newIn))
-	    {
-	      //printf("1 ");
-	      liveReg[a] = 1;
-	      numLive++;
-	    }
-	  else
-	    {
-	      //printf("0 ");
-	      liveReg[a] = 0;
-	    }
-	  if (newInFP.bitarray_check(a,&newInFP))
-	    {
-	      //printf("1 ");
-	      liveFPReg[a] = 1;
-	    }
-	  else
-	    {
-	      //printf("0 ");
-	      liveFPReg[a] = 0;
-	    }
-	} 
-      //printf("\n");
-    }
-
+  //printf("\n");
   return numLive;
 }

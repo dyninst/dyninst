@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.251 2006/11/14 20:37:10 bernat Exp $
+ * $Id: inst-x86.C,v 1.252 2006/11/22 04:03:19 bernat Exp $
  */
 #include <iomanip>
 
@@ -105,103 +105,103 @@ unsigned relocatedInstruction::maxSizeRequired() {
     return insn->spaceToRelocate();
 }
 
-registerSpace *regSpace32;
-registerSpace *regSpace32IRPC;
-registerSpace *regSpace64;
-registerSpace *regSpace64IRPC;
-registerSpace *regSpace;
-registerSpace *regSpaceIRPC;
 
-registerSpace *regSpace64Conservative;
+Register regList[NUM_VIRTUAL_REGISTERS];
 
-Register deadList32[NUM_VIRTUAL_REGISTERS];
-int deadList32Size = sizeof(deadList32);
+Register regList64[] = {REGNUM_RAX, REGNUM_RBX, REGNUM_RCX, REGNUM_RDX,
+						REGNUM_RSI, REGNUM_RDI, REGNUM_R8, REGNUM_R9,
+						REGNUM_R10, REGNUM_R11, REGNUM_R12, REGNUM_R13,
+						REGNUM_R14, REGNUM_R15, REGNUM_RBP, REGNUM_RSP};
+						
+unsigned int regList64Size = 16;
+						
+Register optimisticDeadList64[] = {REGNUM_RAX, REGNUM_R10, REGNUM_R11};
+unsigned int optimisticDeadNum = 3;
 
-#if 0
-// we do non-arg registers here first - followed by arg registers in reverse order
-Register deadList64[] = {/* callee saved */REGNUM_RBX, 
-			 /* caller saved */REGNUM_R10, REGNUM_R11, 
-			 /* callee saved REGNUM_R12, REGNUM_R13, REGNUM_R14, REGNUM_R15, */ 
-			 /* params, caller saved*/REGNUM_R9, REGNUM_R8, REGNUM_RCX, 
-			 /* params, caller saved*/REGNUM_RDX, REGNUM_RSI, REGNUM_RDI};
-int deadList64Size = sizeof(deadList64);
-#endif
-
-Register deadList64[] = {REGNUM_RAX, REGNUM_R10, REGNUM_R11};
-int deadList64Size = sizeof(deadList64);
-
-Register liveList64[] = {REGNUM_RCX, REGNUM_RDX, REGNUM_RBX, REGNUM_RSP, 
-                         REGNUM_RBP, REGNUM_RSI, REGNUM_RDI,
-                         REGNUM_R8,REGNUM_R9,REGNUM_R10,REGNUM_R11,REGNUM_R12,
-                         REGNUM_R13,REGNUM_R14,REGNUM_R15};
-int liveList64Size = sizeof(liveList64);
-
-
-void initTramps(bool is_multithreaded)
+void initRegisters()
 {
-
     static bool inited = false;
-
+    
     if (inited) return;
     inited = true;
 
-    unsigned regs_to_loop_over;
-    if(is_multithreaded)
-	regs_to_loop_over = NUM_VIRTUAL_REGISTERS - 1;
-    else
-	regs_to_loop_over = NUM_VIRTUAL_REGISTERS;
+	// Initialize the 32-bit reg list.
+	for (unsigned i = 0; i < NUM_VIRTUAL_REGISTERS; i++) {
+		regList[i] = i+1; // Start at "register 1" as register 0 is the base pointer...
+	}
 
-    for (unsigned u = 0; u < regs_to_loop_over; u++) {
-	deadList32[u] = u+1;
+    registerSpace::hasXMM = xmmCapable();
+	registerSpace::globalRegSpace_ = registerSpace::createAllDead(regList,
+														NUM_VIRTUAL_REGISTERS);
+
+	// 32-bit: everything is dead, always, because we're using stack slots.
+	registerSpace::conservativeRegSpace_ = registerSpace::globalRegSpace_;
+	registerSpace::optimisticRegSpace_ = registerSpace::conservativeRegSpace_;
+	registerSpace::actualRegSpace_ = registerSpace::conservativeRegSpace_;
+	registerSpace::savedRegSpace_ = registerSpace::conservativeRegSpace_;
+
+    instPoint::optimisticGPRLiveSet_ = new int[NUM_VIRTUAL_REGISTERS];
+    instPoint::pessimisticGPRLiveSet_ = new int[NUM_VIRTUAL_REGISTERS];
+    for (unsigned i = 0; i < NUM_VIRTUAL_REGISTERS; i++) {
+        instPoint::optimisticGPRLiveSet_[i] = 0;
+        instPoint::pessimisticGPRLiveSet_[i] = 0;
     }
 
-    regSpace32 = new registerSpace(deadList32Size/sizeof(Register), deadList32,
-				   0, NULL, is_multithreaded);
-    regSpace32IRPC = new registerSpace(deadList32Size/sizeof(Register), deadList32,
-				   0, NULL, is_multithreaded);
-
-    /* We'll use this later to determine how we save FP's. */
-    regSpace32->hasXMM = xmmCapable();
-    regSpace32IRPC->hasXMM = xmmCapable();
-    regSpace32->initSpecialPurposeRegisters();
-    regSpace32IRPC->initSpecialPurposeRegisters();
-
-    regSpace64 = new registerSpace(deadList64Size/sizeof(Register), deadList64,
-				   liveList64Size/sizeof(Register), liveList64, 
-                                   is_multithreaded);
-    regSpace64IRPC = new registerSpace(deadList64Size/sizeof(Register), deadList64,
-                                       liveList64Size/sizeof(Register), liveList64, 
-                                       is_multithreaded);
-
-    regSpace64->initSpecialPurposeRegisters();
-    regSpace64IRPC->initSpecialPurposeRegisters();
-
-    // default to 32-bit
-    regSpace = regSpace32;
-    regSpaceIRPC = regSpace32IRPC;
-}
-
-
-registerSpace *registerSpace::conservativeRegSpace(instPoint *) {
-    // If 32-bit... ARGH. Well, we'll go with register "slots" on the stack
-    // for now and assume someone has created 'em.
-    if (regSpace == regSpace32) {
-        // In 32-bit mode...
-        registerSpace *r = new registerSpace(0,  NULL, deadList32Size/sizeof(Register), deadList32, false);
-        r->initSpecialPurposeRegisters();
-        return r;
-    }
-    else {
-        // Let's rock. Everything should be considered live for now, 
-        // to underestimate. 
-        registerSpace *r = new registerSpace(0, NULL, deadList64Size/sizeof(Register), deadList64, false);
-        r->initSpecialPurposeRegisters();
-        return r;
-    }
-    assert(0);
-    return NULL;
-}
+#if defined(arch_x86_64)
+    instPoint::optimisticGPRLiveSet64_ = new int[maxGPR];
+    instPoint::pessimisticGPRLiveSet64_ = new int[maxGPR];
     
+    // First, initialize to 1 (live)
+    for (unsigned i = 0; i < maxGPR; i++) {
+        instPoint::optimisticGPRLiveSet64_[i] = 1;
+        instPoint::pessimisticGPRLiveSet64_[i] = 1;
+    }
+
+    // Set dead registers at function call boundaries
+	for (unsigned i = 0; i < optimisticDeadNum; i++) {
+		instPoint::optimisticGPRLiveSet64_[optimisticDeadList64[i]] = 0;
+	}
+		
+	// Register space time...
+	// Grab the 32-bit ones before we overwrite.
+	globalRegSpace32 = registerSpace::globalRegSpace_;
+	conservativeRegSpace32 = registerSpace::conservativeRegSpace_;
+	optimisticRegSpace32 = registerSpace::optimisticRegSpace_;
+	actualRegSpace32 = registerSpace::actualRegSpace_;
+	savedRegSpace32 = registerSpace::savedRegSpace_;
+	
+	// Overwrite time
+	registerSpace::globalRegSpace_ = registerSpace::createAllLive(regList64,
+													regList64Size);
+	// Don't use these guys in code generation...
+	registerSpace::globalRegSpace_->markReadOnly(REGNUM_RBP);
+	registerSpace::globalRegSpace_->markReadOnly(REGNUM_RSP);
+
+	registerSpace::conservativeRegSpace_ = registerSpace::specializeRegisterSpace(NULL, 0);
+
+	registerSpace::optimisticRegSpace_ = registerSpace::specializeRegisterSpace(optimisticDeadList64,
+															optimisticDeadNum);
+
+	registerSpace::actualRegSpace_ = registerSpace::specializeRegisterSpace(NULL, 0);
+
+	// Make one where everyone's dead...
+	registerSpace::savedRegSpace_ = registerSpace::specializeRegisterSpace(regList64, regList64Size);
+
+	globalRegSpace64 = registerSpace::globalRegSpace_;
+	conservativeRegSpace64 = registerSpace::conservativeRegSpace_;
+	optimisticRegSpace64 = registerSpace::optimisticRegSpace_;
+	actualRegSpace64 = registerSpace::actualRegSpace_;
+	savedRegSpace64 = registerSpace::savedRegSpace_;
+	
+	// Set the right format - 32-bit vs 64-bit
+	if (code_emitter == &emitter32) 
+		emit32();
+	else {
+		assert(code_emitter == &emitter64);
+		emit64();
+	}
+#endif
+}
 
 
 /* This makes a call to the cpuid instruction, which returns an int where each bit is 
@@ -964,8 +964,8 @@ Register Emitter32::emitCall(opCode op,
    bool useFPR = clobberAllFuncCall(gen.rs(), gen.proc(), callee, 0);
    
    if (gen.point() != NULL)
-      setFPSaveOrNot(gen.point()->liveFPRegisters, useFPR);
-
+       setFPSaveOrNot(gen.point()->liveFPRegisters(), useFPR);
+   
    return ret;
 }
 
@@ -2041,13 +2041,11 @@ bool int_function::setReturnValue(int val)
 
 bool registerSpace::clobberRegister(Register reg) 
 {
-  for (u_int i=0; i < numRegisters; i++)
-    {
-      if(registers[i].number == reg)
-	{
-	  registers[i].beenClobbered = true;
-	  return true;
-	}
+    for (u_int i=0; i < registers.size(); i++) {
+        if(registers[i].number == reg) {
+            registers[i].beenClobbered = true;
+            return true;
+        }
     }
   return false;
 }
@@ -2201,8 +2199,8 @@ bitArray * int_basicBlock::getInFPSet()
 /*
   Nothing for x86 yet
 */
-int int_basicBlock::liveSPRegistersIntoSet(int *& /* liveSPReg */, 
-					       unsigned long /* address */)
+int int_basicBlock::liveSPRegistersIntoSet(instPoint *,
+                                           unsigned long /* address */)
 {
   return 0;
 }
@@ -2211,79 +2209,74 @@ int int_basicBlock::liveSPRegistersIntoSet(int *& /* liveSPReg */,
 /* The liveReg int * is a instance variable in the instPoint classes.
    This puts the liveness information into that variable so 
    we can access it from every instPoint without recalculation */
-int int_basicBlock::liveRegistersIntoSet(int *& liveReg, 
-					       int *& liveFPReg,
-					       unsigned long address)
+int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
+                                         unsigned long address)
 {
-  int numLive = 0;
-  int a;
-  if (liveReg == NULL)
-    {
-      liveReg = new int[maxGPR];
+	assert(iP);
+    int numLive = 0;
+    int a;
+    
+    if (iP->hasSpecializedGPRegisters()) return numLive;
 
-      bitArray newIn;
-  
-      newIn.bitarray_init(maxGPR, &newIn);
-      newIn.bitarray_copy(&newIn,in);
-
-      InstrucIter ii(this);
-
-      /* The liveness information from the bitarrays are for the
-	 basic block, we need to do some more gen/kills until
-	 we get to the individual instruction within the 
-	 basic block that we want the liveness info for. */
-      
-      int * writeRegs = (int *) malloc(sizeof(int)*3);
-      int * readRegs = (int *) malloc(sizeof(int)*3);
-
-      for (a = 0; a < 3; a++)
-	{
-	  writeRegs[a] = readRegs[a] = -1;
-	}
-      
-      while(ii.hasMore() &&
-            *ii <= address)
-	{
-	  ii.readWriteRegisters(readRegs, writeRegs);
-	  for (a = 0; a < 3; a++)
-	    {
-	      if (writeRegs[a] != -1)
-		{
-		  newIn.bitarray_set(writeRegs[a],&newIn);
-		  writeRegs[a] = -1;
-		  readRegs[a] = -1;
-		}
-	    }
-	  
-	  ii++;
-	}    
-      numLive = 0;
-
-      free(readRegs);
-      free(writeRegs);
-      for (a = 0; a < maxGPR; a++)
-	{
-	  if (newIn.bitarray_check(a,&newIn))
-	    {
-	      liveReg[a] = 1;
-	      //printf("1 ");
-	      numLive++;
-	    }
-	  else
-	    {
-	      liveReg[a] = 0;
-	      //printf("0 ");
-	    }
-	} 
-      //printf("\n");
+    
+    int *liveReg = new int[maxGPR];
+    
+    bitArray newIn;
+    
+    newIn.bitarray_init(maxGPR, &newIn);
+    newIn.bitarray_copy(&newIn,in);
+    
+    InstrucIter ii(this);
+    
+    /* The liveness information from the bitarrays are for the
+       basic block, we need to do some more gen/kills until
+       we get to the individual instruction within the 
+       basic block that we want the liveness info for. */
+    
+    int * writeRegs = (int *) malloc(sizeof(int)*3);
+    int * readRegs = (int *) malloc(sizeof(int)*3);
+    
+    for (a = 0; a < 3; a++) {
+        writeRegs[a] = readRegs[a] = -1;
     }
-    if (liveFPReg == NULL)
-      {
-	liveFPReg = new int[1];
-	liveFPReg = 0;
-      }
+    
+    while(ii.hasMore() &&
+          *ii <= address) {
+        ii.readWriteRegisters(readRegs, writeRegs);
+        for (a = 0; a < 3; a++) {
+            if (writeRegs[a] != -1) {
+                newIn.bitarray_set(writeRegs[a],&newIn);
+                writeRegs[a] = -1;
+                readRegs[a] = -1;
+            }
+        }
+        
+        ii++;
+    }    
+    numLive = 0;
+    
+    free(readRegs);
+    free(writeRegs);
+    for (a = 0; a < maxGPR; a++) {
+        if (newIn.bitarray_check(a,&newIn)) {
+            liveReg[a] = 1;
+            //printf("1 ");
+            numLive++;
+        }
+        else {
+            liveReg[a] = 0;
+            //printf("0 ");
+        }
+    } 
+    //printf("\n");
 
-  return numLive;
+    iP->actualGPRLiveSet_ = liveReg;
+
+    // No FPR analysis...
+
+    // No SPR analysis...
+    
+    return numLive;
 }
 
 #endif 
@@ -2300,37 +2293,29 @@ void registerSpace::saveClobberInfo(const instPoint *)
 // Right now, all the registers are assumed to be live by default
 void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
 				      const int * liveFPRegs,
-				      const int * /*liveSPRegs*/,
-                  bool /*isThreaded*/)
-{
-   if (liveRegs != NULL)
-   {
-      for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
-      {
-         if (  liveRegs[ (int) registers[i].number ] == 1 )
-         {
+				      const int * /*liveSPRegs*/) {
+    assert(liveRegs != NULL);
+    for (u_int i = 0; i < registers.size(); i++) {
+        if (  liveRegs[ (int) registers[i].number ] == 1 ) {
             registers[i].needsSaving = true;
             registers[i].startsLive = true;
-         }
-         else
-         {
-            if (registers[i].number != REGNUM_RBX)
-            {
-               registers[i].needsSaving = false;
-               registers[i].startsLive = false;
+        }
+        else {
+            if (registers[i].number != REGNUM_RBX) {
+                registers[i].needsSaving = false;
+                registers[i].startsLive = false;
             }
-         }
-      }
-      setDisregardLiveness(false);
-   }
-   else
-   {
-      setDisregardLiveness(true);
-   }
-   if (liveFPRegs != NULL)
-   {
-      spFlag = liveFPRegs[0];
-   }
+            else {
+                // ... okay, I guess...
+                registers[i].needsSaving = true;
+                registers[i].startsLive = true;
+            }
+       }
+    }
+    
+    if (liveFPRegs != NULL) {
+        spFlag = liveFPRegs[0];
+    }
 }
 
 int instPoint::liveRegSize()

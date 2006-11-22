@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.190 2006/11/14 20:37:09 bernat Exp $
+// $Id: inst-sparc.C,v 1.191 2006/11/22 04:03:18 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -59,9 +59,6 @@
 /****************************************************************************/
 
 static dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
-
-registerSpace *regSpace;
-registerSpace *regSpaceIRPC;
 
 
 /****************************************************************************/
@@ -207,7 +204,7 @@ unsigned baseTramp::getBTCost() {
 /****************************************************************************/
 /****************************************************************************/
 
-void initTramps(bool is_multithreaded)
+void initRegisters()
 {
     static bool inited=false;
 
@@ -216,25 +213,27 @@ void initTramps(bool is_multithreaded)
 
     // registers 8 to 15: out registers 
     // registers 16 to 22: local registers
-    Register deadList[10] = { 16, 17, 18, 19, 20, 21, 22, 0, 0, 0 };
-    unsigned dead_reg_count = 7;
-    if(! is_multithreaded) {
-       deadList[7] = 23;
-       dead_reg_count++;
-    }
+    Register deadList[10] = { 16, 17, 18, 19, 20, 21, 22, 23, 0, 0 };
+    unsigned dead_reg_count = 8;
 
-    regSpace = new registerSpace(dead_reg_count, deadList, 0, NULL,
-                                 is_multithreaded);
-    regSpaceIRPC = new registerSpace(dead_reg_count, deadList, 0, NULL,
-                                 is_multithreaded);
-    assert(regSpace);
-}
+	// There are no live registers - we rotate the window.
+	
+	// Overwrite time
+	registerSpace::globalRegSpace_ = registerSpace::createAllDead(deadList,
+													dead_reg_count);
 
-registerSpace *registerSpace::conservativeRegSpace(instPoint *) {
-    Register liveList[10] = { 16, 17, 18, 19, 20, 21, 22, 0, 0, 0 };
-    unsigned live_reg_count = 7;
+	// As with (amusingly) x86, everyone is dead
+	registerSpace::conservativeRegSpace_ = registerSpace::specializeRegisterSpace(deadList, dead_reg_count);
 
-    return new registerSpace(0, NULL, live_reg_count, liveList);
+	registerSpace::optimisticRegSpace_ = registerSpace::conservativeRegSpace_;
+	registerSpace::actualRegSpace_ = registerSpace::conservativeRegSpace_;
+	registerSpace::savedRegSpace_ = registerSpace::conservativeRegSpace_;
+
+	// This is a bit of overlap - unfortunate. Create the instPoint
+	// live sets
+	instPoint::optimisticGPRLiveSet_ = NULL;
+    instPoint::pessimisticGPRLiveSet_ = NULL;
+    
 }
 
 /****************************************************************************/
@@ -318,10 +317,9 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
                 break;
 
             default:
-                Register dest2 = regSpace->allocateRegister(gen, noCost);
+                Register dest2 = gen.rs()->getScratchRegister(gen, noCost);
                 emitV(loadConstOp, src2imm, dest2, dest2, gen, noCost);
                 emitV(op, src1, dest2, dest, gen, noCost);
-                regSpace->freeRegister(dest2);
                 break;
         }
         return;
@@ -736,9 +734,6 @@ bool baseTramp::generateMTCode(codeGen &gen,
     pdvector<AstNode *> dummy;
     Register src = Null_Register;
     
-    // registers cleanup
-    regSpace->resetSpace();
-
     dyn_thread *thr = gen.thread();
     if (!threaded()) {
     /* Get the hashed value of the thread */
@@ -1107,7 +1102,7 @@ Register emitFuncCall(opCode op,
    Register retReg = gen.rs()->allocateRegister(gen, noCost);
    
    // Move tmp to dest
-   emitImm(orOp, retReg, 0, REG_O(0), gen, noCost, gen.rs());
+   emitImm(orOp, REG_O(0), 0, retReg, gen, noCost, gen.rs());
 
    return retReg;
 }
@@ -1397,7 +1392,7 @@ static inline void emitAddOriginal(Register src, Register acc,
     if (src >= 16) {
         // VG(12/06/01): Currently saving registers on demand is NOT
         // implemented on SPARC (dumps assert), so we can safely ignore it
-        temp = regSpace->allocateRegister(gen, noCost);
+        temp = gen.rs()->getScratchRegister(gen, noCost);
         mustFree = true;
         
         // Cause repeated spills, till all windows but current are clear
@@ -1412,7 +1407,7 @@ static inline void emitAddOriginal(Register src, Register acc,
     else if (src >= 1) {
         // VG(12/06/01): Currently saving registers on demand is NOT
         // implemented on SPARC (dumps assert), so we can safely ignore it
-        temp = regSpace->allocateRegister(gen, noCost);
+        temp = gen.rs()->getScratchRegister(gen, noCost);
         mustFree = true;
         
         // the base tramp puts these at offset from %fp (r30)
@@ -1428,8 +1423,6 @@ static inline void emitAddOriginal(Register src, Register acc,
     // add temp to dest;
     emitV(plusOp, temp, acc, acc, gen, noCost, 0);
     
-    if(mustFree)
-        regSpace->freeRegister(temp);
 }
 
 // VG(11/30/01): Load in destination the effective address given
