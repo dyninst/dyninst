@@ -101,7 +101,8 @@ const unsigned int MAX_TEST = 40;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 int saveWorld = 0;
-int mergeTramp = 0;
+// Default to on
+int mergeTramp = 1;
 
 
 
@@ -506,10 +507,35 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
   
   BPatch_Vector<BPatch_snippet *> call1_args;
   BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
-  
+
+  BPatch_Vector<BPatch_snippet *> constVec;
+  BPatch_Vector<BPatch_snippet *> arithVec;
+
+  for (unsigned i = 0; i < 101; i++) {
+      constVec.push_back(new BPatch_constExpr(i));
+      constVec.push_back(new BPatch_constExpr(i+100));
+  }
+  for (unsigned i = 0; i < 100; i++) {
+      arithVec.push_back(new BPatch_arithExpr(BPatch_plus,
+                                              *(constVec[i]),
+                                              *(constVec[i+100])));
+  }
+  // Duplicate 100 operations...
+  for (unsigned i = 0; i < 100; i++) {
+      arithVec.push_back(arithVec[i]);
+  }
+  // And again.
+  for (unsigned i = 0; i < 100; i++) {
+      arithVec.push_back(arithVec[i]);
+  }
+
+  BPatch_sequence expr(arithVec);
+
+
   dprintf("Inserted snippet2\n");
   checkCost(call1Expr);
   appThread->insertSnippet(call1Expr, *point1_1);
+  //appThread->insertSnippet(expr, *point1_1);
 }
 
 //
@@ -701,10 +727,10 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
 
-	BPatch_constExpr expr3_3 (expr3_1->getBaseAddr ());
-	BPatch_constExpr expr3_4 (expr3_2->getBaseAddr ());
-
 	if (mutateeFortran) {
+		BPatch_constExpr expr3_3 (expr3_1->getBaseAddr ());
+		BPatch_constExpr expr3_4 (expr3_2->getBaseAddr ());
+
 	    call3_args.push_back (&expr3_3);
 	    call3_args.push_back (&expr3_4);
 	} else {
@@ -2136,8 +2162,6 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    if (mergeTramp == 1)
-        bpatch->setMergeTramp(true);
     BPatch_Vector<BPatch_function *> bpfv;
     char *fn = "call20_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
@@ -2152,6 +2176,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_Vector<BPatch_snippet *> nullArgs;
     BPatch_funcCallExpr call20_1Expr(*call20_1_func, nullArgs);
+
     checkCost(call20_1Expr);
 
     bpfv.clear();
@@ -2237,7 +2262,6 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr, "Unable to find a point to instrument in function \"func20_2.\"\n");
 	exit(1);
     }
-    bpatch->setMergeTramp(false);
 }
 
 
@@ -2618,6 +2642,7 @@ void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
     //BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
     
     appThread->insertSnippet(allParts, point23_1);
+
     }
 #endif
 }
@@ -5052,7 +5077,9 @@ int mutatorMAIN(char *pathname, bool useAttach)
     bpatch->registerErrorCallback(errorFunc);
 
     if (mergeTramp)
-      bpatch->setMergeTramp(true);
+      bpatch->setMergeTramp(true); 
+    else
+        bpatch->setMergeTramp(false);
 
 
 
@@ -5418,6 +5445,9 @@ int mutatorMAIN(char *pathname, bool useAttach)
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
 
+        fprintf(stderr, "Starting execution\n");
+        sleep(3);
+
     dprintf("starting program execution.\n");
     //sleep(10000);
 /*
@@ -5505,15 +5535,14 @@ main(unsigned int argc, char *argv[])
         if (strncmp(argv[i], "-v++", 4) == 0)   errorPrint++;
 	if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
+	}else if (!strcmp(argv[i], "-nomerge")){
+	  mergeTramp = 0;
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix4_1)
 	}else if (!strcmp(argv[i], "-saveworld")) {
 	  saveWorld = 1;
-	}else if (!strcmp(argv[i], "-merge")){
-	  printf("Merge");
-	  mergeTramp = 1;
 #endif
 	} else if (!strcmp(argv[i], "-V")) {
             if (libRTname[0])
