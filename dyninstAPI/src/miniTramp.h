@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.12 2006/10/10 22:04:12 bernat Exp $
+// $Id: miniTramp.h,v 1.13 2006/11/22 04:03:24 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -163,7 +163,7 @@ class miniTramp {
 
   // Generate the code necessary
   // We use a single global image of a minitramp.
-  bool generateMT();
+  bool generateMT(registerSpace *rs);
   codeGen miniTrampCode_;
   
   // The delete operator, just without delete. Uninstruments minis.
