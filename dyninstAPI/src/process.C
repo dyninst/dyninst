@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.672 2006/11/22 04:03:26 bernat Exp $
+// $Id: process.C,v 1.673 2006/11/22 20:28:09 bernat Exp $
 
 #include <ctype.h>
 
@@ -1835,7 +1835,6 @@ void process::deleteProcess()
   threadIndexAddr = 0;
   trampGuardBase_ = 0;
   trampGuardAST_ = NULL;
-  threadIndexAST_ = NULL;
 
 #if defined(os_linux)
   vsyscall_start_ = 0;
@@ -1962,8 +1961,7 @@ process::process(SignalGenerator *sh_) :
     costAddr_(0),
     threadIndexAddr(0),
     trampGuardBase_(0),
-    trampGuardAST_(NULL),
-    threadIndexAST_(NULL)
+    trampGuardAST_(NULL)
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -2511,8 +2509,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     costAddr_(parentProc->costAddr_),
     threadIndexAddr(parentProc->threadIndexAddr),
     trampGuardBase_(parentProc->trampGuardBase_),
-    trampGuardAST_(NULL),
-    threadIndexAST_(NULL)
+    trampGuardAST_(NULL)
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -6583,16 +6580,3 @@ AstNode *process::trampGuardAST() {
     return assignAst(trampGuardAST_);
 }
 
-AstNode *process::threadIndexAST() {
-    if (threadIndexAST_) return assignAst(threadIndexAST_);
-
-    int_function *thrFunc = findOnlyOneFunction("DYNINSTthreadIndex");
-    if (!thrFunc) return NULL;
-
-    pdvector<AstNode *> args;
-    threadIndexAST_ = AstNode::funcCallNode(thrFunc, args);
-    threadIndexAST_->setConstFunc(true);
-
-
-    return assignAst(threadIndexAST_);
-}
