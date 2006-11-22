@@ -462,9 +462,6 @@ bool rpcLWP::getReturnValueIRPC()
     if (runningRPC_->resultRegister != Null_Register) {
         // We have a result that we care about
         returnValue = lwp_->readRegister(runningRPC_->resultRegister);
-        // Okay, this bit I don't understand. 
-        extern registerSpace *regSpace;
-        regSpace->freeRegister(runningRPC_->resultRegister);
     }
 
     runningRPC_->resultValue = (void *)returnValue;

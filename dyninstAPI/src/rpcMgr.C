@@ -775,27 +775,16 @@ Address rpcMgr::createRPCImage(AstNode *action,
     irpcBuf.setProcess(proc());
     irpcBuf.setLWP(lwp);
     irpcBuf.setThread(thr);
-    // initializes "regSpace", but only the 1st time called
-    initTramps(proc_->multithread_capable()); 
-
     
 
 #if defined(arch_x86_64)
     if (proc()->getAddressWidth() == 8)
-	emit64();
+		emit64();
     else
-	emit32();
+		emit32();
 #endif
 
-    extern registerSpace *regSpace;    
-    extern registerSpace *regSpaceIRPC;
-
-    registerSpace *oldRegSpace = regSpace;
-    regSpace = regSpaceIRPC;
-    
-    regSpace->resetSpace();
-       
-    irpcBuf.setRegisterSpace(regSpace);
+    irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace());
 
     // Saves registers (first half of the base tramp) and whatever other
     // irpc-specific magic is necessary
@@ -810,12 +799,9 @@ Address rpcMgr::createRPCImage(AstNode *action,
     if (!action->generateCode(irpcBuf,
                               noCost,
                               resultReg)) assert(0);
-    
     if (!shouldStopForResult) {
-        regSpace->freeRegister(resultReg);
+        irpcBuf.rs()->freeRegister(resultReg);
     }
-    else
-        ; // in this case, we'll call freeRegister() the inferior rpc completes
     
     // Now, the trailer (restore, TRAP, illegal)
     // (the following is implemented in an arch-specific source file...)   
@@ -894,10 +880,6 @@ Address rpcMgr::createRPCImage(AstNode *action,
         cerr << "createRPCtempTramp failed because writeDataSpace failed" <<endl;
         return 0;
     }
-
-
-    regSpace = oldRegSpace;
-
     return tempTrampBase;
 }
 
