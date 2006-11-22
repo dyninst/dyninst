@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.95 2006/11/22 04:03:08 bernat Exp $
+// $Id: ast.h,v 1.96 2006/11/22 20:28:07 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -171,12 +171,15 @@ class AstNode {
 
         static AstNode *insnNode(BPatch_instruction *insn);
 
+        // Acquire the thread index value - a 0...n labelling of threads.
+        static AstNode *threadIndexNode();
+
         // TODO...
         // Needs some way of marking what to save and restore... should be a registerSpace, really
+
 #if 0
         static AstNode *saveStateNode();
         static AstNode *restoreStateNode();
-        static AstNode *threadIndexNode();
         static AstNode *trampGuardNode();
 #endif
 
@@ -621,6 +624,7 @@ class AstMemoryNode : public AstNode {
     memoryType mem_;
     unsigned which_;
 };
+
 
 
 void emitLoadPreviousStackFrameRegister(Address register_num,

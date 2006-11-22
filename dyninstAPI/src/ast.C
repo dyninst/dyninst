@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.180 2006/11/22 18:54:22 bernat Exp $
+// $Id: ast.C,v 1.181 2006/11/22 20:28:06 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -444,6 +444,27 @@ AstMemoryNode::AstMemoryNode(memoryType mem,
     size = bptype->getSize();
     doTypeCheck = BPatch::bpatch->isTypeChecked();
 };
+
+AstNode *AstNode::threadIndexNode() {
+    // We use one of these across all platforms, since it
+    // devolves into a process-specific function node. 
+    // However, this lets us delay that until code generation
+    // when we have the process pointer.
+    static AstNode *indexNode_ = NULL;
+
+    // Since we only ever have one, keep a static copy around. If
+    // we get multiples, we'll screw up our pointer-based common subexpression
+    // elimination.
+
+    if (indexNode_) return assignAst(indexNode_);
+    pdvector<AstNode *> args;
+    // By not including a process we'll specialize at code generation.
+    indexNode_ = AstNode::funcCallNode("DYNINSTthreadIndex", args);
+    assert(indexNode_);
+
+    return assignAst(indexNode_);
+}
+
 
 #if defined(ASTDEBUG)
 #define AST_PRINT
@@ -1602,7 +1623,7 @@ bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     decUseCount(gen);
     return true;
 }
-    
+
 
 #if defined(AST_PRINT)
 pdstring getOpString(opCode op)

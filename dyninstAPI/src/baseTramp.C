@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.46 2006/11/22 04:03:09 bernat Exp $
+// $Id: baseTramp.C,v 1.47 2006/11/22 20:28:08 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -546,7 +546,9 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
         else {
             // TODO: we can get clever with this, and have the generation of
             // the thread index depend on whether gen has a thread defined...
-            threadIndex = proc()->threadIndexAST();
+            // For that, we'd need an AST thread index node. Just something
+            // to think about. Maybe a child of funcNode?
+            threadIndex = AstNode::threadIndexNode();
         }
         
         if (threadIndex) {
