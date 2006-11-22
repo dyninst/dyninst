@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.671 2006/10/18 16:07:04 legendre Exp $
+// $Id: process.C,v 1.672 2006/11/22 04:03:26 bernat Exp $
 
 #include <ctype.h>
 
@@ -345,8 +345,10 @@ void process::inferiorFreeCompact(inferiorHeap *hp)
       heapItem *h2 = freeList[i];
       assert(h1->length != 0);
       if (h1->addr + h1->length > h2->addr) {
-          fprintf(stderr, "Error: heap 1 (0x%p to 0x%p) overlaps heap 2 (0x%p to 0x%p)\n",
+          fprintf(stderr, "Error: heap 1 (%p) (0x%p to 0x%p) overlaps heap 2 (%p) (0x%p to 0x%p)\n",
+                  h1,
                   (void *)h1->addr, (void *)(h1->addr + h1->length),
+                  h2,
                   (void *)h2->addr, (void *)(h2->addr + h2->length));
       }
       assert(h1->addr + h1->length <= h2->addr);
@@ -1832,6 +1834,8 @@ void process::deleteProcess()
   costAddr_ = 0;
   threadIndexAddr = 0;
   trampGuardBase_ = 0;
+  trampGuardAST_ = NULL;
+  threadIndexAST_ = NULL;
 
 #if defined(os_linux)
   vsyscall_start_ = 0;
@@ -1957,7 +1961,9 @@ process::process(SignalGenerator *sh_) :
     tracedSyscalls_(NULL),
     costAddr_(0),
     threadIndexAddr(0),
-    trampGuardBase_(0)
+    trampGuardBase_(0),
+    trampGuardAST_(NULL),
+    threadIndexAST_(NULL)
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -2451,9 +2457,7 @@ bool process::setupGeneral()
     if(process::IndependentLwpControl())
         independentLwpControlInit();
 
-    initTramps(multithread_capable());
-
-    return true;
+   return true;
 }
 
 //
@@ -2506,7 +2510,9 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     tracedSyscalls_(NULL),  // Later
     costAddr_(parentProc->costAddr_),
     threadIndexAddr(parentProc->threadIndexAddr),
-    trampGuardBase_(parentProc->trampGuardBase_)
+    trampGuardBase_(parentProc->trampGuardBase_),
+    trampGuardAST_(NULL),
+    threadIndexAST_(NULL)
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -3269,6 +3275,8 @@ bool process::findFuncsByMangled(const pdstring &funcname,
 int_function *process::findOnlyOneFunction(const pdstring &name,
                                            const pdstring &lib) 
 {
+    assert(mapped_objects.size());
+
     pdvector<int_function *> allFuncs;
     if (!findFuncsByAll(name, allFuncs, lib))
         return NULL;
@@ -5206,95 +5214,9 @@ bool process::checkTrappedSyscallsInternal(Address syscall)
 BPatchSnippetHandle *handle; //ccw 17 jul 2002
 #endif
 
-#if 0
-void process::installInstrRequests(const pdvector<instMapping*> &requests) {
-    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
-        instMapping *req = requests[lcv];
-        
-        if(!multithread_capable() && req->is_MTonly())
-            continue;
-
-        pdvector<int_function *> matchingFuncs;
-        
-        findFuncsByAll(req->func, matchingFuncs);
-
-        for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
-         int_function *func = matchingFuncs[funcIter];
-         if (!func) {
-            continue;  // probably should have a flag telling us whether errors
-         }
-         
-         // should be silently handled or not
-         AstNode *ast;
-         if ((req->where & FUNC_ARG) && req->args.size()>0) {
-            ast = AstNode::funcCallNode(req->inst, req->args, this);
-         } else {
-            AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
-            ast = AstNode::funcCallNode(req->inst, tmp, this);
-            removeAst(tmp);
-         }
-         if (req->where & FUNC_EXIT) {
-             const pdvector<instPoint*> func_rets = func->funcExits();
-             bool mtramp = BPatch::bpatch->isMergeTramp();
-             BPatch::bpatch->setMergeTramp(false);
-             for (unsigned j=0; j < func_rets.size(); j++) {
-                 instPoint *func_ret = func_rets[j];
-                 miniTramp *mt = func_ret->instrument(ast,
-                                                      req->when,
-                                                      req->order,
-                                                      (!req->useTrampGuard),
-                                                      false);
-                 if (mt)
-                     req->miniTramps.push_back(mt);
-             }
-
-             BPatch::bpatch->setMergeTramp(mtramp);             
-         }
-         
-         if (req->where & FUNC_ENTRY) {
-             const pdvector<instPoint *> func_entries = func->funcEntries();
-             bool mtramp = BPatch::bpatch->isMergeTramp();
-             BPatch::bpatch->setMergeTramp(false);
-             for (unsigned k=0; k < func_entries.size(); k++) {
-                 instPoint *func_ent = func_entries[k];
-                 miniTramp *mt = func_ent->instrument(ast,
-                                                      req->when,
-                                                      req->order,
-                                                      (!req->useTrampGuard),
-                                                      false); // nocost
-                 if (mt)
-                     req->miniTramps.push_back(mt);
-             }
-             BPatch::bpatch->setMergeTramp(mtramp);
-         }
-         
-         if (req->where & FUNC_CALL) {
-             pdvector<instPoint*> func_calls = func->funcCalls();
-             bool mtramp = BPatch::bpatch->isMergeTramp();
-             BPatch::bpatch->setMergeTramp(false);
-
-             for (unsigned l=0; l < func_calls.size(); l++) {
-                 miniTramp *mt = func_calls[l]->instrument(ast,
-                                                           req->when,
-                                                           req->order,
-                                                           (!req->useTrampGuard),
-                                                           false);
-                 if (mt) req->miniTramps.push_back(mt);
-             }
-             BPatch::bpatch->setMergeTramp(mtramp);
-         }
-         removeAst(ast);
-        }
-    }
-}
-#endif
 
 void process::installInstrRequests(const pdvector<instMapping*> &requests) 
 {
-    // Anyone know why we're explicitly backing off on this?
-    bool mtramp = BPatch::bpatch->isMergeTramp();
-    BPatch::bpatch->setMergeTramp(false);
-
 
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
 
@@ -5395,7 +5317,6 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
         }
     }
 
-    BPatch::bpatch->setMergeTramp(mtramp);
 }
 
 
@@ -6201,6 +6122,13 @@ void process::recognize_threads(process *parent)
         if (lwp_id == 3)
             continue;
 #endif
+
+        if (lwp == NULL) {
+            // GRIPE!
+            fprintf(stderr, "WARNING: skipping lwp %d; couldn't get handle\n",
+                    lwp_id);
+            continue;
+        }
             
         if (lwp->is_asLWP()) continue;
 
@@ -6636,7 +6564,35 @@ int_function *process::findJumpTargetFuncByAddr(Address addr) {
 
     return findFuncByAddr(addr2);
 }
+
 bool process::shouldSaveFPState() {
    return BPatch::bpatch->isSaveFPROn();
 }
 
+AstNode *process::trampGuardAST() {
+    if (trampGuardAST_) return assignAst(trampGuardAST_);
+
+    if (!trampGuardBase_) {
+        // Don't have it yet....
+        return NULL;
+    }
+
+    trampGuardAST_ = AstNode::operandNode(AstNode::DataAddr, 
+                                          (void *)trampGuardBase_);
+
+    return assignAst(trampGuardAST_);
+}
+
+AstNode *process::threadIndexAST() {
+    if (threadIndexAST_) return assignAst(threadIndexAST_);
+
+    int_function *thrFunc = findOnlyOneFunction("DYNINSTthreadIndex");
+    if (!thrFunc) return NULL;
+
+    pdvector<AstNode *> args;
+    threadIndexAST_ = AstNode::funcCallNode(thrFunc, args);
+    threadIndexAST_->setConstFunc(true);
+
+
+    return assignAst(threadIndexAST_);
+}

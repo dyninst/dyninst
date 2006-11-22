@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.392 2006/10/18 16:07:05 legendre Exp $
+/* $Id: process.h,v 1.393 2006/11/22 04:03:27 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -446,6 +446,10 @@ class process {
                               
   // Trampoline guard get/set functions
   Address trampGuardBase(void) { return trampGuardBase_; }
+  AstNode *trampGuardAST(void);
+  AstNode *threadIndexAST(void);
+
+  
   //  
   //  PUBLIC DATA MEMBERS
   //  
@@ -1162,6 +1166,8 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 
   Address threadIndexAddr; // Thread ID->index mapping
   Address trampGuardBase_; // Tramp recursion index mapping
+  AstNode *trampGuardAST_;
+  AstNode *threadIndexAST_;
 
   ///////////////////////////////
   // Platform-specific
