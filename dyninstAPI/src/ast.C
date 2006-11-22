@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.178 2006/11/14 20:37:01 bernat Exp $
+// $Id: ast.C,v 1.179 2006/11/22 04:03:07 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -81,7 +81,6 @@
 
 
 #include "registerSpace.h"
-extern registerSpace *regSpace;
 
 extern bool doNotOverflow(int value);
 
@@ -375,7 +374,8 @@ AstCallNode::AstCallNode(int_function *func,
                          pdvector<AstNode *> &args) :
     AstNode(),
     func_addr_(0),
-    func_(func)
+    func_(func),
+    constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
         args_.push_back(assignAst(args[i]));
@@ -387,7 +387,8 @@ AstCallNode::AstCallNode(const pdstring &func,
     AstNode(),
     func_name_(func),
     func_addr_(0),
-    func_(NULL)
+    func_(NULL),
+    constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
         args_.push_back(assignAst(args[i]));
@@ -398,7 +399,8 @@ AstCallNode::AstCallNode(Address addr,
                          pdvector<AstNode *> &args) :
     AstNode(),
     func_addr_(addr),
-    func_(NULL)
+    func_(NULL),
+    constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
         args_.push_back(assignAst(args[i]));
@@ -573,16 +575,11 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
 
     costAst->setOValue((void *) (long) trampCost);
     
-    // needed to initialize regSpace below
-    // shouldn't we do a "delete regSpace" first to avoid
-    // leaking memory?
 
-    initTramps(gen.proc()->multithread_capable()); 
-
-#if defined( ia64_unknown_linux2_4 )
-    extern Register deadRegisterList[];
-    defineBaseTrampRegisterSpaceFor( gen.point(), gen.rs(), deadRegisterList);
-#endif
+//#if defined( ia64_unknown_linux2_4 )
+//    extern Register deadRegisterList[];
+//    defineBaseTrampRegisterSpaceFor( gen.point(), gen.rs(), deadRegisterList);
+//#endif
 
     if (!preamble->generateCode(gen, noCost)) {
         fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp preamble\n", __FILE__, __LINE__);
@@ -1448,10 +1445,15 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
 
     int_function *use_func = func_;
 
-    if (!use_func) {
+    if (!use_func && !func_addr_) {
         // We purposefully don't cache the int_function object; the AST nodes
         // are process independent, and functions kinda are.
         use_func = gen.proc()->findOnlyOneFunction(func_name_);
+        if (!use_func) {
+            fprintf(stderr, "ERROR: failed to find function %s, unable to create call\n",
+                    func_name_.c_str());
+        }
+        assert(use_func); // Otherwise we've got trouble...
     }
 
     Register tmp = 0;
@@ -1603,7 +1605,6 @@ bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     return true;
 }
     
-
 
 #if defined(AST_PRINT)
 pdstring getOpString(opCode op)
@@ -2121,6 +2122,7 @@ bool AstOperandNode::canBeKept() const {
     case DataIndir:
     case RegOffset:
     case RegValue:
+    case DataAddr:
         return false;
     default:
 		break;
@@ -2130,7 +2132,14 @@ bool AstOperandNode::canBeKept() const {
 }
 
 bool AstCallNode::canBeKept() const {
+    if (constFunc_) {
+        for (unsigned i = 0; i < args_.size(); i++) {
+            if (!args_[i]->canBeKept()) return false;
+        }
+        return true;
+    }
     return false;
+    
 }
 
 bool AstSequenceNode::canBeKept() const {
@@ -2364,4 +2373,15 @@ void regTracker_t::debugPrint() {
                 a, c.keptRegister, c.keptLevel);
     }	
     fprintf(stderr, "==== End debug dump of register tracker ====\n");
+}
+
+unsigned AstNode::getTreeSize() {
+	pdvector<AstNode *> children;
+	getChildren(children);
+
+	unsigned size = 1; // Us
+	for (unsigned i = 0; i < children.size(); i++)
+		size += children[i]->getTreeSize();
+	return size;
+	
 }

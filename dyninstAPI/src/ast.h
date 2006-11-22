@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.94 2006/11/14 20:37:02 bernat Exp $
+// $Id: ast.h,v 1.95 2006/11/22 04:03:08 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -211,7 +211,9 @@ class AstNode {
                                          bool noCost,
                                          Address &retAddr,
                                          Register &retReg);
-       
+       unsigned getTreeSize();
+
+
         bool previousComputationValid(Register &reg,
                                       codeGen &gen);
 		// Remove any kept register at a greater level than
@@ -282,6 +284,8 @@ class AstNode {
 
 	// DEBUG
         virtual operandType getoType() const { return undefOperandType; }
+
+        virtual void setConstFunc(bool) {};
 
  protected:
 	BPatch_type *bptype;  // type of corresponding BPatch_snippet
@@ -437,7 +441,9 @@ class AstCallNode : public AstNode {
 
     virtual void getChildren(pdvector<AstNode*> &children);
 
-	virtual bool containsFuncCall() const { return true; }
+    virtual bool containsFuncCall() const { return true; }
+
+    void setConstFunc(bool val) { constFunc_ = val; }
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -448,10 +454,15 @@ class AstCallNode : public AstNode {
     AstCallNode() {};
     // Sometimes we just don't have enough information...
     const pdstring func_name_;
-    Address func_addr_; // Sigh... some 
+    Address func_addr_;
     
     int_function *func_;
     pdvector<AstNode *> args_;
+
+    bool constFunc_;  // True if the output depends solely on 
+    // input parameters, or can otherwise be guaranteed to not change
+    // if executed multiple times in the same sequence - AKA 
+    // "can be kept".
 };
 
 class AstReplacementNode : public AstNode {
@@ -584,8 +595,10 @@ class AstMiniTrampNode : public AstNode {
 
     virtual void getChildren(pdvector<AstNode*> &children);
 
-	virtual bool containsFuncCall() const;
-	bool canBeKept() const;
+    virtual bool containsFuncCall() const;
+    bool canBeKept() const;
+
+    AstNode *getAST() { return ast_; }
 
  private:
     AstMiniTrampNode() {};
