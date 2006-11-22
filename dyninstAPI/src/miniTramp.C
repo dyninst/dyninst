@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.32 2006/10/12 02:44:13 bernat Exp $
+// $Id: miniTramp.C,v 1.33 2006/11/22 04:03:23 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -141,9 +141,7 @@ void miniTramp::deleteMTI(miniTrampInstance *mti) {
 // Defined in multiTramp.C, dinky "get the debugger to stop here" function.
 extern void debugBreakpoint();
 
-extern registerSpace *regSpace;
-
-bool miniTramp::generateMT() 
+bool miniTramp::generateMT(registerSpace *rs) 
 {
     //inst_printf("AST pointer is %p\n", ast_);
 
@@ -152,7 +150,7 @@ bool miniTramp::generateMT()
 
     miniTrampCode_.allocate(MAX_MINITRAMP_SIZE);
     miniTrampCode_.setProcess(proc());
-    miniTrampCode_.setRegisterSpace(regSpace);
+    miniTrampCode_.setRegisterSpace(rs);
     miniTrampCode_.setPoint(instP());
 
     /* VG(11/06/01): Added location, needed by effective address AST node */
@@ -210,9 +208,10 @@ miniTrampInstance::~miniTrampInstance() {
 
 unsigned miniTrampInstance::maxSizeRequired() {
     if (BPatch::bpatch->isMergeTramp()) {
-        if (!mini->generateMT())
-            return 0;
-        return mini->miniTrampCode_.used();
+		// Estimate...
+		// Test1 has this enormous miniTramp that basically
+		// screws it up for everyone else :)
+		return mini->ast_->getTreeSize()*512;
     }
     else {
         if (mini->baseT->firstMini == mini) {
@@ -254,7 +253,7 @@ bool miniTrampInstance::generateCode(codeGen &gen,
                 this, gen.start_ptr(), baseInMutatee, gen.used());
     assert(mini);
     
-    if (!mini->generateMT())
+    if (!mini->generateMT(gen.rs()))
         return false;
       
     if (!BPatch::bpatch->isMergeTramp()) {
@@ -506,13 +505,13 @@ process *miniTrampInstance::proc() const {
 }
 
 bool miniTrampInstance::linkCode() {
-    assert(baseTI);
-    assert(baseTI->trampPreAddr());
-
     if (BPatch::bpatch->isMergeTramp()) {
         linked_ = true;
         return true;
     }
+
+    assert(baseTI);
+    assert(baseTI->trampPreAddr());
 
     if (mini->next) {
         assert(baseTI);
