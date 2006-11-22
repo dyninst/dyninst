@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.90 2006/11/22 04:02:54 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.91 2006/11/22 20:28:05 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -1329,41 +1329,16 @@ void BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExprInt(const BPatc
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 };
 
-void BPatch_threadIndexExpr::BPatch_threadIndexExprInt(BPatch_process *proc)
+void BPatch_threadIndexExpr::BPatch_threadIndexExprInt()
 {
-#if 0
-    // We can grab the register value directly... we're not in a function call. 
-  BPatch_Vector<BPatch_function *> thread_funcs;
-  proc->getImage()->findFunction("DYNINSTthreadIndex", thread_funcs);
-  if (thread_funcs.size() != 1)
-  {
-    fprintf(stderr, "[%s:%u] - Internal Dyninst error.  Found %u copies of "
-	    "DYNINSTthreadIndex.  Expected 1\n", __FILE__, __LINE__, thread_funcs.size());
-    if (!thread_funcs.size())
-      return;
-  }
-  BPatch_function *thread_index = thread_funcs[0];
-  
-  pdvector<AstNode *> args;
-  ast = new AstNode(thread_index->lowlevel_func(), args);
-
-#endif
-
-  /// Alternate version...
-  //ast = AstNode::operandNode(AstNode::DataReg, (void *)REG_MT_POS);
-
-
-  assert(proc);
-  
-  // call does the assignAst...
-  ast = proc->lowlevel_process()->threadIndexAST();
-
-  assert(BPatch::bpatch != NULL);
-  ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
-  BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
-  assert(type != NULL);
-  //ast->setType(type);
-
+    ast = AstNode::threadIndexNode();
+    
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+    assert(type != NULL);
+    //ast->setType(type);
+    
 }
 
 void BPatch_tidExpr::BPatch_tidExprInt(BPatch_process *proc)
