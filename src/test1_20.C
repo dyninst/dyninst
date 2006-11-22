@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.9 2006/10/11 21:52:48 cooksey Exp $
+// $Id: test1_20.C,v 1.10 2006/11/22 04:03:35 bernat Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -56,15 +56,12 @@
 #include "Callbacks.h"
 
 static BPatch *bpatch;
-static int mergeTramp;
 
 //
 // Start Test Case #20 - mutator side (instrumentation at arbitrary points)
 //
 static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-    if (mergeTramp == 1)
-        bpatch->setMergeTramp(true);
     BPatch_Vector<BPatch_function *> bpfv;
     char *fn = "call20_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
@@ -160,8 +157,6 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	return -1;
     }
 
-    bpatch->setMergeTramp(false);
-
     return 0;
 }
 
@@ -171,8 +166,6 @@ extern "C" TEST_DLL_EXPORT int test1_20_mutatorMAIN(ParameterDict &param)
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-    mergeTramp = param["mergeTramp"]->getInt();
-
     // Get log file pointers
     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
