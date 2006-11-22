@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.33 2006/07/07 00:01:02 jaw Exp $
+// $Id: function.h,v 1.34 2006/11/22 04:02:56 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -291,11 +291,11 @@ class int_basicBlock {
     bitArray * getInFPSet();
    
     /** Puts the live registers from bitArrays to integers stored by inst point */
-    int liveRegistersIntoSet(int *& liveReg, int *& liveFPReg,
+    int liveRegistersIntoSet(instPoint *ip,
 			     unsigned long address);
 
     /** Puts the live SP registers from bitArrays to integers stored by inst point */
-    int liveSPRegistersIntoSet(int *& liveSPReg,
+    int liveSPRegistersIntoSet(instPoint *ip,
 			       unsigned long address);
 #endif     
 

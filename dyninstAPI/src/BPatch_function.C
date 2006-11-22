@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.81 2006/09/06 20:39:55 bernat Exp $
+// $Id: BPatch_function.C,v 1.82 2006/11/22 04:02:57 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -707,12 +707,12 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
 	/* When we have the actual basic block belonging to the 
 	   inst address, we put the live Registers in for that inst point*/
             
-	ibb->liveRegistersIntoSet(iP->liveRegisters, iP->liveFPRegisters, pA );
+	ibb->liveRegistersIntoSet(iP, pA );
 	
 	/* Function for handling special purpose registers on platforms,
 	   for Power it figures out MX register usage (big performance hit) ... 
 	   may be extended later for other special purpose registers */
-	ibb->liveSPRegistersIntoSet(iP->liveSPRegisters, pA);
+	ibb->liveSPRegistersIntoSet(iP, pA);
 	  
 	  //bb->printAll();
       }
