@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.62 2006/11/09 17:16:20 bernat Exp $
+// $Id: multiTramp.C,v 1.63 2006/11/22 04:03:25 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -48,8 +48,6 @@
 #include "instPoint.h"
 #include "process.h"
 #include "InstrucIter.h"
-
-extern registerSpace *regSpace;
 
 unsigned int multiTramp::id_ctr = 1;
 
@@ -467,6 +465,10 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
         // Could be a real case of no fallthrough, or we could be instrumenting
         // an instruction at a time due to an indirect jump. Or we could be
         // on IA-64.
+
+        // In an alternate case of indirect jump - function return. In this case,
+        // we'll add a branch that is never taken (but appears to go to the next 
+        // function, confusing).
         
         end = new trampEnd(newMulti, startAddr + size);
     }
@@ -857,6 +859,11 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 {
     unsigned size_required = 0;
 
+    bool requestingTextMiniTramp = false;
+#if defined(os_aix)
+    requestingTextMiniTramp = proc()->requestTextMiniTramp;
+#endif
+
     generatedCFG_t::iterator cfgIter;
     generatedCodeObject *obj = NULL;
 
@@ -864,31 +871,17 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
                 instAddr_);
 
     // We might be getting called but nothing changed...
-    if (!generated_  
-#if defined(os_aix) 
+    if (!generated_   || requestingTextMiniTramp) {
 	/* 	this is part of the code to ensure that when we add the call to dlopen
 		at the entry of main on AIX during save the world, any multi that was
 		already there gets regenerated
 	*/
-  	|| proc()->requestTextMiniTramp
-#endif
-	){
-
-#if defined(os_aix) 
-	/* 	this is part of the code to ensure that when we add the call to dlopen
-		at the entry of main on AIX during save the world, any multi that was
-		already there gets regenerated
-	*/
-  	if(! proc()->requestTextMiniTramp){
-#endif
-	
-        assert(!trampAddr_);
-        assert(generatedMultiT_ == NULL);
-        assert(jumpBuf_ == NULL);
-
-#if defined(os_aix) 
-	}
-#endif
+        if (!requestingTextMiniTramp) {
+            assert(!trampAddr_);
+            assert(generatedMultiT_ == NULL);
+            assert(jumpBuf_ == NULL);
+        }
+        
         // A multiTramp is the code sequence for a set of instructions in
         // a basic block and all baseTramps, etc. that are being used for
         // those instructions. We use a recursive code generation
@@ -954,14 +947,10 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         }
 #endif
 
-#if defined(os_aix) 
-    if (proc()->requestTextMiniTramp ){ //ccw 8 oct 2005
-        heapToUse = anyHeap;
-        //nearAddr = 0x10000000;
-    }
-#endif
-
-
+        if (requestingTextMiniTramp) {
+            heapToUse = anyHeap;
+        }
+        
         trampAddr_ = proc()->inferiorMalloc(size_required,
                                             heapToUse,
                                             instAddr_);
@@ -972,9 +961,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         }
         generatedMultiT_.allocate(size_required);
         generatedMultiT_.setProcess(proc());
-        generatedMultiT_.setRegisterSpace(regSpace);
         generatedMultiT_.setAddr(trampAddr_);
-
+        
         // We don't want to generate the jump buffer until after
         // we've done the multiTramp; we may need to know
         // where instructions got moved to if we trap-fill.
@@ -984,12 +972,12 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         assert(generatedMultiT_ != NULL);
         assert(jumpBuf_ != NULL);
         assert(trampAddr_);
-
+        
         // We go through the motions again to give everyone
         // a chance to say "I need to do something"
         size_required = trampSize_;
     }
-
+    
     if (!generated_) {
         jumpBuf_.allocate(instSize_);
         // We set this = true before we call generateBranchToTramp
@@ -1096,9 +1084,12 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 	*/	
     }
 
+
     trampSize_ = generatedMultiT_.used();
+
     // Free up some of that memory...
     proc()->inferiorRealloc(trampAddr_, trampSize_);
+    generatedMultiT_.finalize();
 
     // Now that we know where we're heading, see if we can put in 
     // a jump
@@ -1130,6 +1121,7 @@ bool multiTramp::installCode() {
     if (!installed_) {
         inst_printf("Copying multitramp (inst 0x%lx to 0x%lx) from 0x%p to 0x%lx, %d bytes\n",
                     instAddr_, instAddr_+instSize_, generatedMultiT_.start_ptr(), trampAddr_, trampSize_);
+
         bool success = proc()->writeTextSpace((void *)trampAddr_,
                                               trampSize_,
                                               generatedMultiT_.start_ptr());
