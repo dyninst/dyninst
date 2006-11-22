@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.C,v 1.6 2006/11/22 04:03:04 bernat Exp $
+// $Id: replacedInstruction.C,v 1.7 2006/11/22 18:54:26 bernat Exp $
 
 #include "multiTramp.h"
 #include "process.h"
@@ -103,7 +103,7 @@ bool replacedInstruction::generateCode(codeGen &gen,
     size_ = gen.used() - start;
 
     gen.setRegisterSpace(NULL);
-    free(localRegSpace);
+    // Don't delete the register space. 
 
     generated_ = true;
     hasChanged_ = false;
