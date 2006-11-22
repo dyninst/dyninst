@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.6 2006/11/22 04:03:28 bernat Exp $
+// $Id: registerSpace.C,v 1.7 2006/11/22 18:54:25 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -403,7 +403,6 @@ Register registerSpace::allocateRegister(codeGen &gen,
 }
 
 bool registerSpace::spillRegister(unsigned index, codeGen &gen, bool noCost) {
-	assert(0);
     assert(index < registers.size());
     assert(!registers[index].offLimits);
 
@@ -477,6 +476,12 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
         int difference = currStackPointer - reg.saveOffset_;
 #if defined(arch_x86) || defined(arch_x86_64)
         code_emitter->emitRestoreFlags(gen, difference);
+        if (difference == 0) {
+            // This is a little annoying... emitRestoreFlags will just pop
+            // if the difference is 0, which means our stack just moved. Oy.
+            // This should be encapsulated....
+            currStackPointer--;
+        }
 #else
         assert(0 && "Unimplemented");
 #endif
