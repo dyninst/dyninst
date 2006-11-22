@@ -85,8 +85,6 @@
 #include <libunwind.h>
 #define PRESERVATION_UNWIND_OPERATION_COUNT	32
 
-/* For converting REG_MT_POS into the Known Thread Index register.
-   This will go away when we change the BPatch_regExpr to BPatch_threadIndex. */
 #define CALCULATE_KTI_REGISTER (rs->getRegSlot( 0 )->number - 1)
 
 /* Assembler-level labels for the dynamic basetramp. */
@@ -159,9 +157,6 @@ Address relocateBaseTrampTemplateTo( Address buffer, Address target ) {
   return offsetOfJumpToEmulation + 16;
 } /* end relocateTrampTemplate() */
 
-/* Required by process, ast .C, et al */
-registerSpace * regSpace;
-registerSpace * regSpaceIRPC;
 
 /* Required by ast.C; used for memory instrumentation. */
 void emitCSload( const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool noCost ) {
@@ -316,6 +311,8 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 	if( rs->isFreeRegister( localZero + i ) ) { freeLocalRegister = localZero + i; break; }
   } /* end freeLocalRegister search */
   if( freeLocalRegister == 0 ) {
+	fprintf(stderr, "Failed to find free local (0 - %d)\n", NUM_LOCALS);
+	rs->debugPrint();
 	fprintf( stderr, "%s", failure );
 	abort();
   } /* end if failed to find a free local register */
@@ -423,8 +420,8 @@ void emitASload( const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,  boo
 Register deadRegisterList[] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF };
 unsigned int deadRegisterListLength = sizeof( deadRegisterList ) / sizeof( Register );
 
-void initTramps( bool /* is_multithreaded */ ) { 
-  /* Initialize the registerSpace pointer regSpace to the state of the
+void initRegisters() { 
+  /* Initialize the registerSpace pointer gen.rs() to the state of the
 	 registers that will exist at the end of the first part of the base
 	 tramp's code.  (That is, for the minitramps.)
 
@@ -437,15 +434,26 @@ void initTramps( bool /* is_multithreaded */ ) {
   static bool haveInitializedTramps = false;
   if( haveInitializedTramps ) { return; } else { haveInitializedTramps = true; }
 
-  regSpace = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
-  regSpaceIRPC = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
+	// There are no live registers - we rotate the window.
+	
+	// Overwrite time
+	registerSpace::globalRegSpace_ = registerSpace::createAllDead(deadRegisterList,
+													deadRegisterListLength);
+
+	// As with (amusingly) x86, everyone is dead
+	registerSpace::conservativeRegSpace_ = registerSpace::globalRegSpace_;
+
+	registerSpace::optimisticRegSpace_ = registerSpace::conservativeRegSpace_;
+	registerSpace::actualRegSpace_ = registerSpace::conservativeRegSpace_;
+	registerSpace::savedRegSpace_ = registerSpace::conservativeRegSpace_;
+
+	// This is a bit of overlap - unfortunate. Create the instPoint
+	// live sets
+	instPoint::optimisticGPRLiveSet_ = NULL;
+    instPoint::pessimisticGPRLiveSet_ = NULL;
+    
 } /* end initTramps() */
 
-registerSpace *registerSpace::conservativeRegSpace(instPoint *) {
-	// Errrr....
-	assert(0 && "Implement me!");
-	return NULL;
-}
 
 
 /* Required by ast.C */
@@ -471,7 +479,7 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 
 	   That method is a hack at best, and creates a number of potential
 	   bugs.  But, a correct solution would involve a complete overhaul
-	   of our regSpace class, moving it into architecture specific files.
+	   of our gen.rs() class, moving it into architecture specific files.
 	   Perhaps for the next release.
 	*/
 	instruction comparisonInsn = generateComparison( op, dest % 64, src1, src2 );
@@ -504,15 +512,6 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 	spillFP2Bundle.generate(gen);
 	spillFP3Bundle.generate(gen);
 	
-	/* Special-case REG_MT_POS (via AstNode::DataReg via BPatch_regExpr from mdl.C's getTimerFast()). */
-	if( src2 == REG_MT_POS ) {
-		src2 = src1; src1 = REG_MT_POS;
-		}
-	if( src1 == REG_MT_POS ) {
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: overriding REG_MT_POS.\n", __FILE__, __LINE__ );
-		src1 = CALCULATE_KTI_REGISTER;
-		}
-			
 	/* Do the multiplication. */
 	instruction copySrc1 = generateRegisterToFloatMove( src1, 2 );
 	instruction copySrc2 = generateRegisterToFloatMove( src2, 3 );
@@ -776,15 +775,15 @@ void emitLoadPreviousStackFrameRegister( Address register_num, Register dest,
   /* Ray: why adjust 'base' instead of 'size' (as before)? */
   IA64_bundle bundle;
 
-  if( regSpace->storageMap[ register_num ] == 0 ) {
+  if( gen.rs()->storageMap[ register_num ] == 0 ) {
 	if( register_num == dest ) return;
 	bundle = generateUnknownRegisterTypeMoveBundle( register_num, dest );
-  } else if( regSpace->storageMap[ register_num ] > 0 ) {
-	bundle = generateUnknownRegisterTypeMoveBundle( regSpace->storageMap[ register_num ], dest );
+  } else if( gen.rs()->storageMap[ register_num ] > 0 ) {
+	bundle = generateUnknownRegisterTypeMoveBundle( gen.rs()->storageMap[ register_num ], dest );
   } else {
 	// Register was stored on the memory stack.
 		
-	int stackOffset = 32 + ( (-regSpace->storageMap[ register_num ] - 1) * 8 );
+	int stackOffset = 32 + ( (-gen.rs()->storageMap[ register_num ] - 1) * 8 );
 		
 	bundle = IA64_bundle( MstopMIstop,
 						  generateShortImmediateAdd( dest, stackOffset, REGISTER_SP ),
@@ -1258,13 +1257,13 @@ void generateRegisterStackSave( codeGen &gen, unw_dyn_region_info_t * unwindRegi
 
   int extraStackSize = 0;
   for( int i = 0; i < BP_R_MAX; ++i )
-	if( regSpace->storageMap[ i ] < 0 ) {
+	if( gen.rs()->storageMap[ i ] < 0 ) {
 	  // If the memory stack was needed, ar.unat was stashed,
 	  // and the memory stack will be shifted down by 16 bytes.
 	  extraStackSize += 16;
 	  break;
 	}
-  int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+  int originalFrameSize = gen.rs()->originalLocals + gen.rs()->originalOutputs;
   if( originalFrameSize == 96 ) {
 	// If the original register frame was full, an fp register will be spilled,
 	// and the memory stack will be shifted down by another 16 bytes.
@@ -1274,15 +1273,15 @@ void generateRegisterStackSave( codeGen &gen, unw_dyn_region_info_t * unwindRegi
   // Save the general registers.
   slot = 0;
   for( Register i = BP_GR0; i < BP_GR0 + 128; ++i ) {
-	if( regSpace->storageMap[ i ] > 0 ) {
+	if( gen.rs()->storageMap[ i ] > 0 ) {
 	  if( i == BP_GR0 + 12 ) {
 		// SP is a special case.
-		insn[ slot++ ] = generateShortImmediateAdd( regSpace->storageMap[ i ],
-													regSpace->sizeOfStack + extraStackSize,
+		insn[ slot++ ] = generateShortImmediateAdd( gen.rs()->storageMap[ i ],
+													gen.rs()->sizeOfStack + extraStackSize,
 													REGISTER_SP );
 	  } else {
 		// Default case.
-		insn[ slot++ ] = generateRegisterToRegisterMove( i - BP_GR0, regSpace->storageMap[ i ] );
+		insn[ slot++ ] = generateRegisterToRegisterMove( i - BP_GR0, gen.rs()->storageMap[ i ] );
 	  }
 	}
 	if( slot == 3 || (i == BP_GR0 + 127 && slot) ) {
@@ -1300,14 +1299,14 @@ void generateRegisterStackSave( codeGen &gen, unw_dyn_region_info_t * unwindRegi
   // Save the branch registers
   slot = 1;
   for( Register i = BP_BR0; i < BP_BR0 + 8; ++i ) {
-	if( regSpace->storageMap[ i ] > 0 ) {
-	  insn[ slot++ ] = generateBranchToRegisterMove( i - BP_BR0, regSpace->storageMap[ i ] );
+	if( gen.rs()->storageMap[ i ] > 0 ) {
+	  insn[ slot++ ] = generateBranchToRegisterMove( i - BP_BR0, gen.rs()->storageMap[ i ] );
 
 	  // Register unwind information for RP.
 	  if( i == BP_BR0 )
 		_U_dyn_op_save_reg( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
 							unwindRegion->insn_count + (slot-1), UNW_IA64_RP,
-							regSpace->storageMap[ i ] );
+							gen.rs()->storageMap[ i ] );
 	}
 
 	if( slot == 3 || (i == BP_BR0 + 7 && slot != 1) ) {
@@ -1325,18 +1324,18 @@ void generateRegisterStackSave( codeGen &gen, unw_dyn_region_info_t * unwindRegi
   slot = 0;
   bool isPFS = false;
   for( Register i = BP_AR0; i < BP_AR0 + 128; ++i ) {
-	if( regSpace->storageMap[ i ] > 0 ) {
+	if( gen.rs()->storageMap[ i ] > 0 ) {
 	  if( i == BP_AR_PFS ) {
 		// Special case for ar.pfs:  Account for I-type move instruction.
 		// ASSUMPTION:  ar.pfs does not change between instrumentation point
 		//              and basetramp state preservation.
-		insn[ 2 ] = generateApplicationToRegisterMove( i - BP_AR0, regSpace->storageMap[ i ] );
+		insn[ 2 ] = generateApplicationToRegisterMove( i - BP_AR0, gen.rs()->storageMap[ i ] );
 		insn[ slot++ ] = instruction( NOP_M );
 		isPFS = true;
 
 	  } else {
 		// Default case.
-		insn[ slot++ ] = generateApplicationToRegisterMove( i - BP_AR0, regSpace->storageMap[ i ] );
+		insn[ slot++ ] = generateApplicationToRegisterMove( i - BP_AR0, gen.rs()->storageMap[ i ] );
 	  }
 	}
 
@@ -1354,11 +1353,11 @@ void generateRegisterStackSave( codeGen &gen, unw_dyn_region_info_t * unwindRegi
 
   // Save the predicate registers
   insn[ 0 ] = instruction( NOP_M );
-  if( regSpace->storageMap[ BP_PR ] > 0 ) {
-	insn[ 1 ] = generatePredicatesToRegisterMove( regSpace->storageMap[ BP_PR ] );
+  if( gen.rs()->storageMap[ BP_PR ] > 0 ) {
+	insn[ 1 ] = generatePredicatesToRegisterMove( gen.rs()->storageMap[ BP_PR ] );
 	_U_dyn_op_save_reg( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
 						unwindRegion->insn_count + (slot-1), UNW_IA64_PR,
-						regSpace->storageMap[ BP_PR ] );
+						gen.rs()->storageMap[ BP_PR ] );
 
   } else {
 	// This bundle is needed to end the instruction group, regardless.
@@ -1385,8 +1384,8 @@ void generateRegisterStackRestore( codeGen &gen, unw_dyn_region_info_t * unwindR
   // Restore the general registers.
   slot = 0;
   for( Register i = BP_GR0; i < BP_GR0 + 128; ++i ) {
-	if( i != BP_GR0 + 12 && regSpace->storageMap[ i ] > 0 )
-	  insn[ slot++ ] = generateRegisterToRegisterMove( regSpace->storageMap[ i ], i - BP_GR0 );
+	if( i != BP_GR0 + 12 && gen.rs()->storageMap[ i ] > 0 )
+	  insn[ slot++ ] = generateRegisterToRegisterMove( gen.rs()->storageMap[ i ], i - BP_GR0 );
 
 	if( slot == 3 || (i == BP_GR0 + 127 && slot) ) {
 	  if( slot < 2 ) insn[ 1 ] = instruction( NOP_I );
@@ -1403,8 +1402,8 @@ void generateRegisterStackRestore( codeGen &gen, unw_dyn_region_info_t * unwindR
   // Restore the branch registers
   slot = 1;
   for( Register i = BP_BR0; i < BP_BR0 + 8; ++i ) {
-	if( regSpace->storageMap[ i ] > 0 )
-	  insn[ slot++ ] = generateRegisterToBranchMove( regSpace->storageMap[ i ], i - BP_BR0 );
+	if( gen.rs()->storageMap[ i ] > 0 )
+	  insn[ slot++ ] = generateRegisterToBranchMove( gen.rs()->storageMap[ i ], i - BP_BR0 );
 
 	if( slot == 3 || (i == BP_BR0 + 7 && slot != 1) ) {
 	  if( slot < 3 ) insn[ 2 ] = instruction( NOP_I );
@@ -1421,16 +1420,16 @@ void generateRegisterStackRestore( codeGen &gen, unw_dyn_region_info_t * unwindR
   slot = 0;
   bool isPFS = false;
   for( Register i = BP_AR0; i < BP_AR0 + 128; ++i ) {
-	if( regSpace->storageMap[ i ] > 0 ) {
+	if( gen.rs()->storageMap[ i ] > 0 ) {
 	  if( i == BP_AR_PFS ) {
 		// Special case for ar.pfs:  Account for I-type move instruction.
-		insn[ 2 ] = generateRegisterToApplicationMove( regSpace->storageMap[ i ], i - BP_AR0 );
+		insn[ 2 ] = generateRegisterToApplicationMove( gen.rs()->storageMap[ i ], i - BP_AR0 );
 		insn[ slot++ ] = instruction( NOP_M );
 		isPFS = true;
 
 	  } else {
 		// Default case.
-		insn[ slot++ ] = generateRegisterToApplicationMove( regSpace->storageMap[ i ], i - BP_AR0 );
+		insn[ slot++ ] = generateRegisterToApplicationMove( gen.rs()->storageMap[ i ], i - BP_AR0 );
 	  }
 	}
 
@@ -1448,8 +1447,8 @@ void generateRegisterStackRestore( codeGen &gen, unw_dyn_region_info_t * unwindR
 
   // Restore the predicate registers
   insn[ 0 ] = instruction( NOP_M );
-  if( regSpace->storageMap[ BP_PR ] > 0 ) {
-	insn[ 1 ] = generateRegisterToPredicatesMove( regSpace->storageMap[ BP_PR ], ~0x1 );
+  if( gen.rs()->storageMap[ BP_PR ] > 0 ) {
+	insn[ 1 ] = generateRegisterToPredicatesMove( gen.rs()->storageMap[ BP_PR ], ~0x1 );
   } else {
 	// This bundle is needed to end the instruction group, regardless.
 	insn[ 1 ] = instruction( NOP_I );
@@ -1477,14 +1476,14 @@ void generateMemoryStackSave( codeGen &gen, bool * usedFPregs, unw_dyn_region_in
 
   bool grSpillNeeded = false;
   for( int i = 0; i < BP_R_MAX; ++i )
-	if( regSpace->storageMap[ i ] < frStackOffset ) {
+	if( gen.rs()->storageMap[ i ] < frStackOffset ) {
 	  grSpillNeeded = true;
-	  frStackOffset = regSpace->storageMap[ i ];
+	  frStackOffset = gen.rs()->storageMap[ i ];
 	}
   frStackOffset  = 32 + (-frStackOffset * 8);
   frStackOffset += frStackOffset % 16;
 
-  int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+  int originalFrameSize = gen.rs()->originalLocals + gen.rs()->originalOutputs;
   if( grSpillNeeded ) {
 	if( originalFrameSize == 96 ) {
 	  // Free a general register when all 96 stacked registers are in use.
@@ -1516,7 +1515,7 @@ void generateMemoryStackSave( codeGen &gen, bool * usedFPregs, unw_dyn_region_in
 	} else {
 	  // Since at least one stacked register is unused, the highest
 	  // register allocated for basetramp must be free.
-	  temp_gr[ 0 ] = regSpace->getRegSlot( regSpace->getRegisterCount() - 1 )->number;
+	  temp_gr[ 0 ] = gen.rs()->getRegSlot( gen.rs()->getRegisterCount() - 1 )->number;
 
 	  bundle = IA64_bundle( MMIstop,
 							generateShortImmediateAdd( REGISTER_SP, -16, REGISTER_SP ),
@@ -1538,19 +1537,19 @@ void generateMemoryStackSave( codeGen &gen, bool * usedFPregs, unw_dyn_region_in
   }
   /* This is always necessary, because of function calls and the floating-point spills for multiplication. */
   bundle = IA64_bundle( MIIstop,
-						generateShortImmediateAdd( REGISTER_SP, -regSpace->sizeOfStack, REGISTER_SP ),
+						generateShortImmediateAdd( REGISTER_SP, -gen.rs()->sizeOfStack, REGISTER_SP ),
 						NOP_I,
 						NOP_I );
   _U_dyn_op_add( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
-				 unwindRegion->insn_count, UNW_IA64_SP, -regSpace->sizeOfStack );
+				 unwindRegion->insn_count, UNW_IA64_SP, -gen.rs()->sizeOfStack );
   bundle.generate(gen);
   unwindRegion->insn_count += 3;
 
   // Save the general registers, if needed.
   // FIXME: This could be optimized to use more free registers, if they exist.
   for( Register i = BP_GR0; i < BP_GR0 + 128; ++i ) {
-	if( regSpace->storageMap[ i ] < 0 ) {
-	  grStackOffset = 32 + ( ( -regSpace->storageMap[ i ] - 1 ) * 8 );
+	if( gen.rs()->storageMap[ i ] < 0 ) {
+	  grStackOffset = 32 + ( ( -gen.rs()->storageMap[ i ] - 1 ) * 8 );
 
 	  bundle = IA64_bundle( MstopMIstop,
 							generateShortImmediateAdd( temp_gr[ 0 ], grStackOffset, REGISTER_SP ),
@@ -1567,11 +1566,11 @@ void generateMemoryStackSave( codeGen &gen, bool * usedFPregs, unw_dyn_region_in
   //
   if( grSpillNeeded ) {
 	if( originalFrameSize == 96 ) {
-	  temp_gr[ 1 ] = regSpace->getRegSlot( 1 )->number;
+	  temp_gr[ 1 ] = gen.rs()->getRegSlot( 1 )->number;
 	  // Undo register swapping to maintain uniform register state.
 	  bundle = IA64_bundle( MMIstop,
 							generateFloatToRegisterMove( temp_fr, temp_gr[ 0 ] ),
-							generateShortImmediateAdd( temp_gr[ 1 ], regSpace->sizeOfStack + 16, REGISTER_SP ),
+							generateShortImmediateAdd( temp_gr[ 1 ], gen.rs()->sizeOfStack + 16, REGISTER_SP ),
 							NOP_I );
 	  bundle.generate(gen);
 	  unwindRegion->insn_count += 3;
@@ -1586,8 +1585,8 @@ void generateMemoryStackSave( codeGen &gen, bool * usedFPregs, unw_dyn_region_in
   }
 
   // Save the FP regs
-  temp_gr[ 0 ] = regSpace->getRegSlot( 0 )->number;
-  temp_gr[ 1 ] = regSpace->getRegSlot( 1 )->number;
+  temp_gr[ 0 ] = gen.rs()->getRegSlot( 0 )->number;
+  temp_gr[ 1 ] = gen.rs()->getRegSlot( 1 )->number;
 
   /* This should only be necessary if an FP register is used; not sure
 	 that two more/fewer GP registers really matter. */
@@ -1633,18 +1632,18 @@ void generateMemoryStackRestore( codeGen &gen, bool * usedFPregs, unw_dyn_region
 
   bool grSpillNeeded = false;
   for( int i = 0; i < BP_R_MAX; ++i )
-	if( regSpace->storageMap[ i ] < frStackOffset ) {
+	if( gen.rs()->storageMap[ i ] < frStackOffset ) {
 	  grSpillNeeded = true;
-	  frStackOffset = regSpace->storageMap[ i ];
+	  frStackOffset = gen.rs()->storageMap[ i ];
 	}
   frStackOffset  = 32 + (-frStackOffset * 8);
   frStackOffset += frStackOffset % 16;
 
-  int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+  int originalFrameSize = gen.rs()->originalLocals + gen.rs()->originalOutputs;
 
   // Prepare offsets for the FP regs
-  temp_gr[ 0 ] = regSpace->getRegSlot( 0 )->number;
-  temp_gr[ 1 ] = regSpace->getRegSlot( 1 )->number;
+  temp_gr[ 0 ] = gen.rs()->getRegSlot( 0 )->number;
+  temp_gr[ 1 ] = gen.rs()->getRegSlot( 1 )->number;
 
   bundle = IA64_bundle( MIIstop,
 						generateShortImmediateAdd( temp_gr[ 0 ], frStackOffset +  0, REGISTER_SP ),
@@ -1676,10 +1675,10 @@ void generateMemoryStackRestore( codeGen &gen, bool * usedFPregs, unw_dyn_region
   if( grSpillNeeded ) {
 	if( originalFrameSize == 96 ) {
 	  temp_gr[ 0 ] = 6;
-	  temp_gr[ 1 ] = regSpace->getRegSlot( 1 )->number;
+	  temp_gr[ 1 ] = gen.rs()->getRegSlot( 1 )->number;
 	  // Redo register swapping to free up one extra general register..
 	  bundle = IA64_bundle( MstopMI,
-							generateShortImmediateAdd( temp_gr[ 1 ], regSpace->sizeOfStack + 16, REGISTER_SP ),
+							generateShortImmediateAdd( temp_gr[ 1 ], gen.rs()->sizeOfStack + 16, REGISTER_SP ),
 							generateFPSpillTo( temp_gr[ 1 ], temp_fr, 0 ),
 							NOP_I );
 	  bundle.generate(gen);
@@ -1693,13 +1692,13 @@ void generateMemoryStackRestore( codeGen &gen, bool * usedFPregs, unw_dyn_region
 	  unwindRegion->insn_count += 3;
 
 	} else {
-	  temp_gr[ 0 ] = regSpace->getRegSlot( regSpace->getRegisterCount() - 1 )->number;
+	  temp_gr[ 0 ] = gen.rs()->getRegSlot( gen.rs()->getRegisterCount() - 1 )->number;
 	}
 
-	if( originalFrameSize != 96 && regSpace->storageMap[ BP_AR_PFS ] != 32 + originalFrameSize ) {
+	if( originalFrameSize != 96 && gen.rs()->storageMap[ BP_AR_PFS ] != 32 + originalFrameSize ) {
 	  // Move ar.pfs to the expected location.
 	  bundle = IA64_bundle( MIIstop,
-							generateRegisterToRegisterMove( regSpace->storageMap[ BP_AR_PFS ], 32 + originalFrameSize ),
+							generateRegisterToRegisterMove( gen.rs()->storageMap[ BP_AR_PFS ], 32 + originalFrameSize ),
 							NOP_I,
 							NOP_I );
 	  bundle.generate(gen);
@@ -1710,8 +1709,8 @@ void generateMemoryStackRestore( codeGen &gen, bool * usedFPregs, unw_dyn_region
   // Restore the general registers, if needed.
   // FIXME: This could be optimized to use more free registers, if they exist.
   for( Register i = BP_GR0; i < BP_GR0 + 128; ++i ) {
-	if( regSpace->storageMap[ i ] < 0 ) {
-	  grStackOffset = 32 + ( ( -regSpace->storageMap[ i ] - 1 ) * 8 );
+	if( gen.rs()->storageMap[ i ] < 0 ) {
+	  grStackOffset = 32 + ( ( -gen.rs()->storageMap[ i ] - 1 ) * 8 );
 
 	  bundle = IA64_bundle( MstopMIstop,
 							generateShortImmediateAdd( temp_gr[ 0 ], grStackOffset, REGISTER_SP ),
@@ -1726,7 +1725,7 @@ void generateMemoryStackRestore( codeGen &gen, bool * usedFPregs, unw_dyn_region
   // At this point, temp_gr[ 0 ] is the only safe register to use.
   //
   bundle = IA64_bundle( MIIstop,
-						generateShortImmediateAdd( REGISTER_SP, regSpace->sizeOfStack, REGISTER_SP ),
+						generateShortImmediateAdd( REGISTER_SP, gen.rs()->sizeOfStack, REGISTER_SP ),
 						NOP_I,
 						NOP_I );
   _U_dyn_op_pop_frames( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count, 1 );
@@ -1823,10 +1822,10 @@ bool generatePreservationHeader(codeGen &gen, bool * whichToPreserve, unw_dyn_re
 	   If the original alloc already uses all 96 registers, don't generate
 	   a new alloc.
 	*/
-  int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+  int originalFrameSize = gen.rs()->originalLocals + gen.rs()->originalOutputs;
   if( originalFrameSize < 96 ) {
 	bundle = IA64_bundle( MIIstop,
-						  generateAllocInstructionFor( regSpace, NUM_LOCALS, NUM_OUTPUT, regSpace->originalRotates ),
+						  generateAllocInstructionFor( gen.rs(), NUM_LOCALS, NUM_OUTPUT, gen.rs()->originalRotates ),
 						  integerNOP,
 						  integerNOP );
 	bundle.generate(gen);
@@ -1853,7 +1852,7 @@ bool generatePreservationHeader(codeGen &gen, bool * whichToPreserve, unw_dyn_re
 		alloc.M34.x3        = 0x6;
 		alloc.M34.r1        = 1;
 
-		SET_M34_FIELDS( & alloc, 88, 8, regSpace->originalRotates );
+		SET_M34_FIELDS( & alloc, 88, 8, gen.rs()->originalRotates );
 
 		instruction allocInsn( alloc.raw );
 		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
@@ -1881,7 +1880,7 @@ bool generatePreservationHeader(codeGen &gen, bool * whichToPreserve, unw_dyn_re
   return true;
 } /* end generatePreservationHeader() */
 
-/* private refactoring function; assumes that regSpace and
+/* private refactoring function; assumes that gen.rs() and
    deadRegisterList are as they were in the corresponding call
    to generatePreservationHeader(). */
 bool generatePreservationTrailer( codeGen &gen, bool * whichToPreserve, unw_dyn_region_info_t * unwindRegion ) {
@@ -1897,7 +1896,7 @@ bool generatePreservationTrailer( codeGen &gen, bool * whichToPreserve, unw_dyn_
   } /* end if unwindRegion was NULL */
 
 	/* How many bundles did we use?  Update the (byte)'count' at the end. */
-  int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+  int originalFrameSize = gen.rs()->originalLocals + gen.rs()->originalOutputs;
 
   instruction memoryNOP( NOP_M );
   instruction integerNOP( NOP_I );
@@ -1958,7 +1957,7 @@ bool generatePreservationTrailer( codeGen &gen, bool * whichToPreserve, unw_dyn_
 										  integerNOP );
 	saveBundle.generate(gen);
 	
-	instruction allocInsn = generateOriginalAllocFor( regSpace );
+	instruction allocInsn = generateOriginalAllocFor( gen.rs() );
 	IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
 	allocBundle.generate(gen);
 		
@@ -2462,7 +2461,7 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 		return false;
 		}
 
-	/* Set regSpace for the code generator. */
+	/* Set gen.rs() for the code generator. */
 	int baseReg = 32 + reg.CFM.sof + NUM_PRESERVED;
 	if( baseReg > 128 - (NUM_LOCALS + NUM_OUTPUT) ) {
 		baseReg = 128 - (NUM_LOCALS + NUM_OUTPUT); // Never allocate over 128 registers.
@@ -2472,16 +2471,16 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; ++i ) {
 		deadRegisterList[i] = baseReg + i;
 		} /* end deadRegisterList population */
-	registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
+	registerSpace *rs = registerSpace::createAllDead(  deadRegisterList, NUM_LOCALS + NUM_OUTPUT);
 
-	initBaseTrampStorageMap( &rs, reg.CFM.sof, NULL );
-	rs.originalLocals = reg.CFM.sol;
-	rs.originalOutputs = reg.CFM.sof - reg.CFM.sol;
-	rs.originalRotates = reg.CFM.sor << 3;  // the SOR is stored in multiples of eight
+	initBaseTrampStorageMap( rs, reg.CFM.sof, NULL );
+	rs->originalLocals = reg.CFM.sol;
+	rs->originalOutputs = reg.CFM.sof - reg.CFM.sol;
+	rs->originalRotates = reg.CFM.sor << 3;  // the SOR is stored in multiples of eight
 
 	/* The code generator needs to know about the register space
 	   as well, so just take advantage of the existing globals. */
-	* regSpace = rs;
+	gen.setRegisterSpace(rs);
 
 	memcpy( ::deadRegisterList, deadRegisterList, 16 * sizeof( Register ) );
 
@@ -2508,7 +2507,7 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	
 	/* We also need to initialize the KTI register. */
 	assert( irpcTramp );
-	if( ! irpcTramp->generateMTCode( gen, regSpace ) ) { return false; }
+	if( ! irpcTramp->generateMTCode( gen, gen.rs() ) ) { return false; }
 	
 	return true;
 	} /* end emitInferiorRPCheader() */
@@ -2998,7 +2997,7 @@ void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
 
   int outputRegisters = 8;
   int extraOuts = outputRegisters % 3;
-  int offset = regSpace->getRegSlot( 0 )->number + 5;
+  int offset = gen.rs()->getRegSlot( 0 )->number + 5;
   
   // Generate a new register frame with an output size equal to the
   // original local size.
@@ -3008,7 +3007,7 @@ void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
   //			larger than is strictly necessary, it should still work
   //			correctly.
   bundle = IA64_bundle( MII,
-						generateAllocInstructionFor( regSpace, 5, outputRegisters, 0 ),
+						generateAllocInstructionFor( gen.rs(), 5, outputRegisters, 0 ),
 						(extraOuts >= 1 ? generateRegisterToRegisterMove( 32, offset )
 						 : instruction( NOP_I )),
 						(extraOuts >= 2 ? generateRegisterToRegisterMove( 33, offset + 1 )
@@ -3055,7 +3054,7 @@ void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
   bundle = IA64_bundle( MII,
 						generateRegisterToRegisterMove( offset - 4, REGISTER_GP ),
 						generateRegisterToBranchMove( offset - 3, BRANCH_RETURN ),
-						generateRegisterToApplicationMove( 32 + regSpace->originalLocals + regSpace->originalOutputs, AR_PFS ));
+						generateRegisterToApplicationMove( 32 + gen.rs()->originalLocals + gen.rs()->originalOutputs, AR_PFS ));
   bundle.generate(gen);
 
   bundle = IA64_bundle( MII,
@@ -3078,7 +3077,7 @@ void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
   // Restore original register frame.
   bundle = IA64_bundle( MstopMIstop,
 						instruction( NOP_M ),
-						generateOriginalAllocFor( regSpace ),
+						generateOriginalAllocFor( gen.rs() ),
 						instruction( NOP_M ));
   bundle.generate(gen);
 
@@ -3101,13 +3100,13 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 	/* src1 is the (incoming) parameter we want. */
 	if( src1 >= 8 ) {
 	  /* emitR is only called from within generateTramp, which sets the global
-		 variable regSpace to the correct value.  Use it with reckless abandon.
+		 variable gen.rs() to the correct value.  Use it with reckless abandon.
 
 		 Also, REGISTER_SP will always be stored in a register, so we are free
 		 to use regSpage->storageMap directly (as opposed to going through
 		 emitLoadPreviousStackFrameRegister).
 	  */
-	  int spReg = regSpace->storageMap[ BP_GR0 + REGISTER_SP ];
+	  int spReg = gen.rs()->storageMap[ BP_GR0 + REGISTER_SP ];
 	  int memStackOffset = (src1 - 8 + 2) * 8;
 
 	  IA64_bundle bundle = IA64_bundle( MstopMIstop,
@@ -3123,7 +3122,7 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 
 	  int regStackOffset = 0;
 	  if (location->getPointType() == callSite)
-		regStackOffset = regSpace->originalLocals;
+		regStackOffset = gen.rs()->originalLocals;
 
 	  emitRegisterToRegisterCopy( 32 + regStackOffset + src1, dest, gen, NULL );
 	  return dest;
@@ -3139,8 +3138,8 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 	   This should be valid for the general case. */
 			   
 	  //Register retVal = (Register)8;
-	  assert(regSpace->storageMap[REGISTER_RV] > 0);
-	  Register retVal = regSpace->storageMap[REGISTER_RV];
+	  assert(gen.rs()->storageMap[REGISTER_RV] > 0);
+	  Register retVal = gen.rs()->storageMap[REGISTER_RV];
 	emitRegisterToRegisterCopy(retVal, dest, gen, NULL);
 	return dest;
   } break;
@@ -3441,9 +3440,8 @@ bool baseTrampInstance::finalizeGuardBranch( codeGen & gen, int displacement ) {
 	return true;
 	}
 
-bool baseTramp::generateSaves( codeGen & gen, registerSpace * rs ) {
+bool baseTramp::generateSaves( codeGen & gen, registerSpace * ) {
 	assert( baseTrampRegion == NULL );
-	assert( rs != NULL );
 
 	/* Operations for the base tramp proper; this (probably) grossly overestimates the number of operations. */
 	baseTrampRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( PRESERVATION_UNWIND_OPERATION_COUNT ) );
@@ -3453,15 +3451,17 @@ bool baseTramp::generateSaves( codeGen & gen, registerSpace * rs ) {
 	baseTrampRegion->op_count = 0;
 	baseTrampRegion->next = NULL;
 
-	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
+	/* Determine this instrumentation point's gen.rs() and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( instP(), regSpace, deadRegisterList );
-	if( ! staticallyAnalyzed ) {
+	registerSpace *regSpace = defineBaseTrampRegisterSpaceFor( instP(), deadRegisterList );
+	
+	if( regSpace == NULL ) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
 		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", instP()->addr() );
 		return false;
-		} 
+	} 
+	gen.setRegisterSpace(regSpace);
 
 	/* This will be used in the case we don't want to save any FPR */
 	bool * whichToPreserve = (bool *)malloc( 128 * sizeof( bool ) );
@@ -3478,19 +3478,20 @@ bool baseTramp::generateSaves( codeGen & gen, registerSpace * rs ) {
 		}
 	} /* end generateSaves() */
 
-bool baseTramp::generateRestores( codeGen & gen, registerSpace * rs ) {
+bool baseTramp::generateRestores( codeGen & gen, registerSpace * ) {
 	assert( baseTrampRegion != NULL );
-	assert( rs != NULL );
 	
-	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
+	/* Determine this instrumentation point's gen.rs() and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( instP(), regSpace, deadRegisterList );
+/*
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( instP(), gen.rs(), deadRegisterList );
 	if( ! staticallyAnalyzed ) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
 		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", instP()->addr() );
 		return false;
 		} 
+*/
 	
 	/* This will be used in the case we don't want to save any FPR */
 	bool * whichToPreserve = (bool *)malloc( 128 * sizeof( bool ) );

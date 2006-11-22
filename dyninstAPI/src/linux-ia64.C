@@ -450,9 +450,6 @@ bool process::getDyninstRTLibName() {
   return true;
 }
 
-extern registerSpace * regSpace;
-extern void initTramps(bool);
-
 bool process::loadDYNINSTlib() {
   /* Look for a function we can hijack to forcibly load dyninstapi_rt. 
      This is effectively an inferior RPC with the caveat that we're
@@ -514,9 +511,7 @@ bool process::loadDYNINSTlib() {
   gen.setProcess(this);
   gen.setAddr(codeBase);
 
-  initTramps(false); // Ignored parameter
-
-  gen.setRegisterSpace(regSpace);
+  gen.setRegisterSpace(registerSpace::savedRegSpace());
   
   Address dyninstlib_addr = gen.used() + codeBase;
   gen.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);

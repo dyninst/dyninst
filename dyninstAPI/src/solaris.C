@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.208 2006/11/14 20:37:17 bernat Exp $
+// $Id: solaris.C,v 1.209 2006/11/22 04:03:05 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -685,8 +685,6 @@ bool process::getDyninstRTLibName() {
    return true;
 }
 
-extern registerSpace *regSpace;
-
 bool process::loadDYNINSTlib() {
     // we will write the following into a buffer and copy it into the
     // application process's address space
@@ -726,7 +724,7 @@ bool process::loadDYNINSTlib() {
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
     scratchCodeBuffer.setProcess(this);
     scratchCodeBuffer.setAddr(codeBase);
-    scratchCodeBuffer.setRegisterSpace(regSpace);
+    scratchCodeBuffer.setRegisterSpace(registerSpace::savedRegSpace());
 
     // First we write in the dyninst lib string. Vewy simple.
     Address dyninstlib_addr = codeBase;
@@ -741,21 +739,6 @@ bool process::loadDYNINSTlib() {
             dlopencall_addr, codeBase);
     */
 
-    // deadList and deadListSize are also used in inst-sparc.C
-    // registers 8 to 15: out registers 
-    // registers 16 to 22: local registers
-    Register deadList[10] = { 16, 17, 18, 19, 20, 21, 22, 0, 0, 0 };
-    unsigned dead_reg_count = 7;
-    if(! multithread_capable()) {
-        deadList[7] = 23;
-        dead_reg_count++;
-    }
-    
-    registerSpace *dlopenRegSpace =
-        new registerSpace(dead_reg_count, deadList, (unsigned)0,
-                          NULL, multithread_capable());
-    dlopenRegSpace->resetSpace();
-    scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);
 
     pdvector<AstNode*> dlopenAstArgs(2);
     AstNode *dlopenAst;

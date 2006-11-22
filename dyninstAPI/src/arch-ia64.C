@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.53 2006/11/10 16:28:39 bernat Exp $
+// $Id: arch-ia64.C,v 1.54 2006/11/22 04:03:00 bernat Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -712,8 +712,7 @@ void initBaseTrampStorageMap( registerSpace *regSpace, int sizeOfFrame, bool *us
 
 extern bool *doFloatingPointStaticAnalysis( const instPoint * );
 
-bool defineBaseTrampRegisterSpaceFor( const instPoint * location, 
-									  registerSpace *regSpace, 
+registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location, 
 									  Register * deadRegisterList) {
 	/* If no alloc's definition reaches the instPoint _location_, create a base tramp
 	   register space compatible with any possible leaf function.
@@ -827,6 +826,8 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 	}
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: %d reaching allocs located.\n", __FILE__, __LINE__, numAllocs );
 
+	registerSpace *regSpace = NULL;
+
 	switch( numAllocs ) {
 		case 0: {
 			// /* DEBUG */ fprintf( stderr, "%s[%d]: no reaching allocs located.\n", __FILE__, __LINE__ );
@@ -838,7 +839,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 				}
 
 			/* Construct the registerSpace reflecting the desired frame. */
-			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
+			regSpace = registerSpace::createAllDead(deadRegisterList, NUM_LOCALS + NUM_OUTPUT);
 			initBaseTrampStorageMap( regSpace, 8, pdf->getUsedFPregs() );
 
 			/* If we did not have a frame originally, create one such that wrapper functions
@@ -883,7 +884,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 				deadRegisterList[i] = baseReg + i;
 				}
 
-			* regSpace = registerSpace( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
+			regSpace = registerSpace::createAllDead( deadRegisterList, NUM_LOCALS + NUM_OUTPUT );
 			initBaseTrampStorageMap( regSpace, sizeOfFrame, pdf->getUsedFPregs() );
 
 			/* Note that we assume that having extra registers can't be harmful;
@@ -914,8 +915,8 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 		block->setDataFlowKill(NULL);
 		} /* end iteration over all blocks. */	
 
-	return success;
-	} /* end defineBaseTrampRegisterSpace() */
+	return regSpace;
+} /* end defineBaseTrampRegisterSpace() */
 
 /* For inst-ia64.h */
 instruction generateRegisterToRegisterMove( Register source, Register destination ) {

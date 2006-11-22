@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.225 2006/11/14 20:36:56 bernat Exp $
+// $Id: aix.C,v 1.226 2006/11/22 04:02:59 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -393,7 +393,7 @@ Address process::getTOCoffsetInfo(Address dest)
 #endif
 
 #if defined(cap_dynamic_heap)
-static const Address branch_range = 0x01fffffc;
+static const Address branch_range = 0x01ff0000;
 static const Address lowest_addr = 0x10000000;
 static const Address highest_addr = 0xe0000000;
 Address data_low_addr;
@@ -854,6 +854,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	directoryName = saveWorldFindDirectory();
 	if(!directoryName){
+            fprintf(stderr, "ERROR: could not find saveWorld directory\n");
 		return NULL;
 	}
 	strcat(directoryName, "/");
@@ -885,6 +886,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	newXCOFF = new writeBackXCOFF((const char *)(getAOut()->fullName().c_str()), fullName /*"/tmp/dyninstMutatee"*/ , openFileError);
 
 	if( openFileError ){
+            fprintf(stderr, "ERROR: Unable to open file\n");
 		delete [] fullName;
 		return NULL;
 	}
@@ -1278,6 +1280,8 @@ bool process::loadDYNINSTlib()
 
     int_function *scratch = findOnlyOneFunction("main");
     if (!scratch) return false;
+
+
     // Testing...
     // Round it up to the nearest instruction. 
     Address codeBase = scratch->getAddress();
@@ -1301,23 +1305,25 @@ bool process::loadDYNINSTlib()
     
     // Need a register space
     // make sure this syncs with inst-power.C
-    Register liveRegList[] = {10, 9, 8, 7, 6, 5, 4, 3};
-    Register deadRegList[] = {11, 12};
-    unsigned liveRegListSize = sizeof(liveRegList)/sizeof(Register);
-    unsigned deadRegListSize = sizeof(deadRegList)/sizeof(Register);
     
-    registerSpace *dlopenRegSpace = new registerSpace(deadRegListSize, deadRegList, 
-                                                      liveRegListSize, liveRegList);
-    dlopenRegSpace->resetSpace();
+    registerSpace *dlopenRegSpace = registerSpace::savedRegSpace();
 
     scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);
+
+    int_function *dlopen_func = findOnlyOneFunction("dlopen");
+    if (!dlopen_func) {
+        fprintf(stderr, "%s[%d]: ERROR: unable to find dlopen!\n",
+                __FILE__, __LINE__);
+        return false;
+    }
     
     pdvector<AstNode*> dlopenAstArgs(2);
     AstNode *dlopenAst;
     
     dlopenAstArgs[0] = AstNode::operandNode(AstNode::Constant, (void *)(dyninstlib_addr));
     dlopenAstArgs[1] = AstNode::operandNode(AstNode::Constant, (void*)DLOPEN_MODE);
-    dlopenAst = AstNode::funcCallNode("dlopen", dlopenAstArgs);
+
+    dlopenAst = AstNode::funcCallNode(dlopen_func, dlopenAstArgs);
     removeAst(dlopenAstArgs[0]);
     removeAst(dlopenAstArgs[1]);
 
@@ -1361,7 +1367,7 @@ bool process::loadDYNINSTlib()
     }
     
     setBootstrapState(loadingRT_bs);
-    delete dlopenRegSpace;
+
     return true;
 }
 

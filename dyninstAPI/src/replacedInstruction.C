@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.C,v 1.5 2006/11/14 20:37:15 bernat Exp $
+// $Id: replacedInstruction.C,v 1.6 2006/11/22 04:03:04 bernat Exp $
 
 #include "multiTramp.h"
 #include "process.h"
@@ -78,7 +78,6 @@ generatedCodeObject *replacedInstruction::replaceCode(generatedCodeObject *newPa
 replacedInstruction::~replacedInstruction() {
 }
 
-extern registerSpace *regSpace;
 
 bool replacedInstruction::generateCode(codeGen &gen,
                                        Address baseInMutatee,
@@ -92,7 +91,7 @@ bool replacedInstruction::generateCode(codeGen &gen,
     // now, just assume everything is live. TODO: pull out the
     // instPoint-stored register information
 
-    registerSpace *localRegSpace = registerSpace::conservativeRegSpace(point());
+    registerSpace *localRegSpace = registerSpace::actualRegSpace(point());
     gen.setRegisterSpace(localRegSpace);
 
     int cost = 0;
