@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.15 2006/10/10 22:04:21 bernat Exp $
+// $Id: syscall-linux.C,v 1.16 2006/11/22 04:03:32 bernat Exp $
 
 #if defined( arch_x86 ) || defined( arch_x86_64 )
 #define FORK_FUNC "__libc_fork"
@@ -99,6 +99,7 @@ bool syscallNotification::installPreFork() {
     preForkInst = new instMapping(FORK_FUNC,
                                   "DYNINST_instForkEntry",
                                   FUNC_ENTRY);
+    preForkInst->dontUseTrampGuard();
     pdvector<instMapping *> instReqs;
     instReqs.push_back(preForkInst);
     
@@ -139,6 +140,7 @@ bool syscallNotification::installPreExec() {
     preExecInst = new instMapping(EXEC_FUNC, "DYNINST_instExecEntry",
                                    FUNC_ENTRY|FUNC_ARG,
                                    arg0);
+    preExecInst->dontUseTrampGuard();
     removeAst(arg0);
 
     pdvector<instMapping *> instReqs;
@@ -167,6 +169,7 @@ bool syscallNotification::installPreExit() {
     preExitInst = new instMapping(EXIT_FUNC, "DYNINST_instExitEntry",
                                   FUNC_ENTRY|FUNC_ARG,
                                   arg0);
+    preExitInst->dontUseTrampGuard();
     removeAst(arg0);
 
     preExitInst->allow_trap = true;
