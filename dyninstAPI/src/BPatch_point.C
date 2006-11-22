@@ -311,7 +311,7 @@ const int *
 BPatch_point::getLiveRegistersInt(int & size)
 {
   instPoint * ip = getPoint();
-  int * liveR = ip->liveRegisters;
+  int * liveR = ip->liveGPRegisters();
   size = instPoint::liveRegSize();
   return liveR;
 }
