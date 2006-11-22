@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.27 2006/07/07 00:01:03 jaw Exp $
+ * $Id: inst-power.h,v 1.28 2006/11/22 04:03:14 bernat Exp $
  */
 
 #ifndef INST_POWER_H
@@ -55,9 +55,6 @@
  *   its top 10 bits as 0 is invalid (technically UNIMP).
  *
  */
-
-class registerSpace;
-extern registerSpace *regSpace;
 
 #define DEAD_REG              0
 #define LIVE_REG              1

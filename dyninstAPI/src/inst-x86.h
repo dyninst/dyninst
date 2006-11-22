@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.30 2006/11/09 17:16:18 bernat Exp $
+// $Id: inst-x86.h,v 1.31 2006/11/22 04:03:16 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -179,15 +179,6 @@
 // that good "saved/restored/spilled" loveliness.
 #define REGNUM_FLAGS (100)
 
-class registerSpace;
-
-// 32 and 64-bit register spaces
-extern registerSpace* regSpace32;
-extern registerSpace* regSpace64;
-
-// for IRPCs
-extern registerSpace* regSpace32IRPC;
-extern registerSpace* regSpace64IRPC;
 
 class codeGen;
 
