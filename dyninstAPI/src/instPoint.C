@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.29 2006/10/04 20:41:10 bernat Exp $
+// $Id: instPoint.C,v 1.30 2006/11/22 04:03:21 bernat Exp $
 // instPoint code
 
 
@@ -60,6 +60,11 @@
 #include "dyninstAPI/src/image-func.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/emitter.h"
+#if defined(arch_x86_64)
+// For 32/64-bit mode knowledge
+#include "dyninstAPI/src/emit-x86.h"
+#endif
 
 unsigned int instPointBase::id_ctr = 1;
 
@@ -493,10 +498,9 @@ instPoint::instPoint(process *proc,
     img_p_(NULL),
     block_(block),
     addr_(addr),
-    liveRegisters(NULL),
-    liveFPRegisters(NULL),
-    liveSPRegisters(NULL)
-
+    actualGPRLiveSet_(NULL),
+    actualFPRLiveSet_(NULL),
+    actualSPRLiveSet_(NULL)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -525,9 +529,9 @@ instPoint::instPoint(process *proc,
     img_p_(img_p),
     block_(block),
     addr_(addr),
-    liveRegisters(NULL),
-    liveFPRegisters(NULL),
-    liveSPRegisters(NULL)
+    actualGPRLiveSet_(NULL),
+    actualFPRLiveSet_(NULL),
+    actualSPRLiveSet_(NULL)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -554,9 +558,9 @@ instPoint::instPoint(instPoint *parP,
     img_p_(parP->img_p_),
     block_(child),
     addr_(parP->addr()),
-    liveRegisters(NULL),
-    liveFPRegisters(NULL),
-    liveSPRegisters(NULL)
+    actualGPRLiveSet_(NULL),
+    actualFPRLiveSet_(NULL),
+    actualSPRLiveSet_(NULL)
  {
      assert(parP->replacedCode_ == NULL);
 }
@@ -937,4 +941,126 @@ Address instPoint::callTarget() const {
 
     // Return the shifted kind...
     return img_p_->callTarget() + func()->obj()->codeBase();
+}
+
+int *instPoint::optimisticGPRLiveSet_ = NULL;
+int *instPoint::optimisticFPRLiveSet_ = NULL;
+int *instPoint::optimisticSPRLiveSet_ = NULL;
+int *instPoint::pessimisticGPRLiveSet_ = NULL;
+int *instPoint::pessimisticFPRLiveSet_ = NULL;
+int *instPoint::pessimisticSPRLiveSet_ = NULL;
+
+#if defined(arch_x86_64)
+int *instPoint::optimisticGPRLiveSet64_ = NULL;
+int *instPoint::optimisticFPRLiveSet64_ = NULL;
+int *instPoint::optimisticSPRLiveSet64_ = NULL;
+int *instPoint::pessimisticGPRLiveSet64_ = NULL;
+int *instPoint::pessimisticFPRLiveSet64_ = NULL;
+int *instPoint::pessimisticSPRLiveSet64_ = NULL;
+#endif
+
+bool instPoint::hasSpecializedGPRegisters() const {
+    return (actualGPRLiveSet_ != NULL);
+}
+bool instPoint::hasSpecializedFPRegisters() const {
+    return (actualFPRLiveSet_ != NULL);
+}
+bool instPoint::hasSpecializedSPRegisters() const {
+    return (actualSPRLiveSet_ != NULL);
+}
+
+int *instPoint::liveGPRegisters() const {
+    if (actualGPRLiveSet_) return actualGPRLiveSet_;
+
+    // If we're entry/exit/call site, return the optimistic version
+    if (getPointType() == functionEntry)
+        return optimisticGPRLiveSet();
+    if (getPointType() == functionExit)
+        return optimisticGPRLiveSet();
+    if (getPointType() == callSite)
+        return optimisticGPRLiveSet();
+
+    return pessimisticGPRLiveSet();
+}
+
+int *instPoint::liveFPRegisters() const {
+    if (actualFPRLiveSet_) return actualFPRLiveSet_;
+
+    // If we're entry/exit/call site, return the optimistic version
+    if (getPointType() == functionEntry)
+        return optimisticFPRLiveSet();
+    if (getPointType() == functionExit)
+        return optimisticFPRLiveSet();
+    if (getPointType() == callSite)
+        return optimisticFPRLiveSet();
+
+    return pessimisticFPRLiveSet();
+}
+
+int *instPoint::liveSPRegisters() const {
+    if (actualSPRLiveSet_) return actualSPRLiveSet_;
+
+    // If we're entry/exit/call site, return the optimistic version
+    if (getPointType() == functionEntry)
+        return optimisticSPRLiveSet();
+    if (getPointType() == functionExit)
+        return optimisticSPRLiveSet();
+    if (getPointType() == callSite)
+        return optimisticSPRLiveSet();
+
+    return pessimisticSPRLiveSet();
+}
+
+int *instPoint::optimisticGPRLiveSet() {
+#if defined(arch_x86_64)
+    if (code_emitter == &emitter64) {
+        return optimisticGPRLiveSet64_;
+    }
+#endif
+    return optimisticGPRLiveSet_;
+}
+
+int *instPoint::optimisticFPRLiveSet() {
+#if defined(arch_x86_64)
+    if (code_emitter == &emitter64) {
+        return optimisticFPRLiveSet64_;
+    }
+#endif
+    return optimisticFPRLiveSet_;
+}
+
+int *instPoint::optimisticSPRLiveSet() {
+#if defined(arch_x86_64)
+    if (code_emitter == &emitter64) {
+        return optimisticSPRLiveSet64_;
+    }
+#endif
+    return optimisticSPRLiveSet_;
+}
+
+
+int *instPoint::pessimisticGPRLiveSet() {
+#if defined(arch_x86_64)
+    if (code_emitter == &emitter64) {
+        return pessimisticGPRLiveSet64_;
+    }
+#endif
+    return pessimisticGPRLiveSet_;
+}
+int *instPoint::pessimisticFPRLiveSet() {
+#if defined(arch_x86_64)
+    if (code_emitter == &emitter64) {
+        return pessimisticFPRLiveSet64_;
+    }
+#endif
+    return pessimisticFPRLiveSet_;
+}
+
+int *instPoint::pessimisticSPRLiveSet() {
+#if defined(arch_x86_64)
+    if (code_emitter == &emitter64) {
+        return pessimisticSPRLiveSet64_;
+    }
+#endif
+    return pessimisticSPRLiveSet_;
 }

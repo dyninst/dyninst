@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.30 2006/10/04 20:41:11 bernat Exp $
+// $Id: instPoint.h,v 1.31 2006/11/22 04:03:22 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -224,6 +224,9 @@ class instPoint : public instPointBase {
     friend class instPointInstance;
     friend class baseTramp;
     friend class multiTramp;
+    friend class int_basicBlock;
+    friend void initRegisters();
+	friend class registerSpace; // POWER
  private:
     // Generic instPoint...
     instPoint(process *proc,
@@ -442,12 +445,49 @@ class instPoint : public instPointBase {
   Address addr_;
 
  public:
-  
-  
-  // Register optimization
-  int *liveRegisters;
-  int *liveFPRegisters;
-  int *liveSPRegisters;
+
+  int *liveGPRegisters() const;
+  int *liveFPRegisters() const;
+  int *liveSPRegisters() const;
+  bool hasSpecializedGPRegisters() const;
+  bool hasSpecializedFPRegisters() const;
+  bool hasSpecializedSPRegisters() const;
+
+  // Global sets of what registers are dead; we use these until
+  // an instPoint gets its own analysis.
+  // Optimistic: function entry/exit/call site
+  // Pessimistic: function bodies
+  static int *optimisticGPRLiveSet();
+  static int *pessimisticGPRLiveSet();
+  static int *optimisticFPRLiveSet();
+  static int *pessimisticFPRLiveSet();
+  static int *optimisticSPRLiveSet();
+  static int *pessimisticSPRLiveSet();
+
+ private:
+  int *actualGPRLiveSet_;
+  int *actualFPRLiveSet_;
+  int *actualSPRLiveSet_;
+
+  static int *optimisticGPRLiveSet_;
+  static int *optimisticFPRLiveSet_;
+  static int *optimisticSPRLiveSet_;
+
+  static int *pessimisticGPRLiveSet_;
+  static int *pessimisticFPRLiveSet_;
+  static int *pessimisticSPRLiveSet_;
+
+#if defined(arch_x86_64)
+  // We need a set for 64-bit mode...
+  static int *optimisticGPRLiveSet64_;
+  static int *optimisticFPRLiveSet64_;
+  static int *optimisticSPRLiveSet64_;
+
+  static int *pessimisticGPRLiveSet64_;
+  static int *pessimisticFPRLiveSet64_;
+  static int *pessimisticSPRLiveSet64_;
+#endif
+
   // AIX && AMD64 only.
 };
 
