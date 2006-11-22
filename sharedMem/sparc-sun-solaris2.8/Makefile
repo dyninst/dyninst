@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2004/05/11 19:02:26 bernat Exp $
+# $Id: Makefile,v 1.2 2006/11/22 21:44:57 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,37 +7,25 @@
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
+NO_IMPLICIT_TEMPLATES = true
+
 include ../../make.config 
 
-# Now make any necessary architecture-specific changes to variables:
-USES_NATIVE_CC = true
-NATIVE_CC = cc
-ifneq (,$(findstring WorkShop,$(shell $(NATIVE_CC) -V 2>&1)))
-USES_NATIVE_CC = true
-endif
-ifneq (,$(findstring Sun C,$(shell $(NATIVE_CC) -V 2>&1)))
-USES_NATIVE_CC = true
-endif
+# Now make any necessary architecture specific changes to variables:
+LD		= $(GXX)
+LDFLAGS         += -shared
 
+# The GNU headers for glibc conflict with RTposix.h
+# CFLAGS		+= -D_SVID_SOURCE
 
-ifdef USES_NATIVE_CC
-CC		= $(NATIVE_CC)
-LD		= $(NATIVE_CC)
-# OVERRIDE CFLAGS
-CFLAGS		+= $(IFLAGS) $(UNIFIED_DEF) $(COMMON_WARNINGS)
-CFLAGS		+= -Kpic -O
-LDFLAGS		+= -dy -G -z text
-else
-CC		= $(GCC)
-LD		= $(GCC)
-CFLAGS		+= -fpic -O2
-LDFLAGS		+= -shared 
-endif
+# if we want to produce a shared object...
+CFLAGS		+= -fPIC
+CFLAGS          += -I. -I../..
+
+TO_ROOT = ../../
 
 VPATH        = ../src
-#:../../dyninstAPI_RT/src # ccw 18 apr 2002 : SPLIT
-
-SRCS	     += ../src/RTshared-unix.c
+#:../../dyninstAPI_RT/src
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

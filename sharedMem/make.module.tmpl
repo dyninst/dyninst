@@ -1,25 +1,52 @@
+# -*-Makefile-*-
 #
 # Common makefile template for rtinst library.  This file is not
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.3 2005/09/28 17:02:37 bernat Exp $
+# $Id: make.module.tmpl,v 1.4 2006/11/22 21:44:53 bernat Exp $
 #
 
-ifndef TARGET
-TARGET		= libsharedMutatee.so.1
-endif
+# This is from the point of view of the build directories... so ../
+MUTATEE_SRCS    = ../src/RTshared-unix.c
+
+MUTATOR_SRCS    =       ../src/shmMgr.C \
+                        ../src/shmSegment.C \
+                        ../src/shmSegment-unix.C
+
+MUTATEE_OBJS	= RTshared-unix.o
+MUTATOR_OBJS	= shmMgr.o \
+		  shmSegment.o \
+		  shmSegment-unix.o
+
+SRCS = $(MUTATOR_SRCS)
+
+CXXFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -fPIC
+CFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -fPIC
+
+TARGETS = libdynShmMutatee.so libdynShmMutator.so
+
+all: $(TARGETS)
+
+# Override the install script - we have two files
+OVERRIDE_INSTALL = true
+
+install: $(TARGETS)
+	-$(CP) $(TARGETS) $(DEST)
+
+libdynShmMutatee.so: $(MUTATEE_OBJS)
+	$(LD) $(LDFLAGS) $(LDFLAGS_MUTATEE) -o libdynShmMutatee.so $(MUTATEE_OBJS)
+libdynShmMutator.so: $(MUTATOR_OBJS)
+	$(LD) $(LDFLAGS) -o libdynShmMutator.so $(MUTATOR_OBJS) $(MUTATOR_LIBS) $(LDFLAGS_MUTATOR)
+
+
 
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
 
-all: $(TARGET) $(EXTRA_LIBS)
 
-#OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
-#		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
-#		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
-#		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
-#		$(IGEN_GEN_SRCS:%.C=%.o)
+
+
 
 #
 # override standard install rule; provide a default DEST if not already set
