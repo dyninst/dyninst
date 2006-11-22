@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.34 2006/11/14 20:37:04 bernat Exp $
+ * $Id: emit-x86.C,v 1.35 2006/11/22 04:03:11 bernat Exp $
  */
 
 #include <assert.h>
@@ -58,8 +58,6 @@
 #include "dyninstAPI/src/dyn_thread.h"
 
 #include "InstrucIter.h"
-
-extern registerSpace* regSpace;
 
 const int Emitter32::mt_offset = -4;
 #if defined(arch_x86_64)
@@ -333,8 +331,6 @@ void Emitter32::emitGetParam(Register dest, Register param_num, instPointType_t 
 
 bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
 {
-
-    gen.rs()->resetSpace();
 
     // These crank the saves forward
     emitSimpleInsn(PUSHFD, gen);
@@ -1175,7 +1171,7 @@ Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> 
     bool useFPR = clobberAllFuncCall(gen.rs(), gen.proc(), callee, 0);
 
     if (gen.point() != NULL)
-      setFPSaveOrNot(gen.point()->liveFPRegisters, useFPR);
+        setFPSaveOrNot(gen.point()->liveFPRegisters(), useFPR);
 
     return ret;
 }
@@ -1212,21 +1208,20 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 {
     if (ptType == otherPoint) {
-
-	// pop the old RSP value into RAX
-	emitPopReg64(REGNUM_RAX, gen);
+		// pop the old RSP value into RAX
+		emitPopReg64(REGNUM_RAX, gen);
 	
-	// restore saved FP state
-	// fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
-	GET_PTR(insn, gen);
-	*insn++ = 0x0f;
-	*insn++ = 0xae;
-	*insn++ = 0x0c;
-	*insn++ = 0x24;
-	SET_PTR(insn, gen);
+		// restore saved FP state
+		// fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
+		GET_PTR(insn, gen);
+		*insn++ = 0x0f;
+		*insn++ = 0xae;
+		*insn++ = 0x0c;
+		*insn++ = 0x24;
+		SET_PTR(insn, gen);
 	
-	// restore stack pointer (deallocates FP save area)
-	emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
+		// restore stack pointer (deallocates FP save area)
+		emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
     }
 
     // tear down the stack frame (LEAVE)
@@ -1235,49 +1230,43 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     // pop "fake" return address
     emitPopReg64(REGNUM_RAX, gen);
 
-    if (gen.rs()->getDisregardLiveness() || gen.rs()->getSPFlag())
-      {
-	// restore saved registers (POP R15, POP R14, ...)
-	for (int reg = 15; reg >= 0; reg--) {
-	  emitPopReg64(reg, gen);
+    if (gen.rs()->getSPFlag() && 0) {
+		// restore saved registers (POP R15, POP R14, ...)
+		for (int reg = 15; reg >= 0; reg--) {
+	  		emitPopReg64(reg, gen);
+		}
 	}
-      }
-    else
-      {
-
-	  // Count the saved registers
-	  int num_saved = 4; // RAX, RSP, RBP always saved
-	  for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
-	    
-	    registerSlot * reg = gen.rs()->getRegSlot(i);
-	    if (reg->startsLive) {
-	      num_saved++;
-	    }
-	  }
+    else {
+		// Count the saved registers
+		int num_saved = 0; // RAX, RSP, RBP always saved
+		for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
+			registerSlot * reg = gen.rs()->getRegSlot(i);
+    		if (reg->startsLive ||
+				(reg->number == REGNUM_RAX) ||
+				(reg->number == REGNUM_RBX) ||
+				(reg->number == REGNUM_RSP) ||
+				(reg->number == REGNUM_RBP)) {
+					num_saved++;
+				}
+		}
 	  
-	  // move SP up to end of GPR save area
-	  if (num_saved < 16) {
-	      emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8 * (16 - num_saved), true, gen);
-	  }
+	  	// move SP up to end of GPR save area
+	  	if (num_saved < 16) {
+	      	emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8 * (16 - num_saved), true, gen);
+	  	}
 
-	// Save the live ones
-	for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--)
-	  {
-	    registerSlot * reg = gen.rs()->getRegSlot(i);
-	    if (reg->startsLive)
-	      {
-		emitPopReg64(reg->number,gen);
-	      }
-	  }
-	
-	// Always restore these 4
-	emitPopReg64(REGNUM_RBP,gen);
-	emitPopReg64(REGNUM_RSP,gen);
-	emitPopReg64(REGNUM_RBX,gen); // have to save cause it's callee save
-	emitPopReg64(REGNUM_RAX,gen);
-      }
-    
-    
+		// Save the live ones
+		for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
+	    	registerSlot * reg = gen.rs()->getRegSlot(i);
+    		if (reg->startsLive ||
+				(reg->number == REGNUM_RAX) ||
+				(reg->number == REGNUM_RBX) ||
+				(reg->number == REGNUM_RSP) ||
+				(reg->number == REGNUM_RBP)) {
+				emitPopReg64(reg->number,gen);
+			}
+		}    
+	}
     // restore flags (POPFQ)
     emitSimpleInsn(0x9D, gen);
 
@@ -1486,7 +1475,7 @@ void Emitter64::emitRestoreFlagsFromStackSlot(codeGen &gen)
 
 bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 {
-    gen.rs()->resetSpace();
+
 
    // skip past the red zone
    // (we use LEA to avoid overwriting the flags)
@@ -1504,40 +1493,38 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     // We use RAX implicitly all over the place... so mark it read-only
     //gen.rs()->markReadOnly(REGNUM_RAX);
 
-    if (gen.rs()->getDisregardLiveness() || gen.rs()->getSPFlag())
-      {
-	for (int reg = 0; reg < 16; reg++) {
-	  emitPushReg64(reg, gen);
-          gen.rs()->markSavedRegister(reg, 17-reg);
-	}
-      }
-    else
-      {
-	// Always save these 4
-	emitPushReg64(REGNUM_RAX,gen); // scratch register
-        gen.rs()->markSavedRegister(REGNUM_RAX, 17);
-	emitPushReg64(REGNUM_RBX,gen); // have to save cause it's callee save
-        gen.rs()->markSavedRegister(REGNUM_RBX, 16);
-	emitPushReg64(REGNUM_RSP,gen);
-        gen.rs()->markSavedRegister(REGNUM_RSP, 15);
-	emitPushReg64(REGNUM_RBP,gen);
-        gen.rs()->markSavedRegister(REGNUM_RBP, 14);
+	// We make a 128-byte skip (16*8) and push the flags register;
+	// so the first register saved starts 17 slots down from the frame
+	// pointer.
+
+    if (gen.rs()->getSPFlag() && 0) {
+		for (int reg = 0; reg < 16; reg++) {
+	  		emitPushReg64(reg, gen);
+          	gen.rs()->markSavedRegister(reg, 17-reg);
+		}
+    }
+    else {
 	
-	//	printf("Saving registers ...\n");
-	// Save the live ones
-	int num_saved = 4; // RAX, RBX, RSP, RBP always saved
-	for(u_int i = 0; i < gen.rs()->getRegisterCount(); i++)
-	  {
-	    registerSlot * reg = gen.rs()->getRegSlot(i);
-	    
-	    if (reg->startsLive)
-	      {
-		//printf(" %d ",reg->number);
-		emitPushReg64(reg->number,gen);
-                gen.rs()->markSavedRegister(reg->number, 18-num_saved);
-		num_saved++;
-	      }
-	  }
+		//	printf("Saving registers ...\n");
+		// Save the live ones
+		int num_saved = 0; 
+		for(u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
+	    	registerSlot * reg = gen.rs()->getRegSlot(i);    
+	    	if (reg->startsLive ||
+				(reg->number == REGNUM_RAX) ||
+				(reg->number == REGNUM_RBX) ||
+				(reg->number == REGNUM_RSP) ||
+				(reg->number == REGNUM_RBP)) {
+				emitPushReg64(reg->number,gen);
+				// We move the FP down to just under here, so we're actually
+				// measuring _up_ from the FP. 
+				assert((17-num_saved) > 0);
+            	gen.rs()->markSavedRegister(reg->number, 17-num_saved);
+				num_saved++;
+	      	}
+        	else {
+            }
+	}
 
 	// we always allocate space on the stack for all the GPRs (helps stack walk)
 	if (num_saved < 16) {
@@ -1561,11 +1548,6 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     emitSimpleInsn(0x55, gen);
     emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
 
-    //Save space on the stack for the thread index
-    if (bt->threaded())
-    {
-       emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 8, true, gen);
-    }
 
     if (bt->isConservative() && BPatch::bpatch->isSaveFPROn()) {
       if (gen.rs()->getSPFlag())
@@ -1628,7 +1610,7 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
     if (!bt->rpcMgr_)
 	emitPopReg64(REGNUM_RAX, gen);
     
-    if (gen.rs()->getDisregardLiveness() || gen.rs()->getSPFlag())
+    if (gen.rs()->getSPFlag() && 0)
       {
 	// restore saved registers (POP R15, POP R14, ...)
 	for (int reg = 15; reg >= 0; reg--) {
@@ -1638,12 +1620,16 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
     else
       {
 	  // Count the saved registers
-	  int num_saved = 4; // RAX, RBX, RSP, RBP always saved
+	  int num_saved = 0; // RAX, RBX, RSP, RBP always saved
 	  for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
 
 	    registerSlot * reg = gen.rs()->getRegSlot(i);
-	      if (reg->startsLive) {
-		  num_saved++;
+    	if (reg->startsLive ||
+			(reg->number == REGNUM_RAX) ||
+			(reg->number == REGNUM_RBX) ||
+			(reg->number == REGNUM_RSP) ||
+			(reg->number == REGNUM_RBP)) {
+		  		num_saved++;
 	      }
 	  }
 	  
@@ -1657,18 +1643,15 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 	  {
 	    registerSlot * reg = gen.rs()->getRegSlot(i);
 	    
-	    if (reg->startsLive)
-	      {
-		emitPopReg64(reg->number,gen);
+    	if (reg->startsLive ||
+			(reg->number == REGNUM_RAX) ||
+			(reg->number == REGNUM_RBX) ||
+			(reg->number == REGNUM_RSP) ||
+			(reg->number == REGNUM_RBP)) {
+			emitPopReg64(reg->number,gen);
 	      }
 	  }
 
-	// Always restore these 3
-	
-	emitPopReg64(REGNUM_RBP,gen);
-	emitPopReg64(REGNUM_RSP,gen);
-	emitPopReg64(REGNUM_RBX,gen); // have to save cause it's callee save
-	emitPopReg64(REGNUM_RAX,gen);
       }
 
     // restore flags (POPFQ)
@@ -1871,23 +1854,39 @@ bool Emitter64::emitAdjustStackPointer(int index, codeGen &gen) {
 
 Emitter64 emitter64;
 
-extern registerSpace *regSpaceIRPC;
-
 // change code generator to 32-bit mode
 void emit32()
 {
     code_emitter = &emitter32;
-    regSpace = regSpace32;
-    regSpaceIRPC = regSpace32IRPC;
+
+	registerSpace::conservativeRegSpace_ = conservativeRegSpace32;
+	registerSpace::optimisticRegSpace_ = optimisticRegSpace32;
+	registerSpace::actualRegSpace_ = actualRegSpace32;		
+	registerSpace::savedRegSpace_ = savedRegSpace32;
 }
 
 // change code generator to 64-bit mode
 void emit64()
 {
     code_emitter = &emitter64;
-    regSpace = regSpace64;
-    regSpaceIRPC = regSpace64IRPC;
+
+	registerSpace::conservativeRegSpace_ = conservativeRegSpace64;
+	registerSpace::optimisticRegSpace_ = optimisticRegSpace64;
+	registerSpace::actualRegSpace_ = actualRegSpace64;		
+	registerSpace::savedRegSpace_ = savedRegSpace64;
 }
+
+registerSpace *globalRegSpace32 = NULL;
+registerSpace *conservativeRegSpace32 = NULL;
+registerSpace *optimisticRegSpace32 = NULL;
+registerSpace *actualRegSpace32 = NULL;
+registerSpace *savedRegSpace32 = NULL;
+registerSpace *globalRegSpace64 = NULL;
+registerSpace *conservativeRegSpace64 = NULL;
+registerSpace *optimisticRegSpace64 = NULL;
+registerSpace *actualRegSpace64 = NULL;
+registerSpace *savedRegSpace64 = NULL;
+
 
 #endif
 

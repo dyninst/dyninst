@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emitter.h,v 1.3 2006/11/14 20:37:06 bernat Exp $
+ * $Id: emitter.h,v 1.4 2006/11/22 04:03:13 bernat Exp $
  */
 
 #ifndef _EMITTER_H
@@ -108,8 +108,8 @@ class Emitter {
 
     virtual bool emitPush(codeGen &, Register) = 0;
     virtual bool emitPop(codeGen &, Register) = 0;
-	virtual bool emitAdjustStackPointer(int index, codeGen &gen) = 0;
-
+    virtual bool emitAdjustStackPointer(int index, codeGen &gen) = 0;
+    
 };
 
 // current set of code generation functions

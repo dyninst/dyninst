@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.18 2006/11/14 20:37:05 bernat Exp $
+ * $Id: emit-x86.h,v 1.19 2006/11/22 04:03:12 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -140,6 +140,8 @@ public:
 
 };
 
+extern Emitter32 emitter32;
+
 // some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
@@ -205,7 +207,25 @@ public:
     bool emitPop(codeGen &gen, Register popee);
 
     bool emitAdjustStackPointer(int index, codeGen &gen);
+
 };
+
+extern Emitter64 emitter64;
+
+// We pull swaps under the covers, as it were, so the
+// rest of the code can be oblivious.
+extern registerSpace *globalRegSpace32;
+extern registerSpace *conservativeRegSpace32;
+extern registerSpace *optimisticRegSpace32;
+extern registerSpace *actualRegSpace32;
+extern registerSpace *savedRegSpace32;
+extern registerSpace *globalRegSpace64;
+extern registerSpace *conservativeRegSpace64;
+extern registerSpace *optimisticRegSpace64;
+extern registerSpace *actualRegSpace64;
+extern registerSpace *savedRegSpace64;
+
+
 #endif
 
 #endif
