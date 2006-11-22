@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.7 2006/11/14 20:36:59 bernat Exp $
+// $Id: arch.C,v 1.8 2006/11/22 04:03:06 bernat Exp $
 // Code generation
 
 //////////////////////////
@@ -65,6 +65,7 @@
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
 #endif
 
+const int codeGenPadding = 256;
 
 codeGen::codeGen() :
     buffer_(NULL),
@@ -95,29 +96,13 @@ codeGen::codeGen(unsigned size) :
     ip_(NULL)
 
 {
-    buffer_ = (codeBuf_t *)malloc(size);
-    memset(buffer_, 0, size);
+    buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
+    memset(buffer_, 0, size+codeGenPadding);
     if (!buffer_)
         fprintf(stderr, "Malloc failed for buffer of size %d\n", size_);
     assert(buffer_);
 }
 
-// preallocated buffer with size in bytes.
-codeGen::codeGen(codeBuf_t *buffer, int size) :
-    offset_(0),
-    size_(size),
-    allocated_(true),
-    proc_(NULL),
-    thr_(NULL),
-    lwp_(NULL),
-    rs_(NULL),
-	t_(NULL),
-    addr_((Address)-1),
-    ip_(NULL)
-
-{
-    buffer_ = buffer;
-}
 
 codeGen::~codeGen() {
     if (allocated_ && buffer_) free(buffer_);
@@ -138,8 +123,8 @@ codeGen::codeGen(const codeGen &g) :
 {
     if (size_ != 0) {
         assert(allocated_); 
-        buffer_ = (codeBuf_t *) malloc(size_);
-        memcpy(buffer_, g.buffer_, size_);
+        buffer_ = (codeBuf_t *) malloc(size_+codeGenPadding);
+        memcpy(buffer_, g.buffer_, size_+codeGenPadding);
     }
     else
         buffer_ = NULL;
@@ -164,8 +149,8 @@ codeGen &codeGen::operator=(const codeGen &g) {
 
     if (size_ != 0) {
         assert(allocated_); 
-        buffer_ = (codeBuf_t *) malloc(size_);
-        memcpy(buffer_, g.buffer_, size_);
+        buffer_ = (codeBuf_t *) malloc(size_+codeGenPadding);
+        memcpy(buffer_, g.buffer_, size_+codeGenPadding);
     }
     else
         buffer_ = NULL;
@@ -178,7 +163,7 @@ void codeGen::allocate(unsigned size)
     assert(buffer_ == NULL);
     size_ = size;
     offset_ = 0;
-    buffer_ = (codeBuf_t *)malloc(size);
+    buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
     allocated_ = true;
     if (!buffer_) {
       fprintf(stderr, "%s[%d]:  malloc (%d) failed: %s\n", FILE__, __LINE__, size, strerror(errno));
@@ -216,7 +201,8 @@ void codeGen::finalize() {
     }
     codeBuf_t *newbuf = (codeBuf_t *)malloc(used());
     memcpy((void *)newbuf, (void *)buffer_, used());
-    size_ = offset_;
+    size_ = used(); // Don't use offset :D
+
     free(buffer_);
     buffer_ = newbuf;
 }
@@ -281,18 +267,36 @@ void codeGen::update(codeBuf_t *ptr) {
     }
     // and integer division rules
     offset_ = diff / CODE_GEN_OFFSET_SIZE;
+
+    // Keep the pad
     if (used() > size_) {
-        fprintf(stderr, "ERROR: code generation, used %d bytes, total size %d (%p)!\n",
-                used(), size_, this);
+        fprintf(stderr, "WARNING: overflow of codeGen structure, trying to enlarge\n");
+        if ((used() - size_) > codeGenPadding) {
+            assert(0 && "Overflow in codeGen");
+        }
+        // Add an extra codeGenPadding to the end
+        size_ += codeGenPadding;
+        buffer_ = (codeBuf_t *)realloc(buffer_, size_ + codeGenPadding);
+        assert(buffer_);
     }
+
     assert(used() <= size_);
 }
 
 void codeGen::setIndex(codeBufIndex_t index) {
     offset_ = index;
+    
+    // Keep the pad
     if (used() > size_) {
-        fprintf(stderr, "ERROR: overran codeGen (%d > %d)\n",
-                used(), size_);
+        fprintf(stderr, "WARNING: overflow of codeGen structure (%d requested, %d actual), trying to enlarge\n", used(), size_);
+
+        if ((used() - size_) > codeGenPadding) {
+            assert(0 && "Overflow in codeGen");
+        }
+        // Add an extra codeGenPadding to the end
+        size_ += codeGenPadding;
+        buffer_ = (codeBuf_t *)realloc(buffer_, size_ + codeGenPadding);
+        assert(buffer_);
     }
     assert(used() <= size_);
 }
