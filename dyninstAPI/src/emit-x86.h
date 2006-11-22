@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.19 2006/11/22 04:03:12 bernat Exp $
+ * $Id: emit-x86.h,v 1.20 2006/11/22 18:54:24 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -71,7 +71,6 @@ class EmitterX86 : public Emitter {
 
  public:
     virtual ~EmitterX86() {};
-    virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
 
 };
 
@@ -137,6 +136,8 @@ public:
     bool emitPop(codeGen &gen, Register popee);
 
     bool emitAdjustStackPointer(int index, codeGen &gen);
+
+    bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
 
 };
 
@@ -207,6 +208,8 @@ public:
     bool emitPop(codeGen &gen, Register popee);
 
     bool emitAdjustStackPointer(int index, codeGen &gen);
+
+    bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
 
 };
 

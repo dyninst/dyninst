@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.35 2006/11/22 04:03:11 bernat Exp $
+ * $Id: emit-x86.C,v 1.36 2006/11/22 18:54:23 bernat Exp $
  */
 
 #include <assert.h>
@@ -64,7 +64,7 @@ const int Emitter32::mt_offset = -4;
 const int Emitter64::mt_offset = -8;
 #endif
 
-bool EmitterX86::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
+bool Emitter32::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
     emitMovRegToReg(dest, src, gen);
     return true;
 }
@@ -728,6 +728,12 @@ void emitPopReg64(Register dest, codeGen &gen)
     emitRex(false, NULL, NULL, &dest, gen);    
     emitSimpleInsn(0x58 + dest, gen);
 }
+
+bool Emitter64::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
+    emitMovRegToReg64(dest, src, true, gen);
+    return true;
+}
+
 
 codeBufIndex_t Emitter64::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
