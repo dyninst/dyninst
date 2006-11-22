@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.179 2006/11/22 04:03:07 bernat Exp $
+// $Id: ast.C,v 1.180 2006/11/22 18:54:22 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1596,12 +1596,10 @@ bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
 
     // Step 5: restore any registers that were st0mped. 
 
-    fprintf(stderr, "===== restoring regs =====\n");
 
     gen.rs()->restoreAllRegisters(gen, true);
-    
-    fprintf(stderr, "===== restoring regs done =====\n");
-	decUseCount(gen);
+
+    decUseCount(gen);
     return true;
 }
     
