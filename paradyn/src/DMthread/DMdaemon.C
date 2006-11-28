@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.170 2006/05/24 20:43:12 mjbrim Exp $
+ * $Id: DMdaemon.C,v 1.171 2006/11/28 23:34:10 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2223,8 +2223,10 @@ bool paradynDaemon::newExecutable(const pdstring &ihost,
         MRN::Stream * stream =
             daemon->network->new_Stream( daemon->getCommunicator(),
                                          MRN::TFILTER_NULL);
+        pdstring wdir;
+        wdir = idir.c_str() ? idir : "";
 
-        pdvector<int> pid = daemon->addExecutable(stream, iargv, idir);
+        pdvector<int> pid = daemon->addExecutable(stream, iargv, wdir);
         delete stream;
 
         performanceStream::ResourceBatchMode(batchEnd);

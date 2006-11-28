@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.128 2006/07/07 00:01:11 jaw Exp $ */
+/* $Id: dynrpc.C,v 1.129 2006/11/28 23:34:11 legendre Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -522,15 +522,18 @@ int dynRPC::addExecutable(MRN::Stream * /* stream */,
                           pdvector<pdstring> argv,
                           pdstring dir)
 {
-    pd_process *p = pd_createProcess(argv, dir);
-    metricFocusNode::handleNewProcess(p);
+   if (strcmp(dir.c_str(), "") == 0) {
+      dir = (char *) NULL;
+   }
+   pd_process *p = pd_createProcess(argv, dir);
+   metricFocusNode::handleNewProcess(p);
 
-    if (p) {
+   if (p) {
 		resource::report_ChecksumToFE( );
-        return 1;
-    }
-    else
-        return -1;
+      return 1;
+   }
+   else
+      return -1;
 }
 
 //
