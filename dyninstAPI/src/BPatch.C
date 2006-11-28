@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.161 2006/11/22 04:02:55 bernat Exp $
+// $Id: BPatch.C,v 1.162 2006/11/28 23:34:12 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1071,8 +1071,6 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
 
    if (!process) return;
 
-   bool wasProcessStopped = process->isVisiblyStopped;
-
    process->isVisiblyStopped = true;
    process->terminated = true;
 
@@ -1177,8 +1175,6 @@ void BPatch::registerThreadExit(process *proc, long tid, bool exiting)
     int pid = proc->getPid();
     
     BPatch_process *bpprocess = getProcessByPid(pid);
-    bool wasProcessStopped = bpprocess->isVisiblyStopped;
-
     
     if (!bpprocess) {
         // Error during startup can cause this -- we have a partially
