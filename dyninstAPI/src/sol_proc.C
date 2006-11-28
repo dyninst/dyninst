@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.112 2006/10/18 16:07:11 legendre Exp $
+// $Id: sol_proc.C,v 1.113 2006/11/28 23:34:08 legendre Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -264,7 +264,7 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith)
   }
   
   command[0] = PCRUN;
-  if (signalToContinueWith == dyn_lwp::NoSignal)
+  if (signalToContinueWith == NoSignal)
       command[1] = PRCSIG;  // clear the signal
   else {
       command[1] = 0;

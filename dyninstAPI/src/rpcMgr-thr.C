@@ -221,7 +221,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
 
     if(postedRPCs_.size() == 0 && mgr_->postedProcessRPCs_.size() == 0) {
         if (mgr_->proc()->IndependentLwpControl() && runProcWhenDone)
-            lwp->continueLWP();
+            lwp->continueLWP(NoSignal, false);
         return irpcNoIRPC;
     }
 
@@ -251,7 +251,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
                 mgr_->addPendingRPC(pendingRPC_);
             }
             if (mgr_->proc()->IndependentLwpControl() && runProcWhenDone)
-                lwp->continueLWP(true);
+                lwp->continueLWP();
             return irpcBreakpointSet;
         }
         else {
@@ -260,7 +260,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
             // Don't set pending if we're polling.
             assert(!pendingRPC_);
             if (mgr_->proc()->IndependentLwpControl() && runProcWhenDone)
-                lwp->continueLWP(true);
+                lwp->continueLWP();
             return irpcAgain;
         }
     }
@@ -388,7 +388,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
 #endif
 
       if (mgr_->proc()->IndependentLwpControl())
-          lwp->continueLWP();
+          lwp->continueLWP(NoSignal, false);
 
       return irpcStarted;
 
@@ -462,7 +462,8 @@ bool rpcThr::handleCompletedIRPC()
         bool savedFP = runningRPC_->rpc->saveFPState;
         if (!lwp->restoreRegisters(*runningRPC_->savedRegs, savedFP)) {
 
-            cerr << "handleCompletedIRPC failed because restoreRegisters failed" << endl;
+            cerr << "handleCompletedIRPC failed because restoreRegisters failed"
+                 << endl;
             assert(false);
         }
         delete runningRPC_->savedRegs;

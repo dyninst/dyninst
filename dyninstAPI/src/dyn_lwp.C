@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.63 2006/10/18 16:07:00 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.64 2006/11/28 23:34:00 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -133,8 +133,11 @@ dyn_lwp::~dyn_lwp()
 }
 
 // TODO is this safe here ?
-bool dyn_lwp::continueLWP(int signalToContinueWith) 
+bool dyn_lwp::continueLWP(int signalToContinueWith, bool clear_stackwalk) 
 {
+   if (clear_stackwalk) {
+      clearStackwalk();
+   }
     if (!proc()->IndependentLwpControl() &&
         (this != proc()->getRepresentativeLWP())) {
         // This'll hit stop_, which calls pauseLWP on the representative LWP.
@@ -264,26 +267,25 @@ bool dyn_lwp::markRunningIRPC() {
 
    Frame active = getActiveFrame();
    isRunningIRPC = true;
-   return proc_->walkStackFromFrame(active, cachedStackWalk);
+   return proc_->walkStackFromFrame(active, cached_stackwalk.getStackwalk());
 }
 
 bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk, bool ignoreRPC /* = false */)
 {
-   // If we're in an inferior RPC, return the stack walk
-   // from where the process "should" be
-    stackWalk.clear();
+   stackWalk.clear();
+   if (cached_stackwalk.isValid()) {
+      stackWalk = cached_stackwalk.getStackwalk();
+      return true;
+   }
     
-    if (isRunningIRPC && !ignoreRPC) {
-        stackWalk = cachedStackWalk;
-        return true;
-    }
-    
-    // We cheat (a bit): this method is here for transparency, 
-    // but the process class does the work in the walkStackFromFrame
-    // method. We get the active frame and hand off.
-    Frame active = getActiveFrame();
-    
-    return proc_->walkStackFromFrame(active, stackWalk);
+   // We cheat (a bit): this method is here for transparency, 
+   // but the process class does the work in the walkStackFromFrame
+   // method. We get the active frame and hand off.
+   Frame active = getActiveFrame();
+   bool result = proc_->walkStackFromFrame(active, stackWalk);
+   if (result)
+      cached_stackwalk.setStackwalk(stackWalk);
+   return result;
 }
 
 bool dyn_lwp::attach() {
@@ -427,4 +429,8 @@ void dyn_lwp::internal_lwp_set_status___(processState st) {
 
 bool dyn_lwp::is_asLWP() {
     return is_as_lwp_;
+}
+
+void dyn_lwp::clearStackwalk() {
+   cached_stackwalk.clear();
 }

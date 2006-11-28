@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.249 2006/10/30 22:14:10 legendre Exp $
+// $Id: linux.C,v 1.250 2006/11/28 23:34:05 legendre Exp $
 
 #include <fstream>
 
@@ -721,7 +721,7 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
    // we don't want to operate on the process in this state
    int arg3 = 0;
    int arg4 = 0;
-   if(signalToContinueWith != dyn_lwp::NoSignal) {
+   if(signalToContinueWith != NoSignal) {
       arg3 = 1;
       arg4 = signalToContinueWith;
    }

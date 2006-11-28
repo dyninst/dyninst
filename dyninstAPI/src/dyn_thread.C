@@ -128,11 +128,16 @@ bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
      }
    }
 
-   stackWalk.clear();
-   
+   if (get_lwp()->cached_stackwalk.isValid()) {
+      stackWalk = get_lwp()->cached_stackwalk.getStackwalk();
+      for (unsigned i=0; i<stackWalk.size(); i++) {
+         stackWalk[i].thread_ = this;
+      }
+      return true;
+   }
+
    Frame active = getActiveFrame();
    active.thread_ = this;
-   
    bool retval = proc->walkStackFromFrame(active, stackWalk);
 
    if (continueWhenDone) {

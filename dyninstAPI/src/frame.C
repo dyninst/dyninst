@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.19 2006/06/05 22:30:11 bernat Exp $
+// $Id: frame.C,v 1.20 2006/11/28 23:34:03 legendre Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -347,3 +347,26 @@ bool Frame::isSyscall()
     return frameType_ == FRAME_syscall;
 }
 
+int_stackwalk::int_stackwalk() { 
+   isValid_ = false; 
+}
+
+bool int_stackwalk::isValid() { 
+   return isValid_; 
+}
+
+bool int_stackwalk::setStackwalk(pdvector<Frame> &new_stack) {
+   stackwalk_ = new_stack;
+   isValid_ = true;
+   return true;
+}
+
+bool int_stackwalk::clear() { 
+   isValid_ = false; 
+   return true;
+}
+
+pdvector<Frame>& int_stackwalk::getStackwalk() {
+   assert(isValid_);
+   return stackwalk_;
+}

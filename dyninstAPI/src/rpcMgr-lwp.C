@@ -45,6 +45,7 @@
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/callbacks.h"
 #include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 rpcLWP::rpcLWP(rpcLWP *parL, rpcMgr *cM, dyn_lwp *cL) :
     mgr_(cM),
@@ -218,7 +219,7 @@ irpcLaunchState_t rpcLWP::launchLWPIRPC(bool runProcWhenDone) {
                 mgr_->addPendingRPC(pendingRPC_);
             }
             if (mgr_->proc()->IndependentLwpControl())
-                lwp_->continueLWP(true);
+                lwp_->continueLWP(true, false);
             return irpcBreakpointSet;
         }
         else {
@@ -227,7 +228,7 @@ irpcLaunchState_t rpcLWP::launchLWPIRPC(bool runProcWhenDone) {
             // Don't set pending if we're polling.
             assert(!pendingRPC_);
             if (mgr_->proc()->IndependentLwpControl())
-                lwp_->continueLWP(true);
+                lwp_->continueLWP(true, false);
             return irpcAgain;
         }
     }
@@ -337,7 +338,7 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
 
       if (mgr_->proc()->IndependentLwpControl()) {
           signal_printf("%s[%d]: Continuing lwp %d\n", FILE__, __LINE__, lwp_->get_lwp_id());
-          lwp_->continueLWP();
+          lwp_->continueLWP(NoSignal, false);
       }
 
       return irpcStarted;

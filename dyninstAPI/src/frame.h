@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.30 2006/06/05 22:30:12 bernat Exp $
+// $Id: frame.h,v 1.31 2006/11/28 23:34:04 legendre Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
 
 #include "common/h/std_namesp.h"
 #include "common/h/Types.h"
+#include "common/h/Vector.h"
 
 #if defined( arch_ia64 )
 #include <libunwind.h>
@@ -196,6 +197,17 @@ class Frame {
 #endif  
   Address		pcAddr_;
   
+};
+
+class int_stackwalk {
+   bool isValid_;
+   pdvector<Frame> stackwalk_;
+ public:
+   int_stackwalk();
+   bool isValid();
+   bool setStackwalk(pdvector<Frame> &new_stack);
+   bool clear();
+   pdvector<Frame>& getStackwalk();
 };
 
 #endif

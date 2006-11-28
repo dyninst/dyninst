@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.62 2006/10/18 16:07:01 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.63 2006/11/28 23:34:01 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -65,6 +65,7 @@
 // note: handleT is normally unsigned on unix platforms, void * for 
 // NT (as needed) defined in os.h
 
+enum { NoSignal = -1 };
 
 /*
  * The dyn_lwp class wraps a kernel thread (lightweight process, or LWP)
@@ -78,6 +79,8 @@ class dyn_lwp
 {
   friend class DebuggerInterface;
   friend class process;
+  friend class dyn_thread;
+
   bool getRegisters_(struct dyn_saved_regs *regs, bool includeFP);
   bool restoreRegisters_(const struct dyn_saved_regs &regs, bool includeFP);
 
@@ -151,11 +154,10 @@ class dyn_lwp
   // to set dyn_lwp status, use process::set_lwp_status()
   void internal_lwp_set_status___(processState st);
   
-  enum { NoSignal = -1 };  // matches declaration in process.h
-
   bool pauseLWP(bool shouldWaitUntilStopped = true);
   bool stop_(); // formerly OS::osStop
-  bool continueLWP(int signalToContinueWith = NoSignal);
+  bool continueLWP(int signalToContinueWith = NoSignal, 
+                   bool clear_stackwalk = true);
 
 #if defined( os_linux )
   bool continueLWP_(int signalToContinueWith, bool ignore_suppress = false);
@@ -176,6 +178,7 @@ class dyn_lwp
   bool isRunning() const;
   bool isWaitingForStop() const;
 #endif
+  void clearStackwalk();
 
 #if defined(cap_proc) && defined(os_aix)
   void reopen_fds(); // Re-open whatever FDs might need to be
@@ -341,7 +344,8 @@ class dyn_lwp
 
   // When we run an inferior RPC we cache the stackwalk of the
   // process and return that if anyone asks for a stack walk
-  pdvector<Frame> cachedStackWalk;
+  int_stackwalk cached_stackwalk;
+
   bool isRunningIRPC;
   bool isDoingAttach_;
 
