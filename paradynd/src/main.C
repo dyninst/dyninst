@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.151 2006/10/18 16:06:37 legendre Exp $
+// $Id: main.C,v 1.152 2006/11/28 23:34:13 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -95,7 +95,7 @@ MRN::Rank myRank = 0;
 
 static pdstring machine_name;
 pdstring osName;
-int pd_debug=1;
+int pd_debug=0;
 
 int ready;
 
@@ -308,9 +308,7 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
 #if !defined(i386_unknown_nt4_0)
   if (!termWin_port)
     fprintf(stderr, "%s[%d]:  No termwin port specified\n", FILE__, __LINE__);
-  if (!well_known_socket)
-    fprintf(stderr, "%s[%d]:  Invalid socket specified\n", FILE__, __LINE__);
-  if (!well_known_socket && !termWin_port)
+  if (!termWin_port)
     return false;
 #else
 	// if (!well_known_socket)
@@ -507,11 +505,6 @@ main( int argc, char* argv[] )
                               pd_known_socket_portnum, termWin_port, 
                               daemon_start_mode, pd_attpid, MPI_impl, newProcDir );
 
-   fprintf(stderr, "%s[%d]:  paradynd args = ", FILE__, __LINE__);
-   for (int i = 0; i < argc; ++i) {
-     fprintf(stderr, "%s ", argv[i]);
-   }
-   fprintf(stderr, "\n");
    if (!aflag || pd_debug )
    {
       if (!aflag)
