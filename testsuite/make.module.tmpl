@@ -375,9 +375,11 @@ endif
 
 $(TEST_DEST)/%: %
 	-$(CP) $< $(TEST_DEST)
+	-$(CHMOD) 750 $(TEST_DEST)/$<
 
 $(LIB_DEST)/%: %
 	-$(CP) $< $(LIB_DEST)
+	-$(CHMOD) 750 $(LIB_DEST)/$<
 
 $(TEST_DEST_LN)/%: %
 	-$(LN) $< $(TEST_DEST)
