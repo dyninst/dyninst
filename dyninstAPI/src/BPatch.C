@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.162 2006/11/28 23:34:12 legendre Exp $
+// $Id: BPatch.C,v 1.163 2006/11/29 02:15:19 nater Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -69,15 +69,6 @@
 extern void loadNativeDemangler();
 
 BPatch *BPatch::bpatch = NULL;
-
-//  global stat vars defined in stats.C
-extern unsigned int trampBytes;
-extern unsigned int pointsUsed;
-extern unsigned int insnGenerated;
-extern unsigned int totalMiniTramps;
-extern unsigned int ptraceOtherOps;
-extern unsigned int ptraceOps;
-extern unsigned int ptraceBytes;
 
 extern BPatch_asyncEventHandler *global_async_event_handler;
 void defaultErrorFunc(BPatchErrorLevel level, int num, const char * const *params);
@@ -1899,13 +1890,13 @@ BPatch_stats &BPatch::getBPatchStatisticsInt()
 //  the buffer which is returned to the user.
 void BPatch::updateStats() 
 {
-  stats.pointsUsed = pointsUsed;
-  stats.totalMiniTramps = totalMiniTramps;
-  stats.trampBytes = trampBytes;
-  stats.ptraceOtherOps = ptraceOtherOps;
-  stats.ptraceOps = ptraceOps;
-  stats.ptraceBytes = ptraceBytes;
-  stats.insnGenerated = insnGenerated;
+  stats.pointsUsed = pointsUsed.value();
+  stats.totalMiniTramps = totalMiniTramps.value();
+  stats.trampBytes = trampBytes.value();
+  stats.ptraceOtherOps = ptraceOtherOps.value();
+  stats.ptraceOps = ptraceOps.value();
+  stats.ptraceBytes = ptraceBytes.value();
+  stats.insnGenerated = insnGenerated.value();
 }
 
 bool BPatch::registerThreadEventCallbackInt(BPatch_asyncEventType type,
