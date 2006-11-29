@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.66 2006/08/24 11:19:28 jaw Exp $
+// $Id: templates2.C,v 1.67 2006/11/29 02:15:18 nater Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -241,3 +241,5 @@ template class dictionary_hash< Address, void * >;
 template class pdvector< dictionary_hash< Address, void * >::entry >;
 #endif /* defined( arch_ia64 ) */
 
+class Statistic;
+template class dictionary_hash<pdstring, Statistic *>;
