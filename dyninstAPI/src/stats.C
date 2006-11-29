@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.33 2005/11/22 13:50:32 jaw Exp $
+ * $Id: stats.C,v 1.34 2006/11/29 02:15:15 nater Exp $
  */
 
 #include <sstream>
@@ -52,30 +52,221 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 
-unsigned int trampBytes = 0;
-unsigned int pointsUsed=0;
-unsigned int insnGenerated = 0;
-unsigned int totalMiniTramps=0;
+#include "dyninstAPI/src/stats.h"
+
+CntStatistic trampBytes;
+CntStatistic pointsUsed;
+CntStatistic insnGenerated;
+CntStatistic totalMiniTramps;
 double timeCostLastChanged=0;
 // HTable<resourceListRec*> fociUsed;
 // HTable<metric*> metricsUsed;
-unsigned int ptraceOtherOps=0, ptraceOps=0, ptraceBytes=0;
+CntStatistic ptraceOtherOps, ptraceOps, ptraceBytes;
 
 void printDyninstStats()
 {
-    sprintf(errorLine, "    %d total points used\n", pointsUsed);
+    sprintf(errorLine, "    %ld total points used\n", pointsUsed.value());
     logLine(errorLine);
-    sprintf(errorLine, "    %d mini-tramps used\n", totalMiniTramps);
+    sprintf(errorLine, "    %ld mini-tramps used\n", totalMiniTramps.value());
     logLine(errorLine);
-    sprintf(errorLine, "    %d tramp bytes\n", trampBytes);
+    sprintf(errorLine, "    %ld tramp bytes\n", trampBytes.value());
     logLine(errorLine);
-    sprintf(errorLine, "    %d ptrace other calls\n", ptraceOtherOps);
+    sprintf(errorLine, "    %ld ptrace other calls\n", ptraceOtherOps.value());
     logLine(errorLine);
-    sprintf(errorLine, "    %d ptrace write calls\n", ptraceOps-ptraceOtherOps);
+    sprintf(errorLine, "    %ld ptrace write calls\n", 
+                ptraceOps.value()-ptraceOtherOps.value());
     logLine(errorLine);
-    sprintf(errorLine, "    %d ptrace bytes written\n", ptraceBytes);
+    sprintf(errorLine, "    %ld ptrace bytes written\n", ptraceBytes.value());
     logLine(errorLine);
-    sprintf(errorLine, "    %d instructions generated\n", insnGenerated);
+    sprintf(errorLine, "    %ld instructions generated\n", 
+                insnGenerated.value());
     logLine(errorLine);
+}
+
+Statistic*
+StatContainer::operator[](pdstring name) const
+{
+    if(stats_.defines(name)) {
+        return stats_[name];
+    } else {
+        return NULL;
+    }
+}
+
+void
+StatContainer::add(pdstring name, StatType type)
+{
+    Statistic *s = NULL;
+
+    switch(type) {
+        case CountStat:
+            s = (Statistic *)(new CntStatistic(this));
+            break;            
+        case TimerStat:
+            s = (Statistic *)(new TimeStatistic(this));
+            break;
+        default:
+          fprintf(stderr,"Error adding statistic %s: type %d not recognized\n",
+                name.c_str(), type);
+          return;
+    }
+
+    stats_[name] = s;
+}
+                                  
+CntStatistic 
+CntStatistic::operator++( int )
+{
+    CntStatistic ret = *this;
+    ++(*this);
+    return ret;
+}
+
+
+CntStatistic& 
+CntStatistic::operator++()
+{
+    cnt_++;
+    return *this;
+}
+                               
+CntStatistic 
+CntStatistic::operator--( int )
+{
+    CntStatistic ret = *this;
+    --(*this);
+    return ret;
+}
+
+CntStatistic&
+CntStatistic::operator--()
+{
+    cnt_--;
+    return *this;
+}
+                                 
+CntStatistic& 
+CntStatistic::operator=( long int v )
+{
+    cnt_ = v;
+    return *this;
+}
+
+CntStatistic& 
+CntStatistic::operator=( const CntStatistic & v )
+{
+    if( this != &v ) {
+        cnt_ = v.cnt_;
+    }
+    return *this;
+}
+                                     
+CntStatistic& 
+CntStatistic::operator+=( long int v )
+{
+    cnt_ += v;
+    return *this;
+}
+
+CntStatistic&
+CntStatistic::operator+=( const CntStatistic & v )
+{
+    cnt_ += v.cnt_;
+    return *this;
+}
+
+    
+CntStatistic& 
+CntStatistic::operator-=( long int v )
+{
+    cnt_ -= v;
+    return *this;
+}
+
+CntStatistic& 
+CntStatistic::operator-=( const CntStatistic & v)
+{
+    cnt_ -= v.cnt_;
+    return *this;
+}
+
+inline long int 
+CntStatistic::operator*()
+{
+    return cnt_;
+}
+
+inline long int 
+CntStatistic::value()
+{
+    return cnt_;
+}
+
+
+TimeStatistic& 
+TimeStatistic::operator=(const TimeStatistic & t)
+{
+    if( this != &t ) {
+        t_ = t.t_;
+    }
+    return *this;
+}
+
+TimeStatistic& 
+TimeStatistic::operator+=(const TimeStatistic & t)
+{
+    t_ += t.t_;
+    return *this;
+}
+
+TimeStatistic& 
+TimeStatistic::operator+(const TimeStatistic & t) const
+{
+    TimeStatistic * ret = new TimeStatistic;
+    *ret = *this;
+    *ret += t;
+    return *ret;
+}
+
+void 
+TimeStatistic::clear()
+{
+    t_.clear();
+}
+
+void 
+TimeStatistic::start()
+{
+    t_.start();
+}
+
+void
+TimeStatistic::stop()
+{
+    t_.stop();
+}
+
+double 
+TimeStatistic::usecs() const
+{
+    return t_.usecs();
+}
+
+double 
+TimeStatistic::ssecs() const
+{
+    return t_.ssecs();
+}
+
+double 
+TimeStatistic::wsecs() const
+{
+    return t_.wsecs();
+}
+
+bool 
+TimeStatistic::is_running() const
+{
+    return t_.is_running();
 }
 
