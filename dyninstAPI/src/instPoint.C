@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.30 2006/11/22 04:03:21 bernat Exp $
+// $Id: instPoint.C,v 1.31 2006/11/30 23:12:45 bernat Exp $
 // instPoint code
 
 
@@ -726,13 +726,19 @@ instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
 
     // Otherwise, hand it off to the multiTramp....
     codeRange *range = proc()->findCodeRangeByAddress(pc);
-    
+    assert(range);
+
     multiTramp *rangeMT = range->is_multitramp();
     miniTrampInstance *rangeMTI = range->is_minitramp();
 
     if ((rangeMT == NULL) &&
         (rangeMTI == NULL)) {
         // We _cannot_ be in the jump footprint. So we missed.
+        catchup_printf("%s[%d]: Could not find instrumentation match for pc at 0x%lx\n",
+                       FILE__, __LINE__, pc);
+        //range->print_range(pc);
+        
+
         return noMatch_c;
     }
 
@@ -745,29 +751,47 @@ instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
 
     unsigned curID = rangeMT->id();
 
-    bool found = false;
+    catchup_printf("%s[%d]: PC in instrumentation, multiTramp ID %d\n", 
+                   FILE__, __LINE__, curID);
 
+    bool found = false;
+    
     for (unsigned i = 0; i < instances.size(); i++) {
+        catchup_printf("%s[%d]: checking instance %d against target %d\n",
+                       FILE__, __LINE__, instances[i]->multiID(), curID);
         if (instances[i]->multiID() == curID) {
             found = true;
             // If not the same one, we replaced. Return missed.
             if (instances[i]->multi() != rangeMT) {
+                catchup_printf("%s[%d]: Found multiTramp, pointers different - replaced code, ret missed\n",
+                               FILE__, __LINE__);
                 return missed_c;
             }
             else {
                 // It is the same one; toss into low-level logic
-                if (rangeMT->catchupRequired(pc, mt, range))
+                if (rangeMT->catchupRequired(pc, mt, range)) {
+                    catchup_printf("%s[%d]: Found multiTramp, instance returns catchup required, ret missed\n",
+                                   FILE__, __LINE__);
                     return missed_c;
-                else
+                }
+                else {
+                    catchup_printf("%s[%d]: Found multiTramp, instance returns catchup unnecessary, ret not missed\n",
+                                   FILE__, __LINE__);                    
                     return notMissed_c;
+                }
             }
             break;
         }
     }
-
+    
     assert(!found);
 
-    return noMatch_c;
+    // This means we must be in an old multiTramp... possibly one on the deleted
+    // list due to replacement. Let's return that we missed.
+
+    catchup_printf("%s[%d]: multiTramp instance not found, returning noMatch\n", FILE__, __LINE__);
+
+    return missed_c;
 }
 
 int_basicBlock *instPoint::block() const { 
