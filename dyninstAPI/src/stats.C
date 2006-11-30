@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.34 2006/11/29 02:15:15 nater Exp $
+ * $Id: stats.C,v 1.35 2006/11/30 23:12:53 bernat Exp $
  */
 
 #include <sstream>
@@ -196,7 +196,7 @@ CntStatistic::operator*()
     return cnt_;
 }
 
-inline long int 
+long int 
 CntStatistic::value()
 {
     return cnt_;
