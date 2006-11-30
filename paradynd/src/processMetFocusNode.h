@@ -59,23 +59,22 @@ class pd_thread;
 class instReqNode;
 
 class catchup_t {
-
-    static BPatch_Vector<BPatch_frame> uninitialized;
  public:
-
-   BPatch_snippet *snip;
+    
+   BPatch_snippet snip;
    BPatch_thread *thread;
-   const BPatch_Vector<BPatch_frame> &stackWalk;
 
-   catchup_t(BPatch_snippet *a, BPatch_thread *t, const BPatch_Vector<BPatch_frame> &s) :
-      snip(a), thread(t), stackWalk(s) {};
+   catchup_t(BPatch_Vector<BPatch_snippet *> &vec, BPatch_thread *t) :
+       thread(t) {
+       snip = BPatch_sequence(vec);
+   };
 
     // Vector-required...
    catchup_t() :
-      snip(NULL), thread(NULL), stackWalk(uninitialized) {};
+       thread(NULL){};
 
-   catchup_t(const catchup_t &c) :
-      snip(c.snip), thread(c.thread), stackWalk(c.stackWalk) {};
+   ~catchup_t() {
+   }
 };
 
 struct sideEffect_t {
@@ -115,7 +114,7 @@ class processMetFocusNode : public metricFocusNode {
 
   void manuallyTrigger(int mid);
   //  remaining functionality combined into consolidateCatchupRPCs
-  void prepareCatchupInstr(const pdvector<BPatch_Vector<BPatch_frame> >&stackWalks);  // do catchup on given thread
+  void prepareCatchupInstr();  // do catchup on given thread
   bool postCatchupRPCs();
 
   threadMetFocusNode *getThrNode(unsigned tid);
@@ -199,7 +198,7 @@ class processMetFocusNode : public metricFocusNode {
   bool loadInstrIntoApp(bool *modified);
 
   // If false: catchup failed (assert failure)
-  bool doCatchupInstrumentation(const pdvector<BPatch_Vector<BPatch_frame> > &stackWalks);
+  bool doCatchupInstrumentation();
   
   inst_insert_result_t insertInstrumentation();
   
@@ -221,7 +220,6 @@ class processMetFocusNode : public metricFocusNode {
   void unFork();
   bool anyPendingRPCs() { return (rpc_id_buf.size() > 0); }
 
-  static void postCatchupRPCDispatch(pd_process *p, unsigned rpcid, void *data, void *result);
 };
 
 

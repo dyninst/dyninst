@@ -122,8 +122,11 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    
    dontInsertData_ = par.dontInsertData_;
    runWhenFinished_ = par.runWhenFinished_;
-   
-   catchupASTList = par.catchupASTList;
+
+
+   // We better not be in the middle of calculations when a fork hits.
+   assert(par.catchupASTList.size() == 0);
+
    instrInserted_ = par.instrInserted_;
 }
 
@@ -383,27 +386,10 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation()
     // Note: this must run IMMEDIATELY after inserting the jumps to tramps or
     // our state snapshot is invalid.
 
-    //  this stack walk may be ?? out of sync ??  Should be ok...... but...
-    pdvector <BPatch_Vector <BPatch_frame> > stackWalks;
-    proc()->walkStacks(stackWalks);
-
-    if (pd_debug_catchup) {
-        for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
-            BPatch_Vector<BPatch_frame> &stackWalk = stackWalks[thr_iter];
-            
-            fprintf(stderr, "Dumping stack walk for thread %d\n",
-                    stackWalk[0].getThread()->getTid());
-            for (unsigned a = 0; a < stackWalk.size(); a++) {
-                fprintf(stderr, "%s[%d]:  Frame[%d]\n", FILE__, __LINE__, stackWalk[a].getPC());
-            }
-            fprintf(stderr, "------------------\n");
-        }
-    }
-
     // Catchup must not have been done already...
     assert(!instrCatchuped());
 
-    res = doCatchupInstrumentation(stackWalks);
+    res = doCatchupInstrumentation();
 
     // Changes for MT: process will be continued by inferior RPCs or doCatchup...
     // This is because the inferior RPCs may complete after the instrumentation
@@ -434,7 +420,7 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation()
 //       No -> don't manually trigger n's instrumentation.
 //       Yes -> run (a copy) of n's instrumentation via inferior RPC
 //         
-bool processMetFocusNode::doCatchupInstrumentation(const pdvector<BPatch_Vector<BPatch_frame> >&stackWalks) 
+bool processMetFocusNode::doCatchupInstrumentation() 
 {
     // doCatchupInstrumentation is now the primary control
     // of whether a process runs or not. 
@@ -444,7 +430,7 @@ bool processMetFocusNode::doCatchupInstrumentation(const pdvector<BPatch_Vector<
     // /* DEBUG */ fprintf(stderr, "doCatchup entry, runWhenFinished_ = %d\n", runWhenFinished_);
     assert(!instrCatchuped());
     
-    prepareCatchupInstr(stackWalks);
+    prepareCatchupInstr();
     postCatchupRPCs();
     
     // Get them all cleared out
@@ -455,9 +441,10 @@ bool processMetFocusNode::doCatchupInstrumentation(const pdvector<BPatch_Vector<
     // 3) Waiting for a system call, no trap. Nothing we can do but
     //    wait and pick it up somewhere else.
 
-    if (runWhenFinished_)
+    if (runWhenFinished_) {
         continueProcess();
-    
+    }    
+
     // runWhenFinished_ now becomes the state to leave the process in when we're
     // done with catchup. For a little while, we'll be out of sync with the 
     // actual process. This is annoying, but necessary, since we can't effectively
@@ -486,76 +473,86 @@ bool processMetFocusNode::doCatchupInstrumentation(const pdvector<BPatch_Vector<
 //       Yes ->
 //         
 
-void processMetFocusNode::prepareCatchupInstr(const pdvector<BPatch_Vector<BPatch_frame> > &stackWalks) 
+void processMetFocusNode::prepareCatchupInstr() 
 {
-    for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
-        const BPatch_Vector<BPatch_frame> &stackWalk = stackWalks[thr_iter];
+    // We want to go through the cachup handles, glue together all
+    // catchup requests for a given thread, and lump them into the
+    // catchupASTList structure.
+
+    // Input: catchup_handles, a vector of:
+    //  BPatch_snippet *snip;
+    //  BPatchSnippetHandle *sh; // we don't care...
+    //  BPatch_thread *thread
+    // 
+    
+    // The list is sorted:
+    //  1) By thread
+    //  2) By frame order (from main() to the leaf)
+    //  3) By snippet (though this we don't care)
+
+    // We want to build catchup_t's. 
+    
+    // Those are just threads and snippets. However, we don't care
+    // about return values from catchup code, and so we optimize
+    // slightly by lumping everything for one thread together into a
+    // big vector.
+    
+    BPatch_thread *currentThread = NULL;
+    BPatch_Vector<BPatch_snippet *> currentSnippets; 
+
+    pd_catchup_printf("%s[%d]: %d current catchup handles\n",
+                      __FILE__, __LINE__, catchup_handles.size());
+
+    for (unsigned i = 0; i < catchup_handles.size(); i++) {
+
+        pd_catchup_printf("%s[%d]: examining handle %d, thread %p, snippet %p\n",
+                          __FILE__, __LINE__, i, catchup_handles[i].thread,
+                          catchup_handles[i].snip);
+        // If currentThread is NULL, assign it our thread;
         
-        // Note: stacks are delivered to us in bottom-up order (most recent to
-        // main()), and we want to execute from main down. So loop through
-        // backwards and add to the main list. We can go one thread at a time,
-        // because multiple threads will not interfere with each other.
+        // While our thread == currentThread, add us to the
+        // currentSnippets vector;
         
-        // See comment below for sparc info
+        // When the threads are different, wrap a sequenceNode around
+        // the currentSnippets, stick it in an AST node, and we're good.
         
-        // can't do "conglomerate rpcs" until bug #369 "AST sequence node
-        // generation" is fixed
-#if defined(CONGLOMERATE_RPCS)
-        // Then through each frame in the stack walk
-        AstNode *conglomerate = NULL;
-        for(int j = catchupWalk.size()-1; j >= 0; j--) { 
-            catchupReq *curCReq = catchupWalk[j];
-            // Note: backwards iteration
-            if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
-                // What we want to do: build a single big AST then launch it as
-                // an RPC.
-                for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
-                    AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
-                    if (!conglomerate) {
-                        conglomerate = AST;
-                    }
-                    else { // Need to combine with a SequenceNode
-                        AstNode *old = conglomerate;
-                        conglomerate = new AstNode(conglomerate, AST);
-                        removeAst(old);
-                    }
-                }
-            }
+        if (currentThread == NULL) 
+            currentThread = catchup_handles[i].thread;
+        assert(currentThread != NULL);
+        if (currentThread == catchup_handles[i].thread) {
+            pd_catchup_printf("%s[%d]: adding new snippet to sequence\n",
+                              __FILE__, __LINE__);
+            currentSnippets.push_back(catchup_handles[i].snip);
+        } else {
+            // Wrap up the old one and start over.
+            assert(currentSnippets.size());
+
+
+            pd_catchup_printf("%s[%d]: new thread seen (%p != %p), finishing old\n",
+                              __FILE__, __LINE__, currentThread, catchup_handles[i].thread);
+            
+            catchup_t *newCatchup = new catchup_t(currentSnippets, currentThread);
+            catchupASTList.push_back(newCatchup);
+            currentSnippets.clear();
+
+            // And prime the pump
+            currentSnippets.push_back(catchup_handles[i].snip);
+            currentThread = catchup_handles[i].thread;
         }
-        
-        if (conglomerate) {
-            catchup_t catchup;
-            //conglomerate->print();
-            catchup.ast = conglomerate;
-            catchup.thread = catchupWalk[0]->frame.getThread();
-            // Store the stackwalk for caching later
-            catchup.stackWalk = stackWalk;
-            catchupASTList.push_back(catchup);      
-        }
-#else
-        // Sparc (and linux) is currently having problems with AST sequences,
-        // especially if the sequences include several copies of the same AST
-        // tree. So we post as individual iRPCs
-        
-
-        for (unsigned int i = 0; i < catchup_handles.size(); ++i) {
-
-               BPatch_snippet *SNIP = catchup_handles[i].snip;
-               BPatchSnippetHandle *SH = catchup_handles[i].sh;
-
-                    BPatch_thread *catchup_thread = catchup_handles[i].thread;
-                    catchup_printf("%s[%d]: Catchup on thread %d: stack has %d frames\n",
-                            FILE__, __LINE__, catchup_thread->getTid(),
-                            stackWalk.size());
-                    catchup_t *catchup = new catchup_t(SNIP, 
-                                                       catchup_thread,
-                                                       stackWalk);
-                    catchupASTList.push_back(catchup);
-
-        }
-
-#endif
+        assert(currentThread == catchup_handles[i].thread);
+        assert(currentSnippets.size());
     }
+
+    if (currentSnippets.size()) {
+        // We need to finish off the last one
+        pd_catchup_printf("%s[%d]: cleaning up last thread, creating catchup\n",
+                          __FILE__, __LINE__);
+        catchup_t *newCatchup = new catchup_t(currentSnippets, currentThread);
+        catchupASTList.push_back(newCatchup);
+        currentSnippets.clear();
+    }
+
+    catchup_handles.clear();
     
     pdvector<instrCodeNode *> allCodeNodes;
     getAllCodeNodes(&allCodeNodes);
@@ -584,59 +581,44 @@ bool processMetFocusNode::postCatchupRPCs()
 {
    // Assume the list of catchup requests is 
    // sorted
-   if (catchupASTList.size() == 0) {
-       return false;
-   }
-
-   if (pd_debug_catchup) {
-      cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
-   }
+    if (catchupASTList.size() == 0) {
+        return false;
+    }
     
-   for (unsigned i=0; i < catchupASTList.size(); i++) {
-      if (pd_debug_catchup) {
-         cerr << "metricID: " << getMetricID() << ", posting ast " << i 
-              << " on thread: " 
-              << catchupASTList[i]->thread->getTid() << endl;
-         
-      }
+    if (pd_debug_catchup) {
+        cerr << "Posting " << catchupASTList.size() << " catchup requests\n";
+    }
+    
+    for (unsigned i=0; i < catchupASTList.size(); i++) {
+        if (pd_debug_catchup) {
+            cerr << "metricID: " << getMetricID() << ", posting ast " << i 
+                 << " on thread: " 
+                 << catchupASTList[i]->thread->getTid() << endl;
+            
+        }
+        
+        // We now fire off a pile of asynchronous (AKA don't let us
+        // know when they're done) oneTimeCodes. We can run into
+        // trouble with this if more instrumentation goes in while
+        // we're running oneTimeCodes; however, Dyninst now hides this
+        // fact from us (the stack doesn't change until the
+        // oneTimeCode is complete). So our life is pretty simple. 
 
-      // TODO: this needs thread-specific oneTimeCodes to work.
-      // General design: we store the stack walk, and return it
-      // as long as there is an infRPC running on this thread
-      // so that catchup won't get confused. We reference count
-      // by using a post-RPC allback.
+        // For each catchupASTList, post an RPC to do. Nice, huh?
 
-      // Get the pd_thread for this thread's tid
-      pd_thread *thr = proc_->findThread(catchupASTList[i]->thread->getTid());
-      assert(thr);
+        assert(catchupASTList[i]->thread);
 
-      thr->saveStack(catchupASTList[i]->stackWalk);
-      
-      unsigned rpc_id =
-          proc_->postRPCtoDo(*catchupASTList[i]->snip,
-                             false, // noCost
-                             NULL, /*no callback -- force synchronous RPC */
-                             (void *)thr, // user data
-                             true, // Run when done
-                             false,  // lowmem parameter
-                             catchupASTList[i]->thread);
-      catchup_printf("%s[%d]:  manually executing post catchup callback\n", FILE__, __LINE__);
-      postCatchupRPCDispatch(NULL, 0, (void *)thr, NULL);
-      delete catchupASTList[i];
-   }
+        pd_catchup_printf("%s[%d]: posting oneTimeCodeAsync on thread %p\n",
+                          __FILE__, __LINE__, catchupASTList[i]->thread);
 
-   catchupASTList.clear();
+        catchupASTList[i]->thread->oneTimeCodeAsync(catchupASTList[i]->snip, NULL, NULL);
 
-   return true;
-}
-
-void processMetFocusNode::postCatchupRPCDispatch(pd_process * /*p*/,
-                                                 unsigned /*rpcid*/,
-                                                 void *data,
-                                                 void * /*result*/) {
-    pd_thread *thr = (pd_thread *)data;
-    assert(thr);
-    thr->clearSavedStack();
+        delete catchupASTList[i];
+    }
+    
+    catchupASTList.clear();
+    
+    return true;
 }
 
 
@@ -702,7 +684,7 @@ bool processMetFocusNode::loadInstrIntoApp(bool *modified)
     
     bool ret  = proc()->get_dyn_process()->finalizeInsertionSetWithCatchup(true /*true = atomic*/, modified, catchup_handles);
     if (!ret)
-       fprintf(stderr, "WARNING:  finalizeInsertionSet failed\n", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d] WARNING:  finalizeInsertionSet failed\n", FILE__, __LINE__);
     return ret;
 }
 
@@ -744,58 +726,6 @@ pdvector<const instrDataNode*> processMetFocusNode::getFlagDataNodes() const {
   return buff;
 }
 
-#if 0
-// Patch up the application to make it jump to the base trampoline(s) of this
-// metric.  (The base trampoline and mini-tramps have already been installed
-// in the inferior heap).  We must first check to see if it's safe to install
-// by doing a stack walk, and determining if anything on it overlaps with any
-// of our desired jumps to base tramps.  The key variable is "returnsInsts",
-// which was created for us when the base tramp(s) were created.
-// Essentially, it contains the details of how we'll jump to the base tramp
-// (where in the code to patch, how many instructions, the instructions
-// themselves).  Note that it seems this routine is misnamed: it's not
-// instrumentation that needs to be installed (the base & mini tramps are
-// already in place); it's just the last step that is still needed: the jump
-// to the base tramp.  If one or more can't be added, then a TRAP insn is
-// inserted in the closest common safe return point along the stack walk, and
-// some structures are appended to the process' "wait list", which is then
-// checked when a TRAP signal arrives.  At that time, the jump to the base
-// tramp is finally done.  WARNING: It seems to me that such code isn't
-// thread-safe...just because one thread hits the TRAP, there may still be
-// other threads that are unsafe.  It seems to me that we should be doing
-// this check again when a TRAP arrives...but for each thread (right now,
-// there's no stack walk for other threads).  --ari
-
-// 11JUN05 - we no longer have a separate "return instance" structure. Instead,
-// each instPoint has a "linkInst" call that is made to link in instrumentation,
-// and the necessary info is stored there. There is also a checkInst call
-// that returns whether it is safe to put in instrumentation.
-
-bool processMetFocusNode::insertJumpsToTramps(const pdvector<BPatch_Vector<BPatch_frame > >&stackWalks) 
-{
-    assert(!instrLinked());
-
-   // pause once for all primitives for this component
-   
-   // only overwrite 1 instruction on power arch (2 on mips arch)
-   // always safe to instrument without stack walk
-   bool allInserted = true;
-
-   pdvector<instrCodeNode *> codeNodes;
-   getAllCodeNodes(&codeNodes);
-   
-   // Some platforms overwrite a single instruction, so no need
-   // for a stack walk since writing is always safe.
-
-   for (unsigned u2=0; u2<codeNodes.size(); u2++) {
-      instrCodeNode *codeNode = codeNodes[u2];
-      bool result = codeNode->insertJumpsToTramps(stackWalks);
-      if(result == false)
-         allInserted = false;
-   }
-   return allInserted;
-}
-#endif
 
 timeLength processMetFocusNode::cost() const {
    timeLength totCost = timeLength::Zero();   
