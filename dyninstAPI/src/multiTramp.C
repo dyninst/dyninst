@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.63 2006/11/22 04:03:25 bernat Exp $
+// $Id: multiTramp.C,v 1.64 2006/11/30 23:12:46 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -2275,12 +2275,17 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
     assert((rangeMulti != NULL) || (rangeMTI != NULL));
 
     if (rangeMTI) {
+
+        catchup_printf("%s[%d]: in mini tramp...\n", FILE__, __LINE__);
+        
         assert(rangeMTI->baseTI->multiT == this);
         
         // Check to see if we're at an equivalent miniTramp. If not, 
         // fall through
         if (rangeMTI->mini->instP() == newMT->instP()) {
             // This is easier
+            catchup_printf("%s[%d]: mini tramp is for same instPoint, handing down\n",
+                           FILE__, __LINE__);
             return miniTramp::catchupRequired(rangeMTI->mini, newMT);
         }
         else {
@@ -2289,6 +2294,8 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
             // it's passed by value...
             // Pick the post address; doesn't really matter
             pc = rangeMTI->baseTI->trampPostAddr();
+            catchup_printf("%s[%d]: mini tramp is for different instPoint, iterating with fake PC 0x%lx\n",
+                           FILE__, __LINE__, pc);
         }
     }
     
