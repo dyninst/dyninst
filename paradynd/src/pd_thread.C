@@ -233,55 +233,6 @@ bool pd_thread::walkStack(BPatch_Vector<BPatch_frame> &stackWalk)
    return dyninst_thread->getCallStack(stackWalk);
 }
 
-bool pd_thread::saveStack(const BPatch_Vector<BPatch_frame> &stackToSave) 
-{
-        
-    savedStackRefCount_++;
-
-    if (savedStack_.size() > 0) {
-        // Should assert the two stacks are the same... for now, use
-        // current
-        if (stackToSave.size() != savedStack_.size()) {
-            // This is going to assert fail... let's get a debug dump
-            fprintf(stderr, "ERROR: previously saved stack size %d conflicts with new stack size %d\n",
-                    savedStack_.size(), stackToSave.size());
-            for (unsigned i = 0; i < savedStack_.size(); i++) {
-                fprintf(stderr, "%s[%d]:  Frame[PC = %p]\n", FILE__, __LINE__, savedStack_[i].getPC());
-            }
-            cerr << endl;            
-            for (unsigned i = 0; i < stackToSave.size(); i++) {
-                // Make a copy...
-                BPatch_frame frame = stackToSave[i];
-                fprintf(stderr, "%s[%d]:  Frame[PC = %p]\n", FILE__, __LINE__, frame.getPC());
-            }
-            cerr << endl;            
-        }
-
-        assert(stackToSave.size() == savedStack_.size());
-        return true;
-    }
-
-    savedStack_ = stackToSave;
-    return true;
-}
-
-bool pd_thread::clearSavedStack() {
-    // Refcount...
-
-    assert(savedStackRefCount_ > 0);
-    savedStackRefCount_--;
-
-    if (pd_debug_catchup)
-        fprintf(stderr, "Clearing stack for thread %d (%p/%p): ref count %d\n",
-                get_tid(),this, dyninst_thread, savedStackRefCount_);
-
-
-    if (savedStackRefCount_ == 0) {
-        savedStack_.clear();
-    }
-    return true;
-}
-
 #if !defined(os_windows)
 int pd_thread::get_lwp() const { 
     return dyninst_thread->getLWP(); 

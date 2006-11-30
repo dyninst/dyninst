@@ -79,8 +79,6 @@ class pd_thread {
    BPatch_function* get_start_func() {return dyninst_thread->getInitialFunc();}
 
    bool walkStack(BPatch_Vector<BPatch_frame> &stackWalk);
-   bool saveStack(const BPatch_Vector<BPatch_frame> &stackToSave);
-   bool clearSavedStack();
 
    void update_rid(resource *rid_) { rid = rid_; } 
    resource* get_rid() { return rid; }
