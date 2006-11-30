@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.47 2006/11/22 20:28:08 bernat Exp $
+// $Id: baseTramp.C,v 1.48 2006/11/30 23:12:42 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -972,7 +972,7 @@ void baseTramp::setRecursive(bool trampRecursive) {
 		*/
 		if( !proc()->requestTextMiniTramp ){
 #endif
-                cerr << "WARNING: collision between pre-existing guarded miniTramp and new miniTramp, keeping guarded!" << endl;
+                    //cerr << "WARNING: collision between pre-existing guarded miniTramp and new miniTramp, keeping guarded!" << endl;
 #if defined(os_aix) 
 		}else{
 			//override the tramp guard state if we are doing savetheworld on AIX
