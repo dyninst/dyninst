@@ -871,8 +871,10 @@ Address bblInstance::equivAddr(bblInstance *origBBL, Address origAddr) const {
       for (unsigned i = 0; i < get_relocs().size(); i++) {
 	if (get_relocs()[i]->origAddr == origAddr)
 	  return get_relocs()[i]->relocAddr;
+        if (get_relocs()[i]->relocAddr == origAddr)
+            return get_relocs()[i]->origAddr;
       }
-      assert(0);
+      return 0;
     }
 #endif
     assert(0 && "Unhandled case in equivAddr");

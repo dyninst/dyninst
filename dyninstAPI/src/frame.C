@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.20 2006/11/28 23:34:03 legendre Exp $
+// $Id: frame.C,v 1.21 2006/11/30 23:12:43 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -240,10 +240,9 @@ Address Frame::getUninstAddr() {
     multiTramp *m_ptr = range->is_multitramp();
     miniTrampInstance *mt_ptr = range->is_minitramp();
     baseTrampInstance *bt_ptr = range->is_basetramp_multi();
+    bblInstance *bbl_ptr = range->is_basicBlockInstance();
 
-    if (f_ptr)
-        return getPC();
-    else if (m_ptr) {
+    if (m_ptr) {
         // Figure out where in the multiTramp we are
         return m_ptr->instToUninstAddr(getPC());
     }
@@ -254,6 +253,11 @@ Address Frame::getUninstAddr() {
     else if (bt_ptr) {
         // Don't need actual PC here either
         return bt_ptr->uninstrumentedAddr();
+    }
+    else if (bbl_ptr) {
+        // Relocated function... back-track
+        assert(range->is_basicBlock());
+        return bbl_ptr->equivAddr(range->is_basicBlock()->origInstance(), getPC());
     }
     else {
         // Where are we?
