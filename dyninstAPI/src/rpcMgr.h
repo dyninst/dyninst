@@ -78,8 +78,15 @@ typedef enum { irpcNoIRPC, irpcStarted, irpcAgain, irpcBreakpointSet,
 
 char *irpcLaunchStateAsString(irpcLaunchState_t state);
 
+
+// #defines because we can't use an internal header file in a BPatch header file...
+// These are used in BPatch_process.C, but this way the func can return an int.
+#define RPC_LEAVE_AS_IS 0
+#define RPC_RUN_WHEN_DONE 1
+#define RPC_STOP_WHEN_DONE 2
+
 // inferior RPC callback function type
-typedef void(*inferiorRPCcallbackFunc)(process *p, unsigned rpcid, void *data, void *result);
+typedef int(*inferiorRPCcallbackFunc)(process *p, unsigned rpcid, void *data, void *result);
 
 
 struct inferiorRPCtoDo {  

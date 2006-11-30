@@ -508,10 +508,19 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
 
     rpcThr = currRPC->rpcthr;
     rpcLwp = currRPC->rpclwp;
-    if(rpcThr) 
-        rpcThr->handleCompletedIRPC();
-    else 
-        rpcLwp->handleCompletedIRPC();
+    if(rpcThr) {
+        if (rpcThr->handleCompletedIRPC()) {
+            continueHint = true;
+        }
+    }
+    else if (rpcLwp) {
+        if (rpcLwp->handleCompletedIRPC()) {
+            continueHint = true;
+        }
+    }
+    else {
+        assert(0);
+    }
   }
   else 
     assert(0);
@@ -542,6 +551,20 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
       if (existsActiveIRPC())
           continueHint = true;
   }
+
+#if 0
+  // Check to see the current Dyninst state....
+
+  if (proc()->reachedBootstrapState(bootstrapped_bs) && !proc()->inExec_) {
+      bool whocares = false;
+      BPatch_process *bproc = BPatch::bpatch->getProcessByPid(ev.proc->getPid(), &whocares);
+      if (bproc) {
+          if (bproc->isVisiblyStopped == false) {
+              continueHint = true;
+          }
+      }
+  }
+#endif
 
   return true;
 }

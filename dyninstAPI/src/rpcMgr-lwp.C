@@ -393,28 +393,30 @@ bool rpcLWP::handleCompletedIRPC()
 {
   inferiorrpc_cerr << "Completed lwp RPC " << runningRPC_->rpc->id << " on lwp " << lwp_->get_lwp_id() << endl;
 
+  fprintf(stderr, "runningRPC: %p\n", runningRPC_);
+
     // step 1) restore registers:
-    if (runningRPC_->savedRegs) {
-        bool savedFP = runningRPC_->rpc->saveFPState;
-        if (!lwp_->restoreRegisters(*runningRPC_->savedRegs, savedFP)) {
-            cerr << "handleCompletedIRPC failed because restoreRegisters failed" << endl;
-            assert(false);
-        }
-        delete runningRPC_->savedRegs;
-        // The above implicitly must restore the PC.
-    }
-    else {
-        inferiorrpc_printf("%s[%d]: odd case with no saved registers, changing PC to 0x%lx\n",
-                           FILE__, __LINE__, runningRPC_->origPC);
-        if (!lwp_->changePC(runningRPC_->origPC, NULL)) 
-            assert(0 && "Failed to reset PC");
-    }
-
-    // step 2) delete temp tramp
-    process *proc = lwp_->proc();
-    proc->deleteCodeRange(runningRPC_->rpcStartAddr);
-    proc->inferiorFree(runningRPC_->rpcStartAddr);
-
+  if (runningRPC_->savedRegs) {
+      bool savedFP = runningRPC_->rpc->saveFPState;
+      if (!lwp_->restoreRegisters(*runningRPC_->savedRegs, savedFP)) {
+          cerr << "handleCompletedIRPC failed because restoreRegisters failed" << endl;
+          assert(false);
+      }
+      delete runningRPC_->savedRegs;
+      // The above implicitly must restore the PC.
+  }
+  else {
+      inferiorrpc_printf("%s[%d]: odd case with no saved registers, changing PC to 0x%lx\n",
+                         FILE__, __LINE__, runningRPC_->origPC);
+      if (!lwp_->changePC(runningRPC_->origPC, NULL)) 
+          assert(0 && "Failed to reset PC");
+  }
+  
+  // step 2) delete temp tramp
+  process *proc = lwp_->proc();
+  proc->deleteCodeRange(runningRPC_->rpcStartAddr);
+  proc->inferiorFree(runningRPC_->rpcStartAddr);
+  
     // save enough information to call the callback function, if needed
     inferiorRPCcallbackFunc cb = runningRPC_->rpc->callbackFunc;
     void* userData = runningRPC_->rpc->userData;
@@ -430,10 +432,12 @@ bool rpcLWP::handleCompletedIRPC()
     delete runningRPC_;
     runningRPC_ = NULL;
 
+
+    int retstate = 0;
     // step 3) invoke user callback, if any
     // call the callback function if needed
     if( cb != NULL ) {
-        cb(proc, id, userData, resultValue);
+        retstate = cb(proc, id, userData, resultValue);
         inferiorrpc_printf("%s[%d][%s]:  registered/exec'd callback %p\n", 
                            FILE__, __LINE__, getThreadStr(getExecThreadID()), 
                            (void *) (*cb));
@@ -449,6 +453,11 @@ bool rpcLWP::handleCompletedIRPC()
             // Run the process
             return true;
         }
+    }
+    if (retstate == RPC_RUN_WHEN_DONE)  {
+        fprintf(stderr, "Whoa, someone asking for a run\n");
+        while(1);
+        return true;
     }
     return runProcess;
 }

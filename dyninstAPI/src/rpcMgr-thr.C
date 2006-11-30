@@ -494,12 +494,14 @@ bool rpcThr::handleCompletedIRPC()
     delete runningRPC_;
     runningRPC_ = NULL;
 
+    int retstate = 0;
+
     // step 3) invoke user callback, if any
     // call the callback function if needed
     if( cb != NULL ) {
         inferiorrpc_printf("%s[%d][%s]:  about to exec/register rpc done callback\n", 
                            FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        cb(proc, id, userData, resultValue);
+        retstate = cb(proc, id, userData, resultValue);
     }
 
     // Before we continue the process: if there is another RPC,
@@ -513,7 +515,10 @@ bool rpcThr::handleCompletedIRPC()
             return true;
         }
     }
-       
+    
+    if (retstate == RPC_RUN_WHEN_DONE)
+        return true;
+    
     return runProcess;
 }
 
