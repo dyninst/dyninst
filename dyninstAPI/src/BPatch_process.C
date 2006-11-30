@@ -127,6 +127,8 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
 
+   isVisiblyStopped = true;
+
    pdvector<pdstring> argv_vec;
    pdvector<pdstring> envp_vec;
    // Contruct a vector out of the contents of argv
@@ -231,7 +233,6 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
 #endif
 
    startup_cerr << "BPatch_process::BPatch_process, completed." << endl;
-   isVisiblyStopped = true;
    isAttemptingAStop = false;
 }
 
@@ -304,6 +305,8 @@ BPatch_process::BPatch_process(const char *path, int pid)
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
 
+   isVisiblyStopped = true;
+
 #if defined(os_linux)
     /* We need to test whether we are in kernel 2.6.9 - 2.6.11.11 (inclusive).
        If so, and if the mutatee's parent and our parent are one and the same,
@@ -347,7 +350,6 @@ BPatch_process::BPatch_process(const char *path, int pid)
    assert(llproc->isBootstrappedYet());
    assert(llproc->status() == stopped);
 
-   isVisiblyStopped = true;
    isAttemptingAStop = false;
 }
 
@@ -496,11 +498,11 @@ bool BPatch_process::continueExecutionInt()
 {
 
     if (isTerminated()) {
-      return true;
+        return true;
     }
-
+    
     if (!llproc->reachedBootstrapState(bootstrapped_bs)) {
-       return false;
+        return false;
     }
 
    //  maybe executeCallbacks led to the process execution status changing
@@ -521,7 +523,6 @@ bool BPatch_process::continueExecutionInt()
 
    isVisiblyStopped = false;
    setUnreportedStop(false);
-
    bool ret =  llproc->sh->continueProcessBlocking();
 
    // Now here's amusing for you... we can hit a DyninstDebugBreakpoint
@@ -1423,53 +1424,84 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
    //  For each stack frame, check to see if our just-inserted instrumentation
    //  is before or after the point that we will return to in the calling
    //  order
-   for (unsigned int k = 0; k < pendingInsertions->size(); ++k) 
-   {
-       batchInsertionRecord *bir = (*pendingInsertions)[k];
-       assert(bir);
 
-      if (dyn_debug_catchup) {
-        assert(bir->points_.size() == 1);
-        BPatch_point *bppoint = bir->points_[0];
-        instPoint *pt = bppoint->point;
-        assert(pt);
-        char *point_type = "no type";
-        switch(pt->getPointType()) {
-            case noneType: point_type = "noneType"; break;
-            case functionEntry: point_type = "funcEntry"; break;
-            case functionExit: point_type = "funcExit"; break;
-            case callSite: point_type = "callSite"; break;
-            case otherPoint: point_type = "otherPoint"; break;
-        }
-        int_function *f = pt->func();
-        const char *point_func = f->prettyName().c_str();
-        fprintf(stderr, "%s[%d]:  Catchup for instPoint %p [ %s ], func = %s\n",
-                FILE__, __LINE__, (void *)pt->addr(), point_type, point_func);
-      }
-       ///*static*/ pdvector<pdvector<Frame> > > stacks;
-      for (unsigned int i = 0; i < stacks.size(); ++i) 
-      {
-          pdvector<Frame> &one_stack = stacks[i];
-          catchup_printf("%s[%d]:  Have %d frames to look at for this fn\n", FILE__, __LINE__, one_stack.size());
-          for (unsigned int j = 0; j < one_stack.size(); ++j) 
-          {
-              Frame &frame = one_stack[j];
-              if (frame.getPC() == 0) continue;
+   // Iterate by threads first, to sort the list by thread. Paradyn needs this,
+   // and it's a logical model - all the instrumentation missed on thread 1, then
+   // missed on thread 2...
 
+   catchup_printf("Checking to see if I work; stacks.size() == %d\n", stacks.size());
+
+   for (unsigned int i = 0; i < stacks.size(); i++) {
+       pdvector<Frame> &one_stack = stacks[i];
+
+       catchup_printf("%s[%d]: examining stack %d with %d frames\n",
+                      FILE__, __LINE__, i, one_stack.size());
+       
+       for (int j = one_stack.size()-1; j >= 0; j--) {
+           Frame &frame = one_stack[j];
+
+           catchup_printf("%s[%d]: examining frame %d\n", FILE__, __LINE__, j);
+
+           if (frame.getPC() == 0) continue;
+
+           for (unsigned int k = 0; k < pendingInsertions->size(); k++) {
+               batchInsertionRecord *bir = (*pendingInsertions)[k];
+               assert(bir);
+
+               catchup_printf("%s[%d]: looking at insertion record %d\n", FILE__, __LINE__, k);
+               
+               if (dyn_debug_catchup) {
+                   assert(bir->points_.size() == 1);
+                   BPatch_point *bppoint = bir->points_[0];
+                   instPoint *pt = bppoint->point;
+                   assert(pt);
+                   char *point_type = "no type";
+                   switch(pt->getPointType()) {
+                   case noneType: point_type = "noneType"; break;
+                   case functionEntry: point_type = "funcEntry"; break;
+                   case functionExit: point_type = "funcExit"; break;
+                   case callSite: point_type = "callSite"; break;
+                   case otherPoint: point_type = "otherPoint"; break;
+                   }
+                   int_function *f = pt->func();
+                   const char *point_func = f->prettyName().c_str();
+                   fprintf(stderr, "%s[%d]:  Catchup for instPoint %p [ %s ], func = %s\n",
+                           FILE__, __LINE__, (void *)pt->addr(), point_type, point_func);
+               }
+               ///*static*/ pdvector<pdvector<Frame> > > stacks;
+               
+               // A subtlety - iterate _backwards_ down the frames. We
+               // get stacks delivered to us with entry 0 being the
+               // active function and entry (n-1) being main. However,
+               // we want catchup to be considered in the opposite
+               // direction - from time 0 (that is, entry n-1) to the
+               // current time. As an example, take the call path main
+               // -> foo -> bar. We instrument bar with an "if flag,
+               // then" snippet, and foo with a "set flag" snippet. If
+               // we execute catchup on bar first, then foo, the
+               // snippets won't execute - the flag won't be set, and
+               // so the condition will fail. If we (corrently)
+               // execute foo first, the flag will be set. The snippet
+               // in bar will then execute correctly.
+               
+               // Note: we need to iterate over a signed int, because
+               // checking if an unsigned is ">= 0"... heh.
+               
+               
                //  Things we have:
                //  frame:  currentFrame
                //  bir->handle_:  current BPatchSnippetHandle (with mtHandles)
                //  bir->point_:  matching insertion point
-
+               
                // First, if we're not even in the right _function_, then break out.
                //assert(bir->points_.size());
                if (!bir->points_.size()) {
-                 //  how can this happen?
-                 fprintf(stderr, "%s[%d]:  WARN:  insertion record w/o any points!\n", FILE__, __LINE__);
-                 continue;
+                   //  how can this happen?
+                   fprintf(stderr, "%s[%d]:  WARN:  insertion record w/o any points!\n", FILE__, __LINE__);
+                   continue;
                }
                if (bir->points_.size() > 1) {
-                  fprintf(stderr, "%s[%d]:  WARNING:  have more than one point!\n", FILE__, __LINE__);
+                   fprintf(stderr, "%s[%d]:  WARNING:  have more than one point!\n", FILE__, __LINE__);
                }
                BPatch_point *bppoint = bir->points_[0];
                assert(bppoint);
@@ -1477,15 +1509,15 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                assert(iP);
                if (frame.getFunc() != iP->func()) {
                    if (dyn_debug_catchup) {
-                     const char *f1 =  frame.getFunc() ? frame.getFunc()->prettyName().c_str()
-                                                       :"no function";
-                     const char *f2 = iP->func()->prettyName().c_str();
-                     catchup_printf("%s[%d]: skipping frame, funcs don't match [%s, %s]\n",
-                             FILE__, __LINE__, f1, f2);
+                       const char *f1 =  frame.getFunc() ? frame.getFunc()->prettyName().c_str()
+                           :"no function";
+                       const char *f2 = iP->func()->prettyName().c_str();
+                       catchup_printf("%s[%d]: skipping frame, funcs don't match [%s, %s]\n",
+                                      FILE__, __LINE__, f1 ? f1 : "<NULL>", f2 ? f2 : "<NULL>");
                    }
                    continue;
                }
-
+               
                BPatchSnippetHandle *&sh = bir->handle_;
                dyn_thread *thr = frame.getThread();
                assert(thr);
@@ -1496,211 +1528,223 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                assert(bpthread);
                // I guess for the sake of absolute correctness, we need
                // to iterate over possibly more than one mtHandle:
-
+               
                //  Actually NO...  this is incorrect -- disable catchup for
                //  snippet handles that have more than one mtHandle
                BPatch_Vector<miniTramp *> &mtHandles = bir->handle_->mtHandles_;
                assert(mtHandles.size() == 1);
-               for (unsigned int m = 0; m < mtHandles.size(); ++m) 
-               {
-                  miniTramp *&mtHandle = mtHandles[m];
-                  bool &catchupNeeded  = bir->handle_->catchupNeeded;
-                  catchupNeeded = false;
-
-                  //  Before we do any analysis at all, check a couple things:
-                  //  (1)  If this snippet accesses function parameters, then
-                  //       we just skip it for catchup (function parameters live on
-                  //       the stack too)
-
-                  if (bir->snip->ast->accessesParam())
-                      continue;
-
+               for (unsigned int m = 0; m < mtHandles.size(); ++m) {
+                   miniTramp *&mtHandle = mtHandles[m];
+                   bool &catchupNeeded  = bir->handle_->catchupNeeded;
+                   catchupNeeded = false;
+                   
+                   //  Before we do any analysis at all, check a couple things:
+                   //  (1)  If this snippet accesses function parameters, then
+                   //       we just skip it for catchup (function parameters live on
+                   //       the stack too)
+                   
+                   if (bir->snip->ast->accessesParam())
+                       continue;
+                   
 #if 0
-                  //  (2)  If this is a function entry, make sure that we only
-                  //       register it once -- why??-- don't know -- from paradyn
-                  //  (3)  If this is a loop entry, make sure that we only
-                  //       register it once -- why??-- don't know -- from paradyn
-                  if ((bir->points_[0]->getPointType() == BPatch_locEntry)
-                      && (bir->somethings_wrong_here))
-                      continue;
-
-                  if ((bir->point_->getPointType() == BPatch_locLoopEntry)
-                      && (bir->somethings_wrong_here))
-                      continue;
+                   //  (2)  If this is a function entry, make sure that we only
+                   //       register it once -- why??-- don't know -- from paradyn
+                   //  (3)  If this is a loop entry, make sure that we only
+                   //       register it once -- why??-- don't know -- from paradyn
+                   if ((bir->points_[0]->getPointType() == BPatch_locEntry)
+                       && (bir->somethings_wrong_here))
+                       continue;
+                   
+                   if ((bir->point_->getPointType() == BPatch_locLoopEntry)
+                       && (bir->somethings_wrong_here))
+                       continue;
 #endif
+                   
+                   // If we're inside the function, find whether we're before, 
+                   // inside, or after the point.
+                   // This is done by address comparison and used to demultiplex 
+                   // the logic below.
+                   
+                   typedef enum {
+                       nowhere_l = 1,
+                       beforePoint_l = 2,
+                       notMissed_l = 3,
+                       missed_l = 4,
+                       afterPoint_l =5
+                   } logicalPCLocation_t;
+                   
+                   logicalPCLocation_t location;
+                   
+                   assert(iP);
+                   instPoint::catchup_result_t iPresult = iP->catchupRequired(frame.getPC(), 
+                                                                              mtHandle);
+                   
+                   
+                   if (iPresult == instPoint::notMissed_c)
+                       location = notMissed_l;
+                   else if (iPresult == instPoint::missed_c)
+                       location = missed_l;
+                   else
+                       location = nowhere_l;
+                   
+                   // We check for the instPoint before this because we use instrumentation
+                   // that may cover multiple instructions.
+                   // USE THE UNINSTRUMENTED ADDR :)
+                   if (location == nowhere_l) {
+                       // Uninstrumented, and mapped back from function relocation...
+                       // otherwise we'll get all sorts of weird.
+                       // Commented out; with non-contiguous functions, we must go only
+                       // on known information.
 
-                  // If we're inside the function, find whether we're before, 
-                  // inside, or after the point.
-                  // This is done by address comparison and used to demultiplex 
-                  // the logic below.
-
-                  typedef enum {
-                    nowhere_l = 1,
-                    beforePoint_l = 2,
-                    notMissed_l = 3,
-                    missed_l = 4,
-                    afterPoint_l =5
-                  } logicalPCLocation_t;
-
-                  logicalPCLocation_t location;
-
-                  assert(iP);
-                  instPoint::catchup_result_t iPresult = iP->catchupRequired(frame.getPC(), 
-                                                                             mtHandle);
-
-
-                  if (iPresult == instPoint::notMissed_c)
-                      location = notMissed_l;
-                  else if (iPresult == instPoint::missed_c)
-                      location = missed_l;
-                  else
-                      location = nowhere_l;
-
-                 // We check for the instPoint before this because we use instrumentation
-                 // that may cover multiple instructions.
-                 // USE THE UNINSTRUMENTED ADDR :)
-                 if (location == nowhere_l) 
-                 {
-                      // Back off to address comparison
-                    if ((Address)iP->addr() < frame.getUninstAddr())
-                        location = afterPoint_l;
-                    else
-                        location = beforePoint_l;
-                 }
-
-                  if (dyn_debug_catchup) {
-                     char *str_iPresult = "error";
-                     switch(location) {
-                     case nowhere_l: str_iPresult = "nowhere_l"; break;
-                     case beforePoint_l: str_iPresult = "beforePoint_l"; break;
-                     case notMissed_l: str_iPresult = "notMissed_l"; break;
-                     case missed_l: str_iPresult = "missed_l"; break;
-                     case afterPoint_l: str_iPresult = "afterPoint_l"; break;
-                     default: break;
-                     };
-                     fprintf(stderr, "\t\tFor PC = 0x%lx, iPresult = %s ", 
-                             frame.getPC(), str_iPresult);
-                  }
-
-                 BPatch_catchupInfo catchup_info;
-
-		 // We split cases out by the point type
-		 // All of these must fit the following criteria:
-		 // An object with a well-defined entry and exit;
-		 // An object where we can tell if a PC is "within".
-		 // Examples: functions, basic blocks, loops
-		 switch(bppoint->getPointType()) {
-		 case BPatch_locEntry:
-		   // Entry is special, since it's one of the rare
-		   // cases where "after" is good enough. TODO:
-		   // check whether we're "in" a function in a manner
-		   // similar to loops.
-		   // We know we can get away with >= because we're in the
-		   // function; if not we'd have already returned.
-		   if (location >= missed_l) {
-		       catchupNeeded = true;
-                       catchup_info.snip = bir->snip;
-                       catchup_info.sh = sh;
-                       catchup_info.thread = bpthread;
-                       catchup_handles.push_back(catchup_info);
+                       // Back off to address comparison
+                       if ((Address)iP->addr() < frame.getUninstAddr()) {
+                           catchup_printf("%s[%d]: comparing instPoint addr 0x%lx to uninst addr 0x%lx (inst 0x%lx), setting afterPoint\n",
+                                          FILE__, __LINE__, iP->addr(), frame.getUninstAddr(), frame.getPC());
+                           location = afterPoint_l;
+                       }
+                       else {
+                           catchup_printf("%s[%d]: comparing instPoint addr 0x%lx to uninst addr 0x%lx (inst 0x%lx), setting beforePoint\n",
+                                          FILE__, __LINE__, iP->addr(), frame.getUninstAddr(), frame.getPC());
+                           location = beforePoint_l;
+                       }
                    }
-		   break;
-		  case BPatch_locExit:
-			// Only do this if we triggered "missed". If we're
-			// after, we might well be later in the function.
-			// If this is true, we're cancelling an earlier entry
-			// catchup.
-			if (location == missed_l) {
-			    catchupNeeded = true;
-                            catchup_info.snip = bir->snip;
-                            catchup_info.sh = sh;
-                            catchup_info.thread = bpthread;
-                            catchup_handles.push_back(catchup_info);
-                        }
-			break;
-		    case BPatch_subroutine:
-			// Call sites. Again, only if missed; otherwise we may
-			// just be elsewhere
-			if (location == missed_l) {
-			    catchupNeeded = true;
-                            catchup_info.snip = bir->snip;
-                            catchup_info.sh = sh;
-                            catchup_info.thread = bpthread;
-                            catchup_handles.push_back(catchup_info);
-                        }
-			break;
-		    case BPatch_locLoopEntry:
-		    case BPatch_locLoopStartIter:
-			if (location == missed_l) {
-			    catchupNeeded = true;
-                            catchup_info.snip = bir->snip;
-                            catchup_info.sh = sh;
-                            catchup_info.thread = bpthread;
-                            catchup_handles.push_back(catchup_info);
-                        }
-			if (location == afterPoint_l) {
-			    BPatch_basicBlockLoop *loop = bppoint->getLoop();
-			    if (loop->containsAddressInclusive(frame.getUninstAddr())) {
-				catchupNeeded = true;
-                                catchup_info.snip = bir->snip;
-                                catchup_info.sh = sh;
-                                catchup_info.thread = bpthread;
-                                catchup_handles.push_back(catchup_info);
-                            }
-			}
-			break;
-		    case BPatch_locLoopExit:
-		    case BPatch_locLoopEndIter:
-			// See earlier treatment of, well, everything else
-			if (location == missed_l) {
-			    catchupNeeded = true;
-                            catchup_info.snip = bir->snip;
-                            catchup_info.sh = sh;
-                            catchup_info.thread = bpthread;
-                            catchup_handles.push_back(catchup_info);
-                        }
-			break;
-
-		    case BPatch_locBasicBlockEntry:
-		    case BPatch_locBasicBlockExit:
-		    default:
-			// Nothing here
-			break;
-		    }
-
-		    if (dyn_debug_catchup) {
-			if (catchupNeeded) {
-			    fprintf(stderr, "catchup needed, ret true\n========\n");
-                            if (!bir->handle_->catchupNeeded) {
+                   
+                   if (dyn_debug_catchup) {
+                       char *str_iPresult = "error";
+                       switch(location) {
+                       case nowhere_l: str_iPresult = "nowhere_l"; break;
+                       case beforePoint_l: str_iPresult = "beforePoint_l"; break;
+                       case notMissed_l: str_iPresult = "notMissed_l"; break;
+                       case missed_l: str_iPresult = "missed_l"; break;
+                       case afterPoint_l: str_iPresult = "afterPoint_l"; break;
+                       default: break;
+                       };
+                       fprintf(stderr, "\t\tFor PC = 0x%lx, iPresult = %s ", 
+                               frame.getPC(), str_iPresult);
+                   }
+                   
+                   BPatch_catchupInfo catchup_info;
+                   
+                   // We split cases out by the point type
+                   // All of these must fit the following criteria:
+                   // An object with a well-defined entry and exit;
+                   // An object where we can tell if a PC is "within".
+                   // Examples: functions, basic blocks, loops
+                   switch(bppoint->getPointType()) {
+                   case BPatch_locEntry:
+                       // Entry is special, since it's one of the rare
+                       // cases where "after" is good enough. TODO:
+                       // check whether we're "in" a function in a manner
+                       // similar to loops.
+                       // We know we can get away with >= because we're in the
+                       // function; if not we'd have already returned.
+                       if ((location >= missed_l) ||
+                           (location == nowhere_l)) {
+                           catchupNeeded = true;
+                           catchup_info.snip = bir->snip;
+                           catchup_info.sh = sh;
+                           catchup_info.thread = bpthread;
+                           catchup_handles.push_back(catchup_info);
+                       }
+                       break;
+                   case BPatch_locExit:
+                       // Only do this if we triggered "missed". If we're
+                       // after, we might well be later in the function.
+                       // If this is true, we're cancelling an earlier entry
+                       // catchup.
+                       if (location == missed_l) {
+                           catchupNeeded = true;
+                           catchup_info.snip = bir->snip;
+                           catchup_info.sh = sh;
+                           catchup_info.thread = bpthread;
+                           catchup_handles.push_back(catchup_info);
+                       }
+                       break;
+                   case BPatch_subroutine:
+                       // Call sites. Again, only if missed; otherwise we may
+                       // just be elsewhere
+                       if (location == missed_l) {
+                           catchupNeeded = true;
+                           catchup_info.snip = bir->snip;
+                           catchup_info.sh = sh;
+                           catchup_info.thread = bpthread;
+                           catchup_handles.push_back(catchup_info);
+                       }
+                       break;
+                   case BPatch_locLoopEntry:
+                   case BPatch_locLoopStartIter:
+                       if (location == missed_l) {
+                           catchupNeeded = true;
+                           catchup_info.snip = bir->snip;
+                           catchup_info.sh = sh;
+                           catchup_info.thread = bpthread;
+                           catchup_handles.push_back(catchup_info);
+                       }
+                       if (location == afterPoint_l || location == nowhere_l) {
+                           BPatch_basicBlockLoop *loop = bppoint->getLoop();
+                           if (loop->containsAddressInclusive(frame.getUninstAddr())) {
+                               catchupNeeded = true;
+                               catchup_info.snip = bir->snip;
+                               catchup_info.sh = sh;
+                               catchup_info.thread = bpthread;
+                               catchup_handles.push_back(catchup_info);
+                           }
+                       }
+                       break;
+                   case BPatch_locLoopExit:
+                   case BPatch_locLoopEndIter:
+                       // See earlier treatment of, well, everything else
+                       if (location == missed_l) {
+                           catchupNeeded = true;
+                           catchup_info.snip = bir->snip;
+                           catchup_info.sh = sh;
+                           catchup_info.thread = bpthread;
+                           catchup_handles.push_back(catchup_info);
+                       }
+                       break;
+                       
+                   case BPatch_locBasicBlockEntry:
+                   case BPatch_locBasicBlockExit:
+                   default:
+                       // Nothing here
+                       break;
+                   }
+                   
+                   if (dyn_debug_catchup) {
+                       if (catchupNeeded) {
+                           fprintf(stderr, "catchup needed, ret true\n========\n");
+                           if (!bir->handle_->catchupNeeded) {
                                fprintf(stderr, "%s[%d]:  SERIOUS MISTAKE with reference\n", FILE__, __LINE__);
-                            }
-			} else
-			    fprintf(stderr, "catchup not needed, ret false\n=======\n");
-		    }
-
-
-
-
-               }
-
-
-           }
-       }
-   }
-
-  //cleanup:
-    bool ret = true;
-
-    for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+                           }
+                       } else
+                           fprintf(stderr, "catchup not needed, ret false\n=======\n");
+                   }
+               } // Over minitramps (always 1)
+           } // Over BPatch_points
+       } // Over stack frames
+   } // Over threads
+   
+   //cleanup:
+   bool ret = true;
+   
+   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
        batchInsertionRecord *&bir = (*pendingInsertions)[i];
        assert(bir);
        delete(bir);
-    }
+   }
+   
+   delete pendingInsertions;
+   pendingInsertions = NULL;
+   catchup_printf("%s[%d]:  leaving finalizeInsertionSet -- CATCHUP DONE\n", FILE__, __LINE__);
 
-    delete pendingInsertions;
-    pendingInsertions = NULL;
-    catchup_printf("%s[%d]:  leaving finalizeInsertionSet -- CATCHUP DONE\n", FILE__, __LINE__);
-    return ret;
+   catchup_printf("%s[%d]: %d returned catchup requests\n", FILE__, __LINE__, catchup_handles.size());
+
+   // Postcondition: catchup_handles contains a list of <snippet,
+   // snippetHandle, thread> tuples. There is an entry if a given
+   // snippet was "missed" on that particular thread. The list is
+   // sorted from the "top" of the stack (main) down.
+
+   return ret;
 }
 
 /*
@@ -1904,11 +1948,15 @@ void *BPatch_process::oneTimeCodeInt(const BPatch_snippet &expr, bool *err)
  *		and which will be returned to us in this callback.
  * returnValue	The value returned by the RPC.
  */
-void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
+
+int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
                                                  unsigned /* rpcid */, 
                                                  void *userData,
                                                  void *returnValue)
 {
+    // Don't care what the process state is...
+    int retval = RPC_LEAVE_AS_IS;
+
    assert(BPatch::bpatch != NULL);
    bool need_to_unlock = true;
    global_mutex->_Lock(FILE__, __LINE__);
@@ -1934,6 +1982,12 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
    info->setCompleted(true);
    
    if (!info->isSynchronous()) {
+       // Asynchronous RPCs: if we're running, then hint to run the process
+       if (bproc->isVisiblyStopped)
+           retval = RPC_STOP_WHEN_DONE;
+       else
+           retval = RPC_RUN_WHEN_DONE;
+       
       //  if we have a specific callback for (just) this oneTimeCode, call it
       OneTimeCodeCallback *specific_cb = info->getCallback();
       if (specific_cb) {
@@ -1946,19 +2000,19 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
       pdvector<CallbackBase *> cbs;
       getCBManager()->dispenseCallbacksMatching(evtOneTimeCode, cbs);
       BPatch::bpatch->signalNotificationFD();
-
+      
       for (unsigned int i = 0; i < cbs.size(); ++i) {
           BPatch::bpatch->signalNotificationFD();
-
+          
           OneTimeCodeCallback *cb = dynamic_cast<OneTimeCodeCallback *>(cbs[i]);
           if (cb) {
               cb->setTargetThread(TARGET_UI_THREAD);
               cb->setSynchronous(false);
               (*cb)(bproc->threads[0], info->getUserData(), returnValue);
           }
-
+          
       }
-
+      
       delete info;
    }
 
@@ -1966,6 +2020,8 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
 
   if (need_to_unlock)
      global_mutex->_Unlock(FILE__, __LINE__);
+
+  return retval;
 }
 
 /*
@@ -2045,7 +2101,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                     false, 
                                     BPatch_process::oneTimeCodeCallbackDispatch,
                                     (void *)info,
-                                    false, // Run when finished?
+                                    false, // We'll determine later
                                     false, // don't use lowmem heap...
                                     (thread) ? (thread->llthread) : NULL,
                                     NULL); 
@@ -2141,9 +2197,9 @@ void BPatch_process::oneTimeCodeCompleted() {
 //  Have the specified code be executed by the mutatee once.  Don't wait 
 //  until done.
 bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
-                                         void *userData, BPatchOneTimeCodeCallback cb)
+                                         void *userData, BPatchOneTimeCodeCallback cb) 
 {
-    if (NULL == oneTimeCodeInternal(expr, NULL, userData,  cb, false)) {
+    if (NULL == oneTimeCodeInternal(expr, NULL, userData,  cb, false, NULL)) {
       //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
       return false;
    }
