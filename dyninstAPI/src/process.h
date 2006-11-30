@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.394 2006/11/22 20:28:10 bernat Exp $
+/* $Id: process.h,v 1.395 2006/11/30 23:12:48 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -354,7 +354,7 @@ class process {
   bool finalizeDyninstLib();
   
   bool iRPCDyninstInit();
-  static void DYNINSTinitCompletionCallback(process *, unsigned /* rpc_id */,
+  static int DYNINSTinitCompletionCallback(process *, unsigned /* rpc_id */,
                                             void *data, void *ret);
   bool initMT();
 
@@ -939,7 +939,7 @@ private:
      // (T --> return false, S or R --> return true, other --> return ?)
 
  private:
-   static void inferiorMallocCallback(process *proc, unsigned /* rpc_id */,
+  static int inferiorMallocCallback(process *proc, unsigned /* rpc_id */,
                                       void *data, void *result);
 
    void inferiorMallocDynamic(int size, Address lo, Address hi);

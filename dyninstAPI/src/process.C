@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.673 2006/11/22 20:28:09 bernat Exp $
+// $Id: process.C,v 1.674 2006/11/30 23:12:47 bernat Exp $
 
 #include <ctype.h>
 
@@ -1238,7 +1238,7 @@ typedef struct {
 } imd_rpc_ret;
 
 bool inferiorMallocCallbackFlag = false;
-void process::inferiorMallocCallback(process * /*p proc*/, unsigned /* rpc_id */,
+int process::inferiorMallocCallback(process * /*p proc*/, unsigned /* rpc_id */,
                                      void *data, void *result)
 {
   global_mutex->_Lock(FILE__, __LINE__);
@@ -1248,6 +1248,7 @@ void process::inferiorMallocCallback(process * /*p proc*/, unsigned /* rpc_id */
   ret->ready = true;
   inferiorMallocCallbackFlag = true;
   global_mutex->_Unlock(FILE__, __LINE__);
+  return 0;
 }
 
 void alignUp(int &val, int align)
@@ -3177,7 +3178,7 @@ void finalizeDyninstLibWrapper(process *p)
   global_mutex->_Unlock(FILE__, __LINE__);
 }
 
-void process::DYNINSTinitCompletionCallback(process* theProc,
+int process::DYNINSTinitCompletionCallback(process* theProc,
                                             unsigned /* rpc_id */,
                                             void* /*userData*/, // user data
                                             void* /*ret*/) // return value from DYNINSTinit
@@ -3190,6 +3191,7 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
     //cb.setSynchronous(false);
     //cb(theProc);
     //global_mutex->_Unlock(FILE__, __LINE__);
+    return 0;
 }
 /////////////////////////////////////////
 // Function lookup...
@@ -6000,7 +6002,7 @@ typedef struct done_reg_bundle_t {
    int this_lwp;
 } done_reg_bundle_t;
 
-static void doneRegistering(process *, unsigned, void *data, void *result) 
+static int doneRegistering(process *, unsigned, void *data, void *result) 
 {
    done_reg_bundle_t *pairs = (done_reg_bundle_t *) data;
    
@@ -6012,6 +6014,7 @@ static void doneRegistering(process *, unsigned, void *data, void *result)
    pairs->indexes->push_back((int)index);
    (*pairs->num_completed)++;
    free(pairs);
+   return 0;
 }
 
 void process::recognize_threads(process *parent) 
@@ -6299,7 +6302,7 @@ bool process::isBootstrappedYet() const {
    return bootstrapState == bootstrapped_bs;
 }
 
-static void mapIndexToTid_cb(process *, unsigned, void *data, void *result)
+static int mapIndexToTid_cb(process *, unsigned, void *data, void *result)
 {
    dynthread_t *tid = (dynthread_t *) data;
    *tid = (dynthread_t) result;
