@@ -51,9 +51,9 @@
 
 
 extern int pd_debug_metric;
-extern int pd_debug_catchup;
 extern int pd_debug_sample;
 extern int pd_debug_startup;
+extern int pd_debug_catchup;
 
 #define metric_cerr   if (pd_debug_metric) cerr
 #define catchup_cerr  if (pd_debug_catchup) cerr
@@ -61,9 +61,9 @@ extern int pd_debug_startup;
 #define startup_cerr   if (pd_debug_startup) cerr
 
 extern int metric_printf(const char *format, ...);
-extern int catchup_printf(const char *format, ...);
 extern int startup_printf(const char *format, ...);
 extern int sample_printf(const char *format, ...);
+extern int pd_catchup_printf(const char *format, ...);
 
 extern bool init_daemon_debug();
 

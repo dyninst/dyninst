@@ -45,9 +45,9 @@
 #include "debug.h"
 
 int pd_debug_metric = 0;
-int pd_debug_catchup = 0;
 int pd_debug_sample = 0;
 int pd_debug_startup = 0;
+int pd_debug_catchup = 0;
 
 bool init_daemon_debug() {
   char *p;
@@ -85,21 +85,6 @@ int metric_printf(const char *format, ...)
   return ret;
 }
 
-int catchup_printf(const char *format, ...)
-{
-  if (!pd_debug_catchup) return 0;
-  if (NULL == format) return -1;
-
-  va_list va;
-  va_start(va, format);
-
-  int ret = vfprintf(stderr, format, va);
-
-  va_end(va);
-
-  return ret;
-}
-
 int startup_printf(const char *format, ...)
 {
   if (!pd_debug_startup) return 0;
@@ -118,6 +103,22 @@ int startup_printf(const char *format, ...)
 int sample_printf(const char *format, ...)
 {
   if (!pd_debug_sample) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+
+  int ret = vfprintf(stderr, format, va);
+
+  va_end(va);
+
+  return ret;
+}
+
+
+int pd_catchup_printf(const char *format, ...)
+{
+  if (!pd_debug_catchup) return 0;
   if (NULL == format) return -1;
 
   va_list va;
