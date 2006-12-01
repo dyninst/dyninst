@@ -67,6 +67,7 @@ class BPatch_process;
 class BPatch_funcMap;
 class BPatch_instpMap;
 class int_function;
+class rpcMgr;
 struct batchInsertionRecord;
 
 typedef enum {
@@ -217,6 +218,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
 		      // BPatch_point via instp_map
     friend class AstOperatorNode;
     friend class AstMemoryNode;
+    friend class rpcMgr;
 
     public:
     void PDSEP_updateObservedCostAddr(unsigned long a);
@@ -272,10 +274,10 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     int activeOneTimeCodes_;
     bool resumeAfterCompleted_;
 
-    static void oneTimeCodeCallbackDispatch(process *theProc,
-                                            unsigned /* rpcid */, 
-                                            void *userData,
-                                            void *returnValue);
+    static int oneTimeCodeCallbackDispatch(process *theProc,
+                                           unsigned /* rpcid */, 
+                                           void *userData,
+                                           void *returnValue);
 
     void *oneTimeCodeInternal(const BPatch_snippet &expr,
                               BPatch_thread *thread, // == NULL if proc-wide
@@ -651,7 +653,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
 
     API_EXPORT(Int, (expr, userData, cb),
     bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL,
-                          BPatchOneTimeCodeCallback cb = NULL));
+                           BPatchOneTimeCodeCallback cb = NULL));
+                           
 
     //  BPatch_process::loadLibrary
     //  
