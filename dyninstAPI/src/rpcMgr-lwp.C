@@ -393,8 +393,6 @@ bool rpcLWP::handleCompletedIRPC()
 {
   inferiorrpc_cerr << "Completed lwp RPC " << runningRPC_->rpc->id << " on lwp " << lwp_->get_lwp_id() << endl;
 
-  fprintf(stderr, "runningRPC: %p\n", runningRPC_);
-
     // step 1) restore registers:
   if (runningRPC_->savedRegs) {
       bool savedFP = runningRPC_->rpc->saveFPState;
