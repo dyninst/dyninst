@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.36 2006/11/22 04:03:36 bernat Exp $
+// $Id: test_driver.C,v 1.37 2006/12/01 01:33:33 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -148,6 +148,7 @@ bool isMutateeMABI32(char *name)
    return isNameExt(name, "_m32", 4);
 }
 
+#if !defined(os_windows)
 int runScript(const char *name, ...)
 {
    char test[1024];
@@ -159,7 +160,7 @@ int runScript(const char *name, ...)
 
    char test2[1024];
    if ((outlog != NULL) && (outlog != stdout)) {
-     snprintf(test2, 1024, "bash -c \"%s\" >>%s 2>&1", test, logfilename);
+     snprintf(test2, 1024, "sh -c \"%s\" >>%s 2>&1", test, logfilename);
    } else {
      snprintf(test2, 1024, "%s", test);
    }
@@ -173,6 +174,13 @@ int runScript(const char *name, ...)
 
    return result;
 }
+#else
+int runScript(const char *name, ...) {
+   fprintf(stderr, "runScript not implemented on Windows\n");
+   assert(0);
+   return -1;
+}
+#endif
 
 bool runOnThisPlatform(test_data_t &test)
 {
@@ -326,11 +334,13 @@ void printLogMutateeHeader(char *mutatee)
    if ( mutatee != "" )
    {
       logstatus("[Tests with %s]\n", mutatee);
+#if !defined(os_windows)
       if ( pdscrdir )
       {
          runScript("ls -lLF %s", mutatee);
          runScript("%s/ldd_PD %s", pdscrdir, mutatee);
       }
+#endif
    }
    else
    {
@@ -890,11 +900,13 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> mut
    // Print Test Log Header
    if ( enableLogging && skipToTest == 0 && skipToMutatee == 0 && skipToOption == 0 ) {
       logstatus("Commencing DyninstAPI test(s) ...\n");
+#if !defined(os_windows)
       if ( pdscrdir )
       {
          runScript("date");
          runScript("uname -a");
       }
+#endif
       logstatus("TESTDIR=%s\n", getenv("PWD"));
    }
 
@@ -1055,10 +1067,12 @@ int startTestFastAndLoose(test_data_t tests[], unsigned int n_tests,
    if (enableLogging && skipToTest == 0 && skipToMutatee == 0
        && skipToOption == 0 ) {
      logstatus("Commencing DyninstAPI test(s) ...\n");
+#if !defined(os_windows)
      if ( pdscrdir ) {
        runScript("date");
        runScript("uname -a");
      }
+#endif
      logstatus("TESTDIR=%s\n", getenv("PWD"));
    }
 
