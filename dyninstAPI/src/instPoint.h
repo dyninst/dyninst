@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.31 2006/11/22 04:03:22 bernat Exp $
+// $Id: instPoint.h,v 1.32 2006/12/01 01:33:20 legendre Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -394,6 +394,8 @@ class instPoint : public instPointBase {
 		       int &trampCost,
 		       Address &trampSize,
 		       Address &retOffset);
+
+  bool optimizeBaseTramps(callWhen when);
 
   void updateCost(miniTramp *mt);
 

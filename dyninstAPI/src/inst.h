@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.97 2006/11/14 20:37:11 bernat Exp $
+// $Id: inst.h,v 1.98 2006/12/01 01:33:18 legendre Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -299,5 +299,16 @@ extern Address getMaxBranch();
 extern dictionary_hash <pdstring, unsigned> primitiveCosts;
 
 bool writeFunctionPtr(process *p, Address addr, int_function *f);
+
+/**
+ * A set of optimized emiters for common idioms.  Return 
+ * false if the platform can't perform any optimizations.
+ **/
+//Store constant in memory at address
+bool emitStoreConst(Address addr, int imm, codeGen &gen, bool noCost);
+//Add constant to memory at address
+bool emitAddSignedImm(Address addr, long int imm, codeGen &gen, bool noCost);
+//Subtract constant from memory at address
+bool emitSubSignedImm(Address addr, long int imm, codeGen &gen, bool noCost);
 
 #endif

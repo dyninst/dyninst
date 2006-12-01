@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.20 2006/11/22 18:54:24 bernat Exp $
+ * $Id: emit-x86.h,v 1.21 2006/12/01 01:33:14 legendre Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -59,7 +59,6 @@ class AstNode;
 class registerSpace;
 
 // Emitter moved to emitter.h - useful on other platforms as well
-
 
 // switches code generator to 32-bit mode
 void emit32();
@@ -130,15 +129,15 @@ public:
     bool emitBTCostCode(baseTramp* bt, codeGen& gen, unsigned& costValue);
     void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
 				  Register dest, codeGen &gen);
+    void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
+    void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
     int Register_DWARFtoMachineEnc(int n);
-
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
 
     bool emitAdjustStackPointer(int index, codeGen &gen);
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
-
 };
 
 extern Emitter32 emitter32;
@@ -149,6 +148,9 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
 void emitLEA64(Register base, Register index, unsigned int scale, int disp, Register dest, bool is_64, codeGen &gen);
 void emitPushReg64(Register src, codeGen &gen);
 void emitPopReg64(Register dest, codeGen &gen);
+void emitMovImmToRM64(Register base, int disp, int imm, codeGen &gen);
+void emitAddMem64(Address addr, int imm, codeGen &gen);
+void emitAddRM64(Address addr, int imm, codeGen &gen);
 
 #if defined(arch_x86_64)
 class Emitter64 : public EmitterX86 {
@@ -197,20 +199,19 @@ public:
     bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpOffset);
     bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex);
     bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue);
-
+    void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
+    void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
     /* The DWARF register numbering does not correspond to the architecture's
        register encoding for 64-bit target binaries *only*. This method
        maps the number that DWARF reports for a register to the actual
        register number. */
     int Register_DWARFtoMachineEnc(int n);
-
     bool emitPush(codeGen &gen, Register pushee);
     bool emitPop(codeGen &gen, Register popee);
 
     bool emitAdjustStackPointer(int index, codeGen &gen);
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
-
 };
 
 extern Emitter64 emitter64;

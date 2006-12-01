@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.36 2006/11/22 18:54:23 bernat Exp $
+ * $Id: emit-x86.C,v 1.37 2006/12/01 01:33:13 legendre Exp $
  */
 
 #include <assert.h>
@@ -433,7 +433,10 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
     //regSpace->resetSpace();
 
     dyn_thread *thr = gen.thread();
-    if (!bt->threaded()) {
+    if (!bt->threaded() && !bt->guarded()) {
+       //Emit nothing
+    }
+    else if (!bt->threaded()) {
         /* Get the hashed value of the thread */
         emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
     }
@@ -563,37 +566,74 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
 
     // need rex for 64-bit ops in most cases
     if (is_64)
-	rex |= 0x08;
+       rex |= 0x08;
 
     // need rex for use of new registers
     // if a new register is used, we mask off the high bit before
     // returning since we account for it in the rex prefix
-
+    
     // "R" register - extension to ModRM reg field
     if (r && *r & 0x08) {
-	rex |= 0x04;
-	*r &= 0x07;
+       rex |= 0x04;
+       *r &= 0x07;
     }
-
+    
     // "X" register - extension to SIB index field
     if (x && *x & 0x08) {
-	rex |= 0x02;
-	*x &= 0x07;
+       rex |= 0x02;
+       *x &= 0x07;
     }
 
     // "B" register - extension to ModRM r/m field, SIB base field,
     // or opcode reg field
     if (b && *b & 0x08) {
-	rex |= 0x01;
-	*b &= 0x07;
+       rex |= 0x01;
+       *b &= 0x07;
     }
-
+    
     // emit the rex, if needed
     // (note that some other weird cases not covered here
     //  need a "blank" rex, like using %sil or %dil)
     if (rex & 0x0f)
-	emitSimpleInsn(rex, gen);
+       emitSimpleInsn(rex, gen);
 }
+
+void Emitter32::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) 
+{
+   emitMovImmToMem(addr, imm, gen);
+}
+
+void emitAddMem(Address addr, int imm, codeGen &gen) {
+   //This add needs to encode "special" due to an exception
+   // to the normal encoding rules and issues caused by AMD64's
+   // pc-relative data addressing mode.  Our helper functions will
+   // not correctly emit what we want, and we want this very specific
+   // mode for the add instruction.  So I'm just writing raw bytes.
+   GET_PTR(insn, gen);
+   if (imm == 1) 
+      *insn++ = 0xFF; //incl 
+   else
+      *insn++ = 0x81; //addl
+               
+   *insn++ = 0x04; *insn++ = 0x25; //Add to an absolute memory address
+   
+   *((int *)insn) = addr; //Write address
+   insn += sizeof(int);
+
+   if (imm != 1) {
+      *((int*)insn) = imm; //Write immediate value to add
+      insn += sizeof(int);
+   }
+
+   SET_PTR(insn, gen);
+}
+
+void Emitter32::emitAddSignedImm(Address addr,int imm, codeGen &gen,
+                                 bool /*noCost*/)
+{
+   emitAddMem(addr, imm, gen);
+}
+
 
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
 {
@@ -610,7 +650,12 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
 	emitMovImmToReg(tmp_dest, imm, gen);
 }
 
+
 #if defined(arch_x86_64)
+
+bool isImm64bit(Address imm) {
+   return (imm >> 32);
+}
 
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen)
 {
@@ -728,6 +773,44 @@ void emitPopReg64(Register dest, codeGen &gen)
     emitRex(false, NULL, NULL, &dest, gen);    
     emitSimpleInsn(0x58 + dest, gen);
 }
+
+void emitMovImmToRM64(Register base, int disp, int imm, bool is_64, 
+                      codeGen &gen) 
+{
+   GET_PTR(insn, gen);
+   if (base == Null_Register) {
+      *insn++ = 0xC7;
+      *insn++ = 0x84;
+      *insn++ = 0x25;
+      *((int*)insn) = disp;
+      insn += sizeof(int);
+   }
+   else {
+      emitRex(is_64, &base, NULL, NULL, gen);
+      *insn++ = 0xC7;
+      SET_PTR(insn, gen);
+      emitAddressingMode(base, disp, 0, gen);
+      REGET_PTR(insn, gen);
+   }
+   *((int*)insn) = imm;
+   insn += sizeof(int);
+   SET_PTR(insn, gen);
+}
+
+void emitAddRM64(Register dest, int imm, bool is_64, codeGen &gen)
+{
+   GET_PTR(insn, gen);
+   if (imm == 1) {
+      *insn++ = 0xFF;
+      emitRex(is_64, &dest, NULL, NULL, gen);
+      emitAddressingMode(dest, 0, 0, gen);
+   }
+   REGET_PTR(insn, gen);
+   *((int*)insn) = imm;
+   insn += sizeof(int);
+   SET_PTR(insn, gen);   
+}
+
 
 bool Emitter64::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
     emitMovRegToReg64(dest, src, true, gen);
@@ -1237,15 +1320,15 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     emitPopReg64(REGNUM_RAX, gen);
 
     if (gen.rs()->getSPFlag() && 0) {
-		// restore saved registers (POP R15, POP R14, ...)
-		for (int reg = 15; reg >= 0; reg--) {
-	  		emitPopReg64(reg, gen);
-		}
-	}
+       // restore saved registers (POP R15, POP R14, ...)
+       for (int reg = 15; reg >= 0; reg--) {
+          emitPopReg64(reg, gen);
+       }
+    }
     else {
-		// Count the saved registers
-		int num_saved = 0; // RAX, RSP, RBP always saved
-		for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
+       // Count the saved registers
+       int num_saved = 0; // RAX, RSP, RBP always saved
+       for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
 			registerSlot * reg = gen.rs()->getRegSlot(i);
     		if (reg->startsLive ||
 				(reg->number == REGNUM_RAX) ||
@@ -1253,8 +1336,8 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 				(reg->number == REGNUM_RSP) ||
 				(reg->number == REGNUM_RBP)) {
 					num_saved++;
-				}
-		}
+         }
+       }
 	  
 	  	// move SP up to end of GPR save area
 	  	if (num_saved < 16) {
@@ -1556,32 +1639,32 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 
 
     if (bt->isConservative() && BPatch::bpatch->isSaveFPROn()) {
-      if (gen.rs()->getSPFlag())
-	{
-	  // need to save the floating point state (x87, MMX, SSE)
-	  // we do this on the stack, but the problem is that the save
-	  // area must be 16-byte aligned. the following sequence does
-	  // the job:
-	  //   mov %rsp, %rax          ; copy the current stack pointer
-	  //   sub $512, %rsp          ; allocate space
-	  //   and $0xfffffff0, %rsp   ; make sure we're aligned (allocates some more space)
-	  //   fxsave (%rsp)           ; save the state
-	  //   push %rax               ; save the old stack pointer
-	  
-	  emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
-	  emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 512, true, gen);
-	  emitOpRegImm64(0x81, EXTENDED_0x81_AND, REGNUM_RSP, -16, true, gen);
-	  
-	  // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
-	  REGET_PTR(buffer, gen);
-	  *buffer++ = 0x0f;
-	  *buffer++ = 0xae;
-	  *buffer++ = 0x04;
-	  *buffer++ = 0x24;
-	  SET_PTR(buffer, gen);
-	  
-	  emitPushReg64(REGNUM_RAX, gen);
-	}
+       if (gen.rs()->getSPFlag())
+       {
+          // need to save the floating point state (x87, MMX, SSE)
+          // we do this on the stack, but the problem is that the save
+          // area must be 16-byte aligned. the following sequence does
+          // the job:
+          //   mov %rsp, %rax          ; copy the current stack pointer
+          //   sub $512, %rsp          ; allocate space
+          //   and $0xfffffff0, %rsp   ; make sure we're aligned (allocates some more space)
+          //   fxsave (%rsp)           ; save the state
+          //   push %rax               ; save the old stack pointer
+          
+          emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
+          emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 512, true, gen);
+          emitOpRegImm64(0x81, EXTENDED_0x81_AND, REGNUM_RSP, -16, true, gen);
+          
+          // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
+          REGET_PTR(buffer, gen);
+          *buffer++ = 0x0f;
+          *buffer++ = 0xae;
+          *buffer++ = 0x04;
+          *buffer++ = 0x24;
+          SET_PTR(buffer, gen);
+          
+          emitPushReg64(REGNUM_RAX, gen);
+       }
     }
 
     return true;
@@ -1589,91 +1672,91 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 
 bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
-    if (bt->isConservative() && BPatch::bpatch->isSaveFPROn()) {
+   if (bt->isConservative() && BPatch::bpatch->isSaveFPROn()) {
       if (gen.rs()->getSPFlag())
-	{
-	  // pop the old RSP value into RAX
-	  emitPopReg64(REGNUM_RAX, gen);
-
-	  // restore saved FP state
-	  // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
-	  GET_PTR(buffer, gen);
-	  *buffer++ = 0x0f;
-	  *buffer++ = 0xae;
-	  *buffer++ = 0x0c;
-	  *buffer++ = 0x24;
-	  SET_PTR(buffer, gen);
+      {
+         // pop the old RSP value into RAX
+         emitPopReg64(REGNUM_RAX, gen);
+         
+         // restore saved FP state
+         // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
+         GET_PTR(buffer, gen);
+         *buffer++ = 0x0f;
+         *buffer++ = 0xae;
+         *buffer++ = 0x0c;
+         *buffer++ = 0x24;
+         SET_PTR(buffer, gen);
 	  
-	  // restore stack pointer (deallocates FP save area)
-	  emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
-	}
-    }
-
-    // tear down the stack frame (LEAVE)
-    emitSimpleInsn(0xC9, gen);
-
-    // pop "fake" return address
-    if (!bt->rpcMgr_)
-	emitPopReg64(REGNUM_RAX, gen);
-    
-    if (gen.rs()->getSPFlag() && 0)
-      {
-	// restore saved registers (POP R15, POP R14, ...)
-	for (int reg = 15; reg >= 0; reg--) {
-	  emitPopReg64(reg, gen);
-	}
+         // restore stack pointer (deallocates FP save area)
+         emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
       }
-    else
-      {
-	  // Count the saved registers
-	  int num_saved = 0; // RAX, RBX, RSP, RBP always saved
-	  for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
+   }
 
-	    registerSlot * reg = gen.rs()->getRegSlot(i);
-    	if (reg->startsLive ||
-			(reg->number == REGNUM_RAX) ||
-			(reg->number == REGNUM_RBX) ||
-			(reg->number == REGNUM_RSP) ||
-			(reg->number == REGNUM_RBP)) {
+   // tear down the stack frame (LEAVE)
+   emitSimpleInsn(0xC9, gen);
+   
+   // pop "fake" return address
+   if (!bt->rpcMgr_)
+      emitPopReg64(REGNUM_RAX, gen);
+   
+   if (gen.rs()->getSPFlag() && 0)
+   {
+      // restore saved registers (POP R15, POP R14, ...)
+      for (int reg = 15; reg >= 0; reg--) {
+         emitPopReg64(reg, gen);
+      }
+   }
+   else
+   {
+      // Count the saved registers
+      int num_saved = 0; // RAX, RBX, RSP, RBP always saved
+      for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
+         
+         registerSlot * reg = gen.rs()->getRegSlot(i);
+         if (reg->startsLive ||
+             (reg->number == REGNUM_RAX) ||
+             (reg->number == REGNUM_RBX) ||
+             (reg->number == REGNUM_RSP) ||
+             (reg->number == REGNUM_RBP)) {
 		  		num_saved++;
 	      }
-	  }
-	  
-	  // move SP up to end of GPR save area
-	  if (num_saved < 16) {
-	      emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8 * (16 - num_saved), true, gen);
-	  }
-
-	// restore saved registers
-	for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--)
-	  {
-	    registerSlot * reg = gen.rs()->getRegSlot(i);
-	    
-    	if (reg->startsLive ||
-			(reg->number == REGNUM_RAX) ||
-			(reg->number == REGNUM_RBX) ||
-			(reg->number == REGNUM_RSP) ||
-			(reg->number == REGNUM_RBP)) {
-			emitPopReg64(reg->number,gen);
-	      }
-	  }
-
       }
-
-    // restore flags (POPFQ)
-    emitSimpleInsn(0x9D, gen);
-
-    // restore stack pointer (use LEA to not affect flags)
-    GET_PTR(buffer, gen);
-    *buffer++ = 0x48; // REX.W
-    *buffer++ = 0x8D; // LEA opcode
-    *buffer++ = 0xA4; // ModRM: [SIB + disp32], %rsp
-    *buffer++ = 0x24; // SIB: base = RSP
-    *(unsigned int*)buffer = 128; // displacement: 128
-    buffer += 4;
-    SET_PTR(buffer, gen);
-
-    return true;
+      
+      // move SP up to end of GPR save area
+      if (num_saved < 16) {
+	      emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8 * (16 - num_saved), true, gen);
+      }
+      
+      // restore saved registers
+      for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--)
+      {
+         registerSlot * reg = gen.rs()->getRegSlot(i);
+         
+         if (reg->startsLive ||
+             (reg->number == REGNUM_RAX) ||
+             (reg->number == REGNUM_RBX) ||
+             (reg->number == REGNUM_RSP) ||
+             (reg->number == REGNUM_RBP)) {
+            emitPopReg64(reg->number,gen);
+	      }
+      }
+      
+   }
+   
+   // restore flags (POPFQ)
+   emitSimpleInsn(0x9D, gen);
+   
+   // restore stack pointer (use LEA to not affect flags)
+   GET_PTR(buffer, gen);
+   *buffer++ = 0x48; // REX.W
+   *buffer++ = 0x8D; // LEA opcode
+   *buffer++ = 0xA4; // ModRM: [SIB + disp32], %rsp
+   *buffer++ = 0x24; // SIB: base = RSP
+   *(unsigned int*)buffer = 128; // displacement: 128
+   buffer += 4;
+   SET_PTR(buffer, gen);
+   
+   return true;
 }
 
 bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
@@ -1685,7 +1768,10 @@ bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
     //gen.rs()->resetSpace();
     
     dyn_thread *thr = gen.thread();
-    if (!bt->threaded()) {
+    if (!bt->threaded() && !bt->guarded()) {
+       return true;
+    }
+    else if (!bt->threaded()) {
         /* Get the hashed value of the thread */
         //emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
         emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
@@ -1806,6 +1892,7 @@ bool Emitter64::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t 
 
 bool Emitter64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdateOffset)
 {
+   return false;
     Address costAddr = bt->proc()->getObservedCostAddr();
     if (!costAddr) return false;
     costUpdateOffset = gen.used();    
@@ -1817,6 +1904,32 @@ bool Emitter64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
     instruction::generateNOOP(gen, 6);
 
     return true;
+}
+
+void Emitter64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) 
+{
+   if (!isImm64bit(addr)) {
+      emitMovImmToRM(Null_Register, addr, imm, gen);
+   }
+   else {
+      Register r = gen.rs()->allocateRegister(gen, noCost);      
+      emitMovImmToReg64(r, addr, true, gen);
+      emitMovImmToRM64(r, 0, imm, true, gen);
+      gen.rs()->freeRegister(r);
+   }
+}
+
+void Emitter64::emitAddSignedImm(Address addr,int imm, codeGen &gen,bool noCost)
+{
+   if (!isImm64bit(addr)) {
+      emitAddMem(addr, imm, gen);
+   }
+   else {
+      Register r = gen.rs()->allocateRegister(gen, noCost);      
+      emitMovImmToReg64(r, addr, true, gen);
+      emitAddRM64(r, imm, true, gen);
+      gen.rs()->freeRegister(r);
+   }
 }
 
 // on 64-bit x86_64 targets, the DWARF register number does not

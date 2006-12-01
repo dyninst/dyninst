@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.181 2006/11/22 20:28:06 bernat Exp $
+// $Id: ast.C,v 1.182 2006/12/01 01:33:09 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -881,6 +881,80 @@ bool AstReplacementNode::generateCode_phase2(codeGen &gen, bool noCost,
 	return true;
 }
 
+bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost) 
+{
+#if defined(arch_x86) || defined(arch_x86_64)
+   //Recognize the common case of 'a = a op constant' and try to 
+   // generate optimized code for this case.
+
+   if (loperand->getoType() != DataAddr) {
+      //Deal with global writes for now.
+      return false;
+   }
+   Address laddr = (Address) loperand->getOValue();
+
+   if (roperand->getoType() == Constant) {
+      //Looks like 'global = constant'
+#if defined(arch_x86_64)
+      if (!(((Address) roperand->getOValue()) >> 32)) {
+         //Make sure it fits in 32 bits
+         return false;
+      }
+#endif
+      int imm = (int) roperand->getOValue();
+      emitStoreConst(laddr, (int) imm, gen, noCost);
+      loperand->decUseCount(gen);
+      roperand->decUseCount(gen);
+      return true;
+   }
+
+   AstOperatorNode *roper = dynamic_cast<AstOperatorNode *>(roperand);
+   if (!roper)
+      return false;
+   
+   if (roper->op != plusOp && roper->op != minusOp)
+      return false;
+   
+   AstOperandNode *arithl = dynamic_cast<AstOperandNode *>(roper->loperand);
+   AstOperandNode *arithr = dynamic_cast<AstOperandNode *>(roper->roperand);
+   if (!arithl && !arithr)
+      return false;
+   
+   AstOperandNode *data_oper = NULL, *const_oper = NULL;
+   if (arithl->getoType() == DataAddr && arithr->getoType() == Constant &&
+       laddr == (Address) arithl->getOValue())
+   {
+      data_oper = arithl;
+      const_oper = arithr;
+   }
+   else if (arithr->getoType() == DataAddr && arithl->getoType() == Constant &&
+            laddr == (Address) arithr->getOValue() && roper->op == plusOp)
+   {
+      data_oper = arithr;
+      const_oper = arithl;
+   }
+   else
+   {
+      return false;
+   }
+
+   long int imm = (long int) const_oper->getOValue();
+   if (roper->op == plusOp) {
+      emitAddSignedImm(laddr, imm, gen, noCost);
+   }
+   else {
+      emitSubSignedImm(laddr, imm, gen, noCost);
+   }
+   
+   loperand->decUseCount(gen);
+   roper->roperand->decUseCount(gen);
+   roper->loperand->decUseCount(gen);
+   roper->decUseCount(gen);
+
+   return true;
+#endif
+   return false;   
+}
 
 bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &retAddr,
@@ -1106,6 +1180,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         break;
     }
     case storeOp: {
+        bool result = generateOptimizedAssignment(gen, noCost);
+        if (result)
+           break;
+       
         // This ast cannot be shared because it doesn't return a register
         if (!roperand->generateCode_phase2(gen,
                                           noCost,
@@ -2239,6 +2317,18 @@ void AstSequenceNode::getChildren(pdvector<AstNode *> &children) {
 
 void AstMiniTrampNode::getChildren(pdvector<AstNode *> &children) {
     children.push_back(ast_);
+}
+
+bool AstNode::containsFuncCall() const { 
+   return false; 
+}
+
+bool AstCallNode::containsFuncCall() const {
+   return true;
+}
+
+bool AstReplacementNode::containsFuncCall() const {
+   return true;
 }
 
 bool AstOperatorNode::containsFuncCall() const {

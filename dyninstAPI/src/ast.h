@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.96 2006/11/22 20:28:07 bernat Exp $
+// $Id: ast.h,v 1.97 2006/12/01 01:33:10 legendre Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -225,9 +225,9 @@ class AstNode {
         void cleanRegTracker(regTracker_t *tracker, int level);
 
         virtual AstNode *operand() const { return NULL; }
-	
-		virtual bool containsFuncCall() const { return false; }
 
+        virtual bool containsFuncCall() const;
+	
 	enum CostStyleType { Min, Avg, Max };
 	int minCost() const {  return costHelper(Min);  }
 	int avgCost() const {  return costHelper(Avg);  }
@@ -357,14 +357,16 @@ class AstOperatorNode : public AstNode {
     virtual bool canBeKept() const;
 
     virtual void getChildren(pdvector<AstNode*> &children);
-
-	virtual bool containsFuncCall() const;
+    virtual bool containsFuncCall() const;
 
  private:
+
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,
                                      Address &retAddr,
                                      Register &retReg);
+
+    bool generateOptimizedAssignment(codeGen &gen, bool noCost);
 
     AstOperatorNode() {};
     opCode op;
@@ -407,7 +409,7 @@ class AstOperandNode : public AstNode {
         
     virtual void getChildren(pdvector<AstNode*> &children);
 
-	virtual bool containsFuncCall() const;
+    virtual bool containsFuncCall() const;
         
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -416,7 +418,7 @@ class AstOperandNode : public AstNode {
                                      Register &retReg);
 
     AstOperandNode() {};
-    
+
     operandType oType;
     void *oValue;
     AstNode *operand_;
@@ -443,8 +445,7 @@ class AstCallNode : public AstNode {
     virtual bool canBeKept() const;
 
     virtual void getChildren(pdvector<AstNode*> &children);
-
-    virtual bool containsFuncCall() const { return true; }
+    virtual bool containsFuncCall() const;
 
     void setConstFunc(bool val) { constFunc_ = val; }
 
@@ -475,8 +476,7 @@ class AstReplacementNode : public AstNode {
         replacement(rep) {};
 
     virtual bool canBeKept() const;
-
-    virtual bool containsFuncCall() const { return true; };
+    virtual bool containsFuncCall() const;
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -506,8 +506,7 @@ class AstSequenceNode : public AstNode {
     virtual bool canBeKept() const;
 
     virtual void getChildren(pdvector<AstNode*> &children);
-
-	virtual bool containsFuncCall() const;
+    virtual bool containsFuncCall() const;
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -548,8 +547,7 @@ class AstInsnBranchNode : public AstInsnNode {
     AstInsnBranchNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), target_(NULL) {};
 
     virtual bool overrideBranchTarget(AstNode *t) { target_ = t; return true; }
-
-	virtual bool containsFuncCall() const;
+    virtual bool containsFuncCall() const;
     
  protected:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -566,8 +564,7 @@ class AstInsnMemoryNode : public AstInsnNode {
     
     virtual bool overrideLoadAddr(AstNode *l) { load_ = l; return true; }
     virtual bool overrideStoreAddr(AstNode *s) { store_ = s; return true; }
-    
-	virtual bool containsFuncCall() const;
+    virtual bool containsFuncCall() const;
 
  protected:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -602,7 +599,6 @@ class AstMiniTrampNode : public AstNode {
     bool canBeKept() const;
 
     AstNode *getAST() { return ast_; }
-
  private:
     AstMiniTrampNode() {};
 

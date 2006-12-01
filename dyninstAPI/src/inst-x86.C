@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.252 2006/11/22 04:03:19 bernat Exp $
+ * $Id: inst-x86.C,v 1.253 2006/12/01 01:33:16 legendre Exp $
  */
 #include <iomanip>
 
@@ -315,11 +315,11 @@ void baseTrampInstance::updateTrampCost(unsigned cost) {
     Address costAddr = proc()->getObservedCostAddr();
 
     if (proc()->getAddressWidth() == 4) {
-	emitAddMemImm32(costAddr, cost, gen);    
+       emitAddMemImm32(costAddr, cost, gen);    
     }
     else {
-	emitMovImmToReg64(REGNUM_RAX, costAddr, true, gen);
-	emitOpRMImm(0x81, 0, REGNUM_RAX, 0, cost, gen);
+       emitMovImmToReg64(REGNUM_RAX, costAddr, true, gen);
+       emitOpRMImm(0x81, 0, REGNUM_RAX, 0, cost, gen);
     }
 
     // We can assert this here as we regenerate the entire
@@ -373,7 +373,6 @@ void emitJcc(int condition, int offset,
    }
    SET_PTR(insn, gen);
 }
-
 
 /****************************************************************************/
 /****************************************************************************/
@@ -481,48 +480,43 @@ static inline unsigned char makeSIBbyte(unsigned Scale, unsigned Index,
   return ((Scale & 0x3) << 6) + ((Index & 0x7) << 3) + (Base & 0x7);
 }
 
-static void emitAddressingMode(Register base, Register index,
-                               unsigned int scale, RegValue disp,
-                               int reg_opcode, codeGen &gen);
-
-
 /* 
    Emit the ModRM byte and displacement for addressing modes.
    base is a register (EAX, ECX, REGNUM_EDX, EBX, EBP, REGNUM_ESI, REGNUM_EDI)
    disp is a displacement
    reg_opcode is either a register or an opcode
 */
-static inline void emitAddressingMode(Register base, RegValue disp,
-                                      int reg_opcode, codeGen &gen)
+void emitAddressingMode(Register base, RegValue disp,
+                        int reg_opcode, codeGen &gen)
 {
-    // MT linux uses ESP+4
-    // we need an SIB in that case
-    if (base == REGNUM_ESP) {
-	emitAddressingMode(REGNUM_ESP, Null_Register, 0, disp, reg_opcode, gen);
-	return;
-    }
-    GET_PTR(insn, gen);
-    if (base == Null_Register) {
-	*insn++ = makeModRMbyte(0, reg_opcode, 5);
-	*((int *)insn) = disp;
-	insn += sizeof(int);
-    } else if (disp == 0 && base != REGNUM_EBP) {
-	*insn++ = makeModRMbyte(0, reg_opcode, base);
-    } else if (disp >= -128 && disp <= 127) {
-	*insn++ = makeModRMbyte(1, reg_opcode, base);
-	*((char *)insn++) = (char) disp;
-    } else {
-	*insn++ = makeModRMbyte(2, reg_opcode, base);
-	*((int *)insn) = disp;
-	insn += sizeof(int);
-    }
-    SET_PTR(insn, gen);
+   // MT linux uses ESP+4
+   // we need an SIB in that case
+   if (base == REGNUM_ESP) {
+      emitAddressingMode(REGNUM_ESP, Null_Register, 0, disp, reg_opcode, gen);
+      return;
+   }
+   GET_PTR(insn, gen);
+   if (base == Null_Register) {
+      *insn++ = makeModRMbyte(0, reg_opcode, 5);
+      *((int *)insn) = disp;
+      insn += sizeof(int);
+   } else if (disp == 0 && base != REGNUM_EBP) {
+      *insn++ = makeModRMbyte(0, reg_opcode, base);
+   } else if (disp >= -128 && disp <= 127) {
+      *insn++ = makeModRMbyte(1, reg_opcode, base);
+      *((char *)insn++) = (char) disp;
+   } else {
+      *insn++ = makeModRMbyte(2, reg_opcode, base);
+      *((int *)insn) = disp;
+      insn += sizeof(int);
+   }
+   SET_PTR(insn, gen);
 }
 
 // VG(7/30/02): emit a fully fledged addressing mode: base+index<<scale+disp
-static void emitAddressingMode(Register base, Register index,
-			       unsigned int scale, RegValue disp,
-			       int reg_opcode, codeGen &gen)
+void emitAddressingMode(Register base, Register index,
+                        unsigned int scale, RegValue disp,
+                        int reg_opcode, codeGen &gen)
 {
    bool needSIB = (base == REGNUM_ESP) || (index != Null_Register);
 
@@ -764,7 +758,7 @@ void emitMovImmToReg(Register dest, int imm,
 // emit MOV r/m32, imm32
 void emitMovImmToRM(Register base, int disp, int imm,
                                   codeGen &gen) {
-    GET_PTR(insn, gen);
+   GET_PTR(insn, gen);
    *insn++ = 0xC7;
    SET_PTR(insn, gen);
    emitAddressingMode(base, disp, 0, gen);
@@ -850,7 +844,9 @@ static inline void emitEnter(short imm16, codeGen &gen) {
 
 Register emitFuncCall(opCode, codeGen &, pdvector<AstNode *> &, bool, Address) {
 	assert(0);
+	return 0;
 }
+
 // this function just multiplexes between the 32-bit and 64-bit versions
 Register emitFuncCall(opCode op, 
                       codeGen &gen,
@@ -2294,31 +2290,47 @@ void registerSpace::saveClobberInfo(const instPoint *)
 void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
 				      const int * liveFPRegs,
 				      const int * /*liveSPRegs*/) {
-    assert(liveRegs != NULL);
-    for (u_int i = 0; i < registers.size(); i++) {
-        if (  liveRegs[ (int) registers[i].number ] == 1 ) {
+   assert(liveRegs != NULL);
+   for (u_int i = 0; i < registers.size(); i++) {
+      if (  liveRegs[ (int) registers[i].number ] == 1 ) {
+         registers[i].needsSaving = true;
+         registers[i].startsLive = true;
+      }
+      else {
+         if (registers[i].number != REGNUM_RBX) {
+            registers[i].needsSaving = false;
+            registers[i].startsLive = false;
+         }
+         else {
+            // ... okay, I guess...
             registers[i].needsSaving = true;
             registers[i].startsLive = true;
-        }
-        else {
-            if (registers[i].number != REGNUM_RBX) {
-                registers[i].needsSaving = false;
-                registers[i].startsLive = false;
-            }
-            else {
-                // ... okay, I guess...
-                registers[i].needsSaving = true;
-                registers[i].startsLive = true;
-            }
-       }
-    }
-    
-    if (liveFPRegs != NULL) {
-        spFlag = liveFPRegs[0];
-    }
+         }
+      }
+   }
+   spFlag = false;
+   if (liveFPRegs != NULL)
+   {
+      spFlag = liveFPRegs[0];
+   }
 }
 
 int instPoint::liveRegSize()
 {
   return maxGPR;
+}
+
+bool emitStoreConst(Address addr, int imm, codeGen &gen, bool noCost) {
+   code_emitter->emitStoreImm(addr, imm, gen, noCost);
+   return true;
+}
+
+bool emitAddSignedImm(Address addr, long int imm, codeGen &gen, bool noCost) {
+   code_emitter->emitAddSignedImm(addr, imm, gen, noCost);
+   return true;
+}
+
+bool emitSubSignedImm(Address addr, long int imm, codeGen &gen, bool noCost) {
+   code_emitter->emitAddSignedImm(addr, imm * -1, gen, noCost);
+   return true;
 }

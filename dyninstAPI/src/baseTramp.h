@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.17 2006/11/22 04:03:10 bernat Exp $
+// $Id: baseTramp.h,v 1.18 2006/12/01 01:33:12 legendre Exp $
 
 // baseTramp class definition
 
@@ -281,6 +281,8 @@ class baseTramp {
                           unsigned &costUpdateOffset,
                           registerSpace *rs = NULL);
 
+    bool doOptimizations();
+
     bool isMerged;
 
     bool isConservative();
@@ -337,6 +339,7 @@ class baseTramp {
     codeGen postTrampCode_;
 	registerSpace *regSpace_;
     bool valid;
+    bool optimized_out_guards;
 
     typedef enum {unset_BTR, recursive_BTR, guarded_BTR} guardState_t;
     guardState_t guardState_;
@@ -345,7 +348,7 @@ class baseTramp {
     bool threaded() const;
     void setThreaded(bool new_val);
 
-    void setRecursive(bool trampRecursive);
+    void setRecursive(bool trampRecursive, bool force = false);
     bool getRecursive() const;
 
     // Easier to do logic this way...

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.48 2006/11/30 23:12:42 bernat Exp $
+// $Id: baseTramp.C,v 1.49 2006/12/01 01:33:11 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -161,6 +161,7 @@ baseTramp::baseTramp(instPoint *iP) :
     postTrampCode_(),
 	regSpace_(NULL),
     valid(false),
+    optimized_out_guards(false),
     guardState_(unset_BTR),
     suppress_threads_(false),
     instVersion_()
@@ -248,6 +249,7 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     postTrampCode_(pt->postTrampCode_),
 	regSpace_(NULL),
     valid(pt->valid),
+    optimized_out_guards(false),
     guardState_(pt->guardState_),
     suppress_threads_(pt->suppress_threads_),
     instVersion_(pt->instVersion_)
@@ -805,7 +807,7 @@ bool baseTrampInstance::isInInstru(Address pc) {
             pc < (trampPostAddr() + baseT->restoreEndOffset));
 }
 
-instPoint *baseTrampInstance::findInstPointByAddr(Address addr) {
+instPoint *baseTrampInstance::findInstPointByAddr(Address /*addr*/) {
     assert(baseT);
     return baseT->instP_;
 }
@@ -838,7 +840,7 @@ void baseTramp::deleteIfEmpty() {
             instP()->postBaseTramp_ = NULL;
       
       if (instP()->targetBaseTramp() == this)
-	instP()->targetBaseTramp_ = NULL;
+         instP()->targetBaseTramp_ = NULL;
     }
 
     instP_ = NULL;
@@ -960,7 +962,38 @@ baseTrampInstance *baseTramp::findOrCreateInstance(multiTramp *multi) {
     return newInst;
 }
 
-void baseTramp::setRecursive(bool trampRecursive) {
+bool baseTramp::doOptimizations() 
+{
+   miniTramp *cur_mini = firstMini;
+   bool hasFuncCall = false;
+
+   if (!BPatch::bpatch->isMergeTramp())
+      return false;
+
+   while (cur_mini) {
+      AstMiniTrampNode *ast = cur_mini->ast_;
+      if (ast->containsFuncCall()) {
+         hasFuncCall = true;
+         break;
+      }
+      cur_mini = cur_mini->next;
+   }
+   
+   if (!hasFuncCall) {
+      guardState_ = unset_BTR;
+      setRecursive(true, true);
+      optimized_out_guards = true;
+      setThreaded(false);
+      return true;
+   }
+   return false;
+}
+
+void baseTramp::setRecursive(bool trampRecursive, bool force) {
+   if (force) {
+      guardState_ = trampRecursive ? recursive_BTR : guarded_BTR;
+      return;
+   }
     if (trampRecursive) {
         if (guardState_ == unset_BTR)
             guardState_ = recursive_BTR;
@@ -989,7 +1022,8 @@ void baseTramp::setRecursive(bool trampRecursive) {
         }
         else {
             if (guardState_ == recursive_BTR) {
-                cerr << "WARNING: collision between pre-existing recursive miniTramp and new miniTramp, now guarded!" << endl;
+               if (!optimized_out_guards)
+                  cerr << "WARNING: collision between pre-existing recursive miniTramp and new miniTramp, now guarded!" << endl;
                 guardState_ = guarded_BTR;
             }
         }

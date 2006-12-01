@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.31 2006/11/22 04:03:16 bernat Exp $
+// $Id: inst-x86.h,v 1.32 2006/12/01 01:33:17 legendre Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -191,6 +191,13 @@ class codeGen;
 #define LOAD_VIRTUAL64(x, insn) emitMovRMToReg(REGNUM_RAX, REGNUM_RBP, -1*(x*8), insn)
 #define SAVE_VIRTUAL64(x, insn) emitMovRegToRM(REGNUM_RBP, -1*(x*8), REGNUM_RAX, insn)
 
+void emitAddressingMode(Register base, Register index,
+                        unsigned int scale, RegValue disp,
+                        int reg_opcode, codeGen &gen);
+void emitAddressingMode(Register base, RegValue disp,
+                        int reg_opcode, codeGen &gen);
+
+
 // low-level code generation functions
 void emitOpRegReg(unsigned opcode, Register dest, Register src, codeGen &gen);
 void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp, codeGen &gen);
@@ -216,7 +223,6 @@ void emitPushImm(unsigned int imm, codeGen &gen);
 void emitSimpleInsn(unsigned opcode, codeGen &gen);
 
 void emitAddRegImm32(Register dest, int imm, codeGen &gen);
-void emitAddMemImm32(Address dest, int imm, codeGen &gen);
 
 void emitLEA(Register base, Register index, unsigned int scale,
 	     RegValue disp, Register dest, codeGen &gen);

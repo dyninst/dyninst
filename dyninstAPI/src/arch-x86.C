@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.68 2006/11/09 17:42:18 legendre Exp $
+// $Id: arch-x86.C,v 1.69 2006/12/01 01:33:08 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -57,6 +57,7 @@
 #include "InstrucIter.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "process.h"
+#include "inst-x86.h"
 
 // groups
 enum {

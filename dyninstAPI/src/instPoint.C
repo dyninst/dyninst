@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.31 2006/11/30 23:12:45 bernat Exp $
+// $Id: instPoint.C,v 1.32 2006/12/01 01:33:19 legendre Exp $
 // instPoint code
 
 
@@ -967,6 +967,13 @@ Address instPoint::callTarget() const {
     return img_p_->callTarget() + func()->obj()->codeBase();
 }
 
+bool instPoint::optimizeBaseTramps(callWhen when) {
+   baseTramp *tramp = getBaseTramp(when);
+   if (tramp)
+      return tramp->doOptimizations();
+   return false;
+}
+
 int *instPoint::optimisticGPRLiveSet_ = NULL;
 int *instPoint::optimisticFPRLiveSet_ = NULL;
 int *instPoint::optimisticSPRLiveSet_ = NULL;
@@ -1061,7 +1068,6 @@ int *instPoint::optimisticSPRLiveSet() {
 #endif
     return optimisticSPRLiveSet_;
 }
-
 
 int *instPoint::pessimisticGPRLiveSet() {
 #if defined(arch_x86_64)
