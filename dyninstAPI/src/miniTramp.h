@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.13 2006/11/22 04:03:24 bernat Exp $
+// $Id: miniTramp.h,v 1.14 2006/12/01 01:33:24 legendre Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -218,6 +218,15 @@ class miniTramp {
 
   int cost;		     // cost in cycles of this inst req.
   bool noCost_;
+
+  /**
+   * When cleaning up minitramps and minitramp instances we could be doing a 
+   * bottom-up cleanup (delete an instance, which deletes a minitramp) during gc
+   * or top-down cleanup (delete a minitramp, which deletes an instance) when 
+   * instrumentation is removing.  If topDownDelete_ is set to true, we're removing
+   * instrumentation and the minitramp instance should not delete it's minitramp.
+   **/
+  bool topDownDelete_; 
 
   pdvector<miniTrampInstance *> instances;
   pdvector<miniTrampInstance *> deletedMTIs;

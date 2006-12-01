@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.33 2006/11/22 04:03:23 bernat Exp $
+// $Id: miniTramp.C,v 1.34 2006/12/01 01:33:23 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -114,6 +114,7 @@ bool miniTramp::uninstrument() {
   // DON'T delete the miniTramp. When it is deleted, the callback
   // is made... which should only happen when the memory is freed.
   // Place it on the list to be deleted.
+  topDownDelete_ = true;
   for (unsigned i = 0; i < instances.size(); i++)
       instances[i]->removeCode(NULL);
   // When all instances are successfully deleted, the miniTramp
@@ -133,8 +134,7 @@ void miniTramp::deleteMTI(miniTrampInstance *mti) {
             instances[i] = instances.back();
             instances.pop_back();               
         }
-    if (deleteInProgress &&
-        (instances.size() == 0))
+    if (deleteInProgress && !topDownDelete_ && !instances.size())
         delete this;
 }
 
@@ -650,6 +650,7 @@ miniTramp::miniTramp(callWhen when_,
     when(when_),
     cost(0), 
     noCost_(noCost),
+	topDownDelete_(false),
     prev(NULL), next(NULL),
     callback(NULL), callbackData(NULL),
     deleteInProgress(false) {
@@ -669,6 +670,7 @@ miniTramp::miniTramp(const miniTramp *parMini,
     proc_(proc),
     when(parMini->when),
     cost(parMini->cost),
+	topDownDelete_(parMini->topDownDelete_),
     noCost_(parMini->noCost_),
     prev(NULL),
     next(NULL),
