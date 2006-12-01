@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.674 2006/11/30 23:12:47 bernat Exp $
+// $Id: process.C,v 1.675 2006/12/01 01:33:22 legendre Exp $
 
 #include <ctype.h>
 
@@ -6306,6 +6306,7 @@ static int mapIndexToTid_cb(process *, unsigned, void *data, void *result)
 {
    dynthread_t *tid = (dynthread_t *) data;
    *tid = (dynthread_t) result;
+   return RPC_LEAVE_AS_IS;
 }
 
 //Turn a thread index into a tid via an iRPC
