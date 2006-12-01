@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_soExecution.C,v 1.4 2006/10/11 21:54:33 cooksey Exp $
+// $Id: test_lib_soExecution.C,v 1.5 2006/12/01 01:33:34 legendre Exp $
 
 #include <stdio.h>
 
@@ -77,7 +77,8 @@ int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
    mutatorM_t mutTest = (mutatorM_t) dlsym(handle, mutator_name);
    if ( !mutTest )
    {
-      printf("Error finding function: mutatorMAIN, in %s\n", testLib.soname);
+      printf("Error finding function: %s, in %s\n", mutator_name, 
+             testLib.soname);
       printf("%s\n", dlerror());
       dlclose(handle);
       return -1;
