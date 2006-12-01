@@ -2087,7 +2087,7 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
     expr18_1->writeValue(&n,true); //ccw 31 jul 2002
 }
 
-void test19_oneTimeCodeCallback(BPatch_thread */*thread*/,
+void test19_oneTimeCodeCallback(BPatch_thread * /*thread*/,
                                 void *userData,
                                 void * /*returnValue*/)
 {
@@ -3447,8 +3447,6 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
   unsigned long n;
   unsigned long baseAddr,lastAddr;
   unsigned int call30_1_line_no;
-  unsigned short lineNo;
-  char fileName[256];
 
 	if (mutateeFortran) {
 	    return;
@@ -5446,7 +5444,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     // above will be in place before the mutatee begins its tests.
 
         fprintf(stderr, "Starting execution\n");
-        sleep(3);
+        P_sleep(3);
 
     dprintf("starting program execution.\n");
     //sleep(10000);

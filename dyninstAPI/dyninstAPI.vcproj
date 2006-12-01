@@ -46,7 +46,11 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
+echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
@@ -96,7 +100,11 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
+echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib

@@ -43,7 +43,11 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy i386-unknown-nt4.0\libdyninstAPI_RT.dll ..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo mkdir ..\..\i386-unknown-nt4.0\
+mkdir ..\..\i386-unknown-nt4.0\
+echo mkdir ..\..\i386-unknown-nt4.0\
+mkdir ..\..\i386-unknown-nt4.0\lib
+copy i386-unknown-nt4.0\libdyninstAPI_RT.dll ..\..\i386-unknown-nt4.0\lib
 copy i386-unknown-nt4.0\libdyninstAPI_RT.lib ..\..\i386-unknown-nt4.0\lib
 copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 "/>
@@ -92,7 +96,11 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy i386-unknown-nt4.0\libdyninstAPI_RT.dll ..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo mkdir ..\..\i386-unknown-nt4.0\
+mkdir ..\..\i386-unknown-nt4.0\
+echo mkdir ..\..\i386-unknown-nt4.0\
+mkdir ..\..\i386-unknown-nt4.0\lib
+copy i386-unknown-nt4.0\libdyninstAPI_RT.dll ..\..\i386-unknown-nt4.0\lib
 copy i386-unknown-nt4.0\libdyninstAPI_RT.lib ..\..\i386-unknown-nt4.0\lib
 copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 "/>

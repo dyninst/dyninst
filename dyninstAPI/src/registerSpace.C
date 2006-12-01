@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.7 2006/11/22 18:54:25 bernat Exp $
+// $Id: registerSpace.C,v 1.8 2006/12/01 01:33:26 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -724,7 +724,7 @@ bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
 	
 	int numPushed = currStackPointer;
 
-	int pushedReg[numPushed];
+	int *pushedReg = (int *) malloc(sizeof(int) * numPushed);
 	for (unsigned i = 0; i < numPushed; i++) pushedReg[i] = -1;
 
 	for (unsigned i = 0; i < registers.size(); i++) {
@@ -769,6 +769,7 @@ bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
 #endif
     currStackPointer = 0;
 
+	free(pushedReg);
     return true;
 }
 

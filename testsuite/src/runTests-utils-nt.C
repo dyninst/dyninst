@@ -6,7 +6,7 @@
 
 using namespace std;
 
-void generateTestString(bool resume, bool useLog, bool staticTests, char *logfile,
+void generateTestString(bool resume, bool useLog, bool staticTests, string &logfile,
       int testLimit, vector<char *>& child_argv, string& shellString)
 {
    stringstream testString;
@@ -18,7 +18,7 @@ void generateTestString(bool resume, bool useLog, bool staticTests, char *logfil
    }
    if ( useLog )
    {
-     testString << " -log -logfile " << logfile;
+     testString << " -log -logfile " << logfile.c_str();
    }
 
    // Add child's arguments
@@ -67,9 +67,9 @@ char *setLibPath()
    return NULL;
 }
 
-void setupVars(bool useLog, char *logfile)
+void setupVars(bool useLog, string &logfile)
 {
-   if ( useLog && strlen(logfile) == 0 )
+   if ( useLog && strlen(logfile.c_str()) == 0 )
    {
       cerr << "You must provide a logfile name after the -log option" << endl;
       exit(1);

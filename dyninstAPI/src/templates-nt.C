@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.61 2006/11/29 02:15:17 nater Exp $
+// $Id: templates-nt.C,v 1.62 2006/12/01 01:33:27 legendre Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -53,6 +53,7 @@
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/ast.h"
 
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, heapItem *>;
@@ -204,6 +205,9 @@ template class pdvector<dictionary_hash<Address, threadmap_t *>::entry>;
 class relocatedCode;
 template class dictionary_hash<Address, relocatedCode *>;
 template class pdvector<dictionary_hash<Address, relocatedCode *>::entry>;
+
+template class dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>;
+template class pdvector<dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>::entry>;
 
 class Statistic;
 template class dictionary_hash<pdstring, Statistic *>;

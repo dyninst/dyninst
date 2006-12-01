@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.164 2006/11/14 20:37:14 bernat Exp $
+// $Id: pdwinnt.C,v 1.165 2006/12/01 01:33:25 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -569,6 +569,7 @@ bool SignalGenerator::decodeException(EventRecord &ev)
          Frame af = ev.lwp->getActiveFrame();
          signal_printf("DECODE CRITICAL --  ILLEGAL INSN OR ACCESS VIOLATION\n");
          ev.type = evtCritical;
+		 requested_wait_until_active = true;
          ev.address = (eventAddress_t) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
          ret = true;
          break;
@@ -1957,7 +1958,7 @@ int Emitter32::emitCallParams(codeGen &gen,
           for (unsigned u = 0; u < operands.size(); u++) {
               Register src = REG_NULL;
               Address unused = ADDR_NULL;
-              if (!operands[i]->generateCode_phase2( gen, false, unused, src)) assert(0);
+              if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
               assert(src != REG_NULL);
               srcs.push_back(src);
           }
@@ -1978,7 +1979,7 @@ int Emitter32::emitCallParams(codeGen &gen,
         for (unsigned u = 1; u < operands.size(); u++) {
               Register src = REG_NULL;
               Address unused = ADDR_NULL;
-              if (!operands[i]->generateCode_phase2( gen, false, unused, src)) assert(0);
+              if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
               assert(src != REG_NULL);
               srcs.push_back(src);
         }     
@@ -2012,7 +2013,7 @@ int Emitter32::emitCallParams(codeGen &gen,
         for (unsigned u = 2; u < operands.size(); u++) {
               Register src = REG_NULL;
               Address unused = ADDR_NULL;
-              if (!operands[i]->generateCode_phase2( gen, false, unused, src)) assert(0);
+              if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
               assert(src != REG_NULL);
               srcs.push_back(src);
         }
