@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.253 2006/12/01 01:33:16 legendre Exp $
+ * $Id: inst-x86.C,v 1.254 2006/12/04 23:39:07 legendre Exp $
  */
 #include <iomanip>
 
@@ -147,10 +147,15 @@ void initRegisters()
         instPoint::pessimisticGPRLiveSet_[i] = 0;
     }
 
+   instPoint::pessimisticFPRLiveSet_ = new int[NUM_FPR_REGISTERS];
+   instPoint::optimisticFPRLiveSet_ = new int[NUM_FPR_REGISTERS];
+   for (unsigned i=0; i<NUM_FPR_REGISTERS; i++) {
+      instPoint::pessimisticFPRLiveSet_[i] = 0;
+      instPoint::optimisticFPRLiveSet_[i] = 0;
+   }
 #if defined(arch_x86_64)
     instPoint::optimisticGPRLiveSet64_ = new int[maxGPR];
-    instPoint::pessimisticGPRLiveSet64_ = new int[maxGPR];
-    
+    instPoint::pessimisticGPRLiveSet64_ = new int[maxGPR];    
     // First, initialize to 1 (live)
     for (unsigned i = 0; i < maxGPR; i++) {
         instPoint::optimisticGPRLiveSet64_[i] = 1;
@@ -192,6 +197,13 @@ void initRegisters()
 	optimisticRegSpace64 = registerSpace::optimisticRegSpace_;
 	actualRegSpace64 = registerSpace::actualRegSpace_;
 	savedRegSpace64 = registerSpace::savedRegSpace_;
+
+   instPoint::pessimisticFPRLiveSet64_ = new int[NUM_FPR_REGISTERS];
+   instPoint::optimisticFPRLiveSet64_ = new int[NUM_FPR_REGISTERS];
+   for (unsigned i=0; i<NUM_FPR_REGISTERS; i++) {
+      instPoint::pessimisticFPRLiveSet64_[i] = 0;
+      instPoint::optimisticFPRLiveSet64_[i] = 0;
+   }
 	
 	// Set the right format - 32-bit vs 64-bit
 	if (code_emitter == &emitter32) 
@@ -865,32 +877,31 @@ that it calls, to a certain depth ... at which point we clobber everything*/
 bool Emitter32::clobberAllFuncCall( registerSpace *rs,
                                     process *proc, 
                                     int_function *callee,
-		    int level)
+                                    int level)
 		   
 {
-    if (callee == NULL) return false;
-    InstrucIter ah(callee);
-    
-    //while there are still instructions to check for in the
-    //address space of the function
-    while (ah.hasMore()) 
-        {
-            if (ah.isFPWrite())
-                return true;
-            if (ah.isACallInstruction())
-                {
-                    if (level >= 1)
-                        return true;
-                    else
-                        {
-                            Address callAddr = ah.getCallTarget();
-                            int_function *call = proc->findFuncByAddr(callAddr);
-                            if (call && clobberAllFuncCall(rs, proc, call,level+1))
-                                return true;
-                        }
-                }
-            ah++;
-        }  
+   if (callee == NULL) return false;
+   InstrucIter ah(callee);
+   
+   //while there are still instructions to check for in the
+   //address space of the function
+   while (ah.hasMore()) 
+   {
+      if (ah.isFPWrite())
+         return true;
+      if (ah.isACallInstruction())
+      {
+         if (level >= 1)
+            return true;
+            instPoint *ip = callee->findInstPByAddr(*ah);
+         if (!ip)
+            return true;
+         int_function *call = ip->findCallee();
+         if (!call || clobberAllFuncCall(rs, proc, call, level+1))
+            return true;
+      }
+      ah++;
+   }  
    return false;
 }
 
@@ -2076,10 +2087,10 @@ bool int_basicBlock::initRegisterGenKill()
   int * readRegs = (int *) malloc(sizeof(int)*3);
 
   for (a = 0; a < 3; a++)
-    {
-      writeRegs[a] = readRegs[a] = -1;
-    }
-
+  {
+     writeRegs[a] = readRegs[a] = -1;
+  }
+  
   in = new bitArray;
   in->bitarray_init(maxGPR,in);  
   
@@ -2094,27 +2105,27 @@ bool int_basicBlock::initRegisterGenKill()
 
   InstrucIter ii(this);
   while(ii.hasMore())
-    {
-      ii.readWriteRegisters(readRegs, writeRegs);
-      for (a = 0; a < 3; a++)
-	{
-	  if (readRegs[a] != -1)
-	    {
-	      if (!kill->bitarray_check(readRegs[a],kill))
-		gen->bitarray_set(readRegs[a],gen);
-	      readRegs[a] = -1;
-	    }
-	}
-      for (a = 0; a < 3; a++)
-	{
-	  if (writeRegs[a] != -1)
-	    {
-	      kill->bitarray_set(writeRegs[a],kill);
-	      writeRegs[a] = -1;
-	    }
-	}
-      ii++;
-    }
+  {
+     ii.readWriteRegisters(readRegs, writeRegs);
+     for (a = 0; a < 3; a++)
+     {
+        if (readRegs[a] != -1)
+        {
+           if (!kill->bitarray_check(readRegs[a],kill))
+              gen->bitarray_set(readRegs[a],gen);
+           readRegs[a] = -1;
+        }
+     }
+     for (a = 0; a < 3; a++)
+     {
+        if (writeRegs[a] != -1)
+        {
+           kill->bitarray_set(writeRegs[a],kill);
+           writeRegs[a] = -1;
+        }
+     }
+     ii++;
+  }
   
   free(readRegs);
   free(writeRegs);

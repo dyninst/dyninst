@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.37 2006/12/01 01:33:13 legendre Exp $
+ * $Id: emit-x86.C,v 1.38 2006/12/04 23:39:06 legendre Exp $
  */
 
 #include <assert.h>
@@ -1175,16 +1175,15 @@ bool Emitter64::clobberAllFuncCall( registerSpace *rs,
         {
             if (ah.isFPWrite())
                 return true;
-            if (ah.isACallInstruction()){
+            if (ah.isACallInstruction()) {
                 if (level >= 1)
                     return true;
-                else
-                    {
-                        Address callAddr = ah.getCallTarget();
-                        int_function *call = proc->findFuncByAddr(callAddr);
-                        if (call && clobberAllFuncCall(rs, proc, call, level+1))
-                            return true;
-                    }
+		instPoint *ip = callee->findInstPByAddr(*ah);
+		if (!ip)
+		  return true;
+		int_function *call = ip->findCallee();
+		if (!call || clobberAllFuncCall(rs, proc, call, level+1))
+		    return true;
             }
             ah++;
         }
