@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.54 2006/11/22 04:03:00 bernat Exp $
+// $Id: arch-ia64.C,v 1.55 2006/12/05 20:18:35 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -712,6 +712,23 @@ void initBaseTrampStorageMap( registerSpace *regSpace, int sizeOfFrame, bool *us
 
 extern bool *doFloatingPointStaticAnalysis( const instPoint * );
 
+/* Private refactoring function. */
+void extractAllocatedRegistersFromBasicBlock( const instPoint * location, int_function * pdf, int_basicBlock * allocBlock, uint64_t * locals, uint64_t * outputs, uint64_t * rotates ) {
+	/* We could probably extract pdf from allocBlock, but whatever. */
+	Address encodedAddress = allocBlock->origInstance()->firstInsnAddr();
+	unsigned short slotNumber = encodedAddress % 16;
+	Address alignedOffset = encodedAddress - pdf->getAddress() - slotNumber;
+			
+	Address fnEntryOffset = pdf->getAddress();
+	Address fnEntryAddress = (Address)location->proc()->getPtrToInstruction(fnEntryOffset);
+	assert( fnEntryAddress % 16 == 0 );
+	const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;
+	IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];
+
+	extractAllocatedRegisters( allocBundle.getInstruction( slotNumber )->getMachineCode(),
+		locals, outputs, rotates );
+	} /* end extractAllocatedRegistersFromBasicBlock */
+
 registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location, 
 									  Register * deadRegisterList) {
 	/* If no alloc's definition reaches the instPoint _location_, create a base tramp
@@ -850,25 +867,46 @@ registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location,
 
 			/* Our static analysis succeeded. */
 			} break;
+
+		default: {
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: more than one (%d) allocs reached.\n", __FILE__, __LINE__, numAllocs );
+			
+			/* If all the reaching allocs are the same, we fall through to
+			   the single-reaching-alloc case rather than duplicate code. */
+			success = true;
+			
+			int_basicBlock * firstAlloc = * reachingAllocs->begin();
+			uint64_t firstLocals, firstOutputs, firstRotates;
+			extractAllocatedRegistersFromBasicBlock( location, pdf, firstAlloc,
+				& firstLocals, & firstOutputs, & firstRotates );
+			
+			BPatch_Set< int_basicBlock * >::iterator iter = reachingAllocs->begin();
+			for( int i = 0; i < numAllocs; ++i, iter++ ) {
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: alloc at 0x%lx\n", __FILE__, __LINE__, (* iter)->origInstance()->firstInsnAddr() );
+				
+				uint64_t locals, outputs, rotates;
+				extractAllocatedRegistersFromBasicBlock( location, pdf, * iter, & locals, & outputs, & rotates );
+				if( locals != firstLocals || outputs != firstOutputs || rotates != firstRotates ) {
+					success = false;
+					break;
+					}
+				} /* end iteration over reaching allocs. */
+			
+			if( ! success ) {
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: allocs reaching 0x%lx are dissimilar.\n", __FILE__, __LINE__, location->addr() );
+				break;
+				} else {
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: all allocs reaching 0x%lx are the same.\n", __FILE__, __LINE__, location->addr() );
+				}
+			}
 			
 		case 1: {			
 			/* Where is our alloc instruction?  We need to have a look at it... */
 			int_basicBlock * allocBlock = * reachingAllocs->begin();
 			// /* DEBUG */ fprintf( stderr, "%s[%d]: reaching alloc at 0x%lx\n", __FILE__, __LINE__, allocBlock->origInstance()->firstInsnAddr() );
 			
-			Address encodedAddress = allocBlock->origInstance()->firstInsnAddr();
-			unsigned short slotNumber = encodedAddress % 16;
-			Address alignedOffset = encodedAddress - pdf->getAddress() - slotNumber;
-			
-			Address fnEntryOffset = pdf->getAddress();
-			Address fnEntryAddress = (Address)location->proc()->getPtrToInstruction(fnEntryOffset);
-			assert( fnEntryAddress % 16 == 0 );
-			const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;
-			IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];
-
-			/* ... so we find out what the frame it generates looks like... */
 			uint64_t allocatedLocals, allocatedOutputs, allocatedRotates;
-			extractAllocatedRegisters( allocBundle.getInstruction( slotNumber )->getMachineCode(),
+			extractAllocatedRegistersFromBasicBlock( location, pdf, allocBlock,
 				& allocatedLocals, & allocatedOutputs, & allocatedRotates );
 			uint64_t sizeOfFrame = allocatedLocals + allocatedOutputs;
 
@@ -898,10 +936,6 @@ registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location,
 			/* Our static analysis succeeded. */
 			} break;
 			
-		default:
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: more than one (%d) allocs reached.\n", __FILE__, __LINE__, numAllocs );
-			success = false;
-			break;
 		} /* end #-of-dominating-allocs switch */
 
 	/* Regardless, clean up. */
