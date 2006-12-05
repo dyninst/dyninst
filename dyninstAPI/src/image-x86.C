@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.19 2006/04/21 18:57:00 nater Exp $
+ * $Id: image-x86.C,v 1.20 2006/12/05 21:44:35 rutar Exp $
  */
 
 #include "common/h/Vector.h"
@@ -419,4 +419,25 @@ bool image_func::archIsIndirectTailCall(InstrucIter &ah)
 bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
 {
     return ah.isAnAbortInstruction();
+}
+
+bool image_func::usedRegs()
+{
+  if (leafFunc == LEAF_UNKNOWN_FUNC)
+    {
+      containsFPWrites = false;
+      leafFunc = LEAF_FUNC;
+      InstrucIter ah(this);
+      while (ah.hasMore())
+	{
+	  if (ah.isFPWrite())
+	    containsFPWrites = true;
+	  if (ah.isACallInstruction())
+	    leafFunc = NO_LEAF_FUNC;
+	}
+    }
+  if (leafFunc == LEAF_FUNC)
+    return containsFPWrites; 
+  else
+    return true;
 }

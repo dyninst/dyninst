@@ -222,6 +222,22 @@ InstrucIter::InstrucIter( Address addr, unsigned size, process *proc) :
     initializeInsn();
 }
 
+
+InstrucIter::InstrucIter (image_func *func) :
+    proc_(NULL),
+    img_(func->img()),
+    base(func->getOffset()),
+    range(func->get_size_cr()), // Probably in the middle of
+    // parsing, so calling getSize is
+    // a bad idea as it may
+    // trigger... parsing.
+    current(base) {
+    assert(current >= base);
+    initializeInsn();
+}
+
+
+
 // Used in parsing -- relative addrs
 InstrucIter::InstrucIter(Address current, image_func *func) :
     proc_(NULL),

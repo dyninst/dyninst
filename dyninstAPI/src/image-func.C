@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.36 2006/07/17 22:46:31 legendre Exp $
+// $Id: image-func.C,v 1.37 2006/12/05 21:44:35 rutar Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -138,9 +138,11 @@ image_func::image_func(const pdstring &symbol,
   usedFPregs(NULL),
 #endif
   instLevel_(NORMAL),
+  leafFunc(LEAF_UNKNOWN_FUNC),
   canBeRelocated_(true),
   needsRelocation_(false),
   originalCode(NULL),
+  usedRegisters(NULL),
   o7_live(false),
   bl_is_sorted(false)
 {
@@ -161,6 +163,7 @@ image_func::image_func(const pdstring &symbol,
 
 image_func::~image_func() { 
   /* TODO */ 
+  delete usedRegisters;
 }
 
 // Two-copy version... can't really do better.
@@ -1242,4 +1245,3 @@ image_basicBlock * image_func::entryBlock() {
     if (!parsed_) image_->analyzeIfNeeded();
     return entryBlock_;
 }
-

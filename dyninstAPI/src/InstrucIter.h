@@ -152,6 +152,7 @@ class InstrucIter {
     // Used in parsing -- relative addrs. Goes over the func linearly,
     // which may be a spectacularly bad idea.
     InstrucIter (Address start, image_func *func);
+    InstrucIter (image_func *func );
 
     InstrucIter (image_basicBlock *b);
     
@@ -225,7 +226,8 @@ class InstrucIter {
    * @param addr the value that handle will be set to
    */
   void setCurrentAddress(Address);
-
+  Address getCurrentAddress(){return current;}
+  
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0)

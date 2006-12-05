@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.21 2006/12/01 01:33:14 legendre Exp $
+ * $Id: emit-x86.h,v 1.22 2006/12/05 21:44:35 rutar Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -101,7 +101,7 @@ public:
     void emitStore(Address addr, Register src, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
-    bool clobberAllFuncCall(registerSpace *rs, process *proc, int_function *callee, int level);
+    bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, codeGen &gen,
                       const pdvector<AstNode *> &operands,
@@ -180,7 +180,7 @@ public:
     void emitStore(Address addr, Register src, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
-    bool clobberAllFuncCall(registerSpace *rs, process *proc, int_function *callee, int level);
+    bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, codeGen &gen,
                       const pdvector<AstNode *> &operands,

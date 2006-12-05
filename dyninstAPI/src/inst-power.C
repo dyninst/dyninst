@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.254 2006/11/22 04:03:17 bernat Exp $
+ * $Id: inst-power.C,v 1.255 2006/12/05 21:44:35 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -1238,45 +1238,43 @@ void cleanUpAndExit(int status);
 
 /* Recursive function that goes to where our instrumentation is calling
 to figure out what registers are clobbered there, and in any function
-that it calls, to a certain depth ... at which point we clobber everything*/
+that it calls, to a certain depth ... at which point we clobber everything
+
+Update-12/06, njr, since we're going to a cached system we are just going to 
+look at the first level and not do recursive, since we would have to also
+store and reexamine every call out instead of doing it on the fly like before*/
 bool clobberAllFuncCall( registerSpace *rs,
-                         process *, 
-                         int_function * callee,
-                         int level)
+                         int_function * callee)
 		   
 {
-    if (!callee) return true;
+  if (!callee) return true;
 
-    InstrucIter ah(callee);
-    
-    //while there are still instructions to check for in the
-    //address space of the function
-    
-    while (ah.hasMore()) {
-        
-        if (ah.isA_RT_WriteInstruction())
-            rs->clobberRegister(ah.getRTValue());
-        if (ah.isA_RA_WriteInstruction())
-            rs->clobberRegister(ah.getRAValue());
-        if (ah.isA_FRT_WriteInstruction())
-            rs->clobberFPRegister(ah.getRTValue());
-        if (ah.isA_FRA_WriteInstruction())
-            rs->clobberFPRegister(ah.getRAValue());
-        if (ah.isACallInstruction()){
-            if (level >= 0)
-                return true;
-            else
-                {
-                    //TODO:  Implement getCallTarget for Power
-                    //Address callAddr = ah.getCallTarget();
-                    //if (clobberAllFuncCall(rs,proc,callAddr, level+1))
-                    // return true;
-                }
-        }
-        
-        ah++;
+
+  /* usedRegs does calculations if not done before and returns
+     whether or not the callee is a leaf function.
+     if it is, we use the register info we gathered,
+     otherwise, we punt and save everything */
+  bool isLeafFunc = callee->ifunc()->usedRegs();
+  
+
+  if (isLeafFunc)
+    {
+      std::set<Register> * gprs = callee->ifunc()->usedGPRs();
+      std::set<Register>::iterator It = gprs->begin();
+      while (It != gprs->end()){
+	rs->clobberRegister(*(It++));
+      }
+      
+      std::set<Register> * fprs = callee->ifunc()->usedFPRs();
+      std::set<Register>::iterator It2 = fprs->begin();
+      while (It2 != fprs->end()){
+	rs->clobberRegister(*(It2++));
+      }
+      return false;
     }
-    return false;
+  else
+    return true;
+
 }
 
 
@@ -1519,8 +1517,8 @@ Register emitFuncCall(opCode /* ocode */,
 
    // Linear Scan on the functions to see which registers get clobbered
      
-   //clobberAll = clobberAllFuncCall(gen.rs(), gen.proc(), callee, 0);
-   clobberAll = true; // Speed kills...
+   clobberAll = clobberAllFuncCall(gen.rs(), callee);
+   //clobberAll = true; // Speed kills...
 
    /////////////// Clobber the registers if needed
 

@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.38 2006/12/04 23:39:06 legendre Exp $
+ * $Id: emit-x86.C,v 1.39 2006/12/05 21:44:35 rutar Exp $
  */
 
 #include <assert.h>
@@ -1158,36 +1158,23 @@ void Emitter64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 
 /* Recursive function that goes to where our instrumentation is calling
 to figure out what registers are clobbered there, and in any function
-that it calls, to a certain depth ... at which point we clobber everything*/
+that it calls, to a certain depth ... at which point we clobber everything
+
+Update-12/06, njr, since we're going to a cached system we are just going to 
+look at the first level and not do recursive, since we would have to also
+store and reexamine every call out instead of doing it on the fly like before*/
 bool Emitter64::clobberAllFuncCall( registerSpace *rs,
-		   process *proc, 
-		   int_function *callee,
-		    int level)
+				    int_function *callee)
 		   
 {
     if (callee == NULL) return false;
-    InstrucIter ah(callee);
-    
-    //while there are still instructions to check for in the
-    //address space of the function
-    
-    while (ah.hasMore()) 
-        {
-            if (ah.isFPWrite())
-                return true;
-            if (ah.isACallInstruction()) {
-                if (level >= 1)
-                    return true;
-		instPoint *ip = callee->findInstPByAddr(*ah);
-		if (!ip)
-		  return true;
-		int_function *call = ip->findCallee();
-		if (!call || clobberAllFuncCall(rs, proc, call, level+1))
-		    return true;
-            }
-            ah++;
-        }
-   return false;
+
+  /* This will calculate the values if the first time around, otherwise
+     will check preparsed, stored values.
+     True - FP Writes are present
+     False - No FP Writes
+  */
+    return callee->ifunc()->usedRegs();
 }
 
 
@@ -1256,7 +1243,7 @@ Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> 
     emitMovRegToReg64(ret, REGNUM_EAX, true, gen);
 
     // Figure out if we need to save FPR in base tramp
-    bool useFPR = clobberAllFuncCall(gen.rs(), gen.proc(), callee, 0);
+    bool useFPR = clobberAllFuncCall(gen.rs(), callee);
 
     if (gen.point() != NULL)
         setFPSaveOrNot(gen.point()->liveFPRegisters(), useFPR);

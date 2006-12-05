@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.23 2006/10/10 22:03:57 bernat Exp $
+// $Id: image-func.h,v 1.24 2006/12/05 21:44:35 rutar Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -52,6 +52,7 @@
 #include "arch.h" // instruction
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "common/h/Dictionary.h"
+#include <set>
 
 class pdmodule;
 class InstrucIter;
@@ -63,6 +64,12 @@ class image_instPoint;
 // Added support for typed edges 12.Oct.2005 -- nate
 class image_edge;
 
+enum LeafTypeEnum {
+  NO_LEAF_FUNC,
+  LEAF_FUNC,
+  LEAF_UNKNOWN_FUNC
+};
+   
 enum EdgeTypeEnum {
    ET_CALL,
    ET_COND_TAKEN,
@@ -253,6 +260,15 @@ bool isRealCall(instruction insn,
 
 class AstNode; // For IA-64
 
+
+class image_func_registers {
+ public:
+  std::set<Register> generalPurposeRegisters;
+  std::set<Register> floatingPointRegisters;
+  std::set<Register> specialPurposeRegisters;
+};
+
+
 // Parse-level function object. Knows about offsets, names, and suchlike; 
 // does _not_ do function relocation.
 class image_func : public codeRange {
@@ -268,6 +284,7 @@ class image_func : public codeRange {
    
 
    ~image_func();
+
 
    ////////////////////////////////////////////////
    // Basic output functions
@@ -386,8 +403,8 @@ class image_func : public codeRange {
     bool archIsRealCall(InstrucIter &ah, bool &validTarget, bool &simulateJump);
     bool archCheckEntry(InstrucIter &ah, image_func *func );
     void archInstructionProc(InstrucIter &ah);
-
-
+    
+   
    ////////////////////////////////////////////////
    // Instpoints!
    ////////////////////////////////////////////////
@@ -467,6 +484,13 @@ class image_func : public codeRange {
 
    bool parsed() { return parsed_; }
 
+   bool usedRegs();/* Does one time calculation of registers used in a function, if called again
+		      it just refers to the stored values and returns that */
+   bool isLeafFunc() {return leafFunc;}
+   std::set<Register> * usedGPRs() { return &(usedRegisters->generalPurposeRegisters);}
+   std::set<Register> * usedFPRs() { return &(usedRegisters->floatingPointRegisters);}
+   bool writesFP() {return containsFPWrites;} 
+
  private:
 
    ///////////////////// Basic func info
@@ -480,6 +504,11 @@ class image_func : public codeRange {
    image *image_;
    bool parsed_;                /* Set to true in findInstPoints */
    bool cleansOwnStack_;
+
+   /////  Variables for liveness Analysis
+   image_func_registers * usedRegisters;// container class for all the registers the function uses
+   bool containsFPWrites;   // does this function have floating point write instructions
+   bool leafFunc;    // Is this functiona a leaf function
 
 
    ///////////////////// CFG and function body
@@ -508,6 +537,8 @@ class image_func : public codeRange {
    image_func * FindOrCreateFunc(Address target,
         pdvector< Address >& callTargets,
         dictionary_hash< Address, image_func * >& preParseStubs);
+
+
 
    
    ///////////////////// Instpoints 
