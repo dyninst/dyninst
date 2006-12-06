@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.257 2006/12/06 21:22:37 bernat Exp $
+ * $Id: inst-power.C,v 1.258 2006/12/06 22:35:11 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -3001,6 +3001,7 @@ int int_basicBlock::liveSPRegistersIntoSet(instPoint *iP,
 {
    if (iP->hasSpecializedSPRegisters()) return 0;
 
+   stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
 
     int *liveSPReg = new int[1]; // only care about MQ for Power for now
     liveSPReg[0] = 0;
@@ -3016,7 +3017,9 @@ int int_basicBlock::liveSPRegistersIntoSet(instPoint *iP,
     }
 
     iP->actualSPRLiveSet_ = liveSPReg;
-	return 1;
+    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+
+    return 1;
 }
 
 
@@ -3032,7 +3035,8 @@ int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
 
   if (iP->hasSpecializedGPRegisters()) return 0;
 
-  
+  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
+
   int *liveReg = new int[maxGPR];
   int *liveFPReg = new int[maxFPR];
   
@@ -3090,5 +3094,6 @@ int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
   iP->actualFPRLiveSet_ = liveReg;
 
   //printf("\n");
+  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
   return numLive;
 }
