@@ -94,11 +94,9 @@ private:
     static
     void     get_current (double &, double &, double &);
 
-    enum timer_state { STOPPED, RUNNING };
-
     double      usecs_, ssecs_, wsecs_;
     double      cu_, cs_, cw_;
-    timer_state state_;
+    unsigned activation_count_;
 
      const double CYCLES_PER_SEC_;
      const double MICROSECS_PER_SEC_;

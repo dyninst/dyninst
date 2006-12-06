@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Timer.C,v 1.15 2005/02/24 10:14:44 rchen Exp $
+// $Id: Timer.C,v 1.16 2006/12/06 21:17:01 bernat Exp $
 
 #include "common/h/Timer.h"
 
 timer::timer()
 : usecs_(0), ssecs_(0), wsecs_(0), cu_(0), cs_(0), cw_(0),
-  state_(STOPPED),
+  activation_count_(0),
 #if defined(i386_unknown_nt4_0) \
  || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
   CYCLES_PER_SEC_(CLK_TCK), // TODO: is this right?
@@ -59,7 +59,7 @@ timer::timer()
 
 timer::timer(const timer& t)
     : usecs_(t.usecs_), ssecs_(t.ssecs_), wsecs_(t.wsecs_),
-    cu_(t.cu_), cs_(t.cs_), cw_(t.cw_), state_(t.state_),
+    cu_(t.cu_), cs_(t.cs_), cw_(t.cw_), activation_count_(t.activation_count_),
     CYCLES_PER_SEC_(t.CYCLES_PER_SEC_), MICROSECS_PER_SEC_(t.MICROSECS_PER_SEC_),
     NANOSECS_PER_SEC_(t.NANOSECS_PER_SEC_)
 {
@@ -72,7 +72,7 @@ timer::operator=(const timer& t) {
     if (this != &t) {
         usecs_ = t.usecs_; ssecs_ = t.ssecs_; wsecs_ = t.wsecs_;
         cu_    = t.cu_;    cs_    = t.cs_;    cw_    = t.cw_;
-        state_ = t.state_;
+        activation_count_ = t.activation_count_;
     }
     return *this;
 }
@@ -96,25 +96,27 @@ void
 timer::clear() {
     usecs_ = ssecs_ = wsecs_ = 0;
     cu_    = cs_    = cw_    = 0;
-    state_ = STOPPED;
+    activation_count_ = 0;
 }
 
 void
 timer::start() {
-    get_current(cu_, cs_, cw_);
-    state_ = RUNNING;
+    if (activation_count_ == 0)
+        get_current(cu_, cs_, cw_);
+    activation_count_++;
 }
 
 void
 timer::stop() {
-    if (state_ == RUNNING) {
+    assert(activation_count_ > 0);
+    activation_count_--;
+    if (activation_count_ == 0) {
         double cu, cs, cw;
         get_current(cu, cs, cw);
-
+        
         usecs_ += (cu - cu_);
         ssecs_ += (cs - cs_);
         wsecs_ += (cw - cw_);
-        state_ = STOPPED;
     }
 }
 
@@ -135,28 +137,8 @@ timer::wsecs() const {
 
 bool
 timer::is_running() const {
-    return (state_ == RUNNING);
+    return (activation_count_ > 0);
 }
-
-#if defined(notdef)
-void
-timer::print(ostream& os) {
-    timer_state ostate = state_;
-    if (ostate == RUNNING) {
-        stop();
-    }
-
-    os << "{"
-       << " usecs=" << usecs_
-       << " ssecs=" << ssecs_
-       << " wsecs=" << wsecs_
-       << " }";
-
-    if (ostate == RUNNING) {
-        start();
-    }
-}
-#endif
 
 
 
