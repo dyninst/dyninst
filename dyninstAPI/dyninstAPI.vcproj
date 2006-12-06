@@ -151,7 +151,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\api_showerror.C">
+				RelativePath=".\src\debug.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -1823,7 +1823,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\saveSharedLibrary.h">
 			</File>
 			<File
-				RelativePath=".\src\showerror.h">
+				RelativePath=".\src\debug.h">
 			</File>
 			<File
 				RelativePath=".\src\signalgenerator-winnt.h">
