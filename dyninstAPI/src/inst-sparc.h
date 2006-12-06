@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.67 2006/11/22 04:03:15 bernat Exp $
+// $Id: inst-sparc.h,v 1.68 2006/12/06 21:23:41 bernat Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -57,7 +57,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/as-sparc.h"
 #include "dyninstAPI/src/instP.h"
 

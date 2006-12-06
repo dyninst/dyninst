@@ -62,7 +62,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.C"
 
 #include "dyninstAPI/src/dyn_thread.h" // get_index
 #include "dyninstAPI/src/arch-ia64.h"
