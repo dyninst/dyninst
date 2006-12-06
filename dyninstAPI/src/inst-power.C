@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.256 2006/12/06 21:17:28 bernat Exp $
+ * $Id: inst-power.C,v 1.257 2006/12/06 21:22:37 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -58,7 +58,7 @@
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/instPoint.h" // class instPoint
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "common/h/debugOstream.h"
 #include "dyninstAPI/src/InstrucIter.h"
 #include "dyninstAPI/src/rpcMgr.h"
