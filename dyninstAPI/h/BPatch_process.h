@@ -137,7 +137,7 @@ public:
 };
 
 typedef struct {
-  BPatch_snippet *snip;
+  BPatch_snippet snip;
   BPatchSnippetHandle *sh;
   BPatch_thread *thread;
 } BPatch_catchupInfo;
