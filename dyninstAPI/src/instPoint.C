@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.32 2006/12/01 01:33:19 legendre Exp $
+// $Id: instPoint.C,v 1.33 2006/12/06 21:17:31 bernat Exp $
 // instPoint code
 
 
@@ -51,7 +51,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
@@ -65,6 +65,8 @@
 // For 32/64-bit mode knowledge
 #include "dyninstAPI/src/emit-x86.h"
 #endif
+
+#include "dyninstAPI/src/stats.h"
 
 unsigned int instPointBase::id_ctr = 1;
 
@@ -361,7 +363,6 @@ miniTramp *instPoint::instrument(AstNode *ast,
                                  callOrder order,
                                  bool trampRecursive,
                                  bool noCost) {
-    
     miniTramp *mini = addInst(ast, when, order, trampRecursive, noCost);
     if (!mini) {
         cerr << "instPoint::instrument: failed addInst, ret NULL" << endl;
@@ -399,6 +400,8 @@ miniTramp *instPoint::instrument(AstNode *ast,
 // will fail, and that's 'bad'. So we now return true if anyone succeeded.
 
 bool instPoint::generateInst() {
+    stats_instru.startTimer(INST_GENERATE_TIMER);
+    stats_instru.incrementCounter(INST_GENERATE_COUNTER);
     updateInstances();
 
     bool success = false;
@@ -407,17 +410,21 @@ bool instPoint::generateInst() {
         bool ret = instances[i]->generateInst();
         if (ret) success = true;
     }
+    stats_instru.stopTimer(INST_GENERATE_TIMER);
     return success;
 }
 
 // See above return value comment...
 
 bool instPoint::installInst() {
+    stats_instru.startTimer(INST_INSTALL_TIMER);
+    stats_instru.incrementCounter(INST_INSTALL_COUNTER);
     bool success = false;
     for (unsigned i = 0; i < instances.size(); i++) {
         bool ret = instances[i]->installInst();
         if (ret) success = true;
     }
+    stats_instru.stopTimer(INST_INSTALL_TIMER);
     return success;
 }
 
@@ -464,11 +471,15 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs)
 
 bool instPoint::linkInst() {
     bool success = false;
+    stats_instru.startTimer(INST_LINK_TIMER);
+    stats_instru.incrementCounter(INST_LINK_COUNTER);
 
     for (unsigned i = 0; i < instances.size(); i++) {
         bool ret = instances[i]->linkInst();
         if (ret) success = true;
     }
+    stats_instru.stopTimer(INST_LINK_TIMER);
+    
     return success;
 }
 

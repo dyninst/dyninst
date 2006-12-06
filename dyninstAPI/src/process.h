@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.395 2006/11/30 23:12:48 bernat Exp $
+/* $Id: process.h,v 1.396 2006/12/06 21:17:43 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -62,12 +62,12 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/inst.h" // callWhen
 #include "dyninstAPI/src/frame.h"
-#include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/imageUpdate.h"
 #include "dyninstAPI/src/infHeap.h"
 
+#include "debug.h"
 
 // Annoying... Solaris has two /proc header files, one for the
 // multiple-FD /proc and one for an ioctl-based compatibility /proc.

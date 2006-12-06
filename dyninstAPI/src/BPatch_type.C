@@ -49,7 +49,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_typePrivate.h"
 #include "BPatch_collections.h"
-#include "showerror.h"
+#include "debug.h"
 #include "BPatch_function.h"
 #include "BPatch.h"
 

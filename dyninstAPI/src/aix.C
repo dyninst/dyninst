@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.226 2006/11/22 04:02:59 bernat Exp $
+// $Id: aix.C,v 1.227 2006/12/06 21:17:13 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -79,7 +79,7 @@
 
 #include "writeBackXCOFF.h"
 
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "common/h/debugOstream.h"
 
 extern "C" {

@@ -52,7 +52,7 @@
 #include "BPatch_collections.h"
 #include "BPatch_typePrivate.h"
 #include "BPatch_function.h"
-#include "showerror.h"
+#include "debug.h"
 #include "Object.h" // For looking up compiler type
 
 extern pdstring current_func_name;

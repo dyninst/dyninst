@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.12 2006/12/05 21:44:35 rutar Exp $
+// $Id: image-power.C,v 1.13 2006/12/06 21:17:25 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -54,7 +54,7 @@
 #include "symtab.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "InstrucIter.h"
-#include "showerror.h"
+#include "debug.h"
 #include "arch.h"
 
 // Not used on power

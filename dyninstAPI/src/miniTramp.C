@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.34 2006/12/01 01:33:23 legendre Exp $
+// $Id: miniTramp.C,v 1.35 2006/12/06 21:17:38 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -71,6 +71,7 @@ int miniTramp::_id = 1;
  *
  */
 
+
 // returns true if deleted, false if not deleted (because non-existant
 // or already deleted
 bool miniTramp::uninstrument() {
@@ -83,49 +84,56 @@ bool miniTramp::uninstrument() {
   
   // Better fix: figure out why we're double-deleting instrCodeNodes.
 
-    if (!proc()->isAttached())
+    if (!proc()->isAttached()) {
         return true;
+    }
 
-  if (deleteInProgress)
-    return false;
+    if (deleteInProgress) {
+        return false;
+    }
 
-  deleteInProgress = true;
+    
+    stats_instru.startTimer(INST_REMOVE_TIMER);
+    stats_instru.incrementCounter(INST_REMOVE_COUNTER);
 
-  // We do next so that it's definitely fixed before we call
-  // correctBTJumps below.
-  if (next) {
-      next->prev = prev;
-  }
-  else {
-      // Like above, except last
-      baseT->lastMini = prev;
-  }
-
-  if (prev) {
-      prev->next = next; 
-  }
-  else {
-      // We're first, so clean up the base tramp
-      baseT->firstMini = next;
-      // Correcting of jumps will be handled by removeCode calls
-  }
-
-  
-  // DON'T delete the miniTramp. When it is deleted, the callback
-  // is made... which should only happen when the memory is freed.
-  // Place it on the list to be deleted.
-  topDownDelete_ = true;
-  for (unsigned i = 0; i < instances.size(); i++)
-      instances[i]->removeCode(NULL);
-  // When all instances are successfully deleted, the miniTramp
-  // will be deleted as well.
-  
-  if(BPatch::bpatch->baseTrampDeletion())
-      {
-          baseT->deleteIfEmpty();
+    deleteInProgress = true;
+    
+    // We do next so that it's definitely fixed before we call
+    // correctBTJumps below.
+    if (next) {
+        next->prev = prev;
+    }
+    else {
+        // Like above, except last
+        baseT->lastMini = prev;
+    }
+    
+    if (prev) {
+        prev->next = next; 
+    }
+    else {
+        // We're first, so clean up the base tramp
+        baseT->firstMini = next;
+        // Correcting of jumps will be handled by removeCode calls
+    }
+    
+    
+    // DON'T delete the miniTramp. When it is deleted, the callback
+    // is made... which should only happen when the memory is freed.
+    // Place it on the list to be deleted.
+    topDownDelete_ = true;
+    for (unsigned i = 0; i < instances.size(); i++)
+        instances[i]->removeCode(NULL);
+    // When all instances are successfully deleted, the miniTramp
+    // will be deleted as well.
+    
+    if(BPatch::bpatch->baseTrampDeletion())
+        {
+            baseT->deleteIfEmpty();
       }
-
-  return true;
+    
+    stats_instru.stopTimer(INST_REMOVE_TIMER);
+    return true;
 }
 
 void miniTramp::deleteMTI(miniTrampInstance *mti) {

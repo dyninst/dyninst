@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: reloc-x86.C,v 1.2 2006/07/07 00:01:08 jaw Exp $
+ * $Id: reloc-x86.C,v 1.3 2006/12/06 21:17:46 bernat Exp $
  */
 
 /* x86 */
@@ -60,7 +60,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"

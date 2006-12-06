@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.32 2006/12/01 01:33:20 legendre Exp $
+// $Id: instPoint.h,v 1.33 2006/12/06 21:17:32 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -50,6 +50,7 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/arch.h" // instruction
 #include "dyninstAPI/src/codeRange.h"
+#include "dyninstAPI/src/stats.h"
 
 class image_func;
 class int_function;
@@ -499,6 +500,9 @@ class BPatch_thread;
 class BPatchSnippetHandle;
 class BPatch_point;
 class BPatch_snippet;
+
+#include "BPatch_snippet.h"
+
 // TODO: this is bpatch-specific, move to BPatch_private.h?
 struct batchInsertionRecord {
     // Thread-specific instru
@@ -508,7 +512,7 @@ struct batchInsertionRecord {
     // This has to be vectorized to handle the multiple-point insertion + edges.
     pdvector<callWhen> when_;
     callOrder order_;
-    BPatch_snippet *snip;
+    BPatch_snippet snip; // Make a copy so that the user doesn't have to.
     BPatchSnippetHandle *handle_; // handle to fill in
 
     bool trampRecursive_;

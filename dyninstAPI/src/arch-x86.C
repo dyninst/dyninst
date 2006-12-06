@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.69 2006/12/01 01:33:08 legendre Exp $
+// $Id: arch-x86.C,v 1.70 2006/12/06 21:17:16 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -53,7 +53,7 @@
 #include "common/h/Types.h"
 #include "arch.h"
 #include "util.h"
-#include "showerror.h"
+#include "debug.h"
 #include "InstrucIter.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "process.h"

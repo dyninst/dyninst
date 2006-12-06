@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.64 2006/11/30 23:12:46 bernat Exp $
+// $Id: multiTramp.C,v 1.65 2006/12/06 21:17:39 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1125,6 +1125,7 @@ bool multiTramp::installCode() {
         bool success = proc()->writeTextSpace((void *)trampAddr_,
                                               trampSize_,
                                               generatedMultiT_.start_ptr());
+
         if( success ) {
             proc()->addCodeRange(this);
 #if defined( cap_unwind )

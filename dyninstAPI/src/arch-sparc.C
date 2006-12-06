@@ -41,14 +41,14 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.17 2006/11/10 16:28:44 bernat Exp $
+ * $Id: arch-sparc.C,v 1.18 2006/12/06 21:17:15 bernat Exp $
  */
 
 #include "common/h/Types.h"
 #include "arch-sparc.h"
 #include "inst-sparc.h"
 #include "util.h"
-#include "showerror.h"
+#include "debug.h"
 #include "InstrucIter.h"
 #include "process.h"
 

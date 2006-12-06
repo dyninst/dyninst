@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.39 2006/12/05 21:44:35 rutar Exp $
+ * $Id: emit-x86.C,v 1.40 2006/12/06 21:17:20 bernat Exp $
  */
 
 #include <assert.h>
@@ -50,7 +50,7 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/process.h"
 
@@ -333,7 +333,7 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
 {
 
     // These crank the saves forward
-    emitSimpleInsn(PUSHFD, gen);
+    //emitSimpleInsn(PUSHFD, gen);
     emitSimpleInsn(PUSHAD, gen);
     // For now, we'll do all saves then do the guard. Could inline
     // Return addr for stack frame walking; for lack of a better idea,
@@ -418,7 +418,7 @@ bool Emitter32::emitBTRestores(baseTramp* bt, codeGen &gen)
     if (bt->rpcMgr_ == NULL)
 	emitSimpleInsn(POP_EAX, gen);
     emitSimpleInsn(POPAD, gen);
-    emitSimpleInsn(POPFD, gen);
+    //emitSimpleInsn(POPFD, gen);
     return true;
 }
 

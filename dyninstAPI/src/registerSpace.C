@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.8 2006/12/01 01:33:26 legendre Exp $
+// $Id: registerSpace.C,v 1.9 2006/12/06 21:17:44 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -48,7 +48,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
@@ -79,8 +79,6 @@
 #elif defined(ia64_unknown_linux2_4) /* Why is this done here, instead of, e.g., inst.h? */
 #include "dyninstAPI/src/inst-ia64.h"
 #endif
-
-#include "showerror.h"
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
 registerSpace *registerSpace::conservativeRegSpace_ = NULL;
@@ -388,7 +386,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
                                          bool noCost) 
 {
     Register reg = getScratchRegister(gen, noCost);
-	if (reg == REG_NULL) return REG_NULL;
+    if (reg == REG_NULL) return REG_NULL;
 
     // Argh stupid iteration
     for (unsigned i = 0; i < registers.size(); i++) {

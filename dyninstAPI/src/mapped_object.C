@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.16 2006/04/27 02:09:49 bernat Exp $
+// $Id: mapped_object.C,v 1.17 2006/12/06 21:17:37 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/String.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "process.h"
 
 #define FS_FIELD_SEPERATOR '/'

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.27 2006/10/16 20:17:25 bernat Exp $
+ * $Id: image-flowGraph.C,v 1.28 2006/12/06 21:17:22 bernat Exp $
  */
 
 #include <stdio.h>
@@ -54,7 +54,7 @@
 #include "dyninstAPI/src/Object.h"
 #include <fstream>
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 
 #include "dyninstAPI/src/InstrucIter.h"
 
@@ -87,6 +87,8 @@ bool image::analyzeImage()
   gettimeofday(&starttime, NULL);
 #endif
 
+  stats_parse.startTimer(PARSE_ANALYZE_TIMER);
+
     // TODO: remove arch_x86 from here - it's just for testing
 #if defined(arch_x86_64) || defined(arch_x86)
     ia32_set_mode_64(getObject().getAddressWidth() == 8);
@@ -105,6 +107,7 @@ bool image::analyzeImage()
 
   if (parseState_ < symtab) {
     fprintf(stderr, "Error: attempt to analyze before function lists built\n");
+    stats_parse.stopTimer(PARSE_ANALYZE_TIMER);
     return true;
   }
   
@@ -168,6 +171,7 @@ bool image::analyzeImage()
     // nothing to do, exit
     if( everyUniqueFunction.size() <= 0 )
     {
+        stats_parse.stopTimer(PARSE_ANALYZE_TIMER);
         return true;
     }
 
@@ -256,6 +260,7 @@ bool image::analyzeImage()
 
   
   parseState_ = analyzed;
+  stats_parse.stopTimer(PARSE_ANALYZE_TIMER);
   return true;
 }
 

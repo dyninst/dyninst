@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.35 2006/11/30 23:12:53 bernat Exp $
+ * $Id: stats.C,v 1.36 2006/12/06 21:17:49 bernat Exp $
  */
 
 #include <sstream>
@@ -113,6 +113,37 @@ StatContainer::add(pdstring name, StatType type)
 
     stats_[name] = s;
 }
+
+void StatContainer::startTimer(pdstring name) {
+    TimeStatistic *timer = dynamic_cast<TimeStatistic *>(stats_[name]);
+    if (!timer) return;
+    timer->start();
+}
+
+void StatContainer::stopTimer(pdstring name) {
+    TimeStatistic *timer = dynamic_cast<TimeStatistic *>(stats_[name]);
+    if (!timer) return;
+    timer->stop();
+}
+
+void StatContainer::incrementCounter(pdstring name) {
+    CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
+    if (!counter) return;
+    (*counter)++;
+}
+
+void StatContainer::decrementCounter(pdstring name) {
+    CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
+    if (!counter) return;
+    (*counter)--;
+}
+
+void StatContainer::addCounter(pdstring name, int val) {
+    CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
+    if (!counter) return;
+    (*counter) += val;
+}
+
                                   
 CntStatistic 
 CntStatistic::operator++( int )

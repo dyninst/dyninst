@@ -5,7 +5,7 @@
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/EventHandler.h"
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/signalgenerator.h"

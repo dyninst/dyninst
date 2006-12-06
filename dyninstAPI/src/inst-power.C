@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.255 2006/12/05 21:44:35 rutar Exp $
+ * $Id: inst-power.C,v 1.256 2006/12/06 21:17:28 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1249,7 +1249,8 @@ bool clobberAllFuncCall( registerSpace *rs,
 {
   if (!callee) return true;
 
-
+  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
+    
   /* usedRegs does calculations if not done before and returns
      whether or not the callee is a leaf function.
      if it is, we use the register info we gathered,
@@ -1270,11 +1271,14 @@ bool clobberAllFuncCall( registerSpace *rs,
       while (It2 != fprs->end()){
 	rs->clobberRegister(*(It2++));
       }
+
+      stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
       return false;
     }
-  else
+  else {
+    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);   
     return true;
-
+  }
 }
 
 

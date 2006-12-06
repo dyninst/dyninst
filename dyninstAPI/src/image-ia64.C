@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-ia64.C,v 1.10 2006/04/28 19:35:45 nater Exp $
+// $Id: image-ia64.C,v 1.11 2006/12/06 21:17:24 bernat Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -48,7 +48,7 @@
 #include "symtab.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "InstrucIter.h"
-#include "showerror.h"
+#include "debug.h"
 #include "arch.h"
 
 // Not used on IA64

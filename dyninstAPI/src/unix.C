@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.223 2006/08/24 11:19:28 jaw Exp $
+// $Id: unix.C,v 1.224 2006/12/06 21:17:52 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
 #include "common/h/Vector.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/unix.h"
 #include "dyninstAPI/src/util.h"

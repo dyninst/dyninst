@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.91 2006/11/22 20:28:05 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.92 2006/12/06 21:17:08 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -442,8 +442,19 @@ void BPatch_arithExpr::BPatch_arithExprUn(BPatch_unOp op,
        break;
    }
 
-      case BPatch_deref: {
-          ast = AstNode::operandNode(AstNode::DataIndir, lOperand.ast);
+   case BPatch_deref: {
+#if 0
+       // Handle constant addresses...
+          if (lOperand.ast->getoType() == AstNode::Constant) {
+              ast = AstNode::operandNode(AstNode::DataAddr,
+                                         const_cast<void *>(lOperand.ast->getOValue()));
+          }
+          else {
+              ast = AstNode::operandNode(AstNode::DataIndir, lOperand.ast);
+          }
+#endif
+              ast = AstNode::operandNode(AstNode::DataIndir, lOperand.ast);
+
           BPatch_type *type = const_cast<BPatch_type *> ((lOperand.ast)->getType());
           if (!type || (type->getDataClass() != BPatch_dataPointer)) {
               ast->setType(BPatch::bpatch->stdTypes->findType("int"));

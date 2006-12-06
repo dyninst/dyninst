@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: stats.h,v 1.11 2006/11/29 02:15:16 nater Exp $
+// $Id: stats.h,v 1.12 2006/12/06 21:17:50 bernat Exp $
 
 #ifndef STATS_H
 #define STATS_H
@@ -67,6 +67,13 @@ class Statistic  {
     virtual bool is_count() const { return false; }
     virtual bool is_timer() const { return false; }
     /* ... etc. */
+
+    // dynamic_casts are a pain in the neck
+    virtual long int value() { return 0; }
+    virtual double usecs() const { return 0; }
+    virtual double ssecs() const { return 0; }
+    virtual double wsecs() const { return 0; }
+
 
  protected:
     Statistic(StatContainer *c) : 
@@ -187,6 +194,14 @@ class StatContainer {
     // Access all of the existing statistics
     const dictionary_hash< pdstring, Statistic * > &
     allStats() const { return stats_; }
+
+    // And some pass-through methods, encapsulated for
+    // ease of use
+    void startTimer(pdstring);
+    void stopTimer(pdstring);
+    void incrementCounter(pdstring);
+    void decrementCounter(pdstring);
+    void addCounter(pdstring, int);
 
  private:
     dictionary_hash< pdstring, Statistic * > stats_;

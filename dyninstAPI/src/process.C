@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.675 2006/12/01 01:33:22 legendre Exp $
+// $Id: process.C,v 1.676 2006/12/06 21:17:42 bernat Exp $
 
 #include <ctype.h>
 
@@ -70,7 +70,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/callbacks.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/BPatch_asyncEventHandler.h"
@@ -3970,6 +3970,8 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st)
 
 bool process::pause() {
   bool result;
+
+
   if (!isAttached()) {
     bperr( "Warning: pause attempted on non-attached process\n");
     return false;
@@ -4941,6 +4943,7 @@ void process::findSignalHandler(mapped_object *obj){
 
 bool process::continueProc(int signalToContinueWith) 
 {   
+
   signal_printf("%s[%d]: continuing process %d\n", FILE__, __LINE__, getPid());
   if (!isAttached()) {
     signal_printf("%s[%d]: warning continue on non-attached %d\n", 
@@ -5062,6 +5065,9 @@ bool process::detach(const bool leaveRunning )
 
 void process::triggerNormalExitCallback(int exitCode) 
 {
+    // Err... why not here
+    print_stats();
+
 
     sh->overrideSyncContinueState(stopRequest);
 
@@ -5082,7 +5088,10 @@ void process::triggerNormalExitCallback(int exitCode)
 
 void process::triggerSignalExitCallback(int signalnum) 
 {
+    // Err... why not here
+    print_stats();
     exiting_ = true;
+
    // special case where can't wait to continue process
 #if 0
   // Removed; we set status to exited before calling this so that

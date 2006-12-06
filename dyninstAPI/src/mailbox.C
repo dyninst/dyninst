@@ -41,7 +41,7 @@
 
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #if defined (os_windows)

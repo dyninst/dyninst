@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.255 2006/12/05 21:44:36 rutar Exp $
+ * $Id: inst-x86.C,v 1.256 2006/12/06 21:17:29 bernat Exp $
  */
 #include <iomanip>
 
@@ -57,7 +57,7 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/inst-x86.h"
@@ -889,7 +889,11 @@ bool Emitter32::clobberAllFuncCall( registerSpace *rs,
      True - FP Writes are present
      False - No FP Writes
   */
-  return callee->ifunc()->usedRegs();
+
+  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);  
+  bool ret = callee->ifunc()->usedRegs();
+  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+  return ret;
 }
 
 
@@ -2069,6 +2073,8 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
 
 bool int_basicBlock::initRegisterGenKill() 
 {
+    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
+
   int a;
   int * writeRegs = (int *) malloc(sizeof(int)*3);
   int * readRegs = (int *) malloc(sizeof(int)*3);
@@ -2116,6 +2122,8 @@ bool int_basicBlock::initRegisterGenKill()
   
   free(readRegs);
   free(writeRegs);
+
+  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
   
   return true;
 }
@@ -2131,6 +2139,8 @@ bool int_basicBlock::updateRegisterInOut(bool isFP)
   
   if (isFP)
     return false;
+
+  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
 
   bitArray oldIn;
   bitArray tmp; 
@@ -2175,6 +2185,9 @@ bool int_basicBlock::updateRegisterInOut(bool isFP)
       else
 	change = true;
     }
+
+  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+
   return change;
 }
 
@@ -2206,12 +2219,14 @@ int int_basicBlock::liveSPRegistersIntoSet(instPoint *,
 int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
                                          unsigned long address)
 {
-	assert(iP);
+
+    assert(iP);
     int numLive = 0;
     int a;
     
     if (iP->hasSpecializedGPRegisters()) return numLive;
 
+    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
     
     int *liveReg = new int[maxGPR];
     
@@ -2270,6 +2285,8 @@ int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
 
     // No SPR analysis...
     
+    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+
     return numLive;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.283 2006/07/07 00:01:09 jaw Exp $
+ // $Id: symtab.C,v 1.284 2006/12/06 21:17:51 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +55,7 @@
 #include "common/h/String.h"
 #include "dyninstAPI/src/inst.h"
 #include "common/h/Timer.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "common/h/debugOstream.h"
 #include "common/h/pathName.h"          // extract_pathname_tail()
 #include "dyninstAPI/src/function.h"
@@ -689,6 +689,7 @@ image *image::parseImage(fileDescriptor &desc)
       }
   }
 
+  stats_parse.startTimer(PARSE_SYMTAB_TIMER);
 
   /*
    * load the symbol table. (This is the a.out format specific routine).
@@ -713,6 +714,7 @@ image *image::parseImage(fileDescriptor &desc)
          fprintf(stderr, "Failed to allocate memory for parsing %s!\n", 
                  desc.file().c_str());
      }
+     stats_parse.stopTimer(PARSE_SYMTAB_TIMER);
      return NULL;
   }
 
@@ -721,6 +723,7 @@ image *image::parseImage(fileDescriptor &desc)
   // define all modules.
 
   statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
+  stats_parse.stopTimer(PARSE_SYMTAB_TIMER);
 
   return ret;
 }

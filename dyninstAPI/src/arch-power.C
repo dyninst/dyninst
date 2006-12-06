@@ -41,13 +41,13 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.12 2006/11/10 16:28:42 bernat Exp $
+ * $Id: arch-power.C,v 1.13 2006/12/06 21:17:14 bernat Exp $
  */
 
 #include "common/h/Types.h"
 #include "arch.h"
 #include "util.h"
-#include "showerror.h"
+#include "debug.h"
 
 instruction *instruction::copy() const {
     return new instruction(*this);

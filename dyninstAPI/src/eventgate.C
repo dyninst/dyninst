@@ -42,7 +42,7 @@
 // $Id: signalhandler.C,v 
 
 #include "eventgate.h"
-#include "showerror.h"
+#include "debug.h"
 #include "util.h"
 
 EventGate::EventGate(eventLock *l, eventType t, process *p, dyn_lwp *lwp,

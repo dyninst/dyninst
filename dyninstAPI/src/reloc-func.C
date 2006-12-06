@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.25 2006/06/16 16:13:36 bernat Exp $
+// $Id: reloc-func.C,v 1.26 2006/12/06 21:17:45 bernat Exp $
 
 
 
 #include "common/h/Types.h"
 #include "function.h"
 #include "process.h"
-#include "showerror.h"
+#include "debug.h"
 #include "codeRange.h"
 #include "instPoint.h"
 #include "multiTramp.h"

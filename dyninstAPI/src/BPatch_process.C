@@ -70,6 +70,8 @@
 
 #include "ast.h"
 
+#include <sys/times.h>
+
 void BPatch_process::PDSEP_updateObservedCostAddr(unsigned long a)
 {
   if (llproc)
@@ -462,6 +464,7 @@ void BPatch_process::BPatch_process_dtor()
  */
 bool BPatch_process::stopExecutionInt()
 {
+
     if (isTerminated()) return true;
 
     if (isVisiblyStopped) return true;
@@ -1019,7 +1022,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
     
     batchInsertionRecord *rec = new batchInsertionRecord;
     rec->thread_ = NULL;
-    rec->snip = (BPatch_snippet *)&expr;
+    rec->snip = expr;
     rec->trampRecursive_ = BPatch::bpatch->isTrampRecursive();
 
     BPatchSnippetHandle *ret = new BPatchSnippetHandle(this);
@@ -1232,7 +1235,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
             instPoint *point = bppoint->point;
             callWhen when = bir->when_[j];
             
-            miniTramp *mini = point->addInst(bir->snip->ast,
+            miniTramp *mini = point->addInst(bir->snip.ast,
                                              when,
                                              bir->order_,
                                              bir->trampRecursive_,
@@ -1544,7 +1547,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                    //       we just skip it for catchup (function parameters live on
                    //       the stack too)
                    
-                   if (bir->snip->ast->accessesParam())
+                   if (bir->snip.ast->accessesParam())
                        continue;
                    
 #if 0

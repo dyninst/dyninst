@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.37 2006/12/05 21:44:35 rutar Exp $
+// $Id: image-func.C,v 1.38 2006/12/06 21:17:23 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
 #include "InstrucIter.h"
 #include "symtab.h"
-#include "showerror.h"
+#include "debug.h"
 
 pdstring image_func::emptyString("");
 

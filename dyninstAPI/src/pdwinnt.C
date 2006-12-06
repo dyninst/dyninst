@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.165 2006/12/01 01:33:25 legendre Exp $
+// $Id: pdwinnt.C,v 1.166 2006/12/06 21:17:41 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -51,7 +51,7 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/stats.h"
 #include "common/h/Types.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/signalhandler.h"

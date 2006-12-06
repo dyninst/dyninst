@@ -21,8 +21,9 @@
 #include "mailbox.h"
 #include "callbacks.h"
 #include "util.h"
-#include "showerror.h"
 #include <stdlib.h>
+
+#include "debug.h"
 
 #if !defined (os_windows)
 #include <unistd.h>

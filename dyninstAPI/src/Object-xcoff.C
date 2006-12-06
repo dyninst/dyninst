@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.48 2006/05/03 00:31:18 jodom Exp $
+// $Id: Object-xcoff.C,v 1.49 2006/12/06 21:17:12 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -77,7 +77,7 @@
 #define __AR_SMALL__
 #include <ar.h> // archive file format.
 
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "common/h/debugOstream.h"
 #include "arch.h"
 

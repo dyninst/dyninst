@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.20 2006/12/05 21:44:35 rutar Exp $
+ * $Id: image-x86.C,v 1.21 2006/12/06 21:17:27 bernat Exp $
  */
 
 #include "common/h/Vector.h"
@@ -52,7 +52,7 @@
 #include "symtab.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "InstrucIter.h"
-#include "showerror.h"
+#include "debug.h"
 
 
 /**************************************************************

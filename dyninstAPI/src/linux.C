@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.250 2006/11/28 23:34:05 legendre Exp $
+// $Id: linux.C,v 1.251 2006/12/06 21:17:34 bernat Exp $
 
 #include <fstream>
 
@@ -75,7 +75,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/stats.h"
 #include "common/h/Types.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/util.h" // getCurrWallTime
 #include "common/h/pathName.h"
 #include "mapped_object.h"
@@ -1026,9 +1026,14 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
    //    << " len=" << nbytes << endl; cerr.flush();
 
    ptraceOps++; ptraceBytes += nbytes;
+   stats_ptrace.incrementCounter(PTRACE_WRITE_COUNTER);
+   stats_ptrace.addCounter(PTRACE_WRITE_AMOUNT, nbytes);
+   stats_ptrace.startTimer(PTRACE_WRITE_TIMER);
 
-   if (0 == nbytes)
-      return true;
+   if (0 == nbytes) {
+       stats_ptrace.stopTimer(PTRACE_WRITE_TIMER);
+       return true;
+   }
 
    if ((cnt = ((Address)ap) % len)) {
       /* Start of request is not aligned. */
@@ -1041,6 +1046,7 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
 
       if (errno) {
          fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", __FILE__, __LINE__, pid);
+       stats_ptrace.stopTimer(PTRACE_WRITE_TIMER);
          return false;
       }
 
@@ -1049,11 +1055,15 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
 
       if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w)) {
          fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
+       stats_ptrace.stopTimer(PTRACE_WRITE_TIMER);
          return false;
       }
 
-      if (len-cnt >= nbytes)
+      if (len-cnt >= nbytes) {
+       stats_ptrace.stopTimer(PTRACE_WRITE_TIMER);
+
          return true; /* done */
+      }
 
       dp += len-cnt;
       ap += len-cnt;
@@ -1069,6 +1079,7 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
          fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", __FILE__, __LINE__, pid);
          fprintf(stderr, "%s[%d][%s]:  tried to write %lx in address %p\n", FILE__, __LINE__, getThreadStr(getExecThreadID()),w, ap);
          perror("ptrace");
+       stats_ptrace.stopTimer(PTRACE_WRITE_TIMER);
          return false;
       }
 
@@ -1095,6 +1106,7 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
 
       if (errno) {
          fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
+       stats_ptrace.stopTimer(PTRACE_WRITE_TIMER);
          return false;
       }
 
@@ -1104,11 +1116,13 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
 
       if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w)) {
          fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
+       stats_ptrace.stopTimer(PTRACE_WRITE_TIMER);
          return false;
       }
 
    }
 
+       stats_ptrace.stopTimer(PTRACE_WRITE_TIMER);
    return true;
 
 }
@@ -1162,9 +1176,14 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
      unsigned cnt;
          
      ptraceOps++; ptraceBytes += nbytes;
-      
-     if (0 == nbytes)
-          return true;
+     stats_ptrace.incrementCounter(PTRACE_READ_COUNTER);
+     stats_ptrace.addCounter(PTRACE_READ_AMOUNT, nbytes);
+     stats_ptrace.startTimer(PTRACE_READ_TIMER);
+     
+     if (0 == nbytes) {
+         stats_ptrace.stopTimer(PTRACE_READ_TIMER);
+         return true;
+     }
       
      if ((cnt = ((Address)ap) % len)) {
           /* Start of request is not aligned. */
@@ -1177,13 +1196,16 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           if (errno) {
               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
                             strerror(errno));
+         stats_ptrace.stopTimer(PTRACE_READ_TIMER);
               return false;
           }
           for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
                dp[i] = p[cnt+i];
 
-          if (len-cnt >= nbytes)
-               return true; /* done */
+          if (len-cnt >= nbytes) {
+              stats_ptrace.stopTimer(PTRACE_READ_TIMER);              
+              return true; /* done */
+          }
 
           dp += len-cnt;
           ap += len-cnt;
@@ -1196,6 +1218,7 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           if (errno) {
               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
                             strerror(errno));
+         stats_ptrace.stopTimer(PTRACE_READ_TIMER);
               return false;
           }
           memcpy(dp, &w, len);
@@ -1215,11 +1238,13 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           if (errno) {
                signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
                              strerror(errno));
+         stats_ptrace.stopTimer(PTRACE_READ_TIMER);
                return false;
           }
           for (unsigned i = 0; i < nbytes; i++)
                dp[i] = p[i];
      }
+         stats_ptrace.stopTimer(PTRACE_READ_TIMER);
      return true;
 
 

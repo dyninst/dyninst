@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.209 2006/11/22 04:03:05 bernat Exp $
+// $Id: solaris.C,v 1.210 2006/12/06 21:17:48 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -51,7 +51,7 @@
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 #include "common/h/pathName.h" // concat_pathname_components()
 #include "common/h/debugOstream.h"
 #include "common/h/solarisKludges.h"

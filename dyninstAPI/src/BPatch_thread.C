@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.170 2006/08/24 11:19:26 jaw Exp $
+// $Id: BPatch_thread.C,v 1.171 2006/12/06 21:17:09 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -622,7 +622,7 @@ bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
                                         void *userData,
                                         BPatchOneTimeCodeCallback cb)
 {
-    if (NULL == proc->oneTimeCodeInternal(expr, this, userData, cb, false)) {
+    if (NULL == proc->oneTimeCodeInternal(expr, this, userData, cb, false, NULL)) {
       //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
       return false;
    }

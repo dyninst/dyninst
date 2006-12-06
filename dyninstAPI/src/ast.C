@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.182 2006/12/01 01:33:09 legendre Exp $
+// $Id: ast.C,v 1.183 2006/12/06 21:17:17 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -48,7 +48,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/debug.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
@@ -745,6 +745,7 @@ bool AstNode::generateCode(codeGen &gen,
                            Register &retReg) {
     static bool entered = false;
 
+
     bool ret = true;
 
     bool top_level;
@@ -754,6 +755,8 @@ bool AstNode::generateCode(codeGen &gen,
     else {
         entered = true;
         top_level = true;
+        stats_codegen.startTimer(CODEGEN_AST_TIMER);
+        stats_codegen.incrementCounter(CODEGEN_AST_COUNTER);
     }
 
     entered = true;
@@ -788,8 +791,11 @@ bool AstNode::generateCode(codeGen &gen,
     debugPrint();
     ast_printf("\n\n\n\n");
 
-    if (top_level)
+    if (top_level) {
         entered = false;
+        stats_codegen.stopTimer(CODEGEN_AST_TIMER);
+    }
+
     return ret;
 }
 

@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.11 2006/04/21 18:56:59 nater Exp $
+// $Id: image-sparc.C,v 1.12 2006/12/06 21:17:26 bernat Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -50,7 +50,7 @@
 #include "symtab.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "InstrucIter.h"
-#include "showerror.h"
+#include "debug.h"
 #include "arch.h"
 #include "inst-sparc.h" // REG_? should be in arch-sparc, but isn't
 

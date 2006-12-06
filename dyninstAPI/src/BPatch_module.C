@@ -45,7 +45,7 @@
 #define BPATCH_FILE
 
 #include "process.h"
-#include "showerror.h"
+#include "debug.h"
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_libInfo.h"
