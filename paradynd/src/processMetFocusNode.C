@@ -505,9 +505,9 @@ void processMetFocusNode::prepareCatchupInstr()
 
     for (unsigned i = 0; i < catchup_handles.size(); i++) {
 
-        pd_catchup_printf("%s[%d]: examining handle %d, thread %p, snippet %p\n",
-                          __FILE__, __LINE__, i, catchup_handles[i].thread,
-                          catchup_handles[i].snip);
+        pd_catchup_printf("%s[%d]: examining handle %d, thread %p\n",
+                          __FILE__, __LINE__, i, catchup_handles[i].thread);
+
         // If currentThread is NULL, assign it our thread;
         
         // While our thread == currentThread, add us to the
@@ -522,7 +522,7 @@ void processMetFocusNode::prepareCatchupInstr()
         if (currentThread == catchup_handles[i].thread) {
             pd_catchup_printf("%s[%d]: adding new snippet to sequence\n",
                               __FILE__, __LINE__);
-            currentSnippets.push_back(catchup_handles[i].snip);
+            currentSnippets.push_back(&catchup_handles[i].snip);
         } else {
             // Wrap up the old one and start over.
             assert(currentSnippets.size());
@@ -536,7 +536,7 @@ void processMetFocusNode::prepareCatchupInstr()
             currentSnippets.clear();
 
             // And prime the pump
-            currentSnippets.push_back(catchup_handles[i].snip);
+            currentSnippets.push_back(&catchup_handles[i].snip);
             currentThread = catchup_handles[i].thread;
         }
         assert(currentThread == catchup_handles[i].thread);
