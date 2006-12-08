@@ -70,8 +70,6 @@
 
 #include "ast.h"
 
-#include <sys/times.h>
-
 void BPatch_process::PDSEP_updateObservedCostAddr(unsigned long a)
 {
   if (llproc)

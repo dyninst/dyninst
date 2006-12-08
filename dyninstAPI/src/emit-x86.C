@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.41 2006/12/07 17:51:42 bernat Exp $
+ * $Id: emit-x86.C,v 1.42 2006/12/08 18:53:49 bernat Exp $
  */
 
 #include <assert.h>
@@ -1196,6 +1196,17 @@ Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> 
 	assert(0);
     }
 
+    // Before we generate argument code, save any register that's live across
+    // the call. 
+    pdvector<unsigned> savedRegsToRestore;
+    for (unsigned i = 0; i < gen.rs()->getRegisterCount(); i++) {
+        registerSlot *reg = gen.rs()->getRegSlot(i);
+        if (reg->refCount > 0 || reg->keptValue) {
+            // The register is live; save it. 
+            emitPushReg64(reg->number, gen);
+            savedRegsToRestore.push_back(i); // Not the register number, but its index
+        }
+    }
 
     // generate code for arguments
     for (unsigned u = 0; u < operands.size(); u++) {
@@ -1242,11 +1253,20 @@ Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> 
     Register ret = gen.rs()->allocateRegister(gen, noCost);
     emitMovRegToReg64(ret, REGNUM_EAX, true, gen);
 
+    // Now restore any registers live over the call
+    for (unsigned i = savedRegsToRestore.size(); i > 0; i--) {
+        // We iterate backwards because we're using a stack...
+        // We can also get away with an unsigned because we're calculating > 0.
+        registerSlot *reg = gen.rs()->getRegSlot(savedRegsToRestore[i-1]);
+        assert(reg);
+        emitPopReg64(reg->number, gen);
+    }
+
     // Figure out if we need to save FPR in base tramp
     bool useFPR = clobberAllFuncCall(gen.rs(), callee);
-
-    if (gen.point() != NULL)
+    if (gen.point() != NULL) {
         setFPSaveOrNot(gen.point()->liveFPRegisters(), useFPR);
+    }
 
     return ret;
 }
@@ -1658,7 +1678,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 
 bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
-   if (bt->isConservative() && BPatch::bpatch->isSaveFPROn()) {
+    if (bt->isConservative() && BPatch::bpatch->isSaveFPROn()) {
       if (gen.rs()->getSPFlag())
       {
          // pop the old RSP value into RAX
