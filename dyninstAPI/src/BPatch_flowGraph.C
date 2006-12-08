@@ -717,6 +717,21 @@ void BPatch_flowGraph::createEdges()
       }
       else {
          //XXX indirect jumps, set conditional buddy?
+	// 7 Dec 06, tugrul
+	// create edges for each target even if there are more than two
+	// the last instruction of this block is an indirect jump (such as a switch statement)
+	BPatch_edge *edge;
+	for(unsigned j=0; j<numTargs; j++) {
+	  // create edge between source and this target
+	  edge = new BPatch_edge(source, targs[j], this);
+	  
+	  targs[j]->incomingEdges += edge;
+	  source->outgoingEdges += edge;
+
+	  // update backEdges if target already dominates source
+	  if (targs[j]->dominates(source))
+	    backEdges += edge;
+	}
       }
    }
    delete[] blks;
