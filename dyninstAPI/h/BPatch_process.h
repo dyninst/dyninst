@@ -112,7 +112,7 @@ private:
     //  a flag for catchuo
     bool catchupNeeded;
     //  and a list of threads to apply catchup to
-   BPatch_Vector<BPatch_thread *> catchup_threads;
+    BPatch_Vector<BPatch_thread *> catchup_threads;
                              
     BPatchSnippetHandle(BPatch_process *proc);
 
@@ -255,6 +255,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     // Used because callbacks go (and can clean up user code) before the low-level process
     // sets flags.
     bool terminated; 
+
+    //When an async RPC is posted on a stopped process we post it, but haven't 
+    // yet launched it.  The next process level continue should start the RPC 
+    // going.  unstarteRPC is true if we have a posted but not launced RPC.
+    bool unstartedRPC;
 
     void setUnreportedStop(bool new_value) { unreportedStop = new_value; }
     void setUnreportedTermination(bool new_value) {unreportedTermination = new_value;}

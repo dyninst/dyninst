@@ -119,7 +119,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), unreportedStop(false), 
-     unreportedTermination(false), terminated(false),
+     unreportedTermination(false), terminated(false), unstartedRPC(false),
      activeOneTimeCodes_(0),
      resumeAfterCompleted_(false),
      pendingInsertions(NULL)
@@ -297,7 +297,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
    : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), unreportedStop(false), 
-     unreportedTermination(false), terminated(false), 
+     unreportedTermination(false), terminated(false), unstartedRPC(false),
      activeOneTimeCodes_(0),
      resumeAfterCompleted_(false),
      pendingInsertions(NULL)
@@ -366,7 +366,7 @@ BPatch_process::BPatch_process(process *nProc)
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false),
      unreportedStop(false), unreportedTermination(false), terminated(false),
-     activeOneTimeCodes_(false),
+     unstartedRPC(false), activeOneTimeCodes_(false),
      resumeAfterCompleted_(false),
      pendingInsertions(NULL)
 {
@@ -524,6 +524,14 @@ bool BPatch_process::continueExecutionInt()
 
    isVisiblyStopped = false;
    setUnreportedStop(false);
+
+   if (unstartedRPC) {
+      bool needsToRun = false;
+      llproc->getRpcMgr()->launchRPCs(needsToRun, false);
+      unstartedRPC = false;
+      return true;
+   }
+
    bool ret =  llproc->sh->continueProcessBlocking();
 
    // Now here's amusing for you... we can hit a DyninstDebugBreakpoint
@@ -2070,23 +2078,6 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    inferiorrpc_printf("%s[%d]: oneTimeCode, handlers quiet, sync %d, statusIsStopped %d, resumeAfterCompleted %d\n",
                       FILE__, __LINE__, synchronous, statusIsStopped(), resumeAfterCompleted_);
 
-   
-
-#if 0
-   if (!statusIsStopped()) {
-       inferiorrpc_printf("%s[%d]: pausing process (blocking style)\n", FILE__, __LINE__);
-       llproc->sh->pauseProcessBlocking();
-       inferiorrpc_printf("%s[%d]: process is now stopped\n", FILE__, __LINE__);
-
-       if (!statusIsStopped()) {
-           fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is %s\n", 
-                   FILE__, __LINE__, 
-                   llproc ? llproc->getStatusAsString().c_str() : "unavailable");
-           return NULL;
-       }
-   }
-#endif
-
    OneTimeCodeCallback *otc_cb =  cb ? new OneTimeCodeCallback(cb) : NULL;
    OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, otc_cb,
                                                  (thread) ? thread->index : 0);
@@ -2108,10 +2099,6 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                     (thread) ? (thread->llthread) : NULL,
                                     NULL); 
    activeOneTimeCodes_++;
-   bool rpcNeedsContinue = false;
-   inferiorrpc_printf("%s[%d]: calling launchRPCs(%d, %d)\n",
-                      FILE__, __LINE__, rpcNeedsContinue, 
-                      false);
 
    // We override while the inferiorRPC runs...
    if (synchronous) {
@@ -2120,18 +2107,15 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
        llproc->sh->overrideSyncContinueState(ignoreRequest);
    }
 
-   llproc->getRpcMgr()->launchRPCs(rpcNeedsContinue,
-                                   false);
-
-#if 0
-   if (rpcNeedsContinue) {
-       inferiorrpc_printf("%s[%d]: Continuing process\n",
-                          FILE__, __LINE__);
-       llproc->sh->continueProcessAsync();
+   if (!synchronous && isVisiblyStopped) {
+      unstartedRPC = true;
+      return NULL;
    }
-#endif
-   
-   // Async... don't wait.
+
+   inferiorrpc_printf("%s[%d]: calling launchRPCs\n", FILE__, __LINE__);
+   bool needsToRun = false;
+   llproc->getRpcMgr()->launchRPCs(needsToRun, false);
+
    if (!synchronous) return NULL;
 
    while (!info->isCompleted()) {
