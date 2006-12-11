@@ -262,11 +262,12 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
    process *proc = ev.proc;
    assert(proc);
 
+   signal_printf("Caught critical for lwp %d\n", ev.lwp->get_lwp_id());
    if (dyn_debug_signal) {
        pdvector<pdvector<Frame> > stackWalks;
        proc->walkStacks(stackWalks);
        for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
-           fprintf(stderr, "%s[%d]:  Stack for pid %d, lwpid %d\n", FILE__, __LINE__,
+           fprintf(stderr, "\n%s[%d]:  Stack for pid %d, lwpid %d\n", FILE__, __LINE__,
                    stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
                    stackWalks[walk_iter][0].getLWP()->get_lwp_id());
            for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
