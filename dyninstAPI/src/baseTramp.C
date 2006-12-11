@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.49 2006/12/01 01:33:11 legendre Exp $
+// $Id: baseTramp.C,v 1.50 2006/12/11 21:41:10 tlmiller Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -333,9 +333,11 @@ bool baseTrampInstance::generateCode(codeGen &gen,
 	gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP()));
     
     if (BPatch::bpatch->isMergeTramp()) {
+        // /* DEBUG */ fprintf( stderr, "%s[%d]: generating code in-the-line\n", __FILE__, __LINE__ );
         return generateCodeInlined(gen, baseInMutatee, unwindRegion);
     }
     else {
+        // /* DEBUG */ fprintf( stderr, "%s[%d]: generating code out-of-line\n", __FILE__, __LINE__ );
 	    return generateCodeOutlined(gen, baseInMutatee, unwindRegion);
     }
 
@@ -614,7 +616,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     }
 
 
-#if defined(arch_ia64)
+#if defined(cap_unwind)
       if (baseT->baseTrampRegion != NULL) {
           free(baseT->baseTrampRegion);
           baseT->baseTrampRegion = NULL;
@@ -623,16 +625,15 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
 
 
     trampAddr_ = gen.currAddr();
-
     baseT->generateSaves(gen, gen.rs());
+    Address endSaves = gen.currAddr();
     bool retval = true;
     if (!baseTramp->generateCode(gen, false)) {
         fprintf(stderr, "Gripe: base tramp creation failed\n");
         retval = false;
     }
-
+    Address beginRestores = gen.currAddr();
     baseT->generateRestores(gen, gen.rs());
-
     trampSize_ = gen.currAddr() - trampAddr_;
 
     // And now to clean up after us
@@ -640,6 +641,17 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     //if (trampGuardAddr) delete trampGuardAddr;
     //if (baseTrampSequence) delete baseTrampSequence;
     //if (baseTramp) delete baseTramp;
+
+#if defined( cap_unwind )
+	/* At the moment, AST nodes can /not/ modify unwind state.  (Whoo-hoo!)
+	   Therefore, to account for them, we just need to know how much code
+	   they generated... */
+    baseT->baseTrampRegion->insn_count += ((beginRestores - endSaves)/16) * 3;
+    
+	/* appendRegionList() returns the last valid region it duplicated.
+	   This leaves unwindRegion pointing to the end of the list. */
+    * unwindRegion = appendRegionList( * unwindRegion, baseT->baseTrampRegion );
+#endif /* defined( cap_unwind ) */
 
     generated_ = true;
     hasChanged_ = false;
@@ -1066,7 +1078,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
       preTrampCode_.invalidate();
       postTrampCode_.invalidate();
 
-#if defined(arch_ia64)
+#if defined(cap_unwind)
       if (baseTrampRegion != NULL) {
           free(baseTrampRegion);
           baseTrampRegion = NULL;
