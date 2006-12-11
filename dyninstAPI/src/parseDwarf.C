@@ -968,7 +968,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 #else
 				static bool warned_no_locals = false;
 				if (listLength > 1 && !warned_no_locals) {
-				   fprintf(stderr, "WARNING:\tmutatee contains advanced frame pointer definitions\n\tlocal variable support unavailable\n");
+				   bpwarn("WARNING:\tmutatee contains advanced frame pointer definitions\n\tlocal variable support unavailable\n");
 				   warned_no_locals = true;
 				}
 #endif
