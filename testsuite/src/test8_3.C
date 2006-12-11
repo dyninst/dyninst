@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8_3.C,v 1.7 2006/12/06 22:09:03 tlmiller Exp $
+// $Id: test8_3.C,v 1.8 2006/12/11 21:40:42 tlmiller Exp $
 /*
  * #Name: test8_3
  * #Desc: getCallStack through instrumentation
@@ -61,10 +61,7 @@ static BPatch *bpatch;
 #include <sys/ptrace.h>
 #endif
 static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
-	/* DEBUG */ extern int debugPrint;
-	bool originalDebugPrint = debugPrint;
-	debugPrint = true;
-	
+
 #if (defined( arch_alpha ) && defined( os_osf )) 
 	logerror("Skipping test #3 (getCallStack through instrumentation)\n");
 	logerror("    unwinding through base & minitramps not implemented on this platform\n");
@@ -201,8 +198,6 @@ static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
 
 	/* Return the mutatee to its normal state. */
 	appThread->continueExecution();	
-
-		/* DEBUG */ debugPrint = originalDebugPrint;
 
         return passedTest;
 
