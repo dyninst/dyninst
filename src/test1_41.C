@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_41.C,v 1.1 2006/10/11 21:52:00 cooksey Exp $
+// $Id: test1_41.C,v 1.2 2006/12/11 22:19:44 legendre Exp $
 /*
  * #Name: test1_41
  * #Desc: Tests whether we lose line information running a mutatee twice
@@ -96,7 +96,7 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
 	}
 	if (isMutateeFortran(image)) {
 	  thread->getProcess()->terminateExecution();
-	  logerror("**Skipped** test #41 (repeated line information)\n");
+	  logerror("Skipped test #41 (repeated line information)\n");
 	  return 0;
 	}
 
