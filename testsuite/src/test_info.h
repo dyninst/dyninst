@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.23 2006/10/12 20:00:42 cooksey Exp $
+// $Id: test_info.h,v 1.24 2006/12/13 19:05:41 cooksey Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -151,6 +151,8 @@ void initialize_mutatees()
    test10_mutatee.push_back("test10.mutatee" xstr(gnu_abi_cc));
    test12_mutatee.push_back("test12.mutatee" xstr(gnu_abi_cc));
    test13_mutatee.push_back("test13.mutatee" xstr(gnu_abi_cc));
+   test14_mutatee.push_back("test14.mutatee" xstr(gnu_abi_cc));
+   test15_mutatee.push_back("test15.mutatee" xstr(gnu_abi_cc));
 #endif
 
 #ifdef gnu_abi_cxx
@@ -163,6 +165,8 @@ void initialize_mutatees()
    test9_mutatee.push_back("test9.mutatee" xstr(gnu_abi_cxx));
    test12_mutatee.push_back("test12.mutatee" xstr(gnu_abi_cxx));
    test13_mutatee.push_back("test13.mutatee" xstr(gnu_abi_cxx));
+   test14_mutatee.push_back("test14.mutatee" xstr(gnu_abi_cxx));
+   test15_mutatee.push_back("test15.mutatee" xstr(gnu_abi_cxx));
 #endif
 
    none.push_back("");
