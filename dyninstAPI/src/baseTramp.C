@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.50 2006/12/11 21:41:10 tlmiller Exp $
+// $Id: baseTramp.C,v 1.51 2006/12/13 21:38:29 tlmiller Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -470,6 +470,8 @@ bool baseTrampInstance::generateCodeOutlined(codeGen &gen,
     return true;
 }
 
+#include "BPatch.h"
+#include "BPatch_collections.h"
 bool baseTrampInstance::generateCodeInlined(codeGen &gen,
                                             Address baseInMutatee,
                                             UNW_INFO_TYPE **unwindRegion) {
@@ -564,6 +566,10 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
                                                                                               threadIndex,
                                                                                               AstNode::operandNode(AstNode::Constant, 
                                                                                                                    (void *)sizeof(unsigned)))));
+            /* At the moment, we can't directly specify the fact
+               that we're loading 4 bytes instead of a normal
+               (address-width) word. */
+            trampGuardAddr->setType( BPatch::getBPatch()->builtInTypes->findBuiltInType( "unsigned int" ) );
         }
         else {
             trampGuardAddr = proc()->trampGuardAST();
