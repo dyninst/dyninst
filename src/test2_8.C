@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_8.C,v 1.3 2006/10/11 21:53:30 cooksey Exp $
+// $Id: test2_8.C,v 1.4 2006/12/13 19:05:39 cooksey Exp $
 /*
  * #Name: test2_8
  * #Desc: BPatch_breakPointExpr
@@ -114,6 +114,11 @@ static int test8b(BPatch_thread *thread)
 
 static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
+   // Avoid a race condition in fast & loose mode
+   while (!appThread->isStopped()) {
+      bpatch->waitForStatusChange();
+   }
+
    if ( test8a(appThread, appImage) < 0 ) 
    {
       return -1;
