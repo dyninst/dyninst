@@ -525,13 +525,6 @@ bool BPatch_process::continueExecutionInt()
    isVisiblyStopped = false;
    setUnreportedStop(false);
 
-   if (unstartedRPC) {
-      bool needsToRun = false;
-      llproc->getRpcMgr()->launchRPCs(needsToRun, false);
-      unstartedRPC = false;
-      return true;
-   }
-
    bool ret =  llproc->sh->continueProcessBlocking();
 
    // Now here's amusing for you... we can hit a DyninstDebugBreakpoint
@@ -2099,6 +2092,10 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                     (thread) ? (thread->llthread) : NULL,
                                     NULL); 
    activeOneTimeCodes_++;
+   bool rpcNeedsContinue = false;
+   inferiorrpc_printf("%s[%d]: calling launchRPCs(%d, %d)\n",
+                      FILE__, __LINE__, rpcNeedsContinue, 
+                      false);
 
    // We override while the inferiorRPC runs...
    if (synchronous) {
@@ -2107,14 +2104,8 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
        llproc->sh->overrideSyncContinueState(ignoreRequest);
    }
 
-   if (!synchronous && isVisiblyStopped) {
-      unstartedRPC = true;
-      return NULL;
-   }
-
-   inferiorrpc_printf("%s[%d]: calling launchRPCs\n", FILE__, __LINE__);
-   bool needsToRun = false;
-   llproc->getRpcMgr()->launchRPCs(needsToRun, false);
+   llproc->getRpcMgr()->launchRPCs(rpcNeedsContinue, 
+                                   false);
 
    if (!synchronous) return NULL;
 
