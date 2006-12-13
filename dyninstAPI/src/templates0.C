@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.58 2006/05/25 20:11:42 bernat Exp $
+// $Id: templates0.C,v 1.59 2006/12/13 21:34:36 jaw Exp $
 // Generate all the templates in one file.
 
 /*
@@ -65,12 +65,14 @@
 #endif
 #include "common/h/Vector.h"
 
+#include "common/h/Symbol.h"
+
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Symbol.h")
 #else
 #pragma implementation "Symbol.h"
 #endif
-#include "common/h/Symbol.h"
+
 
 #include "common/h/String.h"
 
@@ -83,26 +85,19 @@ template class pdvector<callWhen>;
 template class pdvector< IncludeFileInfo >;
 #endif
 
-// #include "dyninstAPI/src/dynamiclinking.h"
-
 #include <set>
 
-template class  pdvector<float>;
 template class  pdvector<int>;
 template class  pdvector<bool>;
 template class  pdvector<pdstring>;
 template class  pdvector<pdvector<pdstring> >;
 template class  pdvector<unsigned>;
-template class  pdvector<unsigned long>;
 template class  pdvector<long>;
-template class  pdvector<double>;
 
 class dyn_thread;
 template class  pdvector<dyn_thread *>;
-template class  pdvector< pdvector<dyn_thread *> >;
 
 class AstNode;
-//template class  pdvector<AstNode>;
 template class  pdvector<AstNode *>;
 
 // Included above
@@ -111,9 +106,7 @@ template class  pdvector<Symbol*>;
 
 #include "frame.h"
 template class  pdvector<Frame>;
-template class  pdvector<Frame*>;
 template class  pdvector<pdvector<Frame> >;
-template class  pdvector<pdvector<Frame*> >;
 
 class heapItem;
 template class  pdvector<heapItem*>;
@@ -131,15 +124,10 @@ template class  pdvector<const instPoint *>;
 class instPointInstance;
 template class  pdvector<instPointInstance *>;
 
-class BPatch_basicBlock;
-template class  pdvector<BPatch_basicBlock*>;
-
 class instruction;
 template class  pdvector<instruction *>;
 
-class baseTramp;
 class baseTrampInstance;
-template class  pdvector<baseTramp *>;
 template class  pdvector<baseTrampInstance *>;
 
 #include "arch.h"
@@ -150,9 +138,6 @@ template class  pdvector< ExceptionBlock >;
 
 class codeRange;
 template class  pdvector<codeRange *>;
-
-class module;
-template class  pdvector<module *>;
 
 class pdmodule;
 template class  pdvector<pdmodule *>;
@@ -166,8 +151,6 @@ template class  pdvector<int_basicBlock *>;
 class bblInstance;
 template class  pdvector<bblInstance *>;
 
-class BPatch_basicBlockLoop;
-template class  pdvector<BPatch_basicBlockLoop*>;
 
 class process;
 template class  pdvector<process*>;
@@ -181,7 +164,6 @@ class miniTramp;
 class miniTrampInstance;
 template class  pdvector<miniTramp *>;
 template class  pdvector<miniTrampInstance *>;
-template class  pdvector<const miniTramp *>;
 
 class generatedCodeObject;
 template class  pdvector<generatedCodeObject *>;

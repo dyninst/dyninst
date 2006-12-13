@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.67 2006/11/29 02:15:18 nater Exp $
+// $Id: templates2.C,v 1.68 2006/12/13 21:34:36 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -52,76 +52,19 @@
 #include "common/h/String.h"
 #include "common/h/Symbol.h"
 
-#if 0
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/Object.h"
-#include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/src/syscalltrap.h"
-
-#include "dyninstAPI/src/signalhandler.h"
-#endif
-
-#ifndef alpha_dec_osf4_0
-// ld on Alpha complains about the vector<pdstring> class being
-// multiply defined with the following line in.  Perhaps
-// it automatically generates vector<pdstring> when it sees
-// pair<pdstring, vector<pdstring> > in the line after.
-//
-// Ray Chen 6/18/2002
-template class pdvector<pdstring>;
-#endif
-
-template class pdpair<pdstring, pdvector<pdstring> >;
-
-template class pdvector<pdpair<pdstring, pdvector<pdstring> > >;
-
-
-class Symbol;
-template class  dictionary_hash_iter <Address, Symbol*>;
-
-//template class  dictionary_hash_iter <instPoint*, unsigned>;
-template class  dictionary_hash_iter <pdstring, Symbol>;
 class pdmodule;
 template class  dictionary_hash_iter <pdstring, pdmodule *>;
-class int_function;
-template class  dictionary_hash_iter <pdstring, int_function*>;
-template class  dictionary_hash_iter <pdstring, pdvector<int_function*>*>;
-template class  dictionary_hash_iter <unsigned, int_function*>;
-template class pdvector<pdvector<int_function * >* >;
 
-template class  dictionary_hash_iter <pdstring, unsigned>;
-
-class int_variable;
-template class  dictionary_hash_iter <pdstring, pdvector<int_variable*>*>;
 class image_func;
 template class  dictionary_hash_iter <pdstring, pdvector<image_func*>*>;
-class image_variable;
-template class  dictionary_hash_iter <pdstring, pdvector<image_variable*>*>;
-
-template class  dictionary_hash_iter <unsigned, unsigned>;
-class heapItem;
-template class  dictionary_hash_iter <unsigned, heapItem*>;
-template class  dictionary_hash_iter <unsigned long, int_function*>;
 
 class mapped_object;
 template class  pdvector<mapped_object *> ;
-
-class libraryCallback;
-template class dictionary_hash<pdstring, libraryCallback *>;
-template class pdvector<dictionary_hash <pdstring, libraryCallback *>::entry>;
 
 class syscallTrap;
 template class pdvector<syscallTrap *>;
 
 /* ***************************************************************************** */
-
-template class dictionary_hash <pdstring, Symbol>;
-template class pdvector<dictionary_hash <pdstring, Symbol>::entry>;
 
 class BPatch_point;
 template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
@@ -138,25 +81,11 @@ class BPatch_localVar;
 template class dictionary_hash<pdstring, BPatch_localVar *>;
 template class dictionary_hash_iter<pdstring, BPatch_localVar *>;
 template class pdvector<dictionary_hash <pdstring, BPatch_localVar *>::entry>;
-template class pdvector<BPatch_localVar *>;
-class BPatch_thread;
-template class dictionary_hash<int, BPatch_thread *>;
-template class dictionary_hash_iter<int, BPatch_thread *>;
-template class pdvector<dictionary_hash <int, BPatch_thread *>::entry>;
-
-class BPatch_field;
-template class pdvector<BPatch_field *>;
 
 #include "EventHandler.h"
-template class pdvector<EventRecord *>;
 template class pdvector<EventRecord>;
 template class dictionary_hash<Address, threadmap_t *>;
 template class pdvector<dictionary_hash<Address, threadmap_t *>::entry>;
-
-
-template class pdvector<pdpair<pdstring, pdvector<pdstring> *> >;
-template class dictionary_hash <pdstring, pdvector<pdstring> *>;
-template class pdvector<dictionary_hash <pdstring, pdvector<pdstring> *>::entry>;
 
 template class pdvector<dictionary_hash <unsigned int, Address>::entry>;
 
@@ -176,12 +105,6 @@ class BPatch_typeCollection;
 template class dictionary_hash< pdstring, BPatch_typeCollection * >;
 template class pdvector<dictionary_hash <pdstring, BPatch_typeCollection *>::entry>;
 
-/* For use with regexes.  gcc 2.95.3 on alpha needs these to be made explicit. */
-template class pdvector< pdpair< pdstring, int_function *> >;
-template class pdvector< pdpair< pdstring, pdvector< int_function * > * > >;
-
-
-
 #include "signalhandler.h"
 #include "BPatch_asyncEventHandler.h"
 #include "mailbox.h"
@@ -198,30 +121,24 @@ template class dictionary_hash< eventType, pdvector< CallbackBase * > >;
 template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >::entry>;
 
 template class pdvector<CallbackBase *>;
-template class pdvector<BPatchAsyncThreadEventCallback *>;
 template class pdvector<AsyncThreadEventCallback *>;
-template class pdvector<thread_event_cb_record>;
-template class pdvector<void (*)()>;
 template class pdvector<void *>;
 template class pdvector<eventType>;
-template class pdvector< pdpair<unsigned long, const char *> >;
 template class pdvector<dyn_lwp *>;
 template class pdvector<SignalHandler *>;
 #if defined( arch_ia64 )
 class int_basicBlock;
 #include <list>
 template class std::list< int_basicBlock *>;
+template class dictionary_hash< Address, void * >;
+template class pdvector< dictionary_hash< Address, void * >::entry >;
 #endif /* defined( arch_ia64 ) */
 
-template class pdvector< Symbol >;
 template class dictionary_hash< pdstring, pdvector< Symbol > >;
 template class pdvector<dictionary_hash < pdstring, pdvector <Symbol> >::entry>;
 
 template class dictionary_hash< pdstring, bool >;
 template class pdvector< dictionary_hash< pdstring, bool >::entry >;
-
-/* #include "dyninstAPI/src/LineInformation.h" */
-/* template LineInformation::SourceLineInternTable; */
 
 #if defined(os_aix)
 #include <set>
@@ -236,10 +153,6 @@ class replacedFunctionCall;
 template class dictionary_hash<Address, replacedFunctionCall *>;
 template class pdvector<dictionary_hash<Address, replacedFunctionCall *>::entry>;
 
-#if defined( arch_ia64 )
-template class dictionary_hash< Address, void * >;
-template class pdvector< dictionary_hash< Address, void * >::entry >;
-#endif /* defined( arch_ia64 ) */
 
 class Statistic;
 template class dictionary_hash<pdstring, Statistic *>;

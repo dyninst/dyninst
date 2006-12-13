@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.76 2006/11/14 20:37:03 bernat Exp $
+//$Id: templates1.C,v 1.77 2006/12/13 21:34:36 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -49,22 +49,6 @@
 #include "common/src/Dictionary.C"
 
 #include "common/h/String.h"
-
-#if 0
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/Object.h"
-#include "common/h/List.h"
-#endif
-
-//begin from templates05
-template class refCounter<string_ll>;
-//end from templates05
-
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "dyninstAPI/h/BPatch_type.h"
 #include "dyninstAPI/h/BPatch_Vector.h"
@@ -74,10 +58,13 @@ class BPatch_thread;
 class BPatch_field;
 class BPatch_variableExpr;
 
+#include "symtab.h" // supportedLanguages is a typedef; could move.
+template class  dictionary_hash <pdstring, supportedLanguages>;
+template class  pdvector<dictionary_hash <pdstring, supportedLanguages>::entry>;
+
 template class  dictionary_hash <Address, unsigned>;
 // symbolNamesByAddr
 template class  dictionary_hash <Address, pdstring>;
-
 template class  pdvector<dictionary_hash <Address, unsigned>::entry>;
 template class  dictionary_hash_iter <Address, unsigned>;
 template class  dictionary_hash <pdstring, unsigned>;
@@ -100,31 +87,17 @@ template class pdvector<rpcThr *>;
 template class pdvector<inferiorRPCtoDo *>;
 template class pdvector<inferiorRPCinProgress *>;
 
-#include "common/src/List.C"
-class Symbol;
-template class  dictionary_hash <Address, Symbol*>;
-template class  pdvector<dictionary_hash <Address, Symbol*>::entry>;
-
 class instPoint;
-template class  dictionary_hash <instPoint*, unsigned>;
-template class  pdvector<dictionary_hash <instPoint*, unsigned>::entry>;
-template class  pdvector<dictionary_hash <instPoint*, unsigned long>::entry>;
 template class  dictionary_hash <Address, instPoint*>;
 template class  pdvector<dictionary_hash <Address, instPoint *>::entry>;
-
 
 class pdmodule;
 template class  dictionary_hash <pdstring, pdmodule *>;
 template class  pdvector<dictionary_hash <pdstring, pdmodule *>::entry>;
 
 class int_function;
-template class  dictionary_hash <pdstring, int_function*>;
-template class  pdvector<dictionary_hash <pdstring, int_function*>::entry>;
 template class  dictionary_hash <pdstring, pdvector<int_function*>*>;
 template class  pdvector<dictionary_hash <pdstring, pdvector<int_function*>*>::entry>;
-template class  dictionary_hash <Address, int_function*>;
-template class  pdvector<dictionary_hash <Address, int_function*>::entry>;
-template class  dictionary_hash<int_function *,int_function *>;
 
 class int_variable;
 template class  dictionary_hash <pdstring, pdvector<int_variable*>*>;
@@ -145,10 +118,6 @@ template class  dictionary_hash <pdstring, pdvector<image_variable*>*>;
 template class  pdvector<dictionary_hash <pdstring, pdvector<image_variable*> *>::entry>;
 template class  dictionary_hash<const image_variable *, int_variable *>;
 template class  pdvector<dictionary_hash<const image_variable *, int_variable *>::entry>;
-
-#include "symtab.h" // supportedLanguages is a typedef; could move.
-template class  dictionary_hash <pdstring, supportedLanguages>;
-template class  pdvector<dictionary_hash <pdstring, supportedLanguages>::entry>;
 
 class heapItem;
 template class  dictionary_hash <Address, heapItem*>;
@@ -176,12 +145,11 @@ template class dictionary_hash <const instPoint *, BPatch_point *>;
 template class pdvector<dictionary_hash<const instPoint *, BPatch_point *>::entry>;
 template class dictionary_hash_iter<const instPoint *, BPatch_point *>;
 
-template class  dictionary_hash <pdstring, int>;
-template class  pdvector<dictionary_hash <pdstring, int>::entry>;
 template class  dictionary_hash <unsigned, unsigned>;
 template class  pdvector<dictionary_hash <unsigned, unsigned>::entry>;
 template class  dictionary_hash <int, int>;
 template class  pdvector<dictionary_hash <int, int>::entry>;
+
 template class  dictionary_hash <unsigned, Address>;
 template class  dictionary_hash <Address, Address>;
 template class  pdvector<dictionary_hash <Address, Address>::entry>;
