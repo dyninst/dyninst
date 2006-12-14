@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.13 2006/12/06 21:17:25 bernat Exp $
+// $Id: image-power.C,v 1.14 2006/12/14 20:12:09 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -171,40 +171,35 @@ void image_func::archInstructionProc(InstrucIter & /* ah */)
    It returns true or false based on whether the function is a leaf function,
    since if it is not the function could call out to another function that
    clobbers more registers so more analysis would be needed */
-bool image_func::usedRegs()
+
+
+
+void image_func::calcUsedRegs()
 {
-  if (usedRegisters != NULL)
-    return leafFunc; /* this gets the proper value AFTER usedRegisters is initialized */
-  else
-    {
-      usedRegisters = new image_func_registers();
-      //printf("In function %s\n", symTabName().c_str()); 
-      InstrucIter ah(this);
-      
-      //while there are still instructions to check for in the
-      //address space of the function      
-      leafFunc = true;
-      while (ah.hasMore()) 
-	{
-	  if (ah.isA_RT_WriteInstruction())
-	    if (ah.getRTValue() >= 3 && ah.getRTValue() <= 12)
-	      usedRegisters->generalPurposeRegisters.insert(ah.getRTValue());
-	  if (ah.isA_RA_WriteInstruction())
-	    if (ah.getRAValue() >= 3 && ah.getRAValue() <= 12)
-	      usedRegisters->generalPurposeRegisters.insert(ah.getRAValue());
-	  if (ah.isA_FRT_WriteInstruction())
-	    if (ah.getRTValue() >= 0 && ah.getRTValue() <= 13)
-	      usedRegisters->floatingPointRegisters.insert(ah.getRTValue());
-	  if (ah.isA_FRA_WriteInstruction())
-	    if (ah.getRAValue() >= 0 && ah.getRAValue() <= 13)
-	      usedRegisters->floatingPointRegisters.insert(ah.getRAValue());
-	  if (ah.isACallInstruction()){
-	    leafFunc = false;
-	    return false;
-	  }
-	  ah++;
-	}
-    }
-  return true; 
-}
+    if (usedRegisters != NULL)
+        return;
+
+    usedRegisters = new image_func_registers();
+    //printf("In function %s\n", symTabName().c_str()); 
+    InstrucIter ah(this);
     
+    //while there are still instructions to check for in the
+    //address space of the function      
+
+    while (ah.hasMore()) {
+        if (ah.isA_RT_WriteInstruction())
+            if (ah.getRTValue() >= 3 && ah.getRTValue() <= 12)
+                usedRegisters->generalPurposeRegisters.insert(ah.getRTValue());
+        if (ah.isA_RA_WriteInstruction())
+	    if (ah.getRAValue() >= 3 && ah.getRAValue() <= 12)
+                usedRegisters->generalPurposeRegisters.insert(ah.getRAValue());
+        if (ah.isA_FRT_WriteInstruction())
+	    if (ah.getRTValue() >= 0 && ah.getRTValue() <= 13)
+                usedRegisters->floatingPointRegisters.insert(ah.getRTValue());
+        if (ah.isA_FRA_WriteInstruction())
+	    if (ah.getRAValue() >= 0 && ah.getRAValue() <= 13)
+                usedRegisters->floatingPointRegisters.insert(ah.getRAValue());
+        ah++;
+    }
+    return;
+}

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.21 2006/12/06 21:17:27 bernat Exp $
+ * $Id: image-x86.C,v 1.22 2006/12/14 20:12:10 bernat Exp $
  */
 
 #include "common/h/Vector.h"
@@ -421,23 +421,55 @@ bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
     return ah.isAnAbortInstruction();
 }
 
-bool image_func::usedRegs()
-{
-  if (leafFunc == LEAF_UNKNOWN_FUNC)
-    {
-      containsFPWrites = false;
-      leafFunc = LEAF_FUNC;
-      InstrucIter ah(this);
-      while (ah.hasMore())
-	{
-	  if (ah.isFPWrite())
-	    containsFPWrites = true;
-	  if (ah.isACallInstruction())
-	    leafFunc = NO_LEAF_FUNC;
-	}
+bool image_func::writesFPRs(unsigned level) {
+    // Oh, we should be parsed by now...
+    if (!parsed_) image_->analyzeIfNeeded();
+
+    if (containsFPRWrites_ == unknown) {
+        // Iterate down and find out...
+        // We know if we have callees because we can
+        // check the instPoints; no reason to iterate over.
+        // We also cache callee values here for speed.
+
+        if (level >= 3) return true; // Arbitrarily decided level 3 iteration.
+        
+        for (unsigned i = 0; i < calls.size(); i++) {
+            if (calls[i]->func()) {
+                if (calls[i]->func()->writesFPRs(level+1)) {
+                    // One of our kids does... if we're top-level, cache it; in 
+                    // any case, return
+                    if (level == 0)
+                        containsFPRWrites_ = used;
+                    return true;
+                }
+            }
+            else {
+                // Indirect call... oh, yeah. 
+                if (level == 0)
+                    containsFPRWrites_ = used;
+                return true;
+            }
+        }
+
+        // No kids contain writes. See if our code does.
+        InstrucIter ah(this);
+        while (ah.hasMore()) {
+            if (ah.isFPWrite()) {
+                containsFPRWrites_ = used;
+                return true;
+            }
+            ah++;
+        }
+
+        // No kids do, and we don't. Impressive.
+        containsFPRWrites_ = unused;
+        return false;
     }
-  if (leafFunc == LEAF_FUNC)
-    return containsFPWrites; 
-  else
-    return true;
+    else if (containsFPRWrites_ == used)
+        return true;
+    else if (containsFPRWrites_ == unused)
+        return false;
+    
+    assert(0);
+    return false;
 }

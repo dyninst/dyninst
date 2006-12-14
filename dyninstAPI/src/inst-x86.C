@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.256 2006/12/06 21:17:29 bernat Exp $
+ * $Id: inst-x86.C,v 1.257 2006/12/14 20:12:12 bernat Exp $
  */
 #include <iomanip>
 
@@ -891,7 +891,7 @@ bool Emitter32::clobberAllFuncCall( registerSpace *rs,
   */
 
   stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);  
-  bool ret = callee->ifunc()->usedRegs();
+  bool ret = callee->ifunc()->writesFPRs();
   stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
   return ret;
 }
@@ -958,12 +958,6 @@ Register Emitter32::emitCall(opCode op,
    Register ret = gen.rs()->allocateRegister(gen, noCost);
    emitMovRegToRM(REGNUM_EBP, -1*(ret*4), REGNUM_EAX, gen);
 
-   // Figure out if we need to save FPR in base tramp
-   bool useFPR = clobberAllFuncCall(gen.rs(), callee);
-   
-   if (gen.point() != NULL)
-       setFPSaveOrNot(gen.point()->liveFPRegisters(), useFPR);
-   
    return ret;
 }
 
@@ -2323,11 +2317,12 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
          }
       }
    }
-   spFlag = false;
-   if (liveFPRegs != NULL)
-   {
-      spFlag = liveFPRegs[0];
-   }
+
+   // We don't do FPR analysis (yet)
+   saveAllGPRs_ = unknown;
+   saveAllFPRs_ = unknown;
+   saveAllSPRs_ = unknown;
+
 }
 
 int instPoint::liveRegSize()

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.258 2006/12/06 22:35:11 bernat Exp $
+ * $Id: inst-power.C,v 1.259 2006/12/14 20:12:11 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -71,6 +71,9 @@
 
 #include "InstrucIter.h"
 
+#include "emitter.h"
+#include "emit-power.h"
+
 #include <sstream>
 
 extern bool isPowerOf2(int value, int &result);
@@ -81,6 +84,9 @@ Address getMaxBranch() {
   return MAX_BRANCH;
 }
 
+EmitterPOWER emitterPower;
+// Required global variable.
+Emitter *code_emitter = &emitterPower;
 
 const char *registerNames[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
 			"r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
@@ -857,10 +863,10 @@ unsigned saveSPRegisters(codeGen &gen,
     saveCR(gen, 10, save_off + STK_CR);           
     saveSPR(gen, 10, SPR_CTR, save_off + STK_CTR);
     saveSPR(gen, 10, SPR_XER, save_off + STK_XER);
-    if (theRegSpace->getSPFlag())
-      saveSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
+    if (theRegSpace->saveAllSPRs())
+        saveSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
     saveFPSCR(gen, 10, save_off + STK_FP_CR);
-    if (theRegSpace->getSPFlag())
+    if (theRegSpace->saveAllSPRs())
       return 5; // register saved
     else
       return 4;
@@ -878,10 +884,10 @@ unsigned restoreSPRegisters(codeGen &gen,
     restoreCR(gen, 10, save_off + STK_CR);
     restoreSPR(gen, 10, SPR_CTR, save_off + STK_CTR);
     restoreSPR(gen, 10, SPR_XER, save_off + STK_XER);
-    if (theRegSpace->getSPFlag())
+    if (theRegSpace->saveAllSPRs())
       restoreSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
     restoreFPSCR(gen, 10, save_off + STK_FP_CR);
-    if (theRegSpace->getSPFlag())
+    if (theRegSpace->saveAllSPRs())
       return 5; // restored
     else
       return 4;
@@ -1243,7 +1249,7 @@ that it calls, to a certain depth ... at which point we clobber everything
 Update-12/06, njr, since we're going to a cached system we are just going to 
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
-bool clobberAllFuncCall( registerSpace *rs,
+bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
                          int_function * callee)
 		   
 {
@@ -1255,11 +1261,9 @@ bool clobberAllFuncCall( registerSpace *rs,
      whether or not the callee is a leaf function.
      if it is, we use the register info we gathered,
      otherwise, we punt and save everything */
-  bool isLeafFunc = callee->ifunc()->usedRegs();
   
 
-  if (isLeafFunc)
-    {
+  if (callee->ifunc()->isLeafFunc()) {
       std::set<Register> * gprs = callee->ifunc()->usedGPRs();
       std::set<Register>::iterator It = gprs->begin();
       while (It != gprs->end()){
@@ -1276,6 +1280,7 @@ bool clobberAllFuncCall( registerSpace *rs,
       return false;
     }
   else {
+    rs->clobberAllRegisters();
     stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);   
     return true;
   }
@@ -1311,7 +1316,6 @@ Register emitFuncCall(opCode /* ocode */,
 		      pdvector<AstNode *> &operands, bool noCost,
 		      int_function *callee) {
     Address toc_anchor;
-    bool clobberAll = false;
     pdvector <Register> srcs;
 
    
@@ -1519,26 +1523,6 @@ Register emitFuncCall(opCode /* ocode */,
    
    //inst_printf("mtlr0 (%d)...");
 
-   // Linear Scan on the functions to see which registers get clobbered
-     
-   clobberAll = clobberAllFuncCall(gen.rs(), callee);
-   //clobberAll = true; // Speed kills...
-
-   /////////////// Clobber the registers if needed
-
-   if (clobberAll)
-     {
-       for(u_int i = 0; i < gen.rs()->getRegisterCount(); i++){
-	 registerSlot * reg = gen.rs()->getRegSlot(i);
-	 gen.rs()->clobberRegister(reg->number);
-       }
-       
-       for(u_int i = 0; i < gen.rs()->getFPRegisterCount(); i++){
-	 registerSlot * reg = gen.rs()->getFPRegSlot(i);
-	 gen.rs()->clobberFPRegister(reg->number);
-       }
-     }
-   
 
    // brl - branch and link through the link reg.
 
@@ -2343,51 +2327,54 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
     assert(liveRegs != NULL);
 
 
-  registerSlot *regSlot = NULL;
-  registerSlot *regFPSlot = NULL;
+    registerSlot *regSlot = NULL;
+    registerSlot *regFPSlot = NULL;
 
-      /*
+    /*
       printf("GPR  ");
       for (int a = 0; a < 32; a++)
-	printf("%d ",liveRegs[a]);
+      printf("%d ",liveRegs[a]);
       printf("\n");
       
       printf("FPR  ");
       for (int a = 0; a < 32; a++)
-	printf("%d ",liveFPRegs[a]);
-	printf("\n");
-      */
-
-	for (u_int i = 0; i < getRegisterCount(); i++) {
-		regSlot = getRegSlot(i);
-		if (  liveRegs[ (int) registers[i].number ] == LIVE_REG ||
-			liveRegs[ (int) registers[i].number ] == LIVE_CLOBBERED_REG ) {
-				registers[i].needsSaving = true;
-				registers[i].startsLive = true;
-		}
-		else {
-			registers[i].needsSaving = false;
-			registers[i].startsLive = false;
-		}
-	}
-
-	for (u_int i = 0; i < getFPRegisterCount(); i++) {
-		regFPSlot = getFPRegSlot(i);
-	  
-		if (  liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_REG ||
-			liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_CLOBBERED_REG) {
-				fpRegisters[i].needsSaving = true;
-				fpRegisters[i].startsLive = true;
-		}
-		else {
-			fpRegisters[i].needsSaving = false;
-			fpRegisters[i].startsLive = false;
-	    }
-	}
-  if (liveSPRegs != NULL)
-    {
-      spFlag = liveSPRegs[0];
+      printf("%d ",liveFPRegs[a]);
+      printf("\n");
+    */
+    
+    for (u_int i = 0; i < getRegisterCount(); i++) {
+        regSlot = getRegSlot(i);
+        if (  liveRegs[ (int) registers[i].number ] == LIVE_REG ||
+              liveRegs[ (int) registers[i].number ] == LIVE_CLOBBERED_REG ) {
+            registers[i].needsSaving = true;
+            registers[i].startsLive = true;
+        }
+        else {
+            registers[i].needsSaving = false;
+            registers[i].startsLive = false;
+        }
     }
+    
+    for (u_int i = 0; i < getFPRegisterCount(); i++) {
+        regFPSlot = getFPRegSlot(i);
+        
+        if (  liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_REG ||
+              liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_CLOBBERED_REG) {
+            fpRegisters[i].needsSaving = true;
+            fpRegisters[i].startsLive = true;
+        }
+        else {
+            fpRegisters[i].needsSaving = false;
+            fpRegisters[i].startsLive = false;
+        }
+    }
+    
+    if (liveSPRegs == NULL)
+        saveAllSPRs_ = unknown;
+    else if (liveSPRegs[0] == 1) 
+        saveAllSPRs_ = live;
+    else
+        saveAllSPRs_ = dead;
 }
 
 
