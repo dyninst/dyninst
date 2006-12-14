@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.676 2006/12/06 21:17:42 bernat Exp $
+// $Id: process.C,v 1.677 2006/12/14 20:12:13 bernat Exp $
 
 #include <ctype.h>
 
@@ -1667,9 +1667,9 @@ bool process::inferiorRealloc(Address block, unsigned newSize)
 
 void process::deleteProcess() 
 {
-#if 0
-  fprintf(stderr, "%s[%d]:  welcome to delete process\n", FILE__, __LINE__);
-#endif
+
+  assert(this);
+
   // A lot of the behavior here is keyed off the current process status....
   // if it is exited we'll delete things without performing any operations
   // on the process. Otherwise we'll attempt to reverse behavior we've made.
@@ -1843,7 +1843,7 @@ void process::deleteProcess()
   vsyscall_text_ = 0;
   vsyscall_data_ = 0;
 #endif
-  
+
   set_status(deleted);
 }
 
@@ -2526,7 +2526,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
 
 static void cleanupBPatchHandle(int pid)
 {
-   BPatch::bpatch->unRegisterProcess(pid);
+   BPatch::bpatch->unRegisterProcess(pid, NULL);
 }
 
 
@@ -3580,15 +3580,16 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning)
 
 bool process::terminateProc() 
 {
-   if(status() == exited || status() == deleted || status() == detached
-      || !sh->isRunning()) {
-       set_status(exited);
-       return false;
-   }
-   terminateProcStatus_t retVal = terminateProc_();
-   switch (retVal) {
-   case terminateSucceeded:
-     {
+    if(status() == exited || status() == deleted) {
+        return true;
+    }
+    if (status() == detached || !sh->isRunning()) {
+        set_status(exited);
+        return true;
+    }
+    terminateProcStatus_t retVal = terminateProc_();
+    switch (retVal) {
+    case terminateSucceeded: {
      // handle the kill signal on the process, which will dispatch exit callback
       signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessExit)\n", 
               FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -3602,8 +3603,9 @@ bool process::terminateProc()
           sh->signalActiveProcess();
       }
       sh->waitForEvent(evtProcessExit);
-      set_status(exited);
-     return true;
+      if (status() != deleted)
+          set_status(exited);
+      return true;
      }
      break;
    case alreadyTerminated:
