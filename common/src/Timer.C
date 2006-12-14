@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Timer.C,v 1.16 2006/12/06 21:17:01 bernat Exp $
+// $Id: Timer.C,v 1.17 2006/12/14 20:11:54 bernat Exp $
 
 #include "common/h/Timer.h"
 
@@ -108,7 +108,8 @@ timer::start() {
 
 void
 timer::stop() {
-    assert(activation_count_ > 0);
+    if (activation_count_ == 0) return;
+
     activation_count_--;
     if (activation_count_ == 0) {
         double cu, cs, cw;
