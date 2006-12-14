@@ -2002,6 +2002,8 @@ int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
            retval = RPC_STOP_WHEN_DONE;
        else
            retval = RPC_RUN_WHEN_DONE;
+
+      BPatch::bpatch->signalNotificationFD();
        
       //  if we have a specific callback for (just) this oneTimeCode, call it
       OneTimeCodeCallback *specific_cb = info->getCallback();
@@ -2014,10 +2016,8 @@ int BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
       //  get global oneTimeCode callbacks
       pdvector<CallbackBase *> cbs;
       getCBManager()->dispenseCallbacksMatching(evtOneTimeCode, cbs);
-      BPatch::bpatch->signalNotificationFD();
       
       for (unsigned int i = 0; i < cbs.size(); ++i) {
-          BPatch::bpatch->signalNotificationFD();
           
           OneTimeCodeCallback *cb = dynamic_cast<OneTimeCodeCallback *>(cbs[i]);
           if (cb) {
@@ -2595,11 +2595,12 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
      return newthr;
   }
 
+  BPatch::bpatch->signalNotificationFD();
+
   pdvector<CallbackBase *> cbs;
   getCBManager()->dispenseCallbacksMatching(evtThreadCreate, cbs);
   
   for (unsigned int i = 0; i < cbs.size(); ++i) {
-      BPatch::bpatch->signalNotificationFD();
 
      AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
      async_printf("%s[%d]:  before issuing thread create callback: tid %lu\n", 
@@ -2617,10 +2618,11 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
     //  other thread events since we never attached to it)
     //  it is up to the user to check deadOnArrival() before doing anything
     //  with the thread object.
+      BPatch::bpatch->signalNotificationFD();
+
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        BPatch::bpatch->signalNotificationFD();
         BPatch::bpatch->mutateeStatusChange = true;
         llproc->sh->signalEvent(evtThreadExit);
         AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.166 2006/12/14 20:11:57 bernat Exp $
+// $Id: BPatch.C,v 1.167 2006/12/14 23:17:21 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -955,9 +955,9 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtPostFork,cbs);
     
+    signalNotificationFD();
     
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
 
         ForkCallback *cb = dynamic_cast<ForkCallback *>(cbs[i]);
         if (cb) {
@@ -988,11 +988,12 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
 
     forking->isVisiblyStopped = true;
 
+    signalNotificationFD();
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtPreFork,cbs);
+
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
 
         assert(cbs[i]);
         ForkCallback *cb = dynamic_cast<ForkCallback *>(cbs[i]);
@@ -1040,10 +1041,11 @@ void BPatch::registerExecExit(process *proc)
 
    // The async pipe should be gone... handled in registerExecEntry
 
+   signalNotificationFD();
+
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
 
         ExecCallback *cb = dynamic_cast<ExecCallback *>(cbs[i]);
         if (cb)
@@ -1074,12 +1076,13 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    process->setExitedNormally();
    process->setUnreportedTermination(true);
 
+   signalNotificationFD();
+
    pdvector<CallbackBase *> cbs;
 
    if (thrd) {
       getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
       for (unsigned int i = 0; i < cbs.size(); ++i) {
-         signalNotificationFD();
          AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
          if (cb)
             (*cb)(process, thrd);
@@ -1088,7 +1091,6 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    cbs.clear();
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
-       signalNotificationFD();
        ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
        if (cb) {
            signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
@@ -1126,11 +1128,12 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    bpprocess->isVisiblyStopped = true;
    bpprocess->terminated = true;
 
+   signalNotificationFD();
+
    pdvector<CallbackBase *> cbs;
    if (thrd) {
       getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
       for (unsigned int i = 0; i < cbs.size(); ++i) {
-         signalNotificationFD();
          
          AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
          if (cb) 
@@ -1140,7 +1143,6 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    cbs.clear();
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
-       signalNotificationFD();
 
        ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
        if (cb) 
@@ -1192,12 +1194,14 @@ void BPatch::registerThreadExit(process *proc, long tid, bool exiting)
         // tries to nuke it as well. This guards against that.
         return;
     }
+
+    signalNotificationFD();
+
     thrd->deleted_callback_made = true;
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
 
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
 
         AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
         mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
@@ -1223,6 +1227,8 @@ void BPatch::registerLoadedModule(process *process, mapped_module *mod) {
     assert(bImage); // This we can assert to be true
     
     BPatch_module *bpmod = bImage->findOrCreateModule(mod);
+
+    signalNotificationFD();
     
     pdvector<CallbackBase *> cbs;
     
@@ -1230,7 +1236,6 @@ void BPatch::registerLoadedModule(process *process, mapped_module *mod) {
         return;
     }
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
         DynLibraryCallback *cb = dynamic_cast<DynLibraryCallback *>(cbs[i]);
         if (cb)
             (*cb)(bProc->threads[0], bpmod, true);
@@ -1254,6 +1259,8 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
     if (bpmod == NULL) return;
 
     bImage->removeModule(bpmod);
+
+    signalNotificationFD();
     
     pdvector<CallbackBase *> cbs;
     
@@ -1262,7 +1269,6 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
         return;
     }
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-        signalNotificationFD();
         DynLibraryCallback *cb = dynamic_cast<DynLibraryCallback *>(cbs[i]);
         if (cb)
             (*cb)(bProc->threads[0], bpmod, false);
@@ -2092,6 +2098,8 @@ void BPatch::continueIfExists(int pid)
 void BPatch::signalNotificationFD() {
 #if !defined(os_windows)
     // If the FDs are set up, write a byte to the input side.
+    createNotificationFD();
+
     if (notificationFDInput_ == -1) return;
     if (FDneedsPolling_) return;
 
@@ -2119,7 +2127,7 @@ void BPatch::clearNotificationFD() {
     return;
 }
 
-int BPatch::getNotificationFDInt() {
+void BPatch::createNotificationFD() {
 #if !defined(os_windows)
     if (notificationFDOutput_ == -1) {
         assert(notificationFDInput_ == -1);
@@ -2131,7 +2139,12 @@ int BPatch::getNotificationFDInt() {
             notificationFDInput_ = pipeFDs[1];
         }
     }
+#endif
+}
 
+int BPatch::getNotificationFDInt() {
+#if !defined(os_windows)
+    createNotificationFD();
     return notificationFDOutput_;
 #else
     return -1;
