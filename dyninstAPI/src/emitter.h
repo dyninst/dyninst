@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emitter.h,v 1.5 2006/12/01 01:33:15 legendre Exp $
+ * $Id: emitter.h,v 1.6 2006/12/14 20:12:06 bernat Exp $
  */
 
 #ifndef _EMITTER_H
@@ -111,6 +111,7 @@ class Emitter {
     virtual bool emitPop(codeGen &, Register) = 0;
     virtual bool emitAdjustStackPointer(int index, codeGen &gen) = 0;
     
+    virtual bool clobberAllFuncCall(registerSpace *rs,int_function *callee) = 0;;
 };
 
 // current set of code generation functions
