@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.5 2006/11/22 04:03:29 bernat Exp $
+// $Id: registerSpace.h,v 1.6 2006/12/14 20:12:15 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -235,7 +235,6 @@ class registerSpace {
 	void cleanSpace();
 	
     void resetClobbers();
-    void setAllLive();
     void saveClobberInfo(const instPoint * location);
     void resetLiveDeadInfo(const int* liveRegs,
                            const int *, 
@@ -254,6 +253,11 @@ class registerSpace {
     // false if it has already been clobbered
     bool clobberRegister(Register reg);
     bool clobberFPRegister(Register reg);
+
+    // The efficient mass-production version of the above. Sets all registers
+    // to "clobbered"; that is, used in a function call and in need of saving
+    // (if it's live).
+    bool clobberAllRegisters();
     
     // Checks to see if given register has been clobbered, true if it has
     bool beenSaved(Register reg);
@@ -276,8 +280,17 @@ class registerSpace {
     
     registerSlot *getRegSlot(Register k) { return (&registers[k]); }
     registerSlot *getFPRegSlot(Register k) { return (&fpRegisters[k]); }
+
+    enum saveState_t { unknown, killed, unused, live, dead};
     
-    int getSPFlag() {return spFlag;}
+    // A bit of logic... for now, "unknown" is optimistic.
+    bool saveAllGPRs() const { return ((saveAllGPRs_ == killed) || (saveAllGPRs_ == live)); }
+    bool saveAllFPRs() const { return ((saveAllFPRs_ == killed) || (saveAllFPRs_ == live)); }
+    bool saveAllSPRs() const { return ((saveAllSPRs_ == killed) || (saveAllSPRs_ == live)); }
+    
+    void setSaveAllGPRs(bool val) { saveAllGPRs_ = val ? killed : unused; } 
+    void setSaveAllFPRs(bool val) { saveAllFPRs_ = val ? killed : unused; } 
+    void setSaveAllSPRs(bool val) { saveAllSPRs_ = val ? killed : unused; } 
     
     void copyInfo(registerSpace *rs) const;
 
@@ -317,8 +330,12 @@ class registerSpace {
     pdvector<registerSlot> spRegisters;
     
     int currStackPointer; 
-    
-    int spFlag;
+
+    // And track what needs to be saved...
+    saveState_t saveAllGPRs_;
+    saveState_t saveAllFPRs_;
+    saveState_t saveAllSPRs_;
+
  public:
     static bool hasXMM;  // for Intel architectures, XMM registers
     

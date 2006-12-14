@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.9 2006/12/06 21:17:44 bernat Exp $
+// $Id: registerSpace.C,v 1.10 2006/12/14 20:12:14 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -162,8 +162,8 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP) {
 #if defined(arch_power) || defined(arch_x86_64)
 	assert(actualRegSpace_);
 	actualRegSpace_->resetLiveDeadInfo(iP->liveGPRegisters(),
-										iP->liveFPRegisters(),
-										iP->liveSPRegisters());
+                                           iP->liveFPRegisters(),
+                                           iP->liveSPRegisters());
 	actualRegSpace_->cleanSpace();
 	return actualRegSpace_;
 #else
@@ -226,20 +226,24 @@ registerSpace *registerSpace::createAllDead(Register *liveList, unsigned int num
 }
 
 registerSpace::registerSpace() :
-    currStackPointer(0)
+    currStackPointer(0),
+    saveAllGPRs_(unknown), // All these initialize to true for safety.
+    saveAllFPRs_(unknown),
+    saveAllSPRs_(unknown)
 {
 
 #if defined(arch_x86_64)
     initSpecialPurposeRegisters();
 #endif
   
-  spFlag = 1;   // Save SPR (right now for Power) unless we hear different
   // Assume live unless told otherwise
 }
 
 registerSpace::registerSpace(const registerSpace &src) :
 	currStackPointer(src.currStackPointer),
-	spFlag(src.spFlag)
+        saveAllGPRs_(src.saveAllGPRs_),
+        saveAllFPRs_(src.saveAllFPRs_),
+        saveAllSPRs_(src.saveAllSPRs_)
 {
     for (unsigned i = 0; i < src.registers.size(); i++) {
         registers.push_back(src.registers[i]);
@@ -574,7 +578,9 @@ void registerSpace::copyInfo( registerSpace *rs ) const {
    rs->spRegisters = spRegisters;
    rs->currStackPointer = currStackPointer;
 
-   rs->spFlag = this->spFlag;
+   rs->saveAllGPRs_ = saveAllGPRs_;
+   rs->saveAllFPRs_ = saveAllFPRs_;
+   rs->saveAllSPRs_ = saveAllSPRs_;
 
 #if defined(arch_ia64)
    rs->originalLocals = this->originalLocals;
@@ -587,27 +593,15 @@ void registerSpace::copyInfo( registerSpace *rs ) const {
 } /* end registerSpace::copyInfo() */
 
 
-void registerSpace::setAllLive(){
-  for (u_int i = 0; i < registers.size(); i++)
-    {
-      registers[i].needsSaving = true;
-      registers[i].startsLive = true;
-    }
-  for (u_int i = 0; i < fpRegisters.size(); i++)
-    {
-      fpRegisters[i].needsSaving = true;
-      fpRegisters[i].startsLive = true;
-    }
-  spFlag = true;
-}
-
-
 void registerSpace::resetSpace() {
-	assert(this);
+    assert(this);
     regalloc_printf("============== RESET %p ==============\n", this);
-   for (u_int i=0; i < registers.size(); i++) {
-       registers[i].resetSlot();
-   }
+    for (u_int i=0; i < registers.size(); i++) {
+        registers[i].resetSlot();
+    }
+    saveAllGPRs_ = unknown;
+    saveAllFPRs_ = unknown;
+    saveAllSPRs_ = unknown;
 }
 
 void registerSpace::cleanSpace() {
@@ -683,7 +677,9 @@ void registerSpace::checkLeaks(Register to_exclude)
 
 registerSpace &registerSpace::operator=(const registerSpace &src)
 {
-    spFlag = src.spFlag;
+    saveAllGPRs_ = src.saveAllGPRs_;
+    saveAllFPRs_ = src.saveAllFPRs_;
+    saveAllSPRs_ = src.saveAllSPRs_;
     currStackPointer = src.currStackPointer;
 
     for (unsigned i = 0; i < src.registers.size(); i++) {
@@ -976,8 +972,11 @@ void registerSpace::debugPrint() {
 	fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
 	fprintf(stderr, "GPRs: %d (%d), FPRs: %d (%d), SPRs: (%d)\n", 
 			registers.size(), registers.size(), fpRegisters.size(), fpRegisters.size(), spRegisters.size());
-	fprintf(stderr, "Stack pointer is at %d, spFlag %d",
-			currStackPointer, spFlag);
+	fprintf(stderr, "Stack pointer is at %d, saveAll: %d/%d/%d\n",
+                currStackPointer, 
+                saveAllGPRs_,
+                saveAllFPRs_,
+                saveAllSPRs_);
 	fprintf(stderr, "Register dump:");
 	fprintf(stderr, "=====GPRs=====\n");
 	for (unsigned i = 0; i < registers.size(); i++) {
@@ -1018,4 +1017,15 @@ void registerSpace::unKeepRegister(Register reg) {
 	assert(r);
 	r->keptValue = false;
 }
+
+bool registerSpace::clobberAllRegisters() {
+    for (unsigned i = 0; i < registers.size(); i++) {
+        registers[i].beenClobbered = true;
+    }
+    for (unsigned i = 0; i < fpRegisters.size(); i++) {
+        fpRegisters[i].beenClobbered = true;
+    }
+    return true;
+}
+
 
