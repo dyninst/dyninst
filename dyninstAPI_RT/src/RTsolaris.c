@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.31 2006/05/16 21:14:36 jaw Exp $
+ * $Id: RTsolaris.c,v 1.32 2006/12/14 20:39:18 legendre Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -71,6 +71,27 @@ extern struct sigaction DYNINSTactTrapApp;
  *
  * OS initialization function
 ************************************************************************/
+
+void DYNINSTbreakPoint()
+{
+    /* We set a global flag here so that we can tell
+       if we're ever in a call to this when we get a 
+       SIGBUS */
+   int thread_index = DYNINSTthreadIndex();
+    DYNINST_break_point_event = 1;
+    while (DYNINST_break_point_event)  {
+        kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);
+    }
+    /* Mutator resets to 0... */
+}
+
+
+void DYNINSTsafeBreakPoint()
+{
+    DYNINST_break_point_event = 2; /* Not the same as above */
+    while (DYNINST_break_point_event)
+        kill(getpid(), SIGSTOP);
+}
 
 extern void DYNINSTheap_setbounds();  /* RTheap-solaris.c */
 

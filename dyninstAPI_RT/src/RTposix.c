@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.30 2006/10/18 16:07:16 legendre Exp $
+ * $Id: RTposix.c,v 1.31 2006/12/14 20:39:17 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -67,31 +67,6 @@
 #else
 #define SOCKLEN_T socklen_t
 #endif
-/************************************************************************
- * void DYNINSTbreakPoint(void)
- *
- * stop oneself.
-************************************************************************/
-
-void DYNINSTbreakPoint()
-{
-    /* We set a global flag here so that we can tell
-       if we're ever in a call to this when we get a 
-       SIGBUS */
-    DYNINST_break_point_event = 1;
-    while (DYNINST_break_point_event)  {
-        kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);
-    }
-    /* Mutator resets to 0... */
-}
-
-
-void DYNINSTsafeBreakPoint()
-{
-    DYNINST_break_point_event = 2; /* Not the same as above */
-    while (DYNINST_break_point_event)
-        kill(getpid(), SIGSTOP);
-}
 
 #if !defined(cap_save_the_world)
 void RTmutatedBinary_init() 

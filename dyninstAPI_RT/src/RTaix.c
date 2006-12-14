@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <signal.h>
 
 /************************************************************************
  * void DYNINSTos_init(void)
@@ -57,6 +58,27 @@
 ************************************************************************/
 
 void DYNINSTstaticHeap_1048576_textHeap_libSpace(void);
+
+void DYNINSTbreakPoint()
+{
+    /* We set a global flag here so that we can tell
+       if we're ever in a call to this when we get a 
+       SIGBUS */
+   int thread_index = DYNINSTthreadIndex();
+    DYNINST_break_point_event = 1;
+    while (DYNINST_break_point_event)  {
+        kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);
+    }
+    /* Mutator resets to 0... */
+}
+
+
+void DYNINSTsafeBreakPoint()
+{
+    DYNINST_break_point_event = 2; /* Not the same as above */
+    while (DYNINST_break_point_event)
+        kill(getpid(), SIGSTOP);
+}
 
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {

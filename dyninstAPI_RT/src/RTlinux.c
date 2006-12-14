@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.48 2006/06/05 22:30:18 bernat Exp $
+ * $Id: RTlinux.c,v 1.49 2006/12/14 20:39:16 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -54,12 +54,40 @@
 #include <sys/syscall.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 #include <sys/mman.h>
 
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_16M_anyHeap_1[];
 extern unsigned long sizeOfLowMemHeap1;
 extern unsigned long sizeOfAnyHeap1;
+
+/************************************************************************
+ * void DYNINSTbreakPoint(void)
+ *
+ * stop oneself.
+************************************************************************/
+
+void DYNINSTbreakPoint()
+{
+    /* We set a global flag here so that we can tell
+       if we're ever in a call to this when we get a 
+       SIGBUS */
+   int thread_index = DYNINSTthreadIndex();
+    DYNINST_break_point_event = 1;
+    while (DYNINST_break_point_event)  {
+        kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
+    }
+    /* Mutator resets to 0... */
+}
+
+
+void DYNINSTsafeBreakPoint()
+{
+    DYNINST_break_point_event = 2; /* Not the same as above */
+    while (DYNINST_break_point_event)
+        kill(dyn_lwp_self(), SIGSTOP);
+}
 
 void mark_heaps_exec() {
 	RTprintf( "*** Initializing dyninstAPI runtime.\n" );
