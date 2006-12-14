@@ -138,6 +138,7 @@ char *processRunStateStr(processRunState_t runState) {
  */
 
 void SignalGeneratorCommon::main() {
+    MONITOR_ENTRY();
 
     addToThreadMap();
     
@@ -249,6 +250,55 @@ void SignalGeneratorCommon::main() {
     // We're going down...
     signalEvent(evtShutDown);
 
+
+    while(numBlockedForContinue) {
+        waitForContinueLock->_Lock(FILE__, __LINE__);
+        eventlock->_Unlock(FILE__, __LINE__);
+        waitForContinueLock->_Broadcast(FILE__, __LINE__);
+        waitForContinueLock->_Unlock(FILE__, __LINE__);
+        eventlock->_Lock(FILE__, __LINE__);
+    }
+
+    // Grab exit lock...
+    signal_printf("%s[%d]: SG grabbing exit lock\n", FILE__, __LINE__);
+    waitForHandlerExitLock->_Lock(FILE__, __LINE__);
+
+    signal_printf("%s[%d]: SG releasing global mutex...\n", FILE__, __LINE__);
+    eventlock->_Unlock(FILE__, __LINE__);
+
+    // And set all handlers to exit
+    for (unsigned i = 0; i < handlers.size(); i++) {
+        // Force exit of signal handler
+        handlers[i]->stop_request = true;
+        if (handlers[i]->waitingForWakeup_) {
+            handlers[i]->waitLock->_Broadcast(FILE__, __LINE__);
+        }
+    }
+
+    signal_printf("%s[%d]: SG waiting for handlers to exit\n", FILE__, __LINE__);
+    while(handlers.size()) {
+        waitForHandlerExitLock->_WaitForSignal(FILE__, __LINE__);
+    }
+
+    eventlock->_Lock(FILE__, __LINE__);
+            
+
+    waitForHandlerExitLock->_Unlock(FILE__, __LINE__);
+
+    // The pointer is owned by the BPatch_process, since it can
+    // be deleted by the BPatch user. So we can't delete it; 
+    // however, we can (and should) call deleteProcess so that it
+    // gets cleaned up
+    // Proc may be null if initialization failed; in this case,
+    // don't try to clean up.
+    if (proc) {
+        proc->deleteProcess();
+        // Set our process pointer to NULL; DO NOT DELETE!!!
+        // DO NOT DELETE
+        proc->sh = NULL;
+        proc = NULL;
+    }
+
     thread_printf("%s[%d]: removing from thread map\n", FILE__, __LINE__);
     removeFromThreadMap();
     
@@ -262,6 +312,8 @@ void SignalGeneratorCommon::main() {
     global_mutex->_Unlock(FILE__, __LINE__);
     
     thread_printf("%s[%d][%s]:  SignalGenerator::main exiting\n", FILE__, __LINE__, idstr);
+
+    MONITOR_EXIT();
 }
 
 bool SignalGeneratorCommon::exitRequested() 
@@ -764,39 +816,10 @@ bool SignalGeneratorCommon::signalEvent(eventType t)
   return signalEvent(ev);
 }
 
-#if 0
-bool SignalGeneratorCommon::unsafeToContinue() {
-    // If there are any pending events, then don't continue. Otherwise,
-    // obey the continuation hint.
-
-    signal_printf("%s[%d]: checking whether safe to continue...\n",
-                  FILE__, __LINE__);
-
-    continueDesired_ = true;
-
-    if (events_to_handle.size()) {
-        signal_printf("%s[%d]: %d pending signal generator events, unsafe to continue\n",
-                      FILE__, __LINE__, events_to_handle.size());
-        return true;
-    }    
-
-    for (unsigned i =0; i < handlers.size(); i++) {
-        if (handlers[i]->events_to_handle.size()) {
-            signal_printf("%s[%d]: handler %s has %d pending signal generator events, unsafe to continue\n",
-                          FILE__, __LINE__, getThreadStr(handlers[i]->getThreadID()), handlers[i]->events_to_handle.size());
-            return true;
-        }
-    }
-    
-    // Reset, we're okay
-    continueDesired_ = false;
-    return false;
-}
-#endif
-
 eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts, dyn_lwp *lwp /* = NULL */)
 {
   assert(global_mutex->depth());
+  MONITOR_ENTRY();
 
   if (getExecThreadID() == getThreadID()) {
     fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal\n", 
@@ -861,6 +884,7 @@ eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts, dyn_lwp
 
   // Poink the signal generator?
 
+  MONITOR_EXIT();
   return result.type;
 }
 
@@ -913,6 +937,8 @@ eventType SignalGeneratorCommon::waitForEvent(eventType evt,
 					      eventStatusCode_t status,
 					      bool executeCallbacks /* = true */)
 {
+    MONITOR_ENTRY();
+
   if (getExecThreadID() == getThreadID()) {
     fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal: %s\n", 
             FILE__, __LINE__, getThreadStr(getExecThreadID()), eventType2str(evt));
@@ -965,12 +991,14 @@ eventType SignalGeneratorCommon::waitForEvent(eventType evt,
   }
 
   if (!found) {
-     fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", 
-             FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", 
+              FILE__, __LINE__);
   }
 
   if (sh)
     sh->wait_flag = false;
+
+  MONITOR_EXIT();
   return result.type;
 }
 
@@ -993,31 +1021,6 @@ SignalHandler *SignalGeneratorCommon::findSHWaitingForCallback(CallbackBase *cb)
   }
   return NULL;
 }
-
-
-#if 0
-bool SignalGeneratorCommon::activeHandlerForProcess(process *p)
-{
-    // If the handler is active and running on a different thread from
-    // us (as we can get the following:
-    //    Handler calls into BPatch
-    //    BPatch tries continue
-    //    .... continue blocked because of active handler
-
-    if (decodingEvent) {
-        fprintf(stderr, "UITHREAD - sync decoding event, backing off\n");
-        return true;
-    }
-    for (unsigned int i = 0; i < handlers.size(); ++i) {
-        if (handlers[i]->isActive(p) &&
-            !(handlers[i]->getThreadID() == getExecThreadID())) {
-            fprintf(stderr, "UITHREAD: active handler, backing off\n");
-            return true;
-        }
-    }
-    return false;
-}
-#endif
 
 bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
 {
@@ -1411,7 +1414,8 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     asyncRunWhenFinished_(unsetRequest),
     activeProcessSignalled_(false),
     independentLwpStop_(0),
-    childForkStopAlreadyReceived_(false)
+    childForkStopAlreadyReceived_(false),
+    usage_count(0)
 {
     signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
     assert(eventlock == global_mutex);
@@ -1419,6 +1423,7 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     waitlock = new eventLock;
     activationLock = new eventLock;
     waitForContinueLock = new eventLock;
+    waitForHandlerExitLock = new eventLock;
 }
 
 bool SignalGeneratorCommon::setupCreated(pdstring file,
@@ -1476,15 +1481,25 @@ bool SignalGeneratorCommon::wakeUpThreadForShutDown()
   return true;
 }
 
+extern void dyninst_yield();
+
 SignalGeneratorCommon::~SignalGeneratorCommon() 
 {
   //killThread();
+    signal_printf("%s[%d]: Deleting SignalGeneratorCommon, %p\n", FILE__, __LINE__, this);
+    
+    // Don't delete signal handlers; they get deleted in their own threads
+    
+    delete waitlock;
+    delete activationLock;
+    delete waitForContinueLock;
+    delete waitForHandlerExitLock;
 
-  for (unsigned int i = 0; i < handlers.size(); ++i) {
-    signal_printf("%s[%d]:  destroying handler %s\n", FILE__, __LINE__, 
-                  handlers[i]->getName());
-    delete handlers[i];
-  }
+    while (wait_list.size()) {
+        signal_printf("%s[%d]: Waiting for %d wait list to go to 0\n", FILE__, __LINE__, wait_list.size());
+        dyninst_yield();
+    }
+    
 }
 
 void SignalGeneratorCommon::deleteSignalHandler(SignalHandler *sh)
@@ -1647,67 +1662,6 @@ bool SignalGeneratorCommon::initialize_event_handler()
   return true;
 }
 
-#if 0
-bool SignalGeneratorCommon::isBlockedInOS() const {
-    waitlock->_Lock(FILE__, __LINE__);
-    bool ret = waitingForOS_;
-    waitlock->_Unlock(FILE__, __LINE__);
-    return ret;
-}
-
-bool SignalGeneratorCommon::waitForOSReturn() {
-    signal_printf("%s[%d]: thread %s waiting for OS return, grabbing lock...\n",
-                  FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    waitlock->_Lock(FILE__, __LINE__);
-
-    int lock_depth = eventlock->depth();
-    assert(lock_depth > 0);
-    
-    // We can't iterate over eventlock->depth(); we unlock, someone else locks...
-    // TODO: make this an eventLock method: "completely release"
-    for (unsigned i = 0; i < lock_depth; i++) {
-        eventlock->_Unlock(FILE__, __LINE__);
-    }
-    
-    signal_printf("%s[%d]: released global lock in waitForOS: stack of %d\n", FILE__, __LINE__, lock_depth);
-
-    signal_printf("%s[%d]: thread %s waiting for OS return, waiting for signal...\n",
-                  FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    waitlock->_WaitForSignal(FILE__, __LINE__);
-
-    signal_printf("%s[%d]: thread %s waiting for OS return, returning...\n",
-                  FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    waitlock->_Unlock(FILE__, __LINE__);
-
-    signal_printf("%s[%d]: reacquiring global lock (taken %d times)\n", 
-                  FILE__, __LINE__, lock_depth);
-    while (lock_depth > 0) {
-        eventlock->_Lock(FILE__, __LINE__);
-        lock_depth--;
-    }
-    
-    assert(!isBlockedInOS());
-
-    return true;
-}    
-
-bool SignalGeneratorCommon::signalOSReturn() {
-    signal_printf("%s[%d]: signalling return from OS: acquiring lock\n", 
-                  FILE__, __LINE__);
-    waitlock->_Lock(FILE__, __LINE__);
-
-    signal_printf("%s[%d]: signalling return from OS: broadcast\n",
-                  FILE__, __LINE__);
-    waitlock->_Broadcast(FILE__, __LINE__);
-
-    signal_printf("%s[%d]: signalling return from OS: unlock\n",
-                  FILE__, __LINE__);
-    waitlock->_Unlock(FILE__, __LINE__);
-    return true;
-}    
-
-#endif
-
 
 ////////////////////////////////////////////
 // Unused functions
@@ -1829,15 +1783,15 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp
 
     numBlockedForContinue++;
     do {
-       signal_printf("%s[%d]: continueProcessBlocking, waiting...\n", FILE__, __LINE__);
-       //getMailbox()->executeCallbacks(FILE__, __LINE__);
-       waitForContinueLock->_WaitForSignal(FILE__, __LINE__);
+        signal_printf("%s[%d]: continueProcessBlocking, waiting...\n", FILE__, __LINE__);
+        //getMailbox()->executeCallbacks(FILE__, __LINE__);
+        waitForContinueLock->_WaitForSignal(FILE__, __LINE__);
     } while (!continueCompleted_);
-
+    
     numBlockedForContinue--;
     if (!numBlockedForContinue) {
-       //Everyone's excepted the continue.  Reset the continueCompleted flag
-       continueCompleted_ = false;
+        //Everyone's excepted the continue.  Reset the continueCompleted flag
+        continueCompleted_ = false;
     }
     
     signal_printf("%s[%d]: continueProcessBlocking, woken up and releasing waitForContinue lock.\n", FILE__, __LINE__);
@@ -1864,48 +1818,6 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp
     
     return true;
 }
-
-// Continue when both the UI and all active signal handlers have
-// asked for the process to continue.
-
-#if 0
-bool SignalGeneratorCommon::waitToContinueProcess() {
-    signal_printf("%s[%d]: continueProcess, grabbing continueProcessBlockingLock\n",
-                  FILE__, __LINE__);
-    requestContinueLock->_Lock(FILE__, __LINE__);
-
-    assert(eventlock->depth() == 1);
-    
-    eventlock->_Unlock(FILE__, __LINE__);
-
-    while(1) {
-        signal_printf("%s[%d]: waiting for someone to wake up the process\n", FILE__, __LINE__);
-        requestContinueLock->_WaitForSignal(FILE__, __LINE__);
-
-        int activeHandlers = 0;
-#if 0
-        for (unsigned i = 0; i < handlers.size(); i++) {
-            signal_printf("%s[%d]: checking handler %s, processing %d\n",
-                          FILE__, __LINE__, getThreadStr(handlers[i]->getThreadID()), handlers[i]->processing());
-            if (handlers[i]->processing())
-                activeHandlers++;
-        }
-#endif
-        signal_printf("%s[%d]: continueProcess, activeHandlers %d, UIRequested %d\n",
-                      FILE__, __LINE__, activeHandlers, stopsDesired_);
-
-        if ((activeHandlers == 0) && (stopsDesired_ == 0))
-            break;
-    }
-
-    signal_printf("%s[%d]: exchanging requestContinueLock for eventlock\n",
-                  FILE__, __LINE__);
-    eventlock->_Lock(FILE__, __LINE__);
-    requestContinueLock->_Unlock(FILE__, __LINE__);
-
-    return true;
-}
-#endif
 
 bool SignalGeneratorCommon::continueRequired() 
 {
@@ -2109,3 +2021,24 @@ void SignalGeneratorCommon::pingIfContinueBlocked() {
    }
    waitForContinueLock->_Unlock(FILE__, __LINE__);
 }
+
+void SignalGeneratorCommon::MONITOR_ENTRY() {
+    // Should we lock?
+
+    usage_count++;
+}
+
+void SignalGeneratorCommon::MONITOR_EXIT() {
+    assert(usage_count > 0);
+    
+    usage_count--;
+
+    if (usage_count == 0) {
+        signal_printf("%s[%d]: Last user of signalGenerator exiting, cleaning up...\n",
+                      FILE__, __LINE__);
+        
+        delete this;
+    }
+}
+
+   

@@ -90,28 +90,40 @@ void SignalHandler::main() {
         signal_printf("%s[%d]: signal handler at top of loop\n", FILE__, __LINE__);
         assert(eventlock->depth() == 1);
         
-        if (stop_request) {
-            signal_printf("%s[%d]: exit request (loop top)\n", FILE__, __LINE__);
-            break;
-        }
-
-        while (!events_to_handle.size()) {
+        while (!events_to_handle.size() && !stop_request) {
             waitForEvent(events_to_handle);
             if (stop_request) {
                 signal_printf("%s[%d]: exit request (post wait)\n", FILE__, __LINE__);
                 break;
             }
         }
-
+        signal_printf("%s[%d]: Signal handler: %d events queued\n", FILE__, __LINE__);
         while (events_to_handle.size()) {
             handleEvent(events_to_handle[0]);
-            if (stop_request) {
-                signal_printf("%s[%d]: exit request (post handle)\n", FILE__, __LINE__);
-                break;
-            }
+            // Don't check stop_request here; handle all events first, then
+            // exit.
             events_to_handle.erase(0,0);
         }
+
+        if (stop_request) break;
     }        
+
+    // Remove us from the signal generator map
+    assert(sg);
+    sg->waitForHandlerExitLock->_Lock(FILE__, __LINE__);
+    bool found = false;
+    for (unsigned i = 0; i < sg->handlers.size(); i++) {
+        if (sg->handlers[i] == this) {
+            sg->handlers[i] = sg->handlers.back();
+            sg->handlers.pop_back();
+            found = true;
+            break;
+        }
+    }
+    assert(found);
+    sg->waitForHandlerExitLock->_Broadcast(FILE__, __LINE__);
+    sg->waitForHandlerExitLock->_Unlock(FILE__, __LINE__);
+
 
     thread_printf("%s[%d]: removing from thread map\n", FILE__, __LINE__);
     removeFromThreadMap();
@@ -126,27 +138,13 @@ void SignalHandler::main() {
     eventlock->_Unlock(FILE__, __LINE__);
     
     thread_printf("%s[%d][%s]:  SignalHandler::main exiting\n", FILE__, __LINE__, idstr);
+    delete this;
 }
 
 
 SignalHandler::~SignalHandler()
 {
-    signal_printf("%s[%d]:  welcome to ~SignalHandler\n", FILE__, __LINE__);
 
-    stopThreadNextIter();
-    if (waitingForWakeup_) {
-        waitLock->_Lock(FILE__, __LINE__);
-        waitLock->_Broadcast(FILE__, __LINE__);
-    }
-
-    while (isRunning()) {
-        _Unlock(FILE__, __LINE__);
-        dyninst_yield();
-        _Lock(FILE__, __LINE__);
-    }
-
-    assert(waitLock);
-    delete waitLock;
 }
 
 
@@ -571,6 +569,7 @@ bool SignalHandler::handleEvent(EventRecord &ev)
     
     if (ev.type == evtShutDown) {
         stop_request = true;
+        signal_printf("%s[%d]: event is shutdown, setting stop_request and returning\n");
         return true;
     }
 
@@ -591,6 +590,7 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         // First the platform-independent stuff
         // (/proc and waitpid)
     case evtProcessExit:
+        signal_printf("%s[%d]: handling process exit\n", FILE__, __LINE__);
         ret = handleProcessExit(ev, continueHint);
         break;
     case evtProcessCreate:
@@ -717,11 +717,6 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         assert(0 && "Undefined");
    }
 
-  if (stop_request) {
-    // Someone deleted us in place. 
-    return true;
-  }
-
    if (ret == false) {
       //  if ret is false, complain, but return true anyways, since the handler threads
       //  should be shut down by the SignalGenerator.
@@ -742,6 +737,7 @@ bool SignalHandler::handleEvent(EventRecord &ev)
    }
 
    // Should always be the last thing we do...
+
    sg->signalEvent(ev);
 
    return ret;
@@ -856,6 +852,7 @@ bool SignalHandler::waitForEvent(pdvector<EventRecord> &events_to_handle)
         signal_printf("%s[%d]: woken, releasing waitLock...\n", FILE__, __LINE__);
         waitLock->_Unlock(FILE__, __LINE__);
         waitingForWakeup_ = false;        
+        if (stop_request) return false;
     }
     
     return true;

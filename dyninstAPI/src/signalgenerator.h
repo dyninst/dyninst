@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.15 2006/06/02 17:57:53 mjbrim Exp $
+/* $Id: signalgenerator.h,v 1.16 2006/12/14 20:12:17 bernat Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -313,11 +313,20 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // Used for blocking continue requests
    eventLock *waitForContinueLock;
 
+   // Synchronization between us and our signal handlers at exit time;
+   // this lets the signalGenerator wait until all signalHandlers are
+   // gone.
+   eventLock *waitForHandlerExitLock;
+
    ///////// Unused functions
    // Virtualized from parent class; we don't use them.
    bool waitNextEvent(EventRecord &);
    bool handleEvent(EventRecord &);
 
+   void MONITOR_ENTRY();
+   void MONITOR_EXIT();
+
+   unsigned usage_count;
 };
 
 #if defined(os_windows)
