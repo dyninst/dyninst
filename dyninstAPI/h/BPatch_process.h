@@ -290,7 +290,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                               BPatchOneTimeCodeCallback cb = NULL,
                               bool synchronous = true, bool *err = NULL);
 
-    void oneTimeCodeCompleted();
+    void oneTimeCodeCompleted(bool isSynchronous);
 
     protected:
     // for creating a process
