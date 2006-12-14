@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.43 2006/12/14 20:12:05 bernat Exp $
+ * $Id: emit-x86.C,v 1.44 2006/12/14 23:59:59 legendre Exp $
  */
 
 #include <assert.h>
@@ -799,14 +799,16 @@ void emitAddRM64(Register dest, int imm, bool is_64, codeGen &gen)
 {
    GET_PTR(insn, gen);
    if (imm == 1) {
-      *insn++ = 0xFF;
       emitRex(is_64, &dest, NULL, NULL, gen);
-      emitAddressingMode(dest, 0, 0, gen);
+      *insn++ = 0xFF;
+      *insn++ = dest & 0x7; 
+      SET_PTR(insn, gen);   
+      return;
    }
-   REGET_PTR(insn, gen);
-   *((int*)insn) = imm;
-   insn += sizeof(int);
-   SET_PTR(insn, gen);   
+   emitRex(is_64, &dest, NULL, NULL, gen);
+   emitOpMemImm64(0x81, 0x0, dest, imm, true, gen);
+   //   *((int*)insn) = imm;
+   //insn += sizeof(int);
 }
 
 
