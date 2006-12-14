@@ -311,7 +311,8 @@ template <class T>
 EventHandler<T>::EventHandler(eventLock *_lock, const char *id, bool create) :
   InternalThread(id),
   eventlock(_lock),
-  stop_request(false)
+  stop_request(false),
+  usage_count(0)
 {
     //  presume that event handler is created on the ui thread, so make an entry
     initializeThreadMap();
@@ -351,6 +352,8 @@ bool EventHandler<T>::_Broadcast(const char *__file__, unsigned int __line__)
 template <class T>
 void EventHandler<T>::main()
 {
+    MONITOR_ENTRY();
+
     addToThreadMap();
 
     thread_printf("%s[%d]:  welcome to main() for %s\n", __FILE__, __LINE__, idstr);
@@ -411,6 +414,8 @@ void EventHandler<T>::main()
     global_mutex->_Unlock(FILE__, __LINE__);
     
     thread_printf("%s[%d][%s]:  InternalThread::main exiting\n", FILE__, __LINE__, idstr);
+
+    MONITOR_EXIT();
 }
 
 template <class T>
@@ -540,6 +545,20 @@ char *eventType2str(eventType x)
   }
   return "unknown_event_type";
 }
+
+template <class T> 
+void EventHandler<T>::MONITOR_ENTRY() {
+    // These should do something, but I'm concerned about
+    // changing a top-level object. So instead I'm
+    // specializing SignalGeneratorCommon.
+    usage_count++;
+}
+
+template <class T>
+void EventHandler<T>::MONITOR_EXIT() {
+    usage_count--;
+}
+
 
 //  OK -- these template instantiations probably belong more rightly
 //  in templates2.C, however, including them here gets around

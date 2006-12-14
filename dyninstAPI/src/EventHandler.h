@@ -211,6 +211,13 @@ class EventHandler : public InternalThread {
   private:
   void main();
 
+  // Monitor-equivalent functions; call before entering or leaving
+  // a blocking function. This allows us to delete the object after
+  // the last thread has left. 
+  virtual void MONITOR_ENTRY();
+  virtual void MONITOR_EXIT();
+
+  unsigned usage_count;
 };
 
 typedef struct {
