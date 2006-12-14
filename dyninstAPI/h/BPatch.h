@@ -209,7 +209,7 @@ public:
     void registerThreadExit(process *proc, long tid, bool exiting);
 
     void registerProcess(BPatch_process *process, int pid=0);
-    void unRegisterProcess(int pid);
+    void unRegisterProcess(int pid, BPatch_process *proc);
 
     void launchDeferredOneTimeCode();
 

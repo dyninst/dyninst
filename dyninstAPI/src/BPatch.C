@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.165 2006/12/08 18:53:49 bernat Exp $
+// $Id: BPatch.C,v 1.166 2006/12/14 20:11:57 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1296,20 +1296,33 @@ void BPatch::registerProcess(BPatch_process *process, int pid)
  *
  * pid		The pid of the thread to be removed.
  */
-void BPatch::unRegisterProcess(int pid)
+void BPatch::unRegisterProcess(int pid, BPatch_process *proc)
 {
-   if (!info->procsByPid.defines(pid)) {
-      fprintf(stderr, "%s[%d]:  ERROR, no process %d defined in procsByPid\n", FILE__,  __LINE__, pid);
-      dictionary_hash_iter<int, BPatch_process *> iter(info->procsByPid);
-       BPatch_process *p;
-       int pid;
-       while (iter.next(pid, p)) {
-          fprintf(stderr, "%s[%d]:  have process %d\n", FILE__, __LINE__, pid);
-       }
-   }
-   assert(info->procsByPid.defines(pid));
-   info->procsByPid.undef(pid);	
-   assert(!info->procsByPid.defines(pid));
+    if (pid == -1 || !info->procsByPid.defines(pid)) {
+        // Deleting an exited process; search and nuke
+        dictionary_hash_iter<int, BPatch_process *> procsIter(info->procsByPid);
+        BPatch_process *p;
+        int pid2;
+        while (procsIter.next(pid2, p)) {
+            if (p == proc) {
+                info->procsByPid.undef(pid2);
+                return;
+            }
+        }
+    }
+    
+    if (!info->procsByPid.defines(pid)) {
+        fprintf(stderr, "%s[%d]:  ERROR, no process %d defined in procsByPid\n", FILE__,  __LINE__, pid);
+        dictionary_hash_iter<int, BPatch_process *> iter(info->procsByPid);
+        BPatch_process *p;
+        int pid;
+        while (iter.next(pid, p)) {
+            fprintf(stderr, "%s[%d]:  have process %d\n", FILE__, __LINE__, pid);
+        }
+    }
+    assert(info->procsByPid.defines(pid));
+    info->procsByPid.undef(pid);	
+    assert(!info->procsByPid.defines(pid));
 }
 
 
@@ -1492,7 +1505,9 @@ bool BPatch::pollForStatusChangeInt()
       dyn_lwp *replwp = p->getRepresentativeLWP();
       if (replwp) continue;
       SignalGenerator *sg = p->getSG();
-      assert(sg);
+      // This guy exited, but we haven't deleted the procsByPid map
+      if (!sg) continue;
+
       if (sg->exists_dead_lwp()) {
         if (sg->isWaitingForOS()) {
           //  the signal generator is inside a waitpid, kick the mutatee to wake

@@ -332,7 +332,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
 
    llproc = ll_attachProcess(path, pid, this);
    if (!llproc) {
-      BPatch::bpatch->unRegisterProcess(pid);
+      BPatch::bpatch->unRegisterProcess(pid, this);
       BPatch::bpatch->reportError(BPatchFatal, 68, 
              "Dyninst was unable to attach to the specified process");
       return;
@@ -398,6 +398,7 @@ BPatch_process::BPatch_process(process *nProc)
  */
 void BPatch_process::BPatch_process_dtor()
 {
+    
    if (!detached &&
        !getAsync()->detachFromProcess(this)) {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
@@ -434,21 +435,21 @@ void BPatch_process::BPatch_process_dtor()
    }
 
    //  unRegister process before doing detach
-   BPatch::bpatch->unRegisterProcess(getPid());   
+   BPatch::bpatch->unRegisterProcess(getPid(), this);   
 
    /**
     * If we attached to the process, then we detach and leave it be,
     * otherwise we'll terminate it
     **/
    if (createdViaAttach) {
-      llproc->detachProcess(true);
+       llproc->detachProcess(true);
    }else  {
-      if (llproc->isAttached()) {
-        proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
-        terminateExecutionInt();
-      }
+       if (llproc->isAttached()) {
+           proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
+           terminateExecutionInt();
+       }
    }
-
+   
    delete llproc;
    llproc = NULL;
    assert(BPatch::bpatch != NULL);
