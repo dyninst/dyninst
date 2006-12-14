@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.97 2006/12/01 01:33:10 legendre Exp $
+// $Id: ast.h,v 1.98 2006/12/14 20:12:02 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -214,6 +214,10 @@ class AstNode {
                                          bool noCost,
                                          Address &retAddr,
                                          Register &retReg);
+
+        // Perform whatever pre-processing steps are necessary.
+        virtual bool initRegisters(codeGen &gen);
+
        unsigned getTreeSize();
 
 
@@ -294,6 +298,7 @@ class AstNode {
 	BPatch_type *bptype;  // type of corresponding BPatch_snippet
 	bool doTypeCheck;	    // should operands be type checked
 	int size;		    // size of the operations (in bytes)
+
 
     public:
 	// Functions for getting and setting type decoration used by the
@@ -448,6 +453,8 @@ class AstCallNode : public AstNode {
     virtual bool containsFuncCall() const;
 
     void setConstFunc(bool val) { constFunc_ = val; }
+
+    virtual bool initRegisters(codeGen &gen);
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,

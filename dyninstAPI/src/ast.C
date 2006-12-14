@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.183 2006/12/06 21:17:17 bernat Exp $
+// $Id: ast.C,v 1.184 2006/12/14 20:12:01 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -79,6 +79,7 @@
 #include "dyninstAPI/src/inst-ia64.h"
 #endif
 
+#include "emitter.h"
 
 #include "registerSpace.h"
 
@@ -461,6 +462,7 @@ AstNode *AstNode::threadIndexNode() {
     // By not including a process we'll specialize at code generation.
     indexNode_ = AstNode::funcCallNode("DYNINSTthreadIndex", args);
     assert(indexNode_);
+    indexNode_->setConstFunc(true);
 
     return assignAst(indexNode_);
 }
@@ -766,7 +768,6 @@ bool AstNode::generateCode(codeGen &gen,
     ast_printf("====== Code Generation Start ===== \n");
     debugPrint();
     ast_printf("\n\n\n\n");
-    
 
     // We can enter this guy recursively... inst-ia64 goes through
     // emitV and calls generateCode on the frame pointer AST. Now, it
@@ -826,6 +827,16 @@ bool AstNode::previousComputationValid(Register &reg,
 #define REGISTER_CHECK(r) if (r == REG_NULL) { fprintf(stderr, "[%s: %d] ERROR: returned register invalid\n", __FILE__, __LINE__); return false; }
 
 
+bool AstNode::initRegisters(codeGen &g) {
+    bool ret = true;
+    pdvector<AstNode *> kids;
+    getChildren(kids);
+    for (unsigned i = 0; i < kids.size(); i++) {
+        if (!kids[i]->initRegisters(g))
+            ret = false;
+    }
+    return ret;
+}
 
 bool AstNode::generateCode_phase2(codeGen &, bool,
                                   Address &,
@@ -1534,6 +1545,53 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     }
 	decUseCount(gen);
     return true;
+}
+
+bool AstCallNode::initRegisters(codeGen &gen) {
+    // For now, we only care if we should save everything. "Everything", of course, 
+    // is platform dependent. This is the new location of the clobberAllFuncCalls
+    // that had previously been in emitCall.
+
+    bool ret = true;
+
+    // First, check kids
+    pdvector<AstNode *> kids;
+    getChildren(kids);
+    for (unsigned i = 0; i < kids.size(); i++) {
+        if (!kids[i]->initRegisters(gen))
+            ret = false;
+    }
+
+    // Platform-specific...
+#if defined(arch_x86) || defined(arch_x86_64)
+    // Our "everything" is "floating point registers".
+    // We also need a function object.
+    int_function *callee = func_;
+    if (!callee) {
+        // Painful lookup time
+        callee = gen.proc()->findOnlyOneFunction(func_name_);
+    }
+    assert(callee);
+    bool fprUsed = code_emitter->clobberAllFuncCall(gen.rs(), callee);
+    if (fprUsed)
+        gen.rs()->setSaveAllFPRs(true);
+    // Monotonically increasing...
+#endif
+#if defined(arch_power)
+    // This code really doesn't work right now...
+    int_function *callee = func_;
+    if (!callee) {
+        // Painful lookup time
+        callee = gen.proc()->findOnlyOneFunction(func_name_);
+        assert(callee);
+    }
+    bool clobbered = code_emitter->clobberAllFuncCall(gen.rs(), callee);
+    // We clobber in clobberAllFuncCall...
+
+    // Monotonically increasing...
+#endif
+    return ret;
+    
 }
 
 bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
@@ -2447,11 +2505,11 @@ unsigned regTracker_t::astHash(AstNode * const &ast) {
 }
 
 void AstNode::debugPrint(unsigned level) {
-	if (!dyn_debug_ast) return;
-	
-	for (unsigned i = 0; i < level; i++) fprintf(stderr, "%s", " ");
-
-	pdstring type;
+    if (!dyn_debug_ast) return;
+    
+    for (unsigned i = 0; i < level; i++) fprintf(stderr, "%s", " ");
+    
+    pdstring type;
     if (dynamic_cast<AstNullNode *>(this)) type = "nullNode";
     if (dynamic_cast<AstOperatorNode *>(this)) type = "operatorNode";
     if (dynamic_cast<AstOperandNode *>(this)) type = "operandNode";
@@ -2461,14 +2519,14 @@ void AstNode::debugPrint(unsigned level) {
     if (dynamic_cast<AstInsnNode *>(this)) type = "insnNode";
     if (dynamic_cast<AstMiniTrampNode *>(this)) type = "miniTrampNode";
     if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";
-
-	
-	ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d\n", type.c_str(), this, useCount, canBeKept());
-	
-	pdvector<AstNode*> children;
-	getChildren(children);
-	for (unsigned i=0; i<children.size(); i++) {
-		children[i]->debugPrint(level+1);
+    
+    
+    ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d\n", type.c_str(), this, useCount, canBeKept());
+    
+    pdvector<AstNode*> children;
+    getChildren(children);
+    for (unsigned i=0; i<children.size(); i++) {
+        children[i]->debugPrint(level+1);
     }
 }
 

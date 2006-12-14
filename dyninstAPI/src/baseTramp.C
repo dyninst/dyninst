@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.51 2006/12/13 21:38:29 tlmiller Exp $
+// $Id: baseTramp.C,v 1.52 2006/12/14 20:12:03 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -614,10 +614,15 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     }
     else {
         // Oh, boy. 
+#if 0
         baseTramp = AstNode::operatorNode(ifOp,
                                           AstNode::operatorNode(eqOp,
-                                                                AstNode::operandNode(AstNode::Constant, (void *)1),
-                                                                trampGuardAddr),
+                                                                trampGuardAddr,
+                                                                AstNode::operandNode(AstNode::Constant, (void *)1)),
+                                          baseTrampSequence);
+#endif
+        baseTramp = AstNode::operatorNode(ifOp,
+                                          trampGuardAddr,
                                           baseTrampSequence);
     }
 
@@ -631,6 +636,13 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
 
 
     trampAddr_ = gen.currAddr();
+
+    // Sets up state in the codeGen object (and gen.rs())
+    // that is later used when saving and restoring. This
+    // MUST HAPPEN BEFORE THE SAVES, and state should not
+    // be reset until AFTER THE RESTORES.
+    baseTramp->initRegisters(gen);
+
     baseT->generateSaves(gen, gen.rs());
     Address endSaves = gen.currAddr();
     bool retval = true;
