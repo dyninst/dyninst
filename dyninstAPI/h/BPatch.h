@@ -181,8 +181,9 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
    // Easier than non-blocking reads... there is either 1 byte in the pipe or 0.
    bool FDneedsPolling_;
    /* And auxiliary functions for the above */
-   void signalNotificationFD();
-   void clearNotificationFD();
+   void signalNotificationFD(); // Called when an event happens
+   void clearNotificationFD(); // Called during poll/waitForStatusChange
+   void createNotificationFD(); // Creates the FD
    
 public:
     static BPatch		 *bpatch;
