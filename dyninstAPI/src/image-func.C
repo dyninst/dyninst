@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.38 2006/12/06 21:17:23 bernat Exp $
+// $Id: image-func.C,v 1.39 2006/12/14 20:12:07 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -122,10 +122,14 @@ image_func::image_func(const pdstring &symbol,
 		       pdmodule *m,
 		       image *i) :
   startOffset_(offset),
+  endOffset_(0),
   symTabSize_(symTabSize),
   mod_(m),
   image_(i),
   parsed_(false),
+  cleansOwnStack_(false),
+  containsFPRWrites_(unknown),
+  containsSPRWrites_(unknown),
   noStackFrame(false),
   makesNoCalls_(false),
   savesFP_(false),
@@ -138,11 +142,10 @@ image_func::image_func(const pdstring &symbol,
   usedFPregs(NULL),
 #endif
   instLevel_(NORMAL),
-  leafFunc(LEAF_UNKNOWN_FUNC),
   canBeRelocated_(true),
   needsRelocation_(false),
-  originalCode(NULL),
   usedRegisters(NULL),
+  originalCode(NULL),
   o7_live(false),
   bl_is_sorted(false)
 {
@@ -1244,4 +1247,11 @@ void image_basicBlock::getFuncs(pdvector<image_func *> &funcs) const
 image_basicBlock * image_func::entryBlock() { 
     if (!parsed_) image_->analyzeIfNeeded();
     return entryBlock_;
+}
+
+bool image_func::isLeafFunc() {
+    if (!parsed_)
+        image_->analyzeIfNeeded();
+
+    return calls.size() > 0;
 }

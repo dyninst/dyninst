@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.24 2006/12/05 21:44:35 rutar Exp $
+// $Id: image-func.h,v 1.25 2006/12/14 20:12:08 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -64,11 +64,6 @@ class image_instPoint;
 // Added support for typed edges 12.Oct.2005 -- nate
 class image_edge;
 
-enum LeafTypeEnum {
-  NO_LEAF_FUNC,
-  LEAF_FUNC,
-  LEAF_UNKNOWN_FUNC
-};
    
 enum EdgeTypeEnum {
    ET_CALL,
@@ -484,14 +479,19 @@ class image_func : public codeRange {
 
    bool parsed() { return parsed_; }
 
-   bool usedRegs();/* Does one time calculation of registers used in a function, if called again
-		      it just refers to the stored values and returns that */
-   bool isLeafFunc() {return leafFunc;}
-   std::set<Register> * usedGPRs() { return &(usedRegisters->generalPurposeRegisters);}
-   std::set<Register> * usedFPRs() { return &(usedRegisters->floatingPointRegisters);}
-   bool writesFP() {return containsFPWrites;} 
+   // Not completely implemented, and so commented out.
+   std::set<Register> * usedGPRs() { calcUsedRegs(); return &(usedRegisters->generalPurposeRegisters);}
+   std::set<Register> * usedFPRs() { calcUsedRegs(); return &(usedRegisters->floatingPointRegisters);}
+
+   bool isLeafFunc();
+
+   bool writesFPRs(unsigned level = 0);
+   bool writesSPRs(unsigned level = 0);
 
  private:
+   
+   void calcUsedRegs();/* Does one time calculation of registers used in a function, if called again
+                          it just refers to the stored values and returns that */
 
    ///////////////////// Basic func info
    pdvector<pdstring> symTabNames_;	/* name as it appears in the symbol table */
@@ -507,8 +507,11 @@ class image_func : public codeRange {
 
    /////  Variables for liveness Analysis
    image_func_registers * usedRegisters;// container class for all the registers the function uses
-   bool containsFPWrites;   // does this function have floating point write instructions
-   bool leafFunc;    // Is this functiona a leaf function
+
+   enum regUseState { unknown, used, unused };
+
+   regUseState containsFPRWrites_;   // does this function have floating point write instructions
+   regUseState containsSPRWrites_;   // Does this function write to SPRs.
 
 
    ///////////////////// CFG and function body
