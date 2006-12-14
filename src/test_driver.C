@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.37 2006/12/01 01:33:33 legendre Exp $
+// $Id: test_driver.C,v 1.38 2006/12/14 04:55:46 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -236,10 +236,10 @@ int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, Process
          //bpatch->registerErrorCallback(errorFunc);
 
          // Test poll for status change
-         do {
+         while (!appThread->isTerminated()) {
              appThread->continueExecution();
              bpatch->waitForStatusChange();
-         } while (!appThread->isTerminated());
+         }
 
          int retVal;
          if(appThread->terminationStatus() == ExitedNormally) {
