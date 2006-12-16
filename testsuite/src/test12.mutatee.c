@@ -199,12 +199,12 @@ int checkIfAttached()
     return isAttached;
 }
 
-void sleep_ms(int _ms) 
+void sleep_ms(int ms) 
 {
   struct timespec ts,rem;
   ts.tv_sec = 0;
-  ts.tv_nsec = _ms * 1000 /*us*/ * 1000/*ms*/;
-  assert(_ms < 1000);
+  ts.tv_nsec = ms * 1000 /*us*/ * 1000/*ms*/;
+  assert(ms < 1000);
 
  sleep:
  if (0 != nanosleep(&ts, &rem)) {
@@ -214,8 +214,8 @@ void sleep_ms(int _ms)
       ts.tv_nsec = rem.tv_nsec;
       goto sleep;
     }
-    assert(0);
-  }
+    sleep(1);
+ }
 
 }
 

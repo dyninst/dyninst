@@ -18,6 +18,7 @@ thread_t thrds[NTHRD];
 
 int thr_ids[NTHRD] = {0, 1, 2, 3, 4};
 int ok_to_exit[NTHRD] = {0, 0, 0, 0, 0};
+int threads_running[NTHRD];
 
 /* oneTimeCodes will set these to the tid for the desired thread */
 TVOLATILE thread_t sync_test;
@@ -107,7 +108,9 @@ void thr_func(void *arg)
 
 void *init_func(void *arg)
 {
+   int id = *((int*)arg);
    assert(arg != NULL);
+   threads_running[id] = 1;
    thr_func(arg);
    return NULL;
 }
@@ -157,7 +160,7 @@ int checkIfAttached()
 int main(int argc, char *argv[])
 {
    unsigned i;
-
+   int startedall = 0;
 #ifndef os_windows
    char c = 'T';
 #endif
@@ -176,6 +179,18 @@ int main(int argc, char *argv[])
       thrds[i] = spawnNewThread((void *) init_func, &(thr_ids[i]));
    }
    thrds[0] = threadSelf();
+
+   while (!startedall) {
+      for (i=1; i<NTHRD; i++) {
+         startedall = 1;
+         if (!threads_running[i]) {
+            startedall = 0;
+            P_sleep(1);
+            break;
+         }
+      }
+   }
+
 
 #ifndef os_windows
    if (attached_fd) {
