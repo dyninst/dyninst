@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.52 2006/12/14 20:12:03 bernat Exp $
+// $Id: baseTramp.C,v 1.53 2006/12/16 00:05:44 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -62,6 +62,10 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
     trampAddr_(0), // Unallocated
     trampSize_(0),
     trampPostOffset(0),
+    saveStartOffset(0),
+    saveEndOffset(0),
+    restoreStartOffset(0),
+    restoreEndOffset(0),
     baseT(tramp),
     multiT(multi),
     genVersion(0),
@@ -77,6 +81,10 @@ baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
     generatedCodeObject(parBTI, child),
     trampAddr_(parBTI->trampAddr_),
     trampPostOffset(parBTI->trampPostOffset),
+    saveStartOffset(parBTI->saveStartOffset), 
+    saveEndOffset(parBTI->saveEndOffset),
+    restoreStartOffset(parBTI->restoreStartOffset), 
+    restoreEndOffset(parBTI->restoreEndOffset),
     baseT(cBT),
     multiT(cMT),
     genVersion(parBTI->genVersion),
@@ -362,6 +370,11 @@ bool baseTrampInstance::generateCodeOutlined(codeGen &gen,
         assert(trampAddr_ == gen.currAddr(baseInMutatee));
     }
     
+    saveStartOffset = baseT->saveStartOffset;
+    saveEndOffset = baseT->saveEndOffset;
+    restoreStartOffset = baseT->restoreStartOffset;
+    restoreEndOffset = baseT->restoreEndOffset;
+
     codeBufIndex_t preIndex = gen.getIndex();
     unsigned preStart = gen.used();
     
@@ -642,16 +655,18 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     // MUST HAPPEN BEFORE THE SAVES, and state should not
     // be reset until AFTER THE RESTORES.
     baseTramp->initRegisters(gen);
-
+    saveStartOffset = gen.used();
     baseT->generateSaves(gen, gen.rs());
-    Address endSaves = gen.currAddr();
+    saveEndOffset = gen.used();
     bool retval = true;
     if (!baseTramp->generateCode(gen, false)) {
         fprintf(stderr, "Gripe: base tramp creation failed\n");
         retval = false;
     }
-    Address beginRestores = gen.currAddr();
+    trampPostOffset = gen.used();
+    restoreStartOffset = 0;
     baseT->generateRestores(gen, gen.rs());
+    restoreEndOffset = gen.used() - trampPostOffset;
     trampSize_ = gen.currAddr() - trampAddr_;
 
     // And now to clean up after us
@@ -664,6 +679,8 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
 	/* At the moment, AST nodes can /not/ modify unwind state.  (Whoo-hoo!)
 	   Therefore, to account for them, we just need to know how much code
 	   they generated... */
+    Address endSaves = saveEndOffset + gen.startAddr();
+    Address beginRestores = trampPostOffset + gen.startAddr();
     baseT->baseTrampRegion->insn_count += ((beginRestores - endSaves)/16) * 3;
     
 	/* appendRegionList() returns the last valid region it duplicated.
@@ -833,8 +850,8 @@ bool baseTrampInstance::isInInstance(Address pc) {
 
 bool baseTrampInstance::isInInstru(Address pc) {
     assert(baseT);
-    return (pc >= (trampPreAddr() + baseT->saveStartOffset) &&
-            pc < (trampPostAddr() + baseT->restoreEndOffset));
+    return (pc >= (trampPreAddr() + saveStartOffset) &&
+            pc < (trampPostAddr() + restoreEndOffset));
 }
 
 instPoint *baseTrampInstance::findInstPointByAddr(Address /*addr*/) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.18 2006/12/01 01:33:12 legendre Exp $
+// $Id: baseTramp.h,v 1.19 2006/12/16 00:05:46 legendre Exp $
 
 // baseTramp class definition
 
@@ -85,6 +85,10 @@ class baseTrampInstance : public generatedCodeObject {
     Address trampAddr_;
     unsigned trampSize_;
     unsigned trampPostOffset;
+    unsigned saveStartOffset;
+    unsigned saveEndOffset;
+    unsigned restoreStartOffset;
+    unsigned restoreEndOffset;
     Address trampPreAddr() const { return trampAddr_; }
     Address trampPostAddr() const { return trampPreAddr() + trampPostOffset; }
     //bool empty;
