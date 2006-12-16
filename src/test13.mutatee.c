@@ -14,9 +14,11 @@
 
 volatile int done;
 volatile int proc_current_state;
+volatile int threads_running[NTHRD];
 
 void *init_func(void *arg)
 {
+   threads_running[(int) arg] = 1;
    while (!done);
    return arg;
 }
@@ -69,6 +71,7 @@ int main(int argc, char *argv[])
 {
    unsigned i;
    thread_t threads[NTHRD];
+   int startedall = 0;
 
 #ifndef os_windows
    char c = 'T';
@@ -79,7 +82,7 @@ int main(int argc, char *argv[])
 #endif
 
    /* *DEBUG* */
-   /* fprintf(stderr, "test13.mutatee: in main()\n"); */
+   /* fprintf(stderr, "test13.mutatee: in main()\n"); /* *DEBUG* */
 
    initThreads();
    /* fprintf(stderr, "test13.mutatee: initialized threads\n"); /* *DEBUG* */
@@ -91,10 +94,22 @@ int main(int argc, char *argv[])
        threads[i] = spawnNewThread((void *) init_func, (void *) i);
    }
    /* fprintf(stderr, "test13.mutatee: spawned threads\n"); /* *DEBUG* */
+   
+   while (!startedall) {
+      for (i=0; i<NTHRD; i++) {
+         startedall = 1;
+         if (!threads_running[i]) {
+            startedall = 0;
+            P_sleep(1);
+            break;
+         }
+      }
+   }
+   /* fprintf(stderr, "test13.mutatee: threads now running\n"); /* *DEBUG* */
 
 #ifndef os_windows
    if (attached_fd) {
-     /* fprintf(stderr, "test13.mutatee: writing to pipe\n"); /* *DEBUG* */
+      /* fprintf(stderr, "test13.mutatee: writing to pipe\n"); /* *DEBUG* */
       if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
          fprintf(stderr, "*ERROR*: Writing to pipe\n");
          exit(-1);
@@ -103,9 +118,7 @@ int main(int argc, char *argv[])
       close(attached_fd);
       /* fprintf(stderr, "test13.mutatee: closed pipe\n"); /* *DEBUG* */
       while (!checkIfAttached()) {
-#if !defined(os_windows)
-	usleep(1);
-#endif
+         usleep(1);
       }
    }
    /* fprintf(stderr, "test13.mutatee: wrote to pipe\n"); /* *DEBUG* */

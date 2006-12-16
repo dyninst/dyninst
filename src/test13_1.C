@@ -269,7 +269,8 @@ static BPatch_process *getProcess()
 #endif
       dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
       //fprintf(stderr, "filename = %s, pid = %d\n", filename, pid);
-      //fflush(stderr);
+      fflush(stderr);
+      //fprintf(stderr, "[%s:%u] - Attaching to process\n", __FILE__, __LINE__);
       proc = bpatch->processAttach(filename, pid);  
       //fprintf(stderr, "test13_1: returned from processAttach()\n"); /* *DEBUG* */
       //fflush(stderr);

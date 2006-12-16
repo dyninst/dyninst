@@ -23,6 +23,7 @@ typedef struct thrds_t
 } thrds_t;
 
 thrds_t thrds[NTHRD];
+volatile int threads_running[NTHRD];
 
 testlock_t barrier_mutex;
 testlock_t count_mutex;
@@ -128,7 +129,7 @@ void level0(int count)
 volatile unsigned ok_to_go = 0;
 void *init_func(void *arg)
 {
-   assert(arg == NULL);
+   threads_running[(int) arg] = 1;
    while(! ok_to_go) P_sleep(1);
    level0(N_INSTR-1);
    return NULL;
@@ -183,6 +184,7 @@ int checkIfAttached()
 int main(int argc, char *argv[])
 {
    unsigned i;
+   int startedall = 0;
 
 #ifndef os_windows
    char c = 'T';
@@ -200,10 +202,21 @@ int main(int argc, char *argv[])
    for (i=1; i<NTHRD; i++)
    {
       thrds[i].is_in_instr = 0;
-      thrds[i].tid = spawnNewThread((void *) init_func, NULL);
+      thrds[i].tid = spawnNewThread((void *) init_func, (void *) i);
    }
    thrds[0].is_in_instr = 0;
    thrds[0].tid = threadSelf();
+
+   while (!startedall) {
+      for (i=1; i<NTHRD; i++) {
+         startedall = 1;
+         if (!threads_running[i]) {
+            startedall = 0;
+            P_sleep(1);
+            break;
+         }
+      }
+   }
 
 #ifndef os_windows
    if (attached_fd) {
