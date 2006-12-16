@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.677 2006/12/14 20:12:13 bernat Exp $
+// $Id: process.C,v 1.678 2006/12/16 00:05:47 legendre Exp $
 
 #include <ctype.h>
 
@@ -5819,7 +5819,7 @@ bool process::readThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
             return false;
         }
         // We got the first three; slurp the fourth.
-        int temp;
+        unsigned int temp;
         if (!readDataSpace((void *)(baseAddr + (3*sizeof(int))),
                            sizeof(int),
                            (void *)&temp,
