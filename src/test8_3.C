@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8_3.C,v 1.8 2006/12/11 21:40:42 tlmiller Exp $
+// $Id: test8_3.C,v 1.9 2006/12/16 00:05:53 legendre Exp $
 /*
  * #Name: test8_3
  * #Desc: getCallStack through instrumentation
@@ -199,8 +199,9 @@ static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
 	/* Return the mutatee to its normal state. */
 	appThread->continueExecution();	
 
-        return passedTest;
-
+   if (passedTest)
+      return 0;
+   return -1;
 #endif
 } /* end mutatorTest3() */
 
