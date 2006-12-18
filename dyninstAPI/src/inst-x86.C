@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.257 2006/12/14 20:12:12 bernat Exp $
+ * $Id: inst-x86.C,v 1.258 2006/12/18 23:39:20 bernat Exp $
  */
 #include <iomanip>
 
@@ -402,9 +402,9 @@ void emitJcc(int condition, int offset,
  * C++ scoping rules for const are stupid.
  **/
 
-int tramp_pre_frame_size_32 = 36; //Stack space allocated by 'pushf; pusha'
+int tramp_pre_frame_size_32 = 36 + STACK_PAD_CONSTANT; //Stack space allocated by 'pushf; pusha'
 
-int tramp_pre_frame_size_64 = 8 + 16 * 8 + 128; // stack space allocated by pushing flags and 16 GPRs
+int tramp_pre_frame_size_64 = 8 + 16 * 8 + STACK_PAD_CONSTANT; // stack space allocated by pushing flags and 16 GPRs
                                                 // and skipping the 128-byte red zone
 
 bool can_do_relocation(process *proc,

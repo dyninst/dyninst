@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.10 2006/12/14 20:12:14 bernat Exp $
+// $Id: registerSpace.C,v 1.11 2006/12/18 23:39:20 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1028,4 +1028,50 @@ bool registerSpace::clobberAllRegisters() {
     return true;
 }
 
+bool registerSpace::saveAllGPRs() const {
+// The value of saveAllGPRs_ can be one of five things:
+// unknown: have not analyzed, so return true (save all)
+// killed: our instrumentation uses them, so return true
+// unused: our instrumentation doesn't touch, ret false
+// live: live at this point, ret true
+// dead: dead at this point, ret false
+
+// Really, we have a two-dimensional system; but we can't represent that
+// with one variable.
+	if (saveAllGPRs_ == unknown) return true;
+	if (saveAllGPRs_ == killed) return true;
+	if (saveAllGPRs_ == live) return true;
+	return false;
+}
+
+bool registerSpace::saveAllFPRs() const {
+// The value of saveAllFPRs_ can be one of five things:
+// unknown: have not analyzed, so return true (save all)
+// killed: our instrumentation uses them, so return true
+// unused: our instrumentation doesn't touch, ret false
+// live: live at this point, ret true
+// dead: dead at this point, ret false
+// Really, we have a two-dimensional system; but we can't represent that
+// with one variable.
+    if (saveAllFPRs_ == unknown) return true;
+    if (saveAllFPRs_ == killed) return true;
+    if (saveAllFPRs_ == live) return true;
+    return false;
+}
+
+bool registerSpace::saveAllSPRs() const {
+// The value of saveAllSPRs_ can be one of five things:
+// unknown: have not analyzed, so return true (save all)
+// killed: our instrumentation uses them, so return true
+// unused: our instrumentation doesn't touch, ret false
+// live: live at this point, ret true
+// dead: dead at this point, ret false
+
+// Really, we have a two-dimensional system; but we can't represent that
+// with one variable.
+	if (saveAllSPRs_ == unknown) return true;
+	if (saveAllSPRs_ == killed) return true;
+	if (saveAllSPRs_ == live) return true;
+	return false;
+}
 

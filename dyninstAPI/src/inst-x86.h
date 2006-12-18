@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.33 2006/12/04 23:39:08 legendre Exp $
+// $Id: inst-x86.h,v 1.34 2006/12/18 23:39:20 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -87,6 +87,12 @@
 
 // Undefine REG_MT_POS, basically
 #define REG_MT_POS NUM_VIRTUAL_REGISTERS
+
+#if defined(arch_x86_64)
+#define STACK_PAD_CONSTANT 0x80
+#else
+#define STACK_PAD_CONSTANT 0
+#endif
 
 //#ifndef DEBUG_FUNC_RELOC
 //#define DEBUG_FUNC_RELOC

@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.44 2006/12/14 23:59:59 legendre Exp $
+ * $Id: emit-x86.C,v 1.45 2006/12/18 23:39:20 bernat Exp $
  */
 
 #include <assert.h>
@@ -331,6 +331,10 @@ void Emitter32::emitGetParam(Register dest, Register param_num, instPointType_t 
 
 bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
 {
+    // Magic stack pad to avoid stepping on badly-written programs
+    // that go underneath the stack pointer.
+    if (STACK_PAD_CONSTANT)
+        emitLEA(REGNUM_ESP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_ESP, gen);
 
     // These crank the saves forward
     emitSimpleInsn(PUSHFD, gen);
@@ -376,12 +380,12 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
             SET_PTR(insn, gen);
             
             emitSimpleInsn(0x50 + REGNUM_EAX, gen); /* Push EAX */
-	}
+        }
         else {
             // Allocate space for temporaries and floating points
             emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
             emitOpRegRM(FSAVE, FSAVE_OP, REGNUM_EBP, -(TRAMP_FRAME_SIZE) - FSAVE_STATE_SIZE, gen);
-	}
+        }
     } else {
         // Allocate space for temporaries
         emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
@@ -392,31 +396,35 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
 bool Emitter32::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
     if (bt->isConservative() && gen.rs()->saveAllFPRs() && BPatch::bpatch->isSaveFPROn()) {
-      if (gen.rs()->hasXMM)
-	{
-	  // pop the old ESP value into EAX
-	  emitSimpleInsn(0x58 + REGNUM_EAX, gen);
-
-	  // restore saved FP state
-	  // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
-	  GET_PTR(insn, gen);
-	  *insn++ = 0x0f;
-	  *insn++ = 0xae;
-	  *insn++ = 0x0c;
-	  *insn++ = 0x24;
-	  SET_PTR(insn, gen);
-	  
-	  // restore stack pointer (deallocates FP save area)
-	  emitMovRegToReg(REGNUM_ESP, REGNUM_EAX, gen);
-	}
-      else
-	emitOpRegRM(FRSTOR, FRSTOR_OP, REGNUM_EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
+        if (gen.rs()->hasXMM) {
+            // pop the old ESP value into EAX
+            emitSimpleInsn(0x58 + REGNUM_EAX, gen);
+            
+            // restore saved FP state
+            // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
+            GET_PTR(insn, gen);
+            *insn++ = 0x0f;
+            *insn++ = 0xae;
+            *insn++ = 0x0c;
+            *insn++ = 0x24;
+            SET_PTR(insn, gen);
+            
+            // restore stack pointer (deallocates FP save area)
+            emitMovRegToReg(REGNUM_ESP, REGNUM_EAX, gen);
+        }
+        else
+            emitOpRegRM(FRSTOR, FRSTOR_OP, REGNUM_EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
     }
+    
     emitSimpleInsn(LEAVE, gen);
     if (bt->rpcMgr_ == NULL)
 	emitSimpleInsn(POP_EAX, gen);
     emitSimpleInsn(POPAD, gen);
     emitSimpleInsn(POPFD, gen);
+    // Red zone skip - see comment in emitBTsaves
+    if (STACK_PAD_CONSTANT)
+        emitLEA(REGNUM_ESP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_ESP, gen);
+
     return true;
 }
 
@@ -1564,17 +1572,10 @@ void Emitter64::emitRestoreFlagsFromStackSlot(codeGen &gen)
 
 bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 {
-
-
    // skip past the red zone
    // (we use LEA to avoid overwriting the flags)
-    GET_PTR(buffer, gen);
-    *buffer++ = 0x48; // REX.W
-    *buffer++ = 0x8D; // LEA opcode
-    *buffer++ = 0x64; // ModRM: [SIB + disp8], %rsp
-    *buffer++ = 0x24; // SIB: base = RSP
-    *buffer++ = 0x80; // displacement: -128
-    SET_PTR(buffer, gen);
+    if (STACK_PAD_CONSTANT)
+        emitLEA64(REGNUM_RSP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
 
     // save flags (PUSHFQ)
     emitSimpleInsn(0x9C, gen);
@@ -1654,7 +1655,8 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
         emitOpRegImm64(0x81, EXTENDED_0x81_AND, REGNUM_RSP, -16, true, gen);
         
         // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
-        REGET_PTR(buffer, gen);
+        // Change to REGET if we go back to magic LEA emission
+        GET_PTR(buffer, gen);
         *buffer++ = 0x0f;
         *buffer++ = 0xae;
         *buffer++ = 0x04;
@@ -1739,17 +1741,11 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
    
    // restore flags (POPFQ)
    emitSimpleInsn(0x9D, gen);
-   
+
+
    // restore stack pointer (use LEA to not affect flags)
-   GET_PTR(buffer, gen);
-   *buffer++ = 0x48; // REX.W
-   *buffer++ = 0x8D; // LEA opcode
-   *buffer++ = 0xA4; // ModRM: [SIB + disp32], %rsp
-   *buffer++ = 0x24; // SIB: base = RSP
-   *(unsigned int*)buffer = 128; // displacement: 128
-   buffer += 4;
-   SET_PTR(buffer, gen);
-   
+   if (STACK_PAD_CONSTANT)
+       emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
    return true;
 }
 

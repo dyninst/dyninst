@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.6 2006/12/14 20:12:15 bernat Exp $
+// $Id: registerSpace.h,v 1.7 2006/12/18 23:39:20 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -284,9 +284,9 @@ class registerSpace {
     enum saveState_t { unknown, killed, unused, live, dead};
     
     // A bit of logic... for now, "unknown" is optimistic.
-    bool saveAllGPRs() const { return ((saveAllGPRs_ == killed) || (saveAllGPRs_ == live)); }
-    bool saveAllFPRs() const { return ((saveAllFPRs_ == killed) || (saveAllFPRs_ == live)); }
-    bool saveAllSPRs() const { return ((saveAllSPRs_ == killed) || (saveAllSPRs_ == live)); }
+    bool saveAllGPRs() const; 
+    bool saveAllFPRs() const; 
+    bool saveAllSPRs() const;
     
     void setSaveAllGPRs(bool val) { saveAllGPRs_ = val ? killed : unused; } 
     void setSaveAllFPRs(bool val) { saveAllFPRs_ = val ? killed : unused; } 
