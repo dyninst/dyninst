@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.19 2006/06/13 04:21:00 legendre Exp $
+// $Id: dynamiclinking.C,v 1.20 2006/12/18 16:17:24 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -136,6 +136,8 @@ dyn_lwp *dynamic_linking::findLwpAtLibHook(process *proc, sharedLibHook **hook_h
 
 
 bool sharedLibHook::reachedBreakAddr(Address b) const {
+    if (breakAddr_ == 0) return false;
+
 #if defined(arch_x86) || defined(arch_x86_64)
     return ((b-1) == breakAddr_);
 #else
