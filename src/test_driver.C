@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.38 2006/12/14 04:55:46 legendre Exp $
+// $Id: test_driver.C,v 1.39 2006/12/19 04:51:45 rchen Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -359,7 +359,7 @@ void printLogOptionHeader(test_data_t &test, char *mutatee, bool useAttach)
    flushErrorLog();
    // Full test description
    logstatus("\"%s", test.name);
-   if ( mutatee != "" )
+   if ( strcmp(mutatee, "") != 0 )
    {
       logstatus(" -mutatee %s", mutatee);
    }
@@ -382,7 +382,7 @@ void printHumanTestHeader(test_data_t &test, char *mutatee, bool useAttach)
    flushErrorLog();
    // Test Header
    logstatus("Running: %s", test.name);
-   if ( mutatee != "" )
+   if ( strcmp(mutatee, "") != 0 )
    {
       logstatus(" with mutatee: %s", mutatee);
    }
