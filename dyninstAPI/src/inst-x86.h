@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.34 2006/12/18 23:39:20 bernat Exp $
+// $Id: inst-x86.h,v 1.35 2007/01/02 23:25:28 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -72,15 +72,6 @@
 /* Add one for the REG_MT_POS 'reserved' reg */
 #define TRAMP_FRAME_SIZE ((NUM_VIRTUAL_REGISTERS+1)*4)
 
-/*
-   Function arguments are in the stack and are addressed with a displacement
-   from EBP. EBP points to the saved EBP, EBP+4 is the saved return address,
-   EBP+8 is the first parameter.
-   TODO: what about far calls?
- */
-#define FUNC_PARAM_OFFSET (8+(10*4))
-#define CALLSITE_PARAM_OFFSET (4+(10*4))
-
 // offset from EBP of the saved EAX for a tramp
 #define SAVED_EAX_OFFSET (10*4-4)
 #define SAVED_EFLAGS_OFFSET (SAVED_EAX_OFFSET+4)
@@ -93,6 +84,16 @@
 #else
 #define STACK_PAD_CONSTANT 0
 #endif
+
+/*
+   Function arguments are in the stack and are addressed with a displacement
+   from EBP. EBP points to the saved EBP, EBP+4 is the saved return address,
+   EBP+8 is the first parameter.
+   TODO: what about far calls?
+ */
+#define FUNC_PARAM_OFFSET (8+(10*4)+STACK_PAD_CONSTANT)
+#define CALLSITE_PARAM_OFFSET (4+(10*4)+STACK_PAD_CONSTANT)
+
 
 //#ifndef DEBUG_FUNC_RELOC
 //#define DEBUG_FUNC_RELOC
