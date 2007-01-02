@@ -6,6 +6,24 @@
 #  Code template for dynamically creating a canonical set
 #  of free registers.
 ##
+#  This code is /not/ thread-safe, because it's self-modifying.
+#  It also doesn't take advantage of the fact that when we know
+#  that we're instrumenting a point with multiple reaching allocs,
+#  we know which allocs those are.
+#
+#  We can always allocate ourselves a frame based on the largest of the
+#  reaching allocs.  But then we'd need to Play Dirty Tricks in order
+#  to read the parameters.  What we probably want to do
+#  is define the canonical frame to be 24 + NUM_PRESERVED registers: 
+#  save the low registers in the rotating registers, plus eight more for
+#  the ABI-maximal parameter registers, and then eight and eight local
+#  and output registers for the instrumentation's use.  We'd still need
+#  to do the fetch_ar_pfs trickiness (in its calling) to figure out
+#  which alloc to restore on the other side.  We could do code-generation
+#  in the mutator for the different moves required for the parameters.
+#
+#  Actually, I guess 25+.  It'd be nice to have a register to store which
+#  alloc we need to restore to...
 
 # This function just stashes the PFS away in r4 for us.
 .global fetch_ar_pfs#
