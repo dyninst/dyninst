@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.14 2006/12/06 21:17:36 bernat Exp $
+// $Id: mapped_module.C,v 1.15 2007/01/03 19:07:25 rchen Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -281,7 +281,9 @@ void mapped_module::parseFileLineInfo() {
 	const Object & elfObject = fileOnDisk->getObject();
 
 	const char * fileName = elfObject.getFileName();
-	if( haveParsedFileMap.defines( fileName ) ) { return; } 
+	unsigned long int proc_addr = reinterpret_cast< unsigned long int >( proc() );
+	pdstring key = pdstring( proc_addr ) + fileName;
+	if( haveParsedFileMap.defines( key ) ) { return; } 
 
 	/* We haven't parsed this file already, so iterate over its stab entries. */
 	stab_entry * stabEntry = elfObject.get_stab_info();
@@ -404,7 +406,7 @@ void mapped_module::parseFileLineInfo() {
 			} /* end switch on the ith stab entry's type */
 		} /* end iteration over stab entries. */
 	
-	haveParsedFileMap[ fileName ] = true;
+	haveParsedFileMap[ key ] = true;
 	} /* end parseFileLineInfo() */
 	
 #endif 
