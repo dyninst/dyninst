@@ -933,7 +933,6 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
     }
     else if(op == STDop) {
       logIS_A("IS_A: std-stdu");
-      cerr << "****" << (**i).dsform.xo << endl; 
       assert((**i).dsform.xo < 2);
       
       
