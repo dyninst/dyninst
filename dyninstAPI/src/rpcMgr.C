@@ -799,15 +799,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
     irpcBuf.setLWP(lwp);
     irpcBuf.setThread(thr);
     
-
-#if defined(arch_x86_64)
-    if (proc()->getAddressWidth() == 8)
-		emit64();
-    else
-		emit32();
-#endif
-
-    irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace());
+    irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace(proc()));
 
     // Saves registers (first half of the base tramp) and whatever other
     // irpc-specific magic is necessary

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.259 2006/12/14 20:12:11 bernat Exp $
+ * $Id: inst-power.C,v 1.260 2007/01/04 22:59:57 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -84,9 +84,8 @@ Address getMaxBranch() {
   return MAX_BRANCH;
 }
 
-EmitterPOWER emitterPower;
 // Required global variable.
-Emitter *code_emitter = &emitterPower;
+EmitterPOWER emitterPower;
 
 const char *registerNames[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
 			"r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
@@ -3083,4 +3082,10 @@ int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
   //printf("\n");
   stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
   return numLive;
+}
+
+Emitter *process::getEmitter() 
+{
+   static EmitterPOWER pemitter;
+   return &pemitter;
 }

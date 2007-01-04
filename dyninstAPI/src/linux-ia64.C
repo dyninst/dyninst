@@ -511,7 +511,7 @@ bool process::loadDYNINSTlib() {
   gen.setProcess(this);
   gen.setAddr(codeBase);
 
-  gen.setRegisterSpace(registerSpace::savedRegSpace());
+  gen.setRegisterSpace(registerSpace::savedRegSpace(this));
   
   Address dyninstlib_addr = gen.used() + codeBase;
   gen.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);

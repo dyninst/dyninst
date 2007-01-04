@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.46 2007/01/04 20:17:49 bernat Exp $
+ * $Id: emit-x86.C,v 1.47 2007/01/04 22:59:53 legendre Exp $
  */
 
 #include <assert.h>
@@ -556,11 +556,6 @@ bool Emitter32::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
     return true;
 }
 
-int Emitter32::Register_DWARFtoMachineEnc(int n)
-{
-    return n;   // no mapping for 32-bit targets
-}
-
 Emitter32 emitter32;
 
 //
@@ -657,6 +652,10 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
 	emitMovImmToReg(tmp_dest, imm, gen);
 }
 
+int Register_DWARFtoMachineEnc32(int n)
+{
+    return n;
+}
 
 #if defined(arch_x86_64)
 
@@ -1465,7 +1464,7 @@ void Emitter64::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
        }
       
        // restore flags (needed for direction flag)
-       code_emitter->emitRestoreFlagsFromStackSlot(gen);
+       gen.codeEmitter()->emitRestoreFlagsFromStackSlot(gen);
 
        // restore needed registers to values at the inst point
        // (push current values on the stack in case they're in use)
@@ -1642,8 +1641,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
         //   mov %rsp, %rax          ; copy the current stack pointer
         //   sub $512, %rsp          ; allocate space
         //   and $0xfffffff0, %rsp   ; make sure we're aligned (allocates some more space)
-        //   fxsave (%rsp)           ; save the state
-        //   push %rax               ; save the old stack pointer
+       
         
         emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
         emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 512, true, gen);
@@ -1931,10 +1929,10 @@ static int const amd64_register_map[] =
   -1, -1, -1, -1, -1, -1, -1, -1,   /* extended integer registers */
   -1, -1, -1, -1, -1, -1, -1, -1,   /* extended SSE registers */
 };
-int Emitter64::Register_DWARFtoMachineEnc(int n)
+
+int Register_DWARFtoMachineEnc64(int n)
 {
     return amd64_register_map[n];
-
 }
 
 bool Emitter64::emitPush(codeGen &gen, Register reg) {
@@ -1956,30 +1954,6 @@ bool Emitter64::emitAdjustStackPointer(int index, codeGen &gen) {
 	return true;
 }
 
-Emitter64 emitter64;
-
-// change code generator to 32-bit mode
-void emit32()
-{
-    code_emitter = &emitter32;
-
-	registerSpace::conservativeRegSpace_ = conservativeRegSpace32;
-	registerSpace::optimisticRegSpace_ = optimisticRegSpace32;
-	registerSpace::actualRegSpace_ = actualRegSpace32;		
-	registerSpace::savedRegSpace_ = savedRegSpace32;
-}
-
-// change code generator to 64-bit mode
-void emit64()
-{
-    code_emitter = &emitter64;
-
-	registerSpace::conservativeRegSpace_ = conservativeRegSpace64;
-	registerSpace::optimisticRegSpace_ = optimisticRegSpace64;
-	registerSpace::actualRegSpace_ = actualRegSpace64;		
-	registerSpace::savedRegSpace_ = savedRegSpace64;
-}
-
 registerSpace *globalRegSpace32 = NULL;
 registerSpace *conservativeRegSpace32 = NULL;
 registerSpace *optimisticRegSpace32 = NULL;
@@ -1994,5 +1968,3 @@ registerSpace *savedRegSpace64 = NULL;
 
 #endif
 
-// emitter defaults to 32-bit
-Emitter* code_emitter = &emitter32;

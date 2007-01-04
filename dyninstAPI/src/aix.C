@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.227 2006/12/06 21:17:13 bernat Exp $
+// $Id: aix.C,v 1.228 2007/01/04 22:59:48 legendre Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1306,7 +1306,7 @@ bool process::loadDYNINSTlib()
     // Need a register space
     // make sure this syncs with inst-power.C
     
-    registerSpace *dlopenRegSpace = registerSpace::savedRegSpace();
+    registerSpace *dlopenRegSpace = registerSpace::savedRegSpace(this);
 
     scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);
 

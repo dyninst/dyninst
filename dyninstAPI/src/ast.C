@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.184 2006/12/14 20:12:01 bernat Exp $
+// $Id: ast.C,v 1.185 2007/01/04 22:59:51 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1572,7 +1572,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
         callee = gen.proc()->findOnlyOneFunction(func_name_);
     }
     assert(callee);
-    bool fprUsed = code_emitter->clobberAllFuncCall(gen.rs(), callee);
+    bool fprUsed = gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
     if (fprUsed)
         gen.rs()->setSaveAllFPRs(true);
     // Monotonically increasing...
@@ -1585,7 +1585,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
         callee = gen.proc()->findOnlyOneFunction(func_name_);
         assert(callee);
     }
-    bool clobbered = code_emitter->clobberAllFuncCall(gen.rs(), callee);
+    bool clobbered = gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
     // We clobber in clobberAllFuncCall...
 
     // Monotonically increasing...

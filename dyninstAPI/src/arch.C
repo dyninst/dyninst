@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.8 2006/11/22 04:03:06 bernat Exp $
+// $Id: arch.C,v 1.9 2007/01/04 22:59:49 legendre Exp $
 // Code generation
 
 //////////////////////////
@@ -50,6 +50,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "process.h"
 #include "common/h/Types.h"
 #if defined (os_osf)
 #include <malloc.h>
@@ -71,12 +72,13 @@ codeGen::codeGen() :
     buffer_(NULL),
     offset_(0),
     size_(0),
+    emitter_(NULL),
     allocated_(false),
     proc_(NULL),
     thr_(NULL),
     lwp_(NULL),
     rs_(NULL),
-	t_(NULL),
+    t_(NULL),
     addr_((Address)-1),
     ip_(NULL)
 {}
@@ -86,6 +88,7 @@ codeGen::codeGen(unsigned size) :
     buffer_(NULL),
     offset_(0),
     size_(size),
+    emitter_(NULL),
     allocated_(true),
     proc_(NULL),
     thr_(NULL),
@@ -112,6 +115,7 @@ codeGen::~codeGen() {
 codeGen::codeGen(const codeGen &g) :
     offset_(g.offset_),
     size_(g.size_),
+    emitter_(NULL),
     allocated_(g.allocated_),
     proc_(g.proc_),
     thr_(g.thr_),
@@ -372,6 +376,12 @@ void codeGen::applyTemplate(codeGen &c) {
     rs_ = c.rs_;
     addr_ = c.addr_;
     ip_ = c.ip_;
+}
+
+void codeGen::setProcess(process *p) 
+{ 
+   proc_ = p; 
+   setCodeEmitter(p->getEmitter());
 }
 
 codeGen codeGen::baseTemplate;

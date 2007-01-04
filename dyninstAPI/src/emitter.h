@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emitter.h,v 1.6 2006/12/14 20:12:06 bernat Exp $
+ * $Id: emitter.h,v 1.7 2007/01/04 22:59:55 legendre Exp $
  */
 
 #ifndef _EMITTER_H
@@ -106,15 +106,11 @@ class Emitter {
     virtual bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue) = 0;
     virtual void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
     virtual void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
-    virtual int Register_DWARFtoMachineEnc(int n) = 0;
     virtual bool emitPush(codeGen &, Register) = 0;
     virtual bool emitPop(codeGen &, Register) = 0;
     virtual bool emitAdjustStackPointer(int index, codeGen &gen) = 0;
     
     virtual bool clobberAllFuncCall(registerSpace *rs,int_function *callee) = 0;;
 };
-
-// current set of code generation functions
-extern Emitter* code_emitter;
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.7 2006/12/18 23:39:20 bernat Exp $
+// $Id: registerSpace.h,v 1.8 2007/01/04 23:00:06 legendre Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -139,10 +139,6 @@ class instPoint;
 
 class registerSpace {
 	friend void initRegisters();
-#if defined(arch_x86_64) 
-	friend void emit32();
-	friend void emit64();
-#endif
 
  private:
 	// A global mapping of register names to slots
@@ -150,7 +146,7 @@ class registerSpace {
 
 	// Pre-set commonly used register spaces
 	// Everyone live...
-    static registerSpace *conservativeRegSpace_;
+   static registerSpace *conservativeRegSpace_;
 	// Function boundary...
 	static registerSpace *optimisticRegSpace_;
 	// And the one we should use.
@@ -162,19 +158,19 @@ class registerSpace {
     // Legacy...
     //static registerSpace *regSpace();
 
-    // Pre-set unknown register state:
+   // Pre-set unknown register state:
 	// Everything is live...
-    static registerSpace *conservativeRegSpace();
+   static registerSpace *conservativeRegSpace(process *proc);
 	// Everything is dead...
-	static registerSpace *optimisticRegSpace();
+	static registerSpace *optimisticRegSpace(process *proc);
 	// IRPC-specific - everything live for now
-	static registerSpace *irpcRegSpace();
+	static registerSpace *irpcRegSpace(process *proc);
 	// Aaand instPoint-specific
 	static registerSpace *actualRegSpace(instPoint *iP);
 	// DO NOT DELETE THESE. 
-	static registerSpace *savedRegSpace();
+	static registerSpace *savedRegSpace(process *proc);
 
-    registerSpace();
+   registerSpace();
 
 	registerSpace(const registerSpace &);
 	// Specialize a register space given a particular list of
@@ -214,8 +210,8 @@ class registerSpace {
 
     // For now, we save registers elsewhere and mark them here. 
     bool markSavedRegister(Register num, int offsetFromSP);
-	// 
-	bool markKeptRegister(Register num);
+    // 
+    bool markKeptRegister(Register num);
 
     // Things that will be modified implicitly by anything else we
     // generate - condition registers, etc.

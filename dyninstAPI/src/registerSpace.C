@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.11 2006/12/18 23:39:20 bernat Exp $
+// $Id: registerSpace.C,v 1.12 2007/01/04 23:00:05 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -137,28 +137,42 @@ void registerSlot::resetSlot() {
 	saveOffset_ = 0;
 }
 
-registerSpace *registerSpace::conservativeRegSpace() {
+registerSpace *registerSpace::conservativeRegSpace(process *proc) {
+   int addrWidth = proc->getAddressWidth();
 	if (conservativeRegSpace_ == NULL) initRegisters();	
+#if defined(arch_x86_64)
+      registerSpace::conservativeRegSpace_ = (addrWidth == 4) ?
+         conservativeRegSpace32 : conservativeRegSpace64;
+#endif
 	assert(conservativeRegSpace_);
 	conservativeRegSpace_->resetSpace();
 	return conservativeRegSpace_;	
 }
 
-registerSpace *registerSpace::optimisticRegSpace() {
+registerSpace *registerSpace::optimisticRegSpace(process *proc) {
+   int addrWidth = proc->getAddressWidth();
 	if (optimisticRegSpace_ == NULL) initRegisters();
+#if defined(arch_x86_64)
+      registerSpace::optimisticRegSpace_ = (addrWidth == 4) ?
+         optimisticRegSpace32 : optimisticRegSpace64;
+#endif
 	assert(optimisticRegSpace_);
 	optimisticRegSpace_->resetSpace();
 	return optimisticRegSpace_;	
 }
 
-registerSpace *registerSpace::irpcRegSpace() {
-	return conservativeRegSpace();
+registerSpace *registerSpace::irpcRegSpace(process *proc) {
+	return conservativeRegSpace(proc);
 }
 
 registerSpace *registerSpace::actualRegSpace(instPoint *iP) {
-	if (iP == NULL) return conservativeRegSpace();
+   assert(iP);
 
 	if (actualRegSpace_ == NULL) initRegisters();
+#if defined(arch_x86_64)
+   actualRegSpace_ =  (iP->proc()->getAddressWidth() == 4) ?
+      actualRegSpace32 : actualRegSpace64;
+#endif
 #if defined(arch_power) || defined(arch_x86_64)
 	assert(actualRegSpace_);
 	actualRegSpace_->resetLiveDeadInfo(iP->liveGPRegisters(),
@@ -171,19 +185,24 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP) {
 	// Use one of the other registerSpaces...
 	// If we're entry/exit/call site, return the optimistic version
     if (iP->getPointType() == functionEntry)
-        return optimisticRegSpace();
+        return optimisticRegSpace(iP->proc());
     if (iP->getPointType() == functionExit)
-        return optimisticRegSpace();
+        return optimisticRegSpace(iP->proc());
     if (iP->getPointType() == callSite)
-        return optimisticRegSpace();
+        return optimisticRegSpace(iP->proc());
 
-    return conservativeRegSpace();
+    return conservativeRegSpace(iP->proc());
 #endif
 
 }
 
-registerSpace *registerSpace::savedRegSpace() {
+registerSpace *registerSpace::savedRegSpace(process *proc) {
+   int addrWidth = proc->getAddressWidth();
 	if (savedRegSpace_ == NULL) initRegisters();
+#if defined(arch_x86_64)
+      registerSpace::savedRegSpace_ = (addrWidth == 4) ?
+         savedRegSpace32 : savedRegSpace64;
+#endif
 	assert(savedRegSpace_);
 	savedRegSpace_->resetSpace();
 	return savedRegSpace_;
@@ -451,7 +470,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen) {
 	assert(spRegisters.size() == 1);
 	for (unsigned i = 0; i < spRegisters.size(); i++) {
 		// Should decide whether to push or store in a frame...
-		code_emitter->emitPushFlags(gen);
+		gen.codeEmitter()->emitPushFlags(gen);
 		spRegisters[i].origValueSpilled_ = registerSlot::stackPointer;
 		spRegisters[i].saveOffset_ = ++currStackPointer;
 	}
@@ -477,7 +496,7 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
         assert (reg.saveOffset_ <= currStackPointer);
         int difference = currStackPointer - reg.saveOffset_;
 #if defined(arch_x86) || defined(arch_x86_64)
-        code_emitter->emitRestoreFlags(gen, difference);
+        gen.codeEmitter()->emitRestoreFlags(gen, difference);
         if (difference == 0) {
             // This is a little annoying... emitRestoreFlags will just pop
             // if the difference is 0, which means our stack just moved. Oy.
@@ -758,7 +777,7 @@ bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
 
 #if defined(arch_x86) || defined(arch_x86_64)
 	if (currStackPointer > 0) {
-		code_emitter->emitAdjustStackPointer(currStackPointer, gen);
+		gen.codeEmitter()->emitAdjustStackPointer(currStackPointer, gen);
 	}
 #endif
     currStackPointer = 0;
@@ -865,7 +884,7 @@ bool registerSpace::readRegister(codeGen &gen,
     // Option 1: still alive
     if (s->origValueSpilled_ == registerSlot::unspilled) {
         if (source != destination)
-            code_emitter->emitMoveRegToReg(source, destination, gen);
+            gen.codeEmitter()->emitMoveRegToReg(source, destination, gen);
         return true;
     }
     else if (s->origValueSpilled_ == registerSlot::stackPointer) {
@@ -880,14 +899,14 @@ bool registerSpace::readRegister(codeGen &gen,
             // Uhh... below the stack pointer?
             fprintf(stderr, "WARNING: weird math in readRegister, offset %d and SP %d\n", s->saveOffset_, currStackPointer);
         }
-        code_emitter->emitLoadRelative(destination, s->saveOffset_, REGNUM_RSP, gen);
+        gen.codeEmitter()->emitLoadRelative(destination, s->saveOffset_, REGNUM_RSP, gen);
         return true;
     }
     else if (s->origValueSpilled_ == registerSlot::framePointer) {
         // We can't use existing mechanisms because they're all built
         // off the "non-instrumented" case - emit a load from the
         // "original" frame pointer, whereas we want the current one. 
-        code_emitter->emitLoadRelative(destination, s->saveOffset_, REGNUM_RBP, gen);
+        gen.codeEmitter()->emitLoadRelative(destination, s->saveOffset_, REGNUM_RBP, gen);
         return true;
     }
 

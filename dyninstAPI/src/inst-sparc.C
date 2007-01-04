@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.191 2006/11/22 04:03:18 bernat Exp $
+// $Id: inst-sparc.C,v 1.192 2007/01/04 22:59:58 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -1736,4 +1736,9 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
 {
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
+}
+
+Emitter *process::getEmitter() 
+{
+   return NULL;
 }

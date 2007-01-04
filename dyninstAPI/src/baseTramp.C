@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.53 2006/12/16 00:05:44 legendre Exp $
+// $Id: baseTramp.C,v 1.54 2007/01/04 22:59:52 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -337,8 +337,11 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     }
 
 
-    gen.setPoint(baseT->instP());
-	gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP()));
+    if (baseT->instP()) {
+       //iRPCs already have this set
+       gen.setPoint(baseT->instP());
+       gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP()));
+    }
     
     if (BPatch::bpatch->isMergeTramp()) {
         // /* DEBUG */ fprintf( stderr, "%s[%d]: generating code in-the-line\n", __FILE__, __LINE__ );
@@ -1174,7 +1177,8 @@ bool baseTramp::generateBT(codeGen &baseGen) {
 	// Set up the registerSpace for the baseGen structure
 	// If we're calling generateBT, we're out-of-lining... so 
 	// we can't take advantage of instr-unused registers
-	baseGen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
+  if (instP()) 
+     baseGen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
 	
 
   assert(preTrampCode_ == NULL);

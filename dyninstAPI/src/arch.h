@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.23 2006/11/14 20:37:00 bernat Exp $
+// $Id: arch.h,v 1.24 2007/01/04 22:59:50 legendre Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -83,6 +83,7 @@ class instPoint;
 class registerSpace;
 class regTracker_t;
 class AstNode;
+class Emitter;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -178,13 +179,14 @@ class codeGen {
                  instPoint *point,
                  registerSpace *rs);
 
-    void setProcess(process *p) { proc_ = p; }
+    void setProcess(process *p);
     void setThread(dyn_thread *t) { thr_ = t; }
     void setLWP(dyn_lwp *l) { lwp_ = l; }
     void setRegisterSpace(registerSpace *r) { rs_ = r; }
     void setAddr(Address a) { addr_ = a; }
     void setPoint(instPoint *i) { ip_ = i; }
-	void setRegTracker(regTracker_t *t) { t_ = t; }
+    void setRegTracker(regTracker_t *t) { t_ = t; }
+    void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
 
     dyn_lwp *lwp() { return lwp_; }
     dyn_thread *thread() { return thr_; }
@@ -193,12 +195,14 @@ class codeGen {
     const instPoint *point() const { return ip_; }
     registerSpace *rs() { assert(rs_); return rs_; }
     regTracker_t *tracker() { assert(t_); return t_;}
+    Emitter *codeEmitter() { assert(emitter_); return emitter_; }
 
  private:
     codeBuf_t *buffer_;
     codeBufIndex_t offset_;
     unsigned size_;
 
+    Emitter *emitter_;
     bool allocated_;
 
     process *proc_;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.33 2006/12/06 21:17:31 bernat Exp $
+// $Id: instPoint.C,v 1.34 2007/01/04 23:00:00 legendre Exp $
 // instPoint code
 
 
@@ -1053,53 +1053,53 @@ int *instPoint::liveSPRegisters() const {
     return pessimisticSPRLiveSet();
 }
 
-int *instPoint::optimisticGPRLiveSet() {
+int *instPoint::optimisticGPRLiveSet() const {
 #if defined(arch_x86_64)
-    if (code_emitter == &emitter64) {
+    if (proc()->getAddressWidth() == 8) {
         return optimisticGPRLiveSet64_;
     }
 #endif
     return optimisticGPRLiveSet_;
 }
 
-int *instPoint::optimisticFPRLiveSet() {
+int *instPoint::optimisticFPRLiveSet() const {
 #if defined(arch_x86_64)
-    if (code_emitter == &emitter64) {
+    if (proc()->getAddressWidth() == 8) {
         return optimisticFPRLiveSet64_;
     }
 #endif
     return optimisticFPRLiveSet_;
 }
 
-int *instPoint::optimisticSPRLiveSet() {
+int *instPoint::optimisticSPRLiveSet() const {
 #if defined(arch_x86_64)
-    if (code_emitter == &emitter64) {
+    if (proc()->getAddressWidth() == 8) {
         return optimisticSPRLiveSet64_;
     }
 #endif
     return optimisticSPRLiveSet_;
 }
 
-int *instPoint::pessimisticGPRLiveSet() {
+int *instPoint::pessimisticGPRLiveSet() const {
 #if defined(arch_x86_64)
-    if (code_emitter == &emitter64) {
+    if (proc()->getAddressWidth() == 8) {
         return pessimisticGPRLiveSet64_;
     }
 #endif
     return pessimisticGPRLiveSet_;
 }
-int *instPoint::pessimisticFPRLiveSet() {
+int *instPoint::pessimisticFPRLiveSet() const {
 #if defined(arch_x86_64)
-    if (code_emitter == &emitter64) {
+    if (proc()->getAddressWidth() == 8) {
         return pessimisticFPRLiveSet64_;
     }
 #endif
     return pessimisticFPRLiveSet_;
 }
 
-int *instPoint::pessimisticSPRLiveSet() {
+int *instPoint::pessimisticSPRLiveSet() const {
 #if defined(arch_x86_64)
-    if (code_emitter == &emitter64) {
+    if (proc()->getAddressWidth() == 8) {
         return pessimisticSPRLiveSet64_;
     }
 #endif

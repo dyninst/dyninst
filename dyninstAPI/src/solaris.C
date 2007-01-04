@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.210 2006/12/06 21:17:48 bernat Exp $
+// $Id: solaris.C,v 1.211 2007/01/04 23:00:08 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -724,7 +724,7 @@ bool process::loadDYNINSTlib() {
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
     scratchCodeBuffer.setProcess(this);
     scratchCodeBuffer.setAddr(codeBase);
-    scratchCodeBuffer.setRegisterSpace(registerSpace::savedRegSpace());
+    scratchCodeBuffer.setRegisterSpace(registerSpace::savedRegSpace(this));
 
     // First we write in the dyninst lib string. Vewy simple.
     Address dyninstlib_addr = codeBase;

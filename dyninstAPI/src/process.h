@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.396 2006/12/06 21:17:43 bernat Exp $
+/* $Id: process.h,v 1.397 2007/01/04 23:00:04 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -542,6 +542,8 @@ class process {
   void suppressBPatchCallbacks(bool state) { 
       suppress_bpatch_callbacks_ = state; 
   }
+
+  Emitter *getEmitter();
 
  // Callbacks for higher level code (like BPatch) to learn about new 
  //  functions and InstPoints.

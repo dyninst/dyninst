@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.33 2006/12/06 21:17:32 bernat Exp $
+// $Id: instPoint.h,v 1.34 2007/01/04 23:00:01 legendre Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -460,12 +460,12 @@ class instPoint : public instPointBase {
   // an instPoint gets its own analysis.
   // Optimistic: function entry/exit/call site
   // Pessimistic: function bodies
-  static int *optimisticGPRLiveSet();
-  static int *pessimisticGPRLiveSet();
-  static int *optimisticFPRLiveSet();
-  static int *pessimisticFPRLiveSet();
-  static int *optimisticSPRLiveSet();
-  static int *pessimisticSPRLiveSet();
+  int *optimisticGPRLiveSet() const;
+  int *pessimisticGPRLiveSet() const;
+  int *optimisticFPRLiveSet() const;
+  int *pessimisticFPRLiveSet() const;
+  int *optimisticSPRLiveSet() const;
+  int *pessimisticSPRLiveSet() const;
 
  private:
   int *actualGPRLiveSet_;

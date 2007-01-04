@@ -3560,3 +3560,8 @@ bool writeFunctionPtr( process * proc, Address fnptr, int_function * func ) {
 	
 	return true;
 	} /* end writeFunctionPtr() */
+
+Emitter *process::getEmitter() 
+{
+   return NULL;
+}

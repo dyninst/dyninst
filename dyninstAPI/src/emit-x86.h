@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.22 2006/12/05 21:44:35 rutar Exp $
+ * $Id: emit-x86.h,v 1.23 2007/01/04 22:59:54 legendre Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -59,12 +59,6 @@ class AstNode;
 class registerSpace;
 
 // Emitter moved to emitter.h - useful on other platforms as well
-
-// switches code generator to 32-bit mode
-void emit32();
-
-// switches code generator to 64-bit mode
-void emit64();
 
 class EmitterX86 : public Emitter {
 

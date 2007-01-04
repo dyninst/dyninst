@@ -64,12 +64,15 @@
 /* For location decode. */
 #include <stack>
 
+extern int Register_DWARFtoMachineEnc32(int n);
+extern int Register_DWARFtoMachineEnc64(int n);
+
 #if defined(arch_x86_64)
 #include "emit-x86.h"
-#define DWARF_TO_MACHINE_ENC(n) \
-    (code_emitter->Register_DWARFtoMachineEnc(n))
+#define DWARF_TO_MACHINE_ENC(n, proc) \
+  ((proc->getAddressWidth() == 4) ? Register_DWARFtoMachineEnc32(n) : Register_DWARFtoMachineEnc64(n))
 #else
-#define DWARF_TO_MACHINE_ENC(n) (n)
+#define DWARF_TO_MACHINE_ENC(n, proc) (n)
 #endif
 
 #define DWARF_FALSE_IF(condition,...) \
@@ -320,7 +323,7 @@ void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLengt
 	fprintf( stderr, "\n" );
 	} /* end dumpLocListAddrRanges */
 
-AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength ) {
+AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, process *proc ) {
 	/* Until such time as we see more-complicated location lists, assume single entries
 	   consisting of a register name.  Using an AST for this is massive overkill, but if
 	   we need to handle more complicated frame base calculations later, the infastructure
@@ -337,20 +340,24 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 	/* That operation is naming a register. */
 	int registerNumber = 0;	
 	if( DW_OP_reg0 <= location.lr_atom && location.lr_atom <= DW_OP_reg31 ) {
-		    registerNumber = DWARF_TO_MACHINE_ENC(location.lr_atom - DW_OP_reg0);
+		    registerNumber = DWARF_TO_MACHINE_ENC(location.lr_atom - DW_OP_reg0,
+												  proc);
 		}
 	else if( DW_OP_breg0 <= location.lr_atom && location.lr_atom <= DW_OP_breg31 ) {
-		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_atom - DW_OP_breg0);
+		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_atom - DW_OP_breg0,
+											  proc);
 		if( location.lr_number != 0 ) {
 			/* Actually, we should be able whip up an AST node for this. */
 			return NULL;
 			}
 		}
 	else if( location.lr_atom == DW_OP_regx ) {
-		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_number);
+		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_number,
+											  proc);
 		}
 	else if( location.lr_atom == DW_OP_bregx ) {
-		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_number);
+		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_number,
+											  proc);
 		if( location.lr_number2 != 0 ) {
 			/* Actually, we should be able whip up an AST node for this. */
 			return NULL;
@@ -373,7 +380,7 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 	return moveFPtoDestination;
 	} /* end convertFrameBaseToAST(). */
 
-bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, int * regNum, long int * initialStackValue = NULL, BPatch_storageClass * storageClass = NULL ) {
+bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, int * regNum, process *proc, long int * initialStackValue = NULL, BPatch_storageClass * storageClass = NULL ) {
 	/* We make a few heroic assumptions about locations in this decoder.
 	
 	   We assume that all locations are either frame base-relative offsets,
@@ -414,10 +421,10 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 		/* Haandle registers w/o 32 case statements. */
 		if( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) {
 			/* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
-			dwarf_printf( "location is named register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0) );
+			dwarf_printf( "location is named register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, proc) );
 			if( storageClass != NULL ) { * storageClass = BPatch_storageRegOffset; }
 			if( regNum != NULL ) { 
-                *regNum = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0);
+                *regNum = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, proc);
             }
 			if( offset != NULL ) { * offset = 0; }
 			return true;
@@ -425,10 +432,10 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 			
 		/* Haandle registers w/o 32 case statements. */
 		if( DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31 ) {
-			dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0), locations[i].lr_number );
+			dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, proc), locations[i].lr_number );
 			if( storageClass != NULL ) { * storageClass = BPatch_storageRegOffset; }
 			if( regNum != NULL ) { 
-                * regNum = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0);
+                * regNum = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, proc);
             }
 			opStack.push( locations[i].lr_number );
 			continue;
@@ -456,10 +463,10 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 
 			case DW_OP_regx:
 				/* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
-				dwarf_printf( "location is register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_number) );
+				dwarf_printf( "location is register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_number, proc) );
 				if( storageClass != NULL ) { * storageClass = BPatch_storageRegOffset; }
 				if( regNum != NULL ) { 
-                    * regNum = DWARF_TO_MACHINE_ENC(locations[i].lr_number); 
+                    * regNum = DWARF_TO_MACHINE_ENC(locations[i].lr_number, proc); 
                 }
 				if( offset != NULL ) { * offset = 0; }
 				return true;
@@ -476,7 +483,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				if( regNum != NULL ) { 
                     // Again with the lies about register numbers
                     // * regNum = locations[i].lr_number; 
-                    *regNum = DWARF_TO_MACHINE_ENC( locations[i].lr_number );
+                    *regNum = DWARF_TO_MACHINE_ENC( locations[i].lr_number, proc );
                 }
 				opStack.push( locations[i].lr_number2 );
 				break;
@@ -964,7 +971,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					
 #if defined(ia64_unknown_linux2_4)
 				/* Convert location list to an AST for later code generation. */
-				newFunction->lowlevel_func()->ifunc()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength );
+				newFunction->lowlevel_func()->ifunc()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength, proc );
 #else
 				static bool warned_no_locals = false;
 				if (listLength > 1 && !warned_no_locals) {
@@ -1146,7 +1153,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				int regNum;
 				BPatch_storageClass storageClass;
 				long int variableOffset;
-				bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & variableOffset, & regNum, NULL, & storageClass );
+				bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & variableOffset, & regNum, proc, NULL, & storageClass);
 				deallocateLocationList( dbg, locationList, listLength );
 				
 				if( ! decodedAddressOrOffset ) { break; }
@@ -1293,7 +1300,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			int regNum;
 			BPatch_storageClass storageClass;
 			long int parameterOffset;
-			bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & parameterOffset, & regNum, NULL, & storageClass );
+			bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & parameterOffset, & regNum, proc, NULL, & storageClass );
 			deallocateLocationList( dbg, locationList, listLength );
 			
 			if( ! decodedOffset ) {
@@ -1677,7 +1684,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			BPatch_storageClass storageClass;
 			long int memberOffset = 0;
 			long int baseAddress = 0;
-			bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & memberOffset, & regNum, & baseAddress, & storageClass );
+			bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & memberOffset, & regNum, proc, & baseAddress, & storageClass );
 			deallocateLocationList( dbg, locationList, listLength );
 			
 			if( ! decodedAddress ) { break; }
@@ -1867,15 +1874,6 @@ void BPatch_module::parseDwarfTypes() {
 	const Object &moduleObject = mod->obj()->parse_img()->getObject();
 	assert( fileName );
 	assert( moduleTypes );
-
-#if defined(arch_x86_64)
-	if( moduleObject.getAddressWidth() == 8 ) {
-		emit64();
-        }
-	else {
-		emit32();
-		}
-#endif
 
 	if( moduleTypes->dwarfParsed() ) {
 		dwarf_printf( "%s[%d]: already parsed %s, moduleTypes = %p\n", __FILE__, __LINE__, fileName, moduleTypes );
