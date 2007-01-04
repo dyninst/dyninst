@@ -162,3 +162,13 @@ void dyn_thread::update_index(unsigned index_)
 {
     index = index_;
 }
+
+void dyn_thread::update_stack_addr(Address stack_addr_) 
+{
+   stack_addr=stack_addr_; 
+}
+
+Address dyn_thread::get_stack_addr() const 
+{ 
+   return(stack_addr); 
+}
