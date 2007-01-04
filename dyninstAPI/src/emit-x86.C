@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.45 2006/12/18 23:39:20 bernat Exp $
+ * $Id: emit-x86.C,v 1.46 2007/01/04 20:17:49 bernat Exp $
  */
 
 #include <assert.h>
@@ -421,6 +421,7 @@ bool Emitter32::emitBTRestores(baseTramp* bt, codeGen &gen)
 	emitSimpleInsn(POP_EAX, gen);
     emitSimpleInsn(POPAD, gen);
     emitSimpleInsn(POPFD, gen);
+
     // Red zone skip - see comment in emitBTsaves
     if (STACK_PAD_CONSTANT)
         emitLEA(REGNUM_ESP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_ESP, gen);
@@ -1305,22 +1306,22 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 {
     if (ptType == otherPoint) {
-		// pop the old RSP value into RAX
-		emitPopReg64(REGNUM_RAX, gen);
+        // pop the old RSP value into RAX
+        emitPopReg64(REGNUM_RAX, gen);
 	
-		// restore saved FP state
-		// fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
-		GET_PTR(insn, gen);
-		*insn++ = 0x0f;
-		*insn++ = 0xae;
-		*insn++ = 0x0c;
-		*insn++ = 0x24;
-		SET_PTR(insn, gen);
+        // restore saved FP state
+        // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
+        GET_PTR(insn, gen);
+        *insn++ = 0x0f;
+        *insn++ = 0xae;
+        *insn++ = 0x0c;
+        *insn++ = 0x24;
+        SET_PTR(insn, gen);
 	
-		// restore stack pointer (deallocates FP save area)
-		emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
+        // restore stack pointer (deallocates FP save area)
+        emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
     }
-
+    
     // tear down the stack frame (LEAVE)
     emitSimpleInsn(0xC9, gen);
 
@@ -1367,15 +1368,9 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     // restore flags (POPFQ)
     emitSimpleInsn(0x9D, gen);
 
-    // restore stack pointer (use LEA to not affect flags)
-    GET_PTR(insn, gen);
-    *insn++ = 0x48; // REX.W
-    *insn++ = 0x8D; // LEA opcode
-    *insn++ = 0xA4; // ModRM: [SIB + disp32], %rsp
-    *insn++ = 0x24; // SIB: base = RSP
-    *(unsigned int*)insn = 128; // displacement: 128
-    insn += 4;
-    SET_PTR(insn, gen);
+   // restore stack pointer (use LEA to not affect flags)
+   if (STACK_PAD_CONSTANT)
+       emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
 
     // push the address to jump to...
     // (need to do this in 16-bit chunks - weird huh)
@@ -1388,7 +1383,7 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     emitSimpleInsn(0xc3, gen);
 
     // And an illegal just in case we come back here... which we shouldn't.
-    REGET_PTR(insn, gen);
+    GET_PTR(insn, gen);
     *insn++ = 0x0f;
     *insn++ = 0x0b;   
     SET_PTR(insn, gen);

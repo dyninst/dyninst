@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.258 2006/12/18 23:39:20 bernat Exp $
+ * $Id: inst-x86.C,v 1.259 2007/01/04 20:17:49 bernat Exp $
  */
 #include <iomanip>
 
@@ -1781,6 +1781,10 @@ void Emitter32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     emitSimpleInsn(POP_EAX, gen);
     emitSimpleInsn(POPAD, gen);     // popad
     emitSimpleInsn(POPFD, gen);
+
+    // Red zone skip - see comment in emitBTsaves
+    if (STACK_PAD_CONSTANT)
+        emitLEA(REGNUM_ESP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_ESP, gen);    
     
     GET_PTR(insn, gen);
     *insn++ = 0x68; /* push 32 bit immediate */
