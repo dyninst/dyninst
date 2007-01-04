@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.24 2006/12/13 19:05:41 cooksey Exp $
+// $Id: test_info.h,v 1.25 2007/01/04 23:00:09 legendre Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -252,6 +252,17 @@ platforms_t threaded_platforms =
      /*sparc_sun_solaris2_8    =*/ true,
    };
 
+platforms_t unix_platforms =
+   { /*alpha_dec_osf5_1        =*/ true,
+     /*i386_unknown_linux2_4   =*/ true, 
+     /*i386_unknown_nt4_0      =*/ false, 
+     /*ia64_unknown_linux2_4   =*/ true,
+     /*x86_64_unknown_linux2_4 =*/ true,
+     /*mips_sgi_irix6_5        =*/ true,
+     /*rs6000_ibm_aix5_1       =*/ true,
+     /*sparc_sun_solaris2_8    =*/ true,
+   };
+
 test_data_t tests[] = {
    test_data_t("test1_1", "test1_1.so", test1_mutatee, all_platforms, STOPPED, 1, 1, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
    test_data_t("test1_2", "test1_2.so", test1_mutatee, all_platforms, STOPPED, 1, 2, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
@@ -293,7 +304,7 @@ test_data_t tests[] = {
    test_data_t("test1_38", "test1_38.so", test1_mutatee, all_platforms, STOPPED, 1, 38, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
    test_data_t("test1_39", "test1_39.so", test1_mutatee, all_platforms, STOPPED, 1, 39, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
    test_data_t("test1_40", "test1_40.so", test1_mutatee, all_platforms, STOPPED, 1, 40, COLLECT_EXITCODE, BOTH, ENABLED, GROUPED),
-   test_data_t("test1_41", "test1_41.so", test1_mutatee, all_platforms, SELFSTART, 1, 41, COLLECT_EXITCODE, CREATE, ENABLED, SOLO),
+   test_data_t("test1_41", "test1_41.so", test1_mutatee, unix_platforms, SELFSTART, 1, 41, COLLECT_EXITCODE, CREATE, ENABLED, SOLO),
 
    test_data_t("test2_1", "test2_1.so", none, all_platforms, SELFSTART, 2, 1, NONE, BOTH, ENABLED, GROUPED),
    test_data_t("test2_2", "test2_2.so", none, all_platforms, SELFSTART, 2, 2, NONE, BOTH, ENABLED, GROUPED),
