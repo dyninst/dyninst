@@ -1,0 +1,43 @@
+#
+# Common makefile template for dyninstAPI library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Id: nmake.module.tmpl,v 1.1 2007/01/09 02:02:12 giri Exp $
+#
+
+SUITE_NAME	= symtabAPI 
+RELEASE_NUM	= 0.1
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+TARGET = libdyninstAPI.dll
+
+# building as a DLL is not the common case
+UNCOMMON_LINK		= true
+UNCOMMON_INSTALL	= true
+
+
+
+DEFINES      = -DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE -DBPATCH_LIBRARY_F -DNEW_TIME_TYPES
+CFLAGS       = $(CFLAGS) $(DEFINES)
+CXXFLAGS     = $(CXXFLAGS) $(DEFINES)
+
+IFLAGS       = $(IFLAGS) -I../h
+
+SRCS	     = $(SRCS) Object.C \
+		Object-nt.C
+
+OBJS         = $(OBJS) Object.obj \
+		Object-nt.obj
+
+all: $(TARGET)
+
+{..\..\common\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+{..\src\}.C.obj:
+	$(CXX) $(CXXFLAGS) -c $<
+
+$(DEST)\libsymtabAPI.dll:	libsymtabAPI.dll
+	$(CP) libsymtabAPI.dll $(DEST)
+
