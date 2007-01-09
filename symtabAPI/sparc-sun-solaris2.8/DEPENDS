@@ -1,0 +1,28 @@
+Object-elf.o: ../src/Object-elf.C ../../symtabAPI/h/Object.h \
+  ../../symtabAPI/h/Dyn_Symbol.h ../../common/h/Types.h \
+  ../../common/h/Vector.h ../../common/h/language.h \
+  ../../common/h/lprintf.h ../../symtabAPI/h/Object-elf.h \
+  ../../symtabAPI/h/Elf_X.h ../../common/h/headers.h \
+  ../../common/h/Types.h ../../common/h/solarisHeaders.h \
+  ../../symtabAPI/h/Dyn_Symtab.h ../../common/h/debugOstream.h \
+  ../../common/h/std_namesp.h ../../symtabAPI/h/Object.h \
+  ../../common/h/pathName.h ../../common/h/String.h \
+  ../../common/h/debugOstream.h ../../common/h/headers.h \
+  ../../common/h/refCounter.h
+Object.o: ../src/Object.C ../../symtabAPI/h/Object.h \
+  ../../symtabAPI/h/Dyn_Symbol.h ../../common/h/Types.h \
+  ../../common/h/Vector.h ../../common/h/language.h \
+  ../../common/h/lprintf.h ../../symtabAPI/h/Object-elf.h \
+  ../../symtabAPI/h/Elf_X.h ../../common/h/headers.h \
+  ../../common/h/Types.h ../../common/h/solarisHeaders.h \
+  ../../symtabAPI/h/Dyn_Symtab.h ../../common/h/debugOstream.h \
+  ../../common/h/std_namesp.h ../../symtabAPI/h/Object.h
+Dyn_Symtab.o: ../src/Dyn_Symtab.C ../../common/h/debugOstream.h \
+  ../../common/h/std_namesp.h ../../common/h/Types.h \
+  ../../common/h/Timer.h ../../common/h/headers.h \
+  ../../common/h/solarisHeaders.h ../../symtabAPI/h/Dyn_Symtab.h \
+  ../../common/h/Types.h ../../common/h/debugOstream.h \
+  ../../common/h/headers.h ../../symtabAPI/h/Dyn_Symbol.h \
+  ../../symtabAPI/h/Object.h ../../common/h/Vector.h \
+  ../../common/h/language.h ../../common/h/lprintf.h \
+  ../../symtabAPI/h/Object-elf.h ../../symtabAPI/h/Elf_X.h
