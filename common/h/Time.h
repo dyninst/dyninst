@@ -68,25 +68,45 @@
 class timeUnit {
  private:
   // logically const
-  static const timeUnit *_leapYear, *_year, *_day, *_hour, *_minute;
-  static const timeUnit *_sec, *_ms, *_us, *_ns;
-  static const timeUnit *nsHelp(),  *usHelp(),   *msHelp(),  *secHelp();
-  static const timeUnit *minHelp(), *hourHelp(), *dayHelp(), *yearHelp();
-  static const timeUnit *leapYearHelp();
+   DLLEXPORT static const timeUnit *_leapYear;
+   DLLEXPORT static const timeUnit *_year;
+   DLLEXPORT static const timeUnit *_day;
+   DLLEXPORT static const timeUnit *_hour;
+   DLLEXPORT static const timeUnit *_minute;
+   DLLEXPORT static const timeUnit *_sec;
+   DLLEXPORT static const timeUnit *_ms;
+   DLLEXPORT static const timeUnit *_us;
+   DLLEXPORT static const timeUnit *_ns;
+   DLLEXPORT static const timeUnit *nsHelp();
+   DLLEXPORT static const timeUnit *usHelp();
+   DLLEXPORT static const timeUnit *msHelp();
+   DLLEXPORT static const timeUnit *secHelp();
+   DLLEXPORT static const timeUnit *minHelp();
+   DLLEXPORT static const timeUnit *hourHelp();
+   DLLEXPORT static const timeUnit *dayHelp();
+   DLLEXPORT static const timeUnit *yearHelp();
+   DLLEXPORT static const timeUnit *leapYearHelp();
  public:
-  static const timeUnit &ns(), &us(), &ms(), &sec();
-  static const timeUnit &minute(), &hour(), &day(), &year(), &leapYear();
+   static const timeUnit &ns();
+   static const timeUnit &us();
+   static const timeUnit &ms();
+   static const timeUnit &sec();
+   static const timeUnit &minute();
+   static const timeUnit &hour();
+   static const timeUnit &day();
+   static const timeUnit &year();
+   static const timeUnit &leapYear();
 
  public:
   typedef enum { sparse, verbose } ostream_fmt; 
-  static ostream_fmt curFmt;
+   static ostream_fmt curFmt;
 
  private:
   fraction ns_per_unit;
   fraction units_per_ns;
 
  public:
-  timeUnit(fraction _ns_per_unit) : ns_per_unit(_ns_per_unit), 
+   timeUnit(fraction _ns_per_unit) : ns_per_unit(_ns_per_unit), 
     units_per_ns(ns_per_unit.reciprocal()) {
     ns_per_unit.reduce();
     units_per_ns.reduce();
@@ -94,18 +114,18 @@ class timeUnit {
   // default copy constructor
 
   // Selectors
-  fraction get_ns_per_unit()  const {  return ns_per_unit;   }
-  fraction get_units_per_ns() const {  return units_per_ns;  }
+   fraction get_ns_per_unit()  const {  return ns_per_unit;   }
+   fraction get_units_per_ns() const {  return units_per_ns;  }
 
   // Mutators
-  void set_ns_per_unit(const fraction &nspu) {
+   void set_ns_per_unit(const fraction &nspu) {
     ns_per_unit = nspu;
     units_per_ns = ns_per_unit.reciprocal();
   }
-  int64_t cvtTo_ns(double  units) const;
-  int64_t cvtTo_ns(int64_t units) const;
-  double  cvtFrom_nsD(int64_t ns) const;
-  int64_t cvtFrom_nsI(int64_t ns) const;
+   int64_t cvtTo_ns(double  units) const;
+   int64_t cvtTo_ns(int64_t units) const;
+   DLLEXPORT double  cvtFrom_nsD(int64_t ns) const;
+   DLLEXPORT int64_t cvtFrom_nsI(int64_t ns) const;
 };
 
 ostream& operator<<(ostream&s, const timeUnit::ostream_fmt &u);
@@ -170,8 +190,10 @@ class timeStamp;
 class timeBase {
  private:
   // change internal time base to 2100 in the year 2050
-  static const timeBase *_bStd, *_b1970;  // logically const
-  static const timeBase *bStdHelp(), *b1970Help();
+  DLLEXPORT static const timeBase *_b1970;  // logically const
+  DLLEXPORT static const timeBase *_bStd;
+  DLLEXPORT static const timeBase *bStdHelp();
+  DLLEXPORT static const timeBase *b1970Help();
  public:
   // ie. the year for the internal time base, if changed check to make
   // sure timeBase::b1970Help() is still accurate
@@ -232,7 +254,7 @@ inline const timeBase &timeBase::bNone() {
 // an abstract class
 class timeParent {
  private:
-  static const int64_t uninitializedValue;
+  DLLEXPORT static const int64_t uninitializedValue;
   int64_t ns;
 
   // Constructors
@@ -276,14 +298,14 @@ class timeLength;
 
 class timeStamp : public timeParent {
  private:
-  static const timeStamp *_ts1800;
-  static const timeStamp *_ts1970;
-  static const timeStamp *_tsStd;  // ie. timeBase::InternalTimeBase (2000)
-  static const timeStamp *_ts2200;
-  static const timeStamp *ts1800Help();
-  static const timeStamp *ts1970Help();
-  static const timeStamp *tsStdHelp();
-  static const timeStamp *ts2200Help();
+  DLLEXPORT static const timeStamp *_ts1800;
+  DLLEXPORT static const timeStamp *_ts1970;
+  DLLEXPORT static const timeStamp *_tsStd;  // ie. timeBase::InternalTimeBase (2000)
+  DLLEXPORT static const timeStamp *_ts2200;
+  DLLEXPORT static const timeStamp *ts1800Help();
+  DLLEXPORT static const timeStamp *ts1970Help();
+  DLLEXPORT static const timeStamp *tsStdHelp();
+  DLLEXPORT static const timeStamp *ts2200Help();
  public:
   static const timeStamp &ts1800();
   static const timeStamp &ts1970();
@@ -332,8 +354,8 @@ class timeStamp : public timeParent {
   // non-member ==, !=, >, <, >=, <=  operators also defined for timeStamp
 
  private:
-  void initI(int64_t iTime, const timeUnit &u, timeBase b);
-  timeStamp(int64_t ns_) : timeParent(ns_) { }
+  DLLEXPORT void initI(int64_t iTime, const timeUnit &u, timeBase b);
+  DLLEXPORT timeStamp(int64_t ns_) : timeParent(ns_) { }
 };
 
 ostream& operator<<(ostream&s, timeStamp z);
@@ -375,8 +397,8 @@ inline const timeStamp &timeStamp::tsFarOffTime() {
 
 class relTimeStamp : public timeParent {
  private:
-  static const relTimeStamp *_Zero;
-  static const relTimeStamp *ZeroHelp();
+  DLLEXPORT static const relTimeStamp *_Zero;
+  DLLEXPORT static const relTimeStamp *ZeroHelp();
  public:
   static const relTimeStamp &Zero();
 
@@ -430,14 +452,37 @@ inline const relTimeStamp &relTimeStamp::Zero() {
 class timeLength : public timeParent {
  private:
   // logically const
-  static const timeLength *_zero, *_ns, *_us, *_ms, *_sec, *_minute;
-  static const timeLength *_hour, *_day, *_year, *_leapYear;
-  static const timeLength *ZeroHelp(), *nsHelp(), *usHelp(), *msHelp();
-  static const timeLength *secHelp(), *minHelp(), *hourHelp(), *dayHelp();
-  static const timeLength *yearHelp(), *leapYearHelp();
+  DLLEXPORT static const timeLength *_zero;
+  DLLEXPORT static const timeLength *_ns;
+  DLLEXPORT static const timeLength *_us;
+  DLLEXPORT static const timeLength *_ms;
+  DLLEXPORT static const timeLength *_sec;
+  DLLEXPORT static const timeLength *_minute;
+  DLLEXPORT static const timeLength *_hour;
+  DLLEXPORT static const timeLength *_day;
+  DLLEXPORT static const timeLength *_year;
+  DLLEXPORT static const timeLength *_leapYear;
+  DLLEXPORT static const timeLength *ZeroHelp();
+  DLLEXPORT static const timeLength *nsHelp();
+  DLLEXPORT static const timeLength *usHelp();
+  DLLEXPORT static const timeLength *msHelp();
+  DLLEXPORT static const timeLength *secHelp();
+  DLLEXPORT static const timeLength *minHelp();
+  DLLEXPORT static const timeLength *hourHelp();
+  DLLEXPORT static const timeLength *dayHelp();
+  DLLEXPORT static const timeLength *yearHelp();
+  DLLEXPORT static const timeLength *leapYearHelp();
  public:
-  static const timeLength &Zero(), &ns(), &us(), &ms(), &sec();
-  static const timeLength &minute(), &hour(), &day(), &year(), &leapYear();
+  static const timeLength &Zero();
+  static const timeLength &ns();
+  static const timeLength &us();
+  static const timeLength &ms();
+  static const timeLength &sec();
+  static const timeLength &minute();
+  static const timeLength &hour();
+  static const timeLength &day();
+  static const timeLength &year();
+  static const timeLength &leapYear();
 
   // need this constructor to use in vector container class
   timeLength() { }
@@ -475,7 +520,7 @@ class timeLength : public timeParent {
   // non-member ==, !=, >, <, >=, <=  operators also defined for timeLength
 
  private:
-  void initI(int64_t iTime, const timeUnit &u);
+  DLLEXPORT void initI(int64_t iTime, const timeUnit &u);
   // a fast constructor just for timeLength operators
   timeLength(int64_t ns_) : timeParent(ns_) { }
 };

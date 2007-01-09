@@ -45,6 +45,8 @@
 #define _PATH_NAME_H_
 
 #include "common/h/String.h"
+#include <string>
+using namespace std;
 
 pdstring expand_tilde_pathname(const pdstring &dir);
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
@@ -66,7 +68,6 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
 				      const pdstring &i_argv0,
 				      const pdstring &path,
 				      const pdstring &cwd);
-
 pdstring extract_pathname_tail(const pdstring &path);
 
 

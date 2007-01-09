@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.25 2006/11/09 17:15:58 bernat Exp $
+ * $Id: Types.h,v 1.26 2007/01/09 02:00:38 giri Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -196,11 +196,24 @@ static const Register REG_NULL = (Register)(-1);
 
 /* This file is now included by the rtinst library also, so all
    C++ constructs need to be in #ifdef _cplusplus... 7/9/99 -bhs */
+#if !defined(DLLEXPORT)
+#if defined (_MSC_VER)
+/* If we're on Windows, we need to explicetely export these functions: */
+	#if defined(DLL_BUILD)
+		#define DLLEXPORT __declspec(dllexport)
+	#else
+		#define DLLEXPORT __declspec(dllimport)	
+	#endif
+#else
+	#define DLLEXPORT
+#endif
+#endif
+
 
 #ifdef __cplusplus
 
-extern void Address_chk ();
-extern char *Address_str (Address addr);
+DLLEXPORT void Address_chk ();
+DLLEXPORT char *Address_str (Address addr);
 
 // NB: this is probably inappropriate for 64-bit addresses!
 inline unsigned hash_address(const Address& addr) {
@@ -209,6 +222,5 @@ inline unsigned hash_address(const Address& addr) {
 #endif /* __cplusplus */
 
 #endif /* !defined(_Types_h_) */
-
 
 

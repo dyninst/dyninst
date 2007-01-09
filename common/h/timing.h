@@ -49,28 +49,28 @@
 /* Function for general time retrieval.  Use in dyninst, front-end; don't use
    in daemon when desire high res timer level if exists instead (see
    getWallTime in init.h) */
-timeStamp getCurrentTime();
+DLLEXPORT timeStamp getCurrentTime();
 
 /* returns primitive wall time in microsecond units since 1970, 
    (eg. gettimeofday) used by getCurrentTime() */
-int64_t getRawTime1970();
+DLLEXPORT int64_t getRawTime1970();
 
 /* Calculates the cpu cycle rate value.  Needs to be called once,
    before any getCyclesPerSecond() call */
-void initCyclesPerSecond();
+DLLEXPORT void initCyclesPerSecond();
 
 /* Returns the cpu cycle rate.  Timeunits represented as units
    (ie. cycles) per nanosecond */
-timeUnit getCyclesPerSecond();
+DLLEXPORT timeUnit getCyclesPerSecond();
 
 /* Platform dependent, used by initCyclesPerSecond(). */
-double calcCyclesPerSecondOS();
+DLLEXPORT double calcCyclesPerSecondOS();
 
 enum { cpsMethodNotAvailable = -1 };
 
 /* A default stab at getting the cycle rate.  Used by calcCyclesPerSecondOS
    if a method which gets a more precise value isn't available. */
-double calcCyclesPerSecond_default();
+DLLEXPORT double calcCyclesPerSecond_default();
 
 
 #endif

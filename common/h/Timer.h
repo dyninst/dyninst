@@ -60,7 +60,7 @@
  * class timer
 ************************************************************************/
 
-class timer {
+class DLLEXPORT timer {
 public:
      timer ();
      timer (const timer &);

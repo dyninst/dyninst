@@ -62,7 +62,7 @@
 #include "common/h/Vector.h"
 
 template <class T>
-class vectorSet {
+class DLLEXPORT vectorSet {
  private:
    pdvector<T> data;
 
