@@ -45,6 +45,7 @@
 
 #include "common/h/std_namesp.h"
 #include "common/h/Dictionary.h"
+#include "common/h/String.h"
 
 // methods of this class implemented in .h so compiler has no trouble finding
 // them for template instantiation
