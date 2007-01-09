@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.24 2006/03/12 23:31:08 legendre Exp $
+# $Id: Makefile,v 1.25 2007/01/09 02:01:06 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,11 +24,8 @@ SRCS =		../src/solaris.C \
 		../src/inst-sparc.C \
 		../src/inst-sunos.C \
 		../src/parseStab.C \
-		../src/Object-elf.C \
 		../src/unix.C \
 		../src/InstrucIter-sparc.C \
-		../../common/src/solarisKludges.C \
-		../../common/src/timing-solaris.C \
 		../src/writeBackElf.C \
 		../src/addLibrary.C \
 		../src/saveSharedLibrary.C \
@@ -50,7 +47,7 @@ TFLAGS		+= -DUSES_ELF32_ONLY
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g
 
-SYSLIBS = -lelf -lsocket -lnsl -ldl -lrt
+SYSLIBS = -lelf -lsocket -lnsl -ldl -lrt -lcommon -lsymtabAPI
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthreads

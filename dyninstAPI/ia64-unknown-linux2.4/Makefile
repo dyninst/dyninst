@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.24 2006/02/16 03:52:34 jodom Exp $
+# $Id: Makefile,v 1.25 2007/01/09 02:01:04 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,15 +27,12 @@ SRCS =	../src/linux.C \
 		../src/inst-linux.C \
 		../src/inst-ia64.C \
 		../src/arch-ia64.C \
-		../src/Object-elf.C \
 		../src/image-ia64.C \
 		../src/unix.C \
 		../src/parseStab.C \
 		../src/addLibraryLinux.C \
 		../src/InstrucIter-ia64.C \
 		../src/parseDwarf.C \
-		../../common/src/linuxKludges.C \
-		../../common/src/timing-linux.C \
 		../src/ia64-template.s \
 		../src/syscall-linux.C
 

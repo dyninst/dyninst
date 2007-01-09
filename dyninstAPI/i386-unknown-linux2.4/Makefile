@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.30 2006/04/04 17:33:31 rutar Exp $
+# $Id: Makefile,v 1.31 2007/01/09 02:01:03 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -31,7 +31,6 @@ SRCS =          ../src/linux.C \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \
                 ../src/arch-x86.C \
-		../src/Object-elf.C \
                 ../src/unix.C \
 		../src/parseStab.C \
 		../src/InstrucIter-x86.C \
@@ -39,10 +38,8 @@ SRCS =          ../src/linux.C \
 		../src/writeBackElf.C \
 		../src/saveSharedLibrary.C \
 		../src/stackwalk-x86.C \
-		../src/parseDwarf.C \
 		../src/image-x86.C \
-		../../common/src/linuxKludges.C \
-		../../common/src/timing-linux.C \
+		../src/parseDwarf.C \
 		../src/syscall-linux.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
@@ -80,6 +77,8 @@ else
 LIBS    += -lelf
 endif
 LIBS    += -lgcc
+
+#LIBS	+= -lcommon -lsymtabAPI
 
 AS		= /usr/bin/as
 

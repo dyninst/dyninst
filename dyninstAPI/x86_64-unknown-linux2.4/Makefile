@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2006/04/04 22:40:49 rutar Exp $
+# $Id: Makefile,v 1.8 2007/01/09 02:01:07 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -12,7 +12,7 @@ USES_DWARF_DEBUG = true
 USES_LIBELF = true
 
 # For debugging.
-#NO_OPT_FLAG = true
+NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -30,7 +30,6 @@ SRCS =          ../src/linux.C \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \
                 ../src/arch-x86.C \
-		../src/Object-elf.C \
                 ../src/unix.C \
 		../src/parseStab.C \
 		../src/InstrucIter-x86.C \
@@ -40,8 +39,6 @@ SRCS =          ../src/linux.C \
 		../src/saveSharedLibrary.C \
 		../src/parseDwarf.C \
 		../src/image-x86.C \
-		../../common/src/linuxKludges.C \
-		../../common/src/timing-linux.C \
 		../src/syscall-linux.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT

@@ -6,12 +6,12 @@
 
 INSTANTIATE_TEMPLATES   = true
 DO_INLINE_ALL           = true
-#NO_OPT_FLAG = true
+NO_OPT_FLAG = true
 #NO_IMPLICIT_TEMPLATES    = true
 #AUTO_TEMPLATES 		 = true
 OVERRIDE_INSTALL	= true
 
-# DEBUG_FLAG = -g
+ DEBUG_FLAG = -g
 
 EXTRA_LIBS = libdemangle.so.1
 
@@ -37,7 +37,7 @@ endif
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =		../src/aix.C \
+SRCS = 		../src/aix.C \
 		../src/aixMT.C \
 		../src/aixDL.C \
 		../src/dynamiclinking.C \
@@ -45,13 +45,10 @@ SRCS =		../src/aix.C \
 		../src/inst-power.C \
 		../src/inst-aix.C \
 		../src/parseStab.C \
-		../src/Object-xcoff.C \
 		../src/image-power.C \
 		../src/unix.C \
 		../src/arch-power.C \
-		../src/InstrucIter-power.C \
-		../../common/src/aixv41Kludges.C \
-		../../common/src/timing-aix.C \
+		../src/InstrucIter-power.C \ 
 		../src/writeBackXCOFF.C  \
 		../src/syscall-solproc.C
 #		../src/addLibraryXCOFF.C 
