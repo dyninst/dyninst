@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.22 2006/12/14 20:12:10 bernat Exp $
+ * $Id: image-x86.C,v 1.23 2007/01/09 02:01:57 giri Exp $
  */
 
 #include "common/h/Vector.h"
@@ -196,7 +196,8 @@ bool image_func::archIsUnparseable()
         if (!isInstrumentableByFunctionName())
             parsing_printf("... uninstrumentable by func name\n");
 
-        endOffset_ = startOffset_;
+        //endOffset_ = startOffset_;
+        endOffset_ = getOffset();
         instLevel_ = UNINSTRUMENTABLE; 
         return true;
     }           
@@ -215,7 +216,8 @@ bool image_func::archAvoidParsing()
         //prettyName() == "winStart" ||
         //prettyName() == "winFini" )
     {   
-        endOffset_ = startOffset_;
+        //endOffset_ = startOffset_;
+        endOffset_ = getOffset();
         return true;
     }
     else
@@ -386,8 +388,9 @@ bool image_func::archGetMultipleJumpTargets(
 
 bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 {
-    ExceptionBlock b;
-    if (img()->getObject().getCatchBlock(b, a)) {
+    Dyn_ExceptionBlock b;
+//    Dyn_Symtab obj = img()->getObject();
+    if (img()->getObject()->findCatchBlock(b,a)) {
         catchStart = b.catchStart();
         return true;
     } else {
@@ -469,6 +472,9 @@ bool image_func::writesFPRs(unsigned level) {
         return true;
     else if (containsFPRWrites_ == unused)
         return false;
+
+    fprintf(stderr, "ERROR: function %s, containsFPRWrites_ is %d (illegal value!)\n", 
+	    symTabName().c_str(), containsFPRWrites_);
     
     assert(0);
     return false;
