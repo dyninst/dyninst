@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.185 2007/01/04 22:59:51 legendre Exp $
+// $Id: ast.C,v 1.186 2007/01/09 02:01:11 giri Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1879,7 +1879,7 @@ int AstOperandNode::costHelper(enum CostStyleType costStyle) const {
 
 int AstCallNode::costHelper(enum CostStyleType costStyle) const {
     int total = 0;
-    if (func_) total += getPrimitiveCost(func_->prettyName());
+    if (func_) total += getPrimitiveCost(func_->prettyName().c_str());
     else total += getPrimitiveCost(func_name_);
 
     for (unsigned u = 0; u < args_.size(); u++)

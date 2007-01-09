@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.35 2006/12/06 21:17:38 bernat Exp $
+// $Id: miniTramp.C,v 1.36 2007/01/09 02:01:18 giri Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -360,7 +360,7 @@ bool miniTrampInstance::installCode() {
     else {
 
 #if defined(os_aix)
-        if (mini->instP()->func()->prettyName() == pdstring("__fork")) {
+        if (mini->instP()->func()->prettyName() == "__fork") {
             nearAddr = 0;
             htype = dataHeap;
         }

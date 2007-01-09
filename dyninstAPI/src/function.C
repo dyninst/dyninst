@@ -56,7 +56,7 @@
 #include "reloc-func.h"
 #endif
 
-pdstring int_function::emptyString("");
+//pdstring int_function::emptyString("");
 
 
 int int_function_count = 0;
@@ -91,12 +91,13 @@ int_function::int_function(image_func *f,
         fprintf(stderr, "int_function_count: %d (%d)\n",
                 int_function_count, int_function_count*sizeof(int_function));
 #endif
+    
 
-    //parsing_printf("Function offset: 0x%x; base: 0x%x\n",
+   //printf("Function offset: 0x%x; base: 0x%x\n",
     //f->getOffset(), baseAddr);
     addr_ = f->getOffset() + baseAddr;
-    parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
-                   symTabName().c_str(), addr_);
+    //printf("%s: creating new proc-specific function at 0x%lx\n",
+    //               symTabName().c_str(), addr_);
     // We delay the creation of instPoints until they are requested;
     // this saves memory, and really, until something is asked for we
     // don't need it.  TODO: creation of an arbitrary instPoint should
@@ -531,7 +532,7 @@ unsigned int_function::getNumDynamicCalls()
    return count;
 }
 
-const pdstring &int_function::symTabName() const { 
+const string &int_function::symTabName() const { 
     return ifunc_->symTabName(); 
 }
 
@@ -946,7 +947,7 @@ void bblInstance::getOrigInstructionInfo(Address addr, void *&ptr, Address &orig
     for (unsigned i = 0; i < get_relocs().size(); i++) {
       if (get_relocs()[i]->relocAddr == addr) {
 	fprintf(stderr, "... returning 0x%lx off entry %d\n",
-		i, get_relocs()[i]->origAddr);
+		 get_relocs()[i]->origAddr,i);
 	ptr = (void *) get_relocs()[i]->origPtr;
 	origAddr = get_relocs()[i]->origAddr;
 	if (i == (get_relocs().size()-1)) {

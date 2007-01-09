@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.211 2007/01/04 23:00:08 legendre Exp $
+// $Id: solaris.C,v 1.212 2007/01/09 02:01:21 giri Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1156,7 +1156,7 @@ int_function *instPoint::findCallee() {
     if (icallee) {
         // Now we have to look up our specialized version
         // Can't do module lookup because of DEFAULT_MODULE...
-        const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName());
+        const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
         if (!possibles) {
             return NULL;
         }
@@ -1184,11 +1184,13 @@ int_function *instPoint::findCallee() {
     
     
     // else, get the relocation information for this image
-    const Object &obj = func()->obj()->parse_img()->getObject();
-    const pdvector<relocationEntry> *fbt;
-    if(!obj.get_func_binding_table_ptr(fbt)) {
-        return false; // target cannot be found...it is an indirect call.
-    }
+    Dyn_Symtab *obj = func()->obj()->parse_img()->getObject();
+    vector<relocationEntry> fbtvector;
+    if(!obj->getFuncBindingTable(fbtvector))
+    	return false;	// target cannot be found...it is an indirect call.
+    pdvector<relocationEntry> *fbt = new pdvector<relocationEntry>;
+    for(unsigned index=0;index<fbtvector.size();index++)
+    	fbt->push_back(fbtvector[index]);
     
     // find the target address in the list of relocationEntries
     Address base_addr = func()->obj()->codeBase();
@@ -1205,7 +1207,7 @@ int_function *instPoint::findCallee() {
             else {
                 // just try to find a function with the same name as entry 
                 pdvector<int_function *> pdfv;
-                bool found = proc()->findFuncsByMangled((*fbt)[i].name(), pdfv);
+                bool found = proc()->findFuncsByMangled((*fbt)[i].name().c_str(), pdfv);
                 if(found) {
                     assert(pdfv.size());
                     if(pdfv.size() > 1)

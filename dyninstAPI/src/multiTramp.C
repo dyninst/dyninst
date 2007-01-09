@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.65 2006/12/06 21:17:39 bernat Exp $
+// $Id: multiTramp.C,v 1.66 2007/01/09 02:01:19 giri Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -942,7 +942,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         // We need the base tramp to be in allocated heap space, not scavenged
         // text space, because scavenged text space is _not_ copied on fork.
         // Argh.
-        if (func()->prettyName() == pdstring("__fork")) {
+        if (func()->prettyName() == "__fork") {
             heapToUse = (inferiorHeapType) (textHeap | dataHeap); // not uncopiedHeap
         }
 #endif
@@ -1188,8 +1188,7 @@ bool multiTramp::linkCode() {
                 fprintf(stderr, "ERROR: instrumentation stomping on replaced call!\n");
             }
         }
-
-        if (!savedCodeBuf_) {
+		if (!savedCodeBuf_) {
             // We may have an old version's savedCode.
             
             savedCodeBuf_ = malloc(instSize_);

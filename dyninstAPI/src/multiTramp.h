@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.19 2006/11/09 17:16:21 bernat Exp $
+// $Id: multiTramp.h,v 1.20 2007/01/09 02:01:20 giri Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -48,6 +48,7 @@
 #include "codeRange.h"
 #include "arch.h"
 #include "instP.h"
+#include "mapped_object.h"
 
 // A chunk of code (instruction vector), a "do we care where it is",
 // and a mechanism to update the code if it moves.

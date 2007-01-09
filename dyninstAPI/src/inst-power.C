@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.260 2007/01/04 22:59:57 legendre Exp $
+ * $Id: inst-power.C,v 1.261 2007/01/09 02:01:17 giri Exp $
  */
 
 #include "common/h/headers.h"
@@ -147,12 +147,12 @@ float getPointFrequency(instPoint *point)
     if (!func)
         func = point->func();
     
-    if (!funcFrequencyTable.defines(func->prettyName())) {
+    if (!funcFrequencyTable.defines(func->prettyName().c_str())) {
         // Changing this value from 250 to 100 because predictedCost was
         // too high - naim 07/18/96
         return(100);
     } else {
-        return (funcFrequencyTable[func->prettyName()]);
+        return (funcFrequencyTable[func->prettyName().c_str()]);
     }
 }
 
@@ -1252,6 +1252,7 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
                          int_function * callee)
 		   
 {
+  unsigned i;
   if (!callee) return true;
 
   stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
@@ -1260,18 +1261,22 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
      whether or not the callee is a leaf function.
      if it is, we use the register info we gathered,
      otherwise, we punt and save everything */
-  
+     bool isLeafFunc = callee->ifunc()->usedRegs();
 
   if (callee->ifunc()->isLeafFunc()) {
       std::set<Register> * gprs = callee->ifunc()->usedGPRs();
       std::set<Register>::iterator It = gprs->begin();
-      while (It != gprs->end()){
+      for(i = 0; i < gprs->size(); i++)
+      {
+      //while (It != gprs->end()){
 	rs->clobberRegister(*(It++));
       }
       
       std::set<Register> * fprs = callee->ifunc()->usedFPRs();
       std::set<Register>::iterator It2 = fprs->begin();
-      while (It2 != fprs->end()){
+      for(i = 0; i < fprs->size(); i++)
+      {
+      //while (It2 != fprs->end()){
 	rs->clobberRegister(*(It2++));
       }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.34 2006/11/22 04:02:56 bernat Exp $
+// $Id: function.h,v 1.35 2007/01/09 02:01:15 giri Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -346,7 +346,7 @@ class int_basicBlock {
 class int_function {
   friend class int_basicBlock;
  public:
-   static pdstring emptyString;
+   //static pdstring emptyString;
 
    // Almost everything gets filled in later.
    int_function(image_func *f,
@@ -365,12 +365,13 @@ class int_function {
    // this function) we make most methods passthroughs to the original
    // parsed version.
 
-   const pdstring &symTabName() const;
-   const pdstring &prettyName() const { return ifunc_->prettyName(); };
-   const pdstring &typedName() const { return ifunc_->typedName(); };
-   const pdvector<pdstring> &symTabNameVector() const { return ifunc_->symTabNameVector(); }
-   const pdvector<pdstring> &prettyNameVector() const { return ifunc_->prettyNameVector(); }
-   const pdvector<pdstring> &typedNameVector() const { return ifunc_->typedNameVector(); }
+   const string &symTabName() const;
+   const string &prettyName() const { return ifunc_->prettyName(); };
+   const string &typedName() const { return ifunc_->typedName(); };
+   
+   const vector<string>& symTabNameVector() const { return ifunc_->symTabNameVector(); }
+   const vector<string>& prettyNameVector() const { return ifunc_->prettyNameVector(); }
+   const vector<string>& typedNameVector() const { return ifunc_->typedNameVector(); }
 
    // Debuggering functions
    void debugPrint() const;

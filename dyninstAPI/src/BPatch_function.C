@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.82 2006/11/22 04:02:57 bernat Exp $
+// $Id: BPatch_function.C,v 1.83 2007/01/09 02:01:13 giri Exp $
 
 #define BPATCH_FILE
 
@@ -182,7 +182,7 @@ BPatch_sourceObj *BPatch_function::getObjParent()
 char *BPatch_function::getNameBuffer(char *s, int len)
 {
     assert(func);
-    pdstring name = func->prettyName();
+    string name = func->prettyName();
     strncpy(s, name.c_str(), len);
 
     return s;
@@ -209,7 +209,7 @@ const char *BPatch_function::getNameDPCL()
 char *BPatch_function::getMangledNameInt(char *s, int len)
 {
   assert(func);
-  pdstring mangledname = func->symTabName();
+  string mangledname = func->symTabName();
   strncpy(s, mangledname.c_str(), len);
   return s;
 }
@@ -227,7 +227,7 @@ char *BPatch_function::getMangledNameInt(char *s, int len)
 char *BPatch_function::getTypedNameInt(char *s, int len)
 {
   assert(func);
-  pdstring typedname = func->typedName();
+  string typedname = func->typedName();
   strncpy(s, typedname.c_str(), len);
   return s;
 }
