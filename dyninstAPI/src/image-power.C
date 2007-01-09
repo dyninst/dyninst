@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.15 2007/01/09 02:01:16 giri Exp $
+// $Id: image-power.C,v 1.16 2007/01/09 17:17:46 giri Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -177,16 +177,14 @@ void image_func::archInstructionProc(InstrucIter & /* ah */)
 void image_func::calcUsedRegs()
 {
    if (usedRegisters != NULL)
-       return leafFunc; /* this gets the proper value AFTER usedRegisters is initialized */
+       return; 
    else
    {
       usedRegisters = new image_func_registers();
-      //printf("In function %s\n", symTabName().c_str()); 
       InstrucIter ah(this);
       
       //while there are still instructions to check for in the
       //address space of the function      
-      leafFunc = true;
       while (ah.hasMore()) 
 	{
 	  if (ah.isA_RT_WriteInstruction())
@@ -202,6 +200,7 @@ void image_func::calcUsedRegs()
 	    if (ah.getRAValue() >= 0 && ah.getRAValue() <= 13)
                 usedRegisters->floatingPointRegisters.insert(ah.getRAValue());
         ah++;
+	}
     }
     return;
 }

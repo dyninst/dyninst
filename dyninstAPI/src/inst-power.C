@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.261 2007/01/09 02:01:17 giri Exp $
+ * $Id: inst-power.C,v 1.262 2007/01/09 17:17:58 giri Exp $
  */
 
 #include "common/h/headers.h"
@@ -1261,7 +1261,7 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
      whether or not the callee is a leaf function.
      if it is, we use the register info we gathered,
      otherwise, we punt and save everything */
-     bool isLeafFunc = callee->ifunc()->usedRegs();
+//     bool isLeafFunc = callee->ifunc()->usedRegs();
 
   if (callee->ifunc()->isLeafFunc()) {
       std::set<Register> * gprs = callee->ifunc()->usedGPRs();
