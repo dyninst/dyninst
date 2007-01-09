@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.h,v 1.20 2006/05/26 02:48:26 chadd Exp $ */
+/* $Id: writeBackElf.h,v 1.21 2007/01/09 02:02:08 giri Exp $ */
 
 #ifndef writeBackElf__
 #define writeBackElf__
@@ -62,6 +62,7 @@
 #include "linux.h"
 #endif
 #include "common/h/Vector.h"
+#include "dyninstAPI/src/symtab.h"
 #include "ELF_Section.h"
 #include <unistd.h>
 #include "imageUpdate.h"
