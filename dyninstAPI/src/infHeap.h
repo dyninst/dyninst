@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: infHeap.h,v 1.3 2005/09/01 22:18:22 bernat Exp $
+/* $Id: infHeap.h,v 1.4 2007/01/09 02:01:47 giri Exp $
  * Inferior heap primitives, moved from process.h to ease compilation
  */
 
@@ -47,7 +47,6 @@
 #define infHeap_h
 
 #include "common/h/String.h"
-#include "common/h/vectorSet.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
 #include "util.h"

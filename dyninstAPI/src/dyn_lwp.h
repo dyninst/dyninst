@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.63 2006/11/28 23:34:01 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.64 2007/01/09 02:01:46 giri Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -49,7 +49,6 @@
 
 #include "dyninstAPI/src/os.h"
 #include "frame.h"
-#include "common/h/vectorSet.h"
 #include "syscalltrap.h"
 #include "signalhandler.h"
 
