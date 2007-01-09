@@ -55,9 +55,16 @@
 #include "BPatch_typePrivate.h"    // For BPatch_type related stuff
 #include "BPatch_Vector.h"
 
+
 #include "mapped_module.h"
 #include "mapped_object.h"
-#include "symtab.h"
+#include "instPoint.h"
+
+#if defined(os_windows)
+  #include <dbghelp.h>
+  #include <cvconst.h>
+  #include <oleauto.h>
+#endif
 
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
@@ -80,6 +87,9 @@ pdstring current_func_name;
 pdstring current_mangled_func_name;
 BPatch_function *current_func = NULL;
 
+#if defined(os_windows)
+BPatch_type *getType(HANDLE p, Address mod_base, int typeIndex, BPatch_module *mod = NULL);
+#endif
 
 /*
  * BPatch_module::getSourceObj()
@@ -290,9 +300,33 @@ void BPatch_module::parseTypesIfNecessary() {
 
             image * moduleImage = bpmod->mod->obj()->parse_img();
             assert( moduleImage != NULL );
-            const Object & moduleObject = moduleImage->getObject();
+
+	    bool found = true;
+	    Dyn_Section *sec;
+	    Address   stab_off;
+	    unsigned  stab_size;          
+	    Address   stabstr_off;
+	    unsigned  stabstr_size;          
+	    if(!moduleImage->getObject()->findSection(".stab", sec))
+	    	found = false;
+	    else
+	    {
+	    	stab_off = sec->getSecAddr();
+		stab_size = sec->getSecSize();
+		if(!moduleImage->getObject()->findSection(".stabstr",sec))
+		    found = false;
+		else
+		{
+		    stabstr_off = sec->getSecAddr();
+		    stabstr_size = sec->getSecSize();
+		}    
+	    }
             
-            if( moduleObject.hasStabInfo() ) {
+            //if( found && stab_off && stab_size && stabstr_off ) {
+	    /*
+	       Checking for sizes instead of offsets because offsets might be zero in some cases - Giri
+	    */
+            if( found && stab_size && stabstr_size) {
 				/* This will blow away previous information, but not its own. */
 				bpmod->parseStabTypes();
 
@@ -308,9 +342,11 @@ void BPatch_module::parseTypesIfNecessary() {
             
             image * moduleImage = bpmod->mod->obj()->parse_img();
             assert( moduleImage != NULL );
-            const Object & moduleObject = moduleImage->getObject();
+            Dyn_Symtab *moduleObject = moduleImage->getObject();
+	    Dyn_Section *sec;
+	    
             
-            if( moduleObject.hasDwarfInfo() ) { bpmod->parseDwarfTypes(); }            
+            if( moduleObject->findSection(".debug_info",sec)) { bpmod->parseDwarfTypes(); }            
 			} /* end DWARF parsing */
 		} /* end if we'rep parsing debug information at all */
 #else 
@@ -450,7 +486,7 @@ BPatch_module::findFunctionInt(const char *name,
      // Check all pretty names (and then all mangled names if there is no match)
      bool found_match = false;
      for (unsigned piter = 0; piter < func->prettyNameVector().size(); piter++) {
-       const pdstring &pName = func->prettyNameVector()[piter];
+       const string &pName = func->prettyNameVector()[piter];
        int err;     
        if (0 == (err = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
 	 if (func->isInstrumentable() || incUninstrumentable) {
@@ -464,7 +500,7 @@ BPatch_module::findFunctionInt(const char *name,
      if (found_match) continue; // Don't check mangled names
 
      for (unsigned miter = 0; miter < func->symTabNameVector().size(); miter++) {
-       const pdstring &mName = func->symTabNameVector()[miter];
+       const string &mName = func->symTabNameVector()[miter];
        int err;
      
        if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
@@ -601,12 +637,11 @@ void BPatch_module::parseTypes()
 
   imgPtr = mod->obj()->parse_img();
   
-  const Object &objPtr = imgPtr->getObject();
+  Dyn_Symtab *objPtr = imgPtr->getObject();
+  
+  objPtr->get_stab_info(stabstr, nstabs, syms, stringPool); 
 
-  //Using the Object to get the pointers to the .stab and .stabstr
-  objPtr.get_stab_info(stabstr, nstabs, syms, stringPool); 
-
-    objPtr.get_line_info(nlines,lines,linesfdptr); 
+    objPtr->get_line_info(nlines,lines,linesfdptr); 
 
     bool parseActive = true;
     //fprintf(stderr, "%s[%d]:  parseTypes for module %s: nstabs = %d\n", FILE__, __LINE__,mod->fileName().c_str(),nstabs);
@@ -827,12 +862,29 @@ void BPatch_module::parseTypes()
 void BPatch_module::parseTypes() {
 	image *moduleImage = mod->obj()->parse_img();
 	assert( moduleImage != NULL );
-	const Object & moduleObject = moduleImage->getObject();
-
-	if( moduleObject.hasStabInfo() ) {
+	Dyn_Symtab *moduleObject = moduleImage->getObject();
+	
+	bool found = true;
+  	Dyn_Section *sec;
+	Address   stab_off_= 0;
+  	unsigned  stab_size_ = 0;          
+  	Address   stabstr_off_ = 0;
+  	if(!moduleObject->findSection(".stab", sec))
+  	 	found = false;
+  	else
+  	{
+  		stab_off_ = sec->getSecAddr();
+		stab_size_ = sec->getSecSize();
+		if(!moduleObject->findSection(".stabstr",sec))
+		    found = false;
+		else
+		    stabstr_off_ = sec->getSecAddr();	
+  	}
+	if (found && stab_size_) //has Stab Info
+  	{
 		parseStabTypes();
-		}
-	} /* end BPatch_module::parseTypes() */
+	}
+} /* end BPatch_module::parseTypes() */
 #endif /* ! defined( USES_DWARF_DEBUG ) */
                                     
 
@@ -877,11 +929,43 @@ void BPatch_module::parseStabTypes()
 
   imgPtr = mod->obj()->parse_img();
   imgPtr->analyzeIfNeeded();
-  const Object &objPtr = imgPtr->getObject();
+  Dyn_Symtab *objPtr = imgPtr->getObject();
 
+  bool found = true;
+  Dyn_Section *sec;
+  char*   stab_off_ = 0;
+  unsigned  stab_size_ = 0;
+  char*   stabstr_off_ = 0;
+  if(!objPtr->findSection(".stab", sec))
+   	found = false;
+  else
+  {
+  	stab_off_ = (char *)sec->getPtrToRawData();
+	stab_size_ = sec->getSecSize();
+	if(!objPtr->findSection(".stabstr",sec))
+	    found = false;
+	else
+	    stabstr_off_ = (char *)sec->getPtrToRawData();
+  }
+  char *file_ptr_ = objPtr->mem_image();
+  if (found && (stab_off_!=file_ptr_) && stab_size_ && (stabstr_off_!=file_ptr_)) 
+  {
+	switch (objPtr->getAddressWidth()) {
+	case 4: // 32-bit object
+	    stabptr = new stab_entry_32(stab_off_, stabstr_off_,
+				     stab_size_ / sizeof(stab32));
+	    break;			     
+	case 8: // 64-bit object
+	    stabptr = new stab_entry_64(stab_off_, stabstr_off_,
+				     stab_size_ / sizeof(stab32));
+	    break;			     
+	}
+  }
+  else
+        stabptr = new stab_entry_64();
+    
   //Using the Object to get the pointers to the .stab and .stabstr
   // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-  stabptr = objPtr.get_stab_info();
   next_stabstr = stabptr->getStringBase();
 
   for (i=0; i<stabptr->count(); i++) {
@@ -1013,7 +1097,7 @@ void BPatch_module::parseStabTypes()
             currentFunctionName = new pdstring(tmp);
             
             currentFunctionBase = 0;
-            Symbol info;
+            Dyn_Symbol info;
             // Shouldn't this be a function name lookup?
             if (!proc->llproc->getSymbolInfo(*currentFunctionName,
                                              info))
@@ -1026,7 +1110,7 @@ void BPatch_module::parseStabTypes()
                         }
                 }
             
-            currentFunctionBase = info.addr();
+            currentFunctionBase = info.getAddr();
 
             delete[] tmp;
       		
@@ -1199,6 +1283,914 @@ void BPatch_module::parseTypes()
 
 #endif
 
+#if defined(os_windows)
+
+typedef struct localsStruct {
+    BPatch_function *func;
+    Address base;
+    HANDLE p;
+    map<unsigned, unsigned> foundSyms;
+    localsStruct() : foundSyms() {}
+} localsStruct;
+
+BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
+                               void *userContext)
+{
+    BPatch_type *type;
+    BPatch_function *func;
+    BPatch_storageClass storage;
+    BPatch_localVar *newvar;
+    int reg;
+    signed long frameOffset;
+    Address base;
+    HANDLE p;
+ 
+    char *storageName;
+    char *paramType;
+
+    //
+    //Skip this variable if it's already been found.
+    //
+    localsStruct *locals = (localsStruct *) userContext;
+    if (locals->foundSyms.find(pSymInfo->Index) != locals->foundSyms.end())
+        return true;
+    locals->foundSyms[pSymInfo->Index] = 1;
+    base = locals->base;
+    func = locals->func;
+    p = locals->p;
+
+    //Get type
+    type = getType(p, base, pSymInfo->TypeIndex, func->getModule());
+    
+    //Get variable storage location information
+    if ((pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_FRAMERELATIVE) ||
+        ((pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_REGRELATIVE) && 
+         (pSymInfo->Register = CV_REG_EBP)))
+    {
+        reg = pSymInfo->Register;
+        frameOffset = (signed) pSymInfo->Address;
+        storage = BPatch_storageFrameOffset;
+        storageName = "Frame Relative";
+    }
+    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_REGRELATIVE)
+    {
+        reg = pSymInfo->Register;
+        frameOffset = (signed) pSymInfo->Address;
+        storage = BPatch_storageRegOffset;
+        storageName = "Register Relative";
+    }
+    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_REGISTER) {
+        reg = pSymInfo->Register;
+        frameOffset = 0;
+        storage = BPatch_storageReg;
+        storageName = "Register";
+    }
+    else {
+        reg = 0;
+        frameOffset = (signed) pSymInfo->Address;
+        storage = BPatch_storageAddr;
+        storageName = "Absolute";
+    }
+
+    newvar = new BPatch_localVar(pSymInfo->Name, type, -1, frameOffset,
+                                 reg, storage);
+
+    //Store the variable as a local or parameter appropriately
+    if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_PARAMETER) {
+        func->funcParameters->addLocalVar(newvar);
+        paramType = "parameter";
+    }
+    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_LOCAL) {
+        func->localVariables->addLocalVar(newvar);
+        paramType = "local";
+    }
+    else {
+        fprintf(stderr, "[%s:%u] - Local variable of unknown type.  %s in %s\n",
+                __FILE__, __LINE__, pSymInfo->Name, func->lowlevel_func()->prettyName().c_str());
+        paramType = "unknown";
+    }
+
+    
+    const char *typeName;
+    if (type) {
+        typeName = type->getName();
+    }
+    else {
+        typeName = "unknown";
+    }
+
+    return true;
+}
+
+
+static void enumLocalVars(BPatch_function *func, 
+                          const pdvector<instPoint *> &points,
+                          localsStruct *locals) 
+{
+    IMAGEHLP_STACK_FRAME frame;
+    memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
+
+
+
+    for (unsigned i=0; i<points.size(); i++) {
+        frame.InstructionOffset = points[i]->addr();
+        bool result = SymSetContext(locals->p, &frame, NULL);
+        /*if (!result) {            
+            fprintf(stderr, "[%s:%u] - Couldn't SymSetContext\n", __FILE__, __LINE__);
+            printSysError(GetLastError());
+        }*/
+        result = SymEnumSymbols(locals->p, 0, NULL, enumLocalSymbols, locals);
+        /*if (!result) {
+            fprintf(stderr, "[%s:%u] - Couldn't SymEnumSymbols\n", __FILE__, __LINE__);
+            printSysError(GetLastError());
+        }*/
+    }
+}
+
+static int variantValue(VARIANT *v) {
+    switch(v->vt) {    
+       case VT_I8:
+           return (int) v->llVal;
+       case VT_I4:
+           return (int) v->lVal;
+       case VT_UI1:
+           return (int) v->bVal;
+       case VT_I2:
+           return (int) v->iVal;
+       case VT_I1:
+           return (int) v->cVal;
+       case VT_UI2:
+           return (int) v->uiVal;
+       case VT_UI4:
+           return (int) v->ulVal;
+       case VT_UI8:
+           return (int) v->ullVal;
+       case VT_INT:
+           return (int) v->intVal;
+       case VT_UINT:
+           return (int) v->uintVal;
+       default:
+           return 0;
+    }
+}
+
+static void addTypeToCollection(BPatch_type *type, BPatch_module *mod) {
+   BPatch_typeCollection *collection;
+   collection = mod ? mod->getModuleTypes() : BPatch::bpatch->stdTypes;
+   assert(collection);
+   assert(!collection->findType(type->getID()));
+   collection->addType(type);
+}
+
+static char *getTypeName(HANDLE p, Address base, int typeIndex) {
+    int result, length;
+    WCHAR *wname = NULL;
+    char *name = NULL;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_SYMNAME, &wname);
+    if (!result) 
+        return NULL;
+    length = wcslen(wname) + 1;
+    name = (char *) malloc(length + 1);
+    result = WideCharToMultiByte(CP_ACP, 0, wname, -1, name, length, NULL, NULL);
+    LocalFree(wname); 
+    if (!result) {
+        int lasterror = GetLastError();
+//        printSysError(lasterror);
+        return NULL;
+    }
+    return name;
+}
+
+static BPatch_dataClass getDataClass(HANDLE p, Address base, int typeIndex) {
+    enum SymTagEnum wintype;
+    int result, basetype;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_SYMTAG, &wintype);
+    if (!result)
+        return BPatch_dataUnknownType;
+    switch (wintype) {
+        case SymTagFunction:
+        case SymTagFunctionType:
+            return BPatch_dataFunction;
+        case SymTagPointerType:
+            return BPatch_dataPointer;
+        case SymTagArrayType:
+            return BPatch_dataArray;
+        case SymTagBaseType:
+            return BPatch_dataScalar;
+        case SymTagEnum:
+            return BPatch_dataEnumerated;
+        case SymTagTypedef:
+            return BPatch_dataTypeDefine;
+        case SymTagUDT:
+            enum UdtKind udtType;
+            result = SymGetTypeInfo(p, base, typeIndex, TI_GET_UDTKIND, &udtType);
+            if (!result)
+                return BPatch_dataUnknownType;
+            switch (udtType) {
+                case UdtUnion:
+                    return BPatch_dataUnion;
+                case UdtStruct:
+                case UdtClass:
+                    return BPatch_dataStructure;
+                default:
+                    return BPatch_dataUnknownType;
+            }
+        case SymTagFunctionArgType:
+            result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &basetype);
+            if (!result)
+                return BPatch_dataUnknownType;
+            return getDataClass(p, base, basetype);
+        default:
+            return BPatch_dataUnknownType;
+    }
+}
+
+static BPatch_type *getEnumType(HANDLE p, Address base, int typeIndex, BPatch_module *mod) {
+    unsigned i;
+    char *name = NULL;
+    char *entryName = NULL;
+    VARIANT entryValue;
+    BPatch_typeEnum *type;
+    int result;
+    unsigned numEntries, entriesSize;
+    TI_FINDCHILDREN_PARAMS *entries = NULL;
+
+    name = getTypeName(p, base, typeIndex);
+    type = new BPatch_typeEnum(typeIndex, name);
+    addTypeToCollection(type, mod);
+    free(name);
+    name = NULL;
+
+    //
+    //Get the number of entries in this enum, and store them in the entries structure
+    //
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_CHILDRENCOUNT, &numEntries);
+    if (!result)
+        numEntries = 0;
+    if (numEntries) {
+        entriesSize = sizeof(TI_FINDCHILDREN_PARAMS) + (numEntries + 1) * sizeof(ULONG);
+        entries = (TI_FINDCHILDREN_PARAMS *) malloc(entriesSize);
+        memset(entries, 0, entriesSize);
+        entries->Count = numEntries;
+        result = SymGetTypeInfo(p, base, typeIndex, TI_FINDCHILDREN, entries);
+        if (!result)
+            numEntries = 0;
+    }
+
+    for (i=0; i<numEntries; i++) {
+        entryName = getTypeName(p, base, entries->ChildId[i]);
+        VariantInit(&entryValue);
+        result = SymGetTypeInfo(p, base, entries->ChildId[i], TI_GET_VALUE, &entryValue);
+        if (!result)
+            continue;
+        type->addField(entryName, variantValue(&entryValue));
+    }
+  
+    if (entries)
+        free(entries);
+    return type;    
+}
+
+static BPatch_type *getPointerType(HANDLE p, Address base, int typeIndex, BPatch_module *mod) {
+    int baseTypeIndex, result;
+    BPatch_type *baseType;
+    BPatch_typePointer *newType;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &baseTypeIndex);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
+        return NULL;
+    }
+
+    //
+    // Add a place-holder for the pointer type first and fill in it's 
+    //  base type latter.  This prevents recursion that may happen beneath 
+    //  the getType function call below.
+    //
+    newType = new BPatch_typePointer(typeIndex, NULL);
+    addTypeToCollection(newType, mod);
+
+    baseType = getType(p, base, baseTypeIndex);
+    if (!baseType) {
+        fprintf(stderr, "[%s:%u] - getType failed\n", __FILE__, __LINE__);
+        return NULL;
+    }
+
+    newType->setPtr(baseType);
+    return newType;
+}
+
+static BPatch_type *getArrayType(HANDLE p, Address base, int typeIndex, BPatch_module *mod) {
+    int result, baseIndex, index;
+    BPatch_type *indexType, *newType, *baseType;
+    unsigned size, num_elements;
+    ULONG64 size64;
+    const char *bname;
+    char *name;
+
+    //Get the index type (usually an int of some kind).  Currently not used.
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_ARRAYINDEXTYPEID, &index);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_ARRAYINDEXTYPEID failed\n", 
+                __FILE__, __LINE__);
+        return NULL;
+    }
+    indexType = getType(p, base, index, mod);
+
+    //Get the base type (the type of the elements in the array)
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &baseIndex);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
+        return NULL;
+    }
+    baseType = getType(p, base, baseIndex, mod);
+
+    bname = baseType->getName();
+    name = (char *) malloc(strlen(bname) + 4);
+    strcpy(name, bname);
+    strcat(name, "[]");
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_LENGTH, &size64);
+    if (!result) {
+        num_elements = 0;
+    }
+    else {
+      size = (unsigned) size64;
+      num_elements = size / baseType->getSize();
+    }
+
+    newType = new BPatch_typeArray(typeIndex, baseType, 0, num_elements-1, name);
+    newType->getSize();
+    addTypeToCollection(newType, mod);
+    assert(newType->getID() == typeIndex);
+
+    if (name)
+        free(name);
+    return newType;
+}
+
+
+static BPatch_type *getTypedefType(HANDLE p, Address base, int typeIndex, BPatch_module *mod) {
+    int result, baseTypeIndex;
+    BPatch_type *baseType, *newType;
+    char *name;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &baseTypeIndex);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
+        return NULL;
+    }
+    baseType = getType(p, base, baseTypeIndex, mod);
+    if (!baseType) {
+        return NULL;
+    }
+ 
+    name = getTypeName(p, base, typeIndex);
+
+    newType = new BPatch_typeTypedef(typeIndex, baseType, name);
+    addTypeToCollection(newType, mod);
+    return newType;
+}
+
+static BPatch_type *getUDTType(HANDLE p, Address base, int typeIndex, BPatch_module *mod) {
+    int result, symtag;
+    unsigned size, numChildren, childrenSize, child_offset, i, child_size;
+    BPatch_fieldListType *newType;
+    UINT64 size64;
+    const char *name, *childName;
+    enum UdtKind udtType;
+    TI_FINDCHILDREN_PARAMS *children = NULL;
+    BPatch_dataClass dataType;
+
+    //
+    // Get name for structure
+    //
+    name = getTypeName(p, base, typeIndex);
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_LENGTH, &size64);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_LENGTH return error\n");
+        return NULL;
+    }
+    size = (unsigned) size64;
+
+    //
+    // Determine whether it's a class, struct, or union and create the 
+    //  new_type appropriately
+    //
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_UDTKIND, &udtType);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_UDTKIND returned error\n");
+        return NULL;
+    }
+    switch (udtType) {
+        case UdtUnion:
+            newType = new BPatch_typeUnion(typeIndex, name);
+            break;
+        case UdtStruct:
+        case UdtClass:
+        default:
+            newType = new BPatch_typeStruct(typeIndex, name);
+            break;
+    }
+    addTypeToCollection(newType, mod);
+    if (name)
+       free((void *) name);
+    name = NULL;
+
+
+    //
+    // Store the number of member variables/functions/stuff in numChildren
+    //
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_CHILDRENCOUNT, &numChildren);
+    if (!result)
+        numChildren = 0;
+    //
+    // Get the list of variables/functions/stuff
+    //
+    if (numChildren) {
+        childrenSize = sizeof(TI_FINDCHILDREN_PARAMS) + (numChildren + 1) * sizeof(ULONG);
+        children = (TI_FINDCHILDREN_PARAMS *) malloc(childrenSize);
+        memset(children, 0, childrenSize);
+        children->Count = numChildren;
+        result = SymGetTypeInfo(p, base, typeIndex, TI_FINDCHILDREN, children);
+        if (!result)
+            numChildren = 0;
+    }
+
+    //
+    // Create/Find the type of each child and add it to newType appropriately
+    //
+    for (i=0; i<numChildren; i++) {
+        // Create/Get child type
+        BPatch_type *child_type = getType(p, base, children->ChildId[i], mod);
+        if (!child_type)
+            continue;
+
+        // Figure out a name of this object
+        childName = NULL;
+        result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_SYMTAG, &symtag);
+        if (result && symtag == SymTagBaseClass) {
+            childName = strdup("{superclass}");
+        }
+        if (!childName)
+            childName = getTypeName(p, base, children->ChildId[i]);
+        if (!childName) 
+            childName = strdup(child_type->getName());
+
+        // Find the offset of this member in the structure
+        result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_OFFSET, &child_offset);
+        if (!result) {
+            child_offset = 0; //Probably a member function
+            child_size = 0;
+        }
+        else {
+            child_offset *= 8; //Internally measured in bits
+            child_size = child_type->getSize();
+        }
+
+        dataType = getDataClass(p, base, child_type->getID());
+        newType->addField(childName, dataType, child_type, child_offset, child_size);
+        if (childName)
+            free((void *) childName);
+        childName = NULL;
+    }
+
+    if (children)
+        free(children);
+
+    return newType;
+}
+
+static BPatch_type *getLayeredType(HANDLE p, Address base, int typeIndex, BPatch_module *mod) {
+    int result, newTypeIndex;
+    BPatch_type *newType;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &newTypeIndex);
+    if (!result) {
+        fprintf(stderr, "TI_GET_TYPEID failed\n");
+        return NULL;
+    }
+
+    newType = getType(p, base, newTypeIndex, mod);
+    return newType;
+}
+
+static BPatch_type *getFunctionType(HANDLE p, Address base, int typeIndex, BPatch_module *mod) {
+    int result, retTypeIndex;
+    BPatch_typeFunction *newType;
+    BPatch_type *retType;
+    unsigned num_params, args_size, i;
+    vector<BPatch_type *> params;
+    TI_FINDCHILDREN_PARAMS *args = NULL;
+    string name;
+    char *param_name;
+    BPatch_dataClass dataType;
+
+    //Create the function early to avoid recursive references
+    newType = new BPatch_typeFunction(typeIndex, NULL, NULL);
+    addTypeToCollection(newType, mod);
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &retTypeIndex);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - Couldn't TI_GET_TYPEID\n", __FILE__, __LINE__);
+        return NULL;
+    }
+
+    retType = getType(p, base, retTypeIndex, mod);
+    if (!retType) {
+        return NULL;
+    }
+    newType->setRetType(retType);
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_COUNT, &num_params);
+    if (!result)
+        goto done_params;
+
+    args_size = sizeof(TI_FINDCHILDREN_PARAMS) + (num_params + 1) * sizeof(ULONG);
+    args = (TI_FINDCHILDREN_PARAMS *) malloc(args_size);
+    memset(args, 0, args_size);
+    args->Count = num_params;
+    result = SymGetTypeInfo(p, base, typeIndex, TI_FINDCHILDREN, args);
+    if (!result)
+        goto done_params;
+    
+    for (i=0; i<num_params; i++) {
+        BPatch_type *arg_type = getType(p, base, args->ChildId[i], mod);
+        if (!arg_type) {
+            continue;
+        }
+        params.push_back(arg_type);
+    }
+
+done_params:
+
+    //
+    // Build a type name that looks like the following:
+    //   (return_type)(param1_type, param2_type, ...)
+    name = "(";
+    name += retType->getName();
+    name += ")(";
+    for (i=0; i<params.size(); i++) {
+        if (i != 0)
+            name += ", ";
+        name += params[i]->getName();
+    }
+    name += ")";
+
+    newType->setName(name.c_str());
+
+    for (i=0; i<params.size(); i++) {
+        dataType = getDataClass(p, base, params[i]->getID());
+        param_name = getTypeName(p, base, params[i]->getID());
+        if (!param_name)
+            param_name = strdup("parameter");
+        newType->addField(param_name, dataType, params[i], i, params[i]->getSize());
+        if (param_name)
+           free(param_name);
+    }
+
+    if (args)
+        free(args);
+
+    return newType;
+}
+
+static BPatch_type *getBaseType(HANDLE p, Address base, int typeIndex, BPatch_module *mod) {
+    BasicType baseType;
+    int result;
+    ULONG64 size64;
+    unsigned size;
+    BPatch_type *newType;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_BASETYPE, &baseType);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_BASETYPE return error\n");
+        return NULL;
+    }
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_LENGTH, &size64);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_LENGTH return error\n");
+        return NULL;
+    }
+    size = (unsigned) size64;
+    switch(baseType) {
+	 case btNoType:
+		 newType = NULL;
+		 break;
+	 case btVoid:
+         newType = new BPatch_typeScalar(typeIndex, size, "void");
+		 break;
+	 case btChar:
+         newType = new BPatch_typeScalar(typeIndex, size, "char");
+		 break;
+	 case btWChar:
+         newType = new BPatch_typeScalar(typeIndex, size, "wchar");
+		 break;
+	 case btInt:
+         if (size == 8)
+           newType = new BPatch_typeScalar(typeIndex, size, "long long int");
+         else if (size == 4)
+           newType = new BPatch_typeScalar(typeIndex, size, "int");
+         else if (size == 2)
+           newType = new BPatch_typeScalar(typeIndex, size, "short");
+         else if (size == 1)
+           newType = new BPatch_typeScalar(typeIndex, size, "char");
+         else
+           newType = new BPatch_typeScalar(typeIndex, size, "");
+		 break;
+	 case btUInt:
+         if (size == 8)
+           newType = new BPatch_typeScalar(typeIndex, size, "unsigned long long int");
+         else if (size == 4)
+           newType = new BPatch_typeScalar(typeIndex, size, "unsigned int");
+         else if (size == 2)
+           newType = new BPatch_typeScalar(typeIndex, size, "unsigned short");
+         else if (size == 1)
+           newType = new BPatch_typeScalar(typeIndex, size, "unsigned char");
+         else
+           newType = new BPatch_typeScalar(typeIndex, size, "");
+		 break;
+	 case btFloat:
+         if (size == 8)
+             newType = new BPatch_typeScalar(typeIndex, size, "double");
+         else
+             newType = new BPatch_typeScalar(typeIndex, size, "float");
+		 break;
+	 case btBCD:
+         newType = new BPatch_typeScalar(typeIndex, size, "BCD");
+		 break;
+	 case btBool:
+         newType = new BPatch_typeScalar(typeIndex, size, "bool");
+		 break;
+	 case btLong:
+         newType = new BPatch_typeScalar(typeIndex, size, "long");
+		 break;
+	 case btULong:
+         newType = new BPatch_typeScalar(typeIndex, size, "unsigned long");
+		 break;
+	 case btCurrency:
+         newType = new BPatch_typeScalar(typeIndex, size, "currency");
+		 break;
+	 case btDate:
+         newType = new BPatch_typeScalar(typeIndex, size, "Date");
+		 break;
+	 case btVariant:
+         newType = new BPatch_typeScalar(typeIndex, size, "variant");
+		 break;
+	 case btComplex:
+         newType = new BPatch_typeScalar(typeIndex, size, "complex");
+		 break;
+	 case btBit:
+         newType = new BPatch_typeScalar(typeIndex, size, "bit");
+		 break;
+	 case btBSTR:
+         newType = new BPatch_typeScalar(typeIndex, size, "bstr");
+		 break;
+	 case btHresult:
+         newType = new BPatch_typeScalar(typeIndex, size, "Hresult");
+		 break;
+	 default:
+		 fprintf(stderr, "Couldn't parse baseType %d for %d\n", baseType, typeIndex);
+         assert(0);
+		 break;
+   }
+   if (newType)
+       addTypeToCollection(newType, mod);
+   return newType;
+}
+
+static BPatch_type *getType(HANDLE p, Address base, int typeIndex, BPatch_module *mod) 
+{
+   static unsigned depth = 0;
+   BOOL result;
+   BPatch_type *foundType = NULL;
+   BPatch_typeCollection *collection;
+   enum SymTagEnum symtag;
+
+   if (!typeIndex)
+       return NULL;
+
+   //
+   // Check if this type has already been created (they're indexed by typeIndex).
+   // If it has, go ahead and return the existing one.
+   // If not, then start creating a new type.
+   //
+   if (mod)
+       collection = mod->getModuleTypes();
+   else
+       collection = BPatch::bpatch->stdTypes;
+   assert(collection);
+
+
+   //
+   // Check to see if we've already parsed this type
+   //
+   foundType = collection->findType(typeIndex);
+   if (foundType) {
+       return foundType;
+   }
+
+   //
+   // Types on Windows are stored as part of a special type of symbol.  TI_GET_SYMTAG 
+   // Gets the meta information about the type.
+   //
+   result = SymGetTypeInfo(p, base, typeIndex, TI_GET_SYMTAG, &symtag);
+   if (!result) {
+       depth--;
+       return NULL;
+   }
+   switch (symtag) {
+       case SymTagBaseType:
+           foundType = getBaseType(p, base, typeIndex, mod);
+           break;
+       case SymTagEnum:
+           foundType = getEnumType(p, base, typeIndex, mod);
+           break;
+       case SymTagFunctionType:
+           foundType = getFunctionType(p, base, typeIndex, mod);
+           break;
+       case SymTagPointerType:
+           foundType = getPointerType(p, base, typeIndex, mod);
+           break;
+       case SymTagArrayType:
+           foundType = getArrayType(p, base, typeIndex, mod);
+           break;
+       case SymTagTypedef:
+           foundType = getTypedefType(p, base, typeIndex, mod);
+           break;
+       case SymTagUDT:
+           foundType = getUDTType(p, base, typeIndex, mod);
+           break;
+       case SymTagFunctionArgType:
+       case SymTagData:
+       case SymTagFunction:
+       case SymTagBaseClass:
+           foundType = getLayeredType(p, base, typeIndex, mod);
+           if (foundType)
+             typeIndex = foundType->getID();
+           break;
+       case SymTagThunk:
+           foundType = NULL;
+           break;
+       case SymTagVTableShape:
+       case SymTagVTable:
+           break;
+       default:
+           fprintf(stderr, "Unknown type %d\n", symtag);
+           assert(0);
+           foundType = NULL;
+           break;
+   }
+
+   return foundType;
+}
+
+typedef struct proc_mod_pair {
+	process *proc;
+	BPatch_module *module;
+    mapped_module *mmod;
+    Address base_addr;
+} proc_mod_pair;
+
+static void findLocalVars(BPatch_function *func, Address base) {
+    BPatch_module *mod = func->getModule();
+    int_function *ifunc = func->lowlevel_func();
+    localsStruct locals;
+    BPatch_process *proc = func->getProc();
+    HANDLE p = proc->lowlevel_process()->processHandle_;
+
+    locals.func = func;
+    locals.base = base;
+    locals.p = p;
+
+    //
+    // The windows debugging interface allows us to get local variables
+    // at specific points, which makes it hard to enumerate all locals (as we want).
+    // Instead we'll get the local variables at the most common points below.
+    //
+    const pdvector<instPoint*> &points = ifunc->funcEntries();
+    enumLocalVars(func, ifunc->funcEntries(), &locals);
+    enumLocalVars(func, ifunc->funcExits(), &locals);
+    enumLocalVars(func, ifunc->funcCalls(), &locals);
+    enumLocalVars(func, ifunc->funcArbitraryPoints(), &locals);
+}
+
+#define SymTagFunction 0x5
+#define SymTagData 0x7
+#define SymTagPublicSymbol 0xa
+#define SymTagMisc 0x3808 		// Seen with NB11, VC++6-produced executables
+
+//
+// Our recognition of interesting symbols (functions and global data)
+// is complicated due to lack of consistency in how they are
+// presented to us in the pSymInfo struct.  For example,
+// Microsoft's own system DLLs like kernel32.dll only seem to provide
+// us their exports - these have the SYMFLAG_EXPORT bit set in
+// pSymInfo->Flags.  In contrast, EXEs with full debug information
+// may have pSymInfo->Flags == 0, with pSymInfo->Tag indicating the
+// type of symbol.
+//
+static BOOL isGlobalSymbol(PSYMBOL_INFO pSymInfo) {
+ return ((pSymInfo->Flags & SYMFLAG_EXPORT) ||
+         (pSymInfo->Flags & SYMFLAG_FUNCTION) ||
+         ((!pSymInfo->Flags) && 
+          ((pSymInfo->Tag == SymTagFunction) ||
+           (pSymInfo->Tag == SymTagData) ||
+           (pSymInfo->Tag == SymTagPublicSymbol) ||
+           (pSymInfo->Tag == SymTagMisc))) );
+}
+
+BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
+{
+   HANDLE p;
+   Address mod_base;
+   proc_mod_pair *pair;
+   mapped_module *map_mod;
+   BPatch_module *mod;
+   BPatch_type *type;
+   char *name;
+   BPatch_typeCollection *collection;
+
+   if (!isGlobalSymbol(pSymInfo)) {
+       //We do local symbols elsewhere
+       return TRUE;
+   }
+
+   pair = (proc_mod_pair *) info;
+   p = pair->proc->processHandle_;
+   mod_base = pair->base_addr;
+   mod = pair->module;
+   map_mod = pair->mmod;
+   name = pSymInfo->Name;
+
+   if (map_mod->obj()->parse_img()->isAOut()) {
+      //When parsing the a.out, sort the type information into specific modules.  This doesn't matter
+      // for libraries, because there is a 1:1 mapping between modules and objects.
+      //
+      //A module is a collection of functions, but doesn't include global data types.  Global variables
+      // will go into the DEFAULT_MODULE
+      int_function *f = map_mod->obj()->findFuncByAddr((Address) pSymInfo->Address);
+      if (!f) {
+          //No containing module.  Only insert this into DEFAULT_MODULE
+          if (strcmp(map_mod->fileName().c_str(), "DEFAULT_MODULE"))
+              return true;
+      }
+      else if (f->mod() != map_mod) {
+          //This is a variable for another module.
+          return true;
+      }
+   }
+
+   type = getType(p, mod_base, pSymInfo->TypeIndex, mod);
+   collection = mod->getModuleTypes();
+
+
+   /*
+   fprintf(stderr, "[%s:%u] - Variable %s had type %s\n", __FILE__, __LINE__,
+       name, type ? type->getName() : "{NO TYPE}");
+       */
+   if (type && name)
+       collection->addGlobalVariable(name, type);
+ 
+   return TRUE;
+}
+
+void BPatch_module::parseTypes() {
+    proc_mod_pair pair;
+    BOOL result;
+    //
+    //Parse global variable type information
+    //
+
+    pair.proc = proc->lowlevel_process();
+    pair.module = this;
+    pair.base_addr = mod->obj()->getBaseAddress();
+    pair.mmod = mod;
+
+    if (!pair.base_addr) {
+        pair.base_addr = mod->obj()->getFileDesc().loadAddr();
+    }
+  
+    result = SymEnumSymbols(pair.proc->processHandle_, pair.base_addr, NULL, 
+                            add_type_info, &pair);
+    if (!result) {
+        parsing_printf("SymEnumSymbols was unsuccessful.  Type info may be incomplete\n");
+    }
+
+    //
+    // Parse local variables and local type information
+    //
+    BPatch_Vector<BPatch_function *> *funcs;
+    funcs = getProcedures();
+    for (unsigned i=0; i < funcs->size(); i++) {
+        findLocalVars((*funcs)[i], pair.base_addr);
+    }
+}
+#endif
+
 bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
     if (!isValid()) return false;
@@ -1304,7 +2296,7 @@ bool BPatch_module::isNativeCompilerInt()
 
 size_t BPatch_module::getAddressWidthInt()
 {
-  return mod->obj()->parse_img()->getObject().getAddressWidth();
+  return mod->obj()->parse_img()->getObject()->getAddressWidth();
 }
 
 void BPatch_module::setDefaultNamespacePrefix(char *name) 
