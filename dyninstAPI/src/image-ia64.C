@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-ia64.C,v 1.11 2006/12/06 21:17:24 bernat Exp $
+// $Id: image-ia64.C,v 1.12 2007/01/09 02:01:56 giri Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -63,10 +63,15 @@ bool image_func::archCheckEntry(InstrucIter &ah, image_func * /*func*/)
     // x86 checks for functions in the PLT here and so should we.
     // Actually, this should probably be checked when binding a
     // stub function object to a call site during parsing. XXX
-    if(image_->getObject().is_offset_in_plt(*ah))
-        return false;
+    Dyn_Section *sec;
+    if(!image_->getObject()->findSection(".plt",sec))
+    	return true;
+    if(!sec->isOffsetInSection(*ah))
+    	return true;
+//    if(image_->getObject()->is_offset_in_plt(*ah))
+    return false;
 
-    return true;
+//    return true;
 }
 
 // Not used on IA64
