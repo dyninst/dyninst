@@ -392,7 +392,7 @@ $(LIB_DEST_LN)/%: %
 ###  High level targets
 #######################################################################
 
-MUTATOR_LDFLAGS := -L. -ltestSuite $(LIBDIR) -ldyninstAPI $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS)
+MUTATOR_LDFLAGS := -L. -ltestSuite $(LIBDIR) -lcommon -lsymtabAPI -ldyninstAPI $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS)
 MUTATOR_SO_LDFLAGS = $(filter-out -liberty, $(MUTATOR_LDFLAGS))
 
 
