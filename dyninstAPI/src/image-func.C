@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.39 2006/12/14 20:12:07 bernat Exp $
+// $Id: image-func.C,v 1.40 2007/01/09 02:01:53 giri Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -121,13 +121,14 @@ image_func::image_func(const pdstring &symbol,
 		       const unsigned symTabSize,
 		       pdmodule *m,
 		       image *i) :
-  startOffset_(offset),
+//  startOffset_(offset),
+//  symTabSize_(symTabSize),
   endOffset_(0),
-  symTabSize_(symTabSize),
   mod_(m),
   image_(i),
   parsed_(false),
   cleansOwnStack_(false),
+  usedRegisters(NULL),
   containsFPRWrites_(unknown),
   containsSPRWrites_(unknown),
   noStackFrame(false),
@@ -144,7 +145,6 @@ image_func::image_func(const pdstring &symbol,
   instLevel_(NORMAL),
   canBeRelocated_(true),
   needsRelocation_(false),
-  usedRegisters(NULL),
   originalCode(NULL),
   o7_live(false),
   bl_is_sorted(false)
@@ -156,12 +156,55 @@ image_func::image_func(const pdstring &symbol,
                 image_func_count, image_func_count*sizeof(image_func));
 #endif
 #if defined(cap_stripped_binaries)
-    endOffset_ = startOffset_;
+    endOffset_ = offset;
 #else
-    endOffset_ = startOffset_ + symTabSize_;
+    endOffset_ = offset + symTabSize;
 #endif
-    symTabNames_.push_back(symbol);
+    sym_ = new Dyn_Symbol(symbol.c_str(), m->fileName(), Dyn_Symbol::PDST_UNKNOWN , Dyn_Symbol:: SL_GLOBAL, 
+    								offset, NULL, symTabSize);
+    i->getObject()->addSymbol(sym_);								
+//    symTabNames_.push_back(symbol);
 }
+
+image_func::image_func(Dyn_Symbol *symbol, pdmodule *m, image *i):
+  sym_(symbol),
+  mod_(m),
+  image_(i),
+  parsed_(false),
+  cleansOwnStack_(false),
+  usedRegisters(NULL),
+  containsFPRWrites_(unknown),
+  containsSPRWrites_(unknown),
+  noStackFrame(false),
+  makesNoCalls_(false),
+  savesFP_(false),
+  call_points_have_been_checked(false),
+  containsSharedBlocks_(false),
+  retStatus_(RS_UNSET),
+  isTrap(false),
+#if defined(arch_ia64)
+  framePointerCalculator(NULL),
+  usedFPregs(NULL),
+#endif
+  instLevel_(NORMAL),
+  canBeRelocated_(true),
+  needsRelocation_(false),
+  originalCode(NULL),
+  o7_live(false),
+  bl_is_sorted(false)
+{
+#if defined(ROUGH_MEMORY_PROFILE)
+    image_func_count++;
+    if ((image_func_count % 100) == 0)
+        fprintf(stderr, "image_func_count: %d (%d)\n",
+                image_func_count, image_func_count*sizeof(image_func));
+#endif
+#if defined(cap_stripped_binaries)
+    endOffset_ = symbol->getAddr();
+#else
+    endOffset_ = symbol->getAddr() + symbol->getSize();
+#endif
+ }	
 
 
 image_func::~image_func() { 
@@ -171,6 +214,16 @@ image_func::~image_func() {
 
 // Two-copy version... can't really do better.
 bool image_func::addSymTabName(pdstring name, bool isPrimary) {
+    if(sym_->addMangledName(name.c_str(), isPrimary)){
+        // Add to image class...
+//        image_->addFunctionName(this, name, true);
+	return true;
+    }
+
+    // Bool: true if the name is new; AKA !found
+    return false;
+
+#if 0
     pdvector<pdstring> newSymTabName;
 
     // isPrimary defaults to false
@@ -198,10 +251,22 @@ bool image_func::addSymTabName(pdstring name, bool isPrimary) {
 
     // Bool: true if the name is new; AKA !found
     return (!found);
+#endif
+
 }
 
 // Two-copy version... can't really do better.
 bool image_func::addPrettyName(pdstring name, bool isPrimary) {
+    if (sym_->addPrettyName(name.c_str(), isPrimary)) {
+        // Add to image class...
+//        image_->addFunctionName(this, name, false);
+	return true;
+    }
+
+    // Bool: true if the name is new; AKA !found
+    return false;
+ 
+#if 0 
     pdvector<pdstring> newPrettyName;
 
     // isPrimary defaults to false
@@ -229,10 +294,23 @@ bool image_func::addPrettyName(pdstring name, bool isPrimary) {
 
     // Bool: true if the name is new; AKA !found
     return (!found);
+#endif
+
 }
 
 // Two-copy version... can't really do better.
 bool image_func::addTypedName(pdstring name, bool isPrimary) {
+    // Count this as a pretty name in function lookup...
+    if (sym_->addTypedName(name.c_str(), isPrimary)) {
+        // Add to image class...
+//        image_->addFunctionName(this, name, false);
+	return true;
+    }
+
+    // Bool: true if the name is new; AKA !found
+    return false;
+
+#if 0
     pdvector<pdstring> newTypedName;
 
     // isPrimary defaults to false
@@ -261,6 +339,8 @@ bool image_func::addTypedName(pdstring name, bool isPrimary) {
 
     // Bool: true if the name is new; AKA !found
     return (!found);
+#endif    
+
 }
 
 void image_func::changeModule(pdmodule *mod) {
@@ -1152,7 +1232,7 @@ void *image_basicBlock::getPtrToInstruction(Address addr) const {
 }
 
 void *image_func::getPtrToInstruction(Address addr) const {
-    if (addr < startOffset_) return NULL;
+    if (addr < getOffset()) return NULL;
     if (!parsed_) image_->analyzeIfNeeded();
     if (addr >= endOffset_) return NULL;
     for (unsigned i = 0; i < blockList.size(); i++) {

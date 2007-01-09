@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.25 2006/12/14 20:12:08 bernat Exp $
+// $Id: image-func.h,v 1.26 2007/01/09 02:01:54 giri Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -52,6 +52,7 @@
 #include "arch.h" // instruction
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "common/h/Dictionary.h"
+#include "symtabAPI/h/Dyn_Symbol.h"
 #include <set>
 
 class pdmodule;
@@ -276,7 +277,8 @@ class image_func : public codeRange {
 	      const unsigned symTabSize, 
 	      pdmodule *m,
 	      image *i);
-   
+  
+   image_func(Dyn_Symbol *symbol, pdmodule *m, image *i);
 
    ~image_func();
 
@@ -285,22 +287,23 @@ class image_func : public codeRange {
    // Basic output functions
    ////////////////////////////////////////////////
 
-   const pdstring &symTabName() const { 
-       if (symTabNames_.size() > 0) return symTabNames_[0];
-       else return emptyString;
+   Dyn_Symbol* symbol() const{
+   	return sym_;
+   }	
+
+   const string &symTabName() const { 
+       return sym_->getName();
    }
-   const pdstring &prettyName() const {
-       if (prettyNames_.size() > 0) return prettyNames_[0];
-       else return emptyString;
+   const string &prettyName() const {
+       return sym_->getPrettyName();
    }
-   const pdstring &typedName() const {
-       if (typedNames_.size() > 0) return typedNames_[0];
-       else return emptyString;
+   const string &typedName() const {
+       return sym_->getTypedName();
    }
 
-   const pdvector<pdstring> &symTabNameVector() const { return symTabNames_; }
-   const pdvector<pdstring> &prettyNameVector() const { return prettyNames_; }
-   const pdvector<pdstring> &typedNameVector() const { return typedNames_; }
+   const vector<string> &symTabNameVector() const { return sym_->getAllMangledNames(); }
+   const vector<string> &prettyNameVector() const { return sym_->getAllPrettyNames(); }
+   const vector<string> &typedNameVector() const { return sym_->getAllTypedNames(); }
    void copyNames(image_func *duplicate);
 
    // Bool: returns true if the name is new (and therefore added)
@@ -308,13 +311,13 @@ class image_func : public codeRange {
    bool addPrettyName(pdstring name, bool isPrimary = false);
    bool addTypedName(pdstring name, bool isPrimary = false);
 
-   Address getOffset() const {return startOffset_;}
+   Address getOffset() const {return sym_->getAddr();}
    Address getEndOffset(); // May trigger parsing
-   unsigned getSymTabSize() const { return symTabSize_; }
+   unsigned getSymTabSize() const { return sym_->getSize(); }
 
    // coderange needs a get_address...
    Address get_address_cr() const { return getOffset();}
-   unsigned get_size_cr() const { return endOffset_ - startOffset_; }
+   unsigned get_size_cr() const { return endOffset_ - getOffset(); }
 
    void *getPtrToInstruction(Address addr) const;
 
@@ -494,12 +497,18 @@ class image_func : public codeRange {
                           it just refers to the stored values and returns that */
 
    ///////////////////// Basic func info
+   Dyn_Symbol *sym_;			/* pointer to the underlying Dyn_Symbol */
+
+#if 0
+//   Now a part of Dyn_Symbol. Moved to Dyn_Symbol.h - giri
    pdvector<pdstring> symTabNames_;	/* name as it appears in the symbol table */
    pdvector<pdstring> prettyNames_;	/* user's view of name (i.e. de-mangled) */
    pdvector<pdstring> typedNames_;      /* de-mangled with types */
    Address startOffset_;		/* address of the start of the func */
-   Address endOffset_;          /* Address of the (next instruction after) the end of the func */
    unsigned symTabSize_;        /* What we get from the symbol table (if any) */
+#endif
+
+   Address endOffset_;          /* Address of the (next instruction after) the end of the func */
    pdmodule *mod_;		/* pointer to file that defines func. */
    image *image_;
    bool parsed_;                /* Set to true in findInstPoints */

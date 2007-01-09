@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: variable.C,v 1.4 2006/04/20 22:44:56 bernat Exp $
+// $Id: variable.C,v 1.5 2007/01/09 02:01:55 giri Exp $
 
 // Variable.C
 
@@ -48,82 +48,49 @@
 image_variable::image_variable(Address offset,
                                const pdstring &name,
                                pdmodule *mod) :
-    offset_(offset),
     pdmod_(mod) {
-    addSymTabName(name);
+    sym_ = new Dyn_Symbol(name.c_str(), mod->fileName(), Dyn_Symbol::PDST_UNKNOWN , Dyn_Symbol:: SL_GLOBAL,
+                                                                    offset);
+    mod->imExec()->getObject()->addSymbol(sym_);
+//    addSymTabName(name);
 }
 
+image_variable::image_variable(Dyn_Symbol *sym,
+                               pdmodule *mod) :
+    sym_(sym),			       
+    pdmod_(mod) {
+}								    
+
 Address image_variable::getOffset() const {
-    return offset_;
+    return sym_->getAddr();
 }
 
 bool image_variable::addSymTabName(const pdstring &name, bool isPrimary) {
-    pdvector<pdstring> newSymTabName;
-
-    // isPrimary defaults to false
-    if (isPrimary)
-        newSymTabName.push_back(name);
-
-    bool found = false;
-    for (unsigned i = 0; i < symTabNames_.size(); i++) {
-        if (symTabNames_[i] == name) {
-            found = true;
-        }
-        else {
-            newSymTabName.push_back(symTabNames_[i]);
-        }
-    }
-    if (!isPrimary)
-        newSymTabName.push_back(name);
-
-    symTabNames_ = newSymTabName;
-
-    if (!found) {
-        // Add to image class...
-        pdmod_->exec()->addVariableName(this, name, true);
-    }
-
-    // Bool: true if the name is new; AKA !found
-    return (!found);
+       if(sym_->addMangledName(name.c_str(), isPrimary)){
+	    // Add to image class...
+            //pdmod_->imExec()->addVariableName(this, name, true);
+            return true;
+       }
+       // Bool: true if the name is new; AKA !found
+       return false;
 }
-
+					   
 bool image_variable::addPrettyName(const pdstring &name, bool isPrimary) {
-    pdvector<pdstring> newPrettyName;
+       if(sym_->addPrettyName(name.c_str(), isPrimary)){
+	    // Add to image class...
+            //pdmod_->imExec()->addVariableName(this, name, false);
+            return true;
+       }
+       // Bool: true if the name is new; AKA !found
+       return false;
+}       
 
-    // isPrimary defaults to false
-    if (isPrimary)
-        newPrettyName.push_back(name);
-
-    bool found = false;
-    for (unsigned i = 0; i < prettyNames_.size(); i++) {
-        if (prettyNames_[i] == name) {
-            found = true;
-        }
-        else {
-            newPrettyName.push_back(prettyNames_[i]);
-        }
-    }
-    if (!isPrimary)
-        newPrettyName.push_back(name);
-
-    prettyNames_ = newPrettyName;
-
-    if (!found) {
-        // Add to image class...
-        pdmod_->exec()->addVariableName(this, name, false);
-    }
-
-    // Bool: true if the name is new; AKA !found
-    return (!found);
+const vector<string>& image_variable::symTabNameVector() const {
+    return sym_->getAllMangledNames();
 }
 
-
-const pdvector<pdstring> &image_variable::symTabNameVector() const {
-    return symTabNames_;
-}
-
-const pdvector<pdstring> &image_variable::prettyNameVector() const {
-    return prettyNames_;
+const vector<string>& image_variable::prettyNameVector() const {
+    return sym_->getAllPrettyNames();
 }
 
 int_variable::int_variable(image_variable *var, 
@@ -146,14 +113,14 @@ int_variable::int_variable(int_variable *parVar,
     // Mmm forkage
 }
 
-const pdvector<pdstring> &int_variable::prettyNameVector() const {
+const vector<string>& int_variable::prettyNameVector() const {
     return ivar_->prettyNameVector();
 }
 
-const pdvector<pdstring> &int_variable::symTabNameVector() const {
+const vector<string>& int_variable::symTabNameVector() const {
     return ivar_->symTabNameVector();
 }
 
-const pdstring &int_variable::symTabName() const {
+const string &int_variable::symTabName() const {
     return ivar_->symTabName();
 }
