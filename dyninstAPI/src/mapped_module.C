@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.15 2007/01/03 19:07:25 rchen Exp $
+// $Id: mapped_module.C,v 1.16 2007/01/09 02:01:58 giri Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -47,7 +47,6 @@
 #include "common/h/String.h"
 #include "dyninstAPI/src/debug.h"
 #include "process.h"
-
 
 const pdvector<int_function *> &mapped_module::getAllFunctions() {
     pdvector<image_func *> pdfuncs;
@@ -87,11 +86,11 @@ void mapped_module::addVariable(int_variable *var) {
     everyUniqueVariable.push_back(var);
 }
 
-const pdstring &mapped_module::fileName() const { 
-    return pmod()->fileName(); 
+const pdstring mapped_module::fileName() const { 
+    return pmod()->fileName().c_str(); 
 }
-const pdstring &mapped_module::fullName() const { 
-    return pmod()->fullName(); 
+const pdstring mapped_module::fullName() const { 
+    return pmod()->fullName().c_str(); 
 }
 
 mapped_object *mapped_module::obj() const { 
@@ -168,7 +167,7 @@ mapped_module *mapped_module::createMappedModule(mapped_object *obj,
                                                  pdmodule *pdmod) {
     assert(obj);
     assert(pdmod);
-    assert(pdmod->exec() == obj->parse_img());
+    assert(pdmod->imExec() == obj->parse_img());
     mapped_module *mod = new mapped_module(obj, pdmod);
     // Do things?
 
@@ -278,15 +277,50 @@ void mapped_module::parseFileLineInfo() {
 	
 	image * fileOnDisk = obj()->parse_img();
 	assert( fileOnDisk != NULL );
-	const Object & elfObject = fileOnDisk->getObject();
+	Dyn_Symtab *elfObject = fileOnDisk->getObject();
 
-	const char * fileName = elfObject.getFileName();
+	const char * fileName = elfObject->file().c_str();
 	unsigned long int proc_addr = reinterpret_cast< unsigned long int >( proc() );
 	pdstring key = pdstring( proc_addr ) + fileName;
 	if( haveParsedFileMap.defines( key ) ) { return; } 
 
 	/* We haven't parsed this file already, so iterate over its stab entries. */
-	stab_entry * stabEntry = elfObject.get_stab_info();
+	stab_entry * stabEntry;
+	bool found = true;
+	Dyn_Section *sec;
+	char *   stab_off_ = 0;
+	unsigned  stab_size_ = 0;
+	char *   stabstr_off_ = 0;
+	if(!elfObject->findSection(".stab", sec))
+        	found = false;
+  	else
+  	{
+        	stab_off_ = (char *)sec->getPtrToRawData();
+        	stab_size_ = sec->getSecSize();
+        	if(!elfObject->findSection(".stabstr",sec))
+        		found = false;
+        	else
+        		stabstr_off_ = (char *)sec->getPtrToRawData();
+  	}
+	char *file_ptr_ = elfObject->mem_image();
+  	if (found && (stab_off_!=file_ptr_) && stab_size_ && (stabstr_off_!=file_ptr_))
+  	{
+        	switch (elfObject->getAddressWidth()) {
+        		case 4: // 32-bit object
+        			stabEntry = new stab_entry_32( stab_off_,
+                                	 	    stabstr_off_,
+                                	 	    stab_size_ / sizeof(stab32));
+				break;		    
+        		case 8: // 64-bit object
+        			stabEntry = new stab_entry_64( stab_off_,
+                                	 	    stabstr_off_,
+                                	 	    stab_size_ / sizeof(stab32));
+				break;		    	
+		 }
+	}
+  	else
+		stabEntry = new stab_entry_64();
+		
 	assert( stabEntry != NULL );
 	const char * nextStabString = stabEntry->getStringBase();
 	
@@ -436,19 +470,19 @@ void mapped_module::parseFileLineInfo() {
 
 	trueBaseAddress = baseAddress;
 
-	const Object & xcoffObject = fileOnDisk->getObject();
+	Dyn_Symtab *xcoffObject = fileOnDisk->getObject();
 
 	/* We haven't parsed this file already, so iterate over its stab entries. */
 	char * stabstr = NULL;
 	int nstabs = 0;
 	SYMENT * syms = 0;
 	char * stringpool = NULL;
-	xcoffObject.get_stab_info( stabstr, nstabs, syms, stringpool );
+	xcoffObject->get_stab_info( stabstr, nstabs, syms, stringpool );
 
 	int nlines = 0;
 	char * lines = NULL;
 	unsigned long linesfdptr;
-	xcoffObject.get_line_info( nlines, lines, linesfdptr );
+	xcoffObject->get_line_info( nlines, lines, linesfdptr );
 
 	/* I'm not sure why the original code thought it should copy (short) names (through here). */
 	char temporaryName[256];
@@ -681,8 +715,8 @@ void mapped_module::parseFileLineInfo() {
 	/* Determine if we've parsed this file already. */
 	image * moduleImage = obj()->parse_img();
 	assert( moduleImage != NULL );
-	const Object & moduleObject = moduleImage->getObject();	
-	const char * fileName = moduleObject.getFileName();
+	Dyn_Symtab *moduleObject = moduleImage->getObject();	
+	const char * fileName = moduleObject->file().c_str();
 
 	/* We have not parsed this file already, so wind up libdwarf. */
 	int fd = open( fileName, O_RDONLY );
@@ -694,7 +728,7 @@ void mapped_module::parseFileLineInfo() {
 	
 	Dwarf_Debug dbg;
 	int status = dwarf_init(	fd, DW_DLC_READ, & pd_dwarf_handler,
-								moduleObject.getErrFunc(),
+								moduleImage->getErrFunc(),
 								& dbg, NULL );
 	if( status != DW_DLV_OK ) { P_close( fd ); return; }
 	
@@ -831,9 +865,85 @@ void mapped_module::parseFileLineInfo() {
 
 }
 #elif defined(os_windows)
-//void mapped_module::parseFileLineInfo() {
-// Or here, I believe
-//}
+
+//We want to pass both the module and lineInformation object through
+// the (void *) param parameter of SymEnumLinesProc.  This struct
+// helps with that.
+struct mod_linfo_pair {
+   mapped_module *mod;
+   LineInformation *li;
+};
+
+static SRCCODEINFO *last_srcinfo;
+BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
+{
+   struct mod_linfo_pair *pair = (struct mod_linfo_pair *) param;
+   mapped_module *mod = pair->mod;
+   LineInformation *li = pair->li;
+   
+   if (last_srcinfo && srcinfo) {
+      //All the middle iterations.  Use the previous line information with the 
+      // current line info to build LineInformation structure.
+      assert(last_srcinfo->Address <= srcinfo->Address);
+      li->addLine(last_srcinfo->FileName, last_srcinfo->LineNumber, 
+                  (Address) last_srcinfo->Address, (Address) srcinfo->Address);
+      return TRUE;
+   }
+   else if (!last_srcinfo && srcinfo) {
+      //First iteration.  Don't add anything until the next
+      last_srcinfo = srcinfo;
+      return TRUE;
+   }
+   else if (last_srcinfo && !srcinfo) {
+      //Last iteration.  Add current srcinfo up to end of module.
+      li->addLine(last_srcinfo->FileName, last_srcinfo->LineNumber, 
+                  (Address) last_srcinfo->Address, (Address) last_srcinfo->Address);
+      return TRUE;
+   }
+   return TRUE;
+}
+
+void mapped_module::parseFileLineInfo()
+{   
+   bool result;
+   static Address last_file = 0x0;
+
+   struct mod_linfo_pair pair;
+   pair.li = &lineInfo_;
+   pair.mod = this;
+
+   const char *src_file_name = NULL;
+   const char *libname = NULL;
+
+   if (obj()->parse_img()->isAOut()) 
+      src_file_name = fileName().c_str();
+   else 
+      libname = fileName().c_str();
+
+   Address baseAddr = obj()->getBaseAddress();
+   if (last_file == baseAddr)
+	   return;
+   last_file = baseAddr;
+
+   last_srcinfo = NULL;
+   result = SymEnumSourceLines(proc()->processHandle_, 
+                               baseAddr,
+                               libname, 
+                               src_file_name,
+                               0,
+                               0,
+                               add_line_info, 
+                               &pair); 
+   if (!result) {
+      //Not a big deal. The module probably didn't have any debug information.
+      DWORD dwErr = GetLastError();
+      parsing_printf("[%s:%u] - Couldn't SymEnumLines on %s in %s\n", 
+              __FILE__, __LINE__, src_file_name, libname);
+	  return;
+   }
+   add_line_info(NULL, &pair);
+}
+
 #endif
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.4 2006/07/07 00:01:05 jaw Exp $
+// $Id: mapped_module.h,v 1.5 2007/01/09 02:01:59 giri Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -57,7 +57,7 @@ class image;
 #include "common/h/String.h"
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/Object.h"
+#include "symtabAPI/h/Dyn_Symtab.h"
 
 #define CHECK_ALL_CALL_POINTS  // paradyn might need it
 
@@ -76,8 +76,8 @@ class mapped_module {
     mapped_object *obj() const;
     pdmodule *pmod() const;
 
-    const pdstring &fileName() const;
-    const pdstring &fullName() const;
+    const pdstring fileName() const;
+    const pdstring fullName() const;
 
     process *proc() const;
 
