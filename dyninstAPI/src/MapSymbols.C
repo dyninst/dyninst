@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: MapSymbols.C,v 1.3 2006/03/14 22:57:17 legendre Exp $
+ * $Id: MapSymbols.C,v 1.4 2007/01/09 02:01:44 giri Exp $
  */
 
 //MapSymbols.cpp
@@ -54,7 +54,9 @@
 //					  - added addDLL(), getFirstDLL(), getNextDLL()
 
 
-
+#include <cvconst.h>
+#include <windows.h>
+#include <dbghelp.h>
 #include "MapSymbols.h"
 
 MapSymbols::MapSymbols():fp(NULL), filename(NULL), headSymbols(NULL), currSymbols(NULL), 
