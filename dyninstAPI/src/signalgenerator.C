@@ -49,7 +49,6 @@
 #include "stats.h"
 #include "signalhandler.h"
 #include "signalgenerator.h"
-#include "Object.h"
 #include "mapped_object.h"
 #include "eventgate.h"
 //  signal_generator_counter is used to generate identifier strings

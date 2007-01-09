@@ -52,7 +52,6 @@
 #include "BPatch_typePrivate.h"
 #include "BPatch_function.h"
 #include "util.h"
-#include "Object.h"
 #include "symtab.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
