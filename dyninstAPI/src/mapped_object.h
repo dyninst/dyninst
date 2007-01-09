@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.11 2006/07/07 00:01:05 jaw Exp $
+// $Id: mapped_object.h,v 1.12 2007/01/09 02:02:01 giri Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -47,7 +47,6 @@
 #include "common/h/String.h"
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/Object.h"
 
 //  we really do not want to have this defined, but I'm defining it for the moment to get thru paradyn seperation
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
@@ -68,9 +67,9 @@ class int_variable {
 
     Address getAddress() const { return addr_; }
     // Can variables have multiple names?
-    const pdstring &symTabName() const;
-    const pdvector<pdstring> &prettyNameVector() const;
-    const pdvector<pdstring> &symTabNameVector() const;
+    const string &symTabName() const;
+    const vector<string>& prettyNameVector() const;
+    const vector<string>& symTabNameVector() const;
     mapped_module *mod() const { return mod_; };
 
     const image_variable *ivar() const { return ivar_; }
@@ -188,7 +187,7 @@ class mapped_object : public codeRange {
 #endif
 
     // Annoying low-level requirement... direct access to the symbol table.
-    bool  getSymbolInfo(const pdstring &n,Symbol &info);
+    bool  getSymbolInfo(const pdstring &n,Dyn_Symbol &info);
 
     // All name lookup functions are vectorized, because you can have
     // multiple overlapping names for all sorts of reasons.

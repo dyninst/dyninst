@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.17 2006/12/06 21:17:37 bernat Exp $
+// $Id: mapped_object.C,v 1.18 2007/01/09 02:02:00 giri Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -79,8 +79,10 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
     // Set occupied range (needs to be ranges)
     codeBase_ = fileDesc.code();
     dataBase_ = fileDesc.data();
-            
-
+#if defined(os_windows)
+    codeBase_ = fileDesc.loadAddr();
+	dataBase_ = fileDesc.loadAddr();
+#endif
 #if defined(arch_power)
     // AIX defines "virtual" addresses for an a.out inside the file as
     // well as when the system loads the object. As far as I can tell,
@@ -99,14 +101,24 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
         // GCC-ism. This is a shared library with a a.out-like codeOffset.
         // We need to make our base the difference between the two...
         codeBase_ -= image_->codeOffset();
-        codeBase_ += image_->getObject().text_reloc();
+	Dyn_Section *sec;
+	image_->getObject()->findSection(".text", sec);
+	//fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
+	//	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
+	codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseAddress());	
+//        codeBase_ += image_->getObject()->text_reloc();
     }
     else {
         // codeBase_ is the address that the chunk was loaded at; the actual interesting
         // bits start within the chunk. So add in text_reloc (actually, "offset from start
         // of file to interesting bits"). 
         // Non-GCC shared libraries.
-        codeBase_ += image_->getObject().text_reloc();
+        //codeBase_ += image_->getObject()->text_reloc();
+	Dyn_Section *sec;
+	image_->getObject()->findSection(".text", sec);
+	//fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
+	//	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
+        codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseAddress());
     }
     if (image_->dataOffset() >= dataBase_) {
         dataBase_ = 0;
@@ -119,11 +131,11 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
         // *laughs* You'd think this was the same way, right?
         // Well, you're WRONG!
         // For some reason we don't need to add in the data_reloc_...
-        //dataBase_ += image_->getObject().data_reloc();
+        //dataBase_ += image_->getObject()->data_reloc();
     }
 #endif
 
-#if 0
+    #if 0
     fprintf(stderr, "Creating new mapped_object %s/%s\n",
             fullName_.c_str(), getFileDesc().member().c_str());
     fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
@@ -136,7 +148,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
             codeAbs(), codeAbs() + codeSize());
     fprintf(stderr, "Data: 0x%lx to 0x%lx\n",
             dataAbs(), dataAbs() + dataSize());
-#endif
+    #endif
 
 
     // Sets "fileName_"
@@ -343,7 +355,7 @@ mapped_module *mapped_object::findModule(pdstring m_name, bool wildcard)
 mapped_module *mapped_object::findModule(pdmodule *pdmod) {
     assert(pdmod);
 
-    if (pdmod->exec() != parse_img()) {
+    if (pdmod->imExec() != parse_img()) {
         cerr << "WARNING: lookup for module in wrong mapped object!" << endl;
         return NULL;
     }
@@ -650,23 +662,23 @@ void mapped_object::addFunction(int_function *func) {
     for (unsigned pretty_iter = 0; 
          pretty_iter < func->prettyNameVector().size();
          pretty_iter++) {
-        pdstring pretty_name = func->prettyNameVector()[pretty_iter];
-        addFunctionName(func, pretty_name, false);
+        string pretty_name = func->prettyNameVector()[pretty_iter];
+        addFunctionName(func, pretty_name.c_str(), false);
     }
 
     for (unsigned typed_iter = 0; 
          typed_iter < func->typedNameVector().size();
          typed_iter++) {
-        pdstring typed_name = func->typedNameVector()[typed_iter];
-        addFunctionName(func, typed_name, false);
+        string typed_name = func->typedNameVector()[typed_iter];
+        addFunctionName(func, typed_name.c_str(), false);
     }
     
     // And multiple symtab names...
     for (unsigned symtab_iter = 0; 
          symtab_iter < func->symTabNameVector().size();
          symtab_iter++) {
-        pdstring symtab_name = func->symTabNameVector()[symtab_iter];
-        addFunctionName(func, symtab_name, true);
+        string symtab_name = func->symTabNameVector()[symtab_iter];
+        addFunctionName(func, symtab_name.c_str(), true);
     }  
     everyUniqueFunction[func->ifunc()] = func;
     func->mod()->addFunction(func);
@@ -698,14 +710,14 @@ int_variable *mapped_object::findVariable(image_variable *img_var) {
     for (unsigned pretty_iter = 0; 
          pretty_iter < var->prettyNameVector().size();
          pretty_iter++) {
-        pdstring pretty_name = var->prettyNameVector()[pretty_iter];
+        string pretty_name = var->prettyNameVector()[pretty_iter];
         pdvector<int_variable *> *varsByPrettyEntry = NULL;
         
         // Ensure a vector exists
-        if (!allVarsByPrettyName.find(pretty_name,			      
+        if (!allVarsByPrettyName.find(pretty_name.c_str(),			      
                                       varsByPrettyEntry)) {
             varsByPrettyEntry = new pdvector<int_variable *>;
-            allVarsByPrettyName[pretty_name] = varsByPrettyEntry;
+            allVarsByPrettyName[pretty_name.c_str()] = varsByPrettyEntry;
         }
         
         (*varsByPrettyEntry).push_back(var);
@@ -715,14 +727,14 @@ int_variable *mapped_object::findVariable(image_variable *img_var) {
     for (unsigned symtab_iter = 0; 
          symtab_iter < var->symTabNameVector().size();
          symtab_iter++) {
-        pdstring symtab_name = var->symTabNameVector()[symtab_iter];
+        string symtab_name = var->symTabNameVector()[symtab_iter];
         pdvector<int_variable *> *varsBySymTabEntry = NULL;
         
         // Ensure a vector exists
-        if (!allVarsByMangledName.find(symtab_name,			      
+        if (!allVarsByMangledName.find(symtab_name.c_str(),			      
                                        varsBySymTabEntry)) {
             varsBySymTabEntry = new pdvector<int_variable *>;
-            allVarsByMangledName[symtab_name] = varsBySymTabEntry;
+            allVarsByMangledName[symtab_name.c_str()] = varsBySymTabEntry;
         }
         
         (*varsBySymTabEntry).push_back(var);
@@ -754,29 +766,29 @@ const pdstring mapped_object::debugString() const {
 // all we care about, amusingly, is symbol table information. 
 
 void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const {
-    pdvector<Symbol> foundHeapSyms;
+    pdvector<Dyn_Symbol *> foundHeapSyms;
 
     parse_img()->findSymByPrefix("DYNINSTstaticHeap", foundHeapSyms);
     parse_img()->findSymByPrefix("_DYNINSTstaticHeap", foundHeapSyms);
 
     for (unsigned i = 0; i < foundHeapSyms.size(); i++) {
         foundHeapDesc foo;
-        foo.name = foundHeapSyms[i].name();
-        foo.addr = foundHeapSyms[i].addr();
+        foo.name = foundHeapSyms[i]->getName().c_str();
+        foo.addr = foundHeapSyms[i]->getAddr();
         // foo.addr is now relative to the start of the heap; check the type of the symbol to 
         // determine whether it's a function (off codeBase_) or variable (off dataBase_)
-        switch(foundHeapSyms[i].type()) {
-        case Symbol::PDST_FUNCTION:
+        switch(foundHeapSyms[i]->getType()) {
+        case Dyn_Symbol::PDST_FUNCTION:
             foo.addr += codeBase_;
             foundHeaps.push_back(foo);
             break;
-        case Symbol::PDST_OBJECT:
+        case Dyn_Symbol::PDST_OBJECT:
             foo.addr += dataBase_;
             foundHeaps.push_back(foo);
             break;
         default:
             // We don't know what this is, and can't tell the base. Skip it (but warn)
-            fprintf(stderr, "Warning: skipping inferior heap with type %d, %s@0x%lx\n", foundHeapSyms[i].type(), foo.name.c_str(), foo.addr);
+            fprintf(stderr, "Warning: skipping inferior heap with type %d, %s@0x%lx\n", foundHeapSyms[i]->getType(), foo.name.c_str(), foo.addr);
             break;
         }
     }
@@ -820,10 +832,16 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
         // We also have the loader; there is no information on where
         // it goes (ARGH) so we pad the end of the code segment to
         // try and avoid it.
-
+	
+	Dyn_Section *sec;
+	image_->getObject()->findSection(".loader",sec);
         Address loader_end = codeAbs() + 
-            image_->getObject().loader_off() +
-            image_->getObject().loader_len();
+            //sec.getSecAddr() +
+	    image_->getObject()->getLoadAddress() +
+            sec->getSecSize();
+        //Address loader_end = codeAbs() + 
+        //    image_->getObject()->loader_off() +
+        //    image_->getObject()->loader_len();
         // If we loaded it up in the data segment, don't use...
         if (loader_end > 0x20000000)
             loader_end = 0;
@@ -873,7 +891,7 @@ void *mapped_object::getPtrToData(Address addr) const {
     return image_->getPtrToData(offset);
 }
 
-bool mapped_object::getSymbolInfo(const pdstring &n, Symbol &info) {
+bool mapped_object::getSymbolInfo(const pdstring &n, Dyn_Symbol &info) {
     if (image_) {
         if (!image_->symbol_info(n, info)) {
             // Leading underscore...
@@ -887,11 +905,11 @@ bool mapped_object::getSymbolInfo(const pdstring &n, Symbol &info) {
         // same, but may be different (cf. AIX)
 
         // Check symbol type.
-        if (info.type() == Symbol::PDST_OBJECT) {
-            info.setAddr(info.addr() + dataBase_);
+        if (info.getType() == Dyn_Symbol::PDST_OBJECT) {
+            info.setAddr(info.getAddr() + dataBase_);
         }
         else {
-            info.setAddr(info.addr() + codeBase_);
+            info.setAddr(info.getAddr() + codeBase_);
         }
 
         return true;
