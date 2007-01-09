@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.76 2006/08/03 08:18:20 jaw Exp $
+# $Id: Makefile,v 1.77 2007/01/09 02:00:30 giri Exp $
 #
 
 TO_CORE = .
@@ -30,9 +30,9 @@ ParadynVC	= visi \
 		visiClients/termWin
 
 subSystems	= $(basicComps) $(ParadynD) $(ParadynFE) $(ParadynVC)
-DyninstAPI	= ready dyninstAPI_RT dyninstAPI dyninstAPI/tests testsuite dyner codeCoverage
+DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dyninstAPI/tests testsuite dyner codeCoverage
 
-allSubdirs	= $(basicComps) $(subSystems) dyninstAPI dyninstAPI_RT dyninstAPI/tests testsuite dyner codeCoverage
+allSubdirs	= $(basicComps) $(subSystems) common symtabAPI dyninstAPI dyninstAPI_RT dyninstAPI/tests testsuite dyner codeCoverage
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
