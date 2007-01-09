@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.28 2006/12/06 21:17:22 bernat Exp $
+ * $Id: image-flowGraph.C,v 1.29 2007/01/09 02:01:48 giri Exp $
  */
 
 #include <stdio.h>
@@ -51,7 +51,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/Object.h"
+#include "symtabAPI/h/Dyn_Symtab.h"
 #include <fstream>
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
@@ -91,7 +91,7 @@ bool image::analyzeImage()
 
     // TODO: remove arch_x86 from here - it's just for testing
 #if defined(arch_x86_64) || defined(arch_x86)
-    ia32_set_mode_64(getObject().getAddressWidth() == 8);
+    ia32_set_mode_64(getObject()->getAddressWidth() == 8);
 #endif
   
  // Hold unseen call targets
@@ -120,7 +120,7 @@ bool image::analyzeImage()
     pdf = everyUniqueFunction[i];
     mod = pdf->pdmod();
     assert(pdf); assert(mod);
-    pdstring name = pdf->symTabName();
+    pdstring name = pdf->symTabName().c_str();
     parseFunction( pdf, callTargets, preParseStubs);
         
     // these functions have not been added to the code range tree
@@ -213,7 +213,8 @@ bool image::analyzeImage()
                     snprintf( name, 32, "gap_f%lx", pos );
                     pdf = new image_func( name, pos, UINT_MAX, mod, this);
                     if(parseFunction( pdf, callTargets, preParseStubs)) {
-                        addFunctionName(pdf, name, true);
+                        //addFunctionName(pdf, name, true);
+						pdf->addSymTabName(name);	// newly added
                         pdf->addPrettyName( name );
                         // No typed name
                   
@@ -371,7 +372,8 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
                 enterFunctionInTables(pdf,false);
                 
                 // mangled name
-                addFunctionName(pdf, pdf->symTabName().c_str(), true);
+		pdf->addSymTabName(pdf->symTabName().c_str());
+                //addFunctionName(pdf, pdf->symTabName().c_str(), true);
                 // Auto-adds to our list
                 pdf->addPrettyName( pdf->symTabName().c_str() );
             }
@@ -643,14 +645,13 @@ bool image_func::buildCFG(
     codeRange *tmpRange;
 
     // ** Use to special-case abort and exit calls
-    const Object &obj = img()->getObject();
-    const pdvector<relocationEntry> *fbt;
+    Dyn_Symtab *obj = img()->getObject();
+    vector<relocationEntry> fbt;
     dictionary_hash<Address, pdstring> pltFuncs(addrHash);
-    if(obj.get_func_binding_table_ptr(fbt)) {
-        for(unsigned k = 0; k < fbt->size(); k++)
-        {
-            pltFuncs[(*fbt)[k].target_addr()] = (*fbt)[k].name();
-        }
+    if(obj->getFuncBindingTable(fbt))
+    {
+        for(unsigned k = 0; k < fbt.size(); k++)
+            pltFuncs[fbt[k].target_addr()] = fbt[k].name().c_str();
     }
 
     // ** end abort/exit setup
@@ -914,7 +915,8 @@ bool image_func::buildCFG(
                     // (a jmp to the "real" function)
                     parsing_printf("... uninstrumentable due to 0 size\n");
                     instLevel_ = UNINSTRUMENTABLE;
-                    endOffset_ = startOffset_;
+                    //endOffset_ = startOffset_;
+                    endOffset_ = getOffset();
                     return false; 
                 }                 
 
@@ -1433,7 +1435,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
     WL.push_back(firstBlock);
     visited.insert(firstBlock);
 
-    parsing_printf("Parsing shared code at 0x%lx, blockList size: %ld startoffset: 0x%lx endoffset: 0x%lx\n",firstBlock->firstInsnOffset_, blockList.size(), startOffset_, endOffset_);
+    parsing_printf("Parsing shared code at 0x%lx, blockList size: %ld startoffset: 0x%lx endoffset: 0x%lx\n",firstBlock->firstInsnOffset_, blockList.size(), getOffset(), endOffset_);
 
     // remember that we have shared blocks
     containsSharedBlocks_ = true;
@@ -1518,6 +1520,8 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock)
     BPatch_Set< image_basicBlock* > pv;
     dictionary_hash< Address, image_basicBlock * > leadersToBlock( addrHash );
 
-    endOffset_ = startOffset_;
+    //endOffset_ = startOffset_;
+    endOffset_ = getOffset();
+    
     parseSharedBlocks(firstBlock,leaders,leadersToBlock,pv,endOffset_);  
 }

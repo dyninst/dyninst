@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.397 2007/01/04 23:00:04 legendre Exp $
+/* $Id: process.h,v 1.398 2007/01/09 02:01:52 giri Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -55,7 +55,6 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
 #include "common/h/String.h"
-#include "common/h/vectorSet.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
 #include "common/h/Timer.h"
@@ -66,6 +65,7 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/imageUpdate.h"
 #include "dyninstAPI/src/infHeap.h"
+#include "dyninstAPI/src/symtab.h"
 
 #include "debug.h"
 
@@ -123,7 +123,7 @@ class dyn_lwp;
 class Object;
 class relocationEntry;
 class fileDescriptor;
-class Symbol;
+class Dyn_Symbol;
 class image;
 class mapped_object;
 class mapped_module;
@@ -305,7 +305,7 @@ class process {
   
   // This will find the named symbol in the image or in a shared object
   // Necessary since some things don't show up as a function or variable.
-  bool getSymbolInfo( const pdstring &name, Symbol &ret );
+  bool getSymbolInfo( const pdstring &name, Dyn_Symbol &ret );
 
   // Not at all sure we want to use this anymore...
   void overwriteImage( image* /*img */) {

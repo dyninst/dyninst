@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.251 2006/12/06 21:17:34 bernat Exp $
+// $Id: linux.C,v 1.252 2007/01/09 02:01:49 giri Exp $
 
 #include <fstream>
 
@@ -86,7 +86,6 @@
 
 #include "dynamiclinking.h"
 
-#include "Elf_X.h"
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
 // #include "saveSharedLibrary.h" 
@@ -1511,8 +1510,11 @@ bool process::dumpImage( pdstring imageFileName )
 //Returns true if the function is part of the PLT table
 bool isPLT(int_function *f)
 {
-    const Object &obj = f->mod()->obj()->parse_img()->getObject();
-    return obj.is_offset_in_plt(f->ifunc()->getOffset());
+    Dyn_Symtab *obj = f->mod()->obj()->parse_img()->getObject();
+    Dyn_Section *sec;
+    if(obj->findSection(".plt",sec))
+	return sec->isOffsetInSection(f->ifunc()->getOffset());
+    return false;	
 }
 
 // findCallee: finds the function called by the instruction corresponding
@@ -1558,27 +1560,29 @@ int_function *instPoint::findCallee() {
    }
 
    // get the relocation information for this image
-   const Object &obj = func()->obj()->parse_img()->getObject();
-   const pdvector<relocationEntry> *fbt;
-   if(!obj.get_func_binding_table_ptr(fbt)) {
-      return NULL; // target cannot be found...it is an indirect call.
-   }
+   Dyn_Symtab *obj = func()->obj()->parse_img()->getObject();
+   pdvector<relocationEntry> fbt;
+   vector <relocationEntry> fbtvector;
+   if(!obj->getFuncBindingTable(fbtvector))
+   	return NULL;
+   for(unsigned index=0; index< fbtvector.size();index++)
+   	fbt.push_back(fbtvector[index]);
   
    Address base_addr = func()->obj()->codeBase();
    // find the target address in the list of relocationEntries
-   for(u_int i=0; i < fbt->size(); i++) {
-      if((*fbt)[i].target_addr() == target_addr) {
+   for(u_int i=0; i < fbt.size(); i++) {
+      if(fbt[i].target_addr() == target_addr) {
          // check to see if this function has been bound yet...if the
          // PLT entry for this function has been modified by the runtime
          // linker
          int_function *target_pdf = 0;
-         if(proc()->hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
+         if(proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
             callee_ = target_pdf;
             return callee_;  // target has been bound
          } 
          else {
             pdvector<int_function *> pdfv;
-            bool found = proc()->findFuncsByMangled((*fbt)[i].name(), pdfv);
+            bool found = proc()->findFuncsByMangled(fbt[i].name().c_str(), pdfv);
             if(found) {
                assert(pdfv.size());
                callee_ = pdfv[0];

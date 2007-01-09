@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.678 2006/12/16 00:05:47 legendre Exp $
+// $Id: process.C,v 1.679 2007/01/09 02:01:51 giri Exp $
 
 #include <ctype.h>
 
@@ -53,7 +53,7 @@
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/Object.h"
+#include "symtabAPI/h/Dyn_Symtab.h"
 //#include "dyninstAPI/src/func-reloc.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -168,15 +168,14 @@ Address process::getTOCoffsetInfo(Address dest)
     }
     // Very odd case if this is not defined.
     assert(mobj); 
-
-    return mobj->parse_img()->getObject().getTOCoffset() + mobj->dataBase();
+    return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
 
 }
 
 Address process::getTOCoffsetInfo(int_function *func) {
     mapped_object *mobj = func->obj();
 
-    return mobj->parse_img()->getObject().getTOCoffset() + mobj->dataBase();
+    return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
 }
 
 #endif
@@ -705,13 +704,29 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
       //this is for the dlopen problem...
       if(strstr(sh_obj->fileName().c_str(), "ld-linux.so") ){
          //find the offset of _dl_debug_state in the .plt
-         dl_debug_statePltEntry = 
-            sh_obj->parse_img()->getObject().getPltSlot("_dl_debug_state");
+	 Dyn_Symtab *obj = sh_obj->parse_img()->getObject();
+	 vector<relocationEntry> fbt;
+	 obj->getFuncBindingTable(fbt);
+	 dl_debug_statePltEntry = 0;
+	 for(unsigned i=0; i<fbt.size();i++)
+	 {
+	 	if(fbt[i].name() == "_dl_debug_state")
+			dl_debug_statePltEntry = fbt[i].rel_addr();
+	 }
       }
 #if defined(sparc_sun_solaris2_4)
+      relocationEntry re;
+      tmp_dlopen = 0;
+      vector<relocationEntry> fbt;
+      sh_obj->parse_img()->getObject()->getFuncBindingTable(fbt);
+      for( unsigned int i = 0; i < fbt.size(); i++ )
+      {
+	if("dlopen" == fbt[i].name())
+		tmp_dlopen =  fbt[i].rel_addr();
+      }
       
-      if( ((tmp_dlopen = sh_obj->parse_img()->getObject().getPltSlot("dlopen")) && 
-           !sh_obj->isopenedWithdlopen())){
+      if( tmp_dlopen && (!sh_obj->isopenedWithdlopen()))
+      {
          dl_debug_statePltEntry = tmp_dlopen + sh_obj->getBaseAddress();
       }
 #endif
@@ -724,11 +739,11 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
       dyninst_SharedLibrariesSize += sizeof(unsigned int);
    }
 #if defined(sparc_sun_solaris2_4)
-   if( (tmp_dlopen = getAOut()->parse_img()->getObject().getPltSlot("dlopen"))) {
+   if(tmp_dlopen) {
        dl_debug_statePltEntry = tmp_dlopen;
    }
    
-   //dl_debug_statePltEntry = parse_img()->getObject().getPltSlot("dlopen");
+   //dl_debug_statePltEntry = parse_img()->getObject()->getPltSlot("dlopen");
 #endif
    dyninst_SharedLibrariesSize += 1;//for the trailing '\0'
    
@@ -788,10 +803,10 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 			correct.
 		*/
 #if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
-		Symbol info;
+		Dyn_Symbol info;
 		pdstring dynamicSection = "_DYNAMIC";
 		sh_obj->getSymbolInfo(dynamicSection,info);
-		baseAddr = sh_obj->getBaseAddress() + info.addr();
+		baseAddr = sh_obj->getBaseAddress() + info.getAddr();
 		//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->fileName().c_str(), baseAddr);
 #endif
 
@@ -2363,7 +2378,7 @@ bool process::setupFork()
 
 unsigned process::getAddressWidth() { 
     if (mapped_objects.size() > 0) 
-        return mapped_objects[0]->parse_img()->getObject().getAddressWidth(); 
+        return mapped_objects[0]->parse_img()->getObject()->getAddressWidth(); 
     // We can call this before we've attached.. 
     return 4;
 }
@@ -4590,7 +4605,7 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
 }
 
 // Returns the named symbol from the image or a shared object
-bool process::getSymbolInfo( const pdstring &name, Symbol &ret ) 
+bool process::getSymbolInfo( const pdstring &name, Dyn_Symbol &ret ) 
 {
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         bool sflag;
@@ -4701,7 +4716,7 @@ int_function *process::findFuncByInternalFunc(image_func *ifunc) {
     // Now we have to look up our specialized version
     // Can't do module lookup because of DEFAULT_MODULE...
     pdvector<int_function *> possibles;
-    if (!findFuncsByMangled(ifunc->symTabName(),
+    if (!findFuncsByMangled(ifunc->symTabName().c_str(),
                             possibles))
         return NULL;
 
@@ -4929,16 +4944,16 @@ void process::findSignalHandler(mapped_object *obj){
     assert(obj);
 
     // Old skool
-    Symbol sigSym;
+    Dyn_Symbol sigSym;
     pdstring signame(SIGNAL_HANDLER);
 
     if (obj->getSymbolInfo(signame, sigSym)) {
         // Symbols often have a size of 0. This b0rks the codeRange code,
         // so override to 1 if this is true...
-        unsigned size_to_use = sigSym.size();
+        unsigned size_to_use = sigSym.getSize();
         if (!size_to_use) size_to_use = 1;
 
-        addSignalHandler(sigSym.addr(), size_to_use);
+        addSignalHandler(sigSym.getAddr(), size_to_use);
     }
 
 }
