@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.68 2006/12/13 21:34:36 jaw Exp $
+// $Id: templates2.C,v 1.69 2007/01/09 02:01:30 giri Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -50,8 +50,42 @@
 #endif
 
 #include "common/h/String.h"
-#include "common/h/Symbol.h"
+#include "symtabAPI/h/Dyn_Symbol.h"
 
+#if 0
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "symtabAPI/h/Dyn_Symtab.h"
+#include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/syscalltrap.h"
+
+#include "dyninstAPI/src/signalhandler.h"
+#endif
+
+#ifndef alpha_dec_osf4_0
+// ld on Alpha complains about the vector<pdstring> class being
+// multiply defined with the following line in.  Perhaps
+// it automatically generates vector<pdstring> when it sees
+// pair<pdstring, vector<pdstring> > in the line after.
+//
+// Ray Chen 6/18/2002
+template class pdvector<pdstring>;
+#endif
+
+template class pdpair<pdstring, pdvector<pdstring> >;
+
+template class pdvector<pdpair<pdstring, pdvector<pdstring> > >;
+
+
+class Dyn_Symbol;
+template class  dictionary_hash_iter <Address, Dyn_Symbol*>;
+
+//template class  dictionary_hash_iter <instPoint*, unsigned>;
+template class  dictionary_hash_iter <pdstring, Dyn_Symbol>;
 class pdmodule;
 template class  dictionary_hash_iter <pdstring, pdmodule *>;
 
@@ -65,6 +99,9 @@ class syscallTrap;
 template class pdvector<syscallTrap *>;
 
 /* ***************************************************************************** */
+
+template class dictionary_hash <pdstring, Dyn_Symbol>;
+template class pdvector<dictionary_hash <pdstring, Dyn_Symbol>::entry>;
 
 class BPatch_point;
 template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
@@ -134,8 +171,9 @@ template class dictionary_hash< Address, void * >;
 template class pdvector< dictionary_hash< Address, void * >::entry >;
 #endif /* defined( arch_ia64 ) */
 
-template class dictionary_hash< pdstring, pdvector< Symbol > >;
-template class pdvector<dictionary_hash < pdstring, pdvector <Symbol> >::entry>;
+template class pdvector< Dyn_Symbol >;
+template class dictionary_hash< pdstring, pdvector< Dyn_Symbol > >;
+template class pdvector<dictionary_hash < pdstring, pdvector <Dyn_Symbol> >::entry>;
 
 template class dictionary_hash< pdstring, bool >;
 template class pdvector< dictionary_hash< pdstring, bool >::entry >;

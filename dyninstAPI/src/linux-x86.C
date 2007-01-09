@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.119 2006/12/06 21:17:33 bernat Exp $
+// $Id: linux-x86.C,v 1.120 2007/01/09 02:01:25 giri Exp $
 
 #include <fstream>
 
@@ -764,10 +764,11 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 					correct.
 				*/
 
-				Symbol info;
-				pdstring dynamicSection = "_DYNAMIC";
+				Dyn_Symbol info;
+				const pdstring dynamicSection = "_DYNAMIC";
+				
 				mapped_obj->getSymbolInfo(dynamicSection,info);
-				baseAddr = /*mapped_obj->codeBase() + */ info.addr(); //ccw 14 dec 2005 : again, the ret value of mapped_obj->codeBase seems to have changed
+				baseAddr = /*mapped_obj->codeBase() + */ info.getAddr(); //ccw 14 dec 2005 : again, the ret value of mapped_obj->codeBase seems to have changed
 				//fprintf(stderr," %s DYNAMIC ADDR: %x\n",mapped_obj->fileName().c_str(), baseAddr);
 
 				//baseAddr = mapped_obj->getBaseAddress();
@@ -808,10 +809,10 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 				correct.
 			*/
 
-			Symbol info;
-			pdstring dynamicSection = "_DYNAMIC";
+			Dyn_Symbol info;
+			const pdstring dynamicSection = "_DYNAMIC";
 			mapped_obj->getSymbolInfo(dynamicSection,info);
-			rtlibAddr = /*mapped_obj->codeBase() + */ info.addr();
+			rtlibAddr = /*mapped_obj->codeBase() + */ info.getAddr();
 			// i guess codeBase used to return 0 and now returns the correct value ccw 14 Dec 2005
 			//fprintf(stderr," %s DYNAMIC ADDR: %x\n",mapped_obj->fileName().c_str(), rtlibAddr);
 		}

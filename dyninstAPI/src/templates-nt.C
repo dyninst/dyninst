@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.62 2006/12/01 01:33:27 legendre Exp $
+// $Id: templates-nt.C,v 1.63 2007/01/09 02:01:27 giri Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -49,7 +49,6 @@
  */
 #pragma warning (disable: 4660)
 
-#include "common/src/vectorSet.C"
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -101,7 +100,7 @@ template class pdvector<fileDescriptor>;
 
 template class dictionary_hash<pdstring, unsigned int>;
 template class dictionary_hash<pdstring, pdstring>;
-template class dictionary_hash<pdstring, Symbol>;
+template class dictionary_hash<pdstring, Dyn_Symbol>;
 template class dictionary_hash<pdstring, pdmodule *>;
 template class dictionary_hash<pdstring, int_function *>;
 //template class dictionary_hash<pdstring, internalSym *>;
@@ -158,8 +157,8 @@ template class pdvector<dictionary_hash <Address, unsigned char>::entry >;
 template class dictionary_hash<pdstring,supportedLanguages>;
 template class pdvector<dictionary_hash<pdstring,supportedLanguages>::entry>;
 
-template class pdvector< Symbol >;
-template class dictionary_hash< pdstring, pdvector< Symbol > >;
+template class pdvector< Dyn_Symbol >;
+template class dictionary_hash< pdstring, pdvector< Dyn_Symbol > >;
 
 template class dictionary_hash<int, BPatch_process *>;
 template class pdvector<dictionary_hash <int, BPatch_process *>::entry>;

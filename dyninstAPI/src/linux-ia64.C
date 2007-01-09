@@ -54,7 +54,7 @@
 #include "function.h"
 
 // For relocationEntry
-#include "Object.h"
+#include "symtab.h"
 
 /* For emitInferiorRPC*(). */
 #include "rpcMgr.h"
@@ -464,11 +464,11 @@ bool process::loadDYNINSTlib() {
      -argument functions the same, check the version anyway, since
      we'll probably need to later. */
   bool useFourArguments = true;
-  Symbol libcVersionSymbol;
+  Dyn_Symbol libcVersionSymbol;
   if( getSymbolInfo( "__libc_version", libcVersionSymbol ) ) {
-    char libcVersion[ sizeof( int ) * libcVersionSymbol.size() + 1 ];
-	libcVersion[ sizeof( int ) * libcVersionSymbol.size() ] = '\0';
-    if( ! readDataSpace( (void *) libcVersionSymbol.addr(), libcVersionSymbol.size(), libcVersion, true ) ) {
+    char libcVersion[ sizeof( int ) * libcVersionSymbol.getSize() + 1 ];
+	libcVersion[ sizeof( int ) * libcVersionSymbol.getSize() ] = '\0';
+    if( ! readDataSpace( (void *) libcVersionSymbol.getAddr(), libcVersionSymbol.getSize(), libcVersion, true ) ) {
       fprintf( stderr, "%s[%d]: warning, failed to read libc version, assuming 2.3.4+\n", __FILE__, __LINE__ );
       }
     else {

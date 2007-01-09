@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.59 2006/12/13 21:34:36 jaw Exp $
+// $Id: templates0.C,v 1.60 2007/01/09 02:01:28 giri Exp $
 // Generate all the templates in one file.
 
 /*
@@ -65,14 +65,12 @@
 #endif
 #include "common/h/Vector.h"
 
-#include "common/h/Symbol.h"
-
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Symbol.h")
 #else
 #pragma implementation "Symbol.h"
 #endif
-
+#include "symtabAPI/h/Dyn_Symbol.h"
 
 #include "common/h/String.h"
 
@@ -101,8 +99,8 @@ class AstNode;
 template class  pdvector<AstNode *>;
 
 // Included above
-template class  pdvector<Symbol>;
-template class  pdvector<Symbol*>;
+template class  pdvector<Dyn_Symbol>;
+template class  pdvector<Dyn_Symbol*>;
 
 #include "frame.h"
 template class  pdvector<Frame>;
@@ -134,7 +132,7 @@ template class  pdvector<baseTrampInstance *>;
 template class  pdvector<instruction>;
 
 #include "symtab.h"
-template class  pdvector< ExceptionBlock >;
+template class  pdvector< Dyn_ExceptionBlock >;
 
 class codeRange;
 template class  pdvector<codeRange *>;
@@ -176,7 +174,7 @@ template class  pdvector<pdvector<image_func *> *>;
 template class  pdvector<image_basicBlock *>;
 template class  pdvector<image_variable *>;
 
-#include "Object.h"
+#include "symtabAPI/h/Dyn_Symtab.h"
 template class  pdvector<relocationEntry>;
 
 class sharedLibHook;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.93 2006/09/06 20:16:17 bernat Exp $
+// $Id: BPatch_image.C,v 1.94 2007/01/09 02:01:22 giri Exp $
 
 #define BPATCH_FILE
 
@@ -48,7 +48,6 @@
 #include <string.h>
 
 #include "process.h"
-#include "symtab.h"
 #include "instPoint.h"
 #include "instP.h"
 
@@ -190,13 +189,13 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProceduresInt(bool incUninstr
 
 BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const char *name)
 {
-    Symbol syminfo;
+    Dyn_Symbol syminfo;
     BPatch_type *type;
     
     type = mod->getModuleTypes()->globalVarsByName[name];
     
     if (!type) {
-        switch (syminfo.size()) {
+        switch (syminfo.getSize()) {
         case 1:
             type = findType("char");
             break;
@@ -220,14 +219,14 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     }
 
     // Error case. 
-    if (syminfo.addr() == 0)
+    if (syminfo.getAddr() == 0)
         return NULL;
     
-    BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
+    BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.getAddr()];
     if (!var) {
         var = new BPatch_variableExpr( const_cast<char *>(name), proc,
-                                       (void *)syminfo.addr(), type);
-        AddrToVarExpr->hash[syminfo.addr()] = var;
+                                       (void *)syminfo.getAddr(), type);
+        AddrToVarExpr->hash[syminfo.getAddr()] = var;
     }
     return var;
 }
@@ -559,7 +558,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
      // Check all pretty names (and then all mangled names if there is no match)
      bool found_match = false;
      for (unsigned piter = 0; piter < func->prettyNameVector().size(); piter++) {
-       const pdstring &pName = func->prettyNameVector()[piter];
+       const string &pName = func->prettyNameVector()[piter];
        int err;
      
        if (0 == (err = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
@@ -574,7 +573,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
      if (found_match) continue; // Don't check mangled names
 
      for (unsigned miter = 0; miter < func->symTabNameVector().size(); miter++) {
-       const pdstring &mName = func->symTabNameVector()[miter];
+       const string &mName = func->symTabNameVector()[miter];
        int err;
      
        if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
@@ -665,7 +664,7 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
     // Check all pretty names (and then all mangled names if there is no match)
     bool found_match = false;
     for (unsigned piter = 0; piter < func->prettyNameVector().size(); piter++) {
-      const pdstring &pName = func->prettyNameVector()[piter];
+      const string &pName = func->prettyNameVector()[piter];
 
       if ((*bpsieve)(pName.c_str(), user_data)) {
 	if (func->isInstrumentable() || incUninstrumentable) {

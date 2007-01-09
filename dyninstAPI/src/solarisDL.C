@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.48 2006/05/04 16:38:22 bernat Exp $
+// $Id: solarisDL.C,v 1.49 2007/01/09 02:01:26 giri Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -62,7 +62,7 @@ bool dynamic_linking::initialize() {
     r_state = 0;
     // First, find if we're a dynamic executable
     pdstring dyn_str = pdstring("DYNAMIC");
-    Symbol dyn_sym;
+    Dyn_Symbol dyn_sym;
     if( ! proc->getSymbolInfo(dyn_str, dyn_sym)) {
         bperr( "Failed to find string DYNAMIC\n");
         return false; 

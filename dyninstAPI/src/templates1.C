@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.77 2006/12/13 21:34:36 jaw Exp $
+//$Id: templates1.C,v 1.78 2007/01/09 02:01:29 giri Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -49,6 +49,22 @@
 #include "common/src/Dictionary.C"
 
 #include "common/h/String.h"
+
+#if 0
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/util.h"
+#include "symtabAPI/src/Dyn_Symtab.h"
+#include "common/h/List.h"
+#endif
+
+//begin from templates05
+template class refCounter<string_ll>;
+//end from templates05
+
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "dyninstAPI/h/BPatch_type.h"
 #include "dyninstAPI/h/BPatch_Vector.h"
@@ -86,6 +102,11 @@ template class  pdvector<dictionary_hash <unsigned, rpcLWP *>::entry>;
 template class pdvector<rpcThr *>;
 template class pdvector<inferiorRPCtoDo *>;
 template class pdvector<inferiorRPCinProgress *>;
+
+#include "common/src/List.C"
+class Dyn_Symbol;
+template class  dictionary_hash <Address, Dyn_Symbol*>;
+template class  pdvector<dictionary_hash <Address, Dyn_Symbol*>::entry>;
 
 class instPoint;
 template class  dictionary_hash <Address, instPoint*>;

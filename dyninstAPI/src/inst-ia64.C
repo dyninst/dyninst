@@ -2972,10 +2972,10 @@ bool process::insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTr
 	
   /* We need the address of the _U_dyn_info_list in the remote process in order
 	 to register the baseTrampDynamicInfo. */
-  Symbol dyn_info_list;
+  Dyn_Symbol dyn_info_list;
   if (!proc->getSymbolInfo( "_U_dyn_info_list", dyn_info_list))
 	return ! proc->isBootstrappedYet();
-  Address addressOfuDIL = dyn_info_list.addr();
+  Address addressOfuDIL = dyn_info_list.getAddr();
 	
   /* Register baseTrampDynamicInfo in remote process. */
   dyn_unw_printf( "%s[%d]: registering remote address range [0x%lx - 0x%lx) with gp = 0x%lx with uDIL at 0x%lx\n", __FILE__, __LINE__, baseTrampDynamicInfo->start_ip, baseTrampDynamicInfo->end_ip, baseTrampDynamicInfo->gp, addressOfuDIL );
