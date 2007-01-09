@@ -25,7 +25,7 @@
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
-				RuntimeLibrary="1"
+				RuntimeLibrary="3"
 				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
 				DebugInformationFormat="3"/>
@@ -33,7 +33,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib"
+				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib libcommon.lib libsymtabAPI.lib"
 				OutputFile="$(OutDir)\libdyninstAPI.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
@@ -46,11 +46,7 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
-echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
@@ -100,11 +96,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
-echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
@@ -136,22 +128,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
 				RelativePath=".\src\addLibrary.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\debug.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -415,13 +391,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\BPatch_instruction.C">
@@ -463,13 +432,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\BPatch_point.C">
@@ -493,13 +455,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -616,18 +571,11 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\common\src\debugOstream.C">
+				RelativePath=".\src\debug.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -637,13 +585,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -701,13 +642,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -776,22 +710,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\common\src\fraction.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\frame.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -835,7 +753,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -984,22 +901,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\common\src\int64iostream.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\LineInformation.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -1016,7 +917,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\common\src\lprintf.C">
+				RelativePath="..\common\src\List.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -1027,7 +928,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1144,38 +1044,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Object-nt.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Object.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="..\common\src\pathName.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -1187,7 +1055,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1272,12 +1139,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\rpcMgr-lwp.C">
@@ -1335,13 +1196,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\signalhandler.C">
@@ -1365,13 +1219,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1403,7 +1250,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1451,87 +1297,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\common\src\Time.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\common\src\Timer.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\common\src\timing-nt.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\common\src\timing.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\common\src\Types.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1553,22 +1318,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\variable.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\common\src\vectorSet.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -1697,10 +1446,16 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\codeRange.h">
 			</File>
 			<File
+				RelativePath=".\src\debug.h">
+			</File>
+			<File
 				RelativePath=".\src\debuggerinterface.h">
 			</File>
 			<File
 				RelativePath=".\src\deviceStructs.h">
+			</File>
+			<File
+				RelativePath="..\common\h\Dictionary.h">
 			</File>
 			<File
 				RelativePath=".\src\dominator.h">
@@ -1736,6 +1491,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\function.h">
 			</File>
 			<File
+				RelativePath="..\common\h\Ident.h">
+			</File>
+			<File
 				RelativePath=".\src\image-func.h">
 			</File>
 			<File
@@ -1761,6 +1519,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\LineInformation.h">
+			</File>
+			<File
+				RelativePath="..\common\h\List.h">
 			</File>
 			<File
 				RelativePath=".\src\mailbox.h">
@@ -1790,22 +1551,22 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\NTTypes.h">
 			</File>
 			<File
-				RelativePath=".\src\Object-nt.h">
-			</File>
-			<File
-				RelativePath=".\src\Object.h">
-			</File>
-			<File
-				RelativePath=".\src\opcode.h">
-			</File>
-			<File
 				RelativePath=".\src\os.h">
+			</File>
+			<File
+				RelativePath="..\common\h\Pair.h">
+			</File>
+			<File
+				RelativePath="..\common\h\pathName.h">
 			</File>
 			<File
 				RelativePath=".\src\pdwinnt.h">
 			</File>
 			<File
 				RelativePath=".\src\process.h">
+			</File>
+			<File
+				RelativePath="..\common\h\refCounter.h">
 			</File>
 			<File
 				RelativePath=".\src\registerSpace.h">
@@ -1823,7 +1584,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\saveSharedLibrary.h">
 			</File>
 			<File
-				RelativePath=".\src\debug.h">
+				RelativePath=".\src\showerror.h">
 			</File>
 			<File
 				RelativePath=".\src\signalgenerator-winnt.h">
@@ -1841,6 +1602,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\stats.h">
 			</File>
 			<File
+				RelativePath="..\common\h\String.h">
+			</File>
+			<File
 				RelativePath=".\src\symtab.h">
 			</File>
 			<File
@@ -1851,6 +1615,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\util.h">
+			</File>
+			<File
+				RelativePath="..\common\h\Vector.h">
 			</File>
 			<File
 				RelativePath=".\src\w32CONTEXT.h">
