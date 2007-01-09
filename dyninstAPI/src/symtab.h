@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.194 2006/07/07 00:01:09 jaw Exp $
+// $Id: symtab.h,v 1.195 2007/01/09 02:02:07 giri Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -56,7 +56,6 @@
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/List.h"
-#include "dyninstAPI/src/Object.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
@@ -69,25 +68,16 @@
 
 
 #include "common/h/Types.h"
-#include "common/h/Symbol.h"
 #include "dyninstAPI/src/inst.h"
+
+#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)
+#include "symtabAPI/h/Dyn_Archive.h"
+#else
+#include "symtabAPI/h/Dyn_Symtab.h"
+#endif
 
 typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define RH_SEPERATOR '/'
-
-/*
- * List of supported languages.
- *
- */
-typedef enum { lang_Unknown,
-	       lang_Assembly,
-	       lang_C,
-	       lang_CPlusPlus,
-	       lang_GnuCPlusPlus,
-	       lang_Fortran,
-	       lang_Fortran_with_pretty_debug,
-	       lang_CMFortran
-	       } supportedLanguages;
 
 /* contents of line number field if line is unknown */
 #define UNKNOWN_LINE	0
@@ -119,6 +109,85 @@ class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
 
+// File descriptor information
+class fileDescriptor {
+    static pdstring emptyString;
+ public:
+    // Vector requires an empty constructor
+    fileDescriptor();
+
+    //
+    // Some platforms have split code and data. If yours is not one of them,
+    // hand in the same address for code and data.
+    fileDescriptor(pdstring file, Address code, Address data, bool isShared) :
+        file_(file),
+        member_(emptyString),
+        code_(code),
+        data_(data),
+        shared_(isShared),
+        pid_(0)
+        {}
+
+     ~fileDescriptor() {}
+
+     bool operator==(const fileDescriptor &fd) const {
+         return IsEqual(fd );
+     }
+
+     bool operator!=(const fileDescriptor &fd) const {
+         return !IsEqual(fd);
+     }
+
+     // Not quite the same as above; is this the same on-disk file
+     bool isSameFile(const fileDescriptor &fd) const {
+         if ((file_ == fd.file_) &&
+             (member_ == fd.member_))
+             return true;;
+         return false;
+     }
+
+     const pdstring &file() const { return file_; }
+     const pdstring &member() const { return member_; }
+     Address code() const { return code_; };
+     Address data() const { return data_; };
+     bool isSharedObject() const { return shared_; }
+     int pid() const { return pid_; }
+     Address loadAddr() const { return loadAddr_; };
+
+     void setMember(pdstring member) { member_ = member; }
+     void setPid(int pid) { pid_ = pid; }
+
+#if defined(os_windows)
+     // Windows gives you file handles. Since I collapsed the fileDescriptors
+     // to avoid having to track allocated/deallocated memory, these moved here.
+     fileDescriptor(pdstring name, Address baseAddr, HANDLE procH, HANDLE fileH,
+                    bool isShared, Address loadAddr) :
+         file_(name), code_(baseAddr), data_(baseAddr),
+         procHandle_(procH), fileHandle_(fileH),
+         shared_(isShared), pid_(0), loadAddr_(loadAddr) {}
+     HANDLE procHandle() const { return procHandle_; }
+     HANDLE fileHandle() const { return fileHandle_; }
+
+ private:
+     HANDLE procHandle_;
+     HANDLE fileHandle_;
+ public:
+#endif
+
+
+ private:
+     pdstring file_;
+     // AIX: two strings define an object.
+     pdstring member_;
+     Address code_;
+     Address data_;
+     bool shared_;
+     int pid_;
+     Address loadAddr_;
+
+     bool IsEqual( const fileDescriptor &fd ) const;
+};
+
 class image_variable {
  private:
     image_variable() {};
@@ -127,22 +196,24 @@ class image_variable {
                    const pdstring &name,
                    pdmodule *mod);
 
+    image_variable(Dyn_Symbol *sym,
+    		   pdmodule *mod);
+
     Address getOffset() const;
 
-    const pdstring  &symTabName() const { return symTabNames_[0]; }
-    const pdvector<pdstring> &symTabNameVector() const;
-    const pdvector<pdstring> &prettyNameVector() const;
+    const string &symTabName() const { return sym_->getName(); }
+    const vector<string>&  symTabNameVector() const;
+    const vector<string>& prettyNameVector() const;
 
     bool addSymTabName(const pdstring &, bool isPrimary = false);
     bool addPrettyName(const pdstring &, bool isPrimary = false);
 
     pdmodule *pdmod() const { return pdmod_; }
+    Dyn_Symbol *symbol() const { return sym_; }
 
-    pdvector<pdstring> symTabNames_;
-    pdvector<pdstring> prettyNames_;
-
-    Address offset_;
+    Dyn_Symbol *sym_;	
     pdmodule *pdmod_;
+    
 };
 
 /* Stores source code to address in text association for modules */
@@ -156,107 +227,6 @@ class lineDict {
  private:
    dictionary_hash<unsigned, Address> lineMap;
 };
-
-
-class module {
- public:
-   module(){}
-   module(supportedLanguages lang, Address adr, pdstring &fullNm,
-          pdstring &fileNm): fileName_(fileNm), fullName_(fullNm), 
-      language_(lang), addr_(adr){}
-   virtual ~module(){}
-
-   const pdstring &fileName() const { return fileName_; }
-   const pdstring &fullName() const { return fullName_; }
-   supportedLanguages language() const { return language_;}
-   void setLanguage(supportedLanguages lang) {language_ = lang;}
-   Address addr() const { return addr_; }
-
-
- private:
-   pdstring fileName_;                   // short file 
-   pdstring fullName_;                   // full path to file 
-   supportedLanguages language_;
-   Address addr_;                      // starting address of module
-};
-
-class pdmodule: public module {
-   friend class image;
- public:
-
-   pdmodule(supportedLanguages lang, Address adr, pdstring &fullNm,
-            pdstring &fileNm, image *e): module(lang,adr,fullNm,fileNm),
-#if 0
-       // Moved to mapped_module
-      hasParsedLineInformation( false ),
-      lineInformation(),
-#endif
-      exec_(e)
-      {
-      }
-
-   void cleanProcessSpecific(process *p);
-
-   image *exec() const { return exec_; }
-#ifdef CHECK_ALL_CALL_POINTS
-   // JAW -- checking all call points is expensive and may not be necessary
-   //    --  if we can do this on-the-fly
-   void checkAllCallPoints();
-#endif
-   bool getFunctions(pdvector<image_func *> &funcs);
-
-   bool findFunction (const pdstring &name, 
-                      pdvector<image_func *> &found);
- 
-   bool getVariables(pdvector<image_variable *> &vars);
-
-   /* We can see more than one function with the same mangled
-      name in the same object, because it's OK for different
-      modules in the same object to define the same (local) symbol.
-      However, we can't always determine module information (for instance,
-      libc.a on AIX lacks debug information), which means one of our
-      module classes may contain information about an entire object,
-      and therefore, multiple functons with the same mangled name. */
-   bool findFunctionByMangled (const pdstring &name, 
-                               pdvector<image_func *> &found);
-   bool findFunctionByPretty (const pdstring &name, 
-                              pdvector<image_func *> &found);
-
-   bool isShared() const;
-
-   void dumpMangled(pdstring &prefix) const;
-#if 0
-   // Moved to mapped_module class
-   bool hasParsedLineInformation;
-   LineInformation lineInformation;
-   pdstring* processDirectories(pdstring* fn) const;
-
-#if defined(rs6000_ibm_aix4_1)
-
-   void parseLineInformation(pdstring* currentSourceFile,
-                             char* symbolName,
-                             SYMENT *sym,
-                             Address linesfdptr,char* lines,int nlines);
-#endif
-
-#if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(i386_unknown_nt4_0)
-   void parseFileLineInfo(LineInformation &lineInfo, process *proc);
-#endif
-
-#endif // if 0
-
- private:
-
-   image *exec_;                      // what executable it came from 
-   lineDict lines_;
-   //  list of all found functions in module....
-   // pdvector<image_func*> funcs;
-
-   //bool shared_;                      // if image it belongs to is shared lib
-};
-
-
-
 
 void print_func_vector_by_pretty_name(pdstring prefix,
                                       pdvector<image_func *>*funcs);
@@ -328,6 +298,10 @@ class image : public codeRange {
    image(fileDescriptor &desc, bool &err); 
 
    void analyzeIfNeeded();
+
+#if defined(i386_unknown_nt4_0)
+   const pdvector<Address> &getPossibleMains() const   { return possible_mains; }
+#endif
 
  protected:
    ~image();
@@ -417,14 +391,10 @@ class image : public codeRange {
    void *getPtrToData(Address offset) const;
    void * getPtrToDataInText( Address offset ) const;
 
-   Address codeValidStart() const { return codeValidStart_; }
-   Address codeValidEnd() const { return codeValidEnd_; }
-   Address dataValidStart() const { return dataValidStart_; }
-   Address dataValidEnd() const { return dataValidEnd_; }
-   const Object &getObject() const { return linkedFile; }
+   Dyn_Symtab *getObject() const { return linkedFile; }
 
    // Figure out the address width in the image. Any ideas?
-   unsigned getAddressWidth() const { return linkedFile.getAddressWidth(); };
+   unsigned getAddressWidth() const { return linkedFile->getAddressWidth(); };
 
    //Object &getObjectNC() { return linkedFile; } //ccw 27 july 2000 : this is a TERRIBLE hack : 29 mar 2001
 
@@ -438,16 +408,13 @@ class image : public codeRange {
    bool isCode(const Address &where) const;
    bool isData(const Address &where) const;
    bool isValidAddress(const Address &where) const;
-   bool isAllocedCode(const Address &where) const;
-   bool isAllocedData(const Address &where) const;
-   bool isAllocedAddress(const Address &where) const;
 
    bool isNativeCompiler() const { return nativeCompiler; }
 
    // Return symbol table information
-   bool symbol_info(const pdstring& symbol_name, Symbol& ret);
+   bool symbol_info(const pdstring& symbol_name, Dyn_Symbol& ret);
    // And used for finding inferior heaps.... hacky, but effective.
-   bool findSymByPrefix(const pdstring &prefix, pdvector<Symbol> &ret);
+   bool findSymByPrefix(const pdstring &prefix, pdvector<Dyn_Symbol *> &ret);
 
    const pdvector<image_func*> &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
@@ -469,9 +436,11 @@ class image : public codeRange {
    //
 
    Address get_main_call_addr() const { return main_call_addr_; }
+
+   void * getErrFunc() const { return (void *) pd_log_perror; }
  private:
 
-   void findModByAddr (const Symbol &lookUp, pdvector<Symbol> &mods,
+   void findModByAddr (const Dyn_Symbol *lookUp, vector<Dyn_Symbol *> &mods,
                        pdstring &modName, Address &modAddr, 
                        const pdstring &defName);
 
@@ -479,8 +448,8 @@ class image : public codeRange {
    // Remove a function from the lists of instrumentable functions, once already inserted.
    int removeFuncFromInstrumentable(image_func *func);
 
-   image_func *makeOneFunction(pdvector<Symbol> &mods,
-                                const Symbol &lookUp);
+   image_func *makeOneFunction(vector<Dyn_Symbol *> &mods,
+                                Dyn_Symbol *lookUp);
 
 
    //
@@ -492,6 +461,8 @@ class image : public codeRange {
    //bool find_excluded_function(const pdstring &name,
    //    pdvector<image_func*> &retList);
    //image_func *find_excluded_function(const Address &addr);
+
+   void findMain();
 
    // A helper routine for removeInstrumentableFunc -- removes function from specified hash
    void removeFuncFromNameHash(image_func *func, pdstring &fname,
@@ -505,7 +476,7 @@ class image : public codeRange {
    pdmodule *getOrCreateModule (const pdstring &modName, const Address modAddr);
    pdmodule *newModule(const pdstring &name, const Address addr, supportedLanguages lang);
 
-   bool symbolsToFunctions(pdvector<Symbol> &mods, pdvector<image_func *> *raw_funcs);
+   bool symbolsToFunctions(vector<Dyn_Symbol *> &mods, pdvector<image_func *> *raw_funcs);
 
    //bool addAllVariables();
    bool addSymtabVariables();
@@ -518,11 +489,12 @@ class image : public codeRange {
    // We have a _lot_ of lookup types; this handles proper entry
    // wasSymtab: name was found in symbol table. False if invented name
    void enterFunctionInTables(image_func *func, bool wasSymtab);
-   void addFunctionName(image_func *func, const pdstring newName, bool isMangled = false);
-   void addVariableName(image_variable *var, const pdstring newName, bool isMangled = false);
+   //void addFunctionName(image_func *func, const pdstring newName, bool isMangled = false);
+   //void addVariableName(image_variable *var, const pdstring newName, bool isMangled = false);
 
    bool buildFunctionLists(pdvector<image_func *> &raw_funcs);
    bool analyzeImage();
+   Address getBaseAddress() { return baseAddr_; }
    //
    //  ****  PRIVATE DATA MEMBERS  ****
    //
@@ -536,10 +508,10 @@ class image : public codeRange {
    Address dataOffset_;
    unsigned dataLen_;
 
-   Address codeValidStart_;
-   Address codeValidEnd_;
-   Address dataValidStart_;
-   Address dataValidEnd_;
+   //Address codeValidStart_;
+   //Address codeValidEnd_;
+   //Address dataValidStart_;
+   //Address dataValidEnd_;
 
    bool is_libdyninstRT;
    bool is_a_out;
@@ -548,7 +520,7 @@ class image : public codeRange {
    bool nativeCompiler;
 
    // data from the symbol table 
-   Object linkedFile;
+   Dyn_Symtab *linkedFile;
 
 
    // A vector of all images. Used to avoid duplicating
@@ -574,11 +546,13 @@ class image : public codeRange {
    dictionary_hash <Address, image_func *> funcsByEntryAddr;
    // note, a prettyName is not unique, it may map to a function appearing
    // in several modules.  Also only contains instrumentable functions....
+/*
    dictionary_hash <pdstring, pdvector<image_func*>*> funcsByPretty;
    // Hash table holding functions by mangled name.
    // Should contain same functions as funcsByPretty....
    dictionary_hash <pdstring, pdvector<image_func*>*> funcsByMangled;
    // A way to iterate over all the functions efficiently
+*/   
    pdvector<image_func *> everyUniqueFunction;
    // We make an initial list of functions based off the symbol table,
    // and may create more when we actually analyze. Keep track of
@@ -606,46 +580,61 @@ class image : public codeRange {
    //  was excluded....
    dictionary_hash <pdstring, pdmodule *> modsByFileName;
    dictionary_hash <pdstring, pdmodule*> modsByFullName;
+/* 
    // Variables indexed by pretty (non-mangled) name
    dictionary_hash <pdstring, pdvector <image_variable *> *> varsByPretty;
    dictionary_hash <pdstring, pdvector <image_variable *> *> varsByMangled;
+*/   
    dictionary_hash <Address, image_variable *> varsByAddr;
 
-   int refCount;
+#if defined(i386_unknown_nt4_0)
+	pdvector<Address> possible_mains; //Addresses of functions that may be main
+#endif
 
+   int refCount;
+   Address baseAddr_;
    imageParseState_t parseState_;
 };
 
-/**
- * Used to represent something like a C++ try/catch block.  
- * Currently only used on Linux/x86
- **/
-class ExceptionBlock {
+
+class pdmodule: public Dyn_Module {
+   friend class image;
  public:
-   ExceptionBlock(Address tStart, unsigned tSize, Address cStart) :
-     tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true) {}
-   ExceptionBlock(Address cStart) :
-      tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false) {}
-   ExceptionBlock(const ExceptionBlock &eb) : tryStart_(eb.tryStart_), 
-      trySize_(eb.trySize_), catchStart_(eb.catchStart_), hasTry_(eb.hasTry_) {}
-   ExceptionBlock() : tryStart_(0), trySize_(0), catchStart_(0), hasTry_(false) {}
-   ~ExceptionBlock() {}
+   pdmodule(supportedLanguages lang, Address adr, pdstring &fullNm, image *e)
+            : Dyn_Module(lang,(OFFSET)adr,fullNm.c_str(),e->getObject()), exec_(e){}
+   pdmodule(Dyn_Module &mod, image *e) : Dyn_Module(mod), exec_(e) {}
 
-   bool hasTry() const { return hasTry_; }
-   Address tryStart() const { return tryStart_; }
-   Address tryEnd() const { return tryStart_ + trySize_; }
-   Address trySize() const { return trySize_; }
-   Address catchStart() const { return catchStart_; }
-   Address contains(Address a) const 
-      { return (a >= tryStart_ && a < tryStart_ + trySize_); }
+   void cleanProcessSpecific(process *p);
 
+#ifdef CHECK_ALL_CALL_POINTS
+   // JAW -- checking all call points is expensive and may not be necessary
+   //    --  if we can do this on-the-fly
+   void checkAllCallPoints();
+#endif
+   bool getFunctions(pdvector<image_func *> &funcs);
+
+   bool findFunction(const pdstring &name,
+                      pdvector<image_func *> &found);
+
+   bool getVariables(pdvector<image_variable *> &vars);
+
+   /* We can see more than one function with the same mangled
+      name in the same object, because it's OK for different
+      modules in the same object to define the same (local) symbol.
+      However, we can't always determine module information (for instance,
+      libc.a on AIX lacks debug information), which means one of our
+      module classes may contain information about an entire object,
+      and therefore, multiple functons with the same mangled name. */
+   bool findFunctionByMangled (const pdstring &name,
+                               pdvector<image_func *> &found);
+   bool findFunctionByPretty (const pdstring &name,
+                              pdvector<image_func *> &found);
+   void dumpMangled(pdstring &prefix) const;
+
+   image *imExec() const { return exec_; }
  private:
-   Address tryStart_;
-   unsigned trySize_;
-   Address catchStart_;
-   bool hasTry_;
-}; 
-
+  image *exec_;
+};
 
 inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
    if (!lineMap.defines(line)) {
