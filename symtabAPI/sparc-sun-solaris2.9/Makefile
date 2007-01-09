@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2007/01/09 02:02:34 giri Exp $
+# $Id: Makefile,v 1.2 2007/01/09 10:34:29 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,8 +16,8 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =		../src/Object-elf.C \
-		../src/writeBackElf.C
+SRCS =		../src/Object-elf.C 
+#		../src/writeBackElf.C
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from
 # make.confing any way and it is actually configurable there via

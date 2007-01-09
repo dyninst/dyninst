@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.77 2007/01/09 02:00:30 giri Exp $
+# $Id: Makefile,v 1.78 2007/01/09 10:34:26 jaw Exp $
 #
 
 TO_CORE = .
@@ -170,7 +170,9 @@ $(allSubdirs):
 	$(MAKE) -C $@/$(PLATFORM) install
 
 # dependencies -- keep parallel make from building out of order
-paradynd:  pdutil 
+symtabAPI: common
+dyninstAPI: symtabAPI
+paradynd:  pdutil dyninstAPI 
 paradyn: pdutil pdthread 
 pdthread: igen mrnet 
 visi:  pdutil
