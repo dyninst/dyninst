@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.91 2005/10/04 18:10:08 legendre Exp $
+// $Id: irix.C,v 1.92 2007/01/09 02:01:39 giri Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -911,7 +911,7 @@ bool process::dumpImage() {
 
   // overwrite ".text" section with runtime contents
 
-  bool is_elf64 = img->getObject().is_elf64();
+  bool is_elf64 = img->getObject()->is_elf64();
   Elf *elfp = elf_begin(fd, ELF_C_READ, 0);
   assert(elfp);
   int e_shstrndx;
@@ -1645,7 +1645,7 @@ bool process::getDyninstRTLibName() {
     
     // for 32-bit apps, modify the rtlib environment variable
     char *rtlib_mod = "_n32";
-    if (!getImage()->getObject().is_elf64() &&
+    if (!getImage()->getObject()->is_elf64() &&
         !strstr(rtlib_val, rtlib_mod)) 
     {
         char *rtlib_suffix = ".so.1";

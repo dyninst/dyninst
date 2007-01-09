@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.228 2007/01/04 22:59:48 legendre Exp $
+// $Id: aix.C,v 1.229 2007/01/09 02:01:35 giri Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -58,7 +58,7 @@
 #include "dyninstAPI/src/stats.h"
 #include "common/h/Types.h"
 #include "common/h/Dictionary.h"
-#include "dyninstAPI/src/Object.h"
+#include "symtabAPI/h/Dyn_Symtab.h"
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
@@ -381,12 +381,12 @@ Address process::getTOCoffsetInfo(Address dest)
   // I think this is the right func to use
 
   if (symbols->findFuncByAddr(dest, this))
-    return (Address) (symbols->getObject()).getTOCoffset();
+    return (Address) (symbols->getObject())->getTOCoffset();
 
   if (shared_objects)
     for(u_int j=0; j < shared_objects->size(); j++)
       if (((*shared_objects)[j])->getImage()->findFuncByAddr(dest, this))
-	return (Address) (((*shared_objects)[j])->getImage()->getObject()).getTOCoffset();
+	return (Address) (((*shared_objects)[j])->getImage()->getObject())->getTOCoffset();
   // Serious error! Assert?
   return 0;
 }
@@ -954,6 +954,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	return directoryName;
 }
 
+#if 0
 // should use demangle.h here, but header is badly broken on AIX 5.1
 typedef void *Name;
 typedef enum { VirtualName, MemberVar, Function, MemberFunction, Class,
@@ -1094,7 +1095,7 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeT
 		return NULL;
 		}
 	} /* end P_cplus_demangle() */
-
+#endif
 
 
 #include <dlfcn.h> // dlopen constants
@@ -1864,7 +1865,7 @@ int_function *instPoint::findCallee() {
     if (icallee) {
       // Now we have to look up our specialized version
       // Can't do module lookup because of DEFAULT_MODULE...
-      const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName());
+      const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName().c_str());
       if (!possibles) {
           return NULL;
       }
@@ -1896,7 +1897,7 @@ int_function *instPoint::findCallee() {
     Address toc_offset = 0;
 
     if (targetIter.isInterModuleCallSnippet(toc_offset)) {
-        Address TOC_addr = (func()->obj()->parse_img()->getObject()).getTOCoffset();
+        Address TOC_addr = (func()->obj()->parse_img()->getObject())->getTOCoffset();
         
         // We need to read out of memory rather than disk... so this is a call to
         // readDataSpace. Yummy.

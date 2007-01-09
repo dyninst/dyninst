@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.260 2007/01/04 22:59:59 legendre Exp $
+ * $Id: inst-x86.C,v 1.261 2007/01/09 02:01:38 giri Exp $
  */
 #include <iomanip>
 
@@ -919,7 +919,6 @@ Register Emitter32::emitCall(opCode op,
         showErrorCallback(80, msg);
         assert(0);
     }
- 
 
    /*
       int emitCallParams(registerSpace *rs, codeGen &gen, 
@@ -1617,12 +1616,12 @@ float getPointFrequency(instPoint *point)
         func = point->func();
     }
     
-    if (!funcFrequencyTable.defines(func->prettyName())) {
+	if (!funcFrequencyTable.defines(func->prettyName().c_str())) {
         // Changing this value from 250 to 100 because predictedCost was
         // too high - naim 07/18/96
         return(100.0);       
     } else {
-        return ((float)funcFrequencyTable[func->prettyName()]);
+		return ((float)funcFrequencyTable[func->prettyName().c_str()]);
     }
 }
 

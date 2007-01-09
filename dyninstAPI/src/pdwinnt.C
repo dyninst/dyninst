@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.166 2006/12/06 21:17:41 bernat Exp $
+// $Id: pdwinnt.C,v 1.167 2007/01/09 02:01:42 giri Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -571,7 +571,14 @@ bool SignalGenerator::decodeException(EventRecord &ev)
          ev.type = evtCritical;
 		 requested_wait_until_active = true;
          ev.address = (eventAddress_t) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
-         ret = true;
+		 if (ev.what == EXCEPTION_ILLEGAL_INSTRUCTION) {
+				fprintf(stderr, "Caught illegal instruction at 0x%lx\n", ev.address);
+		 }
+		 else {
+				fprintf(stderr, "Caught access violation at 0x%lx\n", ev.address);
+		 }
+		 ret = true;
+		while(1);
          break;
      }
      case EXCEPTION_SINGLE_STEP:
@@ -1452,7 +1459,7 @@ void dyn_lwp::representativeLWP_detach_()
 // Insert a breakpoint at the entry of main()
 bool process::insertTrapAtEntryPointOfMain() {
   mapped_object *aout = getAOut();
-  const Object &aout_obj = aout->parse_img()->getObject();
+  Dyn_Symtab *aout_obj = aout->parse_img()->getObject();
   pdvector<int_function *> funcs;
   Address brk_address;
   Address min_addr = 0xffffffff;
@@ -1464,6 +1471,7 @@ bool process::insertTrapAtEntryPointOfMain() {
       __FILE__, __LINE__);
   
   if (main_function) {
+	  //Address addr = main_function->getAddress() - aout_obj->getBaseAddress()+ aout->getFileDesc().loadAddr();
      Address addr = main_function->getAddress();
      startup_printf("[%s:%u] - insertTrapAtEntryPointOfMain found main at %x\n",
                     __FILE__, __LINE__, addr);
@@ -1479,7 +1487,7 @@ bool process::insertTrapAtEntryPointOfMain() {
      return true;
   }
 
-  const pdvector<Address> &possible_mains = aout_obj.getPossibleMains();
+  const pdvector<Address> &possible_mains = aout->parse_img()->getPossibleMains();
 
   for (unsigned i=0; i<possible_mains.size(); i++) {
     brk_address = possible_mains[i] + aout->codeBase();
@@ -1587,9 +1595,9 @@ bool process::getDyninstRTLibName() {
 // Load the dyninst library
 bool process::loadDYNINSTlib()
 {
-    loadDyninstLibAddr = getAOut()->parse_img()->getObject().getEntryPoint() + getAOut()->getBaseAddress();
-    Address LoadLibAddr;
-    Symbol sym;
+	loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryAddress() + getAOut()->getBaseAddress();
+	Address LoadLibAddr;
+    Dyn_Symbol sym;
 
     dyn_lwp *lwp;
     lwp = getInitialLwp();
@@ -1604,7 +1612,7 @@ bool process::loadDYNINSTlib()
             printf("unable to find function LoadLibrary\n");
             assert(0);
         }
-    LoadLibAddr = sym.addr();
+    LoadLibAddr = sym.getAddr();
     assert(LoadLibAddr);
 
     char ibuf[BYTES_TO_SAVE];

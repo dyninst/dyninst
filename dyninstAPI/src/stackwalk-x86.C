@@ -251,7 +251,7 @@ Frame Frame::getCallerFrame()
 #if defined(os_linux)
     // assume _start is never called, so just return if we're there
     if (cur_func &&
-       cur_func->getAddress() == getProc()->getAOut()->parse_img()->getObject().getEntryAddress()) {
+       cur_func->getAddress() == getProc()->getAOut()->parse_img()->getObject()->getEntryAddress()) {
        return Frame();
     }
 #endif

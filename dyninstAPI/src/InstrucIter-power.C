@@ -1012,14 +1012,14 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     Address initialAddress = current;
     Address TOC_address = 0;
     if (img_) { 
-        TOC_address = img_->getObject().getTOCoffset();
+        TOC_address = img_->getObject()->getTOCoffset();
     }
     else {
         pdvector<mapped_object *> m_objs = proc_->mappedObjects();
         for (unsigned i = 0; i < m_objs.size(); i++) {
             void *ptr = m_objs[i]->getPtrToInstruction(current);
             if (ptr) {
-                TOC_address = m_objs[i]->parse_img()->getObject().getTOCoffset();
+                TOC_address = m_objs[i]->parse_img()->getObject()->getTOCoffset();
                 TOC_address += m_objs[i]->dataBase();
                 break;
             }

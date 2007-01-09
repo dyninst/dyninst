@@ -454,7 +454,7 @@ void disDataSpace(process *p, void *addr_, int ninsns,
   char buf[64];
   static bool is_elf64 =
 #if !defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-  p->getImage()->getObject().is_elf64();
+  p->getImage()->getObject()->is_elf64();
 #else
   false;
 #endif
@@ -603,7 +603,7 @@ Address lookup_fn(process *p, const pdstring &f)
 #define UNINSTR(str) \
   bperr( "uninstrumentable: %s (%0#10x: %i insns) - %s\n", \
 	  prettyName().c_str(), \
-	  pdmod()->exec()->getObject().get_base_addr() + getAddress(0), \
+	  pdmod()->exec()->getObject()->get_base_addr() + getAddress(0), \
 	  get_size() / INSN_SIZE, \
 	  str)
 #else
@@ -833,7 +833,7 @@ Address int_function::findStackFrame(const image *owner)
   
   /*
     bperr( ">>> findStackFrame(): <0x%016lx:\"%s\"> %i insns\n",
-    owner->getObject().get_base_addr() + getAddress(0), 
+    owner->getObject()->get_base_addr() + getAddress(0), 
     prettyName().c_str(), size() / INSN_SIZE);
   */
  
@@ -861,7 +861,7 @@ int
   Address end = start + get_size();
   Offset off;
   instruction insn;
-  Address fn_addr = owner->getObject().get_base_addr() + getAddress(0);
+  Address fn_addr = owner->getObject()->get_base_addr() + getAddress(0);
   for (off = 0; off < end - start; off += INSN_SIZE) {
     insn.raw = owner->get_instruction(start + off);
     struct fmt_itype &itype = insn.itype;
@@ -1024,7 +1024,7 @@ int
         instruction tempInsn;
         struct fmt_itype &itype = tempInsn.itype;
         struct fmt_rtype &rtype = tempInsn.rtype;
-        Address fn_addr = owner->getObject().get_base_addr() + getAddress(0);
+        Address fn_addr = owner->getObject()->get_base_addr() + getAddress(0);
         tempInsn.raw = owner->get_instruction(start + off + INSN_SIZE);
 
         //  check if frame pop is in delay slot
@@ -1217,7 +1217,7 @@ void int_function::checkCallPoints()
 	  prettyName().c_str(), getAddress(0), size() / INSN_SIZE);
 #endif
   //bperr( "%0#10x: %s(%u insns)\n", 
-  //pdmod()->exec()->getObject().get_base_addr() + getAddress(0), 
+  //pdmod()->exec()->getObject()->get_base_addr() + getAddress(0), 
   //prettyName().c_str(), 
   //size() / INSN_SIZE);
   
@@ -1426,7 +1426,7 @@ Address int_function::findIndirectJumpTarget(instPoint *ip, instruction i)
 
   /*
   bperr( ">>> int_function::findIndirectJumpTarget <0x%016lx: %s>\n", 
-	  pdmod()->exec()->getObject().get_base_addr() + ip->pointAddr(), 
+	  pdmod()->exec()->getObject()->get_base_addr() + ip->pointAddr(), 
 	  prettyName().c_str());
   */
 
@@ -1530,7 +1530,7 @@ Address int_function::findIndirectJumpTarget(instPoint *ip, instruction i)
   // debug: target arithmetic
   /*
   fprintf(stderr, ">>> <0x%016lx:%s>", 
-	  owner->getObject().get_base_addr() + ip->pointAddr(),
+	  owner->getObject()->get_base_addr() + ip->pointAddr(),
 	  prettyName().c_str());
   fprintf(stderr, ": ");
   print_sequence(targetReg, baseAdjusts, adjusts, 0, NULL);
@@ -1548,7 +1548,7 @@ Address int_function::findIndirectJumpTarget(instPoint *ip, instruction i)
 
   // check base register
   Address target;
-  const Object &elf = owner->getObject();
+  Dyn_Symtab *elf = owner->getObject();
   switch(targetReg) {
   case REG_GP:
     target = elf.get_gp_value();
@@ -1561,10 +1561,10 @@ Address int_function::findIndirectJumpTarget(instPoint *ip, instruction i)
     return 0;
   }
 
-  Address obj_base = elf.get_base_addr();
+  Address obj_base = elf->get_base_addr();
   bool is_elf64= 
 #ifndef mips_unknown_ce2_11 //ccw 26 july 2000 : 28 mar 2001
-	  elf.is_elf64();
+	  elf->is_elf64();
 #else
   false;
 #endif
@@ -1583,7 +1583,7 @@ Address int_function::findIndirectJumpTarget(instPoint *ip, instruction i)
     Address got_entry_off = target + baseAdjusts[0] - obj_base;    
 
     // check for calls to "main"
-    const char *callee_name = elf.got_entry_name(got_entry_off);
+    const char *callee_name = elf->got_entry_name(got_entry_off);
     if (callee_name && !strcmp("main", callee_name)) {
       owner->main_call_addr_ = ip->pointAddr();
     }
@@ -4144,7 +4144,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
     jump_reg = ip->origInsn_.rtype.rs;
   }
   // parsing stuff
-  const Object &elf = ip->getOwner()->getObject();
+  Dyn_Symtab *elf = ip->getOwner()->getObject();
   const image *owner = ip->getOwner();
   int_function *ip_pdf = (int_function *)ip->pointFunc();
   // parse backwards to check for "ld RR,-XX(gp)" insn
@@ -4168,7 +4168,7 @@ bool process::replaceFunctionCall(const instPoint *ip,
     // old GOT entry
     gp_disp1 = ld_insn.itype.simm16;
     // new GOT entry (modify insn)
-    gp_disp2 = elf.got_gp_disp(dst2_pdf->prettyName().c_str());
+    gp_disp2 = elf->got_gp_disp(dst2_pdf->prettyName().c_str());
     ld_insn.itype.simm16 = gp_disp2;
 #else
 	cerr<<"FAILURE: process::replaceFunctionCall wants GOT"<<endl;
@@ -4256,8 +4256,8 @@ bool process::replaceFunctionCall(const instPoint *ip,
       assert(dst1_fn != NULL);
 
       // resolve GOT entry
-      Address got_entry_off = elf.get_gp_value() + gp_disp1 - pt_base;
-      const char *got_name = elf.got_entry_name(got_entry_off);
+      Address got_entry_off = elf->get_gp_value() + gp_disp1 - pt_base;
+      const char *got_name = elf->got_entry_name(got_entry_off);
 
       // check that GOT entry actually corresponds to callee
       if (got_name && 
@@ -4450,7 +4450,7 @@ bool process::findCallee(instPoint &ip, int_function *&target)
 #ifndef mips_unknown_ce2_11 //ccw 26 july 2000
 
       const image *owner = ip.getOwner();
-      const Object &elf = owner->getObject();
+      Dyn_Symtab *elf = owner->getObject();
 
       // runtime address of GOT entry
       Address got_entry_base = 0;
@@ -4461,7 +4461,7 @@ bool process::findCallee(instPoint &ip, int_function *&target)
       // read GOT entry from process address space
       void *tgt_ptr;
       // address-in-memory
-      if (sizeof(void *) == sizeof(uint64_t) && !elf.is_elf64()) 
+      if (sizeof(void *) == sizeof(uint64_t) && !elf->is_elf64()) 
       {
          // 32-bit application, 64-bit paradynd
          tgt_ptr = NULL;
@@ -4487,11 +4487,11 @@ bool process::findCallee(instPoint &ip, int_function *&target)
          return true;
       } else {
          // check if GOT entry points to .MIPS.stubs
-         Address tgt_vaddr = tgt_addr - got_entry_base + elf.get_base_addr();
-         if (tgt_vaddr >= elf.MIPS_stubs_addr_ &&
-             tgt_vaddr < elf.MIPS_stubs_addr_ + elf.MIPS_stubs_size_)
+         Address tgt_vaddr = tgt_addr - got_entry_base + elf->get_base_addr();
+         if (tgt_vaddr >= elf->MIPS_stubs_addr_ &&
+             tgt_vaddr < elf->MIPS_stubs_addr_ + elf->MIPS_stubs_size_)
          {	
-            const char *fn_name_ = elf.got_entry_name(got_entry_off);
+            const char *fn_name_ = elf->got_entry_name(got_entry_off);
             pdstring fn_name = fn_name_;
             // TODO: rld might resolve to a different fn
             pdf = (int_function *)findFunctionLikeRld(this, fn_name);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.192 2007/01/04 22:59:58 legendre Exp $
+// $Id: inst-sparc.C,v 1.193 2007/01/09 02:01:37 giri Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -152,13 +152,13 @@ float getPointFrequency(instPoint *point)
     if (!func)
         func = point->func();
     
-    if (!funcFrequencyTable.defines(func->prettyName())) {
+    if (!funcFrequencyTable.defines(func->prettyName().c_str())) {
         // Changing this value from 250 to 100 because predictedCost was
         // too high - naim 07/18/96
         return(100); 
         
     } else {
-        return (funcFrequencyTable[func->prettyName()]);
+        return (funcFrequencyTable[func->prettyName().c_str()]);
     }
 }
 

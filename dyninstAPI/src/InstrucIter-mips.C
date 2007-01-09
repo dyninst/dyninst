@@ -578,21 +578,21 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
     bperr("               Offset is: %d\n", offset);
 #endif
 
-    const Object &elf = ah.getImage()->getObject();
+    Dyn_symtab &elf = ah.getImage()->getObject();
     bool is_elf64 = 
 #ifndef mips_unknown_ce2_11 //ccw 10 apr 2001
-	elf.is_elf64();
+	elf->is_elf64();
 #else
 	false;
 #endif
 
-    Address addr = elf.get_gp_value() + baseOffset;
+    Address addr = elf->get_gp_value() + baseOffset;
 
-    if (is_elf64) addr = get_dword(elf, addr);
-    else addr = get_word(elf, addr);
+    if (is_elf64) addr = get_dword(*elf, addr);
+    else addr = get_word(*elf, addr);
 
     addr += offset;
-    addr += elf.get_base_addr();
+    addr += elf->get_base_addr();
 
 #ifdef DEBUG_FINDTARGET_2
     bperr("Address of table is: 0x%p\n", (void *)addr);
@@ -601,10 +601,10 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
     for (;;) {
 	Address target;
 	if (is_elf64) {
-	    target = get_dword(elf, addr);
+	    target = get_dword(*elf, addr);
 	    addr += 8;
 	} else {
-	    target = get_word(elf, addr);
+	    target = get_word(*elf, addr);
 	    addr += 4;
 	}
 	if (!ah.containsAddress(target)) {

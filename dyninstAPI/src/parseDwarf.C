@@ -1871,7 +1871,7 @@ extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 void BPatch_module::parseDwarfTypes() {
 	const char *fileName = mod->obj()->fullName().c_str();
 	// Man do we do to a lot of trouble for this...
-	const Object &moduleObject = mod->obj()->parse_img()->getObject();
+	Dyn_Symtab *moduleObject = mod->obj()->parse_img()->getObject();
 	assert( fileName );
 	assert( moduleTypes );
 
@@ -1891,7 +1891,7 @@ void BPatch_module::parseDwarfTypes() {
 
 	int fd = open( fileName, O_RDONLY );
 	assert( fd != -1 );
-	int status = dwarf_init( fd, DW_DLC_READ, & pd_dwarf_handler, moduleObject.getErrFunc(), & dbg, NULL );
+	int status = dwarf_init( fd, DW_DLC_READ, & pd_dwarf_handler,  mod->obj()->parse_img()->getErrFunc(), & dbg, NULL );
 	DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error initializing libdwarf.\n", __FILE__, __LINE__ );
 
 	/* Iterate over the compilation-unit headers. */

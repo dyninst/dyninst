@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.27 2005/07/29 19:18:50 bernat Exp $
+// $Id: irixDL.C,v 1.28 2007/01/09 02:01:40 giri Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -50,7 +50,7 @@
 #include <objlist.h>                  // ElfXX_Obj_Info
 #include "common/h/Types.h"             // Address
 #include "common/h/Dictionary.h"
-#include "dyninstAPI/src/Object.h"            // ELF parsing
+#include "symtabAPI/h/Dyn_Symtab.h"            // ELF parsing
 #include "dyninstAPI/src/irixDL.h"  // irix-specific definitions
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
@@ -184,7 +184,7 @@ pdvector<pdElfObjInfo *>dynamic_linking::getRldMap()
   pdvector<pdElfObjInfo *> ret;
   
   // ELF class: 32/64-bit
-  bool is_elf64 = proc->getImage()->getObject().is_elf64();
+  bool is_elf64 = proc->getImage()->getObject()->is_elf64();
 
   // get address of head of rld map
   Address rld_obj_addr = lookup_fn(proc, "__rld_obj_head");
@@ -251,7 +251,7 @@ bool dynamic_linking::installTracing()
     }
     
     // ELF class: 32/64-bit
-    bool is_elf64 = proc->getImage()->getObject().is_elf64();
+    bool is_elf64 = proc->getImage()->getObject()->is_elf64();
     
     // find ".dynsym" and ".dynstr" sections
     Elf *elfp = elf_begin(libc_fd, ELF_C_READ, 0);

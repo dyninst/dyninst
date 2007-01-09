@@ -561,14 +561,14 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 	   Start by obtaining the GP. */
 	Address gpAddress = 0;
 	if( img_ ) { 
-		gpAddress = img_->getObject().getTOCoffset();
+		gpAddress = img_->getObject()->getTOCoffset();
 		}
 	else {
 		pdvector< mapped_object * > m_objs = proc_->mappedObjects();
 		for( unsigned i = 0; i < m_objs.size(); i++ ) {
 			void * ptr = m_objs[i]->getPtrToInstruction( current );
 			if( ptr ) {
-				gpAddress = m_objs[i]->parse_img()->getObject().getTOCoffset();
+				gpAddress = m_objs[i]->parse_img()->getObject()->getTOCoffset();
 				break;
 				}
 			}
