@@ -1,0 +1,2 @@
+*.[dhC] DEPENDS libdyninstAPI.a V_libdyninstAPI.c .deps *.da *.bbg *.bb
+
