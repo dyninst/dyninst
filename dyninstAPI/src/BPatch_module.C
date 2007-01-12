@@ -266,7 +266,7 @@ void BPatch_module::parseTypesIfNecessary() {
     if( BPatch::bpatch->parseDebugInfo() ) {
 		parseTypes();
 		}
-#elif defined( arch_x86 ) || defined( arch_x86_64 ) || defined( arch_ia64 )
+#elif defined( arch_x86 ) || defined( arch_x86_64 ) || defined( arch_ia64 ) || defined(arch_sparc)
 	/* I'm not actually sure about IA-64, but certainly on the other two,
 	   it's legal and not uncommon to mix STABS and DWARF debug information
 	   in the same file.  However, this causes problems because of the
