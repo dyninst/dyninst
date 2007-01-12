@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: MapSymbols.C,v 1.4 2007/01/09 02:01:44 giri Exp $
+ * $Id: MapSymbols.C,v 1.5 2007/01/12 00:55:35 legendre Exp $
  */
 
 //MapSymbols.cpp
@@ -53,10 +53,14 @@
 //					  - added freeList() to dealloc items from the lists
 //					  - added addDLL(), getFirstDLL(), getNextDLL()
 
+#if !defined(__out_ecount_opt)
+#define __out_ecount_opt(UNUSED)
+#endif
+#include <windows.h>
+#include <dbghelp.h>
 
 #include <cvconst.h>
 #include <windows.h>
-#include <dbghelp.h>
 #include "MapSymbols.h"
 
 MapSymbols::MapSymbols():fp(NULL), filename(NULL), headSymbols(NULL), currSymbols(NULL), 

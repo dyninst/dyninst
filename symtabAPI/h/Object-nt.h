@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.1 2007/01/09 02:02:19 giri Exp $
+ * $Id: Object-nt.h,v 1.2 2007/01/12 00:55:36 legendre Exp $
 ************************************************************************/
 
 
@@ -75,8 +75,13 @@ using namespace std;
 #include <stdlib.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <dbghelp.h>
 #include <assert.h>
+
+#if !defined(__out_ecount_opt)
+#define __out_ecount_opt(UNUSED)
+#endif
+#include <dbghelp.h>
+
 class ExceptionBlock;
 
 /************************************************************************
