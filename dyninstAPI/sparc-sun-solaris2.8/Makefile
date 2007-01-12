@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.25 2007/01/09 02:01:06 giri Exp $
+# $Id: Makefile,v 1.26 2007/01/12 22:11:03 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,6 +24,7 @@ SRCS =		../src/solaris.C \
 		../src/inst-sparc.C \
 		../src/inst-sunos.C \
 		../src/parseStab.C \
+		../src/parseDwarf.C \
 		../src/unix.C \
 		../src/InstrucIter-sparc.C \
 		../src/writeBackElf.C \
@@ -40,14 +41,15 @@ SRCS =		../src/solaris.C \
 
 CFLAGS		+= -DNO_MDL_PRINT -I/usr/local/stow/bind-8.2.2.p5/include/
 #CFLAGS		+= -DNO_MDL_PRINT -O0 -I/usr/local/stow/bind-8.2.2.p5/include/ 
-CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/ 
+CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/ -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 #CXXFLAGS	+= -DNO_MDL_PRINT -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
 TFLAGS		+= -DUSES_ELF32_ONLY 
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g
 
-SYSLIBS = -lelf -lsocket -lnsl -ldl -lrt -lcommon -lsymtabAPI
+LDFLAGS += -ldwarf -lelf
+SYSLIBS = -lsocket -lnsl -ldl -lrt -lcommon -lsymtabAPI
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthreads
