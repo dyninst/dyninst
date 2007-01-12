@@ -274,12 +274,13 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
     // RPC is actually going to be running
     runningRPC_ = pendingRPC_;
     pendingRPC_ = NULL;
-    mgr_->addRunningRPC(runningRPC_);
     
     // Build the in progress struct
     runningRPC_->savedRegs = theSavedRegs;
     runningRPC_->rpcthr = NULL;
     runningRPC_->rpclwp = this;
+
+    mgr_->addRunningRPC(runningRPC_);
 
     runningRPC_->rpcStartAddr =
     mgr_->createRPCImage(runningRPC_->rpc->action, // AST tree

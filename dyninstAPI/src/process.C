@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.679 2007/01/09 02:01:51 giri Exp $
+// $Id: process.C,v 1.680 2007/01/12 00:55:39 legendre Exp $
 
 #include <ctype.h>
 
@@ -4087,9 +4087,6 @@ bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
        return false;
    }
 
-   // Uh, noo....
-   //ev.what = 0;
-
    //if (!dyn->getChangedObjects(ev,changed_objs)) {
    if (!dyn->handleIfDueToSharedObjectMapping(ev,changed_objs)) {
        fprintf(stderr, "%s[%d]: change in mapping but no changed objs??\n", FILE__, __LINE__);
@@ -5859,6 +5856,10 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
        return true;
     }
 
+	if ((unsigned)-1 == index) {
+		// The thread wasn't created mutatee side.  Don't need to do anything
+		return false;
+	}
     signal_printf("%s[%d]: past wait loop, deleting thread....\n", FILE__, __LINE__);
 
     bool res = false;
@@ -5872,11 +5873,6 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
                   FILE__, __LINE__, 
                   index, tid, 
                   getStatusAsString().c_str());
-
-    if ((unsigned)-1 == index) {
-      fprintf(stderr, "Error: removing index -1 impossible\n");
-        goto done;
-    }
 
     lwpToUse = stop_an_lwp(&continueLWP);
     if (!lwpToUse) {
