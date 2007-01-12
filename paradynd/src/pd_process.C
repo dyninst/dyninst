@@ -59,7 +59,6 @@
 
 #include "paradynd/src/mdld.h"
 
-#include "common/h/Symbol.h"
 #include "common/h/timing.h"
 extern void setFirstRecordTime(const timeStamp &ts);
 extern bool isInitFirstRecordTime();

@@ -33,9 +33,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Iphlpapi.lib Ws2_32.lib ONCRPC.LIB tcl84t.lib tk84t.lib shlwapi.lib"
+				AdditionalDependencies="Iphlpapi.lib Ws2_32.lib ONCRPC.LIB tcl84t.lib tk84t.lib shlwapi.lib libcommon.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="../../i386-unknown-nt4.0/lib"
 				IgnoreDefaultLibraryNames="libc.lib"
 				GenerateDebugInformation="TRUE"
 				AssemblyDebug="1"
@@ -82,9 +83,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="Iphlpapi.lib Ws2_32.lib ONCRPC.LIB tcl84t.lib tk84t.lib shlwapi.lib"
+				AdditionalDependencies="Iphlpapi.lib Ws2_32.lib ONCRPC.LIB tcl84t.lib tk84t.lib shlwapi.lib libcommon.lib"
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
+				AdditionalLibraryDirectories="../../i386-unknown-nt4.0/lib"
 				IgnoreDefaultLibraryNames="libc.lib"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"/>
