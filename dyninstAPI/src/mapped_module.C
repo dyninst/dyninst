@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.16 2007/01/09 02:01:58 giri Exp $
+// $Id: mapped_module.C,v 1.17 2007/01/12 00:55:30 legendre Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -47,6 +47,8 @@
 #include "common/h/String.h"
 #include "dyninstAPI/src/debug.h"
 #include "process.h"
+
+bool mapped_module::truncateLineFilenames = true;
 
 const pdvector<int_function *> &mapped_module::getAllFunctions() {
     pdvector<image_func *> pdfuncs;
@@ -358,9 +360,9 @@ void mapped_module::parseFileLineInfo() {
 					}
 				
 				const char * sourceFile = stabEntry->name( i );
-				currentSourceFile = strrchr( sourceFile, '/' );
-				if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
-				else { ++currentSourceFile; }
+            currentSourceFile = strrchr( sourceFile, '/' );
+            if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
+            else { ++currentSourceFile; }
 				// /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
 				
 				isPreviousValid = false;
@@ -811,10 +813,16 @@ void mapped_module::parseFileLineInfo() {
 					mapped_module * currentModule = currentFunction->mod();
 					assert( currentModule != NULL );
 					
-					char * canonicalLineSource = strrchr( previousLineSource, '/' );
-					if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
-					else { ++canonicalLineSource; }
-					
+               char *canonicalLineSource;
+               if (truncateLineFilenames) {
+                  canonicalLineSource = strrchr( previousLineSource, '/' );
+                  if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
+                  else { ++canonicalLineSource; }
+               }
+               else {
+                  canonicalLineSource = previousLineSource;
+					}
+
 					/* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
 					currentModule->lineInfo_.addLine( canonicalLineSource, previousLineNo, previousLineAddr, lineAddr );
                currentModule->lineInfoValid_ = true;

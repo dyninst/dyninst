@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.167 2006/12/14 23:17:21 bernat Exp $
+// $Id: BPatch.C,v 1.168 2007/01/12 00:55:29 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -61,6 +61,7 @@
 #include "common/h/timing.h"
 #include "debug.h"
 #include "signalgenerator.h"
+#include "mapped_module.h"
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "nt_signal_emul.h"
@@ -2150,3 +2151,11 @@ int BPatch::getNotificationFDInt() {
     return -1;
 #endif
 }
+
+/* If true, we return just filenames when the user asks for line info
+   otherwise, we return filename plus path information. */
+void BPatch::truncateLineInfoFilenamesInt(bool newval) {
+   mapped_module::truncateLineFilenames = newval;
+}
+
+

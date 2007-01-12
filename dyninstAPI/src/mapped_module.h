@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.5 2007/01/09 02:01:59 giri Exp $
+// $Id: mapped_module.h,v 1.6 2007/01/12 00:55:31 legendre Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -142,6 +142,7 @@ class mapped_module {
     void addFunction(int_function *func);
     void addVariable(int_variable *var);
 
+    static bool truncateLineFilenames;
  private:
    void parseFileLineInfo();
 

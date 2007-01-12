@@ -423,6 +423,12 @@ public:
 
     void,setTypeChecking,(bool x));
 
+    //  BPatch::setTypeChecking:
+    //  Turn on/off line info truncating
+    API_EXPORT_V(Int, (x),
+
+    void,truncateLineInfoFilenames,(bool x));
+
     //  BPatch::setTrampRecursive:
     //  Turn on/off recursive trampolines
     API_EXPORT_V(Int, (x),
