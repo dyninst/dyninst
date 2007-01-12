@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.83 2007/01/09 02:01:13 giri Exp $
+// $Id: BPatch_function.C,v 1.84 2007/01/12 00:55:33 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -782,3 +782,16 @@ bool BPatch_function::getLineToAddrInt( unsigned short lineNo, BPatch_Vector< un
 	
 	return true;
 	} /* end getLineToAddr() */
+
+unsigned int BPatch_function::getContiguousSizeInt() {
+   Address start, end;
+   start = func->getAddress();
+   end = start + func->getSize_NP();
+    
+    bblInstance* block = func->findBlockInstanceByAddr(start);
+    while (block != NULL) {
+       end = block->firstInsnAddr() + block->getSize();
+       block = func->findBlockInstanceByAddr(end);
+    }
+    return end - start;
+}

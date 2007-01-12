@@ -173,10 +173,16 @@ public:
     void *,getBaseAddr,(void));
 
     //  BPatch_function::getSize
-    //  Returns the size of the function in bytes
+    //  Returns the size of the function in bytes (end of last block - start of first block)
     API_EXPORT(Int, (),
 
     unsigned int,getSize,());
+
+    //  BPatch_function::getSize
+    //  Returns the number of contiguous bytes a function takes up following its entry point
+    //   This may be different from getSize if the function is disjoint
+    API_EXPORT(Int, (),
+    unsigned int,getContiguousSize,());
 
     //  BPatch_function::getReturnType
     //  Returns the <BPatch_type> return type of this function
