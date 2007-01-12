@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.224 2006/12/06 21:17:52 bernat Exp $
+// $Id: unix.C,v 1.225 2007/01/12 00:55:44 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -334,20 +334,6 @@ bool SignalHandler::handleExecEntry(EventRecord &ev, bool &continueHint)
   bool retval = ev.proc->handleExecEntry((char *)ev.info);
   continueHint = true;
   return retval;
-}
-
-bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint)
-{
-   process *proc = ev.proc;
-   if (!proc->handleChangeInSharedObjectMapping(ev)) {
-      fprintf(stderr, "%s[%d]:  setting event to NULL because handleChangeIn.. failed\n",
-              FILE__, __LINE__);
-     ev.type = evtNullEvent;
-     return false;
-   }
-
-   continueHint = true;
-   return true;
 }
 
 #if !defined (os_linux)
@@ -1152,7 +1138,7 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
  ****************************************************************************/
 
 bool forkNewProcess_real(pdstring file,
-                            pdstring /* dir */, pdvector<pdstring> *argv,
+                            pdstring dir, pdvector<pdstring> *argv,
                             pdvector<pdstring> *envp,
                             pdstring /* inputFile */, pdstring /* outputFile */,
                             int &/* traceLink */,
@@ -1200,6 +1186,8 @@ bool forkNewProcess_real(pdstring file,
    } else if (pid == 0) {
       // *** child
 
+      if (dir.length() > 0)
+          P_chdir(dir.c_str());
 
       if (stdin_fd != 0) dup2(stdin_fd, 0);
       if (stdout_fd != 1) dup2(stdout_fd, 1);

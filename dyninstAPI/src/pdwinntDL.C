@@ -39,13 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.7 2006/03/12 23:32:13 legendre Exp $
+// $Id: pdwinntDL.C,v 1.8 2007/01/12 00:55:42 legendre Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"
+#include "signalhandler.h"
+#include "dyn_lwp.h"
+#include "mapped_object.h"
+#include <windows.h>
 
 // Since Windows handles library loads for us, there is nothing to do here
 // Write in stubs to make the platform-indep code happy
+
+extern pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
+extern void printSysError(unsigned errNo);
 
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
         : proc_(p), type_(t), breakAddr_(b), loadinst_(NULL) {}
@@ -75,10 +82,75 @@ bool dynamic_linking::getChangedObjects(EventRecord &, pdvector<mapped_object *>
     // to get the list of new libraries loaded. 
     return true;
 }
-bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &, pdvector<mapped_object *> &)
+bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev, 
+													   pdvector<mapped_object *> &changed_objs)
 {
-    // This can be called by a platform indep. layer that wants
-    // to get the list of new libraries loaded. 
+   if (!ev.lwp)
+	   //Return early if we're in the call from loadDyninstLib.
+	   // Windows can handle this without the special case call.
+	   return true;
+
+   process *proc = ev.proc;
+   handleT procHandle = ev.lwp->getProcessHandle();
+
+   if (ev.type == evtLoadLibrary) {
+     pdstring imageName = GetLoadedDllImageName( proc, ev.info );
+
+	 parsing_printf("%s[%d]: load dll %s: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
+         __FILE__, __LINE__,
+         imageName.c_str(),
+         ev.info.u.LoadDll.hFile, ev.info.u.LoadDll.lpBaseOfDll,
+         ev.info.u.LoadDll.dwDebugInfoFileOffset,
+         ev.info.u.LoadDll.nDebugInfoSize,
+         imageName.c_str(),
+         ev.info.u.LoadDll.fUnicode,
+         GetFileSize(ev.info.u.LoadDll.hFile,NULL));
+     startup_printf("Loaded dll: %s\n", imageName.c_str());
+
+	 if (!imageName.length())
+		 return true;
+     DWORD64 iresult = SymLoadModule64(procHandle, ev.info.u.LoadDll.hFile, 
+                                 (PSTR) imageName.c_str(), NULL,
+                                 (DWORD64) ev.info.u.LoadDll.lpBaseOfDll, 0);
+     if (!iresult) {
+       printSysError(GetLastError());
+	   fprintf(stderr, "[%s:%u] - Couldn't SymLoadModule64\n", FILE__, __LINE__);
+	   return true;
+     }
+
+     fileDescriptor desc(imageName, 
+                         (Address)ev.info.u.LoadDll.lpBaseOfDll,
+                         (HANDLE)procHandle,
+                         ev.info.u.LoadDll.hFile, true, 
+                         (Address)ev.info.u.LoadDll.lpBaseOfDll);   
+     // discover structure of new DLL, and incorporate into our
+     // list of known DLLs
+	 mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
+     changed_objs.push_back(newobj);
+     ev.what = SHAREDOBJECT_ADDED;
+	 return true;
+   }
+   /**
+    * Handle the library unload case.
+	**/
+    Address base = (Address) ev.info.u.UnloadDll.lpBaseOfDll;
+    bool result = SymUnloadModule64(procHandle, base);
+	if (!result) {
+       printSysError(GetLastError());
+	   fprintf(stderr, "[%s:%u] - Couldn't SymUnloadModule64\n", FILE__, __LINE__);
+	}
+
+	mapped_object *oldobj = NULL;
+	for (unsigned i=0; i<proc->mapped_objects.size(); i++) {
+		if (proc->mapped_objects[i]->codeBase() == base) {
+			oldobj = proc->mapped_objects[i];
+			break;
+		}
+	}
+	if (!oldobj) 
+		return true;
+    changed_objs.push_back(oldobj);
+    ev.what = SHAREDOBJECT_REMOVED;
     return true;
 }
 

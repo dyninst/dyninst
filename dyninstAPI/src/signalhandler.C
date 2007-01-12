@@ -867,3 +867,17 @@ bool SignalHandler::waitNextEvent(EventRecord &) {
     assert(0);
     return false;
 }
+
+bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint)
+{
+   process *proc = ev.proc;
+   if (!proc->handleChangeInSharedObjectMapping(ev)) {
+      fprintf(stderr, "%s[%d]:  setting event to NULL because handleChangeIn.. failed\n",
+              FILE__, __LINE__);
+     ev.type = evtNullEvent;
+     return false;
+   }
+
+   continueHint = true;
+   return true;
+}

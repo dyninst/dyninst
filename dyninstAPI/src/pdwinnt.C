@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.167 2007/01/09 02:01:42 giri Exp $
+// $Id: pdwinnt.C,v 1.168 2007/01/12 00:55:41 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -72,8 +72,6 @@
 #include "dyninstAPI/src/rpcMgr.h"
 
 // prototypes of functions used in this file
-static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
-
 
 void InitSymbolHandler( HANDLE hProcess );
 void ReleaseSymbolHandler( HANDLE hProcess );
@@ -266,58 +264,6 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
 bool CALLBACK printMods(PCSTR name, DWORD64 addr, PVOID unused) {
     fprintf(stderr, " %s @ %llx\n", name, addr);
     return true;
-}
-
-bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint) 
-{
-   process *proc = ev.proc;
-
-   // obtain the name of the DLL
-   pdstring imageName = GetLoadedDllImageName( proc, ev.info );
-
-   parsing_printf("%s[%d]: load dll %s: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
-     __FILE__, __LINE__,
-     imageName.c_str(),
-     ev.info.u.LoadDll.hFile, ev.info.u.LoadDll.lpBaseOfDll,
-     ev.info.u.LoadDll.dwDebugInfoFileOffset,
-     ev.info.u.LoadDll.nDebugInfoSize,
-     imageName.c_str(),
-     ev.info.u.LoadDll.fUnicode,
-     GetFileSize(ev.info.u.LoadDll.hFile,NULL));
-   startup_printf("Loaded dll: %s\n", imageName.c_str());
-   
-   // This is NT's version of handleIfDueToSharedObjectMapping     
-   handleT procHandle = ev.lwp->getProcessHandle();
-
-   if (!imageName.length()) {
-     continueHint = true;
-     return true;
-   }
-
-   DWORD64 iresult = SymLoadModule64(procHandle, ev.info.u.LoadDll.hFile, 
-                                 (PSTR) imageName.c_str(), NULL,
-                                 (DWORD64) ev.info.u.LoadDll.lpBaseOfDll, 0);
-   if (!iresult) {
-       printSysError(GetLastError());
-	   fprintf(stderr, "[%s:%u] - Couldn't SymLoadModule64\n", FILE__, __LINE__);
-   }
-
-   fileDescriptor desc(imageName, 
-                       (Address)ev.info.u.LoadDll.lpBaseOfDll,
-                       (HANDLE)procHandle,
-                       ev.info.u.LoadDll.hFile, true, 
-                       (Address)ev.info.u.LoadDll.lpBaseOfDll);
-   
-   // discover structure of new DLL, and incorporate into our
-   // list of known DLLs
-   if (imageName.length() > 0) {
-       mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
-       if (newobj)
-            proc->addASharedObject(newobj);        
-   }
-   
-   continueHint = true;
-   return true;
 }
 
 //Returns true if we need to 
@@ -563,7 +509,6 @@ bool SignalGenerator::decodeException(EventRecord &ev)
         ret = decodeBreakpoint(ev);
         break;
      case EXCEPTION_ILLEGAL_INSTRUCTION:
-         fprintf(stderr, "%s[%d]:  ILLEGAL INSN\n", FILE__, __LINE__);
      case EXCEPTION_ACCESS_VIOLATION:
      {
          Frame af = ev.lwp->getActiveFrame();
@@ -1207,7 +1152,7 @@ bool getLWPIDs(pdvector <unsigned> &LWPids)
 //     we read the entire image name string.  If not, we have to adjust
 //     the amount we read and try again.
 //
-static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
+pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
 {
     char *msgText = NULL;
 	pdstring ret;
@@ -1741,7 +1686,9 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
 
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
   while (lwp_iter.next(index, lwp)) {
+	  if (!lwp->isDebuggerLWP()) {
       lwp_ids.push_back(lwp->get_lwp_id());
+  }
   }
   return true;
 }
@@ -2240,10 +2187,10 @@ bool process::instrumentThreadInitialFunc(int_function *f) {
         return false;
 
     for (unsigned i=0; i<initial_thread_functions.size(); i++) {
-        if (initial_thread_functions[i] == f)   
+		if (initial_thread_functions[i] == f) {
             return true;
     }
-
+    }
     int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
     if (!dummy_create)
     {
@@ -2283,5 +2230,6 @@ bool SignalHandler::handleProcessAttach(EventRecord &ev, bool &continueHint) {
        proc->theRpcMgr->addLWP(rep_lwp);
     continueHint = true;
 
+	ev.lwp->setDebuggerLWP(true);
     return true;
 }
