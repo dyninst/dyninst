@@ -2328,6 +2328,8 @@ bool BPatch_module::isSystemLib()
         return true;
     if (strstr(str.c_str(), "user32.dll"))
         return true;
+    if (strstr(str.c_str(), "ntdll.dll"))
+        return true;
 #endif
 
     return false;
