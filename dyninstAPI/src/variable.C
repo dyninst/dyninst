@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: variable.C,v 1.5 2007/01/09 02:01:55 giri Exp $
+// $Id: variable.C,v 1.6 2007/01/17 22:47:26 giri Exp $
 
 // Variable.C
 
@@ -49,9 +49,10 @@ image_variable::image_variable(Address offset,
                                const pdstring &name,
                                pdmodule *mod) :
     pdmod_(mod) {
-    sym_ = new Dyn_Symbol(name.c_str(), mod->fileName(), Dyn_Symbol::PDST_UNKNOWN , Dyn_Symbol:: SL_GLOBAL,
+    sym_ = new Dyn_Symbol(name.c_str(), mod->fileName(), Dyn_Symbol::PDST_OBJECT , Dyn_Symbol:: SL_GLOBAL,
                                                                     offset);
     mod->imExec()->getObject()->addSymbol(sym_);
+    sym_->setUpPtr(this);								    
 //    addSymTabName(name);
 }
 
