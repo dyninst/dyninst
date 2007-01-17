@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2006 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -14,11 +14,10 @@
 
 #include <list>
 
-#include "Message.h"
-#include "InternalNode.h"
-#include "utils.h"
+#include "mrnet/src/Message.h"
+#include "mrnet/src/InternalNode.h"
+#include "mrnet/src/utils.h"
 #include "xplat/NetUtils.h"
-
 
 using namespace MRN;
 
@@ -75,11 +74,13 @@ int main(int argc, char **argv)
     }
 
     comm_node = new InternalNode(hostname, port,
-                                parent_hostname, parent_port );
+                                 parent_hostname, parent_port );
 
     comm_node->waitLoop();
 
     delete comm_node;
+    free( (char *)(local_data->thread_name) );
+    delete local_data;
 
     return 0;
 }

@@ -30,7 +30,7 @@ InternalNode::InternalNode( std::string _hostname, Port _port,
     RemoteNode::local_child_node = this;
     RemoteNode::local_parent_node = this;
 
-    //printf(3, mrn_printf(FLF, stderr, "Calling connect() ...\n");
+    mrn_dbg( 3, mrn_printf(FLF, stderr, "Calling connect() ...\n"));
     tmp_upstream_node->connect(  );
     tmp_upstream_node->_is_upstream = true;
     if( tmp_upstream_node->fail(  ) ) {
@@ -98,7 +98,7 @@ int InternalNode::send_newSubTreeReport( bool status ) const
     unsigned int *backends, i;
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In send_newSubTreeReport()\n" ));
 
-    backends = new unsigned int[backend_descendant_nodes.size(  )];
+    backends = new unsigned int[ backend_descendant_nodes.size( ) ];
     assert( backends );
 
     std::list < int >::const_iterator iter;
@@ -117,15 +117,18 @@ int InternalNode::send_newSubTreeReport( bool status ) const
         if( get_UpStreamNode()->send( packet ) == -1 ||
             get_UpStreamNode()->flush(  ) == -1 ) {
             mrn_dbg( 1, mrn_printf(FLF, stderr, "send/flush failed\n" ));
+            delete [] backends;
             return -1;
         }
     }
     else {
         mrn_dbg( 1, mrn_printf(FLF, stderr, "new packet() failed\n" ));
+        delete [] backends;
         return -1;
     }
 
     mrn_dbg( 3, mrn_printf(FLF, stderr, "send_newSubTreeReport() succeeded\n" ));
+    delete [] backends;
     return 0;
 }
 
