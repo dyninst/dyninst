@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.54 2005/12/19 19:42:09 pack Exp $
+# $Id: make.module.tmpl,v 1.55 2007/01/17 22:47:41 giri Exp $
 #
 
 CFLAGS		+= $(TCLFRIENDLYWARNINGS) $(XFLAGS)
@@ -141,7 +141,7 @@ SRCS		+= $(TCL2C_GEN_SRCS)
 
 IFLAGS       += -DPARADYN -I../../mrnet/mrnet/h/ -I../../mrnet -I../../mrnet/mrnet/src/ 
 
-LIBS 	     += -lpdthread -lpdutil -lmrnet -lxplat $(THREADSLIB)  
+LIBS 	     += -lpdthread -lpdutil -lmrnet -lcommon -lxplat $(THREADSLIB)  
 LIBS 	     += -lnsl
 
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm $(FLEX_LIB)

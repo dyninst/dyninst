@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/03/31 17:46:00 buck Exp $
+# $Id: Makefile,v 1.2 2007/01/17 22:48:04 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,6 +29,8 @@ ifdef GCC_2_95
 CXXFLAGS	+= -fno-exceptions
 TFLAGS		+= -fno-exceptions
 endif
+
+LIBS += -lsymtabAPI
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

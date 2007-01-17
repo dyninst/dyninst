@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2004/03/01 16:06:44 schendel Exp $
+# $Id: Makefile,v 1.3 2007/01/17 22:48:02 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,7 +29,7 @@ LDFLAGS += $(LDTCLFLAGS)
 # allow users to build tcl/tk libraries as .a's opposed to .so's since
 # .so's are difficult to build on AIX.  The .so's automatically pull in the
 # pthread library.
-LIBS += -lpthread
+LIBS += -lpthread -lsymtabAPI
 
 ifdef GCC_2_95
 CXXFLAGS	+= -fno-exceptions

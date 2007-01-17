@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2004/03/01 16:06:40 schendel Exp $
+# $Id: Makefile,v 1.3 2007/01/17 22:47:54 giri Exp $
 #
 
 # Include standard make configuration stuff that applies to everything
@@ -34,7 +34,7 @@ endif
 # allow users to build tcl/tk libraries as .a's opposed to .so's since
 # .so's are difficult to build on AIX.  The .so's automatically pull in the
 # pthread library.
-LIBS += -lpthread
+LIBS += -lpthread -lsymtabAPI
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

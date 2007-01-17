@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2001/06/20 20:42:39 schendel Exp $
+# $Id: Makefile,v 1.7 2007/01/17 22:47:45 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,20 +21,12 @@ include ../make.module.tmpl
 
 CFLAGS   += -I/usr/include/libelf
 CXXFLAGS += $(USEFULWARNINGS) -I/usr/include/libelf
-SRCS     += ../../common/src/linuxKludges.C \
-            ../../common/src/timing-linux.C
-
-OBJS     += linuxKludges.o \
-            timing-linux.o
 
 # no support for elf64_XXX() functions
 CXXFLAGS += -DUSES_ELF32_ONLY
 #CXXFLAGS += -DAGGREGATE_DEBUG
 #CXXFLAGS += -DHIST_DEBUG
 CFLAGS   += -DUSES_ELF32_ONLY
-
-linuxKludges.o: ../../common/src/linuxKludges.C
-	$(CXX) -c $(KFLAGS) ../../common/src/linuxKludges.C
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2004/03/01 17:28:27 pcroth Exp $
+# $Id: Makefile,v 1.5 2007/01/17 22:47:35 giri Exp $
 #
 # Define any symbols needed to invoke configuration changes in make.config
 
@@ -12,8 +12,6 @@ NO_IMPLICIT_TEMPLATES = true
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
-
-SRCS += ../../common/src/linuxKludges.C
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

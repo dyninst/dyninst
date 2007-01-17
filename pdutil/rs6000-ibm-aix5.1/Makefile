@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2003/06/19 18:46:12 pcroth Exp $
+# $Id: Makefile,v 1.3 2007/01/17 22:47:49 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,13 +22,8 @@ include ../make.module.tmpl
 # Now make any necessary architecture specific changes to variables:
 
 CXXFLAGS        += $(USEFULWARNINGS)
-SRCS            += ../../common/src/aixv41Kludges.C \
-                   ../../common/src/timing-aix.C  \
-				   dyninstRPC.xdr.C \
-				   dyninstRPC.xdr.temp.C
-OBJS            += aixv41Kludges.o \
-                   timing-aix.o \
-				   dyninstRPC.xdr.o \
+
+OBJS		+=		   dyninstRPC.xdr.o \
 				   dyninstRPC.xdr.temp.o
 
 # you'll need the following for the SP2/AIX if your sscanf is also broken
@@ -39,8 +34,8 @@ ifdef CROSSCOMPILER
 KFLAGS		+= -DCROSSCOMPILER
 endif
 
-aixv41Kludges.o: ../../common/src/aixv41Kludges.C
-	$(CXX) -c $(KFLAGS) ../../common/src/aixv41Kludges.C
+# aixv41Kludges.o: ../../common/src/aixv41Kludges.C
+#	$(CXX) -c $(KFLAGS) ../../common/src/aixv41Kludges.C
 
 ifdef GCC_2_95
 CXXFLAGS	+= -fno-exceptions

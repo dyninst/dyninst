@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.9 2004/07/27 18:26:30 mjbrim Exp $
+# $Id: make.module.tmpl,v 1.10 2007/01/17 22:47:55 giri Exp $
 #
 
 TARGET	      = rthist
@@ -36,7 +36,7 @@ TCL_SRCS	= ../tcl/histVisi.tcl ../tcl/pdgraph.tcl \
                    $(TO_CORE)/visiClients/auxiliary/tcl/Export.tcl
 SRCS		+= $(TCL2C_GEN_SRCS)
 
-LIBS         += -lvisi -lpdutil
+LIBS         += -lvisi -lpdutil -lcommon
 SYSLIBS	     += $(TCLTK_LIBS) $(X11_LIB) -lm
 # comment out above and uncomment below for static build
 #SYSLIBS	     += -L../.. -Wl,-Bstatic $(TCLTK_LIBS) $(X11_LIB) -lXext -lm -lstdc++ -Wl,-Bdynamic -static-libgcc

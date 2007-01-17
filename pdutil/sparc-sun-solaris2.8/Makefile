@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2001/06/20 20:42:40 schendel Exp $
+# $Id: Makefile,v 1.3 2007/01/17 22:47:50 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,14 +27,6 @@ include ../make.module.tmpl
 # Now make any necessary architecture specific changes to variables:
 
 CXXFLAGS += $(USEFULWARNINGS)
-SRCS     += ../../common/src/solarisKludges.C \
-            ../../common/src/timing-solaris.C
-
-OBJS     += solarisKludges.o \
-            timing-solaris.o
-
-solarisKludges.o: ../../common/src/solarisKludges.C
-	$(CXX) -c $(KFLAGS) ../../common/src/solarisKludges.C
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.

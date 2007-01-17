@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.93 2006/07/07 00:01:10 jaw Exp $
+# $Id: make.module.tmpl,v 1.94 2007/01/17 22:47:43 giri Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -54,12 +54,13 @@ SRCS	+=	../src/comm.C \
 
 
 ifdef USES_SHM_SAMPLING
-SRCS 		+= ../src/varInstanceHKs.C ../src/varInstance.C \
+SRCS 		+= ../src/varInstance.C \
 		   ../src/shmMgr.C  \
 		   ../src/variableMgr.C \
 		   ../src/shmSegment-unix.C \
 		   ../src/shmSegment.C \
-		   ../src/sharedMetaData.C
+		   ../src/sharedMetaData.C \
+		   ../src/varInstanceHKs.C
 
 CXXFLAGS	+= -DSHM_SAMPLING
 TFLAGS		+= -DSHM_SAMPLING
@@ -81,7 +82,7 @@ PREREQUISITES = $(IGEN_GEN_SRCS)
 
 
 LIBS		+= -lpdutil
-LIBS 		+= -lmrnet -lxplat -lpthread -ldyninstAPI
+LIBS 		+= -lmrnet -lxplat -lpthread -lcommon -lsymtabAPI -ldyninstAPI 
 
 ifdef CROSSCOMPILER
 SYSLIBS		+= -liberty -lg++ -lstdc++ -lm

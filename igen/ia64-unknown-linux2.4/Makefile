@@ -10,8 +10,6 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS += ../../common/src/linuxKludges.C
-
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

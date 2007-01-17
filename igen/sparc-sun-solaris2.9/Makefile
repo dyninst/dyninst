@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2003/09/30 14:20:45 jodom Exp $
+# $Id: Makefile,v 1.2 2007/01/17 22:47:39 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -13,8 +13,6 @@ NO_IMPLICIT_TEMPLATES = true
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
-
-SRCS += ../../common/src/solarisKludges.C
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
