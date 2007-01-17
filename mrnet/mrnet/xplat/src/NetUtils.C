@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: NetUtils.C,v 1.6 2004/06/02 16:49:08 pcroth Exp $
+// $Id: NetUtils.C,v 1.7 2007/01/17 20:27:29 darnold Exp $
 #include <sstream>
 #include "xplat/Types.h"
 #include "xplat/NetUtils.h"
@@ -75,6 +75,7 @@ NetUtils::IsLocalHost( const std::string& host )
 
     if( (host == "") ||
         (host == "localhost") ||
+        (host == "localhost.localdomain") ||
         (host == GetNetworkName()) ||
         (host == GetNetworkAddress().GetString()) )
     {
