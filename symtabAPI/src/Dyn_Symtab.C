@@ -1083,7 +1083,7 @@
 			addVariableName(newsym, sname, true);
 		else if(newsym->getType() == Dyn_Symbol::PDST_MODULE)
 			modSyms.push_back(newsym);
-		else if(newsym->getType() == Dyn_Symbol::PDST_NOTYPE)
+		else
 			notypeSyms.push_back(newsym);
         }
 	else
@@ -1095,7 +1095,7 @@
 			addVariableName(newsym, sname, true);
 		else if(newsym->getType() == Dyn_Symbol::PDST_MODULE)
 			modSyms.push_back(newsym);
-		else if(newsym->getType() == Dyn_Symbol::PDST_NOTYPE)
+		else
 			notypeSyms.push_back(newsym);
         }
 	//linkedFile.symbols_[sname].push_back(newsym);
