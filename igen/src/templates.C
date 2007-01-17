@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates.C,v 1.20 2004/10/19 01:23:42 pack Exp $
+// $Id: templates.C,v 1.21 2007/01/17 22:47:28 giri Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -50,9 +50,9 @@
 #include "Options.h"
 
 #ifdef rs6000_ibm_aix4_1
-#include "common/h/Symbol.h"
-template class pdpair<pdstring, Symbol>;
-template class dictionary_hash<pdstring, Symbol>;
+#include "symtabAPI/h/Dyn_Symbol.h"
+template class pdpair<pdstring, Dyn_Symbol>;
+template class dictionary_hash<pdstring, Dyn_Symbol>;
 #endif
 
 template class pdvector<arg *>;

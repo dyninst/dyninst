@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.40 2006/04/13 23:05:29 legendre Exp $
+// $Id: templatesDM.C,v 1.41 2007/01/17 22:47:29 giri Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -211,10 +211,10 @@ template class dictionary_hash<unsigned, inst_insert_result_t>;
 template class pdvector<dictionary_hash<unsigned,inst_insert_result_t>::entry>;
 
 #if defined(rs6000_ibm_aix4_1)
-#include "common/h/Symbol.h"
-template class pdvector<Symbol>;
-template class dictionary_hash<pdstring, Symbol>;
-template class pdvector<dictionary_hash<pdstring, Symbol>::entry>;
+#include "symtabAPI/h/Dyn_Symbol.h"
+template class pdvector<Dyn_Symbol>;
+template class dictionary_hash<pdstring, Dyn_Symbol>;
+template class pdvector<dictionary_hash<pdstring, Dyn_Symbol>::entry>;
 #endif
 
 template class pdvector<paradynDaemon::MPICHWrapperInfo>;
