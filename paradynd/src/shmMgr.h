@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.15 2005/09/09 18:08:00 legendre Exp $
+/* $Id: shmMgr.h,v 1.16 2007/01/17 22:47:32 giri Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -54,9 +54,9 @@
 
 // these defaults can be overidden by "SHARED_MUTATEE_LIB" env variable
 #if defined(os_windows)
-#define SHARED_MUTATEE_LIB "libsharedMutatee.dll"
+#define SHARED_MUTATEE_LIB "libdynShmMutatee.dll"
 #else
-#define SHARED_MUTATEE_LIB "libsharedMutatee.so.1"
+#define SHARED_MUTATEE_LIB "libdynShmMutatee.so"
 #endif
 
 class BPatch_process;
