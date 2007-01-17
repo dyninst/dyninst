@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.29 2006/06/19 21:30:55 bernat Exp $
+// $Id: varInstanceHKs.C,v 1.30 2007/01/17 22:47:33 giri Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -125,7 +125,7 @@ bool intCounterHK::perform(const intCounter *dataValue,
 
 #if defined(i386_unknown_solaris2_5) || defined(i386_unknown_linux2_0)
    // the 32 bit platforms require a special method load the value atomically
-   __asm__ volatile ("fildq %0"  : : "g" (dataValue->value));
+   __asm__ volatile ("movl %0,%%eax\nfildq (%%eax)"  : : "g" (dataValue->value):"%eax");
    __asm__ volatile ("fistpq %0" : "=m" (val)  );
 #elif defined(i386_unknown_nt4_0)
    const rawTime64 *addr = &dataValue->value;
