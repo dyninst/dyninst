@@ -291,6 +291,10 @@ public:
     API_EXPORT(Int, (name, isPrimary, isMangled),
     const char *, addName, (const char *name, bool isPrimary = true, bool isMangled = false));           
 
+    //  Return native pointer to the function. 
+    //  Allocates and returns a special type of BPatch_variableExpr.
+    API_EXPORT( Int, (), BPatch_variableExpr *, getFunctionRef, () );
+
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
 
@@ -320,9 +324,6 @@ public:
 
     void,getExcPoints,(BPatch_Vector<BPatch_point*> &points));
 
-	/* Return native pointer to the function. */
-	typedef void (* voidVoidFunctionPointer )();
-    API_EXPORT( Int, (), voidVoidFunctionPointer, getFunctionRef, () );
 
     API_EXPORT(DPCL, (),
 

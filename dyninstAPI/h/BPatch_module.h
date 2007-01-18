@@ -59,7 +59,7 @@ class BPatch_function;
 class BPatch_typeCollection;
 class BPatch_builtInTypeCollection;
 class BPatch_process;
-class LineInformation; // PDSEP -- this should probably not be exported
+class BPatch_statement;
 
 extern BPatch_builtInTypeCollection * builtInTypes;
 
@@ -76,6 +76,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class BPatch_image;
     friend class InstrucIter;
     friend class BPatch_thread;
+    friend class BPatch_process;
 
     BPatch_process *proc;
     mapped_module      	 *mod;
@@ -101,7 +102,6 @@ public:
     void parseTypes();
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
     void setDefaultNamespacePrefix(char *name);    
-    LineInformation & getLineInformation();
     void handleUnload();
 
     // End functions for internal use only
@@ -211,7 +211,15 @@ public:
     // for an address in the module
     API_EXPORT(Int, (addr, lines),
     
-    bool,getSourceLines,( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ));
+    bool,getSourceLines,( unsigned long addr, BPatch_Vector<BPatch_statement> &lines));
+
+
+    // BPatch_mode::getStatements
+    //
+    // Fill supplied vector with all BPatch_statements from this module
+    API_EXPORT(Int, (statements),
+  
+    bool,getStatements,(BPatch_Vector<BPatch_statement> &statements));
 
     // BPatch_module::wgetBaseAddr
     // Returns a base address of the module; defined as the start

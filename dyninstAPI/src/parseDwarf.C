@@ -323,7 +323,7 @@ void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLengt
 	fprintf( stderr, "\n" );
 	} /* end dumpLocListAddrRanges */
 
-AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, process *proc ) {
+AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, process * proc /* process parameter only needed on x86_64*/) {
 	/* Until such time as we see more-complicated location lists, assume single entries
 	   consisting of a register name.  Using an AST for this is massive overkill, but if
 	   we need to handle more complicated frame base calculations later, the infastructure
@@ -2206,19 +2206,19 @@ struct section_starts {
 };
 
 static bool getTextAndEHFrameStart(Elf *elf, 
-								   pdvector<Address> &text_starts,
-								   pdvector<unsigned> &text_sizes,
-								   Address &ehframe_start,
-								   unsigned &ehframe_size,
-								   unsigned &ehframe_offset,
-								   unsigned address_width) 
+				   pdvector<Address> &text_starts,
+				   pdvector<unsigned> &text_sizes,
+				   Address &ehframe_start,
+				   unsigned &ehframe_size,
+				   unsigned &ehframe_offset,
+				   unsigned address_width) 
 {
-   Elf32_Ehdr *ehdr32;
-   Elf32_Shdr *shdr32;
-   Elf64_Ehdr *ehdr64;
-   Elf64_Shdr *shdr64;
-   Elf_Scn *sec;
-   char *sname;
+   Elf32_Ehdr *ehdr32 = NULL;
+   Elf32_Shdr *shdr32 = NULL;
+   Elf64_Ehdr *ehdr64 = NULL;
+   Elf64_Shdr *shdr64 = NULL;
+   Elf_Scn *sec = NULL;
+   char *sname = NULL;
    unsigned offset, size;
    Address start;
    

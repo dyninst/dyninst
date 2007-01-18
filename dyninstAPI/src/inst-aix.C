@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.24 2006/07/07 00:01:02 jaw Exp $
+/* $Id: inst-aix.C,v 1.25 2007/01/18 07:53:50 jaw Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -56,7 +56,6 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/ptrace_emul.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include <sys/ldr.h>

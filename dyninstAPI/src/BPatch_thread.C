@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.171 2006/12/06 21:17:09 bernat Exp $
+// $Id: BPatch_thread.C,v 1.172 2007/01/18 07:53:48 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -54,6 +54,7 @@
 #include "dyn_lwp.h"
 #include "BPatch_libInfo.h"
 #include "function.h"
+#include "BPatch_statement.h"
 
 #if defined(IBM_BPATCH_COMPAT)
 #include <algorithm>
@@ -635,17 +636,20 @@ bool BPatch_thread::isDeadOnArrivalInt()
 }
 
 /* This function should be deprecated. */
-bool BPatch_thread::getLineAndFile( unsigned long addr, unsigned short & lineNo, char * fileName, int length ) {
-	std::vector< std::pair< const char *, unsigned int > > lines;
-	if( ! getSourceLines( addr, lines ) ) { return false; }
+bool BPatch_thread::getLineAndFile( unsigned long addr, 
+                                    unsigned short & lineNo, 
+                                    char * fileName, 
+                                    int length ) 
+{
+   BPatch_Vector< BPatch_statement > lines;
+   if ( ! getSourceLines( addr, lines ) ) { return false; }
 	
-	if( lines.size() > 0 ) {
-		lineNo = lines[0].second;
-		strncpy( fileName, lines[0].first, length );
+   if ( lines.size() > 0 ) {
+      lineNo = lines[0].lineNumber();
+      strncpy( fileName, lines[0].fileName(), length );
+      return true;
+   }
 		
-		return true;
-		}
-		
-	return false;
-	} /* end getLineAndFile() */
+return false;
+} /* end getLineAndFile() */
     

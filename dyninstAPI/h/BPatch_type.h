@@ -364,10 +364,6 @@ public:
 // It is desgined store information about a variable in a function.
 // Scope needs to be addressed in this class.
 
-#if defined (os_osf)
-class eCoffSymbol;
-#endif
-
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
@@ -385,9 +381,6 @@ class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
     friend bool walkDwarvenTree(Dwarf_Debug &, char *, Dwarf_Die,
                         BPatch_module *, process *, Dwarf_Off, BPatch_function *,
                         BPatch_typeCommon *, BPatch_fieldListType *);
-#endif
-#if defined (os_osf)
-   friend void eCoffParseProc(BPatch_module *, eCoffSymbol &, bool);
 #endif
 
     char *name;

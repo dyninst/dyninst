@@ -61,6 +61,7 @@
 
 #include "InstrucIter.h"
 
+#include "BPatch_statement.h"
 #include "LineInformation.h"
 
 #include "BPatch_flowGraph.h"
@@ -557,7 +558,7 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
     for( unsigned int i = 0; i < allBlocks.size(); i++ ) {
         BPatch_basicBlock * currentBlock = elements[i];
 	
-        std::vector< LineInformation::LineNoTuple > lines;
+        BPatch_Vector<BPatch_statement> lines;
         InstrucIter insnIterator( currentBlock );
         
         for( ; insnIterator.hasMore(); ++insnIterator ) {
@@ -572,10 +573,10 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
             }
             
             BPatch_Set< unsigned short > lineNos;
-            const char * currentSourceFile = lines[0].first;
+            const char * currentSourceFile = lines[0].fileName();
             for( unsigned int j = 0; j < lines.size(); j++ ) {
-                if( strcmp( currentSourceFile, lines[j].first ) == 0 ) {
-                    lineNos.insert( lines[j].second );
+                if( strcmp( currentSourceFile, lines[j].fileName() ) == 0 ) {
+                    lineNos.insert( (unsigned short) lines[j].lineNumber() );
                     continue;
                 }
                 
@@ -589,8 +590,8 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
                 /* Wonder why there isn't a clear().  (For that matter, why there isn't a const_iterator
                    or a prefix increment operator for the iterator.) */
                 lineNos = BPatch_Set< unsigned short >();
-                currentSourceFile = lines[j].first;
-                lineNos.insert( lines[j].second );
+                currentSourceFile = lines[j].fileName();
+                lineNos.insert( (unsigned short)lines[j].lineNumber() );
             }
             if( lineNos.size() != 0 ) {
                 // /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );

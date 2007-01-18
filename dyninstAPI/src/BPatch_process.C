@@ -2277,7 +2277,7 @@ bool BPatch_process::getAddressRangesInt( const char * fileName, unsigned int li
 	/* Iteratate over the modules, looking for addr in each. */
 	BPatch_Vector< BPatch_module * > * modules = image->getModules();
 	for( unsigned int i = 0; i < modules->size(); i++ ) {
-		LineInformation & lineInformation = (* modules)[i]->getLineInformation();		
+		LineInformation & lineInformation = (* modules)[i]->mod->getLineInformation();		
 		lineInformation.getAddressRanges( fileName, lineNo, ranges );
 		} /* end iteration over modules */
 	if( ranges.size() != originalSize ) { return true; }
@@ -2285,19 +2285,11 @@ bool BPatch_process::getAddressRangesInt( const char * fileName, unsigned int li
 	return false;
 	} /* end getAddressRangesInt() */
 
-bool BPatch_process::getSourceLinesInt( unsigned long addr, std::vector< LineInformation::LineNoTuple > & lines ) {
-	unsigned int originalSize = lines.size();
-
-	/* Iteratate over the modules, looking for addr in each. */
-	BPatch_Vector< BPatch_module * > * modules = image->getModules();
-	for( unsigned int i = 0; i < modules->size(); i++ ) {
-		LineInformation & lineInformation = (* modules)[i]->getLineInformation();		
-		lineInformation.getSourceLines( addr, lines );
-		} /* end iteration over modules */
-	if( lines.size() != originalSize ) { return true; }
-	
-	return false;
-	} /* end getLineAndFile() */
+bool BPatch_process::getSourceLinesInt( unsigned long addr, 
+                                        BPatch_Vector< BPatch_statement > & lines ) 
+{
+   return image->getSourceLinesInt(addr, lines);
+} /* end getLineAndFile() */
 
 /*
  * BPatch_process::findFunctionByAddr

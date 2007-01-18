@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.94 2007/01/09 02:01:22 giri Exp $
+// $Id: BPatch_image.C,v 1.95 2007/01/18 07:53:47 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -59,6 +59,7 @@
 #include "BPatch_type.h"
 #include "BPatch_collections.h"
 #include "BPatch_libInfo.h"
+#include "BPatch_statement.h"
 #include "LineInformation.h"
 #include "BPatch_function.h" 
 
@@ -920,27 +921,38 @@ BPatch_type *BPatch_image::findTypeInt(const char *name)
 
 }
 
-bool BPatch_image::getSourceLinesInt( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ) {
-	unsigned int originalSize = lines.size();
-	
-	/* Iteratate over the modules, looking for addr in each. */
-	BPatch_Vector< BPatch_module * > * modules = getModules();
-	for( unsigned int i = 0; i < modules->size(); i++ ) {
-		LineInformation & lineInformation = (* modules)[i]->getLineInformation();
-		lineInformation.getSourceLines( addr, lines );
-		} /* end iteration over modules */
-	if( lines.size() != originalSize ) { return true; }	
-	
-	return false;
-	} /* eng getSourceLines() */
+bool BPatch_image::getSourceLinesInt(unsigned long addr, 
+                                     BPatch_Vector<BPatch_statement> &lines )
+{
+   unsigned int originalSize = lines.size();
 
-bool BPatch_image::getAddressRangesInt( const char * lineSource, unsigned int lineNo, std::vector< LineInformation::AddressRange > & ranges ) {
+   /* Iteratate over the modules, looking for addr in each. */
+   BPatch_Vector< BPatch_module * > * modules = getModules();
+   for (unsigned int i = 0; i < modules->size(); i++ ) {
+      std::vector<LineInformationImpl::LineNoTuple> lines_ll;
+      LineInformation & lineInformation = (* modules)[i]->mod->getLineInformation();
+      lineInformation.getSourceLines( addr, lines_ll );
+      for (unsigned int j = 0; j < lines_ll.size(); ++j) {
+         LineInformationImpl::LineNoTuple &t = lines_ll[j];
+         lines.push_back(BPatch_statement((*modules)[i], t.first, t.second, t.column));
+      }
+   } /* end iteration over modules */
+
+
+   if ( lines.size() != originalSize ) { return true; }	
+
+   return false;
+} /* eng getSourceLines() */
+
+bool BPatch_image::getAddressRangesInt( const char * lineSource, 
+                                        unsigned int lineNo, 
+                                       std::vector< LineInformation::AddressRange > & ranges ) {
 	unsigned int originalSize = ranges.size();
 
 	/* Iteratate over the modules, looking for ranges in each. */
 	BPatch_Vector< BPatch_module * > * modules = getModules();
 	for( unsigned int i = 0; i < modules->size(); i++ ) {
-		LineInformation & lineInformation = (* modules)[i]->getLineInformation();
+		LineInformation & lineInformation = (* modules)[i]->mod->getLineInformation();
 		lineInformation.getAddressRanges( lineSource, lineNo, ranges );
 		} /* end iteration over modules */
 	if( ranges.size() != originalSize ) { return true; }

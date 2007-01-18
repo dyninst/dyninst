@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2007/01/12 22:11:04 giri Exp $
+# $Id: Makefile,v 1.13 2007/01/18 07:53:47 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,6 +24,7 @@ SRCS =		../src/solaris.C \
 		../src/inst-sparc.C \
 		../src/inst-sunos.C \
 		../src/parseStab.C \
+		../src/parseDwarf.C \
 		../src/unix.C \
 		../src/InstrucIter-sparc.C \
 		../../common/src/solarisKludges.C \
@@ -51,7 +52,7 @@ TFLAGS		+= -DUSES_ELF32_ONLY
 #TFLAGS 		+= -g
 
 LDFLAGS += -ldwarf -lelf
-SYSLIBS = -lsocket -lnsl -ldl -lrt
+SYSLIBS = -lsocket -lnsl -ldl -lrt -lsymtabAPI
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthreads

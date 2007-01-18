@@ -61,6 +61,7 @@
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "BPatch_function.h"
+#include "BPatch_statement.h"
 #include "breakpoint.h"
 
 extern "C" {
@@ -1847,9 +1848,10 @@ int whatisFunc(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
     if (func->getBaseAddr()) {
 	printf("   starts at 0x%lx", (long)func->getBaseAddr());
 	
-	std::vector< std::pair< const char *, unsigned int > > lines;
+	//std::vector< std::pair< const char *, unsigned int > > lines;
+        BPatch_Vector<BPatch_statement> lines;
 	if( func->getProc()->getSourceLines( (unsigned long)func->getBaseAddr(), lines ) ) {
-		printf(" defined at %s:%d\n", lines[0].first, lines[0].second );
+		printf(" defined at %s:%d\n", lines[0].fileName(), lines[0].lineNumber() );
 	} else {
 	    printf("\n");
 	}

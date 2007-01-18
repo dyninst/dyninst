@@ -49,7 +49,7 @@
 #include <assert.h>
 #include "BPatch_dll.h"
 
-#if defined(os_irix) || defined (os_windows)
+#if defined (os_windows)
 #define CONST_EXPORT
 #else
 #define CONST_EXPORT const

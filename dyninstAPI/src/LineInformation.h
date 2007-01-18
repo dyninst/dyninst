@@ -47,14 +47,29 @@
 
 /* This is clumsy. */
 namespace LineInformationImpl {
-	typedef std::pair< const char *, unsigned int >		LineNoTuple;
+        class LineNoTuple{
+           public:
+           LineNoTuple(const char *file_, unsigned int line_, unsigned int col_=0) : 
+             first(file_),
+             second(line_),
+             column(col_) {}
+           const char *first; // really file
+           unsigned int second; // really line
+           unsigned int column;
+           bool operator==(const LineNoTuple &cmp) const {
+             if (second != cmp.second) return false;
+             if (column != cmp.column) return false;
+             //  is compare-by-pointer OK here, or do we really have to really strcmp?
+             return (!strcmp(first,cmp.first)); 
+           }
+        };
 	
 	/* Explicit comparison functors seems slightly less confusing than using
 	   operator <() via an implicit Less<> template argument to the maps. */
 	struct LineNoTupleLess {
 		bool operator () ( LineNoTuple lhs, LineNoTuple rhs ) const;
-		};
-	} /* end namespace LineInformationImpl */			
+	};
+} /* end namespace LineInformationImpl */			
 
 class LineInformation : private RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess > {
 	public:
@@ -65,8 +80,16 @@ class LineInformation : private RangeLookup< LineInformationImpl::LineNoTuple, L
 		LineInformation();
 
 		/* You MAY freely deallocate the lineSource strings you pass in. */
-		bool addLine( const char * lineSource, unsigned int lineNo, Address lowInclusiveAddr, Address highExclusiveAddr );
-		bool addAddressRange( Address lowInclusiveAddr, Address highExclusiveAddr, const char * lineSource, unsigned int lineNo );
+		bool addLine( const char * lineSource, 
+                              unsigned int lineNo, 
+                              unsigned int lineOffset, 
+                              Address lowInclusiveAddr, 
+                              Address highExclusiveAddr );
+		bool addAddressRange( Address lowInclusiveAddr, 
+                                      Address highExclusiveAddr, 
+                                      const char * lineSource, 
+                                      unsigned int lineNo, 
+                                      unsigned int lineOffset = 0 );
 		
 		/* You MUST NOT deallocate the strings returned. */
 		bool getSourceLines( Address addressInRange, std::vector< LineNoTuple > & lines );

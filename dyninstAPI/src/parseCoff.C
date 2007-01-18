@@ -588,7 +588,7 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
 				   who understands ECOFF should fix this.  (One possibility is
 				   to use the name of the module the function is in.) */
 				if( isPreviousValid ) {
-					lineInformation.addLine( fileName.c_str(), prevLineNo, prevLineAddr, tempSym->value );
+					lineInformation.addLine( fileName.c_str(), prevLineNo, 0 /*no col info*/prevLineAddr, tempSym->value );
 					}
 				else {
 					isPreviousValid = true;
@@ -607,7 +607,7 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
 	    		   this'll have to wait. */
 
                    if (tempSym->st == stEnd && tempSym->sc == scText) {
-                      lineInformation.addLine( fileName.c_str(), prevLineNo, prevLineAddr, procedureDesc->adr + tempSym->value );
+                      lineInformation.addLine( fileName.c_str(), prevLineNo, 0/*no col info*/prevLineAddr, procedureDesc->adr + tempSym->value );
                    }
 
 	    		}
@@ -647,7 +647,7 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
 
 				/* See comments in the gcc case, above. */
 				if( isPreviousValid ) {
-					lineInformation.addLine( fileName.c_str(), prevLineNo, prevLineAddr, currAddr );
+					lineInformation.addLine( fileName.c_str(), prevLineNo, /*no col info*/prevLineAddr, currAddr );
 					}
 				else { 
 					isPreviousValid = true;

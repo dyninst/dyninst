@@ -40,12 +40,17 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.24 2007/01/04 22:59:50 legendre Exp $
+// $Id: arch.h,v 1.25 2007/01/18 07:53:50 jaw Exp $
 
 #if !defined(arch_h)
 #define arch_h
 
 #include <assert.h>
+
+//  JAW:  1/9/07 removed following platform switches:
+//  alpha_dec_osf4_0
+//  mips_sgi_irix6_4
+//  mips_unknown_ce2_11
 
 #if defined(sparc_sun_sunos4_1_3) \
  || defined(sparc_sun_solaris2_4)
@@ -55,18 +60,11 @@
    || defined(rs6000_ibm_aix4_1)
 #include "arch-power.h"
 
-#elif defined(alpha_dec_osf4_0)
-#include "arch-alpha.h"
-
 #elif defined(i386_unknown_solaris2_5) \
    || defined(i386_unknown_nt4_0) \
    || defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4)
 #include "arch-x86.h"
-
-#elif defined(mips_sgi_irix6_4) \
-   || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-#include "arch-mips.h"
 
 #elif defined(ia64_unknown_linux2_4)
 #include "arch-ia64.h"

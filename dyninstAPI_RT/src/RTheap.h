@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.h,v 1.9 2006/03/12 23:32:44 legendre Exp $ */
+/* $Id: RTheap.h,v 1.10 2007/01/18 07:53:56 jaw Exp $ */
 
 #ifndef _RT_HEAP_H
 #define _RT_HEAP_H
@@ -47,9 +47,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" /* RT_Boolean, Address */
 
 #if defined(sparc_sun_solaris2_4)    \
- || defined(i386_unknown_solaris2_5) \
- || defined(mips_sgi_irix6_4)        \
- || defined(alpha_dec_osf4_0)
+ || defined(i386_unknown_solaris2_5) 
 
 /* SVR4 */
 #include <sys/procfs.h>

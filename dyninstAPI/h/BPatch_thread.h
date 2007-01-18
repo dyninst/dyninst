@@ -56,6 +56,7 @@ class process;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;
+class BPatch_statement;
 class dyn_thread;
 
 typedef long dynthread_t;
@@ -163,7 +164,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
        { return proc->replaceFunction(oldFunc, newFunc); }
     bool loadLibrary(const char *libname, bool reload = false)
        { return proc->loadLibrary(libname, reload); }
-    bool getSourceLines( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines )
+    bool getSourceLines( unsigned long addr, BPatch_Vector< BPatch_statement > & lines )
        { return proc->getSourceLines( addr, lines ); }
     bool getAddressRanges( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges )
        { return proc->getAddressRanges( fileName, lineNo, ranges ); }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.27 2006/07/07 00:01:04 jaw Exp $
+// $Id: inst-winnt.C,v 1.28 2007/01/18 07:53:51 jaw Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -48,7 +48,6 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/ptrace_emul.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/instPoint.h"

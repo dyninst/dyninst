@@ -1,14 +1,14 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.4 2007/01/12 22:11:08 giri Exp $
+# $Id: Makefile,v 1.5 2007/01/18 07:53:57 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../..
 NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
+#USES_DWARF_DEBUG = true
 
 MUTATEE_LIBS = -ldl -lrt
 
@@ -100,5 +100,5 @@ LIBS_LIBTESTSUITE = -ldl
 # the module that is common across architectures.
 
 include ../make.module.tmpl
-MUTATOR_LDFLAGS +=  $(SYSLIBS) -ldwarf -lelf -lstdc++ -lsocket -lrt -liberty
+MUTATOR_LDFLAGS +=  $(SYSLIBS) -ldwarf -lelf -lstdc++ -lsocket -lrt -liberty -ldwarf 
 

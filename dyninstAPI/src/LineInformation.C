@@ -50,33 +50,46 @@ LineInformation::LineInformation() :
 	sourceLineNames() {
 	} /* end LineInformation constructor */
 
-bool LineInformation::addLine( const char * lineSource, unsigned int lineNo, Address lowInclusiveAddr, Address highExclusiveAddr ) {
-	/* If we haven't already, intern the lineSource. */
-	if( lineSource == NULL ) { return false; }
+bool LineInformation::addLine( const char * lineSource, 
+                               unsigned int lineNo, 
+                               unsigned int lineOffset, 
+                               Address lowInclusiveAddr, 
+                               Address highExclusiveAddr ) 
+{
+   /* If we haven't already, intern the lineSource. */
+   if ( lineSource == NULL ) { return false; }
 	
-	const char * lineSourceInternal = NULL;
-	typedef SourceLineInternTable::const_iterator IteratorType;
-	IteratorType found = sourceLineNames.find( lineSource );
-	if( found == sourceLineNames.end() ) {
-		lineSourceInternal = strdup( lineSource );
-		assert( lineSourceInternal != NULL );
-		sourceLineNames.insert( lineSourceInternal );
-		}
-	else {
-		lineSourceInternal = * found;
-		}
-	assert( lineSourceInternal != NULL );
-	
-	return addValue( LineNoTuple( lineSourceInternal, lineNo ), lowInclusiveAddr, highExclusiveAddr );
-	} /* end setLineToAddressRangeMapping() */
-                                                                                                                                    
-bool LineInformation::addAddressRange( Address lowInclusiveAddr, Address highExclusiveAddr, const char * lineSource, unsigned int lineNo ) {
-	return addLine( lineSource, lineNo, lowInclusiveAddr, highExclusiveAddr );
-	} /* end setAddressRangeToLineMapping() */
+   const char * lineSourceInternal = NULL;
+   typedef SourceLineInternTable::const_iterator IteratorType;
+   IteratorType found = sourceLineNames.find( lineSource );
+   if ( found == sourceLineNames.end() ) {
+      lineSourceInternal = strdup( lineSource );
+      assert( lineSourceInternal != NULL );
+      sourceLineNames.insert( lineSourceInternal );
+   }
+   else {
+      lineSourceInternal = * found;
+   }
+   assert( lineSourceInternal != NULL );
 
-bool LineInformation::getSourceLines( Address addressInRange, std::vector< LineNoTuple > & lines ) {
-	return getValues( addressInRange, lines );
-	} /* end getLinesFromAddress() */
+   return addValue( LineNoTuple(lineSourceInternal, lineNo, lineOffset), 
+                    lowInclusiveAddr, highExclusiveAddr );
+} /* end setLineToAddressRangeMapping() */
+                                                                                                                                    
+bool LineInformation::addAddressRange( Address lowInclusiveAddr, 
+                                       Address highExclusiveAddr, 
+                                       const char * lineSource, 
+                                       unsigned int lineNo, 
+                                       unsigned int lineOffset ) 
+{
+   return addLine( lineSource, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr );
+} /* end setAddressRangeToLineMapping() */
+
+bool LineInformation::getSourceLines( Address addressInRange, 
+                                      std::vector< LineNoTuple > & lines ) 
+{
+   return getValues( addressInRange, lines );
+} /* end getLinesFromAddress() */
 
 bool LineInformation::getAddressRanges( const char * lineSource, unsigned int lineNo, std::vector< AddressRange > & ranges ) {
 	return RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::getAddressRanges( LineNoTuple( lineSource, lineNo ), ranges );
@@ -90,14 +103,19 @@ LineInformation::const_iterator LineInformation::end() const {
 	return RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::end();
 	} /* end begin() */
 
-bool LineInformationImpl::LineNoTupleLess::operator () ( LineNoTuple lhs, LineNoTuple rhs ) const {
-	if( strcmp( lhs.first, rhs.first ) < 0 ) { return true; }
-	else if( strcmp( lhs.first, rhs.first ) == 0 ) {
-		if( lhs.second < rhs.second ) { return true; }
-		else{ return false; }
-		}
-	else{ return false; }
-	} /* end LineNoTupleLess() */
+bool LineInformationImpl::LineNoTupleLess::operator () ( LineNoTuple lhs, LineNoTuple rhs ) const 
+{
+   //  dont bother with ordering by column information yet.
+
+   int strcmp_res = strcmp( lhs.first, rhs.first);
+   if (strcmp_res < 0 ) 
+       return true; 
+   if ( strcmp_res == 0 ) 
+      if ( lhs.second < rhs.second )  
+          return true; 
+   
+   return false; 
+} /* end LineNoTupleLess() */
 
 #if ! defined( os_windows )
 bool LineInformation::SourceLineCompare::operator () ( const char * lhs, const char * rhs ) const {

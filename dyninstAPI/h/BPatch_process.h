@@ -203,7 +203,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend class BPatch_basicBlock;
     friend class BPatch_flowGraph;
     friend class BPatch_loopTreeNode;
-    friend class ThreadLibrary;
     friend class BPatch_point;
     friend class BPatch_funcCallExpr;
     friend class BPatch_eventMailbox;
@@ -680,7 +679,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //  to an address
 
     API_EXPORT(Int, (addr, lines),
-    bool,getSourceLines,(unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ));
+    bool,getSourceLines,(unsigned long addr, BPatch_Vector< BPatch_statement > & lines ));
     
     // BPatch_process::getAddressRanges
     //

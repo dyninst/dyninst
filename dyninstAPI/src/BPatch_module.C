@@ -50,6 +50,7 @@
 #include "BPatch_module.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_function.h"
+#include "BPatch_statement.h"
 #include "BPatch_collections.h"
 #include "common/h/String.h"
 #include "BPatch_typePrivate.h"    // For BPatch_type related stuff
@@ -898,20 +899,20 @@ void BPatch_module::parseTypes() {
 // does NOT parse file-line info anymore, this is done later, upon request.
 void BPatch_module::parseStabTypes() 
 {
-  stab_entry *stabptr;
-  const char *next_stabstr;
+  stab_entry *stabptr = NULL;
+  const char *next_stabstr = NULL;
 
   unsigned i;
-  char *modName;
+  char *modName = NULL;
   pdstring temp;
   image * imgPtr=NULL;
-  char *ptr, *ptr2, *ptr3;
+  char *ptr = NULL, *ptr2 = NULL, *ptr3 = NULL;
   bool parseActive = false;
 
   pdstring* currentFunctionName = NULL;
   Address currentFunctionBase = 0;
   BPatch_variableExpr *commonBlockVar = NULL;
- char *commonBlockName;
+ char *commonBlockName = NULL;
   BPatch_typeCommon *commonBlock = NULL;
  int mostRecentLinenum = 0;
 
@@ -2232,39 +2233,80 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 }
 
 /* This function should be deprecated. */
-bool BPatch_module::getLineToAddrInt( unsigned int lineNo, BPatch_Vector< unsigned long > & buffer, bool ) {
-    if (!isValid()) return false;
+bool BPatch_module::getLineToAddrInt( unsigned int lineNo, 
+                                      BPatch_Vector< unsigned long > & buffer, bool ) 
+{
+   if (!isValid()) return false;
 
-	std::vector< std::pair< Address, Address > > ranges;
-	if( ! getAddressRangesInt( NULL, lineNo, ranges ) ) { return false; }
+std::vector< std::pair< Address, Address > > ranges;
+   if ( ! getAddressRangesInt( NULL, lineNo, ranges ) ) { return false; }
 
-	for( unsigned int i = 0; i < ranges.size(); ++i ) {
-		buffer.push_back( ranges[i].first );
-		}
+   for ( unsigned int i = 0; i < ranges.size(); ++i ) {
+      buffer.push_back( ranges[i].first );
+   }
 
-	return true;
-	} /* end getLineToAddr() */
+   return true;
+} /* end getLineToAddr() */
 
-bool BPatch_module::getSourceLinesInt( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ) {
-    if (!isValid()) return false;
+bool BPatch_module::getSourceLinesInt(unsigned long addr, 
+                                      BPatch_Vector< BPatch_statement> &lines) 
+{
+   if (!isValid()) return false;
 
-	LineInformation & li = mod->getLineInformation();
-	return li.getSourceLines( addr, lines );
-	} /* end getSourceLines() */
+   unsigned int originalSize = lines.size();
 
-bool BPatch_module::getAddressRangesInt( const char * fileName, unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) {
+   LineInformation & li = mod->getLineInformation();
+   std::vector<LineInformationImpl::LineNoTuple> lines_ll;
+   li.getSourceLines( addr, lines_ll );
+
+   for (unsigned int j = 0; j < lines_ll.size(); ++j) {
+      LineInformationImpl::LineNoTuple &t = lines_ll[j];
+      lines.push_back(BPatch_statement(this, t.first, t.second, t.column));
+   }
+
+   return (lines.size() != originalSize);
+} /* end getSourceLines() */
+
+bool BPatch_module::getStatementsInt(BPatch_Vector<BPatch_statement> &statements)
+{
+    // Iterate over each address range in the line information
+    for (LineInformation::const_iterator i = mod->getLineInformation().begin();
+	 i != mod->getLineInformation().end();
+	 ++i) {
+
+        // Form a BPatch_statement object for this entry
+        BPatch_statement statement(this, i->second.first, i->second.second,
+                                   i->second.column, 
+                                   (void *)i->first.first, 
+                                   (void *)i->first.second);
+#if 0
+        struct BPatch_module::Statement statement;
+        statement.begin = i->first.first;
+        statement.end = i->first.second;
+        statement.path = i->second.first;
+        statement.line = i->second.second;
+        statement.column = 0;
+#endif
+
+        // Add this statement
+        statements.push_back(statement);
+
+    }
+
+  return true;
+}
+
+bool BPatch_module::getAddressRangesInt( const char * fileName, unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) 
+{
     if (!isValid()) return false;
 
 	LineInformation & li = mod->getLineInformation();
 	if( fileName == NULL ) { fileName = mod->fileName().c_str(); }
 	return li.getAddressRanges( fileName, lineNo, ranges );
-	} /* end getAddressRanges() */
+} /* end getAddressRanges() */
 
-LineInformation & BPatch_module::getLineInformation() {
-	return this->mod->getLineInformation();
-	} /* end getLineInformation() */
-
-bool BPatch_module::isSharedLibInt() {
+bool BPatch_module::isSharedLibInt() 
+{
   return mod->obj()->isSharedLib();
 }
 

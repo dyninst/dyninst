@@ -39,38 +39,46 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTtext-alpha.S,v 1.8 2006/06/05 22:30:19 bernat Exp $
- * create an array to use as a heap for new instructions.
- *
- * .space	SYN_INST_BUF_SIZES 
- */
+#include "BPatch_statement.h"
+#include "BPatch_module.h"
+BPatch_statement::BPatch_statement(BPatch_module *mod, const char *filename,
+                                   int lineno, int lineoff,
+                                   void *startAddr_, void *endAddr_) :
+        module_(mod),
+        lineno_(lineno),
+        lineoff_(lineoff),
+        file_(filename), 
+        start_addr(startAddr_), 
+        end_addr(endAddr_) 
+{
+}
 
-#define ASSEMBLER 1
+BPatch_module *BPatch_statement::moduleInt()
+{
+  return module_;
+}
 
-        .set noat
-        .text
+int BPatch_statement::lineNumberInt()
+{
+  return lineno_;
+}
 
-	.globl _DYNINSTstaticHeap_16M_textHeap_1
-	.ent _DYNINSTstaticHeap_16M_textHeap_1 2
-_DYNINSTstaticHeap_16M_textHeap_1:
-	.space	16777216
-	.end _DYNINSTstaticHeap_16M_textHeap_1
+int BPatch_statement::lineOffsetInt()
+{
+  return lineoff_;
+}
 
+const char *BPatch_statement::fileNameInt()
+{
+  return file_;
+}
 
+void *BPatch_statement::startAddrInt()
+{
+  return start_addr;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void *BPatch_statement::endAddrInt()
+{
+  return end_addr;
+}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.92 2006/12/06 21:17:08 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.93 2007/01/18 07:53:47 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -71,8 +71,6 @@
 #include "inst-ia64.h"
 #elif defined(arch_sparc)
 #include "inst-sparc.h"
-#elif defined(arch_alpha)
-#include "inst-alpha.h"
 #endif
 
 //  This will be removed:
@@ -619,7 +617,22 @@ void BPatch_constExpr::BPatch_constExprVoidStar(const void *value)
     ast->setType(type);
 }
 
+#if defined (ia64_unknown_linux2_4) \
+   || defined (x86_64_unknown_linux2_4)
 
+void BPatch_constExpr::BPatch_constExprLongLong(long long value) 
+{
+    ast = AstNode::operandNode(AstNode::Constant, (void *)value);
+
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    
+    BPatch_type* type = BPatch::bpatch->stdTypes->findType("long long");
+
+    assert(type != NULL);
+    ast->setType(type);
+}
+#endif
 
 #ifdef IBM_BPATCH_COMPAT
 
@@ -641,18 +654,6 @@ void *BPatch_variableExpr::getAddressInt()
   return address;
 }
 
-void BPatch_constExpr::BPatch_constExprLongLong(long long value) 
-{
-    ast = AstNode::operandNode(AstNode::Constant, (void *)value)
-
-    assert(BPatch::bpatch != NULL);
-    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
-    
-    BPatch_type* type = BPatch::bpatch->stdTypes->findType("long long");
-
-    assert(type != NULL);
-    ast->setType(type);
-}
 
 void BPatch_constExpr::BPatch_constExprFloat(float value)
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.84 2007/01/12 00:55:33 legendre Exp $
+// $Id: BPatch_function.C,v 1.85 2007/01/18 07:53:47 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -47,6 +47,7 @@
 #include "symtab.h"
 #include "process.h"
 #include "instPoint.h"
+#include "ast.h"
 
 #include "BPatch.h"
 #include "BPatch_function.h"
@@ -57,6 +58,7 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_basicBlock.h"
+#include "BPatch_statement.h"
 
 #include "LineInformation.h"
 #include "common/h/Types.h"
@@ -571,6 +573,72 @@ char *BPatch_function::getModuleNameInt(char *name, int maxLen) {
     return getModule()->getName(name, maxLen);
 }
 
+BPatch_variableExpr *BPatch_function::getFunctionRefInt() 
+{
+  Address remoteAddress = (Address)getBaseAddrInt();
+   char *fname = const_cast<char *>(func->prettyName().c_str());
+
+   //  Need to figure out the type for this effective function pointer,
+   //  of the form <return type> (*)(<arg1 type>, ... , <argn type>)
+
+   //  Note:  getParamsInt allocates the vector
+   assert(retType);
+   char typestr[1024];
+   sprintf(typestr, "%s (*)(", retType->getName());
+
+   BPatch_Vector<BPatch_localVar *> *params = getParamsInt();
+   assert(params);
+
+   for (unsigned int i = 0; i < params->size(); ++i) {
+     if (i >= (params->size() -1)) {
+        //  no comma after last parameter
+        sprintf(typestr, "%s %s", typestr, (*params)[i]->getName());
+     } else 
+        sprintf(typestr, "%s %s,", typestr, (*params)[i]->getName());
+   }
+   sprintf(typestr, "%s)", typestr);
+
+   BPatch_type *type = proc->image->findType(typestr);
+   if (!type) {
+     fprintf(stderr, "%s[%d]:  cannot find type '%s'\n", FILE__, __LINE__, typestr);
+   }
+   assert(type);
+
+   //  only the vector was newly allocated, not the parameters themselves
+   delete [] params;
+
+#if defined( arch_ia64 )
+   // IA-64 function pointers actually point to structures.  We insert such
+   // a structure in the mutatee so that instrumentation can use it. */
+   Address entryPoint = (Address)getBaseAddr();
+   Address gp = proc->llproc->getTOCoffsetInfo( entryPoint );
+
+   remoteAddress = proc->llproc->inferiorMalloc( sizeof( Address ) * 2 );
+   assert( remoteAddress != (Address)NULL );
+
+   if (!proc->llproc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint ))
+          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+   if (!proc->llproc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), 
+                                           sizeof( Address ), & gp ))
+   fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+
+   AstNode *ast = AstNode::operandNode(AstNode::Constant, (void *) remoteAddress);
+   return new BPatch_variableExpr(fname, proc, ast, type, (void *) remoteAddress);
+	//return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
+
+#else
+   //  For other platforms, the baseAddr of the function should be sufficient.
+
+   //  In truth it would make more sense for this to be a BPatch_constExpr,
+   //  But since we are adding this as part of the DPCL compatibility process
+   //  we use the IBM API, to eliminate one API difference.
+
+   AstNode *ast = AstNode::operandNode(AstNode::Constant, (void *) remoteAddress);
+   return new BPatch_variableExpr(fname, proc, ast, type, (void *) remoteAddress);
+#endif
+
+} /* end getFunctionRef() */
+
 #ifdef IBM_BPATCH_COMPAT
 
 bool BPatch_function::getLineNumbersInt(unsigned int &start, unsigned int &end) {
@@ -608,28 +676,6 @@ void BPatch_function::getExcPointsInt(BPatch_Vector<BPatch_point*> &points) {
   return;
 };
 
-BPatch_function::voidVoidFunctionPointer BPatch_function::getFunctionRefInt() {
-#if defined( arch_ia64 )
-	/* IA-64 function pointers actually point to structures.  We insert such
-	   a structure in the mutatee so that instrumentation can use it. */
-	Address entryPoint = (Address)getBaseAddr();
-	Address gp = proc->llproc->getTOCoffsetInfo( entryPoint );
-
-	Address remoteAddress = proc->llproc->inferiorMalloc( sizeof( Address ) * 2 );
-	assert( remoteAddress != (Address)NULL );
-
-	if (!proc->llproc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint ))
-          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-	if (!proc->llproc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), 
-                                           sizeof( Address ), & gp ))
-          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-
-	return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
-#else
-	/* This will probably work on all other platforms. */
-	return (BPatch_function::voidVoidFunctionPointer) getBaseAddr();
-#endif
-} /* end getFunctionRef() */
 
 #endif
 
@@ -751,25 +797,29 @@ const char *BPatch_function::addNameInt(const char *name,
 }
 
 /* This function should be deprecated. */
-bool BPatch_function::getLineAndFileInt( unsigned int & start, unsigned int & end, char * filename, unsigned int max ) {
-	Address startAddress = func->getAddress();
-	Address endAddress = startAddress + func->getSize_NP();
+bool BPatch_function::getLineAndFileInt( unsigned int & start, 
+                                         unsigned int & end, 
+                                         char * filename, 
+                                         unsigned int max ) 
+{
+   Address startAddress = func->getAddress();
+   Address endAddress = startAddress + func->getSize_NP();
 	
-	std::vector< std::pair< const char *, unsigned int > > startLines;
-	if( ! mod->getSourceLines( startAddress, startLines ) ) { return false; }
-	if( startLines.size() == 0 ) { return false; }
-	start = startLines[0].second;
+   BPatch_Vector<BPatch_statement> startLines;
+   if ( ! mod->getSourceLines( startAddress, startLines ) ) { return false; }
+   if ( startLines.size() == 0 ) { return false; }
+   start = startLines[0].lineNumber();
 	
-	/* Arbitrarily... */
-	strncpy( filename, startLines[0].first, max );
+   /* Arbitrarily... */
+   strncpy( filename, startLines[0].fileName(), max );
 	
-	std::vector< std::pair< const char *, unsigned int > > endLines;
-	if( ! mod->getSourceLines( endAddress, endLines ) ) { return false; }
-	if( endLines.size() == 0 ) { return false; }
-	end = endLines[0].second;
+   BPatch_Vector<BPatch_statement> endLines;
+   if ( ! mod->getSourceLines( endAddress, endLines ) ) { return false; }
+   if ( endLines.size() == 0 ) { return false; }
+   end = endLines[0].lineNumber();
 
-	return true;
-	} /* end getLineAndFile() */
+return true;
+} /* end getLineAndFile() */
 
 /* This function should be deprecated. */
 bool BPatch_function::getLineToAddrInt( unsigned short lineNo, BPatch_Vector< unsigned long > & buffer, bool /* exactMatch */ ) {

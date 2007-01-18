@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.33 2006/04/20 22:45:00 bernat Exp $
+// $Id: os.h,v 1.34 2007/01/18 07:53:53 jaw Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -50,6 +50,12 @@
  *
  * This should enforce the abstract OS operations
  */ 
+
+//  JAW: 1-09-07 removed switches for platforms:
+//  alpha_dec_osf4_0
+//  hppa1_1_hp_hpux
+//  mips_unknown_ce2_11
+//  mips_sgi_irix6_4
 
 #if defined(sparc_sun_sunos4_1_3)
 #include "dyninstAPI/src/sunos.h"
@@ -62,23 +68,13 @@
    || defined(rs6000_ibm_aix4_1)
 #include "dyninstAPI/src/aix.h"
 
-#elif defined(alpha_dec_osf4_0)
-#include "dyninstAPI/src/alpha.h"
-
-#elif defined(hppa1_1_hp_hpux)
-#include "dyninstAPI/src/hpux.h"
-
-#elif defined(i386_unknown_nt4_0) \
-   || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#elif defined(i386_unknown_nt4_0) 
 #include "dyninstAPI/src/pdwinnt.h"
 
 #elif defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) \
    || defined(ia64_unknown_linux2_4)
 #include "dyninstAPI/src/linux.h"
-
-#elif defined(mips_sgi_irix6_4)
-#include "dyninstAPI/src/irix.h"
 #endif
 
 #include "common/h/String.h"

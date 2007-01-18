@@ -49,48 +49,48 @@
 
 /* The Windows C++ compiler is broken and won't instantiate this function when it's in RangeLookup proper. */
 class RangeLookupImpl {
-	public:
-		typedef std::pair< Address, Address >						AddressRange;
+ public:
+  typedef std::pair< Address, Address >	AddressRange;
 		
-		/* Explicit comparison functors seems slightly less confusing than using
-		   operator <() via an implicit Less<> template argument to the maps. */
-		struct AddressRangeLess {
-			bool operator () ( const AddressRange & lhs, const AddressRange & rhs ) const;
-			};
-	}; /* end class RangeLookupImpl */
+  /* Explicit comparison functors seems slightly less confusing than using
+     operator <() via an implicit Less<> template argument to the maps. */
+  struct AddressRangeLess {
+    bool operator () ( const AddressRange & lhs, const AddressRange & rhs ) const;
+  };
+}; /* end class RangeLookupImpl */
 
 template< class Value, class ValueLess > class RangeLookup {
-	protected:
-		typedef RangeLookupImpl::AddressRange						AddressRange;
-		typedef RangeLookupImpl::AddressRangeLess					AddressRangeLess;
+ protected:
+  typedef RangeLookupImpl::AddressRange AddressRange;
+  typedef RangeLookupImpl::AddressRangeLess AddressRangeLess;
 	
-		typedef std::multimap< Value, AddressRange, ValueLess > AddressRangeByValue;
-		typedef std::multimap< AddressRange, Value, AddressRangeLess > ValueByAddressRange;
+  typedef std::multimap< Value, AddressRange, ValueLess > AddressRangeByValue;
+  typedef std::multimap< AddressRange, Value, AddressRangeLess > ValueByAddressRange;
 
-	public:		
-		typedef typename ValueByAddressRange::const_iterator		const_iterator;
+ public:		
+  typedef typename ValueByAddressRange::const_iterator const_iterator;
 		
-		RangeLookup();
+  RangeLookup();
 
-		/* Values are copied: a RangeLookup considers itself the primary repository. */
-		bool addValue( Value v, Address lowInclusiveAddr, Address highExclusiveAddr );
-		bool addAddressRange( Address lowInclusiveAddr, Address highExclusiveAddr, Value v );
+  /* Values are copied: a RangeLookup considers itself the primary repository. */
+  bool addValue( Value v, Address lowInclusiveAddr, Address highExclusiveAddr );
+  bool addAddressRange( Address lowInclusiveAddr, Address highExclusiveAddr, Value v );
 
-		/* Likewise, copies of the values are returned. */
-		bool getValues( Address addressInRange, std::vector< Value > & values );
-		bool getAddressRanges( Value v, std::vector< AddressRange > & ranges );
+  /* Likewise, copies of the values are returned. */
+  bool getValues( Address addressInRange, std::vector< Value > & values );
+  bool getAddressRanges( Value v, std::vector< AddressRange > & ranges );
 
-		const_iterator begin() const;
-		const_iterator end() const;
+  const_iterator begin() const;
+  const_iterator end() const;
 		
-		~RangeLookup();
+  ~RangeLookup();
 		
-		/* DEBUG */ void dump( FILE * stream );
-		/* DEBUG */ static void testInsertionSpeed();
+  /* DEBUG */ void dump( FILE * stream );
+  /* DEBUG */ static void testInsertionSpeed();
 		
-	protected:
-		ValueByAddressRange valuesByAddressRangeMap;
-		AddressRangeByValue addressRangesByValueMap;
-	}; /* end class RangeLookup */
+ protected:
+  ValueByAddressRange valuesByAddressRangeMap;
+  AddressRangeByValue addressRangesByValueMap;
+}; /* end class RangeLookup */
 
-#endif /* ! RANGE_LOOKUP */
+#endif /* ! RANGE_LOOKUP */	

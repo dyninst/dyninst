@@ -70,7 +70,7 @@ typedef enum BPatch_LpModel {
 
 #endif
 
-class ThreadLibrary;
+class BPatch_statement;
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
@@ -79,9 +79,9 @@ class ThreadLibrary;
 
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eventLock {
     friend class BPatch; // registerLoaded... callbacks
-    friend class ThreadLibrary;
     friend class BPatch_module; // access to findOrCreate...
     friend class process; // Which also needs findOrCreate because we upcall when a library is loaded.
+    friend class BPatch_process;
 
     BPatch_process *proc;
     char *defaultNamespacePrefix;
@@ -248,10 +248,11 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //  method to retrieve addresses corresponding to a line in a file
     API_EXPORT(Int, (fileName, lineNo, ranges),
 
-    bool,getAddressRanges,( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
+    bool,getAddressRanges,( const char * fileName, unsigned int lineNo, 
+                            std::vector<std::pair<unsigned long, unsigned long> > & ranges ));
     
     API_EXPORT(Int, (addr, lines),
-    bool,getSourceLines,( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ));
+    bool,getSourceLines,( unsigned long addr, BPatch_Vector<BPatch_statement> & lines ));
 
     //  BPatch_image::getProgramName
     //  

@@ -77,6 +77,7 @@ using namespace std;
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_statement.h"
 #include "test_util.h"
 #include "test1.h"
 #include "BPatch_Set.h"
@@ -3579,12 +3580,26 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 	/* since the first line address of a function changes with the
 	   compiler type (gcc,native) we need to check with next address
 	   etc. Instead I use the last address of the function*/
-	std::vector< std::pair< const char *, unsigned int > > lines;
-	if( appThread->getSourceLines( lastAddr - 1, lines ) ) {
-		n = lines[0].second;
+        BPatch_Vector<BPatch_statement> lines;
+	//std::vector< std::pair< const char *, unsigned int > > lines;
+	if ( appThread->getSourceLines( lastAddr - 1, lines ) ) {
+		//n = lines[0].second;
+		n = lines[0].lineNumber();
+                dprintf("%s[%d]:  writing %d to globalVariable30_6, (unsigned) -1 is %u\n", __FILE__, __LINE__, lines[0].lineNumber(), (unsigned) -1);
 		expr30_6->writeValue( & n );
-		}
-	else cerr << "appThread->getLineAndFile returned false!" << endl;
+                if (debugPrint) {
+                  fprintf(stderr, "%s[%d]:  dumping line info:\n", __FILE__, __LINE__);
+                  for (unsigned int i = 0; i < lines.size(); ++i) {
+                    const char *filename = lines[i].fileName();
+                    if (!filename) filename  = "<null>";
+                    int lineno = lines[i].lineNumber();
+                    int col = lines[i].lineOffset();
+                    fprintf(stderr, "\tline[%d]: file:%s, line:%d, col:%d\n", i, filename, lineno, col);
+
+                  }
+                }
+	}
+	else fprintf(stderr,  "%s[%d]: appThread->getSourceLines returned false!\n", __FILE__, __LINE__);
 #endif
 }
 
