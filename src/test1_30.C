@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_30.C,v 1.4 2006/10/11 21:52:59 cooksey Exp $
+// $Id: test1_30.C,v 1.5 2007/01/18 07:53:57 jaw Exp $
 /*
  * #Name: test1_30
  * #Desc: Line Information
@@ -54,6 +54,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_statement.h"
 
 #include "test_lib.h"
 
@@ -216,11 +217,13 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	/* since the first line address of a function changes with the
 	   compiler type (gcc,native) we need to check with next address
 	   etc. Instead I use the last address of the function*/
-	std::vector< std::pair< const char *, unsigned int > > lines;
-	if( appThread->getSourceLines( lastAddr - 1, lines ) ) {
-		n = lines[0].second;
+	//std::vector< std::pair< const char *, unsigned int > > lines;
+        BPatch_Vector<BPatch_statement> lines;
+	if (appThread->getSourceLines( lastAddr - 1, lines)) {
+		//n = lines[0].second;
+		n = lines[0].lineNumber();
 		expr30_6->writeValue( & n );
-		}
+	}
 	else cerr << "appThread->getLineAndFile returned false!" << endl;
 #endif
 

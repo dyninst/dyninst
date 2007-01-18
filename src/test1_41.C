@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_41.C,v 1.2 2006/12/11 22:19:44 legendre Exp $
+// $Id: test1_41.C,v 1.3 2007/01/18 07:53:57 jaw Exp $
 /*
  * #Name: test1_41
  * #Desc: Tests whether we lose line information running a mutatee twice
@@ -52,6 +52,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_statement.h"
 
 // This test uses some Dyninst-internal stuff..
 #include "../src/LineInformation.h"
@@ -110,13 +111,22 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
 	char buffer[16384]; // FIXME ugly magic number; No module name should be that long..
 	module->getName(buffer, sizeof(buffer));
 
+#if 0
 	int statement_count = 0;
 	for (LineInformation::const_iterator i = module->getLineInformation().begin();
 	     i != module->getLineInformation().end();
 	     i++, statement_count++)
 	  { /* empty loop */ }
-	counts[n] = statement_count;
-	dprintf("Trial %d: found %d statements\n", n, statement_count);
+#endif
+        BPatch_Vector<BPatch_statement> statements;
+        bool res = module->getStatements(statements);
+        if (!res) {
+           fprintf(stderr, "%s[%d]:  getStatements()\n", __FILE__, __LINE__);
+           abort();
+        }
+
+	counts[n] = statements.size();
+	dprintf("Trial %d: found %d statements\n", n, statements.size());
 
 	thread->getProcess()->terminateExecution();
     }
