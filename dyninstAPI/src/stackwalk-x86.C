@@ -78,6 +78,7 @@ typedef enum frameStatus_t {
 // tramp (__restore or __restore_rt) into the sigcontext
 // struct that is placed on the sigtramp's frame
 // TODO: obtain these from the appropriate header files
+
 #define SIG_HANDLER_FP_OFFSET_32 28
 #define SIG_HANDLER_PC_OFFSET_32 60
 #define SIG_HANDLER_FRAME_SIZE_32 64
