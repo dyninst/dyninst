@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.1 2007/01/09 02:02:41 giri Exp $
+// $Id: Object-xcoff.C,v 1.2 2007/01/19 22:12:27 giri Exp $
 
 #include <regex.h>
 
@@ -973,7 +973,7 @@ void Object::parse_aout(int offset, bool is_aout)
          }
          
          if (sym->n_scnum == aout.o_sntext) {
-             type = Dyn_Symbol::PDST_FUNCTION;
+             type = Dyn_Symbol::ST_FUNCTION;
              value = sym->n_value;
              /*
              fprintf(stderr, "Text symbol %s, at 0x%x\n",
@@ -997,7 +997,7 @@ void Object::parse_aout(int offset, bool is_aout)
                //dump << " toc entry -- ignoring" << endl;
                continue;
            }
-           type = Dyn_Symbol::PDST_OBJECT;
+           type = Dyn_Symbol::ST_OBJECT;
 
            if (foundData && sym->n_value < sectHdr[dataSecNo].s_paddr) {
                // Very strange; skip
@@ -1022,14 +1022,14 @@ void Object::parse_aout(int offset, bool is_aout)
            // XXXX - Hack to make names match assumptions of symtab.C
            name = string(name.c_str()+1);
        }
-       else if (type == Dyn_Symbol::PDST_FUNCTION) {
+       else if (type == Dyn_Symbol::ST_FUNCTION) {
            // text segment without a leading . is a toc item
            //dump << " (no leading . so assuming toc item & ignoring)" << endl;
            continue;
        }
        
        unsigned int size = 0;
-       if (type == Dyn_Symbol::PDST_FUNCTION) {
+       if (type == Dyn_Symbol::ST_FUNCTION) {
            // Find address of inst relative to code_ptr_, instead of code_off_
            
            Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
@@ -1183,7 +1183,7 @@ void Object::parse_aout(int offset, bool is_aout)
              modName = name;
          }
          Dyn_Symbol *modSym = new Dyn_Symbol(modName, modName,
-                             Dyn_Symbol::PDST_MODULE, linkage,
+                             Dyn_Symbol::ST_MODULE, linkage,
                              UINT_MAX // dummy address for now!
                              );
                              
@@ -1255,14 +1255,14 @@ void Object::parse_aout(int offset, bool is_aout)
                mainAddr = (OFFSET)( currAddr + disp );      
        }  
 
-       Dyn_Symbol *sym = new Dyn_Symbol( "main", "DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+       Dyn_Symbol *sym = new Dyn_Symbol( "main", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                    Dyn_Symbol::SL_GLOBAL, mainAddr, 0, (unsigned) -1 );
       
        symbols_[ "main" ].push_back( sym );
    
        //since we are here make up a sym for _start as well
 
-       Dyn_Symbol *sym1 = new Dyn_Symbol( "__start", "DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+       Dyn_Symbol *sym1 = new Dyn_Symbol( "__start", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                    Dyn_Symbol::SL_GLOBAL, aout.text_start, 0, (unsigned) -1 );
        symbols_[ "__start" ].push_back( sym1 );       
    }
@@ -1329,7 +1329,7 @@ void Object::parse_aout(int offset, bool is_aout)
            (unsigned) heapAddr);
    name = string(name_scratch);
    modName = string("DYNINSTheap");
-   heapSym = Dyn_Symbol(name, modName, Dyn_Symbol::PDST_FUNCTION, 
+   heapSym = Dyn_Symbol(name, modName, Dyn_Symbol::ST_FUNCTION, 
                     Dyn_Symbol::SL_UNKNOWN, heapAddr,
                     false, (int) heapLen);
    

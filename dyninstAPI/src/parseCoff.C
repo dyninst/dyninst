@@ -1127,7 +1127,7 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 
 			long baseAddr = 0;
 			for (unsigned int i = 0; i < symbols.size(); ++i) {
-			    if (symbols[i].type() == Symbol::PDST_OBJECT) {
+			    if (symbols[i].type() == Symbol::ST_OBJECT) {
 				baseAddr = symbols[i].addr();
 				break;
 			    }

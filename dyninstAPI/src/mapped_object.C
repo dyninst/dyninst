@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.18 2007/01/09 02:02:00 giri Exp $
+// $Id: mapped_object.C,v 1.19 2007/01/19 22:12:41 giri Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -778,11 +778,11 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
         // foo.addr is now relative to the start of the heap; check the type of the symbol to 
         // determine whether it's a function (off codeBase_) or variable (off dataBase_)
         switch(foundHeapSyms[i]->getType()) {
-        case Dyn_Symbol::PDST_FUNCTION:
+        case Dyn_Symbol::ST_FUNCTION:
             foo.addr += codeBase_;
             foundHeaps.push_back(foo);
             break;
-        case Dyn_Symbol::PDST_OBJECT:
+        case Dyn_Symbol::ST_OBJECT:
             foo.addr += dataBase_;
             foundHeaps.push_back(foo);
             break;
@@ -905,7 +905,7 @@ bool mapped_object::getSymbolInfo(const pdstring &n, Dyn_Symbol &info) {
         // same, but may be different (cf. AIX)
 
         // Check symbol type.
-        if (info.getType() == Dyn_Symbol::PDST_OBJECT) {
+        if (info.getType() == Dyn_Symbol::ST_OBJECT) {
             info.setAddr(info.getAddr() + dataBase_);
         }
         else {

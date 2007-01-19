@@ -26,8 +26,8 @@ int main()
 {
 	// dprintf("Entered test1_1 mutatorMAIN()\n");
 	string s = "/p/paradyn/development/giri/core/testsuite/i386-unknown-linux2.4/test1.mutatee_gcc";
-	Dyn_Symtab *symtab = new Dyn_Symtab();
-	bool err = symtab->openFile(s,symtab);
+	Dyn_Symtab *symtab;
+	bool err = Dyn_Symtab::openFile(s,symtab);
         //symtab = param["symtab"]->getPtr();
 	// Get log file pointers
 	//FILE *outlog = (FILE *)(param["outlog"]->getPtr());

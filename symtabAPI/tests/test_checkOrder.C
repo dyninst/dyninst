@@ -8,51 +8,51 @@
 
 static int mutatorTest(Dyn_Symtab *symtab)
 {
-	vector <Dyn_Symbol *>syms;
-	
-	/*********************************************************************************
-		Check that none of the primary symbols is Weak.	
-	*********************************************************************************/	
-	if(!symtab->getAllSymbolsByType(syms,Dyn_Symbol::PDST_UNKNOWN))
-	{
-		logerror("unable to get all symbols\n");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
-		return -1;
-	}
-	for(unsigned i=0;i<syms.size()-1;i++)
-	{
-		if(syms[i]->getAddr()  > syms[i]->getAddr())
-		{
-			logerror("symbols not sorted correctly");
-			return -1;
-		}
-	}
-	for(unsigned i=0; i<syms.size();i++)
-	{
-		if((syms[i]->getAllMangledNames().size() != 1) && (syms[i]->getLinkage() == Dyn_Symbol::SL_WEAK))
-		{
-			logerror("One of the primary symbols is weak");
-			return -1;
-		}
-	}
-	syms.clear();
+    vector <Dyn_Symbol *>syms;
+ 
+    /*********************************************************************************
+     Check that none of the primary symbols is Weak. 
+    *********************************************************************************/ 
+    if(!symtab->getAllSymbolsByType(syms,Dyn_Symbol::ST_UNKNOWN))
+    {
+        logerror("unable to get all symbols\n");
+        logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+        return -1;
+    }
+    for(unsigned i=0;i<syms.size()-1;i++)
+    { 
+        if(syms[i]->getAddr()  > syms[i]->getAddr())
+        {
+            logerror("symbols not sorted correctly");
+            return -1;
+        }
+    }
+    for(unsigned i=0; i<syms.size();i++)
+    {
+        if((syms[i]->getAllMangledNames().size() != 1) && (syms[i]->getLinkage() == Dyn_Symbol::SL_WEAK))
+        {
+            logerror("One of the primary symbols is weak");
+            return -1;
+        }
+    }
+    syms.clear();
 }
 
 //extern "C" TEST_DLL_EXPORT int test1__mutatorMAIN(ParameterDict &param)
 int main()
 {
-	// dprintf("Entered test1_1 mutatorMAIN()\n");
-	string s = "/p/paradyn/development/giri/core/testsuite/i386-unknown-linux2.4/test1.mutatee_gcc";
-	//string s = "/p/paradyn/development/giri/core/testsuite/rs6000-ibm-aix5.1/test1.mutatee_gcc";
-	Dyn_Symtab *symtab = new Dyn_Symtab();
-	bool err = symtab->openFile(s,symtab);
-        //symtab = param["symtab"]->getPtr();
-	// Get log file pointers
-	//FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-	//FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-	//setOutputLog(outlog);
-	//setErrorLog(errlog);
-	// Read the program's image and get an associated image object
-	// Run mutator code
-	return mutatorTest(symtab);
+    // dprintf("Entered test1_1 mutatorMAIN()\n");
+    string s = "/p/paradyn/development/giri/core/testsuite/i386-unknown-linux2.4/test1.mutatee_gcc";
+    //string s = "/p/paradyn/development/giri/core/testsuite/rs6000-ibm-aix5.1/test1.mutatee_gcc";
+    Dyn_Symtab *symtab;;
+    bool err = Dyn_Symtab::openFile(s,symtab);
+    //symtab = param["symtab"]->getPtr();
+    // Get log file pointers
+    //FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+    //FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+    //setOutputLog(outlog);
+    //setErrorLog(errlog);
+    // Read the program's image and get an associated image object
+    // Run mutator code
+    return mutatorTest(symtab);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.285 2007/01/09 02:02:06 giri Exp $
+ // $Id: symtab.C,v 1.286 2007/01/19 22:12:43 giri Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -201,11 +201,11 @@ void image::findMain()
     	bool foundFini = false;
     	//check if 'main' is in allsymbols
     	vector <Dyn_Symbol *>syms;
-    	if((linkedFile->findSymbolByType(syms,"main",Dyn_Symbol::PDST_UNKNOWN)==true)||(linkedFile->findSymbolByType(syms,"_main",Dyn_Symbol::PDST_UNKNOWN)==true))
+    	if((linkedFile->findSymbolByType(syms,"main",Dyn_Symbol::ST_UNKNOWN)==true)||(linkedFile->findSymbolByType(syms,"_main",Dyn_Symbol::ST_UNKNOWN)==true))
     		foundMain = true;
-    	else if(linkedFile->findSymbolByType(syms,"_start",Dyn_Symbol::PDST_UNKNOWN)==true)
+    	else if(linkedFile->findSymbolByType(syms,"_start",Dyn_Symbol::ST_UNKNOWN)==true)
     		foundStart = true;
-    	else if(linkedFile->findSymbolByType(syms,"_fini",Dyn_Symbol::PDST_UNKNOWN)==true)
+    	else if(linkedFile->findSymbolByType(syms,"_fini",Dyn_Symbol::ST_UNKNOWN)==true)
     		foundFini = true;
     
     	Dyn_Section *textsec;
@@ -268,21 +268,21 @@ void image::findMain()
             {
             	//logLine( "No static symbol for function main\n" );
                 Dyn_Symbol *newSym = new Dyn_Symbol("DYNINST_pltMain", "DEFAULT_MODULE",
-                          Dyn_Symbol::PDST_FUNCTION,
+                          Dyn_Symbol::ST_FUNCTION,
                           Dyn_Symbol::SL_GLOBAL, mainAddress,textsec, UINT_MAX );
         
                 linkedFile->addSymbol( newSym );
            }
            else
            {
-           	Dyn_Symbol *newSym= new Dyn_Symbol( "main", "DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+           	Dyn_Symbol *newSym= new Dyn_Symbol( "main", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                            Dyn_Symbol::SL_GLOBAL, mainAddress,textsec, UINT_MAX );
 	        linkedFile->addSymbol(newSym);		
            }
         }
     	if( !foundStart )
     	{
-            Dyn_Symbol *startSym = new Dyn_Symbol( "_start", "DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+            Dyn_Symbol *startSym = new Dyn_Symbol( "_start", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                    Dyn_Symbol::SL_GLOBAL, textsec->getSecAddr(),textsec, UINT_MAX );
     
             //cout << "sim for start!" << endl;
@@ -293,7 +293,7 @@ void image::findMain()
     	{
 	    Dyn_Section *finisec;
 	    linkedFile->findSection(".fini",finisec);
-            Dyn_Symbol *finiSym = new Dyn_Symbol( "_fini","DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+            Dyn_Symbol *finiSym = new Dyn_Symbol( "_fini","DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                         Dyn_Symbol::SL_GLOBAL, finisec->getSecAddr(), finisec, UINT_MAX );
 	    linkedFile->addSymbol(finiSym);		
     	}
@@ -303,10 +303,10 @@ void image::findMain()
     vector < Dyn_Symbol *>syms;
     if(linkedFile->findSection(".dynamic", dynamicsec)==true)
     {
-        if(linkedFile->findSymbolByType(syms,"_DYNAMIC",Dyn_Symbol::PDST_UNKNOWN)==false)
+        if(linkedFile->findSymbolByType(syms,"_DYNAMIC",Dyn_Symbol::ST_UNKNOWN)==false)
         {
 	    Dyn_Symbol *newSym = new Dyn_Symbol( "_DYNAMIC", "DEFAULT_MODULE", 
-					Dyn_Symbol::PDST_OBJECT, Dyn_Symbol::SL_GLOBAL,
+					Dyn_Symbol::ST_OBJECT, Dyn_Symbol::SL_GLOBAL,
 					dynamicsec->getSecAddr(), dynamicsec, 0 );
 	    linkedFile->addSymbol(newSym);
 	}
@@ -316,7 +316,7 @@ void image::findMain()
    
    bool foundMain = false;
    vector <Dyn_Symbol *>syms;
-   if(linkedFile->findSymbolByType(syms,"main",Dyn_Symbol::PDST_UNKNOWN)==true)
+   if(linkedFile->findSymbolByType(syms,"main",Dyn_Symbol::ST_UNKNOWN)==true)
    	foundMain = true;
    
    Dyn_Section *sec;
@@ -379,14 +379,14 @@ void image::findMain()
                mainAddr = (OFFSET)( currAddr + disp );      
        }  
        
-       Dyn_Symbol *sym = new Dyn_Symbol( "main",  "DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+       Dyn_Symbol *sym = new Dyn_Symbol( "main",  "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                    Dyn_Symbol::SL_GLOBAL, mainAddr, sec);
        linkedFile->addSymbol(sym);
       
    
        //since we are here make up a sym for _start as well
 
-       Dyn_Symbol *sym1 = new Dyn_Symbol( "__start", "DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+       Dyn_Symbol *sym1 = new Dyn_Symbol( "__start", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                    Dyn_Symbol::SL_GLOBAL, sec->getSecAddr(), sec);
        linkedFile->addSymbol(sym1);
    }
@@ -413,7 +413,7 @@ void image::findMain()
 
         bool found_main = false;
         for (unsigned i=0; i<NUMBER_OF_MAIN_POSSIBILITIES; i++) {
-			if(linkedFile->findSymbolByType(syms,main_function_names[i],Dyn_Symbol::PDST_UNKNOWN)) {
+			if(linkedFile->findSymbolByType(syms,main_function_names[i],Dyn_Symbol::ST_UNKNOWN)) {
         //    if (symbols_.defines(main_function_names[i])) {
                 found_main = true;
                 break;
@@ -460,34 +460,34 @@ void image::findMain()
               insn.setInstruction(p);
             }
 			syms.clear();
-			if(linkedFile->findSymbolByType(syms,"DEFAULT_MODULE",Dyn_Symbol::PDST_UNKNOWN)) {
+			if(linkedFile->findSymbolByType(syms,"DEFAULT_MODULE",Dyn_Symbol::ST_UNKNOWN)) {
         //  if (!symbols_.defines("DEFAULT_MODULE")) {
                 //make up a symbol for default module too
-				Dyn_Symbol *modSym = new Dyn_Symbol("DEFAULT_MODULE", "DEFAULT_MODULE", Dyn_Symbol::PDST_MODULE, 
+				Dyn_Symbol *modSym = new Dyn_Symbol("DEFAULT_MODULE", "DEFAULT_MODULE", Dyn_Symbol::ST_MODULE, 
 					Dyn_Symbol::SL_GLOBAL, codeOffset_, NULL, 0);
 				linkedFile->addSymbol(modSym);
             }
 			syms.clear();
-			if(linkedFile->findSymbolByType(syms,"start",Dyn_Symbol::PDST_UNKNOWN)) {
+			if(linkedFile->findSymbolByType(syms,"start",Dyn_Symbol::ST_UNKNOWN)) {
         //  if (!symbols_.defines("start")) {
                 //use 'start' for mainCRTStartup.
-                Dyn_Symbol *startSym = new Dyn_Symbol( "start", "DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+                Dyn_Symbol *startSym = new Dyn_Symbol( "start", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                                 Dyn_Symbol::SL_GLOBAL, eAddr , 0, UINT_MAX );
 				linkedFile->addSymbol(startSym);
             }
 			syms.clear();
-			if(linkedFile->findSymbolByType(syms,"winStart",Dyn_Symbol::PDST_UNKNOWN)) {
+			if(linkedFile->findSymbolByType(syms,"winStart",Dyn_Symbol::ST_UNKNOWN)) {
         //  if (!symbols_.defines("winStart")) {
                 //make up a func name for the start of the text section
-                Dyn_Symbol *sSym = new Dyn_Symbol( "winStart", "DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+                Dyn_Symbol *sSym = new Dyn_Symbol( "winStart", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
 					Dyn_Symbol::SL_GLOBAL, codeOffset_, 0, UINT_MAX );
             	linkedFile->addSymbol(sSym);
             }
 			syms.clear();
-			if(linkedFile->findSymbolByType(syms,"winFini",Dyn_Symbol::PDST_UNKNOWN)) {
+			if(linkedFile->findSymbolByType(syms,"winFini",Dyn_Symbol::ST_UNKNOWN)) {
         //  if (!symbols_.defines("winFini")) {
                 //make up one for the end of the text section
-                Dyn_Symbol *fSym = new Dyn_Symbol( "winFini", "DEFAULT_MODULE", Dyn_Symbol::PDST_FUNCTION,
+                Dyn_Symbol *fSym = new Dyn_Symbol( "winFini", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                             Dyn_Symbol::SL_GLOBAL, codeOffset_ + linkedFile->codeLength() - 1, 
                             0, UINT_MAX );
             	linkedFile->addSymbol(fSym);
@@ -522,13 +522,13 @@ bool image::symbolsToFunctions(vector<Dyn_Symbol *> &mods,
 
   //Checking "main" function names in same order as in the inst-*.C files
   vector <Dyn_Symbol *>syms;
-   if (linkedFile->findSymbolByType(syms,"main",Dyn_Symbol::PDST_FUNCTION)       ||
-   	linkedFile->findSymbolByType(syms,"_main",Dyn_Symbol::PDST_FUNCTION)     
+   if (linkedFile->findSymbolByType(syms,"main",Dyn_Symbol::ST_FUNCTION)       ||
+   	linkedFile->findSymbolByType(syms,"_main",Dyn_Symbol::ST_FUNCTION)     
 #if defined(os_windows)
-	|| linkedFile->findSymbolByType(syms,"WinMain",Dyn_Symbol::PDST_FUNCTION)   ||
-	linkedFile->findSymbolByType(syms,"_WinMain",Dyn_Symbol::PDST_FUNCTION)  ||
-	linkedFile->findSymbolByType(syms,"wWinMain",Dyn_Symbol::PDST_FUNCTION)  ||
-	linkedFile->findSymbolByType(syms,"_wWinMain",Dyn_Symbol::PDST_FUNCTION) 
+	|| linkedFile->findSymbolByType(syms,"WinMain",Dyn_Symbol::ST_FUNCTION)   ||
+	linkedFile->findSymbolByType(syms,"_WinMain",Dyn_Symbol::ST_FUNCTION)  ||
+	linkedFile->findSymbolByType(syms,"wWinMain",Dyn_Symbol::ST_FUNCTION)  ||
+	linkedFile->findSymbolByType(syms,"_wWinMain",Dyn_Symbol::ST_FUNCTION) 
 #endif
       )
   {
@@ -537,7 +537,7 @@ bool image::symbolsToFunctions(vector<Dyn_Symbol *> &mods,
       
       mainFuncSymbol = lookUp;
       is_a_out = true;
-      if (lookUp->getType() == Dyn_Symbol::PDST_FUNCTION) {
+      if (lookUp->getType() == Dyn_Symbol::ST_FUNCTION) {
           if (!isValidAddress(lookUp->getAddr())) {
               pdstring msg;
               char tempBuffer[40];
@@ -565,15 +565,15 @@ bool image::symbolsToFunctions(vector<Dyn_Symbol *> &mods,
 
   // Checking for libdyninstRT (DYNINSTinit())
   vector< Dyn_Symbol *>symvector;
-  if (linkedFile->findSymbolByType(symvector,"DYNINSTinit",Dyn_Symbol::PDST_UNKNOWN) ||
-      linkedFile->findSymbolByType(symvector,"_DYNINSTinit",Dyn_Symbol::PDST_UNKNOWN))
+  if (linkedFile->findSymbolByType(symvector,"DYNINSTinit",Dyn_Symbol::ST_UNKNOWN) ||
+      linkedFile->findSymbolByType(symvector,"_DYNINSTinit",Dyn_Symbol::ST_UNKNOWN))
     is_libdyninstRT = true;
   else
     is_libdyninstRT = false;
  
   // find the real functions -- those with the correct type in the symbol table
   vector<Dyn_Symbol *> allFuncs;
-  if(!linkedFile->getAllSymbolsByType(allFuncs,Dyn_Symbol::PDST_FUNCTION))
+  if(!linkedFile->getAllSymbolsByType(allFuncs,Dyn_Symbol::ST_FUNCTION))
   	return true;
   vector<Dyn_Symbol *>::iterator symIter = allFuncs.begin();
   for(; symIter!=allFuncs.end();symIter++) {
@@ -640,7 +640,7 @@ bool image::addSymtabVariables()
    pdstring mangledName; 
 
    vector<Dyn_Symbol *> allVars;
-   linkedFile->getAllSymbolsByType(allVars,Dyn_Symbol::PDST_OBJECT);
+   linkedFile->getAllSymbolsByType(allVars,Dyn_Symbol::ST_OBJECT);
    vector<Dyn_Symbol *>::iterator symIter = allVars.begin();
 
    for(; symIter!=allVars.end() ; symIter++) {
@@ -653,8 +653,8 @@ bool image::addSymtabVariables()
               symInfo.getAddr(),
               symInfo.getType(),
               symInfo.getLinkage(),
-              Symbol::PDST_OBJECT,
-              Symbol::PDST_FUNCTION);
+              Symbol::ST_OBJECT,
+              Symbol::ST_FUNCTION);
 #endif
 #if !defined(os_windows)
       // Windows: variables are created with an empty module
@@ -1152,18 +1152,16 @@ image::image(fileDescriptor &desc, bool &err)
    parseState_(unparsed)
 {
  #if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)
-   Dyn_Archive *archive = new Dyn_Archive();
    string file = desc_.file().c_str();
    SymtabError serr = Not_An_Archive;
-   if(!archive->openArchive(file, archive))
+   if(!Dyn_Archive::openArchive(file, archive))
    {
    	err = true;
 	if(archive->getLastError() != serr)
 		return;
 	else
 	{
-		linkedFile = new Dyn_Symtab();
-   		if(!linkedFile->openFile(file, linkedFile)) 
+   		if(!Dyn_Symtab::openFile(file, linkedFile)) 
    		{
    			err = true;
 			return;
@@ -1181,8 +1179,8 @@ image::image(fileDescriptor &desc, bool &err)
    }
  #else
    string file = desc_.file().c_str();
-   linkedFile = new Dyn_Symtab();
-   if(!linkedFile->openFile(file, linkedFile)) 
+   //linkedFile = new Dyn_Symtab();
+   if(!Dyn_Symtab::openFile(file, linkedFile)) 
    {
    	err = true;
 	return;
@@ -1238,7 +1236,7 @@ image::image(fileDescriptor &desc, bool &err)
    findMain();
 
    vector<Dyn_Symbol *> uniqMods;
-   linkedFile->getAllSymbolsByType(uniqMods, Dyn_Symbol::PDST_MODULE);
+   linkedFile->getAllSymbolsByType(uniqMods, Dyn_Symbol::ST_MODULE);
 
 #if 0		// Moved to symtabAPI 
 #if defined(os_solaris) || defined(os_aix) || defined(os_linux)
@@ -1500,7 +1498,7 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const pdstring &name
     //Have to change here
     pdvector<image_func *>* res = new pdvector<image_func *>;
     vector<Dyn_Symbol *>syms;
-    linkedFile->findSymbolByType(syms,name.c_str(),Dyn_Symbol::PDST_FUNCTION);
+    linkedFile->findSymbolByType(syms,name.c_str(),Dyn_Symbol::ST_FUNCTION);
     for(unsigned index=0; index<syms.size(); index++)
     {
     	if(syms[index]->getUpPtr())
@@ -1532,7 +1530,7 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &na
     
     pdvector<image_func *>* res = new pdvector<image_func *>;
     vector<Dyn_Symbol *>syms;
-    linkedFile->findSymbolByType(syms,name.c_str(),Dyn_Symbol::PDST_FUNCTION,true);
+    linkedFile->findSymbolByType(syms,name.c_str(),Dyn_Symbol::ST_FUNCTION,true);
     for(unsigned index=0; index<syms.size(); index++)
     {
     	if(syms[index]->getUpPtr())				//Every Dyn_Symbol might not have a corresponding image_func
@@ -1562,7 +1560,7 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const pdstring &
 
     pdvector<image_variable *>* res = new pdvector<image_variable *>;
     vector<Dyn_Symbol *>syms;
-    linkedFile->findSymbolByType(syms,name.c_str(),Dyn_Symbol::PDST_OBJECT);
+    linkedFile->findSymbolByType(syms,name.c_str(),Dyn_Symbol::ST_OBJECT);
     for(unsigned index=0; index<syms.size(); index++)
     {
     	if(syms[index]->getUpPtr())
@@ -1589,7 +1587,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const pdstring 
 #endif
     pdvector<image_variable *>* res = new pdvector<image_variable *>;
     vector<Dyn_Symbol *>syms;
-    linkedFile->findSymbolByType(syms,name.c_str(),Dyn_Symbol::PDST_OBJECT,true);
+    linkedFile->findSymbolByType(syms,name.c_str(),Dyn_Symbol::ST_OBJECT,true);
     for(unsigned index=0; index<syms.size(); index++)
     {
     	if(syms[index]->getUpPtr())
@@ -1984,7 +1982,7 @@ bool image::symbol_info(const pdstring& symbol_name, Dyn_Symbol &ret_sym) {
       symbol per name.  While local functions (etc) make this untrue, it
       dramatically minimizes the amount of rewriting. */
    vector< Dyn_Symbol *> symbols;
-   if(!(linkedFile->findSymbolByType(symbols,symbol_name.c_str(),Dyn_Symbol::PDST_UNKNOWN)))
+   if(!(linkedFile->findSymbolByType(symbols,symbol_name.c_str(),Dyn_Symbol::ST_UNKNOWN)))
    	return false;
    if(symbols.size() == 1 ) {
        ret_sym = *(symbols[0]);
@@ -2000,7 +1998,7 @@ bool image::findSymByPrefix(const pdstring &prefix, pdvector<Dyn_Symbol *> &ret)
     unsigned start;
     vector <Dyn_Symbol *>found;	
     pdstring reg = prefix+pdstring("*");
-    if(!linkedFile->findSymbolByType(found, reg.c_str(), Dyn_Symbol::PDST_UNKNOWN, false, true))
+    if(!linkedFile->findSymbolByType(found, reg.c_str(), Dyn_Symbol::ST_UNKNOWN, false, true))
     	return false;
     for(start=0;start< found.size();start++)
 		ret.push_back(found[start]);

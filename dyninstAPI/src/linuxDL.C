@@ -719,7 +719,7 @@ bool dynamic_linking::initialize() {
     pdvector< Dyn_Symbol > rDebugSyms;
     Dyn_Symbol rDebugSym;
     vector<Dyn_Symbol *>syms;
-    if(!ldsoOne->findSymbolByType(syms,"_r_debug",Dyn_Symbol::PDST_UNKNOWN)){
+    if(!ldsoOne->findSymbolByType(syms,"_r_debug",Dyn_Symbol::ST_UNKNOWN)){
         startup_printf("Failed to find _r_debug, ret false from dyn::init\n");
     	return false;
     }	
@@ -730,7 +730,7 @@ bool dynamic_linking::initialize() {
                 rDebugSyms.size());
         return false; 
     }
-    if( ! (rDebugSym.getType() == Dyn_Symbol::PDST_OBJECT) ) {
+    if( ! (rDebugSym.getType() == Dyn_Symbol::ST_OBJECT) ) {
         startup_printf("Unexpected type %d for rDebugSym, ret false from dyn::init\n",
                        rDebugSym.getType());
         return false; 
@@ -745,13 +745,13 @@ bool dynamic_linking::initialize() {
     
     /* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
     syms.clear();
-    if(!ldsoOne->findSymbolByType(syms,"_dl_map_object",Dyn_Symbol::PDST_UNKNOWN)){ ; }
+    if(!ldsoOne->findSymbolByType(syms,"_dl_map_object",Dyn_Symbol::ST_UNKNOWN)){ ; }
     for(unsigned index=0;index<syms.size();index++)
         rDebugSyms.push_back(*(syms[index]));
     //if( ! ldsoOne.get_symbols( "_dl_map_object", rDebugSyms ) ) { ; }
     /* It's also apparently OK if this uses a garbage symbol. */
     if( rDebugSyms.size() == 1 ) { rDebugSym = rDebugSyms[0]; }
-    if( ! (rDebugSym.getType() == Dyn_Symbol::PDST_FUNCTION) ) { ; } 
+    if( ! (rDebugSym.getType() == Dyn_Symbol::ST_FUNCTION) ) { ; } 
     dlopen_addr = rDebugSym.getAddr() + ld_base;
     assert( dlopen_addr );
     

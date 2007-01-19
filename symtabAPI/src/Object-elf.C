@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.1 2007/01/09 02:02:39 giri Exp $
+ * $Id: Object-elf.C,v 1.2 2007/01/19 22:12:25 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -786,12 +786,12 @@ void Object::load_shared_object()
 static Dyn_Symbol::SymbolType pdelf_type(int elf_type)
 {
   switch (elf_type) {
-  case STT_FILE:   return Dyn_Symbol::PDST_MODULE;
-  case STT_OBJECT: return Dyn_Symbol::PDST_OBJECT;
-  case STT_FUNC:   return Dyn_Symbol::PDST_FUNCTION;
-  case STT_NOTYPE: return Dyn_Symbol::PDST_NOTYPE;
+  case STT_FILE:   return Dyn_Symbol::ST_MODULE;
+  case STT_OBJECT: return Dyn_Symbol::ST_OBJECT;
+  case STT_FUNC:   return Dyn_Symbol::ST_FUNCTION;
+  case STT_NOTYPE: return Dyn_Symbol::ST_NOTYPE;
   }
-  return Dyn_Symbol::PDST_UNKNOWN;
+  return Dyn_Symbol::ST_UNKNOWN;
 }
 
 static Dyn_Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
@@ -843,7 +843,7 @@ void printSyms( vector< Dyn_Symbol *>& allsymbols )
 {
     for( unsigned i = 0; i < allsymbols.size(); i++ )
     {
-	if( allsymbols[ i ]->getType() != Dyn_Symbol::PDST_FUNCTION )
+	if( allsymbols[ i ]->getType() != Dyn_Symbol::ST_FUNCTION )
 	{
 	    continue;
 	}
@@ -878,7 +878,7 @@ void Object::parse_symbols(vector<Dyn_Symbol *> &allsymbols,
       OFFSET saddr = syms.st_value(i);
       unsigned secNumber = syms.st_shndx(i);
       
-      if (stype == Dyn_Symbol::PDST_UNKNOWN) continue;
+      if (stype == Dyn_Symbol::ST_UNKNOWN) continue;
       if (slinkage == Dyn_Symbol::SL_UNKNOWN) continue;
      
       Dyn_Section *sec;
@@ -941,7 +941,7 @@ void Object::fix_zero_function_sizes(vector<Dyn_Symbol *> &allsymbols, bool isEE
 		//  that case, set the size to the difference between the section
 		//  end and this symbol.
 		// 
-      if (allsymbols[u]->getType() == Dyn_Symbol::PDST_FUNCTION
+      if (allsymbols[u]->getType() == Dyn_Symbol::ST_FUNCTION
           && (isEEL || allsymbols[u]->getSize() == 0) )
       {
 			// find the section to which allsymbols[u] belongs
@@ -1092,8 +1092,8 @@ void Object::override_weak_symbols(vector<Dyn_Symbol *> &allsymbols) {
     //cerr << "overriding weak symbols for which there is also a global symbol reference...." << endl;
     nsymbols = allsymbols.size();
     for (i=0; i < nsymbols - 1; i++) {
-	if((allsymbols[i]->getType() == Dyn_Symbol::PDST_FUNCTION)
-		&& (allsymbols[i+1]->getType() == Dyn_Symbol::PDST_FUNCTION)) {
+	if((allsymbols[i]->getType() == Dyn_Symbol::ST_FUNCTION)
+		&& (allsymbols[i+1]->getType() == Dyn_Symbol::ST_FUNCTION)) {
 
 	    // where symbol i+1 should start, based on start of symbol i
 	    //  and size of symbol i....

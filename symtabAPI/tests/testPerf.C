@@ -8,10 +8,10 @@ int main()
 	string s = "/lib/tls/libc.so.6";
 	bool flag;
 	int i;
-	Dyn_Symtab *ps = new Dyn_Symtab();
+	Dyn_Symtab *ps;
 	for(i=0;i<30;i++)
 	{
-		bool err = ps->openFile(s,ps);
+		bool err = Dyn_Symtab::openFile(s,ps);
 		cout << i << endl;
 	}	
 	Dyn_Section ret;

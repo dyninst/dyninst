@@ -11,12 +11,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	vector <Dyn_Symbol *>syms;
 	
 	/*********************************************************************************
-		findSymbolByType: function with PDST_UNKNOWN
+		findSymbolByType: function with ST_UNKNOWN
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"func1_1",Dyn_Symbol::PDST_UNKNOWN))
+	if(!symtab->findSymbolByType(syms,"func1_1",Dyn_Symbol::ST_UNKNOWN))
 	{
 		logerror("unable to find symbol %s\n","func1_1");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}	
 	if(syms.size() != 1)
@@ -30,12 +30,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	syms.clear();
 	
 	/*********************************************************************************
-		findSymbolByType: function with PDST_FUNCTION
+		findSymbolByType: function with ST_FUNCTION
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"func1_1",Dyn_Symbol::PDST_FUNCTION))
+	if(!symtab->findSymbolByType(syms,"func1_1",Dyn_Symbol::ST_FUNCTION))
 	{
 		logerror("unable to find Function %s\n","func1_1");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}	
 	if(syms.size() != 1)
@@ -49,12 +49,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	syms.clear();
 	
 	/*********************************************************************************
-		findSymbolByType: Variable with PDST_UNKNOWN
+		findSymbolByType: Variable with ST_UNKNOWN
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"globalVariable1_1",Dyn_Symbol::PDST_UNKNOWN))
+	if(!symtab->findSymbolByType(syms,"globalVariable1_1",Dyn_Symbol::ST_UNKNOWN))
 	{
 		logerror("unable to find symbol %s\n","globalVariable1_1");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms.size() != 1)
@@ -67,12 +67,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	}
 	syms.clear();
 	/*********************************************************************************
-		findSymbolByType: Variable with PDST_OBJECT
+		findSymbolByType: Variable with ST_OBJECT
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"globalVariable1_1",Dyn_Symbol::PDST_OBJECT))
+	if(!symtab->findSymbolByType(syms,"globalVariable1_1",Dyn_Symbol::ST_OBJECT))
 	{
 		logerror("unable to find variable %s\n","globalVariable1_1");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms.size() != 1)
@@ -87,12 +87,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 
 #if defined(rs6000_ibm_aix5_1) || defined(rs6000_ibm_aix4_1)
 	/*********************************************************************************
-		findSymbolByType: MODULE with PDST_UNKNOWN
+		findSymbolByType: MODULE with ST_UNKNOWN
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"../src/test1.mutatee.c",Dyn_Symbol::PDST_UNKNOWN))
+	if(!symtab->findSymbolByType(syms,"../src/test1.mutatee.c",Dyn_Symbol::ST_UNKNOWN))
 	{
 		logerror("unable to find symbol %s\n","test1.mutatee.c");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms[0]->getPrettyName() != "../src/test1.mutatee.c")
@@ -103,12 +103,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	syms.clear();
 
 	/*********************************************************************************
-		findSymbolByType: MODULE with PDST_MODULE
+		findSymbolByType: MODULE with ST_MODULE
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"../src/test1.mutatee.c",Dyn_Symbol::PDST_MODULE))
+	if(!symtab->findSymbolByType(syms,"../src/test1.mutatee.c",Dyn_Symbol::ST_MODULE))
 	{
 		logerror("unable to find module %s\n","test1.mutatee.c");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms[0]->getPrettyName() != "../src/test1.mutatee.c")
@@ -119,12 +119,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	syms.clear();
 #else
 	/*********************************************************************************
-		findSymbolByType: MODULE with PDST_UNKNOWN
+		findSymbolByType: MODULE with ST_UNKNOWN
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"test1.mutatee.c",Dyn_Symbol::PDST_UNKNOWN))
+	if(!symtab->findSymbolByType(syms,"test1.mutatee.c",Dyn_Symbol::ST_UNKNOWN))
 	{
 		logerror("unable to find symbol %s\n","test1.mutatee.c");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms[0]->getPrettyName() != "test1.mutatee.c")
@@ -134,12 +134,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	}
 	syms.clear();
 	/*********************************************************************************
-		findSymbolByType: MODULE with PDST_MODULE
+		findSymbolByType: MODULE with ST_MODULE
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"test1.mutatee.c",Dyn_Symbol::PDST_MODULE))
+	if(!symtab->findSymbolByType(syms,"test1.mutatee.c",Dyn_Symbol::ST_MODULE))
 	{
 		logerror("unable to find module %s\n","test1.mutatee.c");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms[0]->getPrettyName() != "test1.mutatee.c")
@@ -150,12 +150,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	syms.clear();
 #endif
 	/*********************************************************************************
-		findSymbolByType: Variables with PDST_UNKNOWN, isRegex - true
+		findSymbolByType: Variables with ST_UNKNOWN, isRegex - true
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"globalVariable*",Dyn_Symbol::PDST_UNKNOWN, false, true))
+	if(!symtab->findSymbolByType(syms,"globalVariable*",Dyn_Symbol::ST_UNKNOWN, false, true))
 	{
 		logerror("unable to find any variable of the form %s\n","globalVariable*");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms.size() != 164)
@@ -164,12 +164,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	syms.clear();
 
 	/*********************************************************************************
-		findSymbolByType: Variables with PDST_OBJECT, isRegex - true
+		findSymbolByType: Variables with ST_OBJECT, isRegex - true
 	*********************************************************************************/	
-	if(!symtab->findSymbolByType(syms,"globalVariable*",Dyn_Symbol::PDST_OBJECT, false, true))
+	if(!symtab->findSymbolByType(syms,"globalVariable*",Dyn_Symbol::ST_OBJECT, false, true))
 	{
 		logerror("unable to find any variable of the form %s\n","globalVariable*");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms.size() != 164)
@@ -178,10 +178,10 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	syms.clear();
 	
 	/*********************************************************************************
-		findSymbolByType: Variables with PDST_UNKNOWN, isRegex - true, check case - true
+		findSymbolByType: Variables with ST_UNKNOWN, isRegex - true, check case - true
 	*********************************************************************************/	
 	//should return false. no variables of starting with globalvariable
-	if(symtab->findSymbolByType(syms,"globalvariable*",Dyn_Symbol::PDST_UNKNOWN, false, true, true))
+	if(symtab->findSymbolByType(syms,"globalvariable*",Dyn_Symbol::ST_UNKNOWN, false, true, true))
 	{
 		logerror("found variables of the form %s when nothing should have been found\n","globalVariable*");
 		return -1;
@@ -196,8 +196,8 @@ int main()
 	string s = "/p/paradyn/development/giri/core/testsuite/x86_64-unknown-linux2.4/test1.mutatee_gcc_m32";
 	//string s = "/p/paradyn/development/giri/core/testsuite/i386-unknown-linux2.4/test1.mutatee_gcc";
 	//string s = "/p/paradyn/development/giri/core/testsuite/rs6000-ibm-aix5.1/test1.mutatee_gcc";
-	Dyn_Symtab *symtab = new Dyn_Symtab();
-	bool err = symtab->openFile(s,symtab);
+	Dyn_Symtab *symtab;
+	bool err = Dyn_Symtab::openFile(s,symtab);
 	if(err = false)
 	{
 		cout << "test Failed!. Could nout parse the object file" << endl;

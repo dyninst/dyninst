@@ -20,7 +20,7 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	if(!symtab->getAllExceptions(excps))
 	{
 		logerror("unable to get all exceptions\n");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(excps.size() !=3)
@@ -33,14 +33,14 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	if(!symtab->findException(addr, excp))
 	{
 		logerror("unable to find exception\n");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	addr = excps[0]->catchStart();
 	if(!symtab->findCatchBlock(excp, addr);
 	{
 		logerror("unable to find catchBlock\n");
-		logerror("%s\n", symtab->printError(symtab->getLastSymtabError()).c_str());
+		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	excps.clear();
@@ -54,8 +54,8 @@ int main()
 {
 	// dprintf("Entered test1_1 mutatorMAIN()\n");
 	string s = "/p/paradyn/development/giri/core/testsuite/i386-unknown-linux2.4/test5.mutatee_g++";
-	Dyn_Symtab *symtab = new Dyn_Symtab();
-	bool err = symtab->openFile(s,symtab);
+	Dyn_Symtab *symtab;
+	bool err = Dyn_Symtab::openFile(s,symtab);
         //symtab = param["symtab"]->getPtr();
 	// Get log file pointers
 	//FILE *outlog = (FILE *)(param["outlog"]->getPtr());

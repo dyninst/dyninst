@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.1 2007/01/09 02:02:40 giri Exp $
+// $Id: Object-nt.C,v 1.2 2007/01/19 22:12:26 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -250,7 +250,7 @@ Object::Module::DefineSymbols( const Object* obj,
             // add a Symbol for the file
 			syms[curFile->GetName()].push_back( new ::Dyn_Symbol( curFile->GetName(), 
 				"",
-                ::Dyn_Symbol::PDST_MODULE,
+                ::Dyn_Symbol::ST_MODULE,
                 ::Dyn_Symbol::SL_GLOBAL,
                 obj->code_off(),        // TODO use real base of symbols for file
                 NULL, 0 ) );              // TODO Pass Section pointer also
@@ -266,7 +266,7 @@ Object::Module::DefineSymbols( const Object* obj,
         // add one Symbol for the entire module
 		syms[name].push_back( new ::Dyn_Symbol( name,
             "",
-            ::Dyn_Symbol::PDST_MODULE,
+            ::Dyn_Symbol::ST_MODULE,
             ::Dyn_Symbol::SL_GLOBAL,
             obj->code_off(),
             NULL,					//TODO pass Sections pointer
@@ -300,15 +300,15 @@ Object::Module::PatchSymbolSizes( const Object* obj,
 		assert( sym != NULL );
 
       if( (sym->GetName() != "") && (sym->GetSize() == 0) &&
-            ((sym->GetType() == ::Dyn_Symbol::PDST_FUNCTION) ||
-             (sym->GetType() == ::Dyn_Symbol::PDST_OBJECT)))
+            ((sym->GetType() == ::Dyn_Symbol::ST_FUNCTION) ||
+             (sym->GetType() == ::Dyn_Symbol::ST_OBJECT)))
         {
             // check for function aliases
             // note that this check depends on the allSymbols
             // array being sorted so that aliases are considered
             // after the "real" function symbol
             bool isAlias = false;
-            if( (sym->GetType() == ::Dyn_Symbol::PDST_FUNCTION) &&
+            if( (sym->GetType() == ::Dyn_Symbol::ST_FUNCTION) &&
                 (sym->GetAddr() == lastFuncAddr) &&
                 (sym->GetSize() == 0) )
             {
@@ -348,8 +348,8 @@ Object::Module::PatchSymbolSizes( const Object* obj,
                 // address is not the same as allSymbols[i].
                 unsigned int j = i + 1;
                 while( (j < allSyms.size()) &&
-					( ((allSyms[j]->GetType() != ::Dyn_Symbol::PDST_FUNCTION) &&
-					(allSyms[j]->GetType() != ::Dyn_Symbol::PDST_OBJECT)
+					( ((allSyms[j]->GetType() != ::Dyn_Symbol::ST_FUNCTION) &&
+					(allSyms[j]->GetType() != ::Dyn_Symbol::ST_OBJECT)
                          ) ||
                          (allSyms[j]->GetAddr() == sym->GetAddr())
                        )
@@ -371,7 +371,7 @@ Object::Module::PatchSymbolSizes( const Object* obj,
                     // we couldn't find another symbol in our section
                     // with a different address -
                     // size is the remainder of the current section
-                    if( sym->GetType() == ::Dyn_Symbol::PDST_FUNCTION )
+                    if( sym->GetType() == ::Dyn_Symbol::ST_FUNCTION )
                     {
                         // size is remainder of the .text section
                         cb = (obj->code_off() + obj->code_len()) - 
@@ -388,7 +388,7 @@ Object::Module::PatchSymbolSizes( const Object* obj,
             }
 
             // update the last known function symbol
-            if( sym->GetType() == ::Dyn_Symbol::PDST_FUNCTION )
+            if( sym->GetType() == ::Dyn_Symbol::ST_FUNCTION )
             {
                 lastFuncAddr = sym->GetAddr();
             }
@@ -503,11 +503,11 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
    // is it a function or not?
    // TODO why is there a discrepancy between code base addr for
    // EXEs and DLLs?
-   DWORD symType = ::Dyn_Symbol::PDST_UNKNOWN;
+   DWORD symType = ::Dyn_Symbol::ST_UNKNOWN;
    DWORD symLinkage = ::Dyn_Symbol::SL_UNKNOWN;
    DWORD64 codeLen = code_len();
    DWORD64 codeBase = code_off();
-   symType = ::Dyn_Symbol::PDST_FUNCTION;
+   symType = ::Dyn_Symbol::ST_FUNCTION;
    //codeBase += get_base_addr();
 
    if ((pSymInfo->Flags & SYMFLAG_FUNCTION) ||
@@ -519,12 +519,12 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
             isText((Address) pSymInfo->Address - baseAddr)) ||
             !strcmp(pSymInfo->Name, "_loadsnstores"))
    {
-      symType = ::Dyn_Symbol::PDST_FUNCTION;
+      symType = ::Dyn_Symbol::ST_FUNCTION;
       symLinkage = ::Dyn_Symbol::SL_UNKNOWN;
    }
    else
    {
-      symType = ::Dyn_Symbol::PDST_OBJECT;
+      symType = ::Dyn_Symbol::ST_OBJECT;
       symLinkage = ::Dyn_Symbol::SL_GLOBAL;
    }
 

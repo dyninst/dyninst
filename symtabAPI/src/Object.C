@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.1 2007/01/09 02:02:42 giri Exp $
+// $Id: Object.C,v 1.2 2007/01/19 22:12:23 giri Exp $
 
 #include "symtabAPI/h/Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
@@ -57,9 +57,9 @@ bool symbol_compare(const Dyn_Symbol *s1, const Dyn_Symbol *s2) {
 
     // symbols are co-located at the same address
     // select the symbol which is not a function
-    if ((s1->getType() != Dyn_Symbol::PDST_FUNCTION) && (s2->getType() == Dyn_Symbol::PDST_FUNCTION))
+    if ((s1->getType() != Dyn_Symbol::ST_FUNCTION) && (s2->getType() == Dyn_Symbol::ST_FUNCTION))
     	return true;
-    if ((s2->getType() != Dyn_Symbol::PDST_FUNCTION) && (s1->getType() == Dyn_Symbol::PDST_FUNCTION))
+    if ((s2->getType() != Dyn_Symbol::ST_FUNCTION) && (s1->getType() == Dyn_Symbol::ST_FUNCTION))
     	return false;
     
     // symbols are both functions
@@ -225,7 +225,7 @@ DLLEXPORT void Dyn_Symbol::setAddr (Address newAddr) {
 
 DLLEXPORT Dyn_Symbol::Dyn_Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
-    module_(NULL), type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
+    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
     upPtr_(NULL), tag_(TAG_UNKNOWN) {
    // note: this ctor is called surprisingly often (when we have
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
@@ -284,9 +284,9 @@ DLLEXPORT bool Dyn_Symbol::addMangledName(string name, bool isPrimary) {
 
     if(!found && module_->exec())
     {		//add it to the lookUps
-    	if(type_ == PDST_FUNCTION)
+    	if(type_ == ST_FUNCTION)
 	    	module_->exec()->addFunctionName(this,name,true);
-	else if(type_ == PDST_OBJECT)
+	else if(type_ == ST_OBJECT)
 		module_->exec()->addVariableName(this,name,true);
     }
     
@@ -315,9 +315,9 @@ DLLEXPORT bool Dyn_Symbol::addPrettyName(string name, bool isPrimary) {
     
     if(!found && module_->exec())
     {		//add it to the lookUps
-    	if(type_ == PDST_FUNCTION)
+    	if(type_ == ST_FUNCTION)
 	    	module_->exec()->addFunctionName(this,name,false);
-	else if(type_ == PDST_OBJECT)
+	else if(type_ == ST_OBJECT)
 		module_->exec()->addVariableName(this,name,false);
     }
     
@@ -346,14 +346,28 @@ DLLEXPORT bool Dyn_Symbol::addTypedName(string name, bool isPrimary) {
     
     if(!found && module_->exec())
     {		//add it to the lookUps
-    	if(type_ == PDST_FUNCTION)
+    	if(type_ == ST_FUNCTION)
 	    	module_->exec()->addFunctionName(this,name,false);
-	else if(type_ == PDST_OBJECT)
+	else if(type_ == ST_OBJECT)
 		module_->exec()->addVariableName(this,name,false);
     }
     
     // Bool: true if the name is new; AKA !found
     return (!found);
+}
+
+DLLEXPORT bool Dyn_Symbol::setType(SymbolType sType){
+        if((sType != ST_UNKNOWN)&&
+           (sType != ST_FUNCTION)&&
+           (sType != ST_OBJECT)&&
+           (sType != ST_MODULE)&&
+           (sType != ST_NOTYPE))
+	        return false;
+	SymbolType oldType = type_;	
+	type_ = sType;
+	if(module_->exec())
+		module_->exec()->changeType(this, oldType);
+        return true;
 }
 
 DLLEXPORT void	Dyn_Symbol::setUpPtr(void *newUpPtr)

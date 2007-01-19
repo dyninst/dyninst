@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.1 2007/01/12 22:11:10 giri Exp $
+// $Id: Object-coff.C,v 1.2 2007/01/19 22:12:24 giri Exp $
 
 #include "common/h/Dictionary.h"
 #include "symtabAPI/h/Object.h"
@@ -416,7 +416,7 @@ void Object::load_object(bool sharedLibrary) {
 	string module = "DEFAULT_MODULE";
    if (sharedLibrary) {
       module = file_;
-      allSymbols.push_back(Symbol(module, module, Symbol::PDST_MODULE, 
+      allSymbols.push_back(Symbol(module, module, Symbol::ST_MODULE, 
                                   Symbol::SL_GLOBAL, (Address) 0, false,));
 	} else {
       module = "DEFAULT_MODULE";
@@ -429,7 +429,7 @@ void Object::load_object(bool sharedLibrary) {
 	while (ldtbread(ldptr, index, &symbol) == SUCCESS) {
 	  // TODO -- when global?
 	  Symbol::SymbolLinkage linkage = Symbol::SL_GLOBAL;
-	  Symbol::SymbolType type = Symbol::PDST_UNKNOWN;
+	  Symbol::SymbolType type = Symbol::ST_UNKNOWN;
 	  bool st_kludge = false;
 	  bool sym_use = true;
 	  unsigned secNumber;
@@ -448,7 +448,7 @@ void Object::load_object(bool sharedLibrary) {
 
 		if (symbol.sc == scText && (fcnNames.find(name)==fcnNames.end()))
 		{
-			type = Symbol::PDST_FUNCTION;
+			type = Symbol::ST_FUNCTION;
 			fcnNames[name] = 1;
 			secNumber = findSecNumber(".text");
 		}
@@ -462,11 +462,11 @@ void Object::load_object(bool sharedLibrary) {
 		switch(symbol.sc) {
 		case scData:
 			secNumber = findSecNumber(".data");
-			type = Symbol::PDST_OBJECT;
+			type = Symbol::ST_OBJECT;
 			break;
 		case scBss:
 			secNumber = findSecNumber(".bss");
-			type = Symbol::PDST_OBJECT;
+			type = Symbol::ST_OBJECT;
 			break;
 		case scSData:
 		case scSBss:
@@ -475,7 +475,7 @@ void Object::load_object(bool sharedLibrary) {
 		case scTlsData:
 		case scTlsBss:
 			secNumber = findSecNumber(".sdata");
-			type = Symbol::PDST_OBJECT;
+			type = Symbol::ST_OBJECT;
 			break;
 		default:
 			sym_use = false;
@@ -493,13 +493,13 @@ void Object::load_object(bool sharedLibrary) {
 		case scVarRegister:
 		case scUnallocated:
 			secNumber = findSecNumber(".rdata");
-			type = Symbol::PDST_OBJECT;
+			type = Symbol::ST_OBJECT;
 			break;
 		case scData:
 			secNumber = findSecNumber(".data");
 			 //Parameter is static var. Don't know what to do
 			if (symbol.st == stParam)
-				type = Symbol::PDST_OBJECT;
+				type = Symbol::ST_OBJECT;
 			else
 				sym_use = false;
 			break;
@@ -511,7 +511,7 @@ void Object::load_object(bool sharedLibrary) {
 			secNumber = findSecNumber(".rdata");
 			 //Parameter is static var. Don't know what to do
 			if (symbol.st == stParam)
-				type = Symbol::PDST_OBJECT;
+				type = Symbol::ST_OBJECT;
 			else
 				sym_use = false;
 			break;
@@ -526,7 +526,7 @@ void Object::load_object(bool sharedLibrary) {
 	case stTag: //C++ class, structure or union
 		secNumber = findSecNumber(".rdata");
 		if (symbol.sc == scInfo)
-			type = Symbol::PDST_OBJECT;
+			type = Symbol::ST_OBJECT;
 		else
 			sym_use = false;
 		break;
@@ -535,7 +535,7 @@ void Object::load_object(bool sharedLibrary) {
 		secNumber = findSecNumber(".rdata");
 		if (!sharedLibrary) {
 			module = ldgetname(ldptr, &symbol); assert(module.length());
-			type   = Symbol::PDST_MODULE;
+			type   = Symbol::ST_MODULE;
 			moduleEndIdx = symbol.index - 1;
 			//Detect the compiler type by searching libgcc.
 			if (strstr(module.c_str(), "libgcc"))
@@ -560,7 +560,7 @@ void Object::load_object(bool sharedLibrary) {
 			    *strchr(prettyName, '(') = 0;
 			name = prettyName;
 
-			type = Symbol::PDST_FUNCTION;
+			type = Symbol::ST_FUNCTION;
 			fcnNames[name] = 1;
 
 		} else {
@@ -603,13 +603,13 @@ void Object::load_object(bool sharedLibrary) {
     //Insert global symbols
     for (unsigned u = 0; u < nsymbols; u++) {
 	unsigned size = 0;
-	if (allSymbols[u].type() == Symbol::PDST_FUNCTION) {
+	if (allSymbols[u].type() == Symbol::ST_FUNCTION) {
 	    unsigned v = u+1;
 	    while (v < nsymbols) {
 		// The .ef below is a special symbol that gcc puts in to
                 // mark the end of a function.
                 if (allSymbols[v].addr() != allSymbols[u].addr() &&
-                      (allSymbols[v].type() == Symbol::PDST_FUNCTION ||
+                      (allSymbols[v].type() == Symbol::ST_FUNCTION ||
                        allSymbols[v].name() == ".ef"))
                 break;
                 v++;

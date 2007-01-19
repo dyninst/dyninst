@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Dyn_Symbol.h,v 1.1 2007/01/09 02:02:14 giri Exp $
+ * $Id: Dyn_Symbol.h,v 1.2 2007/01/19 22:12:22 giri Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -71,11 +71,11 @@ class Dyn_Module;
 class Dyn_Symbol {
 public:
     enum SymbolType {
-        PDST_UNKNOWN,
-        PDST_FUNCTION,
-        PDST_OBJECT,
-        PDST_MODULE,
-	PDST_NOTYPE
+        ST_UNKNOWN,
+        ST_FUNCTION,
+        ST_OBJECT,
+        ST_MODULE,
+	ST_NOTYPE
     };
 
     enum SymbolLinkage {
@@ -126,16 +126,7 @@ public:
 
    DLLEXPORT void setAddr (Address newAddr);
 
-   DLLEXPORT bool setType(SymbolType sType){
-   	if((sType != PDST_UNKNOWN)&&
-	   (sType != PDST_FUNCTION)&&
-	   (sType != PDST_OBJECT)&&
-	   (sType != PDST_MODULE)&&
-	   (sType != PDST_NOTYPE))
-	   	return false;
-		type_ = sType;	
-		return true;
-   }
+   DLLEXPORT bool setType(SymbolType sType);
    
     DLLEXPORT unsigned            getSize ()               const;
     DLLEXPORT SymbolTag            tag ()               const;
@@ -181,7 +172,7 @@ private:
 inline
 Dyn_Symbol::Dyn_Symbol(unsigned)
    : //name_("*bad-symbol*"), module_("*bad-module*"),
-    module_(NULL), type_(PDST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), upPtr_(NULL),
+    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), upPtr_(NULL),
     tag_(TAG_UNKNOWN) {
 }
 
