@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2007/01/12 22:11:05 giri Exp $
+# $Id: Makefile,v 1.3 2007/01/19 22:12:16 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -31,7 +31,7 @@ TFLAGS		+= -DUSES_ELF32_ONLY
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g
 
-LDFLAGS += -ldwarf -lelf
+LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf -lelf
 SYSLIBS = -lsocket -lnsl -ldl -lrt -lcommon
 
 # Add preprocessor and special link information for G++
