@@ -64,6 +64,16 @@
  #include "symtabAPI/h/Dyn_Symbol.h"
  #include "symtabAPI/h/Object.h"
 
+#if 0 
+ // To be used when flags will be used instead of booleans to specify paramaters for lookups
+ #define IS_MANGLED 		4
+ #define IS_REGEX   		2
+ #define IS_CASE_SENSITIVE 	1
+ #define IS_PRETTY		0
+ #define NOT_REGEX		0
+ #define NOT_CASE_SENSITIVE	0
+#endif
+
  DLLEXPORT string extract_path_tail(const string &path);
  class Dyn_Archive;
  typedef enum { lang_Unknown,
@@ -86,7 +96,8 @@
 		No_Such_Symbol,
 		No_Such_Member,
 		Not_A_File,
-		Not_An_Archive
+		Not_An_Archive,
+		Invalid_Flags
 	      } SymtabError;
 
  class Dyn_Symtab;
@@ -159,9 +170,9 @@
 
 	DLLEXPORT Dyn_Symtab(const Dyn_Symtab& obj);
 	
-    	DLLEXPORT bool openFile( string &filename, Dyn_Symtab *&obj);
+    	DLLEXPORT static bool openFile( string &filename, Dyn_Symtab *&obj);
 	
-	DLLEXPORT bool openFile( char *mem_image, size_t size, Dyn_Symtab *&obj);
+	DLLEXPORT static bool openFile( char *mem_image, size_t size, Dyn_Symtab *&obj);
 
 	/***** Lookup Functions *****/
 	DLLEXPORT virtual bool findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
@@ -228,8 +239,8 @@
    #endif
    
 	/***** Error Handling *****/
-	DLLEXPORT SymtabError getLastSymtabError();
-	DLLEXPORT string printError(SymtabError serr);
+	DLLEXPORT static SymtabError getLastSymtabError();
+	DLLEXPORT static string printError(SymtabError serr);
 
 	DLLEXPORT ~Dyn_Symtab();
 	
@@ -261,6 +272,7 @@
                           bool nativeCompiler, 
                           supportedLanguages lang );
 	bool symbolsToFunctions(vector<Dyn_Symbol *> *raw_funcs);
+	bool changeType(Dyn_Symbol *sym, Dyn_Symbol::SymbolType oldType);
 			       
 	supportedLanguages pickLanguage(string &working_module, char *working_options, 
 						supportedLanguages working_lang);
@@ -367,6 +379,7 @@
 	vector<Dyn_ExceptionBlock *> excpBlocks;
   private:
   	friend class Dyn_Archive;
+  	friend class Dyn_Symbol;
  };
 
  /* Stores source code to address in text association for modules */

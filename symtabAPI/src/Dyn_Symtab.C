@@ -103,34 +103,26 @@
  	switch (serr){
 		case Obj_Parsing:
 			return "Failed to parse the Object"+errMsg;
-			break;
 		case Syms_To_Functions:
 			return "Failed to convert Symbols to Functions";
-			break;
 		case No_Such_Function:
 			return "Function does not exist";
-			break;
 		case No_Such_Variable:
 			return "Variable does not exist";
-			break;
 		case No_Such_Module:
 			return "Module does not exist";
-			break;
 		case No_Such_Section:
 			return "Section does not exist";
-			break;
 		case No_Such_Symbol:
 			return "Symbol does not exist";
-			break;
 		case Not_A_File:
 			return "Not a File. Call openArchive()";
-			break;
 		case Not_An_Archive:
 			return "Not an Archive. Call openFile()";
-			break;
+		case Invalid_Flags:
+			return "Flags passed are invalid.";
 		default:
 			return "Unknown Error";
-			break;
 	}		
  }
 
@@ -310,7 +302,7 @@
 	 		continue; 
 
      		
-		if (lookUp->getType() == Dyn_Symbol::PDST_FUNCTION) 
+		if (lookUp->getType() == Dyn_Symbol::ST_FUNCTION) 
 		{
             		// /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", FILE__, __LINE__, lookUp.getName().c_str(), lookUp.getModuleName().c_str() );
             
@@ -329,7 +321,7 @@
 			lookUp->setModule(newMod);
             		raw_funcs->push_back(lookUp);
             	}
-		if(lookUp->getType() == Dyn_Symbol::PDST_MODULE)
+		if(lookUp->getType() == Dyn_Symbol::ST_MODULE)
 		{
 			const string mangledName = symIter.currkey();
 			char * unmangledName =
@@ -343,7 +335,7 @@
 			lookUp->setModule(newMod);
 			modSyms.push_back(lookUp);
 		}	
-		else if(lookUp->getType() == Dyn_Symbol::PDST_NOTYPE)
+		else if(lookUp->getType() == Dyn_Symbol::ST_NOTYPE)
 		{
 			const string mangledName = symIter.currkey();
 			char * unmangledName =
@@ -354,7 +346,7 @@
 		                lookUp->addPrettyName(mangledName, true);
 			notypeSyms.push_back(lookUp);
 		}	
-		else if(lookUp->getType() == Dyn_Symbol::PDST_OBJECT)
+		else if(lookUp->getType() == Dyn_Symbol::ST_OBJECT)
 		{
 			const string mangledName = symIter.currkey();
 			#if 0
@@ -364,8 +356,8 @@
               			symInfo.addr(),
               			symInfo.type(),
               			symInfo.linkage(),
-              			Dyn_Symbol::PDST_OBJECT,
-              			Dyn_Symbol::PDST_FUNCTION);
+              			Dyn_Symbol::ST_OBJECT,
+              			Dyn_Symbol::ST_FUNCTION);
 			#endif
 			#if !defined(os_windows)
       				// Windows: variables are created with an empty module
@@ -1058,7 +1050,8 @@
     	else
         	createdFunctions.push_back(func);
  }
- 
+
+/* 
  bool Dyn_Symtab::addSymbol(Dyn_Symbol *newsym)
  {
  	string sname = newsym->getName();
@@ -1077,11 +1070,11 @@
 	if(unmangledName)
 	{
 		newsym->addPrettyName(unmangledName, true);
-		if(newsym->getType() == Dyn_Symbol::PDST_FUNCTION)
+		if(newsym->getType() == Dyn_Symbol::ST_FUNCTION)
 			addFunctionName(newsym, sname, true);
-		else if(newsym->getType() == Dyn_Symbol::PDST_OBJECT)
+		else if(newsym->getType() == Dyn_Symbol::ST_OBJECT)
 			addVariableName(newsym, sname, true);
-		else if(newsym->getType() == Dyn_Symbol::PDST_MODULE)
+		else if(newsym->getType() == Dyn_Symbol::ST_MODULE)
 			modSyms.push_back(newsym);
 		else
 			notypeSyms.push_back(newsym);
@@ -1089,11 +1082,11 @@
 	else
 	{
 		newsym->addPrettyName(sname, true);
-		if(newsym->getType() == Dyn_Symbol::PDST_FUNCTION)
+		if(newsym->getType() == Dyn_Symbol::ST_FUNCTION)
 			addFunctionName(newsym, sname, true);
-		else if(newsym->getType() == Dyn_Symbol::PDST_OBJECT)
+		else if(newsym->getType() == Dyn_Symbol::ST_OBJECT)
 			addVariableName(newsym, sname, true);
-		else if(newsym->getType() == Dyn_Symbol::PDST_MODULE)
+		else if(newsym->getType() == Dyn_Symbol::ST_MODULE)
 			modSyms.push_back(newsym);
 		else
 			notypeSyms.push_back(newsym);
@@ -1101,6 +1094,63 @@
 	//linkedFile.symbols_[sname].push_back(newsym);
 	return true;
  }
+*/
+
+ bool Dyn_Symtab::addSymbol(Dyn_Symbol *newSym)
+ {
+ 	vector<string> names;
+	char *unmangledName = NULL;
+ 	string sname = newSym->getName();
+    #if !defined(os_windows)
+      	// Windows: variables are created with an empty module
+    	if (newSym->getModuleName().length() == 0) 
+	{
+       		//fprintf(stderr, "SKIPPING EMPTY MODULE\n");
+       		return false;
+	}
+    #endif
+	Dyn_Module *newMod = getOrCreateModule(sname, newSym->getAddr());
+	delete(newSym->getModule());
+	newSym->setModule(newMod);
+	if(newSym->getAllPrettyNames().size() == 0)
+    		unmangledName = P_cplus_demangle(sname.c_str(), nativeCompiler,false);
+	if(newSym->getType() == Dyn_Symbol::ST_FUNCTION)
+	{
+		names = newSym->getAllMangledNames();
+		for(unsigned i=0;i<names.size();i++)
+			addFunctionName(newSym, names[i], true);
+		names = newSym->getAllPrettyNames();
+		for(unsigned i=0;i<names.size();i++)
+			addFunctionName(newSym, names[i], false);
+		names = newSym->getAllTypedNames();
+		for(unsigned i=0;i<names.size();i++)
+			addFunctionName(newSym, names[i], false);
+	}
+	else if(newSym->getType() == Dyn_Symbol::ST_OBJECT)
+	{
+		names = newSym->getAllMangledNames();
+		for(unsigned i=0;i<names.size();i++)
+			addVariableName(newSym, names[i], true);
+		names = newSym->getAllPrettyNames();
+		for(unsigned i=0;i<names.size();i++)
+			addVariableName(newSym, names[i], false);
+		names = newSym->getAllTypedNames();
+		for(unsigned i=0;i<names.size();i++)
+			addVariableName(newSym, names[i], false);
+	}
+	else if(newSym->getType() == Dyn_Symbol::ST_MODULE)
+		modSyms.push_back(newSym);
+	else
+		notypeSyms.push_back(newSym);
+	if(newSym->getAllPrettyNames().size() == 0)		// add the unmangledName if there are no prettyNames
+	{
+		if(unmangledName)
+			newSym->addPrettyName(unmangledName, true);
+		else
+			newSym->addPrettyName(sname,true);
+	}		
+	return true;
+}
 
  void Dyn_Symtab::addFunctionName(Dyn_Symbol *func,
                             const string newName,
@@ -1219,7 +1269,7 @@
    	for(;symIter;symIter++)
 	{
       		Dyn_Symbol *lookUp = symIter.currval();
-      		if (lookUp.getType() == Dyn_Symbol::PDST_MODULE)
+      		if (lookUp.getType() == Dyn_Symbol::ST_MODULE)
 		{
          		const string &lookUpName = lookUp->getName();
          		const char *str = lookUpName.c_str();
@@ -1413,11 +1463,11 @@
 
  bool Dyn_Symtab::getAllSymbolsByType(vector<Dyn_Symbol *> &ret, Dyn_Symbol::SymbolType sType)
  {
- 	if(sType == Dyn_Symbol::PDST_FUNCTION)
+ 	if(sType == Dyn_Symbol::ST_FUNCTION)
 		return getAllFunctions(ret);
-	else if(sType == Dyn_Symbol::PDST_OBJECT)
+	else if(sType == Dyn_Symbol::ST_OBJECT)
 		return getAllVariables(ret);
-	else if(sType == Dyn_Symbol::PDST_MODULE)
+	else if(sType == Dyn_Symbol::ST_MODULE)
 	{
 		if(modSyms.size()>0)
 		{
@@ -1428,7 +1478,7 @@
 		return false;
 			
 	}
-	else if(sType == Dyn_Symbol::PDST_NOTYPE)
+	else if(sType == Dyn_Symbol::ST_NOTYPE)
  	{
 		if(notypeSyms.size()>0)
 		{
@@ -1574,16 +1624,43 @@
 	return false;
  }
  
+#if 0 
+ bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
+                                 Dyn_Symbol::SymbolType sType, unsigned flags)
+ {
+ 	switch(flags)
+	{
+		case IS_PRETTY|NOT_REGEX|NOT_CASE_SENSITIVE:
+		case IS_PRETTY|NOT_REGEX|IS_CASE_SENSITIVE:
+			return findSymbolByType(ret, name, sType);
+		case IS_MANGLED|NOT_REGEX|NOT_CASE_SENSITIVE:
+		case IS_MANGLED|NOT_REGEX|IS_CASE_SENSITIVE:
+			return findSymbolByType(ret, name, sType, true);
+		case IS_PRETTY|IS_REGEX|NOT_CASE_SENSITIVE:
+			return findSymbolByType(ret, name, sType, false, true);
+		case IS_PRETTY|IS_REGEX|IS_CASE_SENSITIVE:
+			return findSymbolByType(ret, name, sType, false, true, true);
+		case IS_MANGLED|IS_REGEX|NOT_CASE_SENSITIVE:
+			return findSymbolByType(ret, name, sType, true, true);
+		case IS_MANGLED|IS_REGEX|IS_CASE_SENSITIVE:
+			return findSymbolByType(ret, name, sType, true, true, true);
+		default:
+			serr = Invalid_Flags;
+			return false;
+	}
+ }
+#endif 
+ 
  bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
 				Dyn_Symbol::SymbolType sType, bool isMangled,
 				bool isRegex, bool checkCase)
  {
- 	if(sType == Dyn_Symbol::PDST_FUNCTION)
+ 	if(sType == Dyn_Symbol::ST_FUNCTION)
 		return findFunction(ret, name, isMangled, isRegex, checkCase);
-	else if(sType == Dyn_Symbol::PDST_OBJECT)
+	else if(sType == Dyn_Symbol::ST_OBJECT)
 		return findVariable(ret, name, isMangled, isRegex, checkCase);
-	else if((sType == Dyn_Symbol::PDST_MODULE) ||
-		(sType == Dyn_Symbol::PDST_NOTYPE))
+	else if((sType == Dyn_Symbol::ST_MODULE) ||
+		(sType == Dyn_Symbol::ST_NOTYPE))
 	{
 		unsigned start = ret.size(),i;
 		if(!isMangled && !isRegex)
@@ -1651,17 +1728,17 @@
 		serr = No_Such_Symbol;
 		return false;
 	}
-	else if(sType == Dyn_Symbol::PDST_UNKNOWN)
+	else if(sType == Dyn_Symbol::ST_UNKNOWN)
 	{
 		findFunction(ret, name, isMangled, isRegex, checkCase);
 		vector<Dyn_Symbol *>syms;
 		findVariable(syms, name, isMangled, isRegex, checkCase);
 		ret.insert(ret.end(), syms.begin(), syms.end());
 		syms.clear();
-		findSymbolByType(syms, name, Dyn_Symbol::PDST_MODULE, isMangled, isRegex, checkCase);
+		findSymbolByType(syms, name, Dyn_Symbol::ST_MODULE, isMangled, isRegex, checkCase);
 		ret.insert(ret.end(), syms.begin(), syms.end());
 		syms.clear();
-		findSymbolByType(syms, name, Dyn_Symbol::PDST_NOTYPE, isMangled, isRegex, checkCase);
+		findSymbolByType(syms, name, Dyn_Symbol::ST_NOTYPE, isMangled, isRegex, checkCase);
 		ret.insert(ret.end(), syms.begin(), syms.end());
 		syms.clear();
 		if(ret.size() > 0)
@@ -1976,7 +2053,6 @@
     	}
     	if (found.size() > orig_size) 
         	return true;
-	serr = No_Such_Symbol;	
     	return false;	
  }
  
@@ -2160,19 +2236,23 @@ bool Dyn_Symtab::openFile( string &filename, Dyn_Symtab *&obj){
 		if(filename.find("/proc") == string::npos)
 			allSymtabs.push_back(obj);
 	}
+	else
+		obj = NULL;
 	return err;
 }
 	
 bool Dyn_Symtab::openFile( char *mem_image, size_t size, Dyn_Symtab *&obj){
 	bool err;
 	obj = new Dyn_Symtab(mem_image, size, err);
+	if(err == false)
+		obj = NULL;
 	return err;
 }
 
-bool Dyn_Symtab::delSymbol(Dyn_Symbol *sym)
+bool Dyn_Symtab::changeType(Dyn_Symbol *sym, Dyn_Symbol::SymbolType oldType)
 {
 	vector<string>names;
-	if(sym->getType() == Dyn_Symbol::PDST_FUNCTION)
+	if(oldType == Dyn_Symbol::ST_FUNCTION)
 	{
 		unsigned i;
 		vector<Dyn_Symbol *> *funcs;
@@ -2204,7 +2284,7 @@ bool Dyn_Symtab::delSymbol(Dyn_Symbol *sym)
 		iter = find(everyUniqueFunction.begin(), everyUniqueFunction.end(), sym);
 		everyUniqueFunction.erase(iter);
 	}
-	else if(sym->getType() == Dyn_Symbol::PDST_OBJECT)
+	else if(oldType == Dyn_Symbol::ST_OBJECT)
 	{
 		unsigned i;
 		vector<Dyn_Symbol *> *vars;
@@ -2235,13 +2315,95 @@ bool Dyn_Symtab::delSymbol(Dyn_Symbol *sym)
 		iter = find(everyUniqueVariable.begin(), everyUniqueVariable.end(), sym);
 		everyUniqueVariable.erase(iter);
 	}
-	else if(sym->getType() == Dyn_Symbol::PDST_MODULE)
+	else if(oldType == Dyn_Symbol::ST_MODULE)
 	{
 		vector<Dyn_Symbol *>::iterator iter;
 		iter = find(modSyms.begin(),modSyms.end(),sym);
 		modSyms.erase(iter);
 	}
-	else if(sym->getType() == Dyn_Symbol::PDST_NOTYPE)
+	else if(oldType == Dyn_Symbol::ST_NOTYPE)
+	{
+		vector<Dyn_Symbol *>::iterator iter;
+		iter = find(notypeSyms.begin(),notypeSyms.end(),sym);
+		notypeSyms.erase(iter);
+	}
+	addSymbol(sym);
+	return true;
+}
+
+bool Dyn_Symtab::delSymbol(Dyn_Symbol *sym)
+{
+	vector<string>names;
+	if(sym->getType() == Dyn_Symbol::ST_FUNCTION)
+	{
+		unsigned i;
+		vector<Dyn_Symbol *> *funcs;
+		vector<Dyn_Symbol *>::iterator iter;
+		names = sym->getAllMangledNames();
+		for(i=0;i<names.size();i++)
+		{
+			funcs = funcsByMangled[names[i]];
+			iter = find(funcs->begin(), funcs->end(), sym);
+			funcs->erase(iter);
+		}
+		names.clear();
+		names = sym->getAllPrettyNames();
+		for(i=0;i<names.size();i++)
+		{
+			funcs = funcsByPretty[names[i]];
+			iter = find(funcs->begin(), funcs->end(), sym);
+			funcs->erase(iter);
+		}
+		names.clear();
+		names = sym->getAllTypedNames();
+		for(i=0;i<names.size();i++)
+		{
+			funcs = funcsByPretty[names[i]];
+			iter = find(funcs->begin(), funcs->end(), sym);
+			funcs->erase(iter);
+		}
+		names.clear();
+		iter = find(everyUniqueFunction.begin(), everyUniqueFunction.end(), sym);
+		everyUniqueFunction.erase(iter);
+	}
+	else if(sym->getType() == Dyn_Symbol::ST_OBJECT)
+	{
+		unsigned i;
+		vector<Dyn_Symbol *> *vars;
+		vector<Dyn_Symbol *>::iterator iter;
+		names = sym->getAllMangledNames();
+		for(i=0;i<names.size();i++)
+		{
+			vars = varsByMangled[names[i]];
+			iter = find(vars->begin(), vars->end(), sym);
+			vars->erase(iter);
+		}
+		names.clear();
+		names = sym->getAllPrettyNames();
+		for(i=0;i<names.size();i++)
+		{
+			vars = varsByPretty[names[i]];
+			iter = find(vars->begin(), vars->end(), sym);
+			vars->erase(iter);
+		}
+		names.clear();
+		names = sym->getAllTypedNames();
+		for(i=0;i<names.size();i++)
+		{
+			vars= varsByPretty[names[i]];
+			iter = find(vars->begin(), vars->end(), sym);
+			vars->erase(iter);
+		}
+		iter = find(everyUniqueVariable.begin(), everyUniqueVariable.end(), sym);
+		everyUniqueVariable.erase(iter);
+	}
+	else if(sym->getType() == Dyn_Symbol::ST_MODULE)
+	{
+		vector<Dyn_Symbol *>::iterator iter;
+		iter = find(modSyms.begin(),modSyms.end(),sym);
+		modSyms.erase(iter);
+	}
+	else if(sym->getType() == Dyn_Symbol::ST_NOTYPE)
 	{
 		vector<Dyn_Symbol *>::iterator iter;
 		iter = find(notypeSyms.begin(),notypeSyms.end(),sym);

@@ -58,8 +58,8 @@
  class Dyn_Archive{
   public:
  	Dyn_Archive() {}
-	bool openArchive(string &filename, Dyn_Archive *&img);
-	bool openArchive(char *mem_image, size_t image_size, Dyn_Archive *&img);
+	static bool openArchive(string &filename, Dyn_Archive *&img);
+	static bool openArchive(char *mem_image, size_t image_size, Dyn_Archive *&img);
 
 	bool getMember(string &member_name,Dyn_Symtab *&img);
 	bool getMemberByOffset(OFFSET &memberOffset, Dyn_Symtab *&img);
@@ -67,8 +67,8 @@
 	bool isMemberInArchive(string &member_name);
 
 	SymtabError getLastError();
-	string printError(SymtabError serr);
-	string file() { return filename_; }
+	static string printError(SymtabError serr);
+	static string file() { return filename_; }
 	~Dyn_Archive();
 
  private:

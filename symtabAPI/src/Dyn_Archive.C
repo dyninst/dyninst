@@ -80,6 +80,8 @@
 	img = new Dyn_Archive(filename ,err);
 	if(err)	// No errors
 		allArchives.push_back(img);	
+	else
+		img = NULL;
 	return err;
  }
 
@@ -87,6 +89,8 @@
  {
  	bool err;
 	img = new Dyn_Archive(mem_image, size, err);
+	if(err == false)
+		img = NULL
 	return err;
  }
 
