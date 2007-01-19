@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.286 2007/01/19 22:12:43 giri Exp $
+ // $Id: symtab.C,v 1.287 2007/01/19 22:50:24 giri Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1154,6 +1154,7 @@ image::image(fileDescriptor &desc, bool &err)
  #if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)
    string file = desc_.file().c_str();
    SymtabError serr = Not_An_Archive;
+   Dyn_Archive *archive;
    if(!Dyn_Archive::openArchive(file, archive))
    {
    	err = true;

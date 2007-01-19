@@ -90,7 +90,7 @@
  	bool err;
 	img = new Dyn_Archive(mem_image, size, err);
 	if(err == false)
-		img = NULL
+		img = NULL;
 	return err;
  }
 

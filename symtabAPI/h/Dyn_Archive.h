@@ -66,9 +66,9 @@
 	bool getAllMembers(vector <Dyn_Symtab *> &members);
 	bool isMemberInArchive(string &member_name);
 
-	SymtabError getLastError();
+	static SymtabError getLastError();
 	static string printError(SymtabError serr);
-	static string file() { return filename_; }
+	string file() { return filename_; }
 	~Dyn_Archive();
 
  private:
