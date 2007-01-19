@@ -53,6 +53,7 @@
 #include "common/h/Vector.h"
 #include "common/src/Dictionary.C"
 #include "BPatch_Set.h"
+#include "BPatch_statement.h"
 
 #include "common/h/Types.h"
 #include "common/h/String.h"
@@ -346,6 +347,47 @@ int CodeCoverage::selectFunctions() {
 			continue;
 			}
 
+                BPatch_Vector<BPatch_statement> statements;
+                if (!currentModule->getStatements(statements)) {
+                    fprintf(stderr, "%s[%d]:  failed to get statements\n", __FILE__, __LINE__);
+                    continue;
+                }
+
+                for (unsigned int i = 0; i < statements.size(); ++i) {
+                   void *startAddress = statements[i].startAddr();
+                   int lineNumber = statements[i].lineNumber();
+                   const char *fileName = statements[i].fileName();
+                   BPatch_function *currentFunction
+                       = appThread->findFunctionByAddr(startAddress);
+
+                   if (currentFunction == NULL) {
+                       fprintf( stderr, "%s[%d]: Unable to locate function in line information at address %p\n", __FILE__, __LINE__, startAddress );
+			continue;
+                    }
+                    currentFunction->getName( currentFunctionName, 1023 );
+                    pdstring pdCurrentFunctionName( currentFunctionName );
+			
+                    /* Generate the flc. */
+                    FileLineCoverage * flc = new FileLineCoverage( fileName );
+
+                    /* Tikir: All line number should be changed to be unsigned ints. */
+                    BPatch_Set< unsigned short > lines;
+                    lines += (unsigned short) lineNumber;
+                    flc->initializeLines( lines );
+
+                    /* Add FLC to existing FC or create new FC with it, and register in allCoverageHash. */
+                    FunctionCoverage * fc = NULL;
+                    if ( allCoverageHash->defines( pdCurrentFunctionName ) ) {
+                       fc = allCoverageHash->get( pdCurrentFunctionName );
+                       fc->addSourceFile( flc );
+                       flc->setOwner( fc );
+                    }
+                    else {
+                       fc = newFunctionCoverage( currentFunction, currentFunctionName, flc );
+                       allCoverageHash->set( pdCurrentFunctionName, fc );
+                    }
+                }
+#if 0
 		LineInformation & lineInformation = currentModule->getLineInformation();
 		for(	LineInformation::const_iterator iter = lineInformation.begin();
 				iter != lineInformation.end();
@@ -379,7 +421,8 @@ int CodeCoverage::selectFunctions() {
 				}
 
 			} /* end iteration over line information */
-		} /* end iteration over modules */
+#endif
+	} /* end iteration over modules */
 
 	if( allCoverageHash->size() == 0 ) {
 		return errorPrint( Error_NoFunctionsToCover );
@@ -403,7 +446,7 @@ int CodeCoverage::selectFunctions() {
 
 	createFileStructure();
 	return Error_OK;
-	} /* end CodeCoverage::selectFunctions() */
+} /* end CodeCoverage::selectFunctions() */
 
 /** method to do initial instrumentation */
 int CodeCoverage::instrumentInitial(){

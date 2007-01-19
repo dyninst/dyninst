@@ -40,5 +40,5 @@ endif
 templates.o: ../src/templates.C
 	$(CXX) $(TFLAGS) -c ../src/templates.C
 
-LIBS 	+= -ldyninstAPI
+LIBS 	+= -lcommon -ldyninstAPI -lsymtabAPI
 include ../../make.program.tmpl
