@@ -15,7 +15,7 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SYSLIBS   += -lelf -lnsl -ldl -lsocket -lrt
+SYSLIBS   += -lelf -lnsl -ldl -lsocket -lrt -L$(LIBDWARF_LIB) -ldwarf
 IFLAGS    += -I/usr/imports/include
 
 # Include the module-specific Makefile, which defines everything about

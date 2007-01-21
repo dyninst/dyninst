@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.6 2007/01/12 22:11:07 giri Exp $
+# $Id: Makefile,v 1.7 2007/01/21 05:26:41 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -102,4 +102,4 @@ STRIP_SO = strip -g
 # the module that is common across architectures.
 
 include ../make.module.tmpl
-MUTATOR_LDFLAGS +=  $(SYSLIBS) -ldwarf -lelf -lstdc++ -lsocket -lrt -liberty
+MUTATOR_LDFLAGS +=  $(SYSLIBS) -L$(LIBDWARF_LIB) -ldwarf -lelf -lstdc++ -lsocket -lrt -liberty

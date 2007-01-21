@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.5 2007/01/18 07:53:57 jaw Exp $
+# $Id: Makefile,v 1.6 2007/01/21 05:26:42 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -100,5 +100,5 @@ LIBS_LIBTESTSUITE = -ldl
 # the module that is common across architectures.
 
 include ../make.module.tmpl
-MUTATOR_LDFLAGS +=  $(SYSLIBS) -ldwarf -lelf -lstdc++ -lsocket -lrt -liberty -ldwarf 
+MUTATOR_LDFLAGS +=  $(SYSLIBS) -L$(LIBDWARF_LIB) -ldwarf -lelf -lstdc++ -lsocket -lrt -liberty -ldwarf 
 
