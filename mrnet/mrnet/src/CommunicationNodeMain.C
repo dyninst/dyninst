@@ -14,9 +14,9 @@
 
 #include <list>
 
-#include "mrnet/src/Message.h"
-#include "mrnet/src/InternalNode.h"
-#include "mrnet/src/utils.h"
+#include "Message.h"
+#include "InternalNode.h"
+#include "utils.h"
 #include "xplat/NetUtils.h"
 
 using namespace MRN;

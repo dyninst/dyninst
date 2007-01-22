@@ -4,7 +4,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 #include <string.h>
-#include "mrnet/src/NetworkGraph.h"
+#include "NetworkGraph.h"
 
 namespace MRN
 {
