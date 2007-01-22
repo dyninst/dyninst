@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2007/01/21 05:26:40 giri Exp $
+# $Id: Makefile,v 1.10 2007/01/22 22:19:53 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,7 +25,8 @@ CFLAGS 		+= -DNO_MDL_PRINT
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g
 
-SYSLIBS = -lelf -lsocket -lnsl -ldl -lrt -L$(LIBDWARF_LIB) -ldwarf
+SYSLIBS = -lelf -lsocket -lnsl -ldl -lrt 
+LIBS      +=  -L$(LIBDWARF_LIB) -ldwarf
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
