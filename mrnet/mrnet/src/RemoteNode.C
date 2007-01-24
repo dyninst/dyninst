@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -470,6 +470,7 @@ int RemoteNode::send(Packet& packet) const
         int sret = msg_out.send( sock_fd );
         if( sret == -1 ) {
             mrn_dbg(1, mrn_printf(FLF, stderr, "Message.send failed\n" ));
+            return -1;
         }
     }
 
