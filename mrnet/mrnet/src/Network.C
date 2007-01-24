@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -165,6 +165,19 @@ EndPoint * Network::get_EndPoint(const char* hostname,
     EndPoint * ret = _network_impl->get_EndPoint( hostname, port );
     mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::get_EndPoint(%s, %h) => %p\n",
                hostname, port, ret));
+
+    return ret;
+}
+
+EndPoint * Network::get_EndPoint( Rank rank )
+{
+    assert(_network_impl);
+
+    mrn_dbg(2, mrn_printf(FLF, stderr, "Call to MRN::get_EndPoint(%u)\n",
+               rank));
+    EndPoint * ret = _network_impl->get_EndPoint( rank );
+    mrn_dbg(2, mrn_printf(FLF, stderr, "MRN::get_EndPoint(%u) => %p\n",
+               rank, ret));
 
     return ret;
 }
@@ -390,6 +403,18 @@ int Stream::unpack( Packet *ipacket, char const *ifmt_str, ... )
     return ret;
 }
 
+char * Stream::get_FormatString(Packet *packet)
+{
+	if (packet != NULL)
+	{
+		return strdup(packet->get_FormatString());
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
 void Stream::set_BlockingTimeOut( int timeout )
 {
     mrn_dbg(2, mrn_printf(FLF, stderr, "Stream::set_BlockingTimeOut(%d)\n", timeout ));
@@ -491,6 +516,12 @@ int Communicator::add_EndPoint(const char * ihostname, Port iport)
     return _communicator_impl->add_EndPoint( ihostname, iport );
 }
 
+int Communicator::add_EndPoint(Rank _rank)
+{
+    assert(_communicator_impl);
+    return _communicator_impl->add_EndPoint( _rank );
+}
+
 void Communicator::add_EndPoint(EndPoint *iendpoint )
 {
     assert(_communicator_impl);
@@ -545,6 +576,12 @@ bool EndPoint::compare(const char * ihostname, Port iport)const
 {
     assert(_endpoint_impl);
     return _endpoint_impl->compare( ihostname, iport );
+}
+
+bool EndPoint::compare(Rank irank)const
+{
+    assert(_endpoint_impl);
+    return _endpoint_impl->compare( irank );
 }
 
 const char * EndPoint::get_HostName()const
