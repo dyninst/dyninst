@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -48,4 +48,17 @@ int CommunicatorImpl::add_EndPoint(const char * _hostname, Port _port)
     return 0;
 }
 
+int CommunicatorImpl::add_EndPoint(Rank _rank)
+{
+    EndPoint * new_endpoint = network->get_EndPoint(_rank);
+
+    if(new_endpoint == NULL){
+        return -1;
+    }
+
+    endpoints.push_back(new_endpoint);
+    return 0;
+}
+
 } // namespace MRN
+
