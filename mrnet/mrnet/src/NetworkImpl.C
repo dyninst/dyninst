@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -229,6 +229,19 @@ EndPoint * NetworkImpl::get_EndPoint( const char *_hostname, Port _port )
 
     for( i = 0; i < NetworkImpl::endpoints.size(  ); i++ ) {
         if( endpoints[i]->compare( _hostname, _port ) == true ) {
+            return endpoints [i];
+        }
+    }
+
+    return NULL;
+}
+
+EndPoint * NetworkImpl::get_EndPoint( Rank _rank )
+{
+    unsigned int i;
+
+    for( i = 0; i < NetworkImpl::endpoints.size(  ); i++ ) {
+        if( endpoints[i]->compare( _rank ) == true ) {
             return endpoints [i];
         }
     }
