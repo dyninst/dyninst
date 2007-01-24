@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ***************************************************************************/
 
@@ -25,7 +25,8 @@ class EndPointImpl{
     const char * get_HostName()const;
     Port get_Port()const;
     Rank get_Rank()const;
-    bool compare(const char * _hostname, Port _port)const;
+    bool compare(const char * _hostname, Port _port)const; 
+    bool compare(Rank _rank)const;
 };
 
 inline const char * EndPointImpl::get_HostName() const
@@ -54,6 +55,17 @@ inline bool EndPointImpl::compare(const char * _hostnamestr, Port _port) const
     }
 }
 
+inline bool EndPointImpl::compare(Rank _rank) const
+{
+    if ( rank == _rank ){
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
 } // namespace MRN
 
 #endif /* endpoint_h 1 */
+
