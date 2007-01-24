@@ -1,3 +1,8 @@
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
+
 #if !defined(__topology_h)
 #define __topology_h
 

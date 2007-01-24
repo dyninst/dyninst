@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: Process-unix.C,v 1.4 2004/08/12 19:25:57 darnold Exp $
+// $Id: Process-unix.C,v 1.5 2007/01/24 19:34:19 darnold Exp $
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>

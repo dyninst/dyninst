@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: SharedObject-unix.C,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: SharedObject-unix.C,v 1.3 2007/01/24 19:34:22 darnold Exp $
 #include <stdlib.h>
 #include "SharedObject-unix.h"
 

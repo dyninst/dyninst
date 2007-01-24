@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2005 Barton P. Miller
+ * Copyright (c) 1996-2007 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: refCounter.h,v 1.3 2005/04/04 03:56:42 darnold Exp $
+// $Id: refCounter.h,v 1.4 2007/01/24 19:33:21 darnold Exp $
 // refCounter.h
 // Ariel Tamches
 

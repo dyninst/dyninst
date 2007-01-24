@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: Error-win.C,v 1.4 2005/03/29 16:01:30 darnold Exp $
+// $Id: Error-win.C,v 1.5 2007/01/24 19:33:59 darnold Exp $
 #include <winsock2.h>
 #include "xplat/Error.h"
 

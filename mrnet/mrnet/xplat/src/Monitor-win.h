@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: Monitor-win.h,v 1.3 2005/03/14 21:12:49 gquinn Exp $
+// $Id: Monitor-win.h,v 1.4 2007/01/24 19:34:03 darnold Exp $
 //
 // Declaration of the WinMonitor class.
 // A WinMonitor is a Win32-based Monitor.

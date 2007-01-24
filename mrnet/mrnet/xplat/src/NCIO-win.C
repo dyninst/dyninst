@@ -1,8 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
-// $Id: NCIO-win.C,v 1.3 2006/11/28 23:34:09 legendre Exp $
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
+
+// $Id: NCIO-win.C,v 1.4 2007/01/24 19:34:09 darnold Exp $
 
 #include <winsock2.h>
 #include <stdio.h>

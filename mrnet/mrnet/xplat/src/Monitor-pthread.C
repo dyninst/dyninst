@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: Monitor-pthread.C,v 1.5 2005/03/21 18:58:27 darnold Exp $
+// $Id: Monitor-pthread.C,v 1.6 2007/01/24 19:34:00 darnold Exp $
 #include <assert.h>
 #include "Monitor-pthread.h"
 

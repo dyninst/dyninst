@@ -1,9 +1,9 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Types-win.h,v 1.5 2005/03/29 16:01:28 darnold Exp $
+// $Id: Types-win.h,v 1.6 2007/01/24 19:33:56 darnold Exp $
 #ifndef XPLAT_TYPES_WIN_H
 #define XPLAT_TYPES_WIN_H
 

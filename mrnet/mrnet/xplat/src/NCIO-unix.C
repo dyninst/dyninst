@@ -1,8 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
-// $Id: NCIO-unix.C,v 1.3 2004/06/01 16:34:22 pcroth Exp $
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
+
+// $Id: NCIO-unix.C,v 1.4 2007/01/24 19:34:08 darnold Exp $
 #include <unistd.h>
 #include <limits.h>
 #include <stdio.h>

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -103,6 +103,7 @@ class NetworkImpl: public Error {
     int send(Packet &);
     int recv( bool blocking=true );
     EndPoint * get_EndPoint(const char * _hostname, Port _port);
+    EndPoint * get_EndPoint(Rank _rank);
 
     int get_LeafInfo( Network::LeafInfo*** linfo, unsigned int* nLeaves );
     int connect_Backends( void );

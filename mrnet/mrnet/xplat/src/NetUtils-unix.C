@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: NetUtils-unix.C,v 1.4 2004/06/01 16:57:21 pcroth Exp $
+// $Id: NetUtils-unix.C,v 1.5 2007/01/24 19:34:10 darnold Exp $
 #include "xplat/NetUtils.h"
 #include <assert.h>
 #include <unistd.h>

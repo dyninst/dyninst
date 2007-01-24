@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: Process.h,v 1.5 2005/12/19 19:42:06 pack Exp $
+// $Id: Process.h,v 1.6 2007/01/24 19:33:49 darnold Exp $
 #ifndef XPLAT_PROCESS_H
 #define XPLAT_PROCESS_H
 

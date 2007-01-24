@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: NetUtils-win.C,v 1.5 2005/03/29 16:01:32 darnold Exp $
+// $Id: NetUtils-win.C,v 1.6 2007/01/24 19:34:11 darnold Exp $
 //#include <windows.h>
 #include <winsock2.h>
 #include <iphlpapi.h>

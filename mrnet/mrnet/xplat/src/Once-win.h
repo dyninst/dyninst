@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: Once-win.h,v 1.2 2004/03/23 01:12:23 eli Exp $
+// $Id: Once-win.h,v 1.3 2007/01/24 19:34:16 darnold Exp $
 #ifndef XPLAT_WINONCE_H
 #define XPLAT_WINONCE_H
 

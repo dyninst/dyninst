@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: Thread-pthread.C,v 1.4 2004/03/23 01:12:24 eli Exp $
+// $Id: Thread-pthread.C,v 1.5 2007/01/24 19:34:32 darnold Exp $
 #include <pthread.h>
 #include "xplat/Thread.h"
 

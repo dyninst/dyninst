@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: Once-pthread.C,v 1.3 2005/03/21 18:58:30 darnold Exp $
+// $Id: Once-pthread.C,v 1.4 2007/01/24 19:34:13 darnold Exp $
 #include "Once-pthread.h"
 
 namespace XPlat

@@ -1,13 +1,14 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include "mrnet/MRNet.h"
 #include "Types.h"
-#include "test_arrays.h"
+#include "test_common.h"
 
 using namespace MRN;
+using namespace MRN_test;
 
 int main(int argc, char **argv){
     Stream * stream;

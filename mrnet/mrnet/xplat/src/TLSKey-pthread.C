@@ -1,9 +1,9 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
-// $Id: TLSKey-pthread.C,v 1.3 2005/03/21 18:58:32 darnold Exp $
+// $Id: TLSKey-pthread.C,v 1.4 2007/01/24 19:34:28 darnold Exp $
 #include <assert.h>
 #include "TLSKey-pthread.h"
 
