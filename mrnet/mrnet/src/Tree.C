@@ -1,3 +1,8 @@
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
+
 #include <stdio.h>
 #include <assert.h>
 #include <ctype.h>
@@ -99,7 +104,7 @@ void Tree::create_TopologyFile( FILE * f )
     //}
 }
 
-void Tree::get_TopologyBuffer( char ** buf )
+void Tree::get_TopologyBuffer( char ** /* buf */ )
 {
 }
 
