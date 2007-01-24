@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -42,7 +42,7 @@ void NetworkGraph::add_Node(NetworkNode* new_node)
     sprintf(port_str, "%d", new_node->get_Port());
 
     if(new_node){
-        std::string key = new_node->get_HostName() + std::string(port_str);
+        std::string key = new_node->get_HostName() + ":" + std::string(port_str);
         nodes[key] = new_node;
     }
 }
@@ -51,7 +51,7 @@ NetworkNode * NetworkGraph::find_Node(char * hostname, Port port)
 {
     char port_str[128];
     sprintf(port_str, "%d", port);
-    std::string key = std::string(hostname) + std::string(port_str);
+    std::string key = std::string(hostname) + ":" + std::string(port_str);
 
     std::map<std::string, NetworkNode*>::iterator iter = nodes.find(key);
     if( iter == nodes.end() ){
