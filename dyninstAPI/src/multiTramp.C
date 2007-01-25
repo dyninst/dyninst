@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.66 2007/01/09 02:01:19 giri Exp $
+// $Id: multiTramp.C,v 1.67 2007/01/25 22:23:59 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -2260,6 +2260,7 @@ bool generatedCodeObject::objIsChild(generatedCodeObject *obj) {
 }
 
 bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
+                                 bool active,
                                  codeRange *range) 
 {
     // range is optional, and might be NULL. It's provided to avoid
@@ -2268,6 +2269,24 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
         range = proc()->findCodeRangeByAddress(pc);
     // Oopsie...
     if (!range) assert(0);
+
+    if (BPatch::bpatch->isMergeTramp()) {
+        // This is a shortcut. If we're doing mergeTramps, then we
+        // know the miniTramp wasn't generated into this multitramp -
+        // it couldn't have been. So we automatically need catchup.
+        
+        if (active) return true;
+        // Otherwise: if we're at the starting address and not active,
+        // then we're going to _return_ to this multiTramp - return false.
+        assert(!active);
+        if (pc == getAddress() ||
+            pc == instAddr()) {
+            // We're returning to this point...
+            return false;
+        }
+        else
+            return true;
+    }
 
     multiTramp *rangeMulti = range->is_multitramp();
     miniTrampInstance *rangeMTI = range->is_minitramp();
@@ -2286,7 +2305,7 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
             // This is easier
             catchup_printf("%s[%d]: mini tramp is for same instPoint, handing down\n",
                            FILE__, __LINE__);
-            return miniTramp::catchupRequired(rangeMTI->mini, newMT);
+            return miniTramp::catchupRequired(rangeMTI->mini, newMT, active);
         }
         else {
             rangeMulti = rangeMTI->baseTI->multiT;
@@ -2298,8 +2317,10 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
                            FILE__, __LINE__, pc);
         }
     }
+
     
     assert(rangeMulti == this);
+
 
     // We're not in miniTramps (or have faked a PC). However, we can't safely do
     // a linear comparison because the multiTramp is a CFG -- if we've done 

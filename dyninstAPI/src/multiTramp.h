@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.20 2007/01/09 02:01:20 giri Exp $
+// $Id: multiTramp.h,v 1.21 2007/01/25 22:24:00 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -598,7 +598,7 @@ class multiTramp : public generatedCodeObject {
   // Returns true if the PC is in the multiTramp (or sub-areas)
   // and after the given miniTramp. Returns false if it's before.
   // Asserts if the PC is not "in" the multiTramp at all.
-  bool catchupRequired(Address pc, miniTramp *newMT, codeRange *range = NULL);
+  bool catchupRequired(Address pc, miniTramp *newMT, bool active, codeRange *range = NULL);
 
   process *proc() const;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.34 2007/01/04 23:00:01 legendre Exp $
+// $Id: instPoint.h,v 1.35 2007/01/25 22:23:56 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -388,7 +388,8 @@ class instPoint : public instPointBase {
   // we're eventually going to be called by Dyninst, and the BPatch_frame
   // class doesn't have a Frame member (although it's arguable that it should).
   catchup_result_t catchupRequired(Address pc,
-                                   miniTramp *mt);
+                                   miniTramp *mt,
+                                   bool active);
 
   bool createMiniTramp(AstNode *&ast,
 		       bool noCost,

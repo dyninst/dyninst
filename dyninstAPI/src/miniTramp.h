@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.14 2006/12/01 01:33:24 legendre Exp $
+// $Id: miniTramp.h,v 1.15 2007/01/25 22:23:58 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -159,7 +159,7 @@ class miniTramp {
   // are generated in-line (in which case we miss it
   // completely). TODO: in-line needs to update this.
   
-  static bool catchupRequired(miniTramp *curMT, miniTramp *newMT);
+  static bool catchupRequired(miniTramp *curMT, miniTramp *newMT, bool active);
 
   // Generate the code necessary
   // We use a single global image of a minitramp.

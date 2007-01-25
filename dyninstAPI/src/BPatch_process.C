@@ -1451,6 +1451,9 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                       FILE__, __LINE__, i, one_stack.size());
        
        for (int j = one_stack.size()-1; j >= 0; j--) {
+           // Are we in the "Active" (executing) frame?
+           bool active = (j == (one_stack.size()-1)) ? true : false;
+
            Frame &frame = one_stack[j];
 
            catchup_printf("%s[%d]: examining frame %d\n", FILE__, __LINE__, j);
@@ -1590,7 +1593,8 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                    
                    assert(iP);
                    instPoint::catchup_result_t iPresult = iP->catchupRequired(frame.getPC(), 
-                                                                              mtHandle);
+                                                                              mtHandle, 
+                                                                              active);
                    
                    
                    if (iPresult == instPoint::notMissed_c)

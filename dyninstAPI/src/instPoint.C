@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.34 2007/01/04 23:00:00 legendre Exp $
+// $Id: instPoint.C,v 1.35 2007/01/25 22:23:55 bernat Exp $
 // instPoint code
 
 
@@ -724,7 +724,8 @@ bool instPoint::instrSideEffect(Frame &frame)
 }
 
 instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
-                                                       miniTramp *mt) 
+                                                       miniTramp *mt,
+                                                       bool active) 
 {
     // If the PC isn't in a multiTramp that corresponds to one of
     // our instances, return noMatch_c
@@ -780,7 +781,7 @@ instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
             }
             else {
                 // It is the same one; toss into low-level logic
-                if (rangeMT->catchupRequired(pc, mt, range)) {
+                if (rangeMT->catchupRequired(pc, mt, active, range)) {
                     catchup_printf("%s[%d]: Found multiTramp, instance returns catchup required, ret missed\n",
                                    FILE__, __LINE__);
                     return missed_c;
