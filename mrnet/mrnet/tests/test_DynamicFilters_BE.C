@@ -10,6 +10,7 @@
 #include "test_common.h"
 
 using namespace MRN;
+using namespace MRN_test;
 
 int main(int argc, char **argv)
 {

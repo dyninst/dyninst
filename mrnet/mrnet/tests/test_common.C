@@ -1,16 +1,27 @@
-/***********************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
- *                  Detailed MRNet usage rights in "LICENSE" file.     *
- **********************************************************************/
+/****************************************************************************
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ *                  Detailed MRNet usage rights in "LICENSE" file.          *
+ ****************************************************************************/
 
 #include "test_common.h"
 #include "timer.h"
 
 #include <stdio.h>
 #include <math.h>
-using namespace MRN_test;
 
-bool MRN_test::compare_Float(float f1, float f2, int sig)
+namespace MRN_test{
+std::map< MRN::DataType, int> Type2MaxTag;
+std::map< MRN::DataType, std::string> Type2String;
+std::map< MRN::DataType, const char *> Type2FormatString;
+
+class StaticInitializer{
+public:
+    StaticInitializer();
+};
+
+StaticInitializer si; //Used to initialize maps
+
+bool compare_Float(float f1, float f2, int sig)
 {
     if( fabs(f1 - f2) > pow(10, sig * -1) ) {
         return false;
@@ -19,7 +30,7 @@ bool MRN_test::compare_Float(float f1, float f2, int sig)
     return true;
 }
 
-bool MRN_test::compare_Double(double f1, double f2, int sig)
+bool compare_Double(double f1, double f2, int sig)
 {
     if( fabs(f1 - f2) > pow(10, sig * -1) ) {
         return false;
@@ -159,4 +170,140 @@ void Test::print(const char *s, const std::string& subtest_name)
     else{
         fprintf(fout, "      %s: %s", subtest_name.c_str(), s);
     }
+}
+
+StaticInitializer::StaticInitializer()
+{
+    Type2FormatString[ CHAR_T ] = "%c";
+    Type2FormatString[ UCHAR_T ] = "%uc";
+    Type2FormatString[ INT16_T ] = "%hd";
+    Type2FormatString[ UINT16_T ] = "%uhd";
+    Type2FormatString[ INT32_T ] = "%d";
+    Type2FormatString[ UINT32_T ] = "%ud";
+    Type2FormatString[ INT64_T ] = "%ld";
+    Type2FormatString[ UINT64_T ] = "%uld";
+    Type2FormatString[ FLOAT_T ] = "%f";
+    Type2FormatString[ DOUBLE_T ] = "%lf";
+
+    Type2String[ CHAR_T ] = "char_t";
+    Type2String[ UCHAR_T ] = "uchar_t";
+    Type2String[ INT16_T ] = "int16_t";
+    Type2String[ UINT16_T ] = "uint16_t";
+    Type2String[ INT32_T ] = "int32_t";
+    Type2String[ UINT32_T ] = "uint32_t";
+    Type2String[ INT64_T ] = "int64_t";
+    Type2String[ UINT64_T ] = "uint64_t";
+    Type2String[ FLOAT_T ] = "float_t";
+    Type2String[ DOUBLE_T ] = "double_t";
+
+    Type2MaxTag[ CHAR_T ] = PROT_CHAR_MAX;
+    Type2MaxTag[ UCHAR_T ] = PROT_UCHAR_MAX;
+    Type2MaxTag[ INT16_T ] = PROT_INT16_MAX;
+    Type2MaxTag[ UINT16_T ] = PROT_UINT16_MAX;
+    Type2MaxTag[ INT32_T ] = PROT_INT32_MAX;
+    Type2MaxTag[ UINT32_T ] = PROT_UINT32_MAX;
+    Type2MaxTag[ INT64_T ] = PROT_INT64_MAX;
+    Type2MaxTag[ UINT64_T ] = PROT_UINT64_MAX;
+    Type2MaxTag[ FLOAT_T ] = PROT_FLOAT_MAX;
+    Type2MaxTag[ DOUBLE_T ] = PROT_DOUBLE_MAX;
+}
+
+void val2string( char * ostring, void * ival, MRN::DataType itype )
+{
+    ostring = NULL;
+    switch(itype){
+    case CHAR_T:
+        sprintf(ostring, "%c", *((char_t *)ival) );
+        break;
+    case UCHAR_T:
+        sprintf(ostring, "%c", *((uchar_t *)ival) );
+        break;
+    case INT16_T:
+        sprintf(ostring, "%d", *((uint16_t *)ival) );
+        break;
+    case UINT16_T:
+        sprintf(ostring, "%hu", *((uint16_t *)ival) );
+        break;
+    case INT32_T:
+        sprintf(ostring, "%d", *((uint32_t *)ival) );
+        break;
+    case UINT32_T:
+        sprintf(ostring, "%u", *((uint32_t *)ival) );
+        break;
+    case INT64_T:
+        sprintf(ostring, "%Ld", *((int64_t *)ival) );
+        break;
+    case UINT64_T:
+        sprintf(ostring, "%Lu", *((uint64_t *)ival) );
+        break;
+    case FLOAT_T:
+        sprintf(ostring, "%f", *((float *)ival) );
+        break;
+    case DOUBLE_T:
+        sprintf(ostring, "%lf", *((double *)ival) );
+        break;
+    case CHAR_ARRAY_T:
+    case UCHAR_ARRAY_T:
+    case INT16_ARRAY_T:
+    case UINT16_ARRAY_T:
+    case INT32_ARRAY_T:
+    case UINT32_ARRAY_T:
+    case INT64_ARRAY_T:
+    case UINT64_ARRAY_T:
+    case FLOAT_ARRAY_T:
+    case DOUBLE_ARRAY_T:
+    case STRING_T:
+    case UNKNOWN_T:
+    default:
+        ostring=NULL;
+    }
+}
+
+bool compare_Vals( void * ival1, void * ival2, MRN::DataType itype )
+{
+    switch(itype){
+    case CHAR_T:
+        if( *((char_t *)ival1) == *((char_t *)ival2) )
+            return true;
+    case UCHAR_T:
+        if( *((uchar_t *)ival1) == *((uchar_t *)ival2) )
+            return true;
+    case INT16_T:
+        if( *((int16_t *)ival1) == *((int16_t *)ival2) )
+            return true;
+    case UINT16_T:
+        if( *((uint16_t *)ival1) == *((uint16_t *)ival2) )
+            return true;
+    case INT32_T:
+        if( *((int32_t *)ival1) == *((int32_t *)ival2) )
+            return true;
+    case UINT32_T:
+        if( *((uint32_t *)ival1) == *((uint32_t *)ival2) )
+            return true;
+    case INT64_T:
+        if( *((int64_t *)ival1) == *((int64_t *)ival2) )
+            return true;
+    case UINT64_T:
+        if( *((uint64_t *)ival1) == *((uint64_t *)ival2) )
+            return true;
+    case FLOAT_T:
+        return compare_Float( *((float *)ival1), *((float *)ival2), 4 );
+    case DOUBLE_T:
+        return compare_Double( *((double *)ival1), *((double *)ival2), 4 );
+    case CHAR_ARRAY_T:
+    case UCHAR_ARRAY_T:
+    case INT16_ARRAY_T:
+    case UINT16_ARRAY_T:
+    case INT32_ARRAY_T:
+    case UINT32_ARRAY_T:
+    case INT64_ARRAY_T:
+    case UINT64_ARRAY_T:
+    case FLOAT_ARRAY_T:
+    case DOUBLE_ARRAY_T:
+    case STRING_T:
+    case UNKNOWN_T:
+    default:
+        return false;
+    }
+}
 }

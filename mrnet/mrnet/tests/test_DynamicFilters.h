@@ -7,9 +7,9 @@
 #define test_dynamicfilters_h 1
 
 typedef enum {
-    PROT_COUNT=FIRST_APPL_TAG,
-    PROT_COUNTODDSANDEVENS,
-    PROT_EXIT
+    PROT_EXIT=FIRST_APPL_TAG,
+    PROT_COUNT,
+    PROT_COUNTODDSANDEVENS
 } Protocol;
 
 #endif /* test_dynamicfilters_h */
