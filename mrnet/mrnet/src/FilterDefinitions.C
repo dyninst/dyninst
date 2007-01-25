@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright © 2003-2007 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -42,14 +42,15 @@ FilterId SFILTER_TIMEOUT=0;
 static inline void mrn_max(const void *in1, const void *in2, void* out, DataType type);
 static inline void mrn_min(const void *in1, const void *in2, void* out, DataType type);
 static inline void div(const void *in1, int in2, void* out, DataType type);
+static inline void mult(const void *in1, int in2, void* out, DataType type);
 static inline void sum(const void *in1, const void *in2, void* out, DataType type);
 
 /*=====================================================*
  *    Default Transformation Filter Definitions        *
  *=====================================================*/
 void tfilter_IntSum( const std::vector < Packet >&packets_in,
-                   std::vector < Packet >&packets_out,
-                   void ** /* client data */ )
+                     std::vector < Packet >&packets_out,
+                     void ** /* client data */ )
 {
     int sum = 0;
     
@@ -65,8 +66,8 @@ void tfilter_IntSum( const std::vector < Packet >&packets_in,
 }
 
 void tfilter_Sum( const std::vector < Packet >&packets_in,
-	       std::vector < Packet >&packets_out,
-	       void ** /* client data */ )
+                  std::vector < Packet >&packets_out,
+                  void ** /* client data */ )
 {
     char result[8]; //ptr to 8 bytes
     std::string format_string;
@@ -133,10 +134,72 @@ void tfilter_Sum( const std::vector < Packet >&packets_in,
         }
         sum( result, &(cur_packet[0]->val.p), result, type );
     }
-    
-    if( type == FLOAT_T ){
-        //TODO: not sure why float needs special casing, but it does
+
+    if( type == CHAR_T ){
+        char tmp = *((char *)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UCHAR_T ){
+        uchar_t tmp = *((uchar_t *)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == FLOAT_T ){
         float tmp = *((float*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == DOUBLE_T ){
+        double tmp = *((double*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT16_T ){
+        int16_t tmp = *((int16_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT16_T ){
+        uint16_t tmp = *((uint16_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT32_T ){
+        int32_t tmp = *((int32_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT32_T ){
+        uint32_t tmp = *((uint32_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT64_T ){
+        int64_t tmp = *((int64_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT64_T ){
+        uint64_t tmp = *((uint64_t*)result);
         Packet new_packet( packets_in[0].get_StreamId( ),
                            packets_in[0].get_Tag( ),
                            format_string.c_str(), tmp );
@@ -157,68 +220,143 @@ void tfilter_Max( const std::vector < Packet >&packets_in,
     char result[8]; //ptr to 8 bytes
     std::string format_string;
     DataType type=UNKNOWN_T;
-
-    memset(result, 0, 8); //zeroing the result buf
+    
     for( unsigned int i = 0; i < packets_in.size( ); i++ ) {
         Packet cur_packet = packets_in[i];
         assert( strcmp(cur_packet.get_FormatString(),
                        packets_in[0].get_FormatString()) == 0 );
-	if( i == 0 ){ //1st time thru
-	    type = Fmt2Type( cur_packet.get_FormatString( ) );
-	    switch(type){
-	    case CHAR_T:
-		format_string="%c";
-		break;
-	    case UCHAR_T:
-	      format_string="%uc";
-	      break;
-	    case INT16_T:
-	      format_string="%hd";
-	      break;
-	    case UINT16_T:
-	      format_string="%uhd";
-	      break;
-	    case INT32_T:
-	      format_string="%d";
-	      break;
-	    case UINT32_T:
-	      format_string="%ud";
-	      break;
-	    case INT64_T:
-	      format_string="%ld";
-	      break;
-	    case UINT64_T:
-	      format_string="%uld";
-	      break;
-	    case FLOAT_T:
-	      format_string="%f";
-	      break;
-	    case DOUBLE_T:
-	      format_string="%lf";
-	      break;
-	    case CHAR_ARRAY_T:
-	    case UCHAR_ARRAY_T:
-	    case INT16_ARRAY_T:
-	    case UINT16_ARRAY_T:
-	    case INT32_ARRAY_T:
-	    case UINT32_ARRAY_T:
-	    case INT64_ARRAY_T:
-	    case UINT64_ARRAY_T:
-	    case FLOAT_ARRAY_T:
-	    case DOUBLE_ARRAY_T:
-	    case STRING_T:
-	    case UNKNOWN_T:
-	    default:
-	      return;
-	    }
-	}
-	mrn_max( result, &(cur_packet[0]->val.p), result, type );
+        if( i == 0 ){ //1st time thru
+            //+ 1 "hack" to get past "%" in arg to fmt2type()	
+            type = Fmt2Type( cur_packet.get_FormatString( ) +1);
+            switch(type){
+            case CHAR_T:
+                format_string="%c";
+                break;
+            case UCHAR_T:
+                format_string="%uc";
+                break;
+            case INT16_T:
+                format_string="%hd";
+                break;
+            case UINT16_T:
+                format_string="%uhd";
+                break;
+            case INT32_T:
+                format_string="%d";
+                break;
+            case UINT32_T:
+                format_string="%ud";
+                break;
+            case INT64_T:
+                format_string="%ld";
+                break;
+            case UINT64_T:
+                format_string="%uld";
+                break;
+            case FLOAT_T:
+                format_string="%f";
+                break;
+            case DOUBLE_T:
+                format_string="%lf";
+                break;
+            case CHAR_ARRAY_T:
+            case UCHAR_ARRAY_T:
+            case INT16_ARRAY_T:
+            case UINT16_ARRAY_T:
+            case INT32_ARRAY_T:
+            case UINT32_ARRAY_T:
+            case INT64_ARRAY_T:
+            case UINT64_ARRAY_T:
+            case FLOAT_ARRAY_T:
+            case DOUBLE_ARRAY_T:
+            case STRING_T:
+            case UNKNOWN_T:
+            default:
+                return;
+            }
+            mrn_max( &(cur_packet[0]->val.p), &(cur_packet[0]->val.p), result, type );
+        }
+        else{
+            mrn_max( result, &(cur_packet[0]->val.p), result, type );
+        }
     }
-    
-    Packet new_packet( packets_in[0].get_StreamId( ),
-                       packets_in[0].get_Tag( ),
-                       format_string.c_str(), result );
-    packets_out.push_back( new_packet );
+
+    if( type == CHAR_T ){
+        char tmp = *((char *)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UCHAR_T ){
+        uchar_t tmp = *((uchar_t *)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == FLOAT_T ){
+        float tmp = *((float*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == DOUBLE_T ){
+        double tmp = *((double*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT16_T ){
+        int16_t tmp = *((int16_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT16_T ){
+        uint16_t tmp = *((uint16_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT32_T ){
+        int32_t tmp = *((int32_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT32_T ){
+        uint32_t tmp = *((uint32_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT64_T ){
+        int64_t tmp = *((int64_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT64_T ){
+        uint64_t tmp = *((uint64_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else{
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), result );
+        packets_out.push_back( new_packet );
+    }
 }
 
 void tfilter_Min( const std::vector < Packet >&packets_in,
@@ -229,67 +367,144 @@ void tfilter_Min( const std::vector < Packet >&packets_in,
     std::string format_string;
     DataType type=UNKNOWN_T;
 
-    memset(result, 0, 8); //zeroing the result buf
     for( unsigned int i = 0; i < packets_in.size( ); i++ ) {
         Packet cur_packet = packets_in[i];
         assert( strcmp(cur_packet.get_FormatString(),
                        packets_in[0].get_FormatString()) == 0 );
-	if( i == 0 ){ //1st time thru
-	    type = Fmt2Type( cur_packet.get_FormatString( ) );
-	    switch(type){
-	    case CHAR_T:
-		format_string="%c";
-		break;
-	    case UCHAR_T:
-	      format_string="%uc";
-	      break;
-	    case INT16_T:
-	      format_string="%hd";
-	      break;
-	    case UINT16_T:
-	      format_string="%uhd";
-	      break;
-	    case INT32_T:
-	      format_string="%d";
-	      break;
-	    case UINT32_T:
-	      format_string="%ud";
-	      break;
-	    case INT64_T:
-	      format_string="%ld";
-	      break;
-	    case UINT64_T:
-	      format_string="%uld";
-	      break;
-	    case FLOAT_T:
-	      format_string="%f";
-	      break;
-	    case DOUBLE_T:
-	      format_string="%lf";
-	      break;
-	    case CHAR_ARRAY_T:
-	    case UCHAR_ARRAY_T:
-	    case INT16_ARRAY_T:
-	    case UINT16_ARRAY_T:
-	    case INT32_ARRAY_T:
-	    case UINT32_ARRAY_T:
-	    case INT64_ARRAY_T:
-	    case UINT64_ARRAY_T:
-	    case FLOAT_ARRAY_T:
-	    case DOUBLE_ARRAY_T:
-	    case STRING_T:
-	    case UNKNOWN_T:
-	    default:
-	      return;
-	    }
-	}
-	mrn_min( result, &(cur_packet[0]->val.p), result, type );
+
+        if( i == 0 ){ //1st time thru
+            //+ 1 "hack" to get past "%" in arg to fmt2type()	
+            type = Fmt2Type( cur_packet.get_FormatString( ) +1);
+            switch(type){
+            case CHAR_T:
+                format_string="%c";
+                break;
+            case UCHAR_T:
+                format_string="%uc";
+                break;
+            case INT16_T:
+                format_string="%hd";
+                break;
+            case UINT16_T:
+                format_string="%uhd";
+                break;
+            case INT32_T:
+                format_string="%d";
+                break;
+            case UINT32_T:
+                format_string="%ud";
+                break;
+            case INT64_T:
+                format_string="%ld";
+                break;
+            case UINT64_T:
+                format_string="%uld";
+                break;
+            case FLOAT_T:
+                format_string="%f";
+                break;
+            case DOUBLE_T:
+                format_string="%lf";
+                break;
+            case CHAR_ARRAY_T:
+            case UCHAR_ARRAY_T:
+            case INT16_ARRAY_T:
+            case UINT16_ARRAY_T:
+            case INT32_ARRAY_T:
+            case UINT32_ARRAY_T:
+            case INT64_ARRAY_T:
+            case UINT64_ARRAY_T:
+            case FLOAT_ARRAY_T:
+            case DOUBLE_ARRAY_T:
+            case STRING_T:
+            case UNKNOWN_T:
+            default:
+                return;
+            }
+            mrn_min( &(cur_packet[0]->val.p), &(cur_packet[0]->val.p), result, type );
+        }
+        else{
+            mrn_min( result, &(cur_packet[0]->val.p), result, type );
+        }
     }
     
-    Packet new_packet( packets_in[0].get_StreamId( ),
-                       packets_in[0].get_Tag( ),
-                       format_string.c_str(), result );
-    packets_out.push_back( new_packet );
+    if( type == CHAR_T ){
+        char tmp = *((char *)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UCHAR_T ){
+        uchar_t tmp = *((uchar_t *)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == FLOAT_T ){
+        float tmp = *((float*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == DOUBLE_T ){
+        double tmp = *((double*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT16_T ){
+        int16_t tmp = *((int16_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT16_T ){
+        uint16_t tmp = *((uint16_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT32_T ){
+        int32_t tmp = *((int32_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT32_T ){
+        uint32_t tmp = *((uint32_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT64_T ){
+        int64_t tmp = *((int64_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT64_T ){
+        uint64_t tmp = *((uint64_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), tmp );
+        packets_out.push_back( new_packet );
+    }
+    else{
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                           format_string.c_str(), result );
+        packets_out.push_back( new_packet );
+    }
+
 }
 
 void tfilter_Avg( const std::vector < Packet >&packets_in,
@@ -297,73 +512,132 @@ void tfilter_Avg( const std::vector < Packet >&packets_in,
 	       void ** /* client data */ )
 {
     char result[8]; //ptr to 8 bytes
+    char product[8];
     int num_results=0;
     std::string format_string;
     DataType type=UNKNOWN_T;
 
-    memset(result, 0, 8); //zeroing the result buf
+    memset(result, 0, 8); //zeroing the bufs
+    memset(product, 0, 8);
+		
     for( unsigned int i = 0; i < packets_in.size( ); i++ ) {
         Packet cur_packet = packets_in[i];
         assert( strcmp(cur_packet.get_FormatString(),
                        packets_in[0].get_FormatString()) == 0 );
-	if( i == 0 ){ //1st time thru
-	    type = Fmt2Type( cur_packet.get_FormatString( ) );
-	    switch(type){
-	    case CHAR_T:
-		format_string="%c %d";
-		break;
-	    case UCHAR_T:
-	      format_string="%uc %d";
-	      break;
-	    case INT16_T:
-	      format_string="%hd %d";
-	      break;
-	    case UINT16_T:
-	      format_string="%uhd %d";
-	      break;
-	    case INT32_T:
-	      format_string="%d %d";
-	      break;
-	    case UINT32_T:
-	      format_string="%ud %d";
-	      break;
-	    case INT64_T:
-	      format_string="%ld %d";
-	      break;
-	    case UINT64_T:
-	      format_string="%uld %d";
-	      break;
-	    case FLOAT_T:
-	      format_string="%f %d";
-	      break;
-	    case DOUBLE_T:
-	      format_string="%lf %d";
-	      break;
-	    case CHAR_ARRAY_T:
-	    case UCHAR_ARRAY_T:
-	    case INT16_ARRAY_T:
-	    case UINT16_ARRAY_T:
-	    case INT32_ARRAY_T:
-	    case UINT32_ARRAY_T:
-	    case INT64_ARRAY_T:
-	    case UINT64_ARRAY_T:
-	    case FLOAT_ARRAY_T:
-	    case DOUBLE_ARRAY_T:
-	    case STRING_T:
-	    case UNKNOWN_T:
-	    default:
-	      return;
-	    }
-	}
-	sum( result, &(cur_packet[0]->val.p), result, type );
-	num_results += cur_packet[1]->val.d;
+
+        if( i == 0 ){
+            format_string = cur_packet.get_FormatString();
+
+            if( format_string == "%c %d" )
+                type = CHAR_T;
+            else if( format_string == "%uc %d" )
+                type = UCHAR_T;
+            else if( format_string == "%hd %d" )
+                type = INT16_T;
+            else if( format_string == "%uhd %d" )
+                type = UINT16_T;
+            else if( format_string == "%d %d" )
+                type = INT32_T;
+            else if( format_string == "%ud %d" )
+                type = UINT32_T;
+            else if( format_string == "%ld %d" )
+                type = INT64_T;
+            else if( format_string == "%uld %d" )
+                type = UINT64_T;
+            else if( format_string == "%f %d" )
+                type = FLOAT_T;
+            else if( format_string == "%lf %d" )
+                type = DOUBLE_T;
+            else 
+                return;
+        }
+
+        mult(&(cur_packet[0]->val.p), cur_packet[1]->val.d, product, type);	
+        
+        sum( result, product, result, type );
+	
+        num_results += cur_packet[1]->val.d;
+        
     }
     
     div( result, num_results, result, type );
-    Packet new_packet( packets_in[0].get_StreamId( ),
-                       packets_in[0].get_Tag( ),
+
+    if( type == CHAR_T ){
+        char tmp = *((char *)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UCHAR_T ){
+        uchar_t tmp = *((uchar_t *)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == FLOAT_T ){
+        float tmp = *((float*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == DOUBLE_T ){
+        double tmp = *((double*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT16_T ){
+        int16_t tmp = *((int16_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT16_T ){
+        uint16_t tmp = *((uint16_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT32_T ){
+        int32_t tmp = *((int32_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT32_T ){
+        uint32_t tmp = *((uint32_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == INT64_T ){
+        int64_t tmp = *((int64_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else if( type == UINT64_T ){
+        uint64_t tmp = *((uint64_t*)result);
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
+                       format_string.c_str(), tmp, num_results );
+        packets_out.push_back( new_packet );
+    }
+    else{
+        Packet new_packet( packets_in[0].get_StreamId( ),
+                           packets_in[0].get_Tag( ),
                        format_string.c_str(), result, num_results );
-    packets_out.push_back( new_packet );
+        packets_out.push_back( new_packet );
+    }
 }
 
 
@@ -377,88 +651,90 @@ void tfilter_ArrayConcat( const std::vector < Packet >&packets_in,
     int data_size=0;
     std::string format_string;
     unsigned int i;
+    DataType type=UNKNOWN_T;
  
     for( i = 0; i < packets_in.size( ); i++ ) {
         Packet cur_packet = packets_in[i];
         assert( strcmp(cur_packet.get_FormatString(),
                        packets_in[0].get_FormatString()) == 0 );
-	if( i == 0 ){ //1st time thru
-	    DataType type = Fmt2Type( cur_packet.get_FormatString( ) );
-	    switch(type){
-	    case CHAR_ARRAY_T:
-	        data_size = sizeof(char);
-		format_string="%ac";
-		break;
-	    case UCHAR_ARRAY_T:
-	      data_size = sizeof(unsigned char);
-	      format_string="%auc";
-	      break;
-	    case INT16_ARRAY_T:
-	      data_size = sizeof(int16_t);
-	      format_string="%ahd";
-	      break;
-	    case UINT16_ARRAY_T:
-	      data_size = sizeof(uint16_t);
-	      format_string="%auhd";
-	      break;
-	    case INT32_ARRAY_T:
-	      data_size = sizeof(int32_t);
-	      format_string="%ad";
-	      break;
-	    case UINT32_ARRAY_T:
-	      data_size = sizeof(uint32_t);
-	      format_string="%aud";
-	      break;
-	    case INT64_ARRAY_T:
-	      data_size = sizeof(int64_t);
-	      format_string="%ald";
-	      break;
-	    case UINT64_ARRAY_T:
-	      data_size = sizeof(uint64_t);
-	      format_string="%auld";
-	      break;
-	    case FLOAT_ARRAY_T:
-	      data_size = sizeof(float);
-	      format_string="%af";
-	      break;
-	    case DOUBLE_ARRAY_T:
-	      data_size = sizeof(double);
-	      format_string="%alf";
-	      break;
-	    case CHAR_T:
-	    case UCHAR_T:
-	    case INT16_T:
-	    case UINT16_T:
-	    case INT32_T:
-	    case UINT32_T:
-	    case INT64_T:
-	    case UINT64_T:
-	    case FLOAT_T:
-	    case DOUBLE_T:
-	    case STRING_T:
-	    case UNKNOWN_T:
-	    default:
-	      return;
-	    }
+        if( i == 0 ){ //1st time thru
+            //+ 1 "hack" to get past "%" in arg to fmt2type()	
+            type = Fmt2Type( cur_packet.get_FormatString( ) +1);
+            switch(type){
+            case CHAR_ARRAY_T:
+			data_size = sizeof(char);
+            format_string="%ac";
+            break;
+            case UCHAR_ARRAY_T:
+                data_size = sizeof(unsigned char);
+                format_string="%auc";
+                break;
+            case INT16_ARRAY_T:
+                data_size = sizeof(int16_t);
+                format_string="%ahd";
+                break;
+            case UINT16_ARRAY_T:
+                data_size = sizeof(uint16_t);
+                format_string="%auhd";
+                break;
+            case INT32_ARRAY_T:
+                data_size = sizeof(int32_t);
+                format_string="%ad";
+                break;
+            case UINT32_ARRAY_T:
+                data_size = sizeof(uint32_t);
+                format_string="%aud";
+                break;
+            case INT64_ARRAY_T:
+                data_size = sizeof(int64_t);
+                format_string="%ald";
+                break;
+            case UINT64_ARRAY_T:
+                data_size = sizeof(uint64_t);
+                format_string="%auld";
+                break;
+            case FLOAT_ARRAY_T:
+                data_size = sizeof(float);
+                format_string="%af";
+                break;
+            case DOUBLE_ARRAY_T:
+                data_size = sizeof(double);
+                format_string="%alf";
+                break;
+            case CHAR_T:
+            case UCHAR_T:
+            case INT16_T:
+            case UINT16_T:
+            case INT32_T:
+            case UINT32_T:
+            case INT64_T:
+            case UINT64_T:
+            case FLOAT_T:
+            case DOUBLE_T:
+            case STRING_T:
+            case UNKNOWN_T:
+            default:
+                return;
+            }
+        }
+        result_array_size += cur_packet[0]->array_len;
 	}
-	result_array_size += cur_packet[0]->array_len;
-    }
-
-    result_array = (char *) malloc( result_array_size * data_size );
-
-    int pos = 0;
-    for( i = 0; i < packets_in.size(); i++ ) {
-        Packet cur_packet = packets_in[i];
-        memcpy( result_array + pos,
-		cur_packet[0]->val.p,
-		cur_packet[0]->array_len * data_size );
-	pos += ( cur_packet[0]->array_len * data_size );
-    }
     
-    Packet new_packet( packets_in[0].get_StreamId( ),
-                       packets_in[0].get_Tag( ),
-                       format_string.c_str(), result_array, result_array_size );
-    packets_out.push_back( new_packet );
+	result_array = (char *) malloc( result_array_size * data_size );
+    
+	int pos = 0;
+	for( i = 0; i < packets_in.size(); i++ ) {
+		Packet cur_packet = packets_in[i];
+		memcpy( result_array + pos,
+                cur_packet[0]->val.p,
+                cur_packet[0]->array_len * data_size );
+        pos += ( cur_packet[0]->array_len * data_size );
+	}
+	
+	Packet new_packet( packets_in[0].get_StreamId( ),
+					   packets_in[0].get_Tag( ),
+					   format_string.c_str(), result_array, result_array_size );
+	packets_out.push_back( new_packet );
 }
 
 void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
@@ -674,6 +950,56 @@ static inline void sum(const void *in1, const void *in2, void* out, DataType typ
   }
 }
 
+static inline void mult(const void *in1, int in2, void* out, DataType type)
+{
+  switch (type){
+  case CHAR_T:
+    *( (char*) out ) = *((const char*)in1) * in2;
+    break;
+  case UCHAR_T:
+    *( (uchar_t*) out ) = *((const uchar_t*)in1) * in2;
+    break;
+  case INT16_T:
+    *( (int16_t*) out ) = *((const int16_t*)in1) * in2;
+    break;
+  case UINT16_T:
+    *( (uint16_t*) out ) = *((const uint16_t*)in1) * in2;
+    break;
+  case INT32_T:
+    *( (int32_t*) out ) = *((const int32_t*)in1) * in2;	
+    break;
+  case UINT32_T:
+    *( (uint32_t*) out ) = *((const uint32_t*)in1) * in2;
+    break;
+  case INT64_T:
+    *( (int64_t*) out ) = *((const int64_t*)in1) * (int64_t)in2;
+    break;
+  case UINT64_T:
+    *( (uint64_t*) out ) = *((const uint64_t*)in1) * (int64_t)in2;
+    break;
+  case FLOAT_T:
+    *( (float*) out ) = *((const float*)in1) * (float)in2;
+    break;
+  case DOUBLE_T:
+    *( (double*) out ) = *((const double*)in1) * (double)in2;
+    break;
+  case CHAR_ARRAY_T:
+  case UCHAR_ARRAY_T:
+  case INT16_ARRAY_T:
+  case UINT16_ARRAY_T:
+  case INT32_ARRAY_T:
+  case UINT32_ARRAY_T:
+  case INT64_ARRAY_T:
+  case UINT64_ARRAY_T:
+  case FLOAT_ARRAY_T:
+  case DOUBLE_ARRAY_T:
+  case STRING_T:
+  case STRING_ARRAY_T:
+  case UNKNOWN_T:
+    assert(0);
+  }
+}
+
 static inline void div(const void *in1, int in2, void* out, DataType type)
 {
   switch (type){
@@ -726,122 +1052,122 @@ static inline void div(const void *in1, int in2, void* out, DataType type)
 
 static inline void mrn_min(const void *in1, const void *in2, void* out, DataType type)
 {
-  switch (type){
-  case CHAR_T:
-    *( (char*) out ) = ( ( *((const char*)in1) < *((const char*)in2) ) ?
-			 *((const char*)in1) : *((const char*)in2) );
-    break;
-  case UCHAR_T:
-    *( (uchar_t*) out ) = ( ( *((const uchar_t*)in1) < *((const uchar_t*)in2) ) ?
-			    *((const uchar_t*)in1) : *((const uchar_t*)in2) );
-    break;
-  case INT16_T:
-    *( (int16_t*) out ) = ( ( *((const int16_t*)in1) < *((const int16_t*)in2) ) ?
-			    *((const int16_t*)in1) : *((const int16_t*)in2) );
-    break;
-  case UINT16_T:
-    *( (uint16_t*) out ) = ( ( *((const uint16_t*)in1) < *((const uint16_t*)in2) ) ?
-			     *((const uint16_t*)in1) : *((const uint16_t*)in2) );
-    break;
-  case INT32_T:
-    *( (int32_t*) out ) = ( ( *((const int32_t*)in1) < *((const int32_t*)in2) ) ?
-			    *((const int32_t*)in1) : *((const int32_t*)in2) );
-    break;
-  case UINT32_T:
-    *( (uint32_t*) out ) = ( ( *((const uint32_t*)in1) < *((const uint32_t*)in2) ) ?
-			     *((const uint32_t*)in1) : *((const uint32_t*)in2) );
-    break;
-  case INT64_T:
-    *( (int64_t*) out ) = ( ( *((const int64_t*)in1) < *((const int64_t*)in2) ) ?
-			    *((const int64_t*)in1) : *((const int64_t*)in2) );
-    break;
-  case UINT64_T:
-    *( (uint64_t*) out ) = ( ( *((const uint64_t*)in1) < *((const uint64_t*)in2) ) ?
-			     *((const uint64_t*)in1) : *((const uint64_t*)in2) );
-    break;
-  case FLOAT_T:
-    *( (float*) out ) = ( ( *((const float*)in1) < *((const float*)in2) ) ?
-			  *((const float*)in1) : *((const float*)in2) );
-    break;
-  case DOUBLE_T:
-    *( (double*) out ) = ( ( *((const double*)in1) < *((const double*)in2) ) ?
-			   *((const double*)in1) : *((const double*)in2) );
-    break;
-  case CHAR_ARRAY_T:
-  case UCHAR_ARRAY_T:
-  case INT16_ARRAY_T:
-  case UINT16_ARRAY_T:
-  case INT32_ARRAY_T:
-  case UINT32_ARRAY_T:
-  case INT64_ARRAY_T:
-  case UINT64_ARRAY_T:
-  case FLOAT_ARRAY_T:
-  case DOUBLE_ARRAY_T:
-  case STRING_T:
-  case STRING_ARRAY_T:
-  case UNKNOWN_T:
-    assert(0);
-  }
+    switch (type){
+    case CHAR_T:
+        *( (char*) out ) = ( ( *((const char*)in1) < *((const char*)in2) ) ?
+                             *((const char*)in1) : *((const char*)in2) );
+      break;
+    case UCHAR_T:
+        *( (uchar_t*) out ) = ( ( *((const uchar_t*)in1) < *((const uchar_t*)in2) ) ?
+                                *((const uchar_t*)in1) : *((const uchar_t*)in2) );
+      break;
+    case INT16_T:
+        *( (int16_t*) out ) = ( ( *((const int16_t*)in1) < *((const int16_t*)in2) ) ?
+                                *((const int16_t*)in1) : *((const int16_t*)in2) );
+        break;
+    case UINT16_T:
+        *( (uint16_t*) out ) = ( ( *((const uint16_t*)in1) < *((const uint16_t*)in2) ) ?
+                                 *((const uint16_t*)in1) : *((const uint16_t*)in2) );
+      break;
+    case INT32_T:
+        *( (int32_t*) out ) = ( ( *((const int32_t*)in1) < *((const int32_t*)in2) ) ?
+                                *((const int32_t*)in1) : *((const int32_t*)in2) );
+      break;
+    case UINT32_T:
+        *( (uint32_t*) out ) = ( ( *((const uint32_t*)in1) < *((const uint32_t*)in2) ) ?
+                                 *((const uint32_t*)in1) : *((const uint32_t*)in2) );
+      break;
+    case INT64_T:
+        *( (int64_t*) out ) = ( ( *((const int64_t*)in1) < *((const int64_t*)in2) ) ?
+                                *((const int64_t*)in1) : *((const int64_t*)in2) );
+      break;
+    case UINT64_T:
+        *( (uint64_t*) out ) = ( ( *((const uint64_t*)in1) < *((const uint64_t*)in2) ) ?
+                                 *((const uint64_t*)in1) : *((const uint64_t*)in2) );
+      break;
+    case FLOAT_T:
+        *( (float*) out ) = ( ( *((const float*)in1) < *((const float*)in2) ) ?
+                              *((const float*)in1) : *((const float*)in2) );
+      break;
+    case DOUBLE_T:
+        *( (double*) out ) = ( ( *((const double*)in1) < *((const double*)in2) ) ?
+                               *((const double*)in1) : *((const double*)in2) );
+      break;
+    case CHAR_ARRAY_T:
+    case UCHAR_ARRAY_T:
+    case INT16_ARRAY_T:
+    case UINT16_ARRAY_T:
+    case INT32_ARRAY_T:
+    case UINT32_ARRAY_T:
+    case INT64_ARRAY_T:
+    case UINT64_ARRAY_T:
+    case FLOAT_ARRAY_T:
+    case DOUBLE_ARRAY_T:
+    case STRING_T:
+    case STRING_ARRAY_T:
+    case UNKNOWN_T:
+        assert(0);
+    }
 }
 
-static inline void mrn_max(const void *in1, const void *in2, void* out, DataType type)
+static inline void mrn_max(const void *in1, const void *in2, void* out, DataType type )
 {
-  switch (type){
-  case CHAR_T:
-    *( (char*) out ) = ( ( *((const char*)in1) > *((const char*)in2) ) ?
-			 *((const char*)in1) : *((const char*)in2) );
-    break;
-  case UCHAR_T:
-    *( (uchar_t*) out ) = ( ( *((const uchar_t*)in1) > *((const uchar_t*)in2) ) ?
-			    *((const uchar_t*)in1) : *((const uchar_t*)in2) );
-    break;
-  case INT16_T:
-    *( (int16_t*) out ) = ( ( *((const int16_t*)in1) > *((const int16_t*)in2) ) ?
-			    *((const int16_t*)in1) : *((const int16_t*)in2) );
-    break;
-  case UINT16_T:
-    *( (uint16_t*) out ) = ( ( *((const uint16_t*)in1) > *((const uint16_t*)in2) ) ?
-			     *((const uint16_t*)in1) : *((const uint16_t*)in2) );
-    break;
-  case INT32_T:
-    *( (int32_t*) out ) = ( ( *((const int32_t*)in1) > *((const int32_t*)in2) ) ?
-			    *((const int32_t*)in1) : *((const int32_t*)in2) );
-    break;
-  case UINT32_T:
-    *( (uint32_t*) out ) = ( ( *((const uint32_t*)in1) > *((const uint32_t*)in2) ) ?
-			     *((const uint32_t*)in1) : *((const uint32_t*)in2) );
-    break;
-  case INT64_T:
-    *( (int64_t*) out ) = ( ( *((const int64_t*)in1) > *((const int64_t*)in2) ) ?
-			    *((const int64_t*)in1) : *((const int64_t*)in2) );
-    break;
-  case UINT64_T:
-    *( (uint64_t*) out ) = ( ( *((const uint64_t*)in1) > *((const uint64_t*)in2) ) ?
-			     *((const uint64_t*)in1) : *((const uint64_t*)in2) );
-    break;
-  case FLOAT_T:
-    *( (float*) out ) = ( ( *((const float*)in1) > *((const float*)in2) ) ?
-			  *((const float*)in1) : *((const float*)in2) );
-    break;
-  case DOUBLE_T:
-    *( (double*) out ) = ( ( *((const double*)in1) > *((const double*)in2) ) ?
-			   *((const double*)in1) : *((const double*)in2) );
-    break;
-  case CHAR_ARRAY_T:
-  case UCHAR_ARRAY_T:
-  case INT16_ARRAY_T:
-  case UINT16_ARRAY_T:
-  case INT32_ARRAY_T:
-  case UINT32_ARRAY_T:
-  case INT64_ARRAY_T:
-  case UINT64_ARRAY_T:
-  case FLOAT_ARRAY_T:
-  case DOUBLE_ARRAY_T:
-  case STRING_T:
-  case STRING_ARRAY_T:
-  case UNKNOWN_T:
-    assert(0);
-  }
+    switch (type){
+    case CHAR_T:
+        *( (char*) out ) = ( ( *((const char*)in1) > *((const char*)in2) ) ?
+                             *((const char*)in1) : *((const char*)in2) );
+        break;
+    case UCHAR_T:
+        *( (uchar_t*) out ) = ( ( *((const uchar_t*)in1) > *((const uchar_t*)in2) ) ?
+                                *((const uchar_t*)in1) : *((const uchar_t*)in2) );
+        break;
+    case INT16_T:
+        *( (int16_t*) out ) = ( ( *((const int16_t*)in1) > *((const int16_t*)in2) ) ?
+                                *((const int16_t*)in1) : *((const int16_t*)in2) );
+        break;
+    case UINT16_T:
+        *( (uint16_t*) out ) = ( ( *((const uint16_t*)in1) > *((const uint16_t*)in2) ) ?
+                                 *((const uint16_t*)in1) : *((const uint16_t*)in2) );
+        break;
+    case INT32_T:
+        *( (int32_t*) out ) = ( ( *((const int32_t*)in1) > *((const int32_t*)in2) ) ?
+                                *((const int32_t*)in1) : *((const int32_t*)in2) );
+        break;
+    case UINT32_T:
+        *( (uint32_t*) out ) = ( ( *((const uint32_t*)in1) > *((const uint32_t*)in2) ) ?
+                                 *((const uint32_t*)in1) : *((const uint32_t*)in2) );
+        break;
+    case INT64_T:
+        *( (int64_t*) out ) = ( ( *((const int64_t*)in1) > *((const int64_t*)in2) ) ?
+                                *((const int64_t*)in1) : *((const int64_t*)in2) );
+        break;
+    case UINT64_T:
+        *( (uint64_t*) out ) = ( ( *((const uint64_t*)in1) > *((const uint64_t*)in2) ) ?
+                                 *((const uint64_t*)in1) : *((const uint64_t*)in2) );
+        break;
+    case FLOAT_T:
+        *( (float*) out ) = ( ( *((const float*)in1) > *((const float*)in2) ) ?
+                              *((const float*)in1) : *((const float*)in2) );
+        break;
+    case DOUBLE_T:
+        *( (double*) out ) = ( ( *((const double*)in1) > *((const double*)in2) ) ?
+                               *((const double*)in1) : *((const double*)in2) );
+        break;
+    case CHAR_ARRAY_T:
+    case UCHAR_ARRAY_T:
+    case INT16_ARRAY_T:
+    case UINT16_ARRAY_T:
+    case INT32_ARRAY_T:
+    case UINT32_ARRAY_T:
+    case INT64_ARRAY_T:
+    case UINT64_ARRAY_T:
+    case FLOAT_ARRAY_T:
+    case DOUBLE_ARRAY_T:
+    case STRING_T:
+    case STRING_ARRAY_T:
+    case UNKNOWN_T:
+        assert(0);
+    }
 }
 
 } /* namespace MRN */

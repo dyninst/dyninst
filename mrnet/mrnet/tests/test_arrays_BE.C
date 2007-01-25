@@ -6,6 +6,7 @@
 #include "mrnet/MRNet.h"
 #include "Types.h"
 #include "test_common.h"
+#include "test_arrays.h"
 
 using namespace MRN;
 using namespace MRN_test;

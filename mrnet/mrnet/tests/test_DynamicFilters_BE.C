@@ -8,6 +8,7 @@
 
 #include "mrnet/MRNet.h"
 #include "test_common.h"
+#include "test_DynamicFilters.h"
 
 using namespace MRN;
 using namespace MRN_test;

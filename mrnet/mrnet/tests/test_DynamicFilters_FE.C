@@ -5,7 +5,7 @@
 
 #include "mrnet/MRNet.h"
 #include "test_common.h"
-#include "test_common.h"
+#include "test_DynamicFilters.h"
 
 #include <string>
 #include <assert.h>

@@ -5,6 +5,7 @@
 
 #include "mrnet/MRNet.h"
 #include "Types.h"
+#include "test_basic.h"
 #include "test_common.h"
 
 #include <string>

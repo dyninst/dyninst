@@ -7,6 +7,7 @@
 #include "Types.h"
 #include "DataElement.h"
 #include "test_common.h"
+#include "test_arrays.h"
 
 #include <string>
 

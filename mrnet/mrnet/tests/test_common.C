@@ -10,7 +10,6 @@
 #include <math.h>
 
 namespace MRN_test{
-std::map< MRN::DataType, int> Type2MaxTag;
 std::map< MRN::DataType, std::string> Type2String;
 std::map< MRN::DataType, const char *> Type2FormatString;
 
@@ -195,17 +194,6 @@ StaticInitializer::StaticInitializer()
     Type2String[ UINT64_T ] = "uint64_t";
     Type2String[ FLOAT_T ] = "float_t";
     Type2String[ DOUBLE_T ] = "double_t";
-
-    Type2MaxTag[ CHAR_T ] = PROT_CHAR_MAX;
-    Type2MaxTag[ UCHAR_T ] = PROT_UCHAR_MAX;
-    Type2MaxTag[ INT16_T ] = PROT_INT16_MAX;
-    Type2MaxTag[ UINT16_T ] = PROT_UINT16_MAX;
-    Type2MaxTag[ INT32_T ] = PROT_INT32_MAX;
-    Type2MaxTag[ UINT32_T ] = PROT_UINT32_MAX;
-    Type2MaxTag[ INT64_T ] = PROT_INT64_MAX;
-    Type2MaxTag[ UINT64_T ] = PROT_UINT64_MAX;
-    Type2MaxTag[ FLOAT_T ] = PROT_FLOAT_MAX;
-    Type2MaxTag[ DOUBLE_T ] = PROT_DOUBLE_MAX;
 }
 
 void val2string( char * ostring, void * ival, MRN::DataType itype )

@@ -15,7 +15,6 @@
 
 namespace MRN_test{
 
-extern std::map< MRN::DataType, int> Type2MaxTag;
 extern std::map< MRN::DataType, std::string> Type2String;
 extern std::map< MRN::DataType, const char *> Type2FormatString;
 
