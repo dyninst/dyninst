@@ -10,7 +10,7 @@
 
 typedef enum { PROT_EXIT=FIRST_APPL_TAG, PROT_SUM, PROT_MAX } Protocol;
 
-const char_t CHARVAL=-7;
+const char_t CHARVAL=7;
 const uchar_t UCHARVAL=7;
 const int16_t INT16VAL=-17;
 const uint16_t UINT16VAL=17;
