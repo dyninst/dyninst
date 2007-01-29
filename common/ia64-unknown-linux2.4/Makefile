@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2007/01/09 02:00:52 giri Exp $
+# $Id: Makefile,v 1.2 2007/01/29 18:22:12 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,8 +19,8 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =		common/src/linuxKludges.C \
-		common/src/timing-linux.C
+SRCS =		../../common/src/linuxKludges.C \
+		../../common/src/timing-linux.C
 
 MYFLAGS		+= 	-DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) \
 				-I$(LIBUNWIND_INC) -I$(LIBELF_INC)

@@ -37,8 +37,8 @@ endif
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =		common/src/aixv41Kludges.C \
-		common/src/timing-aix.C
+SRCS =		../../common/src/aixv41Kludges.C \
+		../../common/src/timing-aix.C
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread
