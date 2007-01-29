@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.12 2007/01/04 23:00:05 legendre Exp $
+// $Id: registerSpace.C,v 1.13 2007/01/29 18:22:17 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -138,11 +138,11 @@ void registerSlot::resetSlot() {
 }
 
 registerSpace *registerSpace::conservativeRegSpace(process *proc) {
-   int addrWidth = proc->getAddressWidth();
 	if (conservativeRegSpace_ == NULL) initRegisters();	
 #if defined(arch_x86_64)
-      registerSpace::conservativeRegSpace_ = (addrWidth == 4) ?
-         conservativeRegSpace32 : conservativeRegSpace64;
+   int addrWidth = proc->getAddressWidth();
+   registerSpace::conservativeRegSpace_ = (addrWidth == 4) ?
+      conservativeRegSpace32 : conservativeRegSpace64;
 #endif
 	assert(conservativeRegSpace_);
 	conservativeRegSpace_->resetSpace();
@@ -150,11 +150,11 @@ registerSpace *registerSpace::conservativeRegSpace(process *proc) {
 }
 
 registerSpace *registerSpace::optimisticRegSpace(process *proc) {
-   int addrWidth = proc->getAddressWidth();
 	if (optimisticRegSpace_ == NULL) initRegisters();
 #if defined(arch_x86_64)
-      registerSpace::optimisticRegSpace_ = (addrWidth == 4) ?
-         optimisticRegSpace32 : optimisticRegSpace64;
+   int addrWidth = proc->getAddressWidth();
+   registerSpace::optimisticRegSpace_ = (addrWidth == 4) ?
+      optimisticRegSpace32 : optimisticRegSpace64;
 #endif
 	assert(optimisticRegSpace_);
 	optimisticRegSpace_->resetSpace();
@@ -197,11 +197,11 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP) {
 }
 
 registerSpace *registerSpace::savedRegSpace(process *proc) {
-   int addrWidth = proc->getAddressWidth();
 	if (savedRegSpace_ == NULL) initRegisters();
 #if defined(arch_x86_64)
-      registerSpace::savedRegSpace_ = (addrWidth == 4) ?
-         savedRegSpace32 : savedRegSpace64;
+   int addrWidth = proc->getAddressWidth();
+   registerSpace::savedRegSpace_ = (addrWidth == 4) ?
+      savedRegSpace32 : savedRegSpace64;
 #endif
 	assert(savedRegSpace_);
 	savedRegSpace_->resetSpace();
@@ -738,7 +738,7 @@ bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
 	int numPushed = currStackPointer;
 
 	int *pushedReg = (int *) malloc(sizeof(int) * numPushed);
-	for (unsigned i = 0; i < numPushed; i++) pushedReg[i] = -1;
+	for (int i = 0; i < numPushed; i++) pushedReg[i] = -1;
 
 	for (unsigned i = 0; i < registers.size(); i++) {
 		// Each register may be:
@@ -758,7 +758,7 @@ bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
 				break;
 		}
 	}
-	for (unsigned i = 0; i < numPushed; i++) {
+	for (int i = 0; i < numPushed; i++) {
 		if (pushedReg[i] != -1)
 			popRegister(pushedReg[i], gen, noCost);
 	}
@@ -786,7 +786,8 @@ bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
     return true;
 }
 
-bool registerSpace::restoreRegister(unsigned index, codeGen &gen, bool noCost) {
+bool registerSpace::restoreRegister(unsigned index, codeGen &gen, bool /*noCost*/) 
+{
     // We can get an index > than the number of registers - we use those as fake
     // slots for (e.g.) flags register.
     // TODO: push register info and methods into a register slot class... hey....
