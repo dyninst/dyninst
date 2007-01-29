@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.186 2007/01/09 02:01:11 giri Exp $
+// $Id: ast.C,v 1.187 2007/01/29 18:22:15 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -918,7 +918,7 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
          return false;
       }
 #endif
-      int imm = (int) roperand->getOValue();
+      int imm = (int) (long) roperand->getOValue();
       emitStoreConst(laddr, (int) imm, gen, noCost);
       loperand->decUseCount(gen);
       roperand->decUseCount(gen);
@@ -995,7 +995,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
     switch(op) {
     case branchOp: {
         assert(loperand->getoType() == Constant);
-        unsigned offset = (Register)loperand->getOValue();
+        unsigned offset = (Register) (long) loperand->getOValue();
         // We are not calling loperand->generateCode_phase2,
         // so we decrement its useCount by hand.
         // Would be nice to allow register branches...
@@ -1324,7 +1324,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         
         if (roperand &&
             (roperand->getoType() == Constant) &&
-            doNotOverflow((Register)roperand->getOValue())) {
+            doNotOverflow((Register) (long) roperand->getOValue())) {
             gen.rs()->freeRegister(src1); // may be able to reuse it for dest
             if (retReg == REG_NULL) {
                 retReg = allocateAndKeep(gen, noCost);
@@ -1333,7 +1333,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 			else
 				ast_printf("Operator node, const RHS, keeping register %d\n", retReg);
 				
-            emitImm(op, src1, (Register)roperand->getOValue(), retReg, gen, noCost, gen.rs());
+            emitImm(op, src1, (Register) (long) roperand->getOValue(), retReg, gen, noCost, gen.rs());
             // We do not .generateCode for roperand, so need to update its
             // refcounts manually
             roperand->decUseCount(gen);
@@ -1397,7 +1397,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        gen.rs()->freeRegister(src);
        break;
    case DataReg:
-       retReg = (Register)oValue;
+       retReg = (Register) (long) oValue;
        break;
    case PreviousStackFrameDataReg:
        emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
@@ -1464,7 +1464,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        emitVload(loadConstOp, addr, retReg, retReg, gen, noCost);
        break;
 	case RegValue: {
-		gen.rs()->readRegister(gen, (Register) oValue, retReg);
+		gen.rs()->readRegister(gen, (Register) (long) oValue, retReg);
 		break;
 	}
    default:
