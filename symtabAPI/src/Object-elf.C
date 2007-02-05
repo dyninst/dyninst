@@ -40,12 +40,12 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.2 2007/01/19 22:12:25 giri Exp $
+ * $Id: Object-elf.C,v 1.3 2007/02/05 21:14:23 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
 
-#include "symtabAPI/h/Object.h"
+#include "Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
 
 #if !defined(_Object_elf_h_)

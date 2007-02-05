@@ -62,7 +62,7 @@
  #include "common/h/debugOstream.h"
  #include "common/h/headers.h"
  #include "symtabAPI/h/Dyn_Symbol.h"
- #include "symtabAPI/h/Object.h"
+ #include "symtabAPI/src/Object.h"
 
 #if 0 
  // To be used when flags will be used instead of booleans to specify paramaters for lookups

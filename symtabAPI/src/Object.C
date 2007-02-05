@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.2 2007/01/19 22:12:23 giri Exp $
+// $Id: Object.C,v 1.3 2007/02/05 21:14:26 giri Exp $
 
-#include "symtabAPI/h/Object.h"
+#include "Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
 
 string Dyn_Symbol::emptyString(string(""));

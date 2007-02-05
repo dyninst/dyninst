@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.2 2007/01/19 22:12:27 giri Exp $
+// $Id: Object-xcoff.C,v 1.3 2007/02/05 21:14:25 giri Exp $
 
 #include <regex.h>
 
-#include "symtabAPI/h/Object.h"
+#include "Object.h"
 
 #include <procinfo.h>
 

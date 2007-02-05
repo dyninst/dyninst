@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.2 2007/01/19 22:12:26 giri Exp $
+// $Id: Object-nt.C,v 1.3 2007/02/05 21:14:24 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -52,8 +52,8 @@
 #include <iomanip>
 #include <limits.h>
 #include <crtdbg.h>
-#include "symtabAPI/h/Object.h"
-#include "symtabAPI/h/Object-nt.h"
+#include "Object.h"
+#include "Object-nt.h"
 /*#include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/LineInformation.h"
