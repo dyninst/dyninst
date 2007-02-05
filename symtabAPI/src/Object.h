@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.1 2007/01/09 02:02:21 giri Exp $
+ * $Id: Object.h,v 1.1 2007/02/05 21:14:33 giri Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -375,17 +375,17 @@ private:
  || defined(x86_64_unknown_linux2_4) \
  || defined(ia64_unknown_linux2_4) \
  || defined(mips_sgi_irix6_4)
-#include "symtabAPI/h/Object-elf.h"
+#include "Object-elf.h"
 
 #elif defined(rs6000_ibm_aix4_1)
-#include "symtabAPI/h/Object-xcoff.h"
+#include "Object-xcoff.h"
 
 #elif defined(i386_unknown_nt4_0) \
    || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
-#include "symtabAPI/h/Object-nt.h"
+#include "Object-nt.h"
 
 #elif defined(alpha_dec_osf4_0)
-#include "symtabAPI/h/Object-coff.h"
+#include "Object-coff.h"
 
 #else
 #error "unknown platform"

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-coff.h,v 1.1 2007/01/09 02:02:17 giri Exp $
+ * $Id: Object-coff.h,v 1.1 2007/02/05 21:14:29 giri Exp $
  * COFF object files.
  * Note - this is DEC OSF/1 coff which probably isn't the real thing
  *
