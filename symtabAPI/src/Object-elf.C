@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.3 2007/02/05 21:14:23 giri Exp $
+ * $Id: Object-elf.C,v 1.4 2007/02/14 20:32:53 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1750,7 +1750,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
         {
 	    const char *p = stabptr->name(i);
 	    // bperr("got %d type, str = %s\n", stabptr->type(i), p);
-	    if (stabptr->type(i) == N_FUN && strlen(p) == 0) {
+	    if (strlen(p) == 0) {
 		// GNU CC 2.8 and higher associate a null-named function
 		// entry with the end of a function.  Just skip it.
 		break;
@@ -1762,7 +1762,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 	    } else {
 		len = strlen(p);
 	    }
-	    assert(len > 0);
+	    if(len == 0)
+	    	break;		// symbol name empty:skip it - giri 2/14/07	
 	    char *sname = new char[len+1];
 	    strncpy(sname, p, len);
 	    sname[len] = 0;
@@ -1829,7 +1830,8 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		// names may not be unique and we may end up assigning a wrong
 		// module name to the symbol.
 		unsigned len = q - p;
-		assert(len > 0);
+	    	if(len == 0)
+	    	    break;		// symbol name empty:skip it - giri 2/14/07	
 		char *sname = new char[len+1];
 		strncpy(sname, p, len);
 		sname[len] = 0;
