@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.212 2007/01/09 02:01:21 giri Exp $
+// $Id: solaris.C,v 1.213 2007/02/14 23:04:06 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -56,10 +56,11 @@
 #include "common/h/debugOstream.h"
 #include "common/h/solarisKludges.h"
 #include "dyninstAPI/src/editSharedLibrary.h" //ccw 11 mar 2005
-
 #include "mapped_module.h"
 #include "mapped_object.h"
 #include "dynamiclinking.h"
+
+#include "symtabAPI/src/Object.h" //TODO: Remove this
 
 #if defined (sparc_sun_solaris2_4)
 #include "dyninstAPI/src/inst-sparc.h"
@@ -1366,4 +1367,9 @@ void dyninst_yield()
 bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, bool &) 
 {
     return true;
+}
+
+bool process::hasPassedMain() 
+{
+   return true;
 }

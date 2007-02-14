@@ -1036,8 +1036,8 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
         break;
     case unstarted_bs:     
     case attached_bs:
-        if (proc->wasCreatedViaAttach())
-          ev.type = evtProcessAttach; 
+       if (proc->wasCreatedViaAttach())
+          ev.type = evtProcessAttach;
         else 
           ev.type = evtProcessCreate; 
         ret = true;
@@ -1089,53 +1089,42 @@ bool SignalGenerator::attachProcess()
   assert(proc);
   
     proc->creationMechanism_ = process::attached_cm;
-    // We're post-main... run the bootstrapState forward
 
-#if !defined(os_windows)
-    proc->setBootstrapState(initialized_bs);
-#else
-    // We need to wait for the CREATE_PROCESS debug event.
-    // Set to "begun" here, and fix up in the signal loop
-    proc->setBootstrapState(attached_bs);
-#endif
-
-    // Record the process state here so that we can replicate
-    // it later...
-
-    //FIXME:  I think we'll find that this call to isRunning cannot
-    //possibly return true (because we're not attached) -- the
-    //underlying fds are not yet set, so the pread or ioctl to check 
-    //status _must_ be failing...  its just being quiet about it.
-
+    proc->stateWhenAttached_ = stopped;
     if (proc->isRunning_()) {
-      // Must be low-level as we aren't attached
+       //Checks the state in /proc (at least on Linux)
       proc->stateWhenAttached_ = running;
     }
 
 #if defined (os_linux)
    waitpid_mux.registerProcess(this);
 #endif
-    if (!proc->attach()) {
-      proc->set_status( detached);
-      
+   if (!proc->attach()) 
+   {
+      proc->set_status(detached);      
       startup_printf("%s[%d] attach failing here: thread %s\n", 
                      FILE__, __LINE__, getThreadStr(getExecThreadID()));
-      pdstring msg = pdstring("Warning: unable to attach to specified process: ")
-          + pdstring(getPid());
+      pdstring msg = pdstring("Warning: unable to attach to specified process:")
+         + pdstring(getPid());
       showErrorCallback(26, msg.c_str());
       return false;
-    }
-    
-    startup_printf("%s[%d]: attached, getting current process state\n", FILE__, __LINE__);
-    
+   }
+
     // Record what the process was doing when we attached, for possible
     // use later.
     startup_printf("%s[%d]: attached to previously paused process: %d\n", FILE__, __LINE__, getPid());
-    proc->stateWhenAttached_ = stopped;
     proc->set_status(stopped);
-
-   startup_printf("%s[%d]: returning from attachProcess\n", FILE__, __LINE__);
-  return true;
+    
+#if !defined(os_windows)
+    if (proc->hasPassedMain()) {
+       proc->setBootstrapState(initialized_bs);
+    }
+    else {
+    }
+#endif
+    
+    startup_printf("%s[%d]: returning from attachProcess\n", FILE__, __LINE__);
+    return true;
 }
 
 
@@ -1628,7 +1617,6 @@ bool SignalGeneratorCommon::initialize_event_handler()
        proc = NULL;
        return false;
     }
-
   }
   else { // proc->getParent() is non-NULL, fork case
       signal_printf("%s[%d]: attaching to forked child, creating representative LWP\n",

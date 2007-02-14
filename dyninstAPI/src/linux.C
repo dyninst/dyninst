@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.252 2007/01/09 02:01:49 giri Exp $
+// $Id: linux.C,v 1.253 2007/02/14 23:04:04 legendre Exp $
 
 #include <fstream>
 
@@ -90,6 +90,10 @@
 #include "dyninstAPI/src/writeBackElf.h"
 // #include "saveSharedLibrary.h" 
 
+#include "symtabAPI/h/Dyn_Symtab.h"
+
+//TODO: Remove the writeBack functions and get rid of this include
+#include "symtabAPI/src/Object.h"
 #ifdef PAPI
 #include "papi.h"
 #endif
@@ -1546,8 +1550,8 @@ int_function *instPoint::findCallee() {
    image_func *icallee = img_p_->getCallee(); 
    if (icallee) {
      callee_ = proc()->findFuncByInternalFunc(icallee);
+     //callee_ may be NULL if the function is unloaded
 
-     assert(callee_);
      return callee_;
    }
    // Do this the hard way - an inter-module jump
@@ -1752,7 +1756,7 @@ bool dyn_lwp::representativeLWP_attach_()
 }
 
 #define LINE_LEN 1024
-struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size) {
+map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    char line[LINE_LEN], prems[16], *s;
    int result;
    FILE *f;
@@ -1810,7 +1814,7 @@ struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size) {
       }
    }
    //Zero out the last entry
-   memset(&(maps[i]), 0, sizeof(maps_entries));
+   memset(&(maps[i]), 0, sizeof(map_entries));
    maps_size = i;
    
    return maps;
@@ -1973,8 +1977,8 @@ bool process::readAuxvInfo()
    * thing, then we'll go ahead and call it the vsyscall page.
    **/
   unsigned num_maps;
-  maps_entries *secondary_match = NULL;
-  maps_entries *maps = getLinuxMaps(getPid(), num_maps);
+  map_entries *secondary_match = NULL;
+  map_entries *maps = getLinuxMaps(getPid(), num_maps);
   for (unsigned i=0; i<guessed_addrs.size(); i++) {
      Address addr = guessed_addrs[i];
      for (unsigned j=0; j<num_maps; j++) {
@@ -2708,4 +2712,150 @@ int WaitpidMux::enqueueWaitpidValue(waitpid_ret_pair ev,
                       FILE__, __LINE__, event_owner->getPid());
    event_owner->event_queue.push_back(ev);
    return 0;
+}
+
+/**
+ * Strategy:  The program entry point is in /lib/ld-2.x.x at the 
+ * _start function.  Get the current PC, parse /lib/ld-2.x.x, and 
+ * compare the two points.
+ **/
+bool process::hasPassedMain() 
+{
+   if (reachedBootstrapState(initialized_bs))
+      return true;
+
+   // We only need to parse /lib/ld-2.x.x once for any process,
+   // so just do it once for any process.  We'll cache the result
+   // in lib_to_addr.
+   static dictionary_hash<pdstring, Address> lib_to_addr(pdstring::hash);
+   Dyn_Symtab *ld_file = NULL;
+   bool result, tresult;
+   std::string name;
+   Address entry_addr;
+
+   //Get current PC
+   Frame active_frame = getRepresentativeLWP()->getActiveFrame();
+   Address current_pc = active_frame.getPC();
+
+   //Get the current version of /lib/ld-2.x.x
+   map_entries *maps = NULL;
+   unsigned maps_size = 0;
+   const char *path = NULL;
+   maps = getLinuxMaps(getPid(), maps_size);
+   for (unsigned i=0; i<maps_size; i++) {
+      if (!maps[i].path)
+         continue;
+      if (strncmp(maps[i].path, "/lib/ld-", 8) == 0) {
+         path = maps[i].path;
+         break;
+      }
+   }
+
+   if (!path) {
+      //Strange... This shouldn't happen on a normal linux system
+      startup_printf("[%s:%u] - Couldn't find /lib/ld-x.x.x in hasPassedMain\n",
+                     FILE__, __LINE__);
+      result = true;
+      goto cleanup;
+   }
+
+   if (lib_to_addr.defines(path)) {
+      //We've already parsed this library.  Use those results.
+      Address start_in_ld = lib_to_addr[path];
+      result = (start_in_ld != current_pc);
+      goto cleanup;
+   }
+
+   //Open /lib/ld-x.x.x and find the entry point
+   name = path;
+   tresult = Dyn_Symtab::openFile(name, ld_file);
+   if (!tresult) {
+      startup_printf("[%s:%u] - Unable to open %s in hasPassedMain\n", 
+                     FILE__, __LINE__, path);
+      result = true;
+      goto cleanup;
+   }
+   
+
+   entry_addr = ld_file->getEntryAddress();
+   if (!entry_addr) {
+      startup_printf("[%s:%u] - No entry addr for %s\n", 
+                     FILE__, __LINE__, path);
+      result = true;
+      goto cleanup;
+   }
+   
+   lib_to_addr[path] = entry_addr;
+   result = (entry_addr != current_pc);
+   startup_printf("[%s:%u] - hasPassedMain returning %d\n",
+                  FILE__, __LINE__, (int) result);
+
+   cleanup:
+      if (maps)
+         free(maps);
+      if (ld_file)
+         delete ld_file;
+
+   return result;
+}
+
+Address process::setAOutLoadAddress(fileDescriptor &desc) {
+   //The load address of the a.out isn't correct.  We can't read a
+   // correct one out of ld-x.x.x.so because it may not be initialized yet,
+   // and it won't be initialized until we reach main.  But we need the load
+   // address to find main.  Darn.
+   //
+   //Instead we'll read the entry out of /proc/pid/maps, and try to make a good
+   // effort to correctly match the fileDescriptor to an entry.  Unfortunately,
+   // symlinks can complicate this, so we'll stat the files and compare inodes
+
+   struct stat aout, maps_entry;
+   map_entries *maps = NULL;
+   unsigned maps_size = 0, i;
+   char proc_path[128];
+   int result;
+
+   //Get the inode for the a.out
+   startup_printf("[%s:%u] - a.out is a shared library, computing load addr\n",
+                  FILE__, __LINE__);
+   memset(&aout, 0, sizeof(aout));
+   proc_path[127] = '\0';
+   snprintf(proc_path, 127, "/proc/%d/exe", getPid());
+   result = stat(proc_path, &aout);
+   if (result == -1) {
+      startup_printf("[%s:%u] - setAOutLoadAddress couldn't stat %s: %s\n",
+                     FILE__, __LINE__, proc_path, strerror(errno));
+      goto done;
+   }
+                    
+   //Get the maps
+   maps = getLinuxMaps(getPid(), maps_size);
+   if (!maps) {
+      startup_printf("[%s:%u] - setAOutLoadAddress, getLinuxMaps return NULL\n",
+                     FILE__, __LINE__);
+      goto done;
+   }
+   
+   //Compare the inode of each map entry to the a.out's
+   for (i=0; i<maps_size; i++) {
+      memset(&maps_entry, 0, sizeof(maps_entry));
+      result = stat(maps[i].path, &maps_entry);
+      if (result == -1) {
+         startup_printf("[%s:%u] - setAOutLoadAddress couldn't stat %s: %s\n",
+                        FILE__, __LINE__, maps[i].path, strerror(errno));
+         continue;
+      }
+      if (maps_entry.st_dev == aout.st_dev && maps_entry.st_ino == aout.st_ino)
+      {
+         //We have a match
+         desc.setLoadAddr(maps[i].start);
+         goto done;
+      }
+   }
+        
+ done:
+   if (maps)
+      free(maps);
+
+   return desc.loadAddr();
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.287 2007/01/19 22:50:24 giri Exp $
+ // $Id: symtab.C,v 1.288 2007/02/14 23:04:07 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,6 +100,13 @@ bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
     return false;
 }
 
+void fileDescriptor::setLoadAddr(Address a) 
+{ 
+   loadAddr_ = a; 
+   code_ += a;
+   data_ += a;
+}
+
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
 
@@ -126,7 +133,7 @@ pdmodule *image::newModule(const pdstring &name, const Address addr, supportedLa
 
     pdstring fileNm, fullNm;
     fullNm = name;
-    fileNm = extract_pathname_tail(name.c_str()).c_str();
+    fileNm = extract_pathname_tail(name).c_str();
 
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
     ret = new pdmodule(lang, addr, fullNm, this);
@@ -1151,7 +1158,7 @@ image::image(fileDescriptor &desc, bool &err)
    refCount(1),
    parseState_(unparsed)
 {
- #if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)
+#if defined(os_aix)
    string file = desc_.file().c_str();
    SymtabError serr = Not_An_Archive;
    Dyn_Archive *archive;
@@ -1178,7 +1185,7 @@ image::image(fileDescriptor &desc, bool &err)
 		return;
 	}
    }
- #else
+#else
    string file = desc_.file().c_str();
    //linkedFile = new Dyn_Symtab();
    if(!Dyn_Symtab::openFile(file, linkedFile)) 
@@ -1186,10 +1193,10 @@ image::image(fileDescriptor &desc, bool &err)
    	err = true;
 	return;
    }
- #endif  
+#endif  
    baseAddr_ = desc.loadAddr();
    err = false;
-   name_ = extract_pathname_tail(desc.file().c_str()).c_str();
+   name_ = extract_pathname_tail(desc.file()).c_str();
 
    //   fprintf(stderr,"img name %s\n",name_.c_str());
    pathname_ = desc.file();
@@ -1959,12 +1966,11 @@ void *image::getPtrToInstruction(Address offset) const {
    }
 }
 
-
 // Address must be in code or data range since some code may end up
 // in the data segment
 bool image::isValidAddress(const Address &where) const{
 	Address addr = where;
-    return linkedFile->isValidOffset(addr);
+   return linkedFile->isValidOffset(addr) && isAligned(where);
 }
 
 bool image::isCode(const Address &where)  const{

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.168 2007/01/12 00:55:41 legendre Exp $
+// $Id: pdwinnt.C,v 1.169 2007/02/14 23:04:03 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -2232,4 +2232,9 @@ bool SignalHandler::handleProcessAttach(EventRecord &ev, bool &continueHint) {
 
 	ev.lwp->setDebuggerLWP(true);
     return true;
+}
+
+bool process::hasPassedMain() 
+{
+   return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.229 2007/01/09 02:01:35 giri Exp $
+// $Id: aix.C,v 1.230 2007/02/14 23:04:02 legendre Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -2069,4 +2069,9 @@ void dyninst_yield()
 bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, bool &) 
 {
     return true;
+}
+
+bool process::hasPassedMain() 
+{
+   return true;
 }
