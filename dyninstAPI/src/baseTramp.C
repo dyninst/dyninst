@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.54 2007/01/04 22:59:52 legendre Exp $
+// $Id: baseTramp.C,v 1.55 2007/02/14 23:04:09 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -1073,7 +1073,7 @@ void baseTramp::setRecursive(bool trampRecursive, bool force) {
         else {
             if (guardState_ == recursive_BTR) {
                if (!optimized_out_guards)
-                  cerr << "WARNING: collision between pre-existing recursive miniTramp and new miniTramp, now guarded!" << endl;
+                  //                  cerr << "WARNING: collision between pre-existing recursive miniTramp and new miniTramp, now guarded!" << endl;
                 guardState_ = guarded_BTR;
             }
         }
@@ -1202,7 +1202,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     // Done with save
     saveEndOffset = preTrampCode_.used();
     inst_printf("Starting MT: offset %d\n", saveEndOffset);
-    
+
 
 #if defined(os_aix) 
 	/* 	if requestTextMiniTramp is set then we are instrumenting the
