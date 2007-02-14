@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Dyn_Symbol.h,v 1.3 2007/02/14 23:03:44 legendre Exp $
+ * $Id: Dyn_Symbol.h,v 1.4 2007/02/14 23:16:57 bernat Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -144,12 +144,14 @@ public:
     friend
     ostream&      operator<< (ostream &os, const Dyn_Symbol &s) {
       return os << "{"
-        << " module="  << s.module_
-        << " type="    << (unsigned) s.type_
-        << " linkage=" << (unsigned) s.linkage_
-        << " addr="    << s.addr_
-        << " tag="     << (unsigned) s.tag_
-        << " }" << endl;
+		<< " mangled=" << s.getName() 
+		<< " pretty="  << s.getPrettyName()
+		<< " module="  << s.module_
+		<< " type="    << (unsigned) s.type_
+		<< " linkage=" << (unsigned) s.linkage_
+		<< " addr="    << s.addr_
+		<< " tag="     << (unsigned) s.tag_
+		<< " }" << endl;
     }
 
 public:
