@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.168 2007/01/12 00:55:29 legendre Exp $
+// $Id: BPatch.C,v 1.169 2007/02/14 23:04:01 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1259,8 +1259,6 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
     BPatch_module *bpmod = bImage->findModule(mod);
     if (bpmod == NULL) return;
 
-    bImage->removeModule(bpmod);
-
     signalNotificationFD();
     
     pdvector<CallbackBase *> cbs;
@@ -1274,6 +1272,8 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
         if (cb)
             (*cb)(bProc->threads[0], bpmod, false);
     }
+
+    bImage->removeModule(bpmod);
 }
 
 
