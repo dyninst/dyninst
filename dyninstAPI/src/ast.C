@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.187 2007/01/29 18:22:15 legendre Exp $
+// $Id: ast.C,v 1.188 2007/02/14 23:04:08 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1654,9 +1654,8 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
 		}
 	}		
     else if (retReg != tmp) {
-        if (retReg > 40) assert(0);
-        emitImm(orOp, tmp, 0, retReg, gen, noCost, gen.rs());
-		gen.rs()->freeRegister(tmp);
+       emitImm(orOp, tmp, 0, retReg, gen, noCost, gen.rs());
+       gen.rs()->freeRegister(tmp);
     }
 	decUseCount(gen);
     return true;
