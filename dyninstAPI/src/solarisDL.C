@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.49 2007/01/09 02:01:26 giri Exp $
+// $Id: solarisDL.C,v 1.50 2007/02/14 23:03:40 legendre Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -47,7 +47,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/debugOstream.h"
-
+#include "symtabAPI/src/Object.h" //TODO: Remove
 #include <link.h>
 #include <libelf.h>
 #include <sys/types.h>

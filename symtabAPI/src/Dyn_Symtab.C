@@ -39,67 +39,34 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
- #include <stdio.h>
- #include <stdlib.h>
- #include <assert.h>
- #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <string.h>
 
- #include "common/h/debugOstream.h"
- #include "common/h/Timer.h"
- #include "symtabAPI/h/Dyn_Symtab.h"
+#include "common/h/debugOstream.h"
+#include "common/h/Timer.h"
+#include "symtabAPI/src/Object.h"
+#include "symtabAPI/h/Dyn_Symtab.h"
 
- #if defined( USES_DWARF_DEBUG )
- #include "dwarf.h"
- #include "libdwarf.h"
- #endif
-
- #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 29 mar 2001
- #include <regex.h>
- #endif
-
- static string errMsg;
- extern bool parseCompilerType(Object *);
- bool regexEquiv( const string &str,const string &them, bool checkCase );
- bool pattern_match( const char *p, const char *s, bool checkCase );
- void pd_log_perror(const char *msg){
-     errMsg = msg;
- };
+static string errMsg;
+extern bool parseCompilerType(Object *);
+bool regexEquiv( const string &str,const string &them, bool checkCase );
+bool pattern_match( const char *p, const char *s, bool checkCase );
+void pd_log_perror(const char *msg){
+   errMsg = msg;
+};
  
- static SymtabError serr;
+static SymtabError serr;
 
- vector<Dyn_Symtab *> Dyn_Symtab::allSymtabs;
+vector<Dyn_Symtab *> Dyn_Symtab::allSymtabs;
  
- //#if defined(os_windows) || defined(arch_x86) || defined(arch_x86_64) || defined(arch_ia64) //ccw 20 july 2000 : 29 mar 2001
- #if !defined(os_aix) //ccw 20 july 2000 : 29 mar 2001
- const char WILDCARD_CHAR = '?';
- const char MULTIPLE_WILDCARD_CHAR = '*';
- #define PATH_SEP ('\\')
- #define SECOND_PATH_SEP ('/')
- #else
- #define PATH_SEP ('/')
- #endif
-
- DLLEXPORT string extract_path_tail(const string &path)
- {
-	const char *path_str = path.c_str();
-	const char *path_sep = P_strrchr(path_str, PATH_SEP);
-
-  #if defined(SECOND_PATH_SEP)
-	const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
-	if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
-		path_sep = sec_path_sep;
-  #endif
-
-	string ret = (path_sep) ? (path_sep + 1) : (path_str);
-	return ret;
- }
- 
- SymtabError Dyn_Symtab::getLastSymtabError(){
+SymtabError Dyn_Symtab::getLastSymtabError(){
  	return serr;
- }
+}
 
- string Dyn_Symtab::printError(SymtabError serr)
- {
+string Dyn_Symtab::printError(SymtabError serr)
+{
  	switch (serr){
 		case Obj_Parsing:
 			return "Failed to parse the Object"+errMsg;
@@ -124,90 +91,90 @@
 		default:
 			return "Unknown Error";
 	}		
- }
+}
 
- DLLEXPORT unsigned Dyn_Symtab::getAddressWidth() const {
-	 return linkedFile.getAddressWidth();
- }
+DLLEXPORT unsigned Dyn_Symtab::getAddressWidth() const {
+   return linkedFile->getAddressWidth();
+}
  
- DLLEXPORT bool Dyn_Symtab::isNativeCompiler() const {
-	 return nativeCompiler; 
- }
+DLLEXPORT bool Dyn_Symtab::isNativeCompiler() const {
+   return nativeCompiler; 
+}
  
- DLLEXPORT Dyn_Symtab::Dyn_Symtab(){
- }
+DLLEXPORT Dyn_Symtab::Dyn_Symtab(){
+}
 
- DLLEXPORT bool Dyn_Symtab::isExec() const {
-	 return is_a_out; 
- }
+DLLEXPORT bool Dyn_Symtab::isExec() const {
+   return is_a_out; 
+}
 
- DLLEXPORT OFFSET Dyn_Symtab::codeOffset() const { 
-	 return codeOffset_;
- }
+DLLEXPORT OFFSET Dyn_Symtab::codeOffset() const { 
+   return codeOffset_;
+}
 
- DLLEXPORT OFFSET Dyn_Symtab::dataOffset() const { 
-	 return dataOffset_;
- }
+DLLEXPORT OFFSET Dyn_Symtab::dataOffset() const { 
+   return dataOffset_;
+}
 
- DLLEXPORT OFFSET Dyn_Symtab::dataLength() const { 
-	 return dataLen_;
- } 
+DLLEXPORT OFFSET Dyn_Symtab::dataLength() const { 
+   return dataLen_;
+} 
 
- DLLEXPORT OFFSET Dyn_Symtab::codeLength() const { 
-	 return codeLen_;
- }
+DLLEXPORT OFFSET Dyn_Symtab::codeLength() const { 
+   return codeLen_;
+}
  
- DLLEXPORT Word* Dyn_Symtab::code_ptr ()  const {
-	 return linkedFile.code_ptr(); 
- }
+DLLEXPORT Word* Dyn_Symtab::code_ptr ()  const {
+   return linkedFile->code_ptr(); 
+}
 
- DLLEXPORT Word* Dyn_Symtab::data_ptr ()  const { 
-	 return linkedFile.data_ptr();
- }
+DLLEXPORT Word* Dyn_Symtab::data_ptr ()  const { 
+   return linkedFile->data_ptr();
+}
  
- DLLEXPORT OFFSET Dyn_Symtab::getEntryAddress() const { 
-	 return linkedFile.getEntryAddress(); 
- }
+DLLEXPORT OFFSET Dyn_Symtab::getEntryAddress() const { 
+   return linkedFile->getEntryAddress(); 
+}
 
- DLLEXPORT OFFSET Dyn_Symtab::getBaseAddress() const {
-	 return linkedFile.getBaseAddress(); 
- }
+DLLEXPORT OFFSET Dyn_Symtab::getBaseAddress() const {
+   return linkedFile->getBaseAddress(); 
+}
 	
- // TODO -- is this g++ specific
- bool Dyn_Symtab::buildDemangledName( const string &mangled, 
-                          string &pretty,
-                          string &typed,
-                          bool nativeCompiler, 
-                          supportedLanguages lang )
- {
-  /* The C++ demangling function demangles MPI__Allgather (and other MPI__
-   * functions with start with A) into the MPI constructor.  In order to
-   * prevent this a hack needed to be made, and this seemed the cleanest
-   * approach.
-   */
+// TODO -- is this g++ specific
+bool Dyn_Symtab::buildDemangledName( const string &mangled, 
+                                     string &pretty,
+                                     string &typed,
+                                     bool nativeCompiler, 
+                                     supportedLanguages lang )
+{
+   /* The C++ demangling function demangles MPI__Allgather (and other MPI__
+    * functions with start with A) into the MPI constructor.  In order to
+    * prevent this a hack needed to be made, and this seemed the cleanest
+    * approach.
+    */
 
  	if((mangled.length()>5) && (mangled.substr(0,5)==string("MPI__"))) { 
-    		return false;
+      return false;
   	}	  
 
   	/* If it's Fortran, eliminate the trailing underscores, if any. */
   	if(lang == lang_Fortran 
-                 || lang == lang_CMFortran 
-        	 || lang == lang_Fortran_with_pretty_debug )
+      || lang == lang_CMFortran 
+      || lang == lang_Fortran_with_pretty_debug )
 	{
-        	if( mangled[ mangled.length() - 1 ] == '_' ) 
+      if( mangled[ mangled.length() - 1 ] == '_' ) 
 		{
-          		char * demangled = strdup( mangled.c_str() );
-          		demangled[ mangled.length() - 1 ] = '\0';
-          		pretty = string( demangled );
+         char * demangled = strdup( mangled.c_str() );
+         demangled[ mangled.length() - 1 ] = '\0';
+         pretty = string( demangled );
           
-          		free( demangled );
-          		return true;
-      		}
-      		else {
-          		/* No trailing underscores, do nothing */
-          		return false;
-      		}
+         free( demangled );
+         return true;
+      }
+      else {
+         /* No trailing underscores, do nothing */
+         return false;
+      }
   	} /* end if it's Fortran. */
   
   	//  Check to see if we have a gnu versioned symbol on our hands.
@@ -221,21 +188,21 @@
   	//         symbols.  We may need to do something more sophisticated
   	//         in the future.  JAW 10/03
   
-	#if !defined(os_windows)
-  		char *atat;
-  		if (NULL != (atat = strstr(mangled.c_str(), "@@"))) 
-		{
-      			pretty = mangled.substr(0 /*start pos*/, 
-                	           (int)(atat - mangled.c_str())/*len*/);
-      			char msg[256];
-      			sprintf(msg, "%s[%d]: 'demangling' versioned symbol: %s, to %s",
-      				    __FILE__, __LINE__, mangled.c_str(), pretty.c_str());
-      			//cerr << msg << endl;
-      			//logLine(msg);
+#if !defined(os_windows)
+   char *atat;
+   if (NULL != (atat = strstr(mangled.c_str(), "@@"))) 
+   {
+      pretty = mangled.substr(0 /*start pos*/, 
+                              (int)(atat - mangled.c_str())/*len*/);
+      char msg[256];
+      sprintf(msg, "%s[%d]: 'demangling' versioned symbol: %s, to %s",
+              __FILE__, __LINE__, mangled.c_str(), pretty.c_str());
+      //cerr << msg << endl;
+      //logLine(msg);
       
-      			return true;
-  		}
-	#endif
+      return true;
+   }
+#endif
 
   	bool retval = false;
   
@@ -243,27 +210,27 @@
   	char * demangled = P_cplus_demangle( mangled.c_str(), nativeCompiler, false);
   	if (demangled) 
 	{
-      		pretty = string( demangled );
-      		retval = true;
+      pretty = string( demangled );
+      retval = true;
   	}
   
   	char *t_demangled = P_cplus_demangle(mangled.c_str(), nativeCompiler, true);
   	if (t_demangled && (strcmp(t_demangled, demangled) != 0)) 
 	{
-      		typed = string(t_demangled);
-      		retval = true;
+      typed = string(t_demangled);
+      retval = true;
   	}
 
   	if (demangled)
-  	    	free(demangled);
+      free(demangled);
   	if (t_demangled)
   		free(t_demangled);
 
   	return retval;
- } /* end buildDemangledName() */
+} /* end buildDemangledName() */
 
  
- /*
+/*
  * Add all the functions (*) in the list of symbols to our data
  * structures. 
  *
@@ -271,65 +238,65 @@
  * if found we flag this image as the executable (a.out). 
  */
 
- bool Dyn_Symtab::symbolsToFunctions(vector<Dyn_Symbol *> *raw_funcs) 
- {
+bool Dyn_Symtab::symbolsToFunctions(vector<Dyn_Symbol *> *raw_funcs) 
+{
 
 #if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 
   	vector< Dyn_Symbol *> lookUps;
   	string symString;
 
-	is_a_out = linkedFile.is_aout();
+	is_a_out = linkedFile->is_aout();
 
   	// JAW 02-03 -- restructured below slightly to get rid of multiple loops
   	// through entire symbol list
   
   	// find the real functions -- those with the correct type in the symbol table
-  	for(SymbolIter symIter(linkedFile); symIter;symIter++) 
+  	for(SymbolIter symIter(*linkedFile); symIter;symIter++) 
 	{
-    		Dyn_Symbol *lookUp = symIter.currval();
-    		const char *np = lookUp->getName().c_str();
+      Dyn_Symbol *lookUp = symIter.currval();
+      const char *np = lookUp->getName().c_str();
 
-    		//parsing_printf("Scanning file: symbol %s\n", lookUp->getName().c_str());
+      //parsing_printf("Scanning file: symbol %s\n", lookUp->getName().c_str());
 
-    		//fprintf(stderr,"np %s\n",np);
+      //fprintf(stderr,"np %s\n",np);
 
-    		if (linkedFile.isEEL() && np[0] == '.')
-         	/* ignore these EEL symbols; we don't understand their values */
+      if (linkedFile->isEEL() && np[0] == '.')
+         /* ignore these EEL symbols; we don't understand their values */
 	 		continue; 
 
      		
 		if (lookUp->getType() == Dyn_Symbol::ST_FUNCTION) 
 		{
-            		// /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", FILE__, __LINE__, lookUp.getName().c_str(), lookUp.getModuleName().c_str() );
+         // /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", FILE__, __LINE__, lookUp.getName().c_str(), lookUp.getModuleName().c_str() );
             
-            		string msg;
-            		char tempBuffer[40];
-            		if (!isValidOffset(lookUp->getAddr())) 
+         string msg;
+         char tempBuffer[40];
+         if (!isValidOffset(lookUp->getAddr())) 
 			{
-                    		sprintf(tempBuffer,"0x%lx",lookUp->getAddr());
-                    		msg = string("Function ") + lookUp->getName() + string(" has bad address ")
-                        							+ string(tempBuffer);
-                    		return false;
-                	}
+            sprintf(tempBuffer,"0x%lx",lookUp->getAddr());
+            msg = string("Function ") + lookUp->getName() + string(" has bad address ")
+               + string(tempBuffer);
+            return false;
+         }
 			// Fill in _mods.
 			Dyn_Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
 			delete(lookUp->getModule());
 			lookUp->setModule(newMod);
-            		raw_funcs->push_back(lookUp);
-            	}
+         raw_funcs->push_back(lookUp);
+      }
 		if(lookUp->getType() == Dyn_Symbol::ST_MODULE)
 		{
 			const string mangledName = symIter.currkey();
 			char * unmangledName =
-              			P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
-            		if (unmangledName)
-		               	lookUp->addPrettyName(unmangledName, true);
+            P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+         if (unmangledName)
+            lookUp->addPrettyName(unmangledName, true);
 			else
-		                lookUp->addPrettyName(mangledName, true);
+            lookUp->addPrettyName(mangledName, true);
 			Dyn_Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
 			delete(lookUp->getModule());
 			lookUp->setModule(newMod);
@@ -339,68 +306,68 @@
 		{
 			const string mangledName = symIter.currkey();
 			char * unmangledName =
-              			P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
-            		if (unmangledName)
-		               	lookUp->addPrettyName(unmangledName, true);
+            P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+         if (unmangledName)
+            lookUp->addPrettyName(unmangledName, true);
 			else
-		                lookUp->addPrettyName(mangledName, true);
+            lookUp->addPrettyName(mangledName, true);
 			notypeSyms.push_back(lookUp);
 		}	
 		else if(lookUp->getType() == Dyn_Symbol::ST_OBJECT)
 		{
 			const string mangledName = symIter.currkey();
-			#if 0
-      	  			fprintf(stderr, "Symbol %s, mod %s, addr 0x%x, type %d, linkage %d (obj %d, func %d)\n",
-              			symInfo.name().c_str(),
-              			symInfo.module().c_str(),
-              			symInfo.addr(),
-              			symInfo.type(),
-              			symInfo.linkage(),
-              			Dyn_Symbol::ST_OBJECT,
-              			Dyn_Symbol::ST_FUNCTION);
-			#endif
-			#if !defined(os_windows)
-      				// Windows: variables are created with an empty module
-      				if (lookUp->getModuleName().length() == 0) 
-				{
-          				//fprintf(stderr, "SKIPPING EMPTY MODULE\n");
-          				continue;
-      				}
-			#endif
+#if 0
+         fprintf(stderr, "Symbol %s, mod %s, addr 0x%x, type %d, linkage %d (obj %d, func %d)\n",
+                 symInfo.name().c_str(),
+                 symInfo.module().c_str(),
+                 symInfo.addr(),
+                 symInfo.type(),
+                 symInfo.linkage(),
+                 Dyn_Symbol::ST_OBJECT,
+                 Dyn_Symbol::ST_FUNCTION);
+#endif
+#if !defined(os_windows)
+         // Windows: variables are created with an empty module
+         if (lookUp->getModuleName().length() == 0) 
+         {
+            //fprintf(stderr, "SKIPPING EMPTY MODULE\n");
+            continue;
+         }
+#endif
 			char * unmangledName =
-              			P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+            P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
 			
 			//Fill in _mods.
 			Dyn_Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
 			delete(lookUp->getModule());
 			lookUp->setModule(newMod);
 			Dyn_Symbol *var;
-          		//bool addToPretty = false;
-          		if (varsByAddr.find(lookUp->getAddr())!=varsByAddr.end()) 
+         //bool addToPretty = false;
+         if (varsByAddr.find(lookUp->getAddr())!=varsByAddr.end()) 
 			{
 				var = varsByAddr[lookUp->getAddr()];
 				
-            			// Keep the new mangled name
-	            		var->addMangledName(mangledName);
-            			if (unmangledName)
-		                	var->addPrettyName(unmangledName, true);
+            // Keep the new mangled name
+            var->addMangledName(mangledName);
+            if (unmangledName)
+               var->addPrettyName(unmangledName, true);
 				else
-		                	var->addPrettyName(mangledName, true);
+               var->addPrettyName(mangledName, true);
 				
-        		}
-        		else
+         }
+         else
 			{
 				var = lookUp;
-            			varsByAddr[lookUp->getAddr()] = var;
-	            		if (unmangledName)
+            varsByAddr[lookUp->getAddr()] = var;
+            if (unmangledName)
 					var->addPrettyName(unmangledName, true);
 				else
-		                	var->addPrettyName(mangledName, true);
-              			everyUniqueVariable.push_back(var);
-        		}
-      		}
+               var->addPrettyName(mangledName, true);
+            everyUniqueVariable.push_back(var);
+         }
+      }
 	
-        }
+   }
 
 #if defined(TIMED_PARSE)
   	struct timeval endtime;
@@ -412,12 +379,12 @@
   	cout << __FILE__ << ":" << __LINE__ <<": symbolsToFunctions took "<<dursecs <<" msecs" << endl;
 #endif
   	return true;
- }
+}
 
- //  a helper routine that selects a language based on information from the symtab
- supportedLanguages Dyn_Symtab::pickLanguage(string &working_module, char *working_options, 
-						supportedLanguages working_lang)
- {
+//  a helper routine that selects a language based on information from the symtab
+supportedLanguages Dyn_Symtab::pickLanguage(string &working_module, char *working_options, 
+                                            supportedLanguages working_lang)
+{
  	supportedLanguages lang = lang_Unknown;
  	static int sticky_fortran_modifier_flag = 0;
 
@@ -434,16 +401,16 @@
   	else if ((len>2) && (working_module.substr(len-2,2) == string(".s"))) lang = lang_Assembly; 
   	else 
 	{
-    		//(3) -- try to use options string -- if we have 'em
-    		if (working_options)
+      //(3) -- try to use options string -- if we have 'em
+      if (working_options)
 		{
-      			//  NOTE:  a binary is labeled "gcc2_compiled" even if compiled w/g77 -- thus this is
-      			//  quite inaccurate to make such assumptions
-      			if (strstr(working_options, "gcc")) 
+         //  NOTE:  a binary is labeled "gcc2_compiled" even if compiled w/g77 -- thus this is
+         //  quite inaccurate to make such assumptions
+         if (strstr(working_options, "gcc")) 
 				lang = lang_C; 
-      			else if (strstr(working_options, "g++")) 
+         else if (strstr(working_options, "g++")) 
 				lang = lang_CPlusPlus; 
-    		}
+      }
   	}
 
   	//  This next section tries to determine the version of the debug info generator for a
@@ -451,16 +418,16 @@
   	//  have the "pretty" names, we need to detect this in order to properly read the debug.
   	if (working_lang == lang_Fortran)
 	{
-    		if (sticky_fortran_modifier_flag)
+      if (sticky_fortran_modifier_flag)
 		{
-      			//cerr << FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug." << endl;
-      			working_lang = lang_Fortran_with_pretty_debug;
-    		}
-    		else if (working_options)
+         //cerr << FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug." << endl;
+         working_lang = lang_Fortran_with_pretty_debug;
+      }
+      else if (working_options)
 		{
-      			char *dbg_gen = NULL;
-      			//cerr << FILE__ << __LINE__ << ":  OPT: " << working_options << endl; 
-      			if (NULL != (dbg_gen = strstr(working_options, "DBG_GEN="))) 
+         char *dbg_gen = NULL;
+         //cerr << FILE__ << __LINE__ << ":  OPT: " << working_options << endl; 
+         if (NULL != (dbg_gen = strstr(working_options, "DBG_GEN="))) 
 			{
 				//cerr << __FILE__ << __LINE__ << ":  OPT: " << dbg_gen << endl; 
 				// Sun fortran compiler (probably), need to examine version
@@ -474,357 +441,22 @@
 	  				//cerr <<"Major Debug Ver. "<<ver_maj<< endl;
 	  				if (ver_maj < 3) 
 					{
-	    					working_lang = lang_Fortran_with_pretty_debug;
-	    					sticky_fortran_modifier_flag = 1;
-	    					//cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  " << "Major Debug Ver. "<<ver_maj<<endl;
+                  working_lang = lang_Fortran_with_pretty_debug;
+                  sticky_fortran_modifier_flag = 1;
+                  //cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  " << "Major Debug Ver. "<<ver_maj<<endl;
 	  				}
 				}
-      			}
-    		}
+         }
+      }
   	}
   	return lang;
- }
+}
 
-
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */ \
- || defined(alpha_dec_osf4_0)
- void Dyn_Symtab::getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs)
-#else
- void Dyn_Symtab::getModuleLanguageInfo(hash_map<string, supportedLanguages> * /* mod_langs */)
-#endif
+//  setModuleLanguages is only called after modules have been defined.
+//  it attempts to set each module's language, information which is needed
+//  before names can be demangled.
+void Dyn_Symtab::setModuleLanguages(hash_map<string, supportedLanguages> *mod_langs)
 {
- 	string working_module;
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */
- 
-   	char *ptr;
-   	// check .stabs section to get language info for modules:
-	//   int stab_nsyms;
-	//   char *stabstr_nextoffset;
-	//   const char *stabstrs = 0;
-
-   	string mod_string;
-
-   	// This ugly flag is set when certain (sun) fortran compilers are detected.
-   	// If it is set at any point during the following iteration, this routine
-   	// ends with "backtrack mode" and reiterates through all chosen languages, changing
-   	// lang_Fortran to lang_Fortran_with_pretty_debug.
-   	//
-   	// This may be ugly, but it is set up this way since the information that is used
-   	// to determine whether this flag is set comes from the N_OPT field, which 
-   	// seems to come only once per image.  The kludge is that we assume that all
-   	// fortran sources in the module have this property (they probably do, but
-   	// could conceivably be mixed (???)).
-   	int fortran_kludge_flag = 0;
-	
-   	// "state variables" we use to accumulate potentially useful information
-   	//  A final module<->language decision is not made until we have arrived at the
-   	//  next module entry, at which point we use any and all info we have to 
-   	//  make the most sensible guess
-   	supportedLanguages working_lang = lang_Unknown;
-   	char *working_options = NULL, *working_name = NULL;
-
-   	stab_entry *stabptr = NULL;
-   	const char *next_stabstr = NULL;
-#if defined(TIMED_PARSE)
-   	struct timeval starttime;
-   	gettimeofday(&starttime, NULL);
-#endif
-
-   	//Using the Object to get the pointers to the .stab and .stabstr
-   	// XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-   	stabptr = linkedFile.get_stab_info();
-   	next_stabstr = stabptr->getStringBase();
-
-   	for( unsigned int i = 0; i < stabptr->count(); i++ ) 
-	{
-     		if (stabptr->type(i) == N_UNDF)
-		{/* start of object file */
-        		/* value contains offset of the next string table for next module */
-        		// assert(stabptr->nameIdx(i) == 1);
-			stabptr->setStringBase(next_stabstr);
-	 		next_stabstr = stabptr->getStringBase() + stabptr->val(i); 
-      		}
-      		else if (stabptr->type(i) == N_OPT)
-		{
-         		//  We can use the compiler option string (in a pinch) to guess at the source file language
-         		//  There is possibly more useful information encoded somewhere around here, but I lack
-         		//  an immediate reference....
-         		if (working_name)
-            			working_options = const_cast<char *> (stabptr->name(i)); 
-      		}
-      		else if ((stabptr->type(i) == N_SO)  || (stabptr->type(i) == N_ENDM))
-		{ /* compilation source or file name */
-         		// We have arrived at the next source file, finish up with the last one and reset state
-         		// before starting next
-
-
-         		//   XXXXXXXXXXX  This block is mirrored near the end of routine, if you edit it,
-         		//   XXXXXXXXXXX  change it there too.
-         		if  (working_name)
-			{
-            			working_lang = pickLanguage(working_module, working_options, working_lang);
-            			if (working_lang == lang_Fortran_with_pretty_debug)
-               				fortran_kludge_flag = 1;
-            			(*mod_langs)[working_module] = working_lang;
-
-         		}
-         		//   XXXXXXXXXXX
-	
-         		// reset "state" here
-         		working_lang = lang_Unknown;
-         		working_options = NULL;
-
-        		//  Now:  out with the old, in with the new
-
-         		if (stabptr->type(i) == N_ENDM)
-			{
-            			// special case:
-            			// which is most likely both broken (and ignorable ???)
-            			working_name = "DEFAULT_MODULE";
-         		}
-         		else
-			{
-		        	working_name = const_cast<char*>(stabptr->name(i));
-            			ptr = strrchr(working_name, '/');
-            			if (ptr)
-				{
-               				ptr++;
-               				working_name = ptr;
-            			}
-         		}
-         		working_module = string(working_name);
-
-         		if ((mod_langs->find(working_module) != mod_langs->end()) && (*mod_langs)[working_module] != lang_Unknown) 
-			{
-            			//  we already have a module with this name in the map.  If it has been given
-            			//  a language assignment (not lang_Unknown), we can just skip ahead
-            			working_name = NULL;
-            			working_options = NULL;
-            			continue;
-         		} 
-         		else 
-			{
-            			//cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr->desc(i) << endl;  
-            			switch (stabptr->desc(i))
-				{
-              			case N_SO_FORTRAN: 
-			                 working_lang = lang_Fortran;
-                 			 break;
-              			case N_SO_F90:
-                 			working_lang = lang_Fortran;  // not sure if this should be different from N_SO_FORTRAN
-                 			break;
-              			case N_SO_AS:
-                 			working_lang = lang_Assembly;
-                 			break;
-              			case N_SO_ANSI_C:
-              			case N_SO_C:
-                 			working_lang = lang_C;
-                 			break;
-              			case N_SO_CC:
-                 			working_lang = lang_CPlusPlus;
-                 			break;
-              			default:
-                 			//  currently uncovered options are lang_CMFortran, and lang_GnuCPlusPlus
-                 			//  do we need to make this kind of distinction here?
-                 			working_lang = lang_Unknown;
-                 			break;
-            			}
-	
-         		} 
-      		} // end N_SO section
-   	} // for loop
-
-   	//  Need to make sure we finish up with the module we were last collecting information 
-   	//  about
-
-   	//   XXXXXXXXXXX  see note above (find the X's)
-   	if  (working_name)
-	{
-      		working_lang = pickLanguage(working_module, working_options, working_lang);	  
-      		if (working_lang == lang_Fortran_with_pretty_debug)
-         		fortran_kludge_flag = 1;
-      		(*mod_langs)[working_module] = working_lang;
-   	}
-   	//   XXXXXXXXXXX
-
-   	if (fortran_kludge_flag)
-	{
-      		//  XXX  This code does not appear to be used anymore??  
-      		// go through map and change all lang_Fortran to lang_Fortran_with_pretty_symtab
-      		hash_map<string, supportedLanguages>::iterator iter = (*mod_langs).begin();
-      		string aname;
-      		supportedLanguages alang;
-      		while (++iter!=(*mod_langs).end())
-		{
-			aname = iter->first;
-			alang = iter->second;
-         		if(lang_Fortran == alang)
-			{
-            			(*mod_langs)[aname] = lang_Fortran_with_pretty_debug;
-            			//fprintf(stderr, "%s[%d]:  UPDATE: lang_Fortran->langFortran_with_pretty_debug\n", FILE__, __LINE__);
-        		}
-      		}
-   	}
-#if defined(TIMED_PARSE)
-   	struct timeval endtime;
-   	gettimeofday(&endtime, NULL);
-   	unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-   	unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-   	unsigned long difftime = lendtime - lstarttime;
-   	double dursecs = difftime/(1000 );
-   	cout << __FILE__ << ":" << __LINE__ <<": getModuleLanguageInfo took "<<dursecs <<" msecs" << endl;
-#endif
-   	delete stabptr;
-
-#endif // stabs platforms
-
-#if defined( USES_DWARF_DEBUG )
-   	if (linkedFile.hasDwarfInfo())
-	{
-	
-	//TODO Assumes that a filename is present. change to handle cases where there's
-	//no filename and we have a memory pointer
-      		const char *fileName = linkedFile.getFileName();
-	
-      		int fd = open( fileName, O_RDONLY );
-     		assert ( fd != -1 );
-      		Dwarf_Debug dbg;
-      		int status = dwarf_init( fd, DW_DLC_READ, NULL, NULL, & dbg, NULL );
-      		assert( status == DW_DLV_OK );
-
-      		Dwarf_Unsigned hdr;
-
-      		while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK )
-		{
-         		Dwarf_Die moduleDIE;
-         		status = dwarf_siblingof(dbg, NULL, &moduleDIE, NULL);
-         		assert ( status == DW_DLV_OK );
-         
-         		Dwarf_Half moduleTag;
-         		status = dwarf_tag( moduleDIE, & moduleTag, NULL);
-         		assert( status == DW_DLV_OK );
-         		assert( moduleTag == DW_TAG_compile_unit );
-         
-         		/* Extract the name of this module. */
-         		char * moduleName;
-         		status = dwarf_diename( moduleDIE, & moduleName, NULL );
-         		ptr = strrchr(moduleName, '/');
-         		if (ptr)
-		            ptr++;
-         		else
-		            ptr = moduleName;
-
-         		working_module = string(ptr);
-
-         		if (status != DW_DLV_NO_ENTRY) 
-			{
-            			assert( status != DW_DLV_ERROR );
-            			Dwarf_Attribute languageAttribute;
-            			status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
-            			assert( status != DW_DLV_ERROR );
-            			if( status == DW_DLV_OK ) 
-				{
-               				Dwarf_Unsigned languageConstant;
-               				status = dwarf_formudata( languageAttribute, & languageConstant, NULL );
-               				assert( status == DW_DLV_OK );
-               
-              				switch( languageConstant )
-					{
-               				case DW_LANG_C:
-               				case DW_LANG_C89:
-                  				(*mod_langs)[working_module] = lang_C;
-                  				break;
-               				case DW_LANG_C_plus_plus:
-                  				(*mod_langs)[working_module] = lang_CPlusPlus;
-                  				break;
-               				case DW_LANG_Fortran77:
-               				case DW_LANG_Fortran90:
-               				case DW_LANG_Fortran95:
-                  				(*mod_langs)[working_module] = lang_Fortran;
-                  				break;
-               				default:
-                  				/* We know what the language is but don't care. */
-                  				break;
-               				} /* end languageConstant switch */
-               
-               				dwarf_dealloc( dbg, languageAttribute, DW_DLA_ATTR );
-            			}
-            			dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
-         		}
-         		dwarf_dealloc( dbg, moduleDIE, DW_DLA_DIE );
-      		}
-
-      		status = dwarf_finish( dbg, NULL );
-      		assert( status == DW_DLV_OK );
-      		P_close( fd );
-   	}
-#endif
-
-#if 0
-//
-// eCoff Platforms
-//
-#if defined(alpha_dec_osf4_0)
-
-   	LDFILE *ldptr;
-   	pCHDRR symtab;
-
-  
-   	ldptr = ldopen((char *)linkedFile.GetFile().c_str(), NULL);
-   	symtab = SYMTAB(ldptr);
-
-   	for (int i = 0; i < symtab->hdr.ifdMax; ++i)
-	{
-      		pCFDR file = symtab->pcfd + i;
-      		char *tmp = ((symtab->psym + file->pfd->isymBase)->iss + 
-                		   (symtab->pss + file->pfd->issBase));
-      		string modname = (strrchr(tmp, '/') ? strrchr(tmp, '/') + 1 : tmp);
-
-      		if (file->pfd->csym && modname.length()) 
-		{
-         		switch (file->pfd->lang)
-			{
-           		case langAssembler:
-              			(*mod_langs)[modname] = lang_Assembly;
-              			break;
-           		case langC:
-           		case langStdc:
-              			(*mod_langs)[modname] = lang_C;
-              			break;
-           		case langCxx:
-           		case langDECCxx:
-              			(*mod_langs)[modname] = lang_CPlusPlus;
-              			break;
-           		case langFortran:
-           		case langFortran90:
-              			(*mod_langs)[modname] = lang_Fortran;
-              			break;
-
-           		default:
-              			(*mod_langs)[modname] = lang_Unknown;
-         		}
-
-      		}
-   	}
-   	ldaclose(ldptr);
-
-#endif // eCoff Platforms
-#endif
- }
- 
- //  setModuleLanguages is only called after modules have been defined.
- //  it attempts to set each module's language, information which is needed
- //  before names can be demangled.
- void Dyn_Symtab::setModuleLanguages(hash_map<string, supportedLanguages> *mod_langs)
- {
  	if (!mod_langs->size())
 		return;  // cannot do anything here
   	//  this case will arise on non-stabs platforms until language parsing can be introduced at this level
@@ -835,285 +467,284 @@
 
   	for (unsigned int i = 0;  i < modlist->size(); ++i)
 	{
-    		currmod = (*modlist)[i];
-    		supportedLanguages currLang;
-
-    		if (currmod->isShared())
+      currmod = (*modlist)[i];
+      supportedLanguages currLang;
+      if (currmod->isShared())
 			continue;  // need to find some way to get shared object languages?
-    		if(mod_langs->find(currmod->fileName())!=mod_langs->end())
+      if(mod_langs->find(currmod->fileName()) != mod_langs->end())
 		{
-      			currLang = (*mod_langs)[currmod->fileName()];
+         currLang = (*mod_langs)[currmod->fileName()];
 			currmod->setLanguage(currLang);
-    		}
-    		else
+      }
+      else
 		{
-      			//cerr << __FILE__ << __LINE__ << ":  module " << currmod->fileName() 
-//      				   << " not found in module<->language map" << endl;
-      			//dump = 1;
-      			//  here we should probably try to guess, based on filename conventions
-    		}
+         //cerr << __FILE__ << __LINE__ << ":  module " << currmod->fileName() 
+         //      				   << " not found in module<->language map" << endl;
+         //dump = 1;
+         //  here we should probably try to guess, based on filename conventions
+      }
   	}
- }
+}
 
- Dyn_Module *Dyn_Symtab::getOrCreateModule(const string &modName, 
-				   const OFFSET modAddr)
- {
+Dyn_Module *Dyn_Symtab::getOrCreateModule(const string &modName, 
+                                          const OFFSET modAddr)
+{
  	string nameToUse;
   	if (modName.length() > 0)
-        	nameToUse = modName;
-    	else
-    		nameToUse = "DEFAULT_MODULE";
+      nameToUse = modName;
+   else
+      nameToUse = "DEFAULT_MODULE";
 
-    	Dyn_Module *fm = new Dyn_Module();
-    	if (findModule(nameToUse,fm))
-    		return fm;
+   Dyn_Module *fm = new Dyn_Module();
+   if (findModule(nameToUse,fm))
+      return fm;
 	delete fm;
 
-    	const char *str = nameToUse.c_str();
-    	int len = nameToUse.length();
-    	assert(len>0);
+   const char *str = nameToUse.c_str();
+   int len = nameToUse.length();
+   assert(len>0);
 
-    	// TODO ignore directory definitions for now
-    	if (str[len-1] == '/') 
-    		return NULL;
-    	return (newModule(nameToUse, modAddr, lang_Unknown));
- }
+   // TODO ignore directory definitions for now
+   if (str[len-1] == '/') 
+      return NULL;
+   return (newModule(nameToUse, modAddr, lang_Unknown));
+}
  
- Dyn_Module *Dyn_Symtab::newModule(const string &name, const OFFSET addr, supportedLanguages lang)
- {
+Dyn_Module *Dyn_Symtab::newModule(const string &name, const OFFSET addr, supportedLanguages lang)
+{
  	Dyn_Module *ret = new Dyn_Module();
  	// modules can be defined several times in C++ due to templates and
-    	//   in-line member functions.
-    	if (findModule(name,ret)) {
-      		return(ret);
-    	}
+   //   in-line member functions.
+   if (findModule(name,ret)) {
+      return(ret);
+   }
 
-    	//parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
-        //				name.c_str(), addr);
+   //parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
+   //				name.c_str(), addr);
 
-    	string fileNm, fullNm;
-    	fullNm = name;
-    	fileNm = extract_path_tail(name);
+   string fileNm, fullNm;
+   fullNm = name;
+   fileNm = extract_pathname_tail(name);
 
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
-    	ret = new Dyn_Module(lang, addr, fullNm, this);
-    	modsByFileName[ret->fileName()] = ret;
-    	modsByFullName[ret->fullName()] = ret;
-    	_mods.push_back(ret);
+   ret = new Dyn_Module(lang, addr, fullNm, this);
+   modsByFileName[ret->fileName()] = ret;
+   modsByFullName[ret->fullName()] = ret;
+   _mods.push_back(ret);
 
-    	return(ret);
- }
+   return(ret);
+}
 
  
- //buildFunctionLists() iterates through image_funcs and constructs demangled 
- //names. Demangling was moved here (names used to be demangled as image_funcs 
- //were built) so that language information could be obtained _after_ the 
- //functions and modules were built, but before name demangling takes place.  
- //Thus we can use language information during the demangling process.
+//buildFunctionLists() iterates through image_funcs and constructs demangled 
+//names. Demangling was moved here (names used to be demangled as image_funcs 
+//were built) so that language information could be obtained _after_ the 
+//functions and modules were built, but before name demangling takes place.  
+//Thus we can use language information during the demangling process.
 
- bool Dyn_Symtab::buildFunctionLists(vector <Dyn_Symbol *> &raw_funcs)
- {
- #if defined(TIMED_PARSE)
+bool Dyn_Symtab::buildFunctionLists(vector <Dyn_Symbol *> &raw_funcs)
+{
+#if defined(TIMED_PARSE)
   	struct timeval starttime;
   	gettimeofday(&starttime, NULL);
- #endif
+#endif
  	for (unsigned int i = 0; i < raw_funcs.size(); i++) 
 	{
-        	Dyn_Symbol *raw = raw_funcs[i];
-        	Dyn_Module *rawmod = getOrCreateModule(raw->getModuleName(),raw->getAddr());
+      Dyn_Symbol *raw = raw_funcs[i];
+      Dyn_Module *rawmod = getOrCreateModule(raw->getModuleName(),raw->getAddr());
         
-        	assert(raw);
-        	assert(rawmod);
+      assert(raw);
+      assert(rawmod);
         
-        	// At this point we need to generate the following information:
-        	// A symtab name.
-        	// A pretty (demangled) name.
-        	// The symtab name goes in the global list as well as the module list.
-        	// Same for the pretty name.
-        	// Finally, check addresses to find aliases.
+      // At this point we need to generate the following information:
+      // A symtab name.
+      // A pretty (demangled) name.
+      // The symtab name goes in the global list as well as the module list.
+      // Same for the pretty name.
+      // Finally, check addresses to find aliases.
         
-        	string mangled_name = raw->getName();
-        	string working_name = mangled_name;
+      string mangled_name = raw->getName();
+      string working_name = mangled_name;
             
-        	string pretty_name = "<UNSET>";
-        	string typed_name = "<UNSET>";
-	#if !defined(os_windows)        
-        	//Remove extra stabs information
-        	const char *p = strchr(working_name.c_str(), ':');
-        	if( p )
+      string pretty_name = "<UNSET>";
+      string typed_name = "<UNSET>";
+#if !defined(os_windows)        
+      //Remove extra stabs information
+      const char *p = strchr(working_name.c_str(), ':');
+      if( p )
 		{
-            		unsigned nchars = p - mangled_name.c_str();
-            		working_name = string(mangled_name.c_str(), nchars);
-        	}
-	#endif        
-        	if (!buildDemangledName(working_name, pretty_name, typed_name,
-                                nativeCompiler, rawmod->language())) 
+         unsigned nchars = p - mangled_name.c_str();
+         working_name = string(mangled_name.c_str(), nchars);
+      }
+#endif        
+      if (!buildDemangledName(working_name, pretty_name, typed_name,
+                              nativeCompiler, rawmod->language())) 
 		{
-           		 pretty_name = working_name;
-        	}
+         pretty_name = working_name;
+      }
         
-        	//parsing_printf("%s: demangled %s, typed %s\n",
-                //	       mangled_name.c_str(),
-                //	       pretty_name.c_str(),
-                //	       typed_name.c_str());
+      //parsing_printf("%s: demangled %s, typed %s\n",
+      //	       mangled_name.c_str(),
+      //	       pretty_name.c_str(),
+      //	       typed_name.c_str());
         
-        	// Now, we see if there's already a function object for this
-        	// address. If so, add a new name; 
-        	Dyn_Symbol *possiblyExistingFunction = NULL;
-        	//funcsByEntryAddr.find(raw->getAddr(), possiblyExistingFunction);
-        	if (funcsByEntryAddr.find(raw->getAddr())!=funcsByEntryAddr.end()) 
+      // Now, we see if there's already a function object for this
+      // address. If so, add a new name; 
+      Dyn_Symbol *possiblyExistingFunction = NULL;
+      //funcsByEntryAddr.find(raw->getAddr(), possiblyExistingFunction);
+      if (funcsByEntryAddr.find(raw->getAddr())!=funcsByEntryAddr.end()) 
 		{
 			possiblyExistingFunction = funcsByEntryAddr[raw->getAddr()];
-        		// On some platforms we see two symbols, one in a real module
-        		// and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
-            		// the real one
+         // On some platforms we see two symbols, one in a real module
+         // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
+         // the real one
 			Dyn_Module *use = getOrCreateModule(possiblyExistingFunction->getModuleName(),
                       			               possiblyExistingFunction->getAddr());
-            		if (rawmod != use)
+         if (rawmod != use)
 			{
-                		if (rawmod->fileName() == "DEFAULT_MODULE")
-                    			rawmod = use;
-                		if (use->fileName() == "DEFAULT_MODULE") 
-                    		{
+            if (rawmod->fileName() == "DEFAULT_MODULE")
+               rawmod = use;
+            if (use->fileName() == "DEFAULT_MODULE") 
+            {
 					possiblyExistingFunction->setModuleName(string(rawmod->fullName()));
 					use = rawmod; 
 				}
-            		}
+         }
             
-            		assert(*rawmod == *use);
-            		// Keep the new mangled name
-            		possiblyExistingFunction->addMangledName(mangled_name);
-            		if (pretty_name != "<UNSET>")
-	                	possiblyExistingFunction->addPrettyName(pretty_name);
-            		if (typed_name != "<UNSET>")
+         assert(*rawmod == *use);
+         // Keep the new mangled name
+         possiblyExistingFunction->addMangledName(mangled_name);
+         if (pretty_name != "<UNSET>")
+            possiblyExistingFunction->addPrettyName(pretty_name);
+         if (typed_name != "<UNSET>")
 				possiblyExistingFunction->addTypedName(typed_name);
-            		raw_funcs[i] = NULL;
-            		delete raw; // Don't leak
-        	}
-        	else
+         raw_funcs[i] = NULL;
+         delete raw; // Don't leak
+      }
+      else
 		{
-            		funcsByEntryAddr[raw->getAddr()] = raw;
-            		addFunctionName(raw, mangled_name, true);
-            		if (pretty_name != "<UNSET>")
+         funcsByEntryAddr[raw->getAddr()] = raw;
+         addFunctionName(raw, mangled_name, true);
+         if (pretty_name != "<UNSET>")
 				raw->addPrettyName(pretty_name, true);
-            		if (typed_name != "<UNSET>")
-                		raw->addTypedName(typed_name, true);
+         if (typed_name != "<UNSET>")
+            raw->addTypedName(typed_name, true);
             
-        	}
-    	}
+      }
+   }
     
-    	// Now that we have a 1) unique and 2) demangled list of function
-    	// names, loop through once more and build the address range tree
-    	// and name lookup tables. 
-    	for (unsigned j = 0; j < raw_funcs.size(); j++) 
+   // Now that we have a 1) unique and 2) demangled list of function
+   // names, loop through once more and build the address range tree
+   // and name lookup tables. 
+   for (unsigned j = 0; j < raw_funcs.size(); j++) 
 	{
-        	Dyn_Symbol *func = raw_funcs[j];
-        	if (!func) continue;
+      Dyn_Symbol *func = raw_funcs[j];
+      if (!func) continue;
         
-        	// May be NULL if it was an alias.
-        	enterFunctionInTables(func, true);
-    	}
+      // May be NULL if it was an alias.
+      enterFunctionInTables(func, true);
+   }
     
-    	// Conspicuous lack: inst points. We're delaying.
- #if defined(TIMED_PARSE)
+   // Conspicuous lack: inst points. We're delaying.
+#if defined(TIMED_PARSE)
  	struct timeval endtime;
-   	gettimeofday(&endtime, NULL);
-   	unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-   	unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-   	unsigned long difftime = lendtime - lstarttime;
-   	double dursecs = difftime/(1000 );
-   	cout << __FILE__ << ":" << __LINE__ <<": buildFunction Lists took "<<dursecs <<" msecs" << endl;
- #endif
-    	return true;
- } 
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << __FILE__ << ":" << __LINE__ <<": buildFunction Lists took "<<dursecs <<" msecs" << endl;
+#endif
+   return true;
+} 
 
- // Enter a function in all the appropriate tables
- void Dyn_Symtab::enterFunctionInTables(Dyn_Symbol *func, bool wasSymtab)
- {
+// Enter a function in all the appropriate tables
+void Dyn_Symtab::enterFunctionInTables(Dyn_Symbol *func, bool wasSymtab)
+{
  	if (!func)
 		return;
     
  	funcsByEntryAddr[func->getAddr()] = func;
-    	// Functions added during symbol table parsing do not necessarily
-    	// have valid sizes set, and should therefor not be added to
-    	// the code range tree. They will be added after parsing. 
-    	/*if(!wasSymtab)
-	{
-        	// TODO: out-of-line insertion here
-        	//if (func->get_size_cr())
-        	//	funcsByRange.insert(func);
-    	}*/
+   // Functions added during symbol table parsing do not necessarily
+   // have valid sizes set, and should therefor not be added to
+   // the code range tree. They will be added after parsing. 
+   /*if(!wasSymtab)
+     {
+     // TODO: out-of-line insertion here
+     //if (func->get_size_cr())
+     //	funcsByRange.insert(func);
+     }*/
     
-    	everyUniqueFunction.push_back(func);
-    	if (wasSymtab)
-    		exportedFunctions.push_back(func);
-    	else
-        	createdFunctions.push_back(func);
- }
+   everyUniqueFunction.push_back(func);
+   if (wasSymtab)
+      exportedFunctions.push_back(func);
+   else
+      createdFunctions.push_back(func);
+}
 
 /* 
- bool Dyn_Symtab::addSymbol(Dyn_Symbol *newsym)
- {
+   bool Dyn_Symtab::addSymbol(Dyn_Symbol *newsym)
+   {
  	string sname = newsym->getName();
-    #if !defined(os_windows)
-      	// Windows: variables are created with an empty module
-    	if (newsym->getModuleName().length() == 0) 
+   #if !defined(os_windows)
+   // Windows: variables are created with an empty module
+   if (newsym->getModuleName().length() == 0) 
 	{
-       		//fprintf(stderr, "SKIPPING EMPTY MODULE\n");
-       		return false;
+   //fprintf(stderr, "SKIPPING EMPTY MODULE\n");
+   return false;
 	}
-    #endif
+   #endif
 	Dyn_Module *newMod = getOrCreateModule(sname, newsym->getAddr());
 	delete(newsym->getModule());
 	newsym->setModule(newMod);
-    	char * unmangledName = P_cplus_demangle(sname.c_str(), nativeCompiler,false);
+   char * unmangledName = P_cplus_demangle(sname.c_str(), nativeCompiler,false);
 	if(unmangledName)
 	{
-		newsym->addPrettyName(unmangledName, true);
-		if(newsym->getType() == Dyn_Symbol::ST_FUNCTION)
-			addFunctionName(newsym, sname, true);
-		else if(newsym->getType() == Dyn_Symbol::ST_OBJECT)
-			addVariableName(newsym, sname, true);
-		else if(newsym->getType() == Dyn_Symbol::ST_MODULE)
-			modSyms.push_back(newsym);
-		else
-			notypeSyms.push_back(newsym);
-        }
+   newsym->addPrettyName(unmangledName, true);
+   if(newsym->getType() == Dyn_Symbol::ST_FUNCTION)
+   addFunctionName(newsym, sname, true);
+   else if(newsym->getType() == Dyn_Symbol::ST_OBJECT)
+   addVariableName(newsym, sname, true);
+   else if(newsym->getType() == Dyn_Symbol::ST_MODULE)
+   modSyms.push_back(newsym);
+   else
+   notypeSyms.push_back(newsym);
+   }
 	else
 	{
-		newsym->addPrettyName(sname, true);
-		if(newsym->getType() == Dyn_Symbol::ST_FUNCTION)
-			addFunctionName(newsym, sname, true);
-		else if(newsym->getType() == Dyn_Symbol::ST_OBJECT)
-			addVariableName(newsym, sname, true);
-		else if(newsym->getType() == Dyn_Symbol::ST_MODULE)
-			modSyms.push_back(newsym);
-		else
-			notypeSyms.push_back(newsym);
-        }
-	//linkedFile.symbols_[sname].push_back(newsym);
+   newsym->addPrettyName(sname, true);
+   if(newsym->getType() == Dyn_Symbol::ST_FUNCTION)
+   addFunctionName(newsym, sname, true);
+   else if(newsym->getType() == Dyn_Symbol::ST_OBJECT)
+   addVariableName(newsym, sname, true);
+   else if(newsym->getType() == Dyn_Symbol::ST_MODULE)
+   modSyms.push_back(newsym);
+   else
+   notypeSyms.push_back(newsym);
+   }
+	//linkedFile->symbols_[sname].push_back(newsym);
 	return true;
- }
+   }
 */
 
- bool Dyn_Symtab::addSymbol(Dyn_Symbol *newSym)
- {
+bool Dyn_Symtab::addSymbol(Dyn_Symbol *newSym)
+{
  	vector<string> names;
 	char *unmangledName = NULL;
  	string sname = newSym->getName();
-    #if !defined(os_windows)
-      	// Windows: variables are created with an empty module
-    	if (newSym->getModuleName().length() == 0) 
+#if !defined(os_windows)
+   // Windows: variables are created with an empty module
+   if (newSym->getModuleName().length() == 0) 
 	{
-       		//fprintf(stderr, "SKIPPING EMPTY MODULE\n");
-       		return false;
+      //fprintf(stderr, "SKIPPING EMPTY MODULE\n");
+      return false;
 	}
-    #endif
+#endif
 	Dyn_Module *newMod = getOrCreateModule(sname, newSym->getAddr());
 	delete(newSym->getModule());
 	newSym->setModule(newMod);
 	if(newSym->getAllPrettyNames().size() == 0)
-    		unmangledName = P_cplus_demangle(sname.c_str(), nativeCompiler,false);
+      unmangledName = P_cplus_demangle(sname.c_str(), nativeCompiler,false);
 	if(newSym->getType() == Dyn_Symbol::ST_FUNCTION)
 	{
 		names = newSym->getAllMangledNames();
@@ -1152,111 +783,119 @@
 	return true;
 }
 
- void Dyn_Symtab::addFunctionName(Dyn_Symbol *func,
-                            const string newName,
-                            bool isMangled /*=false*/)
- {    
-    // Ensure a vector exists
-    if (isMangled == false) {
+void Dyn_Symtab::addFunctionName(Dyn_Symbol *func,
+                                 const string newName,
+                                 bool isMangled /*=false*/)
+{    
+   // Ensure a vector exists
+   if (isMangled == false) {
     	if(funcsByPretty.find(newName)==funcsByPretty.end())
-	    funcsByPretty[newName] = new vector<Dyn_Symbol *>;
-	funcsByPretty[newName]->push_back(func);    
-    }
-    else {
+         funcsByPretty[newName] = new vector<Dyn_Symbol *>;
+      funcsByPretty[newName]->push_back(func);    
+   }
+   else {
     	if(funcsByMangled.find(newName)==funcsByMangled.end())
-	    funcsByMangled[newName] = new vector<Dyn_Symbol *>;
-	funcsByMangled[newName]->push_back(func);    
-    }
- }
+         funcsByMangled[newName] = new vector<Dyn_Symbol *>;
+      funcsByMangled[newName]->push_back(func);    
+   }
+}
 
- void Dyn_Symtab::addVariableName(Dyn_Symbol *var,
-                            	const string newName,
-                            	bool isMangled /*=false*/)
- {    
-    // Ensure a vector exists
-    if (isMangled == false) {
+void Dyn_Symtab::addVariableName(Dyn_Symbol *var,
+                                 const string newName,
+                                 bool isMangled /*=false*/)
+{    
+   // Ensure a vector exists
+   if (isMangled == false) {
     	if(varsByPretty.find(newName)==varsByPretty.end())
-	    varsByPretty[newName] = new vector<Dyn_Symbol *>;
-	varsByPretty[newName]->push_back(var);    
-    }
-    else {
+         varsByPretty[newName] = new vector<Dyn_Symbol *>;
+      varsByPretty[newName]->push_back(var);    
+   }
+   else {
     	if(varsByMangled.find(newName)==varsByMangled.end())
-	    varsByMangled[newName] = new vector<Dyn_Symbol *>;
-	varsByMangled[newName]->push_back(var);    
-    }
- }
+         varsByMangled[newName] = new vector<Dyn_Symbol *>;
+      varsByMangled[newName]->push_back(var);    
+   }
+}
  
- Dyn_Symtab::Dyn_Symtab(string &filename,bool &err): filename_(filename),
-  is_a_out(false),
-  main_call_addr_(0),
-  nativeCompiler(false),
-  linkedFile(filename,pd_log_perror)
- {
-	name_ = extract_path_tail(filename);
+Dyn_Symtab::Dyn_Symtab(string &filename,bool &err)
+   : filename_(filename), is_a_out(false), main_call_addr_(0),
+     nativeCompiler(false)
+{
+   linkedFile = new Object(filename, pd_log_perror);
+	name_ = extract_pathname_tail(filename);
 	err = extractInfo();
- }
+}
 
- Dyn_Symtab::Dyn_Symtab(char *mem_image, size_t image_size, bool &err):
-  is_a_out(false),
-  main_call_addr_(0),
-  nativeCompiler(false),
-  linkedFile(mem_image, image_size, pd_log_perror)
-  {
+Dyn_Symtab::Dyn_Symtab(char *mem_image, size_t image_size, bool &err):
+   is_a_out(false),
+   main_call_addr_(0),
+   nativeCompiler(false)
+{
+   linkedFile = new Object(mem_image, image_size, pd_log_perror);
   	err = extractInfo();
-  }
+}
 
-#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)
-  
- Dyn_Symtab::Dyn_Symtab(string &filename,string &member_name,OFFSET offset, bool &err): filename_(filename),
-  member_name_(member_name),
-  is_a_out(false),
-  main_call_addr_(0),
-  nativeCompiler(false),
-  linkedFile(filename, member_name, offset, pd_log_perror)
-  {
-	name_ = extract_path_tail(filename);
+#if defined(os_aix)
+Dyn_Symtab::Dyn_Symtab(string &filename, string &member_name, OFFSET offset, 
+                       bool &err)
+   : filename_(filename), member_name_(member_name), is_a_out(false),
+     main_call_addr_(0), nativeCompiler(false)
+{
+   linkedFile = new Object(filename, member_name, offset, pd_log_perror);
+	name_ = extract_pathname_tail(filename);
 	err = extractInfo();
-  }
+}
+#else
+Dyn_Symtab::Dyn_Symtab(string &, string &, OFFSET, bool &)
+{
+   assert(0);
+}
+#endif
 
- Dyn_Symtab::Dyn_Symtab(char *mem_image, size_t image_size, string &member_name, OFFSET offset, bool &err):
-  member_name_(member_name),	
-  is_a_out(false),
-  main_call_addr_(0),
-  nativeCompiler(false),
-  linkedFile(mem_image, image_size, member_name, offset, pd_log_perror)
-  {
+#if defined(os_aix)
+Dyn_Symtab::Dyn_Symtab(char *mem_image, size_t image_size, string &member_name,
+                       OFFSET offset, bool &err)
+   : member_name_(member_name), is_a_out(false), main_call_addr_(0),
+     nativeCompiler(false)
+{
+   linkedFile = new Object(mem_image, image_size, member_name, offset, 
+                           pd_log_perror);
   	err = extractInfo();
-  }
+}
+#else 
+Dyn_Symtab::Dyn_Symtab(char *, size_t, string &, OFFSET, bool &)
+{
+   assert(0);
+}
+#endif
 
-#endif 
- 
-  bool Dyn_Symtab::extractInfo()
-  {
+bool Dyn_Symtab::extractInfo()
+{
 #if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
  	bool err = true;
-	codeOffset_ = linkedFile.code_off();
-	dataOffset_ = linkedFile.data_off();
+	codeOffset_ = linkedFile->code_off();
+	dataOffset_ = linkedFile->data_off();
    
-   	codeLen_ = linkedFile.code_len();
-   	dataLen_ = linkedFile.data_len();
+   codeLen_ = linkedFile->code_len();
+   dataLen_ = linkedFile->data_len();
 
-   	codeValidStart_ = linkedFile.code_vldS();
-   	codeValidEnd_ = linkedFile.code_vldE();
-   	dataValidStart_ = linkedFile.data_vldS();
-   	dataValidEnd_ = linkedFile.data_vldE();
+   codeValidStart_ = linkedFile->code_vldS();
+   codeValidEnd_ = linkedFile->code_vldE();
+   dataValidStart_ = linkedFile->data_vldS();
+   dataValidEnd_ = linkedFile->data_vldE();
 	
-	if (!codeLen_ || !linkedFile.code_ptr()) {
-      		serr = Obj_Parsing; 
-      		return false; 
-   	}
+	if (!codeLen_ || !linkedFile->code_ptr()) {
+      serr = Obj_Parsing; 
+      return false; 
+   }
 
-	no_of_sections = linkedFile.no_of_sections();
-	no_of_symbols = linkedFile.no_of_symbols();
+	no_of_sections = linkedFile->no_of_sections();
+	no_of_symbols = linkedFile->no_of_symbols();
 
-	sections_ = linkedFile.getAllSections();
+	sections_ = linkedFile->getAllSections();
 	for(unsigned index=0;index<sections_.size();index++)
 		secsByEntryAddr[sections_[index]->getSecAddr()] = sections_[index];
 
@@ -1266,137 +905,137 @@
 	
   	SymbolIter symIter(linkedFile);
 
-   	for(;symIter;symIter++)
+   for(;symIter;symIter++)
 	{
-      		Dyn_Symbol *lookUp = symIter.currval();
-      		if (lookUp.getType() == Dyn_Symbol::ST_MODULE)
+      Dyn_Symbol *lookUp = symIter.currval();
+      if (lookUp.getType() == Dyn_Symbol::ST_MODULE)
 		{
-         		const string &lookUpName = lookUp->getName();
-         		const char *str = lookUpName.c_str();
+         const string &lookUpName = lookUp->getName();
+         const char *str = lookUpName.c_str();
 
-         		assert(str);
-	        	int ln = lookUpName.length();
+         assert(str);
+         int ln = lookUpName.length();
           
-         		// directory definition -- ignored for now
-         		if (str[ln-1] != '/')
-	            		tmods.push_back(lookUp);
-       		}
-   	}
+         // directory definition -- ignored for now
+         if (str[ln-1] != '/')
+            tmods.push_back(lookUp);
+      }
+   }
  
 	// sort the modules by address
-   	//statusLine("sorting modules");
-   	//sort(tmods.begin(), tmods.end(), symbol_compare);
- #if defined(TIMED_PARSE)
+   //statusLine("sorting modules");
+   //sort(tmods.begin(), tmods.end(), symbol_compare);
+#if defined(TIMED_PARSE)
  	struct timeval endtime;
-   	gettimeofday(&endtime, NULL);
-   	unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-   	unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-   	unsigned long difftime = lendtime - lstarttime;
-   	double dursecs = difftime/(1000 );
-   	cout << __FILE__ << ":" << __LINE__ <<": extract mods & sort took "<<dursecs <<" msecs" << endl;
- #endif
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << __FILE__ << ":" << __LINE__ <<": extract mods & sort took "<<dursecs <<" msecs" << endl;
+#endif
   
-   	// remove duplicate entries -- some .o files may have the same 
-   	// address as .C files.  kludge is true for module symbols that 
-   	// I am guessing are modules
+   // remove duplicate entries -- some .o files may have the same 
+   // address as .C files.  kludge is true for module symbols that 
+   // I am guessing are modules
   
-   	unsigned int num_zeros = 0;
-   	// must use loop+1 not mods.size()-1 since it is an unsigned compare
-   	//  which could go negative - jkh 5/29/95
-   	for (unsigned loop=0; loop < tmods.size(); loop++)
+   unsigned int num_zeros = 0;
+   // must use loop+1 not mods.size()-1 since it is an unsigned compare
+   //  which could go negative - jkh 5/29/95
+   for (unsigned loop=0; loop < tmods.size(); loop++)
 	{
-   		if (tmods[loop].getAddr() == 0)
+      if (tmods[loop].getAddr() == 0)
 			num_zeros++;
-      		if ((loop+1 < tmods.size()) && (tmods[loop].getAddr() == tmods[loop+1].getAddr()))
-            		tmods[loop+1] = tmods[loop];
-      		else
-		        uniq.push_back(tmods[loop]);
-   	}
-   	// avoid case where all (ELF) module symbols have address zero
+      if ((loop+1 < tmods.size()) && (tmods[loop].getAddr() == tmods[loop+1].getAddr()))
+         tmods[loop+1] = tmods[loop];
+      else
+         uniq.push_back(tmods[loop]);
+   }
+   // avoid case where all (ELF) module symbols have address zero
    
-   	if (num_zeros == tmods.size())
-     		uniq.resize(0);
+   if (num_zeros == tmods.size())
+      uniq.resize(0);
 
 #endif //if 0
 
-   #if defined(os_solaris) || defined(os_aix) || defined(os_linux)
-   	// make sure we're using the right demangler
+#if defined(os_solaris) || defined(os_aix) || defined(os_linux)
+   // make sure we're using the right demangler
 
-   	nativeCompiler = parseCompilerType(&linkedFile);
-   	//parsing_printf("isNativeCompiler: %d\n", nativeCompiler);
-   #endif
+   nativeCompiler = parseCompilerType(linkedFile);
+   //parsing_printf("isNativeCompiler: %d\n", nativeCompiler);
+#endif
   	 
-	 // define all of the functions
-   	//statusLine("winnowing functions");
+   // define all of the functions
+   //statusLine("winnowing functions");
   
-   	// a vector to hold all created functions until they are properly classified
-   	vector<Dyn_Symbol *> raw_funcs;
+   // a vector to hold all created functions until they are properly classified
+   vector<Dyn_Symbol *> raw_funcs;
 	
 	// define all of the functions, this also defines all of the modules
 	if (!symbolsToFunctions(&raw_funcs))
 	{
-        	fprintf(stderr, "Error converting symbols to functions in file %s\n", filename_.c_str());
+      fprintf(stderr, "Error converting symbols to functions in file %s\n", filename_.c_str());
 		err = false;
 		serr = Syms_To_Functions;
-      		return false;
-   	}
+      return false;
+   }
 	sort(raw_funcs.begin(),raw_funcs.end(),symbol_compare);
 	
-   	// wait until all modules are defined before applying languages to
-   	// them we want to do it this way so that module information comes
-   	// from the function symbols, first and foremost, to avoid any
-   	// internal module-function mismatching.
+   // wait until all modules are defined before applying languages to
+   // them we want to do it this way so that module information comes
+   // from the function symbols, first and foremost, to avoid any
+   // internal module-function mismatching.
   	
   	// get Information on the language each modules is written in
-   	// (prior to making modules)
-   	hash_map<string, supportedLanguages> mod_langs;
-   	getModuleLanguageInfo(&mod_langs);
-   	setModuleLanguages(&mod_langs);
+   // (prior to making modules)
+   hash_map<string, supportedLanguages> mod_langs;
+   getModuleLanguageInfo(&mod_langs);
+   setModuleLanguages(&mod_langs);
 	
 	// Once languages are assigned, we can build demangled names (in
-   	// the wider sense of demangling which includes stripping _'s from
-   	// fortran names -- this is why language information must be
-   	// determined before this step).
+   // the wider sense of demangling which includes stripping _'s from
+   // fortran names -- this is why language information must be
+   // determined before this step).
 
-   	// Also identifies aliases (multiple names with equal addresses)
+   // Also identifies aliases (multiple names with equal addresses)
 
-   	if (!buildFunctionLists(raw_funcs))
+   if (!buildFunctionLists(raw_funcs))
 	{
-        	fprintf(stderr, "Error building function lists in file %s\n", filename_.c_str());
-     		err = false;
+      fprintf(stderr, "Error building function lists in file %s\n", filename_.c_str());
+      err = false;
 		serr = Build_Function_Lists;
-     		return false;
-   	}
+      return false;
+   }
 
-   	// And symtab variables
-   	//addSymtabVariables();
-	linkedFile.getAllExceptions(excpBlocks);
+   // And symtab variables
+   //addSymtabVariables();
+	linkedFile->getAllExceptions(excpBlocks);
 	return true;
- }
+}
 
- Dyn_Symtab::Dyn_Symtab(const Dyn_Symtab& obj)
- : Dyn_LookupInterface()
- {
+Dyn_Symtab::Dyn_Symtab(const Dyn_Symtab& obj)
+   : Dyn_LookupInterface()
+{
  	filename_ = obj.filename_;
  	member_name_ = obj.member_name_;
 	name_ = obj.name_;
-        codeOffset_ = obj.codeOffset_;
-        codeLen_ = obj.codeLen_;
+   codeOffset_ = obj.codeOffset_;
+   codeLen_ = obj.codeLen_;
 	dataOffset_ = obj.dataOffset_;
 	dataLen_ = obj.dataLen_;
 
-       	codeValidStart_ = obj.codeValidStart_;
-        codeValidEnd_ = obj.codeValidEnd_;
+   codeValidStart_ = obj.codeValidStart_;
+   codeValidEnd_ = obj.codeValidEnd_;
 	dataValidStart_ = obj.dataValidStart_;
-        dataValidEnd_ = obj.dataValidEnd_;
+   dataValidEnd_ = obj.dataValidEnd_;
         
 	is_a_out = obj.is_a_out;;
-        main_call_addr_ = obj.main_call_addr_; // address of call to main()
+   main_call_addr_ = obj.main_call_addr_; // address of call to main()
 
-        nativeCompiler = obj.nativeCompiler;
+   nativeCompiler = obj.nativeCompiler;
 
-        // data from the symbol table  //what should be done here??
-       	linkedFile = obj.linkedFile; 
+   // data from the symbol table  //what should be done here??
+   linkedFile = obj.linkedFile; 
 	
 	//sections
 	no_of_sections = obj.no_of_sections;
@@ -1442,27 +1081,27 @@
 	
 	for(i=0;i<excpBlocks.size();i++)
 		excpBlocks.push_back(new Dyn_ExceptionBlock(*(obj.excpBlocks[i])));
- }
+}
 
- bool Dyn_Symtab::findModule(const string &name, Dyn_Module *&ret)
- {
-      	if (modsByFileName.find(name)!=modsByFileName.end()) 
+bool Dyn_Symtab::findModule(const string &name, Dyn_Module *&ret)
+{
+   if (modsByFileName.find(name)!=modsByFileName.end()) 
 	{
-          	ret = modsByFileName[name];
+      ret = modsByFileName[name];
 		return true;
-      	}
-      	else if (modsByFullName.find(name)!=modsByFullName.end()) 
+   }
+   else if (modsByFullName.find(name)!=modsByFullName.end()) 
 	{
-          	ret = modsByFullName[name];
+      ret = modsByFullName[name];
 		return true;
-      	}
+   }
   
 	serr = No_Such_Module;
 	return false;
- }
+}
 
- bool Dyn_Symtab::getAllSymbolsByType(vector<Dyn_Symbol *> &ret, Dyn_Symbol::SymbolType sType)
- {
+bool Dyn_Symtab::getAllSymbolsByType(vector<Dyn_Symbol *> &ret, Dyn_Symbol::SymbolType sType)
+{
  	if(sType == Dyn_Symbol::ST_FUNCTION)
 		return getAllFunctions(ret);
 	else if(sType == Dyn_Symbol::ST_OBJECT)
@@ -1490,11 +1129,11 @@
 	}
 	else
 		return getAllSymbols(ret);
- }
+}
  
  
- bool Dyn_Symtab::getAllFunctions(vector<Dyn_Symbol *> &ret)
- {
+bool Dyn_Symtab::getAllFunctions(vector<Dyn_Symbol *> &ret)
+{
  	if(everyUniqueFunction.size() > 0)
 	{
 		ret = everyUniqueFunction;
@@ -1502,10 +1141,10 @@
 	}	
 	serr = No_Such_Function;
 	return false;
- }
+}
  
- bool Dyn_Symtab::getAllVariables(vector<Dyn_Symbol *> &ret)
- {
+bool Dyn_Symtab::getAllVariables(vector<Dyn_Symbol *> &ret)
+{
  	if(everyUniqueVariable.size() > 0)
 	{
 		ret = everyUniqueVariable;
@@ -1513,10 +1152,10 @@
 	}	
 	serr = No_Such_Variable;
 	return false;
- }
+}
 
- bool Dyn_Symtab::getAllSymbols(vector<Dyn_Symbol *> &ret)
- {
+bool Dyn_Symtab::getAllSymbols(vector<Dyn_Symbol *> &ret)
+{
  	vector<Dyn_Symbol *> temp;
 	getAllFunctions(ret);
 	getAllVariables(temp);
@@ -1530,10 +1169,10 @@
 		return true;
 	serr = No_Such_Symbol;
 	return false;
- }
+}
 
- bool Dyn_Symtab::getAllModules(vector<Dyn_Module *> &ret)
- {
+bool Dyn_Symtab::getAllModules(vector<Dyn_Module *> &ret)
+{
  	if(_mods.size()>0)
 	{
 		ret = _mods;
@@ -1541,30 +1180,30 @@
 	}	
 	serr = No_Such_Module;
 	return false;
- }
+}
 
- bool Dyn_Symtab::getAllSections(vector<Dyn_Section *>&ret)
- {
+bool Dyn_Symtab::getAllSections(vector<Dyn_Section *>&ret)
+{
  	if(sections_.size() > 0)
 	{
 		ret = sections_;
 		return true;
 	}
 	return false;
- }
+}
 
- bool Dyn_Symtab::getAllExceptions(vector<Dyn_ExceptionBlock *> &exceptions)
- {
+bool Dyn_Symtab::getAllExceptions(vector<Dyn_ExceptionBlock *> &exceptions)
+{
  	if(excpBlocks.size()>0)
 	{
 		exceptions = excpBlocks;
 		return true;
 	}	
 	return false;
- }
+}
 
- bool Dyn_Symtab::findException(OFFSET &addr, Dyn_ExceptionBlock &excp)
- {
+bool Dyn_Symtab::findException(OFFSET &addr, Dyn_ExceptionBlock &excp)
+{
  	for(unsigned i=0; i<excpBlocks.size(); i++)
 	{
 		if(excpBlocks[i]->contains(addr))
@@ -1574,60 +1213,60 @@
 		}	
 	}
 	return false;
- }
+}
 
 /**
  * Returns true if the Address range addr -> addr+size contains
  * a catch block, with excp pointing to the appropriate block
  **/
- bool Dyn_Symtab::findCatchBlock(Dyn_ExceptionBlock &excp, OFFSET addr, unsigned size)
- {
+bool Dyn_Symtab::findCatchBlock(Dyn_ExceptionBlock &excp, OFFSET addr, unsigned size)
+{
  	int min = 0;
 	int max = excpBlocks.size();
 	int cur = -1, last_cur;
 
-        if (max == 0)
-	      return false;
+   if (max == 0)
+      return false;
 
-        //Binary search through vector for address
+   //Binary search through vector for address
 	while (true)
 	{
-	     last_cur = cur;
-	     cur = (min + max) / 2;
+      last_cur = cur;
+      cur = (min + max) / 2;
 
-             if (last_cur == cur)
-           	return false;
+      if (last_cur == cur)
+         return false;
 
-             OFFSET curAddr = excpBlocks[cur]->catchStart();
-             if ((curAddr <= addr && curAddr+size > addr) ||
-			                 (size == 0 && curAddr == addr))
-      	     {
-      	   	//Found it
+      OFFSET curAddr = excpBlocks[cur]->catchStart();
+      if ((curAddr <= addr && curAddr+size > addr) ||
+          (size == 0 && curAddr == addr))
+      {
+         //Found it
 	     	excp = *(excpBlocks[cur]);
 	     	return true;
-	     }
-	     if (addr < curAddr)
-                max = cur;
-	     else if (addr > curAddr)
+      }
+      if (addr < curAddr)
+         max = cur;
+      else if (addr > curAddr)
 	     	min = cur;
-        }
- }
+   }
+}
  
- bool Dyn_Symtab::findFuncByEntryOffset(const OFFSET &entry, Dyn_Symbol *ret)
- {
+bool Dyn_Symtab::findFuncByEntryOffset(const OFFSET &entry, Dyn_Symbol *ret)
+{
  	if(funcsByEntryAddr.find(entry)!=funcsByEntryAddr.end()) {
-      		ret = funcsByEntryAddr[entry];
+      ret = funcsByEntryAddr[entry];
 		return true;
-    	}
+   }
 	serr = No_Such_Function;
 	ret = NULL;
 	return false;
- }
+}
  
 #if 0 
- bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
-                                 Dyn_Symbol::SymbolType sType, unsigned flags)
- {
+bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
+                                  Dyn_Symbol::SymbolType sType, unsigned flags)
+{
  	switch(flags)
 	{
 		case IS_PRETTY|NOT_REGEX|NOT_CASE_SENSITIVE:
@@ -1648,19 +1287,19 @@
 			serr = Invalid_Flags;
 			return false;
 	}
- }
+}
 #endif 
  
- bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
-				Dyn_Symbol::SymbolType sType, bool isMangled,
-				bool isRegex, bool checkCase)
- {
+bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
+                                  Dyn_Symbol::SymbolType sType, bool isMangled,
+                                  bool isRegex, bool checkCase)
+{
  	if(sType == Dyn_Symbol::ST_FUNCTION)
 		return findFunction(ret, name, isMangled, isRegex, checkCase);
 	else if(sType == Dyn_Symbol::ST_OBJECT)
 		return findVariable(ret, name, isMangled, isRegex, checkCase);
 	else if((sType == Dyn_Symbol::ST_MODULE) ||
-		(sType == Dyn_Symbol::ST_NOTYPE))
+           (sType == Dyn_Symbol::ST_NOTYPE))
 	{
 		unsigned start = ret.size(),i;
 		if(!isMangled && !isRegex)
@@ -1750,12 +1389,12 @@
 		}
 	}
 	return false;
- }
+}
 				
- bool Dyn_Symtab::findFunction(vector <Dyn_Symbol *> &ret,const string &name, 
-				bool isMangled, bool isRegex, 
-				bool checkCase)
- {
+bool Dyn_Symtab::findFunction(vector <Dyn_Symbol *> &ret,const string &name, 
+                              bool isMangled, bool isRegex, 
+                              bool checkCase)
+{
 	if(!isMangled&&!isRegex)
 		return findFuncVectorByPretty(name, ret);
 	else if(isMangled&&!isRegex)
@@ -1764,12 +1403,12 @@
 		return findFuncVectorByPrettyRegex(name, checkCase, ret);
 	else
 		return findFuncVectorByMangledRegex(name, checkCase, ret);
- }
+}
 
- bool Dyn_Symtab::findVariable(vector <Dyn_Symbol *> &ret, const string &name,
-				bool isMangled, bool isRegex,
-				bool checkCase)
- {
+bool Dyn_Symtab::findVariable(vector <Dyn_Symbol *> &ret, const string &name,
+                              bool isMangled, bool isRegex,
+                              bool checkCase)
+{
 	if(!isMangled&&!isRegex)
 		return findVarVectorByPretty(name, ret);
 	else if(isMangled&&!isRegex)
@@ -1778,12 +1417,12 @@
 		return findVarVectorByPrettyRegex(name, checkCase, ret);
 	else
 		return findVarVectorByMangledRegex(name, checkCase, ret);
- }
+}
 
- // Return the vector of functions associated with a mangled name
- // Very well might be more than one! -- multiple static functions in different .o files
- bool Dyn_Symtab::findFuncVectorByPretty(const string &name, vector<Dyn_Symbol *> &ret)
- {
+// Return the vector of functions associated with a mangled name
+// Very well might be more than one! -- multiple static functions in different .o files
+bool Dyn_Symtab::findFuncVectorByPretty(const string &name, vector<Dyn_Symbol *> &ret)
+{
  	if (funcsByPretty.find(name)!=funcsByPretty.end()) 
 	{
 		ret = *(funcsByPretty[name]);
@@ -1791,13 +1430,13 @@
   	}
 	serr = No_Such_Function;
   	return false;
- }
+}
  
- bool Dyn_Symtab::findFuncVectorByMangled(const string &name, vector<Dyn_Symbol *> &ret)
- {
+bool Dyn_Symtab::findFuncVectorByMangled(const string &name, vector<Dyn_Symbol *> &ret)
+{
  	//fprintf(stderr,"findFuncVectorByMangled %s\n",name.c_str());
  	//#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-   	//bperr( "%s[%d]:  inside findFuncVectorByMangled\n", FILE__, __LINE__);
+   //bperr( "%s[%d]:  inside findFuncVectorByMangled\n", FILE__, __LINE__);
 	//#endif
   	if (funcsByMangled.find(name)!=funcsByMangled.end()) 
 	{
@@ -1806,10 +1445,10 @@
   	}
 	serr = No_Such_Function;
   	return false;
- }
+}
  
- bool Dyn_Symtab::findVarVectorByPretty(const string &name, vector<Dyn_Symbol *> &ret)
- {
+bool Dyn_Symtab::findVarVectorByPretty(const string &name, vector<Dyn_Symbol *> &ret)
+{
  	//fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
 	//#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
   	//bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
@@ -1821,10 +1460,10 @@
   	}
 	serr = No_Such_Variable;
   	return false;
- }
+}
 
- bool Dyn_Symtab::findVarVectorByMangled(const string &name, vector<Dyn_Symbol *> &ret)
- {
+bool Dyn_Symtab::findVarVectorByMangled(const string &name, vector<Dyn_Symbol *> &ret)
+{
  	// fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
  	//#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
  	//bperr( "%s[%d]:  inside findVariableVectorByPretty\n", FILE__, __LINE__);
@@ -1836,10 +1475,10 @@
   	}
 	serr = No_Such_Variable;
   	return false;
- }
+}
 
- bool Dyn_Symtab::findFuncVectorByMangledRegex(const string &rexp, bool checkCase, vector<Dyn_Symbol *>&ret)
- {
+bool Dyn_Symtab::findFuncVectorByMangledRegex(const string &rexp, bool checkCase, vector<Dyn_Symbol *>&ret)
+{
  	unsigned start = ret.size();	
 	hash_map <string, vector<Dyn_Symbol *>*>::iterator iter;
 	for(iter = funcsByMangled.begin(); iter!=varsByMangled.end(); iter++)
@@ -1856,10 +1495,10 @@
 		return true;
 	serr = No_Such_Function;
 	return false;
- }
+}
  
- bool Dyn_Symtab::findFuncVectorByPrettyRegex(const string &rexp, bool checkCase, vector<Dyn_Symbol *>&ret)
- {
+bool Dyn_Symtab::findFuncVectorByPrettyRegex(const string &rexp, bool checkCase, vector<Dyn_Symbol *>&ret)
+{
  	unsigned start = ret.size();
 	hash_map <string, vector<Dyn_Symbol *>*>::iterator iter;
 	for(iter = funcsByPretty.begin(); iter!=funcsByPretty.end(); iter++)
@@ -1876,10 +1515,10 @@
 		return true;
 	serr = No_Such_Function;
 	return false;
- }
+}
 
- bool Dyn_Symtab::findVarVectorByMangledRegex(const string &rexp, bool checkCase, vector<Dyn_Symbol *>&ret)
- {
+bool Dyn_Symtab::findVarVectorByMangledRegex(const string &rexp, bool checkCase, vector<Dyn_Symbol *>&ret)
+{
  	unsigned start = ret.size();
 	hash_map <string, vector<Dyn_Symbol *>*>::iterator iter;
 	for(iter = varsByMangled.begin(); iter!=varsByMangled.end(); iter++)
@@ -1896,10 +1535,10 @@
 		return true;
 	serr = No_Such_Variable;
 	return false;
- }
+}
 
- bool Dyn_Symtab::findVarVectorByPrettyRegex(const string &rexp, bool checkCase, vector<Dyn_Symbol *>&ret)
- {
+bool Dyn_Symtab::findVarVectorByPrettyRegex(const string &rexp, bool checkCase, vector<Dyn_Symbol *>&ret)
+{
 	unsigned start = ret.size();
 	hash_map <string, vector<Dyn_Symbol *>*>::iterator iter;
 	for(iter = varsByPretty.begin(); iter!=varsByPretty.end(); iter++)
@@ -1916,10 +1555,10 @@
 		return true;
 	serr = No_Such_Variable;
 	return false;
- }
+}
 
- bool Dyn_Symtab::findSectionByEntry(const OFFSET &offset, Dyn_Section *&ret)
- {
+bool Dyn_Symtab::findSectionByEntry(const OFFSET &offset, Dyn_Section *&ret)
+{
  	if(secsByEntryAddr.find(offset) != secsByEntryAddr.end())
 	{
 		ret = secsByEntryAddr[offset];
@@ -1927,10 +1566,10 @@
 	}
 	serr = No_Such_Section;
 	return false;
- }
+}
 
- bool Dyn_Symtab::findSection(const string &secName, Dyn_Section *&ret)
- {
+bool Dyn_Symtab::findSection(const string &secName, Dyn_Section *&ret)
+{
 	for(unsigned index=0;index<sections_.size();index++)
 	{
 		if(sections_[index]->getSecName() == secName)
@@ -1941,75 +1580,48 @@
 	}
 	serr = No_Such_Section;
 	return false;
- }
-
- bool Dyn_Symtab::isInstructionAligned(const OFFSET &where) const
- {
- 	//shifted to here from respective arch-<architecture>.h
- #if defined( arch_alpha ) || defined( arch_power ) || defined( arch_sparc )
- 	return (!(where & 0x3));
- #elif defined( arch_x86_64 ) || defined( arch_x86)
- 	return true;
- #elif defined( arch_ia64 )
- 	OFFSET slotNo = where % 0x10;
-        OFFSET bundle = where - slotNo;
-        return ((slotNo == 0 || slotNo == 1 || slotNo == 2 ) && ( bundle + slotNo == where ));
- #endif
- 	return false;
- }
+}
  
- // Address must be in code or data range since some code may end up
- // in the data segment
- bool Dyn_Symtab::isValidOffset(const OFFSET &where) const
- {
- #if ! defined( arch_ia64 )
-    return (isInstructionAligned(where) && (isCode(where) || isData(where)));
- #else
-	/* On IA-64, only instructions are "aligned." */
-    return (isInstructionAligned(where) && isCode(where)) || isData(where);
- #endif /* ! defined( arch_ia64 ) */
- }
+// Address must be in code or data range since some code may end up
+// in the data segment
+bool Dyn_Symtab::isValidOffset(const OFFSET &where) const
+{
+   return isCode(where) || isData(where);
+}
 
- bool Dyn_Symtab::isCode(const OFFSET &where)  const
- {
- 	return (linkedFile.code_ptr() && 
- 		(where >= codeOffset_) && (where < (codeOffset_+codeLen_)));
- }
+bool Dyn_Symtab::isCode(const OFFSET &where)  const
+{
+ 	return (linkedFile->code_ptr() && 
+           (where >= codeOffset_) && (where < (codeOffset_+codeLen_)));
+}
 
- /*#if defined( arch_x86 )
- bool Dyn_Symtab::isText( const OFFSET &where) const
- {
-    return ( linkedFile.isText( where ) );
- }
- #endif*/
+bool Dyn_Symtab::isData(const OFFSET &where)  const
+{
+ 	return (linkedFile->data_ptr() && 
+           (where >= dataOffset_) && (where < (dataOffset_+dataLen_)));
+}
+
+bool Dyn_Symtab::getFuncBindingTable(vector<relocationEntry> &fbt) const
+{
+ 	return linkedFile->get_func_binding_table(fbt);	
+}
  
- bool Dyn_Symtab::isData(const OFFSET &where)  const
- {
- 	return (linkedFile.data_ptr() && 
-           	(where >= dataOffset_) && (where < (dataOffset_+dataLen_)));
- }
-
- bool Dyn_Symtab::getFuncBindingTable(vector<relocationEntry> &fbt) const
- {
- 	return linkedFile.get_func_binding_table(fbt);	
- }
- 
- Dyn_Symtab::~Dyn_Symtab()
- {
-    	// Doesn't do anything yet, moved here so we don't mess with symtab.h
-    	// Only called if we fail to create a process.
-    	// Or delete the a.out...
+Dyn_Symtab::~Dyn_Symtab()
+{
+   // Doesn't do anything yet, moved here so we don't mess with symtab.h
+   // Only called if we fail to create a process.
+   // Or delete the a.out...
 	
-    	unsigned i;
+   unsigned i;
 	
-        for (i = 0; i < sections_.size(); i++) {
-    		delete sections_[i];
-    	}
+   for (i = 0; i < sections_.size(); i++) {
+      delete sections_[i];
+   }
 	sections_.clear();
 
 	for (i = 0; i < _mods.size(); i++) {
-    		delete _mods[i];
-    	}
+      delete _mods[i];
+   }
 	_mods.clear();
 
 	for(i=0; i< modSyms.size(); i++)
@@ -2021,27 +1633,27 @@
 	notypeSyms.clear();	
 	
 	for (i = 0; i < everyUniqueVariable.size(); i++) {
-    		delete everyUniqueVariable[i];
-    	}
-    	everyUniqueVariable.clear();
+      delete everyUniqueVariable[i];
+   }
+   everyUniqueVariable.clear();
 
 	for (i = 0; i < everyUniqueFunction.size(); i++) {
-        	delete everyUniqueFunction[i];
-    	}
-    	everyUniqueFunction.clear();
-    	createdFunctions.clear();
-    	exportedFunctions.clear();
+      delete everyUniqueFunction[i];
+   }
+   everyUniqueFunction.clear();
+   createdFunctions.clear();
+   exportedFunctions.clear();
 
 	for (i = 0; i < allSymtabs.size(); i++) {
-	    if (allSymtabs[i] == this)
-	        allSymtabs.erase(allSymtabs.begin()+i);
-        }
- }	
+      if (allSymtabs[i] == this)
+         allSymtabs.erase(allSymtabs.begin()+i);
+   }
+}	
  
- bool Dyn_Module::findSymbolByType(vector<Dyn_Symbol *> &found, const string &name,
-				Dyn_Symbol::SymbolType sType, bool isMangled,
-				bool isRegex, bool checkCase)
- {
+bool Dyn_Module::findSymbolByType(vector<Dyn_Symbol *> &found, const string &name,
+                                  Dyn_Symbol::SymbolType sType, bool isMangled,
+                                  bool isRegex, bool checkCase)
+{
  	unsigned orig_size = found.size();
 	vector<Dyn_Symbol *> obj_syms;
 	if(!exec()->findSymbolByType(obj_syms, name, sType, isMangled, isRegex, checkCase))
@@ -2049,44 +1661,57 @@
 	for (unsigned i = 0; i < obj_syms.size(); i++) 
 	{
 		if(obj_syms[i]->getModule() == this)
-        		found.push_back(obj_syms[i]);
-    	}
-    	if (found.size() > orig_size) 
-        	return true;
-    	return false;	
- }
+         found.push_back(obj_syms[i]);
+   }
+   if (found.size() > orig_size) 
+      return true;
+   return false;	
+}
  
- DLLEXPORT const string &Dyn_Module::fileName() const {
-	 return fileName_; 
- }
+DLLEXPORT const string &Dyn_Module::fileName() const {
+   return fileName_; 
+}
 
- DLLEXPORT const string &Dyn_Module::fullName() const { 
-	 return fullName_; 
- }
+DLLEXPORT const string &Dyn_Module::fullName() const { 
+   return fullName_; 
+}
  
- DLLEXPORT Dyn_Symtab *Dyn_Module::exec() const { 
-	 return exec_;
- }
+DLLEXPORT Dyn_Symtab *Dyn_Module::exec() const { 
+   return exec_;
+}
 
- DLLEXPORT supportedLanguages Dyn_Module::language() const { 
-	 return language_;
- }
+DLLEXPORT supportedLanguages Dyn_Module::language() const { 
+   return language_;
+}
  
- DLLEXPORT Dyn_Module::Dyn_Module(supportedLanguages lang, OFFSET adr, string fullNm,
-          	Dyn_Symtab *img): fullName_(fullNm), 
-      		language_(lang), addr_(adr), exec_(img){
-		fileName_ = extract_path_tail(fullNm);
- }
+DLLEXPORT Dyn_Module::Dyn_Module(supportedLanguages lang, OFFSET adr, 
+                                 string fullNm, Dyn_Symtab *img)
+   : fullName_(fullNm), language_(lang), addr_(adr), exec_(img)
+{
+   fileName_ = extract_pathname_tail(fullNm);
+}
 
- DLLEXPORT Dyn_Module::~Dyn_Module() {}
+DLLEXPORT Dyn_Module::Dyn_Module()
+{
+}
 
- bool Dyn_Module::isShared() const 
- { 
+DLLEXPORT Dyn_Module::Dyn_Module(const Dyn_Module &mod)
+   : Dyn_LookupInterface(),fullName_(mod.fullName_),
+     language_(mod.language_), addr_(mod.addr_), exec_(mod.exec_)
+{
+}
+
+DLLEXPORT Dyn_Module::~Dyn_Module()
+{
+}
+
+bool Dyn_Module::isShared() const 
+{ 
  	return !exec_->isExec();
- }
+}
 
- bool Dyn_Module::getAllSymbolsByType(vector<Dyn_Symbol *> &found, Dyn_Symbol::SymbolType sType)
- {
+bool Dyn_Module::getAllSymbolsByType(vector<Dyn_Symbol *> &found, Dyn_Symbol::SymbolType sType)
+{
  	unsigned orig_size = found.size();
 	vector<Dyn_Symbol *> obj_syms;
 	if(!exec()->getAllSymbolsByType(obj_syms, sType))
@@ -2094,117 +1719,140 @@
 	for (unsigned i = 0; i < obj_syms.size(); i++) 
 	{
 		if(obj_syms[i]->getModule() == this)
-        		found.push_back(obj_syms[i]);
-    	}
-    	if (found.size() > orig_size) 
-        	return true;
+         found.push_back(obj_syms[i]);
+   }
+   if (found.size() > orig_size) 
+      return true;
 	serr = No_Such_Symbol;	
-    	return false;
- }
+   return false;
+}
 
- // Use POSIX regular expression pattern matching to check if string s matches
- // the pattern in this string
- bool regexEquiv( const string &str,const string &them, bool checkCase ) 
- {
+DLLEXPORT bool Dyn_Module::operator==(const Dyn_Module &mod) const {
+   return ( (language_==mod.language_) &&
+            (addr_==mod.addr_) &&
+            (fullName_==mod.fullName_) &&
+            (exec_==mod.exec_) 
+          );
+}
+
+DLLEXPORT bool Dyn_Module::setName(string newName) {
+   fullName_ = newName;
+   fileName_ = extract_pathname_tail(fullName_);
+   return true;
+}
+
+DLLEXPORT void Dyn_Module::setLanguage(supportedLanguages lang) 
+{
+   language_ = lang;
+}
+
+DLLEXPORT OFFSET Dyn_Module::addr() const { 
+   return addr_; 
+}
+
+// Use POSIX regular expression pattern matching to check if string s matches
+// the pattern in this string
+bool regexEquiv( const string &str,const string &them, bool checkCase ) 
+{
 	const char *str_ = str.c_str();
 	const char *s = them.c_str();
 	// Would this work under NT?  I don't know.
-    #if !(defined i386_unknown_nt4_0) && !(defined mips_unknown_ce2_11) //ccw 29 mar 2001
-        regex_t r;
-        bool match = false;
-        int cflags = REG_NOSUB;
-        if( !checkCase )
-                cflags |= REG_ICASE;
+#if !defined(os_windows)
+   regex_t r;
+   bool match = false;
+   int cflags = REG_NOSUB;
+   if( !checkCase )
+      cflags |= REG_ICASE;
 
-        // Regular expressions must be compiled first, see 'man regexec'
-        int err = regcomp( &r, str_, cflags );
+   // Regular expressions must be compiled first, see 'man regexec'
+   int err = regcomp( &r, str_, cflags );
 
-        if( err == 0 ) {
-                // Now we can check for a match
-                err = regexec( &r, s, 0, NULL, 0 );
-                if( err == 0 )
-                        match = true;
-        }
+   if( err == 0 ) {
+      // Now we can check for a match
+      err = regexec( &r, s, 0, NULL, 0 );
+      if( err == 0 )
+         match = true;
+   }
 
-        // Deal with errors
-        if( err != 0 && err != REG_NOMATCH ) {
-                char errbuf[80];
-                regerror( err, &r, errbuf, 80 );
-                cerr << "regexEquiv -- " << errbuf << endl;
-        }
+   // Deal with errors
+   if( err != 0 && err != REG_NOMATCH ) {
+      char errbuf[80];
+      regerror( err, &r, errbuf, 80 );
+      cerr << "regexEquiv -- " << errbuf << endl;
+   }
 
-        // Free the pattern buffer
-        regfree( &r );
-        return match;
-    #else
+   // Free the pattern buffer
+   regfree( &r );
+   return match;
+#else
  	return pattern_match(str_, s, checkCase);
-    #endif
+#endif
 
- }
+}
 
- // This function will match string s against pattern p.
- // Asterisks match 0 or more wild characters, and a question
- // mark matches exactly one wild character.  In other words,
- // the asterisk is the equivalent of the regex ".*" and the
- // question mark is the equivalent of "."
+// This function will match string s against pattern p.
+// Asterisks match 0 or more wild characters, and a question
+// mark matches exactly one wild character.  In other words,
+// the asterisk is the equivalent of the regex ".*" and the
+// question mark is the equivalent of "."
 
- bool
- pattern_match( const char *p, const char *s, bool checkCase ) {
-        //const char *p = ptrn;
-        //char *s = str;
+bool
+pattern_match( const char *p, const char *s, bool checkCase ) {
+   //const char *p = ptrn;
+   //char *s = str;
 
-        while ( true ) {
-                // If at the end of the pattern, it matches if also at the end of the string
-                if( *p == '\0' )
-                        return ( *s == '\0' );
+   while ( true ) {
+      // If at the end of the pattern, it matches if also at the end of the string
+      if( *p == '\0' )
+         return ( *s == '\0' );
 
-                // Process a '*'
-                if( *p == MULTIPLE_WILDCARD_CHAR ) {
-                        ++p;
+      // Process a '*'
+      if( *p == MULTIPLE_WILDCARD_CHAR ) {
+         ++p;
 
-                        // If at the end of the pattern, it matches
-                        if( *p == '\0' )
-                                return true;
+         // If at the end of the pattern, it matches
+         if( *p == '\0' )
+            return true;
 
-                        // Try to match the remaining pattern for each remaining substring of s
-                        for(; *s != '\0'; ++s )
-                                if( pattern_match( p, s, checkCase ) )
-                                        return true;
-                        // Failed
-                        return false;
-                }
+         // Try to match the remaining pattern for each remaining substring of s
+         for(; *s != '\0'; ++s )
+            if( pattern_match( p, s, checkCase ) )
+               return true;
+         // Failed
+         return false;
+      }
 
-                // If at the end of the string (and at this point, not of the pattern), it fails
-                if( *s == '\0' )
-                        return false;
+      // If at the end of the string (and at this point, not of the pattern), it fails
+      if( *s == '\0' )
+         return false;
 
-                // Check if this character matches
-                bool matchChar = false;
-                if( *p == WILDCARD_CHAR || *p == *s )
-                        matchChar = true;
-                else if( !checkCase ) {
-                        if( *p >= 'A' && *p <= 'Z' && *s == ( *p + ( 'a' - 'A' ) ) )
-                                matchChar = true;
-                       else if( *p >= 'a' && *p <= 'z' && *s == ( *p - ( 'a' - 'A' ) ) )
-                                matchChar = true;
-                }
+      // Check if this character matches
+      bool matchChar = false;
+      if( *p == WILDCARD_CHAR || *p == *s )
+         matchChar = true;
+      else if( !checkCase ) {
+         if( *p >= 'A' && *p <= 'Z' && *s == ( *p + ( 'a' - 'A' ) ) )
+            matchChar = true;
+         else if( *p >= 'a' && *p <= 'z' && *s == ( *p - ( 'a' - 'A' ) ) )
+            matchChar = true;
+      }
 
-                if( matchChar ) {
-                        ++p;
-                        ++s;
-                        continue;
-                }
+      if( matchChar ) {
+         ++p;
+         ++s;
+         continue;
+      }
 
-                // Did not match
-                return false;
-        }
- }
+      // Did not match
+      return false;
+   }
+}
 
 bool Dyn_Symtab::openFile( string &filename, Dyn_Symtab *&obj){
 	bool err;
 #if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 	unsigned numSymtabs = allSymtabs.size();
 	  
@@ -2215,9 +1863,9 @@ bool Dyn_Symtab::openFile( string &filename, Dyn_Symtab *&obj){
 	{
 	   for (unsigned u=0; u<numSymtabs; u++) {
 	      if (filename == allSymtabs[u]->file()) {
-	          // return it
-		  obj = allSymtabs[u];
-		  return true;
+            // return it
+            obj = allSymtabs[u];
+            return true;
 	      }
 	   }   
   	}
@@ -2413,3 +2061,236 @@ bool Dyn_Symtab::delSymbol(Dyn_Symbol *sym)
 	return true;
 }
 
+DLLEXPORT ObjectType Dyn_Symtab::getObjectType() const {
+   return linkedFile->objType();
+}
+
+DLLEXPORT char *Dyn_Symtab::mem_image() const { 
+   return linkedFile->mem_image(); 
+}
+
+DLLEXPORT string Dyn_Symtab::file() const {
+   return filename_;
+}
+
+DLLEXPORT string Dyn_Symtab::name() const {
+   return name_;
+}
+
+DLLEXPORT OFFSET Dyn_Symtab::getLoadAddress() const { 
+   return linkedFile->getLoadAddress(); 
+}
+
+DLLEXPORT OFFSET Dyn_Symtab::getTOCoffset() const { 
+   return linkedFile->getTOCoffset(); 
+}
+	
+DLLEXPORT unsigned Dyn_Symtab::getNumberofSections() const { 
+   return no_of_sections; 
+}
+
+DLLEXPORT unsigned Dyn_Symtab::getNumberofSymbols() const { 
+   return no_of_symbols; 
+}
+
+#if defined(os_aix)
+void Dyn_Symtab::get_stab_info(char *&stabstr, int &nstabs, void *&stabs, 
+                               char *&stringpool) const
+
+{
+   linkedFile->get_stab_info(stabstr,nstabs, stabs, stringpool);
+}
+
+void Dyn_Symtab::get_line_info(int& nlines, char*& lines,
+                               unsigned long& fdptr) const
+{
+   linkedFile->get_line_info(nlines,lines,fdptr);
+}
+#else
+void Dyn_Symtab::get_stab_info(char *&, int &, void *&, char *&) const 
+{
+}
+
+void Dyn_Symtab::get_line_info(int &, char *&, unsigned long&) const
+{
+}
+#endif
+
+
+DLLEXPORT Dyn_LookupInterface::Dyn_LookupInterface() 
+{
+}
+
+DLLEXPORT Dyn_LookupInterface::~Dyn_LookupInterface()
+{
+}
+
+
+DLLEXPORT Dyn_ExceptionBlock::Dyn_ExceptionBlock(OFFSET tStart, 
+                                                 unsigned tSize, 
+                                                 OFFSET cStart) 
+   : tryStart_(tStart), trySize_(tSize), catchStart_(cStart), hasTry_(true) 
+{
+}
+
+DLLEXPORT Dyn_ExceptionBlock::Dyn_ExceptionBlock(OFFSET cStart) 
+   : tryStart_(0), trySize_(0), catchStart_(cStart), hasTry_(false) 
+{
+}
+
+DLLEXPORT Dyn_ExceptionBlock::Dyn_ExceptionBlock(const Dyn_ExceptionBlock &eb) 
+   : tryStart_(eb.tryStart_), trySize_(eb.trySize_), 
+     catchStart_(eb.catchStart_), hasTry_(eb.hasTry_) 
+{
+}
+ 
+DLLEXPORT bool Dyn_ExceptionBlock::hasTry() const
+{ 
+   return hasTry_; 
+}
+
+DLLEXPORT OFFSET Dyn_ExceptionBlock::tryStart() const
+{ 
+   return tryStart_; 
+}
+
+DLLEXPORT OFFSET Dyn_ExceptionBlock::tryEnd() const
+{ 
+   return tryStart_ + trySize_; 
+}
+
+DLLEXPORT OFFSET Dyn_ExceptionBlock::trySize() const
+{
+   return trySize_; 
+}
+
+DLLEXPORT bool Dyn_ExceptionBlock::contains(OFFSET a) const
+{ 
+   return (a >= tryStart_ && a < tryStart_ + trySize_); 
+}
+
+DLLEXPORT Dyn_Section::Dyn_Section()
+{
+}
+
+DLLEXPORT Dyn_Section::Dyn_Section(unsigned sidnumber, string sname, 
+                                   OFFSET saddr, unsigned long ssize, 
+                                   void *secPtr, unsigned long sflags) 
+   : sidnumber_(sidnumber), sname_(sname), saddr_(saddr), ssize_(ssize), 
+     rawDataPtr_(secPtr), sflags_(sflags)
+{
+}
+
+DLLEXPORT Dyn_Section::Dyn_Section(unsigned sidnumber, string sname, 
+                                   unsigned long ssize, void *secPtr, 
+                                   unsigned long sflags)
+   : sidnumber_(sidnumber), sname_(sname), saddr_(0), ssize_(ssize), 
+     rawDataPtr_(secPtr), sflags_(sflags)
+{
+}
+
+
+DLLEXPORT Dyn_Section::Dyn_Section(const Dyn_Section &sec)
+   : sidnumber_(sec.sidnumber_),sname_(sec.sname_), saddr_(sec.saddr_), 
+     ssize_(sec.ssize_), rawDataPtr_(sec.rawDataPtr_), 
+		sflags_(sec.sflags_)
+{
+}
+
+DLLEXPORT Dyn_Section& Dyn_Section::operator=(const Dyn_Section &sec)
+{
+   sidnumber_ = sec.sidnumber_;
+   sname_ = sec.sname_;
+   saddr_ = sec.saddr_;
+   ssize_ = sec.ssize_;
+   rawDataPtr_ = sec.rawDataPtr_;
+   sflags_ = sec.sflags_;
+   
+   return *this;
+}
+	
+DLLEXPORT ostream& Dyn_Section::operator<< (ostream &os) 
+{
+   return os << "{"
+             << " id="      << sidnumber_
+             << " name="    << sname_
+             << " addr="    << saddr_
+             << " size="    << ssize_
+             << " }" << endl;
+}
+
+DLLEXPORT bool Dyn_Section::operator== (const Dyn_Section &sec)
+{
+   return ((sidnumber_ == sec.sidnumber_)&&
+           (sname_ == sec.sname_)&&
+           (saddr_ == sec.saddr_)&&
+           (ssize_ == sec.ssize_)&&
+           (rawDataPtr_ == sec.rawDataPtr_));
+}
+
+DLLEXPORT Dyn_Section::~Dyn_Section() 
+{
+}
+ 
+DLLEXPORT unsigned Dyn_Section::getSecNumber() const
+{ 
+   return sidnumber_; 
+}
+
+DLLEXPORT string Dyn_Section::getSecName() const
+{ 
+   return sname_; 
+}
+
+DLLEXPORT OFFSET Dyn_Section::getSecAddr() const
+{ 
+   return saddr_; 
+}
+
+DLLEXPORT void *Dyn_Section::getPtrToRawData() const
+{ 
+   return rawDataPtr_; 
+}
+
+DLLEXPORT unsigned long Dyn_Section::getSecSize() const
+{ 
+   return ssize_; 
+}
+
+DLLEXPORT bool Dyn_Section::isBSS() const
+{ 
+   return sname_==".bss";
+}
+
+DLLEXPORT bool Dyn_Section::isText() const
+{ 
+   return sname_ == ".text"; 
+}
+
+DLLEXPORT bool Dyn_Section::isData() const
+{ 
+   return (sname_ == ".data"||sname_ == ".data2"); 
+}
+
+DLLEXPORT bool Dyn_Section::isOffsetInSection(const OFFSET &offset) const
+{
+   return (offset > saddr_ && offset < saddr_ + ssize_);
+}
+
+
+DLLEXPORT relocationEntry::relocationEntry()
+   :target_addr_(0),rel_addr_(0)
+{
+}   
+
+DLLEXPORT relocationEntry::relocationEntry(OFFSET ta,OFFSET ra, string n)
+   : target_addr_(ta), rel_addr_(ra),name_(n)
+{
+}   
+
+DLLEXPORT const relocationEntry& relocationEntry::operator=(const relocationEntry &ra) 
+{
+   target_addr_ = ra.target_addr_; rel_addr_ = ra.rel_addr_; 
+   name_ = ra.name_; 
+   return *this;
+}

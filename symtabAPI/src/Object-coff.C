@@ -39,12 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.3 2007/02/05 21:14:22 giri Exp $
+// $Id: Object-coff.C,v 1.4 2007/02/14 23:03:49 legendre Exp $
 
 #include "common/h/Dictionary.h"
 #include "Object.h"
 #include "Object-coff.h"
-//#include "dyninstAPI/src/util.h"
 #include <cmplrs/demangle_string.h>  // For native C++ (cxx) name demangling.
 
 bool GCC_COMPILED=false; //Used to detect compiler type. True if mutatee is 
@@ -724,3 +723,6 @@ Object::Object(const Object& obj)
     load_object(false);
 }
 
+void Dyn_Symtab::getModuleLanguageInfo(hash_map<string, supportedLanguages> *)
+{
+}

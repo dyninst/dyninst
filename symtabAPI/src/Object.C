@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.3 2007/02/05 21:14:26 giri Exp $
+// $Id: Object.C,v 1.4 2007/02/14 23:03:56 legendre Exp $
 
-#include "Object.h"
+#include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
 
 string Dyn_Symbol::emptyString(string(""));
@@ -431,3 +431,217 @@ const ostream &AObject::dump_state_info(ostream &s) {
 }
 
 #endif
+
+DLLEXPORT AObject::AObject()
+{
+}	
+
+DLLEXPORT unsigned AObject::nsymbols () const 
+{ 
+   return symbols_.size(); 
+}
+    
+DLLEXPORT bool AObject::get_symbols(string & name, 
+                                    vector<Dyn_Symbol *> &symbols ) 
+{
+   if( symbols_.find(name) == symbols_.end()) {
+      return false;
+   }
+   symbols = symbols_[name];
+   return true;
+}
+
+//    OFFSET getLoadAddress() const { return loadAddress_; }
+//    OFFSET getEntryAddress() const { return entryAddress_; }
+//    OFFSET getBaseAddress() const { return baseAddress_; }
+
+DLLEXPORT Word* AObject::code_ptr () const 
+{ 
+   return code_ptr_; 
+}
+ 
+DLLEXPORT OFFSET AObject::code_off () const 
+{ 
+   return code_off_; 
+}
+
+DLLEXPORT OFFSET AObject::code_len () const 
+{ 
+   return code_len_; 
+}
+
+DLLEXPORT Word* AObject::data_ptr () const 
+{ 
+   return data_ptr_; 
+}
+
+DLLEXPORT OFFSET AObject::data_off () const 
+{ 
+   return data_off_; 
+}
+
+DLLEXPORT OFFSET AObject::data_len () const 
+{ 
+   return data_len_; 
+}
+
+DLLEXPORT OFFSET AObject::code_vldS() const 
+{ 
+   return code_vldS_; 
+}
+
+DLLEXPORT OFFSET AObject::code_vldE () const
+{ 
+   return code_vldE_;
+}
+
+DLLEXPORT OFFSET AObject::data_vldS() const { 
+   return data_vldS_; 
+}
+
+DLLEXPORT OFFSET AObject::data_vldE () const { 
+   return data_vldE_; 
+}
+
+DLLEXPORT bool AObject::is_aout() const { 
+   return is_aout_;  
+}
+
+DLLEXPORT unsigned AObject::no_of_sections() const 
+{ 
+   return no_of_sections_; 
+}
+
+DLLEXPORT unsigned AObject::no_of_symbols() const 
+{ 
+   return no_of_symbols_;  
+}
+
+DLLEXPORT bool AObject::getAllExceptions(vector<Dyn_ExceptionBlock *>&excpBlocks) const
+{
+   for(unsigned i=0;i<catch_addrs_.size();i++)
+      excpBlocks.push_back(new Dyn_ExceptionBlock(catch_addrs_[i]));
+   return true;
+}
+
+DLLEXPORT vector<Dyn_Section *> AObject::getAllSections() const
+{
+   return sections_;	
+}
+
+DLLEXPORT OFFSET AObject::loader_off() const 
+{ 
+   return loader_off_; 
+}
+
+DLLEXPORT unsigned AObject::loader_len() const 
+{ 
+   return loader_len_; 
+}
+
+DLLEXPORT int AObject::getAddressWidth() const 
+{ 
+   return addressWidth_nbytes; 
+}
+
+DLLEXPORT bool AObject::have_deferred_parsing(void) const
+{ 
+   return deferredParse;
+}
+
+DLLEXPORT void * AObject::getErrFunc() const { 
+   return (void *) err_func_; 
+}
+
+DLLEXPORT hash_map< string, vector< Dyn_Symbol *> > *AObject::getAllSymbols() 
+{ 
+   return &(symbols_);
+}
+
+DLLEXPORT AObject::~AObject() 
+{
+}
+
+// explicitly protected
+DLLEXPORT AObject::AObject(const string file , void (*err_func)(const char *)) 
+   : file_(file), code_ptr_(0), code_off_(0),
+     code_len_(0), data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0),
+     loader_len_(0), deferredParse(false), err_func_(err_func),
+     addressWidth_nbytes(4) 
+{
+}
+
+DLLEXPORT AObject::AObject(const AObject &obj)
+   : file_(obj.file_), symbols_(obj.symbols_), 
+     code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
+     code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
+     data_off_(obj.data_off_), data_len_(obj.data_len_), 
+     loader_off_(obj.loader_off_), loader_len_(obj.loader_len_),
+     deferredParse(false), err_func_(obj.err_func_), addressWidth_nbytes(4)
+{
+} 
+
+DLLEXPORT AObject& AObject::operator=(const AObject &obj) 
+{   
+   if (this == &obj) {
+      return *this;
+   }
+   file_      = obj.file_; 	symbols_   = obj.symbols_;
+   code_ptr_  = obj.code_ptr_; 	code_off_  = obj.code_off_;
+   code_len_  = obj.code_len_; 	data_ptr_  = obj.data_ptr_;
+   data_off_  = obj.data_off_; 	data_len_  = obj.data_len_;
+   err_func_  = obj.err_func_;
+   loader_off_ = obj.loader_off_; 
+   loader_len_ = obj.loader_len_;
+   addressWidth_nbytes = obj.addressWidth_nbytes;
+   return *this;
+}
+ 
+SymbolIter::SymbolIter( Object & obj ) 
+   : symbols(obj.getAllSymbols()), currentPositionInVector(0) 
+{
+   symbolIterator = obj.getAllSymbols()->begin();
+}
+
+SymbolIter::SymbolIter( const SymbolIter & src ) 
+   : symbols(src.symbols),currentPositionInVector(0),
+     symbolIterator( src.symbolIterator ) 
+{
+}
+
+SymbolIter::~SymbolIter () 
+{
+}
+
+void SymbolIter::reset () {
+   currentPositionInVector = 0;
+   symbolIterator = symbols->begin();
+}
+
+SymbolIter::operator bool() const {
+   return (symbolIterator!=symbols->end());
+}
+	
+void SymbolIter::operator++ ( int ) 
+{
+   if( currentPositionInVector + 1 < (symbolIterator->second).size())
+   {
+      currentPositionInVector++;
+      return;
+   }
+		
+   /* Otherwise, we need a new vector. */
+   currentPositionInVector = 0;			
+   symbolIterator++;
+}
+	
+const string & SymbolIter::currkey() const {
+   return symbolIterator->first;
+}
+    
+/* If it's important that this be const, we could try to initialize
+   currentVector to '& symbolIterator.currval()' in the constructor. */
+Dyn_Symbol *SymbolIter::currval() {
+   return ((symbolIterator->second)[ currentPositionInVector ]);
+}
+

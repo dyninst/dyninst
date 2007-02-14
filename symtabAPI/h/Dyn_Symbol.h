@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Dyn_Symbol.h,v 1.2 2007/01/19 22:12:22 giri Exp $
+ * $Id: Dyn_Symbol.h,v 1.3 2007/02/14 23:03:44 legendre Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -58,7 +58,8 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
-using namespace std;
+
+#include "symtabAPI/h/util.h"
 
 class Dyn_Section;
 class Dyn_Module;
@@ -94,9 +95,9 @@ public:
 
     DLLEXPORT Dyn_Symbol (); // note: this ctor is called surprisingly often!
     DLLEXPORT Dyn_Symbol (unsigned);
-    DLLEXPORT Dyn_Symbol (const string &name,const string &modulename, SymbolType, SymbolLinkage,
+	DLLEXPORT Dyn_Symbol (const string &name,const string &modulename, SymbolType, SymbolLinkage,
              Address, Dyn_Section *sec = NULL, unsigned size = 0, void *upPtr = NULL);
-    DLLEXPORT Dyn_Symbol (const string &name,Dyn_Module *module, SymbolType, SymbolLinkage,
+	DLLEXPORT Dyn_Symbol (const string &name,Dyn_Module *module, SymbolType, SymbolLinkage,
              Address, Dyn_Section *sec = NULL, unsigned size = 0, void *upPtr = NULL);
     DLLEXPORT Dyn_Symbol (const Dyn_Symbol &);
     DLLEXPORT ~Dyn_Symbol();
@@ -104,7 +105,7 @@ public:
     DLLEXPORT Dyn_Symbol&        operator= (const Dyn_Symbol &);
     DLLEXPORT bool          operator== (const Dyn_Symbol &) const;
 
-    DLLEXPORT const string&     getModuleName ()        const;
+	DLLEXPORT const string&     getModuleName ()        const;
     DLLEXPORT Dyn_Module*	getModule()		const; 
     DLLEXPORT SymbolType        getType ()              const;
     DLLEXPORT SymbolLinkage     getLinkage ()           const;
@@ -116,13 +117,13 @@ public:
     /***********************************************************
     	Name Output Functions
     ***********************************************************/		
-    DLLEXPORT const string&      getName ()              const;
-    DLLEXPORT const string&	getPrettyName()       	const;
-    DLLEXPORT const string& 	getTypedName() 		const;
+	DLLEXPORT const string&      getName ()              const;
+	DLLEXPORT const string&	getPrettyName()       	const;
+	DLLEXPORT const string& 	getTypedName() 		const;
     
-    DLLEXPORT const vector<string>&	getAllMangledNames()    const;
-    DLLEXPORT const vector<string>&	getAllPrettyNames()     const;
-    DLLEXPORT const vector<string>&	getAllTypedNames()      const;
+	DLLEXPORT const vector<string>&	getAllMangledNames()    const;
+	DLLEXPORT const vector<string>&	getAllPrettyNames()     const;
+	DLLEXPORT const vector<string>&	getAllTypedNames()      const;
 
    DLLEXPORT void setAddr (Address newAddr);
 
@@ -131,14 +132,14 @@ public:
     DLLEXPORT unsigned            getSize ()               const;
     DLLEXPORT SymbolTag            tag ()               const;
     DLLEXPORT void	setSize(unsigned ns){ size_ = ns;}
-    DLLEXPORT void	setModuleName(string module);
+	DLLEXPORT void	setModuleName(string module);
     DLLEXPORT void 	setModule(Dyn_Module *mod) { module_ = mod; }
     DLLEXPORT void	setUpPtr(void *newUpPtr);
     
     // Bool: returns true if the name is new (and therefore added)
-    DLLEXPORT bool addMangledName(string name, bool isPrimary = false);
-    DLLEXPORT bool addPrettyName(string name, bool isPrimary = false);
-    DLLEXPORT bool addTypedName(string name, bool isPrimary = false);
+	DLLEXPORT bool addMangledName(string name, bool isPrimary = false);
+	DLLEXPORT bool addPrettyName(string name, bool isPrimary = false);
+	DLLEXPORT bool addTypedName(string name, bool isPrimary = false);
     
     friend
     ostream&      operator<< (ostream &os, const Dyn_Symbol &s) {
@@ -152,7 +153,7 @@ public:
     }
 
 public:
-    static string emptyString;
+	static string emptyString;
     
 private:
     Dyn_Module*   module_;
@@ -163,9 +164,9 @@ private:
     unsigned      size_;  // size of this symbol. This is NOT available on
                           // all platforms.
     void*         upPtr_;
-    vector<string> mangledNames;
-    vector<string> prettyNames;
-    vector<string> typedNames;
+	vector<string> mangledNames;
+	vector<string> prettyNames;
+	vector<string> typedNames;
     SymbolTag     tag_;
 };
 

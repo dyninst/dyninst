@@ -136,6 +136,7 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -169,10 +170,13 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\Dyn_Symtab.h">
 			</File>
 			<File
-				RelativePath=".\h\Object-nt.h">
+				RelativePath=".\src\Object-nt.h">
 			</File>
 			<File
-				RelativePath=".\h\Object.h">
+				RelativePath=".\src\Object.h">
+			</File>
+			<File
+				RelativePath=".\h\util.h">
 			</File>
 		</Filter>
 		<Filter

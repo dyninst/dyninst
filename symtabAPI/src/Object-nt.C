@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.3 2007/02/05 21:14:24 giri Exp $
+// $Id: Object-nt.C,v 1.4 2007/02/14 23:03:52 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -52,8 +52,8 @@
 #include <iomanip>
 #include <limits.h>
 #include <crtdbg.h>
-#include "Object.h"
-#include "Object-nt.h"
+#include "symtabAPI/src/Object.h"
+#include "symtabAPI/src/Object-nt.h"
 /*#include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/LineInformation.h"
@@ -714,7 +714,7 @@ Object::FindInterestingSections()
 	assert( peHdr->FileHeader.SizeOfOptionalHeader > 0 ); 
    
    assert( curModule != NULL );
-   curModule->SetIsDll( peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL );
+   curModule->SetIsDll( (peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL) != 0 );
    if(curModule->IsDll())
 	   is_aout_ = false;
    else
@@ -815,4 +815,28 @@ Object::Object(string &filename,
     assert( hFile != NULL );
     assert( hFile != INVALID_HANDLE_VALUE );
     ParseDebugInfo();
+}
+
+DLLEXPORT ObjectType Object::objType() const {
+   return is_aout() ? obj_Executable : obj_SharedLib;
+}
+
+#define PATH_SEP ('\\')
+#define SECOND_PATH_SEP ('/')
+
+std::string extract_pathname_tail(const std::string &path)
+{
+  const char *path_str = path.c_str();
+  const char *path_sep = P_strrchr(path_str, PATH_SEP);
+
+  const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
+  if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
+    path_sep = sec_path_sep;
+
+  std::string ret = (path_sep) ? (path_sep + 1) : (path_str);
+  return ret;
+}
+
+void Dyn_Symtab::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs)
+{
 }

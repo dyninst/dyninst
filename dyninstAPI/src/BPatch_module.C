@@ -639,8 +639,10 @@ void BPatch_module::parseTypes()
   imgPtr = mod->obj()->parse_img();
   
   Dyn_Symtab *objPtr = imgPtr->getObject();
-  
-  objPtr->get_stab_info(stabstr, nstabs, syms, stringPool); 
+
+  void *syms_void = NULL;
+  objPtr->get_stab_info(stabstr, nstabs, syms_void, stringPool); 
+  syms = (SYMENT *) syms_void;
 
     objPtr->get_line_info(nlines,lines,linesfdptr); 
 
@@ -895,6 +897,7 @@ void BPatch_module::parseTypes() {
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4)
 
+#include "symtabAPI/src/Object.h" //TODO: Move stabs to symtab and remove
 // parseStabTypes:  parses type and variable info, does some init
 // does NOT parse file-line info anymore, this is done later, upon request.
 void BPatch_module::parseStabTypes() 

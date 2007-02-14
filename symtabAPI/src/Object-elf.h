@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.1 2007/02/05 21:14:30 giri Exp $
+ * $Id: Object-elf.h,v 1.2 2007/02/14 23:03:51 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -225,9 +225,13 @@ class Object : public AObject {
 		return mem_image_;
   	return file_ptr_; 
   }
+
+  DLLEXPORT ObjectType objType() const;
+
+
 //TODO Later - change this #ifdef later.. make getTOCoffset available for all platforms  
 
-#if defined(ia64_unknown_linux2_4)
+#if defined(arch_ia64)
   OFFSET getTOCoffset() const { return gp; }
 #else
   OFFSET getTOCoffset() const { return 0; }
@@ -303,11 +307,12 @@ class Object : public AObject {
                                //   Set to 0 if it may load anywhere
   OFFSET entryAddress_;
           
-#if defined(ia64_unknown_linux2_4)
+#if defined(arch_ia64)
   OFFSET   gp;			 // The gp for this object.
 #endif
   bool      EEL;                 // true if EEL rewritten
   bool 	    did_open;		// true if the file has been mmapped
+  ObjectType obj_type_;
 
   // for sparc-solaris this is a table of PLT entry addr, function_name
   // for x86-solaris this is a table of GOT entry addr, function_name
@@ -364,7 +369,7 @@ class Object : public AObject {
 
   void get_valid_memory_areas(Elf_X &elf);
 
-#if defined(mips_sgi_irix6_4)
+#if defined(os_irix)
 
  public:
   OFFSET     get_gp_value()  const { return gp_value; }

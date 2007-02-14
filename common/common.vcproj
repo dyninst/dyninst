@@ -296,7 +296,13 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\ntHeaders.h">
 			</File>
 			<File
+				RelativePath=".\h\pathName.h">
+			</File>
+			<File
 				RelativePath=".\h\std_namesp.h">
+			</File>
+			<File
+				RelativePath=".\h\String.h">
 			</File>
 			<File
 				RelativePath=".\h\stringDecl.h">

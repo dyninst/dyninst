@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.195 2007/01/09 02:02:07 giri Exp $
+// $Id: symtab.h,v 1.196 2007/02/14 23:03:41 legendre Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -153,7 +153,8 @@ class fileDescriptor {
      bool isSharedObject() const { return shared_; }
      int pid() const { return pid_; }
      Address loadAddr() const { return loadAddr_; };
-
+     
+     void setLoadAddr(Address a);
      void setMember(pdstring member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
 
@@ -408,6 +409,7 @@ class image : public codeRange {
    bool isCode(const Address &where) const;
    bool isData(const Address &where) const;
    bool isValidAddress(const Address &where) const;
+   bool isAligned(const Address where) const;
 
    bool isNativeCompiler() const { return nativeCompiler; }
 

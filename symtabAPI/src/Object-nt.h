@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.1 2007/02/05 21:14:31 giri Exp $
+ * $Id: Object-nt.h,v 1.2 2007/02/14 23:03:53 legendre Exp $
 ************************************************************************/
 
 
@@ -60,16 +60,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-
-using namespace std;
-
-#if defined(os_windows)			//On windows it is just hash_map otherwise its in ext/hash_map
-	#include <hash_map>
-	using namespace stdext;
-#else
-    #include <ext/hash_map>
-	using namespace __gnu_cxx;
-#endif
+#include "symtabAPI/h/util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -205,6 +196,7 @@ public:
 	DLLEXPORT OFFSET getEntryAddress() const { return getEntryPoint(); }
 	DLLEXPORT OFFSET getBaseAddress() const { return get_base_addr(); }
 	DLLEXPORT OFFSET getTOCoffset() const { return 0; }
+   DLLEXPORT ObjectType objType() const;
    
     DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     DLLEXPORT const vector<Address> &getPossibleMains() const   { return possible_mains; }
@@ -260,6 +252,10 @@ Object::Object(char *mem_image, size_t image_size,
 #  define SYMFLAG_EXPORT        SYMF_EXPORT
 #endif // !defined(SYMFLAG_FUNCTION)
 
+
+const char WILDCARD_CHAR = '?';
+const char MULTIPLE_WILDCARD_CHAR = '*';
+std::string extract_pathname_tail(const std::string &path);
 
 
 #endif /* !defined(_Object_nt_h_) */

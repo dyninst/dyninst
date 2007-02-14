@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.18 2007/01/18 07:53:53 jaw Exp $
+// $Id: mapped_module.C,v 1.19 2007/02/14 23:03:38 legendre Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -485,7 +485,7 @@ void mapped_module::parseFileLineInfo() {
   int nstabs = 0;
   SYMENT * syms = 0;
   char * stringpool = NULL;
-  xcoffObject->get_stab_info( stabstr, nstabs, syms, stringpool );
+  xcoffObject->get_stab_info( stabstr, nstabs, (void *) syms, stringpool );
 
   int nlines = 0;
   char * lines = NULL;

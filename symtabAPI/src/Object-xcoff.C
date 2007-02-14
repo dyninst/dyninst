@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.3 2007/02/05 21:14:25 giri Exp $
+// $Id: Object-xcoff.C,v 1.4 2007/02/14 23:03:54 legendre Exp $
 
 #include <regex.h>
 
-#include "Object.h"
+#include "symtabAPI/src/Object.h"
 
 #include <procinfo.h>
 
@@ -630,11 +630,11 @@ void *fileOpener::getPtrAtOffset(unsigned offset) const
 #define PARSE_AOUT_DIE(errType, errCode) { \
       fprintf(stderr,"warning:parsing a.out file %s(%s): %s \n", \
               file_.c_str(), member_.c_str(), errType); \
-      err_func_(errType); \	      
+      err_func_(errType); \
       return; \
       }
 
-void Object::parse_aout(int offset, bool is_aout)
+void Object::parse_aout(int offset, bool /*is_aout*/)
 {
    // all these vrble declarations need to be up here due to the gotos,
    // which mustn't cross vrble initializations.  Too bad.
@@ -826,7 +826,7 @@ void Object::parse_aout(int offset, bool is_aout)
    if(foundData)
    	fileDataOffset = roundup4(sectHdr[dataSecNo].s_scnptr);
    else
-   	fileDataOffset = -1;
+   	fileDataOffset = (OFFSET) -1;
    
 
    if (!fo_->set(fileTextOffset + offset))
@@ -856,7 +856,7 @@ void Object::parse_aout(int offset, bool is_aout)
    if(foundData)
 	data_off_ = roundup4(sectHdr[dataSecNo].s_paddr);
    else
-   	data_off_ = -1;
+   	data_off_ = (OFFSET) -1;
 
    // As above, these are equal to the s_size fields in the respective fields.
    //code_len_ = aout.tsize;
@@ -1198,144 +1198,6 @@ void Object::parse_aout(int offset, bool is_aout)
      }
    }
    
-#if 0			//No find Main at this place. should be moved to dyninst   
-   if( !foundMain && is_aout )
-   {
-       //we havent found a symbol for main therefore we have to parse _start
-       //to find the address of main
-
-       //last two calls in _start are to main and exit
-       //find the end of _start then back up to find the target addresses
-       //for exit and main
-      
-       int c;
-       instructUnion i;
-       int calls = 0;
-       
-       for( c = 0; code_ptr_[ c ] != 0; c++ );
-
-       while( c > 0 )
-       {
-           i.raw = code_ptr_[ c ];
-
-           if(i.iform.lk && 
-              ((i.iform.op == Bop) || (i.bform.op == BCop) ||
-               ((i.xlform.op == BCLRop) && 
-                ((i.xlform.xo == 16) || (i.xlform.xo == 528)))))
-           {
-               calls++;
-               if( calls == 2 )
-                   break;
-           }
-           c--;
-       }
-       
-       OFFSET currAddr = aout.text_start + c * instruction::size();
-       OFFSET mainAddr = 0;
-       
-       if( ( i.iform.op == Bop ) || ( i.bform.op == BCop ) )
-       {
-           int  disp = 0;
-           if(i.iform.op == Bop)
-           {
-               disp = i.iform.li;
-           }
-           else if(i.bform.op == BCop)
-           {
-               disp = i.bform.bd;
-           }
-
-           disp <<= 2;
-
-           if(i.iform.aa)
-           {
-               mainAddr = (OFFSET)disp;
-           }
-           else
-               mainAddr = (OFFSET)( currAddr + disp );      
-       }  
-
-       Dyn_Symbol *sym = new Dyn_Symbol( "main", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
-                   Dyn_Symbol::SL_GLOBAL, mainAddr, 0, (unsigned) -1 );
-      
-       symbols_[ "main" ].push_back( sym );
-   
-       //since we are here make up a sym for _start as well
-
-       Dyn_Symbol *sym1 = new Dyn_Symbol( "__start", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
-                   Dyn_Symbol::SL_GLOBAL, aout.text_start, 0, (unsigned) -1 );
-       symbols_[ "__start" ].push_back( sym1 );       
-   }
-#endif
-
-#if 0
-   // This got moved to Dyninst-land. Well, it will....
-
-   // We grab the space at the end of the various objects to use as
-   // trampoline space. This allows us to instrument those objects 
-   // (reasonably) safely.
-   // For the application, we actually have from the end of the text
-   // to the beginning of the data segment as free space -- this 
-   // is readonly to the application, but writeable by debuggers.
-   // For shared objects, we can only safely assume that we have from
-   // the end of the object to the next page boundary.
-   // Since most of this code is the same, I've unified it.
-
-   // Start of the heap
-
-   //IF we are in aout (the executable) and we have .loader info
-   //then make the heap start at the end of the loader info.
-   //(ASSUMPTION:) On AIX, the loader info is between the text and data sections. 
-   //The XCOFF header info does not explicitly state that the loader info
-   //is loaded into memory BUT the loader loads it and it is needed upon exit().
-   //if we overwrite it the mutatee will seg fault in __modfini 
-   //(b/c of bad data in find_rtinit)
-
-   //use the end of the .loader section as the start point ONLY IF:
-   //the .loader info is present AND 
-   //this is the executable and not a shared lib AND
-   //the .loader section is loaded at a larger memory address than the end of .text AND
-   //the .loader section is loaded at a smaller memory address than 0x1ffffffc
-
-   //there are no hard and fast rules as to where the .loader section needs
-   //to be. the loader could put it before .text, after .data, before .data
-   //but beyond 0x1ffffffc, somewhere in ohio.
-
-   // So if loader is near the rest of the text segment, avoid it.
-
-   heapAddr = 0;
-       // Pick bigger of loader and code, as long as loader is in the same segment
-   
-   if (is_aout &&
-       (loader_off_+loader_len_ < 0x10000000) &&
-       ((loader_off_ + loader_len_) > code_off_ + code_len_))
-       heapAddr = loader_off_ + loader_len_;
-   else
-       heapAddr = code_off_ + code_len_;
-   
-   // Word-align the heap
-   heapAddr += (instruction::size()) - (heapAddr % instruction::size());
-   
-   // Get the appropriate length
-   if (is_aout) // main application binary
-       heapLen = (0x1ffffffc - text_org_) - heapAddr;
-   else {
-       heapLen = PAGESIZE - (heapAddr % PAGESIZE);
-   }
-   
-   char name_scratch[256];
-   sprintf(name_scratch, "DYNINSTstaticHeap_%i_uncopiedHeap_%x_scratchpage",
-           (unsigned) heapLen,
-           (unsigned) heapAddr);
-   name = string(name_scratch);
-   modName = string("DYNINSTheap");
-   heapSym = Dyn_Symbol(name, modName, Dyn_Symbol::ST_FUNCTION, 
-                    Dyn_Symbol::SL_UNKNOWN, heapAddr,
-                    false, (int) heapLen);
-   
-   symbols_[name].push_back( heapSym );
-#endif
-   
    toc_offset_ = toc_offset;
       
    code_vldS_ = code_off_;
@@ -1367,7 +1229,7 @@ void Object::parse_aout(int offset, bool is_aout)
 #define PARSE_AR_DIE(errType, errCode) { \
       sprintf(errorLine, "Error parsing archive file %s: %s\n", \
               file_.c_str(), errType); \
-      err_func_(errType); \	      
+      err_func_(errType); \
       return; \
       }
    
@@ -1581,6 +1443,13 @@ Object& Object::operator=(const Object& obj) {
 }
 
 
+void Object::get_stab_info(char *&stabstr, int &nstabs, void *&stabs, char *&stringpool) const {
+  stabstr = (char *) stabstr_;
+  nstabs = nstabs_;
+  stabs = stabs_;
+  stringpool = (char *) stringpool_;
+}
+
 //
 // parseCompilerType - parse for compiler that was used to generate object
 //	return true for "native" compiler
@@ -1596,8 +1465,9 @@ bool parseCompilerType(Object *objPtr)
     union auxent *aux;
     char *stabstr=NULL;
 
-    objPtr->get_stab_info(stabstr, stab_nsyms, syms, stringPool);
-
+    void *syms_void = NULL;
+    objPtr->get_stab_info(stabstr, stab_nsyms, syms_void, stringPool);
+    syms = static_cast<SYMENT *>(syms_void);
     for (int i=0;i<stab_nsyms;i++) {
         SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
         char tempName[15];
@@ -1652,4 +1522,12 @@ bool parseCompilerType(Object *objPtr)
     }
     // bperr("compiler is GNU\n");
     return false;
+}
+
+void Dyn_Symtab::getModuleLanguageInfo(hash_map<string, supportedLanguages> *)
+{
+}
+
+ObjectType Object::objType() const {
+   return is_aout() ? obj_Executable : obj_SharedLib;
 }

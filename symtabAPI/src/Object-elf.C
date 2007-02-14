@@ -40,19 +40,18 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.4 2007/02/14 20:32:53 giri Exp $
+ * $Id: Object-elf.C,v 1.5 2007/02/14 23:03:50 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
 
-#include "Object.h"
+#include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
 
 #if !defined(_Object_elf_h_)
 #error "Object-elf.h not #included"
 #endif
 
-#include "common/h/pathName.h"     // extract_pathname_tail()
 #include <elf.h>
 #include <stdio.h>
 
@@ -63,7 +62,7 @@
 #include <algorithm>
 
 //#include "util.h"
-
+#include "common/h/pathName.h"
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
@@ -123,7 +122,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 			Elf_X_Shdr*& dynstr_scnp,  Elf_X_Shdr*& eh_frame, 
 			Elf_X_Shdr*& gcc_except,
 			bool
-#if defined(mips_sgi_irix6_4)
+#if defined(os_irix)
 			a_out  // variable not used on other platforms
 #endif
     )
@@ -153,7 +152,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
     const char* STABSTR_INDX_NAME= ".stab.indexstr";
     // sections from dynamic executables and shared objects
     const char* PLT_NAME         = ".plt";
-#if ! defined( ia64_unknown_linux2_4 )
+#if ! defined( arch_ia64 )
     const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
 #else  
     const char* REL_PLT_NAME     = ".rela.IA_64.pltoff";
@@ -164,11 +163,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
     const char* DYNSTR_NAME      = ".dynstr";
     const char* DATA_NAME        = ".data";
     const char* RO_DATA_NAME     = ".ro_data";  // mips
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0) \
- || defined(arch_ia64)
+#if defined(os_linux)
     const char* DYNAMIC_NAME     = ".dynamic";
 #endif
     const char* EH_FRAME_NAME    = ".eh_frame";
@@ -198,7 +193,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
     stab_indx_off_ = 0;
     stab_indx_size_ = 0;
     stabstr_indx_off_ = 0;
-#if defined(mips_sgi_irix6_4)
+#if defined(os_irix)
     MIPS_stubs_addr_ = 0;
     MIPS_stubs_off_ = 0;
     MIPS_stubs_size_ = 0;
@@ -300,8 +295,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 	    plt_scnp = scnp;
 	    plt_addr_ = scnp->sh_addr();
 	    plt_size_ = scnp->sh_size();
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+#if defined(arch_x86)
 	    //
 	    // On x86, the GNU linker purposefully sets the PLT
 	    // table entry size to an incorrect value to be
@@ -337,7 +331,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 	    assert( plt_entry_size_ == 16 );
 #else
 	    plt_entry_size_ = scnp->sh_entsize();
-#endif // defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
+#endif
 	}
 	else if (strcmp(name, DYNSYM_NAME) == 0) {
 	    dynsym_scnp = scnp;
@@ -358,10 +352,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 	}
 
 //TODO clean up this. it is ugly
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0) 
+#if defined(arch_x86)
 	else if (strcmp(name, DYNAMIC_NAME) == 0) {
 	    dynamic_addr_ = scnp->sh_addr();
 	}
@@ -471,9 +462,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 	    unsigned long long * bufferPtr = (unsigned long long*)elf_vaddr_to_ptr( next_plt_entry_addr );
 	    if( bufferPtr[0] == 0 && bufferPtr[1] == 0 ) { next_plt_entry_addr += 0x10; }
 
-#elif defined(i386_unknown_solaris2_5) \
-   || defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+#elif defined(arch_x86)
 	    next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 #else
 	    next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
@@ -510,7 +499,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 		    relocationEntry re( next_plt_entry_addr, offset, string( &strs[ sym.st_name(index) ] ) );
 		    relocation_table_.push_back(re);
 
-#if ! defined( ia64_unknown_linux2_4 )
+#if ! defined( arch_ia64 )
 		    next_plt_entry_addr += plt_entry_size_;
 #else
 		    /* IA-64 headers don't declare a size, because it varies. */
@@ -670,9 +659,18 @@ void Object::load_object()
           	goto cleanup;
 	    }
 	}
-    
+
+    //Set object type
+   int e_type = elfHdr.e_type();
+   if (e_type == ET_DYN) {
+      obj_type_ = obj_SharedLib;
+   }
+   else if (e_type == ET_EXEC) {
+      obj_type_ = obj_Executable;
+   }
+     
     } // end binding contour (for "goto cleanup2")
-  
+
   cleanup: 
     {
 	/* NOTE: The file should NOT be munmap()ed.  The mapped file is
@@ -771,6 +769,15 @@ void Object::load_shared_object()
 		goto cleanup2;
 	    }
 	}
+
+    //Set object type
+   int e_type = elfHdr.e_type();
+   if (e_type == ET_DYN) {
+      obj_type_ = obj_SharedLib;
+   }
+   else if (e_type == ET_EXEC) {
+      obj_type_ = obj_Executable;
+   }
 
     } // end binding contour (for "goto cleanup2")
 
@@ -889,7 +896,7 @@ void Object::parse_symbols(vector<Dyn_Symbol *> &allsymbols,
       Dyn_Symbol *newsym = new Dyn_Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
-          (shared) && (sname == extract_path_tail(smodule))) {
+          (shared) && (sname == extract_pathname_tail(smodule))) {
          
          // symbols_[sname] = newsym; // special case
          symbols_[sname].push_back( newsym );
@@ -954,7 +961,7 @@ void Object::fix_zero_function_sizes(vector<Dyn_Symbol *> &allsymbols, bool isEE
 			{
 				OFFSET slow = allSectionHdrs[u_section_idx]->sh_addr();
 				OFFSET shi = slow + allSectionHdrs[u_section_idx]->sh_size();
-#if defined(mips_sgi_irix6_4)
+#if defined(os_irix)
 				slow -= get_base_addr();
 				shi -= get_base_addr();
 #endif
@@ -1004,7 +1011,7 @@ void Object::fix_zero_function_sizes(vector<Dyn_Symbol *> &allsymbols, bool isEE
 				{
 					OFFSET slow = allSectionHdrs[v_section_idx]->sh_addr();
 					OFFSET shi = slow + allSectionHdrs[v_section_idx]->sh_size();
-#if defined(mips_sgi_irix6_4)
+#if defined(os_irix)
 					slow -= get_base_addr();
 					shi -= get_base_addr();
 #endif
@@ -1040,7 +1047,7 @@ void Object::fix_zero_function_sizes(vector<Dyn_Symbol *> &allsymbols, bool isEE
 				//
 				symSize = allSectionHdrs[u_section_idx]->sh_addr() + 
                allSectionHdrs[u_section_idx]->sh_size() -
-#if defined(mips_sgi_irix6_4)
+#if defined(os_irix)
                (allsymbols[u]->getAddr() + get_base_addr());
 #else
             allsymbols[u]->getAddr();
@@ -1623,7 +1630,7 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
 		//assert( moduleName != NULL );
 		}
 	else {
-		moduleName = extract_path_tail( dwarfModuleName );
+		moduleName = extract_pathname_tail( std::string(dwarfModuleName) );
 		}
 
 	Dwarf_Addr modLowPC = 0;
@@ -1960,7 +1967,7 @@ const char *Object::elf_vaddr_to_ptr(OFFSET vaddr) const
   unsigned code_size_ = code_len_;
   unsigned data_size_ = data_len_;
 
-#if defined(mips_sgi_irix6_4)
+#if defined(os_irix)
   vaddr -= base_addr;
 #endif
 
@@ -1977,6 +1984,7 @@ stab_entry *Object::get_stab_info() const
 {
     // check that file has .stab info
     if (stab_off_ && stab_size_ && stabstr_off_) 
+    {
 	switch (addressWidth_nbytes) {
 	case 4: // 32-bit object
 	    return new stab_entry_32(file_ptr_ + stab_off_,
@@ -1987,6 +1995,7 @@ stab_entry *Object::get_stab_info() const
 				     file_ptr_ + stabstr_off_,
 				     stab_size_ / sizeof(stab64));
 	}
+    }
     return new stab_entry_64();
 }
 
@@ -2656,4 +2665,277 @@ static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *exce
 }
 
 #endif
+
+ObjectType Object::objType() const {
+   return obj_type_;
+}
+
+void Dyn_Symtab::getModuleLanguageInfo(
+                 hash_map<string, supportedLanguages> *mod_langs) 
+{ 
+   string working_module;
+   char *ptr;
+   // check .stabs section to get language info for modules:
+	//   int stab_nsyms;
+	//   char *stabstr_nextoffset;
+	//   const char *stabstrs = 0;
+   
+   string mod_string;
+
+   // This ugly flag is set when certain (sun) fortran compilers are detected.
+   // If it is set at any point during the following iteration, this routine
+   // ends with "backtrack mode" and reiterates through all chosen languages, changing
+   // lang_Fortran to lang_Fortran_with_pretty_debug.
+   //
+   // This may be ugly, but it is set up this way since the information that is used
+   // to determine whether this flag is set comes from the N_OPT field, which 
+   // seems to come only once per image.  The kludge is that we assume that all
+   // fortran sources in the module have this property (they probably do, but
+   // could conceivably be mixed (???)).
+   int fortran_kludge_flag = 0;
+	
+   // "state variables" we use to accumulate potentially useful information
+   //  A final module<->language decision is not made until we have arrived at the
+   //  next module entry, at which point we use any and all info we have to 
+   //  make the most sensible guess
+   supportedLanguages working_lang = lang_Unknown;
+   char *working_options = NULL, *working_name = NULL;
+   
+   stab_entry *stabptr = NULL;
+   const char *next_stabstr = NULL;
+#if defined(TIMED_PARSE)
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
+#endif
+   
+   //Using the Object to get the pointers to the .stab and .stabstr
+   // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
+   stabptr = linkedFile->get_stab_info();
+   next_stabstr = stabptr->getStringBase();
+   
+   for( unsigned int i = 0; i < stabptr->count(); i++ ) 
+	{
+      if (stabptr->type(i) == N_UNDF)
+		{/* start of object file */
+         /* value contains offset of the next string table for next module */
+         // assert(stabptr->nameIdx(i) == 1);
+			stabptr->setStringBase(next_stabstr);
+	 		next_stabstr = stabptr->getStringBase() + stabptr->val(i); 
+      }
+      else if (stabptr->type(i) == N_OPT)
+		{
+         //  We can use the compiler option string (in a pinch) to guess at the source file language
+         //  There is possibly more useful information encoded somewhere around here, but I lack
+         //  an immediate reference....
+         if (working_name)
+            working_options = const_cast<char *> (stabptr->name(i)); 
+      }
+      else if ((stabptr->type(i) == N_SO)  || (stabptr->type(i) == N_ENDM))
+		{ /* compilation source or file name */
+         // We have arrived at the next source file, finish up with the last one and reset state
+         // before starting next
+
+
+         //   XXXXXXXXXXX  This block is mirrored near the end of routine, if you edit it,
+         //   XXXXXXXXXXX  change it there too.
+         if  (working_name)
+			{
+            working_lang = pickLanguage(working_module, working_options, working_lang);
+            if (working_lang == lang_Fortran_with_pretty_debug)
+               fortran_kludge_flag = 1;
+            (*mod_langs)[working_module] = working_lang;
+
+         }
+         //   XXXXXXXXXXX
+	
+         // reset "state" here
+         working_lang = lang_Unknown;
+         working_options = NULL;
+
+         //  Now:  out with the old, in with the new
+
+         if (stabptr->type(i) == N_ENDM)
+			{
+            // special case:
+            // which is most likely both broken (and ignorable ???)
+            working_name = "DEFAULT_MODULE";
+         }
+         else
+			{
+            working_name = const_cast<char*>(stabptr->name(i));
+            ptr = strrchr(working_name, '/');
+            if (ptr)
+				{
+               ptr++;
+               working_name = ptr;
+            }
+         }
+         working_module = string(working_name);
+
+         if ((mod_langs->find(working_module) != mod_langs->end()) && (*mod_langs)[working_module] != lang_Unknown) 
+			{
+            //  we already have a module with this name in the map.  If it has been given
+            //  a language assignment (not lang_Unknown), we can just skip ahead
+            working_name = NULL;
+            working_options = NULL;
+            continue;
+         } 
+         else 
+			{
+            //cerr << __FILE__ << __LINE__ << ":  Module: " <<working_module<< " has language "<< stabptr->desc(i) << endl;  
+            switch (stabptr->desc(i))
+				{
+               case N_SO_FORTRAN: 
+                  working_lang = lang_Fortran;
+                  break;
+               case N_SO_F90:
+                  working_lang = lang_Fortran;  // not sure if this should be different from N_SO_FORTRAN
+                  break;
+               case N_SO_AS:
+                  working_lang = lang_Assembly;
+                  break;
+               case N_SO_ANSI_C:
+               case N_SO_C:
+                  working_lang = lang_C;
+                  break;
+               case N_SO_CC:
+                  working_lang = lang_CPlusPlus;
+                  break;
+               default:
+                  //  currently uncovered options are lang_CMFortran, and lang_GnuCPlusPlus
+                  //  do we need to make this kind of distinction here?
+                  working_lang = lang_Unknown;
+                  break;
+            }
+	
+         } 
+      } // end N_SO section
+   } // for loop
+
+   //  Need to make sure we finish up with the module we were last collecting information 
+   //  about
+
+   //   XXXXXXXXXXX  see note above (find the X's)
+   if  (working_name)
+	{
+      working_lang = pickLanguage(working_module, working_options, working_lang);	  
+      if (working_lang == lang_Fortran_with_pretty_debug)
+         fortran_kludge_flag = 1;
+      (*mod_langs)[working_module] = working_lang;
+   }
+   //   XXXXXXXXXXX
+
+   if (fortran_kludge_flag)
+	{
+      //  XXX  This code does not appear to be used anymore??  
+      // go through map and change all lang_Fortran to lang_Fortran_with_pretty_symtab
+      hash_map<string, supportedLanguages>::iterator iter = (*mod_langs).begin();
+      string aname;
+      supportedLanguages alang;
+      while (++iter!=(*mod_langs).end())
+		{
+			aname = iter->first;
+			alang = iter->second;
+         if(lang_Fortran == alang)
+			{
+            (*mod_langs)[aname] = lang_Fortran_with_pretty_debug;
+            //fprintf(stderr, "%s[%d]:  UPDATE: lang_Fortran->langFortran_with_pretty_debug\n", FILE__, __LINE__);
+         }
+      }
+   }
+#if defined(TIMED_PARSE)
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << __FILE__ << ":" << __LINE__ <<": getModuleLanguageInfo took "<<dursecs <<" msecs" << endl;
+#endif
+   delete stabptr;
+
+#if defined(cap_dwarf)
+   if (linkedFile->hasDwarfInfo())
+	{
+      
+      //TODO Assumes that a filename is present. change to handle cases where there's
+      //no filename and we have a memory pointer
+      const char *fileName = linkedFile->getFileName();
+      
+      int fd = open( fileName, O_RDONLY );
+      assert ( fd != -1 );
+      Dwarf_Debug dbg;
+      int status = dwarf_init( fd, DW_DLC_READ, NULL, NULL, & dbg, NULL );
+      assert( status == DW_DLV_OK );
+      
+      Dwarf_Unsigned hdr;
+      
+      while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK )
+		{
+         Dwarf_Die moduleDIE;
+         status = dwarf_siblingof(dbg, NULL, &moduleDIE, NULL);
+         assert ( status == DW_DLV_OK );
+         
+         Dwarf_Half moduleTag;
+         status = dwarf_tag( moduleDIE, & moduleTag, NULL);
+         assert( status == DW_DLV_OK );
+         assert( moduleTag == DW_TAG_compile_unit );
+         
+         /* Extract the name of this module. */
+         char * moduleName;
+         status = dwarf_diename( moduleDIE, & moduleName, NULL );
+         ptr = strrchr(moduleName, '/');
+         if (ptr)
+            ptr++;
+         else
+            ptr = moduleName;
+         
+         working_module = string(ptr);
+         
+         if (status != DW_DLV_NO_ENTRY) 
+			{
+            assert( status != DW_DLV_ERROR );
+            Dwarf_Attribute languageAttribute;
+            status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
+            assert( status != DW_DLV_ERROR );
+            if( status == DW_DLV_OK ) 
+				{
+               Dwarf_Unsigned languageConstant;
+               status = dwarf_formudata( languageAttribute, & languageConstant, NULL );
+               assert( status == DW_DLV_OK );
+               
+               switch( languageConstant )
+					{
+                  case DW_LANG_C:
+                  case DW_LANG_C89:
+                     (*mod_langs)[working_module] = lang_C;
+                     break;
+                  case DW_LANG_C_plus_plus:
+                     (*mod_langs)[working_module] = lang_CPlusPlus;
+                     break;
+                  case DW_LANG_Fortran77:
+                  case DW_LANG_Fortran90:
+                  case DW_LANG_Fortran95:
+                     (*mod_langs)[working_module] = lang_Fortran;
+                     break;
+                  default:
+                     /* We know what the language is but don't care. */
+                     break;
+               } /* end languageConstant switch */
+               
+               dwarf_dealloc( dbg, languageAttribute, DW_DLA_ATTR );
+            }
+            dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
+         }
+         dwarf_dealloc( dbg, moduleDIE, DW_DLA_DIE );
+      }
+
+      status = dwarf_finish( dbg, NULL );
+      assert( status == DW_DLV_OK );
+      P_close( fd );
+   }
+#endif
+
+}
+
 

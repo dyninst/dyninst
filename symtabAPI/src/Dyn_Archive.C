@@ -39,43 +39,46 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- #include "symtabAPI/h/Dyn_Archive.h"
 
- extern char errorLine[80];
- static SymtabError serr;
- static string errMsg;
+#include "symtabAPI/h/util.h"
+#include "symtabAPI/h/Dyn_Archive.h"
+#include "symtabAPI/src/Object.h"
 
- vector<Dyn_Archive *> Dyn_Archive::allArchives;
+extern char errorLine[80];
+static SymtabError serr;
+static string errMsg;
 
- SymtabError Dyn_Archive::getLastError()
- {
+vector<Dyn_Archive *> Dyn_Archive::allArchives;
+
+SymtabError Dyn_Archive::getLastError()
+{
  	return serr;
- }
+}
 
-  string Dyn_Archive::printError(SymtabError serr)
-  {
-      	switch (serr){
-            case Obj_Parsing:
-               	return "Failed to parse the Archive"+errMsg;
-	    case No_Such_Member:
+string Dyn_Archive::printError(SymtabError serr)
+{
+   switch (serr){
+      case Obj_Parsing:
+         return "Failed to parse the Archive"+errMsg;
+      case No_Such_Member:
 	    	return "Member not found" + errMsg;
-	    case Not_An_Archive:
+      case Not_An_Archive:
 	    	return "File is not an archive";
-	    default:
-	        return "Unknown Error";
+      default:
+         return "Unknown Error";
 	}	
- }		
+}		
 		       
- bool Dyn_Archive::openArchive(string &filename, Dyn_Archive *&img)
- {
+bool Dyn_Archive::openArchive(string &filename, Dyn_Archive *&img)
+{
  	bool err;
 	for(unsigned i=0;i<allArchives.size();i++)
 	{
-	    if(allArchives[i]->file() == filename)
-	    {
+      if(allArchives[i]->file() == filename)
+      {
 	    	img = allArchives[i];
-		return true;
-	    }
+         return true;
+      }
 	}
 	img = new Dyn_Archive(filename ,err);
 	if(err)	// No errors
@@ -83,113 +86,113 @@
 	else
 		img = NULL;
 	return err;
- }
+}
 
- bool Dyn_Archive::openArchive(char *mem_image, size_t size, Dyn_Archive *&img)
- {
+bool Dyn_Archive::openArchive(char *mem_image, size_t size, Dyn_Archive *&img)
+{
  	bool err;
 	img = new Dyn_Archive(mem_image, size, err);
 	if(err == false)
 		img = NULL;
 	return err;
- }
+}
 
- Dyn_Archive::Dyn_Archive(string &filename, bool &err) : filename_(filename)
- {
- 	fileOpener *fo_ = fileOpener::openFile(filename);
+Dyn_Archive::Dyn_Archive(string &filename, bool &err) : filename_(filename)
+{
+   fileOpener *fo_ = fileOpener::openFile(filename);
 	assert(fo_);
 	unsigned char magic_number[2];
     
-    	if (!fo_->set(0)) 
+   if (!fo_->set(0)) 
 	{
-        	sprintf(errorLine, "Error reading file %s\n", 
-                filename_.c_str());
+      sprintf(errorLine, "Error reading file %s\n", 
+              filename_.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
-        	return;
-    	}
-    	if (!fo_->read((void *)magic_number, 2)) 
+      return;
+   }
+   if (!fo_->read((void *)magic_number, 2)) 
 	{
-        	sprintf(errorLine, "Error reading file %s\n", 
-                					filename_.c_str());
+      sprintf(errorLine, "Error reading file %s\n", 
+              filename_.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
-        	return;
-    	}
+      return;
+   }
 
-    	// a.out file: magic number = 0x01df
-    	// archive file: magic number = 0x3c62 "<b", actually "<bigaf>"
-    	// or magic number = "<a", actually "<aiaff>"
-    	if (magic_number[0] == 0x01)
+   // a.out file: magic number = 0x01df
+   // archive file: magic number = 0x3c62 "<b", actually "<bigaf>"
+   // or magic number = "<a", actually "<aiaff>"
+   if (magic_number[0] == 0x01)
 	{
 		serr = Not_An_Archive;
-        	sprintf(errorLine, "Not an Archive. Call Dyn_Symtab::openFile"); 
+      sprintf(errorLine, "Not an Archive. Call Dyn_Symtab::openFile"); 
 		errMsg = errorLine;
 		err = false;
 		return;
 	}
-    	else if ( magic_number[0] != '<')
+   else if ( magic_number[0] != '<')
 	{
-        	sprintf(errorLine, "Bad magic number in file %s\n",
-        					        filename_.c_str());
+      sprintf(errorLine, "Bad magic number in file %s\n",
+              filename_.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
 		return;
-    	}
+   }
 	Archive *archive = NULL;
     
-    	// Determine archive type
-    	// Start at the beginning...
-    	if (!fo_->set(0))
+   // Determine archive type
+   // Start at the beginning...
+   if (!fo_->set(0))
 	{
-        	sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Seeking to file start" );	
+      sprintf(errorLine, "Error parsing a.out file %s: %s \n",
+              filename_.c_str(), "Seeking to file start" );	
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
 	}					     
 
-    	char magicNumber[SAIAMAG];
-    	if (!fo_->read(magicNumber, SAIAMAG))
+   char magicNumber[SAIAMAG];
+   if (!fo_->read(magicNumber, SAIAMAG))
 	{
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Reading magic number" );
+              filename_.c_str(), "Reading magic number" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
 	}	
 
-    	if (!strncmp(magicNumber, AIAMAG, SAIAMAG))
-    		archive = (Archive *) new Archive_32(fo_);
-    	else if (!strncmp(magicNumber, AIAMAGBIG, SAIAMAG))
-        	archive = (Archive *) new Archive_64(fo_);
-    	else
+   if (!strncmp(magicNumber, AIAMAG, SAIAMAG))
+      archive = (Archive *) new Archive_32(fo_);
+   else if (!strncmp(magicNumber, AIAMAGBIG, SAIAMAG))
+      archive = (Archive *) new Archive_64(fo_);
+   else
 	{
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Unknown Magic number" );
+              filename_.c_str(), "Unknown Magic number" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
 	}	
     
-    	if (archive->read_arhdr())
+   if (archive->read_arhdr())
 	{
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Reading file header" );
+              filename_.c_str(), "Reading file header" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
 	}	
     
 	while (archive->next_offset !=0)
-    	{
-    		if (archive->read_mbrhdr())
+   {
+      if (archive->read_mbrhdr())
 		{
 			sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Reading Member Header" );
+                 filename_.c_str(), "Reading Member Header" );
 			serr = Obj_Parsing;
 			errMsg = errorLine;
 			err = false;
@@ -203,106 +206,106 @@
 		Dyn_Symtab *memImg = new Dyn_Symtab(filename ,member_name, archive->aout_offset, err);
 		membersByName[member_name] = memImg;
 		membersByOffset[archive->aout_offset] = memImg;
-    	} 	
-    	delete archive;
+   } 	
+   delete archive;
 	err = true;
- }
+}
 
- Dyn_Archive::Dyn_Archive(char *mem_image, size_t size, bool &err)
- {
+Dyn_Archive::Dyn_Archive(char *mem_image, size_t size, bool &err)
+{
  	fileOpener *fo_ = fileOpener::openFile(mem_image, size);
 	assert(fo_);
 	unsigned char magic_number[2];
     
-    	if (!fo_->set(0)) 
+   if (!fo_->set(0)) 
 	{
-        	sprintf(errorLine, "Error reading file %s\n", 
-                filename_.c_str());
+      sprintf(errorLine, "Error reading file %s\n", 
+              filename_.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
-        	return;
-    	}
-    	if (!fo_->read((void *)magic_number, 2)) 
+      return;
+   }
+   if (!fo_->read((void *)magic_number, 2)) 
 	{
-        	sprintf(errorLine, "Error reading file %s\n", 
-                					filename_.c_str());
+      sprintf(errorLine, "Error reading file %s\n", 
+              filename_.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
-        	return;
-    	}
+      return;
+   }
 
-    	// a.out file: magic number = 0x01df
-    	// archive file: magic number = 0x3c62 "<b", actually "<bigaf>"
-    	// or magic number = "<a", actually "<aiaff>"
-    	if (magic_number[0] == 0x01)
+   // a.out file: magic number = 0x01df
+   // archive file: magic number = 0x3c62 "<b", actually "<bigaf>"
+   // or magic number = "<a", actually "<aiaff>"
+   if (magic_number[0] == 0x01)
 	{
 		serr = Not_An_Archive;
-        	sprintf(errorLine, "Not an Archive. Call Dyn_Symtab::openFile"); 
+      sprintf(errorLine, "Not an Archive. Call Dyn_Symtab::openFile"); 
 		errMsg = errorLine;
 		err = false;
 		return;
 	}
-    	else if ( magic_number[0] != '<')
+   else if ( magic_number[0] != '<')
 	{
-        	sprintf(errorLine, "Bad magic number in file %s\n",
-        					        filename_.c_str());
+      sprintf(errorLine, "Bad magic number in file %s\n",
+              filename_.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
 		return;
-    	}
+   }
 	Archive *archive = NULL;
     
-    	// Determine archive type
-    	// Start at the beginning...
-    	if (!fo_->set(0))
-        {
+   // Determine archive type
+   // Start at the beginning...
+   if (!fo_->set(0))
+   {
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Seeking to file start" );	
+              filename_.c_str(), "Seeking to file start" );	
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
 	}
 	
-    	char magicNumber[SAIAMAG];
-    	if (!fo_->read(magicNumber, SAIAMAG))
+   char magicNumber[SAIAMAG];
+   if (!fo_->read(magicNumber, SAIAMAG))
 	{
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Reading magic number" );
+              filename_.c_str(), "Reading magic number" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
 	}	
 
-    	if (!strncmp(magicNumber, AIAMAG, SAIAMAG))
-    		archive = (Archive *) new Archive_32(fo_);
-    	else if (!strncmp(magicNumber, AIAMAGBIG, SAIAMAG))
-        	archive = (Archive *) new Archive_64(fo_);
-    	else
+   if (!strncmp(magicNumber, AIAMAG, SAIAMAG))
+      archive = (Archive *) new Archive_32(fo_);
+   else if (!strncmp(magicNumber, AIAMAGBIG, SAIAMAG))
+      archive = (Archive *) new Archive_64(fo_);
+   else
 	{
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Unknown Magic number" );
+              filename_.c_str(), "Unknown Magic number" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
 	}    
-    	if (archive->read_arhdr())
+   if (archive->read_arhdr())
 	{
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Reading File Header" );
+              filename_.c_str(), "Reading File Header" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
-   	}
+   }
 
 	while (archive->next_offset !=0)
-    	{
-    		if (archive->read_mbrhdr())
+   {
+      if (archive->read_mbrhdr())
 		{
 			sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-				             filename_.c_str(), "Reading Member Header" );
+                 filename_.c_str(), "Reading Member Header" );
 			serr = Obj_Parsing;
 			errMsg = errorLine;
 			err = false;
@@ -315,13 +318,13 @@
 		Dyn_Symtab *memImg = new Dyn_Symtab(mem_image, size,member_name, archive->aout_offset, err);
 		membersByName[member_name] = memImg;
 		membersByOffset[archive->aout_offset] = memImg;
-    	} 	
-    	delete archive;
+   } 	
+   delete archive;
 	err = true;
- }
+}
 
- bool Dyn_Archive::getMember(string &member_name,Dyn_Symtab *&img)
- {
+bool Dyn_Archive::getMember(string &member_name,Dyn_Symtab *&img)
+{
  	if(membersByName.find(member_name) == membersByName.end())
 	{
 		serr = No_Such_Member;
@@ -330,10 +333,10 @@
 	}	
 	img = membersByName[member_name];
 	return true;
- }
+}
 
- bool Dyn_Archive::getMemberByOffset(OFFSET &memberOffset, Dyn_Symtab *&img)
- {
+bool Dyn_Archive::getMemberByOffset(OFFSET &memberOffset, Dyn_Symtab *&img)
+{
  	if(membersByOffset.find(memberOffset) == membersByOffset.end())
 	{
 		serr = No_Such_Member;
@@ -342,18 +345,18 @@
 	}	
 	img = membersByOffset[memberOffset];
 	return true;
- }
+}
 
- bool Dyn_Archive::getAllMembers(vector <Dyn_Symtab *> &members)
- {
+bool Dyn_Archive::getAllMembers(vector <Dyn_Symtab *> &members)
+{
  	hash_map <string, Dyn_Symtab *>::iterator iter = membersByName.begin();
 	for(; iter!=membersByName.end();iter++)
 		members.push_back(iter->second);
 	return true;	
- }
+}
 
- bool Dyn_Archive::isMemberInArchive(string &member_name)
- {
+bool Dyn_Archive::isMemberInArchive(string &member_name)
+{
  	hash_map <string, Dyn_Symtab *>::iterator iter = membersByName.begin();
 	for(; iter!=membersByName.end();iter++)
 	{
@@ -361,15 +364,15 @@
 			return true;
 	}	
 	return false;
- }
+}
 
- Dyn_Archive::~Dyn_Archive()
- {
+Dyn_Archive::~Dyn_Archive()
+{
  	hash_map <string, Dyn_Symtab *>::iterator iter = membersByName.begin();
 	for(; iter!=membersByName.end();iter++)
-	    delete (iter->second);
+      delete (iter->second);
 	for (unsigned i = 0; i < allArchives.size(); i++) {
-            if (allArchives[i] == this)
-                    allArchives.erase(allArchives.begin()+i);
-        }
- }
+      if (allArchives[i] == this)
+         allArchives.erase(allArchives.begin()+i);
+   }
+}

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.1 2007/02/05 21:14:32 giri Exp $
+ * $Id: Object-xcoff.h,v 1.2 2007/02/14 23:03:55 legendre Exp $
 ************************************************************************/
 
 
@@ -59,11 +59,10 @@
  * header files.
 ************************************************************************/
 
-#include <common/h/headers.h>
+#include "common/h/headers.h"
 //#include <common/h/Line.h>
 #include "symtabAPI/h/Dyn_Symbol.h"
-#include <common/h/Types.h>
-#include <common/h/pathName.h>
+#include "common/h/Types.h"
 
 #include <ext/hash_map>
 #include <string>
@@ -221,12 +220,7 @@ public:
     OFFSET data_reloc () const { return data_reloc_; }
     OFFSET text_reloc () const { return text_reloc_; }
     
-    void get_stab_info(char *&stabstr, int &nstabs, SYMENT *&stabs, char *&stringpool) const {
-	stabstr = (char *) stabstr_;
-	nstabs = nstabs_;
-	stabs = (SYMENT *) stabs_;
-	stringpool = (char *) stringpool_;
-    }
+    void get_stab_info(char *&stabstr, int &nstabs, void *&stabs, char *&stringpool) const;
     
     void get_line_info(int& nlines, char*& lines,unsigned long& fdptr) const {
 	nlines = nlines_;
@@ -237,11 +231,14 @@ public:
     OFFSET getLoadAddress() const { return loadAddress_; }
     OFFSET getEntryAddress() const { return entryAddress_; }
     OFFSET getBaseAddress() const { return baseAddress_; }
+    
+    ObjectType objType() const;
 
     void load_object();
     void load_archive(bool is_aout);
     void parse_aout(int offset, bool is_aout);
     bool isEEL() const { return false; }
+    
 
     // We mmap big files and piece them out; this handles the mapping
     // and reading and pointerage and...
