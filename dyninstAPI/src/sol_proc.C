@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.113 2006/11/28 23:34:08 legendre Exp $
+// $Id: sol_proc.C,v 1.114 2007/02/14 23:04:18 legendre Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1737,14 +1737,19 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
 
 pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) 
 {
-  // This is called by exec, so we might have a valid file path. If so,
-  // use it... otherwise go to /proc. Helps with exec aliasing problems.
-
+   char buffer[2];
+   int result;
+   // This is called by exec, so we might have a valid file path. If so,
+   // use it... otherwise go to /proc. Helps with exec aliasing problems.
+   buffer[0] = buffer[1] = '\0';
    if (iprogpath.c_str()) {
        int filedes = open(iprogpath.c_str(), O_RDONLY);
        if (filedes != -1) {
-           P_close(filedes);
-           return iprogpath;
+          result = read(filedes, buffer, 2);
+          P_close(filedes);
+          if (result != -1 && (buffer[0] != '#' || buffer[1] != '!')) {
+             return iprogpath;
+          }
        }
    }
 
