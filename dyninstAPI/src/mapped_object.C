@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.19 2007/01/19 22:12:41 giri Exp $
+// $Id: mapped_object.C,v 1.20 2007/02/14 23:04:14 legendre Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/String.h"
 #include "dyninstAPI/src/debug.h"
+#include "symtabAPI/h/Dyn_Symtab.h"
 #include "process.h"
 
 #define FS_FIELD_SEPERATOR '/'
@@ -171,7 +172,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 #endif
 }
 
-mapped_object *mapped_object::createMappedObject(fileDescriptor desc,
+mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
                                                  process *p) {
                                                  
     if (!p) return NULL;
@@ -180,6 +181,17 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor desc,
     if (!img)  {
         return NULL;
     }
+    if (!desc.isSharedObject()) {
+       //We've seen a case where the a.out is a shared object (RHEL4's
+       // version of ssh).  Check if the shared object flag is set in the
+       // binary (which is different from the isSharedObject()) call above.
+       // If so, we need to update the load address.
+       if (img->getObject()->getObjectType() == obj_SharedLib) {
+          //Executable is a shared lib
+          p->setAOutLoadAddress(desc);
+       }
+    }
+
     // Adds exported functions and variables..
     mapped_object *obj = new mapped_object(desc, img, p);
 

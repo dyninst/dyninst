@@ -281,13 +281,6 @@ private:
 // End 32/64-bit helper structures.
 // ---------------------------------------------------------------
 
-static int scandir_select_ld( const struct dirent * entry ) {
-  // Select files which could be ld.so, they must start with "ld", and must
-  // contain the string ".so".  Hope that's good enough...
-  return !strncmp( "ld", entry->d_name, 2 ) && strstr( entry->d_name, ".so" );
-}
-
-
 /* 16 is a good choice for testing long_fgets. */
 #define LONG_FGETS_GRANULARITY 256
 
@@ -320,168 +313,72 @@ char * long_fgets( FILE * file ) {
 	return oldline;
 	} /* end long_fgets() */
 
-const char ldlibpath[] = "/lib";
-
 /* get_ld_info() returns true if it filled in the base address of the
    ld.so library and its path, and false if it could not. */
-bool dynamic_linking::get_ld_info( Address & addr, char ** path ) {
-	/* Allow the user to specify the directory to search for the ld library.
-	   Otherwise, use '/lib' (from the filesystem spec). */
-	char * ldpath, * ldpath_env;
-	ldpath_env = getenv( "LD_PATH" );
-	if( ldpath_env != NULL ) {
-		ldpath = strdup( ldpath_env );
-		}
-	else {
-		ldpath = strdup( ldlibpath );
-		}
-	assert( ldpath != NULL );
-		
-	/* Allow the user to specify the exact file which is the ld library. */
-	char * ldspec = getenv( "LD_SPECIFY" );
-	
-	int length = snprintf( NULL, 0, "/proc/%d/maps", proc->getPid() );
-	char * procMaps = (char *)malloc( (length + 1) * sizeof( char ) );
-	assert( procMaps != NULL );
-	sprintf( procMaps, "/proc/%d/maps", proc->getPid() );
-  
-  	FILE * maps = P_fopen( procMaps, "r" );
-  	if( ! maps ) {
-  		free( procMaps ); free( ldpath ); return false;
-  		}
+bool dynamic_linking::get_ld_info( Address & addr, unsigned &size, char ** path)
+{
+   map_entries *maps = NULL;
+   unsigned maps_size = 0;
+   bool result = false;
+   Address first = 0x0, last = 0x0;
+   *path = NULL;
 
-	/* Check if the specified ld.so exists before searching /proc/maps for it. */
-	int num_dents = 0;
-	dirent ** dirents = NULL;
-	if(	ldspec != NULL ) { 
-		/* This used to be only if the file were specified /and/ there were no pathnames in /proc/maps. */
-		struct stat t_stat;
-		if( stat( ldspec, &t_stat ) ) {
-			perror( "dynamic_linking::get_ld_info -> stat(...)" );
-			bperr( "Error calling stat(...) on file in LD_SPECIFY, ignoring\n" );
-			ldspec = NULL;
-		} else {
-			// Pack the inode and file name into a dirent and the path into ldpath
-			num_dents = 1;
-			dirents = new dirent *;
-			* dirents = new dirent;
-			(* dirents)->d_ino = t_stat.st_ino;
-			
-			// Split the file/path name into path and file names
-			char * ldspec2 = strrchr( ldspec, '/' );
-			*(ldspec2++) = '\0';
-			strncpy( (*dirents)->d_name, ldspec2, 255 );
-			
-			if( ldpath != NULL ) { free( ldpath ); }
-			ldpath = strdup( ldspec );
-			assert( ldpath != NULL );
-			}
-		}
-		
-	/* FIXME: do these error cases leak dirents? */
-	if( procMaps == NULL && ldspec == NULL ) {
-		// Scan /lib for files conforming to the criteria in scandir_select_ld
-		// above, and sort them via the given (in dirent.h) alphasort function
-		num_dents = scandir( ldpath, &dirents, scandir_select_ld, alphasort );
-		if( num_dents == -1 ) {
-			fclose( maps );
-	  		free( procMaps ); free( ldpath ); return false;
-		} else if ( !num_dents ) {
-			fclose( maps );
-	  		free( procMaps ); free( ldpath ); return false;
-	        return false;
-			}
-		}
+   addr = 0x0;
+   maps = getLinuxMaps(proc->getPid(), maps_size);
+   if (!maps)
+      goto done;
+
+   for (unsigned i=0; i<maps_size; i++) {
+      //Check inode
+      bool has_inode = (maps[i].inode != 0);
 
 
-	/* Scan through /proc/maps, looking for the first mapping which corresponds
-	   to ld.so.  If we have pathnames, just look for 'ld'; if not, compare the 
-	   file inodes against the dirents discovered above. */
+      //Get the file part of the filename. eg /lib/ld-2.3.4.so -> ld-2.3.4.so
+      char *filename = "";
+      if (has_inode) {
+         filename = strrchr(maps[i].path, '/');
+         if (!filename)
+            filename = maps[i].path;
+         else
+            filename++;
+      }
+      //Check for format match of ld*.so*
+      bool matches_name = (strncmp("ld", filename, 2)==0 && 
+                           strstr(filename, ".so"));
 
-	* path = NULL;
-	ino_t lastInode = 0;
-	while( ! feof( maps ) && (*path == NULL) ) {
-		// Format of lines in /proc/*/maps
-		//  original (without pathname):
-		//    40000000-40009000 r-xp 00000000 03:02 232624
-		//    mapped address range :  permissions : offset in file : device number : inode
-		//  new uname -r >= 2.1.? (with pathname):
-		//    40000000-40009000 r-xp 00000000 08:01 28674      /lib/ld-2.0.7.so
-		//    as above : path to mapped file
-		
-		Address lowAddr, highAddr;
-		char perms[5];
-		Address offset;
-		unsigned int devmajor, devminor;
-		ino_t inode;
-		/* We assume that inodes numbers are not bigger than signed ints. */
-		int matches = fscanf( 	maps, "%lx-%lx %4s %lx %x:%x %d",
-								&lowAddr, &highAddr, perms, &offset,
-								&devmajor, &devminor, (int *) & inode );
-		if( matches != 7 ) {
-			fclose( maps );
-	  		free( procMaps ); free( ldpath ); return false;
-	        return false;
-			}
-		// dev_t device = ( ( devmajor & 0xff ) << 8 ) | devminor;
+      if (!matches_name) {
+         if (!first) continue; //Haven't found it yet
+         if (has_inode) break; //An object, and we've already found ldso. Done.
+         //If we're here, we have an mmap'd region (has_inode = false), and 
+         // we've already found the start of ldso (first != 0x0).  We want
+         // to include all subsequent mmap'd regions until we hit a new library
+      }
 
-     	/* Does this line have a filename? */
-     	char * fullPathName = long_fgets( maps );
-     	char * fileName = NULL;
-     	if( fullPathName != NULL ) {
-     		/* Every legal full path has at least one '/'; this allows us
-     		   to ignore strings of the form "<whitespace>\n" easily. */
-     		fileName = rindex( fullPathName, '/' );
-     		}
-     	
-     	if( fileName != NULL && inode != 0 && inode != lastInode ) { 
-     		++fileName;     		
-     		if( strncmp( "ld", fileName, 2 ) == 0 && strstr( fileName, ".so" ) != NULL ) {
-     			/* Set the return values and finish up. */
-     			addr = lowAddr;
-     			char * strippedOfLeadingWhitespace = strchr( fullPathName, '/' );
-     			assert( strippedOfLeadingWhitespace != NULL );
-     			strippedOfLeadingWhitespace[ strlen( strippedOfLeadingWhitespace ) - 1 ] = '\0';
-     			* path = strdup( strippedOfLeadingWhitespace );
-     			assert( * path != NULL );
-     			
-     			if( fullPathName != NULL ) { free( fullPathName ); }
-				fclose( maps );
-		  		free( procMaps ); free( ldpath );
-		  		return true;
-     			}
-     		} /* end if we have a filename */
-     	else if( inode != 0 && inode != lastInode ) {
-     		for( int i = 0; i < num_dents; ++i ) {
-     			if( (ino_t)(dirents[i]->d_ino) == inode ) {
-     				/* Set the return values. */
-     				assert( dirents[i]->d_name != NULL );     			
-     				int pathlength = strlen( ldpath ) + strlen( dirents[i]->d_name ) + 2;
-     				* path = (char *)malloc( sizeof( char ) * pathlength );
-     				assert( * path != NULL );
-     				snprintf( * path, pathlength, "%s/%s", ldpath, dirents[i]->d_name );
-     				addr = lowAddr;
-     				
-     				/* Clean up. */     			
-	     			if( fullPathName != NULL ) { free( fullPathName ); }
-					fclose( maps );
-			  		free( procMaps ); free( ldpath );
-     				return true;
-     				} /* end if the inode numbers match. */
-     			} /* end iteration over dentries. */
-     		} /* end if we don't have a filename but we do have a new inode. */
-     		
-     	free( fullPathName );
-     	lastInode = inode;
-     	} /* end iteration over file */
-	
-	/* FIXME: does this leak dirents? */
-	fclose( maps );
-	free( procMaps ); free( ldpath );
-	
-	/* If we'd found what we were looking for, we returned already. */
-	return false;
-	} /* end get_ld_info() */
+      if (!*path)
+         *path = strdup(maps[i].path);      
+      if (!first)
+         first = maps[i].start;
+      last = maps[i].end;
+   }
+
+   if (!first) {
+      result = false;
+      goto done;
+   }
+
+   assert(*path);
+   assert(last);
+   addr = first;
+   size = last - first;
+   result = true;
+   
+ done:
+   if (maps)
+      free(maps);
+
+   return result;
+} /* end get_ld_info() */
+
 
 #if defined(arch_ia64)
 
@@ -552,7 +449,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
    // that we need.  Use proc/maps to augment r_debug instead
 
    unsigned maps_size = 0;
-   maps_entries *maps= getLinuxMaps(proc->getPid(), maps_size);
+   map_entries *maps= getLinuxMaps(proc->getPid(), maps_size);
    //   pdstring aout = process::tryToFindExecutable("", proc->getPid());
 
    /*
@@ -703,8 +600,9 @@ bool dynamic_linking::initialize() {
     /* Find the base address of ld.so.1, since the entries we get
        from its Object won't be right, otherwise. */
     Address ld_base = 0;
+    unsigned ld_size = 0;
     char * ld_path;
-    if( ! get_ld_info( ld_base, & ld_path) ) { 
+    if( ! get_ld_info( ld_base, ld_size, & ld_path) ) { 
         startup_printf("Failed to get ld info, ret false from dyn::init\n");
         return false; 
     }
@@ -724,16 +622,16 @@ bool dynamic_linking::initialize() {
     	return false;
     }	
     for(unsigned index=0;index<syms.size();index++)
-    	rDebugSyms.push_back(*(syms[index]));
+       rDebugSyms.push_back(*(syms[index]));
     if( rDebugSyms.size() == 1 ) { rDebugSym = rDebugSyms[0]; } else { 
-        startup_printf("rDebugSyms size %d, expecting 1, ret false from dyn::init\n",
-                rDebugSyms.size());
-        return false; 
+       startup_printf("rDebugSyms size %d, expecting 1, ret false from " 
+                      "dyn::init\n", rDebugSyms.size());
+       return false; 
     }
     if( ! (rDebugSym.getType() == Dyn_Symbol::ST_OBJECT) ) {
-        startup_printf("Unexpected type %d for rDebugSym, ret false from dyn::init\n",
-                       rDebugSym.getType());
-        return false; 
+       startup_printf("Unexpected type %d for rDebugSym, ret false from "
+                      "dyn::init\n", rDebugSym.getType());
+       return false; 
     }
     
     // Set r_debug_addr
@@ -741,18 +639,29 @@ bool dynamic_linking::initialize() {
     if (!ldsoOne->getLoadAddress()) {
         r_debug_addr += ld_base;
     }
+
+    signed long adjustment = 0;
+    if ((r_debug_addr < ld_base) || (r_debug_addr >= ld_base + ld_size)) {
+       //On RHEL4's version of ssh, we're seeing the OS ignore the load address
+       // for libraries, and force them into other locations.  Try to correct 
+       // for this by noting wheter the r_debug_addr symbol falls outside
+       // the addresses boundries, and then adjusting the address.
+       adjustment = ld_base - ldsoOne->getLoadAddress();
+    }
+    r_debug_addr += adjustment;
     assert( r_debug_addr );
     
     /* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
     syms.clear();
-    if(!ldsoOne->findSymbolByType(syms,"_dl_map_object",Dyn_Symbol::ST_UNKNOWN)){ ; }
+    ldsoOne->findSymbolByType(syms,"_dl_map_object",Dyn_Symbol::ST_UNKNOWN);
     for(unsigned index=0;index<syms.size();index++)
-        rDebugSyms.push_back(*(syms[index]));
+       rDebugSyms.push_back(*(syms[index]));
     //if( ! ldsoOne.get_symbols( "_dl_map_object", rDebugSyms ) ) { ; }
     /* It's also apparently OK if this uses a garbage symbol. */
     if( rDebugSyms.size() == 1 ) { rDebugSym = rDebugSyms[0]; }
     if( ! (rDebugSym.getType() == Dyn_Symbol::ST_FUNCTION) ) { ; } 
     dlopen_addr = rDebugSym.getAddr() + ld_base;
+    dlopen_addr += adjustment;
     assert( dlopen_addr );
     
     free(ld_path);

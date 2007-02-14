@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.34 2006/10/30 22:14:11 legendre Exp $
+// $Id: linux.h,v 1.35 2007/02/14 23:04:12 legendre Exp $
 
 #if !defined(os_linux)
 #error "invalid architecture-os inclusion"
@@ -140,6 +140,8 @@ typedef struct maps_entries {
    int inode;
    char path[512];
 } map_entries;
+
+map_entries *getLinuxMaps(int pid, unsigned &maps_size);
 
 #define INDEPENDENT_LWP_CONTROL true
 

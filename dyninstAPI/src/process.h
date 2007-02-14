@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.398 2007/01/09 02:01:52 giri Exp $
+/* $Id: process.h,v 1.399 2007/02/14 23:04:16 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -194,6 +194,7 @@ class process {
     // And parse/get the a.out
     // Doing this post-attach allows us to one-pass parse things that need it (e.g., AIX)
     bool setAOut(fileDescriptor &desc);
+    Address setAOutLoadAddress(fileDescriptor &desc);
     bool setMainFunction();
 
   protected:  
@@ -621,6 +622,7 @@ class process {
   bool trapAtEntryPointOfMain(dyn_lwp *checkLWP, Address trapAddress = 0);
   bool wasCreatedViaAttach() { return creationMechanism_ == attached_cm; }
   bool wasCreatedViaAttachToCreated() { return creationMechanism_ == attachedToCreated_cm; }
+  bool hasPassedMain();
 
   // This is special, since it's orthogonal to the others. We're forked if
   // the "parent process" is non-null
@@ -849,7 +851,7 @@ public:
   void updateObservedCostAddr(Address addr) { costAddr_ = addr;}
 
 
-  // Add a signal handler that was detected
+  // Add a signal handler that wasdetected
   void addSignalHandler(Address addr, unsigned size);
   
   // Used to be ifdefed, now not because of rework
@@ -893,6 +895,8 @@ private:
   // if the process has exited
   bool hasExited() const;
 
+  // true if the process is passed main
+  bool hasPassedMain() const;
 
   // Prolly shouldn't be public... but then we need a stack of 
   // access methods. 

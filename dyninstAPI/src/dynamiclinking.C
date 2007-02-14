@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.20 2006/12/18 16:17:24 bernat Exp $
+// $Id: dynamiclinking.C,v 1.21 2007/02/14 23:04:10 legendre Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -179,7 +179,8 @@ bool dynamic_linking::getSharedObjects(pdvector<mapped_object *> &mapped_objects
                     descs[i].member() == proc->getAOut()->getFileDesc().member(),
                     descs[i].pid() == proc->getAOut()->getFileDesc().pid());
 #endif
-            mapped_object *newobj = mapped_object::createMappedObject(descs[i], proc);
+            mapped_object *newobj = 
+               mapped_object::createMappedObject(descs[i], proc);
             if (newobj == NULL) continue;
             mapped_objects.push_back(newobj);
 #if defined(cap_save_the_world)
@@ -291,8 +292,8 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
                       new_descs[i].file().c_str(),
                       new_descs[i].member().c_str());
 #endif
-              mapped_object *newobj = mapped_object::createMappedObject(new_descs[i],
-                                                                        proc);
+              mapped_object *newobj = 
+                 mapped_object::createMappedObject(new_descs[i], proc);
               if (!newobj) continue;
 
               changed_objects.push_back(newobj);

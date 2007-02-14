@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.h,v 1.17 2006/01/30 07:16:52 jaw Exp $
+// $Id: dynamiclinking.h,v 1.18 2007/02/14 23:04:11 legendre Exp $
 
 #if !defined(dynamic_linking_h)
 #define dynamic_linking_h
@@ -211,7 +211,7 @@ public:
     unsigned current_r_state;
 
     // Gets necessary info from the linker
-    bool get_ld_info(Address &addr, char **path);
+    bool get_ld_info(Address &addr, unsigned &size, char **path);
     
     // getLinkMapAddrs: returns a vector of addresses corresponding to all 
     // base addresses in the link maps.  Returns 0 on error.

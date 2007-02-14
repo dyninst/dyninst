@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.680 2007/01/12 00:55:39 legendre Exp $
+// $Id: process.C,v 1.681 2007/02/14 23:04:15 legendre Exp $
 
 #include <ctype.h>
 
@@ -2377,7 +2377,7 @@ bool process::setupFork()
 
 
 unsigned process::getAddressWidth() { 
-    if (mapped_objects.size() > 0) 
+    if (mapped_objects.size() > 0)
         return mapped_objects[0]->parse_img()->getObject()->getAddressWidth(); 
     // We can call this before we've attached.. 
     return 4;
@@ -2727,7 +2727,13 @@ bool process::loadDyninstLib() {
   startup_printf("%s[%d]: Entry to loadDyninstLib\n", FILE__, __LINE__);
     // Wait for the process to get to an initialized (dlopen exists)
     // state
-
+#if !defined(os_windows)    
+    if (!reachedBootstrapState(initialized_bs) && wasCreatedViaAttach())
+    {
+       insertTrapAtEntryPointOfMain();
+       sh->continueProcessBlocking();
+    }
+#endif
     while (!reachedBootstrapState(initialized_bs)) {
       startup_printf("%s[%d]: Waiting for process to reach initialized state...\n", 
                      FILE__, __LINE__);
@@ -6606,3 +6612,9 @@ AstNode *process::trampGuardAST() {
     return assignAst(trampGuardAST_);
 }
 
+#if !defined(os_linux)
+// Implementation is only really needed on Linux
+Address process::setAOutLoadAddress(fileDescriptor &desc) {
+   return desc.loadAddr();
+}
+#endif
