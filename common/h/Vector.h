@@ -48,7 +48,7 @@
 
 #include "common/h/language.h"
 
-#if defined(i386_unknown_nt4_0)
+#if defined(os_windows)
 //turn off 255 char identifier truncation message
 #pragma warning (disable: 4786)
 #endif

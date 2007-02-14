@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-solaris.C,v 1.5 2005/09/09 18:06:00 legendre Exp $
+// $Id: timing-solaris.C,v 1.6 2007/02/14 23:03:28 legendre Exp $
 #include <sys/types.h>
 #include <sys/processor.h>
 #include "common/h/timing.h"
@@ -65,7 +65,7 @@ double calcCyclesPerSecondOS()
   double cps;
   cps = calcCyclesPerSecond_sys();
   if(cps == cpsMethodNotAvailable) {
-    cps = calcCyclesPerSecond_default();
+     return 0.0;
   }
   return cps;
 }

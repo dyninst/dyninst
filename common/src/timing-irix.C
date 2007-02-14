@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-irix.C,v 1.5 2004/03/23 01:11:54 eli Exp $
+// $Id: timing-irix.C,v 1.6 2007/02/14 23:03:24 legendre Exp $
 
 #include <invent.h>
 #include <stdio.h>
@@ -77,7 +77,7 @@ double calcCyclesPerSecondOS()
   double cps;
   cps = calcCyclesPerSecond_invent();
   if(cps == cpsMethodNotAvailable) {
-    cps = calcCyclesPerSecond_default();
+     return 0;
   }
   return cps;
 }

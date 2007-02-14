@@ -350,7 +350,7 @@ inline bool_t P_xdr_string(XDR *x, char **h, const u_int maxsize) {
 inline void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
 			    const caddr_t handle, 
 			    xdr_rd_func read_r, xdr_wr_func write_f) {
-#if defined(sparc_sun_solaris2_4) && !defined(__GNUC__)
+#if !defined(__GNUC__)
   xdrrec_create(x, send_sz, rec_sz, handle,
         read_r, write_f);
 #else

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.193 2007/01/09 02:01:37 giri Exp $
+// $Id: inst-sparc.C,v 1.194 2007/02/14 23:03:32 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -1741,4 +1741,8 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
 Emitter *process::getEmitter() 
 {
    return NULL;
+}
+
+bool image::isAligned(const Address where) const {
+   return (!(where & 0x3));
 }

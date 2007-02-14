@@ -39,15 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Timer.C,v 1.17 2006/12/14 20:11:54 bernat Exp $
+// $Id: Timer.C,v 1.18 2007/02/14 23:03:20 legendre Exp $
 
 #include "common/h/Timer.h"
 
 timer::timer()
 : usecs_(0), ssecs_(0), wsecs_(0), cu_(0), cs_(0), cw_(0),
   activation_count_(0),
-#if defined(i386_unknown_nt4_0) \
- || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#if defined(os_windows)
   CYCLES_PER_SEC_(CLK_TCK), // TODO: is this right?
 #else
   CYCLES_PER_SEC_(sysconf(_SC_CLK_TCK)), 
@@ -157,8 +156,7 @@ timer::is_running() const {
 
 
 
-#if defined(i386_unknown_nt4_0) \
- || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
+#if defined(os_windows)
 #if !defined(HAVE_GET_CURRENT_DEFINITION)
 #define HAVE_GET_CURRENT_DEFINITION
 
@@ -193,14 +191,13 @@ timer::get_current(double& u, double& s, double& w) {
 }
 
 #endif /* !defined(HAVE_GET_CURRENT_DEFINITION) */
-#endif /* defined(i386_unknown_nt4_0) */
+#endif /* defined(os_windows) */
 
 
 
 
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5)
+#if defined(os_solaris)
 #if !defined(HAVE_GET_CURRENT_DEFINITION)
 #define HAVE_GET_CURRENT_DEFINITION
 
@@ -223,7 +220,7 @@ timer::get_current(double& u, double& s, double& w) {
 }
 
 #endif /* !defined(HAVE_GET_CURRENT_DEFINITION) */
-#endif /* defined(sparc_sun_solaris2_4) */
+#endif /* defined(os_solaris) */
 
 
 
@@ -236,14 +233,7 @@ timer::get_current(double& u, double& s, double& w) {
 #include <sys/time.h>
 #include <sys/times.h>
 
-#if !defined(rs6000_ibm_aix4_1) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(alpha_dec_osf4_0) \
- && !defined(mips_sgi_irix6_4) \
- && !defined(ia64_unknown_linux2_4) \
- && !defined(sparc_sun_solaris2_7)
-   // aix 4.1 and linux don't need or agree with the following declaration:
+#if !defined(os_aix) && !defined(os_linux) && !defined(os_solaris)
 extern "C" int gettimeofday(struct timeval *tp, struct timezone *tzp);
 #endif
 

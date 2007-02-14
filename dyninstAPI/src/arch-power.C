@@ -41,13 +41,14 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.13 2006/12/06 21:17:14 bernat Exp $
+ * $Id: arch-power.C,v 1.14 2007/02/14 23:03:30 legendre Exp $
  */
 
 #include "common/h/Types.h"
 #include "arch.h"
 #include "util.h"
 #include "debug.h"
+#include "symtab.h"
 
 instruction *instruction::copy() const {
     return new instruction(*this);
@@ -636,3 +637,8 @@ bool instruction::generateMem(codeGen &,
 bool instruction::getUsedRegs(pdvector<int> &) {
 	return false;
 }
+
+bool image::isAligned(const Address where) const {
+   return (!(where & 0x3));
+}
+

@@ -39,130 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing.C,v 1.24 2005/04/05 16:41:42 jodom Exp $
+// $Id: timing.C,v 1.25 2007/02/14 23:03:29 legendre Exp $
 
 #include "common/h/Timer.h"
 #include "common/h/timing.h"
 #include "common/h/Time.h"
-
-
-#if defined(rs6000_ibm_aix4_1)
-#if defined(__XLC__) || defined(__xlC__)
-#pragma mc_func nops_4_inline {"60000000" "60000000" "60000000" "60000000"}
-#define NOPS_4  nops_4_inline()
-#else
-#define NOPS_4  asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0"); asm("oril 0,0,0")
-#endif
-
-#elif defined(i386_unknown_nt4_0) \
-   || defined(mips_unknown_ce2_11) //ccw 1 aug 2000 : 29 mar 2001
-#define NOPS_4 { __asm nop __asm nop __asm nop __asm nop }
-
-#elif defined(mips_sgi_irix6_4)
-#  ifndef USES_NATIVE_CC
-#define NOPS_4  __asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop")
-#  else
-#define NOPS_4  ; ; ; 
-#  endif
-
-#elif defined(ia64_unknown_linux2_4)
-#define NOPS_4  asm("nop 0x0"); asm("nop 0x0"); asm("nop 0x0"); asm("nop 0x0");
-
-#else
-#define NOPS_4  asm("nop"); asm("nop"); asm("nop"); asm("nop")
-#endif
-
-#define NOPS_16 NOPS_4; NOPS_4; NOPS_4; NOPS_4
-
-double timing_loop(const unsigned TRIES, const unsigned LOOP_LIMIT) {
-  const double MILLION = 1.0e6;
-  unsigned       i, j;
-  timer stopwatch;
-  double speed=0, max_speed=0;
-
-  for (j=0; j<TRIES; j++) {
-    stopwatch.start();
-    for (i = 0; i < LOOP_LIMIT; i++) {
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-    }
-    stopwatch.stop();
-    if (stopwatch.usecs() > 0)
-        speed   = ((double)(256*LOOP_LIMIT)/stopwatch.usecs())/MILLION;
-    stopwatch.clear();
-    if (speed > max_speed)
-      max_speed = speed;
-  }
-
-  for (j=0; j<TRIES; j++) {
-    stopwatch.start();
-    for (i = 0; i < LOOP_LIMIT; i++) {
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-    }
-    stopwatch.stop();
-    if (stopwatch.usecs() > 0)
-        speed   = ((double)(512*LOOP_LIMIT)/stopwatch.usecs())/MILLION;
-    stopwatch.clear();
-    if (speed > max_speed)
-      max_speed = speed;
-  }
-
-  for (j=0; j<TRIES; j++) {
-    stopwatch.start();
-    for (i = 0; i < LOOP_LIMIT; i++) {
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-      NOPS_16; NOPS_16; NOPS_16; NOPS_16;
-    }
-    stopwatch.stop();
-    if (stopwatch.usecs() > 0)
-        speed   = ((double)(1024*LOOP_LIMIT)/stopwatch.usecs())/MILLION;
-    stopwatch.clear();
-    if (speed > max_speed)
-      max_speed = speed;
-  }
-
-#if defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM. */
-  // the speed of the pentium is being overestimated by a factor of 2
-  max_speed /= 2;
-#elif defined(mips_sgi_irix6_4)
-  max_speed /= 4;
-#endif
-
-  return max_speed;
-}
-
-double calcCyclesPerSecond_default()
-{
-  double raw = timing_loop(1, 100000) * 1000000.0;
-  return raw;
-}
 
 /* time retrieval function definitions */
 
@@ -170,8 +51,7 @@ timeStamp getCurrentTime() {
   return timeStamp(getRawTime1970(), timeUnit::us(), timeBase::b1970());
 }
 
-#if !defined(i386_unknown_nt4_0) \
- && !defined(mips_unknown_ce2_11) //ccw 6 apr 2001
+#if !defined(os_windows)
 
 // returns us since 1970
 int64_t getRawTime1970() {

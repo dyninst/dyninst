@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: timing-nt.C,v 1.6 2004/03/23 01:11:54 eli Exp $
+// $Id: timing-nt.C,v 1.7 2007/02/14 23:03:26 legendre Exp $
 #include <windows.h>   // for LARGE_INTEGERS
 #include <assert.h>
 #include <sys/types.h>
@@ -62,13 +62,13 @@ int64_t getRawTime1970() {
 
 double calcCyclesPerSecond_sys() {
   HKEY hKey;
-  #define REGLOC "HARDWARE\\DESCRIPTION\\System\\CentralProcessor"
+#define REGLOC "HARDWARE\\DESCRIPTION\\System\\CentralProcessor"
   LONG result = RegOpenKeyEx(HKEY_LOCAL_MACHINE,TEXT(REGLOC),0,KEY_READ,&hKey);
   if(result != ERROR_SUCCESS) {
     return cpsMethodNotAvailable;
   }
 
-  #define INITIALBUFSIZE 50
+#define INITIALBUFSIZE 50
   TCHAR subKeyBuf[INITIALBUFSIZE], initialCPU[INITIALBUFSIZE];
   FILETIME ft;
   DWORD mhz = 0;
@@ -115,7 +115,7 @@ double calcCyclesPerSecondOS()
   double cps;
   cps = calcCyclesPerSecond_sys();
   if(cps == cpsMethodNotAvailable) {
-    cps = calcCyclesPerSecond_default();
+     return 0.0;
   }
   return cps;
 }

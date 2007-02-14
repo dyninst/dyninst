@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.26 2007/01/09 02:00:38 giri Exp $
+ * $Id: Types.h,v 1.27 2007/02/14 23:03:10 legendre Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -82,12 +82,12 @@ WindowsNT    nonexistant
 */
 
 #if defined(os_windows)
-/* nt -------------------------- */
    typedef __int64 int64_t;
    typedef __int32 int32_t;
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
-#elif defined(rs6000_ibm_aix4_1) /* aix4.{23} ------------------- */
+
+#elif defined(arch_power)
 #  ifndef _ALL_SOURCE
 #     define _ALL_SOURCE
 #  endif
@@ -98,32 +98,40 @@ WindowsNT    nonexistant
    typedef unsigned int uint32_t;
    typedef unsigned long long uint64_t;
 #  endif
-#elif defined(alpha_dec_osf4_0)  /* osf ------------------------- */
+
+#elif defined(arch_alpha)
+#define TYPE64BIT
 #  ifndef _H_INTTYPES
    typedef int int32_t;
    typedef long int64_t;
    typedef unsigned int uint32_t;
    typedef unsigned long uint64_t;
 #  endif
-#elif defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
-   || defined(ia64_unknown_linux2_4) \
-   || defined(ppc64_unknown_linux2_4)
-#  include <stdint.h>
-#else                            /* solaris, irix -------- */
-#  include <inttypes.h>
+
+#elif defined(os_linux)
+#include <stdint.h>
+#if defined(arch_x86_64) || defined(arch_ia64) || defined(arch_ppc64)
+#define TYPE64BIT
+#endif
+
+#elif defined(os_irix)
+#define TYPE64BIT
+#include <inttypes.h>
+#elif defined(os_solaris)
+#include <inttypes.h>
+#else
+#error Unknown architecture
 #endif
 
 
 /* Set up the 64 BIT LITERAL MACROS =================================== */
-#if defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES)  /* aix4.2 ---- */
+#if defined(os_aix) && !defined(_H_INTTYPES)  /* aix4.2 ---- */
 #define I64_C(x)  (x##ll)
 #define UI64_C(x) (x##ull)
-#elif defined(alpha_dec_osf4_0)     /* osf ---------------------------- */
+#elif defined(os_osf)     /* osf ---------------------------- */
 #define I64_C(x)  (x##l)
 #define UI64_C(x) (x##ul)
-#elif defined(i386_unknown_nt4_0) \
-   || defined(mips_unknown_ce2_11) /*ccw 20 mar 2001*/
+#elif defined(os_windows)
 				   /* nt ----------------------------- */
 #define I64_C(x)  (x##i64)
 #define UI64_C(x) (x##ui64)
@@ -133,18 +141,14 @@ WindowsNT    nonexistant
 #endif
 
 /* Set up the 32 and 64 BIT LIMITS for those not already set up ======= */
-#if defined(alpha_dec_osf4_0) \
- ||(defined(rs6000_ibm_aix4_1) && !defined(_H_INTTYPES))  /* osf, aix4.2 */
+#if defined(os_osf)  || (defined(os_aix) && !defined(_H_INTTYPES))
 #define INT32_MAX  (2147483647)
 #define UINT32_MAX (4294967295U)
 #define INT32_MIN  (-2147483647-1)
 #endif
 
                                    /* solaris, aix4.{23}, osf -------- */
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(alpha_dec_osf4_0)
+#if defined(os_solaris) || defined(os_aix) || defined(os_osf)
 /* see note (*) above */
 #define I32_MAX    INT32_MAX
 #define UI32_MAX   UINT32_MAX
@@ -155,8 +159,7 @@ WindowsNT    nonexistant
    warning is printed when the ...808 int64 minimum is used, so we'll get the
    value with some trickery */
 #define I64_MIN    (-I64_MAX-1)
-#elif defined(i386_unknown_nt4_0) \
-   || defined(mips_unknown_ce2_11) /*ccw 20 mar 2001*/
+#elif defined(os_windows)
 			 /* nt ----------------------------- */
 #include <limits.h>
 #define I64_MAX  _I64_MAX

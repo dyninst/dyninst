@@ -45,7 +45,7 @@
 #include "common/h/std_namesp.h"
 #include "common/h/Types.h"
 
-#if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 30 mar 2001
+#if defined(os_windows)
         				// exception SPECIFICATIONS aren't
 #pragma warning( disable : 4290 )   	// implemented yet on NT
 #endif

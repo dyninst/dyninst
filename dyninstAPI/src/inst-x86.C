@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.261 2007/01/09 02:01:38 giri Exp $
+ * $Id: inst-x86.C,v 1.262 2007/02/14 23:03:33 legendre Exp $
  */
 #include <iomanip>
 
@@ -2350,4 +2350,8 @@ Emitter *process::getEmitter()
    }
 #endif
    return &emitter32;
+}
+
+bool image::isAligned(const Address where) const {
+   return true;
 }

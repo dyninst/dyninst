@@ -3565,3 +3565,9 @@ Emitter *process::getEmitter()
 {
    return NULL;
 }
+
+bool image::isAligned(const Address where) const {
+   OFFSET slotNo = where % 0x10;
+   OFFSET bundle = where - slotNo;
+   return ((slotNo == 0 || slotNo == 1 || slotNo == 2 ) && ( bundle + slotNo == where ));
+}
