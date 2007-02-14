@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.35 2007/01/25 22:23:55 bernat Exp $
+// $Id: instPoint.C,v 1.36 2007/02/14 23:04:17 legendre Exp $
 // instPoint code
 
 
@@ -536,7 +536,7 @@ instPoint::instPoint(process *proc,
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
     replacedCode_(NULL),
-    proc_(proc),
+     proc_(proc),
     img_p_(img_p),
     block_(block),
     addr_(addr),
@@ -616,12 +616,20 @@ instPoint *instPoint::createParsePoint(int_function *func,
 }
 
 instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) {
+    int_function *func = child->func();
+    instPoint *existingInstP = func->findInstPByAddr(parP->addr());
+    if (existingInstP) {
+       //One instPoint may be covering multiple instPointTypes, e.g.
+       // a one instruction function with an entry and exit point at
+       // the same point.
+       return existingInstP; 
+    }
+
     // Make a copy of the parent instPoint. We don't have multiTramps yet,
     // which is okay; just get the ID right.
     instPoint *newIP = new instPoint(parP, child);
     process *proc = child->proc();
     assert(proc);
-    int_function *func = child->func();
 
     // Add to the process
     if (parP->instances.size() == 0) {
