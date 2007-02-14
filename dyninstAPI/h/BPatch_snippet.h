@@ -249,13 +249,10 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
     API_EXPORT_CTOR(VoidStar, (value),
     BPatch_constExpr,(const void *value));
 
-#if defined (ia64_unknown_linux2_4) \
-   || defined (x86_64_unknown_linux2_4)
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (long long) value
     API_EXPORT_CTOR(LongLong, (value),
     BPatch_constExpr,(long long value));
-#endif
 
 #ifdef IBM_BPATCH_COMPAT
     //  BPatch_constExpr::BPatch_constExpr

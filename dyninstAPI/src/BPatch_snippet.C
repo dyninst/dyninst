@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.93 2007/01/18 07:53:47 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.94 2007/02/14 23:04:00 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -617,9 +617,6 @@ void BPatch_constExpr::BPatch_constExprVoidStar(const void *value)
     ast->setType(type);
 }
 
-#if defined (ia64_unknown_linux2_4) \
-   || defined (x86_64_unknown_linux2_4)
-
 void BPatch_constExpr::BPatch_constExprLongLong(long long value) 
 {
     ast = AstNode::operandNode(AstNode::Constant, (void *)value);
@@ -632,7 +629,6 @@ void BPatch_constExpr::BPatch_constExprLongLong(long long value)
     assert(type != NULL);
     ast->setType(type);
 }
-#endif
 
 #ifdef IBM_BPATCH_COMPAT
 

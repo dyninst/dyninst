@@ -49,13 +49,13 @@
 #include <assert.h>
 #include "BPatch_dll.h"
 
-#if defined (os_windows)
+#if defined (_MSC_VER)
 #define CONST_EXPORT
 #else
 #define CONST_EXPORT const
 #endif
 
-#if defined (os_windows)
+#if defined (_MSC_VER)
 #define CONST_ARG
 #else
 #define CONST_ARG const
