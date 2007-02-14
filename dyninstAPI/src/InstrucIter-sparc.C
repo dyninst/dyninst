@@ -282,11 +282,13 @@ Address InstrucIter::getBranchTargetAddress(bool *) {
 
 bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
     Address oldCurrent = current;
+    instruction src = getInstruction();
     while(hasMore()){
         instruction check = getInstruction();
+	// Check if the destination register of the sethi ins matches with the src of the indirect jump :giri 2/14/2007
         if(((*check).sethi.op == 0x0) && 
            ((*check).sethi.op2 == 0x4) &&
-           ((*check).sethi.rd != 0x0))
+           ((*check).sethi.rd == (*src).resti.rs1))
             {
                 register signed offset = (*check).sethi.imm22 << 10;
                 check = getNextInstruction();
@@ -301,6 +303,8 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
                         void *targetPtr = NULL;
                         
                         if (img_) {
+		            if(!img_->isValidAddress(offset))
+				return false;
                             if (img_->isCode(offset))
                                 targetPtr = img_->getPtrToInstruction(offset);
                         }
