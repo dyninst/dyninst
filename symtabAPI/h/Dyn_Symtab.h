@@ -52,7 +52,6 @@
 #include "symtabAPI/h/util.h"
 #include "symtabAPI/h/Dyn_Symbol.h"
 
-
 typedef unsigned long OFFSET;
 
 class Dyn_Archive;
@@ -65,7 +64,7 @@ typedef enum { lang_Unknown,
                lang_Fortran_with_pretty_debug,
                lang_CMFortran
 } supportedLanguages;
- 
+
 typedef enum { Obj_Parsing,
                Syms_To_Functions,
                Build_Function_Lists,
@@ -238,7 +237,7 @@ class Dyn_Symtab : public Dyn_LookupInterface {
                         const string newName,
                         bool isMangled /*=false*/);
 
-	bool delSymbol(Dyn_Symbol *sym);		    
+	bool delSymbol(Dyn_Symbol *sym); 
 	
  protected:
    Dyn_Symtab(string &filename, string &member_name, OFFSET offset, bool &err);
@@ -259,9 +258,6 @@ class Dyn_Symtab : public Dyn_LookupInterface {
 	bool symbolsToFunctions(vector<Dyn_Symbol *> *raw_funcs);
 	bool changeType(Dyn_Symbol *sym, Dyn_Symbol::SymbolType oldType);
 			       
-	supportedLanguages pickLanguage(string &working_module, char *working_options, 
-                                   supportedLanguages working_lang);
-	void getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs);
 	void setModuleLanguages(hash_map<string, supportedLanguages> *mod_langs);
 	Dyn_Module *getOrCreateModule(const string &modName, 
                                  const OFFSET modAddr);
@@ -292,7 +288,7 @@ class Dyn_Symtab : public Dyn_LookupInterface {
 	bool getAllFunctions(vector<Dyn_Symbol *> &ret);
 	bool getAllVariables(vector<Dyn_Symbol *> &ret);
 	bool getAllSymbols(vector<Dyn_Symbol *> &ret);
-
+	
    /***** Private Data Members *****/
  private:
    string filename_;

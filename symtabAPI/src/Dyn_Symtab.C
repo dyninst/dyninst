@@ -384,77 +384,6 @@ bool Dyn_Symtab::symbolsToFunctions(vector<Dyn_Symbol *> *raw_funcs)
   	return true;
 }
 
-//  a helper routine that selects a language based on information from the symtab
-supportedLanguages Dyn_Symtab::pickLanguage(string &working_module, char *working_options, 
-                                            supportedLanguages working_lang)
-{
- 	supportedLanguages lang = lang_Unknown;
- 	static int sticky_fortran_modifier_flag = 0;
-
-  	// (2) -- check suffixes -- try to keep most common suffixes near the top of the checklist
-	string::size_type len = working_module.length();
-	if((len>2) && (working_module.substr(len-2,2) == string(".c"))) lang = lang_C;
-	else if ((len>2) && (working_module.substr(len-2,2) == string(".C"))) lang = lang_CPlusPlus;
-  	else if ((len>4) && (working_module.substr(len-4,4) == string(".cpp"))) lang = lang_CPlusPlus;
-  	else if ((len>2) && (working_module.substr(len-2,2) == string(".F"))) lang = lang_Fortran; 
-  	else if ((len>2) && (working_module.substr(len-2,2) == string(".f"))) lang = lang_Fortran; 
-  	else if ((len>3) && (working_module.substr(len-3,3) == string(".cc"))) lang = lang_C;
-  	else if ((len>2) && (working_module.substr(len-2,2) == string(".a"))) lang = lang_Assembly; // is this right?
-  	else if ((len>2) && (working_module.substr(len-2,2) == string(".S"))) lang = lang_Assembly; 
-  	else if ((len>2) && (working_module.substr(len-2,2) == string(".s"))) lang = lang_Assembly; 
-  	else 
-	{
-      //(3) -- try to use options string -- if we have 'em
-      if (working_options)
-		{
-         //  NOTE:  a binary is labeled "gcc2_compiled" even if compiled w/g77 -- thus this is
-         //  quite inaccurate to make such assumptions
-         if (strstr(working_options, "gcc")) 
-				lang = lang_C; 
-         else if (strstr(working_options, "g++")) 
-				lang = lang_CPlusPlus; 
-      }
-  	}
-
-  	//  This next section tries to determine the version of the debug info generator for a
-  	//  Sun fortran compiler.  Some leave the underscores on names in the debug info, and some
-  	//  have the "pretty" names, we need to detect this in order to properly read the debug.
-  	if (working_lang == lang_Fortran)
-	{
-      if (sticky_fortran_modifier_flag)
-		{
-         //cerr << FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug." << endl;
-         working_lang = lang_Fortran_with_pretty_debug;
-      }
-      else if (working_options)
-		{
-         char *dbg_gen = NULL;
-         //cerr << FILE__ << __LINE__ << ":  OPT: " << working_options << endl; 
-         if (NULL != (dbg_gen = strstr(working_options, "DBG_GEN="))) 
-			{
-				//cerr << __FILE__ << __LINE__ << ":  OPT: " << dbg_gen << endl; 
-				// Sun fortran compiler (probably), need to examine version
-				char *dbg_gen_ver_maj = dbg_gen + strlen("DBG_GEN=");
-				//cerr << __FILE__ << __LINE__ << ":  OPT: " << dbg_gen_ver_maj << endl; 
-				char *next_dot = strchr(dbg_gen_ver_maj, '.');
-				if (NULL != next_dot) 
-				{
-	  				next_dot = '\0';  //terminate major version number string
-	  				int ver_maj = atoi(dbg_gen_ver_maj);
-	  				//cerr <<"Major Debug Ver. "<<ver_maj<< endl;
-	  				if (ver_maj < 3) 
-					{
-                  working_lang = lang_Fortran_with_pretty_debug;
-                  sticky_fortran_modifier_flag = 1;
-                  //cerr << __FILE__ << __LINE__ << ": UPDATE: lang_Fortran->lang_Fortran_with_pretty_debug.  " << "Major Debug Ver. "<<ver_maj<<endl;
-	  				}
-				}
-         }
-      }
-  	}
-  	return lang;
-}
-
 //  setModuleLanguages is only called after modules have been defined.
 //  it attempts to set each module's language, information which is needed
 //  before names can be demangled.
@@ -992,7 +921,7 @@ bool Dyn_Symtab::extractInfo()
   	// get Information on the language each modules is written in
    // (prior to making modules)
    hash_map<string, supportedLanguages> mod_langs;
-   getModuleLanguageInfo(&mod_langs);
+   linkedFile->getModuleLanguageInfo(&mod_langs);
    setModuleLanguages(&mod_langs);
 	
 	// Once languages are assigned, we can build demangled names (in
