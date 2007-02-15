@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.2 2007/02/14 23:03:51 legendre Exp $
+ * $Id: Object-elf.h,v 1.3 2007/02/15 23:30:45 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -203,12 +203,13 @@ class Object : public AObject {
   Object(const Object &);
   virtual ~Object();
   const Object& operator=(const Object &);
-  
+
   const char *elf_vaddr_to_ptr(OFFSET vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
   stab_entry * get_stab_info() const;
   const char * getFileName() const { return fileName; }
+  void getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs);
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
   bool get_func_binding_table(vector<relocationEntry> &fbt) const;

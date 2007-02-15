@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.4 2007/02/14 23:03:54 legendre Exp $
+// $Id: Object-xcoff.C,v 1.5 2007/02/15 23:30:48 giri Exp $
 
 #include <regex.h>
 
@@ -1073,7 +1073,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
                continue;
        }
 
-       /*giri: Dyninst related. Should be moved there
+       /*giri: Dyninst related. Moved there.
        // HACK. This avoids double-loading various tramp spaces
        if (name.prefixed_by("DYNINSTstaticHeap") &&
            size == 0x18) {
@@ -1524,7 +1524,7 @@ bool parseCompilerType(Object *objPtr)
     return false;
 }
 
-void Dyn_Symtab::getModuleLanguageInfo(hash_map<string, supportedLanguages> *)
+void Object::getModuleLanguageInfo(hash_map<string, supportedLanguages> *)
 {
 }
 

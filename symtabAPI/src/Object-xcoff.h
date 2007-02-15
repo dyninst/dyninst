@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.2 2007/02/14 23:03:55 legendre Exp $
+ * $Id: Object-xcoff.h,v 1.3 2007/02/15 23:30:49 giri Exp $
 ************************************************************************/
 
 
@@ -231,6 +231,7 @@ public:
     OFFSET getLoadAddress() const { return loadAddress_; }
     OFFSET getEntryAddress() const { return entryAddress_; }
     OFFSET getBaseAddress() const { return baseAddress_; }
+    void getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs);
     
     ObjectType objType() const;
 

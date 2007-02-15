@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.5 2007/02/15 00:21:42 legendre Exp $
+// $Id: Object-nt.C,v 1.6 2007/02/15 23:30:46 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -838,6 +838,6 @@ std::string extract_pathname_tail(const std::string &path)
   return ret;
 }
 
-void Dyn_Symtab::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs)
+void Object::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs)
 {
 }

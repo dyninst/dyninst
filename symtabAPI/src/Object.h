@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.2 2007/02/14 23:03:57 legendre Exp $
+ * $Id: Object.h,v 1.3 2007/02/15 23:30:51 giri Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -105,6 +105,9 @@ public:
 
     DLLEXPORT bool getAllExceptions(vector<Dyn_ExceptionBlock *>&excpBlocks) const;
     DLLEXPORT vector<Dyn_Section *> getAllSections() const;
+
+    DLLEXPORT supportedLanguages pickLanguage(string &working_module, char *working_options,
+                                                                    supportedLanguages working_lang);
 
     DLLEXPORT OFFSET loader_off() const;
     DLLEXPORT unsigned loader_len() const;

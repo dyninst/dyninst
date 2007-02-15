@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.5 2007/02/14 23:03:50 legendre Exp $
+ * $Id: Object-elf.C,v 1.6 2007/02/15 23:30:44 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -676,7 +676,7 @@ void Object::load_object()
 	/* NOTE: The file should NOT be munmap()ed.  The mapped file is
 	   used for function parsing (see dyninstAPI/src/symtab.C) */
 
-	if (elfHdr.isValid()) elfHdr.end();
+	//if (elfHdr.isValid()) elfHdr.end();
 	if(did_open) P_close(file_fd_);
     }
 }
@@ -785,7 +785,7 @@ void Object::load_shared_object()
     {
 	/* NOTE: The file should NOT be munmap()ed.  The mapped file is
 	   used for function parsing (see dyninstAPI/src/symtab.C) */
-	if (elfHdr.isValid()) elfHdr.end();
+	//if (elfHdr.isValid()) elfHdr.end();
 	if (did_open) P_close(file_fd_);
     }
 }
@@ -1600,6 +1600,8 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
 {
   /* Initialize libdwarf. */
   Dwarf_Debug dbg;
+
+									  
   int status = dwarf_elf_init( elf.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL);
   if( status != DW_DLV_OK ) {
      return false;
@@ -1757,6 +1759,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
         {
 	    const char *p = stabptr->name(i);
 	    // bperr("got %d type, str = %s\n", stabptr->type(i), p);
+	    // if (stabptr->type(i) == N_FUN && strlen(p) == 0) {
 	    if (strlen(p) == 0) {
 		// GNU CC 2.8 and higher associate a null-named function
 		// entry with the end of a function.  Just skip it.
@@ -1770,7 +1773,10 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		len = strlen(p);
 	    }
 	    if(len == 0)
-	    	break;		// symbol name empty:skip it - giri 2/14/07	
+	    {
+	    	// symbol name is empty.Skip it.- 02/12/07 -Giri
+	    	break;
+	    }		
 	    char *sname = new char[len+1];
 	    strncpy(sname, p, len);
 	    sname[len] = 0;
@@ -1838,7 +1844,10 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		// module name to the symbol.
 		unsigned len = q - p;
 	    	if(len == 0)
-	    	    break;		// symbol name empty:skip it - giri 2/14/07	
+	    	{
+	    	    // symbol name is empty.Skip it.- 02/12/07 -Giri
+	    	    break;
+	    	}		
 		char *sname = new char[len+1];
 		strncpy(sname, p, len);
 		sname[len] = 0;
@@ -2083,7 +2092,7 @@ Object::Object(const Object& obj)	///****(for giri) have to change this. fileNam
     : AObject(obj), fileName(NULL), EEL(false) 
 {
     file_ptr_ = obj.file_ptr_;	
-    mem_image_ = mem_image_;//mem_image should be moved to AObject later; and also include a type tpo specify if a file/memory..TODO>>***** later. giri
+    mem_image_ = mem_image_;//mem_image should be moved to AObject later; and also include a type to specify if its a file/memory..TODO>>***** later. giri
     loadAddress_ = obj.loadAddress_;
     entryAddress_ = obj.entryAddress_;
     relocation_table_ = obj.relocation_table_;
@@ -2091,7 +2100,7 @@ Object::Object(const Object& obj)	///****(for giri) have to change this. fileNam
 }
 
 const Object&
-Object::operator=(const Object& obj) {	/* Note to myself(giri).Have to change this.There might not be a filename */
+Object::operator=(const Object& obj) {
 
     (void) AObject::operator=(obj);
 
@@ -2670,7 +2679,7 @@ ObjectType Object::objType() const {
    return obj_type_;
 }
 
-void Dyn_Symtab::getModuleLanguageInfo(
+void Object::getModuleLanguageInfo(
                  hash_map<string, supportedLanguages> *mod_langs) 
 { 
    string working_module;
@@ -2710,7 +2719,7 @@ void Dyn_Symtab::getModuleLanguageInfo(
    
    //Using the Object to get the pointers to the .stab and .stabstr
    // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-   stabptr = linkedFile->get_stab_info();
+   stabptr = get_stab_info();
    next_stabstr = stabptr->getStringBase();
    
    for( unsigned int i = 0; i < stabptr->count(); i++ ) 
@@ -2855,17 +2864,13 @@ void Dyn_Symtab::getModuleLanguageInfo(
    delete stabptr;
 
 #if defined(cap_dwarf)
-   if (linkedFile->hasDwarfInfo())
+   if (hasDwarfInfo())
 	{
-      
-      //TODO Assumes that a filename is present. change to handle cases where there's
-      //no filename and we have a memory pointer
-      const char *fileName = linkedFile->getFileName();
-      
-      int fd = open( fileName, O_RDONLY );
-      assert ( fd != -1 );
       Dwarf_Debug dbg;
-      int status = dwarf_init( fd, DW_DLC_READ, NULL, NULL, & dbg, NULL );
+      const char *file = file_.c_str();
+      assert(file);
+      
+      int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
       assert( status == DW_DLV_OK );
       
       Dwarf_Unsigned hdr;
@@ -2932,10 +2937,7 @@ void Dyn_Symtab::getModuleLanguageInfo(
 
       status = dwarf_finish( dbg, NULL );
       assert( status == DW_DLV_OK );
-      P_close( fd );
    }
 #endif
 
 }
-
-

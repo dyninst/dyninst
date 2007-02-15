@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.2 2007/02/14 23:03:53 legendre Exp $
+ * $Id: Object-nt.h,v 1.3 2007/02/15 23:30:47 giri Exp $
 ************************************************************************/
 
 
@@ -200,6 +200,8 @@ public:
    
     DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     DLLEXPORT const vector<Address> &getPossibleMains() const   { return possible_mains; }
+    DLLEXPORT void getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs);
+
 private:
     DLLEXPORT void    ParseDebugInfo( void );
     DLLEXPORT void    FindInterestingSections();
