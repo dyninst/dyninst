@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.28 2007/02/15 00:21:35 legendre Exp $
+ * $Id: Types.h,v 1.29 2007/02/15 00:44:01 bernat Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -87,7 +87,7 @@ WindowsNT    nonexistant
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
 
-#elif defined(arch_power)
+#elif defined(arch_power) && defined(os_aix)
 #  ifndef _ALL_SOURCE
 #     define _ALL_SOURCE
 #  endif
