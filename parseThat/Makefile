@@ -1,83 +1,83 @@
-# ------------------------------------------------------------------------------
-# User options
-# ------------------------------------------------------------------------------
+# ----------------------------------------------
+# Configuration variables taken from ./configure
+# ----------------------------------------------
+CPPFLAGS     = -I/core -I/core/dyninstAPI/h 
+CXX          = g++
+CXXFLAGS     = -I/p/paradyn/development/legendre/head/core/dyninstAPI/h -I/p/paradyn/development/legendre/head/core -g
+DEFINES      = -DPACKAGE_NAME=\"parseThat\" -DPACKAGE_TARNAME=\"parsethat\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"parseThat\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_BPATCH_PROCESS_H=1 
+LDFLAGS      = -L/i386-unknown-linux2.4/lib -L/p/paradyn/development/legendre/head/i386-unknown-linux2.4/lib
+LIBS         = 
 
-# Platform string, could be taken from environment.
-PLATFORM ?=
+prefix       = .
+PLATFORM    ?= i686-pc-linux-gnu
+DYNINST_VER  = 5
 
-# Location of compiler to use.
-CXX = g++
+INSTALL      = /usr/bin/install -c
 
-# Build options.
-DEFINES =
-CXXFLAGS =
-LDFLAGS =
+vpath % ./src
 
-# Location and version of DyninstAPI we are linking against.
-DYNINST_VER = 5
-DYNINST_DIR = $(DYNINST_ROOT)
-DYNINST_INC = $(DYNINST_DIR)/core/dyninstAPI/h
-DYNINST_LIB = $(DYNINST_DIR)/$(PLATFORM)/lib
-
-# Location of OpenSSL package.  Used for calculating SHA1 sums.
-OPENSSL_DIR = /usr
-OPENSSL_INC = $(OPENSSL_DIR)/include
-OPENSSL_LIB = $(OPENSSL_DIR)/lib
-
-# End of user modifiable options.  Do not modify beyond this line.
-# ==============================================================================
-
-ifeq ($(PLATFORM),)
-$(error PLATFORM environment variable must be defined)
-endif
-
+# -------------------------------------------
+# Begin Makefile based on variables set above
+# -------------------------------------------
 .PHONY: clean ready
 
-SRCS = parseThat.C config.C ipc.C record.C strlist.C reglist.C log.C utils.C dyninstCore.C
+SRCS         = parseThat.C \
+               config.C \
+               ipc.C \
+               record.C \
+               strlist.C \
+               reglist.C \
+               log.C \
+               utils.C \
+               sha1.C \
+               dyninstCore.C
 
 ifeq ($(DYNINST_VER), 5)
-SRCS += dyninstCompat.v5.C
+SRCS        += dyninstCompat.v5.C
 endif
 
 ifeq ($(DYNINST_VER), 4)
-SRCS += dyninstCompat.v4.C
+SRCS        += dyninstCompat.v4.C
 endif
 
-OBJS=$(addprefix $(PLATFORM)/, $(SRCS:%.C=%.o))
+OBJDIR       = obj-$(PLATFORM)
+OBJS         = $(addprefix $(OBJDIR)/, $(SRCS:%.C=%.o))
 
-DEFINES		+= -DDYNINST_VER=$(DYNINST_VER)
-CXXFLAGS	+= -g -Wall -Isrc -I$(DYNINST_INC) -I$(DYNINST_DIR)/core -I$(OPENSSL_INC) $(DEFINES)
-LDFLAGS		+= -L$(DYNINST_LIB) -ldyninstAPI -liberty -L$(OPENSSL_LIB) -lcrypto
+CXXFLAGS    += -Wall
+LIBS        += -ldyninstAPI -liberty
 
 ifneq (, $(findstring sparc, $(PLATFORM)))
-LDFLAGS		+= -lelf -lstdc++ -lsocket -lrt
+LIBS        += -lelf -lstdc++ -lsocket -lrt
 endif
 
 ifneq (, $(findstring alpha, $(PLATFORM)))
-CXXFLAGS	+= -pthread
+CXXFLAGS    += -pthread
 endif
 
 ifneq (, $(findstring ia64, $(PLATFORM)))
-LDFLAGS		+= -ldl
+LIBS        += -ldl
 endif
 
-all: ready install
+all: ready $(OBJDIR)/parseThat
 
-$(PLATFORM)/parseThat: $(OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
-
-install: $(PLATFORM)/parseThat
-	rm -f parseThat
-	ln -s $(PLATFORM)/parseThat parseThat
+install: $(OBJDIR)/parseThat
+	$(INSTALL) -d $(prefix)
+	$(INSTALL) $(OBJDIR)/parseThat $(prefix)/parseThat
 
 clean:
-	rm -rf $(PLATFORM)
+	rm -rf $(OBJDIR)
+
+distclean: clean
+	rm -rf config.log config.status $(OBJDIR) Makefile
 
 ready:
-	if [ ! -d $(PLATFORM) ]; then mkdir $(PLATFORM); fi
+	$(INSTALL) -d $(OBJDIR)
 
-$(OBJS): $(PLATFORM)/%.o: src/%.C
-	$(CXX) $(CXXFLAGS) $^ -c -o $@
+$(OBJDIR)/parseThat: $(OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS) $(LIBS)
+
+$(OBJS): $(OBJDIR)/%.o: %.C
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(DEFINES) $^ -c -o $@
 
 alarm: alarm.c liblib.so
 	gcc -Wall -g -o alarm alarm.c liblib.so

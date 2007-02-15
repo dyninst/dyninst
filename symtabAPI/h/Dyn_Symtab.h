@@ -50,10 +50,6 @@
 #include <string>
 
 #include "symtabAPI/h/util.h"
-
-#include "common/h/Types.h"
-#include "common/h/debugOstream.h"
-#include "common/h/headers.h"
 #include "symtabAPI/h/Dyn_Symbol.h"
 
 
@@ -211,8 +207,8 @@ class Dyn_Symtab : public Dyn_LookupInterface {
 	DLLEXPORT OFFSET dataOffset() const;
 	DLLEXPORT OFFSET dataLength() const;
 	DLLEXPORT OFFSET codeLength() const;
-   DLLEXPORT Word*  code_ptr ()  const;
-   DLLEXPORT Word*  data_ptr ()  const;
+   DLLEXPORT void*  code_ptr ()  const;
+   DLLEXPORT void*  data_ptr ()  const;
 
 	DLLEXPORT unsigned getAddressWidth() const;
 	DLLEXPORT OFFSET getLoadAddress() const;

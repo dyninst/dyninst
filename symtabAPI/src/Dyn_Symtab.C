@@ -48,6 +48,9 @@
 #include "common/h/Timer.h"
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
+#if !defined(os_windows)
+#include "common/h/pathName.h"
+#endif
 
 static string errMsg;
 extern bool parseCompilerType(Object *);
@@ -124,11 +127,11 @@ DLLEXPORT OFFSET Dyn_Symtab::codeLength() const {
    return codeLen_;
 }
  
-DLLEXPORT Word* Dyn_Symtab::code_ptr ()  const {
+DLLEXPORT void* Dyn_Symtab::code_ptr ()  const {
    return linkedFile->code_ptr(); 
 }
 
-DLLEXPORT Word* Dyn_Symtab::data_ptr ()  const { 
+DLLEXPORT void* Dyn_Symtab::data_ptr ()  const { 
    return linkedFile->data_ptr();
 }
  

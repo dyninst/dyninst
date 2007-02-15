@@ -46,17 +46,25 @@
 
 using namespace std;
 
-#if defined(_MSC_VER)	
+#if !defined(address_type_defined)
+#define address_type_defined
+typedef long unsigned int Address;
+#endif
 
+#if defined(_MSC_VER)	
+#if !defined(DLLEXPORT)
+#define DLLEXPORT __declspec(dllexport)
+#endif
 //On windows it is just hash_map otherwise its in ext/hash_map
 #include <hash_map>
 using stdext::hash_map;
 
 #else
-
+#if !defined(DLLEXPORT)
+#define DLLEXPORT
+#endif
 #include <regex.h>
 #include <ext/hash_map>
-#include "common/h/pathName.h"
 using namespace __gnu_cxx;
 namespace __gnu_cxx {
    template<> struct hash<std::string> {
