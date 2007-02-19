@@ -124,6 +124,9 @@ BPatch_sourceObj *BPatch_module::getObjParent()
 /* XXX temporary */
 char *BPatch_module::getNameInt(char *buffer, int length)
 {
+    if (!mod)
+     return NULL;
+
     pdstring str = mod->fileName();
 
     strncpy(buffer, str.c_str(), length);
