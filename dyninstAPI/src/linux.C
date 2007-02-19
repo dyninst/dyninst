@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.253 2007/02/14 23:04:04 legendre Exp $
+// $Id: linux.C,v 1.254 2007/02/19 20:49:10 legendre Exp $
 
 #include <fstream>
 
@@ -2731,7 +2731,7 @@ bool process::hasPassedMain()
    Dyn_Symtab *ld_file = NULL;
    bool result, tresult;
    std::string name;
-   Address entry_addr;
+   Address entry_addr, ldso_start_addr;
 
    //Get current PC
    Frame active_frame = getRepresentativeLWP()->getActiveFrame();
@@ -2747,6 +2747,7 @@ bool process::hasPassedMain()
          continue;
       if (strncmp(maps[i].path, "/lib/ld-", 8) == 0) {
          path = maps[i].path;
+	 ldso_start_addr = maps[i].start;
          break;
       }
    }
@@ -2784,11 +2785,13 @@ bool process::hasPassedMain()
       result = true;
       goto cleanup;
    }
+   if (entry_addr < ldso_start_addr)
+     entry_addr += ldso_start_addr;
    
    lib_to_addr[path] = entry_addr;
    result = (entry_addr != current_pc);
-   startup_printf("[%s:%u] - hasPassedMain returning %d\n",
-                  FILE__, __LINE__, (int) result);
+   startup_printf("[%s:%u] - hasPassedMain returning %d (%lx %lx)\n",
+                  FILE__, __LINE__, (int) result, entry_addr, current_pc);
 
    cleanup:
       if (maps)

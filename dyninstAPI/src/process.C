@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.681 2007/02/14 23:04:15 legendre Exp $
+// $Id: process.C,v 1.682 2007/02/19 20:49:11 legendre Exp $
 
 #include <ctype.h>
 
@@ -2731,7 +2731,7 @@ bool process::loadDyninstLib() {
     if (!reachedBootstrapState(initialized_bs) && wasCreatedViaAttach())
     {
        insertTrapAtEntryPointOfMain();
-       sh->continueProcessBlocking();
+       continueProc();
     }
 #endif
     while (!reachedBootstrapState(initialized_bs)) {
@@ -2750,7 +2750,7 @@ bool process::loadDyninstLib() {
        getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
 
-
+    
     startup_printf("%s[%d]: Stopped at entry of main\n", FILE__, __LINE__);
 
     // We've hit the initialization trap, so load dyninst lib and
