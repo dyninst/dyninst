@@ -1624,6 +1624,7 @@ DLLEXPORT Dyn_Module::Dyn_Module(supportedLanguages lang, OFFSET adr,
 }
 
 DLLEXPORT Dyn_Module::Dyn_Module()
+  : language_(lang_Unknown), addr_(0), exec_(NULL)
 {
 }
 
