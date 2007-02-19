@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.289 2007/02/15 00:21:36 legendre Exp $
+ // $Id: symtab.C,v 1.290 2007/02/19 20:49:09 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1040,6 +1040,8 @@ void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
         // TODO: out-of-line insertion here
         if (func->get_size_cr())
           funcsByRange.insert(func);
+        Dyn_Symbol *sym = func->symbol();
+        getObject()->addSymbol(sym);
     }
     
     everyUniqueFunction.push_back(func);
