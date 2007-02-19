@@ -2392,17 +2392,17 @@ bool BPatch_module::getLineNumbersInt( unsigned int & startLine, unsigned int & 
     	}
    
     bool setAValue = false;
-    std::vector< std::pair< const char *, unsigned int > > lines; 
+    BPatch_Vector<BPatch_statement> lines;
     getSourceLines( (Address)startAddr, lines );
     if( lines.size() != 0 ) {
-	    startLine = lines[0].second;
+	    startLine = lines[0].lineNumber();
 	    setAValue = true;
 	    }
 	   
     lines.clear();
     getSourceLines( (Address)endAddr, lines );
     if( lines.size() != 0 ) {
-	    endLine = lines[0].second;
+	    endLine = lines[0].lineNumber();
 	    setAValue = true;
 	    }
     
