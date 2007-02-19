@@ -97,7 +97,7 @@ void SignalHandler::main() {
                 break;
             }
         }
-        signal_printf("%s[%d]: Signal handler: %d events queued\n", FILE__, __LINE__);
+        signal_printf("%s[%d]: Signal handler: %d events queued\n", FILE__, __LINE__, events_to_handle.size());
         while (events_to_handle.size()) {
             handleEvent(events_to_handle[0]);
             // Don't check stop_request here; handle all events first, then
