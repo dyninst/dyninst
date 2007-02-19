@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.120 2007/01/09 02:01:25 giri Exp $
+// $Id: linux-x86.C,v 1.121 2007/02/19 21:06:32 legendre Exp $
 
 #include <fstream>
 
@@ -984,22 +984,23 @@ void print_read_error_info(const relocationEntry entry,
     sprintf(errorLine, "               name %s\n", (entry.name()).c_str());
     logLine(errorLine);
 
-    sprintf(errorLine, "  target_pdf : symTabName %s\n",
-	    (target_pdf->symTabName()).c_str());
-    logLine(errorLine);    
-    sprintf(errorLine , "              prettyName %s\n",
-	    (target_pdf->symTabName()).c_str());
-    logLine(errorLine);
-    /*
+    if (target_pdf) {
+      sprintf(errorLine, "  target_pdf : symTabName %s\n",
+	      (target_pdf->symTabName()).c_str());
+      logLine(errorLine);    
+      sprintf(errorLine , "              prettyName %s\n",
+	      (target_pdf->symTabName()).c_str());
+      logLine(errorLine);
+      /*
       // Size bad. <smack>
-    sprintf(errorLine , "              size %i\n",
-	    target_pdf->getSize());
-    logLine(errorLine);
-    */
-    sprintf(errorLine , "              addr 0x%x\n",
-	    (unsigned)target_pdf->getAddress());
-    logLine(errorLine);
-
+      sprintf(errorLine , "              size %i\n",
+      target_pdf->getSize());
+      logLine(errorLine);
+      */
+      sprintf(errorLine , "              addr 0x%x\n",
+	      (unsigned)target_pdf->getAddress());
+      logLine(errorLine);
+    }
     sprintf(errorLine, "  base_addr  0x%x\n", (unsigned)base_addr);
     logLine(errorLine);
 }
