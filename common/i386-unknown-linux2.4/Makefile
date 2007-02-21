@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2007/01/09 02:00:48 giri Exp $
+# $Id: Makefile,v 1.2 2007/02/21 22:37:49 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -34,9 +34,6 @@ SRCS =		../../common/src/linuxKludges.C \
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
-MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
-MYFLAGS     += -I$(LIBELF_INC) 
-MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -47,26 +44,10 @@ TFLAGS          += $(MYFLAGS)
 
 SYSLIBS		= -ldl 
 
-LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
-else
-LIBS    += -ldwarf
-endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
-else
-LIBS    += -lelf
-endif
 LIBS    += -lgcc
-
 
 AS		= /usr/bin/as
 
-# no support for elf64_XXX() functions
-CXXFLAGS	+= -DUSES_ELF32_ONLY
-CFLAGS		+= -DUSES_ELF32_ONLY
-TFLAGS		+= -DUSES_ELF32_ONLY
 
 # Add preprocessor and special link information for G++
 G_PTHREAD	= -pthread

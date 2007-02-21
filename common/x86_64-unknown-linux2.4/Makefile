@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2007/01/29 18:22:14 legendre Exp $
+# $Id: Makefile,v 1.3 2007/02/21 22:37:52 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -34,9 +34,6 @@ SRCS =		../../common/src/linuxKludges.C \
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
-MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
-MYFLAGS     += -I$(LIBELF_INC) 
-MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -47,17 +44,6 @@ TFLAGS          += $(MYFLAGS)
 
 SYSLIBS		= -ldl 
 
-LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
-else
-LIBS    += -ldwarf
-endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
-else
-LIBS    += -lelf
-endif
 LIBS    += -lgcc
 
 AS		= /usr/bin/as

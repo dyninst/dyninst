@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2007/01/29 18:22:12 legendre Exp $
+# $Id: Makefile,v 1.3 2007/02/21 22:37:50 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,27 +22,11 @@ include ../../make.config
 SRCS =		../../common/src/linuxKludges.C \
 		../../common/src/timing-linux.C
 
-MYFLAGS		+= 	-DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) \
-				-I$(LIBUNWIND_INC) -I$(LIBELF_INC)
-
 CXXFLAGS	+= $(MYFLAGS)
 CFLAGS		+= $(MYFLAGS)
 TFLAGS		+= $(MYFLAGS) 
 
 SYSLIBS		= -ldl
-
-LIBS		= -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifdef LIBDWARFSTATIC
-LIBS    += -Wl,-Bstatic -ldwarf -Wl,-Bdynamic
-else
-LIBS    += -ldwarf
-endif
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-Bstatic -lelf -Wl,-Bdynamic
-else
-LIBS    += -lelf
-endif
-LIBS    += -L$(LIBUNWIND_LIB) -lunwind-ptrace -lunwind -lunwind-ia64
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread
