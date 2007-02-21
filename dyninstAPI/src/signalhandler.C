@@ -260,7 +260,7 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
    process *proc = ev.proc;
    assert(proc);
 
-   signal_printf("Caught critical for lwp %d\n", ev.lwp->get_lwp_id());
+   signal_printf("Caught critical %d for lwp %d\n", ev.what, ev.lwp->get_lwp_id());
    if (dyn_debug_signal) {
        pdvector<pdvector<Frame> > stackWalks;
        proc->walkStacks(stackWalks);
