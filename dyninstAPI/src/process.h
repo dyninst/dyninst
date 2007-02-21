@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.399 2007/02/14 23:04:16 legendre Exp $
+/* $Id: process.h,v 1.400 2007/02/21 17:30:06 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -399,6 +399,8 @@ class process {
 #endif // cap_save_the_world
 
 
+  void writeDebugDataSpace(void *inTracedProcess, u_int amount, 
+			   const void *inSelf);
   bool writeDataSpace(void *inTracedProcess,
                       u_int amount, const void *inSelf);
   bool readDataSpace(const void *inTracedProcess, u_int amount,

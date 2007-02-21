@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.682 2007/02/19 20:49:11 legendre Exp $
+// $Id: process.C,v 1.683 2007/02/21 17:30:05 legendre Exp $
 
 #include <ctype.h>
 
@@ -3645,6 +3645,43 @@ bool process::terminateProc()
    return false;
 }
 
+void process::writeDebugDataSpace(void *inTracedProcess, u_int amount, 
+				  const void *inSelf)
+{
+  static unsigned write_no = 0;
+
+  if (!dyn_debug_write)
+    return;
+  write_printf("char ");
+#if defined(arch_x86_64)
+  if (getAddressWidth() == 4)
+    write_printf("x86_");
+  else
+    write_printf("amd64_");
+#elif defined(arch_x86)
+  write_printf("x86_");
+#elif defined(arch_ia64)
+  write_printf("ia64_");
+#elif defined(arch_power)
+  write_printf("power_");
+#elif defined(arch_sparc)
+  write_printf("sparc_");
+#else
+  write_printf("unknown_");
+#endif
+  write_printf("%lx_%d_%u[] = {", inTracedProcess, getPid(), write_no++);
+
+  unsigned char *buffer = (unsigned char *) inSelf;
+  for (unsigned i=0; i < amount-1; i++) {
+    if (amount && !(amount % 10))
+      write_printf("\n");
+    write_printf("0x%hhx, ", buffer[i]);
+  }
+  if (amount)
+    write_printf("0x%hhx", buffer[amount-1]);
+  write_printf(" };\n", buffer[amount-1]);
+}
+
 /*
  * Copy data from controller process to the named process.
  */
@@ -3652,11 +3689,6 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) 
 {
    bool needToCont = false;
-
-   /*
-   fprintf(stderr, "writeDataSpace to %p to %p, %d\n",
-           inTracedProcess, (int)inTracedProcess+size, size);
-   */
 
    if (!isAttached()) return false;
 
@@ -3682,6 +3714,9 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
        showErrorCallback(38, msg);
        return false;
    }
+
+   if (dyn_debug_write)
+     writeDebugDataSpace(inTracedProcess, size, inSelf);
 
    if(needToCont) {
       return stopped_lwp->continueLWP();
@@ -3764,6 +3799,9 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
      return false;
   }
 
+  if (dyn_debug_write)
+     writeDebugDataSpace(inTracedProcess, sizeof(int), &data);
+
   if(needToCont) {
      return stopped_lwp->continueLWP();
   }
@@ -3805,6 +3843,9 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
      showErrorCallback(38, msg);
      return false;
   }
+
+   if (dyn_debug_write)
+     writeDebugDataSpace(inTracedProcess, amount, inSelf);
   
   if(needToCont) {
      return stopped_lwp->continueLWP();

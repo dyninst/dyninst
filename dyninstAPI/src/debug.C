@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: debug.C,v 1.1 2006/12/06 21:22:47 bernat Exp $
+// $Id: debug.C,v 1.2 2007/02/21 17:30:02 legendre Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -229,6 +229,10 @@ int dyn_debug_catchup = 0;
 int dyn_debug_bpatch = 0;
 int dyn_debug_regalloc = 0;
 int dyn_debug_ast = 0;
+int dyn_debug_write = 0;
+
+static char *dyn_debug_write_filename = NULL;
+static FILE *dyn_debug_write_file = NULL;
 
 bool init_debug() {
   char *p;
@@ -327,6 +331,11 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_AST"))) {
       fprintf(stderr, "Enabling DyninstAPI ast debug\n");
       dyn_debug_ast = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_WRITE"))) {
+    fprintf(stderr, "Enabling DyninstAPI process write debuging\n");
+    dyn_debug_write = 1;
+    dyn_debug_write_filename = p;
   }
 
   debugPrintLock = new eventLock();
@@ -694,6 +703,32 @@ int ast_printf(const char *format, ...)
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}
+
+int write_printf(const char *format, ...)
+{
+  if (!dyn_debug_write) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->_Lock(FILE__, __LINE__);
+  
+  if (!dyn_debug_write_file) {
+    if (dyn_debug_write_filename && strlen(dyn_debug_write_filename)) {
+      dyn_debug_write_file = fopen(dyn_debug_write_filename, "w");
+    }
+    if (!dyn_debug_write_file) {
+      dyn_debug_write_file = stderr;
+    }
+  }
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(dyn_debug_write_file, format, va);
   va_end(va);
 
   debugPrintLock->_Unlock(FILE__, __LINE__);

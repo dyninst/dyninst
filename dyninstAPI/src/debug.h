@@ -71,7 +71,7 @@ extern int dyn_debug_thread;
 extern int dyn_debug_catchup;
 extern int dyn_debug_regalloc;
 extern int dyn_debug_ast;
-
+extern int dyn_debug_write;
 extern int dyn_stats_instru;
 extern int dyn_stats_ptrace;
 extern int dyn_stats_parse;
@@ -139,6 +139,7 @@ extern int thread_printf(const char *format, ...);
 extern int catchup_printf(const char *format, ...);
 extern int regalloc_printf(const char *format, ...);
 extern int ast_printf(const char *format, ...);
+extern int write_printf(const char *format, ...);
 
 // And initialization
 extern bool init_debug();
