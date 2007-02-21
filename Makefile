@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.79 2007/01/19 22:12:13 giri Exp $
+# $Id: Makefile,v 1.80 2007/02/21 22:37:47 giri Exp $
 #
 
 TO_CORE = .
@@ -30,6 +30,7 @@ ParadynVC	= visi \
 		visiClients/termWin
 
 subSystems	= $(basicComps) $(ParadynD) $(ParadynFE) $(ParadynVC)
+SymtabAPI 	= ready common symtabAPI
 DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dyninstAPI/tests testsuite dyner codeCoverage
 
 allSubdirs	= $(basicComps) $(subSystems) common symtabAPI dyninstAPI dyninstAPI_RT dyninstAPI/tests testsuite dyner codeCoverage
@@ -153,7 +154,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-Paradyn ParadynD ParadynFE ParadynVC DyninstAPI basicComps subSystems: 
+Paradyn ParadynD ParadynFE ParadynVC DyninstAPI SymtabAPI basicComps subSystems: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
