@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.82 2007/01/18 07:53:45 jaw Exp $
+# $Id: make.module.tmpl,v 1.83 2007/02/21 22:37:54 giri Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -32,7 +32,7 @@ ifndef TARGET
 TARGET		= libdyninstAPI.so
 endif
 
-LDFLAGS += -lpthread -lsymtabAPI -lcommon
+LDFLAGS += -lpthread -lsymtabAPI
 
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC

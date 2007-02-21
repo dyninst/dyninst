@@ -51,8 +51,6 @@ G_PTHREAD       = -pthread
 
 include ../make.module.tmpl
 
-LDFLAGS += -lcommon
-
 ifdef IBM_BPATCH_COMPAT
   LDFLAGS += -liberty -bbigtoc -bexpall
   # should be building a static library in this case

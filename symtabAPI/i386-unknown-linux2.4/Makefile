@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2007/01/09 02:02:23 giri Exp $
+# $Id: Makefile,v 1.2 2007/02/21 22:38:01 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -12,7 +12,7 @@ USES_DWARF_DEBUG = true
 USES_LIBELF = true
 
 # For debugging.
-#NO_OPT_FLAG = true
+# NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -34,7 +34,7 @@ SRCS =          ../src/Object-elf.C
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
-MYFLAGS     += -I$(LIBELF_INC) 
+MYFLAGS     	+= -I$(LIBELF_INC)
 MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
@@ -46,7 +46,7 @@ TFLAGS          += $(MYFLAGS)
 
 SYSLIBS		= -ldl 
 
-LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
+LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB) -R$(LIBDWARF_LIB):$(LIBELF_LIB)
 ifdef LIBDWARFSTATIC
 LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
 else
@@ -59,8 +59,7 @@ LIBS    += -lelf
 endif
 LIBS    += -lgcc
 
-LIBS	+= -lcommon -liberty
-
+LIBS	+= -liberty
 
 AS		= /usr/bin/as
 
