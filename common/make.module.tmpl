@@ -3,16 +3,14 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.30 2007/02/21 22:37:48 giri Exp $
+# $Id: make.module.tmpl,v 1.31 2007/02/23 00:14:31 giri Exp $
 #
 
 SUITE_NAME	= common 
 RELEASE_NUM	= 1.0
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
-DEFINES		     += -UMT_THREAD \
-			-DBPATCH_LIBRARY -DBPATCH_SET_MUTATIONS_ACTIVE \
-			-DBPATCH_LIBRARY_F -DNEW_TIME_TYPES
+DEFINES		     += -UMT_THREAD 
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
