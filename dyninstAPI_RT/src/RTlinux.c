@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.49 2006/12/14 20:39:16 legendre Exp $
+ * $Id: RTlinux.c,v 1.50 2007/02/27 16:22:13 nater Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -319,9 +319,10 @@ static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
                                                    { 72, 476, 516, 80 } };
 #else
 //x86_64 and ia64 share structrues
-#define POS_ENTRIES 2
+#define POS_ENTRIES 3
 static pthread_offset_t positions[POS_ENTRIES] = { { 144, 952, 1008, 160 },
-                                                   { 144, 148, 1000, 160 } };
+                                                   { 144, 148, 1000, 160 },
+                                                   { 144, 148, 1000, 688 } };
 
 #if defined(MUTATEE_32)
 /* ccw 28 apr 2006: the offsets for 32 bit mutatees on amd64*/
@@ -352,9 +353,19 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
         // /* DEBUG */ fprintf( stderr, "%s[%d]: pid %d != ev->ppid %d or lwp %d != ev->lwp %d\n", __FILE__, __LINE__, pid, ev->ppid, lwp, ev->lwp );
         continue;
         }
-     ev->stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
-     ev->start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: stack_addr %p, start_pc %p\n", __FILE__, __LINE__, ev->stack_addr, ev->start_pc );
+
+        void * stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
+        void * start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
+
+        // Sanity checking. On x86_64 there are two places the stack address
+        // has been found on different compiles of libc. If we look in the
+        // wrong place, it looks like the value will be nil.
+        if(stack_addr == (void*)0) continue;
+
+        ev->stack_addr = stack_addr;
+        ev->start_pc = start_pc;
+
+         // /* DEBUG */ fprintf( stderr, "%s[%d]: stack_addr %p, start_pc %p\n", __FILE__, __LINE__, ev->stack_addr, ev->start_pc );
      return 1;
   }
 
