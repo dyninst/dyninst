@@ -277,8 +277,19 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
                    //int_function *f = stackWalks[walk_iter][i].getFunc();
                }
        }
-       
        int sleep_counter = SLEEP_ON_MUTATEE_CRASH;
+#if !defined(os_windows)
+       char *sleep_val = getenv("SLEEP_ON_MUTATEE_CRASH");
+       if (sleep_val) {
+          //  allow user specified value to override default
+         errno = 0;
+         long l = strtol(sleep_val, NULL, 10); 
+         if (errno) {
+           l = SLEEP_ON_MUTATEE_CRASH;
+         }
+         sleep_counter = (int) l;
+       }
+#endif
        while (dyn_debug_signal && (sleep_counter > 0)) {
            signal_printf("Critical signal received, spinning to allow debugger to attach\n");
            sleep(10);
