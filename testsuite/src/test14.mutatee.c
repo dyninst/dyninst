@@ -129,7 +129,7 @@ void level0(int count)
 volatile unsigned ok_to_go = 0;
 void *init_func(void *arg)
 {
-   threads_running[(int) arg] = 1;
+   threads_running[(int) (long) arg] = 1;
    while(! ok_to_go) P_sleep(1);
    level0(N_INSTR-1);
    return NULL;

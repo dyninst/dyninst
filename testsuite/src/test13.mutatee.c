@@ -18,7 +18,7 @@ volatile int threads_running[NTHRD];
 
 void *init_func(void *arg)
 {
-   threads_running[(int) arg] = 1;
+   threads_running[(int) (long) arg] = 1;
    while (!done);
    return arg;
 }
