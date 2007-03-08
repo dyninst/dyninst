@@ -10,7 +10,7 @@ void generateTestString(bool resume, bool useLog, bool staticTests, string &logf
       int testLimit, vector<char *>& child_argv, string& shellString)
 {
    stringstream testString;
-   testString << "test_driver.exe -enable-resume -limit " << testLimit;
+   testString << "test_driver.exe -under-runtests -enable-resume -limit " << testLimit;
 
    if ( resume )
    {

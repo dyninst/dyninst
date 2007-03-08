@@ -22,7 +22,7 @@ void generateTestString(bool resume, bool useLog, bool staticTests,
    } else {
      testString << "test_driver";
    }
-   testString << " -enable-resume -limit " << testLimit;
+   testString << " -under-runtests -enable-resume -limit " << testLimit;
 
    if ( resume )
    {
@@ -46,12 +46,6 @@ void generateTestString(bool resume, bool useLog, bool staticTests,
    timerString << pdscrdir << "/timer.pl -t " << timeout;
    shellString = timerString.str() + " " + testString.str();
    
-//    if ( useLog )
-//    {
-//      // shellString += " >> " + logfile + " 2>&1";
-//      shellString += " -logfile " + logfile;
-//    }
-
 }
 
 char *setResumeEnv()
@@ -114,8 +108,10 @@ void setupVars(bool useLog, string &logfile)
    {
       if ( getenv("DYNINST_ROOT") == NULL )
       {
-         cerr << "DYNINST_ROOT or PARADYN_BASE must be set." << endl;
-         exit(1);
+	fprintf(stderr, "** WARNING: DYNINST_ROOT not set.  Please set the environment variable\n");
+	fprintf(stderr, "\tto the path for the top of the Dyninst library installation.\n");
+	fprintf(stderr, "\tUsing default: '../../..'\n");
+	base_dir = string("../../..");
       }
       else
       {
