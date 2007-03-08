@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.39 2006/12/19 04:51:45 rchen Exp $
+// $Id: test_driver.C,v 1.40 2007/03/08 16:28:33 cooksey Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -979,17 +979,6 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> mut
                cm = USEATTACH;
             }
             
-//             if ( useHumanLog )
-//             {
-//                // In case the follow test causes a program crash we 
-//                // premptively print a crash error in the human log.
-//                // If it does not crash, we'll use the replay position
-//                // to overwrite that entry with a correct one.
-// 	      if (strcmp(humanlog_name, "-") != 0) {
-// 		printCrashHumanLog(tests[i], tests[i].mutatee[j], cm);
-// 	      }
-//             }
-            
             // Execute the test
             result = executeTest(bpatch, tests[i], tests[i].mutatee[j], cm, param);
 	    if (resumeLog) {
@@ -1403,36 +1392,55 @@ void DebugPause() {
     sleep(10);
 #endif
 }
-void setPDScriptDir()
+
+// Find the paradyn scripts directory.  It can be specified in the environment
+// variable 'PDSCRDIR', or we pick up a default location for the UW and UMD
+// sites, or we generate a default based on the DYNINST_ROOT directory, or
+// we use a default '../../../scripts'.
+void setPDScriptDir(bool skip_warning)
 {
    pdscrdir = getenv("PDSCRDIR");
    if ( pdscrdir == NULL )
    {
 #if defined(i386_unknown_nt4_0)
 #else
-      // Environment variable not set, try default wisc/umd directories
-      DIR *dir;
-      dir = opendir(uw_pdscrdir);
-      if ( dir != NULL )
-      {
-         closedir(dir);
-         pdscrdir = uw_pdscrdir;
-         return;
-      }
-      dir = opendir(umd_pdscrdir);
-      if ( dir != NULL )
-      {
-         closedir(dir);
-         pdscrdir = umd_pdscrdir;
-         return;
-      }
+     // Environment variable not set, try default wisc/umd directories
+     DIR *dir;
+     dir = opendir(uw_pdscrdir);
+     if ( dir != NULL ) {
+       closedir(dir);
+       pdscrdir = uw_pdscrdir;
+       return;
+     }
+     dir = opendir(umd_pdscrdir);
+     if ( dir != NULL ) {
+       closedir(dir);
+       pdscrdir = umd_pdscrdir;
+       return;
+     }
 
-      fprintf(stderr, "Unabled to find paradyn script dir, please set PDSCRDIR\n");
-      exit(NOTESTS);
+     // Environment variable not set and default UW/UMD directories missing.
+     // Derive default from DYNINST_ROOT
+     char *basedir = getenv("DYNINST_ROOT");
+     if (NULL == basedir) {
+       // DYNINST_ROOT not set.  Print a warning, and default it to "../../.."
+       if (!skip_warning) {
+	 fprintf(stderr, "** WARNING: DYNINST_ROOT not set.  Please set the environment variable\n");
+	 fprintf(stderr, "\tto the path for the top of the Dyninst library installation.\n");
+	 fprintf(stderr, "\tUsing default: '../../..'\n");
+       }
+       basedir = "../../..";
+     }
+     int basedir_len = strlen(basedir);
+     int pdscrdir_len = basedir_len + strlen("/scripts") + 1;
+     // BUG This allocated array lasts for the lifetime of the program, so it's
+     // currently not worth worrying about freeing the memory.
+     pdscrdir = new char[pdscrdir_len];
+     strncpy(pdscrdir, basedir, basedir_len + 1);
+     strcat(pdscrdir, "/scripts");
+
 #endif
-
    }
-
 }
    
 void updateSearchPaths(const char *filename) {
@@ -1507,6 +1515,7 @@ void updateSearchPaths(const char *filename) {
 int main(unsigned int argc, char *argv[]) {
     unsigned int i;
     bool shouldDebugBreak = false;
+    bool called_from_runTests = false;
     std::vector<char *> mutatee_list;
 
     updateSearchPaths(argv[0]);
@@ -1647,6 +1656,8 @@ int main(unsigned int argc, char *argv[]) {
 
           useHumanLog = true;
           humanlog_name = argv[++i];
+       } else if (strcmp(argv[i], "-under-runtests") == 0) {
+	 called_from_runTests = true;
        }
        else if ( strcmp(argv[i], "-help") == 0)
        {
@@ -1669,7 +1680,7 @@ int main(unsigned int argc, char *argv[]) {
     // Set the script dir if we require scripts
     if ( enableLogging )
     {
-       setPDScriptDir();
+       setPDScriptDir(called_from_runTests);
     }
 
     // Set up the logging file..
