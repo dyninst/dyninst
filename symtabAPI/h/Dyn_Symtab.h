@@ -167,7 +167,7 @@ class Dyn_Symtab : public Dyn_LookupInterface {
                                            bool isMangled = false,
                                            bool isRegex = false, 
                                            bool checkCase = false);
-	DLLEXPORT bool findFuncByEntryOffset(const OFFSET &offset, Dyn_Symbol *ret);	
+	DLLEXPORT bool findFuncByEntryOffset(const OFFSET &offset, vector<Dyn_Symbol *>&ret);	
 
 	DLLEXPORT bool findModule(const string &name, Dyn_Module *&ret);
 	DLLEXPORT bool findSection(const string &secName, Dyn_Section *&ret);
@@ -325,7 +325,7 @@ class Dyn_Symtab : public Dyn_LookupInterface {
 	//symbols
 	unsigned no_of_symbols;
 	
-	hash_map <OFFSET, Dyn_Symbol *> funcsByEntryAddr;
+   hash_map <OFFSET, vector<Dyn_Symbol *> > funcsByEntryAddr;
 	// note, a prettyName is not unique, it may map to a function appearing
    // in several modules.  Also only contains instrumentable functions....
    hash_map <string, vector<Dyn_Symbol *>*> funcsByPretty;

@@ -525,37 +525,56 @@ bool Dyn_Symtab::buildFunctionLists(vector <Dyn_Symbol *> &raw_funcs)
       Dyn_Symbol *possiblyExistingFunction = NULL;
       //funcsByEntryAddr.find(raw->getAddr(), possiblyExistingFunction);
       if (funcsByEntryAddr.find(raw->getAddr())!=funcsByEntryAddr.end()) 
-		{
-			possiblyExistingFunction = funcsByEntryAddr[raw->getAddr()];
-         // On some platforms we see two symbols, one in a real module
-         // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
-         // the real one
-			Dyn_Module *use = getOrCreateModule(possiblyExistingFunction->getModuleName(),
-                      			               possiblyExistingFunction->getAddr());
-         if (rawmod != use)
-			{
-            if (rawmod->fileName() == "DEFAULT_MODULE")
-               rawmod = use;
-            if (use->fileName() == "DEFAULT_MODULE") 
-            {
-					possiblyExistingFunction->setModuleName(string(rawmod->fullName()));
-					use = rawmod; 
-				}
-         }
+      {
+         vector<Dyn_Symbol *> &funcs = funcsByEntryAddr[raw->getAddr()];
+	 unsigned flag = 0;
+      	 for(unsigned int j=0;j<funcs.size();j++)
+	 {
+         	possiblyExistingFunction = funcsByEntryAddr[raw->getAddr()][j];
+        	// On some platforms we see two symbols, one in a real module
+         	// and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
+         	// the real one
+	 	Dyn_Module *use = getOrCreateModule(possiblyExistingFunction->getModuleName(),
+         	             			               possiblyExistingFunction->getAddr());
+         	if(!(*rawmod == *use))
+	 	{
+         	     if (rawmod->fileName() == "DEFAULT_MODULE")
+         	         rawmod = use;
+         	     if(use->fileName() == "DEFAULT_MODULE") 
+         	     {
+	        	  possiblyExistingFunction->setModuleName(string(rawmod->fullName()));
+			  use = rawmod; 
+		     }
+         	}
             
-         assert(*rawmod == *use);
-         // Keep the new mangled name
-         possiblyExistingFunction->addMangledName(mangled_name);
-         if (pretty_name != "<UNSET>")
-            possiblyExistingFunction->addPrettyName(pretty_name);
-         if (typed_name != "<UNSET>")
-				possiblyExistingFunction->addTypedName(typed_name);
-         raw_funcs[i] = NULL;
-         delete raw; // Don't leak
+         	if(*rawmod == *use)
+		{
+         		// Keep the new mangled name
+         		possiblyExistingFunction->addMangledName(mangled_name);
+         		if (pretty_name != "<UNSET>")
+         		   possiblyExistingFunction->addPrettyName(pretty_name);
+         		if (typed_name != "<UNSET>")
+		 	   possiblyExistingFunction->addTypedName(typed_name);
+	        	raw_funcs[i] = NULL;
+	        	delete raw; // Don't leak
+			flag = 1;	
+			break;
+		}	
+	 }	
+	 if(!flag)
+	 {
+          	 funcsByEntryAddr[raw->getAddr()].push_back(raw);
+	       	 addFunctionName(raw, mangled_name, true);
+          	 if (pretty_name != "<UNSET>")
+		 	raw->addPrettyName(pretty_name, true);
+           	 if (typed_name != "<UNSET>")
+         		raw->addTypedName(typed_name, true);
+	 }
+      
       }
       else
 		{
-         funcsByEntryAddr[raw->getAddr()] = raw;
+         funcsByEntryAddr[raw->getAddr()].push_back(raw);
          addFunctionName(raw, mangled_name, true);
          if (pretty_name != "<UNSET>")
 				raw->addPrettyName(pretty_name, true);
@@ -596,7 +615,7 @@ void Dyn_Symtab::enterFunctionInTables(Dyn_Symbol *func, bool wasSymtab)
  	if (!func)
 		return;
     
- 	funcsByEntryAddr[func->getAddr()] = func;
+    funcsByEntryAddr[func->getAddr()].push_back(func);
    // Functions added during symbol table parsing do not necessarily
    // have valid sizes set, and should therefor not be added to
    // the code range tree. They will be added after parsing. 
@@ -984,7 +1003,7 @@ Dyn_Symtab::Dyn_Symtab(const Dyn_Symtab& obj)
 		everyUniqueFunction.push_back(new Dyn_Symbol(*(obj.everyUniqueFunction[i])));
 	for(i=0;i<everyUniqueFunction.size();i++)
 	{
-		funcsByEntryAddr[everyUniqueFunction[i]->getAddr()] = everyUniqueFunction[i];
+ 		funcsByEntryAddr[everyUniqueFunction[i]->getAddr()].push_back(everyUniqueFunction[i]);
 		addFunctionName(everyUniqueFunction[i],everyUniqueFunction[i]->getName(),true);
 		addFunctionName(everyUniqueFunction[i],everyUniqueFunction[i]->getPrettyName(),false);
 	}	
@@ -1184,15 +1203,14 @@ bool Dyn_Symtab::findCatchBlock(Dyn_ExceptionBlock &excp, OFFSET addr, unsigned 
    }
 }
  
-bool Dyn_Symtab::findFuncByEntryOffset(const OFFSET &entry, Dyn_Symbol *ret)
+bool Dyn_Symtab::findFuncByEntryOffset(const OFFSET &entry, vector<Dyn_Symbol *>& ret)
 {
- 	if(funcsByEntryAddr.find(entry)!=funcsByEntryAddr.end()) {
-      ret = funcsByEntryAddr[entry];
-		return true;
+   if(funcsByEntryAddr.find(entry)!=funcsByEntryAddr.end()) {
+        ret = funcsByEntryAddr[entry];
+	return true;
    }
-	serr = No_Such_Function;
-	ret = NULL;
-	return false;
+   serr = No_Such_Function;
+   return false;
 }
  
 #if 0 
