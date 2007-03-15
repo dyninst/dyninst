@@ -3,11 +3,12 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NetUtils.h,v 1.5 2007/01/24 19:33:46 darnold Exp $
+// $Id: NetUtils.h,v 1.6 2007/03/15 20:11:03 darnold Exp $
 #ifndef XPLAT_NETUTILS_H
 #define XPLAT_NETUTILS_H
 
 #include <string>
+#include <vector>
 #include "xplat/Types.h"
 
 namespace XPlat
@@ -23,6 +24,7 @@ public:
         in_addr_t iaddr;        // IPv4 address in host byte order
 
     public:
+        NetworkAddress( ): str(""), iaddr( ntohl(INADDR_ANY) ){}
         NetworkAddress( in_addr_t inaddr );
         NetworkAddress( const NetworkAddress& obj )
           : str( obj.str ),
@@ -40,28 +42,28 @@ public:
             return *this;
         }
             
+        bool operator==( const NetworkAddress & in )
+            { return iaddr == in.iaddr; }
 
         std::string GetString( void ) const { return str; }
         in_addr_t GetInAddr( void ) const   { return iaddr; }
     };
-
 private:
-    static std::string FindHostName( void );
-    static std::string FindNetworkName( void );
-    static NetworkAddress FindNetworkAddress( void );
+    static int FindNetworkName( std::string ihostname, std::string & );
+    static int FindHostName( std::string ihostname, std::string & );
+    static int FindNetworkAddress( std::string ihostname, NetworkAddress & );
+    static int FindNumberOfLocalNetworkInterfaces( void ); 
+    static int FindLocalNetworkInterfaces( std::vector<NetworkAddress> & );
 
 public:
-    // get IPv4 info about the local host
-    static std::string GetHostName( void );
-    static std::string GetNetworkName( void );
-    static NetworkAddress GetNetworkAddress( void );
-
-    // get IPv4 info about a host
-    static NetworkAddress GetAddressOfHost( std::string host );
+    static int GetHostName( std::string ihostname, std::string & );
+    static int GetNetworkName( std::string ihostname, std::string & );
+    static int GetNetworkAddress( std::string ihostname, NetworkAddress & );
+    static int GetNumberOfNetworkInterfaces( void );
+    static int GetLocalNetworkInterfaces( std::vector<NetworkAddress> & );
 
     // check whether given host is local 
     static bool IsLocalHost( const std::string& host );
-    static bool IsLocalHost( in_addr_t addr );
 
     static int GetLastError( void );
 };
