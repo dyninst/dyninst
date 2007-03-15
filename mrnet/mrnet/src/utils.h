@@ -41,11 +41,6 @@ int getSocketPeer( int connected_socket,
 
 int getPortFromSocket( int sock, Port *port );
 
-int getHostName( std::string & out_hostname, const std::string & in_hostname = "" );    // e.g. "foo"
-int getDomainName( std::string & out_hostname, const std::string & in_hostname = "" );  // e.g. "bar.net"
-int getNetworkName( std::string & out_hostname, const std::string & in_hostname = "", bool resolve=true ); // e.g. "foo.bar.net"
-int getNetworkAddr( std::string & ipaddr_str, const std::string hostname = "" );    // "127.0.0.1"
-
 struct ltstr
 {
     bool operator(  ) ( std::string s1, std::string s2 ) const

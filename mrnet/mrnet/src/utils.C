@@ -37,18 +37,6 @@
 #include <sys/sockio.h>         //only for solaris
 #endif // defined(os_solaris)
 
-static XPlat::Mutex localhostname_mutex;
-static bool localhostname_set = false;
-
-static XPlat::Mutex localdomainname_mutex;
-static bool localdomainname_set = false;
-
-static XPlat::Mutex localnetworkname_mutex;
-static bool localnetworkname_set = false;
-
-static XPlat::Mutex localnetworkaddr_mutex;
-static bool localnetworkaddr_set = false;
-
 static XPlat::Mutex gethostbyname_mutex;
 
 namespace MRN
@@ -66,7 +54,6 @@ XPlat::TLSKey tsd_key;
 static struct hostent * copy_hostent( struct hostent *);
 static void delete_hostent( struct hostent *in );
 static struct hostent * mrnet_gethostbyname( const char * name );
-static struct hostent * mrnet_gethostbyaddr( const char *addr, int len, int type);
 
 inline struct hostent * copy_hostent( struct hostent *in)
 {
@@ -139,23 +126,6 @@ struct hostent * mrnet_gethostbyname( const char * name )
   
     gethostbyname_mutex.Unlock();
     return ret_hostent;
-}
-
-struct hostent * mrnet_gethostbyaddr( const char *addr, int len, int type)
-{
-
-	gethostbyname_mutex.Lock();
-
-	struct hostent * temp_hostent = gethostbyaddr( addr, len, type );
-	
-	if( temp_hostent == NULL ){
-		gethostbyname_mutex.Unlock();
-		return NULL;
-	}
-	struct hostent * ret_hostent = copy_hostent(temp_hostent);
-  
-	gethostbyname_mutex.Unlock();
-	return ret_hostent;
 }
 
 int connectHost( int *sock_in, const std::string & hostname, Port port )
@@ -366,215 +336,7 @@ int getPortFromSocket( int sock, Port *port )
     return 0;
 }
 
-// get the current (localhost) machine name, e.g. "grilled"
-int getHostName( std::string & out_hostname, const std::string & in_name )
-{
-    if( (in_name == "") ){
-        localhostname_mutex.Lock();
 
-        if( localhostname_set ) {
-            out_hostname = LocalHostName;
-            localhostname_mutex.Unlock();
-            return 0;
-        }
-        else{
-            out_hostname = XPlat::NetUtils::GetHostName();
-            LocalHostName = out_hostname;
-            localhostname_set = true;
-        }
-
-        localhostname_mutex.Unlock();
-    }
-
-    std::string network_name=in_name;
-    if( ( getNetworkName( network_name, in_name, false ) == -1) ) {
-        return -1;
-    }
-
-    std::string::size_type idx = network_name.find( '.' );
-    if( idx != std::string::npos ) {
-        std::string temp_name = network_name.substr( 0, idx );
-
-        if( temp_name.length() == 3 &&
-            ( isdigit( temp_name[0] ) ) &&
-            ( isdigit( temp_name[1] ) ) &&
-            ( isdigit( temp_name[2] ) ) ) {
-            //hack alert! if it looks like ip addresses, return entire networkname
-            out_hostname = network_name;
-        }
-        else {
-            out_hostname = temp_name;
-        }
-    }
-    else {
-        out_hostname = network_name;
-    }
-
-    return 0;
-}
-
-// get the network domain name from the given hostname (default=localhost)
-// e.g. "grilled.cs.wisc.edu" -> "cs.wisc.edu"
-int getDomainName( std::string & domainname,
-                   const std::string & in_hostname )
-{
-    if( ( in_hostname == "" ) ){
-        localdomainname_mutex.Lock();
-
-        if( localdomainname_set ){
-            domainname = LocalDomainName;
-            localdomainname_mutex.Unlock();
-            return 0;
-        }
-
-        localdomainname_mutex.Unlock();
-    }
-
-    std::string network_name;
-    if( getNetworkName( network_name, in_hostname ) == -1 ) {
-        // cannot determine network name
-        return -1;
-    }
-
-    int idx = network_name.find( '.' );
-    if( ( idx == -1 ) ){
-        //no "." found in network_name
-        return -1;
-    } 
-
-    std::string temp_name = network_name.substr( 0, idx );
-    if ( temp_name.length() == 3 &&
-         ( isdigit( temp_name[0] ) ) &&
-         ( isdigit( temp_name[1] ) ) &&
-         ( isdigit( temp_name[2] ) ) ){ 
-        //IP returned by getNetworkName()
-        return -1;
-    }
-
-    domainname = network_name.substr( idx + 1, network_name.length( ) );
-
-    if( in_hostname == "" ) {
-        localdomainname_mutex.Lock();
-
-        LocalDomainName = domainname;
-        localdomainname_set = true;
-
-        localdomainname_mutex.Unlock();
-    }
-
-    return 0;
-}
-
-// get the fully-qualified network name for given hostname (default=localhost)
-// e.g. "grilled" -> "grilled.cs.wisc.edu"
-int getNetworkName( std::string & network_name, const std::string & in_hostname, bool resolve )
-{
-    struct in_addr in;
-    struct hostent *hp;
-
-    if( ( in_hostname == "" ) ) {
-        localnetworkname_mutex.Lock();
-        if( localnetworkname_set ) {
-            network_name = LocalNetworkName;
-        }
-        else{
-            network_name = XPlat::NetUtils::GetNetworkName();
-            LocalNetworkName = network_name;
-            localnetworkname_set = true;
-        }
-        localnetworkname_mutex.Unlock();
-        return 0;
-    }
-
-    if( resolve ){
-        std::string ip_address;
-        if( getNetworkAddr( ip_address, in_hostname ) == -1 ) {
-            //cannot get network address
-            mrn_dbg( 3, mrn_printf(FLF, stderr, "IP Address not found for \"%s\"\n",
-                                   in_hostname.c_str() ) );
-            return -1;
-        }
-		
-        // use to initialize struct in_addr since inet_pton not available on windows
-        hp = mrnet_gethostbyname( ip_address.c_str(  ) );
-        if( hp == NULL ) {
-            mrn_dbg( 3, mrn_printf(FLF, stderr, "Host information not found for \"%s\"\n",
-                                   ip_address.c_str(  ) ) );
-            return -1;
-        }
-        memcpy( ( void * )( &in.s_addr ), ( void * )( hp->h_addr_list[0] ),
-                hp->h_length );
-        delete_hostent( hp );
-		
-        hp = mrnet_gethostbyaddr( ( const char * )&in, sizeof( in ), AF_INET );
-    }
-    else{
-        hp = mrnet_gethostbyname( in_hostname.c_str(  ) );
-    }
-
-    if( hp == NULL ) {
-        mrn_dbg( 3, mrn_printf(FLF, stderr, "Host information not found for \"%s\"\n",
-                               in_hostname.c_str(  ) ) );
-        return -1;
-    }
-    else {
-        network_name = hp->h_name;
-        delete_hostent( hp );
-        
-        //network name must be "localhost" or fully qualified "dotted" name
-        int idx = network_name.find( '.' );
-        if( (network_name != "localhost") && (idx == -1) ) {
-            //no "." found in network_name
-            mrn_dbg( 1, mrn_printf(FLF, stderr, "Name not fully qualified (%s);"
-                                   "); Use IP address!\n", network_name.c_str( ) ) );
-            return -1;
-        }
-    }
-		
-    return 0;
-}
-
-/* resolve a hostname into an ipaddress string */
-int getNetworkAddr( std::string & ipaddr, const std::string hostname )
-{
-    struct hostent *hp;
-
-    if( hostname == "" ) {
-        localnetworkaddr_mutex.Lock();
-        if( !localnetworkaddr_set ) {
-            LocalNetworkAddr = XPlat::NetUtils::GetNetworkAddress().GetString();
-            localnetworkaddr_set = true;
-            if( LocalNetworkAddr.length() == 0 ) {
-                localnetworkaddr_mutex.Unlock();
-                return -1;
-            }
-        }
-				
-        ipaddr = LocalNetworkAddr;
-        localnetworkaddr_mutex.Unlock();
-        return 0;
-    }
-
-    //Hostname given
-    hp = mrnet_gethostbyname( hostname.c_str() );
-
-    if( hp == NULL ) {
-        return -1;
-    }
-    struct in_addr in;
-    memcpy( &in.s_addr, *( hp->h_addr_list ), sizeof( in.s_addr ) );
-    delete_hostent( hp );
-
-    // Convert address to a string.
-    // NOte that we use the XPlat utility function to convert the address
-    // because inet_ntoa is not (necessarily) thread-safe and other
-    // alternatives (e.g., inet_ntop) are not yet available on all platforms
-    // of interest.
-    XPlat::NetUtils::NetworkAddress tmpAddr( ntohl( in.s_addr ) );
-
-    ipaddr = tmpAddr.GetString();
-    return 0;
-}
 
 int mrn_printf( const char *file, int line, const char * /* func */,
                 FILE * fp, const char *format, ... )
