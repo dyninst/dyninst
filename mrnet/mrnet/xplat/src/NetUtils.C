@@ -3,158 +3,150 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NetUtils.C,v 1.8 2007/01/24 19:34:12 darnold Exp $
+// $Id: NetUtils.C,v 1.9 2007/03/15 20:11:07 darnold Exp $
 #include <sstream>
 #include "xplat/Types.h"
 #include "xplat/NetUtils.h"
 
+#if defined(os_windows)
+#include <ws2tcpip.h>
+#endif /* os_windows */
 
 namespace XPlat
 {
 
-std::string
-NetUtils::FindNetworkName( void )
+int NetUtils::FindNetworkName( std::string ihostname, std::string & ohostname )
 {
-    std::string ipaddr = GetNetworkAddress().GetString();
-    std::string ret;
+    struct addrinfo *addrs, hints;
+    int error;
 
-    // do the lookup
-    struct in_addr sin;
-    struct hostent* hp = gethostbyname( ipaddr.c_str() );   // just copies addr
-    memcpy( &sin.s_addr, hp->h_addr_list[0], hp->h_length );
-
-    hp = gethostbyaddr( (const char*)&sin, sizeof(sin), AF_INET );
-    if( hp != NULL )
-    {
-        // we found our network name
-        ret = hp->h_name;
+    if( ihostname == "" ){
+        return -1;
     }
 
-    return ret;
+    // do the lookup
+    memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_CANONNAME;
+    hints.ai_socktype = SOCK_STREAM;
+    if ( error = getaddrinfo(ihostname.c_str(), NULL, NULL, &addrs)) {
+        fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(error));
+        return -1;
+    }
+
+    char hostname[256];
+    if( error = getnameinfo(addrs->ai_addr, sizeof(struct sockaddr), hostname, sizeof(hostname), NULL,0,0) ){
+        fprintf(stderr, "getnameinfo(): %s\n", gai_strerror(error));
+        return -1;
+    }
+
+    ohostname = hostname;
+
+    return 0;
 }
 
-std::string
-NetUtils::FindHostName( void )
+int NetUtils::FindHostName( std::string ihostname, std::string & ohostname)
 {
-    std::string fqdn = GetNetworkName();
-    std::string ret;
+    std::string fqdn;
+    if( GetNetworkName( ihostname, fqdn ) == -1 ){
+        return -1;
+    }
 
     // extract host name from the fully-qualified domain name
     std::string::size_type firstDotPos = fqdn.find_first_of( '.' );
-    if( firstDotPos != std::string::npos )
-    {
-        ret = fqdn.substr( 0, firstDotPos - 1 );
+    if( firstDotPos != std::string::npos ) {
+        ohostname = fqdn.substr( 0, firstDotPos );
     }
-    else
-    {
-        ret = fqdn;
+    else {
+        ohostname = fqdn;
     }
-    return ret;
-}
 
-
-// check whether given IPv4 address (in host byte order) is local host
-bool
-NetUtils::IsLocalHost( in_addr_t addr )
-{
-    // do the lookup
-    std::string ipaddr = GetNetworkAddress().GetString();
-    struct hostent* hp = gethostbyname( ipaddr.c_str() );   // just copies addr
-
-    in_addr sin;
-    memcpy( &sin.s_addr, hp->h_addr_list[0], hp->h_length );
-
-    return (htonl(addr) == sin.s_addr);
+    return 0;
 }
 
 
 bool
-NetUtils::IsLocalHost( const std::string& host )
+NetUtils::IsLocalHost( const std::string& ihostname )
 {
-    bool ret = false;
 
-    if( (host == "") ||
-        (host == "localhost") ||
-        (host == "localhost.localdomain") ||
-        (host == GetNetworkName()) ||
-        (host == GetNetworkAddress().GetString()) )
-    {
-        ret = true;
+    std::vector< NetworkAddress > local_addresses;
+    GetLocalNetworkInterfaces( local_addresses );
+
+    NetworkAddress iaddress;
+    if( GetNetworkAddress( ihostname, iaddress ) == -1 ){
+        return false;
     }
-    return ret;
+
+    for( unsigned int i=0; i<local_addresses.size(); i++ ) {
+        if( local_addresses[i] == iaddress ){
+            return true;
+        }
+    }
+
+    return false;
 }
 
 
-std::string
-NetUtils::GetHostName( void )
+int NetUtils::GetHostName( std::string ihostname, std::string &ohostname )
 {
     static std::string cachedName;
 
     // check if we've already looked up our host name
-    if( cachedName.length() > 0 )
-    {
-        return cachedName;
+    if( ihostname == "") {
+        if(cachedName.length() == 0 ) {
+            if( FindHostName( ihostname, cachedName ) == -1 ){
+                return -1;
+            }
+        }
+
+        ohostname = cachedName;
+        return 0;
     }
-
-    cachedName = FindHostName();
-
-    return cachedName;
+    else{
+        return FindHostName( ihostname, ohostname );
+    }
 }
 
 
-std::string
-NetUtils::GetNetworkName( void )
+int NetUtils::GetNetworkName( std::string ihostname, std::string & ohostname )
 {
     static std::string cachedName;
 
     // check if we've already looked up our fully qualified domain name
-    if( cachedName.length() > 0 )
-    {
-        return cachedName;
+    if( ihostname == "" ){
+        if ( cachedName.length() == 0 ) {
+            if( FindNetworkName( ihostname, cachedName ) == -1 ){
+                return -1;
+            }
+        }
+
+        ohostname = cachedName;
+        return 0;
     }
-
-    // we didn't have the network name cached - 
-    cachedName = FindNetworkName();
-
-    return cachedName;
+    else{
+        return FindNetworkName( ihostname, ohostname );
+    }
 }
 
 
-NetUtils::NetworkAddress
-NetUtils::GetNetworkAddress( void )
+int NetUtils::GetNetworkAddress( std::string ihostname, NetworkAddress & oaddr )
 {
     static NetUtils::NetworkAddress cachedLocalAddr( ntohl( INADDR_ANY ) );
 
     // check if we've already looked up our network address
-    if( cachedLocalAddr.GetInAddr() == ntohl( INADDR_ANY ) ) 
-    {
-        // we didn't have the network address cached - 
-        // look it up
-        cachedLocalAddr = FindNetworkAddress();
+    if( ihostname == "" ){
+        if( cachedLocalAddr.GetInAddr() == ntohl( INADDR_ANY ) ) {
+            // we didn't have the network address cached - look it up
+            if( FindNetworkAddress( ihostname, cachedLocalAddr  ) == -1 ){
+                return -1;
+            }
+        }
+        oaddr = cachedLocalAddr;
+        return 0;
     }
-    return cachedLocalAddr;
-}
-
-
-NetUtils::NetworkAddress
-NetUtils::GetAddressOfHost( std::string host )
-{
-    NetworkAddress ret( INADDR_ANY );
-
-
-    // look up host
-    // (If host is already dotted decimal IPv4 address, just puts 
-    // address in the output.)
-    hostent* hp = gethostbyname( host.c_str() );
-    if( hp != NULL )
-    {
-        // we found the address
-        ret = NetworkAddress( ntohl( *(in_addr_t*)(hp->h_addr_list[0]) ) );
+    else{
+        return FindNetworkAddress( ihostname, oaddr );
     }
-
-    return ret;
 }
-
 
 // Note: does not use inet_ntoa or similar functions because they are not
 // necessarily thread safe, or not available on all platforms of interest.
@@ -178,5 +170,54 @@ NetUtils::NetworkAddress::NetworkAddress( in_addr_t inaddr )
     str = astr.str();
 }
 
+int NetUtils::GetNumberOfNetworkInterfaces( void )
+{
+    static int cachedNumberOfInterfaces=0;
+
+    if( cachedNumberOfInterfaces == 0 ) {
+        cachedNumberOfInterfaces = FindNumberOfLocalNetworkInterfaces( );
+    }
+
+    return cachedNumberOfInterfaces;
+}
+
+int NetUtils::GetLocalNetworkInterfaces( std::vector<NetUtils::NetworkAddress> & iaddresses )
+{
+    static std::vector<NetUtils::NetworkAddress> cachedLocalAddresses;
+
+    if( cachedLocalAddresses.size() == 0 ){
+        int ret = FindLocalNetworkInterfaces( cachedLocalAddresses );
+        if( ret == -1 )
+            return -1;
+    } 
+
+    iaddresses = cachedLocalAddresses;
+    return 0;
+}
+
+int NetUtils::FindNetworkAddress( std::string ihostname, NetUtils::NetworkAddress &oaddr )
+{
+    struct addrinfo *addrs, hints;
+    int error;
+
+    if( ihostname == "" ){
+        return -1;
+    }
+
+    // do the lookup
+    memset( &hints, 0, sizeof(hints) );
+    hints.ai_flags = AI_CANONNAME;
+    hints.ai_socktype = SOCK_STREAM;
+    if ( error = getaddrinfo(ihostname.c_str(), NULL, NULL, &addrs)) {
+        fprintf(stderr, "getaddrinfo(): %s\n", gai_strerror(error));
+        return -1;
+    }
+
+    struct in_addr in;
+    struct sockaddr_in *sinptr = ( struct sockaddr_in * )(addrs->ai_addr);
+    memcpy( &in.s_addr, ( void * )&( sinptr->sin_addr ), sizeof( in.s_addr ) );
+    oaddr = NetworkAddress( ntohl(in.s_addr) );
+    return 0;
+}
 
 } // namespace XPlat
