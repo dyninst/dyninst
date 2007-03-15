@@ -94,7 +94,8 @@ class NetworkImpl: public Error {
                 const char * _application, const char ** argv);
 
     // BE constructor
-    NetworkImpl(Network *, const char *phostname, Port pport, Rank myrank );
+    NetworkImpl(Network *, const char *phostname, Port pport,
+                const char * myhostname, Rank myrank );
     ~NetworkImpl();
 
     Communicator * get_BroadcastCommunicator(void);
