@@ -34,10 +34,10 @@ main( int argc, char* argv[] )
         }
     }
 
-    if( argc != 4 )
+    if( argc != 5 )
     {
         std::cerr << argv[0] << ": invalid/incomplete command line\n"
-            << argv[0] << ": usage: " << argv[0] << " parentHostname parentPort backendRank"
+            << argv[0] << ": usage: " << argv[0] << " parentHostname parentPort backendHostname backendRank"
             << std::endl;
         exit( 1 );
     }
@@ -49,10 +49,7 @@ main( int argc, char* argv[] )
 
 
     // join the MRNet network
-    const char* parHostname = argv[argc-3];
-    Port parPort = (Port)strtoul( argv[argc-2], NULL, 10 );
-    Rank myRank = (Rank)strtoul( argv[argc-1], NULL, 10 );
-    Network * network = new Network( parHostname, parPort, myRank );
+    Network * network = new Network( argc, argv );
     if( network->fail() )
     {
         std::cerr << argv[0] << "init_Backend() failed" << std::endl;

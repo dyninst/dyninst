@@ -19,10 +19,7 @@ int main(int argc, char **argv)
     int tag;
     bool success=true;
 
-    const char* parHostname = argv[argc-3];
-    Port parPort = (Port)strtoul( argv[argc-2], NULL, 10 );
-    Rank myRank = (Rank)strtoul( argv[argc-1], NULL, 10 );
-    Network * network = new Network( parHostname, parPort, myRank );
+    Network * network = new Network( argc, argv );
     if( network->fail() ){
         fprintf(stderr, "backend_init() failed\n");
         return -1;

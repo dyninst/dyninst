@@ -31,16 +31,14 @@ int main(int argc, char **argv){
     bool success=true;
 
     //set_OutputLevel(5);
-    if( argc != 4 ){
-        fprintf(stderr, "usage: %s parent_hostname parent_port my_rank\n",
+    if( argc != 5 ){
+        fprintf(stderr, "usage: %s parent_hostname parent_port my_hostname my_rank\n",
                 argv[0]);
         exit( -1 );
     }
 
-    const char* parHostname = argv[argc-3];
-    Port parPort = (Port)strtoul( argv[argc-2], NULL, 10 );
-    Rank myRank = (Rank)strtoul( argv[argc-1], NULL, 10 );
-    Network * network = new Network( parHostname, parPort, myRank );
+   
+    Network * network = new Network( argc, argv);
     if( network->fail() ){
         fprintf(stderr, "backend_init() failed\n");
         exit (-1);
