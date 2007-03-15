@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NetUtils-unix.C,v 1.5 2007/01/24 19:34:10 darnold Exp $
+// $Id: NetUtils-unix.C,v 1.6 2007/03/15 20:11:05 darnold Exp $
 #include "xplat/NetUtils.h"
 #include <assert.h>
 #include <unistd.h>
@@ -25,124 +25,148 @@ namespace XPlat
 {
 
 
-NetUtils::NetworkAddress
-NetUtils::FindNetworkAddress( void )
+int NetUtils::FindNumberOfLocalNetworkInterfaces( void )
 {
-    NetworkAddress ret( INADDR_ANY );
-
-    int sockfd, lastlen, len, firsttime, flags;
-    char *buf, *cptr, *ptr, lastname[IFNAMSIZ];
-    struct ifreq *ifr, ifrcopy;
     struct ifconf ifc;
+    int num_ifs=-1;
+    int rq_len;
+    int ifc_count_guess=5;
 
-    sockfd = socket( AF_INET, SOCK_STREAM, 0 );
-    if( sockfd < 0 ) {
-        perror( "Failed socket()" );
-        return ret;
+    //IP6 suport?
+    int fd=socket(AF_INET6,SOCK_DGRAM,0);
+    if ( fd<0 ){
+        //NO IP6, use IP4
+        fd=socket(AF_INET,SOCK_DGRAM,0);
     }
 
-    lastlen = 0;
-    firsttime = 1;
-    len = 3 * sizeof( struct ifreq );   // initial size guess
-    while( 1 ) {
-        buf = new char[len];
-        assert( buf );
-        ifc.ifc_len = len;
-        ifc.ifc_buf = buf;
-        //printf("\tCalling ioctl w/ len: %d ...\n", len);
+#if defined( SIOCGIFCOUNT )
+    //Try SIOCIFCOUNT request first (not always implemented).
+    int ioctl_ret = ioctl(fd, SIOCGIFCOUNT, (char *)&num_ifs);
+    if( num_ifs >= 0 ){
+        close(fd);
+        return num_ifs;
+    }
+#endif /* SIOCGIFNUM */
 
-#if defined(CSIOCGIFCONF)
-        int ioreq = CSIOCGIFCONF;
-#else
-        int ioreq = SIOCGIFCONF;
-#endif // defined(CSIOCGIFCONF)
-
-        if( ioctl( sockfd, ioreq, &ifc ) < 0 )
-            {
-                perror( "Failed ioctl()" );
-                delete[] buf;
-                return ret;
-            }
-            else {
-                //printf("\tComparing %d and lastlen:%d ... \n", ifc.ifc_len, lastlen);
-                if( ifc.ifc_len == lastlen ) {
-                    //printf("ioctl success\n");
-                    break;      //success, len has not changed
-                }
-                lastlen = ifc.ifc_len;
-            }
-        if( !firsttime ) {
-            firsttime = 0;
-            len += 5 * sizeof( struct ifreq );  /* increment size guess */
-        }
-        delete[] buf;
+    ifc.ifc_buf=NULL;
+    ifc.ifc_len=0;
+    //Sometimes calling ioctl() w/ 0 len buf returns needed space
+    //otherwise we guess at number of interfaces needed.
+    if ( (ioctl(fd,SIOCGIFCONF,&ifc)<0) || (ifc.ifc_len == 0 ) ) {
+        rq_len = ifc_count_guess * sizeof(struct ifreq);
+    }
+    else{
+        rq_len = ifc.ifc_len;
     }
 
-    lastname[0] = 0;
-    int i;
-    for( ptr = buf, i = 0; ptr < buf + ifc.ifc_len;
-         i++, ptr += sizeof( ifr->ifr_name ) + len ) {
-        //printf("Processing interface %d\n", i);
-        ifr = ( struct ifreq * )ptr;
+    //Get interfaces from kernel.
+    //If buf is too small, ioctl() doesn't always fail, sometimes it truncates
+    //Call ioctl() until it returns buf len less than req. len
 
-        len = sizeof(sockaddr);
+    while( true ) {
+        ifc.ifc_len = rq_len;
+        ifc.ifc_buf= (char *)realloc( ifc.ifc_buf, ifc.ifc_len );
 
-        if( ifr->ifr_addr.sa_family != AF_INET ) {
-            //printf("\tIgnoring %s (wrong family)!\n", ifr->ifr_name );
-            continue;       //ignore other address families
+        if( ioctl( fd, SIOCGIFCONF, &ifc ) < 0 ) {
+            perror( "ioctl(SIOCGIFCONF)" );
+            free(ifc.ifc_buf);
+            close(fd);
+            return -1;
         }
-
-        if( ( cptr = strchr( ifr->ifr_name, ':' ) ) != NULL ) {
-            *cptr = 0;      // replace colon with null 
+        if( ifc.ifc_len <= rq_len ){
+            //success
+            break;
         }
-        if( strncmp( lastname, ifr->ifr_name, IFNAMSIZ ) == 0 ) {
-            //printf("\tIgnoring %s (alias)!\n", ifr->ifr_name );
-            continue;
+        else{
+            //buffer truncated, double size and try again
+            rq_len *= 2;
         }
-
-        ifrcopy = *ifr;
-        if( ioctl( sockfd, SIOCGIFFLAGS, &ifrcopy ) < 0 ) {
-            perror( "Failed ioctl()" );
-            delete[] buf;
-            return ret;
-        }
-        flags = ifrcopy.ifr_flags;
-        if( ( flags & IFF_UP ) == 0 ) {
-            //printf("\tIgnoring %s (Not Up!)\n", ifr->ifr_name);
-            continue;
-        }
-
-        struct in_addr in;
-        struct sockaddr_in *sinptr = ( struct sockaddr_in * )&ifr->ifr_addr;
-        memcpy( &in.s_addr, ( void * )&( sinptr->sin_addr ),
-                sizeof( in.s_addr ) );
-        // in.s_addr is in network byte order, INADDR_LOOPBACK in host order
-        if( ntohl( in.s_addr ) == INADDR_LOOPBACK )
-        {
-            //printf("\tIgnoring %s (loopback!)\n", ifr->ifr_name);
-            continue;
-        }
-
-        ret = NetworkAddress( ntohl( in.s_addr ) );
-        break;
     }
-    delete[] buf;
 
-    if( ret.GetInAddr() == INADDR_ANY )
-    {
-        // we have no interface except loopback
-        ret = NetworkAddress( INADDR_LOOPBACK );
-    }
-    return ret;
+    num_ifs = ifc.ifc_len / sizeof(struct ifreq);
+
+    close(fd);
+    return num_ifs;
 }
 
+int NetUtils::FindLocalNetworkInterfaces
+( std::vector<NetUtils::NetworkAddress> &local_addresses )
+{
+    int num_ifs=-1, rq_len;
+    int ifc_count_guess = 5;
+    struct ifconf ifc;
 
-int
-NetUtils::GetLastError( void )
+    int fd = socket( AF_INET6, SOCK_STREAM, 0 );
+    if( fd < 0 ) {
+        fd = socket( AF_INET, SOCK_STREAM, 0 );
+    }
+
+#if defined( SIOCGIFCOUNT )
+    //Try SIOCIFCOUNT request first (not always implemented).
+    int ioctl_ret = ioctl(fd, SIOCGIFCOUNT, (char *)&num_ifs);
+#endif /* SIOCGIFNUM */
+
+    if( num_ifs > 0 ){
+        rq_len = num_ifs * sizeof(struct ifreq);
+    }
+    else{
+        ifc.ifc_buf=NULL;
+        ifc.ifc_len=0;
+        //Sometimes calling ioctl() w/ 0 len buf returns needed space
+        //otherwise we guess at number of interfaces needed.
+        if ( (ioctl(fd,SIOCGIFCONF,&ifc)<0) || (ifc.ifc_len == 0 ) ) {
+            rq_len = ifc_count_guess * sizeof(struct ifreq);
+        }
+        else{
+            rq_len = ifc.ifc_len;
+        }
+    }
+
+    //Get interfaces from kernel.
+    //If buf is too small, ioctl() doesn't always fail, sometimes it truncates
+    //Call ioctl() until it returns buf len less than req. len
+
+    while( true ) {
+        ifc.ifc_len = rq_len;
+        ifc.ifc_buf= (char *)realloc( ifc.ifc_buf, ifc.ifc_len );
+
+        if( ioctl( fd, SIOCGIFCONF, &ifc ) < 0 ) {
+            perror( "ioctl(SIOCGIFCONF)" );
+            free(ifc.ifc_buf);
+            close(fd);
+            return -1;
+        }
+        if( ifc.ifc_len <= rq_len ){
+            //success
+            break;
+        }
+        else{
+            //buffer truncated, double size and try again
+            rq_len *= 2;
+        }
+    }
+
+    num_ifs = ifc.ifc_len / sizeof(struct ifreq);
+
+    struct ifreq ifr;
+    for( unsigned int i=0; i<num_ifs; i++ ){
+        ifr = ifc.ifc_req[i];
+            
+        struct in_addr in;
+        struct sockaddr_in *sinptr = ( struct sockaddr_in * )&ifr.ifr_addr;
+        memcpy( &in.s_addr, ( void * )&( sinptr->sin_addr ),
+                sizeof( in.s_addr ) );
+        
+        local_addresses.push_back( NetworkAddress( ntohl( in.s_addr ) ) );
+    }
+
+    return 0;
+}
+
+int NetUtils::GetLastError( void )
 {
     return errno;
 }
-
 
 } // namespace XPlat
 
