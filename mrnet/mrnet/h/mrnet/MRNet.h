@@ -199,8 +199,9 @@ class Network{
     Network(const char * _configBuf, bool unused, LeafInfo*** leafInfo,
             unsigned int* nLeaves );
 
-    // BE constructors
-    Network(const char *phostname, Port pport, Rank myrank = UnknownRank );
+    // BE constructor
+    Network(const char *phostname, Port pport, const char * myhostname, Rank myrank = UnknownRank );
+    Network(int argc, char **argv );
     ~Network();
 
     int connect_Backends( void );

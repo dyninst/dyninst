@@ -121,10 +121,20 @@ int Network::getConnections( int **conns, unsigned int *nConns )
 }
 
 
-// back-end constructors
-Network::Network( const char *_phostname, Port pport, Rank myrank )
+// back-end constructor
+Network::Network( int argc, char **argv )
 {
-    _network_impl = new NetworkImpl( this, _phostname, pport, myrank );
+    const char * phostname = argv[argc-4];
+    Port pport = (Port)strtoul( argv[argc-3], NULL, 10 );
+    const char * myhostname = argv[argc-2];
+    Rank myrank = (Rank)strtoul( argv[argc-1], NULL, 10 );
+
+    _network_impl = new NetworkImpl( this, phostname, pport, myhostname, myrank );
+}
+
+Network::Network(const char *phostname, Port pport, const char * myhostname, Rank myrank)
+{
+    _network_impl = new NetworkImpl( this, phostname, pport, myhostname, myrank );
 }
 
 void Network::print_error( const char *s )
