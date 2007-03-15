@@ -4,7 +4,7 @@
  ****************************************************************************/
 
 #include "CommunicationNode.h"
-#include "utils.h"
+#include "xplat/NetUtils.h"
 
 namespace MRN
 {
@@ -16,13 +16,13 @@ namespace MRN
 CommunicationNode::CommunicationNode(std::string &_h, Port _p, Rank _rank)
     : port(_p), rank(_rank)
 {
-    getNetworkName(hostname, _h);
+    XPlat::NetUtils::GetNetworkName(_h, hostname );
 }
 #else
 CommunicationNode::CommunicationNode(std::string &_h, Port _p )
     : port(_p)
 {
-    getNetworkName(hostname, _h);
+    XPlat::NetUtils::GetNetworkName(_h, hostname );
 }
 #endif // READY
 

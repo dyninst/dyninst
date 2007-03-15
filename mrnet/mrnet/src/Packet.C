@@ -5,8 +5,12 @@
 
 #include "Packet.h"
 #include "DataElement.h"
+#include "RemoteNode.h"
+#include "ParentNode.h"
+#include "ChildNode.h"
 #include "utils.h"
 #include "xplat/Tokenizer.h"
+#include "xplat/NetUtils.h"
 
 namespace MRN
 {
@@ -25,9 +29,16 @@ PacketData::PacketData( unsigned short _stream_id, int _tag, const char *fmt,
     PDR pdrs;
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In Packet(%p) constructor\n", this ));
 
-    std::string tmp;
-    getNetworkName( tmp );
-    src = strdup( tmp.c_str(  ) );
+    std::string src_hostname;
+    if( RemoteNode::local_child_node ){
+        XPlat::NetUtils::GetNetworkName( RemoteNode::local_child_node->get_HostName(), src_hostname );
+        src = strdup( src_hostname.c_str() );
+    }
+    else{
+        assert( RemoteNode::local_parent_node );
+        XPlat::NetUtils::GetNetworkName( RemoteNode::local_parent_node->get_HostName(), src_hostname );
+        src = strdup( src_hostname.c_str() );
+    }
 
     //TODO: add exception block to catch user arg errors
     ArgList2DataElementArray( arg_list ); 
