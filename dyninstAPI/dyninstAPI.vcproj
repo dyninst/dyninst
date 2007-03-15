@@ -500,13 +500,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\BPatch_templates.C">
@@ -1371,6 +1364,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\baseTramp.h">
 			</File>
 			<File
+				RelativePath=".\h\baseTrampTemplate.h">
+			</File>
+			<File
 				RelativePath=".\h\BPatch.h">
 			</File>
 			<File
@@ -1438,9 +1434,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\BPatch_sourceObj.h">
-			</File>
-			<File
-				RelativePath=".\h\BPatch_statement.h">
 			</File>
 			<File
 				RelativePath=".\h\BPatch_thread.h">

@@ -114,6 +114,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsuite", "testsuite\i386
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Installer", "..\packagers\msi\Dyninst\Installer.vdproj", "{04AFA4EA-A91A-4F10-A494-9BBE70B49CCD}"
 	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+	ProjectSection(ProjectDependencies) = postProject
 		{33F95814-6383-4480-A3F5-B9DC73B1DA1A} = {33F95814-6383-4480-A3F5-B9DC73B1DA1A}
 		{2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602} = {2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602}
 	EndProjectSection
@@ -126,6 +128,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "dyninstAPI\tests\i
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Testsuite Installer", "..\packagers\msi\Tests\Testsuite Installer.vdproj", "{8CF626CB-5720-44CE-896A-A54418D03B66}"
 	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+	ProjectSection(ProjectDependencies) = postProject
 		{CE1446AB-D215-436F-9965-DD7C3CEC08A4} = {CE1446AB-D215-436F-9965-DD7C3CEC08A4}
 		{04AFA4EA-A91A-4F10-A494-9BBE70B49CCD} = {04AFA4EA-A91A-4F10-A494-9BBE70B49CCD}
 	EndProjectSection
@@ -134,12 +138,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "common", "common\common.vcp
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "symtabAPI", "symtabAPI\symtabAPI.vcproj", "{79CC6672-5A8B-4D3B-BEEA-75024607A81B}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
 		Release = Release
-	EndGlobalSection
-	GlobalSection(ProjectDependencies) = postSolution
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
 		{05E4DEFA-2188-48F3-9DA3-F3A33C468ED2}.Debug.ActiveCfg = Debug|Win32
@@ -213,6 +219,10 @@ Global
 		{197E213A-6900-4D09-B280-109A0D02DF36}.Debug.Build.0 = Debug|Win32
 		{197E213A-6900-4D09-B280-109A0D02DF36}.Release.ActiveCfg = Release|Win32
 		{197E213A-6900-4D09-B280-109A0D02DF36}.Release.Build.0 = Release|Win32
+		{79CC6672-5A8B-4D3B-BEEA-75024607A81B}.Debug.ActiveCfg = Debug|Win32
+		{79CC6672-5A8B-4D3B-BEEA-75024607A81B}.Debug.Build.0 = Debug|Win32
+		{79CC6672-5A8B-4D3B-BEEA-75024607A81B}.Release.ActiveCfg = Release|Win32
+		{79CC6672-5A8B-4D3B-BEEA-75024607A81B}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

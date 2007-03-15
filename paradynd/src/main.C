@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.152 2006/11/28 23:34:13 legendre Exp $
+// $Id: main.C,v 1.153 2007/03/15 20:17:45 darnold Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -711,7 +711,13 @@ main( int argc, char* argv[] )
     startup_printf("%s[%d]:  about to do MRN::Network(%s, %d, %d)\n", 
             FILE__, __LINE__, 
             parHostname.c_str(), parPort, myRank);
-    ntwrk = new MRN::Network( parHostname.c_str(), parPort, myRank );
+
+    char myHostname[256];
+    if( gethostname( myHostname, sizeof(myHostname)) == -1 ){
+        perror("gethostname()");
+        exit(-1);
+    }
+    ntwrk = new MRN::Network( parHostname.c_str(), parPort, myHostname, myRank );
     if( ntwrk->fail() ) {
         fprintf(stderr, "backend_init() failed\n");
         exit(-1);
