@@ -59,16 +59,17 @@ NetworkImpl::NetworkImpl( Network * _network, const char *_config,
 // BE constructor
 NetworkImpl::NetworkImpl( Network *_network,
                           const char *_phostname, Port pport,
-                          Rank myrank )         // may be UnknownRank
+                          const char * myhostname, Rank myrank )         // may be UnknownRank
 {
-    std::string host = XPlat::NetUtils::GetNetworkName();
+    std::string host;
+    XPlat::NetUtils::GetNetworkName( myhostname, host );
     std::string phost( _phostname );
     Port port = UnknownPort;
 
     //TLS: setup thread local storage for frontend
     //I am "BE(host:port)"
     std::string prettyHost;
-    getHostName( prettyHost, host );
+    XPlat::NetUtils::GetHostName( host, prettyHost );
     char port_str[16];
     sprintf( port_str, "%u", port );
     char rank_str[16];
