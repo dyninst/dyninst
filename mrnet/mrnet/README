@@ -42,28 +42,21 @@ LICENSE contains the usage terms for MRNet.
 
     * Open source licensing.
 
-
-
-2. MRNet v1.1 RELEASE NOTES
+2. MRNet v1.2 RELEASE NOTES
   This release of MRNet includes a source distribution for Unix/Linux
   platforms, a Windows binary distribution, as well as associated manuals.
   The release incorporates improvements and platform changes made to MRNet
-  since the 1.0 release.
+  since the 1.1 release.
 
   For information about the software releases, plus papers and manuals on the
   MRNet system, visit:
       http://www.paradyn.org/mrnet
 
   Release Highlights:
-    * Support for multiple overlays in single tool/application
-    * Support forback-ends not started by MRNet
-      - Static only: backends join to complete network initialization phase
-    * Topology specification via memory buffer
-    * Comprehensive test suite
-    * Windows support
-    * IBM/Sun native compiler support
-    * Various fixes and enhancements
-      - e.g. Data reference counting for automatic garbage collection
+    * New LGPL licensing
+    * Improved support for 64-bit platforms
+    * Topology generation methods added to API
+    * Various bug fixes and enhancements
 
 3. SUPPORTED PLATFORMS
 
@@ -72,11 +65,12 @@ LICENSE contains the usage terms for MRNet.
   compilers on Solaris, AIX, and Windows. We have built and successfully tested
   MRNet components on:
    - i686-pc-linux-gnu
-   - ia64-unknown-linux
    - rs6000-ibm-aix5.1.0.0
    - sparc-sun-solaris2.8
    - sparc-sun-solaris2.9
    - i386-unknown-nt4.0
+   - ia64-unknown-linux
+   - powerpc64-unknown-linux-gnu
 
 4. CONTACT
 
