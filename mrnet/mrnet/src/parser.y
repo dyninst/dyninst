@@ -8,6 +8,10 @@
 #include "NetworkGraph.h"
 #include "NetworkImpl.h"
 
+#if defined(os_windows)
+#include <malloc.h>
+#endif
+
 static std::list <MRN::NetworkNode *> hostlist;
 static std::list <MRN::NetworkNode *> potential_root;
 
