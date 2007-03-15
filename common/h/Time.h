@@ -324,14 +324,14 @@ class timeStamp : public timeParent {
   //                           2*timeStamp::leapYear() +
   //                           202*timeLength::day() + 8*timeLength::hour() +
   //                           35*timeLength::min();  
-  timeStamp(int64_t iTime, const timeUnit &u, timeBase b) : timeParent() {
+  DLLEXPORT timeStamp(int64_t iTime, const timeUnit &u, timeBase b) : timeParent() {
     initI(iTime, u, b);
   }
-  timeStamp(int iTime, const timeUnit &u, timeBase b) : timeParent() {
+  DLLEXPORT timeStamp(int iTime, const timeUnit &u, timeBase b) : timeParent() {
     initI(iTime, u, b);
   }
-  timeStamp(const timeLength &tl, timeBase b);
-  timeStamp(double dTime, const timeUnit &u, timeBase b);
+  DLLEXPORT timeStamp(const timeLength &tl, timeBase b);
+  DLLEXPORT timeStamp(double dTime, const timeUnit &u, timeBase b);
 
   // Selectors
   double getD(const timeUnit &u, timeBase b) const {
@@ -403,15 +403,15 @@ class relTimeStamp : public timeParent {
   static const relTimeStamp &Zero();
 
   // need this constructor to use in vector container class
-  relTimeStamp() { }
-  relTimeStamp(int64_t iTime, const timeUnit &u) : timeParent() {
+  DLLEXPORT relTimeStamp() { }
+  DLLEXPORT relTimeStamp(int64_t iTime, const timeUnit &u) : timeParent() {
     initI(iTime, u);
   }
-  relTimeStamp(int iTime, const timeUnit &u) : timeParent() {
+  DLLEXPORT relTimeStamp(int iTime, const timeUnit &u) : timeParent() {
     initI(iTime, u);
   }
-  relTimeStamp(const timeLength &tl);
-  relTimeStamp(double dTime, const timeUnit &u);
+  DLLEXPORT relTimeStamp(const timeLength &tl);
+  DLLEXPORT relTimeStamp(double dTime, const timeUnit &u);
 
   // Selectors
   double getD(const timeUnit &u) const {
@@ -485,14 +485,14 @@ class timeLength : public timeParent {
   static const timeLength &leapYear();
 
   // need this constructor to use in vector container class
-  timeLength() { }
-  timeLength(int64_t iTime, const timeUnit &u) : timeParent() {
+  DLLEXPORT timeLength() { }
+  DLLEXPORT timeLength(int64_t iTime, const timeUnit &u) : timeParent() {
     initI(iTime, u);
   }
-  timeLength(int iTime, const timeUnit &u) : timeParent() {
+  DLLEXPORT timeLength(int iTime, const timeUnit &u) : timeParent() {
     initI(static_cast<int64_t>(iTime), u);
   }
-  timeLength(double dTime, const timeUnit &u);
+  DLLEXPORT timeLength(double dTime, const timeUnit &u);
 
   // Selectors
   double getD(const timeUnit &u) const {   return u.cvtFrom_nsD( get_ns());   }
