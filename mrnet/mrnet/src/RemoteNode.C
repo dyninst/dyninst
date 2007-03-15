@@ -14,6 +14,7 @@
 #include "xplat/Process.h"
 #include "xplat/SocketUtils.h"
 #include "xplat/Error.h"
+#include "xplat/NetUtils.h"
 
 namespace MRN
 {
@@ -41,8 +42,8 @@ void * RemoteNode::recv_thread_main(void * args)
     if( remote_node->is_upstream() ){
         sprintf(local_port_str, "%d", local_child_node->get_Port());
         sprintf(remote_port_str, "%d", remote_node->get_Port());
-        getHostName(local_hostname, local_child_node->get_HostName() );
-        getHostName(remote_hostname, remote_node->get_HostName() );
+        XPlat::NetUtils::GetHostName( local_child_node->get_HostName(), local_hostname );
+        XPlat::NetUtils::GetHostName( remote_node->get_HostName(), remote_hostname );
 
         name = "UPRECV(";
         name += local_hostname;
@@ -57,8 +58,8 @@ void * RemoteNode::recv_thread_main(void * args)
     else{
         sprintf(local_port_str, "%d", local_parent_node->config_port);
         sprintf(remote_port_str, "%d", remote_node->get_Port() );
-        getHostName(local_hostname, local_parent_node->get_HostName() );
-        getHostName(remote_hostname, remote_node->get_HostName() );
+        XPlat::NetUtils::GetHostName( local_parent_node->get_HostName(), local_hostname );
+        XPlat::NetUtils::GetHostName( remote_node->get_HostName(), remote_hostname );
 
         name = "DOWNRECV(";
         name += local_hostname;
@@ -122,8 +123,8 @@ void * RemoteNode::send_thread_main(void * args)
     if( remote_node->is_upstream() ){
         sprintf(local_port_str, "%d", local_child_node->get_Port());
         sprintf(remote_port_str, "%d", remote_node->get_Port() );
-        getHostName(local_hostname, local_child_node->get_HostName() );
-        getHostName(remote_hostname, remote_node->get_HostName() );
+        XPlat::NetUtils::GetHostName(local_child_node->get_HostName(), local_hostname );
+        XPlat::NetUtils::GetHostName(remote_node->get_HostName(), remote_hostname );
 
         name = "UPSEND(";
         name += local_hostname;
@@ -138,8 +139,8 @@ void * RemoteNode::send_thread_main(void * args)
     else{
         sprintf(local_port_str, "%d", local_parent_node->config_port);
         sprintf(remote_port_str, "%d", remote_node->get_Port() );
-        getHostName(local_hostname, local_child_node->get_HostName() );
-        getHostName(remote_hostname, remote_node->get_HostName() );
+        XPlat::NetUtils::GetHostName(local_parent_node->get_HostName(), local_hostname );
+        XPlat::NetUtils::GetHostName(remote_node->get_HostName(), remote_hostname );
 
         name = "DOWNSEND(";
         name += local_hostname;
@@ -268,9 +269,10 @@ const
     // set up arguments for the new process
     std::vector <std::string> args;
     args.push_back(commnode_cmd);
+    args.push_back(hostname);
     args.push_back(port_str);
     args.push_back(parent_host);
-    args.push_back(std::string(parent_port_str));
+    args.push_back(parent_port_str);
 
     if( XPlat::Process::Create( hostname, commnode_cmd, args ) != 0 ){
         int err = XPlat::Process::GetLastError();
@@ -313,7 +315,7 @@ const
     sprintf(rank_str, "%d", be_rank );
 
     std::string parent_nethost;
-    getNetworkName( parent_nethost, parent_host );
+    XPlat::NetUtils::GetNetworkName( parent_host, parent_nethost  );
 
     // set up arguments for new process
     // TODO: make more elegant. for now we do a copy to get the cmd in front (darnol)
@@ -325,8 +327,9 @@ const
         new_args.push_back(args[i]);
     }
     new_args.push_back(parent_nethost);
-    new_args.push_back(std::string(parent_port_str));
-    new_args.push_back(std::string(rank_str));
+    new_args.push_back(parent_port_str);
+    new_args.push_back(hostname);
+    new_args.push_back(rank_str);
 
     mrn_dbg(5, mrn_printf(FLF, stderr, "new_Application() calling create ...\n"
                           "\thost: %s:%d,\n"
