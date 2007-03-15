@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Process.h,v 1.6 2007/01/24 19:33:49 darnold Exp $
+// $Id: Process.h,v 1.7 2007/03/15 20:11:04 darnold Exp $
 #ifndef XPLAT_PROCESS_H
 #define XPLAT_PROCESS_H
 
@@ -19,10 +19,10 @@ class Process
 {
 private:
     static int CreateLocal( const std::string& cmd,
-                                const std::vector<std::string>& args );
+                            const std::vector<std::string>& args );
     static int CreateRemote( const std::string& host,
-                                const std::string& cmd,
-                                const std::vector<std::string>& args );
+                             const std::string& cmd,
+                             const std::vector<std::string>& args );
 
 public:
     static int GetProcessId( void );
@@ -30,8 +30,8 @@ public:
     // spawn a new process
     // expects args[0] *not* to be cmd
     static int Create( const std::string& host,
-                                const std::string& cmd,
-                                const std::vector<std::string>& args )
+                       const std::string& cmd,
+                       const std::vector<std::string>& args )
     {
 
         int ret = -1;
