@@ -30,8 +30,8 @@ int main(int argc, char **argv)
     //std::list <Packet *> packet_list;
 
     //set_OutputLevel(5);
-    if(argc != 4){
-        fprintf(stderr, "Usage: %s port phostname pport\n",
+    if(argc != 5){
+        fprintf(stderr, "Usage: %s lhostname lport phostname pport\n",
                 argv[0]);
         fprintf(stderr, "Called with (%d) args: ", argc);
         for(i=0; i<argc; i++){
@@ -43,23 +43,19 @@ int main(int argc, char **argv)
     // become a daemon
     BeDaemon();
 
-    // get our own hostname
-    std::string hostname;
-    getNetworkName( hostname, XPlat::NetUtils::GetNetworkName() );
 
-    Port port = atoi(argv[1]);
-    std::string parent_hostname(argv[2]);
-    Port parent_port = atol(argv[3]);
+    std::string hostname;
+    XPlat::NetUtils::GetHostName( argv[1], hostname );
+    Port port = atoi(argv[2]);
+    std::string parent_hostname;
+    XPlat::NetUtils::GetHostName( argv[3], parent_hostname );
+    Port parent_port = atol(argv[4]);
 
     //TLS: setup thread local storage for internal node
     //I am "CommNodeMain(hostname:port)"
-    std::string local_hostname;
-
-    //TODO: why are we doing this, don't I know my own hostname?
-    getHostName( local_hostname, hostname );
 
     std::string name("CommNodeMain(");
-    name += local_hostname;
+    name += hostname;
     name += ":";
     name += argv[2];
     name += ")";
