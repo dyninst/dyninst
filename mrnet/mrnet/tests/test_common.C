@@ -22,7 +22,7 @@ StaticInitializer si; //Used to initialize maps
 
 bool compare_Float(float f1, float f2, int sig)
 {
-    if( fabs(f1 - f2) > pow(10, sig * -1) ) {
+    if( fabs(f1 - f2) > pow( (double)10, sig * -1) ) {
         return false;
     }
 
@@ -31,7 +31,7 @@ bool compare_Float(float f1, float f2, int sig)
 
 bool compare_Double(double f1, double f2, int sig)
 {
-    if( fabs(f1 - f2) > pow(10, sig * -1) ) {
+    if( fabs(f1 - f2) > pow( (double)10, sig * -1) ) {
         return false;
     }
 
