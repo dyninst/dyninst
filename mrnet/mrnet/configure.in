@@ -4,11 +4,78 @@ AC_PREREQ(2.61)
 AC_INIT(src/Network.C)
 AC_CONFIG_SRCDIR(src/Network.C)
 AC_CONFIG_HEADER([src/config.h])
+AC_CONFIG_HEADER([xplat/config.h])
 
 AC_CONFIG_AUX_DIR(conf)
-AC_CONFIG_SUBDIRS(xplat)
 
 abs_srcdir=`cd $srcdir && pwd`
+
+dnl === C++ COMPILERS ===
+dnl TODO: figure out dlopen()/shared object idiosyncracies when using non-GNU compilers
+AC_PROG_CXX(xlC_r CC g++)
+AC_LANG(C++)
+
+dnl Checks for programs.
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
+AC_PATH_PROG(GREP, grep)
+AC_SUBST(GREP)
+AC_PATH_PROG(RM, rm)
+AC_SUBST(RM)
+AC_PATH_PROG(FLEX, flex)
+AC_SUBST(FLEX)
+AC_PATH_PROG(BISON, bison)
+AC_SUBST(BISON)
+AC_PATH_PROG(SHELL, sh)
+AC_SUBST(SHELL)
+AC_PROG_INSTALL
+PD_COMPILER_TYPE
+
+if test "$COMPILER_TYPE" = "gnu" ; then
+    CXXFLAGS="$CXXFLAGS -Dcompiler_gnu"
+    C_AS_CPLUSPLUS="-x c++"
+
+    SOFLAGS=" -fPIC -shared -rdynamic"
+
+    if test "$debug_mode" = "yes" ; then
+      CXXFLAGS="$CXXFLAGS -g"
+    else
+      CXXFLAGS="$CXXFLAGS -O3"
+    fi
+
+    AC_PATH_PROG(AR, ar)
+    AC_SUBST(AR)
+    ARFLAGS="crv"
+    AC_SUBST(ARFLAGS)
+elif test "$COMPILER_TYPE" = "aix-native" ; then
+    CXXFLAGS="$CXXFLAGS -Dcompiler_ibm"
+    SOFLAGS=" -G"
+    C_AS_CPLUSPLUS="-+"
+
+    if test "$debug_mode" = "$yes" ; then
+      CXXFLAGS="$CXXFLAGS -g"
+    else
+      CXXFLAGS="$CXXFLAGS -O2"
+    fi
+    AC_PATH_PROG(AR, ar)
+    AC_SUBST(AR)
+    ARFLAGS="crv"
+    AC_SUBST(ARFLAGS)
+elif test "$COMPILER_TYPE" = "forte" ; then
+    CXXFLAGS="$CXXFLAGS -Dcompiler_sun"
+    SOFLAGS=" -G"
+
+    if test "$debug_mode" = "$yes" ; then
+      CXXFLAGS="$CXXFLAGS -g"
+    else
+      CXXFLAGS="$CXXFLAGS -O2"
+    fi
+    AC_PATH_PROG(AR, CC)
+    AC_SUBST(AR)
+    ARFLAGS="-xar -o"
+    AC_SUBST(ARFLAGS)
+fi
+
 
 dnl === CONFIGURE OPTIONS
 AC_ARG_WITH(libfl,
@@ -61,13 +128,6 @@ AC_SUBST(MRNET_OS)
 AC_SUBST(MRNET_ROOT)
 AC_SUBST(MRNET_VERSION)
 
-dnl === C++ COMPILERS ===
-
-dnl TODO: figure out dlopen()/shared object idiosyncracies when using
-dnl non-GNU compilers
-dnl AC_PROG_CXX(xlC_r CC g++)
-AC_PROG_CXX(g++)
-
 dnl === C++ COMPILER OPTIONS ===
 CXXFLAGS="$CXXFLAGS -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS"
 
@@ -114,32 +174,6 @@ case "$host_os" in
 esac
 AC_SUBST(LIBS)
 
-PD_COMPILER_TYPE
-if test "$COMPILER_TYPE" = "gnu" ; then
-    C_AS_CPLUSPLUS="-x c++"
-
-    SOFLAGS=" -fPIC -shared -rdynamic"
-
-    if test "$debug_mode" = "yes" ; then
-      CXXFLAGS="$CXXFLAGS -g"
-    else
-      CXXFLAGS="$CXXFLAGS -O3"
-    fi
-
-elif test "$COMPILER_TYPE" = "aix-native" ; then
-    C_AS_CPLUSPLUS="-+"
-
-    if test "$debug_mode" = "$yes" ; then
-      CXXFLAGS="$CXXFLAGS -g"
-    else
-      CXXFLAGS="$CXXFLAGS -O2"
-    fi
-fi
-
-dnl *** FLEX LIBRARY ***
-
-AC_LANG(C++)
-
 AC_MSG_CHECKING(whether we can compile/link with \"$CXX $CXXFLAGS $LIBS\".)
 AC_LINK_IFELSE( [AC_LANG_PROGRAM([],[])],
                 [AC_MSG_RESULT(yes)],
@@ -152,21 +186,7 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(SOFLAGS)
 AC_SUBST(C_AS_CPLUSPLUS)
 
-ARFLAGS="cr"
-AC_SUBST(ARFLAGS)
 
-dnl Checks for programs.
-AC_PROG_MAKE_SET
-AC_PROG_RANLIB
-AC_PATH_PROG(AR, ar)
-AC_SUBST(AR)
-AC_PATH_PROG(FLEX, flex)
-AC_SUBST(FLEX)
-AC_PATH_PROG(BISON, bison)
-AC_SUBST(BISON)
-AC_PATH_PROG(SHELL, sh)
-AC_SUBST(SHELL)
-AC_PROG_INSTALL
 
 AC_C_BIGENDIAN
 AC_CHECK_SIZEOF(char)
@@ -181,4 +201,18 @@ AS_MKDIR_P([lib/${host}])
 AS_MKDIR_P([bin/${host}])
 AS_MKDIR_P([depends])
 
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stdlib.h string.h sys/ioctl.h sys/socket.h unistd.h sys/sockio.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+AC_C_CONST
+AC_TYPE_PID_T
+
+# Checks for library functions.
+AC_FUNC_FORK
+AC_CHECK_FUNCS([gethostbyname socket strchr strerror])
+
 AC_OUTPUT( Makefile:conf/Makefile.in )
+AC_OUTPUT( xplat/Makefile:xplat/Makefile.in )

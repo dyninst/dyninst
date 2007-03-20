@@ -21,25 +21,30 @@ AC_DEFUN(PD_COMPILER_TYPE,[
   fi
 
   if test "$COMPILER_TYPE" = "unknown"; then
-    tmp_out=`$CXX --version 2> /dev/null | grep GCC`
-    if test "$tmp_out" = "GCC" ; then
+    $CXX --version 2> /dev/null > version.out
+    $GREP "GCC" version.out > /dev/null
+
+    if test "$?" = 0 ; then
       COMPILER_TYPE="gnu"
       AC_MSG_RESULT([gnu])
     fi
+    $RM -f version.out
   fi
     
   if test "$COMPILER_TYPE" = "unknown"; then
-    tmp_out=`$CXX -V 2>& 1 | grep GCC`
-    if test "$tmp_out" = "Forte" ; then
+    $CXX -V 2> version.out
+
+    $GREP "Forte" version.out > /dev/null
+    if test "$?" = 0 ; then
       COMPILER_TYPE="forte"
       AC_MSG_RESULT([forte])
     fi
+    $RM -f version.out
   fi
 
   if test "$COMPILER_TYPE" = "unknown"; then
     AC_MSG_RESULT([unknown])
   fi
-
   AC_SUBST(COMPILER_TYPE)
 ])dnl
 
