@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.290 2007/02/19 20:49:09 legendre Exp $
+ // $Id: symtab.C,v 1.291 2007/03/20 23:32:58 rchen Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,7 +226,7 @@ void image::findMain()
 	    linkedFile->findSection(".text", sec);
 		                   
 	    //p = ( const unsigned char* )elf_vaddr_to_ptr( sec->getSecAddr());
-	    p = ( const unsigned char * ) (((Word *) linkedFile->code_ptr())+ (sec->getSecAddr() - codeOffset_));
+	    p = (( const unsigned char * )linkedFile->code_ptr()) + (sec->getSecAddr() - codeOffset_);
             const unsigned char *lastP = 0;
 
             switch(linkedFile->getAddressWidth()) {
