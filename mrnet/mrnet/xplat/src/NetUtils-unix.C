@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NetUtils-unix.C,v 1.6 2007/03/15 20:11:05 darnold Exp $
+// $Id: NetUtils-unix.C,v 1.7 2007/03/20 23:20:20 darnold Exp $
 #include "xplat/NetUtils.h"
 #include <assert.h>
 #include <unistd.h>
@@ -17,9 +17,19 @@
 #include <arpa/inet.h>
 #include "config.h"
 
+#if defined( compiler_sun )
+#include <stropts.h>
+#endif
+
 #if defined(HAVE_SYS_SOCKIO_H)
 #include <sys/sockio.h>
 #endif // defined(HAVE_SYS_SOCKIO_H)
+
+#if defined (SIOCGIFCONF)
+#define XPLAT_SIOCGIFCONF SIOCGIFCONF
+#elif defined (CSIOCGIFCONF)
+#define XPLAT_SIOCGIFCONF CSIOCGIFCONF
+#endif /* SIOCGIFCONF */
 
 namespace XPlat
 {
@@ -52,7 +62,7 @@ int NetUtils::FindNumberOfLocalNetworkInterfaces( void )
     ifc.ifc_len=0;
     //Sometimes calling ioctl() w/ 0 len buf returns needed space
     //otherwise we guess at number of interfaces needed.
-    if ( (ioctl(fd,SIOCGIFCONF,&ifc)<0) || (ifc.ifc_len == 0 ) ) {
+    if ( (ioctl(fd,XPLAT_SIOCGIFCONF,&ifc)<0) || (ifc.ifc_len == 0 ) ) {
         rq_len = ifc_count_guess * sizeof(struct ifreq);
     }
     else{
@@ -67,7 +77,7 @@ int NetUtils::FindNumberOfLocalNetworkInterfaces( void )
         ifc.ifc_len = rq_len;
         ifc.ifc_buf= (char *)realloc( ifc.ifc_buf, ifc.ifc_len );
 
-        if( ioctl( fd, SIOCGIFCONF, &ifc ) < 0 ) {
+        if( ioctl( fd, XPLAT_SIOCGIFCONF, &ifc ) < 0 ) {
             perror( "ioctl(SIOCGIFCONF)" );
             free(ifc.ifc_buf);
             close(fd);
@@ -114,7 +124,7 @@ int NetUtils::FindLocalNetworkInterfaces
         ifc.ifc_len=0;
         //Sometimes calling ioctl() w/ 0 len buf returns needed space
         //otherwise we guess at number of interfaces needed.
-        if ( (ioctl(fd,SIOCGIFCONF,&ifc)<0) || (ifc.ifc_len == 0 ) ) {
+        if ( (ioctl(fd,XPLAT_SIOCGIFCONF,&ifc)<0) || (ifc.ifc_len == 0 ) ) {
             rq_len = ifc_count_guess * sizeof(struct ifreq);
         }
         else{
@@ -130,7 +140,7 @@ int NetUtils::FindLocalNetworkInterfaces
         ifc.ifc_len = rq_len;
         ifc.ifc_buf= (char *)realloc( ifc.ifc_buf, ifc.ifc_len );
 
-        if( ioctl( fd, SIOCGIFCONF, &ifc ) < 0 ) {
+        if( ioctl( fd, XPLAT_SIOCGIFCONF, &ifc ) < 0 ) {
             perror( "ioctl(SIOCGIFCONF)" );
             free(ifc.ifc_buf);
             close(fd);
