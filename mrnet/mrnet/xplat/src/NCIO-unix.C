@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NCIO-unix.C,v 1.4 2007/01/24 19:34:08 darnold Exp $
+// $Id: NCIO-unix.C,v 1.5 2007/03/20 23:20:19 darnold Exp $
 #include <unistd.h>
 #include <limits.h>
 #include <stdio.h>
@@ -80,10 +80,16 @@ NCRecv( XPSOCKET s, NCBuf* ncbufs, unsigned int nBufs )
         msghdr msg;
 
         msg.msg_name = NULL;
+        msg.msg_namelen = 0;
         msg.msg_iov = new iovec[nBufsToRecv];
         msg.msg_iovlen = nBufsToRecv;
+#if defined(compiler_sun)
+        msg.msg_accrights=NULL;
+        msg.msg_accrightslen=0;
+#else
         msg.msg_control = NULL;
         msg.msg_controllen = 0;
+#endif
 
         unsigned int nBytesToSend = 0;
         for( unsigned int i = 0; i < nBufsToRecv; i++ )
