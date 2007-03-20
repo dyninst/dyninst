@@ -3,25 +3,25 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: SharedObject-unix.C,v 1.3 2007/01/24 19:34:22 darnold Exp $
+// $Id: SharedObject-unix.C,v 1.4 2007/03/20 23:20:21 darnold Exp $
 #include <stdlib.h>
 #include "SharedObject-unix.h"
 
 namespace XPlat
 {
 
-UnixSharedObject::UnixSharedObject( const char* path )
-  : SharedObject( path ),
+UnixSharedObject::UnixSharedObject( const char* ipath )
+  : SharedObject( ipath ),
     handle( NULL )
 {
     // try to load the shared object
-    handle = dlopen( path, RTLD_LAZY | RTLD_GLOBAL );
+    handle = dlopen( ipath, RTLD_LAZY | RTLD_GLOBAL );
 }
 
 SharedObject*
-SharedObject::Load( const char* path )
+SharedObject::Load( const char* ipath )
 {
-    UnixSharedObject* ret = new UnixSharedObject( path );
+    UnixSharedObject* ret = new UnixSharedObject( ipath );
     if( ret->GetHandle() == NULL )
     {
         // we failed to open the given library
