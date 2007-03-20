@@ -9,6 +9,9 @@
 
 #include "pdr.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 bool_t   pdrmem_putchar(PDR *, char *);
 bool_t   pdrmem_getchar(PDR *, char *);
@@ -40,5 +43,9 @@ bool_t   pdrmem_setpos(PDR *, uint32_t);
 uint32_t pdrmem_getpos(PDR *);
 int32_t* pdrmem_inline(PDR *, int32_t);
 void     pdrmem_destroy(PDR *);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* __pdr_mem_h */

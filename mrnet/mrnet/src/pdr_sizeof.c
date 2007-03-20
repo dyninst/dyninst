@@ -11,6 +11,9 @@
 #include "pdr_mem.h"
 #include "config.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 static bool_t _putchar(PDR *pdrs, char *)
 {
     pdrs->space += SIZEOF_CHAR;
@@ -166,3 +169,7 @@ uint32_t pdr_sizeof(pdrproc_t func, void *data)
 
     return stat == TRUE ? pdrs.space : 0;
 }
+
+#if defined(__cplusplus)
+}
+#endif
