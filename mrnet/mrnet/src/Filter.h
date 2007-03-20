@@ -28,13 +28,14 @@ class Filter: public Error {
  public:
     static void initialize_static_stuff( );
     static void free_static_stuff( );
-    static std::map < unsigned short, void *>FilterFuncById;
+    static std::map < unsigned short, void(*)() >FilterFuncById;
     static std::map < unsigned short, std::string > FilterFmtById;
     static int load_FilterFunc( const char *so_file, const char *func,
                                 bool transformation_filter = true,
                                 unsigned short in_fid = 0 );
-    static unsigned short register_Filter( void *, const char * );
-
+    static unsigned short register_Filter( 
+       void (*)( ),
+       const char * fmt );
     Filter( unsigned short _filter_id );
     virtual ~ Filter(  );
     virtual int push_packets( std::vector < Packet >&packets_in,
@@ -72,12 +73,14 @@ class SyncFilter:public Filter {
                               std::vector < Packet >&packets_out );
 };
 
-inline unsigned short Filter::register_Filter( void *func, const char * fmt )
+inline unsigned short Filter::register_Filter( 
+    void (*func)( ),
+    const char * fmt )
 {
     static unsigned short next_filter_id=0; 
 
     next_filter_id++;
-    FilterFuncById[next_filter_id] = func;
+    FilterFuncById[next_filter_id] = (void(*)())func;
     FilterFmtById[next_filter_id] = fmt;
 
     return next_filter_id;
@@ -85,42 +88,42 @@ inline unsigned short Filter::register_Filter( void *func, const char * fmt )
 
 inline void Filter::initialize_static_stuff( )
 {
-    TFILTER_NULL = register_Filter( (void*)NULL, TFILTER_NULL_FORMATSTR);
+    TFILTER_NULL = register_Filter( (void(*)())NULL, TFILTER_NULL_FORMATSTR);
 
-    TFILTER_SUM = register_Filter( (void*)tfilter_Sum, TFILTER_SUM_FORMATSTR);
+    TFILTER_SUM = register_Filter( (void(*)())tfilter_Sum, TFILTER_SUM_FORMATSTR);
 
-    TFILTER_AVG = register_Filter( (void*)tfilter_Avg, TFILTER_AVG_FORMATSTR);
+    TFILTER_AVG = register_Filter( (void(*)())tfilter_Avg, TFILTER_AVG_FORMATSTR);
 
-    TFILTER_MAX = register_Filter( (void*)tfilter_Max, TFILTER_MAX_FORMATSTR);
+    TFILTER_MAX = register_Filter( (void(*)())tfilter_Max, TFILTER_MAX_FORMATSTR);
 
-    TFILTER_MIN = register_Filter( (void*)tfilter_Min, TFILTER_MIN_FORMATSTR);
+    TFILTER_MIN = register_Filter( (void(*)())tfilter_Min, TFILTER_MIN_FORMATSTR);
 
-    TFILTER_ARRAY_CONCAT = register_Filter( (void*)tfilter_ArrayConcat,
+    TFILTER_ARRAY_CONCAT = register_Filter( (void(*)())tfilter_ArrayConcat,
                                             TFILTER_ARRAY_CONCAT_FORMATSTR);
 
-    TFILTER_INT_EQ_CLASS = register_Filter( (void*)tfilter_IntEqClass,
+    TFILTER_INT_EQ_CLASS = register_Filter( (void(*)())tfilter_IntEqClass,
                                             TFILTER_INT_EQ_CLASS_FORMATSTR);
 
     TFILTER_SAVE_LOCAL_CLOCK_SKEW_UPSTREAM =
-        register_Filter( (void*)save_LocalClockSkewUpstream,
+        register_Filter( (void(*)())save_LocalClockSkewUpstream,
                          TFILTER_SAVE_LOCAL_CLOCK_SKEW_UPSTREAM_FORMATSTR );
 
     TFILTER_SAVE_LOCAL_CLOCK_SKEW_DOWNSTREAM =
-        register_Filter( (void*)save_LocalClockSkewDownstream,
+        register_Filter( (void(*)())save_LocalClockSkewDownstream,
                          TFILTER_SAVE_LOCAL_CLOCK_SKEW_DOWNSTREAM_FORMATSTR );
 
     TFILTER_GET_CLOCK_SKEW =
-        register_Filter( (void*)get_ClockSkew,
+        register_Filter( (void(*)())get_ClockSkew,
                          TFILTER_GET_CLOCK_SKEW_FORMATSTR );
 
-    TFILTER_PD_UINT_EQ_CLASS = register_Filter( (void*)tfilter_PDUIntEqClass,
+    TFILTER_PD_UINT_EQ_CLASS = register_Filter( (void(*)())tfilter_PDUIntEqClass,
                                                 TFILTER_PD_UINT_EQ_CLASS_FORMATSTR);
 
-    SFILTER_DONTWAIT = register_Filter( (void*)NULL, "");
+    SFILTER_DONTWAIT = register_Filter( (void(*)())NULL, "");
 
-    SFILTER_WAITFORALL = register_Filter( (void*)sfilter_WaitForAll, "");
+    SFILTER_WAITFORALL = register_Filter( (void(*)())sfilter_WaitForAll, "");
 
-    SFILTER_TIMEOUT = register_Filter( (void*)sfilter_TimeOut, "");
+    SFILTER_TIMEOUT = register_Filter( (void(*)())sfilter_TimeOut, "");
 }
 
 inline void Filter::free_static_stuff( )

@@ -19,7 +19,7 @@ namespace MRN
 /*======================================*
  *    Filter Class Definition        *
  *======================================*/
-std::map < unsigned short, void *>Filter::FilterFuncById;
+std::map < unsigned short, void (*)() >Filter::FilterFuncById;
 std::map < unsigned short, std::string > Filter::FilterFmtById;
 int FilterCounter::count=0;
 static FilterCounter fc;
@@ -40,7 +40,7 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
                              unsigned short /* in_fid */ )
 {
     XPlat::SharedObject* so_handle = NULL;
-    void *func_ptr;
+    void (*func_ptr)()=NULL;
     const char *fmt_str;
     std::string func_fmt_str = func;
     func_fmt_str += "_format_string";
@@ -58,7 +58,7 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
         return -1;
     }
 
-    func_ptr = so_handle->GetSymbol( func );
+    func_ptr = (void(*)())so_handle->GetSymbol( func );
     if( func_ptr == NULL ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr,
                                "XPlat::SharedObject::GetSymbol(\"%s\"): %s\n",
@@ -89,7 +89,7 @@ int Filter::load_FilterFunc( const char *so_file, const char *func,
         return -1;
     }
 
-    return (int) register_Filter( (void*)func_ptr, fmt_str );
+    return (int) register_Filter( func_ptr, fmt_str );
 }
 
 /*==========================================*
