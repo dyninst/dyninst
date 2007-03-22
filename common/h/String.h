@@ -41,7 +41,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.28 2005/03/17 18:59:38 jodom Exp $
+ * $Id: String.h,v 1.29 2007/03/22 19:56:13 legendre Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -141,7 +141,7 @@ public:
     unsigned         length() const {return len_;}
 
     friend ostream& operator<< (ostream &os, const string_ll &s);
-    friend debug_ostream& operator<< (debug_ostream &os, const string_ll &s);
+    //friend debug_ostream& operator<< (debug_ostream &os, const string_ll &s);
 //    friend string_ll operator+(const char *, const string_ll &);
 //       // a syntactical convenience
 
@@ -366,10 +366,7 @@ class pdstring {
       const string_ll &it = s.data.getData();
       return (os << it);
    }
-   friend debug_ostream& operator<<(debug_ostream &os, const pdstring &s) {
-      const string_ll &it = s.data.getData();
-      return (os << it);
-   }
+   //friend debug_ostream& operator<<(debug_ostream &os, const pdstring &s);
 
    pdstring substr( unsigned pos, unsigned len ) const {
 	   pdstring result = *this;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.32 2007/02/14 23:03:18 legendre Exp $
+// $Id: String.C,v 1.33 2007/03/22 19:56:14 legendre Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -669,11 +669,11 @@ ostream& operator<< (ostream &os, const string_ll &s) {
    return os;
 }
 
-debug_ostream& operator<< (debug_ostream &os, const string_ll &s) {
-   if(s.str_ != NULL)
-      os << s.str_;
-   return os;
-}
+//debug_ostream& operator<< (debug_ostream &os, const string_ll &s) {
+//   if(s.str_ != NULL)
+//      os << s.str_;
+//   return os;
+//}
 
 pdstring operator+(const char *ptr, const pdstring &str) {
    // a syntactical convenience.
