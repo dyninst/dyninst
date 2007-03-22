@@ -447,3 +447,532 @@ const double operator/(const timeLength a, const timeLength b) {
   assert(a.isInitialized() && b.isInitialized());
   return static_cast<double>(a.get_ns()) / static_cast<double>(b.get_ns());
 }
+
+bool timeParent::isInitialized() const {  
+  if(get_ns() == uninitializedValue) return false;
+  else return true;
+}
+
+timeParent::timeParent() 
+  : ns(uninitializedValue) 
+{ 
+}
+
+timeParent::timeParent(int64_t _ns) 
+  : ns(_ns) 
+{ 
+}
+
+DLLEXPORT timeStamp::timeStamp(int64_t iTime, const timeUnit &u, timeBase b) 
+  : timeParent()
+{
+  initI(iTime, u, b);
+}
+
+DLLEXPORT timeStamp::timeStamp(int iTime, const timeUnit &u, timeBase b) 
+  : timeParent() 
+{
+  initI(iTime, u, b);
+}
+
+DLLEXPORT relTimeStamp::relTimeStamp(int64_t iTime, const timeUnit &u) : timeParent() {
+  initI(iTime, u);
+}
+
+DLLEXPORT relTimeStamp::relTimeStamp(int iTime, const timeUnit &u) : timeParent() {
+  initI(iTime, u);
+}
+
+DLLEXPORT timeLength::timeLength(int64_t iTime, const timeUnit &u)
+  : timeParent() 
+{
+  initI(iTime, u);
+}
+
+DLLEXPORT timeLength::timeLength(int iTime, const timeUnit &u)  
+  : timeParent() 
+{
+  initI(static_cast<int64_t>(iTime), u);
+}
+
+DLLEXPORT timeStamp::timeStamp(int64_t ns_)
+  : timeParent(ns_)
+{
+}
+
+const timeLength &timeLength::Zero() {
+  if(_zero == NULL) _zero = ZeroHelp();
+  return *_zero;
+}
+const timeLength &timeLength::ns() {
+  if(_ns == NULL) _ns = nsHelp();
+  return *_ns;
+}
+const timeLength &timeLength::us() {
+  if(_us == NULL) _us = usHelp();
+  return *_us;
+}
+const timeLength &timeLength::ms() {
+  if(_ms == NULL) _ms = msHelp();
+  return *_ms;
+}
+const timeLength &timeLength::sec() {
+  if(_sec == NULL) _sec = secHelp();
+  return *_sec;
+}
+const timeLength &timeLength::minute() {
+  if(_minute == NULL) _minute = minHelp();
+  return *_minute;
+}
+const timeLength &timeLength::hour() {
+  if(_hour == NULL) _hour = hourHelp();
+  return *_hour;
+}
+const timeLength &timeLength::day() {
+  if(_day == NULL) _day = dayHelp();
+  return *_day;
+}
+const timeLength &timeLength::year() {
+  if(_year == NULL) _year = yearHelp();
+  return *_year;
+}
+const timeLength &timeLength::leapYear() {
+  if(_leapYear == NULL) _leapYear = leapYearHelp();
+  return *_leapYear;
+}
+
+// timeStamp +=/-= timeLength
+const timeStamp operator+=(timeStamp &ts, timeLength tl) {
+  assert(ts.isInitialized() && tl.isInitialized());
+  ts.assign(ts.get_ns() + tl.get_ns());
+  return ts;
+}
+DLLEXPORT const timeStamp operator-=(timeStamp &ts, timeLength tl) {
+  assert(ts.isInitialized() && tl.isInitialized());
+  ts.assign(ts.get_ns() - tl.get_ns());
+  return ts;
+}
+
+// timeLength +=/-= timeLength
+const timeLength operator+=(timeLength &t, timeLength tl) {
+  assert(t.isInitialized() && tl.isInitialized());
+  t.assign(t.get_ns() + tl.get_ns());
+  return t;
+}
+const timeLength operator-=(timeLength &t, timeLength tl) {
+  assert(t.isInitialized() && tl.isInitialized());
+  t.assign(t.get_ns() - tl.get_ns());
+  return t;
+}
+
+// timeLength *=, /= double
+const timeLength operator*=(timeLength &t, double d) {
+  assert(t.isInitialized());
+  t.assign(static_cast<int64_t>(t.get_ns() * d));
+  return t;
+}
+const timeLength operator/=(timeLength &t, double d) {
+  assert(t.isInitialized());
+  t.assign(static_cast<int64_t>(t.get_ns() / d));
+  return t;
+}
+
+// - timeLength
+const timeLength operator-(const timeLength &t) {
+  assert(t.isInitialized());
+  return timeLength(-t.get_ns());
+}
+
+// timeStamp - timeStamp = timeLength  ;  the length of time between time stamps
+const timeLength operator-(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return timeLength(a.get_ns() - b.get_ns());
+}
+
+// timeStamp +/- timeLength = timeStamp
+const timeStamp operator+(const timeStamp a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return timeStamp(a.get_ns() + b.get_ns());
+}
+const timeStamp operator-(const timeStamp a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return timeStamp(a.get_ns() - b.get_ns());
+}
+
+// timeLength + timeStamp = timeStamp
+const timeStamp operator+(const timeLength a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return timeStamp(a.get_ns() + b.get_ns());
+}
+// timeLength - timeStamp doesn't make sense, ie. 3 days - Mar 9 = ?
+
+// timeLength +/- timeLength = timeLength
+const timeLength operator+(const timeLength a, const timeLength b) {  
+  assert(a.isInitialized() && b.isInitialized());
+  return timeLength(a.get_ns() + b.get_ns());
+}
+const timeLength operator-(const timeLength a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return timeLength(a.get_ns() - b.get_ns());
+}
+
+// timeLength */ double = timeLength
+const timeLength operator*(const timeLength a, const double b) {
+  assert(a.isInitialized());
+  return timeLength(static_cast<int64_t>(a.get_ns() * b));
+}
+const timeLength operator/(const timeLength a, const double b) {
+  assert(a.isInitialized());
+  return timeLength(static_cast<int64_t>(a.get_ns() / b));
+}
+
+// double */ timeLength = timeLength
+const timeLength operator*(const double a, const timeLength b) {
+  assert(b.isInitialized());
+  return timeLength(static_cast<int64_t>(a * b.get_ns()));
+}
+const timeLength operator/(const double a, const timeLength b) {
+  assert(b.isInitialized());
+  return timeLength(static_cast<int64_t>(a / b.get_ns()));
+}
+
+// Be careful if writing * operators because Time is based at nanosecond
+// level, which can overflow when multiplying times that seem small
+// eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
+
+// timeStamp @ timeStamp = bool
+bool operator==(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() == b.get_ns());
+}
+bool operator!=(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() != b.get_ns());
+}
+bool operator>(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() > b.get_ns());
+}
+bool operator>=(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() >= b.get_ns());
+}
+bool operator<(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() < b.get_ns());
+}
+bool operator<=(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() <= b.get_ns());
+}
+
+timeStamp earlier(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  if(a <= b)  return a;
+  else        return b;
+}
+
+timeStamp later(const timeStamp a, const timeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  if(a >= b)  return a;
+  else        return b;
+}
+
+// timeLength @ timeLength = bool
+bool operator==(const timeLength a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() == b.get_ns());
+}
+bool operator!=(const timeLength a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() != b.get_ns());
+}
+bool operator>(const timeLength a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() > b.get_ns());
+}
+bool operator>=(const timeLength a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() >= b.get_ns());
+}
+bool operator<(const timeLength a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() < b.get_ns());
+}
+bool operator<=(const timeLength a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() <= b.get_ns());
+}
+
+
+timeLength minimum(const timeLength a, const timeLength b) {  
+  assert(a.isInitialized() && b.isInitialized());
+  if(a<=b)  return a;
+  else      return b;
+}
+
+timeLength maximum(const timeLength a, const timeLength b) {  
+  assert(a.isInitialized() && b.isInitialized());
+  if(a>=b)  return a;
+  else      return b;
+}
+
+const timeLength abs(const timeLength a) {  
+  assert(a.isInitialized());
+  return maximum(a,-a);
+}
+
+// need to put this here so can get at timeStamp
+timeBase::timeBase(timeStamp mark) {
+  ns2StdBaseMark = -mark.get_ns();  // in Std base
+  // eg. (2001) 1 year of ns's -> -1 year of ns's to internalTimeBaseMark
+}
+
+// relTimeStamp +=/-= timeLength
+const relTimeStamp operator+=(relTimeStamp &ts, timeLength tl) {
+  assert(ts.isInitialized() && tl.isInitialized());
+  ts.assign(ts.get_ns() + tl.get_ns());
+  return ts;
+}
+const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl) {
+  assert(ts.isInitialized() && tl.isInitialized());
+  ts.assign(ts.get_ns() - tl.get_ns());
+  return ts;
+}
+
+// relTimeStamp - relTimeStamp = timeLength  ;  the length of time between time stamps
+const timeLength operator-(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return timeLength(a.get_ns() - b.get_ns());
+}
+
+// relTimeStamp +/- relTimeLength = relTimeStamp
+const relTimeStamp operator+(const relTimeStamp a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return relTimeStamp(a.get_ns() + b.get_ns());
+}
+const relTimeStamp operator-(const relTimeStamp a, const timeLength b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return relTimeStamp(a.get_ns() - b.get_ns());
+}
+
+// timeLength + relTimeStamp = relTimeStamp
+const relTimeStamp operator+(const timeLength a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return relTimeStamp(a.get_ns() + b.get_ns());
+}
+// timeLength - timeStamp doesn't make sense, ie. 3 days - Mar 9 = ?
+
+
+// Be careful if writing * operators because Time is based at nanosecond
+// level, which can overflow when multiplying times that seem small
+// eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
+
+// relTimeStamp @ relTimeStamp = bool
+bool operator==(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() == b.get_ns());
+}
+bool operator!=(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() != b.get_ns());
+}
+bool operator>(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() > b.get_ns());
+}
+bool operator>=(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() >= b.get_ns());
+}
+bool operator<(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() < b.get_ns());
+}
+bool operator<=(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  return (a.get_ns() <= b.get_ns());
+}
+
+relTimeStamp earlier(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  if(a <= b)  return a;
+  else        return b;
+}
+
+relTimeStamp later(const relTimeStamp a, const relTimeStamp b) {
+  assert(a.isInitialized() && b.isInitialized());
+  if(a >= b)  return a;
+  else        return b;
+}
+
+timeUnit::timeUnit(fraction _ns_per_unit) : ns_per_unit(_ns_per_unit), 
+  units_per_ns(ns_per_unit.reciprocal()) {
+  ns_per_unit.reduce();
+  units_per_ns.reduce();
+}
+
+// Selectors
+fraction timeUnit::get_ns_per_unit()  const {  return ns_per_unit;   }
+fraction timeUnit::get_units_per_ns() const {  return units_per_ns;  }
+
+// Mutators
+void timeUnit::set_ns_per_unit(const fraction &nspu) {
+  ns_per_unit = nspu;
+  units_per_ns = ns_per_unit.reciprocal();
+}
+
+const timeUnit &timeUnit::ns() {
+  if(_ns == NULL)  _ns = nsHelp();
+  return *_ns;
+}
+const timeUnit &timeUnit::us() {
+  if(_us == NULL)  _us = usHelp();
+  return *_us;
+}
+const timeUnit &timeUnit::ms() {
+  if(_ms==NULL)  _ms = msHelp();
+  return *_ms;
+}
+const timeUnit &timeUnit::sec() {
+  if(_sec==NULL) _sec = secHelp();
+  return *_sec;
+}
+const timeUnit &timeUnit::minute() {
+  if(_minute==NULL)  _minute = minHelp();
+  return *_minute;
+}
+const timeUnit &timeUnit::hour() {
+  if(_hour==NULL) _hour = hourHelp();
+  return *_hour;
+}
+const timeUnit &timeUnit::day() {
+  if(_day==NULL) _day = dayHelp();
+  return *_day;
+}
+const timeUnit &timeUnit::year() {
+  if(_year==NULL) _year = yearHelp();
+  return *_year;
+}
+const timeUnit &timeUnit::leapYear() {
+  if(_leapYear==NULL) _leapYear = leapYearHelp();
+  return *_leapYear;
+}
+
+
+timeBase::timeBase(int64_t ns2stdMark) {
+  ns2StdBaseMark = ns2stdMark;
+}
+
+int64_t timeBase::get_ns2StdBaseMark() const {
+  return ns2StdBaseMark;
+}
+
+int64_t timeBase::cvtTo_bStd(int64_t ns) const {
+  // eg. 1994, b1970 -> bStd:  24 yrs - 30 yrs = -6 yrs
+  return ns - ns2StdBaseMark;  
+}
+
+double  timeBase::cvtFrom_bStd(double ns) const {
+  // eg. 1994, bStd -> b1970:  -6 yrs + 30 yrs = 24 yrs
+  return ns + ns2StdBaseMark;
+}
+
+int64_t timeBase::cvtFrom_bStd(int64_t ns) const {
+  return ns + ns2StdBaseMark;
+}
+
+const timeBase &timeBase::bStd() {
+  if(_bStd == NULL) _bStd = bStdHelp();
+  return *_bStd;
+}
+const timeBase &timeBase::b1970() {
+  if(_b1970 == NULL) _b1970 = b1970Help();
+  return *_b1970;
+}
+const timeBase &timeBase::bNone() {
+  return bStd();
+}
+
+
+int64_t timeParent::get_ns() const {
+  return ns;
+}
+
+void timeParent::assign(const int64_t v) 
+{  
+  ns = v;  
+}
+
+timeStamp::timeStamp() { }
+
+double timeStamp::getD(const timeUnit &u, timeBase b) const {
+  return u.cvtFrom_nsD( b.cvtFrom_bStd(get_ns()));
+}
+
+int64_t timeStamp::getI(const timeUnit &u, timeBase b) const {
+  return u.cvtFrom_nsI( b.cvtFrom_bStd(get_ns()));
+}
+
+const timeStamp &timeStamp::ts1970() {
+  if(_ts1970 == NULL)  _ts1970 = ts1970Help();
+  return *_ts1970;
+}
+
+const timeStamp &timeStamp::tsStd() {
+  if(_tsStd == NULL)  _tsStd = tsStdHelp();
+  return *_tsStd;
+}
+
+const timeStamp &timeStamp::ts1800() {
+  if(_ts1800 == NULL)  _ts1800 = ts1800Help();
+  return *_ts1800;
+}
+
+const timeStamp &timeStamp::ts2200() {
+  if(_ts2200 == NULL)  _ts2200 = ts2200Help();
+  return *_ts2200;
+}
+
+const timeStamp &timeStamp::tsLongAgoTime() {
+  return timeStamp::ts1800();
+}
+
+const timeStamp &timeStamp::tsFarOffTime() {
+  return timeStamp::ts2200();
+}
+
+DLLEXPORT relTimeStamp::relTimeStamp() { }
+
+double relTimeStamp::getD(const timeUnit &u) const {
+  return u.cvtFrom_nsD(get_ns());
+}
+
+int64_t relTimeStamp::getI(const timeUnit &u) const {
+  return u.cvtFrom_nsI( get_ns());
+}
+
+relTimeStamp::relTimeStamp(int64_t ns_) : timeParent(ns_) { }
+
+const relTimeStamp &relTimeStamp::Zero() {
+  if(_Zero == NULL)  _Zero = ZeroHelp();
+  return *_Zero;
+}
+
+DLLEXPORT timeLength::timeLength() 
+{
+}
+
+double timeLength::getD(const timeUnit &u) const 
+{
+	return u.cvtFrom_nsD( get_ns());
+}
+
+int64_t timeLength::getI(const timeUnit &u) const 
+{
+  return u.cvtFrom_nsI( get_ns());
+}
+
+timeLength::timeLength(int64_t ns_) : timeParent(ns_)
+{
+}

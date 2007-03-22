@@ -87,15 +87,15 @@ class timeUnit {
    DLLEXPORT static const timeUnit *yearHelp();
    DLLEXPORT static const timeUnit *leapYearHelp();
  public:
-   static const timeUnit &ns();
-   static const timeUnit &us();
-   static const timeUnit &ms();
-   static const timeUnit &sec();
-   static const timeUnit &minute();
-   static const timeUnit &hour();
-   static const timeUnit &day();
-   static const timeUnit &year();
-   static const timeUnit &leapYear();
+   DLLEXPORT static const timeUnit &ns();
+   DLLEXPORT static const timeUnit &us();
+   DLLEXPORT static const timeUnit &ms();
+   DLLEXPORT static const timeUnit &sec();
+   DLLEXPORT static const timeUnit &minute();
+   DLLEXPORT static const timeUnit &hour();
+   DLLEXPORT static const timeUnit &day();
+   DLLEXPORT static const timeUnit &year();
+   DLLEXPORT static const timeUnit &leapYear();
 
  public:
   typedef enum { sparse, verbose } ostream_fmt; 
@@ -106,67 +106,23 @@ class timeUnit {
   fraction units_per_ns;
 
  public:
-   timeUnit(fraction _ns_per_unit) : ns_per_unit(_ns_per_unit), 
-    units_per_ns(ns_per_unit.reciprocal()) {
-    ns_per_unit.reduce();
-    units_per_ns.reduce();
-  }
+   DLLEXPORT timeUnit(fraction _ns_per_unit);
   // default copy constructor
 
   // Selectors
-   fraction get_ns_per_unit()  const {  return ns_per_unit;   }
-   fraction get_units_per_ns() const {  return units_per_ns;  }
+   DLLEXPORT fraction get_ns_per_unit()  const;
+   DLLEXPORT fraction get_units_per_ns() const;
 
   // Mutators
-   void set_ns_per_unit(const fraction &nspu) {
-    ns_per_unit = nspu;
-    units_per_ns = ns_per_unit.reciprocal();
-  }
-   int64_t cvtTo_ns(double  units) const;
-   int64_t cvtTo_ns(int64_t units) const;
+   DLLEXPORT void set_ns_per_unit(const fraction &nspu);
+   DLLEXPORT int64_t cvtTo_ns(double  units) const;
+   DLLEXPORT int64_t cvtTo_ns(int64_t units) const;
    DLLEXPORT double  cvtFrom_nsD(int64_t ns) const;
    DLLEXPORT int64_t cvtFrom_nsI(int64_t ns) const;
 };
 
-ostream& operator<<(ostream&s, const timeUnit::ostream_fmt &u);
-ostream& operator<<(ostream&s, const timeUnit &u);
-
-inline const timeUnit &timeUnit::ns() {
-  if(_ns == NULL)  _ns = nsHelp();
-  return *_ns;
-}
-inline const timeUnit &timeUnit::us() {
-  if(_us == NULL)  _us = usHelp();
-  return *_us;
-}
-inline const timeUnit &timeUnit::ms() {
-  if(_ms==NULL)  _ms = msHelp();
-  return *_ms;
-}
-inline const timeUnit &timeUnit::sec() {
-  if(_sec==NULL) _sec = secHelp();
-  return *_sec;
-}
-inline const timeUnit &timeUnit::minute() {
-  if(_minute==NULL)  _minute = minHelp();
-  return *_minute;
-}
-inline const timeUnit &timeUnit::hour() {
-  if(_hour==NULL) _hour = hourHelp();
-  return *_hour;
-}
-inline const timeUnit &timeUnit::day() {
-  if(_day==NULL) _day = dayHelp();
-  return *_day;
-}
-inline const timeUnit &timeUnit::year() {
-  if(_year==NULL) _year = yearHelp();
-  return *_year;
-}
-inline const timeUnit &timeUnit::leapYear() {
-  if(_leapYear==NULL) _leapYear = leapYearHelp();
-  return *_leapYear;
-}
+DLLEXPORT ostream& operator<<(ostream&s, const timeUnit::ostream_fmt &u);
+DLLEXPORT ostream& operator<<(ostream&s, const timeUnit &u);
 
 class timeStamp;
 
@@ -198,12 +154,12 @@ class timeBase {
   // ie. the year for the internal time base, if changed check to make
   // sure timeBase::b1970Help() is still accurate
   enum { StdBaseMark = 2000 };  
-  static const timeBase &bStd();
-  static const timeBase &b1970();
+  DLLEXPORT static const timeBase &bStd();
+  DLLEXPORT static const timeBase &b1970();
   // bNone is for times like process time, time is counted since the
   // start of the process representing the process time in regards to
   // a real time base (not unit) as in b1970 doesn't make sense
-  static const timeBase &bNone();
+  DLLEXPORT static const timeBase &bNone();
 
  private:
   int64_t ns2StdBaseMark;  
@@ -211,40 +167,15 @@ class timeBase {
  public:
   //Paradyn default base: from nearest century turnover
 
-  timeBase(int64_t ns2stdMark) {
-    ns2StdBaseMark = ns2stdMark;
-  }
-  timeBase(timeStamp mark);  // defined inline below
-  int64_t get_ns2StdBaseMark() const {
-    return ns2StdBaseMark;
-  }
-  int64_t cvtTo_bStd(int64_t ns) const {
-    // eg. 1994, b1970 -> bStd:  24 yrs - 30 yrs = -6 yrs
-    return ns - ns2StdBaseMark;  
-  }
-  double  cvtFrom_bStd(double ns) const {
-    // eg. 1994, bStd -> b1970:  -6 yrs + 30 yrs = 24 yrs
-    return ns + ns2StdBaseMark;
-  }
-  int64_t cvtFrom_bStd(int64_t ns) const {
-    return ns + ns2StdBaseMark;
-  }
-
+  DLLEXPORT timeBase(int64_t ns2stdMark);
+  DLLEXPORT timeBase(timeStamp mark);  // defined inline below
+  DLLEXPORT int64_t get_ns2StdBaseMark() const;
+  DLLEXPORT int64_t cvtTo_bStd(int64_t ns) const;
+  DLLEXPORT double  cvtFrom_bStd(double ns) const;
+  DLLEXPORT int64_t cvtFrom_bStd(int64_t ns) const;
 };
 
-ostream& operator<<(ostream&s, timeBase b);
-
-inline const timeBase &timeBase::bStd() {
-  if(_bStd == NULL) _bStd = bStdHelp();
-  return *_bStd;
-}
-inline const timeBase &timeBase::b1970() {
-  if(_b1970 == NULL) _b1970 = b1970Help();
-  return *_b1970;
-}
-inline const timeBase &timeBase::bNone() {
-  return bStd();
-}
+DLLEXPORT ostream& operator<<(ostream&s, timeBase b);
 
 // Responsibilities:
 //   - store time in a standard unit and time base, currently this is:
@@ -260,15 +191,10 @@ class timeParent {
   // Constructors
  public:
   // Selectors
-  int64_t get_ns() const {
-    return ns;
-  }
+  DLLEXPORT int64_t get_ns() const;
 
   // returns true if the timeStamp is uninitialized
-  bool isInitialized() const {  
-    if(get_ns() == uninitializedValue) return false;
-    else return true;
-  }
+  DLLEXPORT bool isInitialized() const;
 
   // the disadvantage of having a timeParent operator<< via the help
   // of this virtual put function is that it causes a pointer to the vtable
@@ -277,11 +203,11 @@ class timeParent {
   //  virtual ostream& put(ostream& s) const = 0;  // write *this to s
 
  protected:
-  timeParent() : ns(uninitializedValue) { }
-  timeParent(int64_t _ns) : ns(_ns) { }
+  DLLEXPORT timeParent();
+  DLLEXPORT timeParent(int64_t _ns);
   // Mutators
-  void assign(const int64_t v)  {  ns = v;  }
-  int64_t getRolloverTime(double t);
+  DLLEXPORT void assign(const int64_t v);
+  DLLEXPORT int64_t getRolloverTime(double t);
 };
 
 //ostream& operator<<(ostream& s, const timeParent &tp);
@@ -307,16 +233,16 @@ class timeStamp : public timeParent {
   DLLEXPORT static const timeStamp *tsStdHelp();
   DLLEXPORT static const timeStamp *ts2200Help();
  public:
-  static const timeStamp &ts1800();
-  static const timeStamp &ts1970();
-  static const timeStamp &tsStd();
-  static const timeStamp &ts2200();
-  static const timeStamp &tsLongAgoTime();
-  static const timeStamp &tsFarOffTime();
+  DLLEXPORT static const timeStamp &ts1800();
+  DLLEXPORT static const timeStamp &ts1970();
+  DLLEXPORT static const timeStamp &tsStd();
+  DLLEXPORT static const timeStamp &ts2200();
+  DLLEXPORT static const timeStamp &tsLongAgoTime();
+  DLLEXPORT static const timeStamp &tsFarOffTime();
 
   // need this constructor to use in vector container class
   // value set to a "weird" value to represent uninitialized
-  timeStamp() { }
+  DLLEXPORT timeStamp();
   // eg. to create the time Jan 1, 1995 12:00am you could do this:
   //    timeStamp myTime(25, timeUnit::year(), timeBase::b1970());
   // one way to create July 20, 1976 8:35am:
@@ -324,70 +250,33 @@ class timeStamp : public timeParent {
   //                           2*timeStamp::leapYear() +
   //                           202*timeLength::day() + 8*timeLength::hour() +
   //                           35*timeLength::min();  
-  DLLEXPORT timeStamp(int64_t iTime, const timeUnit &u, timeBase b) : timeParent() {
-    initI(iTime, u, b);
-  }
-  DLLEXPORT timeStamp(int iTime, const timeUnit &u, timeBase b) : timeParent() {
-    initI(iTime, u, b);
-  }
+  DLLEXPORT timeStamp(int64_t iTime, const timeUnit &u, timeBase b);
+  DLLEXPORT timeStamp(int iTime, const timeUnit &u, timeBase b);
   DLLEXPORT timeStamp(const timeLength &tl, timeBase b);
   DLLEXPORT timeStamp(double dTime, const timeUnit &u, timeBase b);
 
   // Selectors
-  double getD(const timeUnit &u, timeBase b) const {
-    return u.cvtFrom_nsD( b.cvtFrom_bStd(get_ns()));
-  }
+  DLLEXPORT double getD(const timeUnit &u, timeBase b) const;
   // eg. to get the number of seconds since 1970 do this: 
   //        ts.getI(timeUnit::sec(), timeBase::b1970()) 
-  int64_t getI(const timeUnit &u, timeBase b) const {
-    return u.cvtFrom_nsI( b.cvtFrom_bStd(get_ns()));
-  }
+  DLLEXPORT int64_t getI(const timeUnit &u, timeBase b) const;
 
   // ostream& put(ostream& s) const { return s << *this; }
 
-  friend const timeStamp operator+=(timeStamp &ts, timeLength tl);
-  friend const timeStamp operator-=(timeStamp &ts, timeLength tl);
-  friend const timeLength operator-(const timeStamp a, const timeStamp b);
-  friend const timeStamp operator+(const timeStamp a, const timeLength b);
-  friend const timeStamp operator-(const timeStamp a, const timeLength b);
-  friend const timeStamp operator+(const timeLength a, const timeStamp b);
+  friend DLLEXPORT const timeStamp operator+=(timeStamp &ts, timeLength tl);
+  friend DLLEXPORT const timeStamp operator-=(timeStamp &ts, timeLength tl);
+  friend DLLEXPORT const timeLength operator-(const timeStamp a, const timeStamp b);
+  friend DLLEXPORT const timeStamp operator+(const timeStamp a, const timeLength b);
+  friend DLLEXPORT const timeStamp operator-(const timeStamp a, const timeLength b);
+  friend DLLEXPORT const timeStamp operator+(const timeLength a, const timeStamp b);
   // non-member ==, !=, >, <, >=, <=  operators also defined for timeStamp
 
  private:
   DLLEXPORT void initI(int64_t iTime, const timeUnit &u, timeBase b);
-  DLLEXPORT timeStamp(int64_t ns_) : timeParent(ns_) { }
+  DLLEXPORT timeStamp(int64_t ns_);
 };
 
-ostream& operator<<(ostream&s, timeStamp z);
-
-inline const timeStamp &timeStamp::ts1970() {
-  if(_ts1970 == NULL)  _ts1970 = ts1970Help();
-  return *_ts1970;
-}
-
-inline const timeStamp &timeStamp::tsStd() {
-  if(_tsStd == NULL)  _tsStd = tsStdHelp();
-  return *_tsStd;
-}
-
-inline const timeStamp &timeStamp::ts1800() {
-  if(_ts1800 == NULL)  _ts1800 = ts1800Help();
-  return *_ts1800;
-}
-
-inline const timeStamp &timeStamp::ts2200() {
-  if(_ts2200 == NULL)  _ts2200 = ts2200Help();
-  return *_ts2200;
-}
-
-inline const timeStamp &timeStamp::tsLongAgoTime() {
-  return timeStamp::ts1800();
-}
-
-inline const timeStamp &timeStamp::tsFarOffTime() {
-  return timeStamp::ts2200();
-}
-
+DLLEXPORT ostream& operator<<(ostream&s, timeStamp z);
 
 // relTimeStamp ---------------------------------------------------
 // A timeStamp that proceeds on a timeline based at "zero"
@@ -400,48 +289,34 @@ class relTimeStamp : public timeParent {
   DLLEXPORT static const relTimeStamp *_Zero;
   DLLEXPORT static const relTimeStamp *ZeroHelp();
  public:
-  static const relTimeStamp &Zero();
+  DLLEXPORT static const relTimeStamp &Zero();
 
   // need this constructor to use in vector container class
-  DLLEXPORT relTimeStamp() { }
-  DLLEXPORT relTimeStamp(int64_t iTime, const timeUnit &u) : timeParent() {
-    initI(iTime, u);
-  }
-  DLLEXPORT relTimeStamp(int iTime, const timeUnit &u) : timeParent() {
-    initI(iTime, u);
-  }
+  DLLEXPORT relTimeStamp();
+  DLLEXPORT relTimeStamp(int64_t iTime, const timeUnit &u);
+  DLLEXPORT relTimeStamp(int iTime, const timeUnit &u);
   DLLEXPORT relTimeStamp(const timeLength &tl);
   DLLEXPORT relTimeStamp(double dTime, const timeUnit &u);
 
   // Selectors
-  double getD(const timeUnit &u) const {
-    return u.cvtFrom_nsD(get_ns());
-  }
-  int64_t getI(const timeUnit &u) const {
-    return u.cvtFrom_nsI( get_ns());
-  }
-
+  DLLEXPORT double getD(const timeUnit &u) const;
+  DLLEXPORT int64_t getI(const timeUnit &u) const;
   // ostream& put(ostream& s) const { return s << *this; }
 
-  friend const relTimeStamp operator+=(relTimeStamp &ts, timeLength tl);
-  friend const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl);
-  friend const timeLength operator-(const relTimeStamp a,const relTimeStamp b);
-  friend const relTimeStamp operator+(const relTimeStamp a, const timeLength b);
-  friend const relTimeStamp operator-(const relTimeStamp a, const timeLength b);
-  friend const relTimeStamp operator+(const timeLength a, const relTimeStamp b);
+  friend DLLEXPORT const relTimeStamp operator+=(relTimeStamp &ts, timeLength tl);
+  friend DLLEXPORT const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl);
+  friend DLLEXPORT const timeLength operator-(const relTimeStamp a,const relTimeStamp b);
+  friend DLLEXPORT const relTimeStamp operator+(const relTimeStamp a, const timeLength b);
+  friend DLLEXPORT const relTimeStamp operator-(const relTimeStamp a, const timeLength b);
+  friend DLLEXPORT const relTimeStamp operator+(const timeLength a, const relTimeStamp b);
   // non-member ==, !=, >, <, >=, <=  operators also defined for relTimeStamp
 
  private:
-  void initI(int64_t iTime, const timeUnit &u);
-  relTimeStamp(int64_t ns_) : timeParent(ns_) { }
+  DLLEXPORT void initI(int64_t iTime, const timeUnit &u);
+  DLLEXPORT relTimeStamp(int64_t ns_);
 };
 
-ostream& operator<<(ostream&s, relTimeStamp z);
-
-inline const relTimeStamp &relTimeStamp::Zero() {
-  if(_Zero == NULL)  _Zero = ZeroHelp();
-  return *_Zero;
-}
+DLLEXPORT ostream& operator<<(ostream&s, relTimeStamp z);
 
 // timeLength ---------------------------------------------------
 
@@ -473,322 +348,135 @@ class timeLength : public timeParent {
   DLLEXPORT static const timeLength *yearHelp();
   DLLEXPORT static const timeLength *leapYearHelp();
  public:
-  static const timeLength &Zero();
-  static const timeLength &ns();
-  static const timeLength &us();
-  static const timeLength &ms();
-  static const timeLength &sec();
-  static const timeLength &minute();
-  static const timeLength &hour();
-  static const timeLength &day();
-  static const timeLength &year();
-  static const timeLength &leapYear();
+  DLLEXPORT static const timeLength &Zero();
+  DLLEXPORT static const timeLength &ns();
+  DLLEXPORT static const timeLength &us();
+  DLLEXPORT static const timeLength &ms();
+  DLLEXPORT static const timeLength &sec();
+  DLLEXPORT static const timeLength &minute();
+  DLLEXPORT static const timeLength &hour();
+  DLLEXPORT static const timeLength &day();
+  DLLEXPORT static const timeLength &year();
+  DLLEXPORT static const timeLength &leapYear();
 
   // need this constructor to use in vector container class
-  DLLEXPORT timeLength() { }
-  DLLEXPORT timeLength(int64_t iTime, const timeUnit &u) : timeParent() {
-    initI(iTime, u);
-  }
-  DLLEXPORT timeLength(int iTime, const timeUnit &u) : timeParent() {
-    initI(static_cast<int64_t>(iTime), u);
-  }
+  DLLEXPORT timeLength();
+  DLLEXPORT timeLength(int64_t iTime, const timeUnit &u);
+  DLLEXPORT timeLength(int iTime, const timeUnit &u);
   DLLEXPORT timeLength(double dTime, const timeUnit &u);
 
   // Selectors
-  double getD(const timeUnit &u) const {   return u.cvtFrom_nsD( get_ns());   }
-  int64_t getI(const timeUnit &u) const {  return u.cvtFrom_nsI( get_ns());   }
+  DLLEXPORT double getD(const timeUnit &u) const;
+  DLLEXPORT int64_t getI(const timeUnit &u) const;
 
   //ostream& put(ostream& s) const { return s << *this; }
 
-  friend const timeLength operator+=(timeLength &t, timeLength tl);
-  friend const timeLength operator-=(timeLength &t, timeLength tl);
-  friend const timeLength operator*=(timeLength &t, double d);
-  friend const timeLength operator/=(timeLength &t, double d);
-  friend const timeLength operator-(const timeLength &t);
-  friend const timeLength operator-(const timeStamp a, const timeStamp b);
-  friend const timeLength operator-(const relTimeStamp a,const relTimeStamp b);
-  friend const timeStamp operator+(const timeStamp a, const timeLength b);
-  friend const timeStamp operator-(const timeStamp a, const timeLength b);
-  friend const timeStamp operator+(const timeLength a, const timeStamp b);
-  friend const timeLength operator+(const timeLength a, const timeLength b);
-  friend const timeLength operator-(const timeLength a, const timeLength b);
-  friend const timeLength operator*(const timeLength a, const double b);
-  friend const timeLength operator/(const timeLength a, const double b);
-  friend const timeLength operator*(const double a, const timeLength b);
-  friend const timeLength operator/(const double a, const timeLength b);
-  friend const double operator/(const timeLength a, const timeLength b);
+  friend DLLEXPORT const timeLength operator+=(timeLength &t, timeLength tl);
+  friend DLLEXPORT const timeLength operator-=(timeLength &t, timeLength tl);
+  friend DLLEXPORT const timeLength operator*=(timeLength &t, double d);
+  friend DLLEXPORT const timeLength operator/=(timeLength &t, double d);
+  friend DLLEXPORT const timeLength operator-(const timeLength &t);
+  friend DLLEXPORT const timeLength operator-(const timeStamp a, const timeStamp b);
+  friend DLLEXPORT const timeLength operator-(const relTimeStamp a,const relTimeStamp b);
+  friend DLLEXPORT const timeStamp operator+(const timeStamp a, const timeLength b);
+  friend DLLEXPORT const timeStamp operator-(const timeStamp a, const timeLength b);
+  friend DLLEXPORT const timeStamp operator+(const timeLength a, const timeStamp b);
+  friend DLLEXPORT const timeLength operator+(const timeLength a, const timeLength b);
+  friend DLLEXPORT const timeLength operator-(const timeLength a, const timeLength b);
+  friend DLLEXPORT const timeLength operator*(const timeLength a, const double b);
+  friend DLLEXPORT const timeLength operator/(const timeLength a, const double b);
+  friend DLLEXPORT const timeLength operator*(const double a, const timeLength b);
+  friend DLLEXPORT const timeLength operator/(const double a, const timeLength b);
+  friend DLLEXPORT const double operator/(const timeLength a, const timeLength b);
   // non-member ==, !=, >, <, >=, <=  operators also defined for timeLength
 
  private:
   DLLEXPORT void initI(int64_t iTime, const timeUnit &u);
   // a fast constructor just for timeLength operators
-  timeLength(int64_t ns_) : timeParent(ns_) { }
+  DLLEXPORT timeLength(int64_t ns_);
 };
 
-inline const timeLength &timeLength::Zero() {
-  if(_zero == NULL) _zero = ZeroHelp();
-  return *_zero;
-}
-inline const timeLength &timeLength::ns() {
-  if(_ns == NULL) _ns = nsHelp();
-  return *_ns;
-}
-inline const timeLength &timeLength::us() {
-  if(_us == NULL) _us = usHelp();
-  return *_us;
-}
-inline const timeLength &timeLength::ms() {
-  if(_ms == NULL) _ms = msHelp();
-  return *_ms;
-}
-inline const timeLength &timeLength::sec() {
-  if(_sec == NULL) _sec = secHelp();
-  return *_sec;
-}
-inline const timeLength &timeLength::minute() {
-  if(_minute == NULL) _minute = minHelp();
-  return *_minute;
-}
-inline const timeLength &timeLength::hour() {
-  if(_hour == NULL) _hour = hourHelp();
-  return *_hour;
-}
-inline const timeLength &timeLength::day() {
-  if(_day == NULL) _day = dayHelp();
-  return *_day;
-}
-inline const timeLength &timeLength::year() {
-  if(_year == NULL) _year = yearHelp();
-  return *_year;
-}
-inline const timeLength &timeLength::leapYear() {
-  if(_leapYear == NULL) _leapYear = leapYearHelp();
-  return *_leapYear;
-}
-
-
-ostream& operator<<(ostream&s, timeLength z);
+DLLEXPORT ostream& operator<<(ostream&s, timeLength z);
 
 // timeStamp +=/-= timeLength
-inline const timeStamp operator+=(timeStamp &ts, timeLength tl) {
-  assert(ts.isInitialized() && tl.isInitialized());
-  ts.assign(ts.get_ns() + tl.get_ns());
-  return ts;
-}
-inline const timeStamp operator-=(timeStamp &ts, timeLength tl) {
-  assert(ts.isInitialized() && tl.isInitialized());
-  ts.assign(ts.get_ns() - tl.get_ns());
-  return ts;
-}
+DLLEXPORT const timeStamp operator+=(timeStamp &ts, timeLength tl);
+DLLEXPORT const timeStamp operator-=(timeStamp &ts, timeLength tl);
 
 // timeLength +=/-= timeLength
-inline const timeLength operator+=(timeLength &t, timeLength tl) {
-  assert(t.isInitialized() && tl.isInitialized());
-  t.assign(t.get_ns() + tl.get_ns());
-  return t;
-}
-inline const timeLength operator-=(timeLength &t, timeLength tl) {
-  assert(t.isInitialized() && tl.isInitialized());
-  t.assign(t.get_ns() - tl.get_ns());
-  return t;
-}
+DLLEXPORT const timeLength operator+=(timeLength &t, timeLength tl);
+DLLEXPORT const timeLength operator-=(timeLength &t, timeLength tl);
 
 // timeLength *=, /= double
-inline const timeLength operator*=(timeLength &t, double d) {
-  assert(t.isInitialized());
-  t.assign(static_cast<int64_t>(t.get_ns() * d));
-  return t;
-}
-inline const timeLength operator/=(timeLength &t, double d) {
-  assert(t.isInitialized());
-  t.assign(static_cast<int64_t>(t.get_ns() / d));
-  return t;
-}
+DLLEXPORT const timeLength operator*=(timeLength &t, double d);
+DLLEXPORT const timeLength operator/=(timeLength &t, double d);
 
 // - timeLength
-inline const timeLength operator-(const timeLength &t) {
-  assert(t.isInitialized());
-  return timeLength(-t.get_ns());
-}
+DLLEXPORT const timeLength operator-(const timeLength &t);
 
 // timeStamp - timeStamp = timeLength  ;  the length of time between time stamps
-inline const timeLength operator-(const timeStamp a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return timeLength(a.get_ns() - b.get_ns());
-}
+DLLEXPORT const timeLength operator-(const timeStamp a, const timeStamp b);
 
 // timeStamp +/- timeLength = timeStamp
-inline const timeStamp operator+(const timeStamp a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return timeStamp(a.get_ns() + b.get_ns());
-}
-inline const timeStamp operator-(const timeStamp a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return timeStamp(a.get_ns() - b.get_ns());
-}
+DLLEXPORT const timeStamp operator+(const timeStamp a, const timeLength b);
+DLLEXPORT const timeStamp operator-(const timeStamp a, const timeLength b);
 
 // timeLength + timeStamp = timeStamp
-inline const timeStamp operator+(const timeLength a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return timeStamp(a.get_ns() + b.get_ns());
-}
+DLLEXPORT const timeStamp operator+(const timeLength a, const timeStamp b);
 // timeLength - timeStamp doesn't make sense, ie. 3 days - Mar 9 = ?
 
 // timeLength +/- timeLength = timeLength
-inline const timeLength operator+(const timeLength a, const timeLength b) {  
-  assert(a.isInitialized() && b.isInitialized());
-  return timeLength(a.get_ns() + b.get_ns());
-}
-inline const timeLength operator-(const timeLength a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return timeLength(a.get_ns() - b.get_ns());
-}
+DLLEXPORT const timeLength operator+(const timeLength a, const timeLength b);
+DLLEXPORT const timeLength operator-(const timeLength a, const timeLength b);
 
 // timeLength */ double = timeLength
-inline const timeLength operator*(const timeLength a, const double b) {
-  assert(a.isInitialized());
-  return timeLength(static_cast<int64_t>(a.get_ns() * b));
-}
-inline const timeLength operator/(const timeLength a, const double b) {
-  assert(a.isInitialized());
-  return timeLength(static_cast<int64_t>(a.get_ns() / b));
-}
+DLLEXPORT const timeLength operator*(const timeLength a, const double b);
+DLLEXPORT const timeLength operator/(const timeLength a, const double b);
 
 // double */ timeLength = timeLength
-inline const timeLength operator*(const double a, const timeLength b) {
-  assert(b.isInitialized());
-  return timeLength(static_cast<int64_t>(a * b.get_ns()));
-}
-inline const timeLength operator/(const double a, const timeLength b) {
-  assert(b.isInitialized());
-  return timeLength(static_cast<int64_t>(a / b.get_ns()));
-}
+DLLEXPORT const timeLength operator*(const double a, const timeLength b);
+DLLEXPORT const timeLength operator/(const double a, const timeLength b);
 
 // Be careful if writing * operators because Time is based at nanosecond
 // level, which can overflow when multiplying times that seem small
 // eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
 
 // timeStamp @ timeStamp = bool
-inline bool operator==(const timeStamp a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() == b.get_ns());
-}
-inline bool operator!=(const timeStamp a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() != b.get_ns());
-}
-inline bool operator>(const timeStamp a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() > b.get_ns());
-}
-inline bool operator>=(const timeStamp a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() >= b.get_ns());
-}
-inline bool operator<(const timeStamp a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() < b.get_ns());
-}
-inline bool operator<=(const timeStamp a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() <= b.get_ns());
-}
+DLLEXPORT bool operator==(const timeStamp a, const timeStamp b);
+DLLEXPORT bool operator!=(const timeStamp a, const timeStamp b);
+DLLEXPORT bool operator>(const timeStamp a, const timeStamp b);
+DLLEXPORT bool operator>=(const timeStamp a, const timeStamp b);
+DLLEXPORT bool operator<(const timeStamp a, const timeStamp b);
+DLLEXPORT bool operator<=(const timeStamp a, const timeStamp b);
 
-inline timeStamp earlier(const timeStamp a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  if(a <= b)  return a;
-  else        return b;
-}
-
-inline timeStamp later(const timeStamp a, const timeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  if(a >= b)  return a;
-  else        return b;
-}
-
+DLLEXPORT timeStamp earlier(const timeStamp a, const timeStamp b);
+DLLEXPORT timeStamp later(const timeStamp a, const timeStamp b);
 // timeLength @ timeLength = bool
-inline bool operator==(const timeLength a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() == b.get_ns());
-}
-inline bool operator!=(const timeLength a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() != b.get_ns());
-}
-inline bool operator>(const timeLength a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() > b.get_ns());
-}
-inline bool operator>=(const timeLength a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() >= b.get_ns());
-}
-inline bool operator<(const timeLength a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() < b.get_ns());
-}
-inline bool operator<=(const timeLength a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() <= b.get_ns());
-}
+DLLEXPORT bool operator==(const timeLength a, const timeLength b);
+DLLEXPORT bool operator!=(const timeLength a, const timeLength b);
+DLLEXPORT bool operator>(const timeLength a, const timeLength b);
+DLLEXPORT bool operator>=(const timeLength a, const timeLength b);
+DLLEXPORT bool operator<(const timeLength a, const timeLength b);
+DLLEXPORT bool operator<=(const timeLength a, const timeLength b);
 
 
-inline timeLength minimum(const timeLength a, const timeLength b) {  
-  assert(a.isInitialized() && b.isInitialized());
-  if(a<=b)  return a;
-  else      return b;
-}
+DLLEXPORT timeLength minimum(const timeLength a, const timeLength b);
 
-inline timeLength maximum(const timeLength a, const timeLength b) {  
-  assert(a.isInitialized() && b.isInitialized());
-  if(a>=b)  return a;
-  else      return b;
-}
-
-inline const timeLength abs(const timeLength a) {  
-  assert(a.isInitialized());
-  return maximum(a,-a);
-}
-
-// need to put this here so can get at timeStamp
-inline timeBase::timeBase(timeStamp mark) {
-  ns2StdBaseMark = -mark.get_ns();  // in Std base
-  // eg. (2001) 1 year of ns's -> -1 year of ns's to internalTimeBaseMark
-}
+DLLEXPORT timeLength maximum(const timeLength a, const timeLength b);
+DLLEXPORT const timeLength abs(const timeLength a);
 
 // relTimeStamp +=/-= timeLength
-inline const relTimeStamp operator+=(relTimeStamp &ts, timeLength tl) {
-  assert(ts.isInitialized() && tl.isInitialized());
-  ts.assign(ts.get_ns() + tl.get_ns());
-  return ts;
-}
-inline const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl) {
-  assert(ts.isInitialized() && tl.isInitialized());
-  ts.assign(ts.get_ns() - tl.get_ns());
-  return ts;
-}
+DLLEXPORT const relTimeStamp operator+=(relTimeStamp &ts, timeLength tl);
+DLLEXPORT const relTimeStamp operator-=(relTimeStamp &ts, timeLength tl);
 
 // relTimeStamp - relTimeStamp = timeLength  ;  the length of time between time stamps
-inline const timeLength operator-(const relTimeStamp a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return timeLength(a.get_ns() - b.get_ns());
-}
+DLLEXPORT const timeLength operator-(const relTimeStamp a, const relTimeStamp b);
 
 // relTimeStamp +/- relTimeLength = relTimeStamp
-inline const relTimeStamp operator+(const relTimeStamp a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return relTimeStamp(a.get_ns() + b.get_ns());
-}
-inline const relTimeStamp operator-(const relTimeStamp a, const timeLength b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return relTimeStamp(a.get_ns() - b.get_ns());
-}
+DLLEXPORT const relTimeStamp operator+(const relTimeStamp a, const timeLength b);
+DLLEXPORT const relTimeStamp operator-(const relTimeStamp a, const timeLength b);
 
 // timeLength + relTimeStamp = relTimeStamp
-inline const relTimeStamp operator+(const timeLength a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return relTimeStamp(a.get_ns() + b.get_ns());
-}
+DLLEXPORT const relTimeStamp operator+(const timeLength a, const relTimeStamp b);
 // timeLength - timeStamp doesn't make sense, ie. 3 days - Mar 9 = ?
 
 
@@ -797,42 +485,16 @@ inline const relTimeStamp operator+(const timeLength a, const relTimeStamp b) {
 // eg. Time(1,timeUnit::day) * Time(2,timeUnit::day) will overflow
 
 // relTimeStamp @ relTimeStamp = bool
-inline bool operator==(const relTimeStamp a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() == b.get_ns());
-}
-inline bool operator!=(const relTimeStamp a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() != b.get_ns());
-}
-inline bool operator>(const relTimeStamp a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() > b.get_ns());
-}
-inline bool operator>=(const relTimeStamp a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() >= b.get_ns());
-}
-inline bool operator<(const relTimeStamp a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() < b.get_ns());
-}
-inline bool operator<=(const relTimeStamp a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  return (a.get_ns() <= b.get_ns());
-}
+DLLEXPORT bool operator==(const relTimeStamp a, const relTimeStamp b);
+DLLEXPORT bool operator!=(const relTimeStamp a, const relTimeStamp b);
+DLLEXPORT bool operator>(const relTimeStamp a, const relTimeStamp b);
+DLLEXPORT bool operator>=(const relTimeStamp a, const relTimeStamp b);
+DLLEXPORT bool operator<(const relTimeStamp a, const relTimeStamp b);
+DLLEXPORT bool operator<=(const relTimeStamp a, const relTimeStamp b);
 
-inline relTimeStamp earlier(const relTimeStamp a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  if(a <= b)  return a;
-  else        return b;
-}
+DLLEXPORT relTimeStamp earlier(const relTimeStamp a, const relTimeStamp b);
 
-inline relTimeStamp later(const relTimeStamp a, const relTimeStamp b) {
-  assert(a.isInitialized() && b.isInitialized());
-  if(a >= b)  return a;
-  else        return b;
-}
+DLLEXPORT relTimeStamp later(const relTimeStamp a, const relTimeStamp b);
 
 
 

@@ -199,7 +199,7 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -215,7 +215,7 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -231,7 +231,7 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -247,7 +247,7 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
