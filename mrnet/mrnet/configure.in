@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.61)
+AC_PREREQ(2.59)
 AC_INIT(src/Network.C)
 AC_CONFIG_SRCDIR(src/Network.C)
 AC_CONFIG_HEADER([src/config.h])
@@ -78,10 +78,9 @@ fi
 
 
 dnl === CONFIGURE OPTIONS
-AC_ARG_WITH(libfl,
-    [AS_HELP_STRING([--with-libfl],[Absolute path to flex library])],
-    [LIBS="$LIBS ${withval}"; AC_CHECK_FUNC(yywrap, [], [AC_MSG_ERROR(Invalid flex library: ${FLEX_LIBDIR})])],
-    [LIBS="$LIBS -lfl"; AC_CHECK_FUNC(yywrap, [], [AC_MSG_ERROR(Can't find flex library libfl. Specify via --with-libfl)])])
+AC_ARG_WITH(libfldir,
+            [AS_HELP_STRING([--with-libfldir],[Absolute path to flex library])],
+            [FLEX_LIBDIR="${withval}";] )
 
 
 AC_ARG_ENABLE(verbosebuild,
@@ -173,6 +172,14 @@ case "$host_os" in
     ;;
 esac
 AC_SUBST(LIBS)
+
+if test "$FLEX_LIBDIR" = "" ; then
+   AC_CHECK_LIB(fl, [yywrap], [], [AC_MSG_ERROR(Can't find flex library libfl. Must specify proper directory with --with-libfldir)])
+else
+    LIBS_HOLD=$LIBS
+    LIBS="-L$FLEX_LIBDIR"
+    AC_CHECK_LIB(fl, [yywrap], [LIBS="-L$FLEX_LIBDIR $LIBS_HOLD]", [AC_MSG_ERROR(No/invalid flex library found in ${FLEX_LIBDIR})])
+fi
 
 AC_MSG_CHECKING(whether we can compile/link with \"$CXX $CXXFLAGS $LIBS\".)
 AC_LINK_IFELSE( [AC_LANG_PROGRAM([],[])],
