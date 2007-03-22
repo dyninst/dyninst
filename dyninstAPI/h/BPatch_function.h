@@ -72,6 +72,7 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_
     friend class BPatch_asyncEventHandler;
     friend class BPatch_image;
     friend class BPatch_thread;
+    friend class BPatch_process;
     friend BPatch_Vector<BPatch_point*> *findPoint(
                      const BPatch_Set<BPatch_opCode>& ops,
 						   InstrucIter &ii, 

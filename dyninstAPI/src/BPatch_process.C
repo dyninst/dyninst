@@ -1016,15 +1016,31 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
                                                                BPatch_callWhen when,
                                                                BPatch_snippetOrder order)
 {
+   if (dyn_debug_inst) {
+      BPatch_function *f;
+      for (unsigned i=0; i<points.size(); i++) {
+         f = points[i]->getFunction();
+         const char *sname = f->func->prettyName().c_str();
+         inst_printf("[%s:%u] - %d. Insert instrumentation at function %s, "
+                     "address %p, when %d, order %d in proc %d\n",
+                     FILE__, __LINE__, i,
+                     sname, points[i]->getAddress(), (int) when, (int) order,
+                     llproc->getPid());
+                     
+      }
+   }
+   
     if (BPatch::bpatch->isTypeChecked()) {
         assert(expr.ast);
         if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
+            inst_printf("[%s:%u] - Type error inserting instrumentation\n",
+                        FILE__, __LINE__);
             return false;
         }
     }
 
     if (!points.size()) {
-      fprintf(stderr, "%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
+       inst_printf("%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
       return false;
     }
     
@@ -1061,6 +1077,8 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
         callOrder ipOrder;
         
         if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder)) {
+            inst_printf("[%s:%u] - BPatchToInternalArgs failed for point %d\n",
+                        FILE__, __LINE__, i);
             return NULL;
         }
 
@@ -2194,10 +2212,10 @@ void BPatch_process::oneTimeCodeCompleted(bool isSynchronous) {
 bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
                                          void *userData, BPatchOneTimeCodeCallback cb) 
 {
-    if (NULL == oneTimeCodeInternal(expr, NULL, userData,  cb, false, NULL)) {
-      //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
+   if (statusIsTerminated()) {
       return false;
    }
+   oneTimeCodeInternal(expr, NULL, userData,  cb, false, NULL);
    return true;
 }
 
@@ -2614,7 +2632,7 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
     //  other thread events since we never attached to it)
     //  it is up to the user to check deadOnArrival() before doing anything
     //  with the thread object.
-      BPatch::bpatch->signalNotificationFD();
+    BPatch::bpatch->signalNotificationFD();
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
@@ -2626,7 +2644,6 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
                      FILE__, __LINE__, newthr->getTid());
         cb(this, newthr);
     }
-    
   }
   return newthr;
 }
