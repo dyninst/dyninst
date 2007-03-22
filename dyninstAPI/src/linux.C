@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.254 2007/02/19 20:49:10 legendre Exp $
+// $Id: linux.C,v 1.255 2007/03/22 19:56:06 legendre Exp $
 
 #include <fstream>
 
@@ -2410,7 +2410,7 @@ bool WaitpidMux::registerProcess(SignalGenerator *me)
 {
 
   pthread_mutex_lock(&waiter_mutex);
-   
+  
   for (unsigned i=0; i<unassigned_events.size(); i++)
      if (unassigned_events[i].pid == me->getPid()) {
         proccontrol_printf("[%s:%u] - Found early event for %d, restoring\n",
@@ -2745,9 +2745,10 @@ bool process::hasPassedMain()
    for (unsigned i=0; i<maps_size; i++) {
       if (!maps[i].path)
          continue;
-      if (strncmp(maps[i].path, "/lib/ld-", 8) == 0) {
+      if ((strncmp(maps[i].path, "/lib/ld-", 8) == 0) ||
+          (strncmp(maps[i].path, "/lib64/ld-", 10) == 0)) {
          path = maps[i].path;
-	 ldso_start_addr = maps[i].start;
+         ldso_start_addr = maps[i].start;
          break;
       }
    }
