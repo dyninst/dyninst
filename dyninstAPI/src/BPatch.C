@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.169 2007/02/14 23:04:01 legendre Exp $
+// $Id: BPatch.C,v 1.170 2007/03/22 19:56:04 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1140,14 +1140,15 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
          if (cb) 
             (*cb)(bpprocess, thrd);
       }
-   }
-   cbs.clear();
-   getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
-   for (unsigned int i = 0; i < cbs.size(); ++i) {
-
-       ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
-       if (cb) 
-           (*cb)(bpprocess->threads[0], ExitedViaSignal);
+      cbs.clear();
+      getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
+      for (unsigned int i = 0; i < cbs.size(); ++i) {
+         
+         ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
+         if (cb) {
+            (*cb)(bpprocess->threads[0], ExitedViaSignal);
+         }
+      }
    }
    
    // We now run the process out; set its state to terminated. Really, the user shouldn't
