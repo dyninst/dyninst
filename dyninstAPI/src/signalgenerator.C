@@ -1112,7 +1112,6 @@ bool SignalGenerator::attachProcess()
 
     // Record what the process was doing when we attached, for possible
     // use later.
-    startup_printf("%s[%d]: attached to previously paused process: %d\n", FILE__, __LINE__, getPid());
     proc->set_status(stopped);
     
 #if !defined(os_windows)
