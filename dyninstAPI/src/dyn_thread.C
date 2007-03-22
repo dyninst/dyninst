@@ -53,6 +53,7 @@ dyn_thread::dyn_thread(process *pproc) :
    pending_tramp_addr(ADDR_NULL),
    indirect_start_func(0)
 { 
+   assert(pproc);
    proc = pproc; 
    lwp  = pproc->getRepresentativeLWP();
    proc->addThread(this);
@@ -68,6 +69,7 @@ dyn_thread::dyn_thread(process *proc_, unsigned index_, dyn_lwp *lwp_) :
     pending_tramp_addr( ADDR_NULL ),
     indirect_start_func(0)
 {
+   assert(proc_);
    proc = proc_;
    proc->addThread(this);
 }
