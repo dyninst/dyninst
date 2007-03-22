@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.683 2007/02/21 17:30:05 legendre Exp $
+// $Id: process.C,v 1.684 2007/03/22 19:56:25 legendre Exp $
 
 #include <ctype.h>
 
@@ -223,6 +223,7 @@ bool process::walkStackFromFrame(Frame startFrame,
   return true;
 }
 
+FILE *debugfd = NULL;
 
 // Return a vector (possibly with one object) of active frames
 // in the process
@@ -1990,7 +1991,6 @@ process::process(SignalGenerator *sh_) :
     , vsyscall_data_(NULL)
 #endif
 {
-
     // Let's try to profile memory usage
 #if defined(PROFILE_MEM_USAGE)
    void *mem_usage = sbrk(0);
@@ -2489,6 +2489,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     creationMechanism_(parentProc->creationMechanism_),
     stateWhenAttached_(parentProc->stateWhenAttached_),
     main_function(NULL), // Set later
+    thread_index_function(NULL),
     dyn(NULL),  // Set later
     representativeLWP(NULL), // Set later
     real_lwps(CThash),
