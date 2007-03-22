@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2007/01/17 22:47:42 giri Exp $
+# $Id: Makefile,v 1.4 2007/03/22 19:56:31 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -29,7 +29,7 @@ TEMP_INLINE_DEFINES =
 # Tradoff: adding -g to TFLAGS aids gdb but uses up gobs of disk space
 #TFLAGS 		+=  -g
 
-SYSLIBS		+= -lstdc++ -lsymtabAPI
+SYSLIBS		+= -lstdc++
 # Override these defaults by setting LDTCLFLAGS in top level make.config.local
 # Recommended settig for AIX 4.3.3 w/IBM RPM supplied tcl-8.3.3 is:
 # LDTCLFLAGS := -Wl,-brtl,-bbigtoc
