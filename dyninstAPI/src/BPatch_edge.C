@@ -65,7 +65,7 @@ edge_type_string(BPatch_edgeType t)
 }
 
 BPatch_edgeType 
-BPatch_edge::getType()
+BPatch_edge::getTypeInt()
 {
     EdgeTypeEnum lltype;
     lltype = source->lowlevel_block()->getTargetEdgeType(target->lowlevel_block());
@@ -140,8 +140,15 @@ bool BPatch_edge::needsEdgeTrampInt()
 }
 #endif
 
+BPatch_basicBlock *BPatch_edge::getSourceInt() {
+  return source;
+}
 
-BPatch_point *BPatch_edge::getPoint()
+BPatch_basicBlock *BPatch_edge::getTargetInt() {
+  return target;
+}
+
+BPatch_point *BPatch_edge::getPointInt()
 {
     if (!point) {
         // BPatch_points typically represent an instruction. This doesn't;

@@ -86,8 +86,12 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
     //
     // print internal data
     API_EXPORT_V(Int, (),
-
     void,dump,());
+
+    API_EXPORT(Int, (), BPatch_basicBlock *, getSource, ());
+    API_EXPORT(Int, (), BPatch_basicBlock *, getTarget, ());
+    API_EXPORT(Int, (), BPatch_point *, getPoint, ());
+    API_EXPORT(Int, (), BPatch_edgeType, getType, ());
 
     BPatch_edgeType type;
 
@@ -99,11 +103,8 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
 
     BPatch_point *point;
 
-    BPatch_point *getPoint();
-    
  private:
 
-    BPatch_edgeType getType();
     BPatch_point *createInstPointAtEdge();
 
 };
