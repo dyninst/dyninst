@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.77 2006/05/10 11:40:00 darnold Exp $
+// $Id: DMdaemon.h,v 1.78 2007/03/22 19:56:09 legendre Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -512,4 +512,8 @@ class paradynDaemon: public dynRPCUser {
    void addProcessInfo(const pdvector<pdstring> &resource_name);
    void SendMDLFiles( MRN::Stream * stream );
 };
+
+void newSampleRate(timeLength rate);
+
+
 #endif

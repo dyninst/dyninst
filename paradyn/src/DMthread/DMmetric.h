@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.49 2006/01/06 23:11:13 legendre Exp $ 
+// $Id: DMmetric.h,v 1.50 2007/03/22 19:56:10 legendre Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -381,6 +381,9 @@ class metricInstance {
 	// write contents of one histogram plus header info into a file
 	void saveOneMI_Histo(std::ofstream& fptr, Histogram *hdata, int phaseid);
 };
+
+void addMetric(T_dyninstRPC::metricInfo &info);
+
 #endif
 
 

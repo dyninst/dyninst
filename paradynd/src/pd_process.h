@@ -311,7 +311,7 @@ class pd_process {
   public:
   
    // ========  PASS THROUGH FUNCTIONS ===============================
-	static unsigned pd_process::calculate_Checksum( pdstring graph);
+	static unsigned calculate_Checksum( pdstring graph);
 
    BPatch_process *get_dyn_process() {
       return dyninst_process;
