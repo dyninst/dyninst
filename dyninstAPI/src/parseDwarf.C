@@ -1071,7 +1071,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			/* This node's children are in the common block. */
 			newCommonBlock = dynamic_cast<BPatch_typeCommon*>(commonBlockType);
-			newCommonBlock->beginCommonBlock();
+			if (newCommonBlock)
+			   newCommonBlock->beginCommonBlock();
 			} break;
 
 		case DW_TAG_constant: {
