@@ -185,7 +185,6 @@ inline THREAD_RETURN eventHandlerWrapper(void *h)
 {
     thread_printf("%s[%d]:  about to call main() for %s\n", __FILE__, __LINE__, ((EventHandler<EventRecord> *)h)->idstr);
   ((EventHandler<EventRecord> * )h)->main();
-  thread_printf("%s[%d]: main returned from %s\n", FILE__, __LINE__,  ((EventHandler<EventRecord> *)h)->idstr);
   DO_THREAD_RETURN;
 }
 
