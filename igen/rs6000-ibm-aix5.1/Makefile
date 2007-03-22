@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2007/01/17 22:47:37 giri Exp $
+# $Id: Makefile,v 1.4 2007/03/22 19:56:27 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,7 +25,6 @@ endif
 #TFLAGS += -pthread
 #LDFLAGS += -pthread
 
-SYSLIBS      += -lsymtabAPI
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
