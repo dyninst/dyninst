@@ -347,11 +347,7 @@ bool dynamic_linking::get_ld_info( Address & addr, unsigned &size, char ** path)
                            strstr(filename, ".so"));
 
       if (!matches_name) {
-         if (!first) continue; //Haven't found it yet
-         if (has_inode) break; //An object, and we've already found ldso. Done.
-         //If we're here, we have an mmap'd region (has_inode = false), and 
-         // we've already found the start of ldso (first != 0x0).  We want
-         // to include all subsequent mmap'd regions until we hit a new library
+	continue;
       }
 
       if (!*path)
