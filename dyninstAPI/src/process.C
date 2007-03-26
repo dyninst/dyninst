@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.684 2007/03/22 19:56:25 legendre Exp $
+// $Id: process.C,v 1.685 2007/03/26 20:34:53 legendre Exp $
 
 #include <ctype.h>
 
@@ -1939,6 +1939,8 @@ process::process(SignalGenerator *sh_) :
     thread_index_function(NULL),
     lastForkingThread(NULL),
     dyn(NULL),
+    interpreter_name_(NULL),
+    interpreter_base_(0x0),
     representativeLWP(NULL),
     real_lwps(CThash),
     max_number_of_threads(MAX_THREADS),
@@ -2491,6 +2493,8 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     main_function(NULL), // Set later
     thread_index_function(NULL),
     dyn(NULL),  // Set later
+    interpreter_name_(NULL),
+    interpreter_base_(0x0),
     representativeLWP(NULL), // Set later
     real_lwps(CThash),
     max_number_of_threads(parentProc->max_number_of_threads),
@@ -3672,7 +3676,7 @@ void process::writeDebugDataSpace(void *inTracedProcess, u_int amount,
 #endif
   write_printf("%lx_%d_%u[] = {", inTracedProcess, getPid(), write_no++);
 
-  unsigned char *buffer = (unsigned char *) inSelf;
+  const unsigned char *buffer = (const unsigned char *) inSelf;
   for (unsigned i=0; i < amount-1; i++) {
     if (amount && !(amount % 10))
       write_printf("\n");
@@ -6384,7 +6388,7 @@ dynthread_t process::mapIndexToTid(int index)
 {
    dynthread_t tid = (dynthread_t) -1;
    pdvector<AstNode *> ast_args;
-   ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)index));
+   ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)(long)index));
    AstNode *call_get_tid = AstNode::funcCallNode("DYNINST_getThreadFromIndex", ast_args, this);
    
    getRpcMgr()->postRPCtoDo(call_get_tid, true, mapIndexToTid_cb, &tid,
@@ -6652,6 +6656,31 @@ AstNode *process::trampGuardAST() {
                                           (void *)trampGuardBase_);
 
     return assignAst(trampGuardAST_);
+}
+
+const char *process::getInterpreterName() {
+   if (interpreter_name_)
+      return interpreter_name_;
+   if (!mapped_objects.size())
+      return NULL;
+   interpreter_name_ = getAOut()->parse_img()->linkedFile->getInterpreterName();
+   return interpreter_name_;
+}
+
+void process::setInterpreterName(const char *name) {
+   interpreter_name_ = name;
+}
+
+Address process::getInterpreterBase() {
+#if defined(os_linux)
+   if (!interpreter_base_)
+      readAuxvInfo();
+#endif
+   return interpreter_base_;
+}
+
+void process::setInterpreterBase(Address newbase) {
+   interpreter_base_ = newbase;
 }
 
 #if !defined(os_linux)

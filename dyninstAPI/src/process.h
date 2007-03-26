@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.400 2007/02/21 17:30:06 legendre Exp $
+/* $Id: process.h,v 1.401 2007/03/26 20:34:54 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -924,7 +924,13 @@ private:
 
   public:
     mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
-    
+
+ public:
+    const char *getInterpreterName();
+    Address getInterpreterBase();
+    void setInterpreterName(const char *name);
+    void setInterpreterBase(Address newbase);
+
  public:
     // Needed by instPoint
     // hasBeenBound: returns true if the runtime linker has bound the
@@ -1019,6 +1025,9 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   // Shared library handling
   ///////////////////////////////
   dynamic_linking *dyn;
+
+  const char *interpreter_name_;
+  Address interpreter_base_;
 
   
   ///////////////////////////////
