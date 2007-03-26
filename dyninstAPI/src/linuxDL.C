@@ -313,6 +313,27 @@ char * long_fgets( FILE * file ) {
 	return oldline;
 	} /* end long_fgets() */
 
+static bool isValidMemory(Address addr, int pid) {
+   bool result = false;
+   unsigned maps_size = 0;
+   map_entries *maps = NULL;
+
+   maps = getLinuxMaps(pid, maps_size);
+   if (!maps)
+      goto done;
+   for (unsigned i=0; i<maps_size; i++) {
+      if (maps[i].start <= addr && maps[i].end > addr) {
+         result = true;
+         goto done;
+      }
+   }
+
+ done:
+   if (maps)
+      free(maps);
+   return result;
+}
+
 /* get_ld_info() returns true if it filled in the base address of the
    ld.so library and its path, and false if it could not. */
 bool dynamic_linking::get_ld_info( Address & addr, unsigned &size, char ** path)
@@ -347,7 +368,7 @@ bool dynamic_linking::get_ld_info( Address & addr, unsigned &size, char ** path)
                            strstr(filename, ".so"));
 
       if (!matches_name) {
-	continue;
+         continue;
       }
 
       if (!*path)
@@ -595,21 +616,28 @@ bool dynamic_linking::initialize() {
     
     /* Find the base address of ld.so.1, since the entries we get
        from its Object won't be right, otherwise. */
-    Address ld_base = 0;
-    unsigned ld_size = 0;
-    char * ld_path;
-    if( ! get_ld_info( ld_base, ld_size, & ld_path) ) { 
-        startup_printf("Failed to get ld info, ret false from dyn::init\n");
-        return false; 
-    }
     
+    Address ld_base, ld_base_backup = 0x0;
+    unsigned ld_size;
+    char *ld_path_backup = NULL;
+
+    const char *ld_path = proc->getInterpreterName();
+    ld_base = proc->getInterpreterBase();
+
+    if( ! get_ld_info( ld_base_backup, ld_size, &ld_path_backup) ) { 
+       startup_printf("Failed to get ld info, ret false from dyn::init\n");
+       return false; 
+    }
+    if (!ld_path && ld_path_backup) {
+       ld_path = ld_path_backup;
+       proc->setInterpreterName(ld_path);
+    }
+
     /* Generate its Object and set r_debug_addr ("_r_debug"/STT_OBJECT) */
     // We haven't parsed libraries at this point, so do it by hand.
-    fileDescriptor ld_desc(ld_path, ld_base, ld_base, true);
     Dyn_Symtab *ldsoOne = new Dyn_Symtab();
     string fileName = ld_path;
     ldsoOne->Dyn_Symtab::openFile(fileName, ldsoOne);
-    //Object ldsoOne( ld_desc );
     pdvector< Dyn_Symbol > rDebugSyms;
     Dyn_Symbol rDebugSym;
     vector<Dyn_Symbol *>syms;
@@ -632,19 +660,14 @@ bool dynamic_linking::initialize() {
     
     // Set r_debug_addr
     r_debug_addr = rDebugSym.getAddr();
-    if (!ldsoOne->getLoadAddress()) {
-        r_debug_addr += ld_base;
+    if (!isValidMemory(r_debug_addr + ld_base, proc->getPid())) {
+       ld_base = ld_base_backup;
     }
+    if (!isValidMemory(r_debug_addr + ld_base, proc->getPid())) {
+       ld_base = ldsoOne->getLoadAddress();
+    }
+    r_debug_addr += ld_base;
 
-    signed long adjustment = 0;
-    if ((r_debug_addr < ld_base) || (r_debug_addr >= ld_base + ld_size)) {
-       //On RHEL4's version of ssh, we're seeing the OS ignore the load address
-       // for libraries, and force them into other locations.  Try to correct 
-       // for this by noting wheter the r_debug_addr symbol falls outside
-       // the addresses boundries, and then adjusting the address.
-       adjustment = ld_base - ldsoOne->getLoadAddress();
-    }
-    r_debug_addr += adjustment;
     assert( r_debug_addr );
     
     /* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
@@ -652,15 +675,11 @@ bool dynamic_linking::initialize() {
     ldsoOne->findSymbolByType(syms,"_dl_map_object",Dyn_Symbol::ST_UNKNOWN);
     for(unsigned index=0;index<syms.size();index++)
        rDebugSyms.push_back(*(syms[index]));
-    //if( ! ldsoOne.get_symbols( "_dl_map_object", rDebugSyms ) ) { ; }
     /* It's also apparently OK if this uses a garbage symbol. */
     if( rDebugSyms.size() == 1 ) { rDebugSym = rDebugSyms[0]; }
     if( ! (rDebugSym.getType() == Dyn_Symbol::ST_FUNCTION) ) { ; } 
     dlopen_addr = rDebugSym.getAddr() + ld_base;
-    dlopen_addr += adjustment;
     assert( dlopen_addr );
-    
-    free(ld_path);
     
     dynlinked = true;
 
