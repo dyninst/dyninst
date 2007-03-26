@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.255 2007/03/22 19:56:06 legendre Exp $
+// $Id: linux.C,v 1.256 2007/03/26 20:34:51 legendre Exp $
 
 #include <fstream>
 
@@ -1821,6 +1821,9 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
 }
 
 // These constants are not defined in all versions of elf.h
+#ifndef AT_BASE
+#define AT_BASE 7
+#endif
 #ifndef AT_NULL
 #define AT_NULL 0
 #endif
@@ -1913,6 +1916,8 @@ bool process::readAuxvInfo()
            dso_start = auxv_entry.value;
         else if (auxv_entry.type == AT_PAGESZ)
            page_size = auxv_entry.value;
+        else if (auxv_entry.type == AT_BASE)
+           interpreter_base_ = auxv_entry.value;
      } while (auxv_entry.type != AT_NULL);
      P_close(fd);
   }
