@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-coff.h,v 1.1 2007/02/05 21:14:29 giri Exp $
+ * $Id: Object-coff.h,v 1.2 2007/03/26 20:34:57 legendre Exp $
  * COFF object files.
  * Note - this is DEC OSF/1 coff which probably isn't the real thing
  *
@@ -121,6 +121,7 @@ public:
     string& GetFile() { return file_; }
     
     bool isEEL() const { return false; }
+    const char *interpreter_name() const { return NULL; }
 
 private:
     void    load_object (bool sharedLib);

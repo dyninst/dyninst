@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.3 2007/02/15 23:30:47 giri Exp $
+ * $Id: Object-nt.h,v 1.4 2007/03/26 20:35:01 legendre Exp $
 ************************************************************************/
 
 
@@ -197,6 +197,7 @@ public:
 	DLLEXPORT OFFSET getBaseAddress() const { return get_base_addr(); }
 	DLLEXPORT OFFSET getTOCoffset() const { return 0; }
    DLLEXPORT ObjectType objType() const;
+   DLLEXPORT const char *interpreter_name() const { return NULL; }
    
     DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     DLLEXPORT const vector<Address> &getPossibleMains() const   { return possible_mains; }

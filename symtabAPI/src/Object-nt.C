@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.6 2007/02/15 23:30:46 giri Exp $
+// $Id: Object-nt.C,v 1.7 2007/03/26 20:35:00 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -71,7 +71,18 @@
 
 bool pd_debug_export_symbols = false;
 
-//extern void printSysError(unsigned errNo);
+static void printSysError(unsigned errNo) {
+	char buf[1000];
+    bool result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo, 
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  buf, 1000, NULL);
+    if (!result) {
+        fprintf(stderr, "Couldn't print error message\n");
+        printSysError(GetLastError());
+    }
+    fprintf(stderr, "*** System error [%d]: %s\n", errNo, buf);
+    fflush(stderr);
+}
 
 //---------------------------------------------------------------------------
 // prototypes of functions used in this file
@@ -813,6 +824,9 @@ Object::Object(string &filename,
 		filename = "c:"+filename.substr(23,filename.size());
 	hFile = CreateFile(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, 
     				NULL,OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFile == NULL || hFile == INVALID_HANDLE_VALUE) {
+		printSysError(GetLastError());
+	}
     assert( hFile != NULL );
     assert( hFile != INVALID_HANDLE_VALUE );
     ParseDebugInfo();

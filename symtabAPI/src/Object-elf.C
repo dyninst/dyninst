@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.6 2007/02/15 23:30:44 giri Exp $
+ * $Id: Object-elf.C,v 1.7 2007/03/26 20:34:58 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -120,7 +120,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 			Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
 			Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp, 
 			Elf_X_Shdr*& dynstr_scnp,  Elf_X_Shdr*& eh_frame, 
-			Elf_X_Shdr*& gcc_except,
+         Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
 			bool
 #if defined(os_irix)
 			a_out  // variable not used on other platforms
@@ -141,6 +141,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 
     const char* EDITED_TEXT_NAME = ".edited.text";
     // const char* INIT_NAME        = ".init";
+    const char *INTERP_NAME      = ".interp";
     const char* FINI_NAME        = ".fini";
     const char* TEXT_NAME        = ".text";
     const char* BSS_NAME         = ".bss";
@@ -350,7 +351,9 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 	else if (strcmp(name, EXCEPT_NAME) == 0) {
 	    gcc_except = scnp;
 	}
-
+   else if (strcmp(name, INTERP_NAME) == 0) {
+      interp_scnp = scnp;
+   }
 //TODO clean up this. it is ugly
 #if defined(arch_x86)
 	else if (strcmp(name, DYNAMIC_NAME) == 0) {
@@ -552,6 +555,7 @@ void Object::load_object()
     Elf_X_Shdr *dynstr_scnp = 0;
     Elf_X_Shdr *eh_frame_scnp = 0;
     Elf_X_Shdr *gcc_except = 0;
+    Elf_X_Shdr *interp_scnp = 0;
 
     { // binding contour (for "goto cleanup")
 
@@ -574,7 +578,7 @@ void Object::load_object()
 	if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
 			stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 			rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
-			dynstr_scnp,eh_frame_scnp,gcc_except, true)) {
+			dynstr_scnp,eh_frame_scnp,gcc_except, interp_scnp, true)) {
 	    goto cleanup;
 	}
 	addressWidth_nbytes = elfHdr.wordSize();
@@ -607,6 +611,7 @@ void Object::load_object()
 	    find_catch_blocks(elfHdr, eh_frame_scnp, gcc_except, catch_addrs_);
 	}
 #endif
+   interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
 
 	// global symbols are put in global_symbols. Later we read the
 	// stab section to find the module to where they belong.
@@ -698,6 +703,7 @@ void Object::load_shared_object()
     Elf_X_Shdr *dynstr_scnp = 0;
     Elf_X_Shdr *eh_frame_scnp = 0;
     Elf_X_Shdr *gcc_except = 0;
+    Elf_X_Shdr *interp_scnp = 0;
 
     { // binding contour (for "goto cleanup2")
 
@@ -710,7 +716,7 @@ void Object::load_shared_object()
 	if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
 			stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 			rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp,
-			dynstr_scnp, eh_frame_scnp, gcc_except))
+			dynstr_scnp, eh_frame_scnp, gcc_except, interp_scnp))
 	    goto cleanup2;
 
 	addressWidth_nbytes = elfHdr.wordSize();
@@ -2017,6 +2023,7 @@ Object::Object(string &filename, void (*err_func)(const char *))
 #endif
     is_aout_ = false;
     did_open = false;
+    interpreter_name_ = NULL;
     bool  did_mmap = false;         	
     const char *file = file_.c_str();
     assert(file);
@@ -2067,6 +2074,7 @@ Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *
     : AObject(NULL, err_func), fileName(NULL), mem_image_(mem_image), EEL(false)
 {
     is_aout_ = false;
+    interpreter_name_ = NULL;
     elfHdr = Elf_X(mem_image,image_size);
     // ELF header: sanity check
     if (!elfHdr.isValid() || !pdelf_check_ehdr(elfHdr)) 
@@ -2092,6 +2100,7 @@ Object::Object(const Object& obj)	///****(for giri) have to change this. fileNam
     : AObject(obj), fileName(NULL), EEL(false) 
 {
     file_ptr_ = obj.file_ptr_;	
+    interpreter_name_ = NULL;
     mem_image_ = mem_image_;//mem_image should be moved to AObject later; and also include a type to specify if its a file/memory..TODO>>***** later. giri
     loadAddress_ = obj.loadAddress_;
     entryAddress_ = obj.entryAddress_;
@@ -2940,4 +2949,8 @@ void Object::getModuleLanguageInfo(
    }
 #endif
 
+}
+
+const char *Object::interpreter_name() const {
+   return interpreter_name_;
 }

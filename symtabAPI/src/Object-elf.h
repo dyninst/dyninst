@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.3 2007/02/15 23:30:45 giri Exp $
+ * $Id: Object-elf.h,v 1.4 2007/03/26 20:34:59 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -228,6 +228,7 @@ class Object : public AObject {
   }
 
   DLLEXPORT ObjectType objType() const;
+  const char *interpreter_name() const;
 
 
 //TODO Later - change this #ifdef later.. make getTOCoffset available for all platforms  
@@ -307,6 +308,7 @@ class Object : public AObject {
   OFFSET   loadAddress_;      // The object may specify a load address
                                //   Set to 0 if it may load anywhere
   OFFSET entryAddress_;
+  char *interpreter_name_;
           
 #if defined(arch_ia64)
   OFFSET   gp;			 // The gp for this object.
@@ -343,7 +345,8 @@ class Object : public AObject {
 		    Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
 		    Elf_X_Shdr*& got_scnp,  Elf_X_Shdr*& dynsym_scnp,
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& eh_frame,
-		    Elf_X_Shdr*& gcc_except, bool a_out=false);
+		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
+          bool a_out=false);
 
   void load_object();
   void load_shared_object();

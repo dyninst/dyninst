@@ -209,6 +209,8 @@ class Dyn_Symtab : public Dyn_LookupInterface {
    DLLEXPORT void*  code_ptr ()  const;
    DLLEXPORT void*  data_ptr ()  const;
 
+   DLLEXPORT const char*  getInterpreterName() const;
+
 	DLLEXPORT unsigned getAddressWidth() const;
 	DLLEXPORT OFFSET getLoadAddress() const;
 	DLLEXPORT OFFSET getEntryAddress() const;

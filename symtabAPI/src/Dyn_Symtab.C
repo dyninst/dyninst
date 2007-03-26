@@ -134,6 +134,10 @@ DLLEXPORT void* Dyn_Symtab::code_ptr ()  const {
 DLLEXPORT void* Dyn_Symtab::data_ptr ()  const { 
    return linkedFile->data_ptr();
 }
+
+DLLEXPORT const char*  Dyn_Symtab::getInterpreterName() const {
+   return linkedFile->interpreter_name();
+}
  
 DLLEXPORT OFFSET Dyn_Symtab::getEntryAddress() const { 
    return linkedFile->getEntryAddress(); 
