@@ -56,6 +56,8 @@ class BPatch_module;
 class int_function;
 class process;
 
+#define DYNINST_5_1
+
 typedef void (*BPatchAsyncThreadEventCallback)(BPatch_process *proc, BPatch_thread *thr);
 typedef void (*BPatchUserEventCallback)(BPatch_process *proc, void *buf, 
                                         unsigned int bufsize);
