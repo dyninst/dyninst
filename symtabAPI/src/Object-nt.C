@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.7 2007/03/26 20:35:00 legendre Exp $
+// $Id: Object-nt.C,v 1.8 2007/04/03 19:02:49 rchen Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -820,8 +820,19 @@ Object::Object(string &filename,
 {
 	if (strcmp(filename.c_str(), "ntdll.dll") == 0)
 		filename = "c:\\windows\\system32\\ntdll.dll";
-	if (filename.substr(0,23) == "\\Device\\HarddiskVolume1")
-		filename = "c:"+filename.substr(23,filename.size());
+
+	if (filename.substr(0,22) == "\\Device\\HarddiskVolume") {
+		TCHAR volumePath[1024];
+		if (GetVolumePathName(filename.c_str(), volumePath, 1024)) {
+			string::size_type filePathIndex = filename.find_first_of("\\/", 22);
+			if (filePathIndex != string::npos)
+				filename = volumePath + filename.substr(++filePathIndex);
+			else
+				filename = volumePath + filename.substr(23);
+		} else {
+			filename = "c:"+filename.substr(23);
+		}
+	}
 	hFile = CreateFile(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, 
     				NULL,OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == NULL || hFile == INVALID_HANDLE_VALUE) {
