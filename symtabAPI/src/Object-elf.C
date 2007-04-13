@@ -40,10 +40,9 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.7 2007/03/26 20:34:58 legendre Exp $
+ * $Id: Object-elf.C,v 1.8 2007/04/13 20:21:57 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
-
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
@@ -73,6 +72,24 @@
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
                               vector<Dyn_ExceptionBlock> &catch_addrs);
+#endif
+
+
+#if defined(os_solaris)
+#include <dlfcn.h>
+#define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
+
+int (*P_native_demangle)(const char *, char *, size_t);
+
+void loadNativeDemangler() {
+
+    P_native_demangle = NULL;
+    void *hDemangler = dlopen("libdemangle.so", DLOPEN_MODE);
+    if (hDemangler != NULL)
+        P_native_demangle = (int (*) (const char *, char *, size_t))
+    dlsym(hDemangler, "cplus_demangle");
+}
+		
 #endif
 
 void (*dwarf_err_func)(const char *);   // error callback for dwarf errors
@@ -611,7 +628,8 @@ void Object::load_object()
 	    find_catch_blocks(elfHdr, eh_frame_scnp, gcc_except, catch_addrs_);
 	}
 #endif
-   interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
+	if(interp_scnp)
+	   interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
 
 	// global symbols are put in global_symbols. Later we read the
 	// stab section to find the module to where they belong.
@@ -816,8 +834,6 @@ static Dyn_Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
   }
   return Dyn_Symbol::SL_UNKNOWN;
 }
-
-
 //============================================================================
 
 //#include "dyninstAPI/src/arch.h"
@@ -2021,6 +2037,9 @@ Object::Object(string &filename, void (*err_func)(const char *))
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
 #endif
+#if defined(os_solaris)
+    loadNativeDemangler();
+#endif    
     is_aout_ = false;
     did_open = false;
     interpreter_name_ = NULL;
@@ -2073,6 +2092,9 @@ Object::Object(string &filename, void (*err_func)(const char *))
 Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *))
     : AObject(NULL, err_func), fileName(NULL), mem_image_(mem_image), EEL(false)
 {
+#if defined(os_solaris)
+    loadNativeDemangler();
+#endif    
     is_aout_ = false;
     interpreter_name_ = NULL;
     elfHdr = Elf_X(mem_image,image_size);
@@ -2099,8 +2121,11 @@ Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *
 Object::Object(const Object& obj)	///****(for giri) have to change this. fileName changes(there might not be a filename****/
     : AObject(obj), fileName(NULL), EEL(false) 
 {
+#if defined(os_solaris)
+    loadNativeDemangler();
+#endif    
     file_ptr_ = obj.file_ptr_;	
-    interpreter_name_ = NULL;
+    interpreter_name_ = obj.interpreter_name_;
     mem_image_ = mem_image_;//mem_image should be moved to AObject later; and also include a type to specify if its a file/memory..TODO>>***** later. giri
     loadAddress_ = obj.loadAddress_;
     entryAddress_ = obj.entryAddress_;
