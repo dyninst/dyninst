@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.213 2007/02/14 23:04:06 legendre Exp $
+// $Id: solaris.C,v 1.214 2007/04/13 20:21:20 giri Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -83,10 +83,21 @@
 #include "dyn_lwp.h"
 
 #include "ast.h"
-
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
+#if 0	//moved to Object-elf.C	
+
 int (*P_native_demangle)(const char *, char *, size_t);
+
+void loadNativeDemangler() {
+  
+  P_native_demangle = NULL;
+  void *hDemangler = dlopen("libdemangle.so", DLOPEN_MODE);
+  if (hDemangler != NULL)
+    P_native_demangle = (int (*) (const char *, char *, size_t)) 
+      dlsym(hDemangler, "cplus_demangle");
+}
+#endif
 
 extern "C" {
 extern long sysconf(int);
@@ -1226,14 +1237,6 @@ int_function *instPoint::findCallee() {
     return NULL;
 }
 
-void loadNativeDemangler() {
-  
-  P_native_demangle = NULL;
-  void *hDemangler = dlopen("libdemangle.so", DLOPEN_MODE);
-  if (hDemangler != NULL)
-    P_native_demangle = (int (*) (const char *, char *, size_t)) 
-      dlsym(hDemangler, "cplus_demangle");
-}
 // vim:ts=5:
 
 /**
