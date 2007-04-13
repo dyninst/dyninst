@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: Process.C,v 1.6 2007/01/24 19:34:21 darnold Exp $
+// $Id: Process.C,v 1.7 2007/04/13 17:09:58 mjbrim Exp $
 #include <assert.h>
 #include "xplat/Process.h"
 
@@ -39,6 +39,7 @@ Process::CreateRemote( const std::string& host,
     // build the arguments for the remote process
     std::vector<std::string> rshArgs;
     rshArgs.push_back( rshCmd );
+    rshArgs.push_back( std::string("-n") ); /* redirect stdin to /dev/null */
     rshArgs.push_back( host );
     if( remCmd.length() > 0 )
     {
