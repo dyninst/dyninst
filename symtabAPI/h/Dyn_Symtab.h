@@ -65,6 +65,16 @@ typedef enum { lang_Unknown,
                lang_CMFortran
 } supportedLanguages;
 
+#if 0 
+ // To be used when flags will be used instead of booleans to specify paramaters for lookups
+ #define IS_MANGLED 		4
+ #define IS_REGEX   		2
+ #define IS_CASE_SENSITIVE 	1
+ #define IS_PRETTY		0
+ #define NOT_REGEX		0
+ #define NOT_CASE_SENSITIVE	0
+#endif
+
 typedef enum { Obj_Parsing,
                Syms_To_Functions,
                Build_Function_Lists,
@@ -238,6 +248,8 @@ class Dyn_Symtab : public Dyn_LookupInterface {
 	void addVariableName(Dyn_Symbol *var,
                         const string newName,
                         bool isMangled /*=false*/);
+	void addModuleName(Dyn_Symbol *mod,
+                        const string newName);
 
 	bool delSymbol(Dyn_Symbol *sym); 
 	
@@ -274,6 +286,9 @@ class Dyn_Symtab : public Dyn_LookupInterface {
 	bool findVariable(vector <Dyn_Symbol *> &ret, const string &name,
                      bool isMangled=false, bool isRegex = false,
                      bool checkCase = false);
+	bool findMod(vector <Dyn_Symbol *> &ret, const string &name, 
+                     bool isMangled=false, bool isRegex = false,
+                     bool checkCase = false);
 	bool findFuncVectorByPretty(const string &name, vector<Dyn_Symbol *> &ret);
 	bool findFuncVectorByMangled(const string &name, vector<Dyn_Symbol *> &ret);
 	bool findVarVectorByPretty(const string &name, vector<Dyn_Symbol *> &ret);
@@ -287,10 +302,12 @@ class Dyn_Symtab : public Dyn_LookupInterface {
                                     vector<Dyn_Symbol *>&ret);
 	bool findVarVectorByPrettyRegex(const string &rexp, bool checkCase,
                                    vector<Dyn_Symbol *>&ret);
+	bool findModByRegex(const string &rexp, bool checkCase,
+                                     vector<Dyn_Symbol *>&ret);
 	bool getAllFunctions(vector<Dyn_Symbol *> &ret);
 	bool getAllVariables(vector<Dyn_Symbol *> &ret);
 	bool getAllSymbols(vector<Dyn_Symbol *> &ret);
-	
+
    /***** Private Data Members *****/
  private:
    string filename_;
@@ -353,8 +370,9 @@ class Dyn_Symtab : public Dyn_LookupInterface {
    vector<Dyn_Symbol *> everyUniqueVariable;
    //vector<Dyn_Symbol *> createdVariables;
    //vector<Dyn_Symbol *> exportedVariables;
-	vector<Dyn_Symbol *> modSyms;
-	vector<Dyn_Symbol *> notypeSyms;
+   vector<Dyn_Symbol *> modSyms;
+   hash_map <string, vector <Dyn_Symbol *> *> modsByName;
+   vector<Dyn_Symbol *> notypeSyms;
 	vector<Dyn_Module *> _mods;
 
 	//vector<relocationEntry *> relocation_table_;

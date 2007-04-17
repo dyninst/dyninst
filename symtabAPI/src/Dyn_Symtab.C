@@ -59,7 +59,7 @@ bool pattern_match( const char *p, const char *s, bool checkCase );
 void pd_log_perror(const char *msg){
    errMsg = msg;
 };
- 
+
 static SymtabError serr;
 
 vector<Dyn_Symtab *> Dyn_Symtab::allSymtabs;
@@ -299,25 +299,26 @@ bool Dyn_Symtab::symbolsToFunctions(vector<Dyn_Symbol *> *raw_funcs)
 		{
 			const string mangledName = symIter.currkey();
 			char * unmangledName =
-            P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
-         if (unmangledName)
-            lookUp->addPrettyName(unmangledName, true);
+            		P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+		        if (unmangledName)
+		            lookUp->addPrettyName(unmangledName, true);
 			else
-            lookUp->addPrettyName(mangledName, true);
+		            lookUp->addPrettyName(mangledName, true);
 			Dyn_Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
 			delete(lookUp->getModule());
 			lookUp->setModule(newMod);
+			addModuleName(lookUp,mangledName);
 			modSyms.push_back(lookUp);
 		}	
 		else if(lookUp->getType() == Dyn_Symbol::ST_NOTYPE)
 		{
 			const string mangledName = symIter.currkey();
 			char * unmangledName =
-            P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
-         if (unmangledName)
-            lookUp->addPrettyName(unmangledName, true);
-			else
-            lookUp->addPrettyName(mangledName, true);
+            		P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+            		if (unmangledName)
+            		    lookUp->addPrettyName(unmangledName, true);
+	    		else
+  	          	    lookUp->addPrettyName(mangledName, true);
 			notypeSyms.push_back(lookUp);
 		}	
 		else if(lookUp->getType() == Dyn_Symbol::ST_OBJECT)
@@ -699,7 +700,7 @@ bool Dyn_Symtab::addSymbol(Dyn_Symbol *newSym)
 	delete(newSym->getModule());
 	newSym->setModule(newMod);
 	if(newSym->getAllPrettyNames().size() == 0)
-      unmangledName = P_cplus_demangle(sname.c_str(), nativeCompiler,false);
+      		unmangledName = P_cplus_demangle(sname.c_str(), nativeCompiler,false);
 	if(newSym->getType() == Dyn_Symbol::ST_FUNCTION)
 	{
 		names = newSym->getAllMangledNames();
@@ -725,7 +726,15 @@ bool Dyn_Symtab::addSymbol(Dyn_Symbol *newSym)
 			addVariableName(newSym, names[i], false);
 	}
 	else if(newSym->getType() == Dyn_Symbol::ST_MODULE)
+	{
+		names = newSym->getAllMangledNames();
+		for(unsigned i=0;i<names.size();i++)
+			addModuleName(newSym, names[i]);
+		names = newSym->getAllPrettyNames();
+		for(unsigned i=0;i<names.size();i++)
+			addModuleName(newSym, names[i]);
 		modSyms.push_back(newSym);
+	}	
 	else
 		notypeSyms.push_back(newSym);
 	if(newSym->getAllPrettyNames().size() == 0)		// add the unmangledName if there are no prettyNames
@@ -771,7 +780,15 @@ void Dyn_Symtab::addVariableName(Dyn_Symbol *var,
       varsByMangled[newName]->push_back(var);    
    }
 }
+
  
+void Dyn_Symtab::addModuleName(Dyn_Symbol *mod, const string newName)
+{
+   if(modsByName.find(newName)==modsByName.end())
+  	modsByName[newName] = new vector<Dyn_Symbol *>;
+   modsByName[newName]->push_back(mod);    
+}
+
 Dyn_Symtab::Dyn_Symtab(string &filename,bool &err)
    : filename_(filename), is_a_out(false), main_call_addr_(0),
      nativeCompiler(false)
@@ -1252,69 +1269,42 @@ bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
 		return findFunction(ret, name, isMangled, isRegex, checkCase);
 	else if(sType == Dyn_Symbol::ST_OBJECT)
 		return findVariable(ret, name, isMangled, isRegex, checkCase);
-	else if((sType == Dyn_Symbol::ST_MODULE) ||
-           (sType == Dyn_Symbol::ST_NOTYPE))
+	else if(sType == Dyn_Symbol::ST_MODULE)
+		return findMod(ret, name, isMangled, isRegex, checkCase);
+	else if(sType == Dyn_Symbol::ST_NOTYPE)
 	{
 		unsigned start = ret.size(),i;
 		if(!isMangled && !isRegex)
 		{
-			for(i=0;i<modSyms.size();i++)
-			{
-				if((modSyms[i]->getType() == sType) &&
-				   (modSyms[i]->getPrettyName() == name))
-					ret.push_back(modSyms[i]);
-			}
-			for(i=0;i<notypeSyms.size();i++)
-			{
-				if((notypeSyms[i]->getType() == sType) &&
-				   (notypeSyms[i]->getPrettyName() == name))
-					ret.push_back(notypeSyms[i]);
-			}
+		    for(i=0;i<notypeSyms.size();i++)
+		    {
+			if(notypeSyms[i]->getPrettyName() == name)
+			    ret.push_back(notypeSyms[i]);
+		    }	    
 		}
 		else if(isMangled&&!isRegex)
 		{
-			for(i=0;i<modSyms.size();i++)
-			{
-				if((modSyms[i]->getType() == sType) &&
-				   (modSyms[i]->getName() == name))
-					ret.push_back(modSyms[i]);
-			}
-			for(i=0;i<notypeSyms.size();i++)
-			{
-				if((notypeSyms[i]->getType() == sType) &&
-				   (notypeSyms[i]->getName() == name))
-					ret.push_back(notypeSyms[i]);
-			}
+		    for(i=0;i<notypeSyms.size();i++)
+		    {
+			if(notypeSyms[i]->getName() == name)
+			    ret.push_back(notypeSyms[i]);
+		    }	
 		}
 		else if(!isMangled&&isRegex)
 		{
-			for(i=0;i<modSyms.size();i++)
-			{
-				if((modSyms[i]->getType() == sType) &&
-				   (regexEquiv(name, modSyms[i]->getPrettyName(), checkCase)))	
-					ret.push_back(modSyms[i]);
-			}
-			for(i=0;i<notypeSyms.size();i++)
-			{
-				if((notypeSyms[i]->getType() == sType) &&
-				   (regexEquiv(name, notypeSyms[i]->getPrettyName(), checkCase)))	
-					ret.push_back(notypeSyms[i]);
-			}
+		    for(i=0;i<notypeSyms.size();i++)
+		    {
+			if(regexEquiv(name, notypeSyms[i]->getPrettyName(), checkCase))
+		 	    ret.push_back(notypeSyms[i]);
+		    }	
 		}
 		else
 		{
-			for(i=0;i<modSyms.size();i++)
-			{
-				if((modSyms[i]->getType() == sType) &&
-				   (regexEquiv(name, modSyms[i]->getName(), checkCase)))	
-					ret.push_back(modSyms[i]);
-			}
-			for(i=0;i<notypeSyms.size();i++)
-			{
-				if((notypeSyms[i]->getType() == sType) &&
-				   (regexEquiv(name, notypeSyms[i]->getName(), checkCase)))	
-					ret.push_back(notypeSyms[i]);
-			}
+		    for(i=0;i<notypeSyms.size();i++)
+		    {
+			if(regexEquiv(name, notypeSyms[i]->getName(), checkCase))
+			    ret.push_back(notypeSyms[i]);
+		    }	
 		}
 		if(ret.size() > start)
 			return true;
@@ -1371,6 +1361,24 @@ bool Dyn_Symtab::findVariable(vector <Dyn_Symbol *> &ret, const string &name,
 		return findVarVectorByPrettyRegex(name, checkCase, ret);
 	else
 		return findVarVectorByMangledRegex(name, checkCase, ret);
+}
+
+bool Dyn_Symtab::findMod(vector <Dyn_Symbol *> &ret, const string &name,
+                            bool isMangled, bool isRegex,
+                            bool checkCase)
+{
+	if(!isRegex)
+	{
+		if(modsByName.find(name)!=modsByName.end())
+		{
+			ret = *(modsByName[name]);
+			return true;	
+		}
+		serr = No_Such_Module;
+		return false;
+	}
+	else
+		findModByRegex(name, checkCase, ret);
 }
 
 // Return the vector of functions associated with a mangled name
@@ -1508,6 +1516,26 @@ bool Dyn_Symtab::findVarVectorByPrettyRegex(const string &rexp, bool checkCase, 
 	if(ret.size() > start)
 		return true;
 	serr = No_Such_Variable;
+	return false;
+}
+
+bool Dyn_Symtab::findModByRegex(const string &rexp, bool checkCase, vector<Dyn_Symbol *>&ret)
+{
+	unsigned start = ret.size();
+	hash_map <string, vector<Dyn_Symbol *>*>::iterator iter;
+	for(iter = modsByName.begin(); iter!=modsByName.end(); iter++)
+	{
+		if(regexEquiv(rexp,iter->first,checkCase))
+		{
+			vector<Dyn_Symbol *> vars = *(iter->second);
+			int size = vars.size();
+			for(int index = 0; index < size; index++)
+				ret.push_back(vars[index]);
+		}
+	}
+	if(ret.size() > start)
+		return true;
+	serr = No_Such_Module;
 	return false;
 }
 
@@ -1920,7 +1948,17 @@ bool Dyn_Symtab::changeType(Dyn_Symbol *sym, Dyn_Symbol::SymbolType oldType)
 	}
 	else if(oldType == Dyn_Symbol::ST_MODULE)
 	{
+		unsigned i;
+		vector<Dyn_Symbol *> *mods;
 		vector<Dyn_Symbol *>::iterator iter;
+		names = sym->getAllMangledNames();
+		for(i=0;i<names.size();i++)
+		{
+			mods = modsByName[names[i]];
+			iter = find(mods->begin(), mods->end(), sym);
+			mods->erase(iter);
+		}
+		names.clear();
 		iter = find(modSyms.begin(),modSyms.end(),sym);
 		modSyms.erase(iter);
 	}
