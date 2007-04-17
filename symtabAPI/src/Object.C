@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.5 2007/02/15 23:30:50 giri Exp $
+// $Id: Object.C,v 1.6 2007/04/17 19:05:50 giri Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
@@ -288,6 +288,8 @@ DLLEXPORT bool Dyn_Symbol::addMangledName(string name, bool isPrimary) {
 	    	module_->exec()->addFunctionName(this,name,true);
 	else if(type_ == ST_OBJECT)
 		module_->exec()->addVariableName(this,name,true);
+	else if(type_ == ST_MODULE)
+		module_->exec()->addModuleName(this,name);
     }
     
     // Bool: true if the name is new; AKA !found
@@ -319,6 +321,8 @@ DLLEXPORT bool Dyn_Symbol::addPrettyName(string name, bool isPrimary) {
 	    	module_->exec()->addFunctionName(this,name,false);
 	else if(type_ == ST_OBJECT)
 		module_->exec()->addVariableName(this,name,false);
+	else if(type_ == ST_MODULE)
+		module_->exec()->addModuleName(this,name);
     }
     
     // Bool: true if the name is new; AKA !found
