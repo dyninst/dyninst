@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2006/04/03 01:11:50 mirg Exp $
+# $Id: Makefile,v 1.16 2007/04/24 23:06:01 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -31,7 +31,8 @@ SRCS		+= \
 				../src/RTheap-linux.c \
 				../src/RTthread.c \
 				../src/RTthread-index.c \
-				../src/RTthread-ia64.c
+				../src/RTthread-ia64.c \
+				../src/RTspace.S
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

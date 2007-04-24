@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.19 2006/01/06 23:11:03 legendre Exp $
+# $Id: Makefile,v 1.20 2007/04/24 23:06:00 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -38,7 +38,8 @@ SRCS		+= ../src/RTposix.c \
 			../src/RTmutatedBinary_ELF.c \
 			../src/RTthread.c \
 			../src/RTthread-index.c \
-			../src/RTthread-x86.c
+			../src/RTthread-x86.c \
+			../src/RTspace.S
 
 #CFLAGS += -DDEBUG_PRINT_RT    # enable debug/trace messages from library
 

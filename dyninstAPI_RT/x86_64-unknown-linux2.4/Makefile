@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2006/12/11 22:19:40 legendre Exp $
+# $Id: Makefile,v 1.10 2007/04/24 23:06:03 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -36,7 +36,8 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTmutatedBinary_ELF.c \
 			../src/RTthread-x86-64.c \
 			../src/RTthread.c \
-			../src/RTthread-index.c
+			../src/RTthread-index.c \
+			../src/RTspace.S
 
 #CFLAGS += -DDEBUG_PRINT_RT    # enable debug/trace messages from library
 
@@ -51,14 +52,13 @@ endif
 include ../make.module.tmpl
 
 # 32-bit runtime library
-ASM_SRCS_32  = ../src/RTfake-ret-x86.S
+ASM_SRCS_32  = ../src/RTfake-ret-x86.S ../src/RTspace.S
 
 TARGET_32_SO = libdyninstAPI_RT_m32.so.1
 XTARGET_32   = $(basename $(basename $(TARGET_32_SO)))
 VOUCHER_32   = V_$(XTARGET_32)
 OBJS_32      = $(patsubst %.c, %_m32.o, $(filter %.c,$(notdir $(SRCS))))
 ASM_OBJS_32  = $(patsubst %.S, %_m32.o, $(filter %.S,$(notdir $(ASM_SRCS_32))))
-
 CFLAGS_32    = -DMUTATEE_32 $(CFLAGS)
 LDFLAGS_32   = $(LDFLAGS)
 LIBS_32      = -L/usr/lib $(LIBS)
@@ -75,6 +75,9 @@ $(TARGET_32_SO): $(OBJS_32) $(ASM_OBJS_32)
 	@$(RM) $(TARGET_32_SO)
 	@$(MAKE) $(VOUCHER_32)
 	$(LD) $(subst -m64,-m32,$(LDFLAGS_32)) -o $(TARGET_32_SO) $(VOUCHER_32).o $(OBJS_32) $(ASM_OBJS_32) $(LIBS_32)
+
+RTspace.o: ../src/RTspace.S
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(DEST)/$(TARGET_32_SO): $(TARGET_32_SO)
 	-$(CP) $(TARGET_32_SO) $(DEST)

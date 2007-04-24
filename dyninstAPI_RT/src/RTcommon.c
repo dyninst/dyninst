@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.72 2006/06/05 22:30:17 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.73 2007/04/24 23:06:02 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -82,9 +82,16 @@ typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
 #define ALIGN_ATTRIB 
 #endif
 
-HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
-HEAP_TYPE DYNINSTstaticHeap_512K_lowmemHeap_1[512*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
-HEAP_TYPE DYNINSTstaticHeap_16M_anyHeap_1[16*1024*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+#if defined(os_linux)
+#define HEAP_LOCAL extern
+#else
+#define HEAP_LOCAL
+#endif
+
+
+HEAP_LOCAL HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_512K_lowmemHeap_1[512*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_16M_anyHeap_1[16*1024*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 
 /* These are necessary because of silly C-style 'extern'/linking conventions. */
 const unsigned long sizeOfLowMemHeap1 = sizeof( DYNINSTstaticHeap_512K_lowmemHeap_1 );
