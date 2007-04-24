@@ -2024,6 +2024,7 @@ typedef struct dwarfEHFrame_t
    Dwarf_Signed fde_element_count;
    Address text_start;
    char *buffer;
+   bool uses_absolute;
 } dwarfEHFrame_t;
 
 static void patchVSyscallImage(char *mem_image, size_t image_size, 
@@ -2053,28 +2054,62 @@ void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p)
 
    eh_frame->buffer = buffer;
    eh_frame->text_start = p->getVsyscallText();
+			
+   /**
+	* We try to open the vsyscall dso twice.  After the first open, we 
+	* check to see if the fde data is valid.  On many 2.6 kernels, its
+	* addresses aren't properly marked and libdwarf misreads them.  If
+	* it looks like libdwarf is misreading, we close everything up, patch
+	* up the DSO, and re-open it.
+	**/
+   for (unsigned i=0; i<2; i++) 
+   {   
+	  //Get a handle to the dwarf object
+	  eh_frame->elf = elf_memory(eh_frame->buffer, dso_size);
+	  iresult = dwarf_elf_init(eh_frame->elf, DW_DLC_READ, pd_dwarf_handler, 
+							   NULL, &eh_frame->dbg, &err);
+	  if (iresult != DW_DLV_OK) {
+		 pdstring msg = "libdwarf failed to open the VSyscall DSO\n";
+		 showErrorCallback(130, msg);
+		 goto err_handler;
+	  }
+	  
+	  //Get the .eh_frame information from the image
+	  iresult = dwarf_get_fde_list_eh(eh_frame->dbg, &eh_frame->cie_data, 
+									  &eh_frame->cie_element_count, 
+									  &eh_frame->fde_data,
+									  &eh_frame->fde_element_count, &err);
+	  if (iresult != DW_DLV_OK) {
+		 //bperr( "Couldn't get fde list\n");
+		 goto err_handler;   
+	  }
 
-   //Fix up some linux bugs before we load the image.
-   patchVSyscallImage(eh_frame->buffer, dso_size, p->getAddressWidth());   
-
-   //Get a handle to the dwarf object
-   eh_frame->elf = elf_memory(eh_frame->buffer, dso_size);
-   iresult = dwarf_elf_init(eh_frame->elf, DW_DLC_READ, pd_dwarf_handler, 
-                            NULL, &eh_frame->dbg, &err);
-
-   if (iresult != DW_DLV_OK) {
-	 pdstring msg = "libdwarf failed to open the VSyscall DSO\n";
-	 showErrorCallback(130, msg);
-	 goto err_handler;
-   }
-
-   //Get the .eh_frame information from the image
-   iresult = dwarf_get_fde_list_eh(eh_frame->dbg, &eh_frame->cie_data, 
-	   &eh_frame->cie_element_count, &eh_frame->fde_data,
-	   &eh_frame->fde_element_count, &err);				 
-   if (iresult != DW_DLV_OK) {
-	 bperr( "Couldn't get fde list\n");
-	 goto err_handler;   
+	  if (i == 0)
+	  {
+		 bool fde_works = false;
+		 for (unsigned j=0; j<eh_frame->fde_element_count; j++) {
+			Dwarf_Addr low_pc;
+			Dwarf_Unsigned size;
+			iresult = dwarf_get_fde_range(eh_frame->fde_data[j], &low_pc, &size,
+										  NULL, NULL, NULL, NULL, NULL, &err);
+			if (low_pc >= p->getVsyscallStart() && low_pc < p->getVsyscallEnd()) {
+			   fde_works = true;
+			   break;
+			}
+		 }
+		 if (!fde_works) {
+			//Fix up some linux bugs before we load the image.
+			dwarf_finish(eh_frame->dbg, &err);
+			elf_end(eh_frame->elf);
+			eh_frame->uses_absolute = false;
+			patchVSyscallImage(eh_frame->buffer, dso_size, p->getAddressWidth());   
+			continue;
+		 }
+		 else {
+			eh_frame->uses_absolute = true;
+			break;
+		 }
+	  }
    }
    
    return (void *) eh_frame;
@@ -2113,8 +2148,10 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
    *error = false;
    registr = (Dwarf_Half) reg;
 
-   //PC is an absolute address, the eh_frame info is relative
-   pc -= eh_frame->text_start;
+   if (!eh_frame->uses_absolute) {
+	  //PC is an absolute address, the eh_frame info is relative
+	  pc -= eh_frame->text_start;
+   }
 
    /**
     * Get the stack unwinding information by first reading the 
@@ -2311,13 +2348,14 @@ static void patchVSyscallImage(char *mem_image, size_t image_size,
    eh_ptr = &(mem_image[eh_frame_offset]);
 
    if (address_width == 4) {
-	  uint32_t *size, *type, *addr;
+	  uint32_t *size, *type, *addr, *len;
 	  while (eh_offset < eh_frame_size)
 	  {
 		 size = (uint32_t *) &eh_ptr[eh_offset];
 		 eh_offset += sizeof(int32_t);
 		 type = (uint32_t *) &eh_ptr[eh_offset];
 		 addr = (uint32_t *) &eh_ptr[eh_offset+sizeof(int32_t)];
+		 len = (uint32_t *) &eh_ptr[eh_offset+2*sizeof(int32_t)];
 		 
 		 assert(*size % sizeof(int32_t) == 0);
 		 
@@ -2334,9 +2372,15 @@ static void patchVSyscallImage(char *mem_image, size_t image_size,
 			if (((signed) *addr) + cur_pos >= text_starts[i]  &&
 				((signed) *addr) + cur_pos <  text_starts[i]+text_sizes[i])
 			{
-			   //If the address apears to be relative to the FDE data 
+			   //If the address appears to be relative to the FDE data 
 			   // structure (cur_pos) we'll fix it.
 			   *addr = ((signed) *addr) + cur_pos - text_starts[i];
+			}
+			else if (((signed) *addr) + cur_pos + (signed) *len >= text_starts[i]  &&
+					 ((signed) *addr) + cur_pos + (signed) *len <  text_starts[i]+text_sizes[i])
+			{
+			   //Same as above case, except only the ending appears in this region.
+			   *addr = ((signed) *addr) + cur_pos + 1 - text_starts[i];
 			}
 			else if (*addr >= text_starts[i] && 
 					 *addr < text_starts[i]+text_sizes[i])
