@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.256 2007/03/26 20:34:51 legendre Exp $
+// $Id: linux.C,v 1.257 2007/04/24 23:06:07 legendre Exp $
 
 #include <fstream>
 
@@ -773,38 +773,38 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
 
 bool dyn_lwp::waitUntilStopped()
 {
-  if ((status() == stopped) || (status() == exited))
-  {
-     return true;
-  }
-
-  SignalGenerator *sh = (SignalGenerator *) proc()->sh;
-  waiting_for_stop = true;
-  
-  // Wake up the signal generator...
- signal_printf("%s[%d]: waitUntilStopped for lwp %u\n",
-               FILE__, __LINE__, get_lwp_id());
+   if ((status() == stopped) || (status() == exited))
+   {
+      return true;
+   }
+   
+   SignalGenerator *sh = (SignalGenerator *) proc()->sh;
+   waiting_for_stop = true;
+   
+   // Wake up the signal generator...
+   signal_printf("%s[%d]: waitUntilStopped for lwp %u\n",
+                 FILE__, __LINE__, get_lwp_id());
+   
+   // Continue suppression technique...
+   sh->markProcessStop();
+   while (status() != stopped) {
+      if( status() == exited ) break;
+      
+      // and make sure the signal generator is woken up and in waitpid...
+      sh->signalActiveProcess();
+      
+      signal_printf("%s[%d]:  before waitForEvent(evtProcessStop) for lwp %d: status is %s\n",
+                    FILE__, __LINE__, get_lwp_id(), getStatusAsString().c_str());
+      sh->waitForEvent(evtProcessStop, NULL, NULL, NULL_STATUS_INITIALIZER, false);
+   }
  
- // Continue suppression technique...
- sh->markProcessStop();
- while (status() != stopped) {
-     if( status() == exited ) break;
-
-     // and make sure the signal generator is woken up and in waitpid...
-     sh->signalActiveProcess();
-
-     signal_printf("%s[%d]:  before waitForEvent(evtProcessStop) for lwp %d: status is %s\n",
-                   FILE__, __LINE__, get_lwp_id(), getStatusAsString().c_str());
-     sh->waitForEvent(evtProcessStop, NULL, NULL, NULL_STATUS_INITIALIZER, false);
- }
- 
- waiting_for_stop = false;
-
- sh->belayActiveProcess();
- sh->unmarkProcessStop();
- sh->resendSuppressedSignals();
-
- return true;
+   waiting_for_stop = false;
+   
+   sh->belayActiveProcess();
+   sh->unmarkProcessStop();
+   sh->resendSuppressedSignals();
+   
+   return true;
 }
 
 bool dyn_lwp::stop_() 
@@ -872,37 +872,46 @@ bool SignalGenerator::waitForStopInline()
 bool process::stop_(bool waitUntilStop)
 {
   int result;
+  bool retval = false;
+  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+  unsigned index = 0;
+  dyn_lwp *lwp;
+  
   
   if (status_ == stopped) {
      return true;
   }
+
+  sh->setWaitingForStop(true);
   
   //Stop the main process
   result = P_kill(getPid(), SIGSTOP);
   if (result == -1) 
   {
     perror("Couldn't send SIGSTOP\n");
-    return false;
+    goto done;
   }
+
 
   if (waitUntilStop) {
     if (!waitUntilLWPStops()) 
-       return false;
+       goto done;
     if (status() == exited)
-       return false;
+       goto done;
   }
 
   //Stop all other LWPs
-  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
-  unsigned index = 0;
-  dyn_lwp *lwp;
-  
   while(lwp_iter.next(index, lwp))
   {
      lwp->pauseLWP(waitUntilStop);
   }
 
-  return true;
+  retval = true;
+ done:
+  sh->setWaitingForStop(false);
+  ((SignalGenerator *)sh)->resendSuppressedSignals();
+
+  return retval;
 }
 
 bool process::waitUntilStopped()
@@ -924,25 +933,20 @@ bool process::waitUntilStopped()
 
 bool process::waitUntilLWPStops()
 {
-    sh->markProcessStop();
-    sh->setWaitingForStop(true);
-    while ( status() != stopped) {
-        if (status() == exited) {
-            sh->unmarkProcessStop();
-	    sh->setWaitingForStop(false);
-	    return false;
-        }
-        signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessStop)\n", 
-                      FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        sh->waitForEvent(evtProcessStop);
-    }
-    sh->setWaitingForStop(false);
-    sh->unmarkProcessStop();
-    sh->setWaitingForStop(false);
+   sh->markProcessStop();
 
-    ((SignalGenerator *)sh)->resendSuppressedSignals();
-    
-  return true;
+   while ( status() != stopped) {
+      if (status() == exited) {
+         sh->unmarkProcessStop();
+         return false;
+      }
+      signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessStop)\n", 
+                    FILE__, __LINE__, getThreadStr(getExecThreadID()));
+      sh->waitForEvent(evtProcessStop);
+   }
+   sh->unmarkProcessStop();
+
+   return true;
 }
 
 terminateProcStatus_t process::terminateProc_()
@@ -1168,14 +1172,15 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 }
 
 
-bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf, int pid, int address_width) 
+bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf, 
+                                       int pid, int /*address_width*/) 
 {
 
      u_int nbytes = nelem;
      const unsigned char *ap = (const unsigned char*) inTraced; 
      unsigned char *dp = (unsigned char*) inSelf;
      Address w = 0x0;               /* ptrace I/O buffer */
-     int len = address_width; /* address alignment of ptrace I/O requests */
+     int len = sizeof(void *);
      unsigned cnt;
          
      ptraceOps++; ptraceBytes += nbytes;
@@ -1855,6 +1860,332 @@ static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address pagesiz
    return true;
 }
 
+/**
+ * get_word_at is a helper function for readAuxvFromStack.  It reads
+ * a word out of the mutatee's stack via the debugger interface, and
+ * it keeps the word cached for future reads.
+ * The gwa_* global variables are basically parameters to get_word_at
+ * and should be reset before every call
+ *
+ * gwa_buffer is a cache of data we've read before.  It's backwards 
+ * for convience, higher addresses are cached towards the base of gwa_buffer
+ * and lower addresses are cached at the top.  This is because we read from
+ * high addresses to low ones, but we want to start caching at the start of
+ * gwa_buffer.
+ **/
+static unsigned long *gwa_buffer = NULL;
+static unsigned gwa_size = 0; 
+static unsigned gwa_pos = 0;
+static unsigned long gwa_base_addr = 0;
+
+static unsigned long get_word_at(process *p, unsigned long addr, bool &err) {
+   bool result;
+   unsigned word_size = p->getAddressWidth();
+   unsigned long word;
+
+   /**
+    * On AMD64 controlling 32-bit mutatee words are 32 bits long.
+    * We don't want to deal with this now, so treat as a 64 bit read
+    * (from aligned_addr) and then pick the correct 32 bits to return
+    * at the end of this function.
+    **/
+   unsigned long aligned_addr = addr;
+   if (word_size == 4 && sizeof(long) == 8 && addr % 8 == 4)
+      aligned_addr -= 4;
+
+   /**
+    * Allocate gwa_buffer on first call
+    **/
+   if (gwa_buffer == NULL) {
+      gwa_buffer = (unsigned long *) malloc(gwa_size);
+   }
+
+   /**
+    * If gwa_buffer isn't big enough, grow it.
+    **/
+   if (gwa_base_addr - gwa_size >= aligned_addr) {
+      while (gwa_base_addr - gwa_size >= aligned_addr)
+         gwa_size = gwa_size * 2;
+      gwa_buffer = (unsigned long *) realloc(gwa_buffer, gwa_size);
+   }
+
+   /**
+    * Keep adding words to the cache (gwa_buffer) until we've cached
+    * the word the user is interested in.
+    **/
+   while (gwa_base_addr - (gwa_pos * sizeof(long)) >= aligned_addr) {
+      result = p->readDataSpace((void *) aligned_addr, sizeof(long), &word, false);
+      if (!result) {
+         err = true;
+         return 0x0;
+      }
+      gwa_buffer[gwa_pos] = word;
+      gwa_pos++;
+   }
+
+   /**
+    * Return the word the user wants out of the cache.  'word' is the
+    * long value we want to return.  On 64-bit mutator/32-bit mutatees
+    * we may need to return a specific 32-bits of word.
+    **/
+   word = gwa_buffer[(gwa_base_addr - aligned_addr) / sizeof(long)];
+
+   if (word_size == 4 && sizeof(long) == 8 && addr % 8 == 4) {
+      //64-bit mutator, 32 bit mutatee, looking for unaligned word
+      uint32_t *words = (uint32_t *) &word;
+      return (long) words[1];
+   }
+   else if (word_size == 4 && sizeof(long) == 8)
+   {
+      //64-bit mutator, 32 bit mutatee, looking for aligned word
+      uint32_t *words = (uint32_t *) &word;
+      return (long) words[0];
+   }
+   else
+   {
+      //mutator and mutatee are same size
+      return word;
+   }
+}
+
+
+/**
+ * Another helper function for readAuxvInfoFromStack.  We want to know
+ * the top byte of the stack.  Unfortunately, if we're running this it's
+ * probably because /proc/PID/ isn't reliable, so we can't use maps.  
+ * Check the machine's stack pointer, page align it, and start walking
+ * back looking for an unaccessible page.
+ **/
+static Address getStackTop(process *proc, bool &err) {
+   Address stack_pointer;
+   Address pagesize = getpagesize();
+   bool result;
+   long word;
+   err = false;
+
+   dyn_lwp *init_lwp = proc->getInitialLwp();
+   if (!init_lwp) {
+      err = true;
+      return 0x0;
+   }
+
+   Frame frame = init_lwp->getActiveFrame();
+   stack_pointer = frame.getSP();
+   if (!stack_pointer) {
+      err = true;
+      return 0x0;
+   }
+   
+   //Align sp to pagesize
+   stack_pointer = (stack_pointer & ~(pagesize - 1)) + pagesize;
+   
+   //Read pages until we get to an unmapped page
+   for (;;) {
+      result = proc->readDataSpace((void *) stack_pointer, sizeof(long), &word, 
+                                   false);
+      if (!result) {
+         break;
+      }
+      stack_pointer += pagesize;
+   }
+
+   //The vsyscall page sometimes hangs out above the stack.  Test if this
+   // page is it, then move back down one if it is.
+   char pagestart[4];
+   result = proc->readDataSpace((void *) (stack_pointer - pagesize), 4, pagestart, 
+                                false);
+   if (result) {
+      if (pagestart[0] == 0x7F && pagestart[1] == 'E' && 
+          pagestart[2] == 'L' &&  pagestart[3] == 'F') 
+      {
+         stack_pointer -= pagesize;
+      }
+   }
+
+   return stack_pointer;
+}
+
+/**
+ * We can't read /proc/PID/auxv for some reason (BProc is a likely candidate).
+ * We'll instead pull this data from the mutatee's stack.  On Linux the top of
+ * the stack at process startup is arranged like the following:
+ *          -------------------------------------
+ * esp ->   |                argc               |
+ *          |               argv[0]             |
+ *          |                ...                |
+ *          |               argv[n]             |
+ *          |                                   |
+ *          |               envp[0]             |
+ *          |                ...                |
+ *          |               envp[n]             |
+ *          |                NULL               |
+ *          |                                   |
+ *          |  { auxv[0].type, auxv[0].value }  |   
+ *          |                ...                |
+ *          |  { auxv[n].type, auxv[n].value }  | 
+ *          |  {      NULL   ,     NULL      }  |
+ *          |                                   |
+ *          |      Some number of NULL words    |
+ *          |        Strings for argv[]         |
+ *          |        Strings for envp[]         |
+ *          |                NULL               |
+ *          -------------------------------------
+ *
+ * We want to get at the name/value pairs of auxv.  Unfortunately,
+ * if we're attaching the stack pointer has probably moved.  Instead
+ * we'll try to read the from the bottom up, which is more difficult.
+ * argv[] and envp[] are pointers to the strings at the bottom of
+ * the stack.  We'll search backwards for these pointers, then move back
+ * down until we think we have the auxv array.  Yea us.
+ **/
+void *readAuxvFromStack(process *proc) {
+   gwa_buffer = NULL;
+   gwa_size = 1024 * 1024; //One megabyte default
+   gwa_pos = 0;
+   unsigned word_size = proc->getAddressWidth();
+   bool err = false;
+
+   // Get the base address of the mutatee's stack.  For example,
+   //  on many standard linux/x86 machines this will return 
+   //  0xc0000000
+   gwa_base_addr = getStackTop(proc, err);
+   if (err) 
+      return NULL;
+   gwa_base_addr -= word_size;
+   
+   unsigned long current = gwa_base_addr;
+   unsigned long strings_start, strings_end;
+   unsigned long l1, l2, auxv_start, word;
+   unsigned char *buffer = NULL;
+   unsigned bytes_to_read;
+
+   // Go through initial NULL word
+   while (get_word_at(proc, current, err) == 0x0) {
+      if (err) goto done_err;
+      current -= word_size;
+   }
+
+   // Go through the auxv[] and envp[] strings
+   strings_end = current;
+   while (get_word_at(proc, current, err) != 0x0) {
+      if (err) goto done_err;
+      current -= word_size;
+   }
+   strings_start = current + word_size;
+   
+   //Read until we find a pair of pointers into the strings 
+   // section, this should mean we're now above the auxv vector
+   // and in envp or argv
+   for (;;) {
+      l1 = get_word_at(proc, current, err);
+      if (err) goto done_err;
+      l2 = get_word_at(proc, current - word_size, err);
+      if (err) goto done_err;
+      if (l1 >= strings_start && l1 < strings_end && 
+          l2 >= strings_start && l2 < strings_end)
+         break;
+      current -= word_size;
+   }
+
+   //Read back down until we get to the end of envp[]
+   while (get_word_at(proc, current, err) != 0x0) {
+      if (err) goto done_err;
+      current += word_size;
+   }
+   //Through the NULL byte before auxv..
+   while (get_word_at(proc, current, err) == 0x0) {
+      if (err) goto done_err;
+      current += word_size;
+   }
+
+   //Success. Found the start of auxv.
+   auxv_start = current;
+
+   //Read auxv into buffer
+   bytes_to_read = strings_start - auxv_start;
+   buffer = (unsigned char *) malloc(bytes_to_read + word_size*2);
+   if (!buffer)
+      goto done_err;   
+   for (unsigned pos = 0; pos < bytes_to_read; pos += word_size) {
+      word = get_word_at(proc, auxv_start + pos, err);
+      if (err) goto done_err;
+      if (word_size == 4)
+         *((uint32_t *) (buffer + pos)) = (uint32_t) word;
+      else
+         *((unsigned long *) (buffer + pos)) = word;
+   }
+
+   goto done;
+
+ done_err:
+   if (buffer)
+      free(buffer);
+   buffer = NULL;
+ done:
+   if (gwa_buffer)
+      free(gwa_buffer);
+   return (void *) buffer;
+}
+
+#define READ_BLOCK_SIZE (1024 * 5)
+void *readAuxvFromProc(int pid) {
+   char filename[64];
+   unsigned char *buffer = NULL, *temp;
+   unsigned buffer_size = READ_BLOCK_SIZE;
+   unsigned pos = 0;
+   ssize_t result = 0;
+   int fd = -1;
+
+   sprintf(filename, "/proc/%d/auxv", pid);
+   fd = P_open(filename, O_RDONLY, 0);
+   if (fd == -1)
+      goto done_err;
+
+   buffer = (unsigned char *) malloc(buffer_size);
+   if (!buffer) {
+      goto done_err;
+   }
+
+   for (;;) {
+      result = read(fd, buffer + pos, READ_BLOCK_SIZE);
+      if (result == -1) {
+         perror("Couldn't read auxv entry");
+         goto done_err;
+      }
+      else if (!result && !pos) {
+         //Didn't find any data to read
+         perror("Could read auxv entry");
+         goto done_err;
+      }
+      else if (result < READ_BLOCK_SIZE) {
+         //Success
+         goto done;
+      }
+      else if (result == READ_BLOCK_SIZE) {
+         //WTF... 5k wasn't enough for auxv
+         buffer_size *= 2;
+         temp = (unsigned char *) realloc(buffer, buffer_size);
+         if (!temp)
+            goto done_err;
+         buffer = temp;
+         pos += READ_BLOCK_SIZE;
+      }
+      else {
+         fprintf(stderr, "[%s:%u] - Unknown error reading auxv\n",
+                 FILE__, __LINE__);
+         goto done_err;
+      }
+   }
+      
+   done_err:
+      if (buffer)
+         free(buffer);
+      buffer = NULL;
+   done:
+      if (fd != -1)
+         P_close(fd);
+      return buffer;
+}
 
 bool process::readAuxvInfo()
 {
@@ -1863,20 +2194,15 @@ bool process::readAuxvInfo()
    * auxv consists of a list of name/value pairs, ending with the AT_NULL
    * name.  There isn't a direct way to get the vsyscall info on Linux 2.4
    **/
-  char buffer[32];
-  int fd;
+  char *buffer = NULL;
+  unsigned pos = 0;
   Address dso_start = 0x0, text_start = 0x0;
   unsigned page_size = 0x0;
 
   struct {
-    int type;
-    Address value;
+    unsigned long type;
+    unsigned long value;
   } auxv_entry;
-
-  struct {
-    int type;
-    uint32_t value;
-  } auxv_entry_32;
 
   if (vsys_status_ != vsys_unknown) {
      // If we've already found the vsyscall page, just return.
@@ -1890,38 +2216,42 @@ bool process::readAuxvInfo()
    * On latter 2.6 kernels the AT_SYSINFO field isn't present,
    * so we have to resort to more "extreme" measures.
    **/
-  sprintf(buffer, "/proc/%d/auxv", getPid());
-  fd = P_open(buffer, O_RDONLY, 0);
-  if (fd != -1) {
-     //Try to read the location out of /proc/pid/auxv
-     do {
-        
-        /**Fill in the auxv_entry structure.  We may have to do different
-         * size reads depending on the address space.  No matter which
-         * size we read, we'll fill the data in to auxv_entry, which is 
-         * guarenteed to be larger than or equal to auxv_entry_32.
-         **/
-        if (getAddressWidth() == 4) {
-           read(fd, &auxv_entry_32, sizeof(auxv_entry_32));
-           auxv_entry.type = auxv_entry_32.type;
-           auxv_entry.value = auxv_entry_32.value;
-        }
-        else {
-           read(fd, &auxv_entry, sizeof(auxv_entry));
-        }
+  buffer = (char *) readAuxvFromProc(getPid());
+  if (!buffer) 
+     buffer = (char *) readAuxvFromStack(this);
+  if (!buffer)
+     return false;
+  do {
+     /**Fill in the auxv_entry structure.  We may have to do different
+      * size reads depending on the address space.  No matter which
+      * size we read, we'll fill the data in to auxv_entry, which may
+      * involve a size shift up.
+      **/
+     if (getAddressWidth() == 4) {
+        auxv_entry.type = (unsigned long) *(uint32_t *) (buffer + pos);
+        pos += sizeof(uint32_t);
+        auxv_entry.value = (unsigned long) *(uint32_t *) (buffer + pos);
+        pos += sizeof(uint32_t);
+     }
+     else {
+        auxv_entry.type = *(unsigned long *) (buffer + pos);
+        pos += sizeof(long);
+        auxv_entry.value = *(unsigned long *) (buffer + pos);
+        pos += sizeof(long);
+     }
+     
+     if (auxv_entry.type == AT_SYSINFO)
+        text_start = auxv_entry.value;
+     else if (auxv_entry.type == AT_SYSINFO_EHDR)
+        dso_start = auxv_entry.value;
+     else if (auxv_entry.type == AT_PAGESZ)
+        page_size = auxv_entry.value;
+     else if (auxv_entry.type == AT_BASE)
+        interpreter_base_ = auxv_entry.value;
+  } while (auxv_entry.type != AT_NULL);
 
-        if (auxv_entry.type == AT_SYSINFO)
-           text_start = auxv_entry.value;
-        else if (auxv_entry.type == AT_SYSINFO_EHDR)
-           dso_start = auxv_entry.value;
-        else if (auxv_entry.type == AT_PAGESZ)
-           page_size = auxv_entry.value;
-        else if (auxv_entry.type == AT_BASE)
-           interpreter_base_ = auxv_entry.value;
-     } while (auxv_entry.type != AT_NULL);
-     P_close(fd);
-  }
-
+  if (buffer)
+     free(buffer);
   if (!page_size)
      page_size = getpagesize();
  /**
@@ -2743,20 +3073,8 @@ bool process::hasPassedMain()
    Address current_pc = active_frame.getPC();
 
    //Get the current version of /lib/ld-2.x.x
-   map_entries *maps = NULL;
-   unsigned maps_size = 0;
-   const char *path = NULL;
-   maps = getLinuxMaps(getPid(), maps_size);
-   for (unsigned i=0; i<maps_size; i++) {
-      if (!maps[i].path)
-         continue;
-      if ((strncmp(maps[i].path, "/lib/ld-", 8) == 0) ||
-          (strncmp(maps[i].path, "/lib64/ld-", 10) == 0)) {
-         path = maps[i].path;
-         ldso_start_addr = maps[i].start;
-         break;
-      }
-   }
+   const char *path = getInterpreterName();
+   ldso_start_addr = getInterpreterBase();
 
    if (!path) {
       //Strange... This shouldn't happen on a normal linux system
@@ -2791,8 +3109,7 @@ bool process::hasPassedMain()
       result = true;
       goto cleanup;
    }
-   if (entry_addr < ldso_start_addr)
-     entry_addr += ldso_start_addr;
+   entry_addr += ldso_start_addr;
    
    lib_to_addr[path] = entry_addr;
    result = (entry_addr != current_pc);
@@ -2800,8 +3117,6 @@ bool process::hasPassedMain()
                   FILE__, __LINE__, (int) result, entry_addr, current_pc);
 
    cleanup:
-      if (maps)
-         free(maps);
       if (ld_file)
          delete ld_file;
 
