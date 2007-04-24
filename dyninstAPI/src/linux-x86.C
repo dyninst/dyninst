@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.121 2007/02/19 21:06:32 legendre Exp $
+// $Id: linux-x86.C,v 1.122 2007/04/24 23:06:05 legendre Exp $
 
 #include <fstream>
 
@@ -529,8 +529,6 @@ void calcVSyscallFrame(process *p)
    * If we've already calculated and cached the DSO information then 
    * just return.
    **/
-  if (p->getVsyscallStatus() != vsys_unknown)
-     return;
 
   if (p->getAddressWidth() == 8) {
      // FIXME: HACK to disable vsyscall page for AMD64, for now.
