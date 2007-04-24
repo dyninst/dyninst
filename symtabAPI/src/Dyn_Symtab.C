@@ -1378,7 +1378,7 @@ bool Dyn_Symtab::findMod(vector <Dyn_Symbol *> &ret, const string &name,
 		return false;
 	}
 	else
-		findModByRegex(name, checkCase, ret);
+		return findModByRegex(name, checkCase, ret);
 }
 
 // Return the vector of functions associated with a mangled name
