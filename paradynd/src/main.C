@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.153 2007/03/15 20:17:45 darnold Exp $
+// $Id: main.C,v 1.154 2007/04/24 20:35:25 darnold Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -686,16 +686,16 @@ main( int argc, char* argv[] )
 
     if( pd_flavor != "mpi" )
     {
-       parHostname = argv[argc-3];
+       parHostname = argv[argc-4];
        char *portstr = NULL;
        if (argv[argc-2][0] == '-' && argv[argc-2][1] == 'p')
-         portstr = argv[argc-2] +2;
+         portstr = argv[argc-3] +2;
        else
-         portstr = argv[argc-2];
+         portstr = argv[argc-3];
        parPort = (MRN::Port)strtoul( portstr/*argv[argc-2]*/, NULL, 10 );
 
-       if (argv[argc-1][0] == '-' && argv[argc-1][1] == 'P')
-         portstr = argv[argc-1] +2;
+       if (argv[argc-2][0] == '-' && argv[argc-1][1] == 'P')
+         portstr = argv[argc-2] +2;
        else
          portstr = argv[argc-1];
        myRank = (MRN::Rank)strtoul( portstr/*argv[argc-1]*/, NULL, 10 );
