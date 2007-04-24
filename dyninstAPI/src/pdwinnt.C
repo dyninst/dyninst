@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.169 2007/02/14 23:04:03 legendre Exp $
+// $Id: pdwinnt.C,v 1.170 2007/04/24 23:06:09 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -514,16 +514,9 @@ bool SignalGenerator::decodeException(EventRecord &ev)
          Frame af = ev.lwp->getActiveFrame();
          signal_printf("DECODE CRITICAL --  ILLEGAL INSN OR ACCESS VIOLATION\n");
          ev.type = evtCritical;
-		 requested_wait_until_active = true;
+         requested_wait_until_active = true;
          ev.address = (eventAddress_t) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
-		 if (ev.what == EXCEPTION_ILLEGAL_INSTRUCTION) {
-				fprintf(stderr, "Caught illegal instruction at 0x%lx\n", ev.address);
-		 }
-		 else {
-				fprintf(stderr, "Caught access violation at 0x%lx\n", ev.address);
-		 }
-		 ret = true;
-		while(1);
+         ret = true;
          break;
      }
      case EXCEPTION_SINGLE_STEP:
