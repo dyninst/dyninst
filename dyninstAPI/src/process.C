@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.685 2007/03/26 20:34:53 legendre Exp $
+// $Id: process.C,v 1.686 2007/04/26 23:02:00 legendre Exp $
 
 #include <ctype.h>
 
@@ -6615,6 +6615,8 @@ void process::debugSuicide() {
 }
 
 dyn_lwp *process::getInitialLwp() const {
+  if (!getInitialThread())
+    return NULL;
   return getInitialThread()->get_lwp();
 }
 
