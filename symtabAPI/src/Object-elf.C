@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.8 2007/04/13 20:21:57 giri Exp $
+ * $Id: Object-elf.C,v 1.9 2007/04/27 16:54:53 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -834,6 +834,7 @@ static Dyn_Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
   }
   return Dyn_Symbol::SL_UNKNOWN;
 }
+
 //============================================================================
 
 //#include "dyninstAPI/src/arch.h"
@@ -1606,7 +1607,8 @@ void fixSymbolsInModuleByRange(string &moduleName,
     Dyn_Symbol *sym;
     
     hash_map< string, vector< Dyn_Symbol *> >::iterator iter = symbols_->begin();
-    while (++iter!=symbols_->end()) {
+    for(;iter!=symbols_->end();iter++)
+    {
     	symName = iter->first;
 	syms = iter->second;
     	for( unsigned int i = 0; i < syms.size(); i++ ) {
@@ -2118,7 +2120,7 @@ Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *
     }	
 }
 
-Object::Object(const Object& obj)	///****(for giri) have to change this. fileName changes(there might not be a filename****/
+Object::Object(const Object& obj)
     : AObject(obj), fileName(NULL), EEL(false) 
 {
 #if defined(os_solaris)
@@ -2126,7 +2128,7 @@ Object::Object(const Object& obj)	///****(for giri) have to change this. fileNam
 #endif    
     file_ptr_ = obj.file_ptr_;	
     interpreter_name_ = obj.interpreter_name_;
-    mem_image_ = mem_image_;//mem_image should be moved to AObject later; and also include a type to specify if its a file/memory..TODO>>***** later. giri
+    mem_image_ = mem_image_;
     loadAddress_ = obj.loadAddress_;
     entryAddress_ = obj.entryAddress_;
     relocation_table_ = obj.relocation_table_;
@@ -2875,8 +2877,8 @@ void Object::getModuleLanguageInfo(
       hash_map<string, supportedLanguages>::iterator iter = (*mod_langs).begin();
       string aname;
       supportedLanguages alang;
-      while (++iter!=(*mod_langs).end())
-		{
+      for(;iter!=(*mod_langs).end();iter++)
+      {
 			aname = iter->first;
 			alang = iter->second;
          if(lang_Fortran == alang)
