@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.6 2007/04/17 19:05:50 giri Exp $
+// $Id: Object.C,v 1.7 2007/04/27 16:52:40 giri Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
@@ -416,7 +416,7 @@ const ostream &AObject::dump_state_info(ostream &s) {
 
     // and loop over all the symbols, printing symbol name and data....
     //  or try at least....
-	for(;symbols_iter=symbols_.end();symbols_iter++)
+	for(;symbols_iter!=symbols_.end();symbols_iter++)
 	{
 		str = symbols_iter->first
 		for(int i = 0; i<symbols_iter->second->size(); i++)
