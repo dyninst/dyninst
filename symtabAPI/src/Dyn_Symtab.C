@@ -1443,7 +1443,7 @@ bool Dyn_Symtab::findFuncVectorByMangledRegex(const string &rexp, bool checkCase
 {
  	unsigned start = ret.size();	
 	hash_map <string, vector<Dyn_Symbol *>*>::iterator iter;
-	for(iter = funcsByMangled.begin(); iter!=varsByMangled.end(); iter++)
+	for(iter = funcsByMangled.begin(); iter!=funcsByMangled.end(); iter++)
 	{
 		if(regexEquiv(rexp,iter->first,checkCase))
 		{
