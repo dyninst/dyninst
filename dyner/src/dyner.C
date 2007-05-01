@@ -276,6 +276,7 @@ BPListElem *removeBPlist(int n)
     if ((*i)->number == n) {
       ret = *i;
       bplist.erase(i);
+      return ret;
       break;
     }
   }
@@ -706,7 +707,7 @@ int deleteBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     for (int j = 1; j < argc; j++) {
 	int n = atoi(argv[j]);
 
-       	BPListElem *i = removeBPlist(n);
+   	BPListElem *i = removeBPlist(n);
 	if (i == NULL) {
 	    printf("No such breakpoint: %d\n", n);
 	    ret = TCL_ERROR;
@@ -1439,6 +1440,21 @@ int where(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 	BPatch_Vector<BPatch_frame> callStack;
 	char funcName [1024];
 	int index=0;
+
+   if (!appThread) {
+     printf("no application to get stack for\n");
+     return TCL_ERROR;
+   }
+
+   if (appThread->isTerminated()) {
+     printf("process is terminated, no stack\n");
+     return TCL_ERROR;
+   }
+
+   if (appThread->isDetached()) {
+     printf("process is detached, no stack available\n");
+     return TCL_ERROR;
+   }
 
 	appThread->getCallStack(callStack);
 	index = 1; 
