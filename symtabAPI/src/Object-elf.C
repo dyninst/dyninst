@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.9 2007/04/27 16:54:53 giri Exp $
+ * $Id: Object-elf.C,v 1.10 2007/05/08 22:49:01 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -482,7 +482,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 	    unsigned long long * bufferPtr = (unsigned long long*)elf_vaddr_to_ptr( next_plt_entry_addr );
 	    if( bufferPtr[0] == 0 && bufferPtr[1] == 0 ) { next_plt_entry_addr += 0x10; }
 
-#elif defined(arch_x86)
+#elif defined(arch_x86) || defined(arch_x86_64)
 	    next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 #else
 	    next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
