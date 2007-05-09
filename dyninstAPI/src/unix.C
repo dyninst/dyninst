@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.225 2007/01/12 00:55:44 legendre Exp $
+// $Id: unix.C,v 1.226 2007/05/09 21:53:27 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -118,7 +118,7 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
 
    int breakpoint;
    int status;
-   Address arg;
+   Address arg = 0x0;
    int zero = 0;
 
    // First, check breakpoint...
@@ -231,8 +231,8 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
        sync_event_arg1_addr = vars[0]->getAddress();
    }
 
-   if (!proc->readDataSpace((void *)sync_event_arg1_addr, sizeof(Address),
-                            &arg, true)) {
+   if (!proc->readDataSpace((void *)sync_event_arg1_addr, 
+                            proc->getAddressWidth(), &arg, true)) {
        fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
        return false;
    }
@@ -1591,8 +1591,8 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
     BPatch_process *bproc = BPatch::bpatch->getProcessByPid(ev.proc->getPid(), &exists);
     if (bproc) {
         setBPatchProcessSignal(bproc, ev.what);
-        bproc->isVisiblyStopped = false;
-        sg->overrideSyncContinueState(runRequest);
+        if (!bproc->isVisiblyStopped)
+           sg->overrideSyncContinueState(runRequest);
     }
 
     bool res = false;
