@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.257 2007/04/24 23:06:07 legendre Exp $
+// $Id: linux.C,v 1.258 2007/05/09 21:53:25 legendre Exp $
 
 #include <fstream>
 
@@ -477,7 +477,12 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
   //  first.
  
   EventRecord ev;
- 
+
+  if (!proc) {
+     //We're exiting
+     return false;
+  }
+
   ev.proc = proc;
   ev.lwp = proc->lookupLWP(waitpid_pid);
 
