@@ -3,14 +3,14 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.3 2007/02/23 00:14:38 giri Exp $
+# $Id: make.module.tmpl,v 1.4 2007/05/11 23:50:22 giri Exp $
 #
 
 SUITE_NAME	= symtabAPI 
 RELEASE_NUM	= 1.0 
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
-DEFINES		     += -UMT_THREAD 
+DEFINES		     += -UMT_THREAD
 		
 
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
@@ -32,7 +32,7 @@ TARGET		= libsymtabAPI.so
 endif
 
 LDFLAGS += -lpthread
-LDFLAGS     += $(LIBDIR) -lcommon
+LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
@@ -66,7 +66,6 @@ else
 SYSLIBS		+= -ldemangle
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h
-
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I$(LIBXML2_INC)
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
