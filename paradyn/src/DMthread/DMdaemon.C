@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.171 2006/11/28 23:34:10 legendre Exp $
+ * $Id: DMdaemon.C,v 1.172 2007/05/11 21:47:32 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2234,19 +2234,8 @@ bool paradynDaemon::newExecutable(const pdstring &ihost,
 
         for(unsigned zz = 0 ; zz < pid.size(); zz++) {
             if (!(pid[zz] > 0 && !daemon->did_error_occur())) {
-                err_found = true;
+               return false;
             }
-        }
-        if(err_found) {
-#ifdef notdef
-            executable *exec = new executable(pid[zz], argv, daemon);
-            paradynDaemon::programs += exec;
-            ++procRunning;
-#endif
-            return (true);
-        }
-        else {
-            return(false);
         }
     }
 
@@ -2269,7 +2258,29 @@ bool paradynDaemon::attachStub(const pdstring &machine,
        DMstatus_initialized = true;
    }
 
-  paradynDaemon *daemon = getDaemon(machine, userName, daemonName);
+   //Do we have a daemon by this name?
+   daemonEntry *de = findEntry( daemonName ) ;
+   if (!de) {
+      fprintf( stderr, "Paradyn daemon \"%s\" not defined.",
+               machine.c_str() );
+      exit(-1);
+   }
+
+   paradynDaemon *daemon = getDaemon(machine, userName, daemonName);
+   if( daemon == NULL){
+      pdvector < pdstring > hosts;
+      hosts.push_back( machine );
+      instantiateDefaultDaemon( de, &hosts );
+      if( de->getMRNetNetwork()->fail() ) {
+         pdstring msg = pdstring("Failed: MRNet new network.");
+         //TODO: create new error code
+         uiMgr->showError(90,P_strdup(msg.c_str()));
+         return false;
+      }
+      initializeDaemon(de);
+   }
+
+  daemon = getDaemon(machine, userName, daemonName);
   if (daemon == NULL)
       return false;
 

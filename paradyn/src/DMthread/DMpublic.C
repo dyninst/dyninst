@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.157 2006/05/10 11:40:04 darnold Exp $
+// $Id: DMpublic.C,v 1.158 2007/05/11 21:47:33 legendre Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -282,6 +282,9 @@ bool dataManager::attach(const char *machine,
    // the symbol table.
 
    int pid = pidStr ? atoi(pidStr) : -1;
+   machine = machine ? machine : default_host.c_str();
+   cmd = cmd ? cmd : "";
+
    return (paradynDaemon::attachStub(machine, user, cmd, pid, daemonName, afterAttach));
       // "Stub" appended to name to avoid name clash with the actual remote igen call
       // attach()
