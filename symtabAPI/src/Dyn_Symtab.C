@@ -50,7 +50,14 @@
 #include "symtabAPI/h/Dyn_Symtab.h"
 #if !defined(os_windows)
 #include "common/h/pathName.h"
+#include <dlfcn.h>
+#else
+#include "windows.h"
+#include <libxml/xmlversion.h>
+#undef LIBXML_ICONV_ENABLED
 #endif
+
+#include <libxml/xmlwriter.h>
 
 static string errMsg;
 extern bool parseCompilerType(Object *);
@@ -59,6 +66,30 @@ bool pattern_match( const char *p, const char *s, bool checkCase );
 void pd_log_perror(const char *msg){
    errMsg = msg;
 };
+
+#if !defined(os_windows)
+    //libxml2 functions
+	void *hXML;
+#else
+	HINSTANCE hXML; 
+#endif
+
+xmlTextWriterPtr(*my_xmlNewTextWriterFilename)(const char *,int) = NULL; 
+int(*my_xmlTextWriterStartDocument)(xmlTextWriterPtr, const char *, const char *, const char * ) = NULL;
+int(*my_xmlTextWriterStartElement)(xmlTextWriterPtr, const xmlChar *) = NULL;
+int(*my_xmlTextWriterWriteFormatElement)(xmlTextWriterPtr,const xmlChar *,const char *,...) = NULL;
+int(*my_xmlTextWriterEndDocument)(xmlTextWriterPtr) = NULL;
+void(*my_xmlFreeTextWriter)(xmlTextWriterPtr) = NULL;
+int(*my_xmlTextWriterWriteFormatAttribute)(xmlTextWriterPtr, const xmlChar *,const char *,...) = NULL;
+int(*my_xmlTextWriterEndElement)(xmlTextWriterPtr) = NULL;
+
+
+// generateXML helper functions
+bool generateXMLforSyms(xmlTextWriterPtr &writer, vector<Dyn_Symbol *> &everyUniqueFunction, vector<Dyn_Symbol *> &everyUniqueVariable, vector<Dyn_Symbol *> &modSyms, vector<Dyn_Symbol *> &notypeSyms);
+bool generateXMLforSymbol(xmlTextWriterPtr &writer, Dyn_Symbol *sym);
+bool generateXMLforExcps(xmlTextWriterPtr &writer, vector<Dyn_ExceptionBlock *> &excpBlocks);
+bool generateXMLforRelocations(xmlTextWriterPtr &writer, vector<relocationEntry> &fbt);
+
 
 static SymtabError serr;
 
@@ -89,6 +120,8 @@ string Dyn_Symtab::printError(SymtabError serr)
 			return "Not a File. Call openArchive()";
 		case Not_An_Archive:
 			return "Not an Archive. Call openFile()";
+		case Export_Error:
+			return "Error Constructing XML"+errMsg;
 		case Invalid_Flags:
 			return "Flags passed are invalid.";
 		default:
@@ -1265,6 +1298,7 @@ bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
                                   Dyn_Symbol::SymbolType sType, bool isMangled,
                                   bool isRegex, bool checkCase)
 {
+	exportXML("file.xml");
  	if(sType == Dyn_Symbol::ST_FUNCTION)
 		return findFunction(ret, name, isMangled, isRegex, checkCase);
 	else if(sType == Dyn_Symbol::ST_OBJECT)
@@ -2052,6 +2086,472 @@ bool Dyn_Symtab::delSymbol(Dyn_Symbol *sym)
 	}
 	delete(sym);
 	return true;
+}
+
+
+/********************************************************************************
+// Dyn_Symtab::exportXML
+// This functions generates the XML document for all the data in Dyn_Symtab.
+********************************************************************************/
+
+bool Dyn_Symtab::exportXML(string file)
+{
+    int rc;
+#if defined(_MSC_VER)
+	hXML = LoadLibrary(TEXT("libxml2.dll"));
+	if(hXML == NULL){
+    	serr = Export_Error;
+    	errMsg = "Unable to find libxml2";
+    }
+	my_xmlNewTextWriterFilename = (xmlTextWriterPtr(*)(const char *,int))GetProcAddress(hXML,"xmlNewTextWriterFilename");
+    my_xmlTextWriterStartDocument = (int(*)(xmlTextWriterPtr, const char *, const char *, const char * ))GetProcAddress(hXML,"xmlTextWriterStartDocument");
+    my_xmlTextWriterStartElement = (int(*)(xmlTextWriterPtr, const xmlChar *))GetProcAddress(hXML,"xmlTextWriterStartElement");
+    my_xmlTextWriterWriteFormatElement = (int(*)(xmlTextWriterPtr,const xmlChar *,const char *,...))GetProcAddress(hXML,"xmlTextWriterWriteFormatElement");
+    my_xmlTextWriterEndDocument = (int(*)(xmlTextWriterPtr))GetProcAddress(hXML,"xmlTextWriterEndDocument");
+    my_xmlFreeTextWriter = (void(*)(xmlTextWriterPtr))GetProcAddress(hXML,"xmlFreeTextWriter");
+    my_xmlTextWriterWriteFormatAttribute = (int(*)(xmlTextWriterPtr, const xmlChar *,const char *,...))GetProcAddress(hXML,"xmlTextWriterWriteFormatAttribute");
+    my_xmlTextWriterEndElement = (int(*)(xmlTextWriterPtr))GetProcAddress(hXML,"xmlTextWriterEndElement");
+#else
+    hXML = dlopen("libxml2.so", RTLD_LAZY);
+    if(hXML == NULL){
+    	serr = Export_Error;
+    	errMsg = "Unable to find libxml2";
+    }	
+    my_xmlNewTextWriterFilename = (xmlTextWriterPtr(*)(const char *,int))dlsym(hXML,"xmlNewTextWriterFilename");
+    my_xmlTextWriterStartDocument = (int(*)(xmlTextWriterPtr, const char *, const char *, const char * ))dlsym(hXML,"xmlTextWriterStartDocument");
+    my_xmlTextWriterStartElement = (int(*)(xmlTextWriterPtr, const xmlChar *))dlsym(hXML,"xmlTextWriterStartElement");
+    my_xmlTextWriterWriteFormatElement = (int(*)(xmlTextWriterPtr,const xmlChar *,const char *,...))dlsym(hXML,"xmlTextWriterWriteFormatElement");
+    my_xmlTextWriterEndDocument = (int(*)(xmlTextWriterPtr))dlsym(hXML,"xmlTextWriterEndDocument");
+    my_xmlFreeTextWriter = (void(*)(xmlTextWriterPtr))dlsym(hXML,"xmlFreeTextWriter");
+    my_xmlTextWriterWriteFormatAttribute = (int(*)(xmlTextWriterPtr, const xmlChar *,const char *,...))dlsym(hXML,"xmlTextWriterWriteFormatAttribute");
+    my_xmlTextWriterEndElement = (int(*)(xmlTextWriterPtr))dlsym(hXML,"xmlTextWriterEndElement");
+#endif    	 
+	    
+    /* Create a new XmlWriter for DOM */
+    xmlTextWriterPtr writer = my_xmlNewTextWriterFilename(file.c_str(), 0);
+    if (writer == NULL) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error creating the xml writer";
+	return false;
+    }	
+    rc = my_xmlTextWriterStartDocument(writer, NULL, "ISO-8859-1", NULL);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartDocument";
+	return false;
+    }
+    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Dyn_Symtab");
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "file",
+                                             "%s", filename_.c_str());
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "codeOff",
+                                             "0x%lx", codeOffset_);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "codeLen",
+                                             "%ld", codeLen_);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "dataOff",
+                                             "0x%lx", dataOffset_);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "dataLen",
+                                             "%ld", dataLen_);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "isExec",
+                                                 "%d", is_a_out);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    
+    generateXMLforSyms(writer, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
+    generateXMLforExcps(writer, excpBlocks);
+    vector<relocationEntry> fbt;
+    getFuncBindingTable(fbt);
+    generateXMLforRelocations(writer, fbt);
+    
+    rc = my_xmlTextWriterEndDocument(writer);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndDocument";
+        return false;
+    }
+    my_xmlFreeTextWriter(writer);
+    
+    return true;
+}
+
+bool generateXMLforSyms( xmlTextWriterPtr &writer, vector<Dyn_Symbol *> &everyUniqueFunction, vector<Dyn_Symbol *> &everyUniqueVariable, vector<Dyn_Symbol *> &modSyms, vector<Dyn_Symbol *> &notypeSyms)
+{
+    unsigned tot = everyUniqueFunction.size()+everyUniqueVariable.size()+modSyms.size()+notypeSyms.size();
+    unsigned i;
+    if(!tot)
+    	return true;
+    int rc;
+    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Dyn_Symbols");
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+                                         "%d", tot);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
+        return false;
+    }
+    
+    for(i=0;i<everyUniqueFunction.size();i++)
+    {
+        if(!generateXMLforSymbol(writer, everyUniqueFunction[i]))
+	    return false;
+    }		
+    for(i=0;i<everyUniqueVariable.size();i++)
+    {
+        if(!generateXMLforSymbol(writer, everyUniqueVariable[i]))
+	    return false;
+    }	    
+    for(i=0;i<modSyms.size();i++)
+    {
+        if(!generateXMLforSymbol(writer, modSyms[i]))
+	    return false;
+    }	    
+    for(i=0;i<notypeSyms.size();i++)
+    {
+        if(!generateXMLforSymbol(writer, notypeSyms[i]))
+	    return false;
+    }	   
+    
+    rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+    	serr = Export_Error;
+	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
+        return false;
+    }
+    return true;
+}
+
+bool generateXMLforSymbol(xmlTextWriterPtr &writer, Dyn_Symbol *sym)
+{
+    int rc,j,tot;
+    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Dyn_Symbol");
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "type",
+                                             "%d", sym->getType());
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "linkage",
+                                             "%d", sym->getLinkage());
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "addr",
+                                             "0x%lx", sym->getAddr());
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "size",
+                                             "%ld", sym->getSize());
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+        return false;
+    }
+    tot = sym->getAllMangledNames().size();
+    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "mangledNames");
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+       			                                 "%d", tot);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
+        return false;
+    }
+    if(tot)
+    {
+	vector<string> names = sym->getAllMangledNames();
+        for(j=0;j<tot;j++)
+	{
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "name",
+            	                                 "%s", names[j].c_str());
+	    if (rc < 0) {
+    		serr = Export_Error;
+        	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+        	return false;
+    	    }
+ 	}
+    }	
+    rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
+        return false;
+    }
+    tot = sym->getAllPrettyNames().size();
+    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "prettyNames");
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+       			                                 "%d", tot);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
+        return false;
+    }
+    if(tot)
+    {
+	vector<string> names = sym->getAllPrettyNames();
+        for(j=0;j<tot;j++)
+	{
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "name",
+            	                                 "%s", names[j].c_str());
+	    if (rc < 0) {
+    		serr = Export_Error;
+        	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+        	return false;
+    	    }
+ 	}
+    }	
+    rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
+        return false;
+    }
+    tot = sym->getAllTypedNames().size();
+    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "typedNames");
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+       			                                 "%d", tot);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
+        return false;
+    }
+    if(tot)
+    {
+	vector<string> names = sym->getAllTypedNames();
+        for(j=0;j<tot;j++)
+	{
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "name",
+            	                                 "%s", names[j].c_str());
+	    if (rc < 0) {
+    		serr = Export_Error;
+        	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+        	return false;
+    	    }
+ 	}
+    }	
+    rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "moduleName",
+                                             "%s", sym->getModuleName().c_str());
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+        return false;
+    }
+    rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
+        return false;
+    }
+    return true;
+}
+
+bool generateXMLforExcps(xmlTextWriterPtr &writer, vector<Dyn_ExceptionBlock *> &excpBlocks)
+{
+    unsigned tot = excpBlocks.size(), i;
+    int rc;
+    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Dyn_ExcpBlocks");
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+                                         "%d", tot);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
+        return false;
+    }
+    for(i=0;i<excpBlocks.size();i++)
+    {
+        rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Dyn_ExcpBlock");
+        if (rc < 0) {
+    	    serr = Export_Error;
+            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+            return false;
+    	}
+    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "hasTry",
+                                             "%d", excpBlocks[i]->hasTry());
+   	if (rc < 0) {
+    	    serr = Export_Error;
+            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+            return false;
+    	}
+	if(excpBlocks[i]->hasTry())
+	{
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "tryStart",
+            		                                 "0x%lx", excpBlocks[i]->tryStart());
+    	    if (rc < 0) {
+    		serr = Export_Error;
+        	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+        	return false;
+    	    }
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "trySize",
+            		                                 "%ld", excpBlocks[i]->trySize());
+    	    if (rc < 0) {
+    		serr = Export_Error;
+       		errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+		return false;
+	    }	
+	}
+    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "catchStart",
+        	                                 "0x%lx", excpBlocks[i]->catchStart());
+    	if (rc < 0) {
+    	    serr = Export_Error;
+            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+            return false;
+    	}
+    	rc = my_xmlTextWriterEndElement(writer);
+	if (rc < 0) {
+    	    serr = Export_Error;
+            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
+            return false;
+	}
+    }
+    rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
+        return false;
+    }
+    return true;
+}
+
+
+bool generateXMLforRelocations(xmlTextWriterPtr &writer, vector<relocationEntry> &fbt)
+{
+    unsigned tot = fbt.size(), i;
+    int rc;
+    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Dyn_Relocations");
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+        return false;
+    }
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+                                         "%d", tot);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterWriteFormatAttribute";
+        return false;
+    }
+    for(i=0;i<fbt.size();i++)
+    {
+        rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Dyn_Relocation");
+        if (rc < 0) {
+    	    serr = Export_Error;
+            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
+            return false;
+    	}
+    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "targetAddr",
+        	                                 "0x%lx", fbt[i].target_addr());
+    	if (rc < 0) {
+    	    serr = Export_Error;
+            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+            return false;
+    	}
+    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "relAddr",
+        	                                 "0x%lx", fbt[i].rel_addr());
+    	if (rc < 0) {
+    	    serr = Export_Error;
+            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+            return false;
+    	}
+    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "name",
+        	                                     "%s", fbt[i].name().c_str());
+    	if (rc < 0) {
+    	    serr = Export_Error;
+            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
+            return false;
+    	}
+    	rc = my_xmlTextWriterEndElement(writer);
+	if (rc < 0) {
+    	    serr = Export_Error;
+            errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
+            return false;
+	}
+    }
+    rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+    	serr = Export_Error;
+        errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
+        return false;
+    }
+    return true;
+}
+   
+bool Dyn_Symtab::emitSymbols(string filename)
+{
+    return linkedFile->writeBackSymbols(filename,everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
 }
 
 DLLEXPORT ObjectType Dyn_Symtab::getObjectType() const {

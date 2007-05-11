@@ -86,6 +86,7 @@ typedef enum { Obj_Parsing,
                No_Such_Member,
                Not_A_File,
                Not_An_Archive,
+	       Export_Error, 
                Invalid_Flags
 } SymtabError;
 
@@ -164,11 +165,14 @@ class Dyn_Symtab : public Dyn_LookupInterface {
 
 	DLLEXPORT Dyn_Symtab(const Dyn_Symtab& obj);
 	
-   DLLEXPORT static bool openFile(string &filename, Dyn_Symtab *&obj);
+   	DLLEXPORT static bool openFile(string &filename, Dyn_Symtab *&obj);
 	
 	DLLEXPORT static bool openFile(char *mem_image, 
                                   size_t size, 
                                   Dyn_Symtab *&obj);
+	
+	DLLEXPORT bool exportXML(string filename);
+	DLLEXPORT bool emitSymbols(string filename);
 
 	/***** Lookup Functions *****/
 	DLLEXPORT virtual bool findSymbolByType(vector<Dyn_Symbol *> &ret, 
