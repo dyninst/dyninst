@@ -202,12 +202,12 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid)
 		}
 	
 	proc->loadParadynLib(pd_process::attach_load);
-	proc->init();
 	
 	if (!costMetric::addProcessToAll(proc->get_dyn_process()))
 		assert(false);
 	
 	getProcMgr().addProcess(proc);
+	proc->init();
 	
 	pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
 	buffer += pdstring(", ready");
@@ -1375,78 +1375,78 @@ void pd_process::FillInCallGraphStatic(bool init_graph, unsigned *checksum )
 {
 	//	volatile int zoo = 0;
 	//while(zoo == 0){;}
-  // specify entry point (location in code hierarchy to begin call 
-  //  graph searches) for call graph.  Currently, begin searches at
-  //  "main" - note that main is usually NOT the actual entry point
-  //  there is usually a function which does env specific initialization
-  //  and sets up exit handling (at least w/ gcc on solaris).  However,
-  //  this function is typically in an excluded module.  Anyway, setting
-  //  main as the entry point should usually work fairly well, except
-  //  that call graph PC searches will NOT catch time spent in the
-  //  environment specific setup of _start.
+   // specify entry point (location in code hierarchy to begin call 
+   //  graph searches) for call graph.  Currently, begin searches at
+   //  "main" - note that main is usually NOT the actual entry point
+   //  there is usually a function which does env specific initialization
+   //  and sets up exit handling (at least w/ gcc on solaris).  However,
+   //  this function is typically in an excluded module.  Anyway, setting
+   //  main as the entry point should usually work fairly well, except
+   //  that call graph PC searches will NOT catch time spent in the
+   //  environment specific setup of _start.
 
 
-  BPatch_Vector<BPatch_function *> entry_bpfs;
-  BPatch_function *entry_bpf;
+   BPatch_Vector<BPatch_function *> entry_bpfs;
+   BPatch_function *entry_bpf;
 
-  if ((!img->get_dyn_image()->findFunction("main", entry_bpfs)) || !entry_bpfs.size()) 
+   if ((!img->get_dyn_image()->findFunction("main", entry_bpfs)) || !entry_bpfs.size()) 
 		abort();
 
-  if (entry_bpfs.size() > 1) 
-    {
+   if (entry_bpfs.size() > 1) 
+   {
       //  maybe we should warn here?
-    }
+   }
 
-  entry_bpf = entry_bpfs[0];
+   entry_bpf = entry_bpfs[0];
 
-  if(!init_graph)
-		{
-			CallGraphAddProgramCallback(img->get_file());
-		}
-  int thr = 0;
-  // MT: forward the ID of the first thread.
-  if(thr_mgr.size()) 
-    {
+   if(!init_graph)
+   {
+      CallGraphAddProgramCallback(img->get_file());
+   }
+   int thr = 0;
+   // MT: forward the ID of the first thread.
+   if(thr_mgr.size()) 
+   {
       threadMgr::thrIter begThrIter = beginThr();
       pd_thread *begThr = *(begThrIter);
       thr = begThr->get_tid();
-    }
-  if(multithread_capable()) {
+   }
+   if(multithread_capable()) {
 		// Temporary hack -- ordering problem
 		thr = 1;
-  }  
-  resource *entry_res = pd_module::getFunctionResource(entry_bpf);
-  if (entry_res)
-		{
-			if(!init_graph)
-				{
-					CallGraphSetEntryFuncCallback(img->get_file(), entry_res->full_name(), thr);
-				}
-			else
-				{
-					*checksum += pd_process::calculate_Checksum(img->get_file());
-					*checksum += pd_process::calculate_Checksum(entry_res->full_name());
-					*checksum += pd_process::calculate_Checksum(pdstring(thr));
-				}
+   }  
+   resource *entry_res = pd_module::getFunctionResource(entry_bpf);
+   if (entry_res)
+   {
+      if(!init_graph)
+      {
+         CallGraphSetEntryFuncCallback(img->get_file(), entry_res->full_name(), thr);
+      }
+      else
+      {
+         *checksum += pd_process::calculate_Checksum(img->get_file());
+         *checksum += pd_process::calculate_Checksum(entry_res->full_name());
+         *checksum += pd_process::calculate_Checksum(pdstring(thr));
+      }
 
-		}
-  // build call graph for executable
-  img->FillInCallGraphStatic(this,init_graph,checksum);
-  // build call graph for module containing entry point
-  // ("main" is not always defined in the executable)
+   }
+   // build call graph for executable
+   img->FillInCallGraphStatic(this,init_graph,checksum);
+   // build call graph for module containing entry point
+   // ("main" is not always defined in the executable)
   
-  pd_image *pd_main_img = pd_image::get_pd_image(entry_bpf->getModule());
+   pd_image *pd_main_img = pd_image::get_pd_image(entry_bpf->getModule());
 
-  if (pd_main_img != img)
-		{
-			pd_main_img->FillInCallGraphStatic(this,init_graph,checksum);
-		}
-  // TODO: build call graph for all shared objects?
+   if (pd_main_img != img)
+   {
+      pd_main_img->FillInCallGraphStatic(this,init_graph,checksum);
+   }
+   // TODO: build call graph for all shared objects?
   
-  if(!init_graph)
-    {  
+   if(!init_graph)
+   {  
       CallGraphFillDone(img->get_file());
-    }
+   }
 }
 
 void pd_process::MonitorDynamicCallSites(pdstring function_name) {
