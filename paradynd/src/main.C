@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.154 2007/04/24 20:35:25 darnold Exp $
+// $Id: main.C,v 1.155 2007/05/11 21:47:35 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -341,14 +341,12 @@ static void PauseIfDesired( void )
 		cerr << "breaking for debug in controllerMainLoop...pid=" << pid << endl;
 #if defined(i386_unknown_nt4_0)
 		DebugBreak();
-#elif defined(sparc_sun_solaris2_4) || defined(i386_unknown_solaris2_5)
+#else
 		bool bCont = false;
 		while( !bCont )
 		{
 			sleep( 1 );
 		}
-#else
-		kill(pid, SIGSTOP);
 #endif
 	}
 }
@@ -973,14 +971,14 @@ StartOrAttach( void )
 	else if (pd_attpid && (daemon_start_mode==StartedByOther))
 	{
 		// We attach after doing a last bit of initialization, below
-        pd_process *p = pd_attachProcess("", pd_attpid);
-        
-        if (!p) 
-            return -1;
-        p->pauseProc();
-    }
+      pd_process *p = pd_attachProcess("", pd_attpid);
+      
+      if (!p) 
+         return -1;
+      p->pauseProc();
+   }
    
-    isInfProcAttached = true;
-    return 0;
+   isInfProcAttached = true;
+   return 0;
 }
 
