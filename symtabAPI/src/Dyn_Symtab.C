@@ -2549,10 +2549,6 @@ bool generateXMLforRelocations(xmlTextWriterPtr &writer, vector<relocationEntry>
     return true;
 }
    
-bool Dyn_Symtab::emitSymbols(string filename)
-{
-    return linkedFile->writeBackSymbols(filename,everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
-}
 
 DLLEXPORT ObjectType Dyn_Symtab::getObjectType() const {
    return linkedFile->objType();
