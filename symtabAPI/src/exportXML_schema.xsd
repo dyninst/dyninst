@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+<!-- definition of the list of names type -->
+<xs:complexType name="namesType">
+  <xs:sequence>
+    <xs:element name="name" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+  </xs:sequence>
+  <xs:attribute name="number" type="xs:positiveInteger" use="required"/>
+</xs:complexType>
+
+<!-- definition of the Dyn_Symbol element -->
+<xs:element name="Dyn_Symbol">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element name="type">
+        <xs:simpleType>
+       <xs:restriction base="xs:integer">
+           <xs:minInclusive value="0"/>
+           <xs:maxInclusive value="5"/>
+       </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="linkage">
+        <xs:simpleType>
+        <xs:restriction base="xs:integer">
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="4"/>
+        </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="addr" type="xs:hexBinary"/>
+      <xs:element name="size" type="xs:positiveInteger"/>
+      <xs:element name="mangledNames" type="namesType"/>
+      <xs:element name="prettyNames" type="namesType" minOccurs="0"/>
+      <xs:element name="typedNames" type="namesType" minOccurs="0"/>
+      <xs:element name="moduleName" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
+<!-- definition of the Dyn_ExcpBlock element -->
+<xs:element name="Dyn_ExcpBlock">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element name="hasTry" type="xs:boolean"/>
+      <xs:element name="tryStart" type="xs:hexBinary" minOccurs="0"/>
+      <xs:element name="trySize" type="xs:positiveInteger" minOccurs="0"/>
+      <xs:element name="catchStart" type="xs:hexBinary"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
+<!-- definition of the Dyn_Relocation element -->
+<xs:element name="Dyn_Relocation">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element name="targetAddr" type="xs:hexBinary"/>
+      <xs:element name="relAddr" type="xs:hexBinary"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
+<!-- definition of the Dyn_Symtab element - the root node -->
+<xs:element name="Dyn_Symtab">
+  <xs:complexType>
+    <xs:sequence>
+      <xs:element name="file" type="xs:string" minOccurs="0"/>
+      <xs:element name="note" type="xs:string" minOccurs="0"/>
+      <xs:element name="codeOff" type="xs:hexBinary"/>
+      <xs:element name="codeLen" type="xs:positiveInteger"/>
+      <xs:element name="dataOff" type="xs:hexBinary"/>
+      <xs:element name="dataLen" type="xs:positiveInteger"/>
+      <xs:element name="isExec" type="xs:boolean"/>
+      <xs:element name="Dyn_Symbols" minOccurs="0">
+ <xs:complexType>
+   <xs:sequence>
+     <xs:element ref="Dyn_Symbol" maxOccurs="unbounded"/>
+   </xs:sequence>
+   <xs:attribute name="number" type="xs:positiveInteger" use="required"/>
+ </xs:complexType>
+      </xs:element>
+      <xs:element name="Dyn_ExcpBlocks" minOccurs="0">
+ <xs:complexType>
+   <xs:sequence>
+     <xs:element ref="Dyn_ExcpBlock" maxOccurs="unbounded"/>
+   </xs:sequence>
+    <xs:attribute name="number" type="xs:positiveInteger" use="required"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Dyn_Relocations" minOccurs="0">
+        <xs:complexType>
+   <xs:sequence>
+     <xs:element ref="Dyn_Relocation" maxOccurs="unbounded"/>
+   </xs:sequence>
+          <xs:attribute name="number" type="xs:positiveInteger" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+</xs:element>
+
+</xs:schema>
