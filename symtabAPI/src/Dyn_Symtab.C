@@ -1298,7 +1298,6 @@ bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
                                   Dyn_Symbol::SymbolType sType, bool isMangled,
                                   bool isRegex, bool checkCase)
 {
-	exportXML("file.xml");
  	if(sType == Dyn_Symbol::ST_FUNCTION)
 		return findFunction(ret, name, isMangled, isRegex, checkCase);
 	else if(sType == Dyn_Symbol::ST_OBJECT)
@@ -2548,7 +2547,6 @@ bool generateXMLforRelocations(xmlTextWriterPtr &writer, vector<relocationEntry>
     }
     return true;
 }
-   
 
 DLLEXPORT ObjectType Dyn_Symtab::getObjectType() const {
    return linkedFile->objType();
