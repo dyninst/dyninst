@@ -1298,7 +1298,7 @@ bool Dyn_Symtab::findSymbolByType(vector<Dyn_Symbol *> &ret, const string &name,
                                   Dyn_Symbol::SymbolType sType, bool isMangled,
                                   bool isRegex, bool checkCase)
 {
- 	if(sType == Dyn_Symbol::ST_FUNCTION)
+	if(sType == Dyn_Symbol::ST_FUNCTION)
 		return findFunction(ret, name, isMangled, isRegex, checkCase);
 	else if(sType == Dyn_Symbol::ST_OBJECT)
 		return findVariable(ret, name, isMangled, isRegex, checkCase);
@@ -2097,12 +2097,17 @@ bool Dyn_Symtab::exportXML(string file)
 {
     int rc;
 #if defined(_MSC_VER)
-	hXML = LoadLibrary(TEXT("libxml2.dll"));
+	hXML = LoadLibrary(LPCSTR("../../../i386-unknown-nt4.0/lib/libxml2.dll"));
 	if(hXML == NULL){
     	serr = Export_Error;
-    	errMsg = "Unable to find libxml2";
+    	char buf[1000];
+		bool result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  buf, 1000, NULL);
+		errMsg = buf;
+		return false;
     }
-	my_xmlNewTextWriterFilename = (xmlTextWriterPtr(*)(const char *,int))GetProcAddress(hXML,"xmlNewTextWriterFilename");
+    my_xmlNewTextWriterFilename = (xmlTextWriterPtr(*)(const char *,int))GetProcAddress(hXML,"xmlNewTextWriterFilename");
     my_xmlTextWriterStartDocument = (int(*)(xmlTextWriterPtr, const char *, const char *, const char * ))GetProcAddress(hXML,"xmlTextWriterStartDocument");
     my_xmlTextWriterStartElement = (int(*)(xmlTextWriterPtr, const xmlChar *))GetProcAddress(hXML,"xmlTextWriterStartElement");
     my_xmlTextWriterWriteFormatElement = (int(*)(xmlTextWriterPtr,const xmlChar *,const char *,...))GetProcAddress(hXML,"xmlTextWriterWriteFormatElement");
@@ -2115,7 +2120,8 @@ bool Dyn_Symtab::exportXML(string file)
     if(hXML == NULL){
     	serr = Export_Error;
     	errMsg = "Unable to find libxml2";
-    }	
+		return false;
+	}	
     my_xmlNewTextWriterFilename = (xmlTextWriterPtr(*)(const char *,int))dlsym(hXML,"xmlNewTextWriterFilename");
     my_xmlTextWriterStartDocument = (int(*)(xmlTextWriterPtr, const char *, const char *, const char * ))dlsym(hXML,"xmlTextWriterStartDocument");
     my_xmlTextWriterStartElement = (int(*)(xmlTextWriterPtr, const xmlChar *))dlsym(hXML,"xmlTextWriterStartElement");
@@ -2202,7 +2208,11 @@ bool Dyn_Symtab::exportXML(string file)
         return false;
     }
     my_xmlFreeTextWriter(writer);
-    
+
+#if defined(_MSC_VER)
+    FreeLibrary(hXML);
+#endif
+
     return true;
 }
 
@@ -2484,7 +2494,6 @@ bool generateXMLforExcps(xmlTextWriterPtr &writer, vector<Dyn_ExceptionBlock *> 
     }
     return true;
 }
-
 
 bool generateXMLforRelocations(xmlTextWriterPtr &writer, vector<relocationEntry> &fbt)
 {
