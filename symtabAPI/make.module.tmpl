@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.4 2007/05/11 23:50:22 giri Exp $
+# $Id: make.module.tmpl,v 1.5 2007/05/14 20:48:19 giri Exp $
 #
 
 SUITE_NAME	= symtabAPI 
@@ -66,6 +66,11 @@ else
 SYSLIBS		+= -ldemangle
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I$(LIBXML2_INC)
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h
+
+#ifdef LIBXML2_INC
+IFLAGS       += -I$(LIBXML2_INC)
+#endif
+
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
