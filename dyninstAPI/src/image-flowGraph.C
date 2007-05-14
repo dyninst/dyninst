@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.29 2007/01/09 02:01:48 giri Exp $
+ * $Id: image-flowGraph.C,v 1.30 2007/05/14 22:20:15 bernat Exp $
  */
 
 #include <stdio.h>
@@ -846,6 +846,16 @@ bool image_func::buildCFG(
                     //funcEnd = currAddr + insnSize;
 
                 Address target = ah.getBranchTargetAddress();
+                 
+                 /* Special case handling for jmp +0 and jcc +0 */
+                if(target == ah.peekNext()) {
+                     parsing_printf("[%s:%u] eliding jcc +0 edge at 0x%lx\n",
+                         FILE__, __LINE__,currAddr);
+ 
+                     ah++;
+                     continue;
+                 }
+                
                 img()->addJumpTarget( target );
 
                 if(ah.isDelaySlot())
@@ -991,6 +1001,15 @@ bool image_func::buildCFG(
 
                 parsing_printf("... 0x%lx is a jump to 0x%lx\n",
                                currAddr, target);
+
+                /* Special case handling for jmp +0 and jcc +0 */
+                if(target == ah.peekNext()) {
+                    parsing_printf("[%s:%u] eliding jcc +0 edge at 0x%lx\n",
+                        FILE__, __LINE__,currAddr);
+
+                    ah++;
+                    continue;
+                }
 
                 Address catchStart;
 
