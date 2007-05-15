@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.30 2007/05/14 22:20:15 bernat Exp $
+ * $Id: image-flowGraph.C,v 1.31 2007/05/15 21:39:41 bernat Exp $
  */
 
 #include <stdio.h>
@@ -847,6 +847,8 @@ bool image_func::buildCFG(
 
                 Address target = ah.getBranchTargetAddress();
                  
+#if 0
+                // Removed due to instrumentation/relocation problems
                  /* Special case handling for jmp +0 and jcc +0 */
                 if(target == ah.peekNext()) {
                      parsing_printf("[%s:%u] eliding jcc +0 edge at 0x%lx\n",
@@ -855,7 +857,8 @@ bool image_func::buildCFG(
                      ah++;
                      continue;
                  }
-                
+#endif                
+
                 img()->addJumpTarget( target );
 
                 if(ah.isDelaySlot())
@@ -1002,6 +1005,8 @@ bool image_func::buildCFG(
                 parsing_printf("... 0x%lx is a jump to 0x%lx\n",
                                currAddr, target);
 
+#if 0
+                // Removed; causes problems with relocation
                 /* Special case handling for jmp +0 and jcc +0 */
                 if(target == ah.peekNext()) {
                     parsing_printf("[%s:%u] eliding jcc +0 edge at 0x%lx\n",
@@ -1010,6 +1015,7 @@ bool image_func::buildCFG(
                     ah++;
                     continue;
                 }
+#endif
 
                 Address catchStart;
 
