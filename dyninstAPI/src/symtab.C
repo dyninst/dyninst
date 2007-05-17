@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.292 2007/05/17 17:09:04 bernat Exp $
+ // $Id: symtab.C,v 1.293 2007/05/17 20:01:32 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -265,7 +265,7 @@ void image::findMain()
                 mainAddress = get_disp(&preCall);
             else
                 // get_disp doesn't work here... skip the "push" opcode and grab the immediate
-            	mainAddress = *(Address *)(lastP+1);
+            	mainAddress = *(unsigned *)(lastP+1);
 
 
             logLine( "No main symbol found: creating symbol for main\n" );
