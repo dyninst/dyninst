@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.686 2007/04/26 23:02:00 legendre Exp $
+// $Id: process.C,v 1.687 2007/05/17 19:55:09 legendre Exp $
 
 #include <ctype.h>
 
@@ -6691,3 +6691,10 @@ Address process::setAOutLoadAddress(fileDescriptor &desc) {
    return desc.loadAddr();
 }
 #endif
+
+bool process::mappedObjIsDeleted(mapped_object *mobj) {
+   for (unsigned i=0; i<deleted_objects.size(); i++)
+      if (mobj == deleted_objects[i])
+         return true;
+   return false;
+}

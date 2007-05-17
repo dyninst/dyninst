@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.401 2007/03/26 20:34:54 legendre Exp $
+/* $Id: process.h,v 1.402 2007/05/17 19:55:10 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -763,6 +763,7 @@ class process {
   // Wildcard: handles "*" and "?"
   mapped_object *findObject(const pdstring &obj_name, bool wildcard = false);
   mapped_object *findObject(Address addr);
+  bool mappedObjIsDeleted(mapped_object *mobj);
   // getAllFunctions: returns a vector of all functions defined in the
   // a.out and in the shared objects
   void getAllFunctions(pdvector<int_function *> &);

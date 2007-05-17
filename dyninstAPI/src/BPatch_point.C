@@ -67,6 +67,7 @@
 #include "InstrucIter.h"
 #include "BPatch_edge.h"
 #include "ast.h"
+#include "mapped_module.h"
 
 /*
  * Private constructor, insn
@@ -241,6 +242,10 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
 
    if (!func->getModule()->isValid()) return NULL;
    
+   mapped_object *obj = func->getModule()->lowlevel_mod()->obj();
+   if (proc->lowlevel_process()->mappedObjIsDeleted(obj))
+      return NULL;
+
    if (point->getPointType() != callSite)
       return NULL;
    
