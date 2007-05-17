@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.36 2007/02/14 23:04:17 legendre Exp $
+// $Id: instPoint.C,v 1.37 2007/05/17 19:55:11 legendre Exp $
 // instPoint code
 
 
@@ -176,6 +176,11 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
   // TODO: multiple functions... 
   if (!func) return NULL;
 
+  //Create all non-arbitrary instPoints before creating arbitrary ones.
+  func->funcEntries();
+  func->funcExits();
+  func->funcCalls();
+  
   inst_printf("Creating arbitrary point at 0x%x\n", addr);
   instPoint *newIP = func->findInstPByAddr(addr);
   if (newIP) return newIP;
