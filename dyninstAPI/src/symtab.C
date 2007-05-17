@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.291 2007/03/20 23:32:58 rchen Exp $
+ // $Id: symtab.C,v 1.292 2007/05/17 17:09:04 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1051,41 +1051,6 @@ void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
         createdFunctions.push_back(func);
 }  
 
-#if 0
-//giri DEC012006- Now a part of Dyn_Symtab.C
-void image::addFunctionName(image_func *func,
-                            const pdstring newName,
-                            bool isMangled) { /* = false */    
-    // Ensure a vector exists
-    if (isMangled == false) {
-    	if(funcsByPretty.find(newName)==funcsByPretty.end())
-           funcsByPretty[newName] = new pdvector<image_func *>;
-        funcsByPretty[newName]->push_back(func);
-    }
-    else {
-        if(funcsByMangled.find(newName)==funcsByMangled.end())
-               funcsByMangled[newName] = new pdvector<image_func *>;
-        funcsByMangled[newName]->push_back(func);
-    }	
-}
-
-void image::addVariableName(image_variable *var,
-                            const pdstring newName,
-                            bool isMangled) { /* = false */    
-    // Ensure a vector exists
-    /*if (isMangled == false) {
-    	if(varsByPretty.find(newName)==varsByPretty.end())
-           varsByPretty[newName] = new pdvector<image_variable *>;
-        varsByPretty[newName]->push_back(var);
-    }
-    else {
-        if(varsByMangled.find(newName)==varsByMangled.end())
-               varsByMangled[newName] = new pdvector<image_variable *>;
-        varsByMangled[newName]->push_back(var);
-    }*/	
-}
-#endif
-
 //buildFunctionLists() iterates through image_funcs and constructs demangled 
 //names. Demangling was moved here (names used to be demangled as image_funcs 
 //were built) so that language information could be obtained _after_ the 
@@ -1894,45 +1859,6 @@ bool pdmodule::getVariables(pdvector<image_variable *> &vars)  {
     return (vars.size() > curVarSize);
 } /* end getFunctions() */
 
-
-#if 0  
-void pdmodule::removeFunction(image_func *func) {
-  pdvector <image_func *> newUniqueFuncs;
-  for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
-    if (allUniqueFunctions[i] != func)
-      newUniqueFuncs.push_back(allUniqueFunctions[i]);
-  }
-  allUniqueFunctions = newUniqueFuncs;
-
-  for (unsigned j = 0; j < func->symTabNameVector().size(); j++) {
-    pdvector<image_func *> *temp_vec;
-    if (allFunctionsByMangledName.find(func->symTabNameVector()[j],
-				       temp_vec)) {
-      pdvector<image_func *> *new_vec = new pdvector<image_func *>;
-      for (unsigned l = 0; l < temp_vec->size(); l++) {
-	if ((*temp_vec)[l] != func)
-	  new_vec->push_back((*temp_vec)[l]);
-      }
-      allFunctionsByMangledName[func->symTabNameVector()[j]] = new_vec;
-      delete temp_vec;
-    }
-  }
-  
-  for (unsigned l = 0; l < func->prettyNameVector().size(); l++) {
-    pdvector<image_func *> *temp_vec;
-    if (allFunctionsByPrettyName.find(func->prettyNameVector()[l],
-				      temp_vec)) {
-      pdvector<image_func *> *new_vec = new pdvector<image_func *>;
-      for (unsigned k = 0; k < temp_vec->size(); k++) {
-	if ((*temp_vec)[k] != func)
-	  new_vec->push_back((*temp_vec)[k]);
-      }
-      allFunctionsByPrettyName[func->prettyNameVector()[l]] = new_vec;
-      delete temp_vec;
-    }
-  }
-}
-#endif
 
 void * image::getPtrToDataInText( Address offset ) const {
 	if( isData(offset) ) { return NULL; }

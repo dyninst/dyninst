@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.20 2007/02/14 23:04:14 legendre Exp $
+// $Id: mapped_object.C,v 1.21 2007/05/17 17:09:04 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -421,6 +421,8 @@ const pdvector<int_function *> *mapped_object::findFuncVectorByPretty(const pdst
       // side effect of adding functions). But did we get them all?
       pdvector<int_function *> *map_funcs = allFunctionsByPrettyName[funcname];
       if (map_funcs->size() == img_funcs->size()) {
+          // We're allocating at the lower level....
+          delete img_funcs;
           return map_funcs;
       }
   }
@@ -434,6 +436,7 @@ const pdvector<int_function *> *mapped_object::findFuncVectorByPretty(const pdst
       assert(everyUniqueFunction[func]);
   }
   assert(allFunctionsByPrettyName.defines(funcname));
+  delete img_funcs;
   return allFunctionsByPrettyName[funcname];
 } 
 
@@ -452,6 +455,8 @@ const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const pd
         // side effect of adding functions). But did we get them all?
         pdvector<int_function *> *map_funcs = allFunctionsByMangledName[funcname];
         if (map_funcs->size() == img_funcs->size())
+            // We're allocating at the lower level...
+            delete img_funcs;
             return map_funcs;
     }
     
@@ -464,6 +469,7 @@ const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const pd
         assert(everyUniqueFunction[func]);
     }
     assert(allFunctionsByMangledName.defines(funcname));
+    delete img_funcs;
     return allFunctionsByMangledName[funcname];
 } 
 
@@ -482,8 +488,10 @@ const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const pdstr
         // Okay, we've pulled in some of the variabletions before (this can happen as a
         // side effect of adding variabletions). But did we get them all?
         pdvector<int_variable *> *map_variables = allVarsByPrettyName[varname];
-        if (map_variables->size() == img_vars->size())
+        if (map_variables->size() == img_vars->size()) {
+            delete img_vars;
             return map_variables;
+        }
     }
     
     // Slow path: check each img_variable, add those we don't already have, and return.
@@ -495,6 +503,7 @@ const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const pdstr
         assert(everyUniqueVariable[var]);
     }
     assert(allVarsByPrettyName.defines(varname));
+    delete img_vars;
     return allVarsByPrettyName[varname];
 } 
 
@@ -512,8 +521,10 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const pds
       // Okay, we've pulled in some of the variabletions before (this can happen as a
       // side effect of adding variabletions). But did we get them all?
       pdvector<int_variable *> *map_variables = allVarsByMangledName[varname];
-      if (map_variables->size() == img_vars->size())
+      if (map_variables->size() == img_vars->size()) {
+          delete img_vars;
           return map_variables;
+      }
   }
 
   // Slow path: check each img_variable, add those we don't already have, and return.
@@ -525,6 +536,7 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const pds
       assert(everyUniqueVariable[var]);
   }
   assert(allVarsByMangledName.defines(varname));
+  delete img_vars;
   return allVarsByMangledName[varname];
 } 
 
