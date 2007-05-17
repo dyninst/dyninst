@@ -589,6 +589,10 @@ public:
 
     BPatch_stats &,getBPatchStatistics,());
 
+
+    API_EXPORT_V(Int, (major, minor, subminor),
+    void ,getBPatchVersion,(int &major, int &minor, int &subminor));
+
 };
 
 #endif /* _BPatch_h_ */

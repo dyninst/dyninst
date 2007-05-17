@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.97 2006/10/18 16:06:35 legendre Exp $
+// $Id: init.C,v 1.98 2007/05/17 19:55:07 legendre Exp $
 
 
 #include "pdutil/h/pdDebugOstream.h"
@@ -105,6 +105,15 @@ void initBPatch() {
      return;
 
   bpatch = new BPatch;
+
+  int major, minor, subminor;
+  bpatch->getBPatchVersion(major, minor, subminor);
+  if (major != 5 || minor != 1 || subminor != 0) {
+     fprintf(stderr, "Error: paradynd was linked with an incorrect version " 
+             "of libdyninst.\n  Expected %d.%d.%d, but found %d.%d.%d\n",
+             5, 1, 0, major, minor, subminor);
+     exit(-1);
+  }
   // Don't trust defaults
   bpatch->setDebugParsing(false);
   bpatch->setBaseTrampDeletion(true);

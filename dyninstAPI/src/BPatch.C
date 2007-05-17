@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.170 2007/03/22 19:56:04 legendre Exp $
+// $Id: BPatch.C,v 1.171 2007/05/17 19:55:06 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -2159,4 +2159,10 @@ void BPatch::truncateLineInfoFilenamesInt(bool newval) {
    mapped_module::truncateLineFilenames = newval;
 }
 
+void BPatch::getBPatchVersionInt(int &major, int &minor, int &subminor) 
+{
+   major = 5;
+   minor = 1;
+   subminor = 0;
+}
 
