@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.67 2007/01/25 22:23:59 bernat Exp $
+// $Id: multiTramp.C,v 1.68 2007/05/18 18:49:14 bill Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1106,7 +1106,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 bool multiTramp::installCode() {
     // We need to add a jump back and fix any conditional jump
     // instrumentation
-
+    static bool warned_buggy_libunwind = false;
     assert(generatedMultiT_.used() == trampSize_); // Nobody messed with things
     assert(generated_);
 
@@ -1137,9 +1137,14 @@ bool multiTramp::installCode() {
                 dyn_unw_printf( "%s[%d]: registering multitramp unwind information for 0x%lx, at 0x%lx-0x%lx, GP 0x%lx\n",
                                 __FILE__, __LINE__, instAddr_, unwindInformation->start_ip, unwindInformation->end_ip,
                                 unwindInformation->gp );
-	            if( ! proc()->insertAndRegisterDynamicUnwindInformation( unwindInformation ) ) {
-    	    	    return false;
-                }
+	            if( ! proc()->insertAndRegisterDynamicUnwindInformation( unwindInformation ) ) 
+                    {
+                        if(!warned_buggy_libunwind)
+                        {
+                            std::cerr << "Insertion of unwind information via libunwind failed; stack walks outside of instrumented areas may not behave as expected" << std::endl;
+                            warned_buggy_libunwind = true;
+                        }
+                    }
             }
 #endif /* defined( cap_unwind ) */
         }
