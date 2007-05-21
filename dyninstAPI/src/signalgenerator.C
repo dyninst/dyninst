@@ -1114,14 +1114,6 @@ bool SignalGenerator::attachProcess()
     // use later.
     proc->set_status(stopped);
     
-#if !defined(os_windows)
-    if (proc->hasPassedMain()) {
-       proc->setBootstrapState(initialized_bs);
-    }
-    else {
-    }
-#endif
-    
     startup_printf("%s[%d]: returning from attachProcess\n", FILE__, __LINE__);
     return true;
 }
@@ -1616,6 +1608,12 @@ bool SignalGeneratorCommon::initialize_event_handler()
        proc = NULL;
        return false;
     }
+
+#if !defined(os_windows)
+    if (proc->hasPassedMain()) {
+       proc->setBootstrapState(initialized_bs);
+    }
+#endif
   }
   else { // proc->getParent() is non-NULL, fork case
       signal_printf("%s[%d]: attaching to forked child, creating representative LWP\n",
