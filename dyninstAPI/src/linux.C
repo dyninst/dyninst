@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.258 2007/05/09 21:53:25 legendre Exp $
+// $Id: linux.C,v 1.259 2007/05/21 17:12:44 legendre Exp $
 
 #include <fstream>
 
@@ -3122,8 +3122,6 @@ bool process::hasPassedMain()
                   FILE__, __LINE__, (int) result, entry_addr, current_pc);
 
    cleanup:
-      if (ld_file)
-         delete ld_file;
 
    return result;
 }
