@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.48 2007/02/27 16:22:06 nater Exp $
+ * $Id: emit-x86.C,v 1.49 2007/05/22 21:05:48 rchen Exp $
  */
 
 #include <assert.h>
@@ -287,7 +287,7 @@ void Emitter32::emitLoadOrigRegister(Address register_num, Register dest, codeGe
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen); //mov dest, 0[eax]
 }
 
-void Emitter32::emitStore(Address addr, Register src, codeGen &gen)
+void Emitter32::emitStore(Address addr, Register src, int /*size*/, codeGen &gen)
 {
       emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);    // mov eax, -(src*4)[ebp]
       emitMovRegToM(addr, REGNUM_EAX, gen);               // mov addr, eax
@@ -300,7 +300,7 @@ void Emitter32::emitStoreIndir(Register addr_reg, Register src, codeGen &gen)
     emitMovRegToRM(REGNUM_ECX, 0, REGNUM_EAX, gen);           // mov [ecx], eax
 }
 
-void Emitter32::emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen)
+void Emitter32::emitStoreFrameRelative(Address offset, Register src, Register scratch, int /*size*/, codeGen &gen)
 {
       // scratch = [ebp]	- saved bp
       // (offset)[scratch] = src
@@ -630,7 +630,7 @@ void emitAddMem(Address addr, int imm, codeGen &gen) {
    SET_PTR(insn, gen);
 }
 
-void Emitter32::emitAddSignedImm(Address addr,int imm, codeGen &gen,
+void Emitter32::emitAddSignedImm(Address addr, int imm, codeGen &gen,
                                  bool /*noCost*/)
 {
    emitAddMem(addr, imm, gen);
@@ -1148,17 +1148,15 @@ void Emitter64::emitLoadOrigRegister(Address register_num, Register dest, codeGe
     gen.rs()->readRegister(gen, register_num, dest);
 }
 
-void Emitter64::emitStore(Address addr, Register src, codeGen &gen)
+void Emitter64::emitStore(Address addr, Register src, int size, codeGen &gen)
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
-
-    // FIXME: we assume int (size == 4) for now
 
     // mov $addr, %rax
     emitMovImmToReg64(scratch, addr, true, gen);
 
     // mov %src, (%rax)
-    emitMovRegToRM64(scratch, 0, src, false, gen);
+    emitMovRegToRM64(scratch, 0, src, (size == 8), gen);
 }
 
 void Emitter64::emitStoreIndir(Register addr_reg, Register src, codeGen &gen)
@@ -1167,7 +1165,7 @@ void Emitter64::emitStoreIndir(Register addr_reg, Register src, codeGen &gen)
     emitMovRegToRM64(addr_reg, 0, src, false, gen);
 }
 
-void Emitter64::emitStoreFrameRelative(Address offset, Register src, Register /*scratch*/, codeGen &gen)
+void Emitter64::emitStoreFrameRelative(Address offset, Register src, Register /*scratch*/, int size, codeGen &gen)
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
     // FIXME: we assume int (size == 4) for now
@@ -1176,7 +1174,7 @@ void Emitter64::emitStoreFrameRelative(Address offset, Register src, Register /*
     emitMovRMToReg64(scratch, REGNUM_RBP, 0, true, gen);
     
     // mov %src, offset(%rax)
-    emitMovRegToRM64(scratch, offset, src, false, gen);
+    emitMovRegToRM64(scratch, offset, src, (size == 8), gen);
 }
 
 
@@ -1921,7 +1919,7 @@ bool Emitter64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
 
 void Emitter64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) 
 {
-   if (!isImm64bit(addr)) {
+   if (!isImm64bit(imm)) {
       emitMovImmToRM(Null_Register, addr, imm, gen);
    }
    else {
@@ -1932,9 +1930,9 @@ void Emitter64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost)
    }
 }
 
-void Emitter64::emitAddSignedImm(Address addr,int imm, codeGen &gen,bool noCost)
+void Emitter64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noCost)
 {
-   if (!isImm64bit(addr)) {
+   if (!isImm64bit(imm)) {
       emitAddMem(addr, imm, gen);
    }
    else {

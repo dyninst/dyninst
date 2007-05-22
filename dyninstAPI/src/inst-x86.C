@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.262 2007/02/14 23:03:33 legendre Exp $
+ * $Id: inst-x86.C,v 1.263 2007/05/22 21:05:51 rchen Exp $
  */
 #include <iomanip>
 
@@ -1305,7 +1305,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
                 codeGen &gen, bool /*noCost*/, registerSpace * /*rs*/, 
-                int /* size */,
+                int size,
                 const instPoint * /* location */, process * /* proc */)
 {
    if (op ==  storeOp) {
@@ -1313,13 +1313,13 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
       // dest has the address where src1 is to be stored
       // src1 is a temporary
       // src2 is a "scratch" register, we don't need it in this architecture
-       gen.codeEmitter()->emitStore(dest, src1, gen);
+       gen.codeEmitter()->emitStore(dest, src1, size, gen);
       return;
    } else if (op == storeFrameRelativeOp) {
        // src1 is a temporary
        // src2 is a "scratch" register, we don't need it in this architecture
        // dest is the frame offset 
-       gen.codeEmitter()->emitStoreFrameRelative(dest, src1, src2, gen);
+       gen.codeEmitter()->emitStoreFrameRelative(dest, src1, src2, size, gen);
        return;
    } else {
        abort();                // unexpected op for this emit!
