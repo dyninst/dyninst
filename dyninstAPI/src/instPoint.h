@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.35 2007/01/25 22:23:56 bernat Exp $
+// $Id: instPoint.h,v 1.36 2007/05/22 19:42:02 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -253,6 +253,16 @@ class instPoint : public instPointBase {
 
  public:
     bool updateInstances();
+    // We sometimes need to split the work that updateInstances does.
+    // We can have a large number of points per block; if we 
+    // call updateInstances, we'll generate the multiTramp an excessive
+    // number of times. 
+    // This is a workaround; we may want to revisit the entire structure
+    // later.
+    // Do no code generation; unsafe to call individually
+    bool updateInstancesBatch();
+    bool updateInstancesFinalize();
+
     pdvector<instPointInstance *> instances;
 
     // Adding instances is expensive; if the function
@@ -518,6 +528,5 @@ struct batchInsertionRecord {
 
     bool trampRecursive_;
 };
-    
 
 #endif /* _INST_POINT_H_ */

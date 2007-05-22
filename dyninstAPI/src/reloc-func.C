@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.26 2006/12/06 21:17:45 bernat Exp $
+// $Id: reloc-func.C,v 1.27 2007/05/22 19:42:02 bernat Exp $
 
 
 
@@ -274,14 +274,24 @@ bool int_function::relocationInstall() {
     // Fix up all of our instPoints....
     // This will cause multiTramps, etc. to be built in the new
     // version of the function.  
+
     for (i = 0; i < entryPoints_.size(); i++)
-        entryPoints_[i]->updateInstances();
+        entryPoints_[i]->updateInstancesBatch();
     for (i = 0; i < exitPoints_.size(); i++)
-        exitPoints_[i]->updateInstances();
+        exitPoints_[i]->updateInstancesBatch();
     for (i = 0; i < callPoints_.size(); i++)
-        callPoints_[i]->updateInstances();
+        callPoints_[i]->updateInstancesBatch();
     for (i = 0; i < arbitraryPoints_.size(); i++)
-        arbitraryPoints_[i]->updateInstances();
+        arbitraryPoints_[i]->updateInstancesBatch();
+
+    for (i = 0; i < entryPoints_.size(); i++)
+        entryPoints_[i]->updateInstancesFinalize();
+    for (i = 0; i < exitPoints_.size(); i++)
+        exitPoints_[i]->updateInstancesFinalize();
+    for (i = 0; i < callPoints_.size(); i++)
+        callPoints_[i]->updateInstancesFinalize();
+    for (i = 0; i < arbitraryPoints_.size(); i++)
+        arbitraryPoints_[i]->updateInstancesFinalize();
 
     return success;
 }

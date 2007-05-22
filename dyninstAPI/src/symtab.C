@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.293 2007/05/17 20:01:32 legendre Exp $
+ // $Id: symtab.C,v 1.294 2007/05/22 19:42:02 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1481,8 +1481,10 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const pdstring &name
     }		
     if(res->size())	
 	return res;	    
-    else
+    else {
+        delete res;
     	return NULL;
+    }
     /*
     if (funcsByPretty.defines(name)) {
         //analyzeIfNeeded();
@@ -1511,19 +1513,12 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &na
     	if(syms[index]->getUpPtr())				//Every Dyn_Symbol might not have a corresponding image_func
     	    res->push_back((image_func *)syms[index]->getUpPtr());
     }	    
-    if(res->size())	
+    if(res->size()) 
 	return res;	    
-    else
+    else {
+        delete res;
     	return NULL;
-   
-  #if 0 
-    if (funcsByMangled.defines(name)) {
-      //analyzeIfNeeded();
-      return funcsByMangled[name];
-    }
-  
-    return NULL;
-  #endif
+    }   
 }
 
 const pdvector <image_variable *> *image::findVarVectorByPretty(const pdstring &name)
@@ -1543,15 +1538,10 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const pdstring &
     }	    
     if(res->size())	
 	return res;	    
-    else
+    else {
+        delete res;
     	return NULL;
-  #if 0
-  if (varsByPretty.defines(name)) {
-      //analyzeIfNeeded();
-      return varsByPretty[name];
-  }
-  return NULL;
-  #endif
+    }
 }
 
 const pdvector <image_variable *> *image::findVarVectorByMangled(const pdstring &name)
@@ -1570,8 +1560,10 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const pdstring 
     }	    
     if(res->size())	
 	return res;	    
-    else
+    else {
+        delete res;
     	return NULL;
+    }
   /*
   if (varsByMangled.defines(name)) {
       //analyzeIfNeeded();

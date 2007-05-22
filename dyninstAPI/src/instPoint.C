@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.37 2007/05/17 19:55:11 legendre Exp $
+// $Id: instPoint.C,v 1.38 2007/05/22 19:42:02 bernat Exp $
 // instPoint code
 
 
@@ -262,10 +262,26 @@ bool instPoint::commonIPCreation(instPoint *ip) {
 // that everything works right.
 
 bool instPoint::updateInstances() {
+    if (func()->version() == funcVersion)
+        return false;
+
+    // Otherwise there's work to do...
+
+    if (updateInstancesBatch()) 
+        updateInstancesFinalize();
+
+    return true;
+}
+
+// Create the instPoint data structures, but don't do any instrumentation
+// setup. Returns true if there is further work to be done.
+
+bool instPoint::updateInstancesBatch() {
     unsigned i;
 
-    if (func()->version() == funcVersion)
-        return true;
+    if (func()->version() == funcVersion) {
+        return false;
+    }
     else if (func()->version() < funcVersion) {
         reloc_printf("DEBUG: func version %d, our version %d, block instances %d, our instances %d\n",
                 func()->version(), funcVersion, 
@@ -288,7 +304,7 @@ bool instPoint::updateInstances() {
         }
 
         funcVersion = func()->version();
-        return true;
+        return false;
     }
     else {
         // For each instance of the basic block we're attached to,
@@ -317,47 +333,51 @@ bool instPoint::updateInstances() {
                 func()->registerInstPointAddr(newAddr, this);
             }
         }
-        
-        // We need all instances to stay in step; so if the first (default)
-        // instance is generated/installed/linked, then make sure any new
-        // instances are the same.
-        bool generated = false;
-        bool installed = false;
-        bool linked = false;
-        
-        if (instances[0]->multi()) {
-            generated = instances[0]->multi()->generated();
-            installed = instances[0]->multi()->installed();
-            linked = instances[0]->multi()->linked();
-        }
-        
-        // Check whether there's something at my address...
-        for (i = 0; i < instances.size(); i++) {
-
-            if (!instances[i]->multi()) {
-                instances[i]->multiID_ = multiTramp::findOrCreateMultiTramp(instances[i]->addr(),
-                                                                            proc());
-                if (instances[i]->multi()) {
-                    if (generated) {
-                        instances[i]->multi()->generateMultiTramp();
-                    }
-                    if (installed) {
-                        instances[i]->multi()->installMultiTramp();
-                    }
-                    if (linked) {
-                        instances[i]->multi()->linkMultiTramp();
-                    }
-                }
-                /*
-                  // Not actually an error anymore, leaving in for debug purposes
-                  else {
-                  fprintf(stderr, "ERROR: instance %p, addr 0x%lx, IP %p, no multitramp!\n",
-                  instances[i], instances[i]->addr(), this);
-                  }
-                */
-            }
-        }
         funcVersion = func()->version();
+        return true;
+    }
+    return false;
+}
+
+bool instPoint::updateInstancesFinalize() {
+    // We need all instances to stay in step; so if the first (default)
+    // instance is generated/installed/linked, then make sure any new
+    // instances are the same.
+    bool generated = false;
+    bool installed = false;
+    bool linked = false;
+    
+    if (instances[0]->multi()) {
+        generated = instances[0]->multi()->generated();
+        installed = instances[0]->multi()->installed();
+        linked = instances[0]->multi()->linked();
+    }
+    
+    // Check whether there's something at my address...
+    for (unsigned i = 0; i < instances.size(); i++) {
+        
+        if (!instances[i]->multi()) {
+            instances[i]->multiID_ = multiTramp::findOrCreateMultiTramp(instances[i]->addr(),
+                                                                        proc());
+            if (instances[i]->multi()) {
+                if (generated) {
+                    instances[i]->multi()->generateMultiTramp();
+                }
+                if (installed) {
+                    instances[i]->multi()->installMultiTramp();
+                }
+                if (linked) {
+                    instances[i]->multi()->linkMultiTramp();
+                }
+            }
+            /*
+            // Not actually an error anymore, leaving in for debug purposes
+            else {
+            fprintf(stderr, "ERROR: instance %p, addr 0x%lx, IP %p, no multitramp!\n",
+            instances[i], instances[i]->addr(), this);
+            }
+            */
+        }
     }
     return true;
 }
@@ -693,7 +713,21 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
     
     
 instPoint::~instPoint() {
-    // TODO
+    for (unsigned i = 0; i < instances.size(); i++) {
+        delete instances[i];
+    }
+    instances.clear();
+    // callee isn't ours...
+    // multitramps will get deleted themselves...
+
+    if (preBaseTramp_) delete preBaseTramp_;
+    if (postBaseTramp_) delete postBaseTramp_;
+    if (targetBaseTramp_) delete targetBaseTramp_;
+    if (replacedCode_) delete replacedCode_;
+    
+    if (actualGPRLiveSet_) delete actualGPRLiveSet_;
+    if (actualFPRLiveSet_) delete actualFPRLiveSet_;
+    if (actualSPRLiveSet_) delete actualSPRLiveSet_;
 }
 
 
