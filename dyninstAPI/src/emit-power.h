@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-power.h,v 1.1 2006/12/14 20:12:04 bernat Exp $
+ * $Id: emit-power.h,v 1.2 2007/05/22 21:05:42 rchen Exp $
  */
 
 #ifndef _EMITTER_POWER_H
@@ -82,9 +82,9 @@ class EmitterPOWER : public Emitter {
     virtual void emitLoadOrigRegRelative(Register, Address, Register, codeGen &, bool) { assert(0); }
     virtual void emitLoadOrigRegister(Address, Register, codeGen &) { assert(0); }
 
-    virtual void emitStore(Address, Register, codeGen &) { assert(0); }
+    virtual void emitStore(Address, Register, int, codeGen &) { assert(0); }
     virtual void emitStoreIndir(Register, Register, codeGen &) { assert(0); }
-    virtual void emitStoreFrameRelative(Address, Register, Register, codeGen &) { assert(0); }
+    virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
     virtual bool emitMoveRegToReg(Register, Register, codeGen &) { assert(0); return 0;}
 
     virtual Register emitCall(opCode, codeGen &, const pdvector<AstNode *> &,

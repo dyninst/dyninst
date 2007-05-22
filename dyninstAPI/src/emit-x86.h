@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.23 2007/01/04 22:59:54 legendre Exp $
+ * $Id: emit-x86.h,v 1.24 2007/05/22 21:05:45 rchen Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -92,9 +92,9 @@ public:
     void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
     void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
 
-    void emitStore(Address addr, Register src, codeGen &gen);
+    void emitStore(Address addr, Register src, int size, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
-    void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
+    void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
     bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, codeGen &gen,
@@ -171,9 +171,9 @@ public:
     void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
     void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
 
-    void emitStore(Address addr, Register src, codeGen &gen);
+    void emitStore(Address addr, Register src, int size, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
-    void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
+    void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
     bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, codeGen &gen,

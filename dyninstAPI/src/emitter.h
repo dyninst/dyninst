@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emitter.h,v 1.7 2007/01/04 22:59:55 legendre Exp $
+ * $Id: emitter.h,v 1.8 2007/05/22 21:05:39 rchen Exp $
  */
 
 #ifndef _EMITTER_H
@@ -82,9 +82,9 @@ class Emitter {
     virtual void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store) = 0;
     virtual void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen) = 0;
 
-    virtual void emitStore(Address addr, Register src, codeGen &gen) = 0;
+    virtual void emitStore(Address addr, Register src, int size, codeGen &gen) = 0;
     virtual void emitStoreIndir(Register addr_reg, Register src, codeGen &gen) = 0;
-    virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen) = 0;
+    virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen) = 0;
     virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
 
     virtual Register emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> &operands,
