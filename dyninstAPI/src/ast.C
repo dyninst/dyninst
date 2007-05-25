@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.189 2007/05/22 21:05:35 rchen Exp $
+// $Id: ast.C,v 1.190 2007/05/25 21:13:57 rchen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -913,8 +913,8 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    if (roperand->getoType() == Constant) {
       //Looks like 'global = constant'
 #if defined(arch_x86_64)
-      if (((Address) roperand->getOValue()) >> 32) {
-         //Make sure it fits in 32 bits
+      if (laddr >> 32 || ((Address) roperand->getOValue()) >> 32) {
+         // Make sure value and address are 32-bit values.
          return false;
       }
 #endif
