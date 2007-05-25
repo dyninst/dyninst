@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.49 2007/05/22 21:05:48 rchen Exp $
+ * $Id: emit-x86.C,v 1.50 2007/05/25 21:13:53 rchen Exp $
  */
 
 #include <assert.h>
@@ -1919,8 +1919,8 @@ bool Emitter64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
 
 void Emitter64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) 
 {
-   if (!isImm64bit(imm)) {
-      emitMovImmToRM(Null_Register, addr, imm, gen);
+   if (!isImm64bit(addr) && !isImm64bit(imm)) {
+      emitMovImmToMem(addr, imm, gen);
    }
    else {
       Register r = gen.rs()->allocateRegister(gen, noCost);      
@@ -1932,7 +1932,7 @@ void Emitter64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost)
 
 void Emitter64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noCost)
 {
-   if (!isImm64bit(imm)) {
+   if (!isImm64bit(addr) && !isImm64bit(imm)) {
       emitAddMem(addr, imm, gen);
    }
    else {
