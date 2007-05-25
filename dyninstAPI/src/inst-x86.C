@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.263 2007/05/22 21:05:51 rchen Exp $
+ * $Id: inst-x86.C,v 1.264 2007/05/25 21:13:50 rchen Exp $
  */
 #include <iomanip>
 
@@ -775,18 +775,30 @@ void emitMovImmToRM(Register base, int disp, int imm,
 // emit MOV mem32, imm32
 void emitMovImmToMem(Address maddr, int imm,
                                    codeGen &gen) {
+    // In x86_64, the meaning of the ModRM byte for disp32 has changed.
+    // Now, it implies an [RIP] + disp32 address.  To get an absolute
+    // address operand (in both x86 and x86_64), the full ModRM + SIB
+    // syntax must be used.
     GET_PTR(insn, gen);
-   *insn++ = 0xC7;
-   // emit the ModRM byte: we use a 32-bit displacement for the address,
-   // the ModRM value is 0x05
-   *insn++ = 0x05;
-   *((unsigned *)insn) = maddr;
-   insn += sizeof(unsigned);
-   *((int*)insn) = imm;
-   insn += sizeof(int);
+    *insn++ = 0xC7;
+
+    // FIXME: To adhere strictly to the x86 and x86_64 ISAs, we specify an
+    // absolute (32-bit) address by emitting a ModRM and SIB byte of the
+    // following form:
+    //     Mod = 00b, Reg = (doesn't matter?), R/M = 100b
+    //     base = 101b, index = 100b, scale = (doesn't matter?)
+    // Current forms of emitAddressingMode() do not allow for this, and so
+    // we do it manually here.  emitAddressingMode() should be made more
+    // robust.
+    *insn++ = makeModRMbyte(0, 0, 4);
+    *insn++ = makeSIBbyte(0, 4, 5);
+    *((int *)insn) = maddr;
+    insn += sizeof(unsigned);
+
+    *((int*)insn) = imm;
+    insn += sizeof(int);
     SET_PTR(insn, gen);
 }
-
 
 // emit Add dword ptr DS:[addr], imm
 void emitAddMemImm32(Address addr, int imm, codeGen &gen)
