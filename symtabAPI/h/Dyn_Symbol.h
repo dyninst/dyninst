@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Dyn_Symbol.h,v 1.6 2007/05/30 19:20:39 legendre Exp $
+ * $Id: Dyn_Symbol.h,v 1.7 2007/05/31 14:24:47 legendre Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -47,7 +47,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "symtabAPI/h/util.h"
+#include "util.h"
 
 class Dyn_Section;
 class Dyn_Module;

@@ -41,7 +41,7 @@
 #include <ext/hash_map>
  
  
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "Dyn_Symtab.h"
 using namespace std;
 using namespace __gnu_cxx; 
  

@@ -39,8 +39,8 @@
 #include <vector>
 #include <string>
 
-#include "symtabAPI/h/util.h"
-#include "symtabAPI/h/Dyn_Symbol.h"
+#include "util.h"
+#include "Dyn_Symbol.h"
 
 typedef unsigned long OFFSET;
 
