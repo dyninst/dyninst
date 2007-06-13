@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2006/06/15 23:33:55 igor Exp $
+# $Id: Makefile,v 1.8 2007/06/13 18:51:29 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -70,7 +70,7 @@ MAKE_SHARED_LIB = ld
 
 TESTSUITE_FLAGS += -Wl,-bexpall   
 
-LIBS_LIBTESTSUITE = -ldl 
+LIBS_LIBTESTSUITE = -ldl -lpthread
 USE_LIBTESTSUITE_EXT_A = true
 STRIP_SO = strip
 
