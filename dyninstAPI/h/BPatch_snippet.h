@@ -51,6 +51,14 @@
 #include "BPatch_eventLock.h"
 
 class AstNode;
+// Don't include the boost shared_ptr library
+
+namespace boost {
+    template< typename T > class shared_ptr;
+    template<> class shared_ptr<AstNode *>;
+};
+typedef boost::shared_ptr<AstNode> AstNodePtr;
+
 class process;
 class BPatch_process;
 class BPatch_function;
@@ -124,10 +132,10 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend class BPatch_ifMachineConditionExpr;
     friend class BPatch_sequence;
     friend class BPatch_insnExpr;
-    friend AstNode *generateArrayRef(const BPatch_snippet &lOperand, 
-                                     const BPatch_snippet &rOperand);
-    friend AstNode *generateFieldRef(const BPatch_snippet &lOperand, 
-                                     const BPatch_snippet &rOperand);
+    friend AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand, 
+                                        const BPatch_snippet &rOperand);
+    friend AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand, 
+                                        const BPatch_snippet &rOperand);
 
     public:
 
@@ -136,7 +144,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     //  BPatch_snippet::BPatch_snippet
     //  Default constructor
 
-    BPatch_snippet() : ast(NULL) {};
+    BPatch_snippet() : ast_wrapper(NULL) {};
 
     //  BPatch_snippet::BPatch_snippet
     //  Copy constructor
@@ -177,7 +185,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     bool,is_trivial,());
 
     protected:
-    AstNode	*ast; 
+    AstNodePtr *ast_wrapper; 
 
 };
 
@@ -260,6 +268,10 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
     API_EXPORT_CTOR(Float, (value),
     BPatch_constExpr,(float value));
 #endif
+
+    // Should _always_ have a default constructor. This
+    // one produces a 0
+    BPatch_constExpr() : BPatch_snippet() {};
 
 };
 
@@ -400,9 +412,13 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
 
     BPatch_variableExpr(BPatch_process *in_process, void *in_address,
                         int in_size);
-    BPatch_variableExpr(char *in_name, BPatch_process *in_process, AstNode *_ast,
+    BPatch_variableExpr(char *in_name, 
+                        BPatch_process *in_process, 
+                        AstNodePtr *ast_wrapper_,
                         BPatch_type *type);
-    BPatch_variableExpr(char *in_name, BPatch_process *in_process, AstNode *_ast,
+    BPatch_variableExpr(char *in_name, 
+                        BPatch_process *in_process, 
+                        AstNodePtr *ast_wrapper_,
                         BPatch_type *type, void* in_address);
     BPatch_variableExpr(BPatch_process *in_process, void *in_address, 
                         int in_register, BPatch_type *type, 
