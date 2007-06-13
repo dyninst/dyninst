@@ -43,12 +43,13 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.20 2006/05/03 00:31:18 jodom Exp $ */
+/* $Id: addLibrary.C,v 1.21 2007/06/13 18:50:26 bernat Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
 #include "addLibrary.h"
 #include "util.h"
+#include "debug.h"
 #define BASEADDR 0x10000
 
 

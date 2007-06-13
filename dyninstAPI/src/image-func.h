@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.26 2007/01/09 02:01:54 giri Exp $
+// $Id: image-func.h,v 1.27 2007/06/13 18:50:48 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -254,7 +254,7 @@ bool isRealCall(instruction insn,
                 image *owner, 
                 bool &validTarget);
 
-class AstNode; // For IA-64
+#include "ast.h"
 
 
 class image_func_registers {
@@ -463,7 +463,7 @@ class image_func : public codeRange {
    // Since the IA-64 ABI does not define a frame pointer register,
    // we use DWARF debug records (DW_AT_frame_base entries) to 
    // construct an AST which calculates the frame pointer.
-   AstNode * framePointerCalculator;
+   AstNodePtr framePointerCalculator;
    
    // Place to store the results of doFloatingPointStaticAnalysis().
    // This way, if they are ever needed in a mini-tramp, emitFuncJump()

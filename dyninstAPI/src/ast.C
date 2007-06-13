@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.190 2007/05/25 21:13:57 rchen Exp $
+// $Id: ast.C,v 1.191 2007/06/13 18:50:32 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -57,26 +57,18 @@
 
 #include "dyninstAPI/h/BPatch_point.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+#include "dyninstAPI/h/BPatch_type.h"
 
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)
+#if defined(arch_sparc)
 #include "dyninstAPI/src/inst-sparc.h"
-
-#elif defined(hppa1_1_hp_hpux)
-#include "dyninstAPI/src/inst-hppa.h"
-
-#elif defined(rs6000_ibm_aix3_2) \
-   || defined(rs6000_ibm_aix4_1)
+#elif defined(arch_power)
 #include "dyninstAPI/src/inst-power.h"
-
-#elif defined(i386_unknown_solaris2_5) \
-   || defined(i386_unknown_nt4_0) \
-   || defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4)
+#elif defined(arch_x86) || defined (arch_x86_64)
 #include "dyninstAPI/src/inst-x86.h"
-
-#elif defined(ia64_unknown_linux2_4) /* Why is this done here, instead of, e.g., inst.h? */
+#elif defined(arch_ia64)
 #include "dyninstAPI/src/inst-ia64.h"
+#else
+#error "Unknown architecture in ast.h"
 #endif
 
 #include "emitter.h"
@@ -98,199 +90,75 @@ AstNode::AstNode() {
    doTypeCheck = true;
 }
 
-AstNode *AstNode::nullNode() {
-    return new AstNullNode();
+AstNodePtr AstNode::nullNode() {
+    return AstNodePtr(new AstNullNode());
 }
 
-AstNode *AstNode::labelNode(pdstring &label) {
-    return new AstLabelNode(label);
+AstNodePtr AstNode::labelNode(pdstring &label) {
+    return AstNodePtr (new AstLabelNode(label));
 }
 
-AstNode *AstNode::operandNode(operandType ot, void *arg) {
-    AstNode *ret = new AstOperandNode(ot, arg);
-    return ret;
+AstNodePtr AstNode::operandNode(operandType ot, void *arg) {
+    return AstNodePtr(new AstOperandNode(ot, arg));
 }
 
 // TODO: this is an indirect load; should be an operator.
-AstNode *AstNode::operandNode(operandType ot, AstNode *ast) {
-    AstNode *ret = new AstOperandNode(ot, ast);
-    return ret;
+AstNodePtr AstNode::operandNode(operandType ot, AstNodePtr ast) {
+    return AstNodePtr(new AstOperandNode(ot, ast));
 }
 
-AstNode *AstNode::sequenceNode(pdvector<AstNode *> &sequence) {
-    AstNode *ret = new AstSequenceNode(sequence);
-    return ret;
+AstNodePtr AstNode::sequenceNode(pdvector<AstNodePtr > &sequence) {
+    return AstNodePtr(new AstSequenceNode(sequence));
 }
 
-AstNode *AstNode::operatorNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
-    AstNode *ret = new AstOperatorNode(ot, l, r, e);
-    return ret;
+AstNodePtr AstNode::operatorNode(opCode ot, AstNodePtr l, AstNodePtr r, AstNodePtr e) {
+    return AstNodePtr(new AstOperatorNode(ot, l, r, e));
 }
 
-AstNode *AstNode::funcCallNode(const pdstring &func, pdvector<AstNode *> &args, process *proc) {
+AstNodePtr AstNode::funcCallNode(const pdstring &func, pdvector<AstNodePtr > &args, process *proc) {
     if (proc) {
         int_function *ifunc = proc->findOnlyOneFunction(func);
-        if (ifunc == NULL) return NULL;
-        return new AstCallNode(ifunc, args);
+        if (ifunc == NULL) {
+            fprintf(stderr, "Bitch whine moan\n");
+            return AstNodePtr();
+        }
+        return AstNodePtr(new AstCallNode(ifunc, args));
     }
     else
-        return new AstCallNode(func, args);
+        return AstNodePtr(new AstCallNode(func, args));
 }
 
-AstNode *AstNode::funcCallNode(int_function *func, pdvector<AstNode *> &args) {
-    if (func == NULL) return NULL;
-    return new AstCallNode(func, args);
+AstNodePtr AstNode::funcCallNode(int_function *func, pdvector<AstNodePtr > &args) {
+    if (func == NULL) return AstNodePtr();
+    return AstNodePtr(new AstCallNode(func, args));
 }
 
-AstNode *AstNode::funcCallNode(Address addr, pdvector<AstNode *> &args) {
-    return new AstCallNode(addr, args);
+AstNodePtr AstNode::funcCallNode(Address addr, pdvector<AstNodePtr > &args) {
+    return AstNodePtr(new AstCallNode(addr, args));
 }
 
-AstNode *AstNode::funcReplacementNode(int_function *func) {
-    if (func == NULL) return NULL;
-    return new AstReplacementNode(func);
+AstNodePtr AstNode::funcReplacementNode(int_function *func) {
+    if (func == NULL) return AstNodePtr();
+    return AstNodePtr(new AstReplacementNode(func));
 }
 
-AstNode *AstNode::memoryNode(memoryType ma, int which) {
-    return new AstMemoryNode(ma, which);
+AstNodePtr AstNode::memoryNode(memoryType ma, int which) {
+    return AstNodePtr(new AstMemoryNode(ma, which));
 }
 
-AstNode *AstNode::miniTrampNode(AstNode *tramp) {
-    if (tramp == NULL) return NULL;
-    return new AstMiniTrampNode(tramp);
+AstNodePtr AstNode::miniTrampNode(AstNodePtr tramp) {
+    if (tramp == NULL) return AstNodePtr();
+    return AstNodePtr(new AstMiniTrampNode(tramp));
 }
 
-AstNode *AstNode::insnNode(BPatch_instruction *insn) {
+AstNodePtr AstNode::insnNode(BPatch_instruction *insn) {
     // Figure out what kind of instruction we've got...
     if (dynamic_cast<BPatch_memoryAccess *>(insn)) {
-        return new AstInsnMemoryNode(insn->insn(), (Address) insn->getAddress());
+        return AstNodePtr(new AstInsnMemoryNode(insn->insn(), (Address) insn->getAddress()));
     } 
     
-    return new AstInsnNode(insn->insn(), (Address) insn->getAddress());
+    return AstNodePtr(new AstInsnNode(insn->insn(), (Address) insn->getAddress()));
 }
-
-//
-// How to use AstNodes:
-//
-// In order to avoid memory leaks, it is important to define and delete
-// AstNodes properly. The general rules are the following:
-//
-// 1.- Any AstNode defined locally, should be destroyed at the end of that
-//     procedure. The only exception occurs when we are returning a pointer
-//     to the AstNode as a result of the function (i.e. we need to keep the
-//     value alive).
-// 2.- Every time we assign an AstNode to another, we have to use the
-//     "assignAst" function. This function will update the reference count
-//     of the AstNode being assigned and it will return a pointer to it. If
-//     we are creating a new AstNode (e.g. AstNode *t1 = new AstNode(...))
-//     then it is not necessary to use assign, because the constructor will
-//     automatically increment the reference count for us.
-// 3.- "removeAst" is the procedure to be used everytime we want to delete
-//     an AstNode. In general, if an AstNode is re-used several times, it
-//     should be enough to delete the root of the DAG to delete all nodes.
-//     However, there are exceptions like this one:
-//     AstNode *t1, *t2, *t3;
-//     t1 = AstNode(...);   rc-t1=1
-//     t2 = AstNode(...);   rc-t2=1
-//     t3 = AstNode(t1,t2); rc-t1=2, rc-t2=2, rc-t3=1
-//     if we say:
-//     removeAst(t3);
-//     it will delete t3, but not t1 or t2 (because the rc will be 1 for both
-//     of them). Therefore, we need to add the following:
-//     removeAst(t1); removeAst(t2);
-//     We only delete AstNodes when the reference count is 0.
-//
-
-#if 0
-// TODO break into pieces
-AstNode &AstNode::operator=(const AstNode &src) {
-   logLine("Calling AstNode COPY constructor\n");
-   if (&src == this)
-      return *this; // the usual check for x=x
-
-   // clean up self before overwriting self; i.e., release memory
-   // currently in use so it doesn't become leaked.
-   if (loperand) {
-      if (src.loperand) {
-        if (loperand!=src.loperand) {
-          removeAst(loperand);
-        }
-      } else {
-        removeAst(loperand);
-      }
-   }
-   if (roperand) {
-      if (src.roperand) {
-        if (roperand!=src.roperand) {
-          removeAst(roperand);
-        }
-      } else {
-        removeAst(roperand);
-      }
-   }
-   if (eoperand) {
-      if (src.eoperand) {
-        if (eoperand!=src.eoperand) {
-          removeAst(eoperand);
-        }
-      } else {
-        removeAst(eoperand);
-      }
-   }
-   if (type == operandNode && oType == ConstantString)
-       free((char *)oValue);
-   referenceCount = src.referenceCount;
-   referenceCount++;
-
-   type = src.type;
-   if (type == opCodeNode_t)
-      op = src.op; // defined only for operand nodes
-
-   if (type == callNode) {
-      callee = src.callee; // defined only for call nodes
-      calleefunc = src.calleefunc;
-      calleefuncAddr = src.calleefuncAddr;
-      for (unsigned i=0;i<src.operands.size();i++) 
-        operands.push_back(assignAst(src.operands[i]));
-   }
-
-   if (type == operandNode) {
-      oType = src.oType;
-      // XXX This is for the string type.  If/when we fix the string type to
-      // make it less of a hack, we'll need to change this.
-      if (oType == ConstantString)
-	  oValue = P_strdup((char *)src.oValue);
-      else
-    	  oValue = src.oValue;
-   }
-
-   loperand = assignAst(src.loperand);
-   roperand = assignAst(src.roperand);
-   eoperand = assignAst(src.eoperand);
-
-   size = src.size;
-   bptype = src.bptype;
-   doTypeCheck = src.doTypeCheck;
-
-   return *this;
-}
-#endif
-
-#if defined(ASTDEBUG)
-static int ASTcount=0;
-
-void ASTcounter()
-{
-  ASTcount++;
-  sprintf(errorLine,"AstNode CONSTRUCTOR - ASTcount is %d\n",ASTcount);
-  //logLine(errorLine);
-}
-
-void ASTcounterNP()
-{
-  ASTcount++;
-}
-#endif
 
 bool isPowerOf2(int value, int &result)
 {
@@ -307,23 +175,28 @@ bool isPowerOf2(int value, int &result)
   else return(false);
 }
 
-AstOperatorNode::AstOperatorNode(opCode opC, AstNode *l, AstNode *r, AstNode *e) :
+BPatch_type *AstNode::getType() { return bptype; }
+
+void AstNode::setType(BPatch_type *t) { 
+    bptype = t;
+    if (t != NULL) { 
+        size = t->getSize(); 
+    }
+}
+
+AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNodePtr e) :
     AstNode(),
     op(opC),
-    loperand(NULL),
-    roperand(NULL),
-    eoperand(NULL)
+    loperand(l),
+    roperand(r),
+    eoperand(e)
 {
-    if (l) loperand = assignAst(l);
-    if (r) roperand = assignAst(r);
-    if (e) eoperand = assignAst(e);
-
     // Optimization pass...
     
     if (op == plusOp) {
         if (loperand->getoType() == Constant) {
             // Swap left and right...
-            AstNode *temp = loperand;
+            AstNodePtr temp = loperand;
             loperand = roperand;
             roperand = temp;
         }
@@ -333,7 +206,7 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNode *l, AstNode *r, AstNode *e)
             // ...
         }
         else if (roperand->getoType() != Constant) {
-            AstNode *temp = roperand;
+            AstNodePtr temp = roperand;
             roperand = loperand;
             loperand = temp;
         }
@@ -341,7 +214,7 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNode *l, AstNode *r, AstNode *e)
             int result;
             if (!isPowerOf2((Address)roperand->getOValue(),result) &&
                 isPowerOf2((Address)loperand->getOValue(),result)) {
-                AstNode *temp = roperand;
+                AstNodePtr temp = roperand;
                 roperand = loperand;
                 loperand = temp;
             }
@@ -353,7 +226,7 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNode *l, AstNode *r, AstNode *e)
 AstOperandNode::AstOperandNode(operandType ot, void *arg) :
     AstNode(),
     oType(ot),
-    operand_(NULL) {
+    operand_() {
     
     if (ot == ConstantString)
         oValue = (void *)P_strdup((char *)arg);
@@ -362,7 +235,7 @@ AstOperandNode::AstOperandNode(operandType ot, void *arg) :
 }
 
 // And an indirect (say, a load)
-AstOperandNode::AstOperandNode(operandType ot, AstNode *l) :
+AstOperandNode::AstOperandNode(operandType ot, AstNodePtr l) :
     AstNode(),
     oType(ot),
     oValue(NULL),
@@ -372,19 +245,19 @@ AstOperandNode::AstOperandNode(operandType ot, AstNode *l) :
 
 
 AstCallNode::AstCallNode(int_function *func,
-                         pdvector<AstNode *> &args) :
+                         pdvector<AstNodePtr > &args) :
     AstNode(),
     func_addr_(0),
     func_(func),
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
-        args_.push_back(assignAst(args[i]));
+        args_.push_back(args[i]);
     }
 }
 
 AstCallNode::AstCallNode(const pdstring &func,
-                         pdvector<AstNode *> &args) :
+                         pdvector<AstNodePtr > &args) :
     AstNode(),
     func_name_(func),
     func_addr_(0),
@@ -392,27 +265,27 @@ AstCallNode::AstCallNode(const pdstring &func,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
-        args_.push_back(assignAst(args[i]));
+        args_.push_back(args[i]);
     }
 }
 
 AstCallNode::AstCallNode(Address addr,
-                         pdvector<AstNode *> &args) :
+                         pdvector<AstNodePtr > &args) :
     AstNode(),
     func_addr_(addr),
     func_(NULL),
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
-        args_.push_back(assignAst(args[i]));
+        args_.push_back(args[i]);
     }
 }
  
-AstSequenceNode::AstSequenceNode(pdvector<AstNode *> &sequence) :
+AstSequenceNode::AstSequenceNode(pdvector<AstNodePtr > &sequence) :
     AstNode()
 {
     for (unsigned i = 0; i < sequence.size(); i++) {
-        sequence_.push_back(assignAst(sequence[i]));
+        sequence_.push_back(sequence[i]);
     }
 }
 
@@ -446,25 +319,25 @@ AstMemoryNode::AstMemoryNode(memoryType mem,
     doTypeCheck = BPatch::bpatch->isTypeChecked();
 };
 
-AstNode *AstNode::threadIndexNode() {
+AstNodePtr AstNode::threadIndexNode() {
     // We use one of these across all platforms, since it
     // devolves into a process-specific function node. 
     // However, this lets us delay that until code generation
     // when we have the process pointer.
-    static AstNode *indexNode_ = NULL;
+    static AstNodePtr indexNode_;
 
     // Since we only ever have one, keep a static copy around. If
     // we get multiples, we'll screw up our pointer-based common subexpression
     // elimination.
 
-    if (indexNode_) return assignAst(indexNode_);
-    pdvector<AstNode *> args;
+    if (indexNode_ != AstNodePtr()) return indexNode_;
+    pdvector<AstNodePtr > args;
     // By not including a process we'll specialize at code generation.
     indexNode_ = AstNode::funcCallNode("DYNINSTthreadIndex", args);
     assert(indexNode_);
     indexNode_->setConstFunc(true);
 
-    return assignAst(indexNode_);
+    return indexNode_;
 }
 
 
@@ -493,98 +366,23 @@ void AstNode::printRC()
 #endif
 
 AstNode::~AstNode() {
-#if defined(ASTDEBUG)
-  ASTcount--;
-  sprintf(errorLine,"AstNode DESTRUCTOR - ASTcount is %d\n",ASTcount);
-  //logLine(errorLine);
-#endif
 }
-
-//
-// This procedure should be used every time we assign an AstNode pointer,
-// because it increments the reference counter.
-//
-AstNode *assignAst(AstNode *src) {
-#if defined(ASTDEBUG)
-  sprintf(errorLine,"assignAst(0x%08X): ", src);
-  logLine(errorLine);
-#endif
-  assert(src);
-
-  if (src) {
-    src->referenceCount++;
-
-#if defined(ASTDEBUG)
-    sprintf(errorLine,"referenceCount -> %d\n", src->referenceCount);
-    logLine(errorLine);
-  } else {
-    logLine("NULL\n");
-#endif
-  }
-  return(src);
-}
-
-//
-// Decrements the reference count for "ast". If it is "0", it calls the 
-// AstNode destructor.
-//
-void removeAst(AstNode *&ast) {
-#if defined(ASTDEBUG)
-  sprintf(errorLine,"removeAst(0x%08X): ", ast);
-  logLine(errorLine);
-#endif
-  if (ast) {
-#if defined(ASTDEBUG)
-    sprintf(errorLine,"referenceCount=%d ", ast->referenceCount);
-    logLine(errorLine);
-#endif
-    assert(ast->referenceCount>0);
-    ast->referenceCount--;
-    if (ast->referenceCount==0) {
-#if defined(ASTDEBUG)
-      logLine("deleting...");
-#endif
-      delete ast;
-      ast=NULL;
-#if defined(ASTDEBUG)
-      logLine("deleted\n");
-    } else {
-      sprintf(errorLine,"-> %d\n", ast->referenceCount);
-      logLine(errorLine);
-#endif
-    }
-  } else {
-#if defined(ASTDEBUG)
-    logLine("non-existant!");
-#endif
-  }
-}
-
-//
-// This procedure decrements the reference count for "ast" until it is 0.
-//
-void terminateAst(AstNode *&ast) {
-  while (ast) {
-    removeAst(ast);
-  }
-}
-
 
 Address AstMiniTrampNode::generateTramp(codeGen &gen,
                                         int &trampCost, 
                                         bool noCost,
                                         bool merged) {
-    static AstNode *trailer=NULL;
-    static AstNode *costAst = NULL;
-    static AstNode *preamble = NULL;
+    static AstNodePtr trailer;
+    static AstNodePtr costAst;
+    static AstNodePtr preamble;
 
-    if (trailer == NULL)
+    if (trailer == AstNodePtr())
         trailer = AstNode::operatorNode(trampTrailer);
 
-    if (costAst == NULL)
+    if (costAst == AstNodePtr())
         costAst = AstNode::operandNode(AstNode::Constant, (void *)0);
 
-    if (preamble == NULL)
+    if (preamble == AstNodePtr())
         preamble = AstNode::operatorNode(trampPreamble, costAst);
 
     // private constructor; assumes NULL for right child
@@ -607,7 +405,6 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
     if (!preamble->generateCode(gen, noCost)) {
         fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp preamble\n", __FILE__, __LINE__);
     }
-    removeAst(preamble);
     
     if (!ast_->generateCode(gen, noCost)) {
         fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp body\n", __FILE__, __LINE__);
@@ -681,7 +478,7 @@ void AstNode::setUseCount()
 		// calculating this guy)
 	}
 	// We can't be kept, but maybe our children can.
-	pdvector<AstNode*> children;
+	pdvector<AstNodePtr> children;
 	getChildren(children);
 	for (unsigned i=0; i<children.size(); i++) {
 	    children[i]->setUseCount();
@@ -692,7 +489,7 @@ void AstNode::cleanUseCount(void)
 {
     useCount = 0;
 
-    pdvector<AstNode*> children;
+    pdvector<AstNodePtr> children;
     getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
 		children[i]->cleanUseCount();
@@ -829,7 +626,7 @@ bool AstNode::previousComputationValid(Register &reg,
 
 bool AstNode::initRegisters(codeGen &g) {
     bool ret = true;
-    pdvector<AstNode *> kids;
+    pdvector<AstNodePtr> kids;
     getChildren(kids);
     for (unsigned i = 0; i < kids.size(); i++) {
         if (!kids[i]->initRegisters(g))
@@ -925,15 +722,15 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
       return true;
    }
 
-   AstOperatorNode *roper = dynamic_cast<AstOperatorNode *>(roperand);
+   AstOperatorNode *roper = dynamic_cast<AstOperatorNode *>(roperand.get());
    if (!roper)
       return false;
    
    if (roper->op != plusOp && roper->op != minusOp)
       return false;
    
-   AstOperandNode *arithl = dynamic_cast<AstOperandNode *>(roper->loperand);
-   AstOperandNode *arithr = dynamic_cast<AstOperandNode *>(roper->roperand);
+   AstOperandNode *arithl = dynamic_cast<AstOperandNode *>(roper->loperand.get());
+   AstOperandNode *arithr = dynamic_cast<AstOperandNode *>(roper->roperand.get());
    if (!arithl && !arithr)
       return false;
    
@@ -1555,7 +1352,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     bool ret = true;
 
     // First, check kids
-    pdvector<AstNode *> kids;
+    pdvector<AstNodePtr > kids;
     getChildren(kids);
     for (unsigned i = 0; i < kids.size(); i++) {
         if (!kids[i]->initRegisters(gen))
@@ -2242,7 +2039,7 @@ bool AstSequenceNode::accessesParam() {
 // assume that we will not bother them again, which is wrong)
 void AstNode::fixChildrenCounts()
 {
-    pdvector<AstNode*> children;
+    pdvector<AstNodePtr> children;
     getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
 		children[i]->setUseCount();
@@ -2330,18 +2127,18 @@ bool AstMemoryNode::canBeKept() const {
 // but generate code by hand. This routine decrements its use count properly
 void AstNode::decUseCount(codeGen &gen)
 {
-	if (useCount == 0) return;
-
+    if (useCount == 0) return;
+    
     useCount--;
-
-	if (useCount == 0) {
-		gen.tracker()->removeKeptRegister(gen, this);
-	}
+    
+    if (useCount == 0) {
+        gen.tracker()->removeKeptRegister(gen, this);
+    }
 }
 
 // Return all children of this node ([lre]operand, ..., operands[])
 
-void AstNode::getChildren(pdvector<AstNode *> &) {
+void AstNode::getChildren(pdvector<AstNodePtr > &) {
 #if 0
     fprintf(stderr, "Undefined call to getChildren for type: ");
     if (dynamic_cast<AstNullNode *>(this)) fprintf(stderr, "nullNode\n");
@@ -2358,27 +2155,27 @@ void AstNode::getChildren(pdvector<AstNode *> &) {
 }
 
 
-void AstOperatorNode::getChildren(pdvector<AstNode *> &children) {
+void AstOperatorNode::getChildren(pdvector<AstNodePtr > &children) {
     if (loperand) children.push_back(loperand);
     if (roperand) children.push_back(roperand);
     if (eoperand) children.push_back(eoperand);
 }
 
-void AstOperandNode::getChildren(pdvector<AstNode *> &children) {
+void AstOperandNode::getChildren(pdvector<AstNodePtr > &children) {
     if (operand_) children.push_back(operand_);
 }
 
-void AstCallNode::getChildren(pdvector<AstNode *> &children) {
+void AstCallNode::getChildren(pdvector<AstNodePtr > &children) {
     for (unsigned i = 0; i < args_.size(); i++)
         children.push_back(args_[i]);
 }
 
-void AstSequenceNode::getChildren(pdvector<AstNode *> &children) {
+void AstSequenceNode::getChildren(pdvector<AstNodePtr > &children) {
     for (unsigned i = 0; i < sequence_.size(); i++)
         children.push_back(sequence_[i]);
 }
 
-void AstMiniTrampNode::getChildren(pdvector<AstNode *> &children) {
+void AstMiniTrampNode::getChildren(pdvector<AstNodePtr > &children) {
     children.push_back(ast_);
 }
 
@@ -2459,11 +2256,11 @@ bool regTracker_t::stealKeptRegister(Register r) {
 	commonExpressionTracker c;
 	ast_printf("STEALING kept register %d for someone else\n", r);
 	dictionary_hash_iter<AstNode *, commonExpressionTracker> reg_iter(tracker);
-    while (reg_iter.next(a, c)) {
-    	if (c.keptRegister == r) {
-			tracker.undef(a);
-			return true;
-		}
+        while (reg_iter.next(a, c)) {
+            if (c.keptRegister == r) {
+                tracker.undef(a);
+                return true;
+            }
 	}
 	fprintf(stderr, "Odd - couldn't find kept register %d\n", r);
 	return true;
@@ -2480,26 +2277,26 @@ void regTracker_t::increaseConditionalLevel() {
 }
 
 void regTracker_t::decreaseAndClean(codeGen &gen) {
-	AstNode *a;
-	commonExpressionTracker c;
-	assert(condLevel > 0);
-	
-	ast_printf("Exiting from conditional branch, level currently %d\n", condLevel);
-	
-	dictionary_hash_iter<AstNode *, commonExpressionTracker> reg_iter(tracker);
+    AstNode *a;
+    commonExpressionTracker c;
+    assert(condLevel > 0);
+    
+    ast_printf("Exiting from conditional branch, level currently %d\n", condLevel);
+    
+    dictionary_hash_iter<AstNode *, commonExpressionTracker> reg_iter(tracker);
     while (reg_iter.next(a, c)) {
-    	if (c.keptLevel == condLevel) {
-			tracker.undef(a);
-			gen.rs()->unKeepRegister(c.keptRegister);
-			ast_printf("Removing kept register %d, level %d, for AST %p\n", 
-						c.keptRegister, c.keptLevel, a);
-		}
-	}
-	
-	condLevel--;
+        if (c.keptLevel == condLevel) {
+            tracker.undef(a);
+            gen.rs()->unKeepRegister(c.keptRegister);
+            ast_printf("Removing kept register %d, level %d, for AST %p\n", 
+                       c.keptRegister, c.keptLevel, a);
+        }
+    }
+    
+    condLevel--;
 }
 
-unsigned regTracker_t::astHash(AstNode * const &ast) {
+unsigned regTracker_t::astHash(AstNode* const &ast) {
 	return addrHash4((Address) ast);
 }
 
@@ -2522,7 +2319,7 @@ void AstNode::debugPrint(unsigned level) {
     
     ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d\n", type.c_str(), this, useCount, canBeKept());
     
-    pdvector<AstNode*> children;
+    pdvector<AstNodePtr> children;
     getChildren(children);
     for (unsigned i=0; i<children.size(); i++) {
         children[i]->debugPrint(level+1);
@@ -2548,7 +2345,7 @@ void regTracker_t::debugPrint() {
 }
 
 unsigned AstNode::getTreeSize() {
-	pdvector<AstNode *> children;
+	pdvector<AstNodePtr > children;
 	getChildren(children);
 
 	unsigned size = 1; // Us

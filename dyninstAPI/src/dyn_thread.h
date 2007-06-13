@@ -39,18 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.30 2007/01/04 22:59:47 legendre Exp $
+// $Id: dyn_thread.h,v 1.31 2007/06/13 18:50:39 bernat Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
 
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 
 typedef long dynthread_t;
 
 class Frame;
 class dyn_lwp;
+class process;
 
 class dyn_thread {
  private:

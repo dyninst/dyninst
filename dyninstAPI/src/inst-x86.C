@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.264 2007/05/25 21:13:50 rchen Exp $
+ * $Id: inst-x86.C,v 1.265 2007/06/13 18:50:52 bernat Exp $
  */
 #include <iomanip>
 
@@ -858,7 +858,7 @@ static inline void emitEnter(short imm16, codeGen &gen) {
     SET_PTR(insn, gen);
 }
 
-Register emitFuncCall(opCode, codeGen &, pdvector<AstNode *> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) {
 	assert(0);
 	return 0;
 }
@@ -866,7 +866,7 @@ Register emitFuncCall(opCode, codeGen &, pdvector<AstNode *> &, bool, Address) {
 // this function just multiplexes between the 32-bit and 64-bit versions
 Register emitFuncCall(opCode op, 
                       codeGen &gen,
-                      pdvector<AstNode *> &operands, 
+                      pdvector<AstNodePtr> &operands, 
                       bool noCost,
                       int_function *callee)
 {
@@ -916,7 +916,7 @@ void Emitter32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 
 Register Emitter32::emitCall(opCode op, 
                              codeGen &gen,
-                             const pdvector<AstNode *> &operands, 
+                             const pdvector<AstNodePtr> &operands, 
                              bool noCost, int_function *callee) {
     assert(op == callOp);
     pdvector <Register> srcs;
@@ -934,8 +934,8 @@ Register Emitter32::emitCall(opCode op,
 
    /*
       int emitCallParams(registerSpace *rs, codeGen &gen, 
-                   const pdvector<AstNode *> &operands, process *proc,
-                   int_function *target, const pdvector<AstNode *> &ifForks,
+                   const pdvector<AstNodePtr> &operands, process *proc,
+                   int_function *target, const pdvector<AstNodePtr> &ifForks,
                    pdvector<Register> &extra_saves, const instPoint *location,
                    bool noCost);
                    */
@@ -1843,7 +1843,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 // Second AST node: source of the call
 
 bool process::getDynamicCallSiteArgs(instPoint *callSite,
-                                     pdvector<AstNode *> &args)
+                                     pdvector<AstNodePtr> &args)
 {
    Register base_reg, index_reg;
    int displacement;
@@ -1895,7 +1895,7 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
            }
         case SIB:
            {
-              AstNode *effective_address;
+              AstNodePtr effective_address;
               if(index_reg != 4) { //We use a scaled index
                  bool useBaseReg = true;
                  if(Mod == 0 && base_reg == 5){
@@ -1905,13 +1905,13 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
                     useBaseReg = false;
                  }
 
-                 AstNode *index = AstNode::operandNode(AstNode::PreviousStackFrameDataReg, 
-                                                       (void *)(long) index_reg);
-                 AstNode *base = AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
-                                                      (void *)(long) base_reg);
+                 AstNodePtr index = AstNode::operandNode(AstNode::PreviousStackFrameDataReg, 
+                                                         (void *)(long) index_reg);
+                 AstNodePtr base = AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                        (void *)(long) base_reg);
 
-                 AstNode *disp = AstNode::operandNode(AstNode::Constant,
-                                                      (void *)(long) displacement);
+                 AstNodePtr disp = AstNode::operandNode(AstNode::Constant,
+                                                        (void *)(long) displacement);
                  
                  if(scale == 1){ //No need to do the multiplication
                      if(useBaseReg){
@@ -1929,9 +1929,9 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
                      
                  }
                  else {
-                     AstNode *scale_factor = AstNode::operandNode(AstNode::Constant, (void *)(long) scale);
+                     AstNodePtr scale_factor = AstNode::operandNode(AstNode::Constant, (void *)(long) scale);
 
-                     AstNode *index_scale_product = AstNode::operatorNode(timesOp,
+                     AstNodePtr index_scale_product = AstNode::operatorNode(timesOp,
                                                                           index,
                                                                           scale_factor);
                      if(useBaseReg){
@@ -1947,12 +1947,7 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
                                                                    disp);
                      args.push_back( AstNode::operandNode(AstNode::DataIndir,
                                                           effective_address));
-                     removeAst(scale_factor);
-                     removeAst(index_scale_product);
                  }
-                 removeAst(index);
-                 removeAst(base);
-                 removeAst(disp);
               }
               else { //We do not use a scaled index.
                  cerr << "Inserting untested call site monitoring "

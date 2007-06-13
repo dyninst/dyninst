@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.43 2007/02/19 20:49:08 legendre Exp $
+// $Id: image-func.C,v 1.44 2007/06/13 18:50:47 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -139,7 +139,7 @@ image_func::image_func(const pdstring &symbol,
   retStatus_(RS_UNSET),
   isTrap(false),
 #if defined(arch_ia64)
-  framePointerCalculator(NULL),
+  framePointerCalculator(),
   usedFPregs(NULL),
 #endif
   instLevel_(NORMAL),
@@ -184,7 +184,7 @@ image_func::image_func(Dyn_Symbol *symbol, pdmodule *m, image *i):
   retStatus_(RS_UNSET),
   isTrap(false),
 #if defined(arch_ia64)
-  framePointerCalculator(NULL),
+  framePointerCalculator(),
   usedFPregs(NULL),
 #endif
   instLevel_(NORMAL),

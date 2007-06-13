@@ -201,9 +201,9 @@ pdvector< Address > & int_function::getAllocs() {
 	return cachedAllocs;
 	} /* end getAllocs() */
 
-AstNode * int_function::getFramePointerCalculator() {
+AstNodePtr int_function::getFramePointerCalculator() {
 	return ifunc_->framePointerCalculator;
-	}
+}
 	
 bool * int_function::getUsedFPregs() {
 	return ifunc_->usedFPregs;

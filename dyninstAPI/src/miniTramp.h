@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.15 2007/01/25 22:23:58 bernat Exp $
+// $Id: miniTramp.h,v 1.16 2007/06/13 18:51:03 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -49,6 +49,8 @@
 #include "dyninstAPI/src/inst.h" // callOrder and callWhen
 #include "dyninstAPI/src/instPoint.h" // generatedCodeObject
 #include "dyninstAPI/src/multiTramp.h" // generatedCodeObject
+#include "dyninstAPI/src/ast.h"
+#include <boost/shared_ptr.hpp>
 
 // This is a serious problem: our code generation has no way to check
 // the size of the buffer it's emitting to.
@@ -143,7 +145,7 @@ class miniTramp {
   public:
 
   miniTramp(callWhen when_,
-            AstNode *ast,
+            AstNodePtr ast,
 	    baseTramp *base,
             bool noCost);
   
@@ -245,7 +247,7 @@ class miniTramp {
 
   bool deleteInProgress; // Don't double-delete
 
-  AstMiniTrampNode *ast_; // For regenerating miniTs
+  AstMiniTrampNodePtr ast_; // For regenerating miniTs
 };
 
 

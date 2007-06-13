@@ -1031,8 +1031,8 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
    }
    
     if (BPatch::bpatch->isTypeChecked()) {
-        assert(expr.ast);
-        if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
+        assert(expr.ast_wrapper);
+        if ((*(expr.ast_wrapper))->checkType() == BPatch::bpatch->type_Error) {
             inst_printf("[%s:%u] - Type error inserting instrumentation\n",
                         FILE__, __LINE__);
             return false;
@@ -1262,7 +1262,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
             instPoint *point = bppoint->point;
             callWhen when = bir->when_[j];
             
-            miniTramp *mini = point->addInst(bir->snip.ast,
+            miniTramp *mini = point->addInst(*(bir->snip.ast_wrapper),
                                              when,
                                              bir->order_,
                                              bir->trampRecursive_,
@@ -1577,7 +1577,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                    //       we just skip it for catchup (function parameters live on
                    //       the stack too)
                    
-                   if (bir->snip.ast->accessesParam())
+                   if ((*(bir->snip.ast_wrapper))->accessesParam())
                        continue;
                    
 #if 0
@@ -1839,7 +1839,7 @@ bool BPatch_process::replaceCodeInt(BPatch_point *point,
 #endif 
 
 
-    return point->point->replaceCode(snippet->ast);
+    return point->point->replaceCode(*(snippet->ast_wrapper));
 }
 
 
@@ -2117,7 +2117,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    inferiorrpc_printf("%s[%d]: launching RPC on process pid %d\n",
                       FILE__, __LINE__, llproc->getPid());
 
-   llproc->getRpcMgr()->postRPCtoDo(expr.ast,
+   llproc->getRpcMgr()->postRPCtoDo(*(expr.ast_wrapper),
                                     false, 
                                     BPatch_process::oneTimeCodeCallbackDispatch,
                                     (void *)info,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.68 2007/05/18 18:49:14 bill Exp $
+// $Id: multiTramp.C,v 1.69 2007/06/13 18:51:04 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -48,6 +48,7 @@
 #include "instPoint.h"
 #include "process.h"
 #include "InstrucIter.h"
+#include "BPatch.h"
 
 unsigned int multiTramp::id_ctr = 1;
 
@@ -673,11 +674,11 @@ void multiTramp::updateInstInstances() {
         }
 
         // See if we've been replaced....
-        AstNode *replacedAST = instP->replacedCode_;
+        AstNodePtr replacedAST = instP->replacedCode_;
         replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
-        if (ri) assert(replacedAST); // We don't un-replace yet...
+        if (ri) assert(replacedAST != AstNodePtr()); // We don't un-replace yet...
         
-        if (replacedAST && (ri == NULL)) {
+        if ((replacedAST != AstNodePtr()) && (ri == NULL)) {
             // We've been asked to replace the current instruction...
             replacedInstruction *newRI = new replacedInstruction(insn, 
                                                                  replacedAST,

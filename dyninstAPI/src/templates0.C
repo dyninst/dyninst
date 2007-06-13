@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.60 2007/01/09 02:01:28 giri Exp $
+// $Id: templates0.C,v 1.61 2007/06/13 18:51:25 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -95,8 +95,8 @@ template class  pdvector<long>;
 class dyn_thread;
 template class  pdvector<dyn_thread *>;
 
-class AstNode;
-template class  pdvector<AstNode *>;
+#include "ast.h"
+template class  pdvector<AstNodePtr>;
 
 // Included above
 template class  pdvector<Dyn_Symbol>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.98 2006/12/14 20:12:02 bernat Exp $
+// $Id: ast.h,v 1.99 2007/06/13 18:50:33 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -53,9 +53,11 @@
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 #include "common/h/Types.h"
-#include "dyninstAPI/h/BPatch_type.h"
 
 #include "registerSpace.h"
+
+// The great experiment: boost shared_ptr libraries
+#include <boost/shared_ptr.hpp>
 
 class process;
 class instPoint;
@@ -64,6 +66,7 @@ class codeGen;
 class codeRange;
 class instruction;
 class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
+class BPatch_type;
 
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "common/h/Types.h"
@@ -93,6 +96,10 @@ class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
 // with the lowest usage count.
 
 class AstNode;
+typedef boost::shared_ptr<AstNode> AstNodePtr;
+class AstMiniTrampNode;
+typedef boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
+
 
 class regTracker_t {
 public:
@@ -105,7 +112,7 @@ public:
 
 	int condLevel;
 	
-	static unsigned astHash(AstNode* const &ast);
+	static unsigned astHash(AstNode * const &ast);
 
 	regTracker_t() : condLevel(0), tracker(astHash) {};
 
@@ -149,44 +156,47 @@ class AstNode {
         AstNode(); // mdl.C
 
         // Factory methods....
-        static AstNode *nullNode();
+        static AstNodePtr nullNode();
 
-        static AstNode *labelNode(pdstring &label);
+        static AstNodePtr labelNode(pdstring &label);
 
-        static AstNode *operandNode(operandType ot, void *arg);
-        static AstNode *operandNode(operandType ot, AstNode *ast);
+        static AstNodePtr operandNode(operandType ot, void *arg);
+        static AstNodePtr operandNode(operandType ot, AstNodePtr ast);
 
-        static AstNode *memoryNode(memoryType ot, int which);
+        static AstNodePtr memoryNode(memoryType ot, int which);
 
-        static AstNode *sequenceNode(pdvector<AstNode *> &sequence);
+        static AstNodePtr sequenceNode(pdvector<AstNodePtr > &sequence);
 
-        static AstNode *operatorNode(opCode ot, AstNode *l=NULL, AstNode *r=NULL, AstNode *e=NULL);
+        static AstNodePtr operatorNode(opCode ot, 
+                                       AstNodePtr l = AstNodePtr(), 
+                                       AstNodePtr r = AstNodePtr(), 
+                                       AstNodePtr e = AstNodePtr());
 
-        static AstNode *funcCallNode(const pdstring &func, pdvector<AstNode *> &args, process *proc = NULL);
-        static AstNode *funcCallNode(int_function *func, pdvector<AstNode *> &args);
-        static AstNode *funcCallNode(Address addr, pdvector<AstNode *> &args); // For when you absolutely need
+        static AstNodePtr funcCallNode(const pdstring &func, pdvector<AstNodePtr > &args, process *proc = NULL);
+        static AstNodePtr funcCallNode(int_function *func, pdvector<AstNodePtr > &args);
+        static AstNodePtr funcCallNode(Address addr, pdvector<AstNodePtr > &args); // For when you absolutely need
         // to jump somewhere.
 
-        static AstNode *funcReplacementNode(int_function *func);
+        static AstNodePtr funcReplacementNode(int_function *func);
 
-        static AstNode *insnNode(BPatch_instruction *insn);
+        static AstNodePtr insnNode(BPatch_instruction *insn);
 
         // Acquire the thread index value - a 0...n labelling of threads.
-        static AstNode *threadIndexNode();
+        static AstNodePtr threadIndexNode();
 
         // TODO...
         // Needs some way of marking what to save and restore... should be a registerSpace, really
 
 #if 0
-        static AstNode *saveStateNode();
-        static AstNode *restoreStateNode();
-        static AstNode *trampGuardNode();
+        static AstNodePtr saveStateNode();
+        static AstNodePtr restoreStateNode();
+        static AstNodePtr trampGuardNode();
 #endif
 
-        static AstNode *miniTrampNode(AstNode *tramp);
+        static AstNodePtr miniTrampNode(AstNodePtr tramp);
 
 
-        AstNode(AstNode *src);
+        AstNode(AstNodePtr src);
         //virtual AstNode &operator=(const AstNode &src);
         
         virtual ~AstNode();
@@ -228,7 +238,7 @@ class AstNode {
 		// a conditional statement)
         void cleanRegTracker(regTracker_t *tracker, int level);
 
-        virtual AstNode *operand() const { return NULL; }
+        virtual AstNodePtr operand() const { return AstNodePtr(); }
 
         virtual bool containsFuncCall() const;
 	
@@ -274,7 +284,7 @@ class AstNode {
 		     const pdvector<AstNode*> &path2) const;
 
 	// Return all children of this node ([lre]operand, ..., operands[])
-	virtual void getChildren(pdvector<AstNode*> &); 
+	virtual void getChildren(pdvector<AstNodePtr> &); 
 
         void printRC(void);
 	virtual bool accessesParam(void);
@@ -304,25 +314,18 @@ class AstNode {
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
 	//AstNode(operandType ot, int which); // for memory access
-	BPatch_type *getType() { return bptype; };
-	void		  setType(BPatch_type *t) { 
-				bptype = t; 
-				if( t != NULL ) { size = t->getSize(); } }
+	BPatch_type *getType();
+	void		  setType(BPatch_type *t);
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
 	virtual BPatch_type	  *checkType();
 };
-
-
-AstNode *assignAst(AstNode *src);
-void removeAst(AstNode *&ast);
-void terminateAst(AstNode *&ast);
 
 
 class AstNullNode : public AstNode {
  public:
     AstNullNode() : AstNode() {};
 
-	bool canBeKept() const { return true; }
+    bool canBeKept() const { return true; }
  private:
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,
@@ -346,14 +349,8 @@ class AstLabelNode : public AstNode {
 
 class AstOperatorNode : public AstNode {
  public:
-    AstOperatorNode(opCode opC, AstNode *l, AstNode *r = NULL, AstNode *e = NULL);
+    AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r = AstNodePtr(), AstNodePtr e = AstNodePtr());
     
-    ~AstOperatorNode() {
-        if (loperand) removeAst(loperand);
-        if (roperand) removeAst(roperand);
-        if (eoperand) removeAst(eoperand);
-    }
-
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
     virtual BPatch_type	  *checkType();
@@ -361,7 +358,7 @@ class AstOperatorNode : public AstNode {
 
     virtual bool canBeKept() const;
 
-    virtual void getChildren(pdvector<AstNode*> &children);
+    virtual void getChildren(pdvector<AstNodePtr> &children);
     virtual bool containsFuncCall() const;
 
  private:
@@ -375,9 +372,9 @@ class AstOperatorNode : public AstNode {
 
     AstOperatorNode() {};
     opCode op;
-    AstNode *loperand;
-    AstNode *roperand;
-    AstNode *eoperand;
+    AstNodePtr loperand;
+    AstNodePtr roperand;
+    AstNodePtr eoperand;
 };
 
 
@@ -388,11 +385,10 @@ class AstOperandNode : public AstNode {
     AstOperandNode(operandType ot, void *arg);
 
     // And an indirect (say, a load)
-    AstOperandNode(operandType ot, AstNode *l);
+    AstOperandNode(operandType ot, AstNodePtr l);
 
     ~AstOperandNode() {
         if (oType == ConstantString) free((char *)oValue);
-        if (operand_) removeAst(operand_);
     }
         
     // Arguably, the previous should be an operation...
@@ -403,7 +399,7 @@ class AstOperandNode : public AstNode {
     virtual void setOValue(void *o) { oValue = o; }
     virtual const void *getOValue() const { return oValue; };
 
-    virtual AstNode *operand() const { return operand_; }
+    virtual AstNodePtr operand() const { return operand_; }
 
     virtual int costHelper(enum CostStyleType costStyle) const;	
         
@@ -412,7 +408,7 @@ class AstOperandNode : public AstNode {
     virtual bool accessesParam(void) { return (oType == Param); };
     virtual bool canBeKept() const;
         
-    virtual void getChildren(pdvector<AstNode*> &children);
+    virtual void getChildren(pdvector<AstNodePtr> &children);
 
     virtual bool containsFuncCall() const;
         
@@ -426,22 +422,18 @@ class AstOperandNode : public AstNode {
 
     operandType oType;
     void *oValue;
-    AstNode *operand_;
+    AstNodePtr operand_;
     
 };
 
 
 class AstCallNode : public AstNode {
  public:
-    AstCallNode(int_function *func, pdvector<AstNode *>&args);
-    AstCallNode(const pdstring &str, pdvector<AstNode *>&args);
-    AstCallNode(Address addr, pdvector<AstNode *> &args);
+    AstCallNode(int_function *func, pdvector<AstNodePtr>&args);
+    AstCallNode(const pdstring &str, pdvector<AstNodePtr>&args);
+    AstCallNode(Address addr, pdvector<AstNodePtr> &args);
     
-    ~AstCallNode() {
-        for (unsigned i = 0; i < args_.size(); i++) {
-            removeAst(args_[i]);
-        }
-    }
+    ~AstCallNode() {}
 
     virtual int costHelper(enum CostStyleType costStyle) const;	
         
@@ -449,7 +441,7 @@ class AstCallNode : public AstNode {
     virtual bool accessesParam(); 
     virtual bool canBeKept() const;
 
-    virtual void getChildren(pdvector<AstNode*> &children);
+    virtual void getChildren(pdvector<AstNodePtr> &children);
     virtual bool containsFuncCall() const;
 
     void setConstFunc(bool val) { constFunc_ = val; }
@@ -468,7 +460,7 @@ class AstCallNode : public AstNode {
     Address func_addr_;
     
     int_function *func_;
-    pdvector<AstNode *> args_;
+    pdvector<AstNodePtr> args_;
 
     bool constFunc_;  // True if the output depends solely on 
     // input parameters, or can otherwise be guaranteed to not change
@@ -498,13 +490,9 @@ class AstReplacementNode : public AstNode {
 
 class AstSequenceNode : public AstNode {
  public:
-    AstSequenceNode(pdvector<AstNode *> &sequence);
+    AstSequenceNode(pdvector<AstNodePtr> &sequence);
 
-    ~AstSequenceNode() {
-        for (unsigned i = 0; i < sequence_.size(); i++) {
-            removeAst(sequence_[i]);
-        }
-    }
+    ~AstSequenceNode() {}
 
     virtual int costHelper(enum CostStyleType costStyle) const;	
 
@@ -512,7 +500,7 @@ class AstSequenceNode : public AstNode {
     virtual bool accessesParam();
     virtual bool canBeKept() const;
 
-    virtual void getChildren(pdvector<AstNode*> &children);
+    virtual void getChildren(pdvector<AstNodePtr> &children);
     virtual bool containsFuncCall() const;
 
  private:
@@ -522,7 +510,7 @@ class AstSequenceNode : public AstNode {
                                      Register &retReg);
 
     AstSequenceNode() {};
-    pdvector<AstNode *> sequence_;
+    pdvector<AstNodePtr> sequence_;
 };
 
 class instruction;
@@ -532,9 +520,9 @@ class AstInsnNode : public AstNode {
     AstInsnNode(instruction *insn, Address addr);
 
     // Template methods...
-    virtual bool overrideBranchTarget(AstNode *) { return false; }
-    virtual bool overrideLoadAddr(AstNode *) { return false; }
-    virtual bool overrideStoreAddr(AstNode *) { return false; }
+    virtual bool overrideBranchTarget(AstNodePtr) { return false; }
+    virtual bool overrideLoadAddr(AstNodePtr) { return false; }
+    virtual bool overrideStoreAddr(AstNodePtr) { return false; }
 
 	bool canBeKept() const { return false; }
  protected:
@@ -551,9 +539,9 @@ class AstInsnNode : public AstNode {
 
 class AstInsnBranchNode : public AstInsnNode {
  public:
-    AstInsnBranchNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), target_(NULL) {};
+    AstInsnBranchNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), target_() {};
 
-    virtual bool overrideBranchTarget(AstNode *t) { target_ = t; return true; }
+    virtual bool overrideBranchTarget(AstNodePtr t) { target_ = t; return true; }
     virtual bool containsFuncCall() const;
     
  protected:
@@ -562,15 +550,15 @@ class AstInsnBranchNode : public AstInsnNode {
                                      Address &retAddr,
                                      Register &retReg);
     
-    AstNode *target_;
+    AstNodePtr target_;
 };
 
 class AstInsnMemoryNode : public AstInsnNode {
  public:
-    AstInsnMemoryNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), load_(NULL), store_(NULL) {};
+    AstInsnMemoryNode(instruction *insn, Address addr) : AstInsnNode(insn, addr), load_(), store_() {};
     
-    virtual bool overrideLoadAddr(AstNode *l) { load_ = l; return true; }
-    virtual bool overrideStoreAddr(AstNode *s) { store_ = s; return true; }
+    virtual bool overrideLoadAddr(AstNodePtr l) { load_ = l; return true; }
+    virtual bool overrideStoreAddr(AstNodePtr s) { store_ = s; return true; }
     virtual bool containsFuncCall() const;
 
  protected:
@@ -579,38 +567,36 @@ class AstInsnMemoryNode : public AstInsnNode {
                                      Address &retAddr,
                                      Register &retReg);
     
-    AstNode *load_;
-    AstNode *store_;
+    AstNodePtr load_;
+    AstNodePtr store_;
 };
 
 
 class AstMiniTrampNode : public AstNode {
  public:
-    AstMiniTrampNode(AstNode *ast) {
-        ast_ = assignAst(ast);
+    AstMiniTrampNode(AstNodePtr ast) {
+        ast_ = ast;
     }
 
     Address generateTramp(codeGen &gen, 
                           int &trampCost, 
                           bool noCost, bool merged);
             
-    virtual ~AstMiniTrampNode() {
-        if (ast_) removeAst(ast_);
-    }    
+    virtual ~AstMiniTrampNode() {}    
 
     virtual bool accessesParam(void) { return ast_->accessesParam(); } 
 
-    virtual void getChildren(pdvector<AstNode*> &children);
+    virtual void getChildren(pdvector<AstNodePtr> &children);
 
     virtual bool containsFuncCall() const;
     bool canBeKept() const;
 
-    AstNode *getAST() { return ast_; }
+    AstNodePtr getAST() { return ast_; }
  private:
     AstMiniTrampNode() {};
 
     bool inline_;
-    AstNode *ast_;
+    AstNodePtr ast_;
 };
 
 class AstMemoryNode : public AstNode {

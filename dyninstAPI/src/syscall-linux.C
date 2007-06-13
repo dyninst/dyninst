@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.16 2006/11/22 04:03:32 bernat Exp $
+// $Id: syscall-linux.C,v 1.17 2007/06/13 18:51:23 bernat Exp $
 
 #if defined( arch_x86 ) || defined( arch_x86_64 )
 #define FORK_FUNC "__libc_fork"
@@ -114,13 +114,12 @@ bool syscallNotification::installPreFork() {
 /////////// Postfork instrumentation
 
 bool syscallNotification::installPostFork() {
-    AstNode *returnVal = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
+    AstNodePtr returnVal = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
     postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
                                    FUNC_EXIT|FUNC_ARG,
                                    returnVal);
     postForkInst->dontUseTrampGuard();
     postForkInst->canUseTrap(false);
-    removeAst(returnVal);
     
     pdvector<instMapping *> instReqs;
     instReqs.push_back(postForkInst);
@@ -136,12 +135,11 @@ bool syscallNotification::installPostFork() {
 /////////// Pre-exec instrumentation
 
 bool syscallNotification::installPreExec() {
-    AstNode *arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
+    AstNodePtr arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
     preExecInst = new instMapping(EXEC_FUNC, "DYNINST_instExecEntry",
                                    FUNC_ENTRY|FUNC_ARG,
                                    arg0);
     preExecInst->dontUseTrampGuard();
-    removeAst(arg0);
 
     pdvector<instMapping *> instReqs;
     instReqs.push_back(preExecInst);
@@ -165,12 +163,11 @@ bool syscallNotification::installPostExec() {
 /////////// Pre-exit instrumentation
 
 bool syscallNotification::installPreExit() {
-    AstNode *arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
+    AstNodePtr arg0 = AstNode::operandNode(AstNode::Param, (void *)0);
     preExitInst = new instMapping(EXIT_FUNC, "DYNINST_instExitEntry",
                                   FUNC_ENTRY|FUNC_ARG,
                                   arg0);
     preExitInst->dontUseTrampGuard();
-    removeAst(arg0);
 
     preExitInst->allow_trap = true;
 

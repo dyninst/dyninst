@@ -50,6 +50,7 @@
 #include "instPoint.h"
 #include "process.h"
 #include "InstrucIter.h"
+#include "BPatch_process.h"
 
 pdstring 
 edge_type_string(BPatch_edgeType t)

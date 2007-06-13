@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.194 2007/02/14 23:03:32 legendre Exp $
+// $Id: inst-sparc.C,v 1.195 2007/06/13 18:50:51 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -53,6 +53,7 @@
 #include "dyninstAPI/src/dyn_thread.h" // get_index
 
 #include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/h/BPatch.h"
 
 /****************************************************************************/
 /****************************************************************************/
@@ -556,16 +557,16 @@ bool process::replaceFunctionCall(instPoint *point,
 /****************************************************************************/
 /****************************************************************************/
 
-bool process::getDynamicCallSiteArgs(instPoint *callSite, pdvector<AstNode *> &args){
+bool process::getDynamicCallSiteArgs(instPoint *callSite, pdvector<AstNodePtr> &args){
     const instruction &insn = callSite->insn();
     if (insn.isJmplInsn()) {
         //this instruction is a jmpl with i == 1, meaning it
         //calling function register rs1+simm13
         if((*insn).rest.i == 1){
             
-            AstNode *base =  AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+            AstNodePtr base =  AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
                                                   (void *) (*insn).rest.rs1);
-            AstNode *offset = AstNode::operandNode(AstNode::Constant,
+            AstNodePtr offset = AstNode::operandNode(AstNode::Constant,
                                           (void *) (*insn).resti.simm13);
             args.push_back( AstNode::operatorNode(plusOp, base, offset));
         }
@@ -730,8 +731,8 @@ unsigned relocatedInstruction::maxSizeRequired() {
 
 bool baseTramp::generateMTCode(codeGen &gen,
                                registerSpace *) {
-    AstNode *threadPOS;
-    pdvector<AstNode *> dummy;
+    AstNodePtr threadPOS;
+    pdvector<AstNodePtr > dummy;
     Register src = Null_Register;
     
     dyn_thread *thr = gen.thread();
@@ -1050,7 +1051,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 
 Register emitFuncCall(opCode op, 
 		      codeGen &gen, 
-		      pdvector<AstNode *> &operands, 
+		      pdvector<AstNodePtr> &operands, 
 		      bool noCost, int_function *callee)
 {
    assert(op == callOp);
@@ -1109,7 +1110,7 @@ Register emitFuncCall(opCode op,
 
 Register emitFuncCall(opCode op, 
 		      codeGen &gen, 
-		      pdvector<AstNode *> &operands, 
+		      pdvector<AstNodePtr> &operands, 
 		      bool noCost, Address callee_addr_) {
     // Argh... our dlopen installation uses an address version :/
     

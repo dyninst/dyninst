@@ -535,8 +535,8 @@ bool process::loadDYNINSTlib() {
   // segment, not dyninstlib_brk_addr (or we skip all the restores).
   // Of course, we're not sure what this addr represents....
 
-  pdvector< AstNode * > dlOpenArguments;
-  AstNode * dlOpenCall;
+  pdvector< AstNodePtr > dlOpenArguments;
+  AstNodePtr dlOpenCall;
 	
   dlOpenArguments.push_back(AstNode::operandNode(AstNode::Constant, (void *)dyninstlib_addr));
   dlOpenArguments.push_back(AstNode::operandNode(AstNode::Constant, (void *)DLOPEN_MODE ));
@@ -565,21 +565,12 @@ bool process::loadDYNINSTlib() {
   gen.setIndex(index);
 
   /* Clean up the reference counts before regenerating. */
-  removeAst( dlOpenCall );
-  removeAst( dlOpenArguments[ 2 ] );
 	
   dlOpenArguments[ 2 ] = AstNode::operandNode( AstNode::Constant, (void *)dlopenRet );
   dlOpenCall = AstNode::funcCallNode( "_dl_open", dlOpenArguments );
 	
   /* Regenerate the call at the same original location with the correct constants. */
   dlOpenCall->generateCode( gen, true );
-
-  /* Clean up the reference counting. */
-  removeAst( dlOpenCall );
-  removeAst( dlOpenArguments[ 0 ] );
-  removeAst( dlOpenArguments[ 1 ] );
-  removeAst( dlOpenArguments[ 2 ] );
-  if( useFourArguments ) { removeAst( dlOpenArguments[ 3 ] ); }
 
   // Okay, that was fun. Now restore. And trap. And stuff.
         

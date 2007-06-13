@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.24 2007/05/22 21:05:45 rchen Exp $
+ * $Id: emit-x86.h,v 1.25 2007/06/13 18:50:43 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -53,9 +53,7 @@
 #include "dyninstAPI/src/baseTramp.h"
 
 #include "dyninstAPI/src/emitter.h"
-
 class codeGen;
-class AstNode;
 class registerSpace;
 
 // Emitter moved to emitter.h - useful on other platforms as well
@@ -98,10 +96,10 @@ public:
     bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, codeGen &gen,
-                      const pdvector<AstNode *> &operands,
+                      const pdvector<AstNodePtr> &operands,
                       bool noCost, int_function *callee);
     int emitCallParams(codeGen &gen, 
-                       const pdvector<AstNode *> &operands,
+                       const pdvector<AstNodePtr> &operands,
                        int_function *target, 
                        pdvector<Register> &extra_saves,
                        bool noCost);
@@ -177,7 +175,7 @@ public:
     bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     Register emitCall(opCode op, codeGen &gen,
-                      const pdvector<AstNode *> &operands,
+                      const pdvector<AstNodePtr> &operands,
                       bool noCost, int_function *callee);
     void emitGetRetVal(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);

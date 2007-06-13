@@ -42,8 +42,8 @@
 #define __EVENT_MAILBOX_H__
 #include "os.h"
 #include "EventHandler.h"
-#include "BPatch_process.h"
-#include "BPatch.h"
+//#include "BPatch_process.h"
+//#include "BPatch.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 

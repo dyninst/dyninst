@@ -68,6 +68,9 @@ class SyncCallback : public CallbackBase
 /////  Callback classes,  type-safe and know how to call themselves
 ///////////////////////////////////////////////////////////
 
+// BPatchErrorCallback
+#include "BPatch.h"
+
 class ErrorCallback : public SyncCallback 
 {  
   public:

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.155 2006/12/06 21:17:30 bernat Exp $
+// $Id: inst.C,v 1.156 2007/06/13 18:50:53 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -212,7 +212,7 @@ instMapping::instMapping(const instMapping *parIM,
     allow_trap(parIM->allow_trap)
 {
     for (unsigned i = 0; i < parIM->args.size(); i++) {
-        args.push_back(assignAst(parIM->args[i]));
+        args.push_back(parIM->args[i]);
     }
     for (unsigned j = 0; j < parIM->miniTramps.size(); j++) {
         miniTramp *cMT = NULL;

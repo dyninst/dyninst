@@ -52,6 +52,7 @@
 #include "common/h/Pair.h"
 #include "common/h/String.h"
 
+#include "BPatch_process.h"
 #include "BPatch_edge.h"
 
 #include "util.h"

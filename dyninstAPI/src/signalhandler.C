@@ -51,6 +51,7 @@
 #include "symtabAPI/h/Dyn_Symtab.h"
 #include "function.h" // instPointTrap debugging
 #include "rpcMgr.h"
+#include "BPatch.h"
 
 extern void dyninst_yield();
 
@@ -891,4 +892,14 @@ bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint)
 
    continueHint = true;
    return true;
+}
+
+// Static function
+void SignalHandler::flagBPatchStatusChange() {
+    BPatch::bpatch->mutateeStatusChange = true;
+}
+
+// Static function
+void SignalHandler::setBPatchProcessSignal(BPatch_process *p, int t) {
+    p->lastSignal = t;
 }

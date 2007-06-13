@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.35 2007/01/09 02:01:15 giri Exp $
+// $Id: function.h,v 1.36 2007/06/13 18:50:46 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -65,6 +65,7 @@ class BPatch_basicBlockLoop;
 class instPointInstance;
 
 #include "dyninstAPI/h/BPatch_Set.h"
+#include "dyninstAPI/src/ast.h"
 
 class instPoint;
 
@@ -519,7 +520,7 @@ class int_function {
    // Since the IA-64 ABI does not define a frame pointer register,
    // we use DWARF debug records (DW_AT_frame_base entries) to 
    // construct an AST which calculates the frame pointer.
-   AstNode * getFramePointerCalculator();
+   AstNodePtr getFramePointerCalculator();
    
    // Place to store the results of doFloatingPointStaticAnalysis().
    // This way, if they are ever needed in a mini-tramp, emitFuncJump()

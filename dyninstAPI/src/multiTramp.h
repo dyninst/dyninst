@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.21 2007/01/25 22:24:00 bernat Exp $
+// $Id: multiTramp.h,v 1.22 2007/06/13 18:51:05 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -49,6 +49,7 @@
 #include "arch.h"
 #include "instP.h"
 #include "mapped_object.h"
+#include "ast.h"
 
 // A chunk of code (instruction vector), a "do we care where it is",
 // and a mechanism to update the code if it moves.
@@ -356,7 +357,7 @@ class replacedInstruction : public relocatedCode {
     // moved into the multiTramp, then it's replaced by
     // something else.
     replacedInstruction(const relocatedInstruction *i,
-                        AstNode *ast,
+                        AstNodePtr ast,
                         instPoint *p, // Needed for memory instrumentation
                         multiTramp *m) :
         relocatedCode(),
@@ -370,10 +371,9 @@ class replacedInstruction : public relocatedCode {
                         multiTramp *m) :
         relocatedCode(),
         oldInsn_(prev->oldInsn_),
-        ast_(NULL),
+        ast_(prev->ast_),
         point_(prev->point_),
         multiT_(m) {
-        ast_ = assignAst(prev->ast_);
     };
 
     // Fork constructor
@@ -384,7 +384,7 @@ class replacedInstruction : public relocatedCode {
     ~replacedInstruction();
 
     const relocatedInstruction *relocInsn() const { return oldInsn_; }
-    AstNode *ast() const { return ast_; }
+    AstNodePtr ast() const { return ast_; }
     instPoint *point() const { return point_; }
     multiTramp *multi() const { return multiT_; }
     process *proc() const;
@@ -406,7 +406,7 @@ class replacedInstruction : public relocatedCode {
 
 
     const relocatedInstruction *oldInsn_;
-    AstNode *ast_;
+    AstNodePtr ast_;
     instPoint *point_;
     multiTramp *multiT_;
     

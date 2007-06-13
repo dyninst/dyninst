@@ -323,18 +323,25 @@ void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLengt
 	fprintf( stderr, "\n" );
 	} /* end dumpLocListAddrRanges */
 
-AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, process * proc /* process parameter only needed on x86_64*/) {
+AstNodePtr convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, process * proc /* process parameter only needed on x86_64*/) {
 	/* Until such time as we see more-complicated location lists, assume single entries
 	   consisting of a register name.  Using an AST for this is massive overkill, but if
 	   we need to handle more complicated frame base calculations later, the infastructure
 	   will be in place. */
 	   
 	/* There is only one location. */
-	DWARF_NULL_IF( listLength != 1, "%s[%d]: unable to handle location lists of more than one element in frame base.\n", __FILE__, __LINE__ );
+	if (listLength != 1) {
+		bpwarn("%s[%d]: unable to handle location lists of more than one element in frame base.\n", __FILE__, __LINE__);
+		return AstNodePtr();
+	}
+
 	Dwarf_Locdesc locationDescriptor = locationList[0];
 	
 	/* It is defined by a single operation. */
-	DWARF_NULL_IF( locationDescriptor.ld_cents != 1, "%s[%d]: unable to handle multioperation locations in frame base.\n", __FILE__, __LINE__ );
+	if (locationDescriptor.ld_cents != 1) {
+		bpwarn("%s[%d]: unable to handle multioperation locations in frame base.\n", __FILE__, __LINE__ );
+		return AstNodePtr();
+	}
 	Dwarf_Loc location = locationDescriptor.ld_s[0];
 
 	/* That operation is naming a register. */
@@ -348,9 +355,9 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 											  proc);
 		if( location.lr_number != 0 ) {
 			/* Actually, we should be able whip up an AST node for this. */
-			return NULL;
-			}
+			return AstNodePtr();
 		}
+	}
 	else if( location.lr_atom == DW_OP_regx ) {
 		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_number,
 											  proc);
@@ -360,25 +367,23 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 											  proc);
 		if( location.lr_number2 != 0 ) {
 			/* Actually, we should be able whip up an AST node for this. */
-			return NULL;
-			}
+			return AstNodePtr();
 		}
+	}
 	else {
-		return NULL;
-		}
+		return AstNodePtr();
+	}
 
 	/* We have to make sure no arithmetic is actually done to the frame pointer,
 	   so add zero to it and shove it in some other register. */
-	AstNode *constantZero = AstNode::operandNode(AstNode::Constant, (void *)0);
-	assert( constantZero != NULL );
-	AstNode *framePointer = AstNode::operandNode(AstNode::DataReg, (void *)(long unsigned int)registerNumber);
-	assert( framePointer != NULL );
-	AstNode *moveFPtoDestination = AstNode::operatorNode(plusOp,
+	AstNodePtr constantZero = AstNode::operandNode(AstNode::Constant, (void *)0);
+	AstNodePtr framePointer = AstNode::operandNode(AstNode::DataReg, (void *)(long unsigned int)registerNumber);
+	AstNodePtr moveFPtoDestination = AstNode::operatorNode(plusOp,
 														 constantZero,
 														 framePointer);
 	
 	return moveFPtoDestination;
-	} /* end convertFrameBaseToAST(). */
+} /* end convertFrameBaseToAST(). */
 
 bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, int * regNum, process *proc, long int * initialStackValue = NULL, BPatch_storageClass * storageClass = NULL ) {
 	/* We make a few heroic assumptions about locations in this decoder.

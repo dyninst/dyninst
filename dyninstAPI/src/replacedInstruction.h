@@ -39,10 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.h,v 1.1 2006/10/04 20:41:15 bernat Exp $
+// $Id: replacedInstruction.h,v 1.2 2007/06/13 18:51:14 bernat Exp $
 
 #if !defined(REPLACED_INSTRUCTION_H)
 #define REPLACED_INSTRUCTION_H
+
+#include "ast.h"
 
 class replacedInstruction : public generatedCodeObject {
  private: 
@@ -52,7 +54,7 @@ class replacedInstruction : public generatedCodeObject {
     // moved into the multiTramp, then it's replaced by
     // something else.
     replacedInstruction(relocatedInstruction *i,
-                        AstNode *ast,
+                        AstNodePtr ast,
                         multiTramp *m) :
         generatedCodeObject(),
         oldInsn_(i),
@@ -64,9 +66,8 @@ class replacedInstruction : public generatedCodeObject {
                         multiTramp *m) :
         generatedCodeObject(),
         oldInsn_(prev->oldInsn_),
-        ast_(NULL),
+        ast_(prev->ast_),
         multiT_(m) {
-        ast_ = assignAst(prev->ast_);
     };
 
     // Fork constructor
@@ -77,7 +78,7 @@ class replacedInstruction : public generatedCodeObject {
     ~replacedInstruction();
 
     relocatedInstruction *oldInsn_;
-    AstNode *ast_;
+    AstNodePtr ast_;
     multiTramp *multiT_;
 };
 

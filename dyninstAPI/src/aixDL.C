@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.73 2006/10/10 22:03:51 bernat Exp $
+// $Id: aixDL.C,v 1.74 2007/06/13 18:50:29 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -72,7 +72,7 @@ bool dynamic_linking::installTracing() {
 
   // Should check only libc.a...
 
-  AstNode *retval = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
+  AstNodePtr retval = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
   instMapping *loadInst = new instMapping("load1", "DYNINST_instLoadLibrary",
 					  FUNC_EXIT | FUNC_ARG,
 					  retval);
@@ -83,7 +83,6 @@ bool dynamic_linking::installTracing() {
   loadInst->dontUseTrampGuard();
   unloadInst->dontUseTrampGuard();
 
-  removeAst(retval);
   pdvector<instMapping *>instReqs;
   instReqs.push_back(loadInst);
   instReqs.push_back(unloadInst);

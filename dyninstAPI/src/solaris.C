@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.214 2007/04/13 20:21:20 giri Exp $
+// $Id: solaris.C,v 1.215 2007/06/13 18:51:21 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -59,6 +59,7 @@
 #include "mapped_module.h"
 #include "mapped_object.h"
 #include "dynamiclinking.h"
+#include "dyninstAPI/h/BPatch.h"
 
 #include "symtabAPI/src/Object.h" //TODO: Remove this
 
@@ -752,8 +753,8 @@ bool process::loadDYNINSTlib() {
     */
 
 
-    pdvector<AstNode*> dlopenAstArgs(2);
-    AstNode *dlopenAst;
+    pdvector<AstNodePtr> dlopenAstArgs(2);
+    AstNodePtr dlopenAst;
     
     // We call directly into ld.so.1. This used to be handled in 
     // process::findInternalSymbols, which made it very difficult
@@ -767,12 +768,9 @@ bool process::loadDYNINSTlib() {
     dlopenAstArgs[0] = AstNode::operandNode(AstNode::Constant, (void *)(dyninstlib_addr));
     dlopenAstArgs[1] = AstNode::operandNode(AstNode::Constant, (void*)DLOPEN_MODE);
     dlopenAst = AstNode::funcCallNode(dlopen_func_addr, dlopenAstArgs);
-    removeAst(dlopenAstArgs[0]);
-    removeAst(dlopenAstArgs[1]);
 
     dlopenAst->generateCode(scratchCodeBuffer,
                             true);
-    removeAst(dlopenAst);
 
     // Slap in a breakpoint
     dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
@@ -1306,8 +1304,8 @@ bool process::initMT()
    //Instrument
    for (i=0; i<thread_init_funcs.size(); i++)
    {
-      pdvector<AstNode *> args;
-      AstNode *call_dummy_create = AstNode::funcCallNode(dummy_create, args);
+      pdvector<AstNodePtr> args;
+      AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
       const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
       for (unsigned j=0; j<ips.size(); j++)
       {

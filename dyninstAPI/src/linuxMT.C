@@ -44,6 +44,7 @@
 // $Id: linuxMT.C,v
 
 #include "dyn_thread.h"
+#include "debug.h"
 
 /* FIXME: placeholder.  Also, this should be platform-specific. */
 Frame dyn_thread::getActiveFrameMT() {

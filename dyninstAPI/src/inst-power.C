@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.262 2007/01/09 17:17:58 giri Exp $
+ * $Id: inst-power.C,v 1.263 2007/06/13 18:50:50 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -65,6 +65,7 @@
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
+#include "dyninstAPI/h/BPatch.h"
 
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/registerSpace.h"
@@ -1006,8 +1007,8 @@ bool baseTramp::generateRestores(codeGen &gen,
 bool baseTramp::generateMTCode(codeGen &gen,
                                registerSpace *) {
 
-    AstNode *threadPOS;
-    pdvector<AstNode *> dummy;
+    AstNodePtr threadPOS;
+    pdvector<AstNodePtr> dummy;
     Register src = Null_Register;
     
     dyn_thread *thr = gen.thread();
@@ -1310,14 +1311,14 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 //   based - offset into the code generated.
 //
 
-Register emitFuncCall(opCode, codeGen &, pdvector<AstNode *> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) {
 	assert(0);
         return 0;
 }
 
 Register emitFuncCall(opCode /* ocode */, 
                       codeGen &gen,
-		      pdvector<AstNode *> &operands, bool noCost,
+		      pdvector<AstNodePtr> &operands, bool noCost,
 		      int_function *callee) {
     Address toc_anchor;
     pdvector <Register> srcs;
@@ -2574,7 +2575,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 }
 
 bool process::getDynamicCallSiteArgs(instPoint *callSite,
-                                    pdvector<AstNode *> &args)
+                                    pdvector<AstNodePtr> &args)
 {
 
     const instruction &i = callSite->insn();

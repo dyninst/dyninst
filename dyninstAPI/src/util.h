@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.36 2006/07/07 00:01:09 jaw Exp $
+// $Id: util.h,v 1.37 2007/06/13 18:51:27 bernat Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -53,16 +53,6 @@
 bool waitForFileToExist(char *fname, int timeout_seconds);
 int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds);
 
-#define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
-extern void logLine(const char *line);
-extern void statusLine(const char *line, bool force = false);
-extern char errorLine[];
-extern int bpfatal(const char *format, ...);
-extern int bperr(const char *format, ...);
-extern int bpwarn(const char *format, ...);
-extern int bpinfo(const char *format, ...);
-
-extern int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, ...);
 inline unsigned uiHash(const unsigned &val) {
   return val;
 }

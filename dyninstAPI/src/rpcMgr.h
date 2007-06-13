@@ -52,8 +52,8 @@
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "common/h/Types.h"
+#include "dyninstAPI/src/ast.h"
 
-class AstNode;
 class dyn_lwp;
 class dyn_thread;
 class process;
@@ -90,7 +90,7 @@ typedef int(*inferiorRPCcallbackFunc)(process *p, unsigned rpcid, void *data, vo
 
 
 struct inferiorRPCtoDo {  
-    AstNode *action;
+    AstNodePtr action;
     bool noCost; // if true, cost model isn't updated by generated code.
     inferiorRPCcallbackFunc callbackFunc;
     void *userData; /* Good 'ol callback/void * pair */
@@ -389,7 +389,7 @@ class rpcMgr {
    void showState() const;
    
    // posting RPC on a process
-   unsigned postRPCtoDo(AstNode *action, bool noCost,
+   unsigned postRPCtoDo(AstNodePtr action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
                         void *userData, 
                         bool runProcessWhenDone,
@@ -397,7 +397,7 @@ class rpcMgr {
                         dyn_lwp *lwp);
 
    // Create the body of the IRPC
-   Address createRPCImage(AstNode *action, bool noCost,
+   Address createRPCImage(AstNodePtr action, bool noCost,
                           bool shouldStopForResult, Address &breakAddr,
                           Address &stopForResultAddr,
                           Address &justAfter_stopForResultAddr,

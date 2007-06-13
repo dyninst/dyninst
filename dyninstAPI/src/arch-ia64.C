@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.55 2006/12/05 20:18:35 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.56 2007/06/13 18:50:31 bernat Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -50,6 +50,7 @@
 #include "dyninstAPI/src/arch-ia64.h"
 #include "util.h"
 #include "registerSpace.h"
+#include "debug.h"
 
 #define ALIGN_RIGHT_SHIFT		23
 #define TEMPLATE_MASK			0x000000000000001F	/* bits 00 - 04 */

@@ -52,7 +52,6 @@
 #include "BPatch_collections.h"
 #include "BPatch_typePrivate.h"
 #include "BPatch_function.h"
-#include "showerror.h"
 #include "symtabAPI/h/Dyn_Symtab.h" // For looking up compiler type
 #include "debug.h"
 

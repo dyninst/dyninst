@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.47 2006/10/18 16:07:06 legendre Exp $
+// $Id: procfs.C,v 1.48 2007/06/13 18:51:11 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -52,7 +52,6 @@
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
-#include "showerror.h"
 
 #include <sys/procfs.h>
 #include <sys/syscall.h>

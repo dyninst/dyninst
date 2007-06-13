@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.294 2007/05/22 19:42:02 bernat Exp $
+ // $Id: symtab.C,v 1.295 2007/06/13 18:51:22 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -525,7 +525,7 @@ bool image::symbolsToFunctions(vector<Dyn_Symbol *> &mods,
   pdstring symString;
 
   // is_a_out is a member variable
-  Dyn_Symbol *mainFuncSymbol;  //Keeps track of info on "main" function
+  Dyn_Symbol *mainFuncSymbol = NULL;  //Keeps track of info on "main" function
 
   //Checking "main" function names in same order as in the inst-*.C files
   vector <Dyn_Symbol *>syms;
@@ -1186,7 +1186,6 @@ image::image(fileDescriptor &desc, bool &err)
       msg += "\n";
       logLine(msg.c_str());
       err = true;
-      BPatch_reportError(BPatchWarning, 27, msg.c_str()); 
       return; 
    }
 

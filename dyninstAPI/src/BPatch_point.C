@@ -48,8 +48,8 @@
 
 #define BPATCH_FILE
 
-#include "BPatch_point.h"
 #include "BPatch_snippet.h"
+#include "BPatch_point.h"
 #include "BPatch_type.h"
 #include "BPatch_image.h"
 #include "BPatch_function.h"
@@ -413,7 +413,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite. 
 
-  pdvector<AstNode *> args;
+  pdvector<AstNodePtr> args;
   if ( (!proc->llproc->getDynamicCallSiteArgs( point,args )) || 
        (args.size() != 2) ) {
      return NULL;
@@ -423,7 +423,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   int_function * fb = func_to_use->lowlevel_func();
 
   // Monitoring function
-  AstNode *ast = AstNode::funcCallNode(fb, args);
+  AstNodePtr ast = AstNode::funcCallNode(fb, args);
   miniTramp *res = point->instrument(ast,
 				     callPreInsn,
 				     orderLastAtPoint,

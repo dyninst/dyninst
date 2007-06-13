@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.36 2007/05/22 19:42:02 bernat Exp $
+// $Id: instPoint.h,v 1.37 2007/06/13 18:50:56 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -51,13 +51,14 @@
 #include "dyninstAPI/src/arch.h" // instruction
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/stats.h"
+#include "dyninstAPI/src/ast.h"
 
 class image_func;
 class int_function;
 class instPoint;
 class process;
 class image;
-class AstNode;
+
 class int_basicBlock;
 #if defined(__XLC__) || defined(__xlC__)
 class BPatch_point;
@@ -352,14 +353,14 @@ class instPoint : public instPointBase {
 
   // This function does it all:
   // Doesn't handle deferring though
-  miniTramp *instrument(AstNode *ast,
+  miniTramp *instrument(AstNodePtr ast,
                         callWhen when,
                         callOrder order,
                         bool trampRecursive,
                         bool noCost);
 
   // Step 1:
-  miniTramp *addInst(AstNode *&ast,
+  miniTramp *addInst(AstNodePtr ast,
                      callWhen when,
                      callOrder order,
                      bool trampRecursive,
@@ -368,7 +369,7 @@ class instPoint : public instPointBase {
   // Step 1.5 (alternate)
   // Instead of adding new instrumentation, replace the instruction at the current
   // point with the provided AST.
-  bool replaceCode(AstNode *&ast);
+  bool replaceCode(AstNodePtr ast);
 
   // Step 2:
   bool generateInst();
@@ -401,7 +402,7 @@ class instPoint : public instPointBase {
                                    miniTramp *mt,
                                    bool active);
 
-  bool createMiniTramp(AstNode *&ast,
+  bool createMiniTramp(AstNode &ast,
 		       bool noCost,
 		       int &trampCost,
 		       Address &trampSize,
@@ -442,13 +443,13 @@ class instPoint : public instPointBase {
   baseTramp *postBaseTramp() const { return postBaseTramp_; }
   baseTramp *targetBaseTramp() const { return targetBaseTramp_; }
 
-  AstNode *replacedCode() const { return replacedCode_; }
+  AstNodePtr replacedCode() const { return replacedCode_; }
   
  private:
   baseTramp *preBaseTramp_;
   baseTramp *postBaseTramp_;
   baseTramp *targetBaseTramp_;
-  AstNode *replacedCode_;
+  AstNodePtr replacedCode_;
 
   process *proc_;
 

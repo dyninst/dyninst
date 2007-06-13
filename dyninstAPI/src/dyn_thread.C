@@ -42,6 +42,7 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/process.h"
 
 
 dyn_thread::dyn_thread(process *pproc) : 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.37 2007/01/25 22:23:57 bernat Exp $
+// $Id: miniTramp.C,v 1.38 2007/06/13 18:51:02 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -48,6 +48,7 @@
 #include "instPoint.h"
 #include "process.h"
 #include "ast.h"
+#include "dyninstAPI/h/BPatch.h"
 
 // for AIX
 #include "function.h"
@@ -646,7 +647,7 @@ miniTrampInstance::miniTrampInstance(const miniTrampInstance *origMTI,
 
    
 miniTramp::miniTramp(callWhen when_,
-                     AstNode *ast,
+                     AstNodePtr ast,
                      baseTramp *base,
                      bool noCost) :
     miniTrampCode_(),
@@ -662,7 +663,8 @@ miniTramp::miniTramp(callWhen when_,
     prev(NULL), next(NULL),
     callback(NULL), callbackData(NULL),
     deleteInProgress(false) {
-    ast_ = dynamic_cast<AstMiniTrampNode *>(AstNode::miniTrampNode(ast));
+    ast_ = boost::dynamic_pointer_cast<AstMiniTrampNode>(AstNode::miniTrampNode(ast));
+
     assert(baseT);
     proc_ = baseT->proc();
 }
@@ -686,8 +688,7 @@ miniTramp::miniTramp(const miniTramp *parMini,
     callbackData(NULL),
     deleteInProgress(parMini->deleteInProgress)
 {
-    assert(parMini->ast_);
-    ast_ = dynamic_cast<AstMiniTrampNode *>(assignAst(parMini->ast_));
+    ast_ = parMini->ast_;
 
     // Uhh... what about callbacks?
     // Can either set them to null or have them returning 

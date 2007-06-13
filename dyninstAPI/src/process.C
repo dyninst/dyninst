@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.687 2007/05/17 19:55:09 legendre Exp $
+// $Id: process.C,v 1.688 2007/06/13 18:51:09 bernat Exp $
 
 #include <ctype.h>
 
@@ -1303,14 +1303,11 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   alignUp(size, 4);
   // build AstNode for "DYNINSTos_malloc" call
   pdstring callee = "DYNINSTos_malloc";
-  pdvector<AstNode*> args(3);
+  pdvector<AstNodePtr> args(3);
   args[0] = AstNode::operandNode(AstNode::Constant, (void *)(Address)size);
   args[1] = AstNode::operandNode(AstNode::Constant, (void *)lo);
   args[2] = AstNode::operandNode(AstNode::Constant, (void *)hi);
-  AstNode *code = AstNode::funcCallNode(callee, args);
-  removeAst(args[0]);
-  removeAst(args[1]);
-  removeAst(args[2]);
+  AstNodePtr code = AstNode::funcCallNode(callee, args);
 
   // issue RPC and wait for result
   imd_rpc_ret ret = { false, NULL };
@@ -1851,7 +1848,6 @@ void process::deleteProcess()
   costAddr_ = 0;
   threadIndexAddr = 0;
   trampGuardBase_ = 0;
-  trampGuardAST_ = NULL;
 
 #if defined(os_linux)
   vsyscall_start_ = 0;
@@ -1979,8 +1975,7 @@ process::process(SignalGenerator *sh_) :
     tracedSyscalls_(NULL),
     costAddr_(0),
     threadIndexAddr(0),
-    trampGuardBase_(0),
-    trampGuardAST_(NULL)
+    trampGuardBase_(0)
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -2529,8 +2524,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     tracedSyscalls_(NULL),  // Later
     costAddr_(parentProc->costAddr_),
     threadIndexAddr(parentProc->threadIndexAddr),
-    trampGuardBase_(parentProc->trampGuardBase_),
-    trampGuardAST_(NULL)
+    trampGuardBase_(parentProc->trampGuardBase_)
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -3001,14 +2995,12 @@ bool process::iRPCDyninstInit() {
         break;
    }
 
-    pdvector<AstNode*> the_args(4);
+    pdvector<AstNodePtr> the_args(4);
     the_args[0] = AstNode::operandNode(AstNode::Constant, (void*)(Address)cause);
     the_args[1] = AstNode::operandNode(AstNode::Constant, (void*)(Address)pid);
     the_args[2] = AstNode::operandNode(AstNode::Constant, (void*)(Address)maxthreads);
     the_args[3] = AstNode::operandNode(AstNode::Constant, (void*)(Address)dyn_debug_rtlib);
-    AstNode *dynInit = AstNode::funcCallNode("DYNINSTinit", the_args);
-    removeAst(the_args[0]); removeAst(the_args[1]); removeAst(the_args[2]);
-    removeAst(the_args[3]);
+    AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTinit", the_args);
     getRpcMgr()->postRPCtoDo(dynInit,
                              true, // Don't update cost
                              process::DYNINSTinitCompletionCallback,
@@ -5311,14 +5303,14 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
             }
             
             // should be silently handled or not
-            AstNode *ast;
+            AstNodePtr ast;
             if ((req->where & FUNC_ARG) && req->args.size()>0) {
                 ast = AstNode::funcCallNode(req->inst, 
                                             req->args,
                                             this);
             }
             else {
-                pdvector<AstNode *> def_args;
+                pdvector<AstNodePtr> def_args;
                 def_args.push_back(AstNode::operandNode(AstNode::Constant,
                                                         (void *)0));
                 ast = AstNode::funcCallNode(req->inst,
@@ -5372,8 +5364,6 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 fprintf(stderr, "Unknown where: %d\n",
                         req->where);
             }
-            
-            removeAst(ast);
             
         }
         
@@ -6206,8 +6196,8 @@ void process::recognize_threads(process *parent)
             
         if (lwp->is_asLWP()) continue;
 
-        pdvector<AstNode *> ast_args;
-        AstNode *ast = AstNode::funcCallNode("DYNINSTthreadIndex", ast_args);
+        pdvector<AstNodePtr> ast_args;
+        AstNodePtr ast = AstNode::funcCallNode("DYNINSTthreadIndex", ast_args);
 
         done_reg_bundle_t *bundle = (done_reg_bundle_t*) 
            malloc(sizeof(done_reg_bundle_t));
@@ -6387,9 +6377,9 @@ static int mapIndexToTid_cb(process *, unsigned, void *data, void *result)
 dynthread_t process::mapIndexToTid(int index)
 {
    dynthread_t tid = (dynthread_t) -1;
-   pdvector<AstNode *> ast_args;
+   pdvector<AstNodePtr> ast_args;
    ast_args.push_back(AstNode::operandNode(AstNode::Constant, (void *)(long)index));
-   AstNode *call_get_tid = AstNode::funcCallNode("DYNINST_getThreadFromIndex", ast_args, this);
+   AstNodePtr call_get_tid = AstNode::funcCallNode("DYNINST_getThreadFromIndex", ast_args, this);
    
    getRpcMgr()->postRPCtoDo(call_get_tid, true, mapIndexToTid_cb, &tid,
                             false, // Don't run when done
@@ -6646,18 +6636,18 @@ bool process::shouldSaveFPState() {
    return BPatch::bpatch->isSaveFPROn();
 }
 
-AstNode *process::trampGuardAST() {
-    if (trampGuardAST_) return assignAst(trampGuardAST_);
+AstNodePtr process::trampGuardAST() {
+    if (trampGuardAST_) return trampGuardAST_;
 
     if (!trampGuardBase_) {
         // Don't have it yet....
-        return NULL;
+        return AstNodePtr();
     }
 
     trampGuardAST_ = AstNode::operandNode(AstNode::DataAddr, 
                                           (void *)trampGuardBase_);
 
-    return assignAst(trampGuardAST_);
+    return trampGuardAST_;
 }
 
 const char *process::getInterpreterName() {

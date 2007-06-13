@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.50 2007/05/25 21:13:53 rchen Exp $
+ * $Id: emit-x86.C,v 1.51 2007/06/13 18:50:42 bernat Exp $
  */
 
 #include <assert.h>
@@ -53,6 +53,7 @@
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/h/BPatch.h"
 
 // get_index...
 #include "dyninstAPI/src/dyn_thread.h"
@@ -431,8 +432,8 @@ bool Emitter32::emitBTRestores(baseTramp* bt, codeGen &gen)
 
 bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
 {
-    AstNode *threadPOS;
-    pdvector<AstNode *> dummy;
+    AstNodePtr threadPOS;
+    pdvector<AstNodePtr> dummy;
     Register src = Null_Register;
     // registers cleanup
 
@@ -1216,7 +1217,7 @@ bool Emitter64::clobberAllFuncCall( registerSpace *rs,
 
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
-Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNode *> &operands,
+Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
 			     bool noCost, int_function *callee)
 {
 
@@ -1772,8 +1773,8 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 
 bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
 {
-    AstNode *threadPOS;
-    pdvector<AstNode *> dummy;
+    AstNodePtr threadPOS;
+    pdvector<AstNodePtr> dummy;
     Register src = Null_Register;
     // registers cleanup
     //gen.rs()->resetSpace();

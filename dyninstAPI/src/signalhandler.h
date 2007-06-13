@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.32 2006/10/18 16:06:33 legendre Exp $
+/* $Id: signalhandler.h,v 1.33 2007/06/13 18:51:20 bernat Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -81,6 +81,8 @@ class process;
 class SignalHandler;
 
 class SignalGenerator;
+
+class BPatch_process;
 
 #define MAX_HANDLERS 64  /*This is just arbitrarily large-ish */
 #define HANDLER_TRIM_THRESH 2 /*try to delete handlers if we have more than this */
@@ -156,8 +158,8 @@ class SignalHandler : public EventHandler<EventRecord>
   CallbackBase *wait_cb;
   process *active_proc;
 
-  static void flagBPatchStatusChange() {BPatch::bpatch->mutateeStatusChange = true;}
-  static void setBPatchProcessSignal(BPatch_process *p, int t) {p->lastSignal = t;}
+  static void flagBPatchStatusChange();
+  static void setBPatchProcessSignal(BPatch_process *p, int t);
 
   // For us to block on
   eventLock *waitLock;

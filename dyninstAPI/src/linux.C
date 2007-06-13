@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.259 2007/05/21 17:12:44 legendre Exp $
+// $Id: linux.C,v 1.260 2007/06/13 18:50:59 bernat Exp $
 
 #include <fstream>
 
@@ -2475,8 +2475,8 @@ bool process::initMT()
    //Instrument
    for (i=0; i<thread_init_funcs.size(); i++)
    {
-      pdvector<AstNode *> args;
-      AstNode *ast = AstNode::funcCallNode(dummy_create, args);
+      pdvector<AstNodePtr> args;
+      AstNodePtr ast = AstNode::funcCallNode(dummy_create, args);
       const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
       for (unsigned j=0; j<ips.size(); j++)
       {
@@ -2490,7 +2490,6 @@ bool process::initMT()
          }
          //TODO: Save the mt objects for detach
       }
-      removeAst(ast);
    }
       
    //Find functions that are run on pthread exit
@@ -2515,8 +2514,8 @@ bool process::initMT()
 
    for (i=0; i<thread_dest_funcs.size(); i++)
    {
-      pdvector<AstNode *> args;
-      AstNode *ast = AstNode::funcCallNode(threadDestroy, args);
+      pdvector<AstNodePtr> args;
+      AstNodePtr ast = AstNode::funcCallNode(threadDestroy, args);
       const pdvector<instPoint *> &ips = thread_dest_funcs[i]->funcExits();
       for (unsigned j=0; j<ips.size(); j++)
       {
@@ -2530,16 +2529,15 @@ bool process::initMT()
          }
          //TODO: Save the mt objects for detach
       }
-      removeAst(ast);
    }
 
 #if 0
    //Instrument
    for (i=0; i<thread_dest_funcs.size(); i++)
    {
-      pdvector<AstNode *> args;
+      pdvector<AstNodePtr > args;
       AstNode call_thread_destroy(threadDestroy, args);
-      AstNode *ast = &call_thread_destroy;
+      AstNodePtr ast = &call_thread_destroy;
       miniTrampHandle *mthandle;
       instPoint *ip = thread_dest_funcs[i]->funcEntry(this);
 

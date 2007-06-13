@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.23 2005/10/14 16:37:19 legendre Exp $
+// $Id: aixMT.C,v 1.24 2007/06/13 18:50:30 bernat Exp $
 
 //#include <sys/pthdebug.h> // Pthread debug library, disabled
 #include "dyninstAPI/src/dyn_thread.h"
@@ -112,7 +112,6 @@ Frame dyn_thread::getActiveFrameMT() {
 	assert(0 && "Process running but virtualTimer incorrect");
       }
 #endif
-    bperr( "Error: attempt to get frame info for non-scheduled thread\n");
   }
   return newFrame;
 }

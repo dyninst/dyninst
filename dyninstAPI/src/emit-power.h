@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-power.h,v 1.2 2007/05/22 21:05:42 rchen Exp $
+ * $Id: emit-power.h,v 1.3 2007/06/13 18:50:41 bernat Exp $
  */
 
 #ifndef _EMITTER_POWER_H
@@ -50,9 +50,9 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/ast.h"
 
 class codeGen;
-class AstNode;
 class registerSpace;
 class baseTramp;
 
@@ -87,7 +87,7 @@ class EmitterPOWER : public Emitter {
     virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
     virtual bool emitMoveRegToReg(Register, Register, codeGen &) { assert(0); return 0;}
 
-    virtual Register emitCall(opCode, codeGen &, const pdvector<AstNode *> &,
+    virtual Register emitCall(opCode, codeGen &, const pdvector<AstNodePtr> &,
 			      bool, int_function *) { assert(0); return 0; }
     virtual void emitGetRetVal(Register, codeGen &) { assert(0); }
     virtual void emitGetParam(Register, Register, instPointType_t, codeGen &) { assert(0); }

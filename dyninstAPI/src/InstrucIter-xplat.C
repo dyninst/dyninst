@@ -56,6 +56,7 @@
 #include "InstrucIter.h"
 
 #include "BPatch_Set.h"
+#include "BPatch_process.h"
 
 #if !defined(arch_ia64)
 // IA64 has a bundle-oriented version defined in InstrucIter-ia64.C

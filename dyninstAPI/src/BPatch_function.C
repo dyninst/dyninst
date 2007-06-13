@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.85 2007/01/18 07:53:47 jaw Exp $
+// $Id: BPatch_function.C,v 1.86 2007/06/13 18:50:21 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -622,8 +622,10 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
                                            sizeof( Address ), & gp ))
    fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
 
-   AstNode *ast = AstNode::operandNode(AstNode::Constant, (void *) remoteAddress);
-   return new BPatch_variableExpr(fname, proc, ast, type, (void *) remoteAddress);
+   
+   AstNodePtr *wrapper = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
+   // variableExpr owns the AST
+   return new BPatch_variableExpr(fname, proc, wrapper, type, (void *) remoteAddress);
 	//return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
 
 #else
@@ -633,7 +635,9 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
    //  But since we are adding this as part of the DPCL compatibility process
    //  we use the IBM API, to eliminate one API difference.
 
-   AstNode *ast = AstNode::operandNode(AstNode::Constant, (void *) remoteAddress);
+   AstNodePtr *ast = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
+   
+   // the variableExpr owns the ast now.
    return new BPatch_variableExpr(fname, proc, ast, type, (void *) remoteAddress);
 #endif
 

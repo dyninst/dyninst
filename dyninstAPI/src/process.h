@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.402 2007/05/17 19:55:10 legendre Exp $
+/* $Id: process.h,v 1.403 2007/06/13 18:51:10 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -66,6 +66,8 @@
 #include "dyninstAPI/src/imageUpdate.h"
 #include "dyninstAPI/src/infHeap.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/dyn_thread.h"
 
 #include "debug.h"
 
@@ -445,11 +447,11 @@ class process {
   bool unsetProcessFlags(); // Counterpart to above
   
   bool getDynamicCallSiteArgs(instPoint *callSite, 
-                              pdvector<AstNode *> &args);
+                              pdvector<AstNodePtr> &args);
                               
   // Trampoline guard get/set functions
   Address trampGuardBase(void) { return trampGuardBase_; }
-  AstNode *trampGuardAST(void);
+  AstNodePtr trampGuardAST(void);
   
   //  
   //  PUBLIC DATA MEMBERS
@@ -1182,7 +1184,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 
   Address threadIndexAddr; // Thread ID->index mapping
   Address trampGuardBase_; // Tramp recursion index mapping
-  AstNode *trampGuardAST_;
+  AstNodePtr trampGuardAST_;
 
   ///////////////////////////////
   // Platform-specific

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: debug.C,v 1.2 2007/02/21 17:30:02 legendre Exp $
+// $Id: debug.C,v 1.3 2007/06/13 18:50:36 bernat Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -55,6 +55,16 @@
 
 eventLock *debugPrintLock = NULL;
 
+void BPatch_reportError(int errLevel, int num, const char *str) {
+    BPatch::reportError((BPatchErrorLevel) errLevel, num, str);
+}
+
+void
+pd_log_perror(const char* msg) {
+    sprintf(errorLine, "%s: %s\n", msg, strerror(errno));
+    logLine(errorLine);
+    // fprintf(stderr, "%s", log_buffer);
+}
 void showInfoCallback(pdstring msg)
 {
     BPatch::reportError(BPatchWarning, 0, msg.c_str());

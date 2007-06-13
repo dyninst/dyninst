@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.55 2007/02/14 23:04:09 legendre Exp $
+// $Id: baseTramp.C,v 1.56 2007/06/13 18:50:34 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/h/BPatch.h"
 
 #if defined(os_aix)
   extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
@@ -536,21 +537,21 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
 	
     gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP()));
 
-    pdvector<AstNode *> miniTramps;
+    pdvector<AstNodePtr> miniTramps;
     for (unsigned miter = 0; miter < mtis.size(); miter++) {
         miniTramps.push_back(mtis[miter]->mini->ast_->getAST());
         // And nuke the hasChanged flag in there - we don't generate
         // code that way
         mtis[miter]->hasChanged_ = false;
     }
-    AstNode *minis = AstNode::sequenceNode(miniTramps);
+    AstNodePtr minis = AstNode::sequenceNode(miniTramps);
 
     // Let's build the tramp guard addr (if we want it)
-    AstNode *threadIndex = NULL;
-    AstNode *trampGuardAddr = NULL;
+    AstNodePtr threadIndex;
+    AstNodePtr trampGuardAddr;
     if (baseT->guarded() &&
         minis->containsFuncCall() &&
-        (proc()->trampGuardAST() != NULL)) {
+        (proc()->trampGuardAST() != AstNodePtr())) {
         // If we don't have a function call, then we don't
         // need the guard....
 
@@ -593,8 +594,8 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     }
 
 
-    AstNode *baseTrampSequence = NULL;
-    pdvector<AstNode *> baseTrampElements;
+    AstNodePtr baseTrampSequence;
+    pdvector<AstNodePtr > baseTrampElements;
 
     if (trampGuardAddr) {
         // First, set it to 0
@@ -620,13 +621,13 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
 
     baseTrampSequence = AstNode::sequenceNode(baseTrampElements);
 
-    AstNode *baseTramp = NULL;
+    AstNodePtr baseTramp;
 
     // If trampAddr is non-NULL, then we wrap this with an IF. If not, 
     // we just run the minitramps.
     if (trampGuardAddr == NULL) {
         baseTramp = baseTrampSequence;
-        baseTrampSequence = NULL;
+        baseTrampSequence.reset();
     }
     else {
         // Oh, boy. 
@@ -637,6 +638,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
                                                                 AstNode::operandNode(AstNode::Constant, (void *)1)),
                                           baseTrampSequence);
 #endif
+        // Short form of the above
         baseTramp = AstNode::operatorNode(ifOp,
                                           trampGuardAddr,
                                           baseTrampSequence);
@@ -1021,12 +1023,11 @@ bool baseTramp::doOptimizations()
       return false;
 
    while (cur_mini) {
-      AstMiniTrampNode *ast = cur_mini->ast_;
-      if (ast->containsFuncCall()) {
-         hasFuncCall = true;
-         break;
-      }
-      cur_mini = cur_mini->next;
+       if (cur_mini->ast_->containsFuncCall()) {
+           hasFuncCall = true;
+           break;
+       }
+       cur_mini = cur_mini->next;
    }
    
    if (!hasFuncCall) {

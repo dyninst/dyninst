@@ -132,7 +132,7 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
         inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
         inferiorRPCtoDo *oldRPC = pRM->postedProcessRPCs_[ii];
         
-        newRPC->action = assignAst(oldRPC->action);
+        newRPC->action = oldRPC->action;
         newRPC->noCost = oldRPC->noCost;
         newRPC->callbackFunc = oldRPC->callbackFunc;
         newRPC->userData = oldRPC->userData;
@@ -196,7 +196,7 @@ rpcMgr::~rpcMgr() {
 }
 
 // post RPC toDo for process
-unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
+unsigned rpcMgr::postRPCtoDo(AstNodePtr action, bool noCost,
                              inferiorRPCcallbackFunc callbackFunc,
                              void *userData, 
                              bool runWhenFinished,
@@ -770,7 +770,7 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
     return false;
 }
 
-Address rpcMgr::createRPCImage(AstNode *action,
+Address rpcMgr::createRPCImage(AstNodePtr action,
                                bool noCost,
                                bool shouldStopForResult,
                                Address &breakAddr,

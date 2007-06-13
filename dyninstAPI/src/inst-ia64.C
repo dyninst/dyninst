@@ -320,13 +320,13 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 } /* end findFreeLocal() */
 
 /* Obsolete addr-based version */
-Register emitFuncCall(opCode, codeGen &, pdvector<AstNode *> &, bool, Address) {
+Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) {
 	assert(0);
 }
 
 /* Required by ast.C */
 Register emitFuncCall( opCode op, codeGen & gen,
-					   pdvector< AstNode * > & operands,
+					   pdvector< AstNodePtr > & operands,
 					   bool /* noCost */,
 					   int_function *callee) { 
   /* Consistency check. */
@@ -544,7 +544,7 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 	opCode op( callOp );
 
 	/* Generate the operand ASTs. */
-	pdvector< AstNode * > operands;
+	pdvector< AstNodePtr > operands;
 	operands.push_back(AstNode::operandNode( AstNode::DataReg, (void *)(long long int)src1 ) );
 	operands.push_back(AstNode::operandNode( AstNode::DataReg, (void *)(long long int)src2 ) );
 
@@ -2784,7 +2784,7 @@ bool baseTramp::generateCostCode( codeGen & gen, unsigned & costUpdateOffset, re
 
 
 bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
-  pdvector< AstNode * > dummy;
+  pdvector< AstNodePtr > dummy;
 
   dyn_thread *thr = gen.thread();
   if( !this->threaded() ) {
@@ -2798,7 +2798,7 @@ bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
 	  setIndexBundle.generate( gen );
   }
   else {
-	  AstNode * threadPos = AstNode::funcCallNode( "DYNINSTthreadIndex", dummy );
+	  AstNodePtr threadPos = AstNode::funcCallNode( "DYNINSTthreadIndex", dummy );
 	  assert( threadPos != NULL );
 	  
 	  Register src = REG_NULL;
@@ -2807,8 +2807,6 @@ bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
 	  
 	  /* Ray: I'm asserting that we don't use the 35th preserved register for anything. */
 	  emitRegisterToRegisterCopy( src, CALCULATE_KTI_REGISTER, gen, rs );
-	  
-	  removeAst( threadPos );
   }
   
   return true;
@@ -3392,10 +3390,10 @@ void registerSpace::saveClobberInfo(const instPoint *)
 
 #if defined( OLD_DYNAMIC_CALLSITE_MONITORING )
 bool process::MonitorCallSite( instPoint * callSite ) {
-	pdvector< AstNode * > arguments;
+	pdvector< AstNodePtr > arguments;
 #else
 /* This is a really horribly-named function. */
-bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> & arguments ) {
+bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNodePtr> & arguments ) {
 #endif
 	insn_tmpl tmpl = { callSite->insn().getMachineCode() };
 	uint64_t targetAddrRegister = tmpl.B4.b2;			
@@ -3404,20 +3402,20 @@ bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> 
 	/* This should be the only place on the IA-64 using this poorly-named constant.
 	   Note that the cast to void * is necessary to avoid picking up the (x86) memory
 	   instrumentation node constructor. */
-	AstNode * target = AstNode::operandNode( AstNode::PreviousStackFrameDataReg, (void *)(BP_BR0 + targetAddrRegister) );
+	AstNodePtr target = AstNode::operandNode( AstNode::PreviousStackFrameDataReg, (void *)(BP_BR0 + targetAddrRegister) );
 	assert( target != NULL );
 	// arguments[0] = target;
 	arguments.push_back( target );
 	
 	/* Note that the cast to void * is necessary to avoid picking up the (x86) memory
 	   instrumentation node constructor. */
-	AstNode * source = AstNode::operandNode( AstNode::Constant, (void *)(callSite->addr()) );
+	AstNodePtr source = AstNode::operandNode( AstNode::Constant, (void *)(callSite->addr()) );
 	assert( source != NULL );
 	// arguments[1] = source;
 	arguments.push_back( source );
 
 #if defined( OLD_DYNAMIC_CALLSITE_MONITORING )
-	AstNode * callToMonitor = AstNode::operandNode( "DYNINSTRegisterCallee", arguments );
+	AstNodePtr callToMonitor = AstNode::operandNode( "DYNINSTRegisterCallee", arguments );
 	assert( callToMonitor != NULL );
 	
 	miniTramp * mtHandle = NULL;

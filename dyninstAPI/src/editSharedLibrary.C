@@ -39,9 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: editSharedLibrary.C,v 1.4 2005/10/04 18:10:07 legendre Exp $ */
+/* $Id: editSharedLibrary.C,v 1.5 2007/06/13 18:50:40 bernat Exp $ */
 #include "dyninstAPI/src/editSharedLibrary.h"
 #include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/debug.h"
 
 
 /*	This function will open the shared library and remove the

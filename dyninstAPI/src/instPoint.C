@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.38 2007/05/22 19:42:02 bernat Exp $
+// $Id: instPoint.C,v 1.39 2007/06/13 18:50:55 bernat Exp $
 // instPoint code
 
 
@@ -77,7 +77,7 @@ dictionary_hash <pdstring, unsigned> primitiveCosts(pdstring::hash);
   extern void resetBR( process *p, Address loc);               //inst-power.C
 #endif
 
-miniTramp *instPoint::addInst(AstNode *&ast,
+miniTramp *instPoint::addInst(AstNodePtr ast,
                               callWhen when,
                               callOrder order,
                               bool trampRecursive,
@@ -108,7 +108,7 @@ miniTramp *instPoint::addInst(AstNode *&ast,
     return miniT;
 }
 
-bool instPoint::replaceCode(AstNode *&ast) {
+bool instPoint::replaceCode(AstNodePtr ast) {
     // We inject a "replacedInstruction" into all known multitramps,
     // then trigger generation and installation.
     
@@ -383,7 +383,7 @@ bool instPoint::updateInstancesFinalize() {
 }
 
 // Blah blah blah...
-miniTramp *instPoint::instrument(AstNode *ast,
+miniTramp *instPoint::instrument(AstNodePtr ast,
                                  callWhen when,
                                  callOrder order,
                                  bool trampRecursive,
@@ -529,7 +529,7 @@ instPoint::instPoint(process *proc,
     preBaseTramp_(NULL),
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
-    replacedCode_(NULL),
+    replacedCode_(),
     proc_(proc),
     img_p_(NULL),
     block_(block),
@@ -560,7 +560,7 @@ instPoint::instPoint(process *proc,
     preBaseTramp_(NULL),
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
-    replacedCode_(NULL),
+    replacedCode_(),
      proc_(proc),
     img_p_(img_p),
     block_(block),
@@ -589,7 +589,7 @@ instPoint::instPoint(instPoint *parP,
     preBaseTramp_(NULL),
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
-    replacedCode_(NULL),
+    replacedCode_(parP->replacedCode_),
     proc_(child->proc()),
     img_p_(parP->img_p_),
     block_(child),
@@ -597,8 +597,7 @@ instPoint::instPoint(instPoint *parP,
     actualGPRLiveSet_(NULL),
     actualFPRLiveSet_(NULL),
     actualSPRLiveSet_(NULL)
- {
-     assert(parP->replacedCode_ == NULL);
+{
 }
                   
 
@@ -723,7 +722,6 @@ instPoint::~instPoint() {
     if (preBaseTramp_) delete preBaseTramp_;
     if (postBaseTramp_) delete postBaseTramp_;
     if (targetBaseTramp_) delete targetBaseTramp_;
-    if (replacedCode_) delete replacedCode_;
     
     if (actualGPRLiveSet_) delete actualGPRLiveSet_;
     if (actualFPRLiveSet_) delete actualFPRLiveSet_;

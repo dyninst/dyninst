@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.C,v 1.7 2006/11/22 18:54:26 bernat Exp $
+// $Id: replacedInstruction.C,v 1.8 2007/06/13 18:51:13 bernat Exp $
 
 #include "multiTramp.h"
 #include "process.h"
@@ -55,7 +55,7 @@ replacedInstruction::replacedInstruction(replacedInstruction *parRI,
                                          process *child) :
     relocatedCode(parRI, child),
     oldInsn_(NULL), // Fill in below...
-    ast_(NULL), // Fill in below...
+    ast_(parRI->ast_),
     multiT_(cMT),
     addr_(parRI->addr_),
     size_(parRI->size_)
@@ -63,7 +63,6 @@ replacedInstruction::replacedInstruction(replacedInstruction *parRI,
     oldInsn_ = new relocatedInstruction(parRI->oldInsn_,
                                         cMT,
                                         child);
-    ast_ = assignAst(parRI->ast_);
 };
 
 generatedCodeObject *replacedInstruction::replaceCode(generatedCodeObject *newParent) {

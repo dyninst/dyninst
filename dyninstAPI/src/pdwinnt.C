@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.170 2007/04/24 23:06:09 legendre Exp $
+// $Id: pdwinnt.C,v 1.171 2007/06/13 18:51:08 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -67,6 +67,7 @@
 
 /* XXX This is only needed for emulating signals. */
 #include "BPatch_thread.h"
+#include "BPatch_process.h"
 #include "nt_signal_emul.h"
 
 #include "dyninstAPI/src/rpcMgr.h"
@@ -1885,7 +1886,7 @@ static void emitNeededCallSaves(codeGen &gen, Register reg, pdvector<Register> &
 static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves);
 
 int Emitter32::emitCallParams(codeGen &gen, 
-                              const pdvector<AstNode *> &operands,
+                              const pdvector<AstNodePtr> &operands,
                               int_function *target, 
                               pdvector<Register> &extra_saves, 
                               bool noCost)
@@ -2190,8 +2191,8 @@ bool process::instrumentThreadInitialFunc(int_function *f) {
       return false;
     } 
 
-    pdvector<AstNode *> args;
-    AstNode *call_dummy_create = AstNode::funcCallNode(dummy_create, args);
+    pdvector<AstNodePtr> args;
+    AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
     const pdvector<instPoint *> &ips = f->funcEntries();
     for (unsigned j=0; j<ips.size(); j++)
     {

@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.C,v 1.20 2006/04/25 14:31:29 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.21 2007/06/13 18:50:27 bernat Exp $ */
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 #include "addLibraryLinux.h"
 #include "util.h"
+#include "debug.h"
 #define MOVEDYNAMIC 1 
 
 /* 

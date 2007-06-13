@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.98 2006/12/01 01:33:18 legendre Exp $
+// $Id: inst.h,v 1.99 2007/06/13 18:50:54 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -50,6 +50,7 @@
 #include "opcode.h" // enum opCode now defined here.
 #include "common/h/Types.h"
 #include "arch.h" // codeBufIndex_t 
+#include "dyninstAPI/src/ast.h" // astNodePtr
 
 /****************************************************************************/
 /****************************************************************************/
@@ -84,7 +85,7 @@ class AstNode;
 loadMiniTramp_result loadMergedTramp(miniTramp *&mtHandle,
                                    process *proc, 
                                    instPoint *&location,
-                                   AstNode *&ast, // the ast could be changed 
+                                   AstNodePtr ast, // the ast could be changed 
                                    callWhen when, callOrder order, bool noCost,
                                    returnInstance *&retInstance,
                                    bool trampRecursiveDesired = false,
@@ -112,39 +113,33 @@ int_function *getFunction(instPoint *point);
 #define FUNC_CALL       0x4             /* subroutines called from func */
 #define FUNC_ARG  	0x8             /* use arg as argument */
 
-extern AstNode *assignAst(AstNode *);
-extern void removeAst(AstNode *&);
-
 // Container class for "instrument this point with this function". 
 // What I want to know is who is allergic to multi-letter arguments? Yeesh.
 class instMapping {
 public:
-  // instMapping(const pdstring f, const pdstring i, const int w, AstNode *a=NULL)
-  //   : func(f), inst(i), where(w) { arg = assignAst(a); };
-  // ~instMapping() { removeAst(arg); };
   instMapping(const pdstring f, const pdstring i, const int w, 
-	      callWhen wn, callOrder o, AstNode *a=NULL, pdstring l = "")
+	      callWhen wn, callOrder o, AstNodePtr a = AstNodePtr(), pdstring l = "")
       : func(f), inst(i), lib(l),
       where(w), when(wn), order(o), useTrampGuard(true),
       mt_only(false), allow_trap(false) {
-      if(a) args.push_back(assignAst(a));
+      if (a != AstNodePtr()) args.push_back(a);
   }
   
   instMapping(const pdstring f, const pdstring i, const int w, 
-              AstNode *a=NULL, pdstring l = "")
+              AstNodePtr a = AstNodePtr(), pdstring l = "")
       : func(f), inst(i), lib(l),
       where(w), when(callPreInsn), order(orderLastAtPoint),
       useTrampGuard(true), mt_only(false), allow_trap(false) {
-      if(a) args.push_back(assignAst(a));
+      if (a != AstNodePtr()) args.push_back(a);
   }
   
   instMapping(const pdstring f, const pdstring i, const int w, 
-              pdvector<AstNode*> &aList, pdstring l = "") :
+              pdvector<AstNodePtr> &aList, pdstring l = "") :
       func(f), inst(i), lib(l),
       where(w), when(callPreInsn), order(orderLastAtPoint),
       useTrampGuard(true), mt_only(false), allow_trap(false) {
       for(unsigned u=0; u < aList.size(); u++) {
-          if(aList[u]) args.push_back(assignAst(aList[u]));
+          if (aList[u] != AstNodePtr()) args.push_back(aList[u]);
       }
   };
 
@@ -152,12 +147,6 @@ public:
   instMapping(const instMapping *parMapping, process *child);
   
   ~instMapping() {
-    // an AstNode has referenceCount = 1 when first created, 
-    // we perform removeAst when we installInitialRequests in process.C
-    for(unsigned i=0; i < args.size(); i++) {
-      if(args[i]) removeAst(args[i]);
-    }
-    args.resize(0);
   }
 
 public:
@@ -172,12 +161,11 @@ public:
   int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
   callWhen when;               /* callPreInsn, callPostInsn */
   callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
-  pdvector<AstNode *> args;      /* what to pass as arg0 ... n */
+  pdvector<AstNodePtr> args;      /* what to pass as arg0 ... n */
   bool useTrampGuard;
   bool mt_only;
   bool allow_trap;
   pdvector<miniTramp *> miniTramps;
-  // AstNode *arg;            /* what to pass as arg0 */
 };
 
 class bitArray {
@@ -268,13 +256,13 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool
 
 // VG(11/06/01): moved here and added location
 Register emitFuncCall(opCode op, codeGen &gen,
-                      pdvector<AstNode *> &operands,
+                      pdvector<AstNodePtr> &operands,
 					  bool noCost, 
                       int_function *func);
 
 // Obsolete version that uses an address. DON'T USE THIS or expect it to survive.
 Register emitFuncCall(opCode op, codeGen &gen,
-                      pdvector<AstNode *> &operands, 
+                      pdvector<AstNodePtr> &operands, 
 		      		  bool noCost, 
                       Address callee_addr_);
 

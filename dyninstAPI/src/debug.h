@@ -45,12 +45,23 @@
 #include "common/h/String.h"
 #include "common/h/Pair.h"
 
+#define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
+extern void logLine(const char *line);
+extern void statusLine(const char *line, bool force = false);
+extern char errorLine[];
+extern int bpfatal(const char *format, ...);
+extern int bperr(const char *format, ...);
+extern int bpwarn(const char *format, ...);
+extern int bpinfo(const char *format, ...);
+
+extern int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, ...);
+
+
 extern void showErrorCallback(int num, pdstring msg);
 
 extern void showInfoCallback(pdstring msg);
 
-#include "BPatch.h"
-#define BPatch_reportError(a,b,c) BPatch::reportError(a,b,c)
+void BPatch_reportError(int errLevel, int num, const char *str);
 
 extern int dyn_debug_signal;
 extern int dyn_debug_infrpc;

@@ -57,7 +57,7 @@ rpcLWP::rpcLWP(rpcLWP *parL, rpcMgr *cM, dyn_lwp *cL) :
         inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
         inferiorRPCtoDo *oldRPC = parL->postedRPCs_[i];
 
-        newRPC->action = assignAst(oldRPC->action);
+        newRPC->action = oldRPC->action;
         newRPC->noCost = oldRPC->noCost;
         newRPC->callbackFunc = oldRPC->callbackFunc;
         newRPC->userData = oldRPC->userData;
@@ -75,7 +75,7 @@ rpcLWP::rpcLWP(rpcLWP *parL, rpcMgr *cM, dyn_lwp *cL) :
         inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
         inferiorRPCtoDo *oldRPC = oldProg->rpc;
 
-        newRPC->action = assignAst(oldRPC->action);
+        newRPC->action = oldRPC->action;
         newRPC->noCost = oldRPC->noCost;
         newRPC->callbackFunc = oldRPC->callbackFunc;
         newRPC->userData = oldRPC->userData;
@@ -115,7 +115,7 @@ rpcLWP::rpcLWP(rpcLWP *parL, rpcMgr *cM, dyn_lwp *cL) :
         inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
         inferiorRPCtoDo *oldRPC = oldProg->rpc;
 
-        newRPC->action = assignAst(oldRPC->action);
+        newRPC->action = oldRPC->action;
         newRPC->noCost = oldRPC->noCost;
         newRPC->callbackFunc = oldRPC->callbackFunc;
         newRPC->userData = oldRPC->userData;

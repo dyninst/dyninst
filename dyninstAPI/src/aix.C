@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.230 2007/02/14 23:04:02 legendre Exp $
+// $Id: aix.C,v 1.231 2007/06/13 18:50:28 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -66,6 +66,7 @@
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/InstrucIter.h"
+#include "dyninstAPI/h/BPatch.h"
 
 #include "mapped_module.h"
 #include "mapped_object.h"
@@ -1318,15 +1319,14 @@ bool process::loadDYNINSTlib()
         return false;
     }
     
-    pdvector<AstNode*> dlopenAstArgs(2);
-    AstNode *dlopenAst;
+    pdvector<AstNodePtr> dlopenAstArgs(2);
+    AstNodePtr dlopenAst;
     
     dlopenAstArgs[0] = AstNode::operandNode(AstNode::Constant, (void *)(dyninstlib_addr));
     dlopenAstArgs[1] = AstNode::operandNode(AstNode::Constant, (void*)DLOPEN_MODE);
 
     dlopenAst = AstNode::funcCallNode(dlopen_func, dlopenAstArgs);
-    removeAst(dlopenAstArgs[0]);
-    removeAst(dlopenAstArgs[1]);
+
 
     dlopencall_addr = codeBase + scratchCodeBuffer.used();
 
@@ -1337,7 +1337,6 @@ bool process::loadDYNINSTlib()
 
     dlopenAst->generateCode(scratchCodeBuffer,
                             true);
-    removeAst(dlopenAst);
 
     popStack(scratchCodeBuffer);
 
@@ -2033,8 +2032,8 @@ bool process::initMT()
    //Instrument
    for (i=0; i<thread_init_funcs.size(); i++)
    {
-      pdvector<AstNode *> args;
-      AstNode *call_dummy_create = AstNode::funcCallNode(dummy_create, args);
+      pdvector<AstNodePtr> args;
+      AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
       const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
       for (unsigned j=0; j<ips.size(); j++)
       {

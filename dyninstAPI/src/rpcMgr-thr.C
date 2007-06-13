@@ -57,7 +57,7 @@ rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
         inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
         inferiorRPCtoDo *oldRPC = parT->postedRPCs_[i];
 
-        newRPC->action = assignAst(oldRPC->action);
+        newRPC->action = oldRPC->action;
         newRPC->noCost = oldRPC->noCost;
         newRPC->callbackFunc = oldRPC->callbackFunc;
         newRPC->userData = oldRPC->userData;
@@ -76,7 +76,7 @@ rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
         inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
         inferiorRPCtoDo *oldRPC = oldProg->rpc;
 
-        newRPC->action = assignAst(oldRPC->action);
+        newRPC->action = oldRPC->action;
         newRPC->noCost = oldRPC->noCost;
         newRPC->callbackFunc = oldRPC->callbackFunc;
         newRPC->userData = oldRPC->userData;
@@ -117,7 +117,7 @@ rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
         inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
         inferiorRPCtoDo *oldRPC = oldProg->rpc;
 
-        newRPC->action = assignAst(oldRPC->action);
+        newRPC->action = oldRPC->action;
         newRPC->noCost = oldRPC->noCost;
         newRPC->callbackFunc = oldRPC->callbackFunc;
         newRPC->userData = oldRPC->userData;
