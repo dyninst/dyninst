@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.27 2007/02/23 00:14:34 giri Exp $
+# $Id: Makefile,v 1.28 2007/06/13 18:50:14 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -9,6 +9,7 @@ NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
 USES_UNWIND_LIB = true
+USES_BOOST = true
 
 # Turns off optimization, and enables debugging.
 # NO_OPT_FLAG = true
