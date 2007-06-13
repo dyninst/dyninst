@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_32.C,v 1.4 2006/10/11 21:53:01 cooksey Exp $
+// $Id: test1_32.C,v 1.5 2007/06/13 18:51:31 bernat Exp $
 /*
  * #Name: test1_32
  * #Desc: Recursive Base Tramp
@@ -110,19 +110,20 @@ static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 
   BPatch_Vector<BPatch_snippet *> bar_args_1;
 
+  BPatch_constExpr expr32_2;
+
   if (mutateeFortran) {
-    BPatch_variableExpr *expr32_1 = appThread->malloc (*appImage->findType ("int"));
-    BPatch_constExpr expr32_2 = expr32_1->getBaseAddr ();
-
-    BPatch_arithExpr expr32_3 (BPatch_assign, *expr32_1, BPatch_constExpr(1));
-
-    appThread->oneTimeCode (expr32_3);
-    bar_args_1.push_back (&expr32_2);
+      BPatch_variableExpr *expr32_1 = appThread->malloc (*appImage->findType ("int"));
+      expr32_2 = BPatch_constExpr(expr32_1->getBaseAddr ());
+      
+      BPatch_arithExpr oneTimeCodeExpr (BPatch_assign, *expr32_1, BPatch_constExpr(1));      
+      appThread->oneTimeCode (oneTimeCodeExpr);
   } else {
-    bar_args_1.push_back (new BPatch_constExpr (1));
+      expr32_2 = BPatch_constExpr(1);
   }
 
-  bar_args_1.push_back (new BPatch_constExpr (1));
+  bar_args_1.push_back (&expr32_2);
+
   BPatch_snippet * bar_snippet_1 =
     new BPatch_funcCallExpr( * baz_function,
 			     bar_args_1 );
@@ -130,16 +131,20 @@ static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 
   BPatch_Vector<BPatch_snippet *> bar_args_2;
 
+  BPatch_constExpr expr32_5;
+
   if (mutateeFortran) {
     BPatch_variableExpr *expr32_4 = appThread->malloc (*appImage->findType ("int"));
-    BPatch_constExpr expr32_5 = expr32_4->getBaseAddr ();
+    expr32_5 = BPatch_constExpr(expr32_4->getBaseAddr());
 
     BPatch_arithExpr expr32_6 (BPatch_assign, *expr32_4, BPatch_constExpr (2));
     appThread->oneTimeCode (expr32_6);
-    bar_args_2.push_back (&expr32_5);
+
   } else {
-    bar_args_2.push_back (new BPatch_constExpr (2));
+      expr32_5 = BPatch_constExpr(2);
   }
+
+  bar_args_2.push_back(&expr32_5);
 
   BPatch_snippet * bar_snippet_2 =
     new BPatch_funcCallExpr( * baz_function,
