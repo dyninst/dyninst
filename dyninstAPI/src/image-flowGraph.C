@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.31 2007/05/15 21:39:41 bernat Exp $
+ * $Id: image-flowGraph.C,v 1.32 2007/06/15 21:30:10 nater Exp $
  */
 
 #include <stdio.h>
@@ -140,34 +140,18 @@ bool image::analyzeImage()
     }
 
 #if defined(cap_stripped_binaries)
+
+    // TODO: This algorithm doesn't handle the gap (if any)
+    //       between the last function and the end of the code
+    //       section
   
-  int numIndir = 0;
-  unsigned p = 0;
+    int numIndir = 0;
+    unsigned p = 0;
   
-  image_func *func1, *func2;
-  func1 = NULL;
-  func2 = NULL;
-  // We start over until things converge; hence the goto target
- top:
+    image_func *func1, *func2;
+    func1 = NULL;
+    func2 = NULL;
 
-    while(callTargets.size() > 0)
-    {
-        // FIXME because of the assumption that functions in callTargets
-        // will be successfully parsed, we may skip possible gaps because we
-        // have advanced our p index too far.
-        for( unsigned r = 0; r < callTargets.size(); r++ )
-        {   
-            if( func1 && callTargets[r] < func1->getOffset() )
-                p++;
-        }
-
-        parseStaticCallTargets( callTargets, new_targets, preParseStubs );
-        callTargets.clear(); 
-
-        VECTOR_APPEND(callTargets,new_targets);
-        new_targets.clear();
-    }
-   
     // nothing to do, exit
     if( everyUniqueFunction.size() <= 0 )
     {
@@ -175,65 +159,98 @@ bool image::analyzeImage()
         return true;
     }
 
+    // Sort functions to find gaps
     VECTOR_SORT(everyUniqueFunction, addrfunccmp);
+
+    Address gapStart = 0;
+    Address gapEnd;
   
-    Address lastPos;
-    lastPos = everyUniqueFunction[0]->getOffset() + 
-              everyUniqueFunction[0]->getSymTabSize();
-  
-    unsigned int rawFuncSize = everyUniqueFunction.size();
-  
-    for( ; p + 1 < rawFuncSize; p++ )
+    for( ; p + 1 < everyUniqueFunction.size(); p++ )
     {
+        /* The everyUniqueFunction vector can be updated in the for loop.
+           If functions are discovered preceeding the one pointed to
+           by the current 'p' index, we need to advance 'p' to the
+           correct (next) position */
+        /* (It would be better to use a data structure with an iterator
+            that doesn't break on inserts, such as an ordered set) */
+        while(p+1 < everyUniqueFunction.size() && 
+              everyUniqueFunction[p]->getEndOffset() < gapStart)
+        {
+            /*parsing_printf("[%s:%u] advancing gap index (gapstart: 0x%lx, "
+                           "offset: 0x%lx)\n",
+                FILE__,__LINE__,gapStart,everyUniqueFunction[p]->getOffset());*/
+            p++;
+        }
+        if(p+1 >= everyUniqueFunction.size())
+            break;
+
         func1 = everyUniqueFunction[p];
         func2 = everyUniqueFunction[p + 1];
       
-        Address gapStart = func1->getEndOffset();
-        Address gapEnd = func2->getOffset();
-        Address gap = gapEnd - gapStart;
+        gapStart = func1->getEndOffset();
+        gapEnd = func2->getOffset();
+        int gap = gapEnd - gapStart;
 
-        parsing_printf("searching for function prologue in gap (0x%lx - 0x%lx)\n", gapStart, gapEnd);
-      
+        parsing_printf("[%s:%u] scanning for prologues in range 0x%lx-0x%lx\n",
+            FILE__,__LINE__,gapStart, gapEnd);
+
         //gap should be big enough to accomodate a function prologue
-        if( gap >= 5 )
+        if(gap < 5)
+            continue;
+
+        Address pos = gapStart;
+        while( pos < gapEnd && isCode( pos ) )
         {
-            Address pos = gapStart;
-            while( pos < gapEnd && isCode( pos ) )
-            {
-                const unsigned char* instPtr;
-                instPtr = (const unsigned char *)getPtrToInstruction( pos );
+            const unsigned char* instPtr;
+            instPtr = (const unsigned char *)getPtrToInstruction( pos );
               
-                instruction insn;
-                insn.setInstruction( instPtr, pos );
+            instruction insn;
+            insn.setInstruction( instPtr, pos );
 
-                if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
-                {
-                    char name[32];
-                    numIndir++;
-                    snprintf( name, 32, "gap_f%lx", pos );
-                    pdf = new image_func( name, pos, UINT_MAX, mod, this);
-                    if(parseFunction( pdf, callTargets, preParseStubs)) {
-                        //addFunctionName(pdf, name, true);
-						pdf->addSymTabName(name);	// newly added
-                        pdf->addPrettyName( name );
-                        // No typed name
+            if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
+            {
+                char name[32];
+                numIndir++;
+                snprintf( name, 32, "gap_%lx", pos );
+                pdf = new image_func( name, pos, UINT_MAX, mod, this);
+                if(parseFunction( pdf, callTargets, preParseStubs)) {
+                    pdf->addSymTabName(name);	// newly added
+                    pdf->addPrettyName( name );
                   
-                        enterFunctionInTables(pdf, false);
+                    enterFunctionInTables(pdf, false);
 
-                        // If any calls were discovered, adjust our
-                        // position in the function vector accordingly
-                        if( callTargets.size() > 0 )
+                    // Update size
+                    pdf->symbol()->setSize(pdf->get_size_cr());
+
+                    // If any calls were discovered, adjust our
+                    // position in the function vector accordingly
+        
+                    if(callTargets.size() > 0) {            
+                        while( callTargets.size() > 0 )
                         {   
-                            goto top; //goto is the devil's construct. repent!! 
+                            /* parse static call targets */
+                            parseStaticCallTargets( callTargets, 
+                                               new_targets, preParseStubs );
+                            callTargets.clear(); 
+
+                            VECTOR_APPEND(callTargets,new_targets);
+                            new_targets.clear();
                         }
-                        
-                        pos = ( gapEnd < pdf->getEndOffset() ?
-                                gapEnd : pdf->getEndOffset() );
+                        // Maintain sort
+                        VECTOR_SORT(everyUniqueFunction, addrfunccmp);
+                        break;  // Return to for loop
+                    } else {
+                        VECTOR_SORT(everyUniqueFunction, addrfunccmp);
                     }
+                        
+                    pos = ( gapEnd < pdf->getEndOffset() ?
+                            gapEnd : pdf->getEndOffset() );
+                } else {
+                    pos++;
                 }
+            } else
                 pos++;
-            }   
-        }
+        }   
     }
 #endif
 
@@ -244,10 +261,6 @@ bool image::analyzeImage()
         f->sortBlocklist();
       everyUniqueFunction[b_iter]->checkCallPoints();
   }
-
-  // TODO remove this; it is just for getting some cheap statistics
-
-  //DumpAllStats();
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -370,9 +383,12 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
                     pdf->symTabName().c_str(),pdf->getOffset());
 
                 enterFunctionInTables(pdf,false);
+
+                // Update the Dyn_Symbol's impression of size
+                pdf->symbol()->setSize(pdf->get_size_cr());
                 
                 // mangled name
-		pdf->addSymTabName(pdf->symTabName().c_str());
+                pdf->addSymTabName(pdf->symTabName().c_str());
                 //addFunctionName(pdf, pdf->symTabName().c_str(), true);
                 // Auto-adds to our list
                 pdf->addPrettyName( pdf->symTabName().c_str() );
