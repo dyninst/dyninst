@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.295 2007/06/13 18:51:22 bernat Exp $
+ // $Id: symtab.C,v 1.296 2007/06/15 21:30:11 nater Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1031,7 +1031,7 @@ int image::destroy() {
 void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
     if (!func) return;
     
-    //funcsByEntryAddr[func->getOffset()] = func;
+    funcsByEntryAddr[func->getOffset()] = func;
     
     // Functions added during symbol table parsing do not necessarily
     // have valid sizes set, and should therefor not be added to
