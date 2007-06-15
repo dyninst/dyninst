@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.23 2007/01/09 02:01:57 giri Exp $
+ * $Id: image-x86.C,v 1.24 2007/06/15 21:30:09 nater Exp $
  */
 
 #include "common/h/Vector.h"
@@ -247,7 +247,7 @@ void image_func::archInstructionProc(InstrucIter & /* ah */)
 }
 
 bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
-                       instruction &branchInsn)
+        instruction &branchInsn)
 {
     BPatch_Set<image_basicBlock *> visited;
     pdvector<image_basicBlock *> WL;
@@ -255,6 +255,7 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
     image_basicBlock *curBlk;
 
     bool foundMaxSwitch = false;
+    bool foundCondBranch = false;
 
     WL.push_back(start);
 
@@ -262,27 +263,31 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
     {
         curBlk = WL[j];
         visited.insert(curBlk);
+
+        foundMaxSwitch = false;
+        foundCondBranch = false;
     
         InstrucIter iter( curBlk );
-        instruction ins = iter.getInstruction();
-        iter++;
         while( *iter < curBlk->endOffset() ) {
-            // check for cmp followed by jcc
-            if( iter.getInstruction().type() & IS_JCC  &&
-                ins.isCmp() )
+            // check for cmp 
+            if( iter.getInstruction().isCmp() )
             {
                 parsing_printf("Found jmp table cmp instruction at 0x%lx\n",
                                 *iter);
-                maxSwitch = ins;
-                branchInsn = iter.getInstruction();
+                maxSwitch = iter.getInstruction();
                 foundMaxSwitch = true;
+            }
+            if( iter.getInstruction().type() & IS_JCC ) {
+                parsing_printf("Found jmp table cond br instruction at 0x%lx\n",
+                    *iter);
+                branchInsn = iter.getInstruction();
+                foundCondBranch = true;
                 break;
             }
-            ins = iter.getInstruction();
             iter++;
         }
 
-        if(foundMaxSwitch) {
+        if(foundMaxSwitch && foundCondBranch) {
             // done
             break; 
         } else {
@@ -302,7 +307,7 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
         }
     }
     WL.zap();
-    return foundMaxSwitch;
+    return foundMaxSwitch && foundCondBranch;
 }
 // Very complicated for x86. Look for a jump table in the blocks preceeding
 // this block, and extract targets from it if found or mark this function
@@ -325,8 +330,9 @@ bool image_func::archGetMultipleJumpTargets(
     }
     else {
         instruction tableInsn = ah.getInstruction();
+        // Obviously, since the indirect branch brought us here
+        instruction branchInsn = ah.getInstruction();
         instruction maxSwitch;
-        instruction branchInsn;
 
         bool isAddInJmp = true;
         
