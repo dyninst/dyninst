@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.31 2006/12/14 20:39:17 legendre Exp $
+ * $Id: RTposix.c,v 1.32 2007/06/20 20:49:51 ssuen Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -68,7 +68,7 @@
 #define SOCKLEN_T socklen_t
 #endif
 
-#if !defined(cap_save_the_world)
+#if !defined(cap_save_the_world) && !(defined(arch_power) && defined(os_linux))
 void RTmutatedBinary_init() 
 {
     return;

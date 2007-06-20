@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.59 2005/12/19 19:43:43 pack Exp $
+// $Id: rpcUtil.h,v 1.60 2007/06/20 20:49:53 ssuen Exp $
 
 #include "common/h/headers.h"
 #include "pdsocket.h"
@@ -51,7 +51,7 @@
 
 /* define following variables are needed for linux platform as they are
    missed in /usr/include/sys/file.h                                     */
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) || defined(ppc64_unknown_linux2_4) || defined(x86_64_unknown_linux2_4)
+#if defined(os_linux)
   #define FSYNC O_FSYNC
 #endif
 

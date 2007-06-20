@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.25 2007/01/18 07:53:50 jaw Exp $
+// $Id: arch.h,v 1.26 2007/06/20 20:49:39 ssuen Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -56,8 +56,7 @@
  || defined(sparc_sun_solaris2_4)
 #include "arch-sparc.h"
 
-#elif defined(rs6000_ibm_aix3_2) \
-   || defined(rs6000_ibm_aix4_1)
+#elif defined(arch_power)
 #include "arch-power.h"
 
 #elif defined(i386_unknown_solaris2_5) \

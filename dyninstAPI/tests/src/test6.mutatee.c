@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: test6.mutatee.c,v 1.30 2006/05/03 00:31:24 jodom Exp $ */
+/* $Id: test6.mutatee.c,v 1.31 2007/06/20 20:49:49 ssuen Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -640,6 +640,27 @@ void init_test_data()
 {
 }
 #endif
+
+
+#if defined(os_linux) && defined(arch_power)
+#define loadExp 0
+#define storeExp 0
+#define prefeExp 0
+#define accessExp 1
+#define accessExpCC 1
+
+long loadsnstores(long x, long y, long z)
+{
+  return x + y + z;
+}
+
+unsigned int bcExp[] = { 0 };
+
+void init_test_data()
+{
+}
+#endif
+
 
 
 /* Sun Forte/WorkShop cc releases older than 6.2 do not like these defines: */

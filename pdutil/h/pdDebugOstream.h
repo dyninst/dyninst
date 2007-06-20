@@ -79,7 +79,7 @@ class pdDebug_ostream {
    pdDebug_ostream &operator<<(int i);
    pdDebug_ostream &operator<<(unsigned i);
 #if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(ia64_unknown_linux2_4) \
-    && !defined(ppc64_unknown_linux2_4) && !defined(x86_64_unknown_linux2_4)
+    && !defined(arch_64bit) && !defined(x86_64_unknown_linux2_4)
    pdDebug_ostream &operator<<(long l);
    pdDebug_ostream &operator<<(unsigned long l);
 #endif

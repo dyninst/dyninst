@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.34 2007/01/18 07:53:53 jaw Exp $
+// $Id: os.h,v 1.35 2007/06/20 20:49:44 ssuen Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -64,16 +64,13 @@
    || defined(i386_unknown_solaris2_5)
 #include "dyninstAPI/src/solaris.h"
 
-#elif defined(rs6000_ibm_aix3_2) \
-   || defined(rs6000_ibm_aix4_1)
+#elif defined(os_aix) 
 #include "dyninstAPI/src/aix.h"
 
 #elif defined(i386_unknown_nt4_0) 
 #include "dyninstAPI/src/pdwinnt.h"
 
-#elif defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) \
-   || defined(ia64_unknown_linux2_4)
+#elif defined(os_linux)
 #include "dyninstAPI/src/linux.h"
 #endif
 

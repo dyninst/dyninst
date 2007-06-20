@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.6 2007/01/12 00:55:31 legendre Exp $
+// $Id: mapped_module.h,v 1.7 2007/06/20 20:49:43 ssuen Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -119,7 +119,7 @@ class mapped_module {
     // Have we parsed line information yet?
     bool lineInformation() const { return lineInfoValid_; }
 
-#if defined(arch_power)
+#if defined(os_aix)
     void parseLineInformation(	process * proc,
                                 pdstring * currentSourceFile,
                                 char * symbolName,

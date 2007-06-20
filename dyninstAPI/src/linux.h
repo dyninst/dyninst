@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.35 2007/02/14 23:04:12 legendre Exp $
+// $Id: linux.h,v 1.36 2007/06/20 20:49:42 ssuen Exp $
 
 #if !defined(os_linux)
 #error "invalid architecture-os inclusion"
@@ -98,6 +98,8 @@ typedef int handleT; // a /proc file descriptor
 #elif defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4)
 #include "linux-x86.h"
+#elif defined(os_linux) && defined(arch_power)
+#include "linux-power.h"
 #else
 #error Invalid or unknown architecture-os inclusion
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.C,v 1.38 2006/10/16 20:17:35 bernat Exp $
+// $Id: test6.C,v 1.39 2007/06/20 20:49:48 ssuen Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -968,6 +968,12 @@ void init_test_data()
 #endif
 
 #ifdef alpha_dec_osf4_0
+void init_test_data()
+{
+}
+#endif
+
+#if defined(os_linux) && defined(arch_power)
 void init_test_data()
 {
 }

@@ -270,7 +270,7 @@ void BPatch_module::parseTypesIfNecessary() {
     if( BPatch::bpatch->parseDebugInfo() ) {
 		parseTypes();
 		}
-#elif defined( arch_x86 ) || defined( arch_x86_64 ) || defined( arch_ia64 ) || defined(arch_sparc)
+#elif defined( arch_x86 ) || defined( arch_x86_64 ) || defined( arch_ia64 ) || defined(arch_sparc) || (defined(arch_power) && defined(os_linux))
 	/* I'm not actually sure about IA-64, but certainly on the other two,
 	   it's legal and not uncommon to mix STABS and DWARF debug information
 	   in the same file.  However, this causes problems because of the
@@ -896,9 +896,7 @@ void BPatch_module::parseTypes() {
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+ || defined(os_linux)
 
 #include "symtabAPI/src/Object.h" //TODO: Move stabs to symtab and remove
 // parseStabTypes:  parses type and variable info, does some init

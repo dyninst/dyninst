@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.17 2007/06/13 18:51:23 bernat Exp $
+// $Id: syscall-linux.C,v 1.18 2007/06/20 20:49:46 ssuen Exp $
 
-#if defined( arch_x86 ) || defined( arch_x86_64 )
+#if defined( arch_x86 ) || defined( arch_x86_64 ) || defined( arch_power )
 #define FORK_FUNC "__libc_fork"
 #define EXEC_FUNC "__execve"
 #define EXIT_FUNC "_exit"

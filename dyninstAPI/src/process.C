@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.688 2007/06/13 18:51:09 bernat Exp $
+// $Id: process.C,v 1.689 2007/06/20 20:49:45 ssuen Exp $
 
 #include <ctype.h>
 
@@ -137,7 +137,7 @@ void printLoadDyninstLibraryError() {
 }
 
 /* AIX method defined in aix.C; hijacked for IA-64's GP. */
-#if !defined(rs6000_ibm_aix4_1) \
+#if !defined(arch_power) \
  && !defined(ia64_unknown_linux2_4)
 Address process::getTOCoffsetInfo(Address /*dest */)
 {

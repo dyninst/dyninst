@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.30 2007/05/30 19:19:45 legendre Exp $
+ * $Id: Types.h,v 1.31 2007/06/20 20:49:37 ssuen Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -100,7 +100,7 @@ WindowsNT    nonexistant
 
 #elif defined(os_linux)
 #include <stdint.h>
-#if defined(arch_x86_64) || defined(arch_ia64) || defined(arch_ppc64)
+#if defined(arch_x86_64) || defined(arch_ia64) || defined(arch_64bit)
 #define TYPE64BIT
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.36 2007/06/13 18:50:46 bernat Exp $
+// $Id: function.h,v 1.37 2007/06/20 20:49:40 ssuen Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -277,7 +277,7 @@ class int_basicBlock {
 #endif
 
     // Liveness functions for AIX && AMD64
-#if defined(os_aix) || defined(arch_x86_64)
+#if defined(arch_power) || defined(arch_x86_64)
     
     /** Initializes the gen/kill sets for register liveness analysis */
     bool initRegisterGenKill();
@@ -313,7 +313,7 @@ class int_basicBlock {
     int_basicBlock *dataFlowKill;
 #endif
 
-#if defined(os_aix) || defined(arch_x86_64)
+#if defined(arch_power) || defined(arch_x86_64)
    /* Liveness analysis variables */
    /** gen registers */
    bitArray * gen;
