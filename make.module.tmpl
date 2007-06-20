@@ -752,9 +752,9 @@ runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
 
 runTests: runTests.o runTests-utils.o test_driver_templates.o 
-	$(CXX) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
+	$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
 runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
-	$(CXX) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
+	$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
 
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C

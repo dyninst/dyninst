@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: test6.mutatee.c,v 1.5 2006/10/11 21:53:56 cooksey Exp $ */
+/* $Id: test6.mutatee.c,v 1.6 2007/06/20 20:49:59 ssuen Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -624,6 +624,26 @@ void init_test_data()
 #endif
 
 #ifdef alpha_dec_osf4_0
+#define loadExp 0
+#define storeExp 0
+#define prefeExp 0
+#define accessExp 1
+#define accessExpCC 1
+
+long loadsnstores(long x, long y, long z)
+{
+  return x + y + z;
+}
+
+unsigned int bcExp[] = { 0 };
+
+void init_test_data()
+{
+}
+#endif
+
+
+#if defined(arch_power) && defined(os_linux)
 #define loadExp 0
 #define storeExp 0
 #define prefeExp 0

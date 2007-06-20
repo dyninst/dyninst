@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.11 2006/10/11 21:52:11 cooksey Exp $ */
+/* $Id: test1.mutatee.c,v 1.12 2007/06/20 20:49:57 ssuen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -69,7 +69,7 @@
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_solaris2_5) \
- || defined(ia64_unknown_linux2_4) \
+ || defined(os_linux) \
  || defined(os_aix)
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
