@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.1 2007/06/20 21:19:15 ssuen Exp $
+// $Id: linux-power.C,v 1.2 2007/06/26 14:54:56 bernat Exp $
 
 #include <dlfcn.h>
 
@@ -141,26 +141,6 @@ bool dyn_lwp::changePC(Address loc,
 }
 
 
-bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
-    if (!trappedSyscall_) return false;
-
-    Frame active = getActiveFrame();
-    if (active.getPC() == trappedSyscall_->syscall_id) {
-        ev.type = evtSyscallExit;
-        ev.what = trappedSyscall_->syscall_id;
-        return true;
-    }
-    return false;
-}
-
-
-bool dyn_lwp::executingSystemCall()
-{
-  return false;
-}
-
-
-
 // getActiveFrame(): populate Frame object using toplevel frame
 Frame dyn_lwp::getActiveFrame()
 {
@@ -191,11 +171,6 @@ DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), P_offsetof(struct user_regs_struct, PT
 }
 
 
-
-Address dyn_lwp::getCurrentSyscall() {
-    Frame active = getActiveFrame();
-    return active.getPC();
-}
 
 
 bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
@@ -275,14 +250,6 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeF
    }
 */ return retVal;
 }
-
-
-
-bool dyn_lwp::stepPastSyscallTrap() {
-    assert(0 && "Unimplemented");
-    return false;
-}
-
 
 
 Frame Frame::getCallerFrame()
@@ -449,36 +416,6 @@ bool Frame::setPC(Address newpc) {
 
    return false;
 }
-
-
-bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
-    // Decrement the reference count, and if it's 0 remove the trapped
-    // system call
-//put an assert(0) here and see if it is called at all
-    assert(trappedSyscall->refcount > 0);
-
-    trappedSyscall->refcount--;
-    if (trappedSyscall->refcount > 0)
-        return true;
-
-    // Erk... we hit 0. Undo the trap
-    if (!writeDataSpace((void *)trappedSyscall->syscall_id, 2,
-                        trappedSyscall->saved_insn))
-        return false;
-    // Now that we've reset the original behavior, remove this
-    // entry from the vector
-
-    pdvector<syscallTrap *> newSyscallTraps;
-    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-        if (trappedSyscall != syscallTraps_[iter])
-            newSyscallTraps.push_back(syscallTraps_[iter]);
-    }
-    syscallTraps_ = newSyscallTraps;
-
-    delete trappedSyscall;
-    return true;
-}
-
 
 bool process::getDyninstRTLibName() {
 //full path to libdyninstAPI_RT (used an _m32 suffix for 32-bit version)
@@ -1012,40 +949,6 @@ Frame process::preStackWalkInit(Frame startFrame)
      return startFrame.getCallerFrame();
   }
   return startFrame;
-}
-
-
-syscallTrap *process::trapSyscallExitInternal(Address syscall) {
-    syscallTrap *trappedSyscall = NULL;
-
-    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-        if (syscallTraps_[iter]->syscall_id == syscall) {
-            trappedSyscall = syscallTraps_[iter];
-            break;
-        }
-    }
-    if (trappedSyscall) {
-        trappedSyscall->refcount++;
-        return trappedSyscall;
-    }
-    else {
-        // Add a trap at this address, please
-        trappedSyscall = new syscallTrap;
-        trappedSyscall->refcount = 1;
-        trappedSyscall->syscall_id = syscall;
-        if (!readDataSpace( (void*)syscall, 2, trappedSyscall->saved_insn, true))
-          fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-
-        codeGen gen(1);
-        instruction::generateTrap(gen);
-        writeDataSpace((void *)syscall, gen.used(), gen.start_ptr());
-
-        syscallTraps_.push_back(trappedSyscall);
-
-        return trappedSyscall;
-    }
-    // Should never be reached
-    return NULL;
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.171 2007/06/13 18:51:08 bernat Exp $
+// $Id: pdwinnt.C,v 1.172 2007/06/26 14:54:58 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -790,25 +790,6 @@ process::tryToFindExecutable(const pdstring& iprogpath, int pid)
     return iprogpath;
 }
 
-
-syscallTrap *process::trapSyscallExitInternal(Address syscall) {
-    // Don't support trapping syscalls here yet, sorry
-    return NULL;
-}
-
-bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
-    assert(0 && "Unimplemented");
-    return true;
-}
-
-Address dyn_lwp::getCurrentSyscall() {
-    return 0;
-}
-
-bool dyn_lwp::stepPastSyscallTrap() {
-    return false;
-}
-
 Address dyn_lwp::readRegister(Register reg)
 {
    w32CONTEXT *cont = new w32CONTEXT;//ccw 27 july 2000 : 29 mar 2001
@@ -823,11 +804,6 @@ Address dyn_lwp::readRegister(Register reg)
 	  return NULL;
     }
     return cont->Eax;
-}
-
-bool dyn_lwp::executingSystemCall() {
-   // TODO
-   return false;
 }
 
 

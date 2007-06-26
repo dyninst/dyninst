@@ -81,12 +81,6 @@ void printRegs( void * /* save */ ) {
   assert( 0 );
 } /* end printRegs() */
 
-/* The iRPC header/trailer generators handle the special
-   case of being in a system call when it's time to run the iRPC. */
-bool dyn_lwp::executingSystemCall() {
-  return false;
-} /* end executingSystemCall() */
-
 /* dyn_lwp::getRegisters()
  * 
  * Entire user state can be described by struct pt_regs
@@ -736,62 +730,6 @@ Frame Frame::getCallerFrame() {
 	return currentFrame;
 	} /* end getCallerFrame() */
 
-syscallTrap * process::trapSyscallExitInternal( Address /* syscall */ ) {
-	/* The IA-64 port does not trap system call exits for inferior RPCs. */
-	assert( 0 );
-	return NULL;
-	} /* end trapSyscallExitInternal() */
-
-bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
-  // Decrement the reference count, and if it's 0 remove the trapped
-  // system call
-  assert(trappedSyscall->refcount > 0);
-    
-  trappedSyscall->refcount--;
-  if (trappedSyscall->refcount > 0) {
-    bperr( "Syscall still has refcount %d\n", 
-	   trappedSyscall->refcount);
-    return true;
-  }
-  bperr( "Removing trapped syscall at 0x%lx\n",
-	 trappedSyscall->syscall_id);
-  if (!writeDataSpace( (void *)trappedSyscall->syscall_id, 16, trappedSyscall->saved_insn))
-    return false;
-        
-  // Now that we've reset the original behavior, remove this
-  // entry from the vector
-  pdvector<syscallTrap *> newSyscallTraps;
-  for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-    if (trappedSyscall != syscallTraps_[iter])
-      newSyscallTraps.push_back(syscallTraps_[iter]);
-  }
-  syscallTraps_ = newSyscallTraps;
-
-  delete trappedSyscall;
-  return true;
-} /* end clearSyscallTrapInternal() */
-
-Address dyn_lwp::getCurrentSyscall() {
-  Frame active = getActiveFrame();
-  return active.getPC();
-}
-
-bool dyn_lwp::stepPastSyscallTrap() {
-  // Shouldn't be necessary yet
-  assert(0 && "Unimplemented");
-  return false;
-} /* end stepPastSyscallTrap() */
-
-bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
-    if (!trappedSyscall_) return false;
-    Frame active = getActiveFrame();
-    if (active.getPC() == trappedSyscall_->syscall_id) {
-        ev.type = evtSyscallExit;
-        ev.what = trappedSyscall_->syscall_id;
-        return true;
-    }
-    return false;
-} /* end hasReachedSyscallTrap() */
 
 /* Required by linux.C */
 bool process::hasBeenBound( const relocationEntry &entry, int_function * & target_pdf, Address base_addr ) {
