@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.403 2007/06/13 18:51:10 bernat Exp $
+/* $Id: process.h,v 1.404 2007/06/26 14:54:50 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -61,7 +61,9 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/inst.h" // callWhen
 #include "dyninstAPI/src/frame.h"
+#if defined(cap_syscall_trap)
 #include "dyninstAPI/src/syscalltrap.h"
+#endif
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/imageUpdate.h"
 #include "dyninstAPI/src/infHeap.h"
@@ -589,6 +591,7 @@ class process {
 //  System call trap tracking
 /////////////////////////////////////////////////////////////////
 
+#if defined(cap_syscall_trap)
   public:
   // Overloaded: Address for linux-style, syscall # for /proc
   syscallTrap *trapSyscallExitInternal(Address syscall);
@@ -596,6 +599,7 @@ class process {
   
   // Check all traps entered for a match to the syscall
   bool checkTrappedSyscallsInternal(Address syscall);
+#endif
     
   private:
   

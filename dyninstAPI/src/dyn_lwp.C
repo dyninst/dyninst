@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.65 2007/01/12 00:55:37 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.66 2007/06/26 14:54:47 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -335,6 +335,7 @@ bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs, bool includeFP
 // Find out some info about the system call we're waiting on,
 // and ask the process class to set a breakpoint there. 
 
+#if defined(cap_syscall_trap)
 bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
                                  void *data)
 {
@@ -418,6 +419,7 @@ bool dyn_lwp::isWaitingForSyscall() const {
     if (trappedSyscall_) return true;
     else return false;
 }
+#endif // cap_syscall_trap
 
 #if !defined(os_linux) && !defined(os_windows)
 Address dyn_lwp::step_next_insn() {

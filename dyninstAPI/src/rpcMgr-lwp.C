@@ -199,6 +199,7 @@ irpcLaunchState_t rpcLWP::launchLWPIRPC(bool runProcWhenDone) {
     if (mgr_->proc()->IndependentLwpControl())
         lwp_->pauseLWP(true);
     
+#if defined(cap_syscall_trap)
     // Check if we're in a system call
     if (lwp_->executingSystemCall()) {
         // We can't do any work. If there is a pending RPC try
@@ -232,6 +233,7 @@ irpcLaunchState_t rpcLWP::launchLWPIRPC(bool runProcWhenDone) {
             return irpcAgain;
         }
     }
+#endif // cap_syscall_trap
     
     // Get the RPC and slap it in the postedRPC_ pointer
     if (!pendingRPC_) {
@@ -352,7 +354,9 @@ bool rpcLWP::deleteLWPIRPC(unsigned id) {
     if (pendingRPC_ && pendingRPC_->rpc->id == id) {
        // we don't want to do as we normally do when a exit trap occurs,
        // that is to run the rpc, which gets triggered by this callback
+#if defined(cap_syscall_trap)
        get_lwp()->clearSyscallExitTrap();
+#endif
        delete pendingRPC_->rpc;
        delete pendingRPC_;
        pendingRPC_ = NULL;

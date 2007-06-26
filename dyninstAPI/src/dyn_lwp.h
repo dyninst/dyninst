@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.65 2007/01/12 00:55:38 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.66 2007/06/26 14:54:48 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -109,9 +109,11 @@ class dyn_lwp
   // Unimplemented
   //bool setRegister(Register reg, Address value);
 
+
+#if defined(cap_syscall_trap)
   // True iff lwp is executing in the kernel
   bool executingSystemCall();
-  // And what syscall are we in (or return address)
+  // What syscall are we in?
   Address getCurrentSyscall();
   // Set a breakpoint at the system call exit
   // Actually sets up some state and calls the process version,
@@ -129,6 +131,7 @@ class dyn_lwp
 
   // Query functions for syscall exits
   bool isWaitingForSyscall() const;
+#endif // cap_syscall_trap
 
   
   int getLastSignal() { return lastSig_; }

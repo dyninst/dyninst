@@ -546,7 +546,9 @@ bool SignalHandler::handleSyscallExit(EventRecord &ev, bool &continueHint)
 
     signal_printf( "%s[%d]:  welcome to handleSyscallExit\n", FILE__, __LINE__);
 
+#if defined(cap_syscall_trap)
     retval = ev.lwp->handleSyscallTrap(ev, continueHint);
+#endif
 
     // Fall through no matter what since some syscalls have their
     // own handlers.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.689 2007/06/20 20:49:45 ssuen Exp $
+// $Id: process.C,v 1.690 2007/06/26 14:54:49 bernat Exp $
 
 #include <ctype.h>
 
@@ -5250,6 +5250,7 @@ bool process::handleExecExit(fileDescriptor &desc)
    return true;
 }
 
+#if defined(cap_syscall_trap)
 bool process::checkTrappedSyscallsInternal(Address syscall)
 {
     for (unsigned i = 0; i < syscallTraps_.size(); i++) {
@@ -5259,8 +5260,9 @@ bool process::checkTrappedSyscallsInternal(Address syscall)
     
     return false;
 }
+#endif
 
-#if defined(rs6000_ibm_aix4_1) 
+#if defined(ox_aix) 
 //When we save the world on AIX we must instrument the
 //beginning of main() to call dlopen() to load the
 //dyninst rt shared library.  The file format of an
@@ -6308,6 +6310,10 @@ void process::recognize_threads(process *parent)
          }
          dyn_lwp *lwp = getLWP(lwp_ids[lwp_iter]);
          
+         // The functionality is not strictly cap_syscall_trap specific,
+         // but is not implemented on any other platforms so I'm IFDEFing
+         // it -- bernat, jun07
+#if defined(cap_syscall_trap)
          if (par_thread->get_lwp()->executingSystemCall()) {
              forkexec_printf("%s[%d]: parent lwp executing system call\n",
                              FILE__, __LINE__);
@@ -6323,18 +6329,20 @@ void process::recognize_threads(process *parent)
                  break;
              }
          }
-         else {
-           // Not in a system call, match active frames
-           Frame parFrame = par_thread->get_lwp()->getActiveFrame();
-           Frame lwpFrame = lwp->getActiveFrame();
-           if ((parFrame.getPC() == lwpFrame.getPC()) &&
-               (parFrame.getFP() == lwpFrame.getFP()) &&
-               (parFrame.getSP() == lwpFrame.getSP())) {
-              forkexec_cerr << "... Match: " << lwpFrame << endl;
-              matching_lwp = lwp_ids[lwp_iter];
-              break;
-           }
-        }
+         else 
+#endif
+             {
+                 // Not in a system call, match active frames
+                 Frame parFrame = par_thread->get_lwp()->getActiveFrame();
+                 Frame lwpFrame = lwp->getActiveFrame();
+                 if ((parFrame.getPC() == lwpFrame.getPC()) &&
+                     (parFrame.getFP() == lwpFrame.getFP()) &&
+                     (parFrame.getSP() == lwpFrame.getSP())) {
+                     forkexec_cerr << "... Match: " << lwpFrame << endl;
+                     matching_lwp = lwp_ids[lwp_iter];
+                     break;
+                 }
+             }
      }
      if (matching_lwp) {
         // Make a new thread with details from the old

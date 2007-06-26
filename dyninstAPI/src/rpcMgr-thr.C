@@ -225,6 +225,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
         return irpcNoIRPC;
     }
 
+#if defined(cap_syscall_trap)
     // Check if we're in a system call
     if (lwp->executingSystemCall()) {
         // We can't do any work. If there is a pending RPC try
@@ -264,6 +265,8 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
             return irpcAgain;
         }
     }
+#endif // cap_syscall_trap
+
     // Get the RPC and slap it in the pendingRPC_ pointer
     if (!pendingRPC_) {
         inferiorrpc_printf("%s[%d]: ready to run, creating pending RPC structure\n",
@@ -401,7 +404,9 @@ bool rpcThr::deleteThrIRPC(unsigned id) {
     if (pendingRPC_ && pendingRPC_->rpc->id == id) {
        // we don't want to do as we normally do when a exit trap occurs,
        // that is to run the rpc, which gets triggered by this callback
+#if defined(cap_syscall_trap)
        get_thr()->get_lwp()->clearSyscallExitTrap();
+#endif
        
         delete pendingRPC_->rpc;
         delete pendingRPC_;
@@ -594,12 +599,15 @@ irpcLaunchState_t rpcThr::launchProcIRPC(bool runProcWhenDone) {
     dyn_lwp *lwp = thr_->get_lwp();
     
     inferiorrpc_printf("Thread %lu, lwp %u, checking status...\n", thr_->get_tid(), lwp->get_lwp_id());
-    
+
+#if defined(cap_syscall_trap)    
     // Check if we're in a system call
     if (lwp->executingSystemCall()) {
         // No RPCs anyway
         return irpcError;
     }
+#endif
+
     inferiorrpc_printf("Status is go, grabbing process RPC and running\n");
     // Get the RPC and slap it in the pendingRPC_ pointer
     pendingRPC_ = new inferiorRPCinProgress;

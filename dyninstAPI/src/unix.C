@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.226 2007/05/09 21:53:27 legendre Exp $
+// $Id: unix.C,v 1.227 2007/06/26 14:54:54 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -771,12 +771,14 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
      }
   }
 
+#if defined(cap_syscall_trap)
   // (4) Is this an instrumentation-based method of grabbing the exit
   // of a system call?
   if (ev.lwp->decodeSyscallTrap(ev)) {
       // That sets all information....
       return true;
   }
+#endif
 
   // (5) Is this trap due to a single step debugger operation ??
   if (ev.lwp->isSingleStepping()) {
