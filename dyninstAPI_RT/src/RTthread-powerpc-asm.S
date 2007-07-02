@@ -1,5 +1,3 @@
-#include "RTconst.h"
-#include "../../dyninstAPI/src/inst-power.h"
    .machine "push"      
    .machine "ppc"       
    .globl   DYNINSTthreadIndexFAST
@@ -42,7 +40,11 @@ tc_lock_lock:
    mflr     0
    stw      0,8(1)
    mr       10,3      # &t in R10
+#if defined(arch_64bit)
    bl       .DYNINSTthreadSelf
+#else
+   bl       .DYNINSTthreadSelf@plt
+#endif
    cror     31,31,31
    addi     6,0,1       # r6 == 1
 tc_lock_lock_loop:
@@ -72,7 +74,11 @@ tc_lock_trylock:
    mflr	0
    stw	0,8(1)
    mr	10,3		# &t in R10
+#if defined(arch_64bit)
    bl	.DYNINSTthreadSelf
+#else
+   bl	.DYNINSTthreadSelf@plt
+#endif
    cror	31,31,31
 	addi	6,0,1		# r6 == 1
 tc_lock_trylock_loop:
