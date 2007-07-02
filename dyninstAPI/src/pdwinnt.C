@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.172 2007/06/26 14:54:58 bernat Exp $
+// $Id: pdwinnt.C,v 1.173 2007/07/02 22:17:55 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1332,6 +1332,40 @@ pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
         }
 	}
 
+	if (ret.substr(0,7) == "\\Device") {
+      HANDLE currentProcess = p->processHandle_;
+      DWORD num_modules_needed;
+      int errorCheck = EnumProcessModules(currentProcess,
+                                          NULL,
+                                          0,
+                                          &num_modules_needed);
+	  num_modules_needed /= sizeof(HMODULE);
+      HMODULE* loadedModules = new HMODULE[num_modules_needed];
+      errorCheck = EnumProcessModules(currentProcess,
+                                          loadedModules,
+                                          sizeof(HMODULE)*num_modules_needed,
+                                          NULL);
+      HMODULE* candidateModule = loadedModules; 
+      while(candidateModule < loadedModules + num_modules_needed)
+      {
+         MODULEINFO candidateInfo;
+         GetModuleInformation(currentProcess, *candidateModule, &candidateInfo,
+                              sizeof(candidateInfo));
+         if(ev.u.LoadDll.lpBaseOfDll == candidateInfo.lpBaseOfDll)
+            break;
+         candidateModule++;
+      }
+      if(candidateModule != loadedModules + num_modules_needed) 
+      {
+         TCHAR filename[MAX_PATH];
+         if(GetModuleFileNameEx(currentProcess, *candidateModule, filename, MAX_PATH))
+         {
+            ret = filename;
+         }
+      }
+      delete[] loadedModules;
+
+	}
 	// cleanup
     if (msgText)
         delete[] msgText;
