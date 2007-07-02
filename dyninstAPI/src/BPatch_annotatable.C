@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_annotatable.C,v 1.1 2007/07/02 17:30:02 tugrul Exp $
+// $Id: BPatch_annotatable.C,v 1.2 2007/07/02 18:25:35 tugrul Exp $
 
 #include "BPatch_annotatable.h"
 #include <iostream>
@@ -60,12 +60,11 @@ BPatch_annotatable<T>::~BPatch_annotatable() {
   unsigned i,j;
   for(i=0; i<annotations.size(); i++) {
     BPatch_Vector<BPatch_annotation*>* list = annotations[i];
-    for(j=0; j<list.size(); j++) {
+    for(j=0; j<list->size(); j++) {
       delete (*list)[j];
     }
     delete list;
   }
-  delete annotations;
 }
 
 template<class T>
