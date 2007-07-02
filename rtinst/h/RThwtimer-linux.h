@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: RThwtimer-linux.h,v 1.6 2007/06/20 20:49:55 ssuen Exp $
+ * $Id: RThwtimer-linux.h,v 1.7 2007/07/02 16:45:56 ssuen Exp $
  */
 #ifndef __RTHWTIMER_LINUX
 #define __RTHWTIMER_LINUX
@@ -82,7 +82,8 @@ typedef union {
 
 #elif defined(arch_power) && defined(os_linux)
 //sunlung todo
-#define getTSC(var) { }
+#include <assert.h>
+#define getTSC(var) { assert(0); }
 #else
 
 #define getTSC(var)				\

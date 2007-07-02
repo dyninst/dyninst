@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.21 2007/05/17 17:09:04 bernat Exp $
+// $Id: mapped_object.C,v 1.22 2007/07/02 16:45:51 ssuen Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -84,7 +84,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
     codeBase_ = fileDesc.loadAddr();
 	dataBase_ = fileDesc.loadAddr();
 #endif
-#if defined(arch_power)
+#if defined(os_aix)
     // AIX defines "virtual" addresses for an a.out inside the file as
     // well as when the system loads the object. As far as I can tell,
     // this only happens for the a.out (for shobjs the file-addresses
@@ -819,7 +819,7 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
     
     // AIX: we scavenge space. Do that here.
 
-#if defined(arch_power)
+#if defined(os_aix)
     // ...
 
     // a.out: from the end of the loader to 0x20000000

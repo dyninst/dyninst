@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2007/06/20 21:19:17 ssuen Exp $
+# $Id: Makefile,v 1.2 2007/07/02 16:45:53 ssuen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -69,7 +69,7 @@ NASM = $(GCC)
 TEST6_AS_GNU = $(NASM)
 #TEST6_ASFLAGS_GNU = -f elf -dPLATFORM=$(PLATFORM)
 TEST6_ASFLAGS_GNU = $(CFLAGS) -c
-TEST6_AS_SRC = test6LS-powerpc.s
+TEST6_AS_SRC = test6LS-powerpc.S
 TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl

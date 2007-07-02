@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.690 2007/06/26 14:54:49 bernat Exp $
+// $Id: process.C,v 1.691 2007/07/02 16:45:52 ssuen Exp $
 
 #include <ctype.h>
 
@@ -1119,7 +1119,7 @@ void process::addInferiorHeap(const mapped_object *obj)
                     infHeaps[j].addr() + infHeaps[j].size(),
                     infHeaps[j].name().c_str());
 #endif
-#if defined(arch_power)
+#if defined(os_aix)
             // MT: I've seen problems writing into a "found" heap that
             // is in the application heap (IE a dlopen'ed
             // library). Since we don't have any problems getting

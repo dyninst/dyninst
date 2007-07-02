@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.h,v 1.1 2007/06/20 21:19:16 ssuen Exp $
+// $Id: linux-power.h,v 1.2 2007/07/02 16:45:50 ssuen Exp $
 
 #if !defined(os_linux) || !defined(arch_power)
 #error "invalid architecture-os inclusion"
@@ -48,12 +48,27 @@
 #ifndef LINUX_POWER_HDR
 #define LINUX_POWER_HDR
 
+#include <asm/ptrace.h>
+
+// fields within ptrace() pt_regs structure
+#define PTRACE_REG_FP gpr[1] // frame pointer
+#define PTRACE_REG_IP nip    // next instruction pointer
+
 struct dyn_saved_regs
 {
-  //sunlung todo
+   struct pt_regs gprs;      // 32 general purpose registers plus most SPRs
+   struct fp_regs {
+     double        fpr[32];  // 32 floating point registers
+     unsigned long fpscr;    // floating point status and control register
+   }              fprs;
 };
 
-inline Address region_lo(const Address x) { return x; } //sunlung todo
-inline Address region_hi(const Address x) { return x; } //sunlung todo
+inline Address region_lo(const Address /* x */) {
+   return 0x08000000;  // start of text
+}
+
+inline Address region_hi(const Address /* x */) {
+   return (Address)0xc << (sizeof(Address) * 8 - 4);  // start of kernel
+}
 
 #endif

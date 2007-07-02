@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.264 2007/06/20 20:49:41 ssuen Exp $
+ * $Id: inst-power.C,v 1.265 2007/07/02 16:45:47 ssuen Exp $
  */
 
 #include "common/h/headers.h"
@@ -865,8 +865,13 @@ unsigned saveSPRegisters(codeGen &gen,
     saveCR(gen, 10, save_off + STK_CR);           
     saveSPR(gen, 10, SPR_CTR, save_off + STK_CTR);
     saveSPR(gen, 10, SPR_XER, save_off + STK_XER);
+#if defined(os_aix)
+    // MQ only exists on POWER, not PowerPC. Right now that's correlated
+    // to AIX vs Linux, but we _really_ should fix that...
+    // We need to dynamically determine the CPU and emit code based on that.
     if (theRegSpace->saveAllSPRs())
         saveSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
+#endif
     saveFPSCR(gen, 10, save_off + STK_FP_CR);
     if (theRegSpace->saveAllSPRs())
       return 5; // register saved
@@ -886,8 +891,11 @@ unsigned restoreSPRegisters(codeGen &gen,
     restoreCR(gen, 10, save_off + STK_CR);
     restoreSPR(gen, 10, SPR_CTR, save_off + STK_CTR);
     restoreSPR(gen, 10, SPR_XER, save_off + STK_XER);
+#if defined(os_aix)
+    // See comment in saveSPRegisters
     if (theRegSpace->saveAllSPRs())
       restoreSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
+#endif
     restoreFPSCR(gen, 10, save_off + STK_FP_CR);
     if (theRegSpace->saveAllSPRs())
       return 5; // restored
@@ -952,8 +960,9 @@ bool baseTramp::generateSaves(codeGen &gen,
                         gen.rs(),
                         TRAMP_SPR_OFFSET);
     }
-    // If we're at a callsite (or unknown) save the count register
-    if (isConservative() || isCallsite()) {
+    else if (isCallsite()) {
+	// If we're at a callsite save the count register explicitly, 
+	// but don't save other SPRs
         saveSPR(gen, REG_SCRATCH, // scratchreg
                 SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
     }
@@ -963,12 +972,12 @@ bool baseTramp::generateSaves(codeGen &gen,
 bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *) {
     // Restore possible SPR saves
-    if (isConservative() || isCallsite()) {
-        restoreSPR(gen, REG_SCRATCH, 
-                   SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
-    }
     if (isConservative()) {
         restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET);
+    }
+    else if (isCallsite()) {
+        restoreSPR(gen, REG_SCRATCH, 
+                   SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
     }
 
     // LR
@@ -1224,25 +1233,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
     }
 }
 
-
-//static int dummy[3];
-//
-//void
-//initTocOffset(int toc_offset) {
-//    //  st r2,20(r1)  ; 0x90410014 save toc register  
-//    dummy[0] = 0x90410014; 
-//
-//    //  liu r2, 0x0000     ;0x3c40abcd reset the toc value to 0xabcdefgh
-//    dummy[1] = (0x3c400000 | (toc_offset >> 16));
-//
-//    //  oril    r2, r2,0x0000   ;0x6042efgh
-//    dummy[2] = (0x60420000 | (toc_offset & 0x0000ffff));
-//}
-
-
 void cleanUpAndExit(int status);
-
-
 
 /* Recursive function that goes to where our instrumentation is calling
 to figure out what registers are clobbered there, and in any function
@@ -1300,9 +1291,11 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 // Emit a function call.
 //   It saves registers as needed.
 //   copy the passed arguments into the canonical argument registers (r3-r10)
-//   Locate the TOC entry of the callee module and copy it into R2
+//   AIX ONLY: 
+//     Locate the TOC entry of the callee module and copy it into R2
 //   generate a branch and link the destination
-//   Restore the original TOC into R2
+//   AIX ONLY:
+//     Restore the original TOC into R2
 //   restore the saved registers.
 //
 // Parameters:
@@ -1322,7 +1315,6 @@ Register emitFuncCall(opCode /* ocode */,
                       codeGen &gen,
 		      pdvector<AstNodePtr> &operands, bool noCost,
 		      int_function *callee) {
-    Address toc_anchor;
     pdvector <Register> srcs;
 
    
@@ -1334,14 +1326,18 @@ Register emitFuncCall(opCode /* ocode */,
         showErrorCallback(80, msg);
         assert(0);
     }
- 
+
+#if defined(os_aix) 
    // Now that we have the destination address (unique, hopefully) 
    // get the TOC anchor value for that function
    // The TOC offset is stored in the Object. 
    // file() -> pdmodule "parent"
    // exec() -> image "parent"
-   //toc_anchor = ((int_function *)calleefunc)->file()->exec()->getObject().getTOCoffset();
-    toc_anchor = gen.proc()->getTOCoffsetInfo(callee);
+    Address toc_anchor = gen.proc()->getTOCoffsetInfo(callee);
+    // Note: for Linux (and other SYSV ABI followers) r2 is described
+    // as "reserved for system use and is not to be changed by application
+    // code".
+#endif
    
    // Generate the code for all function parameters, and keep a list
    // of what registers they're in.
@@ -1376,16 +1372,10 @@ Register emitFuncCall(opCode /* ocode */,
    // Add 0 to the list of saved registers
    savedRegs.push_back(0);
   
+#if defined(os_aix)
    // Save register 2 (TOC)
    saveRegister(gen, 2, FUNC_CALL_SAVE);
    savedRegs.push_back(2);
-
-#if 0
-   if(gen.proc()->multithread_capable()) {
-      // save REG_MT_POS
-      saveRegister(gen, REG_MT_POS, FUNC_CALL_SAVE);
-      savedRegs += REG_MT_POS;
-   }
 #endif
 
    // see what others we need to save.
@@ -1513,10 +1503,11 @@ Register emitFuncCall(opCode /* ocode */,
        } 
    }
 
+#if defined(os_aix)
    // Set up the new TOC value
-
    emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
    //inst_printf("toc setup (%d)...");
+#endif
 
    // generate a branch to the subroutine to be called.
    // load r0 with address, then move to link reg and branch and link.
@@ -2641,6 +2632,7 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
 
 bool writeFunctionPtr(process *p, Address addr, int_function *f)
 {
+#if defined(os_aix)
    Address buffer[3];
    Address val_to_write = f->getAddress();
    Address toc = p->getTOCoffsetInfo(val_to_write);
@@ -2651,6 +2643,9 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
    if (!p->writeDataSpace((void *) addr, sizeof(buffer), buffer))
      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    return true;
+#else
+   assert(0); //sunlung
+#endif
 }
 
 
