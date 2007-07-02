@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.265 2007/07/02 16:45:47 ssuen Exp $
+ * $Id: inst-power.C,v 1.266 2007/07/02 18:31:03 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -2324,7 +2324,6 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
 {
     assert(liveRegs != NULL);
 
-
     registerSlot *regSlot = NULL;
     registerSlot *regFPSlot = NULL;
 
@@ -2352,12 +2351,12 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
             registers[i].startsLive = false;
         }
     }
-    
+
     for (u_int i = 0; i < getFPRegisterCount(); i++) {
         regFPSlot = getFPRegSlot(i);
-        
-        if (  liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_REG ||
-              liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_CLOBBERED_REG) {
+        if ((liveFPRegs == NULL) || 
+            (liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_REG) ||
+            (liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_CLOBBERED_REG)) {
             fpRegisters[i].needsSaving = true;
             fpRegisters[i].startsLive = true;
         }
