@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Dyn_Symbol.h,v 1.7 2007/05/31 14:24:47 legendre Exp $
+ * $Id: Dyn_Symbol.h,v 1.8 2007/07/02 22:17:56 legendre Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -119,9 +119,9 @@ public:
    
     DLLEXPORT unsigned            getSize ()               const;
     DLLEXPORT SymbolTag            tag ()               const;
-    DLLEXPORT void	setSize(unsigned ns){ size_ = ns;}
+    DLLEXPORT void	setSize(unsigned ns);
 	DLLEXPORT void	setModuleName(string module);
-    DLLEXPORT void 	setModule(Dyn_Module *mod) { module_ = mod; }
+    DLLEXPORT void 	setModule(Dyn_Module *mod);
     DLLEXPORT void	setUpPtr(void *newUpPtr);
     
     // Bool: returns true if the name is new (and therefore added)

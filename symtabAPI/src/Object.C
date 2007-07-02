@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.8 2007/05/30 19:20:53 legendre Exp $
+// $Id: Object.C,v 1.9 2007/07/02 22:17:57 legendre Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
@@ -708,3 +708,12 @@ Dyn_Symbol *SymbolIter::currval() {
    return ((symbolIterator->second)[ currentPositionInVector ]);
 }
 
+void Dyn_Symbol::setSize(unsigned ns)
+{
+	size_ = ns;
+}
+
+void Dyn_Symbol::setModule(Dyn_Module *mod) 
+{
+	module_ = mod;
+}
