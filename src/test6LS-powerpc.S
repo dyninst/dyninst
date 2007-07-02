@@ -1,6 +1,6 @@
-# $Id: test6LS-powerpc.s,v 1.1 2007/06/20 21:19:31 ssuen Exp $
+# $Id: test6LS-powerpc.S,v 1.1 2007/07/02 16:46:00 ssuen Exp $
 
-.file "test6LS-power.s"
+.file "test6LS-powerpc.S"
 .machine "any"
 
 #.toc
@@ -46,8 +46,11 @@ dfvard: .align 3
 	#l	7,T.divarw(2)
 	# but avoid that because the offset is unknow(?)
 	# afaict, the linker may reorder/combine .tc entries...
-
+#if defined(arch_64bit)
 	la	7,T.divarw(2)
+#else
+	la	7,T.divarw@plt(2)
+#endif
 	l	7,0(7)		#l1
 
 	mr	3,7
@@ -182,8 +185,11 @@ loop2:	ldarx	5,0,7
 	# VG(11/22/01) Now it only happens with xlc mutatees but not with
 	# gcc mutatees... Very odd...
 #	bne-	loop2
-
+#if defined(arch_64bit)
 	la	4,T.dfvars(2)
+#else
+	la	4,T.dfvars@plt(2)
+#endif
 	l	4,0(4)		# a55
 	
 	lfs	5,0(4)
@@ -193,8 +199,11 @@ loop2:	ldarx	5,0,7
 	lfsu	7,0(4)
 	mr	4,5
 	lfsux	8,6,4
-
+#if defined(arch_64bit)
 	la	6,T.dfvard(2)
+#else
+	la	6,T.dfvard@plt(2)
+#endif
 	l	6,0(6)		# a60
 	
 	lfd	1,0(6)
@@ -236,7 +245,11 @@ loop2:	ldarx	5,0,7
 .globl .gettoc
 
 	# addi	3,2,T.divarw - This doesn't compile even tough it the same as:
+#if defined(arch_64bit)
 	la	3,T.divarw(2)  # T.divarw is not 0 at execution time!
+#else
+	la	3,T.divarw@plt(2)  # T.divarw is not 0 at execution time!
+#endif
 	blr
 	.long 0x0
 
@@ -244,8 +257,11 @@ loop2:	ldarx	5,0,7
 #.globl .getsp[PR]
 #.csect .getsp[PR]
 .globl .getsp
-
+#if defined(arch_64bit)
 	l	7,T.divarw(2)	
+#else
+	l	7,T.divarw@plt(2)	
+#endif
 	ld	3,0(7)  # get the SP of loadnstores (it was saved here)
 	blr
 	.long 0x0
