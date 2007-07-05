@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_annotatable.h,v 1.1 2007/07/02 17:29:34 tugrul Exp $
+// $Id: BPatch_annotatable.h,v 1.2 2007/07/05 22:17:26 tugrul Exp $
 
 #ifndef BPATCH_ANNOTATABLE_
 #define BPATCH_ANNOTATABLE_
@@ -48,9 +48,6 @@
 
 template <class K, class V>
 class dictionary_hash;
-
-template <class T>
-class BPatch_Vector;
 
 class pdstring;
 
