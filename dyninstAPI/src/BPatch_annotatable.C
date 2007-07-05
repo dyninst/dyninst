@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_annotatable.C,v 1.2 2007/07/02 18:25:35 tugrul Exp $
+// $Id: BPatch_annotatable.C,v 1.3 2007/07/05 16:02:16 tugrul Exp $
 
 #include "BPatch_annotatable.h"
-#include <iostream>
-#include <string.h>
+#include "common/h/String.h"
+#include "common/h/Dictionary.h"
 
 template<class T>
 BPatch_annotatable<T>::BPatch_annotatable() {
