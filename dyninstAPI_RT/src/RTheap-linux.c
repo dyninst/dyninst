@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-linux.c,v 1.7 2006/12/11 22:19:39 legendre Exp $ */
+/* $Id: RTheap-linux.c,v 1.8 2007/07/11 17:58:23 ssuen Exp $ */
 /* RTheap-linux.c: Linux-specific heap components */
 
 #include <stdlib.h>
@@ -69,6 +69,11 @@ int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 
 Address DYNINSTheap_loAddr = 0x0;
 Address DYNINSTheap_hiAddr = ~0x0;
+#elif defined(arch_power)
+int     DYNINSTheap_align  = 4; /* heaps are word-aligned */
+#include <asm/page.h>
+Address DYNINSTheap_loAddr = PAGE_SIZE;
+Address DYNINSTheap_hiAddr = ~(Address)0;
 #else
 int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 
