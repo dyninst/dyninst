@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.28 2007/06/20 20:49:50 ssuen Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.29 2007/07/11 17:58:24 ssuen Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -579,7 +579,8 @@ int checkMutatedFile(){
 #if defined(sparc_sun_solaris2_4)
         sprintf(execStr,"/proc/%d/object/a.out",getpid());
 #elif defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+   || (defined(os_linux) && defined(arch_power))
 	sprintf(execStr,"/proc/%d/exe",getpid());
 #endif
 
