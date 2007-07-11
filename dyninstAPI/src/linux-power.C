@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.3 2007/07/02 16:45:49 ssuen Exp $
+// $Id: linux-power.C,v 1.4 2007/07/11 17:58:20 ssuen Exp $
 
 #include <dlfcn.h>
 
@@ -49,6 +49,10 @@
 #include "dyninstAPI/src/linux-power.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/inst-power.h"
+#include "dyninstAPI/src/multiTramp.h"
+#include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/miniTramp.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
@@ -407,22 +411,16 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeF
 
 Frame Frame::getCallerFrame()
 {
-assert(0);  //sunlung
-//from AIX version  Maybe move to stackwalk-power.C?
+// Matt's DynStackwalker will replace this
 
 //Change this struct and add Vsyscall to see if mutatee is in a syscall
 //--in a syscall, frame is in a different form
   typedef struct {
     unsigned oldFp;
-    unsigned savedCR;
     unsigned savedLR;
-    unsigned compilerInfo;
-    unsigned binderInfo;
-    unsigned savedTOC;
   } linkArea_t;
 
-  const int savedLROffset=8; //Needed to be modified for ppc64_linux
-  //const int compilerInfoOffset=12;
+  const int savedLROffset = offsetof(linkArea_t, savedLR);
 
   linkArea_t thisStackFrame;
   linkArea_t lastStackFrame;
@@ -465,7 +463,7 @@ assert(0);  //sunlung
 
   // See if we're in instrumentation
   baseTrampInstance *bti = NULL;
-/*
+  
   if (range->is_multitramp()) {
       bti = range->is_multitramp()->getBaseTrampInstanceByAddr(getPC());
       if (bti) {
@@ -513,7 +511,7 @@ assert(0);  //sunlung
           if (! status) {
               return Frame();
           }
-          newPC = regs.theIntRegs.__lr;
+          newPC = regs.gprs.nip;
           newpcAddr = (Address) 1;
           // I'm using an address to signify a register
       }
@@ -526,7 +524,7 @@ assert(0);  //sunlung
           if (!status) {
               return Frame();
           }
-          newPC = regs.theIntRegs.__lr;
+          newPC = regs.gprs.nip;
           newpcAddr = (Address) 1;
       }
 
@@ -549,7 +547,7 @@ assert(0);  //sunlung
 #ifdef DEBUG_STACKWALK
   fprintf(stderr, "PC %x, FP %x\n", newPC, newFP);
 #endif
-*/return Frame(newPC, newFP, 0, newpcAddr, this);
+  return Frame(newPC, newFP, 0, newpcAddr, this);
 }
 
 
@@ -626,10 +624,9 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
     assert(main_brk_addr);
     assert(trappingLWP);
     // restore original instruction
-    // Use this for the size -- make sure that we're using the same
-    // insn in both places. Or give savedCodeBuffer a size twin.
 
-    if (!writeDataSpace((void *)main_brk_addr, sizeof(savedCodeBuffer), (char *)savedCodeBuffer))
+    if (!writeDataSpace((void *)main_brk_addr, instruction::size(),
+                        (char *)savedCodeBuffer))
         return false;
 
     if (! trappingLWP->changePC(main_brk_addr,NULL))
@@ -673,6 +670,7 @@ bool process::insertTrapAtEntryPointOfMain()
     codeGen gen(instruction::size());
     instruction::generateTrap(gen);
 
+    assert(instruction::size() == gen.used());
     if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr()))
         fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     main_brk_addr = addr;
@@ -684,7 +682,6 @@ bool process::insertTrapAtEntryPointOfMain()
 
 bool process::loadDYNINSTlib()
 {
-assert(0);  //sunlung
     pdvector<int_function *> dlopen_funcs;
 
     if (findFuncsByAll(DL_OPEN_FUNC_EXPORTED, dlopen_funcs)) {
@@ -698,7 +695,6 @@ assert(0);  //sunlung
 
 bool process::loadDYNINSTlibCleanup(dyn_lwp *trappingLWP)
 {
-assert(0); //sunlung
   // rewrite original instructions in the text segment we use for
   // the inferiorRPC - naim
   unsigned count = sizeof(savedCodeBuffer);
@@ -721,14 +717,13 @@ assert(0); //sunlung
 
 bool process::loadDYNINSTlib_exported()
 {
-assert(0);  //sunlung
-//use AIX version for the Power instruction generation
-//use Linux version for the actual dlopen interface
-/*  // dlopen takes two arguments:
+    // This functions was implemented by mixing parts of
+    // process::loadDYNINSTlib() in aix.C and
+    // process::loadDYNINSTlib_exported() in linux-x86.C.
+
+    // dlopen takes two arguments:
     // const char *libname;
     // int mode;
-    // We put the library name on the stack, push the args, and
-    // emit the call
 
     Address codeBase = findFunctionToHijack(this);
     if (!codeBase) {
@@ -748,14 +743,23 @@ assert(0);  //sunlung
     if (dlopen_funcs.size() > 1) {
         logLine("WARNING: More than one dlopen found, using the first\n");
     }
-    Address dlopen_addr = dlopen_funcs[0]->getAddress();
+    //Address dlopen_addr = dlopen_funcs[0]->getAddress();
+    int_function *dlopen_func = dlopen_funcs[0];  //aix.C
 
     // We now fill in the scratch code buffer with appropriate data
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
     assert(dyninstRT_name.length() < BYTES_TO_SAVE);
+    scratchCodeBuffer.setProcess(this);  //aix.C
+    scratchCodeBuffer.setAddr(codeBase); //aix.C
+
     // The library name goes first
     dyninstlib_str_addr = codeBase;
     scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+
+    // Need a register space                                           //aix.C
+    // make sure this syncs with inst-power.C                          //aix.C
+    registerSpace *dlopenRegSpace = registerSpace::savedRegSpace(this);//aix.C
+    scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);                //aix.C
 
     //Fill in with NOPs, see loadDYNINSTlib_hidden
     scratchCodeBuffer.fill(getAddressWidth(), codeGen::cgNOP);
@@ -763,37 +767,21 @@ assert(0);  //sunlung
     // Now the real code
     dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
-    bool mode64bit = (getAddressWidth() == sizeof(uint64_t));
-    if (!mode64bit) {
-        // Push mode
-        // emitPushImm(DLOPEN_MODE, scratchCodeBuffer);
+    pdvector<AstNodePtr> dlopenAstArgs(2);                         //aix.C
+    AstNodePtr dlopenAst;                                          //aix.C
+    dlopenAstArgs[0] = AstNode::operandNode(AstNode::Constant,     //aix.C
+                                            (void*)dyninstlib_str_addr);
+    dlopenAstArgs[1] = AstNode::operandNode(AstNode::Constant,     //aix.C
+                                            (void*)DLOPEN_MODE);
+    dlopenAst = AstNode::funcCallNode(dlopen_func, dlopenAstArgs); //aix.C
 
-        // Push string addr
-        // emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
-
-        instruction::generateCall(scratchCodeBuffer,
-                                  scratchCodeBuffer.used() + codeBase,
-                                  dlopen_addr);
-
-        // And the break point
-        dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-        instruction::generateTrap(scratchCodeBuffer);
-    }
-    else {
-        // Set mode
-        emitMovImmToReg64(REGNUM_RSI, DLOPEN_MODE, false, scratchCodeBuffer);
-        // Set string addr
-        emitMovImmToReg64(REGNUM_RDI, dyninstlib_str_addr, true,
-                          scratchCodeBuffer);
-        // The call (must be done through a register in order to reach)
-        emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
-        emitSimpleInsn(0xff, scratchCodeBuffer);
-        emitSimpleInsn(0xd0, scratchCodeBuffer);
-
-        // And the break point
-        dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-        instruction::generateTrap(scratchCodeBuffer);
-    }
+    // We need to push down the stack before we call this  //aix.C
+    pushStack(scratchCodeBuffer);                          //aix.C
+    dlopenAst->generateCode(scratchCodeBuffer, true);      //aix.C
+    popStack(scratchCodeBuffer);                           //aix.C
+ 
+    dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
+    instruction::generateTrap(scratchCodeBuffer);
 
     if (!readDataSpace((void *)codeBase,
                        sizeof(savedCodeBuffer), savedCodeBuffer, true)) {
@@ -803,7 +791,7 @@ assert(0);  //sunlung
 
     if (!writeDataSpace((void *)(codeBase), scratchCodeBuffer.used(),
                         scratchCodeBuffer.start_ptr())) {
-        fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]:  writeDataSpace\n", __FILE__, __LINE__);
         return false;
     }
 
@@ -824,23 +812,33 @@ assert(0);  //sunlung
         return false;
     }
     setBootstrapState(loadingRT_bs);
-*/  return true;
+    return true;
 }
 
 
 bool process::loadDYNINSTlib_hidden() {
-assert(0);  //sunlung
-#if false && defined(PTRACEDEBUG)
-  debug_ptrace = true;
-#endif
+  // We need to make a call to do_dlopen to open our runtime library
+
+  // This function was implemented by mixing parts of
+  // process::loadDYNINSTlib() in aix.C and
+  // process::loadDYNINSTlib_hidden() in linux-x86.C.
+
   startup_printf("**** LIBC21 dlopen for RT lib\n");
-  // do_dlopen takes a struct argument. This is as follows:
+
+  // do_dlopen takes a pointer-to-struct argument. The struct is as follows:
   // const char *libname;
   // int mode;
   // void *result;
-  // void *caller_addr
+  // void *caller_addr;  (may be obsolete, but no harm leaving in)
   // Now, we have to put this somewhere writable. The idea is to
   // put it on the stack....
+
+  struct {
+      const char *libname;
+      int         mode;
+      void       *result;
+      void       *caller_addr;
+  } do_dlopen_struct;
 
   Address codeBase = findFunctionToHijack(this);
 
@@ -850,16 +848,15 @@ assert(0);  //sunlung
       return false;
   }
 
-  startup_printf("(%d) writing in dlopen call at addr %p\n", getPid(), (void *)codeBase);
+  startup_printf("(%d) writing in dlopen call at addr %p\n", getPid(),
+                 (void *)codeBase);
 
   codeGen scratchCodeBuffer(BYTES_TO_SAVE);
-
-  // we need to make a call to dlopen to open our runtime library
 
   // Variables what we're filling in
   Address dyninstlib_str_addr = 0;
   Address dlopen_call_addr = 0;
-  Address mprotect_call_addr = 0;
+  Address do_dlopen_struct_addr = 0;
 
   pdvector<int_function *> dlopen_funcs;
   if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
@@ -899,24 +896,82 @@ assert(0);  //sunlung
     }
   }
 
-    if(dlopen_funcs.size() == 0)
-    {
+  if(dlopen_funcs.size() == 0)
+  {
       startup_cerr << "Couldn't find method to load dynamic library" << endl;
       return false;
-    }
+  }
 
   Address dlopen_addr = dlopen_funcs[0]->getAddress();
+  int_function *dlopen_func = dlopen_funcs[0];  //aix.C
 
   assert(dyninstRT_name.length() < BYTES_TO_SAVE);
-  // We now fill in the scratch code buffer with appropriate data
   startup_cerr << "Dyninst RT lib name: " << dyninstRT_name << endl;
 
+  // We now fill in the scratch code buffer with appropriate data
+
+  scratchCodeBuffer.setProcess(this);  //aix.C
+  scratchCodeBuffer.setAddr(codeBase); //aix.C
+
+  // First copy the RT library name
   dyninstlib_str_addr = codeBase + scratchCodeBuffer.used();
   scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
-  startup_printf("(%d) dyninst str addr at 0x%x\n", getPid(), dyninstlib_str_addr);
+  startup_printf("(%d) dyninst str addr at 0x%x\n", getPid(),
+                                                    dyninstlib_str_addr);
+  startup_printf("(%d) after copy, %d used\n", getPid(),
+                                               scratchCodeBuffer.used());
 
-  startup_printf("(%d) after copy, %d used\n", getPid(), scratchCodeBuffer.used());
+  // Now we have enough to fill in the do_dlopen_struct
+  do_dlopen_struct.libname     = (const char *)dyninstlib_str_addr;
+  do_dlopen_struct.mode        = DLOPEN_MODE;
+  do_dlopen_struct.result      = 0;
+  do_dlopen_struct.caller_addr = (void *)dlopen_addr;
+
+  // Need a register space                                           //aix.C
+  // make sure this syncs with inst-power.C                          //aix.C
+  registerSpace *dlopenRegSpace = registerSpace::savedRegSpace(this);//aix.C
+  scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);                //aix.C
+
+  // Now we place the do_dlopen_struct on the mutatee's stack
+  //   Step 1.  getRegisters() to get copy of the mutatee's stack pointer
+  //   Step 2.  decrement our local copy of the mutatee's stack pointer
+  //   Step 3.  restoreRegisters() to update mutatee's stack pointer
+  //   Step 4.  increment our local copy of the mutatee's stack pointer
+  //              back to its original value so that we properly restore
+  //              the mutatee's registers after the RT library is loaded
+  //   Step 5.  writeDataSpace() to the stack our do_dlopen_struct
+
+  //   Step 1.  getRegisters() to get copy of the mutatee's stack pointer
+  dyn_lwp *lwp_to_use = NULL;
+  if(process::IndependentLwpControl() && getRepresentativeLWP() == NULL)
+     lwp_to_use = getInitialThread()->get_lwp();
+  else
+     lwp_to_use = getRepresentativeLWP();
+
+  savedRegs = new dyn_saved_regs;
+  bool status = lwp_to_use->getRegisters(savedRegs);
+
+  assert((status!=false) && (savedRegs!=(void *)-1));
+   
+  //   Step 2.  decrement our local copy of the mutatee's stack pointer
+  savedRegs->gprs.gpr[1] -= STACKSKIP + sizeof(do_dlopen_struct);
+  do_dlopen_struct_addr = savedRegs->gprs.gpr[1];
+
+  //   Step 3.  restoreRegisters() to update mutatee's stack pointer
+  lwp_to_use->restoreRegisters(*savedRegs);
+
+  //   Step 4.  increment our local copy of the mutatee's stack pointer
+  //              back to its original value so that we properly restore
+  //              the mutatee's registers after the RT library is loaded
+  savedRegs->gprs.gpr[1] += STACKSKIP + sizeof(do_dlopen_struct);
+
+  //   Step 5.  writeDataSpace() to the stack our do_dlopen_struct
+  writeDataSpace((void *)(do_dlopen_struct_addr),
+                 sizeof(do_dlopen_struct), &do_dlopen_struct);
+
+
+  // Now back to generating code for the call to do_dlopen ...
 
   // Reported by SGI, during attach to a process in a system call:
 
@@ -935,122 +990,45 @@ assert(0);  //sunlung
   // And since we apparently execute at (addr - <width>), shift dlopen_call_addr  // up past the NOPs.
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
+  pdvector<AstNodePtr> dlopenAstArgs(1);                         //aix.C
+  AstNodePtr dlopenAst;                                          //aix.C
+  dlopenAstArgs[0] = AstNode::operandNode(AstNode::Constant,     //aix.C
+                                          (void*)do_dlopen_struct_addr);
+  dlopenAst = AstNode::funcCallNode(dlopen_func, dlopenAstArgs); //aix.C
 
-  // Since we are punching our way down to an internal function, we
-  // may run into problems due to stack execute protection. Basically,
-  // glibc knows that it needs to be able to execute on the stack in
-  // in order to load libraries with dl_open(). It has code in
-  // _dl_map_object_from_fd (the workhorse of dynamic library loading)
-  // that unprotects a global, exported variable (__stack_prot), sets
-  // the execute flag, and reprotects it. This only happens, however,
-  // when the higher-level dl_open() functions (which we skip) are called,
-  // as they append an undocumented flag to the library open mode. Otherwise,
-  // assignment to the variable happens without protection, which will
-  // cause a fault.
-  //
-  // Instead of chasing the value of the undocumented flag, we will
-  // unprotect the __stack_prot variable ourselves (if we can find it).
+  startup_printf("(%d): emitting call from 0x%x to 0x%x\n",
+                 getPid(), codeBase + scratchCodeBuffer.used(), dlopen_addr);
 
-  if(!( mprotect_call_addr = tryUnprotectStack(scratchCodeBuffer,codeBase) )) {
-    startup_printf("Failed to disable stack protection.\n");
-  }
-
-#if defined(arch_x86_64)
-  if (getAddressWidth() == 4) {
-#endif
-
-      // Push caller
-      // emitPushImm(dlopen_addr, scratchCodeBuffer);
-
-      // Push hole for result
-      // emitPushImm(0, scratchCodeBuffer);
-
-      // Push mode
-      // emitPushImm(DLOPEN_MODE, scratchCodeBuffer);
-
-      // Push string addr
-      // emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
-
-      // Push the addr of the struct: esp
-      // emitSimpleInsn(PUSHESP, scratchCodeBuffer);
-
-      startup_printf("(%d): emitting call from 0x%x to 0x%x\n",
-                     getPid(), codeBase + scratchCodeBuffer.used(), dlopen_addr);
-      instruction::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
-
-
-#if defined(arch_x86_64)
-  } else {
-
-      // Push caller
-      emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
-      emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
-
-      // Push hole for result
-      emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
-
-      // Push padding and mode
-      emitMovImmToReg64(REGNUM_EAX, DLOPEN_MODE, false, scratchCodeBuffer); // 32-bit mov: clears high dword
-      emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
-
-      // Push string addr
-      emitMovImmToReg64(REGNUM_RAX, dyninstlib_str_addr, true, scratchCodeBuffer);
-      emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
-
-      // Set up the argument: the current stack pointer
-      emitMovRegToReg64(REGNUM_RDI, REGNUM_RSP, true, scratchCodeBuffer);
-
-      // The call (must be done through a register in order to reach)
-      emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
-      emitSimpleInsn(0xff, scratchCodeBuffer); // group 5
-      emitSimpleInsn(0xd0, scratchCodeBuffer); // mod = 11, ext_op = 2 (call Ev), r/m = 0 (RAX)
-  }
-#endif
+  // We need to push down the stack before we call this  //aix.C
+  pushStack(scratchCodeBuffer);                          //aix.C
+  dlopenAst->generateCode(scratchCodeBuffer, true);      //aix.C
+  popStack(scratchCodeBuffer);                           //aix.C
 
   // And the break point
   dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
   instruction::generateTrap(scratchCodeBuffer);
 
-  if(mprotect_call_addr != 0) {
-    startup_printf("(%d) mprotect call addr at 0x%lx\n", getPid(), mprotect_call_addr);
-  }
-  startup_printf("(%d) dyninst lib string addr at 0x%x\n", getPid(), dyninstlib_str_addr);
-  startup_printf("(%d) dyninst lib call addr at 0x%x\n", getPid(), dlopen_call_addr);
-  startup_printf("(%d) break address is at %p\n", getPid(), (void *) dyninstlib_brk_addr);
+  startup_printf("(%d) dyninst lib string addr at 0x%x\n", getPid(),
+                                                           dyninstlib_str_addr);
+  startup_printf("(%d) dyninst lib call addr at 0x%x\n", getPid(),
+                                                         dlopen_call_addr);
+  startup_printf("(%d) break address is at %p\n", getPid(),
+                                                  (void *)dyninstlib_brk_addr);
   startup_printf("(%d) writing %d bytes\n", getPid(), scratchCodeBuffer.used());
+
   // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
   // We can tighten this up if we record how much we saved
 
-  if (!readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true))
+  if (!readDataSpace((void *)codeBase, sizeof(savedCodeBuffer),
+                     savedCodeBuffer, true))
          fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 
-  startup_printf("(%d) Writing from %p to %p\n", getPid(), (char *)scratchCodeBuffer.start_ptr(), (char *)codeBase);
-  writeDataSpace((void *)(codeBase), scratchCodeBuffer.used(), scratchCodeBuffer.start_ptr());
+  startup_printf("(%d) Writing from %p to %p\n", getPid(),
+                 (char *)scratchCodeBuffer.start_ptr(), (char *)codeBase);
+  writeDataSpace((void *)(codeBase), scratchCodeBuffer.used(),
+                 scratchCodeBuffer.start_ptr());
 
-  // save registers
-  dyn_lwp *lwp_to_use = NULL;
-  if(process::IndependentLwpControl() && getRepresentativeLWP() ==NULL)
-     lwp_to_use = getInitialThread()->get_lwp();
-  else
-     lwp_to_use = getRepresentativeLWP();
-
-  savedRegs = new dyn_saved_regs;
-  bool status = lwp_to_use->getRegisters(savedRegs);
-
-  assert((status!=false) && (savedRegs!=(void *)-1));
-
-  lwp_to_use = NULL;
-
-  if(process::IndependentLwpControl() && getRepresentativeLWP() ==NULL)
-     lwp_to_use = getInitialThread()->get_lwp();
-  else
-     lwp_to_use = getRepresentativeLWP();
-
-    Address destPC;
-    if(mprotect_call_addr != 0)
-        destPC = mprotect_call_addr;
-    else
-        destPC = dlopen_call_addr;
+  Address destPC = dlopen_call_addr;
 
   startup_printf("Changing PC to 0x%x\n", destPC);
   startup_printf("String at 0x%x\n", dyninstlib_str_addr);
@@ -1061,12 +1039,6 @@ assert(0);  //sunlung
       assert(0);
     }
 
-
-#if false && defined(PTRACEDEBUG)
-  debug_ptrace = false;
-#endif
-
-
   setBootstrapState(loadingRT_bs);
   return true;
 }
@@ -1075,7 +1047,7 @@ assert(0);  //sunlung
 
 Frame process::preStackWalkInit(Frame startFrame)
 {
-assert(0);  //sunlung
+#if 0  // Matt's DynStackwalker will replace this; "quick and dirty" for now
   /* Do a special check for the vsyscall page.  Silently drop
      the page if it exists. */
   calcVSyscallFrame( this );
@@ -1085,94 +1057,6 @@ assert(0);  //sunlung
       /* RH9 Hack */ (next_pc >= 0xffffe000 && next_pc < 0xfffff000)) {
      return startFrame.getCallerFrame();
   }
+#endif
   return startFrame;
 }
-
-
-Address process::tryUnprotectStack(codeGen &buf, Address codeBase) {
-assert(0);  //sunlung
-    // find variable __stack_prot
-
-    // mprotect READ/WRITE __stack_prot
-    pdvector<int_variable *> vars;
-    pdvector<int_function *> funcs;
-
-    Address var_addr;
-    Address func_addr;
-    Address ret_addr;
-    int size;
-    int pagesize;
-    int page_start;
-    bool ret;
-
-    ret = findVarsByAll("__stack_prot", vars);
-
-    if(!ret || vars.size() == 0) {
-        return 0;
-    } else if(vars.size() > 1) {
-        startup_printf("Warning: found more than one __stack_prot variable\n");
-    }
-
-    pagesize = getpagesize();
-
-    var_addr = vars[0]->getAddress();
-    page_start = var_addr & ~(pagesize -1);
-    size = var_addr - page_start +sizeof(int);
-
-    ret = findFuncsByAll("mprotect",funcs);
-
-    if(!ret || funcs.size() == 0) {
-        startup_printf("Couldn't find mprotect\n");
-        return 0;
-    }
-
-    int_function * mprot = funcs[0];
-    func_addr = mprot->getAddress();
-    ret_addr = codeBase + buf.used();
-
-#if defined(arch_x86_64)
-  if (getAddressWidth() == 4) {
-#endif
-      // Push caller
-      // emitPushImm(func_addr, buf);
-
-      // Push mode (READ|WRITE|EXECUTE)
-      // emitPushImm(7, buf);
-
-      // Push variable size
-      // emitPushImm(size, buf);
-
-      // Push variable location
-      // emitPushImm(page_start, buf);
-
-      startup_printf("(%d): emitting call for mprotect from 0x%x to 0x%x\n",
-                     getPid(), codeBase + buf.used(), func_addr);
-      instruction::generateCall(buf, buf.used() + codeBase, func_addr);
-#if defined(arch_x86_64)
-  } else {
-      // Push caller
-      emitMovImmToReg64(REGNUM_RAX, func_addr, true, buf);
-      emitSimpleInsn(0x50, buf); // push %rax
-
-      // Push mode (READ|WRITE|EXECUTE)
-      emitMovImmToReg64(REGNUM_EAX, 7, true, buf); //32-bit mov
-      emitSimpleInsn(0x50, buf); // push %rax
-
-      // Push variable size
-      emitMovImmToReg64(REGNUM_EAX, size, true, buf); //32-bit mov
-      emitSimpleInsn(0x50, buf); // push %rax
-
-      // Push variable location
-      emitMovImmToReg64(REGNUM_RAX, page_start, true, buf);
-      emitSimpleInsn(0x50, buf); // push %rax
-
-      // The call (must be done through a register in order to reach)
-      emitMovImmToReg64(REGNUM_RAX, func_addr, true, buf);
-      emitSimpleInsn(0xff, buf); // group 5
-      emitSimpleInsn(0xd0, buf); // mod=11, ext_op=2 (call Ev), r/m=0 (RAX)
-  }
-#endif
-
-    return ret_addr;
-}
-
