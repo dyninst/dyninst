@@ -433,8 +433,12 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
     if (!proc_->readDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE,
                          (void *)saved_, true))
                 fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-
+#if defined(arch_power)
+    codeGen gen(instruction::size());
+#else
+    // Need a "trap size" method...
     codeGen gen(1);
+#endif
     instruction::generateTrap(gen);
     proc_->writeDataSpace((void*)breakAddr_, gen.used(), gen.start_ptr());
     
@@ -868,6 +872,25 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
       if (! brk_lwp->changePC(ret_addr, NULL)) {
 	return false;
       }
+#elif defined(arch_power)
+      // The debug function looks like so:
+
+      // 0x4000c4d0 <_dl_debug_state+0>: stwu    r1,-32(r1)
+      // 0x4000c4d4 <_dl_debug_state+4>: addi    r1,r1,32
+      // 0x4000c4d8 <_dl_debug_state+8>: blr
+
+      // For now, to avoid a dependence on the size of the stack frame
+      // (which we can't tell) I'm going to instead fake an immediate return
+      // from the function - bernat, 3JUL07
+
+      dyn_saved_regs regs;
+      if (!brk_lwp->getRegisters(&regs))
+          return false;
+
+      Address retAddr = regs.gprs.link;
+      if (!brk_lwp->changePC(retAddr, NULL))
+          return false;
+
 #else   // ia64
       dyn_lwp *lwp_to_use = NULL;
       lwp_to_use = proc->getRepresentativeLWP();
