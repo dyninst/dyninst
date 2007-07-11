@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.h,v 1.2 2007/07/02 16:45:50 ssuen Exp $
+// $Id: linux-power.h,v 1.3 2007/07/11 17:58:21 ssuen Exp $
 
 #if !defined(os_linux) || !defined(arch_power)
 #error "invalid architecture-os inclusion"
@@ -63,12 +63,31 @@ struct dyn_saved_regs
    }              fprs;
 };
 
-inline Address region_lo(const Address /* x */) {
-   return 0x08000000;  // start of text
+
+#include "dyninstAPI/src/inst.h"
+
+// floor of inferior malloc address range within a single branch of x
+inline Address region_lo(const Address x) {
+   const Address floor = getpagesize();
+
+   assert(x >= floor);
+
+   if ((x > floor) && (x - floor > getMaxBranch()))
+      return x - getMaxBranch();
+
+   return floor;
 }
 
-inline Address region_hi(const Address /* x */) {
-   return (Address)0xc << (sizeof(Address) * 8 - 4);  // start of kernel
+// ceiling of inferior malloc address range within a single branch of x
+inline Address region_hi(const Address x) {
+   const Address ceiling = ~(Address)0;
+
+   assert(x < ceiling);
+ 
+   if ((x < ceiling) && (ceiling - x > getMaxBranch()))
+      return x + getMaxBranch();
+
+   return ceiling;
 }
 
 #endif
