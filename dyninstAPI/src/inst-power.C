@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.266 2007/07/02 18:31:03 bernat Exp $
+ * $Id: inst-power.C,v 1.267 2007/07/11 17:58:19 ssuen Exp $
  */
 
 #include "common/h/headers.h"
@@ -1994,11 +1994,13 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
                 break;
 
             case divOp:
-                //#if defined(_POWER_PC)
-                // xop = DIVWxop; // PowerPC 32 bit divide instruction
-                //#else 
-                instOp = DIVSop;   // Power divide instruction
-                instXop = DIVSxop;
+                instOp = DIVSop;   // POWER divide instruction
+                                   // Same as DIVWop for PowerPC
+#if defined(os_aix)                // Should use runtime CPU detection ...
+                instXop = DIVSxop; // POWER
+#else
+                instXop = DIVWxop; // PowerPC
+#endif
                 break;
 
             // Bool ops
