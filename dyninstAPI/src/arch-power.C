@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.14 2007/02/14 23:03:30 legendre Exp $
+ * $Id: arch-power.C,v 1.15 2007/07/11 17:58:17 ssuen Exp $
  */
 
 #include "common/h/Types.h"
@@ -618,9 +618,13 @@ bool instruction::generate(codeGen &gen,
           (*newInsn).bform.bd = (newOffset >> 2);
           newInsn.generate(gen);
       }
+#if defined(os_aix)
+    // I don't understand why this is here, so we'll allow relocation
+    // for Linux since it's a new port.
     } else if (insn_.iform.op == SVCop) {
         logLine("attempt to relocate a system call\n");
         assert(0);
+#endif
     } 
     else {
         generate(gen);
