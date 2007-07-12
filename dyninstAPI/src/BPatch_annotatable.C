@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_annotatable.C,v 1.3 2007/07/05 16:02:16 tugrul Exp $
+// $Id: BPatch_annotatable.C,v 1.4 2007/07/12 17:02:25 tugrul Exp $
 
 #include "BPatch_annotatable.h"
 #include "common/h/String.h"
@@ -47,16 +47,18 @@
 
 template<class T>
 BPatch_annotatable<T>::BPatch_annotatable() {
-  annotationTypes = (new dictionary_hash<pdstring, int>(pdstring::hash)); 
-  metadataTypes = (new dictionary_hash<pdstring, int>(pdstring::hash)); 
-  number = 0;
-  metadataNum = 0;
+  if(annotationTypes == NULL) {
+    annotationTypes = new dictionary_hash<pdstring, int>(pdstring::hash);
+    number = 0;
+  }
+  if(metadataTypes == NULL) {
+    metadataTypes = new dictionary_hash<pdstring, int>(pdstring::hash);
+    metadataNum = 0;
+  }
 }
 
 template<class T>
 BPatch_annotatable<T>::~BPatch_annotatable() {
-  delete annotationTypes;
-  delete metadataTypes;
   unsigned i,j;
   for(i=0; i<annotations.size(); i++) {
     BPatch_Vector<BPatch_annotation*>* list = annotations[i];
@@ -92,6 +94,10 @@ int BPatch_annotatable<T>::getAnnotationType(char* name) {
 template<class T>
 int BPatch_annotatable<T>::createMetadata(char* name) {
   pdstring n(name);
+  int num = getMetadata(name);
+  if(num != -1) {
+    return num;
+  }
   metadataTypes->set(n,metadataNum);
   metadataNum++;
   return metadataNum-1;
