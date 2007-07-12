@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.51 2006/11/10 16:28:46 bernat Exp $
+// $Id: arch-x86.h,v 1.52 2007/07/12 17:03:02 tugrul Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
 #include <common/h/Vector.h>
+#include "BPatch_annotatable.h"
 
 #if !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
@@ -720,14 +721,14 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 #define EXTENDED_0x81_XOR 6
 #define EXTENDED_0x81_CMP 7
 
-class instruction {
+class instruction: public BPatch_annotatable<instruction> {
  public:
     instruction(): type_(0), size_(0), ptr_(0), op_ptr_(0) {}
 
   instruction(const unsigned char *p, unsigned type, unsigned sz, const unsigned char* op = 0):
       type_(type), size_(sz), ptr_(p), op_ptr_(op ? op : p) {}
 
-  instruction(const instruction &insn) {
+  instruction(const instruction &insn): BPatch_annotatable<instruction>() {
     type_ = insn.type_;
     size_ = insn.size_;
     ptr_ = insn.ptr_;
