@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.70 2007/07/12 17:04:59 tugrul Exp $
+// $Id: templates2.C,v 1.71 2007/07/13 20:50:17 tugrul Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -200,8 +200,8 @@ template class dictionary_hash<pdstring, Statistic *>;
 template class dictionary_hash<pdstring, int>;
 
 template class BPatch_annotatable<instruction>;
-int BPatch_annotatable<instruction>::number;
-int BPatch_annotatable<instruction>::metadataNum;
-dictionary_hash<pdstring,int>* BPatch_annotatable<instruction>::annotationTypes;
-dictionary_hash<pdstring,int>* BPatch_annotatable<instruction>::metadataTypes;
+template <class T> int BPatch_annotatable<T>::number;
+template <class T> int BPatch_annotatable<T>::metadataNum;
+template <class T> dictionary_hash<pdstring,int>* BPatch_annotatable<T>::annotationTypes;
+template <class T> dictionary_hash<pdstring,int>* BPatch_annotatable<T>::metadataTypes;
 #endif
