@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.296 2007/06/15 21:30:11 nater Exp $
+ // $Id: symtab.C,v 1.297 2007/07/17 17:16:16 rutar Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +49,9 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
+
+#include "dyninstAPI/src/parRegion.h"
+
 #include <fstream>
 #include "dyninstAPI/src/util.h"
 #include "common/h/String.h"
@@ -183,8 +186,30 @@ image_func *image::makeOneFunction(vector<Dyn_Symbol *> &mods,
   image_func *func = new image_func(lookUp, 
                                     use, 
                                     this);
-  assert(func);
 
+  /* Among symbol table functions, the ones with @ in the name are most likely OpenMP functions,
+     if any non-OpenMP functions sneak in here we'll take care of them later when 
+     closer analysis is done */
+
+#if defined(os_solaris)
+  if(strstr(lookUp->getName().c_str(), "_$") != NULL){
+    //printf("**This is one of those OpenMP functions -- %s\n", lookUp->getName().c_str());
+    image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
+    parallelRegions.push_back(pR);
+  }
+#endif 
+  
+
+#if defined(os_aix)
+  if(strchr(lookUp->getName().c_str(), '@') != NULL){
+    printf("**This is one of those OpenMP functions -- %s\n", lookUp->getName().c_str());
+    image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
+    parallelRegions.push_back(pR);
+  } 
+#endif
+
+  assert(func);
+ 
   return func;
 }
 
@@ -670,6 +695,7 @@ bool image::addSymtabVariables()
           continue;
       }
 #endif
+
       image_variable *var;
       //bool addToPretty = false;
       if (varsByAddr.defines(symInfo->getAddr())) {
@@ -1081,7 +1107,7 @@ bool image::buildFunctionLists(pdvector <image_func *> &raw_funcs)
     for (unsigned j = 0; j < raw_funcs.size(); j++) {
         image_func *func = raw_funcs[j];
         if (!func) continue;
-        
+        	
         // May be NULL if it was an alias.
         enterFunctionInTables(func, true);
     }
@@ -1228,6 +1254,7 @@ image::image(fileDescriptor &desc, bool &err)
    	
    pdvector<image_func *> raw_funcs; 
 
+
    // define all of the functions, this also defines all of the modules
    if (!symbolsToFunctions(uniqMods, &raw_funcs)) {
        fprintf(stderr, "Error converting symbols to functions in file %s\n", desc.file().c_str());
@@ -1308,6 +1335,12 @@ image::~image()
     createdVariables.clear();
     exportedVariables.clear();
 
+   
+    for (i = 0; i < parallelRegions.size(); i++)
+      delete parallelRegions[i];
+    parallelRegions.clear();
+   
+    
     // Finally, remove us from the image list.
     for (i = 0; i < allImages.size(); i++) {
         if (allImages[i] == this)

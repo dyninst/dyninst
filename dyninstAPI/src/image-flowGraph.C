@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.32 2007/06/15 21:30:10 nater Exp $
+ * $Id: image-flowGraph.C,v 1.33 2007/07/17 17:16:15 rutar Exp $
  */
 
 #include <stdio.h>
@@ -52,6 +52,9 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
+
+#include "dyninstAPI/src/parRegion.h"
+
 #include <fstream>
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
@@ -99,6 +102,7 @@ bool image::analyzeImage()
  // Hold function stubs created during parsing
   dictionary_hash< Address, image_func * > preParseStubs( addrHash );
   image_func *pdf;
+  image_parRegion *parReg;
   pdmodule *mod = NULL;
 
   assert(parseState_ < analyzed);
@@ -126,19 +130,69 @@ bool image::analyzeImage()
     // these functions have not been added to the code range tree
     funcsByRange.insert(pdf);
   }      
- 
+
+
+  /* 
+     OPENMP PARSING CODE
+
+     For starters, we have all functions with some
+     sort of indentifier in the function name ('@' for Power),
+     designanting an outlined OpenMP Function.  This is contained in the
+     'parallelRegions' variable.  We then want to find out the parent function
+     for each of these regions, i.e. the function that sets all the parameters
+     for a given OpenMP function.  We need this parent function to gather
+     information about what kind of directive is associated with this outline
+     function and the clauses associated with that function
+  */
+
+  
+  int currentSectionNum = 0;
+
+  // Most of the time there will be no parallel regions in an image, so nothing will happen.
+  // If there is a parallel region we examine it individually 
+  for (unsigned i = 0; i < parallelRegions.size(); i++) 
+    {
+      parReg = parallelRegions[i];
+      if (parReg == NULL)
+	continue;
+      else
+	{
+	  // Every parallel region has the image_func that contains the
+	  //   region associated with it 
+	  image_func * imf = parReg->getAssociatedFunc();
+	  
+	  // Returns pointers to all potential image_funcs that correspond
+	  //   to what could be the parent OpenMP function for the region 
+	  const pdvector<image_func *> *prettyNames = 
+	    findFuncVectorByPretty(imf->calcParentFunc(imf, parallelRegions));
+	  
+	  //There may be more than one (or none) functions with that name, we take the first 
+	  // This function gives us all the information about the parallel region by getting
+	  // information for the parallel region parent function 
+	  if (prettyNames->size() > 0)
+	    imf->parseOMP(parReg, (*prettyNames)[0], currentSectionNum);
+	  else
+	    continue;
+	}
+    }
+  
+  
+  /**************************/
+  /* END OpenMP Parsing Code */
+  /**************************/
+  
   // callTargets now holds a big list of target addresses; some are already
   // in functions that we know about, some point to new functions. 
-    while(callTargets.size() > 0)
+  while(callTargets.size() > 0)
     {
-        // parse any new functions entered at addresses in callTargets
-        parseStaticCallTargets( callTargets, new_targets, preParseStubs );
-        callTargets.clear();
+      // parse any new functions entered at addresses in callTargets
+      parseStaticCallTargets( callTargets, new_targets, preParseStubs );
+      callTargets.clear();
       
-        VECTOR_APPEND(callTargets,new_targets); 
-        new_targets.clear();
+      VECTOR_APPEND(callTargets,new_targets); 
+      new_targets.clear();
     }
-
+  
 #if defined(cap_stripped_binaries)
 
     // TODO: This algorithm doesn't handle the gap (if any)
@@ -379,7 +433,8 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
             
             if(parseFunction(pdf,newTargets,preParseStubs))
             {
-                parsing_printf(" ***** Adding %s (0x%lx) to tables\n",
+
+	      parsing_printf(" ***** Adding %s (0x%lx) to tables\n",
                     pdf->symTabName().c_str(),pdf->getOffset());
 
                 enterFunctionInTables(pdf,false);
@@ -421,6 +476,8 @@ bool image::parseFunction(image_func* pdf, pdvector< Address >& callTargets,
     return ret;
 }
 
+
+
 /* parse is responsible for initiating parsing of a function. instPoints
  * and image_basicBlocks are created at this level.
  *
@@ -435,8 +492,6 @@ bool image_func::parse(
         dictionary_hash< Address, image_func *>& preParseStubs)
 {
     pdvector< image_basicBlock * > entryBlocks_;
-
-    parsing_printf("%s: initiating parsing\n", symTabName().c_str());
 
     if(parsed_)
     {
@@ -1164,6 +1219,8 @@ bool image_func::buildCFG(
 
                 parsing_printf("... 0x%lx is a call\n", currAddr);
                
+		
+
                 //validTarget is set to false if the call target is not a 
                 //valid address in the applications process space 
                 bool validTarget = true;
@@ -1177,91 +1234,97 @@ bool image_func::buildCFG(
                 // XXX move this out of archIsRealCall protection... safe?
                 bool isAbsolute = false;
                 Address target = ah.getBranchTargetAddress(&isAbsolute);
-                if ( archIsRealCall(ah, validTarget, simulateJump) )
-                {
+
+		if ( archIsRealCall(ah, validTarget, simulateJump) )
+		  {
                     if (ah.isADynamicCallInstruction()) {
-                        p = new image_instPoint( currAddr,
-                                                 ah.getInstruction(),
-                                                 this,
-                                                 0,
-                                                 true);
+		      p = new image_instPoint( currAddr,
+					       ah.getInstruction(),
+					       this,
+					       0,
+					       true);
                     }
                     else {
-                        p = new image_instPoint( currAddr,
-                                                 ah.getInstruction(),
-                                                 this,
-                                                 target,
-                                                 false,
-                                                 isAbsolute);
-
-                        targetFunc = bindCallTarget(target,currBlk,callTargets,
-                                       preParseStubs);
+		      p = new image_instPoint( currAddr,
+					       ah.getInstruction(),
+					       this,
+					       target,
+					       false,
+					       isAbsolute);
+		      
+		      targetFunc = bindCallTarget(target,currBlk,callTargets,
+						  preParseStubs);
                     }
                     calls.push_back( p );
                     currBlk->containsCall_ = true;
-
-                } // real call
+		    
+		  } // real call
                 else
-                {
+		  {
                     parsing_printf(" ! call at 0x%lx rejected by isRealCall()\n",
-                                    currAddr);
+				   currAddr);
                     if( validTarget == false )
-                    {
+		      {
                         parsing_printf("... invalid call target\n");
                         currBlk->canBeRelocated_ = false;
                         canBeRelocated_ = false;
-                    }
+		      }
                     else if( simulateJump )
-                    {
+		      {
                         addBasicBlock(target,
-                                  currBlk,
-                                  leaders,
-                                  leadersToBlock,
-                                  ET_DIRECT,
-                                  worklist,
-                                  visited);
-                    }
-                }
-
-		        if (ah.isDelaySlot()) {
-		            // Delay slots get skipped; effectively pinned to 
-                    // the prev. insn.
-		            ah++;
-		        }
-
-                if(targetFunc && (targetFunc->symTabName() == "exit" ||
+				      currBlk,
+				      leaders,
+				      leadersToBlock,
+				      ET_DIRECT,
+				      worklist,
+				      visited);
+		      }
+		  }
+		
+		if (ah.isDelaySlot()) {
+		  // Delay slots get skipped; effectively pinned to 
+		  // the prev. insn.
+		  ah++;
+		}
+		
+		//printf("Call to %s (%x) detected at 0x%x\n",
+		//     targetFunc->symTabName().c_str(),
+		//     target, currAddr);
+		
+		
+		if(targetFunc && (targetFunc->symTabName() == "exit" ||
                                   targetFunc->symTabName() == "abort" ||
                                   targetFunc->symTabName() == "__f90_stop"))
-                { 
+		  { 
                     parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
-                                    targetFunc->symTabName().c_str(),
-                                    target, currAddr);
-                }
+				   targetFunc->symTabName().c_str(),
+				   target, currAddr);
+		  }
                 else if(pltFuncs[target] == "exit" || 
                         pltFuncs[target] == "abort" ||
                         pltFuncs[target] == "__f90_stop")
-                {
+		  {
                     parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
-                                    pltFuncs[target].c_str(),
-                                    target, currAddr);
-                }
+				   pltFuncs[target].c_str(),
+				   target, currAddr);
+		  }
                 else if(!simulateJump)
-                {
+		  {
                     // we don't wire up a fallthrough edge if we're treating
                     // the call insruction as an unconditional branch
                     Address next = ah.peekNext();
                     addBasicBlock(next,
-                                currBlk,
-                                leaders,
-                                leadersToBlock,
-                                ET_FUNLINK,
-                                worklist,
-                                visited);
-                }
+				  currBlk,
+				  leaders,
+				  leadersToBlock,
+				  ET_FUNLINK,
+				  worklist,
+				  visited);
+		  }
                 break;
             }
             else if( ah.isALeaveInstruction() )
-            {
+	      {
                 noStackFrame = false;
             }
             else if( archIsAbortOrInvalid(ah) )

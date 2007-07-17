@@ -51,6 +51,7 @@
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_process.h"
+#include "BPatch_parRegion.h"
 
 #include <vector>
 
@@ -140,6 +141,15 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
     BPatch_Vector<BPatch_function *> *,
     getProcedures,(bool incUninstrumentable = false));
+
+    //  BPatch_image::getParRegions
+    //  
+    //  Returns a list of all procedures in the image upon success,
+    //  NULL upon failure
+    API_EXPORT(Int, (incUninstrumentable),
+
+    BPatch_Vector<BPatch_parRegion *> *,
+    getParRegions,(bool incUninstrumentable = false));
 
     //  BPatch_image::getModules
     //  

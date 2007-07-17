@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.196 2007/02/14 23:03:41 legendre Exp $
+// $Id: symtab.h,v 1.197 2007/07/17 17:16:16 rutar Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -100,6 +100,9 @@ class image;
 class lineTable;
 class image_func;
 class image_variable;
+
+class image_parRegion;
+
 class Frame;
 class ExceptionBlock;
 
@@ -565,6 +568,10 @@ class image : public codeRange {
    pdvector<image_variable *> everyUniqueVariable;
    pdvector<image_variable *> createdVariables;
    pdvector<image_variable *> exportedVariables;
+
+   // This contains all parallel regions on the image
+   // These line up with the code generated to support OpenMP, UPC, Titanium, ...
+   pdvector<image_parRegion *> parallelRegions;
 
    // The following were added to support parsing
    // (nater) 13.Oct.05

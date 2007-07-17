@@ -167,6 +167,17 @@ InstrucIter::InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
     initializeInsn();
 }
 
+InstrucIter::InstrucIter( CONST_EXPORT BPatch_parRegion* bpParRegion) :
+  proc_(bpParRegion->lowlevel_region()->intFunc()->proc()),  
+  img_(NULL),
+  base(bpParRegion->getStartAddress()),
+  range(bpParRegion->size()),
+  current(base) {
+  assert(current >= base);
+  assert(current < base+range);
+  initializeInsn();
+}
+
 InstrucIter::InstrucIter( int_basicBlock *ibb) :
     proc_(ibb->proc()),
     img_(NULL),
@@ -245,6 +256,20 @@ InstrucIter::InstrucIter(Address current, image_func *func) :
     img_(func->img()),
     base(func->getOffset()),
     range(func->get_size_cr()), // Probably in the middle of
+    // parsing, so calling getSize is
+    // a bad idea as it may
+    // trigger... parsing.
+    current(current) {
+    assert(current >= base);
+    initializeInsn();
+}
+
+// Used in parsing -- relative addrs
+InstrucIter::InstrucIter(Address current, image_parRegion *parR) :
+    proc_(NULL),
+    img_(parR->getAssociatedFunc()->img()),
+    base(parR->firstInsnOffset()),
+    range(parR->get_size_cr()), // Probably in the middle of
     // parsing, so calling getSize is
     // a bad idea as it may
     // trigger... parsing.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.27 2007/06/13 18:50:48 bernat Exp $
+// $Id: image-func.h,v 1.28 2007/07/17 17:16:15 rutar Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -50,6 +50,7 @@
 #include "common/h/Pair.h"
 #include "codeRange.h"
 #include "arch.h" // instruction
+#include "parRegion.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "common/h/Dictionary.h"
 #include "symtabAPI/h/Dyn_Symbol.h"
@@ -423,8 +424,12 @@ class image_func : public codeRange {
                       dictionary_hash< Address, image_func *>& preParseStubs);
 
    bool isTrapFunc() const {return isTrap;}
+
+   const pdvector<image_parRegion*> &parRegions();
+
    bool isInstrumentable() const { return instLevel_ != UNINSTRUMENTABLE; }
    InstrumentableLevel instLevel() const { return instLevel_; }
+
 
    void addCallInstPoint(image_instPoint *p);
    void addExitInstPoint(image_instPoint *p);
@@ -480,6 +485,16 @@ class image_func : public codeRange {
 
    image_basicBlock * entryBlock();
 
+   /****** OpenMP Parsing Functions *******/
+   pdstring calcParentFunc(const image_func * imf, pdvector<image_parRegion *> & pR);
+   void parseOMP(image_parRegion * parReg, image_func * parentFunc, int & currentSectionNum);
+   void parseOMPSectFunc(image_func * parentFunc);
+   void parseOMPFunc(bool hasLoop);
+   bool parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum);
+   void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
+   bool OMPparsed() { return OMPparsed_; }
+   /****************************************/
+
    bool parsed() { return parsed_; }
 
    // Not completely implemented, and so commented out.
@@ -512,6 +527,7 @@ class image_func : public codeRange {
    pdmodule *mod_;		/* pointer to file that defines func. */
    image *image_;
    bool parsed_;                /* Set to true in findInstPoints */
+   bool OMPparsed_;              /* Set true in parseOMPFunc */
    bool cleansOwnStack_;
 
    /////  Variables for liveness Analysis
@@ -559,7 +575,13 @@ class image_func : public codeRange {
                                                    (often not addr) */
    pdvector<image_instPoint*> funcReturns;	/* return point(s). */
    pdvector<image_instPoint*> calls;		/* pointer to the calls */
-   
+
+   //  OpenMP (and other parallel language) support
+   pdvector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
+   // End OpenMP support
+
+
+
    bool isTrap; 		// true if function contains a trap instruct
    InstrumentableLevel instLevel_;   // the degree of freedom we have in
                                     // instrumenting the function

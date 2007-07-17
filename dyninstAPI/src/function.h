@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.37 2007/06/20 20:49:40 ssuen Exp $
+// $Id: function.h,v 1.38 2007/07/17 17:16:15 rutar Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -482,6 +482,9 @@ class int_function {
    // Misc
    ////////////////////////////////////////////////
 
+
+   const pdvector< int_parRegion* > &parRegions() { return parallelRegions_; }
+
    bool containsSharedBlocks() const { return ifunc_->containsSharedBlocks(); }
 
    unsigned getNumDynamicCalls();
@@ -591,6 +594,10 @@ class int_function {
    pdvector<instPoint*> arbitraryPoints_;	       /* pointer to the calls */
 
    dictionary_hash<Address, instPoint *> instPsByAddr_;
+
+   //////////////////////////  Parallel Regions 
+   pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
+
 
 #if defined(cap_relocation)
    // Status tracking variables

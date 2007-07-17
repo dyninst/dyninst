@@ -451,6 +451,22 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\BPatch_parRegion.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="TRUE"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\BPatch_point.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -1070,6 +1086,21 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\parRegion.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\common\src\pathName.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -1436,6 +1467,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\BPatch_module.h">
 			</File>
 			<File
+				RelativePath=".\h\BPatch_parRegion.h">
+			</File>
+			<File
 				RelativePath=".\h\BPatch_point.h">
 			</File>
 			<File
@@ -1584,6 +1618,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath="..\common\h\Pair.h">
+			</File>
+			<File
+				RelativePath=".\src\parRegion.h">
 			</File>
 			<File
 				RelativePath="..\common\h\pathName.h">

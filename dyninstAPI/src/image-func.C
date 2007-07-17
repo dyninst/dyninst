@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.44 2007/06/13 18:50:47 bernat Exp $
+// $Id: image-func.C,v 1.45 2007/07/17 17:16:15 rutar Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -127,6 +127,7 @@ image_func::image_func(const pdstring &symbol,
   mod_(m),
   image_(i),
   parsed_(false),
+  OMPparsed_(false),
   cleansOwnStack_(false),
   usedRegisters(NULL),
   containsFPRWrites_(unknown),
@@ -393,9 +394,15 @@ const pdvector<image_instPoint*> &image_func::funcCalls() {
 }
 
 const pdvector<image_basicBlock *> &image_func::blocks() {
-    if (!parsed_) image_->analyzeIfNeeded();
-    return blockList;
+  if (!parsed_) image_->analyzeIfNeeded();
+  return blockList;
 }
+
+const pdvector<image_parRegion *> &image_func::parRegions() {
+  if (!parsed_) image_->analyzeIfNeeded();
+  return parRegionsList;
+}
+
 
 bool image_func::hasNoStackFrame() { 
     if (!parsed_) image_->analyzeIfNeeded();

@@ -46,6 +46,7 @@
 #include "BPatch_point.h"
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_function.h"
+#include "BPatch_parRegion.h"
 #include "function.h"
 
 class InstrucIter;
@@ -154,6 +155,8 @@ class InstrucIter {
     InstrucIter (Address start, image_func *func);
     InstrucIter (image_func *func );
 
+    InstrucIter (Address start, image_parRegion *parR);
+
     InstrucIter (image_basicBlock *b);
     
     /* Iterate over a function... this goes linearly, which is probably a bad idea */
@@ -165,6 +168,8 @@ class InstrucIter {
     InstrucIter(bblInstance *b);
         
     InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock);
+
+    InstrucIter( CONST_EXPORT BPatch_parRegion* bpParRegion);
 
     InstrucIter (int_basicBlock *ibb);
 
@@ -297,7 +302,23 @@ class InstrucIter {
   unsigned getFRAValue();
   unsigned getFRBValue();
   unsigned getFRCValue();
+  signed getDFormDValue();
+
+  bool isClauseInstruction();
+  bool isRegConstantAssignment(int * regArray, Address *);
+
+  bool isACondBDZInstruction();
+  bool isACondBDNInstruction();
+
   /* END Power only */
+
+  /* Sparc Only */
+  bool isAOMPDoFor();
+  bool isTstInsn();
+  bool isACondBLEInstruction();
+
+  /* END Sparc Only */
+
 
   // Thought: since we check, we can probably get the data for
   // free.

@@ -67,6 +67,51 @@ void InstrucIter::printOpCode()
   printf("OpCode num %d",(*i).xlform.op);
 }
 
+bool InstrucIter::isRegConstantAssignment(int * regArray, Address * regWL)
+{
+  const instruction i = getInstruction();
+  int regNum = (*i).dform.rt;
+  
+
+  if (isA_RT_WriteInstruction() || isA_RA_WriteInstruction())
+    {
+      if (regNum >=3 && regNum <= 10)
+	regWL[regNum] = current;
+    }
+  
+  // int regNum = (*i).dform.rt;
+  if((*i).xlform.op == 14 && (*i).dform.ra == 0 
+     && regNum >= 3 && regNum <= 10)
+    {
+      regArray[regNum]  = (*i).dform.d_or_si;
+      //if(regNum == 8)
+      //printf("Value for reg 8 is %d\n",regArray[regNum]);
+      
+      return true;
+    }
+  else
+    return false;
+}
+
+
+bool InstrucIter::isClauseInstruction()
+{
+  const instruction i = getInstruction();
+  if((*i).xlform.op == 14 && (*i).dform.rt == 3 && (*i).dform.ra == 0)
+    {
+      printf("Clause value is %d\n", (*i).dform.d_or_si);
+      return true;
+    }
+  else
+    return false;
+}
+
+signed InstrucIter::getDFormDValue()
+{
+  const instruction i = getInstruction();
+  return (*i).dform.d_or_si;
+}
+
 /* Returns the value of the RT Register */
 unsigned InstrucIter::getRTValue(void)
 {
@@ -686,11 +731,33 @@ bool InstrucIter::isAIndirectJumpInstruction()
 bool InstrucIter::isACondBranchInstruction()
 {
   const instruction i = getInstruction();
-	if(((*i).bform.op == BCop) && !(*i).bform.lk &&
-	   !(((*i).bform.bo & 0x10) && ((*i).bform.bo & 0x4)))
-		return true;
-	return false;
+  if(((*i).bform.op == BCop) && !(*i).bform.lk &&
+     !(((*i).bform.bo & 0x10) && ((*i).bform.bo & 0x4)))
+    return true;
+  return false;
 }
+
+bool InstrucIter::isACondBDZInstruction()
+{
+  const instruction i = getInstruction();
+  if( (*i).bform.op == BCop  && !(*i).bform.lk &&
+      ( (*i).bform.bo == 18 || (*i).bform.bo == 19 ||
+	(*i).bform.bo == 26 || (*i).bform.bo == 27 ) ) 
+    return true;
+  return false;
+}
+
+bool InstrucIter::isACondBDNInstruction()
+{
+  const instruction i = getInstruction();
+  if( (*i).bform.op == BCop  && !(*i).bform.lk &&
+      ( (*i).bform.bo == 16 || (*i).bform.bo == 17 ||
+	(*i).bform.bo == 24 || (*i).bform.bo == 25 ) ) 
+    return true;
+  return false;
+}
+
+
 /** is the instruction an unconditional branch instruction 
   * @param i the instruction value 
   */

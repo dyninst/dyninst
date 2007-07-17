@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.95 2007/01/18 07:53:47 jaw Exp $
+// $Id: BPatch_image.C,v 1.96 2007/07/17 17:16:15 rutar Exp $
 
 #define BPATCH_FILE
 
@@ -50,6 +50,7 @@
 #include "process.h"
 #include "instPoint.h"
 #include "instP.h"
+#include "function.h"
 
 #include "mapped_module.h"
 #include "mapped_object.h"
@@ -188,6 +189,29 @@ BPatch_Vector<BPatch_function *> *BPatch_image::getProceduresInt(bool incUninstr
 }
 
 
+BPatch_Vector<BPatch_parRegion *> *BPatch_image::getParRegionsInt(bool incUninstrumentable)
+{
+  BPatch_Vector<BPatch_parRegion *> *parRegionList = 
+    new BPatch_Vector<BPatch_parRegion *>;
+
+  if (parRegionList == NULL) return NULL;
+  
+  BPatch_Vector<BPatch_function *> *procList = getProcedures(incUninstrumentable);
+  
+  for (unsigned int i=0; i < (unsigned) procList->size(); i++) {
+    int_function * intF = (*procList)[i]->lowlevel_func();
+    const pdvector<int_parRegion *> intPR = intF->parRegions();
+   
+    for (unsigned int j=0; j < (unsigned) intPR.size(); j++)
+      {
+	BPatch_parRegion * pR = new BPatch_parRegion(intPR[j], (*procList)[i]);
+	parRegionList->push_back(pR);
+      }
+  }
+  
+  return parRegionList;
+}
+
 BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const char *name)
 {
     Dyn_Symbol syminfo;
@@ -260,7 +284,9 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariablesInt()
 	    pdstring name = keys[j];
 	    var = createVarExprByName(module, name.c_str());
             if (var != NULL)
+	      {
                 varlist->push_back(var);
+	      }
 	}
     }
 

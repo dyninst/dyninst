@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.6 2007/05/30 19:20:51 legendre Exp $
+// $Id: Object-xcoff.C,v 1.7 2007/07/17 17:16:58 rutar Exp $
 
 #include <regex.h>
 
@@ -1039,6 +1039,12 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
        // AIX linkage code appears as a function. Since we don't remove it from
        // the whereaxis yet, I append a _linkage tag to each so that they don't
        // appear as duplicate functions
+
+       // 2/07 rutar - There are some good usages for having the _linkage functions
+       // appear (such as distinguishing program information by the names of 
+       // functions being callsed so I put these functions back in the mix ...
+       // the name "_linkage" is appended so that the difference is noted
+       
        // Template for linkage functions:
        // l      r12,<offset>(r2) // address of call into R12
        // st     r2,20(r1)        // Store old TOC on the stack
@@ -1060,7 +1066,14 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
                 (lr0.dform.op == Lop) && (lr0.dform.rt == 0) &&
                 (lr0.dform.ra == 1 || lr0.dform.ra == 12) &&
                (bctr.xlform.op == BCLRop) && (bctr.xlform.xo == BCCTRxop))
-               continue;
+	     {
+	       int sourceSize = strlen(name.c_str());
+	       char tempLinkName[sourceSize + 9];
+	       memset(tempLinkName, 0, sourceSize+8);
+	       strncpy(tempLinkName, name.c_str(),sourceSize);
+	       strcat(tempLinkName,"_linkage"); 
+	       name = string(tempLinkName);
+	     }
        }
 
        /*giri: Dyninst related. Moved there.

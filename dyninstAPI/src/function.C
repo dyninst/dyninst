@@ -93,11 +93,18 @@ int_function::int_function(image_func *f,
 #endif
     
 
-   //printf("Function offset: 0x%x; base: 0x%x\n",
-    //f->getOffset(), baseAddr);
     addr_ = f->getOffset() + baseAddr;
-    //printf("%s: creating new proc-specific function at 0x%lx\n",
-    //               symTabName().c_str(), addr_);
+
+    parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
+                   symTabName().c_str(), addr_);
+
+    for (unsigned int i = 0; i < f->parRegions().size(); i++)
+      {
+	image_parRegion * imPR = f->parRegions()[i];
+	int_parRegion * iPR = new int_parRegion(imPR, baseAddr, this); 
+	parallelRegions_.push_back(iPR);
+      }
+    
     // We delay the creation of instPoints until they are requested;
     // this saves memory, and really, until something is asked for we
     // don't need it.  TODO: creation of an arbitrary instPoint should
@@ -186,6 +193,10 @@ int_function::~int_function() {
         delete enlargeMods_[i];
     enlargeMods_.zap();
 #endif
+    
+    for (unsigned i = 0; i < parallelRegions_.size(); i++)
+      delete parallelRegions_[i];
+      
 }
 
 #if defined( arch_ia64 )

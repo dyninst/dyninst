@@ -73,6 +73,19 @@ bool InstrucIter::isAReturnInstruction()
   return false;
 }
 
+/* The setup functions for works sharing either do a MOV
+   with 0x101 (Section) or 0x100 (Do/for) */
+bool InstrucIter::isAOMPDoFor()
+{
+  const instruction i = getInstruction();
+  
+  if ( ((*i).resti.op3 == 2) &&  ((*i).resti.simm13 == 0x100))
+    return true;
+  else
+    return false;
+}
+
+
 /** is the instruction used to return from the functions,
     dependent upon a condition register
   * @param i the instruction value 
@@ -113,13 +126,26 @@ bool InstrucIter::isACondBranchInstruction()
     return true;
   return false;
 }
+
+
+// Use for diagnosing a loop body in OpenMP
+bool InstrucIter::isACondBLEInstruction()
+{
+  const instruction i = getInstruction();
+  
+  if(((*i).branch.op == 0) &&
+     ((*i).branch.op2 == 2 && (*i).branch.cond == 2))
+    return true;
+  return false;
+}
+
 /** is the instruction an unconditional branch instruction 
-  * @param i the instruction value 
+ * @param i the instruction value 
   */
 bool InstrucIter::isAJumpInstruction()
 {
   const instruction i = getInstruction();
-
+  
   if(((*i).branch.op == 0) &&
      ((*i).branch.op2 == 2 || (*i).branch.op2 == 6) &&
      ((*i).branch.cond == 8))
@@ -132,7 +158,7 @@ bool InstrucIter::isAJumpInstruction()
 bool InstrucIter::isACallInstruction()
 {
   const instruction i = getInstruction();
-
+  
   if((*i).call.op == 0x1)
     return true;
   return false;
@@ -514,6 +540,14 @@ void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
     delete agg;
     agg = NULL;
     return;
+}
+
+bool InstrucIter::isTstInsn()
+{
+    const instruction i = getInstruction();
+
+  if ((*i).resti.op3 == 18)
+    return true;
 }
 
 bool InstrucIter::isDelaySlot()
