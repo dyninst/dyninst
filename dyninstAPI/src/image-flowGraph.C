@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.33 2007/07/17 17:16:15 rutar Exp $
+ * $Id: image-flowGraph.C,v 1.34 2007/07/17 21:11:47 rutar Exp $
  */
 
 #include <stdio.h>
@@ -145,7 +145,8 @@ bool image::analyzeImage()
      function and the clauses associated with that function
   */
 
-  
+#if defined(os_solaris) || defined(os_aix)
+
   int currentSectionNum = 0;
 
   // Most of the time there will be no parallel regions in an image, so nothing will happen.
@@ -175,12 +176,13 @@ bool image::analyzeImage()
 	    continue;
 	}
     }
-  
-  
+    
   /**************************/
   /* END OpenMP Parsing Code */
   /**************************/
   
+#endif 
+
   // callTargets now holds a big list of target addresses; some are already
   // in functions that we know about, some point to new functions. 
   while(callTargets.size() > 0)
