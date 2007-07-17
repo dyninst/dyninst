@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.267 2007/07/11 17:58:19 ssuen Exp $
+ * $Id: inst-power.C,v 1.268 2007/07/17 17:11:25 ssuen Exp $
  */
 
 #include "common/h/headers.h"
@@ -2513,13 +2513,46 @@ bool process::replaceFunctionCall(instPoint *point,
 // warnings. They are copied below.
 // opCode op, codeGen &gen, const int_function *callee, process *proc
 
-void emitFuncJump(opCode, 
-                  codeGen & /* gen */,
-		  const int_function * /*unused*/, process *,
-		  const instPoint *, bool)
+void emitFuncJump(opCode              op, 
+                  codeGen            &gen,
+                  const int_function *func,
+                  process            *proc,
+                  const instPoint    *point, bool)
 {
-     /* Unimplemented on this platform! */
-     assert(0);
+
+    // Performs the following steps:
+    // 1) Unwinds the base tramp that we're in; equivalent to generateRestores.
+    // 2) Generates a jump to a new function. We don't call, since we're 
+    //    not planning on returning to where we are. 
+
+    assert (op == funcJumpOp);
+    assert (point);
+
+    // Leave base tramp. Functional equivalent of baseTramp::generateRestores.
+    // Assume we're pre-tramp instrumentation for the instPoint...
+    baseTramp *tramp = point->preBaseTramp();
+    if (!tramp) {
+        tramp = point->postBaseTramp();
+    }
+    if (!tramp) {
+        tramp = point->targetBaseTramp();
+    }
+
+    // Better have one by now...
+    assert(tramp);
+    
+    // Generate restores
+    // Good thing for us the registerSpace isn't used. Because we don't 
+    // have one (???)
+    tramp->generateRestores(gen, NULL);
+    
+    Address fromAddr = gen.currAddr();
+    Address toAddr = func->getAddress();
+
+    instruction::generateInterFunctionBranch(gen,
+                                             fromAddr,
+                                             toAddr);
+    return;
 }
 
 // atch AIX register numbering (sys/reg.h)
@@ -2645,7 +2678,9 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    return true;
 #else
-   assert(0); //sunlung
+   // copied from inst-x86.C
+   Address val_to_write = f->getAddress();
+   return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
 #endif
 }
 
