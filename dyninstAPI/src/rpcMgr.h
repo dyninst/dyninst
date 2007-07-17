@@ -110,6 +110,7 @@ class inferiorRPCinProgress : public codeRange {
         savedRegs(NULL),
         origPC(0),
         runProcWhenDone(false),
+        rpcBaseAddr(0),
         rpcStartAddr(0),
         rpcResultAddr(0),
         rpcContPostResultAddr(0),
@@ -130,7 +131,8 @@ class inferiorRPCinProgress : public codeRange {
     struct dyn_saved_regs *savedRegs;
     Address origPC;
     bool runProcWhenDone;
-  
+
+    Address rpcBaseAddr;
     Address rpcStartAddr;
     Address rpcResultAddr;
     Address rpcContPostResultAddr;
@@ -398,7 +400,9 @@ class rpcMgr {
 
    // Create the body of the IRPC
    Address createRPCImage(AstNodePtr action, bool noCost,
-                          bool shouldStopForResult, Address &breakAddr,
+                          bool shouldStopForResult, 
+                          Address &startAddr,
+                          Address &breakAddr,
                           Address &stopForResultAddr,
                           Address &justAfter_stopForResultAddr,
                           Register &resultReg, bool lowmem, 

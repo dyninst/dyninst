@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.4 2007/07/11 17:58:20 ssuen Exp $
+// $Id: linux-power.C,v 1.5 2007/07/17 17:11:26 ssuen Exp $
 
 #include <dlfcn.h>
 
@@ -761,8 +761,10 @@ bool process::loadDYNINSTlib_exported()
     registerSpace *dlopenRegSpace = registerSpace::savedRegSpace(this);//aix.C
     scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);                //aix.C
 
+#if defined(bug_syscall_changepc_rewind)
     //Fill in with NOPs, see loadDYNINSTlib_hidden
     scratchCodeBuffer.fill(getAddressWidth(), codeGen::cgNOP);
+#endif
 
     // Now the real code
     dlopen_call_addr = codeBase + scratchCodeBuffer.used();
@@ -973,6 +975,7 @@ bool process::loadDYNINSTlib_hidden() {
 
   // Now back to generating code for the call to do_dlopen ...
 
+#if defined(bug_syscall_changepc_rewind)
   // Reported by SGI, during attach to a process in a system call:
 
   // Insert eight NOP instructions before the actual call to dlopen(). Loading
@@ -985,9 +988,11 @@ bool process::loadDYNINSTlib_hidden() {
 
   // We will put in <addr width> rather than always 8; this will be 4 on x86 and  // 32-bit AMD64, and 8 on 64-bit AMD64.
 
-  scratchCodeBuffer.fill(getAddressWidth(),
-                         codeGen::cgNOP);
+  scratchCodeBuffer.fill(getAddressWidth(), codeGen::cgNOP);
+
   // And since we apparently execute at (addr - <width>), shift dlopen_call_addr  // up past the NOPs.
+#endif
+
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
   pdvector<AstNodePtr> dlopenAstArgs(1);                         //aix.C

@@ -93,6 +93,7 @@ rpcLWP::rpcLWP(rpcLWP *parL, rpcMgr *cM, dyn_lwp *cL) :
         else newProg->savedRegs = NULL;
         newProg->origPC = oldProg->origPC;
         newProg->runProcWhenDone = oldProg->runProcWhenDone;
+        newProg->rpcBaseAddr = oldProg->rpcBaseAddr;
         newProg->rpcStartAddr = oldProg->rpcStartAddr;
         newProg->rpcResultAddr = oldProg->rpcResultAddr;
         newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
@@ -133,6 +134,7 @@ rpcLWP::rpcLWP(rpcLWP *parL, rpcMgr *cM, dyn_lwp *cL) :
         else newProg->savedRegs = NULL;
         newProg->origPC = oldProg->origPC;
         newProg->runProcWhenDone = oldProg->runProcWhenDone;
+        newProg->rpcBaseAddr = oldProg->rpcBaseAddr;
         newProg->rpcStartAddr = oldProg->rpcStartAddr;
         newProg->rpcResultAddr = oldProg->rpcResultAddr;
         newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
@@ -284,17 +286,18 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
 
     mgr_->addRunningRPC(runningRPC_);
 
-    runningRPC_->rpcStartAddr =
+    runningRPC_->rpcBaseAddr =
     mgr_->createRPCImage(runningRPC_->rpc->action, // AST tree
                          runningRPC_->rpc->noCost,
                          (runningRPC_->rpc->callbackFunc != NULL), // Callback?
+                         runningRPC_->rpcStartAddr,
                          runningRPC_->rpcCompletionAddr, // Fills in 
                          runningRPC_->rpcResultAddr,
                          runningRPC_->rpcContPostResultAddr,
                          runningRPC_->resultRegister,
                          runningRPC_->rpc->lowmem, 
                          NULL, lwp_); // Where to allocate
-    if (!runningRPC_->rpcStartAddr) {
+    if (!runningRPC_->rpcBaseAddr) {
         cerr << "launchRPC failed, couldn't create image" << endl;
         return irpcError;
     }
@@ -417,8 +420,8 @@ bool rpcLWP::handleCompletedIRPC()
   
   // step 2) delete temp tramp
   process *proc = lwp_->proc();
-  proc->deleteCodeRange(runningRPC_->rpcStartAddr);
-  proc->inferiorFree(runningRPC_->rpcStartAddr);
+  proc->deleteCodeRange(runningRPC_->rpcBaseAddr);
+  proc->inferiorFree(runningRPC_->rpcBaseAddr);
   
     // save enough information to call the callback function, if needed
     inferiorRPCcallbackFunc cb = runningRPC_->rpc->callbackFunc;

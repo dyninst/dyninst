@@ -773,6 +773,7 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
 Address rpcMgr::createRPCImage(AstNodePtr action,
                                bool noCost,
                                bool shouldStopForResult,
+                               Address &startAddr,
                                Address &breakAddr,
                                Address &stopForResultAddr,
                                Address &justAfter_stopForResultAddr,
@@ -800,6 +801,11 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
     irpcBuf.setThread(thr);
     
     irpcBuf.setRegisterSpace(registerSpace::irpcRegSpace(proc()));
+
+#if defined(bug_syscall_changepc_rewind)
+    // See comment in linux-power.C/linux-x86.C; search for "SGI"
+    irpcBuf.fill(proc()->getAddressWidth(), codeGen::cgNOP);
+#endif
 
     // Saves registers (first half of the base tramp) and whatever other
     // irpc-specific magic is necessary
@@ -895,6 +901,22 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
         cerr << "createRPCtempTramp failed because writeDataSpace failed" <<endl;
         return 0;
     }
+
+    startAddr = tempTrampBase;
+
+#if defined(bug_syscall_changepc_rewind)
+    // Some Linux kernels have the following behavior:
+    // Process is in a system call;
+    // We interrupt the system call;
+    // We say "change PC to address N"
+    // The kernel helpfully changes it to (N - address width)
+    // The program crashes
+    // See a more complete comment in linux-x86.C (search for "SGI"). 
+    // For now, we pad the start of our code with NOOPS and change to just
+    // after those; if we hit rewind behavior, then we're executing safe code.
+    startAddr += proc()->getAddressWidth();
+#endif
+
     return tempTrampBase;
 }
 

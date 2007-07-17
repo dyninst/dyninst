@@ -94,6 +94,7 @@ rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
         else newProg->savedRegs = NULL;
         newProg->origPC = oldProg->origPC;
         newProg->runProcWhenDone = oldProg->runProcWhenDone;
+	newProg->rpcBaseAddr = oldProg->rpcBaseAddr;
         newProg->rpcStartAddr = oldProg->rpcStartAddr;
         newProg->rpcResultAddr = oldProg->rpcResultAddr;
         newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
@@ -135,6 +136,7 @@ rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
         else newProg->savedRegs = NULL;
         newProg->origPC = oldProg->origPC;
         newProg->runProcWhenDone = oldProg->runProcWhenDone;
+	newProg->rpcBaseAddr = oldProg->rpcBaseAddr;
         newProg->rpcStartAddr = oldProg->rpcStartAddr;
         newProg->rpcResultAddr = oldProg->rpcResultAddr;
         newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
@@ -330,11 +332,12 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
     runningRPC_->rpcthr = this;
     runningRPC_->rpclwp = NULL;
     
-    runningRPC_->rpcStartAddr =
+    runningRPC_->rpcBaseAddr =
     mgr_->createRPCImage(runningRPC_->rpc->action, // AST tree
                          runningRPC_->rpc->noCost,
                          (runningRPC_->rpc->callbackFunc != NULL), // Callback?
-                         runningRPC_->rpcCompletionAddr, // Fills in 
+                         runningRPC_->rpcStartAddr, // Fills in
+                         runningRPC_->rpcCompletionAddr, 
                          runningRPC_->rpcResultAddr,
                          runningRPC_->rpcContPostResultAddr,
                          runningRPC_->resultRegister,
@@ -342,7 +345,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
                          thr_,
                          lwp ); // Where to allocate
 
-    if (!runningRPC_->rpcStartAddr) {
+    if (!runningRPC_->rpcBaseAddr) {
         cerr << "launchRPC failed, couldn't create image" << endl;
         return irpcError;
     }
@@ -481,8 +484,8 @@ bool rpcThr::handleCompletedIRPC()
     
     // step 2) delete temp tramp
     process *proc = lwp->proc();
-    proc->deleteCodeRange(runningRPC_->rpcStartAddr);
-    proc->inferiorFree(runningRPC_->rpcStartAddr);
+    proc->deleteCodeRange(runningRPC_->rpcBaseAddr);
+    proc->inferiorFree(runningRPC_->rpcBaseAddr);
 
     // save enough information to call the callback function, if needed
     inferiorRPCcallbackFunc cb = runningRPC_->rpc->callbackFunc;

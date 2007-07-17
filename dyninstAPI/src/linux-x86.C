@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.124 2007/06/26 14:54:57 bernat Exp $
+// $Id: linux-x86.C,v 1.125 2007/07/17 17:11:27 ssuen Exp $
 
 #include <fstream>
 
@@ -1104,6 +1104,8 @@ bool process::loadDYNINSTlib_hidden() {
 
   startup_printf("(%d) after copy, %d used\n", getPid(), scratchCodeBuffer.used());
 
+
+#if defined(bug_syscall_changepc_rewind)
   // Reported by SGI, during attach to a process in a system call:
 
   // Insert eight NOP instructions before the actual call to dlopen(). Loading
@@ -1117,10 +1119,13 @@ bool process::loadDYNINSTlib_hidden() {
   // We will put in <addr width> rather than always 8; this will be 4 on x86 and
   // 32-bit AMD64, and 8 on 64-bit AMD64.
 
-  scratchCodeBuffer.fill(getAddressWidth(), 
-                         codeGen::cgNOP);
+  scratchCodeBuffer.fill(getAddressWidth(), codeGen::cgNOP);
+
   // And since we apparently execute at (addr - <width>), shift dlopen_call_addr
   // up past the NOPs.
+#endif
+
+  // Sync with whatever we've put in so far.
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
 
@@ -1297,8 +1302,10 @@ bool process::loadDYNINSTlib_exported()
     dyninstlib_str_addr = codeBase;
     scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
+#if defined(bug_syscall_changepc_rewind)
     //Fill in with NOPs, see loadDYNINSTlib_hidden
     scratchCodeBuffer.fill(getAddressWidth(), codeGen::cgNOP);
+#endif
 
     // Now the real code
     dlopen_call_addr = codeBase + scratchCodeBuffer.used();
