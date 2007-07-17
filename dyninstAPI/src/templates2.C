@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.71 2007/07/13 20:50:17 tugrul Exp $
+// $Id: templates2.C,v 1.72 2007/07/17 03:51:59 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -195,7 +195,7 @@ template class pdvector<dictionary_hash<Address, replacedFunctionCall *>::entry>
 class Statistic;
 template class dictionary_hash<pdstring, Statistic *>;
 
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
 #include "BPatch_annotatable.C"
 template class dictionary_hash<pdstring, int>;
 
