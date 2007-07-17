@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.96 2007/06/13 18:50:24 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.97 2007/07/17 17:11:24 ssuen Exp $
 
 #define BPATCH_FILE
 
@@ -753,7 +753,7 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0) \
- || defined(ia64_unknown_linux2_4)
+ || defined(os_linux)
 void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
     const BPatch_function &func)
 {
