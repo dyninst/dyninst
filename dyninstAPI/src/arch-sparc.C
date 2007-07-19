@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.18 2006/12/06 21:17:15 bernat Exp $
+ * $Id: arch-sparc.C,v 1.19 2007/07/19 17:45:53 tugrul Exp $
  */
 
 #include "common/h/Types.h"
@@ -717,6 +717,12 @@ void InsnRegister::setType(InsnRegister::RegisterType rt) { regType = rt ; }
 
 void InsnRegister::setNumber(short rn) { regNumber = rn ; }
 
+int InsnRegister::getWordCount() { return wordCount; }
+
+InsnRegister::RegisterType InsnRegister::getType() { return regType; }
+
+int InsnRegister::getNumber() { return regNumber; }
+
 bool InsnRegister::is_o7(){
 	if(regType == InsnRegister::GlobalIntReg)
 		for(int i=0;i<wordCount;i++)
@@ -725,6 +731,7 @@ bool InsnRegister::is_o7(){
 	return false;
 }
 
+#define DEBUG
 #ifdef DEBUG
 void InsnRegister::print(){
 	switch(regType){
@@ -809,26 +816,92 @@ bool instruction::isCall() const {
     return isTrueCallInsn() || isJmplCallInsn();
 }
 
-void instruction::get_register_operands(InsnRegister* rd,
-                                        InsnRegister* rs1, InsnRegister* rs2)
+int registerNumberDecoding(unsigned reg, int word_size) {
+  if(word_size == SINGLE)
+    return reg;
+  if(word_size == DOUBLE) {
+    return ((reg & 1) << 5) + (reg & 30);
+  }
+  if(word_size == QUAD) {
+    return ((reg & 1) << 5) + (reg & 28);
+  }
+  fprintf(stderr,"Should have never reached here!\n");
+  return -1;
+}
+
+void instruction::get_register_operands(InsnRegister* reads,InsnRegister* writes)
 {
-        *rd = InsnRegister();
-        *rs1 = InsnRegister();
-        *rs2 = InsnRegister();
-        
+  unsigned i;
+
+  for(i=0; i<7; i++)
+    reads[i] = InsnRegister();
+
+  for(i=0; i<5; i++)
+    writes[i] = InsnRegister();
+
         if(!valid())
             return;
+
+	// mark the annotations
+	int read = createAnnotationType("ReadSet");
+	int write = createAnnotationType("WriteSet");
+
+	InsnRegister* read1 = (InsnRegister*)getAnnotation(read);
+	InsnRegister* write1 = (InsnRegister*)getAnnotation(write);
+	if(0)
+	if(read1 != NULL || write1 != NULL) {
+	  for(i=0; i<7; i++) {
+	    BPatch_annotation* r = getAnnotation(read,i);
+	    if(r != NULL) {
+	      reads[i] = *((InsnRegister*)r->getItem());
+	    }
+	    else
+	      break;
+	  }
+	  for(i=0; i<5; i++) {
+	    BPatch_annotation* w = getAnnotation(write,i);
+	    if(w != NULL) {
+	      writes[i] = *((InsnRegister*)w->getItem());
+	    }
+	    else
+	      break;
+	  }
+	  return;
+	}
+	
         
         switch(insn_.call.op){
         case 0x0:
             {
                 if((insn_.sethi.op2 == 0x4) &&
                    (insn_.sethi.rd || insn_.sethi.imm22))
-                    *rd = InsnRegister(1,
+                    writes[0] = InsnRegister(1,
                                        InsnRegister::GlobalIntReg,
                                        (short)(insn_.sethi.rd));
+		else if(insn_.branch.op2 == BProp2)
+		  reads[0] = InsnRegister(1,
+				      InsnRegister::GlobalIntReg,
+				      (short)(insn_.rest.rs1));
+		else if(insn_.branch.cond & 7) { // if not bpa or bpn
+		  unsigned firstTag = (((unsigned)(insn_.branch.disp22)) >> 20) & 0x03;
+		  if((insn_.sethi.op2 == Bop2icc) ||
+		     (insn_.sethi.op2 == BPop2cc && (!firstTag)))
+		    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,ICC);
+		  else if(insn_.sethi.op2 == BPop2cc && firstTag == 0x2)
+		    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,XCC);
+		  else if(insn_.sethi.op2 == FBop2fcc)
+		    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,FCC0);
+		  else if(insn_.sethi.op2 == FBPop2fcc)
+		    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,FCC0 + firstTag); // Assuming FCC0, FCC1, FCC2 and FCC3 are adjacent
+		}
                 break;
             }
+	case 0x1:
+	    {
+	      // call instruction writes to reg 15
+	      writes[0] = InsnRegister(1,InsnRegister::GlobalIntReg,15);
+	      break;	      
+	    }
         case 0x2:
             {
                 unsigned firstTag = insn_.rest.op3 & 0x30;
@@ -837,85 +910,244 @@ void instruction::get_register_operands(InsnRegister* rd,
                 if((firstTag == 0x00) ||
                    (firstTag == 0x10) ||
                    ((firstTag == 0x20) && (secondTag < 0x8)) ||
+                   ((firstTag == 0x20) && (secondTag == 0xD)) || // TUGRUL: SDIVX
                    ((firstTag == 0x30) && (secondTag >= 0x8)) ||
                    ((firstTag == 0x30) && (secondTag < 0x4)))
                     {
-                        *rs1 = InsnRegister(1, InsnRegister::GlobalIntReg,
+                        reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
                                             (short)(insn_.rest.rs1));
                         if(!insn_.rest.i)
-                            *rs2 = InsnRegister(1, InsnRegister::GlobalIntReg,
+                            reads[1] = InsnRegister(1, InsnRegister::GlobalIntReg,
                                                 (short)(insn_.rest.rs2));
                         
-                        if((firstTag == 0x30) && (secondTag < 0x4))
-                            *rd = InsnRegister(1, InsnRegister::SpecialReg, -1);
-                        else if((firstTag != 0x30) || 
-                                (secondTag <= 0x8) || 
+			if((firstTag == 0x30) && (secondTag == 0x0)) {
+			  switch(insn_.rest.rd) {
+			  case WRY: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_Y_reg); break; // WRY = 0
+			  case WRCCR: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CCR); break; // WRCCR 2
+			  case WRASI: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_ASI); break; // WRASI 3
+			  case WRFPRS: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_FPRS); // WRFPRS 6
+			  }
+			}
+			else if((firstTag == 0x30) && (secondTag == 0x2)) {
+			  unsigned num = 0;
+			  switch(insn_.rest.rd) {
+			  case TPC: num = REG_TPC; break;
+			  case TNPC: num = REG_TNPC; break;
+			  case TSTATE: num = REG_TSTATE; break;
+			  case TT: num = REG_TT; break;
+			  case TICK_reg: num = REG_TICK; break;
+			  case TBA: num = REG_TBA; break;
+			  case PSTATE: num = REG_PSTATE; break;
+			  case TL: num = REG_TL; break;
+			  case PIL: num = REG_PIL; break;
+			  case CWP: num = REG_CWP; break;
+			  case CANSAVE: num = REG_CANSAVE; break;
+			  case CANRESTORE: num = REG_CANRESTORE; break;
+			  case CLEANWIN: num = REG_CLEANWIN; break;
+			  case OTHERWIN: num = REG_OTHERWIN; break;
+			  case WSTATE: num = REG_WSTATE; break;
+			  }
+			  if(num != 0)
+			    writes[0] = InsnRegister(1, InsnRegister::SpecialReg, num);
+			}
+			else if((firstTag == 0x30) && ((secondTag == 0xC) ||secondTag == 0xD)) { // SAVE, RESTORE
+			  reads[2] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANSAVE);
+			  if(!insn_.rest.i)
+			    reads[3] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE);
+			  else
+			    reads[1] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE);
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));			  
+			  writes[1] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANSAVE);
+			  writes[2] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE);
+			}
+			else if((firstTag == 0x30) && (secondTag == 0xA)) { // Tcc
+			  unsigned code = ((insn_.rest.unused >> 6) & 3)==0 ? ICC : XCC;
+			  if(!insn_.rest.i)
+			    reads[2] = InsnRegister(1, InsnRegister::SpecialReg,code);
+			  else
+			    reads[1] = InsnRegister(1, InsnRegister::SpecialReg,code);
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));
+			}
+			// else if((firstTag == 0x30) && (secondTag < 0x4))
+			//  *rd = InsnRegister(1, InsnRegister::SpecialReg, -1);// XXX
+			else if((firstTag != 0x30) || 
+				(secondTag <= 0x8) || 
                                 (secondTag >= 0xc))
-                            *rd = InsnRegister(1, InsnRegister::GlobalIntReg,
-                                               (short)(insn_.rest.rd));
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));
                     }
-                else if((firstTag == 0x20) && (secondTag >= 0x8))
+                else if((firstTag == 0x20) )//&& (secondTag >= 0x8))
                     {
-                        *rs1 = InsnRegister(1, InsnRegister::SpecialReg, -1);
-                        *rd = InsnRegister(1, InsnRegister::GlobalIntReg,
-                                           (short)(insn_.rest.rd));
-                    }
-                else if((secondTag == 0x6) || (secondTag == 0x7))
+		      if(secondTag == 0x8) {
+			switch(insn_.rest.rs1) {
+			case 0: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_Y_reg); break;
+			case 2: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CCR); break;
+			case 3: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_ASI); break;
+			case 4: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TICK); break;
+			case 5: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_PC_reg); break;
+			case 6: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_FPRS); break;
+			case 15: break; // STBAR or MEMBAR
+			}
+                        writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+					   (short)(insn_.restix.rd));
+		      }
+		      else if(secondTag == 0xA) { // RDPR
+			switch(insn_.rest.rs1) {
+			case 0: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TPC); break;
+			case 1: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TNPC); break;
+			case 2: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TSTATE); break;
+			case 3: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TT); break;
+			case 4: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TICK); break;
+			case 5: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TBA); break;
+			case 6: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_PSTATE); break;
+			case 7: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TL); break;
+			case 8: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_PIL); break;
+			case 9: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CWP); break;
+			case 10: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANSAVE); break;
+			case 11: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE); break;
+			case 12: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CLEANWIN); break;
+			case 13: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_OTHERWIN); break;
+			case 14: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_WSTATE); break;
+			case 15: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_FQ); break;
+			case 31: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_VER); break;
+			}
+                        writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+					   (short)(insn_.restix.rd));
+		      }
+		      else if(secondTag == 0xC) { // MOVcc
+			//			int counter=0;
+			unsigned cc1_cc0 = (insn_.rest.unused >> 11) & 0x03;
+			unsigned all = ((insn_.rest.rs1 >> 2 ) & 0x04) + cc1_cc0;
+		        short cc = FCC0;
+			switch(all) {
+			case 0:
+			case 1:
+			case 2:
+			case 3: cc += all; break;
+			case 4: cc = ICC; break;
+			case 6: cc = XCC;
+			}
+			if(insn_.resti.i == 0) {
+			  reads[0] = InsnRegister(1,InsnRegister::GlobalIntReg,
+					      (short)(insn_.rest.rs2));
+			  if((insn_.rest.rs1 & 0x07) != 0) { // if the cond field (last 4 bits of rs1:5) is 1000 or 0000 (meaning if last 3 bits of rs1 is 000), then move never or move always
+			    reads[1] = InsnRegister(1,InsnRegister::SpecialReg,cc);
+			  }
+			}
+			else{
+			  if((insn_.rest.rs1 & 0x07) != 0) { // if the cond field (last 4 bits of rs1:5) is 1000 or 0000 (meaning if last 3 bits of rs1 is 000), then move never or move always
+			    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,cc);
+			  }
+			}
+			writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+					   (short)(insn_.restix.rd));
+		      }
+		      else if(secondTag == 0xE) { // POPC = 0x2E = 46
+			if(insn_.resti.rs1 == 0) {
+			  if(insn_.resti.i == 0) {
+			    reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,insn_.rest.rs2);
+			  }
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.restix.rd));
+			}
+		      }
+		      else if(secondTag == 0xF) { // MOVr = 0x2F = 47
+			// unsigned rcond = ((*i).rest.unused >> 5) & 0x07; // this is rcond:3, I need only the last 2 bits
+			if(((insn_.rest.unused >> 5) & 0x03) != 0) {
+			  reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,insn_.rest.rs1);
+			  if(insn_.rest.i == 0)
+			    reads[1] = InsnRegister(1, InsnRegister::GlobalIntReg,insn_.rest.rs2);
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));
+			}
+		      }
+		      
+		      reads[0] = InsnRegister(1, InsnRegister::SpecialReg, -1);
+		      writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+					 (short)(insn_.restix.rd));
+		    }
+                else if((secondTag == 0x6) || (secondTag == 0x7)) // firstTag=0x30
                     {
-                        *rs1 = InsnRegister(1, InsnRegister::CoProcReg,
+                        reads[0] = InsnRegister(1, InsnRegister::CoProcReg,
                                             (short)(insn_.restix.rs1));
-                        *rs2 = InsnRegister(1, InsnRegister::CoProcReg,
+                        reads[1] = InsnRegister(1, InsnRegister::CoProcReg,
                                             (short)(insn_.restix.rs2));
-                        *rd = InsnRegister(1, InsnRegister::CoProcReg,
+                        writes[0] = InsnRegister(1, InsnRegister::CoProcReg,
                                            (short)(insn_.restix.rd));
                     }
-                else if((secondTag == 0x4) || (secondTag == 0x5))
+                else if((secondTag == 0x4) || (secondTag == 0x5)) // firstTag=0x30
                     {
                         char wC = 0;
+                        firstTag = insn_.rest.unused & 0xf0;
+                        unsigned thirdTag = insn_.rest.unused & 0xf;
                         switch(insn_.rest.unused & 0x03){
                         case 0x0:
+			  if(firstTag==0xC0) // FiTO(s,d,q)
+			    wC=1;
+			  else // FxTO(s,d,q)
+			    wC=2;
+			  break;
                         case 0x1: wC = 1; break;
                         case 0x2: wC = 2; break;
                         case 0x3: wC = 4; break;
                         default: break; 
                         }
                         
-                        *rs2 = InsnRegister(wC, InsnRegister::FloatReg,
+                        reads[1] = InsnRegister(wC, InsnRegister::FloatReg,
                                             (short)(insn_.rest.rs2));
                         
-                        firstTag = insn_.rest.unused & 0xf0;
-                        secondTag = insn_.rest.unused & 0xf;
-                        if((firstTag == 0x40) || (firstTag == 0x60)){
-                            *rs1 = *rs2;
-                            rs1->setNumber((short)(insn_.rest.rs1));
+                        if((firstTag == 0x40) || (firstTag == 0x60) || /*TUGRUL: for FCMP instruction family*/ (firstTag == 0x50)) {
+                            reads[0] = reads[1];
+                            reads[0].setNumber((short)(insn_.rest.rs1));
                         }
                         
-                        if(firstTag < 0x60){
-                            *rd = *rs2;
-                            rd->setNumber((short)(insn_.rest.rd));
+                        if(firstTag < 0x50 || (secondTag == 0x5 && firstTag != 0x50)){
+                            writes[0] = reads[1];
+                            writes[0].setNumber((short)(insn_.rest.rd));
                         }
-                        else{
-                            if(secondTag < 0x8)
-                                wC = 1;
-                            else if(secondTag < 0xc)
-                                wC = 2;
-                            else
-                                wC = 4;
-                            
-                            *rd = InsnRegister(wC, InsnRegister::FloatReg,
-                                               (short)(insn_.rest.rd));
+                        else if(firstTag != 0x50) { // FCMP family is excluded
+			  if(firstTag == 0x80 && thirdTag < 0x4) // FsTOx, FdTOx, FqTOx
+			    wC = 2;
+			  else if(thirdTag < 0x8)
+			    wC = 1;
+			  else if(thirdTag < 0xc)
+			    wC = 2;
+			  else
+			    wC = 4;
+			  
+			  writes[0] = InsnRegister(wC, InsnRegister::FloatReg,
+					     (short)(insn_.rest.rd));
                         }
+
+			// floating point condition codes
+			if(secondTag == 0x5 && thirdTag < 0x4) {
+			  unsigned opf = ((insn_.rest.i << 8) | insn_.rest.unused) & 0x1FF;
+			  switch(opf) {
+			  case 0x000: reads[2] = InsnRegister(1, InsnRegister::SpecialReg,FCC0); break;
+			  case 0x040: reads[2] = InsnRegister(1, InsnRegister::SpecialReg,FCC1); break;
+			  case 0x050: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,FCC0 + (insn_.rest.rd & 3)); break;
+			  case 0x080: reads[2] = InsnRegister(1, InsnRegister::SpecialReg,FCC2); break;
+			  case 0x0C0: reads[2] = InsnRegister(1, InsnRegister::SpecialReg,FCC3); break;
+			  case 0x100: reads[2] = InsnRegister(1, InsnRegister::SpecialReg,ICC); break;
+			  case 0x180: reads[2] = InsnRegister(1, InsnRegister::SpecialReg,XCC); break;
+			  }
+			}
                     }
-                
-                break;
+
+
+                // Handle Condition Codes
+		firstTag = insn_.rest.op3 & 0x30;
+		secondTag = insn_.rest.op3 & 0x3C;
+		if((firstTag == 0x10) || (secondTag == 0x20)) {
+		  writes[1] = InsnRegister(1, InsnRegister::SpecialReg, ICC);
+		  writes[2] = InsnRegister(1, InsnRegister::SpecialReg, XCC);
+		}
+
+		firstTag = insn_.rest.op3 & 0x2B;
+		if(firstTag == 0x08) { // ADDC, ADDCcc, SUBC and SUBCcc
+		  reads[2] = InsnRegister(1, InsnRegister::SpecialReg, ICC);
+		}
+		break;
             }
         case 0x3:
             {
-                *rs1 = InsnRegister(1, InsnRegister::GlobalIntReg,
-                                    (short)(insn_.rest.rs1));
-                if(!insn_.rest.i)
-                    *rs2 = InsnRegister(1, InsnRegister::GlobalIntReg,
-                                        (short)(insn_.rest.rs2));
                 char wC = 1;
                 InsnRegister::RegisterType rt = InsnRegister::NoneReg;
                 short rn = -1;
@@ -923,6 +1155,19 @@ void instruction::get_register_operands(InsnRegister* rd,
                 unsigned firstTag = insn_.rest.op3 & 0x30;
                 unsigned secondTag = insn_.rest.op3 & 0xf;
                 
+                if(firstTag >= 0x20 && (secondTag == 0x2 || secondTag == 0x6)) { // LDQF, LDQFA, STQF, STQFA
+		  wC = 4;
+		}
+		else if((secondTag == 0x3) ||
+                   (secondTag == 0x7))
+                    wC = 2;
+
+                reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+                                    (short)(insn_.rest.rs1));
+                if(!insn_.rest.i)
+                    reads[1] = InsnRegister(1, InsnRegister::GlobalIntReg,
+                                        (short)(insn_.rest.rs2));
+
                 switch(firstTag){
                 case 0x00:
                 case 0x10:
@@ -936,30 +1181,86 @@ void instruction::get_register_operands(InsnRegister* rd,
                        (secondTag == 0x6))
                         rt = InsnRegister::SpecialReg;
                     else{
-                        if(firstTag == 0x20)
-                            rt = InsnRegister::FloatReg;
-                        else if(firstTag == 0x30)
-                            rt = InsnRegister::CoProcReg;
-                        rn = (short)(insn_.rest.rd);
+		      if(firstTag == 0x20 /*|| (firstTag == 0x30 && secondTag <= 0xB)*/)
+			rt = InsnRegister::FloatReg;
+		      else if(firstTag == 0x30)
+			rt = InsnRegister::CoProcReg;
+		      rn = (short)(insn_.rest.rd);
                     }
                     break;
                 default: break;
                 }
-                
-                if((secondTag == 0x3) ||
-                   (secondTag == 0x7))
-                    wC = 2;
-                
-                rd->setNumber(rn);
-                rd->setType(rt);
-                rd->setWordCount(wC);
+
+		if(firstTag >= 0x20) {
+		  if(secondTag == 0x2 || secondTag == 0x6) {
+		    rn = registerNumberDecoding(insn_.rest.rd,QUAD);
+		  }
+		  else if(secondTag == 0x3 || secondTag == 0x7) {
+		    rn = registerNumberDecoding(insn_.rest.rd,DOUBLE);
+		  }
+		}
+		// if store instruction, reads all three registers.
+                if((firstTag <= 0x10 && ((secondTag >= 0x4 && secondTag <= 0x7) || secondTag == 0xE))
+		  || (firstTag >= 0x20 && (secondTag == 0x6 || secondTag == 0x7 || secondTag == 0x4))) {
+		  if(!insn_.rest.i)
+		    reads[2] = InsnRegister(wC, rt,rn);
+		  else
+		    reads[1] = InsnRegister(wC, rt,rn);
+		}
+		else if(firstTag == 0x20 && secondTag == 0x1) { // LDFSR
+		  writes[0] = InsnRegister(1, InsnRegister::SpecialReg,FSR);
+		  writes[1] = InsnRegister(1, InsnRegister::SpecialReg,FCC0);
+		  writes[2] = InsnRegister(1, InsnRegister::SpecialReg,FCC1);
+		  writes[3] = InsnRegister(1, InsnRegister::SpecialReg,FCC2);
+		  writes[4] = InsnRegister(1, InsnRegister::SpecialReg,FCC3);
+		}
+		else if(firstTag == 0x20 && secondTag == 0x5) { // STFSR
+		  if(!insn_.rest.i)
+		    reads[6] = InsnRegister(1, InsnRegister::SpecialReg,FSR);
+		  else
+		    reads[1] = InsnRegister(1, InsnRegister::SpecialReg,FSR);
+		  reads[2] = InsnRegister(1, InsnRegister::SpecialReg,FCC0);
+		  reads[3] = InsnRegister(1, InsnRegister::SpecialReg,FCC1);
+		  reads[4] = InsnRegister(1, InsnRegister::SpecialReg,FCC2);
+		  reads[5] = InsnRegister(1, InsnRegister::SpecialReg,FCC3);
+		}
+		else if(firstTag < 0x20 || secondTag != 0xD) { // all but PREFETCH and PREFETCHA
+		  writes[0] = InsnRegister(wC,rt,rn);
+		  if(firstTag == 0x30 && (secondTag == 0xC || secondTag == 0xE)) { // CASA, CASXA
+		    if(!insn_.rest.i)
+		      reads[2] = InsnRegister(1, InsnRegister::GlobalIntReg, (short)(insn_.rest.rd));
+		    else
+		      reads[1] = InsnRegister(1, InsnRegister::GlobalIntReg, (short)(insn_.rest.rd));
+		  }
+		}
                 break;
             }
         default:
             break;
         }
+
+	// mark the annotations
+	read = createAnnotationType("ReadSet");
+	write = createAnnotationType("WriteSet");
+
+	for(i=0; i<7; i++) {
+	  if(reads[i].getNumber() != -1) {
+	    setAnnotation(read,new BPatch_annotation(&(reads[i])));
+	  }
+	  else
+	    break;
+	}
+	for(i=0; i<5; i++) {
+	  if(writes[i].getNumber() != -1) {
+	    setAnnotation(write,new BPatch_annotation(&(writes[i])));
+	  }
+	  else
+	    break;
+	}
+	
         return;
 }
+
 
 unsigned instruction::spaceToRelocate() const {
     
