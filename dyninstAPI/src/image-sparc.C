@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.13 2007/07/17 17:16:15 rutar Exp $
+// $Id: image-sparc.C,v 1.14 2007/07/19 17:44:39 tugrul Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -286,10 +286,18 @@ void image_func::archInstructionProc(InstrucIter &ah)
     // Check whether "07" is live, AKA we can't call safely.
     // Could we just always assume this?
     if (!o7_live) {
-        InsnRegister rd, rs1, rs2;
-        ah.getInstruction().get_register_operands(&rd, &rs1, &rs2);
-        if (rs1.is_o7() || rs2.is_o7()) {
-            o7_live = true;
+	InsnRegister reads[7];
+	InsnRegister writes[7];
+
+	ah.getInstruction().get_register_operands(reads, writes);
+	int i;
+        for(i=0; i<7; i++) {
+	  if (reads[i].is_o7()) {
+	    o7_live = true;
+	    break;
+	  }
+	}
+	if(o7_live) {	  
             parsing_printf("Setting o7 to live at 0x%x, func %s\n",
                     *ah, symTabName().c_str());
         }
