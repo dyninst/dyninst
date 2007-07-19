@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.28 2006/11/22 04:03:14 bernat Exp $
+ * $Id: inst-power.h,v 1.29 2007/07/19 17:15:32 ssuen Exp $
  */
 
 #ifndef INST_POWER_H
@@ -88,6 +88,14 @@
 #define FUNCSAVE  (14*4)
 #define FUNCARGS  32
 #define LINKAREA  24
+
+#if defined(os_aix)
+#define PARAM_OFFSET (14*4)
+#elif defined(os_linux)
+#define PARAM_OFFSET (2*4)
+#else
+#error "Unknown operating system in inst-power.h"
+#endif
 
 // The number of registers (general and floating point) that aren't
 // used in the base tramp explicitly 

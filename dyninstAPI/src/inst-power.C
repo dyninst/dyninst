@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.268 2007/07/17 17:11:25 ssuen Exp $
+ * $Id: inst-power.C,v 1.269 2007/07/19 17:15:31 ssuen Exp $
  */
 
 #include "common/h/headers.h"
@@ -1604,7 +1604,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                codeGen &gen, bool /*noCost*/,
-               const instPoint * /* location */, bool /*for_MT*/)
+               const instPoint *location, bool /*for_MT*/)
 {
     //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
@@ -1660,10 +1660,15 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	}    
 	return(dest);
       } else {
-          // Registers from 11 (src = 8) and beyond are saved starting at stack+56
-          instruction::generateImm(gen, Lop, 
-                                   dest, 1, 
-                                   TRAMP_FRAME_SIZE+((src1-8)*sizeof(unsigned))+56);
+          // Registers from 11 (src = 8) and beyond are saved on the
+          // stack. On AIX this is +56 bytes; for ELF it's something different.
+          unsigned paramSize = location->proc()->getAddressWidth();
+
+          instruction::generateImm(gen, Lop,
+                                   dest, 1,
+                                   TRAMP_FRAME_SIZE +
+                                   ((src1-8)*paramSize) +
+                                   PARAM_OFFSET);
           return(dest);
       }
     }
