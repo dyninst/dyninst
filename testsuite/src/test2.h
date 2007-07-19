@@ -55,6 +55,10 @@
 #define	TEST_DYNAMIC_LIB	"libXaw.so"
 #define TEST_DYNAMIC_LIB2	"libXt.so"
 
+#elif defined(arch_power) && defined(os_linux)
+#define TEST_DYNAMIC_LIB        "libutil.so"
+#define TEST_DYNAMIC_LIB2       "libm.so"
+
 #elif defined(rs6000_ibm_aix4_1)
 #define TEST_DYNAMIC_LIB        "./libtestA.so"
 #define TEST_DYNAMIC_LIB_NOPATH "libtestA.so"
