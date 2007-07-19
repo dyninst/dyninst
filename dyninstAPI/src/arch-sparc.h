@@ -39,9 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.45 2006/11/14 19:52:42 legendre Exp $
+// $Id: arch-sparc.h,v 1.46 2007/07/19 17:44:12 tugrul Exp $
 
 #include "common/h/Vector.h"
+// TUGRUL
+#include "BPatch_annotatable.h"
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -271,6 +273,250 @@ typedef union {
 #define region_lo(x) ( (x > (0x1 << 23))? (x-(0x1 << 23)):0x0 )
 #define region_hi(x) ( (x > (-1UL - (1<<23))) ? -1UL : (x + (0x1 << 23)))
 
+/*
+ *    The following definitions are used for readWriteRegisters method
+ */
+#define WIN_SIZE 16
+#define MAX_SETS 32
+#define FLOAT_OFFSET 530 // must be greater than 528 which is the max. number of registers on sparc
+
+#define SINGLE 1
+#define DOUBLE 2
+#define QUAD 4
+
+/* although the real values of the following constants are not important, they have to be greater than
+ * FLOAT_OFFSET + 62
+ */
+#define FCC0 600
+#define FCC1 601
+#define FCC2 602
+#define FCC3 603
+#define ICC 604
+#define XCC 605
+#define FSR 606
+#define REG_Y_reg 610
+#define REG_CCR 611
+#define REG_ASI 612
+#define REG_TICK 613
+#define REG_PC_reg 614
+#define REG_FPRS 615
+#define REG_TPC 616
+#define REG_TNPC 617
+#define REG_TSTATE 618
+#define REG_TT 619
+//#define REG_TICK 620
+#define REG_TBA 621
+#define REG_PSTATE 622
+#define REG_TL 623
+#define REG_PIL 624
+#define REG_CWP 625
+#define REG_CANSAVE 626
+#define REG_CANRESTORE 627
+#define REG_CLEANWIN 628
+#define REG_OTHERWIN 629
+#define REG_WSTATE 630
+#define REG_FQ 631
+#define REG_VER 632
+
+/* opcodes */
+#define SETHIop2 4
+#define BProp2 3
+#define BPop2cc 1
+#define Bop2icc 2
+#define FBPop2fcc 5
+#define FBop2fcc 6
+
+#define ILLEGAL_0x19 0x19
+#define ILLEGAL_0x1D 0x1D
+#define ILLEGAL_0x29 0x29
+#define ILLEGAL_0x33 0x33
+#define ILLEGAL_0x3F 0x3F
+#define ADDCop3 0x08
+#define MULXop3 0x09
+#define UMULop3 0x0A
+#define SUBCop3 0x0C
+#define UDIVXop3 0x0D
+#define UDIVop3 0x0E
+#define ORop3cc 0x12
+#define XORop3cc 0x13
+#define ORNop3cc 0x16
+#define XNORop3cc 0x17
+#define ADDCop3cc 0x18
+#define UMULop3cc 0x1A
+#define SMULop3cc 0x1B
+#define SUBCop3cc 0x1C
+#define UDIVop3cc 0x1E
+#define SDIVop3cc 0x1F
+#define TADDop3cc 0x20
+#define TSUBop3cc 0x21
+#define TADDop3ccTV 0x22
+#define TSUBop3ccTV 0x23
+#define MULSop3cc 0x24
+#define RDPRop3 0x2A
+#define MOVop3cc 0x2C
+#define SDIVXop3 0x2D
+#define POPCop3 0x2E
+#define MOVrop3 0x2F
+#define SAVED_RESTOREDop3 0x31
+#define WRPRop3 0x32
+#define IMPDEP1op3 0x36
+#define IMPDEP2op3 0x37
+#define RETURNop3 0x39
+#define Tccop3 0X3A
+#define FLUSHop3 0X3B
+#define DONE_RETRYop3 0X3E
+
+/* the following constants are used when opcode=2, op3=0x30 */
+#define WRY 0
+#define WRCCR 2
+#define WRASI 3
+#define WRFPRS 6
+#define SIR 15
+
+/* the following constants are used when opcode=2, op3=0x30 */
+#define TPC 0
+#define TNPC 1
+#define TSTATE 2
+#define TT 3
+#define TICK_reg 4 // TICK is defined somewhere else
+#define TBA 5
+#define PSTATE 6
+#define TL 7
+#define PIL 8
+#define CWP 9
+#define CANSAVE 10
+#define CANRESTORE 11
+#define CLEANWIN 12
+#define OTHERWIN 13
+#define WSTATE 14
+
+/* the following constants are used when opcode=2, op3=0x34 */
+#define FMOVs 0x001
+#define FMOVd 0x002
+#define FMOVq 0x003
+#define FNEGs 0x005
+#define FNEGd 0x006
+#define FNEGq 0x007
+#define FABSs 0x009
+#define FABSd 0x00A
+#define FABSq 0x00B
+#define FSQRTs 0x029
+#define FSQRTd 0x02A
+#define FSQRTq 0x02B
+#define FsTOx 0x081
+#define FdTOx 0x082
+#define FqTOx 0x083
+#define FxTOs 0x084
+#define FxTOd 0x088
+#define FxTOq 0x08C
+#define FiTOs 0x0C4
+#define FdTOs 0x0C6
+#define FqTOs 0x0C7
+#define FiTOd 0x0C8
+#define FsTOd 0x0C9
+#define FqTOd 0x0CB
+#define FiTOq 0x0CC
+#define FsTOq 0x0CD
+#define FdTOq 0x0CE
+#define FsTOi 0x0D1
+#define FdTOi 0x0D2
+#define FqTOi 0x0D3
+#define FADDs 0x041
+#define FADDd 0x042
+#define FADDq 0x043
+#define FSUBs 0x045
+#define FSUBd 0x046
+#define FSUBq 0x047
+#define FMULs 0x049
+#define FMULd 0x04A
+#define FMULq 0x04B
+#define FDIVs 0x04D
+#define FDIVd 0x04E
+#define FDIVq 0x04F
+#define FsMULd 0x069
+#define FdMULq 0x06E
+
+/* the following constants are used when opcode=2, op3=0x35 */
+#define FMOVsfcc0 0x001
+#define FMOVdfcc0 0x002
+#define FMOVqfcc0 0x003
+#define FMOVRsZ 0x025
+#define FMOVRdZ 0x026
+#define FMOVRqZ 0x027
+#define FMOVsfcc1 0x041
+#define FMOVdfcc1 0x042
+#define FMOVqfcc1 0x043
+#define FMOVRsLEZ 0x045
+#define FMOVRdLEZ 0x046
+#define FMOVRqLEZ 0x047
+#define FCMPs 0x051
+#define FCMPd 0x052
+#define FCMPq 0x053
+#define FCMPEs 0x055
+#define FCMPEd 0x056
+#define FCMPEq 0x057
+#define FMOVRsLZ 0x065
+#define FMOVRdLZ 0x066
+#define FMOVRqLZ 0x067
+#define FMOVsfcc2 0x081
+#define FMOVdfcc2 0x082
+#define FMOVqfcc2 0x083
+#define FMOVRsNZ 0x0A5
+#define FMOVRdNZ 0x0A6
+#define FMOVRqNZ 0x0A7
+#define FMOVsfcc3 0x0C1
+#define FMOVdfcc3 0x0C2
+#define FMOVqfcc3 0x0C3
+#define FMOVRsGZ 0x0C5
+#define FMOVRdGZ 0x0C6
+#define FMOVRqGZ 0x0C7
+#define FMOVRsGEZ 0x0E5
+#define FMOVRdGEZ 0x0E6
+#define FMOVRqGEZ 0x0E7
+#define FMOVsicc 0x101
+#define FMOVdicc 0x102
+#define FMOVqicc 0x103
+#define FMOVsxcc 0x181
+#define FMOVdxcc 0x182
+#define FMOVqxcc 0x183
+
+#define LDSWop3 0x08
+#define LDXop3 0x0B
+#define LDSTUBop3 0x0D
+#define STXop3 0x0E
+#define LDUWAop3 0x10
+#define LDUBAop3 0x11
+#define LDUHAop3 0x12
+#define LDDAop3 0x13
+#define STWAop3 0x14
+#define STBAop3 0x15
+#define STHAop3 0x16
+#define STDAop3 0x17
+#define LDSWAop3 0x18
+#define LDSBAop3 0x19
+#define LDSHAop3 0x1A
+#define LDXAop3 0x1B
+#define LDSTUBAop3 0x1D
+#define STXAop3 0x1E
+#define SWAPAop3 0x1F
+#define LDQFop3 0x22
+#define STQFop3 0x26
+#define PREFETCHop3 0x2D
+#define LDFAop3 0x30
+#define LDQFAop3 0x32
+#define LDDFAop3 0x33
+#define STFAop3 0x34
+#define STQFAop3 0x36
+#define STDFAop3 0x37
+#define CASAop3 0x3C
+#define PREFETCHAop3 0x3D
+#define CASXAop3 0x3E
+
+#define SRAop3 0x27
+
+
+/* End definitions for readWriteRegisters */
+
 class InsnRegister {
 public:
 	enum RegisterType { GlobalIntReg=0, FloatReg, CoProcReg, SpecialReg, NoneReg};
@@ -280,6 +526,9 @@ public:
 	void setWordCount(char isD);
 	void setType(RegisterType rt);
 	void setNumber(short rn);
+	int getWordCount();
+	RegisterType getType();
+	int getNumber();
 	bool is_o7();
 	void print();
 
@@ -291,7 +540,7 @@ private:
 
 class codeGen;
 
-class instruction {
+class instruction: public BPatch_annotatable<instruction> {
  private:
     static instructUnion *insnPtr(codeGen &gen);
     static instructUnion *ptrAndInc(codeGen &gen);
@@ -300,6 +549,7 @@ class instruction {
     instruction(unsigned int raw) { insn_.raw = raw; }
 
     instruction(const instruction &insn) :
+      BPatch_annotatable<instruction>(),
         insn_(insn.insn_) {};
     instruction(instructUnion &insn) :
         insn_(insn) {};
@@ -457,9 +707,8 @@ class instruction {
 
   bool isCall() const;
 
-  void get_register_operands(InsnRegister *,
-                             InsnRegister *,
-                             InsnRegister *);
+  void get_register_operands(InsnRegister * reads,
+			     InsnRegister * writes);
 
   //  is instruction i a "true" call?
   //  2 types of call insn in sparc:
