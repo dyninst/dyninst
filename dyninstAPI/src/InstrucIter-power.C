@@ -668,7 +668,13 @@ bool InstrucIter::isAReturnInstruction()
   if(((*i).xlform.op == BCLRop) &&
      ((*i).xlform.xo == BCLRxop) && 
      ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4) &&
-     !((*i).xlform.bb))
+     !((*i).xlform.bb) 
+#if defined(os_linux)   // not sure if this is safe on AIX, yet
+     // Bernat, 9JUL07. A linking branch-to-link-register is
+     // unlikely to be a return instruction.
+     && !((*i).xlform.lk)
+#endif
+    )
       return true;
   return false;
 }
