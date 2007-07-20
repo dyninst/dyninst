@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_annotatable.h,v 1.2 2007/07/05 22:17:26 tugrul Exp $
+// $Id: BPatch_annotatable.h,v 1.3 2007/07/20 22:28:15 tugrul Exp $
 
 #ifndef BPATCH_ANNOTATABLE_
 #define BPATCH_ANNOTATABLE_
@@ -67,8 +67,6 @@ class BPatch_annotatable
   static dictionary_hash<pdstring, int>* annotationTypes;// = *(new dictionary_hash<pdstring, int>(pdstring::hash));
   static dictionary_hash<pdstring, int>* metadataTypes; //(pdstring::hash);
   static int metadataNum;
- private:
-  void init();
  public:
   BPatch_annotatable();
   virtual ~BPatch_annotatable();
