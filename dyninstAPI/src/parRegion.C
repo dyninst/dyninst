@@ -67,6 +67,7 @@ void image_parRegion::printDetails()
   else
     printf("UNKNOWN\n");
 
+  /*
   std::map<const char *, int>::iterator iter;
 
   printf("Mapped Items ...\n");
@@ -74,7 +75,8 @@ void image_parRegion::printDetails()
     {
       printf("Directive %s - Value %d\n", iter->first, iter->second); 
     }
- 
+  */
+
  printf("********************************************************\n");
 
 }

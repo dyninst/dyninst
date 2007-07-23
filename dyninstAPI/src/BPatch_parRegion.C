@@ -121,6 +121,6 @@ int BPatch_parRegion::getClauseInt(const char * key)
 
 int BPatch_parRegion::replaceOMPParameterInt(const char * key, int value)
 {
-  parReg->replaceOMPParameter(key,value);
+  return parReg->replaceOMPParameter(key,value);
 }
 
