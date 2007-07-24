@@ -478,7 +478,14 @@ bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith, dyn_l
         // the stop as well.
         signal_printf("%s[%d]: continuing process from non-SG thread\n",
                       FILE__, __LINE__);
-        continueProcessInternal();
+        
+        // PROBLEM: we can't arbitrarily continue a thread from here if there are other
+        // handlers that are waiting to process an event. So, what we do is only do the
+        // continue if nobody else is waiting. If not, we wait here (saying "hey, run")
+        // and figure that the other handler will eventually handle the continue.
+
+        if (!isActivelyProcessing())
+            continueProcessInternal();
 
         signal_printf("%s[%d]: async continue broadcasting...\n", FILE__, __LINE__);
         activationLock->_Broadcast(FILE__, __LINE__);

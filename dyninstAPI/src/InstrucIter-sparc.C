@@ -57,6 +57,9 @@
 
 #include "BPatch_Set.h"
 
+#include "BPatch_instruction.h"
+#include "BPatch_memoryAccess_NP.h"
+
 //some more function used to identify the properties of the instruction
 /** is the instruction used to return from the functions
  * @param i the instruction value 
@@ -548,6 +551,8 @@ bool InstrucIter::isTstInsn()
 
   if ((*i).resti.op3 == 18)
     return true;
+
+  return false;
 }
 
 bool InstrucIter::isDelaySlot()

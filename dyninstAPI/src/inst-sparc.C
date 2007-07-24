@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.195 2007/06/13 18:50:51 bernat Exp $
+// $Id: inst-sparc.C,v 1.196 2007/07/24 20:22:58 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -54,6 +54,9 @@
 
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/h/BPatch.h"
+
+
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 /****************************************************************************/
 /****************************************************************************/

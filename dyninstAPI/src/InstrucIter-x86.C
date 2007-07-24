@@ -60,6 +60,8 @@
 #include "BPatch_Set.h"
 #include "BPatch_annotatable.h"
 
+#include "BPatch_instruction.h"
+#include "BPatch_memoryAccess_NP.h"
 
 //some more function used to identify the properties of the instruction
 /**  the instruction used to return from the functions

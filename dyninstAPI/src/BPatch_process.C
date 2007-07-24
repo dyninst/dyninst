@@ -68,6 +68,8 @@
 #include "BPatch_function.h"
 #include "callbacks.h"
 
+#include "BPatch_private.h"
+
 #include "ast.h"
 
 void BPatch_process::PDSEP_updateObservedCostAddr(unsigned long a)

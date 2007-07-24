@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.269 2007/07/19 17:15:31 ssuen Exp $
+ * $Id: inst-power.C,v 1.270 2007/07/24 20:22:56 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -78,6 +78,8 @@
 #include "emit-power.h"
 
 #include <sstream>
+
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 extern bool isPowerOf2(int value, int &result);
 

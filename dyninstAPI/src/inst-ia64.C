@@ -81,6 +81,9 @@
 #include <sys/ptrace.h>
 #include <asm/ptrace_offsets.h>
 
+#include "BPatch.h"
+#include "BPatch_memoryAccess_NP.h"
+
 /* For unwinding through instrumentation. */
 #include <libunwind.h>
 #define PRESERVATION_UNWIND_OPERATION_COUNT	32

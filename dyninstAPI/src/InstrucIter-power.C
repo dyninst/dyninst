@@ -56,9 +56,10 @@
 #include "InstrucIter.h"
 #include "mapped_object.h"
 
-#include "BPatch_memoryAccess_NP.h"
 #include "BPatch_Set.h"
 
+#include "BPatch_instruction.h"
+#include "BPatch_memoryAccess_NP.h"
 
 /* Prints the op code */
 void InstrucIter::printOpCode()

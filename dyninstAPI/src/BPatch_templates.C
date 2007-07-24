@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.40 2006/03/31 22:25:12 bernat Exp $
+// $Id: BPatch_templates.C,v 1.41 2007/07/24 20:22:47 bernat Exp $
 
 #include <sys/types.h>
 
@@ -80,6 +80,8 @@
 //               so this must be included...
 #include <BPatch_point.h>
 
+#include "BPatch_basicBlock.h"
+
 //class BPatch_point;
 class BPatch_field;
 class BPatch_thread;
@@ -95,6 +97,7 @@ class BPatch_loopTreeNode;
 class int_function;
 class miniTramp;
 class instPoint;
+class BPatch_basicBlock;
 
 /* only define the ones not defined with a vector inside  */
 template class BPatch_Vector<BPatch_point *>;

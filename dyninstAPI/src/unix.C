@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.227 2007/06/26 14:54:54 bernat Exp $
+// $Id: unix.C,v 1.228 2007/07/24 20:23:02 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -63,6 +63,11 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/stats.h"
+
+
+// Forwarding a signal sets BPatch-level shtuff
+#include "BPatch.h"
+#include "BPatch_process.h"
 
 // BREAK_POINT_INSN
 #if defined(os_aix)
@@ -1582,6 +1587,7 @@ void EventRecord::clear() {
 
 // TODO: we need to centralize this code as well. Maybe make continueHint
 // a struct to hold signals, or set the signal separately.
+
 
 bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint) 
 {

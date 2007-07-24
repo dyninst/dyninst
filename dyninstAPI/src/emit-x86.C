@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.51 2007/06/13 18:50:42 bernat Exp $
+ * $Id: emit-x86.C,v 1.52 2007/07/24 20:22:54 bernat Exp $
  */
 
 #include <assert.h>
@@ -54,11 +54,10 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/h/BPatch.h"
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 // get_index...
 #include "dyninstAPI/src/dyn_thread.h"
-
-#include "InstrucIter.h"
 
 const int Emitter32::mt_offset = -4;
 #if defined(arch_x86_64)
