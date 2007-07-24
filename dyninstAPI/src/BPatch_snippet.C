@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.97 2007/07/17 17:11:24 ssuen Exp $
+// $Id: BPatch_snippet.C,v 1.98 2007/07/24 20:22:34 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -79,6 +79,19 @@ int BPatch_snippet::PDSEP_astMinCost()
 {
   return (*ast_wrapper)->minCost();
 }
+
+/*
+ * BPatch_snippet::BPatch_snippet
+ *
+ * The default constructor was exposed as public, so we're
+ * stuck with it even though that _should_ be an error.
+ * For now, make it a null node (and hope nobody ever
+ * tries to generate code)
+ */
+BPatch_snippet::BPatch_snippet() {
+    ast_wrapper = new AstNodePtr(AstNode::nullNode());
+}
+
 
 /*
  * BPatch_snippet::BPatch_snippet

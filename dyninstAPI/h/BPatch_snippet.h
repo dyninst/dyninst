@@ -144,7 +144,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     //  BPatch_snippet::BPatch_snippet
     //  Default constructor
 
-    BPatch_snippet() : ast_wrapper(NULL) {};
+    BPatch_snippet();
 
     //  BPatch_snippet::BPatch_snippet
     //  Copy constructor
