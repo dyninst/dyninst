@@ -476,17 +476,44 @@ bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith, dyn_l
         // the LWP we were given in continue.
         // If we're in a stop situation we can't continue the process; someone else needs
         // the stop as well.
-        signal_printf("%s[%d]: continuing process from non-SG thread\n",
-                      FILE__, __LINE__);
-        
-        // PROBLEM: we can't arbitrarily continue a thread from here if there are other
-        // handlers that are waiting to process an event. So, what we do is only do the
-        // continue if nobody else is waiting. If not, we wait here (saying "hey, run")
-        // and figure that the other handler will eventually handle the continue.
 
-        if (!isActivelyProcessing())
-            continueProcessInternal();
-
+	bool other_handler = false;
+	for (unsigned i = 0; i < handlers.size(); i++) {
+		signal_printf("%s[%d]: checking handler %d for activity\n",
+			FILE__, __LINE__, i);
+		if (getExecThreadID() == handlers[i]->getThreadID()) {
+			signal_printf("%s[%d]: checked self\n", 
+			FILE__, __LINE__);
+			continue;
+		}
+		if (!handlers[i]->processing()) {
+			signal_printf("%s[%d]: handler is not processing\n",
+			FILE__, __LINE__);
+			continue;
+		}
+		if (!handlers[i]->events_to_handle.size()) {
+			signal_printf("%s[%d]: handler has no events to handle\n",
+			FILE__, __LINE__);
+			continue;
+		}
+		if (handlers[i]->events_to_handle[0].lwp == lwp) {
+			signal_printf("%s[%d]: handler is waiting for current LWP!\n",
+					FILE__, __LINE__);
+			other_handler = true;
+			continue;
+		}
+		signal_printf("%s[%d]: handler does not match\n", FILE__, __LINE__);
+	}
+	
+	if (!other_handler) {
+        	signal_printf("%s[%d]: continuing process from non-SG thread\n",
+                	      FILE__, __LINE__);
+        	continueProcessInternal();
+	}
+	else {
+		signal_printf("%s[%d]: other handler waiting, skipping continue\n",
+			FILE__, __LINE__);
+	}
         signal_printf("%s[%d]: async continue broadcasting...\n", FILE__, __LINE__);
         activationLock->_Broadcast(FILE__, __LINE__);
         activationLock->_Unlock(FILE__, __LINE__);
