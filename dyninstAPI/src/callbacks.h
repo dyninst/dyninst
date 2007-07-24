@@ -69,7 +69,7 @@ class SyncCallback : public CallbackBase
 ///////////////////////////////////////////////////////////
 
 // BPatchErrorCallback
-#include "BPatch.h"
+#include "BPatch_callbacks.h"
 
 class ErrorCallback : public SyncCallback 
 {  

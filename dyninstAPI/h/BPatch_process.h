@@ -49,13 +49,12 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_point.h"
 
+#include "BPatch_callbacks.h"
+
 #include <vector>
 
 #include <stdio.h>
 #include <signal.h>
-
-typedef void (*BPatchOneTimeCodeCallback)(BPatch_thread *proc,
-                                          void *userData, void *returnValue);
 
 class process;
 class dyn_thread;
@@ -141,12 +140,6 @@ typedef struct {
   BPatchSnippetHandle *sh;
   BPatch_thread *thread;
 } BPatch_catchupInfo;
-
-typedef enum {
-   NoExit,
-   ExitedNormally,
-   ExitedViaSignal
-} BPatch_exitType;
 
 class EventRecord;
 class OneTimeCodeCallback;

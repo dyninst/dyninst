@@ -43,14 +43,25 @@
 #define _InstrucIter_h_
 
 #include "BPatch_Set.h"
-#include "BPatch_point.h"
-#include "BPatch_memoryAccess_NP.h"
-#include "BPatch_function.h"
-#include "BPatch_parRegion.h"
-#include "function.h"
+#include "BPatch_eventLock.h" // CONST_EXPORT...
 
 class InstrucIter;
+
+class instruction;
+class image;
+class image_parRegion;
+class image_basicBlock;
+class image_func;
+
+class process;
 class bblInstance;
+class int_basicBlock;
+class int_function;
+
+class BPatch_parRegion;
+class BPatch_memoryAccess;
+class BPatch_basicBlock;
+class BPatch_instruction;
 
 /*
    VG (02/19/02): New abstraction layer for instruction parsing.

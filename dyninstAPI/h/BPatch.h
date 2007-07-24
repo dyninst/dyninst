@@ -58,33 +58,6 @@ class process;
 
 #define DYNINST_5_1
 
-typedef void (*BPatchAsyncThreadEventCallback)(BPatch_process *proc, BPatch_thread *thr);
-typedef void (*BPatchUserEventCallback)(BPatch_process *proc, void *buf, 
-                                        unsigned int bufsize);
-typedef enum {
-    BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
-} BPatchErrorLevel;
-
-typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
-				    int number,
-				    const char * const *params);
-
-typedef void (*BPatchDynLibraryCallback)(BPatch_thread *proc,
-					 BPatch_module *mod,
-					 bool load);
-
-typedef void (*BPatchForkCallback)(BPatch_thread *parent, 
-                                   BPatch_thread *child);
-
-typedef void (*BPatchExecCallback)(BPatch_thread *proc);
-
-typedef void (*BPatchExitCallback)(BPatch_thread *proc,
-                                   BPatch_exitType exit_type);
-
-typedef void (*BPatchSignalCallback)(BPatch_thread *proc, int sigNum);
-
-typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point,
-                                              BPatch_function *called_function);
 #ifdef IBM_BPATCH_COMPAT
 typedef void *BPatch_Address;
 #endif

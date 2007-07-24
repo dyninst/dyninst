@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.38 2007/07/17 17:16:15 rutar Exp $
+// $Id: function.h,v 1.39 2007/07/24 20:22:40 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -64,7 +64,10 @@ class BPatch_basicBlockLoop;
 
 class instPointInstance;
 
+#if defined(arch_ia64)
 #include "dyninstAPI/h/BPatch_Set.h"
+#endif
+
 #include "dyninstAPI/src/ast.h"
 
 class instPoint;

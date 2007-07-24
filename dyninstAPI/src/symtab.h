@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.197 2007/07/17 17:16:16 rutar Exp $
+// $Id: symtab.h,v 1.198 2007/07/24 20:22:45 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -60,8 +60,6 @@
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/LineInformation.h"
-#include "dyninstAPI/h/BPatch_Vector.h"
-#include "dyninstAPI/h/BPatch_basicBlock.h"
 #include "common/h/String.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/function.h"
@@ -653,6 +651,8 @@ inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
       return true;
    }
 }
+
+class BPatch_basicBlock;
 
 int instPointCompare( instPoint*& ip1, instPoint*& ip2 );
 int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 );

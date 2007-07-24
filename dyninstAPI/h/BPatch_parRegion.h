@@ -44,18 +44,13 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
-#include "BPatch_point.h"
-#include "BPatch_type.h"
-#include "BPatch_module.h"
-#include "BPatch_flowGraph.h"
-#include "BPatch_instruction.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_memoryAccess_NP.h"
 
 class int_parRegion;
 class process;
 class InstrucIter;
 class BPatch_function;
+class BPatch_instruction;
 
 typedef enum{
   OMP_NONE, OMP_PARALLEL, OMP_DO_FOR,OMP_DO_FOR_LOOP_BODY, OMP_SECTIONS, OMP_SINGLE, 

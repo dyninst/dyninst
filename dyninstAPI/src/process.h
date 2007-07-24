@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.404 2007/06/26 14:54:50 bernat Exp $
+/* $Id: process.h,v 1.405 2007/07/24 20:22:44 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -142,18 +142,8 @@ class SignalGenerator;
 
 class BPatch_thread;
 class BPatch_function;
+class BPatch_point;
 
-#if 0
-static inline unsigned ipHash(const instPoint * const &ip)
-{
-  // assume all addresses are 4-byte aligned
-  unsigned result = (unsigned)(Address)ip;
-  result >>= 2;
-  return result;
-  // how about %'ing by a huge prime number?  Nah, x % y == x when x < y 
-  // so we don't want the number to be huge.
-}
-#endif
 
 typedef void (*continueCallback)(timeStamp timeOfCont);
 

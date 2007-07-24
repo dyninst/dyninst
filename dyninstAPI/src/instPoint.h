@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.37 2007/06/13 18:50:56 bernat Exp $
+// $Id: instPoint.h,v 1.38 2007/07/24 20:22:43 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -507,27 +507,5 @@ class instPoint : public instPointBase {
 };
 
 typedef instPoint::iterator instPointIter;
-
-class BPatch_thread;
-class BPatchSnippetHandle;
-class BPatch_point;
-class BPatch_snippet;
-
-#include "BPatch_snippet.h"
-
-// TODO: this is bpatch-specific, move to BPatch_private.h?
-struct batchInsertionRecord {
-    // Thread-specific instru
-    BPatch_thread *thread_;
-    // For delayed insertion; vector because there is a vector-insert technique
-    pdvector<BPatch_point *> points_;
-    // This has to be vectorized to handle the multiple-point insertion + edges.
-    pdvector<callWhen> when_;
-    callOrder order_;
-    BPatch_snippet snip; // Make a copy so that the user doesn't have to.
-    BPatchSnippetHandle *handle_; // handle to fill in
-
-    bool trampRecursive_;
-};
 
 #endif /* _INST_POINT_H_ */

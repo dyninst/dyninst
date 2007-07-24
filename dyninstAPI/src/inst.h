@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.99 2007/06/13 18:50:54 bernat Exp $
+// $Id: inst.h,v 1.100 2007/07/24 20:22:42 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -243,9 +243,10 @@ void     emitImm(opCode op, Register src, RegValue src2imm, Register dst,
                  registerSpace *rs = NULL);
 
 
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+//#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 class BPatch_addrSpec_NP;
-//class BPatch_countSpec_NP;
+typedef BPatch_addrSpec_NP BPatch_countSpec_NP;
+
 // Don't need the above: countSpec is typedefed to addrSpec
 
 void emitJmpMC(int condition, int offset, codeGen &gen);
