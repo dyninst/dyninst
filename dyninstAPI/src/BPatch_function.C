@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.86 2007/06/13 18:50:21 bernat Exp $
+// $Id: BPatch_function.C,v 1.87 2007/07/26 19:19:36 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -848,4 +848,23 @@ unsigned int BPatch_function::getContiguousSizeInt() {
        block = func->findBlockInstanceByAddr(end);
     }
     return end - start;
+}
+
+bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs) {
+    assert(func);
+    assert(proc);
+
+    pdvector<int_function *> overlappingIntFuncs;
+    if (!func->getOverlappingFuncs(overlappingIntFuncs)) {
+        // No overlapping functions
+        return false;
+    }
+
+    // We now need to map from int_functions to BPatch_functions
+    for (unsigned i = 0; i < overlappingIntFuncs.size(); i++) {
+        funcs.push_back(proc->findOrCreateBPFunc(overlappingIntFuncs[i],
+                                                 mod));
+    }
+
+    return true;
 }

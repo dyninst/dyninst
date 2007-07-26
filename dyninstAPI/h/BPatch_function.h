@@ -296,6 +296,10 @@ public:
     //  Allocates and returns a special type of BPatch_variableExpr.
     API_EXPORT( Int, (), BPatch_variableExpr *, getFunctionRef, () );
 
+    // Get all functions that share a block (or any code, but it will
+    // always be a block) with this function.
+    API_EXPORT( Int, (funcs), bool, findOverlapping, (BPatch_Vector<BPatch_function *> &funcs));
+
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
 
