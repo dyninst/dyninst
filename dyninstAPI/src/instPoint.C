@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.39 2007/06/13 18:50:55 bernat Exp $
+// $Id: instPoint.C,v 1.40 2007/07/26 19:19:39 bernat Exp $
 // instPoint code
 
 
@@ -926,6 +926,10 @@ bool instPointInstance::generateInst() {
             func()->relocationGenerate(func()->enlargeMods(), 
                                        0, force_reloc);
         }
+
+        reloc_printf("%s[%d]: After generating relocation information for %s, %d also need relocation...\n",
+                     FILE__, __LINE__, func()->prettyName().c_str(), force_reloc.size());
+                
     }
 #endif
     
@@ -937,11 +941,17 @@ bool instPointInstance::installInst() {
 
 #if defined(cap_relocation)
     // This is harmless to call if there isn't a relocation in-flight
+
+    reloc_printf("%s[%d]: instPointInstance calling relocationInstall for primary func %s\n",
+                 FILE__, __LINE__, func()->prettyName().c_str());
+
     func()->relocationInstall();
 
     // the original relocation may force others; install them too
     for(unsigned i=0; i < force_reloc.size(); i++)
     {
+        reloc_printf("%s[%d]: instPointInstance calling relocationInstall for forced func %s\n",
+                     FILE__, __LINE__, force_reloc[i]->prettyName().c_str());
         force_reloc[i]->relocationInstall();
     }
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.27 2007/05/22 19:42:02 bernat Exp $
+// $Id: reloc-func.C,v 1.28 2007/07/26 19:19:40 bernat Exp $
 
 
 
@@ -82,6 +82,9 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
 {
     bool ret;
 
+    reloc_printf("%s[%d]: RELOCATION GENERATE FOR %s\n",
+                 FILE__, __LINE__, prettyName().c_str());
+
 #if defined(os_aix)
     // Once we've relocated once, we're good... there's a new function version
     // near the heap. The code will blithely relocate a bazillion times, too. 
@@ -95,6 +98,9 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
     // process all functions in needReloc list -- functions that have
     // been previously processed or actually relocated (installed and
     // linked) must be skipped!
+
+    reloc_printf("%s[%d] after internal relocation generation, %d also need work\n",
+                 FILE__, __LINE__, needReloc.size());
 
     for(unsigned i = 0; i < needReloc.size(); i++)
     {
@@ -113,11 +119,15 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
             reloc_printf("Forcing dependant relocation of %p\n",
                          needReloc[i]);
             // always version 0?
-            ret &= needReloc[i]->relocationGenerateInt(
-                                            needReloc[i]->enlargeMods(),
-                                            0,needReloc);
+            if (!needReloc[i]->relocationGenerateInt(needReloc[i]->enlargeMods(),
+                                                     0,needReloc))
+                ret = false;
         }
     }
+
+    reloc_printf("%s[%d]: RELOCATION GENERATE FOR %s, returning %s, %d in needReloc\n",
+                 FILE__, __LINE__, prettyName().c_str(), ret ? "true" : "false", needReloc.size());
+
 
     return ret;
 }
@@ -234,12 +244,24 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
                                                              blockList[i],
                                                              sourceVersion,
                                                              generatedVersion_);
-        if (funcRep->generateFuncRep(needReloc))
+        if (funcRep->generateFuncRepJump(needReloc)) {            
             blockList[i]->instVer(generatedVersion_)->jumpToBlock() = funcRep;
-        else
-            success = false;
+        }
+        else {
+            // Try using traps...
+            // Fix this later; we might over-relocate things that we bled into
+            // before we decided a jump was bad news.
+            //needReloc.clear();
+            if (funcRep->generateFuncRepTrap(needReloc)) {
+                blockList[i]->instVer(generatedVersion_)->jumpToBlock() = funcRep; 
+            }
+            else {
+                relocationInvalidate();
+                return false;
+            }
+        }
     }
-
+    
     return success;
 }
 
@@ -253,6 +275,9 @@ bool int_function::relocationInstall() {
 
     if (installedVersion_ == generatedVersion_)
         return true; // Nothing to do here...
+
+    reloc_printf("%s[%d]: RELOCATION INSTALL FOR %s\n",
+                 FILE__, __LINE__, prettyName().c_str());
 
     bool success = true;
     for (i = 0; i < blockList.size(); i++) {
@@ -293,6 +318,9 @@ bool int_function::relocationInstall() {
     for (i = 0; i < arbitraryPoints_.size(); i++)
         arbitraryPoints_[i]->updateInstancesFinalize();
 
+    reloc_printf("%s[%d]: RELOCATION INSTALL FOR %s, returning %s\n",
+                 FILE__, __LINE__, prettyName().c_str(), success ? "true" : "false");
+
     return success;
 }
 
@@ -300,8 +328,7 @@ bool int_function::relocationCheck(pdvector<Address> &checkPCs) {
     unsigned i;
 
     assert(generatedVersion_ == installedVersion_);
-    if (installedVersion_ == installedVersion_)
-        return true;
+
     for (i = 0; i < blockList.size(); i++) {
         if (!blockList[i]->instVer(installedVersion_)->check(checkPCs))
             return false;
@@ -727,7 +754,8 @@ functionReplacement::functionReplacement(int_basicBlock *sourceBlock,
     targetBlock_(targetBlock),
     sourceVersion_(sourceVersion),
     targetVersion_(targetVersion),
-    overwritesMultipleBlocks_(false) 
+    overwritesMultipleBlocks_(false),
+    usesTrap_(false)
 {}
     
 Address functionReplacement::get_address_cr() const {
@@ -742,42 +770,11 @@ unsigned functionReplacement::get_size_cr() const {
         return 0;
 }
 
-// Dig down to the low-level block of b, find the low-level functions
-// that share it, and map up to int-level functions and add them
-// to the funcs list.
-void int_function::getSharingFuncs(int_basicBlock *b,
-                                   pdvector< int_function *> & funcs)
-{
-    if(!b->hasSharedBase())
-        return;
-
-    pdvector<image_func *> lfuncs;
-
-    b->llb()->getFuncs(lfuncs);
-    for(unsigned i=0;i<lfuncs.size();i++) {
-        image_func *ll_func = lfuncs[i];
-        int_function *hl_func = obj()->findFunction(ll_func);
-        assert(hl_func);
-
-        if (hl_func == this) continue;
-
-        // Let's see if we've already got it...
-        bool found = false;
-        for (unsigned j = 0; j < funcs.size(); j++) {
-            if (funcs[j] == hl_func) {
-                found = true;
-                break;
-            }
-        }
-        if (!found)
-            funcs.push_back(hl_func);
-    }
-}
-
 // Will potentially append to needReloc (indicating that
 // other functions must be relocated)
-bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
+bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needReloc)
 {
+    
     assert(sourceBlock_);
     assert(targetBlock_);
     assert(jumpToRelocated == NULL);
@@ -786,6 +783,8 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
     assert(sourceVersion_ == 0);
     assert(targetVersion_ == 0);
 #endif
+
+    usesTrap_ = false;
 
     // TODO: if check modules and do ToC if not the same one.
 
@@ -812,7 +811,8 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
     // must be relocated before the jump can be written.
     //
 
-    if(sourceBlock_->hasSharedBase() && 0)
+
+    if(sourceBlock_->hasSharedBase())
     {
         // if this entry block is shared...
         sourceBlock_->func()->getSharingFuncs(sourceBlock_,
@@ -849,6 +849,8 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
 		  image_func *possibleEntry = curInst->block()->llb()->getEntryFunc();
 		  if (possibleEntry != sourceBlock_->func()->ifunc()) {
 		    // Yeah, this ain't gonna work
+                      reloc_printf("%s[%d]: Found function %s that shares with this block at 0x%lx, returning failure\n",
+                                   FILE__, __LINE__, possibleEntry->prettyName().c_str(), currAddr);
 		    return false;
 		  }
 
@@ -895,12 +897,67 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
         }
         overwritesMultipleBlocks_ = true;
     }
+
+    return true;
+}
+
+// Will potentially append to needReloc (indicating that
+// other functions must be relocated)
+bool functionReplacement::generateFuncRepTrap(pdvector<int_function *> &needReloc)
+{
+    assert(sourceBlock_);
+    assert(targetBlock_);
+
+    jumpToRelocated.invalidate();
+
+    assert(usesTrap_ == false);
+
+    usesTrap_ = true;
+
+#if !defined(cap_relocation)
+    assert(sourceVersion_ == 0);
+    assert(targetVersion_ == 0);
+#endif
+
+    // TODO: if check modules and do ToC if not the same one.
+
+    bblInstance *sourceInst = sourceBlock_->instVer(sourceVersion_);
+    assert(sourceInst);
+    bblInstance *targetInst = targetBlock_->instVer(targetVersion_);
+    assert(targetInst);
+
+    jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize());
+    reloc_printf("******* generating interFunctionTrap from 0x%lx (%d) to 0x%lx (%d)\n",
+		 sourceInst->firstInsnAddr(),
+		 sourceVersion_,
+		 targetInst->firstInsnAddr(),
+		 targetVersion_);
+
+    instruction::generateTrap(jumpToRelocated);
+
+    // Determine whether relocation of this function will force relocation
+    // of any other functions:
+    // If the inter-function jump will overwrite any shared blocks,
+    // the "co-owner" functions that are associated with those blocks
+    // must be relocated before the jump can be written.
+    //
+
+
+    if(sourceBlock_->hasSharedBase())
+    {
+        // if this entry block is shared...
+        sourceBlock_->func()->getSharingFuncs(sourceBlock_,
+                                              needReloc);
+    }
+
     return true;
 }
 
 bool functionReplacement::installFuncRep() {
-  // Nothing to do here unless we go to a springboard model.
-return true;
+    // Nothing to do here unless we go to a springboard model.
+
+
+    return true;
 }
 
 // TODO: jumps that overwrite multiple basic blocks...
@@ -922,7 +979,23 @@ bool functionReplacement::linkFuncRep(pdvector<codeRange *> &overwrittenObjs) {
                                              jumpToRelocated.used(),
                                              jumpToRelocated.start_ptr())) {
         sourceBlock_->proc()->addFunctionReplacement(this,
-                                       overwrittenObjs);
+                                                     overwrittenObjs);
+
+        if (usesTrap_) {
+            bblInstance *sourceInst = sourceBlock_->instVer(sourceVersion_);
+            assert(sourceInst);
+            bblInstance *targetInst = targetBlock_->instVer(targetVersion_);
+            assert(targetInst);
+
+#if (defined(arch_x86) || defined(arch_x86_64)) 
+            sourceBlock_->proc()->trampTrapMapping[sourceInst->firstInsnAddr() + 1] = 
+                targetInst->firstInsnAddr();
+#else
+            sourceBlock_->proc()->trampTrapMapping[sourceInst->firstInsnAddr()] = 
+                targetInst->firstInsnAddr();
+#endif
+        }       
+
         return true;
     }
     else
