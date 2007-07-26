@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.39 2007/07/24 20:22:40 bernat Exp $
+// $Id: function.h,v 1.40 2007/07/26 19:19:38 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -478,8 +478,27 @@ class int_function {
    bool canBeRelocated() const { return ifunc_->canBeRelocated(); }
    bool needsRelocation() const { return ifunc_->needsRelocation(); }
    int version() const { return version_; }
-   void getSharingFuncs(int_basicBlock *b,
+
+
+   ////////////////////////////////////////////////
+   // Code overlapping
+   ////////////////////////////////////////////////
+   // Get all functions that "share" the block. Actually, the
+   // int_basicBlock will not be shared (they are per function),
+   // but the underlying image_basicBlock records the sharing status. 
+   // So dodge through to the image layer and find out that info. 
+   // Returns true if such functions exist.
+
+   bool getSharingFuncs(int_basicBlock *b,
                         pdvector<int_function *> &funcs);
+
+   // The same, but for any function that overlaps with any of
+   // our basic blocks.
+   // OPTIMIZATION: we're not checking all blocks, only an exit
+   // point; this _should_ work :) but needs to change if we
+   // ever do flow-sensitive parsing
+   bool getOverlappingFuncs(pdvector<int_function *> &funcs);
+
 
    ////////////////////////////////////////////////
    // Misc
@@ -643,7 +662,8 @@ class functionReplacement : public codeRange {
 
     unsigned maxSizeRequired();
 
-    bool generateFuncRep(pdvector<int_function *> &needReloc);
+    bool generateFuncRepJump(pdvector<int_function *> &needReloc);
+    bool generateFuncRepTrap(pdvector<int_function *> &needReloc);
     bool installFuncRep();
     bool checkFuncRep(pdvector<Address> &checkPCs);
     bool linkFuncRep(pdvector<codeRange *> &overwrittenObjs);
@@ -673,6 +693,8 @@ class functionReplacement : public codeRange {
     // We may need more room than there is in a block;
     // this makes things "interesting".
     bool overwritesMultipleBlocks_; 
+
+    bool usesTrap_;
 };
 
 

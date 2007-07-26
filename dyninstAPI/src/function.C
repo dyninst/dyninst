@@ -518,8 +518,16 @@ int_basicBlock *int_basicBlock::getFallthrough() const {
 }
 
 bool int_basicBlock::needsRelocation() const {
-    if(ib_->isShared())
+    if(ib_->isShared()) {
+        // If we've _already_ relocated, then we're no longer shared
+        // because we have our own copy.
+        if (instances_.size() > 1) {
+            return false;
+        }
+
+        // We have only the one instance, so we're still shared.
         return true;
+    }
     //else if(isEntryBlock() && func()->containsSharedBlocks())
     //    return true;
     else
@@ -1105,3 +1113,61 @@ unsigned functionReplacement::targetVersion() {
    return targetVersion_; 
 }
 
+
+// Dig down to the low-level block of b, find the low-level functions
+// that share it, and map up to int-level functions and add them
+// to the funcs list.
+bool int_function::getSharingFuncs(int_basicBlock *b,
+                                   pdvector< int_function *> & funcs)
+{
+    bool ret = false;
+    if(!b->hasSharedBase())
+        return ret;
+
+    pdvector<image_func *> lfuncs;
+
+    b->llb()->getFuncs(lfuncs);
+    for(unsigned i=0;i<lfuncs.size();i++) {
+        image_func *ll_func = lfuncs[i];
+        int_function *hl_func = obj()->findFunction(ll_func);
+        assert(hl_func);
+
+        if (hl_func == this) continue;
+
+        // Let's see if we've already got it...
+        bool found = false;
+        for (unsigned j = 0; j < funcs.size(); j++) {
+            if (funcs[j] == hl_func) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            ret = true;
+            funcs.push_back(hl_func);
+        }
+    }
+
+    return ret;
+}
+
+// Find overlapping functions via checking all basic blocks. We might be
+// able to check only exit points; but we definitely need to check _all_
+// exits so for now we're checking everything.
+
+bool int_function::getOverlappingFuncs(pdvector<int_function *> &funcs) {
+    bool ret = false;
+
+    funcs.clear();
+
+    // Create the block list.
+    blocks();
+
+    for (unsigned i = 0; i < blockList.size(); i++) {
+        if (getSharingFuncs(blockList[i],
+                            funcs))
+            ret = true;
+    }
+
+    return ret;
+}
