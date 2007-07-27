@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.36 2006/11/14 19:52:40 legendre Exp $
+// $Id: arch-power.h,v 1.37 2007/07/27 05:24:06 rchen Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -87,7 +87,7 @@ struct dsform {
     unsigned op : 6;
     unsigned rt : 5;        // rt, rs
     unsigned ra : 5;
-    signed   d  : 14;
+    signed   ds : 14;
     unsigned xo : 2;
 };
 
@@ -152,8 +152,8 @@ struct mdform {
     unsigned rs : 5;
     unsigned ra : 5;
     unsigned sh : 5;
-    unsigned mb_or_me : 5;
-    unsigned mb_or_me2 : 1;
+    unsigned mb : 5; // me
+    unsigned mb2 : 1;
     unsigned xo : 3;
     unsigned sh2 : 1;
     unsigned rc : 1;
@@ -277,6 +277,11 @@ typedef unsigned codeBufIndex_t;
 // ------------- Op Codes, instruction form B  ------------------
 #define BCop		16	/* branch conditional */
 
+// ------------- Op Codes, instruction form MD ------------------
+#define RLDop          30      /* RLD* family -- rotate left doubleword */
+#define ICLxop          0      // Immediate and Clear Left
+#define ICRxop          1      // Immediate and Clear Right
+
 // ------------- Op Codes, instruction form X  ------------------
 /* #define XFPop        31      -- extendened fixed point ops */
 // -- X-from Loads
@@ -316,7 +321,6 @@ typedef unsigned codeBufIndex_t;
 #define STBUXxop	247
 #define STHXxop		407
 #define STHUXxop	439
-#define MTSPRxop	467
 #define STSXxop		661
 #define STBRXxop	662
 #define STFSXxop	663
@@ -335,12 +339,14 @@ typedef unsigned codeBufIndex_t;
 #define ORxop           444     /* or */
 
 // -- Other extended op codes for X, XFX, & XO when op is 31
+#define EXTop           31
 #define Txop             4
 #define Axop            10
 #define MULHWUxop       11
 #define MFCRxop         19
 #define SLxop           24
 #define CNTLZxop        26
+#define SLDxop          27
 #define MASKGxop        29
 #define CMPLxop         32
 #define SUBFxop         40
@@ -382,6 +388,7 @@ typedef unsigned codeBufIndex_t;
 #define ABSxop         360
 #define ORCxop         412
 #define DIVWUxop       459
+#define MTSPRxop       467
 #define DCBIxop        470
 #define NANDxop        476
 #define NABSxop        488
@@ -390,6 +397,7 @@ typedef unsigned codeBufIndex_t;
 #define CLCSxop        531
 #define SRxop          536
 #define RRIBxop        537
+#define SRDxop         539
 #define MASKIRxop      541
 #define LFSUXxop       567
 #define MFSRxop        595
@@ -454,8 +462,6 @@ typedef unsigned codeBufIndex_t;
 #define FNMSxop         30
 #define FNMAxop         31
 
-
-
 // ------------- Extended Floating Point Op Codes, instruction form X---
 // Op Code - 63
 #define FCMPUxop         0
@@ -468,8 +474,7 @@ typedef unsigned codeBufIndex_t;
 #define FNABSxop       136
 #define FABSxop        264
 #define MFFSxop        583
-
-
+#define MTFSFxop       711
 
 // ------------- Op Codes, instruction form SC  -----------------
 #define SVCop		17	/* supervisor call -- used to be SCop */
@@ -481,6 +486,8 @@ typedef unsigned codeBufIndex_t;
                                  * -- RLWINMxop */
 #define RLMIop          22
 #define RLNMop          23
+
+#define RLDICLop        30      /* Rotate Left Doubleword Imm and Clear Left */
 
 // -------------------------- Raw instructions ------------------
 /* a few full instructions that are in forms we don't break down by field */
@@ -551,6 +558,14 @@ typedef unsigned codeBufIndex_t;
 #define LOW(x)  ((x)%65536)
 #define HIGH(x) ((x)/65536)
 
+/* high and low half words for top and bottom words.  Useful to load
+ * addresses in four parts.
+ */
+#define TOP_HI(x) (((x) >> 48))          // Can't think of a way to do this on
+#define TOP_LO(x) (((x) >> 32) & 0xFFFF) // 32-bit compilers without warnings.
+#define BOT_HI(x) (((x) >> 16) & 0xFFFF)
+#define BOT_LO(x) (((x)      ) & 0xFFFF)
+
 #define ABS(x)		((x) > 0 ? x : -x)
 //#define MAX_BRANCH	0x1<<23
 #define MAX_BRANCH      0x01fffffc
@@ -562,9 +577,19 @@ typedef unsigned codeBufIndex_t;
 // bool isCallInsn(const instruction);
 // bool isReturnInsn(const image *, Address, bool&);
 
-// Define bounds for immediate offsets
-#define MIN_IMM16	-32768
-#define MAX_IMM16	32767
+// Define bounds for immediate offsets.
+// Use strange definitions to avoid compiler warnings.
+#define MAX_IMM16      32767
+#define MIN_IMM16      -32768
+
+#define MAX_IMM32      2147483647
+#define MIN_IMM32      (-2147483647 - 1)    // In C90, there are no negative
+                                            // constants. Only negated positive
+                                            // constants. Hopefully, compiler
+                                            // will optimize this away.
+
+#define MAX_IMM48      ((long)(-1 >> 17))   // To avoid warnings on 32-bit
+#define MIN_IMM48      ((long)(~MAX_IMM48)) // compilers.
 
 ///////////////////////////////////////////////////////
 // Bum bum bum.....
@@ -596,7 +621,7 @@ class instruction {
     static void generateIllegal(codeGen &gen);
 
     static void generateBranch(codeGen &gen,
-                               int jump_off,
+                               long jump_off,
                                bool link = false);
     static void generateBranch(codeGen &gen,
                                Address from,
@@ -616,10 +641,16 @@ class instruction {
 
     static void generateImm(codeGen &gen, int op,
                             Register rt, Register ra, int immd);
+    static void generateMemAccess64(codeGen &gen, int op, int xop,
+                                    Register r1, Register r2, int immd);
     static void generateLShift(codeGen &gen, Register rs,
                                int shift, Register ra);
     static void generateRShift(codeGen &gen, Register rs,
                                int shift, Register ra);
+    static void generateLShift64(codeGen &gen, Register rs,
+                                 int shift, Register ra);
+    static void generateRShift64(codeGen &gen, Register rs,
+                                 int shift, Register ra);
     static void generateNOOP(codeGen &gen, unsigned size = 4);
     
     static void generateSimple(codeGen &gen,
@@ -629,7 +660,9 @@ class instruction {
                               int mode, Register rs1,
                               Register rs2, Register rd);
     static void loadImmIntoReg(codeGen &gen, Register rt,
-                               unsigned value);
+                               long value);
+    static void loadPartialImmIntoReg(codeGen &gen, Register rt,
+                                      long value);
     
     // We need instruction::size() all _over_ the place.
     static unsigned size() { return sizeof(instructUnion); } 

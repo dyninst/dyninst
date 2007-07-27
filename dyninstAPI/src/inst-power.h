@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.30 2007/07/24 20:22:57 bernat Exp $
+ * $Id: inst-power.h,v 1.31 2007/07/27 05:24:12 rchen Exp $
  */
 
 #ifndef INST_POWER_H
@@ -59,7 +59,8 @@
 #define LIVE_UNCLOBBERED_REG  2
 #define LIVE_CLOBBERED_REG    3
 
-#define GPRSIZE               4
+#define GPRSIZE_32            4
+#define GPRSIZE_64            8
 #define FPRSIZE               8
 
 #define REG_SP		      1		
@@ -78,14 +79,16 @@
 #define NUM_INSN_MT_PREAMBLE 26   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
 
-#define STACKSKIP 220
-#define GPRSAVE   (14*4)
-#define FPRSAVE   (14*8)
-#define SPRSAVE   (6*4+8)
-#define PDYNSAVE  (8)
-#define FUNCSAVE  (14*4)
-#define FUNCARGS  32
-#define LINKAREA  24
+#define STACKSKIP  220
+#define GPRSAVE_32 (14*4)
+#define GPRSAVE_64 (14*8)
+#define FPRSAVE    (14*8)
+#define SPRSAVE_32 (6*4+8)
+#define SPRSAVE_64 (6*8+8)
+#define PDYNSAVE   (8)
+#define FUNCSAVE   (14*4)
+#define FUNCARGS   32
+#define LINKAREA   24
 
 #if defined(os_aix)
 #define PARAM_OFFSET (14*4)
@@ -101,20 +104,31 @@
 
 
 // Okay, now that we have those defined, let's define the offsets upwards
-#define TRAMP_FRAME_SIZE (STACKSKIP + GPRSAVE + FPRSAVE + SPRSAVE + PDYNSAVE + \
-                          FUNCSAVE + FUNCARGS + LINKAREA)
+#define TRAMP_FRAME_SIZE_32 (STACKSKIP + GPRSAVE_32 + FPRSAVE + SPRSAVE_32 + PDYNSAVE + \
+                             FUNCSAVE + FUNCARGS + LINKAREA)
+#define TRAMP_FRAME_SIZE_64 (STACKSKIP + GPRSAVE_64 + FPRSAVE + SPRSAVE_64 + PDYNSAVE + \
+                             FUNCSAVE + FUNCARGS + LINKAREA)
 #define PDYN_RESERVED (LINKAREA + FUNCARGS + FUNCSAVE)
 #define TRAMP_SPR_OFFSET (PDYN_RESERVED + PDYNSAVE) /* 4 for LR */
 #define STK_GUARD (PDYN_RESERVED)
-#define STK_LR    (           0)
-#define STK_CR    (STK_LR   + 4)
-#define STK_CTR   (STK_CR   + 4)
-#define STK_XER   (STK_CTR  + 4)
-#define STK_SPR0  (STK_XER  + 4)
-#define STK_FP_CR (STK_SPR0 + 4)
+#define STK_LR       (              0)
+#define STK_CR_32    (STK_LR      + 4)
+#define STK_CTR_32   (STK_CR_32   + 4)
+#define STK_XER_32   (STK_CTR_32  + 4)
+#define STK_SPR0_32  (STK_XER_32  + 4)
+#define STK_FP_CR_32 (STK_SPR0_32 + 4)
 
-#define TRAMP_FPR_OFFSET (TRAMP_SPR_OFFSET + SPRSAVE)
-#define TRAMP_GPR_OFFSET (TRAMP_FPR_OFFSET + FPRSAVE)
+#define STK_CR_64    (STK_LR      + 8)
+#define STK_CTR_64   (STK_CR_64   + 8)
+#define STK_XER_64   (STK_CTR_64  + 8)
+#define STK_SPR0_64  (STK_XER_64  + 8)
+#define STK_FP_CR_64 (STK_SPR0_64 + 8)
+
+#define TRAMP_FPR_OFFSET_32 (TRAMP_SPR_OFFSET + SPRSAVE_32)
+#define TRAMP_GPR_OFFSET_32 (TRAMP_FPR_OFFSET_32 + FPRSAVE)
+
+#define TRAMP_FPR_OFFSET_64 (TRAMP_SPR_OFFSET + SPRSAVE_64)
+#define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE)
 
 #define FUNC_CALL_SAVE (LINKAREA + FUNCARGS)
 
@@ -138,7 +152,7 @@ void restoreLR(codeGen &gen,
                int stkOffset);
 void setBRL(codeGen &gen,
             Register scratchReg,
-            unsigned val,
+            long val,
             unsigned ti); // We're lazy and hand in the next insn
 void saveCR(codeGen &gen,
             Register scratchReg,
