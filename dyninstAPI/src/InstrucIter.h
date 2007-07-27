@@ -362,6 +362,10 @@ class InstrucIter {
 
   void getAndSkipDSandAgg(instruction* &ds,
                           instruction* &agg);
+  bool isASaveInstruction();
+  bool isARestoreInstruction();
+  void adjustRegNumbers(int* readRegs, int* writeRegs,int window);
+  int adjustRegNumbers(int regNum, int window);
 #endif
 
 };
