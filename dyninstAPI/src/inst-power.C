@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.271 2007/07/27 05:23:59 rchen Exp $
+ * $Id: inst-power.C,v 1.272 2007/07/27 16:58:49 ssuen Exp $
  */
 
 #include "common/h/headers.h"
@@ -1670,11 +1670,11 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	  if (gen.proc()->getAddressWidth() == 4) {
 	      instruction::generateImm(gen, Lop, dest, 1,
 				       TRAMP_FRAME_SIZE_32 +
-				       ((src1 - 8)*sizeof(int)) + 56);
+				       ((src1 - 8)*sizeof(int)) + PARAM_OFFSET);
 	  } else /* gen.proc()->getAddressWidth() == 8 */ {
 	      instruction::generateMemAccess64(gen, LDop, LDxop, dest, 1,
 					       TRAMP_FRAME_SIZE_64 +
-					       ((src1 - 8)*sizeof(long)) + 56);
+					       ((src1 - 8)*sizeof(long)) + PARAM_OFFSET);
 	  }
           return(dest);
       }
