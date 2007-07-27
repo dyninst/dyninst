@@ -866,8 +866,8 @@ bool InstrucIter::isAnneal(){
 #define MK_LX(bytes, i) (MK_LX1((bytes), i, ((**i).xform.ra ? (signed)(**i).xform.ra : -1), (**i).xform.rb))
 #define MK_SX(bytes, i) (MK_SX1((bytes), i, ((**i).xform.ra ? (signed)(**i).xform.ra : -1), (**i).xform.rb))
 
-#define MK_LDS(bytes, i) (MK_LD1((bytes), i, ((**i).dsform.d << 2), (signed)(**i).dsform.ra))
-#define MK_SDS(bytes, i) (MK_SD1((bytes), i, ((**i).dsform.d << 2), (signed)(**i).dsform.ra))
+#define MK_LDS(bytes, i) (MK_LD1((bytes), i, ((**i).dsform.ds << 2), (signed)(**i).dsform.ra))
+#define MK_SDS(bytes, i) (MK_SD1((bytes), i, ((**i).dsform.ds << 2), (signed)(**i).dsform.ra))
 
 #define MK_LI(bytes, i) (MK_LX1((bytes), i, (**i).xform.ra, -1))
 #define MK_SI(bytes, i) (MK_SX1((bytes), i, (**i).xform.ra, -1))
