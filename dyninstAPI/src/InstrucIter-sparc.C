@@ -61,6 +61,28 @@
 #include "BPatch_memoryAccess_NP.h"
 
 //some more function used to identify the properties of the instruction
+/** is the instruction a save instruction
+ * @param i the instruction value 
+ */
+bool InstrucIter::isASaveInstruction()
+{
+  const instruction i = getInstruction();
+  if(((*i).resti.op == RESTop) && ((*i).resti.op3 == SAVEop3))
+      return true;
+  return false;  
+}
+
+/** is the instruction a restore instruction
+ * @param i the instruction value 
+ */
+bool InstrucIter::isARestoreInstruction()
+{
+  const instruction i = getInstruction();
+  if(((*i).resti.op == RESTop) && ((*i).resti.op3 == RESTOREop3))
+      return true;
+  return false;  
+}
+
 /** is the instruction used to return from the functions
  * @param i the instruction value 
  */
@@ -585,4 +607,114 @@ bool InstrucIter::isAnAbortInstruction()
 {
     assert(instPtr);
     return insn.isIllegal();
+}
+
+int adjustFPRegNumbers(int reg, int* registers, int i/*next available cell in registers*/, int word_size) {
+  if(word_size == SINGLE) {
+    registers[i] = reg + FLOAT_OFFSET;
+    return i+1;
+  }
+  else if(word_size == DOUBLE) {
+    if(reg < 32) {
+      registers[i] = reg + FLOAT_OFFSET;
+      registers[i+1] = reg+1 + FLOAT_OFFSET;
+      return i+2;
+    }
+    else {
+      registers[i] = reg + FLOAT_OFFSET;
+      return i+1;
+    }
+  }
+  else if(word_size == QUAD) {
+    if(reg>=32) {
+      registers[i] = reg + FLOAT_OFFSET;
+      registers[i+1] = reg+2 + FLOAT_OFFSET;
+      return i+2;
+    }
+    else {
+      registers[i] = reg + FLOAT_OFFSET;
+      registers[i+1] = reg+1 + FLOAT_OFFSET;
+      registers[i+2] = reg+2 + FLOAT_OFFSET;
+      registers[i+3] = reg+3 + FLOAT_OFFSET;
+      return i+4;
+    }
+  }
+  else {
+    fprintf(stderr,"Should have never reached here!\n");
+    return i;
+  }
+}
+
+int getRegisterNumber(int n, InsnRegister::RegisterType type) {
+  if(type == InsnRegister::FloatReg)
+    return n+FLOAT_OFFSET;
+  // if GlobalIntReg, CoProcReg, SpecialReg, or NoneReg, return what we have
+  return n;
+}
+
+void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs) {
+  InsnRegister* reads = (InsnRegister*)malloc(sizeof(InsnRegister)*7);//[7];
+  InsnRegister* writes = (InsnRegister*)malloc(sizeof(InsnRegister)*5);
+  getInstruction().get_register_operands(reads, writes);
+
+  int c=0;
+  int wC;
+  int i, j;
+  for(i=0; i<7; i++) {
+    int regNum = reads[i].getNumber();
+    if(regNum != -1) {
+      regNum = getRegisterNumber(regNum, reads[i].getType());
+      if(regNum != 0)
+		for(j=0, wC=reads[i].getWordCount(); j<wC; j++,c++) {
+			readRegs[c] = regNum + j;
+		}
+    }
+    else
+      break;
+  }
+  c=0;
+  for(i=0; i<5; i++) {
+    int regNum = writes[i].getNumber();
+    if(regNum != -1) {
+      regNum = getRegisterNumber(regNum, writes[i].getType());
+      if(regNum != 0)
+		for(j=0, wC=writes[i].getWordCount(); j<wC; j++,c++) {
+			writeRegs[c] = regNum + j;
+		}
+    }
+    else
+      break;
+  }
+}
+
+void InstrucIter::adjustRegNumbers(int* readRegs, int* writeRegs,int window) {
+  int i=0;
+  if(isASaveInstruction()) {
+    for(i=0; i<2; i++) {
+      if(readRegs[i] <32 && readRegs[i] > 7)
+	readRegs[i] += WIN_SIZE*(MAX_SETS - window);
+    }
+    writeRegs[0] += WIN_SIZE*(MAX_SETS - window-1);
+  }
+  else if(isARestoreInstruction()) {
+    for(i=0; i<2; i++) {
+      if(readRegs[i] <32 && readRegs[i] > 7)
+	readRegs[i] += WIN_SIZE*(MAX_SETS - window);
+    }
+    writeRegs[0] += WIN_SIZE*(MAX_SETS - window+1);
+  }
+  else {
+    for(i=0; i<4; i++) {
+      if(readRegs[i] <32 && readRegs[i] > 7)
+	readRegs[i] += WIN_SIZE*(MAX_SETS - window);
+      if(writeRegs[i] <32 && writeRegs[i] > 7)
+	writeRegs[i] += WIN_SIZE*(MAX_SETS - window);
+    }
+  }
+}
+
+int InstrucIter::adjustRegNumbers(int regNum, int window) {
+  if(regNum <32 && regNum > 7)
+    return regNum + WIN_SIZE*(MAX_SETS - window);
+  return regNum;
 }
