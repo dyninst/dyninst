@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.16 2007/07/27 05:23:52 rchen Exp $
+ * $Id: arch-power.C,v 1.17 2007/07/27 18:04:24 ssuen Exp $
  */
 
 #include "common/h/Types.h"
@@ -542,7 +542,7 @@ unsigned instruction::spaceToRelocate() const {
 }
 
 bool instruction::generate(codeGen &gen,
-                           process * /* proc */,
+                           process *proc,
                            Address origAddr,
                            Address relocAddr,
                            Address /* fallthroughOverride */,
@@ -590,7 +590,7 @@ bool instruction::generate(codeGen &gen,
                 // there are any.
 
                 // st r0, 16 (r1)
-		if (gen.proc()->getAddressWidth() == 4)
+		if (proc->getAddressWidth() == 4)
 		    instruction::generateImm(gen, STop, 0, 1, 16 /* offset */);
 		else /* gen.proc()->getAddressWidth() == 8 */
 		    instruction::generateMemAccess64(gen, STDop, STDxop, 0, 1, 32);
@@ -606,7 +606,7 @@ bool instruction::generate(codeGen &gen,
                 btlr.generate(gen);
 
                 // lw r0, 16 (r1)
-		if (gen.proc()->getAddressWidth() == 4)
+		if (proc->getAddressWidth() == 4)
 		    instruction::generateImm(gen, Lop, 0, 1, 16);
 		else /* gen.proc()->getAddressWidth() == 8 */
 		    instruction::generateMemAccess64(gen, LDop, LDxop, 0, 1, 32);
