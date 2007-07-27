@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.270 2007/07/24 20:22:56 bernat Exp $
+ * $Id: inst-power.C,v 1.271 2007/07/27 05:23:59 rchen Exp $
  */
 
 #include "common/h/headers.h"
@@ -294,6 +294,8 @@ void initRegisters()
  *                 < Space to save live regs at func call >
  *                 < Func call overflow area, 32 bytes > 
  *                 < Linkage area, 24 bytes            >
+ *
+ * Of course, change all the 4's to 8's for 64-bit mode.
  */
 
     ////////////////////////////////////////////////////////////////////
@@ -316,21 +318,20 @@ void saveSPR(codeGen &gen,     //Instruction storage pointer
     instruction insn;
 
     (*insn).raw = 0;                    //mfspr:  mflr scratchReg
-    (*insn).xform.op = 31;
+    (*insn).xform.op = EXTop;
     (*insn).xform.rt = scratchReg;
     (*insn).xform.ra = sprnum & 0x1f;
     (*insn).xform.rb = (sprnum >> 5) & 0x1f;
-    (*insn).xform.xo = 339;
-    insn.generate(gen);
-    
-    (*insn).raw = 0;                    //st:     st scratchReg, stkOffset(r1)
-    (*insn).dform.op      = 36;
-    (*insn).dform.rt      = scratchReg;
-    (*insn).dform.ra      = 1;
-    (*insn).dform.d_or_si = stkOffset;
-
+    (*insn).xform.xo = MFSPRxop;
     insn.generate(gen);
 
+    if (gen.proc()->getAddressWidth() == 4) {
+	instruction::generateImm(gen, STop,
+                                 scratchReg, 1, stkOffset);
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+	instruction::generateMemAccess64(gen, STDop, STDxop,
+                                         scratchReg, 1, stkOffset);
+    }
 }
 
     ////////////////////////////////////////////////////////////////////
@@ -346,23 +347,24 @@ void restoreSPR(codeGen &gen,       //Instruction storage pointer
                 int           sprnum,     //SPR number
                 int           stkOffset)  //Offset from stack pointer
 {
+    if (gen.proc()->getAddressWidth() == 4) {
+        instruction::generateImm(gen, Lop,
+                                 scratchReg, 1, stkOffset);
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+        instruction::generateMemAccess64(gen, LDop, LDxop,
+                                         scratchReg, 1, stkOffset);
+    }
+
     instruction insn;
-    
-    (*insn).raw = 0;                    //l:      l scratchReg, stkOffset(r1)
-    (*insn).dform.op      = 32;
-    (*insn).dform.rt      = scratchReg;
-    (*insn).dform.ra      = 1;
-    (*insn).dform.d_or_si = stkOffset;
-    insn.generate(gen);
-    
     (*insn).raw = 0;                    //mtspr:  mtlr scratchReg
-    (*insn).xform.op = 31;
+    (*insn).xform.op = EXTop;
     (*insn).xform.rt = scratchReg;
     (*insn).xform.ra = sprnum & 0x1f;
     (*insn).xform.rb = (sprnum >> 5) & 0x1f;
-    (*insn).xform.xo = 467;
+    (*insn).xform.xo = MTSPRxop;
     insn.generate(gen);
 }
+
            ////////////////////////////////////////////////////////////////////
 	   //Generates instructions to save link register onto stack.
 	   //  Returns the number of bytes needed to store the generated
@@ -373,23 +375,7 @@ void saveLR(codeGen &gen,       //Instruction storage pointer
             Register      scratchReg, //Scratch register
             int           stkOffset)  //Offset from stack pointer
 {
-    instruction insn;
-
-    (*insn).raw = 0;                    //mfspr:  mflr scratchReg
-    (*insn).xform.op = 31;
-    (*insn).xform.rt = scratchReg;
-    (*insn).xform.ra = 8;
-    (*insn).xform.xo = 339;
-    insn.generate(gen);
-    
-    (*insn).raw = 0;                    //st:     st scratchReg, stkOffset(r1)
-    (*insn).dform.op      = 36;
-    (*insn).dform.rt      = scratchReg;
-    (*insn).dform.ra      = 1;
-    (*insn).dform.d_or_si = stkOffset;
-    insn.generate(gen);
-    
-    
+    saveSPR(gen, scratchReg, SPR_LR, stkOffset);
 }
 
            ////////////////////////////////////////////////////////////////////
@@ -403,24 +389,8 @@ void restoreLR(codeGen &gen,       //Instruction storage pointer
                Register      scratchReg, //Scratch register
                int           stkOffset)  //Offset from stack pointer
 {
-    instruction insn;
-    (*insn).raw = 0;                    //l:      l scratchReg, stkOffset(r1)
-    (*insn).dform.op      = 32;
-    (*insn).dform.rt      = scratchReg;
-    (*insn).dform.ra      = 1;
-    (*insn).dform.d_or_si = stkOffset;
-    insn.generate(gen);
-    
-    (*insn).raw = 0;                    //mtspr:  mtlr scratchReg
-    (*insn).xform.op = 31;
-    (*insn).xform.rt = scratchReg;
-    (*insn).xform.ra = 8;
-    (*insn).xform.xo = 467;
-    insn.generate(gen);
-
-    
+    restoreSPR(gen, scratchReg, SPR_LR, stkOffset);
 }
-
 
            ////////////////////////////////////////////////////////////////////
            //Generates instructions to place a given value into link register.
@@ -433,39 +403,22 @@ void restoreLR(codeGen &gen,       //Instruction storage pointer
 	   //
 void setBRL(codeGen &gen,        //Instruction storage pointer
             Register      scratchReg,  //Scratch register
-            unsigned      val,         //Value to set link register to
+            long          val,         //Value to set link register to
             unsigned      ti)          //Tail instruction
- {
-     instruction insn;
-    
-    
-    (*insn).raw =0;                  //cau:  cau scratchReg, 0, HIGH(val)
-    (*insn).dform.op      = 15;
-    (*insn).dform.rt      = scratchReg;
-    (*insn).dform.ra      = 0;
-    (*insn).dform.d_or_si = ((val >> 16) & 0x0000ffff);
-    insn.generate(gen);
-    
-    (*insn).raw = 0;                 //oril:  oril scratchReg, scratchReg, LOW(val)
-    (*insn).dform.op      = 24;
-    (*insn).dform.rt      = scratchReg;
-    (*insn).dform.ra      = scratchReg;
-    (*insn).dform.d_or_si = (val & 0x0000ffff);
-    insn.generate(gen);
-    
+{
+    instruction::loadImmIntoReg(gen, scratchReg, val);
+
+    instruction insn;
     (*insn).raw = 0;                 //mtspr:  mtlr scratchReg
-    (*insn).xform.op = 31;
+    (*insn).xform.op = EXTop;
     (*insn).xform.rt = scratchReg;
-    (*insn).xform.ra = 8;
-    (*insn).xform.xo = 467;
+    (*insn).xform.ra = SPR_LR;
+    (*insn).xform.xo = MTSPRxop;
     insn.generate(gen);
-    
+
     (*insn).raw = ti;
     insn.generate(gen);
-
-    
 }
-
 
      //////////////////////////////////////////////////////////////////////////
      //Writes out instructions to place a value into the link register.
@@ -501,19 +454,18 @@ void saveCR(codeGen &gen,       //Instruction storage pointer
     instruction insn;
 
   (*insn).raw = 0;                    //mfcr:  mflr scratchReg
-  (*insn).xform.op = 31;
-  (*insn).xform.rt = scratchReg;
-  (*insn).xform.xo = 19;
+  (*insn).xfxform.op = EXTop;
+  (*insn).xfxform.rt = scratchReg;
+  (*insn).xfxform.xo = MFCRxop;
   insn.generate(gen);
 
-  (*insn).raw = 0;                    //st:     st scratchReg, stkOffset(r1)
-  (*insn).dform.op      = 36;
-  (*insn).dform.rt      = scratchReg;
-  (*insn).dform.ra      = 1;
-  (*insn).dform.d_or_si = stkOffset;
-  insn.generate(gen);
-
-  
+  if (gen.proc()->getAddressWidth() == 4) {
+      instruction::generateImm(gen, STop,
+			       scratchReg, 1, stkOffset);
+  } else /* gen.proc()->getAddressWidth() == 8 */ {
+      instruction::generateMemAccess64(gen, STDop, STDxop,
+				       scratchReg, 1, stkOffset);
+  }
 }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -529,22 +481,22 @@ void restoreCR(codeGen &gen,       //Instruction storage pointer
 {
     instruction insn;
 
-  (*insn).raw = 0;                    //l:      l scratchReg, stkOffset(r1)
-  (*insn).dform.op      = 32;
-  (*insn).dform.rt      = scratchReg;
-  (*insn).dform.ra      = 1;
-  (*insn).dform.d_or_si = stkOffset;
-  insn.generate(gen);
+    if (gen.proc()->getAddressWidth() == 4) {
+        instruction::generateImm(gen, Lop,
+                                 scratchReg, 1, stkOffset);
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+        instruction::generateMemAccess64(gen, LDop, LDxop,
+                                         scratchReg, 1, stkOffset);
+    }
 
-  (*insn).raw = 0;                    //mtcrf:  scratchReg
-  (*insn).xfxform.op  = 31;
-  (*insn).xfxform.rt  = scratchReg;
-  (*insn).xfxform.spr = 0xff << 1;
-  (*insn).xfxform.xo  = 144;
-  insn.generate(gen);
-
-  
+    (*insn).raw = 0;                    //mtcrf:  scratchReg
+    (*insn).xfxform.op  = EXTop;
+    (*insn).xfxform.rt  = scratchReg;
+    (*insn).xfxform.spr = 0xff << 1;
+    (*insn).xfxform.xo  = MTCRFxop;
+    insn.generate(gen);
 }
+
     /////////////////////////////////////////////////////////////////////////
     //Generates instructions to save the floating point status and control
     //register on the stack.
@@ -560,15 +512,14 @@ void saveFPSCR(codeGen &gen,       //Instruction storage pointer
     instruction mffs;
 
     (*mffs).raw = 0;                    //mffs scratchReg
-    (*mffs).xform.op = 63;
+    (*mffs).xform.op = X_FP_EXTENDEDop;
     (*mffs).xform.rt = scratchReg;
-    (*mffs).xform.xo = 583;
+    (*mffs).xform.xo = MFFSxop;
     mffs.generate(gen);
-    
+
     //st:     st scratchReg, stkOffset(r1)
     instruction::generateImm(gen, STFDop, scratchReg, 1, stkOffset);
 }
-
 
     ///////////////////////////////////////////////////////////////////////////
     //Generates instructions to restore the floating point status and control
@@ -583,47 +534,56 @@ void restoreFPSCR(codeGen &gen,       //Instruction storage pointer
                   int           stkOffset)  //Offset from stack pointer
 {
     instruction::generateImm(gen, LFDop, scratchReg, 1, stkOffset);
+
     instruction mtfsf;
     (*mtfsf).raw = 0;                    //mtfsf:  scratchReg
-    (*mtfsf).xflform.op  = 63;
+    (*mtfsf).xflform.op  = X_FP_EXTENDEDop;
     (*mtfsf).xflform.flm = 0xff;
     (*mtfsf).xflform.frb = scratchReg;
-    (*mtfsf).xflform.xo  = 711;
+    (*mtfsf).xflform.xo  = MTFSFxop;
     mtfsf.generate(gen);
 }
+
      //////////////////////////////////////////////////////////////////////////
      //Writes out a `br' instruction
      //
 void resetBR(process  *p,    //Process to write instruction into
 	     Address   loc)  //Address in process to write into
 {
-  instruction i;
+    instruction i;
 
-  (*i).raw = BRraw;
+    (*i).raw = BRraw;
   
-  if (!p->writeDataSpace((void *)loc, instruction::size(), i.ptr()))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+    if (!p->writeDataSpace((void *)loc, instruction::size(), i.ptr()))
+        fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
 }
 
 void saveRegister(codeGen &gen,
                   Register reg,
                   int save_off)
 {
-    instruction::generateImm(gen, STop, 
-                             reg, 1, 
-                             save_off + reg*GPRSIZE);
-
+    if (gen.proc()->getAddressWidth() == 4) {
+        instruction::generateImm(gen, STop,
+                                 reg, 1, save_off + reg*GPRSIZE_32);
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+        instruction::generateMemAccess64(gen, STDop, STDxop,
+                                         reg, 1, save_off + reg*GPRSIZE_64);
+    }
     //  bperr("Saving reg %d at 0x%x off the stack\n", reg, offset + reg*GPRSIZE);
 }
 
 // Dest != reg : optimizate away a load/move pair
-
 void restoreRegister(codeGen &gen,
                      Register source,
                      Register dest, int saved_off)
 {
-    instruction::generateImm(gen, Lop, 
-                             dest, 1, saved_off + source*GPRSIZE);
+    if (gen.proc()->getAddressWidth() == 4) {
+        instruction::generateImm(gen, Lop, 
+                                 dest, 1, saved_off + source*GPRSIZE_32);
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+        instruction::generateMemAccess64(gen, LDop, LDxop,
+                                         dest, 1, saved_off + source*GPRSIZE_64);
+    }
     //bperr( "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
     //  reg, dest, offset + reg*GPRSIZE);
 }
@@ -639,11 +599,8 @@ void saveFPRegister(codeGen &gen,
                     Register reg,
                     int save_off)
 {
-  instruction::generateImm(gen, 
-                             STFDop, 
-                             reg, 
-                             1, 
-                             save_off + reg*FPRSIZE);
+    instruction::generateImm(gen, STFDop, 
+                             reg, 1, save_off + reg*FPRSIZE);
     //bperr( "Saving FP reg %d at 0x%x off the stack\n", 
     //  reg, offset + reg*FPRSIZE);
 }
@@ -669,17 +626,27 @@ void restoreFPRegister(codeGen &gen,
 /*
  * Emit code to push down the stack, AST-generate style
  */
-
 void pushStack(codeGen &gen)
 {
-    instruction::generateImm(gen, STUop, 
-                             REG_SP, REG_SP, -TRAMP_FRAME_SIZE);
+    if (gen.proc()->getAddressWidth() == 4) {
+	instruction::generateImm(gen, STUop,
+				 REG_SP, REG_SP, -TRAMP_FRAME_SIZE_32);
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+	instruction::generateMemAccess64(gen, STDop, STDUxop,
+                                  REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64);
+    }
 }
 
 void popStack(codeGen &gen)
 {
-    instruction::generateImm(gen, CALop, 
-                             REG_SP, REG_SP, TRAMP_FRAME_SIZE);
+    if (gen.proc()->getAddressWidth() == 4) {
+	instruction::generateImm(gen, CALop, 
+				 REG_SP, REG_SP, TRAMP_FRAME_SIZE_32);
+
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+	instruction::generateImm(gen, CALop,
+                                 REG_SP, REG_SP, TRAMP_FRAME_SIZE_64);
+    }
 }
 
 /*
@@ -689,7 +656,6 @@ void popStack(codeGen &gen)
  * Side effects: instruction pointer and base param are shifted to 
  *   next free slot.
  */
-
 unsigned saveGPRegisters(codeGen &gen,
                          registerSpace *theRegSpace,
                          int save_off)
@@ -712,10 +678,10 @@ unsigned saveGPRegisters(codeGen &gen,
     for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
         registerSlot *reg = theRegSpace->getRegSlot(i);
         if (reg->startsLive) {
-			saveRegister(gen, reg->number, save_off);
-        	gen.rs()->markSavedRegister(reg->number, save_off + reg->number*GPRSIZE);
-        	numRegs++;
-		}
+	    saveRegister(gen, reg->number, save_off);
+	    gen.rs()->markSavedRegister(reg->number, save_off + reg->number*gen.proc()->getAddressWidth());	
+	    numRegs++;
+	}
     }
 #endif
     return numRegs;
@@ -759,8 +725,8 @@ unsigned restoreGPRegisters(codeGen &gen,
     for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
         registerSlot *reg = theRegSpace->getRegSlot(i);
         if (reg->startsLive) {
-	  		restoreRegister(gen, reg->number, save_off);
-	  		numRegs++;
+	    restoreRegister(gen, reg->number, save_off);
+	    numRegs++;
         }
     }
 #endif
@@ -864,17 +830,34 @@ unsigned saveSPRegisters(codeGen &gen,
 			 registerSpace * theRegSpace,
                          int save_off)
 {
-    saveCR(gen, 10, save_off + STK_CR);           
-    saveSPR(gen, 10, SPR_CTR, save_off + STK_CTR);
-    saveSPR(gen, 10, SPR_XER, save_off + STK_XER);
+    int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
+
+    if (gen.proc()->getAddressWidth() == 4) {
+	cr_off    = STK_CR_32;
+	ctr_off   = STK_CTR_32;
+	xer_off   = STK_XER_32;
+	spr0_off  = STK_SPR0_32;
+	fpscr_off = STK_FP_CR_32;
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+	cr_off    = STK_CR_64;
+	ctr_off   = STK_CTR_64;
+	xer_off   = STK_XER_64;
+	spr0_off  = STK_SPR0_64;
+	fpscr_off = STK_FP_CR_64;
+    }
+
+    saveCR(gen, 10, save_off + cr_off);
+    saveSPR(gen, 10, SPR_CTR, save_off + ctr_off);
+    saveSPR(gen, 10, SPR_XER, save_off + xer_off);
+
 #if defined(os_aix)
     // MQ only exists on POWER, not PowerPC. Right now that's correlated
     // to AIX vs Linux, but we _really_ should fix that...
     // We need to dynamically determine the CPU and emit code based on that.
     if (theRegSpace->saveAllSPRs())
-        saveSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
+        saveSPR(gen, 10, SPR_SPR0, save_off + spr0_off);
 #endif
-    saveFPSCR(gen, 10, save_off + STK_FP_CR);
+    saveFPSCR(gen, 10, save_off + fpscr_off);
     if (theRegSpace->saveAllSPRs())
       return 5; // register saved
     else
@@ -890,15 +873,32 @@ unsigned restoreSPRegisters(codeGen &gen,
 			    registerSpace *theRegSpace,
                             int save_off)
 {
-    restoreCR(gen, 10, save_off + STK_CR);
-    restoreSPR(gen, 10, SPR_CTR, save_off + STK_CTR);
-    restoreSPR(gen, 10, SPR_XER, save_off + STK_XER);
+    int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
+
+    if (gen.proc()->getAddressWidth() == 4) {
+	cr_off    = STK_CR_32;
+	ctr_off   = STK_CTR_32;
+	xer_off   = STK_XER_32;
+	spr0_off  = STK_SPR0_32;
+	fpscr_off = STK_FP_CR_32;
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+	cr_off    = STK_CR_64;
+	ctr_off   = STK_CTR_64;
+	xer_off   = STK_XER_64;
+	spr0_off  = STK_SPR0_64;
+	fpscr_off = STK_FP_CR_64;
+    }
+
+    restoreCR(gen, 10, save_off + cr_off);
+    restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off);
+    restoreSPR(gen, 10, SPR_XER, save_off + xer_off);
+
 #if defined(os_aix)
     // See comment in saveSPRegisters
     if (theRegSpace->saveAllSPRs())
-      restoreSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
+      restoreSPR(gen, 10, SPR_SPR0, save_off + spr0_off);
 #endif
-    restoreFPSCR(gen, 10, save_off + STK_FP_CR);
+    restoreFPSCR(gen, 10, save_off + fpscr_off);
     if (theRegSpace->saveAllSPRs())
       return 5; // restored
     else
@@ -933,69 +933,77 @@ bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
        
 
 bool baseTramp::generateSaves(codeGen &gen,
-                              registerSpace *) {
+                              registerSpace *)
+{
     regalloc_printf("========== baseTramp::generateSaves\n");
     
+    int gpr_off, fpr_off, ctr_off;
+    if (gen.proc()->getAddressWidth() == 4) {
+        gpr_off = TRAMP_GPR_OFFSET_32;
+        fpr_off = TRAMP_FPR_OFFSET_32;
+        ctr_off = STK_CTR_32;
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+        gpr_off = TRAMP_GPR_OFFSET_64;
+        fpr_off = TRAMP_FPR_OFFSET_64;
+        ctr_off = STK_CTR_64;
+    }
+
     // Make a stack frame.
     pushStack(gen);
 
     // Save GPRs
-    saveGPRegisters(gen,
-                    gen.rs(),
-                    TRAMP_GPR_OFFSET);
+    saveGPRegisters(gen, gen.rs(), gpr_off);
 
-    if(BPatch::bpatch->isSaveFPROn())
-      {
-	// Save FPRs
-	saveFPRegisters(gen,
-			gen.rs(),
-			TRAMP_FPR_OFFSET);
-      }
-    
+    if(BPatch::bpatch->isSaveFPROn()) // Save FPRs
+	saveFPRegisters(gen, gen.rs(), fpr_off);
+
     // Save LR
-    saveLR(gen, REG_SCRATCH, // register to use
-           TRAMP_SPR_OFFSET + STK_LR);
-    
+    saveLR(gen, REG_SCRATCH /* register to use */, TRAMP_SPR_OFFSET + STK_LR);
+
     // No more cookie. FIX aix stackwalking.
-    if (isConservative()) {
-        saveSPRegisters(gen,
-                        gen.rs(),
-                        TRAMP_SPR_OFFSET);
-    }
-    else if (isCallsite()) {
-	// If we're at a callsite save the count register explicitly, 
-	// but don't save other SPRs
-        saveSPR(gen, REG_SCRATCH, // scratchreg
-                SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
-    }
+    if (isConservative())
+        saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET);
+
+    // If we're at a callsite (or unknown) save the count register
+    if (isConservative() || isCallsite())
+        saveSPR(gen, REG_SCRATCH, SPR_CTR, TRAMP_SPR_OFFSET + ctr_off);
+
     return true;
 }
 
 bool baseTramp::generateRestores(codeGen &gen,
-                                 registerSpace *) {
+                                 registerSpace *)
+{
+    int gpr_off, fpr_off, ctr_off;
+    if (gen.proc()->getAddressWidth() == 4) {
+        gpr_off = TRAMP_GPR_OFFSET_32;
+        fpr_off = TRAMP_FPR_OFFSET_32;
+//        spr_off = TRAMP_SPR_OFFSET_32;
+        ctr_off = STK_CTR_32;
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+        gpr_off = TRAMP_GPR_OFFSET_64;
+        fpr_off = TRAMP_FPR_OFFSET_64;
+//        spr_off = TRAMP_SPR_OFFSET_64;
+        ctr_off = STK_CTR_64;
+    }
+
     // Restore possible SPR saves
-    if (isConservative()) {
+    if (isConservative() || isCallsite())
+        restoreSPR(gen, REG_SCRATCH, SPR_CTR, TRAMP_SPR_OFFSET + ctr_off);
+
+    if (isConservative())
         restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET);
-    }
-    else if (isCallsite()) {
-        restoreSPR(gen, REG_SCRATCH, 
-                   SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
-    }
 
     // LR
     restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET + STK_LR);
     
-    if(BPatch::bpatch->isSaveFPROn())
-      {
-	// FPRs
-	restoreFPRegisters(gen, gen.rs(), TRAMP_FPR_OFFSET);
-      }
+    if (BPatch::bpatch->isSaveFPROn()) // FPRs
+	restoreFPRegisters(gen, gen.rs(), fpr_off);
 
     // GPRs
-    restoreGPRegisters(gen, gen.rs(), TRAMP_GPR_OFFSET);
+    restoreGPRegisters(gen, gen.rs(), gpr_off);
 
     /*
-
     // Multithread GPR -- always save
     restoreRegister(gen, REG_MT_POS, TRAMP_GPR_OFFSET);
     */
@@ -1062,7 +1070,7 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
 
     // Load; check; branch; modify; store.
     emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
-              gen, false);
+              gen, false, gen.rs(), sizeof(unsigned));
     // MT; if we're MTing we have a base (hence trampGuardBase()) but
     // need to index it to get our base
     if (threaded()) {
@@ -1076,8 +1084,7 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
     // We have the abs. addr in REG_GUARD_ADDR. We keep it around,
     // so load into a different reg.
     emitV(loadIndirOp, REG_GUARD_ADDR, 0, // Unused -- always 0.
-          REG_GUARD_VALUE,
-          gen, false);
+          REG_GUARD_VALUE, gen, false, gen.rs(), sizeof(unsigned));
     instruction::generateImm(gen, CMPIop, 0, REG_GUARD_VALUE, 1);
 
     // Next thing we do is jump; store that in guardJumpOffset
@@ -1088,10 +1095,10 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
     
     // Back to the base/offset style. 
     emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE,
-              gen, false);
+              gen, false, gen.rs(), sizeof(unsigned));
     // And store
     emitV(storeIndirOp, REG_GUARD_VALUE, 0, REG_GUARD_ADDR, 
-          gen, false);
+          gen, false, gen.rs(), sizeof(unsigned));
 
     // And we store the addr so we don't have to recalculate later.
     instruction::generateImm(gen, STop, REG_GUARD_ADDR, 1, // SP
@@ -1112,10 +1119,10 @@ bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &index,
     instruction::generateImm(gen, Lop, REG_GUARD_ADDR, 1, STK_GUARD);
     
     emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE, 
-              gen, false);
+              gen, false, gen.rs(), sizeof(unsigned));
     // And store
     emitV(storeIndirOp, REG_GUARD_VALUE, 0, REG_GUARD_ADDR, 
-          gen, false);
+          gen, false, gen.rs(), sizeof(unsigned));
 
     index = gen.getIndex();
 
@@ -1187,7 +1194,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         break;
         
     case timesOp:
-        if (isPowerOf2(src2imm,result) && (result<32)) {
+        if (isPowerOf2(src2imm,result) && (result < (gen.proc()->getAddressWidth() * 8))) {
             instruction::generateLShift(gen, src1, result, dest);
             return;
         }
@@ -1200,7 +1207,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         break;
         
     case divOp:
-        if (isPowerOf2(src2imm,result) && (result<32)) {
+        if (isPowerOf2(src2imm,result) && (result < (gen.proc()->getAddressWidth() * 8))) {
             instruction::generateRShift(gen, src1, result, dest);
             return;
         }
@@ -1317,6 +1324,7 @@ Register emitFuncCall(opCode /* ocode */,
                       codeGen &gen,
 		      pdvector<AstNodePtr> &operands, bool noCost,
 		      int_function *callee) {
+    Address toc_anchor;
     pdvector <Register> srcs;
 
    
@@ -1330,228 +1338,212 @@ Register emitFuncCall(opCode /* ocode */,
     }
 
 #if defined(os_aix) 
-   // Now that we have the destination address (unique, hopefully) 
-   // get the TOC anchor value for that function
-   // The TOC offset is stored in the Object. 
-   // file() -> pdmodule "parent"
-   // exec() -> image "parent"
-    Address toc_anchor = gen.proc()->getTOCoffsetInfo(callee);
+    // Now that we have the destination address (unique, hopefully) 
+    // get the TOC anchor value for that function
+    // The TOC offset is stored in the Object. 
+    // file() -> pdmodule "parent"
+    // exec() -> image "parent"
+    toc_anchor = gen.proc()->getTOCoffsetInfo(callee);
     // Note: for Linux (and other SYSV ABI followers) r2 is described
     // as "reserved for system use and is not to be changed by application
     // code".
 #endif
    
-   // Generate the code for all function parameters, and keep a list
-   // of what registers they're in.
-   for (unsigned u = 0; u < operands.size(); u++) {
-      if (operands[u]->getSize() == 8) {
-         // What does this do?
-         bperr( "in weird code\n");
-         Register dummyReg = gen.rs()->allocateRegister(gen, noCost);
-	 srcs.push_back(dummyReg);
-         
-         instruction::generateImm(gen, CALop, dummyReg, 0, 0);
-      }
+    // Generate the code for all function parameters, and keep a list
+    // of what registers they're in.
+    for (unsigned u = 0; u < operands.size(); u++) {
+	if (operands[u]->getSize() == 8) {
+	    // What does this do?
+	    bperr( "in weird code\n");
+	    Register dummyReg = gen.rs()->allocateRegister(gen, noCost);
+	    srcs.push_back(dummyReg);
 
-      Register src = REG_NULL;
-      Address unused = ADDR_NULL;
-      if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
-      assert(src != REG_NULL);
-      srcs.push_back(src);
-      //bperr( "Generated operand %d, base %d\n", u, base);
-   }
+	    instruction::generateImm(gen, CALop, dummyReg, 0, 0);
+	}
 
-   pdvector<int> savedRegs;
+	Register src = REG_NULL;
+	Address unused = ADDR_NULL;
+	if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
+	assert(src != REG_NULL);
+	srcs.push_back(src);
+	//bperr( "Generated operand %d, base %d\n", u, base);
+    }
+
+    pdvector<int> savedRegs;
   
-   //  Save the link register.
-   // mflr r0
-   instruction mflr0(MFLR0raw);
-   mflr0.generate(gen);
+    //  Save the link register.
+    // mflr r0
+    instruction mflr0(MFLR0raw);
+    mflr0.generate(gen);
 
-   // Register 0 is actually the link register, now. However, since we
-   // don't want to overwrite the LR slot, save it as "register 0"
-   saveRegister(gen, 0, FUNC_CALL_SAVE);
-   // Add 0 to the list of saved registers
-   savedRegs.push_back(0);
+    // Register 0 is actually the link register, now. However, since we
+    // don't want to overwrite the LR slot, save it as "register 0"
+    saveRegister(gen, 0, FUNC_CALL_SAVE);
+    // Add 0 to the list of saved registers
+    savedRegs.push_back(0);
   
 #if defined(os_aix)
-   // Save register 2 (TOC)
-   saveRegister(gen, 2, FUNC_CALL_SAVE);
-   savedRegs.push_back(2);
+    // Save register 2 (TOC)
+    saveRegister(gen, 2, FUNC_CALL_SAVE);
+    savedRegs.push_back(2);
 #endif
 
-   // see what others we need to save.
-   for (u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
-      registerSlot *reg = gen.rs()->getRegSlot(i);
+    // see what others we need to save.
+    for (u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
+	registerSlot *reg = gen.rs()->getRegSlot(i);
 
-      if (reg->refCount > 0) {
-          // inUse && !mustRestore -> in use scratch register 
-          //		(i.e. part of an expression being evaluated).
+	if (reg->refCount > 0) {
+	    // inUse && !mustRestore -> in use scratch register 
+	    //		(i.e. part of an expression being evaluated).
           
-          // no reason to save the register if we are going to free it in a bit
-          // we should keep it free, otherwise we might overwrite the register
-          // we allocate for the return value -- we can't request that register
-          // before, since we then might run out of registers
-          unsigned u;
-          for(u=0; u < srcs.size(); u++) {
-              if(reg->number == srcs[u]) break;
-          }
-          // since the register should be free
-          // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
-          if(u == srcs.size()) {
-              saveRegister(gen, reg->number, FUNC_CALL_SAVE);
-              savedRegs.push_back(reg->number);
-            //cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
-          }
-      }
-      if (reg->keptValue) {
-          // We're keeping this value for later. Either save it
-          // or invalidate it... we'll save.
-          saveRegister(gen, reg->number, FUNC_CALL_SAVE);
-          savedRegs.push_back(reg->number);
-      }
-
-   }
+	    // no reason to save the register if we are going to free it in a bit
+	    // we should keep it free, otherwise we might overwrite the register
+	    // we allocate for the return value -- we can't request that register
+	    // before, since we then might run out of registers
+	    unsigned u;
+	    for(u=0; u < srcs.size(); u++) {
+		if(reg->number == srcs[u]) break;
+	    }
+	    // since the register should be free
+	    // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
+	    if(u == srcs.size()) {
+		saveRegister(gen, reg->number, FUNC_CALL_SAVE);
+		savedRegs.push_back(reg->number);
+		//cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
+	    }
+	}
+	if (reg->keptValue) {
+	    // We're keeping this value for later. Either save it
+	    // or invalidate it... we'll save.
+	    saveRegister(gen, reg->number, FUNC_CALL_SAVE);
+	    savedRegs.push_back(reg->number);
+	}
+    }
   
-   if(srcs.size() > 8) {
-      // This is not necessarily true; more then 8 arguments could be passed,
-      // the first 8 need to be in registers while the others need to be on
-      // the stack, -- sec 3/1/97
-      pdstring msg = "Too many arguments to function call in instrumentation code:"
-         " only 8 arguments can (currently) be passed on the POWER architecture.\n";
-      bperr( msg.c_str());
-      showErrorCallback(94,msg);
-      cleanUpAndExit(-1);
-   }
-  
+    if(srcs.size() > 8) {
+	// This is not necessarily true; more then 8 arguments could be passed,
+	// the first 8 need to be in registers while the others need to be on
+	// the stack, -- sec 3/1/97
+	pdstring msg = "Too many arguments to function call in instrumentation code:"
+	    " only 8 arguments can (currently) be passed on the POWER architecture.\n";
+	bperr( msg.c_str());
+	showErrorCallback(94,msg);
+	cleanUpAndExit(-1);
+    }
 
+    int scratchReg[8];
+    for (int a = 0; a < 8; a++) {
+	scratchReg[a] = -1;
+    }
 
-   int scratchReg[8];
-   for (int a = 0; a < 8; a++)
-     {
-       scratchReg[a] = -1;
-     }
+    // Now load the parameters into registers.
+    for (unsigned u=0; u<srcs.size(); u++){
+	// check that is is not already in the register
+	//rs->clobberRegister(u+3);
+	/*
+	  if (srcs[u] == (unsigned int) u+3) {
+	  rs->freeRegister(srcs[u]);
+	  continue;
+	  }
+	  assert(rs->isFreeRegister(u+3));
 
-   // Now load the parameters into registers.
-   for (unsigned u=0; u<srcs.size(); u++){
-      // check that is is not already in the register
-     //rs->clobberRegister(u+3);
-     /*
+	  // internal error we expect this register to be free here
+	  // if (!rs->isFreeRegister(u+3)) abort();
 
-     if (srcs[u] == (unsigned int) u+3) {
-         rs->freeRegister(srcs[u]);
-         continue;
-      }
-      assert(rs->isFreeRegister(u+3));
+	  rs->clobberRegister(u+3);
+	  //if(rs->clobberRegister(u+3))
+	  //	saveRegister(gen, u+3, TRAMP_GPR_OFFSET);
 
-      // internal error we expect this register to be free here
-      // if (!rs->isFreeRegister(u+3)) abort();
-    
-      rs->clobberRegister(u+3);
-      //if(rs->clobberRegister(u+3))
-      //	saveRegister(gen, u+3, TRAMP_GPR_OFFSET);
+	  instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
+	  inst_printf("move reg %d to %d (%d)...", srcs[u], u+3, base);
 
-      instruction::generateImm(gen, ORILop, 
-                               srcs[u], u+3, 0);
-      inst_printf("move reg %d to %d (%d)...", srcs[u], u+3, base);
-
-      // source register is now free.
-      rs->freeRegister(srcs[u]);
-     */
-
+	  // source register is now free.
+	  rs->freeRegister(srcs[u]);
+	*/
      
-     if (srcs[u] == (unsigned int) u+3) 
-       {
-	 gen.rs()->freeRegister(srcs[u]);
-	 continue;
-       }
+	if (srcs[u] == (unsigned int) u+3) {
+	    gen.rs()->freeRegister(srcs[u]);
+	    continue;
+	}
 
-     int whichSource = -1;
-     bool hasSourceBeenCopied = true;
-     Register scratch = 13;
+	int whichSource = -1;
+	bool hasSourceBeenCopied = true;
+	Register scratch = 13;
 
-     if (scratchReg[u] != -1)
-       {
-	 instruction::generateImm(gen, ORILop, scratchReg[u], u+3, 0);
-	 gen.rs()->freeRegister(scratchReg[u]);
-       }
-     else
-       {
-	 for (unsigned v=u; v < srcs.size(); v++)
-	   {
-	     if (srcs[v] == u+3)
-	       {
-		 hasSourceBeenCopied = false;
-		 whichSource = v;
-	       }
-	   }
-	 if (!hasSourceBeenCopied)
-	   {
-	     scratch = gen.rs()->allocateRegister(gen, noCost);
-	     instruction::generateImm(gen, ORILop, u+3, scratch, 0);
-	     gen.rs()->freeRegister(u+3);
-	     scratchReg[whichSource] = scratch;
-	     hasSourceBeenCopied = true;
-	     
-	     instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
-	     gen.rs()->freeRegister(srcs[u]);
-	   }
-	 else
-	   {
-	     instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
-	     gen.rs()->freeRegister(srcs[u]);
-	     gen.rs()->clobberRegister(u+3);
-	   }
-       } 
-   }
+	if (scratchReg[u] != -1) {
+	    instruction::generateImm(gen, ORILop, scratchReg[u], u+3, 0);
+	    gen.rs()->freeRegister(scratchReg[u]);
+
+	} else {
+	    for (unsigned v=u; v < srcs.size(); v++) {
+		if (srcs[v] == u+3) {
+		    hasSourceBeenCopied = false;
+		    whichSource = v;
+		}
+	    }
+	    if (!hasSourceBeenCopied) {
+		scratch = gen.rs()->allocateRegister(gen, noCost);
+		instruction::generateImm(gen, ORILop, u+3, scratch, 0);
+		gen.rs()->freeRegister(u+3);
+		scratchReg[whichSource] = scratch;
+		hasSourceBeenCopied = true;
+
+		instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
+		gen.rs()->freeRegister(srcs[u]);
+
+	    } else {
+		instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
+		gen.rs()->freeRegister(srcs[u]);
+		gen.rs()->clobberRegister(u+3);
+	    }
+	} 
+    }
 
 #if defined(os_aix)
-   // Set up the new TOC value
-   emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
-   //inst_printf("toc setup (%d)...");
+    // Set up the new TOC value
+    emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
+    //inst_printf("toc setup (%d)...");
 #endif
 
-   // generate a branch to the subroutine to be called.
-   // load r0 with address, then move to link reg and branch and link.
+    // generate a branch to the subroutine to be called.
+    // load r0 with address, then move to link reg and branch and link.
 
-   emitVload(loadConstOp, callee->getAddress(), 0, 0, gen, false);
-   //inst_printf("addr setup (%d)....");
+    emitVload(loadConstOp, callee->getAddress(), 0, 0, gen, false);
+    //inst_printf("addr setup (%d)....");
   
-   // Move to link register
-   instruction mtlr0(MTLR0raw);
-   mtlr0.generate(gen);
+    // Move to link register
+    instruction mtlr0(MTLR0raw);
+    mtlr0.generate(gen);
    
-   //inst_printf("mtlr0 (%d)...");
+    //inst_printf("mtlr0 (%d)...");
 
+    // brl - branch and link through the link reg.
 
-   // brl - branch and link through the link reg.
+    instruction brl(BRLraw);
+    brl.generate(gen);
 
-   instruction brl(BRLraw);
-   brl.generate(gen);
+    // get a register to keep the return value in.
+    Register retReg = gen.rs()->allocateRegister(gen, noCost);
 
-   // get a register to keep the return value in.
-   Register retReg = gen.rs()->allocateRegister(gen, noCost);
+    // put the return value from register 3 to the newly allocated register.
+    instruction::generateImm(gen, ORILop, 3, retReg, 0);
+
+    // restore saved registers.
+    for (u_int ui = 0; ui < savedRegs.size(); ui++) {
+	restoreRegister(gen, savedRegs[ui], FUNC_CALL_SAVE);
+    }
   
-   // put the return value from register 3 to the newly allocated register.
-   instruction::generateImm(gen, ORILop, 3, retReg, 0);
-
-   // restore saved registers.
-   for (u_int ui = 0; ui < savedRegs.size(); ui++) {
-       restoreRegister(gen,
-                       savedRegs[ui],FUNC_CALL_SAVE);
-   }
-  
-   // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
-   // Move to link register
-   // Reused from above. instruction mtlr0(MTLR0raw);
-   mtlr0.generate(gen);
-   /*
-     gen = (instruction *) gen;
-     for (unsigned foo = initBase/4; foo < base/4; foo++)
-     bperr( "0x%x,\n", gen[foo].raw);
-   */  
-   // return value is the register with the return value from the called function
-   return(retReg);
+    // mtlr	0 (aka mtspr 8, rs) = 0x7c0803a6
+    // Move to link register
+    // Reused from above. instruction mtlr0(MTLR0raw);
+    mtlr0.generate(gen);
+    /*
+      gen = (instruction *) gen;
+      for (unsigned foo = initBase/4; foo < base/4; foo++)
+      bperr( "0x%x,\n", gen[foo].raw);
+    */
+    // return value is the register with the return value from the called function
+    return(retReg);
 }
 
  
@@ -1606,7 +1598,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                codeGen &gen, bool /*noCost*/,
-               const instPoint *location, bool /*for_MT*/)
+               const instPoint * /*location*/, bool /*for_MT*/)
 {
     //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
@@ -1625,8 +1617,14 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	}
         // FIXME
 	if (regSlot->mustRestore || 1) {
+	    int offset;
+	    if (gen.proc()->getAddressWidth() == 4)
+		offset = TRAMP_GPR_OFFSET_32;
+	    else /* gen.proc()->getAddressWidth() == 4 */
+		offset = TRAMP_GPR_OFFSET_64;
+
             // its on the stack so load it.
-            restoreRegister(gen, reg, dest, TRAMP_GPR_OFFSET);
+            restoreRegister(gen, reg, dest, offset);
             return(dest);
 	} else {
 	    // its still in a register so return the register it is in.
@@ -1650,9 +1648,14 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	  if (regSlot->number == src1+3) 
 	    {
                 // FIXME
+		int offset;
+		if (gen.proc()->getAddressWidth() == 4)
+		    offset = TRAMP_GPR_OFFSET_32;
+		else /* gen.proc()->getAddressWidth() == 4 */
+		    offset = TRAMP_GPR_OFFSET_64;
+
                 if (gen.rs()->beenSaved(regSlot->number) || 1) {
-                    restoreRegister(gen, src1+3, dest, 
-                                    TRAMP_GPR_OFFSET);
+                    restoreRegister(gen, src1+3, dest, offset);
                 }
                 else {
                     instruction::generateImm(gen, ORILop,
@@ -1664,13 +1667,15 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       } else {
           // Registers from 11 (src = 8) and beyond are saved on the
           // stack. On AIX this is +56 bytes; for ELF it's something different.
-          unsigned paramSize = location->proc()->getAddressWidth();
-
-          instruction::generateImm(gen, Lop,
-                                   dest, 1,
-                                   TRAMP_FRAME_SIZE +
-                                   ((src1-8)*paramSize) +
-                                   PARAM_OFFSET);
+	  if (gen.proc()->getAddressWidth() == 4) {
+	      instruction::generateImm(gen, Lop, dest, 1,
+				       TRAMP_FRAME_SIZE_32 +
+				       ((src1 - 8)*sizeof(int)) + 56);
+	  } else /* gen.proc()->getAddressWidth() == 8 */ {
+	      instruction::generateMemAccess64(gen, LDop, LDxop, dest, 1,
+					       TRAMP_FRAME_SIZE_64 +
+					       ((src1 - 8)*sizeof(long)) + 56);
+	  }
           return(dest);
       }
     }
@@ -1698,27 +1703,42 @@ static inline bool needsRestore(Register x)
 static inline void restoreGPRtoGPR(codeGen &gen,
                                    Register reg, Register dest)
 {
-  if(reg == 1) // SP is in a different place, but we don't need to
-               // restore it, just subtract the stack frame size
-      instruction::generateImm(gen, CALop, 
-                               dest, REG_SP, TRAMP_FRAME_SIZE);
+    int frame_size, gpr_size, gpr_off;
+    if (gen.proc()->getAddressWidth() == 4) {
+	frame_size = TRAMP_FRAME_SIZE_32;
+	gpr_size   = GPRSIZE_32;
+	gpr_off    = TRAMP_GPR_OFFSET_32;
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+	frame_size = TRAMP_FRAME_SIZE_64;
+	gpr_size   = GPRSIZE_64;
+	gpr_off    = TRAMP_GPR_OFFSET_64;
+    }
 
-  else if((reg == 0) || ((reg >= 3) && (reg <=12)))
-      instruction::generateImm(gen, Lop, dest, 1, 
-                               TRAMP_GPR_OFFSET + reg*GPRSIZE);
-  else {
-      bperr( "GPR %d should not be restored...", reg);
-      assert(0);
-  }
-  //bperr( "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
-  //  reg, dest, offset + reg*GPRSIZE);
+    if (reg == 1) // SP is in a different place, but we don't need to
+                  // restore it, just subtract the stack frame size
+        instruction::generateImm(gen, CALop, dest, REG_SP, frame_size);
+
+    else if((reg == 0) || ((reg >= 3) && (reg <=12)))
+        instruction::generateImm(gen, Lop, dest, 1, gpr_off + reg*gpr_size);
+
+    else {
+        bperr( "GPR %d should not be restored...", reg);
+        assert(0);
+    }
+    //bperr( "Loading reg %d (into reg %d) at 0x%x off the stack\n", 
+    //  reg, dest, offset + reg*GPRSIZE);
 }
 
 // VG(03/15/02): Restore mutatee value of XER to dest GPR
 static inline void restoreXERtoGPR(codeGen &gen, Register dest)
 {
-    instruction::generateImm(gen, Lop, dest, 
-                             1, TRAMP_SPR_OFFSET + STK_XER);
+    if (gen.proc()->getAddressWidth() == 4) {
+        instruction::generateImm(gen, Lop, dest, 1,
+                                 TRAMP_SPR_OFFSET + STK_XER_32);
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+        instruction::generateMemAccess64(gen, LDop, LDxop, dest, 1,
+                                         TRAMP_SPR_OFFSET + STK_XER_64);
+    }
 }
 
 // VG(03/15/02): Move bits 25:31 of GPR reg to GPR dest
@@ -1730,15 +1750,15 @@ static inline void moveGPR2531toGPR(codeGen &gen,
   // which is the same as: clrldi dest,reg,57 because 32+25+7 = 64
     instruction rld;
     (*rld).raw = 0;
-    (*rld).mdform.op = RLDop;
-    (*rld).mdform.rs = reg;
-    (*rld).mdform.ra = dest;
-    (*rld).mdform.sh = 0;  //(32+25+7) % 32;
-    (*rld).mdform.mb_or_me = (64-7) % 32;
-    (*rld).mdform.mb_or_me2 = (64-7) / 32;
-    (*rld).mdform.xo = 0;  // rldicl
+    (*rld).mdform.op  = RLDop;
+    (*rld).mdform.rs  = reg;
+    (*rld).mdform.ra  = dest;
+    (*rld).mdform.sh  = 0;  //(32+25+7) % 32;
+    (*rld).mdform.mb  = (64-7) % 32;
+    (*rld).mdform.mb2 = (64-7) / 32;
+    (*rld).mdform.xo  = ICLxop;
     (*rld).mdform.sh2 = 0; //(32+25+7) / 32;
-    (*rld).mdform.rc = 0;
+    (*rld).mdform.rc  = 0;
     rld.generate(gen);
 }
 
@@ -1818,76 +1838,43 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
                const instPoint * /* location */, process * /* proc */)
 {
     if (op == loadConstOp) {
-	unsigned int constValue = (int) src1;
-	unsigned int top_half = ((constValue & 0xffff0000) >> 16);
-	unsigned int bottom_half = (constValue & 0x0000ffff);
-	assert (constValue == ((top_half << 16) + bottom_half));
-	// AIX sign-extends. So if top_half is 0, and the top bit of
-	// bottom_half is 0, then we can use a single instruction. Otherwise
-	// do it the hard way.
-	if (!top_half && !(bottom_half & 0x8000)) {
-            // single instruction (CALop)
-            instruction::generateImm(gen, 
-                                     CALop, dest, 0, bottom_half);
-	}
-	else {
-	  instruction::generateImm(gen, CAUop, 
-                                   dest, 0, top_half);
-	  // ori dest,dest,LOW(src1)
-	  instruction::generateImm(gen, ORILop, 
-                                   dest, dest, bottom_half);
-	}
-    } else if (op ==  loadOp) {
-	int high;
+        instruction::loadImmIntoReg(gen, dest, (long)src1);
 
-	// load high half word of address into dest.
-	// really addis 0,dest,HIGH(src1) aka lis dest, HIGH(src1)
-	if (LOW(src1) & 0x8000) {
-  	    // high bit of low is set so the sign extension of the load
-	    // will cause the wrong effective addr to be computed.
-	    // so we subtract the sign ext value from HIGH.
-	    // sounds odd, but works and saves an instruction - jkh 5/25/95
-	    high = HIGH(src1) - 0xffff;
-        } else {
-   	    high = HIGH(src1);
-	}
-	instruction::generateImm(gen,
-                                 CAUop, dest, 0, high);
+    } else if (op == loadOp) {
+        instruction::loadPartialImmIntoReg(gen, dest, (long)src1);
 
 	// really load dest, (dest)imm
         if (size == 1)
-           instruction::generateImm(gen, LBZop, 
-                                    dest, dest, LOW(src1));
+            instruction::generateImm(gen, LBZop, dest, dest, LOW(src1));
         else if (size == 2)
-           instruction::generateImm(gen, LHZop, 
-                                    dest, dest, LOW(src1));
-        else 
-           instruction::generateImm(gen, Lop, 
-                                    dest, dest, LOW(src1));
-        
+            instruction::generateImm(gen, LHZop, dest, dest, LOW(src1));
+        else if (size == 4)
+            instruction::generateImm(gen, Lop,   dest, dest, LOW(src1));
+        else if (size == 8)
+            instruction::generateMemAccess64(gen, LDop, LDxop,
+                                             dest, dest, LOW(src1));
+        else assert(0);
+
     } else if (op == loadFrameRelativeOp) {
 	// return the value that is FP offset from the original fp
-	int offset = (int) src1;
+        if (gen.proc()->getAddressWidth() == 4)
+            instruction::generateImm(gen, Lop, dest, REG_SP,
+                                     (long)src1 + TRAMP_FRAME_SIZE_32);
+        else /* gen.proc()->getAddressWidth() == 8 */
+            instruction::generateMemAccess64(gen, LDop, LDxop, dest, REG_SP,
+                                             (long)src1 + TRAMP_FRAME_SIZE_64);
 
-	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
-	    assert(0);
-	} else {
-	    instruction::generateImm(gen, Lop, dest, 
-                                     REG_SP, offset + TRAMP_FRAME_SIZE);
-	}
     } else if (op == loadFrameAddr) {
 	// offsets are signed!
-	int offset = (int) src1;
-        
-	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
-            assert(0);
-	} else {
-	    instruction::generateImm(gen, 
-                                     CALop, dest, REG_SP,
-                                     offset + TRAMP_FRAME_SIZE);
-	}
+        long offset = (long)src1;
+        offset += (gen.proc()->getAddressWidth() == 4 ? TRAMP_FRAME_SIZE_32
+                                                      : TRAMP_FRAME_SIZE_64);
+
+        if (offset < MIN_IMM16 || MAX_IMM16 < offset) assert(0);
+        instruction::generateImm(gen, CALop, dest, REG_SP, offset);
+
     } else {
-      assert(0);
+        assert(0);
     }
 }
 
@@ -1897,45 +1884,25 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
                 const instPoint * /* location */, process * /* proc */)
 {
     if (op == storeOp) {
-	int high;
-
-	// load high half word of address into dest.
-	// really addis 0,dest,HIGH(src1) aka lis dest, HIGH(src1)
-	if (LOW(dest) & 0x8000) {
-  	    // high bit of low is set so the sign extension of the load
-	    // will cause the wrong effective addr to be computed.
-	    // so we subtract the sign ext value from HIGH.
-	    // sounds odd, but works and saves an instruction - jkh 5/25/95
-	    high = HIGH(dest) - 0xffff;
-        } else {
-   	    high = HIGH(dest);
-	}
-
 	// temp register to hold base address for store (added 6/26/96 jkh)
 	Register temp = gen.rs()->getScratchRegister(gen, noCost);
 
-	// set upper 16 bits of  temp to be the top high.
-	instruction::generateImm(gen, CAUop, 
-                                 temp, 0, high);
+        instruction::loadPartialImmIntoReg(gen, temp, (long)dest);
+        if (gen.proc()->getAddressWidth() == 4)
+            instruction::generateImm(gen, STop, src1, temp, LOW(dest));
+        else /* gen.proc()->getAddressWidth() == 8 */
+            instruction::generateMemAccess64(gen, STDop, STDxop,
+                                             src1, temp, BOT_LO(dest));
 
-	// low == LOW(dest)
-	// generate -- st src1, low(temp)
-	instruction::generateImm(gen, STop, 
-                                 src1, temp, LOW(dest));
-
-        return;
     } else if (op == storeFrameRelativeOp) {
-	// offsets are signed!
-	int offset = (int) dest;
-	if ((offset < MIN_IMM16) || (offset > MAX_IMM16)) {
-	  assert(0);
-	} else {
-	    instruction::generateImm(gen, STop, 
-                                     src1, REG_SP, offset + TRAMP_FRAME_SIZE);
-	}
-    } else {
-        assert(0);       // unexpected op for this emit!
-    }
+        if (gen.proc()->getAddressWidth() == 4)
+            instruction::generateImm(gen, STop,  src1, REG_SP,
+                                     (long)dest + TRAMP_FRAME_SIZE_32);
+        else /* gen.proc()->getAddressWidth() == 8 */
+            instruction::generateMemAccess64(gen, STDop, STDxop, src1, REG_SP,
+                                             (long)dest + TRAMP_FRAME_SIZE_64);
+
+    } else assert(0);       // unexpected op for this emit!
 }
 
 void emitV(opCode op, Register src1, Register src2, Register dest,
@@ -1943,8 +1910,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
            registerSpace * /*rs*/, int /* size */,
            const instPoint * /* location */, process * /* proc */)
 {
-    //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest)
-;
+    //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
     assert ((op!=branchOp) && (op!=ifOp) && 
             (op!=trampTrailer) && (op!=trampPreamble));         // !emitA
@@ -1958,23 +1924,27 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     if (op == loadIndirOp) {
         // really load dest, (dest)imm
         assert(src2 == 0); // Since we don't use it.
-        instruction::generateImm(gen,
-                                 Lop, dest, src1, 0);
+
+        if (gen.proc()->getAddressWidth() == 4)
+            instruction::generateImm(gen, Lop, dest, src1, 0);
+        else /* gen.proc()->getAddressWidth() == 8 */
+            instruction::generateMemAccess64(gen, LDop, LDxop,
+                                             dest, src1, 0);
 
     } else if (op == storeIndirOp) {
-
         // generate -- st src1, dest
-        (*insn).raw = 0;
-        (*insn).dform.op = STop;
-        (*insn).dform.rt = src1;
-        (*insn).dform.ra = dest;
-        (*insn).dform.d_or_si = 0;
-        insn.generate(gen);
+        if (gen.proc()->getAddressWidth() == 4)
+            instruction::generateImm(gen, STop, src1, dest, 0);
+        else /* gen.proc()->getAddressWidth() == 8 */
+            instruction::generateMemAccess64(gen, STDop, STDxop,
+                                             dest, src1, 0);
 
     } else if (op == noOp) {
         instruction::generateNOOP(gen);
+
     } else if (op == saveRegOp) {
         saveRegister(gen,src1,8);
+
     } else {
         int instXop=-1;
         int instOp=-1;
@@ -2248,8 +2218,6 @@ bool registerSpace::clobberFPRegister(Register reg)
   return false;  
 }
 
-
-
 void registerSpace::saveClobberInfo(const instPoint *location)
 {
   registerSlot *regSlot = NULL;
@@ -2320,9 +2288,6 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 	}
     }
 }
-
-
-
 
 // Takes information from instPoint and resets
 // regSpace liveness information accordingly
@@ -2449,7 +2414,7 @@ bool process::replaceFunctionCall(instPoint *point,
    if (point->getPointType() != callSite)
       return false;
 
-   inst_printf("Function replacement, point func %s, new func %s, point primary addr 0x%x\n",
+   inst_printf("Function replacement, point func %s, new func %s, point primary addr 0x%lx\n",
                point->func()->symTabName().c_str(), func ? func->symTabName().c_str() : "<NULL>",
                point->addr());
 
@@ -2526,7 +2491,6 @@ void emitFuncJump(opCode              op,
                   process            *proc,
                   const instPoint    *point, bool)
 {
-
     // Performs the following steps:
     // 1) Unwinds the base tramp that we're in; equivalent to generateRestores.
     // 2) Generates a jump to a new function. We don't call, since we're 
@@ -2572,39 +2536,45 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 					int size,
 					bool noCost)
 {
-  // Offset if needed
-  int offset;
-  // Unused, 3OCT03
-  //instruction *insn_ptr = (instruction *)insn;
-  // We need values to define special registers.
-  switch ( (int) register_num)
-    {
+    // Offset if needed
+    int offset;
+    // Unused, 3OCT03
+    //instruction *insn_ptr = (instruction *)insn;
+    // We need values to define special registers.
+    switch ( (int) register_num) {
     case REG_LR:
-      // LR is saved on the stack
-      // Note: this is only valid for non-function entry/exit instru. 
-      // Once we've entered a function, the LR is stomped to point
-      // at the exit tramp!
-      offset = TRAMP_SPR_OFFSET + STK_LR; 
-      // Get address (SP + offset) and stick in register dest.
-      emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
-	      gen, noCost, gen.rs());
-      // Load LR into register dest
-      emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(), size);
-      break;
+        // LR is saved on the stack
+        // Note: this is only valid for non-function entry/exit instru. 
+        // Once we've entered a function, the LR is stomped to point
+        // at the exit tramp!
+        offset = TRAMP_SPR_OFFSET + STK_LR; 
+
+        // Get address (SP + offset) and stick in register dest.
+        emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
+                gen, noCost, gen.rs());
+        // Load LR into register dest
+        emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(), size);
+        break;
+
     case REG_CTR:
-      // CTR is saved down the stack
-        offset = TRAMP_SPR_OFFSET + STK_CTR;
+        // CTR is saved down the stack
+        if (gen.proc()->getAddressWidth() == 4)
+            offset = TRAMP_SPR_OFFSET + STK_CTR_32;
+        else
+            offset = TRAMP_SPR_OFFSET + STK_CTR_64;
+
         // Get address (SP + offset) and stick in register dest.
         emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
                 gen, noCost, gen.rs());
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(), size);
       break;
+
     default:
-      cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
-      cerr << "Unexpected register " << register_num << endl;
-      abort();
-      break;
+        cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
+        cerr << "Unexpected register " << register_num << endl;
+        abort();
+        break;
     }
 }
 
@@ -2674,24 +2644,22 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
 bool writeFunctionPtr(process *p, Address addr, int_function *f)
 {
 #if defined(os_aix)
-   Address buffer[3];
-   Address val_to_write = f->getAddress();
-   Address toc = p->getTOCoffsetInfo(val_to_write);
-   buffer[0] = val_to_write;
-   buffer[1] = toc;
-   buffer[2] = 0x0;
+    Address buffer[3];
+    Address val_to_write = f->getAddress();
+    Address toc = p->getTOCoffsetInfo(val_to_write);
+    buffer[0] = val_to_write;
+    buffer[1] = toc;
+    buffer[2] = 0x0;
 
-   if (!p->writeDataSpace((void *) addr, sizeof(buffer), buffer))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-   return true;
+    if (!p->writeDataSpace((void *) addr, sizeof(buffer), buffer))
+        fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+    return true;
 #else
-   // copied from inst-x86.C
-   Address val_to_write = f->getAddress();
-   return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
+    // copied from inst-x86.C
+    Address val_to_write = f->getAddress();
+    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
 #endif
 }
-
-
 
 /* Iterates over instructions in the basic block to 
    create the initial gen kill sets for that block */

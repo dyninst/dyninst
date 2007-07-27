@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.15 2007/07/11 17:58:17 ssuen Exp $
+ * $Id: arch-power.C,v 1.16 2007/07/27 05:23:52 rchen Exp $
  */
 
 #include "common/h/Types.h"
@@ -49,6 +49,7 @@
 #include "util.h"
 #include "debug.h"
 #include "symtab.h"
+#include "process.h"
 
 instruction *instruction::copy() const {
     return new instruction(*this);
@@ -64,7 +65,7 @@ void instruction::generateTrap(codeGen &gen) {
     insn.generate(gen);
 }
 
-void instruction::generateBranch(codeGen &gen, int disp, bool link)
+void instruction::generateBranch(codeGen &gen, long disp, bool link)
 {
     if (ABS(disp) > MAX_BRANCH) {
         fprintf(stderr, "ABS OFF: 0x%x, MAX: 0x%x\n",
@@ -91,7 +92,7 @@ void instruction::generateBranch(codeGen &gen, int disp, bool link)
 }
 
 void instruction::generateBranch(codeGen &gen, Address from, Address to, bool link) {
-    int disp = (to - from);
+    long disp = (to - from);
     generateBranch(gen, disp, link);
 }
 
@@ -102,45 +103,21 @@ void instruction::generateCall(codeGen &gen, Address from, Address to) {
 void instruction::generateInterFunctionBranch(codeGen &gen,
                                               Address from,
                                               Address to) {
-    int disp = from - to;
+    long disp = from - to;
     if (ABS(disp) <= MAX_BRANCH) {
         // We got lucky...
         return generateBranch(gen, from, to);
     }
 
-    // Code sequence:
-    // push hi -> R0
-    // or lo -> R0
-    // move R0 -> CTR
-    // branch -> CTR
-
-    unsigned int top_half = ((to & 0xffff0000) >> 16);
-    unsigned int bottom_half = (to & 0x0000ffff);
-    assert (to == ((top_half << 16) + bottom_half));
-    // AIX sign-extends. So if top_half is 0, and the top bit of
-    // bottom_half is 0, then we can use a single instruction. Otherwise
-    // do it the hard way.
-    if (!top_half && !(bottom_half & 0x8000)) {
-        // single instruction (CALop)
-        instruction::generateImm(gen, 
-                                 CALop, 0, 0, bottom_half);
-    }
-    else {
-        instruction::generateImm(gen, CAUop, 
-                                 0, 0, top_half);
-        // ori dest,dest,LOW(src1)
-        instruction::generateImm(gen, ORILop, 
-                                 0, 0, bottom_half);
-    }
+    instruction::loadImmIntoReg(gen, 0, disp);
 
     instruction insn;
-
     (*insn).raw = 0;                    //mtspr:  mtctr scratchReg
-    (*insn).xform.op = 31;
+    (*insn).xform.op = EXTop;
     (*insn).xform.rt = 0;
     (*insn).xform.ra = SPR_CTR & 0x1f;
     (*insn).xform.rb = (SPR_CTR >> 5) & 0x1f;
-    (*insn).xform.xo = 467;
+    (*insn).xform.xo = MTSPRxop;
     insn.generate(gen);
 
     // And branch to CTR
@@ -148,7 +125,6 @@ void instruction::generateInterFunctionBranch(codeGen &gen,
     btctr.generate(gen);
 }
 
-    
 void instruction::generateImm(codeGen &gen, int op, Register rt, Register ra, int immd)
  {
   // something should be here to make sure immd is within bounds
@@ -175,22 +151,43 @@ void instruction::generateImm(codeGen &gen, int op, Register rt, Register ra, in
   insn.generate(gen);
 }
 
+void instruction::generateMemAccess64(codeGen &gen, int op, int xop, Register r1, Register r2, int immd)
+{
+    assert(MIN_IMM16 <= immd && immd <= MAX_IMM16);
+    assert((immd & 0x3) == 0);
+
+    instruction insn;
+
+    (*insn).raw = 0;
+    (*insn).dsform.op = op;
+    (*insn).dsform.rt = r1;
+    (*insn).dsform.ra = r2;
+    (*insn).dsform.ds = immd >> 2;
+    (*insn).dsform.xo = xop;
+
+    insn.generate(gen);
+}
+
 // rlwinm ra,rs,n,0,31-n
 void instruction::generateLShift(codeGen &gen, Register rs, int shift, Register ra)
 {
     instruction insn;
-  
-    assert(shift<32);
-    (*insn).raw = 0;
-    (*insn).mform.op = RLINMxop;
-    (*insn).mform.rs = rs;
-    (*insn).mform.ra = ra;
-    (*insn).mform.sh = shift;
-    (*insn).mform.mb = 0;
-    (*insn).mform.me = 31-shift;
-    (*insn).mform.rc = 0;
 
-    insn.generate(gen);
+    if (gen.proc()->getAddressWidth() == 4) {
+	assert(shift<32);
+	(*insn).raw = 0;
+	(*insn).mform.op = RLINMxop;
+	(*insn).mform.rs = rs;
+	(*insn).mform.ra = ra;
+	(*insn).mform.sh = shift;
+	(*insn).mform.mb = 0;
+	(*insn).mform.me = 31-shift;
+	(*insn).mform.rc = 0;
+	insn.generate(gen);
+
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+	instruction::generateLShift64(gen, rs, shift, ra);
+    }
 }
 
 // rlwinm ra,rs,32-n,n,31
@@ -198,15 +195,60 @@ void instruction::generateRShift(codeGen &gen, Register rs, int shift, Register 
 {
     instruction insn;
 
-    assert(shift<32);
+    if (gen.proc()->getAddressWidth() == 4) {
+	assert(shift<32);
+	(*insn).raw = 0;
+	(*insn).mform.op = RLINMxop;
+	(*insn).mform.rs = rs;
+	(*insn).mform.ra = ra;
+	(*insn).mform.sh = 32-shift;
+	(*insn).mform.mb = shift;
+	(*insn).mform.me = 31;
+	(*insn).mform.rc = 0;
+	insn.generate(gen);
+
+    } else /* gen.proc()->getAddressWidth() == 8 */ {
+	instruction::generateRShift64(gen, rs, shift, ra);
+    }
+}
+
+// sld ra, rs, rb
+void instruction::generateLShift64(codeGen &gen, Register rs, int shift, Register ra)
+{
+    instruction insn;
+
+    assert(shift<64);
     (*insn).raw = 0;
-    (*insn).mform.op = RLINMxop;
-    (*insn).mform.rs = rs;
-    (*insn).mform.ra = ra;
-    (*insn).mform.sh = 32-shift;
-    (*insn).mform.mb = shift;
-    (*insn).mform.me = 31;
-    (*insn).mform.rc = 0;
+    (*insn).mdform.op  = RLDop;
+    (*insn).mdform.rs  = rs;
+    (*insn).mdform.ra  = ra;
+    (*insn).mdform.sh  = shift % 32;
+    (*insn).mdform.mb  = (63-shift) % 32;
+    (*insn).mdform.mb2 = (63-shift) / 32;
+    (*insn).mdform.xo  = ICRxop;
+    (*insn).mdform.sh2 = shift / 32;
+    (*insn).mdform.rc  = 0;
+
+    insn.generate(gen);
+}
+
+// srd ra, rs, rb
+void instruction::generateRShift64(codeGen &gen, Register rs, int shift, Register ra)
+{
+    instruction insn;
+
+    assert(shift<64);
+    (*insn).raw = 0;
+    (*insn).mdform.op  = RLDop;
+    (*insn).mdform.rs  = rs;
+    (*insn).mdform.ra  = ra;
+    (*insn).mdform.sh  = (64 - shift) % 32;
+    (*insn).mdform.mb  = shift % 32;
+    (*insn).mdform.mb2 = shift / 32;
+    (*insn).mdform.xo  = ICLxop;
+    (*insn).mdform.sh2 = (64 - shift) / 32;
+    (*insn).mdform.rc  = 0;
+
     insn.generate(gen);
 }
 
@@ -280,27 +322,72 @@ void instruction::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
     instruction::generateImm(gen, CALop, rd, 0, 0);
 }
 
-// Given a value, load it into a register (two operations, CAU and ORIL)
-
-void instruction::loadImmIntoReg(codeGen &gen, Register rt, 
-                                 unsigned value)
+// Given a value, load it into a register.
+void instruction::loadImmIntoReg(codeGen &gen, Register rt, long value)
 {
-    unsigned high16 = (value & 0xffff0000) >> 16;
-    unsigned low16 = (value & 0x0000ffff);
-    assert((high16+low16)==value);
-    
-    if (high16 == 0x0) { // We can save an instruction by not using CAU
-        instruction::generateImm(gen, CALop, rt, 0, low16);
-        return;
+    // Writing a full 64 bits takes 5 instructions in the worst case.
+    // Let's see if we use sign-extention to cheat.
+    if (MIN_IMM16 <= value && value <= MAX_IMM16) {
+            instruction::generateImm(gen, CALop,  rt, 0,  BOT_LO(value));
+
+    } else if (MIN_IMM32 <= value && value <= MAX_IMM32) {
+	instruction::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
+	instruction::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
+
+    } else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
+	instruction::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
+	instruction::generateLShift64(gen, rt, 32, rt);
+	if (BOT_HI(value))
+	    instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+	if (BOT_LO(value))
+	    instruction::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
+
+    } else {
+	instruction::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
+	if (TOP_LO(value))
+	    instruction::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
+	instruction::generateLShift64(gen, rt, 32, rt);
+	if (BOT_HI(value))
+	    instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+	if (BOT_LO(value))
+	    instruction::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
     }
-    else if (low16 == 0x0) { // we don't have to ORIL the low bits
-        instruction::generateImm(gen, CAUop, rt, 0, high16);
-        return;
+}
+
+// Helper method.  Fills register with partial value to be completed
+// by an operation with a 16-bit signed immediate.  Such as loads and
+// stores.
+void instruction::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
+{
+    if (MIN_IMM16 <= value && value <= MAX_IMM16) return;
+
+    if (BOT_LO(value) & 0x8000) {
+	// high bit of lowest half-word is set, so the sign extension of
+	// the next op will cause the wrong effective addr to be computed.
+        // so we subtract the sign ext value from the other half-words.
+	// sounds odd, but works and saves an instruction - jkh 5/25/95
+
+	// Modified to be 64-bit compatible.  Use (-1 >> 16) instead of
+        // 0xFFFF constant.
+	value = ((value >> 16) - (-1 >> 16)) << 16;
     }
-    else {
-        instruction::generateImm(gen, CAUop, rt, 0, high16);
-        instruction::generateImm(gen, ORILop, rt, rt, low16);
-        return;
+
+    if (MIN_IMM32 <= value && value <= MAX_IMM32) {
+	instruction::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
+
+    } else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
+	instruction::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
+	instruction::generateLShift64(gen, rt, 32, rt);
+	if (BOT_HI(value))
+	    instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+
+    } else {
+	instruction::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
+	if (TOP_LO(value))
+	    instruction::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
+	instruction::generateLShift64(gen, rt, 32, rt);
+	if (BOT_HI(value))
+	    instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
     }
 }
 
@@ -411,11 +498,22 @@ unsigned instruction::maxJumpSize() {
 }
 
 unsigned instruction::maxInterFunctionJumpSize() {
-    // 4...
+    // 4 for 32-bit...
     // move <high>, r0
     // move <low>, r0
     // move r0 -> ctr
     // branch to ctr
+
+    // 7 for 64-bit...
+    // move <top-high>, r0
+    // move <top-low>, r0
+    // lshift r0, 32
+    // move <bot-high>, r0
+    // move <bot-low>, r0
+    // move r0 -> ctr
+    // branch to ctr
+    //return 7*instruction::size();
+
     return 4*instruction::size();
 }
 
@@ -492,36 +590,13 @@ bool instruction::generate(codeGen &gen,
                 // there are any.
 
                 // st r0, 16 (r1)
-
-                instruction::generateImm(gen, STop, 
-                                         0, // source: r0
-                                         1, // ra: r1
-                                         16); // offset
+		if (gen.proc()->getAddressWidth() == 4)
+		    instruction::generateImm(gen, STop, 0, 1, 16 /* offset */);
+		else /* gen.proc()->getAddressWidth() == 8 */
+		    instruction::generateMemAccess64(gen, STDop, STDxop, 0, 1, 32);
 
                 // Whee. Stomp that link register.
-                unsigned int top_half = ((to & 0xffff0000) >> 16);
-                unsigned int bottom_half = (to & 0x0000ffff);
-                assert (to == ((top_half << 16) + bottom_half));
-
-                // AIX sign-extends. So if top_half is 0, and the top bit of
-                // bottom_half is 0, then we can use a single instruction. Otherwise
-                // do it the hard way.
-                
-                // Honestly, why do we bother? An address of 0x00008000 is in the
-                // _kernel_. This will never happen. Someone was overly clever.
-
-                if (!top_half && !(bottom_half & 0x8000)) {
-                    // single instruction (CALop)
-                    instruction::generateImm(gen, 
-                                             CALop, 0, 0, bottom_half);
-                }
-                else {
-                    instruction::generateImm(gen, CAUop, 
-                                             0, 0, top_half);
-                    // ori dest,dest,LOW(src1)
-                    instruction::generateImm(gen, ORILop, 
-                                             0, 0, bottom_half);
-                }
+		instruction::loadImmIntoReg(gen, 0, to);
                 
                 instruction mtlr(MTLR0raw);
                 mtlr.generate(gen);
@@ -531,12 +606,10 @@ bool instruction::generate(codeGen &gen,
                 btlr.generate(gen);
 
                 // lw r0, 16 (r1)
-
-                instruction::generateImm(gen, Lop, 
-                                         0, // target: r0
-                                         1, // ra: r1
-                                         16); // offset
-
+		if (gen.proc()->getAddressWidth() == 4)
+		    instruction::generateImm(gen, Lop, 0, 1, 16);
+		else /* gen.proc()->getAddressWidth() == 8 */
+		    instruction::generateMemAccess64(gen, LDop, LDxop, 0, 1, 32);
             }
             else {
                 // Crud.
