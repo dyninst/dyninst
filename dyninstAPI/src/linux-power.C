@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.5 2007/07/17 17:11:26 ssuen Exp $
+// $Id: linux-power.C,v 1.6 2007/07/30 16:37:52 ssuen Exp $
 
 #include <dlfcn.h>
 
@@ -416,8 +416,8 @@ Frame Frame::getCallerFrame()
 //Change this struct and add Vsyscall to see if mutatee is in a syscall
 //--in a syscall, frame is in a different form
   typedef struct {
-    unsigned oldFp;
-    unsigned savedLR;
+    unsigned long oldFp;
+    unsigned long savedLR;
   } linkArea_t;
 
   const int savedLROffset = offsetof(linkArea_t, savedLR);
