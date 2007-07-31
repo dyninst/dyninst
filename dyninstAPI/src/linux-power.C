@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.6 2007/07/30 16:37:52 ssuen Exp $
+// $Id: linux-power.C,v 1.7 2007/07/31 15:42:03 ssuen Exp $
 
 #include <dlfcn.h>
 
@@ -936,15 +936,15 @@ bool process::loadDYNINSTlib_hidden() {
   scratchCodeBuffer.setRegisterSpace(dlopenRegSpace);                //aix.C
 
   // Now we place the do_dlopen_struct on the mutatee's stack
-  //   Step 1.  getRegisters() to get copy of the mutatee's stack pointer
-  //   Step 2.  decrement our local copy of the mutatee's stack pointer
-  //   Step 3.  restoreRegisters() to update mutatee's stack pointer
-  //   Step 4.  increment our local copy of the mutatee's stack pointer
+  //   Step 1.  getRegisters() to get copy of mutatee's stack frame pointer
+  //   Step 2.  decrement our local copy of mutatee's stack frame pointer
+  //   Step 3.  restoreRegisters() to update mutatee's stack frame pointer
+  //   Step 4.  increment our local copy of mutatee's stack frame pointer
   //              back to its original value so that we properly restore
   //              the mutatee's registers after the RT library is loaded
   //   Step 5.  writeDataSpace() to the stack our do_dlopen_struct
 
-  //   Step 1.  getRegisters() to get copy of the mutatee's stack pointer
+  //   Step 1.  getRegisters() to get copy of mutatee's stack frame pointer
   dyn_lwp *lwp_to_use = NULL;
   if(process::IndependentLwpControl() && getRepresentativeLWP() == NULL)
      lwp_to_use = getInitialThread()->get_lwp();
@@ -956,17 +956,19 @@ bool process::loadDYNINSTlib_hidden() {
 
   assert((status!=false) && (savedRegs!=(void *)-1));
    
-  //   Step 2.  decrement our local copy of the mutatee's stack pointer
-  savedRegs->gprs.gpr[1] -= STACKSKIP + sizeof(do_dlopen_struct);
+  //   Step 2.  decrement our local copy of mutatee's stack frame pointer
+  savedRegs->gprs.gpr[1] -= ALIGN_QUADWORD(STACKSKIP
+                                           + sizeof(do_dlopen_struct));
   do_dlopen_struct_addr = savedRegs->gprs.gpr[1];
 
-  //   Step 3.  restoreRegisters() to update mutatee's stack pointer
+  //   Step 3.  restoreRegisters() to update mutatee's stack frame pointer
   lwp_to_use->restoreRegisters(*savedRegs);
 
-  //   Step 4.  increment our local copy of the mutatee's stack pointer
+  //   Step 4.  increment our local copy of mutatee's stack frame pointer
   //              back to its original value so that we properly restore
   //              the mutatee's registers after the RT library is loaded
-  savedRegs->gprs.gpr[1] += STACKSKIP + sizeof(do_dlopen_struct);
+  savedRegs->gprs.gpr[1] += ALIGN_QUADWORD(STACKSKIP
+                                           + sizeof(do_dlopen_struct));
 
   //   Step 5.  writeDataSpace() to the stack our do_dlopen_struct
   writeDataSpace((void *)(do_dlopen_struct_addr),

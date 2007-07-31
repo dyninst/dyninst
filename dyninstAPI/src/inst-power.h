@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.31 2007/07/27 05:24:12 rchen Exp $
+ * $Id: inst-power.h,v 1.32 2007/07/31 15:42:02 ssuen Exp $
  */
 
 #ifndef INST_POWER_H
@@ -79,7 +79,24 @@
 #define NUM_INSN_MT_PREAMBLE 26   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
 
-#define STACKSKIP  220
+// The stack grows down from high addresses toward low addresses.
+// There is a maximum number of bytes on the stack below the current
+// value of the stack frame pointer that a function can use without
+// first establishing a new stack frame.  When our instrumentation
+// needs to use the stack, we make sure not to write into this
+// potentially used area.  AIX documentation stated 220 bytes as
+// the maximum size of this area.  64-bit PowerPC ELF ABI Supplement,
+// Version 1.9, 2004-10-23, used by Linux, stated 288 bytes for this
+// area.  We skip the larger number of bytes (288) to be safe on both
+// AIX and Linux, 32-bit and 64-bit.
+#define STACKSKIP          288
+
+// Both 32-bit and 64-bit PowerPC ELF ABI documents for Linux state
+// that the stack frame pointer value must always be 16-byte (quadword)
+// aligned.  Use the following macro on all quantities used to
+// increment or decrement the stack frame pointer.
+#define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )
+
 #define GPRSAVE_32 (14*4)
 #define GPRSAVE_64 (14*8)
 #define FPRSAVE    (14*8)
@@ -104,10 +121,12 @@
 
 
 // Okay, now that we have those defined, let's define the offsets upwards
-#define TRAMP_FRAME_SIZE_32 (STACKSKIP + GPRSAVE_32 + FPRSAVE + SPRSAVE_32 + PDYNSAVE + \
-                             FUNCSAVE + FUNCARGS + LINKAREA)
-#define TRAMP_FRAME_SIZE_64 (STACKSKIP + GPRSAVE_64 + FPRSAVE + SPRSAVE_64 + PDYNSAVE + \
-                             FUNCSAVE + FUNCARGS + LINKAREA)
+#define TRAMP_FRAME_SIZE_32 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_32 + FPRSAVE \
+                                           + SPRSAVE_32 + PDYNSAVE \
+                                           + FUNCSAVE + FUNCARGS + LINKAREA)
+#define TRAMP_FRAME_SIZE_64 ALIGN_QUADWORD(STACKSKIP + GPRSAVE_64 + FPRSAVE \
+                                           + SPRSAVE_64 + PDYNSAVE \
+                                           + FUNCSAVE + FUNCARGS + LINKAREA)
 #define PDYN_RESERVED (LINKAREA + FUNCARGS + FUNCSAVE)
 #define TRAMP_SPR_OFFSET (PDYN_RESERVED + PDYNSAVE) /* 4 for LR */
 #define STK_GUARD (PDYN_RESERVED)
