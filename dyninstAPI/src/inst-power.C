@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.272 2007/07/27 16:58:49 ssuen Exp $
+ * $Id: inst-power.C,v 1.273 2007/07/31 18:17:23 ssuen Exp $
  */
 
 #include "common/h/headers.h"
@@ -1300,10 +1300,10 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
 // Emit a function call.
 //   It saves registers as needed.
 //   copy the passed arguments into the canonical argument registers (r3-r10)
-//   AIX ONLY: 
+//   AIX and 64-bit ELF Linux ONLY: 
 //     Locate the TOC entry of the callee module and copy it into R2
 //   generate a branch and link the destination
-//   AIX ONLY:
+//   AIX and 64-bit ELF Linux ONLY:
 //     Restore the original TOC into R2
 //   restore the saved registers.
 //
@@ -1337,16 +1337,22 @@ Register emitFuncCall(opCode /* ocode */,
         assert(0);
     }
 
-#if defined(os_aix) 
     // Now that we have the destination address (unique, hopefully) 
     // get the TOC anchor value for that function
     // The TOC offset is stored in the Object. 
     // file() -> pdmodule "parent"
     // exec() -> image "parent"
+#if defined(os_aix)
     toc_anchor = gen.proc()->getTOCoffsetInfo(callee);
-    // Note: for Linux (and other SYSV ABI followers) r2 is described
-    // as "reserved for system use and is not to be changed by application
-    // code".
+#else
+    // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
+    if (gen.proc()->getAddressWidth() == sizeof(uint64_t)) {
+        toc_anchor = gen.proc()->getTOCoffsetInfo(callee);
+    }
+
+    // Note: For 32-bit ELF PowerPC Linux (and other SYSV ABI followers)
+    // r2 is described as "reserved for system use and is not to be 
+    // changed by application code".
 #endif
    
     // Generate the code for all function parameters, and keep a list
@@ -1386,6 +1392,13 @@ Register emitFuncCall(opCode /* ocode */,
     // Save register 2 (TOC)
     saveRegister(gen, 2, FUNC_CALL_SAVE);
     savedRegs.push_back(2);
+#else
+    // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
+    if (gen.proc()->getAddressWidth() == sizeof(uint64_t)) {
+        // Save register 2 (TOC)
+        saveRegister(gen, 2, FUNC_CALL_SAVE);
+        savedRegs.push_back(2);
+    }
 #endif
 
     // see what others we need to save.
@@ -1503,6 +1516,13 @@ Register emitFuncCall(opCode /* ocode */,
     // Set up the new TOC value
     emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
     //inst_printf("toc setup (%d)...");
+#else
+    // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
+    if (gen.proc()->getAddressWidth() == sizeof(uint64_t)) {
+        // Set up the new TOC value
+        emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
+        //inst_printf("toc setup (%d)...");
+    }
 #endif
 
     // generate a branch to the subroutine to be called.
@@ -2655,9 +2675,25 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
         fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     return true;
 #else
-    // copied from inst-x86.C
-    Address val_to_write = f->getAddress();
-    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
+    // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
+    if (p->getAddressWidth() == sizeof(uint64_t)) {
+        Address buffer[3];
+        Address val_to_write = f->getAddress();
+        Address toc = p->getTOCoffsetInfo(val_to_write);
+        buffer[0] = val_to_write;
+        buffer[1] = toc;
+        buffer[2] = 0x0;
+
+        if (!p->writeDataSpace((void *) addr, sizeof(buffer), buffer))
+            fprintf(stderr, "%s[%d]:  writeDataSpace failed\n",
+                            FILE__, __LINE__);
+        return true;
+    }
+    else {
+        // copied from inst-x86.C
+        Address val_to_write = f->getAddress();
+        return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
+    }
 #endif
 }
 
