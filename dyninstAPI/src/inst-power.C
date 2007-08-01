@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.273 2007/07/31 18:17:23 ssuen Exp $
+ * $Id: inst-power.C,v 1.274 2007/08/01 14:57:51 ssuen Exp $
  */
 
 #include "common/h/headers.h"
@@ -1690,11 +1690,13 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	  if (gen.proc()->getAddressWidth() == 4) {
 	      instruction::generateImm(gen, Lop, dest, 1,
 				       TRAMP_FRAME_SIZE_32 +
-				       ((src1 - 8)*sizeof(int)) + PARAM_OFFSET);
+				       ((src1 - 8)*sizeof(int)) +
+				       PARAM_OFFSET(gen.proc()->getAddressWidth()));
 	  } else /* gen.proc()->getAddressWidth() == 8 */ {
 	      instruction::generateMemAccess64(gen, LDop, LDxop, dest, 1,
 					       TRAMP_FRAME_SIZE_64 +
-					       ((src1 - 8)*sizeof(long)) + PARAM_OFFSET);
+					       ((src1 - 8)*sizeof(long)) +
+					       PARAM_OFFSET(gen.proc()->getAddressWidth()));
 	  }
           return(dest);
       }
@@ -2690,9 +2692,11 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
         return true;
     }
     else {
-        // copied from inst-x86.C
-        Address val_to_write = f->getAddress();
-        return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);
+        // Originally copied from inst-x86.C
+        // 32-bit ELF PowerPC Linux mutatee
+        uint32_t val_to_write = (uint32_t)f->getAddress();
+        return p->writeDataSpace((void *) addr,
+                                 sizeof(val_to_write), &val_to_write);
     }
 #endif
 }

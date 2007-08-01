@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.7 2007/07/31 15:42:03 ssuen Exp $
+// $Id: linux-power.C,v 1.8 2007/08/01 14:57:54 ssuen Exp $
 
 #include <dlfcn.h>
 
@@ -415,12 +415,23 @@ Frame Frame::getCallerFrame()
 
 //Change this struct and add Vsyscall to see if mutatee is in a syscall
 //--in a syscall, frame is in a different form
-  typedef struct {
-    unsigned long oldFp;
-    unsigned long savedLR;
+  typedef union {
+      struct {
+          uint32_t oldFp;
+          uint32_t savedLR;
+      } elf32;
+      struct {
+          uint64_t oldFp;
+          uint64_t savedCR;
+          uint64_t savedLR;
+      } elf64;
   } linkArea_t;
 
-  const int savedLROffset = offsetof(linkArea_t, savedLR);
+  int savedLROffset;
+  if (getProc()->getAddressWidth() == sizeof(uint64_t))
+    savedLROffset = P_offsetof(linkArea_t, elf64.savedLR);
+  else
+    savedLROffset = P_offsetof(linkArea_t, elf32.savedLR);
 
   linkArea_t thisStackFrame;
   linkArea_t lastStackFrame;
@@ -446,11 +457,25 @@ Frame Frame::getCallerFrame()
   }
 
   // Get current stack frame link area
-  if (!getProc()->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
-                        (caddr_t)&thisStackFrame, false))
-    return Frame();
-  getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp, sizeof(linkArea_t),
-                           (caddr_t) &lastStackFrame, false);
+  if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
+    if (!getProc()->readDataSpace((caddr_t)fp_, sizeof(thisStackFrame.elf64),
+                                  (caddr_t)&thisStackFrame.elf64, false))
+      return Frame();
+  }
+  else {
+    if (!getProc()->readDataSpace((caddr_t)fp_, sizeof(thisStackFrame.elf32),
+                                  (caddr_t)&thisStackFrame.elf32, false))
+      return Frame();
+  }
+
+  if (getProc()->getAddressWidth() == sizeof(uint64_t))
+    getProc()->readDataSpace((caddr_t) thisStackFrame.elf64.oldFp,
+                             sizeof(lastStackFrame.elf64),
+                             (caddr_t) &lastStackFrame.elf64, false);
+  else
+    getProc()->readDataSpace((caddr_t) thisStackFrame.elf32.oldFp,
+                             sizeof(lastStackFrame.elf32),
+                             (caddr_t) &lastStackFrame.elf32, false);
 
   if (noFrame) {
     stackFrame = thisStackFrame;
@@ -458,7 +483,10 @@ Frame Frame::getCallerFrame()
   }
   else {
     stackFrame = lastStackFrame;
-    basePCAddr = thisStackFrame.oldFp;
+    if (getProc()->getAddressWidth() == sizeof(uint64_t))
+      basePCAddr = thisStackFrame.elf64.oldFp;
+    else
+      basePCAddr = thisStackFrame.elf32.oldFp;
   }
 
   // See if we're in instrumentation
@@ -479,12 +507,23 @@ Frame Frame::getCallerFrame()
       // Oy. We saved the LR in the middle of the tramp; so pull it out
       // by hand.
       newpcAddr = fp_ + TRAMP_SPR_OFFSET + STK_LR;
-      newFP = thisStackFrame.oldFp;
+      if (getProc()->getAddressWidth() == sizeof(uint64_t))
+        newFP = thisStackFrame.elf64.oldFp;
+      else
+        newFP = thisStackFrame.elf32.oldFp;
 
-      if (!getProc()->readDataSpace((caddr_t) newpcAddr,
-                                    sizeof(Address),
-                                    (caddr_t) &newPC, false))
+      if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
+        if (!getProc()->readDataSpace((caddr_t) newpcAddr,
+                                      sizeof(newPC), (caddr_t) &newPC, false))
           return Frame();
+      }
+      else {
+        uint32_t u32;
+        if (!getProc()->readDataSpace((caddr_t) newpcAddr,
+                                      sizeof(u32), (caddr_t) &u32, false))
+          return Frame();
+        newPC = u32;
+      }
 
       // Instrumentation makes its own frame; we want to skip the
       // function frame if there is one as well.
@@ -496,10 +535,19 @@ Frame Frame::getCallerFrame()
       if ((point->getPointType() == callSite ||
           point->getPointType() == otherPoint) &&
           !point->func()->hasNoStackFrame()) {
-          if (!getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp,
-                                        sizeof(unsigned),
+        if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
+          if (!getProc()->readDataSpace((caddr_t) thisStackFrame.elf64.oldFp,
+                                        sizeof(newFP),
                                         (caddr_t) &newFP, false))
-              return Frame();
+            return Frame();
+        }
+        else {
+          uint32_t u32;
+          if (!getProc()->readDataSpace((caddr_t) thisStackFrame.elf32.oldFp,
+                                        sizeof(u32), (caddr_t) &u32, false))
+            return Frame();
+          newFP = u32;
+        }
       }
       // Otherwise must be at a reloc insn
   }
@@ -532,16 +580,25 @@ Frame Frame::getCallerFrame()
       if (noFrame)
           newFP = fp_;
       else
-          newFP = thisStackFrame.oldFp;
+          if (getProc()->getAddressWidth() == sizeof(uint64_t))
+              newFP = thisStackFrame.elf64.oldFp;
+          else
+              newFP = thisStackFrame.elf32.oldFp;
   }
   else {
       // Common case.
-      newPC = stackFrame.savedLR;
+      if (getProc()->getAddressWidth() == sizeof(uint64_t))
+        newPC = stackFrame.elf64.savedLR;
+      else
+        newPC = stackFrame.elf32.savedLR;
       newpcAddr = basePCAddr + savedLROffset;
       if (noFrame)
         newFP = fp_;
       else
-        newFP = thisStackFrame.oldFp;
+        if (getProc()->getAddressWidth() == sizeof(uint64_t))
+          newFP = thisStackFrame.elf64.oldFp;
+        else
+          newFP = thisStackFrame.elf32.oldFp;
   }
 
 #ifdef DEBUG_STACKWALK

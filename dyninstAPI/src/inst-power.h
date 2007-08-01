@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.32 2007/07/31 15:42:02 ssuen Exp $
+ * $Id: inst-power.h,v 1.33 2007/08/01 14:57:53 ssuen Exp $
  */
 
 #ifndef INST_POWER_H
@@ -95,7 +95,7 @@
 // that the stack frame pointer value must always be 16-byte (quadword)
 // aligned.  Use the following macro on all quantities used to
 // increment or decrement the stack frame pointer.
-#define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )
+#define ALIGN_QUADWORD(x)  ( ((x) + 0xf) & ~0xf )  //x is positive or unsigned
 
 #define GPRSAVE_32 (14*4)
 #define GPRSAVE_64 (14*8)
@@ -108,9 +108,24 @@
 #define LINKAREA   24
 
 #if defined(os_aix)
-#define PARAM_OFFSET (14*4)
+#define PARAM_OFFSET(mutatee_address_width) (14*4)  //FIXME for AIX 64-bit
 #elif defined(os_linux)
-#define PARAM_OFFSET (2*4)
+#define PARAM_OFFSET(mutatee_address_width)                         \
+        (                                                           \
+            ((mutatee_address_width) == sizeof(uint64_t))           \
+            ? (   /* 64-bit ELF PowerPC Linux                   */  \
+                  sizeof(uint64_t) +  /* TOC save               */  \
+                  sizeof(uint64_t) +  /* link editor doubleword */  \
+                  sizeof(uint64_t) +  /* compiler doubleword    */  \
+                  sizeof(uint64_t) +  /* LR save                */  \
+                  sizeof(uint64_t) +  /* CR save                */  \
+                  sizeof(uint64_t)    /* Stack frame back chain */  \
+              )                                                     \
+            : (   /* 32-bit ELF PowerPC Linux                   */  \
+                  sizeof(uint32_t) +  /* LR save                */  \
+                  sizeof(uint32_t)    /* Stack frame back chain */  \
+              )                                                     \
+        )
 #else
 #error "Unknown operating system in inst-power.h"
 #endif
