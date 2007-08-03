@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Dyn_Symbol.h,v 1.8 2007/07/02 22:17:56 legendre Exp $
+ * $Id: Dyn_Symbol.h,v 1.9 2007/08/03 16:19:19 giri Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -51,6 +51,7 @@
 
 class Dyn_Section;
 class Dyn_Module;
+class Dyn_Symtab;
 
 
 /************************************************************************
@@ -58,6 +59,7 @@ class Dyn_Module;
 ************************************************************************/
 
 class Dyn_Symbol {
+    friend class Dyn_Symtab;
 public:
     enum SymbolType {
         ST_UNKNOWN,
@@ -84,9 +86,9 @@ public:
     DLLEXPORT Dyn_Symbol (); // note: this ctor is called surprisingly often!
     DLLEXPORT Dyn_Symbol (unsigned);
 	DLLEXPORT Dyn_Symbol (const string &name,const string &modulename, SymbolType, SymbolLinkage,
-             Address, Dyn_Section *sec = NULL, unsigned size = 0, void *upPtr = NULL);
+             OFFSET, Dyn_Section *sec = NULL, unsigned size = 0, void *upPtr = NULL);
 	DLLEXPORT Dyn_Symbol (const string &name,Dyn_Module *module, SymbolType, SymbolLinkage,
-             Address, Dyn_Section *sec = NULL, unsigned size = 0, void *upPtr = NULL);
+             OFFSET, Dyn_Section *sec = NULL, unsigned size = 0, void *upPtr = NULL);
     DLLEXPORT Dyn_Symbol (const Dyn_Symbol &);
     DLLEXPORT ~Dyn_Symbol();
 
@@ -97,7 +99,7 @@ public:
     DLLEXPORT Dyn_Module*	getModule()		const; 
     DLLEXPORT SymbolType        getType ()              const;
     DLLEXPORT SymbolLinkage     getLinkage ()           const;
-    DLLEXPORT Address           getAddr ()              const;
+    DLLEXPORT OFFSET           getAddr ()              const;
     DLLEXPORT Dyn_Section	*getSec ()      	const;
     DLLEXPORT void 		*getUpPtr()		const;
     
@@ -113,7 +115,7 @@ public:
 	DLLEXPORT const vector<string>&	getAllPrettyNames()     const;
 	DLLEXPORT const vector<string>&	getAllTypedNames()      const;
 
-   DLLEXPORT void setAddr (Address newAddr);
+   DLLEXPORT void setAddr (OFFSET newAddr);
 
    DLLEXPORT bool setType(SymbolType sType);
    
@@ -149,7 +151,7 @@ private:
     Dyn_Module*   module_;
     SymbolType    type_;
     SymbolLinkage linkage_;
-    Address       addr_;
+    OFFSET       addr_;
     Dyn_Section*  sec_;
     unsigned      size_;  // size of this symbol. This is NOT available on
                           // all platforms.

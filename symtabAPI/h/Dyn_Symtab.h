@@ -301,6 +301,8 @@ class Dyn_Symtab : public Dyn_LookupInterface {
 	bool getAllFunctions(vector<Dyn_Symbol *> &ret);
 	bool getAllVariables(vector<Dyn_Symbol *> &ret);
 	bool getAllSymbols(vector<Dyn_Symbol *> &ret);
+	
+	void checkPPC64DescriptorSymbols();
 
    /***** Private Data Members *****/
  private:

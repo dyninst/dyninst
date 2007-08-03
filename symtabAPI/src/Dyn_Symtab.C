@@ -412,6 +412,83 @@ bool Dyn_Symtab::symbolsToFunctions(vector<Dyn_Symbol *> *raw_funcs)
   	return true;
 }
 
+
+#if defined(ppc64_linux)
+/* Special case for ppc64 ELF binaries. Sometimes a function has a 3-byte descriptor symbol
+ * along with it in the symbol table and "." preceding its original pretty name for the correct
+ * function symbol. This checks to see if we have a corresponding 3-byte descriptor symbol existing
+ * and if it does we remove the preceding "." from the name of the symbol
+ */
+
+void Dyn_Symtab::checkPPC64DescriptorSymbols()
+{
+     // find the real functions -- those with the correct type in the symbol table
+     for(SymbolIter symIter(*linkedFile); symIter;symIter++) 
+     {
+          Dyn_Symbol *lookUp = symIter.currval();
+          const char *np = lookUp->getName().c_str();
+	  if(!np)
+		continue;
+	  if(np[0] == '.' && (lookUp->getType() == Dyn_Symbol::ST_FUNCTION))
+	  {
+	          vector<Dyn_Symbol *>syms;
+	          if(findSymbolByType(syms, np+1, Dyn_Symbol::ST_UNKNOWN) && (syms[0]->getSize() == 24))
+		  {
+			lookUp->mangledNames[0] = np+1;
+			
+			//Remove it from the lists
+			vector<string>names;
+			vector<Dyn_Symbol *> *funcs;
+			vector<Dyn_Symbol *>::iterator iter;
+			
+			names = lookUp->getAllMangledNames();
+			funcs = funcsByMangled[np];
+			iter = find(funcs->begin(), funcs->end(), lookUp);
+			funcs->erase(iter);
+
+			names.clear();
+			names = syms[0]->getAllPrettyNames();
+			funcs = funcsByPretty[lookUp->prettyNames[0]];
+			iter = find(funcs->begin(), funcs->end(), lookUp);
+			funcs->erase(iter);
+			lookUp->prettyNames[0] = syms[0]->prettyNames[0];
+			
+			names.clear();
+			names = syms[0]->getAllTypedNames();
+			if(names.size()>0)
+			{
+                        	funcs = funcsByPretty[lookUp->typedNames[0]];
+			
+                 	        iter = find(funcs->begin(), funcs->end(), lookUp);
+                        	funcs->erase(iter);
+                        	names.clear();
+			
+				lookUp->typedNames[0] = syms[0]->typedNames[0];
+				if(funcsByPretty.find(syms[0]->typedNames[0])==funcsByPretty.end())
+         				funcsByPretty[syms[0]->typedNames[0]] = new vector<Dyn_Symbol *>;
+      				funcsByPretty[syms[0]->typedNames[0]]->push_back(lookUp);
+			}
+			if(funcsByMangled.find(np+1)==funcsByMangled.end())
+         			funcsByMangled[np+1] = new vector<Dyn_Symbol *>;
+			else
+				funcsByMangled[np+1]->erase(funcsByMangled[np+1]->begin());
+			funcsByMangled[np+1]->push_back(lookUp);
+			if(funcsByPretty.find(syms[0]->prettyNames[0])==funcsByPretty.end())
+         			funcsByPretty[syms[0]->prettyNames[0]] = new vector<Dyn_Symbol *>;
+			else
+				funcsByPretty[np+1]->erase(funcsByPretty[np+1]->begin());
+			funcsByPretty[np+1]->push_back(lookUp);
+			syms[0]->type_ = Dyn_Symbol::ST_NOTYPE;
+			notypeSyms.push_back(syms[0]);
+               }
+          }
+     }
+}
+
+#endif
+
+
+
 //  setModuleLanguages is only called after modules have been defined.
 //  it attempts to set each module's language, information which is needed
 //  before names can be demangled.
@@ -1002,6 +1079,9 @@ bool Dyn_Symtab::extractInfo()
       return false;
    }
 
+#if defined(ppc64_linux)   
+   checkPPC64DescriptorSymbols();
+#endif   
    // And symtab variables
    //addSymtabVariables();
 	linkedFile->getAllExceptions(excpBlocks);
