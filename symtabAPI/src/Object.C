@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.9 2007/07/02 22:17:57 legendre Exp $
+// $Id: Object.C,v 1.10 2007/08/03 16:19:26 giri Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Dyn_Symtab.h"
@@ -38,8 +38,8 @@ string Dyn_Symbol::emptyString(string(""));
 
 bool symbol_compare(const Dyn_Symbol *s1, const Dyn_Symbol *s2) {
     // select the symbol with the lowest address
-    Address s1_addr = s1->getAddr();
-    Address s2_addr = s2->getAddr();
+    OFFSET s1_addr = s1->getAddr();
+    OFFSET s2_addr = s2->getAddr();
     if (s1_addr > s2_addr)
     	return false;
     if (s1_addr < s2_addr)
@@ -184,7 +184,7 @@ DLLEXPORT Dyn_Symbol::SymbolLinkage Dyn_Symbol::getLinkage() const {
     return linkage_;
 }
 
-DLLEXPORT Address Dyn_Symbol::getAddr() const {
+DLLEXPORT OFFSET Dyn_Symbol::getAddr() const {
     return addr_;
 }
 
@@ -209,7 +209,7 @@ DLLEXPORT void Dyn_Symbol::setModuleName(string module)
 	module_->setName(module);
 }
 
-DLLEXPORT void Dyn_Symbol::setAddr (Address newAddr) {
+DLLEXPORT void Dyn_Symbol::setAddr (OFFSET newAddr) {
       addr_ = newAddr;
 }
 
@@ -234,7 +234,7 @@ DLLEXPORT const vector<string>& Dyn_Symbol::getAllTypedNames() const {
 }
 
 DLLEXPORT Dyn_Symbol::Dyn_Symbol(const string& iname, const string& imodule,
-    SymbolType itype, SymbolLinkage ilinkage, Address iaddr,
+    SymbolType itype, SymbolLinkage ilinkage, OFFSET iaddr,
     Dyn_Section *isec, unsigned size, void *upPtr)
     : type_(itype),
     linkage_(ilinkage), addr_(iaddr), 
@@ -245,7 +245,7 @@ DLLEXPORT Dyn_Symbol::Dyn_Symbol(const string& iname, const string& imodule,
 }
 
 DLLEXPORT Dyn_Symbol::Dyn_Symbol(const string& iname, Dyn_Module *mod,
-    SymbolType itype, SymbolLinkage ilinkage, Address iaddr,
+    SymbolType itype, SymbolLinkage ilinkage, OFFSET iaddr,
     Dyn_Section *isec, unsigned size, void *upPtr)
     : module_(mod), type_(itype),
     linkage_(ilinkage), addr_(iaddr), 

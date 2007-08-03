@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-nt.C,v 1.9 2007/05/30 19:20:49 legendre Exp $
+// $Id: Object-nt.C,v 1.10 2007/08/03 16:19:24 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -228,7 +228,7 @@ Object::Symbol::DefineSymbol(hash_map<string,vector<::Dyn_Symbol *> >&allSyms,
 										  modName,
                                           (::Dyn_Symbol::SymbolType) GetType(),
                                           (::Dyn_Symbol::SymbolLinkage) GetLinkage(),
-                                          (Address)GetAddr(),
+                                          (OFFSET)GetAddr(),
                                           NULL,				// TODO there should be a section pointer here
                                           GetSize()) );
 }
@@ -518,7 +518,7 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
       symLinkage = ::Dyn_Symbol::SL_UNKNOWN;
    }
    else if ((pSymInfo->Flags == SYMFLAG_EXPORT && 
-            isText((Address) pSymInfo->Address - baseAddr)) ||
+            isText((OFFSET) pSymInfo->Address - baseAddr)) ||
             !strcmp(pSymInfo->Name, "_loadsnstores"))
    {
       symType = ::Dyn_Symbol::ST_FUNCTION;
@@ -531,12 +531,12 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
    }
 
    // register the symbol
-  Address baseAddr = 0;
+  OFFSET baseAddr = 0;
   //  if (desc.isSharedObject())
   //if(curModule->IsDll())
   //   baseAddr = get_base_addr();
 
-   if( !isForwarded( ((Address) pSymInfo->Address) - baseAddr ) )
+   if( !isForwarded( ((OFFSET) pSymInfo->Address) - baseAddr ) )
    {
       pFile->AddSymbol( new Object::Symbol( pSymInfo->Name,
                                             pSymInfo->Address - get_base_addr(),
@@ -788,13 +788,13 @@ bool Object::isForwarded( OFFSET addr )
 	return false;
 }
 
-bool Object::getCatchBlock(ExceptionBlock &b, Address addr, 
+bool Object::getCatchBlock(ExceptionBlock &b, OFFSET addr, 
                            unsigned size) const 
 { 
    return false; 
 }
 
-bool Object::isText( const Address& addr ) const 
+bool Object::isText( const OFFSET& addr ) const 
 {
    return( addr >= code_off_ && addr <= code_len_ );
 }

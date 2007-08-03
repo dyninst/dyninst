@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.5 2007/05/30 19:20:50 legendre Exp $
+ * $Id: Object-nt.h,v 1.6 2007/08/03 16:19:25 giri Exp $
 ************************************************************************/
 
 
@@ -169,17 +169,17 @@ public:
   
     DLLEXPORT virtual ~Object( void );
 
-    DLLEXPORT bool isForwarded( Address addr );
+    DLLEXPORT bool isForwarded( OFFSET addr );
     DLLEXPORT bool isEEL() const { return false; }
-    DLLEXPORT bool isText( const Address& addr ) const; 
-    DLLEXPORT Address get_base_addr() const { return (Address)mapAddr;} 
+    DLLEXPORT bool isText( const OFFSET& addr ) const; 
+    DLLEXPORT OFFSET get_base_addr() const { return (OFFSET)mapAddr;} 
     DLLEXPORT Module* GetCurrentModule( void )				    { return curModule; }
    
-    DLLEXPORT bool getCatchBlock(ExceptionBlock &b, Address addr, unsigned size = 0) const;
+    DLLEXPORT bool getCatchBlock(ExceptionBlock &b, OFFSET addr, unsigned size = 0) const;
     DLLEXPORT unsigned int GetTextSectionId( void ) const         { return textSectionId;}
     DLLEXPORT PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
     DLLEXPORT PVOID GetMapAddr( void ) const                      { return mapAddr; }
-	DLLEXPORT Address getEntryPoint( void ) const                { return peHdr->OptionalHeader.AddressOfEntryPoint; }
+	DLLEXPORT OFFSET getEntryPoint( void ) const                { return peHdr->OptionalHeader.AddressOfEntryPoint; }
 													//+ desc.loadAddr(); } //laodAddr is always zero in our fake address space.
 	// TODO. Change these later.
 	DLLEXPORT OFFSET getLoadAddress() const { return get_base_addr(); }
@@ -190,14 +190,14 @@ public:
    DLLEXPORT const char *interpreter_name() const { return NULL; }
    
     DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
-    DLLEXPORT const vector<Address> &getPossibleMains() const   { return possible_mains; }
+    DLLEXPORT const vector<OFFSET> &getPossibleMains() const   { return possible_mains; }
     DLLEXPORT void getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs);
 
 private:
     DLLEXPORT void    ParseDebugInfo( void );
     DLLEXPORT void    FindInterestingSections();
 
-	Address	baseAddr;					// location of this object in 
+	OFFSET	baseAddr;					// location of this object in 
 								// mutatee address space
 
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers
@@ -210,7 +210,7 @@ private:
 	HANDLE  hFile;					// File Handle
 	HANDLE  hProc;					// Process Handle
     LPVOID  mapAddr;                // location of mapped file in *our* address space
-    vector<Address> possible_mains; //Addresses of functions that may be main
+    vector<OFFSET> possible_mains; //Addresses of functions that may be main
 	string filename;				//Name of the file.
 };
 

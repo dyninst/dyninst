@@ -36,10 +36,7 @@
 
 using namespace std;
 
-#if !defined(address_type_defined)
-#define address_type_defined
-typedef long unsigned int Address;
-#endif
+typedef long unsigned int OFFSET;
 
 #if defined(_MSC_VER)	
 #if !defined(DLLEXPORT)
