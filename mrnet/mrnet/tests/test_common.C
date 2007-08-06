@@ -99,6 +99,13 @@ Test::Test(const char *test_name, FILE *f)
     timer.start();
 }
 
+Test::~Test()
+{
+    std::map<std::string, SubTest*>::iterator iter;
+    for( iter = subtests.begin(); iter != subtests.end(); iter++ )
+        delete iter->second;
+}
+
 void Test::end_Test( )
 {
     timer.end();

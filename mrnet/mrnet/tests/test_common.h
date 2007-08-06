@@ -74,6 +74,7 @@ class Test{
 
  public:
     Test(const char *test_name, FILE *f=stdout);
+    ~Test();
     void end_Test( );
     int start_SubTest(const std::string & subtest_name);
     int end_SubTest(const std::string & subtest_name, TestStatus status);
