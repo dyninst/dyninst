@@ -423,6 +423,7 @@ bool Dyn_Symtab::symbolsToFunctions(vector<Dyn_Symbol *> *raw_funcs)
 void Dyn_Symtab::checkPPC64DescriptorSymbols()
 {
      // find the real functions -- those with the correct type in the symbol table
+     unsigned i;
      for(SymbolIter symIter(*linkedFile); symIter;symIter++) 
      {
           Dyn_Symbol *lookUp = symIter.currval();
@@ -434,50 +435,62 @@ void Dyn_Symtab::checkPPC64DescriptorSymbols()
 	          vector<Dyn_Symbol *>syms;
 	          if(findSymbolByType(syms, np+1, Dyn_Symbol::ST_UNKNOWN) && (syms[0]->getSize() == 24))
 		  {
-			lookUp->mangledNames[0] = np+1;
-			
 			//Remove it from the lists
 			vector<string>names;
 			vector<Dyn_Symbol *> *funcs;
 			vector<Dyn_Symbol *>::iterator iter;
-			
-			names = lookUp->getAllMangledNames();
-			funcs = funcsByMangled[np];
-			iter = find(funcs->begin(), funcs->end(), lookUp);
-			funcs->erase(iter);
 
-			names.clear();
-			names = syms[0]->getAllPrettyNames();
-			funcs = funcsByPretty[lookUp->prettyNames[0]];
-			iter = find(funcs->begin(), funcs->end(), lookUp);
-			funcs->erase(iter);
-			lookUp->prettyNames[0] = syms[0]->prettyNames[0];
-			
-			names.clear();
-			names = syms[0]->getAllTypedNames();
-			if(names.size()>0)
+			names = lookUp->getAllMangledNames();
+			for(i=0;i<names.size();i++)
 			{
-                        	funcs = funcsByPretty[lookUp->typedNames[0]];
-			
-                 	        iter = find(funcs->begin(), funcs->end(), lookUp);
-                        	funcs->erase(iter);
-                        	names.clear();
-			
-				lookUp->typedNames[0] = syms[0]->typedNames[0];
-				if(funcsByPretty.find(syms[0]->typedNames[0])==funcsByPretty.end())
-         				funcsByPretty[syms[0]->typedNames[0]] = new vector<Dyn_Symbol *>;
-      				funcsByPretty[syms[0]->typedNames[0]]->push_back(lookUp);
+				funcs = funcsByMangled[names[i]];
+				iter = find(funcs->begin(), funcs->end(), lookUp);
+				funcs->erase(iter);
+				
+				lookUp->mangledNames[i] = names[i].substr(1, names[i].size()-1);
+				names[i] = lookUp->mangledNames[i];
+				
+				if(funcsByMangled.find(names[i])!=funcsByMangled.end())
+					funcsByMangled[names[i]]->clear();
+				else
+					funcsByMangled[names[i]] = new vector<Dyn_Symbol *>;
+				funcsByMangled[names[i]]->push_back(lookUp);
 			}
-			if(funcsByMangled.find(np+1)==funcsByMangled.end())
-         			funcsByMangled[np+1] = new vector<Dyn_Symbol *>;
-			else
-				funcsByMangled[np+1]->erase(funcsByMangled[np+1]->begin());
-			funcsByMangled[np+1]->push_back(lookUp);
-			if(funcsByPretty.find(syms[0]->prettyNames[0])==funcsByPretty.end())
-         			funcsByPretty[syms[0]->prettyNames[0]] = new vector<Dyn_Symbol *>;
-			else
-				funcsByPretty[np+1]->erase(funcsByPretty[np+1]->begin());
-			funcsByPretty[np+1]->push_back(lookUp);
+
+			names = lookUp->getAllPrettyNames();
+			for(i=0;i<names.size();i++)
+			{
+				funcs = funcsByPretty[names[i]];
+				iter = find(funcs->begin(), funcs->end(), lookUp);
+				funcs->erase(iter);
+				
+				lookUp->prettyNames[i] = names[i].substr(1, names[i].size()-1);
+				names[i] = lookUp->prettyNames[i];
+
+				if(funcsByPretty.find(names[i])!=funcsByPretty.end())
+					funcsByPretty[names[i]]->clear();
+				else
+					funcsByPretty[names[i]] = new vector<Dyn_Symbol *>;
+				funcsByPretty[names[i]]->push_back(lookUp);
+			}
+			
+			names = lookUp->getAllTypedNames();
+			for(i=0;i<names.size();i++)
+			{
+				funcs = funcsByPretty[names[i]];
+				iter = find(funcs->begin(), funcs->end(), lookUp);
+				funcs->erase(iter);
+				
+				lookUp->typedNames[i] = names[i].substr(1, names[i].size()-1);
+				names[i] = lookUp->typedNames[i];
+				
+				if(funcsByMangled.find(names[i])!=funcsByMangled.end())
+					funcsByPretty[names[i]]->clear();
+				else
+					funcsByPretty[names[i]] = new vector<Dyn_Symbol *>;
+				funcsByPretty[names[i]]->push_back(lookUp);
+			}
+	
 			syms[0]->type_ = Dyn_Symbol::ST_NOTYPE;
 			notypeSyms.push_back(syms[0]);
                }
