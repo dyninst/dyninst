@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NetUtils.C,v 1.9 2007/03/15 20:11:07 darnold Exp $
+// $Id: NetUtils.C,v 1.10 2007/08/06 21:18:40 mjbrim Exp $
 #include <sstream>
 #include "xplat/Types.h"
 #include "xplat/NetUtils.h"
@@ -17,7 +17,7 @@ namespace XPlat
 
 int NetUtils::FindNetworkName( std::string ihostname, std::string & ohostname )
 {
-    struct addrinfo *addrs, hints;
+    struct addrinfo *addrs, hints, *tmp;
     int error;
 
     if( ihostname == "" ){
@@ -40,6 +40,13 @@ int NetUtils::FindNetworkName( std::string ihostname, std::string & ohostname )
     }
 
     ohostname = hostname;
+
+    // cleanup list dynamically allocated by getaddrinfo()
+    while( addrs != NULL ) {
+       tmp = addrs;
+       addrs = addrs->ai_next;
+       free(tmp);
+    }
 
     return 0;
 }

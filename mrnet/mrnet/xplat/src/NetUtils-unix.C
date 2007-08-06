@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
-// $Id: NetUtils-unix.C,v 1.7 2007/03/20 23:20:20 darnold Exp $
+// $Id: NetUtils-unix.C,v 1.8 2007/08/06 21:18:40 mjbrim Exp $
 #include "xplat/NetUtils.h"
 #include <assert.h>
 #include <unistd.h>
@@ -169,6 +169,9 @@ int NetUtils::FindLocalNetworkInterfaces
         
         local_addresses.push_back( NetworkAddress( ntohl( in.s_addr ) ) );
     }
+
+    if( ifc.ifc_buf != NULL )
+        free(ifc.ifc_buf);
 
     return 0;
 }
