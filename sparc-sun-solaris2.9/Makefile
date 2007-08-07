@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.8 2007/02/23 00:14:41 giri Exp $
+# $Id: Makefile,v 1.9 2007/08/07 16:32:50 rutar Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -10,7 +10,7 @@ NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
 #USES_DWARF_DEBUG = true
 
-MUTATEE_LIBS = -ldl -lrt
+MUTATEE_LIBS = -ldl -lrt 
 
 DEBUG_FLAG = -g
 NATIVE_DEBUG_FLAG = -g -xs
@@ -35,9 +35,13 @@ NATIVE_CC = cc
 NATIVE_CXX = CC
 NATIVE_FC = f90
 NATIVE_FORTRAN_CC = cc
+NATIVE_CXX_OMP = mpcc
+
 
 MUTATEE_NATIVE_FFLAGS += -Dsparc_sun_solaris2_4 $(NATIVE_DEBUG_FLAG) -DCOMPILER='"$(NATIVE_FC)"'
 MUTATEE_NATIVE_FC_CFLAGS += $(MUTATEE_NATIVE_FFLAGS)
+MUTATEE_NATIVE_CXX_CFLAGS = -xO3 -xopenmp=parallel -c
+MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -lthread -xopenmp
 
 # skip the builds with native (WorkShop) compilers if they're not available
 ifeq (,$(findstring Forte,$(shell $(NATIVE_CC) -V 2>&1)))
@@ -101,3 +105,4 @@ LIBS_LIBTESTSUITE = -ldl
 
 include ../make.module.tmpl
 MUTATOR_LDFLAGS +=  $(SYSLIBS) -L$(LIBELF_LIB) -lelf -lstdc++ -lsocket -lrt -liberty -L$(LIBDWARF_LIB) -ldwarf
+

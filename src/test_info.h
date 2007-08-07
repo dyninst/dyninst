@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.25 2007/01/04 23:00:09 legendre Exp $
+// $Id: test_info.h,v 1.26 2007/08/07 16:31:31 rutar Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -57,6 +57,7 @@ mutatee_list_t test12_mutatee;
 mutatee_list_t test13_mutatee;
 mutatee_list_t test14_mutatee;
 mutatee_list_t test15_mutatee;
+mutatee_list_t test16_mutatee;
 mutatee_list_t none;
 
 /* A little bit of macro magic to get the text of the extensions out */
@@ -169,6 +170,10 @@ void initialize_mutatees()
    test15_mutatee.push_back("test15.mutatee" xstr(gnu_abi_cxx));
 #endif
 
+#ifdef native_cxx_omp
+   test16_mutatee.push_back("test16.mutatee" xstr(native_cxx_omp));
+#endif
+
    none.push_back("");
 }
 
@@ -236,6 +241,17 @@ platforms_t test12_platforms =
      /*i386_unknown_nt4_0      =*/ false, 
      /*ia64_unknown_linux2_4   =*/ true,
      /*x86_64_unknown_linux2_4 =*/ true,
+     /*mips_sgi_irix6_5        =*/ false,
+     /*rs6000_ibm_aix5_1       =*/ true,
+     /*sparc_sun_solaris2_8    =*/ true,
+   };
+
+platforms_t test16_platforms =
+   { /*alpha_dec_osf5_1        =*/ false,
+     /*i386_unknown_linux2_4   =*/ false, 
+     /*i386_unknown_nt4_0      =*/ false, 
+     /*ia64_unknown_linux2_4   =*/ false,
+     /*x86_64_unknown_linux2_4 =*/ false,
      /*mips_sgi_irix6_5        =*/ false,
      /*rs6000_ibm_aix5_1       =*/ true,
      /*sparc_sun_solaris2_8    =*/ true,
@@ -381,7 +397,8 @@ test_data_t tests[] = {
    test_data_t("test12_8", "test12_8.so", test12_mutatee, test12_platforms, STOPPED, 12, 8, KILL_MUTATEE, CREATE, ENABLED, SOLO),
    test_data_t("test13_1", "test13_1.so", test13_mutatee, all_platforms, SELFSTART, 13, 1, NONE, BOTH, ENABLED, SOLO),
    test_data_t("test14_1", "test14_1.so", test14_mutatee, all_platforms, SELFSTART, 14, 1, NONE, BOTH, ENABLED, SOLO),
-   test_data_t("test15_1", "test15_1.so", test15_mutatee, all_platforms, SELFSTART, 15, 1, NONE, BOTH, ENABLED, SOLO)
+   test_data_t("test15_1", "test15_1.so", test15_mutatee, all_platforms, SELFSTART, 15, 1, NONE, BOTH, ENABLED, SOLO),
+   test_data_t("test16_1", "test16_1.so", test16_mutatee, test16_platforms, STOPPED, 16, 1, NONE, CREATE, ENABLED, SOLO)
 };
 const unsigned int num_tests = sizeof(tests)/sizeof(test_data_t);
 

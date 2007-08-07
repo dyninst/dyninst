@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2007/06/13 18:51:29 bernat Exp $
+# $Id: Makefile,v 1.9 2007/08/07 16:32:31 rutar Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,6 +21,7 @@ NATIVE_FC = xlf90
 NATIVE_FORTRAN_CC = gcc
 NATIVE_CC = xlc
 NATIVE_CXX = xlC
+NATIVE_CXX_OMP = xlC_r
 
 COMMA=,
 
@@ -54,6 +55,7 @@ MUTATEE_CFLAGS_NATIVE += -D__XLC__ -qnoinline -qnooptimize
 MUTATEE_CXXFLAGS_NATIVE = $(MUTATEE_CFLAGS_NATIVE) -+
 MUTATEE_CFLAGS_NATIVE += -qcpluscmt
 MUTATEE_NATIVE_FC_CFLAGS = $(MUTATEE_CFLAGS_NATIVE) -DXLF
+MUTATEE_NATIVE_CXX_CFLAGS = -qsmp=omp 
 
 MUTATOR_CXXFLAGS = $(UNIFIED_DEF) 
 
@@ -62,6 +64,7 @@ MUTATEE_LDFLAGS_GNU += -Wl,-bgcbypass:3  -Wl,-bnoobjreorder
 MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CFLAGS_GNU)
 
 MUTATEE_LDFLAGS_NATIVE += -bnoobjreorder -bgcbypass:3 -g -DAIX5 -Drs6000_ibm_aix4_1 -D__XLC__
+MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -ldl -lpthread -lxlsmp
  
 CFLAGS_TESTLIBS = -I../src -I$(TO_CORE)/dyninstAPI_RT/h
 TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok -bnoobjreorder
