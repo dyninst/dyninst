@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.9 2007/08/07 15:16:04 ssuen Exp $
+// $Id: linux-power.C,v 1.10 2007/08/07 22:17:25 ssuen Exp $
 
 #include <dlfcn.h>
 
@@ -932,10 +932,6 @@ bool process::loadDYNINSTlib_exported()
 
 
 bool process::loadDYNINSTlib_hidden() {
-#if defined(arch_64bit)
-assert(0);  // sunlung
-#endif
-
   // We need to make a call to do_dlopen to open our runtime library
 
   // This function was implemented by mixing parts of
