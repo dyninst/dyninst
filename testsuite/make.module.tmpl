@@ -171,7 +171,8 @@ MUTATORS =      test1_1 \
                 test12_8 \
                 test13_1 \
                 test14_1 \
-                test15_1
+                test15_1 \
+                test16_1
 
 
 MUTATORS_SO          += $(addsuffix .so,$(MUTATORS))
@@ -214,6 +215,8 @@ MUTATEES_CXX =	test1.mutatee \
 MUTATEES_CXX_ONLY = test5.mutatee
 
 MUTATEES_FORTRAN = test1.mutatee
+
+MUTATEES_OPENMP = test16.mutatee
 
 FORALL_MUTATEES = mutatee_util
 
@@ -297,6 +300,10 @@ ifdef NATIVE_FC
 MUTATEES_NATIVE_FC		+= $(addsuffix _$(NATIVE_FC),$(MUTATEES_FORTRAN))
 endif
 
+ifdef NATIVE_CXX_OMP
+MUTATEES_NATIVE_CXX_OMP		+= $(addsuffix _$(NATIVE_CXX_OMP),$(MUTATEES_OPENMP))
+endif
+
 TEST6_AS_OBJ_GNU 		= $(addsuffix .o,$(TEST6_AS_OBJ_BASE))
 CALL35_1_OBJ 			= $(CALL35_1_SRC:call%.s=call%.o)
 
@@ -335,6 +342,9 @@ ALL_TARGETS			+= $(MUTATEES_NATIVE_CXX_ONLY)
 endif
 ifdef NATIVE_FC
 ALL_TARGETS			+= $(MUTATEES_NATIVE_FC)
+endif
+ifdef NATIVE_CXX_OMP
+ALL_TARGETS			+= $(MUTATEES_NATIVE_CXX_OMP)
 endif
 
 ALL_TARGETS_DEST		= $(addprefix $(TEST_DEST)/,$(ALL_TARGETS))
@@ -423,7 +433,7 @@ clean:
 	$(RM) *.da *.bb. *.bbg 
 	$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver test_driver_static runTests
 	$(RM) $(MUTATORS_SO) $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI) $(MUTATEES_G77) $(MUTATEES_GXX_ONLY)
-	$(RM) *.o $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
+	$(RM) *.o $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_OMP) $(MUTATEES_NATIVE_CXX_ONLY)
 	$(RM) test11
 	$(RM) imagefile
 	$(RM) core core.*
@@ -446,7 +456,7 @@ endif
 mutators: $(MUTATORS_SO) test11
 mutatees: gnu_mutatees native_mutatees
 gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
-native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
+native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_OMP) $(MUTATEES_NATIVE_CXX_ONLY)
 testlibs: $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) libTest12.so
 
 drivers: test_driver runTests
@@ -700,6 +710,22 @@ $(MUTATEES_NATIVE_FC): test%.mutatee_$(NATIVE_FC) : test%.mutatee_$(NATIVE_FC).o
 	$(NATIVE_FC) -o $@ $(filter %.o,$^) $(MUTATEE_NATIVE_FC_LDFLAGS) $(MUTATEE_LIBS) 
 endif
 
+# Native OpenMP mutatees
+# There is no real advantage to generality here since there is only one OpenMP mutatee
+# (ie for test16), thus all constituent files are built explicitly
+ifdef NATIVE_CXX_OMP 
+test16.mutatee_$(NATIVE_CXX_OMP).o: ../src/test16.mutatee.c
+	$(NATIVE_CXX_OMP) -g  $(MUTATEE_NATIVE_CXX_CFLAGS) -o $@ $^ 
+
+$(MUTATEES_NATIVE_CXX_OMP): test%.mutatee_$(NATIVE_CXX_OMP) : test%.mutatee_$(NATIVE_CXX_OMP).o $(DEPENDDIR)/test%.mutatee_$(NATIVE_CXX_OMP).dep
+	$(NATIVE_CXX_OMP) $(MUTATEE_NATIVE_CXX_OMP_LDFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LIBS) 
+
+#$(MUTATEES_NATIVE_CXX_OMP): ../src/test16.mutatee.c
+#	$(NATIVE_CXX_OMP) -g  $(MUTATEE_NATIVE_CXX_CFLAGS) -o $@ $^ 
+
+endif
+
+
 # Install directory
 $(TEST_DEST): 
 	mkdir $(TEST_DEST)
@@ -737,6 +763,10 @@ endif
 
 ifdef NATIVE_FC
 MUTATEE_DEFS += -Dnative_fc=_$(NATIVE_FC)
+endif
+
+ifdef NATIVE_CXX_OMP
+MUTATEE_DEFS += -Dnative_cxx_omp=_$(NATIVE_CXX_OMP)
 endif
 
 ifdef STATIC_TEST_DRIVER
@@ -803,6 +833,10 @@ ifdef NATIVE_FC
 DEPS_MUTATEES_NATIVE_FC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _$(NATIVE_FC).dep, $(MUTATEES_FORTRAN)))
 endif
 
+ifdef NATIVE_CXX_OMP
+DEPS_MUTATEES_NATIVE_CXX_OMP += $(addprefix $(DEPENDDIR)/,$(addsuffix _$(NATIVE_CXX_OMP).dep, $(MUTATEES_OPENMP)))
+endif
+
 ifdef NATIVE_CC
 DEPS_MUTATEES_NATIVE_CC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _$(NATIVE_CC).dep, $(MUTATEES_C)))
 endif
@@ -865,6 +899,12 @@ $(DEPS_MUTATEES_NATIVE_FC): $(DEPENDDIR)/test%.mutatee_$(NATIVE_FC).dep : test%.
 	$(M_G77) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutateeFort_$(NATIVE_FC).o > $@
 endif
 
+ifdef NATIVE_CXX_OMP
+$(DEPS_MUTATEES_NATIVE_CXX_OMP): $(DEPENDDIR)/test%.mutatee_$(NATIVE_CXX_OMP).dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
+	@mkdir -p $(DEPENDDIR)
+	$(M_GXX) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_$(NATIVE_CXX_OMP).o > $@
+endif
+
 
 $(DEPS_TESTLIBS): $(DEPENDDIR)/lib%.dep : lib%.c 
 	@mkdir -p $(DEPENDDIR)
@@ -899,6 +939,10 @@ endif
 
 ifdef NATIVE_FC
 -include $(DEPS_MUTATEES_NATIVE_FC)
+endif
+
+ifdef NATIVE_CXX_OMP
+-include $(DEPS_MUTATEES_NATIVE_CXX_OMP)
 endif
 
 endif
