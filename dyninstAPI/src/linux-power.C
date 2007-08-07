@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.8 2007/08/01 14:57:54 ssuen Exp $
+// $Id: linux-power.C,v 1.9 2007/08/07 15:16:04 ssuen Exp $
 
 #include <dlfcn.h>
 
@@ -61,6 +61,39 @@ const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
+
+#if defined(arch_64bit)
+#define PT_REGS_OFFSET(m, mutatee_address_width)           \
+        (                                                  \
+            ((mutatee_address_width) == sizeof(uint64_t))  \
+            ? (   /* 64-bit mutatee */                     \
+                  P_offsetof(struct pt_regs, m)            \
+              )                                            \
+            : (   /* 32-bit mutatee */                     \
+                  P_offsetof(struct pt_regs32, m)          \
+              )                                            \
+        )
+#else
+#define PT_REGS_OFFSET(m, mutatee_address_width)           \
+        (                                                  \
+            P_offsetof(struct pt_regs, m)                  \
+        )
+#endif
+
+
+#define PT_FPSCR_OFFSET(mutatee_address_width)                  \
+        (                                                       \
+            ((mutatee_address_width) == sizeof(PTRACE_RETURN))  \
+            ? (   /* N-bit mutatee, N-bit mutator   */          \
+                  PT_FPSCR * sizeof(PTRACE_RETURN)              \
+              )                                                 \
+            : (   /* 32-bit mutatee, 64-bit mutator */          \
+                  (PT_FPR0 + 2*32 + 1) * sizeof(uint32_t)       \
+              )                                                 \
+        )
+
+
+#define SIZEOF_PTRACE_DATA(mutatee_address_width)  (mutatee_address_width)
 
 
 void calcVSyscallFrame(process *p)
@@ -134,7 +167,7 @@ void calcVSyscallFrame(process *p)
 bool dyn_lwp::changePC(Address loc,
                        struct dyn_saved_regs */*ignored registers*/)
 {
-   Address regaddr = P_offsetof(struct pt_regs, PTRACE_REG_IP);
+   Address regaddr = PT_REGS_OFFSET(PTRACE_REG_IP, proc_->getAddressWidth());
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
    if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc,
@@ -165,14 +198,14 @@ Frame dyn_lwp::getActiveFrame()
 
    // frame pointer
    fp = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                   P_offsetof(struct pt_regs, PTRACE_REG_FP), 0, &ptrace_errno,
-                   proc_->getAddressWidth(), __FILE__, __LINE__);
+                   PT_REGS_OFFSET(PTRACE_REG_FP, proc_->getAddressWidth()), 0,
+                   &ptrace_errno, proc_->getAddressWidth(), __FILE__, __LINE__);
    if (ptrace_errno) return Frame();
 
    // next instruction pointer
    pc = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                   P_offsetof(struct pt_regs, PTRACE_REG_IP), 0, &ptrace_errno,
-                   proc_->getAddressWidth(), __FILE__, __LINE__);
+                   PT_REGS_OFFSET(PTRACE_REG_IP, proc_->getAddressWidth()), 0,
+                   &ptrace_errno, proc_->getAddressWidth(), __FILE__, __LINE__);
    if (ptrace_errno) return Frame();
 
    // no top-of-stack pointer for POWER/PowerPC
@@ -198,8 +231,9 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
    for (int i = 0; i < 32; i++) {
       ptrace_errno = 0;
       r = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                     P_offsetof(struct pt_regs, gpr[i]), 0, &ptrace_errno,
-                     proc_->getAddressWidth(), __FILE__, __LINE__);
+                     PT_REGS_OFFSET(gpr[i], proc_->getAddressWidth()), 0,
+                     &ptrace_errno, proc_->getAddressWidth(), __FILE__,
+                     __LINE__);
       if ((r == -1) && ptrace_errno)
          error++;
       else
@@ -208,8 +242,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
 
    ptrace_errno = 0; 
    r = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                  P_offsetof(struct pt_regs, nip), 0, &ptrace_errno,
-                  proc_->getAddressWidth(), __FILE__, __LINE__);
+                  PT_REGS_OFFSET(nip, proc_->getAddressWidth()), 0,
+                  &ptrace_errno, proc_->getAddressWidth(), __FILE__, __LINE__);
    if ((r == -1) && ptrace_errno)
       error++;
    else
@@ -217,8 +251,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
 
    ptrace_errno = 0;
    r = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                  P_offsetof(struct pt_regs, msr), 0, &ptrace_errno,
-                  proc_->getAddressWidth(), __FILE__, __LINE__);
+                  PT_REGS_OFFSET(msr, proc_->getAddressWidth()), 0,
+                  &ptrace_errno, proc_->getAddressWidth(), __FILE__, __LINE__);
    if ((r == -1) && ptrace_errno)
       error++;
    else
@@ -226,8 +260,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
 
    ptrace_errno = 0;
    r = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                  P_offsetof(struct pt_regs, ctr), 0, &ptrace_errno,
-                  proc_->getAddressWidth(), __FILE__, __LINE__);
+                  PT_REGS_OFFSET(ctr, proc_->getAddressWidth()), 0,
+                  &ptrace_errno, proc_->getAddressWidth(), __FILE__, __LINE__);
    if ((r == -1) && ptrace_errno)
       error++;
    else
@@ -235,8 +269,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
 
    ptrace_errno = 0;
    r = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                  P_offsetof(struct pt_regs, link), 0, &ptrace_errno,
-                  proc_->getAddressWidth(), __FILE__, __LINE__);
+                  PT_REGS_OFFSET(link, proc_->getAddressWidth()), 0,
+                  &ptrace_errno, proc_->getAddressWidth(), __FILE__, __LINE__);
    if ((r == -1) && ptrace_errno)
       error++;
    else
@@ -244,8 +278,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
 
    ptrace_errno = 0;
    r = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                  P_offsetof(struct pt_regs, xer), 0, &ptrace_errno,
-                  proc_->getAddressWidth(), __FILE__, __LINE__);
+                  PT_REGS_OFFSET(xer, proc_->getAddressWidth()), 0,
+                  &ptrace_errno, proc_->getAddressWidth(), __FILE__, __LINE__);
    if ((r == -1) && ptrace_errno)
       error++;
    else
@@ -253,8 +287,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
 
    ptrace_errno = 0;
    r = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                  P_offsetof(struct pt_regs, ccr), 0, &ptrace_errno,
-                  proc_->getAddressWidth(), __FILE__, __LINE__);
+                  PT_REGS_OFFSET(ccr, proc_->getAddressWidth()), 0,
+                  &ptrace_errno, proc_->getAddressWidth(), __FILE__, __LINE__);
    if ((r == -1) && ptrace_errno)
       error++;
    else
@@ -268,30 +302,41 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
    if (includeFP) {
       // no PTRACE_GETFPREGS on PowerPC Linux 2.6.5
 
-      size_t PEEKsPerFPR = sizeof(regs->fprs.fpr[0]) / sizeof(PTRACE_RETURN);
-      assert(PEEKsPerFPR * sizeof(PTRACE_RETURN) == sizeof(regs->fprs.fpr[0]));
+      size_t PEEKsPerFPR = sizeof(regs->fprs.fpr[0])
+                           / SIZEOF_PTRACE_DATA(proc_->getAddressWidth());
+      assert(PEEKsPerFPR * SIZEOF_PTRACE_DATA(proc_->getAddressWidth()) ==
+             sizeof(regs->fprs.fpr[0]));
 
       for (int i = 0; i < 32; i++) {
          PTRACE_RETURN rs[PEEKsPerFPR];
+         uint32_t      rs32[PEEKsPerFPR];
          for (size_t n = 0; n < PEEKsPerFPR; n++) {
             ptrace_errno = 0;
-            rs[n] = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                               (PT_FPR0 + i*PEEKsPerFPR + n)
-                               * sizeof(PTRACE_RETURN), 0, &ptrace_errno,
-                               proc_->getAddressWidth(), __FILE__, __LINE__);
-            if ((rs[n] == -1) && ptrace_errno) {
+            r = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
+                           (PT_FPR0 + i*PEEKsPerFPR + n)
+                           * SIZEOF_PTRACE_DATA(proc_->getAddressWidth()),
+                           0, &ptrace_errno, proc_->getAddressWidth(),
+                           __FILE__, __LINE__);
+            if ((r == -1) && ptrace_errno) {
                error++;
                break;
             }
-            if (n == PEEKsPerFPR - 1)
-              memcpy(&regs->fprs.fpr[i], rs, sizeof(regs->fprs.fpr[i]));
+            rs32[n] = rs[n] = r;
+            if (n == PEEKsPerFPR - 1) {
+              if (SIZEOF_PTRACE_DATA(proc_->getAddressWidth()) ==
+                  sizeof(uint32_t))
+                  memcpy(&regs->fprs.fpr[i], rs32, sizeof(regs->fprs.fpr[i]));
+                else
+                  memcpy(&regs->fprs.fpr[i], rs, sizeof(regs->fprs.fpr[i]));
+            }
          }
       }
 
       ptrace_errno = 0;
       r = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                     PT_FPSCR * sizeof(PTRACE_RETURN), 0, &ptrace_errno,
-                     proc_->getAddressWidth(), __FILE__, __LINE__);
+                     PT_FPSCR_OFFSET(proc_->getAddressWidth()), 0,
+                     &ptrace_errno, proc_->getAddressWidth(), __FILE__,
+                     __LINE__);
       if ((r == -1) && ptrace_errno)
          error++;
       else
@@ -316,8 +361,8 @@ Address dyn_lwp::readRegister(Register reg) {
 
    int ptrace_errno = 0;
    Address ret = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(),
-                            P_offsetof(struct pt_regs, gpr[reg]), 0,
-                            &ptrace_errno, proc_->getAddressWidth(),
+                            PT_REGS_OFFSET(gpr[reg], proc_->getAddressWidth()),
+                            0, &ptrace_errno, proc_->getAddressWidth(),
                             __FILE__, __LINE__);
    return ret;
 }
@@ -336,38 +381,38 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeF
    // no PTRACE_SETREGS on PowerPC Linux 2.6.5
    for (int i = 0; i < 32; i++) {
       error += DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(),
-                          P_offsetof(struct pt_regs, gpr[i]),
+                          PT_REGS_OFFSET(gpr[i], proc_->getAddressWidth()),
                           regs.gprs.gpr[i], &ptrace_errno,
                           proc_->getAddressWidth(), __FILE__, __LINE__);
    }
 
    error += DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(),
-                       P_offsetof(struct pt_regs, nip),
+                       PT_REGS_OFFSET(nip, proc_->getAddressWidth()),
                        regs.gprs.nip, &ptrace_errno,
                        proc_->getAddressWidth(), __FILE__, __LINE__);
 
    error += DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(),
-                       P_offsetof(struct pt_regs, msr),
+                       PT_REGS_OFFSET(msr, proc_->getAddressWidth()),
                        regs.gprs.msr, &ptrace_errno,
                        proc_->getAddressWidth(), __FILE__, __LINE__);
 
    error += DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(),
-                       P_offsetof(struct pt_regs, ctr),
+                       PT_REGS_OFFSET(ctr, proc_->getAddressWidth()),
                        regs.gprs.ctr, &ptrace_errno,
                        proc_->getAddressWidth(), __FILE__, __LINE__);
 
    error += DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(),
-                       P_offsetof(struct pt_regs, link),
+                       PT_REGS_OFFSET(link, proc_->getAddressWidth()),
                        regs.gprs.link, &ptrace_errno,
                        proc_->getAddressWidth(), __FILE__, __LINE__);
 
    error += DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(),
-                       P_offsetof(struct pt_regs, xer),
+                       PT_REGS_OFFSET(xer, proc_->getAddressWidth()),
                        regs.gprs.xer, &ptrace_errno,
                        proc_->getAddressWidth(), __FILE__, __LINE__);
 
    error += DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(),
-                       P_offsetof(struct pt_regs, ccr),
+                       PT_REGS_OFFSET(ccr, proc_->getAddressWidth()),
                        regs.gprs.ccr, &ptrace_errno,
                        proc_->getAddressWidth(), __FILE__, __LINE__);
 
@@ -380,22 +425,31 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeF
    if (includeFP) {
       // no PTRACE_SETFPREGS on PowerPC Linux 2.6.5
 
-      size_t POKEsPerFPR = sizeof(regs.fprs.fpr[0]) / sizeof(PTRACE_RETURN);
-      assert(POKEsPerFPR * sizeof(PTRACE_RETURN) == sizeof(regs.fprs.fpr[0]));
+      size_t POKEsPerFPR = sizeof(regs.fprs.fpr[0])
+                           / SIZEOF_PTRACE_DATA(proc_->getAddressWidth());
+      assert(POKEsPerFPR * SIZEOF_PTRACE_DATA(proc_->getAddressWidth()) ==
+             sizeof(regs.fprs.fpr[0]));
 
       for (int i = 0; i < 32; i++) {
          PTRACE_RETURN ps[POKEsPerFPR];
          memcpy(ps, &regs.fprs.fpr[i], sizeof(regs.fprs.fpr[i]));
+         if (SIZEOF_PTRACE_DATA(proc_->getAddressWidth()) == sizeof(uint32_t)) {
+            uint32_t ps32[POKEsPerFPR];
+            memcpy(ps32, &regs.fprs.fpr[i], sizeof(regs.fprs.fpr[i]));
+            for (size_t n = 0; n < POKEsPerFPR; n++)
+               ps[n] = ps32[n];
+         }
          for (size_t n = 0; n < POKEsPerFPR; n++) {
             error += DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(),
                                 (PT_FPR0 + i*POKEsPerFPR + n)
-                                * sizeof(PTRACE_RETURN), ps[n], &ptrace_errno,
-                                proc_->getAddressWidth(), __FILE__, __LINE__);
+                                * SIZEOF_PTRACE_DATA(proc_->getAddressWidth()),
+                                ps[n], &ptrace_errno, proc_->getAddressWidth(),
+                                __FILE__, __LINE__);
          }
       }
 
       error += DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(),
-                          PT_FPSCR * sizeof(PTRACE_RETURN),
+                          PT_FPSCR_OFFSET(proc_->getAddressWidth()),
                           regs.fprs.fpscr, &ptrace_errno,
                           proc_->getAddressWidth(), __FILE__, __LINE__);
 
@@ -469,11 +523,11 @@ Frame Frame::getCallerFrame()
   }
 
   if (getProc()->getAddressWidth() == sizeof(uint64_t))
-    getProc()->readDataSpace((caddr_t) thisStackFrame.elf64.oldFp,
+    getProc()->readDataSpace((caddr_t) (Address) thisStackFrame.elf64.oldFp,
                              sizeof(lastStackFrame.elf64),
                              (caddr_t) &lastStackFrame.elf64, false);
   else
-    getProc()->readDataSpace((caddr_t) thisStackFrame.elf32.oldFp,
+    getProc()->readDataSpace((caddr_t) (Address) thisStackFrame.elf32.oldFp,
                              sizeof(lastStackFrame.elf32),
                              (caddr_t) &lastStackFrame.elf32, false);
 
@@ -536,14 +590,16 @@ Frame Frame::getCallerFrame()
           point->getPointType() == otherPoint) &&
           !point->func()->hasNoStackFrame()) {
         if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
-          if (!getProc()->readDataSpace((caddr_t) thisStackFrame.elf64.oldFp,
+          if (!getProc()->readDataSpace((caddr_t) (Address)
+                                        thisStackFrame.elf64.oldFp,
                                         sizeof(newFP),
                                         (caddr_t) &newFP, false))
             return Frame();
         }
         else {
           uint32_t u32;
-          if (!getProc()->readDataSpace((caddr_t) thisStackFrame.elf32.oldFp,
+          if (!getProc()->readDataSpace((caddr_t) (Address)
+                                        thisStackFrame.elf32.oldFp,
                                         sizeof(u32), (caddr_t) &u32, false))
             return Frame();
           newFP = u32;
@@ -876,6 +932,10 @@ bool process::loadDYNINSTlib_exported()
 
 
 bool process::loadDYNINSTlib_hidden() {
+#if defined(arch_64bit)
+assert(0);  // sunlung
+#endif
+
   // We need to make a call to do_dlopen to open our runtime library
 
   // This function was implemented by mixing parts of
