@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.10 2007/02/23 00:14:40 giri Exp $
+# $Id: Makefile,v 1.11 2007/08/07 18:35:39 rutar Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -35,6 +35,10 @@ NATIVE_CC = cc
 NATIVE_CXX = CC
 NATIVE_FC = f90
 NATIVE_FORTRAN_CC = cc
+NATIVE_CXX_OMP = mpcc
+ 
+MUTATEE_NATIVE_CXX_CFLAGS = -xO3 -xopenmp=parallel -c
+MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -lthread -xopenmp
 
 MUTATEE_NATIVE_FFLAGS += -Dsparc_sun_solaris2_4 $(NATIVE_DEBUG_FLAG) -DCOMPILER='"$(NATIVE_FC)"'
 MUTATEE_NATIVE_FC_CFLAGS += $(MUTATEE_NATIVE_FFLAGS)
