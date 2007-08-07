@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <omp.h>
-#include <stdlib.h>  // For srand() and rand()
+#include <stdlib.h> 
 #include <unistd.h>
 
 #define CHUNKSIZE 100
@@ -8,7 +8,7 @@
 
 void bar(int x)
 {
-  //printf("In bar for thread %d\n",x);
+    /*printf("In bar for thread %d\n",x);*/
 }
 
 void fooSections()
@@ -49,7 +49,7 @@ void fooFor()
     for (i = 0; i < N; i++)
       {
 	c[i] = a[i] + b[i];
-	//printf("At part %d of loop in thread %d\n", i, omp_get_thread_num());
+	/*printf("At part %d of loop in thread %d\n", i, omp_get_thread_num());*/
       }
   }
 }
@@ -134,21 +134,21 @@ void fooMasterBarrier()
   
 #pragma omp parallel
   {
-    // Perform some computation.
+      /* Perform some computation.*/
 #pragma omp for
     for (i = 0; i < 5; i++)
       a[i] = i * i;
     
-    // Print intermediate results.
+    /*Print intermediate results.*/
 #pragma omp master
     for (i = 0; i < 5; i++)
       {
-	//printf("a[%d] = %d\n", i, a[i]);
+          /*printf("a[%d] = %d\n", i, a[i]);*/
       }
-    // Wait.
+    /* Wait.*/
 #pragma omp barrier
     
-    // Continue with the computation.
+    /* Continue with the computation.*/
 #pragma omp for
     for (i = 0; i < 5; i++)
       a[i] += i;
@@ -163,7 +163,7 @@ void fooAtomic()
 #pragma omp atomic
     count++;
   }
-  //printf("Number of threads: %d\n", count);
+  /*printf("Number of threads: %d\n", count);*/
 }
 
 void fooFlush()
@@ -194,16 +194,17 @@ void fooFlush()
 
 void test(int first, int last) 
 {
+    int i;
 #pragma omp for schedule(static) ordered
-  for (int i = first; i <= last; ++i) {
-    // Do something here.
+  for (i = first; i <= last; ++i) {
+      /* Do something here.*/
     if (i % 2) 
       {
 #pragma omp ordered 
 	{	
 	  int x;
 	  x++;
-	  //printf("test() iteration %d\n", i);
+	  /*printf("test() iteration %d\n", i);*/
 	}
       }
   }
@@ -212,7 +213,8 @@ void test(int first, int last)
 void test2(int iter) 
 {
 #pragma omp ordered
-  iter++;//printf("test2() iteration %d\n", iter);
+    iter++; /*printf("test2() iteration %d\n", iter);*/
+
 }
 
 void fooOrdered()
