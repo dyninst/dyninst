@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.5 2007/05/30 19:20:48 legendre Exp $
+ * $Id: Object-elf.h,v 1.6 2007/08/07 15:16:06 ssuen Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -225,6 +225,14 @@ class Object : public AObject {
 
 #if defined(arch_ia64)
   OFFSET getTOCoffset() const { return gp; }
+#elif defined(os_linux) && defined(arch_power) && defined(arch_64bit)
+  // 64-bit PowerPC ELF ABI Supplement, Version 1.9, 2004-10-23:
+  //   The TOC section contains a conventional ELF GOT, and may optionally
+  //   contain a small data area.
+  //   The TOC base is typically the first address in the TOC plus 0x8000.
+  // I don't understand why I can find a ".got" within binaries, but I can't
+  // find a ".toc".  ssuen  August 7, 2007
+  OFFSET getTOCoffset() const { return got_addr_ + 0x8000; }
 #else
   OFFSET getTOCoffset() const { return 0; }
 #endif
