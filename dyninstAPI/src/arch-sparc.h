@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.46 2007/07/19 17:44:12 tugrul Exp $
+// $Id: arch-sparc.h,v 1.47 2007/08/08 15:25:56 rchen Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL
@@ -558,7 +558,7 @@ class instruction: public BPatch_annotatable<instruction> {
 
     void setInstruction(codeBuf_t *ptr, Address = 0);
 
-    static bool offsetWithinRangeOfBranchInsn(int off);
+    static bool offsetWithinRangeOfBranchInsn(long off);
     
     static void generateTrap(codeGen &gen);
     static void generateIllegal(codeGen &gen);

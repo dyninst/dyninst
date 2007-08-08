@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.19 2007/07/19 17:45:53 tugrul Exp $
+ * $Id: arch-sparc.C,v 1.20 2007/08/08 15:25:51 rchen Exp $
  */
 
 #include "common/h/Types.h"
@@ -75,7 +75,7 @@ void instruction::generateIllegal(codeGen &gen) {
     insn.generate(gen);
 }
 
-bool instruction::offsetWithinRangeOfBranchInsn(int offset) {
+bool instruction::offsetWithinRangeOfBranchInsn(long offset) {
     // The pc-relative offset range which we can branch to with a single sparc
     // branch instruction is dictated by the sparc instruction set.
     // There are 22 bits available...however, you really get 2 extra bits
