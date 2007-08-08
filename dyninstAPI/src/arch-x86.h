@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.52 2007/07/12 17:03:02 tugrul Exp $
+// $Id: arch-x86.h,v 1.53 2007/08/08 15:25:24 rchen Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -775,6 +775,7 @@ class instruction: public BPatch_annotatable<instruction> {
   static void generatePush64(codeGen &gen, Address val);
 
   // Code generation
+  static bool offsetWithinRangeOfBranchInsn(long /*off*/) { return true; }
   static void generateBranch(codeGen &gen, Address from, Address to); 
   static void generateBranch(codeGen &gen, int disp); 
   static void generateBranch64(codeGen &gen, Address to);

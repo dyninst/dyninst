@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.37 2007/07/27 05:24:06 rchen Exp $
+// $Id: arch-power.h,v 1.38 2007/08/08 15:25:46 rchen Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -620,6 +620,7 @@ class instruction {
     static void generateTrap(codeGen &gen);
     static void generateIllegal(codeGen &gen);
 
+    static bool offsetWithinRangeOfBranchInsn(long off);
     static void generateBranch(codeGen &gen,
                                long jump_off,
                                bool link = false);

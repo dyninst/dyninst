@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.17 2007/07/27 18:04:24 ssuen Exp $
+ * $Id: arch-power.C,v 1.18 2007/08/08 15:25:41 rchen Exp $
  */
 
 #include "common/h/Types.h"
@@ -63,6 +63,11 @@ void instruction::generateIllegal(codeGen &gen) { // instP.h
 void instruction::generateTrap(codeGen &gen) {
     instruction insn(BREAK_POINT_INSN);
     insn.generate(gen);
+}
+
+bool instruction::offsetWithinRangeOfBranchInsn(long off)
+{
+    return (ABS(off) <= MAX_BRANCH);
 }
 
 void instruction::generateBranch(codeGen &gen, long disp, bool link)
