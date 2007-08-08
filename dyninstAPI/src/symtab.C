@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.297 2007/07/17 17:16:16 rutar Exp $
+ // $Id: symtab.C,v 1.298 2007/08/08 20:09:19 rutar Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -201,8 +201,8 @@ image_func *image::makeOneFunction(vector<Dyn_Symbol *> &mods,
   
 
 #if defined(os_aix)
-  if(strchr(lookUp->getName().c_str(), '@') != NULL){
-    printf("**This is one of those OpenMP functions -- %s\n", lookUp->getName().c_str());
+  if(strstr(lookUp->getName().c_str(), "@OL@") != NULL){
+    //printf("**This is one of those OpenMP functions -- %s\n", lookUp->getName().c_str());
     image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
     parallelRegions.push_back(pR);
   } 

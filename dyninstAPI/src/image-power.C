@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.17 2007/07/17 17:16:15 rutar Exp $
+// $Id: image-power.C,v 1.18 2007/08/08 20:09:19 rutar Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -324,12 +324,24 @@ pdstring image_func::calcParentFunc(const image_func * imf,pdvector<image_parReg
   const char * nameStart = imf->prettyName().c_str();
   char * nameEnd = strrchr(nameStart, '@');
   int strSize = nameEnd - nameStart - 3;
-  char tempBuf[strlen(nameStart)];
-  strncpy(tempBuf, nameStart, strSize);
-  tempBuf[strSize] = '\0';
-  pdstring tempPDS(tempBuf);
-
-  return tempPDS;
+  
+  /* Make sure that the shortened string is not of size 0,
+   this would happen if a function started with @ or if there
+   was less than two characters between the beginning and @
+   This wouldn't happen for OpenMP functions, but might for imposters*/
+  if (strSize > 0)
+    {
+      char tempBuf[strlen(nameStart)];
+      strncpy(tempBuf, nameStart, strSize);
+      tempBuf[strSize] = '\0';
+      pdstring tempPDS(tempBuf);
+      return tempPDS;
+    }
+  else   /* if it starts with @ just return the full function as its parent, we'll sort it out later */
+    {
+      pdstring tempPDS(nameStart);
+      return tempPDS;
+    }
 }
 
 
