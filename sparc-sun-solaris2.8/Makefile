@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.11 2007/08/07 18:35:39 rutar Exp $
+# $Id: Makefile,v 1.12 2007/08/08 03:04:01 rutar Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -42,6 +42,15 @@ MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -lthread -xopenmp
 
 MUTATEE_NATIVE_FFLAGS += -Dsparc_sun_solaris2_4 $(NATIVE_DEBUG_FLAG) -DCOMPILER='"$(NATIVE_FC)"'
 MUTATEE_NATIVE_FC_CFLAGS += $(MUTATEE_NATIVE_FFLAGS)
+
+# does quick check to see if OpenMP compiler exists, if not, makes native default
+ifeq (,$(findstring Command,$(shell $(NATIVE_CXX_OMP) -V 2>&1)))
+NATIVE_CXX_OMP=cc
+MUTATEE_NATIVE_CXX_CFLAGS = -c
+MUTATEE_NATIVE_CXX_OMP_LDFLAGS =
+#(warning, no OpenmMP compilers)
+endif 
+
 
 # skip the builds with native (WorkShop) compilers if they're not available
 ifeq (,$(findstring Forte,$(shell $(NATIVE_CC) -V 2>&1)))
