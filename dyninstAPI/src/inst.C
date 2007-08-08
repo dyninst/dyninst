@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.156 2007/06/13 18:50:53 bernat Exp $
+// $Id: inst.C,v 1.157 2007/08/08 15:26:01 rchen Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -152,12 +152,20 @@ bool trampEnd::generateCode(codeGen &gen,
 #endif
 {
     generateSetup(gen, baseInMutatee);
-    
-    if (target_) {
+
+    bool inRange = instruction::offsetWithinRangeOfBranchInsn(target_ - gen.currAddr(baseInMutatee));
+    if (target_ && inRange) {
         instruction::generateBranch(gen,
                                     gen.currAddr(baseInMutatee),
                                     target_);
+    } else {
+	// Mainly for Power.  Branches greater than the range of one
+	// instruction require assumptions about register usage.  So,
+	// instead we'll insert a trap.  Relocation will kick in, and
+	// the trap will never get executed.
+	instruction::generateTrap(gen);
     }
+
     // And a sigill insn
     instruction::generateIllegal(gen);
     
