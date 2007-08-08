@@ -8,7 +8,7 @@
 
 void bar(int x)
 {
-    /*printf("In bar for thread %d\n",x);*/
+  /*printf("In bar for thread %d\n",x); */
 }
 
 void fooSections()
@@ -238,11 +238,12 @@ int main()
 #pragma omp parallel private(tid)
   {
     
-    /* Obtain and print thread id */
+    /* Obtain and print thread id 
     tid = omp_get_thread_num();
     printf("Hello World from thread = %d\n", tid);
-    
-    /* Only master thread does this */
+    */
+
+    /* Only master thread does this 
     if (tid == 0) 
       {
 	nthreads = omp_get_num_threads();
@@ -250,6 +251,7 @@ int main()
 
       }
     bar(tid);
+    */
   }  /* All threads join master thread and terminate */ 
   
   fooSections();    
