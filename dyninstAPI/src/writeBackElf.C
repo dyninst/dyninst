@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.31 2006/05/26 02:48:26 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.32 2007/08/09 16:51:45 bill Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -52,12 +52,14 @@
 #define MALLOC 0 
 #define DYNAMIC 1 
 
+const char* mkstemp_postfix = "XXXXXX";
+
 //unsigned int elf_version(unsigned int);
 
 // This constructor opens both the old and new
 // ELF files 
 writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName, 
-									int debugOutputFlag) {
+			   int debugOutputFlag) : newSections(NULL), newSectionsSize(0) {
 
 	if((oldfd = open(oldElfName, O_RDONLY)) == -1){
 		bperr(" OLDELF_OPEN_FAIL %s",oldElfName);
@@ -65,18 +67,16 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 	}
 	if((newfd = (open(newElfName, O_WRONLY|O_CREAT)))==-1){
 		bperr("NEWELF_OPEN_FAIL %s", newElfName);
-		char *fileName = new char[strlen(newElfName)+1+3];
-		for(int i=0;newfd == -1 && i<100;i++){
-			sprintf(fileName, "%s%d",newElfName,i);
-			newfd = (open(fileName, O_WRONLY|O_CREAT));
-		}
+		char fileName[strlen(newElfName) + strlen(mkstemp_postfix)];
+		strcpy(fileName, newElfName);
+		strcpy(fileName + strlen(newElfName), mkstemp_postfix);
+		newfd = mkstemp(fileName);
 		fflush(stdout);
 		if(newfd == -1){
 			bperr("NEWELF_OPEN_FAIL %s. clean up /tmp/dyninstMutatee*\n",
 					 newElfName);
 			return; 
 		}
-		delete [] fileName;
 	}
 
 	if(elf_version(EV_CURRENT) == EV_NONE){
@@ -95,8 +95,6 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 		return;
 	}
 	//elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
-	newSections = NULL;
-	newSectionsSize = 0;
 	DEBUG_MSG = debugOutputFlag;
 	pageSize = getpagesize();
 	if(!DYNAMIC){
