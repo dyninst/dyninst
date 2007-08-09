@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.260 2007/06/13 18:50:59 bernat Exp $
+// $Id: linux.C,v 1.261 2007/08/09 18:22:22 ssuen Exp $
 
 #include <fstream>
 
@@ -1628,7 +1628,7 @@ void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
 {
   if (near)
     {
-#if !defined(arch_x86_64)
+#if !defined(arch_x86_64) && !defined(arch_power)
       lo = region_lo(near);
       hi = region_hi(near);  
 #else
