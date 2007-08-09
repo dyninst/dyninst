@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.274 2007/08/01 14:57:51 ssuen Exp $
+ * $Id: inst-power.C,v 1.275 2007/08/09 22:24:01 ssuen Exp $
  */
 
 #include "common/h/headers.h"
@@ -1874,7 +1874,7 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
             instruction::generateImm(gen, Lop,   dest, dest, LOW(src1));
         else if (size == 8)
             instruction::generateMemAccess64(gen, LDop, LDxop,
-                                             dest, dest, LOW(src1));
+                                             dest, dest, (int16_t)LOW(src1));
         else assert(0);
 
     } else if (op == loadFrameRelativeOp) {
@@ -1914,7 +1914,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
             instruction::generateImm(gen, STop, src1, temp, LOW(dest));
         else /* gen.proc()->getAddressWidth() == 8 */
             instruction::generateMemAccess64(gen, STDop, STDxop,
-                                             src1, temp, BOT_LO(dest));
+                                             src1, temp, (int16_t)BOT_LO(dest));
 
     } else if (op == storeFrameRelativeOp) {
         if (gen.proc()->getAddressWidth() == 4)
