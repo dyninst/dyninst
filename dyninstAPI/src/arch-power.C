@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.18 2007/08/08 15:25:41 rchen Exp $
+ * $Id: arch-power.C,v 1.19 2007/08/09 10:15:33 rchen Exp $
  */
 
 #include "common/h/Types.h"
@@ -63,11 +63,6 @@ void instruction::generateIllegal(codeGen &gen) { // instP.h
 void instruction::generateTrap(codeGen &gen) {
     instruction insn(BREAK_POINT_INSN);
     insn.generate(gen);
-}
-
-bool instruction::offsetWithinRangeOfBranchInsn(long off)
-{
-    return (ABS(off) <= MAX_BRANCH);
 }
 
 void instruction::generateBranch(codeGen &gen, long disp, bool link)
@@ -98,7 +93,26 @@ void instruction::generateBranch(codeGen &gen, long disp, bool link)
 
 void instruction::generateBranch(codeGen &gen, Address from, Address to, bool link) {
     long disp = (to - from);
-    generateBranch(gen, disp, link);
+
+    if (ABS(disp) > MAX_BRANCH) {
+	if (gen.proc()) {
+	    // Too far to branch.  Use trap-based instrumentation.
+	    gen.proc()->trampTrapMapping[from] = to;
+	    instruction::generateTrap(gen);
+
+	} else {
+	    // Too far to branch and no proc to register trap.
+	    fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+		    ABS(disp), MAX_BRANCH);
+	    bperr( "Error: attempted a branch of 0x%lx\n", disp);
+	    logLine("a branch too far\n");
+	    showErrorCallback(52, "Internal error: branch too far");
+	    bperr( "Attempted to make a branch of offset 0x%lx\n", disp);
+	    assert(0);
+	}
+    } else {
+	generateBranch(gen, disp, link);
+    }
 }
 
 void instruction::generateCall(codeGen &gen, Address from, Address to) {
@@ -108,7 +122,7 @@ void instruction::generateCall(codeGen &gen, Address from, Address to) {
 void instruction::generateInterFunctionBranch(codeGen &gen,
                                               Address from,
                                               Address to) {
-    long disp = from - to;
+    long disp = to - from;
     if (ABS(disp) <= MAX_BRANCH) {
         // We got lucky...
         return generateBranch(gen, from, to);
@@ -630,16 +644,24 @@ bool instruction::generate(codeGen &gen,
     } 
     else if (isCondBranch()) {
         // conditional pc relative branch.
-      if (!targetOverride)
-        newOffset = origAddr - relocAddr + getBranchOffset();
-      else
-	newOffset = targetOverride - relocAddr;
+        if (!targetOverride) {
+          newOffset = origAddr - relocAddr + getBranchOffset();
+          to = origAddr + getBranchOffset();
+        } else {
+	  newOffset = targetOverride - relocAddr;
+          to = targetOverride;
+        }
+
         if (ABS(newOffset) >= MAX_CBRANCH) {
             if ((insn_.bform.bo & BALWAYSmask) == BALWAYScond) {
                 assert(insn_.bform.bo == BALWAYScond);
 
                 bool link = (insn_.bform.lk == 1);
-                instruction::generateBranch(gen, newOffset, link);
+                // Make sure to use the (to, from) version of generateBranch()
+                // in case the branch is too far, and trap-based instrumentation
+                // is needed.
+                instruction::generateBranch(gen, relocAddr, to, link);
+
             } else {
                 // Figure out if the original branch was predicted as taken or not
                 // taken.  We'll set up our new branch to be predicted the same way
@@ -687,8 +709,12 @@ bool instruction::generate(codeGen &gen,
                                           2*instruction::size());
 
               bool link = (insn_.bform.lk == 1);
+              // Make sure to use the (to, from) version of generateBranch()
+              // in case the branch is too far, and trap-based instrumentation
+              // is needed.
               instruction::generateBranch(gen,
-                                          newOffset - 2*instruction::size(),
+                                          relocAddr,
+                                          to - 2*instruction::size(),
                                           link);
           }
       } else {
