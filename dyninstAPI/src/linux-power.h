@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.h,v 1.3 2007/07/11 17:58:21 ssuen Exp $
+// $Id: linux-power.h,v 1.4 2007/08/09 18:22:21 ssuen Exp $
 
 #if !defined(os_linux) || !defined(arch_power)
 #error "invalid architecture-os inclusion"
@@ -67,27 +67,20 @@ struct dyn_saved_regs
 #include "dyninstAPI/src/inst.h"
 
 // floor of inferior malloc address range within a single branch of x
-inline Address region_lo(const Address x) {
-   const Address floor = getpagesize();
+// for 32-bit ELF PowerPC mutatees
+extern Address region_lo(const Address x);
 
-   assert(x >= floor);
-
-   if ((x > floor) && (x - floor > getMaxBranch()))
-      return x - getMaxBranch();
-
-   return floor;
-}
+// floor of inferior malloc address range within a single branch of x
+// for 64-bit ELF PowerPC mutatees
+extern Address region_lo_64(const Address x);
 
 // ceiling of inferior malloc address range within a single branch of x
-inline Address region_hi(const Address x) {
-   const Address ceiling = ~(Address)0;
+// for 32-bit ELF PowerPC mutatees
+extern Address region_hi(const Address x);
 
-   assert(x < ceiling);
- 
-   if ((x < ceiling) && (ceiling - x > getMaxBranch()))
-      return x + getMaxBranch();
+// ceiling of inferior malloc address range within a single branch of x
+// for 64-bit ELF PowerPC mutatees
+extern Address region_hi_64(const Address x);
 
-   return ceiling;
-}
 
 #endif

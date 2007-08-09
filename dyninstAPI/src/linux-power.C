@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.10 2007/08/07 22:17:25 ssuen Exp $
+// $Id: linux-power.C,v 1.11 2007/08/09 18:22:20 ssuen Exp $
 
 #include <dlfcn.h>
 
@@ -666,7 +666,6 @@ Frame Frame::getCallerFrame()
 
 
 bool Frame::setPC(Address newpc) {
-assert(0);  //sunlung
    if (!pcAddr_)
    {
        //fprintf(stderr, "[%s:%u] - Frame::setPC aborted", __FILE__, __LINE__);
@@ -675,7 +674,14 @@ assert(0);  //sunlung
 
    //fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
    //__FILE__, __LINE__, pcAddr_, newpc);
-   getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), &newpc);
+   if (getProc()->getAddressWidth() == sizeof(uint64_t)) {
+      uint64_t newpc64 = newpc;
+      getProc()->writeDataSpace((void*)pcAddr_, sizeof(newpc64), &newpc64);
+   }
+   else {
+      uint32_t newpc32 = newpc;
+      getProc()->writeDataSpace((void*)pcAddr_, sizeof(newpc32), &newpc32);
+   }
    pc_ = newpc;
    range_ = NULL;
 
@@ -948,11 +954,19 @@ bool process::loadDYNINSTlib_hidden() {
   // Now, we have to put this somewhere writable. The idea is to
   // put it on the stack....
 
-  struct {
-      const char *libname;
-      int         mode;
-      void       *result;
-      void       *caller_addr;
+  union {
+     struct {
+        uint32_t libname;
+        int32_t  mode;
+        uint32_t result;
+        uint32_t caller_addr;
+     } elf32;
+     struct {
+        uint64_t libname;
+        int32_t  mode;
+        uint64_t result;
+        uint64_t caller_addr;
+     } elf64;
   } do_dlopen_struct;
 
   Address codeBase = findFunctionToHijack(this);
@@ -1038,10 +1052,18 @@ bool process::loadDYNINSTlib_hidden() {
                                                scratchCodeBuffer.used());
 
   // Now we have enough to fill in the do_dlopen_struct
-  do_dlopen_struct.libname     = (const char *)dyninstlib_str_addr;
-  do_dlopen_struct.mode        = DLOPEN_MODE;
-  do_dlopen_struct.result      = 0;
-  do_dlopen_struct.caller_addr = (void *)dlopen_addr;
+  if (getAddressWidth() == sizeof(uint64_t)) {
+     do_dlopen_struct.elf64.libname     = dyninstlib_str_addr;
+     do_dlopen_struct.elf64.mode        = DLOPEN_MODE;
+     do_dlopen_struct.elf64.result      = 0;
+     do_dlopen_struct.elf64.caller_addr = dlopen_addr;
+  }
+  else {
+     do_dlopen_struct.elf32.libname     = dyninstlib_str_addr;
+     do_dlopen_struct.elf32.mode        = DLOPEN_MODE;
+     do_dlopen_struct.elf32.result      = 0;
+     do_dlopen_struct.elf32.caller_addr = dlopen_addr;
+  }
 
   // Need a register space                                           //aix.C
   // make sure this syncs with inst-power.C                          //aix.C
@@ -1070,8 +1092,12 @@ bool process::loadDYNINSTlib_hidden() {
   assert((status!=false) && (savedRegs!=(void *)-1));
    
   //   Step 2.  decrement our local copy of mutatee's stack frame pointer
-  savedRegs->gprs.gpr[1] -= ALIGN_QUADWORD(STACKSKIP
-                                           + sizeof(do_dlopen_struct));
+  if (getAddressWidth() == sizeof(uint64_t))
+     savedRegs->gprs.gpr[1] -= ALIGN_QUADWORD(STACKSKIP
+                                              + sizeof(do_dlopen_struct.elf64));
+  else
+     savedRegs->gprs.gpr[1] -= ALIGN_QUADWORD(STACKSKIP
+                                              + sizeof(do_dlopen_struct.elf32));
   do_dlopen_struct_addr = savedRegs->gprs.gpr[1];
 
   //   Step 3.  restoreRegisters() to update mutatee's stack frame pointer
@@ -1080,12 +1106,20 @@ bool process::loadDYNINSTlib_hidden() {
   //   Step 4.  increment our local copy of mutatee's stack frame pointer
   //              back to its original value so that we properly restore
   //              the mutatee's registers after the RT library is loaded
-  savedRegs->gprs.gpr[1] += ALIGN_QUADWORD(STACKSKIP
-                                           + sizeof(do_dlopen_struct));
+  if (getAddressWidth() == sizeof(uint64_t))
+     savedRegs->gprs.gpr[1] += ALIGN_QUADWORD(STACKSKIP
+                                              + sizeof(do_dlopen_struct.elf64));
+  else
+     savedRegs->gprs.gpr[1] += ALIGN_QUADWORD(STACKSKIP
+                                              + sizeof(do_dlopen_struct.elf32));
 
   //   Step 5.  writeDataSpace() to the stack our do_dlopen_struct
-  writeDataSpace((void *)(do_dlopen_struct_addr),
-                 sizeof(do_dlopen_struct), &do_dlopen_struct);
+  if (getAddressWidth() == sizeof(uint64_t))
+     writeDataSpace((void *)(do_dlopen_struct_addr),
+                    sizeof(do_dlopen_struct.elf64), &do_dlopen_struct.elf64);
+  else
+     writeDataSpace((void *)(do_dlopen_struct_addr),
+                    sizeof(do_dlopen_struct.elf32), &do_dlopen_struct.elf32);
 
 
   // Now back to generating code for the call to do_dlopen ...
@@ -1180,3 +1214,60 @@ Frame process::preStackWalkInit(Frame startFrame)
 #endif
   return startFrame;
 }
+
+
+// floor of inferior malloc address range within a single branch of x
+// for 32-bit ELF PowerPC mutatees
+Address region_lo(const Address x) {
+   const Address floor = getpagesize();
+
+   assert(x >= floor);
+
+   if ((x > floor) && (x - floor > getMaxBranch()))
+      return x - getMaxBranch();
+
+   return floor;
+}
+
+
+// floor of inferior malloc address range within a single branch of x
+// for 64-bit ELF PowerPC mutatees
+Address region_lo_64(const Address x) {
+   const Address floor = getpagesize();
+
+   assert(x >= floor);
+
+   if ((x > floor) && (x - floor > getMaxBranch()))
+      return x - getMaxBranch();
+
+   return floor;
+}
+
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 32-bit ELF PowerPC mutatees
+Address region_hi(const Address x) {
+   const Address ceiling = ~(Address)0 & 0xffffffff;
+
+   assert(x < ceiling);
+
+   if ((x < ceiling) && (ceiling - x > getMaxBranch()))
+      return x + getMaxBranch();
+
+   return ceiling;
+}
+
+
+// ceiling of inferior malloc address range within a single branch of x
+// for 64-bit ELF PowerPC mutatees
+Address region_hi_64(const Address x) {
+   const Address ceiling = ~(Address)0;
+
+   assert(x < ceiling);
+
+   if ((x < ceiling) && (ceiling - x > getMaxBranch()))
+      return x + getMaxBranch();
+
+   return ceiling;
+}
+
