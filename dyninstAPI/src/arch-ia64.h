@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.49 2007/08/08 15:25:35 rchen Exp $
+// $Id: arch-ia64.h,v 1.50 2007/08/09 10:15:22 rchen Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -133,7 +133,6 @@ class instruction {
 
 	// Generation methods; these actually make bundles, but the higher-level
 	// code doesn't have to care about it.
-	static bool offsetWithinRangeOfBranchInsn(long /*off*/) { return true; }
 	static void generateBranch(codeGen &gen, Address from, Address to);
     static void generateInterFunctionBranch(codeGen &gen,
                                             Address from,
