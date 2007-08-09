@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.19 2007/08/09 10:15:33 rchen Exp $
+ * $Id: arch-power.C,v 1.20 2007/08/09 22:13:06 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -128,7 +128,7 @@ void instruction::generateInterFunctionBranch(codeGen &gen,
         return generateBranch(gen, from, to);
     }
 
-    instruction::loadImmIntoReg(gen, 0, disp);
+    instruction::loadImmIntoReg(gen, 0, to);
 
     instruction insn;
     (*insn).raw = 0;                    //mtspr:  mtctr scratchReg
