@@ -420,82 +420,29 @@ bool Dyn_Symtab::symbolsToFunctions(vector<Dyn_Symbol *> *raw_funcs)
  * and if it does we remove the preceding "." from the name of the symbol
  */
 
-void Dyn_Symtab::checkPPC64DescriptorSymbols()
-{
+void Dyn_Symtab::checkPPC64DescriptorSymbols(){
      // find the real functions -- those with the correct type in the symbol table
-     unsigned i;
      for(SymbolIter symIter(*linkedFile); symIter;symIter++) 
      {
-          Dyn_Symbol *lookUp = symIter.currval();
-          const char *np = lookUp->getName().c_str();
-	  if(!np)
+         Dyn_Symbol *lookUp = symIter.currval();
+         const char *np = lookUp->getName().c_str();
+	 if(!np)
 		continue;
-	  if(np[0] == '.' && (lookUp->getType() == Dyn_Symbol::ST_FUNCTION))
-	  {
-	          vector<Dyn_Symbol *>syms;
-	          if(findSymbolByType(syms, np+1, Dyn_Symbol::ST_UNKNOWN) && (syms[0]->getSize() == 24))
-		  {
-			//Remove it from the lists
-			vector<string>names;
-			vector<Dyn_Symbol *> *funcs;
-			vector<Dyn_Symbol *>::iterator iter;
+	 if(np[0] == '.' && (lookUp->getType() == Dyn_Symbol::ST_FUNCTION))
+	 {
+	        vector<Dyn_Symbol *>syms;
+		string newName = np+1;
+		if(linkedFile->get_symbols(newName, syms) && (syms[0]->getSize() == 24 || syms[0]->getSize() == 0))
+		{
+			//Remove the "." from the name
+			lookUp->mangledNames[0] = newName;
 
-			names = lookUp->getAllMangledNames();
-			for(i=0;i<names.size();i++)
-			{
-				funcs = funcsByMangled[names[i]];
-				iter = find(funcs->begin(), funcs->end(), lookUp);
-				funcs->erase(iter);
-				
-				lookUp->mangledNames[i] = names[i].substr(1, names[i].size()-1);
-				names[i] = lookUp->mangledNames[i];
-				
-				if(funcsByMangled.find(names[i])!=funcsByMangled.end())
-					funcsByMangled[names[i]]->clear();
-				else
-					funcsByMangled[names[i]] = new vector<Dyn_Symbol *>;
-				funcsByMangled[names[i]]->push_back(lookUp);
-			}
-
-			names = lookUp->getAllPrettyNames();
-			for(i=0;i<names.size();i++)
-			{
-				funcs = funcsByPretty[names[i]];
-				iter = find(funcs->begin(), funcs->end(), lookUp);
-				funcs->erase(iter);
-				
-				lookUp->prettyNames[i] = names[i].substr(1, names[i].size()-1);
-				names[i] = lookUp->prettyNames[i];
-
-				if(funcsByPretty.find(names[i])!=funcsByPretty.end())
-					funcsByPretty[names[i]]->clear();
-				else
-					funcsByPretty[names[i]] = new vector<Dyn_Symbol *>;
-				funcsByPretty[names[i]]->push_back(lookUp);
-			}
-			
-			names = lookUp->getAllTypedNames();
-			for(i=0;i<names.size();i++)
-			{
-				funcs = funcsByPretty[names[i]];
-				iter = find(funcs->begin(), funcs->end(), lookUp);
-				funcs->erase(iter);
-				
-				lookUp->typedNames[i] = names[i].substr(1, names[i].size()-1);
-				names[i] = lookUp->typedNames[i];
-				
-				if(funcsByMangled.find(names[i])!=funcsByMangled.end())
-					funcsByPretty[names[i]]->clear();
-				else
-					funcsByPretty[names[i]] = new vector<Dyn_Symbol *>;
-				funcsByPretty[names[i]]->push_back(lookUp);
-			}
-	
+			//Change the type of the descriptor symbol
 			syms[0]->type_ = Dyn_Symbol::ST_NOTYPE;
-			notypeSyms.push_back(syms[0]);
-               }
-          }
+		}
+	 }
      }
+   
 }
 
 #endif
@@ -615,7 +562,7 @@ bool Dyn_Symtab::buildFunctionLists(vector <Dyn_Symbol *> &raw_funcs)
         
       string mangled_name = raw->getName();
       string working_name = mangled_name;
-            
+      
       string pretty_name = "<UNSET>";
       string typed_name = "<UNSET>";
 #if !defined(os_windows)        
@@ -1052,6 +999,10 @@ bool Dyn_Symtab::extractInfo()
   	 
    // define all of the functions
    //statusLine("winnowing functions");
+
+#if defined(ppc64_linux)   
+   checkPPC64DescriptorSymbols();
+#endif   
   
    // a vector to hold all created functions until they are properly classified
    vector<Dyn_Symbol *> raw_funcs;
@@ -1092,9 +1043,6 @@ bool Dyn_Symtab::extractInfo()
       return false;
    }
 
-#if defined(ppc64_linux)   
-   checkPPC64DescriptorSymbols();
-#endif   
    // And symtab variables
    //addSymtabVariables();
 	linkedFile->getAllExceptions(excpBlocks);
