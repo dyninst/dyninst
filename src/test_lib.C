@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.22 2006/10/11 21:54:29 cooksey Exp $
+// $Id: test_lib.C,v 1.23 2007/08/14 16:46:38 cooksey Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -473,12 +473,12 @@ BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
   //BPatch_variableExpr *FortVar = NULL;
     int mutateeFortran = isMutateeFortran(appImage);
     BPatch_variableExpr *ret = NULL;
-    int i, numchars = strlen (var);
+    int i, numchars = strlen (var) + 1; // + 1 corrects for null-termination
     char *lowercase = new char [numchars];
     int temp = expectError;
 
     if (mutateeFortran && point) {
-            strcpy (lowercase, var);
+            strncpy (lowercase, var, numchars);
             expectError = 100;
             for (i = 0; i < numchars; i++)
                 lowercase [i] = tolower (lowercase [i]);
