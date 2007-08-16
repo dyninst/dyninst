@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.691 2007/07/02 16:45:52 ssuen Exp $
+// $Id: process.C,v 1.692 2007/08/16 20:43:47 bill Exp $
 
 #include <ctype.h>
 
@@ -2373,7 +2373,7 @@ bool process::setupFork()
 }
 
 
-unsigned process::getAddressWidth() { 
+unsigned process::getAddressWidth() const { 
     if (mapped_objects.size() > 0)
         return mapped_objects[0]->parse_img()->getObject()->getAddressWidth(); 
     // We can call this before we've attached.. 
@@ -3344,7 +3344,7 @@ bool process::findVarsByAll(const pdstring &varname,
 // copy for images, or a relocated function's self copy.
 // TODO: is this really worth it? Or should we just use ptrace?
 
-void *process::getPtrToInstruction(Address addr) {
+void *process::getPtrToInstruction(Address addr) const {
     codeRange *range;
     if (codeSections_.find(addr, range)) {
         return range->getPtrToInstruction(addr);
@@ -3357,7 +3357,7 @@ void *process::getPtrToInstruction(Address addr) {
     return NULL;
 }
 
-bool process::isValidAddress(Address addr) {
+bool process::isValidAddress(const Address& addr) const{
     // "Is this part of the process address space?"
     // We should codeRange data sections as well... since we don't, this is 
     // slow.

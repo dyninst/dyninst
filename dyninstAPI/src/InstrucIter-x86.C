@@ -65,72 +65,72 @@
 
 //some more function used to identify the properties of the instruction
 /**  the instruction used to return from the functions
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 bool InstrucIter::isALeaveInstruction()
 {
-    assert(instPtr);
-    return insn.isLeave();
+  assert(instPtr);
+  return insn.isLeave();
 }
 
 bool InstrucIter::isAReturnInstruction()
 {
-    assert(instPtr);
-    return insn.isReturn();
+  assert(instPtr);
+  return insn.isReturn();
 }
 
 /** is the instruction used to return from the functions,
     dependent upon a condition register
-  * @param i the instruction value 
-  */
+    * @param i the instruction value 
+    */
 bool InstrucIter::isACondReturnInstruction()
 {
   return false; // Not implemented yet
 }
 
 /** is the instruction an indirect jump instruction 
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 
 bool InstrucIter::isAIndirectJumpInstruction()
 {
-    assert(instPtr);
-    if((insn.type() & IS_JUMP) && (insn.type() & INDIR))
-    {
-        /* since there are two is_jump and indirect instructions
-           we are looking for the one with the indirect register
-           addressing mode one of which ModR/M contains 4 in its
-           reg/opcode field */
-        const unsigned char* ptr = insn.op_ptr();
-        assert(*ptr == 0xff);
-        ptr++;
-        if((*ptr & 0x38) == 0x20) 
-            return true;
-    }
-    return false;
+  assert(instPtr);
+  if((insn.type() & IS_JUMP) && (insn.type() & INDIR))
+  {
+    /* since there are two is_jump and indirect instructions
+       we are looking for the one with the indirect register
+       addressing mode one of which ModR/M contains 4 in its
+       reg/opcode field */
+    const unsigned char* ptr = insn.op_ptr();
+    assert(*ptr == 0xff);
+    ptr++;
+    if((*ptr & 0x38) == 0x20) 
+      return true;
+  }
+  return false;
 }
 
 bool InstrucIter::isStackFramePreamble(int & /*unused*/)
 {
-    return ::isStackFramePreamble( insn );
+  return ::isStackFramePreamble( insn );
 }
 
 bool InstrucIter::isFramePush()
 {
-    assert(instPtr);
-    // test for
-    // push %ebp (or push %rbp for 64-bit)
-    return (insn.size() == 1 && insn.ptr()[0] == 0x55);
+  assert(instPtr);
+  // test for
+  // push %ebp (or push %rbp for 64-bit)
+  return (insn.size() == 1 && insn.ptr()[0] == 0x55);
 }
 
 bool InstrucIter::isFrameSetup()
 {
-    assert(instPtr);
-    //test for
-    // movl %esp,%ebp
+  assert(instPtr);
+  //test for
+  // movl %esp,%ebp
 
-    // 64-bit:
-    // movq %rsp, %rbp
+  // 64-bit:
+  // movq %rsp, %rbp
 
   if (!ia32_is_mode_64()) {
     return (insn.size() == 2 && 
@@ -149,10 +149,10 @@ bool InstrucIter::isFrameSetup()
  */ 
 bool InstrucIter::isACondBranchInstruction()
 {
-    assert(instPtr);
-    if(insn.type() & IS_JCC)
-        return true;
-    return false;
+  assert(instPtr);
+  if(insn.type() & IS_JCC)
+    return true;
+  return false;
 }
 
 /** is the instruction an unconditional branch instruction 
@@ -160,13 +160,13 @@ bool InstrucIter::isACondBranchInstruction()
  */
 bool InstrucIter::isAJumpInstruction()
 {
-    assert(instPtr);
-    insn.setInstruction( (unsigned char *)instPtr );
-    if((insn.type() & IS_JUMP) &&
-       !(insn.type() & INDIR) && 
-       !(insn.type() & PTR_WX))
-        return true;
-    return false;
+  assert(instPtr);
+  insn.setInstruction( (unsigned char *)instPtr );
+  if((insn.type() & IS_JUMP) &&
+     !(insn.type() & INDIR) && 
+     !(insn.type() & PTR_WX))
+    return true;
+  return false;
 }
 
 /** is the instruction a call instruction 
@@ -174,61 +174,61 @@ bool InstrucIter::isAJumpInstruction()
  */
 bool InstrucIter::isACallInstruction()
 {
-    assert(instPtr);
-    return insn.isCall();
+  assert(instPtr);
+  return insn.isCall();
 }
 
 bool InstrucIter::isADynamicCallInstruction()
 {
-    assert(instPtr);
-    return insn.isCall() && insn.isIndir();
+  assert(instPtr);
+  return insn.isCall() && insn.isIndir();
 }
 
 bool InstrucIter::isANopInstruction()
 {
-    assert(instPtr);
-    return insn.isNop();
+  assert(instPtr);
+  return insn.isNop();
 }
 
 bool InstrucIter::isAnAbortInstruction()
 {
-    assert(instPtr);
-    const unsigned char *ptr = insn.op_ptr();
+  assert(instPtr);
+  const unsigned char *ptr = insn.op_ptr();
 
-    // FIXME this all needs to be more general!
-        // hlt
-    return(*ptr == 0xf4 || insn.isIllegal());
+  // FIXME this all needs to be more general!
+  // hlt
+  return(*ptr == 0xf4 || insn.isIllegal());
 }
 
 bool InstrucIter::isAnAllocInstruction()
 {
-    return false;
+  return false;
 }
 
 bool InstrucIter::isAnneal()
 {
-    return true;
+  return true;
 }
 
 bool InstrucIter::isDelaySlot()
 {
-    return false;
+  return false;
 }
 
 /** function which returns the offset of control transfer instructions
  * @param i the instruction value 
-  */
+ */
 Address InstrucIter::getBranchTargetOffset()
 {
-    assert(instPtr);
-    // getTarget returns displacement+address parameter
-    return insn.getTarget(0);
+  assert(instPtr);
+  // getTarget returns displacement+address parameter
+  return insn.getTarget(0);
 }
 
 Address InstrucIter::getBranchTargetAddress(bool *)
 {
-    assert(instPtr);
-    return insn.getTarget(current);
+  assert(instPtr);
+  return insn.getTarget(current);
 }
 
 void initOpCodeInfo()
@@ -237,19 +237,19 @@ void initOpCodeInfo()
 
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-    assert(instPtr);
-    static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
+  assert(instPtr);
+  static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
     
-    // TODO 16-bit registers
+  // TODO 16-bit registers
     
-    int nac = 0;
+  int nac = 0;
     
-    ia32_memacc mac[3];
-    ia32_condition cnd;
-    ia32_instruction i(mac, &cnd);
+  ia32_memacc mac[3];
+  ia32_condition cnd;
+  ia32_instruction i(mac, &cnd);
     
-    const unsigned char* addr = insn.ptr();
-    BPatch_memoryAccess* bmap = BPatch_memoryAccess::none;
+  const unsigned char* addr = insn.ptr();
+  BPatch_memoryAccess* bmap = BPatch_memoryAccess::none;
     
   ia32_decode(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION, addr, i);
   
@@ -261,10 +261,10 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
     int bmapcond = cond.is ? cond.tttn : -1;
     if(mac.is) {
 
-	// here, we can set the correct address for RIP-relative addressing
-	if (mac.regs[0] == mRIP) {
-	    mac.imm = peekNext() + mac.imm;
-	}
+      // here, we can set the correct address for RIP-relative addressing
+      if (mac.regs[0] == mRIP) {
+	mac.imm = peekNext() + mac.imm;
+      }
 
       if(first) {
         if(mac.prefetch) {
@@ -275,7 +275,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
                                            0, -1, -1, 0,
                                            bmapcond, false, mac.prefetchlvl);
           else // AMD
-              bmap = new BPatch_memoryAccess(getInsnPtr(), current,
+	    bmap = new BPatch_memoryAccess(getInsnPtr(), current,
 					   false, false,
                                            mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                            0, -1, -1, 0,
@@ -283,41 +283,41 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
         }
         else switch(mac.sizehack) { // translation to pseudoregisters
         case 0:
-            bmap = new BPatch_memoryAccess(getInsnPtr(), current,
+	  bmap = new BPatch_memoryAccess(getInsnPtr(), current,
 					 mac.read, mac.write,
                                          mac.size, mac.imm, mac.regs[0], mac.regs[1], mac.scale, 
                                          bmapcond, mac.nt);
           break;
         case shREP: // use ECX register to compute final size as mac.size * ECX
-            bmap = new BPatch_memoryAccess(getInsnPtr(), current,
+	  bmap = new BPatch_memoryAccess(getInsnPtr(), current,
                                          mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, 1 , log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPESCAS:
-            bmap = new BPatch_memoryAccess(getInsnPtr(), current,
+	  bmap = new BPatch_memoryAccess(getInsnPtr(), current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_ESCAS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPNESCAS:
-            bmap = new BPatch_memoryAccess(getInsnPtr(), current,
+	  bmap = new BPatch_memoryAccess(getInsnPtr(), current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_NESCAS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPECMPS:
-            bmap = new BPatch_memoryAccess(getInsnPtr(), current,
+	  bmap = new BPatch_memoryAccess(getInsnPtr(), current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_ECMPS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPNECMPS:
-            bmap = new BPatch_memoryAccess(getInsnPtr(), current,
+	  bmap = new BPatch_memoryAccess(getInsnPtr(), current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_NECMPS, log2[mac.size],
@@ -337,7 +337,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
         case shREP: // use ECX register to compute final size as mac.size * ECX
           bmap->set2nd(mac.read, mac.write,
                        mac.imm, mac.regs[0], mac.regs[1], mac.scale,
-	      0, -1, 1 , log2[mac.size],
+		       0, -1, 1 , log2[mac.size],
                        bmapcond, false);
           break;
         case shREPESCAS:
@@ -394,207 +394,206 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
                                          instruction& branchInsn,
                                          bool isAddressInJmp )
 { 
-    int addrWidth;
-    if (proc_)
-        addrWidth = proc_->getAddressWidth();
-    else 
-        addrWidth = img_->getAddressWidth();
+  int addrWidth;
+  if(!instructions_)
+  {
+    fprintf(stderr, "InstrucIter::getMultipleJumpTargets() called on invalid iter (no instruction source)\n");
+    assert(instructions_);
+  }
+  
+  addrWidth = instructions_->getAddressWidth();
 
-    Address backupAddress = current;
+  Address backupAddress = current;
     
-    unsigned maxSwitch = 0;
+  unsigned maxSwitch = 0;
 
-    ia32_prefixes pref;
-    const unsigned char* ptr = skip_headers(maxSwitchInsn.ptr(), &pref);
-    bool isWordAddr = pref.getAddrSzPrefix();
-    bool isWordOp = pref.getOperSzPrefix();
+  ia32_prefixes pref;
+  const unsigned char* ptr = skip_headers(maxSwitchInsn.ptr(), &pref);
+  bool isWordAddr = pref.getAddrSzPrefix();
+  bool isWordOp = pref.getOperSzPrefix();
     
-    //get the imm value from the compare instruction and store it in 
-    //maxSwitch
-    if( *ptr == 0x3d )
+  //get the imm value from the compare instruction and store it in 
+  //maxSwitch
+  if( *ptr == 0x3d )
+  {
+    ptr++;
+    if(isWordOp)
     {
-        ptr++;
-        if(isWordOp)
-        {
-            maxSwitch |= *(ptr+1);
-            maxSwitch <<= 8;
-            maxSwitch |= *ptr;
-        }
-        else
-            maxSwitch = *(const unsigned*)ptr;
+      maxSwitch |= *(ptr+1);
+      maxSwitch <<= 8;
+      maxSwitch |= *ptr;
     }
-    else if( *ptr == 0x3c )
+    else
+      maxSwitch = *(const unsigned*)ptr;
+  }
+  else if( *ptr == 0x3c )
+  {
+    ptr++;
+    maxSwitch = *ptr;
+  }
+  else if( *ptr == 0x83 || *ptr == 0x80 || *ptr == 0x81 ) 
+  {
+    ptr++;
+    if((*ptr & 0x38) == 0x38)
     {
-        ptr++;
-        maxSwitch = *ptr;
+      unsigned modRM = *ptr;
+      unsigned Mod,Reg,RM;
+      bool hasSIB = insn_hasSIB(modRM,Mod,Reg,RM);
+      ptr++;
+      if(hasSIB)
+	ptr++;
+      if ( insn_hasDisp8(modRM) ) 
+      {
+	ptr++;
+      }
+      else if( insn_hasDisp32( modRM ) )
+      {
+	ptr += 4;
+      }
+      maxSwitch = *ptr;
     }
-    else if( *ptr == 0x83 || *ptr == 0x80 || *ptr == 0x81 ) 
-    {
-        ptr++;
-        if((*ptr & 0x38) == 0x38)
-        {
-            unsigned modRM = *ptr;
-            unsigned Mod,Reg,RM;
-            bool hasSIB = insn_hasSIB(modRM,Mod,Reg,RM);
-            ptr++;
-            if(hasSIB)
-                ptr++;
-            if ( insn_hasDisp8(modRM) ) 
-            {
-                ptr++;
-            }
-            else if( insn_hasDisp32( modRM ) )
-            {
-                ptr += 4;
-            }
-            maxSwitch = *ptr;
-        }
-    }
+  }
     
-    if( !maxSwitch )
-    {
-        result += backupAddress;	
-        return false;
-    }
+  if( !maxSwitch )
+  {
+    result += backupAddress;	
+    return false;
+  }
 
-    parsing_printf("maxSwitch set to %d\n",maxSwitch);
+  parsing_printf("maxSwitch set to %d\n",maxSwitch);
 
-    const unsigned char * p = branchInsn.op_ptr();
-    if( *p == 0x0f ) {
-        // skip to second byte of opcode
-        p++;
-    }
-    // Test whether we have a ja or jg; if so, we want to add one to
-    // the switch index. The Portland Group compiler generally uses jge,
-    // so the value is an accurate count of the entries in the jump table,
-    // while gcc uses ja, so the value is one less than the number of entries
-    // in the table. *This is assuming the jump table is indexed from zero,
-    // which is the only type of jump table we can currently handle*.
-    //
-    // Fact: we really should be testing whether this is an upper bound
-    // before even getting into this code.
-    if( (*p & 0x0f) == 0x07 || (*p & 0x0f) == 0x0f ) {
-        maxSwitch++;
-    } 
+  const unsigned char * p = branchInsn.op_ptr();
+  if( *p == 0x0f ) {
+    // skip to second byte of opcode
+    p++;
+  }
+  // Test whether we have a ja or jg; if so, we want to add one to
+  // the switch index. The Portland Group compiler generally uses jge,
+  // so the value is an accurate count of the entries in the jump table,
+  // while gcc uses ja, so the value is one less than the number of entries
+  // in the table. *This is assuming the jump table is indexed from zero,
+  // which is the only type of jump table we can currently handle*.
+  //
+  // Fact: we really should be testing whether this is an upper bound
+  // before even getting into this code.
+  if( (*p & 0x0f) == 0x07 || (*p & 0x0f) == 0x0f ) {
+    maxSwitch++;
+  } 
     
-    Address jumpTable = 0;
-    ptr = tableInsn.op_ptr();
+  Address jumpTable = 0;
+  ptr = tableInsn.op_ptr();
 
-    if(isAddressInJmp || (!isAddressInJmp && (*ptr == 0x8b)))
+  if(isAddressInJmp || (!isAddressInJmp && (*ptr == 0x8b)))
+  {
+    ptr++;
+
+    if(
+       ( ((*ptr & 0xc7) == 0x04) &&
+	 ( ((*(ptr+1) & 0xc7) == 0x85) || ((*(ptr+1) & 0xc7) == 0xc5) ) ) ||
+       ((*ptr & 0xc7) == 0x80) )
     {
-        ptr++;
-
-        if(
-	   ( ((*ptr & 0xc7) == 0x04) &&
-	     ( ((*(ptr+1) & 0xc7) == 0x85) || ((*(ptr+1) & 0xc7) == 0xc5) ) ) ||
-           ((*ptr & 0xc7) == 0x80) )
-        {
-            if((*ptr & 0xc7) == 0x80)
-                ptr += 1;
-            else
-                ptr += 2;
+      if((*ptr & 0xc7) == 0x80)
+	ptr += 1;
+      else
+	ptr += 2;
             
-            if(isWordAddr) {
-                jumpTable |= *(ptr+1);
-                jumpTable <<= 8;
-                jumpTable |= *ptr;
-                fprintf(stderr,"okay... %lx\n",jumpTable);
+      if(isWordAddr) {
+	jumpTable |= *(ptr+1);
+	jumpTable <<= 8;
+	jumpTable |= *ptr;
+	//fprintf(stderr,"okay... %lx\n",jumpTable);
 
-	    } else {
-		jumpTable = *(const int *)ptr;
-	    }
-        }
+      } else {
+	jumpTable = *(const int *)ptr;
+      }
     }
+  }
 
-    if(!jumpTable)
-    {
-        result += backupAddress;	
-        return false;
-    }
-    else if( (proc_ && !proc_->isValidAddress( jumpTable )) ||
-             (img_ && !img_->isValidAddress( jumpTable )) )
-    {
-        // If the "jump table" has a start address that is outside
-        // of the valid range of the binary, we can say with high
-        // probability that we have misinterpreted some other
-        // construct (such as a function pointer comparison & tail
-        // call, for example) as a jump table. Give up now.
-        result += backupAddress;
-        return false;
-    }
+  if(!jumpTable)
+  {
+    result += backupAddress;	
+    return false;
+  }
+  else if( !instructions_->isValidAddress(jumpTable) )
+  {
+    // If the "jump table" has a start address that is outside
+    // of the valid range of the binary, we can say with high
+    // probability that we have misinterpreted some other
+    // construct (such as a function pointer comparison & tail
+    // call, for example) as a jump table. Give up now.
+    result += backupAddress;
+    return false;
+  }
 
-    for(unsigned int i=0;i<maxSwitch;i++)
+  for(unsigned int i=0;i<maxSwitch;i++)
+  {
+    Address tableEntry = jumpTable + (i * addrWidth);
+    int jumpAddress = 0;
+    if(instructions_->isValidAddress(tableEntry))
     {
-        Address tableEntry = jumpTable + (i * addrWidth);
-        int jumpAddress = 0;
-        if( proc_ &&
-            proc_->isValidAddress( tableEntry ) ) {
-            if (addrWidth == sizeof(Address))
-                jumpAddress = *(const Address *)proc_->getPtrToInstruction(tableEntry);
-            else
-                jumpAddress = *(const int *)proc_->getPtrToInstruction(tableEntry);
-        }
-        else if (img_ &&
-                 img_->isValidAddress(tableEntry)) {
-            if (addrWidth == sizeof(Address))
-                jumpAddress = *(const Address *)img_->getPtrToInstruction(tableEntry);
-            else
-                jumpAddress = *(const int *)img_->getPtrToInstruction(tableEntry);
-        }
-        if (jumpAddress)
-            result += jumpAddress;
+      if(addrWidth == sizeof(Address))
+      {
+	jumpAddress = *(const Address *)instructions_->getPtrToInstruction(tableEntry);
+      }
+      else
+      {
+	jumpAddress = *(const int *)instructions_->getPtrToInstruction(tableEntry);
+      }
     }
-    return true;
+    if (jumpAddress)
+      result += jumpAddress;
+  }
+  return true;
 }
 
 bool InstrucIter::delayInstructionSupported()
 {
-    return false;
+  return false;
 }
 
 Address InstrucIter::peekPrev()
 {
-    if (prevInsns.size()) {
-        return prevInsns.back().prevAddr;
-    }
-    else 
-        return 0;
+  if (prevInsns.size()) {
+    return prevInsns.back();
+  }
+  else 
+    return 0;
 }
 
 Address InstrucIter::peekNext() {
-    assert(instPtr);
-    Address tmp = current;
-    tmp += insn.size();
-    return tmp;
+  assert(instPtr);
+  Address tmp = current;
+  tmp += insn.size();
+  return tmp;
 }
 
 void InstrucIter::setCurrentAddress(Address addr)
 {
-    // Make sure the new addr is aligned
-    // This is unsafe if we're looking at anything more than a basic block;
-    // best-effort.
+  // Make sure the new addr is aligned
+  // This is unsafe if we're looking at anything more than a basic block;
+  // best-effort.
 
-    if (current < addr) {
-        while (current != addr) {
-            if (current > addr) {
-                // We missed; oops.
-                current = addr;
-                break;
-            }
-            assert(current < addr);
-            (*this)++;
-        }
+  if (current < addr) {
+    while (current != addr) {
+      if (current > addr) {
+	// We missed; oops.
+	current = addr;
+	break;
+      }
+      assert(current < addr);
+      (*this)++;
     }
-    else if (current > addr) {
-        while (current != addr) {
-            if (current < addr) {
-                current = addr;
-                break;
-            }
-            (*this)--;
-        }
+  }
+  else if (current > addr) {
+    while (current != addr) {
+      if (current < addr) {
+	current = addr;
+	break;
+      }
+      (*this)--;
     }
-    initializeInsn();
+  }
+  initializeInsn();
 }
 
 #if defined(i386_unknown_linux2_0) \
@@ -602,87 +601,18 @@ void InstrucIter::setCurrentAddress(Address addr)
  || defined(i386_unknown_nt4_0)
 bool InstrucIter::isInstruction()
 {
-    return false;
+  return false;
 }
 #endif
 
 instruction InstrucIter::getInstruction()
 {
-    return insn;
+  return insn;
 }
 
 instruction *InstrucIter::getInsnPtr() {
-    instruction *insnPtr = new instruction(insn);
-    return insnPtr;
-}
-
-instruction InstrucIter::getNextInstruction()
-{
-    assert(instPtr);
-    instruction next_insn;
-    next_insn.setInstruction( insn.ptr() + insn.size() );
-    
-    return next_insn;
-}
-
-instruction InstrucIter::getPrevInstruction()
-{
-    assert(instPtr);
-    instruction prev_insn;
-    prev_insn.setInstruction((unsigned char *) prevInsns.back().prevPtr);
-
-    return prev_insn;
-}    
-
-// Prefix...
-Address InstrucIter::operator++()
-{
-    assert(instPtr);
-    previous prev;
-    prev.prevAddr = current;
-    prev.prevPtr = instPtr;
-    prevInsns.push_back(prev);
-
-    current += insn.size();
-    initializeInsn();
-
-    return current;
-}
-
-// Prefix...
-Address InstrucIter::operator--()
-{
-    if (prevInsns.size()) {
-        instPtr = prevInsns.back().prevPtr;
-        current = prevInsns.back().prevAddr;
-        insn.setInstruction((unsigned char *) instPtr);
-        prevInsns.pop_back();
-        return current;
-    }
-    else 
-        return 0;
-}
-
-// Postfix...
-Address InstrucIter::operator++(int)
-{
-    assert(instPtr);
-    Address ret = current;
-    ++(*this);
-    return ret;
-}
-
-// Postfix...
-Address InstrucIter::operator--(int)
-{
-    Address ret = current;
-    --(*this);
-    return ret;
-}
-
-Address InstrucIter::operator*()
-{
-    return current;
+  instruction *insnPtr = new instruction(insn);
+  return insnPtr;
 }
 
 void parseRegisters(int * readArr, int * writeArr,
@@ -710,160 +640,160 @@ void parseRegisters(int * readArr, int * writeArr,
   if (entry->operands[whichOp].admet == am_G || 
       entry->operands[whichOp].admet == am_R ||
       entry->operands[whichOp].admet == am_E)
-    {
-      hasModRM = 1;
-      addrPtr += opCodeSize;
-      unsigned char modByte = *addrPtr;
-      mod = (modByte >> 6) & 0x03;
-      reg = (modByte >> 3) & 0x07;
-      rm =  modByte & 0x07;
-      if ((mod != 3) && (rm == 4))
-	hasSIB = 1;
-      addrPtr++;
-    }
+  {
+    hasModRM = 1;
+    addrPtr += opCodeSize;
+    unsigned char modByte = *addrPtr;
+    mod = (modByte >> 6) & 0x03;
+    reg = (modByte >> 3) & 0x07;
+    rm =  modByte & 0x07;
+    if ((mod != 3) && (rm == 4))
+      hasSIB = 1;
+    addrPtr++;
+  }
 
   int rIndex =0; 
   int wIndex =0;
   for (rIndex = 0; rIndex < 3 && readArr[rIndex] != -1; rIndex++)
-    {}
+  {}
 
   for (wIndex = 0; wIndex < 3 && writeArr[wIndex] != -1; wIndex++)
-    {}
+  {}
 
   if (entry->operands[whichOp].admet == am_G)
-    {
-      if (pref->rexR())
-	reg = reg+8;
-      if (readOrWrite == READ_OP)
-	readArr[rIndex] = reg;
-      else if (readOrWrite == WRITE_OP)
-	writeArr[wIndex] = reg;
-    }
+  {
+    if (pref->rexR())
+      reg = reg+8;
+    if (readOrWrite == READ_OP)
+      readArr[rIndex] = reg;
+    else if (readOrWrite == WRITE_OP)
+      writeArr[wIndex] = reg;
+  }
   else if (entry->operands[whichOp].admet == am_R)
-    {
-      if (pref->rexB())
-	rm = rm+8;
-      if (readOrWrite == READ_OP)
-	readArr[rIndex] = rm;
-      else if (readOrWrite == WRITE_OP)
-	writeArr[wIndex] = rm;
+  {
+    if (pref->rexB())
+      rm = rm+8;
+    if (readOrWrite == READ_OP)
+      readArr[rIndex] = rm;
+    else if (readOrWrite == WRITE_OP)
+      writeArr[wIndex] = rm;
 
-    }
+  }
   else if (entry->operands[whichOp].admet == am_E)
+  {
+    int regi = -1; /* modRM reg 1 */
+    int regi2 = -1; /* SIB reg 1 */
+    int regi3 = -1; /* SIB reg 2 */
+    if (rm == 0)
+      regi = REGNUM_RAX;
+    else if (rm == 1)
+      regi = REGNUM_RCX;
+    else if (rm == 2)
+      regi = REGNUM_RDX;
+    else if (rm == 3)
+      regi = REGNUM_RBX;
+    else if (rm == 5 && mod != 0)
+      regi = REGNUM_RBP;
+    else if (rm == 5 && mod == 0)
+      regi = -1; /* RIP + disp32 */
+    else if (rm == 6)
+      regi = REGNUM_RSI;
+    else if (rm == 7)
+      regi = REGNUM_RDI;      
+    else if (mod == 3 && rm == 4)
+      regi = REGNUM_RSP; // Tugrul: replaced REGNUM_RBP with REGNUM_RSP
+    else if (mod != 3 && rm == 4)
     {
-      int regi = -1; /* modRM reg 1 */
-      int regi2 = -1; /* SIB reg 1 */
-      int regi3 = -1; /* SIB reg 2 */
-      if (rm == 0)
-	regi = REGNUM_RAX;
-      else if (rm == 1)
-	regi = REGNUM_RCX;
-      else if (rm == 2)
-	regi = REGNUM_RDX;
-      else if (rm == 3)
-	regi = REGNUM_RBX;
-      else if (rm == 5 && mod != 0)
-	regi = REGNUM_RBP;
-      else if (rm == 5 && mod == 0)
-	regi = -1; /* RIP + disp32 */
-      else if (rm == 6)
-	regi = REGNUM_RSI;
-      else if (rm == 7)
-	regi = REGNUM_RDI;      
-      else if (mod == 3 && rm == 4)
-	regi = REGNUM_RSP; // Tugrul: replaced REGNUM_RBP with REGNUM_RSP
-      else if (mod != 3 && rm == 4)
-	{
-          unsigned char sibByte = *addrPtr;
-	  //unsigned scale = (sibByte >> 6) & 0x03;
-	  unsigned ind = (sibByte >> 3) & 0x07;
-	  unsigned base =  sibByte & 0x07;
+      unsigned char sibByte = *addrPtr;
+      //unsigned scale = (sibByte >> 6) & 0x03;
+      unsigned ind = (sibByte >> 3) & 0x07;
+      unsigned base =  sibByte & 0x07;
 	  
-	  if (ind == 0)
-	    regi2 = REGNUM_RAX;
-	  else if (ind == 1)
-	    regi2 = REGNUM_RCX;
-	  else if (ind == 2)
-	    regi2 = REGNUM_RDX;
-	  else if (ind == 3)
-	    regi2 = REGNUM_RBX;
-	  else if (ind == 4 && pref->rexX()) 
-	    regi2 = REGNUM_RSP;
-	  else if (ind == 5)
-	    regi2 = REGNUM_RBP;
-	  else if (ind == 6)
-	    regi2 = REGNUM_RSI;
-	  else if (ind == 7)
-	    regi2 = REGNUM_RDI;
+      if (ind == 0)
+	regi2 = REGNUM_RAX;
+      else if (ind == 1)
+	regi2 = REGNUM_RCX;
+      else if (ind == 2)
+	regi2 = REGNUM_RDX;
+      else if (ind == 3)
+	regi2 = REGNUM_RBX;
+      else if (ind == 4 && pref->rexX()) 
+	regi2 = REGNUM_RSP;
+      else if (ind == 5)
+	regi2 = REGNUM_RBP;
+      else if (ind == 6)
+	regi2 = REGNUM_RSI;
+      else if (ind == 7)
+	regi2 = REGNUM_RDI;
 
-	  if (base == 0)
-	    regi3 = REGNUM_RAX;
-	  else if (base == 1)
-	    regi3 = REGNUM_RCX;
-	  else if (base == 2)
-	    regi3 = REGNUM_RDX;
-	  else if (base == 3)
-	    regi3 = REGNUM_RBX;
-	  else if (base == 4)
-	    regi3 = REGNUM_RSP;//Tugrul: changed regi with regi3
-	  else if (base == 5 && mod !=0 )
-	    regi3 = REGNUM_RBP;
-	  else if (base == 6)
-	    regi3 = REGNUM_RSI;
-	  else if (base == 7)
-	    regi3 = REGNUM_RDI;
+      if (base == 0)
+	regi3 = REGNUM_RAX;
+      else if (base == 1)
+	regi3 = REGNUM_RCX;
+      else if (base == 2)
+	regi3 = REGNUM_RDX;
+      else if (base == 3)
+	regi3 = REGNUM_RBX;
+      else if (base == 4)
+	regi3 = REGNUM_RSP;//Tugrul: changed regi with regi3
+      else if (base == 5 && mod !=0 )
+	regi3 = REGNUM_RBP;
+      else if (base == 6)
+	regi3 = REGNUM_RSI;
+      else if (base == 7)
+	regi3 = REGNUM_RDI;
 
-	  if (pref->rexX() && regi2 !=- 1)
-	    regi2 = regi2+8;
-	  readArr[rIndex] = regi2;
-	  rIndex++;
+      if (pref->rexX() && regi2 !=- 1)
+	regi2 = regi2+8;
+      readArr[rIndex] = regi2;
+      rIndex++;
 
-	  if (pref->rexB() && regi3 != -1)
-	    regi3 = regi3+8;
-	  readArr[rIndex] = regi3;
-	}
-      
-      if (!hasSIB)
-	{
-	  if (pref->rexB())
-	    regi = regi+8;
-	  /* If mod != 3 then we are writing to memory, not a register 
-	     We would then read that register to get the memory location*/
-	  if (readOrWrite == WRITE_OP && mod == 3)
-            writeArr[wIndex] = regi;
-	  else
-	    readArr[rIndex] = regi;
-	}
+      if (pref->rexB() && regi3 != -1)
+	regi3 = regi3+8;
+      readArr[rIndex] = regi3;
     }
-  else if (entry->operands[whichOp].admet == am_reg)
+      
+    if (!hasSIB)
     {
-      int ot = entry->operands[whichOp].optype;
-      int regi = -1;
-      if (ot == r_eAX || ot == r_EAX)
-	regi = 0;
-      else if (ot == r_eBX || ot == r_EBX)
-	regi = 3;
-      else if(ot == r_eCX || ot == r_ECX)
-	regi = 1;
-      else if(ot == r_eDX || ot == r_EDX)
-	regi = 2;
-      else if(ot == r_eSP || ot == r_ESP)
-	regi = 4;
-      else if (ot == r_eBP || ot == r_EBP)
-	regi = 5;
-      else if (ot == r_eSI || ot == r_ESI)
-	regi = 6;
-      else if(ot == r_eDI || ot == r_EDI)
-	  regi = 7;
-
       if (pref->rexB())
 	regi = regi+8;
-      if (readOrWrite == READ_OP)
-	readArr[rIndex] = regi;
-      else if (readOrWrite == WRITE_OP)
+      /* If mod != 3 then we are writing to memory, not a register 
+	 We would then read that register to get the memory location*/
+      if (readOrWrite == WRITE_OP && mod == 3)
 	writeArr[wIndex] = regi;
+      else
+	readArr[rIndex] = regi;
+    }
+  }
+  else if (entry->operands[whichOp].admet == am_reg)
+  {
+    int ot = entry->operands[whichOp].optype;
+    int regi = -1;
+    if (ot == r_eAX || ot == r_EAX)
+      regi = 0;
+    else if (ot == r_eBX || ot == r_EBX)
+      regi = 3;
+    else if(ot == r_eCX || ot == r_ECX)
+      regi = 1;
+    else if(ot == r_eDX || ot == r_EDX)
+      regi = 2;
+    else if(ot == r_eSP || ot == r_ESP)
+      regi = 4;
+    else if (ot == r_eBP || ot == r_EBP)
+      regi = 5;
+    else if (ot == r_eSI || ot == r_ESI)
+      regi = 6;
+    else if(ot == r_eDI || ot == r_EDI)
+      regi = 7;
 
-    }  
+    if (pref->rexB())
+      regi = regi+8;
+    if (readOrWrite == READ_OP)
+      readArr[rIndex] = regi;
+    else if (readOrWrite == WRITE_OP)
+      writeArr[wIndex] = regi;
+
+  }  
 }
 
 
@@ -891,15 +821,15 @@ bool InstrucIter::isFPWrite()
     return true;
 
   for ( int a = 0; a <  3; a++)
+  {
+    if (entry->operands[a].admet == am_P || /*64-bit MMX selected by ModRM reg field */
+	entry->operands[a].admet == am_Q || /*64-bit MMX selected by ModRM byte */
+	entry->operands[a].admet == am_V || /*128-bit XMM selected by ModRM reg field*/
+	entry->operands[a].admet == am_W )  /*128-bit XMM selected by ModRM byte */
     {
-      if (entry->operands[a].admet == am_P || /*64-bit MMX selected by ModRM reg field */
-	  entry->operands[a].admet == am_Q || /*64-bit MMX selected by ModRM byte */
-	  entry->operands[a].admet == am_V || /*128-bit XMM selected by ModRM reg field*/
-	  entry->operands[a].admet == am_W )  /*128-bit XMM selected by ModRM byte */
-	{
-	  return true;
-	}
+      return true;
     }
+  }
   return false;
 }
 
@@ -918,25 +848,25 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
   int* write1 = (int*)i.getAnnotation(write);
   //if(0)
   int n;
-	if(read1 != NULL || write1 != NULL) {
-		for(n=0; n<3; n++) {
-			BPatch_annotation* r = i.getAnnotation(read,n);
-			if(r != NULL) {
-				readRegs[n] = *((int*)r->getItem());
-			}
-			else
-				break;
-		}
-		for(n=0; n<3; n++) {
-			BPatch_annotation* w = i.getAnnotation(write,n);
-			if(w != NULL) {
-				writeRegs[n] = *((int*)w->getItem());
-			}
-			else
-				break;
-		}
-		return;
-	}
+  if(read1 != NULL || write1 != NULL) {
+    for(n=0; n<3; n++) {
+      BPatch_annotation* r = i.getAnnotation(read,n);
+      if(r != NULL) {
+	readRegs[n] = *((int*)r->getItem());
+      }
+      else
+	break;
+    }
+    for(n=0; n<3; n++) {
+      BPatch_annotation* w = i.getAnnotation(write,n);
+      if(w != NULL) {
+	writeRegs[n] = *((int*)w->getItem());
+      }
+      else
+	break;
+    }
+    return;
+  }
 
   ia32_instruction ii;
   
@@ -945,76 +875,76 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
   ia32_entry * entry = ii.getEntry();
 
   if(entry != NULL)
+  {
+    unsigned int opsema = entry->opsema & ((1<<FPOS) -1);//0xFF;
+    for (int a = 0; a < 3; a++)
     {
-      unsigned int opsema = entry->opsema & ((1<<FPOS) -1);//0xFF;
-      for (int a = 0; a < 3; a++)
+      if (entry->operands[a].admet == am_G || /* GPR, selected by reg field (6) */
+	  entry->operands[a].admet == am_R || /* GPR, selected by mod field (13)*/
+	  entry->operands[a].admet == am_reg || /* implicit register (20)*/
+	  entry->operands[a].admet == am_E) /*register or memory location (4) */
+      {
+	if (a == 0)
 	{
-	  if (entry->operands[a].admet == am_G || /* GPR, selected by reg field (6) */
-	      entry->operands[a].admet == am_R || /* GPR, selected by mod field (13)*/
-	      entry->operands[a].admet == am_reg || /* implicit register (20)*/
-	      entry->operands[a].admet == am_E) /*register or memory location (4) */
-	    {
-	      if (a == 0)
-		{
-		  if (opsema == s1R || opsema == s1RW || opsema == s1R2R ||
-		      opsema == s1RW2R || opsema == s1RW2RW || opsema == s1RW2R3R ||
-		      opsema == s1RW2RW3R)
-		    {
-		      parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
-		    }
-		  if(opsema == s1W || opsema == s1RW || opsema == s1W2R ||
-		     opsema == s1RW2R || opsema == s1RW2RW || opsema == s1W2R3R || 
-		     opsema == s1W2W3R || opsema == s1RW2R3R || opsema == s1RW2RW3R ||
-		     opsema == s1W2RW3R || opsema == s1W2R3R)
-		    {
-		      parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
-		    }
-		}
-	      else if (a == 1)
-		{
-		  if (opsema == s1R2R || opsema == s1W2R || opsema == s1RW2R ||
-		      opsema == s1RW2RW || opsema == s1W2R3R || opsema == s1RW2R3R ||
-		      opsema == s1RW2RW3R || opsema == s1W2RW3R || opsema == s1W2R3RW)
-		    {
-		      parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
-		    }
-		  if(opsema == s1RW2RW || opsema == s1W2W3R || opsema == s1W2RW3R ||
-		     opsema == s1RW2RW3R )
-		    {
-		      parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
-		    }
-		}
-	      else if (a == 2)
-		{
-		  if (opsema == s1W2R3R || opsema == s1W2W3R || opsema == s1W2RW3R ||
-		      opsema == s1W2R3RW || opsema == s1RW2R3R || opsema == s1RW2RW3R)
-		    {
-		      parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
-		    }
-		  if( opsema == s1W2R3RW )
-		    {
-		      parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
-		    }
-		}
-	    }
+	  if (opsema == s1R || opsema == s1RW || opsema == s1R2R ||
+	      opsema == s1RW2R || opsema == s1RW2RW || opsema == s1RW2R3R ||
+	      opsema == s1RW2RW3R)
+	  {
+	    parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+	  }
+	  if(opsema == s1W || opsema == s1RW || opsema == s1W2R ||
+	     opsema == s1RW2R || opsema == s1RW2RW || opsema == s1W2R3R || 
+	     opsema == s1W2W3R || opsema == s1RW2R3R || opsema == s1RW2RW3R ||
+	     opsema == s1W2RW3R || opsema == s1W2R3R)
+	  {
+	    parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+	  }
 	}
-      for(n=0; n<3; n++) {
-	if(readRegs[n] != -1) {
-	  int* num = (int*)malloc(sizeof(int));
-	  *num = readRegs[n];
-	  i.setAnnotation(read,new BPatch_annotation(num));
+	else if (a == 1)
+	{
+	  if (opsema == s1R2R || opsema == s1W2R || opsema == s1RW2R ||
+	      opsema == s1RW2RW || opsema == s1W2R3R || opsema == s1RW2R3R ||
+	      opsema == s1RW2RW3R || opsema == s1W2RW3R || opsema == s1W2R3RW)
+	  {
+	    parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+	  }
+	  if(opsema == s1RW2RW || opsema == s1W2W3R || opsema == s1W2RW3R ||
+	     opsema == s1RW2RW3R )
+	  {
+	    parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+	  }
 	}
-	else
-	  break;
-      }
-      for(n=0; n<3; n++) {
-	if(writeRegs[n] != -1) {
-	  int* num = (int*)malloc(sizeof(int));
-	  *num = writeRegs[n];
-	  i.setAnnotation(write,new BPatch_annotation(num));
+	else if (a == 2)
+	{
+	  if (opsema == s1W2R3R || opsema == s1W2W3R || opsema == s1W2RW3R ||
+	      opsema == s1W2R3RW || opsema == s1RW2R3R || opsema == s1RW2RW3R)
+	  {
+	    parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+	  }
+	  if( opsema == s1W2R3RW )
+	  {
+	    parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+	  }
 	}
-	else
-	  break;
       }
     }
+    for(n=0; n<3; n++) {
+      if(readRegs[n] != -1) {
+	int* num = (int*)malloc(sizeof(int));
+	*num = readRegs[n];
+	i.setAnnotation(read,new BPatch_annotation(num));
+      }
+      else
+	break;
+    }
+    for(n=0; n<3; n++) {
+      if(writeRegs[n] != -1) {
+	int* num = (int*)malloc(sizeof(int));
+	*num = writeRegs[n];
+	i.setAnnotation(write,new BPatch_annotation(num));
+      }
+      else
+	break;
+    }
+  }
 }

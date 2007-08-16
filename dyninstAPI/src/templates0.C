@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.61 2007/06/13 18:51:25 bernat Exp $
+// $Id: templates0.C,v 1.62 2007/08/16 20:43:48 bill Exp $
 // Generate all the templates in one file.
 
 /*
@@ -194,7 +194,7 @@ template class pdvector<mapped_module *>;
 template class pdvector<mapped_object::foundHeapDesc>;
 
 #include "InstrucIter.h"
-template class pdvector<InstrucIter::previous>;
+template class std::vector<Address>;
 
 template class pdvector<fileDescriptor>;
 

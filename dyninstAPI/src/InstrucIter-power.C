@@ -75,21 +75,21 @@ bool InstrucIter::isRegConstantAssignment(int * regArray, Address * regWL)
   
 
   if (isA_RT_WriteInstruction() || isA_RA_WriteInstruction())
-    {
-      if (regNum >=3 && regNum <= 10)
-	regWL[regNum] = current;
-    }
+  {
+    if (regNum >=3 && regNum <= 10)
+      regWL[regNum] = current;
+  }
   
   // int regNum = (*i).dform.rt;
   if((*i).xlform.op == 14 && (*i).dform.ra == 0 
      && regNum >= 3 && regNum <= 10)
-    {
-      regArray[regNum]  = (*i).dform.d_or_si;
-      //if(regNum == 8)
-      //printf("Value for reg 8 is %d\n",regArray[regNum]);
+  {
+    regArray[regNum]  = (*i).dform.d_or_si;
+    //if(regNum == 8)
+    //printf("Value for reg 8 is %d\n",regArray[regNum]);
       
-      return true;
-    }
+    return true;
+  }
   else
     return false;
 }
@@ -99,10 +99,10 @@ bool InstrucIter::isClauseInstruction()
 {
   const instruction i = getInstruction();
   if((*i).xlform.op == 14 && (*i).dform.rt == 3 && (*i).dform.ra == 0)
-    {
-      printf("Clause value is %d\n", (*i).dform.d_or_si);
-      return true;
-    }
+  {
+    printf("Clause value is %d\n", (*i).dform.d_or_si);
+    return true;
+  }
   else
     return false;
 }
@@ -203,13 +203,13 @@ bool InstrucIter::isA_RT_WriteInstruction()
 	    || (*i).xoform.xo == SFExop || (*i).xoform.xo == SFMExop 
 	    || (*i).xoform.xo == SFZExop || (*i).xoform.xo == MULHWUxop )) ||
 	
-	/* D Form */
-	((*i).dform.op == MULIop || (*i).dform.op == SFIop || (*i).dform.op == DOZIop   ) || 
-	((*i).dform.op >= SIop && (*i).dform.op  <= CAUop) || 
-	((*i).dform.op >= Lop && (*i).dform.op <= LBZUop) || 
-	((*i).dform.op >= LHZop && (*i).dform.op <= LHAUop) || 
+      /* D Form */
+      ((*i).dform.op == MULIop || (*i).dform.op == SFIop || (*i).dform.op == DOZIop   ) || 
+      ((*i).dform.op >= SIop && (*i).dform.op  <= CAUop) || 
+      ((*i).dform.op >= Lop && (*i).dform.op <= LBZUop) || 
+      ((*i).dform.op >= LHZop && (*i).dform.op <= LHAUop) || 
 	
-	/* X Form */
+      /* X Form */
       ((*i).xform.op == X_EXTENDEDop 
        && ( (*i).xform.xo == LBZUXxop || (*i).xform.xo == LBZXxop || 
 	    (*i).xform.xo == LHAUXxop  || 
@@ -222,13 +222,13 @@ bool InstrucIter::isA_RT_WriteInstruction()
 	    (*i).xform.xo == CLCSxop  || (*i).xform.xo == MFSRxop || 
 	    (*i).xform.xo == MFSRIxop ||
 	    (*i).xform.xo == MFSRINxop  || (*i).xform.xo == RACxop)))
-    {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
 }  
 
 /* This function returns true if the instruction affects the FRD Register */
@@ -259,13 +259,13 @@ bool InstrucIter::isA_FRT_WriteInstruction()
       ((*i).xform.op == X_EXTENDEDop
        && ( (*i).xform.xo == LFDUXxop  || (*i).xform.xo == LFDXxop || 
 	    (*i).xform.xo == LFSUXxop || (*i).xform.xo == LFSXxop )))
-    {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
 }  
 
 
@@ -283,7 +283,7 @@ bool InstrucIter::isA_RT_ReadInstruction()
       /*  XFX Form */
       ((*i).xfxform.op == X_EXTENDEDop && (*i).xfxform.xo == MTCRFxop ) ||
       
-       /* X Form */
+      /* X Form */
       ((*i).xfxform.op == X_EXTENDEDop
        && ( (*i).xform.xo == SLxop || (*i).xform.xo == CNTLZxop ||
 	    (*i).xform.xo == ANDxop  || (*i).xform.xo == MASKGxop || 
@@ -312,13 +312,13 @@ bool InstrucIter::isA_RT_ReadInstruction()
 	    (*i).xform.xo == SREAxop ||
 	    (*i).xform.xo == EXTSxop || (*i).xform.xo == SRAIQxop || 
 	    (*i).xform.xo == EXTSBxop )))
-      {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
 }
 
 /* This function returns true if the instruction reads the FRT Register */
@@ -334,13 +334,13 @@ bool InstrucIter::isA_FRT_ReadInstruction()
        && ( (*i).xform.xo == STFSXxop || (*i).xform.xo == STFSUXxop  || 
 	    (*i).xform.xo == STFDXxop || (*i).xform.xo == STFDUXxop ||  
 	    (*i).xform.xo == STFIWXxop )))
-    {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
 }  
 
   
@@ -386,13 +386,13 @@ bool InstrucIter::isA_RA_ReadInstruction()
 	    (*i).xform.xo == LHBRXxop  || (*i).xform.xo == RACxop ||
 	    (*i).xform.xo == STHBRXxop || (*i).xform.xo == ICBIxop || 
 	    (*i).xform.xo == STFIWXxop || (*i).xform.xo == DCLZxop)))
-    {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
 }  
 
 
@@ -441,13 +441,13 @@ bool InstrucIter::isA_RB_ReadInstruction()
 	    (*i).xform.xo == SRAQxop  || (*i).xform.xo == SREAxop ||
 	    (*i).xform.xo == ICBIxop || (*i).xform.xo == STFIWXxop ||
 	    (*i).xform.xo == DCLZxop )))
-    {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
 }  
 
 
@@ -470,18 +470,18 @@ bool InstrucIter::isA_FRA_ReadInstruction()
 	    (*i).aform.xo == FMSUBSxop || (*i).aform.xo == FMADDSxop ||
 	    (*i).aform.xo == FNMSUBSxop || (*i).aform.xo == FNMADDSxop )) ||  
       
-	/* XL Form */
+      /* XL Form */
       ((*i).xlform.op == X_FP_EXTENDEDop && (*i).xlform.xo == FCMPUxop ) || 
-	/* X Form */
+      /* X Form */
       ((*i).xform.op == X_FP_EXTENDEDop && (*i).xform.xo == FCMPOxop ))
 
-    {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
 }  
 
 /* This function returns true if the instruction affects the FRB Register */
@@ -505,39 +505,39 @@ bool InstrucIter::isA_FRB_ReadInstruction()
 	    (*i).aform.xo == FMAxop ||
 	    (*i).aform.xo == FNMSxop || (*i).aform.xo == FNMAxop )) ||  
       
-	/* XL Form */
+      /* XL Form */
       ((*i).xlform.op == X_EXTENDEDop 
        && (*i).xlform.xo == FCMPUxop ) || 
      
 
-	/* X Form */
+      /* X Form */
       ((*i).xform.op == X_EXTENDEDop 
        && ( (*i).xform.xo == FRSPxop || (*i).xform.xo == FCIRxop || 
 	    (*i).xform.xo == FCIRZxop || (*i).xform.xo == FCMPOxop || 
 	    (*i).xform.xo == FNEGxop ||
 	    (*i).xform.xo == FMRxop ||
 	    (*i).xform.xo == FNABSxop || (*i).xform.xo == FABSxop )))
-    {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
 }  
 
 /* This function returns true if the instruction reads the FRC Registers */
 bool InstrucIter::isA_FRC_ReadInstruction()
 {
- const instruction i = getInstruction();
- if (
-     /* A Form */
-     ((*i).aform.op == A_FP_EXTENDEDop2
-      && ( (*i).aform.xo == FMxop || (*i).aform.xo == FMSxop || (*i).aform.xo == FMAxop ||
-	   (*i).aform.xo == FNMSxop  || (*i).aform.xo == FNMAxop )))
-   return true;
- else
-   return false;
+  const instruction i = getInstruction();
+  if (
+      /* A Form */
+      ((*i).aform.op == A_FP_EXTENDEDop2
+       && ( (*i).aform.xo == FMxop || (*i).aform.xo == FMSxop || (*i).aform.xo == FMAxop ||
+	    (*i).aform.xo == FNMSxop  || (*i).aform.xo == FNMAxop )))
+    return true;
+  else
+    return false;
 	   
 }
 
@@ -560,17 +560,17 @@ bool InstrucIter::isA_FRA_WriteInstruction()
 	    || (*i).aform.xo == FNMADDSxop ||
 	    (*i).aform.xo == FSUBSxop )) ||  
       
-	/* X Form */
+      /* X Form */
       ((*i).xform.op == X_FP_EXTENDEDop 
        && ((*i).xform.xo == FCMPOxop || (*i).xform.xo == FCMPUxop )))
 
-    {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
 }  
 
 
@@ -611,13 +611,13 @@ bool InstrucIter::isA_RA_WriteInstruction()
       /* M Form */
       ((*i).mform.op == RLIMIop || (*i).mform.op == RLINMxop || (*i).mform.op == RLMIop 
        ||  (*i).mform.op == RLNMop))
-    {
-      return true;
-    }
+  {
+    return true;
+  }
   else
-    {
-      return false;
-    }
+  {
+    return false;
+  }
   
 }
 
@@ -631,13 +631,13 @@ bool InstrucIter::isA_MRT_ReadInstruction()
       /* X Form */
       ((*i).xform.op == X_EXTENDEDop
        && ((*i).xform.xo == STSIxop || (*i).xform.xo == STSXxop)))
-     {
-        return true;
-     }
+  {
+    return true;
+  }
   else
-     {
-        return false;
-     }
+  {
+    return false;
+  }
 }
 
 bool InstrucIter::isA_MRT_WriteInstruction()
@@ -649,20 +649,20 @@ bool InstrucIter::isA_MRT_WriteInstruction()
       /* X Form */
       ((*i).xform.op == X_EXTENDEDop
        && ((*i).xform.xo == LSIxop || (*i).xform.xo == LSXxop)))
-     {
-        return true;
-     }
+  {
+    return true;
+  }
   else
-     {
-        return false;
-     }
+  {
+    return false;
+  }
 }
 
 
 //some more function used to identify the properties of the instruction
 /** is the instruction used to return from the functions
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 bool InstrucIter::isAReturnInstruction()
 {
   const instruction i = getInstruction();
@@ -675,66 +675,66 @@ bool InstrucIter::isAReturnInstruction()
      // unlikely to be a return instruction.
      && !((*i).xlform.lk)
 #endif
-    )
-      return true;
+     )
+    return true;
   return false;
 }
 
 
 /** is the instruction used to return from the functions,
     dependent upon a condition register
-  * @param i the instruction value 
-  */
+    * @param i the instruction value 
+    */
 bool InstrucIter::isACondReturnInstruction()
 {
   const instruction i = getInstruction();
   if(((*i).xlform.op == BCLRop) &&
      ((*i).xlform.xo == BCLRxop) &&
      ((*i).xlform.bt & 0x14) != 0x14)
-      return true;
+    return true;
   return false;
 }
 
 /** is the instruction an indirect jump instruction 
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 bool InstrucIter::isAIndirectJumpInstruction()
 {
   const instruction i = getInstruction();
-	if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCCTRxop) &&
-	   !(*i).xlform.lk && ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4))
-		return true;
-	if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCLRxop) &&
-	   !(*i).xlform.lk && ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4) &&
-	   ((*i).xlform.bb == 0x1))
-		return true;
+  if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCCTRxop) &&
+     !(*i).xlform.lk && ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4))
+    return true;
+  if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCLRxop) &&
+     !(*i).xlform.lk && ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4) &&
+     ((*i).xlform.bb == 0x1))
+    return true;
 #if 0
-        // Disabled; a branch to link register is a return until we can prove
-        // otherwise, not a indirect branch.
-	if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCLRxop) &&
-	   ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4)){
-		if(!ah.hasPrev())
-			return false;
-                --ah;
-		if(!ah.hasPrev())
-			return false;
-		instruction j = ah.getInstruction();
-		if(((*j).xfxform.op == STXop) && ((*j).xfxform.xo == MTSPRxop) &&
-		   ((*j).xfxform.spr == 0x100)) // LR
-			return true;
-		++ah;
-                j = ah.getInstruction();
-		if(((*j).xfxform.op == STXop) && ((*j).xfxform.xo == MTSPRxop) &&
-		   ((*j).xfxform.spr == 0x100)) // LR
-			return true;
-	}
+  // Disabled; a branch to link register is a return until we can prove
+  // otherwise, not a indirect branch.
+  if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCLRxop) &&
+     ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4)){
+    if(!ah.hasPrev())
+      return false;
+    --ah;
+    if(!ah.hasPrev())
+      return false;
+    instruction j = ah.getInstruction();
+    if(((*j).xfxform.op == STXop) && ((*j).xfxform.xo == MTSPRxop) &&
+       ((*j).xfxform.spr == 0x100)) // LR
+      return true;
+    ++ah;
+    j = ah.getInstruction();
+    if(((*j).xfxform.op == STXop) && ((*j).xfxform.xo == MTSPRxop) &&
+       ((*j).xfxform.spr == 0x100)) // LR
+      return true;
+  }
 #endif
-	return false;
+  return false;
 }
 
 /** is the instruction a conditional branch instruction 
-  * @param i the instruction value 
-  */ 
+ * @param i the instruction value 
+ */ 
 bool InstrucIter::isACondBranchInstruction()
 {
   const instruction i = getInstruction();
@@ -766,83 +766,83 @@ bool InstrucIter::isACondBDNInstruction()
 
 
 /** is the instruction an unconditional branch instruction 
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 bool InstrucIter::isAJumpInstruction()
 {
   const instruction i = getInstruction();
-	if(((*i).iform.op == Bop) && !(*i).iform.lk)
-		return true;
-	if(((*i).bform.op == BCop) && !(*i).bform.lk &&
-	   ((*i).bform.bo & 0x10) && ((*i).bform.bo & 0x4))
-		return true;
-	return false;
+  if(((*i).iform.op == Bop) && !(*i).iform.lk)
+    return true;
+  if(((*i).bform.op == BCop) && !(*i).bform.lk &&
+     ((*i).bform.bo & 0x10) && ((*i).bform.bo & 0x4))
+    return true;
+  return false;
 }
 /** is the instruction a call instruction 
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 bool InstrucIter::isACallInstruction()
 {
 
-    //cerr << current << endl;
-    const instruction i = getInstruction();
-    //const instruction i = getInstruction();
+  //cerr << current << endl;
+  const instruction i = getInstruction();
+  //const instruction i = getInstruction();
 #define CALLmatch 0x48000001 /* bl */
         
-    // Only look for 'bl' instructions for now, although a branch
-    // could be a call function, and it doesn't need to set the link
-    // register if it is the last function call
-    //cerr << currentAddreOPmask << endl;
+  // Only look for 'bl' instructions for now, although a branch
+  // could be a call function, and it doesn't need to set the link
+  // register if it is the last function call
+  //cerr << currentAddreOPmask << endl;
 
-    return (i.isInsnType(OPmask | LLmask, CALLmatch));
-/*
-  const instruction i = getInstruction();
-  if((*i).iform.lk && 
-	   (((*i).iform.op == Bop) || ((*i).bform.op == BCop) ||
-       (((*i).xlform.op == BCLRop) && 
-       (((*i).xlform.xo == 16) || ((*i).xlform.xo == 528))))){
-       return true;
-       }
-       return false;
+  return (i.isInsnType(OPmask | LLmask, CALLmatch));
+  /*
+    const instruction i = getInstruction();
+    if((*i).iform.lk && 
+    (((*i).iform.op == Bop) || ((*i).bform.op == BCop) ||
+    (((*i).xlform.op == BCLRop) && 
+    (((*i).xlform.xo == 16) || ((*i).xlform.xo == 528))))){
+    return true;
+    }
+    return false;
 
-*/
+  */
 }
 bool InstrucIter::isADynamicCallInstruction()
 {
-// I'm going to break this up a little so that I can comment
-    // it better. 
+  // I'm going to break this up a little so that I can comment
+  // it better. 
     
-    const instruction i = getInstruction();
+  const instruction i = getInstruction();
 
   if ((*i).xlform.op == BCLRop && (*i).xlform.xo == BCLRxop)
+  {
+    if ((*i).xlform.lk)
+      // Type one: Branch-to-LR, save PC in LR
+      // Standard function pointer call
+      return true;
+    else
+      // Type two: Branch-to-LR, don't save PC
+      // Haven't seen one of these around
+      // It would be a return instruction, probably
     {
-      if ((*i).xlform.lk)
-	// Type one: Branch-to-LR, save PC in LR
-	// Standard function pointer call
-	return true;
-      else
-	// Type two: Branch-to-LR, don't save PC
-	// Haven't seen one of these around
-	// It would be a return instruction, probably
-	{
-	  return false;
-	}
+      return false;
     }
+  }
   if ((*i).xlform.op == BCLRop && (*i).xlform.xo == BCCTRxop)
+  {
+    if ((*i).xlform.lk)
+      // Type three: Branch-to-CR, save PC
     {
-      if ((*i).xlform.lk)
-	// Type three: Branch-to-CR, save PC
-	{
-	  return true;
-	}
-      else
-	// Type four: Branch-to-CR, don't save PC
-	// Used for global linkage code.
-	// We handle those elsewhere.
-	{
-	  return true;
-	}
+      return true;
     }
+    else
+      // Type four: Branch-to-CR, don't save PC
+      // Used for global linkage code.
+      // We handle those elsewhere.
+    {
+      return true;
+    }
+  }
   return false;
 
 
@@ -956,7 +956,7 @@ void initOpCodeInfo()
 
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-    instruction *i = getInsnPtr();
+  instruction *i = getInsnPtr();
 
   int op = (**i).dform.op;
   int  b;
@@ -1026,7 +1026,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
     opCodeInfo *oci = xopCodes[xop];
 
     if (oci == NULL)
-       return BPatch_memoryAccess::none;
+      return BPatch_memoryAccess::none;
     else if(oci->bytes > 0)
       return oci->direc ? MK_SX(oci->bytes, i) : MK_LX(oci->bytes, i);
     else if(xop == LSIxop || xop == STSIxop) {
@@ -1057,399 +1057,346 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 }
 
 /** function which returns the offset of control transfer instructions
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 Address InstrucIter::getBranchTargetAddress(bool *isAbsolute)
 {
-    const instruction i = getInstruction();
-    Address ret = 0;
-    if(((*i).iform.op == Bop) || ((*i).bform.op == BCop)){
-        int disp = 0;
-        if((*i).iform.op == Bop)
-            disp = (*i).iform.li;
-        else if((*i).bform.op == BCop)
-            disp = (*i).bform.bd;
-        disp <<= 2;
-        if((*i).iform.aa) {
-            ret = (Address)disp;
-            if (isAbsolute) *isAbsolute = true;
-        }
-        else
-            ret = (Address)(current+disp);
+  const instruction i = getInstruction();
+  Address ret = 0;
+  if(((*i).iform.op == Bop) || ((*i).bform.op == BCop)){
+    int disp = 0;
+    if((*i).iform.op == Bop)
+      disp = (*i).iform.li;
+    else if((*i).bform.op == BCop)
+      disp = (*i).bform.bd;
+    disp <<= 2;
+    if((*i).iform.aa) {
+      ret = (Address)disp;
+      if (isAbsolute) *isAbsolute = true;
     }
-    return (Address)ret;
+    else
+      ret = (Address)(current+disp);
+  }
+  return (Address)ret;
 }
 
 
 bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 {
-    Address initialAddress = current;
-    Address TOC_address = 0;
-    if (img_) { 
-        TOC_address = img_->getObject()->getTOCoffset();
+  Address initialAddress = current;
+  Address TOC_address = 0;
+  image* img = dynamic_cast<image*>(instructions_);
+  process* proc = dynamic_cast<process*>(instructions_);
+    
+  if (img) { 
+    TOC_address = img->getObject()->getTOCoffset();
+  }
+  else {
+    pdvector<mapped_object *> m_objs = proc->mappedObjects();
+    for (unsigned i = 0; i < m_objs.size(); i++) {
+      void *ptr = m_objs[i]->getPtrToInstruction(current);
+      if (ptr) {
+	TOC_address = m_objs[i]->parse_img()->getObject()->getTOCoffset();
+	TOC_address += m_objs[i]->dataBase();
+	break;
+      }
     }
-    else {
-        pdvector<mapped_object *> m_objs = proc_->mappedObjects();
-        for (unsigned i = 0; i < m_objs.size(); i++) {
-            void *ptr = m_objs[i]->getPtrToInstruction(current);
-            if (ptr) {
-                TOC_address = m_objs[i]->parse_img()->getObject()->getTOCoffset();
-                TOC_address += m_objs[i]->dataBase();
-                break;
-            }
-        }
-    }
+  }
 
-    if (!TOC_address) return 0;
+  if (!TOC_address) return 0;
     
-    instruction check;
+  instruction check;
     
-    // If there are no prior instructions then we can't be looking at a
-    // jump through a jump table.
-    if( !hasPrev() ) {
-        result += (initialAddress + instruction::size());
-        setCurrentAddress(initialAddress);
-        return false;
-    }
+  // If there are no prior instructions then we can't be looking at a
+  // jump through a jump table.
+  if( !hasPrev() ) {
+    result += (initialAddress + instruction::size());
+    setCurrentAddress(initialAddress);
+    return false;
+  }
     
-    // Check if the previous instruction is a move to CTR or LR;
-    // if it is, then this is the pattern we're familiar with.  The
-    // register being moved into CTR or LR has the address to jump to.
+  // Check if the previous instruction is a move to CTR or LR;
+  // if it is, then this is the pattern we're familiar with.  The
+  // register being moved into CTR or LR has the address to jump to.
+  (*this)--;
+  int jumpAddrReg;
+  check = getInstruction();
+  if ((*check).xfxform.op == STXop && (*check).xfxform.xo == MTSPRxop &&
+      ((*check).xfxform.spr == 0x100 || (*check).xfxform.spr == 0x120)) {
+    jumpAddrReg = (*check).xfxform.rt;
+  } else {
+    result += (initialAddress + instruction::size());
+    setCurrentAddress(initialAddress);
+    return false;
+  }
+    
+  // In the pattern we've seen, if the instruction previous to this is
+  // an add with a result that ends up being used as the jump address,
+  // then we're adding a relative value we got from the table to a base
+  // address to get the jump address; in other words, the contents of
+  // the jump table are relative.
+  bool tableIsRelative = false;
+  if (hasPrev()) {
     (*this)--;
-    int jumpAddrReg;
     check = getInstruction();
-    if ((*check).xfxform.op == STXop && (*check).xfxform.xo == MTSPRxop &&
-        ((*check).xfxform.spr == 0x100 || (*check).xfxform.spr == 0x120)) {
-        jumpAddrReg = (*check).xfxform.rt;
-    } else {
-        result += (initialAddress + instruction::size());
-        setCurrentAddress(initialAddress);
-        return false;
+    if ((*check).xoform.op == CAXop && (*check).xoform.xo == CAXxop &&
+	(*check).xoform.rt == (unsigned)jumpAddrReg) {
+      tableIsRelative = true; 
+      //fprintf(stderr, "table is relative...\n");
     }
+    else
+      (*this)++;
+  }
     
-    // In the pattern we've seen, if the instruction previous to this is
-    // an add with a result that ends up being used as the jump address,
-    // then we're adding a relative value we got from the table to a base
-    // address to get the jump address; in other words, the contents of
-    // the jump table are relative.
-    bool tableIsRelative = false;
-    if (hasPrev()) {
-        (*this)--;
-        check = getInstruction();
-        if ((*check).xoform.op == CAXop && (*check).xoform.xo == CAXxop &&
-            (*check).xoform.rt == (unsigned)jumpAddrReg) {
-            tableIsRelative = true; 
-            //fprintf(stderr, "table is relative...\n");
-        }
-        else
-            (*this)++;
-    }
+  Address jumpStartAddress = 0;
+  Address adjustEntry = 0;
+  Address tableStartAddress = 0;
     
-    Address jumpStartAddress = 0;
-    Address adjustEntry = 0;
-    Address tableStartAddress = 0;
-    
-    if (tableIsRelative) {
-        while( hasPrev() ){
-            check = getInstruction();
-            if(((*check).dform.op == Lop) && ((*check).dform.ra == 2)){
-                //fprintf(stderr, "Jump offset from TOC: %d\n", (*check).dform.d_or_si);
-                jumpStartAddress = 
-                    (Address)(TOC_address + (*check).dform.d_or_si);
-                break;
-            }
-            (*this)--;
-        }
-        // Anyone know what this does?
-        (*this)--;
-        check = getInstruction();
-        if(((*check).dform.op == Lop)) {
-            adjustEntry = (*check).dform.d_or_si;
-            //fprintf(stderr, "adjustEntry is 0x%x (%d)\n",
-            //adjustEntry, adjustEntry);
-        }
-       
-        while(hasPrev()){
-            instruction check = getInstruction();
-            if(((*check).dform.op == Lop) && ((*check).dform.ra == 2)){
-                //fprintf(stderr, "Table offset from TOC: %d\n", (*check).dform.d_or_si);
-                tableStartAddress = 
-                    (Address)(TOC_address + (*check).dform.d_or_si);
-                //fprintf(stderr, "tableStartAddr is 0x%x\n", tableStartAddress);
-                break;
-            }
-            (*this)--;
-        }
-    } else {
-        bool foundAdjustEntry = false;
-        while( hasPrev() ){
-            check = getInstruction();
-            if((*check).dform.op == CALop &&
-               (*check).dform.rt == (unsigned)jumpAddrReg &&
-               !foundAdjustEntry){
-                foundAdjustEntry = true;
-                adjustEntry = (*check).dform.d_or_si;
-                jumpAddrReg = (*check).dform.ra;
-            } else if((*check).dform.op == Lop &&
-                      (*check).dform.ra == 2 &&
-                      (*check).dform.rt == (unsigned)jumpAddrReg){
-                tableStartAddress = 
-                    (Address)(TOC_address + (*check).dform.d_or_si);
-                break;
-            }
-            (*this)--;
-        }
-    }
-
-    // We could also set this = jumpStartAddress...
-    if (tableStartAddress == 0)  {
-        //fprintf(stderr, "No table start addr, returning\n"); 
-        setCurrentAddress(initialAddress);
-        return false;
-    }
-
-    setCurrentAddress(initialAddress);
-    int maxSwitch = 0;
-    
+  if (tableIsRelative) {
     while( hasPrev() ){
-        instruction check = getInstruction();
-        if(((*check).bform.op == BCop) && 
-           !(*check).bform.aa && !(*check).bform.lk){
-            (*this)--;
-            check = getInstruction();
-            if(10 != (*check).dform.op)
-                break;
-            maxSwitch = (*check).dform.d_or_si + 1;
-            break;
-        }
-        (*this)--;
+      check = getInstruction();
+      if(((*check).dform.op == Lop) && ((*check).dform.ra == 2)){
+	//fprintf(stderr, "Jump offset from TOC: %d\n", (*check).dform.d_or_si);
+	jumpStartAddress = 
+	(Address)(TOC_address + (*check).dform.d_or_si);
+	break;
+      }
+      (*this)--;
     }
-    //fprintf(stderr, "After checking: max switch %d\n", maxSwitch);
-    if(!maxSwitch){
-        result += (initialAddress + instruction::size());
-        //fprintf(stderr, "No maximum, returning\n");
-        setCurrentAddress(initialAddress);
-        return false;
+    // Anyone know what this does?
+    (*this)--;
+    check = getInstruction();
+    if(((*check).dform.op == Lop)) {
+      adjustEntry = (*check).dform.d_or_si;
+      //fprintf(stderr, "adjustEntry is 0x%x (%d)\n",
+      //adjustEntry, adjustEntry);
     }
+       
+    while(hasPrev()){
+      instruction check = getInstruction();
+      if(((*check).dform.op == Lop) && ((*check).dform.ra == 2)){
+	//fprintf(stderr, "Table offset from TOC: %d\n", (*check).dform.d_or_si);
+	tableStartAddress = 
+	(Address)(TOC_address + (*check).dform.d_or_si);
+	//fprintf(stderr, "tableStartAddr is 0x%x\n", tableStartAddress);
+	break;
+      }
+      (*this)--;
+    }
+  } else {
+    bool foundAdjustEntry = false;
+    while( hasPrev() ){
+      check = getInstruction();
+      if((*check).dform.op == CALop &&
+	 (*check).dform.rt == (unsigned)jumpAddrReg &&
+	 !foundAdjustEntry){
+	foundAdjustEntry = true;
+	adjustEntry = (*check).dform.d_or_si;
+	jumpAddrReg = (*check).dform.ra;
+      } else if((*check).dform.op == Lop &&
+		(*check).dform.ra == 2 &&
+		(*check).dform.rt == (unsigned)jumpAddrReg){
+	tableStartAddress = 
+	(Address)(TOC_address + (*check).dform.d_or_si);
+	break;
+      }
+      (*this)--;
+    }
+  }
 
-    Address jumpStart = 0;
-    Address tableStart = 0;
+  // We could also set this = jumpStartAddress...
+  if (tableStartAddress == 0)  {
+    //fprintf(stderr, "No table start addr, returning\n"); 
+    setCurrentAddress(initialAddress);
+    return false;
+  }
 
-    if (img_) {
-       if (tableIsRelative) {
-        void *jumpStartPtr = img_->getPtrToData(jumpStartAddress);
-        //fprintf(stderr, "jumpStartPtr (0x%x) = %p\n", jumpStartAddress, jumpStartPtr);
-        if (jumpStartPtr)
-            jumpStart = *((Address *)jumpStartPtr);
-        //fprintf(stderr, "jumpStart 0x%x, initialAddr 0x%x\n",
-        //jumpStart, initialAddress);
-        if (jumpStartPtr == NULL) {
-            setCurrentAddress(initialAddress);
-            return false;
-        }
-       }
-        void *tableStartPtr = img_->getPtrToData(tableStartAddress);
-        //fprintf(stderr, "tableStartPtr (0x%x) = %p\n", tableStartAddress, tableStartPtr);
-        if (tableStartPtr)
-            tableStart = *((Address *)tableStartPtr);
-        else {
-            setCurrentAddress(initialAddress);                    
-            return false;
-        }
-        //fprintf(stderr, "... tableStart 0x%x\n", tableStart);
+  setCurrentAddress(initialAddress);
+  int maxSwitch = 0;
+    
+  while( hasPrev() ){
+    instruction check = getInstruction();
+    if(((*check).bform.op == BCop) && 
+       !(*check).bform.aa && !(*check).bform.lk){
+      (*this)--;
+      check = getInstruction();
+      if(10 != (*check).dform.op)
+	break;
+      maxSwitch = (*check).dform.d_or_si + 1;
+      break;
+    }
+    (*this)--;
+  }
+  //fprintf(stderr, "After checking: max switch %d\n", maxSwitch);
+  if(!maxSwitch){
+    result += (initialAddress + instruction::size());
+    //fprintf(stderr, "No maximum, returning\n");
+    setCurrentAddress(initialAddress);
+    return false;
+  }
 
-        // We're getting an absolute out of the TOC. Figure out
-        // whether we're in code or data.
-        const fileDescriptor &desc = img_->desc();
-        Address textStart = desc.code();
-        Address dataStart = desc.data();
+  Address jumpStart = 0;
+  Address tableStart = 0;
 
-        assert(jumpStart < dataStart);
+  if (img) {
+    if (tableIsRelative) {
+      void *jumpStartPtr = img->getPtrToData(jumpStartAddress);
+      //fprintf(stderr, "jumpStartPtr (0x%x) = %p\n", jumpStartAddress, jumpStartPtr);
+      if (jumpStartPtr)
+	jumpStart = *((Address *)jumpStartPtr);
+      //fprintf(stderr, "jumpStart 0x%x, initialAddr 0x%x\n",
+      //jumpStart, initialAddress);
+      if (jumpStartPtr == NULL) {
+	setCurrentAddress(initialAddress);
+	return false;
+      }
+    }
+    void *tableStartPtr = img->getPtrToData(tableStartAddress);
+    //fprintf(stderr, "tableStartPtr (0x%x) = %p\n", tableStartAddress, tableStartPtr);
+    if (tableStartPtr)
+      tableStart = *((Address *)tableStartPtr);
+    else {
+      setCurrentAddress(initialAddress);                    
+      return false;
+    }
+    //fprintf(stderr, "... tableStart 0x%x\n", tableStart);
 
-        bool tableData = false;
+    // We're getting an absolute out of the TOC. Figure out
+    // whether we're in code or data.
+    const fileDescriptor &desc = img->desc();
+    Address textStart = desc.code();
+    Address dataStart = desc.data();
 
-        if (proc_) {
-            if (tableStart > dataStart) {
-                tableData = true;
-                tableStart -= dataStart;
-                //fprintf(stderr, "Table in data, offset 0x%x\n", tableStart);
-            }
-            else {
-                tableData = false;
-                tableStart -= textStart;
-                //fprintf(stderr, "Table in text, offset 0x%x\n", tableStart);
-            }
-        }
-        else {
-            //fprintf(stderr, "tableStart 0x%x, codeOff 0x%x, codeLen 0x%x, dataOff 0x%x, dataLen 0x%x\n",
-            //tableStart, img_->codeOffset(), img_->codeLength(),
-            //img_->dataOffset(), img_->dataLength());
+    assert(jumpStart < dataStart);
 
-            // Not sure what to do, really. We don't know where it is, and I'm
-            // not sure how to check.
-        }
+    bool tableData = false;
 
-        for(int i=0;i<maxSwitch;i++){                    
-            Address tableEntry = adjustEntry + tableStart + (i * instruction::size());
-            //fprintf(stderr, "Table entry at 0x%x\n", tableEntry);
-            if (img_->isValidAddress(tableEntry)) {
-                int jumpOffset;
-                if (tableData) {
-                    jumpOffset = *((int *)img_->getPtrToData(tableEntry));
-                }
-                else
-                    jumpOffset = *((int *)img_->getPtrToInstruction(tableEntry));
-                
-                //fprintf(stderr, "jumpOffset 0x%x\n", jumpOffset);
-                Address res = (Address)(jumpStart + jumpOffset);
-                if (img_->isCode(res))
-                    result += (Address)(jumpStart+jumpOffset);
-                //fprintf(stderr, "Entry of 0x%x\n", (Address)(jumpStart + jumpOffset));
-            }
-            else {
-                //fprintf(stderr, "Address not valid!\n");
-            }
-        }
+    if (proc) {
+      if (tableStart > dataStart) {
+	tableData = true;
+	tableStart -= dataStart;
+	//fprintf(stderr, "Table in data, offset 0x%x\n", tableStart);
+      }
+      else {
+	tableData = false;
+	tableStart -= textStart;
+	//fprintf(stderr, "Table in text, offset 0x%x\n", tableStart);
+      }
     }
     else {
-       void *ptr;
-       if (tableIsRelative) {
-        ptr = proc_->getPtrToInstruction(jumpStartAddress);
-        assert(ptr);
-        jumpStart = *((Address *)ptr);
-       }
-        ptr = NULL;
-        ptr = proc_->getPtrToInstruction(tableStartAddress);
-        assert(ptr);
-        tableStart = *((Address *)ptr);
+      //fprintf(stderr, "tableStart 0x%x, codeOff 0x%x, codeLen 0x%x, dataOff 0x%x, dataLen 0x%x\n",
+      //tableStart, img_->codeOffset(), img_->codeLength(),
+      //img_->dataOffset(), img_->dataLength());
 
-        for(int i=0;i<maxSwitch;i++){
-            Address tableEntry = adjustEntry + tableStart + (i * instruction::size());
-            ptr = proc_->getPtrToInstruction(tableEntry);
-            assert(ptr);
-            int jumpOffset = *((int *)ptr);
-            result += (Address)(jumpStart+jumpOffset);
-        }
-    }        
-    setCurrentAddress(initialAddress);
-    return true;
+      // Not sure what to do, really. We don't know where it is, and I'm
+      // not sure how to check.
+    }
+
+    for(int i=0;i<maxSwitch;i++){                    
+      Address tableEntry = adjustEntry + tableStart + (i * instruction::size());
+      //fprintf(stderr, "Table entry at 0x%x\n", tableEntry);
+      if (instructions_->isValidAddress(tableEntry)) {
+	int jumpOffset;
+	if (tableData) {
+	  jumpOffset = *((int *)img->getPtrToData(tableEntry));
+	}
+	else
+	  jumpOffset = *((int *)instructions_->getPtrToInstruction(tableEntry));
+                
+	//fprintf(stderr, "jumpOffset 0x%x\n", jumpOffset);
+	Address res = (Address)(jumpStart + jumpOffset);
+	if (img->isCode(res))
+	  result += (Address)(jumpStart+jumpOffset);
+	//fprintf(stderr, "Entry of 0x%x\n", (Address)(jumpStart + jumpOffset));
+      }
+      else {
+	//fprintf(stderr, "Address not valid!\n");
+      }
+    }
+  }
+  else {
+    void *ptr;
+    if (tableIsRelative) {
+      ptr = instructions_->getPtrToInstruction(jumpStartAddress);
+      assert(ptr);
+      jumpStart = *((Address *)ptr);
+    }
+    ptr = NULL;
+    ptr = instructions_->getPtrToInstruction(tableStartAddress);
+    assert(ptr);
+    tableStart = *((Address *)ptr);
+
+    for(int i=0;i<maxSwitch;i++){
+      Address tableEntry = adjustEntry + tableStart + (i * instruction::size());
+      ptr = instructions_->getPtrToInstruction(tableEntry);
+      assert(ptr);
+      int jumpOffset = *((int *)ptr);
+      result += (Address)(jumpStart+jumpOffset);
+    }
+  }        
+  setCurrentAddress(initialAddress);
+  return true;
 }
 
 bool InstrucIter::delayInstructionSupported()
 {
-	return false;
+  return false;
 }
 
 Address InstrucIter::peekPrev()
 {
-	Address ret = current-instruction::size();
-	return ret;
+  Address ret = current-instruction::size();
+  return ret;
 }
 
 Address InstrucIter::peekNext()
 {
-	Address ret = current + instruction::size();
-	return ret;
+  Address ret = current + instruction::size();
+  return ret;
 }
 
 void InstrucIter::setCurrentAddress(Address addr)
 {
-	current = addr;
-        initializeInsn();
+  current = addr;
+  initializeInsn();
 }
 
 instruction InstrucIter::getInstruction()
 {
-    return insn;
+  return insn;
 }
 
 instruction *InstrucIter::getInsnPtr() {
-    instruction *insnPtr = new instruction(insn);
-    return insnPtr;
-}
-
-instruction InstrucIter::getNextInstruction()
-{
-    instruction ret;
-    if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToInstruction(current + instruction::size()));
-    else {
-        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(current + instruction::size()));
-    }
-    return ret;
-}
-
-instruction InstrucIter::getPrevInstruction()
-{
-    instruction ret;
-    if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToInstruction(current - instruction::size()));
-    else {
-        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(current - instruction::size()));
-    }
-    return ret;
-}
-
-Address InstrucIter::operator++()
-{
-    current += instruction::size();
-    initializeInsn();
-    return current;
-}
-
-Address InstrucIter::operator--()
-{
-	current -= instruction::size();
-    initializeInsn();
-	return current;
-}
-
-Address InstrucIter::operator++(int)
-{
-    Address ret = current;
-    current += instruction::size();
-    initializeInsn();
-    return ret;
-}
-
-Address InstrucIter::operator--(int)
-{
-	Address ret = current;
-	current -= instruction::size();
-        initializeInsn();
-	return ret;
-}
-
-Address InstrucIter::operator*(){
-    return current;
+  instruction *insnPtr = new instruction(insn);
+  return insnPtr;
 }
 
 // Stack frame creation on Power is easy:
 // "stu r1, -120(r1)"
 // That being, "store the current value of r1 at *r1 and subtract 120 from r1"
 bool InstrucIter::isStackFramePreamble(int &/*unset*/) {
-    // We check the entire block. Don't know when it ends,
-    // so go until we hit a jump.
-    bool foundStackPreamble = false;
-    while (instPtr != NULL &&
-           !isAReturnInstruction() &&
-           !isACondBranchInstruction() &&
-           !isACallInstruction() &&
-           !isADynamicCallInstruction() &&
-           !isAJumpInstruction() &&
-           insn.valid()) {
-        // We need to bit twiddle.
-        instructUnion iu = (*insn);
-        if ((iu.dform.op == STUop) &&
-            (iu.dform.rt == 1) &&
-            (iu.dform.ra == 1)) {
-            foundStackPreamble = true;
-            break;
-        }
-        (*this)++;
+  // We check the entire block. Don't know when it ends,
+  // so go until we hit a jump.
+  bool foundStackPreamble = false;
+  while (instPtr != NULL &&
+	 !isAReturnInstruction() &&
+	 !isACondBranchInstruction() &&
+	 !isACallInstruction() &&
+	 !isADynamicCallInstruction() &&
+	 !isAJumpInstruction() &&
+	 insn.valid()) {
+    // We need to bit twiddle.
+    instructUnion iu = (*insn);
+    if ((iu.dform.op == STUop) &&
+	(iu.dform.rt == 1) &&
+	(iu.dform.ra == 1)) {
+      foundStackPreamble = true;
+      break;
     }
+    (*this)++;
+  }
 
-    return foundStackPreamble;
+  return foundStackPreamble;
 }
 
 // If we save the return addr, we're not a leaf function.
@@ -1461,133 +1408,133 @@ bool InstrucIter::isStackFramePreamble(int &/*unset*/) {
 // by a save.
 
 bool InstrucIter::isReturnValueSave() {
-    Address currentAddr = current;
-    // We check the entire block. Don't know when it ends,
-    // so go until we hit a jump.
-    bool foundMFLR = false;
-    bool foundR0Save = false;
-    while (instPtr != NULL &&
-           !isAReturnInstruction() &&
-           !isACondBranchInstruction() &&
-           !isACallInstruction() &&
-           !isADynamicCallInstruction() &&
-           !isAJumpInstruction() &&
-           insn.valid()) {
-        // We need to bit twiddle.
-        instructUnion iu = (*insn);
+  Address currentAddr = current;
+  // We check the entire block. Don't know when it ends,
+  // so go until we hit a jump.
+  bool foundMFLR = false;
+  bool foundR0Save = false;
+  while (instPtr != NULL &&
+	 !isAReturnInstruction() &&
+	 !isACondBranchInstruction() &&
+	 !isACallInstruction() &&
+	 !isADynamicCallInstruction() &&
+	 !isAJumpInstruction() &&
+	 insn.valid()) {
+    // We need to bit twiddle.
+    instructUnion iu = (*insn);
 
-        if (iu.raw == MFLR0raw) {
-            foundMFLR = true;
-        }
-
-        if ((iu.dform.op == STop) &&
-            (iu.dform.rt == 0) &&
-            (iu.dform.ra == 1)) {
-            foundR0Save = true;
-            break;
-        }
-        (*this)++;
+    if (iu.raw == MFLR0raw) {
+      foundMFLR = true;
     }
-    setCurrentAddress(currentAddr);
-    return (foundR0Save && foundMFLR);
+
+    if ((iu.dform.op == STop) &&
+	(iu.dform.rt == 0) &&
+	(iu.dform.ra == 1)) {
+      foundR0Save = true;
+      break;
+    }
+    (*this)++;
+  }
+  setCurrentAddress(currentAddr);
+  return (foundR0Save && foundMFLR);
 }
 
 bool InstrucIter::isFrameSetup()
 {
-   return false;
+  return false;
 }
 
 bool InstrucIter::isFramePush()
 {
-   return false;
+  return false;
 }
 
 bool InstrucIter::isALeaveInstruction()
 {
-   return false;
+  return false;
 }
 
 bool InstrucIter::isAnAbortInstruction()
 {
-    assert(instPtr);
-    return !insn.valid();
+  assert(instPtr);
+  return !insn.valid();
 }
 
 
 bool InstrucIter::isAnAllocInstruction()
 {
-   return false;
+  return false;
 }
 
 bool InstrucIter::isDelaySlot()
 {
-   return false;
+  return false;
 }
 
 bool InstrucIter::isInterModuleCallSnippet(Address &info) {
-    Address currentAddr = current;
+  Address currentAddr = current;
 
-    // Template for linkage functions:
-    // l      r12,<offset>(r2) // address of call into R12
-    // st     r2,20(r1)        // Store old TOC on the stack
-    // l      r0,0(r12)        // Address of callee func
-    // l      r2,4(r12)        // callee TOC
-    // mtctr  0                // We keep the LR static, use the CTR
-    // bctr                    // non-saving branch to CTR
+  // Template for linkage functions:
+  // l      r12,<offset>(r2) // address of call into R12
+  // st     r2,20(r1)        // Store old TOC on the stack
+  // l      r0,0(r12)        // Address of callee func
+  // l      r2,4(r12)        // callee TOC
+  // mtctr  0                // We keep the LR static, use the CTR
+  // bctr                    // non-saving branch to CTR
     
-    bool retval = true;
+  bool retval = true;
 
-    for (unsigned i = 0; i < 6; i++) {
-        parsing_printf("Checking for linkage at addr 0x%lx\n", current);
-        if (!retval) break;
+  for (unsigned i = 0; i < 6; i++) {
+    parsing_printf("Checking for linkage at addr 0x%lx\n", current);
+    if (!retval) break;
 
-        if (!hasMore()) {
-            parsing_printf("failed hasMore check %d: %p, %d, 0x%lx <= 0x%lx <= 0x%lx",
-                           i, instPtr, range, base, current, base+range);
-            retval = false;
-            break;
-        }
-        instruction scratch = getInstruction();
-        parsing_printf("Slot %d: raw bytes 0x%x\n",
-                       i, scratch.raw());
-        switch(i) {
-        case 0: // l r12, <offset> (r2)
-            if (((*scratch).dform.op != Lop) ||
-                ((*scratch).dform.rt != 12) ||
-                ((*scratch).dform.ra != 2))  {
-                parsing_printf("Insn 0 not load\n");
-                retval = false;
-            }
-            info = (*scratch).dform.d_or_si;
-            break;
-        case 1: // st     r2,20(r1)
-            break; // Don't check this one. 
-        case 2: // l      r0,0(r12) 
-            if (((*scratch).dform.op != Lop) ||
-                ((*scratch).dform.rt != 0) ||
-                (((*scratch).dform.ra != 1) && ((*scratch).dform.ra != 12))) {
-                parsing_printf("Insn 2 not load\n");
-                retval = false;
-            }
-            break;
-        case 3: // l      r2,4(r12)
-            break;
-        case 4: // mtctr  0  
-            break; // Could check individually...
-        case 5:// bctr 
-            if (((*scratch).xlform.op != BCLRop) ||
-                ((*scratch).xlform.xo != BCCTRxop)) {
-                parsing_printf("Insn 2 not BCTR\n");
-                retval = false;
-            }
-            break;
-        default:
-            assert(0);
-            break;
-        }
-        (*this)++;
+    if (!hasMore()) {
+      parsing_printf("failed hasMore check %d: %p, %d, 0x%lx <= 0x%lx <= 0x%lx",
+		     i, instPtr, range, base, current, base+range);
+      retval = false;
+      break;
     }
-    setCurrentAddress(currentAddr);
-    return retval;
+    instruction scratch = getInstruction();
+    parsing_printf("Slot %d: raw bytes 0x%x\n",
+		   i, scratch.raw());
+    switch(i) {
+    case 0: // l r12, <offset> (r2)
+      if (((*scratch).dform.op != Lop) ||
+	  ((*scratch).dform.rt != 12) ||
+	  ((*scratch).dform.ra != 2))  {
+	parsing_printf("Insn 0 not load\n");
+	retval = false;
+      }
+      info = (*scratch).dform.d_or_si;
+      break;
+    case 1: // st     r2,20(r1)
+      break; // Don't check this one. 
+    case 2: // l      r0,0(r12) 
+      if (((*scratch).dform.op != Lop) ||
+	  ((*scratch).dform.rt != 0) ||
+	  (((*scratch).dform.ra != 1) && ((*scratch).dform.ra != 12))) {
+	parsing_printf("Insn 2 not load\n");
+	retval = false;
+      }
+      break;
+    case 3: // l      r2,4(r12)
+      break;
+    case 4: // mtctr  0  
+      break; // Could check individually...
+    case 5:// bctr 
+      if (((*scratch).xlform.op != BCLRop) ||
+	  ((*scratch).xlform.xo != BCCTRxop)) {
+	parsing_printf("Insn 2 not BCTR\n");
+	retval = false;
+      }
+      break;
+    default:
+      assert(0);
+      break;
+    }
+    (*this)++;
+  }
+  setCurrentAddress(currentAddr);
+  return retval;
 
 }

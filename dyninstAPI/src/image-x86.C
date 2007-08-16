@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.24 2007/06/15 21:30:09 nater Exp $
+ * $Id: image-x86.C,v 1.25 2007/08/16 20:43:47 bill Exp $
  */
 
 #include "common/h/Vector.h"
@@ -422,7 +422,10 @@ bool image_func::archIsATailCall(InstrucIter &ah,
 
 bool image_func::archIsIndirectTailCall(InstrucIter &ah)
 {
-    return ah.peekPrev() && (*ah.getPrevInstruction().op_ptr()) == POP_EBX;
+  if(!ah.peekPrev()) return false;
+  InstrucIter temp(ah);
+  temp--;
+  return (*temp.getInstruction().op_ptr()) == POP_EBX;
 }
 
 bool image_func::archIsAbortOrInvalid(InstrucIter &ah)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.405 2007/07/24 20:22:44 bernat Exp $
+/* $Id: process.h,v 1.406 2007/08/16 20:43:48 bill Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -72,6 +72,9 @@
 #include "dyninstAPI/src/dyn_thread.h"
 
 #include "debug.h"
+
+// Making this an InstructionSource for InstrucIter
+#include "dyninstAPI/src/InstructionSource.h"
 
 // Annoying... Solaris has two /proc header files, one for the
 // multiple-FD /proc and one for an ioctl-based compatibility /proc.
@@ -147,7 +150,7 @@ class BPatch_point;
 
 typedef void (*continueCallback)(timeStamp timeOfCont);
 
-class process {
+class process : public InstructionSource {
     friend class ptraceKludge;
     friend class dyn_thread;
     friend class dyn_lwp;
@@ -308,13 +311,13 @@ class process {
   }
 
   // Appears to be the system pointer size. 
-  unsigned getAddressWidth(); 
+  virtual unsigned getAddressWidth() const; 
 
   // The process keeps maps of valid (i.e. allocated) address ranges
-  bool isValidAddress(Address);
+  virtual bool isValidAddress(const Address&) const;
 
   // And "get me a local pointer to XX" -- before we modified it.
-  void *getPtrToInstruction(Address);
+  virtual void *getPtrToInstruction(Address) const;
 
   // this is only used on aix so far - naim
   // And should really be defined in a arch-dependent place, not process.h - bernat

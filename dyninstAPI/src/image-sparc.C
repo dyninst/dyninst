@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.14 2007/07/19 17:44:39 tugrul Exp $
+// $Id: image-sparc.C,v 1.15 2007/08/16 20:43:47 bill Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -259,8 +259,13 @@ bool image_func::archGetMultipleJumpTargets(
 bool image_func::archIsATailCall(InstrucIter &ah,
                                  pdvector< instruction >& /* allInstructions */)
 {
-    if( CallRestoreTC(ah.getInstruction(), ah.getNextInstruction()) ||
-        JmpNopTC(ah.getInstruction(), ah.getNextInstruction(), *ah, this) ||            MovCallMovTC(ah.getInstruction(), ah.getNextInstruction())) 
+  instruction current = ah.getInstruction();
+  InstrucIter tmp(ah);
+  tmp++;
+  instruction next = tmp.getInstruction();
+    if( CallRestoreTC(current, next) ||
+        JmpNopTC(current, next, *ah, this) ||  
+	MovCallMovTC(current, next)) 
     {
         parsing_printf("ERROR: tail call (?) not handled in func %s at 0x%x\n",
                        symTabName().c_str(), *ah);

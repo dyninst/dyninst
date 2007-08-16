@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.70 2006/12/06 21:17:16 bernat Exp $
+// $Id: arch-x86.C,v 1.71 2007/08/16 20:43:47 bill Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3754,9 +3754,10 @@ bool instruction::generate(codeGen &gen,
       }
       else if (proc->isValidAddress(target)) {
          // Get us an instrucIter
-         InstrucIter callTarget(target, proc);
-         instruction firstInsn = callTarget.getInstruction();
-         instruction secondInsn = callTarget.getNextInstruction();
+	InstrucIter callTarget(target, proc);
+	instruction firstInsn = callTarget.getInstruction();
+	callTarget++;
+         instruction secondInsn = callTarget.getInstruction();
          if (firstInsn.isMoveRegMemToRegMem() &&
              secondInsn.isReturn()) {
             // We need to fake this by figuring out the register

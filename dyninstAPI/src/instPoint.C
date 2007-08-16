@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.40 2007/07/26 19:19:39 bernat Exp $
+// $Id: instPoint.C,v 1.41 2007/08/16 20:43:47 bill Exp $
 // instPoint code
 
 
@@ -222,11 +222,13 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
 #if defined(arch_sparc)
     // Can't instrument delay slots
     if (newIter.hasPrev()) {
-        if (newIter.getPrevInstruction().isDCTI()) {
-            inst_printf("%s[%d]:  can't instrument delay slot\n", FILE__, __LINE__);
-            fprintf(stderr, "%s[%d]:  can't instrument delay slot\n", FILE__, __LINE__);
-            return NULL;
-        }
+      InstrucIter prevInsn(newIter);
+      prevInsn--;      
+      if (prevInsn.getInstruction().isDCTI()) {
+	inst_printf("%s[%d]:  can't instrument delay slot\n", FILE__, __LINE__);
+	fprintf(stderr, "%s[%d]:  can't instrument delay slot\n", FILE__, __LINE__);
+	return NULL;
+      }
     }
 #endif
     

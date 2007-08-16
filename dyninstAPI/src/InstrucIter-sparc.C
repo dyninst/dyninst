@@ -68,7 +68,7 @@ bool InstrucIter::isASaveInstruction()
 {
   const instruction i = getInstruction();
   if(((*i).resti.op == RESTop) && ((*i).resti.op3 == SAVEop3))
-      return true;
+    return true;
   return false;  
 }
 
@@ -79,7 +79,7 @@ bool InstrucIter::isARestoreInstruction()
 {
   const instruction i = getInstruction();
   if(((*i).resti.op == RESTop) && ((*i).resti.op3 == RESTOREop3))
-      return true;
+    return true;
   return false;  
 }
 
@@ -94,7 +94,7 @@ bool InstrucIter::isAReturnInstruction()
      ((*i).resti.rd == 0) && ((*i).resti.i == 0x1) &&
      (((*i).resti.rs1 == 0xf) || ((*i).resti.rs1 == 0x1f)) &&
      (((*i).resti.simm13 == 8) || ((*i).resti.simm13 == 12)))
-      return true;
+    return true;
   return false;
 }
 
@@ -113,16 +113,16 @@ bool InstrucIter::isAOMPDoFor()
 
 /** is the instruction used to return from the functions,
     dependent upon a condition register
-  * @param i the instruction value 
-  */
+    * @param i the instruction value 
+    */
 bool InstrucIter::isACondReturnInstruction()
 {
   return false; // Not implemented yet
 }
 
 /** is the instruction an indirect jump instruction 
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 bool InstrucIter::isAIndirectJumpInstruction()
 {
   const instruction i = getInstruction();
@@ -131,16 +131,16 @@ bool InstrucIter::isAIndirectJumpInstruction()
      ((*i).resti.rd == 0) && ((*i).resti.rs1 != 0xf) && 
      ((*i).resti.rs1 != 0x1f))
   {
-      if((!(*i).resti.i && ((*i).restix.rs2 == 0)) ||
-	   ((*i).resti.i && ((*i).resti.simm13 == 0)))
-		return true;
+    if((!(*i).resti.i && ((*i).restix.rs2 == 0)) ||
+       ((*i).resti.i && ((*i).resti.simm13 == 0)))
+      return true;
   }
   return false;
 }
 
 /** is the instruction a conditional branch instruction 
-  * @param i the instruction value 
-  */ 
+ * @param i the instruction value 
+ */ 
 bool InstrucIter::isACondBranchInstruction()
 {
   const instruction i = getInstruction();
@@ -166,7 +166,7 @@ bool InstrucIter::isACondBLEInstruction()
 
 /** is the instruction an unconditional branch instruction 
  * @param i the instruction value 
-  */
+ */
 bool InstrucIter::isAJumpInstruction()
 {
   const instruction i = getInstruction();
@@ -178,8 +178,8 @@ bool InstrucIter::isAJumpInstruction()
   return false;
 }
 /** is the instruction a call instruction 
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 bool InstrucIter::isACallInstruction()
 {
   const instruction i = getInstruction();
@@ -235,7 +235,7 @@ const unsigned int fishyBytes[] = { 0, 1, 8, 4 };
 // VG(09/20/01): SPARC V9 decoding after the architecture manual.
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-    instruction *i = getInsnPtr();
+  instruction *i = getInsnPtr();
 
   if((**i).rest.op != 0x3) // all memory opcodes have op bits 11
     return BPatch_memoryAccess::none;
@@ -317,8 +317,8 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 }
 
 /** function which returns the offset of control transfer instructions
-  * @param i the instruction value 
-  */
+ * @param i the instruction value 
+ */
 Address InstrucIter::getBranchTargetOffset()
 {
   const instruction i = getInstruction();
@@ -327,249 +327,193 @@ Address InstrucIter::getBranchTargetOffset()
 }
 
 Address InstrucIter::getBranchTargetAddress(bool *) {
-    const instruction i = getInstruction();
-    return i.getTarget(current);
+  const instruction i = getInstruction();
+  return i.getTarget(current);
 }
 
 bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
-    Address oldCurrent = current;
-    instruction src = getInstruction();
-    while(hasMore()){
-        instruction check = getInstruction();
-	// Check if the destination register of the sethi ins matches with the src of the indirect jump :giri 2/14/2007
-        if(((*check).sethi.op == 0x0) && 
-           ((*check).sethi.op2 == 0x4) &&
-           ((*check).sethi.rd == (*src).resti.rs1))
-            {
-                register signed offset = (*check).sethi.imm22 << 10;
-                check = getNextInstruction();
-                if(((*check).resti.op == 0x2) &&
-                   ((*check).resti.op3 == 0x2) &&
-                   ((*check).resti.i == 0x1)){
-                    register signed lowData = (*check).resti.simm13 & 0x3ff;
-                    offset |= lowData;
+  Address oldCurrent = current;
+  instruction src = getInstruction();
+  while(hasPrev()){
+    instruction check = getInstruction();
+    // Check if the destination register of the sethi ins matches with the src of the indirect jump :giri 2/14/2007
+    if(((*check).sethi.op == 0x0) && 
+       ((*check).sethi.op2 == 0x4) &&
+       ((*check).sethi.rd == (*src).resti.rs1))
+    {
+      register signed offset = (*check).sethi.imm22 << 10;
+      ++(*this);
+      check = getInstruction();
+      --(*this);
+      if(((*check).resti.op == 0x2) &&
+	 ((*check).resti.op3 == 0x2) &&
+	 ((*check).resti.i == 0x1)){
+	register signed lowData = (*check).resti.simm13 & 0x3ff;
+	offset |= lowData;
 
-                    while(true) { // Probably should calculate max table size
-                        // as on other platforms.
-                        void *targetPtr = NULL;
-                        
-                        if (img_) {
-		            if(!img_->isValidAddress(offset))
-				return false;
-                            if (img_->isCode(offset))
-                                targetPtr = img_->getPtrToInstruction(offset);
-                        }
-                        else {
-                            // Process
-                            targetPtr = proc_->getPtrToInstruction(offset);
-                        }
+	image* img = dynamic_cast<image*>(instructions_);
+	while(true) { // Probably should calculate max table size
+	  // as on other platforms.
+	  void *targetPtr = NULL;
+	  if(!instructions_->isValidAddress(offset)) return false;
+	  if(img && !img->isCode(offset)) return false;
+	  targetPtr = instructions_->getPtrToInstruction(offset);
+		    
+	  if (targetPtr == NULL) return false;
 
-                        if (targetPtr == NULL) return false;
+	  // This is a horrid way to catch the end of the table;
+	  // however, I don't know enough about SPARC to fix it.
+		    
+	  Address target = *((Address *)targetPtr);
+	  bool valid = true;
 
-                        // This is a horrid way to catch the end of the table;
-                        // however, I don't know enough about SPARC to fix it.
+	  // I've seen this as well, when they pad
+	  // jump tables.
+	  if (img && (!img->isCode(target) || target == img->codeOffset())) {
+	      valid = false;
+	  }
+	  else {
+	    if (!instructions_->getPtrToInstruction(target))
+	      valid = false;
+	  }
 
-                        Address target = *((Address *)targetPtr);
-                        bool valid = true;
+	  instruction check(target);
+	  if (check.valid()) {
+	    // Apparently, we've hit the end of the... something.
+	    valid = false;
+	  }
+	  if (target == 0) {
+	    // What?
+	    valid = false;
+	  }
+	  if (!valid) return false;
 
-                        if (img_) {
-                            if (!img_->isCode(target))
-                                valid = false;
-                            // I've seen this as well, when they pad
-                            // jump tables.
-                            if (target == img_->codeOffset())
-                                valid = false;
-                        }
-                        else {
-                            if (!proc_->getPtrToInstruction(target))
-                                valid = false;
-                        }
+	  result += target;
+	  offset += instruction::size();
+	}
 
-                        instruction check(target);
-                        if (check.valid()) {
-                            // Apparently, we've hit the end of the... something.
-                            valid = false;
-                        }
-                        if (target == 0) {
-                            // What?
-                            valid = false;
-                        }
-                        if (!valid) return false;
-
-                        result += target;
-                        offset += instruction::size();
-                    }
-
-                    setCurrentAddress(oldCurrent);
-                    return true;
-                }
-            }
-        (*this)--;
+	setCurrentAddress(oldCurrent);
+	return true;
+      }
     }
-    setCurrentAddress(oldCurrent);
-    return false;
+    --(*this);
+  }
+  setCurrentAddress(oldCurrent);
+  return false;
 }
 bool InstrucIter::delayInstructionSupported(){
   return true;
 }
 
 Address InstrucIter::peekPrev() {
-    // What about delay slots?
-    Address ret = current-instruction::size();
-    return ret;
+  // What about delay slots?
+  Address ret = current-instruction::size();
+  return ret;
 }
 
 Address InstrucIter::peekNext() {
-    // Delay slot?
-    Address ret = current + instruction::size();
-    return ret;
+  // Delay slot?
+  Address ret = current + instruction::size();
+  return ret;
 }
 
 void InstrucIter::setCurrentAddress(Address addr){
   current = addr;
+  //initializeInsn();
 }
 
 instruction InstrucIter::getInstruction(){
-    return insn;
+  return insn;
 }
 
 instruction *InstrucIter::getInsnPtr() {
-    instruction *insnPtr = new instruction(insn);
-    return insnPtr;
-}
-
-
-instruction InstrucIter::getNextInstruction(){
-    instruction ret;
-    if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToInstruction(peekNext()));
-    else {
-        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(peekNext()));
-    }
-    return ret;
-}
-instruction InstrucIter::getPrevInstruction(){
-    instruction ret;
-    if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToInstruction(peekPrev()));
-    else {
-        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(peekPrev()));
-    }
-    return ret;
-}
-
-Address InstrucIter::operator++(){
-    current += instruction::size();
-    initializeInsn();
-    return current;
-}
-Address InstrucIter::operator--(){
-    current -= instruction::size();
-    initializeInsn();
-    return current;
-}
-Address InstrucIter::operator++(int){
-    Address ret = current;
-
-    current += instruction::size();
-    initializeInsn();
-    return ret;
-}
-Address InstrucIter::operator--(int){
-    Address ret = current;
-    current -= instruction::size();
-    initializeInsn();
-    return ret;
-}
-
-Address InstrucIter::operator*(){
-    return current;
+  instruction *insnPtr = new instruction(insn);
+  return insnPtr;
 }
 
 // Check to see if we make a stack frame; in Sparc terms,
 // execute a save instruction
 bool InstrucIter::isStackFramePreamble(int &) {
-    assert(instPtr);
-    while (!isAReturnInstruction() &&
-           !isACondBranchInstruction() &&
-           !isACallInstruction() &&
-           !isADynamicCallInstruction() &&
-           !isAJumpInstruction() &&
-           insn.valid()) {
-        if (insn.isInsnType(SAVEmask, SAVEmatch)) 
-            return true;
-        (*this)++;
-    }
-    return false;
+  assert(instPtr);
+  while (!isAReturnInstruction() &&
+	 !isACondBranchInstruction() &&
+	 !isACallInstruction() &&
+	 !isADynamicCallInstruction() &&
+	 !isAJumpInstruction() &&
+	 insn.valid()) {
+    if (insn.isInsnType(SAVEmask, SAVEmatch)) 
+      return true;
+    (*this)++;
+  }
+  return false;
 }
 
 bool InstrucIter::isADynamicCallInstruction() {
-    instruction i = getInstruction();
-    return i.isInsnType(CALLImask, CALLImatch);
+  instruction i = getInstruction();
+  return i.isInsnType(CALLImask, CALLImatch);
 }
 
 void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
-                              instruction* &agg) {
-    assert(instPtr);
-    instruction insn = getInstruction();
-    if (!insn.isDCTI())
-        return;
-    // Get the next two instructions, by address
-    // since we don't know where we are in the bbl.
+				     instruction* &agg) {
+  assert(instPtr);
+  instruction insn = getInstruction();
+  if (!insn.isDCTI())
+    return;
+  // Get the next two instructions, by address
+  // since we don't know where we are in the bbl.
 
-    ds = NULL;
-    agg = NULL;
+  ds = NULL;
+  agg = NULL;
     
-    void *dsPtr = NULL;
-    void *aggPtr = NULL;
+  void *dsPtr = NULL;
+  void *aggPtr = NULL;
 
-    if (proc_) {
-        dsPtr = proc_->getPtrToInstruction(current + instruction::size());
-        aggPtr = proc_->getPtrToInstruction(current + 2*instruction::size());
-    }
-    else {
-        assert(img_); 
-        if (!img_->isValidAddress(current + instruction::size())) {
-            fprintf(stderr, "Error: addr 0x%x is not valid!\n",
-                    img_);
-        }
-        else {
-            dsPtr = img_->getPtrToInstruction(current+instruction::size());
-            aggPtr = img_->getPtrToInstruction(current+2*instruction::size());
-        }            
-    }
 
-    // Skip delay slot...
+  assert(instructions_); 
+  if (!instructions_->isValidAddress(current + instruction::size())) {
+    fprintf(stderr, "Error: addr 0x%x is not valid!\n",
+	    instructions_);
+  }
+  else
+  {
+    dsPtr = instructions_->getPtrToInstruction(current + instruction::size());
+    aggPtr = instructions_->getPtrToInstruction(current + 2*instruction::size());
+    
+
+  }
+
+
+  // Skip delay slot...
+  (*this)++;
+
+  assert(dsPtr);
+  ds = new instruction(*(unsigned int *)dsPtr);
+    
+  /* Cases where an unimp 0 actually follows a delay slot */
+  if (!aggPtr)
+  {
     (*this)++;
-
-    assert(dsPtr);
-    ds = new instruction(*(unsigned int *)dsPtr);
-    
-    /* Cases where an unimp 0 actually follows a delay slot */
-    if (!aggPtr)
-      {
-	(*this)++;
-	agg = NULL;
-	return;
-      }      
-
-    agg = new instruction(*(unsigned int *)aggPtr);
-    if (!agg->valid()) {
-        if ((**agg).raw != 0x0) {
-            // Skip aggregate...
-            (*this)++;
-            return;
-        }
-    }
-    // Otherwise, not what we want.
-    delete agg;
     agg = NULL;
     return;
+  }      
+
+  agg = new instruction(*(unsigned int *)aggPtr);
+  if (!agg->valid()) {
+    if ((**agg).raw != 0x0) {
+      // Skip aggregate...
+      (*this)++;
+      return;
+    }
+  }
+  // Otherwise, not what we want.
+  delete agg;
+  agg = NULL;
+  return;
 }
 
 bool InstrucIter::isTstInsn()
 {
-    const instruction i = getInstruction();
+  const instruction i = getInstruction();
 
   if ((*i).resti.op3 == 18)
     return true;
@@ -579,34 +523,34 @@ bool InstrucIter::isTstInsn()
 
 bool InstrucIter::isDelaySlot()
 {
-    assert(instPtr);
-    return insn.isDCTI();
+  assert(instPtr);
+  return insn.isDCTI();
 }
 
 bool InstrucIter::isFrameSetup()
 {
-    return false;
+  return false;
 }
 
 bool InstrucIter::isALeaveInstruction()
 {
-    return false;
+  return false;
 }
 
 bool InstrucIter::isFramePush()
 {
-    return false;
+  return false;
 }
 
 bool InstrucIter::isAnAllocInstruction()
 {
-    return false;
+  return false;
 }
 
 bool InstrucIter::isAnAbortInstruction()
 {
-    assert(instPtr);
-    return insn.isIllegal();
+  assert(instPtr);
+  return insn.isIllegal();
 }
 
 int adjustFPRegNumbers(int reg, int* registers, int i/*next available cell in registers*/, int word_size) {
@@ -665,9 +609,9 @@ void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs) {
     if(regNum != -1) {
       regNum = getRegisterNumber(regNum, reads[i].getType());
       if(regNum != 0)
-		for(j=0, wC=reads[i].getWordCount(); j<wC; j++,c++) {
-			readRegs[c] = regNum + j;
-		}
+	for(j=0, wC=reads[i].getWordCount(); j<wC; j++,c++) {
+	  readRegs[c] = regNum + j;
+	}
     }
     else
       break;
@@ -678,9 +622,9 @@ void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs) {
     if(regNum != -1) {
       regNum = getRegisterNumber(regNum, writes[i].getType());
       if(regNum != 0)
-		for(j=0, wC=writes[i].getWordCount(); j<wC; j++,c++) {
-			writeRegs[c] = regNum + j;
-		}
+	for(j=0, wC=writes[i].getWordCount(); j<wC; j++,c++) {
+	  writeRegs[c] = regNum + j;
+	}
     }
     else
       break;

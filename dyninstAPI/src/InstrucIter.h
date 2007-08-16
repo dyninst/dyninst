@@ -44,16 +44,16 @@
 
 #include "BPatch_Set.h"
 #include "BPatch_eventLock.h" // CONST_EXPORT...
+#include <vector>
 
 class InstrucIter;
+class InstructionSource;
 
 class instruction;
-class image;
 class image_parRegion;
 class image_basicBlock;
 class image_func;
 
-class process;
 class bblInstance;
 class int_basicBlock;
 class int_function;
@@ -104,10 +104,11 @@ class InstrucIter {
     
     /* We can iterate either over a process address space or 
        within a parsed image */
-    // Only one will be true, and that controls all sorts of stuff
-    // Probably worth making two InstrucIter classes, but so much is similar.
-    process *proc_;
-    image *img_;
+    // By making the process and image share a common interface class (InstructionSource),
+    // we can remove much of the code duplication that was dependent on where we were iterating
+    // BW, 7-07
+    InstructionSource *instructions_;
+    
 
     /* Starting address/offset */
     Address base;
@@ -126,12 +127,7 @@ class InstrucIter {
     // instructions.  When you go forwards, you push the address on;
     // when you go back, you pop.
 
-    typedef struct {
-        Address prevAddr;
-        void *prevPtr;
-    } previous;
-
-    pdvector<previous> prevInsns;
+    std::vector<Address> prevInsns;
 
  public:
     
@@ -143,10 +139,10 @@ class InstrucIter {
     instruction *getInsnPtr();
 
     /** returns the instruction in the next address of handle */
-    instruction getNextInstruction();
+    //instruction getNextInstruction();
     
     /** returns the instruction in the prev address of handle */
-    instruction getPrevInstruction();
+    //instruction getPrevInstruction();
     
     instruction insn;
     void* instPtr;
@@ -255,16 +251,16 @@ class InstrucIter {
   Address operator* ();
 
   /** prefix increment operation */
-  Address operator++ ();
+  InstrucIter operator++ ();
 
   /** prefix decrement operation */
-  Address operator-- ();
+  InstrucIter operator-- ();
 
   /** postfix increment operation */
-  Address operator++ (int);
+  InstrucIter operator++ (int);
 
   /** postfix decrement operation */
-  Address operator-- (int);
+  InstrucIter operator-- (int);
 
   /* Predicates */
    

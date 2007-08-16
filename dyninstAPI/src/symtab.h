@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.198 2007/07/24 20:22:45 bernat Exp $
+// $Id: symtab.h,v 1.199 2007/08/16 20:43:48 bill Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -63,6 +63,7 @@
 #include "common/h/String.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/InstructionSource.h"
 
 
 #include "common/h/Types.h"
@@ -264,7 +265,7 @@ typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 // COMMENTS????
 //  Image class contains information about statically and dynamically linked code 
 //  belonging to a process....
-class image : public codeRange {
+class image : public codeRange, public InstructionSource {
    friend class process;
    friend class image_func; // Access to "add<foo>Name"
    friend class image_variable;
@@ -387,7 +388,7 @@ class image : public codeRange {
    // codeRange versions
    Address get_address_cr() const { return codeOffset(); }
    unsigned get_size_cr() const { return codeLength(); }
-   void *getPtrToInstruction(Address offset) const;
+   virtual void *getPtrToInstruction(Address offset) const;
    // Heh... going by address is a really awful way to work on AIX.
    // Make it explicit.
    void *getPtrToData(Address offset) const;
@@ -396,7 +397,7 @@ class image : public codeRange {
    Dyn_Symtab *getObject() const { return linkedFile; }
 
    // Figure out the address width in the image. Any ideas?
-   unsigned getAddressWidth() const { return linkedFile->getAddressWidth(); };
+   virtual unsigned getAddressWidth() const { return linkedFile->getAddressWidth(); };
 
    //Object &getObjectNC() { return linkedFile; } //ccw 27 july 2000 : this is a TERRIBLE hack : 29 mar 2001
 
@@ -409,7 +410,7 @@ class image : public codeRange {
 #endif
    bool isCode(const Address &where) const;
    bool isData(const Address &where) const;
-   bool isValidAddress(const Address &where) const;
+   virtual bool isValidAddress(const Address &where) const;
    bool isAligned(const Address where) const;
 
    bool isNativeCompiler() const { return nativeCompiler; }
