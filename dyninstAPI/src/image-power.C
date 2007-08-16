@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.18 2007/08/08 20:09:19 rutar Exp $
+// $Id: image-power.C,v 1.19 2007/08/16 02:34:22 rutar Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -258,6 +258,7 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
 			  iPar->setClause("SCHEDULE",regValues[7]);
 			  iPar->setClause("CHUNK_SIZE", regValues[8]);
 			  iPar->setClauseLoc("CHUNK_SIZE", regWriteLocations[8]);
+			  iPar->setClauseLoc("SCHEDULE", regWriteLocations[7]);
 			}
 		      
 		      /* Standard outlined function */
@@ -284,6 +285,7 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
 			  iPar->setClause("SCHEDULE",regValues[7]);
 			  iPar->setClause("CHUNK_SIZE", regValues[8]);
 			  iPar->setClauseLoc("CHUNK_SIZE", regWriteLocations[8]);
+			  iPar->setClauseLoc("SCHEDULE", regWriteLocations[7]);
 			}
 		      /* Standard outlined function */
 		      else if(strstr(ppdf->symTabName().c_str(), "WSSectSetup")!=NULL)		    
@@ -297,6 +299,8 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
 
 		      iPar->decodeClauses(regValues[3]);
 		      iPar->setParentFunc(this);
+
+		      fprintf(stderr, "Pushing back standard outlined function\n");
 		      parRegionsList.push_back(iPar);
 
 		      if (iPar->getRegionType() == OMP_DO_FOR || 
@@ -446,6 +450,7 @@ void image_func::parseOMPFunc(bool hasLoop)
 		  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		  Address endLoop = ah2.getCurrentAddress();
 		  iPar->setLastInsn(endLoop);
+		  fprintf(stderr, "Pushing back OMP_DO_FOR_LOOP\n");
 		  parRegionsList.push_back(iPar);
 		  break;
 		}
@@ -481,6 +486,7 @@ void image_func::parseOMPFunc(bool hasLoop)
 		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
+		      fprintf(stderr, "Pushing back OMP_BARRIER\n");
 		      parRegionsList.push_back(iPar);
 		    }
 		  /* Section begins with "BeginOrdered, ends with EndOrdered" */
@@ -509,6 +515,7 @@ void image_func::parseOMPFunc(bool hasLoop)
 			  ah2++;
 			}
 		      iPar->setLastInsn(ah2.getCurrentAddress());
+		      fprintf(stderr, "Pushing back OMP_ORDERED\n");
 		      parRegionsList.push_back(iPar);
 		    }
 		  /* Master construct */
@@ -520,6 +527,7 @@ void image_func::parseOMPFunc(bool hasLoop)
 		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
+		      fprintf(stderr, "Pushing back OMP_MASTER\n");
 		      parRegionsList.push_back(iPar);
 		    }
 		  /* Flush construct */
@@ -531,6 +539,7 @@ void image_func::parseOMPFunc(bool hasLoop)
 		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
+		      fprintf(stderr, "Pushing back OMP_FLUSH\n");
 		      parRegionsList.push_back(iPar);
 		    }
 		  /* Critical Construct, Starts with GetDefaultSLock, ends with RelDefaultSLock */
@@ -560,6 +569,7 @@ void image_func::parseOMPFunc(bool hasLoop)
 
 		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		      
+		      fprintf(stderr, "Pushing back OMP_CRITICAL\n");
 		      parRegionsList.push_back(iPar);
 		    }
 		  /*Atomic Construct,  Begins with GetAtomicLock, ends with RelAtomicLock */
@@ -590,6 +600,7 @@ void image_func::parseOMPFunc(bool hasLoop)
 		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
+		      fprintf(stderr, "Pushing back OMP_ATOMIC\n");
 		      parRegionsList.push_back(iPar);
 		    }
 		  else
