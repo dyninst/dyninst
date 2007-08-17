@@ -367,19 +367,6 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
   return bmap;
 }
 
-BPatch_instruction *InstrucIter::getBPInstruction() {
-
-  BPatch_memoryAccess *ma = isLoadOrStore();
-  BPatch_instruction *in;
-
-  if (ma != BPatch_memoryAccess::none)
-    return ma;
-
-  in = new BPatch_instruction(getInsnPtr(), current);
-
-  return in;
-}
-
 // return target addresses from a jump table
 // tableInsn - instruction that load address of table entry into a register,
 //             the displacement will give us the table's base address
@@ -581,7 +568,7 @@ void InstrucIter::setCurrentAddress(Address addr)
 	break;
       }
       assert(current < addr);
-      (*this)++;
+      current = peekNext();
     }
   }
   else if (current > addr) {
@@ -590,10 +577,9 @@ void InstrucIter::setCurrentAddress(Address addr)
 	current = addr;
 	break;
       }
-      (*this)--;
+      current = peekPrev();
     }
   }
-  initializeInsn();
 }
 
 #if defined(i386_unknown_linux2_0) \
