@@ -279,19 +279,6 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
   return bpma;
 }
 
-BPatch_instruction *InstrucIter::getBPInstruction() {
-
-  BPatch_memoryAccess *ma = isLoadOrStore();
-  BPatch_instruction *in;
-    
-  if (ma != BPatch_memoryAccess::none)
-    return ma;
-    
-  in = new BPatch_instruction( getInsnPtr(), current );
-    
-  return in;
-}
-
 /* The IA-64 SCRAG defines a pattern similar to POWER's.  At some constant offset
    from the GP, there's a jump table whose 64-bit entries are offsets from the base
    address of the table to the target.

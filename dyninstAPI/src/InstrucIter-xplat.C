@@ -340,3 +340,16 @@ InstrucIter InstrucIter::operator--()
   initializeInsn();
   return *this;
 }
+
+BPatch_instruction *InstrucIter::getBPInstruction() {
+
+  BPatch_memoryAccess *ma = isLoadOrStore();
+  BPatch_instruction *in;
+
+  if (ma != BPatch_memoryAccess::none)
+    return ma;
+
+  instruction *i = getInsnPtr();
+  return new BPatch_instruction(i, current);
+}
+

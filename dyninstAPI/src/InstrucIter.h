@@ -138,12 +138,6 @@ class InstrucIter {
     // "user needs to get rid of it" defined.
     instruction *getInsnPtr();
 
-    /** returns the instruction in the next address of handle */
-    //instruction getNextInstruction();
-    
-    /** returns the instruction in the prev address of handle */
-    //instruction getPrevInstruction();
-    
     instruction insn;
     void* instPtr;
 #if defined(arch_ia64)

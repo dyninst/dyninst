@@ -302,20 +302,6 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
   return BPatch_memoryAccess::none;
 }
 
-BPatch_instruction *InstrucIter::getBPInstruction() {
-
-  BPatch_memoryAccess *ma = isLoadOrStore();
-  BPatch_instruction *in;
-
-  if (ma != BPatch_memoryAccess::none)
-    return ma;
-
-  instruction *i = getInsnPtr();
-  in = new BPatch_instruction(i,  current);
-
-  return in;
-}
-
 /** function which returns the offset of control transfer instructions
  * @param i the instruction value 
  */
