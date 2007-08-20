@@ -127,7 +127,7 @@ class InstrucIter {
     // instructions.  When you go forwards, you push the address on;
     // when you go back, you pop.
 
-    std::vector<Address> prevInsns;
+    std::vector<std::pair<Address, void*> >prevInsns;
 
  public:
     

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.34 2007/07/17 21:11:47 rutar Exp $
+ * $Id: image-flowGraph.C,v 1.35 2007/08/20 22:58:23 bill Exp $
  */
 
 #include <stdio.h>
@@ -565,13 +565,12 @@ bool image_func::parse(
     funcEntries_.push_back(p);
 
     int frameSize;
-    Address tmp = *ah;
-    if(ah.isStackFramePreamble(frameSize))
+    InstrucIter tmp(ah);
+    if(tmp.isStackFramePreamble(frameSize))
     {
         archSetFrameSize(frameSize);
         noStackFrame = false;
     }
-    ah.setCurrentAddress(tmp);
     savesFP_ = ah.isFramePush();    // only ever true on x86
 
     // Architecture-specific "do not relocate" list

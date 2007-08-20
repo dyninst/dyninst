@@ -541,7 +541,7 @@ bool InstrucIter::delayInstructionSupported()
 Address InstrucIter::peekPrev()
 {
   if (prevInsns.size()) {
-    return prevInsns.back();
+    return prevInsns.back().first;
   }
   else 
     return 0;
@@ -580,6 +580,7 @@ void InstrucIter::setCurrentAddress(Address addr)
       current = peekPrev();
     }
   }
+  initializeInsn();
 }
 
 #if defined(i386_unknown_linux2_0) \

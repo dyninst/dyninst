@@ -317,7 +317,7 @@ InstrucIter InstrucIter::operator--(int)
 InstrucIter InstrucIter::operator++()
 {
 #if defined(arch_x86) || defined(arch_x86_64) // arch_has_variable_length_insns...
-  prevInsns.push_back(current);
+  prevInsns.push_back(std::make_pair(current, instPtr));
 #endif
   //  assert(instructions_ && instructions_->isValidAddress(peekNext()));  
   setCurrentAddress(peekNext());
@@ -332,6 +332,7 @@ InstrucIter InstrucIter::operator--()
   {
     //assert(instructions_ && instructions_->isValidAddress(peekPrev()));
     setCurrentAddress(peekPrev());
+    instPtr = prevInsns.back().second;
     prevInsns.pop_back();
   }
 #else
