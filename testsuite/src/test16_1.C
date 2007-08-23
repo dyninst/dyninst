@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test16_1.C,v 1.1 2007/08/07 16:31:30 rutar Exp $
+// $Id: test16_1.C,v 1.2 2007/08/23 18:27:28 rutar Exp $
 /*
  * #Name: test1_2
  * #Desc: Mutator Side (call a four argument function)
@@ -153,6 +153,9 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	     regionNumbers[OMP_ORDERED], ORDERED_REGIONS);
     return -1;
   }
+
+  logerror("Passed test #1 (OpenMP regions parsed correctly)\n");
+
   return 0;
 }
 
