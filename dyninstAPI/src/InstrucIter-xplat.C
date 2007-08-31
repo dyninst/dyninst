@@ -188,7 +188,6 @@ InstrucIter::InstrucIter(const InstrucIter& ii) :
 #if defined(arch_x86) || defined(arch_x86_64) // arch_has_variable_length_insns...
   std::copy(ii.prevInsns.begin(), ii.prevInsns.end(), std::back_inserter(prevInsns));
 #endif
-  assert(current >= base);
   initializeInsn();
 }
 

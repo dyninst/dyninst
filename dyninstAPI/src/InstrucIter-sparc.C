@@ -359,7 +359,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 	      valid = false;
 	  }
 	  else {
-	    if (!instructions_->getPtrToInstruction(target))
+	    if (!instructions_->isValidAddress(target) || !instructions_->getPtrToInstruction(target))
 	      valid = false;
 	  }
 
@@ -372,7 +372,11 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 	    // What?
 	    valid = false;
 	  }
-	  if (!valid) return false;
+	  if (!valid) {
+	    setCurrentAddress(oldCurrent);
+	    return false;
+	  }
+	  
 
 	  result += target;
 	  offset += instruction::size();
