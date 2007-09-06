@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 1996-2006 Barton P. Miller
  * 
@@ -39,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.692 2007/08/16 20:43:47 bill Exp $
+// $Id: process.C,v 1.693 2007/09/06 20:14:55 roundy Exp $
 
 #include <ctype.h>
 
@@ -1948,6 +1949,9 @@ process::process(SignalGenerator *sh_) :
     exiting_(false),
     nextTrapIsExec(false),
     inExec_(false),
+    traceSysCalls_(false),
+    traceState_(noTracing_ts),
+    libcstartmain_brk_addr(0),
     theRpcMgr(NULL),
     collectSaveWorldData(true),
     requestTextMiniTramp(false),
@@ -2501,6 +2505,9 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     exiting_(parentProc->exiting_),
     nextTrapIsExec(parentProc->nextTrapIsExec),
     inExec_(parentProc->inExec_),
+    traceSysCalls_(parentProc->getTraceSysCalls()),
+    traceState_(parentProc->getTraceState()),
+    libcstartmain_brk_addr(parentProc->getlibcstartmain_brk_addr()),
     theRpcMgr(NULL), // Set later
     collectSaveWorldData(parentProc->collectSaveWorldData),
     requestTextMiniTramp(parentProc->requestTextMiniTramp),
@@ -2733,9 +2740,9 @@ bool process::loadDyninstLib() {
        continueProc();
     }
 #endif
-    while (!reachedBootstrapState(initialized_bs)) {
-      startup_printf("%s[%d]: Waiting for process to reach initialized state...\n", 
-                     FILE__, __LINE__);
+    while (!reachedBootstrapState(libcLoaded_bs)) {
+      startup_printf("%s[%d]: Waiting for process to load libc or reach "
+                     "initialized state...\n", FILE__, __LINE__);
        if(hasExited()) {
            return false;
        }
@@ -2743,14 +2750,15 @@ bool process::loadDyninstLib() {
        pdvector<eventType> evts;
        evts.push_back(evtProcessAttach); 
        evts.push_back(evtProcessInit); 
+       evts.push_back(evtLibcLoaded);
        evts.push_back(evtProcessExit); 
-       if (reachedBootstrapState(initialized_bs)) break;
+       if (reachedBootstrapState(libcLoaded_bs)) break;
        sh->waitForOneOf(evts);
        getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
-
     
-    startup_printf("%s[%d]: Stopped at entry of main\n", FILE__, __LINE__);
+    startup_printf("%s[%d]: Ready to initialize dynamic linking tracer\n", 
+                   FILE__, __LINE__);
 
     // We've hit the initialization trap, so load dyninst lib and
     // force initialization
@@ -2790,6 +2798,27 @@ bool process::loadDyninstLib() {
                        mapped_objects[debug_iter]->debugString().c_str());
 
     startup_printf("----\n");
+
+    if (getTraceState() >= instrumentLibc_ts) {
+        instrumentLibcStartMain();
+    }
+
+    // wait for process to reach initialized bootstrap state 
+    while (!reachedBootstrapState(initialized_bs)) {
+      startup_printf("%s[%d]: Waiting for process to reach initialized state...\n", 
+                     FILE__, __LINE__);
+       if(hasExited()) {
+           return false;
+       }
+       getMailbox()->executeCallbacks(FILE__, __LINE__);
+       pdvector<eventType> evts;
+       evts.push_back(evtProcessAttach); 
+       evts.push_back(evtProcessInit); 
+       evts.push_back(evtProcessExit); 
+       if (reachedBootstrapState(initialized_bs)) break;
+       sh->waitForOneOf(evts);
+       getMailbox()->executeCallbacks(FILE__, __LINE__);
+    }
 
     if (dyninstLibAlreadyLoaded()) {
 	// LD_PRELOAD worked or we are attaching for the second time
@@ -2880,6 +2909,7 @@ bool process::loadDyninstLib() {
 
     return true;
 }
+
 
 // Set the shared object mapping for the RT library
 bool process::setDyninstLibPtr(mapped_object *RTobj) {
@@ -3753,7 +3783,6 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
                    "<>unable to read %d@%s from process data space: %s (pid=%d)",
                    size, Address_str((Address)inTracedProcess), 
                    strerror(errno), getPid());
-
 	   fprintf(stderr, "Failed to read %d from %p: LWP %d\n", 
 		   size, inTracedProcess, stopped_lwp->get_lwp_id());
 
@@ -4232,12 +4261,9 @@ bool process::addASharedObject(mapped_object *new_obj)
     // Add to codeRange tree
     // Make library callback (will trigger BPatch adding the lib)
     // Perform platform-specific lookups (e.g., signal handler)
-    
     mapped_objects.push_back(new_obj);
     addCodeRange(new_obj);
-
     findSignalHandler(new_obj);
-
     pdstring msg;
 
     //if(new_obj->fileName().length() == 0) {
@@ -4317,10 +4343,8 @@ bool process::addASharedObject(mapped_object *new_obj)
 
     for (unsigned i = 0; i < modlist.size(); i++) {
         mapped_module *curr = modlist[i];
-
         BPatch::bpatch->registerLoadedModule(this, curr);
     }
-    
     return true;
 }
 
@@ -5458,8 +5482,10 @@ pdstring process::getBootstrapStateAsString() const {
         return "unstarted";
      case begun_bs:
         return "begun";
-   case attached_bs:
+     case attached_bs:
        return "attached";
+     case libcLoaded_bs:
+        return "libcLoaded";
      case initialized_bs:
         return "initialized";
      case loadingRT_bs:
