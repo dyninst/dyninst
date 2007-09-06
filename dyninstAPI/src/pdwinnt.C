@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.173 2007/07/02 22:17:55 legendre Exp $
+// $Id: pdwinnt.C,v 1.174 2007/09/06 20:14:54 roundy Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1506,6 +1506,12 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *lwp)
     setBootstrapState(initialized_bs);
     return true;
 }
+
+bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); }
+bool process::instrumentLibcStartMain() { assert(0); }
+bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); }
+void process::setTraceSysCalls(bool traceSys) {}
+void process::setTraceState(traceState_t state) {}
 
 bool process::getDyninstRTLibName() {
     // Set the name of the dyninst RT lib

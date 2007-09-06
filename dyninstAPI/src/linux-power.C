@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.11 2007/08/09 18:22:20 ssuen Exp $
+// $Id: linux-power.C,v 1.12 2007/09/06 20:14:49 roundy Exp $
 
 #include <dlfcn.h>
 
@@ -53,6 +53,7 @@
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
+#include "dyninstAPI/src/signalgenerator.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
@@ -797,7 +798,11 @@ bool process::insertTrapAtEntryPointOfMain()
     return true;
 }
 
-
+bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); }
+bool process::instrumentLibcStartMain() { assert(0); }
+bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); }
+void process::setTraceSysCalls(bool) {}
+void process::setTraceState(traceState_t) {}
 
 bool process::loadDYNINSTlib()
 {

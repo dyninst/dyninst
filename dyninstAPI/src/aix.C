@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.232 2007/07/24 20:22:53 bernat Exp $
+// $Id: aix.C,v 1.233 2007/09/06 20:14:45 roundy Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -959,6 +959,12 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	return directoryName;
 }
+
+bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); }
+bool process::instrumentLibcStartMain() { assert(0); }
+bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); }
+void process::setTraceSysCalls(bool) {}
+void process::setTraceState(traceState_t) {}
 
 #if 0
 // should use demangle.h here, but header is badly broken on AIX 5.1

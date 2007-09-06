@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.215 2007/06/13 18:51:21 bernat Exp $
+// $Id: solaris.C,v 1.216 2007/09/06 20:15:00 roundy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -672,6 +672,13 @@ bool process::insertTrapAtEntryPointOfMain()
     
     return true;
 }
+
+bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); }
+bool process::instrumentLibcStartMain() { assert(0); }
+bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); }
+void process::setTraceSysCalls(bool) {}
+void process::setTraceState(traceState_t) {}
+
 
 bool process::getDyninstRTLibName() {
    if (dyninstRT_name.length() == 0) {

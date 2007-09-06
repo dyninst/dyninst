@@ -52,6 +52,7 @@
 #include "dyn_lwp.h"
 #include "debuggerinterface.h"
 #include "function.h"
+#include "signalgenerator.h"
 
 // For relocationEntry
 #include "symtab.h"
@@ -211,6 +212,12 @@ bool process::insertTrapAtEntryPointOfMain() {
   main_brk_addr = addr;
   return true;
 } /* end insertTrapAtEntryPointOfMain() */
+
+bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); }
+bool process::instrumentLibcStartMain() { assert(0); }
+bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); }
+void process::setTraceSysCalls(bool) {}
+void process::setTraceState(traceState_t) {}
 
 #define BIT_8_3		0x1F8
 
