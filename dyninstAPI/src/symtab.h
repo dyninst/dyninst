@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.199 2007/08/16 20:43:48 bill Exp $
+// $Id: symtab.h,v 1.200 2007/09/06 20:15:02 roundy Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -118,7 +118,6 @@ class fileDescriptor {
     // Vector requires an empty constructor
     fileDescriptor();
 
-    //
     // Some platforms have split code and data. If yours is not one of them,
     // hand in the same address for code and data.
     fileDescriptor(pdstring file, Address code, Address data, bool isShared) :
@@ -127,7 +126,24 @@ class fileDescriptor {
         code_(code),
         data_(data),
         shared_(isShared),
-        pid_(0)
+        pid_(0),
+        startAddr_(0),
+        endAddr_(0),
+        inMem_(false)
+        {}
+
+    // Constructor for a fileDescriptor that represents a dynamically 
+    // allocated memory region
+    fileDescriptor(pdstring regionName, Address start, Address end) :
+        file_(regionName),
+        member_(emptyString),
+        code_(start),
+        data_(start),
+        shared_(true),
+        pid_(0),
+        startAddr_(start),
+        endAddr_(end),
+        inMem_(true)
         {}
 
      ~fileDescriptor() {}
@@ -147,14 +163,17 @@ class fileDescriptor {
              return true;;
          return false;
      }
-
+     
+     bool inMemoryOnly() const {return inMem_;}
      const pdstring &file() const { return file_; }
      const pdstring &member() const { return member_; }
-     Address code() const { return code_; };
-     Address data() const { return data_; };
+     Address code() const { return code_; }
+     Address data() const { return data_; }
+     Address startAddress() { return startAddr_; }
+     Address endAddress() { return endAddr_; }
      bool isSharedObject() const { return shared_; }
      int pid() const { return pid_; }
-     Address loadAddr() const { return loadAddr_; };
+     Address loadAddr() const { return loadAddr_; }
      
      void setLoadAddr(Address a);
      void setMember(pdstring member) { member_ = member; }
@@ -187,6 +206,10 @@ class fileDescriptor {
      bool shared_;
      int pid_;
      Address loadAddr_;
+     // The start and end addresses are only set for memory regions
+     Address startAddr_;
+     Address endAddr_;
+     bool inMem_; // true if this is a memory region 
 
      bool IsEqual( const fileDescriptor &fd ) const;
 };
