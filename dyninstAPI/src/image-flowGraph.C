@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.35 2007/08/20 22:58:23 bill Exp $
+ * $Id: image-flowGraph.C,v 1.36 2007/09/06 20:14:47 roundy Exp $
  */
 
 #include <stdio.h>
@@ -196,79 +196,70 @@ bool image::analyzeImage()
     }
   
 #if defined(cap_stripped_binaries)
-
-    // TODO: This algorithm doesn't handle the gap (if any)
-    //       between the last function and the end of the code
-    //       section
-  
-    int numIndir = 0;
-    unsigned p = 0;
-  
-    image_func *func1, *func2;
-    func1 = NULL;
-    func2 = NULL;
-
-    // nothing to do, exit
+    // Need to check to ensure that pdmodule mod is initialized
+    // before searching the region, previous for loop will not have
+    // executed
     if( everyUniqueFunction.size() <= 0 )
     {
-        stats_parse.stopTimer(PARSE_ANALYZE_TIMER);
-        return true;
+        mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->codeOffset());
     }
 
     // Sort functions to find gaps
     VECTOR_SORT(everyUniqueFunction, addrfunccmp);
 
-    Address gapStart = 0;
+    Address gapStart = linkedFile->codeOffset();
     Address gapEnd;
-  
-    for( ; p + 1 < everyUniqueFunction.size(); p++ )
-    {
-        /* The everyUniqueFunction vector can be updated in the for loop.
-           If functions are discovered preceeding the one pointed to
-           by the current 'p' index, we need to advance 'p' to the
-           correct (next) position */
+    int funcIdx = 0; // index into everyUniqueFunction (which may be empty)
+
+    do {
+        /* The everyUniqueFunction vector can be updated in the for
+           loop.  If functions are discovered preceeding the one
+           pointed to by the current 'funcIdx' index, we need to
+           advance 'funcIdx' to the correct (next) position */
         /* (It would be better to use a data structure with an iterator
             that doesn't break on inserts, such as an ordered set) */
-        while(p+1 < everyUniqueFunction.size() && 
-              everyUniqueFunction[p]->getEndOffset() < gapStart)
+        while(funcIdx < (int) everyUniqueFunction.size() && 
+              everyUniqueFunction[funcIdx]->getEndOffset() < gapStart)
         {
-            /*parsing_printf("[%s:%u] advancing gap index (gapstart: 0x%lx, "
-                           "offset: 0x%lx)\n",
-                FILE__,__LINE__,gapStart,everyUniqueFunction[p]->getOffset());*/
-            p++;
+           /*parsing_printf("[%s:%u] advancing gap index (gapstart: 0x%lx, "
+                           "offset: 0x%lx)\n", FILE__,__LINE__,
+                           gapStart,everyUniqueFunction[funcIdx]->getOffset());*/
+            funcIdx++;
         }
-        if(p+1 >= everyUniqueFunction.size())
-            break;
 
-        func1 = everyUniqueFunction[p];
-        func2 = everyUniqueFunction[p + 1];
-      
-        gapStart = func1->getEndOffset();
-        gapEnd = func2->getOffset();
+        // set gapEnd to start of next function
+        if(funcIdx+1 < (int)everyUniqueFunction.size()) {
+            gapEnd = everyUniqueFunction[funcIdx + 1]->getOffset();
+        } 
+        // if there is no next function, set gapEnd to end of codeSection
+        else if (funcIdx+1 == (int) everyUniqueFunction.size() || funcIdx == 0) {
+            gapEnd = linkedFile->codeOffset() + linkedFile->codeLength();
+        }
+        else {  
+            break; // advanced gap past the end of the code section
+        }
+
         int gap = gapEnd - gapStart;
 
         parsing_printf("[%s:%u] scanning for prologues in range 0x%lx-0x%lx\n",
-            FILE__,__LINE__,gapStart, gapEnd);
+                       FILE__,__LINE__,gapStart, gapEnd);
 
         //gap should be big enough to accomodate a function prologue
-        if(gap < 5)
-            continue;
-
-        Address pos = gapStart;
-        while( pos < gapEnd && isCode( pos ) )
-        {
+        if(gap >= 5) {
+          Address pos = gapStart;
+          while( pos < gapEnd && isCode( pos ) )
+          {
             const unsigned char* instPtr;
             instPtr = (const unsigned char *)getPtrToInstruction( pos );
-              
             instruction insn;
             insn.setInstruction( instPtr, pos );
 
             if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
             {
                 char name[32];
-                numIndir++;
                 snprintf( name, 32, "gap_%lx", pos );
                 pdf = new image_func( name, pos, UINT_MAX, mod, this);
+
                 if(parseFunction( pdf, callTargets, preParseStubs)) {
                     pdf->addSymTabName(name);	// newly added
                     pdf->addPrettyName( name );
@@ -280,7 +271,6 @@ bool image::analyzeImage()
 
                     // If any calls were discovered, adjust our
                     // position in the function vector accordingly
-        
                     if(callTargets.size() > 0) {            
                         while( callTargets.size() > 0 )
                         {   
@@ -298,7 +288,7 @@ bool image::analyzeImage()
                     } else {
                         VECTOR_SORT(everyUniqueFunction, addrfunccmp);
                     }
-                        
+                                            
                     pos = ( gapEnd < pdf->getEndOffset() ?
                             gapEnd : pdf->getEndOffset() );
                 } else {
@@ -306,8 +296,12 @@ bool image::analyzeImage()
                 }
             } else
                 pos++;
-        }   
-    }
+          }// end while loop
+        }
+        // set gapStart for next iteration & increment funcIdx
+        gapStart = everyUniqueFunction[funcIdx]->getEndOffset();
+        funcIdx++;
+    } while (funcIdx < (int)everyUniqueFunction.size());
 #endif
 
   // Sort block list and bind all intra-module call points
@@ -409,7 +403,6 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
                      dictionary_hash< Address, image_func * > &preParseStubs)
 {
     image_func* pdf;
-
     for( unsigned j = 0; j < callTargets.size(); j++ )
     {
         // Call targets have already had image_function objects
@@ -425,7 +418,7 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
         // parsing is successful.
 
         if( !isCode( callTargets[ j ] ) )
-            continue;    
+            continue;
         if( funcsByEntryAddr.defines( callTargets[ j ] ) )
             continue;
 
@@ -1263,9 +1256,9 @@ bool image_func::buildCFG(
                 else
 		  {
                     parsing_printf(" ! call at 0x%lx rejected by isRealCall()\n",
-				   currAddr);
+                                   currAddr);
                     if( validTarget == false )
-		      {
+                      {
                         parsing_printf("... invalid call target\n");
                         currBlk->canBeRelocated_ = false;
                         canBeRelocated_ = false;
