@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.228 2007/07/24 20:23:02 bernat Exp $
+// $Id: unix.C,v 1.229 2007/09/06 20:15:03 roundy Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -510,6 +510,12 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
   if (proc->insertTrapAtEntryPointOfMain()) {
      pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
      buffer += pdstring(", attached to process, stepping to main");
+     statusLine(buffer.c_str());
+     continueHint = true;
+     return true;
+  } else if (proc->getTraceSysCalls()) {
+     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+     buffer += pdstring(", attached to process, looking for __libc_start_main");
      statusLine(buffer.c_str());
      continueHint = true;
      return true;
@@ -1587,7 +1593,6 @@ void EventRecord::clear() {
 
 // TODO: we need to centralize this code as well. Maybe make continueHint
 // a struct to hold signals, or set the signal separately.
-
 
 bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint) 
 {
