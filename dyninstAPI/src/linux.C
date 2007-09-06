@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.261 2007/08/09 18:22:22 ssuen Exp $
+// $Id: linux.C,v 1.262 2007/09/06 20:14:51 roundy Exp $
 
 #include <fstream>
 
@@ -752,8 +752,18 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
    ptraceOtherOps++;
 
    int ptrace_errno = 0;
-   int ret = DBI_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4, &ptrace_errno, 
-                        proc_->getAddressWidth(),  FILE__, __LINE__);
+   int ret;
+   if (proc()->getTraceSysCalls()) {
+       ret = DBI_ptrace(PTRACE_SYSCALL, get_lwp_id(), arg3, arg4,
+                       &ptrace_errno, proc_->getAddressWidth(),
+                       FILE__, __LINE__);
+   }
+   else {
+      ret = DBI_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4,
+                       &ptrace_errno, proc_->getAddressWidth(),
+                       FILE__, __LINE__);
+   }
+
    if (ret == 0)
       return true;
 
@@ -1259,10 +1269,8 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
      }
          stats_ptrace.stopTimer(PTRACE_READ_TIMER);
      return true;
-
-
-
 }
+
 
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
      const unsigned char *ap = (const unsigned char*) inTraced;
