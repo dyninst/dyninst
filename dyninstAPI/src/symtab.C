@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.300 2007/08/16 20:43:48 bill Exp $
+ // $Id: symtab.C,v 1.301 2007/09/06 20:15:01 roundy Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -223,7 +223,7 @@ void image::findMain()
 #if defined(i386_unknown_linux2_0) \
 || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
 || defined(i386_unknown_solaris2_5) \
-  
+   
     if(!desc_.isSharedObject())
     {
     	bool foundMain = false;
@@ -238,18 +238,18 @@ void image::findMain()
     	else if(linkedFile->findSymbolByType(syms,"_fini",Dyn_Symbol::ST_UNKNOWN)==true)
     		foundFini = true;
     
-    	Dyn_Section *textsec;
-    	linkedFile->findSection(".text", textsec);
+    	Dyn_Section *textsec = NULL;
+    	bool foundText = linkedFile->findSection(".text", textsec);
+        if (foundText == false) {
+            return;
+        }
 	
     	if( !foundMain )
     	{
     	    //find and add main to allsymbols
             const unsigned char* p;
-	    Dyn_Section *sec;
-	    linkedFile->findSection(".text", sec);
 		                   
-	    //p = ( const unsigned char* )elf_vaddr_to_ptr( sec->getSecAddr());
-	    p = (( const unsigned char * )linkedFile->code_ptr()) + (sec->getSecAddr() - codeOffset_);
+	    p = (( const unsigned char * )linkedFile->code_ptr()) + (textsec->getSecAddr() - codeOffset_);
             const unsigned char *lastP = 0;
 
             switch(linkedFile->getAddressWidth()) {
@@ -302,13 +302,13 @@ void image::findMain()
                           Dyn_Symbol::SL_GLOBAL, mainAddress,textsec, UINT_MAX );
         
                 linkedFile->addSymbol( newSym );
-           }
-           else
-           {
+            }
+            else
+            {
            	Dyn_Symbol *newSym= new Dyn_Symbol( "main", "DEFAULT_MODULE", Dyn_Symbol::ST_FUNCTION,
                            Dyn_Symbol::SL_GLOBAL, mainAddress,textsec, UINT_MAX );
 	        linkedFile->addSymbol(newSym);		
-           }
+            }
         }
     	if( !foundStart )
     	{
@@ -327,7 +327,7 @@ void image::findMain()
                         Dyn_Symbol::SL_GLOBAL, finisec->getSecAddr(), finisec, UINT_MAX );
 	    linkedFile->addSymbol(finiSym);		
     	}
-    }	
+    }
 
     Dyn_Section *dynamicsec;
     vector < Dyn_Symbol *>syms;
@@ -1054,7 +1054,7 @@ int image::destroy() {
 // Enter a function in all the appropriate tables
 void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
     if (!func) return;
-    
+
     funcsByEntryAddr[func->getOffset()] = func;
     
     // Functions added during symbol table parsing do not necessarily
@@ -1179,10 +1179,11 @@ image::image(fileDescriptor &desc, bool &err)
 #else
    string file = desc_.file().c_str();
    //linkedFile = new Dyn_Symtab();
+
    if(!Dyn_Symtab::openFile(file, linkedFile)) 
    {
-   	err = true;
-	return;
+       err = true;
+       return;
    }
 #endif  
    baseAddr_ = desc.loadAddr();
@@ -1229,10 +1230,10 @@ image::image(fileDescriptor &desc, bool &err)
    msg = pdstring("Parsing object file: ") + desc.file();
    
    statusLine(msg.c_str());
-
+   
    //Now add Main and Dynamic Symbols if they are not present
    findMain();
-
+   
    vector<Dyn_Symbol *> uniqMods;
    linkedFile->getAllSymbolsByType(uniqMods, Dyn_Symbol::ST_MODULE);
 
@@ -1919,8 +1920,8 @@ void *image::getPtrToInstruction(Address offset) const {
 // Address must be in code or data range since some code may end up
 // in the data segment
 bool image::isValidAddress(const Address &where) const{
-	Address addr = where;
-   return linkedFile->isValidOffset(addr) && isAligned(where);
+    Address addr = where;
+    return linkedFile->isValidOffset(addr) && isAligned(addr);
 }
 
 bool image::isCode(const Address &where)  const{
