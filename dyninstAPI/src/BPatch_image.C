@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.96 2007/07/17 17:16:15 rutar Exp $
+// $Id: BPatch_image.C,v 1.97 2007/09/06 20:18:37 roundy Exp $
 
 #define BPATCH_FILE
 
@@ -1052,6 +1052,76 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) {
     assert(bpm != NULL);
     return bpm;
 }
+
+/* BPatch_image::addMemModule 
+ *
+ * Creates a module for the specified address range as a shared object
+ * and parses whatever code it may contain, Checks to ensure
+ * that the region does not overlap any existing modules, and creates
+ * a dump of the file 
+ */
+BPatch_module *BPatch_image::addMemModuleInt
+         (unsigned long addrStart, unsigned long addrEnd) 
+{
+    // Check to ensure that the module does not overlap any existing
+    // BPatch_modules
+    BPatch_Vector<BPatch_module *> *allmods = getModules();
+    for (unsigned int i=0; i < allmods->size(); i++) {
+        unsigned long curStart, curEnd;
+        image *curImg = (*allmods)[i]->lowlevel_mod()->pmod()->imExec();
+        curStart = (curImg->codeOffset() < curImg->dataOffset()) ? 
+            curImg->codeOffset() : curImg->dataOffset();
+        curEnd = (curImg->codeOffset()+curImg->codeLength() 
+                  < curImg->dataOffset()+curImg->dataLength()) ? 
+            curImg->codeOffset()+curImg->codeLength() :
+            curImg->dataOffset()+curImg->dataLength();
+        if (addrStart <= curEnd && curStart <= addrEnd) {
+            fprintf(stderr, "addMemModule received a request for a new "
+                    "region that overlaps existing module %s, which occupies "
+                    "memory range [0x%lX 0x%lX]", curImg->file().c_str(),
+                    curStart, curEnd);
+            return NULL;
+        }
+    }
+
+    // Copy the region to a temp file: /tmp/MemRegion_START_END
+    void *regionBuf = malloc(addrEnd - addrStart);
+    if (!proc->llproc->readDataSpace((void*)addrStart, addrEnd-addrStart, 
+                       regionBuf, false)) {
+        fprintf(stderr, "%s[%d]: Failed to read from region [%X %X]\n",
+                __FILE__, __LINE__,(int)addrStart, 
+                (int)addrEnd);
+    }
+    char regName[64];
+    sprintf(regName, "/tmp/MemRegion_%lX_%lX", addrStart, addrEnd);
+    FILE *regionFD = fopen(regName, "w");
+    if(regionFD == NULL) { // try to write to /tmp
+        fprintf(stderr,"%s[%d]Was unable to open file %s for writing, will"
+                "attempt to write to current working directory\n",
+                FILE__,__LINE__,regName);
+        sprintf(regName, "MemRegion_%lX_%lX", addrStart, addrEnd);
+        FILE *regionFD = fopen(regName, "w");
+        if(regionFD == NULL) {// try writing to working directory
+            fprintf(stderr,"%s[%d]Secondary attempt to open %s also failed\n",
+                    FILE__,__LINE__,regName);
+            free(regionBuf);
+            return NULL;
+        }
+    }
+    fwrite(regionBuf, 1, addrEnd-addrStart, regionFD);
+    fclose(regionFD);
+    free(regionBuf);
+
+    // create a fileDescriptor and mapped_object and add it as a shared object
+    sprintf(regName, "/tmp/MemRegion_%lX_%lX", addrStart, addrEnd);
+    fileDescriptor *fdesc = new fileDescriptor(regName,addrStart,addrEnd);
+
+    // create a mapped object for the region and add it as a shared object
+    mapped_object *obj = mapped_object::createMappedObject(*fdesc, proc->llproc);
+    proc->llproc->addASharedObject(obj);
+    return findModule(regName);
+}
+
 
 void BPatch_image::removeModule(BPatch_module *mod) {
 #if !defined(USE_DEPRECATED_BPATCH_VECTOR)

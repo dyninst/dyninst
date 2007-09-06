@@ -279,6 +279,14 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
     char *,getProgramFileName,(char *name, unsigned int len));
 
+    // BPatch_image::addMemModule 
+    //
+    // Creates a module for the specified address range as a shared
+    // object and parses the code it contains
+    API_EXPORT(Int, (addrStart, addrEnd),
+    BPatch_module *,addMemModule,(unsigned long addrStart, unsigned long addrEnd));
+
+
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Ptr, (name, funcs, showError, regex_case_sensitive, incUninstrumentable),
 
