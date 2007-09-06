@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.11 2007/05/30 19:20:47 legendre Exp $
+ * $Id: Object-elf.C,v 1.12 2007/09/06 20:15:05 roundy Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -142,8 +142,9 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
     // ".shstrtab" section: string table for section header names
     const char *shnames = pdelf_get_shnames(elfHdr);
     if (shnames == NULL) {
+        fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
 	log_elferror(err_func_, ".shstrtab section");
-	return false;
+	//return false;
     }
 
     const char* EDITED_TEXT_NAME = ".edited.text";
@@ -221,6 +222,9 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
    
     for (int i = 0; i < elfHdr.e_shnum(); ++i) {
 	scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
+        if (! scnp->isValid()) { // section is malformed
+            continue; 
+        } 
 	allSectionHdrs.push_back( scnp );
 
 	// resolve section name
@@ -427,8 +431,9 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 #endif
 
   if (!dataddr || !symscnp || !strscnp) {
+    fprintf(stderr, "[%s][%d]WARNING: One or more of text/bss/symbol/string sections not found in ELF binary\n",__FILE__,__LINE__);
     log_elferror(err_func_, "no text/bss/symbol/string section");
-    return false;
+    //return false;
   }
 
   //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit loaded_elf() successful\n");
@@ -1962,9 +1967,13 @@ void Object::find_code_and_data(Elf_X &elf,
 {
     for (int i = 0; i < elf.e_phnum(); ++i) {
 	Elf_X_Phdr phdr = elf.get_phdr(i);
-
-	if ((phdr.p_vaddr() <= txtaddr) && 
-	    (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) {
+        // The code pointer, offset, & length should be set even if
+        // txtaddr=0, so in this case we set these values by
+        // identifying the segment that contains the entryAddress
+	if (((phdr.p_vaddr() <= txtaddr) && 
+	    (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
+	    (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
+	    (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
 
 	    if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
 		code_ptr_ = (Word *)(void*)&file_ptr_[phdr.p_offset()];
@@ -2052,11 +2061,16 @@ Object::Object(string &filename, void (*err_func)(const char *))
     	elfHdr = Elf_X(file_fd_, ELF_C_READ);
 
        	// ELF header: sanity check
-    	if (!elfHdr.isValid() || !pdelf_check_ehdr(elfHdr)) 
+    	if (!elfHdr.isValid())
 	{
     	    log_elferror(err_func_, "ELF header");
     	    return;
        	}
+        else if (!pdelf_check_ehdr(elfHdr))
+        {
+            fprintf(stderr, "[%s][%d]WARNING: ELF ehdr failed integrity check\n",__FILE__,__LINE__);
+            log_elferror(err_func_, "ELF header failed integrity check");
+        }
     	if( elfHdr.e_type() == 3 )
     	    load_shared_object();
         else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 )
@@ -2091,10 +2105,15 @@ Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *
     interpreter_name_ = NULL;
     elfHdr = Elf_X(mem_image,image_size);
     // ELF header: sanity check
-    if (!elfHdr.isValid() || !pdelf_check_ehdr(elfHdr)) 
+    if (!elfHdr.isValid()) 
     {
     	log_elferror(err_func_, "ELF header");
     	return;
+    }
+    else if (!pdelf_check_ehdr(elfHdr))
+    {
+        fprintf(stderr, "[%s][%d]WARNING: ELF ehdr failed integrity check\n",__FILE__,__LINE__);
+        log_elferror(err_func_, "ELF header failed integrity check");
     }
     if( elfHdr.e_type() == 3 )
     	load_shared_object();

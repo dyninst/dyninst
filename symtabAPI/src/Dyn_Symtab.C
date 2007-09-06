@@ -919,9 +919,20 @@ bool Dyn_Symtab::extractInfo()
    dataValidStart_ = linkedFile->data_vldS();
    dataValidEnd_ = linkedFile->data_vldE();
 	
-	if (!codeLen_ || !linkedFile->code_ptr()) {
-      serr = Obj_Parsing; 
-      return false; 
+   if (0 == codeLen_ || 0 == linkedFile->code_ptr()) {
+      // for AIX, code_ptr()==NULL is normal behavior
+#if !defined(os_aix)
+       if (0 == linkedFile->code_ptr()) {
+           fprintf(stderr, "[%s][%d]WARNING: null code pointer in Dyn_Symtab, possibly due to a missing .text section.\n",__FILE__,__LINE__);
+           linkedFile->code_ptr_ = (Word*) linkedFile->code_off();
+       }
+       else {
+#endif
+           serr = Obj_Parsing;        
+           return false; 
+#if !defined(os_aix)
+       }
+#endif
    }
 
 	no_of_sections = linkedFile->no_of_sections();
