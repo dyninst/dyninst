@@ -586,7 +586,7 @@ void int_function::addSymTabName(const pdstring name, bool isPrimary) {
 }
 
 void int_function::addPrettyName(const pdstring name, bool isPrimary) {
-    if (ifunc()->addSymTabName(name, isPrimary))
+    if (ifunc()->addPrettyName(name, isPrimary))
         obj()->addFunctionName(this, name, false);
 }
 
