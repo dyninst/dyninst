@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.406 2007/08/16 20:43:48 bill Exp $
+/* $Id: process.h,v 1.407 2007/09/06 20:14:56 roundy Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -105,6 +105,7 @@ extern unsigned activeProcesses; // number of active processes
 typedef enum { unstarted_bs, 
                attached_bs, 
                begun_bs, 
+               libcLoaded_bs, 
                initialized_bs, 
                loadingRT_bs, 
                loadedRT_bs, 
@@ -113,6 +114,8 @@ typedef enum { unstarted_bs,
 typedef enum { terminateFailed, terminateSucceeded, alreadyTerminated } terminateProcStatus_t;
 
 typedef enum { vsys_unknown, vsys_unused, vsys_notfound, vsys_found } syscallStatus_t;
+
+typedef enum { noTracing_ts, libcOpenCall_ts, libcOpenRet_ts, libcClose_ts, instrumentLibc_ts, done_ts } traceState_t;
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
 
@@ -236,6 +239,22 @@ class process : public InstructionSource {
 
   // Are we in the middle of an exec?
   bool execing() const { return inExec_; }
+
+  // Vars & funcs for locating "main" via __libc_start_main instrumentation
+  Address getlibcstartmain_brk_addr() { return libcstartmain_brk_addr; }
+  bool handleTrapAtLibcStartMain(dyn_lwp *trappingLWP);
+  bool instrumentLibcStartMain();
+  bool getTraceSysCalls() { return traceSysCalls_; }
+  void setTraceSysCalls(bool traceSys);
+  traceState_t getTraceState() { return traceState_; }
+  void setTraceState(traceState_t state);
+  int getLibcHandle() { return libcHandle_; }
+  void setLibcHandle(int val) {  libcHandle_ = val; }
+  // regions that are added during syscall tracking phase
+  pdvector<Address> mappedRegionStart;
+  pdvector<Address> mappedRegionEnd;
+  // start addrs of regions munmapped before call to findLibcStartMain
+  pdvector<Address> munmappedRegions;
 
   // update the status on the whole process (ie. process state and all lwp
   // states)
@@ -1062,6 +1081,12 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   pdstring execFilePath;	// Full path info
   bool inExec_; // Used to be a status vrble, but is orthogonal to running/stopped
 
+  // ptracing
+  bool traceSysCalls_;
+  int libcHandle_;
+  traceState_t traceState_;
+  Address libcstartmain_brk_addr;
+  
   ///////////////////////////////
   // RPCs
   ///////////////////////////////
