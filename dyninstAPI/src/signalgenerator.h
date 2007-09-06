@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.16 2006/12/14 20:12:17 bernat Exp $
+/* $Id: signalgenerator.h,v 1.17 2007/09/06 20:14:58 roundy Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -185,6 +185,8 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    bool assignOrCreateSignalHandler(EventRecord &ev); // Get someone to take care of this sig.
 
    bool decodeIfDueToProcessStartup(EventRecord &ev);
+
+   bool decodeStartupSysCalls(EventRecord &ev);
 
    virtual SignalHandler *newSignalHandler(char *name, int shid)  = 0;
    void deleteSignalHandler(SignalHandler *sh);
