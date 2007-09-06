@@ -1077,12 +1077,16 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
         ret = true;
         break;
     case begun_bs:
-       if (proc->trapAtEntryPointOfMain(ev.lwp, (Address) INFO_TO_ADDRESS(ev.info))) {
+    case libcLoaded_bs:
+       if (proc->getTraceSysCalls()) {
+           ret = decodeStartupSysCalls(ev);
+       }
+       else if (proc->trapAtEntryPointOfMain(ev.lwp, 
+                            (Address) INFO_TO_ADDRESS(ev.info))) {
           ev.type = evtProcessInit; 
           ret = true;
        }
        else {
-
          fprintf(stderr, "%s[%d]:  begun_bs, but no trap!!!!!\n", FILE__, __LINE__);
        }
        break;
