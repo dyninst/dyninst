@@ -99,6 +99,8 @@ typedef enum {
   evtOneTimeCode,
   evtUserEvent,
   evtShutDown,
+  evtLibcLoaded, /* libc has been loaded */
+  evtLibcTrap, /* reached trap in __libc_start_main, handle the trap */
   evtProcessInit, /*aka "initialized" */
   evtProcessLoadedRT, /* dyninst RTlib has been loaded */
   evtProcessInitDone, /* aka bootstrapped */
