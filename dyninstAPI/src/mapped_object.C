@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.22 2007/07/02 16:45:51 ssuen Exp $
+// $Id: mapped_object.C,v 1.23 2007/09/06 20:14:53 roundy Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -190,6 +190,26 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
           //Executable is a shared lib
           p->setAOutLoadAddress(desc);
        }
+
+       // Search for main, if we can't find it, and we're creating the process, 
+       // and not attaching to it, we can find it by instrumenting libc.so
+       // Currently this has only been implemented for linux 
+#if defined(os_linux)
+       vector <Dyn_Symbol *>mainsyms;
+       if (!p->wasCreatedViaAttach() 
+           && !img->getObject()->findSymbolByType
+                 (mainsyms,"main",Dyn_Symbol::ST_UNKNOWN)
+           && !img->getObject()->findSymbolByType
+                 (mainsyms,"_main",Dyn_Symbol::ST_UNKNOWN)) {
+           fprintf(stderr, "[%s][%d] ParseImage of module %s for process %d:\n"
+               "\t  is not a shared object so it should contain a symbol for \n"
+               "\t  function main. Initial attempt to locate main failed,\n"
+               "\t  possibly due to the lack of a .text section\n",
+                 __FILE__,__LINE__,desc.file().c_str(), p->getPid());
+           p->setTraceSysCalls(true);
+           p->setTraceState(libcOpenCall_ts);
+       }
+#endif
     }
 
     // Adds exported functions and variables..
