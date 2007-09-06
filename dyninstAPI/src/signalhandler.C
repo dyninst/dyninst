@@ -622,7 +622,7 @@ bool SignalHandler::handleEvent(EventRecord &ev)
     case evtProcessAttach:
         ret = handleProcessAttach(ev, continueHint);
         break;
-     case evtProcessInit:
+    case evtProcessInit:
         proc->handleTrapAtEntryPointOfMain(ev.lwp);
         proc->setBootstrapState(initialized_bs);
         // If we were execing, we now know we finished
@@ -677,6 +677,17 @@ bool SignalHandler::handleEvent(EventRecord &ev)
            fprintf(stderr, "%s[%d]:  handleProcessStop failed\n", FILE__, __LINE__);
        }
        break;
+    case evtLibcLoaded:
+        ret = true;
+        startup_printf("%s[%d] Handling evtLibcLoaded, execution should stop\n",__FILE__,__LINE__);
+        continueHint = false;
+        break;
+    case evtLibcTrap:
+        startup_printf("%s[%d] Handling evtLibcTrap, execution continues\n",__FILE__,__LINE__);
+        ret = proc->handleTrapAtLibcStartMain(ev.lwp);
+        if(ret) continueHint = true;
+        else    continueHint = false;
+        break;
      // Now the /proc only
      // AIX clones some of these (because of fork/exec/load notification)
      case evtRPCSignal:
