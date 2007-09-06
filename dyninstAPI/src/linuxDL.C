@@ -250,6 +250,9 @@ public:
     r_debug_32(process *proc_, Address addr) : r_debug_x(proc_) {
 	valid = proc->readDataSpace((caddr_t)addr, sizeof(debug_elm),
 				    (caddr_t)&debug_elm, true);
+        if (valid && proc->getTraceState() != noTracing_ts)  {
+            memcpy(&debug_elm, (void*)addr, sizeof(debug_elm));
+        }
     }
     link_map_x *r_map() {
 	return new link_map_32(proc, reinterpret_cast<void *>(debug_elm.r_map));
@@ -365,7 +368,8 @@ bool dynamic_linking::get_ld_info( Address & addr, unsigned &size, char ** path)
       }
       //Check for format match of ld*.so*
       bool matches_name = (strncmp("ld", filename, 2)==0 && 
-                           strstr(filename, ".so"));
+                           strstr(filename, ".so") && 
+                           !strstr(filename, ".cache"));
 
       if (!matches_name) {
          continue;
@@ -614,10 +618,11 @@ bool dynamic_linking::initialize() {
     pdstring dyn_str = pdstring("DYNAMIC");
     Dyn_Symbol dyn_sym;
     if( ! proc->getSymbolInfo( dyn_str, dyn_sym ) ) { 
-        startup_printf("Failed to find DYNAMIC symbol, returning false from dyn::init\n");
-        return false; 
+        startup_printf("[%s][%d]Failed to find DYNAMIC symbol in dyn::init, "
+                       "this may not be a dynamic executable\n",__FILE__,__LINE__);
+        //return false; 
     }
-    
+
     /* Find the base address of ld.so.1, since the entries we get
        from its Object won't be right, otherwise. */
     
@@ -636,7 +641,10 @@ bool dynamic_linking::initialize() {
        ld_path = ld_path_backup;
        proc->setInterpreterName(ld_path);
     }
-
+    if (!ld_path) {
+        startup_printf("[%s][%d]Secondary attempt to find the dynamic linker using /proc failed\n",__FILE__,__LINE__);
+        return false;
+    }
     /* Generate its Object and set r_debug_addr ("_r_debug"/STT_OBJECT) */
     // We haven't parsed libraries at this point, so do it by hand.
     Dyn_Symtab *ldsoOne = new Dyn_Symtab();
