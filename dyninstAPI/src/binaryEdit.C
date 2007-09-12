@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.1 2007/09/12 20:57:14 bernat Exp $
+// $Id: binaryEdit.C,v 1.2 2007/09/12 22:15:02 bernat Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -60,7 +60,7 @@
 bool BinaryEdit::readTextSpace(const void *inOther,
                            u_int amount,
                            const void *inSelf) {
-    void *use = (void *) mapApparentToReal((Address)inOther, amount);
+    void *use = (void *) mapApparentToReal((Address)inOther, amount, false);
     memcpy((void *)inSelf, use, amount);
     return true;
 }
@@ -68,7 +68,7 @@ bool BinaryEdit::readTextSpace(const void *inOther,
 bool BinaryEdit::writeTextSpace(void *inOther,
                             u_int amount,
                             const void *inSelf) {
-    void *use = (void *) mapApparentToReal((Address)inOther, amount);
+    void *use = (void *) mapApparentToReal((Address)inOther, amount, true);
     memcpy(use, inSelf, amount);
     return true;
 }    
@@ -246,7 +246,8 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
 }
 
 Address BinaryEdit::mapApparentToReal(const Address apparent,
-                                      unsigned size) {
+                                      unsigned size,
+                                      bool writing) {
     // Our job: map an address in the "apparent" address
     // space (that of the binary we're editing) to a
     // "real" pointer (that is, into a buffer that we keep). 
@@ -270,38 +271,49 @@ Address BinaryEdit::mapApparentToReal(const Address apparent,
         Address ret = (tmp->out + offset);
         return ret;
     }
-    
-    // Otherwise, we're in the original binary space. Now, there's
-    // two ways we could be in the original binary space. We could
-    // just be pokin' around, in which case we're done. Or we
-    // could be workin' on something that we wrote already, 
-    // like a jump, in which case we need to point out to our
-    // little buffers.
 
-    codeRange *tmp2_ = NULL;
-    if (!overwrittenToReal_.find(apparent, tmp2_)) {
-        // Okay, original binary. 
-        // Which we _don't_ want to do. So we patch-allocate
-        // a chunk for it and return a pointer to 
-        // that. 
-        void *buffer = (void *)malloc(size);
+    // Otherwise, we're in the original binary space, and we're
+    // writing to it. Now, there's two ways we could be in the
+    // original binary space. We could just be pokin' around, in which
+    // case we're done. Or we could be workin' on something that we
+    // wrote already, like a jump, in which case we need to point out
+    // to our little buffers.
+
+    codeRange *over_ = NULL;
+    
+    if (overwrittenToReal_.find(apparent, over_)) {
+        // We found it.
+        addrMapping *over = dynamic_cast<addrMapping *>(over);
+        assert(over);
         
-        addrMapping *aMap = new addrMapping(apparent,
-                                            (Address) buffer,
-                                            size);
-        aMap->alloc = true;
-        overwrittenToReal_.insert(aMap);
-        return (Address) buffer;
+        unsigned offset = apparent - over->in;
+        assert(offset <= over->size);
+        // Ugh pointer math!
+        Address ret = (over->out + offset);
+        return ret;
     }
-
-    addrMapping *tmp2 = dynamic_cast<addrMapping *>(tmp2_);
-    assert(tmp2);
-
-    unsigned offset = apparent - tmp2->in;
-    assert(offset <= tmp2->size);
-    // Ugh pointer math!
-    Address ret = (tmp2->out + offset);
-    return ret;
-    
+    else {
+        // If we're writing, create a new patch area; otherwise,
+        // return the binary.
+        if (writing) {
+            void *buffer = (void *)malloc(size);
+            
+            addrMapping *aMap = new addrMapping(apparent,
+                                                (Address) buffer,
+                                                size);
+            aMap->alloc = true;
+            overwrittenToReal_.insert(aMap);
+            return (Address) buffer;
+        }
+        else {
+            // Head back on up to the original lookup
+            unsigned offset = apparent - tmp->in;
+            assert(offset <= tmp->size);
+            // Ugh pointer math!
+            Address ret = (tmp->out + offset);
+            return ret;
+        }
+    }
+    return NULL;    
 }    
 

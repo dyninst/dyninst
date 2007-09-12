@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.1 2007/09/12 20:57:13 bernat Exp $
+// $Id: binaryEdit.h,v 1.2 2007/09/12 22:15:07 bernat Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -143,7 +143,9 @@ class BinaryEdit : public AddressSpace {
     // address space (which probably aren't at their
     // "apparent" addresses). This function performs that
     // mapping. 
-    Address mapApparentToReal(const Address, const unsigned size);
+    Address mapApparentToReal(const Address, 
+                              const unsigned size, 
+                              bool writing);
 
     bool inferiorMallocStatic(unsigned size);
 
