@@ -108,13 +108,13 @@ BPatch_point *BPatch_instruction::getInstPointInt()
 {
   //const unsigned char *insn_ptr = ((instruction *)instr)->ptr();
   int_basicBlock *iblock = parent->iblock;
-  process *proc = iblock->proc();
+  AddressSpace *proc = iblock->proc();
   int_function *func = iblock->func();
 
   assert(proc);
   assert(func);
 
-  BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(proc->getPid());
+  BPatch_process *bpproc = (BPatch_process *)proc->up_ptr();
   assert(bpproc); 
 
   // If it's in an uninstrumentable function, just return an error.

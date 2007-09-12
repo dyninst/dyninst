@@ -210,7 +210,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    
    startup_cerr << "Registering instPoint callback..." << endl;
    llproc->registerInstPointCallback(createBPPointCB);
-   llproc->container_proc = this;
+   llproc->set_up_ptr(this);
 
    // Add this object to the list of processes
    assert(BPatch::bpatch != NULL);
@@ -347,7 +347,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
 
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
-   llproc->container_proc = this;
+   llproc->set_up_ptr(this);
 
    assert(llproc->isBootstrappedYet());
    assert(llproc->status() == stopped);
@@ -386,7 +386,7 @@ BPatch_process::BPatch_process(process *nProc)
 
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
-   llproc->container_proc = this;
+   llproc->set_up_ptr(this);
 
    image = new BPatch_image(this);
    isVisiblyStopped = true;
@@ -900,7 +900,7 @@ bool BPatch_process::freeInt(BPatch_variableExpr &ptr)
 BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
                                                              BPatch_variableExpr &parentVar)
 {
-   if(! isInferiorAllocated(llproc, (Address)parentVar.getBaseAddr())) {
+   if(! llproc->isInferiorAllocated((Address)parentVar.getBaseAddr())) {
       // isn't defined in this process so must not have been defined in a
       // parent process
       return NULL;
@@ -937,7 +937,8 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle 
     BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(this);
     for(unsigned i=0; i<parent_mtHandles.size(); i++) {
         miniTramp *childMT = NULL;
-        if(!getInheritedMiniTramp(parent_mtHandles[i], childMT, llproc)) {
+        childMT = parent_mtHandles[i]->getInheritedMiniTramp(llproc);
+        if (!childMT) {
             fprintf(stderr, "Failed to get inherited mini tramp\n");
             return NULL;
         }
@@ -2327,7 +2328,7 @@ BPatch_function *BPatch_process::findFunctionByAddrInt(void *addr)
 {
    int_function *func;
    
-   codeRange *range = llproc->findCodeRangeByAddress((Address) addr);
+   codeRange *range = llproc->findOrigByAddr((Address) addr);
    if (!range)
       return NULL;
 
@@ -2435,22 +2436,20 @@ BPatch_point *BPatch_process::findOrCreateBPPoint(BPatch_function *bpfunc,
    return pt;
 }
 
-BPatch_function *BPatch_process::createBPFuncCB(process *p, int_function *f)
+BPatch_function *BPatch_process::createBPFuncCB(AddressSpace *a, int_function *f)
 {
-   bool found;
-   BPatch_process *proc = BPatch::bpatch->getProcessByPid(p->getPid(), &found);
-   assert(found);
-   return proc->findOrCreateBPFunc(f, NULL);
+    BPatch_process *proc = (BPatch_process *)a->up_ptr();
+    assert(proc);
+    return proc->findOrCreateBPFunc(f, NULL);
 }
 
-BPatch_point *BPatch_process::createBPPointCB(process *p, int_function *f, 
+BPatch_point *BPatch_process::createBPPointCB(AddressSpace *a, int_function *f, 
                                               instPoint *ip, int type)
 {
-   bool found;
-   BPatch_process *proc = BPatch::bpatch->getProcessByPid(p->getPid(), &found);
-   assert(found);
-   BPatch_function *func = proc->func_map->get(f);
-   return proc->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
+    BPatch_process *proc = (BPatch_process *)a->up_ptr();
+    assert(proc);
+    BPatch_function *func = proc->func_map->get(f);
+    return proc->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
 }
 
 BPatch_thread *BPatch_process::createOrUpdateBPThread(
