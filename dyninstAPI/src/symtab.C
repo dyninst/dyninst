@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.301 2007/09/06 20:15:01 roundy Exp $
+ // $Id: symtab.C,v 1.302 2007/09/12 20:58:08 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,6 +200,7 @@ image_func *image::makeOneFunction(vector<Dyn_Symbol *> &mods,
   
 
 #if defined(os_aix)
+
   if(strstr(lookUp->getName().c_str(), "@OL@") != NULL){
     image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
     parallelRegions.push_back(pR);

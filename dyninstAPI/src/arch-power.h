@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.39 2007/08/09 10:15:27 rchen Exp $
+// $Id: arch-power.h,v 1.40 2007/09/12 20:57:21 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -47,7 +47,7 @@
 // Code generation
 
 #include "common/h/Vector.h"
-class process;
+class AddressSpace;
 
 /*
  * Define power instruction information.
@@ -704,7 +704,7 @@ class instruction {
     
     unsigned spaceToRelocate() const;
     bool generate(codeGen &gen,
-                  process *proc,
+                  AddressSpace *proc,
                   Address origAddr,
                   Address newAddr,
                   Address fallthroughOverride = 0,

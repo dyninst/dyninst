@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.100 2007/07/24 20:22:42 bernat Exp $
+// $Id: inst.h,v 1.101 2007/09/12 20:57:42 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -64,6 +64,7 @@ class int_function;
 class metricFocusNode;
 class codeGen;
 class registerSpace;
+class AddressSpace;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
 typedef enum { callPreInsn, callPostInsn, callBranchTargetInsn, callUnset } callWhen;
@@ -92,10 +93,6 @@ loadMiniTramp_result loadMergedTramp(miniTramp *&mtHandle,
                                    bool allowTramp = true);
 #endif
 /* Utility functions */
-
-bool getInheritedMiniTramp(const miniTramp *parentMT, 
-                           miniTramp *&childMT,
-                           process *childProc);
 
 float getPointFrequency(instPoint *point);
 int getPointCost(process *proc, const instPoint *point);
@@ -223,19 +220,19 @@ Register emitR(opCode op, Register src1, Register src2, Register dst,
 void     emitV(opCode op, Register src1, Register src2, Register dst, 
                codeGen &gen, bool noCost, 
                registerSpace *rs = NULL, int size = 4,
-               const instPoint * location = NULL, process * proc = NULL);
+               const instPoint * location = NULL, AddressSpace * proc = NULL);
 
 // for loadOp and loadConstOp (reading from an Address)
 void     emitVload(opCode op, Address src1, Register src2, Register dst, 
                    codeGen &gen, bool noCost, 
                    registerSpace *rs = NULL, int size = 4, 
-                   const instPoint * location = NULL, process * proc = NULL);
+                   const instPoint * location = NULL, AddressSpace * proc = NULL);
 
 // for storeOp (writing to an Address)
 void     emitVstore(opCode op, Register src1, Register src2, Address dst, 
                     codeGen &gen, bool noCost, 
                     registerSpace *rs = NULL, int size = 4, 
-                    const instPoint * location = NULL, process * proc = NULL);
+                    const instPoint * location = NULL, AddressSpace * proc = NULL);
 
 // and the retyped original emitImm companion
 void     emitImm(opCode op, Register src, RegValue src2imm, Register dst, 
@@ -275,7 +272,7 @@ int getInsnCost(opCode t);
  */
 Register getParameter(Register dest, int param);
 
-extern pdstring getProcessStatus(const process *p);
+extern pdstring getProcessStatus(const AddressSpace *p);
 
 // TODO - what about mangled names ?
 // expects the symbol name advanced past the underscore
@@ -287,7 +284,7 @@ extern Address getMaxBranch();
 // extern dictionary_hash<pdstring, unsigned> tagDict;
 extern dictionary_hash <pdstring, unsigned> primitiveCosts;
 
-bool writeFunctionPtr(process *p, Address addr, int_function *f);
+bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f);
 
 /**
  * A set of optimized emiters for common idioms.  Return 

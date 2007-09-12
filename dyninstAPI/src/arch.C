@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.9 2007/01/04 22:59:49 legendre Exp $
+// $Id: arch.C,v 1.10 2007/09/12 20:57:26 bernat Exp $
 // Code generation
 
 //////////////////////////
@@ -50,7 +50,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "process.h"
+#include "addressSpace.h"
 #include "common/h/Types.h"
 #if defined (os_osf)
 #include <malloc.h>
@@ -74,7 +74,7 @@ codeGen::codeGen() :
     size_(0),
     emitter_(NULL),
     allocated_(false),
-    proc_(NULL),
+    aSpace_(NULL),
     thr_(NULL),
     lwp_(NULL),
     rs_(NULL),
@@ -90,7 +90,7 @@ codeGen::codeGen(unsigned size) :
     size_(size),
     emitter_(NULL),
     allocated_(true),
-    proc_(NULL),
+    aSpace_(NULL),
     thr_(NULL),
     lwp_(NULL),
     rs_(NULL),
@@ -108,7 +108,9 @@ codeGen::codeGen(unsigned size) :
 
 
 codeGen::~codeGen() {
-    if (allocated_ && buffer_) free(buffer_);
+    if (allocated_ && buffer_) {
+        free(buffer_);
+    }
 }
 
 // Deep copy
@@ -117,7 +119,7 @@ codeGen::codeGen(const codeGen &g) :
     size_(g.size_),
     emitter_(NULL),
     allocated_(g.allocated_),
-    proc_(g.proc_),
+    aSpace_(g.aSpace_),
     thr_(g.thr_),
     lwp_(g.lwp_),
     rs_(g.rs_),
@@ -187,8 +189,9 @@ void codeGen::allocate(unsigned size)
 
 // Very similar to destructor
 void codeGen::invalidate() {
-    if (allocated_ && buffer_)
+    if (allocated_ && buffer_) {
         free(buffer_);
+    }
     buffer_ = NULL;
     size_ = 0;
     offset_ = 0;
@@ -200,6 +203,7 @@ void codeGen::finalize() {
     assert(size_);
     if (size_ == offset_) return;
     if (offset_ == 0) {
+        fprintf(stderr, "Warning: offset is 0 in codeGen::finalize!\n");
         invalidate();
         return;
     }
@@ -370,7 +374,7 @@ void codeGen::fillRemaining(int fillType) {
 void codeGen::applyTemplate(codeGen &c) {
     // Copy off necessary bits...
 
-    proc_ = c.proc_;
+    aSpace_ = c.aSpace_;
     thr_ = c.thr_;
     lwp_ = c.lwp_;
     rs_ = c.rs_;
@@ -378,10 +382,10 @@ void codeGen::applyTemplate(codeGen &c) {
     ip_ = c.ip_;
 }
 
-void codeGen::setProcess(process *p) 
+void codeGen::setAddrSpace(AddressSpace *a)
 { 
-   proc_ = p; 
-   setCodeEmitter(p->getEmitter());
+   aSpace_ = a; 
+   setCodeEmitter(a->getEmitter());
 }
 
 codeGen codeGen::baseTemplate;

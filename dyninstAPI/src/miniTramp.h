@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.16 2007/06/13 18:51:03 bernat Exp $
+// $Id: miniTramp.h,v 1.17 2007/09/12 20:57:53 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -61,6 +61,8 @@
 class miniTramp;
 class AstNode;
 class AstMiniTrampNode;
+class AddressSpace;
+
 typedef void (*miniTrampFreeCallback)(void *, miniTramp *);
 
 // The new miniTramp class -- description of a particular minitramp.
@@ -130,7 +132,7 @@ class miniTrampInstance : public generatedCodeObject {
 
   unsigned cost();
 
-  process *proc() const;
+  AddressSpace *proc() const;
 
 };
 
@@ -153,6 +155,9 @@ class miniTramp {
   miniTramp(const miniTramp *parMini, baseTramp *childT, process *proc);
   
   ~miniTramp();
+
+  // Given a child address space, get the corresponding miniTramp to us.
+  miniTramp *getInheritedMiniTramp(process *child);
 
   // Catchup...
 
@@ -209,9 +214,9 @@ class miniTramp {
   // instPs can go away... keep a local process pointer to let us
   // use it in the future.
 
-  process *proc_;
+  AddressSpace *proc_;
 
-  process *proc() const { return proc_; }
+  AddressSpace *proc() const { return proc_; }
 
   void deleteMTI(miniTrampInstance *);
 

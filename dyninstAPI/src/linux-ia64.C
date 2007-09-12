@@ -291,7 +291,7 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
   if( status > 0 ) { isSignalFrame = true; }
 
   /* Determine if this is a trampoline frame. */
-  codeRange * range = dynLWP->proc()->findCodeRangeByAddress( ip );
+  codeRange * range = dynLWP->proc()->findOrigByAddr( ip );
 
   /* We assume here, and below, that the two stackwalking errors before
      bootstrapping are from loading the run-time library. */
@@ -509,7 +509,7 @@ bool process::loadDYNINSTlib() {
 
   /* Write the string to entry, and then move the PC to the next bundle. */
   codeGen gen(BYTES_TO_SAVE);
-  gen.setProcess(this);
+  gen.setAddrSpace(this);
   gen.setAddr(codeBase);
 
   gen.setRegisterSpace(registerSpace::savedRegSpace(this));

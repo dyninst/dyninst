@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.22 2007/06/13 18:51:05 bernat Exp $
+// $Id: multiTramp.h,v 1.23 2007/09/12 20:57:55 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -64,6 +64,7 @@ class codeRange;
 class process;
 class int_function;
 class multiTramp;
+class AddressSpace; // process superclass
 
 #if defined( cap_unwind )
 #include <libunwind.h>
@@ -185,7 +186,7 @@ class generatedCodeObject : public codeRange {
         target_(NULL) 
         {}
     generatedCodeObject(const generatedCodeObject *old,
-                        process *) :
+                        AddressSpace *) :
         generated_(old->generated_),
         installed_(old->installed_),
         linked_(old->linked_),
@@ -256,7 +257,7 @@ class relocatedCode : public generatedCodeObject {
         generatedCodeObject() {};
 
     relocatedCode(const relocatedCode *old,
-                  process *proc) :
+                  AddressSpace *proc) :
         generatedCodeObject(old, proc) 
         {};
     
@@ -387,7 +388,7 @@ class replacedInstruction : public relocatedCode {
     AstNodePtr ast() const { return ast_; }
     instPoint *point() const { return point_; }
     multiTramp *multi() const { return multiT_; }
-    process *proc() const;
+    AddressSpace *proc() const;
 
     Address relocAddr() const { return get_address_cr(); }
     Address uninstrumentedAddr() { return relocInsn()->uninstrumentedAddr(); }
@@ -528,7 +529,7 @@ class multiTramp : public generatedCodeObject {
   // us to replace them "under the hood"
 
   static int findOrCreateMultiTramp(Address pointAddr, 
-                                    process *proc); 
+                                    AddressSpace *proc); 
 
   // MultiTramps span several instructions. By default, they cover a
   // basic block on non-IA64 platforms; due to the inefficiency of our
@@ -537,12 +538,12 @@ class multiTramp : public generatedCodeObject {
   // by a multiTramp to properly decide who can share baseTramps.
   // Returns startAddr and size
   static bool getMultiTrampFootprint(Address instAddr,
-                                     process *proc,
+                                     AddressSpace *proc,
                                      Address &startAddr,
                                      unsigned &size,
 				     bool &basicBlock);
 
-  static multiTramp *getMulti(int id, process *proc);
+  static multiTramp *getMulti(int id, AddressSpace *proc);
 
   // Fork constructor. Must copy over all sub-objects as well.
   multiTramp(const multiTramp *parentMulti, process *child);
@@ -600,7 +601,7 @@ class multiTramp : public generatedCodeObject {
   // Asserts if the PC is not "in" the multiTramp at all.
   bool catchupRequired(Address pc, miniTramp *newMT, bool active, codeRange *range = NULL);
 
-  process *proc() const;
+  AddressSpace *proc() const;
 
   ///////////////// Generation
   bool generateCode(codeGen &gen,
@@ -637,7 +638,7 @@ class multiTramp : public generatedCodeObject {
   bool usedTrap_;
 
   int_function *func_;
-  process *proc_;
+  AddressSpace *proc_;
   // A list of tramp structures we created a baseTramp stores
   // offsets for various points. We keep it separate to avoid clogging
   // up this structure.

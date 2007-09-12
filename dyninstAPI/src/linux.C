@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.262 2007/09/06 20:14:51 roundy Exp $
+// $Id: linux.C,v 1.263 2007/09/12 20:57:47 bernat Exp $
 
 #include <fstream>
 
@@ -1158,25 +1158,6 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
    //cerr << "writeDataSpace pid=" << getPid() << ", @ " << (void *)inTraced
    //    << " len=" << nbytes << endl; cerr.flush();
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-   if (proc_->collectSaveWorldData) {
-       codeRange *range = NULL;
-	proc_->codeRangesByAddr_.precessor((Address)inTraced, range); //findCodeRangeByAddress((Address)inTraced);
-	if(range){
-	        mapped_object *mappedobj_ptr = range->is_mapped_object();
-	       if (mappedobj_ptr) {
-        	   // If we're writing into a shared object, mark it as dirty.
-	           // _Unless_ we're writing "__libc_sigaction"
-        	   int_function *func = range->is_function();
-	           if ((! func) || (func->prettyName() != "__libc_sigaction")){
-        	      mappedobj_ptr->setDirty();
-		   }
-	       }
-	}
-   }
-#endif
-
    ptraceOps++; ptraceBytes += nbytes;
 
    if (!DBI_writeDataSpace(get_lwp_id(), (Address) ap, nbytes, (Address) dp, sizeof(Address), __FILE__, __LINE__)) {
@@ -1650,12 +1631,6 @@ void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
       }
 #endif
     }
-}
-
-void process::inferiorMallocAlign(unsigned &size)
-{
-     /* 32 byte alignment.  Should it be 64? */
-  size = (size + 0x1f) & ~0x1f;
 }
 
 bool dyn_lwp::realLWP_attach_() {

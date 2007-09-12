@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.7 2007/06/20 20:49:43 ssuen Exp $
+// $Id: mapped_module.h,v 1.8 2007/09/12 20:57:49 bernat Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -79,7 +79,7 @@ class mapped_module {
     const pdstring fileName() const;
     const pdstring fullName() const;
 
-    process *proc() const;
+    AddressSpace *proc() const;
 
     //bool analyze();
     
@@ -120,7 +120,7 @@ class mapped_module {
     bool lineInformation() const { return lineInfoValid_; }
 
 #if defined(os_aix)
-    void parseLineInformation(	process * proc,
+    void parseLineInformation(	AddressSpace *,
                                 pdstring * currentSourceFile,
                                 char * symbolName,
                                 SYMENT * sym,

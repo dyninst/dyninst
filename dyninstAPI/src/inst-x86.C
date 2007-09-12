@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.266 2007/07/24 20:22:59 bernat Exp $
+ * $Id: inst-x86.C,v 1.267 2007/09/12 20:57:40 bernat Exp $
  */
 #include <iomanip>
 
@@ -1278,7 +1278,7 @@ void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
 void emitVload(opCode op, Address src1, Register src2, Register dest, 
                codeGen &gen, bool /*noCost*/, 
                registerSpace * /*rs*/, int size,
-               const instPoint * /* location */, process * /* proc */)
+               const instPoint * /* location */, AddressSpace * /* proc */)
 {
    if (op == loadConstOp) {
       // dest is a temporary
@@ -1320,7 +1320,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
                 codeGen &gen, bool /*noCost*/, registerSpace * /*rs*/, 
                 int size,
-                const instPoint * /* location */, process * /* proc */)
+                const instPoint * /* location */, AddressSpace * /* proc */)
 {
    if (op ==  storeOp) {
       // [dest] = src1
@@ -1343,7 +1343,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 void emitV(opCode op, Register src1, Register src2, Register dest, 
            codeGen &gen, bool /*noCost*/, 
            registerSpace * /*rs*/, int /* size */,
-           const instPoint * /* location */, process * /* proc */)
+           const instPoint * /* location */, AddressSpace * /* proc */)
 {
     //bperr( "emitV(op=%d,src1=%d,src2=%d,dest=%d)\n", op, src1,
     //        src2, dest);
@@ -1676,94 +1676,11 @@ unsigned baseTramp::getBTCost() {
     return 83;
 }
 
-// process::replaceFunctionCall
-//
-// Replace the function call at the given instrumentation point with a call to
-// a different function, or with a NOOP.  In order to replace the call with a
-// NOOP, pass NULL as the parameter "func."
-// Returns true if sucessful, false if not.  Fails if the site is not a call
-// site, or if the site has already been instrumented using a base tramp.
-//
-// Note that right now we can only replace a call instruction that is five
-// bytes long (like a call to a 32-bit relative address).
-// 18APR05: don't see why we can't fix up a base tramp, it's just a little more
-// complicated.
-
-// By the way, we want to be able to disable these, which means keeping
-// track of what we put in. Since addresses are unique, we can do it with
-// a dictionary in the process class.
-bool process::replaceFunctionCall(instPoint *point,
-                                  const int_function *func) {
-    // Must be a call site
-  if (point->getPointType() != callSite)
-    return false;
-
-  instPointIter ipIter(point);
-  instPointInstance *ipInst;
-  while ((ipInst = ipIter++)) {  
-      // Multiple replacements. Wheee...
-      Address pointAddr = ipInst->addr();
-
-      codeRange *range;
-      if (modifiedAreas_.find(pointAddr, range)) {
-          multiTramp *multi = range->is_multitramp();
-          if (multi) {
-              // We pre-create these guys... so check to see if
-              // there's anything there
-              if (!multi->generated()) {
-                  removeMultiTramp(multi);
-              }
-              else {
-                  // TODO: modify the callsite in the multitramp.
-                  assert(0);
-              }
-          }
-          if (dynamic_cast<functionReplacement *>(range)) {
-              // We overwrote this in a function replacement...
-              continue; 
-          }
-      }
-      codeGen gen(point->insn().size());
-      // Uninstrumented
-      // Replace the call
-      if (func == NULL) {	// Replace with NOOPs
-          gen.fillRemaining(codeGen::cgNOP);
-      } else { // Replace with a call to a different function
-          // XXX Right only, call has to be 5 bytes -- sometime, we should make
-          // it work for other calls as well.
-          assert(point->insn().size() == CALL_REL32_SZ);
-          instruction::generateCall(gen, pointAddr, func->getAddress());
-      }
-      
-      // Before we replace, track the code.
-      // We could be clever with instpoints keeping instructions around, but
-      // it's really not worth it.
-      replacedFunctionCall *newRFC = new replacedFunctionCall();
-      newRFC->callAddr = pointAddr;
-      newRFC->callSize = point->insn().size();
-      if (func)
-          newRFC->newTargetAddr = func->getAddress();
-      else
-          newRFC->newTargetAddr = 0;
-
-      codeGen old(point->insn().size());
-      old.copy(point->insn().ptr(), point->insn().size());
-      
-      newRFC->oldCall = old;
-      newRFC->newCall = gen;
-      
-      addModifiedCallsite(newRFC);
-      
-      writeTextSpace((void *)pointAddr, gen.used(), gen.start_ptr());
-  }
-  return true;
-}
-
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode op, 
                   codeGen &gen,
-		  const int_function *callee, process *,
+		  const int_function *callee, AddressSpace *,
 		  const instPoint *loc, bool)
 {
     // This must mimic the generateRestores baseTramp method. 
@@ -1827,7 +1744,7 @@ bool Emitter32::emitAdjustStackPointer(int index, codeGen &gen) {
 	// The index will be positive for "needs popped" and negative
 	// for "needs pushed". However, positive + SP works, so don't
 	// invert.
-	int popVal = index * gen.proc()->getAddressWidth();
+	int popVal = index * gen.addrSpace()->getAddressWidth();
 	emitOpRegImm(EXTENDED_0x81_ADD, REGNUM_ESP, popVal, gen);
 	return true;
 }
@@ -1844,7 +1761,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 // First AST node: target of the call
 // Second AST node: source of the call
 
-bool process::getDynamicCallSiteArgs(instPoint *callSite,
+bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                      pdvector<AstNodePtr> &args)
 {
    Register base_reg, index_reg;
@@ -2061,7 +1978,7 @@ unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/,
 /**
  * Fills in an indirect function pointer at 'addr' to point to 'f'.
  **/
-bool writeFunctionPtr(process *p, Address addr, int_function *f)
+bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
 {
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
@@ -2349,7 +2266,7 @@ bool emitSubSignedImm(Address addr, long int imm, codeGen &gen, bool noCost) {
    return true;
 }
 
-Emitter *process::getEmitter() 
+Emitter *AddressSpace::getEmitter() 
 {
    static Emitter32 emitter32;
 #if defined(arch_x86_64)

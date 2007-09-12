@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.50 2007/08/09 10:15:22 rchen Exp $
+// $Id: arch-ia64.h,v 1.51 2007/09/12 20:57:19 bernat Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -51,7 +51,7 @@
 #ifndef _ARCH_IA64_H
 #define _ARCH_IA64_H
 
-class process; 
+class AddressSpace;
 
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
@@ -104,7 +104,7 @@ class instruction {
 	// Emulation
     unsigned spaceToRelocate() const;
     virtual bool generate(codeGen &gen,
-						  process *proc,
+						  AddressSpace *proc,
 						  Address origAddr,
 						  Address newAddr,
 						  Address fallthroughOverride = 0,
@@ -210,7 +210,7 @@ class instruction_x : public instruction {
 
 		// Emulation
 		virtual bool generate(codeGen &gen,
-							  process *proc,
+							  AddressSpace *proc,
 							  Address origAddr,
 							  Address newAddr,
 							  Address fallthroughOverride = 0,

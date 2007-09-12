@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.196 2007/07/24 20:22:58 bernat Exp $
+// $Id: inst-sparc.C,v 1.197 2007/09/12 20:57:39 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -55,6 +55,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/h/BPatch.h"
 
+#include "dyninstAPI/src/addressSpace.h"
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
@@ -477,90 +478,8 @@ bool doNotOverflow(int value)
 /****************************************************************************/
 /****************************************************************************/
 
-// process::replaceFunctionCall
-//
-// Replace the function call at the given instrumentation point with a call to
-// a different function, or with a NOOP.  In order to replace the call with a
-// NOOP, pass NULL as the parameter "func."
-// Returns true if sucessful, false if not.  Fails if the site is not a call
-// site, or if the site has already been instrumented using a base tramp.
-bool process::replaceFunctionCall(instPoint *point,
-                                  const int_function *func) {
-
-   // Must be a call site
-   if (point->getPointType() != callSite)
-      return false;
-
-   inst_printf("Function replacement, point func %s, new func %s, point primary addr 0x%x\n",
-               point->func()->symTabName().c_str(), 
-               func ? func->symTabName().c_str() : "<NULL>",
-               point->addr());
-
-   instPointIter ipIter(point);
-   instPointInstance *ipInst;
-   while ((ipInst = ipIter++)) {  
-       // Multiple replacements. Wheee...
-       Address pointAddr = ipInst->addr();
-       inst_printf("... replacing 0x%x", pointAddr);
-       codeRange *range;
-       if (modifiedAreas_.find(pointAddr, range)) {
-           multiTramp *multi = range->is_multitramp();
-           if (multi) {
-               // We pre-create these guys... so check to see if
-               // there's anything there
-               if (!multi->generated()) {
-                   removeMultiTramp(multi);
-               }
-               else {
-                   // TODO: modify the callsite in the multitramp.
-                   assert(0);
-               }
-           }
-           if (dynamic_cast<functionReplacement *>(range)) {
-               // We overwrote this in a function replacement...
-               continue; 
-           }
-       }
-
-       codeGen gen(instruction::size());
-       if (func == NULL) {
-           instruction::generateNOOP(gen);
-       }
-       else
-           instruction::generateCall(gen,
-                                     pointAddr,
-                                     func->getAddress());
-       
-       // Before we replace, track the code.
-       // We could be clever with instpoints keeping instructions around, but
-       // it's really not worth it.
-       replacedFunctionCall *newRFC = new replacedFunctionCall();
-       newRFC->callAddr = pointAddr;
-       newRFC->callSize = point->insn().size();
-       if (func)
-           newRFC->newTargetAddr = func->getAddress();
-       else
-           newRFC->newTargetAddr = 0;
-       
-       unsigned char buffer[instruction::size()];
-       readTextSpace((void *)pointAddr, instruction::size(), buffer);
-       
-       newRFC->oldCall.allocate(instruction::size());
-       newRFC->oldCall.copy(buffer, instruction::size());
-       newRFC->newCall = gen;
-       
-       replacedFunctionCalls_[pointAddr] = newRFC;
-       
-       writeTextSpace((void *)pointAddr, instruction::size(), gen.start_ptr());
-   }
-   return true;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-bool process::getDynamicCallSiteArgs(instPoint *callSite, pdvector<AstNodePtr> &args){
+bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
+                                     pdvector<AstNodePtr> &args) {
     const instruction &insn = callSite->insn();
     if (insn.isJmplInsn()) {
         //this instruction is a jmpl with i == 1, meaning it
@@ -613,7 +532,7 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite, pdvector<AstNodePtr> &
 // this by ensuring that the register context upon entry to CALLEE is
 // the register context of function we are instrumenting, popped once.
 void emitFuncJump(opCode op, codeGen &gen, 
-		  const int_function *callee, process * /*proc*/,
+		  const int_function *callee, AddressSpace * /*proc*/,
 		  const instPoint *, bool)
 {
     assert(op == funcJumpOp);
@@ -1488,7 +1407,7 @@ int getFP(codeGen &gen, Register dest)
 void emitVload(opCode op, Address src1, Register src2, Register dest, 
                codeGen &gen, bool /*noCost*/, 
                registerSpace * /*rs*/, int size,
-               const instPoint * /* location */, process * /* proc */) 
+               const instPoint * /* location */, AddressSpace * /* proc */) 
 {
     if (op == loadConstOp) {
         // dest = src1:imm    TODO
@@ -1571,7 +1490,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 void emitVstore(opCode op, Register src1, Register src2, Address dest, 
                 codeGen &gen, bool /*noCost*/, 
                 registerSpace * /*rs*/, int /* size */,
-                const instPoint * /* location */, process * /* proc */)
+                const instPoint * /* location */, AddressSpace * /* proc */)
 {
     
     if (op == storeOp) {
@@ -1622,7 +1541,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 void emitV(opCode op, Register src1, Register src2, Register dest, 
               codeGen &gen, bool /*noCost*/, 
            registerSpace * /*rs*/, int /* size */,
-           const instPoint * /* location */, process * /* proc */)
+           const instPoint * /* location */, AddressSpace * /* proc */)
            
 {
     //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
@@ -1736,17 +1655,16 @@ void registerSpace::saveClobberInfo(const instPoint *)
 /**
  * Fills in an indirect function pointer at 'addr' to point to 'f'.
  **/
-bool writeFunctionPtr(process *p, Address addr, int_function *f)
+bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
 {
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
 }
 
-Emitter *process::getEmitter() 
-{
-   return NULL;
-}
-
 bool image::isAligned(const Address where) const {
    return (!(where & 0x3));
+}
+
+Emitter *AddressSpace::getEmitter() {
+    return NULL;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.69 2007/06/13 18:51:04 bernat Exp $
+// $Id: multiTramp.C,v 1.70 2007/09/12 20:57:54 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -52,11 +52,8 @@
 
 unsigned int multiTramp::id_ctr = 1;
 
-multiTramp *multiTramp::getMulti(int id, process *p) {
-    if(p->multiTrampDict.defines(id))
-        return p->multiTrampDict[id];
-    else
-        return NULL;
+multiTramp *multiTramp::getMulti(int id, AddressSpace *p) {
+    return p->findMultiTrampById(id);
 }
 
 baseTrampInstance *multiTramp::getBaseTrampInstance(instPointInstance *point,
@@ -118,7 +115,6 @@ baseTrampInstance *multiTramp::getBaseTrampInstanceByAddr(Address addr) const {
 void multiTramp::removeCode(generatedCodeObject *subObject) {
     // One of our baseTramps just went away; let's see what's going on.
     // Or we're going away from a top level.
-
     baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(subObject);
     relocatedInstruction *reloc = dynamic_cast<relocatedInstruction *>(subObject);
     trampEnd *te = dynamic_cast<trampEnd *>(subObject);
@@ -210,21 +206,23 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
                                              (void *)savedCodeBuf_);
             // This better work, or we're going to be jumping into all sorts
             // of hurt.
+#if 0
             if (!res) {
                 // Well, we could be detached... or exited... or deleted....
                 assert(!proc()->isAttached());
             }
+#endif
 
             free(savedCodeBuf_);
             savedCodeBuf_ = 0;
         }
 
-        if (proc()->multiTrampDict[id()] == this) {
+        if (proc()->findMultiTrampById(id()) == this) {
             // Won't leak as the process knows to delete us
-            proc()->multiTrampDict[id()] = NULL;
+            proc()->removeMultiTramp(this);
         }
         
-		// Move everything else to the deleted list
+        // Move everything else to the deleted list
         generatedCFG_t::iterator cfgIter(generatedCFG_);
         generatedCodeObject *obj = NULL;
 
@@ -238,7 +236,6 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
         generatedCFG_.setStart(NULL);
 
         proc()->deleteGeneratedCode(this);
-        proc()->removeMultiTramp(this);
     }   
     return;
 }
@@ -286,7 +283,6 @@ multiTramp::~multiTramp() {
     // And this is why we want a process pointer ourselves. Trusting the
     // function to still be around is... iffy... at best.
     proc()->removeMultiTramp(this);
-    proc()->deleteCodeRange(get_address_cr());
     proc()->inferiorFree(trampAddr_);
 
     // Everything else is statically allocated
@@ -294,8 +290,8 @@ multiTramp::~multiTramp() {
 
 // Assumes there is no matching multiTramp at this address
 int multiTramp::findOrCreateMultiTramp(Address pointAddr, 
-                                       process *proc) {
-    multiTramp *newMulti = proc->findMultiTramp(pointAddr);
+                                       AddressSpace *proc) {
+    multiTramp *newMulti = proc->findMultiTrampByAddr(pointAddr);
     if (newMulti) {
         // Check whether we're in trap shape
         // Sticks to false if it ever is false
@@ -303,7 +299,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
     }
 
     // Multitramps need to know their functions, so look it up.
-    codeRange *range = proc->findCodeRangeByAddress(pointAddr);
+    codeRange *range = proc->findOrigByAddr(pointAddr);
     if (!range) {
         return 0;
     }
@@ -343,13 +339,6 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 	// We're allowing this for now; we'll go through the motions, and finally
 	// "fake" the actual link phase. Otherwise things get weirdly out of
 	// step.
-#if 0
-    if (proc->findModifiedPointByAddr(startAddr)) {
-        fprintf(stderr, "Address 0x%lx within previously modified point, cannot instrument\n",
-                startAddr);
-        return 0;
-    }
-#endif
 
     newMulti = new multiTramp(startAddr,
                               size,
@@ -490,13 +479,13 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 // not exist yet; our instrumentation code needs this.
 #if defined(arch_ia64)
 bool multiTramp::getMultiTrampFootprint(Address instAddr,
-                                        process * /* proc */,
+                                        AddressSpace * /* proc */,
                                         Address &startAddr,
                                         unsigned &size,
 					bool &basicBlock)
 #else
 bool multiTramp::getMultiTrampFootprint(Address instAddr,
-                                        process *proc,
+                                        AddressSpace *proc,
                                         Address &startAddr,
                                         unsigned &size,
 					bool &basicBlock)
@@ -511,7 +500,7 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
 #else
     // We use basic blocks
     // Otherwise, make one.
-    codeRange *range = proc->findCodeRangeByAddress(instAddr);
+    codeRange *range = proc->findOrigByAddr(instAddr);
     if (!range) {
         return false;
     }
@@ -758,7 +747,7 @@ multiTramp::multiTramp(Address addr,
 {
     // .. filled in by createMultiTramp
     assert(proc());
-    proc()->multiTrampDict[id_] = this;
+    proc()->addMultiTramp(this);
 }
 
 
@@ -839,7 +828,7 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
 // To avoid mass include inclusion
 int_function *multiTramp::func() const { return func_; }
 
-process *multiTramp::proc() const { return proc_; }
+AddressSpace *multiTramp::proc() const { return proc_; }
 
 int fooDebugFlag = 0;
 
@@ -860,11 +849,6 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 {
     unsigned size_required = 0;
 
-    bool requestingTextMiniTramp = false;
-#if defined(os_aix)
-    requestingTextMiniTramp = proc()->requestTextMiniTramp;
-#endif
-
     generatedCFG_t::iterator cfgIter;
     generatedCodeObject *obj = NULL;
 
@@ -872,16 +856,14 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
                 instAddr_);
 
     // We might be getting called but nothing changed...
-    if (!generated_   || requestingTextMiniTramp) {
+    if (!generated_) {
 	/* 	this is part of the code to ensure that when we add the call to dlopen
 		at the entry of main on AIX during save the world, any multi that was
 		already there gets regenerated
 	*/
-        if (!requestingTextMiniTramp) {
-            assert(!trampAddr_);
-            assert(generatedMultiT_ == NULL);
-            assert(jumpBuf_ == NULL);
-        }
+        assert(!trampAddr_);
+        assert(generatedMultiT_ == NULL);
+        assert(jumpBuf_ == NULL);
         
         // A multiTramp is the code sequence for a set of instructions in
         // a basic block and all baseTramps, etc. that are being used for
@@ -948,10 +930,6 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         }
 #endif
 
-        if (requestingTextMiniTramp) {
-            heapToUse = anyHeap;
-        }
-        
         trampAddr_ = proc()->inferiorMalloc(size_required,
                                             heapToUse,
                                             instAddr_);
@@ -961,7 +939,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             return false;
         }
         generatedMultiT_.allocate(size_required);
-        generatedMultiT_.setProcess(proc());
+        generatedMultiT_.setAddrSpace(proc());
         generatedMultiT_.setAddr(trampAddr_);
         
         // We don't want to generate the jump buffer until after
@@ -1128,17 +1106,17 @@ bool multiTramp::installCode() {
                                               generatedMultiT_.start_ptr());
 
         if( success ) {
-            proc()->addCodeRange(this);
+            proc()->addOrigRange(this);
 #if defined( cap_unwind )
             if( unwindInformation != NULL ) {
                 unwindInformation->start_ip = trampAddr_;
                 unwindInformation->end_ip = trampAddr_ + trampSize_;
-                unwindInformation->gp = proc()->getTOCoffsetInfo( instAddr_ );
+                unwindInformation->gp = proc()->proc()->getTOCoffsetInfo( instAddr_ );
             
                 dyn_unw_printf( "%s[%d]: registering multitramp unwind information for 0x%lx, at 0x%lx-0x%lx, GP 0x%lx\n",
                                 __FILE__, __LINE__, instAddr_, unwindInformation->start_ip, unwindInformation->end_ip,
                                 unwindInformation->gp );
-	            if( ! proc()->insertAndRegisterDynamicUnwindInformation( unwindInformation ) ) 
+	            if( ! proc()->proc()->insertAndRegisterDynamicUnwindInformation( unwindInformation ) ) 
                     {
                         if(!warned_buggy_libunwind)
                         {
@@ -1182,7 +1160,7 @@ bool multiTramp::linkCode() {
                 instAddr_, instAddr_ + instSize_,
                 trampAddr_, trampAddr_ + trampSize_);
     if (!linked_) {
-        codeRange *prevRange = proc()->findModifiedPointByAddr(instAddr_);
+        codeRange *prevRange = proc()->findModByAddr(instAddr_);
         if (prevRange != NULL) {
             // Someone's already here....
             if (prevRange->is_function_replacement()) {
@@ -1597,23 +1575,13 @@ Address multiTramp::uninstToInstAddr(Address addr) {
 multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() 
 {
     updateInstInstances();
-    if (hasChanged()
-#if defined(os_aix)
-	/* 	this is part of the code to ensure that when we add the call to dlopen
-		at the entry of main on AIX during save the world, any multi that was
-		already there gets regenerated
-	*/
-     || proc()->requestTextMiniTramp  //ccw 8 oct 2005
-#endif
-	) {
+    if (hasChanged()) {
         if (linked_) {
             // We're in the process' address space; if we need to change the
             // multiTramp, we replace it. replaceMultiTramp takes care of
             // all that. 
             bool deleteReplaced = false;
             bool res = multiTramp::replaceMultiTramp(this, deleteReplaced);
-            if (deleteReplaced)
-                removeCode(NULL);
             if (res) 
                 return mtSuccess;
             else
@@ -1656,9 +1624,9 @@ void multiTramp::invalidateCode() {
         obj->invalidateCode();
     }
     
-    if (generatedMultiT_ != NULL)
+    if (generatedMultiT_ != NULL) {
         generatedMultiT_.invalidate();
-
+    }
     if (jumpBuf_ != NULL) {
         jumpBuf_.invalidate();
     }
@@ -1711,9 +1679,10 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
     
     // Sub the new tramp into the old tramp:
     assert(newMulti->proc() == oldMulti->proc());
-    process *proc = oldMulti->proc();
-    assert(proc->multiTrampDict[oldMulti->id()] == oldMulti);
-    proc->multiTrampDict[oldMulti->id()] = newMulti;
+    AddressSpace *proc = oldMulti->proc();
+    assert(proc->findMultiTrampById(oldMulti->id()) == oldMulti);
+    assert(oldMulti->id() == newMulti->id());
+    proc->addMultiTramp(newMulti);
 
     // Generate/install/link; this could be redundant depending on
     // the next few calls, or we could be getting called from a
@@ -1738,13 +1707,6 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
         res = newMulti->linkCode();
         if (!res) return false;
     }
-
-    // Process update
-    codeRange *range = newMulti->proc()->findModifiedPointByAddr(newMulti->instAddr());
-    // Range may be null, since we can replace before we link the first time
-    if (range && range->is_multitramp())
-        newMulti->proc()->addMultiTramp(newMulti);
-    // Otherwise is function relocation... so don't overwrite.
 
     // Caller decides whether to remove the original version
     deleteReplaced = true;
@@ -1784,7 +1746,7 @@ generatedCodeObject *generatedCFG_t::fork_int(const generatedCodeObject *parObj,
                                               process *child) {
     // Since you can't do a virtual constructor...
     // Could add a fork() method to everyone, but I like the consistency of the
-    // constructor(..., process *) model.
+    // constructor(..., AddressSpace *) model.
     const baseTrampInstance *bti = dynamic_cast<const baseTrampInstance *>(parObj);
     const trampEnd *te = dynamic_cast<const trampEnd *>(parObj);
     const relocatedInstruction *ri = dynamic_cast<const relocatedInstruction *>(parObj);
@@ -2272,7 +2234,7 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
     // range is optional, and might be NULL. It's provided to avoid
     // having to do two billion codeRange lookups
     if (range == NULL)
-        range = proc()->findCodeRangeByAddress(pc);
+        range = proc()->findOrigByAddr(pc);
     // Oopsie...
     if (!range) assert(0);
 

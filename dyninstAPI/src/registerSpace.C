@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.13 2007/01/29 18:22:17 legendre Exp $
+// $Id: registerSpace.C,v 1.14 2007/09/12 20:57:59 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -137,7 +137,7 @@ void registerSlot::resetSlot() {
 	saveOffset_ = 0;
 }
 
-registerSpace *registerSpace::conservativeRegSpace(process *proc) {
+registerSpace *registerSpace::conservativeRegSpace(AddressSpace *proc) {
 	if (conservativeRegSpace_ == NULL) initRegisters();	
 #if defined(arch_x86_64)
    int addrWidth = proc->getAddressWidth();
@@ -149,7 +149,7 @@ registerSpace *registerSpace::conservativeRegSpace(process *proc) {
 	return conservativeRegSpace_;	
 }
 
-registerSpace *registerSpace::optimisticRegSpace(process *proc) {
+registerSpace *registerSpace::optimisticRegSpace(AddressSpace *proc) {
 	if (optimisticRegSpace_ == NULL) initRegisters();
 #if defined(arch_x86_64)
    int addrWidth = proc->getAddressWidth();
@@ -161,7 +161,7 @@ registerSpace *registerSpace::optimisticRegSpace(process *proc) {
 	return optimisticRegSpace_;	
 }
 
-registerSpace *registerSpace::irpcRegSpace(process *proc) {
+registerSpace *registerSpace::irpcRegSpace(AddressSpace *proc) {
 	return conservativeRegSpace(proc);
 }
 
@@ -196,7 +196,7 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP) {
 
 }
 
-registerSpace *registerSpace::savedRegSpace(process *proc) {
+registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
 	if (savedRegSpace_ == NULL) initRegisters();
 #if defined(arch_x86_64)
    int addrWidth = proc->getAddressWidth();

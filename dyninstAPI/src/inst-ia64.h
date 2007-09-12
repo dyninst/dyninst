@@ -41,13 +41,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.16 2006/03/02 20:00:10 tlmiller Exp $
+// $Id: inst-ia64.h,v 1.17 2007/09/12 20:57:37 bernat Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
 
 #include "common/h/Types.h"	// Address
-class process;
+class AddressSpace;
 class IA64_bundle;
 class IA64_instruction;
 
@@ -103,7 +103,7 @@ class InsnAddr {
 		friend bool operator == ( InsnAddr lhs, InsnAddr rhs );
 		friend bool operator != ( InsnAddr lhs, InsnAddr rhs );
 
-		static InsnAddr generateFromAlignedDataAddress( Address addr, process * p );
+		static InsnAddr generateFromAlignedDataAddress( Address addr, AddressSpace * p );
 		bool writeMyBundleFrom( const unsigned char * savedCodeBuffer );
 		bool saveMyBundleTo( unsigned char * savedCodeBuffer );
 		bool saveBundlesTo( unsigned char * savedCodeBuffer, unsigned int numberOfBundles );
@@ -113,9 +113,9 @@ class InsnAddr {
 		bool writeStringAtOffset( unsigned int offsetInBundles, const char * pdstring, unsigned int length );
 
 	private:
-		InsnAddr( Address addr, process * p ) : encodedAddress( addr ), myProc( p ) { }
+		InsnAddr( Address addr, AddressSpace * p ) : encodedAddress( addr ), myProc( p ) { }
 		Address encodedAddress;
-		process * myProc;
+		AddressSpace * myProc;
 }; /* end class InsnAddr */
 
 #include "arch-ia64.h"

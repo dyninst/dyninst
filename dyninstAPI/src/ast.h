@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.99 2007/06/13 18:50:33 bernat Exp $
+// $Id: ast.h,v 1.100 2007/09/12 20:57:29 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -60,6 +60,7 @@
 #include <boost/shared_ptr.hpp>
 
 class process;
+class AddressSpace;
 class instPoint;
 class int_function;
 class codeGen;
@@ -172,7 +173,7 @@ class AstNode {
                                        AstNodePtr r = AstNodePtr(), 
                                        AstNodePtr e = AstNodePtr());
 
-        static AstNodePtr funcCallNode(const pdstring &func, pdvector<AstNodePtr > &args, process *proc = NULL);
+        static AstNodePtr funcCallNode(const pdstring &func, pdvector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
         static AstNodePtr funcCallNode(int_function *func, pdvector<AstNodePtr > &args);
         static AstNodePtr funcCallNode(Address addr, pdvector<AstNodePtr > &args); // For when you absolutely need
         // to jump somewhere.
@@ -622,7 +623,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 					int size,
 					bool noCost);
 void emitFuncJump(opCode op, codeGen &gen,
-		  const int_function *func, process *proc,
+		  const int_function *func, AddressSpace *addrSpace,
 		  const instPoint *loc, bool noCost);
 
 

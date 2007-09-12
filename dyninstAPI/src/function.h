@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.40 2007/07/26 19:19:38 bernat Exp $
+// $Id: function.h,v 1.41 2007/09/12 20:57:35 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -126,7 +126,8 @@ class bblInstance : public codeRange {
 
     void getOrigInstructionInfo(Address addr, void *&ptr, Address &origAddr, unsigned &origSize) const;
 
-    process *proc() const;
+    //process *proc() const;
+    AddressSpace *proc() const;
     int_function *func() const;
     int_basicBlock *block() const;
     int version() const;
@@ -262,7 +263,8 @@ class int_basicBlock {
     bool needsRelocation() const;
 
     int_function *func() const { return func_; }
-    process *proc() const;
+    //process *proc() const;
+    AddressSpace *proc() const;
 
 #if defined(arch_ia64)
     // Data flow... for register analysis. Right now just used for 
@@ -358,7 +360,8 @@ class int_function {
                 mapped_module *mod);
 
    int_function(const int_function *parent,
-                mapped_module *child_mod);
+                mapped_module *child_mod,
+                process *childP);
 
    ~int_function();
 
@@ -396,7 +399,8 @@ class int_function {
    image_func *ifunc();
    mapped_module *mod() const;
    mapped_object *obj() const;
-   process *proc() const;
+   //process *proc() const;
+   AddressSpace *proc() const;
 
    // Necessary for BPatch_set which needs a structure with a ()
    // operator. Odd.

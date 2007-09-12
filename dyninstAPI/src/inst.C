@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.158 2007/08/09 10:15:36 rchen Exp $
+// $Id: inst.C,v 1.159 2007/09/12 20:57:41 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -93,7 +93,7 @@ unsigned findTags(const pdstring ) {
 }
 
 // IA64 has its own version; dunno if this would work there, so skipping for now
-unsigned generateAndWriteBranch(process *proc, 
+unsigned generateAndWriteBranch(AddressSpace *proc, 
                                 Address fromAddr, 
                                 Address newAddr,
                                 unsigned fillSize)
@@ -217,9 +217,7 @@ instMapping::instMapping(const instMapping *parIM,
     }
     for (unsigned j = 0; j < parIM->miniTramps.size(); j++) {
         miniTramp *cMT = NULL;
-        getInheritedMiniTramp(parIM->miniTramps[j],
-                              cMT,
-                              child);
+        cMT = parIM->miniTramps[j]->getInheritedMiniTramp(child);
         assert(cMT);
         miniTramps.push_back(cMT);
     }
@@ -239,3 +237,90 @@ void *trampEnd::getPtrToInstruction(Address) const {
     return NULL;
 }
 
+// process::replaceFunctionCall
+//
+// Replace the function call at the given instrumentation point with a call to
+// a different function, or with a NOOP.  In order to replace the call with a
+// NOOP, pass NULL as the parameter "func."
+// Returns true if sucessful, false if not.  Fails if the site is not a call
+// site, or if the site has already been instrumented using a base tramp.
+//
+// Note that right now we can only replace a call instruction that is five
+// bytes long (like a call to a 32-bit relative address).
+// 18APR05: don't see why we can't fix up a base tramp, it's just a little more
+// complicated.
+
+// By the way, we want to be able to disable these, which means keeping
+// track of what we put in. Since addresses are unique, we can do it with
+// a dictionary in the process class.
+
+#if !defined(arch_ia64)
+// arch-ia64 has its own version (of course...) since it's a lot
+// more complicated
+bool AddressSpace::replaceFunctionCall(instPoint *point,
+                                       const int_function *func) {
+    // Must be a call site
+  if (point->getPointType() != callSite)
+    return false;
+
+  instPointIter ipIter(point);
+  instPointInstance *ipInst;
+  while ((ipInst = ipIter++)) {  
+      // Multiple replacements. Wheee...
+      Address pointAddr = ipInst->addr();
+
+      codeRange *range = findModByAddr(pointAddr);
+      if (range) {
+            multiTramp *multi = range->is_multitramp();
+          if (multi) {
+                // We pre-create these guys... so check to see if
+              // there's anything there
+              if (!multi->generated()) {
+                  removeMultiTramp(multi);
+              }
+              else {
+                  // TODO: modify the callsite in the multitramp.
+                  assert(0);
+              }
+          }
+          else if (dynamic_cast<functionReplacement *>(range)) {
+              // We overwrote this in a function replacement...
+              continue; 
+          }
+      }
+      codeGen gen(point->insn().size());
+      // Uninstrumented
+      // Replace the call
+      if (func == NULL) {	// Replace with NOOPs
+          gen.fillRemaining(codeGen::cgNOP);
+      } else { // Replace with a call to a different function
+          // XXX Right only, call has to be 5 bytes -- sometime, we should make
+          // it work for other calls as well.
+          //assert(point->insn().size() == CALL_REL32_SZ);
+          instruction::generateCall(gen, pointAddr, func->getAddress());
+      }
+      
+      // Before we replace, track the code.
+      // We could be clever with instpoints keeping instructions around, but
+      // it's really not worth it.
+      replacedFunctionCall *newRFC = new replacedFunctionCall();
+      newRFC->callAddr = pointAddr;
+      newRFC->callSize = point->insn().size();
+      if (func)
+          newRFC->newTargetAddr = func->getAddress();
+      else
+          newRFC->newTargetAddr = 0;
+
+      codeGen old(point->insn().size());
+      old.copy(point->insn().ptr(), point->insn().size());
+      
+      newRFC->oldCall = old;
+      newRFC->newCall = gen;
+      
+      addReplacedCall(newRFC);
+      
+      writeTextSpace((void *)pointAddr, gen.used(), gen.start_ptr());
+  }
+  return true;
+}
+#endif

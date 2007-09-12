@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.71 2007/08/16 20:43:47 bill Exp $
+// $Id: arch-x86.C,v 1.72 2007/09/12 20:57:24 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3677,7 +3677,7 @@ unsigned instruction::spaceToRelocate() const {
 }
 
 bool instruction::generate(codeGen &gen,
-                           process *proc,
+                           AddressSpace *addrSpace,
                            Address origAddr, // Could be kept in the instruction class..
                            Address newAddr,
                            Address /*fallthroughOverride*/,
@@ -3752,9 +3752,9 @@ bool instruction::generate(codeGen &gen,
          assert((newInsn - insnBuf) == 5);
          done = true;
       }
-      else if (proc->isValidAddress(target)) {
+      else if (addrSpace->isValidAddress(target)) {
          // Get us an instrucIter
-	InstrucIter callTarget(target, proc);
+	InstrucIter callTarget(target, addrSpace);
 	instruction firstInsn = callTarget.getInstruction();
 	callTarget++;
          instruction secondInsn = callTarget.getInstruction();
@@ -4214,7 +4214,7 @@ bool instruction::generateMem(codeGen &gen,
                insn_ptr, orig_instr);
    entry = orig_instr.getEntry();
 
-   if (gen.proc()->getAddressWidth() != 8)
+   if (gen.addrSpace()->getAddressWidth() != 8)
       //Currently works only on IA-32e
       return false; 
 

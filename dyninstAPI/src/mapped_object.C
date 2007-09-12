@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.23 2007/09/06 20:14:53 roundy Exp $
+// $Id: mapped_object.C,v 1.24 2007/09/12 20:57:50 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -61,7 +61,7 @@ unsigned imgVarHash(const image_variable * const &func) {
 
 mapped_object::mapped_object(fileDescriptor fileDesc,
                              image *img,
-			     process *proc):
+			     AddressSpace *proc):
     desc_(fileDesc),
     fullName_(fileDesc.file()), 
     everyUniqueFunction(imgFuncHash),
@@ -173,7 +173,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 }
 
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
-                                                 process *p) {
+                                                 AddressSpace *p) {
                                                  
     if (!p) return NULL;
     
@@ -182,36 +182,37 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
         return NULL;
     }
     if (!desc.isSharedObject()) {
-       //We've seen a case where the a.out is a shared object (RHEL4's
-       // version of ssh).  Check if the shared object flag is set in the
-       // binary (which is different from the isSharedObject()) call above.
-       // If so, we need to update the load address.
-       if (img->getObject()->getObjectType() == obj_SharedLib) {
-          //Executable is a shared lib
-          p->setAOutLoadAddress(desc);
-       }
-
+        //We've seen a case where the a.out is a shared object (RHEL4's
+        // version of ssh).  Check if the shared object flag is set in the
+        // binary (which is different from the isSharedObject()) call above.
+        // If so, we need to update the load address.
+        if (p->proc() &&
+            (img->getObject()->getObjectType() == obj_SharedLib)) {
+            //Executable is a shared lib
+            p->proc()->setAOutLoadAddress(desc);
+        }
        // Search for main, if we can't find it, and we're creating the process, 
        // and not attaching to it, we can find it by instrumenting libc.so
        // Currently this has only been implemented for linux 
 #if defined(os_linux)
        vector <Dyn_Symbol *>mainsyms;
-       if (!p->wasCreatedViaAttach() 
+       if (p->proc() && 
+           !p->proc()->wasCreatedViaAttach() 
            && !img->getObject()->findSymbolByType
                  (mainsyms,"main",Dyn_Symbol::ST_UNKNOWN)
            && !img->getObject()->findSymbolByType
                  (mainsyms,"_main",Dyn_Symbol::ST_UNKNOWN)) {
            fprintf(stderr, "[%s][%d] ParseImage of module %s for process %d:\n"
-               "\t  is not a shared object so it should contain a symbol for \n"
-               "\t  function main. Initial attempt to locate main failed,\n"
-               "\t  possibly due to the lack of a .text section\n",
-                 __FILE__,__LINE__,desc.file().c_str(), p->getPid());
-           p->setTraceSysCalls(true);
-           p->setTraceState(libcOpenCall_ts);
+                   "\t  is not a shared object so it should contain a symbol for \n"
+                   "\t  function main. Initial attempt to locate main failed,\n"
+                   "\t  possibly due to the lack of a .text section\n",
+                   __FILE__,__LINE__,desc.file().c_str(), p->proc()->getPid());
+           p->proc()->setTraceSysCalls(true);
+           p->proc()->setTraceState(libcOpenCall_ts);
        }
 #endif
     }
-
+    
     // Adds exported functions and variables..
     mapped_object *obj = new mapped_object(desc, img, p);
 
@@ -253,7 +254,8 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
         assert(parFunc->mod());
         mapped_module *mod = getOrCreateForkedModule(parFunc->mod());
         int_function *newFunc = new int_function(parFunc,
-                                                 mod);
+                                                 mod,
+                                                 child);
         addFunction(newFunc);
     }
     
@@ -794,7 +796,7 @@ int_variable *mapped_object::findVariable(image_variable *img_var) {
 // This way we don't have to cross-include every header file in the
 // world.
 
-process *mapped_object::proc() const { return proc_; }
+AddressSpace *mapped_object::proc() const { return proc_; }
 
 bool mapped_object::isSharedLib() const {
     return desc_.isSharedObject();

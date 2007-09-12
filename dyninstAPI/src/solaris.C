@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.216 2007/09/06 20:15:00 roundy Exp $
+// $Id: solaris.C,v 1.217 2007/09/12 20:58:06 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -742,7 +742,7 @@ bool process::loadDYNINSTlib() {
     readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
     
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
-    scratchCodeBuffer.setProcess(this);
+    scratchCodeBuffer.setAddrSpace(this);
     scratchCodeBuffer.setAddr(codeBase);
     scratchCodeBuffer.setRegisterSpace(registerSpace::savedRegSpace(this));
 
@@ -863,12 +863,6 @@ void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
       lo = region_lo(near);
       hi = region_hi(near);  
     }
-}
-
-void process::inferiorMallocAlign(unsigned &size)
-{
-     /* 32 byte alignment.  Should it be 64? */
-  size = (size + 0x1f) & ~0x1f;
 }
 #endif
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.21 2007/08/16 20:43:46 bill Exp $
+ * $Id: arch-sparc.C,v 1.22 2007/09/12 20:57:22 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -50,7 +50,7 @@
 #include "util.h"
 #include "debug.h"
 #include "InstrucIter.h"
-#include "process.h"
+#include "addressSpace.h"
 
 //inline unsigned getMaxBranch1Insn() {
 //   // The length we can branch using just 1 instruction is dictated by the
@@ -556,7 +556,7 @@ void instruction::set_disp(bool setDisp,
 }
 
 bool instruction::generate(codeGen &gen,
-                           process *proc,
+                           AddressSpace *proc,
                            Address origAddr,
                            Address relocAddr,
                            Address /* fallthroughOverride */,

@@ -179,7 +179,7 @@ void emitCSload( const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool
 void emitVload( opCode op, Address src1, Register src2, Register dest,
 				codeGen &gen, bool noCost, registerSpace *rs, 
 				int size, const instPoint * location, 
-				process * proc) {
+				AddressSpace * proc) {
   switch( op ) {
   case loadOp: {
 	/* Stick the address src1 in the temporary register src2. */
@@ -343,7 +343,7 @@ Register emitFuncCall( opCode op, codeGen & gen,
 	assert(0);
   }
  
-  Address calleeGP = gen.proc()->getTOCoffsetInfo( callee );
+  Address calleeGP = gen.addrSpace()->proc()->getTOCoffsetInfo( callee );
 
   /* Generate the code for the arguments. */
   pdvector< Register > sourceRegisters;
@@ -462,7 +462,7 @@ void initRegisters() {
 /* Required by ast.C */
 void emitV( opCode op, Register src1, Register src2, Register dest,
 			codeGen &gen,  bool noCost, registerSpace *rs, int size, 
-			const instPoint * location, process * proc) {
+			const instPoint * location, AddressSpace * proc) {
   switch( op ) { 
   case eqOp:
   case leOp:
@@ -835,7 +835,7 @@ IA64_bundle generateBundleFor( instruction insnToBundle ) {
 
 /* private refactoring function */
 bool instruction_x::generate(	codeGen &gen, 
-								process *,
+								AddressSpace *,
 								Address originalLocation,
 								Address allocatedAddress,
 								Address fallthroughTarget,
@@ -968,7 +968,7 @@ void rewriteShortOffset(	instruction insnToRewrite, Address originalLocation,
 
 /* private refactoring function */
 bool instruction::generate(	codeGen &gen,
-							process *,
+							AddressSpace *,
 							Address originalLocation,
 							Address allocatedAddress,
 							Address fallthroughTarget,
@@ -1049,8 +1049,8 @@ bool instruction::generate(	codeGen &gen,
 /* Required by BPatch_thread.C */
 #define NEAR_ADDRESS 0x2000000000000000               /* The lower end of the shared memory segment. */
 
-bool process::replaceFunctionCall(instPoint * point, 
-								  const int_function * func ) {
+bool AddressSpace::replaceFunctionCall(instPoint * point, 
+									   const int_function * func ) {
   /* We'll assume that point is a call site, primarily because we don't actually care.
 	 However, the semantics seem to be that we can't replace function calls if we've already
 	 instrumented them (which is, of course, garbage), so we _will_ check that. */
@@ -1074,7 +1074,7 @@ bool process::replaceFunctionCall(instPoint * point,
 	Address pointAddr = ipInst->addr();
 		
 	codeRange *range;
-	if (modifiedAreas_.find(pointAddr, range)) {
+	if (modifiedRanges_.find(pointAddr, range)) {
 	  multiTramp *multi = range->is_multitramp();
 	  if (multi) {
 		// We pre-create these guys... so check to see if
@@ -1087,7 +1087,7 @@ bool process::replaceFunctionCall(instPoint * point,
 		  assert(0);
 		}
 	  }
-	  if (dynamic_cast<functionReplacement *>(range)) {
+	  else if (dynamic_cast<functionReplacement *>(range)) {
 		// We overwrote this in a function replacement...
 		continue; 
 	  }
@@ -1143,7 +1143,7 @@ bool process::replaceFunctionCall(instPoint * point,
 
 	newRFC->newCall.allocate(16);
 	newRFC->newCall.copy(&rawJumpBundle, sizeof(rawJumpBundle));
-	replacedFunctionCalls_[alignedAddress] = newRFC;
+	addReplacedCall(newRFC);
 
 	/* We don't want to emulate the call instruction itself. */
 	if( slotNo != 0 ) {
@@ -2878,7 +2878,7 @@ char * unwindOpTagToString( int8_t op ) {
   }
 } /* end unwindOpTagToString() */
 
-void dumpDynamicUnwindInformation( unw_dyn_info_t * unwindInformation, process * ) {
+void dumpDynamicUnwindInformation( unw_dyn_info_t * unwindInformation, AddressSpace * ) {
   assert( unwindInformation != NULL );
 
   Address currentIP = unwindInformation->start_ip;
@@ -2912,7 +2912,7 @@ bool process::insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTr
   dumpDynamicUnwindInformation( baseTrampDynamicInfo, this );
 	/* DEBUG */ if( baseTrampDynamicInfo->gp == 0 && baseTrampDynamicInfo->start_ip == 0 ) { return false; }
 	
-  process * proc = this;
+  AddressSpace * proc = this;
 
   /* Note: assumes no 'handler' routine(s) in baseTrampDynamicInfo->u.pi. */
   Address addressOfbTDI = proc->inferiorMalloc( sizeof( unw_dyn_info_t ) );
@@ -2974,19 +2974,19 @@ bool process::insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTr
   /* We need the address of the _U_dyn_info_list in the remote process in order
 	 to register the baseTrampDynamicInfo. */
   Dyn_Symbol dyn_info_list;
-  if (!proc->getSymbolInfo( "_U_dyn_info_list", dyn_info_list))
-	return ! proc->isBootstrappedYet();
+  if (!proc->proc()->getSymbolInfo( "_U_dyn_info_list", dyn_info_list))
+	  return ! proc->proc()->isBootstrappedYet();
   Address addressOfuDIL = dyn_info_list.getAddr();
 	
   /* Register baseTrampDynamicInfo in remote process. */
   dyn_unw_printf( "%s[%d]: registering remote address range [0x%lx - 0x%lx) with gp = 0x%lx with uDIL at 0x%lx\n", __FILE__, __LINE__, baseTrampDynamicInfo->start_ip, baseTrampDynamicInfo->end_ip, baseTrampDynamicInfo->gp, addressOfuDIL );
-  registerRemoteUnwindInformation( addressOfbTDI, addressOfuDIL, proc->getPid() );
+  registerRemoteUnwindInformation( addressOfbTDI, addressOfuDIL, proc->proc()->getPid() );
   return true;
 } /* end insertAndRegisterDynamicUnwindInformation() */
 
 /* Required by ast.C */
 void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
-				  process *proc, const instPoint *location, bool) {
+				  AddressSpace *proc, const instPoint *location, bool) {
 
   assert(op == funcJumpOp);
   IA64_bundle bundle;
@@ -3041,7 +3041,7 @@ void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
   // Install GP for callee.
   bundle = IA64_bundle( MLX,
 						instruction( NOP_M ),
-						generateLongConstantInRegister( REGISTER_GP, proc->getTOCoffsetInfo( callee_addr )));
+						generateLongConstantInRegister( REGISTER_GP, proc->proc()->getTOCoffsetInfo( callee_addr )));
   bundle.generate(gen);
 
   // Copy the callee address and jump.
@@ -3227,7 +3227,7 @@ bool doNotOverflow( int /*value*/ ) {
 /* Required by ast.C */
 void emitVstore( opCode op, Register src1, Register src2, Address dest,
 				 codeGen &gen,  bool /*noCost*/, registerSpace * rs, int size,
-				 const instPoint * location, process * proc) {
+				 const instPoint * location, AddressSpace * proc) {
 
   switch( op ) {
   case storeOp: {
@@ -3275,7 +3275,7 @@ void emitJmpMC( int /*condition*/, int /*offset*/, codeGen &) { assert( 0 ); }
 
 /* -------- implementation of InsnAddr -------- */
 
-InsnAddr InsnAddr::generateFromAlignedDataAddress( Address addr, process * p ) {
+InsnAddr InsnAddr::generateFromAlignedDataAddress( Address addr, AddressSpace * p ) {
   assert( addr % 16 == 0 );  assert( p != NULL );
   InsnAddr generated( addr, p );
   return generated;
@@ -3379,7 +3379,7 @@ bool registerSpace::clobberFPRegister( Register ) {
 } /* end clobberFPRegister() */
 
 /* For AIX "on the fly" register allocation. */
-unsigned saveRestoreRegistersInBaseTramp( process *, baseTramp *, registerSpace * ) {
+unsigned saveRestoreRegistersInBaseTramp( AddressSpace *, baseTramp *, registerSpace * ) {
   return 0;
 } /* end saveRestoreRegistersInBaseTramp() */
 
@@ -3396,7 +3396,7 @@ bool process::MonitorCallSite( instPoint * callSite ) {
 	pdvector< AstNodePtr > arguments;
 #else
 /* This is a really horribly-named function. */
-bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNodePtr> & arguments ) {
+bool AddressSpace::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNodePtr> & arguments ) {
 #endif
 	insn_tmpl tmpl = { callSite->insn().getMachineCode() };
 	uint64_t targetAddrRegister = tmpl.B4.b2;			
@@ -3545,11 +3545,11 @@ int instPoint::getPointCost() {
 /**
   * Fills in an indirect function pointer at 'addr' to point to 'f'.
  **/
-bool writeFunctionPtr( process * proc, Address fnptr, int_function * func ) {
+bool writeFunctionPtr( AddressSpace * proc, Address fnptr, int_function * func ) {
 	/* IA-64 function pointers actually point to structures.  We insert such
 	   a structure in the mutatee so that instrumentation can use it. */
 	Address entryPoint = (Address)func->getAddress();
-	Address gp = proc->getTOCoffsetInfo( entryPoint );
+	Address gp = proc->proc()->getTOCoffsetInfo( entryPoint );
 	
 	Address remoteAddress = proc->inferiorMalloc( sizeof( Address ) * 2 );
 	if( ((void *) remoteAddress) == NULL ) { return false; }
@@ -3562,7 +3562,7 @@ bool writeFunctionPtr( process * proc, Address fnptr, int_function * func ) {
 	return true;
 	} /* end writeFunctionPtr() */
 
-Emitter *process::getEmitter() 
+Emitter *AddressSpace::getEmitter() 
 {
    return NULL;
 }

@@ -796,7 +796,7 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
    // already done a GETREGS and we'll restore with a SETREGS, right?
    // unsigned char insnBuffer[4096];
     codeGen irpcBuf(MAX_IRPC_SIZE);
-    irpcBuf.setProcess(proc());
+    irpcBuf.setAddrSpace(proc());
     irpcBuf.setLWP(lwp);
     irpcBuf.setThread(thr);
     

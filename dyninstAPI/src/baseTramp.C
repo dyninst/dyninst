@@ -39,17 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.56 2007/06/13 18:50:34 bernat Exp $
+// $Id: baseTramp.C,v 1.57 2007/09/12 20:57:30 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/h/BPatch.h"
+#include "debug.h"
+#include "process.h"
 
 #if defined(os_aix)
   extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
@@ -96,9 +98,9 @@ baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
     // And copy miniTrampInstances
     for (unsigned i = 0; i < parBTI->mtis.size(); i++) {
         miniTramp *cMini = NULL;
-        getInheritedMiniTramp(parBTI->mtis[i]->mini,
-                              cMini,
-                              child);
+
+        cMini = parBTI->mtis[i]->mini->getInheritedMiniTramp(child);
+
         assert(cMini);
         miniTrampInstance *newMTI = new miniTrampInstance(parBTI->mtis[i],
                                                           this,
@@ -223,7 +225,7 @@ unw_dyn_region_info_t * duplicateRegionList( unw_dyn_region_info_t * head ) {
 	} /* end duplicateRegionList() */
 #endif /* defined( cap_unwind ) */
 
-baseTramp::baseTramp(const baseTramp *pt, process *proc) :
+baseTramp::baseTramp(const baseTramp *pt, process *child) :
     preSize(pt->preSize),
     postSize(pt->postSize),
     saveStartOffset(pt->saveStartOffset),
@@ -284,7 +286,7 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     
     parMini = pt->firstMini;
     while (parMini) {
-        childMini = new miniTramp(parMini, this, proc);
+        childMini = new miniTramp(parMini, this, child);
         if (childPrev) {
             childPrev->next = childMini;
         }
@@ -300,7 +302,7 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
 
     rpcMgr_ = NULL;
     if (pt->rpcMgr_) {
-        rpcMgr_ = proc->getRpcMgr();
+        rpcMgr_ = child->getRpcMgr();
     }
 }
 
@@ -738,7 +740,7 @@ void baseTrampInstance::generateBranchToMT(codeGen &gen) {
     }
 }
 
-process *baseTramp::proc() const { 
+AddressSpace *baseTramp::proc() const { 
   if (instP_)
     return instP_->proc();
   if (rpcMgr_)
@@ -1050,20 +1052,7 @@ void baseTramp::setRecursive(bool trampRecursive, bool force) {
             guardState_ = recursive_BTR;
         else {
             if (guardState_ == guarded_BTR) {
-#if defined(os_aix) 
-		/* 	this is part of the code to ensure that when we add the call to dlopen
-			at the entry of main on AIX during save the world, an UNGUARDED tramp is produced
-		*/
-		if( !proc()->requestTextMiniTramp ){
-#endif
-                    //cerr << "WARNING: collision between pre-existing guarded miniTramp and new miniTramp, keeping guarded!" << endl;
-#if defined(os_aix) 
-		}else{
-			//override the tramp guard state if we are doing savetheworld on AIX
-
-			guardState_ = recursive_BTR; //ccw 24 jan 2006 
-		}
-#endif
+                guardState_ = recursive_BTR; //ccw 24 jan 2006 
             }
         }
     }
@@ -1101,15 +1090,7 @@ bool baseTramp::getRecursive() const {
 // Generates an instruction buffer that holds the base tramp
 bool baseTramp::generateBT(codeGen &baseGen) {
 
-  if (valid && !(BPatch::bpatch->isMergeTramp())
-#if defined(os_aix) 
-	/* 	this is part of the code to ensure that when we add the call to dlopen
-		at the entry of main on AIX during save the world, any multi that was
-		already there gets regenerated
-	*/
-    && !proc()->requestTextMiniTramp 
-#endif
-     ){
+  if (valid && !(BPatch::bpatch->isMergeTramp())){
       return true; // May be called multiple times
     }
   else
@@ -1189,14 +1170,14 @@ bool baseTramp::generateBT(codeGen &baseGen) {
   postTrampCode_.applyTemplate(baseGen);
   postTrampCode_.allocate(POST_TRAMP_SIZE);
 
-  preTrampCode_.setProcess(proc());
-  postTrampCode_.setProcess(proc());
-
-    preTrampCode_.setRegisterSpace(baseGen.rs());
-    
-    
-    saveStartOffset = preTrampCode_.used();
-    inst_printf("Starting saves: offset %d\n", saveStartOffset);
+  preTrampCode_.setAddrSpace(proc());
+  postTrampCode_.setAddrSpace(proc());
+  
+  preTrampCode_.setRegisterSpace(baseGen.rs());
+  
+  
+  saveStartOffset = preTrampCode_.used();
+  inst_printf("Starting saves: offset %d\n", saveStartOffset);
 
     generateSaves(preTrampCode_, preTrampCode_.rs());
 
@@ -1205,27 +1186,8 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     inst_printf("Starting MT: offset %d\n", saveEndOffset);
 
 
-#if defined(os_aix) 
-	/* 	if requestTextMiniTramp is set then we are instrumenting the
-		entry point of main for save the world on AIX.
-		
-		We only want to disable the MT code for the BaseTramp that
-		calls dlopen, which will be the FIRST BaseTramp in the MultiTramp.
-	
-		Hence, the increment of requestTextMiniTramp.  This gets called
-		TWO times (where we want to skip the MT code) before we see the second 
-		BaseTramp in the MultiTram, where we DO want MT code.
-	*/
-    if (proc()->requestTextMiniTramp==0 || proc()->requestTextMiniTramp>2 ){
-#endif
   // Multithread
     generateMTCode(preTrampCode_, preTrampCode_.rs());
-#if defined(os_aix) 
-   }else{
-	proc()->setRequestTextMiniTramp(proc()->requestTextMiniTramp+1);
-   }
-#endif
-
 
     // Guard code
     guardLoadOffset = preTrampCode_.used();
@@ -1246,10 +1208,6 @@ bool baseTramp::generateBT(codeGen &baseGen) {
 
     costUpdateOffset = preTrampCode_.used();
 
-#if defined(os_aix) 
-    if (!proc()->requestTextMiniTramp ){
-#endif
-
     inst_printf("Starting cost: offset %d\n", costUpdateOffset);
 
     // We may not want cost code... for now if we're an iRPC tramp
@@ -1266,13 +1224,6 @@ bool baseTramp::generateBT(codeGen &baseGen) {
         costSize = 0;
         costValueOffset = 0;
     }
-#if defined(os_aix) 
-    }else{  //ccw 8 oct 2005
-       costSize=0;
-       costValueOffset=0;
-    }
-#endif
-
 
     instStartOffset = preTrampCode_.used();
     preSize = preTrampCode_.used();
@@ -1440,7 +1391,7 @@ bool baseTrampInstance::safeToFree(codeRange *range) {
     return true;
 }
 
-process *baseTrampInstance::proc() const {
+AddressSpace *baseTrampInstance::proc() const {
     assert(baseT);
     return baseT->proc();
 }

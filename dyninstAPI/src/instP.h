@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.51 2007/01/29 18:22:16 legendre Exp $
+// $Id: instP.h,v 1.52 2007/09/12 20:57:43 bernat Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -59,6 +59,7 @@
 
 class baseTramp;
 class miniTramp;
+class AddressSpace;
 
 #if 0
 class instWaitingList {
@@ -102,12 +103,10 @@ extern baseTramp *installMergedTramp(process *proc,
 					 bool allowTrap);
 #endif
 
-extern void generateReturn(process *proc, Address currAddr, instPoint *location);
 extern void initRegisters();
 extern void generateBranch(unsigned char *buffer, unsigned &offset,
                            Address fromAddr, Address toAddr);
-extern unsigned generateAndWriteBranch(process *proc, Address fromAddr, Address toAddr, unsigned fillSize);
-extern void removeTramp(process *proc, instPoint *location);
+extern unsigned generateAndWriteBranch(AddressSpace *proc, Address fromAddr, Address toAddr, unsigned fillSize);
 extern int flushPtrace();
 
 extern unsigned saveGPRegister(char *baseInsn, Address &base, Register reg);

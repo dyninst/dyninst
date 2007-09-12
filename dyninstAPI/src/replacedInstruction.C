@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.C,v 1.8 2007/06/13 18:51:13 bernat Exp $
+// $Id: replacedInstruction.C,v 1.9 2007/09/12 20:58:02 bernat Exp $
 
 #include "multiTramp.h"
 #include "process.h"
@@ -121,5 +121,5 @@ bool replacedInstruction::safeToFree(codeRange *range) {
     return true;
 }
 
-process *replacedInstruction::proc() const { return multi()->proc(); }
+AddressSpace *replacedInstruction::proc() const { return multi()->proc(); }
 

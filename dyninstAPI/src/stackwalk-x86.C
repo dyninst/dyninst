@@ -109,7 +109,7 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc)
       return frame_vsyscall;
 #endif
 
-   range = p->findCodeRangeByAddress(pc);
+   range = p->findOrigByAddr(pc);
    func = range->is_function();
    multi = range->is_multitramp();
    mini = range->is_minitramp();
@@ -143,7 +143,7 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc)
 
 static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
 {
-   codeRange *range = p->findCodeRangeByAddress(addr);
+   codeRange *range = p->findOrigByAddr(addr);
    pdvector<instPoint *> callsites;
 
    if (range == NULL)
@@ -180,7 +180,7 @@ static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
 static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
 {
     int frameSizeDontCare;
-    codeRange *range = proc->findCodeRangeByAddress(addr);
+    codeRange *range = proc->findOrigByAddr(addr);
 
     if (range &&
         range->is_basicBlockInstance()) {

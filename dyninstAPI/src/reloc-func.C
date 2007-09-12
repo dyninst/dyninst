@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.28 2007/07/26 19:19:40 bernat Exp $
+// $Id: reloc-func.C,v 1.29 2007/09/12 20:58:01 bernat Exp $
 
 
 
@@ -285,7 +285,7 @@ bool int_function::relocationInstall() {
         if (!success) break;
         
         // Add all the basicBlocks to the process data range...
-        proc()->addCodeRange(blockList[i]->instVer(generatedVersion_));
+        proc()->addOrigRange(blockList[i]->instVer(generatedVersion_));
         addBBLInstance(blockList[i]->instVer(generatedVersion_));
     }
     if (!success) {
@@ -399,10 +399,10 @@ bool int_function::relocationInvalidate() {
                          FILE__, __LINE__, installedVersion_, i);
             bblInstance *instance = blockList[i]->instVer(installedVersion_);
             assert(instance);
-            proc()->deleteCodeRange(instance->firstInsnAddr());
+            proc()->removeOrigRange(instance);
             deleteBBLInstance(instance);
             // Nuke any attached multiTramps...
-            multiTramp *multi = proc()->findMultiTramp(instance->firstInsnAddr());
+            multiTramp *multi = proc()->findMultiTrampByAddr(instance->firstInsnAddr());
             if (multi)
                 delete multi;
         }
@@ -463,7 +463,7 @@ bool int_function::expandForInstrumentation() {
         assert(bblI->block() == blockList[i]);
         // Simplification: check if there's a multiTramp at the block.
         // If there isn't, then we don't care.
-        multiTramp *multi = proc()->findMultiTramp(bblI->firstInsnAddr());
+        multiTramp *multi = proc()->findMultiTrampByAddr(bblI->firstInsnAddr());
         if (!multi) continue;
         if (bblI->getSize() < multi->sizeDesired()) {
             reloc_printf("Enlarging basic block %d\n",
@@ -684,8 +684,8 @@ bool bblInstance::install() {
     }
     assert(generatedBlock().used() == maxSize());
 
-    reloc_printf("(%d) Writing from 0x%lx 0x%lx to 0x%lx 0x%lx\n",
-                 proc()->getPid(),
+    reloc_printf("%s[%d]: Writing from 0x%lx 0x%lx to 0x%lx 0x%lx\n",
+                 FILE__, __LINE__,
                  generatedBlock().start_ptr(), 
                  (long) generatedBlock().start_ptr() + generatedBlock().used(),
                  firstInsnAddr_,
@@ -814,6 +814,9 @@ bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needRelo
 
     if(sourceBlock_->hasSharedBase())
     {
+        reloc_printf("%s[%d]: odd case, function with shared entry block\n",
+                     FILE__, __LINE__);
+
         // if this entry block is shared...
         sourceBlock_->func()->getSharingFuncs(sourceBlock_,
                                               needReloc);
@@ -978,8 +981,7 @@ bool functionReplacement::linkFuncRep(pdvector<codeRange *> &overwrittenObjs) {
     if (sourceBlock_->proc()->writeTextSpace((void *)get_address_cr(),
                                              jumpToRelocated.used(),
                                              jumpToRelocated.start_ptr())) {
-        sourceBlock_->proc()->addFunctionReplacement(this,
-                                                     overwrittenObjs);
+        sourceBlock_->proc()->addFuncReplacement(this); 
 
         if (usesTrap_) {
             bblInstance *sourceInst = sourceBlock_->instVer(sourceVersion_);

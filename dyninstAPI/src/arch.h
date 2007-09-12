@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.26 2007/06/20 20:49:39 ssuen Exp $
+// $Id: arch.h,v 1.27 2007/09/12 20:57:27 bernat Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -76,6 +76,7 @@
 class dyn_lwp;
 class dyn_thread;
 class process;
+class AddressSpace;
 class instPoint;
 class registerSpace;
 class regTracker_t;
@@ -176,7 +177,8 @@ class codeGen {
                  instPoint *point,
                  registerSpace *rs);
 
-    void setProcess(process *p);
+    //void setProcess(process *p);
+    void setAddrSpace(AddressSpace *a);
     void setThread(dyn_thread *t) { thr_ = t; }
     void setLWP(dyn_lwp *l) { lwp_ = l; }
     void setRegisterSpace(registerSpace *r) { rs_ = r; }
@@ -187,7 +189,8 @@ class codeGen {
 
     dyn_lwp *lwp() { return lwp_; }
     dyn_thread *thread() { return thr_; }
-    process *proc() { assert(proc_); return proc_; }
+    //process *proc() { assert(proc_); return proc_; }
+    AddressSpace *addrSpace() { assert(aSpace_); return aSpace_; }
     Address startAddr() const { return addr_; }
     const instPoint *point() const { return ip_; }
     registerSpace *rs() { assert(rs_); return rs_; }
@@ -202,7 +205,8 @@ class codeGen {
     Emitter *emitter_;
     bool allocated_;
 
-    process *proc_;
+    //process *proc_;
+    AddressSpace *aSpace_;
     dyn_thread *thr_;
     dyn_lwp * lwp_;
     registerSpace *rs_;

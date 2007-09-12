@@ -119,7 +119,8 @@ int_function::int_function(image_func *f,
 
 
 int_function::int_function(const int_function *parFunc,
-                           mapped_module *childMod) :
+                           mapped_module *childMod,
+                           process *childP) :
     addr_(parFunc->addr_),
     ifunc_(parFunc->ifunc_),
     mod_(childMod),
@@ -146,32 +147,32 @@ int_function::int_function(const int_function *parFunc,
          instPoint *parP = parFunc->entryPoints_[i];
          int_basicBlock *block = findBlockByAddr(parP->addr());
          assert(block);
-         instPoint *childP = instPoint::createForkedPoint(parP, block);
-         entryPoints_.push_back(childP);
+         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
+         entryPoints_.push_back(childIP);
      }
 
      for (i = 0; i < parFunc->exitPoints_.size(); i++) {
          instPoint *parP = parFunc->exitPoints_[i];
          int_basicBlock *block = findBlockByAddr(parP->addr());
          assert(block);
-         instPoint *childP = instPoint::createForkedPoint(parP, block);
-         exitPoints_.push_back(childP);
+         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
+         exitPoints_.push_back(childIP);
      }
 
      for (i = 0; i < parFunc->callPoints_.size(); i++) {
          instPoint *parP = parFunc->callPoints_[i];
          int_basicBlock *block = findBlockByAddr(parP->addr());
          assert(block);
-         instPoint *childP = instPoint::createForkedPoint(parP, block);
-         callPoints_.push_back(childP);
+         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
+         callPoints_.push_back(childIP);
      }
 
      for (i = 0; i < parFunc->arbitraryPoints_.size(); i++) {
          instPoint *parP = parFunc->arbitraryPoints_[i];
          int_basicBlock *block = findBlockByAddr(parP->addr());
          assert(block);
-         instPoint *childP = instPoint::createForkedPoint(parP, block);
-         arbitraryPoints_.push_back(childP);
+         instPoint *childIP = instPoint::createForkedPoint(parP, block, childP);
+         arbitraryPoints_.push_back(childIP);
      }
 
 #if defined(arch_ia64)
@@ -186,7 +187,23 @@ int_function::~int_function() {
     // ifunc_ doesn't keep tabs on us, so don't need to let it know.
     // mod_ is cleared by the mapped_object
     // blockList isn't allocated
+
     // instPoints are process level (should be deleted here and refcounted)
+
+    // DEMO: incorrectly delete instPoints here
+    for (unsigned i = 0; i < entryPoints_.size(); i++) {
+        delete entryPoints_[i];
+    }
+    for (unsigned i = 0; i < exitPoints_.size(); i++) {
+        delete exitPoints_[i];
+    }
+    for (unsigned i = 0; i < callPoints_.size(); i++) {
+        delete callPoints_[i];
+    }
+    for (unsigned i = 0; i < arbitraryPoints_.size(); i++) {
+        delete arbitraryPoints_[i];
+    }
+
 
 #if defined(cap_relocation)
     for (unsigned i = 0; i < enlargeMods_.size(); i++)
@@ -257,7 +274,8 @@ const pdvector<instPoint *> &int_function::funcEntries() {
 
             instPoint *point = instPoint::createParsePoint(this,
                                                            img_entries[i]);
-            assert(point);
+			if (!point) continue; // Can happen if we double-create
+			assert(point);
             entryPoints_.push_back(point);
         }
     }
@@ -286,6 +304,8 @@ const pdvector<instPoint*> &int_function::funcExits() {
 
             instPoint *point = instPoint::createParsePoint(this,
                                                            img_exits[i]);
+						if (!point) continue; // Can happen if we double-create
+
             assert(point);
             exitPoints_.push_back(point);
         }
@@ -316,6 +336,8 @@ const pdvector<instPoint*> &int_function::funcCalls() {
             }
             instPoint *point = instPoint::createParsePoint(this,
                                                            img_calls[i]);
+						if (!point) continue; // Can happen if we double-create
+
             assert(point);
             callPoints_.push_back(point);
         }
@@ -381,7 +403,7 @@ void print_func_vector_by_pretty_name(pdstring prefix,
 
 mapped_module *int_function::mod() const { return mod_; }
 mapped_object *int_function::obj() const { return mod()->obj(); }
-process *int_function::proc() const { return obj()->proc(); }
+AddressSpace *int_function::proc() const { return obj()->proc(); }
 
 bblInstance *int_function::findBlockInstanceByAddr(Address addr) {
     codeRange *range;
@@ -426,7 +448,7 @@ const pdvector<int_basicBlock *> &int_function::blocks()
     return blockList;
 }
 
-process *int_basicBlock::proc() const {
+AddressSpace *int_basicBlock::proc() const {
     return func()->proc();
 }
 
@@ -521,6 +543,7 @@ bool int_basicBlock::needsRelocation() const {
     if(ib_->isShared()) {
         // If we've _already_ relocated, then we're no longer shared
         // because we have our own copy.
+
         if (instances_.size() > 1) {
             return false;
         }
@@ -847,7 +870,7 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
     if(version_ == 0)
         block_->func()->obj()->codeRangesByAddr_.insert(this);
     else
-        block_->func()->obj()->proc()->addCodeRange(this);
+        block_->func()->obj()->proc()->addOrigRange(this);
 }
 
 bblInstance::~bblInstance() {
@@ -876,7 +899,7 @@ int_function *bblInstance::func() const {
     return block_->func();
 }
 
-process *bblInstance::proc() const {
+AddressSpace *bblInstance::proc() const {
     assert(block_);
     return block_->func()->proc();
 }

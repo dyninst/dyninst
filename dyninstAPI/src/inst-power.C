@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.275 2007/08/09 22:24:01 ssuen Exp $
+ * $Id: inst-power.C,v 1.276 2007/09/12 20:57:38 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -325,10 +325,10 @@ void saveSPR(codeGen &gen,     //Instruction storage pointer
     (*insn).xform.xo = MFSPRxop;
     insn.generate(gen);
 
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
 	instruction::generateImm(gen, STop,
                                  scratchReg, 1, stkOffset);
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	instruction::generateMemAccess64(gen, STDop, STDxop,
                                          scratchReg, 1, stkOffset);
     }
@@ -347,10 +347,10 @@ void restoreSPR(codeGen &gen,       //Instruction storage pointer
                 int           sprnum,     //SPR number
                 int           stkOffset)  //Offset from stack pointer
 {
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, Lop,
                                  scratchReg, 1, stkOffset);
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         instruction::generateMemAccess64(gen, LDop, LDxop,
                                          scratchReg, 1, stkOffset);
     }
@@ -459,10 +459,10 @@ void saveCR(codeGen &gen,       //Instruction storage pointer
   (*insn).xfxform.xo = MFCRxop;
   insn.generate(gen);
 
-  if (gen.proc()->getAddressWidth() == 4) {
+  if (gen.addrSpace()->getAddressWidth() == 4) {
       instruction::generateImm(gen, STop,
 			       scratchReg, 1, stkOffset);
-  } else /* gen.proc()->getAddressWidth() == 8 */ {
+  } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
       instruction::generateMemAccess64(gen, STDop, STDxop,
 				       scratchReg, 1, stkOffset);
   }
@@ -481,10 +481,10 @@ void restoreCR(codeGen &gen,       //Instruction storage pointer
 {
     instruction insn;
 
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, Lop,
                                  scratchReg, 1, stkOffset);
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         instruction::generateMemAccess64(gen, LDop, LDxop,
                                          scratchReg, 1, stkOffset);
     }
@@ -562,10 +562,10 @@ void saveRegister(codeGen &gen,
                   Register reg,
                   int save_off)
 {
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, STop,
                                  reg, 1, save_off + reg*GPRSIZE_32);
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         instruction::generateMemAccess64(gen, STDop, STDxop,
                                          reg, 1, save_off + reg*GPRSIZE_64);
     }
@@ -577,10 +577,10 @@ void restoreRegister(codeGen &gen,
                      Register source,
                      Register dest, int saved_off)
 {
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, Lop, 
                                  dest, 1, saved_off + source*GPRSIZE_32);
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         instruction::generateMemAccess64(gen, LDop, LDxop,
                                          dest, 1, saved_off + source*GPRSIZE_64);
     }
@@ -628,10 +628,10 @@ void restoreFPRegister(codeGen &gen,
  */
 void pushStack(codeGen &gen)
 {
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
 	instruction::generateImm(gen, STUop,
 				 REG_SP, REG_SP, -TRAMP_FRAME_SIZE_32);
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	instruction::generateMemAccess64(gen, STDop, STDUxop,
                                   REG_SP, REG_SP, -TRAMP_FRAME_SIZE_64);
     }
@@ -639,11 +639,11 @@ void pushStack(codeGen &gen)
 
 void popStack(codeGen &gen)
 {
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
 	instruction::generateImm(gen, CALop, 
 				 REG_SP, REG_SP, TRAMP_FRAME_SIZE_32);
 
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	instruction::generateImm(gen, CALop,
                                  REG_SP, REG_SP, TRAMP_FRAME_SIZE_64);
     }
@@ -679,7 +679,7 @@ unsigned saveGPRegisters(codeGen &gen,
         registerSlot *reg = theRegSpace->getRegSlot(i);
         if (reg->startsLive) {
 	    saveRegister(gen, reg->number, save_off);
-	    gen.rs()->markSavedRegister(reg->number, save_off + reg->number*gen.proc()->getAddressWidth());	
+	    gen.rs()->markSavedRegister(reg->number, save_off + reg->number*gen.addrSpace()->getAddressWidth());	
 	    numRegs++;
 	}
     }
@@ -832,13 +832,13 @@ unsigned saveSPRegisters(codeGen &gen,
 {
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
 
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
 	spr0_off  = STK_SPR0_32;
 	fpscr_off = STK_FP_CR_32;
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
@@ -875,13 +875,13 @@ unsigned restoreSPRegisters(codeGen &gen,
 {
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
 
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
 	spr0_off  = STK_SPR0_32;
 	fpscr_off = STK_FP_CR_32;
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
@@ -938,11 +938,11 @@ bool baseTramp::generateSaves(codeGen &gen,
     regalloc_printf("========== baseTramp::generateSaves\n");
     
     int gpr_off, fpr_off, ctr_off;
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
         gpr_off = TRAMP_GPR_OFFSET_32;
         fpr_off = TRAMP_FPR_OFFSET_32;
         ctr_off = STK_CTR_32;
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         gpr_off = TRAMP_GPR_OFFSET_64;
         fpr_off = TRAMP_FPR_OFFSET_64;
         ctr_off = STK_CTR_64;
@@ -975,12 +975,12 @@ bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *)
 {
     int gpr_off, fpr_off, ctr_off;
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
         gpr_off = TRAMP_GPR_OFFSET_32;
         fpr_off = TRAMP_FPR_OFFSET_32;
 //        spr_off = TRAMP_SPR_OFFSET_32;
         ctr_off = STK_CTR_32;
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         gpr_off = TRAMP_GPR_OFFSET_64;
         fpr_off = TRAMP_FPR_OFFSET_64;
 //        spr_off = TRAMP_SPR_OFFSET_64;
@@ -1194,7 +1194,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         break;
         
     case timesOp:
-        if (isPowerOf2(src2imm,result) && (result < (gen.proc()->getAddressWidth() * 8))) {
+        if (isPowerOf2(src2imm,result) && (result < (gen.addrSpace()->getAddressWidth() * 8))) {
             instruction::generateLShift(gen, src1, result, dest);
             return;
         }
@@ -1207,7 +1207,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         break;
         
     case divOp:
-        if (isPowerOf2(src2imm,result) && (result < (gen.proc()->getAddressWidth() * 8))) {
+        if (isPowerOf2(src2imm,result) && (result < (gen.addrSpace()->getAddressWidth() * 8))) {
             instruction::generateRShift(gen, src1, result, dest);
             return;
         }
@@ -1343,11 +1343,11 @@ Register emitFuncCall(opCode /* ocode */,
     // file() -> pdmodule "parent"
     // exec() -> image "parent"
 #if defined(os_aix)
-    toc_anchor = gen.proc()->getTOCoffsetInfo(callee);
+    toc_anchor = gen.addrSpace()->proc()->getTOCoffsetInfo(callee);
 #else
     // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
-    if (gen.proc()->getAddressWidth() == sizeof(uint64_t)) {
-        toc_anchor = gen.proc()->getTOCoffsetInfo(callee);
+    if (gen.addrSpace()->getAddressWidth() == sizeof(uint64_t)) {
+        toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
     }
 
     // Note: For 32-bit ELF PowerPC Linux (and other SYSV ABI followers)
@@ -1394,7 +1394,7 @@ Register emitFuncCall(opCode /* ocode */,
     savedRegs.push_back(2);
 #else
     // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
-    if (gen.proc()->getAddressWidth() == sizeof(uint64_t)) {
+    if (gen.addrSpace()->getAddressWidth() == sizeof(uint64_t)) {
         // Save register 2 (TOC)
         saveRegister(gen, 2, FUNC_CALL_SAVE);
         savedRegs.push_back(2);
@@ -1518,7 +1518,7 @@ Register emitFuncCall(opCode /* ocode */,
     //inst_printf("toc setup (%d)...");
 #else
     // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
-    if (gen.proc()->getAddressWidth() == sizeof(uint64_t)) {
+    if (gen.addrSpace()->getAddressWidth() == sizeof(uint64_t)) {
         // Set up the new TOC value
         emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
         //inst_printf("toc setup (%d)...");
@@ -1638,9 +1638,9 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
         // FIXME
 	if (regSlot->mustRestore || 1) {
 	    int offset;
-	    if (gen.proc()->getAddressWidth() == 4)
+	    if (gen.addrSpace()->getAddressWidth() == 4)
 		offset = TRAMP_GPR_OFFSET_32;
-	    else /* gen.proc()->getAddressWidth() == 4 */
+	    else /* gen.addrSpace()->getAddressWidth() == 4 */
 		offset = TRAMP_GPR_OFFSET_64;
 
             // its on the stack so load it.
@@ -1669,9 +1669,9 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 	    {
                 // FIXME
 		int offset;
-		if (gen.proc()->getAddressWidth() == 4)
+		if (gen.addrSpace()->getAddressWidth() == 4)
 		    offset = TRAMP_GPR_OFFSET_32;
-		else /* gen.proc()->getAddressWidth() == 4 */
+		else /* gen.addrSpace()->getAddressWidth() == 4 */
 		    offset = TRAMP_GPR_OFFSET_64;
 
                 if (gen.rs()->beenSaved(regSlot->number) || 1) {
@@ -1687,16 +1687,16 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       } else {
           // Registers from 11 (src = 8) and beyond are saved on the
           // stack. On AIX this is +56 bytes; for ELF it's something different.
-	  if (gen.proc()->getAddressWidth() == 4) {
+	  if (gen.addrSpace()->getAddressWidth() == 4) {
 	      instruction::generateImm(gen, Lop, dest, 1,
 				       TRAMP_FRAME_SIZE_32 +
 				       ((src1 - 8)*sizeof(int)) +
-				       PARAM_OFFSET(gen.proc()->getAddressWidth()));
-	  } else /* gen.proc()->getAddressWidth() == 8 */ {
+				       PARAM_OFFSET(gen.addrSpace()->getAddressWidth()));
+	  } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	      instruction::generateMemAccess64(gen, LDop, LDxop, dest, 1,
 					       TRAMP_FRAME_SIZE_64 +
 					       ((src1 - 8)*sizeof(long)) +
-					       PARAM_OFFSET(gen.proc()->getAddressWidth()));
+					       PARAM_OFFSET(gen.addrSpace()->getAddressWidth()));
 	  }
           return(dest);
       }
@@ -1726,11 +1726,11 @@ static inline void restoreGPRtoGPR(codeGen &gen,
                                    Register reg, Register dest)
 {
     int frame_size, gpr_size, gpr_off;
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
 	frame_size = TRAMP_FRAME_SIZE_32;
 	gpr_size   = GPRSIZE_32;
 	gpr_off    = TRAMP_GPR_OFFSET_32;
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	frame_size = TRAMP_FRAME_SIZE_64;
 	gpr_size   = GPRSIZE_64;
 	gpr_off    = TRAMP_GPR_OFFSET_64;
@@ -1754,10 +1754,10 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 // VG(03/15/02): Restore mutatee value of XER to dest GPR
 static inline void restoreXERtoGPR(codeGen &gen, Register dest)
 {
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, Lop, dest, 1,
                                  TRAMP_SPR_OFFSET + STK_XER_32);
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         instruction::generateMemAccess64(gen, LDop, LDxop, dest, 1,
                                          TRAMP_SPR_OFFSET + STK_XER_64);
     }
@@ -1857,7 +1857,7 @@ void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
                codeGen &gen, bool /*noCost*/, 
                registerSpace * /*rs*/, int size,
-               const instPoint * /* location */, process * /* proc */)
+               const instPoint * /* location */, AddressSpace * /* proc */)
 {
     if (op == loadConstOp) {
         instruction::loadImmIntoReg(gen, dest, (long)src1);
@@ -1879,17 +1879,17 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 
     } else if (op == loadFrameRelativeOp) {
 	// return the value that is FP offset from the original fp
-        if (gen.proc()->getAddressWidth() == 4)
+        if (gen.addrSpace()->getAddressWidth() == 4)
             instruction::generateImm(gen, Lop, dest, REG_SP,
                                      (long)src1 + TRAMP_FRAME_SIZE_32);
-        else /* gen.proc()->getAddressWidth() == 8 */
+        else /* gen.addrSpace()->getAddressWidth() == 8 */
             instruction::generateMemAccess64(gen, LDop, LDxop, dest, REG_SP,
                                              (long)src1 + TRAMP_FRAME_SIZE_64);
 
     } else if (op == loadFrameAddr) {
 	// offsets are signed!
         long offset = (long)src1;
-        offset += (gen.proc()->getAddressWidth() == 4 ? TRAMP_FRAME_SIZE_32
+        offset += (gen.addrSpace()->getAddressWidth() == 4 ? TRAMP_FRAME_SIZE_32
                                                       : TRAMP_FRAME_SIZE_64);
 
         if (offset < MIN_IMM16 || MAX_IMM16 < offset) assert(0);
@@ -1903,24 +1903,24 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 	      codeGen &gen, bool noCost, 
                 registerSpace * /* rs */, int /* size */,
-                const instPoint * /* location */, process * /* proc */)
+                const instPoint * /* location */, AddressSpace * /* proc */)
 {
     if (op == storeOp) {
 	// temp register to hold base address for store (added 6/26/96 jkh)
 	Register temp = gen.rs()->getScratchRegister(gen, noCost);
 
         instruction::loadPartialImmIntoReg(gen, temp, (long)dest);
-        if (gen.proc()->getAddressWidth() == 4)
+        if (gen.addrSpace()->getAddressWidth() == 4)
             instruction::generateImm(gen, STop, src1, temp, LOW(dest));
-        else /* gen.proc()->getAddressWidth() == 8 */
+        else /* gen.addrSpace()->getAddressWidth() == 8 */
             instruction::generateMemAccess64(gen, STDop, STDxop,
                                              src1, temp, (int16_t)BOT_LO(dest));
 
     } else if (op == storeFrameRelativeOp) {
-        if (gen.proc()->getAddressWidth() == 4)
+        if (gen.addrSpace()->getAddressWidth() == 4)
             instruction::generateImm(gen, STop,  src1, REG_SP,
                                      (long)dest + TRAMP_FRAME_SIZE_32);
-        else /* gen.proc()->getAddressWidth() == 8 */
+        else /* gen.addrSpace()->getAddressWidth() == 8 */
             instruction::generateMemAccess64(gen, STDop, STDxop, src1, REG_SP,
                                              (long)dest + TRAMP_FRAME_SIZE_64);
 
@@ -1930,7 +1930,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 void emitV(opCode op, Register src1, Register src2, Register dest,
            codeGen &gen, bool /*noCost*/,
            registerSpace * /*rs*/, int /* size */,
-           const instPoint * /* location */, process * /* proc */)
+           const instPoint * /* location */, AddressSpace * /* proc */)
 {
     //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
@@ -1947,17 +1947,17 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         // really load dest, (dest)imm
         assert(src2 == 0); // Since we don't use it.
 
-        if (gen.proc()->getAddressWidth() == 4)
+        if (gen.addrSpace()->getAddressWidth() == 4)
             instruction::generateImm(gen, Lop, dest, src1, 0);
-        else /* gen.proc()->getAddressWidth() == 8 */
+        else /* gen.addrSpace()->getAddressWidth() == 8 */
             instruction::generateMemAccess64(gen, LDop, LDxop,
                                              dest, src1, 0);
 
     } else if (op == storeIndirOp) {
         // generate -- st src1, dest
-        if (gen.proc()->getAddressWidth() == 4)
+        if (gen.addrSpace()->getAddressWidth() == 4)
             instruction::generateImm(gen, STop, src1, dest, 0);
-        else /* gen.proc()->getAddressWidth() == 8 */
+        else /* gen.addrSpace()->getAddressWidth() == 8 */
             instruction::generateMemAccess64(gen, STDop, STDxop,
                                              dest, src1, 0);
 
@@ -2423,94 +2423,17 @@ bool process::hasBeenBound(const relocationEntry &,int_function *&, Address ) {
   return false; // Haven't patched this up yet
 }
 
-// process::replaceFunctionCall
-//
-// Replace the function call at the given instrumentation point with a call to
-// a different function, or with a NOOP.  In order to replace the call with a
-// NOOP, pass NULL as the parameter "func."
-// Returns true if sucessful, false if not.  Fails if the site is not a call
-// site, or if the site has already been instrumented using a base tramp.
-bool process::replaceFunctionCall(instPoint *point,
-				  const int_function *func) {
-   // Must be a call site
-   if (point->getPointType() != callSite)
-      return false;
-
-   inst_printf("Function replacement, point func %s, new func %s, point primary addr 0x%lx\n",
-               point->func()->symTabName().c_str(), func ? func->symTabName().c_str() : "<NULL>",
-               point->addr());
-
-  instPointIter ipIter(point);
-  instPointInstance *ipInst;
-  while ((ipInst = ipIter++)) {  
-      // Multiple replacements. Wheee...
-      Address pointAddr = ipInst->addr();
-      inst_printf("... replacing 0x%x", pointAddr);
-      codeRange *range;
-
-      if (modifiedAreas_.find(pointAddr, range)) {
-          multiTramp *multi = range->is_multitramp();
-          if (multi) {
-              // We pre-create these guys... so check to see if
-              // there's anything there
-              if (!multi->generated()) {
-                  removeMultiTramp(multi);
-              }
-              else {
-                  // TODO: modify the callsite in the multitramp.
-                  assert(0);
-              }
-          }
-          if (dynamic_cast<functionReplacement *>(range)) {
-              // We overwrote this in a function replacement...
-              continue; 
-          }
-      }
-      
-      codeGen gen(instruction::size());
-      if (func == NULL) {	// Replace with a NOOP
-          instruction::generateNOOP(gen);
-      } else {			// Replace with a new call instruction
-          instruction::generateCall(gen, pointAddr, func->getAddress());
-      }
-      
-      // Before we replace, track the code.
-      // We could be clever with instpoints keeping instructions around, but
-      // it's really not worth it.
-      replacedFunctionCall *newRFC = new replacedFunctionCall();
-      newRFC->callAddr = pointAddr;
-
-      newRFC->callSize = instruction::size();
-      if (func)
-          newRFC->newTargetAddr = func->getAddress();
-      else
-          newRFC->newTargetAddr = 0;
-      
-      codeGen old(instruction::size());
-      old.copy(point->insn().ptr(), instruction::size());
-      newRFC->oldCall = old;
-      newRFC->newCall = gen;
-      
-      replacedFunctionCalls_[pointAddr] = newRFC;
-      
-      
-      writeTextSpace((caddr_t)pointAddr, gen.used(), gen.start_ptr());
-      inst_printf("...done\n");
-  }
-  return true;
-}
-
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)
 
 // 18FEB00 -- I removed the parameter names to get rid of compiler
 // warnings. They are copied below.
-// opCode op, codeGen &gen, const int_function *callee, process *proc
+// opCode op, codeGen &gen, const int_function *callee, AddressSpace *proc
 
 void emitFuncJump(opCode              op, 
                   codeGen            &gen,
                   const int_function *func,
-                  process            *proc,
+                  AddressSpace            *proc,
                   const instPoint    *point, bool)
 {
     // Performs the following steps:
@@ -2580,7 +2503,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 
     case REG_CTR:
         // CTR is saved down the stack
-        if (gen.proc()->getAddressWidth() == 4)
+        if (gen.addrSpace()->getAddressWidth() == 4)
             offset = TRAMP_SPR_OFFSET + STK_CTR_32;
         else
             offset = TRAMP_SPR_OFFSET + STK_CTR_64;
@@ -2600,7 +2523,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     }
 }
 
-bool process::getDynamicCallSiteArgs(instPoint *callSite,
+bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                     pdvector<AstNodePtr> &args)
 {
 
@@ -2663,12 +2586,12 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
         }
 }
 
-bool writeFunctionPtr(process *p, Address addr, int_function *f)
+bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
 {
 #if defined(os_aix)
     Address buffer[3];
     Address val_to_write = f->getAddress();
-    Address toc = p->getTOCoffsetInfo(val_to_write);
+    Address toc = p->proc()->getTOCoffsetInfo(val_to_write);
     buffer[0] = val_to_write;
     buffer[1] = toc;
     buffer[2] = 0x0;
@@ -2847,7 +2770,7 @@ bool int_basicBlock::initRegisterGenKill()
 	// process * procc = proc();
 	int_function * funcc;
           
-	codeRange * range = proc()->findCodeRangeByAddress(callAddress);
+	codeRange * range = proc()->findOrigByAddr(callAddress);
 	
 	if (range)
 	  {
@@ -3138,7 +3061,7 @@ int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
   return numLive;
 }
 
-Emitter *process::getEmitter() 
+Emitter *AddressSpace::getEmitter() 
 {
    static EmitterPOWER pemitter;
    return &pemitter;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.38 2007/06/13 18:51:02 bernat Exp $
+// $Id: miniTramp.C,v 1.39 2007/09/12 20:57:52 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -85,7 +85,8 @@ bool miniTramp::uninstrument() {
   
   // Better fix: figure out why we're double-deleting instrCodeNodes.
 
-    if (!proc()->isAttached()) {
+    if (proc()->proc() &&
+        !proc()->proc()->isAttached()) {
         return true;
     }
 
@@ -158,7 +159,7 @@ bool miniTramp::generateMT(registerSpace *rs)
     if (miniTrampCode_ != NULL) return true;
 
     miniTrampCode_.allocate(MAX_MINITRAMP_SIZE);
-    miniTrampCode_.setProcess(proc());
+    miniTrampCode_.setAddrSpace(proc());
     miniTrampCode_.setRegisterSpace(rs);
     miniTrampCode_.setPoint(instP());
 
@@ -205,11 +206,13 @@ miniTrampInstance *miniTramp::getMTInstanceByBTI(baseTrampInstance *bti,
 miniTrampInstance::~miniTrampInstance() {
     //deleteMTI frees the pointer used by proc(), so get everything in
     // the proper order
-    process *this_proc = proc();
+
+    // Cache a copy
+    AddressSpace *this_proc = proc();
 
     mini->deleteMTI(this);
     if (!BPatch::bpatch->isMergeTramp()) {
-        this_proc->deleteCodeRange(get_address_cr());
+        this_proc->removeOrigRange(this);
         this_proc->inferiorFree(trampBase);
     }
 }
@@ -349,12 +352,10 @@ bool miniTrampInstance::installCode() {
     // single jump from each other, we cluster them in the dataHeap.
     htype = dataHeap;
 #else
-    htype = (mini->proc()->splitHeaps) ? ((inferiorHeapType) (textHeap | uncopiedHeap)) : (anyHeap);
+    htype = anyHeap;
 #endif
     
-#if defined(os_aix)
-    if (proc()->requestTextMiniTramp ||
-        ((nearAddr < 0x20000000)  && (nearAddr > 0x0))) {
+    if ((nearAddr < 0x20000000)  && (nearAddr > 0x0)) {
         htype = anyHeap;
         nearAddr = 0x10000000;
     }
@@ -368,7 +369,7 @@ bool miniTrampInstance::installCode() {
 #endif
 
     }
-#endif
+
     trampBase = mini->proc()->inferiorMalloc(mini->size_, htype, nearAddr);
 
     if (!proc()->writeTextSpace((void *)trampBase,
@@ -389,7 +390,7 @@ bool miniTrampInstance::installCode() {
 
     miniTrampDynamicInfo->start_ip = trampBase;
     miniTrampDynamicInfo->end_ip = trampBase + mini->miniTrampCode_.used();
-    miniTrampDynamicInfo->gp = mini->proc()->getTOCoffsetInfo( baseTI->multiT->instAddr()  );
+    miniTrampDynamicInfo->gp = mini->proc()->proc()->getTOCoffsetInfo( baseTI->multiT->instAddr()  );
     miniTrampDynamicInfo->format = UNW_INFO_FORMAT_DYNAMIC;
 
     miniTrampDynamicInfo->u.pi.name_ptr = (unw_word_t) "dynamic instrumentation: mini tramp";
@@ -425,7 +426,7 @@ bool miniTrampInstance::installCode() {
 	_U_dyn_op_stop( & trampRegion->op[0] );
 
     miniTrampDynamicInfo->u.pi.regions = aliasRegion;
-    bool status = mini->proc()->insertAndRegisterDynamicUnwindInformation( miniTrampDynamicInfo );
+    bool status = mini->proc()->proc()->insertAndRegisterDynamicUnwindInformation( miniTrampDynamicInfo );
 	if( ! status ) { 
 	  trampBase = 0;
 	  
@@ -439,7 +440,7 @@ bool miniTrampInstance::installCode() {
 #endif
 
     // TODO in-line
-    proc()->addCodeRange(this);
+    proc()->addOrigRange(this);
     
     installed_ = true;
     return true;
@@ -509,7 +510,7 @@ void miniTrampInstance::freeCode() {
     delete this;
 }
 
-process *miniTrampInstance::proc() const {
+AddressSpace *miniTrampInstance::proc() const {
     return mini->proc();
 }
 
@@ -706,25 +707,22 @@ miniTramp::~miniTramp() {
 // Given a miniTramp parentMT, find the equivalent in the child
 // process (matching by the ID member). Fill in childMT.
   
-bool getInheritedMiniTramp(const miniTramp *parentMT, 
-			   miniTramp * &childMT, 
-			   process *childProc) {
-    int_function *childF = childProc->findFuncByInternalFunc(parentMT->func()->ifunc());
+miniTramp *miniTramp::getInheritedMiniTramp(process *childProc) {
+    int_function *childF = childProc->findFuncByInternalFunc(func()->ifunc());
     assert(childF);
-    instPoint *childP = childF->findInstPByAddr(parentMT->instP()->addr());
+    instPoint *childP = childF->findInstPByAddr(instP()->addr());
     
-    baseTramp *childB = childP->getBaseTramp(parentMT->when);
+    baseTramp *childB = childP->getBaseTramp(when);
     miniTramp *mt = childB->firstMini;
-  
-  while (mt) {
-    if (mt->ID == parentMT->ID) {
-      childMT = mt;
-      return true;
+    
+    while (mt) {
+        if (mt->ID == ID) {
+            return mt;
+        }
+        mt = mt->next;
     }
-    mt = mt->next;
-  }
-  
-  return false;
+    
+    return NULL;
 }
 
 Address miniTrampInstance::uninstrumentedAddr() const {

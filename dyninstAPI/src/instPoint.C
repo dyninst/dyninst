@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.41 2007/08/16 20:43:47 bill Exp $
+// $Id: instPoint.C,v 1.42 2007/09/12 20:57:44 bernat Exp $
 // instPoint code
 
 
@@ -169,7 +169,7 @@ bool instPoint::match(Address a) const {
     return false;
 }
 
-instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
+instPoint *instPoint::createArbitraryInstPoint(Address addr, AddressSpace *proc) {
   // See if we get lucky
 
   int_function *func = proc->findFuncByAddr(addr);
@@ -520,7 +520,7 @@ instPointInstance *instPoint::getInstInstance(Address addr) {
 
 int instPoint_count = 0;
 
-instPoint::instPoint(process *proc,
+instPoint::instPoint(AddressSpace *proc,
                      instruction insn,
                      Address addr,
                      int_basicBlock *block) :
@@ -549,7 +549,7 @@ instPoint::instPoint(process *proc,
 }
 
 // Process specialization of a parse-time instPoint
-instPoint::instPoint(process *proc,
+instPoint::instPoint(AddressSpace *proc,
                      image_instPoint *img_p,
                      Address addr,
                      int_basicBlock *block) :
@@ -581,7 +581,8 @@ instPoint::instPoint(process *proc,
 
 // Copying over from fork
 instPoint::instPoint(instPoint *parP,
-                     int_basicBlock *child) :
+                     int_basicBlock *child,
+                     process *childP) :
     instPointBase(parP->insn(),
                   parP->getPointType(),
                   parP->id()),
@@ -592,7 +593,7 @@ instPoint::instPoint(instPoint *parP,
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
     replacedCode_(parP->replacedCode_),
-    proc_(child->proc()),
+    proc_(childP),
     img_p_(parP->img_p_),
     block_(child),
     addr_(parP->addr()),
@@ -617,8 +618,11 @@ instPoint *instPoint::createParsePoint(int_function *func,
     Address absAddr = offsetInFunc + func->getAddress();
 
     instPoint *newIP = func->findInstPByAddr(absAddr);
-    if (newIP) return newIP;
-
+	if (newIP) {
+		fprintf(stderr, "WARNING: already have parsed point at addr 0x%lx\n",
+			absAddr);
+			return NULL;
+	}
     inst_printf("Parsed offset: 0x%x, in func 0x%x, absolute addr 0x%x\n",
                 img_p->offset(),
                 offsetInFunc,
@@ -641,8 +645,10 @@ instPoint *instPoint::createParsePoint(int_function *func,
     return newIP;
 }
 
-instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) {
-    int_function *func = child->func();
+instPoint *instPoint::createForkedPoint(instPoint *parP,
+                                        int_basicBlock *childB,
+                                        process *childP) {
+    int_function *func = childB->func();
     instPoint *existingInstP = func->findInstPByAddr(parP->addr());
     if (existingInstP) {
        //One instPoint may be covering multiple instPointTypes, e.g.
@@ -653,9 +659,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
 
     // Make a copy of the parent instPoint. We don't have multiTramps yet,
     // which is okay; just get the ID right.
-    instPoint *newIP = new instPoint(parP, child);
-    process *proc = child->proc();
-    assert(proc);
+    instPoint *newIP = new instPoint(parP, childB, childP);
 
     // Add to the process
     if (parP->instances.size() == 0) {
@@ -668,9 +672,9 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
         for (unsigned i = 0; i < parP->instances.size(); i++) {
             instPointInstance *pI = parP->instances[i];
             instPointInstance *nI = new instPointInstance(pI->addr_,
-                                                          child->instVer(i), 
+                                                          childB->instVer(i), 
                                                           newIP);
-            // could also call child->func()->findBlockInstance...
+            // could also call childB->func()->findBlockInstance...
             
             nI->multiID_ = pI->multiID_;
             newIP->instances.push_back(nI);
@@ -687,7 +691,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
     if (parPre) {
         assert(parPre->instP() == parP);
         
-	newIP->preBaseTramp_ = new baseTramp(parPre, proc);
+	newIP->preBaseTramp_ = new baseTramp(parPre, childP);
 	newIP->preBaseTramp_->instP_ = newIP;
     }
 
@@ -696,7 +700,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
     if (parPost) {
         assert(parPost->instP() == parP);
         
-	newIP->postBaseTramp_ = new baseTramp(parPost, proc);
+	newIP->postBaseTramp_ = new baseTramp(parPost, childP);
 	newIP->postBaseTramp_->instP_ = newIP;
     }
 
@@ -705,7 +709,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
         assert(parTarget->instP() == parP);
 
         // Unlike others, can't share, so make now.
-        newIP->targetBaseTramp_ = new baseTramp(parTarget, proc);
+        newIP->targetBaseTramp_ = new baseTramp(parTarget, childP);
         newIP->targetBaseTramp_->instP_ = newIP;
     }
 
@@ -714,12 +718,14 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
     
     
 instPoint::~instPoint() {
-    for (unsigned i = 0; i < instances.size(); i++) {
+	for (unsigned i = 0; i < instances.size(); i++) {
         delete instances[i];
     }
     instances.clear();
     // callee isn't ours...
     // multitramps will get deleted themselves...
+
+    
 
     if (preBaseTramp_) delete preBaseTramp_;
     if (postBaseTramp_) delete postBaseTramp_;
@@ -784,7 +790,7 @@ instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
     // multitramp.
 
     // Otherwise, hand it off to the multiTramp....
-    codeRange *range = proc()->findCodeRangeByAddress(pc);
+    codeRange *range = proc()->findOrigByAddr(pc);
     assert(range);
 
     multiTramp *rangeMT = range->is_multitramp();
@@ -887,7 +893,6 @@ bool instPointInstance::generateInst() {
     // if there is, will reuse that slot in the multiTramp dictionary.
     // This allows us to regenerate multiTramps without having to 
     // worry about changing pointers.
-
 
 #if defined(cap_relocation)
 
@@ -1017,7 +1022,7 @@ void instPointInstance::updateMulti(unsigned id) {
         multiID_ = id;
 }
 
-process *instPointInstance::proc() const {
+AddressSpace *instPointInstance::proc() const {
     return point->proc();
 }
 

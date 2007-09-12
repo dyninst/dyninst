@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.13 2007/02/14 23:03:39 legendre Exp $
+// $Id: mapped_object.h,v 1.14 2007/09/12 20:57:51 bernat Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -107,12 +107,12 @@ class mapped_object : public codeRange {
     mapped_object();
     mapped_object(fileDescriptor fileDesc, 
                   image *img,
-		  process *proc);
+		  AddressSpace *proc);
 
  public:
     // We need a way to check for errors; hence a "get" method
     static mapped_object *createMappedObject(fileDescriptor &desc,
-                                             process *p);
+                                             AddressSpace *p);
 
     // Copy constructor: for forks
     mapped_object(const mapped_object *par_obj, process *child);
@@ -151,7 +151,7 @@ class mapped_object : public codeRange {
     Address get_address_cr() const { return codeAbs(); }
     unsigned get_size_cr() const { return codeSize(); }
 
-    process *proc() const;
+    AddressSpace *proc() const;
 
     mapped_module *findModule(pdstring m_name, bool wildcard = false);
     mapped_module *findModule(pdmodule *mod);
@@ -273,7 +273,7 @@ private:
     
     image  *image_; // pointer to image if processed is true 
     bool dlopenUsed; //mark this shared object as opened by dlopen
-    process *proc_; // Parent process
+    AddressSpace *proc_; // Parent process
 
     bool analyzed_; // Prevent multiple adds
 

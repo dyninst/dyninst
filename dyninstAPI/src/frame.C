@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.21 2006/11/30 23:12:43 bernat Exp $
+// $Id: frame.C,v 1.22 2007/09/12 20:57:33 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -110,7 +110,7 @@ codeRange *Frame::getRange() {
     // First time... so get it and cache
     if (!getProc())
       return NULL;
-    range_ = getProc()->findCodeRangeByAddress(getPC());
+    range_ = getProc()->findOrigByAddr(getPC());
   }
   return range_;
 }

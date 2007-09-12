@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.9 2007/06/13 18:51:12 bernat Exp $
+// $Id: registerSpace.h,v 1.10 2007/09/12 20:58:00 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -56,6 +56,7 @@
 class codeGen;
 class instPoint;
 class process;
+class AddressSpace;
 
 // A class to retain information about where the original register can be found. It can be in one of the following states: 
 // 1) Unsaved, and available via the register itself;
@@ -161,15 +162,15 @@ class registerSpace {
 
    // Pre-set unknown register state:
 	// Everything is live...
-   static registerSpace *conservativeRegSpace(process *proc);
+   static registerSpace *conservativeRegSpace(AddressSpace *proc);
    // Everything is dead...
-   static registerSpace *optimisticRegSpace(process *proc);
+   static registerSpace *optimisticRegSpace(AddressSpace *proc);
    // IRPC-specific - everything live for now
-   static registerSpace *irpcRegSpace(process *proc);
+   static registerSpace *irpcRegSpace(AddressSpace *proc);
    // Aaand instPoint-specific
    static registerSpace *actualRegSpace(instPoint *iP);
    // DO NOT DELETE THESE. 
-   static registerSpace *savedRegSpace(process *proc);
+   static registerSpace *savedRegSpace(AddressSpace *proc);
 
    registerSpace();
 

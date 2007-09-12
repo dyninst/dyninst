@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.19 2006/12/16 00:05:46 legendre Exp $
+// $Id: baseTramp.h,v 1.20 2007/09/12 20:57:31 bernat Exp $
 
 // baseTramp class definition
 
@@ -107,7 +107,7 @@ class baseTrampInstance : public generatedCodeObject {
 
     Address uninstrumentedAddr() const;
 
-    process *proc() const;
+    AddressSpace *proc() const;
     
     unsigned maxSizeRequired();
     //const pdvector<instruction> &getCode();
@@ -259,7 +259,7 @@ class baseTramp {
     // You know, a conservative tramp is equivalent to an iRPC...
     rpcMgr *rpcMgr_;
 
-    process *proc() const;
+    AddressSpace *proc() const;
 
     bool generateBT(codeGen &baseGen); // we copy any necessary information out of the "base" codeGen
     void invalidateBT() { valid = false; };

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.47 2007/08/08 15:25:56 rchen Exp $
+// $Id: arch-sparc.h,v 1.48 2007/09/12 20:57:23 bernat Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL
@@ -57,7 +57,7 @@
 typedef unsigned int codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
-class process;
+class AddressSpace;
 
 /*
  * Define sparc instruction information.
@@ -661,7 +661,7 @@ class instruction: public BPatch_annotatable<instruction> {
 
     unsigned spaceToRelocate() const;
     bool generate(codeGen &gen,
-                  process *proc,
+                  AddressSpace *proc,
                   Address origAddr,
                   Address newAddr,
                   Address fallthroughOverride = 0,

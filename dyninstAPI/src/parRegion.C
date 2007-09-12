@@ -32,8 +32,8 @@ void image_parRegion::printDetails()
   else 
     printf("Outlined func is NULL\n");
   
-  printf("Begin address - 0x%x\n", firstInsnOffset_);
-  printf("End address - 0x%x\n", lastInsnOffset_);
+  printf("Begin address - 0x%lx\n", firstInsnOffset_);
+  printf("End address - 0x%lx\n", lastInsnOffset_);
 
   printf("Region Type is ...");
   if(regionType == OMP_NONE)
@@ -172,7 +172,7 @@ int int_parRegion::replaceOMPParameter(const char * key, int value)
   if (value > 0 )
     writeValue += (unsigned) value;
 
-  process * p = intFunc_->proc();
+  AddressSpace * p = intFunc_->proc();
 
   //printf("About to write value 0x%x to address 0x%x\n", writeValue, writeAddy);
   

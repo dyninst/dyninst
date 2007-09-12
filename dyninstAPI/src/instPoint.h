@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.38 2007/07/24 20:22:43 bernat Exp $
+// $Id: instPoint.h,v 1.39 2007/09/12 20:57:45 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -209,7 +209,7 @@ class instPointInstance {
     // multiTramp and make a new one; we then need
     // to update everyone with a handle to the multi.
 
-    process *proc() const;
+    AddressSpace *proc() const;
     int_function *func() const;
     
     void updateMulti(unsigned multi);
@@ -231,19 +231,20 @@ class instPoint : public instPointBase {
 	friend class registerSpace; // POWER
  private:
     // Generic instPoint...
-    instPoint(process *proc,
+    instPoint(AddressSpace *proc,
               instruction insn,
               Address addr,
               int_basicBlock *block);
 
-    instPoint(process *proc,
+    instPoint(AddressSpace *proc,
               image_instPoint *img_p,
               Address addr,
               int_basicBlock *block);
 
     // Fork instPoint
     instPoint(instPoint *parP,
-              int_basicBlock *child);
+              int_basicBlock *childB,
+              process *childP);
 
     // A lot of arbitrary/parse creation work can be shared
     static bool commonIPCreation(instPoint *newIP);
@@ -272,12 +273,12 @@ class instPoint : public instPointBase {
 
   // Make a new instPoint at an arbitrary location
   static instPoint *createArbitraryInstPoint(Address addr,
-					     process *proc);
+					     AddressSpace *proc);
 
   static instPoint *createParsePoint(int_function *func,
                                      image_instPoint *img_p);
 
-  static instPoint *createForkedPoint(instPoint *p, int_basicBlock *child);
+  static instPoint *createForkedPoint(instPoint *p, int_basicBlock *child, process *childP);
 
   static int liveRegSize();
 
@@ -331,7 +332,7 @@ class instPoint : public instPointBase {
   // Is this the instPoint referred to?
   bool match(Address addr) const;
 
-  process *proc() const { return proc_; }
+  AddressSpace *proc() const { return proc_; }
   
   int_basicBlock *block() const;
   int_function *func() const;
@@ -451,7 +452,7 @@ class instPoint : public instPointBase {
   baseTramp *targetBaseTramp_;
   AstNodePtr replacedCode_;
 
-  process *proc_;
+  AddressSpace *proc_;
 
   image_instPoint *img_p_;
 

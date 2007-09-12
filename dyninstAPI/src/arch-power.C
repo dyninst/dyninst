@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.20 2007/08/09 22:13:06 bernat Exp $
+ * $Id: arch-power.C,v 1.21 2007/09/12 20:57:20 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -49,7 +49,7 @@
 #include "util.h"
 #include "debug.h"
 #include "symtab.h"
-#include "process.h"
+#include "addressSpace.h"
 
 instruction *instruction::copy() const {
     return new instruction(*this);
@@ -95,9 +95,9 @@ void instruction::generateBranch(codeGen &gen, Address from, Address to, bool li
     long disp = (to - from);
 
     if (ABS(disp) > MAX_BRANCH) {
-	if (gen.proc()) {
+	if (gen.addrSpace()) {
 	    // Too far to branch.  Use trap-based instrumentation.
-	    gen.proc()->trampTrapMapping[from] = to;
+	    gen.addrSpace()->trampTrapMapping[from] = to;
 	    instruction::generateTrap(gen);
 
 	} else {
@@ -192,7 +192,7 @@ void instruction::generateLShift(codeGen &gen, Register rs, int shift, Register 
 {
     instruction insn;
 
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
 	assert(shift<32);
 	(*insn).raw = 0;
 	(*insn).mform.op = RLINMxop;
@@ -204,7 +204,7 @@ void instruction::generateLShift(codeGen &gen, Register rs, int shift, Register 
 	(*insn).mform.rc = 0;
 	insn.generate(gen);
 
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	instruction::generateLShift64(gen, rs, shift, ra);
     }
 }
@@ -214,7 +214,7 @@ void instruction::generateRShift(codeGen &gen, Register rs, int shift, Register 
 {
     instruction insn;
 
-    if (gen.proc()->getAddressWidth() == 4) {
+    if (gen.addrSpace()->getAddressWidth() == 4) {
 	assert(shift<32);
 	(*insn).raw = 0;
 	(*insn).mform.op = RLINMxop;
@@ -226,7 +226,7 @@ void instruction::generateRShift(codeGen &gen, Register rs, int shift, Register 
 	(*insn).mform.rc = 0;
 	insn.generate(gen);
 
-    } else /* gen.proc()->getAddressWidth() == 8 */ {
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	instruction::generateRShift64(gen, rs, shift, ra);
     }
 }
@@ -561,7 +561,7 @@ unsigned instruction::spaceToRelocate() const {
 }
 
 bool instruction::generate(codeGen &gen,
-                           process *proc,
+                           AddressSpace *proc,
                            Address origAddr,
                            Address relocAddr,
                            Address /* fallthroughOverride */,
@@ -611,7 +611,7 @@ bool instruction::generate(codeGen &gen,
                 // st r0, 16 (r1)
 		if (proc->getAddressWidth() == 4)
 		    instruction::generateImm(gen, STop, 0, 1, 16 /* offset */);
-		else /* gen.proc()->getAddressWidth() == 8 */
+		else /* gen.addrSpace()->getAddressWidth() == 8 */
 		    instruction::generateMemAccess64(gen, STDop, STDxop, 0, 1, 32);
 
                 // Whee. Stomp that link register.
@@ -627,7 +627,7 @@ bool instruction::generate(codeGen &gen,
                 // lw r0, 16 (r1)
 		if (proc->getAddressWidth() == 4)
 		    instruction::generateImm(gen, Lop, 0, 1, 16);
-		else /* gen.proc()->getAddressWidth() == 8 */
+		else /* gen.addrSpace()->getAddressWidth() == 8 */
 		    instruction::generateMemAccess64(gen, LDop, LDxop, 0, 1, 32);
             }
             else {

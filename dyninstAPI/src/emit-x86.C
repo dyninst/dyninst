@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.52 2007/07/24 20:22:54 bernat Exp $
+ * $Id: emit-x86.C,v 1.53 2007/09/12 20:57:32 bernat Exp $
  */
 
 #include <assert.h>
@@ -1103,7 +1103,7 @@ void Emitter64::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen
 bool Emitter64::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
 {
     // mov offset(%base), %dest
-    emitMovRMToReg64(dest, base, offset*gen.proc()->getAddressWidth(), false, gen);
+    emitMovRMToReg64(dest, base, offset*gen.addrSpace()->getAddressWidth(), false, gen);
     return true;
 }
 
@@ -1969,7 +1969,7 @@ bool Emitter64::emitAdjustStackPointer(int index, codeGen &gen) {
 	// The index will be positive for "needs popped" and negative
 	// for "needs pushed". However, positive + SP works, so don't
 	// invert.
-	int popVal = index * gen.proc()->getAddressWidth();
+	int popVal = index * gen.addrSpace()->getAddressWidth();
 	emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_ESP, popVal, true, gen);
 	return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.233 2007/09/06 20:14:45 roundy Exp $
+// $Id: aix.C,v 1.234 2007/09/12 20:57:18 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -454,11 +454,6 @@ void process::inferiorMallocConstraints(Address near, Address &lo,
   }
 }
 
-void process::inferiorMallocAlign(unsigned &size)
-{
-     /* 32 byte alignment.  Should it be 64? */
-  size = (size + 0x1f) & ~0x1f;
-}
 #endif
 
 
@@ -1303,7 +1298,7 @@ bool process::loadDYNINSTlib()
                    getPid(), codeBase);
 
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
-    scratchCodeBuffer.setProcess(this);
+    scratchCodeBuffer.setAddrSpace(this);
     scratchCodeBuffer.setAddr(codeBase);
 
     Address dyninstlib_addr = 0;
@@ -1820,7 +1815,7 @@ void process::copyDanglingMemory(process *parent) {
     assert(status() == stopped);
 
     // Copy everything in a heap marked "uncopied" over by hand
-    pdvector<heapItem *> items = heap.heapActive.values();
+    pdvector<heapItem *> items = heap_.heapActive.values();
     for (unsigned i = 0; i < items.size(); i++) {
         if (items[i]->type == uncopiedHeap) {
             char *buffer = new char[items[i]->length];
@@ -1839,7 +1834,7 @@ void process::copyDanglingMemory(process *parent) {
     // (copied from parent space)
 
     pdvector<codeRange *> mods;
-    modifiedAreas_.elements(mods);
+    modifiedRanges_.elements(mods);
 
     for (unsigned j = 0; j < mods.size(); j++) {
         unsigned char buffer[mods[j]->get_size_cr()];

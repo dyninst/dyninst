@@ -57,9 +57,13 @@
 #include "BPatch_function.h"
 #include "BPatch_image.h"
 #include "symtab.h"
-#include "process.h"
+#include "addressSpace.h"
+
+#include "debug.h"
 
 #include "ast.h"
+
+#include "process.h"
 
 /* For location decode. */
 #include <stack>
@@ -323,7 +327,7 @@ void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLengt
 	fprintf( stderr, "\n" );
 	} /* end dumpLocListAddrRanges */
 
-AstNodePtr convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, process * proc /* process parameter only needed on x86_64*/) {
+AstNodePtr convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, AddressSpace * proc /* process parameter only needed on x86_64*/) {
 	/* Until such time as we see more-complicated location lists, assume single entries
 	   consisting of a register name.  Using an AST for this is massive overkill, but if
 	   we need to handle more complicated frame base calculations later, the infastructure
@@ -385,7 +389,7 @@ AstNodePtr convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed lis
 	return moveFPtoDestination;
 } /* end convertFrameBaseToAST(). */
 
-bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, int * regNum, process *proc, long int * initialStackValue = NULL, BPatch_storageClass * storageClass = NULL ) {
+bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, int * regNum, AddressSpace *proc, long int * initialStackValue = NULL, BPatch_storageClass * storageClass = NULL ) {
 	/* We make a few heroic assumptions about locations in this decoder.
 	
 	   We assume that all locations are either frame base-relative offsets,
@@ -796,7 +800,7 @@ void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 
 bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			BPatch_module * module, 
-			process * proc,
+			AddressSpace * proc,
 			Dwarf_Off cuOffset,
 			BPatch_function * currentFunction = NULL,
 			BPatch_typeCommon * currentCommonBlock = NULL,

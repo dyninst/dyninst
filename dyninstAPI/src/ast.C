@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.191 2007/06/13 18:50:32 bernat Exp $
+// $Id: ast.C,v 1.192 2007/09/12 20:57:28 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -115,9 +115,10 @@ AstNodePtr AstNode::operatorNode(opCode ot, AstNodePtr l, AstNodePtr r, AstNodeP
     return AstNodePtr(new AstOperatorNode(ot, l, r, e));
 }
 
-AstNodePtr AstNode::funcCallNode(const pdstring &func, pdvector<AstNodePtr > &args, process *proc) {
-    if (proc) {
-        int_function *ifunc = proc->findOnlyOneFunction(func);
+AstNodePtr AstNode::funcCallNode(const pdstring &func, pdvector<AstNodePtr > &args,
+                                 AddressSpace *addrSpace) {
+    if (addrSpace) {
+        int_function *ifunc = addrSpace->findOnlyOneFunction(func);
         if (ifunc == NULL) {
             fprintf(stderr, "Bitch whine moan\n");
             return AstNodePtr();
@@ -688,7 +689,7 @@ bool AstReplacementNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 	assert(replacement);
 
-    emitFuncJump(funcJumpOp, gen, replacement, gen.proc(),
+    emitFuncJump(funcJumpOp, gen, replacement, gen.addrSpace(),
                  gen.point(), noCost);
 
 	decUseCount(gen);
@@ -876,7 +877,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         // Since someone who shall not be named removed the BPatch
         // link from the process class, we perform a PID-based
         // lookup.
-        BPatch_process *bproc = BPatch::bpatch->getProcessByPid(gen.proc()->getPid());
+        BPatch_process *bproc = (BPatch_process *) gen.addrSpace()->up_ptr();
         BPatch_point *bpoint = bproc->instp_map->get(gen.point());
         
         const BPatch_memoryAccess* ma = bpoint->getMemoryAccess();
@@ -961,7 +962,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             addr = (Address) loperand->getOValue();
 	    
             emitVload(loadFrameAddr, addr, temp, retReg, gen,
-                      noCost, gen.rs(), size, gen.point(), gen.proc());
+                      noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             break;
         }
         case RegOffset: {
@@ -975,7 +976,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             addr = (Address) loperand->operand()->getOValue();
 	    
             emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), retReg, gen,
-                      noCost, gen.rs(), size, gen.point(), gen.proc());
+                      noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             break;
         }
         case DataIndir:
@@ -1024,7 +1025,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         case FrameAddr:
             addr = (Address) loperand->getOValue();
             emitVstore(storeFrameRelativeOp, src1, src2, addr, gen, 
-                       noCost, gen.rs(), size, gen.point(), gen.proc());
+                       noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             loperand->decUseCount(gen);
             break;
         case RegOffset: {
@@ -1035,10 +1036,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             // it only allows for 3.  Prepare the dest address in scratch register src2.
             
             emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), src2,
-                      gen, noCost, gen.rs(), size, gen.point(), gen.proc());
+                      gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             
             // Same as DataIndir at this point.
-            emitV(storeIndirOp, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.proc());
+            emitV(storeIndirOp, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             loperand->decUseCount(gen);
             break;
         }
@@ -1052,7 +1053,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             REGISTER_CHECK(tmp);
 
             // tmp now contains address to store into
-            emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.proc());
+            emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             gen.rs()->freeRegister(tmp);
             loperand->decUseCount(gen);
             break;
@@ -1063,7 +1064,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             if (!loperand->generateCode_phase2(gen, noCost, addr, tmp)) ERROR_RETURN;
             REGISTER_CHECK(tmp);
 
-            emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.proc());
+            emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             gen.rs()->freeRegister(tmp);
             break;
         }
@@ -1104,7 +1105,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         //int cost = noCost ? 0 : (int) loperand->getOValue();
         Address costAddr = 0; // for now... (won't change if noCost is set)
         loperand->decUseCount(gen);
-        costAddr = gen.proc()->getObservedCostAddr();
+        costAddr = gen.addrSpace()->getObservedCostAddr();
         retAddr = emitA(op, 0, 0, 0, gen, noCost);
 #endif
         retReg = REG_NULL;
@@ -1145,7 +1146,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             if (retReg == REG_NULL) {
                 retReg = allocateAndKeep(gen, noCost);
             }
-            emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.proc());
+            emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
         }
     }
     }
@@ -1190,7 +1191,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
            tSize = Type->getSize();
        else
            tSize = sizeof(long);
-       emitV(loadIndirOp, src, 0, retReg, gen, noCost, gen.rs(), tSize, gen.point(), gen.proc()); 
+       emitV(loadIndirOp, src, 0, retReg, gen, noCost, gen.rs(), tSize, gen.point(), gen.addrSpace()); 
        gen.rs()->freeRegister(src);
        break;
    case DataReg:
@@ -1202,7 +1203,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        break;
    case ReturnVal:
        src = emitR(getRetValOp, 0, 0, retReg, gen, noCost, gen.point(),
-                   gen.proc()->multithread_capable());
+                   gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
        if (src != retReg) {
            // Move src to retReg. Can't simply return src, since it was not
@@ -1213,7 +1214,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case Param:
        src = emitR(getParamOp, (Address)oValue, Null_Register,
                    retReg, gen, noCost, gen.point(),
-                   gen.proc()->multithread_capable());
+                   gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
        if (src != retReg) {
            // Move src to retReg. Can't simply return src, since it was not
@@ -1229,7 +1230,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        addr = (Address) oValue;
        temp = gen.rs()->allocateRegister(gen, noCost);
        
-       emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.proc());
+       emitVload(loadFrameRelativeOp, addr, temp, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        gen.rs()->freeRegister(temp);
        break;
    case RegOffset:
@@ -1237,7 +1238,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        // This AstNode holds the register number, and loperand holds offset.
        assert(operand_);
        addr = (Address) operand_->getOValue();
-       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.proc());
+       emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        break;
    case ConstantString:
        // XXX This is for the pdstring type.  If/when we fix the pdstring type
@@ -1245,17 +1246,12 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        len = strlen((char *)oValue) + 1;
        
 #if defined(rs6000_ibm_aix4_1) //ccw 30 jul 2002
-       if(gen.proc()->requestTextMiniTramp){
-           bool mallocFlag;
-           addr = (Address) gen.proc()->inferiorMalloc(len, (inferiorHeapType) (textHeap | uncopiedHeap), 0x10000000, &mallocFlag); //textheap
-       }else{	
-           addr = (Address) gen.proc()->inferiorMalloc(len, dataHeap); //dataheap
-       }
+       addr = (Address) gen.addrSpace()->inferiorMalloc(len, dataHeap); //dataheap
 #else
-       addr = (Address) gen.proc()->inferiorMalloc(len, dataHeap); //dataheap
+       addr = (Address) gen.addrSpace()->inferiorMalloc(len, dataHeap); //dataheap
 #endif
        
-       if (!gen.proc()->writeDataSpace((char *)addr, len, (char *)oValue))
+       if (!gen.addrSpace()->writeDataSpace((char *)addr, len, (char *)oValue))
            perror("ast.C(1351): writing string value");
        
        emitVload(loadConstOp, addr, retReg, retReg, gen, noCost);
@@ -1292,7 +1288,8 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         // 1. get the point being instrumented & memory access info
         assert(gen.point());
         
-        BPatch_process *bproc = BPatch::bpatch->getProcessByPid(gen.proc()->getPid());
+        BPatch_process *bproc = (BPatch_process *)gen.addrSpace()->up_ptr();
+
         BPatch_point *bpoint = bproc->instp_map->get(gen.point());
         if (bpoint == NULL) {
             fprintf(stderr, "ERROR: Unable to find BPatch point for internal point %p/0x%lx\n",
@@ -1319,7 +1316,7 @@ bool AstMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
         // 1. get the point being instrumented & memory access info
         assert(gen.point());
         
-        BPatch_process *bproc = BPatch::bpatch->getProcessByPid(gen.proc()->getPid());
+        BPatch_process *bproc = (BPatch_process *)gen.addrSpace()->up_ptr();
         BPatch_point *bpoint = bproc->instp_map->get(gen.point());
         ma = bpoint->getMemoryAccess();
         if(!ma) {
@@ -1366,7 +1363,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     int_function *callee = func_;
     if (!callee) {
         // Painful lookup time
-        callee = gen.proc()->findOnlyOneFunction(func_name_);
+        callee = gen.addrSpace()->findOnlyOneFunction(func_name_);
     }
     assert(callee);
     bool fprUsed = gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
@@ -1379,7 +1376,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     int_function *callee = func_;
     if (!callee) {
         // Painful lookup time
-        callee = gen.proc()->findOnlyOneFunction(func_name_);
+        callee = gen.addrSpace()->findOnlyOneFunction(func_name_);
         assert(callee);
     }
     bool clobbered = gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
@@ -1408,7 +1405,7 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     if (!use_func && !func_addr_) {
         // We purposefully don't cache the int_function object; the AST nodes
         // are process independent, and functions kinda are.
-        use_func = gen.proc()->findOnlyOneFunction(func_name_);
+        use_func = gen.addrSpace()->findOnlyOneFunction(func_name_);
         if (!use_func) {
             fprintf(stderr, "ERROR: failed to find function %s, unable to create call\n",
                     func_name_.c_str());
@@ -1486,8 +1483,8 @@ bool AstInsnNode::generateCode_phase2(codeGen &gen, bool,
                                       Address &, Register &) {
     assert(insn_);
     
-    insn_->generate(gen, gen.proc(), origAddr_, gen.currAddr());
-	decUseCount(gen);
+    insn_->generate(gen, gen.addrSpace(), origAddr_, gen.currAddr());
+    decUseCount(gen);
     
     return true;
 }
@@ -1505,7 +1502,7 @@ bool AstInsnBranchNode::generateCode_phase2(codeGen &gen, bool noCost,
     }
     // We'd now generate a fixed or register branch. But we don't. So there.
     assert(0 && "Unimplemented");
-    insn_->generate(gen, gen.proc(), origAddr_, gen.currAddr(), 0, 0);
+    insn_->generate(gen, gen.addrSpace(), origAddr_, gen.currAddr(), 0, 0);
 	decUseCount(gen);
 
     return true;

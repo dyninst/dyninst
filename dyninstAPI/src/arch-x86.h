@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.54 2007/08/09 10:15:30 rchen Exp $
+// $Id: arch-x86.h,v 1.55 2007/09/12 20:57:25 bernat Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -63,6 +63,7 @@ typedef unsigned codeBufIndex_t;
 
 class codeGen;
 class process; // relocation may need to look up a target
+class AddressSpace;
 
 #if defined(i386_unknown_nt4_0)
 // disable VC++ warning C4800: (performance warning)
@@ -803,7 +804,7 @@ class instruction: public BPatch_annotatable<instruction> {
   // making the behavior of jumps change. It won't work for 
   // jumptables; that should be cleared up sometime.
   bool generate(codeGen &gen,
-                process *proc,
+                AddressSpace *addrSpace,
                 Address origAddr,
                 Address newAddr,
                 Address fallthroughOverride = 0,

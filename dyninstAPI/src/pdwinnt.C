@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.174 2007/09/06 20:14:54 roundy Exp $
+// $Id: pdwinnt.C,v 1.175 2007/09/12 20:57:58 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -48,6 +48,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/addressSpace.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/stats.h"
 #include "common/h/Types.h"
@@ -76,7 +77,7 @@
 
 void InitSymbolHandler( HANDLE hProcess );
 void ReleaseSymbolHandler( HANDLE hProcess );
-extern bool isValidAddress(process *proc, Address where);
+extern bool isValidAddress(AddressSpace *proc, Address where);
 
 void printSysError(unsigned errNo) {
     char buf[1000];
@@ -169,7 +170,7 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
    process *proc = ev.proc;
    CONTEXT cont;
    Address initial_func = 0, stack_top = 0;
-   BPatch_process *bproc = (BPatch_process *) ev.proc->container_proc;
+   BPatch_process *bproc = (BPatch_process *) ev.proc->up_ptr();
    HANDLE lwpid = ev.info.u.CreateThread.hThread;
    int_function *func = NULL;
    int tid = ev.info.dwThreadId;
@@ -1507,9 +1508,9 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *lwp)
     return true;
 }
 
-bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); }
-bool process::instrumentLibcStartMain() { assert(0); }
-bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); }
+bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
+bool process::instrumentLibcStartMain() { assert(0); return false; }
+bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); return false; }
 void process::setTraceSysCalls(bool traceSys) {}
 void process::setTraceState(traceState_t state) {}
 
@@ -1783,14 +1784,6 @@ Address dyn_lwp::step_next_insn() {
 void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
                                         inferiorHeapType /* type */ ) 
 {
-}
-
-void process::inferiorMallocAlign(unsigned &size)
-{
-  // 32 byte alignment
-  if (size % 32) {
-    size = (size & ~31) + 32;
-  }
 }
 #endif
 
@@ -2171,7 +2164,7 @@ bool ReadDataSpaceCallback::execute_real() {return false;}
 bool WaitPidNoBlockCallback::execute_real() {return false;}
 bool WriteDataSpaceCallback::execute_real() {return false;}
 
-bool OS::executableExists(pdstring &file) {
+bool OS::executableExists(const pdstring &file) {
    struct stat file_stat;
    int stat_result;
 

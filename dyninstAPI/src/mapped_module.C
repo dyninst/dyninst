@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.20 2007/02/15 20:18:08 legendre Exp $
+// $Id: mapped_module.C,v 1.21 2007/09/12 20:57:48 bernat Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -250,7 +250,7 @@ pdstring mapped_module::processDirectories(const pdstring &fn) const {
   return ret;
 }
 
-process *mapped_module::proc() const { return obj()->proc(); }
+AddressSpace *mapped_module::proc() const { return obj()->proc(); }
 
 
 // Line information is processed for all modules in an image at once; so we have to do
@@ -594,7 +594,7 @@ void mapped_module::parseFileLineInfo() {
   haveParsedFileMap.insert( fileOnDisk );
 } /* end parseFileLineInfo() */
 
-void mapped_module::parseLineInformation(process * /* proc */,
+void mapped_module::parseLineInformation(AddressSpace * /* proc */,
                                          pdstring * currentSourceFile,
                                          char * symbolName,
                                          SYMENT * sym,
@@ -950,7 +950,7 @@ void mapped_module::parseFileLineInfo()
   last_file = baseAddr;
 
   last_srcinfo = NULL;
-  result = SymEnumSourceLines(proc()->processHandle_, 
+  result = SymEnumSourceLines(proc()->proc()->processHandle_, 
 			      baseAddr,
 			      libname, 
 			      src_file_name,
