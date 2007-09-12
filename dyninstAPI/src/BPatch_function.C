@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.87 2007/07/26 19:19:36 bernat Exp $
+// $Id: BPatch_function.C,v 1.88 2007/09/12 20:57:05 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -132,8 +132,6 @@ BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
 
 BPatch_function::~BPatch_function()
 {
-    // if (ast != NULL)
-        // removeAst(ast);
     if (localVariables) delete localVariables;
     if (funcParameters) delete funcParameters;
 
