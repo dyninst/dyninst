@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1996-2006 Barton P. Miller
  * 
@@ -40,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.693 2007/09/06 20:14:55 roundy Exp $
+// $Id: process.C,v 1.694 2007/09/12 20:57:16 bernat Exp $
 
 #include <ctype.h>
 
@@ -156,9 +155,9 @@ Address process::getTOCoffsetInfo(Address dest)
     
     // Find out which object we're in (by addr).
     codeRange *range = NULL;
-    codeSections_.find(dest, range);
+    textRanges_.find(dest, range);
     if (!range)  // Try data?
-        dataSections_.find(dest, range);
+        dataRanges_.find(dest, range);
     if (!range)
         return 0;
     mapped_object *mobj = range->is_mapped_object();
@@ -290,98 +289,6 @@ bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
 		continueProc();
 		
 	return retval;
-}
-
-extern "C" int heapItemCmpByAddr(const heapItem **A, const heapItem **B)
-{
-  heapItem *a = *(heapItem **)const_cast<heapItem **>(A);
-  heapItem *b = *(heapItem **)const_cast<heapItem **>(B);
-
-  if (a->addr < b->addr) {
-      return -1;
-  } else if (a->addr > b->addr) {
-      return 1;
-  } else {
-      return 0;
-  }
-}
-
-// For exec/process deletion
-void inferiorHeap::clear() {
-    Address addr;
-    heapItem *heapItemPtr;
-
-    dictionary_hash_iter<Address, heapItem *> activeIter(heapActive);
-    while (activeIter.next(addr, heapItemPtr))
-        delete heapItemPtr;
-    heapActive.clear();
-    
-    for (unsigned i = 0; i < heapFree.size(); i++)
-        delete heapFree[i];
-    heapFree.clear();
-
-    disabledList.clear();
-
-    disabledListTotalMem = 0;
-    totalFreeMemAvailable = 0;
-    freed = 0;
-
-    for (unsigned j = 0; j < bufferPool.size(); j++)
-        delete bufferPool[j];
-    bufferPool.clear();
-}
-
-void process::inferiorFreeCompact(inferiorHeap *hp)
-{
-  pdvector<heapItem *> &freeList = hp->heapFree;
-  unsigned i, nbuf = freeList.size();
-
-  /* sort buffers by address */
-  VECTOR_SORT(freeList, heapItemCmpByAddr);
-
-  /* combine adjacent buffers */
-  bool needToCompact = false;
-  for (i = 1; i < freeList.size(); i++) {
-      heapItem *h1 = freeList[i-1];
-      heapItem *h2 = freeList[i];
-      assert(h1->length != 0);
-      if (h1->addr + h1->length > h2->addr) {
-          fprintf(stderr, "Error: heap 1 (%p) (0x%p to 0x%p) overlaps heap 2 (%p) (0x%p to 0x%p)\n",
-                  h1,
-                  (void *)h1->addr, (void *)(h1->addr + h1->length),
-                  h2,
-                  (void *)h2->addr, (void *)(h2->addr + h2->length));
-      }
-      assert(h1->addr + h1->length <= h2->addr);
-      if (h1->addr + h1->length == h2->addr
-          && h1->type == h2->type) {
-          h2->addr = h1->addr;
-          h2->length = h1->length + h2->length;
-          h1->length = 0;
-          nbuf--;
-          needToCompact = true;
-      }
-  }
-
-  /* remove any absorbed (empty) buffers */ 
-  if (needToCompact) {
-    pdvector<heapItem *> cleanList;
-    unsigned end = freeList.size();
-    for (i = 0; i < end; i++) {
-      heapItem *h1 = freeList[i];
-      if (h1->length != 0) {
-        cleanList.push_back(h1);
-      } else {
-        delete h1;
-      }
-    }
-    assert(cleanList.size() == nbuf);
-    for (i = 0; i < nbuf; i++) {
-      freeList[i] = cleanList[i];
-    }
-    freeList.resize(nbuf);
-    assert(freeList.size() == nbuf);
-  }
 }
 
 // Search an object for heapage
@@ -1134,11 +1041,8 @@ void process::addInferiorHeap(const mapped_object *obj)
 
             heapItem *h = new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
                                         infHeaps[j].type(), false);
-            heap.bufferPool.push_back(h);
-            heapItem *h2 = new heapItem(h);
-            h2->status = HEAPfree;
-            heap.heapFree.push_back(h2);
-            heap.totalFreeMemAvailable += h2->length;
+
+            addHeap(h);
         }
     }
   
@@ -1152,20 +1056,12 @@ void process::addInferiorHeap(const mapped_object *obj)
  */
 void process::initInferiorHeap()
 {
-  // (re)initialize everything 
-    heap.heapActive.clear();
-    heap.heapFree.resize(0);
-    heap.disabledList.resize(0);
-    heap.disabledListTotalMem = 0;
-    heap.freed = 0;
-    heap.totalFreeMemAvailable = 0;
+    initializeHeap();
 
     // first initialization: add static heaps to pool
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         addInferiorHeap(mapped_objects[i]);
     }
-
-    heapInitialized_ = true;
 }
 
 bool process::initTrampGuard()
@@ -1189,59 +1085,6 @@ bool process::initTrampGuard()
     return true;
 }
 
-// create a new inferior heap that is a copy of src. This is used when a process
-// we are tracing forks.
-inferiorHeap::inferiorHeap(const inferiorHeap &src):
-    heapActive(addrHash16)
-{
-    for (unsigned u1 = 0; u1 < src.heapFree.size(); u1++) {
-      heapFree.push_back(new heapItem(src.heapFree[u1]));
-    }
-
-    pdvector<heapItem *> items = src.heapActive.values();
-    for (unsigned u2 = 0; u2 < items.size(); u2++) {
-      heapActive[items[u2]->addr] = new heapItem(items[u2]);
-    }
-    
-    for (unsigned u3 = 0; u3 < src.disabledList.size(); u3++) {
-      disabledList.push_back(src.disabledList[u3]);
-    }
-
-    for (unsigned u4 = 0; u4 < src.bufferPool.size(); u4++) {
-      bufferPool.push_back(new heapItem(src.bufferPool[u4]));
-    }
-
-    disabledListTotalMem = src.disabledListTotalMem;
-    totalFreeMemAvailable = src.totalFreeMemAvailable;
-    freed = 0;
-}
-
-//
-// This function will return the index corresponding to the next position
-// available in heapFree.
-//
-int process::findFreeIndex(unsigned size, int type, Address lo, Address hi)
-{
-    // type is a bitmask: match on any bit in the mask
-  pdvector<heapItem *> &freeList = heap.heapFree;
-
-  int best = -1;
-  for (unsigned i = 0; i < freeList.size(); i++) {
-      heapItem *h = freeList[i];
-      // check if free block matches allocation constraints
-      // Split out to facilitate debugging
-      if (h->addr >= lo &&
-          (h->addr + size - 1) <= hi &&
-          h->length >= size &&
-          h->type & type) {
-          if (best == -1)
-              best = i;
-          // check for better match
-          if (h->length < freeList[best]->length) best = i;
-      }
-  }
-  return best;
-}  
 
 //
 // dynamic inferior heap stuff
@@ -1388,11 +1231,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
                                    HEAPfree);
 #endif
 
-
-        heap.bufferPool.push_back(h);
-        // add new segment to free list
-        heapItem *h2 = new heapItem(h);
-        heap.heapFree.push_back(h2);
+        addHeap(h);
         break;
    }
    
@@ -1413,7 +1252,8 @@ const Address ADDRESS_HI = ((Address)~((Address)0));
 Address process::inferiorMalloc(unsigned size, inferiorHeapType type, 
 				Address near_, bool *err)
 {
-   inferiorHeap *hp = &heap;
+    Address ret = 0;
+
    if (err) *err = false;
    assert(size > 0);
    
@@ -1449,7 +1289,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 #if defined(cap_dynamic_heap)
 	case 1: // compact free blocks
 	  gcInstrumentation();
-	  inferiorFreeCompact(hp);
+	  inferiorFreeCompact();
 	  break;
 	case 2: // allocate new segment (1MB, constrained)
         inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
@@ -1472,208 +1312,23 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   inferiorMallocDynamic(size, lo, hi);
 	   break;
 	case 7: // deferred free, compact free blocks
-	   inferiorFreeCompact(hp);
+            inferiorFreeCompact();
 	   break;
 #else /* !(cap_dynamic_heap) */
-	case 1: // deferred free, compact free blocks
-	   inferiorFreeCompact(hp);
-	   break;
+      case 1: // deferred free, compact free blocks
+	  gcInstrumentation();
+          inferiorFreeCompact();
+          break;
 #endif /* cap_dynamic_heap */
 	   
 	default: // error - out of memory
-	   sprintf(errorLine, "***** Inferior heap overflow: %d bytes "
-		   "freed, %d bytes requested \n", hp->freed, size);
-	   logLine(errorLine);
-	   showErrorCallback(66, (const char *) errorLine);    
-              fprintf(stderr,"%s[%d]: ERROR!\n", FILE__, __LINE__);
-        fprintf(stderr, "%s\n", errorLine);
 	   return(0);
       }
-      freeIndex = findFreeIndex(size, type, lo, hi);
-//	bperr("  type %x",type);
+      ret = inferiorMallocInternal(size, lo, hi, type);
+      if (ret) break;
    }
-
-   // adjust active and free lists
-   assert(freeIndex != -1);
-   heapItem *h = hp->heapFree[freeIndex];
-   assert(h);
-
-   // remove allocated buffer from free list
-   if (h->length != size) {
-      // size mismatch: put remainder of block on free list
-      heapItem *rem = new heapItem(h);
-      rem->addr += size;
-      rem->length -= size;
-      hp->heapFree[freeIndex] = rem;
-   } else {
-      // size match: remove entire block from free list
-      unsigned last = hp->heapFree.size();
-      hp->heapFree[freeIndex] = hp->heapFree[last-1];
-      hp->heapFree.resize(last-1);
-   }
-   // add allocated block to active list
-   h->length = size;
-   h->status = HEAPallocated;
-   hp->heapActive[h->addr] = h;
-   // bookkeeping
-   hp->totalFreeMemAvailable -= size;
-   assert(h->addr);
-   
-   // ccw: 28 oct 2001
-   // create imageUpdate here:
-   // imageUpdate(h->addr,size)
-   
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-   if(collectSaveWorldData){
-      
-#if defined(sparc_sun_solaris2_4)
-      if(h->addr < 0xF0000000)
-#elif defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-      if(h->addr == 0 ) //< 0x40000000) //ccw TEST TEST TEST
-#elif defined(rs6000_ibm_aix4_1)
-	if(h->addr < 0x20000000)
-#endif	
-      {
-	 imageUpdate *imagePatch=new imageUpdate; 
-	 imagePatch->address = h->addr;
-	 imagePatch->size = size;
-	 imageUpdates.push_back(imagePatch);
-	 //totalSizeAlloc += size;
-	 //bperr(" PUSHBACK %x %x --- \n", imagePatch->address, imagePatch->size); 		
-	 //fprintf(stderr," PUSHBACK %x %x --- \n", imagePatch->address, imagePatch->size); 		
-      } else {
-	 //	totalSizeAlloc += size;
-	 //fprintf(stderr,"HIGHMEM UPDATE %x %x \n", h->addr, size);
-	 imageUpdate *imagePatch=new imageUpdate;
-	 imagePatch->address = h->addr;
-	 imagePatch->size = size;
-	 highmemUpdates.push_back(imagePatch);
-	 //bperr(" PUSHBACK %x %x\n", imagePatch->address, imagePatch->size);
-      }
-      //fflush(stdout);
-   }
-#endif
-   return(h->addr);
+   return ret;
 }
-
-/* returns true if memory was allocated for a variable starting at address
-   "block", otherwise returns false
-*/
-bool isInferiorAllocated(process *p, Address block) {
-  heapItem *h = NULL;  
-  inferiorHeap *hp = &p->heap;
-  return hp->heapActive.find(block, h);
-}
-
-void process::inferiorFree(Address block)
-{
-  inferiorHeap *hp = &heap;
-
-  // find block on active list
-  heapItem *h = NULL;  
-  if (!hp->heapActive.find(block, h)) {
-      // We can do this if we're at process teardown.
-    return;
-  }
-  assert(h);
-
-  // Remove from the active list
-  hp->heapActive.undef(block);
-
-  // Add to the free list
-  h->status = HEAPfree;
-  hp->heapFree.push_back(h);
-  hp->totalFreeMemAvailable += h->length;
-  hp->freed += h->length;
-}
- 
-bool process::inferiorRealloc(Address block, unsigned newSize)
-{
-  inferiorHeap *hp = &heap;
-
-#if defined (cap_dynamic_heap)
-  // This is why it's not a reference...
-  inferiorMallocAlign(newSize);
-#endif
-
-  // find block on active list
-  heapItem *h = NULL;  
-  if (!hp->heapActive.find(block, h)) {
-      // We can do this if we're at process teardown.
-    return false;
-  }
-  assert(h);
-
-  if (h->length < newSize)
-      return false; // Cannot make bigger...
-  if (h->length == newSize)
-      return true;
-
-  // We make a new "free" block that is the end of this one.
-  Address freeStart = block + newSize;
-  int shrink = h->length - newSize;
-  
-  assert(shrink > 0);
-
-  h->length = newSize;
-
-  heapItem *freeEnd = new heapItem(freeStart,
-                                   shrink,
-                                   h->type,
-                                   h->dynamic,
-                                   HEAPfree);
-  hp->heapFree.push_back(freeEnd);
-
-  hp->totalFreeMemAvailable += shrink;
-  hp->freed += shrink;
-
-  // And run a compact; otherwise we'll end up with hugely fragmented memory.
-  inferiorFreeCompact(hp);
-
-
-   // ccw: 28 oct 2001
-   // create imageUpdate here:
-   // imageUpdate(h->addr,size)
-   
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-   if(collectSaveWorldData){
-      
-#if defined(sparc_sun_solaris2_4)
-      if(h->addr < 0xF0000000)
-#elif defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-      if(h->addr == 0 ) //< 0x40000000) //ccw TEST TEST TEST
-#elif defined(rs6000_ibm_aix4_1)
-	if(h->addr < 0x20000000)
-#endif	
-      {
-
-		//fprintf(stderr,"INFERIOR REALLOC2\n");
-	 	imageUpdate *imagePatch=new imageUpdate; 
-		 imagePatch->address = h->addr;
-		 imagePatch->size = newSize;
-		 imageUpdates.push_back(imagePatch);
-      } else {
-		//fprintf(stderr,"INFERIOR REALLOC\n");
-		 imageUpdate *imagePatch=new imageUpdate;
-		 imagePatch->address = h->addr;
-		 imagePatch->size = newSize;
-		 highmemUpdates.push_back(imagePatch);
-      }
-   }
-#endif
-
-
-  return true;
-}
-
 
 // Cleanup the process object. Delete all sub-objects to ensure we aren't 
 // leaking memory and prepare for new versions. Useful when the process exits
@@ -1681,7 +1336,7 @@ bool process::inferiorRealloc(Address block, unsigned newSize)
 
 void process::deleteProcess() 
 {
-
+	fprintf(stderr, "deleteProcess %d\n", getPid());
   assert(this);
 
   // A lot of the behavior here is keyed off the current process status....
@@ -1692,8 +1347,10 @@ void process::deleteProcess()
 
   // We may call this function multiple times... once when the process exits,
   // once when we delete the process object.
-  if (status() == deleted) return;
-    
+  if (status() == deleted) {
+      return;
+  }
+
   // If this assert fires check whether we're setting the status vrble correctly
   // before calling this function
   assert(!isAttached() || !reachedBootstrapState(bootstrapped_bs) || execing());
@@ -1705,14 +1362,9 @@ void process::deleteProcess()
   }
 
 
-  // pid remains untouched
-  // parent remains untouched
-  for (iter = 0; iter < mapped_objects.size(); iter++) 
-      delete mapped_objects[iter];
   for (iter = 0; iter < deleted_objects.size(); iter++)
       delete deleted_objects[iter];
 
-  mapped_objects.clear();
   runtime_lib = NULL;
 
   // Signal handlers...
@@ -1790,35 +1442,11 @@ void process::deleteProcess()
 
   // Skipping saveTheWorld; don't know what to do with it.
 
-  trampTrapMapping.clear();
-
-  
-  codeRangesByAddr_.clear();
-  
-  // Iterate and clear? instPoint deletion should handle it.
-  // What about replaced functions?
-  modifiedAreas_.clear();
-  multiTrampDict.clear();
-
-  // Blow away the replacedFunctionCalls list; codeGens are taken
-  // care of statically and will deallocate
-  dictionary_hash_iter<Address, replacedFunctionCall *> rfcIter(replacedFunctionCalls_);  
-  for (; rfcIter; rfcIter++) {
-      replacedFunctionCall *rfcVal = rfcIter.currval();
-      assert(rfcVal->callAddr == rfcIter.currkey());
-      assert(rfcVal);
-      delete rfcVal;
-  }
-  replacedFunctionCalls_.clear();
-
-  codeSections_.clear();
-  dataSections_.clear();
-
   dyninstlib_brk_addr = 0;
   main_brk_addr = 0;
 
-  heapInitialized_ = false;
-  heap.clear();
+  deleteAddressSpace();
+
   inInferiorMallocDynamic = false;
 
   // Get rid of our syscall tracing.
@@ -1846,10 +1474,6 @@ void process::deleteProcess()
   }
   pendingGCInstrumentation.clear();
 
-  costAddr_ = 0;
-  threadIndexAddr = 0;
-  trampGuardBase_ = 0;
-
 #if defined(os_linux)
   vsyscall_start_ = 0;
   vsyscall_end_ = 0;
@@ -1858,6 +1482,7 @@ void process::deleteProcess()
 #endif
 
   set_status(deleted);
+  
 }
 
 //
@@ -1956,9 +1581,6 @@ process::process(SignalGenerator *sh_) :
     collectSaveWorldData(true),
     requestTextMiniTramp(false),
     traceLink(0),
-    trampTrapMapping(addrHash4),
-    multiTrampDict(intHash),
-    replacedFunctionCalls_(addrHash4),
     bootstrapState(unstarted_bs),
     suppress_bpatch_callbacks_(false),
     loadDyninstLibAddr(0),
@@ -1973,13 +1595,8 @@ process::process(SignalGenerator *sh_) :
     processHandle_(INVALID_HANDLE_VALUE),
     mainFileHandle_(INVALID_HANDLE_VALUE),
 #endif
-    splitHeaps(false),
-    heapInitialized_(false),
     inInferiorMallocDynamic(false),
-    tracedSyscalls_(NULL),
-    costAddr_(0),
-    threadIndexAddr(0),
-    trampGuardBase_(0)
+    tracedSyscalls_(NULL)
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -2000,15 +1617,6 @@ process::process(SignalGenerator *sh_) :
 
     theRpcMgr = new rpcMgr(this);    
     dyn = new dynamic_linking(this);
-
-    // Not sure we need this anymore... on AIX you can run code
-    // anywhere, so allocating by address _should_ be okay.
-#if defined(rs6000_ibm_aix3_2) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(alpha_dec_osf4_0)
-    splitHeaps = true;
-#endif
-
 }
 
 //
@@ -2223,25 +1831,17 @@ bool process::setupFork()
     //   process state
     //   
 
-    // Mapped objects first
-    for (unsigned i = 0; i < parent->mapped_objects.size(); i++) {
-        mapped_object *par_obj = parent->mapped_objects[i];
-        mapped_object *child_obj = new mapped_object(par_obj, this);
-        if (!child_obj) {
-            delete child_obj;
-            return false;
-        }
+    copyAddressSpace(parent);
 
-        mapped_objects.push_back(child_obj);
-        addCodeRange(child_obj);
+    assert(mapped_objects.size() == parent->mapped_objects.size());
 
-        if ((par_obj->fileName() == dyninstRT_name) ||
-            (par_obj->fullName() == dyninstRT_name))
-            runtime_lib = child_obj;
-
-        // This clones funcs, which then clone instPoints, which then 
-        // clone baseTramps, which then clones miniTramps.
+    for (unsigned i = 0; i < mapped_objects.size(); i++) {        
+        if ((parent->mapped_objects[i]->fileName() == dyninstRT_name) ||
+            (parent->mapped_objects[i]->fullName() == dyninstRT_name))
+            runtime_lib = mapped_objects[i];
     }
+
+
     // And the main func and dyninst RT lib
     if (!setMainFunction())
         return false;
@@ -2270,43 +1870,9 @@ bool process::setupFork()
 
     recognize_threads(parent);
 
-
-    /////////////////////////
-    // Inferior heap
-    /////////////////////////
-    
-    heap = inferiorHeap(parent->heap);
-
-    /////////////////////////
-    // Instrumentation (multiTramps on down)
-    /////////////////////////
-
-    dictionary_hash_iter<int, multiTramp *> multiTrampIter(parent->multiTrampDict);
-    int mID;
-    multiTramp *mTramp;
-    for (; multiTrampIter; multiTrampIter++) {
-        mID = multiTrampIter.currkey();
-        mTramp = multiTrampIter.currval();
-        assert(mTramp);
-        multiTramp *newMulti = new multiTramp(mTramp, this);
-        multiTrampDict[mID] = newMulti;
-        addMultiTramp(newMulti);
-    }
-    // That will also create all baseTramps, miniTramps, ...
-
-    // Copy the replacedFunctionCalls...
-    dictionary_hash_iter<Address, replacedFunctionCall *> rfcIter(replacedFunctionCalls_);  
-    Address rfcKey;
-    replacedFunctionCall *rfcVal;
-    for (; rfcIter; rfcIter++) {
-        rfcKey = rfcIter.currkey();
-        assert(rfcKey);
-        rfcVal = rfcIter.currval();
-        assert(rfcVal);
-        assert(rfcVal->callAddr == rfcKey);
-        // Mmm copy constructor
-        replacedFunctionCall *newRFC = new replacedFunctionCall(*rfcVal);
-        replacedFunctionCalls_[rfcKey] = newRFC;
+    // Tag the garbage collection list...
+    for (unsigned ii = 0; ii < parent->pendingGCInstrumentation.size(); ii++) {
+        // TODO. For now we'll just "leak"
     }
 
 #if 0
@@ -2327,11 +1893,6 @@ bool process::setupFork()
         // Adds to instPMapping_
     }
 #endif
-
-    // Tag the garbage collection list...
-    for (unsigned ii = 0; ii < parent->pendingGCInstrumentation.size(); ii++) {
-        // TODO. For now we'll just "leak"
-    }
 
     // Now that we have instPoints, we can create the (possibly) instrumentation-
     // based tracing code
@@ -2393,7 +1954,7 @@ bool process::setAOut(fileDescriptor &desc)
         return false;
     
     mapped_objects.push_back(aout);
-    addCodeRange(aout);
+    addOrigRange(aout);
 
     findSignalHandler(aout);
 
@@ -2512,9 +2073,6 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     collectSaveWorldData(parentProc->collectSaveWorldData),
     requestTextMiniTramp(parentProc->requestTextMiniTramp),
     traceLink(childTrace_fd),
-    trampTrapMapping(parentProc->trampTrapMapping),
-    multiTrampDict(intHash), // Later
-    replacedFunctionCalls_(addrHash4), // Also later
     bootstrapState(parentProc->bootstrapState),
     suppress_bpatch_callbacks_(parentProc->suppress_bpatch_callbacks_),
     loadDyninstLibAddr(0),
@@ -2525,13 +2083,8 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     dyninstlib_brk_addr(parentProc->dyninstlib_brk_addr),
     main_brk_addr(parentProc->main_brk_addr),
     systemPrelinkCommand(NULL),
-    splitHeaps(parentProc->splitHeaps),
-    heapInitialized_(parentProc->heapInitialized_),
     inInferiorMallocDynamic(parentProc->inInferiorMallocDynamic),
-    tracedSyscalls_(NULL),  // Later
-    costAddr_(parentProc->costAddr_),
-    threadIndexAddr(parentProc->threadIndexAddr),
-    trampGuardBase_(parentProc->trampGuardBase_)
+    tracedSyscalls_(NULL)  // Later
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -2674,7 +2227,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid, void *container_pro
     getMailbox()->executeCallbacks(FILE__, __LINE__);
     return NULL;
   }
-  theProc->container_proc = container_proc_;
+  theProc->set_up_ptr(container_proc_);
 
   // Add this as we can't do _anything_ without a process to look up.
   processVec.push_back(theProc);
@@ -3241,165 +2794,6 @@ int process::DYNINSTinitCompletionCallback(process* theProc,
     //global_mutex->_Unlock(FILE__, __LINE__);
     return 0;
 }
-/////////////////////////////////////////
-// Function lookup...
-/////////////////////////////////////////
-
-bool process::findFuncsByAll(const pdstring &funcname,
-                             pdvector<int_function *> &res,
-                             const pdstring &libname) { // = "", btw
-    
-    unsigned starting_entries = res.size(); // We'll return true if we find something
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        if (libname == "" ||
-            mapped_objects[i]->fileName() == libname ||
-            mapped_objects[i]->fullName() == libname) {
-            const pdvector<int_function *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
-            if (pretty) {
-                // We stop at first match...
-                for (unsigned pm = 0; pm < pretty->size(); pm++) {
-                    res.push_back((*pretty)[pm]);
-                }
-            }
-            else {
-                const pdvector<int_function *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
-                if (mangled) {
-                    for (unsigned mm = 0; mm < mangled->size(); mm++) {
-                        res.push_back((*mangled)[mm]);
-                    }
-                }
-            }
-        }
-    }
-    return (res.size() != starting_entries);
-}
-
-
-bool process::findFuncsByPretty(const pdstring &funcname,
-                             pdvector<int_function *> &res,
-                             const pdstring &libname) { // = "", btw
-
-    unsigned starting_entries = res.size(); // We'll return true if we find something
-
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        if (libname == "" ||
-            mapped_objects[i]->fileName() == libname ||
-            mapped_objects[i]->fullName() == libname) {
-            const pdvector<int_function *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
-            if (pretty) {
-                // We stop at first match...
-                for (unsigned pm = 0; pm < pretty->size(); pm++) {
-                    res.push_back((*pretty)[pm]);
-                }
-            }
-        }
-    }
-    return res.size() != starting_entries;
-}
-
-
-bool process::findFuncsByMangled(const pdstring &funcname,
-                                 pdvector<int_function *> &res,
-                                 const pdstring &libname) { // = "", btw
-    unsigned starting_entries = res.size(); // We'll return true if we find something
-
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        if (libname == "" ||
-            mapped_objects[i]->fileName() == libname ||
-            mapped_objects[i]->fullName() == libname) {
-            const pdvector<int_function *> *mangled = 
-               mapped_objects[i]->findFuncVectorByMangled(funcname);
-            if (mangled) {
-                for (unsigned mm = 0; mm < mangled->size(); mm++) {
-                   res.push_back((*mangled)[mm]);
-                }
-            }
-        }
-    }
-    return res.size() != starting_entries;
-}
-
-int_function *process::findOnlyOneFunction(const pdstring &name,
-                                           const pdstring &lib) 
-{
-    assert(mapped_objects.size());
-
-    pdvector<int_function *> allFuncs;
-    if (!findFuncsByAll(name, allFuncs, lib))
-        return NULL;
-    if (allFuncs.size() > 1) {
-        cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
-    }
-    return allFuncs[0];
-}
-
-/////////////////////////////////////////
-// Variable lookup...
-/////////////////////////////////////////
-
-bool process::findVarsByAll(const pdstring &varname,
-                            pdvector<int_variable *> &res,
-                            const pdstring &libname) { // = "", btw
-    unsigned starting_entries = res.size(); // We'll return true if we find something
-    
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        if (libname == "" ||
-            mapped_objects[i]->fileName() == libname ||
-            mapped_objects[i]->fullName() == libname) {
-            const pdvector<int_variable *> *pretty = mapped_objects[i]->findVarVectorByPretty(varname);
-            if (pretty) {
-                // We stop at first match...
-                for (unsigned pm = 0; pm < pretty->size(); pm++) {
-                    res.push_back((*pretty)[pm]);
-                }
-            }
-            else {
-                const pdvector<int_variable *> *mangled = mapped_objects[i]->findVarVectorByMangled(varname);
-                if (mangled) {
-                    for (unsigned mm = 0; mm < mangled->size(); mm++) {
-                        res.push_back((*mangled)[mm]);
-                    }
-                }
-            }
-        }
-    }
-
-    return res.size() != starting_entries;
-}
-
-
-
-// Get me a pointer to the instruction: the return is a local
-// (mutator-side) store for the mutatee. This may duck into the local
-// copy for images, or a relocated function's self copy.
-// TODO: is this really worth it? Or should we just use ptrace?
-
-void *process::getPtrToInstruction(Address addr) const {
-    codeRange *range;
-    if (codeSections_.find(addr, range)) {
-        return range->getPtrToInstruction(addr);
-    }
-    else if (dataSections_.find(addr, range)) {
-        mappedObjData *data = dynamic_cast<mappedObjData *>(range);
-        assert(data);
-        return data->obj->getPtrToData(addr);
-    }
-    return NULL;
-}
-
-bool process::isValidAddress(const Address& addr) const{
-    // "Is this part of the process address space?"
-    // We should codeRange data sections as well... since we don't, this is 
-    // slow.
-    codeRange *dontcare;
-    if (codeSections_.find(addr, dontcare))
-        return true;
-    if (dataSections_.find(addr, dontcare))
-        return true;
-    fprintf(stderr, "Warning: address 0x%p not valid!\n",
-            (void *)addr);
-    return false;
-}        
 
 dyn_thread *process::STdyn_thread() { 
    assert(! multithread_capable());
@@ -3453,18 +2847,6 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
        cached_result = cached_mt_false;
        return false;
    }
-}
-
-mapped_object *process::findObject(Address addr) {
-    for (unsigned i=0; i<mapped_objects.size(); i++)
-    {
-        if (addr >= mapped_objects[i]->codeAbs() &&
-            addr < mapped_objects[i]->codeAbs() + mapped_objects[i]->codeSize())
-        {
-            return mapped_objects[i];
-        }
-    }
-    return NULL;
 }
 
 void process::updateThreadIndex(dyn_thread *thread, int index) {
@@ -4262,7 +3644,8 @@ bool process::addASharedObject(mapped_object *new_obj)
     // Make library callback (will trigger BPatch adding the lib)
     // Perform platform-specific lookups (e.g., signal handler)
     mapped_objects.push_back(new_obj);
-    addCodeRange(new_obj);
+    addOrigRange(new_obj);
+
     findSignalHandler(new_obj);
     pdstring msg;
 
@@ -4282,17 +3665,32 @@ bool process::addASharedObject(mapped_object *new_obj)
         // initInferiorHeap was run already, so hit this guy
         addInferiorHeap(new_obj);
     }
+    else {
+        startup_printf("%s[%d]: skipping check for new inferior heaps, heap uninitialized\n",
+                       FILE__, __LINE__);
+    }
+
 
     //fprintf(stderr, "%s[%d]:  newobj: %s, %s\n", FILE__, __LINE__, new_obj->fileName().c_str(), new_obj->fullName().c_str());
+	pdstring dyninstRT_shortname;
+	char *last_slash;
 #if defined(os_windows)
-    char *last_slash = strrchr(new_obj->fileName().c_str(), '\\');
+    last_slash = strrchr(new_obj->fileName().c_str(), '\\');
+	if (!last_slash) last_slash = strrchr(new_obj->fileName().c_str(), '/');
     pdstring shortname = last_slash ? pdstring(last_slash +1) : new_obj->fileName();
 #else
     pdstring shortname = new_obj->fileName();
 #endif
+	
+	if (dyninstRT_name.c_str()) {
+		last_slash = strrchr(dyninstRT_name.c_str(), '\\');
+		if (!last_slash) last_slash = strrchr(dyninstRT_name.c_str(), '/');
+		dyninstRT_shortname = last_slash ? pdstring(last_slash +1) : dyninstRT_name.c_str();
+	}
+
     pdstring longname = new_obj->fullName();
 
-    if ((shortname == dyninstRT_name) 
+    if ((shortname == dyninstRT_shortname) 
         || (longname == dyninstRT_name)) {
       startup_printf("%s[%d]:  handling init of dyninst RT library\n", FILE__, __LINE__);
       if (!setDyninstLibPtr(new_obj)) {
@@ -4361,7 +3759,7 @@ bool process::removeASharedObject(mapped_object *obj) {
 
     if (runtime_lib == obj) runtime_lib = NULL;
 
-    deleteCodeRange(obj->get_address_cr());
+    removeOrigRange(obj);
 
     // Signal handler...
     // TODO
@@ -4415,227 +3813,6 @@ bool process::processSharedObjects()
     return true;
 }
 
-// Parse name into library name and function name. If no library is specified,
-// lib gets the empty string "". 
-//
-// e.g. libc.so/read => lib_name = libc.so, func_name = read
-//              read => lib_name = "", func_name = read
-// We need to be careful about parsing for slashes -- "operator /" -- 
-void process::getLibAndFunc(const pdstring &name, pdstring &lib_name, pdstring &func_name) {
-
-  unsigned index = 0;
-  unsigned length = name.length();
-  bool hasNoLib = true;
- 
-  // clear the strings 
-  lib_name = "";
-  func_name = "";
-
-  for (unsigned i = length-1; i > 0 && hasNoLib; i--) {
-    if (name[i] == '/') {
-      index = i;
-      hasNoLib = false; 
-    } 
-  }
-
-  if (hasNoLib) {
-    // No library specified  
-    func_name = name;
-  } else { 
-      // Grab library name and function name 
-      lib_name = name.substr(0, index);
-      func_name = name.substr(index+1, length-index);
-  }
-}
-
-
-// Return true if library specified by lib_name matched name.
-// This check is done ignoring the version number of name.
-// Thus, for lib_name = libc.so, and name = libc.so.6, this function
-// will return true (a match was made).
-bool matchLibName(pdstring &lib_name, const pdstring &name) {
-
-  // position in string "lib_name" where version information begins
-  unsigned ln_index = lib_name.length();
-
-  // position in string "name" where version information begins
-  unsigned n_index = name.length();
-
-  // Walk backwards from end of name, passing over the version number.
-  // e.g. isolate the libc.so in libc.so.6
-  while (isdigit(name[n_index-1]) || name[n_index-1] == '.') {
-    n_index--;
-  }
-
-  // Walk backwards from end of lib_name, passing over the version number.
-  // e.g. isolate the libc.so in libc.so.6
-  while (isdigit(lib_name[ln_index-1]) || lib_name[ln_index-1] == '.') {
-    ln_index--;
-  }
- 
-  // If lib_name is the same as name (minus the version information, 
-  // return true
-  if ((lib_name.substr(0, ln_index)).wildcardEquiv(name.substr(0, n_index))) {
-    return true;
-  }  
- 
-  return false;
-}
-
-#if 0
-
-// findOneFunction: returns the function associated with func  
-// this routine checks both the a.out image and any shared object
-// images for this resource
-int_function *process::findOnlyOneFunction(const pdstring &name) const {
-
-    pdstring lib_name;
-    pdstring func_name;
-    int_function *pdf, *ret = NULL;
-
-    // Split name into library and function
-    getLibAndFunc(name, lib_name, func_name);
-
-    // If no library was specified, grab the first function we find
-    if (lib_name == "") {
-        // first check a.out for function symbol
-        pdf = symbols->findOnlyOneFunction(func_name);
-        if(pdf) {
-            ret = pdf;
-        }
-        // search any shared libraries for the file name 
-        if(dynamiclinking && shared_objects){
-            for(u_int j=0; j < shared_objects->size(); j++){
-                pdf = ((*shared_objects)[j])->findOnlyOneFunction(func_name);
-                if(pdf){
-                    // fail if we already found a match
-                    if (ret) {
-                        cerr << FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
-                             << " found more than one match for function " << func_name <<endl;
-                        return NULL;
-                    }
-                    ret = pdf;
-                }
-                else {
-                    // cerr << FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
-                    //<< " could not find function " << func_name << endl;
-                }
-            }
-        }
-    } else {
-        
-        // Search specified shared library for function 
-        if(dynamiclinking && shared_objects){ 
-            for(u_int j=0; j < shared_objects->size(); j++){
-                shared_object *so = (*shared_objects)[j];
-                
-                // Add prefix wildcard to make name matching easy
-                if (!lib_name.prefixed_by("*"))
-                    lib_name = "*" + lib_name;             
-                
-                if(matchLibName(lib_name, so->getName())) {
-                    int_function *fb = so->findOnlyOneFunction(func_name);
-                    if (fb) {
-                        if (ret) {
-                            cerr << FILE__ << ":" << __LINE__ << ": ERROR:  findOnlyOneFunction"
-                                 << " found more than one match for function " << func_name <<endl;
-                            return NULL;
-                        }
-                        ret = fb;
-                        //cerr << "Found " << func_name << " in " << lib_name << endl;
-                    }
-                    else {
-                        //cerr << FILE__ << ":" << __LINE__ << ": WARNING:  findOnlyOneFunction"
-                        //  << " could not find function " << func_name << " in module " << so->getName()<<endl;
-                    }
-                }
-            }
-        }
-    }
-
-    return ret;
-}
-
-bool process::findAllFuncsByName(const pdstring &name, pdvector<int_function *> &res)
-{
-   pdstring lib_name;
-   pdstring func_name;
-   pdvector<int_function *> *pdfv=NULL;
-   
-   // Split name into library and function
-   getLibAndFunc(name, lib_name, func_name);
-   
-   // If no library was specified, grab the first function we find
-   if (lib_name == "") {
-      // first check a.out for function symbol
-      if (NULL != (pdfv = symbols->findFuncVectorByPretty(func_name))) {
-         for (unsigned int i = 0; i < pdfv->size(); ++i)
-            res.push_back((*pdfv)[i]);
-      }
-      
-      // search any shared libraries for the file name 
-      if(dynamiclinking && shared_objects){
-         for(u_int j=0; j < shared_objects->size(); j++){
-            if (NULL != (pdfv = (*shared_objects)[j]->findFuncVectorByPretty(func_name))) {
-                for (unsigned int i = 0; i < pdfv->size(); ++i) {
-                    res.push_back((*pdfv)[i]);
-                }
-            }
-            //pdf=static_cast<int_function *>(((*shared_objects)[j])->findFuncByName(func_name));
-         }
-      }      
-   } else {
-      // Library was specified, search lib for function func_name 
-      // Add prefix wildcard to make name matching easy
-       if (!lib_name.prefixed_by("*"))
-           lib_name = "*" + lib_name;             
-       
-       if(dynamiclinking && shared_objects) { 
-           for(u_int j=0; j < shared_objects->size(); j++){
-               shared_object *so = (*shared_objects)[j];
-               
-               if(matchLibName(lib_name, so->getName())) {
-                   if (NULL != (pdfv = so->findFuncVectorByPretty(func_name))) {
-                       for (unsigned int i = 0; i < pdfv->size(); ++i) {
-                           res.push_back((*pdfv)[i]);
-                       }
-                       
-                   }
-                   
-                   //int_function *fb = static_cast<int_function *>(so->findFuncByName(func_name));
-               }
-           }
-       }
-   }
-   
-   if (res.size())
-      return true; 
-
-   //  Last ditch:  maybe the name was a mangled name
-
-   if (NULL != (pdfv = symbols->findFuncVectorByMangled(func_name))) {
-     for (unsigned i = 0; i < pdfv->size(); i++) 
-       res.push_back((*pdfv)[i]);
-   }
-   
-   // search any shared libraries for the file name 
-   if(dynamiclinking && shared_objects){
-     for(u_int j=0; j < shared_objects->size(); j++){
-       if (NULL != (pdfv = (*shared_objects)[j]->findFuncVectorByMangled(func_name))) {
-	 for (unsigned i = 0; i < pdfv->size(); i++) 
-	   res.push_back((*pdfv)[i]);
-       }
-     }
-   }
-
-   if (res.size())
-     return true; 
-
-   return false;
-}
-#endif
-
-
 bool process::dumpMemory(void * addr, unsigned nbytes)
 {
     unsigned char *buf = new unsigned char[nbytes];
@@ -4681,321 +3858,6 @@ bool process::getSymbolInfo( const pdstring &name, Dyn_Symbol &ret )
         }
     }
     return false;
-}
-
-// findRangeByAddr: finds the object (see below) that corresponds with
-// a given absolute address. This includes:
-//   Functions (non-relocated)
-//   Base tramps
-//   Mini tramps
-//   Relocated functions
-//
-// The process class keeps a tree of objects occupying the address space.
-// This top-level tree includes trampolines, relocated functions, and the
-// application and shared objects. The search starts at the top of this tree.
-// If the address resolves to a base tramp, mini tramp, or relocated function,
-// that is returned. If the address resolves within the range of an shared
-// object, the search recurses into the object (the offset into the object
-// is calculated and the function lookup works from the offset). If the offset
-// is within the a.out, we look up the function assuming the address given is
-// the offset. 
-
-codeRange *process::findCodeRangeByAddress(Address addr) {
-
-   codeRange *range = NULL;
-
-   if (!codeRangesByAddr_.find(addr, range)) {
-       return NULL;
-   }
-   
-   assert(range);
-
-   bool in_range = (addr >= range->get_address_cr() &&
-                    addr <= (range->get_address_cr() + range->get_size_cr()));
-   assert(in_range); // Supposed to return NULL if this is the case
-
-   // The top level tree doesn't go into mapped_objects, which is not
-   // what we want; so if we're in a mapped_object, poke inside.
-   // However, if we're in a function (int_function), minitramp,
-   // basetramp, ... return that right away.
-
-   mapped_object *mobj = range->is_mapped_object();
-   if (mobj) {
-       codeRange *obj_range = mobj->findCodeRangeByAddress(addr);
-       if (obj_range) range = obj_range;
-   }
-
-   return range;
-}
-
-int_function *process::findFuncByAddr(Address addr) {
-    codeRange *range = findCodeRangeByAddress(addr);
-    if (!range) return NULL;
-    
-    int_function *func_ptr = range->is_function();
-    multiTramp *multi = range->is_multitramp();
-    miniTrampInstance *mti = range->is_minitramp();
-
-    if(func_ptr) {
-       return func_ptr;
-    }
-    else if (multi) {
-        return multi->func();
-    }
-    else if (mti) {
-        return mti->baseTI->multiT->func();
-    }
-    else {
-        return NULL;
-    }
-}
-
-int_basicBlock *process::findBasicBlockByAddr(Address addr) {
-    codeRange *range = findCodeRangeByAddress(addr);
-    if (!range) return NULL;
-
-    int_basicBlock *b = range->is_basicBlock();
-    int_function *f = range->is_function();
-    multiTramp *mt = range->is_multitramp();
-    miniTrampInstance *mti = range->is_minitramp();
-
-    if(b) {
-        return b;
-    }
-    else if(f) {
-        return f->findBlockByAddr(addr);
-    }
-    else if(mt) {
-        return mt->func()->findBlockByAddr(addr);
-    }
-    else if(mti) {
-        return mti->baseTI->multiT->func()->findBlockByAddr(addr);
-    }
-    else
-        return NULL;
-}
-
-int_function *process::findFuncByInternalFunc(image_func *ifunc) {
-    assert(ifunc);
-  
-    // Now we have to look up our specialized version
-    // Can't do module lookup because of DEFAULT_MODULE...
-    pdvector<int_function *> possibles;
-    if (!findFuncsByMangled(ifunc->symTabName().c_str(),
-                            possibles))
-        return NULL;
-
-    assert(possibles.size());
-  
-    for (unsigned i = 0; i < possibles.size(); i++) {
-        if (possibles[i]->ifunc() == ifunc) {
-            return possibles[i];
-        }
-    }
-    return NULL;
-}
-
-
-
-bool process::addCodeRange(codeRange *codeobj) {
-
-   codeRangesByAddr_.insert(codeobj);
-#if 0
-   fprintf(stderr, "addCodeRange for %p\n", codeobj);
-   if (dynamic_cast<multiTramp *>(codeobj))
-       fprintf(stderr, "... multiTramp\n");
-   if (dynamic_cast<miniTrampInstance *>(codeobj))
-       fprintf(stderr, "... miniTramp\n");
-   if (dynamic_cast<mapped_object *>(codeobj))
-       fprintf(stderr, "... mobj\n");
-#endif
-   if (codeobj->is_mapped_object() ||
-       codeobj->is_multitramp() ||
-       codeobj->is_minitramp() ||
-       codeobj->is_basicBlockInstance()) {
-       // Chunk of executable code - add to codeSections_
-       codeSections_.insert(codeobj);
-#if 0
-       codeRange *temp;
-       if (!codeSections_.find(codeobj->get_address_cr(),
-                               temp)) {
-           codeSections_.insert(codeobj);
-       }
-#endif
-       if (codeobj->is_mapped_object()) {
-           // Hack... add data range
-           mappedObjData *data = new mappedObjData(codeobj->is_mapped_object());
-           dataSections_.insert(data);
-       }
-   }
-   return true;
-}
-
-bool process::deleteCodeRange(Address addr) {
-    // Remove does nothing if the addr is not a key value
-
-    codeRangesByAddr_.remove(addr);
-
-    codeSections_.remove(addr);
-
-    return true;
-}
-
-// Given an address, find the multiTramp covering that addr. 
-multiTramp *process::findMultiTramp(Address addr) {
-    codeRange *range;
-
-    if (!modifiedAreas_.find(addr, range))
-        return false;
-    
-    instArea *area = dynamic_cast<instArea *>(range);
-    
-    if (area)
-        return area->multi;
-    return NULL;
-}
-
-void process::addMultiTramp(multiTramp *newMulti) {
-    assert(newMulti);
-    assert(newMulti->instAddr());
-
-    codeRange *range;
-    if (modifiedAreas_.find(newMulti->instAddr(), range)) {
-        // We're overriding. Keep the instArea but update pointer.
-        instArea *area = dynamic_cast<instArea *>(range);
-        // It could be something else, which should have been
-        // caught already
-        if (!area) {
-			// Oops, someone already here... and multiTramps have
-			// the lowest priority.
-			return;
-        }
-        assert(area);
-        area->multi = newMulti;
-        return;
-    }
-    else {
-        instArea *area = new instArea(newMulti);
-        modifiedAreas_.insert(area);
-    }
-}
-
-void process::removeMultiTramp(multiTramp *oldMulti) {
-    if (!oldMulti) return;
-
-    assert(oldMulti->instAddr());
-
-    // Already gone.
-    if (findMultiTramp(oldMulti->instAddr()) != oldMulti) {
-        return;
-    }
-    // Pull the corresponding instArea out of the tree.
-    modifiedAreas_.remove(oldMulti->instAddr());
-}
-
-void process::addModifiedCallsite(replacedFunctionCall *RFC) {
-    codeRange *range;
-    if (modifiedAreas_.find(RFC->get_address_cr(), range)) {
-        assert(dynamic_cast<replacedFunctionCall *>(range));
-        modifiedAreas_.remove(RFC->get_address_cr());
-        delete range;
-    }
-    assert(RFC);
-    modifiedAreas_.insert(RFC);
-    replacedFunctionCalls_[RFC->callAddr] = RFC;
-}
-
-void process::addFunctionReplacement(functionReplacement *fr,
-                                     pdvector<codeRange *> &overwrittenObjs) {
-    assert(fr);
-    Address currAddr = fr->get_address_cr();
-    codeRange *range;
-    while (modifiedAreas_.find(currAddr, range)) {
-        overwrittenObjs.push_back(range);
-        modifiedAreas_.remove(currAddr);
-        currAddr += range->get_size_cr();
-    }
-
-    modifiedAreas_.insert(fr);
-}
-
-codeRange *process::findModifiedPointByAddr(Address addr) {
-    codeRange *range = NULL;
-    if (modifiedAreas_.find(addr, range)) {
-        assert(range);
-        return range;
-    }
-    return NULL;
-}
-
-void process::removeModifiedPoint(Address addr) {
-    modifiedAreas_.remove(addr);
-}
-
-Address process::getReplacedCallAddr(Address origAddr) const {
-    if (replacedFunctionCalls_.defines(origAddr))
-        return replacedFunctionCalls_[origAddr]->newTargetAddr;
-    return 0;
-}
-
-bool process::wasCallReplaced(Address origAddr) const {
-    if (replacedFunctionCalls_.find(origAddr))
-        return true;
-    else
-        return false;
-}
-
-// findModule: returns the module associated with mod_name 
-// this routine checks both the a.out image and any shared object
-// images for this resource
-mapped_module *process::findModule(const pdstring &mod_name, bool wildcard)
-{
-    // KLUDGE: first search any shared libraries for the module name 
-    //  (there is only one module in each shared library, and that 
-    //  is the library name)
-    for(u_int j=0; j < mapped_objects.size(); j++){
-        mapped_module *mod = mapped_objects[j]->findModule(mod_name, wildcard);
-        if (mod) {
-            return (mod);
-        }
-    }
-    return NULL;
-}
-
-// findObject: returns the object associated with obj_name 
-// This just iterates over the mapped object vector
-mapped_object *process::findObject(const pdstring &obj_name, bool wildcard)
-{
-    for(u_int j=0; j < mapped_objects.size(); j++){
-        if (mapped_objects[j]->fileName() == obj_name ||
-            mapped_objects[j]->fullName() == obj_name ||
-            (wildcard &&
-             (obj_name.wildcardEquiv(mapped_objects[j]->fileName()) ||
-              obj_name.wildcardEquiv(mapped_objects[j]->fullName()))))
-            return mapped_objects[j];
-    }
-    return NULL;
-}
-
-// getAllFunctions: returns a vector of all functions defined in the
-// a.out and in the shared objects
-
-void process::getAllFunctions(pdvector<int_function *> &funcs) {
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        mapped_objects[i]->getAllFunctions(funcs);
-    }
-}
-      
-// getAllModules: returns a vector of all modules defined in the
-// a.out and in the shared objects
-
-void process::getAllModules(pdvector<mapped_module *> &mods){
-    for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        const pdvector<mapped_module *> &obj_mods = mapped_objects[i]->getModules();
-        for (unsigned j = 0; j < obj_mods.size(); j++) {
-            mods.push_back(obj_mods[j]);
-        }
-    }
 }
 
 void process::addSignalHandler(Address addr, unsigned size) {
@@ -5519,62 +4381,87 @@ pdstring process::getStatusAsString() const
 }
 
 bool process::uninstallMutations() {
-    // For each multiTramp drop in the original instructions
-    dictionary_hash_iter<int, multiTramp *> multiTrampIter(multiTrampDict);
-    multiTramp *mTramp;
-    for (; multiTrampIter; multiTrampIter++) {
-        mTramp = multiTrampIter.currval();
-        if (mTramp) {
-            mTramp->disable();
+    pdvector<codeRange *> modifiedRanges;
+    if (!getModifiedRanges(modifiedRanges))
+        return false;
+
+    for (unsigned i = 0; i < modifiedRanges.size(); i++) {
+        instArea *tmp = dynamic_cast<instArea *>(modifiedRanges[i]);
+        if (tmp) {
+            multiTramp *multi = tmp->multi;
+            multi->disable();
+            continue;
         }
         
-    }
-
-    dictionary_hash_iter<Address, replacedFunctionCall *> rfcIter(replacedFunctionCalls_);
-    Address rfcAddr;
-    replacedFunctionCall *rfcVal;
-    for (; rfcIter; rfcIter++) {
-        rfcAddr = rfcIter.currkey();
-        rfcVal = rfcIter.currval();
-        assert(rfcAddr);
-        assert(rfcVal);
-        assert(rfcAddr == rfcVal->callAddr);
-        if (!writeDataSpace((void *)rfcAddr,
-                       rfcVal->oldCall.used(),
-                       rfcVal->oldCall.start_ptr())) {
-           fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
+        replacedFunctionCall *rfc = dynamic_cast<replacedFunctionCall *>(modifiedRanges[i]);
+        if (rfc) {
+            if (!writeDataSpace((void *)rfc->callAddr,
+                                rfc->oldCall.used(),
+                                rfc->oldCall.start_ptr())) {
+                fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
+            }
+            continue;
         }
+        
+        functionReplacement *fr = dynamic_cast<functionReplacement *>(modifiedRanges[i]);
+        if (fr) {
+            // don't handle this yet...
+            continue;
+        }
+        
+        assert(0 && "Unhandled type of modified code in uninstallMutations!");
     }
-
+    
     return true;
 }
 
 bool process::reinstallMutations() {
-    // For each multiTramp drop in the jump instructions
-    dictionary_hash_iter<int, multiTramp *> multiTrampIter(multiTrampDict);
-    multiTramp *mTramp;
-    for (; multiTrampIter; multiTrampIter++) {
-        mTramp = multiTrampIter.currval();
-        if (mTramp) 
-            mTramp->enable();
+    pdvector<codeRange *> modifiedRanges;
+    if (!getModifiedRanges(modifiedRanges))
+        return false;
+    
+    for (unsigned i = 0; i < modifiedRanges.size(); i++) {
+        instArea *tmp = dynamic_cast<instArea *>(modifiedRanges[i]);
+        if (tmp) {
+            multiTramp *multi = tmp->multi;
+            multi->enable();
+            continue;
+        }
+        
+        replacedFunctionCall *rfc = dynamic_cast<replacedFunctionCall *>(modifiedRanges[i]);
+        if (rfc) {
+            if (!writeDataSpace((void *)rfc->callAddr,
+                                rfc->newCall.used(),
+                                rfc->newCall.start_ptr())) {
+                fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
+            }
+            continue;
+        }
+        
+        functionReplacement *fr = dynamic_cast<functionReplacement *>(modifiedRanges[i]);
+        if (fr) {
+            // don't handle this yet...
+            continue;
+        }
+        
+        assert(0 && "Unhandled type of modified code in uninstallMutations!");
     }
-
-    dictionary_hash_iter<Address, replacedFunctionCall *> rfcIter(replacedFunctionCalls_);
-    Address rfcAddr;
-    replacedFunctionCall *rfcVal;
-    for (; rfcIter; rfcIter++) {
-        rfcAddr = rfcIter.currkey();
-        rfcVal = rfcIter.currval();
-        assert(rfcAddr);
-        assert(rfcVal);
-        assert(rfcAddr == rfcVal->callAddr);
-        if (!writeDataSpace((void *)rfcAddr,
-                       rfcVal->newCall.used(),
-                       rfcVal->newCall.start_ptr()))
-           fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
-    }
-
+    
     return true;
+}
+
+// Function relocation requires a version of process::convertPCsToFuncs 
+// in which null functions are not passed into ret. - Itai 
+pdvector<int_function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
+    pdvector <int_function *> ret;
+    unsigned i;
+    int_function *fn;
+    for(i=0;i<stackWalk.size();i++) {
+        fn = (int_function *)findFuncByAddr(stackWalk[i].getPC());
+        // no reason to add a null function to ret
+        if (fn != 0) ret.push_back(fn);
+    }
+    return ret;
 }
 
 // Add it at the bottom...
@@ -5610,19 +4497,6 @@ void process::deleteGeneratedCode(generatedCodeObject *delInst)
     pendingGCInstrumentation.push_back(delInst);
 }
 
-// Function relocation requires a version of process::convertPCsToFuncs 
-// in which null functions are not passed into ret. - Itai 
-pdvector<int_function *> process::pcsToFuncs(pdvector<Frame> stackWalk) {
-    pdvector <int_function *> ret;
-    unsigned i;
-    int_function *fn;
-    for(i=0;i<stackWalk.size();i++) {
-        fn = (int_function *)findFuncByAddr(stackWalk[i].getPC());
-        // no reason to add a null function to ret
-        if (fn != 0) ret.push_back(fn);
-    }
-    return ret;
-}
 
 // garbage collect instrumentation
 void process::gcInstrumentation()
@@ -6058,34 +4932,6 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
     return res;
 }
 
-#if 0
-        // Current implementation is wrong, but also unused. 
-// Pull whatever is in the slot out of the inferior process
-unsigned process::getIndexToThread(unsigned index) 
-{
-    unsigned val;
-    
-    readDataSpace((void *)(threadIndexAddr + (index * sizeof(unsigned))),
-                  sizeof(unsigned),
-                  (void *)&val,
-                  true);
-    return val;
-}
-
-void process::setIndexToThread(unsigned index, unsigned value) 
-{
-   bool err =  writeDataSpace((void *)(threadIndexAddr + (index * sizeof(unsigned))),
-                   sizeof(unsigned),
-                   (void *)&value);
-   if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        assert(err);
-}
-
-void process::updateThreadIndexAddr(Address addr) {
-    threadIndexAddr = addr;
-}
-#endif
-
 //used to pass multiple values with the doneRegistering callback
 typedef struct done_reg_bundle_t {
    pdvector<int> *lwps;
@@ -6511,7 +5357,7 @@ Address process::stepi(bool verbose, int lwp) {
    if (!verbose)
       return nexti;
    
-   codeRange *range = findCodeRangeByAddress(nexti);
+   codeRange *range = findOrigByAddr(nexti);
 
    fprintf(stderr, "0x%lx ", nexti);
    if (range)
@@ -6625,7 +5471,7 @@ void process::debugSuicide() {
  
    for (unsigned i=0; i < activeFrames.size(); i++) {
      Address addr = activeFrames[i].getPC();
-     codeRange *range = findCodeRangeByAddress(addr);
+     codeRange *range = findOrigByAddr(addr);
      fprintf(stderr, "Frame %u @ 0x%lx ", i, addr);
      if (range)
         range->print_range();
@@ -6646,42 +5492,8 @@ dyn_lwp *process::getInitialLwp() const {
 
 int process::getPid() const { return sh ? sh->getPid() : -1;}
 
-//Acts like findTargetFuncByAddr, but also finds the function if addr
-// is an indirect jump to a function.
-//I know this is an odd function, but darn I need it.
-int_function *process::findJumpTargetFuncByAddr(Address addr) {
-    Address addr2 = 0;
-    int_function *f = findFuncByAddr(addr);
-    if (f)
-        return f;
-
-    codeRange *range = findCodeRangeByAddress(addr);
-    if (!range->is_mapped_object()) 
-        return NULL;
-    
-    InstrucIter ii(addr, this);
-    if (ii.isAJumpInstruction())
-        addr2 = ii.getBranchTargetAddress();
-
-    return findFuncByAddr(addr2);
-}
-
 bool process::shouldSaveFPState() {
    return BPatch::bpatch->isSaveFPROn();
-}
-
-AstNodePtr process::trampGuardAST() {
-    if (trampGuardAST_) return trampGuardAST_;
-
-    if (!trampGuardBase_) {
-        // Don't have it yet....
-        return AstNodePtr();
-    }
-
-    trampGuardAST_ = AstNode::operandNode(AstNode::DataAddr, 
-                                          (void *)trampGuardBase_);
-
-    return trampGuardAST_;
 }
 
 const char *process::getInterpreterName() {

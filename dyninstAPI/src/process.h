@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.407 2007/09/06 20:14:56 roundy Exp $
+/* $Id: process.h,v 1.408 2007/09/12 20:57:17 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -75,6 +75,8 @@
 
 // Making this an InstructionSource for InstrucIter
 #include "dyninstAPI/src/InstructionSource.h"
+
+#include "dyninstAPI/src/addressSpace.h"
 
 // Annoying... Solaris has two /proc header files, one for the
 // multiple-FD /proc and one for an ioctl-based compatibility /proc.
@@ -153,7 +155,7 @@ class BPatch_point;
 
 typedef void (*continueCallback)(timeStamp timeOfCont);
 
-class process : public InstructionSource {
+class process : public AddressSpace {
     friend class ptraceKludge;
     friend class dyn_thread;
     friend class dyn_lwp;
@@ -197,48 +199,66 @@ class process : public InstructionSource {
     Address setAOutLoadAddress(fileDescriptor &desc);
     bool setMainFunction();
 
-  protected:  
-  bool walkStackFromFrame(Frame currentFrame, // Where to start walking from
-			  pdvector<Frame> &stackWalk); // return parameter
-  Frame preStackWalkInit(Frame startFrame); //Let's the OS do any needed initialization
-  public:
-  // Preferred function: returns a stack walk (vector of frames)
-  // for each thread in the program
-  bool walkStacks(pdvector<pdvector<Frame> > &stackWalks);
-
-  // Get a vector of the active frames of all threads in the process
-  bool getAllActiveFrames(pdvector<Frame> &activeFrames);
-
-
-  // Is the current address "after" the given instPoint?
-  bool triggeredInStackFrame(Frame &frame,
-                             instPoint *point,
-                             callWhen when,
-                             callOrder order);
-
-  bool isInSignalHandler(Address addr);
-
-  void deleteThread(dynthread_t tid);
-  void deleteThread_(dyn_thread *thr);
-  bool removeThreadIndexMapping(dynthread_t tid, unsigned index);
-
-  // Thread index functions
-  // Current implementations _cannot_ be correct; also, unused
-#if 0
-  unsigned getIndexToThread(unsigned index);
-  void setIndexToThread(unsigned index, unsigned value);
-  void updateThreadIndexAddr(Address addr);
-#endif
+ protected:  
+    bool walkStackFromFrame(Frame currentFrame, // Where to start walking from
+                            pdvector<Frame> &stackWalk); // return parameter
+    Frame preStackWalkInit(Frame startFrame); //Let's the OS do any needed initialization
  public:
+    // Preferred function: returns a stack walk (vector of frames)
+    // for each thread in the program
+    bool walkStacks(pdvector<pdvector<Frame> > &stackWalks);
+    
+    // Get a vector of the active frames of all threads in the process
+    bool getAllActiveFrames(pdvector<Frame> &activeFrames);
 
-  // Current process state
-  processState status() const { return status_;}
-
-  // State when we attached;
-  bool wasRunningWhenAttached() const { return stateWhenAttached_ == running; }
-
-  // Are we in the middle of an exec?
-  bool execing() const { return inExec_; }
+    
+    // Is the current address "after" the given instPoint?
+    bool triggeredInStackFrame(Frame &frame,
+                               instPoint *point,
+                               callWhen when,
+                               callOrder order);
+    
+    bool isInSignalHandler(Address addr);
+    
+    void deleteThread(dynthread_t tid);
+    void deleteThread_(dyn_thread *thr);
+    bool removeThreadIndexMapping(dynthread_t tid, unsigned index);
+    
+ public:
+    // Current process state
+    processState status() const { return status_;}
+    
+    // State when we attached;
+    bool wasRunningWhenAttached() const { return stateWhenAttached_ == running; }
+    
+    // Are we in the middle of an exec?
+    bool execing() const { return inExec_; }
+    
+    // update the status on the whole process (ie. process state and all lwp
+    // states)
+    void set_status(processState st, bool global_st = true, bool overrideState = false);
+    
+    // update the status of the process and one particular lwp in the process
+    void set_lwp_status(dyn_lwp *whichLWP, processState st);
+    
+    // should only be called by dyn_lwp::continueLWP
+    void clearCachedRegister();
+    
+    Address previousSignalAddr() const { return previousSignalAddr_; }
+    void setPreviousSignalAddr(Address a) { previousSignalAddr_ = a; }
+    pdstring getStatusAsString() const; // useful for debug printing etc.
+    
+    bool checkContinueAfterStop() {
+        if( continueAfterNextStop_ ) {
+            continueAfterNextStop_ = false;
+            return true;
+        }
+        return false;
+    }
+    
+    void continueAfterNextStop() { continueAfterNextStop_ = true; }
+    static process *findProcess(int pid);
+    
 
   // Vars & funcs for locating "main" via __libc_start_main instrumentation
   Address getlibcstartmain_brk_addr() { return libcstartmain_brk_addr; }
@@ -256,244 +276,180 @@ class process : public InstructionSource {
   // start addrs of regions munmapped before call to findLibcStartMain
   pdvector<Address> munmappedRegions;
 
-  // update the status on the whole process (ie. process state and all lwp
-  // states)
-  void set_status(processState st, bool global_st = true, bool overrideState = false);
-
-  // update the status of the process and one particular lwp in the process
-  void set_lwp_status(dyn_lwp *whichLWP, processState st);
-
-  // should only be called by dyn_lwp::continueLWP
-  void clearCachedRegister();
-
-  Address previousSignalAddr() const { return previousSignalAddr_; }
-  void setPreviousSignalAddr(Address a) { previousSignalAddr_ = a; }
-  pdstring getStatusAsString() const; // useful for debug printing etc.
-
-  bool checkContinueAfterStop() {
-          if( continueAfterNextStop_ ) {
-                  continueAfterNextStop_ = false;
-                  return true;
-          }
-          return false;
-  }
-
-  void continueAfterNextStop() { continueAfterNextStop_ = true; }
-  static process *findProcess(int pid);
-
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix4_1)
-  char* dumpPatchedImage(pdstring outFile);//ccw 28 oct 2001
-
+    char* dumpPatchedImage(pdstring outFile);//ccw 28 oct 2001
+    
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4)
-	bool prelinkSharedLibrary(pdstring originalLibNameFullPath, char* dirName, Address baseAddr);
+    bool prelinkSharedLibrary(pdstring originalLibNameFullPath, char* dirName, Address baseAddr);
 #endif
-
+    
 #if defined(sparc_sun_solaris2_4)  //ccw 10 mar 2004
-	bool dldumpSharedLibrary(pdstring dyninstRT_name, char* directoryname);
+    bool dldumpSharedLibrary(pdstring dyninstRT_name, char* directoryname);
 #endif
-
+    
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) \
  || defined(sparc_sun_solaris2_4)
-	char *saveWorldFindNewSharedLibraryName(pdstring originalLibNameFullPath, char* dirName);
-	void setPrelinkCommand(char *command);
+    char *saveWorldFindNewSharedLibraryName(pdstring originalLibNameFullPath, char* dirName);
+    void setPrelinkCommand(char *command);
 #endif
-
+    
 #else
-  char* dumpPatchedImage(pdstring /*outFile*/) { return NULL; } 
+    char* dumpPatchedImage(pdstring /*outFile*/) { return NULL; } 
 #endif
-	bool applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize);
-	
-
-  bool dumpImage(pdstring outFile);
-
-  //  SignalHandler::dumpMemory()
-  //
-  //  Dumps memory +/- nbytes around target addr, to stderr
-  //  Used in place of dumpImage() on platforms that cannot dump core
-  //  (windows, notably)
-  //  Useful for debug output?  (belongs in process class?)
-  bool dumpMemory(void *addr, unsigned nbytes);
-
-  
-  // This will find the named symbol in the image or in a shared object
-  // Necessary since some things don't show up as a function or variable.
-  bool getSymbolInfo( const pdstring &name, Dyn_Symbol &ret );
-
-  // Not at all sure we want to use this anymore...
-  void overwriteImage( image* /*img */) {
-    assert(0);
-  }
-
-  // Appears to be the system pointer size. 
-  virtual unsigned getAddressWidth() const; 
-
-  // The process keeps maps of valid (i.e. allocated) address ranges
-  virtual bool isValidAddress(const Address&) const;
-
-  // And "get me a local pointer to XX" -- before we modified it.
-  virtual void *getPtrToInstruction(Address) const;
-
-  // this is only used on aix so far - naim
-  // And should really be defined in a arch-dependent place, not process.h - bernat
-  Address getTOCoffsetInfo(Address);
-  Address getTOCoffsetInfo(int_function *);
-
-  bool dyninstLibAlreadyLoaded() { return runtime_lib != 0; }
-
-  rpcMgr *getRpcMgr() const { return theRpcMgr; }
-
-  bool getCurrPCVector(pdvector <Address> &currPCs);
-
+    bool applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize);
+    
+    
+    bool dumpImage(pdstring outFile);
+    
+    //  SignalHandler::dumpMemory()
+    //
+    //  Dumps memory +/- nbytes around target addr, to stderr
+    //  Used in place of dumpImage() on platforms that cannot dump core
+    //  (windows, notably)
+    //  Useful for debug output?  (belongs in process class?)
+    bool dumpMemory(void *addr, unsigned nbytes);
+    
+    
+    // This will find the named symbol in the image or in a shared object
+    // Necessary since some things don't show up as a function or variable.
+    bool getSymbolInfo( const pdstring &name, Dyn_Symbol &ret );
+    
+    // Not at all sure we want to use this anymore...
+    void overwriteImage( image* /*img */) {
+        assert(0);
+    }
+    
+    // Appears to be the system pointer size. 
+    virtual unsigned getAddressWidth() const; 
+    
+    // this is only used on aix so far - naim
+    // And should really be defined in a arch-dependent place, not process.h - bernat
+    Address getTOCoffsetInfo(Address);
+    Address getTOCoffsetInfo(int_function *);
+    
+    bool dyninstLibAlreadyLoaded() { return runtime_lib != 0; }
+    
+    rpcMgr *getRpcMgr() const { return theRpcMgr; }
+    
+    bool getCurrPCVector(pdvector <Address> &currPCs);
+    
 #if defined(os_solaris) && (defined(arch_x86) || defined(arch_x86_64))
-  bool changeIntReg(int reg, Address addr);
+    bool changeIntReg(int reg, Address addr);
 #endif
-
-  void installInstrRequests(const pdvector<instMapping*> &requests);
-  void recognize_threads(process *parent = NULL);
-  // Get LWP handles from /proc (or as appropriate)
-
-  bool determineLWPs(pdvector<unsigned> &lwp_ids);
-
-  int getPid() const;
-
-  /***************************************************************************
-   **** Runtime library initialization code (Dyninst)                     ****
-   ***************************************************************************/
-
-  bool loadDyninstLib();
-  bool setDyninstLibPtr(mapped_object *libobj);
-  bool setDyninstLibInitParams();
-  bool finalizeDyninstLib();
-  
-  bool iRPCDyninstInit();
-  static int DYNINSTinitCompletionCallback(process *, unsigned /* rpc_id */,
-                                            void *data, void *ret);
-  bool initMT();
-
-  // Get the list of inferior heaps from:
-
-  bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
-  bool getInfHeapList(const mapped_object *theObj,
-                      pdvector<heapDescriptor> &infHeaps); // Single mapped object
-
-  void addInferiorHeap(const mapped_object *obj);
-
-  void initInferiorHeap();
-
-  /* Find the tramp guard addr and set it */
-  bool initTrampGuard();
-  void saveWorldData(Address address, int size, const void* src);
-
+    
+    void installInstrRequests(const pdvector<instMapping*> &requests);
+    void recognize_threads(process *parent = NULL);
+    // Get LWP handles from /proc (or as appropriate)
+    
+    bool determineLWPs(pdvector<unsigned> &lwp_ids);
+    
+    int getPid() const;
+    
+    /***************************************************************************
+     **** Runtime library initialization code (Dyninst)                     ****
+     ***************************************************************************/
+    
+    bool loadDyninstLib();
+    bool setDyninstLibPtr(mapped_object *libobj);
+    bool setDyninstLibInitParams();
+    bool finalizeDyninstLib();
+    
+    bool iRPCDyninstInit();
+    static int DYNINSTinitCompletionCallback(process *, unsigned /* rpc_id */,
+                                             void *data, void *ret);
+    bool initMT();
+    
+    // Get the list of inferior heaps from:
+    
+    bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
+    bool getInfHeapList(const mapped_object *theObj,
+                        pdvector<heapDescriptor> &infHeaps); // Single mapped object
+    
+    void addInferiorHeap(const mapped_object *obj);
+    
+    void initInferiorHeap();
+    
+    /* Find the tramp guard addr and set it */
+    bool initTrampGuard();
+    void saveWorldData(Address address, int size, const void* src);
+    
 #if defined(cap_save_the_world)
-
-  char* saveWorldFindDirectory();
-
-  unsigned int saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
-                                   unsigned int &dyninst_SharedLibrariesSize,
-                                   char* directoryName, unsigned int &count);
-  char* saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize);
-
-  void saveWorldCreateHighMemSections(pdvector<imageUpdate*> &compactedHighmemUpdates, 
-                                      pdvector<imageUpdate*> &highmemUpdates,
-                                      void *newElf);
-  void saveWorldCreateDataSections(void* ptr);
-  void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
-  void saveWorldloadLibrary(pdstring tmp, void *brk_ptr) {
-     loadLibraryUpdates.push_back(tmp);
-     loadLibraryBRKs.push_back(brk_ptr);
-  };
-  
+    
+    char* saveWorldFindDirectory();
+    
+    unsigned int saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
+                                         unsigned int &dyninst_SharedLibrariesSize,
+                                         char* directoryName, unsigned int &count);
+    char* saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize);
+    
+    void saveWorldCreateHighMemSections(pdvector<imageUpdate*> &compactedHighmemUpdates, 
+                                        pdvector<imageUpdate*> &highmemUpdates,
+                                        void *newElf);
+    void saveWorldCreateDataSections(void* ptr);
+    void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
+    void saveWorldloadLibrary(pdstring tmp, void *brk_ptr) {
+        loadLibraryUpdates.push_back(tmp);
+        loadLibraryBRKs.push_back(brk_ptr);
+    };
+    
 #if defined(os_aix)
-  void addLib(char *lname);//ccw 30 jul 2002
+    void addLib(char *lname);//ccw 30 jul 2002
 #endif // os_aix
-
+    
 #endif // cap_save_the_world
-
-
-  void writeDebugDataSpace(void *inTracedProcess, u_int amount, 
-			   const void *inSelf);
-  bool writeDataSpace(void *inTracedProcess,
-                      u_int amount, const void *inSelf);
-  bool readDataSpace(const void *inTracedProcess, u_int amount,
-                     void *inSelf, bool displayErrMsg);
-
-  bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
-  bool writeTextWord(caddr_t inTracedProcess, int data);
-
-  bool readTextSpace(const void *inTracedProcess, u_int amount,
-                     const void *inSelf);
-
-  static bool IndependentLwpControl() { return INDEPENDENT_LWP_CONTROL; }
-  void independentLwpControlInit();
-
-  // Internal calls only; this is an asynchronous call that says "run when everyone
-  // is finished". BPatch should use the equivalent SignalGeneratorCommon call.
-  bool continueProc(int signalToContinueWith = -1);
-
-  bool terminateProc();
-
-  // Detach from a process, deleting data to prep for reattaching
-  // NOTE: external callers should use this function, not ::detach
-  bool detachProcess(const bool leaveRunning);
-
-  private:
+    
+    
+    void writeDebugDataSpace(void *inTracedProcess, u_int amount, 
+                             const void *inSelf);
+    bool writeDataSpace(void *inTracedProcess,
+                        u_int amount, const void *inSelf);
+    bool readDataSpace(const void *inTracedProcess, u_int amount,
+                       void *inSelf, bool displayErrMsg);
+    
+    bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
+    bool writeTextWord(caddr_t inTracedProcess, int data);
+    
+    bool readTextSpace(const void *inTracedProcess, u_int amount,
+                       const void *inSelf);
+    
+    static bool IndependentLwpControl() { return INDEPENDENT_LWP_CONTROL; }
+    void independentLwpControlInit();
+    
+    // Internal calls only; this is an asynchronous call that says "run when everyone
+    // is finished". BPatch should use the equivalent SignalGeneratorCommon call.
+    bool continueProc(int signalToContinueWith = -1);
+    
+    bool terminateProc();
+    
+    // Detach from a process, deleting data to prep for reattaching
+    // NOTE: external callers should use this function, not ::detach
+    bool detachProcess(const bool leaveRunning);
+    
+ private:
     bool detach(const bool leaveRunning);
-  public:
-  
-  // Clear out all dynamically allocated process data
-  void deleteProcess();
-  ~process();
-  bool pause();
-
-  // instPoint isn't const; it may get an updated list of
-  // instances since we generate them lazily.
-  bool replaceFunctionCall(instPoint *point,const int_function *newFunc);
-
-  bool dumpCore(const pdstring coreFile);
-  bool attach();
-  // Set whatever OS-level process flags are needed
-  bool setProcessFlags();
-  bool unsetProcessFlags(); // Counterpart to above
-  
-  bool getDynamicCallSiteArgs(instPoint *callSite, 
-                              pdvector<AstNodePtr> &args);
-                              
-  // Trampoline guard get/set functions
-  Address trampGuardBase(void) { return trampGuardBase_; }
-  AstNodePtr trampGuardAST(void);
-  
-  //  
-  //  PUBLIC DATA MEMBERS
-  //  
-
-
-  // Need a code range of multiTramps
-  // Look up to see if a multiTramp already covers this address.
-  multiTramp *findMultiTramp(Address addr);
-  // Add...
-  void addMultiTramp(multiTramp *multi);
-  // And remove.
-  void removeMultiTramp(multiTramp *multi);
-
-  // Replaced function calls...
-  void addModifiedCallsite(replacedFunctionCall *RFC);
-
-  // And replaced functions
-  void addFunctionReplacement(functionReplacement *,
-                              pdvector<codeRange *> &overwrittenObjs);
-
-  codeRange *findModifiedPointByAddr(Address addr);
-  void removeModifiedPoint(Address addr);
-
-  // Did we override the address of this call?
-  Address getReplacedCallAddr(Address origAddr) const;
-  bool wasCallReplaced(Address origAddr) const;
-
+ public:
+    
+    // Clear out all dynamically allocated process data
+    void deleteProcess();
+    ~process();
+    bool pause();
+    
+    bool dumpCore(const pdstring coreFile);
+    bool attach();
+    // Set whatever OS-level process flags are needed
+    bool setProcessFlags();
+    bool unsetProcessFlags(); // Counterpart to above
+    
+    
+    //  
+    //  PUBLIC DATA MEMBERS
+    //  
+    
   ////////////////////////////////////////////////
   // Address to <X> mappings
   ////////////////////////////////////////////////
@@ -562,35 +518,9 @@ class process : public InstructionSource {
       suppress_bpatch_callbacks_ = state; 
   }
 
-  Emitter *getEmitter();
 
- // Callbacks for higher level code (like BPatch) to learn about new 
- //  functions and InstPoints.
- private:
-  BPatch_function *(*new_func_cb)(process *p, int_function *f);
-  BPatch_point *(*new_instp_cb)(process *p, int_function *f, instPoint *ip, 
-                                int type);
- public:
-  //Trigger the callbacks from a lower level
-  BPatch_function *newFunctionCB(int_function *f) 
-     { assert(new_func_cb); return new_func_cb(this, f); }
-  BPatch_point *newInstPointCB(int_function *f, instPoint *pt, int type)
-     { assert(new_instp_cb); return new_instp_cb(this, f, pt, type); }
-
-  //Register callbacks from the higher level
-  void registerFunctionCallback(BPatch_function *(*f)(process *p, 
-                                                      int_function *f))
-     { new_func_cb = f; };
-  void registerInstPointCallback(BPatch_point *(*f)(process *p, int_function *f,
-                                                    instPoint *ip, int type))
-     { new_instp_cb = f; }
-  
   void warnOfThreadDelete(dyn_thread *thr);
  
-  //Anonymous up pointer to the containing process.  This is BPatch_process
-  // in Dyninst.  Currently stored as an void pointer in case we do
-  // anything with this during the library split.
-  void *container_proc;
  public:
 
  //Run the mutatee until exit in single-step mode, printing each instruction
@@ -682,9 +612,6 @@ class process : public InstructionSource {
   // removeASharedObject: get rid of a shared object; e.g., dlclose
   bool removeASharedObject(mapped_object *);
 
-  // return the list of dynamically linked libs
-  const pdvector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
-
   // getMainFunction: returns the main function for this process
   int_function *getMainFunction() const { return main_function; }
 
@@ -709,86 +636,11 @@ class process : public InstructionSource {
     
   dyn_thread *STdyn_thread();
 
-  // findFuncByName: returns function associated with "func_name"
-  // This routine checks both the a.out image and any shared object images 
-  // for this function
-  //int_function *findFuncByName(const pdstring &func_name);
-
-  bool findFuncsByAll(const pdstring &funcname,
-                      pdvector<int_function *> &res,
-                      const pdstring &libname = "");
-
-  // Specific versions...
-  bool findFuncsByPretty(const pdstring &funcname,
-                         pdvector<int_function *> &res,
-                         const pdstring &libname = "");
-  bool findFuncsByMangled(const pdstring &funcname, 
-                          pdvector<int_function *> &res,
-                          const pdstring &libname = "");
-
-  bool findVarsByAll(const pdstring &varname,
-                     pdvector<int_variable *> &res,
-                     const pdstring &libname = "");
-
-  void getLibAndFunc(const pdstring &name,
-                     pdstring &func,
-                     pdstring &lib);
-
-  // And we often internally want to wrap the above to return one
-  // and only one func...
-  int_function *findOnlyOneFunction(const pdstring &name,
-                                    const pdstring &libname = "");
-
-  // Find the code sequence containing an address
-  // Note: fix the name....
-  codeRange *findCodeRangeByAddress(Address addr);
-  int_function *findFuncByAddr(Address addr);
-  int_basicBlock *findBasicBlockByAddr(Address addr);
-
-  // And a lookup by "internal" function to find clones during fork...
-  int_function *findFuncByInternalFunc(image_func *ifunc);
-
-  //findJumpTargetFuncByAddr Acts like findFunc, but if it fails,
-  // checks if 'addr' is a jump to a function.
-  int_function *findJumpTargetFuncByAddr(Address addr);
-  
-  // We no longer do instPoints process-wide, as a codesharing function
-  // may cause multiple instPoints at the same address. Lovely...
-  // Instead, call int_function::findInstPByAddr(...)
-  //  instPoint *findInstPByAddr(Address addr);
-  // Should be called once per address an instPoint points to
-  // (multiples for relocated functions)
-  // void registerInstPointAddr(Address addr, instPoint *inst);
-  // void unregisterInstPointAddr(Address addr, instPoint *inst);
-
-  bool addCodeRange(codeRange *codeobj);
-  bool deleteCodeRange(Address addr);
-    
   // No function is pushed onto return vector if address can't be resolved
   // to a function
   pdvector<int_function *>pcsToFuncs(pdvector<Frame> stackWalk);
 
-  // findModule: returns the module associated with "mod_name" 
-  // this routine checks both the a.out image and any shared object 
-  // images for this module
-  // if check_excluded is true it checks to see if the module is excluded
-  // and if it is it returns 0.  If check_excluded is false it doesn't check
-  //  if substring_match is true, the first module whose name contains
-  //  the provided string is returned.
-  // Wildcard: handles "*" and "?"
-  mapped_module *findModule(const pdstring &mod_name, bool wildcard = false);
-  // And the same for objects
-  // Wildcard: handles "*" and "?"
-  mapped_object *findObject(const pdstring &obj_name, bool wildcard = false);
-  mapped_object *findObject(Address addr);
   bool mappedObjIsDeleted(mapped_object *mobj);
-  // getAllFunctions: returns a vector of all functions defined in the
-  // a.out and in the shared objects
-  void getAllFunctions(pdvector<int_function *> &);
-
-  // getAllModules: returns a vector of all modules defined in the
-  // a.out and in the shared objects
-  void getAllModules(pdvector<mapped_module *> &);
 
   void triggerNormalExitCallback(int exitCode);
   void triggerSignalExitCallback(int signalnum);  
@@ -868,10 +720,6 @@ public:
 
   dynamic_linking *getDyn() { return dyn; }
 
-  Address getObservedCostAddr() const { return costAddr_; }
-  void updateObservedCostAddr(Address addr) { costAddr_ = addr;}
-
-
   // Add a signal handler that wasdetected
   void addSignalHandler(Address addr, unsigned size);
   
@@ -940,10 +788,6 @@ private:
     bool get_status(pstatus_t *) const;
 #endif // cap_proc_fd
 
-
-  public:
-    mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
-
  public:
     const char *getInterpreterName();
     Address getInterpreterBase();
@@ -956,8 +800,8 @@ private:
     // function symbol corresponding to the relocation entry in at the address 
     // specified by entry and base_addr.  If it has been bound, then the callee 
     // function is returned in "target_pdf", else it returns false. 
-    bool hasBeenBound(const relocationEntry &entry, int_function *&target_pdf, 
-                      Address base_addr) ;
+    virtual bool hasBeenBound(const relocationEntry &entry, int_function *&target_pdf, 
+                              Address base_addr) ;
  private:
 
   bool isRunning_() const;
@@ -976,30 +820,21 @@ private:
                                       void *data, void *result);
 
    void inferiorMallocDynamic(int size, Address lo, Address hi);
-   void inferiorFreeCompact(inferiorHeap *hp);
-   int findFreeIndex(unsigned size, int type, Address lo, Address hi);
+
 
  public:
    // Handling of inferior memory management
 #if defined(cap_dynamic_heap)
    // platform-specific definition of "near" (i.e. close enough for one-insn jump)
    void inferiorMallocConstraints(Address near_, Address &lo, Address &hi, inferiorHeapType type);
-   // platform-specific buffer size alignment
-   void inferiorMallocAlign(unsigned &size);
 #endif
 
    
    Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
 			  Address near_=0, bool *err=NULL);
-   void inferiorFree(Address item);
-   bool inferiorRealloc(Address item, unsigned newSize);
 
 
-/*Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
-                       Address near_=0, bool *err=NULL);
-void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
-*/
-// garbage collect instrumentation
+   // garbage collect instrumentation
 
    void deleteGeneratedCode(generatedCodeObject *del);
    void gcInstrumentation();
@@ -1016,7 +851,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   ///////////////////////////////
   process *parent;
   SignalGenerator *sh;
-  pdvector<mapped_object *> mapped_objects;
+
   // And deleted...
   pdvector<mapped_object *> deleted_objects;
   // And a shortcut pointer
@@ -1118,31 +953,6 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   unsigned bufStart;
   unsigned bufEnd;
 
-
-  ///////////////////////////////
-  // Address lookup members
-  ///////////////////////////////
-  // Trap address to base tramp address (for trap instrumentation)
-  dictionary_hash<Address, Address> trampTrapMapping;
-
-  // Address to executable code pieces (functions, miniTramps, baseTramps, ...) mapping
-  codeRangeTree codeRangesByAddr_;
-  // Get a mutator-side pointer to mutatee-side data without readDataSpace...
-  // codeRangeTree readableSections_;
-  // codeSections_ and dataSections_ instead...
-  // Address -> multiTramp mapping...
-  codeRangeTree modifiedAreas_;
-  // And an integer->multiTramp so we can replace multis easily
-  dictionary_hash<int, multiTramp *> multiTrampDict;
-
-  // Keep track of function replacements so that we can fix them
-  // up later
-  dictionary_hash<Address, replacedFunctionCall *> replacedFunctionCalls_;
-
-  // Address -> instruction pointer (with sanity checking)
-  codeRangeTree codeSections_;
-  codeRangeTree dataSections_;
-
   // Signal handling!
   codeRangeTree signalHandlerLocations_;
 
@@ -1181,9 +991,6 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   ////////////////////
   // Inferior heap
   ////////////////////
-  bool splitHeaps;              /* are there separate code/data heaps? */
-  bool heapInitialized_;
-  inferiorHeap heap;            /* the heap */
   bool inInferiorMallocDynamic; // The oddest recursion problem...
 
   /////////////////////
@@ -1201,12 +1008,6 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   /////////////////////
   pdvector<instMapping *> tracingRequests;
   pdvector<generatedCodeObject *> pendingGCInstrumentation;
-
-  Address costAddr_; // Address of global cost in the mutatee
-
-  Address threadIndexAddr; // Thread ID->index mapping
-  Address trampGuardBase_; // Tramp recursion index mapping
-  AstNodePtr trampGuardAST_;
 
   ///////////////////////////////
   // Platform-specific
