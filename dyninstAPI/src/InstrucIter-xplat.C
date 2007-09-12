@@ -48,6 +48,7 @@
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 
+#include "addressSpace.h"
 #include "arch.h"
 #include "util.h"
 #include "function.h"
@@ -192,8 +193,8 @@ InstrucIter::InstrucIter(const InstrucIter& ii) :
 }
 
 // For somewhere in a process (maybe)
-InstrucIter::InstrucIter( Address addr, process *proc) :
-  instructions_(proc),
+InstrucIter::InstrucIter( Address addr, AddressSpace *a) :
+  instructions_(a),
   current(addr)
 {
   // There's all sorts of reasons to iterate over the middle of nowhere;
@@ -207,8 +208,8 @@ InstrucIter::InstrucIter( Address addr, process *proc) :
 }
 
 // And truly generic
-InstrucIter::InstrucIter( Address addr, unsigned size, process *proc) :
-  instructions_(proc),
+InstrucIter::InstrucIter( Address addr, unsigned size, AddressSpace *a) :
+  instructions_(a),
   base(addr),
   range(size),
   current(addr)

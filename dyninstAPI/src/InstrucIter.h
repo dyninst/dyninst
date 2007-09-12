@@ -63,6 +63,9 @@ class BPatch_memoryAccess;
 class BPatch_basicBlock;
 class BPatch_instruction;
 
+class process;
+class AddressSpace;
+
 /*
    VG (02/19/02): New abstraction layer for instruction parsing.
 
@@ -180,9 +183,9 @@ class InstrucIter {
     InstrucIter(const InstrucIter& ii);
     
     // Generic "address, process" iterator.
-    InstrucIter( Address addr, unsigned size, process *proc);
-    InstrucIter( Address addr, process *proc);
-    
+    InstrucIter( Address addr, unsigned size, AddressSpace *space);
+    InstrucIter( Address addr, AddressSpace *space); 
+
 
   ~InstrucIter() {  }
 
