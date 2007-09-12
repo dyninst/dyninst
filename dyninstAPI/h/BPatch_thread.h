@@ -223,9 +223,11 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL, BPatchOneTimeCodeCallback cb = NULL));
 
 
+    /*
     // DO NOT USE
     // this function should go away as soon as Paradyn links against Dyninst
     process *lowlevel_process() { return proc->llproc; }
+    */
 
 };
 

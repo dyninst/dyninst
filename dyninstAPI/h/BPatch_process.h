@@ -57,6 +57,7 @@
 #include <signal.h>
 
 class process;
+class AddressSpace;
 class dyn_thread;
 class miniTrampHandle;
 class miniTramp;
@@ -308,8 +309,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
 
     // These callbacks are triggered by lower-level code and forward
     // calls up to the findOrCreate functions.
-    static BPatch_function *createBPFuncCB(process *p, int_function *f);
-    static BPatch_point *createBPPointCB(process *p, int_function *f,
+    static BPatch_function *createBPFuncCB(AddressSpace *p, int_function *f);
+    static BPatch_point *createBPPointCB(AddressSpace *p, int_function *f,
                                          instPoint *ip, int type);
     void updateThreadInfo();
 
