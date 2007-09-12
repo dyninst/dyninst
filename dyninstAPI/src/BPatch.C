@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.171 2007/05/17 19:55:06 legendre Exp $
+// $Id: BPatch.C,v 1.172 2007/09/12 20:57:04 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1365,19 +1365,13 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
                           stdin_fd, stdout_fd, stderr_fd);
     
     if (!ret->llproc ||
-        (ret->llproc->status() != stopped) ||
-        !ret->llproc->isBootstrappedYet()) 
-    { 
-       ret->BPatch_process_dtor();
-       delete ret;
-       reportError(BPatchFatal, 68, "create process failed bootstrap");
-       return NULL;
+        ret->llproc->status() != stopped ||
+        !ret->llproc->isBootstrappedYet()) {
+        ret->BPatch_process_dtor();  
+        delete ret;
+        reportError(BPatchFatal, 68, "create process failed bootstrap");
+        return NULL;
     }
-
-    //ccw 23 jan 2002 : this forces the user to call
-    //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
-    //functionality.
-    ret->llproc->collectSaveWorldData = false;
 
 #if defined(cap_async_events)
     async_printf("%s[%d]:  about to connect to process\n", FILE__, __LINE__);
@@ -1435,17 +1429,16 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
    BPatch_process *ret = new BPatch_process(path, pid);
 
    if (!ret->llproc ||
-       (ret->llproc->status() != stopped) ||
+       ret->llproc->status() != stopped ||
        !ret->llproc->isBootstrappedYet()) {
-      // It would be considerate to (attempt to) leave the process running
-      // at this point (*before* deleting the BPatch_thread handle for it!),
-      // even though it might be in bad shape after the attempted attach.
-      char msg[256];
-      sprintf(msg,"attachProcess failed: process %d may now be killed!",pid);
-      reportError(BPatchWarning, 26, msg);
-      delete ret;
-      return NULL;
+       ret->BPatch_process_dtor();  
+       char msg[256];
+       sprintf(msg,"attachProcess failed: process %d may now be killed!",pid);
+       reportError(BPatchWarning, 26, msg);
+       delete ret;
+       return NULL;
    }
+
 #if defined(cap_async_events)
    if (!getAsync()->connectToProcess(ret)) {
       bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
@@ -1453,10 +1446,6 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
    } 
    asyncActive = true;
 #endif
-    //ccw 31 jan 2003 : this forces the user to call
-    //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
-    //functionality.
-   ret->llproc->collectSaveWorldData = false;
    ret->updateThreadInfo();
 
    return ret;
