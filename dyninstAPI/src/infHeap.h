@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: infHeap.h,v 1.4 2007/01/09 02:01:47 giri Exp $
+/* $Id: infHeap.h,v 1.5 2007/09/12 20:59:34 bernat Exp $
  * Inferior heap primitives, moved from process.h to ease compilation
  */
 
@@ -64,30 +64,48 @@ typedef pdvector<Address> addrVecType;
 class heapItem {
  public:
   heapItem() : 
-    addr(0), length(0), type(anyHeap), dynamic(true), status(HEAPfree) {}
-  heapItem(Address a, int n, inferiorHeapType t, 
-           bool d = true, heapStatus s = HEAPfree) :
-    addr(a), length(n), type(t), dynamic(d), status(s) {}
+    addr(0), length(0), 
+      type(anyHeap), dynamic(true), 
+      status(HEAPfree),
+      buffer(NULL) {}
+  heapItem(Address a, int n, 
+           inferiorHeapType t, 
+           bool d = true, 
+           heapStatus s = HEAPfree) :
+    addr(a), length(n), 
+      type(t), dynamic(d), 
+      status(s),
+      buffer(NULL) {}
   heapItem(const heapItem *h) :
-    addr(h->addr), length(h->length), type(h->type), 
-    dynamic(h->dynamic), status(h->status) {}
+    addr(h->addr), length(h->length), 
+      type(h->type), 
+    dynamic(h->dynamic), status(h->status),
+      buffer(h->buffer) {}
   heapItem(const heapItem &h) :
-    addr(h.addr), length(h.length), type(h.type), 
-    dynamic(h.dynamic), status(h.status) {}
+      addr(h.addr), length(h.length), type(h.type), 
+      dynamic(h.dynamic), status(h.status),
+      buffer(h.buffer) {}
   heapItem &operator=(const heapItem &src) {
     addr = src.addr;
     length = src.length;
     type = src.type;
     dynamic = src.dynamic;
     status = src.status;
+    buffer = src.buffer;
     return *this;
   }
+
+  void setBuffer(void *b) { buffer = b; }
 
   Address addr;
   unsigned length;
   inferiorHeapType type;
   bool dynamic; // part of a dynamically allocated segment?
   heapStatus status;
+
+
+  // For local...
+  void *buffer;
 };
 
 

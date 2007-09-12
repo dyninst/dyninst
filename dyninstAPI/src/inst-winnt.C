@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.28 2007/01/18 07:53:51 jaw Exp $
+// $Id: inst-winnt.C,v 1.29 2007/09/12 20:59:34 bernat Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -142,7 +142,7 @@ int_function *instPoint::findCallee()
       
       // find code range that contains the target address
       // TODO: optimize by checking callsite image first?
-      codeRange* cr = proc()->findCodeRangeByAddress(callTarget);
+      codeRange* cr = proc()->findOrigByAddr(callTarget);
       if (cr == NULL) 
          return NULL;
       // if target address is a known function, return it

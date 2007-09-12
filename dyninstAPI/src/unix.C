@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.229 2007/09/06 20:15:03 roundy Exp $
+// $Id: unix.C,v 1.230 2007/09/12 20:59:34 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1632,7 +1632,7 @@ bool SignalGeneratorCommon::postSignalHandler() {
     return true;
 }
 
-bool OS::executableExists(pdstring &file) {
+bool OS::executableExists(const pdstring &file) {
    struct stat file_stat;
    int stat_result;
 

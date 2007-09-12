@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.8 2007/01/12 00:55:42 legendre Exp $
+// $Id: pdwinntDL.C,v 1.9 2007/09/12 20:59:34 bernat Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"
@@ -83,12 +83,12 @@ bool dynamic_linking::getChangedObjects(EventRecord &, pdvector<mapped_object *>
     return true;
 }
 bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev, 
-													   pdvector<mapped_object *> &changed_objs)
+                                                       pdvector<mapped_object *> &changed_objs)
 {
    if (!ev.lwp)
-	   //Return early if we're in the call from loadDyninstLib.
-	   // Windows can handle this without the special case call.
-	   return true;
+       //Return early if we're in the call from loadDyninstLib.
+       // Windows can handle this without the special case call.
+       return true;
 
    process *proc = ev.proc;
    handleT procHandle = ev.lwp->getProcessHandle();
@@ -125,7 +125,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
                          (Address)ev.info.u.LoadDll.lpBaseOfDll);   
      // discover structure of new DLL, and incorporate into our
      // list of known DLLs
-	 mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
+     mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
      changed_objs.push_back(newobj);
      ev.what = SHAREDOBJECT_ADDED;
 	 return true;
@@ -139,16 +139,17 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
        printSysError(GetLastError());
 	   fprintf(stderr, "[%s:%u] - Couldn't SymUnloadModule64\n", FILE__, __LINE__);
 	}
-
+        
 	mapped_object *oldobj = NULL;
-	for (unsigned i=0; i<proc->mapped_objects.size(); i++) {
-		if (proc->mapped_objects[i]->codeBase() == base) {
-			oldobj = proc->mapped_objects[i];
-			break;
-		}
+        const pdvector<mapped_object *> &objs = proc->mappedObjects();
+	for (unsigned i=0; i<objs.size(); i++) {
+            if (objs[i]->codeBase() == base) {
+                oldobj = objs[i];
+                break;
+            }
 	}
 	if (!oldobj) 
-		return true;
+            return true;
     changed_objs.push_back(oldobj);
     ev.what = SHAREDOBJECT_REMOVED;
     return true;
