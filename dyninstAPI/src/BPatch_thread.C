@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.173 2007/03/22 19:56:23 legendre Exp $
+// $Id: BPatch_thread.C,v 1.174 2007/09/13 20:12:59 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -460,28 +460,29 @@ void BPatch_thread::removeThreadFromProc()
  **/    
 void BPatch_thread::BPatch_thread_dtor()
 {
-   removeThreadFromProc();
-   if (legacy_destructor)
-   {
-     //  ~BPatch_process obtains a lock and does a wait(), so it will fail an assert 
-     //  unless we "creatively adjust" the recursive lock depth here.
-     BPatch_process *temp = proc;
-     proc = NULL;
-      if (temp) delete temp;
-   }
-   else
-   {
-      if (llthread) {
-         dynthread_t thr  = getTid();
-         if (thr == 0) {
-           fprintf(stderr, "%s[%d]:  about to deleteThread(0)\n", FILE__, __LINE__);
-         }
-         proc->llproc->deleteThread(thr);
+  if (llthread)
+    removeThreadFromProc();
+  if (legacy_destructor)
+  {
+    //  ~BPatch_process obtains a lock and does a wait(), so it will fail an assert 
+    //  unless we "creatively adjust" the recursive lock depth here.
+    BPatch_process *temp = proc;
+    proc = NULL;
+    if (temp) delete temp;
+  }
+  else
+  {
+    if (llthread) {
+      dynthread_t thr  = getTid();
+      if (thr == 0) {
+	fprintf(stderr, "%s[%d]:  about to deleteThread(0)\n", FILE__, __LINE__);
       }
-   }
+      proc->llproc->deleteThread(thr);
+    }
+  }
 }
 
-void BPatch_thread::deleteThread() 
+void BPatch_thread::deleteThread(bool cleanup) 
 {
    removeThreadFromProc();
 
@@ -489,7 +490,7 @@ void BPatch_thread::deleteThread()
    if (thr == 0) {
        fprintf(stderr, "%s[%d]:  WARN:  skipping deleteThread(0)\n", FILE__, __LINE__);
    }
-   else 
+   else if (cleanup)
      proc->llproc->deleteThread(thr);
    llthread = NULL;
    is_deleted = true;
@@ -657,3 +658,8 @@ bool BPatch_thread::getLineAndFile( unsigned long addr,
 return false;
 } /* end getLineAndFile() */
     
+void BPatch_thread::setDynThread(dyn_thread *thr)
+{
+  llthread = thr;
+  updated = false;
+}

@@ -96,10 +96,11 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     BPatch_thread(BPatch_process *parent, dyn_thread *dthr);
     BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthread_t async_tid);
 
+    void setDynThread(dyn_thread *thr);
     //Generator for above constructor
     static BPatch_thread *createNewThread(BPatch_process *proc, int ind, 
                                           int lwp_id, dynthread_t async_tid);
-    void deleteThread();
+    void deleteThread(bool cleanup = true);
     void removeThreadFromProc();
     void updateValues(dynthread_t tid, unsigned long stack_start, 
                       BPatch_function *initial_func, int lwp_id);

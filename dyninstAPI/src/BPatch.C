@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.172 2007/09/12 20:57:04 bernat Exp $
+// $Id: BPatch.C,v 1.173 2007/09/13 20:12:58 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1043,6 +1043,16 @@ void BPatch::registerExecExit(process *proc)
    // The async pipe should be gone... handled in registerExecEntry
 
    signalNotificationFD();
+
+   for (unsigned i=1; i<process->threads.size(); i++)
+     process->threads[i]->deleteThread(false);
+   
+   dyn_thread *dynthr = proc->getInitialThread();
+   process->threads[0]->setDynThread(dynthr);
+   
+   BPatch_thread *initial_thread = new BPatch_thread(process, dynthr);
+   process->threads.push_back(initial_thread);
+
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
@@ -2150,8 +2160,8 @@ void BPatch::truncateLineInfoFilenamesInt(bool newval) {
 
 void BPatch::getBPatchVersionInt(int &major, int &minor, int &subminor) 
 {
-   major = 5;
-   minor = 1;
-   subminor = 0;
+   major = DYNINST_MAJOR;
+   minor = DYNINST_MINOR;
+   subminor = DYNINST_SUBMINOR;
 }
 
