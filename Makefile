@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.80 2007/02/21 22:37:47 giri Exp $
+# $Id: Makefile,v 1.81 2007/09/13 20:12:52 legendre Exp $
 #
 
 TO_CORE = .
@@ -112,6 +112,7 @@ ready:
 		echo "insure"; \
 	else \
 	  $(CXX) -v; \
+     true; \
 	fi
 
 # The "make world" target is set up to build things in the "correct"
