@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.74 2007/07/02 16:45:55 ssuen Exp $ */
+/* $Id: RTcommon.c,v 1.75 2007/09/13 20:13:04 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -302,7 +302,11 @@ void DYNINST_instExecEntry(void *arg1) {
    DYNINST_synch_event_id = DSE_execEntry;
    DYNINST_synch_event_arg1 = arg1;
    /* Stop ourselves */
+#if defined(os_linux)
+   DYNINSTlinuxBreakPoint();
+#else
    DYNINSTbreakPoint();
+#endif
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;

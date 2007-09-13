@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.50 2007/02/27 16:22:13 nater Exp $
+ * $Id: RTlinux.c,v 1.51 2007/09/13 20:13:05 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -81,6 +81,47 @@ void DYNINSTbreakPoint()
     /* Mutator resets to 0... */
 }
 
+static int failed_breakpoint = 0;
+void uncaught_breakpoint(int sig)
+{
+   failed_breakpoint = 1;
+}
+
+void DYNINSTlinuxBreakPoint()
+{
+   struct sigaction act, oldact;
+   int result;
+   
+   memset(&oldact, 0, sizeof(struct sigaction));
+   memset(&act, 0, sizeof(struct sigaction));
+
+   result = sigaction(DYNINST_BREAKPOINT_SIGNUM, NULL, &act);
+   if (result == -1) {
+      perror("DyninstRT library failed sigaction1");
+      return;
+   }
+   act.sa_handler = uncaught_breakpoint;
+
+   result = sigaction(DYNINST_BREAKPOINT_SIGNUM, &act, &oldact);
+   if (result == -1) {
+      perror("DyninstRT library failed sigaction2");
+      return;
+   }
+
+   DYNINST_break_point_event = 1;
+   failed_breakpoint = 0;
+   kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
+   if (failed_breakpoint) {
+      DYNINST_break_point_event = 0;
+      failed_breakpoint = 0;
+   }
+
+   result = sigaction(DYNINST_BREAKPOINT_SIGNUM, &oldact, NULL);
+   if (result == -1) {
+      perror("DyninstRT library failed sigaction3");
+      return;
+   }
+}
 
 void DYNINSTsafeBreakPoint()
 {
@@ -456,3 +497,4 @@ int main(int argc, char *argv[])
   return 0;
 }
 */
+
