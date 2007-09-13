@@ -2901,7 +2901,7 @@ void dumpDynamicUnwindInformation( unw_dyn_info_t * unwindInformation, AddressSp
 
 			
   if( currentIP != unwindInformation->end_ip ) {
-	fprintf( stderr, "*** consistency failure!  last instruction not last IP! (0x%lx != 0x%lx)\n", currentIP, unwindInformation->end_ip );
+	 dyn_unw_printf("*** consistency failure!  last instruction not last IP! (0x%lx != 0x%lx)\n", currentIP, unwindInformation->end_ip );
   }
 } /* end dumpDynamicUnwindInformation() */
 

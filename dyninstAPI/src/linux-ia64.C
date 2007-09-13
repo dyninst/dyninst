@@ -332,7 +332,7 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
     }
     else {
       /* Should we supress this warning? */
-      fprintf( stderr, "%s[%d]: warning: failed to walk stack from address 0x%lx.\n", __FILE__, __LINE__, ip );
+       /*      fprintf( stderr, "%s[%d]: warning: failed to walk stack from address 0x%lx.\n", __FILE__, __LINE__, ip );*/
     }
   }
 	
