@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.127 2007/09/06 20:14:50 roundy Exp $
+// $Id: linux-x86.C,v 1.128 2007/09/13 20:13:03 legendre Exp $
 
 #include <fstream>
 
@@ -1837,7 +1837,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase) {
     Address ret_addr;
     int size;
     int pagesize;
-    int page_start;
+    Address page_start;
     bool ret;
     
     ret = findVarsByAll("__stack_prot", vars);
@@ -1886,20 +1886,17 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase) {
 #if defined(arch_x86_64)
   } else {
       // Push caller
-      emitMovImmToReg64(REGNUM_RAX, func_addr, true, buf);
-      emitSimpleInsn(0x50, buf); // push %rax
+      //emitMovImmToReg64(REGNUM_RAX, func_addr, true, buf);
+      //emitSimpleInsn(0x50, buf); // push %rax       
 
       // Push mode (READ|WRITE|EXECUTE)
-      emitMovImmToReg64(REGNUM_EAX, 7, true, buf); //32-bit mov
-      emitSimpleInsn(0x50, buf); // push %rax
+      emitMovImmToReg64(REGNUM_RDX, 7, true, buf); //32-bit mov
    
       // Push variable size
-      emitMovImmToReg64(REGNUM_EAX, size, true, buf); //32-bit mov
-      emitSimpleInsn(0x50, buf); // push %rax 
+      emitMovImmToReg64(REGNUM_RSI, size, true, buf); //32-bit mov
 
       // Push variable location 
-      emitMovImmToReg64(REGNUM_RAX, page_start, true, buf);
-      emitSimpleInsn(0x50, buf); // push %rax 
+      emitMovImmToReg64(REGNUM_RDI, page_start, true, buf);
 
       // The call (must be done through a register in order to reach)
       emitMovImmToReg64(REGNUM_RAX, func_addr, true, buf);
