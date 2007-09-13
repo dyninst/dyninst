@@ -136,6 +136,8 @@ char *BPatch_module::getNameInt(char *buffer, int length)
 
 const char *BPatch_module::libraryNameInt()
 {
+   if (!mod)
+      return NULL;
    if (isSharedLib())      
       return mod->fullName().c_str();
    return NULL;
@@ -143,6 +145,9 @@ const char *BPatch_module::libraryNameInt()
 
 char *BPatch_module::getFullNameInt(char *buffer, int length)
 {
+   if (!mod)
+      return NULL;
+
     pdstring str = mod->fullName();
 
     strncpy(buffer, str.c_str(), length);
