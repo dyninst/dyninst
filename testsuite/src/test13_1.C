@@ -60,7 +60,7 @@ static char dyn_tids[NUM_THREADS];
 static char deleted_tids[NUM_THREADS];
 // We can get extra threads; add a layer of indirection. Yay.
 static int our_tid_max = 0;
-static char thread_mapping[NUM_THREADS];
+static int thread_mapping[NUM_THREADS];
 static int deleted_threads;
 
 static unsigned long stack_addrs[NUM_THREADS];
@@ -122,6 +122,18 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       return;
    }
 
+   unsigned my_dyn_id = our_tid_max; our_tid_max++;
+   if (bpindex_to_myindex(thr->getBPatchID()) != -1) {
+      logerror("[%s:%d] - WARNING: Thread %d called in callback twice\n",
+              __FILE__, __LINE__, thr->getBPatchID());
+      error13 = 1;
+      return;
+   }
+
+   thread_mapping[my_dyn_id] = thr->getBPatchID();
+   thread_count++;
+   dyn_tids[my_dyn_id] = 1;
+
    dprintf(stderr, "%s[%d]:  newthr: BPatchID = %d\n", __FILE__, __LINE__, thr->getBPatchID());
    //Check initial function
    static char name[1024];
@@ -148,18 +160,12 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       logerror("[%s:%d] - Thread %d has unexpected initial function '%s'; ignoring\n",
               __FILE__, __LINE__, thr->getBPatchID(), name);
       //      error13 = 1; // This shouldn't be an error, according to the comment above.
-      return;
+      volatile static bool stop = true;
+      while (stop);
+
+      BPatch_Vector<BPatch_frame> stack;
+      thr->getCallStack(stack);
    }
-
-   if (bpindex_to_myindex(thr->getBPatchID()) != -1) {
-      logerror("[%s:%d] - WARNING: Thread %d called in callback twice\n",
-              __FILE__, __LINE__, thr->getBPatchID());
-      return;
-   }
-
-   unsigned my_dyn_id = our_tid_max; our_tid_max++;
-
-   thread_mapping[my_dyn_id] = thr->getBPatchID();
 
    //Stacks should be unique and non-zero
    // Moving this variable to global scope
@@ -202,8 +208,6 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       }
    pthread_ids[my_dyn_id] = mytid;
 
-   thread_count++;
-   dyn_tids[my_dyn_id] = 1;
    dprintf(stderr, "%s[%d]:  leaving newthr: error13 = %d\n", __FILE__, __LINE__, error13);
 }
 
@@ -298,7 +302,7 @@ static int mutatorTest(BPatch *bpatch)
    memset(dyn_tids, 0, sizeof(dyn_tids));
    memset(deleted_tids, 0, sizeof(deleted_tids));
    our_tid_max = 0;
-   memset(thread_mapping, 0, sizeof(thread_mapping));
+   memset(thread_mapping, -1, sizeof(thread_mapping));
    deleted_threads = 0;
    memset(stack_addrs, 0, sizeof(stack_addrs));
 
