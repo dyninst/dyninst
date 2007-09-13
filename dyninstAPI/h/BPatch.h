@@ -58,6 +58,10 @@ class process;
 
 #define DYNINST_5_1
 
+#define DYNINST_MAJOR 5
+#define DYNINST_MINOR 1
+#define DYNINST_SUBMINOR 0
+
 #ifdef IBM_BPATCH_COMPAT
 typedef void *BPatch_Address;
 #endif
