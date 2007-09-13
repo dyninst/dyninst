@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.12 2007/09/06 20:15:05 roundy Exp $
+ * $Id: Object-elf.C,v 1.13 2007/09/13 20:13:06 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2915,24 +2915,37 @@ void Object::getModuleLanguageInfo(
       const char *file = file_.c_str();
       assert(file);
       
-      int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
-      assert( status == DW_DLV_OK );
+      int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, 
+                                   getErrFunc(), & dbg, NULL );
+      if (status != DW_DLV_OK) {
+         return;
+      }
       
-      Dwarf_Unsigned hdr;
-      
-      while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK )
+      Dwarf_Unsigned hdr;      
+      char * moduleName = NULL;
+      Dwarf_Die moduleDIE = NULL;
+      Dwarf_Attribute languageAttribute = NULL;
+      bool done = false;
+
+      while( !done && 
+             dwarf_next_cu_header(dbg, NULL, NULL, NULL, NULL, & hdr, NULL) == DW_DLV_OK )
 		{
-         Dwarf_Die moduleDIE;
-         status = dwarf_siblingof(dbg, NULL, &moduleDIE, NULL);
-         assert ( status == DW_DLV_OK );
-         
          Dwarf_Half moduleTag;
+         Dwarf_Unsigned languageConstant;
+
+         status = dwarf_siblingof(dbg, NULL, &moduleDIE, NULL);
+         if (status != DW_DLV_OK) {
+            done = true;
+            goto cleanup_dwarf;
+         }
+         
          status = dwarf_tag( moduleDIE, & moduleTag, NULL);
-         assert( status == DW_DLV_OK );
-         assert( moduleTag == DW_TAG_compile_unit );
+         if (status != DW_DLV_OK || moduleTag != DW_TAG_compile_unit) {
+            done = true;
+            goto cleanup_dwarf;
+         }
          
          /* Extract the name of this module. */
-         char * moduleName;
          status = dwarf_diename( moduleDIE, & moduleName, NULL );
          ptr = strrchr(moduleName, '/');
          if (ptr)
@@ -2942,46 +2955,54 @@ void Object::getModuleLanguageInfo(
          
          working_module = string(ptr);
          
-         if (status != DW_DLV_NO_ENTRY) 
-			{
-            assert( status != DW_DLV_ERROR );
-            Dwarf_Attribute languageAttribute;
-            status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
-            assert( status != DW_DLV_ERROR );
-            if( status == DW_DLV_OK ) 
-				{
-               Dwarf_Unsigned languageConstant;
-               status = dwarf_formudata( languageAttribute, & languageConstant, NULL );
-               assert( status == DW_DLV_OK );
-               
-               switch( languageConstant )
-					{
-                  case DW_LANG_C:
-                  case DW_LANG_C89:
-                     (*mod_langs)[working_module] = lang_C;
-                     break;
-                  case DW_LANG_C_plus_plus:
-                     (*mod_langs)[working_module] = lang_CPlusPlus;
-                     break;
-                  case DW_LANG_Fortran77:
-                  case DW_LANG_Fortran90:
-                  case DW_LANG_Fortran95:
-                     (*mod_langs)[working_module] = lang_Fortran;
-                     break;
-                  default:
-                     /* We know what the language is but don't care. */
-                     break;
-               } /* end languageConstant switch */
-               
-               dwarf_dealloc( dbg, languageAttribute, DW_DLA_ATTR );
-            }
-            dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
+         if (status == DW_DLV_NO_ENTRY) {
+            done = true;
+            goto cleanup_dwarf;
          }
-         dwarf_dealloc( dbg, moduleDIE, DW_DLA_DIE );
+
+         status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
+         if (status == DW_DLV_ERROR) {
+            done = true;
+            goto cleanup_dwarf;
+         }
+            
+         status = dwarf_formudata( languageAttribute, & languageConstant, NULL );
+         if (status != DW_DLV_OK) {
+            done = true;
+            goto cleanup_dwarf;
+         }
+         
+         switch( languageConstant )
+         {
+            case DW_LANG_C:
+            case DW_LANG_C89:
+               (*mod_langs)[working_module] = lang_C;
+               break;
+            case DW_LANG_C_plus_plus:
+               (*mod_langs)[working_module] = lang_CPlusPlus;
+               break;
+            case DW_LANG_Fortran77:
+            case DW_LANG_Fortran90:
+            case DW_LANG_Fortran95:
+               (*mod_langs)[working_module] = lang_Fortran;
+               break;
+            default:
+               /* We know what the language is but don't care. */
+               break;
+         } /* end languageConstant switch */
+      cleanup_dwarf:
+         if (languageAttribute)
+            dwarf_dealloc( dbg, languageAttribute, DW_DLA_ATTR );
+         if (moduleName)
+            dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
+         if (moduleDIE)
+            dwarf_dealloc( dbg, moduleDIE, DW_DLA_DIE );
+         languageAttribute = NULL;
+         moduleName = NULL;
+         moduleDIE = NULL;
       }
 
-      status = dwarf_finish( dbg, NULL );
-      assert( status == DW_DLV_OK );
+      dwarf_finish( dbg, NULL );
    }
 #endif
 
