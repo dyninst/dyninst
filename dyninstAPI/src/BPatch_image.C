@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.98 2007/09/14 16:54:53 roundy Exp $
+// $Id: BPatch_image.C,v 1.99 2007/09/14 17:06:00 cooksey Exp $
 
 #define BPATCH_FILE
 
@@ -378,7 +378,7 @@ BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_matc
 
   // process::findModule does a wildcard match, not a substring match 
 
-  char *tmp = (char *) malloc(strlen(name) + 2);
+  char *tmp = (char *) malloc(strlen(name) + 3);
   if(substring_match)
     sprintf(tmp, "*%s*", name); 
   else 
