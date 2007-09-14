@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_1.C,v 1.5 2006/10/11 21:54:20 cooksey Exp $
+// $Id: test9_1.C,v 1.6 2007/09/14 15:37:41 legendre Exp $
 /*
  * #Name: test9_1
  * #Desc: Instrument one simple function call and save the world
@@ -67,11 +67,7 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
   int passedTest;
   char *savedDirectory;
  
-#if defined(sparc_sun_solaris2_4) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(i386_unknown_linux2_0) \
- || defined(rs6000_ibm_aix5_1)
-
+#if 0
     const char* child_argv[MAX_TEST+5];
     
     buildArgs(child_argv, pathname, testNo);

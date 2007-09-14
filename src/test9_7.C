@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_7.C,v 1.4 2006/10/11 21:54:26 cooksey Exp $
+// $Id: test9_7.C,v 1.5 2007/09/14 15:37:47 legendre Exp $
 /*
  * #Name: test9_7
  * #Desc: instrument entry point of main and first basic block in main
@@ -65,10 +65,7 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
   int testNo = 7;
   char *savedDirectory;
  
-#if defined(sparc_sun_solaris2_4) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(i386_unknown_linux2_0) \
- || defined(rs6000_ibm_aix5_1)
+#if 0
 
 	const char* child_argv[MAX_TEST+5];
 	

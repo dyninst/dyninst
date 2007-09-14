@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_6.C,v 1.5 2006/10/11 21:54:25 cooksey Exp $
+// $Id: test9_6.C,v 1.6 2007/09/14 15:37:46 legendre Exp $
 /*
  * #Name: test9_6
  * #Desc: instrument a shared library and save the world
@@ -65,8 +65,7 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
   int testNo = 6;
   char *testName = "instrument a shared library and save the world";
   char *savedDirectory;
-#if defined(i386_unknown_linux2_0) \
- ||  defined(sparc_sun_solaris2_4) 
+#if 0
 
 	BPatch_image *appImage;
 	BPatch_thread *appThread;

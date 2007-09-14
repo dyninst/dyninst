@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_5.C,v 1.6 2006/10/11 21:54:24 cooksey Exp $
+// $Id: test9_5.C,v 1.7 2007/09/14 15:37:45 legendre Exp $
 /*
  * #Name: test9_5
  * #Desc: call loadLibrary and save the world
@@ -68,9 +68,7 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
   int testNo = 5;
   int passedTest;
   char *savedDirectory;
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(rs6000_ibm_aix4_1)
+#if 0
 	BPatch_image *appImage = NULL;
 	BPatch_thread *appThread = NULL;
 
