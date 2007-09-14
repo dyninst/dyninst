@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.175 2007/09/12 20:57:58 bernat Exp $
+// $Id: pdwinnt.C,v 1.176 2007/09/14 16:55:01 roundy Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1509,10 +1509,17 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *lwp)
 }
 
 bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
-bool process::instrumentLibcStartMain() { assert(0); return false; }
-bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); return false; }
-void process::setTraceSysCalls(bool traceSys) {}
-void process::setTraceState(traceState_t state) {}
+bool process::instrumentLibcStartMain() { assert(0); return fasle; }
+bool process::decodeStartupSysCalls(EventRecord &) { assert(0); return false; }
+void process::setTraceSysCalls(bool) { assert(0); }
+void process::setTraceState(traceState_t) { assert(0); }
+bool process::getSysCallParameters(dyn_saved_regs *, long *, int) { assert(0); return false; }
+int process::getSysCallNumber(dyn_saved_regs *) { assert(0); return -1; }
+long process::getSysCallReturnValue(dyn_saved_regs *) { assert(0); return -1; }
+Address process::getSysCallProgramCounter(dyn_saved_regs *) { assert(0); return 0; }
+bool process::isMmapSysCall(int) { assert(0); return false; }
+OFFSET process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0; }
+Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0; }
 
 bool process::getDyninstRTLibName() {
     // Set the name of the dyninst RT lib
