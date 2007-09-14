@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.217 2007/09/12 20:58:06 bernat Exp $
+// $Id: solaris.C,v 1.218 2007/09/14 16:55:05 roundy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -673,12 +673,18 @@ bool process::insertTrapAtEntryPointOfMain()
     return true;
 }
 
-bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); }
-bool process::instrumentLibcStartMain() { assert(0); }
-bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); }
-void process::setTraceSysCalls(bool) {}
-void process::setTraceState(traceState_t) {}
-
+bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
+bool process::instrumentLibcStartMain() { assert(0); return false; }
+bool process::decodeStartupSysCalls(EventRecord &) { assert(0); return false; }
+void process::setTraceSysCalls(bool) { assert(0); }
+void process::setTraceState(traceState_t) { assert(0); }
+bool process::getSysCallParameters(dyn_saved_regs *, long *, int) { assert(0); return false; }
+int process::getSysCallNumber(dyn_saved_regs *) { assert(0); return 0; }
+long process::getSysCallReturnValue(dyn_saved_regs *) { assert(0); return 0; }
+Address process::getSysCallProgramCounter(dyn_saved_regs *) { assert(0); return 0; }
+bool process::isMmapSysCall(int) { assert(0); return false; }
+OFFSET process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
+Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0;}
 
 bool process::getDyninstRTLibName() {
    if (dyninstRT_name.length() == 0) {
