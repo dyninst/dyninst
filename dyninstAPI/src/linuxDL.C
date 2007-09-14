@@ -366,7 +366,7 @@ bool dynamic_linking::get_ld_info( Address & addr, unsigned &size, char ** path)
          else
             filename++;
       }
-      //Check for format match of ld*.so*
+      //Check for format match of ld*.so* (don't get /etc/ld.so.cache)
       bool matches_name = (strncmp("ld", filename, 2)==0 && 
                            strstr(filename, ".so") && 
                            !strstr(filename, ".cache"));
