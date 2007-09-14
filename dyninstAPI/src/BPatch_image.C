@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.97 2007/09/06 20:18:37 roundy Exp $
+// $Id: BPatch_image.C,v 1.98 2007/09/14 16:54:53 roundy Exp $
 
 #define BPATCH_FILE
 
@@ -1114,7 +1114,7 @@ BPatch_module *BPatch_image::addMemModuleInt
 
     // create a fileDescriptor and mapped_object and add it as a shared object
     sprintf(regName, "/tmp/MemRegion_%lX_%lX", addrStart, addrEnd);
-    fileDescriptor *fdesc = new fileDescriptor(regName,addrStart,addrEnd);
+    fileDescriptor *fdesc = new fileDescriptor(regName,0,addrEnd- addrStart);
 
     // create a mapped object for the region and add it as a shared object
     mapped_object *obj = mapped_object::createMappedObject(*fdesc, proc->llproc);
