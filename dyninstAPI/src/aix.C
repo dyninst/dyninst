@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.234 2007/09/12 20:57:18 bernat Exp $
+// $Id: aix.C,v 1.235 2007/09/14 16:54:55 roundy Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -955,11 +955,18 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	return directoryName;
 }
 
-bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); }
-bool process::instrumentLibcStartMain() { assert(0); }
-bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); }
-void process::setTraceSysCalls(bool) {}
-void process::setTraceState(traceState_t) {}
+bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
+bool process::instrumentLibcStartMain() { assert(0); return false; }
+bool process::decodeStartupSysCalls(EventRecord &) { assert(0); return false; }
+void process::setTraceSysCalls(bool) { assert(0); }
+void process::setTraceState(traceState_t) { assert(0); }
+bool process::getSysCallParameters(dyn_saved_regs *, long *, int) { assert(0); return false; }
+int process::getSysCallNumber(dyn_saved_regs *) { assert(0); return 0; }
+long process::getSysCallReturnValue(dyn_saved_regs *) { assert(0); return 0; }
+Address process::getSysCallProgramCounter(dyn_saved_regs *) { assert(0); return 0; }
+bool process::isMmapSysCall(int) { assert(0); return false; }
+OFFSET process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
+Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0;}
 
 #if 0
 // should use demangle.h here, but header is badly broken on AIX 5.1
