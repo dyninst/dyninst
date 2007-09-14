@@ -1079,7 +1079,7 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
     case begun_bs:
     case libcLoaded_bs:
        if (proc->getTraceSysCalls()) {
-           ret = decodeStartupSysCalls(ev);
+           ret = proc->decodeStartupSysCalls(ev);
        }
        else if (proc->trapAtEntryPointOfMain(ev.lwp, 
                             (Address) INFO_TO_ADDRESS(ev.info))) {
