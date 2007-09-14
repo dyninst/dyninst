@@ -53,6 +53,7 @@
 #include "debuggerinterface.h"
 #include "function.h"
 #include "signalgenerator.h"
+#include "mapped_object.h"
 
 // For relocationEntry
 #include "symtab.h"
@@ -213,11 +214,20 @@ bool process::insertTrapAtEntryPointOfMain() {
   return true;
 } /* end insertTrapAtEntryPointOfMain() */
 
-bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); }
-bool process::instrumentLibcStartMain() { assert(0); }
-bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &) { assert(0); }
-void process::setTraceSysCalls(bool) {}
-void process::setTraceState(traceState_t) {}
+
+bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
+bool process::instrumentLibcStartMain() { assert(0); return false; }
+bool process::decodeStartupSysCalls(EventRecord &) { assert(0); return false; }
+void process::setTraceSysCalls(bool) { assert(0); }
+void process::setTraceState(traceState_t) { assert(0); }
+bool process::getSysCallParameters(dyn_saved_regs *, long *, int) { assert(0); return false; }
+int process::getSysCallNumber(dyn_saved_regs *) { assert(0); return 0; }
+long process::getSysCallReturnValue(dyn_saved_regs *) { assert(0); return 0; }
+Address process::getSysCallProgramCounter(dyn_saved_regs *) { assert(0); return 0; }
+bool process::isMmapSysCall(int) { assert(0); return false; }
+OFFSET process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
+Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0;}
+
 
 #define BIT_8_3		0x1F8
 
