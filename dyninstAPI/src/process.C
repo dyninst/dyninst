@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.694 2007/09/12 20:57:16 bernat Exp $
+// $Id: process.C,v 1.695 2007/09/14 16:55:02 roundy Exp $
 
 #include <ctype.h>
 
@@ -1336,7 +1336,6 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 
 void process::deleteProcess() 
 {
-	fprintf(stderr, "deleteProcess %d\n", getPid());
   assert(this);
 
   // A lot of the behavior here is keyed off the current process status....
@@ -1574,9 +1573,6 @@ process::process(SignalGenerator *sh_) :
     exiting_(false),
     nextTrapIsExec(false),
     inExec_(false),
-    traceSysCalls_(false),
-    traceState_(noTracing_ts),
-    libcstartmain_brk_addr(0),
     theRpcMgr(NULL),
     collectSaveWorldData(true),
     requestTextMiniTramp(false),
@@ -1596,7 +1592,10 @@ process::process(SignalGenerator *sh_) :
     mainFileHandle_(INVALID_HANDLE_VALUE),
 #endif
     inInferiorMallocDynamic(false),
-    tracedSyscalls_(NULL)
+    tracedSyscalls_(NULL),
+    traceSysCalls_(false),
+    traceState_(noTracing_ts),
+    libcstartmain_brk_addr(0)
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -2066,9 +2065,6 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     exiting_(parentProc->exiting_),
     nextTrapIsExec(parentProc->nextTrapIsExec),
     inExec_(parentProc->inExec_),
-    traceSysCalls_(parentProc->getTraceSysCalls()),
-    traceState_(parentProc->getTraceState()),
-    libcstartmain_brk_addr(parentProc->getlibcstartmain_brk_addr()),
     theRpcMgr(NULL), // Set later
     collectSaveWorldData(parentProc->collectSaveWorldData),
     requestTextMiniTramp(parentProc->requestTextMiniTramp),
@@ -2084,7 +2080,10 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     main_brk_addr(parentProc->main_brk_addr),
     systemPrelinkCommand(NULL),
     inInferiorMallocDynamic(parentProc->inInferiorMallocDynamic),
-    tracedSyscalls_(NULL)  // Later
+    tracedSyscalls_(NULL),  // Later
+    traceSysCalls_(parentProc->getTraceSysCalls()),
+    traceState_(parentProc->getTraceState()),
+    libcstartmain_brk_addr(parentProc->getlibcstartmain_brk_addr())
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -2309,7 +2308,6 @@ bool process::loadDyninstLib() {
        sh->waitForOneOf(evts);
        getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
-    
     startup_printf("%s[%d]: Ready to initialize dynamic linking tracer\n", 
                    FILE__, __LINE__);
 
