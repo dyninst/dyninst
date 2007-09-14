@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.36 2007/09/06 20:14:47 roundy Exp $
+ * $Id: image-flowGraph.C,v 1.37 2007/09/14 16:54:56 roundy Exp $
  */
 
 #include <stdio.h>
@@ -210,108 +210,117 @@ bool image::analyzeImage()
     Address gapStart = linkedFile->codeOffset();
     Address gapEnd;
     int funcIdx = 0; // index into everyUniqueFunction (which may be empty)
-
     do {
         /* The everyUniqueFunction vector can be updated in the for
            loop.  If functions are discovered preceeding the one
            pointed to by the current 'funcIdx' index, we need to
-           advance 'funcIdx' to the correct (next) position */
+           advance funcIdx and gapStart to the correct position */
         /* (It would be better to use a data structure with an iterator
-            that doesn't break on inserts, such as an ordered set) */
-        while(funcIdx < (int) everyUniqueFunction.size() && 
-              everyUniqueFunction[funcIdx]->getEndOffset() < gapStart)
-        {
-           /*parsing_printf("[%s:%u] advancing gap index (gapstart: 0x%lx, "
-                           "offset: 0x%lx)\n", FILE__,__LINE__,
-                           gapStart,everyUniqueFunction[funcIdx]->getOffset());*/
-            funcIdx++;
-        }
-
-        // set gapEnd to start of next function
-        if(funcIdx+1 < (int)everyUniqueFunction.size()) {
-            gapEnd = everyUniqueFunction[funcIdx + 1]->getOffset();
-        } 
-        // if there is no next function, set gapEnd to end of codeSection
-        else if (funcIdx+1 == (int) everyUniqueFunction.size() || funcIdx == 0) {
-            gapEnd = linkedFile->codeOffset() + linkedFile->codeLength();
-        }
-        else {  
-            break; // advanced gap past the end of the code section
-        }
-
-        int gap = gapEnd - gapStart;
-
-        parsing_printf("[%s:%u] scanning for prologues in range 0x%lx-0x%lx\n",
-                       FILE__,__LINE__,gapStart, gapEnd);
-
-        //gap should be big enough to accomodate a function prologue
-        if(gap >= 5) {
+           that doesn't break on inserts, such as an ordered set) */
+       while(funcIdx < (int) everyUniqueFunction.size() && 
+             everyUniqueFunction[funcIdx]->getEndOffset() < gapStart)
+          {
+             /*parsing_printf("[%s:%u] advancing gap index (gapstart: 0x%lx, "
+               "offset: 0x%lx)\n", FILE__,__LINE__,
+               gapStart,everyUniqueFunction[funcIdx]->getOffset());*/
+             funcIdx++;
+          }
+       if (funcIdx > 0 && funcIdx < (int) everyUniqueFunction.size() 
+           && gapStart < everyUniqueFunction[funcIdx]->getEndOffset()) {
+          gapStart = everyUniqueFunction[funcIdx]->getEndOffset();
+       }
+       
+       // set gapEnd to start of next function or end of code section, 
+       // on 1st iter, set gapEnd to start of 1st function or end of code section
+       if (funcIdx == 0 && everyUniqueFunction.size() > 0) {
+          gapEnd = everyUniqueFunction[0]->getOffset();
+       }
+       else if(funcIdx+1 < (int)everyUniqueFunction.size()) {
+          gapEnd = everyUniqueFunction[funcIdx + 1]->getOffset();
+       } 
+       // if there is no next function, set gapEnd to end of codeSection
+       else if (funcIdx+1 == (int) everyUniqueFunction.size() || funcIdx == 0) {
+          gapEnd = linkedFile->codeOffset() + linkedFile->codeLength();
+       }
+       else {  
+          break; // advanced gap past the end of the code section
+       }
+       
+       int gap = gapEnd - gapStart;
+       
+       parsing_printf("[%s:%u] scanning for prologues in range 0x%lx-0x%lx\n",
+                      FILE__,__LINE__,gapStart, gapEnd);
+       
+       //gap should be big enough to accomodate a function prologue
+       if(gap >= 5) {
           Address pos = gapStart;
           while( pos < gapEnd && isCode( pos ) )
-          {
-            const unsigned char* instPtr;
-            instPtr = (const unsigned char *)getPtrToInstruction( pos );
-            instruction insn;
-            insn.setInstruction( instPtr, pos );
-
-            if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
-            {
-                char name[32];
-                snprintf( name, 32, "gap_%lx", pos );
-                pdf = new image_func( name, pos, UINT_MAX, mod, this);
-
-                if(parseFunction( pdf, callTargets, preParseStubs)) {
-                    pdf->addSymTabName(name);	// newly added
-                    pdf->addPrettyName( name );
-                  
-                    enterFunctionInTables(pdf, false);
-
-                    // Update size
-                    pdf->symbol()->setSize(pdf->get_size_cr());
-
-                    // If any calls were discovered, adjust our
-                    // position in the function vector accordingly
-                    if(callTargets.size() > 0) {            
-                        while( callTargets.size() > 0 )
-                        {   
-                            /* parse static call targets */
-                            parseStaticCallTargets( callTargets, 
-                                               new_targets, preParseStubs );
-                            callTargets.clear(); 
-
-                            VECTOR_APPEND(callTargets,new_targets);
-                            new_targets.clear();
-                        }
-                        // Maintain sort
-                        VECTOR_SORT(everyUniqueFunction, addrfunccmp);
-                        break;  // Return to for loop
-                    } else {
-                        VECTOR_SORT(everyUniqueFunction, addrfunccmp);
-                    }
-                                            
-                    pos = ( gapEnd < pdf->getEndOffset() ?
-                            gapEnd : pdf->getEndOffset() );
-                } else {
-                    pos++;
-                }
-            } else
-                pos++;
-          }// end while loop
-        }
-        // set gapStart for next iteration & increment funcIdx
-        gapStart = everyUniqueFunction[funcIdx]->getEndOffset();
-        funcIdx++;
+             {
+                const unsigned char* instPtr;
+                instPtr = (const unsigned char *)getPtrToInstruction( pos );
+                instruction insn;
+                insn.setInstruction( instPtr, pos );
+                
+                if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
+                   {
+                      char name[32];
+                      snprintf( name, 32, "gap_%lx", pos );
+                      pdf = new image_func( name, pos, UINT_MAX, mod, this);
+                      
+                      if(parseFunction( pdf, callTargets, preParseStubs)) {
+                         pdf->addSymTabName(name); // newly added
+                         pdf->addPrettyName( name );
+                         
+                         enterFunctionInTables(pdf, false);
+                         
+                         // Update size
+                         pdf->symbol()->setSize(pdf->get_size_cr());
+                         
+                         // If any calls were discovered, adjust our
+                         // position in the function vector accordingly
+                         if(callTargets.size() > 0) {            
+                            while( callTargets.size() > 0 )
+                               {   
+                                  /* parse static call targets */
+                                  parseStaticCallTargets( callTargets, 
+                                                          new_targets, preParseStubs );
+                                  callTargets.clear(); 
+                                  
+                                  VECTOR_APPEND(callTargets,new_targets);
+                                  new_targets.clear();
+                               }
+                            // Maintain sort
+                            VECTOR_SORT(everyUniqueFunction, addrfunccmp);
+                            break;  // Return to for loop
+                         } else {
+                            VECTOR_SORT(everyUniqueFunction, addrfunccmp);
+                         }
+                         
+                         pos = ( gapEnd < pdf->getEndOffset() ?
+                                 gapEnd : pdf->getEndOffset() );
+                      } else {
+                         pos++;
+                      }
+                   } else
+                      pos++;
+             }// end while loop
+       }
+       // set gapStart for next iteration & increment funcIdx
+       if (funcIdx < (int)everyUniqueFunction.size()) {
+          gapStart = everyUniqueFunction[funcIdx]->getEndOffset();
+       }
+       funcIdx++;
     } while (funcIdx < (int)everyUniqueFunction.size());
 #endif
-
-  // Sort block list and bind all intra-module call points
-  for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
-      image_func *f = everyUniqueFunction[b_iter];
-      if(!f->isBLSorted())
-        f->sortBlocklist();
-      everyUniqueFunction[b_iter]->checkCallPoints();
-  }
-
+    
+    // Sort block list and bind all intra-module call points
+    for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
+       image_func *f = everyUniqueFunction[b_iter];
+       if(!f->isBLSorted())
+          f->sortBlocklist();
+       everyUniqueFunction[b_iter]->checkCallPoints();
+    }
+    
 #if defined(TIMED_PARSE)
   struct timeval endtime;
   gettimeofday(&endtime, NULL);

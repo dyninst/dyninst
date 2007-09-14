@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.128 2007/09/13 20:13:03 legendre Exp $
+// $Id: linux-x86.C,v 1.129 2007/09/14 16:54:59 roundy Exp $
 
 #include <fstream>
 
@@ -386,75 +386,80 @@ bool process::insertTrapAtEntryPointOfMain()
 
 #if defined(arch_x86_64)
 
-bool getParameters(dyn_saved_regs *regs, long *params, 
-                   int numparams, process *proc) {
-    if (numparams > 0) {
-        params[0] = regs->gprs.rdi;
-    }
-    if (numparams > 1) {
-        params[1] = regs->gprs.rsi;
-    }
-    if (numparams > 2) {
-        params[2] = regs->gprs.rdx;
-    }
-    if (numparams > 3) {
-        params[3] = regs->gprs.r8;
-    }
-    if (numparams > 4) {
-        params[4] = regs->gprs.r9;
-    }
-    if (numparams > 5) {
-        params[5] = regs->gprs.r10;
-    }
-    for (int i=6; i < numparams; i++) {
-        if (!proc->readDataSpace((void*)regs->gprs.rsp, proc->getAddressWidth(), 
-                         (void*)(params + i * proc->getAddressWidth()), true)) {
+bool process::getSysCallParameters(dyn_saved_regs *regs, long *params, int numparams) {
+   if (getAddressWidth() == 4) { // 32 bit mutatee
+   } else { // 64 bit mutatee, have to use ifdef, otherwise it won't
+            // compile on a 32 bit machine
+      if (numparams > 0) {
+         params[0] = regs->gprs.rdi;
+      }
+      if (numparams > 1) {
+         params[1] = regs->gprs.rsi;
+      }
+      if (numparams > 2) {
+         params[2] = regs->gprs.rdx;
+      }
+      if (numparams > 3) {
+         params[3] = regs->gprs.r8;
+      }
+      if (numparams > 4) {
+         params[4] = regs->gprs.r9;
+      }
+      if (numparams > 5) {
+         params[5] = regs->gprs.r10;
+      }
+      for (int i=6; i < numparams; i++) {
+         if (!readDataSpace((void*)regs->gprs.rsp, getAddressWidth(), 
+                                  (void*)(params + i * getAddressWidth()), true)) {
             return false;
-        }
-    }
-    return true;
+         }
+      }
+   }
+   return true;
 }
-int getCallNumber(dyn_saved_regs *regs) {
-   /*
-    printf("r15:%lx r14:%lx r13:%lx r12:%lx rbp:%lx rbx:%lx r11:%lx "
-           "r10:%lx r9:%lx r8:%lx rax:%lx rcx:%lx rdx:%lx rsi:%lx\n"
-           "\trdi:%lx orig_rax:%lx rip:%lx cs:%lx eflags:%lx rsp:%lx "
-           "ss:%lx fs_base:%lx gs_base:%lx ds:%lx es:%lx fs:%lx gs:%lx\n",
-           regs->gprs.r15, regs->gprs.r14, regs->gprs.r13, regs->gprs.r12,
-           regs->gprs.rbp, regs->gprs.rbx, regs->gprs.r11, regs->gprs.r10,
-           regs->gprs.r9, regs->gprs.r8, regs->gprs.rax, regs->gprs.rcx,
-           regs->gprs.rdx, regs->gprs.rsi, regs->gprs.rdi, regs->gprs.orig_rax,
-           regs->gprs.rip, regs->gprs.cs, regs->gprs.eflags, regs->gprs.rsp,
-           regs->gprs.ss, regs->gprs.fs_base, regs->gprs.gs_base, 
-           regs->gprs.ds, regs->gprs.es, regs->gprs.fs, regs->gprs.gs);
-   */
-    return regs->gprs.orig_rax;
+
+int process::getSysCallNumber(dyn_saved_regs *regs) {
+   return regs->gprs.orig_rax;
 }
-long getReturnValue(dyn_saved_regs *regs) {
-    return regs->gprs.rax;
+
+long process::getSysCallReturnValue(dyn_saved_regs *regs) {
+   return regs->gprs.rax;
 }
-Address getProgramCounter(dyn_saved_regs *regs) {
-    return regs->gprs.rip;
+
+Address process::getSysCallProgramCounter(dyn_saved_regs *regs) {
+   return regs->gprs.rip;
 }
-bool isMmapSyscall(int callnum) {
-    return callnum == SYS_mmap;
+
+bool process::isMmapSysCall(int callnum) {
+   if (getAddressWidth() == 4) {
+      startup_printf("CALLNUM=%d\n",callnum);
+   }
+   return callnum == SYS_mmap;
 }
-OFFSET getMmapLength(int, dyn_saved_regs *regs, process *) {
+
+OFFSET process::getMmapLength(int, dyn_saved_regs *regs) {
    return (OFFSET) regs->gprs.rsi;
 }
-Address getLibcStartMainParam(dyn_lwp *trappingLWP, process *proc) {
-    dyn_saved_regs regs;
-    trappingLWP->getRegisters(&regs);
-    Address mainaddr;
-    if (!proc->readDataSpace((void*)(regs.gprs.rsp +proc->getAddressWidth()),
-                       proc->getAddressWidth(), (void*)&mainaddr,true)) {
-        fprintf(stderr,"[%s][%d]: failed readDataSpace\n", __FILE__,__LINE__); 
-    }
-    return mainaddr;
-}
-#else
 
-bool getParameters(dyn_saved_regs *regs, long *params, int numparams, process *proc) {
+Address process::getLibcStartMainParam(dyn_lwp *trappingLWP) {
+   Address mainaddr = 0;
+   dyn_saved_regs regs;
+   trappingLWP->getRegisters(&regs);
+   if (getAddressWidth() == 4) { // 32 bit mutatee
+      if (!readDataSpace((void*)(regs.gprs.rsp + getAddressWidth()),
+                               getAddressWidth(), (void*)&mainaddr,true)) {
+         fprintf(stderr,"[%s][%d]: failed readDataSpace\n", __FILE__,__LINE__); 
+      }
+   } else { // 64 bit mutatee
+      mainaddr = regs.gprs.rdi;
+   }
+   return mainaddr;
+}
+// 64 bit architecture
+#else 
+// 32 bit architecture
+bool process::getSysCallParameters(dyn_saved_regs *regs, 
+                                   long *params, int numparams) {
     if (numparams > 0) {
         params[0] = regs->gprs.ebx;
     }
@@ -474,106 +479,108 @@ bool getParameters(dyn_saved_regs *regs, long *params, int numparams, process *p
         params[5] = regs->gprs.ebp;
     }
     for (int i=6; i < numparams; i++) {
-        if (!proc->readDataSpace((void*)regs->gprs.esp, proc->getAddressWidth(), 
-                         (void*)(params + i * proc->getAddressWidth()), true)) {
+        if (!readDataSpace((void*)regs->gprs.esp, getAddressWidth(), 
+                         (void*)(params + i * getAddressWidth()), true)) {
             return false;
         }
     }
     return true;
 }
-int getCallNumber(dyn_saved_regs *regs) {
+int process::getSysCallNumber(dyn_saved_regs *regs) {
     return regs->gprs.orig_eax;
 }
-long getReturnValue(dyn_saved_regs *regs) {
+long process::getSysCallReturnValue(dyn_saved_regs *regs) {
     return regs->gprs.eax;
 }
-Address getProgramCounter(dyn_saved_regs *regs) {
+Address process::getSysCallProgramCounter(dyn_saved_regs *regs) {
     return regs->gprs.eip;
 }
-bool isMmapSyscall(int callnum) {
+bool process::isMmapSysCall(int callnum) {
     return (callnum == SYS_mmap || callnum == SYS_mmap2);
 }
-OFFSET getMmapLength(int callnum, dyn_saved_regs *regs, process *proc) {
+OFFSET process::getMmapLength(int callnum, dyn_saved_regs *regs) {
     if (callnum == SYS_mmap) {
         OFFSET length;
-        proc->readDataSpace((void*)(regs->gprs.ebx + proc->getAddressWidth()),
-                            proc->getAddressWidth(), (void*)&length, true);
+        readDataSpace((void*)(regs->gprs.ebx + getAddressWidth()),
+                            getAddressWidth(), (void*)&length, true);
         return length;
     }
     else {
         return (OFFSET) regs->gprs.ecx;
     }
 }
-Address getLibcStartMainParam(dyn_lwp *trappingLWP, process *proc) {
+Address process::getLibcStartMainParam(dyn_lwp *trappingLWP) {
     dyn_saved_regs regs;
     trappingLWP->getRegisters(&regs);
     Address mainaddr;
-    if (!proc->readDataSpace((void*)(regs.gprs.esp + proc->getAddressWidth()),
-                       proc->getAddressWidth(), (void*)&mainaddr,true)) {
+    if (!readDataSpace((void*)(regs.gprs.esp + getAddressWidth()),
+                       getAddressWidth(), (void*)&mainaddr,true)) {
         fprintf(stderr,"[%s][%d]: failed readDataSpace\n", __FILE__,__LINE__); 
     }
     return mainaddr;
-}
+} 
+
 #endif
 
 void process::setTraceSysCalls(bool traceSys) {
-   if (traceSys) {
-      startup_printf("System call tracing set to true, will search for main "
-             "by intercepting the call to __libc_start_main in libc.so\n");
-   }
    traceSysCalls_ = traceSys;
 }
+
 void process::setTraceState(traceState_t state) {
    traceState_ = state;
 }
 
-bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &ev) 
+/* For cases in which we are unable to locate the mutatee's main function
+ * via our normal findMain heuristics, we resort to tracing system calls
+ * looking for libc to be loaded.  Here we decode the different system
+ * that we see during process startup. 
+ */
+bool process::decodeStartupSysCalls(EventRecord &ev) 
 {
     // set up parameters & variables, which is platform dependent
     const int NUMPARAMS = 6;
-    process *proc = ev.proc;
     dyn_saved_regs regs;
     ev.lwp->getRegisters(&regs);
     long params[NUMPARAMS];
-    int callnum = getCallNumber(&regs);
-    long retval = getReturnValue(&regs);
-    Address programCounter = getProgramCounter(&regs);
-    getParameters(&regs, params, NUMPARAMS, proc);
+    int callnum = getSysCallNumber(&regs);
+    long retval = getSysCallReturnValue(&regs);
+    Address programCounter = getSysCallProgramCounter(&regs);
+    getSysCallParameters(&regs, params, NUMPARAMS);
 
     int traceerr = 0;
     ev.type = evtNullEvent;
-    int addrWidth=proc->getAddressWidth();
+    int addrWidth=getAddressWidth();
 
     startup_printf("%s[%d]: decodeStartupSysCalls got tracestate=%d callnum=%d PC=0x%lx\n", 
-           FILE__, __LINE__, proc->getTraceState(), callnum, programCounter);
+           FILE__, __LINE__, getTraceState(), callnum, programCounter);
 
     // mmap syscall (there are multiple mmap syscalls on some platforms)
     // store the start and end addresses of the region so that we can later
     // determine which of the regions contains main
-    if (isMmapSyscall(callnum)) {
+    if (isMmapSysCall(callnum)) {
        if (retval == -ENOSYS) { // grab the mmap region end address
-           proc->mappedRegionEnd.push_back(getMmapLength(callnum, &regs, proc));
+           mappedRegionEnd.push_back(getMmapLength(callnum, &regs));
        } else { // the return value of mmap is the region's start address
-           proc->mappedRegionStart.push_back(retval);
+           mappedRegionStart.push_back(retval);
            // turn the OFFSET we put into mappedRegionEnd into an absolute Address
-           proc->mappedRegionEnd[proc->mappedRegionEnd.size()-1] 
-               = proc->mappedRegionEnd[proc->mappedRegionEnd.size()-1] + retval;
+           mappedRegionEnd[mappedRegionEnd.size()-1] 
+               = mappedRegionEnd[mappedRegionEnd.size()-1] + retval;
            startup_printf("%s[%d]: traced mmap syscall for region[0x%x 0x%x]\n",
                    __FILE__,__LINE__,
-                   (int)proc->mappedRegionStart[proc->mappedRegionStart.size()-1],
-                   (int)proc->mappedRegionEnd[proc->mappedRegionEnd.size()-1]);
+                   (int)mappedRegionStart[mappedRegionStart.size()-1],
+                   (int)mappedRegionEnd[mappedRegionEnd.size()-1]);
        }
     }
     // munmap: we also keep track of memory regions that are removed
     else if (callnum==SYS_munmap && retval == -ENOSYS) { 
        Address regionStart = params[0];
-       proc->munmappedRegions.push_back(regionStart);
+       munmappedRegions.push_back(regionStart);
        startup_printf("%s[%d]: traced munmap syscall for region at 0x%x\n",
                       __FILE__,__LINE__, regionStart);
     }
 
     // switch on state, this is an automaton
-    switch (proc->getTraceState()) { 
+    switch (getTraceState()) { 
     case libcOpenCall_ts: // wait for call to open libc.so
         if(callnum == SYS_open) { // open syscall
             char *oneword = (char*) malloc(addrWidth);
@@ -583,7 +590,7 @@ bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &ev)
             Address stringAddr = params[0];
             // recover the opened path from the call's arguments
             do {
-               if (!proc->readDataSpace((void*)stringAddr, addrWidth,
+               if (!readDataSpace((void*)stringAddr, addrWidth,
                                         (void*)oneword,true)) {
                    fprintf(stderr,"%s[%d]: failed readDataSpace\n",FILE__,__LINE__ );
                    return false;
@@ -600,7 +607,7 @@ bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &ev)
             pathbuffer[255] = '\0';
             // if the path matches libc.so, transition state
             if (strstr(pathbuffer, "libc.so")) {
-                proc->setTraceState(libcOpenRet_ts);
+                setTraceState(libcOpenRet_ts);
             }
             free(pathbuffer);
             free(oneword);
@@ -610,11 +617,11 @@ bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &ev)
         // syscall on libc
         if(callnum == SYS_open) { // call to open
             if (retval >= 0) {
-                proc->setLibcHandle(retval); 
-                proc->setTraceState(libcClose_ts);
+                libcHandle_ = retval; 
+                setTraceState(libcClose_ts);
             }
             else {// open syscall was unsuccessful, revert to previous state
-                proc->setTraceState(libcOpenCall_ts);
+                setTraceState(libcOpenCall_ts);
             }
         }
         break;
@@ -624,17 +631,17 @@ bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &ev)
             if (traceerr != 0) { 
                 fprintf(stderr,"[%s][%d]: ptrace err here\n", __FILE__,__LINE__); 
             }
-            if (fd == proc->getLibcHandle()) { // found close
-                proc->setTraceState(instrumentLibc_ts); 
-                proc->setBootstrapState(libcLoaded_bs);
+            if (fd == libcHandle_) { // found close
+                setTraceState(instrumentLibc_ts); 
+                setBootstrapState(libcLoaded_bs);
                 ev.type = evtLibcLoaded;
             }
         }
         break;
     case instrumentLibc_ts: // results in handling of trap in startmain 
-        if (abs((long)proc->getlibcstartmain_brk_addr() -(long)programCounter) <= 1) {
-            proc->setTraceState(done_ts);
-            proc->setTraceSysCalls(false);
+        if (abs((long)getlibcstartmain_brk_addr() -(long)programCounter) <= 1) {
+            setTraceState(done_ts);
+            setTraceSysCalls(false);
             ev.type = evtLibcTrap;
         }
         else {
@@ -648,7 +655,6 @@ bool SignalGeneratorCommon::decodeStartupSysCalls(EventRecord &ev)
     }// end switch statement
     return true;
 }// end decodeStartupSysCalls
-
 
 /* Find libc among the list of libraries that we've found
  * Search for __libc_start_main
@@ -715,7 +721,7 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
     assert(trappingLWP);
 
     // Read the parameters from the call to libcStartMain
-    Address mainaddr = getLibcStartMainParam(trappingLWP,this);
+    Address mainaddr = getLibcStartMainParam(trappingLWP);
     mapped_object *a_out = findObject(mainaddr);
 
     char namebuf[64];
@@ -750,6 +756,11 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
                        __FILE__, __LINE__,(int)regionStart, 
                        (int)regionEnd);
         }
+        // Make sure bytes 12-15 of magic header are set to 0 (for x86-64 bit)
+        ((int*)regionBuf)[3] = 0;
+        // We have no section information, so don't try to point to it
+        ((int*)regionBuf)[10] = 0;
+
         snprintf(namebuf, 64, "/tmp/MemRegion_%X_%X", 
                  (int)regionStart, (int)regionEnd);
         namebuf[63]='\0';
