@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.408 2007/09/12 20:57:17 bernat Exp $
+/* $Id: process.h,v 1.409 2007/09/14 16:55:03 roundy Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -258,23 +258,6 @@ class process : public AddressSpace {
     
     void continueAfterNextStop() { continueAfterNextStop_ = true; }
     static process *findProcess(int pid);
-    
-
-  // Vars & funcs for locating "main" via __libc_start_main instrumentation
-  Address getlibcstartmain_brk_addr() { return libcstartmain_brk_addr; }
-  bool handleTrapAtLibcStartMain(dyn_lwp *trappingLWP);
-  bool instrumentLibcStartMain();
-  bool getTraceSysCalls() { return traceSysCalls_; }
-  void setTraceSysCalls(bool traceSys);
-  traceState_t getTraceState() { return traceState_; }
-  void setTraceState(traceState_t state);
-  int getLibcHandle() { return libcHandle_; }
-  void setLibcHandle(int val) {  libcHandle_ = val; }
-  // regions that are added during syscall tracking phase
-  pdvector<Address> mappedRegionStart;
-  pdvector<Address> mappedRegionEnd;
-  // start addrs of regions munmapped before call to findLibcStartMain
-  pdvector<Address> munmappedRegions;
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -916,12 +899,6 @@ private:
   pdstring execFilePath;	// Full path info
   bool inExec_; // Used to be a status vrble, but is orthogonal to running/stopped
 
-  // ptracing
-  bool traceSysCalls_;
-  int libcHandle_;
-  traceState_t traceState_;
-  Address libcstartmain_brk_addr;
-  
   ///////////////////////////////
   // RPCs
   ///////////////////////////////
@@ -1009,6 +986,37 @@ private:
   pdvector<instMapping *> tracingRequests;
   pdvector<generatedCodeObject *> pendingGCInstrumentation;
 
+  ////////////////////////////////////////////
+  // __libc_start_main instrumentation stuff 
+  ////////////////////////////////////////////
+ public:
+  bool decodeStartupSysCalls(EventRecord &ev);
+  bool handleTrapAtLibcStartMain(dyn_lwp *trappingLWP);
+  bool instrumentLibcStartMain();
+  void setTraceSysCalls(bool traceSys);
+  void setTraceState(traceState_t state);
+  bool getTraceSysCalls() { return traceSysCalls_; }
+  traceState_t getTraceState() { return traceState_; }
+  Address getlibcstartmain_brk_addr() { return libcstartmain_brk_addr; }
+ private:
+  bool getSysCallParameters(dyn_saved_regs *regs, long *params, int numparams);
+  int getSysCallNumber(dyn_saved_regs *regs);
+  long getSysCallReturnValue(dyn_saved_regs *regs);
+  Address getSysCallProgramCounter(dyn_saved_regs *regs);
+  bool isMmapSysCall(int callnum);
+  OFFSET getMmapLength(int, dyn_saved_regs *regs);
+  Address getLibcStartMainParam(dyn_lwp *trappingLWP);
+  // regions that are added during syscall tracking phase
+  pdvector<Address> mappedRegionStart;
+  pdvector<Address> mappedRegionEnd;
+  // start addrs of regions munmapped before call to findLibcStartMain
+  pdvector<Address> munmappedRegions;
+  bool traceSysCalls_;
+  int libcHandle_;
+  traceState_t traceState_;
+  Address libcstartmain_brk_addr;
+ public:  
+
   ///////////////////////////////
   // Platform-specific
   ///////////////////////////////
@@ -1036,7 +1044,8 @@ private:
   // 64-32 bit mapping functions
   //////////////////
   bool readThreadStruct(Address baseAddr, dyninst_thread_t &struc);
-};
+
+};// end class process
 
 
 process *ll_createProcess(const pdstring file, pdvector<pdstring> *argv, 
