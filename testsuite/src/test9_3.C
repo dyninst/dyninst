@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_3.C,v 1.4 2006/10/11 21:54:22 cooksey Exp $
+// $Id: test9_3.C,v 1.5 2007/09/14 15:37:43 legendre Exp $
 /*
  * #Name: test9_3
  * #Desc: instrument a function with arguments and save the world
@@ -68,10 +68,7 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
   int passedTest;
   char *savedDirectory;
  
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(rs6000_ibm_aix5_1) \
- || defined(rs6000_ibm_aix4_1)
+#if 0
 //||  defined(rs6000_ibm_aix4_1) this fails on aix from the test case but the
 //mutated binary works fine when it is run by hand 
 
