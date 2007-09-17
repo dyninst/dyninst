@@ -51,6 +51,21 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_memoryAccess_NP.h"
 
+
+#if defined(arch_x86) || defined(sparc_sun_solaris2_4)
+#define slicing
+// #define interprocedural
+// #define print_graphs
+// #define logging
+#endif
+
+
+
+#if defined(slicing)
+#include "common/h/Annotatable.h"
+#include "BPatch_dependenceGraphNode.h"
+#endif
+
 class int_function;
 class process;
 class InstrucIter;
@@ -65,7 +80,12 @@ class BPatch_flowGraph;
 #endif
 #define DYNINST_CLASS_NAME BPatch_function
 
-class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_eventLock{
+//template class Annotatable<BPatch_function>;
+class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_eventLock
+#if defined(slicing)
+, public Annotatable<BPatch_function>
+#endif
+{
     friend class BPatch_flowGraph;
     friend class InstrucIter;
     friend class BPatch_basicBlock;
@@ -119,11 +139,20 @@ public:
         // remain undocumented for now.
     bool containsSharedBlocks();
 
+
+#if defined(slicing)
+    // slicing stuff
+    void createDataDependenceGraph();
+    void createControlDependenceGraph();
+    void createProgramDependenceGraph();
+    void createExtendedProgramDependenceGraph();
+    void identifyDependencies(BPatch_function* callee, void* calleeAddress);
+#endif
+
     // End of functions for internal use only
     
 
     // For users of the library:
-
 
 	// This function should be deprecated.
 	API_EXPORT(Int, (start, end, filename, max),
@@ -138,6 +167,20 @@ public:
     API_EXPORT(Buffer, (s, len),     
 
     char *,getName,(char *s, int len));
+
+    // #if defined(slicing)
+    API_EXPORT(Int,(inst),
+    BPatch_dependenceGraphNode*,getSlice,(BPatch_instruction* inst));
+
+    API_EXPORT(Int,(inst),
+    BPatch_dependenceGraphNode*,getProgramDependenceGraph,(BPatch_instruction* inst));
+
+    API_EXPORT(Int,(inst),
+    BPatch_dependenceGraphNode*,getControlDependenceGraph,(BPatch_instruction* inst));
+
+    API_EXPORT(Int,(inst),
+    BPatch_dependenceGraphNode*,getDataDependenceGraph,(BPatch_instruction* inst));
+    // #endif
 
     //  BPatch_function::getMangledName
     //  Returns mangled name of function, same as getName for non-c++ mutatees
@@ -299,6 +342,7 @@ public:
     // Get all functions that share a block (or any code, but it will
     // always be a block) with this function.
     API_EXPORT( Int, (funcs), bool, findOverlapping, (BPatch_Vector<BPatch_function *> &funcs));
+
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
