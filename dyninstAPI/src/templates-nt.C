@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.64 2007/07/20 22:29:20 tugrul Exp $
+// $Id: templates-nt.C,v 1.65 2007/09/17 15:23:13 tugrul Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -211,11 +211,12 @@ template class pdvector<dictionary_hash<AstNode *, regTracker_t::commonExpressio
 class Statistic;
 template class dictionary_hash<pdstring, Statistic *>;
 
-#include "BPatch_annotatable.C"
+#include "common/src/Annotatable.C"
 template class dictionary_hash<pdstring, int>;
 
-template class BPatch_annotatable<instruction>;
-template <class T> int BPatch_annotatable<T>::number;
-template <class T> int BPatch_annotatable<T>::metadataNum;
-template <class T> dictionary_hash<pdstring,int>* BPatch_annotatable<T>::annotationTypes;
-template <class T> dictionary_hash<pdstring,int>* BPatch_annotatable<T>::metadataTypes;
+template class Annotatable<instruction>;
+template class Annotatable<BPatch_function>;
+template <class T> int Annotatable<T>::number;
+template <class T> int Annotatable<T>::metadataNum;
+template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::annotationTypes;
+template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::metadataTypes;
