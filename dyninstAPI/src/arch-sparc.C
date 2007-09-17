@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.22 2007/09/12 20:57:22 bernat Exp $
+ * $Id: arch-sparc.C,v 1.23 2007/09/17 15:17:01 tugrul Exp $
  */
 
 #include "common/h/Types.h"
@@ -852,7 +852,7 @@ void instruction::get_register_operands(InsnRegister* reads,InsnRegister* writes
 	if(0)
 	if(read1 != NULL || write1 != NULL) {
 	  for(i=0; i<7; i++) {
-	    BPatch_annotation* r = getAnnotation(read,i);
+	    Annotation* r = getAnnotation(read,i);
 	    if(r != NULL) {
 	      reads[i] = *((InsnRegister*)r->getItem());
 	    }
@@ -860,7 +860,7 @@ void instruction::get_register_operands(InsnRegister* reads,InsnRegister* writes
 	      break;
 	  }
 	  for(i=0; i<5; i++) {
-	    BPatch_annotation* w = getAnnotation(write,i);
+	    Annotation* w = getAnnotation(write,i);
 	    if(w != NULL) {
 	      writes[i] = *((InsnRegister*)w->getItem());
 	    }
@@ -1246,14 +1246,14 @@ void instruction::get_register_operands(InsnRegister* reads,InsnRegister* writes
 
 	for(i=0; i<7; i++) {
 	  if(reads[i].getNumber() != -1) {
-	    setAnnotation(read,new BPatch_annotation(&(reads[i])));
+	    setAnnotation(read,new Annotation(&(reads[i])));
 	  }
 	  else
 	    break;
 	}
 	for(i=0; i<5; i++) {
 	  if(writes[i].getNumber() != -1) {
-	    setAnnotation(write,new BPatch_annotation(&(writes[i])));
+	    setAnnotation(write,new Annotation(&(writes[i])));
 	  }
 	  else
 	    break;

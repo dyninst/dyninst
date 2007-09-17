@@ -58,7 +58,7 @@
 #include "inst-x86.h"
 
 #include "BPatch_Set.h"
-#include "BPatch_annotatable.h"
+#include <common/h/Annotatable.h>
 
 #include "BPatch_instruction.h"
 #include "BPatch_memoryAccess_NP.h"
@@ -837,7 +837,7 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
   int n;
   if(read1 != NULL || write1 != NULL) {
     for(n=0; n<3; n++) {
-      BPatch_annotation* r = i.getAnnotation(read,n);
+      Annotation* r = i.getAnnotation(read,n);
       if(r != NULL) {
 	readRegs[n] = *((int*)r->getItem());
       }
@@ -845,7 +845,7 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
 	break;
     }
     for(n=0; n<3; n++) {
-      BPatch_annotation* w = i.getAnnotation(write,n);
+      Annotation* w = i.getAnnotation(write,n);
       if(w != NULL) {
 	writeRegs[n] = *((int*)w->getItem());
       }
@@ -919,7 +919,7 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
       if(readRegs[n] != -1) {
 	int* num = (int*)malloc(sizeof(int));
 	*num = readRegs[n];
-	i.setAnnotation(read,new BPatch_annotation(num));
+	i.setAnnotation(read,new Annotation(num));
       }
       else
 	break;
@@ -928,7 +928,7 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
       if(writeRegs[n] != -1) {
 	int* num = (int*)malloc(sizeof(int));
 	*num = writeRegs[n];
-	i.setAnnotation(write,new BPatch_annotation(num));
+	i.setAnnotation(write,new Annotation(num));
       }
       else
 	break;

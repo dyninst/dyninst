@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.48 2007/09/12 20:57:23 bernat Exp $
+// $Id: arch-sparc.h,v 1.49 2007/09/17 15:17:02 tugrul Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL
-#include "BPatch_annotatable.h"
+#include <common/h/Annotatable.h>
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -540,7 +540,7 @@ private:
 
 class codeGen;
 
-class instruction: public BPatch_annotatable<instruction> {
+class instruction: public Annotatable<instruction> {
  private:
     static instructUnion *insnPtr(codeGen &gen);
     static instructUnion *ptrAndInc(codeGen &gen);
@@ -549,7 +549,7 @@ class instruction: public BPatch_annotatable<instruction> {
     instruction(unsigned int raw) { insn_.raw = raw; }
 
     instruction(const instruction &insn) :
-      BPatch_annotatable<instruction>(),
+      Annotatable<instruction>(),
         insn_(insn.insn_) {};
     instruction(instructUnion &insn) :
         insn_(insn) {};
