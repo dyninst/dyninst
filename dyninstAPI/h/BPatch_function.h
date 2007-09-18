@@ -63,8 +63,9 @@
 
 #if defined(slicing)
 #include "common/h/Annotatable.h"
-#include "BPatch_dependenceGraphNode.h"
 #endif
+#include "BPatch_dependenceGraphNode.h"
+
 
 class int_function;
 class process;

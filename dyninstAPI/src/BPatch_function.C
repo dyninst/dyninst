@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.89 2007/09/17 15:27:38 tugrul Exp $
+// $Id: BPatch_function.C,v 1.90 2007/09/18 16:22:33 tugrul Exp $
 
 #define BPATCH_FILE
 
@@ -189,11 +189,6 @@ char *BPatch_function::getNameBuffer(char *s, int len)
     assert(func);
     string name = func->prettyName();
     strncpy(s, name.c_str(), len);
-
-    // DEBUG
-    createAnnotationType("eedd");
-
-
     return s;
 }
 
