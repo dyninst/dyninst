@@ -39,13 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.2 2007/09/12 22:15:02 bernat Exp $
+// $Id: binaryEdit.C,v 1.3 2007/09/19 19:25:08 bernat Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
 #include "mapped_object.h"
 #include "multiTramp.h"
 #include "debug.h"
+
+// #define USE_ADDRESS_MAPS
 
 // Reading and writing get somewhat interesting. We are building
 // a false address space - that of the "inferior" binary we're editing. 
@@ -58,18 +60,27 @@
 //  3) A section of the binary that was modified
 
 bool BinaryEdit::readTextSpace(const void *inOther,
-                           u_int amount,
-                           const void *inSelf) {
+                               u_int amount,
+                               const void *inSelf) {
+#if defined(USE_ADDRESS_MAPS)
+    // Let's keep this around - but I think instead we can
+    // use our codeRanges to figure out where things go...
+    // which means we delay writes.
+
     void *use = (void *) mapApparentToReal((Address)inOther, amount, false);
     memcpy((void *)inSelf, use, amount);
+#endif
     return true;
 }
 
 bool BinaryEdit::writeTextSpace(void *inOther,
                             u_int amount,
                             const void *inSelf) {
+#if defined(USE_ADDRESS_MAPS)
+    // See above
     void *use = (void *) mapApparentToReal((Address)inOther, amount, true);
     memcpy(use, inSelf, amount);
+#endif
     return true;
 }    
 
@@ -193,10 +204,18 @@ BinaryEdit *BinaryEdit::openFile(const pdstring &file) {
     newBinaryEdit->mapped_objects.push_back(bin);
     newBinaryEdit->addOrigRange(bin);
 
-    assert(0 && "Need to find address mapping of mapped object");
+    // We now need to access the start of the new section we're creating.
 
-    assert(newBinaryEdit->highWaterMark_);
-
+    /*
+      // I'm going through the mapped_object interface for now - 
+      // I assume we'll pass it to DynSymtab, then add our base
+      // address to it at the mapped_ level. 
+      mapped_section *newSection = bin->createSection();
+      assert(newSection);
+      newBinaryEdit->highWaterMark_ = newSection->baseAddr();
+      assert(newBinaryEdit->highWaterMark_);
+    */
+    
     addrMapping *aMap = new addrMapping(0, 0, 0);
     aMap->alloc = false;
     newBinaryEdit->apparentToReal_.insert(aMap);
@@ -214,7 +233,74 @@ bool BinaryEdit::getStatFileDescriptor(const pdstring &name, fileDescriptor &des
 }
 
 bool BinaryEdit::writeFile(const pdstring &newFileName) {
-    assert(0 && "Make Giri do work");
+    // We've made a bunch of changes and additions to the
+    // mapped object.
+    //   Changes: modifiedRanges_
+    //   Additions: textRanges_, excepting the file itself. 
+    // 
+    // Although, since we're creating a new file name we want
+    // textRanges. Basically, we want to serialize the contents
+    // of textRanges_, dataRanges_, and modifiedRanges_.
+
+    // A _lot_ of this method will depend on how the new file
+    // generation ends up working. Do we provide buffers? I'm guessing
+    // so.
+
+    // Step 1: changes. 
+    
+    // Allocate a new buffer for the text of the program
+    void *textSection = malloc(getAOut()->get_size_cr());
+
+    // Copy in from the binary
+    //assert(getAOut());
+    memcpy(textSection, getAOut()->get_local_ptr(), getAOut()->get_size_cr());
+    
+    // And now apply changes
+    // Note: I want an iterator. Stat. 
+    pdvector<codeRange *> modified;
+    modifiedRanges_.elements(modified);
+    for (unsigned i = 0; i < modified.size(); i++) {
+        assert(modified[i]->get_address_cr() >= getAOut()->get_address_cr());
+        Address offset = modified[i]->get_address_cr() - getAOut()->get_address_cr();
+        assert(offset < getAOut()->get_size_cr());
+        void *local_addr = (void *)((Address) textSection + offset);
+        memcpy(local_addr, modified[i]->get_local_ptr(), modified[i]->get_size_cr());
+    }
+
+    // Okay, that's our text section. 
+    // Now for the new stuff.
+    
+    pdvector<codeRange *> newStuff;
+    textRanges_.elements(newStuff);
+
+    // Righto. Now, that includes the old binary - by design - 
+    // so skip it and see what we're talking about size-wise. Which should
+    // be less than the highWaterMark, so we can double-check.
+    assert(newStuff.size());
+    assert(newStuff[0] == getAOut());
+
+    void *newSection = NULL;
+
+    // Wouldn't it be funny if they didn't add any new code at all?
+    if (newStuff.size() > 1) {
+        Address low = newStuff[1]->get_address_cr();
+        Address high = newStuff.back()->get_address_cr() + newStuff.back()->get_size_cr();
+        Address size = high - low;
+        assert(size <= highWaterMark_); // That would be... odd.
+        
+        newSection = malloc(size);
+        for (unsigned i = 1; i < newStuff.size(); i++) {
+
+            Address offset = newStuff[i]->get_address_cr() - newStuff[1]->get_address_cr();
+            assert(offset < size);
+            void *local_addr = (void *)(offset);
+            memcpy(local_addr, newStuff[i]->get_local_ptr(), newStuff[i]->get_size_cr());
+        }
+    }
+
+    // Okay, now...
+    // Hand textSection and newSection to DynSymtab.
+
     return false;
 }
 
@@ -222,8 +308,10 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
     // Should be set by now
     assert(highWaterMark_ != 0);
 
+#if defined(USE_ADDRESS_MAPS)
     void *buf = malloc(size);
     if (!buf) return false;
+#endif
     
     // Build tracking objects for it
     heapItem *h = new heapItem(highWaterMark_, 
@@ -231,20 +319,26 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
                                anyHeap,
                                true,
                                HEAPfree);
+#if defined(USE_ADDRESS_MAPS)
     h->setBuffer(buf);
+#endif
+
     addHeap(h);
-    
+
+#if defined(USE_ADDRESS_MAPS)
     addrMapping *aMap = new addrMapping(highWaterMark_,
                                         (Address) buf,
                                         size);
     aMap->alloc = true;
     apparentToReal_.insert(aMap);
+#endif
 
     highWaterMark_ += size;
 
     return true;
 }
 
+// We can leave this around - it's harmless
 Address BinaryEdit::mapApparentToReal(const Address apparent,
                                       unsigned size,
                                       bool writing) {
@@ -314,6 +408,6 @@ Address BinaryEdit::mapApparentToReal(const Address apparent,
             return ret;
         }
     }
-    return NULL;    
+    return 0;
 }    
 
