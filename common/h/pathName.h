@@ -39,6 +39,8 @@
 #include <string>
 using namespace std;
 
+class pdstring;
+
 pdstring expand_tilde_pathname(const pdstring &dir);
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
    // or convert "~/hello" to same.

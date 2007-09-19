@@ -17,7 +17,7 @@
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
 			CharacterSet="2"
-			ManagedExtensions="TRUE">
+			ManagedExtensions="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
@@ -26,6 +26,7 @@
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
+				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
 				DebugInformationFormat="3"/>
 			<Tool
@@ -34,9 +35,11 @@
 				Name="VCLinkerTool"
 				OutputFile="$(OutDir)\libcommon.dll"
 				LinkIncremental="2"
+				SuppressStartupBanner="TRUE"
 				GenerateDebugInformation="TRUE"
 				AssemblyDebug="1"
-				SubSystem="2"
+				SubSystem="0"
+				ResourceOnlyDLL="FALSE"
 				FixedBaseAddress="0"/>
 			<Tool
 				Name="VCMIDLTool"/>
