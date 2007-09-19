@@ -38,7 +38,8 @@ endif
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../src/Object-xcoff.C \
-		../src/Dyn_Archive.C
+		../src/Archive.C \
+		../src/parseStab.C
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread
