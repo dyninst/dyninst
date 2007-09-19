@@ -21,13 +21,15 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="h;..;&quot;../../i386-unknown-nt4.0/include&quot;"
+				AdditionalIncludeDirectories="h;..;../dynutil/h;&quot;../../i386-unknown-nt4.0/include&quot;"
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf;DLL_BUILD"
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
+				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
 				DebugInformationFormat="3"
+				DisableSpecificWarnings="4251"
 				UndefinePreprocessorDefinitions="LIBXML_ICONV_ENABLED"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
@@ -132,12 +134,20 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			Filter="C;cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
-				RelativePath=".\src\Dyn_Symtab.C">
+				RelativePath=".\src\Collections.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\LineInformation.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -159,22 +169,55 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\src\Symtab.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Type.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
 			<File
-				RelativePath=".\h\Dyn_Symbol.h">
+				RelativePath=".\src\Collections.h">
 			</File>
 			<File
-				RelativePath=".\h\Dyn_Symtab.h">
+				RelativePath="..\dynutil\h\dyntypes.h">
+			</File>
+			<File
+				RelativePath=".\h\LineInformation.h">
 			</File>
 			<File
 				RelativePath=".\src\Object-nt.h">
 			</File>
 			<File
 				RelativePath=".\src\Object.h">
+			</File>
+			<File
+				RelativePath=".\h\RangeLookup.h">
+			</File>
+			<File
+				RelativePath=".\h\Symbol.h">
+			</File>
+			<File
+				RelativePath=".\h\Symtab.h">
+			</File>
+			<File
+				RelativePath=".\h\Type.h">
 			</File>
 			<File
 				RelativePath=".\h\util.h">
