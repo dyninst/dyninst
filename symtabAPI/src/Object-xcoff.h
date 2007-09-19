@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.5 2007/05/30 19:20:52 legendre Exp $
+ * $Id: Object-xcoff.h,v 1.6 2007/09/19 21:53:58 giri Exp $
 ************************************************************************/
 
 
@@ -51,7 +51,7 @@
 
 #include "common/h/headers.h"
 //#include <common/h/Line.h>
-#include "symtabAPI/h/Dyn_Symbol.h"
+#include "symtabAPI/h/Symbol.h"
 #include "common/h/Types.h"
 
 #include <ext/hash_map>
@@ -76,14 +76,18 @@ extern "C" {
 #define __AR_BIG__
 #define __AR_SMALL__
 #include <ar.h>
+
+namespace Dyninst {
+namespace SymtabAPI {
+
 class fileOpener;
 
 // Object to represent both the 32-bit and 64-bit archive headers
 // for ar files (libraries)
-class Archive {
+class xcoffArchive {
  public:
-  Archive (fileOpener *f) : member_name(0), fo_(f) {}
-  virtual ~Archive () {}
+  xcoffArchive (fileOpener *f) : member_name(0), fo_(f) {}
+  virtual ~xcoffArchive () {}
   
   virtual int read_arhdr() = 0;
   virtual int read_mbrhdr() = 0;
@@ -99,10 +103,10 @@ class Archive {
   fileOpener *fo_;
 };
 
-class Archive_32 : private Archive {
+class xcoffArchive_32 : private xcoffArchive {
  public:
-  Archive_32 (fileOpener *file) : Archive(file) {};
-  ~Archive_32 () {if (member_name) free(member_name);};
+  xcoffArchive_32 (fileOpener *file) : xcoffArchive(file) {};
+  ~xcoffArchive_32 () {if (member_name) free(member_name);};
   virtual int read_arhdr();
   virtual int read_mbrhdr();
 
@@ -111,10 +115,10 @@ class Archive_32 : private Archive {
   struct ar_hdr memberhdr;
 };
 
-class Archive_64 : private Archive {
+class xcoffArchive_64 : private xcoffArchive {
  public:
-  Archive_64 (fileOpener *file) : Archive(file) {};
-  ~Archive_64 () {if (member_name) free(member_name);};
+  xcoffArchive_64 (fileOpener *file) : xcoffArchive(file) {};
+  ~xcoffArchive_64 () {if (member_name) free(member_name);};
   virtual int read_arhdr();
   virtual int read_mbrhdr();
 
@@ -128,13 +132,13 @@ class Archive_64 : private Archive {
 
 class fileOpener {
  public:
-    static vector<fileOpener *> openedFiles;
-    static fileOpener *openFile(const string &file);
+    static std::vector<fileOpener *> openedFiles;
+    static fileOpener *openFile(const std::string &file);
     static fileOpener *openFile(void *ptr, unsigned size);
     
     void closeFile();
 
-    fileOpener(const string &file) : refcount_(1), 
+    fileOpener(const std::string &file) : refcount_(1), 
         file_(file), fd_(0), 
         size_(0), mmapStart_(NULL),
         offset_(0) {}
@@ -160,14 +164,14 @@ class fileOpener {
     void *ptr() const;
     void *getPtrAtOffset(unsigned offset) const;
     
-    const string &file() const { return file_; }
+    const std::string &file() const { return file_; }
     int fd() const { return fd_; }
     unsigned size() const { return size_; }
     void *mem_image() const { return mmapStart_; }
 
  private:
     int refcount_;
-    string file_;
+    std::string file_;
     int fd_;
     unsigned size_;
     void *mmapStart_;
@@ -176,25 +180,25 @@ class fileOpener {
     unsigned offset_;
 };
 
+
+class Symtab;
+
 /************************************************************************
  * class Object
 ************************************************************************/
 
 class Object : public AObject {
  public:
-    // We _really_ never want this to be called...
     Object (const Object &);
     Object&   operator= (const Object &);
-
-public:
     Object(){}	
-    Object(string &filename,	
+    Object(std::string &filename,	
             void (*)(const char *) = log_msg);
     Object(char *mem_image, size_t image_size,
             void (*)(const char *) = log_msg);
-    Object(string &filename, string &member_name, OFFSET offset,	
+    Object(std::string &filename, std::string &member_name, Offset offset,	
             void (*)(const char *) = log_msg);
-    Object(char *mem_image, size_t image_size,string &member_name, OFFSET offset,
+    Object(char *mem_image, size_t image_size,std::string &member_name, Offset offset,
             void (*)(const char *) = log_msg);
     ~Object ()
     {
@@ -202,13 +206,13 @@ public:
     	    fo_->closeFile();
     }
     
-    OFFSET getTOCoffset() const { return toc_offset_; }
+    Offset getTOCoffset() const { return toc_offset_; }
 
     // AIX does some weirdness with addresses. We don't want to touch local
     // symbols to get addresses right, but that means that the base address
     // needs to have a small value added back in. On shared objects.
-    OFFSET data_reloc () const { return data_reloc_; }
-    OFFSET text_reloc () const { return text_reloc_; }
+    Offset data_reloc () const { return data_reloc_; }
+    Offset text_reloc () const { return text_reloc_; }
     
     void get_stab_info(char *&stabstr, int &nstabs, void *&stabs, char *&stringpool) const;
     
@@ -218,34 +222,53 @@ public:
 	fdptr = linesfdptr_;
     }
 
-    OFFSET getLoadAddress() const { return loadAddress_; }
-    OFFSET getEntryAddress() const { return entryAddress_; }
-    OFFSET getBaseAddress() const { return baseAddress_; }
-    void getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs);
+    Offset getLoadAddress() const { return loadAddress_; }
+    Offset getEntryAddress() const { return entryAddress_; }
+    Offset getBaseAddress() const { return baseAddress_; }
+    void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
     const char *interpreter_name() const { return NULL; }
+    hash_map<std::string, LineInformation > &getLineInfo() { 
+    	parseFileLineInfo();
+    	return lineInfo_; 
+    }
     
     ObjectType objType() const;
+    bool isEEL() const { return false; }
+    // Emit a new binary
+    virtual bool writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
+    bool emitDriver(Symtab *obj, std::string fName, std::vector<Section *>newSecs);
+    bool checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
+
+    void parseTypeInfo(Symtab *obj);
+
+
+private:
 
     void load_object();
     void load_archive(bool is_aout);
     void parse_aout(int offset, bool is_aout);
-    bool isEEL() const { return false; }
-    
-
+    void parseFileLineInfo();
+    void parseLineInformation(std::string * currentSourceFile,
+                                	char * symbolName,
+                                	SYMENT * sym,
+                                 	Offset linesfdptr,
+                                 	char * lines,
+                                 	int nlines );
+																										 
     // We mmap big files and piece them out; this handles the mapping
     // and reading and pointerage and...
     fileOpener *fo_;
 
-    string member_;
-    OFFSET offset_;
-    OFFSET toc_offset_;
-    OFFSET data_reloc_;
-    OFFSET text_reloc_;
+    std::string member_;
+    Offset offset_;
+    Offset toc_offset_;
+    Offset data_reloc_;
+    Offset text_reloc_;
 
-    OFFSET   loadAddress_;      // The object may specify a load address
+    Offset   loadAddress_;      // The object may specify a load address
                                     //   Set to 0 if it may load anywhere
-    OFFSET entryAddress_;
-    OFFSET baseAddress_;
+    Offset entryAddress_;
+    Offset baseAddress_;
     
 
     int  nstabs_;
@@ -254,10 +277,15 @@ public:
     void *stabs_;
     void *stringpool_;
     void *linesptr_;
-    OFFSET linesfdptr_;
+    Offset linesfdptr_;
+    hash_map<std::string, LineInformation > lineInfo_;
 };
-char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes );
 
-
+
+}//namespace SymtabAPI
+
+}//namespace Dyninst
+
+char *P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes );
 
 #endif /* !defined(_Object_aix_h_) */

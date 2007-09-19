@@ -37,6 +37,8 @@
 #include "common/h/headers.h"
 
 // Wrappers to allow word-independant use of libelf routines.
+namespace Dyninst{
+namespace SymtabAPI{
 
 #if defined(arch_ia64)
 // ------------------------------------------------------------------------
@@ -645,5 +647,8 @@ class Elf_X {
     Elf64_Phdr *phdr64;
     bool is64;
 };
+
+}//namespace SymtabAPI
+}//namespace Dyninst
 
 #endif

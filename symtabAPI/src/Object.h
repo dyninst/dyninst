@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.4 2007/05/30 19:20:54 legendre Exp $
+ * $Id: Object.h,v 1.5 2007/09/19 21:53:59 giri Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -46,17 +46,21 @@
 #include <string>
 #include <vector>
 
-#include "symtabAPI/h/Dyn_Symbol.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
-#include "common/h/Types.h"
-#include "common/h/Vector.h"
+#include "symtabAPI/h/Symbol.h"
+#include "symtabAPI/h/LineInformation.h"
 #include "common/h/lprintf.h"
 
-extern bool symbol_compare(const Dyn_Symbol *s1, const Dyn_Symbol *s2);
+namespace Dyninst{
+namespace SymtabAPI{
 
-class Dyn_Symtab;
-class Dyn_ExceptionBlock;
+extern bool symbol_compare(const Symbol *s1, const Symbol *s2);
 
+class Symtab;
+class ExceptionBlock;
+class relocationEntry;
+
+const char WILDCARD_CHARACTER = '?';
+const char MULTIPLE_WILDCARD_CHARACTER = '*';
 
 /************************************************************************
  * class AObject
@@ -73,80 +77,80 @@ public:
     DLLEXPORT AObject();
     DLLEXPORT unsigned nsymbols () const;
     
-    DLLEXPORT bool get_symbols( string & name, vector< Dyn_Symbol *> & symbols);
+    DLLEXPORT bool get_symbols( std::string & name, std::vector< Symbol *> & symbols);
 
-    DLLEXPORT Word*       code_ptr () const; 
-    DLLEXPORT OFFSET           code_off () const;
-    DLLEXPORT OFFSET           code_len () const;
+    DLLEXPORT char*       code_ptr () const; 
+    DLLEXPORT Offset           code_off () const;
+    DLLEXPORT Offset           code_len () const;
 
-    DLLEXPORT Word*       data_ptr () const;
-    DLLEXPORT OFFSET           data_off () const;
-    DLLEXPORT OFFSET           data_len () const;
+    DLLEXPORT char*       data_ptr () const;
+    DLLEXPORT Offset           data_off () const;
+    DLLEXPORT Offset           data_len () const;
 
-    DLLEXPORT OFFSET           code_vldS () const;
-    DLLEXPORT OFFSET           code_vldE () const;
-    DLLEXPORT OFFSET           data_vldS () const;
-    DLLEXPORT OFFSET           data_vldE () const;
+    DLLEXPORT Offset           code_vldS () const;
+    DLLEXPORT Offset           code_vldE () const;
+    DLLEXPORT Offset           data_vldS () const;
+    DLLEXPORT Offset           data_vldE () const;
 
     DLLEXPORT bool 	      is_aout  () const;
 
     DLLEXPORT unsigned	      no_of_sections () const;
     DLLEXPORT unsigned	      no_of_symbols  ()	const;
 
-    DLLEXPORT bool getAllExceptions(vector<Dyn_ExceptionBlock *>&excpBlocks) const;
-    DLLEXPORT vector<Dyn_Section *> getAllSections() const;
+    DLLEXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
+    DLLEXPORT std::vector<Section *> getAllSections() const;
 
-    DLLEXPORT supportedLanguages pickLanguage(string &working_module, char *working_options,
+    DLLEXPORT supportedLanguages pickLanguage(std::string &working_module, char *working_options,
                                                                     supportedLanguages working_lang);
 
-    DLLEXPORT OFFSET loader_off() const;
+    DLLEXPORT Offset loader_off() const;
     DLLEXPORT unsigned loader_len() const;
     DLLEXPORT int getAddressWidth() const;
 
     DLLEXPORT virtual char *  mem_image() const;
 
     DLLEXPORT virtual  bool   needs_function_binding()  const;
-    DLLEXPORT virtual  bool   get_func_binding_table(vector<relocationEntry> &) const;
-    DLLEXPORT virtual  bool   get_func_binding_table_ptr(const vector<relocationEntry> *&) const;
-    
+    DLLEXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
+    DLLEXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const;
+    DLLEXPORT virtual  bool   writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes) = 0;
     DLLEXPORT bool have_deferred_parsing( void ) const;
     // for debuggering....
-    DLLEXPORT const ostream &dump_state_info(ostream &s);
+    DLLEXPORT const std::ostream &dump_state_info(std::ostream &s);
 
     DLLEXPORT void * getErrFunc() const;
-    DLLEXPORT hash_map< string, vector< Dyn_Symbol *> > *getAllSymbols();
+    DLLEXPORT hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
 
 protected:
     DLLEXPORT virtual ~AObject();
     // explicitly protected
-    DLLEXPORT AObject(const string file , void (*err_func)(const char *));
+    DLLEXPORT AObject(const std::string file , void (*err_func)(const char *));
     DLLEXPORT AObject(const AObject &obj);
     DLLEXPORT AObject&  operator= (const AObject &obj);
 
-    string file_;
-    vector< Dyn_Section *> sections_;
-    hash_map< string, vector< Dyn_Symbol *> > symbols_;
+    std::string file_;
+    std::vector< Section *> sections_;
+    hash_map< std::string, std::vector< Symbol *> > symbols_;
 
-    Word*   code_ptr_;
-    OFFSET code_off_;
-    OFFSET code_len_;
+    char*   code_ptr_;
+    Offset code_off_;
+    Offset code_len_;
 
-    Word*   data_ptr_;
-    OFFSET data_off_;
-    OFFSET data_len_;
+    char*   data_ptr_;
+    Offset data_off_;
+    Offset data_len_;
 
-    OFFSET code_vldS_;
-    OFFSET code_vldE_;
+    Offset code_vldS_;
+    Offset code_vldE_;
 
-    OFFSET data_vldS_;
-    OFFSET data_vldE_;
+    Offset data_vldS_;
+    Offset data_vldE_;
 
-    OFFSET loader_off_; //only used on aix right now.  could be
-    OFFSET loader_len_; //needed on other platforms in the future
+    Offset loader_off_; //only used on aix right now.  could be
+    Offset loader_len_; //needed on other platforms in the future
 
-//    OFFSET loadAddress_;
-//    OFFSET entryAddress_;
-//    OFFSET baseAddress_;
+//    Offset loadAddress_;
+//    Offset entryAddress_;
+//    Offset baseAddress_;
     
     bool is_aout_;
 
@@ -157,13 +161,16 @@ protected:
     void (*err_func_)(const char*);
     int addressWidth_nbytes;
 
-    vector<Dyn_ExceptionBlock> catch_addrs_; //Addresses of C++ try/catch blocks;
+    std::vector<ExceptionBlock> catch_addrs_; //Addresses of C++ try/catch blocks;
     
 private:
     friend class SymbolIter;
-    friend class Dyn_Symtab;
+    friend class Symtab;
 
 };
+
+}//namepsace Symtab
+}//namespace Dyninst
 
 /************************************************************************
  * include the architecture-operating system specific object files.
@@ -185,11 +192,14 @@ private:
  * class SymbolIter
 ************************************************************************/
 
+namespace Dyninst{
+namespace SymtabAPI{
+
 class SymbolIter {
  private:
-   hash_map< string, vector< Dyn_Symbol *> > *symbols;
+   hash_map< std::string, std::vector< Symbol *> > *symbols;
    unsigned int currentPositionInVector;
-   hash_map< string, vector< Dyn_Symbol *> >::iterator symbolIterator;
+   hash_map< std::string, std::vector< Symbol *> >::iterator symbolIterator;
    
  public:
    SymbolIter( Object & obj );
@@ -200,15 +210,18 @@ class SymbolIter {
    
    operator bool() const;
    void operator++ ( int );
-   const string & currkey() const;
+   const std::string & currkey() const;
    
    /* If it's important that this be const, we could try to initialize
       currentVector to '& symbolIterator.currval()' in the constructor. */
-   Dyn_Symbol *currval();
+   Symbol *currval();
    
  private:	
    
    SymbolIter & operator = ( const SymbolIter & ); // explicitly disallowed
 }; /* end class SymbolIter() */
+
+}//namepsace SymtabAPI
+}//namespace Dyninst
 
 #endif /* !defined(_Object_h_) */

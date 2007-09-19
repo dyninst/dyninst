@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.6 2007/08/07 15:16:06 ssuen Exp $
+ * $Id: Object-elf.h,v 1.7 2007/09/19 21:53:56 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -39,7 +39,7 @@
 #define _Object_elf_h_
 
 
-#include "symtabAPI/h/Dyn_Symbol.h"
+#include "symtabAPI/h/Symbol.h"
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 #include <elf.h>
@@ -56,6 +56,8 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+namespace Dyninst{
+namespace SymtabAPI{
 /*
  * The standard symbol table in an elf file is the .symtab section. This section does
  * not have information to find the module to which a global symbol belongs, so we must
@@ -182,36 +184,51 @@ class stab_entry_64 : public stab_entry {
 
 class pdElfShdr;
 
+class Symtab;
+class Section;
+
 class Object : public AObject {
  public:
   Object(){}
-  //void findMain( vector< Dyn_Symbol *> &allsymbols );
-  //OFFSET findDynamic( vector< Dyn_Symbol *> &allsymbols );
+  //void findMain( std::vector< Symbol *> &allsymbols );
+  //Offset findDynamic( std::vector< Symbol *> &allsymbols );
   // "Filedescriptor" ctor
-  Object(string &filename, void (*)(const char *) = log_msg);
+  Object(std::string &filename, void (*)(const char *) = log_msg);
   Object(char *mem_image, size_t image_size, void (*)(const char *) = log_msg);
   Object(const Object &);
   virtual ~Object();
   const Object& operator=(const Object &);
 
-  const char *elf_vaddr_to_ptr(OFFSET vaddr) const;
+  virtual bool writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
+  bool emitDriver(Symtab *obj, std::string fName, std::vector<Section *>newSecs);
+  bool checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
+  bool createNonLoadableSections(Elf *&newElf, std::vector<Section *>&nonLoadableSecs, Elf32_Shdr *shdr, unsigned shstrtabDataSize, unsigned);
+  void addSectionNames(Elf_Data *&, Elf_Data *, unsigned , unsigned , std::vector<std::string> &, std::vector<Section*>&);
+  bool createLoadableSections(Elf *&, Elf32_Shdr *, std::vector<Section *>&, std::vector<std::string> &, std::vector<Section *>&, unsigned &, unsigned &, unsigned &);
+  void fixPhdrs(Elf32_Phdr * phdr, unsigned loadSecsSize);
+  
+  const char *elf_vaddr_to_ptr(Offset vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
   stab_entry * get_stab_info() const;
   const char * getFileName() const { return fileName; }
-  void getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs);
+  void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
+  void parseFileLineInfo();
+  void parseTypeInfo(Symtab *obj);
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
-  bool get_func_binding_table(vector<relocationEntry> &fbt) const;
-  bool get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const;
+  bool get_func_binding_table(std::vector<relocationEntry> &fbt) const;
+  bool get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const;
 
   //getLoadAddress may return 0 on shared objects
-  OFFSET getLoadAddress() const { return loadAddress_; }
+  Offset getLoadAddress() const { return loadAddress_; }
 
-  OFFSET getEntryAddress() const { return entryAddress_; }
+  Offset getEntryAddress() const { return entryAddress_; }
   // To be changed later - Giri
-  OFFSET getBaseAddress() const { return 0; }
-  virtual char *  mem_image() const { 
+  Offset getBaseAddress() const { return 0; }
+  static bool truncateLineFilenames;
+ 
+  virtual char *mem_image() const { 
   	if(fileName == NULL)
 		return mem_image_;
   	return file_ptr_; 
@@ -224,7 +241,7 @@ class Object : public AObject {
 //TODO Later - change this #ifdef later.. make getTOCoffset available for all platforms  
 
 #if defined(arch_ia64)
-  OFFSET getTOCoffset() const { return gp; }
+  Offset getTOCoffset() const { return gp; }
 #elif defined(os_linux) && defined(arch_power) && defined(arch_64bit)
   // 64-bit PowerPC ELF ABI Supplement, Version 1.9, 2004-10-23:
   //   The TOC section contains a conventional ELF GOT, and may optionally
@@ -232,17 +249,17 @@ class Object : public AObject {
   //   The TOC base is typically the first address in the TOC plus 0x8000.
   // I don't understand why I can find a ".got" within binaries, but I can't
   // find a ".toc".  ssuen  August 7, 2007
-  OFFSET getTOCoffset() const { return got_addr_ + 0x8000; }
+  Offset getTOCoffset() const { return got_addr_ + 0x8000; }
 #else
-  OFFSET getTOCoffset() const { return 0; }
+  Offset getTOCoffset() const { return 0; }
 #endif
 
-  const ostream &dump_state_info(ostream &s);
+  const std::ostream &dump_state_info(std::ostream &s);
   bool isEEL() { return EEL; }
 
 	//to determine if a mutation falls in the text section of
 	// a shared library
-	bool isinText(OFFSET addr, OFFSET baseaddr) const { 
+	bool isinText(Offset addr, Offset baseaddr) const { 
 		//printf(" baseaddr %x TESTING %x %x \n", baseaddr, text_addr_ + baseaddr  , text_addr_ + baseaddr + text_size_ );
 		if(addr > text_addr_ + baseaddr     &&
 		   addr < text_addr_ + baseaddr + text_size_ ) {
@@ -253,20 +270,27 @@ class Object : public AObject {
 	// to determine where in the .plt this function is listed 
 	// returns an offset from the base address of the object
 	// so the entry can easily be located in memory
-	OFFSET getPltSlot(string funcName) const ;
-	bool hasSymAtAddr( OFFSET adr )
+	Offset getPltSlot(std::string funcName) const ;
+	bool hasSymAtAddr( Offset adr )
 	{
 	    return (symbolNamesByAddr.find( adr )!=symbolNamesByAddr.end());
 	}
-	OFFSET textAddress(){ return text_addr_;}
-	bool isText( OFFSET addr ) const
+	Offset textAddress(){ return text_addr_;}
+	bool isText( Offset addr ) const
 	{
 	    if( addr >= text_addr_ && addr <= text_addr_ + text_size_ )
 		return true;
 	    return false;
 	}
 
-	bool is_offset_in_plt(OFFSET offset) const;
+	bool is_offset_in_plt(Offset offset) const;
+        hash_map<std::string, LineInformation > &getLineInfo()
+        {
+	    //Parse Line Info
+	    parseFileLineInfo();
+		   
+            return lineInfo_;
+        }
 
  private:
   static void log_elferror (void (*)(const char *), const char *);
@@ -279,37 +303,38 @@ class Object : public AObject {
   const char * fileName;
   char *mem_image_;
   //Symbol    mainSym_;
-  OFFSET   fini_addr_;
-  OFFSET   text_addr_; 	 //.text section 
-  OFFSET   text_size_; 	 //.text section size
-  OFFSET   dynamic_addr_;	 //.dynamic section
-  OFFSET   dynsym_addr_;        // .dynsym section
-  OFFSET   dynstr_addr_;        // .dynstr section
-  OFFSET   got_addr_;           // global offset table
+  Offset   fini_addr_;
+  Offset   text_addr_; 	 //.text section 
+  Offset   text_size_; 	 //.text section size
+  Offset   dynamic_addr_;	 //.dynamic section
+  Offset   dynsym_addr_;        // .dynsym section
+  Offset   dynstr_addr_;        // .dynstr section
+  Offset   got_addr_;           // global offset table
   unsigned  got_size_;           // global offset table
-  OFFSET   plt_addr_;           // procedure linkage table
+  Offset   plt_addr_;           // procedure linkage table
   unsigned  plt_size_;           // procedure linkage table
   unsigned  plt_entry_size_;     // procedure linkage table
-  OFFSET   rel_plt_addr_;       // .rel[a].plt section
+  Offset   rel_plt_addr_;       // .rel[a].plt section
   unsigned  rel_plt_size_;       // .rel[a].plt section
   unsigned  rel_plt_entry_size_; // .rel[a].plt section
 
-  OFFSET   stab_off_;           // .stab section
+  Offset   stab_off_;           // .stab section
   unsigned  stab_size_;          // .stab section
-  OFFSET   stabstr_off_;        // .stabstr section
+  Offset   stabstr_off_;        // .stabstr section
 
-  OFFSET   stab_indx_off_;	 // .stab.index section
+  Offset   stab_indx_off_;	 // .stab.index section
   unsigned  stab_indx_size_;	 // .stab.index section
-  OFFSET   stabstr_indx_off_;	 // .stabstr.index section
+  Offset   stabstr_indx_off_;	 // .stabstr.index section
 
   bool      dwarvenDebugInfo;    // is DWARF debug info present?
-  OFFSET   loadAddress_;      // The object may specify a load address
+  Offset   loadAddress_;      // The object may specify a load address
                                //   Set to 0 if it may load anywhere
-  OFFSET entryAddress_;
+  Offset entryAddress_;
   char *interpreter_name_;
+  bool  isStripped;
           
 #if defined(arch_ia64)
-  OFFSET   gp;			 // The gp for this object.
+  Offset   gp;			 // The gp for this object.
 #endif
   bool      EEL;                 // true if EEL rewritten
   bool 	    did_open;		// true if the file has been mmapped
@@ -322,21 +347,24 @@ class Object : public AObject {
   // an indirect jump to a GOT entry that is modified when the function 
   // is bound....is this correct???? or should it be <PLTentry_addr, name> 
   // for both?
-  vector<relocationEntry> relocation_table_;
+  std::vector<relocationEntry> relocation_table_;
 
   // all section headers, sorted by address
   // we use these to do a better job of finding the end of symbols
-  vector<Elf_X_Shdr*> allSectionHdrs;
+  std::vector<Elf_X_Shdr*> allSectionHdrs;
 
   // It doesn't look like image's equivalent hashtable is built by
   // the time we need it, and it's hard to get to anyway.
-  hash_map< OFFSET, string > symbolNamesByAddr;
+  hash_map< Offset, std::string > symbolNamesByAddr;
+
+  // LineNumber information
+  hash_map< std::string, LineInformation>lineInfo_;
 
   // populates: file_fd_, file_size_, file_ptr_
   bool mmap_file(const char *file, 
 		 bool &did_open, bool &did_mmap);
 
-  bool loaded_elf( OFFSET &, OFFSET &,
+  bool loaded_elf( Offset &, Offset &,
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &,
@@ -345,6 +373,12 @@ class Object : public AObject {
 		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
           bool a_out=false);
+  
+  void parseStabFileLineInfo();
+  void parseDwarfFileLineInfo();
+
+  void parseDwarfTypes(Symtab *obj);
+  void parseStabTypes(Symtab *obj);
 
   void load_object();
   void load_shared_object();
@@ -354,17 +388,17 @@ class Object : public AObject {
 			      Elf_X_Shdr *&dynsym_scnp, 
 			      Elf_X_Shdr *&dynstr_scnp);
 
-  void parse_symbols(vector<Dyn_Symbol *> &allsymbols, 
+  void parse_symbols(std::vector<Symbol *> &allsymbols, 
 		     Elf_X_Data &symdata, Elf_X_Data &strdata,
 		     bool shared_library,
-		     string module);
+		     std::string module);
   
-  void fix_zero_function_sizes(vector<Dyn_Symbol *> &allsymbols, bool EEL);
-  void override_weak_symbols(vector<Dyn_Symbol *> &allsymbols);
-  void insert_symbols_shared(vector<Dyn_Symbol *> &allsymbols);
+  void fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool EEL);
+  void override_weak_symbols(std::vector<Symbol *> &allsymbols);
+  void insert_symbols_shared(std::vector<Symbol *> &allsymbols);
   void find_code_and_data(Elf_X &elf,
-       OFFSET txtaddr, OFFSET dataddr);
-  void insert_symbols_static(vector<Dyn_Symbol *> &allsymbols);
+       Offset txtaddr, Offset dataddr);
+  void insert_symbols_static(std::vector<Symbol *> &allsymbols);
   bool fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp,
 					     Elf_X_Shdr *stabstrscnp);
   bool fix_global_symbol_modules_static_dwarf(Elf_X &elf);
@@ -374,20 +408,20 @@ class Object : public AObject {
 #if defined(os_irix)
 
  public:
-  OFFSET     get_gp_value()  const { return gp_value; }
-  OFFSET     get_rbrk_addr() const { return rbrk_addr; }
-  OFFSET     get_base_addr() const { return base_addr; }
-  const char *got_entry_name(OFFSET entry_off) const;
+  Offset     get_gp_value()  const { return gp_value; }
+  Offset     get_rbrk_addr() const { return rbrk_addr; }
+  Offset     get_base_addr() const { return base_addr; }
+  const char *got_entry_name(Offset entry_off) const;
   int         got_gp_disp(const char *entry_name) const;
 
-  OFFSET     MIPS_stubs_addr_;   // .MIPS.stubs section
-  OFFSET     MIPS_stubs_off_;    // .MIPS.stubs section
+  Offset     MIPS_stubs_addr_;   // .MIPS.stubs section
+  Offset     MIPS_stubs_off_;    // .MIPS.stubs section
   unsigned    MIPS_stubs_size_;   // .MIPS.stubs section
-
+  
  private:
-  OFFSET     gp_value;
-  OFFSET     rbrk_addr;
-  OFFSET     base_addr;
+  Offset     gp_value;
+  Offset     rbrk_addr;
+  Offset     base_addr;
   
   int         got_zero_index_;
   int         dynsym_zero_index_;
@@ -395,6 +429,9 @@ class Object : public AObject {
 #endif /* mips_sgi_irix6_4 */
 };
 
-const char *pdelf_get_shnames(Elf *elfp, bool is64);
+//const char *pdelf_get_shnames(Elf *elfp, bool is64);
+
+}//namespace SymtabAPI
+}//namespace Dyninst
 
 #endif /* !defined(_Object_elf_h_) */
