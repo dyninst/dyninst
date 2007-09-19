@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.9 2007/09/12 20:59:34 bernat Exp $
+// $Id: pdwinntDL.C,v 1.10 2007/09/19 21:55:00 giri Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"
@@ -118,7 +118,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
 	   return true;
      }
 
-     fileDescriptor desc(imageName, 
+     fileDescriptor desc(imageName.c_str(), 
                          (Address)ev.info.u.LoadDll.lpBaseOfDll,
                          (HANDLE)procHandle,
                          ev.info.u.LoadDll.hFile, true, 

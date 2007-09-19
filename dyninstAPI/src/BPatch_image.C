@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.99 2007/09/14 17:06:00 cooksey Exp $
+// $Id: BPatch_image.C,v 1.100 2007/09/19 21:54:31 giri Exp $
 
 #define BPATCH_FILE
 
@@ -61,7 +61,8 @@
 #include "BPatch_collections.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_statement.h"
-#include "LineInformation.h"
+#include "symtabAPI/h/LineInformation.h"
+#include "symtabAPI/src/Collections.h"
 #include "BPatch_function.h" 
 
 #include "ast.h"
@@ -214,7 +215,7 @@ BPatch_Vector<BPatch_parRegion *> *BPatch_image::getParRegionsInt(bool incUninst
 
 BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const char *name)
 {
-    Dyn_Symbol syminfo;
+    Symbol syminfo;
     BPatch_type *type;
     
     type = mod->getModuleTypes()->globalVarsByName[name];
@@ -383,7 +384,7 @@ BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_matc
     sprintf(tmp, "*%s*", name); 
   else 
     sprintf(tmp, "%s", name);
-  mapped_module *mod = proc->llproc->findModule(pdstring(tmp),substring_match);
+  mapped_module *mod = proc->llproc->findModule(tmp,substring_match);
   free(tmp);
   if (!mod) return false;
   
@@ -825,7 +826,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
         //  end up in DEFAULT_MODULE
         for (unsigned int m = 0; m < mods->size(); m++) {
           BPatch_module *tm = (*mods)[m];
-          type = tm->getModuleTypes()->findVariableType(name); 
+		  type = tm->getModuleTypes()->findVariableType(name); 
           if (type) {
 #if 0
             char buf1[1024], buf2[1024];
@@ -940,9 +941,9 @@ BPatch_type *BPatch_image::findTypeInt(const char *name)
     if (type)  {
       return type;
     }
-
     // check the API types of last resort
     type = BPatch::bpatch->APITypes->findType(name);
+
     return type;
 
 }
@@ -956,8 +957,9 @@ bool BPatch_image::getSourceLinesInt(unsigned long addr,
    BPatch_Vector< BPatch_module * > * modules = getModules();
    for (unsigned int i = 0; i < modules->size(); i++ ) {
       std::vector<LineInformationImpl::LineNoTuple> lines_ll;
-      LineInformation & lineInformation = (* modules)[i]->mod->getLineInformation();
-      lineInformation.getSourceLines( addr, lines_ll );
+      LineInformation *lineInformation = (* modules)[i]->mod->getLineInformation();
+      if(lineInformation)
+	      lineInformation->getSourceLines( addr, lines_ll );
       for (unsigned int j = 0; j < lines_ll.size(); ++j) {
          LineInformationImpl::LineNoTuple &t = lines_ll[j];
          lines.push_back(BPatch_statement((*modules)[i], t.first, t.second, t.column));
@@ -978,8 +980,9 @@ bool BPatch_image::getAddressRangesInt( const char * lineSource,
 	/* Iteratate over the modules, looking for ranges in each. */
 	BPatch_Vector< BPatch_module * > * modules = getModules();
 	for( unsigned int i = 0; i < modules->size(); i++ ) {
-		LineInformation & lineInformation = (* modules)[i]->mod->getLineInformation();
-		lineInformation.getAddressRanges( lineSource, lineNo, ranges );
+		LineInformation *lineInformation = (* modules)[i]->mod->getLineInformation();
+      		if(lineInformation)
+			lineInformation->getAddressRanges( lineSource, lineNo, ranges );
 		} /* end iteration over modules */
 	if( ranges.size() != originalSize ) { return true; }
                                                                                                                                

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.130 2007/09/19 19:25:18 bernat Exp $
+// $Id: linux-x86.C,v 1.131 2007/09/19 21:54:49 giri Exp $
 
 #include <fstream>
 
@@ -437,8 +437,8 @@ bool process::isMmapSysCall(int callnum) {
    return callnum == SYS_mmap;
 }
 
-OFFSET process::getMmapLength(int, dyn_saved_regs *regs) {
-   return (OFFSET) regs->gprs.rsi;
+Offset process::getMmapLength(int, dyn_saved_regs *regs) {
+   return (Offset) regs->gprs.rsi;
 }
 
 Address process::getLibcStartMainParam(dyn_lwp *trappingLWP) {
@@ -498,15 +498,16 @@ Address process::getSysCallProgramCounter(dyn_saved_regs *regs) {
 bool process::isMmapSysCall(int callnum) {
     return (callnum == SYS_mmap || callnum == SYS_mmap2);
 }
-OFFSET process::getMmapLength(int callnum, dyn_saved_regs *regs) {
+
+Offset process::getMmapLength(int callnum, dyn_saved_regs *regs) {
     if (callnum == SYS_mmap) {
-        OFFSET length;
+        Offset length;
         readDataSpace((void*)(regs->gprs.ebx + getAddressWidth()),
                             getAddressWidth(), (void*)&length, true);
         return length;
     }
     else {
-        return (OFFSET) regs->gprs.ecx;
+        return (Offset) regs->gprs.ecx;
     }
 }
 Address process::getLibcStartMainParam(dyn_lwp *trappingLWP) {
@@ -1071,7 +1072,7 @@ void process::setPrelinkCommand(char *command){
 	}
 }
 
-bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath, 
+bool process::prelinkSharedLibrary(string originalLibNameFullPath, 
                                    char* dirName, Address baseAddr)
 {
 	char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,
@@ -1220,7 +1221,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 					correct.
 				*/
 
-				Dyn_Symbol info;
+				Symbol info;
 				const pdstring dynamicSection = "_DYNAMIC";
 				
 				mapped_obj->getSymbolInfo(dynamicSection,info);
@@ -1265,7 +1266,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 				correct.
 			*/
 
-			Dyn_Symbol info;
+			Symbol info;
 			const pdstring dynamicSection = "_DYNAMIC";
 			mapped_obj->getSymbolInfo(dynamicSection,info);
 			rtlibAddr = /*mapped_obj->codeBase() + */ info.getAddr();

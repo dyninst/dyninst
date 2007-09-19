@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.192 2007/09/12 20:57:28 bernat Exp $
+// $Id: ast.C,v 1.193 2007/09/19 21:54:38 giri Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -118,7 +118,7 @@ AstNodePtr AstNode::operatorNode(opCode ot, AstNodePtr l, AstNodePtr r, AstNodeP
 AstNodePtr AstNode::funcCallNode(const pdstring &func, pdvector<AstNodePtr > &args,
                                  AddressSpace *addrSpace) {
     if (addrSpace) {
-        int_function *ifunc = addrSpace->findOnlyOneFunction(func);
+        int_function *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
         if (ifunc == NULL) {
             fprintf(stderr, "Bitch whine moan\n");
             return AstNodePtr();
@@ -1363,7 +1363,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     int_function *callee = func_;
     if (!callee) {
         // Painful lookup time
-        callee = gen.addrSpace()->findOnlyOneFunction(func_name_);
+        callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
     }
     assert(callee);
     bool fprUsed = gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
@@ -1405,7 +1405,7 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     if (!use_func && !func_addr_) {
         // We purposefully don't cache the int_function object; the AST nodes
         // are process independent, and functions kinda are.
-        use_func = gen.addrSpace()->findOnlyOneFunction(func_name_);
+        use_func = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
         if (!use_func) {
             fprintf(stderr, "ERROR: failed to find function %s, unable to create call\n",
                     func_name_.c_str());

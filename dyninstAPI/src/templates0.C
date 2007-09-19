@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.62 2007/08/16 20:43:48 bill Exp $
+// $Id: templates0.C,v 1.63 2007/09/19 21:55:10 giri Exp $
 // Generate all the templates in one file.
 
 /*
@@ -70,12 +70,14 @@
 #else
 #pragma implementation "Symbol.h"
 #endif
-#include "symtabAPI/h/Dyn_Symbol.h"
+#include "symtabAPI/h/Symbol.h"
 
 #include "common/h/String.h"
 
 #include "dyninstAPI/src/inst.h"
 
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 template class pdvector<callWhen>;
 
 #if defined(rs6000_ibm_aix4_1)
@@ -99,8 +101,8 @@ template class  pdvector<dyn_thread *>;
 template class  pdvector<AstNodePtr>;
 
 // Included above
-template class  pdvector<Dyn_Symbol>;
-template class  pdvector<Dyn_Symbol*>;
+template class  pdvector<Symbol>;
+template class  pdvector<Symbol*>;
 
 #include "frame.h"
 template class  pdvector<Frame>;
@@ -132,7 +134,7 @@ template class  pdvector<baseTrampInstance *>;
 template class  pdvector<instruction>;
 
 #include "symtab.h"
-template class  pdvector< Dyn_ExceptionBlock >;
+template class  pdvector< ExceptionBlock >;
 
 class codeRange;
 template class  pdvector<codeRange *>;
@@ -174,7 +176,7 @@ template class  pdvector<pdvector<image_func *> *>;
 template class  pdvector<image_basicBlock *>;
 template class  pdvector<image_variable *>;
 
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 template class  pdvector<relocationEntry>;
 
 class sharedLibHook;

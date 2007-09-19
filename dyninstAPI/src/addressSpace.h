@@ -39,17 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.h,v 1.2 2007/09/19 19:25:06 bernat Exp $
+// $Id: addressSpace.h,v 1.3 2007/09/19 21:54:36 giri Exp $
 
 #ifndef ADDRESS_SPACE_H
 #define ADDRESS_SPACE_H
-
-
 
 #include "infHeap.h"
 #include "codeRange.h"
 #include "InstructionSource.h"
 #include "ast.h"
+#include "symtabAPI/h/Symtab.h"
 
 class codeRange;
 class multiTramp;
@@ -69,7 +68,9 @@ class BPatch_point;
 class Emitter;
 class generatedCodeObject;
 
-class relocationEntry;
+using namespace Dyninst;
+using namespace SymtabAPI;
+
 class int_function;
 
 class BinaryEdit;
@@ -204,8 +205,8 @@ class AddressSpace : public InstructionSource {
     
     // And we often internally want to wrap the above to return one
     // and only one func...
-    int_function *findOnlyOneFunction(const pdstring &name,
-                                      const pdstring &libname = "");
+    int_function *findOnlyOneFunction(const std::string &name,
+                                      const std::string &libname = "");
 
     // getAllFunctions: returns a vector of all functions defined in the
     // a.out and in the shared objects

@@ -225,7 +225,7 @@ int process::getSysCallNumber(dyn_saved_regs *) { assert(0); return 0; }
 long process::getSysCallReturnValue(dyn_saved_regs *) { assert(0); return 0; }
 Address process::getSysCallProgramCounter(dyn_saved_regs *) { assert(0); return 0; }
 bool process::isMmapSysCall(int) { assert(0); return false; }
-OFFSET process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
+Offset process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
 Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0;}
 
 
@@ -475,7 +475,7 @@ bool process::loadDYNINSTlib() {
      -argument functions the same, check the version anyway, since
      we'll probably need to later. */
   bool useFourArguments = true;
-  Dyn_Symbol libcVersionSymbol;
+  Symbol libcVersionSymbol;
   if( getSymbolInfo( "__libc_version", libcVersionSymbol ) ) {
     char libcVersion[ sizeof( int ) * libcVersionSymbol.getSize() + 1 ];
 	libcVersion[ sizeof( int ) * libcVersionSymbol.getSize() ] = '\0';

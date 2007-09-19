@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.28 2007/07/17 17:16:15 rutar Exp $
+// $Id: image-func.h,v 1.29 2007/09/19 21:54:43 giri Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -53,8 +53,12 @@
 #include "parRegion.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "common/h/Dictionary.h"
-#include "symtabAPI/h/Dyn_Symbol.h"
+#include "symtabAPI/h/Symbol.h"
 #include <set>
+
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+using namespace std;
 
 class pdmodule;
 class InstrucIter;
@@ -279,7 +283,7 @@ class image_func : public codeRange {
 	      pdmodule *m,
 	      image *i);
   
-   image_func(Dyn_Symbol *symbol, pdmodule *m, image *i);
+   image_func(Symbol *symbol, pdmodule *m, image *i);
 
    ~image_func();
 
@@ -288,7 +292,7 @@ class image_func : public codeRange {
    // Basic output functions
    ////////////////////////////////////////////////
 
-   Dyn_Symbol* symbol() const{
+   Symbol* symbol() const{
    	return sym_;
    }	
 
@@ -512,10 +516,10 @@ class image_func : public codeRange {
                           it just refers to the stored values and returns that */
 
    ///////////////////// Basic func info
-   Dyn_Symbol *sym_;			/* pointer to the underlying Dyn_Symbol */
+   Symbol *sym_;			/* pointer to the underlying Symbol */
 
 #if 0
-//   Now a part of Dyn_Symbol. Moved to Dyn_Symbol.h - giri
+//   Now a part of Symbol. Moved to Symbol.h - giri
    pdvector<pdstring> symTabNames_;	/* name as it appears in the symbol table */
    pdvector<pdstring> prettyNames_;	/* user's view of name (i.e. de-mangled) */
    pdvector<pdstring> typedNames_;      /* de-mangled with types */

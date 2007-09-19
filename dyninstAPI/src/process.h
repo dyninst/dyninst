@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.409 2007/09/14 16:55:03 roundy Exp $
+/* $Id: process.h,v 1.410 2007/09/19 21:55:02 giri Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -121,6 +121,9 @@ typedef enum { noTracing_ts, libcOpenCall_ts, libcOpenRet_ts, libcClose_ts, inst
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
 
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+
 class instPoint;
 class multiTramp;
 class baseTramp;
@@ -133,9 +136,9 @@ class dyn_thread;
 class dyn_lwp;
 
 class Object;
-class relocationEntry;
+class Dyninst::SymtabAPI::relocationEntry;
 class fileDescriptor;
-class Dyn_Symbol;
+class Dyninst::SymtabAPI::Symbol;
 class image;
 class mapped_object;
 class mapped_module;
@@ -267,7 +270,7 @@ class process : public AddressSpace {
     
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4)
-    bool prelinkSharedLibrary(pdstring originalLibNameFullPath, char* dirName, Address baseAddr);
+    bool prelinkSharedLibrary(string originalLibNameFullPath, char* dirName, Address baseAddr);
 #endif
     
 #if defined(sparc_sun_solaris2_4)  //ccw 10 mar 2004
@@ -277,13 +280,14 @@ class process : public AddressSpace {
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) \
  || defined(sparc_sun_solaris2_4)
-    char *saveWorldFindNewSharedLibraryName(pdstring originalLibNameFullPath, char* dirName);
+    char *saveWorldFindNewSharedLibraryName(string originalLibNameFullPath, char* dirName);
     void setPrelinkCommand(char *command);
 #endif
     
 #else
     char* dumpPatchedImage(pdstring /*outFile*/) { return NULL; } 
 #endif
+
     bool applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize);
     
     
@@ -300,7 +304,7 @@ class process : public AddressSpace {
     
     // This will find the named symbol in the image or in a shared object
     // Necessary since some things don't show up as a function or variable.
-    bool getSymbolInfo( const pdstring &name, Dyn_Symbol &ret );
+    bool getSymbolInfo( const pdstring &name, Dyninst::SymtabAPI::Symbol &ret );
     
     // Not at all sure we want to use this anymore...
     void overwriteImage( image* /*img */) {
@@ -1004,7 +1008,7 @@ private:
   long getSysCallReturnValue(dyn_saved_regs *regs);
   Address getSysCallProgramCounter(dyn_saved_regs *regs);
   bool isMmapSysCall(int callnum);
-  OFFSET getMmapLength(int, dyn_saved_regs *regs);
+  Offset getMmapLength(int, dyn_saved_regs *regs);
   Address getLibcStartMainParam(dyn_lwp *trappingLWP);
   // regions that are added during syscall tracking phase
   pdvector<Address> mappedRegionStart;

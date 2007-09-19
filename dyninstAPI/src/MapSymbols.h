@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: MapSymbols.h,v 1.6 2007/01/09 02:01:45 giri Exp $
+ * $Id: MapSymbols.h,v 1.7 2007/09/19 21:54:34 giri Exp $
  */
 
 //MapSymbols.h
@@ -60,7 +60,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include "common/h/Vector.h"
-#include "symtabAPI/h/Dyn_Symbol.h"
+#include "symtabAPI/h/Symbol.h"
 
 #define text_seg 1
 #define idata_seg 2

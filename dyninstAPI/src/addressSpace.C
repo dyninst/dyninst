@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.2 2007/09/19 19:25:05 bernat Exp $
+// $Id: addressSpace.C,v 1.3 2007/09/19 21:54:35 giri Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -657,8 +657,8 @@ bool AddressSpace::findFuncsByAll(const pdstring &funcname,
     unsigned starting_entries = res.size(); // We'll return true if we find something
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         if (libname == "" ||
-            mapped_objects[i]->fileName() == libname ||
-            mapped_objects[i]->fullName() == libname) {
+            mapped_objects[i]->fileName() == libname.c_str() ||
+            mapped_objects[i]->fullName() == libname.c_str()) {
             const pdvector<int_function *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
             if (pretty) {
                 // We stop at first match...
@@ -688,8 +688,8 @@ bool AddressSpace::findFuncsByPretty(const pdstring &funcname,
 
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         if (libname == "" ||
-            mapped_objects[i]->fileName() == libname ||
-            mapped_objects[i]->fullName() == libname) {
+            mapped_objects[i]->fileName() == libname.c_str() ||
+            mapped_objects[i]->fullName() == libname.c_str()) {
             const pdvector<int_function *> *pretty = mapped_objects[i]->findFuncVectorByPretty(funcname);
             if (pretty) {
                 // We stop at first match...
@@ -710,8 +710,8 @@ bool AddressSpace::findFuncsByMangled(const pdstring &funcname,
 
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         if (libname == "" ||
-            mapped_objects[i]->fileName() == libname ||
-            mapped_objects[i]->fullName() == libname) {
+            mapped_objects[i]->fileName() == libname.c_str() ||
+            mapped_objects[i]->fullName() == libname.c_str()) {
             const pdvector<int_function *> *mangled = 
                mapped_objects[i]->findFuncVectorByMangled(funcname);
             if (mangled) {
@@ -724,13 +724,13 @@ bool AddressSpace::findFuncsByMangled(const pdstring &funcname,
     return res.size() != starting_entries;
 }
 
-int_function *AddressSpace::findOnlyOneFunction(const pdstring &name,
-                                           const pdstring &lib) 
+int_function *AddressSpace::findOnlyOneFunction(const string &name,
+                                           const string &lib) 
 {
     assert(mapped_objects.size());
 
     pdvector<int_function *> allFuncs;
-    if (!findFuncsByAll(name, allFuncs, lib))
+    if (!findFuncsByAll(name.c_str(), allFuncs, lib.c_str()))
         return NULL;
     if (allFuncs.size() > 1) {
         cerr << "Warning: multiple matches for " << name << ", returning first" << endl;
@@ -749,8 +749,8 @@ bool AddressSpace::findVarsByAll(const pdstring &varname,
     
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         if (libname == "" ||
-            mapped_objects[i]->fileName() == libname ||
-            mapped_objects[i]->fullName() == libname) {
+            mapped_objects[i]->fileName() == libname.c_str() ||
+            mapped_objects[i]->fullName() == libname.c_str()) {
             const pdvector<int_variable *> *pretty = mapped_objects[i]->findVarVectorByPretty(varname);
             if (pretty) {
                 // We stop at first match...
@@ -893,7 +893,7 @@ mapped_module *AddressSpace::findModule(const pdstring &mod_name, bool wildcard)
     //  (there is only one module in each shared library, and that 
     //  is the library name)
     for(u_int j=0; j < mapped_objects.size(); j++){
-        mapped_module *mod = mapped_objects[j]->findModule(mod_name, wildcard);
+        mapped_module *mod = mapped_objects[j]->findModule(mod_name.c_str(), wildcard);
         if (mod) {
             return (mod);
         }
@@ -906,11 +906,11 @@ mapped_module *AddressSpace::findModule(const pdstring &mod_name, bool wildcard)
 mapped_object *AddressSpace::findObject(const pdstring &obj_name, bool wildcard)
 {
     for(u_int j=0; j < mapped_objects.size(); j++){
-        if (mapped_objects[j]->fileName() == obj_name ||
-            mapped_objects[j]->fullName() == obj_name ||
+        if (mapped_objects[j]->fileName() == obj_name.c_str() ||
+            mapped_objects[j]->fullName() == obj_name.c_str() ||
             (wildcard &&
-             (obj_name.wildcardEquiv(mapped_objects[j]->fileName()) ||
-              obj_name.wildcardEquiv(mapped_objects[j]->fullName()))))
+             (obj_name.wildcardEquiv(mapped_objects[j]->fileName().c_str()) ||
+              obj_name.wildcardEquiv(mapped_objects[j]->fullName().c_str()))))
             return mapped_objects[j];
     }
     return NULL;

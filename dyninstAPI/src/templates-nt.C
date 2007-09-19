@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.65 2007/09/17 15:23:13 tugrul Exp $
+// $Id: templates-nt.C,v 1.66 2007/09/19 21:55:09 giri Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -100,7 +100,7 @@ template class pdvector<fileDescriptor>;
 
 template class dictionary_hash<pdstring, unsigned int>;
 template class dictionary_hash<pdstring, pdstring>;
-template class dictionary_hash<pdstring, Dyn_Symbol>;
+template class dictionary_hash<pdstring, Symbol>;
 template class dictionary_hash<pdstring, pdmodule *>;
 template class dictionary_hash<pdstring, int_function *>;
 //template class dictionary_hash<pdstring, internalSym *>;
@@ -157,8 +157,8 @@ template class pdvector<dictionary_hash <Address, unsigned char>::entry >;
 template class dictionary_hash<pdstring,supportedLanguages>;
 template class pdvector<dictionary_hash<pdstring,supportedLanguages>::entry>;
 
-template class pdvector< Dyn_Symbol >;
-template class dictionary_hash< pdstring, pdvector< Dyn_Symbol > >;
+template class pdvector< Symbol >;
+template class dictionary_hash< pdstring, pdvector< Symbol > >;
 
 template class dictionary_hash<int, BPatch_process *>;
 template class pdvector<dictionary_hash <int, BPatch_process *>::entry>;

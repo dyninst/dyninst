@@ -141,16 +141,16 @@ BPatch_typeCollection *BPatch_typeCollection::getModTypeCollection(BPatch_module
     assert( moduleImage != NULL );
 #if defined(USES_DWARF_DEBUG)
     // TODO: can we use this on other platforms as well?    
-    if( fileToTypesMap.defines( moduleImage->fullName() ) ) {
+    if( fileToTypesMap.defines( moduleImage->fullName().c_str() ) ) {
         // /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
-        BPatch_typeCollection *cachedTC = fileToTypesMap [ moduleImage->fullName() ];
+        BPatch_typeCollection *cachedTC = fileToTypesMap [ moduleImage->fullName().c_str() ];
         cachedTC->refcount++;
         return cachedTC;
     }
 #endif
 
     BPatch_typeCollection *newTC = new BPatch_typeCollection();
-    fileToTypesMap[moduleImage->fullName()] = newTC;
+    fileToTypesMap[moduleImage->fullName().c_str()] = newTC;
     newTC->refcount++;
     return newTC;
 }

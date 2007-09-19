@@ -52,10 +52,10 @@
 #include "InstrucIter.h"
 #include "BPatch_process.h"
 
-pdstring 
+string 
 edge_type_string(BPatch_edgeType t)
 { 
-    pdstring ts = "Invalid Edge Type";
+    string ts = "Invalid Edge Type";
     switch (t) {
     case CondJumpTaken: { ts = "CondJumpTaken"; break; }
     case CondJumpNottaken: { ts = "CondJumpNottaken"; break; }
@@ -109,7 +109,7 @@ void BPatch_edge::BPatch_edge_dtor()
 
 void BPatch_edge::dumpInt()
 {
-    pdstring ts = edge_type_string(type);
+    string ts = edge_type_string(type);
 
 //     fprintf(stderr," %3u --> %3u\n",
 //             source->blockNo(),

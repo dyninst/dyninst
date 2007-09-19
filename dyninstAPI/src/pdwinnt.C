@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.177 2007/09/19 19:25:19 bernat Exp $
+// $Id: pdwinnt.C,v 1.178 2007/09/19 21:54:59 giri Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1079,7 +1079,7 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
        proc->set_status(running);
     }
 
-    desc = fileDescriptor(filename, 
+    desc = fileDescriptor(filename.c_str(), 
                         (Address) 0,
                         (HANDLE) proc->processHandle_,
                         (HANDLE) proc->mainFileHandle_, 
@@ -1409,7 +1409,7 @@ void dyn_lwp::representativeLWP_detach_()
 // Insert a breakpoint at the entry of main()
 bool process::insertTrapAtEntryPointOfMain() {
   mapped_object *aout = getAOut();
-  Dyn_Symtab *aout_obj = aout->parse_img()->getObject();
+  Symtab *aout_obj = aout->parse_img()->getObject();
   pdvector<int_function *> funcs;
   Address brk_address;
   Address min_addr = 0xffffffff;
@@ -1518,7 +1518,7 @@ int process::getSysCallNumber(dyn_saved_regs *) { assert(0); return -1; }
 long process::getSysCallReturnValue(dyn_saved_regs *) { assert(0); return -1; }
 Address process::getSysCallProgramCounter(dyn_saved_regs *) { assert(0); return 0; }
 bool process::isMmapSysCall(int) { assert(0); return false; }
-OFFSET process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0; }
+Offset process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0; }
 Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0; }
 
 bool process::getDyninstRTLibName() {
@@ -1558,9 +1558,9 @@ bool process::getDyninstRTLibName() {
 // Load the dyninst library
 bool process::loadDYNINSTlib()
 {
-	loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryAddress() + getAOut()->getBaseAddress();
+	loadDyninstLibAddr = getAOut()->parse_img()->getObject()->getEntryOffset() + getAOut()->getBaseAddress();
 	Address LoadLibAddr;
-    Dyn_Symbol sym;
+    Symbol sym;
 
     dyn_lwp *lwp;
     lwp = getInitialLwp();

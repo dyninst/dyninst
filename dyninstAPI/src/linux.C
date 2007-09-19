@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.263 2007/09/12 20:57:47 bernat Exp $
+// $Id: linux.C,v 1.264 2007/09/19 21:54:50 giri Exp $
 
 #include <fstream>
 
@@ -90,7 +90,7 @@
 #include "dyninstAPI/src/writeBackElf.h"
 // #include "saveSharedLibrary.h" 
 
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 
 //TODO: Remove the writeBack functions and get rid of this include
 #include "symtabAPI/src/Object.h"
@@ -1445,7 +1445,7 @@ bool process::dumpImage( pdstring imageFileName )
       return false;
    }
 
-   pdstring originalFileName = mapped_objects[0]->fullName();
+   string originalFileName = mapped_objects[0]->fullName();
 	
 	/* Use system() to execute the copy. */
 	//pdstring copyCommand = "cp " + originalFileName + " " + imageFileName;
@@ -1513,9 +1513,9 @@ bool process::dumpImage( pdstring imageFileName )
 //Returns true if the function is part of the PLT table
 bool isPLT(int_function *f)
 {
-    Dyn_Symtab *obj = f->mod()->obj()->parse_img()->getObject();
-    Dyn_Section *sec;
-    if(obj->findSection(".plt",sec))
+    Symtab *obj = f->mod()->obj()->parse_img()->getObject();
+    Section *sec;
+    if(obj->findSection(sec, ".plt"))
 	return sec->isOffsetInSection(f->ifunc()->getOffset());
     return false;	
 }
@@ -1563,7 +1563,7 @@ int_function *instPoint::findCallee() {
    }
 
    // get the relocation information for this image
-   Dyn_Symtab *obj = func()->obj()->parse_img()->getObject();
+   Symtab *obj = func()->obj()->parse_img()->getObject();
    pdvector<relocationEntry> fbt;
    vector <relocationEntry> fbtvector;
    if(!obj->getFuncBindingTable(fbtvector))
@@ -1604,7 +1604,7 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
                                                   int &,
                                                   fileDescriptor &desc)
 {
-    desc = fileDescriptor(filename, 
+    desc = fileDescriptor(filename.c_str(), 
                           0, // code
                           0, // data
                           false); // a.out
@@ -3049,7 +3049,7 @@ bool process::hasPassedMain()
    // so just do it once for any process.  We'll cache the result
    // in lib_to_addr.
    static dictionary_hash<pdstring, Address> lib_to_addr(pdstring::hash);
-   Dyn_Symtab *ld_file = NULL;
+   Symtab *ld_file = NULL;
    bool result, tresult;
    std::string name;
    Address entry_addr, ldso_start_addr;
@@ -3079,7 +3079,7 @@ bool process::hasPassedMain()
 
    //Open /lib/ld-x.x.x and find the entry point
    name = path;
-   tresult = Dyn_Symtab::openFile(name, ld_file);
+   tresult = Symtab::openFile(ld_file, name);
    if (!tresult) {
       startup_printf("[%s:%u] - Unable to open %s in hasPassedMain\n", 
                      FILE__, __LINE__, path);
@@ -3088,7 +3088,7 @@ bool process::hasPassedMain()
    }
    
 
-   entry_addr = ld_file->getEntryAddress();
+   entry_addr = ld_file->getEntryOffset();
    if (!entry_addr) {
       startup_printf("[%s:%u] - No entry addr for %s\n", 
                      FILE__, __LINE__, path);

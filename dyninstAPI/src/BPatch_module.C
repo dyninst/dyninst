@@ -54,8 +54,6 @@
 #include "BPatch_collections.h"
 #include "common/h/String.h"
 #include "BPatch_typePrivate.h"    // For BPatch_type related stuff
-#include "BPatch_Vector.h"
-
 
 #include "mapped_module.h"
 #include "mapped_object.h"
@@ -127,7 +125,7 @@ char *BPatch_module::getNameInt(char *buffer, int length)
     if (!mod)
      return NULL;
 
-    pdstring str = mod->fileName();
+    string str = mod->fileName();
 
     strncpy(buffer, str.c_str(), length);
 
@@ -145,10 +143,9 @@ const char *BPatch_module::libraryNameInt()
 
 char *BPatch_module::getFullNameInt(char *buffer, int length)
 {
-   if (!mod)
-      return NULL;
-
-    pdstring str = mod->fullName();
+    if (!mod)
+        return NULL;
+    string str = mod->fullName();
 
     strncpy(buffer, str.c_str(), length);
 
@@ -262,6 +259,26 @@ BPatch_module::~BPatch_module()
        delete retfuncs;
 }
 
+/************Changes still to be made**************************
+ * Remove moduleTypes from BPatch_module
+ * Remove API Types, builtin Types, std types from BPatch
+ * Add new types directly to symtabAPI from BPacth::
+ * Make sure fixupUnknown is performed for all functions
+ * Remove the type parsing stuff from here
+ * class BPatch_type:public class Type
+ * class BPatch_field:public class field
+ * class BPacth_cblock:public class CBlock
+ * Change the classes to use symtabAPI classes
+ * Add the locationList to framePtr conversions on all platforms
+ * Store the lowAddr, hiAddr in loc_t for variables
+ * Store the ranges of function addresse info from DWARF
+ * Based on the address passed construct an ASTNodeptr and return
+ * To add new features: location lists, variablesInScope
+ * Change storage classes wherever used in dyninstAPI
+ * BPatch_variableExpr->type is basically AstNodePtr->type. change appropriately.
+ * windows is it done on a module-by-module basis(chekcing now)
+ */
+
 void BPatch_module::parseTypesIfNecessary() {
     if( moduleTypes != NULL ) { 
     	return;
@@ -274,7 +291,7 @@ void BPatch_module::parseTypesIfNecessary() {
 #if ! defined( USES_DWARF_DEBUG )
     if( BPatch::bpatch->parseDebugInfo() ) {
 		parseTypes();
-		}
+	}
 #elif defined( arch_x86 ) || defined( arch_x86_64 ) || defined( arch_ia64 ) || defined(arch_sparc) || (defined(arch_power) && defined(os_linux))
 	/* I'm not actually sure about IA-64, but certainly on the other two,
 	   it's legal and not uncommon to mix STABS and DWARF debug information
@@ -311,18 +328,18 @@ void BPatch_module::parseTypesIfNecessary() {
             assert( moduleImage != NULL );
 
 	    bool found = true;
-	    Dyn_Section *sec;
+	    Section *sec;
 	    Address   stab_off;
 	    unsigned  stab_size;          
 	    Address   stabstr_off;
 	    unsigned  stabstr_size;          
-	    if(!moduleImage->getObject()->findSection(".stab", sec))
+	    if(!moduleImage->getObject()->findSection(sec,".stab"))
 	    	found = false;
 	    else
 	    {
 	    	stab_off = sec->getSecAddr();
 		stab_size = sec->getSecSize();
-		if(!moduleImage->getObject()->findSection(".stabstr",sec))
+		if(!moduleImage->getObject()->findSection(sec, ".stabstr"))
 		    found = false;
 		else
 		{
@@ -351,11 +368,11 @@ void BPatch_module::parseTypesIfNecessary() {
             
             image * moduleImage = bpmod->mod->obj()->parse_img();
             assert( moduleImage != NULL );
-            Dyn_Symtab *moduleObject = moduleImage->getObject();
-	    Dyn_Section *sec;
+            Symtab *moduleObject = moduleImage->getObject();
+	    Section *sec;
 	    
             
-            if( moduleObject->findSection(".debug_info",sec)) { bpmod->parseDwarfTypes(); }            
+            if( moduleObject->findSection(sec, ".debug_info")) { bpmod->parseDwarfTypes(); }            
 			} /* end DWARF parsing */
 		} /* end if we'rep parsing debug information at all */
 #else 
@@ -613,7 +630,6 @@ extern pdstring parseStabString(BPatch_module *, int linenum, char *str,
 
 #if defined(rs6000_ibm_aix4_1)
 
-#include <linenum.h>
 #include <syms.h>
 
 // Gets the stab and stabstring section and parses it for types
@@ -621,9 +637,7 @@ extern pdstring parseStabString(BPatch_module *, int linenum, char *str,
 void BPatch_module::parseTypes()
 {
     int i, j;
-    int nlines;
     int nstabs;
-    char* lines;
     SYMENT *syms;
     SYMENT *tsym;
     char *stringPool;
@@ -633,7 +647,6 @@ void BPatch_module::parseTypes()
     image * imgPtr=NULL;
     pdstring funcName;
     Address staticBlockBaseAddr = 0;
-    unsigned long linesfdptr;
     BPatch_typeCommon *commonBlock = NULL;
     BPatch_variableExpr *commonBlockVar = NULL;
     pdstring currentSourceFile;
@@ -646,13 +659,11 @@ void BPatch_module::parseTypes()
 
   imgPtr = mod->obj()->parse_img();
   
-  Dyn_Symtab *objPtr = imgPtr->getObject();
+  Symtab *objPtr = imgPtr->getObject();
 
   void *syms_void = NULL;
   objPtr->get_stab_info(stabstr, nstabs, syms_void, stringPool); 
   syms = (SYMENT *) syms_void;
-
-    objPtr->get_line_info(nlines,lines,linesfdptr); 
 
     bool parseActive = true;
     //fprintf(stderr, "%s[%d]:  parseTypes for module %s: nstabs = %d\n", FILE__, __LINE__,mod->fileName().c_str(),nstabs);
@@ -873,20 +884,20 @@ void BPatch_module::parseTypes()
 void BPatch_module::parseTypes() {
 	image *moduleImage = mod->obj()->parse_img();
 	assert( moduleImage != NULL );
-	Dyn_Symtab *moduleObject = moduleImage->getObject();
+	Symtab *moduleObject = moduleImage->getObject();
 	
 	bool found = true;
-  	Dyn_Section *sec;
+  	Section *sec;
 	Address   stab_off_= 0;
   	unsigned  stab_size_ = 0;          
   	Address   stabstr_off_ = 0;
-  	if(!moduleObject->findSection(".stab", sec))
+  	if(!moduleObject->findSection(sec, ".stab"))
   	 	found = false;
   	else
   	{
   		stab_off_ = sec->getSecAddr();
 		stab_size_ = sec->getSecSize();
-		if(!moduleObject->findSection(".stabstr",sec))
+		if(!moduleObject->findSection(sec, ".stabstr"))
 		    found = false;
 		else
 		    stabstr_off_ = sec->getSecAddr();	
@@ -939,20 +950,20 @@ void BPatch_module::parseStabTypes()
 
   imgPtr = mod->obj()->parse_img();
   imgPtr->analyzeIfNeeded();
-  Dyn_Symtab *objPtr = imgPtr->getObject();
+  Symtab *objPtr = imgPtr->getObject();
 
   bool found = true;
-  Dyn_Section *sec;
+  Section *sec;
   char*   stab_off_ = 0;
   unsigned  stab_size_ = 0;
   char*   stabstr_off_ = 0;
-  if(!objPtr->findSection(".stab", sec))
+  if(!objPtr->findSection(sec, ".stab"))
    	found = false;
   else
   {
   	stab_off_ = (char *)sec->getPtrToRawData();
 	stab_size_ = sec->getSecSize();
-	if(!objPtr->findSection(".stabstr",sec))
+	if(!objPtr->findSection(sec, ".stabstr"))
 	    found = false;
 	else
 	    stabstr_off_ = (char *)sec->getPtrToRawData();
@@ -1107,7 +1118,7 @@ void BPatch_module::parseStabTypes()
             currentFunctionName = new pdstring(tmp);
             
             currentFunctionBase = 0;
-            Dyn_Symbol info;
+            Symbol info;
             // Shouldn't this be a function name lookup?
             if (!proc->llproc->getSymbolInfo(*currentFunctionName,
                                              info))
@@ -2169,7 +2180,10 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
 }
 
 void BPatch_module::parseTypes() {
-    proc_mod_pair pair;
+	//TODO?? Is this the only change required for windows to work??
+	mod->pmod()->mod()->exec()->parseTypesNow();
+#if 0
+	proc_mod_pair pair;
     BOOL result;
     //
     //Parse global variable type information
@@ -2198,6 +2212,7 @@ void BPatch_module::parseTypes() {
     for (unsigned i=0; i < funcs->size(); i++) {
         findLocalVars((*funcs)[i], pair.base_addr);
     }
+#endif
 }
 #endif
 
@@ -2263,10 +2278,10 @@ bool BPatch_module::getSourceLinesInt(unsigned long addr,
    if (!isValid()) return false;
 
    unsigned int originalSize = lines.size();
-
-   LineInformation & li = mod->getLineInformation();
+   LineInformation *li = mod->getLineInformation();
    std::vector<LineInformationImpl::LineNoTuple> lines_ll;
-   li.getSourceLines( addr, lines_ll );
+   if(li)
+   	li->getSourceLines( addr, lines_ll );
 
    for (unsigned int j = 0; j < lines_ll.size(); ++j) {
       LineInformationImpl::LineNoTuple &t = lines_ll[j];
@@ -2279,8 +2294,11 @@ bool BPatch_module::getSourceLinesInt(unsigned long addr,
 bool BPatch_module::getStatementsInt(BPatch_Vector<BPatch_statement> &statements)
 {
     // Iterate over each address range in the line information
-    for (LineInformation::const_iterator i = mod->getLineInformation().begin();
-	 i != mod->getLineInformation().end();
+	LineInformation *li = mod->getLineInformation();
+    if(!li)
+    	return false;
+    for (LineInformation::const_iterator i = li->begin();
+	 i != li->end();
 	 ++i) {
 
         // Form a BPatch_statement object for this entry
@@ -2301,7 +2319,6 @@ bool BPatch_module::getStatementsInt(BPatch_Vector<BPatch_statement> &statements
         statements.push_back(statement);
 
     }
-
   return true;
 }
 
@@ -2309,9 +2326,12 @@ bool BPatch_module::getAddressRangesInt( const char * fileName, unsigned int lin
 {
     if (!isValid()) return false;
 
-	LineInformation & li = mod->getLineInformation();
+	LineInformation *li = mod->getLineInformation();
 	if( fileName == NULL ) { fileName = mod->fileName().c_str(); }
-	return li.getAddressRanges( fileName, lineNo, ranges );
+	if(li)
+		return li->getAddressRanges( fileName, lineNo, ranges );
+	else
+		return false;
 } /* end getAddressRanges() */
 
 bool BPatch_module::isSharedLibInt() 
@@ -2357,7 +2377,7 @@ void BPatch_module::setDefaultNamespacePrefix(char *name)
 
 bool BPatch_module::isSystemLib() 
 {
-    pdstring str = mod->fileName();
+    string str = mod->fileName();
 
     // Solaris 2.8... we don't grab the initial func always,
     // so fix up this code as well...
@@ -2467,11 +2487,12 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
 {
     std::vector<struct BPatch_module::Statement> statements;
 
-    // Iterate over each address range in the line information
-    for(LineInformation::const_iterator i = mod->getLineInformation().begin();
-	i != mod->getLineInformation().end();
-	++i) {
-
+	LineInformation *li = mod->getLineInformation();
+    if(!li)
+    	return statements;
+    
+   // Iterate over each address range in the line information
+    for(LineInformation::const_iterator i = li->begin(); i != li->end(); ++i) {
         // Form a Statement object for this entry
         struct BPatch_module::Statement statement;
         statement.begin = i->first.first;
@@ -2484,7 +2505,6 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
         statements.push_back(statement);
 
     }
-
     // Return the statements to the caller
     return statements;
 }

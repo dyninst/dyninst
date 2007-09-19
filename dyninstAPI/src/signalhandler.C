@@ -48,7 +48,7 @@
 #include "stats.h"
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 #include "function.h" // instPointTrap debugging
 #include "rpcMgr.h"
 #include "BPatch.h"

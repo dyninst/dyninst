@@ -48,7 +48,7 @@
 #include "BPatch.h"
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
-#include "LineInformation.h"
+#include "symtabAPI/src/LineInformation.h"
 #include "BPatch_typePrivate.h"
 #include "BPatch_function.h"
 #include "util.h"

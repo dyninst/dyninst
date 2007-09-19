@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.3 2007/09/19 19:25:08 bernat Exp $
+// $Id: binaryEdit.C,v 1.4 2007/09/19 21:54:39 giri Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
 #include "mapped_object.h"
 #include "multiTramp.h"
 #include "debug.h"
+#include "os.h"
 
 // #define USE_ADDRESS_MAPS
 
@@ -225,7 +226,7 @@ BinaryEdit *BinaryEdit::openFile(const pdstring &file) {
 
 bool BinaryEdit::getStatFileDescriptor(const pdstring &name, fileDescriptor &desc) {
     // Wow, I think this was easy
-    desc = fileDescriptor(name,
+    desc = fileDescriptor(name.c_str(),
                           0, // code base address
                           0, // data base address
                           true); // a.out

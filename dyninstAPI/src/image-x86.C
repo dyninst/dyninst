@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.25 2007/08/16 20:43:47 bill Exp $
+ * $Id: image-x86.C,v 1.26 2007/09/19 21:54:45 giri Exp $
  */
 
 #include "common/h/Vector.h"
@@ -394,8 +394,8 @@ bool image_func::archGetMultipleJumpTargets(
 
 bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 {
-    Dyn_ExceptionBlock b;
-//    Dyn_Symtab obj = img()->getObject();
+    ExceptionBlock b;
+//    Symtab obj = img()->getObject();
     if (img()->getObject()->findCatchBlock(b,a)) {
         catchStart = b.catchStart();
         return true;

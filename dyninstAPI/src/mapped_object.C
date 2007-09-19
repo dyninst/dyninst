@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.24 2007/09/12 20:57:50 bernat Exp $
+// $Id: mapped_object.C,v 1.25 2007/09/19 21:54:54 giri Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/String.h"
 #include "dyninstAPI/src/debug.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 #include "process.h"
 
 #define FS_FIELD_SEPERATOR '/'
@@ -102,8 +102,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
         // GCC-ism. This is a shared library with a a.out-like codeOffset.
         // We need to make our base the difference between the two...
         codeBase_ -= image_->codeOffset();
-	Dyn_Section *sec;
-	image_->getObject()->findSection(".text", sec);
+	Section *sec;
+	image_->getObject()->findSection(sec, ".text");
 	//fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
 	//	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
 	codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseAddress());	
@@ -115,8 +115,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
         // of file to interesting bits"). 
         // Non-GCC shared libraries.
         //codeBase_ += image_->getObject()->text_reloc();
-	Dyn_Section *sec;
-	image_->getObject()->findSection(".text", sec);
+	Section *sec;
+	image_->getObject()->findSection(sec, ".text");
 	//fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
 	//	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
         codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseAddress());
@@ -195,13 +195,13 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
        // and not attaching to it, we can find it by instrumenting libc.so
        // Currently this has only been implemented for linux 
 #if defined(os_linux)
-       vector <Dyn_Symbol *>mainsyms;
+       vector <Symbol *>mainsyms;
        if (p->proc() && 
            !p->proc()->wasCreatedViaAttach() 
            && !img->getObject()->findSymbolByType
-                 (mainsyms,"main",Dyn_Symbol::ST_UNKNOWN)
+                 (mainsyms,"main",Symbol::ST_UNKNOWN)
            && !img->getObject()->findSymbolByType
-                 (mainsyms,"_main",Dyn_Symbol::ST_UNKNOWN)) {
+                 (mainsyms,"_main",Symbol::ST_UNKNOWN)) {
            fprintf(stderr, "[%s][%d] ParseImage of module %s for process %d:\n"
                    "\t  is not a shared object so it should contain a symbol for \n"
                    "\t  function main. Initial attempt to locate main failed,\n"
@@ -355,16 +355,17 @@ char *mapped_object::getModulePart(pdstring &full_path_name) {
     return 0;
 }
 
-mapped_module *mapped_object::findModule(pdstring m_name, bool wildcard)
+mapped_module *mapped_object::findModule(string m_name, bool wildcard)
 {
    parsing_printf("findModule for %s (substr match %d)\n",
                   m_name.c_str(), wildcard);
+   pdstring tmp = m_name.c_str();	  
    for (unsigned i = 0; i < everyModule.size(); i++) {
       if (everyModule[i]->fileName() == m_name ||
           everyModule[i]->fullName() == m_name ||
           (wildcard &&
-           (m_name.wildcardEquiv(everyModule[i]->fileName()) ||
-            m_name.wildcardEquiv(everyModule[i]->fullName())))) {
+           (tmp.wildcardEquiv(everyModule[i]->fileName().c_str()) ||
+            tmp.wildcardEquiv(everyModule[i]->fullName().c_str())))) {
          //parsing_printf("... found!\n");
          return everyModule[i];
       }
@@ -804,7 +805,7 @@ bool mapped_object::isSharedLib() const {
 
 const pdstring mapped_object::debugString() const {
     pdstring debug;
-    debug = fileName_ + ":" + pdstring(codeBase_) + "/" + pdstring(codeSize()); 
+    debug = pdstring(fileName_.c_str()) + ":" + pdstring(codeBase_) + "/" + pdstring(codeSize()); 
     return debug;
 }
 
@@ -812,7 +813,7 @@ const pdstring mapped_object::debugString() const {
 // all we care about, amusingly, is symbol table information. 
 
 void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const {
-    pdvector<Dyn_Symbol *> foundHeapSyms;
+    pdvector<Symbol *> foundHeapSyms;
 
     parse_img()->findSymByPrefix("DYNINSTstaticHeap", foundHeapSyms);
     parse_img()->findSymByPrefix("_DYNINSTstaticHeap", foundHeapSyms);
@@ -824,11 +825,11 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
         // foo.addr is now relative to the start of the heap; check the type of the symbol to 
         // determine whether it's a function (off codeBase_) or variable (off dataBase_)
         switch(foundHeapSyms[i]->getType()) {
-        case Dyn_Symbol::ST_FUNCTION:
+        case Symbol::ST_FUNCTION:
             foo.addr += codeBase_;
             foundHeaps.push_back(foo);
             break;
-        case Dyn_Symbol::ST_OBJECT:
+        case Symbol::ST_OBJECT:
             foo.addr += dataBase_;
             foundHeaps.push_back(foo);
             break;
@@ -879,8 +880,8 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
         // it goes (ARGH) so we pad the end of the code segment to
         // try and avoid it.
 	
-	Dyn_Section *sec;
-	image_->getObject()->findSection(".loader",sec);
+	Section *sec;
+	image_->getObject()->findSection(sec, ".loader");
         Address loader_end = codeAbs() + 
             //sec.getSecAddr() +
 	    image_->getObject()->getLoadAddress() +
@@ -937,7 +938,7 @@ void *mapped_object::getPtrToData(Address addr) const {
     return image_->getPtrToData(offset);
 }
 
-bool mapped_object::getSymbolInfo(const pdstring &n, Dyn_Symbol &info) {
+bool mapped_object::getSymbolInfo(const pdstring &n, Symbol &info) {
     if (image_) {
         if (!image_->symbol_info(n, info)) {
             // Leading underscore...
@@ -951,7 +952,7 @@ bool mapped_object::getSymbolInfo(const pdstring &n, Dyn_Symbol &info) {
         // same, but may be different (cf. AIX)
 
         // Check symbol type.
-        if (info.getType() == Dyn_Symbol::ST_OBJECT) {
+        if (info.getType() == Symbol::ST_OBJECT) {
             info.setAddr(info.getAddr() + dataBase_);
         }
         else {

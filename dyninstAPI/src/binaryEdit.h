@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.2 2007/09/12 22:15:07 bernat Exp $
+// $Id: binaryEdit.h,v 1.3 2007/09/19 21:54:40 giri Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -53,7 +53,6 @@
 #include <functional>
 
 class fileDescriptor;
-class relocationEntry;
 class int_function;
 
 class BinaryEdit : public AddressSpace {

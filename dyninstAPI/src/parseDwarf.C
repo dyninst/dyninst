@@ -1881,7 +1881,7 @@ extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 void BPatch_module::parseDwarfTypes() {
 	const char *fileName = mod->obj()->fullName().c_str();
 	// Man do we do to a lot of trouble for this...
-	Dyn_Symtab *moduleObject = mod->obj()->parse_img()->getObject();
+	Symtab *moduleObject = mod->obj()->parse_img()->getObject();
 	assert( fileName );
 	assert( moduleTypes );
 

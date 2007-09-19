@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.200 2007/09/06 20:15:02 roundy Exp $
+// $Id: symtab.h,v 1.201 2007/09/19 21:55:08 giri Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -59,7 +59,8 @@
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/LineInformation.h"
+
+#include "symtabAPI/h/LineInformation.h"
 #include "common/h/String.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/function.h"
@@ -70,10 +71,14 @@
 #include "dyninstAPI/src/inst.h"
 
 #if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)
-#include "symtabAPI/h/Dyn_Archive.h"
+#include "symtabAPI/h/Archive.h"
 #else
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 #endif
+#include "symtabAPI/h/Type.h"
+
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 
 typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define RH_SEPERATOR '/'
@@ -103,7 +108,7 @@ class image_variable;
 class image_parRegion;
 
 class Frame;
-class ExceptionBlock;
+class Dyninst::SymtabAPI::ExceptionBlock;
 
 class pdmodule;
 class module;
@@ -113,14 +118,14 @@ class instPoint;
 
 // File descriptor information
 class fileDescriptor {
-    static pdstring emptyString;
+    static string emptyString;
  public:
     // Vector requires an empty constructor
     fileDescriptor();
 
     // Some platforms have split code and data. If yours is not one of them,
     // hand in the same address for code and data.
-    fileDescriptor(pdstring file, Address code, Address data, bool isShared) :
+    fileDescriptor(string file, Address code, Address data, bool isShared) :
         file_(file),
         member_(emptyString),
         code_(code),
@@ -134,7 +139,7 @@ class fileDescriptor {
 
     // Constructor for a fileDescriptor that represents a dynamically 
     // allocated memory region
-    fileDescriptor(pdstring regionName, Address start, Address end) :
+    fileDescriptor(string regionName, Address start, Address end) :
         file_(regionName),
         member_(emptyString),
         code_(start),
@@ -165,8 +170,8 @@ class fileDescriptor {
      }
      
      bool inMemoryOnly() const {return inMem_;}
-     const pdstring &file() const { return file_; }
-     const pdstring &member() const { return member_; }
+     const string &file() const { return file_; }
+     const string &member() const { return member_; }
      Address code() const { return code_; }
      Address data() const { return data_; }
      Address startAddress() { return startAddr_; }
@@ -176,13 +181,13 @@ class fileDescriptor {
      Address loadAddr() const { return loadAddr_; }
      
      void setLoadAddr(Address a);
-     void setMember(pdstring member) { member_ = member; }
+     void setMember(string member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
 
 #if defined(os_windows)
      // Windows gives you file handles. Since I collapsed the fileDescriptors
      // to avoid having to track allocated/deallocated memory, these moved here.
-     fileDescriptor(pdstring name, Address baseAddr, HANDLE procH, HANDLE fileH,
+     fileDescriptor(string name, Address baseAddr, HANDLE procH, HANDLE fileH,
                     bool isShared, Address loadAddr) :
          file_(name), code_(baseAddr), data_(baseAddr),
          procHandle_(procH), fileHandle_(fileH),
@@ -198,9 +203,9 @@ class fileDescriptor {
 
 
  private:
-     pdstring file_;
+     string file_;
      // AIX: two strings define an object.
-     pdstring member_;
+     string member_;
      Address code_;
      Address data_;
      bool shared_;
@@ -222,7 +227,7 @@ class image_variable {
                    const pdstring &name,
                    pdmodule *mod);
 
-    image_variable(Dyn_Symbol *sym,
+    image_variable(Symbol *sym,
     		   pdmodule *mod);
 
     Address getOffset() const;
@@ -235,9 +240,9 @@ class image_variable {
     bool addPrettyName(const pdstring &, bool isPrimary = false);
 
     pdmodule *pdmod() const { return pdmod_; }
-    Dyn_Symbol *symbol() const { return sym_; }
+    Symbol *symbol() const { return sym_; }
 
-    Dyn_Symbol *sym_;	
+    Symbol *sym_;	
     pdmodule *pdmod_;
     
 };
@@ -310,7 +315,7 @@ class image : public codeRange, public InstructionSource {
    image *clone() { refCount++; return this; }
 
    // And alternates
-   static void removeImage(const pdstring file);
+   static void removeImage(const string file);
    static void removeImage(fileDescriptor &desc);
 
    // Fills  in raw_funcs with targets in callTargets
@@ -341,7 +346,7 @@ class image : public codeRange, public InstructionSource {
 
    //Address findInternalAddress (const pdstring &name, const bool warn, bool &err);
    // find the named module  
-   pdmodule *findModule(const pdstring &name, bool wildcard = false);
+   pdmodule *findModule(const string &name, bool wildcard = false);
 
    // Note to self later: find is a const operation, [] isn't, for
    // dictionary access. If we need to make the findFuncBy* methods
@@ -398,9 +403,9 @@ class image : public codeRange, public InstructionSource {
 
    // data member access
 
-   pdstring file() const {return desc_.file();}
-   pdstring name() const { return name_;}
-   pdstring pathname() const { return pathname_; }
+   string file() const {return desc_.file();}
+   string name() const { return name_;}
+   string pathname() const { return pathname_; }
    const fileDescriptor &desc() const { return desc_; }
    Address codeOffset() const { return codeOffset_;}
    Address dataOffset() const { return dataOffset_;}
@@ -417,7 +422,7 @@ class image : public codeRange, public InstructionSource {
    void *getPtrToData(Address offset) const;
    void * getPtrToDataInText( Address offset ) const;
 
-   Dyn_Symtab *getObject() const { return linkedFile; }
+   Symtab *getObject() const { return linkedFile; }
 
    // Figure out the address width in the image. Any ideas?
    virtual unsigned getAddressWidth() const { return linkedFile->getAddressWidth(); };
@@ -439,9 +444,9 @@ class image : public codeRange, public InstructionSource {
    bool isNativeCompiler() const { return nativeCompiler; }
 
    // Return symbol table information
-   bool symbol_info(const pdstring& symbol_name, Dyn_Symbol& ret);
+   bool symbol_info(const pdstring& symbol_name, Symbol& ret);
    // And used for finding inferior heaps.... hacky, but effective.
-   bool findSymByPrefix(const pdstring &prefix, pdvector<Dyn_Symbol *> &ret);
+   bool findSymByPrefix(const pdstring &prefix, pdvector<Symbol *> &ret);
 
    const pdvector<image_func*> &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
@@ -467,16 +472,16 @@ class image : public codeRange, public InstructionSource {
    void * getErrFunc() const { return (void *) pd_log_perror; }
  private:
 
-   void findModByAddr (const Dyn_Symbol *lookUp, vector<Dyn_Symbol *> &mods,
-                       pdstring &modName, Address &modAddr, 
-                       const pdstring &defName);
+   void findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
+                       string &modName, Address &modAddr, 
+                       const string &defName);
 
 
    // Remove a function from the lists of instrumentable functions, once already inserted.
    int removeFuncFromInstrumentable(image_func *func);
 
-   image_func *makeOneFunction(vector<Dyn_Symbol *> &mods,
-                                Dyn_Symbol *lookUp);
+   image_func *makeOneFunction(vector<Symbol *> &mods,
+                                Symbol *lookUp);
 
 
    //
@@ -500,10 +505,10 @@ class image : public codeRange, public InstructionSource {
 #endif
 
    // creates the module if it does not exist
-   pdmodule *getOrCreateModule (const pdstring &modName, const Address modAddr);
-   pdmodule *newModule(const pdstring &name, const Address addr, supportedLanguages lang);
+   pdmodule *getOrCreateModule (const string &modName, const Address modAddr);
+   pdmodule *newModule(const string &name, const Address addr, supportedLanguages lang);
 
-   bool symbolsToFunctions(vector<Dyn_Symbol *> &mods, pdvector<image_func *> *raw_funcs);
+   bool symbolsToFunctions(vector<Symbol *> &mods, pdvector<image_func *> *raw_funcs);
 
    //bool addAllVariables();
    bool addSymtabVariables();
@@ -527,8 +532,8 @@ class image : public codeRange, public InstructionSource {
    //
 
    fileDescriptor desc_; /* file descriptor (includes name) */
-   pdstring name_;		 /* filename part of file, no slashes */
-   pdstring pathname_;      /* file name with path */
+   string name_;		 /* filename part of file, no slashes */
+   string pathname_;      /* file name with path */
 
    Address codeOffset_;
    unsigned codeLen_;
@@ -547,7 +552,7 @@ class image : public codeRange, public InstructionSource {
    bool nativeCompiler;
 
    // data from the symbol table 
-   Dyn_Symtab *linkedFile;
+   Symtab *linkedFile;
 
 
    // A vector of all images. Used to avoid duplicating
@@ -609,8 +614,8 @@ class image : public codeRange, public InstructionSource {
    //  it may sometimes be necessary to do a linear sort
    //  through excludedMods if searching for a module which
    //  was excluded....
-   dictionary_hash <pdstring, pdmodule *> modsByFileName;
-   dictionary_hash <pdstring, pdmodule*> modsByFullName;
+   hash_map <string, pdmodule *> modsByFileName;
+   hash_map <string, pdmodule*> modsByFullName;
 /* 
    // Variables indexed by pretty (non-mangled) name
    dictionary_hash <pdstring, pdvector <image_variable *> *> varsByPretty;
@@ -628,12 +633,13 @@ class image : public codeRange, public InstructionSource {
 };
 
 
-class pdmodule: public Dyn_Module {
+class pdmodule {
    friend class image;
  public:
-   pdmodule(supportedLanguages lang, Address adr, pdstring &fullNm, image *e)
-            : Dyn_Module(lang,(OFFSET)adr,fullNm.c_str(),e->getObject()), exec_(e){}
-   pdmodule(Dyn_Module &mod, image *e) : Dyn_Module(mod), exec_(e) {}
+   pdmodule(supportedLanguages lang, Address adr, string &fullNm, image *e)
+            : mod_(new Module(lang,(Offset)adr,fullNm,e->getObject())), exec_(e){}
+   pdmodule(Module *mod, image *e)
+   	    : mod_(mod), exec_(e) {}
 
    void cleanProcessSpecific(process *p);
 
@@ -661,10 +667,18 @@ class pdmodule: public Dyn_Module {
    bool findFunctionByPretty (const pdstring &name,
                               pdvector<image_func *> &found);
    void dumpMangled(pdstring &prefix) const;
+   const string &fileName() const;
+   const string &fullName() const;
+   supportedLanguages language() const;
+   Address addr() const;
+   bool isShared() const;
+   LineInformation *getLineInformation();
+   Module *mod();
 
    image *imExec() const { return exec_; }
  private:
-  image *exec_;
+   Module *mod_;
+   image *exec_;
 };
 
 inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {

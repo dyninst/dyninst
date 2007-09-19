@@ -39,14 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.21 2007/09/12 20:57:48 bernat Exp $
+// $Id: mapped_module.C,v 1.22 2007/09/19 21:54:52 giri Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/String.h"
 #include "dyninstAPI/src/debug.h"
+#include "symtabAPI/src/Object.h"
 #include "process.h"
+#include <iomanip>
 
 bool mapped_module::truncateLineFilenames = true;
 
@@ -88,11 +90,11 @@ void mapped_module::addVariable(int_variable *var) {
   everyUniqueVariable.push_back(var);
 }
 
-const pdstring mapped_module::fileName() const { 
-  return pmod()->fileName().c_str(); 
+const string &mapped_module::fileName() const { 
+  return pmod()->fileName(); 
 }
-const pdstring mapped_module::fullName() const { 
-  return pmod()->fullName().c_str(); 
+const string &mapped_module::fullName() const { 
+  return pmod()->fullName(); 
 }
 
 mapped_object *mapped_module::obj() const { 
@@ -102,7 +104,7 @@ mapped_object *mapped_module::obj() const {
 bool mapped_module::isNativeCompiler() const {
   // This should probably be per-module info at some point; some
   // .o's might be compiled native, and others not.
-  return pmod()->exec()->isNativeCompiler();
+  return pmod()->mod()->exec()->isNativeCompiler();
 }
 
 supportedLanguages mapped_module::language() const { 
@@ -279,7 +281,7 @@ void mapped_module::parseFileLineInfo() {
 	
   image * fileOnDisk = obj()->parse_img();
   assert( fileOnDisk != NULL );
-  Dyn_Symtab *elfObject = fileOnDisk->getObject();
+  Symtab *elfObject = fileOnDisk->getObject();
 
   const char * fileName = elfObject->file().c_str();
   unsigned long int proc_addr = reinterpret_cast< unsigned long int >( proc() );
@@ -289,17 +291,17 @@ void mapped_module::parseFileLineInfo() {
   /* We haven't parsed this file already, so iterate over its stab entries. */
   stab_entry * stabEntry;
   bool found = true;
-  Dyn_Section *sec;
+  Section *sec;
   char *   stab_off_ = 0;
   unsigned  stab_size_ = 0;
   char *   stabstr_off_ = 0;
-  if(!elfObject->findSection(".stab", sec))
+  if(!elfObject->findSection(sec, ".stab"))
     found = false;
   else
     {
       stab_off_ = (char *)sec->getPtrToRawData();
       stab_size_ = sec->getSecSize();
-      if(!elfObject->findSection(".stabstr",sec))
+      if(!elfObject->findSection(sec, ".stabstr"))
 	found = false;
       else
 	stabstr_off_ = (char *)sec->getPtrToRawData();
@@ -356,7 +358,9 @@ void mapped_module::parseFileLineInfo() {
 	Address currentLineAddress = stabEntry->val( i );
 					
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-	unsigned currrent_col = 0; // stabs does not support column information
+	unsigned current_col = 0; // stabs does not support column information
+	if(previousLineNo == 597 || previousLineNo == 596)
+	/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 	currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
       }
 				
@@ -375,6 +379,8 @@ void mapped_module::parseFileLineInfo() {
 	Address currentLineAddress = stabEntry->val( i );
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
 	unsigned current_col = 0;
+	if(previousLineNo == 597 || previousLineNo == 596)
+	                /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 	currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
                                           current_col, previousLineAddress, currentLineAddress  );
       }
@@ -395,6 +401,8 @@ void mapped_module::parseFileLineInfo() {
 	  Address currentLineAddress = currentFunctionBase + stabEntry->val( i );
 	  // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
 	  unsigned current_col = 0;
+	  if(previousLineNo == 597 || previousLineNo == 596)
+                  /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 	  currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
                                             current_col, previousLineAddress, currentLineAddress  );
 	}
@@ -409,6 +417,8 @@ void mapped_module::parseFileLineInfo() {
 	Address currentLineAddress = stabEntry->val( i );
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
 	unsigned current_col = 0;
+	if(previousLineNo == 597 || previousLineNo == 596)
+                /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 	currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
       }
 					
@@ -466,9 +476,13 @@ Address trueBaseAddress = 0;
 
 void mapped_module::parseFileLineInfo() {
   static std::set< image * > haveParsedFileMap;
-	
+
   image * fileOnDisk = obj()->parse_img();
   assert( fileOnDisk != NULL );
+  
+  Symtab *xcoffObject = fileOnDisk->getObject();
+  cerr << "parsing line infor for file :" << xcoffObject->file() << endl;
+  
   if( haveParsedFileMap.count( fileOnDisk ) != 0 ) { return; }
   // /* DEBUG */ fprintf( stderr, "%s[%d]: Considering image at 0x%lx\n", __FILE__, __LINE__, fileOnDisk );
 
@@ -478,7 +492,7 @@ void mapped_module::parseFileLineInfo() {
 
   trueBaseAddress = baseAddress;
 
-  Dyn_Symtab *xcoffObject = fileOnDisk->getObject();
+//  Symtab *xcoffObject = fileOnDisk->getObject();
 
   /* We haven't parsed this file already, so iterate over its stab entries. */
   char * stabstr = NULL;
@@ -653,7 +667,7 @@ void mapped_module::parseLineInformation(AddressSpace * /* proc */,
     aux = (union auxent *)( ((Address)bfSym) + SYMESZ );
     initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
         
-    pdstring whichFile = *currentSourceFile;
+    string whichFile = currentSourceFile->c_str();
     for( unsigned int j = 0; j < includeFiles.size(); j++ ) {
       if(	( includeFiles[j].begin <= (unsigned)initialLineIndex )
             	&& ( includeFiles[j].end >= (unsigned)initialLineIndex ) ) {
@@ -687,6 +701,11 @@ void mapped_module::parseLineInformation(AddressSpace * /* proc */,
       if( isPreviousValid ) {
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, lineAddr );
 	unsigned current_col = 0;
+	if(previousLineNo == 596 || previousLineNo == 597)
+	{
+		cerr << "FuncEndAddress: " <<setbase(16) << funcEndAddress << setbase(10) << ",totallines:" << nlines << ":" << j << endl;
+		cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << whichFile << ":" <<setbase(10) << previousLineNo << endl;
+	}	
 	currentLineInformation.addLine( whichFile.c_str(), previousLineNo, current_col, previousLineAddr, lineAddr );
       }
             
@@ -701,6 +720,9 @@ void mapped_module::parseLineInformation(AddressSpace * /* proc */,
 	 it until we see the next section, so claiming "until the end of the function" will give bogus results.) */
       // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, previousLineAddr + 4 );
       while (previousLineAddr < funcEndAddress) {
+      if(previousLineNo == 596 || previousLineNo == 597)
+	      cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," <<  previousLineAddr + 4 << ") for source " << whichFile << ":" << setbase(10) << previousLineNo << endl;
+		      
 	unsigned current_col = 0;
 	currentLineInformation.addLine( whichFile.c_str(), previousLineNo, current_col, previousLineAddr, previousLineAddr + 4 );
 	previousLineAddr += 4;
@@ -720,7 +742,7 @@ void mapped_module::parseLineInformation(AddressSpace * /* proc */,
 #include "dwarf.h"
 #include "libdwarf.h"  
 
-#include "LineInformation.h"
+#include "symtabAPI/h/LineInformation.h"
 
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 void mapped_module::parseFileLineInfo() 
@@ -728,7 +750,7 @@ void mapped_module::parseFileLineInfo()
   /* Determine if we've parsed this file already. */
   image * moduleImage = obj()->parse_img();
   assert( moduleImage != NULL );
-  Dyn_Symtab *moduleObject = moduleImage->getObject();	
+  Symtab *moduleObject = moduleImage->getObject();	
   const char * fileName = moduleObject->file().c_str();
 
   /* We have not parsed this file already, so wind up libdwarf. */
@@ -971,12 +993,13 @@ void mapped_module::parseFileLineInfo()
 #endif
 
 
-LineInformation &mapped_module::getLineInformation() {
-  if (!lineInformation()) {
+LineInformation *mapped_module::getLineInformation() {
+  /*if (!lineInformation()) {
     parseFileLineInfo();
     lineInfoValid_ = true;
   }
-  return lineInfo_;
+  return &lineInfo_;*/
+  return pmod()->getLineInformation();
 }
 
 

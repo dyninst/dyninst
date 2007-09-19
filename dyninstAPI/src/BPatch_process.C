@@ -64,13 +64,16 @@
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_thread.h"
-#include "LineInformation.h"
+#include "symtabAPI/h/LineInformation.h"
 #include "BPatch_function.h"
 #include "callbacks.h"
 
 #include "BPatch_private.h"
 
 #include "ast.h"
+
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 
 void BPatch_process::PDSEP_updateObservedCostAddr(unsigned long a)
 {
@@ -2302,8 +2305,9 @@ bool BPatch_process::getAddressRangesInt( const char * fileName, unsigned int li
 	/* Iteratate over the modules, looking for addr in each. */
 	BPatch_Vector< BPatch_module * > * modules = image->getModules();
 	for( unsigned int i = 0; i < modules->size(); i++ ) {
-		LineInformation & lineInformation = (* modules)[i]->mod->getLineInformation();		
-		lineInformation.getAddressRanges( fileName, lineNo, ranges );
+		LineInformation *lineInformation = (* modules)[i]->mod->getLineInformation();		
+		if(lineInformation)
+			lineInformation->getAddressRanges( fileName, lineNo, ranges );
 		} /* end iteration over modules */
 	if( ranges.size() != originalSize ) { return true; }
 	

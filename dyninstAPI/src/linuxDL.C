@@ -520,7 +520,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
    }
 
    do {
-      pdstring obj_name = pdstring(link_elm->l_name());
+      string obj_name = link_elm->l_name();
       Address text = link_elm->l_addr();
       if (obj_name == "" && text == 0) {
          continue;
@@ -616,7 +616,7 @@ bool dynamic_linking::initialize() {
     
     /* Is this a dynamic executable? */
     pdstring dyn_str = pdstring("DYNAMIC");
-    Dyn_Symbol dyn_sym;
+    Symbol dyn_sym;
     if( ! proc->getSymbolInfo( dyn_str, dyn_sym ) ) { 
         startup_printf("[%s][%d]Failed to find DYNAMIC symbol in dyn::init, "
                        "this may not be a dynamic executable\n",__FILE__,__LINE__);
@@ -647,13 +647,13 @@ bool dynamic_linking::initialize() {
     }
     /* Generate its Object and set r_debug_addr ("_r_debug"/STT_OBJECT) */
     // We haven't parsed libraries at this point, so do it by hand.
-    Dyn_Symtab *ldsoOne = new Dyn_Symtab();
+    Symtab *ldsoOne = new Symtab();
     string fileName = ld_path;
-    ldsoOne->Dyn_Symtab::openFile(fileName, ldsoOne);
-    pdvector< Dyn_Symbol > rDebugSyms;
-    Dyn_Symbol rDebugSym;
-    vector<Dyn_Symbol *>syms;
-    if(!ldsoOne->findSymbolByType(syms,"_r_debug",Dyn_Symbol::ST_UNKNOWN)){
+    ldsoOne->Symtab::openFile(ldsoOne, fileName);
+    pdvector< Symbol > rDebugSyms;
+    Symbol rDebugSym;
+    vector<Symbol *>syms;
+    if(!ldsoOne->findSymbolByType(syms,"_r_debug",Symbol::ST_UNKNOWN)){
         startup_printf("Failed to find _r_debug, ret false from dyn::init\n");
     	return false;
     }	
@@ -664,7 +664,7 @@ bool dynamic_linking::initialize() {
                       "dyn::init\n", rDebugSyms.size());
        return false; 
     }
-    if( ! (rDebugSym.getType() == Dyn_Symbol::ST_OBJECT) ) {
+    if( ! (rDebugSym.getType() == Symbol::ST_OBJECT) ) {
        startup_printf("Unexpected type %d for rDebugSym, ret false from "
                       "dyn::init\n", rDebugSym.getType());
        return false; 
@@ -676,7 +676,7 @@ bool dynamic_linking::initialize() {
        ld_base = ld_base_backup;
     }
     if (!isValidMemory(r_debug_addr + ld_base, proc->getPid())) {
-       ld_base = ldsoOne->getLoadAddress();
+       ld_base = ldsoOne->getLoadOffset();
     }
     r_debug_addr += ld_base;
 
@@ -684,12 +684,12 @@ bool dynamic_linking::initialize() {
     
     /* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */
     syms.clear();
-    ldsoOne->findSymbolByType(syms,"_dl_map_object",Dyn_Symbol::ST_UNKNOWN);
+    ldsoOne->findSymbolByType(syms,"_dl_map_object",Symbol::ST_UNKNOWN);
     for(unsigned index=0;index<syms.size();index++)
        rDebugSyms.push_back(*(syms[index]));
     /* It's also apparently OK if this uses a garbage symbol. */
     if( rDebugSyms.size() == 1 ) { rDebugSym = rDebugSyms[0]; }
-    if( ! (rDebugSym.getType() == Dyn_Symbol::ST_FUNCTION) ) { ; } 
+    if( ! (rDebugSym.getType() == Symbol::ST_FUNCTION) ) { ; } 
     dlopen_addr = rDebugSym.getAddr() + ld_base;
     assert( dlopen_addr );
     
@@ -992,7 +992,7 @@ bool dynamic_linking::installTracing()
     instruction returnToBZero = generateReturnTo( 0 );
     IA64_bundle returnBundle( MMBstop, memoryNOP, memoryNOP, returnToBZero );
 
-    Dyn_Symbol r_brk_target;
+    Symbol r_brk_target;
     if (!proc->getSymbolInfo("R_BRK_TARGET", r_brk_target))
         assert(0);
     r_brk_target_addr = r_brk_target.getAddr(); assert( r_brk_target_addr );

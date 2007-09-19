@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.90 2007/09/18 16:22:33 tugrul Exp $
+// $Id: BPatch_function.C,v 1.91 2007/09/19 21:54:30 giri Exp $
 
 #define BPATCH_FILE
 
@@ -60,7 +60,7 @@
 #include "BPatch_basicBlock.h"
 #include "BPatch_statement.h"
 
-#include "LineInformation.h"
+#include "symtabAPI/h/LineInformation.h"
 #include "common/h/Types.h"
 #include "InstrucIter.h"
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.13 2007/09/14 16:54:58 roundy Exp $
+// $Id: linux-power.C,v 1.14 2007/09/19 21:54:48 giri Exp $
 
 #include <dlfcn.h>
 
@@ -808,7 +808,7 @@ int process::getSysCallNumber(dyn_saved_regs *) { assert(0); }
 long process::getSysCallReturnValue(dyn_saved_regs *) { assert(0); }
 Address process::getSysCallProgramCounter(dyn_saved_regs *) { assert(0); }
 bool process::isMmapSysCall(int) { assert(0); }
-OFFSET process::getMmapLength(int, dyn_saved_regs *) { assert(0); }
+Offset process::getMmapLength(int, dyn_saved_regs *) { assert(0); }
 Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); }
 
 bool process::loadDYNINSTlib()

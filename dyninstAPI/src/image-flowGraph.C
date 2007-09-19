@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.37 2007/09/14 16:54:56 roundy Exp $
+ * $Id: image-flowGraph.C,v 1.38 2007/09/19 21:54:41 giri Exp $
  */
 
 #include <stdio.h>
@@ -51,7 +51,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 
 #include "dyninstAPI/src/parRegion.h"
 
@@ -61,7 +61,7 @@
 
 #include "dyninstAPI/src/InstrucIter.h"
 
-#include "LineInformation.h"
+#include "symtabAPI/h/LineInformation.h"
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 
 #if defined(TIMED_PARSE)
@@ -440,10 +440,13 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
 
 	      parsing_printf(" ***** Adding %s (0x%lx) to tables\n",
                     pdf->symTabName().c_str(),pdf->getOffset());
+		
+		// Update the Symbol's impression of size
+		pdf->symbol()->setSize(pdf->get_size_cr());
 
                 enterFunctionInTables(pdf,false);
 
-                // Update the Dyn_Symbol's impression of size
+                // Update the Symbol's impression of size
                 pdf->symbol()->setSize(pdf->get_size_cr());
                 
                 // mangled name
@@ -719,7 +722,7 @@ bool image_func::buildCFG(
     codeRange *tmpRange;
 
     // ** Use to special-case abort and exit calls
-    Dyn_Symtab *obj = img()->getObject();
+    Symtab *obj = img()->getObject();
     vector<relocationEntry> fbt;
     dictionary_hash<Address, pdstring> pltFuncs(addrHash);
     if(obj->getFuncBindingTable(fbt))
@@ -931,7 +934,7 @@ bool image_func::buildCFG(
                      ah++;
                      continue;
                  }
-#endif                
+#endif           
 
                 img()->addJumpTarget( target );
 
@@ -1081,6 +1084,7 @@ bool image_func::buildCFG(
 
 #if 0
                 // Removed; causes problems with relocation
+
                 /* Special case handling for jmp +0 and jcc +0 */
                 if(target == ah.peekNext()) {
                     parsing_printf("[%s:%u] eliding jcc +0 edge at 0x%lx\n",

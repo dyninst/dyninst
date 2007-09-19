@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.14 2007/09/12 20:57:51 bernat Exp $
+// $Id: mapped_object.h,v 1.15 2007/09/19 21:54:55 giri Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -125,8 +125,8 @@ class mapped_object : public codeRange {
 
     const fileDescriptor &getFileDesc() const { return desc_; }
     // Full name, including path
-    const pdstring &fullName() const { return fullName_; }
-    const pdstring &fileName() const { return fileName_; }
+    const string &fullName() const { return fullName_; }
+    const string &fileName() const { return fileName_; }
     Address codeAbs() const { return codeBase() + codeOffset(); }
     Address codeBase() const { return codeBase_; }
     Address codeOffset() const { return parse_img()->codeOffset(); }
@@ -153,7 +153,7 @@ class mapped_object : public codeRange {
 
     AddressSpace *proc() const;
 
-    mapped_module *findModule(pdstring m_name, bool wildcard = false);
+    mapped_module *findModule(string m_name, bool wildcard = false);
     mapped_module *findModule(pdmodule *mod);
 
     // This way we can avoid parsing everything as it comes in; we
@@ -187,7 +187,7 @@ class mapped_object : public codeRange {
 #endif
 
     // Annoying low-level requirement... direct access to the symbol table.
-    bool  getSymbolInfo(const pdstring &n,Dyn_Symbol &info);
+    bool  getSymbolInfo(const pdstring &n,Symbol &info);
 
     // All name lookup functions are vectorized, because you can have
     // multiple overlapping names for all sorts of reasons.
@@ -231,8 +231,8 @@ class mapped_object : public codeRange {
 private:
     fileDescriptor desc_; // full file descriptor
 
-    pdstring  fullName_;	// full file name of the shared object
-    pdstring  fileName_; // name of shared object as it should be identified
+    string  fullName_;	// full file name of the shared object
+    string  fileName_; // name of shared object as it should be identified
 			//  in mdl, e.g. as used for "exclude"....
     Address   codeBase_; // The OS offset where the text segment is loaded;
     // there is a corresponding codeOffset_ in the image class.

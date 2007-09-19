@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.8 2007/09/12 20:57:49 bernat Exp $
+// $Id: mapped_module.h,v 1.9 2007/09/19 21:54:53 giri Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -57,7 +57,7 @@ class image;
 #include "common/h/String.h"
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 
 #define CHECK_ALL_CALL_POINTS  // paradyn might need it
 
@@ -76,8 +76,8 @@ class mapped_module {
     mapped_object *obj() const;
     pdmodule *pmod() const;
 
-    const pdstring fileName() const;
-    const pdstring fullName() const;
+    const string &fileName() const;
+    const string &fullName() const;
 
     AddressSpace *proc() const;
 
@@ -131,7 +131,7 @@ class mapped_module {
 
     // We're not generic-asizing line information yet, so this
     // calls into the pdmodule class to do the work.
-    LineInformation &getLineInformation();
+    LineInformation *getLineInformation();
     // Given a line in the module, get the set of addresses that it maps
     // to. Calls the internal getAddrFromLine and then adds the base
     // address to the returned list of offsets.

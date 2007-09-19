@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.50 2007/02/14 23:03:40 legendre Exp $
+// $Id: solarisDL.C,v 1.51 2007/09/19 21:55:05 giri Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -62,7 +62,7 @@ bool dynamic_linking::initialize() {
     r_state = 0;
     // First, find if we're a dynamic executable
     pdstring dyn_str = pdstring("DYNAMIC");
-    Dyn_Symbol dyn_sym;
+    Symbol dyn_sym;
     if( ! proc->getSymbolInfo(dyn_str, dyn_sym)) {
         bperr( "Failed to find string DYNAMIC\n");
         return false; 
@@ -316,7 +316,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
            }
        }
        f_name[f_amount-1] = '\0';
-       pdstring obj_name = pdstring(f_name);
+       string obj_name = string(f_name);
 
       parsing_cerr << 
          "dynamicLinking::processLinkMaps(): file name of next shared obj="

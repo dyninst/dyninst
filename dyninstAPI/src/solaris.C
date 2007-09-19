@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.218 2007/09/14 16:55:05 roundy Exp $
+// $Id: solaris.C,v 1.219 2007/09/19 21:55:04 giri Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -161,7 +161,7 @@ bool process::get_exit_syscalls(sysset_t *exit)
 //TODO: This function should be converted to use process objects, not BPatch.
 bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirName){
     BPatch_Vector<BPatch_snippet *> args;
-    char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,dirName);
+    char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath.c_str(),dirName);
     
     bool exists;
     BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid(), &exists);
@@ -289,7 +289,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
             if( sh_obj->isDirty() || sh_obj->isDirtyCalled() || strstr(sh_obj->fileName().c_str(),"libdyninstAPI_RT")){
                 /*fprintf(stderr,"\nWRITE BACK SHARED OBJ %s\n", sh_obj->getName().c_str());*/
                 
-                if(!dldumpSharedLibrary(sh_obj->fileName(),directoryName)){
+                if(!dldumpSharedLibrary(sh_obj->fileName().c_str(),directoryName)){
                     char *msg;
                     msg = new char[sh_obj->fileName().length() + strlen(directoryName)+128];
                     sprintf(msg,"dumpPatchedImage: %s not saved to %s.\n.\nTry to use the original shared library with the mutated binary.\n",sh_obj->fileName().c_str(),directoryName);
@@ -533,15 +533,15 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 bool process::dumpImage(pdstring imageFileName) 
 {
     int newFd;
-    pdstring command;
+    string command;
 
-    pdstring origFile = getAOut()->fileName();
+    string origFile = getAOut()->fileName();
    
     // first copy the entire image file
     command = "cp ";
     command += origFile;
     command += " ";
-    command += imageFileName;
+    command += imageFileName.c_str();
     system(command.c_str());
 
     // now open the copy
@@ -683,7 +683,7 @@ int process::getSysCallNumber(dyn_saved_regs *) { assert(0); return 0; }
 long process::getSysCallReturnValue(dyn_saved_regs *) { assert(0); return 0; }
 Address process::getSysCallProgramCounter(dyn_saved_regs *) { assert(0); return 0; }
 bool process::isMmapSysCall(int) { assert(0); return false; }
-OFFSET process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
+Offset process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
 Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0;}
 
 bool process::getDyninstRTLibName() {
@@ -855,7 +855,7 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
                                     int &,
                                     fileDescriptor &desc)
 {
-    desc = fileDescriptor(filename, 0, 0, false);
+    desc = fileDescriptor(filename.c_str(), 0, 0, false);
     return true;
 }
 
@@ -1201,7 +1201,7 @@ int_function *instPoint::findCallee() {
     
     
     // else, get the relocation information for this image
-    Dyn_Symtab *obj = func()->obj()->parse_img()->getObject();
+    Symtab *obj = func()->obj()->parse_img()->getObject();
     vector<relocationEntry> fbtvector;
     if(!obj->getFuncBindingTable(fbtvector))
     	return false;	// target cannot be found...it is an indirect call.

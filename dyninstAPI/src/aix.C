@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.235 2007/09/14 16:54:55 roundy Exp $
+// $Id: aix.C,v 1.236 2007/09/19 21:54:37 giri Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -58,7 +58,7 @@
 #include "dyninstAPI/src/stats.h"
 #include "common/h/Types.h"
 #include "common/h/Dictionary.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
@@ -965,7 +965,7 @@ int process::getSysCallNumber(dyn_saved_regs *) { assert(0); return 0; }
 long process::getSysCallReturnValue(dyn_saved_regs *) { assert(0); return 0; }
 Address process::getSysCallProgramCounter(dyn_saved_regs *) { assert(0); return 0; }
 bool process::isMmapSysCall(int) { assert(0); return false; }
-OFFSET process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
+Offset process::getMmapLength(int, dyn_saved_regs *) { assert(0); return 0;}
 Address process::getLibcStartMainParam(dyn_lwp *) { assert(0); return 0;}
 
 #if 0
@@ -1574,7 +1574,7 @@ bool process::dumpCore_(const pdstring coreFile)
 bool process::dumpImage(const pdstring outFile)
 {
     // formerly OS::osDumpImage()
-    const pdstring &imageFileName = getAOut()->fullName();
+    const string &imageFileName = getAOut()->fullName();
 
 	
     // const Address codeOff = symbols->codeOffset();

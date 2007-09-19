@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.79 2007/02/14 23:03:34 legendre Exp $
+//$Id: templates1.C,v 1.80 2007/09/19 21:55:11 giri Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -57,7 +57,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "symtabAPI/src/Dyn_Symtab.h"
+#include "symtabAPI/src/Symtab.h"
 #include "common/h/List.h"
 #endif
 
@@ -75,6 +75,7 @@ class BPatch_field;
 class BPatch_variableExpr;
 
 #include "symtab.h" // supportedLanguages is a typedef; could move.
+
 template class  dictionary_hash <pdstring, supportedLanguages>;
 template class  pdvector<dictionary_hash <pdstring, supportedLanguages>::entry>;
 
@@ -104,9 +105,11 @@ template class pdvector<inferiorRPCtoDo *>;
 template class pdvector<inferiorRPCinProgress *>;
 
 #include "common/src/List.C"
-class Dyn_Symbol;
-template class  dictionary_hash <Address, Dyn_Symbol*>;
-template class  pdvector<dictionary_hash <Address, Dyn_Symbol*>::entry>;
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+class Dyninst::SymtabAPI::Symbol;
+template class  dictionary_hash <Address, Symbol*>;
+template class  pdvector<dictionary_hash <Address, Symbol*>::entry>;
 
 class instPoint;
 template class  dictionary_hash <Address, instPoint*>;

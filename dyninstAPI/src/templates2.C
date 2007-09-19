@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.74 2007/09/17 15:23:14 tugrul Exp $
+// $Id: templates2.C,v 1.75 2007/09/19 21:55:12 giri Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -50,7 +50,7 @@
 #endif
 
 #include "common/h/String.h"
-#include "symtabAPI/h/Dyn_Symbol.h"
+#include "symtabAPI/h/Symbol.h"
 
 #if 0
 #include "dyninstAPI/src/symtab.h"
@@ -59,7 +59,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/syscalltrap.h"
 
@@ -80,12 +80,13 @@ template class pdpair<pdstring, pdvector<pdstring> >;
 
 template class pdvector<pdpair<pdstring, pdvector<pdstring> > >;
 
-
-class Dyn_Symbol;
-template class  dictionary_hash_iter <Address, Dyn_Symbol*>;
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+class Dyninst::SymtabAPI::Symbol;
+template class  dictionary_hash_iter <Address, Symbol*>;
 
 //template class  dictionary_hash_iter <instPoint*, unsigned>;
-template class  dictionary_hash_iter <pdstring, Dyn_Symbol>;
+template class  dictionary_hash_iter <pdstring, Symbol>;
 class pdmodule;
 template class  dictionary_hash_iter <pdstring, pdmodule *>;
 
@@ -100,8 +101,8 @@ template class pdvector<syscallTrap *>;
 
 /* ***************************************************************************** */
 
-template class dictionary_hash <pdstring, Dyn_Symbol>;
-template class pdvector<dictionary_hash <pdstring, Dyn_Symbol>::entry>;
+template class dictionary_hash <pdstring, Symbol>;
+template class pdvector<dictionary_hash <pdstring, Symbol>::entry>;
 
 class BPatch_point;
 template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
@@ -171,9 +172,9 @@ template class dictionary_hash< Address, void * >;
 template class pdvector< dictionary_hash< Address, void * >::entry >;
 #endif /* defined( arch_ia64 ) */
 
-template class pdvector< Dyn_Symbol >;
-template class dictionary_hash< pdstring, pdvector< Dyn_Symbol > >;
-template class pdvector<dictionary_hash < pdstring, pdvector <Dyn_Symbol> >::entry>;
+template class pdvector< Symbol >;
+template class dictionary_hash< pdstring, pdvector< Symbol > >;
+template class pdvector<dictionary_hash < pdstring, pdvector <Symbol> >::entry>;
 
 template class dictionary_hash< pdstring, bool >;
 template class pdvector< dictionary_hash< pdstring, bool >::entry >;
@@ -197,7 +198,6 @@ template class dictionary_hash<pdstring, Statistic *>;
 
 #if defined(arch_x86) || defined(arch_x86_64) || defined(sparc_sun_solaris2_4)
 #include "common/src/Annotatable.C"
-template class dictionary_hash<pdstring, int>;
 
 template class Annotatable<instruction>;
 template class Annotatable<BPatch_function>;

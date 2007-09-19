@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.695 2007/09/14 16:55:02 roundy Exp $
+// $Id: process.C,v 1.696 2007/09/19 21:55:01 giri Exp $
 
 #include <ctype.h>
 
@@ -53,7 +53,7 @@
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/function.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
 //#include "dyninstAPI/src/func-reloc.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -468,7 +468,7 @@ char* process::saveWorldFindDirectory(){
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 
-char *process::saveWorldFindNewSharedLibraryName(pdstring originalLibNameFullPath, char* dirName){
+char *process::saveWorldFindNewSharedLibraryName(string originalLibNameFullPath, char* dirName){
 	const char *originalLibName = originalLibNameFullPath.c_str();
 	unsigned int index=0;
 
@@ -479,7 +479,7 @@ char *process::saveWorldFindNewSharedLibraryName(pdstring originalLibNameFullPat
 		}
 	}
 
-	pdstring oldLibName = originalLibNameFullPath.substr(index,originalLibNameFullPath.length());
+	string oldLibName = originalLibNameFullPath.substr(index,originalLibNameFullPath.length());
 	char* newLibName = new char[strlen(dirName) + oldLibName.length()+1];
 	memcpy(newLibName,dirName,strlen(dirName)+1);
 	newLibName =strcat(newLibName, oldLibName.c_str());
@@ -613,7 +613,7 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
       //this is for the dlopen problem...
       if(strstr(sh_obj->fileName().c_str(), "ld-linux.so") ){
          //find the offset of _dl_debug_state in the .plt
-	 Dyn_Symtab *obj = sh_obj->parse_img()->getObject();
+	 Symtab *obj = sh_obj->parse_img()->getObject();
 	 vector<relocationEntry> fbt;
 	 obj->getFuncBindingTable(fbt);
 	 dl_debug_statePltEntry = 0;
@@ -712,7 +712,7 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 			correct.
 		*/
 #if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
-		Dyn_Symbol info;
+		Symbol info;
 		pdstring dynamicSection = "_DYNAMIC";
 		sh_obj->getSymbolInfo(dynamicSection,info);
 		baseAddr = sh_obj->getBaseAddress() + info.getAddr();
@@ -1835,11 +1835,10 @@ bool process::setupFork()
     assert(mapped_objects.size() == parent->mapped_objects.size());
 
     for (unsigned i = 0; i < mapped_objects.size(); i++) {        
-        if ((parent->mapped_objects[i]->fileName() == dyninstRT_name) ||
-            (parent->mapped_objects[i]->fullName() == dyninstRT_name))
+        if ((parent->mapped_objects[i]->fileName() == dyninstRT_name.c_str()) ||
+            (parent->mapped_objects[i]->fullName() == dyninstRT_name.c_str()))
             runtime_lib = mapped_objects[i];
     }
-
 
     // And the main func and dyninst RT lib
     if (!setMainFunction())
@@ -2095,6 +2094,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     , vsyscall_data_(parentProc->vsyscall_data_)
 #endif
 {
+	cout << "process constructor" << endl;
 }
 
 static void cleanupBPatchHandle(int pid)
@@ -2333,7 +2333,7 @@ bool process::loadDyninstLib() {
         return false;
     }
     startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
-                   dyninstRT_name.c_str());
+				                       dyninstRT_name.c_str());
 
     // And get the list of all shared objects in the process. More properly,
     // get the address of dlopen.
@@ -3675,9 +3675,9 @@ bool process::addASharedObject(mapped_object *new_obj)
 #if defined(os_windows)
     last_slash = strrchr(new_obj->fileName().c_str(), '\\');
 	if (!last_slash) last_slash = strrchr(new_obj->fileName().c_str(), '/');
-    pdstring shortname = last_slash ? pdstring(last_slash +1) : new_obj->fileName();
+    pdstring shortname = last_slash ? pdstring(last_slash +1) : new_obj->fileName().c_str();
 #else
-    pdstring shortname = new_obj->fileName();
+    pdstring shortname = new_obj->fileName().c_str();
 #endif
 	
 	if (dyninstRT_name.c_str()) {
@@ -3685,10 +3685,9 @@ bool process::addASharedObject(mapped_object *new_obj)
 		if (!last_slash) last_slash = strrchr(dyninstRT_name.c_str(), '/');
 		dyninstRT_shortname = last_slash ? pdstring(last_slash +1) : dyninstRT_name.c_str();
 	}
+    pdstring longname = new_obj->fullName().c_str();
 
-    pdstring longname = new_obj->fullName();
-
-    if ((shortname == dyninstRT_shortname) 
+    if((shortname == dyninstRT_name)
         || (longname == dyninstRT_name)) {
       startup_printf("%s[%d]:  handling init of dyninst RT library\n", FILE__, __LINE__);
       if (!setDyninstLibPtr(new_obj)) {
@@ -3845,7 +3844,7 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
 }
 
 // Returns the named symbol from the image or a shared object
-bool process::getSymbolInfo( const pdstring &name, Dyn_Symbol &ret ) 
+bool process::getSymbolInfo( const pdstring &name, Symbol &ret ) 
 {
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         bool sflag;
@@ -3868,8 +3867,8 @@ void process::addSignalHandler(Address addr, unsigned size) {
 void process::findSignalHandler(mapped_object *obj){
     assert(obj);
 
-    // Old skool
-    Dyn_Symbol sigSym;
+    // Old skoon
+    Symbol sigSym;
     pdstring signame(SIGNAL_HANDLER);
 
     if (obj->getSymbolInfo(signame, sigSym)) {
@@ -3877,8 +3876,7 @@ void process::findSignalHandler(mapped_object *obj){
         // so override to 1 if this is true...
         unsigned size_to_use = sigSym.getSize();
         if (!size_to_use) size_to_use = 1;
-
-        addSignalHandler(sigSym.getAddr(), size_to_use);
+	        addSignalHandler(sigSym.getAddr(), size_to_use);
     }
 
 }

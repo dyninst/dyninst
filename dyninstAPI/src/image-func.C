@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.45 2007/07/17 17:16:15 rutar Exp $
+// $Id: image-func.C,v 1.46 2007/09/19 21:54:42 giri Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -161,14 +161,18 @@ image_func::image_func(const pdstring &symbol,
 #else
     endOffset_ = offset + symTabSize;
 #endif
-    sym_ = new Dyn_Symbol(symbol.c_str(), m->fileName(), Dyn_Symbol::ST_FUNCTION , Dyn_Symbol:: SL_GLOBAL, 
-    								offset, NULL, symTabSize);
-    //    i->getObject()->addSymbol(sym_);								
-    sym_->setUpPtr(this);
-//    symTabNames_.push_back(symbol);
+    Section * sec = NULL;
+    Symtab * st = i->getObject();
+    if(st)
+        st->findSection(sec, ".text");
+     sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
+	  		     								offset, sec, symTabSize);
+     //i->getObject()->addSymbol(sym_);								
+     sym_->setUpPtr(this);
+     //symTabNames_.push_back(symbol);
 }
 
-image_func::image_func(Dyn_Symbol *symbol, pdmodule *m, image *i):
+image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
   sym_(symbol),
   mod_(m),
   image_(i),

@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.32 2007/08/09 16:51:45 bill Exp $ */
+/* $Id: writeBackElf.C,v 1.33 2007/09/19 21:55:14 giri Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -239,6 +239,9 @@ void writeBackElf::driver(){
 	Elf_Scn *scn, *newScn; 
         Elf32_Ehdr *ehdr ;//= elf32_getehdr(oldElf);
 	Elf_Data *data = NULL, *newdata = NULL, *olddata = NULL;
+	//important data sections in the
+        //new Elf that need updated
+        Elf_Data *textData, *symStrData, *dynStrData, *symTabData, *hashData, *dynsymData, *rodata, *dataData;
 
 	ehdr = elf32_getehdr(oldElf);
 	if(!(newEhdr = elf32_newehdr(newElf))){

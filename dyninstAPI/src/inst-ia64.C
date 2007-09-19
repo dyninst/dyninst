@@ -558,7 +558,7 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 
 	/* Find address for functions __divsi3 */
 	pdstring callee = pdstring("__divsi3");
-	int_function *calleefunc = proc->findOnlyOneFunction(callee);
+	int_function *calleefunc = proc->findOnlyOneFunction(callee.c_str());
 	if (!calleefunc) {
 	  char msg[256];
 	  sprintf(msg, "%s[%d]:  internal error:  unable to find %s",
@@ -2973,9 +2973,10 @@ bool process::insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTr
 	
   /* We need the address of the _U_dyn_info_list in the remote process in order
 	 to register the baseTrampDynamicInfo. */
-  Dyn_Symbol dyn_info_list;
+  Symbol dyn_info_list;
   if (!proc->proc()->getSymbolInfo( "_U_dyn_info_list", dyn_info_list))
 	  return ! proc->proc()->isBootstrappedYet();
+  
   Address addressOfuDIL = dyn_info_list.getAddr();
 	
   /* Register baseTrampDynamicInfo in remote process. */
@@ -3568,7 +3569,7 @@ Emitter *AddressSpace::getEmitter()
 }
 
 bool image::isAligned(const Address where) const {
-   OFFSET slotNo = where % 0x10;
-   OFFSET bundle = where - slotNo;
+   Offset slotNo = where % 0x10;
+   Offset bundle = where - slotNo;
    return ((slotNo == 0 || slotNo == 1 || slotNo == 2 ) && ( bundle + slotNo == where ));
 }
