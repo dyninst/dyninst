@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.267 2007/09/12 20:57:40 bernat Exp $
+ * $Id: inst-x86.C,v 1.268 2007/09/19 19:25:17 bernat Exp $
  */
 #include <iomanip>
 
@@ -884,7 +884,7 @@ that it calls, to a certain depth ... at which point we clobber everything
 Update-12/06, njr, since we're going to a cached system we are just going to 
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
-bool Emitter32::clobberAllFuncCall( registerSpace *rs,
+bool EmitterIA32::clobberAllFuncCall( registerSpace *rs,
                                     int_function *callee)
 		   
 {
@@ -903,7 +903,7 @@ bool Emitter32::clobberAllFuncCall( registerSpace *rs,
 }
 
 
-void Emitter32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
+void EmitterIA32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 {
    if (liveFPReg != NULL)
    {
@@ -916,10 +916,10 @@ void Emitter32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 }
 
 
-Register Emitter32::emitCall(opCode op, 
-                             codeGen &gen,
-                             const pdvector<AstNodePtr> &operands, 
-                             bool noCost, int_function *callee) {
+Register EmitterIA32Dyn::emitCall(opCode op, 
+                                  codeGen &gen,
+                                  const pdvector<AstNodePtr> &operands, 
+                                  bool noCost, int_function *callee) {
     assert(op == callOp);
     pdvector <Register> srcs;
     int param_size;
@@ -951,6 +951,61 @@ Register Emitter32::emitCall(opCode op,
 
    emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);       // mov eax, addr
    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
+
+   /*
+   // reset the stack pointer
+   if (srcs.size() > 0)
+      emitOpRegImm(0, REGNUM_ESP, srcs.size()*4, gen); // add esp, srcs.size()*4
+  */
+   emitCallCleanup(gen, callee, param_size, saves);
+
+   // allocate a (virtual) register to store the return value
+   Register ret = gen.rs()->allocateRegister(gen, noCost);
+   emitMovRegToRM(REGNUM_EBP, -1*(ret*4), REGNUM_EAX, gen);
+
+   return ret;
+}
+
+ 
+// TODO: we need to know if we're doing an inter-module call. This
+// means we need to know where we're _coming_ from, which currently
+// isn't possible. Time to add more to the codeGen structure, such as
+// "function where we're inserting new code."  Also, we'll need a
+// pdstring version that doesn't take a callee...
+
+
+Register EmitterIA32Stat::emitCall(opCode op, 
+                                   codeGen &gen,
+                                   const pdvector<AstNodePtr> &operands, 
+                                   bool noCost, int_function *callee) {
+    assert(op == callOp);
+    pdvector <Register> srcs;
+    int param_size;
+    pdvector<Register> saves;
+    
+    //  Sanity check for NULL address arg
+    if (!callee) {
+        char msg[256];
+        sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+                "callee argument", __FILE__, __LINE__);
+        showErrorCallback(80, msg);
+        assert(0);
+    }
+
+   /*
+      int emitCallParams(registerSpace *rs, codeGen &gen, 
+                   const pdvector<AstNodePtr> &operands, process *proc,
+                   int_function *target, const pdvector<AstNodePtr> &ifForks,
+                   pdvector<Register> &extra_saves, const instPoint *location,
+                   bool noCost);
+                   */
+
+   param_size = emitCallParams(gen, operands, callee, saves, noCost);
+
+   Address to = callee->getAddress();
+   Address from = gen.currAddr();
+
+   instruction::generateCall(gen, from, to);
 
    /*
    // reset the stack pointer
@@ -1070,18 +1125,18 @@ static inline void emitSHL(Register dest, unsigned char pos,
     SET_PTR(insn, gen);
 }
 
-void Emitter32::emitPushFlags(codeGen &gen) {
+void EmitterIA32::emitPushFlags(codeGen &gen) {
     // These crank the saves forward
     emitSimpleInsn(PUSHFD, gen);
 }
 
-void Emitter32::emitRestoreFlags(codeGen &gen, unsigned offset)
+void EmitterIA32::emitRestoreFlags(codeGen &gen, unsigned offset)
 {
     emitOpRMReg(PUSH_RM_OPC1, REGNUM_ESP, offset*4, PUSH_RM_OPC2, gen);
     emitSimpleInsn(POPFD, gen); // popfd
 }
 
-void Emitter32::emitRestoreFlagsFromStackSlot(codeGen &gen)
+void EmitterIA32::emitRestoreFlagsFromStackSlot(codeGen &gen)
 {
     emitRestoreFlags(gen, SAVED_EFLAGS_OFFSET);
 }
@@ -1128,7 +1183,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool 
     gen.codeEmitter()->emitASload(ra, rb, sc, imm, dest, gen);
 }
 
-void Emitter32::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
 {
    bool havera = ra > -1, haverb = rb > -1;
 
@@ -1171,7 +1226,7 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
    gen.codeEmitter()->emitCSload(ra, rb, sc, imm, dest, gen);
 }
 
-void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
 {
    // count is at most 1 register or constant or hack (aka pseudoregister)
    assert((ra == -1) &&
@@ -1695,7 +1750,7 @@ void emitFuncJump(opCode op,
     gen.codeEmitter()->emitFuncJump(addr, ptType, gen);
 }
 
-void Emitter32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
+void EmitterIA32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 {       
     if (ptType == otherPoint)
         emitOpRegRM(FRSTOR, FRSTOR_OP, REGNUM_EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
@@ -1718,7 +1773,7 @@ void Emitter32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     instruction::generateIllegal(gen);
 }
 
-bool Emitter32::emitPush(codeGen &gen, Register r) {
+bool EmitterIA32::emitPush(codeGen &gen, Register r) {
     GET_PTR(insn, gen);   
     if (r >= 8) {
         fprintf(stderr, "ERROR: attempt to push register %d\n", r);
@@ -1731,7 +1786,7 @@ bool Emitter32::emitPush(codeGen &gen, Register r) {
     return true;
 }
 
-bool Emitter32::emitPop(codeGen &gen, Register r) {
+bool EmitterIA32::emitPop(codeGen &gen, Register r) {
     GET_PTR(insn, gen);
     assert(r < 8);
     *insn++ = 0x50 + r;
@@ -1740,7 +1795,7 @@ bool Emitter32::emitPop(codeGen &gen, Register r) {
     return true;
 }
 
-bool Emitter32::emitAdjustStackPointer(int index, codeGen &gen) {
+bool EmitterIA32::emitAdjustStackPointer(int index, codeGen &gen) {
 	// The index will be positive for "needs popped" and negative
 	// for "needs pushed". However, positive + SP works, so don't
 	// invert.
@@ -2268,14 +2323,30 @@ bool emitSubSignedImm(Address addr, long int imm, codeGen &gen, bool noCost) {
 
 Emitter *AddressSpace::getEmitter() 
 {
-   static Emitter32 emitter32;
+   static EmitterIA32Dyn emitter32Dyn;
+   static EmitterIA32Stat emitter32Stat;
+
 #if defined(arch_x86_64)
-   static Emitter64 emitter64;
+   static EmitterAMD64Dyn emitter64Dyn;
+   static EmitterAMD64Stat emitter64Stat;
+
    if (getAddressWidth() == 8) {
-      return &emitter64;
+       if (proc()) {
+           return &emitter64Dyn;
+       }
+       else {
+           assert(edit());
+           return &emitter64Stat;
+       }
    }
 #endif
-   return &emitter32;
+   if (proc()) {
+       return &emitter32Dyn;
+   }
+   else {
+       assert(edit());
+       return &emitter32Stat;
+   }
 }
 
 bool image::isAligned(const Address where) const {

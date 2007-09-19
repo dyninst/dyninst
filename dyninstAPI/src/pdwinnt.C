@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.176 2007/09/14 16:55:01 roundy Exp $
+// $Id: pdwinnt.C,v 1.177 2007/09/19 19:25:19 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1901,7 +1901,7 @@ callType int_function::getCallingConvention() {
 static void emitNeededCallSaves(codeGen &gen, Register reg, pdvector<Register> &extra_saves);
 static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves);
 
-int Emitter32::emitCallParams(codeGen &gen, 
+int EmitterIA32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNodePtr> &operands,
                               int_function *target, 
                               pdvector<Register> &extra_saves, 
@@ -2011,7 +2011,7 @@ int Emitter32::emitCallParams(codeGen &gen,
     return estimatedFrameSize;
 }
 
-bool Emitter32::emitCallCleanup(codeGen &gen, int_function *target, 
+bool EmitterIA32::emitCallCleanup(codeGen &gen, int_function *target, 
                      int frame_size, pdvector<Register> &extra_saves)
 {
     callType call_conv = target->getCallingConvention();

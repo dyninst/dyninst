@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.129 2007/09/14 16:54:59 roundy Exp $
+// $Id: linux-x86.C,v 1.130 2007/09/19 19:25:18 bernat Exp $
 
 #include <fstream>
 
@@ -1919,7 +1919,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase) {
     return ret_addr;
 }
 
-int Emitter32::emitCallParams(codeGen &gen, 
+int EmitterIA32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNodePtr> &operands,
                               int_function */*target*/, 
                               pdvector<Register> &/*extra_saves*/, 
@@ -1948,7 +1948,7 @@ int Emitter32::emitCallParams(codeGen &gen,
     return frame_size;
 }
 
-bool Emitter32::emitCallCleanup(codeGen &gen,
+bool EmitterIA32::emitCallCleanup(codeGen &gen,
                                 int_function * /*target*/, 
                                 int frame_size, 
                                 pdvector<Register> &/*extra_saves*/)

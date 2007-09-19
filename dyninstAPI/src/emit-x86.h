@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.25 2007/06/13 18:50:43 bernat Exp $
+ * $Id: emit-x86.h,v 1.26 2007/09/19 19:25:16 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -58,18 +58,11 @@ class registerSpace;
 
 // Emitter moved to emitter.h - useful on other platforms as well
 
-class EmitterX86 : public Emitter {
-
- public:
-    virtual ~EmitterX86() {};
-
-};
-
 // 32-bit class declared here since its implementation is in both inst-x86.C and emit-x86.C
-class Emitter32 : public EmitterX86 {
+class EmitterIA32 : public Emitter {
 
 public:
-    virtual ~Emitter32() {};
+    virtual ~EmitterIA32() {};
     static const int mt_offset;
     codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
     void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
@@ -95,9 +88,10 @@ public:
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
     bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
-    Register emitCall(opCode op, codeGen &gen,
-                      const pdvector<AstNodePtr> &operands,
-                      bool noCost, int_function *callee);
+    // We can overload this for the stat/dyn case
+    virtual Register emitCall(opCode op, codeGen &gen,
+                              const pdvector<AstNodePtr> &operands,
+                              bool noCost, int_function *callee) = 0;
     int emitCallParams(codeGen &gen, 
                        const pdvector<AstNodePtr> &operands,
                        int_function *target, 
@@ -132,7 +126,28 @@ public:
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
 };
 
-extern Emitter32 emitter32;
+class EmitterIA32Dyn : public EmitterIA32 {
+ public:
+    ~EmitterIA32Dyn() {};
+    
+    Register emitCall(opCode op, codeGen &gen,
+                      const pdvector<AstNodePtr> &operands,
+                      bool noCost, int_function *callee);
+};
+
+class EmitterIA32Stat : public EmitterIA32 {
+ public:
+
+    ~EmitterIA32Stat() {};
+    
+    Register emitCall(opCode op, codeGen &gen,
+                      const pdvector<AstNodePtr> &operands,
+                      bool noCost, int_function *callee);
+};
+
+extern EmitterIA32Dyn emitterIA32Dyn;
+extern EmitterIA32Stat emitterIA32Stat;
+
 
 // some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
@@ -145,10 +160,10 @@ void emitAddMem64(Address addr, int imm, codeGen &gen);
 void emitAddRM64(Address addr, int imm, codeGen &gen);
 
 #if defined(arch_x86_64)
-class Emitter64 : public EmitterX86 {
+class EmitterAMD64 : public Emitter {
 
 public:
-    virtual ~Emitter64() {};
+    virtual ~EmitterAMD64() {};
     static const int mt_offset;
     codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
     void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
@@ -174,9 +189,10 @@ public:
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
     bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
-    Register emitCall(opCode op, codeGen &gen,
-                      const pdvector<AstNodePtr> &operands,
-                      bool noCost, int_function *callee);
+    // See comment on 32-bit emitCall
+    virtual Register emitCall(opCode op, codeGen &gen,
+                              const pdvector<AstNodePtr> &operands,
+                              bool noCost, int_function *callee) = 0;
     void emitGetRetVal(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
@@ -206,7 +222,26 @@ public:
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
 };
 
-extern Emitter64 emitter64;
+class EmitterAMD64Dyn : public EmitterAMD64 {
+ public:
+    ~EmitterAMD64Dyn() {}
+
+    Register emitCall(opCode op, codeGen &gen,
+                      const pdvector<AstNodePtr> &operands,
+                      bool noCost, int_function *callee);
+};
+
+class EmitterAMD64Dyn : public EmitterAMD64 {
+ public:
+    ~EmitterAMD64Dyn() {};
+    
+    Register emitCall(opCode op, codeGen &gen,
+                      const pdvector<AstNodePtr> &operands,
+                      bool noCost, int_function *callee);
+};
+
+extern EmitterAMD64Dyn emitterAMD64Dyn;
+extern EmitterAMD64Stat emitterAMD64Stat;
 
 // We pull swaps under the covers, as it were, so the
 // rest of the code can be oblivious.

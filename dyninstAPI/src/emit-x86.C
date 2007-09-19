@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.53 2007/09/12 20:57:32 bernat Exp $
+ * $Id: emit-x86.C,v 1.54 2007/09/19 19:25:15 bernat Exp $
  */
 
 #include <assert.h>
@@ -59,17 +59,17 @@
 // get_index...
 #include "dyninstAPI/src/dyn_thread.h"
 
-const int Emitter32::mt_offset = -4;
+const int EmitterIA32::mt_offset = -4;
 #if defined(arch_x86_64)
-const int Emitter64::mt_offset = -8;
+const int EmitterAMD64::mt_offset = -8;
 #endif
 
-bool Emitter32::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
+bool EmitterIA32::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
     emitMovRegToReg(dest, src, gen);
     return true;
 }
 
-codeBufIndex_t Emitter32::emitIf(Register expr_reg, Register target, codeGen &gen)
+codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
     // sub REGNUM_EAX, REGNUM_EAX
     emitOpRegReg(0x29, REGNUM_EAX, REGNUM_EAX, gen);
@@ -95,14 +95,14 @@ codeBufIndex_t Emitter32::emitIf(Register expr_reg, Register target, codeGen &ge
     return retval;
 }
 
-void Emitter32::emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterIA32::emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
 {
       emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
       emitOpRegRM(opcode, REGNUM_EAX, REGNUM_EBP, -1*(src2*4), gen);
       emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 }
 
-void Emitter32::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterIA32::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen)
 {
     emitOpRegReg(0x29, REGNUM_ECX, REGNUM_ECX, gen);           // clear REGNUM_ECX
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);    // mov eax, -(src1*4)[ebp]
@@ -115,7 +115,7 @@ void Emitter32::emitRelOp(unsigned op, Register dest, Register src1, Register sr
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_ECX, gen);    // mov -(dest*4)[ebp], ecx
 }
 
-void Emitter32::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterIA32::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)
 {
     // mov eax, src1
     // cdq   ; edx = sign extend of eax
@@ -127,7 +127,7 @@ void Emitter32::emitDiv(Register dest, Register src1, Register src2, codeGen &ge
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 }
 
-void Emitter32::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
+void EmitterIA32::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			  codeGen &gen)
 {
     if (src1 != dest) {
@@ -137,7 +137,7 @@ void Emitter32::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Reg
     emitOpRMImm(opcode1, opcode2, REGNUM_EBP, -1*(dest*4), src2imm, gen);
 }
 
-void Emitter32::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterIA32::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
    emitOpRegReg(0x29, REGNUM_ECX, REGNUM_ECX, gen);           // clear REGNUM_ECX
    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);    // mov eax, -(src1*4)[ebp]
@@ -153,7 +153,7 @@ void Emitter32::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue
 // where is this defined?
 extern bool isPowerOf2(int value, int &result);
 
-void Emitter32::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
     int result = -1;
 
@@ -175,7 +175,7 @@ void Emitter32::emitTimesImm(Register dest, Register src1, RegValue src2imm, cod
     } 
 }
 
-void Emitter32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterIA32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
     int result = -1;
     if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
@@ -202,7 +202,7 @@ void Emitter32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeG
     }
 }
 
-void Emitter32::emitLoad(Register dest, Address addr, int size, codeGen &gen)
+void EmitterIA32::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 {
    if (size == 1) {
       emitMovMBToReg(REGNUM_EAX, addr, gen);               // movsbl eax, addr
@@ -214,19 +214,19 @@ void Emitter32::emitLoad(Register dest, Address addr, int size, codeGen &gen)
    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
-void Emitter32::emitLoadConst(Register dest, Address imm, codeGen &gen)
+void EmitterIA32::emitLoadConst(Register dest, Address imm, codeGen &gen)
 {
     emitMovImmToRM(REGNUM_EBP, -1*(dest*4), imm, gen);
 }
 
-void Emitter32::emitLoadIndir(Register dest, Register addr_reg, codeGen &gen)
+void EmitterIA32::emitLoadIndir(Register dest, Register addr_reg, codeGen &gen)
 {
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(addr_reg*4), gen); // mov eax, -(addr_reg*4)[ebp]
     emitMovRMToReg(REGNUM_EAX, REGNUM_EAX, 0, gen);         // mov eax, [eax]
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen); // mov -(dest*4)[ebp], eax
 }
 
-void Emitter32::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
+void EmitterIA32::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
 {
     // eax = [ebp]	- saved bp
     // dest = [eax](offset)
@@ -235,7 +235,7 @@ void Emitter32::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
-bool Emitter32::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
+bool EmitterIA32::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
 {
     assert(0);
     return false;
@@ -247,7 +247,7 @@ bool Emitter32::emitLoadRelative(Register dest, Address offset, Register base, c
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
-void Emitter32::emitLoadOrigRegRelative(Register dest, Address offset,
+void EmitterIA32::emitLoadOrigRegRelative(Register dest, Address offset,
                                         Register base, codeGen &gen,
                                         bool store)
 {
@@ -266,7 +266,7 @@ void Emitter32::emitLoadOrigRegRelative(Register dest, Address offset,
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 } 
 
-void Emitter32::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
+void EmitterIA32::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, 0, gen);       // mov (%ebp), %eax 
     emitAddRegImm32(REGNUM_EAX, offset, gen);        // add #<offset>, %eax
@@ -275,7 +275,7 @@ void Emitter32::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 
 
 
-void Emitter32::emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen)
+void EmitterIA32::emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen)
 {
     //Previous stack frame register is stored on the stack,
     //it was stored there at the begining of the base tramp.
@@ -287,20 +287,20 @@ void Emitter32::emitLoadOrigRegister(Address register_num, Register dest, codeGe
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen); //mov dest, 0[eax]
 }
 
-void Emitter32::emitStore(Address addr, Register src, int /*size*/, codeGen &gen)
+void EmitterIA32::emitStore(Address addr, Register src, int /*size*/, codeGen &gen)
 {
       emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);    // mov eax, -(src*4)[ebp]
       emitMovRegToM(addr, REGNUM_EAX, gen);               // mov addr, eax
 }
 
-void Emitter32::emitStoreIndir(Register addr_reg, Register src, codeGen &gen)
+void EmitterIA32::emitStoreIndir(Register addr_reg, Register src, codeGen &gen)
 {
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);   // mov eax, -(src*4)[ebp]
     emitMovRMToReg(REGNUM_ECX, REGNUM_EBP, -1*(addr_reg*4), gen);   // mov ecx, -(addr_reg*4)[ebp]
     emitMovRegToRM(REGNUM_ECX, 0, REGNUM_EAX, gen);           // mov [ecx], eax
 }
 
-void Emitter32::emitStoreFrameRelative(Address offset, Register src, Register scratch, int /*size*/, codeGen &gen)
+void EmitterIA32::emitStoreFrameRelative(Address offset, Register src, Register scratch, int /*size*/, codeGen &gen)
 {
       // scratch = [ebp]	- saved bp
       // (offset)[scratch] = src
@@ -309,13 +309,13 @@ void Emitter32::emitStoreFrameRelative(Address offset, Register src, Register sc
       emitMovRegToRM(scratch, offset, REGNUM_EAX, gen);        // mov (offset)[scratch], eax
 }
 
-void Emitter32::emitGetRetVal(Register dest, codeGen &gen)
+void EmitterIA32::emitGetRetVal(Register dest, codeGen &gen)
 {
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EAX_OFFSET, gen);
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 }
 
-void Emitter32::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen)
+void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen)
 {
     // Parameters are addressed by a positive offset from ebp,
     // the first is PARAM_OFFSET[ebp]
@@ -329,7 +329,7 @@ void Emitter32::emitGetParam(Register dest, Register param_num, instPointType_t 
     }
 }
 
-bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
+bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
 {
     // Magic stack pad to avoid stepping on badly-written programs
     // that go underneath the stack pointer.
@@ -393,7 +393,7 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
     return true;
 }
 
-bool Emitter32::emitBTRestores(baseTramp* bt, codeGen &gen)
+bool EmitterIA32::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
     if (bt->isConservative() && gen.rs()->saveAllFPRs() && BPatch::bpatch->isSaveFPROn()) {
         if (gen.rs()->hasXMM) {
@@ -429,7 +429,7 @@ bool Emitter32::emitBTRestores(baseTramp* bt, codeGen &gen)
     return true;
 }
 
-bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
+bool EmitterIA32::emitBTMTCode(baseTramp* bt, codeGen &gen)
 {
     AstNodePtr threadPOS;
     pdvector<AstNodePtr> dummy;
@@ -466,7 +466,7 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
     return true;
 }
 
-bool Emitter32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpIndex)
+bool EmitterIA32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpIndex)
 {
     assert(bt->guarded());
 
@@ -515,7 +515,7 @@ bool Emitter32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& 
     return true;
 }
 
-bool Emitter32::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex)
+bool EmitterIA32::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex)
 {
     assert(bt->guarded());
     Address guard_flag_address = bt->proc()->trampGuardBase();
@@ -545,7 +545,7 @@ bool Emitter32::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t&
    return true;
 }
 
-bool Emitter32::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdateOffset)
+bool EmitterIA32::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdateOffset)
 {
     Address costAddr = bt->proc()->getObservedCostAddr();
     if (!costAddr) return false;
@@ -555,8 +555,6 @@ bool Emitter32::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
     emitAddMemImm32(costAddr, 0, gen); 
     return true;
 }
-
-Emitter32 emitter32;
 
 //
 // 64-bit code generation helper functions
@@ -600,7 +598,7 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
        emitSimpleInsn(rex, gen);
 }
 
-void Emitter32::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) 
+void EmitterIA32::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) 
 {
    emitMovImmToMem(addr, imm, gen);
 }
@@ -630,7 +628,7 @@ void emitAddMem(Address addr, int imm, codeGen &gen) {
    SET_PTR(insn, gen);
 }
 
-void Emitter32::emitAddSignedImm(Address addr, int imm, codeGen &gen,
+void EmitterIA32::emitAddSignedImm(Address addr, int imm, codeGen &gen,
                                  bool /*noCost*/)
 {
    emitAddMem(addr, imm, gen);
@@ -850,13 +848,13 @@ void emitAddRM64(Register dest, int imm, bool is_64, codeGen &gen)
 }
 
 
-bool Emitter64::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
+bool EmitterAMD64::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
     emitMovRegToReg64(dest, src, true, gen);
     return true;
 }
 
 
-codeBufIndex_t Emitter64::emitIf(Register expr_reg, Register target, codeGen &gen)
+codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
     Register scratchReg = gen.rs()->getScratchRegister(gen, true);
 
@@ -886,7 +884,7 @@ codeBufIndex_t Emitter64::emitIf(Register expr_reg, Register target, codeGen &ge
     return retval;
 }
 
-void Emitter64::emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterAMD64::emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
 {
     // TODO: optimize this further for ops where order doesn't matter
     if (src1 != dest)
@@ -894,7 +892,7 @@ void Emitter64::emitOp(unsigned opcode, Register dest, Register src1, Register s
     emitOpRegReg64(opcode, dest, src2, true, gen);
 }
 
-void Emitter64::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
+void EmitterAMD64::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			  codeGen &gen)
 {
     if (src1 != dest) {
@@ -903,7 +901,7 @@ void Emitter64::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Reg
     emitOpRegImm64(opcode1, opcode2, dest, src2imm, true, gen);
 }
 
-void Emitter64::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen)
 {
     // cmp %src2, %src1
     emitOpRegReg64(0x39, src2, src1, true, gen);
@@ -931,7 +929,7 @@ void Emitter64::emitRelOp(unsigned op, Register dest, Register src1, Register sr
     SET_PTR(insn, gen);
 }
 
-void Emitter64::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
+void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
 			     codeGen &gen)
 {
     // cmp $src2imm, %src1
@@ -960,7 +958,7 @@ void Emitter64::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue
     SET_PTR(insn, gen);
 }
 
-void Emitter64::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)
+void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)
 {
     // TODO: fix so that we don't always use RAX
 
@@ -989,7 +987,7 @@ void Emitter64::emitDiv(Register dest, Register src1, Register src2, codeGen &ge
 	emitPopReg64(REGNUM_RDX, gen);
 }
 
-void Emitter64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
     int result = -1;
 
@@ -1011,7 +1009,7 @@ void Emitter64::emitTimesImm(Register dest, Register src1, RegValue src2imm, cod
     } 
 }
 
-void Emitter64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
+void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
     int result = -1;
     if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
@@ -1061,7 +1059,7 @@ void Emitter64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeG
     }
 }
 
-void Emitter64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
+void EmitterAMD64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 {
 
     if (size == 1) {
@@ -1080,17 +1078,17 @@ void Emitter64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
     }
 }
 
-void Emitter64::emitLoadConst(Register dest, Address imm, codeGen &gen)
+void EmitterAMD64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 {
     emitMovImmToReg64(dest, imm, true, gen);
 }
 
-void Emitter64::emitLoadIndir(Register dest, Register addr_src, codeGen &gen)
+void EmitterAMD64::emitLoadIndir(Register dest, Register addr_src, codeGen &gen)
 {
     emitMovRMToReg64(dest, addr_src, 0, false, gen);
 }
 
-void Emitter64::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
+void EmitterAMD64::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
     // mov (%rbp), %rax
@@ -1100,14 +1098,14 @@ void Emitter64::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen
     emitMovRMToReg64(dest, scratch, offset, false, gen);
 }
 
-bool Emitter64::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
+bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
 {
     // mov offset(%base), %dest
     emitMovRMToReg64(dest, base, offset*gen.addrSpace()->getAddressWidth(), false, gen);
     return true;
 }
 
-void Emitter64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
+void EmitterAMD64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
     // mov (%rbp), %dest
     emitMovRMToReg64(dest, REGNUM_RBP, 0, true, gen);
@@ -1116,7 +1114,7 @@ void Emitter64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
     emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
 }
 
-void Emitter64::emitLoadOrigRegRelative(Register dest, Address offset,
+void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
                                         Register base, codeGen &gen,
                                         bool store)
 {
@@ -1142,13 +1140,13 @@ void Emitter64::emitLoadOrigRegRelative(Register dest, Address offset,
 // in 8-byte quadwords
 #define GPR_SAVE_REGION_OFFSET 17
 
-void Emitter64::emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen)
+void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen)
 {
 
     gen.rs()->readRegister(gen, register_num, dest);
 }
 
-void Emitter64::emitStore(Address addr, Register src, int size, codeGen &gen)
+void EmitterAMD64::emitStore(Address addr, Register src, int size, codeGen &gen)
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
 
@@ -1159,13 +1157,13 @@ void Emitter64::emitStore(Address addr, Register src, int size, codeGen &gen)
     emitMovRegToRM64(scratch, 0, src, (size == 8), gen);
 }
 
-void Emitter64::emitStoreIndir(Register addr_reg, Register src, codeGen &gen)
+void EmitterAMD64::emitStoreIndir(Register addr_reg, Register src, codeGen &gen)
 {
     // FIXME: we assume int (size == 4) for now
     emitMovRegToRM64(addr_reg, 0, src, false, gen);
 }
 
-void Emitter64::emitStoreFrameRelative(Address offset, Register src, Register /*scratch*/, int size, codeGen &gen)
+void EmitterAMD64::emitStoreFrameRelative(Address offset, Register src, Register /*scratch*/, int size, codeGen &gen)
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
     // FIXME: we assume int (size == 4) for now
@@ -1178,7 +1176,7 @@ void Emitter64::emitStoreFrameRelative(Address offset, Register src, Register /*
 }
 
 
-void Emitter64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
+void EmitterAMD64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 {
   if (liveFPReg != NULL)
     {
@@ -1199,7 +1197,7 @@ that it calls, to a certain depth ... at which point we clobber everything
 Update-12/06, njr, since we're going to a cached system we are just going to 
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
-bool Emitter64::clobberAllFuncCall( registerSpace *rs,
+bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 				    int_function *callee)
 		   
 {
@@ -1216,7 +1214,7 @@ bool Emitter64::clobberAllFuncCall( registerSpace *rs,
 
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
-Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
+Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
 			     bool noCost, int_function *callee)
 {
 
@@ -1302,12 +1300,12 @@ Register Emitter64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr>
 }
 
 // FIXME: comment here on the stack layout
-void Emitter64::emitGetRetVal(Register dest, codeGen &gen)
+void EmitterAMD64::emitGetRetVal(Register dest, codeGen &gen)
 {
     emitLoadOrigRegister(REGNUM_RAX, dest, gen);
 }
 
-void Emitter64::emitGetParam(Register dest, Register param_num, instPointType_t /*pt_type*/, codeGen &gen)
+void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t /*pt_type*/, codeGen &gen)
 {
     assert(param_num <= 6);
     emitLoadOrigRegister(amd64_arg_regs[param_num], dest, gen);
@@ -1330,7 +1328,7 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
     SET_PTR(insn, gen);
 }
 
-void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
+void EmitterAMD64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 {
     if (ptType == otherPoint) {
         // pop the old RSP value into RAX
@@ -1417,7 +1415,7 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 }
 
 
-void Emitter64::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
 {
     Register scratch = Null_Register;
     bool havera = ra > -1, haverb = rb > -1;
@@ -1449,7 +1447,7 @@ void Emitter64::emitASload(int ra, int rb, int sc, long imm, Register dest, code
     }
 }
 
-void Emitter64::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
 {
    // count is at most 1 register or constant or hack (aka pseudoregister)
    assert((ra == -1) &&
@@ -1575,24 +1573,24 @@ void Emitter64::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
 // (1 qword for our false return address, 16 for the saved registers, 1 more for the flags)
 #define SAVED_RFLAGS_OFFSET 18
 
-void Emitter64::emitRestoreFlags(codeGen &gen, unsigned offset)
+void EmitterAMD64::emitRestoreFlags(codeGen &gen, unsigned offset)
 {
     if (offset)
         emitOpRMReg(PUSH_RM_OPC1, REGNUM_ESP, offset*8, PUSH_RM_OPC2, gen);
     emitSimpleInsn(0x9D, gen);
 }
 
-void Emitter64::emitPushFlags(codeGen &gen) {
+void EmitterAMD64::emitPushFlags(codeGen &gen) {
     // save flags (PUSHFQ)
     emitSimpleInsn(0x9C, gen);
 }
 
-void Emitter64::emitRestoreFlagsFromStackSlot(codeGen &gen)
+void EmitterAMD64::emitRestoreFlagsFromStackSlot(codeGen &gen)
 {
     emitRestoreFlags(gen, SAVED_RFLAGS_OFFSET);
 }
 
-bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
+bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
 {
    // skip past the red zone
    // (we use LEA to avoid overwriting the flags)
@@ -1690,7 +1688,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     return true;
 }
 
-bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
+bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
     if (bt->isConservative() && BPatch::bpatch->isSaveFPROn() && gen.rs()->saveAllFPRs()) {
         // pop the old RSP value into RAX
@@ -1770,7 +1768,7 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
    return true;
 }
 
-bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
+bool EmitterAMD64::emitBTMTCode(baseTramp* bt, codeGen& gen)
 {
     AstNodePtr threadPOS;
     pdvector<AstNodePtr> dummy;
@@ -1810,7 +1808,7 @@ bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
     return true;
 }
 
-bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJumpIndex)
+bool EmitterAMD64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJumpIndex)
 {
     assert(bt->guarded());
 
@@ -1860,7 +1858,7 @@ bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJ
     return true;
 }
 
-bool Emitter64::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t &guardTargetIndex)
+bool EmitterAMD64::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t &guardTargetIndex)
 {
     assert(bt->guarded());
     Register scratch1 = gen.rs()->getScratchRegister(gen);
@@ -1901,7 +1899,7 @@ bool Emitter64::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t 
    return true;
 }
 
-bool Emitter64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdateOffset)
+bool EmitterAMD64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdateOffset)
 {
    return false;
     Address costAddr = bt->proc()->getObservedCostAddr();
@@ -1917,7 +1915,7 @@ bool Emitter64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
     return true;
 }
 
-void Emitter64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) 
+void EmitterAMD64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) 
 {
    if (!isImm64bit(addr) && !isImm64bit(imm)) {
       emitMovImmToMem(addr, imm, gen);
@@ -1930,7 +1928,7 @@ void Emitter64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost)
    }
 }
 
-void Emitter64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noCost)
+void EmitterAMD64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noCost)
 {
    if (!isImm64bit(addr) && !isImm64bit(imm)) {
       emitAddMem(addr, imm, gen);
@@ -1955,17 +1953,17 @@ int Register_DWARFtoMachineEnc64(int n)
     }
 }
 
-bool Emitter64::emitPush(codeGen &gen, Register reg) {
+bool EmitterAMD64::emitPush(codeGen &gen, Register reg) {
     emitPushReg64(reg, gen);
     return true;
 }
    
-bool Emitter64::emitPop(codeGen &gen, Register reg) {
+bool EmitterAMD64::emitPop(codeGen &gen, Register reg) {
     emitPopReg64(reg, gen);
     return true;
 }
 
-bool Emitter64::emitAdjustStackPointer(int index, codeGen &gen) {
+bool EmitterAMD64::emitAdjustStackPointer(int index, codeGen &gen) {
 	// The index will be positive for "needs popped" and negative
 	// for "needs pushed". However, positive + SP works, so don't
 	// invert.
