@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.91 2007/09/17 15:32:12 tugrul Exp $
+# $Id: make.module.tmpl,v 1.92 2007/09/19 21:54:26 giri Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -118,7 +118,6 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/reloc-func.C \
                 ../src/variable.C \
 		../src/util.C \
-                ../src/LineInformation.C \
                 ../src/BPatch_instruction.C \
                 ../src/BPatch_asyncEventHandler.C \
                 ../src/BPatch_eventLock.C \
@@ -142,7 +141,7 @@ SYSLIBS		+= -ldemangle
 endif
 
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
@@ -153,8 +152,8 @@ all: $(TARGET) $(EXTRA_LIBS)
 # LineInformation, but apparently the compiler can.  Since the
 # function is only used internally by LineInformation, the
 # templates won't be duplicated.
-LineInformation.o : ../../dyninstAPI/src/LineInformation.C
-	$(CXX) -g $(TFLAGS) -c $<
+# LineInformation.o : ../../dyninstAPI/src/LineInformation.C
+#	$(CXX) -g $(TFLAGS) -c $<
     
 BPatch_templates.o: ../src/BPatch_templates.C
 	$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
