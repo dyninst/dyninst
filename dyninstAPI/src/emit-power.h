@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-power.h,v 1.3 2007/06/13 18:50:41 bernat Exp $
+ * $Id: emit-power.h,v 1.4 2007/09/19 19:25:13 bernat Exp $
  */
 
 #ifndef _EMITTER_POWER_H
@@ -87,8 +87,10 @@ class EmitterPOWER : public Emitter {
     virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
     virtual bool emitMoveRegToReg(Register, Register, codeGen &) { assert(0); return 0;}
 
+    // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const pdvector<AstNodePtr> &,
-			      bool, int_function *) { assert(0); return 0; }
+			      bool, int_function *) = 0;
+
     virtual void emitGetRetVal(Register, codeGen &) { assert(0); }
     virtual void emitGetParam(Register, Register, instPointType_t, codeGen &) { assert(0); }
     virtual void emitFuncJump(Address, instPointType_t, codeGen &) { assert(0); }
@@ -112,6 +114,49 @@ class EmitterPOWER : public Emitter {
     virtual bool emitAdjustStackPointer(int, codeGen &) { assert(0); return true;}
     
     virtual bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
+};
+
+class EmitterPOWERDyn : public EmitterPOWER {
+ public:
+    virtual ~EmitterPOWERDyn() {};
+
+    Register emitCall(opCode op, codeGen &gen,
+                      const pdvector<AstNodePtr> &operands,
+                      bool noCost, int_function *callee);
+};
+
+class EmitterPOWERStat : public EmitterPOWER {
+ public:
+    virtual ~EmitterPOWERStat() {};
+};
+
+class EmitterPOWER32Dyn : public EmitterPOWERDyn {
+ public:
+    virtual ~EmitterPOWER32Dyn() {}
+};
+
+class EmitterPOWER32Stat : public EmitterPOWERStat {
+ public:
+    virtual ~EmitterPOWER32Stat() {}
+
+    Register emitCall(opCode op, codeGen &gen,
+                      const pdvector<AstNodePtr> &operands,
+                      bool noCost, int_function *callee) { assert(0); return 0;} 
+};
+
+class EmitterPOWER64Dyn : public EmitterPOWERDyn {
+ public:
+    virtual ~EmitterPOWER64Dyn() {}
+
+};
+
+class EmitterPOWER64Stat : public EmitterPOWERStat {
+ public:
+    virtual ~EmitterPOWER64Stat() {}
+
+    Register emitCall(opCode op, codeGen &gen,
+                      const pdvector<AstNodePtr> &operands,
+                      bool noCost, int_function *callee) { assert(0); return 0; }
 };
 
 #endif

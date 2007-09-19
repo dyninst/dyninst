@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.276 2007/09/12 20:57:38 bernat Exp $
+ * $Id: inst-power.C,v 1.277 2007/09/19 19:25:14 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -88,9 +88,6 @@ extern bool isPowerOf2(int value, int &result);
 Address getMaxBranch() {
   return MAX_BRANCH;
 }
-
-// Required global variable.
-EmitterPOWER emitterPower;
 
 const char *registerNames[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
 			"r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
@@ -1320,11 +1317,20 @@ Register emitFuncCall(opCode, codeGen &, pdvector<AstNodePtr> &, bool, Address) 
         return 0;
 }
 
-Register emitFuncCall(opCode /* ocode */, 
+Register emitFuncCall(opCode op,
                       codeGen &gen,
-		      pdvector<AstNodePtr> &operands, bool noCost,
-		      int_function *callee) {
-    Address toc_anchor;
+                      pdvector<AstNodePtr> &operands, bool noCost,
+                      int_function *callee) {
+    return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
+}
+
+
+Register EmitterPOWERDyn::emitCall(opCode /* ocode */, 
+                                   codeGen &gen,
+                                   const pdvector<AstNodePtr> &operands, bool noCost,
+                                   int_function *callee) {
+    
+    Address toc_anchor = 0;
     pdvector <Register> srcs;
 
    
@@ -1342,18 +1348,12 @@ Register emitFuncCall(opCode /* ocode */,
     // The TOC offset is stored in the Object. 
     // file() -> pdmodule "parent"
     // exec() -> image "parent"
-#if defined(os_aix)
     toc_anchor = gen.addrSpace()->proc()->getTOCoffsetInfo(callee);
-#else
-    // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
-    if (gen.addrSpace()->getAddressWidth() == sizeof(uint64_t)) {
-        toc_anchor = gen.addrSpace()->getTOCoffsetInfo(callee);
-    }
 
     // Note: For 32-bit ELF PowerPC Linux (and other SYSV ABI followers)
     // r2 is described as "reserved for system use and is not to be 
     // changed by application code".
-#endif
+    // On these platforms, we return 0 when getTOCoffsetInfo is called.
    
     // Generate the code for all function parameters, and keep a list
     // of what registers they're in.
@@ -1387,19 +1387,13 @@ Register emitFuncCall(opCode /* ocode */,
     saveRegister(gen, 0, FUNC_CALL_SAVE);
     // Add 0 to the list of saved registers
     savedRegs.push_back(0);
-  
-#if defined(os_aix)
-    // Save register 2 (TOC)
-    saveRegister(gen, 2, FUNC_CALL_SAVE);
-    savedRegs.push_back(2);
-#else
-    // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
-    if (gen.addrSpace()->getAddressWidth() == sizeof(uint64_t)) {
+
+
+    if (toc_anchor) {
         // Save register 2 (TOC)
         saveRegister(gen, 2, FUNC_CALL_SAVE);
         savedRegs.push_back(2);
     }
-#endif
 
     // see what others we need to save.
     for (u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
@@ -1512,18 +1506,11 @@ Register emitFuncCall(opCode /* ocode */,
 	} 
     }
 
-#if defined(os_aix)
-    // Set up the new TOC value
-    emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
-    //inst_printf("toc setup (%d)...");
-#else
-    // 64-bit ELF PowerPC Linux uses r2 (same as AIX) for TOC base register
-    if (gen.addrSpace()->getAddressWidth() == sizeof(uint64_t)) {
+    if (toc_anchor) {
         // Set up the new TOC value
         emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
         //inst_printf("toc setup (%d)...");
     }
-#endif
 
     // generate a branch to the subroutine to be called.
     // load r0 with address, then move to link reg and branch and link.
@@ -3063,6 +3050,22 @@ int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
 
 Emitter *AddressSpace::getEmitter() 
 {
-   static EmitterPOWER pemitter;
-   return &pemitter;
+    static EmitterPOWER32Dyn emitter32Dyn;
+    static EmitterPOWER64Dyn emitter64Dyn;
+    static EmitterPOWER32Stat emitter32Stat;
+    static EmitterPOWER64Stat emitter64Stat;
+
+    if (getAddressWidth() == 8) {
+        if (proc()) {
+            return &emitter64Dyn;
+        }
+        else return &emitter64Stat;
+    }
+    if (proc())
+        return &emitter32Dyn;
+    else
+        return &emitter32Stat;
+
+    assert(0);
+    return NULL;
 }
