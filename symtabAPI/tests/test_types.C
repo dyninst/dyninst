@@ -6,21 +6,37 @@
 #include "symtabAPI/h/Archive.h"
 #define logerror printf
 
-using namespace DynSymtab;
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 
 static int mutatorTest(Symtab *symtab)
 {
 	/*********************************************************************************
-		Dyn_Symtab::isExec()
+		Dyn_Symtab::parseTypes
 	*********************************************************************************/	
-	if(!symtab->isExec())
-	{
-		logerror("***** Error : reported File %s as shared\n", symtab->file().c_str());
-		return -1;
-	}
-//	symtab->exportXML("file.xml");
-	if(symtab->emitSymbols("./elffile"))
-		cout << "wrote file successfully" << endl;
+
+	Module *mod;
+	symtab->findModule(mod, "test1.mutatee.c");
+
+	Type *type;
+	symtab->findType(type, "void");
+	assert(type != NULL);
+	
+	//Test that it is indeed of type Scalar
+	typeScalar *styp = type->getScalarType();
+	assert(styp != NULL);
+
+	/* DEBUG */
+	//cout << styp->getName() << ":"  << styp->getID() << ":" <<  styp->getSize() << ":" << styp->getDataClass() << endl;
+
+	//Testing findSymbolByType
+	vector<Symbol *> syms;
+        symtab->findSymbolByType(syms,"loadDynamicLibrary", Symbol::ST_FUNCTION);
+        vector<localVar *>vars;
+        symtab->findLocalVariable(vars, "name");
+        cout << vars[0]->getName() << endl;
+        cout << vars.size() << endl;
+
 }
 
 //extern "C" TEST_DLL_EXPORT int test1__mutatorMAIN(ParameterDict &param)

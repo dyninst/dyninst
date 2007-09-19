@@ -10,7 +10,7 @@ static int mutatorTest(Dyn_Symtab *symtab)
 {
 	vector <Dyn_Symbol *>syms;
 	Dyn_Module *mod;
-        if(!symtab->findModule("test1.mutatee_gcc", *mod))
+        if(!symtab->findModule("test1.mutatee.c", mod))
         {
                 logerror("Finding Module %s failed\n","test1.mutatee.c");
                 logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());

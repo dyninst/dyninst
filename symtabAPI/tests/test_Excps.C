@@ -1,3 +1,9 @@
+/*
+ * Test Program : check for exceptions
+ * Usage : ./test_Excps <object file>
+ *
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -49,13 +55,18 @@ static int mutatorTest(Dyn_Symtab *symtab)
 
 }
 
-//extern "C" TEST_DLL_EXPORT int test1__mutatorMAIN(ParameterDict &param)
-int main()
+int main(int argc, char **argv)
 {
 	// dprintf("Entered test1_1 mutatorMAIN()\n");
-	string s = "/p/paradyn/development/giri/core/testsuite/i386-unknown-linux2.4/test5.mutatee_g++";
-	Dyn_Symtab *symtab;
+	//string s = "/p/paradyn/development/giri/core/testsuite/i386-unknown-linux2.4/test5.mutatee_g++";
+	string s = argv[1];
+	Dyn_Symtab *symtab = NULL;
 	bool err = Dyn_Symtab::openFile(s,symtab);
+	if (!err) {
+	   cerr << "Error: problem with opening file: " << Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()) << endl;
+	   cerr << s << "/" << symtab << endl;
+	   exit(1);
+	}
         //symtab = param["symtab"]->getPtr();
 	// Get log file pointers
 	//FILE *outlog = (FILE *)(param["outlog"]->getPtr());

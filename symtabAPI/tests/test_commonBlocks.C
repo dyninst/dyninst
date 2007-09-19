@@ -6,21 +6,32 @@
 #include "symtabAPI/h/Archive.h"
 #define logerror printf
 
-using namespace DynSymtab;
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 
+//Currently only on solaris (test1.mutatee_f90) & AIX (test1.mutatee_xlf90)
 static int mutatorTest(Symtab *symtab)
 {
 	/*********************************************************************************
-		Dyn_Symtab::isExec()
+		Dyn_Symtab::parseTypes
 	*********************************************************************************/	
-	if(!symtab->isExec())
-	{
-		logerror("***** Error : reported File %s as shared\n", symtab->file().c_str());
-		return -1;
-	}
-//	symtab->exportXML("file.xml");
-	if(symtab->emitSymbols("./elffile"))
-		cout << "wrote file successfully" << endl;
+
+	Type *type;
+	symtab->findVariableType(type, "globals");
+	assert(type != NULL);
+	
+	//Test that it is indeed of type common
+	typeCommon *ctyp = type->getCommonType();
+	assert(ctyp != NULL);
+
+	/* DEBUG */
+	//cout << styp->getName() << ":"  << styp->getID() << ":" <<  styp->getSize() << ":" << styp->getDataClass() << endl;
+
+	vector<Field *> *fields = ctyp->getComponents();
+
+	/* DEBUG */
+	for(unsigned i=0; i<fields->size(); i++)
+	    cout << (*fields)[i]->getName() << ":" << (*fields)[i]->getType()->getDataClass() << endl;
 }
 
 //extern "C" TEST_DLL_EXPORT int test1__mutatorMAIN(ParameterDict &param)
