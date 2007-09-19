@@ -1,42 +1,42 @@
 /*
  * Copyright (c) 1996-2007 Barton P. Miller
- * 
+ *
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
  * validity or performance.  We reserve the right to update, modify,
  * or discontinue this software at any time.  We shall have no
  * obligation to supply such updates or modifications or any other
  * form of support to you.
- * 
+ *
  * By your use of Paradyn, you understand and agree that we (or any
  * other person or entity with proprietary rights in Paradyn) are
  * under no obligation to provide either maintenance services,
  * update services, notices of latent defects, or correction of
  * defects for Paradyn.
- * 
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-
-// $Id: Object-nt.C,v 1.10 2007/08/03 16:19:24 giri Exp $
+			     
+// $Id: Object-nt.C,v 1.11 2007/09/19 22:25:16 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
-
 
 #include <windows.h>
 #include <cvconst.h>
 #include <oleauto.h>
+#include <dbghelp.h>
 
 #include <iostream>
 #include <iomanip>
@@ -44,31 +44,35 @@
 #include <crtdbg.h>
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/src/Object-nt.h"
+#include "Collections.h"
+#include "Symtab.h"
 #include "common/h/headers.h"
-/*#include "dyninstAPI/src/arch-x86.h"
-#include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/LineInformation.h"
-#include "dyninstAPI/src/mapped_module.h"
-#include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/src/BPatch_collections.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/BPatch_typePrivate.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/h/BPatch_module.h"
-#include "dyninstAPI/h/BPatch_function.h"
-*/
 
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+
+Type *getType(HANDLE p, Offset mod_base, int typeIndex, Module *mod = NULL);
 bool pd_debug_export_symbols = false;
+using namespace std;
+
+std::string convertCharToString(const char *ptr){
+    std::string str;
+    if(ptr)
+        str = ptr;
+    else
+    	str = "";
+    return str;
+}
 
 static void printSysError(unsigned errNo) {
-	char buf[1000];
-    bool result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo, 
-		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		  buf, 1000, NULL);
+    char buf[1000];
+	
+	int result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo,
+    							MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+								buf, 1000, NULL);
     if (!result) {
-        fprintf(stderr, "Couldn't print error message\n");
-        printSysError(GetLastError());
+    	fprintf(stderr, "Couldn't print error message\n");
+		printSysError(GetLastError());
     }
     fprintf(stderr, "*** System error [%d]: %s\n", errNo, buf);
     fflush(stderr);
@@ -80,18 +84,16 @@ static void printSysError(unsigned errNo) {
 BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 										ULONG symSize,
 										PVOID userContext );
-
-
 /*
- * stripAtSuffix
+ * stripAtSuffix 
  *
  * Strips off of a string any suffix that consists of an @ sign followed by
  * decimal digits.
  *
  * str	The string to strip the suffix from.  The string is altered in place.
  */
-static void stripAtSuffix(char *str)
-{
+ static void stripAtSuffix(char *str)
+ {
     // many symbols have a name like foo@4, we must remove the @4
     // just searching for an @ is not enough,
     // as it may occur on other positions. We search for the last one
@@ -101,36 +103,40 @@ static void stripAtSuffix(char *str)
       char *q = p+1;
       strtoul(p+1, &q, 10);
       if (q > p+1 && *q == '\0') {
-	*p = '\0';
+		*p = '\0';
       }
     }
 }
 
 char *cplus_demangle(char *c, int, bool includeTypes) { 
+    
     char buf[1000];
     if (c[0]=='_') {
-       // VC++ 5.0 seems to decorate C symbols differently to C++ symbols
-       // and the UnDecorateSymbolName() function provided by imagehlp.lib
-       // doesn't manage (or want) to undecorate them, so it has to be done
-       // manually, removing a leading underscore from functions & variables
-       // and the trailing "$stuff" from variables (actually "$Sstuff")
-       unsigned i;
-       for (i=1; i<sizeof(buf) && c[i]!='$' && c[i]!='\0'; i++)
-           buf[i-1]=c[i];
-       buf[i-1]='\0';
-       stripAtSuffix(buf);
-       if (buf[0] == '\0') return 0; // avoid null names which seem to annoy Paradyn
-       return strdup(buf);
-    } else {
+    	// VC++ 5.0 seems to decorate C symbols differently to C++ symbols
+	// and the UnDecorateSymbolName() function provided by imagehlp.lib
+	// doesn't manage (or want) to undecorate them, so it has to be done
+	// manually, removing a leading underscore from functions & variables
+	// and the trailing "$stuff" from variables (actually "$Sstuff")
+	unsigned i;
+	for (i=1; i<sizeof(buf) && c[i]!='$' && c[i]!='\0'; i++)
+            buf[i-1]=c[i];
+       	buf[i-1]='\0';
+       	stripAtSuffix(buf);
+       	if (buf[0] == '\0') 
+		return 0; // avoid null names which seem to annoy Paradyn
+       	return strdup(buf);
+    }
+    else {
        if (includeTypes) {
           if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
             //   printf("Undecorate with types: %s = %s\n", c, buf);
             stripAtSuffix(buf);
             return strdup(buf);
           }
-       }  else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
-         //     else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
-         //	printf("Undecorate: %s = %s\n", c, buf);
+       }
+       else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
+         //else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
+         //printf("Undecorate: %s = %s\n", c, buf);
          stripAtSuffix(buf);          
          return strdup(buf);
        }
@@ -138,61 +144,57 @@ char *cplus_demangle(char *c, int, bool includeTypes) {
     return 0;
 }
 
-
 //---------------------------------------------------------------------------
 // Object method implementation
 //---------------------------------------------------------------------------
-struct  CompareSymAddresses: public binary_function<const Object::Symbol*, const Object::Symbol*, bool> 
+struct  CompareSymAddresses: public binary_function<const Object::intSymbol*, const Object::intSymbol*, bool> 
 {
-    bool operator()(const Object::Symbol *s1, const Object::Symbol* s2) {
-    	 bool ret = true;
-
-    	// first try comparing by address
-    	if( s1->GetAddr() < s2->GetAddr() ) 
-    	{
-    	    ret = true;
-    	}
-    	else if( s1->GetAddr() > s2->GetAddr() )
-    	{
-   	    ret = false;
-   	}
-    	else
-    	{
-            // the two symbols have the same address
-            // use our next criteria (the existence of a size)
-            // for a given address, we want symbols with a size
-            // to occur before those without so that we can
-            // use the size if we wish
-            if( (s1->GetSize() != 0) && (s2->GetSize() == 0) )
-            {
-                ret = true;
-            }
-            else if( (s1->GetSize() == 0) && (s2->GetSize() != 0) )
-            {
-                ret = false;
-            }
-        }
-        return ret;
-    }
+	bool operator()(const Object::intSymbol *s1, const Object::intSymbol* s2) {
+		bool ret = true;
+		// first try comparing by address
+		if( s1->GetAddr() < s2->GetAddr() ) 
+		{
+			ret = true;
+		}
+		else if( s1->GetAddr() > s2->GetAddr() )
+		{
+			ret = false;
+		}
+		else
+		{
+			// the two symbols have the same address
+			// use our next criteria (the existence of a size)
+			// for a given address, we want symbols with a size
+			// to occur before those without so that we can
+			// use the size if we wish
+			if( (s1->GetSize() != 0) && (s2->GetSize() == 0) )
+			{
+				ret = true;
+			}
+			else if( (s1->GetSize() == 0) && (s2->GetSize() != 0) )
+			{
+				ret = false;
+			}
+		}
+		return ret;
+	}
 };
 
-Object::Module::Module( string _name, DWORD64 _baseAddr, DWORD64 _extent )
-  : name(_name),
-    baseAddr(_baseAddr),
-    extent(_extent),
-    isDll( false )
+Object::Module::Module( std::string _name, DWORD64 _baseAddr, DWORD64 _extent )  :
+						name(_name),
+						baseAddr(_baseAddr),
+						extent(_extent),
+						isDll( false )
 {
 	defFile = new Object::File();
 	files.push_back( defFile );
 }
 
-
 Object::File*
-Object::Module::FindFile( string name )
+Object::Module::FindFile( std::string name )
 {
 	File* ret = NULL;
-
-	for( vector<File *>::iterator iter = files.begin();
+	for( std::vector<File *>::iterator iter = files.begin();
 			iter != files.end();
 			iter++ )
 	{
@@ -204,60 +206,55 @@ Object::Module::FindFile( string name )
 	}
 	return ret;
 }
-
 void
-Object::File::DefineSymbols( hash_map<string, vector< ::Dyn_Symbol *> >& allSyms,
-                                const string& modName ) const
+Object::File::DefineSymbols( hash_map<std::string, std::vector< Symbol *> >& allSyms,
+				const std::string& modName ) const
 {
-    for( vector<Object::Symbol*>::const_iterator iter = syms.begin();
-        iter != syms.end();
-        iter++ )
+	for( std::vector<Object::intSymbol*>::const_iterator iter = syms.begin(); iter != syms.end(); iter++ )
     {
-        const Object::Symbol* curSym = * iter;
+        const Object::intSymbol* curSym = * iter;
         assert( curSym != NULL );
-
         curSym->DefineSymbol( allSyms, modName );
     }
 }
 
 void
-Object::Symbol::DefineSymbol(hash_map<string,vector<::Dyn_Symbol *> >&allSyms,
-                                const string& modName ) const
+Object::intSymbol::DefineSymbol(hash_map<std::string,std::vector<Symbol *> >&allSyms,
+                                const std::string& modName ) const
 {
-    allSyms[GetName()].push_back(new ::Dyn_Symbol(GetName(), 
-										  modName,
-                                          (::Dyn_Symbol::SymbolType) GetType(),
-                                          (::Dyn_Symbol::SymbolLinkage) GetLinkage(),
-                                          (OFFSET)GetAddr(),
-                                          NULL,				// TODO there should be a section pointer here
-                                          GetSize()) );
+    allSyms[GetName()].push_back(new Symbol(GetName(), 
+													modName,
+													(Symbol::SymbolType) GetType(),
+													(Symbol::SymbolLinkage) GetLinkage(),
+													(Offset)GetAddr(),
+													NULL,				// TODO there should be a section pointer here
+													GetSize()) );
 }
 
 void
 Object::Module::DefineSymbols( const Object* obj,
-                                hash_map<string, vector< ::Dyn_Symbol *> > & syms ) const
+				hash_map<std::string, std::vector< Symbol *> > & syms ) const
 {
-    // define Paradyn/dyninst modules and symbols
-    if( !isDll )
-    {
-        // this is an EXE
-        for( vector<Object::File*>::const_iterator iter = files.begin();
-            iter != files.end();
-            iter++ )
-        {
-            const File* curFile = *iter;
-            assert( curFile != NULL );
-
-            //fprintf(stderr, "ObjMod::DefineSymbols for %s\n", curFile->GetName().c_str());
-            // add a Symbol for the file
-			syms[curFile->GetName()].push_back( new ::Dyn_Symbol( curFile->GetName(), 
-				"",
-                ::Dyn_Symbol::ST_MODULE,
-                ::Dyn_Symbol::SL_GLOBAL,
-                obj->code_off(),        // TODO use real base of symbols for file
-                NULL, 0 ) );              // TODO Pass Section pointer also
-										// TODO also pass size
-
+	// define Paradyn/dyninst modules and symbols
+	if( !isDll )
+	{
+		// this is an EXE
+		for( std::vector<Object::File*>::const_iterator iter = files.begin();
+					iter != files.end();
+					iter++ )
+		{
+			const File* curFile = *iter;
+			assert( curFile != NULL );
+			
+			//fprintf(stderr, "ObjMod::DefineSymbols for %s\n", curFile->GetName().c_str());
+			// add a Symbol for the file
+			syms[curFile->GetName()].push_back( new Symbol( curFile->GetName(), 
+																	"",
+                													Symbol::ST_MODULE,
+                													Symbol::SL_GLOBAL,
+                													obj->code_off(),        // TODO use real base of symbols for file
+                													NULL, 0 ) );              // TODO Pass Section pointer also
+																							// TODO also pass size
             // add symbols for each of the file's symbols
             curFile->DefineSymbols( syms, curFile->GetName() );
         }
@@ -266,163 +263,144 @@ Object::Module::DefineSymbols( const Object* obj,
     {
         // we represent a DLL
         // add one Symbol for the entire module
-		syms[name].push_back( new ::Dyn_Symbol( name,
+		syms[name].push_back( new Symbol( name,
             "",
-            ::Dyn_Symbol::ST_MODULE,
-            ::Dyn_Symbol::SL_GLOBAL,
+            Symbol::ST_MODULE,
+            Symbol::SL_GLOBAL,
             obj->code_off(),
             NULL,					//TODO pass Sections pointer
             obj->code_len()) );
-
         // add symbols for each of the module's symbols
-        for( vector<Object::File*>::const_iterator iter = files.begin();
+        for( std::vector<Object::File*>::const_iterator iter = files.begin();
                 iter != files.end();
                 iter++ )
         {
             const File* curFile = *iter;
             assert( curFile != NULL );
-
             // add symbols for each of the file's symbols
             curFile->DefineSymbols( syms, name );
         }
     }
 }
-
 void
 Object::Module::PatchSymbolSizes( const Object* obj,
-								  const vector<Object::Symbol*>& allSyms ) const
+								  const std::vector<Object::intSymbol*>& allSyms ) const
 {
-    DWORD64 lastFuncAddr = NULL;
-    unsigned int i;
-
-
-    for( i = 0; i < allSyms.size(); i++ )
+	DWORD64 lastFuncAddr = NULL;
+	unsigned int i;
+	
+	for( i = 0; i < allSyms.size(); i++ )
     {
-		Object::Symbol* sym = allSyms[i];
+		Object::intSymbol* sym = allSyms[i];
 		assert( sym != NULL );
-
-      if( (sym->GetName() != "") && (sym->GetSize() == 0) &&
-            ((sym->GetType() == ::Dyn_Symbol::ST_FUNCTION) ||
-             (sym->GetType() == ::Dyn_Symbol::ST_OBJECT)))
+		if( (sym->GetName() != "") && (sym->GetSize() == 0) &&
+            ((sym->GetType() == Symbol::ST_FUNCTION) ||
+             (sym->GetType() == Symbol::ST_OBJECT)))
         {
             // check for function aliases
             // note that this check depends on the allSymbols
             // array being sorted so that aliases are considered
             // after the "real" function symbol
             bool isAlias = false;
-            if( (sym->GetType() == ::Dyn_Symbol::ST_FUNCTION) &&
+            if( (sym->GetType() == Symbol::ST_FUNCTION) &&
                 (sym->GetAddr() == lastFuncAddr) &&
                 (sym->GetSize() == 0) )
             {
                 // this function is an alias
-                // we currently leave their size as zero to indicate 
-                // that they are uninstrumentable.  Ideally, this will
-                // change once a mechanism becomes available to identify
-                // these as function aliases.
-                isAlias = true;
-            }
-
-
+				// we currently leave their size as zero to indicate 
+				// that they are uninstrumentable.  Ideally, this will
+				// change once a mechanism becomes available to identify
+				// these as function aliases.
+				isAlias = true;
+			}
             if( !isAlias )
-            {
-                //
-                // patch the symbol's size
-                //
-                // We consider the symbol's size to be the distance
-                // to the next symbol.  (Sometimes this causes us to
-                // overestimate, because compilers sometimes leave some
-                // "padding" between the end of a function and the beginning
-                // of the next.)
-                //
-                // Note that we have to use the next symbol whose
-                // address is different from the current one, to handle
-                // cases where aliases are included in the symbol table
+			{
+				//
+				// patch the symbol's size
+				//
+				// We consider the symbol's size to be the distance
+				// to the next symbol.  (Sometimes this causes us to
+				// overestimate, because compilers sometimes leave some
+				// "padding" between the end of a function and the beginning
+				// of the next.)
+				//
+				// Note that we have to use the next symbol whose
+				// address is different from the current one, to handle
+				// cases where aliases are included in the symbol table
                 //
                 DWORD64 cb;
-
-                //
-                // find next function or object symbol in our section with
-                // an address different from ours
-                //
-                // the while test looks complicated -
-                // all we're trying to do is skip to the next
-                // function or object symbol within the array whose
-                // address is not the same as allSymbols[i].
-                unsigned int j = i + 1;
-                while( (j < allSyms.size()) &&
-					( ((allSyms[j]->GetType() != ::Dyn_Symbol::ST_FUNCTION) &&
-					(allSyms[j]->GetType() != ::Dyn_Symbol::ST_OBJECT)
-                         ) ||
-                         (allSyms[j]->GetAddr() == sym->GetAddr())
-                       )
-                     )
-                {
-                   j++;
-                }
-
-                if( j < allSyms.size() &&
-                    (allSyms[j]->GetType() == sym->GetType()) )
-                {
-                    // we found a symbol from the same section
-                    // with a different address -
-                    // size is just the delta between symbols
-                    cb = allSyms[j]->GetAddr() - sym->GetAddr();
-                }
-                else
-                {
-                    // we couldn't find another symbol in our section
-                    // with a different address -
-                    // size is the remainder of the current section
-                    if( sym->GetType() == ::Dyn_Symbol::ST_FUNCTION )
-                    {
-                        // size is remainder of the .text section
-                        cb = (obj->code_off() + obj->code_len()) - 
+		
+				//
+				// find next function or object symbol in our section with
+				// an address different from ours
+				//
+				// the while test looks complicated -
+				// all we're trying to do is skip to the next
+				// function or object symbol within the array whose
+				// address is not the same as allSymbols[i].
+				unsigned int j = i + 1;
+				while((j < allSyms.size()) &&
+				(((allSyms[j]->GetType() != Symbol::ST_FUNCTION) &&
+								(allSyms[j]->GetType() != Symbol::ST_OBJECT)) ||
+								(allSyms[j]->GetAddr() == sym->GetAddr())))
+				{
+					j++;
+				}
+				if( j < allSyms.size() &&
+					(allSyms[j]->GetType() == sym->GetType()) )
+				{
+					// we found a symbol from the same section
+					// with a different address -
+					// size is just the delta between symbols
+					cb = allSyms[j]->GetAddr() - sym->GetAddr();
+				}
+				else
+				{
+					// we couldn't find another symbol in our section
+					// with a different address -
+					// size is the remainder of the current section
+					if( sym->GetType() == Symbol::ST_FUNCTION )
+					{
+						// size is remainder of the .text section
+						cb = (obj->code_off() + obj->code_len()) - 
 							sym->GetAddr();
-                    }
-                    else
-                    {
-                        // size is remainder of the .data section
-                        cb = (obj->data_off() + obj->data_len()) - 
+					}
+					else
+					{
+						// size is remainder of the .data section
+						cb = (obj->data_off() + obj->data_len()) - 
 							sym->GetAddr();
-                    }
-                }
-                sym->SetSize( (unsigned int) cb );
-            }
-
-            // update the last known function symbol
-            if( sym->GetType() == ::Dyn_Symbol::ST_FUNCTION )
-            {
-                lastFuncAddr = sym->GetAddr();
-            }
-        }
+					}
+				}
+				sym->SetSize( (unsigned int) cb );
+			}
+			// update the last known function symbol
+			if( sym->GetType() == Symbol::ST_FUNCTION )
+			{
+				lastFuncAddr = sym->GetAddr();
+			}
+		}
     }
 }
-
 
 void
 Object::Module::BuildSymbolMap( const Object* obj ) const
 {
-	vector<Object::Symbol*> allSyms;
-
-	// add all symbols to our allSyms vector
-   	vector<Object::File*>::const_iterator iter = files.begin();
+	std::vector<Object::intSymbol*> allSyms;
+	// add all symbols to our allSyms std::vector
+   	std::vector<Object::File*>::const_iterator iter = files.begin();
 	for(;	iter != files.end();	iter++ )
 	{
 		assert( *iter != NULL );
-
-		const vector<Object::Symbol*>& curSyms = (*iter)->GetSymbols();
-		for( vector<Object::Symbol*>::const_iterator symIter = curSyms.begin();
-				symIter != curSyms.end();
-				symIter++ )
+		const std::vector<Object::intSymbol*>& curSyms = (*iter)->GetSymbols();
+		for( std::vector<Object::intSymbol*>::const_iterator symIter = curSyms.begin(); symIter != curSyms.end();symIter++ )
 		{
 			assert( *symIter != NULL );
 			allSyms.push_back( *symIter );
 		}
 	}
-
 	// sort the symbols by address
 	sort( allSyms.begin(), allSyms.end(), CompareSymAddresses());
-
 	for( unsigned int i = 1; i < allSyms.size(); i++ )
 	{
 		if( allSyms[i-1]->GetAddr() > allSyms[i]->GetAddr() )
@@ -431,20 +409,16 @@ Object::Module::BuildSymbolMap( const Object* obj ) const
 			assert( false );
 		}
 	}
-
 	// patch up any symbol sizes which weren't given to us
 	PatchSymbolSizes( obj, allSyms );
-
 }
-
-
 
 Object::~Object( void )
 {
     if( mapAddr != NULL )
     {
-        UnmapViewOfFile( mapAddr );
-        CloseHandle( hMap );
+    UnmapViewOfFile( mapAddr );
+    CloseHandle( hMap );
     }
 }
 
@@ -452,7 +426,6 @@ Object::~Object( void )
 #define SymTagData 0x7
 #define SymTagPublicSymbol 0xa
 #define SymTagMisc 0x3808 		// Seen with NB11, VC++6-produced executables
-
 //
 // Our recognition of interesting symbols (functions and global data)
 // is complicated due to lack of consistency in how they are
@@ -475,89 +448,81 @@ static BOOL isGlobalSymbol(PSYMBOL_INFO pSymInfo) {
 
 void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
 {
-   Object::Module* curMod = GetCurrentModule();
-   assert( curMod != NULL );
-   //HANDLE hProc = desc.procHandle();		//TODO hproc. Try to make a fake address space. hProc can be any
-											//unique identifier
-
-   // get this symbol's file and line information
-   IMAGEHLP_LINE64 lineInfo;
-   DWORD dwDisplacement = 0;
-   ZeroMemory( &lineInfo, sizeof(lineInfo) );
-   lineInfo.SizeOfStruct = sizeof(lineInfo);
-   Object::File* pFile = NULL;
-   if( SymGetLineFromAddr64( hProc,
-                             pSymInfo->Address,
-                             &dwDisplacement,
-                             &lineInfo ) ) {
-      // ensure we have a file for this object
-      pFile = curMod->FindFile( lineInfo.FileName );
-      if( pFile == NULL ) {
-         pFile = new Object::File( lineInfo.FileName );
-         curMod->AddFile( pFile );
-      }
-   }
-   else {
-      pFile = curMod->GetDefaultFile();
-   }
-   assert( pFile != NULL );
-            
-   // is it a function or not?
-   // TODO why is there a discrepancy between code base addr for
-   // EXEs and DLLs?
-   DWORD symType = ::Dyn_Symbol::ST_UNKNOWN;
-   DWORD symLinkage = ::Dyn_Symbol::SL_UNKNOWN;
-   DWORD64 codeLen = code_len();
-   DWORD64 codeBase = code_off();
-   symType = ::Dyn_Symbol::ST_FUNCTION;
-   //codeBase += get_base_addr();
-
-   if ((pSymInfo->Flags & SYMFLAG_FUNCTION) ||
-       (pSymInfo->Tag == SymTagFunction && !pSymInfo->Flags))
-   {
-      symLinkage = ::Dyn_Symbol::SL_UNKNOWN;
-   }
-   else if ((pSymInfo->Flags == SYMFLAG_EXPORT && 
-            isText((OFFSET) pSymInfo->Address - baseAddr)) ||
+	Object::Module* curMod = GetCurrentModule();
+	assert( curMod != NULL );
+	
+	IMAGEHLP_LINE64 lineInfo;
+	DWORD dwDisplacement = 0;
+	ZeroMemory( &lineInfo, sizeof(lineInfo) );
+	lineInfo.SizeOfStruct = sizeof(lineInfo);
+	Object::File* pFile = NULL;
+	if( SymGetLineFromAddr64( hProc,
+								pSymInfo->Address,
+								&dwDisplacement,
+								&lineInfo ) ) {
+		// ensure we have a file for this object
+		pFile = curMod->FindFile( lineInfo.FileName );
+		if( pFile == NULL ) {
+			pFile = new Object::File( lineInfo.FileName );
+			curMod->AddFile( pFile );
+		}
+	}
+	else {
+		pFile = curMod->GetDefaultFile();
+	}
+	assert( pFile != NULL );
+	// is it a function or not?
+	// TODO why is there a discrepancy between code base addr for
+	// EXEs and DLLs?
+	DWORD symType = Symbol::ST_UNKNOWN;
+	DWORD symLinkage = Symbol::SL_UNKNOWN;
+	DWORD64 codeLen = code_len();
+	DWORD64 codeBase = code_off();
+	symType = Symbol::ST_FUNCTION;
+	//codeBase += get_base_addr();
+	if ((pSymInfo->Flags & SYMFLAG_FUNCTION) ||
+		(pSymInfo->Tag == SymTagFunction && !pSymInfo->Flags))
+	{
+		symLinkage = Symbol::SL_UNKNOWN;
+	}
+	else if ((pSymInfo->Flags == SYMFLAG_EXPORT && 
+            isText((Offset) pSymInfo->Address - baseAddr)) ||
             !strcmp(pSymInfo->Name, "_loadsnstores"))
-   {
-      symType = ::Dyn_Symbol::ST_FUNCTION;
-      symLinkage = ::Dyn_Symbol::SL_UNKNOWN;
-   }
-   else
-   {
-      symType = ::Dyn_Symbol::ST_OBJECT;
-      symLinkage = ::Dyn_Symbol::SL_GLOBAL;
-   }
-
-   // register the symbol
-  OFFSET baseAddr = 0;
-  //  if (desc.isSharedObject())
-  //if(curModule->IsDll())
-  //   baseAddr = get_base_addr();
-
-   if( !isForwarded( ((OFFSET) pSymInfo->Address) - baseAddr ) )
-   {
-      pFile->AddSymbol( new Object::Symbol( pSymInfo->Name,
-                                            pSymInfo->Address - get_base_addr(),
-                                            symType,
-                                            symLinkage,
-                                            pSymInfo->Size ) );
-   } 
+	{
+		symType = Symbol::ST_FUNCTION;
+		symLinkage = Symbol::SL_UNKNOWN;
+	}
+	else
+	{
+		symType = Symbol::ST_OBJECT;
+		symLinkage = Symbol::SL_GLOBAL;
+	}
+    // register the symbol
+    Offset baseAddr = 0;
+    //  if (desc.isSharedObject())
+    //if(curModule->IsDll())
+    //   baseAddr = get_base_addr();
+	if( !isForwarded( ((Offset) pSymInfo->Address) - baseAddr ) )
+	{
+		pFile->AddSymbol( new Object::intSymbol( pSymInfo->Name,
+							pSymInfo->Address - get_base_addr(),
+							symType,
+							symLinkage,
+							pSymInfo->Size ) );
+	} 
 }
-
+   
 BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
-                                      ULONG symSize,
-                                      PVOID userContext )
+										ULONG symSize,
+										PVOID userContext )
 {
-   assert( pSymInfo != NULL );
-
-   Object* obj = (Object*) userContext;
-   assert( obj != NULL );
+	assert( pSymInfo != NULL );
+	Object* obj = (Object*) userContext;
+	assert( obj != NULL );
 
 #if 0
-   fprintf(stderr, "symEnumSymsCallback, %s, Flags:0x%x, Tag:0x%x, Type:%d, Addr:0x%x...\n",
-           pSymInfo->Name,
+	fprintf(stderr, "symEnumSymsCallback, %s, Flags:0x%x, Tag:0x%x, Type:%d, Addr:0x%x...\n",
+		   pSymInfo->Name,
            pSymInfo->Flags,
            pSymInfo->Tag,
            pSymInfo->TypeIndex,
@@ -576,19 +541,21 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
    else {
       //parsing_printf(" skipping\n");
    }
-    
    // keep enumerating symbols
    return TRUE;
 }
 
-/**
+/*
+ *
  * The name here is a little desceptive.  We're not parsing debug info
  * as in line or type information.  This function finds all the global symbols
  * in a module and all of the source files. (i.e. so this function would find
  * the 'main' symbol and find the starting point of 'foo.c'
- **/
-void Object::ParseDebugInfo( void )
-{
+ *
+ */
+ 
+ void Object::ParseDebugInfo( void )
+ {
     // build a Module object for the current module (EXE or DLL)
     // Note that the CurrentModuleScoper object ensures that the
     // curModule member will be reset when we leave the scope of
@@ -606,24 +573,21 @@ void Object::ParseDebugInfo( void )
             goto done;
         }
     }
-
-	
     assert( hProc != NULL );
     assert( hProc != INVALID_HANDLE_VALUE );
 
     // find the sections we need to know about (.text and .data)
     FindInterestingSections();
-
     // load symbols for this module
     //DWORD64 dw64BaseAddr = (DWORD64)desc.loadAddr();
-	DWORD64 dw64BaseAddr = (DWORD64)mapAddr;		//load address is always same(fake address space)
-
-    DWORD64 loadRet = SymLoadModule64( hProc,          // proc handle
-                                       hFile,          // file handle
-                                       NULL,           // image name
-                                       NULL,           // shortcut name
-                                       dw64BaseAddr,   // load address
-                                       0 );            // size of DLL    
+    DWORD64 dw64BaseAddr = (DWORD64)mapAddr;
+    //load address is always same(fake address space)
+    DWORD64 loadRet = SymLoadModule64( hProc,			// proc handle
+										hFile,          // file handle
+										NULL,           // image name
+										NULL,           // shortcut name
+										dw64BaseAddr,   // load address
+										0 );            // size of DLL    
     if(!loadRet) {
         DWORD dwErr = GetLastError();
         if(dwErr) {
@@ -634,7 +598,6 @@ void Object::ParseDebugInfo( void )
             goto done;
         }
     }
-
     // parse symbols for the module
     if( !SymEnumSymbols(hProc,                     // process handle
                         dw64BaseAddr,               // load address
@@ -654,155 +617,152 @@ void Object::ParseDebugInfo( void )
     curModule->BuildSymbolMap( this );
     curModule->DefineSymbols( this, symbols_ );
 	no_of_symbols_ = symbols_.size();
+
+	parseFileLineInfo();
  
     // Since PE-COFF is very similar to COFF (in that it's not like ELF),
     // the .text and .data sections are perfectly mapped to code/data segments
-
     code_vldS_ = code_off_;
     code_vldE_ = code_off_ + code_len_;
     data_vldS_ = data_off_;
     data_vldE_ = data_off_ + data_len_;
- done:
-    delete curModule;
+    
+    done:
+    	delete curModule;
 }
-
 
 void
 Object::FindInterestingSections()
 {
     // map the file to our address space
     // first, create a file mapping object
-   hMap = CreateFileMapping( hFile,
-                             NULL,           // security attrs
-                             PAGE_READONLY,  // protection flags
-                             0,              // max size - high DWORD
-                             0,              // max size - low DWORD
-                             NULL );         // mapping name - not used
-   if( hMap == NULL )
-   {
-      // TODO how to handle the error?
-      fprintf( stderr, "CreateFileMapping failed: %x\n", GetLastError() );
-	     LPVOID lpMsgBuf;
-  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-|     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
-  GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)
-&lpMsgBuf,    0,    NULL );
+	hMap = CreateFileMapping( hFile,
+								NULL,           // security attrs
+								PAGE_READONLY,  // protection flags
+								0,              // max size - high DWORD
+								0,              // max size - low DWORD
+								NULL );         // mapping name - not used
+	if( hMap == NULL )
+	{
+		// TODO how to handle the error?
+		fprintf( stderr, "CreateFileMapping failed: %x\n", GetLastError() );
+		LPVOID lpMsgBuf;
+		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+										|FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
+										GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+										(LPTSTR)&lpMsgBuf,    0,    NULL );
 
-  cout << (LPCTSTR)lpMsgBuf << endl;
-  LocalFree( lpMsgBuf );
-      return;
-   }  
-   // next, map the file to our address space
-   mapAddr = MapViewOfFileEx( hMap,             // mapping object
-                              FILE_MAP_READ,  // desired access
-                              0,              // loc to map - hi DWORD
-                              0,              // loc to map - lo DWORD
-                              0,              // #bytes to map - 0=all
-                              NULL );         // suggested map addr
-   if( mapAddr == NULL )
-   {
-      // TODO how to handle the error?
-      fprintf( stderr, "MapViewOfFileEx failed: %x\n", GetLastError() );
-      CloseHandle( hMap );
-      hMap = INVALID_HANDLE_VALUE;
-      return;
-   }
-   
-   // now that we have the file mapped, look for 
-   // the .text and .data sections
-   assert( peHdr == NULL );
-   peHdr = ImageNtHeader( mapAddr );
-   
+		cout << (LPCTSTR)lpMsgBuf << endl;
+		LocalFree( lpMsgBuf );
+		return;
+	}  
+	// next, map the file to our address space
+	mapAddr = MapViewOfFileEx( hMap,             // mapping object
+								FILE_MAP_READ,  // desired access
+								0,              // loc to map - hi DWORD
+								0,              // loc to map - lo DWORD
+								0,              // #bytes to map - 0=all
+								NULL );         // suggested map addr
+	if( mapAddr == NULL )
+	{
+		// TODO how to handle the error?
+		fprintf( stderr, "MapViewOfFileEx failed: %x\n", GetLastError() );
+		CloseHandle( hMap );
+		hMap = INVALID_HANDLE_VALUE;
+		return;
+	}
+	   
+	// now that we have the file mapped, look for 
+	// the .text and .data sections
+	assert( peHdr == NULL );
+	peHdr = ImageNtHeader( mapAddr );
+	
 	assert( peHdr->FileHeader.SizeOfOptionalHeader > 0 ); 
-   
-   assert( curModule != NULL );
-   curModule->SetIsDll( (peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL) != 0 );
-   if(curModule->IsDll())
-	   is_aout_ = false;
-   else
+	assert( curModule != NULL );
+	curModule->SetIsDll( (peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL) != 0 );
+	if(curModule->IsDll())
+		is_aout_ = false;
+	else
 	   is_aout_ = true;
 
-   unsigned int nSections = peHdr->FileHeader.NumberOfSections;
-   no_of_sections_ = nSections;
-   PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
-                                sizeof(DWORD) +         // for signature
-                                sizeof(IMAGE_FILE_HEADER) +
-                                peHdr->FileHeader.SizeOfOptionalHeader);
- 		
-   for( unsigned int i = 0; i < nSections; i++ )
-   {
-      //TODO Insert into sections_ here.
-      if( strncmp( (const char*)pScnHdr->Name, ".text", 5 ) == 0 )
-      {
-         // note that section numbers are one-based
-         textSectionId = i + 1;
-         code_ptr_    = (Word*)(((char*)mapAddr) +
-                                pScnHdr->PointerToRawData);
-         //if (GetDescriptor().isSharedObject())
-		 //if (curModule->IsDll())
-            code_off_    = pScnHdr->VirtualAddress;
-         //else
-         //   code_off_    = get_base_addr() + pScnHdr->VirtualAddress;	//loadAddr = mapAddr
-		 //code_off_    = pScnHdr->VirtualAddress + desc.loadAddr();
-         code_len_    = pScnHdr->Misc.VirtualSize;
-      }
-      else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 )
-      {
-         // note that section numbers are one-based
-         dataSectionId = i + 1;
-         
-         data_ptr_    = (Word*)(((char*)mapAddr) +
-                                pScnHdr->PointerToRawData);
-         //if (GetDescriptor().isSharedObject())
-		 //if (curModule->IsDll())
-            data_off_    = pScnHdr->VirtualAddress;
-         //else
-            //data_off_    = desc.loadAddr() + pScnHdr->VirtualAddress;
-		 //	data_off_    = get_base_addr()+pScnHdr->VirtualAddress;
-         data_len_    = pScnHdr->Misc.VirtualSize;
-      }
-      
-      pScnHdr += 1;
-   }
-   }
+	unsigned int nSections = peHdr->FileHeader.NumberOfSections;
+	no_of_sections_ = nSections;
+	PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
+									sizeof(DWORD) +         // for signature
+									sizeof(IMAGE_FILE_HEADER) +
+									peHdr->FileHeader.SizeOfOptionalHeader);
+	 	
+	for( unsigned int i = 0; i < nSections; i++ )
+	{
+		sections_.push_back(new Section(i, (const char*)pScnHdr->Name, pScnHdr->VirtualAddress, pScnHdr->Misc.VirtualSize, (void *)(((char*)mapAddr) +
+									pScnHdr->PointerToRawData)));
 
+		if( strncmp( (const char*)pScnHdr->Name, ".text", 5 ) == 0 )
+		{
+			// note that section numbers are one-based
+			textSectionId = i + 1;
+			code_ptr_    = (char*)(((char*)mapAddr) +
+									pScnHdr->PointerToRawData);
+			//if (GetDescriptor().isSharedObject())
+			//if (curModule->IsDll())
+				code_off_    = pScnHdr->VirtualAddress;
+			//else
+			//   code_off_    = get_base_addr() + pScnHdr->VirtualAddress;	//loadAddr = mapAddr
+			//code_off_    = pScnHdr->VirtualAddress + desc.loadAddr();
+			code_len_    = pScnHdr->Misc.VirtualSize;
+		}
+		else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 )
+		{
+			// note that section numbers are one-based
+			dataSectionId = i + 1;
+	         
+			data_ptr_    = (char *)(((char*)mapAddr) +
+									pScnHdr->PointerToRawData);
+			//if (GetDescriptor().isSharedObject())
+			//if (curModule->IsDll())
+				data_off_    = pScnHdr->VirtualAddress;
+			//else
+				//data_off_    = desc.loadAddr() + pScnHdr->VirtualAddress;
+			//	data_off_    = get_base_addr()+pScnHdr->VirtualAddress;
+			data_len_    = pScnHdr->Misc.VirtualSize;
+		}
+		pScnHdr += 1;
+	}
+}
 
-bool Object::isForwarded( OFFSET addr )
+bool Object::isForwarded( Offset addr )
 {
 	//calls to forwarded symbols are routed to another dll and 
     //are not in the current dll's code space
 	//we MUST NOT try to parse these - bad things happen
 	
 	//we detect forwarded symbols by checking if the relative 
-    //virtual address of the symbol falls within the dll's exports section
+	//virtual address of the symbol falls within the dll's exports section
 	if( peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL )
 	{
 		PIMAGE_DATA_DIRECTORY dataDir = peHdr->OptionalHeader.DataDirectory;
-	    	OFFSET exportStart = dataDir->VirtualAddress;
-		OFFSET exportEnd = exportStart + dataDir->Size;
-
+		Offset exportStart = dataDir->VirtualAddress;
+		Offset exportEnd = exportStart + dataDir->Size;
 		if( addr >= exportStart && addr < exportEnd )
 			return true;  //this sym is forwarded
 	}
-
 	return false;
 }
 
-bool Object::getCatchBlock(ExceptionBlock &b, OFFSET addr, 
+bool Object::getCatchBlock(ExceptionBlock &b, Offset addr, 
                            unsigned size) const 
 { 
    return false; 
 }
 
-bool Object::isText( const OFFSET& addr ) const 
+bool Object::isText( const Offset& addr ) const 
 {
    return( addr >= code_off_ && addr <= code_len_ );
 }
 
-Object::Object(string &filename,
+Object::Object(std::string &filename,
                 void (*err_func)(const char *)) 
     : AObject(filename, err_func),
-     //baseAddr(_desc.code()),
      hMap( INVALID_HANDLE_VALUE ),
      mapAddr( NULL ),
      curModule( NULL ),
@@ -814,8 +774,8 @@ Object::Object(string &filename,
 	if (filename.substr(0,22) == "\\Device\\HarddiskVolume") {
 		TCHAR volumePath[1024];
 		if (GetVolumePathName(filename.c_str(), volumePath, 1024)) {
-			string::size_type filePathIndex = filename.find_first_of("\\/", 22);
-			if (filePathIndex != string::npos)
+			std::string::size_type filePathIndex = filename.find_first_of("\\/", 22);
+			if (filePathIndex != std::string::npos)
 				filename = volumePath + filename.substr(++filePathIndex);
 			else
 				filename = volumePath + filename.substr(23);
@@ -833,26 +793,1036 @@ Object::Object(string &filename,
     ParseDebugInfo();
 }
 
+Object::Object(char *mem_image, size_t image_size,
+                void (*err_func)(const char *)) 
+    : AObject(NULL, err_func),
+     hMap( INVALID_HANDLE_VALUE ),
+     mapAddr( NULL ),
+     curModule( NULL ),
+     peHdr( NULL )
+{
+    hFile = LocalHandle( mem_image );	//For a mem image
+    assert( hFile != NULL );
+    assert( hFile != INVALID_HANDLE_VALUE );
+    ParseDebugInfo();
+}
+
+
 DLLEXPORT ObjectType Object::objType() const {
-   return is_aout() ? obj_Executable : obj_SharedLib;
+	return is_aout() ? obj_Executable : obj_SharedLib;
 }
 
 #define PATH_SEP ('\\')
 #define SECOND_PATH_SEP ('/')
-
-std::string extract_pathname_tail(const std::string &path)
+std::string Dyninst::SymtabAPI::extract_pathname_tail(const std::string &path)
 {
   const char *path_str = path.c_str();
   const char *path_sep = P_strrchr(path_str, PATH_SEP);
-
   const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
   if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
     path_sep = sec_path_sep;
-
   std::string ret = (path_sep) ? (path_sep + 1) : (path_str);
   return ret;
 }
 
 void Object::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs)
 {
+	return;
+}
+
+hash_map <std::string, LineInformation> &Object::getLineInfo()
+{
+	return lineInfo_;
+}
+
+static SRCCODEINFO *last_srcinfo;
+BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
+{
+  hash_map< std::string, LineInformation> *lineInfo = (hash_map< std::string, LineInformation> *)param;
+   
+  if (last_srcinfo && srcinfo) {
+    //All the middle iterations.  Use the previous line information with the 
+    // current line info to build LineInformation structure.
+    assert(last_srcinfo->Address <= srcinfo->Address);
+    (*lineInfo)[last_srcinfo->FileName].addLine(last_srcinfo->FileName, last_srcinfo->LineNumber, 0 /* no col info for windows*/,
+		(Offset) last_srcinfo->Address, (Offset) srcinfo->Address);
+    return TRUE;
+  }
+  else if (!last_srcinfo && srcinfo) {
+    //First iteration.  Don't add anything until the next
+    last_srcinfo = srcinfo;
+    return TRUE;
+  }
+  else if (last_srcinfo && !srcinfo) {
+    //Last iteration.  Add current srcinfo up to end of module.
+    (*lineInfo)[last_srcinfo->FileName].addLine(last_srcinfo->FileName, last_srcinfo->LineNumber, 0 /*no col info for windows*/,
+		(Offset) last_srcinfo->Address, (Offset) last_srcinfo->Address);
+    return TRUE;
+  }
+  return TRUE;
+}
+
+void Object::parseFileLineInfo()
+{   
+  int result;
+  static Offset last_file = 0x0;
+
+  const char *src_file_name = NULL;
+  const char *libname = NULL;
+
+  if (is_aout_) 
+    src_file_name = file_.c_str();
+  else 
+    libname = file_.c_str();
+
+  Offset baseAddr = get_base_addr();
+  if (last_file == baseAddr)
+    return;
+  last_file = baseAddr;
+
+  last_srcinfo = NULL;
+  result = SymEnumSourceLines(hProc, 
+			      baseAddr,
+			      libname, 
+			      src_file_name,
+			      0,
+			      0,
+			      add_line_info, 
+			      &lineInfo_); 
+  if (!result) {
+    //Not a big deal. The module probably didn't have any debug information.
+    DWORD dwErr = GetLastError();
+    //parsing_printf("[%s:%u] - Couldn't SymEnumLines on %s in %s\n", 
+	//	   __FILE__, __LINE__, src_file_name, libname);
+    return;
+  }
+  add_line_info(NULL, &lineInfo_);
+}
+
+typedef struct localsStruct {
+    Symbol *func;
+    Offset base;
+    HANDLE p;
+    map<unsigned, unsigned> foundSyms;
+    localsStruct() : foundSyms() {}
+} localsStruct;
+
+BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
+                               void *userContext)
+{
+    Type *type;
+    Symbol *func;
+    storageClass storage;
+    localVar *newvar;
+    int reg;
+    signed long frameOffset;
+    Offset base;
+    HANDLE p;
+ 
+    char *storageName;
+    char *paramType;
+
+    //
+    //Skip this variable if it's already been found.
+    //
+    localsStruct *locals = (localsStruct *) userContext;
+    if (locals->foundSyms.find(pSymInfo->Index) != locals->foundSyms.end())
+        return true;
+    locals->foundSyms[pSymInfo->Index] = 1;
+    base = locals->base;
+    func = locals->func;
+    p = locals->p;
+
+    //Get type
+    type = getType(p, base, pSymInfo->TypeIndex, func->getModule());
+    
+    //Get variable storage location information
+    if ((pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_FRAMERELATIVE) ||
+        ((pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_REGRELATIVE) && 
+         (pSymInfo->Register = CV_REG_EBP)))
+    {
+        reg = pSymInfo->Register;
+        frameOffset = (signed) pSymInfo->Address;
+        storage = storageRegOffset;
+        storageName = "Frame Relative";
+    }
+    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_REGRELATIVE)
+    {
+        reg = pSymInfo->Register;
+        frameOffset = (signed) pSymInfo->Address;
+        storage = storageRegOffset;
+        storageName = "Register Relative";
+    }
+    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_REGISTER) {
+        reg = pSymInfo->Register;
+        frameOffset = 0;
+        storage = storageReg;
+        storageName = "Register";
+    }
+    else {
+        reg = 0;
+        frameOffset = (signed) pSymInfo->Address;
+        storage = storageAddr;
+        storageName = "Absolute";
+    }
+	loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+	loc->stClass = storage;
+	loc->refClass = storageNoRef;
+	loc->frameOffset = frameOffset;
+	loc->reg = reg;
+	
+	std::string vName = convertCharToString(pSymInfo->Name);
+	std::string fName = convertCharToString(func->getModule()->fileName().c_str());
+    newvar = new localVar(vName, type, fName, -1);
+	newvar->addLocation(loc);
+
+    //Store the variable as a local or parameter appropriately
+    if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_PARAMETER) {
+		if(!func->params_)
+			func->params_ = new localVarCollection();
+        func->params_->addLocalVar(newvar);
+        paramType = "parameter";
+    }
+    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_LOCAL) {
+		if(!func->vars_)
+			func->vars_ = new localVarCollection();
+        func->vars_->addLocalVar(newvar);
+        paramType = "local";
+    }
+    else {
+        fprintf(stderr, "[%s:%u] - Local variable of unknown type.  %s in %s\n",
+                __FILE__, __LINE__, pSymInfo->Name, func->getPrettyName().c_str());
+        paramType = "unknown";
+    }
+
+    
+    const char *typeName;
+    if (type) {
+        typeName = type->getName().c_str();
+    }
+    else {
+        typeName = "unknown";
+    }
+
+    return true;
+}
+
+
+static void enumLocalVars(Symbol *func, 
+//                          const std::vector<instPoint *> &points,
+                          localsStruct *locals) 
+{
+    IMAGEHLP_STACK_FRAME frame;
+    memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
+
+	frame.InstructionOffset = locals->base +func->getAddr();
+    int result = SymSetContext(locals->p, &frame, NULL);
+	/*if (!result) {            
+		fprintf(stderr, "[%s:%u] - Couldn't SymSetContext\n", __FILE__, __LINE__);
+        printSysError(GetLastError());
+    }*/
+    result = SymEnumSymbols(locals->p, 0, NULL, enumLocalSymbols, locals);
+	/*if (!result) {
+        fprintf(stderr, "[%s:%u] - Couldn't SymEnumSymbols\n", __FILE__, __LINE__);
+        printSysError(GetLastError());
+    }*/
+	
+	if(!func->getSize())
+	{
+		memset(&frame, 0, sizeof(IMAGEHLP_STACK_FRAME));
+
+		frame.InstructionOffset = locals->base +func->getAddr()+func->getSize();
+		result = SymSetContext(locals->p, &frame, NULL);
+		result = SymEnumSymbols(locals->p, 0, NULL, enumLocalSymbols, locals);
+	}
+
+//TODO?? replace this with??
+#if 0
+    for (unsigned i=0; i<points.size(); i++) {
+        frame.InstructionOffset = points[i]->addr();
+        bool result = SymSetContext(locals->p, &frame, NULL);
+        /*if (!result) {            
+            fprintf(stderr, "[%s:%u] - Couldn't SymSetContext\n", __FILE__, __LINE__);
+            printSysError(GetLastError());
+        }*/
+        result = SymEnumSymbols(locals->p, 0, NULL, enumLocalSymbols, locals);
+        /*if (!result) {
+            fprintf(stderr, "[%s:%u] - Couldn't SymEnumSymbols\n", __FILE__, __LINE__);
+            printSysError(GetLastError());
+        }*/
+    }
+#endif
+
+}
+
+static int variantValue(VARIANT *v) {
+    switch(v->vt) {    
+       case VT_I8:
+           return (int) v->llVal;
+       case VT_I4:
+           return (int) v->lVal;
+       case VT_UI1:
+           return (int) v->bVal;
+       case VT_I2:
+           return (int) v->iVal;
+       case VT_I1:
+           return (int) v->cVal;
+       case VT_UI2:
+           return (int) v->uiVal;
+       case VT_UI4:
+           return (int) v->ulVal;
+       case VT_UI8:
+           return (int) v->ullVal;
+       case VT_INT:
+           return (int) v->intVal;
+       case VT_UINT:
+           return (int) v->uintVal;
+       default:
+           return 0;
+    }
+}
+
+// Changed. Not adding to stdTypes now
+static void addTypeToCollection(Type *type, Module *mod) {
+   mod->getModuleTypes()->addType(type);
+/*	   
+   typeCollection *collection;
+
+   collection = mod ? mod->getModuleTypes() : Symtab::stdTypes;
+   assert(collection);
+   assert(!collection->findType(type->getID()));
+   collection->addType(type);
+*/
+}
+
+static char *getTypeName(HANDLE p, Offset base, int typeIndex) {
+    int result, length;
+    WCHAR *wname = NULL;
+    char *name = NULL;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_SYMNAME, &wname);
+    if (!result) 
+        return NULL;
+    length = wcslen(wname) + 1;
+    name = (char *) malloc(length + 1);
+    result = WideCharToMultiByte(CP_ACP, 0, wname, -1, name, length, NULL, NULL);
+    LocalFree(wname); 
+    if (!result) {
+        int lasterror = GetLastError();
+//        printSysError(lasterror);
+        return NULL;
+    }
+    return name;
+}
+
+static dataClass getDataClass(HANDLE p, Offset base, int typeIndex) {
+    enum SymTagEnum wintype;
+    int result, basetype;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_SYMTAG, &wintype);
+    if (!result)
+        return dataUnknownType;
+    switch (wintype) {
+        case SymTagFunction:
+        case SymTagFunctionType:
+            return dataFunction;
+        case SymTagPointerType:
+            return dataPointer;
+        case SymTagArrayType:
+            return dataArray;
+        case SymTagBaseType:
+            return dataScalar;
+        case SymTagEnum:
+            return dataEnum;
+        case SymTagTypedef:
+            return dataTypedef;
+        case SymTagUDT:
+            enum UdtKind udtType;
+            result = SymGetTypeInfo(p, base, typeIndex, TI_GET_UDTKIND, &udtType);
+            if (!result)
+                return dataUnknownType;
+            switch (udtType) {
+                case UdtUnion:
+                    return dataUnion;
+                case UdtStruct:
+                case UdtClass:
+                    return dataStructure;
+                default:
+                    return dataUnknownType;
+            }
+        case SymTagFunctionArgType:
+            result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &basetype);
+            if (!result)
+                return dataUnknownType;
+            return getDataClass(p, base, basetype);
+        default:
+            return dataUnknownType;
+    }
+}
+
+static Type *getEnumType(HANDLE p, Offset base, int typeIndex, Module *mod) {
+    unsigned i;
+    char *name = NULL;
+    char *entryName = NULL;
+    VARIANT entryValue;
+    typeEnum *type;
+    int result;
+    unsigned numEntries, entriesSize;
+    TI_FINDCHILDREN_PARAMS *entries = NULL;
+
+    name = getTypeName(p, base, typeIndex);
+	std::string tName = convertCharToString(name);
+    type = new typeEnum(typeIndex, tName);
+    addTypeToCollection(type, mod);
+    free(name);
+    name = NULL;
+
+    //
+    //Get the number of entries in this enum, and store them in the entries structure
+    //
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_CHILDRENCOUNT, &numEntries);
+    if (!result)
+        numEntries = 0;
+    if (numEntries) {
+        entriesSize = sizeof(TI_FINDCHILDREN_PARAMS) + (numEntries + 1) * sizeof(ULONG);
+        entries = (TI_FINDCHILDREN_PARAMS *) malloc(entriesSize);
+        memset(entries, 0, entriesSize);
+        entries->Count = numEntries;
+        result = SymGetTypeInfo(p, base, typeIndex, TI_FINDCHILDREN, entries);
+        if (!result)
+            numEntries = 0;
+    }
+
+    for (i=0; i<numEntries; i++) {
+        entryName = getTypeName(p, base, entries->ChildId[i]);
+        VariantInit(&entryValue);
+        result = SymGetTypeInfo(p, base, entries->ChildId[i], TI_GET_VALUE, &entryValue);
+        if (!result)
+            continue;
+        type->addConstant(entryName, variantValue(&entryValue));
+    }
+  
+    if (entries)
+        free(entries);
+    return type;    
+}
+
+static Type *getPointerType(HANDLE p, Offset base, int typeIndex, Module *mod) {
+    int baseTypeIndex, result;
+    Type *baseType;
+    typePointer *newType;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &baseTypeIndex);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
+        return NULL;
+    }
+
+    //
+    // Add a place-holder for the pointer type first and fill in it's 
+    //  base type latter.  This prevents recursion that may happen beneath 
+    //  the getType function call below.
+    //
+    newType = new typePointer(typeIndex, NULL);
+    addTypeToCollection(newType, mod);
+
+    baseType = getType(p, base, baseTypeIndex, mod);
+    if (!baseType) {
+        fprintf(stderr, "[%s:%u] - getType failed\n", __FILE__, __LINE__);
+        return NULL;
+    }
+
+    newType->setPtr(baseType);
+    return newType;
+}
+
+static Type *getArrayType(HANDLE p, Offset base, int typeIndex, Module *mod) {
+    int result, baseIndex, index;
+    Type *indexType, *newType, *baseType;
+    unsigned size, num_elements;
+    ULONG64 size64;
+    std::string bname;
+    std::string name;
+
+    //Get the index type (usually an int of some kind).  Currently not used.
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_ARRAYINDEXTYPEID, &index);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_ARRAYINDEXTYPEID failed\n", 
+                __FILE__, __LINE__);
+        return NULL;
+    }
+    indexType = getType(p, base, index, mod);
+
+    //Get the base type (the type of the elements in the array)
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &baseIndex);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
+        return NULL;
+    }
+    baseType = getType(p, base, baseIndex, mod);
+
+    bname = baseType->getName();
+    name = bname + "[]";
+	
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_LENGTH, &size64);
+    if (!result) {
+        num_elements = 0;
+    }
+    else {
+      size = (unsigned) size64;
+      num_elements = size / baseType->getSize();
+    }
+
+    newType = new typeArray(typeIndex, baseType, 0, num_elements-1, name);
+    newType->getSize();
+    addTypeToCollection(newType, mod);
+    assert(newType->getID() == typeIndex);
+
+    return newType;
+}
+
+
+static Type *getTypedefType(HANDLE p, Offset base, int typeIndex, Module *mod) {
+    int result, baseTypeIndex;
+    Type *baseType, *newType;
+    char *name;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &baseTypeIndex);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_TYPEID failed\n", __FILE__, __LINE__);
+        return NULL;
+    }
+    baseType = getType(p, base, baseTypeIndex, mod);
+    if (!baseType) {
+        return NULL;
+    }
+ 
+    name = getTypeName(p, base, typeIndex);
+	std::string tName = convertCharToString(name);
+    newType = new typeTypedef(typeIndex, baseType, tName);
+    addTypeToCollection(newType, mod);
+    return newType;
+}
+
+static Type *getUDTType(HANDLE p, Offset base, int typeIndex, Module *mod) {
+    int result, symtag;
+    unsigned size, numChildren, childrenSize, child_offset, i, child_size;
+    fieldListType *newType;
+    UINT64 size64;
+    const char *name, *childName;
+    enum UdtKind udtType;
+    TI_FINDCHILDREN_PARAMS *children = NULL;
+
+    //
+    // Get name for structure
+    //
+    name = getTypeName(p, base, typeIndex);
+	std::string tName = convertCharToString(name);
+	result = SymGetTypeInfo(p, base, typeIndex, TI_GET_LENGTH, &size64);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_LENGTH return error\n");
+        return NULL;
+    }
+    size = (unsigned) size64;
+
+    //
+    // Determine whether it's a class, struct, or union and create the 
+    //  new_type appropriately
+    //
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_UDTKIND, &udtType);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_UDTKIND returned error\n");
+        return NULL;
+    }
+    switch (udtType) {
+        case UdtUnion:
+            newType = new typeUnion(typeIndex, tName);
+            break;
+        case UdtStruct:
+        case UdtClass:
+        default:
+            newType = new typeStruct(typeIndex, tName);
+            break;
+    }
+    addTypeToCollection(newType, mod);
+    if (name)
+       free((void *) name);
+    name = NULL;
+
+
+    //
+    // Store the number of member variables/functions/stuff in numChildren
+    //
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_CHILDRENCOUNT, &numChildren);
+    if (!result)
+        numChildren = 0;
+    //
+    // Get the list of variables/functions/stuff
+    //
+    if (numChildren) {
+        childrenSize = sizeof(TI_FINDCHILDREN_PARAMS) + (numChildren + 1) * sizeof(ULONG);
+        children = (TI_FINDCHILDREN_PARAMS *) malloc(childrenSize);
+        memset(children, 0, childrenSize);
+        children->Count = numChildren;
+        result = SymGetTypeInfo(p, base, typeIndex, TI_FINDCHILDREN, children);
+        if (!result)
+            numChildren = 0;
+    }
+
+    //
+    // Create/Find the type of each child and add it to newType appropriately
+    //
+    for (i=0; i<numChildren; i++) {
+        // Create/Get child type
+        Type *child_type = getType(p, base, children->ChildId[i], mod);
+        if (!child_type)
+            continue;
+
+        // Figure out a name of this object
+        childName = NULL;
+        result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_SYMTAG, &symtag);
+        if (result && symtag == SymTagBaseClass) {
+            childName = strdup("{superclass}");
+        }
+        if (!childName)
+            childName = getTypeName(p, base, children->ChildId[i]);
+        if (!childName) 
+            childName = strdup(child_type->getName().c_str());
+
+        // Find the offset of this member in the structure
+        result = SymGetTypeInfo(p, base, children->ChildId[i], TI_GET_OFFSET, &child_offset);
+        if (!result) {
+            child_offset = 0; //Probably a member function
+            child_size = 0;
+        }
+        else {
+            child_offset *= 8; //Internally measured in bits
+            child_size = child_type->getSize();
+        }
+
+		std::string fName = convertCharToString(childName);
+        newType->addField(fName, child_type, child_offset);
+        if (childName)
+            free((void *) childName);
+        childName = NULL;
+    }
+
+    if (children)
+        free(children);
+
+    return newType;
+}
+
+static Type *getLayeredType(HANDLE p, Offset base, int typeIndex, Module *mod) {
+    int result, newTypeIndex;
+    Type *newType;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &newTypeIndex);
+    if (!result) {
+        fprintf(stderr, "TI_GET_TYPEID failed\n");
+        return NULL;
+    }
+
+    newType = getType(p, base, newTypeIndex, mod);
+    return newType;
+}
+
+static Type *getFunctionType(HANDLE p, Offset base, int typeIndex, Module *mod) {
+    int result, retTypeIndex;
+    typeFunction *newType;
+    Type *retType;
+    unsigned num_params, args_size, i;
+    std::vector<Type *> params;
+    TI_FINDCHILDREN_PARAMS *args = NULL;
+    std::string name;
+
+    //Create the function early to avoid recursive references
+	std::string tName = "";
+    newType = new typeFunction(typeIndex, NULL, tName);
+    addTypeToCollection(newType, mod);
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_TYPEID, &retTypeIndex);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - Couldn't TI_GET_TYPEID\n", __FILE__, __LINE__);
+        return NULL;
+    }
+
+    retType = getType(p, base, retTypeIndex, mod);
+    if (!retType) {
+        return NULL;
+    }
+    newType->setRetType(retType);
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_COUNT, &num_params);
+    if (!result)
+        goto done_params;
+
+    args_size = sizeof(TI_FINDCHILDREN_PARAMS) + (num_params + 1) * sizeof(ULONG);
+    args = (TI_FINDCHILDREN_PARAMS *) malloc(args_size);
+    memset(args, 0, args_size);
+    args->Count = num_params;
+    result = SymGetTypeInfo(p, base, typeIndex, TI_FINDCHILDREN, args);
+    if (!result)
+        goto done_params;
+    
+    for (i=0; i<num_params; i++) {
+        Type *arg_type = getType(p, base, args->ChildId[i], mod);
+        if (!arg_type) {
+            continue;
+        }
+        params.push_back(arg_type);
+    }
+
+done_params:
+
+    //
+    // Build a type name that looks like the following:
+    //   (return_type)(param1_type, param2_type, ...)
+    name = "(";
+    name += retType->getName();
+    name += ")(";
+    for (i=0; i<params.size(); i++) {
+        if (i != 0)
+            name += ", ";
+        name += params[i]->getName();
+    }
+    name += "()";
+	
+	std::string newName = name;
+    newType->setName(newName);
+
+    for (i=0; i<params.size(); i++) {
+        //TODO?? have a name for the parameter. Required??
+        newType->addParam(params[i]);
+    }
+
+    if (args)
+        free(args);
+
+    return newType;
+}
+
+static Type *getBaseType(HANDLE p, Offset base, int typeIndex, Module *mod) {
+    BasicType baseType;
+    int result;
+    ULONG64 size64;
+    unsigned size;
+    Type *newType;
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_BASETYPE, &baseType);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_BASETYPE return error\n");
+        return NULL;
+    }
+
+    result = SymGetTypeInfo(p, base, typeIndex, TI_GET_LENGTH, &size64);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - TI_GET_LENGTH return error\n");
+        return NULL;
+    }
+    size = (unsigned) size64;
+    switch(baseType) {
+	 case btNoType:
+		 newType = NULL;
+		 break;
+	 case btVoid:
+         newType = new typeScalar(typeIndex, size, "void");
+		 break;
+	 case btChar:
+         newType = new typeScalar(typeIndex, size, "char");
+		 break;
+	 case btWChar:
+         newType = new typeScalar(typeIndex, size, "wchar");
+		 break;
+	 case btInt:
+         if (size == 8)
+           newType = new typeScalar(typeIndex, size, "long long int");
+         else if (size == 4)
+           newType = new typeScalar(typeIndex, size, "int");
+         else if (size == 2)
+           newType = new typeScalar(typeIndex, size, "short");
+         else if (size == 1)
+           newType = new typeScalar(typeIndex, size, "char");
+         else
+           newType = new typeScalar(typeIndex, size, "");
+		 break;
+	 case btUInt:
+         if (size == 8)
+           newType = new typeScalar(typeIndex, size, "unsigned long long int");
+         else if (size == 4)
+           newType = new typeScalar(typeIndex, size, "unsigned int");
+         else if (size == 2)
+           newType = new typeScalar(typeIndex, size, "unsigned short");
+         else if (size == 1)
+           newType = new typeScalar(typeIndex, size, "unsigned char");
+         else
+           newType = new typeScalar(typeIndex, size, "");
+		 break;
+	 case btFloat:
+         if (size == 8)
+             newType = new typeScalar(typeIndex, size, "double");
+         else
+             newType = new typeScalar(typeIndex, size, "float");
+		 break;
+	 case btBCD:
+         newType = new typeScalar(typeIndex, size, "BCD");
+		 break;
+	 case btBool:
+         newType = new typeScalar(typeIndex, size, "bool");
+		 break;
+	 case btLong:
+         newType = new typeScalar(typeIndex, size, "long");
+		 break;
+	 case btULong:
+         newType = new typeScalar(typeIndex, size, "unsigned long");
+		 break;
+	 case btCurrency:
+         newType = new typeScalar(typeIndex, size, "currency");
+		 break;
+	 case btDate:
+         newType = new typeScalar(typeIndex, size, "Date");
+		 break;
+	 case btVariant:
+         newType = new typeScalar(typeIndex, size, "variant");
+		 break;
+	 case btComplex:
+         newType = new typeScalar(typeIndex, size, "complex");
+		 break;
+	 case btBit:
+         newType = new typeScalar(typeIndex, size, "bit");
+		 break;
+	 case btBSTR:
+         newType = new typeScalar(typeIndex, size, "bstr");
+		 break;
+	 case btHresult:
+         newType = new typeScalar(typeIndex, size, "Hresult");
+		 break;
+	 default:
+		 fprintf(stderr, "Couldn't parse baseType %d for %d\n", baseType, typeIndex);
+         assert(0);
+		 break;
+   }
+   if (newType)
+       addTypeToCollection(newType, mod);
+   return newType;
+}
+
+static Type *getType(HANDLE p, Offset base, int typeIndex, Module *mod) 
+{
+   static unsigned depth = 0;
+   BOOL result;
+   Type *foundType = NULL;
+   typeCollection *collection;
+   enum SymTagEnum symtag;
+
+   if (!typeIndex)
+       return NULL;
+
+   //
+   // Check if this type has already been created (they're indexed by typeIndex).
+   // If it has, go ahead and return the existing one.
+   // If not, then start creating a new type.
+   //
+   if (mod)
+       collection = mod->getModuleTypes();
+   else
+	   collection = Symtab::stdTypes;
+   assert(collection);
+
+
+   //
+   // Check to see if we've already parsed this type
+   //
+   foundType = collection->findType(typeIndex);
+   if (foundType) {
+       return foundType;
+   }
+
+   //
+   // Types on Windows are stored as part of a special type of symbol.  TI_GET_SYMTAG 
+   // Gets the meta information about the type.
+   //
+   result = SymGetTypeInfo(p, base, typeIndex, TI_GET_SYMTAG, &symtag);
+   if (!result) {
+       depth--;
+       return NULL;
+   }
+   switch (symtag) {
+       case SymTagBaseType:
+           foundType = getBaseType(p, base, typeIndex, mod);
+           break;
+       case SymTagEnum:
+           foundType = getEnumType(p, base, typeIndex, mod);
+           break;
+       case SymTagFunctionType:
+           foundType = getFunctionType(p, base, typeIndex, mod);
+           break;
+       case SymTagPointerType:
+           foundType = getPointerType(p, base, typeIndex, mod);
+           break;
+       case SymTagArrayType:
+           foundType = getArrayType(p, base, typeIndex, mod);
+           break;
+       case SymTagTypedef:
+           foundType = getTypedefType(p, base, typeIndex, mod);
+           break;
+       case SymTagUDT:
+           foundType = getUDTType(p, base, typeIndex, mod);
+           break;
+       case SymTagFunctionArgType:
+       case SymTagData:
+       case SymTagFunction:
+       case SymTagBaseClass:
+           foundType = getLayeredType(p, base, typeIndex, mod);
+           if (foundType)
+             typeIndex = foundType->getID();
+           break;
+       case SymTagThunk:
+           foundType = NULL;
+           break;
+       case SymTagVTableShape:
+       case SymTagVTable:
+           break;
+       default:
+           fprintf(stderr, "Unknown type %d\n", symtag);
+           assert(0);
+           foundType = NULL;
+           break;
+   }
+
+   return foundType;
+}
+
+typedef struct proc_mod_pair {
+	HANDLE handle;
+	Symtab *obj;
+    Offset base_addr;
+} proc_mod_pair;
+
+static void findLocalVars(Symbol *func, proc_mod_pair base) {
+    Module *mod = func->getModule();
+    localsStruct locals;
+    HANDLE p = base.handle;
+
+    locals.func = func;
+	locals.base = base.base_addr;
+    locals.p = p;
+
+	enumLocalVars(func, &locals);
+    //
+    // The windows debugging interface allows us to get local variables
+    // at specific points, which makes it hard to enumerate all locals (as we want).
+    // Instead we'll get the local variables at the most common points below.
+    //
+    //TODO?
+	//=const std::vector<instPoint*> &points = ifunc->funcEntries();
+    //=enumLocalVars(func, ifunc->funcEntries(), &locals);
+    //=enumLocalVars(func, ifunc->funcExits(), &locals);
+    //=enumLocalVars(func, ifunc->funcCalls(), &locals);
+    //=enumLocalVars(func, ifunc->funcArbitraryPoints(), &locals);
+}
+
+BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
+{
+   HANDLE p;
+   Offset obj_base;
+   proc_mod_pair *pair;
+   Symtab *obj;
+   Type *type;
+   char *name;
+
+   if (!isGlobalSymbol(pSymInfo)) {
+       //We do local symbols elsewhere
+       return TRUE;
+   }
+
+   pair = (proc_mod_pair *) info;
+   p = pair->handle;
+   obj_base = pair->base_addr;
+   obj = pair->obj;
+   name = pSymInfo->Name;
+   std::vector<Module *> mods;
+   Module *mod;
+   //TODO?? change later
+   if(!obj->getAllModules(mods))
+   {
+	   return true;
+   }
+   else
+	   mod = mods[0];
+   
+   if (obj->isExec()) {
+      //When parsing the a.out, sort the type information into specific modules.  This doesn't matter
+      // for libraries, because there is a 1:1 mapping between modules and objects.
+      //
+      //A module is a collection of functions, but doesn't include global data types.  Global variables
+      // will go into the DEFAULT_MODULE
+	  std::vector<Symbol *> syms;
+	  if(obj->findFuncByEntryOffset(syms, (Offset) pSymInfo->Address))
+	  {
+		  Symbol *f = syms[0];
+	     //No containing module.  Only insert this into DEFAULT_MODULE
+          if (strcmp(f->getModule()->fileName().c_str(), "DEFAULT_MODULE"))
+              return true;
+      }
+   }
+
+   type = getType(p, obj_base, pSymInfo->TypeIndex, mod);
+
+   /*
+   fprintf(stderr, "[%s:%u] - Variable %s had type %s\n", __FILE__, __LINE__,
+       name, type ? type->getName() : "{NO TYPE}");
+       */
+
+   if (type && name)
+   {
+	   std::string vName = name;
+	   mod->getModuleTypes()->addGlobalVariable(vName, type);
+   }
+   return TRUE;
+}
+
+void Object::parseTypeInfo(Symtab *obj) {
+    proc_mod_pair pair;
+    BOOL result;
+    //
+    //Parse global variable type information
+    //
+
+    pair.handle = hProc;
+    pair.obj = obj;
+    pair.base_addr = getBaseAddress();
+    
+    if (!pair.base_addr) {
+        pair.base_addr = getLoadAddress();
+    }
+  
+    result = SymEnumSymbols(hProc, (DWORD64)mapAddr, NULL, 
+                            add_type_info, &pair);
+	if (!result){
+		printSysError(GetLastError());
+//        parsing_printf("SymEnumSymbols was unsuccessful.  Type info may be incomplete\n");
+    }
+
+    //
+    // Parse local variables and local type information
+    //
+    std::vector<Symbol *> funcs;
+	obj->getAllSymbolsByType(funcs, Symbol::ST_FUNCTION);
+    for (unsigned i=0; i < funcs.size(); i++) {
+        findLocalVars(funcs[i], pair);
+    }
+}
+
+bool Object::writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
+{
+	return true;
+}
+
+bool Object::emitDriver(Symtab *obj, std::string fName, std::vector<Section *>newSecs){
+	return true;
+}
+
+bool Object::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes){
+	return true;
 }

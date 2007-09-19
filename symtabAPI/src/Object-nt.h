@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.6 2007/08/03 16:19:25 giri Exp $
+ * $Id: Object-nt.h,v 1.7 2007/09/19 22:25:16 giri Exp $
 ************************************************************************/
 
 
@@ -63,6 +63,9 @@
 #endif
 #include <dbghelp.h>
 
+namespace Dyninst{
+namespace SymtabAPI{
+
 class ExceptionBlock;
 
 /************************************************************************
@@ -72,17 +75,17 @@ class ExceptionBlock;
 class Object : public AObject
 {
 public:
-	class Symbol
+	class intSymbol
 	{
 	private:
-		string name;
+		std::string name;
 		DWORD64 addr;
 		DWORD type;
 		DWORD linkage;
 		DWORD size;
 
 	public:
-		Symbol( string _name,
+		intSymbol( std::string _name,
               DWORD64 _addr,
               DWORD _type,
               DWORD _linkage,
@@ -93,7 +96,7 @@ public:
 			size(_size)
 		{}
 
-        string GetName( void ) const          { return name; }
+        std::string GetName( void ) const          { return name; }
         DWORD64 GetAddr( void ) const           { return addr; }
         DWORD	GetSize( void ) const				{ return size; }
         DWORD	GetType( void ) const				{ return type; }
@@ -101,60 +104,60 @@ public:
 
         void	SetSize( DWORD cb )					{ size = cb; }
 
-        void DefineSymbol( hash_map<string, vector< ::Dyn_Symbol *> >& syms,
-                            const string& modName ) const;
+        void DefineSymbol( hash_map<std::string, std::vector< Symbol *> >& syms,
+                            const std::string& modName ) const;
 	};
 
 	class File
 	{
 	private:
-		string name;
-		vector<Symbol*> syms;
+		std::string name;
+		std::vector<intSymbol*> syms;
 
 	public:
-		File( string _name = "" )
+		File( std::string _name = "" )
 		  : name(_name)
 		{}
 
-		void AddSymbol( Symbol* pSym )
+		void AddSymbol( intSymbol* pSym )
 		{
 			syms.push_back( pSym );
 		}
 
-      void DefineSymbols( hash_map<string, vector< ::Dyn_Symbol *> >& syms,
-                          const string& modName ) const;
-      string GetName( void ) const		{ return name; }
-		const vector<Symbol*>& GetSymbols( void )	const		{ return syms; }
+      void DefineSymbols( hash_map<std::string, std::vector< Symbol *> >& syms,
+                          const std::string& modName ) const;
+      std::string GetName( void ) const		{ return name; }
+		const std::vector<intSymbol*>& GetSymbols( void )	const		{ return syms; }
 	};
 
 	class Module
 	{
 	private:
-		string name;
+		std::string name;
 		DWORD64 baseAddr;
 		DWORD64 extent;
       bool isDll;
 
-		vector<File *> files;
+		std::vector<File *> files;
 		File* defFile;
 
 		void PatchSymbolSizes( const Object* obj,
-							   const vector<Symbol*>& allSyms ) const;
+							   const std::vector<intSymbol*>& allSyms ) const;
 
 	public:
-		Module( string name,
+		Module( std::string name,
 				DWORD64 baseAddr,
 				DWORD64 extent = 0 );
 
 		File* GetDefaultFile( void )			{ return defFile; }
-		File* FindFile( string name );
+		File* FindFile( std::string name );
 		void AddFile( File* pFile )				{ files.push_back( pFile ); }
 
         void DefineSymbols( const Object* obj,
-                            hash_map<string, vector< ::Dyn_Symbol *> > & syms ) const;
+                            hash_map<std::string, std::vector< Symbol *> > & syms ) const;
 		void BuildSymbolMap( const Object* obj ) const; 
 
-      string GetName( void ) const            { return name; }
+      std::string GetName( void ) const            { return name; }
       bool IsDll( void ) const                { return isDll; }
       void SetIsDll( bool v )                 { isDll = v; }
 	};
@@ -163,41 +166,47 @@ private:
 	Module* curModule;
 
 public:
-    DLLEXPORT Object(string &filename, void (*)(const char *) = log_msg);
+    DLLEXPORT Object(std::string &filename, void (*)(const char *) = log_msg);
     DLLEXPORT Object(char *mem_image, size_t image_size, void (*)(const char *) = log_msg);
     DLLEXPORT Object(){};
   
     DLLEXPORT virtual ~Object( void );
 
-    DLLEXPORT bool isForwarded( OFFSET addr );
+    DLLEXPORT bool isForwarded( Offset addr );
     DLLEXPORT bool isEEL() const { return false; }
-    DLLEXPORT bool isText( const OFFSET& addr ) const; 
-    DLLEXPORT OFFSET get_base_addr() const { return (OFFSET)mapAddr;} 
+    DLLEXPORT bool isText( const Offset& addr ) const; 
+    DLLEXPORT Offset get_base_addr() const { return (Offset)mapAddr;} 
     DLLEXPORT Module* GetCurrentModule( void )				    { return curModule; }
    
-    DLLEXPORT bool getCatchBlock(ExceptionBlock &b, OFFSET addr, unsigned size = 0) const;
+    DLLEXPORT bool getCatchBlock(ExceptionBlock &b, Offset addr, unsigned size = 0) const;
     DLLEXPORT unsigned int GetTextSectionId( void ) const         { return textSectionId;}
     DLLEXPORT PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
     DLLEXPORT PVOID GetMapAddr( void ) const                      { return mapAddr; }
-	DLLEXPORT OFFSET getEntryPoint( void ) const                { return peHdr->OptionalHeader.AddressOfEntryPoint; }
+	DLLEXPORT Offset getEntryPoint( void ) const                { return peHdr->OptionalHeader.AddressOfEntryPoint; }
 													//+ desc.loadAddr(); } //laodAddr is always zero in our fake address space.
 	// TODO. Change these later.
-	DLLEXPORT OFFSET getLoadAddress() const { return get_base_addr(); }
-	DLLEXPORT OFFSET getEntryAddress() const { return getEntryPoint(); }
-	DLLEXPORT OFFSET getBaseAddress() const { return get_base_addr(); }
-	DLLEXPORT OFFSET getTOCoffset() const { return 0; }
-   DLLEXPORT ObjectType objType() const;
-   DLLEXPORT const char *interpreter_name() const { return NULL; }
+	DLLEXPORT Offset getLoadAddress() const { return get_base_addr(); }
+	DLLEXPORT Offset getEntryAddress() const { return getEntryPoint(); }
+	DLLEXPORT Offset getBaseAddress() const { return get_base_addr(); }
+	DLLEXPORT Offset getTOCoffset() const { return 0; }
+    DLLEXPORT ObjectType objType() const;
+    DLLEXPORT const char *interpreter_name() const { return NULL; }
+	DLLEXPORT hash_map <std::string, LineInformation> &getLineInfo();
+	DLLEXPORT void parseTypeInfo(Symtab *obj);
    
     DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
-    DLLEXPORT const vector<OFFSET> &getPossibleMains() const   { return possible_mains; }
-    DLLEXPORT void getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs);
+    DLLEXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
+    DLLEXPORT void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
+	virtual bool writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
+	bool emitDriver(Symtab *obj, std::string fName, std::vector<Section *>newSecs);
+    bool checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
 
 private:
     DLLEXPORT void    ParseDebugInfo( void );
+	DLLEXPORT void	  parseFileLineInfo(void);
     DLLEXPORT void    FindInterestingSections();
 
-	OFFSET	baseAddr;					// location of this object in 
+	Offset	baseAddr;					// location of this object in 
 								// mutatee address space
 
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers
@@ -210,26 +219,10 @@ private:
 	HANDLE  hFile;					// File Handle
 	HANDLE  hProc;					// Process Handle
     LPVOID  mapAddr;                // location of mapped file in *our* address space
-    vector<OFFSET> possible_mains; //Addresses of functions that may be main
-	string filename;				//Name of the file.
+    std::vector<Offset> possible_mains; //Addresses of functions that may be main
+	std::string filename;				//Name of the file.
+	hash_map< std::string, LineInformation>lineInfo_; // LineNumber information
 };
-
-
-inline
-Object::Object(char *mem_image, size_t image_size,
-                void (*err_func)(const char *)) 
-    : AObject(NULL, err_func),
-     //baseAddr(_desc.code()),
-     hMap( INVALID_HANDLE_VALUE ),
-     mapAddr( NULL ),
-     curModule( NULL ),
-     peHdr( NULL )
-{
-    hFile = LocalHandle( mem_image );	//For a mem image
-    assert( hFile != NULL );
-    assert( hFile != INVALID_HANDLE_VALUE );
-    ParseDebugInfo();
-}
 
 // In recent versions of the Platform SDK, the macros naming
 // the value for the Flags field of the SYMBOL_INFO struct have
@@ -246,9 +239,9 @@ Object::Object(char *mem_image, size_t image_size,
 #endif // !defined(SYMFLAG_FUNCTION)
 
 
-const char WILDCARD_CHAR = '?';
-const char MULTIPLE_WILDCARD_CHAR = '*';
 std::string extract_pathname_tail(const std::string &path);
 
+}//namespace Dyninst
+}//namespace SymtabAPI
 
 #endif /* !defined(_Object_nt_h_) */
