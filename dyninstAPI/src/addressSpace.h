@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.h,v 1.1 2007/09/12 20:57:12 bernat Exp $
+// $Id: addressSpace.h,v 1.2 2007/09/19 19:25:06 bernat Exp $
 
 #ifndef ADDRESS_SPACE_H
 #define ADDRESS_SPACE_H
@@ -72,6 +72,8 @@ class generatedCodeObject;
 class relocationEntry;
 class int_function;
 
+class BinaryEdit;
+
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 
 // This was derived from the process class and serves as a parent to that
@@ -91,7 +93,7 @@ class AddressSpace : public InstructionSource {
     
     // Down-conversion functions
     process *proc();
-
+    BinaryEdit *edit();
 
     // Read/write
 

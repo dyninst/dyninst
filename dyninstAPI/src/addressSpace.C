@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.1 2007/09/12 20:57:11 bernat Exp $
+// $Id: addressSpace.C,v 1.2 2007/09/19 19:25:05 bernat Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
 #include "process.h"
+#include "binaryEdit.h"
 
 #include "miniTramp.h"
 #include "baseTramp.h"
@@ -70,6 +71,10 @@ AddressSpace::~AddressSpace() {}
 
 process *AddressSpace::proc() {
     return dynamic_cast<process *>(this);
+}
+
+BinaryEdit *AddressSpace::edit() {
+    return dynamic_cast<BinaryEdit *>(this);
 }
 
 // Fork constructor - and so we can assume a parent "process"
