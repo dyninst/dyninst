@@ -34,16 +34,14 @@
 #if !defined(_symtab_util_h_)
 #define _symtab_util_h_
 
-using namespace std;
-
-typedef long unsigned int OFFSET;
-
 #if defined(_MSC_VER)	
 #if !defined(DLLEXPORT)
 #define DLLEXPORT __declspec(dllexport)
 #endif
 //On windows it is just hash_map otherwise its in ext/hash_map
 #include <hash_map>
+#include <set>
+
 using stdext::hash_map;
 
 #else
@@ -52,6 +50,7 @@ using stdext::hash_map;
 #endif
 #include <regex.h>
 #include <ext/hash_map>
+#include <ext/hash_set>
 using namespace __gnu_cxx;
 namespace __gnu_cxx {
    template<> struct hash<std::string> {
@@ -63,5 +62,23 @@ namespace __gnu_cxx {
 }; //namespace
 
 #endif
+
+typedef enum { lang_Unknown,
+               lang_Assembly,
+               lang_C,
+               lang_CPlusPlus,
+               lang_GnuCPlusPlus,
+               lang_Fortran,
+               lang_Fortran_with_pretty_debug,
+               lang_CMFortran
+} supportedLanguages;
+
+typedef enum {
+   obj_Unknown,
+   obj_SharedLib,
+   obj_Executable
+} ObjectType;
+
+#include "dyntypes.h"
 
 #endif
