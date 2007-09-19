@@ -29,17 +29,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.10 2007/08/03 16:19:26 giri Exp $
+// $Id: Object.C,v 1.11 2007/09/19 22:23:34 giri Exp $
 
 #include "symtabAPI/src/Object.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/src/Collections.h"
 
-string Dyn_Symbol::emptyString(string(""));
+using namespace std;
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 
-bool symbol_compare(const Dyn_Symbol *s1, const Dyn_Symbol *s2) {
+string Symbol::emptyString("");
+
+bool Dyninst::SymtabAPI::symbol_compare(const Symbol *s1, const Symbol *s2) {
     // select the symbol with the lowest address
-    OFFSET s1_addr = s1->getAddr();
-    OFFSET s2_addr = s2->getAddr();
+    Offset s1_addr = s1->getAddr();
+    Offset s2_addr = s2->getAddr();
     if (s1_addr > s2_addr)
     	return false;
     if (s1_addr < s2_addr)
@@ -47,23 +52,23 @@ bool symbol_compare(const Dyn_Symbol *s1, const Dyn_Symbol *s2) {
 
     // symbols are co-located at the same address
     // select the symbol which is not a function
-    if ((s1->getType() != Dyn_Symbol::ST_FUNCTION) && (s2->getType() == Dyn_Symbol::ST_FUNCTION))
+    if ((s1->getType() != Symbol::ST_FUNCTION) && (s2->getType() == Symbol::ST_FUNCTION))
     	return true;
-    if ((s2->getType() != Dyn_Symbol::ST_FUNCTION) && (s1->getType() == Dyn_Symbol::ST_FUNCTION))
+    if ((s2->getType() != Symbol::ST_FUNCTION) && (s1->getType() == Symbol::ST_FUNCTION))
     	return false;
     
     // symbols are both functions
     // select the symbol which has GLOBAL linkage
-    if ((s1->getLinkage() == Dyn_Symbol::SL_GLOBAL) && (s2->getLinkage() != Dyn_Symbol::SL_GLOBAL))
+    if ((s1->getLinkage() == Symbol::SL_GLOBAL) && (s2->getLinkage() != Symbol::SL_GLOBAL))
     	return true;
-    if ((s2->getLinkage() == Dyn_Symbol::SL_GLOBAL) && (s1->getLinkage() != Dyn_Symbol::SL_GLOBAL))
+    if ((s2->getLinkage() == Symbol::SL_GLOBAL) && (s1->getLinkage() != Symbol::SL_GLOBAL))
     	return false;
 	
     // neither function is GLOBAL
     // select the symbol which has LOCAL linkage
-    if ((s1->getLinkage() == Dyn_Symbol::SL_LOCAL) && (s2->getLinkage() != Dyn_Symbol::SL_LOCAL))
+    if ((s1->getLinkage() == Symbol::SL_LOCAL) && (s2->getLinkage() != Symbol::SL_LOCAL))
     	return true;
-    if ((s2->getLinkage() == Dyn_Symbol::SL_LOCAL) && (s1->getLinkage() != Dyn_Symbol::SL_LOCAL))
+    if ((s2->getLinkage() == Symbol::SL_LOCAL) && (s1->getLinkage() != Symbol::SL_LOCAL))
     	return false;
     
     // both functions are WEAK
@@ -82,11 +87,11 @@ bool AObject::needs_function_binding() const {
     return false;
 }
 
-bool AObject::get_func_binding_table(vector<relocationEntry> &) const {
+bool AObject::get_func_binding_table(std::vector<relocationEntry> &) const {
     return false;
 }
 
-bool AObject::get_func_binding_table_ptr(const vector<relocationEntry> *&) const {
+bool AObject::get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const {
     return false;
 }
 
@@ -95,12 +100,12 @@ char *AObject::mem_image() const
 	return NULL;
 }
 
-DLLEXPORT Dyn_ExceptionBlock::~Dyn_ExceptionBlock() {}
+DLLEXPORT ExceptionBlock::~ExceptionBlock() {}
 
-DLLEXPORT Dyn_ExceptionBlock::Dyn_ExceptionBlock() : tryStart_(0), trySize_(0), 
+DLLEXPORT ExceptionBlock::ExceptionBlock() : tryStart_(0), trySize_(0), 
 								catchStart_(0), hasTry_(false) {}
 
-DLLEXPORT OFFSET Dyn_ExceptionBlock::catchStart() const { 
+DLLEXPORT Offset ExceptionBlock::catchStart() const { 
 	return catchStart_;
 }
 
@@ -109,11 +114,11 @@ DLLEXPORT relocationEntry::~relocationEntry() {}
 DLLEXPORT relocationEntry::relocationEntry(const relocationEntry& ra): target_addr_(ra.target_addr_), 
     											rel_addr_(ra.rel_addr_), name_(ra.name_) {}
 
-DLLEXPORT OFFSET relocationEntry::target_addr() const { 
+DLLEXPORT Offset relocationEntry::target_addr() const { 
 	return target_addr_;
 }
 
-DLLEXPORT OFFSET relocationEntry::rel_addr() const { 
+DLLEXPORT Offset relocationEntry::rel_addr() const { 
 	return rel_addr_;
 }
 
@@ -121,20 +126,20 @@ DLLEXPORT const string &relocationEntry::name() const {
 	return name_;
 }
 
-DLLEXPORT Dyn_Symbol::~Dyn_Symbol ()
+DLLEXPORT Symbol::~Symbol ()
 {
     	mangledNames.clear();
     	prettyNames.clear();
     	typedNames.clear();
 }
 
-DLLEXPORT Dyn_Symbol::Dyn_Symbol(const Dyn_Symbol& s)
+DLLEXPORT Symbol::Symbol(const Symbol& s)
     : module_(s.module_), type_(s.type_), linkage_(s.linkage_),
     addr_(s.addr_), sec_(s.sec_), size_(s.size_), upPtr_(s.upPtr_), mangledNames(s.mangledNames), prettyNames(s.prettyNames),
-    typedNames(s.typedNames), tag_(s.tag_){
+    typedNames(s.typedNames), tag_(s.tag_), retType_(s.retType_), vars_(s.vars_), params_(s.params_){
 }
 
-DLLEXPORT Dyn_Symbol& Dyn_Symbol::operator=(const Dyn_Symbol& s) {
+DLLEXPORT Symbol& Symbol::operator=(const Symbol& s) {
     module_  = s.module_;
     type_    = s.type_;
     linkage_ = s.linkage_;
@@ -146,115 +151,129 @@ DLLEXPORT Dyn_Symbol& Dyn_Symbol::operator=(const Dyn_Symbol& s) {
     mangledNames = s.mangledNames;
     prettyNames = s.prettyNames;
     typedNames = s.typedNames;
+    vars_ = s.vars_;
+    params_ = s.params_;
 
     return *this;
 }
 
-DLLEXPORT const string& Dyn_Symbol::getName() const {
+DLLEXPORT const string& Symbol::getName() const {
     if(mangledNames.size() > 0)
     	return mangledNames[0];
     return emptyString;
 }
 
-DLLEXPORT const string& Dyn_Symbol::getPrettyName() const {
+DLLEXPORT const string& Symbol::getPrettyName() const {
     if(prettyNames.size() > 0)
     	return prettyNames[0];
     return emptyString;
 }
 
-DLLEXPORT const string& Dyn_Symbol::getTypedName() const {
+DLLEXPORT const string& Symbol::getTypedName() const {
     if(typedNames.size() > 0)
     	return typedNames[0];
     return emptyString;
 }
 
-DLLEXPORT const string& Dyn_Symbol::getModuleName() const {
+DLLEXPORT const string& Symbol::getModuleName() const {
     return module_->fullName();
 }
 
-DLLEXPORT Dyn_Module* Dyn_Symbol::getModule() const {
+DLLEXPORT Module* Symbol::getModule() const {
     return module_;
 }
 
-DLLEXPORT Dyn_Symbol::SymbolType Dyn_Symbol::getType() const {
+DLLEXPORT bool 	Symbol::setModule(Module *mod) {
+	module_ = mod; 
+	return true;
+}
+
+DLLEXPORT Symbol::SymbolType Symbol::getType() const {
     return type_;
 }
 
-DLLEXPORT Dyn_Symbol::SymbolLinkage Dyn_Symbol::getLinkage() const {
+DLLEXPORT Symbol::SymbolLinkage Symbol::getLinkage() const {
     return linkage_;
 }
 
-DLLEXPORT OFFSET Dyn_Symbol::getAddr() const {
+DLLEXPORT Offset Symbol::getAddr() const {
     return addr_;
 }
 
-DLLEXPORT Dyn_Section *Dyn_Symbol::getSec() const {
+DLLEXPORT Section *Symbol::getSec() const {
     return sec_;
 }
 
-DLLEXPORT void *Dyn_Symbol::getUpPtr() const {
+DLLEXPORT void *Symbol::getUpPtr() const {
 	return upPtr_;
 }
 
-DLLEXPORT unsigned Dyn_Symbol::getSize() const {
+DLLEXPORT unsigned Symbol::getSize() const {
     return size_;
 }
 
-DLLEXPORT Dyn_Symbol::SymbolTag Dyn_Symbol::tag() const {
+DLLEXPORT bool	Symbol::setSize(unsigned ns){
+	size_ = ns;
+	return true;
+}
+
+DLLEXPORT Symbol::SymbolTag Symbol::tag() const {
     return tag_;
 }
 
-DLLEXPORT void Dyn_Symbol::setModuleName(string module)
+DLLEXPORT bool Symbol::setModuleName(string module)
 {
 	module_->setName(module);
+	return true;
 }
 
-DLLEXPORT void Dyn_Symbol::setAddr (OFFSET newAddr) {
+DLLEXPORT bool Symbol::setAddr (Offset newAddr) {
       addr_ = newAddr;
+      return true;
 }
 
-DLLEXPORT Dyn_Symbol::Dyn_Symbol()
+DLLEXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
-    upPtr_(NULL), tag_(TAG_UNKNOWN) {
+    upPtr_(NULL), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL){
    // note: this ctor is called surprisingly often (when we have
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
 }
 
-DLLEXPORT const vector<string>& Dyn_Symbol::getAllMangledNames() const {
+DLLEXPORT const std::vector<string>& Symbol::getAllMangledNames() const {
     return mangledNames;
 }
 
-DLLEXPORT const vector<string>& Dyn_Symbol::getAllPrettyNames() const {
+DLLEXPORT const std::vector<string>& Symbol::getAllPrettyNames() const {
 	return prettyNames;
 }		
     
-DLLEXPORT const vector<string>& Dyn_Symbol::getAllTypedNames() const {
+DLLEXPORT const std::vector<string>& Symbol::getAllTypedNames() const {
     	return typedNames;
 }
 
-DLLEXPORT Dyn_Symbol::Dyn_Symbol(const string& iname, const string& imodule,
-    SymbolType itype, SymbolLinkage ilinkage, OFFSET iaddr,
-    Dyn_Section *isec, unsigned size, void *upPtr)
+DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
+    SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
+    Section *isec, unsigned size, void *upPtr)
     : type_(itype),
     linkage_(ilinkage), addr_(iaddr), 
-    sec_(isec), size_(size), upPtr_(upPtr), tag_(TAG_UNKNOWN) {
-    	module_ = new Dyn_Module();
+    sec_(isec), size_(size), upPtr_(upPtr), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
+    	module_ = new Module();
 	module_->setName(imodule);
     	mangledNames.push_back(iname);
 }
 
-DLLEXPORT Dyn_Symbol::Dyn_Symbol(const string& iname, Dyn_Module *mod,
-    SymbolType itype, SymbolLinkage ilinkage, OFFSET iaddr,
-    Dyn_Section *isec, unsigned size, void *upPtr)
+DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
+    SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
+    Section *isec, unsigned size, void *upPtr)
     : module_(mod), type_(itype),
     linkage_(ilinkage), addr_(iaddr), 
-    sec_(isec), size_(size), upPtr_(upPtr), tag_(TAG_UNKNOWN) {
+    sec_(isec), size_(size), upPtr_(upPtr), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
     	mangledNames.push_back(iname);
 }
 
-DLLEXPORT bool Dyn_Symbol::addMangledName(string name, bool isPrimary) {
-    vector<string> newMangledNames;
+DLLEXPORT bool Symbol::addMangledName(string name, bool isPrimary) {
+    std::vector<string> newMangledNames;
 
     // isPrimary defaults to false
     if (isPrimary)
@@ -286,8 +305,8 @@ DLLEXPORT bool Dyn_Symbol::addMangledName(string name, bool isPrimary) {
     return (!found);
 }																	
 
-DLLEXPORT bool Dyn_Symbol::addPrettyName(string name, bool isPrimary) {
-    vector<string> newPrettyNames;
+DLLEXPORT bool Symbol::addPrettyName(string name, bool isPrimary) {
+    std::vector<string> newPrettyNames;
 
     // isPrimary defaults to false
     if (isPrimary)
@@ -319,8 +338,8 @@ DLLEXPORT bool Dyn_Symbol::addPrettyName(string name, bool isPrimary) {
     return (!found);
 }
 
-DLLEXPORT bool Dyn_Symbol::addTypedName(string name, bool isPrimary) {
-    vector<string> newTypedNames;
+DLLEXPORT bool Symbol::addTypedName(string name, bool isPrimary) {
+    std::vector<string> newTypedNames;
 
     // isPrimary defaults to false
     if (isPrimary)
@@ -350,7 +369,7 @@ DLLEXPORT bool Dyn_Symbol::addTypedName(string name, bool isPrimary) {
     return (!found);
 }
 
-DLLEXPORT bool Dyn_Symbol::setType(SymbolType sType){
+DLLEXPORT bool Symbol::setSymbolType(SymbolType sType){
         if((sType != ST_UNKNOWN)&&
            (sType != ST_FUNCTION)&&
            (sType != ST_OBJECT)&&
@@ -364,12 +383,78 @@ DLLEXPORT bool Dyn_Symbol::setType(SymbolType sType){
         return true;
 }
 
-DLLEXPORT void	Dyn_Symbol::setUpPtr(void *newUpPtr)
+DLLEXPORT bool	Symbol::setUpPtr(void *newUpPtr)
 {
 	upPtr_ = newUpPtr;
-	return;
+	return true;
 }
 
+DLLEXPORT bool  Symbol::setReturnType(Type *retType){
+	retType_ = retType;
+	return true;
+}
+
+DLLEXPORT bool Symbol::getLocalVariables(std::vector<localVar *>&vars)
+{
+	if(type_ != ST_FUNCTION || !module_ )
+		return false;
+	module_->exec()->parseTypesNow();	
+	if(!vars_)
+		return false;
+	vars = *(vars_->getAllVars());
+	if(vars.size())
+		return true;
+	return false;	
+}
+
+DLLEXPORT bool Symbol::getParams(std::vector<localVar *>&params)
+{
+	if(type_ != ST_FUNCTION || !module_ )
+		return false;
+	module_->exec()->parseTypesNow();	
+	if(!params_)
+		return false;
+	params = *(params_->getAllVars());
+	if(params.size())
+		return true;
+	return false;	
+}
+
+DLLEXPORT bool Symbol::findLocalVariable(std::vector<localVar *>&vars, string name){
+	if(type_ != ST_FUNCTION || !module_ )
+		return false;
+	module_->exec()->parseTypesNow();	
+	if(!vars_ && !params_)
+		return false;
+	unsigned origSize = vars.size();	
+	if(vars_)
+	{
+		localVar *var = vars_->findLocalVar(name);
+		if(var)
+			vars.push_back(var);
+	}
+	if(params_)
+	{
+		localVar *var = params_->findLocalVar(name);
+		if(var)
+			vars.push_back(var);
+	}
+	if(vars.size() > origSize)
+		return true;
+	return false;
+}
+
+ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) {
+          return os << "{"
+                  << " mangled=" << s.getName()
+                  << " pretty="  << s.getPrettyName()
+                  << " module="  << s.module_
+                  << " type="    << (unsigned) s.type_
+                  << " linkage=" << (unsigned) s.linkage_
+                  << " addr="    << s.addr_
+                  << " tag="     << (unsigned) s.tag_
+                  << " }" << endl;
+}
 
 #ifdef DEBUG 
 
@@ -396,8 +481,8 @@ const ostream &AObject::dump_state_info(ostream &s) {
 
     // key and value for distc hash iter.... 
     string str;
-    Dyn_Symbol sym;
-	hash_map<string, vector <Dyn_Symbol> >::iterator symbols_iter = symbols_.begin();
+    Symbol sym;
+	hash_map<string, std::vector <Symbol> >::iterator symbols_iter = symbols_.begin();
 
     s << "Debugging Info for AObject (address) : " << this << endl;
 
@@ -436,7 +521,7 @@ DLLEXPORT unsigned AObject::nsymbols () const
 }
     
 DLLEXPORT bool AObject::get_symbols(string & name, 
-                                    vector<Dyn_Symbol *> &symbols ) 
+                                    std::vector<Symbol *> &symbols ) 
 {
    if( symbols_.find(name) == symbols_.end()) {
       return false;
@@ -445,55 +530,55 @@ DLLEXPORT bool AObject::get_symbols(string & name,
    return true;
 }
 
-//    OFFSET getLoadAddress() const { return loadAddress_; }
-//    OFFSET getEntryAddress() const { return entryAddress_; }
-//    OFFSET getBaseAddress() const { return baseAddress_; }
+//    Offset getLoadAddress() const { return loadAddress_; }
+//    Offset getEntryAddress() const { return entryAddress_; }
+//    Offset getBaseAddress() const { return baseAddress_; }
 
-DLLEXPORT Word* AObject::code_ptr () const 
+DLLEXPORT char* AObject::code_ptr () const 
 { 
    return code_ptr_; 
 }
  
-DLLEXPORT OFFSET AObject::code_off () const 
+DLLEXPORT Offset AObject::code_off () const 
 { 
    return code_off_; 
 }
 
-DLLEXPORT OFFSET AObject::code_len () const 
+DLLEXPORT Offset AObject::code_len () const 
 { 
    return code_len_; 
 }
 
-DLLEXPORT Word* AObject::data_ptr () const 
+DLLEXPORT char* AObject::data_ptr () const 
 { 
    return data_ptr_; 
 }
 
-DLLEXPORT OFFSET AObject::data_off () const 
+DLLEXPORT Offset AObject::data_off () const 
 { 
    return data_off_; 
 }
 
-DLLEXPORT OFFSET AObject::data_len () const 
+DLLEXPORT Offset AObject::data_len () const 
 { 
    return data_len_; 
 }
 
-DLLEXPORT OFFSET AObject::code_vldS() const 
+DLLEXPORT Offset AObject::code_vldS() const 
 { 
    return code_vldS_; 
 }
 
-DLLEXPORT OFFSET AObject::code_vldE () const
+DLLEXPORT Offset AObject::code_vldE () const
 { 
    return code_vldE_;
 }
 
-DLLEXPORT OFFSET AObject::data_vldS() const { 
+DLLEXPORT Offset AObject::data_vldS() const { 
    return data_vldS_; 
 }
 
-DLLEXPORT OFFSET AObject::data_vldE () const { 
+DLLEXPORT Offset AObject::data_vldE () const { 
    return data_vldE_; 
 }
 
@@ -511,19 +596,19 @@ DLLEXPORT unsigned AObject::no_of_symbols() const
    return no_of_symbols_;  
 }
 
-DLLEXPORT bool AObject::getAllExceptions(vector<Dyn_ExceptionBlock *>&excpBlocks) const
+DLLEXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const
 {
    for(unsigned i=0;i<catch_addrs_.size();i++)
-      excpBlocks.push_back(new Dyn_ExceptionBlock(catch_addrs_[i]));
+      excpBlocks.push_back(new ExceptionBlock(catch_addrs_[i]));
    return true;
 }
 
-DLLEXPORT vector<Dyn_Section *> AObject::getAllSections() const
+DLLEXPORT std::vector<Section *> AObject::getAllSections() const
 {
    return sections_;	
 }
 
-DLLEXPORT OFFSET AObject::loader_off() const 
+DLLEXPORT Offset AObject::loader_off() const 
 { 
    return loader_off_; 
 }
@@ -547,7 +632,7 @@ DLLEXPORT void * AObject::getErrFunc() const {
    return (void *) err_func_; 
 }
 
-DLLEXPORT hash_map< string, vector< Dyn_Symbol *> > *AObject::getAllSymbols() 
+DLLEXPORT hash_map< string, std::vector< Symbol *> > *AObject::getAllSymbols() 
 { 
    return &(symbols_);
 }
@@ -693,7 +778,7 @@ void SymbolIter::operator++ ( int )
       return;
    }
 		
-   /* Otherwise, we need a new vector. */
+   /* Otherwise, we need a new std::vector. */
    currentPositionInVector = 0;			
    symbolIterator++;
 }
@@ -704,16 +789,6 @@ const string & SymbolIter::currkey() const {
     
 /* If it's important that this be const, we could try to initialize
    currentVector to '& symbolIterator.currval()' in the constructor. */
-Dyn_Symbol *SymbolIter::currval() {
+Symbol *SymbolIter::currval() {
    return ((symbolIterator->second)[ currentPositionInVector ]);
-}
-
-void Dyn_Symbol::setSize(unsigned ns)
-{
-	size_ = ns;
-}
-
-void Dyn_Symbol::setModule(Dyn_Module *mod) 
-{
-	module_ = mod;
 }
