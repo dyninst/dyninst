@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.27 2007/09/12 20:57:27 bernat Exp $
+// $Id: arch.h,v 1.28 2007/09/19 19:25:07 bernat Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -196,6 +196,7 @@ class codeGen {
     registerSpace *rs() { assert(rs_); return rs_; }
     regTracker_t *tracker() { assert(t_); return t_;}
     Emitter *codeEmitter() { assert(emitter_); return emitter_; }
+    Emitter *emitter() { return codeEmitter(); } // A little shorter
 
  private:
     codeBuf_t *buffer_;
