@@ -30,12 +30,17 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.13 2007/09/13 20:13:06 legendre Exp $
+ * $Id: Object-elf.C,v 1.14 2007/09/19 21:54:03 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
+
 #include "symtabAPI/src/Object.h"
-#include "symtabAPI/h/Dyn_Symtab.h"
+#include "symtabAPI/h/Symtab.h"
+
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+using namespace std;
 
 #if !defined(_Object_elf_h_)
 #error "Object-elf.h not #included"
@@ -43,27 +48,34 @@
 
 #include <elf.h>
 #include <stdio.h>
+#include <algorithm>
 
 #if defined(USES_DWARF_DEBUG)
 #include "dwarf.h"
 #include "libdwarf.h"
 #endif
-#include <algorithm>
 
 //#include "util.h"
 #include "common/h/pathName.h"
+#include "Collections.h"
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
+#include <iostream>
+#include <iomanip>
 
 // add some space to avoid looking for functions in data regions
 #define EXTRA_SPACE 8
 
+bool Object::truncateLineFilenames = true;
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
-                              vector<Dyn_ExceptionBlock> &catch_addrs);
+                              std::vector<ExceptionBlock> &catch_addrs);
 #endif
-
+    
+string current_func_name;
+string current_mangled_func_name;
+Symbol *current_func = NULL;
 
 #if defined(os_solaris)
 #include <dlfcn.h>
@@ -120,7 +132,7 @@ struct  SectionHeaderSortFunction: public binary_function<Elf_X_Shdr *, Elf_X_Sh
 
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
-bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
+bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 			Elf_X_Shdr*& symscnp, Elf_X_Shdr*& strscnp, 
 			Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
 			Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
@@ -232,12 +244,12 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 	
 	//If the section appears in the memory image of a process address is given by sh_addr()
 	//otherwise this is zero and sh_offset() gives the offset to the first byte in section.
-	sections_.push_back(new Dyn_Section(i, name, scnp->sh_addr(), scnp->sh_size(),(void *)(mem_image()+scnp->sh_offset())));
+	sections_.push_back(new Section(i, name, scnp->sh_addr(), scnp->sh_size(),(void *)(mem_image()+scnp->sh_offset()), scnp->sh_flags()));
 /*
 	if(scnp->sh_addr() != 0)
-		sections_.push_back(new Dyn_Section(i, name, scnp->sh_addr(), scnp->sh_size()));
+		sections_.push_back(new Section(i, name, scnp->sh_addr(), scnp->sh_size()));
 	else	
-		sections_.push_back(new Dyn_Section(i, name, scnp->sh_offset(), scnp->sh_size()));
+		sections_.push_back(new Section(i, name, scnp->sh_offset(), scnp->sh_size()));
 */
 	// section-specific processing
 	if (P_strcmp(name, EDITED_TEXT_NAME) == 0) {
@@ -245,7 +257,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
 	    EEL = true;
 	    if (txtaddr == 0)
 		txtaddr = scnp->sh_addr();
-	    code_ptr_ = (Word *)(void*)&file_ptr_[scnp->sh_offset() - EXTRA_SPACE];
+	    code_ptr_ = (char *)(void*)&file_ptr_[scnp->sh_offset() - EXTRA_SPACE];
 	    code_off_ = scnp->sh_addr() - EXTRA_SPACE;
 	    code_len_ = scnp->sh_size() + EXTRA_SPACE;
 	}
@@ -392,6 +404,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
     }
 
     if(!symscnp || !strscnp) {
+    	isStripped = true;
 	if(dynsym_scnp && dynstr_scnp){
 	    symscnp = dynsym_scnp;
 	    strscnp = dynstr_scnp;
@@ -440,7 +453,7 @@ bool Object::loaded_elf(OFFSET& txtaddr, OFFSET& dataddr,
   return true;
 }
 
-bool Object::is_offset_in_plt(OFFSET offset) const
+bool Object::is_offset_in_plt(Offset offset) const
 {
   return (offset > plt_addr_ && offset < plt_addr_ + plt_size_);
 }
@@ -455,7 +468,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 	Elf_X_Data strdata = dynstr_scnp->get_data();
 
 	if( reldata.isValid() && symdata.isValid() && strdata.isValid() ) {
-	    OFFSET next_plt_entry_addr = plt_addr_;
+	    Offset next_plt_entry_addr = plt_addr_;
 
 #if defined( ia64_unknown_linux2_4 ) 
 	    unsigned int functionDescriptorCount = ( rel_plt_size_ / rel_plt_entry_size_ );
@@ -536,6 +549,7 @@ bool Object::mmap_file(const char *file,
   assert(file);
   fileName = strdup( file );  assert( fileName != NULL );
   file_fd_ = open(file, O_RDONLY);
+  //file_fd_ = open(file, O_RDWR);
   if (file_fd_ == -1) return false;
   did_open = true;
   
@@ -558,8 +572,8 @@ void Object::load_object()
     Elf_X_Shdr *stabstrscnp = 0;
     Elf_X_Shdr *stabs_indxcnp = 0;
     Elf_X_Shdr *stabstrs_indxcnp = 0;
-    OFFSET txtaddr = 0;
-    OFFSET dataddr = 0;
+    Offset txtaddr = 0;
+    Offset dataddr = 0;
     Elf_X_Shdr *rel_plt_scnp = 0;
     Elf_X_Shdr *plt_scnp = 0; 
     Elf_X_Shdr *got_scnp = 0;
@@ -580,9 +594,9 @@ void Object::load_object()
 	data_len_ = 0;
 
 	// initialize "valid" regions of code and data segments
-	code_vldS_ = (OFFSET) -1;
+	code_vldS_ = (Offset) -1;
 	code_vldE_ = 0;
-	data_vldS_ = (OFFSET) -1;
+	data_vldS_ = (Offset) -1;
 	data_vldE_ = 0;
 
 	// And attempt to parse the ELF data structures in the file....
@@ -608,15 +622,6 @@ void Object::load_object()
 
 	get_valid_memory_areas(elfHdr);
 
-	// find symbol and string data
-   	Elf_X_Data symdata, strdata;
-   	if (symscnp)
-   	   symdata = symscnp->get_data();
-   	if (strscnp)
-   	   strdata = strscnp->get_data();
-	string module = "DEFAULT_MODULE";
-	string name   = "DEFAULT_NAME";
-
 	//fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 	if (eh_frame_scnp != 0 && gcc_except != 0) {
@@ -639,8 +644,18 @@ void Object::load_object()
 	struct timeval starttime;
 	gettimeofday(&starttime, NULL);
 #endif
-	vector<Dyn_Symbol *> allsymbols;
-	parse_symbols(allsymbols, symdata, strdata, false, module);
+	std::vector<Symbol *> allsymbols;
+	
+	// find symbol and string data
+	string module = "DEFAULT_MODULE";
+	string name   = "DEFAULT_NAME";
+   	Elf_X_Data symdata, strdata;
+   	if (symscnp && strscnp)
+	{
+   	   symdata = symscnp->get_data();
+   	   strdata = strscnp->get_data();
+ 	   parse_symbols(allsymbols, symdata, strdata, false, module);
+	}   
 	sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
 	//VECTOR_SORT(allsymbols,symbol_compare);
 
@@ -661,6 +676,7 @@ void Object::load_object()
 
 	// DWARF format (.debug_info section)
 	fix_global_symbol_modules_static_dwarf(elfHdr);
+        
 #if defined(TIMED_PARSE)
 	struct timeval endtime;
 	gettimeofday(&endtime, NULL);
@@ -707,8 +723,8 @@ void Object::load_shared_object()
     Elf_X_Shdr *stabstrscnp = 0;
     Elf_X_Shdr *stabs_indxcnp = 0;
     Elf_X_Shdr *stabstrs_indxcnp = 0;
-    OFFSET txtaddr = 0;
-    OFFSET dataddr = 0;
+    Offset txtaddr = 0;
+    Offset dataddr = 0;
     Elf_X_Shdr *rel_plt_scnp = 0;
     Elf_X_Shdr *plt_scnp = 0; 
     Elf_X_Shdr *got_scnp = 0;
@@ -721,9 +737,9 @@ void Object::load_shared_object()
     { // binding contour (for "goto cleanup2")
 
 	// initialize "valid" regions of code and data segments
-	code_vldS_ = (OFFSET) -1;
+	code_vldS_ = (Offset) -1;
 	code_vldE_ = 0;
-	data_vldS_ = (OFFSET) -1;
+	data_vldS_ = (Offset) -1;
 	data_vldE_ = 0;
 
 	if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
@@ -739,17 +755,6 @@ void Object::load_shared_object()
 
 	get_valid_memory_areas(elfHdr);
 
-	Elf_X_Data symdata = symscnp->get_data();
-	Elf_X_Data strdata = strscnp->get_data();
-	if (!symdata.isValid() || !strdata.isValid()) {
-	    log_elferror(err_func_, "locating symbol/string data");
-	    goto cleanup2;
-	}
-
-	// short module name
-	string module = file_;
-	string name   = "DEFAULT_NAME";
-
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 	//fprintf(stderr, "[%s:%u] - Mod Name is %s\n", __FILE__, __LINE__, name.c_str());
 	if (eh_frame_scnp != 0 && gcc_except != 0) {
@@ -762,8 +767,23 @@ void Object::load_shared_object()
 #endif
 
 	// build symbol dictionary
-	vector<Dyn_Symbol *> allsymbols;
-	parse_symbols(allsymbols, symdata, strdata, true, module);
+	std::vector<Symbol *> allsymbols;
+	// short module name
+	string module = file_;
+	string name   = "DEFAULT_NAME";
+	
+	// find symbol and string data
+   	Elf_X_Data symdata, strdata;
+   	if (symscnp && strscnp)
+	{
+   	   symdata = symscnp->get_data();
+   	   strdata = strscnp->get_data();
+	   if (!symdata.isValid() || !strdata.isValid()) {
+	       log_elferror(err_func_, "locating symbol/string data");
+	       goto cleanup2;
+	   }
+ 	   parse_symbols(allsymbols, symdata, strdata, false, module);
+	}   
 	sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
 	//VECTOR_SORT(allsymbols,symbol_compare);
 	no_of_symbols_ = allsymbols.size();
@@ -772,6 +792,16 @@ void Object::load_shared_object()
 	override_weak_symbols(allsymbols);
 	insert_symbols_shared(allsymbols);
 
+//	// try to resolve the module names of global symbols
+//	// Sun compiler stab.index section 
+//	fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
+
+//	// STABS format (.stab section)
+//	fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
+
+//	// DWARF format (.debug_info section)
+//	fix_global_symbol_modules_static_dwarf(elfHdr);
+        
 #if defined(TIMED_PARSE)
     	struct timeval endtime;
     	gettimeofday(&endtime, NULL);
@@ -809,27 +839,47 @@ void Object::load_shared_object()
     }
 }
 
-static Dyn_Symbol::SymbolType pdelf_type(int elf_type)
+static Symbol::SymbolType pdelf_type(int elf_type)
 {
   switch (elf_type) {
-  case STT_FILE:   return Dyn_Symbol::ST_MODULE;
-  case STT_OBJECT: return Dyn_Symbol::ST_OBJECT;
-  case STT_FUNC:   return Dyn_Symbol::ST_FUNCTION;
-  case STT_NOTYPE: return Dyn_Symbol::ST_NOTYPE;
+  case STT_FILE:   return Symbol::ST_MODULE;
+  case STT_OBJECT: return Symbol::ST_OBJECT;
+  case STT_FUNC:   return Symbol::ST_FUNCTION;
+  case STT_NOTYPE: return Symbol::ST_NOTYPE;
   }
-  return Dyn_Symbol::ST_UNKNOWN;
+  return Symbol::ST_UNKNOWN;
 }
 
-static Dyn_Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
+static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
 {
   switch (elf_binding) {
-  case STB_LOCAL:  return Dyn_Symbol::SL_LOCAL;
-  case STB_WEAK:   return Dyn_Symbol::SL_WEAK;
-  case STB_GLOBAL: return Dyn_Symbol::SL_GLOBAL;
+  case STB_LOCAL:  return Symbol::SL_LOCAL;
+  case STB_WEAK:   return Symbol::SL_WEAK;
+  case STB_GLOBAL: return Symbol::SL_GLOBAL;
   }
-  return Dyn_Symbol::SL_UNKNOWN;
+  return Symbol::SL_UNKNOWN;
 }
 
+static int elfSymType(Symbol::SymbolType sType)
+{
+  switch (sType) {
+  case Symbol::ST_MODULE: return STT_FILE;
+  case Symbol::ST_OBJECT: return STT_OBJECT;
+  case Symbol::ST_FUNCTION: return STT_FUNC;
+  case Symbol::ST_NOTYPE : return STT_NOTYPE;
+  default: return STT_SECTION;
+  }
+}
+
+static int elfSymBind(Symbol::SymbolLinkage sLinkage)
+{
+  switch (sLinkage) {
+  case Symbol::SL_LOCAL: return STB_LOCAL;
+  case Symbol::SL_WEAK: return STB_WEAK;
+  case Symbol::SL_GLOBAL: return STB_GLOBAL;
+  default: return STB_LOPROC;
+  }
+}
 //============================================================================
 
 //#include "dyninstAPI/src/arch.h"
@@ -839,7 +889,7 @@ static Dyn_Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
 //#include "dyninstAPI/src/rpcMgr.h"
 
 //linear search
-bool lookUpSymbol( vector< Dyn_Symbol *>& allsymbols, OFFSET& addr )
+bool lookUpSymbol( std::vector< Symbol *>& allsymbols, Offset& addr )
 {
     for( unsigned i = 0; i < allsymbols.size(); i++ )
     {
@@ -851,7 +901,7 @@ bool lookUpSymbol( vector< Dyn_Symbol *>& allsymbols, OFFSET& addr )
     return false;
 }
 
-bool lookUpAddress( vector< OFFSET >& jumpTargets, OFFSET& addr )
+bool lookUpAddress( std::vector< Offset >& jumpTargets, Offset& addr )
 {
     for( unsigned i = 0; i < jumpTargets.size(); i++ )
     {
@@ -863,12 +913,12 @@ bool lookUpAddress( vector< OFFSET >& jumpTargets, OFFSET& addr )
     return false;
 }
 
-//utitility function to print vector of symbols
-void printSyms( vector< Dyn_Symbol *>& allsymbols )
+//utitility function to print std::vector of symbols
+void printSyms( std::vector< Symbol *>& allsymbols )
 {
     for( unsigned i = 0; i < allsymbols.size(); i++ )
     {
-	if( allsymbols[ i ]->getType() != Dyn_Symbol::ST_FUNCTION )
+	if( allsymbols[ i ]->getType() != Symbol::ST_FUNCTION )
 	{
 	    continue;
 	}
@@ -878,7 +928,7 @@ void printSyms( vector< Dyn_Symbol *>& allsymbols )
 
 
 // parse_symbols(): populate "allsymbols"
-void Object::parse_symbols(vector<Dyn_Symbol *> &allsymbols, 
+void Object::parse_symbols(std::vector<Symbol *> &allsymbols, 
 			   Elf_X_Data &symdata, Elf_X_Data &strdata,
 			   bool shared, string smodule)
 {
@@ -886,7 +936,7 @@ void Object::parse_symbols(vector<Dyn_Symbol *> &allsymbols,
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
 #endif
-
+  
    Elf_X_Sym syms = symdata.get_sym();
    const char *strs = strdata.get_string();
    for (unsigned i = 0; i < syms.count(); i++) {
@@ -897,21 +947,21 @@ void Object::parse_symbols(vector<Dyn_Symbol *> &allsymbols,
       
       // resolve symbol elements
       string sname = &strs[ syms.st_name(i) ];
-      Dyn_Symbol::SymbolType stype = pdelf_type(etype);
-      Dyn_Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
+      Symbol::SymbolType stype = pdelf_type(etype);
+      Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
       unsigned ssize = syms.st_size(i);
-      OFFSET saddr = syms.st_value(i);
+      Offset saddr = syms.st_value(i);
       unsigned secNumber = syms.st_shndx(i);
       
-      if (stype == Dyn_Symbol::ST_UNKNOWN) continue;
-      if (slinkage == Dyn_Symbol::SL_UNKNOWN) continue;
+      if (stype == Symbol::ST_UNKNOWN) continue;
+      if (slinkage == Symbol::SL_UNKNOWN) continue;
      
-      Dyn_Section *sec;
+      Section *sec;
       if(secNumber >= 1 && secNumber <= sections_.size())
 	 sec = sections_[secNumber];
       else
          sec = NULL;		
-      Dyn_Symbol *newsym = new Dyn_Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
+      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
           (shared) && (sname == extract_pathname_tail(smodule))) {
@@ -939,14 +989,14 @@ void Object::parse_symbols(vector<Dyn_Symbol *> &allsymbols,
  *
  * Apparently, some compilers do not fill in the symbol sizes
  *  correctly (in the symbol table) for functions.  Run through
- *  symbol vector allsymbols, and compute ?correct? sizes....
+ *  symbol std::vector allsymbols, and compute ?correct? sizes....
  * This patch to symbol sizes runs through allsymbols && tries
  *  to patch all functions symbols recorded with a size of 0,
  *  or which have been EEL overwritten.
  * Assumes that allsymbols is sorted, with e.g. symbol_compare....
  *
 ********************************************************/
-void Object::fix_zero_function_sizes(vector<Dyn_Symbol *> &allsymbols, bool isEEL)
+void Object::fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool isEEL)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -966,19 +1016,19 @@ void Object::fix_zero_function_sizes(vector<Dyn_Symbol *> &allsymbols, bool isEE
 		//  that case, set the size to the difference between the section
 		//  end and this symbol.
 		// 
-      if (allsymbols[u]->getType() == Dyn_Symbol::ST_FUNCTION
+      if (allsymbols[u]->getType() == Symbol::ST_FUNCTION
           && (isEEL || allsymbols[u]->getSize() == 0) )
       {
 			// find the section to which allsymbols[u] belongs
 			// (most likely, it is the section to which allsymbols[u-1] 
 			// belonged)
-			// Note that this assumes the section headers vector is sorted
+			// Note that this assumes the section headers std::vector is sorted
 			// in increasing order
 			//
 			while( u_section_idx < allSectionHdrs.size() )
 			{
-				OFFSET slow = allSectionHdrs[u_section_idx]->sh_addr();
-				OFFSET shi = slow + allSectionHdrs[u_section_idx]->sh_size();
+				Offset slow = allSectionHdrs[u_section_idx]->sh_addr();
+				Offset shi = slow + allSectionHdrs[u_section_idx]->sh_size();
 #if defined(os_irix)
 				slow -= get_base_addr();
 				shi -= get_base_addr();
@@ -1023,12 +1073,12 @@ void Object::fix_zero_function_sizes(vector<Dyn_Symbol *> &allsymbols, bool isEE
 
 				// find the section to which allsymbols[v] belongs
 				// (most likely, it is in the same section as symbol u)
-				// Note that this assumes the section headers vector is
+				// Note that this assumes the section headers std::vector is
 				// sorted in increasing order
 				while( v_section_idx < allSectionHdrs.size() )
 				{
-					OFFSET slow = allSectionHdrs[v_section_idx]->sh_addr();
-					OFFSET shi = slow + allSectionHdrs[v_section_idx]->sh_size();
+					Offset slow = allSectionHdrs[v_section_idx]->sh_addr();
+					Offset shi = slow + allSectionHdrs[v_section_idx]->sh_size();
 #if defined(os_irix)
 					slow -= get_base_addr();
 					shi -= get_base_addr();
@@ -1103,7 +1153,7 @@ void Object::fix_zero_function_sizes(vector<Dyn_Symbol *> &allsymbols, bool isEE
  *  Assumes that allsymbols is sorted, with e.g. symbol_compare....
  *
 ********************************************************/
-void Object::override_weak_symbols(vector<Dyn_Symbol *> &allsymbols) {
+void Object::override_weak_symbols(std::vector<Symbol *> &allsymbols) {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
@@ -1117,25 +1167,25 @@ void Object::override_weak_symbols(vector<Dyn_Symbol *> &allsymbols) {
     //cerr << "overriding weak symbols for which there is also a global symbol reference...." << endl;
     nsymbols = allsymbols.size();
     for (i=0; i < nsymbols - 1; i++) {
-	if((allsymbols[i]->getType() == Dyn_Symbol::ST_FUNCTION)
-		&& (allsymbols[i+1]->getType() == Dyn_Symbol::ST_FUNCTION)) {
+	if((allsymbols[i]->getType() == Symbol::ST_FUNCTION)
+		&& (allsymbols[i+1]->getType() == Symbol::ST_FUNCTION)) {
 
 	    // where symbol i+1 should start, based on start of symbol i
 	    //  and size of symbol i....
 	    next_start=allsymbols[i]->getAddr()+allsymbols[i]->getSize();
 	
 	    // do symbols i and i+1 have weak or local bindings....
-	    i_weak_or_local = ((allsymbols[i]->getLinkage() == Dyn_Symbol::SL_WEAK) ||
-			       (allsymbols[i]->getLinkage() == Dyn_Symbol::SL_LOCAL));
-	    ip1_weak_or_local = ((allsymbols[i+1]->getLinkage() == Dyn_Symbol::SL_WEAK) ||
-			       (allsymbols[i+1]->getLinkage() == Dyn_Symbol::SL_LOCAL));
+	    i_weak_or_local = ((allsymbols[i]->getLinkage() == Symbol::SL_WEAK) ||
+			       (allsymbols[i]->getLinkage() == Symbol::SL_LOCAL));
+	    ip1_weak_or_local = ((allsymbols[i+1]->getLinkage() == Symbol::SL_WEAK) ||
+			       (allsymbols[i+1]->getLinkage() == Symbol::SL_LOCAL));
 
 	    // if the symbols have the same address and one is weak or local
 	    // and the other is global keeep the global one
 	    if((allsymbols[i]->getAddr() == allsymbols[i+1]->getAddr()) && 
 		    (((i_weak_or_local) &&
-		      (allsymbols[i+1]->getLinkage() == Dyn_Symbol::SL_GLOBAL)) || 
-                     ((allsymbols[i]->getLinkage() == Dyn_Symbol::SL_GLOBAL) &&
+		      (allsymbols[i+1]->getLinkage() == Symbol::SL_GLOBAL)) || 
+                     ((allsymbols[i]->getLinkage() == Symbol::SL_GLOBAL) &&
 		      (ip1_weak_or_local)))) {
 
 		if (i_weak_or_local) {
@@ -1171,7 +1221,7 @@ void Object::override_weak_symbols(vector<Dyn_Symbol *> &allsymbols) {
 #if defined(USES_DWARF_DEBUG)
 
 static string find_symbol(string name,
-              hash_map<string, vector< Dyn_Symbol *> > &symbols)
+              hash_map<string, std::vector< Symbol *> > &symbols)
 {
   string name2;
 
@@ -1196,11 +1246,11 @@ static string find_symbol(string name,
 // Insert sym into syms. If syms already contains another symbol with the
 // same name, inserts sym under a versioned name (,v%d appended to the original
 // name)
-static void insertUniqdSymbol(Dyn_Symbol *sym,
-                              hash_map<string, vector< Dyn_Symbol *> > *syms,
-                              hash_map<OFFSET, string > *namesByAddr)
+static void insertUniqdSymbol(Symbol *sym,
+                              hash_map<string, std::vector< Symbol *> > *syms,
+                              hash_map<Offset, string > *namesByAddr)
 {
-    OFFSET symAddr = sym->getAddr();
+    Offset symAddr = sym->getAddr();
     const string & symName = sym->getName();
     
 	/* The old version of this function generated unique names
@@ -1217,11 +1267,11 @@ static void insertUniqdSymbol(Dyn_Symbol *sym,
 		
 #if 0
     const string &symName = sym.name();
-    OFFSET symAddr = sym.addr();
+    Offset symAddr = sym.addr();
 
     if (syms->defines(symName)) {
-        Dyn_Symbol other = syms->get(symName);
-        if (sym.linkage() == Dyn_Symbol::SL_GLOBAL &&
+        Symbol other = syms->get(symName);
+        if (sym.linkage() == Symbol::SL_GLOBAL &&
             other.linkage() != Symbol::SL_GLOBAL) {
             // syms contains a local symbol with the same name. Let's
             // replace it with ours (global).
@@ -1278,7 +1328,7 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 
 Dwarf_Signed declFileNo = 0;
 char ** declFileNoToName = NULL;
-void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry, hash_map< string, vector< Dyn_Symbol *> > & symbols, hash_map< OFFSET, string > & symbolNamesByAddr ) {
+void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry, hash_map< string, std::vector< Symbol *> > & symbols, hash_map< Offset, string > & symbolNamesByAddr ) {
 	start: Dwarf_Half dieTag;
 	int status = dwarf_tag( dieEntry, & dieTag, NULL );
 	assert( status == DW_DLV_OK );
@@ -1454,14 +1504,14 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 					} /* end if isDeclaredNotInlined */
 
 				unsigned int count = 0;
-				vector< Dyn_Symbol *> & syms = symbols[ globalSymbol ];
+				std::vector< Symbol *> & syms = symbols[ globalSymbol ];
 				
 				// /* DEBUG */ fprintf( stderr, "%s[%d]: symbol '%s' is in module '%s'.\n", __FILE__, __LINE__, globalSymbol.c_str(), useModuleName.c_str() );
 				/* If there's only one of symbol of that name, set it regardless. */
 				if( syms.size() == 1 ) { syms[0]->setModuleName( useModuleName ); }
 				else {
 					for( unsigned int i = 0; i < syms.size(); i++ ) {
-						if( syms[ i ]->getLinkage() == Dyn_Symbol::SL_GLOBAL ) {
+						if( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
 							symbols[ globalSymbol ][i]->setModuleName( useModuleName );
 							count++;
 							}
@@ -1473,13 +1523,13 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 				} /* end if we found the name in the global symbols */
 			else if( ! isAbstractOrigin && (symbols.find(dieName)!=symbols.end())) {
 				unsigned int count = 0;
-				vector< Dyn_Symbol *> & syms = symbols[ dieName ];
+				std::vector< Symbol *> & syms = symbols[ dieName ];
 
 				/* If there's only one, apply regardless. */
 				if( syms.size() == 1 ) { symbols[ globalSymbol ][0]->setModuleName( useModuleName ); }
 				else { 
 					for( unsigned int i = 0; i < syms.size(); i++ ) {
-						if( syms[ i ]->getLinkage() == Dyn_Symbol::SL_LOCAL ) {
+						if( syms[ i ]->getLinkage() == Symbol::SL_LOCAL ) {
 							symbols[ globalSymbol ][i]->setModuleName( useModuleName );
 							count++;
 							}
@@ -1547,13 +1597,13 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 
 				/* We're assuming global variables. */
 				unsigned int count = 0;
-				vector< Dyn_Symbol *> & syms = symbols[ symName ];
+				std::vector< Symbol *> & syms = symbols[ symName ];
 
 				/* If there's only one of symbol of that name, set it regardless. */
 				if( syms.size() == 1 ) { symbols[ symName ][0]->setModuleName( useModuleName ); }
 				else {
 					for( unsigned int i = 0; i < syms.size(); i++ ) {
-						if( syms[ i ]->getLinkage() == Dyn_Symbol::SL_GLOBAL ) {
+						if( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
 							symbols[ symName ][i]->setModuleName( useModuleName );
 							count++;
 							}
@@ -1595,13 +1645,13 @@ void fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntr
 
 void fixSymbolsInModuleByRange(string &moduleName,
 			       Dwarf_Addr modLowPC, Dwarf_Addr modHighPC,
-			       hash_map<string, vector< Dyn_Symbol *> > *symbols_)
+			       hash_map<string, std::vector< Symbol *> > *symbols_)
 {
     string symName;
-    vector< Dyn_Symbol *> syms;
-    Dyn_Symbol *sym;
+    std::vector< Symbol *> syms;
+    Symbol *sym;
     
-    hash_map< string, vector< Dyn_Symbol *> >::iterator iter = symbols_->begin();
+    hash_map< string, std::vector< Symbol *> >::iterator iter = symbols_->begin();
     for(;iter!=symbols_->end();iter++)
     {
     	symName = iter->first;
@@ -1651,7 +1701,7 @@ bool Object::fix_global_symbol_modules_static_dwarf(Elf_X &elf)
 		//assert( moduleName != NULL );
 		}
 	else {
-		moduleName = extract_pathname_tail( std::string(dwarfModuleName) );
+		moduleName = extract_pathname_tail( string(dwarfModuleName) );
 		}
 
 	Dwarf_Addr modLowPC = 0;
@@ -1815,13 +1865,13 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 
 	    if (res && (q == 0 || q[1] != SD_PROTOTYPE)) {
 	    	unsigned int count = 0;
-	    	vector< Dyn_Symbol *> & syms = symbols_[SymName];
+	    	std::vector< Symbol *> & syms = symbols_[SymName];
 
 	    	/* If there's only one, apply regardless. */
 	    	if( syms.size() == 1 ) { symbols_[SymName][0]->setModuleName(module); }
 	    	else {
 		    for( unsigned int i = 0; i < syms.size(); i++ ) {
-			if( syms[i]->getLinkage() == Dyn_Symbol::SL_GLOBAL ) {
+			if( syms[i]->getLinkage() == Symbol::SL_GLOBAL ) {
 			    symbols_[SymName][i]->setModuleName(module);
 			    count++;
 			}
@@ -1874,7 +1924,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		delete[] sname;
 
 		if (symbols_.find(nameFromStab)!=symbols_.end()) {
-		    vector< Dyn_Symbol* > & syms = symbols_[nameFromStab];
+		    std::vector< Symbol* > & syms = symbols_[nameFromStab];
 		    if( syms.size() == 1 ) {
 			symbols_[nameFromStab][0]->setModuleName(module);
 		    }
@@ -1891,7 +1941,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
 		}
 		string symName = symbolNamesByAddr[entryAddr];
 		assert(symbols_.find(symName)!=symbols_.end());
-		vector< Dyn_Symbol *> & syms = symbols_[symName];
+		std::vector< Symbol *> & syms = symbols_[symName];
 		if( syms.size() == 1 ) {
 		    symbols_[symName][0]->setModuleName(module);
 		}
@@ -1923,7 +1973,7 @@ bool Object::fix_global_symbol_modules_static_stab(Elf_X_Shdr* stabscnp, Elf_X_S
  *  for static libraries....
  *
 ********************************************************/
-void Object::insert_symbols_static(vector<Dyn_Symbol *> &allsymbols)
+void Object::insert_symbols_static(std::vector<Symbol *> &allsymbols)
 {
   unsigned nsymbols = allsymbols.size();
 #ifdef TIMED_PARSE
@@ -1945,7 +1995,7 @@ void Object::insert_symbols_static(vector<Dyn_Symbol *> &allsymbols)
  *  dump them into symbols_ (data member, instead of stack var....)....
  *
 ********************************************************/
-void Object::insert_symbols_shared(vector<Dyn_Symbol *> &allsymbols) {
+void Object::insert_symbols_shared(std::vector<Symbol *> &allsymbols) {
     unsigned i, nsymbols;
 
     nsymbols = allsymbols.size();
@@ -1962,12 +2012,13 @@ void Object::insert_symbols_shared(vector<Dyn_Symbol *> &allsymbols) {
 //   code_ptr_, code_off_, code_len_
 //   data_ptr_, data_off_, data_len_
 void Object::find_code_and_data(Elf_X &elf,
-				OFFSET txtaddr, 
-				OFFSET dataddr) 
+				Offset txtaddr, 
+				Offset dataddr) 
 {
     for (int i = 0; i < elf.e_phnum(); ++i) {
 	Elf_X_Phdr phdr = elf.get_phdr(i);
-        // The code pointer, offset, & length should be set even if
+        
+	// The code pointer, offset, & length should be set even if
         // txtaddr=0, so in this case we set these values by
         // identifying the segment that contains the entryAddress
 	if (((phdr.p_vaddr() <= txtaddr) && 
@@ -1976,16 +2027,17 @@ void Object::find_code_and_data(Elf_X &elf,
 	    (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
 
 	    if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
-		code_ptr_ = (Word *)(void*)&file_ptr_[phdr.p_offset()];
-		code_off_ = (OFFSET)phdr.p_vaddr();
+		code_ptr_ = (char *)(void*)&file_ptr_[phdr.p_offset()];
+		code_off_ = (Offset)phdr.p_vaddr();
 		code_len_ = (unsigned)phdr.p_filesz();
 	    }
 
-	} else if ((phdr.p_vaddr() <= dataddr) && 
-		   (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) {
+	} else if (((phdr.p_vaddr() <= dataddr) && 
+		   (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) || 
+		   (!dataddr && (phdr.p_type() == PT_LOAD))) {
 	    if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
-		data_ptr_ = (Word *)(void *)&file_ptr_[phdr.p_offset()];
-		data_off_ = (OFFSET)phdr.p_vaddr();
+		data_ptr_ = (char *)(void *)&file_ptr_[phdr.p_offset()];
+		data_off_ = (Offset)phdr.p_vaddr();
 		data_len_ = (unsigned)phdr.p_filesz();
 	    }
 	}
@@ -1993,7 +2045,7 @@ void Object::find_code_and_data(Elf_X &elf,
     //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
 }
 
-const char *Object::elf_vaddr_to_ptr(OFFSET vaddr) const
+const char *Object::elf_vaddr_to_ptr(Offset vaddr) const
 {
   const char *ret = NULL;
   unsigned code_size_ = code_len_;
@@ -2044,6 +2096,7 @@ Object::Object(string &filename, void (*err_func)(const char *))
     is_aout_ = false;
     did_open = false;
     interpreter_name_ = NULL;
+    isStripped = false;
     bool  did_mmap = false;         	
     const char *file = file_.c_str();
     assert(file);
@@ -2061,7 +2114,8 @@ Object::Object(string &filename, void (*err_func)(const char *))
     	elfHdr = Elf_X(file_fd_, ELF_C_READ);
 
        	// ELF header: sanity check
-    	if (!elfHdr.isValid())
+    	//if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
+    	if (!elfHdr.isValid()) 
 	{
     	    log_elferror(err_func_, "ELF header");
     	    return;
@@ -2103,6 +2157,7 @@ Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *
 #endif    
     is_aout_ = false;
     interpreter_name_ = NULL;
+    isStripped = false;
     elfHdr = Elf_X(mem_image,image_size);
     // ELF header: sanity check
     if (!elfHdr.isValid()) 
@@ -2137,6 +2192,7 @@ Object::Object(const Object& obj)
 #endif    
     file_ptr_ = obj.file_ptr_;	
     interpreter_name_ = obj.interpreter_name_;
+    isStripped = obj.isStripped;
     mem_image_ = mem_image_;
     loadAddress_ = obj.loadAddress_;
     entryAddress_ = obj.entryAddress_;
@@ -2180,13 +2236,13 @@ void Object::log_elferror(void (*err_func)(const char *), const char* msg) {
     err_func(str.c_str());
 }
 
-bool Object::get_func_binding_table(vector<relocationEntry> &fbt) const {
+bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const {
     if(!plt_addr_ || (!relocation_table_.size())) return false;
     fbt = relocation_table_;
     return true;
 }
 
-bool Object::get_func_binding_table_ptr(const vector<relocationEntry> *&fbt) const {
+bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const {
     if(!plt_addr_ || (!relocation_table_.size())) return false;
     fbt = &relocation_table_;
     return true;
@@ -2230,11 +2286,11 @@ const ostream &Object::dump_state_info(ostream &s)
 #endif
 
 
-OFFSET Object::getPltSlot(string funcName) const{
+Offset Object::getPltSlot(string funcName) const{
 
 	relocationEntry re;
 	bool found= false;
-	OFFSET offset=0;
+	Offset offset=0;
 	for( unsigned int i = 0; i < relocation_table_.size(); i++ ){
 		if(funcName == relocation_table_[i].name() ){
 			found = true;
@@ -2287,7 +2343,7 @@ void Object::get_valid_memory_areas(Elf_X &elf)
     // look for "pgCC_compiled." symbols.
 bool parseCompilerType(Object *objPtr)
 {
-   hash_map<string, vector<Dyn_Symbol *> >*syms = objPtr->getAllSymbols();	
+   hash_map<string, std::vector<Symbol *> >*syms = objPtr->getAllSymbols();	
    if(syms->find("pgCC_compiled.") != syms->end())
    	return true;
    return false;	
@@ -2430,9 +2486,9 @@ static int get_ptr_of_type(int type, unsigned long *value, const char *addr)
  *      the try/catch blocks.  
  **/ 
 static int read_except_table_gcc3(Elf_X_Shdr *except_table, 
-				  OFFSET eh_frame_base, OFFSET except_base,
+				  Offset eh_frame_base, Offset except_base,
 				  Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
-				  vector<Dyn_ExceptionBlock> &addresses)
+				  std::vector<ExceptionBlock> &addresses)
 {
     Dwarf_Error err = (Dwarf_Error) NULL;
     Dwarf_Addr low_pc, except_ptr;
@@ -2567,7 +2623,7 @@ static int read_except_table_gcc3(Elf_X_Shdr *except_table,
 
 	    if (catch_block == 0)
 		continue;
-	    Dyn_ExceptionBlock eb(region_start + low_pc, region_size, 
+	    ExceptionBlock eb(region_start + low_pc, region_size, 
 			      catch_block + low_pc);
 	    addresses.push_back(eb);
 	}
@@ -2587,11 +2643,11 @@ static int read_except_table_gcc3(Elf_X_Shdr *except_table,
  * out of it.
  **/
 static bool read_except_table_gcc2(Elf_X_Shdr *except_table, 
-                                   vector<Dyn_ExceptionBlock> &addresses)
+                                   std::vector<ExceptionBlock> &addresses)
 {
-    OFFSET try_start;
-    OFFSET try_end;
-    OFFSET catch_start;
+    Offset try_start;
+    Offset try_end;
+    Offset catch_start;
 
     Elf_X_Data data = except_table->get_data();
     const char *datap = data.get_string();
@@ -2603,17 +2659,17 @@ static bool read_except_table_gcc2(Elf_X_Shdr *except_table,
 	i += get_ptr_of_type(DW_EH_PE_udata4, &try_end, datap + i);
 	i += get_ptr_of_type(DW_EH_PE_udata4, &catch_start, datap + i);
 
-	if (try_start != (OFFSET) -1 && try_end != (OFFSET) -1) {
-	    Dyn_ExceptionBlock eb(try_start, try_end - try_start, catch_start);
+	if (try_start != (Offset) -1 && try_end != (Offset) -1) {
+	    ExceptionBlock eb(try_start, try_end - try_start, catch_start);
 	    addresses.push_back(eb);
 	}
     }
     return true;
 }
 
-struct  exception_compare: public binary_function<const Dyn_ExceptionBlock &, const Dyn_ExceptionBlock &, bool> 
+struct  exception_compare: public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool> 
 {
-    bool operator()(const Dyn_ExceptionBlock &e1, const Dyn_ExceptionBlock &e2) {
+    bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) {
     	if (e1.tryStart() < e2.tryStart())
       	    return true;
 	else if (e1.tryStart() > e2.tryStart())
@@ -2630,14 +2686,14 @@ struct  exception_compare: public binary_function<const Dyn_ExceptionBlock &, co
  *  the addresses will be pushed into 'addresses'
  **/
 static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
-                              vector<Dyn_ExceptionBlock> &catch_addrs)
+                              std::vector<ExceptionBlock> &catch_addrs)
 {
     Dwarf_Cie *cie_data;
     Dwarf_Fde *fde_data;
     Dwarf_Signed cie_count, fde_count;
     Dwarf_Error err = (Dwarf_Error) NULL;
     Dwarf_Unsigned bytes_in_cie;
-    OFFSET eh_frame_base, except_base;
+    Offset eh_frame_base, except_base;
     Dwarf_Debug dbg;
     char *augmentor;
     int status, gcc_ver = 3;
@@ -2912,14 +2968,10 @@ void Object::getModuleLanguageInfo(
    if (hasDwarfInfo())
 	{
       Dwarf_Debug dbg;
-      const char *file = file_.c_str();
-      assert(file);
-      
-      int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, 
-                                   getErrFunc(), & dbg, NULL );
+      int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
       if (status != DW_DLV_OK) {
          return;
-      }
+      }	 
       
       Dwarf_Unsigned hdr;      
       char * moduleName = NULL;
@@ -3008,6 +3060,1704 @@ void Object::getModuleLanguageInfo(
 
 }
 
+bool getBackSymbol(Symbol *symbol, std::vector<Elf32_Sym *>&syms, unsigned &len, std::vector<string> &strs)
+{
+   Elf32_Sym *sym = new Elf32_Sym();
+   sym->st_name = len;
+   strs.push_back(symbol->getName());
+   len += symbol->getName().length()+1;
+   sym->st_value = symbol->getAddr();
+   sym->st_size = symbol->getSize();
+   sym->st_other = 0;
+   sym->st_info = ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
+   if(symbol->getSec())
+	sym->st_shndx = symbol->getSec()->getSecNumber();
+   syms.push_back(sym);
+   std::vector<string> names = symbol->getAllMangledNames();
+   for(unsigned i=1;i<names.size();i++)
+   {
+   	sym = new Elf32_Sym();
+	sym->st_name = len;
+	strs.push_back(names[i]);
+   	len += names[i].length()+1;
+	sym->st_value = symbol->getAddr();
+	sym->st_size = 0;
+   	sym->st_other = 0;
+   	sym->st_info = ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
+   	if(symbol->getSec())
+	    sym->st_shndx = symbol->getSec()->getSecNumber();
+	else if(symbol->getType() == Symbol::ST_MODULE)
+	    sym->st_shndx = SHN_ABS;
+   	syms.push_back(sym);
+   }
+   return true;
+}
+
+bool Object::emitDriver(Symtab *obj, string fName, std::vector<Section *>newSecs){
+    int newfd;
+    Elf *newElf;
+    int insertPoint = 0;
+    Elf *oldElf = elfHdr.e_elfp();
+    unsigned pgSize = getpagesize();
+    std::vector<Section *>nonLoadableSecs;
+    Section *foundSec;
+
+    //open ELf File for writing
+    if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP)))==-1){ 
+        log_elferror(err_func_, "error opening file to write symbols");
+        return false;
+    }
+    if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
+        log_elferror(err_func_, "NEWELF_BEGIN_FAIL");
+        fflush(stdout);
+        return false;
+    }
+    
+    
+    //Section name index for new sections
+    std::vector<string> loadSecNames;
+    unsigned loadSecTotalSize = 0;
+    unsigned nonLoadableNamesSize = 0;
+    
+    // ".shstrtab" section: string table for section header names
+    const char *shnames = pdelf_get_shnames(elfHdr);
+    if (shnames == NULL) {
+        log_elferror(err_func_, ".shstrtab section");
+	return false;
+    }	
+
+    // Write the Elf header first!
+    Elf32_Ehdr *newEhdr= elf32_newehdr(newElf);
+    if(!newEhdr){
+        log_elferror(err_func_, "newEhdr failed\n");
+        return false;
+    }
+    Elf32_Ehdr *oldEhdr = elf32_getehdr(oldElf);
+    memcpy(newEhdr, oldEhdr, sizeof(Elf32_Ehdr));
+    newEhdr->e_shnum += newSecs.size();
+    
+    /* flag the file for no auto-layout */
+    elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);  
+    
+    Elf_Scn *shstrtabSec = elf_getscn(oldElf, oldEhdr->e_shstrndx);
+    Elf_Data *shstrtabData = elf_getdata(shstrtabSec, NULL);
+    unsigned shstrtabDataSize = shstrtabData->d_size;
+    
+    Elf_Scn *scn = NULL, *newscn;
+    Elf_Data *newdata = NULL, *olddata = NULL;
+    //important data sections in the
+    //new Elf that need updated
+    Elf_Data *textData, *symStrData, *dynStrData, *symTabData, *dynsymData, *dataData; //, *hashData, *rodata;
+		    
+    Elf32_Shdr *newshdr, *shdr;
+    unsigned scncount;
+    for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
+
+    	//copy sections from oldElf to newElf
+        shdr = elf32_getshdr(scn);
+	newscn = elf_newscn(newElf);
+	newshdr = elf32_getshdr(newscn);
+	newdata = elf_newdata(newscn);
+	olddata = elf_getdata(scn,NULL);
+	memcpy(newshdr, shdr, sizeof(Elf32_Shdr));
+	memcpy(newdata,olddata, sizeof(Elf_Data));
+													
+	// resolve section name
+        const char *name = &shnames[shdr->sh_name];
+	obj->findSection(foundSec, name);
+	
+	if(foundSec->isDirty())
+	{
+	    newdata->d_buf = (char *)malloc(foundSec->getSecSize());
+	    memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getSecSize());
+	}
+	else if(olddata->d_buf)     //copy the data buffer from oldElf
+	{
+            newdata->d_buf = (char *)malloc(olddata->d_size);
+            memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+	}    
+        
+	if(!strcmp(name,".strtab"))
+	{
+	    symStrData = newdata;
+	    //updateSymbols(symTabData, symStrData, loadSecTotalSize);
+	}
+	if(!strcmp(name, ".dynstr")){
+            dynStrData = newdata;
+            //updateSymbols(dynsymData, dynStrData);
+        }
+        if(!strcmp(name, ".symtab")){
+            if(newshdr->sh_link >= insertPoint)
+                newshdr->sh_link += loadSecNames.size();
+            symTabData = newdata;
+        }
+        if(!strcmp(name, ".dynsym")){
+            dynsymData = newdata;
+        }
+	if(!strcmp(name, ".text")){
+            textData = newdata;
+        }
+        if(!strcmp(name, ".bss")){
+	    insertPoint = scncount;
+            if(!createLoadableSections(newElf, shdr, newSecs, loadSecNames,nonLoadableSecs,  shstrtabDataSize, nonLoadableNamesSize, loadSecTotalSize))
+	    	return false;
+        }
+        if(!strcmp(name, ".shstrtab")){
+            addSectionNames(newdata,olddata, shstrtabDataSize, nonLoadableNamesSize, loadSecNames, nonLoadableSecs);
+    	    newshdr->sh_size = newdata->d_size;
+        }
+        if(!strcmp(name, ".data")){
+	    dataData = newdata;
+        }
+    }
+    if(!createNonLoadableSections(newElf, nonLoadableSecs, newshdr, shstrtabDataSize, oldEhdr->e_shnum+loadSecNames.size()))
+    	return false;
+
+
+    scn = NULL;
+    for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
+    	shdr = elf32_getshdr(scn);
+	olddata = elf_getdata(scn,NULL);
+    }
+
+    //copy program headers
+    Elf32_Phdr *tmp;
+
+    tmp = elf32_getphdr(oldElf);
+    newEhdr->e_phnum= oldEhdr->e_phnum;
+    Elf32_Phdr *newPhdr=elf32_newphdr(newElf,newEhdr->e_phnum);
+    memcpy(newPhdr, tmp, (oldEhdr->e_phnum) * oldEhdr->e_phentsize);
+    
+    newEhdr->e_shstrndx+=loadSecNames.size();
+    newEhdr->e_shoff +=shdr->sh_offset+shdr->sh_size+1;
+    fixPhdrs(newPhdr, loadSecTotalSize);
+    elf_update(newElf, ELF_C_NULL);
+    
+    if (elf_update(newElf, ELF_C_WRITE) < 0){
+        log_elferror(err_func_, "elf_update failed");
+        return false;
+    }
+    elf_end(newElf);
+    close(newfd);
+
+    return true;
+}
+
+#if 0 
+//This method updates the symbol table,
+//it shifts each symbol address as necessary AND
+//sets _end and _END_ to move the heap
+void Object::updateSymbols(Elf_Data* symtabData,Elf_Data* strData){
+
+    if( symtabData && strData){
+
+        Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
+        for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
+            if( newHeapAddr && !(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
+                newHeapAddrIncr = newHeapAddr - symPtr->st_value ;
+                symPtr->st_value = newHeapAddr;
+            }
+            if( newHeapAddr &&  !(strcmp("_END_", (char*) strData->d_buf + symPtr->st_name))){
+	        newHeapAddrIncr = newHeapAddr - symPtr->st_value ;
+	        symPtr->st_value = newHeapAddr;
+            }
+	}    
+    }
+}
+#endif
+
+/* Fix program headers. Change the size of the segments
+ *  based on the number of new sections added. The size of
+ *  the segment = original size + sizes of all loadable sections
+ *  added to that segment.(second loadable segment)
+ */   
+
+void Object::fixPhdrs(Elf32_Phdr * phdr, unsigned loadSecsSize){
+
+    /* find the second loadable section and extend it */
+    while(phdr->p_type != PT_NULL && phdr->p_type != PT_LOAD ){
+        phdr++;
+    }
+    phdr++;
+
+    while(phdr->p_type != PT_NULL && phdr->p_type != PT_LOAD ){
+        phdr++;
+    }
+    if( phdr->p_type == PT_LOAD )
+        phdr->p_memsz += loadSecsSize;
+}
+
+bool Object::createLoadableSections(Elf *&newElf, Elf32_Shdr *shdr, std::vector<Section *>&newSecs, std::vector<string> &loadSecNames, std::vector<Section *>&nonLoadableSecs, unsigned &shstrtabDataSize, unsigned &nonLoadableNamesSize, unsigned &loadSecTotalSize)
+{
+    Elf_Scn *newscn;
+    Elf_Data *newdata = NULL;
+    Elf32_Shdr *newshdr;
+			
+    for(unsigned i=0; i < newSecs.size(); i++)
+    {
+    	if(newSecs[i]->isLoadable())
+	{
+	    loadSecNames.push_back(newSecs[i]->getSecName());
+    
+            // Add a new loadable section
+	    if((newscn = elf_newscn(newElf)) == NULL)
+	    {
+	        log_elferror(err_func_, "unable to create new function");	
+ 	        return false;
+	    }	
+       	    if ((newdata = elf_newdata(newscn)) == NULL)
+	    {
+                log_elferror(err_func_, "unable to create section data");	
+       		return false;
+	    } 
+
+	    // Fill out the new section header	
+	    newshdr = elf32_getshdr(newscn);
+	    newshdr->sh_name = shstrtabDataSize;
+	    if(newSecs[i]->getFlags() == 1)
+		newshdr->sh_flags =  SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC;
+	    else    
+	        newshdr->sh_flags =  SHF_WRITE | SHF_ALLOC;
+	    newshdr->sh_type = SHT_PROGBITS;
+	    newshdr->sh_addr = newSecs[i]->getSecAddr();
+	    newshdr->sh_offset = shdr->sh_offset + shdr->sh_size;
+	    newshdr->sh_link = SHN_UNDEF;
+	    newshdr->sh_info = 0;
+	    newshdr->sh_addralign = 4;
+       	    newshdr->sh_entsize = 0;
+
+	    //Set up the data
+	    newdata->d_buf = malloc(newSecs[i]->getSecSize());
+	    memcpy(newdata->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getSecSize());
+	    
+	    newdata->d_size = newSecs[i]->getSecSize();
+	    newshdr->sh_size = newdata->d_size;
+	    loadSecTotalSize += newshdr->sh_size;
+	    
+	    newdata->d_type = ELF_T_BYTE;
+	    newdata->d_align = 4;
+	    newdata->d_version = 1;
+	    
+	    //elf_update(newElf, ELF_C_NULL);
+
+	    shdr = newshdr;
+    	    shstrtabDataSize += newSecs[i]->getSecName().size() + 1;
+	}
+	else
+	{
+	    nonLoadableSecs.push_back(newSecs[i]);
+	    nonLoadableNamesSize += newSecs[i]->getSecName().size()+1;
+	} 
+    }	
+    return true;
+}
+	
+void Object::addSectionNames(Elf_Data *&newdata, Elf_Data *olddata, unsigned shstrtabDataSize, unsigned nonLoadableNamesSize, std::vector<string> &loadSecNames, std::vector<Section *>&nonLoadableSecs)
+{
+    newdata->d_buf = (char *)malloc(shstrtabDataSize + nonLoadableNamesSize);
+    memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+    newdata->d_size = shstrtabDataSize + nonLoadableNamesSize;
+
+    // change the shstrtab section data accordingly
+    if(shstrtabDataSize > olddata->d_size)
+    {
+	char *ptr = (char *)newdata->d_buf+olddata->d_size;
+    	for(unsigned i=0;i<loadSecNames.size(); i++)
+	{
+	    memcpy(ptr, loadSecNames[i].c_str(), loadSecNames[i].length());
+	    memcpy(ptr+loadSecNames[i].length(), "\0", 1);
+	    ptr += loadSecNames[i].length()+1;
+	}    
+    }
+    if(nonLoadableNamesSize > 0)
+    {
+    	char *ptr = (char *)newdata->d_buf + shstrtabDataSize;
+    	for(unsigned i=0;i<nonLoadableSecs.size(); i++)
+	{
+	    memcpy(ptr, nonLoadableSecs[i]->getSecName().c_str(), nonLoadableSecs[i]->getSecName().length());
+	    memcpy(ptr+nonLoadableSecs[i]->getSecName().length(), "\0", 1);
+	    ptr += nonLoadableSecs[i]->getSecName().length()+1;
+	}    
+    }
+}
+
+bool Object::createNonLoadableSections(Elf *&newElf, std::vector<Section *>&nonLoadableSecs, Elf32_Shdr *shdr, unsigned shstrtabDataSize, unsigned newSecSize)    
+{
+    Elf_Scn *newscn;
+    Elf_Data *newdata = NULL;
+    Elf32_Shdr *newshdr;
+    
+    Elf32_Shdr *prevshdr = shdr; 
+    //All of them that are left are non-loadable. stack'em up at the end.
+    int prevNameSize = 0;
+    for(unsigned i = 0; i < nonLoadableSecs.size(); i++)
+    {
+         // Add a new non-loadable section
+         if((newscn = elf_newscn(newElf)) == NULL)
+         {
+             log_elferror(err_func_, "unable to create new function");	
+  	     return false;
+	 }	
+         if ((newdata = elf_newdata(newscn)) == NULL)
+  	 {
+             log_elferror(err_func_, "unable to create section data");	
+             return false;
+	 } 
+
+    	//Fill out the new section header
+	newshdr = elf32_getshdr(newscn);
+	newshdr->sh_name = shstrtabDataSize + prevNameSize;
+	if(nonLoadableSecs[i]->getFlags() == 1)		//Text Section
+	{
+	    newshdr->sh_type = SHT_PROGBITS;
+	    newshdr->sh_flags = SHF_EXECINSTR | SHF_WRITE;
+            newshdr->sh_entsize = 1;
+	    newdata->d_type = ELF_T_BYTE;
+	}
+	else if(nonLoadableSecs[i]->getFlags() == 2)	//Data Section
+	{
+	    newshdr->sh_type = SHT_PROGBITS;
+	    newshdr->sh_flags = SHF_WRITE;
+            newshdr->sh_entsize = 1;
+	    newdata->d_type = ELF_T_BYTE;
+	}
+	else if(nonLoadableSecs[i]->getFlags() == 3)	//Relocatons section
+	{
+	    newshdr->sh_type = SHT_REL;
+	    newshdr->sh_flags = SHF_WRITE;
+            newshdr->sh_entsize = sizeof(Elf32_Rel);
+	    newdata->d_type = ELF_T_BYTE;
+	}
+	else if(nonLoadableSecs[i]->getFlags() == 4)
+	{
+	    newshdr->sh_type = SHT_SYMTAB;
+            newshdr->sh_entsize = sizeof(Elf32_Sym);
+	    newdata->d_type = ELF_T_SYM;
+	    newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
+	    newshdr->sh_flags=  0;
+	}
+	else if(nonLoadableSecs[i]->getFlags() == 5)	//String table Section
+	{
+	    newshdr->sh_type = SHT_STRTAB;
+            newshdr->sh_entsize = 1;
+	    newdata->d_type = ELF_T_BYTE;
+	    newshdr->sh_link = SHN_UNDEF; 
+	    newshdr->sh_flags=  0;
+	}
+	newshdr->sh_offset = prevshdr->sh_offset+prevshdr->sh_size;
+	newshdr->sh_addr = 0;
+	newshdr->sh_info = 0;
+	newshdr->sh_addralign = 4;
+
+        //Set up the data
+	newdata->d_buf = nonLoadableSecs[i]->getPtrToRawData();
+	newdata->d_size = nonLoadableSecs[i]->getSecSize();
+	newshdr->sh_size = newdata->d_size;
+	//elf_update(newElf, ELF_C_NULL);
+	    
+	newdata->d_align = 4;
+	newdata->d_version = 1;
+	
+	prevNameSize += nonLoadableSecs[i]->getSecName().length() + 1;
+	prevshdr = newshdr;
+    }	
+    return true;
+}    	
+
+bool Object::checkIfStripped( Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
+{
+    unsigned i;
+    if(!isStripped)
+    	return false;
+    std::vector<Elf32_Sym *> symbols;
+    unsigned length = 1;
+    std::vector<string> strs;
+    strs.push_back("");
+    for(i=0; i<functions.size();i++)
+        getBackSymbol(functions[i], symbols, length, strs);
+    for(i=0; i<variables.size();i++)
+        getBackSymbol(variables[i], symbols, length, strs);
+    for(i=0; i<mods.size();i++)
+        getBackSymbol(mods[i], symbols, length, strs);
+    for(i=0; i<notypes.size();i++)
+        getBackSymbol(notypes[i], symbols, length, strs);
+    Elf32_Sym *syms = (Elf32_Sym *)malloc(symbols.size()* sizeof(Elf32_Sym));
+    for(i=0;i<symbols.size();i++)
+        syms[i] = *(symbols[i]);
+    --length;
+    char *str = (char *)malloc(length);
+    unsigned cur=0;
+    for(i=0;i<strs.size();i++)
+    {
+        strcpy(&str[cur],strs[i].c_str());
+        cur+=strs[i].length()+1;
+    }
+    
+    char *data = (char *)malloc(symbols.size()*sizeof(Elf32_Sym));
+    memcpy(data,syms, symbols.size()*sizeof(Elf32_Sym));
+
+    obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 4, true);
+
+    char *strData = (char *)malloc(length);
+    memcpy(strData, str,length);
+    
+    obj->addSection(0, strData, length, ".strtab", 5);
+    return true;
+}
+
+//#if 0	//writeBack
+bool Object::writeBackSymbols( string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
+{
+    int newfd;
+    unsigned i;
+    Elf *newElf;
+    Elf *oldElf = elfHdr.e_elfp();
+    unsigned pgSize = getpagesize();
+    Elf32_Off dynSegOffset;	 	   
+    if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT)))==-1){ 
+        log_elferror(err_func_, "error opening file to write symbols");
+        return false;
+    }
+    if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
+        log_elferror(err_func_, "NEWELF_BEGIN_FAIL");
+        fflush(stdout);
+        return false;
+    }
+    
+    // ".shstrtab" section: string table for section header names
+    const char *shnames = pdelf_get_shnames(elfHdr);
+    if (shnames == NULL) {
+        log_elferror(err_func_, ".shstrtab section");
+        return false;
+    }
+
+    std::vector<Elf32_Sym *> symbols;
+    unsigned length = 1;
+    std::vector<string> strs;
+    strs.push_back("");
+    for(i=0; i<functions.size();i++)
+        getBackSymbol(functions[i], symbols, length, strs);
+    for(i=0; i<variables.size();i++)
+        getBackSymbol(variables[i], symbols, length, strs);
+    for(i=0; i<mods.size();i++)
+        getBackSymbol(mods[i], symbols, length, strs);
+    for(i=0; i<notypes.size();i++)
+        getBackSymbol(notypes[i], symbols, length, strs);
+    Elf32_Sym *syms = (Elf32_Sym *)malloc(symbols.size()* sizeof(Elf32_Sym));
+    for(i=0;i<symbols.size();i++)
+        syms[i] = *(symbols[i]);
+    --length;
+    char *str = (char *)malloc(length);
+    unsigned cur=0;
+    for(i=0;i<strs.size();i++)
+    {
+        strcpy(&str[cur],strs[i].c_str());
+        cur+=strs[i].length()+1;
+    }
+    	
+    // Write the Elf header first!
+    Elf32_Ehdr *newEhdr= elf32_newehdr(newElf);
+    if(!newEhdr){
+        log_elferror(err_func_, "newEhdr failed\n");
+        return false;
+    }
+    Elf32_Ehdr *oldEhdr = elf32_getehdr(oldElf);
+    memcpy(newEhdr, oldEhdr, sizeof(Elf32_Ehdr));
+    if(isStripped)
+        newEhdr->e_shnum += 2;
+    
+    Elf32_Phdr *tmp = elf32_getphdr(oldElf);
+    // Find the offset of the start of the dynamic segment  
+    for(i=0;i<oldEhdr->e_phnum;i++)
+    {
+        if(tmp->p_type == PT_LOAD && tmp->p_flags == 6)
+        {
+            dynSegOffset = tmp->p_offset;
+            break;
+        }
+        tmp++;
+    }	
+    Elf32_Shdr *prevHdr,*newshdr, *shdr, *dynHdr, *ctorHdr, *ehframeHdr;
+    Elf32_Sym *sym;
+    Elf_Scn *scn, *newscn, *prevscn;
+    Elf_Data *newdata = NULL, *olddata = NULL, *symStrData, *symTabData;
+    scn = NULL;
+    unsigned shstrtabSize = 0;
+    unsigned scncount;
+    std::vector<Elf32_Sym *>sectionSymbols;
+    if(isStripped)
+    {
+        sym = new Elf32_Sym();
+        sym->st_name = 0;
+        sym->st_value = 0;
+        sym->st_size = 0;
+        sym->st_other = 0;
+        sym->st_info = ELF32_ST_INFO(0, 0);
+        sym->st_shndx = SHN_UNDEF;
+        sectionSymbols.push_back(sym);
+    }
+    prevHdr = NULL;
+    for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
+    	//copy sections from oldElf to newElf
+        shdr = elf32_getshdr(scn);
+        if(isStripped)
+        {
+            sym = new Elf32_Sym();
+            sym->st_name = 0;
+            sym->st_value = shdr->sh_addr;
+            sym->st_size = 0;
+            sym->st_other = 0;
+            sym->st_info = ELF32_ST_INFO(0, 3);
+            sym->st_shndx = scncount+1;
+            sectionSymbols.push_back(sym);
+        }
+        if((newscn = elf_newscn(newElf)) == NULL)
+        {
+            log_elferror(err_func_, "unable to create new function");	
+            return false;
+        }    
+	
+	// resolve section name
+        const char *name = &shnames[shdr->sh_name];
+
+	//Hack : Trying to maintain the same offsets 
+        if(shdr->sh_offset == dynSegOffset)
+        {
+            if(prevHdr)
+            {	
+                Elf32_Off off = dynSegOffset - (prevHdr->sh_size + prevHdr->sh_offset);
+                Elf_Data *dat = elf_getdata(prevscn,NULL);
+                char *ptr = (char *)dat->d_buf+dat->d_size;
+                ptr = (char *)malloc(off);
+                memset(ptr, '\0', off);
+                dat->d_size += off;
+                prevHdr->sh_size += off;
+            }	
+        }
+        olddata = elf_getdata(scn,NULL);
+        if ((newdata = elf_newdata(newscn)) == NULL)
+        {
+            log_elferror(err_func_, "unable to create section data");	
+            return false;
+        } 
+
+        newshdr = elf32_getshdr(newscn);
+        memcpy(newshdr, shdr, sizeof(Elf32_Shdr));
+        memcpy(newdata, olddata, sizeof(Elf_Data));
+
+        if(!strcmp(name, ".strtab"))
+        {
+            newdata->d_buf = malloc(length);
+            memcpy(newdata->d_buf, str,length);
+            newdata->d_size = length;
+            newshdr->sh_size = length;
+            symStrData = newdata;
+        } 
+        else if(!strcmp(name, ".symtab"))
+        {
+            newdata->d_buf = malloc((oldEhdr->e_shnum+symbols.size())*sizeof(Elf32_Sym));
+            memcpy(newdata->d_buf,olddata->d_buf, (oldEhdr->e_shnum)*sizeof(Elf32_Sym));
+            char *newPtr = (char *)newdata->d_buf+oldEhdr->e_shnum*sizeof(Elf32_Sym);
+            memcpy(newPtr,syms, symbols.size()*sizeof(Elf32_Sym));
+            newdata->d_size = (oldEhdr->e_shnum+symbols.size())*sizeof(Elf32_Sym);
+            newshdr->sh_size = newdata->d_size;
+            symTabData = newdata;
+        }   
+        else if(!strcmp(name, ".dynamic"))
+            dynHdr = newshdr;
+        else if(!strcmp(name, ".ctors"))
+            ctorHdr = newshdr;
+        else if(olddata->d_buf) 	//copy data buffer from oldElf
+        {
+            if(isStripped && !strcmp(name, ".shstrtab"))
+            {
+            	newdata->d_buf = (char *)malloc(olddata->d_size+16);
+            	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+                memcpy((char *)newdata->d_buf+olddata->d_size, ".symtab\0.strtab\0",16);
+                shstrtabSize = olddata->d_size;
+                newdata->d_size += 16;
+                newshdr->sh_size = newdata->d_size;
+            }
+	    else
+	    {
+            	newdata->d_buf = (char *)malloc(olddata->d_size);
+            	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+	    }
+        }
+        if(!strcmp(name, ".eh_frame"))
+        {
+	   // char *ptr = (char *)newdata->d_buf+newdata->d_size;
+	   // ptr = (char *)malloc(1108);
+	   // memset(ptr, '\0', 1108);
+	   // newdata->d_size += 1108;
+            ehframeHdr = newshdr;
+        }
+        prevHdr  =  newshdr;
+        prevscn = newscn;
+    }
+    if(isStripped)	//stripped binary
+    {
+        elf_update(newElf, ELF_C_NULL);
+        sym = new Elf32_Sym();
+        sym->st_name = 0;
+        sym->st_value = 0;
+        sym->st_size = 0;
+        sym->st_other = 0;
+        sym->st_info = ELF32_ST_INFO(0, 3);
+        sym->st_shndx = scncount+1;
+        sectionSymbols.push_back(sym);
+        sym = new Elf32_Sym();
+        sym->st_name = 0;
+        sym->st_value = 0;
+        sym->st_size = 0;
+        sym->st_other = 0;
+        sym->st_info = ELF32_ST_INFO(0, 3);
+        sym->st_shndx = scncount+2;
+        sectionSymbols.push_back(sym);
+    	// Add a new symtab section
+        if((newscn = elf_newscn(newElf)) == NULL)
+        {
+            log_elferror(err_func_, "unable to create new function");	
+            return false;
+        }    
+        if ((newdata = elf_newdata(newscn)) == NULL)
+        {
+            log_elferror(err_func_, "unable to create section data");	
+            return false;
+        } 
+
+	elf_update(newElf,ELF_C_NULL);
+        newshdr = elf32_getshdr(newscn);
+        newshdr->sh_name = shstrtabSize;
+        newshdr->sh_type = SHT_SYMTAB;
+        newshdr->sh_addr = 0;
+        newshdr->sh_link = oldEhdr->e_shnum+1;
+        newshdr->sh_info = 0;
+        newshdr->sh_addralign = 4;
+        newshdr->sh_entsize = sizeof(Elf32_Sym);
+        newdata->d_buf = malloc((oldEhdr->e_shnum+2+symbols.size())*sizeof(Elf32_Sym));
+        for(i=0;i<sectionSymbols.size();i++)
+            memcpy((char *)newdata->d_buf+i*sizeof(Elf32_Sym), sectionSymbols[i], sizeof(Elf32_Sym));
+        char *newPtr = (char *)newdata->d_buf+(oldEhdr->e_shnum+2)*sizeof(Elf32_Sym);
+        memcpy(newPtr,syms, symbols.size()*sizeof(Elf32_Sym));
+        newdata->d_size = (oldEhdr->e_shnum+2+symbols.size())*sizeof(Elf32_Sym);
+        newshdr->sh_size = newdata->d_size;
+        newdata->d_type = ELF_T_SYM;
+        newdata->d_align = 4;
+        newdata->d_version = 1;
+        symTabData = newdata;
+
+	// Add a new strtab section
+        if((newscn = elf_newscn(newElf)) == NULL)
+        {
+            log_elferror(err_func_, "unable to create new section");	
+            return false;
+        }    
+        if ((newdata = elf_newdata(newscn)) == NULL)
+        {
+            log_elferror(err_func_, "unable to create section data");	
+            return false;
+        } 
+	elf_update(newElf,ELF_C_NULL);
+        newshdr = elf32_getshdr(newscn);
+        newshdr->sh_name = shstrtabSize+8;
+        newshdr->sh_type = SHT_STRTAB;
+        newshdr->sh_addr = 0;
+        newshdr->sh_link = SHN_UNDEF;
+        newshdr->sh_info = 0;
+        newdata->d_buf = malloc(length);
+        newshdr->sh_addralign = 1;
+        newshdr->sh_entsize = 0;
+        memcpy(newdata->d_buf, str,length);
+        newdata->d_size = length;
+        newshdr->sh_size = length;
+        newdata->d_type = ELF_T_BYTE;
+        newdata->d_align = 1;
+        newdata->d_version = 1;
+        symStrData = newdata;
+    }
+   
+    tmp = elf32_getphdr(oldElf);
+    Elf32_Phdr *newPhdr=elf32_newphdr(newElf,oldEhdr->e_phnum);
+    memcpy(newPhdr, tmp, (oldEhdr->e_phnum)*oldEhdr->e_phentsize);
+
+//    elf_update(newElf, ELF_C_NULL);
+/*    for(i=0;i<newEhdr->e_phnum;i++)
+    {
+    if(newPhdr->p_type == PT_LOAD && newPhdr->p_flags == 6)
+    newPhdr->p_offset = ctorHdr->sh_offset;
+    else if(newPhdr->p_type == PT_DYNAMIC)
+    newPhdr->p_offset = dynHdr->sh_offset;	    
+    newPhdr++;    
+}*/
+/*
+    printf("Sections prior to update:\n");
+    for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
+    shdr = elf32_getshdr(scn);
+    const char *name = &shnames[shdr->sh_name];
+
+    printf("  %s (addr: 0x%x offset: 0x%x)\n",
+    name, shdr->sh_addr, shdr->sh_offset);
+}
+    printf("\n");
+*/
+    
+    /* flag the file for no auto-layout */
+    elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);    
+
+    if (elf_update(newElf, ELF_C_WRITE) < 0){
+        log_elferror(err_func_, "elf_update failed");
+        return false;
+    }
+/*
+    printf("Sections after update:\n");
+    for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
+    shdr = elf32_getshdr(scn);
+    const char *name = &shnames[shdr->sh_name];
+
+    printf("  %s (addr: 0x%x offset: 0x%x)\n",
+    name, shdr->sh_addr, shdr->sh_offset);
+}
+    printf("\n");
+*/
+
+    elf_end(newElf);
+    close(newfd);
+    
+    return true;
+}
+//#endif	//writeBack
+
+#if 0		//writeBack
+bool Object::writeBackSymbols( string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
+{
+    int newfd;
+    unsigned i;
+    Elf *newElf;
+    Elf *oldElf = elfHdr.e_elfp();
+    unsigned pgSize = getpagesize();
+    Elf32_Off dynSegOffset;	 	   
+    if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT)))==-1){ 
+ 	log_elferror(err_func_, "error opening file to write symbols");
+	return false;
+    }
+    if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
+    	log_elferror(err_func_, "NEWELF_BEGIN_FAIL");
+        fflush(stdout);
+        return false;
+    }
+    
+    // ".shstrtab" section: string table for section header names
+    const char *shnames = pdelf_get_shnames(elfHdr);
+    if (shnames == NULL) {
+	log_elferror(err_func_, ".shstrtab section");
+	return false;
+    }
+
+    std::vector<Elf32_Sym *> symbols;
+    unsigned length = 1;
+    std::vector<string> strs;
+    strs.push_back("");
+    for(i=0; i<functions.size();i++)
+	getBackSymbol(functions[i], symbols, length, strs);
+    for(i=0; i<variables.size();i++)
+	getBackSymbol(variables[i], symbols, length, strs);
+    for(i=0; i<mods.size();i++)
+	getBackSymbol(mods[i], symbols, length, strs);
+    for(i=0; i<notypes.size();i++)
+	getBackSymbol(notypes[i], symbols, length, strs);
+    Elf32_Sym *syms = (Elf32_Sym *)malloc(symbols.size()* sizeof(Elf32_Sym));
+    for(i=0;i<symbols.size();i++)
+    	syms[i] = *(symbols[i]);
+    --length;
+    char *str = (char *)malloc(length);
+    unsigned cur=0;
+    for(i=0;i<strs.size();i++)
+    {
+    	strcpy(&str[cur],strs[i].c_str());
+	cur+=strs[i].length()+1;
+    }
+    	
+    // Write the Elf header first!
+    Elf32_Ehdr *newEhdr= elf32_newehdr(newElf);
+    if(!newEhdr){
+    	log_elferror(err_func_, "newEhdr failed\n");
+        return false;
+    }
+    Elf32_Ehdr *oldEhdr = elf32_getehdr(oldElf);
+    memcpy(newEhdr, oldEhdr, sizeof(Elf32_Ehdr));
+    if(isStripped)
+   	newEhdr->e_shnum += 2;
+    
+    Elf32_Phdr *tmp = elf32_getphdr(oldElf);
+    // Find the offset of the start of the dynamic segment  
+    for(i=0;i<oldEhdr->e_phnum;i++)
+    {
+	if(tmp->p_type == PT_LOAD && tmp->p_flags == 6)
+	{
+	    dynSegOffset = tmp->p_offset;
+	    break;
+	}
+	tmp++;
+    }	
+    Elf32_Shdr *prevHdr,*newshdr, *shdr, *dynHdr, *ctorHdr;
+    Elf32_Sym *sym;
+    Elf_Scn *scn, *newscn, *prevscn;
+    Elf_Data *newdata = NULL, *olddata = NULL, *symStrData, *symTabData;
+    scn = NULL;
+    unsigned shstrtabSize = 0;
+    unsigned scncount;
+    std::vector<Elf32_Sym *>sectionSymbols;
+    if(isStripped)
+    {
+        sym = new Elf32_Sym();
+        sym->st_name = 0;
+	sym->st_value = 0;
+	sym->st_size = 0;
+   	sym->st_other = 0;
+   	sym->st_info = ELF32_ST_INFO(0, 0);
+	sym->st_shndx = SHN_UNDEF;
+   	sectionSymbols.push_back(sym);
+    }
+    prevHdr = NULL;
+    for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
+    	//copy sections from oldElf to newElf
+	shdr = elf32_getshdr(scn);
+	if(isStripped)
+	{
+   	    sym = new Elf32_Sym();
+	    sym->st_name = 0;
+	    sym->st_value = shdr->sh_addr;
+	    sym->st_size = 0;
+   	    sym->st_other = 0;
+   	    sym->st_info = ELF32_ST_INFO(0, 3);
+	    sym->st_shndx = scncount+1;
+   	    sectionSymbols.push_back(sym);
+	}
+	if((newscn = elf_newscn(newElf)) == NULL)
+	{
+	    log_elferror(err_func_, "unable to create new function");	
+	    return false;
+	}    
+	
+	// resolve section name
+	const char *name = &shnames[shdr->sh_name];
+
+#if 0
+	//Hack : Trying to maintain the same offsets 
+	if(shdr->sh_offset == dynSegOffset)
+	{
+		if(prevHdr)
+	   	{
+			Elf32_Off off = dynSegOffset - (prevHdr->sh_size + prevHdr->sh_offset);
+			Elf_Data *dat = elf_getdata(prevscn,NULL);
+			char *ptr = (char *)dat->d_buf+dat->d_size;
+	   		ptr = (char *)malloc(off);
+	   		memset(ptr, '\0', off);
+			dat->d_size += off;
+			prevHdr->sh_size += off;
+		}	
+	}
+#endif	
+
+	olddata = elf_getdata(scn,NULL);
+        if ((newdata = elf_newdata(newscn)) == NULL)
+        {
+	    log_elferror(err_func_, "unable to create section data");	
+	    return false;
+	} 
+
+	newshdr = elf32_getshdr(newscn);
+	memcpy(newshdr, shdr, sizeof(Elf32_Shdr));
+	memcpy(newdata, olddata, sizeof(Elf_Data));
+
+	if(!strcmp(name, ".strtab"))
+	{
+	    newdata->d_buf = malloc(length);
+	    memcpy(newdata->d_buf, str,length);
+	    newdata->d_size = length;
+	    newshdr->sh_size = length;
+	    symStrData = newdata;
+	} 
+	else if(!strcmp(name, ".symtab"))
+	{
+	    newdata->d_buf = malloc((oldEhdr->e_shnum+symbols.size())*sizeof(Elf32_Sym));
+	    memcpy(newdata->d_buf,olddata->d_buf, (oldEhdr->e_shnum)*sizeof(Elf32_Sym));
+	    char *newPtr = (char *)newdata->d_buf+oldEhdr->e_shnum*sizeof(Elf32_Sym);
+	    memcpy(newPtr,syms, symbols.size()*sizeof(Elf32_Sym));
+	    newdata->d_size = (oldEhdr->e_shnum+symbols.size())*sizeof(Elf32_Sym);
+	    newshdr->sh_size = newdata->d_size;
+	    symTabData = newdata;
+	}   
+	else if(!strcmp(name, ".dynamic"))
+	   dynHdr = newshdr;
+	else if(!strcmp(name, ".ctors"))
+	   ctorHdr = newshdr;
+	else if(olddata->d_buf) 	//copy data buffer from oldElf
+	{
+	    newdata->d_buf = (char *)malloc(olddata->d_size+16);
+	    memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+	    if(isStripped && !strcmp(name, ".shstrtab"))
+	    {
+	    	memcpy((char *)newdata->d_buf+olddata->d_size, ".symtab\0.strtab\0",16);
+		shstrtabSize = olddata->d_size;
+		newdata->d_size += 16;
+	    	newshdr->sh_size = newdata->d_size;
+	    }
+	}
+	//prevHdr  =  newshdr;
+	//prevscn = newscn;
+    }
+    if(isStripped)	//stripped binary
+    {
+    	elf_update(newElf, ELF_C_NULL);
+   	sym = new Elf32_Sym();
+	sym->st_name = 0;
+	sym->st_value = 0;
+	sym->st_size = 0;
+   	sym->st_other = 0;
+   	sym->st_info = ELF32_ST_INFO(0, 3);
+	sym->st_shndx = scncount+1;
+   	sectionSymbols.push_back(sym);
+   	sym = new Elf32_Sym();
+	sym->st_name = 0;
+	sym->st_value = 0;
+	sym->st_size = 0;
+   	sym->st_other = 0;
+   	sym->st_info = ELF32_ST_INFO(0, 3);
+	sym->st_shndx = scncount+2;
+   	sectionSymbols.push_back(sym);
+    	// Add a new symtab section
+	if((newscn = elf_newscn(newElf)) == NULL)
+	{
+	    log_elferror(err_func_, "unable to create new function");	
+	    return false;
+	}    
+        if ((newdata = elf_newdata(newscn)) == NULL)
+        {
+	    log_elferror(err_func_, "unable to create section data");	
+	    return false;
+	} 
+	
+	newshdr = elf32_getshdr(newscn);
+	newshdr->sh_name = shstrtabSize;
+	newshdr->sh_type = SHT_SYMTAB;
+	newshdr->sh_addr = 0;
+	newshdr->sh_link = oldEhdr->e_shnum+1;
+	newshdr->sh_info = 0;
+	newshdr->sh_addralign = 4;
+	newshdr->sh_entsize = sizeof(Elf32_Sym);
+	newdata->d_buf = malloc((oldEhdr->e_shnum+2+symbols.size())*sizeof(Elf32_Sym));
+	for(i=0;i<sectionSymbols.size();i++)
+	    memcpy((char *)newdata->d_buf+i*sizeof(Elf32_Sym), sectionSymbols[i], sizeof(Elf32_Sym));
+	char *newPtr = (char *)newdata->d_buf+(oldEhdr->e_shnum+2)*sizeof(Elf32_Sym);
+	memcpy(newPtr,syms, symbols.size()*sizeof(Elf32_Sym));
+	newdata->d_size = (oldEhdr->e_shnum+2+symbols.size())*sizeof(Elf32_Sym);
+	newshdr->sh_size = newdata->d_size;
+	newdata->d_type = ELF_T_SYM;
+	newdata->d_align = 4;
+	newdata->d_version = 1;
+	symTabData = newdata;
+
+	// Add a new strtab section
+	if((newscn = elf_newscn(newElf)) == NULL)
+	{
+	    log_elferror(err_func_, "unable to create new function");	
+	    return false;
+	}    
+        if ((newdata = elf_newdata(newscn)) == NULL)
+        {
+	    log_elferror(err_func_, "unable to create section data");	
+	    return false;
+	} 
+	newshdr = elf32_getshdr(newscn);
+	newshdr->sh_name = shstrtabSize+8;
+	newshdr->sh_type = SHT_STRTAB;
+	newshdr->sh_addr = 0;
+	newshdr->sh_link = SHN_UNDEF;
+	newshdr->sh_info = 0;
+	newdata->d_buf = malloc(length);
+	newshdr->sh_addralign = 1;
+	newshdr->sh_entsize = 0;
+	memcpy(newdata->d_buf, str,length);
+	newdata->d_size = length;
+	newshdr->sh_size = length;
+	newdata->d_type = ELF_T_BYTE;
+	newdata->d_align = 1;
+	newdata->d_version = 1;
+	symStrData = newdata;
+    }
+   
+    tmp = elf32_getphdr(oldElf);
+    Elf32_Phdr *newPhdr=elf32_newphdr(newElf,oldEhdr->e_phnum);
+    memcpy(newPhdr, tmp, (oldEhdr->e_phnum)*oldEhdr->e_phentsize);
+
+//    elf_update(newElf, ELF_C_NULL);
+/*    for(i=0;i<newEhdr->e_phnum;i++)
+    {
+	if(newPhdr->p_type == PT_LOAD && newPhdr->p_flags == 6)
+	    newPhdr->p_offset = ctorHdr->sh_offset;
+    	else if(newPhdr->p_type == PT_DYNAMIC)
+	    newPhdr->p_offset = dynHdr->sh_offset;	    
+	newPhdr++;    
+    }
+*/
+    /* flag the file for no auto-layout */
+    elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
+    if (elf_update(newElf, ELF_C_WRITE) < 0){
+    	log_elferror(err_func_, "elf_update failed");
+	return false;
+    }
+    elf_end(newElf);
+    close(newfd);
+    
+    return true;
+}
+#endif	//writeBack
+
 const char *Object::interpreter_name() const {
    return interpreter_name_;
 }
+
+/* Parse everything in the file on disk, and cache that we've done so,
+   because our modules may not bear any relation to the name source files. */
+void Object::parseStabFileLineInfo() {
+    static hash_map< string, bool > haveParsedFileMap;
+	
+    //unsigned long int proc_addr = reinterpret_cast< unsigned long int >( proc() );
+    //pdstring key = pdstring( proc_addr ) + fileName;
+    //if( haveParsedFileMap.defines( key ) ) { return; } 
+
+    /* We haven't parsed this file already, so iterate over its stab entries. */
+  
+    stab_entry * stabEntry = get_stab_info();
+    assert( stabEntry != NULL );
+    const char * nextStabString = stabEntry->getStringBase();
+	
+    const char * currentSourceFile = NULL;
+    Offset currentFunctionBase = 0;
+    unsigned int previousLineNo = 0;
+    Offset previousLineAddress = 0;
+    bool isPreviousValid = false;
+	
+    Offset baseAddress = getBaseAddress();
+	
+    for( unsigned int i = 0; i < stabEntry->count(); i++ ) 
+    {
+    	switch( stabEntry->type( i ) ) {
+		
+    	case N_UNDF: /* start of an object file */ 
+	{
+            if( isPreviousValid )
+		/* DEBUG */ fprintf( stderr, "%s[%d]: unterminated N_SLINE at start of object file.  Line number information will be lost.\n", __FILE__, __LINE__ );
+			
+      	    stabEntry->setStringBase( nextStabString );
+            nextStabString = stabEntry->getStringBase() + stabEntry->val( i );
+				
+      	    currentSourceFile = NULL;
+            isPreviousValid = false;
+    	}
+	break;
+    	
+	case N_SO: /* compilation source or file name */
+	{
+            if( isPreviousValid ) {
+		/* Add the previous N_SLINE. */
+		Offset currentLineAddress = stabEntry->val( i );
+					
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+		unsigned current_col = 0; // stabs does not support column information
+		 //if(previousLineNo == 597 || previousLineNo == 596)
+		///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+	 	lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                	                              current_col, previousLineAddress, currentLineAddress );
+		//giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
+      	    }
+				
+      	    const char * sourceFile = stabEntry->name( i );
+      	    currentSourceFile = strrchr( sourceFile, '/' );
+      	    if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
+      	    else { ++currentSourceFile; }
+      	    // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
+				
+      	    isPreviousValid = false;
+    	}
+	break;
+				
+    	case N_SOL: /* file name (possibly an include file) */ 
+	{
+      	    if( isPreviousValid ) {
+		/* Add the previous N_SLINE. */
+		Offset currentLineAddress = stabEntry->val( i );
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+		unsigned current_col = 0;
+		 if(previousLineNo == 597 || previousLineNo == 596)
+		/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+		lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                	                              current_col, previousLineAddress, currentLineAddress );
+		//giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
+        	//                                  current_col, previousLineAddress, currentLineAddress  );
+      	    }
+            const char * sourceFile = stabEntry->name( i );
+      	    currentSourceFile = strrchr( sourceFile, '/' );
+      	    if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
+      	    else { ++currentSourceFile; }
+      	    // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
+				
+      	    isPreviousValid = false;
+    	}
+	break;
+				
+    	case N_FUN: /* a function */ 
+	{
+            if( * stabEntry->name( i ) == 0 ) {
+	    	/* An end-of-function marker.  The value is the size of the function. */
+	    	if( isPreviousValid ) {
+	    	    /* Add the previous N_SLINE. */
+	  	    Offset currentLineAddress = currentFunctionBase + stabEntry->val( i );
+	  	    // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+	  	    unsigned current_col = 0;
+		 if(previousLineNo == 597 || previousLineNo == 596)
+		/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+	 	    lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                 	                                  current_col, previousLineAddress, currentLineAddress );
+	  	    //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
+          	    //    	                              current_col, previousLineAddress, currentLineAddress  );
+	        }
+					
+	        /* We've added the previous N_SLINE and don't currently have a module. */
+	        isPreviousValid = false;
+	        break;
+      	    } /* end if the N_FUN is an end-of-function-marker. */
+							
+      	    if( isPreviousValid ) {
+	   	Offset currentLineAddress = stabEntry->val( i );
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+		unsigned current_col = 0;
+		 if(previousLineNo == 597 || previousLineNo == 596)
+		/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+	 	lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                	                              current_col, previousLineAddress, currentLineAddress );
+		//giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
+      	    }
+					
+	    currentFunctionBase = stabEntry->val( i );
+     	    currentFunctionBase += baseAddress;
+				
+      	    //giri: int_function * currentFunction = obj()->findFuncByAddr( currentFunctionBase );
+      	    //if( currentFunction == NULL ) {
+	    // /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, currentFunctionBase );
+	    //currentModule = NULL;
+            //}
+      	    //else {
+		//currentModule = currentFunction->mod();
+		//assert( currentModule != NULL );
+      	    //}
+											
+    	    isPreviousValid = false;
+    	}
+	break;
+				
+    	case N_SLINE: {
+      	    //if( currentModule ) {
+	    Address currentLineAddress = currentFunctionBase + stabEntry->val( i );
+	    unsigned int currentLineNo = stabEntry->desc( i );
+					
+	    if( isPreviousValid ) 
+	    {
+	  	// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+	  	unsigned current_col = 0;
+	//	 if(previousLineNo == 597 || previousLineNo == 596)
+	//	/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+	  	lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                	                              current_col, previousLineAddress, currentLineAddress );
+	  	//currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
+	    }
+						
+	    previousLineAddress = currentLineAddress;
+	    previousLineNo = currentLineNo;
+	    isPreviousValid = true;
+      	    //} /* end if we've a module to which to add line information */
+    	}
+	break;
+						
+        } /* end switch on the ith stab entry's type */
+    
+    } /* end iteration over stab entries. */
+	
+//  haveParsedFileMap[ key ] = true;
+} /* end parseStabFileLineInfo() */
+
+// Dwarf Debug Format parsing
+void Object::parseDwarfFileLineInfo() 
+{
+  Dwarf_Debug dbg;
+  int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
+  if ( status != DW_DLV_OK ) { return; }
+	
+  /* Itereate over the CU headers. */
+  Dwarf_Unsigned header;
+  while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) {
+    /* Acquire the CU DIE. */
+    Dwarf_Die cuDIE;
+    status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
+    if ( status != DW_DLV_OK ) { 
+      /* If we can get no (more) CUs, we're done. */
+      break;
+    }
+		
+    /* Acquire this CU's source lines. */
+    Dwarf_Line * lineBuffer;
+    Dwarf_Signed lineCount;
+    status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
+		
+    /* See if we can get anything useful out of the next CU
+       if this one is corrupt. */
+    assert( status != DW_DLV_ERROR );
+//{
+//      dwarf_printf( "%s[%d]: dwarf_srclines() error.\n" );
+//  }
+		
+    /* It's OK for a CU not to have line information. */
+    if ( status != DW_DLV_OK ) {
+      /* Free this CU's DIE. */
+      dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
+      continue;
+    }
+    assert( status == DW_DLV_OK );
+		
+    /* The 'lines' returned are actually interval markers; the code
+       generated from lineNo runs from lineAddr up to but not including
+       the lineAddr of the next line. */			   
+    bool isPreviousValid = false;
+    Dwarf_Unsigned previousLineNo = 0;
+    Dwarf_Signed previousLineColumn = 0;
+    Dwarf_Addr previousLineAddr = 0x0;
+    char * previousLineSource = NULL;
+		
+    //Offset baseAddr = obj()->codeBase();
+    Offset baseAddr = getBaseAddress();
+		
+    /* Iterate over this CU's source lines. */
+    for ( int i = 0; i < lineCount; i++ ) {
+      /* Acquire the line number, address, source, and end of sequence flag. */
+      Dwarf_Unsigned lineNo;
+      status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
+      if ( status != DW_DLV_OK ) { continue; }
+				
+      Dwarf_Signed lineOff;
+      status = dwarf_lineoff( lineBuffer[i], & lineOff, NULL );
+      if ( status != DW_DLV_OK ) { lineOff = 0; }
+
+      Dwarf_Addr lineAddr;
+      status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
+      if ( status != DW_DLV_OK ) { continue; }
+      lineAddr += baseAddr;
+			
+      char * lineSource;
+      status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
+      if ( status != DW_DLV_OK ) { continue; }
+						
+      Dwarf_Bool isEndOfSequence;
+      status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
+      if ( status != DW_DLV_OK ) { continue; }
+			
+      if ( isPreviousValid ) {
+	/* If we're talking about the same (source file, line number) tuple,
+	   and it isn't the end of the sequence, we can coalesce the range.
+	   (The end of sequence marker marks discontinuities in the ranges.) */
+	if ( lineNo == previousLineNo && strcmp( lineSource, previousLineSource ) == 0 && ! isEndOfSequence ) {
+	  /* Don't update the prev* values; just keep going until we hit the end of a sequence or
+	     a new sourcefile. */
+	  continue;
+	} /* end if we can coalesce this range */
+                                
+	/* Determine into which mapped_module this line information should be inserted. */
+	//int_function * currentFunction = obj()->findFuncByAddr( previousLineAddr );
+	//if ( currentFunction == NULL ) {
+	  // /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line 1111number information will be lost.\n", __FILE__, __LINE__, lineAddr );
+	//}
+	//else {
+	  //mapped_module * currentModule = currentFunction->mod();
+	  //assert( currentModule != NULL );
+					
+         char *canonicalLineSource;
+         if (truncateLineFilenames) {
+            canonicalLineSource = strrchr( previousLineSource, '/' );
+            if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
+            else { ++canonicalLineSource; }
+         }
+         else {
+            canonicalLineSource = previousLineSource;
+         }
+
+	 lineInfo_[canonicalLineSource].addLine(canonicalLineSource, previousLineNo, 
+                                              previousLineColumn, previousLineAddr, lineAddr );
+	/* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
+	//currentModule->lineInfo_.addLine(canonicalLineSource, previousLineNo, 
+        //                                  previousLineColumn, previousLineAddr, lineAddr );
+        //currentModule->lineInfoValid_ = true;
+	
+//	 if(previousLineNo == 597 || previousLineNo == 596)
+//	/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << canonicalLineSource << ":" << setbase(10) << previousLineNo << endl;
+       //} /* end if we found the function by its address */
+     } /* end if the previous* variables are valid */
+				
+     /* If the current line ends the sequence, invalidate previous; otherwise, update. */
+     if ( isEndOfSequence ) {
+        dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
+        isPreviousValid = false;
+     }
+     else {
+     if( isPreviousValid ) { dwarf_dealloc( dbg, previousLineSource, DW_DLA_STRING ); }
+        previousLineNo = lineNo;
+        previousLineSource = lineSource;
+        previousLineAddr = lineAddr;
+        previousLineColumn = lineOff;
+							
+       isPreviousValid = true;
+     } /* end if line was not the end of a sequence */
+   } /* end iteration over source line entries. */
+		
+    /* Free this CU's source lines. */
+    for ( int i = 0; i < lineCount; i++ ) {
+      dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
+    }
+    dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
+		
+    /* Free this CU's DIE. */
+    dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
+  } /* end CU header iteration */
+
+  /* Wind down libdwarf. */
+  status = dwarf_finish( dbg, NULL );
+  assert(status == DW_DLV_OK);
+/*  if ( status != DW_DLV_OK ) {
+    dwarf_printf( "%s[%d]: failed to dwarf_finish()\n" );
+  }	
+*/
+  /* Note that we've parsed this file. */
+} /* end parseDwarfFileLineInfo() */
+
+void Object::parseFileLineInfo()
+{
+    parseStabFileLineInfo();
+    parseDwarfFileLineInfo();
+}
+
+void Object::parseTypeInfo(Symtab *obj)
+{
+//  #if defined(TIMED_PARSE)
+    struct timeval starttime;
+    gettimeofday(&starttime, NULL);
+//  #endif	 
+
+    parseStabTypes(obj);
+    parseDwarfTypes(obj);
+
+//  #if defined(TIMED_PARSE)
+    struct timeval endtime;
+    gettimeofday(&endtime, NULL);
+    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+    unsigned long difftime = lendtime - lstarttime;
+    double dursecs = difftime/(1000 );
+    cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->file()
+	 <<") took "<< dursecs <<" msecs" << endl;
+//  #endif	 
+}
+
+void Object::parseStabTypes(Symtab *obj)
+{
+    stab_entry *stabptr = NULL;
+    const char *next_stabstr = NULL;
+
+    unsigned i;
+    char *modName = NULL;
+    string temp;
+    char *ptr = NULL, *ptr2 = NULL, *ptr3 = NULL;
+    bool parseActive = false;
+
+    string* currentFunctionName = NULL;
+    Offset currentFunctionBase = 0;
+    Symbol *commonBlockVar = NULL;
+    string *commonBlockName = NULL;
+    typeCommon *commonBlock = NULL;
+    int mostRecentLinenum = 0;
+
+    Module *mod;
+
+ #if defined(TIMED_PARSE)
+    struct timeval starttime;
+    gettimeofday(&starttime, NULL);
+    unsigned int pss_count = 0;
+    double pss_dur = 0;
+    unsigned int src_count = 0;
+    double src_dur = 0;
+    unsigned int fun_count = 0;
+    double fun_dur = 0;
+    struct timeval t1, t2;
+ #endif
+
+
+    stabptr = get_stab_info();
+    if(!stabptr)
+    	return;
+   
+    //Using the Object to get the pointers to the .stab and .stabstr
+    // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
+    next_stabstr = stabptr->getStringBase();
+    for (i=0; i<stabptr->count(); i++) {
+	switch(stabptr->type(i)){
+	    case N_UNDF: /* start of object file */
+	    	/* value contains offset of the next string table for next module */
+	    	// assert(stabptr->nameIdx(i) == 1);
+	    	stabptr->setStringBase(next_stabstr);
+		next_stabstr = stabptr->getStringBase() + stabptr->val(i);
+
+	        //N_UNDF is the start of object file. It is time to
+                //clean source file name at this moment.
+	     /*
+	        if(currentSourceFile){
+	             delete currentSourceFile;
+	             currentSourceFile = NULL;
+	             delete absoluteDirectory;
+	             absoluteDirectory = NULL;
+	             delete currentFunctionName;
+	             currentFunctionName = NULL;
+	             currentFileInfo = NULL;
+	             currentFuncInfo = NULL;
+	        }
+	     */
+	       break;
+       	   
+	   case N_ENDM: /* end of object file */
+	       break;
+           
+	   case N_SO: /* compilation source or file name */
+	       /* bperr("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
+	     #ifdef TIMED_PARSE
+	       src_count++;
+	       gettimeofday(&t1, NULL);
+	     #endif
+               current_func_name = ""; // reset for next object file
+	       current_mangled_func_name = ""; // reset for next object file
+	       current_func = NULL;
+
+	       modName = const_cast<char*>(stabptr->name(i));
+	       // cerr << "checkpoint B" << endl;
+	       ptr = strrchr(modName, '/');
+	       //  cerr << "checkpoint C" << endl;
+	       if (ptr) {
+	           ptr++;
+		   modName = ptr;
+	       }
+	       if(obj->findModule(mod, modName)) {
+                   parseActive = true;
+	           mod->getModuleTypes()->clearNumberedTypes();
+	       }else {
+		        parseActive = false;
+	       }
+	     #ifdef TIMED_PARSE
+	       gettimeofday(&t2, NULL);
+	       src_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+	       //src_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
+	     #endif
+	        break;
+	   case N_SLINE:
+	        mostRecentLinenum = stabptr->desc(i);
+	        break;
+	   default:
+	        break;
+	}
+	if(parseActive || !is_aout()) {
+	    std::vector<Symbol *> bpfv;
+            switch(stabptr->type(i)){
+	        case N_FUN:
+		  #ifdef TIMED_PARSE
+		    fun_count++;
+	            gettimeofday(&t1, NULL);
+	          #endif
+		    //all we have to do with function stabs at this point is to assure that we have
+	            //properly set the var currentFunctionName for the later case of (parseActive)
+	            current_func = NULL;
+	            int currentEntry = i;
+	            int funlen = strlen(stabptr->name(currentEntry));
+	            ptr = new char[funlen+1];
+	            strcpy(ptr, stabptr->name(currentEntry));
+	            while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
+	                ptr[strlen(ptr)-1] = '\0';
+	                currentEntry++;
+	                strcat(ptr,stabptr->name(currentEntry));
+	            }
+  	            char* colonPtr = NULL;
+		    if(currentFunctionName) delete currentFunctionName;
+		    if(!ptr || !(colonPtr = strchr(ptr,':')))
+	                currentFunctionName = NULL;
+		    else {
+		        char* tmp = new char[colonPtr-ptr+1];
+		        strncpy(tmp,ptr,colonPtr-ptr);
+		        tmp[colonPtr-ptr] = '\0';
+		        currentFunctionName = new string(tmp);
+                        currentFunctionBase = 0;
+	                Symbol *info;
+                        // Shouldn't this be a function name lookup?
+			std::vector<Symbol *>syms;
+			if(!obj->findSymbolByType(syms, *currentFunctionName, Symbol::ST_FUNCTION))
+			{
+			    if(!obj->findSymbolByType(syms, "_"+*currentFunctionName, Symbol::ST_FUNCTION))
+			    {
+			    	string fortranName = *currentFunctionName + string("_");
+                            	if (obj->findSymbolByType(syms, fortranName, Symbol::ST_FUNCTION))
+	                    	{
+	                            delete currentFunctionName;
+                                    currentFunctionName = new string(fortranName);
+				    info = syms[0];
+			    	}
+			    }
+			    else
+			    	info = syms[0];
+			}
+			else
+			    info = syms[0];
+			syms.clear();
+			if(info)
+ 	                    currentFunctionBase = info->getAddr();
+                        delete[] tmp;
+    		    }
+		    delete[] ptr;
+		  #ifdef TIMED_PARSE
+		    gettimeofday(&t2, NULL);
+		    fun_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+		    //fun_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
+		  #endif
+	            break;
+	    }
+	    if (!parseActive) continue;
+	    switch(stabptr->type(i)){
+	        case N_BCOMM:     {
+	            // begin Fortran named common block
+	            string tmp = string(stabptr->name(i));
+		    commonBlockName = &tmp;
+                    // find the variable for the common block
+
+		    //TODO? change this. findLocalVar will cause an infinite loop
+		    std::vector<Symbol *>vars;
+		    if(!obj->findSymbolByType(vars, *commonBlockName, Symbol::ST_OBJECT))
+                    {
+                        if(!obj->findSymbolByType(vars, *commonBlockName, Symbol::ST_OBJECT, true))
+                            commonBlockVar = NULL;
+                        else
+                            commonBlockVar = vars[0];
+                    }
+	            else
+	                commonBlockVar = vars[0];
+		    if (!commonBlockVar) {
+		        // //bperr("unable to find variable %s\n", commonBlockName);
+		    } else {
+		        commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypes()->findVariableType(*commonBlockName));
+		        if (commonBlock == NULL) {
+		            // its still the null type, create a new one for it
+		            commonBlock = new typeCommon(*commonBlockName);
+		            mod->getModuleTypes()->addGlobalVariable(*commonBlockName, commonBlock);
+		        }
+	                // reset field list
+		        commonBlock->beginCommonBlock();
+		    }
+		    break;
+	        }
+		case N_ECOMM: {
+		    //copy this set of fields
+                    assert(currentFunctionName);
+		    if(!obj->findSymbolByType(bpfv, *currentFunctionName, Symbol::ST_FUNCTION)) {
+		    	if(!obj->findSymbolByType(bpfv, *currentFunctionName, Symbol::ST_FUNCTION, true)){
+		            // //bperr("unable to locate current function %s\n", currentFunctionName->c_str());
+			}
+			else{
+                            Symbol *func = bpfv[0];
+	                    commonBlock->endCommonBlock(func, (void *)obj->getBaseOffset());
+			}    
+		    } else {
+		        if (bpfv.size() > 1) {
+		           // warn if we find more than one function with this name
+		           // //bperr("%s[%d]:  WARNING: found %d funcs matching name %s, using the first\n",
+				//                     __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
+		        }
+                        Symbol *func = bpfv[0];
+	                commonBlock->endCommonBlock(func, (void *)obj->getBaseOffset());
+		    }
+	     //TODO?? size for local variables??
+	     //       // update size if needed
+	     //       if (commonBlockVar)
+	     //           commonBlockVar->setSize(commonBlock->getSize());
+	            commonBlockVar = NULL;
+	            commonBlock = NULL;
+	            break;
+	        }
+ 		// case C_BINCL: -- what is the elf version of this jkh 8/21/01
+	        // case C_EINCL: -- what is the elf version of this jkh 8/21/01
+		case 32:    // Global symbols -- N_GYSM
+		case 38:    // Global Static -- N_STSYM
+		case N_FUN:
+		case 128:   // typedefs and variables -- N_LSYM
+		case 160:   // parameter variable -- N_PSYM
+		case 0xc6:  // position-independant local typedefs -- N_ISYM
+		case 0xc8: // position-independant external typedefs -- N_ESYM
+	          #ifdef TIMED_PARSE
+	            pss_count++;
+	            gettimeofday(&t1, NULL);
+	          #endif
+		    if (stabptr->type(i) == N_FUN) current_func = NULL;
+		    ptr = const_cast<char *>(stabptr->name(i));
+		    while (ptr[strlen(ptr)-1] == '\\') {
+		        //ptr[strlen(ptr)-1] = '\0';
+		        ptr2 =  const_cast<char *>(stabptr->name(i+1));
+		        ptr3 = (char *) malloc(strlen(ptr) + strlen(ptr2));
+		        strcpy(ptr3, ptr);
+		        ptr3[strlen(ptr)-1] = '\0';
+		        strcat(ptr3, ptr2);
+	                ptr = ptr3;
+	                i++;
+	                // XXX - memory leak on multiple cont. lines
+		    }
+		    // bperr("stab #%d = %s\n", i, ptr);
+	            // may be nothing to parse - XXX  jdd 5/13/99
+			
+	            if (parseCompilerType(this))
+	                temp = parseStabString(mod, mostRecentLinenum, (char *)ptr, stabptr->val(i), commonBlock);
+		    else
+		        temp = parseStabString(mod, stabptr->desc(i), (char *)ptr, stabptr->val(i), commonBlock);
+		    if (temp.length()) {
+		        //Error parsing the stabstr, return should be \0
+		        // //bperr( "Stab string parsing ERROR!! More to parse: %s\n",
+			//				                  temp.c_str());
+			// //bperr( "  symbol: %s\n", ptr);
+		    }
+		  #ifdef TIMED_PARSE
+		    gettimeofday(&t2, NULL);
+		    pss_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
+		    //      pss_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
+		  #endif
+		    break;
+		default:
+		    break;
+	    }			    
+	}
+    }
+  #if defined(TIMED_PARSE)
+    struct timeval endtime;
+    gettimeofday(&endtime, NULL);
+    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+    unsigned long difftime = lendtime - lstarttime;
+    double dursecs = difftime/(1000 );
+    cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< mod->fileName()
+	 <<") took "<<dursecs <<" msecs" << endl;
+    cout << "Breakdown:" << endl;
+    cout << "     Functions: " << fun_count << " took " << fun_dur << "msec" << endl;
+    cout << "     Sources: " << src_count << " took " << src_dur << "msec" << endl;
+    cout << "     parseStabString: " << pss_count << " took " << pss_dur << "msec" << endl;
+    cout << "     Total: " << pss_dur + fun_dur + src_dur
+         << " msec" << endl;
+  #endif
+}  
