@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.23 2007/09/12 20:57:55 bernat Exp $
+// $Id: multiTramp.h,v 1.24 2007/09/19 19:25:12 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -490,7 +490,10 @@ class generatedCFG_t {
 #include <libunwind.h>
 #endif /* defined( cap_unwind ) */
 
+class instArea;
+
 class multiTramp : public generatedCodeObject {
+    friend class instArea;
   static unsigned id_ctr; // All hail the unique ID
 
  public:
@@ -573,6 +576,7 @@ class multiTramp : public generatedCodeObject {
   // codeRange stuff
   Address get_address_cr() const { return trampAddr_; }
   unsigned get_size_cr() const { return trampSize_; }
+  void *get_local_ptr() const { return generatedMultiT_.start_ptr(); }
 
   void *getPtrToInstruction(Address addr) const;
 
@@ -698,6 +702,7 @@ class instArea : public codeRange {
     multiTramp *multi;
     Address get_address_cr() const { assert(multi); return multi->instAddr(); }
     unsigned get_size_cr() const { assert(multi); return multi->instSize(); }
+    void *get_local_ptr() const { assert(multi); return multi->jumpBuf_.start_ptr(); }
 };
 
 
@@ -708,6 +713,8 @@ class replacedFunctionCall : public codeRange {
  public:
     Address get_address_cr() const { return callAddr; }
     unsigned get_size_cr() const { return callSize; }
+    void *get_local_ptr() const { return newCall.start_ptr(); }
+    
     Address callAddr;
     unsigned callSize;
     Address newTargetAddr;

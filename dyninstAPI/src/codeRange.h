@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.14 2005/12/01 00:56:24 jaw Exp $
+// $Id: codeRange.h,v 1.15 2007/09/19 19:25:09 bernat Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -90,6 +90,11 @@ class codeRange {
     virtual unsigned get_size_cr() const = 0;
 
     virtual void *getPtrToInstruction(Address) const { assert(0); return NULL; }
+
+    // This returns a local pointer to the "beginning" of the
+    // code range - as opposed to get_address_cr, which returns
+    // the "remote" address.
+    virtual void *get_local_ptr() const { assert(0); return NULL; }
 
     // returns NULL if not of type
     // so some people who don't like dynamic_cast don't have to be troubled

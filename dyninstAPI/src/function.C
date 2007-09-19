@@ -943,6 +943,11 @@ void *bblInstance::getPtrToInstruction(Address addr) const {
 
 }
 
+void *bblInstance::get_start_ptr() const {
+    if (!reloc_info) return NULL; 
+    return reloc_info->generatedBlock_.start_ptr();
+}
+
 int bblInstance::version() const 
 {
    return version_;
