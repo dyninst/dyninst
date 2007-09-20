@@ -944,8 +944,12 @@ void *bblInstance::getPtrToInstruction(Address addr) const {
 }
 
 void *bblInstance::get_start_ptr() const {
+#if defined(cap_relocation)
     if (!reloc_info) return NULL; 
     return reloc_info->generatedBlock_.start_ptr();
+#else
+    return NULL;
+#endif
 }
 
 int bblInstance::version() const 
