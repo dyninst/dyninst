@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.193 2007/09/19 21:54:38 giri Exp $
+// $Id: ast.C,v 1.194 2007/09/20 21:43:36 giri Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1376,7 +1376,7 @@ bool AstCallNode::initRegisters(codeGen &gen) {
     int_function *callee = func_;
     if (!callee) {
         // Painful lookup time
-        callee = gen.addrSpace()->findOnlyOneFunction(func_name_);
+        callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
         assert(callee);
     }
     bool clobbered = gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);

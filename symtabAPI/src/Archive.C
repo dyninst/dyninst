@@ -30,7 +30,7 @@
  */
 
 
-#include "symtabAPI/h/util.h"
+#include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 #include "symtabAPI/src/Object.h"
 

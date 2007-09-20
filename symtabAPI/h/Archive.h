@@ -32,6 +32,7 @@
 #ifndef Archive_h
 #define Archive_h
  
+#include "util.h" 
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,13 +41,13 @@
 #include <string>
 #include <ext/hash_map>
  
- 
-#include "Symtab.h"
 using namespace std;
 using namespace __gnu_cxx; 
 
 namespace Dyninst{
 namespace SymtabAPI{
+
+class Symtab;
 
 class Archive{
  public:

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.303 2007/09/19 21:55:07 giri Exp $
+ // $Id: symtab.C,v 1.304 2007/09/20 21:43:38 giri Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1160,7 +1160,7 @@ image::image(fileDescriptor &desc, bool &err)
    string file = desc_.file().c_str();
    SymtabError serr = Not_An_Archive;
    Archive *archive;
-   if(!Archive::openArchive(file, archive))
+   if(!Archive::openArchive(archive, file))
    {
    	err = true;
 	if(archive->getLastError() != serr)

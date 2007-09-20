@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.201 2007/09/19 21:55:08 giri Exp $
+// $Id: symtab.h,v 1.202 2007/09/20 21:43:39 giri Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -72,9 +72,9 @@
 
 #if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)
 #include "symtabAPI/h/Archive.h"
-#else
-#include "symtabAPI/h/Symtab.h"
 #endif
+
+#include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Type.h"
 
 using namespace Dyninst;

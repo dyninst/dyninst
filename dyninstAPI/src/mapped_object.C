@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.25 2007/09/19 21:54:54 giri Exp $
+// $Id: mapped_object.C,v 1.26 2007/09/20 21:43:37 giri Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -106,8 +106,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 	image_->getObject()->findSection(sec, ".text");
 	//fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
 	//	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
-	codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseAddress());	
-//        codeBase_ += image_->getObject()->text_reloc();
+	codeBase_ += ((Address)sec->getPtrToRawData() - image_->getObject()->getBaseOffset());	
+//      codeBase_ += image_->getObject()->text_reloc();
     }
     else {
         // codeBase_ is the address that the chunk was loaded at; the actual interesting
@@ -118,8 +118,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 	Section *sec;
 	image_->getObject()->findSection(sec, ".text");
 	//fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
-	//	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
-        codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseAddress());
+	//	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseOffset());
+        codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseOffset());
     }
     if (image_->dataOffset() >= dataBase_) {
         dataBase_ = 0;
@@ -884,7 +884,7 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
 	image_->getObject()->findSection(sec, ".loader");
         Address loader_end = codeAbs() + 
             //sec.getSecAddr() +
-	    image_->getObject()->getLoadAddress() +
+	    image_->getObject()->getLoadOffset() +
             sec->getSecSize();
         //Address loader_end = codeAbs() + 
         //    image_->getObject()->loader_off() +
