@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.696 2007/09/19 21:55:01 giri Exp $
+// $Id: process.C,v 1.697 2007/09/20 17:22:47 bernat Exp $
 
 #include <ctype.h>
 
@@ -2094,7 +2094,6 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     , vsyscall_data_(parentProc->vsyscall_data_)
 #endif
 {
-	cout << "process constructor" << endl;
 }
 
 static void cleanupBPatchHandle(int pid)
