@@ -39,24 +39,27 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-X.C,v 1.7 2007/01/17 22:47:31 giri Exp $
+// $Id: templates-X.C,v 1.8 2007/09/20 21:43:43 giri Exp $
 
 #if !defined(rs6000_ibm_aix4_1)
 ERROR: "templates-X is only for AIX"
 #endif
 
 #include "common/h/String.h"
-#include "symtabAPI/h/Dyn_Symbol.h"
+#include "symtabAPI/h/Symbol.h"
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
 
-template class dictionary_hash<pdstring, Dyn_Symbol>;
+template class dictionary_hash<pdstring, Symbol>;
 
 #ifndef external_templates
 template class pdvector<pdstring>;
 template class pdvector<u_int>;
-template class pdvector<Dyn_Symbol>;
-template class pdvector<dictionary_hash<pdstring, Dyn_Symbol>::entry>;
+template class pdvector<Symbol>;
+template class pdvector<dictionary_hash<pdstring, Symbol>::entry>;
 #endif
 
 // visualizationUser stuff

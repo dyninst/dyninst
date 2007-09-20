@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.49 2007/01/17 22:47:30 giri Exp $
+// $Id: templatesPD.C,v 1.50 2007/09/20 21:43:42 giri Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -68,7 +68,9 @@
 #include "paradynd/src/shmMgr.h"
 #include "paradynd/src/shmSegment.h"
 
-#include "symtabAPI/h/Dyn_Symbol.h"
+#include "symtabAPI/h/Symbol.h"
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 
 class instMapping;
 template class  pdvector<instMapping*>;
@@ -112,8 +114,8 @@ template class  pdvector<const instrDataNode*>;
 template class dictionary_hash <unsigned, cpSample*>;
 template class pdvector<dictionary_hash <unsigned, cpSample*>::entry>;
 
-template class dictionary_hash<pdstring, Dyn_Symbol>;
-template class pdvector<dictionary_hash<pdstring, Dyn_Symbol>::entry>;
+template class dictionary_hash<pdstring, Symbol>;
+template class pdvector<dictionary_hash<pdstring, Symbol>::entry>;
 
 template class dictionary_hash<pdstring, pdstring>;
 template class pdvector<dictionary_hash<pdstring, pdstring>::entry>;
