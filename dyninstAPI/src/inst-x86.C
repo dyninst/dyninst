@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.268 2007/09/19 19:25:17 bernat Exp $
+ * $Id: inst-x86.C,v 1.269 2007/09/20 17:22:46 bernat Exp $
  */
 #include <iomanip>
 
@@ -916,10 +916,10 @@ void EmitterIA32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 }
 
 
-Register EmitterIA32Dyn::emitCall(opCode op, 
-                                  codeGen &gen,
-                                  const pdvector<AstNodePtr> &operands, 
-                                  bool noCost, int_function *callee) {
+Register EmitterIA32::emitCall(opCode op, 
+                               codeGen &gen,
+                               const pdvector<AstNodePtr> &operands, 
+                               bool noCost, int_function *callee) {
     assert(op == callOp);
     pdvector <Register> srcs;
     int param_size;
@@ -944,13 +944,7 @@ Register EmitterIA32Dyn::emitCall(opCode op,
 
    param_size = emitCallParams(gen, operands, callee, saves, noCost);
 
-   // make the call
-   // we are using an indirect call here because we don't know the
-   // address of this instruction, so we can't use a relative call.
-   // TODO: change this to use a direct call
-
-   emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);       // mov eax, addr
-   emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
+   emitCallInstruction(gen, callee);
 
    /*
    // reset the stack pointer
@@ -966,61 +960,31 @@ Register EmitterIA32Dyn::emitCall(opCode op,
    return ret;
 }
 
- 
+bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
+    // make the call
+    // we are using an indirect call here because we don't know the
+    // address of this instruction, so we can't use a relative call.
+    // TODO: change this to use a direct call
+    
+    emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);       // mov eax, addr
+    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
+    return true;
+}
+
 // TODO: we need to know if we're doing an inter-module call. This
 // means we need to know where we're _coming_ from, which currently
 // isn't possible. Time to add more to the codeGen structure, such as
 // "function where we're inserting new code."  Also, we'll need a
 // pdstring version that doesn't take a callee...
 
-
-Register EmitterIA32Stat::emitCall(opCode op, 
-                                   codeGen &gen,
-                                   const pdvector<AstNodePtr> &operands, 
-                                   bool noCost, int_function *callee) {
-    assert(op == callOp);
-    pdvector <Register> srcs;
-    int param_size;
-    pdvector<Register> saves;
+bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
+    Address to = callee->getAddress();
+    Address from = gen.currAddr();
     
-    //  Sanity check for NULL address arg
-    if (!callee) {
-        char msg[256];
-        sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-                "callee argument", __FILE__, __LINE__);
-        showErrorCallback(80, msg);
-        assert(0);
-    }
-
-   /*
-      int emitCallParams(registerSpace *rs, codeGen &gen, 
-                   const pdvector<AstNodePtr> &operands, process *proc,
-                   int_function *target, const pdvector<AstNodePtr> &ifForks,
-                   pdvector<Register> &extra_saves, const instPoint *location,
-                   bool noCost);
-                   */
-
-   param_size = emitCallParams(gen, operands, callee, saves, noCost);
-
-   Address to = callee->getAddress();
-   Address from = gen.currAddr();
-
-   instruction::generateCall(gen, from, to);
-
-   /*
-   // reset the stack pointer
-   if (srcs.size() > 0)
-      emitOpRegImm(0, REGNUM_ESP, srcs.size()*4, gen); // add esp, srcs.size()*4
-  */
-   emitCallCleanup(gen, callee, param_size, saves);
-
-   // allocate a (virtual) register to store the return value
-   Register ret = gen.rs()->allocateRegister(gen, noCost);
-   emitMovRegToRM(REGNUM_EBP, -1*(ret*4), REGNUM_EAX, gen);
-
-   return ret;
+    instruction::generateCall(gen, from, to);
+    
+    return true;
 }
-
 /*
  * emit code for op(src1,src2, dest)
  * ibuf is an instruction buffer where instructions are generated
