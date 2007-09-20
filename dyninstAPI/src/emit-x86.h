@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.26 2007/09/19 19:25:16 bernat Exp $
+ * $Id: emit-x86.h,v 1.27 2007/09/20 17:22:44 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -91,7 +91,7 @@ public:
     // We can overload this for the stat/dyn case
     virtual Register emitCall(opCode op, codeGen &gen,
                               const pdvector<AstNodePtr> &operands,
-                              bool noCost, int_function *callee) = 0;
+                              bool noCost, int_function *callee);
     int emitCallParams(codeGen &gen, 
                        const pdvector<AstNodePtr> &operands,
                        int_function *target, 
@@ -124,15 +124,18 @@ public:
     bool emitAdjustStackPointer(int index, codeGen &gen);
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
+
+ protected:
+    virtual bool emitCallInstruction(codeGen &gen, int_function *target) = 0;
+
 };
 
 class EmitterIA32Dyn : public EmitterIA32 {
  public:
     ~EmitterIA32Dyn() {};
     
-    Register emitCall(opCode op, codeGen &gen,
-                      const pdvector<AstNodePtr> &operands,
-                      bool noCost, int_function *callee);
+ protected:
+    bool emitCallInstruction(codeGen &gen, int_function *target);
 };
 
 class EmitterIA32Stat : public EmitterIA32 {
@@ -140,9 +143,8 @@ class EmitterIA32Stat : public EmitterIA32 {
 
     ~EmitterIA32Stat() {};
     
-    Register emitCall(opCode op, codeGen &gen,
-                      const pdvector<AstNodePtr> &operands,
-                      bool noCost, int_function *callee);
+ protected:
+    bool emitCallInstruction(codeGen &gen, int_function *target);
 };
 
 extern EmitterIA32Dyn emitterIA32Dyn;
@@ -192,7 +194,7 @@ public:
     // See comment on 32-bit emitCall
     virtual Register emitCall(opCode op, codeGen &gen,
                               const pdvector<AstNodePtr> &operands,
-                              bool noCost, int_function *callee) = 0;
+                              bool noCost, int_function *callee);
     void emitGetRetVal(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
@@ -220,24 +222,24 @@ public:
     bool emitAdjustStackPointer(int index, codeGen &gen);
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
+
+ protected:
+    virtual bool emitCallInstruction(codeGen &gen, int_function *target) = 0;
+
 };
 
 class EmitterAMD64Dyn : public EmitterAMD64 {
  public:
     ~EmitterAMD64Dyn() {}
 
-    Register emitCall(opCode op, codeGen &gen,
-                      const pdvector<AstNodePtr> &operands,
-                      bool noCost, int_function *callee);
+    bool emitCallInstruction(codeGen &gen, int_function *target);
 };
 
-class EmitterAMD64Dyn : public EmitterAMD64 {
+class EmitterAMD64Stat : public EmitterAMD64 {
  public:
-    ~EmitterAMD64Dyn() {};
+    ~EmitterAMD64Stat() {};
     
-    Register emitCall(opCode op, codeGen &gen,
-                      const pdvector<AstNodePtr> &operands,
-                      bool noCost, int_function *callee);
+    bool emitCallInstruction(codeGen &gen, int_function *target) { assert(0); return false; }
 };
 
 extern EmitterAMD64Dyn emitterAMD64Dyn;

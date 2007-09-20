@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.54 2007/09/19 19:25:15 bernat Exp $
+ * $Id: emit-x86.C,v 1.55 2007/09/20 17:22:43 bernat Exp $
  */
 
 #include <assert.h>
@@ -1215,7 +1215,7 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
 Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
-			     bool noCost, int_function *callee)
+                                bool noCost, int_function *callee)
 {
 
     assert(op == callOp);
@@ -1274,11 +1274,8 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
 
       }
 
-    // make the call (using an indirect call)
-    emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
-    emitSimpleInsn(0xff, gen); // group 5
-    emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
-    
+    emitCallInstruction(gen, callee);
+
     // restore argument registers
     for (int i = num_args - 1; i >= 0; i--)
 	emitPopReg64(amd64_arg_regs[i], gen);   
@@ -1298,6 +1295,16 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
 
     return ret;
 }
+
+bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
+    // make the call (using an indirect call)
+    emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
+    emitSimpleInsn(0xff, gen); // group 5
+    emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
+    return true;
+}
+
+
 
 // FIXME: comment here on the stack layout
 void EmitterAMD64::emitGetRetVal(Register dest, codeGen &gen)
