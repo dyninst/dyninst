@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.3 2007/09/19 21:54:40 giri Exp $
+// $Id: binaryEdit.h,v 1.4 2007/09/20 17:22:42 bernat Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -56,6 +56,7 @@ class fileDescriptor;
 class int_function;
 
 class BinaryEdit : public AddressSpace {
+ public:
     // We must implement the following virtual functions
 
     // "Read"/"Write" to an address space
