@@ -48,22 +48,6 @@ namespace SymtabAPI{
 class Archive;
 class builtInTypeCollection;
 
-typedef enum { Obj_Parsing,
-               Syms_To_Functions,
-               Build_Function_Lists,
-               No_Such_Function,
-               No_Such_Variable,
-               No_Such_Module,
-               No_Such_Section,
-               No_Such_Symbol,
-               No_Such_Member,
-               Not_A_File,
-               Not_An_Archive,
-	       Export_Error, 
-               Invalid_Flags,
-	       No_Error
-} SymtabError;
-
 class Symtab;
 class ExceptionBlock;
 class Object;
@@ -131,7 +115,7 @@ class Module : public LookupInterface {
     /***** Line Number Information *****/
 	DLLEXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
 					std::string lineSource, unsigned int LineNo);
-    DLLEXPORT bool getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange);
+    DLLEXPORT bool getSourceLines(std::vector<LineInformationImpl::LineNoTuple> &lines, Offset addressInRange);
     DLLEXPORT bool setLineInfo(LineInformation *lineInfo);
     DLLEXPORT LineInformation *getLineInformation();
 
@@ -206,7 +190,7 @@ class Symtab : public LookupInterface {
 	/***** Line Number Information *****/
 	DLLEXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
 						std::string lineSource, unsigned int LineNo);
-	DLLEXPORT bool getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange);
+	DLLEXPORT bool getSourceLines(std::vector<LineInformationImpl::LineNoTuple> &lines, Offset addressInRange);
 	DLLEXPORT bool addLine(std::string lineSource, unsigned int lineNo,
 					unsigned int lineOffset, Offset lowInclAddr,
 					Offset highExclAddr);
