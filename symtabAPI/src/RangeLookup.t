@@ -373,3 +373,4 @@ bool Dyninst::SymtabAPI::RangeLookupImpl::AddressRangeLess::operator()(const Add
   }
   else{ return false; }
 } /* end AddressRangeLess() */
+
