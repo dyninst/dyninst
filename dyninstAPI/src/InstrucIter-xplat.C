@@ -267,7 +267,7 @@ bool InstrucIter::hasMore()
   if ((range == 0) ||
       (range ==-1)) return true; // Unsafe iteration, but there is more
 
-  if((current < (base + range )) &&
+  if(((current + insn.size()) < (base + range )) &&
      (current >= base))
     return true;
   return false;
