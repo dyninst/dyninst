@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.304 2007/09/20 21:43:38 giri Exp $
+ // $Id: symtab.C,v 1.305 2007/09/21 20:56:35 nater Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -492,8 +492,17 @@ void image::findMain()
                     possible_mains.push_back( endTarget );
                 }
               }
+
               curr += insn.size();
+
+              // Safety: we may iterate off the end of the segment
+              // for certain weird binaries
+              if(!isValidAddress(curr)) {
+                break;
+              }
+
               p += insn.size();
+
               insn.setInstruction(p);
             }
 			syms.clear();
