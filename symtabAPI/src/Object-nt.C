@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.11 2007/09/19 22:25:16 giri Exp $
+// $Id: Object-nt.C,v 1.12 2007/09/21 20:56:33 nater Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -709,22 +709,30 @@ Object::FindInterestingSections()
 			//else
 			//   code_off_    = get_base_addr() + pScnHdr->VirtualAddress;	//loadAddr = mapAddr
 			//code_off_    = pScnHdr->VirtualAddress + desc.loadAddr();
-			code_len_    = pScnHdr->Misc.VirtualSize;
+
+            // Since we're reporting the size of sections on the disk,
+            // we need to check whether the size of raw data is smaller.
+			//code_len_    = pScnHdr->Misc.VirtualSize;
+            code_len_ = (pScnHdr->SizeOfRawData < pSscnHdr->Misc.Virtualsize ?
+                         pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
 		}
 		else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 )
 		{
 			// note that section numbers are one-based
 			dataSectionId = i + 1;
-	         
 			data_ptr_    = (char *)(((char*)mapAddr) +
 									pScnHdr->PointerToRawData);
+
 			//if (GetDescriptor().isSharedObject())
 			//if (curModule->IsDll())
 				data_off_    = pScnHdr->VirtualAddress;
 			//else
 				//data_off_    = desc.loadAddr() + pScnHdr->VirtualAddress;
 			//	data_off_    = get_base_addr()+pScnHdr->VirtualAddress;
-			data_len_    = pScnHdr->Misc.VirtualSize;
+
+			//data_len_    = pScnHdr->Misc.VirtualSize;
+            data_len_ = (pScnHdr->SizeOfRawData < pSscnHdr->Misc.Virtualsize ?
+                         pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
 		}
 		pScnHdr += 1;
 	}
