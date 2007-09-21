@@ -62,6 +62,45 @@ namespace __gnu_cxx {
 }; //namespace
 
 #endif
+namespace Dyninst{
+namespace SymtabAPI{
+
+typedef enum { lang_Unknown,
+               lang_Assembly,
+               lang_C,
+               lang_CPlusPlus,
+               lang_GnuCPlusPlus,
+               lang_Fortran,
+               lang_Fortran_with_pretty_debug,
+               lang_CMFortran
+} supportedLanguages;
+
+typedef enum {
+   obj_Unknown,
+   obj_SharedLib,
+   obj_Executable
+} ObjectType;
+
+typedef enum { Obj_Parsing,
+               Syms_To_Functions,
+               Build_Function_Lists,
+               No_Such_Function,
+               No_Such_Variable,
+               No_Such_Module,
+               No_Such_Section,
+               No_Such_Symbol,
+	       No_Such_Member,
+	       Not_A_File,
+	       Not_An_Archive,
+	       Export_Error,
+	       Invalid_Flags,
+	       No_Error
+} SymtabError;
+
+}//namespace SymtabAPI
+}//namespace Dyninst
+
+#include "dyntypes.h"
 
 typedef enum { lang_Unknown,
                lang_Assembly,
