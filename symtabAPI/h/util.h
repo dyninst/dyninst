@@ -102,22 +102,4 @@ typedef enum { Obj_Parsing,
 
 #include "dyntypes.h"
 
-typedef enum { lang_Unknown,
-               lang_Assembly,
-               lang_C,
-               lang_CPlusPlus,
-               lang_GnuCPlusPlus,
-               lang_Fortran,
-               lang_Fortran_with_pretty_debug,
-               lang_CMFortran
-} supportedLanguages;
-
-typedef enum {
-   obj_Unknown,
-   obj_SharedLib,
-   obj_Executable
-} ObjectType;
-
-#include "dyntypes.h"
-
 #endif
