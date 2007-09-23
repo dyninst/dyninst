@@ -49,6 +49,7 @@
 #include "BPatch_image.h"
 #include "BPatch_snippet.h"
 #include "BPatch_eventLock.h"
+#include "BPatch_addressSpace.h"
 #include "BPatch_process.h"
 #include "BPatch_frame.h"
 
@@ -72,6 +73,7 @@ typedef long dynthread_t;
 class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     friend class BPatch_frame;
     friend class BPatch_process;
+    friend class BPatch_addressSpace;
     friend class BPatch;
     friend bool pollForStatusChange();
     friend class BPatch_asyncEventHandler;
@@ -140,19 +142,19 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
        { return proc->getInheritedSnippet(parentSnippet); }
     BPatchSnippetHandle *insertSnippet(const BPatch_snippet &expr,
           BPatch_point &point, BPatch_snippetOrder order = BPatch_firstSnippet)
-       { return proc->insertSnippet(expr, point, order); }
+      { return proc->insertSnippet(expr, point, order); }
     BPatchSnippetHandle *insertSnippet(const BPatch_snippet &expr,
           BPatch_point &point, BPatch_callWhen when, 
           BPatch_snippetOrder order = BPatch_firstSnippet)
-       { return proc->insertSnippet(expr, point, when, order); }
+      { return proc->insertSnippet(expr, point, when, order); }
     BPatchSnippetHandle *insertSnippet(const BPatch_snippet &expr,
-          const BPatch_Vector<BPatch_point *> &points, 
-          BPatch_snippetOrder order = BPatch_firstSnippet)
-       { return proc->insertSnippet(expr, points, order); }
+				       const BPatch_Vector<BPatch_point *> &points, 
+				       BPatch_snippetOrder order = BPatch_firstSnippet)
+      { return proc->insertSnippet(expr, points, order); }
     BPatchSnippetHandle *insertSnippet(const BPatch_snippet &expr,
-          const BPatch_Vector<BPatch_point *> &points, BPatch_callWhen when,
-          BPatch_snippetOrder order = BPatch_firstSnippet)
-       { return proc->insertSnippet(expr, points, when, order); }
+				       const BPatch_Vector<BPatch_point *> &points, BPatch_callWhen when,
+				       BPatch_snippetOrder order = BPatch_firstSnippet)
+      { return proc->insertSnippet(expr, points, when, order); }
     bool deleteSnippet(BPatchSnippetHandle *handle) 
        { return proc->deleteSnippet(handle); }
     bool setMutationsActive(bool activate) 

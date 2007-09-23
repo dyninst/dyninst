@@ -114,8 +114,11 @@ BPatch_point *BPatch_instruction::getInstPointInt()
   assert(proc);
   assert(func);
 
-  BPatch_process *bpproc = (BPatch_process *)proc->up_ptr();
-  assert(bpproc); 
+  //BPatch_process *bpproc = (BPatch_process *)proc->up_ptr();
+  
+  BPatch_addressSpace *bpproc = (BPatch_addressSpace *)proc->up_ptr();
+  //  assert(bpproc); 
+  assert(bpproc);
 
   // If it's in an uninstrumentable function, just return an error.
   if ( !func || !((int_function*)func)->isInstrumentable()){

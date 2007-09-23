@@ -159,18 +159,24 @@ BPatch_point *BPatch_edge::getPointInt()
         assert(target);
         Address lastInsnAddr = (Address) source->getLastInsnAddress();
 
-        process *ll_proc = flowGraph->getBProcess()->lowlevel_process();
-        assert(ll_proc);
+        
+	//	process *ll_proc = flowGraph->getBProcess()->lowlevel_process();
+        
+	AddressSpace *as = flowGraph->getAddSpace()->getAS();
 
-        instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, ll_proc);
-                                                          
+	//assert(ll_proc);
+	assert(as);
+	
+	//        instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, ll_proc);
+	instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, as);
+                                                
         if (ip == NULL) {
             fprintf(stderr, "Failed to find inst point at address 0x%lx\n",
                     lastInsnAddr);
             return NULL;
         }
 
-        BPatch_point *newPoint = new BPatch_point(flowGraph->getBProcess(),
+        BPatch_point *newPoint = new BPatch_point(flowGraph->getAddSpace(),
                                                   flowGraph->getBFunction(),
                                                   this,
                                                   ip);

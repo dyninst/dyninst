@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.91 2007/09/19 21:54:30 giri Exp $
+// $Id: BPatch_function.C,v 1.92 2007/09/23 21:08:54 rutar Exp $
 
 #define BPATCH_FILE
 
@@ -82,9 +82,9 @@
 
 int bpatch_function_count = 0;
 
-BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
+BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
 	BPatch_module *_mod) :
-	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func)
+	addSpace(_addSpace), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     bpatch_function_count++;
@@ -94,15 +94,15 @@ BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
 #endif
 
   // there should be at most one BPatch_func for each int_function per process
-  assert( proc && !proc->func_map->defines(func) );
-  
+    //  assert( proc && !proc->func_map->defines(func) );
+    assert( addSpace && !addSpace->func_map->defines(func) );
   _srcType = BPatch_sourceFunction;
 
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = NULL;
 
-  proc->func_map->add(_func, this);
+  addSpace->func_map->add(_func, this);
   if (mod) {
       // Track for deletion
       mod->all_funcs.push_back(this);
@@ -115,11 +115,12 @@ BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
  * Constructor that creates the BPatch_function with return type.
  *
  */
-BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
+BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
-	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func)
+	addSpace(_addSpace), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func)
 {
-  assert(proc && !proc->func_map->defines(_func));
+  //assert(proc && !proc->func_map->defines(_func));
+  assert(addSpace && !addSpace->func_map->defines(_func));
 
   _srcType = BPatch_sourceFunction;
 
@@ -127,7 +128,8 @@ BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
   funcParameters = new BPatch_localVarCollection;
   retType = _retType;
 
-  proc->func_map->add(_func, this);
+  //proc->func_map->add(_func, this);
+  addSpace->func_map->add(_func,this);
   if (mod) {
       // Track for deletion
       mod->all_funcs.push_back(this);
@@ -143,8 +145,11 @@ BPatch_function::~BPatch_function()
     if (cfg) delete cfg;
 
     // Remove us from the proc map...
-    if (proc && proc->func_map)
-        proc->func_map->undefine(lowlevel_func());
+    //if (proc && proc->func_map)
+    //  proc->func_map->undefine(lowlevel_func());
+
+    if (addSpace && addSpace->func_map)
+        addSpace->func_map->undefine(lowlevel_func());
 }
 
 /* 
@@ -162,6 +167,14 @@ bool BPatch_function::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &children)
     children = dummy;
     return false;
 }
+
+
+BPatch_process * BPatch_function::getProc() const
+{
+  assert(addSpace->getType() == TRADITIONAL_PROCESS); 
+  return dynamic_cast<BPatch_process *>(addSpace); 
+}
+
 
 /*
  * BPatch_function::getObjParent()
@@ -374,7 +387,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
     if (loc == BPatch_entry || loc == BPatch_allLocations) {
         const pdvector<instPoint *> entries = func->funcEntries();
         for (unsigned foo = 0; foo < entries.size(); foo++)
-            result->push_back(proc->findOrCreateBPPoint(this, 
+            result->push_back(addSpace->findOrCreateBPPoint(this, 
                                                         entries[foo], 
                                                         BPatch_entry));
     }
@@ -393,11 +406,11 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
               if (r < Rpoints.size()) rAddr = Rpoints[r]->addr();
               else                    rAddr = (Address)(-1);
               if (cAddr <= rAddr) {
-                  result->push_back(proc->findOrCreateBPPoint(
+                  result->push_back(addSpace->findOrCreateBPPoint(
                                                               this, Cpoints[c], BPatch_subroutine));
 	      c++;
 	    } else {
-                 result->push_back(proc->findOrCreateBPPoint(
+                 result->push_back(addSpace->findOrCreateBPPoint(
                                    this, Rpoints[r], BPatch_exit));
                  r++;
 	    }
@@ -408,7 +421,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
         {
           const pdvector<instPoint *> &points = func->funcExits();
           for (unsigned i = 0; i < points.size(); i++) {
-             result->push_back(proc->findOrCreateBPPoint(
+             result->push_back(addSpace->findOrCreateBPPoint(
                                              this, points[i], BPatch_exit));
           }
           break;
@@ -417,7 +430,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
         {
           const pdvector<instPoint *> &points = func->funcCalls();
           for (unsigned i = 0; i < points.size(); i++) {
-             result->push_back(proc->findOrCreateBPPoint(
+             result->push_back(addSpace->findOrCreateBPPoint(
                                           this, points[i], BPatch_subroutine));
           }
           break;
@@ -545,8 +558,9 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(
       BPatch_Vector<BPatch_point*> *points = findPoint(BPatch_entry);
       assert(points->size() == 1);
       BPatch_image *imgPtr = (BPatch_image *) mod->getObjParent();
-      ret->push_back(new BPatch_variableExpr(imgPtr->getProcess(), 
-                                             (void *) lv->getFrameOffset(), 
+
+      ret->push_back(new BPatch_variableExpr(imgPtr->getAddressSpace(),
+					     (void *) lv->getFrameOffset(), 
                                              lv->getRegister(), lv->getType(), 
                                              lv->getStorageClass(), 
                                              (*points)[0]));
@@ -600,7 +614,7 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
    }
    sprintf(typestr, "%s)", typestr);
 
-   BPatch_type *type = proc->image->findType(typestr);
+   BPatch_type *type = addSpace->image->findType(typestr);
    if (!type) {
      fprintf(stderr, "%s[%d]:  cannot find type '%s'\n", FILE__, __LINE__, typestr);
    }
@@ -613,6 +627,10 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
    // IA-64 function pointers actually point to structures.  We insert such
    // a structure in the mutatee so that instrumentation can use it. */
    Address entryPoint = (Address)getBaseAddr();
+   
+   //RUTAR, need to change this over when we start to support IA64
+   assert(addSpace->getType() == TRADITIONAL_PROCESS);
+   BPatch_process * proc = dynamic_cast<BPatch_process *>(addSpace);
    Address gp = proc->llproc->getTOCoffsetInfo( entryPoint );
 
    remoteAddress = proc->llproc->inferiorMalloc( sizeof( Address ) * 2 );
@@ -640,7 +658,8 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
    AstNodePtr *ast = new AstNodePtr(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
    
    // the variableExpr owns the ast now.
-   return new BPatch_variableExpr(fname, proc, ast, type, (void *) remoteAddress);
+   return new BPatch_variableExpr(fname, addSpace, ast, type, (void *) remoteAddress);
+   
 #endif
 
 } /* end getFunctionRef() */
@@ -854,7 +873,7 @@ unsigned int BPatch_function::getContiguousSizeInt() {
 
 bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs) {
     assert(func);
-    assert(proc);
+    assert(addSpace);
 
     pdvector<int_function *> overlappingIntFuncs;
     if (!func->getOverlappingFuncs(overlappingIntFuncs)) {
@@ -864,7 +883,7 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
 
     // We now need to map from int_functions to BPatch_functions
     for (unsigned i = 0; i < overlappingIntFuncs.size(); i++) {
-        funcs.push_back(proc->findOrCreateBPFunc(overlappingIntFuncs[i],
+        funcs.push_back(addSpace->findOrCreateBPFunc(overlappingIntFuncs[i],
                                                  mod));
     }
 

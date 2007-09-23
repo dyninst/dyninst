@@ -94,13 +94,16 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_
     friend class BPatch_image;
     friend class BPatch_thread;
     friend class BPatch_process;
+    friend class BPatch_binaryEdit;
+    friend class BPatch_addressSpace;
     friend BPatch_Vector<BPatch_point*> *findPoint(
                      const BPatch_Set<BPatch_opCode>& ops,
 						   InstrucIter &ii, 
 						   BPatch_process *proc,
 						   BPatch_function *bpf);
 
-    BPatch_process *proc;
+    //BPatch_process *proc;
+    BPatch_addressSpace *addSpace;
     BPatch_type * retType;
     BPatch_Vector<BPatch_localVar *> params;
     BPatch_module *mod;
@@ -117,11 +120,12 @@ public:
 
     // The following are for internal use by the library only:
     int_function *lowlevel_func() const { return func; }
-    BPatch_process *getProc() const { return proc; }
+    BPatch_process *getProc() const;
+    BPatch_addressSpace *getAddSpace() const { return addSpace; }
 
-    BPatch_function(BPatch_process *_proc, int_function *_func, BPatch_module *mod = NULL);
-    BPatch_function(BPatch_process *_proc, int_function *_func,
-		    BPatch_type * _retType, BPatch_module *);
+    BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func, BPatch_module *mod = NULL);
+    BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
+    	    BPatch_type * _retType, BPatch_module *);
     bool getSourceObj(BPatch_Vector<BPatch_sourceObj *> &);
     BPatch_sourceObj *getObjParent();
     BPatch_localVarCollection * localVariables;

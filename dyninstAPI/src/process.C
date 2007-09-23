@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.697 2007/09/20 17:22:47 bernat Exp $
+// $Id: process.C,v 1.698 2007/09/23 21:08:55 rutar Exp $
 
 #include <ctype.h>
 
@@ -3843,7 +3843,7 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
 }
 
 // Returns the named symbol from the image or a shared object
-bool process::getSymbolInfo( const pdstring &name, Symbol &ret ) 
+/*bool process::getSymbolInfo( const pdstring &name, Symbol &ret ) 
 {
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         bool sflag;
@@ -3855,6 +3855,7 @@ bool process::getSymbolInfo( const pdstring &name, Symbol &ret )
     }
     return false;
 }
+*/
 
 void process::addSignalHandler(Address addr, unsigned size) {
     signal_handler_location *newSig = new signal_handler_location(addr, 

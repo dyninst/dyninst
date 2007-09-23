@@ -86,7 +86,8 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock {
   int_function *ll_func() const;
 public:
 
-  BPatch_process *getBProcess() const { return bproc; }
+  //BPatch_process *getBProcess() const { return bproc; }
+  BPatch_addressSpace *getAddSpace() const { return addSpace; }
   BPatch_function *getBFunction() const { return func_; }
   BPatch_module *getModule() const { return mod; }
   //  End of deprecated function
@@ -166,7 +167,8 @@ public:
  private:
 
   BPatch_function *func_;
-  BPatch_process *bproc;
+  BPatch_addressSpace *addSpace;
+  //  BPatch_process *bproc;
   BPatch_module *mod;
 
   /** set of loops contained in control flow graph */

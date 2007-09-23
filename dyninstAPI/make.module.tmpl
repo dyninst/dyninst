@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.92 2007/09/19 21:54:26 giri Exp $
+# $Id: make.module.tmpl,v 1.93 2007/09/23 21:12:19 rutar Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -77,6 +77,8 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/BPatch_frame.C \
 		../src/BPatch_parRegion.C \
 		../src/BPatch_statement.C \
+		../src/BPatch_addressSpace.C \
+		../src/BPatch_binaryEdit.C \
                 ../src/MemoryAccess.C \
                 ../src/dummy.C \
                 ../src/debug.C \

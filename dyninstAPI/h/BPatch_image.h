@@ -45,12 +45,14 @@
 #include "BPatch_dll.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_Vector.h"
+//#include "BPatch_addressSpace.h"
 #include "BPatch_point.h"
 #include "BPatch_snippet.h"
 #include "BPatch_module.h"
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_process.h"
+#include "BPatch_binaryEdit.h"
 #include "BPatch_parRegion.h"
 
 #include <vector>
@@ -83,15 +85,19 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     friend class BPatch_module; // access to findOrCreate...
     friend class process; // Which also needs findOrCreate because we upcall when a library is loaded.
     friend class BPatch_process;
+    friend class BPatch_addressSpace;
+    friend class BPatch_binaryEdit;
 
-    BPatch_process *proc;
+    //BPatch_process *proc;
+
     char *defaultNamespacePrefix;
 
  public:
 
     // The following functions are for internal use by  the library only:
     // As such, these functions are not locked.
-    BPatch_image(BPatch_process *_proc);
+    //BPatch_image(BPatch_process *_proc);
+    BPatch_image(BPatch_addressSpace *addSpace);
     BPatch_image();
     virtual ~BPatch_image();
 
@@ -104,6 +110,14 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //  return the BPatch_thread associated with this image
     API_EXPORT(Int, (),
     BPatch_thread *,getThr,());
+
+
+    // BPatch_image::getAddressSpace()
+    //
+    //  return the BPatch_addressSpace associated with this image
+    API_EXPORT(Int, (),
+    BPatch_addressSpace *,getAddressSpace,());
+    
 
     //  BPatch_image::getProcess
     //  
@@ -306,6 +320,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 #endif
 
 private:
+    BPatch_addressSpace *addSpace;
     BPatch_Vector<BPatch_module *> modlist;
     BPatch_Vector<BPatch_module *> removed_list;
     BPatch_module *defaultModule;

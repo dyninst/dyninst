@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.3 2007/09/19 21:54:35 giri Exp $
+// $Id: addressSpace.C,v 1.4 2007/09/23 21:08:54 rutar Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -298,6 +298,22 @@ codeRange *AddressSpace::findModByAddr(Address addr) {
 
     return range;
 }
+
+// Returns the named symbol from the image or a shared object
+bool AddressSpace::getSymbolInfo( const pdstring &name, Symbol &ret ) 
+{
+  for (unsigned i = 0; i < mapped_objects.size(); i++) {
+    bool sflag;
+    sflag = mapped_objects[i]->getSymbolInfo( name, ret );
+    
+    if( sflag ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 
 bool AddressSpace::getOrigRanges(pdvector<codeRange *> &ranges) {
     textRanges_.elements(ranges);

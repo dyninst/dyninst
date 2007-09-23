@@ -48,6 +48,7 @@
 #include "BPatch_image.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_point.h"
+#include "BPatch_addressSpace.h"
 
 #include "BPatch_callbacks.h"
 
@@ -89,52 +90,7 @@ typedef enum {
 } BPatch_asyncEventType;
 
 typedef long dynthread_t;
-/*
- * Contains information about the code that was inserted by an earlier call to
- * Bpatch_thread::insertSnippet.
- */
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatchSnippetHandle
 
-class BPATCH_DLL_EXPORT BPatchSnippetHandle : public BPatch_eventLock {
-    friend class BPatch_point;
-    friend class BPatch_image;
-    friend class BPatch_process;
-    friend class BPatch_thread;
-private:
-    // Process this snippet maps to
-    BPatch_process *proc_;
-    // low-level mappings for removal
-    BPatch_Vector<miniTramp *> mtHandles_;
-
-    //  a flag for catchuo
-    bool catchupNeeded;
-    //  and a list of threads to apply catchup to
-    BPatch_Vector<BPatch_thread *> catchup_threads;
-                             
-    BPatchSnippetHandle(BPatch_process *proc);
-
-    void addMiniTramp(miniTramp *m) { mtHandles_.push_back(m); }
-    
-public:
-    API_EXPORT_DTOR(_dtor, (),
-    ~,BPatchSnippetHandle,());
-
-    // Returns whether the installed miniTramps use traps.
-    // Not 100% accurate due to internal Dyninst design; we can
-    // have multiple instances of instrumentation due to function
-    // relocation.
-    API_EXPORT(Int, (), bool, usesTrap, ());
-
-    API_EXPORT(Int, (),
-    BPatch_process *, getProcess, ());
-
-    API_EXPORT(Int, (),
-    BPatch_Vector<BPatch_thread *> &, getCatchupThreads, ());
-
-};
 
 typedef struct {
   BPatch_snippet snip;
@@ -186,7 +142,7 @@ public:
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_process
-class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     friend class BPatch;
     friend class BPatch_image;
     friend class BPatch_function;
@@ -219,10 +175,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
 
     //References to lower level objects
     process *llproc;
-    BPatch_funcMap *func_map;
-    BPatch_instpMap *instp_map;
 
-    BPatch_image *image;
     BPatch_Vector<BPatch_thread *> threads;
 
     // Due to interactions of internal events and signal handling,
@@ -269,6 +222,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     bool statusIsStopped();
     bool statusIsTerminated();
 
+    bool getType();
+    AddressSpace * getAS();
+    bool getTerminated() {return terminated;}
+    bool getMutationsActive() {return mutationsActive;}
+
     int activeOneTimeCodes_;
     bool resumeAfterCompleted_;
 
@@ -302,10 +260,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     BPatch_thread *handleThreadCreate(unsigned index, int lwpid, dynthread_t threadid, 
                             unsigned long stack_top, unsigned long start_pc, process *proc = NULL);
     void deleteBPThread(BPatch_thread *thrd);
-    BPatch_function *findOrCreateBPFunc(int_function *ifunc, 
-                                        BPatch_module *bpmod);
-    BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
-                                      BPatch_procedureLocation pointType);
 
     // These callbacks are triggered by lower-level code and forward
     // calls up to the findOrCreate functions.
@@ -314,7 +268,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                                          instPoint *ip, int type);
     void updateThreadInfo();
 
-    BPatch_Vector<batchInsertionRecord *> *pendingInsertions;
         
     public:
 
@@ -338,13 +291,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     API_EXPORT_DTOR(_dtor, (),
     ~,BPatch_process,());
 
-    //  BPatch_process::getImage
-    //
-    //  Obtain BPatch_image associated with this BPatch_process
-
-    API_EXPORT(Int, (),
-    BPatch_image *,getImage,());
-    
+       
     //  BPatch_process::getPid
     //  
     //  Get  id of mutatee process
@@ -537,29 +484,29 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
 
     API_EXPORT(Int, (expr, point, order),
     BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr, BPatch_point &point,
-                                         BPatch_snippetOrder order = BPatch_firstSnippet));
+                                           BPatch_snippetOrder order = BPatch_firstSnippet));
 
-    //  BPatch_process::insertSnippet
-    //  
-    //  Insert new code into the mutatee, specifying "when" (before/after point)
+    //BPatch_process::insertSnippet
+      
+    //Insert new code into the mutatee, specifying "when" (before/after point)
 
     API_EXPORT(When, (expr, point, when, order),
     BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr, BPatch_point &point,
-                                         BPatch_callWhen when,
-                                         BPatch_snippetOrder order = BPatch_firstSnippet));
+                                     BPatch_callWhen when,
+                                       BPatch_snippetOrder order = BPatch_firstSnippet));
 
-    //  BPatch_process::insertSnippet
-    //  
-    //  Insert new code into the mutatee at multiple points
+    //BPatch_process::insertSnippet
+      
+    //Insert new code into the mutatee at multiple points
 
     API_EXPORT(AtPoints, (expr, points, order),
     BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr,
-                                         const BPatch_Vector<BPatch_point *> &points,
-                                         BPatch_snippetOrder order = BPatch_firstSnippet));
+                                   const BPatch_Vector<BPatch_point *> &points,
+                                       BPatch_snippetOrder order = BPatch_firstSnippet));
 
-    //  BPatch_process::insertSnippet
-    //  
-    //  Insert new code into the mutatee at multiple points, specifying "when"
+      // BPatch_process::insertSnippet
+      
+      //Insert new code into the mutatee at multiple points, specifying "when"
 
     API_EXPORT(AtPointsWhen, (expr, points, when, order),
     BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr,
@@ -567,7 +514,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                                          BPatch_callWhen when,
                                          BPatch_snippetOrder order = BPatch_firstSnippet));
 
-    //  BPatch_process::beginInsertionSet()
+
+
+        //  BPatch_binaryEdit::beginInsertionSet()
     //
     //  Start the batch insertion of multiple points; all calls to insertSnippet*
     //  after this call will not actually instrument until finalizeInsertionSet is
@@ -576,9 +525,10 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     API_EXPORT_V(Int, (),
                  void, beginInsertionSet, ());
 
-    //  BPatch_process::finalizeInsertionSet()
-    //
-    //  Finalizes all instrumentation logically added since a call to beginInsertionSet.
+
+    //BPatch_process::finalizeInsertionSet()
+    
+	// Finalizes all instrumentation logically added since a call to beginInsertionSet.
     //  Returns true if all instrumentation was successfully inserted; otherwise, none
     //  was. Individual instrumentation can be manipulated via the BPatchSnippetHandles
     //  returned from individual calls to insertSnippet.
@@ -596,47 +546,14 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     API_EXPORT(Int, (atomic, modified, catchup_handles),
                bool, finalizeInsertionSetWithCatchup, (bool atomic, bool *modified,
                                             BPatch_Vector<BPatch_catchupInfo> &catchup_handles));
-    //  BPatch_process::deleteSnippet
-    //  
-    //  Remove instrumentation from the mutatee process
-
-    API_EXPORT(Int, (handle),
-    bool,deleteSnippet,(BPatchSnippetHandle *handle));
-
-    //  BPatch_process::replaceCode
-    //
-    //  Replace a point (must be an instruction...) with a given BPatch_snippet
-
-    API_EXPORT(Int, (point, snippet), 
-    bool, replaceCode, (BPatch_point *point, BPatch_snippet *snippet));
-
+   
+    
     //  BPatch_process::setMutationsActive
     //  
     //  Turn on/off instrumentation
 
     API_EXPORT(Int, (activate),
     bool,setMutationsActive,(bool activate));
-
-    //  BPatch_process::replaceFunctionCall
-    //  
-    //  Replace function call at one point with another
-
-    API_EXPORT(Int, (point, newFunc),
-    bool,replaceFunctionCall,(BPatch_point &point, BPatch_function &newFunc));
-
-    //  BPatch_process::removeFunctionCall
-    //  
-    //  Remove function call at one point 
-
-    API_EXPORT(Int, (point),
-    bool,removeFunctionCall,(BPatch_point &point));
-
-    //  BPatch_process::replaceFunction
-    //  
-    //  Replace all calls to a function with calls to another
-
-    API_EXPORT(Int, (oldFunc, newFunc),
-    bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
 
     //  BPatch_process::oneTimeCode
     //  
@@ -666,28 +583,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
 
     API_EXPORT(Int, (libname, reload),
     bool,loadLibrary,(const char *libname, bool reload = false));
-
-    //  BPatch_process::getSourceLines
-    //  
-    //  Method that retrieves the line number and file name corresponding 
-    //  to an address
-
-    API_EXPORT(Int, (addr, lines),
-    bool,getSourceLines,(unsigned long addr, BPatch_Vector< BPatch_statement > & lines ));
-    
-    // BPatch_process::getAddressRanges
-    //
-    // Method that retrieves address range(s) for a given filename and line number.
-    
-    API_EXPORT(Int, (fileName, lineNo, ranges),
-    bool,getAddressRanges,(const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
-	
-    //  BPatch_process::findFunctionByAddr
-    //  
-    //  Returns the function containing an address
-
-    API_EXPORT(Int, (addr),
-    BPatch_function *,findFunctionByAddr,(void *addr));
 
     //  BPatch_process::enableDumpPatchedImage
     //  

@@ -147,7 +147,7 @@ InstrucIter::InstrucIter(image_basicBlock *b) :
 
 
 InstrucIter::InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
-  instructions_(bpBasicBlock->flowGraph->getBProcess()->lowlevel_process()),
+  instructions_(bpBasicBlock->flowGraph->getAddSpace()->getAS()),
   base(bpBasicBlock->getStartAddress()),
   range(bpBasicBlock->size()),
   current(base) {
@@ -267,7 +267,7 @@ bool InstrucIter::hasMore()
   if ((range == 0) ||
       (range ==-1)) return true; // Unsafe iteration, but there is more
 
-  if(((current + insn.size()) < (base + range )) &&
+  if((current < (base + range )) &&
      (current >= base))
     return true;
   return false;

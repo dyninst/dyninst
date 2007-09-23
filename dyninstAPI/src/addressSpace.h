@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.h,v 1.3 2007/09/19 21:54:36 giri Exp $
+// $Id: addressSpace.h,v 1.4 2007/09/23 21:08:54 rutar Exp $
 
 #ifndef ADDRESS_SPACE_H
 #define ADDRESS_SPACE_H
@@ -73,7 +73,10 @@ using namespace SymtabAPI;
 
 class int_function;
 
+
+class Dyn_Symbol;
 class BinaryEdit;
+
 
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 
@@ -207,6 +210,12 @@ class AddressSpace : public InstructionSource {
     // and only one func...
     int_function *findOnlyOneFunction(const std::string &name,
                                       const std::string &libname = "");
+
+
+    // This will find the named symbol in the image or in a shared object
+    // Necessary since some things don't show up as a function or variable.
+    //    bool getSymbolInfo( const pdstring &name, Dyn_Symbol &ret );
+    bool getSymbolInfo( const pdstring &name, Dyninst::SymtabAPI::Symbol &ret );
 
     // getAllFunctions: returns a vector of all functions defined in the
     // a.out and in the shared objects

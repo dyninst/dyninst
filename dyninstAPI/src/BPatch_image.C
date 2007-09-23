@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.100 2007/09/19 21:54:31 giri Exp $
+// $Id: BPatch_image.C,v 1.101 2007/09/23 21:08:54 rutar Exp $
 
 #define BPATCH_FILE
 
@@ -85,13 +85,14 @@ class AddrToVarExprHash {
  * Construct a BPatch_image for the given process.
  */
 
-BPatch_image::BPatch_image(BPatch_process *_proc) :
-   proc(_proc), defaultNamespacePrefix(NULL)
+BPatch_image::BPatch_image(BPatch_addressSpace *_addSpace) :
+  addSpace(_addSpace), defaultNamespacePrefix(NULL)
 {
-    AddrToVarExpr = new AddrToVarExprHash();
-
-    _srcType = BPatch_sourceProgram;
+  AddrToVarExpr = new AddrToVarExprHash();
+  
+  _srcType = BPatch_sourceProgram;
 }
+
 
 /*
  * BPatch_image::BPatch_image
@@ -99,12 +100,12 @@ BPatch_image::BPatch_image(BPatch_process *_proc) :
  * Construct a BPatch_image.
  */
 BPatch_image::BPatch_image() :
-        proc(NULL), 
-        defaultNamespacePrefix(NULL)
+  addSpace(NULL),
+  defaultNamespacePrefix(NULL)
 {
-    AddrToVarExpr = new AddrToVarExprHash();
-    
-    _srcType = BPatch_sourceProgram;
+  AddrToVarExpr = new AddrToVarExprHash();
+  
+  _srcType = BPatch_sourceProgram;
 }
 
 /* 
@@ -122,19 +123,34 @@ BPatch_image::~BPatch_image()
 
     delete AddrToVarExpr;
 }
+
+
 /*
  * getThr - Return the BPatch_thread
  *
  */
 BPatch_thread *BPatch_image::getThrInt()
 {
-   assert(proc->threads.size() > 0);
-   return proc->threads[0];
+  assert(addSpace->getType() == TRADITIONAL_PROCESS);
+  BPatch_process * bpTemp = dynamic_cast<BPatch_process *>(addSpace);
+  
+  assert(bpTemp->threads.size() > 0);
+  return bpTemp->threads[0];
 }
 
 BPatch_process *BPatch_image::getProcessInt()
 {
-   return proc;
+  if (addSpace->getType() == TRADITIONAL_PROCESS)
+    return dynamic_cast<BPatch_process *>(addSpace);
+  else
+    {
+      return NULL;   
+    }
+}
+
+BPatch_addressSpace *BPatch_image::getAddressSpaceInt()
+{
+  return addSpace;
 }
 
 /* 
@@ -240,9 +256,9 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
 
     if (!type) return NULL;
 
-    if (!proc->llproc->getSymbolInfo(name, syminfo)) {
-       return NULL;
-    }
+    if(!addSpace->getAS()->getSymbolInfo(name, syminfo))
+      return NULL;
+    
 
     // Error case. 
     if (syminfo.getAddr() == 0)
@@ -250,7 +266,7 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     
     BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.getAddr()];
     if (!var) {
-        var = new BPatch_variableExpr( const_cast<char *>(name), proc,
+        var = new BPatch_variableExpr( const_cast<char *>(name), addSpace,
                                        (void *)syminfo.getAddr(), type);
         AddrToVarExpr->hash[syminfo.getAddr()] = var;
     }
@@ -326,7 +342,9 @@ bool BPatch_image::setFuncModulesCallback(BPatch_function *bpf, void *data)
 
 BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
     pdvector<mapped_module *> modules;
-    proc->llproc->getAllModules(modules);
+    
+
+    addSpace->getAS()->getAllModules(modules);
 
     if (modules.size() == modlist.size())
         return &modlist;
@@ -384,7 +402,10 @@ BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_matc
     sprintf(tmp, "*%s*", name); 
   else 
     sprintf(tmp, "%s", name);
-  mapped_module *mod = proc->llproc->findModule(tmp,substring_match);
+
+
+  mapped_module *mod = addSpace->getAS()->findModule(tmp,substring_match);
+
   free(tmp);
   if (!mod) return false;
   
@@ -431,6 +452,10 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   Address address_int = (Address) address;
 
   unsigned i;
+
+  assert(addSpace->getType() == TRADITIONAL_PROCESS);
+  BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
+
   process *llproc = proc->llproc;
   int_function *func = NULL;
 
@@ -511,11 +536,12 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
                                                                bool regex_case_sensitive,
                                                                bool incUninstrumentable)
 {
-  process *llproc = proc->llproc;
+  AddressSpace *as = addSpace->getAS();
+
   if (NULL == strpbrk(name, REGEX_CHARSET)) {
     //  usual case, no regex
     pdvector<int_function *> foundIntFuncs;
-    if (!llproc->findFuncsByAll(pdstring(name), 
+    if (!as->findFuncsByAll(pdstring(name), 
                                 foundIntFuncs)) {
         // Error callback...
         if (showError) {
@@ -529,7 +555,8 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
     // scan and check
     for (unsigned int fi = 0; fi < foundIntFuncs.size(); fi++) {
       if (foundIntFuncs[fi]->isInstrumentable() || incUninstrumentable) {
-	BPatch_function *foo = proc->findOrCreateBPFunc(foundIntFuncs[fi], NULL);
+	BPatch_function *foo = addSpace->findOrCreateBPFunc(foundIntFuncs[fi], NULL);
+	//	BPatch_function *foo = proc->findOrCreateBPFunc(foundIntFuncs[fi], NULL);
 	funcs.push_back(foo);
       }
     }
@@ -578,8 +605,9 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
    // excellent candidate for a "value-added" library.
 
    pdvector<int_function *> all_funcs;
-   llproc->getAllFunctions(all_funcs);
-   
+   //llproc->getAllFunctions(all_funcs);
+   as->getAllFunctions(all_funcs);
+
    for (unsigned ai = 0; ai < all_funcs.size(); ai++) {
      int_function *func = all_funcs[ai];
      // If it matches, push onto the vector
@@ -591,7 +619,8 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
      
        if (0 == (err = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
 	 if (func->isInstrumentable() || incUninstrumentable) {
-	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
+	   BPatch_function *foo = addSpace->findOrCreateBPFunc(func,NULL);
+	   //BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
 	   funcs.push_back(foo);
 	 }
 	 found_match = true;
@@ -606,7 +635,8 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
      
        if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
 	 if (func->isInstrumentable() || incUninstrumentable) {
-	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
+	   BPatch_function *foo = addSpace->findOrCreateBPFunc(func,NULL);
+	   //	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
 	   funcs.push_back(foo);
 	 }
 	 found_match = true;
@@ -647,18 +677,21 @@ void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_functi
 					 bool incUninstrumentable) 
 {
   pdvector<int_function*> pdfv;
-  
+ 
+
   if (NULL != img->findFuncVectorByPretty(bpsieve, user_data, &pdfv)) {
     assert(pdfv.size() > 0);
     
     for (unsigned int i = 0; i < pdfv.size(); i++)
       if (incUninstrumentable || pdfv[i]->isInstrumentable())
-         funcs->push_back(proc->findOrCreateBPFunc(pdfv[i], NULL));
+	funcs->push_back(addSpace->findOrCreateBPFunc(pdfv[i],NULL));
+    //        funcs->push_back(proc->findOrCreateBPFunc(pdfv[i], NULL));
   } else {    
      if (NULL != img->findFuncVectorByMangled(bpsieve, user_data, &pdfv))
         for (unsigned int i = 0; i < pdfv.size(); i++)
            if (incUninstrumentable || pdfv[i]->isInstrumentable())
-              funcs->push_back(proc->findOrCreateBPFunc(pdfv[i], NULL));
+	     funcs->push_back(addSpace->findOrCreateBPFunc(pdfv[i],NULL));
+     //              funcs->push_back(proc->findOrCreateBPFunc(pdfv[i], NULL));
   }
 }
 #endif
@@ -684,7 +717,9 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
 			   bool incUninstrumentable)
 {
     pdvector<int_function *> all_funcs;
-    proc->llproc->getAllFunctions(all_funcs);
+    
+    addSpace->getAS()->getAllFunctions(all_funcs);
+    //    proc->llproc->getAllFunctions(all_funcs);
   
   for (unsigned ai = 0; ai < all_funcs.size(); ai++) {
     int_function *func = all_funcs[ai];
@@ -696,7 +731,8 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
 
       if ((*bpsieve)(pName.c_str(), user_data)) {
 	if (func->isInstrumentable() || incUninstrumentable) {
-	  BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
+	  BPatch_function *foo = addSpace->findOrCreateBPFunc(func,NULL);
+	  //BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
 	  funcs.push_back(foo);
 	}
 	found_match = true;
@@ -743,11 +779,13 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
  */
 BPatch_function *BPatch_image::findFunctionInt(unsigned long addr)
 {
-   int_function *ifunc = proc->llproc->findFuncByAddr(addr);
+  int_function *ifunc = addSpace->getAS()->findFuncByAddr(addr);
+  //   int_function *ifunc = proc->llproc->findFuncByAddr(addr);
    if (!ifunc)
       return NULL;
-      
-   return proc->findOrCreateBPFunc(ifunc, NULL);
+     
+   return addSpace->findOrCreateBPFunc(ifunc,NULL);
+   //return proc->findOrCreateBPFunc(ifunc, NULL);
 }
 
 /*
@@ -764,16 +802,17 @@ BPatch_function *BPatch_image::findFunctionInt(unsigned long addr)
 BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showError)
 {
     pdvector<int_variable *> vars;
-    process *llproc = proc->llproc;
-    
-    if (!llproc->findVarsByAll(name, vars)) {
+    //process *llproc = proc->llproc;
+    AddressSpace *as = addSpace->getAS();
+
+    if (!as->findVarsByAll(name,vars)) {
         // _name?
         pdstring under_name = pdstring("_") + pdstring(name);
-        if (!llproc->findVarsByAll(under_name, vars)) {
+        if (!as->findVarsByAll(under_name,vars)) {
             // "default Namespace prefix?
             if (defaultNamespacePrefix) {
                 pdstring prefix_name = pdstring(defaultNamespacePrefix) + pdstring(".") + pdstring(name);
-                if (!llproc->findVarsByAll(prefix_name, vars)) {
+                if (!as->findVarsByAll(prefix_name, vars) ) {
                     if (showError) {
                         pdstring msg = pdstring("Unable to find variable: ") + pdstring(prefix_name);
                         showErrorCallback(100, msg);
@@ -850,7 +889,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
     char *nameCopy = strdup(name);
     assert(nameCopy);
     BPatch_variableExpr *ret = new BPatch_variableExpr((char *) nameCopy, 
-                                                       proc, (void *)var->getAddress(), 
+                                                       addSpace, (void *)var->getAddress(), 
                                                        type);
     AddrToVarExpr->hash[var->getAddress()] = ret;
     return ret;
@@ -881,7 +920,7 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
     if (lv) {
 	// create a local expr with the correct frame offset or absolute
 	//   address if that is what is needed
-	return new BPatch_variableExpr(proc, (void *) lv->getFrameOffset(), 
+	return new BPatch_variableExpr(addSpace, (void *) lv->getFrameOffset(), 
 	    lv->getRegister(), lv->getType(), lv->getStorageClass(), &scp);
     }
 
@@ -991,25 +1030,31 @@ bool BPatch_image::getAddressRangesInt( const char * lineSource,
 
 char *BPatch_image::getProgramNameInt(char *name, unsigned int len) 
 {
-    if (!proc->llproc->mappedObjects().size()) {
-        // No program defined yet
-        strncpy(name, "<no program defined>", len);
-    }
-    
-    const char *imname =  proc->llproc->getAOut()->fullName().c_str();
-    if (NULL == imname) imname = "<unnamed image>";
-    
-    strncpy(name, imname, len);
-    return name;
-}
+  assert(addSpace->getType() == TRADITIONAL_PROCESS);
+  BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
 
-char *BPatch_image::getProgramFileNameInt(char *name, unsigned int len)
-{
   if (!proc->llproc->mappedObjects().size()) {
     // No program defined yet
     strncpy(name, "<no program defined>", len);
   }
- 
+  
+  const char *imname =  proc->llproc->getAOut()->fullName().c_str();
+  if (NULL == imname) imname = "<unnamed image>";
+  
+  strncpy(name, imname, len);
+  return name;
+}
+
+char *BPatch_image::getProgramFileNameInt(char *name, unsigned int len)
+{
+  assert(addSpace->getType() == TRADITIONAL_PROCESS);
+  BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
+  
+  if (!proc->llproc->mappedObjects().size()) {
+    // No program defined yet
+    strncpy(name, "<no program defined>", len);
+  }
+  
   const char *imname =  proc->llproc->getAOut()->fileName().c_str();
   if (NULL == imname) imname = "<unnamed image file>";
 
@@ -1024,6 +1069,9 @@ char *BPatch_image::programNameInt(char *name, unsigned int len) {
 
 int  BPatch_image::lpTypeInt() 
 {
+  assert(addSpace->getType() == TRADITIONAL_PROCESS);
+  BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
+
     switch(proc->lowlevel_process()->getAddressWidth()) {
     case 4: return LP32; break;
     case 8: return LP64; break;
@@ -1049,7 +1097,7 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) {
     BPatch_module *bpm = findModule(base);
 
     if (bpm == NULL) {
-        bpm = new BPatch_module( proc, base, this );
+        bpm = new BPatch_module( addSpace, base, this );
         modlist.push_back( bpm );
     }
     assert(bpm != NULL);
@@ -1066,9 +1114,12 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) {
 BPatch_module *BPatch_image::addMemModuleInt
          (unsigned long addrStart, unsigned long addrEnd) 
 {
-    // Check to ensure that the module does not overlap any existing
-    // BPatch_modules
-    BPatch_Vector<BPatch_module *> *allmods = getModules();
+  assert(addSpace->getType() == TRADITIONAL_PROCESS);
+  BPatch_process * proc = dynamic_cast<BPatch_process *>(addSpace);
+  
+  // Check to ensure that the module does not overlap any existing
+  // BPatch_modules
+  BPatch_Vector<BPatch_module *> *allmods = getModules();
     for (unsigned int i=0; i < allmods->size(); i++) {
         unsigned long curStart, curEnd;
         image *curImg = (*allmods)[i]->lowlevel_mod()->pmod()->imExec();

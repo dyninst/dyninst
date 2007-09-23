@@ -153,9 +153,10 @@ char *BPatch_module::getFullNameInt(char *buffer, int length)
 }
 
 
-BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
+BPatch_module::BPatch_module( BPatch_addressSpace *_addSpace, /*BPatch_process *_proc,*/ 
+			      mapped_module *_mod,
                               BPatch_image *_img ) :
-   proc( _proc ), mod( _mod ), img( _img ), 
+   addSpace( _addSpace ), mod( _mod ), img( _img ), 
    retfuncs(NULL),
    moduleTypes(NULL)
 {
@@ -313,12 +314,12 @@ void BPatch_module::parseTypesIfNecessary() {
 
             bpmod->getProcedures();
 
-			if( bpmod->moduleTypes == NULL ) {
-				bpmod->moduleTypes = BPatch_typeCollection::getModTypeCollection( bpmod );
-				}
-            } /* end function instantiation */
-		
-		/* We'll need to have two loops anyway, so use three for clarity. */
+	    if( bpmod->moduleTypes == NULL ) {
+	      bpmod->moduleTypes = BPatch_typeCollection::getModTypeCollection( bpmod );
+	    }
+	} /* end function instantiation */
+	
+	/* We'll need to have two loops anyway, so use three for clarity. */
         for( unsigned i = 0; i < map_mods.size(); i++ ) {
             // use map_mods[i] instead of a name to get a precise match
             BPatch_module * bpmod = img->findOrCreateModule( map_mods[i] );
@@ -405,7 +406,8 @@ BPatch_module::getProceduresInt(bool incUninstrumentable)
 
     for (unsigned int f = 0; f < funcs.size(); f++)
         if (incUninstrumentable || funcs[f]->isInstrumentable()) {
-            BPatch_function * bpfunc = proc->findOrCreateBPFunc(funcs[f], this);
+	  BPatch_function *bpfunc = addSpace->findOrCreateBPFunc(funcs[f], this);
+	  //	  BPatch_function * bpfunc = proc->findOrCreateBPFunc(funcs[f], this);
             retfuncs->push_back(bpfunc);
         }
     
@@ -448,10 +450,11 @@ BPatch_module::findFunctionInt(const char *name,
       pdvector<int_function *> int_funcs;
       if (mod->findFuncVectorByPretty(name,
                                       int_funcs)) {
-          for (unsigned piter = 0; piter < int_funcs.size(); piter++) {
-              if (incUninstrumentable || int_funcs[piter]->isInstrumentable()) 
-                  {
-                      BPatch_function * bpfunc = proc->findOrCreateBPFunc(int_funcs[piter], this);
+	for (unsigned piter = 0; piter < int_funcs.size(); piter++) {
+	    if (incUninstrumentable || int_funcs[piter]->isInstrumentable()) 
+		{
+		    BPatch_function * bpfunc = addSpace->findOrCreateBPFunc(int_funcs[piter], this);
+		    //BPatch_function * bpfunc = proc->findOrCreateBPFunc(int_funcs[piter], this);
                       funcs.push_back(bpfunc);
                   }
           }
@@ -461,8 +464,9 @@ BPatch_module::findFunctionInt(const char *name,
                                            int_funcs)) {
               for (unsigned miter = 0; miter < int_funcs.size(); miter++) {
                   if (incUninstrumentable || int_funcs[miter]->isInstrumentable()) 
-                      {
-                          BPatch_function * bpfunc = proc->findOrCreateBPFunc(int_funcs[miter], this);
+		    {
+		                                BPatch_function * bpfunc = addSpace->findOrCreateBPFunc(int_funcs[miter], this);
+						//						BPatch_function * bpfunc = proc->findOrCreateBPFunc(int_funcs[miter], this);
                           funcs.push_back(bpfunc);
                       }
               }
@@ -516,7 +520,8 @@ BPatch_module::findFunctionInt(const char *name,
        int err;     
        if (0 == (err = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
 	 if (func->isInstrumentable() || incUninstrumentable) {
-	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
+	   BPatch_function *foo = addSpace->findOrCreateBPFunc(func, NULL);
+	   //	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
 	   funcs.push_back(foo);
 	 }
 	 found_match = true;
@@ -531,7 +536,8 @@ BPatch_module::findFunctionInt(const char *name,
      
        if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
 	 if (func->isInstrumentable() || incUninstrumentable) {
-	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
+	   BPatch_function *foo = addSpace->findOrCreateBPFunc(func, NULL);
+	   //	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
 	   funcs.push_back(foo);
 	 }
 	 found_match = true;
@@ -584,7 +590,8 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
     return NULL;
   }
   if (incUninstrumentable || pdfunc->isInstrumentable()) {
-      bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
+    bpfunc = addSpace->findOrCreateBPFunc(pdfunc, this);
+    //bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
       if (bpfunc) {
           funcs.push_back(bpfunc);
      }
@@ -612,7 +619,8 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
   int_function *pdfunc = int_funcs[0];
   
   if (incUninstrumentable || pdfunc->isInstrumentable()) {
-      bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
+    bpfunc = addSpace->findOrCreateBPFunc(pdfunc, this);
+    //    bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
   }
   
   return bpfunc;
@@ -1120,12 +1128,16 @@ void BPatch_module::parseStabTypes()
             currentFunctionBase = 0;
             Symbol info;
             // Shouldn't this be a function name lookup?
-            if (!proc->llproc->getSymbolInfo(*currentFunctionName,
-                                             info))
+            
+	    /*if (!proc->llproc->getSymbolInfo(*currentFunctionName,
+	      info))*/
+	    if (!addSpace->getAS()->getSymbolInfo(*currentFunctionName,
+		      info))
                 {
                     pdstring fortranName = *currentFunctionName + pdstring("_");
-                    if (proc->llproc->getSymbolInfo(fortranName,info))
-                        {
+                    //if (proc->llproc->getSymbolInfo(fortranName,info))
+		    if (addSpace->getAS()->getSymbolInfo(fortranName,info))
+		      {
                             delete currentFunctionName;
                             currentFunctionName = new pdstring(fortranName);
                         }
@@ -2189,6 +2201,9 @@ void BPatch_module::parseTypes() {
     //Parse global variable type information
     //
 
+    assert(addSpace->getType() == TRADITIONAL_PROCESS);
+    BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
+
     pair.proc = proc->lowlevel_process();
     pair.module = this;
     pair.base_addr = mod->obj()->getBaseAddress();
@@ -2465,7 +2480,7 @@ char *BPatch_module::getUniqueStringInt(char *buffer, int length)
         snprintf(buffer, length, "%s", mod->fileName().c_str());
     else {
         char prog[1024];
-        proc->getImage()->getProgramFileName(prog, 1024);
+        addSpace->getImage()->getProgramFileName(prog, 1024);
         snprintf(buffer, length, "%s|%s",
                  prog, mod->fileName().c_str());
     }

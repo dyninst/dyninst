@@ -72,10 +72,10 @@
 /*
  * Private constructor, insn
  */
-BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPoint *_point,
+BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func, instPoint *_point,
                            BPatch_procedureLocation _pointType) :
     // Note: MIPSPro compiler complains about redefinition of default argument
-    proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(NULL),
+    addSpace(_addSpace), func(_func), point(_point), pointType(_pointType), memacc(NULL),
     dynamic_point_monitor_func(NULL),edge_(NULL)
 {
     if (_pointType == BPatch_subroutine)
@@ -108,7 +108,7 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
     }
 
     for(unsigned i=0; i<mts.size(); i++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
         handle->addMiniTramp(mts[i]);
         preSnippets.push_back(handle);
     }
@@ -125,7 +125,7 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
         mt = mt->next;
     }
     for(unsigned ii=0; ii<mts.size(); ii++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
         handle->addMiniTramp(mts[ii]);
         postSnippets.push_back(handle);
     }
@@ -134,10 +134,10 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
 /*
  * Private constructor, edge
  */
-BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, 
+BPatch_point::BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func, 
                            BPatch_edge *_edge, instPoint *_point) :
     // Note: MIPSPro compiler complains about redefinition of default argument
-    proc(_proc), func(_func), point(_point), pointType(BPatch_locInstruction), memacc(NULL),
+    addSpace(_addSpace), func(_func), point(_point), pointType(BPatch_locInstruction), memacc(NULL),
     dynamic_call_site_flag(0), dynamic_point_monitor_func(NULL),edge_(_edge)
 {
   // I'd love to have a "loop" constructor, but the code structure
@@ -164,7 +164,7 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func,
   }
   
   for(unsigned i=0; i<mts.size(); i++) {
-      BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+      BPatchSnippetHandle *handle = new BPatchSnippetHandle(addSpace);
       handle->addMiniTramp(mts[i]);
       preSnippets.push_back(handle);
   }
@@ -242,6 +242,9 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
 
    if (!func->getModule()->isValid()) return NULL;
    
+   assert(addSpace->getType() == TRADITIONAL_PROCESS);
+   proc = dynamic_cast<BPatch_process *>(addSpace);
+
    mapped_object *obj = func->getModule()->lowlevel_mod()->obj();
    if (proc->lowlevel_process()->mappedObjIsDeleted(obj))
       return NULL;
@@ -361,6 +364,9 @@ bool BPatch_point::isDynamicInt()
     if (!dynamic_call_site_flag) return false;
     if (dynamic_call_site_flag == 1) return true;
     
+    assert(addSpace->getType() == TRADITIONAL_PROCESS);
+    proc = dynamic_cast<BPatch_process *>(addSpace);
+
     assert(proc);
     assert(proc->llproc);
     assert(point);
@@ -399,7 +405,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   }
 
   if (!func_to_use) {
-    BPatch_image *bpi = proc->getImage();
+    BPatch_image *bpi = addSpace->getImage();
     assert(bpi);
     //  if no user cb is provided, use the one in the rt lib
     BPatch_Vector<BPatch_function *> funcs;
@@ -412,6 +418,9 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   }
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite. 
+
+  assert(addSpace->getType() == TRADITIONAL_PROCESS);
+  proc = dynamic_cast<BPatch_process *>(addSpace);
 
   pdvector<AstNodePtr> args;
   if ( (!proc->llproc->getDynamicCallSiteArgs( point,args )) || 
@@ -468,7 +477,7 @@ bool BPatch_point::stopMonitoringInt()
  *
  * maxSize      The maximum number of bytes of instructions to return.
  * insns        A pointer to a buffer in which to return the instructions.
- */
+ */ 
 
 int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
 {
@@ -491,44 +500,46 @@ bool BPatchToInternalArgs(BPatch_point *point,
                           callWhen &ipWhen,
                           callOrder &ipOrder) {
     // Edge instrumentation: overrides inputs
-    if (point->edge()) {
-        if (when == BPatch_callAfter) {
-            // Can't do this... there is no "before" or 
-            // "after" for an edge
-            return false;
-        }
-        switch(point->edge()->type) {
-        case CondJumpTaken:
-        case UncondJump:
-            ipWhen = callBranchTargetInsn;
-            break;
-        case CondJumpNottaken:
-        case NonJump:
-            ipWhen = callPostInsn;
-            break;
-        default:
-            fprintf(stderr, "Unknown edge type %d\n", point->edge()->type);
-            assert(0);
-        }
+  
+  if (point->edge()) {
+    if (when == BPatch_callAfter) {
+      // Can't do this... there is no "before" or 
+      // "after" for an edge
+      return false;
     }
-    else {
-        // Instruction level
-        if (when == BPatch_callBefore)
-            ipWhen = callPreInsn;
-        else if (when == BPatch_callAfter)
-            ipWhen = callPostInsn;
-        else if (when == BPatch_callUnset)
-            ipWhen = callPreInsn;
+    switch(point->edge()->type) {
+    case CondJumpTaken:
+    case UncondJump:
+      ipWhen = callBranchTargetInsn;
+      break;
+    case CondJumpNottaken:
+    case NonJump:
+      ipWhen = callPostInsn;
+      break;
+    default:
+      fprintf(stderr, "Unknown edge type %d\n", point->edge()->type);
+      assert(0);
     }
-    
-    if (order == BPatch_firstSnippet)
-        ipOrder = orderFirstAtPoint;
-    else if (order == BPatch_lastSnippet)
-        ipOrder = orderLastAtPoint;
-    else
-        return false;
-    
-    //
+  }
+  else {
+    // Instruction level
+    if (when == BPatch_callBefore)
+      ipWhen = callPreInsn;
+    else if (when == BPatch_callAfter)
+      ipWhen = callPostInsn;
+    else if (when == BPatch_callUnset)
+      ipWhen = callPreInsn;
+  }
+  
+  
+  if (order == BPatch_firstSnippet)
+    ipOrder = orderFirstAtPoint;
+  else if (order == BPatch_lastSnippet)
+    ipOrder = orderLastAtPoint;
+  else
+    return false;
+  
+  //
     // Check for valid combinations of BPatch_procedureLocation & call*
     // 	Right now we don't allow
     //		BPatch_callBefore + BPatch_exit
@@ -599,7 +610,7 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
 }
 
 // Create an arbitrary BPatch point
-BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_process *proc,
+BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addSpace,
                                                        void *address,
                                                        BPatch_function *bpf) {
 
@@ -609,15 +620,15 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_process *proc,
     // createArbitraryInstPoint(addr, proc);
     
     Address internalAddr = (Address) address;
-    process *internalProc = proc->lowlevel_process();
+    AddressSpace *internalAS = addSpace->getAS();
 
     instPoint *iPoint = instPoint::createArbitraryInstPoint(internalAddr,
-                                                            internalProc);
+                                                            internalAS);
 
     if (!iPoint)
         return NULL;
 
-    return proc->findOrCreateBPPoint(bpf, iPoint, BPatch_arbitrary);
+    return addSpace->findOrCreateBPPoint(bpf, iPoint, BPatch_arbitrary);
 }
 
 // findPoint refactoring
@@ -672,8 +683,9 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
         }
         
         if (add) {
-            BPatch_point *p = BPatch_point::createInstructionInstPoint(bpf->getProc(),
-                                                                       (void *)addr,
+	  BPatch_point *p = BPatch_point::createInstructionInstPoint(//bpf->getProc(),
+                                                                     bpf->getAddSpace(),  
+								     (void *)addr,
                                                                        bpf);
             if (p) {
                 if (p->memacc == NULL)

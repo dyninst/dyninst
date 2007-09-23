@@ -47,6 +47,7 @@
 #include "BPatch_sourceObj.h"
 #include "BPatch_type.h"
 #include "BPatch_module.h"
+//#include "BPatch_addressSpace.h"
 //#include "BPatch_function.h"
 #include "BPatch_eventLock.h"
 
@@ -63,7 +64,7 @@ class process;
 class BPatch_process;
 class BPatch_function;
 class BPatch_point;
-
+class BPatch_addressSpace;
 
 /*
  * Used to specify whether a snippet should be installed before other snippets
@@ -123,6 +124,8 @@ typedef enum {
 
 class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend class BPatch_process;
+    friend class BPatch_binaryEdit;
+    friend class BPatch_addressSpace;
     friend class BPatch_thread;
     friend class BPatch_arithExpr;
     friend class BPatch_boolExpr;
@@ -405,11 +408,12 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
 
     char		*name;
     BPatch_process	*appProcess;
+    BPatch_addressSpace     *appAddSpace;
     void		*address;
     int			size;
     BPatch_point	*scope;
     bool		isLocal;
-
+    /*
     BPatch_variableExpr(BPatch_process *in_process, void *in_address,
                         int in_size);
     BPatch_variableExpr(char *in_name, 
@@ -424,6 +428,23 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
                         int in_register, BPatch_type *type, 
                         BPatch_storageClass storage = BPatch_storageAddr,
                         BPatch_point *scp = NULL);
+    */
+
+    BPatch_variableExpr(BPatch_addressSpace *in_addSpace, void *in_address,
+                        int in_size);
+    BPatch_variableExpr(char *in_name, 
+                        BPatch_addressSpace *in_addSpace,
+                        AstNodePtr *ast_wrapper_,
+                        BPatch_type *type);
+    BPatch_variableExpr(char *in_name, 
+                        BPatch_addressSpace *in_addSpace,
+                        AstNodePtr *ast_wrapper_,
+                        BPatch_type *type, void* in_address);
+    BPatch_variableExpr(BPatch_addressSpace *in_addSpace, void *in_address, 
+                        int in_register, BPatch_type *type, 
+                        BPatch_storageClass storage = BPatch_storageAddr,
+                        BPatch_point *scp = NULL);
+
 
   public:
     //  BPatch_variableExpr::BPatch_variableExpr
@@ -434,8 +455,9 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     //  (counters, etc).  Until there is a way to do this in a better way,
     //  this needs to remain public (consider this a warning, API user,
     //  avoid using this constructor, it may not be here in the future).
-    API_EXPORT_CTOR(Int, (name, in_process, in_address, type),
-    BPatch_variableExpr,(char *name, BPatch_process *in_process,
+    API_EXPORT_CTOR(Int, (name, in_addSpace, in_address, type),
+		    BPatch_variableExpr,(char *name, /*BPatch_process *in_process,*/
+					 BPatch_addressSpace *in_addSpace,
                          void *in_address, BPatch_type *type));
     // Public functions for use by users of the library:
 

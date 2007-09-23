@@ -74,7 +74,7 @@
 // deletes the unreachable code.
 BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func, 
                                    bool &valid)
-    : func_(func), bproc(func->getProc()), mod(func->getModule()), 
+    : func_(func), addSpace(func->getAddSpace()), mod(func->getModule()), 
       loops(NULL), loopRoot(NULL), isDominatorInfoReady(false), 
       isPostDominatorInfoReady(false), isSourceBlockInfoReady(false) 
 {
@@ -273,7 +273,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         // instrument the head of the loop
         BPatch_point *p;
         void *addr = (void*)loop->getLoopHead()->getStartAddress();
-        p = BPatch_point::createInstructionInstPoint(getBProcess(), addr, func_);
+        p = BPatch_point::createInstructionInstPoint(getAddSpace(), addr, func_);
         p->overrideType(BPatch_locLoopStartIter);
 	p->setLoop(loop);
 	points->push_back(p);
@@ -563,7 +563,7 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
         InstrucIter insnIterator( currentBlock );
         
         for( ; insnIterator.hasMore(); ++insnIterator ) {
-            if( getBProcess()->getSourceLines( * insnIterator, lines ) ) {
+            if( getAddSpace()->getSourceLines( * insnIterator, lines ) ) {
                 // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, * insnIterator );
             }
         }
@@ -993,7 +993,10 @@ bool BPatch_flowGraph::containsDynamicCallsitesInt()
 }
 
 process *BPatch_flowGraph::ll_proc() const { 
-    return bproc->lowlevel_process();
+  assert(addSpace->getType() == TRADITIONAL_PROCESS);
+  BPatch_process * bpTemp = dynamic_cast<BPatch_process *>(addSpace);
+
+  return bpTemp->lowlevel_process();
 }
 
 int_function *BPatch_flowGraph::ll_func() const {

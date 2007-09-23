@@ -45,6 +45,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_eventLock.h"
+//#include "BPatch_addressSpace.h"
 #include <vector>
 
 #if defined(IBM_BPATCH_COMPAT)
@@ -58,6 +59,7 @@ class BPatch_image;
 class BPatch_function;
 class BPatch_typeCollection;
 class BPatch_builtInTypeCollection;
+class BPatch_addressSpace;
 class BPatch_process;
 class BPatch_statement;
 
@@ -77,8 +79,11 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class InstrucIter;
     friend class BPatch_thread;
     friend class BPatch_process;
-
-    BPatch_process *proc;
+    friend class BPatch_binaryEdit;
+    friend class BPatch_addressSpace;
+    
+    //BPatch_process *proc;
+    BPatch_addressSpace *addSpace;
     mapped_module      	 *mod;
     BPatch_image	 *img;
     // Used in the destructor.
@@ -92,7 +97,7 @@ public:
     mapped_module* lowlevel_mod() { return mod; }
 
     // The following functions are for internal use by  the library only:
-    BPatch_module(BPatch_process *_proc, mapped_module *_mod, BPatch_image *img);
+    BPatch_module(BPatch_addressSpace *_addSpace,/*BPatch_process *_proc*/mapped_module *_mod, BPatch_image *img);
     BPatch_module() : mod(NULL), img(NULL), retfuncs(NULL), nativeCompiler(false) {
 	_srcType = BPatch_sourceModule;
     };

@@ -1973,7 +1973,8 @@ void BPatch_module::parseDwarfTypes() {
 			} /* end language detection */
 
 		/* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
-		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this, this->proc->llproc, cuOffset ) ) {
+		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this, 
+							  this->addSpace->getAS(),/*this->proc->llproc,*/ cuOffset ) ) {
 			bpwarn( "Error while parsing DWARF info for module '%s'.\n", moduleName );
 			return;
 			}

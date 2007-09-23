@@ -140,6 +140,8 @@ typedef enum BPatch_opCode {
 
 class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class BPatch_process;
+    friend class BPatch_binaryEdit;
+    friend class BPatch_addressSpace;
     friend class BPatch_image;
     friend class BPatch_function;
     friend class BPatch_basicBlock;
@@ -150,14 +152,16 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class BPatch_edge;
     friend class BPatch_snippet;
     
-    static BPatch_point* createInstructionInstPoint(BPatch_process*proc,
-                                                    void*address,
+    static BPatch_point* createInstructionInstPoint(//BPatch_process *proc,
+                                                    BPatch_addressSpace *addSpace,
+						    void*address,
                                                     BPatch_function* bpf = NULL);
     // Create a set of points, all that match a given op in the given instruciter.
     static BPatch_Vector<BPatch_point *> *getPoints(const BPatch_Set<BPatch_opCode> &ops,
                                                     InstrucIter &ii,
                                                     BPatch_function *bpf);
 
+    BPatch_addressSpace *addSpace;
     BPatch_process *proc;
     BPatch_function	*func;
     BPatch_basicBlockLoop *loop;
@@ -166,11 +170,11 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     BPatch_procedureLocation pointType;
     BPatch_memoryAccess *memacc;
     // Instruction constructor...
-    BPatch_point(BPatch_process *_proc, BPatch_function *_func, 
+    BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func, 
                  instPoint *_point, BPatch_procedureLocation _pointType);
 
     // Edge constructor...
-    BPatch_point(BPatch_process *_proc, BPatch_function *_func,
+    BPatch_point(BPatch_addressSpace *_addSpace, BPatch_function *_func,
                  BPatch_edge *_edge, instPoint *_point);
 
 

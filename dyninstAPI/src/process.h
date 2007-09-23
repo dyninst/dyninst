@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.410 2007/09/19 21:55:02 giri Exp $
+/* $Id: process.h,v 1.411 2007/09/23 21:08:55 rutar Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -304,7 +304,7 @@ class process : public AddressSpace {
     
     // This will find the named symbol in the image or in a shared object
     // Necessary since some things don't show up as a function or variable.
-    bool getSymbolInfo( const pdstring &name, Dyninst::SymtabAPI::Symbol &ret );
+    //    bool getSymbolInfo( const pdstring &name, Dyninst::SymtabAPI::Symbol &ret );
     
     // Not at all sure we want to use this anymore...
     void overwriteImage( image* /*img */) {

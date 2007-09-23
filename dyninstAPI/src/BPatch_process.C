@@ -81,16 +81,6 @@ void BPatch_process::PDSEP_updateObservedCostAddr(unsigned long a)
     llproc->updateObservedCostAddr(a);
 }
 
-/*
- * BPatch_process::getImage
- *
- * Return the BPatch_image this object.
- */
-BPatch_image *BPatch_process::getImageInt()
-{
-   return image;
-}
-
 int BPatch_process::getAddressWidthInt(){ 
 	return llproc->getAddressWidth();
 }
@@ -121,16 +111,17 @@ int BPatch_process::getPidInt()
  */
 BPatch_process::BPatch_process(const char *path, const char *argv[], const char **envp,
                                int stdin_fd, int stdout_fd, int stderr_fd)
-   : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
+   : llproc(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), unreportedStop(false), 
      unreportedTermination(false), terminated(false), unstartedRPC(false),
      activeOneTimeCodes_(0),
-     resumeAfterCompleted_(false),
-     pendingInsertions(NULL)
+     resumeAfterCompleted_(false)    
 {
+  image = NULL;
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
+   pendingInsertions = NULL;
 
    isVisiblyStopped = true;
 
@@ -299,16 +290,17 @@ bool LinuxConsideredHarmful(pid_t pid)
  * pid		Process ID of the target process.
  */
 BPatch_process::BPatch_process(const char *path, int pid)
-   : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
+   : llproc(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), unreportedStop(false), 
      unreportedTermination(false), terminated(false), unstartedRPC(false),
      activeOneTimeCodes_(0),
-     resumeAfterCompleted_(false),
-     pendingInsertions(NULL)
+     resumeAfterCompleted_(false)
 {
+  image = NULL;
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
+   pendingInsertions = NULL;
 
    isVisiblyStopped = true;
 
@@ -367,17 +359,20 @@ BPatch_process::BPatch_process(const char *path, int pid)
  * childPid           Process ID of the target process.
  */
 BPatch_process::BPatch_process(process *nProc)
-   : llproc(nProc), image(NULL), lastSignal(-1), exitCode(-1),
+   : llproc(nProc), lastSignal(-1), exitCode(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false),
      unreportedStop(false), unreportedTermination(false), terminated(false),
      unstartedRPC(false), activeOneTimeCodes_(0),
-     resumeAfterCompleted_(false),
-     pendingInsertions(NULL)
+     resumeAfterCompleted_(false)
 {
    // Add this object to the list of threads
    assert(BPatch::bpatch != NULL);
+   image = NULL;
+   pendingInsertions = NULL;
+
    BPatch::bpatch->registerProcess(this);
+
 
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
@@ -931,6 +926,7 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
  * Returns:       The corresponding BPatchSnippetHandle from the child thread.
  *
  */
+
 BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle &parentSnippet)
 {
     // a BPatchSnippetHandle has an miniTramp for each point that
@@ -949,6 +945,7 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle 
     }
     return childSnippet;
 }
+
 
 /*
  * BPatch_process::insertSnippet
@@ -1005,6 +1002,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &exp
  
 }
 
+
 /*
  * BPatch_process::insertSnippet
  *
@@ -1017,26 +1015,28 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &exp
  */
 // A lot duplicated from the single-point version. This is unfortunate.
 
+
+
 BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snippet &expr,
                                                                const BPatch_Vector<BPatch_point *> &points,
                                                                BPatch_callWhen when,
                                                                BPatch_snippetOrder order)
 {
-   if (dyn_debug_inst) {
-      BPatch_function *f;
-      for (unsigned i=0; i<points.size(); i++) {
-         f = points[i]->getFunction();
-         const char *sname = f->func->prettyName().c_str();
-         inst_printf("[%s:%u] - %d. Insert instrumentation at function %s, "
-                     "address %p, when %d, order %d in proc %d\n",
-                     FILE__, __LINE__, i,
-                     sname, points[i]->getAddress(), (int) when, (int) order,
-                     llproc->getPid());
-                     
-      }
-   }
-   
-    if (BPatch::bpatch->isTypeChecked()) {
+  if (dyn_debug_inst) {
+    BPatch_function *f;
+    for (unsigned i=0; i<points.size(); i++) {
+      f = points[i]->getFunction();
+      const char *sname = f->func->prettyName().c_str();
+      inst_printf("[%s:%u] - %d. Insert instrumentation at function %s, "
+		  "address %p, when %d, order %d in proc %d\n",
+		  FILE__, __LINE__, i,
+		  sname, points[i]->getAddress(), (int) when, (int) order,
+		  llproc->getPid());
+      
+    }
+  }
+  
+  if (BPatch::bpatch->isTypeChecked()) {
         assert(expr.ast_wrapper);
         if ((*(expr.ast_wrapper))->checkType() == BPatch::bpatch->type_Error) {
             inst_printf("[%s:%u] - Type error inserting instrumentation\n",
@@ -1110,6 +1110,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
     return ret;
 }
 
+
 /*
  * BPatch_process::insertSnippet
  *
@@ -1120,6 +1121,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
  * expr		The snippet to insert.
  * points	The list of points at which to insert it.
  */
+
 BPatchSnippetHandle *BPatch_process::insertSnippetAtPoints(
                  const BPatch_snippet &expr,
                  const BPatch_Vector<BPatch_point *> &points,
@@ -1132,8 +1134,9 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPoints(
 }
 
 
+
 /*
- * BPatch_process::beginInsertionSet
+ * BPatch_addressSpace::beginInsertionSet
  * 
  * Starts a batch insertion set; that is, all calls to insertSnippet until
  * finalizeInsertionSet are delayed.
@@ -1146,6 +1149,7 @@ void BPatch_process::beginInsertionSetInt()
         pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
     // Nothing else to do...
 }
+
 
 /*
  * BPatch_process::finalizeInsertionSet
@@ -1420,6 +1424,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
     catchup_printf("%s[%d]:  leaving finalizeInsertionSet -- CATCHUP DONE\n", FILE__, __LINE__);
     return ret;
 }
+
 
 bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modified, 
                                                BPatch_Vector<BPatch_catchupInfo> &catchup_handles)
@@ -1789,67 +1794,6 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
 }
 
 /*
- * BPatch_process::deleteSnippet
- * 
- * Deletes an instance of a snippet.
- *
- * handle	The handle returned by insertSnippet when the instance to
- *		deleted was created.
- */
-bool BPatch_process::deleteSnippetInt(BPatchSnippetHandle *handle)
-{   
-    if (terminated) return true;
-
-    if (handle->proc_ == this) {
-        for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
-            handle->mtHandles_[i]->uninstrument();
-        delete handle;
-        return true;
-    } 
-    // Handle isn't to a snippet instance in this process
-    cerr << "Error: wrong process in deleteSnippet" << endl;     
-    return false;
-}
-
-/*
- * BPatch_process::replaceCode
- *
- * Replace a given instruction with a BPatch_snippet.
- *
- * point       Represents the instruction to be replaced
- * snippet     The replacing snippet
- */
-
-bool BPatch_process::replaceCodeInt(BPatch_point *point,
-                                    BPatch_snippet *snippet) {
-   if (!mutationsActive)
-      return false;
-
-    if (!point) {
-        return false;
-    }
-    if (terminated) {
-        return true;
-    }
-
-    if (point->edge_) {
-        return false;
-    }
-
-    // Calculate liveness to make things cheaper
-
-#if defined(os_aix) || defined(arch_x86_64)
-        // Toss the const; the function _pointer_ doesn't though.
-        BPatch_function *func = point->getFunction();
-        func->calc_liveness(point);
-#endif 
-
-
-    return point->point->replaceCode(*(snippet->ast_wrapper));
-}
-
-
-/*
  * BPatch_process::setMutationsActive
  *
  * Enable or disable the execution of all snippets for the thread.
@@ -1872,99 +1816,6 @@ bool BPatch_process::setMutationsActiveInt(bool activate)
    return true;
 }
 
-/*
- * BPatch_process::replaceFunctionCall
- *
- * Replace a function call with a call to a different function.  Returns true
- * upon success, false upon failure.
- * 
- * point	The call site that is to be changed.
- * newFunc	The function that the call site will now call.
- */
-bool BPatch_process::replaceFunctionCallInt(BPatch_point &point,
-                                            BPatch_function &newFunc)
-{
-   // Can't make changes to code when mutations are not active.
-   if (!mutationsActive)
-      return false;
-   assert(point.point && newFunc.lowlevel_func());
-   return llproc->replaceFunctionCall(point.point, newFunc.lowlevel_func());
-}
-
-/*
- * BPatch_process::removeFunctionCall
- *
- * Replace a function call with a NOOP.  Returns true upon success, false upon
- * failure.
- * 
- * point	The call site that is to be NOOPed out.
- */
-bool BPatch_process::removeFunctionCallInt(BPatch_point &point)
-{
-   // Can't make changes to code when mutations are not active.
-   if (!mutationsActive)
-      return false;   
-   assert(point.point);
-   return llproc->replaceFunctionCall(point.point, NULL);
-}
-
-
-/*
- * BPatch_process::replaceFunction
- *
- * Replace all calls to function OLDFUNC with calls to NEWFUNC.
- * Returns true upon success, false upon failure.
- * 
- * oldFunc	The function to replace
- * newFunc      The replacement function
- */
-bool BPatch_process::replaceFunctionInt(BPatch_function &oldFunc,
-                                        BPatch_function &newFunc)
-{
-#if defined(os_solaris) || defined(os_osf) || defined(os_linux) || \
-    defined(os_windows) \
-
-    assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
-    if (!mutationsActive)
-        return false;
-    
-    // Self replacement is a nop
-    // We should just test direct equivalence here...
-    if (oldFunc.lowlevel_func() == newFunc.lowlevel_func()) {
-        return true;
-    }
-
-   bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
-   BPatch::bpatch->setTrampRecursive( true );
-   
-   // We replace functions by instrumenting the entry of OLDFUNC with
-   // a non-linking jump to NEWFUNC.  Calls to OLDFUNC do actually
-   // transfer to OLDFUNC, but then our jump shunts them to NEWFUNC.
-   // The non-linking jump ensures that when NEWFUNC returns, it
-   // returns directly to the caller of OLDFUNC.
-   BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
-   if (! pts || ! pts->size()) {
-      BPatch::bpatch->setTrampRecursive( old_recursion_flag );
-      return false;
-   }
-   BPatch_funcJumpExpr fje(newFunc);
-   BPatchSnippetHandle * result = insertSnippetAtPointsWhen(fje, *pts, BPatch_callBefore);
-   
-   BPatch::bpatch->setTrampRecursive( old_recursion_flag );
-   
-   return (NULL != result);
-#else
-   char msg[2048];
-   char buf1[512], buf2[512];
-   sprintf(msg, "cannot replace func %s with func %s, not implemented",
-           oldFunc.getName(buf1, 512), newFunc.getName(buf2, 512));
-    
-   BPatch_reportError(BPatchSerious, 109, msg);
-   BPatch_reportError(BPatchSerious, 109,
-                      "replaceFunction is not implemented on this platform");
-   return false;
-#endif
-}
 
 /*
  * BPatch_process::oneTimeCode
@@ -2299,50 +2150,6 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    return true;
 }
 
-bool BPatch_process::getAddressRangesInt( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ) {
-	unsigned int originalSize = ranges.size();
-
-	/* Iteratate over the modules, looking for addr in each. */
-	BPatch_Vector< BPatch_module * > * modules = image->getModules();
-	for( unsigned int i = 0; i < modules->size(); i++ ) {
-		LineInformation *lineInformation = (* modules)[i]->mod->getLineInformation();		
-		if(lineInformation)
-			lineInformation->getAddressRanges( fileName, lineNo, ranges );
-		} /* end iteration over modules */
-	if( ranges.size() != originalSize ) { return true; }
-	
-	return false;
-	} /* end getAddressRangesInt() */
-
-bool BPatch_process::getSourceLinesInt( unsigned long addr, 
-                                        BPatch_Vector< BPatch_statement > & lines ) 
-{
-   return image->getSourceLinesInt(addr, lines);
-} /* end getLineAndFile() */
-
-/*
- * BPatch_process::findFunctionByAddr
- *
- * Returns the function that contains the specified address, or NULL if the
- * address is not within a function.
- *
- * addr		The address to use for the lookup.
- */
-BPatch_function *BPatch_process::findFunctionByAddrInt(void *addr)
-{
-   int_function *func;
-   
-   codeRange *range = llproc->findOrigByAddr((Address) addr);
-   if (!range)
-      return NULL;
-
-   func = range->is_function();
-    
-   if (!func)
-      return NULL;
-    
-   return findOrCreateBPFunc(func, NULL);
-}
 
 
 /* 
@@ -2397,47 +2204,14 @@ BPatch_thread *BPatch_process::getThreadByIndexInt(unsigned index)
    return NULL;
 }
 
-BPatch_function *BPatch_process::findOrCreateBPFunc(int_function* ifunc,
-                                                    BPatch_module *bpmod)
+bool BPatch_process::getType()
 {
-  if( func_map->defines(ifunc) ) {
-    assert( func_map->get(ifunc) != NULL );
-    return func_map->get(ifunc);
-  }
-  
-  // Find the module that contains the function
-  if (bpmod == NULL && ifunc->mod() != NULL) {
-      bpmod = getImage()->findModule(ifunc->mod()->fileName().c_str());
-  }
-
-  // findModule has a tendency to make new function objects... so
-  // check the map again
-  if (func_map->defines(ifunc)) {
-    assert( func_map->get(ifunc) != NULL );
-    return func_map->get(ifunc);
-  }
-
-  BPatch_function *ret = new BPatch_function(this, ifunc, bpmod);
-  assert( ret != NULL );
-  return ret;
+  return TRADITIONAL_PROCESS;
 }
 
-BPatch_point *BPatch_process::findOrCreateBPPoint(BPatch_function *bpfunc, 
-						  instPoint *ip, 
-						  BPatch_procedureLocation pointType)
+AddressSpace * BPatch_process::getAS()
 {
-    assert(ip);
-   if (instp_map->defines(ip)) 
-      return instp_map->get(ip);
-
-   if (bpfunc == NULL) 
-       bpfunc = findOrCreateBPFunc(ip->func(), NULL);
-   
-   BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);
-
-   instp_map->add(ip, pt);
-
-   return pt;
+  return llproc;
 }
 
 BPatch_function *BPatch_process::createBPFuncCB(AddressSpace *a, int_function *f)
@@ -2534,41 +2308,6 @@ bool BPatch_process::addSharedObjectInt(const char *name,
 #endif
 
 
-/***************************************************************************
- * BPatch_snippetHandle
- ***************************************************************************/
-
-/*
- * BPatchSnippetHandle::BPatchSnippetHandle
- *
- * Constructor for BPatchSnippetHandle.  Delete the snippet instance(s)
- * associated with the BPatchSnippetHandle.
- */
-BPatchSnippetHandle::BPatchSnippetHandle(BPatch_process *proc) :
-    proc_(proc)
-{
-}
-
-/*
- * BPatchSnippetHandle::~BPatchSnippetHandle
- *
- * Destructor for BPatchSnippetHandle.  Delete the snippet instance(s)
- * associated with the BPatchSnippetHandle.
- */
-void BPatchSnippetHandle::BPatchSnippetHandle_dtor()
-{
-   // don't delete inst instances since they are might have been copied
-}
-
-BPatch_process *BPatchSnippetHandle::getProcessInt()
-{
-  return proc_;
-}
-
-BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
-{
-  return catchup_threads;
-}
 
 BPatch_function *BPatch_process::get_function(int_function *f) 
 { 

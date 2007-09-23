@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.98 2007/07/24 20:22:34 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.99 2007/09/23 21:08:54 rutar Exp $
 
 #define BPATCH_FILE
 
@@ -744,7 +744,11 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 	*/
 #if defined(cap_save_the_world)
 
-	process *proc = func.getProc()->llproc;
+      AddressSpace *as = func.getAddSpace()->getAS();
+      process* proc = dynamic_cast<process *>(as);
+
+      //	process *proc = func.getProc()->llproc;
+	
 	// We can't define isSharedLib as constant everywhere, so strip
 	// the const definition here.
 	BPatch_function &stripFunc = const_cast<BPatch_function &> (func);
@@ -908,12 +912,12 @@ void BPatch_sequence::BPatch_sequenceInt(const BPatch_Vector<BPatch_snippet *> &
  * type		The type of the variable.
  */
 void BPatch_variableExpr::BPatch_variableExprInt(char *in_name,
-					    BPatch_process *in_process,
-					    void *in_address,
-					    BPatch_type *type) 
+						 BPatch_addressSpace * in_addSpace,
+						 void *in_address,
+						 BPatch_type *type) 
 {
     name = in_name;
-    appProcess = in_process;
+    appAddSpace = in_addSpace;
     address = in_address;
     scope = NULL;
     isLocal = false;
@@ -940,11 +944,12 @@ void BPatch_variableExpr::BPatch_variableExprInt(char *in_name,
  * ast          The ast expression for the variable
  */
 BPatch_variableExpr::BPatch_variableExpr(char *in_name,
-                                         BPatch_process *in_process,
+                                         /*BPatch_process *in_process,*/
+					 BPatch_addressSpace *in_addSpace,
                                          AstNodePtr *ast_wrapper_,
                                          BPatch_type *type,
                                          void* in_address) :
-    name(in_name), appProcess(in_process), address(in_address), scope(NULL), isLocal(false)
+  name(in_name), /*appProcess(in_process),*/ appAddSpace(in_addSpace), address(in_address), scope(NULL), isLocal(false)
 {
     ast_wrapper = ast_wrapper_;
     assert(ast_wrapper);
@@ -958,10 +963,11 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
 }
 
 BPatch_variableExpr::BPatch_variableExpr(char *in_name,
-                                         BPatch_process *in_process,
-                                         AstNodePtr *ast_wrapper_,
+                                         //BPatch_process *in_process,
+                                         BPatch_addressSpace *in_addSpace,
+					 AstNodePtr *ast_wrapper_,
                                          BPatch_type *type) :
-    name(in_name), appProcess(in_process), address(NULL), scope(NULL), isLocal(false)
+  name(in_name), /*appProcess(in_process),*/ appAddSpace(in_addSpace), address(NULL), scope(NULL), isLocal(false)
 {
     
     ast_wrapper = ast_wrapper_;
@@ -1029,20 +1035,21 @@ bool BPatch_variableExpr::setSizeInt(int sz)
  * Construct a snippet representing a variable of the given type at the given
  * address.
  *
- * in_process	The BPatch_process that the variable resides in.
+ * in_addSpace	The BPatch_addressSpace that the variable resides in.
  * in_address	The address of the variable in the inferior's address space.
  * in_register	The register of the variable in the inferior's address space.
  * type		The type of the variable.
  * in_storage	Enum of how this variable is stored.
  *
  */
-BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
-                                         void *in_address,
+BPatch_variableExpr::BPatch_variableExpr(//BPatch_process *in_process,
+                                         BPatch_addressSpace *in_addSpace,
+					 void *in_address,
 					 int in_register,
                                          BPatch_type *type,
                                          BPatch_storageClass in_storage,
 					 BPatch_point *scp) :
-    appProcess(in_process), address(in_address)
+  /*appProcess(in_process),*/ appAddSpace(in_addSpace), address(in_address)
 {
     switch (in_storage) {
 	case BPatch_storageAddr:
@@ -1091,10 +1098,11 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
  *
  * in_address   The address of the variable in the inferior's address space.
  */
-BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
+BPatch_variableExpr::BPatch_variableExpr(/*BPatch_process *in_process,*/
+					 BPatch_addressSpace *in_addSpace,
                                          void *in_address,
                                          int in_size) :
-    appProcess(in_process), address(in_address), scope(NULL), isLocal(false)
+    appAddSpace(in_addSpace), address(in_address), scope(NULL), isLocal(false)
 {
     ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::DataAddr, address));
 
@@ -1124,6 +1132,11 @@ bool BPatch_variableExpr::readValueInt(void *dst)
     return false;
   }
 
+  if (appAddSpace->getType() != TRADITIONAL_PROCESS)
+    return false;
+  
+  appProcess = dynamic_cast<BPatch_process *>(appAddSpace);
+
     if (size) {
 	appProcess->lowlevel_process()->readDataSpace(address, size, dst, true);
 	return true;
@@ -1152,8 +1165,14 @@ bool BPatch_variableExpr::readValueWithLength(void *dst, int len)
     return false;
   }
 
-    appProcess->lowlevel_process()->readDataSpace(address, len, dst, true);
-    return true;
+  
+  if (appAddSpace->getType() != TRADITIONAL_PROCESS)
+      return false;
+
+  appProcess = dynamic_cast<BPatch_process *>(appAddSpace);
+
+  appProcess->lowlevel_process()->readDataSpace(address, len, dst, true);
+  return true;
 }
 
 
@@ -1182,6 +1201,13 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
     BPatch_reportError(BPatchWarning, 109,msg);
     return false;
   }
+
+  
+  if (appAddSpace->getType() != TRADITIONAL_PROCESS)
+    return false;
+  
+  appProcess = dynamic_cast<BPatch_process *>(appAddSpace);
+
 
     if (size) {
 	if (!appProcess->lowlevel_process()->writeDataSpace(address, size, src))
@@ -1225,6 +1251,13 @@ bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool /*
     BPatch_reportError(BPatchWarning, 109,msg);
     return false;
   }
+
+
+  if (appAddSpace->getType() != TRADITIONAL_PROCESS)
+    return false;
+
+  appProcess = dynamic_cast<BPatch_process *>(appAddSpace);
+
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -1285,7 +1318,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
 	if( field->_type != NULL ) {
             AstNodePtr *newAst = new AstNodePtr(fieldExpr);
 	    newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
-					     appProcess, newAst,
+					     /*appProcess,*/ appAddSpace, newAst,
                                              const_cast<BPatch_type *>(field->_type),
 					     (char*)address + offset);
 	    retList->push_back(newVar);
