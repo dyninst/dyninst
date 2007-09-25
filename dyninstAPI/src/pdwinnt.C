@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.178 2007/09/19 21:54:59 giri Exp $
+// $Id: pdwinnt.C,v 1.179 2007/09/25 17:28:11 giri Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1509,7 +1509,7 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *lwp)
 }
 
 bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
-bool process::instrumentLibcStartMain() { assert(0); return fasle; }
+bool process::instrumentLibcStartMain() { assert(0); return false; }
 bool process::decodeStartupSysCalls(EventRecord &) { assert(0); return false; }
 void process::setTraceSysCalls(bool) { assert(0); }
 void process::setTraceState(traceState_t) { assert(0); }
