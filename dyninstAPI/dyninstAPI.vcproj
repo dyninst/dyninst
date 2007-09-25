@@ -532,6 +532,24 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\BPatch_addressSpace.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_binaryEdit.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\BPatch_snippet.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -1516,6 +1534,12 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\BPatch_process.h">
+			</File>
+			<File
+				RelativePath=".\h\BPatch_addressSpace.h">
+			</File>
+			<File
+				RelativePath=".\h\BPatch_binaryEdit.h">
 			</File>
 			<File
 				RelativePath=".\h\BPatch_Set.h">
