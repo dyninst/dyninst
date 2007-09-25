@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.5 2007/09/19 21:53:59 giri Exp $
+ * $Id: Object.h,v 1.6 2007/09/25 17:28:28 giri Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -100,6 +100,7 @@ public:
     DLLEXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
     DLLEXPORT std::vector<Section *> getAllSections() const;
 
+
     DLLEXPORT supportedLanguages pickLanguage(std::string &working_module, char *working_options,
                                                                     supportedLanguages working_lang);
 
@@ -112,6 +113,7 @@ public:
     DLLEXPORT virtual  bool   needs_function_binding()  const;
     DLLEXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
     DLLEXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const;
+    DLLEXPORT bool   getSegments(vector<Segment *> &segs) const;
     DLLEXPORT virtual  bool   writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes) = 0;
     DLLEXPORT bool have_deferred_parsing( void ) const;
     // for debuggering....

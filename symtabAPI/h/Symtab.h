@@ -212,6 +212,7 @@ class Symtab : public LookupInterface {
 	DLLEXPORT bool addSection(Section *newScn);
 	DLLEXPORT bool emit(std::string filename);
 
+	DLLEXPORT bool getSegments(vector<Segment *> &segs) const;
 	DLLEXPORT bool updateCode(void *buffer, unsigned size);
 	DLLEXPORT bool updateData(void *buffer, unsigned size);
 	
@@ -219,13 +220,13 @@ class Symtab : public LookupInterface {
 	DLLEXPORT const std::string &file() const;
 	DLLEXPORT const std::string &name() const;
 
-	DLLEXPORT char *  mem_image() const;
+	DLLEXPORT char *mem_image() const;
 	
-	DLLEXPORT Offset codeOffset() const;
+	DLLEXPORT Offset imageOffset() const;
 	DLLEXPORT Offset dataOffset() const;
 	DLLEXPORT Offset dataLength() const;
-	DLLEXPORT Offset codeLength() const;
-   	DLLEXPORT char*  code_ptr ()  const;
+	DLLEXPORT Offset imageLength() const;
+   	DLLEXPORT char*  image_ptr ()  const;
    	DLLEXPORT char*  data_ptr ()  const;
 
    	DLLEXPORT const char*  getInterpreterName() const;
@@ -330,11 +331,11 @@ class Symtab : public LookupInterface {
    /***** Private Data Members *****/
  private:
    std::string filename_;
-	std::string member_name_;
-	std::string name_;
+   std::string member_name_;
+   std::string name_;
 
-   Offset codeOffset_;
-   unsigned codeLen_;
+   Offset imageOffset_;
+   unsigned imageLen_;
    Offset dataOffset_;
    unsigned dataLen_;
 

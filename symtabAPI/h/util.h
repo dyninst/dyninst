@@ -34,6 +34,8 @@
 #if !defined(_symtab_util_h_)
 #define _symtab_util_h_
 
+#include "dyntypes.h"
+
 #if defined(_MSC_VER)	
 #if !defined(DLLEXPORT)
 #define DLLEXPORT __declspec(dllexport)
@@ -97,9 +99,22 @@ typedef enum { Obj_Parsing,
 	       No_Error
 } SymtabError;
 
+typedef enum{
+    SF_READ = 1,
+    SF_WRITE = 2,
+    SF_EXECUTABLE = 4
+}segflags_t;
+
+typedef struct{
+    void *data;
+    Offset loadaddr;
+    unsigned long size;
+    std::string name; 
+    unsigned segFlags;
+}Segment;
+
 }//namespace SymtabAPI
 }//namespace Dyninst
 
-#include "dyntypes.h"
 
 #endif

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.14 2007/09/19 21:54:03 giri Exp $
+ * $Id: Object-elf.C,v 1.15 2007/09/25 17:28:25 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -3058,6 +3058,26 @@ void Object::getModuleLanguageInfo(
    }
 #endif
 
+}
+
+bool AObject::getSegments(vector<Segment *> &segs) const
+{
+    unsigned i;
+    for(i=0;i<sections_.size();i++)
+    {
+        if((sections_[i]->getSecName() == ".text") || (sections_[i]->getSecName() == ".init") || (sections_[i]->getSecName() == ".fini") ||
+	   (sections_[i]->getSecName() == ".rodata") || (sections_[i]->getSecName() == ".plt") || (sections_[i]->getSecName() == ".bss") ||
+	   (sections_[i]->getSecName() == ".data"))
+	{
+	    Segment *seg = (Segment *)malloc(sizeof(Segment));
+	    seg->data = sections_[i]->getPtrToRawData();
+	    seg->loadaddr = sections_[i]->getSecAddr();
+	    seg->size = sections_[i]->getSecSize();
+	    seg->name = sections_[i]->getSecName();
+	    seg->segFlags = sections_[i]->getFlags();
+	}
+    }
+    return true;
 }
 
 bool getBackSymbol(Symbol *symbol, std::vector<Elf32_Sym *>&syms, unsigned &len, std::vector<string> &strs)

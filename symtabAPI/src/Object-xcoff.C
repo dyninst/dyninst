@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.8 2007/09/19 21:53:57 giri Exp $
+// $Id: Object-xcoff.C,v 1.9 2007/09/25 17:28:27 giri Exp $
 
 #include <regex.h>
 
@@ -83,7 +83,7 @@ std::string current_func_name;
 std::string current_mangled_func_name;
 Symbol *current_func = NULL;
 
-// 07/11/2006 giri: below definitions are borrowed from dyninstAPI/src/arch-power.h
+// 07/11/2006 giri: definitions below are borrowed from dyninstAPI/src/arch-power.h
 // to remove the dependency on dyninst. Only the ones required have been borrowed
 
 #define Bop             18      /* (unconditional) branch */
@@ -1563,6 +1563,11 @@ bool Object::emitDriver(Symtab *obj, std::string fName, std::vector<Section *>ne
 bool Object::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
 {
    return true;
+}
+
+bool AObject::getSegments(vector<Segment *> &segs) const
+{
+    return true;
 }
 
 bool Object::writeBackSymbols( std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)

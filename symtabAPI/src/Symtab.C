@@ -318,8 +318,8 @@ DLLEXPORT bool Symtab::isExec() const {
     return is_a_out; 
 }
 
-DLLEXPORT Offset Symtab::codeOffset() const { 
-    return codeOffset_;
+DLLEXPORT Offset Symtab::imageOffset() const { 
+    return imageOffset_;
 }
 
 DLLEXPORT Offset Symtab::dataOffset() const { 
@@ -330,11 +330,11 @@ DLLEXPORT Offset Symtab::dataLength() const {
     return dataLen_;
 } 
 
-DLLEXPORT Offset Symtab::codeLength() const { 
-    return codeLen_;
+DLLEXPORT Offset Symtab::imageLength() const { 
+    return imageLen_;
 }
  
-DLLEXPORT char* Symtab::code_ptr ()  const {
+DLLEXPORT char* Symtab::image_ptr ()  const {
     return (char *)linkedFile->code_ptr(); 
 }
 
@@ -1058,10 +1058,10 @@ bool Symtab::extractInfo()
     gettimeofday(&starttime, NULL);
 #endif
     bool err = true;
-    codeOffset_ = linkedFile->code_off();
+    imageOffset_ = linkedFile->code_off();
     dataOffset_ = linkedFile->data_off();
 
-    codeLen_ = linkedFile->code_len();
+    imageLen_ = linkedFile->code_len();
     dataLen_ = linkedFile->data_len();
     
     codeValidStart_ = linkedFile->code_vldS();
@@ -1069,7 +1069,7 @@ bool Symtab::extractInfo()
     dataValidStart_ = linkedFile->data_vldS();
     dataValidEnd_ = linkedFile->data_vldE();
 
-    if (0 == codeLen_ || 0 == linkedFile->code_ptr()) {
+    if (0 == imageLen_ || 0 == linkedFile->code_ptr()) {
         // for AIX, code_ptr()==NULL is normal behavior
       #if !defined(os_aix)
         if (0 == linkedFile->code_ptr()) {
@@ -1085,7 +1085,7 @@ bool Symtab::extractInfo()
       #endif
    }
 	
-  //  if (!codeLen_ || !linkedFile->code_ptr()) {
+  //  if (!imageLen_ || !linkedFile->code_ptr()) {
   //      serr = Obj_Parsing; 
   //      return false; 
    // }
@@ -1220,8 +1220,8 @@ Symtab::Symtab(const Symtab& obj)
     filename_ = obj.filename_;
     member_name_ = obj.member_name_;
     name_ = obj.name_;
-    codeOffset_ = obj.codeOffset_;
-    codeLen_ = obj.codeLen_;
+    imageOffset_ = obj.imageOffset_;
+    imageLen_ = obj.imageLen_;
     dataOffset_ = obj.dataOffset_;
     dataLen_ = obj.dataLen_;
 
@@ -1233,7 +1233,7 @@ Symtab::Symtab(const Symtab& obj)
     isLineInfoValid_ = obj.isLineInfoValid_;
     isTypeInfoValid_ = obj.isTypeInfoValid_;
 
-    is_a_out = obj.is_a_out;;
+    is_a_out = obj.is_a_out;
     main_call_addr_ = obj.main_call_addr_; // address of call to main()
     
     nativeCompiler = obj.nativeCompiler;
@@ -1781,7 +1781,7 @@ bool Symtab::isValidOffset(const Offset where) const
 bool Symtab::isCode(const Offset where)  const
 {
     return (linkedFile->code_ptr() && 
-            (where >= codeOffset_) && (where < (codeOffset_+codeLen_)));
+            (where >= imageOffset_) && (where < (imageOffset_+imageLen_)));
 }
 
 bool Symtab::isData(const Offset where)  const
@@ -2584,15 +2584,15 @@ bool Symtab::exportXML(std::string file)
         return false;
     }
     
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "codeOff",
-                                             "0x%lx", codeOffset_);
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "imageOff",
+                                             "0x%lx", imageOffset_);
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "codeLen",
-                                             "%ld", codeLen_);
+    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "imageLen",
+                                             "%ld", imageLen_);
     if (rc < 0) {
         serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
@@ -3114,6 +3114,17 @@ DLLEXPORT bool Symtab::emitSymbols(std::string filename)
 {
     linkedFile->checkIfStripped(this, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
     return linkedFile->emitDriver(this, filename, newSections_);
+}
+
+DLLEXPORT bool Symtab::emit(std::string filename)
+{
+    linkedFile->checkIfStripped(this, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
+    return linkedFile->emitDriver(this, filename, newSections_);
+}
+
+DLLEXPORT bool Symtab::getSegments(vector<Segment *> &segs) const
+{
+    return linkedFile->getSegments(segs);
 }
 
 DLLEXPORT bool Symtab::updateCode(void *buffer, unsigned size)

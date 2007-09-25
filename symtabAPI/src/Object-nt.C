@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.12 2007/09/21 20:56:33 nater Exp $
+// $Id: Object-nt.C,v 1.13 2007/09/25 17:28:26 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -712,8 +712,8 @@ Object::FindInterestingSections()
 
             // Since we're reporting the size of sections on the disk,
             // we need to check whether the size of raw data is smaller.
-			//code_len_    = pScnHdr->Misc.VirtualSize;
-            code_len_ = (pScnHdr->SizeOfRawData < pSscnHdr->Misc.Virtualsize ?
+			//code_len_ = pScnHdr->Misc.VirtualSize;
+            code_len_ = ((pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) ?
                          pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
 		}
 		else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 )
@@ -731,7 +731,7 @@ Object::FindInterestingSections()
 			//	data_off_    = get_base_addr()+pScnHdr->VirtualAddress;
 
 			//data_len_    = pScnHdr->Misc.VirtualSize;
-            data_len_ = (pScnHdr->SizeOfRawData < pSscnHdr->Misc.Virtualsize ?
+            data_len_ = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
                          pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
 		}
 		pScnHdr += 1;
@@ -1820,6 +1820,11 @@ void Object::parseTypeInfo(Symtab *obj) {
     for (unsigned i=0; i < funcs.size(); i++) {
         findLocalVars(funcs[i], pair);
     }
+}
+
+bool AObject::getSegments(vector<Segment *> &segs) const
+{
+    return true;
 }
 
 bool Object::writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
