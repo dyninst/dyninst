@@ -214,13 +214,15 @@ clean: clean_solo_mutatees
 	$(RM) -r _dyninstsaved*
 	$(RM) *.ii *.ti
 	$(RM) .__afs*
-	$(RM) *.gen *.pl tuples
 
 distclean: clean
 	@if [ -d $(DEPENDDIR) ]; then \
 	  $(RM) $(DEPENDDIR)/*.dep; \
           rmdir $(DEPENDDIR); \
          fi
+
+specclean:
+	$(RM) *.gen *.pl tuples
 
 ifdef M_ABI
 $(CALL35_1_OBJ_ABI): $(CALL35_1_SRC_ABI)
