@@ -131,7 +131,7 @@ public:
 #endif
 #define DYNINST_CLASS_NAME BPatch_addressSpace
 
-class BPatch_addressSpace : public BPatch_eventLock {
+class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     friend class BPatch;
     friend class BPatch_image;
     friend class BPatch_function;
