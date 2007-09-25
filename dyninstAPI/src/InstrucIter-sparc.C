@@ -355,7 +355,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 
 	  // I've seen this as well, when they pad
 	  // jump tables.
-	  if (img && (!img->isCode(target) || target == img->codeOffset())) {
+	  if (img && (!img->isCode(target) || target == img->imageOffset())) {
 	      valid = false;
 	  }
 	  else {

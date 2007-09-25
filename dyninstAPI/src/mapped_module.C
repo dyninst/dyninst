@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.22 2007/09/19 21:54:52 giri Exp $
+// $Id: mapped_module.C,v 1.23 2007/09/25 17:28:18 giri Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -994,12 +994,12 @@ void mapped_module::parseFileLineInfo()
 
 
 LineInformation *mapped_module::getLineInformation() {
-  /*if (!lineInformation()) {
+  if (!lineInformation()) {
     parseFileLineInfo();
     lineInfoValid_ = true;
   }
-  return &lineInfo_;*/
-  return pmod()->getLineInformation();
+  return &lineInfo_;
+  //return pmod()->getLineInformation();
 }
 
 

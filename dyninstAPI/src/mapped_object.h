@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.15 2007/09/19 21:54:55 giri Exp $
+// $Id: mapped_object.h,v 1.16 2007/09/25 17:28:20 giri Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -127,10 +127,10 @@ class mapped_object : public codeRange {
     // Full name, including path
     const string &fullName() const { return fullName_; }
     const string &fileName() const { return fileName_; }
-    Address codeAbs() const { return codeBase() + codeOffset(); }
+    Address codeAbs() const { return codeBase() + imageOffset(); }
     Address codeBase() const { return codeBase_; }
-    Address codeOffset() const { return parse_img()->codeOffset(); }
-    unsigned codeSize() const { return parse_img()->codeLength(); }
+    Address imageOffset() const { return parse_img()->imageOffset(); }
+    unsigned imageSize() const { return parse_img()->imageLength(); }
 
     // Deprecated...
     Address getBaseAddress() const { return codeBase(); }
@@ -149,7 +149,7 @@ class mapped_object : public codeRange {
 
     // Used for codeRange ONLY! DON'T USE THIS! BAD USER!
     Address get_address_cr() const { return codeAbs(); }
-    unsigned get_size_cr() const { return codeSize(); }
+    unsigned get_size_cr() const { return imageSize(); }
 
     AddressSpace *proc() const;
 
@@ -180,7 +180,7 @@ class mapped_object : public codeRange {
 
 #if defined(cap_save_the_world)
     bool isinText(Address addr){ 
-        return ((addr >= codeBase_) && (addr < (codeBase_ + codeSize())));
+        return ((addr >= codeBase_) && (addr < (codeBase_ + imageSize())));
     }
     void openedWithdlopen() { dlopenUsed = true; }; 
     bool isopenedWithdlopen() { return dlopenUsed; };

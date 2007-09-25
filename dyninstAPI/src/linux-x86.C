@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.131 2007/09/19 21:54:49 giri Exp $
+// $Id: linux-x86.C,v 1.132 2007/09/25 17:28:17 giri Exp $
 
 #include <fstream>
 
@@ -793,7 +793,7 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
     }// end if (a_out == NULL)
     else {
         regionStart = a_out->codeBase();
-        regionEnd = regionStart + a_out->codeSize();
+        regionEnd = regionStart + a_out->imageSize();
     }
 
     // if (a function exists at mainaddr)
@@ -809,14 +809,14 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
         startup_printf("found main via gap parsing at %x in mapped_obj [%x %x]\n",
                 (int)main_function->getAddress(),
                 (int)a_out->codeBase(),
-                (int)(a_out->codeBase()+a_out->codeSize()));
+                (int)(a_out->codeBase()+a_out->imageSize()));
     }
     else {
         startup_printf("gap parsing failed to find main, forcing main to be "
                 "parsed at 0x%x in mapped object [%x %x]\n",
                 (int)mainaddr,
                 (int)a_out->codeBase(),
-                (int)(a_out->codeBase()+a_out->codeSize()));
+                (int)(a_out->codeBase()+a_out->imageSize()));
         image_func *mainfunc = new image_func("main", mainaddr, UINT_MAX, 
              a_out->parse_img()->findModule("DEFAULT_MODULE"), a_out->parse_img());
         pdvector<Address>callTargets;

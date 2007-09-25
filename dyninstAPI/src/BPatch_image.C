@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.101 2007/09/23 21:08:54 rutar Exp $
+// $Id: BPatch_image.C,v 1.102 2007/09/25 17:28:12 giri Exp $
 
 #define BPATCH_FILE
 
@@ -1123,11 +1123,11 @@ BPatch_module *BPatch_image::addMemModuleInt
     for (unsigned int i=0; i < allmods->size(); i++) {
         unsigned long curStart, curEnd;
         image *curImg = (*allmods)[i]->lowlevel_mod()->pmod()->imExec();
-        curStart = (curImg->codeOffset() < curImg->dataOffset()) ? 
-            curImg->codeOffset() : curImg->dataOffset();
-        curEnd = (curImg->codeOffset()+curImg->codeLength() 
-                  < curImg->dataOffset()+curImg->dataLength()) ? 
-            curImg->codeOffset()+curImg->codeLength() :
+        curStart = (curImg->imageOffset() < curImg->dataOffset()) ? 
+            curImg->imageOffset() : curImg->dataOffset();
+        curEnd = (curImg->imageOffset()+curImg->imageLength() 
+                  < curImg->imageOffset()+curImg->dataLength()) ? 
+            curImg->imageOffset()+curImg->imageLength() :
             curImg->dataOffset()+curImg->dataLength();
         if (addrStart <= curEnd && curStart <= addrEnd) {
             fprintf(stderr, "addMemModule received a request for a new "

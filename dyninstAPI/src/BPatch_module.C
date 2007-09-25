@@ -2371,7 +2371,7 @@ void *BPatch_module::getBaseAddrInt()
  */
 unsigned long BPatch_module::getSizeInt() 
 {
-    return (unsigned long) mod->obj()->codeSize();
+    return (unsigned long) mod->obj()->imageSize();
 }
 
 
@@ -2454,7 +2454,7 @@ bool BPatch_module::getAddressRangeInt(void * &start, void * &end)
 {
     // Code? Data? We'll do code for now...
     start = (void *)(mod->obj()->codeAbs());
-    end = (void *)(mod->obj()->codeAbs() + mod->obj()->codeSize());
+    end = (void *)(mod->obj()->codeAbs() + mod->obj()->imageSize());
     return true;
 }
 char *BPatch_module::getUniqueStringInt(char *buffer, int length)

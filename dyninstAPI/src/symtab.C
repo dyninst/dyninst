@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.306 2007/09/23 21:08:55 rutar Exp $
+ // $Id: symtab.C,v 1.307 2007/09/25 17:28:21 giri Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -256,7 +256,7 @@ void image::findMain()
     	    //find and add main to allsymbols
             const unsigned char* p;
 		                   
-	    p = (( const unsigned char * )linkedFile->code_ptr()) + (textsec->getSecAddr() - codeOffset_);
+	    p = (( const unsigned char * )linkedFile->image_ptr()) + (textsec->getSecAddr() - imageOffset_);
             const unsigned char *lastP = 0;
 
             switch(linkedFile->getAddressWidth()) {
@@ -501,7 +501,7 @@ void image::findMain()
         //  if (!symbols_.defines("DEFAULT_MODULE")) {
                 //make up a symbol for default module too
 				Symbol *modSym = new Symbol("DEFAULT_MODULE", "DEFAULT_MODULE", Symbol::ST_MODULE, 
-					Symbol::SL_GLOBAL, codeOffset_, NULL, 0);
+					Symbol::SL_GLOBAL, imageOffset_, NULL, 0);
 				linkedFile->addSymbol(modSym);
             }
 			syms.clear();
@@ -517,7 +517,7 @@ void image::findMain()
         //  if (!symbols_.defines("winStart")) {
                 //make up a func name for the start of the text section
                 Symbol *sSym = new Symbol( "winStart", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-					Symbol::SL_GLOBAL, codeOffset_, 0, UINT_MAX );
+					Symbol::SL_GLOBAL, imageOffset_, 0, UINT_MAX );
             	linkedFile->addSymbol(sSym);
             }
 			syms.clear();
@@ -525,7 +525,7 @@ void image::findMain()
         //  if (!symbols_.defines("winFini")) {
                 //make up one for the end of the text section
                 Symbol *fSym = new Symbol( "winFini", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                            Symbol::SL_GLOBAL, codeOffset_ + linkedFile->codeLength() - 1, 
+                            Symbol::SL_GLOBAL, imageOffset_ + linkedFile->imageLength() - 1, 
                             0, UINT_MAX );
             	linkedFile->addSymbol(fSym);
 			}
@@ -1202,16 +1202,16 @@ image::image(fileDescriptor &desc, bool &err)
    // initialize (data members) codeOffset_, dataOffset_,
    //  codeLen_, dataLen_.
    
-   codeOffset_ = linkedFile->codeOffset();
+   imageOffset_ = linkedFile->imageOffset();
    dataOffset_ = linkedFile->dataOffset();
    
-   codeLen_ = linkedFile->codeLength();
+   imageLen_ = linkedFile->imageLength();
    dataLen_ = linkedFile->dataLength();
 
    
    // if unable to parse object file (somehow??), try to
    //  notify user/calling process + return....    
-   if (!codeLen_ || !linkedFile->code_ptr()) {
+   if (!imageLen_ || !linkedFile->image_ptr()) {
       string msg = string("Parsing problem with executable file: ") + desc.file();
       statusLine(msg.c_str());
       msg += "\n";
@@ -1928,8 +1928,8 @@ void * image::getPtrToDataInText( Address offset ) const {
 	if( isData(offset) ) { return NULL; }
 	if( ! isCode(offset) ) { return NULL; }
 	
-	offset -= codeOffset_;
-	unsigned char * inst = (unsigned char *) (linkedFile->code_ptr());
+	offset -= imageOffset_;
+	unsigned char * inst = (unsigned char *) (linkedFile->image_ptr());
 	return (void *)(& inst[ offset ]);	
 	} /* end getPtrToDataInText() */
 
@@ -1945,8 +1945,8 @@ void *image::getPtrToInstruction(Address offset) const {
    assert(isValidAddress(offset));
 
    if (isCode(offset)) {
-      offset -= codeOffset_;
-      unsigned char *inst = (unsigned char *)(linkedFile->code_ptr());
+      offset -= imageOffset_;
+      unsigned char *inst = (unsigned char *)(linkedFile->image_ptr());
       return (void *)(&inst[offset]);
    } else if (isData(offset)) {
       offset -= dataOffset_;

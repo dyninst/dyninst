@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.38 2007/09/19 21:54:41 giri Exp $
+ * $Id: image-flowGraph.C,v 1.39 2007/09/25 17:28:16 giri Exp $
  */
 
 #include <stdio.h>
@@ -201,13 +201,13 @@ bool image::analyzeImage()
     // executed
     if( everyUniqueFunction.size() <= 0 )
     {
-        mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->codeOffset());
+        mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
     }
 
     // Sort functions to find gaps
     VECTOR_SORT(everyUniqueFunction, addrfunccmp);
 
-    Address gapStart = linkedFile->codeOffset();
+    Address gapStart = linkedFile->imageOffset();
     Address gapEnd;
     int funcIdx = 0; // index into everyUniqueFunction (which may be empty)
     do {
@@ -240,7 +240,7 @@ bool image::analyzeImage()
        } 
        // if there is no next function, set gapEnd to end of codeSection
        else if (funcIdx+1 == (int) everyUniqueFunction.size() || funcIdx == 0) {
-          gapEnd = linkedFile->codeOffset() + linkedFile->codeLength();
+          gapEnd = linkedFile->imageOffset() + linkedFile->imageLength();
        }
        else {  
           break; // advanced gap past the end of the code section

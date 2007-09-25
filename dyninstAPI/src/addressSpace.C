@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.4 2007/09/23 21:08:54 rutar Exp $
+// $Id: addressSpace.C,v 1.5 2007/09/25 17:28:15 giri Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -825,7 +825,7 @@ mapped_object *AddressSpace::findObject(Address addr) {
     for (unsigned i=0; i<mapped_objects.size(); i++)
     {
         if (addr >= mapped_objects[i]->codeAbs() &&
-            addr < mapped_objects[i]->codeAbs() + mapped_objects[i]->codeSize())
+            addr < mapped_objects[i]->codeAbs() + mapped_objects[i]->imageSize())
         {
             return mapped_objects[i];
         }

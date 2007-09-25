@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.26 2007/09/20 21:43:37 giri Exp $
+// $Id: mapped_object.C,v 1.27 2007/09/25 17:28:19 giri Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -95,13 +95,13 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
     // yet? So _that_ needs to be adjusted. We've stored these values
     // in the Object file. We could also adjust all addresses of
     // symbols, but...
-    if (image_->codeOffset() >= codeBase_) {
+    if (image_->imageOffset() >= codeBase_) {
         codeBase_ = 0;
     }
-    else if (image_->codeOffset() <= 0x1fffffff) {
+    else if (image_->imageOffset() <= 0x1fffffff) {
         // GCC-ism. This is a shared library with a a.out-like codeOffset.
         // We need to make our base the difference between the two...
-        codeBase_ -= image_->codeOffset();
+        codeBase_ -= image_->imageOffset();
 	Section *sec;
 	image_->getObject()->findSection(sec, ".text");
 	//fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
@@ -140,13 +140,13 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
     fprintf(stderr, "Creating new mapped_object %s/%s\n",
             fullName_.c_str(), getFileDesc().member().c_str());
     fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
-            codeBase_, image_->codeOffset(), image_->codeLength());
+            codeBase_, image_->imageOffset(), image_->imageLength());
     fprintf(stderr, "dataBase 0x%x, dataOffset 0x%x, size %d\n",
             dataBase_, image_->dataOffset(), image_->dataLength());
     fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
             fileDesc.code(), fileDesc.data());
     fprintf(stderr, "Code: 0x%lx to 0x%lx\n",
-            codeAbs(), codeAbs() + codeSize());
+            codeAbs(), codeAbs() + imageSize());
     fprintf(stderr, "Data: 0x%lx to 0x%lx\n",
             dataAbs(), dataAbs() + dataSize());
     #endif
@@ -580,7 +580,7 @@ codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
     if (addr < codeAbs()) { 
         return NULL; 
     }
-    if (addr >= (codeAbs() + codeSize())) {
+    if (addr >= (codeAbs() + imageSize())) {
         return NULL;
     }
 
@@ -805,7 +805,7 @@ bool mapped_object::isSharedLib() const {
 
 const pdstring mapped_object::debugString() const {
     pdstring debug;
-    debug = pdstring(fileName_.c_str()) + ":" + pdstring(codeBase_) + "/" + pdstring(codeSize()); 
+    debug = pdstring(fileName_.c_str()) + ":" + pdstring(codeBase_) + "/" + pdstring(imageSize()); 
     return debug;
 }
 
@@ -867,7 +867,7 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
         // necessary library information. For now I'm disabling it (10FEB06) until
         // we can get a better idea of what was going on.
 #if 0
-        start = codeAbs() + codeSize();
+        start = codeAbs() + imageSize();
         start += instruction::size() - (start % (Address)instruction::size());
         size = PAGESIZE - (start % PAGESIZE);
 #endif
@@ -892,7 +892,7 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
         // If we loaded it up in the data segment, don't use...
         if (loader_end > 0x20000000)
             loader_end = 0;
-        Address code_end = codeAbs() + codeSize();
+        Address code_end = codeAbs() + imageSize();
 
         start = (loader_end > code_end) ? loader_end : code_end;
 
@@ -920,7 +920,7 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
 
 void *mapped_object::getPtrToInstruction(Address addr) const {
     if (addr < codeAbs()) return NULL;
-    if (addr >= (codeAbs() + codeSize())) return NULL;
+    if (addr >= (codeAbs() + imageSize())) return NULL;
 
     // Only subtract off the codeBase, not the codeBase plus
     // codeOffset -- the image class includes the codeOffset.

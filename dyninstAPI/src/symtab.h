@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.202 2007/09/20 21:43:39 giri Exp $
+// $Id: symtab.h,v 1.203 2007/09/25 17:28:22 giri Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -281,8 +281,8 @@ typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 // funcsByPretty
 // file_
 // name_
-// codeOffset_
-// codeLen_
+// imageOffset_
+// imageLen_
 // dataOffset_
 // dataLen_
 // linkedFile
@@ -407,15 +407,15 @@ class image : public codeRange, public InstructionSource {
    string name() const { return name_;}
    string pathname() const { return pathname_; }
    const fileDescriptor &desc() const { return desc_; }
-   Address codeOffset() const { return codeOffset_;}
+   Address imageOffset() const { return imageOffset_;}
    Address dataOffset() const { return dataOffset_;}
    Address dataLength() const { return dataLen_;} 
-   Address codeLength() const { return codeLen_;} 
+   Address imageLength() const { return imageLen_;} 
 
 
    // codeRange versions
-   Address get_address_cr() const { return codeOffset(); }
-   unsigned get_size_cr() const { return codeLength(); }
+   Address get_address_cr() const { return imageOffset(); }
+   unsigned get_size_cr() const { return imageLength(); }
    virtual void *getPtrToInstruction(Address offset) const;
    // Heh... going by address is a really awful way to work on AIX.
    // Make it explicit.
@@ -535,8 +535,8 @@ class image : public codeRange, public InstructionSource {
    string name_;		 /* filename part of file, no slashes */
    string pathname_;      /* file name with path */
 
-   Address codeOffset_;
-   unsigned codeLen_;
+   Address imageOffset_;
+   unsigned imageLen_;
    Address dataOffset_;
    unsigned dataLen_;
 
