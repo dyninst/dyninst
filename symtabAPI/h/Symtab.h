@@ -212,9 +212,10 @@ class Symtab : public LookupInterface {
 	DLLEXPORT bool addSection(Section *newScn);
 	DLLEXPORT bool emit(std::string filename);
 
-	DLLEXPORT bool getSegments(vector<Segment *> &segs) const;
+	DLLEXPORT bool getSegments(std::vector<Segment> &segs) const;
 	DLLEXPORT bool updateCode(void *buffer, unsigned size);
 	DLLEXPORT bool updateData(void *buffer, unsigned size);
+	DLLEXPORT Offset getFreeOffset(unsigned size);
 	
 	/***** Data Member Access *****/
 	DLLEXPORT const std::string &file() const;
@@ -470,7 +471,11 @@ class Section {
 	DLLEXPORT unsigned long flags() const;
 	DLLEXPORT bool isDirty() const;
 
- private:	
+	enum {textSection = 1, dataSection = 2,
+              relocationSection = 4, symtabSection = 8,
+              stringSection = 16} sectionType;
+
+private:	
 	unsigned sidnumber_;
 	std::string sname_;
 	Offset saddr_;

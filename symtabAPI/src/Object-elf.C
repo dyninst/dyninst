@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.15 2007/09/25 17:28:25 giri Exp $
+ * $Id: Object-elf.C,v 1.16 2007/09/27 03:22:11 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -3060,7 +3060,7 @@ void Object::getModuleLanguageInfo(
 
 }
 
-bool AObject::getSegments(vector<Segment *> &segs) const
+bool AObject::getSegments(vector<Segment> &segs) const
 {
     unsigned i;
     for(i=0;i<sections_.size();i++)
@@ -3069,12 +3069,13 @@ bool AObject::getSegments(vector<Segment *> &segs) const
 	   (sections_[i]->getSecName() == ".rodata") || (sections_[i]->getSecName() == ".plt") || (sections_[i]->getSecName() == ".bss") ||
 	   (sections_[i]->getSecName() == ".data"))
 	{
-	    Segment *seg = (Segment *)malloc(sizeof(Segment));
-	    seg->data = sections_[i]->getPtrToRawData();
-	    seg->loadaddr = sections_[i]->getSecAddr();
-	    seg->size = sections_[i]->getSecSize();
-	    seg->name = sections_[i]->getSecName();
-	    seg->segFlags = sections_[i]->getFlags();
+	    Segment seg;
+	    seg.data = sections_[i]->getPtrToRawData();
+	    seg.loadaddr = sections_[i]->getSecAddr();
+	    seg.size = sections_[i]->getSecSize();
+	    seg.name = sections_[i]->getSecName();
+	    seg.segFlags = sections_[i]->getFlags();
+	    segs.push_back(seg);
 	}
     }
     return true;
@@ -3116,8 +3117,8 @@ bool getBackSymbol(Symbol *symbol, std::vector<Elf32_Sym *>&syms, unsigned &len,
 bool Object::emitDriver(Symtab *obj, string fName, std::vector<Section *>newSecs){
     int newfd;
     Elf *newElf;
-    int insertPoint = 0;
     Elf *oldElf = elfHdr.e_elfp();
+    Elf32_Off dataSegEnd;
     unsigned pgSize = getpagesize();
     std::vector<Section *>nonLoadableSecs;
     Section *foundSec;
@@ -3133,10 +3134,10 @@ bool Object::emitDriver(Symtab *obj, string fName, std::vector<Section *>newSecs
         return false;
     }
     
-    
     //Section name index for new sections
     std::vector<string> loadSecNames;
     unsigned loadSecTotalSize = 0;
+    unsigned shStrTabSizeInc = 0;
     unsigned nonLoadableNamesSize = 0;
     
     // ".shstrtab" section: string table for section header names
@@ -3155,9 +3156,22 @@ bool Object::emitDriver(Symtab *obj, string fName, std::vector<Section *>newSecs
     Elf32_Ehdr *oldEhdr = elf32_getehdr(oldElf);
     memcpy(newEhdr, oldEhdr, sizeof(Elf32_Ehdr));
     newEhdr->e_shnum += newSecs.size();
-    
+
+    int insertPoint = oldEhdr->e_shnum;
+    Elf32_Phdr *tmp = elf32_getphdr(oldElf);
+    // Find the offset of the start of the dynamic segment
+    for(unsigned i=0;i<oldEhdr->e_phnum;i++)
+    {
+        if(tmp->p_type == PT_LOAD && tmp->p_flags == 6)
+        {
+            dataSegEnd = tmp->p_vaddr+tmp->p_memsz;
+            break;
+        }
+        tmp++;
+    }
+									    
     /* flag the file for no auto-layout */
-    elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);  
+//    elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);  
     
     Elf_Scn *shstrtabSec = elf_getscn(oldElf, oldEhdr->e_shstrndx);
     Elf_Data *shstrtabData = elf_getdata(shstrtabSec, NULL);
@@ -3208,7 +3222,9 @@ bool Object::emitDriver(Symtab *obj, string fName, std::vector<Section *>newSecs
         }
         if(!strcmp(name, ".symtab")){
             if(newshdr->sh_link >= insertPoint)
+	    {
                 newshdr->sh_link += loadSecNames.size();
+	    }	
             symTabData = newdata;
         }
         if(!strcmp(name, ".dynsym")){
@@ -3217,22 +3233,31 @@ bool Object::emitDriver(Symtab *obj, string fName, std::vector<Section *>newSecs
 	if(!strcmp(name, ".text")){
             textData = newdata;
         }
-        if(!strcmp(name, ".bss")){
+        if(!strcmp(name, ".shstrtab")){
+            addSectionNames(newdata,olddata, shstrtabDataSize, nonLoadableNamesSize, loadSecNames, nonLoadableSecs);
+    	    newshdr->sh_size = newdata->d_size;
+	    shStrTabSizeInc = newdata->d_size - olddata->d_size;
+        }
+        if(!strcmp(name, ".data")){
+	    dataData = newdata;
+	}
+	if(scncount > insertPoint)
+	{
+	    newshdr->sh_offset += loadSecTotalSize;
+	    if(scncount>oldEhdr->e_shstrndx)
+	    	newshdr->sh_offset += shStrTabSizeInc;
+	}
+	fprintf(stderr, "Added Section %d: secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
+	                        scncount, newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
+	if(shdr->sh_addr+shdr->sh_size == dataSegEnd){
 	    insertPoint = scncount;
             if(!createLoadableSections(newElf, shdr, newSecs, loadSecNames,nonLoadableSecs,  shstrtabDataSize, nonLoadableNamesSize, loadSecTotalSize))
 	    	return false;
         }
-        if(!strcmp(name, ".shstrtab")){
-            addSectionNames(newdata,olddata, shstrtabDataSize, nonLoadableNamesSize, loadSecNames, nonLoadableSecs);
-    	    newshdr->sh_size = newdata->d_size;
-        }
-        if(!strcmp(name, ".data")){
-	    dataData = newdata;
-        }
+							
     }
     if(!createNonLoadableSections(newElf, nonLoadableSecs, newshdr, shstrtabDataSize, oldEhdr->e_shnum+loadSecNames.size()))
     	return false;
-
 
     scn = NULL;
     for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
@@ -3241,19 +3266,25 @@ bool Object::emitDriver(Symtab *obj, string fName, std::vector<Section *>newSecs
     }
 
     //copy program headers
-    Elf32_Phdr *tmp;
-
     tmp = elf32_getphdr(oldElf);
     newEhdr->e_phnum= oldEhdr->e_phnum;
     Elf32_Phdr *newPhdr=elf32_newphdr(newElf,newEhdr->e_phnum);
     memcpy(newPhdr, tmp, (oldEhdr->e_phnum) * oldEhdr->e_phentsize);
     
-    newEhdr->e_shstrndx+=loadSecNames.size();
-    newEhdr->e_shoff +=shdr->sh_offset+shdr->sh_size+1;
-    fixPhdrs(newPhdr, loadSecTotalSize);
     elf_update(newElf, ELF_C_NULL);
     
+    newEhdr->e_shstrndx+=loadSecNames.size();
+    newEhdr->e_shoff =shdr->sh_offset+shdr->sh_size+1;
+    fixPhdrs(newPhdr, loadSecTotalSize);
+    
     if (elf_update(newElf, ELF_C_WRITE) < 0){
+        int err;
+	if ((err = elf_errno()) != 0)
+   	{
+		const char *msg = elf_errmsg(err);
+		cout << msg << endl;
+		/* print msg */
+	}
         log_elferror(err_func_, "elf_update failed");
         return false;
     }
@@ -3334,13 +3365,14 @@ bool Object::createLoadableSections(Elf *&newElf, Elf32_Shdr *shdr, std::vector<
 	    // Fill out the new section header	
 	    newshdr = elf32_getshdr(newscn);
 	    newshdr->sh_name = shstrtabDataSize;
-	    if(newSecs[i]->getFlags() == 1)
-		newshdr->sh_flags =  SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC;
-	    else    
-	        newshdr->sh_flags =  SHF_WRITE | SHF_ALLOC;
+	    newshdr->sh_flags = 0;
+	    if(newSecs[i]->getFlags() && Section::textSection)
+		newshdr->sh_flags |=  SHF_EXECINSTR | SHF_ALLOC;
+	    if (newSecs[i]->getFlags() && Section::dataSection)    
+	        newshdr->sh_flags |=  SHF_WRITE | SHF_ALLOC;
 	    newshdr->sh_type = SHT_PROGBITS;
 	    newshdr->sh_addr = newSecs[i]->getSecAddr();
-	    newshdr->sh_offset = shdr->sh_offset + shdr->sh_size;
+	    newshdr->sh_offset = shdr->sh_offset+ shdr->sh_size;
 	    newshdr->sh_link = SHN_UNDEF;
 	    newshdr->sh_info = 0;
 	    newshdr->sh_addralign = 4;
@@ -3358,10 +3390,13 @@ bool Object::createLoadableSections(Elf *&newElf, Elf32_Shdr *shdr, std::vector<
 	    newdata->d_align = 4;
 	    newdata->d_version = 1;
 	    
-	    //elf_update(newElf, ELF_C_NULL);
+	    elf_update(newElf, ELF_C_NULL);
 
 	    shdr = newshdr;
     	    shstrtabDataSize += newSecs[i]->getSecName().size() + 1;
+
+	    fprintf(stderr, "Added New Section : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
+	                                     newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
 	}
 	else
 	{
@@ -3427,28 +3462,28 @@ bool Object::createNonLoadableSections(Elf *&newElf, std::vector<Section *>&nonL
     	//Fill out the new section header
 	newshdr = elf32_getshdr(newscn);
 	newshdr->sh_name = shstrtabDataSize + prevNameSize;
-	if(nonLoadableSecs[i]->getFlags() == 1)		//Text Section
+	if(nonLoadableSecs[i]->getFlags() && Section::textSection)		//Text Section
 	{
 	    newshdr->sh_type = SHT_PROGBITS;
 	    newshdr->sh_flags = SHF_EXECINSTR | SHF_WRITE;
             newshdr->sh_entsize = 1;
 	    newdata->d_type = ELF_T_BYTE;
 	}
-	else if(nonLoadableSecs[i]->getFlags() == 2)	//Data Section
+	else if(nonLoadableSecs[i]->getFlags() && Section::dataSection)	//Data Section
 	{
 	    newshdr->sh_type = SHT_PROGBITS;
 	    newshdr->sh_flags = SHF_WRITE;
             newshdr->sh_entsize = 1;
 	    newdata->d_type = ELF_T_BYTE;
 	}
-	else if(nonLoadableSecs[i]->getFlags() == 3)	//Relocatons section
+	else if(nonLoadableSecs[i]->getFlags() && Section::relocationSection)	//Relocatons section
 	{
 	    newshdr->sh_type = SHT_REL;
 	    newshdr->sh_flags = SHF_WRITE;
             newshdr->sh_entsize = sizeof(Elf32_Rel);
 	    newdata->d_type = ELF_T_BYTE;
 	}
-	else if(nonLoadableSecs[i]->getFlags() == 4)
+	else if(nonLoadableSecs[i]->getFlags() && Section::symtabSection)
 	{
 	    newshdr->sh_type = SHT_SYMTAB;
             newshdr->sh_entsize = sizeof(Elf32_Sym);
@@ -3456,7 +3491,7 @@ bool Object::createNonLoadableSections(Elf *&newElf, std::vector<Section *>&nonL
 	    newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
 	    newshdr->sh_flags=  0;
 	}
-	else if(nonLoadableSecs[i]->getFlags() == 5)	//String table Section
+	else if(nonLoadableSecs[i]->getFlags() && Section::stringSection)	//String table Section
 	{
 	    newshdr->sh_type = SHT_STRTAB;
             newshdr->sh_entsize = 1;
@@ -3516,12 +3551,12 @@ bool Object::checkIfStripped( Symtab *obj, std::vector<Symbol *>&functions, std:
     char *data = (char *)malloc(symbols.size()*sizeof(Elf32_Sym));
     memcpy(data,syms, symbols.size()*sizeof(Elf32_Sym));
 
-    obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 4, true);
+    obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 8);
 
     char *strData = (char *)malloc(length);
     memcpy(strData, str,length);
     
-    obj->addSection(0, strData, length, ".strtab", 5);
+    obj->addSection(0, strData, length, ".strtab", 16);
     return true;
 }
 

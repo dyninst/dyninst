@@ -3122,7 +3122,7 @@ DLLEXPORT bool Symtab::emit(std::string filename)
     return linkedFile->emitDriver(this, filename, newSections_);
 }
 
-DLLEXPORT bool Symtab::getSegments(vector<Segment *> &segs) const
+DLLEXPORT bool Symtab::getSegments(vector<Segment> &segs) const
 {
     return linkedFile->getSegments(segs);
 }
@@ -3143,6 +3143,33 @@ DLLEXPORT bool Symtab::updateData(void *buffer, unsigned size)
     	return false;
     sec->setPtrToRawData(buffer, size);
     return true;
+}
+
+DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) {
+    // Look through sections until we find a gap with
+    // sufficient space.
+    Offset highWaterMark = 0;
+
+    for (unsigned i = 0; i < sections_.size(); i++) {
+        Offset end = sections_[i]->getSecAddr() + sections_[i]->getSecSize();
+        if (sections_[i]->getSecAddr() == 0) continue;
+        /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
+	                i, sections_[i]->getSecAddr(), sections_[i]->getSecSize(),
+	                end,size);*/
+	if (end > highWaterMark) {
+	    //fprintf(stderr, "Increasing highWaterMark...\n");
+	     highWaterMark = end;
+        }
+        if ((i <= (sections_.size()-1)) &&
+               ((end + size) < sections_[i+1]->getSecAddr())) {
+      /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
+					                    i, i+1);
+            fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
+ 		                 end, sections_[i+1]->getSecAddr());
+    	*/    return end;
+       }
+   }
+   return highWaterMark;
 }
 
 DLLEXPORT ObjectType Symtab::getObjectType() const {
