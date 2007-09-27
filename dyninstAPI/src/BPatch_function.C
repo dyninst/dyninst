@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.92 2007/09/23 21:08:54 rutar Exp $
+// $Id: BPatch_function.C,v 1.93 2007/09/27 18:52:43 tugrul Exp $
 
 #define BPATCH_FILE
 
@@ -64,7 +64,7 @@
 #include "common/h/Types.h"
 #include "InstrucIter.h"
 
-#if defined(slicing)
+#if defined(cap_slicing)
 // #include "BPatch_dependenceGraphNode.h"
 #include "BPatch_dependenceGraphEdge.h"
 #include "common/h/Annotatable.h"
@@ -890,7 +890,7 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
     return true;
 }
 
-#if defined(slicing)
+#if defined(cap_slicing)
 /* The following structures are used in the creation of Program/Data/Control Dependence Graphs */
 /* used to store keep track of the node where a register with number 'reg' is updated */ 
 typedef struct RegisterUpdate{
