@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.9 2007/09/25 17:28:27 giri Exp $
+// $Id: Object-xcoff.C,v 1.10 2007/09/27 15:21:28 giri Exp $
 
 #include <regex.h>
 
@@ -1565,7 +1565,7 @@ bool Object::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::
    return true;
 }
 
-bool AObject::getSegments(vector<Segment *> &segs) const
+bool AObject::getSegments(vector<Segment> &segs) const
 {
     return true;
 }
