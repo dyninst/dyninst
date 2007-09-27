@@ -50,21 +50,9 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_memoryAccess_NP.h"
-
-
-#if defined(arch_x86) || defined(sparc_sun_solaris2_4)
-#define slicing
-// #define interprocedural
-// #define print_graphs
-// #define logging
-#endif
-
-
-
-#if defined(slicing)
 #include "common/h/Annotatable.h"
-#endif
 #include "BPatch_dependenceGraphNode.h"
+// class BPatch_dependenceGraphNode;
 
 
 class int_function;
@@ -81,11 +69,7 @@ class BPatch_flowGraph;
 #endif
 #define DYNINST_CLASS_NAME BPatch_function
 
-//template class Annotatable<BPatch_function>;
-class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_eventLock
-#if defined(slicing)
-, public Annotatable<BPatch_function>
-#endif
+class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_eventLock, public Annotatable<BPatch_function>
 {
     friend class BPatch_flowGraph;
     friend class InstrucIter;
@@ -145,14 +129,14 @@ public:
     bool containsSharedBlocks();
 
 
-#if defined(slicing)
+    // Linux and Sparc only
     // slicing stuff
     void createDataDependenceGraph();
     void createControlDependenceGraph();
     void createProgramDependenceGraph();
     void createExtendedProgramDependenceGraph();
     void identifyDependencies(BPatch_function* callee, void* calleeAddress);
-#endif
+    // End Linux and Sparc only
 
     // End of functions for internal use only
     
@@ -173,19 +157,29 @@ public:
 
     char *,getName,(char *s, int len));
 
-    // #if defined(slicing)
+
+    /************************ SLICING *********************************************/
+    // BPatch_function::getSlice
+    // Returns a handle to the BPatch_ dependenceGraphNode object
+    // which is used to navigate through the slice of the function at instruction inst
     API_EXPORT(Int,(inst),
     BPatch_dependenceGraphNode*,getSlice,(BPatch_instruction* inst));
 
+    // BPatch_function::getProgramDependenceGraph
+    // Returns the partial Program Dependence graph that includes the instruction inst, its successors, and predecessors
     API_EXPORT(Int,(inst),
     BPatch_dependenceGraphNode*,getProgramDependenceGraph,(BPatch_instruction* inst));
 
+    // BPatch_function::getControlDependenceGraph
+    // Returns the partial Control Dependence graph that includes the instruction inst, its successors, and predecessors
     API_EXPORT(Int,(inst),
     BPatch_dependenceGraphNode*,getControlDependenceGraph,(BPatch_instruction* inst));
 
+    // BPatch_function::getDataDependenceGraph
+    // Returns the partial Data Dependence graph that includes the instruction inst, its successors, and predecessors.
     API_EXPORT(Int,(inst),
     BPatch_dependenceGraphNode*,getDataDependenceGraph,(BPatch_instruction* inst));
-    // #endif
+    /************************ END SLICING *****************************************/
 
     //  BPatch_function::getMangledName
     //  Returns mangled name of function, same as getName for non-c++ mutatees
