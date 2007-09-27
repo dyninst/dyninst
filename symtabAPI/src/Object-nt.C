@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.13 2007/09/25 17:28:26 giri Exp $
+// $Id: Object-nt.C,v 1.14 2007/09/27 15:21:42 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -1822,7 +1822,7 @@ void Object::parseTypeInfo(Symtab *obj) {
     }
 }
 
-bool AObject::getSegments(vector<Segment *> &segs) const
+bool AObject::getSegments(vector<Segment> &segs) const
 {
     return true;
 }
