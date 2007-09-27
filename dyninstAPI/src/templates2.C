@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.75 2007/09/19 21:55:12 giri Exp $
+// $Id: templates2.C,v 1.76 2007/09/27 18:53:37 tugrul Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -196,13 +196,13 @@ template class pdvector<dictionary_hash<Address, replacedFunctionCall *>::entry>
 class Statistic;
 template class dictionary_hash<pdstring, Statistic *>;
 
-#if defined(arch_x86) || defined(arch_x86_64) || defined(sparc_sun_solaris2_4)
-#include "common/src/Annotatable.C"
 
-template class Annotatable<instruction>;
+#include "common/src/Annotatable.C"
 template class Annotatable<BPatch_function>;
+#if defined(arch_x86) || defined(arch_x86_64) || defined(sparc_sun_solaris2_4)
+template class Annotatable<instruction>;
+#endif
 template <class T> int Annotatable<T>::number;
 template <class T> int Annotatable<T>::metadataNum;
 template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::annotationTypes;
 template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::metadataTypes;
-#endif
