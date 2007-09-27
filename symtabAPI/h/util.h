@@ -43,6 +43,7 @@
 //On windows it is just hash_map otherwise its in ext/hash_map
 #include <hash_map>
 #include <set>
+#include <cstring>
 
 using stdext::hash_map;
 
