@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.307 2007/09/25 17:28:21 giri Exp $
+ // $Id: symtab.C,v 1.308 2007/09/28 15:37:14 giri Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -371,7 +371,7 @@ void image::findMain()
        int c;
        instructUnion i;
        int calls = 0;
-       Word *code_ptr_ = (Word *) linkedFile->code_ptr();
+       Word *code_ptr_ = (Word *) linkedFile->image_ptr();
        
        for( c = 0; code_ptr_[ c ] != 0; c++ );
 
