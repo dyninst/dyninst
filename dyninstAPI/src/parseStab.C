@@ -56,8 +56,8 @@
 #include "debug.h"
 #include "symtabAPI/h/Type.h"
 
-extern pdstring current_func_name;
-extern pdstring current_mangled_func_name;
+extern std::string current_func_name;
+extern std::string current_mangled_func_name;
 extern BPatch_function *current_func;
 
 // Forward references for parsing routines
@@ -261,8 +261,8 @@ pdstring parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      pdstring lfuncName;
 	      cnt++;
 
-	      current_func_name = name;
-	      current_mangled_func_name = mangledname;
+	      current_func_name = name.c_str();
+	      current_mangled_func_name = mangledname.c_str();
 
 	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
       
@@ -327,8 +327,8 @@ pdstring parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
-	      current_func_name = name;
-	      current_mangled_func_name = mangledname;
+	      current_func_name = name.c_str();
+	      current_mangled_func_name = mangledname.c_str();
 
 	      //
 	      // For SunPro compilers there may be a parameter list after 
@@ -444,7 +444,7 @@ pdstring parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      if (current_mangled_func_name.length()) {
 		if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name.c_str()))){
 		  showInfoCallback(pdstring("missing local function ") + 
-				   current_func_name + "\n");
+				   current_func_name.c_str() + "\n");
 		} else { // found function, add parameter
 		  current_func = fp;
 		  fp->funcParameters->addLocalVar(var);

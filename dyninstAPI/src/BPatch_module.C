@@ -82,8 +82,8 @@ int max_line_per_addr =0;
 //char * BPatch_module::current_func_name = NULL;
 //char * BPatch_module::current_mangled_func_name = NULL;
 //BPatch_function * BPatch_module::current_func = NULL;
-pdstring current_func_name;
-pdstring current_mangled_func_name;
+std::string current_func_name;
+std::string current_mangled_func_name;
 BPatch_function *current_func = NULL;
 
 #if defined(os_windows)
