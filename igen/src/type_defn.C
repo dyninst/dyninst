@@ -130,7 +130,7 @@ bool type_defn::gen_bundler_call_mrnet(ofstream &out_stream,
       
       pdstring original_type = temp;
 
-      if(temp == "pdstring")
+      if((temp == "pdstring")||(temp == "std::string"))
 	{
 	  temp = "char*";
 	}
@@ -247,7 +247,7 @@ bool type_defn::gen_bundler_call_mrnet(ofstream &out_stream,
     {
       pdstring original_type = data_type;
       
-      if(data_type == "pdstring")
+      if((data_type == "pdstring")||(data_type == "std::string"))
 	{
 	  data_type = "char* ";
 	  if(send_routine)
@@ -305,7 +305,7 @@ bool type_defn::gen_bundler_call_mrnet(ofstream &out_stream,
 		      vec_calc += "\t"+pointer+data_name+" = (bool)"+data_name+"_temp;\n\n//408\n";
 		    }
 		}
-	      else if((original_type == "pdstring") && (!send_routine))
+	      else if(((original_type == "pdstring")||(original_type == "std::string")) && (!send_routine))
 		{
 
 		  vec_calc_format +="\tchar* "+data_name+"_temp;\n//206\n";
@@ -970,7 +970,7 @@ bool type_defn::gen_bundler_body_mrnet(bool send_routine,pdstring type_to_do,
 					pdstring length_fnc = ".size()";
 					pdstring array_fnc = "";
  	  
-					if(original_type == "pdstring")
+					if((original_type == "pdstring")||(original_type == "std::string"))
 						{
 							if(send_routine)
 								{
@@ -1021,6 +1021,10 @@ bool type_defn::gen_bundler_body_mrnet(bool send_routine,pdstring type_to_do,
 							if(original_type == "pdstring")
 								{
 									*vec_calc +="\tpdstring *"+data_name+"_temp = new pdstring(array_"+data_name+"["+data_name+"_counter_"+level_str+"++]);\n//C1\n";
+								}
+                                                        else if(original_type == "std::string")
+                                                                {
+									*vec_calc +="\tstd::string *"+data_name+"_temp = new std::string(array_"+data_name+"["+data_name+"_counter_"+level_str+"++]);\n//C1\n";
 								}
 							else
 								{
@@ -1189,7 +1193,7 @@ bool type_defn::gen_bundler_body_mrnet(bool send_routine,pdstring type_to_do,
       else
 				{
 					temp = data_type;
-					if(data_type == "pdstring")
+					if((data_type == "pdstring")||(data_type == "std::string"))
 						{
 							if(send_routine)
 								{
@@ -1404,7 +1408,7 @@ bool type_defn::gen_bundler_body_mrnet_noVec(bool send_routine,pdstring type_to_
 	  temp = data_type.substr(start,end-start);
 	  
  	  pdstring original_type = temp;
-	  if(temp == "pdstring")
+	  if((temp == "pdstring")||(temp == "std:string"))
 	    temp = "char*";
 
       	  *vec_calc_format += "\tunsigned vector_"+data_name+"_length = 0;\n//3\n";
@@ -1469,6 +1473,10 @@ bool type_defn::gen_bundler_body_mrnet_noVec(bool send_routine,pdstring type_to_
 		    {
 		      *vec_calc +="\tpdstring *"+data_name+"_temp = new pdstring (array_"+data_name+"["+*Index+"]);\n//C2\n";
 		    }
+		  else if(original_type == "std::string")
+		    {
+		      *vec_calc +="\tstd::string *"+data_name+"_temp = new std::string (array_"+data_name+"["+*Index+"]);\n//C2\n";
+		    }
 		  else
 		    {
 		      *vec_calc +="\t"+temp+" *"+data_name+"_temp = &array_"+data_name+"["+*Index+"];\n//420\n";
@@ -1523,7 +1531,7 @@ bool type_defn::gen_bundler_body_mrnet_noVec(bool send_routine,pdstring type_to_
 	    }
 	  else
 	    {
-	      if(temp == "pdstring")
+              if((temp == "pdstring")||(temp == "std::string"))
 		{
 		  temp = "char*";
 		  
@@ -1573,7 +1581,7 @@ bool type_defn::gen_bundler_body_mrnet_noVec(bool send_routine,pdstring type_to_
 		      *vec_calc += "\t"+t_struc_arg+data_name+" = (bool)"+temp_ext+"_"+data_name+"_temp;\n\n//424\n";
 		    }
 		  
-		  else if((original_type == "pdstring") && (!send_routine))
+		  else if(((original_type == "pdstring")||(original_type == "std::string")) && (!send_routine))
 		    {
 		      
 		      *vec_calc_format +="\tchar* "+temp_ext+"_"+data_name+"_temp;\n//231\n";
@@ -1631,13 +1639,13 @@ bool type_defn::gen_bundler_body_mrnet_noVec(bool send_routine,pdstring type_to_
   return true;
 }
 
-pdstring type_defn::getFormatType(pdstring old_type) const
+pdstring type_defn::getFormatType(const pdstring& old_type)
 {
-
-  if((old_type == "unsigned short")||
-   (old_type == "u_short"))
+  // Note: igen only supports single-word typenames, so no need to check 
+   //      for multi-word versions (e.g., 'unsigned int')
+  if(old_type == "u_short")
     {
-      switch(sizeof(unsigned short))
+      switch(sizeof(unsigned short int))
 	{
 	case 1:
 	  return "uc ";
@@ -1653,7 +1661,7 @@ pdstring type_defn::getFormatType(pdstring old_type) const
     }
   else if(old_type == "short")
     {
-      switch(sizeof(short))
+      switch(sizeof(short int))
 	{
 	case 1:
 	  return "c ";
@@ -1668,7 +1676,6 @@ pdstring type_defn::getFormatType(pdstring old_type) const
 	}
     }
   else if((old_type == "unsigned")||
-	  (old_type == "unsigned int")||
 	  (old_type == "u_int"))
     {
       switch(sizeof(unsigned int))
@@ -1685,7 +1692,7 @@ pdstring type_defn::getFormatType(pdstring old_type) const
 	  ;
 	}
     }
-  else if( old_type == "int")
+  else if(old_type == "int")
     {
       switch(sizeof(int))
 	{
@@ -1701,10 +1708,9 @@ pdstring type_defn::getFormatType(pdstring old_type) const
 	  ;
 	}
     }
-  else if((old_type == "unsigned long")||
-	  (old_type == "u_long"))
+  else if(old_type == "u_long")
     {
-      switch(sizeof(long))
+      switch(sizeof(unsigned long int))
 	{
 	case 2:
 	  return "uhd ";
@@ -1718,7 +1724,7 @@ pdstring type_defn::getFormatType(pdstring old_type) const
     }
   else if(old_type == "long")
     {
-      switch(sizeof(long))
+      switch(sizeof(long int))
 	{
 	case 2:
 	  return "hd ";
@@ -1730,67 +1736,68 @@ pdstring type_defn::getFormatType(pdstring old_type) const
 	  ;
 	}
     }
-  else if((old_type == "longlong_t")||
-	  (old_type == "long long"))
-    {
-       switch(sizeof(int64_t))
-				 //switch(sizeof(long long))
-	{
-	case 2:
-	  return "hd ";
-	case 4:
-	  return "d ";
-	case 8:
-	  return "ld ";
-	default:
-	  ;
-	}
-    }
-  else if((old_type == "u_longlong")||
-	  (old_type == "unsigned long long"))
-    {
-      switch(sizeof(int64_t))
-				//switch(sizeof(long long))
-	{
-	case 2:
-	  return "uhd ";
-	case 4:
-	  return "ud ";
-	case 8:
-	  return "uld ";
-	default:
-	  ;
-	}
-    }
-  else if(old_type == "char")
+  // else if(old_type == "longlong")
+//     {
+//        switch(sizeof(long long int))
+// 	{
+// 	case 2:
+// 	  return "hd ";
+// 	case 4:
+// 	  return "d ";
+// 	case 8:
+// 	  return "ld ";
+// 	default:
+// 	  ;
+// 	}
+//     }
+//   else if(old_type == "u_longlong")
+//     {
+//       switch(sizeof(unsigned long long int))
+// 	{
+// 	case 2:
+// 	  return "uhd ";
+// 	case 4:
+// 	  return "ud ";
+// 	case 8:
+// 	  return "uld ";
+// 	default:
+// 	  ;
+// 	}
+//     }
+  else if((old_type == "bool")||
+          (old_type == "char")||
+          (old_type == "int8_t"))
     {
       return "c ";
     }
   else if((old_type == "u_char")||
-	  (old_type == "unsigned char"))
+	  (old_type == "uint8_t"))
     {
       return "uc ";
     }
-  else if((old_type == "pdstring")||
-	  (old_type == "char*"))
+  else if(old_type == "int16_t")
     {
-      return "s ";
+      return "hd ";
     }
-  else if(old_type == "uint32_t")
+  else if(old_type == "uint16_t")
     {
-      return "ud ";
-    }
-  else if(old_type == "uint64_t")
-    {
-      return "uld ";
+      return "uhd ";
     }
   else if(old_type == "int32_t")
     {
       return "d ";
     }
+  else if(old_type == "uint32_t")
+    {
+      return "ud ";
+    }
   else if(old_type == "int64_t")
     {
       return "ld ";
+    }
+  else if(old_type == "uint64_t")
+    {
+      return "uld ";
     }
   else if(old_type == "float")
     {
@@ -1800,9 +1807,11 @@ pdstring type_defn::getFormatType(pdstring old_type) const
     {
       return "lf ";
     }
-  else if( old_type == "bool")
+  else if((old_type == "std::string")||
+	  (old_type == "pdstring")||
+	  (old_type == "char*"))
     {
-      return "c ";
+      return "s ";
     }
   return "ERROR ("+ old_type +")";
 
