@@ -54,6 +54,8 @@ struct XDR; //to avoid include of rpc/xdr.h
 #include "common/h/Vector.h"
 #include "ByteArray.h"
 
+#include <string>
+
 class xdr_send_fail {};
 class xdr_recv_fail {};
 
@@ -77,6 +79,7 @@ bool P_xdr_send(XDR *xdr, const float &);
 bool P_xdr_send(XDR *xdr, const double &);
 bool P_xdr_send(XDR *xdr, const byteArray &);
 bool P_xdr_send(XDR *xdr, const pdstring &);
+bool P_xdr_send(XDR *xdr, const std::string &);
 
 bool P_xdr_recv(XDR *xdr, bool &);
 bool P_xdr_recv(XDR *xdr, short &);
@@ -97,6 +100,7 @@ bool P_xdr_recv(XDR *xdr, float &);
 bool P_xdr_recv(XDR *xdr, double &);
 bool P_xdr_recv(XDR *xdr, byteArray &);
 bool P_xdr_recv(XDR *xdr, pdstring &);
+bool P_xdr_recv(XDR *xdr, std::string &);
 
 //--------------------
 

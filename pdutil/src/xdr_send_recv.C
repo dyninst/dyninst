@@ -161,6 +161,23 @@ bool P_xdr_send(XDR *xdr, const pdstring &s) {
    return true;
 }
 
+bool P_xdr_send(XDR *xdr, const std::string &s) {
+   unsigned len = s.length();
+   if (!P_xdr_send(xdr, len))
+      return false;
+
+   if (len == 0)
+      return true;
+   
+   char *buffer = const_cast<char*>(s.c_str());
+      // xdr doesn't want to use "const char *" so we use "char *"
+
+   if (!xdr_bytes(xdr, &buffer, &len, len + 1))
+      return false;
+   
+   return true;
+}
+
 // ----------------------------------------------------------------------
 
 bool P_xdr_recv(XDR *xdr, bool &b) {
@@ -293,6 +310,38 @@ bool P_xdr_recv(XDR *xdr, pdstring &s) {
    //cout << "buffer is " << buffer << ", size is " << size << endl;
    
    (void)new((void*)&s)pdstring(buffer, size);
+   
+   delete [] buffer;
+   
+   return true;
+}
+
+bool P_xdr_recv(XDR *xdr, std::string &s) {
+   // as always "s" is uninitialized, unconstructed raw memory, so we need
+   // to manually call the constructor.  As always, constructing a c++ object
+   // in-place can best be done via the void* placement operator new.
+   
+   assert(xdr->x_op == XDR_DECODE);
+
+   unsigned len;
+   if (!P_xdr_recv(xdr, len))
+      return false;
+   
+   if (len == 0) {
+      (void)new((void*)&s)std::string();
+      return true;
+   }
+
+   char *buffer = new char[len + 1];
+   buffer[len] = '\0';
+
+   unsigned size = len;
+   if (!xdr_bytes(xdr, &buffer, &size, len+1))
+      return false;
+
+   //cout << "buffer is " << buffer << ", size is " << size << endl;
+   
+   (void)new((void*)&s)std::string(buffer, size);
    
    delete [] buffer;
    
