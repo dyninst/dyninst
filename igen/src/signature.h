@@ -86,8 +86,6 @@ public:
 				 const bool srvr
 				 ) const;
  
- pdstring getFormatType(pdstring old_type) const;
-
   bool arg_struct(ofstream &out_stream) const;
   pdstring dump_args(const pdstring message, const pdstring sep) const;
   pdstring gen_bundler_call(bool send_routine, const pdstring &obj_name,

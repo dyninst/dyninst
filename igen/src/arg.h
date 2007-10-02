@@ -97,7 +97,6 @@ private:
                             const pdstring bundle_value, 
                             const pdstring tag_value,
                             const pdstring return_value) const;
-  pdstring getFormatType(pdstring old_type)const;
 
   bool tag_bundle_send_many_mrnet(ofstream &out_stream,
 				  const pdstring &return_value,

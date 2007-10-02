@@ -118,8 +118,8 @@ public:
 						pdstring *Index) const;
 
   bool gen_bundler_body_mrnet(bool send_routine, pdstring type_to_do,
-						pdstring dot_data_name,
-															//pdstring * struc_arg,
+                              pdstring dot_data_name,
+                              //pdstring * struc_arg,
 			      pdstring * vec_calc,
 			      pdstring * vec_calc_format,
 			      pdstring * vec_calc_finish,
@@ -132,12 +132,12 @@ public:
 			      ofstream &out_stream,
             pdstring *Index) const;
 
-  pdstring getFormatType(pdstring old_type)const;
+  static pdstring getFormatType(const pdstring& old_type);
 
   //------------------------------------------------------
 
 
- bool gen_bundler_ptr(const pdstring &class_prefix,
+  bool gen_bundler_ptr(const pdstring &class_prefix,
                        ofstream &out_c, ofstream &out_h) const;
   bool gen_class(const pdstring bundler_prefix, ofstream &out_stream);
 

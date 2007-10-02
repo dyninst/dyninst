@@ -257,7 +257,7 @@ bool signature::tag_bundle_send_many_mrnet(ofstream &out_stream, const pdstring 
 
 	      vec_calc +="\tvector_"+data_name+"_length = "+data_name+".size();\n";
 
-	      format_str += "%"+getFormatType("unsigned");
+	      format_str += "%"+type_defn::getFormatType("unsigned");
 
 	      argument_list += "vector_"+data_name+"_length, ";
 				SigIndex += "F";
@@ -293,7 +293,7 @@ bool signature::tag_bundle_send_many_mrnet(ofstream &out_stream, const pdstring 
 
 		      //format_str += temp+"* unsigned ";
 
-		      format_str += "%a"+getFormatType(original_type);//+getFormatType("unsigned");
+		      format_str += "%a"+type_defn::getFormatType(original_type);//+type_defn::getFormatType("unsigned");
 
 		      argument_list += "\n\t\t\t\t array_"+data_name+", "+data_name+".size()\n\t\t\t\t";
 
@@ -307,7 +307,7 @@ bool signature::tag_bundle_send_many_mrnet(ofstream &out_stream, const pdstring 
 		    {
 		      
 		      //format_str += " char** unsigned* ";
-		      format_str += "%a"+getFormatType("char");//+"a"+getFormatType("unsigned");
+		      format_str += "%a"+type_defn::getFormatType("char");//+"a"+type_defn::getFormatType("unsigned");
 
 		      argument_list += "\n\t\t\t\t array_"+data_name+", array_"+data_name+"_length\n\t\t\t\t";
 
@@ -366,7 +366,7 @@ bool signature::tag_bundle_send_many_mrnet(ofstream &out_stream, const pdstring 
 		    {
 		      //format_str += data_type;
 
-		      format_str += "%"+getFormatType(original_type);
+		      format_str += "%"+type_defn::getFormatType(original_type);
 
 		      argument_list += cast_for_convert+data_name+convert;
 		    }
@@ -375,7 +375,7 @@ bool signature::tag_bundle_send_many_mrnet(ofstream &out_stream, const pdstring 
 		      
 		      //format_str += " char* unsigned ";
 
-		      format_str += "%a"+getFormatType("char");//+getFormatType("unsigned");
+		      format_str += "%a"+type_defn::getFormatType("char");//+type_defn::getFormatType("unsigned");
 
 
 		      argument_list += "\n\t\t\t\t(char*)"+data_name+".getArray(), "+data_name+".length()\n\t\t\t\t";
@@ -400,7 +400,7 @@ bool signature::tag_bundle_send_many_mrnet(ofstream &out_stream, const pdstring 
     out_stream << "\tu_int sdm_id = 9999;\n";
   else
     out_stream << "\textern u_int sdm_id;\n";
-  out_stream << base_send << "\""<<"%"<<getFormatType("u_int") << format_str << "\","<<"sdm_id";
+  out_stream << base_send << "\""<<"%"<<type_defn::getFormatType("u_int") << format_str << "\","<<"sdm_id";
 
   if(argument_list.length() > 0)
     out_stream <<", ";
@@ -524,182 +524,3 @@ bool signature::arg_struct(ofstream &out_stream) const {
     out_stream << args[i]->type() << " " << args[i]->name() << ";\n";
   return true;
 }
-
-pdstring signature::getFormatType(pdstring old_type) const
-{
-
-  if((old_type == "unsigned short")||
-   (old_type == "u_short"))
-    {
-      switch(sizeof(unsigned short))
-	{
-	case 1:
-	  return "uc ";
-	case 2:
-	  return "uhd ";
-	case 4:
-	  return "ud ";
-	case 8:
-	  return "uld ";
-	default:
-	  ;
-	}
-    }
-  else 
-    if(old_type == "short")
-      {
-	switch(sizeof(short))
-	  {
-	  case 1:
-	    return "c ";
-	  case 2:
-	    return "hd ";
-	  case 4:
-	    return "d ";
-	  case 8:
-	    return "ld ";
-	  default:
-	    ;
-	  }
-      }
-    else if((old_type == "unsigned")||
-	    (old_type == "unsigned int")||
-	    (old_type == "u_int"))
-      {
-	switch(sizeof(unsigned int))
-	  {
-	  case 1:
-	    return "uc ";
-	  case 2:
-	    return "uhd ";
-	  case 4:
-	    return "ud ";
-	  case 8:
-	    return "uld ";
-	  default:
-	    ;
-	  }
-      }
-    else if( old_type == "int")
-      {
-	switch(sizeof(int))
-	  {
-	  case 1:
-	    return "c ";
-	  case 2:
-	    return "hd ";
-	  case 4:
-	    return "d ";
-	  case 8:
-	    return "ld ";
-	  default:
-	    ;
-	  }
-      }
-    else if((old_type == "unsigned long")||
-	    (old_type == "u_long"))
-      {
-	switch(sizeof(long))
-	  {
-	  case 2:
-	    return "uhd ";
-	  case 4:
-	    return "ud ";
-	  case 8:
-	    return "uld ";
-	  default:
-	    ;
-	  }
-      }
-    else if(old_type == "long")
-      {
-	switch(sizeof(long))
-	  {
-	  case 2:
-	    return "hd ";
-	  case 4:
-	    return "d ";
-	  case 8:
-	    return "ld ";
-	  default:
-	  ;
-	  }
-      }
-    else if((old_type == "longlong_t")||
-	    (old_type == "long long"))
-      {
-      switch(sizeof(int64_t))
-				//switch(sizeof(long long))
-	{
-	case 2:
-	  return "hd ";
-	case 4:
-	  return "d ";
-	case 8:
-	  return "ld ";
-	default:
-	  ;
-	}
-      }
-    else if((old_type == "u_longlong")||
-	    (old_type == "unsigned long long"))
-      {
-	      switch(sizeof(int64_t))
-					//switch(sizeof(long long))
-	  {
-	  case 2:
-	    return "uhd ";
-	  case 4:
-	    return "ud ";
-	  case 8:
-	    return "uld ";
-	  default:
-	    ;
-	  }
-      }
-    else if(old_type == "char")
-      {
-	return "c ";
-      }
-    else if((old_type == "u_char")||
-	    (old_type == "unsigned char"))
-      {
-	return "uc ";
-      }
-    else if((old_type == "pdstring")||
-	  (old_type == "char*"))
-      {
-	return "s ";
-      }
-    else if(old_type == "uint32_t")
-      {
-	return "ud ";
-      }
-    else if(old_type == "uint64_t")
-      {
-	return "uld ";
-      }
-    else if(old_type == "int32_t")
-      {
-	return "d ";
-      }
-    else if(old_type == "int64_t")
-      {
-	return "ld ";
-      }
-    else if(old_type == "float")
-      {
-	return "f ";
-      }
-    else if( old_type == "double")
-      {
-	return "lf ";
-      }
-    else if( old_type == "bool")
-      {
-	return "c ";
-      }
-  return "ERROR ("+old_type+")";
-}
-
-
