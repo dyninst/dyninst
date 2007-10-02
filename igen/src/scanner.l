@@ -103,7 +103,25 @@ IDENT	{ALPHA}({ALPHA}|{DIGIT}|_|".")*
 FWD     "forward"
 %%
 \$remote	{ parsing = 1; 	}
-"//".*\n		{ if (!parsing) REJECT; }
+"/*"            { register int c;
+                  if (!parsing) REJECT;
+                  /* C-style comment (code source: flex man page) */
+                  for(;;) {
+                     while( ((c = yyinput()) != '*') && (c != EOF) )
+                        ; /* eat up text of comment */
+                     if( c == '*' ) {
+                        while( (c = yyinput()) == '*' )
+                           ;
+                        if( c == '/' )
+                           break; /* found the end */
+                     }
+                     if( c == EOF ) {
+                        yyerror("EOF in comment");
+                        break;
+                     }
+                  }
+                }
+"//".*\n	{ if (!parsing) REJECT; }
 .*\n		{
                   if (!parsing) {
 		    if (!strncmp(yytext, "$remote",
