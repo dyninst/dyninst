@@ -472,6 +472,9 @@ public:
                                    int stdout_fd=1,
                                    int stderr_fd=2));
 
+    API_EXPORT(Int, (path), 
+               BPatch_binaryEdit *, openBinary, (const char *path));
+
     // BPatch::attachProcess:
     // Attach to mutatee process
     API_EXPORT(Int, (path, pid),
