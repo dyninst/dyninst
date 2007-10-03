@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.173 2007/09/13 20:12:58 legendre Exp $
+// $Id: BPatch.C,v 1.174 2007/10/03 21:18:13 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -2165,3 +2165,13 @@ void BPatch::getBPatchVersionInt(int &major, int &minor, int &subminor)
    subminor = DYNINST_SUBMINOR;
 }
 
+BPatch_binaryEdit *BPatch::openBinaryInt(const char *path) {
+   BPatch_binaryEdit *editor = new BPatch_binaryEdit(path);
+   if (!editor)
+      return NULL;
+   if (editor->creation_error) {
+      delete editor;
+      return NULL;
+   }
+   return editor;
+}
