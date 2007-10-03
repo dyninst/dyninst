@@ -88,12 +88,14 @@
  *              environment variables for the new process, terminated by a
  *              NULL pointer.  If NULL, the default environment will be used.
  */
-BPatch_binaryEdit::BPatch_binaryEdit(const char *path)
+BPatch_binaryEdit::BPatch_binaryEdit(const char *path) :
+   BPatch_addressSpace(),
+   llBinEdit(NULL),
+   creation_error(false)
 {
-  image = NULL;
   func_map = new BPatch_funcMap();
   instp_map = new BPatch_instpMap();
-  pendingInsertions = NULL;
+  pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
  
   pdvector<pdstring> argv_vec;
   pdvector<pdstring> envp_vec;
@@ -101,10 +103,16 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path)
   pdstring directoryName = "";
   
   llBinEdit = BinaryEdit::openFile(pdstring(path));
+  if (!llBinEdit){
+     creation_error = true;
+     return;
+  }
   
   llBinEdit->set_up_ptr(this);
 
   image = new BPatch_image(this);
+
+    // Nothing else to do...
 
 }
 
@@ -138,6 +146,152 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
 
 bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 {
+    assert(pendingInsertions);
+
+    bool atomic = true;
+    
+    // Two loops: first addInst, then generate/install/link
+    pdvector<miniTramp *> workDone;
+    bool err = false;
+
+    for (unsigned i = 0; i < pendingInsertions->size(); i++) {
+        batchInsertionRecord *&bir = (*pendingInsertions)[i];
+        assert(bir);
+
+        // Don't handle thread inst yet...
+        assert(!bir->thread_);
+
+        if (!bir->points_.size()) {
+          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  failing to addInst\n", FILE__, __LINE__);
+        }
+
+        for (unsigned j = 0; j < bir->points_.size(); j++) {
+            BPatch_point *bppoint = bir->points_[j];
+            instPoint *point = bppoint->point;
+            callWhen when = bir->when_[j];
+            
+            miniTramp *mini = point->addInst(*(bir->snip.ast_wrapper),
+                                             when,
+                                             bir->order_,
+                                             bir->trampRecursive_,
+                                             false);
+            if (mini) {
+                workDone.push_back(mini);
+                // Add to snippet handle
+                bir->handle_->addMiniTramp(mini);
+            }
+            else {
+                fprintf(stderr, "ERROR: failed to insert instrumentation: no minitramp\n");
+                err = true;
+                if (atomic) break;
+            }
+        }
+        if (atomic && err)
+            break;
+    }
+    
+   if (atomic && err) goto cleanup;
+
+   // All generation first. Actually, all generation per function...
+   // but this is close enough.
+   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+       batchInsertionRecord *&bir = (*pendingInsertions)[i];
+       assert(bir);
+        if (!bir->points_.size()) {
+          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  failing to generateInst\n", FILE__, __LINE__);
+        }
+       for (unsigned j = 0; j < bir->points_.size(); j++) {
+           BPatch_point *bppoint = bir->points_[j];
+           instPoint *point = bppoint->point;
+
+           point->optimizeBaseTramps(bir->when_[j]);
+           if (!point->generateInst()) {
+               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: generate\n",
+                       FILE__, __LINE__);
+               err = true;
+               if (atomic && err) break;
+           }
+       }
+       if (atomic && err) break;
+   }
+
+   if (atomic && err) goto cleanup;
+
+   //  next, all installing 
+   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+       batchInsertionRecord *&bir = (*pendingInsertions)[i];
+       assert(bir);
+        if (!bir->points_.size()) {
+          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  failing to installInst\n", FILE__, __LINE__);
+        }
+       for (unsigned j = 0; j < bir->points_.size(); j++) {
+           BPatch_point *bppoint = bir->points_[j];
+           instPoint *point = bppoint->point;
+             
+           if (!point->installInst()) {
+               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: install\n",
+                      FILE__, __LINE__);
+              err = true;
+           }
+
+           if (atomic && err) break;
+       }
+       if (atomic && err) break;
+   }
+
+   if (atomic && err) goto cleanup;
+
+   //  finally, do all linking 
+   for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+       batchInsertionRecord *&bir = (*pendingInsertions)[i];
+       assert(bir);
+        if (!bir->points_.size()) {
+          fprintf(stderr, "%s[%d]:  WARN:  zero points for insertion record\n", FILE__, __LINE__);
+          fprintf(stderr, "%s[%d]:  failing to linklInst\n", FILE__, __LINE__);
+        }
+       for (unsigned j = 0; j < bir->points_.size(); j++) {
+           BPatch_point *bppoint = bir->points_[j];
+           instPoint *point = bppoint->point;
+             
+          if (!point->linkInst()) {
+               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: link\n",
+                       FILE__, __LINE__);
+               err = true;
+           }
+
+           if (atomic && err) break;
+       }
+       if (atomic && err) break;
+   }
+
+   if (atomic && err) 
+      goto cleanup;
+
+  cleanup:
+    bool ret = true;
+
+    if (atomic && err) {
+        // Something failed...   Cleanup...
+        for (unsigned k = 0; k < workDone.size(); k++) {
+            workDone[k]->uninstrument();
+        }
+        ret = false;
+    }
+
+    for (unsigned int i = 0; i < pendingInsertions->size(); i++) {
+        batchInsertionRecord *&bir = (*pendingInsertions)[i];
+        assert(bir);
+        delete(bir);
+    }
+
+    pendingInsertions->clear();
+
+    llBinEdit->writeFile(outFile);
+
+    return ret;
 }
 
 
@@ -286,15 +440,8 @@ BPatchSnippetHandle *BPatch_binaryEdit::insertSnippetAtPointsWhen(const BPatch_s
   assert(rec->points_.size() == rec->when_.size());
   
   // Okey dokey... now see if we just tack it on, or insert now.
-  if (pendingInsertions) {
-    pendingInsertions->push_back(rec);
-  }
-  else {
-    beginInsertionSetInt();
-    pendingInsertions->push_back(rec);
-    // All the insertion work was moved here...
-    finalizeInsertionSetInt(false);
-  }
+  assert(pendingInsertions);
+  pendingInsertions->push_back(rec);
   return ret; 
 }
 
@@ -333,13 +480,11 @@ BPatchSnippetHandle *BPatch_binaryEdit::insertSnippetAtPoints(
 
 void BPatch_binaryEdit::beginInsertionSetInt() 
 {
-    if (pendingInsertions == NULL)
-        pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
-    // Nothing else to do...
+    return;
 }
 
 
 bool BPatch_binaryEdit::finalizeInsertionSetInt(bool atomic, bool *modified) 
 {
-  return false;
+    return true;
 }
