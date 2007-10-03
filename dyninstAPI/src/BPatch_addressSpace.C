@@ -73,8 +73,12 @@
 #include "BPatch_addressSpace.h"
 
 
-BPatch_addressSpace::BPatch_addressSpace()
-{}
+BPatch_addressSpace::BPatch_addressSpace() :
+   func_map(NULL),
+   instp_map(NULL),
+   image(NULL)
+{
+}
 
 BPatch_addressSpace::~BPatch_addressSpace()
 {}
