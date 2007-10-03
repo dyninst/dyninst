@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.5 2007/09/25 17:28:15 giri Exp $
+// $Id: addressSpace.C,v 1.6 2007/10/03 21:18:16 bernat Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -352,7 +352,9 @@ void AddressSpace::addMultiTramp(multiTramp *multi) {
     assert(multi);
     assert(multi->instAddr());
 
-    addOrigRange(multi);
+    // Actually... we haven't copied it yet, so don't add anything. 
+    //addOrigRange(multi);
+
     codeRange *range = findModByAddr(multi->instAddr());
     if (range) {
         // We're overriding. Keep the instArea but update pointer.
