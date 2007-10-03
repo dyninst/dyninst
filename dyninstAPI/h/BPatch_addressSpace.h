@@ -160,7 +160,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   
   BPatch_image *image;
 
-  AddressSpace * as;
+  //  AddressSpace * as;
   
  
  public:
