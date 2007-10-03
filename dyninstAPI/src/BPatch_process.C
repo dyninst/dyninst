@@ -823,65 +823,6 @@ bool BPatch_process::dumpImageInt(const char *file)
 }
 
 /*
- * BPatch_process::malloc
- *
- * Allocate memory in the thread's address space.
- *
- * n	The number of bytes to allocate.
- *
- * Returns:
- * 	A pointer to a BPatch_variableExpr representing the memory.
- *
- */
-BPatch_variableExpr *BPatch_process::mallocInt(int n)
-{
-   assert(BPatch::bpatch != NULL);
-   void *ptr = (void *) llproc->inferiorMalloc(n, dataHeap);
-   if (!ptr) return NULL;
-   return new BPatch_variableExpr(this, ptr, Null_Register, 
-                                  BPatch::bpatch->type_Untyped);
-}
-
-
-/*
- * BPatch_process::malloc
- *
- * Allocate memory in the thread's address space for a variable of the given
- * type.
- *
- * type		The type of variable for which to allocate space.
- *
- * Returns:
- * 	A pointer to a BPatch_variableExpr representing the memory.
- *
- * XXX Should return NULL on failure, but the function which it calls,
- *     inferiorMalloc, calls exit rather than returning an error, so this
- *     is not currently possible.
- */
-BPatch_variableExpr *BPatch_process::mallocByType(const BPatch_type &type)
-{
-   assert(BPatch::bpatch != NULL);
-   BPatch_type &t = const_cast<BPatch_type &>(type);
-   void *mem = (void *)llproc->inferiorMalloc(t.getSize(), dataHeap);
-   if (!mem) return NULL;
-   return new BPatch_variableExpr(this, mem, Null_Register, &t);
-}
-
-
-/*
- * BPatch_process::free
- *
- * Free memory that was allocated with BPatch_process::malloc.
- *
- * ptr		A BPatch_variableExpr representing the memory to free.
- */
-bool BPatch_process::freeInt(BPatch_variableExpr &ptr)
-{
-   llproc->inferiorFree((Address)ptr.getBaseAddr());
-   return true;
-}
-
-/*
  * BPatch_process::getInheritedVariable
  *
  * Allows one to retrieve a variable which exists in a child process that 

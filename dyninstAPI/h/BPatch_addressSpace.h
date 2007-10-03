@@ -179,7 +179,6 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   virtual bool getTerminated() = 0;
   virtual bool getMutationsActive() = 0;
 
-
   //Insert snippet functions are virtual right now ... can be moved up to BPatch_addressSpace
   //   if the implementations are the same
   virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr, BPatch_point &point,
@@ -267,6 +266,29 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
     API_EXPORT(Int, (),
     BPatch_image *,getImage,());
+
+
+    //  BPatch_process::malloc
+    //  
+    //  Allocate memory for a new variable in the mutatee process
+
+    API_EXPORT(Int, (n),
+    BPatch_variableExpr *,malloc,(int n));
+
+    //  BPatch_process::malloc
+    //  
+    //  Allocate memory for a new variable in the mutatee process
+
+    API_EXPORT(ByType, (type),
+    BPatch_variableExpr *,malloc,(const BPatch_type &type));
+
+    //  BPatch_process::free
+    //  
+    //  Free memory allocated by Dyninst in the mutatee process
+
+    API_EXPORT(Int, (ptr),
+    bool,free,(BPatch_variableExpr &ptr));
+
 
 };
 

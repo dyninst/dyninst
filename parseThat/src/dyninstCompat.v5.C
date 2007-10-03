@@ -53,17 +53,23 @@ dynHandle *mutatorInit(void)
      * handler to return here instead of NULL to differentiate
      * between the error case.
      */
-    sendMsg(config.outfd, ID_INIT_REGISTER_EXIT, INFO);
-    dh->bpatch->registerExitCallback(printSummary);
-    sendMsg(config.outfd, ID_INIT_REGISTER_EXIT, INFO, ID_PASS);
 
-    sendMsg(config.outfd, ID_INIT_REGISTER_FORK, INFO);
-    dh->bpatch->registerPostForkCallback(reportNewProcess);
-    sendMsg(config.outfd, ID_INIT_REGISTER_FORK, INFO, ID_PASS);
+    if (config.use_process)
+      {
+	sendMsg(config.outfd, ID_INIT_REGISTER_EXIT, INFO);
+	dh->bpatch->registerExitCallback(printSummary);
+	sendMsg(config.outfd, ID_INIT_REGISTER_EXIT, INFO, ID_PASS);
+	
+	sendMsg(config.outfd, ID_INIT_REGISTER_FORK, INFO);
+	dh->bpatch->registerPostForkCallback(reportNewProcess);
+	sendMsg(config.outfd, ID_INIT_REGISTER_FORK, INFO, ID_PASS);
+      }
 
     if (config.use_attach) {
 	sendMsg(config.outfd, ID_INIT_ATTACH_PROCESS, INFO);
-	dh->proc = dh->bpatch->processAttach(config.target, config.attach_pid);
+	printf("Attach Process\n");
+	dh->addSpace = dh->bpatch->processAttach(config.target, config.attach_pid);
+	dh->proc = dynamic_cast<BPatch_process *>(dh->addSpace);
 	if (!dh->proc) {
 	    sendMsg(config.outfd, ID_INIT_ATTACH_PROCESS, INFO, ID_FAIL,
 		    "Failure in BPatch::processAttach()");
@@ -74,9 +80,11 @@ dynHandle *mutatorInit(void)
 		    dh->proc->getPid());
 	}
 
-    } else {
+    } else if (config.use_process){
 	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO);
-	dh->proc = dh->bpatch->processCreate(config.target, (const char **)config.argv);
+	printf("Process Create\n");
+	dh->addSpace = dh->bpatch->processCreate(config.target, (const char **)config.argv);
+	dh->proc = dynamic_cast<BPatch_process *>(dh->addSpace);
 	if (!dh->proc) {
 	    sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,
 		    "Failure in BPatch::processCreate()");
@@ -86,7 +94,17 @@ dynHandle *mutatorInit(void)
 	    sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_PASS,
 		    dh->proc->getPid());
 	}
-    }
+    } else {
+      printf("Created BPatch_binaryEdit\n");
+      dh->addSpace = new BPatch_binaryEdit(config.target);
+      if (!dh->addSpace) {
+	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,
+		"Failure in BPatch:_binaryEdit constructor");
+	return NULL;
+      } else {
+	config.dynlib = dh;
+      }
+      }
 
     if (config.use_save_world) {
 	sendMsg(config.outfd, ID_INIT_SAVE_WORLD, INFO);
@@ -95,7 +113,8 @@ dynHandle *mutatorInit(void)
     }
 
     sendMsg(config.outfd, ID_INIT_GET_IMAGE, INFO);
-    dh->image = dh->proc->getImage();
+    //dh->image = dh->proc->getImage();
+    dh->image = dh->addSpace->getImage();
     if (!dh->image) {
 	sendMsg(config.outfd, ID_INIT_GET_IMAGE, INFO, ID_FAIL,
 		"Failure in BPatch_process::getImage()");

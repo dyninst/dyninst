@@ -20,9 +20,10 @@
 #endif
 
 struct dynHandle {
-    BPatch *bpatch;
-    BPatch_process *proc;
-    BPatch_image *image;
+  BPatch *bpatch;
+  BPatch_addressSpace *addSpace;
+  BPatch_process *proc;
+  BPatch_image *image;
 };
 
 dynHandle *mutatorInit(void);

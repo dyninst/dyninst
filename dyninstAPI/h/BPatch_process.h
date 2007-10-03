@@ -443,26 +443,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     API_EXPORT(Int, (file),
     char *,dumpPatchedImage,(const char* file));
 
-    //  BPatch_process::malloc
-    //  
-    //  Allocate memory for a new variable in the mutatee process
-
-    API_EXPORT(Int, (n),
-    BPatch_variableExpr *,malloc,(int n));
-
-    //  BPatch_process::malloc
-    //  
-    //  Allocate memory for a new variable in the mutatee process
-
-    API_EXPORT(ByType, (type),
-    BPatch_variableExpr *,malloc,(const BPatch_type &type));
-
-    //  BPatch_process::free
-    //  
-    //  Free memory allocated by Dyninst in the mutatee process
-
-    API_EXPORT(Int, (ptr),
-    bool,free,(BPatch_variableExpr &ptr));
 
     //  BPatch_process::getInheritedVariable
     //  

@@ -270,39 +270,45 @@ int launch_mutator()
      * Instrumentation Phase
      */
 
-    if (config.trace_inst) {
+    if (config.trace_inst) 
+      {
 	errno = 0;
 	sendMsg(config.outfd, ID_TRACE_INIT, INFO);
-
 	sendMsg(config.outfd, ID_TRACE_OPEN_READER, VERB1);
-	config.pipefd = open(config.pipe_filename, O_RDONLY | O_RSYNC | O_NONBLOCK);
-	if (config.pipefd < 0) {
-	    sendMsg(config.outfd, ID_TRACE_OPEN_READER, VERB1, ID_FAIL,
-		    sprintf_static("Mutator could not open trace pipe (%s) for read: %s\n",
-				   config.pipe_filename, strerror(errno)));
-	    config.pipefd = -1;
-
-	} else {
-	    sendMsg(config.outfd, ID_TRACE_OPEN_READER, VERB1, ID_PASS);
-
-	    // Run mutatee side of trace initialization.
-	    sendMsg(config.outfd, ID_TRACE_INIT_MUTATEE, VERB1);
-	    if (!initTraceInMutatee(dh)) {
+	
+	if (config.use_process)
+	  {
+	    config.pipefd = open(config.pipe_filename, O_RDONLY | O_RSYNC | O_NONBLOCK);
+	    if (config.pipefd < 0) {
+	      sendMsg(config.outfd, ID_TRACE_OPEN_READER, VERB1, ID_FAIL,
+		      sprintf_static("Mutator could not open trace pipe (%s) for read: %s\n",
+				     config.pipe_filename, strerror(errno)));
+	      config.pipefd = -1;
+	      
+	    } else {
+	      sendMsg(config.outfd, ID_TRACE_OPEN_READER, VERB1, ID_PASS);
+	      
+	      // Run mutatee side of trace initialization.
+	      sendMsg(config.outfd, ID_TRACE_INIT_MUTATEE, VERB1);
+	      
+	      if (!initTraceInMutatee(dh)) {
 		sendMsg(config.outfd, ID_TRACE_INIT_MUTATEE, VERB1, ID_FAIL);
 		config.pipefd = -1;
-	    } else
+	      } else
 		sendMsg(config.outfd, ID_TRACE_INIT_MUTATEE, VERB1, ID_PASS);
-	}
-
-	if (config.pipefd == -1) {
-	    sendMsg(config.outfd, ID_TRACE_INIT, INFO, ID_FAIL,
-		    "Disabling instrumentation tracing.");
-	} else
-	    sendMsg(config.outfd, ID_TRACE_INIT, INFO, ID_PASS);
-    }
-
+	    }
+	    
+	    if (config.pipefd == -1) {
+	      sendMsg(config.outfd, ID_TRACE_INIT, INFO, ID_FAIL,
+		      "Disabling instrumentation tracing.");
+	    } else
+	      sendMsg(config.outfd, ID_TRACE_INIT, INFO, ID_PASS);
+	    
+	  }
+      }
+    
     if (config.inst_level >= INST_FUNC_ENTRY) {
-
+      
 	if (config.transMode == TRANS_PROCESS)
 	    if (!dynStartTransaction(dh)) return(-1);
 
@@ -412,7 +418,7 @@ int launch_mutator()
 	    dynEndTransaction(dh);
     }
 
-    if (config.use_save_world) {
+    if (config.use_save_world && config.use_process) {
 	sendMsg(config.outfd, ID_SAVE_WORLD, INFO);
 	char *destdir = dh->proc->dumpPatchedImage(config.saved_mutatee);
 	if (!destdir) {
@@ -423,20 +429,30 @@ int launch_mutator()
 		    strcat_static(destdir, config.saved_mutatee));
 	}
     }
+    
 
-    sendMsg(config.outfd, ID_RUN_CHILD, INFO);
-    if (!dh->proc->continueExecution()) {
-        sendMsg(config.outfd, ID_RUN_CHILD, INFO, ID_FAIL,
-                "Failure in BPatch_thread::continueExecution()");
-        return false;
-    }
-    sendMsg(config.outfd, ID_RUN_CHILD, INFO, ID_PASS);
+    if (!config.use_process)
+      {
+	BPatch_binaryEdit *writeBE = dynamic_cast<BPatch_binaryEdit *>(dh->addSpace);
+	writeBE->writeFile(config.writeFilePath);
+      }
 
-    //
-    // Child continued.  Start reading from trace pipe, if enabled.
-    //
-    if (config.trace_inst) {
-	while (config.pipefd != -1) {
+    if (config.use_process)
+      {
+	sendMsg(config.outfd, ID_RUN_CHILD, INFO);
+	if (!dh->proc->continueExecution()) {
+	  sendMsg(config.outfd, ID_RUN_CHILD, INFO, ID_FAIL,
+		  "Failure in BPatch_thread::continueExecution()");
+	  return false;
+	}
+	sendMsg(config.outfd, ID_RUN_CHILD, INFO, ID_PASS);
+      
+    
+	//
+	// Child continued.  Start reading from trace pipe, if enabled.
+	//
+	if (config.trace_inst) {
+	  while (config.pipefd != -1) {
 	    sendMsg(config.outfd, ID_POLL_STATUS_CHANGE, DEBUG);
 	    bool change = dh->bpatch->pollForStatusChange();
 	    sendMsg(config.outfd, ID_POLL_STATUS_CHANGE, DEBUG, ID_PASS);
@@ -452,23 +468,24 @@ int launch_mutator()
 	    // We should probably have BPatch::registerStatusChangeCallback()
 	    // or something similar.
 	    sleep(1);
+	  }
 	}
-    }
+      
 
-    //
-    // All processing complete.  Loop indefinitly until exit handler called.
-    //
-    sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO);
-    while (!dh->proc->isTerminated()) {
-	sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG);
-	if (!dh->bpatch->waitForStatusChange())
+	//
+	// All processing complete.  Loop indefinitly until exit handler called.
+	//
+	sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO);
+	while (!dh->proc->isTerminated()) {
+	  sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG);
+	  if (!dh->bpatch->waitForStatusChange())
 	    sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG, ID_FAIL);
-	else
+	  else
 	    sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG, ID_PASS);
+	  sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO, ID_PASS);
+	}
 	sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO, ID_PASS);
-    }
-    sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO, ID_PASS);
-
+      }
     return 0;
 }
 
@@ -591,21 +608,22 @@ BPatch_variableExpr *allocateIntegerInMutatee(dynHandle *dh, int defaultValue = 
 	sendMsg(config.outfd, ID_INST_FIND_INT, VERB4, ID_PASS);
 
     sendMsg(config.outfd, ID_INST_MALLOC_INT, VERB4);
-    countVar = dh->proc->malloc(*intType);
+
+    countVar = dh->addSpace->malloc(*intType);
     if (!countVar) {
-	sendMsg(config.outfd, ID_INST_MALLOC_INT, VERB4, ID_FAIL,
-		"Failure in BPatch_process::malloc()");
-	goto fail;
-
+      sendMsg(config.outfd, ID_INST_MALLOC_INT, VERB4, ID_FAIL,
+	      "Failure in BPatch_process::malloc()");
+      goto fail;
+      
     } else if (!countVar->writeValue(&defaultValue)) {
-	sendMsg(config.outfd, ID_INST_MALLOC_INT, VERB4, ID_FAIL,
-		"Failure initializing counter in mutatee [BPatch_variableExpr::writeValue()]");
-	goto fail;
-
+      sendMsg(config.outfd, ID_INST_MALLOC_INT, VERB4, ID_FAIL,
+	      "Failure initializing counter in mutatee [BPatch_variableExpr::writeValue()]");
+      goto fail;
+      
     } else {
-	sendMsg(config.outfd, ID_INST_MALLOC_INT, VERB4, ID_PASS);
+      sendMsg(config.outfd, ID_INST_MALLOC_INT, VERB4, ID_PASS);
     }
-
+    
     sendMsg(config.outfd, ID_ALLOC_COUNTER, VERB3, ID_PASS);
     return(countVar);
 
@@ -747,7 +765,7 @@ bool insertTraceSnippet(dynHandle *dh, BPatch_function *func, BPatch_Vector<BPat
 	    continue;
 	}
 
-	BPatchSnippetHandle *handle = dh->proc->insertSnippet(traceSnippet, *point, when, order);
+	BPatchSnippetHandle *handle = dh->addSpace->insertSnippet(traceSnippet, *point, when, order);
 	if (!handle) {
 	    sendMsg(config.outfd, ID_TRACE_INSERT_ONE, VERB4, ID_FAIL,
 		    "Error detected in BPatch_process::insertSnippet().");
@@ -884,7 +902,7 @@ bool instrumentFunctionEntry(dynHandle *dh, BPatch_function *func)
     }
 
     sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3);
-    handle = dh->proc->insertSnippet(incSnippet, *points);
+    handle = dh->addSpace->insertSnippet(incSnippet, *points);
     if (!handle) {
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3, ID_FAIL,
 		"Failure in BPatch_process::insertSnippet()");
@@ -937,7 +955,7 @@ bool instrumentFunctionExit(dynHandle *dh, BPatch_function *func)
     }
 
     sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3);
-    handle = dh->proc->insertSnippet(incSnippet, *points);
+    handle = dh->addSpace->insertSnippet(incSnippet, *points);
     if (!handle) {
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3, ID_FAIL,
 		"Failure in BPatch_process::insertSnippet()");
@@ -1026,7 +1044,7 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
 	}
 
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB4);
-	BPatchSnippetHandle *handle = dh->proc->insertSnippet(incSnippet, *(*points)[0]);
+	BPatchSnippetHandle *handle = dh->addSpace->insertSnippet(incSnippet, *(*points)[0]);
 	if (!handle) {
 	    sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB4, ID_FAIL,
 		    "Failure in BPatch_process::insertSnippet()");
@@ -1121,7 +1139,7 @@ bool instrumentMemoryReads(dynHandle *dh, BPatch_function *func)
 	}
 
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB4);
-	BPatchSnippetHandle *handle = dh->proc->insertSnippet(incSnippet, *points);
+	BPatchSnippetHandle *handle = dh->addSpace->insertSnippet(incSnippet, *points);
 	if (!handle) {
 	    sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB4, ID_FAIL,
 		    "Failure in BPatch_process::insertSnippet()");
@@ -1216,7 +1234,7 @@ bool instrumentMemoryWrites(dynHandle *dh, BPatch_function *func)
 	}
 
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB4);
-	BPatchSnippetHandle *handle = dh->proc->insertSnippet(incSnippet, *points);
+	BPatchSnippetHandle *handle = dh->addSpace->insertSnippet(incSnippet, *points);
 	if (!handle) {
 	    sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB4, ID_FAIL,
 		    "Failure in BPatch_process::insertSnippet()");

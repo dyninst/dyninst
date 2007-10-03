@@ -403,6 +403,8 @@ class BPATCH_DLL_EXPORT BPatch_sequence : public BPatch_snippet {
 class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet 
 {
     friend class BPatch_process;
+    friend class BPatch_addressSpace;
+    friend class BPatch_binaryEdit;
     friend class BPatch_image;
     friend class BPatch_function;
 

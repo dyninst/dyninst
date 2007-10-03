@@ -78,16 +78,21 @@ struct Config {
     char record_dir[ PATH_MAX ];
     record_t curr_rec;
 
-    bool no_fork;         // For IPC debugging.  See if we should run without monitor.
-    bool recursive;       // Descend into children when processing directories.
-    bool summary;         // Print instrumemnation summary on mutatee exit.
-    bool include_libs;    // Parse/Instrument shared libraries as well as program modules.
-    bool use_attach;      // Attach to running process instead of forking new one.
-    int  attach_pid;
-    bool use_merge_tramp; // Use merge tramp for instrumentation.
-    bool use_save_world;  // Use save-the-world functionality.
-    char *saved_mutatee;
+  bool no_fork;         // For IPC debugging.  See if we should run without monitor.
+  bool recursive;       // Descend into children when processing directories.
+  bool summary;         // Print instrumemnation summary on mutatee exit.
+  bool include_libs;    // Parse/Instrument shared libraries as well as program modules.
+  bool use_attach;      // Attach to running process instead of forking new one.
+  int  attach_pid;
+  bool use_merge_tramp; // Use merge tramp for instrumentation.
+  bool use_save_world;  // Use save-the-world functionality.
+  
+  bool use_process;  //Standard process style of instrumentation or binary edit
+  char writeFilePath[PATH_MAX];
 
+
+  char *saved_mutatee;
+  
     bool trace_inst;      // Trace mutatee as it is running.
     unsigned int trace_count;
     deque< string > trace_history;

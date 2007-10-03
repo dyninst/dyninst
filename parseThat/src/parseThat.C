@@ -29,9 +29,11 @@ int main(int argc, char **argv)
     while (getNextTarget()) {
 	int pipefd[2];
 
-	if (config.no_fork) {
+
+	if (config.no_fork || !config.use_process) {
 	    return launch_mutator();
 	}
+	
 
 	if (pipe(pipefd) != 0) {
 	    dlog(ERR, "Error on pipe(): %s\n", strerror(errno));
@@ -292,7 +294,8 @@ void parseArgs(int argc, char **argv)
                 }
 
 		config.trace_count = (tempInt < 0 ? 0 : (unsigned int)tempInt);
-		config.trace_inst = true;
+		if (config.use_process)
+		  config.trace_inst = true;
 		break;
 
 	    case 'v':
@@ -381,17 +384,28 @@ void parseArgs(int argc, char **argv)
 		    config.summary = true;
 
 		} else if (strcmp(ptr, "-save-world") == 0) {
-		    // SPECIAL CASE.  User *MUST* use '--save-world=<filename>' form.
-		    // '--save-world <filename>' is ambiguous and cannot be parsed
-		    // reliably.
+		  // SPECIAL CASE.  User *MUST* use '--save-world=<filename>' form.
+		  // '--save-world <filename>' is ambiguous and cannot be parsed
+		  // reliably.
 		    if (!needShift) {
-			if (arg) config.saved_mutatee = arg;
-			config.use_save_world = true;
+		      if (arg) config.saved_mutatee = arg;
+		      config.use_save_world = true;
 		    }
-
+		}  else if (strcmp(ptr, "-binary-edit") == 0) {
+		  config.use_process = false;
+		  config.trace_inst = false;
+		  if (!arg) {
+		    fprintf(stderr, "--binary-edit requires a path argument\n");
+		    userError();
+		  }
+		  else
+		    {
+		      strcpy(config.writeFilePath,arg);
+		      printf("Write File Path is %s\n", config.writeFilePath);
+		    }
 		} else if (strcmp(ptr, "-skip-func") == 0) {
-		    if (!arg) {
-			fprintf(stderr, "--skip-func requires a regular expression argument.\n");
+		  if (!arg) {
+		    fprintf(stderr, "--skip-func requires a regular expression argument.\n");
 			userError();
 		    }
 		    if (!config.func_rules.insert(arg, RULE_SKIP))
@@ -415,7 +429,8 @@ void parseArgs(int argc, char **argv)
                     }
 
 		    config.trace_count = (tempInt < 0 ? 0 : (unsigned int)tempInt);
-                    config.trace_inst = true;
+                    if (config.use_process)
+		      config.trace_inst = true;
 
 		} else if (strcmp(ptr, "-use-transactions") == 0) {
 		    if (!arg) {
