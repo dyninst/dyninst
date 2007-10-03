@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.27 2007/09/25 17:28:19 giri Exp $
+// $Id: mapped_object.C,v 1.28 2007/10/03 21:18:19 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -937,6 +937,11 @@ void *mapped_object::getPtrToData(Address addr) const {
     Address offset = addr - dataBase();
     return image_->getPtrToData(offset);
 }
+
+void *mapped_object::get_local_ptr() const {
+    return image_->getObject()->image_ptr();
+}
+
 
 bool mapped_object::getSymbolInfo(const pdstring &n, Symbol &info) {
     if (image_) {
