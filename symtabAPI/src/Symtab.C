@@ -885,8 +885,14 @@ void Symtab::enterFunctionInTables(Symbol *func, bool wasSymtab)
         createdFunctions.push_back(func);
 }
 
-bool Symtab::addSymbol(Symbol *newSym)
+bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
 {
+    if(!newSym)
+    	return false;
+    if(isDynamic) {
+    	newDynSyms.push_back(newSym);
+	return true;
+    }	
     std::vector<std::string> names;
     char *unmangledName = NULL;
     std::string sname = newSym->getName();
@@ -1394,6 +1400,24 @@ bool Symtab::getAllSections(std::vector<Section *>&ret)
     {
         ret = sections_;
         return true;
+    }
+    return false;
+}
+
+bool Symtab::getAllNewSections(std::vector<Section *>&ret)
+{
+    if(newSections_.size() > 0) {
+    	ret = newSections_;
+	return true;
+    }
+    return false;
+}
+
+bool Symtab::getAllNewDynSyms(std::vector<Symbol *>&ret)
+{
+    if(newDynSyms.size() > 0) {
+    	ret = newDynSyms;
+	return true;
     }
     return false;
 }
@@ -3112,14 +3136,12 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
 
 DLLEXPORT bool Symtab::emitSymbols(std::string filename)
 {
-    linkedFile->checkIfStripped(this, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
-    return linkedFile->emitDriver(this, filename, newSections_);
+    return linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
 }
 
 DLLEXPORT bool Symtab::emit(std::string filename)
 {
-    linkedFile->checkIfStripped(this, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
-    return linkedFile->emitDriver(this, filename, newSections_);
+    return linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
 }
 
 DLLEXPORT bool Symtab::getSegments(vector<Segment> &segs) const

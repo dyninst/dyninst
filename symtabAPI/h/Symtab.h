@@ -137,7 +137,6 @@ class Symtab : public LookupInterface {
 	 
    /***** Public Member Functions *****/
  public:
- 	DLLEXPORT void parseTypesNow(); //To Be Removed Later
    	DLLEXPORT Symtab();
 
 	DLLEXPORT Symtab(const Symtab& obj);
@@ -162,13 +161,14 @@ class Symtab : public LookupInterface {
                                               Symbol::SymbolType sType);
 	DLLEXPORT bool getAllModules(std::vector<Module *>&ret);
 	DLLEXPORT bool getAllSections(std::vector<Section *>&ret);
-
+	DLLEXPORT bool getAllNewSections(std::vector<Section *>&ret);
+	DLLEXPORT bool getAllNewDynSyms(std::vector<Symbol *>&dynsyms);
 	
 	DLLEXPORT bool findModule(Module *&ret, const std::string name);
 	DLLEXPORT bool findSection(Section *&ret, std::string secname);
 	DLLEXPORT bool findSectionByEntry(Section *&ret, const Offset offset);
 
-	DLLEXPORT bool addSymbol(Symbol *newsym);
+	DLLEXPORT bool addSymbol(Symbol *newsym, bool isDynamic = false);
 	
 	DLLEXPORT bool findException(ExceptionBlock &excp,Offset addr);
 	DLLEXPORT bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
@@ -327,6 +327,7 @@ class Symtab : public LookupInterface {
 
 	void parseLineInformation();
 	void parseTypes();
+ 	void parseTypesNow();
 	
 
    /***** Private Data Members *****/
@@ -398,6 +399,8 @@ class Symtab : public LookupInterface {
    hash_map <std::string, std::vector <Symbol *> *> modsByName;
    std::vector<Symbol *> notypeSyms;
    std::vector<Module *> _mods;
+
+   std::vector<Symbol *> newDynSyms;
 
    typeCollection *APITypes;
 

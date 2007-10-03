@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.7 2007/09/19 22:25:16 giri Exp $
+ * $Id: Object-nt.h,v 1.8 2007/10/03 19:51:01 giri Exp $
 ************************************************************************/
 
 
@@ -197,9 +197,7 @@ public:
     DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     DLLEXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
     DLLEXPORT void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
-	virtual bool writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
-	bool emitDriver(Symtab *obj, std::string fName, std::vector<Section *>newSecs);
-    bool checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
+	bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
 
 private:
     DLLEXPORT void    ParseDebugInfo( void );

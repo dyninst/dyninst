@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.10 2007/09/27 15:21:28 giri Exp $
+// $Id: Object-xcoff.C,v 1.11 2007/10/03 19:51:02 giri Exp $
 
 #include <regex.h>
 
@@ -1555,12 +1555,7 @@ ObjectType Object::objType() const {
    return is_aout() ? obj_Executable : obj_SharedLib;
 }
 
-bool Object::emitDriver(Symtab *obj, std::string fName, std::vector<Section *>newSecs)
-{
-   return true;
-}
-
-bool Object::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
+bool Object::emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
 {
    return true;
 }
@@ -1568,11 +1563,6 @@ bool Object::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::
 bool AObject::getSegments(vector<Segment> &segs) const
 {
     return true;
-}
-
-bool Object::writeBackSymbols( std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
-{
-   return true;
 }
 
 /* FIXME: hack. */

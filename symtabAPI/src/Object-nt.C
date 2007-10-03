@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.14 2007/09/27 15:21:42 giri Exp $
+// $Id: Object-nt.C,v 1.15 2007/10/03 19:51:00 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -1827,15 +1827,6 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
-bool Object::writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
-{
-	return true;
-}
-
-bool Object::emitDriver(Symtab *obj, std::string fName, std::vector<Section *>newSecs){
-	return true;
-}
-
-bool Object::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes){
+bool Object::emitDriver(Symtab *obj, std::string fName,std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes){
 	return true;
 }

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.7 2007/09/19 21:53:56 giri Exp $
+ * $Id: Object-elf.h,v 1.8 2007/10/03 19:50:59 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -41,7 +41,6 @@
 
 #include "symtabAPI/h/Symbol.h"
 #include "common/h/Types.h"
-#include "common/h/Vector.h"
 #include <elf.h>
 #include <libelf.h>
 
@@ -199,13 +198,7 @@ class Object : public AObject {
   virtual ~Object();
   const Object& operator=(const Object &);
 
-  virtual bool writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
-  bool emitDriver(Symtab *obj, std::string fName, std::vector<Section *>newSecs);
-  bool checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
-  bool createNonLoadableSections(Elf *&newElf, std::vector<Section *>&nonLoadableSecs, Elf32_Shdr *shdr, unsigned shstrtabDataSize, unsigned);
-  void addSectionNames(Elf_Data *&, Elf_Data *, unsigned , unsigned , std::vector<std::string> &, std::vector<Section*>&);
-  bool createLoadableSections(Elf *&, Elf32_Shdr *, std::vector<Section *>&, std::vector<std::string> &, std::vector<Section *>&, unsigned &, unsigned &, unsigned &);
-  void fixPhdrs(Elf32_Phdr * phdr, unsigned loadSecsSize);
+  bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
   
   const char *elf_vaddr_to_ptr(Offset vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }

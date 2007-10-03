@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.6 2007/09/19 21:53:58 giri Exp $
+ * $Id: Object-xcoff.h,v 1.7 2007/10/03 19:51:03 giri Exp $
 ************************************************************************/
 
 
@@ -235,9 +235,7 @@ class Object : public AObject {
     ObjectType objType() const;
     bool isEEL() const { return false; }
     // Emit a new binary
-    virtual bool writeBackSymbols( std::string filename, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
-    bool emitDriver(Symtab *obj, std::string fName, std::vector<Section *>newSecs);
-    bool checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
+    bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
 
     void parseTypeInfo(Symtab *obj);
 
