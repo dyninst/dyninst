@@ -92,9 +92,10 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
 
     private:
     BinaryEdit *llBinEdit;
+    BPatch_binaryEdit(const char *path);
+    bool creation_error;
 
     public:
-    BPatch_binaryEdit(const char *path);
 
     bool getType();
     AddressSpace * getAS();
