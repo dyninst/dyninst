@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.4 2007/09/20 17:22:42 bernat Exp $
+// $Id: binaryEdit.h,v 1.5 2007/10/03 21:18:18 bernat Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -134,42 +134,12 @@ class BinaryEdit : public AddressSpace {
  private:
 
     Address highWaterMark_;
+    Address lowWaterMark_;
 
     static bool getStatFileDescriptor(const pdstring &file,
                                       fileDescriptor &desc);
 
-    // We're operating on the binary's "address space",
-    // but that shows as a series of buffers in our
-    // address space (which probably aren't at their
-    // "apparent" addresses). This function performs that
-    // mapping. 
-    Address mapApparentToReal(const Address, 
-                              const unsigned size, 
-                              bool writing);
-
     bool inferiorMallocStatic(unsigned size);
-
-    class addrMapping : public codeRange {
-    public:
-        Address in;
-        Address out;
-        unsigned size;
-        bool alloc;
-        Address get_address_cr() const { return in; }
-        unsigned get_size_cr() const { return out; }
-        
-        addrMapping(Address i, Address o, unsigned s) :
-            in(i),
-            out(o),
-            size(s),
-            alloc(false) {}
-    };
-
-    codeRangeTree apparentToReal_;
-    // This can probably get combined with "modifiedAreas" from
-    // our parent, but hey...
-    codeRangeTree overwrittenToReal_;
-
 };
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.4 2007/09/19 21:54:39 giri Exp $
+// $Id: binaryEdit.C,v 1.5 2007/10/03 21:18:17 bernat Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -60,28 +60,15 @@
 //  2) A section of the binary that is original
 //  3) A section of the binary that was modified
 
-bool BinaryEdit::readTextSpace(const void *inOther,
-                               u_int amount,
-                               const void *inSelf) {
-#if defined(USE_ADDRESS_MAPS)
-    // Let's keep this around - but I think instead we can
-    // use our codeRanges to figure out where things go...
-    // which means we delay writes.
-
-    void *use = (void *) mapApparentToReal((Address)inOther, amount, false);
-    memcpy((void *)inSelf, use, amount);
-#endif
+bool BinaryEdit::readTextSpace(const void *,
+                               u_int,
+                               const void *) {
     return true;
 }
 
-bool BinaryEdit::writeTextSpace(void *inOther,
-                            u_int amount,
-                            const void *inSelf) {
-#if defined(USE_ADDRESS_MAPS)
-    // See above
-    void *use = (void *) mapApparentToReal((Address)inOther, amount, true);
-    memcpy(use, inSelf, amount);
-#endif
+bool BinaryEdit::writeTextSpace(void *,
+                            u_int,
+                            const void *) {
     return true;
 }    
 
@@ -127,7 +114,7 @@ Address BinaryEdit::inferiorMalloc(unsigned size,
             inferiorFreeCompact();
             break;
         case 2:
-            inferiorMallocStatic(HEAP_STAT_BUF_SIZE);
+            inferiorMallocStatic(size);
             break;
         default:
             return 0;
@@ -171,7 +158,7 @@ BinaryEdit::~BinaryEdit() {
 void BinaryEdit::deleteBinaryEdit() {
     deleteAddressSpace();
     highWaterMark_ = 0;
-    apparentToReal_.clear();
+    lowWaterMark_ = 0;
 }
 
 BinaryEdit *BinaryEdit::openFile(const pdstring &file) {
@@ -207,19 +194,12 @@ BinaryEdit *BinaryEdit::openFile(const pdstring &file) {
 
     // We now need to access the start of the new section we're creating.
 
-    /*
-      // I'm going through the mapped_object interface for now - 
-      // I assume we'll pass it to DynSymtab, then add our base
-      // address to it at the mapped_ level. 
-      mapped_section *newSection = bin->createSection();
-      assert(newSection);
-      newBinaryEdit->highWaterMark_ = newSection->baseAddr();
-      assert(newBinaryEdit->highWaterMark_);
-    */
+    // I'm going through the mapped_object interface for now - 
+    // I assume we'll pass it to DynSymtab, then add our base
+    // address to it at the mapped_ level. 
     
-    addrMapping *aMap = new addrMapping(0, 0, 0);
-    aMap->alloc = false;
-    newBinaryEdit->apparentToReal_.insert(aMap);
+    newBinaryEdit->highWaterMark_ = newBinaryEdit->getAOut()->parse_img()->getObject()->getFreeOffset(10*1024*1024);
+    newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
     
     return newBinaryEdit;
 }
@@ -248,13 +228,13 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
     // so.
 
     // Step 1: changes. 
-    
-    // Allocate a new buffer for the text of the program
-    void *textSection = malloc(getAOut()->get_size_cr());
 
-    // Copy in from the binary
-    //assert(getAOut());
-    memcpy(textSection, getAOut()->get_local_ptr(), getAOut()->get_size_cr());
+    Symtab *symObj = getAOut()->parse_img()->getObject();
+
+    vector<Segment> oldSegs;
+    symObj->getSegments(oldSegs);
+
+    vector<Segment> newSegs = oldSegs;
     
     // And now apply changes
     // Note: I want an iterator. Stat. 
@@ -262,10 +242,23 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
     modifiedRanges_.elements(modified);
     for (unsigned i = 0; i < modified.size(); i++) {
         assert(modified[i]->get_address_cr() >= getAOut()->get_address_cr());
-        Address offset = modified[i]->get_address_cr() - getAOut()->get_address_cr();
-        assert(offset < getAOut()->get_size_cr());
-        void *local_addr = (void *)((Address) textSection + offset);
-        memcpy(local_addr, modified[i]->get_local_ptr(), modified[i]->get_size_cr());
+
+        // Find the segment this modification occurs in
+        for (unsigned j = 0; j < oldSegs.size(); j++) {
+            if ((modified[i]->get_address_cr() >= oldSegs[j].loadaddr) &&
+                (modified[i]->get_address_cr() < (oldSegs[j].loadaddr + oldSegs[j].size))) {
+                if (oldSegs[j].data == newSegs[j].data) {
+                    newSegs[j].data = malloc(oldSegs[j].size);
+                    memcpy(newSegs[j].data, oldSegs[j].data, oldSegs[j].size);
+                }
+                Address offset = modified[i]->get_address_cr() - oldSegs[j].loadaddr;
+
+                assert(offset < oldSegs[j].size);
+                void *local_addr = (void *)((Address) newSegs[j].data + offset);
+                memcpy(local_addr, modified[i]->get_local_ptr(), modified[i]->get_size_cr());
+                break;
+            }
+        }
     }
 
     // Okay, that's our text section. 
@@ -278,31 +271,104 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
     // so skip it and see what we're talking about size-wise. Which should
     // be less than the highWaterMark, so we can double-check.
     assert(newStuff.size());
-    assert(newStuff[0] == getAOut());
 
     void *newSection = NULL;
+    unsigned newSectionSize = 0;
 
     // Wouldn't it be funny if they didn't add any new code at all?
     if (newStuff.size() > 1) {
-        Address low = newStuff[1]->get_address_cr();
-        Address high = newStuff.back()->get_address_cr() + newStuff.back()->get_size_cr();
-        Address size = high - low;
-        assert(size <= highWaterMark_); // That would be... odd.
-        
-        newSection = malloc(size);
-        for (unsigned i = 1; i < newStuff.size(); i++) {
+        Address low = lowWaterMark_;
+        Address high = highWaterMark_;
+        newSectionSize = high - low;
+        assert(newSectionSize <= highWaterMark_); // That would be... odd.
 
-            Address offset = newStuff[i]->get_address_cr() - newStuff[1]->get_address_cr();
-            assert(offset < size);
-            void *local_addr = (void *)(offset);
+        newSection = malloc(newSectionSize);
+        for (unsigned i = 0; i < newStuff.size(); i++) {
+            if (newStuff[i] == getAOut()) continue;
+
+            Address offset = newStuff[i]->get_address_cr() - low;
+            assert((offset + newStuff[i]->get_size_cr()) <= newSectionSize);
+            void *local_addr = (void *)(offset + (Address)newSection);
             memcpy(local_addr, newStuff[i]->get_local_ptr(), newStuff[i]->get_size_cr());
+
+            char buffer[1025];
+            
+            if (newStuff[i]->is_multitramp()) {
+                snprintf(buffer, 1024, "%s-inst-0x%lx-0x%lx",
+                         newStuff[i]->is_multitramp()->func()->symTabName().c_str(),
+                         newStuff[i]->is_multitramp()->instAddr(),
+                         newStuff[i]->is_multitramp()->instAddr() +
+                         newStuff[i]->is_multitramp()->instSize());
+            }
+            else if (newStuff[i]->is_basicBlockInstance()) {
+                // Relocated function
+                snprintf(buffer, 1024, "%s-reloc",
+                         newStuff[i]->is_basicBlockInstance()->func()->symTabName().c_str());
+            }
+            else
+                snprintf(buffer, 1024, "unknown");
+            
+
+            Symbol *newSym = new Symbol(buffer,
+                                        "DyninstInst",
+                                        Symbol::ST_FUNCTION,
+                                        Symbol::SL_LOCAL,
+                                        newStuff[i]->get_address_cr(),
+                                        NULL, // Should be our new section
+                                        newStuff[i]->get_size_cr(),
+                                        (void *)newStuff[i]);
+            
+            symObj->addSymbol(newSym);
         }
     }
 
     // Okay, now...
     // Hand textSection and newSection to DynSymtab.
 
-    return false;
+    // First, textSection.
+
+    // From the SymtabAPI documentation: we have the following methods we want to use.
+    // Symtab::addSection(Offset vaddr, void *data, unsigned int dataSize, std::string name, 
+    //                    unsigned long flags, bool loadable)
+    // Symtab::updateCode(void *buffer, unsigned size)
+    // Symtab::emit(std::string filename)
+
+    // First, text
+    assert(symObj);
+
+    for (unsigned i = 0; i < oldSegs.size(); i++) {
+        if (oldSegs[i].data != newSegs[i].data) {
+            if (oldSegs[i].name == ".text") {
+                symObj->updateCode(newSegs[i].data,
+                                   newSegs[i].size);
+            }
+        }
+    }
+
+    // Next, make a new section. We have the following parameters:
+    // Offset vaddr: we get this from Symtab - "first free address with sufficient space"
+    // void *data: newSection
+    // unsigned int dataSize: newSectionSize
+    // std::string name: without reflection, ".dyninstInst"
+    // unsigned long flags: these are a SymtabAPI abstraction. We're going with text|data because
+    //    we might have both.
+    // bool loadable: heck yeah...
+    
+    if (newSectionSize) {
+        symObj->addSection(lowWaterMark_,
+                           newSection,
+                           newSectionSize,
+                           ".dyninstInst",
+                           Section::textSection | Section::dataSection,
+                           true);
+    }
+
+    // And now we generate the new binary
+    if (!symObj->emit(newFileName.c_str())) {
+        return false;
+    }
+
+    return true;
 }
 
 bool BinaryEdit::inferiorMallocStatic(unsigned size) {
@@ -320,95 +386,11 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
                                anyHeap,
                                true,
                                HEAPfree);
-#if defined(USE_ADDRESS_MAPS)
-    h->setBuffer(buf);
-#endif
-
     addHeap(h);
 
-#if defined(USE_ADDRESS_MAPS)
-    addrMapping *aMap = new addrMapping(highWaterMark_,
-                                        (Address) buf,
-                                        size);
-    aMap->alloc = true;
-    apparentToReal_.insert(aMap);
-#endif
 
     highWaterMark_ += size;
 
     return true;
 }
-
-// We can leave this around - it's harmless
-Address BinaryEdit::mapApparentToReal(const Address apparent,
-                                      unsigned size,
-                                      bool writing) {
-    // Our job: map an address in the "apparent" address
-    // space (that of the binary we're editing) to a
-    // "real" pointer (that is, into a buffer that we keep). 
-    // Note that buffers are:
-    //  1) Not contiguous by any means
-    //  2) Have no relationship to the "apparent" address
-
-    codeRange *tmp_ = NULL;
-    if (!apparentToReal_.find(apparent, tmp_))
-        return 0;
-    
-    addrMapping *tmp = dynamic_cast<addrMapping *>(tmp_);
-    assert(tmp);
-
-    if (tmp->alloc) {
-        // Okay, we have a little bundle of happiness. Now
-        // get a useful void *
-        unsigned offset = apparent - tmp->in;
-        assert(offset <= tmp->size);
-        // Ugh pointer math!
-        Address ret = (tmp->out + offset);
-        return ret;
-    }
-
-    // Otherwise, we're in the original binary space, and we're
-    // writing to it. Now, there's two ways we could be in the
-    // original binary space. We could just be pokin' around, in which
-    // case we're done. Or we could be workin' on something that we
-    // wrote already, like a jump, in which case we need to point out
-    // to our little buffers.
-
-    codeRange *over_ = NULL;
-    
-    if (overwrittenToReal_.find(apparent, over_)) {
-        // We found it.
-        addrMapping *over = dynamic_cast<addrMapping *>(over);
-        assert(over);
-        
-        unsigned offset = apparent - over->in;
-        assert(offset <= over->size);
-        // Ugh pointer math!
-        Address ret = (over->out + offset);
-        return ret;
-    }
-    else {
-        // If we're writing, create a new patch area; otherwise,
-        // return the binary.
-        if (writing) {
-            void *buffer = (void *)malloc(size);
-            
-            addrMapping *aMap = new addrMapping(apparent,
-                                                (Address) buffer,
-                                                size);
-            aMap->alloc = true;
-            overwrittenToReal_.insert(aMap);
-            return (Address) buffer;
-        }
-        else {
-            // Head back on up to the original lookup
-            unsigned offset = apparent - tmp->in;
-            assert(offset <= tmp->size);
-            // Ugh pointer math!
-            Address ret = (tmp->out + offset);
-            return ret;
-        }
-    }
-    return 0;
-}    
 
