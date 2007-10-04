@@ -96,7 +96,8 @@ dynHandle *mutatorInit(void)
 	}
     } else {
       printf("Created BPatch_binaryEdit\n");
-      dh->addSpace = new BPatch_binaryEdit(config.target);
+      //dh->addSpace = new BPatch_binaryEdit(config.target);
+      dh->addSpace = dh->bpatch->openBinary(config.target);
       if (!dh->addSpace) {
 	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,
 		"Failure in BPatch:_binaryEdit constructor");
