@@ -3134,14 +3134,14 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
     return true;
 }
 
-DLLEXPORT bool Symtab::emitSymbols(std::string filename)
+DLLEXPORT bool Symtab::emitSymbols(std::string filename, unsigned flag)
 {
-    return linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
+    return linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
 }
 
-DLLEXPORT bool Symtab::emit(std::string filename)
+DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
-    return linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms);
+    return linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
 }
 
 DLLEXPORT bool Symtab::getSegments(vector<Segment> &segs) const

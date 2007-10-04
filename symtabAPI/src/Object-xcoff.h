@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.7 2007/10/03 19:51:03 giri Exp $
+ * $Id: Object-xcoff.h,v 1.8 2007/10/04 22:04:41 giri Exp $
 ************************************************************************/
 
 
@@ -234,8 +234,6 @@ class Object : public AObject {
     
     ObjectType objType() const;
     bool isEEL() const { return false; }
-    // Emit a new binary
-    bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
 
     void parseTypeInfo(Symtab *obj);
 

@@ -1,4 +1,4 @@
-#include "emitElf.h"
+#include "emitElf-64.h"
 #include "Symtab.h"
 
 using namespace Dyninst;
@@ -51,28 +51,28 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, voi
 
 bool emitElf::getBackSymbol(Symbol *symbol)
 {
-   Elf32_Sym *sym = new Elf32_Sym();
+   Elf64_Sym *sym = new Elf64_Sym();
    sym->st_name = symbolNamesLength;
    symbolStrs.push_back(symbol->getName());
    symbolNamesLength += symbol->getName().length()+1;
    sym->st_value = symbol->getAddr();
    sym->st_size = symbol->getSize();
    sym->st_other = 0;
-   sym->st_info = ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
+   sym->st_info = ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
    if(symbol->getSec())
 	sym->st_shndx = symbol->getSec()->getSecNumber();
    symbols.push_back(sym);
    std::vector<string> names = symbol->getAllMangledNames();
    for(unsigned i=1;i<names.size();i++)
    {
-   	sym = new Elf32_Sym();
+   	sym = new Elf64_Sym();
 	sym->st_name = symbolNamesLength;
 	symbolStrs.push_back(names[i]);
    	symbolNamesLength += names[i].length()+1;
 	sym->st_value = symbol->getAddr();
 	sym->st_size = 0;
    	sym->st_other = 0;
-   	sym->st_info = ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
+   	sym->st_info = ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
    	if(symbol->getSec())
 	    sym->st_shndx = symbol->getSec()->getSecNumber();
 	else if(symbol->getType() == Symbol::ST_MODULE)
@@ -85,7 +85,7 @@ bool emitElf::getBackSymbol(Symbol *symbol)
 // Find the end of data/text segment
 void emitElf::findSegmentEnds()
 {
-    Elf32_Phdr *tmp = elf32_getphdr(oldElf);
+    Elf64_Phdr *tmp = elf64_getphdr(oldElf);
     // Find the offset of the start of the text & the data segment
     // The first LOAD segment is the text & the second LOAD segment 
     // is the data
@@ -141,13 +141,13 @@ bool emitElf::driver(Symtab *obj, string fName){
     }	
 
     // Write the Elf header first!
-    newEhdr= elf32_newehdr(newElf);
+    newEhdr= elf64_newehdr(newElf);
     if(!newEhdr){
         log_elferror(err_func_, "newEhdr failed\n");
         return false;
     }
-    oldEhdr = elf32_getehdr(oldElf);
-    memcpy(newEhdr, oldEhdr, sizeof(Elf32_Ehdr));
+    oldEhdr = elf64_getehdr(oldElf);
+    memcpy(newEhdr, oldEhdr, sizeof(Elf64_Ehdr));
     
     newEhdr->e_shnum += newSecs.size();
 
@@ -159,7 +159,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     /* flag the file for no auto-layout */
     if(addNewSegmentFlag)
     {
-        newEhdr->e_phoff = sizeof(Elf32_Ehdr);
+        newEhdr->e_phoff = sizeof(Elf64_Ehdr);
         elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);  
     }	
     
@@ -169,18 +169,18 @@ bool emitElf::driver(Symtab *obj, string fName){
     
     Elf_Scn *scn = NULL, *newscn;
     Elf_Data *newdata = NULL, *olddata = NULL;
-    Elf32_Shdr *newshdr, *shdr;
+    Elf64_Shdr *newshdr, *shdr;
     
     unsigned scncount;
     for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
 
     	//copy sections from oldElf to newElf
-        shdr = elf32_getshdr(scn);
+        shdr = elf64_getshdr(scn);
 	newscn = elf_newscn(newElf);
-	newshdr = elf32_getshdr(newscn);
+	newshdr = elf64_getshdr(newscn);
 	newdata = elf_newdata(newscn);
 	olddata = elf_getdata(scn,NULL);
-	memcpy(newshdr, shdr, sizeof(Elf32_Shdr));
+	memcpy(newshdr, shdr, sizeof(Elf64_Shdr));
 	memcpy(newdata,olddata, sizeof(Elf_Data));
 													
 	// resolve section name
@@ -279,7 +279,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 
     scn = NULL;
     for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
-    	shdr = elf32_getshdr(scn);
+    	shdr = elf64_getshdr(scn);
 	olddata = elf_getdata(scn,NULL);
     }
     newEhdr->e_shstrndx+=loadSecNames.size();
@@ -290,7 +290,7 @@ bool emitElf::driver(Symtab *obj, string fName){
         newEhdr->e_shoff += pgSize;
 
     //copy program headers
-    oldPhdr = elf32_getphdr(oldElf);
+    oldPhdr = elf64_getphdr(oldElf);
     fixPhdrs(loadSecTotalSize);
 
     //Write the new Elf file
@@ -314,7 +314,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 void emitElf::fixPhdrs(unsigned loadSecTotalSize)
 {
     unsigned pgSize = getpagesize();
-    Elf32_Phdr *tmp = oldPhdr;
+    Elf64_Phdr *tmp = oldPhdr;
     if(addNewSegmentFlag) {
         if(firstNewLoadSec)
 	    newEhdr->e_phnum= oldEhdr->e_phnum + 1;
@@ -324,9 +324,9 @@ void emitElf::fixPhdrs(unsigned loadSecTotalSize)
     if(BSSExpandFlag)
        newEhdr->e_phnum= oldEhdr->e_phnum;
     
-    newPhdr=elf32_newphdr(newElf,newEhdr->e_phnum);
+    newPhdr=elf64_newphdr(newElf,newEhdr->e_phnum);
 
-    Elf32_Phdr newSeg;
+    Elf64_Phdr newSeg;
     for(unsigned i=0;i<oldEhdr->e_phnum;i++)
     {
         memcpy(newPhdr, tmp, oldEhdr->e_phentsize);
@@ -376,8 +376,8 @@ void emitElf::fixPhdrs(unsigned loadSecTotalSize)
 //sets _end and _END_ to move the heap
 void emitElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize){
     if( symtabData && strData && loadSecsSize){
-        Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
-        for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
+        Elf64_Sym *symPtr=(Elf64_Sym*)symtabData->d_buf;
+        for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf64_Sym));i++,symPtr++){
             if(!(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
 	        //newHeapAddrIncr = newHeapAddr - symPtr->st_value ;
                 symPtr->st_value += loadSecsSize;
@@ -390,11 +390,11 @@ void emitElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned lon
     }
 }
 
-bool emitElf::createLoadableSections(Elf32_Shdr *shdr, std::vector<Section *>&newSecs, std::vector<string> &loadSecNames, unsigned &shstrtabDataSize, unsigned &nonLoadableNamesSize, unsigned &loadSecTotalSize)
+bool emitElf::createLoadableSections(Elf64_Shdr *shdr, std::vector<Section *>&newSecs, std::vector<string> &loadSecNames, unsigned &shstrtabDataSize, unsigned &nonLoadableNamesSize, unsigned &loadSecTotalSize)
 {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
-    Elf32_Shdr *newshdr;
+    Elf64_Shdr *newshdr;
     firstNewLoadSec = NULL;
     unsigned extraSize = 0;
     unsigned pgSize = getpagesize();
@@ -418,7 +418,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, std::vector<Section *>&ne
 	    } 
 
 	    // Fill out the new section header	
-	    newshdr = elf32_getshdr(newscn);
+	    newshdr = elf64_getshdr(newscn);
 	    newshdr->sh_name = shstrtabDataSize;
 	    newshdr->sh_flags = 0;
 	    if(newSecs[i]->getFlags() && Section::textSection)
@@ -512,13 +512,13 @@ void emitElf::addSectionNames(Elf_Data *&newdata, Elf_Data *olddata, unsigned sh
     }
 }
 
-bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr, unsigned shstrtabDataSize, unsigned newSecSize)
+bool emitElf::createNonLoadableSections(Elf64_Shdr *shdr, unsigned shstrtabDataSize, unsigned newSecSize)
 {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
-    Elf32_Shdr *newshdr;
+    Elf64_Shdr *newshdr;
     
-    Elf32_Shdr *prevshdr = shdr; 
+    Elf64_Shdr *prevshdr = shdr; 
     //All of them that are left are non-loadable. stack'em up at the end.
     int prevNameSize = 0;
     for(unsigned i = 0; i < nonLoadableSecs.size(); i++)
@@ -536,7 +536,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr, unsigned shstrtabDataS
 	 } 
 
     	//Fill out the new section header
-	newshdr = elf32_getshdr(newscn);
+	newshdr = elf64_getshdr(newscn);
 	newshdr->sh_name = shstrtabDataSize + prevNameSize;
 	if(nonLoadableSecs[i]->getFlags() && Section::textSection)		//Text Section
 	{
@@ -556,13 +556,13 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr, unsigned shstrtabDataS
 	{
 	    newshdr->sh_type = SHT_REL;
 	    newshdr->sh_flags = SHF_WRITE;
-            newshdr->sh_entsize = sizeof(Elf32_Rel);
+            newshdr->sh_entsize = sizeof(Elf64_Rel);
 	    newdata->d_type = ELF_T_BYTE;
 	}
 	else if(nonLoadableSecs[i]->getFlags() && Section::symtabSection)
 	{
 	    newshdr->sh_type = SHT_SYMTAB;
-            newshdr->sh_entsize = sizeof(Elf32_Sym);
+            newshdr->sh_entsize = sizeof(Elf64_Sym);
 	    newdata->d_type = ELF_T_SYM;
 	    newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
 	    newshdr->sh_flags=  0;
@@ -610,7 +610,7 @@ bool emitElf::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std:
         getBackSymbol(mods[i]);
     for(i=0; i<notypes.size();i++)
         getBackSymbol(notypes[i]);
-    Elf32_Sym *syms = (Elf32_Sym *)malloc(symbols.size()* sizeof(Elf32_Sym));
+    Elf64_Sym *syms = (Elf64_Sym *)malloc(symbols.size()* sizeof(Elf64_Sym));
     for(i=0;i<symbols.size();i++)
         syms[i] = *(symbols[i]);
     --symbolNamesLength;
@@ -622,17 +622,17 @@ bool emitElf::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std:
         cur+=symbolStrs[i].length()+1;
     }
     
-    char *data = (char *)malloc(symbols.size()*sizeof(Elf32_Sym));
-    memcpy(data,syms, symbols.size()*sizeof(Elf32_Sym));
+    char *data = (char *)malloc(symbols.size()*sizeof(Elf64_Sym));
+    memcpy(data,syms, symbols.size()*sizeof(Elf64_Sym));
 
     if(!isStripped)
     {
         Section *sec;
         obj->findSection(sec,".symtab");
-	sec->setPtrToRawData(data, symbols.size()*sizeof(Elf32_Sym));
+	sec->setPtrToRawData(data, symbols.size()*sizeof(Elf64_Sym));
     }
     else
-    	obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 8);
+    	obj->addSection(0, data, symbols.size()*sizeof(Elf64_Sym), ".symtab", 8);
 
     char *strData = (char *)malloc(symbolNamesLength);
     memcpy(strData, str, symbolNamesLength);

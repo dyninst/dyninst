@@ -20,11 +20,11 @@ class emitElf{
     Elf *oldElf;
     
     //New Section & Program Headers
-    Elf32_Ehdr *newEhdr;
-    Elf32_Ehdr *oldEhdr;
+    Elf64_Ehdr *newEhdr;
+    Elf64_Ehdr *oldEhdr;
     
-    Elf32_Phdr *newPhdr;
-    Elf32_Phdr *oldPhdr;
+    Elf64_Phdr *newPhdr;
+    Elf64_Phdr *oldPhdr;
 
     //important data sections in the
     //new Elf that need updated
@@ -37,22 +37,22 @@ class emitElf{
     Elf_Data *rodata;
     Elf_Data *dataData;
     
-    Elf32_Shdr *textSh;
-    Elf32_Shdr *rodataSh;
+    Elf64_Shdr *textSh;
+    Elf64_Shdr *rodataSh;
     
     //Symbol table(.symtab) symbols
-    std::vector<Elf32_Sym *> symbols;
+    std::vector<Elf64_Sym *> symbols;
     std::vector<std::string> symbolStrs; //names of symbols
     unsigned symbolNamesLength; //Total size of all the names
 
     std::vector<Section *>nonLoadableSecs;
 
     // Needed when adding a new segment
-    Elf32_Off newSegmentStart;
-    Elf32_Shdr *firstNewLoadSec;// initialize to NULL
+    Elf64_Off newSegmentStart;
+    Elf64_Shdr *firstNewLoadSec;// initialize to NULL
  
     //text & data segment ends
-    Elf32_Off dataSegEnd, textSegEnd;
+    Elf64_Off dataSegEnd, textSegEnd;
 
     //flags
     // Expand NOBITS sections within the object file to their size
@@ -67,9 +67,9 @@ class emitElf{
     void findSegmentEnds();
     void fixPhdrs(unsigned);
     void addSectionNames(Elf_Data *&, Elf_Data *, unsigned , unsigned , vector<std::string> &);
-    bool createNonLoadableSections(Elf32_Shdr *shdr, unsigned shstrtabDataSize, unsigned);
+    bool createNonLoadableSections(Elf64_Shdr *shdr, unsigned shstrtabDataSize, unsigned);
     void addSectionNames(Elf_Data *&, Elf_Data *, unsigned , unsigned , std::vector<std::string> &, std::vector<Section*>&);
-    bool createLoadableSections( Elf32_Shdr *shdr, std::vector<Section *>&newSecs, std::vector<std::string> &loadSecNames, unsigned &shstrtabDataSize, unsigned &nonLoadableNamesSize, unsigned &loadSecTotalSize);
+    bool createLoadableSections( Elf64_Shdr *shdr, std::vector<Section *>&newSecs, std::vector<std::string> &loadSecNames, unsigned &shstrtabDataSize, unsigned &nonLoadableNamesSize, unsigned &loadSecTotalSize);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
     

@@ -207,10 +207,10 @@ class Symtab : public LookupInterface {
 	DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
 
 	/***** Write Back binary functions *****/
-	DLLEXPORT bool emitSymbols(std::string filename);
+	DLLEXPORT bool emitSymbols(std::string filename, unsigned flag = 0);
 	DLLEXPORT bool addSection(Offset vaddr, void *data, unsigned int dataSize, std::string name, unsigned long flags, bool loadable = false);
 	DLLEXPORT bool addSection(Section *newScn);
-	DLLEXPORT bool emit(std::string filename);
+	DLLEXPORT bool emit(std::string filename, unsigned flag = 0);
 
 	DLLEXPORT bool getSegments(std::vector<Segment> &segs) const;
 	DLLEXPORT bool updateCode(void *buffer, unsigned size);

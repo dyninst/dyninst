@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.8 2007/10/03 19:51:04 giri Exp $
+ * $Id: Object.h,v 1.9 2007/10/04 22:04:42 giri Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -120,6 +120,9 @@ public:
 
     DLLEXPORT void * getErrFunc() const;
     DLLEXPORT hash_map< std::string, std::vector< Symbol *> > *getAllSymbols();
+
+    DLLEXPORT bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
+     
 
 protected:
     DLLEXPORT virtual ~AObject();
