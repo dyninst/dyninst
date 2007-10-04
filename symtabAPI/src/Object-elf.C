@@ -30,14 +30,19 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.17 2007/10/03 19:50:58 giri Exp $
+ * $Id: Object-elf.C,v 1.18 2007/10/04 22:04:34 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
+
+#if defined(arch_x86_64) || defined(arch_ia64)
+#include "emitElf-64.h"
+#else
 #include "emitElf.h"
+#endif
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -3115,8 +3120,8 @@ bool getBackSymbol(Symbol *symbol, std::vector<Elf32_Sym *>&syms, unsigned &len,
    return true;
 }
 
-bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes){
-    emitElf *em = new emitElf(elfHdr, isStripped, true, err_func_);
+bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag){
+    emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
     em->checkIfStripped(obj ,functions, variables, mods, notypes); 
     return em->driver(obj, fName);
 }
@@ -3125,8 +3130,6 @@ bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functio
 bool Object::checkIfStripped( Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
 {
     unsigned i;
-    if(!isStripped)
-    	return false;
     std::vector<Elf32_Sym *> symbols;
     unsigned length = 1;
     std::vector<string> strs;
@@ -3154,12 +3157,30 @@ bool Object::checkIfStripped( Symtab *obj, std::vector<Symbol *>&functions, std:
     char *data = (char *)malloc(symbols.size()*sizeof(Elf32_Sym));
     memcpy(data,syms, symbols.size()*sizeof(Elf32_Sym));
 
-    obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 8);
+    if(!isStripped)
+    {
+        Section *sec;
+        obj->findSection(sec,".symtab");
+        sec->setPtrToRawData(data, symbols.size()*sizeof(Elf32_Sym));
+    }
+    else
+        obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 8);
+						
+//    obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 8);
 
     char *strData = (char *)malloc(length);
     memcpy(strData, str,length);
     
-    obj->addSection(0, strData, length, ".strtab", 16);
+    if(!isStripped)
+    {
+        Section *sec;
+        obj->findSection(sec,".strtab");
+        sec->setPtrToRawData(strData, length);
+    }
+    else
+        obj->addSection(0, strData, length , ".strtab", 16);
+						
+//    obj->addSection(0, strData, length, ".strtab", 16);
     return true;
 }
 

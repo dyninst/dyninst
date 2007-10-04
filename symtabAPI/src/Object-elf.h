@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.8 2007/10/03 19:50:59 giri Exp $
+ * $Id: Object-elf.h,v 1.9 2007/10/04 22:04:35 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -198,7 +198,7 @@ class Object : public AObject {
   virtual ~Object();
   const Object& operator=(const Object &);
 
-  bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes);
+  bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
   
   const char *elf_vaddr_to_ptr(Offset vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
