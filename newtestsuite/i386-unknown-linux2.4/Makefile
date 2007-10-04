@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2007/09/24 16:35:39 cooksey Exp $
+# $Id: Makefile,v 1.2 2007/10/04 16:09:34 cooksey Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -59,6 +59,7 @@ MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g
 
 # Definition used for test6 assembly
 # NASM ?= nasm
+M_nasm ?= $(NASM)
 # TEST6_AS_GNU = $(NASM)
 # TEST6_ASFLAGS_GNU = -f elf -dPLATFORM=$(PLATFORM)
 # TEST6_AS_SRC = test6LS-x86.asm

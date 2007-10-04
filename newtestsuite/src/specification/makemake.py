@@ -387,6 +387,19 @@ def collect_mutatee_comps(mutatees):
 			comps.append(m['compiler'])
 	return comps
 
+# Print makefile variable initializations for all the compilers used for
+# makefiles on this platform
+def print_mutatee_comp_defs(out):
+	out.write("# Define variables for our compilers, if they aren't already defined\n")
+	pname = os.environ.get('PLATFORM')
+	# TODO Check that we got a string
+	comps = filter(lambda c: c != ''
+				             and pname in info['compilers'][c]['platforms'],
+				   info['compilers'])
+	for c in comps:
+		out.write('M_%s ?= %s\n' % (info['compilers'][c]['defstring'], info['compilers'][c]['executable']))
+	out.write('\n')
+
 def print_mutatee_rules(out, mutatees, compiler):
 	mut_names = map(lambda x: "%s.mutatee_solo_%s_%s" % (x['name'], x['compiler'], x['optimization']), mutatees)
 	out.write("######################################################################\n")
@@ -396,9 +409,9 @@ def print_mutatee_rules(out, mutatees, compiler):
 	for m in mut_names:
 		out.write("%s " % (m))
 	out.write('\n\n')
-	out.write("# Define the mutatee compiler if it isn't already defined\n")
-	out.write("# (This may not be necessary)\n")
-	out.write("M_%s ?= %s\n\n" % (compiler['defstring'], compiler['executable']))
+	#out.write("# Define the mutatee compiler if it isn't already defined\n")
+	#out.write("# (This may not be necessary)\n")
+	#out.write("M_%s ?= %s\n\n" % (compiler['defstring'], compiler['executable']))
 	out.write("# Now a list of rules for compiling the mutatees with %s\n\n"
 			  % (mutatees[0]['compiler']))
 	# Write rules for building the mutatee executables from the object files
@@ -515,6 +528,7 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 	compilers = info['compilers']
 	mutatees = info['mutatees']
 	out = open(filename, "w")
+	print_mutatee_comp_defs(out)
 	comps = collect_mutatee_comps(mutatees)
 	for c in comps:
 		muts = filter(lambda x: x['compiler'] == c, mutatees)
@@ -585,8 +599,9 @@ def write_make_solo_mutatee_gen(filename, tuplefile):
 				out.write("%%_%s_%s.o: ../src/%%%s\n" % (comp, o, ext))
 				# FIXME Make this read the parameter flags from the compiler
 				# tuple (output file parameter flag)
-				out.write("\t%s %s %s -o $@ %s %s $<\n\n"
-						  % (comp, info['compilers'][comp]['flags']['std'],
+				out.write("\t$(M_%s) %s %s -o $@ %s %s $<\n\n"
+						  % (info['compilers'][comp]['defstring'],
+							 info['compilers'][comp]['flags']['std'],
 							 info['compilers'][comp]['flags']['mutatee'],
 							 info['compilers'][comp]['parameters']['partial_compile'],
 							 info['compilers'][comp]['optimization'][o]))
