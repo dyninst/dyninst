@@ -61,6 +61,9 @@ bool emitElf::getBackSymbol(Symbol *symbol)
    sym->st_info = ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
    if(symbol->getSec())
 	sym->st_shndx = symbol->getSec()->getSecNumber();
+   else if(symbol->getType() == Symbol::ST_MODULE  || symbol->getType() == Symbol::ST_NOTYPE)
+        sym->st_shndx = SHN_ABS;
+	
    symbols.push_back(sym);
    std::vector<string> names = symbol->getAllMangledNames();
    for(unsigned i=1;i<names.size();i++)
@@ -75,7 +78,7 @@ bool emitElf::getBackSymbol(Symbol *symbol)
    	sym->st_info = ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
    	if(symbol->getSec())
 	    sym->st_shndx = symbol->getSec()->getSecNumber();
-	else if(symbol->getType() == Symbol::ST_MODULE)
+	else if(symbol->getType() == Symbol::ST_MODULE  || symbol->getType() == Symbol::ST_NOTYPE)
 	    sym->st_shndx = SHN_ABS;
    	symbols.push_back(sym);
    }
@@ -221,7 +224,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 	if(!strcmp(name,".strtab"))
 	{
 	    symStrData = newdata;
-	    //updateSymbols(symTabData, symStrData, loadSecTotalSize);
+	    updateSymbols(symTabData, symStrData, loadSecTotalSize);
 	}
 	if(!strcmp(name, ".dynstr")){
             dynStrData = newdata;
@@ -299,7 +302,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 	if ((err = elf_errno()) != 0)
    	{
 		const char *msg = elf_errmsg(err);
-		cout << msg << endl;
+		fprintf(stderr, "Error: Unable to write ELF file: %s\n", msg);
 		/* print msg */
 	}
         log_elferror(err_func_, "elf_update failed");

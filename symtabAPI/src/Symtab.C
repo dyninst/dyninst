@@ -1097,6 +1097,7 @@ bool Symtab::extractInfo()
    // }
 
     no_of_sections = linkedFile->no_of_sections();
+    newSectionInsertPoint = no_of_sections;
     no_of_symbols = linkedFile->no_of_symbols();
 
     sections_ = linkedFile->getAllSections();
@@ -2383,8 +2384,20 @@ bool Symtab::delSymbol(Symbol *sym)
 
 bool Symtab::addSection(Offset vaddr, void *data, unsigned int dataSize, std::string name, unsigned long flags, bool loadable)
 {
-    Section *sec = new Section(sections_.size()+1, name, vaddr, dataSize, data, flags, loadable);
-    sections_.push_back(sec);
+    Section *sec;
+    unsigned i;
+    if(loadable)
+    {
+        sec = new Section(newSectionInsertPoint, name, vaddr, dataSize, data, flags, loadable);
+	sections_.insert(sections_.begin()+newSectionInsertPoint, sec);
+	for(i = newSectionInsertPoint+1; i < sections_.size(); i++)
+		sections_[i]->setSecNumber(sections_[i]->getSecNumber() + 1);
+    }
+    else
+    {
+	sec = new Section(sections_.size()+1, name, vaddr, dataSize, data, flags, loadable);
+	sections_.push_back(sec);
+    }	
     newSections_.push_back(sec);
     return true;
 }
@@ -3180,6 +3193,7 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) {
 	                end,size);*/
 	if (end > highWaterMark) {
 	    //fprintf(stderr, "Increasing highWaterMark...\n");
+	     newSectionInsertPoint = i+1;
 	     highWaterMark = end;
         }
         if ((i <= (sections_.size()-1)) &&
@@ -3188,7 +3202,9 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) {
 					                    i, i+1);
             fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
  		                 end, sections_[i+1]->getSecAddr());
-    	*/    return end;
+    	*/   
+	     newSectionInsertPoint = i+1;
+	     return end;
        }
    }
    return highWaterMark;
@@ -3366,6 +3382,12 @@ DLLEXPORT Section::~Section()
 DLLEXPORT unsigned Section::getSecNumber() const
 { 
     return sidnumber_; 
+}
+
+DLLEXPORT bool Section::setSecNumber(unsigned sidnumber)
+{
+    sidnumber_ = sidnumber;
+    return true;
 }
 
 DLLEXPORT std::string Section::getSecName() const

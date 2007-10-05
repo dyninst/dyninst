@@ -365,6 +365,8 @@ class Symtab : public LookupInterface {
 
    //New Sections to be added back to the binary
    std::vector<Section *> newSections_; 
+   //Point where new loadable sections will be inserted
+   unsigned newSectionInsertPoint;
 	
    //symbols
    unsigned no_of_symbols;
@@ -460,6 +462,7 @@ class Section {
 	DLLEXPORT ~Section();
 	
  	DLLEXPORT unsigned getSecNumber() const;
+	DLLEXPORT bool setSecNumber(unsigned sidnumber);
 	DLLEXPORT std::string getSecName() const;
 	DLLEXPORT Offset getSecAddr() const;
 	DLLEXPORT void *getPtrToRawData() const;
