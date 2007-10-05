@@ -31,19 +31,12 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.8 2007/10/04 22:04:41 giri Exp $
+ * $Id: Object-xcoff.h,v 1.9 2007/10/05 16:34:37 giri Exp $
 ************************************************************************/
-
-
-
 
 
 #if !defined(_Object_aix_h_)
 #define _Object_aix_h_
-
-
-
-
 
 /************************************************************************
  * header files.
@@ -236,7 +229,7 @@ class Object : public AObject {
     bool isEEL() const { return false; }
 
     void parseTypeInfo(Symtab *obj);
-
+    bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
 
 private:
 

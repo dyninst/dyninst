@@ -35,6 +35,7 @@
 #define _symtab_util_h_
 
 #include "dyntypes.h"
+#include <string>
 
 #if defined(_MSC_VER)	
 #if !defined(DLLEXPORT)
@@ -43,7 +44,6 @@
 //On windows it is just hash_map otherwise its in ext/hash_map
 #include <hash_map>
 #include <set>
-#include <cstring>
 
 using stdext::hash_map;
 
@@ -58,7 +58,7 @@ using namespace __gnu_cxx;
 namespace __gnu_cxx {
    template<> struct hash<std::string> {
       hash<char*> h;  
-      size_t operator()(const std::string &s) const {
+      unsigned operator()(const std::string &s) const {
          return h(s.c_str());
       };
    };              
