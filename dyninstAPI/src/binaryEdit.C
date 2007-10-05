@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.6 2007/10/04 22:04:49 giri Exp $
+// $Id: binaryEdit.C,v 1.7 2007/10/05 21:06:20 bernat Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -283,9 +283,38 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
         assert(newSectionSize <= highWaterMark_); // That would be... odd.
 
         newSection = malloc(newSectionSize);
+
+
+        // Next, make a new section. We have the following parameters:
+        // Offset vaddr: we get this from Symtab - "first free address with sufficient space"
+        // void *data: newSection
+        // unsigned int dataSize: newSectionSize
+        // std::string name: without reflection, ".dyninstInst"
+        // unsigned long flags: these are a SymtabAPI abstraction. We're going with text|data because
+        //    we might have both.
+        // bool loadable: heck yeah...
+
+        Section *newSec = NULL;
+        symObj->findSection(newSec, ".dyninstInst");
+        if (newSec) {
+            // We're re-instrumenting - will fail for now
+            fprintf(stderr, "ERROR:  unable to reinstrument previously instrumented binary!\n");
+            return false;
+        }
+
+        symObj->addSection(lowWaterMark_,
+                           newSection,
+                           newSectionSize,
+                           ".dyninstInst",
+                           Section::textSection | Section::dataSection,
+                           true);
+
+        symObj->findSection(newSec, ".dyninstInst");
+        assert(newSec);
+        
         for (unsigned i = 0; i < newStuff.size(); i++) {
             if (newStuff[i] == getAOut()) continue;
-
+            
             Address offset = newStuff[i]->get_address_cr() - low;
             assert((offset + newStuff[i]->get_size_cr()) <= newSectionSize);
             void *local_addr = (void *)(offset + (Address)newSection);
@@ -307,18 +336,20 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
             }
             else
                 snprintf(buffer, 1024, "unknown");
-            
+            fprintf(stderr, "Adding new symbol %s at 0x%lx, size %d\n", 
+                    buffer, newStuff[i]->get_address_cr(),
+                    newStuff[i]->get_size_cr());
 
             Symbol *newSym = new Symbol(buffer,
                                         "DyninstInst",
                                         Symbol::ST_FUNCTION,
-                                        Symbol::SL_LOCAL,
+                                        Symbol::SL_GLOBAL,
                                         newStuff[i]->get_address_cr(),
-                                        NULL, // Should be our new section
+                                        newSec,
                                         newStuff[i]->get_size_cr(),
                                         (void *)newStuff[i]);
             
-            symObj->addSymbol(newSym);
+            symObj->addSymbol(newSym, false);
         }
     }
 
@@ -345,23 +376,6 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
         }
     }
 
-    // Next, make a new section. We have the following parameters:
-    // Offset vaddr: we get this from Symtab - "first free address with sufficient space"
-    // void *data: newSection
-    // unsigned int dataSize: newSectionSize
-    // std::string name: without reflection, ".dyninstInst"
-    // unsigned long flags: these are a SymtabAPI abstraction. We're going with text|data because
-    //    we might have both.
-    // bool loadable: heck yeah...
-    
-    if (newSectionSize) {
-        symObj->addSection(lowWaterMark_,
-                           newSection,
-                           newSectionSize,
-                           ".dyninstInst",
-                           Section::textSection | Section::dataSection,
-                           true);
-    }
 
     // And now we generate the new binary
     if (!symObj->emit(newFileName.c_str(), true)) {
