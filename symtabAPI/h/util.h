@@ -51,9 +51,12 @@ using stdext::hash_map;
 #if !defined(DLLEXPORT)
 #define DLLEXPORT
 #endif
+
 #include <regex.h>
 #include <ext/hash_map>
 #include <ext/hash_set>
+#include <string>
+
 using namespace __gnu_cxx;
 namespace __gnu_cxx {
    template<> struct hash<std::string> {

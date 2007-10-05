@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.23 2007/08/14 16:46:38 cooksey Exp $
+// $Id: test_lib.C,v 1.24 2007/10/05 21:06:41 bernat Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -48,6 +48,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 #if !defined(i386_unknown_nt4_0)
 #include <fnmatch.h>
