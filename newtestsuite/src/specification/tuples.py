@@ -71,12 +71,13 @@ def parse_qstring(qstring):
 
 def parse_platforms(tuplestring):
 	plat_list = parse_pllist(tuplestring)
-	plat_labels = ('name', 'filename_conventions', 'auxilliary_compilers')
+	plat_labels = ('name', 'filename_conventions', 'auxilliary_compilers',
+				   'abis')
 	def convert_tuple(ptup):
-		[pl, os, lp, ls, ac] = ptup
+		[pl, os, lp, ls, ac, as] = ptup
 		conv_labels = ('object_suffix', 'library_prefix', 'library_suffix')
 		fnconv = dict(zip(conv_labels, [os, lp, ls]))
-		return [pl, fnconv, dict(ac)]
+		return [pl, fnconv, dict(ac), as]
 	plat_map = map(lambda x: dict(zip(plat_labels, convert_tuple(x))),
 				   plat_list)
 	return plat_map
@@ -91,7 +92,7 @@ def parse_mutators(tuplestring):
 
 def parse_mutatees(tuplestring):
 	mutatee_list = parse_pllist(tuplestring)
-	return map(lambda x: dict(zip(('name','preprocessed_sources','raw_sources','libraries','platform','compiler','optimization', 'groupable'), x)),
+	return map(lambda x: dict(zip(('name','preprocessed_sources','raw_sources','libraries','platform','abi','compiler','optimization', 'groupable'), x)),
 			   mutatee_list)
 
 def parse_tests(tuplestring):
@@ -99,18 +100,27 @@ def parse_tests(tuplestring):
 	return map(lambda x: dict(zip(('name','mutator','mutatee','platform','groupable'), x)), test_list)
 
 def parse_compilers(tuplestring):
-	compiler_tuple_labels = ('executable', 'defstring', 'platforms', 'optimization', 'parameters', 'languages', 'flags')
+	compiler_tuple_labels = ('executable', 'defstring', 'platforms', 'presencevar', 'optimization', 'parameters', 'languages', 'flags', 'abiflags')
 	compiler_list = parse_pllist(tuplestring)
 	compiler_dict = dict(map(lambda x: (x[0], dict(zip(compiler_tuple_labels,x[1:]))), compiler_list))
 	for c in compiler_dict:
 		compiler_dict[c]['optimization'] = dict(compiler_dict[c]['optimization'])
 		compiler_dict[c]['parameters'] = dict(compiler_dict[c]['parameters'])
 		compiler_dict[c]['flags'] = dict(zip(('std', 'mutatee', 'link'), compiler_dict[c]['flags']))
+		abiflags = {}
+		for p in compiler_dict[c]['platforms']:
+			abis = filter(lambda af: af[0] == p, compiler_dict[c]['abiflags'])
+			abidict = {}
+			for a in abis:
+				abidict[a[1]] = a[2]
+			abiflags[p] = abidict
+		compiler_dict[c]['abiflags'] = abiflags
 	return compiler_dict
 
 def parse_rungroups(tuplestring):
 	rungroups_tuple_labels = ('mutatee', 'compiler', 'optimization',
-							  'run_mode', 'start_state', 'groupable', 'tests')
+							  'run_mode', 'start_state', 'groupable', 'tests',
+							  'abi')
 	rungroups_list = parse_pllist(tuplestring)
 	return map(lambda x: dict(zip(rungroups_tuple_labels, x)), rungroups_list)
 

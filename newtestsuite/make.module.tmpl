@@ -77,9 +77,6 @@ SRCS_LIBTESTSUITE = test_lib.C \
                     Callbacks.C \
                     TestData.C \
                     TestMutator.C
-# FIXME Remove the line below once I'm sure everything is working properly
-#		    test_info_new.gen.C
-
 
 SRCS_TEMPLATES = test_driver_templates.C 
 
@@ -270,13 +267,15 @@ else
 endif
 endif
 
-$(OBJS_TEMPLATES): %.o : ../src/%.C 
+$(OBJS_TEMPLATES): %.o : ../src/%.C
+	echo "***OBJS_TEMPLATES***"
 	$(M_GXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
 
-test_lib_templates.o : ../src/test_lib_templates.C 
+test_lib_templates.o : ../src/test_lib_templates.C
 	$(M_GXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
+	echo "***OBJS_LIBTESTSUITE***"
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
@@ -441,15 +440,15 @@ endif
 # There is no real advantage to generality here since there is only one fortran mutatee
 # (ie for test1), thus all constituent files are built explicitly
 
-ifdef M_G77
-test1.mutatee_g77.o: ../src/test1.mutateeFort.F
-	$(M_G77) -g  $(MUTATEE_G77_FFLAGS) -c -o $@ $^ 
-test1.mutateeFortC_g77.o: $(TEST1_FORTRAN_CSOURCE)
-	$(M_GCC) $(MUTATEE_G77_CFLAGS) $(filter %.c,$^) -o $@
+# ifdef M_G77
+# test1.mutatee_g77.o: ../src/test1.mutateeFort.F
+# 	$(M_G77) -g  $(MUTATEE_G77_FFLAGS) -c -o $@ $^ 
+# test1.mutateeFortC_g77.o: $(TEST1_FORTRAN_CSOURCE)
+# 	$(M_GCC) $(MUTATEE_G77_CFLAGS) $(filter %.c,$^) -o $@
 
-$(MUTATEES_G77): test%.mutatee_g77 : test%.mutatee_g77.o test1.mutateeFortC_g77.o test1.mutateeCommon_gcc.o mutatee_util_gcc.o $(DEPENDDIR)/test%.mutatee_g77.dep
-	$(M_G77) -o $@ $(filter %.o,$^) $(MUTATEE_G77_LDFLAGS) $(MUTATEE_LIBS) 
-endif
+# $(MUTATEES_G77): test%.mutatee_g77 : test%.mutatee_g77.o test1.mutateeFortC_g77.o test1.mutateeCommon_gcc.o mutatee_util_gcc.o $(DEPENDDIR)/test%.mutatee_g77.dep
+# 	$(M_G77) -o $@ $(filter %.o,$^) $(MUTATEE_G77_LDFLAGS) $(MUTATEE_LIBS) 
+# endif
 
 # Native Mutatees
 
@@ -517,7 +516,15 @@ $(TEST_DEST):
 #######################################################################
 
 $(OBJS_ALL_MUTATORS): %.o : %.C $(DEPENDDIR)/%.dep
+	echo "***OBJS_ALL_MUTATOR***"
 	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+
+# Generic build rule for generated files.  I'm not real happy with this, but
+# I certainly don't want to put them in the main source directory, and we need
+# to find them somehow.
+%.gen.o: %.gen.C
+	echo "***%.gen.o***"
+	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ $*.gen.C
 
 MUTATEE_DEFS := -Dgnu_cc=_gcc -Dgnu_cxx=_g++
 
@@ -745,7 +752,7 @@ PYTHON_FILES = $(TO_SPEC)/makemake.py $(TO_SPEC)/tuples.py
 PYTHONPATH += $(TO_SPEC)
 
 .PHONY: gen
-gen: make.mutators.gen make.solo_mutatee.gen $(TO_SRC)/test_info_new.gen.C
+gen: make.mutators.gen make.solo_mutatee.gen test_info_new.gen.C
 
 make.mutators.gen: $(PYTHON_FILES) tuples
 	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_make_mutators_gen('make.mutators.gen', 'tuples')"
@@ -759,8 +766,8 @@ include make.solo_mutatee.gen
 all: solo_mutatees
 
 # Generate the lists of tests to run in src/test_info_new.gen.C
-$(TO_SRC)/test_info_new.gen.C: $(PYTHON_FILES) tuples
-	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_test_info_new_gen('$(TO_SRC)/test_info_new.gen.C', 'tuples')"
+test_info_new.gen.C: $(PYTHON_FILES) tuples
+	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_test_info_new_gen('test_info_new.gen.C', 'tuples')"
 
 #$(TO_SRC)/solo_mutatee_init.gen.c: $(PYTHON_FILES) tuples
 #	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_solo_mutatee_init_gen('$(TO_SRC)/solo_mutatee_init.gen.c', 'tuples')"

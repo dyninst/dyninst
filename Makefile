@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.83 2007/10/05 21:10:08 cooksey Exp $
+# $Id: Makefile,v 1.84 2007/10/15 16:41:45 cooksey Exp $
 #
 
 TO_CORE = .
@@ -37,10 +37,9 @@ allSubdirs	= $(basicComps) $(subSystems) common symtabAPI dyninstAPI dyninstAPI_
 
 # Only include the newtestsuite directory for i386 Linux.  It's not ready yet
 # on other platforms
-# newtestsuite has build issues in Maryland.  Disabling until they're fixed.
 #ifeq ($(PLATFORM),i386-unknown-linux2.4)
-#DyninstAPI      += newtestsuite
-#allSubdirs      += newtestsuite
+DyninstAPI      += newtestsuite
+allSubdirs      += newtestsuite
 #endif
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:

@@ -25,7 +25,11 @@
                   mutatee_link_options/2, mutatee_peer/2,
                   compiler_parm_trans/3, test/3, test_description/2,
                   optimization_for_mutatee/3, spec_exception/3,
-                  spec_object_file/5, fortran_c_component/1]).
+                  spec_object_file/5, fortran_c_component/1,
+				  whitelist/1, parameter/1, parameter_values/2,
+				  mutatee_abi/1, platform_abi/2,
+				  compiler_platform_abi_s/4, test_platform_abi/3,
+				  restricted_amd64_abi/1, compiler_presence_def/2]).
 
 %%%%%%%%%%
 %
@@ -914,6 +918,29 @@ mutatee_peer('test4_4', 'test4_4b').
 compiler_for_mutatee('test4_4b', Compiler) :-
     comp_lang(Compiler, 'c').
 
+%%%%%
+% Playing around with how to specify that some tests only run in 64-bit mode
+% on x86_64.
+%%%%%
+% blacklist([['test', 'test5_1'], ['platform', 'x86_64-unknown-linux2.4'],
+%            ['mutatee_abi', '32']]).
+%
+% I like this one the best:
+% blacklist([['test', Test], ['platform', 'x86_64-unknown-linux2.4'],
+%            ['mutatee_abi', '32']]) :-
+%     restricted_amd64_abi(Test).
+%
+% test_platform_abi(Test, Platform, ABI) :-
+%     test_platform(Test, Platform),
+%     platform_abi(Platform, ABI),
+%     \+ (Platform = 'x86_64-unknown-linux2.4', ABI = 32)
+%
+test_platform_abi(Test, Platform, ABI) :-
+    test_platform(Test, Platform), platform_abi(Platform, ABI),
+    ((Platform = 'x86_64-unknown-linux2.4',
+      restricted_amd64_abi(Test)) -> ABI \= 32;
+	 true).
+
 test_name('test5_1').
 % test5_1 only runs on Linux, Solaris, and Windows
 test_platform('test5_1', Platform) :-
@@ -927,6 +954,7 @@ mutator_mutatee('test5_1', 'test5_1').
 test_runmode('test5_1', 'createProcess').
 test_start_state('test5_1', 'stopped').
 groupable_test('test5_1').
+restricted_amd64_abi('test5_1').
 
 test_name('test5_2').
 % test5_2 only runs on Linux, Solaris, and Windows
@@ -941,6 +969,7 @@ mutator_mutatee('test5_2', 'test5_2').
 test_runmode('test5_2', 'createProcess').
 test_start_state('test5_2', 'stopped').
 groupable_test('test5_2').
+restricted_amd64_abi('test5_2').
 
 test_name('test5_3').
 test_runs_everywhere('test5_3').
@@ -952,6 +981,7 @@ mutator_mutatee('test5_3', 'test5_3').
 test_runmode('test5_3', 'createProcess').
 test_start_state('test5_3', 'stopped').
 groupable_test('test5_3').
+restricted_amd64_abi('test5_3').
 
 test_name('test5_4').
 % test5_4 only runs on Linux, Solaris, and Windows
@@ -966,6 +996,7 @@ mutator_mutatee('test5_4', 'test5_4').
 test_runmode('test5_4', 'createProcess').
 test_start_state('test5_4', 'stopped').
 groupable_test('test5_4').
+restricted_amd64_abi('test5_4').
 
 test_name('test5_5').
 % test5_5 only runs on Linux, Solaris, and Windows
@@ -980,6 +1011,7 @@ mutator_mutatee('test5_5', 'test5_5').
 test_runmode('test5_5', 'createProcess').
 test_start_state('test5_5', 'stopped').
 groupable_test('test5_5').
+restricted_amd64_abi('test5_5').
 
 test_name('test5_6').
 % test5_6 only runs on x86 Linux
@@ -993,6 +1025,7 @@ mutator_mutatee('test5_6', 'test5_6').
 test_runmode('test5_6', 'createProcess').
 test_start_state('test5_6', 'stopped').
 groupable_test('test5_6').
+restricted_amd64_abi('test5_6').
 
 test_name('test5_7').
 % test5_7 only runs on Linux, Solaris, and Windows
@@ -1007,6 +1040,7 @@ mutator_mutatee('test5_7', 'test5_7').
 test_runmode('test5_7', 'createProcess').
 test_start_state('test5_7', 'stopped').
 groupable_test('test5_7').
+restricted_amd64_abi('test5_7').
 
 test_name('test5_8').
 % test5_8 only runs on Linux, Solaris, and Windows
@@ -1021,6 +1055,7 @@ mutator_mutatee('test5_8', 'test5_8').
 test_runmode('test5_8', 'createProcess').
 test_start_state('test5_8', 'stopped').
 groupable_test('test5_8').
+restricted_amd64_abi('test5_8').
 
 test_name('test5_9').
 % test5_9 only runs on Linus, Solaris, and Windows
@@ -1035,6 +1070,7 @@ mutator_mutatee('test5_9', 'test5_9').
 test_runmode('test5_9', 'createProcess').
 test_start_state('test5_9', 'stopped').
 groupable_test('test5_9').
+restricted_amd64_abi('test5_9').
 
 % Convenience rule for mapping platforms to the asm sources for test_mem
 test_mem_mutatee_aux(P, Aux) :-
@@ -1081,6 +1117,7 @@ mutator_mutatee('test_mem_1', 'test_mem_1').
 test_runmode('test_mem_1', 'createProcess').
 test_start_state('test_mem_1', 'stopped').
 groupable_test('test_mem_1').
+restricted_amd64_abi('test_mem_1').
 
 test_name('test_mem_2').
 % test_mem_2 runs on specified platforms (assembly code)
@@ -1096,6 +1133,7 @@ mutator_mutatee('test_mem_2', 'test_mem_2').
 test_runmode('test_mem_2', 'createProcess').
 test_start_state('test_mem_2', 'stopped').
 groupable_test('test_mem_2').
+restricted_amd64_abi('test_mem_2').
 
 test_name('test_mem_3').
 test_platform('test_mem_3', Platform) :-
@@ -1110,6 +1148,7 @@ mutator_mutatee('test_mem_3', 'test_mem_3').
 test_runmode('test_mem_3', 'createProcess').
 test_start_state('test_mem_3', 'stopped').
 groupable_test('test_mem_3').
+restricted_amd64_abi('test_mem_3').
 
 test_name('test_mem_4').
 test_platform('test_mem_4', Platform) :-
@@ -1124,6 +1163,7 @@ mutator_mutatee('test_mem_4', 'test_mem_4').
 test_runmode('test_mem_4', 'createProcess').
 test_start_state('test_mem_4', 'stopped').
 groupable_test('test_mem_4').
+restricted_amd64_abi('test_mem_4').
 
 test_name('test_mem_5').
 test_platform('test_mem_5', Platform) :-
@@ -1138,6 +1178,7 @@ mutator_mutatee('test_mem_5', 'test_mem_5').
 test_runmode('test_mem_5', 'createProcess').
 test_start_state('test_mem_5', 'stopped').
 groupable_test('test_mem_5').
+restricted_amd64_abi('test_mem_5').
 
 test_name('test_mem_6').
 test_platform('test_mem_6', Platform) :-
@@ -1152,6 +1193,7 @@ mutator_mutatee('test_mem_6', 'test_mem_6').
 test_runmode('test_mem_6', 'createProcess').
 test_start_state('test_mem_6', 'stopped').
 groupable_test('test_mem_6').
+restricted_amd64_abi('test_mem_6').
 
 test_name('test_mem_7').
 test_platform('test_mem_7', Platform) :-
@@ -1166,6 +1208,7 @@ mutator_mutatee('test_mem_7', 'test_mem_7').
 test_runmode('test_mem_7', 'createProcess').
 test_start_state('test_mem_7', 'stopped').
 groupable_test('test_mem_7').
+restricted_amd64_abi('test_mem_7').
 
 test_name('test_mem_8').
 test_platform('test_mem_8', Platform) :-
@@ -1180,6 +1223,7 @@ mutator_mutatee('test_mem_8', 'test_mem_8').
 test_runmode('test_mem_8', 'createProcess').
 test_start_state('test_mem_8', 'stopped').
 groupable_test('test_mem_8').
+restricted_amd64_abi('test_mem_8').
 
 test_name('test_fork_5'). % Formerly test7_1
 % No fork() on Windows
@@ -2073,7 +2117,7 @@ library('testSuite', ['test_lib.C',
 % mutator_library(Mutator, 'testSuite') :- mutator(Mutator, _).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PLATFORM SPECIFICATIONSS
+% PLATFORM SPECIFICATIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % platform/4
@@ -2089,12 +2133,39 @@ platform('alpha', 'osf', 'osf5.1', 'alpha-dec-osf5.1').
 platform('ia64', 'linux', 'linux2.4', 'ia64-unknown-linux2.4').
 platform('x86_64', 'linux', 'linux2.4', 'x86_64-unknown-linux2.4').
 platform('power', 'linux', 'linux2.6', 'ppc64_linux').
+platform('power', 'linux', 'linux2.6', 'ppc32_linux').
 
 % Platform Defns
 % platform/1
 % Convenience thing.  Mostly used for verifying that a particular platform
 % exists.
 platform(P) :- platform(_, _, _, P).
+
+% Mutatee ABI specifications
+% We're going to try out the new implementation idea here
+parameter('mutatee_abi').
+parameter_values('mutatee_abi', Values) :-
+	findall(V, mutatee_abi(V), Values_t),
+	sort(Values_t, Values).
+mutatee_abi(32).
+mutatee_abi(64).
+
+% Platform ABI support
+% Testing out how this looks with whitelist clauses
+whitelist([['platform', Platform], ['mutatee_abi', ABI]]) :-
+	platform_abi(Platform, ABI).
+
+% platform_abi/2
+% All platforms support 32-bit mutatees except ia64
+% FIXME Does ppc64 support 32-bit mutatees?
+platform_abi(Platform, 32) :-
+	platform(Arch, _, _, Platform),
+	Arch \= 'ia64'.
+
+% A smaller list of platforms with for 64-bit mutatees
+platform_abi('ia64-unknown-linux2.4', 64).
+platform_abi('x86_64-unknown-linux2.4', 64).
+platform_abi('ppc64_linux', 64).
 
 % object_suffix/2
 object_suffix(Platform, Suffix) :-
@@ -2218,6 +2289,15 @@ mutatee_comp('CC').
 mutatee_comp('xlc').
 mutatee_comp('xlC').
 
+% compiler_presence_def/2
+% compiler_presence_def(Compiler, EnvironmentVariable)
+% Before trying to build anything using Compiler, we need to check whether
+% EnvironmentVariable is set.  If it is not set, then we don't have access
+% to Compiler.
+% FIXME There's got to be a better way to do this.
+compiler_presence_def('pgcc', 'PGI').
+compiler_presence_def('pgCC', 'PGI').
+
 % Translations between compiler names and compiler #defines
 compiler_define_string('gcc', 'gnu_cc').
 compiler_define_string('g++', 'gnu_cxx').
@@ -2338,6 +2418,25 @@ optimization_level('none').
 optimization_level('low').
 optimization_level('high').
 optimization_level('max').
+
+% ABI defns for compilers
+% compiler_platform_abi_s_default(FlagString)
+% The flags string for a platform's default ABI (Do we want this?)
+compiler_platform_abi_s_default('').
+% compiler_platform_abi_s(Compiler, Platform, ABI, FlagString)
+compiler_platform_abi_s(Compiler, Platform, ABI, '') :-
+	mutatee_comp(Compiler),
+	Compiler \= '',
+	platform(Platform),
+	compiler_platform(Compiler, Platform),
+	mutatee_abi(ABI),
+	platform_abi(Platform, ABI),
+	\+ (member(Compiler, ['gcc', 'g++']), Platform = 'x86_64-unknown-linux2.4',
+	    ABI = 32).
+compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
+                        '-m32 -Di386_unknown_linux2_4 -Dm32_test') :-
+	member(Compiler, ['gcc', 'g++']).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TEST SPECIFICATION GLUE
