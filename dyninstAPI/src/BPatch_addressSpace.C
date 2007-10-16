@@ -109,6 +109,9 @@ BPatch_function *BPatch_addressSpace::findOrCreateBPFunc(int_function* ifunc,
   return ret;
 }
 
+
+
+
 BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc, 
 						  instPoint *ip, 
 						  BPatch_procedureLocation pointType)
@@ -129,6 +132,23 @@ BPatch_point *BPatch_addressSpace::findOrCreateBPPoint(BPatch_function *bpfunc,
    return pt;
 }
 
+
+
+BPatch_function *BPatch_addressSpace::createBPFuncCB(AddressSpace *a, int_function *f)
+{
+    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
+    assert(aS);
+    return aS->findOrCreateBPFunc(f, NULL);
+}
+
+BPatch_point *BPatch_addressSpace::createBPPointCB(AddressSpace *a, int_function *f, 
+                                              instPoint *ip, int type)
+{
+    BPatch_addressSpace *aS = (BPatch_addressSpace *)a->up_ptr();
+    assert(aS);
+    BPatch_function *func = aS->func_map->get(f);
+    return aS->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
+}
 
 
 

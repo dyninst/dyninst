@@ -206,6 +206,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    llproc->registerInstPointCallback(createBPPointCB);
    llproc->set_up_ptr(this);
 
+
    // Add this object to the list of processes
    assert(BPatch::bpatch != NULL);
    startup_cerr << "Registering process..." << endl;
@@ -2153,22 +2154,6 @@ bool BPatch_process::getType()
 AddressSpace * BPatch_process::getAS()
 {
   return llproc;
-}
-
-BPatch_function *BPatch_process::createBPFuncCB(AddressSpace *a, int_function *f)
-{
-    BPatch_process *proc = (BPatch_process *)a->up_ptr();
-    assert(proc);
-    return proc->findOrCreateBPFunc(f, NULL);
-}
-
-BPatch_point *BPatch_process::createBPPointCB(AddressSpace *a, int_function *f, 
-                                              instPoint *ip, int type)
-{
-    BPatch_process *proc = (BPatch_process *)a->up_ptr();
-    assert(proc);
-    BPatch_function *func = proc->func_map->get(f);
-    return proc->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
 }
 
 BPatch_thread *BPatch_process::createOrUpdateBPThread(

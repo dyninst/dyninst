@@ -153,6 +153,13 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
 					    BPatch_procedureLocation pointType);
   
+  
+  // These callbacks are triggered by lower-level code and forward
+  // calls up to the findOrCreate functions.
+  static BPatch_function *createBPFuncCB(AddressSpace *p, int_function *f);
+  static BPatch_point *createBPPointCB(AddressSpace *p, int_function *f,
+				       instPoint *ip, int type);
+
   BPatch_Vector<batchInsertionRecord *> *pendingInsertions;
 
   BPatch_funcMap *func_map;

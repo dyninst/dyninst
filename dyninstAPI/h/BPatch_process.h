@@ -261,11 +261,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
                             unsigned long stack_top, unsigned long start_pc, process *proc = NULL);
     void deleteBPThread(BPatch_thread *thrd);
 
-    // These callbacks are triggered by lower-level code and forward
-    // calls up to the findOrCreate functions.
-    static BPatch_function *createBPFuncCB(AddressSpace *p, int_function *f);
-    static BPatch_point *createBPPointCB(AddressSpace *p, int_function *f,
-                                         instPoint *ip, int type);
     void updateThreadInfo();
 
         

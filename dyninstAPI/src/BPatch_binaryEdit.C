@@ -108,6 +108,12 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path) :
      return;
   }
   
+  startup_cerr << "Registering function callback..." << endl;
+  llBinEdit->registerFunctionCallback(createBPFuncCB);
+  
+  startup_cerr << "Registering instPoint callback..." << endl;
+  llBinEdit->registerInstPointCallback(createBPPointCB);
+  
   llBinEdit->set_up_ptr(this);
 
   image = new BPatch_image(this);
