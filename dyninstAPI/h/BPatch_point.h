@@ -162,7 +162,6 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
                                                     BPatch_function *bpf);
 
     BPatch_addressSpace *addSpace;
-    BPatch_process *proc;
     BPatch_function	*func;
     BPatch_basicBlockLoop *loop;
     instPoint	*point;
