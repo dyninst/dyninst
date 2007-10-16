@@ -964,21 +964,22 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
                                                                BPatch_callWhen when,
                                                                BPatch_snippetOrder order)
 {
-  if (dyn_debug_inst) {
-    BPatch_function *f;
-    for (unsigned i=0; i<points.size(); i++) {
-      f = points[i]->getFunction();
-      const char *sname = f->func->prettyName().c_str();
-      inst_printf("[%s:%u] - %d. Insert instrumentation at function %s, "
-		  "address %p, when %d, order %d in proc %d\n",
-		  FILE__, __LINE__, i,
-		  sname, points[i]->getAddress(), (int) when, (int) order,
-		  llproc->getPid());
-      
+    
+    if (dyn_debug_inst) {
+        BPatch_function *f;
+        for (unsigned i=0; i<points.size(); i++) {
+            f = points[i]->getFunction();
+            const char *sname = f->func->prettyName().c_str();
+            inst_printf("[%s:%u] - %d. Insert instrumentation at function %s, "
+                        "address %p, when %d, order %d in proc %d\n",
+                        FILE__, __LINE__, i,
+                        sname, points[i]->getAddress(), (int) when, (int) order,
+                        llproc->getPid());
+            
+        }
     }
-  }
-  
-  if (BPatch::bpatch->isTypeChecked()) {
+    
+    if (BPatch::bpatch->isTypeChecked()) {
         assert(expr.ast_wrapper);
         if ((*(expr.ast_wrapper))->checkType() == BPatch::bpatch->type_Error) {
             inst_printf("[%s:%u] - Type error inserting instrumentation\n",
@@ -986,7 +987,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
             return false;
         }
     }
-
+    
     if (!points.size()) {
        inst_printf("%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
       return false;
@@ -1003,7 +1004,15 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
     
     for (unsigned i = 0; i < points.size(); i++) {
         BPatch_point *point = points[i];
-        
+
+        if (point->addSpace == NULL) {
+            fprintf(stderr, "Error: attempt to use point with no process info\n");
+            continue;
+        }
+        if (dynamic_cast<BPatch_process *>(point->addSpace) != this) {
+            fprintf(stderr, "Error: attempt to use point specific to a different process\n");
+            continue;
+        }        
 #if defined(os_aix)
         if(llproc->collectSaveWorldData){
             // Apparently we have problems with main....
