@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.84 2007/10/15 16:41:45 cooksey Exp $
+# $Id: Makefile,v 1.85 2007/10/18 15:54:35 cooksey Exp $
 #
 
 TO_CORE = .
@@ -37,10 +37,10 @@ allSubdirs	= $(basicComps) $(subSystems) common symtabAPI dyninstAPI dyninstAPI_
 
 # Only include the newtestsuite directory for i386 Linux.  It's not ready yet
 # on other platforms
-#ifeq ($(PLATFORM),i386-unknown-linux2.4)
+ifeq ($(PLATFORM),i386-unknown-linux2.4)
 DyninstAPI      += newtestsuite
 allSubdirs      += newtestsuite
-#endif
+endif
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
