@@ -992,13 +992,6 @@ bool BPatch_flowGraph::containsDynamicCallsitesInt()
    return (ll_func()->getNumDynamicCalls() > 0);
 }
 
-process *BPatch_flowGraph::ll_proc() const { 
-  assert(addSpace->getType() == TRADITIONAL_PROCESS);
-  BPatch_process * bpTemp = dynamic_cast<BPatch_process *>(addSpace);
-
-  return bpTemp->lowlevel_process();
-}
-
 int_function *BPatch_flowGraph::ll_func() const {
     return func_->lowlevel_func();
 }

@@ -82,7 +82,6 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock {
  
   BPatch_flowGraph (BPatch_function *func, bool &valid); 
 
-  process *ll_proc() const; // Not implemented here to cut down on header files
   int_function *ll_func() const;
 public:
 
