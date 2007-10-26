@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.30 2007/10/26 21:25:21 bernat Exp $
+// $Id: reloc-func.C,v 1.31 2007/10/26 21:30:58 bernat Exp $
 
 
 
@@ -277,7 +277,7 @@ bool int_function::relocationInstall() {
                  FILE__, __LINE__, prettyName().c_str());
 
     if (installedVersion_ == generatedVersion_) {
-        fprintf(stderr, "%s[%d]: installedVersion_ %d == generatedVersion_ %d, returning\n",
+        reloc_printf("%s[%d]: installedVersion_ %d == generatedVersion_ %d, returning\n",
                 FILE__, __LINE__, installedVersion_, generatedVersion_);
         return true; // Nothing to do here...
     }
