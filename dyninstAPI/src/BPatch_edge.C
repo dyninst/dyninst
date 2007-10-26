@@ -160,14 +160,10 @@ BPatch_point *BPatch_edge::getPointInt()
         Address lastInsnAddr = (Address) source->getLastInsnAddress();
 
         
-	//	process *ll_proc = flowGraph->getBProcess()->lowlevel_process();
-        
 	AddressSpace *as = flowGraph->getAddSpace()->getAS();
 
-	//assert(ll_proc);
 	assert(as);
 	
-	//        instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, ll_proc);
 	instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, as);
                                                 
         if (ip == NULL) {
