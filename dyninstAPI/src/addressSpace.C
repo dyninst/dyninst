@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.6 2007/10/03 21:18:16 bernat Exp $
+// $Id: addressSpace.C,v 1.7 2007/10/26 21:24:20 bernat Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -364,6 +364,7 @@ void AddressSpace::addMultiTramp(multiTramp *multi) {
         if (!area) {
             // Oops, someone already here... and multiTramps have
             // the lowest priority.
+            assert(0);
             return;
         }
         area->multi = multi;
@@ -407,7 +408,12 @@ functionReplacement *AddressSpace::findFuncReplacement(Address addr) {
 void AddressSpace::addFuncReplacement(functionReplacement *rep) {
     assert(rep);
     Address currAddr = rep->get_address_cr();
-    codeRange *range = findModByAddr(currAddr);
+    while (currAddr < (rep->get_address_cr() + rep->get_size_cr())) {
+        codeRange *range = findModByAddr(currAddr);
+        if (range) removeModifiedRange(range);
+        currAddr += 1;
+    }
+#if 0
     while (range) {
         //overwrittenObjs.push_back(range);
         removeModifiedRange(range);
@@ -415,7 +421,7 @@ void AddressSpace::addFuncReplacement(functionReplacement *rep) {
         currAddr += range->get_size_cr();
         range = findModByAddr(currAddr);
     }
-
+#endif
     addModifiedRange(rep);
 }
 
