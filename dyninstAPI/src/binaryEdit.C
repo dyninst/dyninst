@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.7 2007/10/05 21:06:20 bernat Exp $
+// $Id: binaryEdit.C,v 1.8 2007/10/26 21:24:52 bernat Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -235,6 +235,10 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
     symObj->getSegments(oldSegs);
 
     vector<Segment> newSegs = oldSegs;
+
+    // We may also modify over new code - keep those here
+    // when we find them and apply later.
+    pdvector<codeRange *> danglingMods;
     
     // And now apply changes
     // Note: I want an iterator. Stat. 
@@ -242,6 +246,7 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
     modifiedRanges_.elements(modified);
     for (unsigned i = 0; i < modified.size(); i++) {
         assert(modified[i]->get_address_cr() >= getAOut()->get_address_cr());
+        bool found = false;
 
         // Find the segment this modification occurs in
         for (unsigned j = 0; j < oldSegs.size(); j++) {
@@ -256,9 +261,13 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
                 assert(offset < oldSegs[j].size);
                 void *local_addr = (void *)((Address) newSegs[j].data + offset);
                 memcpy(local_addr, modified[i]->get_local_ptr(), modified[i]->get_size_cr());
+                found = true;
+
                 break;
             }
         }
+        if (!found)
+            danglingMods.push_back(modified[i]);
     }
 
     // Okay, that's our text section. 
@@ -321,9 +330,10 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
             memcpy(local_addr, newStuff[i]->get_local_ptr(), newStuff[i]->get_size_cr());
 
             char buffer[1025];
-            
+
+
             if (newStuff[i]->is_multitramp()) {
-                snprintf(buffer, 1024, "%s-inst-0x%lx-0x%lx",
+                snprintf(buffer, 1024, "%s_inst_0x%lx_0x%lx",
                          newStuff[i]->is_multitramp()->func()->symTabName().c_str(),
                          newStuff[i]->is_multitramp()->instAddr(),
                          newStuff[i]->is_multitramp()->instAddr() +
@@ -331,7 +341,7 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
             }
             else if (newStuff[i]->is_basicBlockInstance()) {
                 // Relocated function
-                snprintf(buffer, 1024, "%s-reloc",
+                snprintf(buffer, 1024, "%s_reloc",
                          newStuff[i]->is_basicBlockInstance()->func()->symTabName().c_str());
             }
             else
@@ -351,7 +361,17 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
             
             symObj->addSymbol(newSym, false);
         }
+        fprintf(stderr, "Applying %d dangling modifications...\n", danglingMods.size());
+        for (unsigned i = 0; i < danglingMods.size(); i++) {
+            // Overwrite whatever is there...
+            Address offset = danglingMods[i]->get_address_cr() - low;
+            assert((offset + danglingMods[i]->get_size_cr()) <= newSectionSize);
+            void *local_addr = (void *)(offset + (Address)newSection);
+            memcpy(local_addr, danglingMods[i]->get_local_ptr(), danglingMods[i]->get_size_cr());
+
+        }
     }
+
 
     // Okay, now...
     // Hand textSection and newSection to DynSymtab.
