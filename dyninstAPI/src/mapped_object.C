@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.28 2007/10/03 21:18:19 bernat Exp $
+// $Id: mapped_object.C,v 1.29 2007/10/26 17:17:53 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -273,9 +273,15 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
 }
 
 mapped_object::~mapped_object() {
+    // desc_ is static
+    // fullName_ is static
+    // fileName_ is static
+    // codeBase_ is static
+    // dataBase_ is static
+
     for (unsigned i = 0; i < everyModule.size(); i++)
         delete everyModule[i];
-    everyModule.clear();
+    everyModule.clear();    
     
     pdvector<int_function *> funcs = everyUniqueFunction.values();
     for (unsigned j = 0; j < funcs.size(); j++) {
@@ -289,6 +295,33 @@ mapped_object::~mapped_object() {
     }
     everyUniqueVariable.clear();
     
+    pdvector<pdvector<int_function *> * > mangledFuncs = allFunctionsByMangledName.values();
+    for (unsigned i = 0; i < mangledFuncs.size(); i++) {
+        delete mangledFuncs[i];
+    }
+    allFunctionsByMangledName.clear();
+
+    pdvector<pdvector<int_function *> * > prettyFuncs = allFunctionsByPrettyName.values();
+    for (unsigned i = 0; i < prettyFuncs.size(); i++) {
+        delete prettyFuncs[i];
+    }
+    allFunctionsByPrettyName.clear();
+
+    pdvector<pdvector<int_variable *> * > mV = allVarsByMangledName.values();
+    for (unsigned i = 0; i < mV.size(); i++) {
+        delete mV[i];
+    }
+    allVarsByMangledName.clear();
+
+    pdvector<pdvector<int_variable *> * > pV = allVarsByPrettyName.values();
+    for (unsigned i = 0; i < pV.size(); i++) {
+        delete pV[i];
+    }
+    allVarsByPrettyName.clear();
+
+    // codeRangesByAddr_ is static
+    // Remainder are static
+
     image::removeImage(image_);
 }
 
