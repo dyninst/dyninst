@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.277 2007/09/19 19:25:14 bernat Exp $
+ * $Id: inst-power.C,v 1.278 2007/10/26 17:17:50 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -2591,7 +2591,8 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
     if (p->getAddressWidth() == sizeof(uint64_t)) {
         Address buffer[3];
         Address val_to_write = f->getAddress();
-        Address toc = p->getTOCoffsetInfo(val_to_write);
+        assert(p->proc());
+        Address toc = p->proc()->getTOCoffsetInfo(val_to_write);
         buffer[0] = val_to_write;
         buffer[1] = toc;
         buffer[2] = 0x0;

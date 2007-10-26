@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.14 2007/09/19 21:54:48 giri Exp $
+// $Id: linux-power.C,v 1.15 2007/10/26 17:17:51 bernat Exp $
 
 #include <dlfcn.h>
 
@@ -880,7 +880,7 @@ bool process::loadDYNINSTlib_exported()
     // We now fill in the scratch code buffer with appropriate data
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
     assert(dyninstRT_name.length() < BYTES_TO_SAVE);
-    scratchCodeBuffer.setProcess(this);  //aix.C
+    scratchCodeBuffer.setAddrSpace(this);  //aix.C
     scratchCodeBuffer.setAddr(codeBase); //aix.C
 
     // The library name goes first
@@ -1051,7 +1051,7 @@ bool process::loadDYNINSTlib_hidden() {
 
   // We now fill in the scratch code buffer with appropriate data
 
-  scratchCodeBuffer.setProcess(this);  //aix.C
+  scratchCodeBuffer.setAddrSpace(this);  //aix.C
   scratchCodeBuffer.setAddr(codeBase); //aix.C
 
   // First copy the RT library name
