@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.99 2007/09/23 21:08:54 rutar Exp $
+// $Id: BPatch_snippet.C,v 1.100 2007/10/26 17:17:46 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -50,6 +50,7 @@
 #include "instPoint.h"
 
 #include "BPatch.h"
+#include "BPatch_addressSpace.h"
 #include "BPatch_snippet.h"
 #include "BPatch_type.h"
 #include "BPatch_function.h"
@@ -1132,17 +1133,13 @@ bool BPatch_variableExpr::readValueInt(void *dst)
     return false;
   }
 
-  if (appAddSpace->getType() != TRADITIONAL_PROCESS)
-    return false;
-  
-  appProcess = dynamic_cast<BPatch_process *>(appAddSpace);
-
-    if (size) {
-	appProcess->lowlevel_process()->readDataSpace(address, size, dst, true);
-	return true;
-    } else {
-	return false;
-    }
+  if (size) {
+      appAddSpace->getAS()->readDataSpace(address, size, dst, true);
+      return true;
+  }
+  else {
+      return false;
+  }
 }
 
 
@@ -1165,13 +1162,7 @@ bool BPatch_variableExpr::readValueWithLength(void *dst, int len)
     return false;
   }
 
-  
-  if (appAddSpace->getType() != TRADITIONAL_PROCESS)
-      return false;
-
-  appProcess = dynamic_cast<BPatch_process *>(appAddSpace);
-
-  appProcess->lowlevel_process()->readDataSpace(address, len, dst, true);
+  appAddSpace->getAS()->readDataSpace(address, len, dst, true);
   return true;
 }
 
@@ -1186,14 +1177,8 @@ bool BPatch_variableExpr::readValueWithLength(void *dst, int len)
  *
  * returns false if the type info isn't available (i.e. we don't know the size)
  */
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-bool BPatch_variableExpr::writeValueInt(const void *src, bool saveWorld)
-#else
+
 bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
-#endif
 {
   if (isLocal) {
     char msg[2048];
@@ -1202,28 +1187,15 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
     return false;
   }
 
-  
-  if (appAddSpace->getType() != TRADITIONAL_PROCESS)
-    return false;
-  
-  appProcess = dynamic_cast<BPatch_process *>(appAddSpace);
-
-
-    if (size) {
-	if (!appProcess->lowlevel_process()->writeDataSpace(address, size, src))
+  if (size) {
+      if (!appAddSpace->getAS()->writeDataSpace(address, size, src)) {
           fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-	if(saveWorld) { //ccw 26 nov 2001
-		appProcess->lowlevel_process()->saveWorldData((Address) address,size,src);
-	}
-#endif
-	return true;
-    } else {
-	return false;
-    }
+      }          
+      return true;
+  }
+  else {
+      return false;
+  }
 }
 
 
@@ -1236,14 +1208,7 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
  */
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool saveWorld)
-#else
-bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool /* saveWorld */)
-#endif
+bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool /*saveWorld*/)
 {
   if (isLocal) {
     char msg[2048];
@@ -1252,24 +1217,10 @@ bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool /*
     return false;
   }
 
-
-  if (appAddSpace->getType() != TRADITIONAL_PROCESS)
-    return false;
-
-  appProcess = dynamic_cast<BPatch_process *>(appAddSpace);
-
-
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-    if(saveWorld) { //ccw 26 nov 2001
-	appProcess->lowlevel_process()->saveWorldData((Address) address,len,src);
-    }
-#endif
-    if (!appProcess->lowlevel_process()->writeDataSpace(address, len, src))
-       fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-    return true;
+  if (!appAddSpace->getAS()->writeDataSpace(address, len, src)) {
+      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+  }          
+  return true;
 }
 
 char *BPatch_variableExpr::getNameInt()
