@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.29 2007/09/12 20:58:01 bernat Exp $
+// $Id: reloc-func.C,v 1.30 2007/10/26 21:25:21 bernat Exp $
 
 
 
@@ -273,11 +273,14 @@ bool int_function::relocationInstall() {
     // If we overlap a bbl (which we probably will), oops.
     unsigned i;
 
-    if (installedVersion_ == generatedVersion_)
-        return true; // Nothing to do here...
-
     reloc_printf("%s[%d]: RELOCATION INSTALL FOR %s\n",
                  FILE__, __LINE__, prettyName().c_str());
+
+    if (installedVersion_ == generatedVersion_) {
+        fprintf(stderr, "%s[%d]: installedVersion_ %d == generatedVersion_ %d, returning\n",
+                FILE__, __LINE__, installedVersion_, generatedVersion_);
+        return true; // Nothing to do here...
+    }
 
     bool success = true;
     for (i = 0; i < blockList.size(); i++) {

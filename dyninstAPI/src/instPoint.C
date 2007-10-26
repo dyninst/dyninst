@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.42 2007/09/12 20:57:44 bernat Exp $
+// $Id: instPoint.C,v 1.43 2007/10/26 21:25:21 bernat Exp $
 // instPoint code
 
 
@@ -912,7 +912,8 @@ bool instPointInstance::generateInst() {
         // We can try to simply shift the entire function nearer
         // instrumentation. TODO: a funcMod that says "hey, move me to
         // this address.
-        reloc_printf("Trying relocation, %d, %d %s\n", 
+        reloc_printf("Trying relocation in function %s, %d, %d %s\n", 
+                     block_->func()->symTabName().c_str(),
                      block_->getSize(),
                      multi()->sizeDesired(),
                      block_->block()->needsRelocation() ? 
