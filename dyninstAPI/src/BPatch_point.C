@@ -241,13 +241,12 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    assert(point);
 
    if (!func->getModule()->isValid()) return NULL;
-   
-   assert(addSpace->getType() == TRADITIONAL_PROCESS);
-   BPatch_process *proc = dynamic_cast<BPatch_process *>(addSpace);
-
-   mapped_object *obj = func->getModule()->lowlevel_mod()->obj();
-   if (proc->lowlevel_process()->mappedObjIsDeleted(obj))
-      return NULL;
+   if (addSpace->getType() == TRADITIONAL_PROCESS) {
+       BPatch_process *proc = dynamic_cast<BPatch_process *>(addSpace);
+       mapped_object *obj = func->getModule()->lowlevel_mod()->obj();
+       if (proc->lowlevel_process()->mappedObjIsDeleted(obj))
+           return NULL;
+   }
 
    if (point->getPointType() != callSite)
       return NULL;
@@ -259,7 +258,7 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
        parsing_printf("findCallee failed in getCalledFunction\n");
        return NULL;
    }
-   return proc->findOrCreateBPFunc(_func, NULL);
+   return addSpace->findOrCreateBPFunc(_func, NULL);
 }
 
 void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
@@ -364,13 +363,6 @@ bool BPatch_point::isDynamicInt()
     if (!dynamic_call_site_flag) return false;
     if (dynamic_call_site_flag == 1) return true;
     
-    assert(addSpace->getType() == TRADITIONAL_PROCESS);
-    BPatch_process *proc = dynamic_cast<BPatch_process *>(addSpace);
-
-    assert(proc);
-    assert(proc->llproc);
-    assert(point);
-
     bool is_dyn = point->isDynamicCall();
     dynamic_call_site_flag = is_dyn ? 1 : 0;
     return is_dyn;
@@ -419,14 +411,12 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite. 
 
-  assert(addSpace->getType() == TRADITIONAL_PROCESS);
-  BPatch_process *proc = dynamic_cast<BPatch_process *>(addSpace);
-
   pdvector<AstNodePtr> args;
-  if ( (!proc->llproc->getDynamicCallSiteArgs( point,args )) || 
-       (args.size() != 2) ) {
-     return NULL;
-  }
+  if (!addSpace->getAS()->getDynamicCallSiteArgs(point, args))
+      return NULL;
+  if (args.size() != 2)
+      return NULL;
+
 
   // construct function call and insert
   int_function * fb = func_to_use->lowlevel_func();
@@ -446,7 +436,9 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   }
 
   //  Let asyncEventHandler know that we are being monitored
-  getAsync()->registerMonitoredPoint(this);
+  if (getAsync()) {
+      getAsync()->registerMonitoredPoint(this);
+  }
 
   dynamic_point_monitor_func = res;
 

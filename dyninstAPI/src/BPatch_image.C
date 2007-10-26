@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.102 2007/09/25 17:28:12 giri Exp $
+// $Id: BPatch_image.C,v 1.103 2007/10/26 17:17:43 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -65,6 +65,8 @@
 #include "symtabAPI/src/Collections.h"
 #include "BPatch_function.h" 
 
+#include "addressSpace.h"
+
 #include "ast.h"
 
 //
@@ -86,7 +88,7 @@ class AddrToVarExprHash {
  */
 
 BPatch_image::BPatch_image(BPatch_addressSpace *_addSpace) :
-  addSpace(_addSpace), defaultNamespacePrefix(NULL)
+    defaultNamespacePrefix(NULL), addSpace(_addSpace)
 {
   AddrToVarExpr = new AddrToVarExprHash();
   
@@ -100,8 +102,8 @@ BPatch_image::BPatch_image(BPatch_addressSpace *_addSpace) :
  * Construct a BPatch_image.
  */
 BPatch_image::BPatch_image() :
-  addSpace(NULL),
-  defaultNamespacePrefix(NULL)
+    defaultNamespacePrefix(NULL),
+    addSpace(NULL)
 {
   AddrToVarExpr = new AddrToVarExprHash();
   
@@ -453,17 +455,15 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
 
   unsigned i;
 
-  assert(addSpace->getType() == TRADITIONAL_PROCESS);
-  BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
+  AddressSpace *llAS = addSpace->getAS();
 
-  process *llproc = proc->llproc;
   int_function *func = NULL;
 
   if (bpf) {
     func = bpf->func;
   }
   else {
-    func = llproc->findFuncByAddr(address_int);
+    func = llAS->findFuncByAddr(address_int);
   }
 
   if (func == NULL) return NULL;
@@ -472,7 +472,7 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   instPoint *p = NULL;
 
   if ((p = func->findInstPByAddr(address_int))) {
-    return proc->findOrCreateBPPoint(NULL, p, BPatch_locInstruction);
+    return addSpace->findOrCreateBPPoint(NULL, p, BPatch_locInstruction);
   }
 
   /* Look in the regular instPoints of the enclosing function. */
@@ -489,7 +489,7 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   for (unsigned t = 0; t < entries.size(); t++) {
       assert(entries[t]);
       if (entries[t]->match(address_int)) {
-          return proc->findOrCreateBPPoint(NULL, entries[t], BPatch_entry);
+          return addSpace->findOrCreateBPPoint(NULL, entries[t], BPatch_entry);
       }
   }
   
@@ -497,7 +497,7 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   for (i = 0; i < exits.size(); i++) {
       assert(exits[i]);
       if (exits[i]->match(address_int)) {
-          return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
+          return addSpace->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
       }
   }
   
@@ -505,7 +505,7 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   for (i = 0; i < calls.size(); i++) {
       assert(calls[i]);
       if (calls[i]->match(address_int))  {
-          return proc->findOrCreateBPPoint(NULL, calls[i], BPatch_subroutine);
+          return addSpace->findOrCreateBPPoint(NULL, calls[i], BPatch_subroutine);
       }
   }
   
@@ -513,10 +513,10 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
     *alternative = NULL;
   
   /* We don't have an instPoint for this address, so make one. */
-  instPoint *newInstP = instPoint::createArbitraryInstPoint(address_int, proc->llproc);
+  instPoint *newInstP = instPoint::createArbitraryInstPoint(address_int, llAS);
   if (!newInstP) return NULL;
 
-  return proc->findOrCreateBPPoint(NULL, newInstP, BPatch_locInstruction);
+  return addSpace->findOrCreateBPPoint(NULL, newInstP, BPatch_locInstruction);
 }
 
 /*
@@ -1030,15 +1030,12 @@ bool BPatch_image::getAddressRangesInt( const char * lineSource,
 
 char *BPatch_image::getProgramNameInt(char *name, unsigned int len) 
 {
-  assert(addSpace->getType() == TRADITIONAL_PROCESS);
-  BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
-
-  if (!proc->llproc->mappedObjects().size()) {
-    // No program defined yet
-    strncpy(name, "<no program defined>", len);
+  if (!addSpace->getAS()->mappedObjects().size()) {
+      // No program defined yet
+      strncpy(name, "<no program defined>", len);
   }
   
-  const char *imname =  proc->llproc->getAOut()->fullName().c_str();
+  const char *imname =  addSpace->getAS()->getAOut()->fullName().c_str();
   if (NULL == imname) imname = "<unnamed image>";
   
   strncpy(name, imname, len);
@@ -1047,15 +1044,12 @@ char *BPatch_image::getProgramNameInt(char *name, unsigned int len)
 
 char *BPatch_image::getProgramFileNameInt(char *name, unsigned int len)
 {
-  assert(addSpace->getType() == TRADITIONAL_PROCESS);
-  BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
-  
-  if (!proc->llproc->mappedObjects().size()) {
-    // No program defined yet
-    strncpy(name, "<no program defined>", len);
+  if (!addSpace->getAS()->mappedObjects().size()) {
+      // No program defined yet
+      strncpy(name, "<no program defined>", len);
   }
   
-  const char *imname =  proc->llproc->getAOut()->fileName().c_str();
+  const char *imname =  addSpace->getAS()->getAOut()->fileName().c_str();
   if (NULL == imname) imname = "<unnamed image file>";
 
   strncpy(name, imname, len);
@@ -1069,10 +1063,7 @@ char *BPatch_image::programNameInt(char *name, unsigned int len) {
 
 int  BPatch_image::lpTypeInt() 
 {
-  assert(addSpace->getType() == TRADITIONAL_PROCESS);
-  BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
-
-    switch(proc->lowlevel_process()->getAddressWidth()) {
+    switch(addSpace->getAS()->getAddressWidth()) {
     case 4: return LP32; break;
     case 8: return LP64; break;
     default: return UNKNOWN_LP; break;
@@ -1140,7 +1131,7 @@ BPatch_module *BPatch_image::addMemModuleInt
 
     // Copy the region to a temp file: /tmp/MemRegion_START_END
     void *regionBuf = malloc(addrEnd - addrStart);
-    if (!proc->llproc->readDataSpace((void*)addrStart, addrEnd-addrStart, 
+    if (!addSpace->getAS()->readDataSpace((void*)addrStart, addrEnd-addrStart, 
                        regionBuf, false)) {
         fprintf(stderr, "%s[%d]: Failed to read from region [%X %X]\n",
                 __FILE__, __LINE__,(int)addrStart, 
@@ -1171,7 +1162,7 @@ BPatch_module *BPatch_image::addMemModuleInt
     fileDescriptor *fdesc = new fileDescriptor(regName,0,addrEnd- addrStart);
 
     // create a mapped object for the region and add it as a shared object
-    mapped_object *obj = mapped_object::createMappedObject(*fdesc, proc->llproc);
+    mapped_object *obj = mapped_object::createMappedObject(*fdesc, addSpace->getAS());
     proc->llproc->addASharedObject(obj);
     return findModule(regName);
 }
