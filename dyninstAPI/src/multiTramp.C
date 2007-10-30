@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.70 2007/09/12 20:57:54 bernat Exp $
+// $Id: multiTramp.C,v 1.71 2007/10/30 19:03:10 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1093,7 +1093,8 @@ bool multiTramp::installCode() {
     if (branchSize_ > instSize_) {
         // Crud. Go with traps.
         jumpBuf_.setIndex(0);
-        generateTrapToTramp(jumpBuf_);
+        if (!generateTrapToTramp(jumpBuf_))
+            return false;
     }
     fillJumpBuf(jumpBuf_);
 
@@ -2442,23 +2443,31 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 }
 
 bool multiTramp::fillJumpBuf(codeGen &gen) {
+
     // We play a cute trick with the rest of the overwritten space: fill it with
     // traps. If one is hit, we can transfer the PC into the multiTramp without
     // further problems. Cute, eh?
-    while (gen.used() < instSize()) {
-        Address origAddr = gen.currAddr(instAddr_);
-        Address addrInMulti = uninstToInstAddr(origAddr);
-        if (addrInMulti) {
-            // addrInMulti may be 0 if our trap instruction does not
-            // map onto a real instruction
+    if (proc()->canUseTraps()) {
+        while (gen.used() < instSize()) {
+            Address origAddr = gen.currAddr(instAddr_);
+            Address addrInMulti = uninstToInstAddr(origAddr);
+            if (addrInMulti) {
+                // addrInMulti may be 0 if our trap instruction does not
+                // map onto a real instruction
 #if (defined(arch_x86) || defined(arch_x86_64)) 
-            // x86: traps read at PC + 1
-            proc()->trampTrapMapping[origAddr+1] = addrInMulti;
+                // x86: traps read at PC + 1
+                proc()->trampTrapMapping[origAddr+1] = addrInMulti;
 #else
-            proc()->trampTrapMapping[origAddr] = addrInMulti;
+                proc()->trampTrapMapping[origAddr] = addrInMulti;
 #endif
+            }
+            instruction::generateTrap(gen);
         }
-        instruction::generateTrap(gen);
+    }
+    else {
+        // Don't want to use traps, but we still need to fill
+        // this up. So instead we use noops. 
+        instruction::generateNOOP(gen, instSize() - gen.used());
     }
     return true;
 }
@@ -2502,6 +2511,10 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
 }
 
 bool multiTramp::generateTrapToTramp(codeGen &gen) {
+    if (!proc()->canUseTraps())  {
+        return false;
+    }
+
     // We're doing a trap. Now, we know that trap addrs are reported
     // as "finished" address... so use that one (not instAddr_)
 #if (defined(arch_x86) || defined(arch_x86_64)) 
