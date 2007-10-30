@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.43 2007/10/26 17:17:49 bernat Exp $
+// $Id: function.h,v 1.44 2007/10/30 19:03:08 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -686,6 +686,8 @@ class functionReplacement : public codeRange {
     Address get_address_cr() const;
     unsigned get_size_cr() const;
     void *get_local_ptr() const { return jumpToRelocated.start_ptr(); }
+
+    AddressSpace *proc() const;
 
  private:
     codeGen jumpToRelocated;

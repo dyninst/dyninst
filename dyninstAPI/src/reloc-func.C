@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.31 2007/10/26 21:30:58 bernat Exp $
+// $Id: reloc-func.C,v 1.32 2007/10/30 19:03:09 bernat Exp $
 
 
 
@@ -844,10 +844,14 @@ bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needRelo
 
         while (overflow > 0) {
             bblInstance *curInst = sourceBlock_->func()->findBlockInstanceByAddr(currAddr);
+            reloc_printf("%s[%d]: jump overflowed into block %p at 0x%lx\n", 
+                         FILE__, __LINE__, curInst, currAddr);
             if (curInst) {
                 // Okay, we've got another block in this function. Check
                 // to see if it's shared.
                 if (curInst->block()->hasSharedBase()) {
+                    reloc_printf("%s[%d]: block is shared, checking if it is an entry function\n",
+                                 FILE__, __LINE__);
 		  // This can get painful. If we're the entry block for another
 		  // function (e.g., __write_nocancel on Linux), we _really_ don't
 		  // want to be writing a jump here. So, check to see if the
@@ -866,6 +870,8 @@ bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needRelo
                 } 
 
                 if (curInst->block()->needsJumpToNewVersion()) {
+                    reloc_printf("%s[%d]: Block needs jump to new version, failing\n",
+                                 FILE__, __LINE__);
                     // Ooopsie... we're going to stop on another block
                     // that jumps over. This we cannot do.
                     return false;
@@ -914,6 +920,9 @@ bool functionReplacement::generateFuncRepTrap(pdvector<int_function *> &needRelo
     assert(sourceBlock_);
     assert(targetBlock_);
 
+    if (!proc()->canUseTraps())
+        return false;
+
     jumpToRelocated.invalidate();
 
     assert(usesTrap_ == false);
@@ -957,6 +966,11 @@ bool functionReplacement::generateFuncRepTrap(pdvector<int_function *> &needRelo
     }
 
     return true;
+}
+
+AddressSpace *functionReplacement::proc() const {
+    assert(sourceBlock_);
+    return sourceBlock_->proc();
 }
 
 bool functionReplacement::installFuncRep() {
