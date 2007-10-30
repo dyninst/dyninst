@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.411 2007/09/23 21:08:55 rutar Exp $
+/* $Id: process.h,v 1.412 2007/10/30 19:03:07 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1002,6 +1002,9 @@ private:
   bool getTraceSysCalls() { return traceSysCalls_; }
   traceState_t getTraceState() { return traceState_; }
   Address getlibcstartmain_brk_addr() { return libcstartmain_brk_addr; }
+
+  virtual bool canUseTraps() { return true; }
+
  private:
   bool getSysCallParameters(dyn_saved_regs *regs, long *params, int numparams);
   int getSysCallNumber(dyn_saved_regs *regs);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.5 2007/10/03 21:18:18 bernat Exp $
+// $Id: binaryEdit.h,v 1.6 2007/10/30 19:03:06 bernat Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -131,6 +131,8 @@ class BinaryEdit : public AddressSpace {
 
     bool writeFile(const pdstring &newFileName);
     
+    virtual bool canUseTraps() { return false; }
+
  private:
 
     Address highWaterMark_;

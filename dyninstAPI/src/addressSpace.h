@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.h,v 1.4 2007/09/23 21:08:54 rutar Exp $
+// $Id: addressSpace.h,v 1.5 2007/10/30 19:03:05 bernat Exp $
 
 #ifndef ADDRESS_SPACE_H
 #define ADDRESS_SPACE_H
@@ -349,6 +349,8 @@ class AddressSpace : public InstructionSource {
     Address getObservedCostAddr() const { return costAddr_; }
     void updateObservedCostAddr(Address addr) { costAddr_ = addr;}
 
+    // Can we use traps if necessary?
+    virtual bool canUseTraps() = 0;
 
  protected:
 
