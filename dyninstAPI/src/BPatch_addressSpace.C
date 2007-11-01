@@ -183,12 +183,10 @@ BPatch_addressSpace *BPatchSnippetHandle::getAddressSpaceInt()
   return addSpace_;
 }
 
-
 BPatch_process *BPatchSnippetHandle::getProcessInt()
 {
-  return proc_;
+    return dynamic_cast<BPatch_process *>(addSpace_);
 }
-
 
 BPatch_Vector<BPatch_thread *> &BPatchSnippetHandle::getCatchupThreadsInt()
 {

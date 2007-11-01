@@ -464,7 +464,6 @@ void BPatch_process::BPatch_process_dtor()
  */
 bool BPatch_process::stopExecutionInt()
 {
-
     if (isTerminated()) return true;
 
     if (isVisiblyStopped) return true;
@@ -499,7 +498,6 @@ bool BPatch_process::stopExecutionInt()
  */
 bool BPatch_process::continueExecutionInt()
 {
-
     if (isTerminated()) {
         return true;
     }
@@ -1518,7 +1516,8 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                dyn_thread *thr = frame.getThread();
                assert(thr);
                dynthread_t tid = thr->get_tid();
-               BPatch_process *bpproc = sh->getProcess();
+               BPatch_process *bpproc = dynamic_cast<BPatch_process *>(sh->getAddressSpace());
+               // Catchup with a rewrite? Yeah, sure.
                assert(bpproc);
                BPatch_thread *bpthread = bpproc->getThread(tid);
                assert(bpthread);

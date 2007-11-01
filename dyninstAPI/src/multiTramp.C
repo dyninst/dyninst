@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.71 2007/10/30 19:03:10 bernat Exp $
+// $Id: multiTramp.C,v 1.72 2007/11/01 21:16:04 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1171,9 +1171,17 @@ bool multiTramp::linkCode() {
             else if (prevRange->is_replaced_call()) {
                 // TODO
                 fprintf(stderr, "ERROR: instrumentation stomping on replaced call!\n");
+                return true;
+            }
+            else if (prevRange->is_multitramp()) {
+                // This is okay...
+            }
+            else {
+                fprintf(stderr, "ERROR: instrumentation stomping on something unknown!\n");
+                return true;
             }
         }
-		if (!savedCodeBuf_) {
+        if (!savedCodeBuf_) {
             // We may have an old version's savedCode.
             
             savedCodeBuf_ = malloc(instSize_);

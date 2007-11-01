@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.8 2007/10/30 19:03:04 bernat Exp $
+// $Id: addressSpace.C,v 1.9 2007/11/01 21:16:04 bernat Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -364,7 +364,6 @@ void AddressSpace::addMultiTramp(multiTramp *multi) {
         if (!area) {
             // Oops, someone already here... and multiTramps have
             // the lowest priority.
-            assert(0);
             return;
         }
         area->multi = multi;
