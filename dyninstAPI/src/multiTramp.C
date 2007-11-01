@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.72 2007/11/01 21:16:04 bernat Exp $
+// $Id: multiTramp.C,v 1.73 2007/11/01 21:41:01 bill Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -502,11 +502,13 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
     // Otherwise, make one.
     codeRange *range = proc->findOrigByAddr(instAddr);
     if (!range) {
-        return false;
+      inst_printf("%s[%d]: no code range for given address 0x%lx!\n", FILE__, __LINE__, instAddr);
+      return false;
     }
     bblInstance *bbl = range->is_basicBlockInstance();
     if (!bbl) {
-        inst_printf("No basic block instance in createMultiTramp, ret NULL\n");
+        inst_printf("%s[%d]: No basic block instance for addr 0x%lx in createMultiTramp, ret NULL\n",
+		    FILE__, __LINE__, instAddr);
         return false;
     }
 
@@ -514,7 +516,8 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
     // relocation of the basic block)
     if(!bbl->block()->llb()->canBeRelocated())
     {
-        inst_printf("Basic block cannot be instrumented, ret NULL\n");
+      inst_printf("%s[%d]: Basic block at 0x%lx cannot be instrumented, ret NULL\n",
+		  FILE__, __LINE__, instAddr);
         return false;
     }
 
@@ -1280,7 +1283,6 @@ multiTramp::mtErrorCode_t multiTramp::installMultiTramp() {
       return mtSuccess;
     }
     else {
-        fprintf(stderr, "multiTramp::install failed!\n");
         return mtError;
     }
 }

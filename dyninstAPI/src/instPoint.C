@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.43 2007/10/26 21:25:21 bernat Exp $
+// $Id: instPoint.C,v 1.44 2007/11/01 21:41:01 bill Exp $
 // instPoint code
 
 
@@ -348,6 +348,10 @@ bool instPoint::updateInstancesFinalize() {
     bool generated = false;
     bool installed = false;
     bool linked = false;
+    
+    // If we can't be instrumented - well, we shouldn't have an instPoint
+    // here, but oh well. Just return.
+    if (!instances.size()) return true;
     
     if (instances[0]->multi()) {
         generated = instances[0]->multi()->generated();
@@ -976,7 +980,6 @@ bool instPointInstance::installInst() {
     // addr space. This doesn't link.
     
     if (multi()->installMultiTramp() != multiTramp::mtSuccess) {
-        fprintf(stderr, "Instance failed to install multiTramp, ret false\n");
         return false;
     }
     return true;
@@ -1003,8 +1006,6 @@ bool instPointInstance::linkInst() {
     if (!multi()) return false;
     
     if (multi()->linkMultiTramp() != multiTramp::mtSuccess) {
-        fprintf(stderr, "ipInst: linkMulti returned false for 0x%lx\n",
-                addr());
         return false;
     }
     return true;

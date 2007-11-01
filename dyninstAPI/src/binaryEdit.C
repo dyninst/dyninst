@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.8 2007/10/26 21:24:52 bernat Exp $
+// $Id: binaryEdit.C,v 1.9 2007/11/01 21:41:01 bill Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -142,8 +142,10 @@ bool BinaryEdit::multithread_ready(bool) {
 }
 
 void BinaryEdit::deleteGeneratedCode(generatedCodeObject *del) {
-    // We should never see this getting called...
-    fprintf(stderr, "WARNING: deleting generatedCodeObject %p - unexpected operation!\n", del);
+  // This can happen - say that someone writes a file (which generates), 
+  // then goes around uninstrumenting... yeah, it can happen.
+
+  // Or a failed atomic insert.
 
     // No reason to delay deletion.
     delete del;
@@ -266,9 +268,27 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
                 break;
             }
         }
-        if (!found)
+        if (!found) {
+	  if ((modified[i]->get_address_cr() >= lowWaterMark_) &&
+	      ((modified[i]->get_address_cr() + modified[i]->get_size_cr()) <= highWaterMark_)) {
             danglingMods.push_back(modified[i]);
+	  }
+	  else {
+	    // Where does this one belong?
+	    fprintf(stderr, "Modification to unknown location 0x%lx\n",
+		    modified[i]->get_address_cr());
+	    for (unsigned j = 0; j < oldSegs.size(); j++) {
+	      fprintf(stderr, "Segment %d: 0x%lx to 0x%lx\n",
+		      j, oldSegs[j].loadaddr, oldSegs[j].loadaddr + oldSegs[j].size);
+	      
+	    }
+	  }
+	  
+	}
+	
     }
+    
+	    
 
     // Okay, that's our text section. 
     // Now for the new stuff.
@@ -346,9 +366,6 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
             }
             else
                 snprintf(buffer, 1024, "unknown");
-            fprintf(stderr, "Adding new symbol %s at 0x%lx, size %d\n", 
-                    buffer, newStuff[i]->get_address_cr(),
-                    newStuff[i]->get_size_cr());
 
             Symbol *newSym = new Symbol(buffer,
                                         "DyninstInst",

@@ -154,7 +154,9 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 {
     assert(pendingInsertions);
 
-    bool atomic = true;
+    // This should be a parameter...
+    bool atomic = false;
+   
     
     // Two loops: first addInst, then generate/install/link
     pdvector<miniTramp *> workDone;
@@ -188,7 +190,6 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
                 bir->handle_->addMiniTramp(mini);
             }
             else {
-                fprintf(stderr, "ERROR: failed to insert instrumentation: no minitramp\n");
                 err = true;
                 if (atomic) break;
             }
@@ -214,8 +215,6 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 
            point->optimizeBaseTramps(bir->when_[j]);
            if (!point->generateInst()) {
-               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: generate\n",
-                       FILE__, __LINE__);
                err = true;
                if (atomic && err) break;
            }
@@ -238,8 +237,6 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
            instPoint *point = bppoint->point;
              
            if (!point->installInst()) {
-               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: install\n",
-                      FILE__, __LINE__);
               err = true;
            }
 
@@ -263,8 +260,6 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
            instPoint *point = bppoint->point;
              
           if (!point->linkInst()) {
-               fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: link\n",
-                       FILE__, __LINE__);
                err = true;
            }
 

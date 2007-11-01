@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.100 2007/10/26 17:17:46 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.101 2007/11/01 21:41:01 bill Exp $
 
 #define BPATCH_FILE
 
@@ -753,7 +753,7 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 	// We can't define isSharedLib as constant everywhere, so strip
 	// the const definition here.
 	BPatch_function &stripFunc = const_cast<BPatch_function &> (func);
-	if( proc->collectSaveWorldData && stripFunc.isSharedLib()){
+	if( proc && proc->collectSaveWorldData && stripFunc.isSharedLib()){
             stripFunc.lowlevel_func()->obj()->setDirtyCalled();
 	}
 #endif

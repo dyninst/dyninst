@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.32 2007/10/30 19:03:09 bernat Exp $
+// $Id: reloc-func.C,v 1.33 2007/11/01 21:41:01 bill Exp $
 
 
 
@@ -857,7 +857,8 @@ bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needRelo
 		  // want to be writing a jump here. So, check to see if the
 		  // internal block is an entry for a function that is _not_ us.
 		  image_func *possibleEntry = curInst->block()->llb()->getEntryFunc();
-		  if (possibleEntry != sourceBlock_->func()->ifunc()) {
+
+		  if (possibleEntry && possibleEntry != sourceBlock_->func()->ifunc()) {
 		    // Yeah, this ain't gonna work
                       reloc_printf("%s[%d]: Found function %s that shares with this block at 0x%lx, returning failure\n",
                                    FILE__, __LINE__, possibleEntry->prettyName().c_str(), currAddr);
