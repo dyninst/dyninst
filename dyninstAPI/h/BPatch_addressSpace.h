@@ -82,9 +82,6 @@ class BPATCH_DLL_EXPORT BPatchSnippetHandle : public BPatch_eventLock {
     friend class BPatch_thread;
 
 private:    
-    // Process this snippet maps to, grandfathered in 
-    BPatch_process *proc_;
-
     // Address Space snippet belogns to
     BPatch_addressSpace *addSpace_;
 
@@ -97,7 +94,6 @@ private:
     BPatch_Vector<BPatch_thread *> catchup_threads;
     
     BPatchSnippetHandle(BPatch_addressSpace * addSpace);
-    //BPatchSnippetHandle(BPatch_process *proc);
 
     void addMiniTramp(miniTramp *m) { mtHandles_.push_back(m); }
     
@@ -112,14 +108,11 @@ public:
     // relocation.
     API_EXPORT(Int, (), bool, usesTrap, ());
 
-    
-    API_EXPORT(Int, (),
-    BPatch_process *, getProcess, ());
-    
-    
     API_EXPORT(Int, (),
     BPatch_addressSpace *, getAddressSpace, ());
-    
+
+    API_EXPORT(Int, (),
+    BPatch_process *, getProcess, ());
     
     API_EXPORT(Int, (),
     BPatch_Vector<BPatch_thread *> &, getCatchupThreads, ());
