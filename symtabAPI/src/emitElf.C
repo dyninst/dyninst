@@ -91,12 +91,16 @@ void emitElf::findSegmentEnds()
     // Find the offset of the start of the text & the data segment
     // The first LOAD segment is the text & the second LOAD segment 
     // is the data
+    int flag = 1;
     for(unsigned i=0;i<oldEhdr->e_phnum;i++)
     {
-        if(tmp->p_type == PT_LOAD && tmp->p_flags == 3){
+        if(tmp->p_type == PT_LOAD && flag == 1){
 	    textSegEnd = tmp->p_vaddr + tmp->p_memsz;
+        flag = 2;
+	    tmp++;
+	    continue;
 	}
-        if(tmp->p_type == PT_LOAD && tmp->p_flags == 6)
+        if(tmp->p_type == PT_LOAD && flag == 2)
         {
             dataSegEnd = tmp->p_vaddr+tmp->p_memsz;
             break;
@@ -133,6 +137,8 @@ bool emitElf::driver(Symtab *obj, string fName){
     unsigned loadSecTotalSize = 0;
     unsigned NOBITStotalsize = 0;
     unsigned shStrTabSizeInc = 0;
+    unsigned dirtySecsInc = 0;
+    unsigned extraAlignSize = 0;
     unsigned nonLoadableNamesSize = 0;
     
     // ".shstrtab" section: string table for section header names
@@ -162,8 +168,9 @@ bool emitElf::driver(Symtab *obj, string fName){
     if(addNewSegmentFlag)
     {
         newEhdr->e_phoff = sizeof(Elf32_Ehdr);
+}
         elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);  
-    }	
+ //   }	
     
     Elf_Scn *shstrtabSec = elf_getscn(oldElf, oldEhdr->e_shstrndx);
     Elf_Data *shstrtabData = elf_getdata(shstrtabSec, NULL);
@@ -195,6 +202,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 	    memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getSecSize());
 	    newdata->d_size = foundSec->getSecSize();
 	    newshdr->sh_size = foundSec->getSecSize();
+        dirtySecsInc += newshdr->sh_size - shdr->sh_size;
 	}
 	else if(olddata->d_buf)     //copy the data buffer from oldElf
 	{
@@ -261,6 +269,14 @@ bool emitElf::driver(Symtab *obj, string fName){
 	    if(scncount>oldEhdr->e_shstrndx)
 	    	newshdr->sh_offset += shStrTabSizeInc;
 	}
+    newshdr->sh_offset += dirtySecsInc + extraAlignSize;
+    if(BSSExpandFlag && newshdr->sh_addr){
+        unsigned newOff = newshdr->sh_offset - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
+        if(newOff < newshdr->sh_offset)
+            newOff += pgSize;
+        extraAlignSize += newOff - newshdr->sh_offset;
+        newshdr->sh_offset = newOff;
+    }
 	/* DEBUG */
 	fprintf(stderr, "Added Section %d: secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
 	                        scncount, newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
@@ -335,11 +351,11 @@ void emitElf::fixPhdrs(unsigned loadSecTotalSize)
 	// Expand the data segment to include the new loadable sections
 	// Also add a executable permission to the segment
 	if(BSSExpandFlag) {
-	    if(tmp->p_type == PT_LOAD && tmp->p_flags == 6)
+	    if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7))
 	    {
 	    	newPhdr->p_memsz += loadSecTotalSize;
 	    	newPhdr->p_filesz = newPhdr->p_memsz;
-	    	newPhdr->p_flags += PF_X;
+	    	newPhdr->p_flags = 7;
 	    }	
 	}    
 	if(addNewSegmentFlag) {
@@ -355,7 +371,7 @@ void emitElf::fixPhdrs(unsigned loadSecTotalSize)
 	} 
 	newPhdr++;
 	if(addNewSegmentFlag) {
-	    if(tmp->p_type == PT_LOAD && tmp->p_flags == 6 && firstNewLoadSec)
+	    if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7) && firstNewLoadSec)
             {
     	    	newSeg.p_type = PT_LOAD;
     	    	newSeg.p_offset = firstNewLoadSec->sh_offset;
@@ -447,8 +463,9 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, std::vector<Section *>&ne
 		        newshdr->sh_addr = newSegmentStart;
 		    } 
 		}    
-	    }		
-	    newshdr->sh_offset = shdr->sh_offset;
+	    }	
+// Why is this being done -giri??	
+//	    newshdr->sh_offset = shdr->sh_offset;
 
 	    newshdr->sh_link = SHN_UNDEF;
 	    newshdr->sh_info = 0;
