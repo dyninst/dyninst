@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.194 2007/09/20 21:43:36 giri Exp $
+// $Id: ast.C,v 1.195 2007/11/08 18:25:38 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -2190,8 +2190,8 @@ bool AstReplacementNode::containsFuncCall() const {
 
 bool AstOperatorNode::containsFuncCall() const {
 	if (loperand && loperand->containsFuncCall()) return true;
-	if (roperand && loperand->containsFuncCall()) return true;
-	if (eoperand && loperand->containsFuncCall()) return true;
+	if (roperand && roperand->containsFuncCall()) return true;
+	if (eoperand && eoperand->containsFuncCall()) return true;
 	return false;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.6 2007/10/30 19:03:06 bernat Exp $
+// $Id: binaryEdit.h,v 1.7 2007/11/08 18:25:41 bernat Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -54,6 +54,7 @@
 
 class fileDescriptor;
 class int_function;
+class memoryTracker;
 
 class BinaryEdit : public AddressSpace {
  public:
@@ -142,7 +143,40 @@ class BinaryEdit : public AddressSpace {
                                       fileDescriptor &desc);
 
     bool inferiorMallocStatic(unsigned size);
+
+    bool createMemoryBackingStore();
+
+    bool initialize();
+
+    codeRangeTree memoryTracking_;
+
 };
 
+class memoryTracker : public codeRange {
+ public:
+    memoryTracker(Address a, unsigned s) :
+        alloced(false), a_(a), s_(s) {
+        b_ = malloc(s_);
+    }
+
+    memoryTracker(Address a, unsigned s, void *b) :
+        alloced(false), a_(a), s_(s) 
+        {
+            b_ = malloc(s_);
+            memcpy(b_, b, s_);
+        }
+    ~memoryTracker() { free(b_); }
+
+    Address get_address_cr() const { return a_; }
+    unsigned get_size_cr() const { return s_; }
+    void *get_local_ptr() const { return b_; }
+
+    bool alloced;
+
+ private:
+    Address a_;
+    unsigned s_;
+    void *b_;
+};
 
 #endif // BINARY_H

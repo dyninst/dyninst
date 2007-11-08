@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.9 2007/11/01 21:41:01 bill Exp $
+// $Id: binaryEdit.C,v 1.10 2007/11/08 18:25:40 bernat Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -60,15 +60,48 @@
 //  2) A section of the binary that is original
 //  3) A section of the binary that was modified
 
-bool BinaryEdit::readTextSpace(const void *,
-                               u_int,
-                               const void *) {
+bool BinaryEdit::readTextSpace(const void *inOther,
+                               u_int size,
+                               const void *inSelf) {
+    Address addr = (Address) inOther;
+    
+    // Look up this address in the code range tree of memory
+    codeRange *range = NULL;
+    if (!memoryTracking_.find(addr, range))
+        return false;
+    assert(addr >= range->get_address_cr());
+
+    Address offset = addr - range->get_address_cr();
+    assert(offset < range->get_size_cr());
+
+    void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
+    memcpy(const_cast<void *>(inSelf), local_ptr, size);
+
     return true;
 }
 
-bool BinaryEdit::writeTextSpace(void *,
-                            u_int,
-                            const void *) {
+bool BinaryEdit::writeTextSpace(void *inOther,
+                            u_int size,
+                            const void *inSelf) {
+    // This assumes we already have a memory tracker; inefficient, but
+    // it works. 
+    Address addr = (Address) inOther;
+
+    // Look up this address in the code range tree of memory
+    codeRange *range = NULL;
+    if (!memoryTracking_.find(addr, range)) {
+        assert(0);
+        return false;
+    }
+
+    assert(addr >= range->get_address_cr());
+
+    Address offset = addr - range->get_address_cr();
+    assert(offset < range->get_size_cr());
+
+    void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
+    memcpy(local_ptr, inSelf, size);
+
     return true;
 }    
 
@@ -202,6 +235,11 @@ BinaryEdit *BinaryEdit::openFile(const pdstring &file) {
     
     newBinaryEdit->highWaterMark_ = newBinaryEdit->getAOut()->parse_img()->getObject()->getFreeOffset(10*1024*1024);
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
+
+
+    newBinaryEdit->createMemoryBackingStore();
+
+    newBinaryEdit->initialize();
     
     return newBinaryEdit;
 }
@@ -214,6 +252,172 @@ bool BinaryEdit::getStatFileDescriptor(const pdstring &name, fileDescriptor &des
                           true); // a.out
     return true;
 }
+
+#if 1
+
+bool BinaryEdit::writeFile(const pdstring &newFileName) {
+    // We've made a bunch of changes and additions to the
+    // mapped object.
+    //   Changes: modifiedRanges_
+    //   Additions: textRanges_, excepting the file itself. 
+    // 
+    // Although, since we're creating a new file name we want
+    // textRanges. Basically, we want to serialize the contents
+    // of textRanges_, dataRanges_, and modifiedRanges_.
+
+    // A _lot_ of this method will depend on how the new file
+    // generation ends up working. Do we provide buffers? I'm guessing
+    // so.
+
+    // Step 1: changes. 
+
+    Symtab *symObj = getAOut()->parse_img()->getObject();
+
+    vector<Segment> oldSegs;
+    symObj->getSegments(oldSegs);
+
+    vector<Segment> newSegs = oldSegs;
+
+    // Now, we need to copy in the memory of the new segments
+    for (unsigned i = 0; i < newSegs.size(); i++) {
+        codeRange *segRange = NULL;
+        if (!memoryTracking_.find(newSegs[i].loadaddr, segRange)) {
+            // ???
+            assert(0);
+        }
+        newSegs[i].data = segRange->get_local_ptr();
+    }
+
+    // Okay, that does it for the old stuff.
+
+    // Now we need to get the new stuff. That's all the allocated memory. First, big
+    // buffer to hold it.
+
+    void *newSectionPtr = malloc(highWaterMark_ - lowWaterMark_);
+
+    pdvector<codeRange *> writes;
+    memoryTracking_.elements(writes);
+
+    for (unsigned i = 0; i < writes.size(); i++) {
+        memoryTracker *tracker = dynamic_cast<memoryTracker *>(writes[i]);
+        assert(tracker);
+        if (!tracker->alloced) continue;
+
+        // Copy whatever is in there into the big buffer, at the appropriate address
+        assert(tracker->get_address_cr() >= lowWaterMark_);
+        Address offset = tracker->get_address_cr() - lowWaterMark_;
+        assert((offset + tracker->get_size_cr()) < highWaterMark_);
+        void *ptr = (void *)(offset + (Address)newSectionPtr);
+        memcpy(ptr, tracker->get_local_ptr(), tracker->get_size_cr());
+    }
+        
+
+
+
+    // Righto. Now, that includes the old binary - by design - 
+    // so skip it and see what we're talking about size-wise. Which should
+    // be less than the highWaterMark, so we can double-check.
+
+    void *newSection = NULL;
+    unsigned newSectionSize = 0;
+
+    // Next, make a new section. We have the following parameters:
+    // Offset vaddr: we get this from Symtab - "first free address with sufficient space"
+    // void *data: newSection
+    // unsigned int dataSize: newSectionSize
+    // std::string name: without reflection, ".dyninstInst"
+    // unsigned long flags: these are a SymtabAPI abstraction. We're going with text|data because
+    //    we might have both.
+    // bool loadable: heck yeah...
+    
+    Section *newSec = NULL;
+    symObj->findSection(newSec, ".dyninstInst");
+    if (newSec) {
+        // We're re-instrumenting - will fail for now
+        fprintf(stderr, "ERROR:  unable to reinstrument previously instrumented binary!\n");
+        return false;
+    }
+    
+    symObj->addSection(lowWaterMark_,
+                       newSectionPtr,
+                       highWaterMark_ - lowWaterMark_,
+                       ".dyninstInst",
+                       Section::textSection | Section::dataSection,
+                       true);
+    
+    symObj->findSection(newSec, ".dyninstInst");
+    assert(newSec);
+
+
+    // Put in symbol table entries for known code
+    pdvector<codeRange *> newCode;
+    textRanges_.elements(newCode);
+    for (unsigned i = 0; i < newCode.size(); i++) {
+        char buffer[1025];        
+        
+        if (newCode[i]->is_multitramp()) {
+            snprintf(buffer, 1024, "%s_inst_0x%lx_0x%lx",
+                     newCode[i]->is_multitramp()->func()->symTabName().c_str(),
+                     newCode[i]->is_multitramp()->instAddr(),
+                     newCode[i]->is_multitramp()->instAddr() +
+                     newCode[i]->is_multitramp()->instSize());
+        }
+        else if (newCode[i]->is_basicBlockInstance()) {
+            // Relocated function
+            snprintf(buffer, 1024, "%s_reloc",
+                     newCode[i]->is_basicBlockInstance()->func()->symTabName().c_str());
+        }
+        else {
+            continue;
+        }
+        
+        Symbol *newSym = new Symbol(buffer,
+                                    "DyninstInst",
+                                    Symbol::ST_FUNCTION,
+                                    Symbol::SL_GLOBAL,
+                                    newCode[i]->get_address_cr(),
+                                    newSec,
+                                    newCode[i]->get_size_cr(),
+                                    (void *)newCode[i]);
+            
+        symObj->addSymbol(newSym, false);
+    }
+        
+    // Okay, now...
+    // Hand textSection and newSection to DynSymtab.
+    
+    // First, textSection.
+    
+    // From the SymtabAPI documentation: we have the following methods we want to use.
+    // Symtab::addSection(Offset vaddr, void *data, unsigned int dataSize, std::string name, 
+    //                    unsigned long flags, bool loadable)
+    // Symtab::updateCode(void *buffer, unsigned size)
+    // Symtab::emit(std::string filename)
+    
+    // First, text
+    assert(symObj);
+    
+    for (unsigned i = 0; i < oldSegs.size(); i++) {
+        if (oldSegs[i].data != newSegs[i].data) {
+            fprintf(stderr, "Data not equivalent, %d, %s\n",
+                    i, oldSegs[i].name.c_str());
+            if (oldSegs[i].name == ".text") {
+                symObj->updateCode(newSegs[i].data,
+                                   newSegs[i].size);
+            }
+        }
+    }
+    
+
+    // And now we generate the new binary
+    if (!symObj->emit(newFileName.c_str(), true)) {
+        return false;
+    }
+
+    return true;
+}
+
+#else // Old version, keeping for reference
 
 bool BinaryEdit::writeFile(const pdstring &newFileName) {
     // We've made a bunch of changes and additions to the
@@ -422,6 +626,8 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
     return true;
 }
 
+#endif // Old version
+
 bool BinaryEdit::inferiorMallocStatic(unsigned size) {
     // Should be set by now
     assert(highWaterMark_ != 0);
@@ -439,8 +645,54 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
                                HEAPfree);
     addHeap(h);
 
+    memoryTracker *newTracker = new memoryTracker(highWaterMark_, size);
+    newTracker->alloced = true;
+    memoryTracking_.insert(newTracker);
 
     highWaterMark_ += size;
+
+
+    return true;
+}
+
+
+bool BinaryEdit::createMemoryBackingStore() {
+    // We want to create a buffer for every section in the
+    // binary so that we can store updates.
+
+    Symtab *symObj = getAOut()->parse_img()->getObject();
+    
+    vector<Segment> segs;
+    symObj->getSegments(segs);
+
+    for (unsigned i = 0; i < segs.size(); i++) {
+        memoryTracker *newTracker = new memoryTracker(segs[i].loadaddr,
+                                                      segs[i].size,
+                                                      segs[i].data);
+        newTracker->alloced = false;
+        memoryTracking_.insert(newTracker);
+    }
+    
+    return true;
+}
+
+bool BinaryEdit::initialize() {
+    // Create the tramp guard
+
+    // Initialization. For now we're skipping threads, since we can't
+    // get the functions we need. However, we kinda need the recursion
+    // guard. This is an integer (one per thread, for now - 1) that 
+    // begins initialized to 1.
+
+    
+    trampGuardBase_ = inferiorMalloc(sizeof(int));
+    // And initialize
+    int trampInit = 1;
+    // And make a range for it.
+    writeDataSpace((void *)trampGuardBase_, sizeof(unsigned), &trampInit);
+
+
+    fprintf(stderr, "Tramp guard created at address 0x%lx\n", trampGuardBase_);
 
     return true;
 }
