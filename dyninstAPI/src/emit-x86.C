@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.55 2007/09/20 17:22:43 bernat Exp $
+ * $Id: emit-x86.C,v 1.56 2007/11/09 20:10:59 bernat Exp $
  */
 
 #include <assert.h>
@@ -693,10 +693,12 @@ bool isImm64bit(Address imm) {
 
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen)
 {
-	Register tmp_dest = dest;
-	Register tmp_src = src;
-	emitRex(is_64, &tmp_dest, NULL, &tmp_src, gen);
-	emitMovRegToReg(tmp_dest, tmp_src, gen);
+    if (dest == src) return;
+
+    Register tmp_dest = dest;
+    Register tmp_src = src;
+    emitRex(is_64, &tmp_dest, NULL, &tmp_src, gen);
+    emitMovRegToReg(tmp_dest, tmp_src, gen);
 }
 
 void emitLEA64(Register base, Register index, unsigned int scale, int disp,
@@ -856,7 +858,10 @@ bool EmitterAMD64::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
 
 codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
-    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+    pdvector<Register> excluded;
+    excluded.push_back(expr_reg);
+
+    Register scratchReg = gen.rs()->getScratchRegister(gen, excluded, true);
 
     // sub RAX, RAX
     emitOpRegReg64(0x29, scratchReg, scratchReg, true, gen);
@@ -1217,10 +1222,9 @@ static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_R
 Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
                                 bool noCost, int_function *callee)
 {
-
     assert(op == callOp);
     pdvector <Register> srcs;
-   
+
     //  Sanity check for NULL address arg
     if (!callee) {
 	char msg[256];
@@ -1232,64 +1236,84 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
 
     // Before we generate argument code, save any register that's live across
     // the call. 
-    pdvector<unsigned> savedRegsToRestore;
+    pdvector<pair<unsigned,int> > savedRegsToRestore;
     for (unsigned i = 0; i < gen.rs()->getRegisterCount(); i++) {
         registerSlot *reg = gen.rs()->getRegSlot(i);
         if (reg->refCount > 0 || reg->keptValue) {
+            pair<unsigned, unsigned> regToSave;
+            regToSave.first = i; // Index of the register
+
+            regToSave.second = reg->refCount;
+            // We can have both a keptValue and a refCount - so I invert
+            // the refCount if there's a keptValue
+            if (reg->keptValue)
+                regToSave.second *= -1;
+
+            savedRegsToRestore.push_back(regToSave);
+
             // The register is live; save it. 
             emitPushReg64(reg->number, gen);
-            savedRegsToRestore.push_back(i); // Not the register number, but its index
+            // And now that it's saved, nuke it
+            reg->refCount = 0;
+            reg->keptValue = false;
         }
     }
 
     // generate code for arguments
+    // Now, it would be _really_ nice to emit into 
+    // the correct register so we don't need to move it. 
+    // So try and allocate the correct one. 
+    // We should be able to - we saved them all up above.
     for (unsigned u = 0; u < operands.size(); u++) {
         Address unused = ADDR_NULL;
-        Register reg = REG_NULL;
+        unsigned reg = REG_NULL;
+
+        if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
+            reg = amd64_arg_regs[u];
+        else
+            assert(0);
 	if (!operands[u]->generateCode_phase2(gen,
                                               noCost, 
                                               unused,
                                               reg)) assert(0);
-        srcs.push_back(reg);
     }
-
-    // here we save the argument registers we're going to use
-    // then we use the stack to shuffle everything into the right place
-    // FIXME: optimize this a bit - this initial implementation is very conservative
-    const unsigned num_args = srcs.size();
-    assert(num_args <= AMD64_ARG_REGS);
-    for (unsigned u = 0; u < num_args; u++)
-      {
-	emitPushReg64(amd64_arg_regs[u], gen);
-
-      }
-    for (unsigned u = 0; u < num_args; u++)
-      {
-	emitPushReg64(srcs[u], gen);
-
-      }
-    for (int i = num_args - 1; i >= 0; i--)
-      {
-	emitPopReg64(amd64_arg_regs[i], gen);
-
-      }
 
     emitCallInstruction(gen, callee);
 
-    // restore argument registers
-    for (int i = num_args - 1; i >= 0; i--)
-	emitPopReg64(amd64_arg_regs[i], gen);   
-    
+    // Now clear whichever registers were "allocated" for a return value
+    for (unsigned i = 0; i < operands.size(); i++) {
+        gen.rs()->freeRegister(amd64_arg_regs[i]);
+    }
+
+    // We now have a bit of an ordering problem.
+    // The RS thinks all registers are free; this is not the case
+    // We've saved the incoming registers, and it's likely that
+    // the return value is co-occupying one. 
+    // We need to restore the registers, but _first_ we need to 
+    // restore the RS state and allocate a keeper register.
+    // Now restore any registers live over the call
+
+    for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
+        registerSlot *reg = gen.rs()->getRegSlot(savedRegsToRestore[i].first);
+        
+        if (savedRegsToRestore[i].second < 1) {
+            reg->refCount = -1*(savedRegsToRestore[i].second);
+            reg->keptValue = true;
+        }
+        else
+            reg->refCount = savedRegsToRestore[i].second;
+    }
+
     // allocate a (virtual) register to store the return value
+    // We do this now because the state is correct again in the RS.
+
     Register ret = gen.rs()->allocateRegister(gen, noCost);
     emitMovRegToReg64(ret, REGNUM_EAX, true, gen);
 
+    
     // Now restore any registers live over the call
-    for (unsigned i = savedRegsToRestore.size(); i > 0; i--) {
-        // We iterate backwards because we're using a stack...
-        // We can also get away with an unsigned because we're calculating > 0.
-        registerSlot *reg = gen.rs()->getRegSlot(savedRegsToRestore[i-1]);
-        assert(reg);
+    for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
+        registerSlot *reg = gen.rs()->getRegSlot(savedRegsToRestore[i].first);
         emitPopReg64(reg->number, gen);
     }
 
@@ -1297,6 +1321,15 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
 }
 
 bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
+    // make the call (using an indirect call)
+    emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
+    emitSimpleInsn(0xff, gen); // group 5
+    emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
+    return true;
+}
+
+
+bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     // make the call (using an indirect call)
     emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
     emitSimpleInsn(0xff, gen); // group 5
@@ -1610,9 +1643,9 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
     // We use RAX implicitly all over the place... so mark it read-only
     //gen.rs()->markReadOnly(REGNUM_RAX);
 
-	// We make a 128-byte skip (16*8) and push the flags register;
-	// so the first register saved starts 17 slots down from the frame
-	// pointer.
+    // We make a 128-byte skip (16*8) and push the flags register;
+    // so the first register saved starts 17 slots down from the frame
+    // pointer.
 
     if (gen.rs()->saveAllGPRs()) {
         for (int reg = 0; reg < 16; reg++) {
@@ -1622,33 +1655,33 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
     }
     else {
 	
-		//	printf("Saving registers ...\n");
-		// Save the live ones
-		int num_saved = 0; 
-		for(u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
-	    	registerSlot * reg = gen.rs()->getRegSlot(i);    
-	    	if (reg->startsLive ||
-				(reg->number == REGNUM_RAX) ||
-				(reg->number == REGNUM_RBX) ||
-				(reg->number == REGNUM_RSP) ||
-				(reg->number == REGNUM_RBP)) {
-				emitPushReg64(reg->number,gen);
-				// We move the FP down to just under here, so we're actually
-				// measuring _up_ from the FP. 
-				assert((17-num_saved) > 0);
+        //	printf("Saving registers ...\n");
+        // Save the live ones
+        int num_saved = 0; 
+        for(u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
+            registerSlot * reg = gen.rs()->getRegSlot(i);    
+            if (reg->startsLive ||
+                (reg->number == REGNUM_RAX) ||
+                (reg->number == REGNUM_RBX) ||
+                (reg->number == REGNUM_RSP) ||
+                (reg->number == REGNUM_RBP)) {
+                emitPushReg64(reg->number,gen);
+                // We move the FP down to just under here, so we're actually
+                // measuring _up_ from the FP. 
+                assert((17-num_saved) > 0);
             	gen.rs()->markSavedRegister(reg->number, 17-num_saved);
-				num_saved++;
-	      	}
-        	else {
+                num_saved++;
+            }
+            else {
             }
 	}
-
+        
 	// we always allocate space on the stack for all the GPRs (helps stack walk)
 	if (num_saved < 16) {
 	    emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, -8 * (16 - num_saved), true, gen);
 	}
 	//printf("\n");
-      }
+    }
     
     // push a return address for stack walking
     if (bt->instP()) {
@@ -1664,8 +1697,8 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
     // movl  %rsp, %rbp  (0x48 0x89 0xe5)
     emitSimpleInsn(0x55, gen);
     emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
-
-
+    
+    
     if (bt->isConservative() && BPatch::bpatch->isSaveFPROn() && gen.rs()->saveAllFPRs()) {
         // need to save the floating point state (x87, MMX, SSE)
         // we do this on the stack, but the problem is that the save
@@ -1674,7 +1707,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
         //   mov %rsp, %rax          ; copy the current stack pointer
         //   sub $512, %rsp          ; allocate space
         //   and $0xfffffff0, %rsp   ; make sure we're aligned (allocates some more space)
-       
+        
         
         emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
         emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 512, true, gen);
@@ -1691,7 +1724,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
         
         emitPushReg64(REGNUM_RAX, gen);
     }
-
+    
     return true;
 }
 

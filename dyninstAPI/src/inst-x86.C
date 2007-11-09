@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.269 2007/09/20 17:22:46 bernat Exp $
+ * $Id: inst-x86.C,v 1.270 2007/11/09 20:11:01 bernat Exp $
  */
 #include <iomanip>
 
@@ -872,7 +872,8 @@ Register emitFuncCall(opCode op,
                       bool noCost,
                       int_function *callee)
 {
-    return gen.codeEmitter()->emitCall(op, gen, operands, noCost, callee);
+    Register reg = gen.codeEmitter()->emitCall(op, gen, operands, noCost, callee);
+    return reg;
 }
 
 
@@ -2186,6 +2187,7 @@ int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
     while(ii.hasMore() &&
           *ii <= address) {
         ii.readWriteRegisters(readRegs, writeRegs);
+
         for (a = 0; a < 3; a++) {
             if (writeRegs[a] != -1) {
                 newIn.bitarray_set(writeRegs[a],&newIn);
@@ -2258,9 +2260,15 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
       }
    }
 
-   // We don't do FPR analysis (yet)
+   // Default to dead, since we've marked the ones that must be
+   // saved.
+   //saveAllGPRs_ = dead;
+   // Liveness calculation is broken, so disabling.
+   // 8NOV07 - bernat
    saveAllGPRs_ = unknown;
+   // We don't do FPR analysis (yet)
    saveAllFPRs_ = unknown;
+   // We don't analyze SPRs
    saveAllSPRs_ = unknown;
 
 }

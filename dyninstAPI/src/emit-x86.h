@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.27 2007/09/20 17:22:44 bernat Exp $
+ * $Id: emit-x86.h,v 1.28 2007/11/09 20:11:00 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -239,7 +239,7 @@ class EmitterAMD64Stat : public EmitterAMD64 {
  public:
     ~EmitterAMD64Stat() {};
     
-    bool emitCallInstruction(codeGen &gen, int_function *target) { assert(0); return false; }
+    bool emitCallInstruction(codeGen &gen, int_function *target);
 };
 
 extern EmitterAMD64Dyn emitterAMD64Dyn;
