@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.195 2007/11/08 18:25:38 bernat Exp $
+// $Id: ast.C,v 1.196 2007/11/09 20:10:57 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -805,20 +805,25 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
     case ifOp: {
         // This ast cannot be shared because it doesn't return a register
         if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
+        
         REGISTER_CHECK(src1);
         codeBufIndex_t ifIndex= gen.getIndex();
         codeBufIndex_t thenSkipStart = emitA(op, src1, 0, 0, gen, noCost);
         // DO NOT FREE THE REGISTER HERE!!! we use it later to regenerate the
         // jump once code has been generated. This is annoying, since we
         // don't really need the register... we just want it allocated.
-        //gen.rs()->freeRegister(src1);
+        
+        // I'm ignoring the above; we'll keep the _value_ of src1, but free it
+        // for internal code.
+        Register src1_copy = src1;
+        gen.rs()->freeRegister(src1);
         
         // The flow of control forks. We need to add the forked node to 
         // the path
-		gen.tracker()->increaseConditionalLevel();
+        gen.tracker()->increaseConditionalLevel();
         if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
         gen.rs()->freeRegister(src2);
-		gen.tracker()->decreaseAndClean(gen);
+        gen.tracker()->decreaseAndClean(gen);
         
         // Is there an else clause?  If yes, generate branch over it
         codeBufIndex_t elseSkipStart = 0;
@@ -834,12 +839,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         // call emit again now with correct offset.
         // This backtracks over current code.
         // If/when we vectorize, we can do this in a two-pass arrangement
-        (void) emitA(op, src1, 0, 
+        (void) emitA(op, src1_copy, 0, 
                      (Register) codeGen::getDisplacement(thenSkipStart, elseStartIndex),
                      gen, noCost);
         // Now we can free the register
-        gen.rs()->freeRegister(src1);
-
+        // Register has already been freed; we're just re-using it.
+        //gen.rs()->freeRegister(src1);
+        
         gen.setIndex(elseStartIndex);
         
         if (eoperand) {
