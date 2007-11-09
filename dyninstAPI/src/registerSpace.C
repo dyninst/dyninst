@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.14 2007/09/12 20:57:59 bernat Exp $
+// $Id: registerSpace.C,v 1.15 2007/11/09 20:11:02 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -321,9 +321,9 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register reg,
             return false;
         }
     }
-	else if (registers[index].keptValue) {
-		if (!stealRegister(index, gen, noCost)) return false;
-	}
+    else if (registers[index].keptValue) {
+        if (!stealRegister(index, gen, noCost)) return false;
+    }
 
     // So... we've either got a clear register, or we spilled it,
     // or we stole it. Nice. 
@@ -338,19 +338,26 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register reg,
 }
 
 Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
+    pdvector<Register> empty;
+    return getScratchRegister(gen, empty, noCost);
+}
+
+Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost) {
     unsigned toUse = registers.size(); 
+    unsigned scratchIndex = 0;
 
-	regalloc_printf("Allocating register...\n");
-	for (unsigned i=0; i < registers.size(); i++) {
-		regalloc_printf("%d: reg %d, refCount %d, needsSaving %d, keptValue %d, offLimits %d\n",
-						i, registers[i].number,
-						registers[i].refCount,
-						registers[i].needsSaving,
-						registers[i].keptValue,
-						registers[i].offLimits);
-	}
-
+    regalloc_printf("Allocating scratch register...\n");
     for (unsigned i=0; i < registers.size(); i++) {
+        regalloc_printf("%d: reg %d, refCount %d, needsSaving %d, keptValue %d, offLimits %d\n",
+                        i, registers[i].number,
+                        registers[i].refCount,
+                        registers[i].needsSaving,
+                        registers[i].keptValue,
+                        registers[i].offLimits);
+    }
+    
+    for (unsigned i=0; i < registers.size(); i++) {
+        if (find(excluded, registers[i].number, scratchIndex)) continue;
         if (registers[i].offLimits) continue;
         if (registers[i].needsSaving) continue;
 		if (registers[i].keptValue) continue;
@@ -364,12 +371,13 @@ Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
     if (toUse == registers.size()) {
         for (unsigned i = 0; i < registers.size(); i++) {
             // Okay, time to look for a spillable one...
+            if (find(excluded, registers[i].number, scratchIndex)) continue;
             if (registers[i].offLimits) continue;
             if (registers[i].refCount > 0) continue;
-			if (registers[i].keptValue) continue;
+            if (registers[i].keptValue) continue;
             assert(registers[i].needsSaving);
-			// We're going to spill... this is bad for testing
-			debugPrint();
+            // We're going to spill... this is bad for testing
+            debugPrint();
             if (spillRegister(i, gen, noCost)) {
                 toUse = i;
                 break;
@@ -379,8 +387,9 @@ Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
     if (toUse == registers.size()) {
         // Getting desperate...
         for (unsigned i = 0; i < registers.size(); i++) {
+            if (find(excluded, registers[i].number, scratchIndex)) continue;
             if (registers[i].offLimits) continue;
-			if (registers[i].refCount > 0) continue;
+            if (registers[i].refCount > 0) continue;
             if (registers[i].keptValue) {
                 // Kick him out. TODO: priority mechanism. 
                 if (stealRegister(i, gen, noCost)) {
@@ -408,7 +417,9 @@ Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
 Register registerSpace::allocateRegister(codeGen &gen, 
                                          bool noCost) 
 {
+    regalloc_printf("Allocating and keeping register...\n");
     Register reg = getScratchRegister(gen, noCost);
+    regalloc_printf("Keeping register %d\n", reg);
     if (reg == REG_NULL) return REG_NULL;
 
     // Argh stupid iteration

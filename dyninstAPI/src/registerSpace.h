@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.10 2007/09/12 20:58:00 bernat Exp $
+// $Id: registerSpace.h,v 1.11 2007/11/09 20:11:03 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -206,6 +206,9 @@ class registerSpace {
     // Like allocate, but don't keep it around; if someone else tries to
     // allocate they might get this one. 
     Register getScratchRegister(codeGen &gen, bool noCost = true); 
+    // Like the above, but excluding a set of registers (that we don't want
+    // to touch)
+    Register getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost = true);
 
     bool saveAllRegisters(codeGen &gen, bool noCost);
     bool restoreAllRegisters(codeGen &gen, bool noCost);
