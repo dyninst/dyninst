@@ -137,7 +137,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     unsigned loadSecTotalSize = 0;
     unsigned NOBITStotalsize = 0;
     unsigned shStrTabSizeInc = 0;
-    unsigned dirtySecsInc = 0;
+    int dirtySecsInc = 0;
     unsigned extraAlignSize = 0;
     unsigned nonLoadableNamesSize = 0;
     
@@ -202,7 +202,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 	    memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getSecSize());
 	    newdata->d_size = foundSec->getSecSize();
 	    newshdr->sh_size = foundSec->getSecSize();
-        dirtySecsInc += newshdr->sh_size - shdr->sh_size;
+	    dirtySecsInc += newshdr->sh_size - shdr->sh_size;
 	}
 	else if(olddata->d_buf)     //copy the data buffer from oldElf
 	{
@@ -269,7 +269,7 @@ bool emitElf::driver(Symtab *obj, string fName){
 	    if(scncount>oldEhdr->e_shstrndx)
 	    	newshdr->sh_offset += shStrTabSizeInc;
 	}
-    newshdr->sh_offset += dirtySecsInc + extraAlignSize;
+	newshdr->sh_offset += (int) (dirtySecsInc + extraAlignSize);
     if(BSSExpandFlag && newshdr->sh_addr){
         unsigned newOff = newshdr->sh_offset - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
         if(newOff < newshdr->sh_offset)
