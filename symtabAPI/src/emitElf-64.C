@@ -1,3 +1,34 @@
+/*
+ * Copyright (c) 1996-2007 Barton P. Miller
+ *
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ *
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ */
+
 #include "emitElf-64.h"
 #include "Symtab.h"
 
@@ -28,7 +59,7 @@ static int elfSymBind(Symbol::SymbolLinkage sLinkage)
   }
 }
 
-emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, void (*err_func)(const char *)) :
+emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, void (*err_func)(const char *)) :
    oldElfHandle(oldElfHandle_), BSSExpandFlag(BSSexpandflag_), isStripped(isStripped_), err_func_(err_func)
 
 {
@@ -49,7 +80,7 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, voi
    oldElf = oldElfHandle.e_elfp();
 }
 
-bool emitElf::getBackSymbol(Symbol *symbol)
+bool emitElf64::getBackSymbol(Symbol *symbol)
 {
    Elf64_Sym *sym = new Elf64_Sym();
    sym->st_name = symbolNamesLength;
@@ -85,7 +116,7 @@ bool emitElf::getBackSymbol(Symbol *symbol)
 }
 
 // Find the end of data/text segment
-void emitElf::findSegmentEnds()
+void emitElf64::findSegmentEnds()
 {
     Elf64_Phdr *tmp = elf64_getphdr(oldElf);
     // Find the offset of the start of the text & the data segment
@@ -109,7 +140,7 @@ void emitElf::findSegmentEnds()
     }
 }
 
-bool emitElf::driver(Symtab *obj, string fName){
+bool emitElf64::driver(Symtab *obj, string fName){
     int newfd;
     Section *foundSec;
     unsigned pgSize = getpagesize();
@@ -329,7 +360,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     return true;
 }
 
-void emitElf::fixPhdrs(unsigned loadSecTotalSize)
+void emitElf64::fixPhdrs(unsigned loadSecTotalSize)
 {
     unsigned pgSize = getpagesize();
     Elf64_Phdr *tmp = oldPhdr;
@@ -392,7 +423,7 @@ void emitElf::fixPhdrs(unsigned loadSecTotalSize)
 //This method updates the symbol table,
 //it shifts each symbol address as necessary AND
 //sets _end and _END_ to move the heap
-void emitElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize){
+void emitElf64::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize){
     if( symtabData && strData && loadSecsSize){
         Elf64_Sym *symPtr=(Elf64_Sym*)symtabData->d_buf;
         for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf64_Sym));i++,symPtr++){
@@ -408,7 +439,7 @@ void emitElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned lon
     }
 }
 
-bool emitElf::createLoadableSections(Elf64_Shdr *shdr, std::vector<Section *>&newSecs, std::vector<string> &loadSecNames, unsigned &shstrtabDataSize, unsigned &nonLoadableNamesSize, unsigned &loadSecTotalSize)
+bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, std::vector<Section *>&newSecs, std::vector<string> &loadSecNames, unsigned &shstrtabDataSize, unsigned &nonLoadableNamesSize, unsigned &loadSecTotalSize)
 {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
@@ -502,7 +533,7 @@ bool emitElf::createLoadableSections(Elf64_Shdr *shdr, std::vector<Section *>&ne
     return true;
 }
 	
-void emitElf::addSectionNames(Elf_Data *&newdata, Elf_Data *olddata, unsigned shstrtabDataSize, unsigned nonLoadableNamesSize, std::vector<string> &loadSecNames)
+void emitElf64::addSectionNames(Elf_Data *&newdata, Elf_Data *olddata, unsigned shstrtabDataSize, unsigned nonLoadableNamesSize, std::vector<string> &loadSecNames)
 {
     newdata->d_buf = (char *)malloc(shstrtabDataSize + nonLoadableNamesSize);
     memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
@@ -531,7 +562,7 @@ void emitElf::addSectionNames(Elf_Data *&newdata, Elf_Data *olddata, unsigned sh
     }
 }
 
-bool emitElf::createNonLoadableSections(Elf64_Shdr *shdr, unsigned shstrtabDataSize, unsigned newSecSize)
+bool emitElf64::createNonLoadableSections(Elf64_Shdr *shdr, unsigned shstrtabDataSize, unsigned newSecSize)
 {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
@@ -614,7 +645,7 @@ bool emitElf::createNonLoadableSections(Elf64_Shdr *shdr, unsigned shstrtabDataS
     return true;
 }    	
 
-bool emitElf::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
+bool emitElf64::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
 {
     unsigned i;
 //    if(!isStripped)
@@ -667,7 +698,7 @@ bool emitElf::checkIfStripped(Symtab *obj, std::vector<Symbol *>&functions, std:
     return true;
 }
 
-void emitElf::log_elferror(void (*err_func)(const char *), const char* msg) {
+void emitElf64::log_elferror(void (*err_func)(const char *), const char* msg) {
     const char* err = elf_errmsg(elf_errno());
     err = err ? err: "(bad elf error)";
     string str = string(err)+string(msg);

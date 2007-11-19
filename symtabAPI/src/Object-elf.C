@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.18 2007/10/04 22:04:34 giri Exp $
+ * $Id: Object-elf.C,v 1.19 2007/11/19 18:28:21 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -38,11 +38,8 @@
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
 
-#if defined(arch_x86_64) || defined(arch_ia64)
-#include "emitElf-64.h"
-#else
 #include "emitElf.h"
-#endif
+#include "emitElf-64.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -3121,9 +3118,16 @@ bool getBackSymbol(Symbol *symbol, std::vector<Elf32_Sym *>&syms, unsigned &len,
 }
 
 bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag){
-    emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
-    em->checkIfStripped(obj ,functions, variables, mods, notypes); 
-    return em->driver(obj, fName);
+    if(elfHdr.e_ident()[EI_CLASS] == 1) {
+        emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
+        em->checkIfStripped(obj ,functions, variables, mods, notypes); 
+        return em->driver(obj, fName);
+    }
+    else if(elfHdr.e_ident()[EI_CLASS] == 2) {
+        emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, err_func_);
+        em->checkIfStripped(obj ,functions, variables, mods, notypes); 
+        return em->driver(obj, fName);
+    }
 }
 
 #if 0
@@ -4074,8 +4078,8 @@ void Object::parseDwarfFileLineInfo()
         //                                  previousLineColumn, previousLineAddr, lineAddr );
         //currentModule->lineInfoValid_ = true;
 	
-//	 if(previousLineNo == 597 || previousLineNo == 596)
-//	/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << canonicalLineSource << ":" << setbase(10) << previousLineNo << endl;
+	// if(previousLineNo == 597 || previousLineNo == 596)
+	///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << canonicalLineSource << ":" << setbase(10) << previousLineNo << endl;
        //} /* end if we found the function by its address */
      } /* end if the previous* variables are valid */
 				
@@ -4138,8 +4142,8 @@ void Object::parseTypeInfo(Symtab *obj)
     unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
     unsigned long difftime = lendtime - lstarttime;
     double dursecs = difftime/(1000 );
-    cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->file()
-	 <<") took "<< dursecs <<" msecs" << endl;
+//    cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->file()
+//	 <<") took "<< dursecs <<" msecs" << endl;
 //  #endif	 
 }
 
@@ -4276,7 +4280,7 @@ void Object::parseStabTypes(Symtab *obj)
 		        tmp[colonPtr-ptr] = '\0';
 		        currentFunctionName = new string(tmp);
                         currentFunctionBase = 0;
-	                Symbol *info;
+	                Symbol *info = NULL;
                         // Shouldn't this be a function name lookup?
 			std::vector<Symbol *>syms;
 			if(!obj->findSymbolByType(syms, *currentFunctionName, Symbol::ST_FUNCTION))
