@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2007/10/04 22:04:48 giri Exp $
+# $Id: Makefile,v 1.6 2007/11/19 18:28:23 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,6 +22,7 @@ include ../../make.config
 SRCS =		../src/Object-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
+                ../src/emitElf.C \
                 ../src/emitElf-64.C
 
 MYFLAGS		+= 	-DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) \
