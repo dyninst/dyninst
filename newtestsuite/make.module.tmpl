@@ -147,12 +147,14 @@ CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
 #	$(CXX) -c $< $(CXXFLAGS) $(MUTATOR_CXXFLAGS) -o $@
 
 $(TEST_DEST)/%: %
-	-$(CP) $< $(TEST_DEST)
-	-$(CHMOD) 750 $(TEST_DEST)/$<
+	echo Skipping test copy
+#	-$(CP) $< $(TEST_DEST)
+#	-$(CHMOD) 750 $(TEST_DEST)/$<
 
 $(LIB_DEST)/%: %
-	-$(CP) $< $(LIB_DEST)
-	-$(CHMOD) 750 $(LIB_DEST)/$<
+	echo Skipping lib copy
+#	-$(CP) $< $(LIB_DEST)
+#	-$(CHMOD) 750 $(LIB_DEST)/$<
 
 $(TEST_DEST_LN)/%: %
 	-$(LN) $< $(TEST_DEST)
