@@ -183,9 +183,6 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       logerror("[%s:%d] - Thread %d has unexpected initial function '%s'; ignoring\n",
               __FILE__, __LINE__, thr->getBPatchID(), name);
       //      error13 = 1; // This shouldn't be an error, according to the comment above.
-      volatile static bool stop = true;
-      while (stop);
-
       BPatch_Vector<BPatch_frame> stack;
       thr->getCallStack(stack);
    }
