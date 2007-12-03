@@ -202,6 +202,7 @@ class Symtab : public LookupInterface {
 	DLLEXPORT virtual bool findVariableType(Type *&type, std::string name);
 
 	DLLEXPORT bool addType(Type *typ);
+ 	void parseTypesNow();
 
 	/***** Local Variable Information *****/
 	DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
@@ -327,7 +328,6 @@ class Symtab : public LookupInterface {
 
 	void parseLineInformation();
 	void parseTypes();
- 	void parseTypesNow();
 	
 
    /***** Private Data Members *****/

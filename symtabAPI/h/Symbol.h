@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.1 2007/09/19 21:53:48 giri Exp $
+ * $Id: Symbol.h,v 1.2 2007/12/03 19:29:07 giri Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -100,22 +100,26 @@ public:
     DLLEXPORT Symbol (); // note: this ctor is called surprisingly often!
     DLLEXPORT Symbol (unsigned);
     DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
-             Offset, Section *sec = NULL, unsigned size = 0, void *upPtr = NULL);
+             Offset, Section *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false, 
+             bool isInSymtab_ = true);
     DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
-             Offset, Section *sec = NULL, unsigned size = 0, void *upPtr = NULL);
+             Offset, Section *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false,
+             bool isInSymtab_ = true);
     DLLEXPORT Symbol (const Symbol &);
     DLLEXPORT ~Symbol();
 
     DLLEXPORT Symbol&        operator= (const Symbol &);
     DLLEXPORT bool          operator== (const Symbol &) const;
 
-	DLLEXPORT const std::string&     getModuleName ()        const;
-    DLLEXPORT Module*	getModule()		const; 
+	DLLEXPORT const std::string&getModuleName ()        const;
+    DLLEXPORT Module*	        getModule()		        const; 
     DLLEXPORT SymbolType        getType ()              const;
     DLLEXPORT SymbolLinkage     getLinkage ()           const;
     DLLEXPORT Offset            getAddr ()              const;
-    DLLEXPORT Section		*getSec ()      	const;
-    DLLEXPORT void 		*getUpPtr()		const;
+    DLLEXPORT Section		    *getSec ()      	    const;
+    DLLEXPORT void 		        *getUpPtr()		        const;
+    DLLEXPORT bool              isInDynSymtab()         const;
+    DLLEXPORT bool              isInSymtab()            const;
     
     
     /***********************************************************
@@ -139,7 +143,12 @@ public:
     DLLEXPORT bool	setModuleName(std::string module);
     DLLEXPORT bool 	setModule(Module *mod);
     DLLEXPORT bool	setUpPtr(void *newUpPtr);
+    DLLEXPORT bool  setDynSymtab();
+    DLLEXPORT bool  clearDynSymtab();
+    DLLEXPORT bool  setIsInSymtab();
+    DLLEXPORT bool  clearIsInSymtab();
 
+    DLLEXPORT Type      *getReturnType();
     DLLEXPORT bool	setReturnType(Type *);
     
     // Bool: returns true if the name is new (and therefore added)
@@ -159,14 +168,16 @@ public:
     static std::string emptyString;
     
 private:
-    Module*   module_;
+    Module*       module_;
     SymbolType    type_;
     SymbolLinkage linkage_;
-    Offset       addr_;
-    Section*  sec_;
-    unsigned      size_;  // size of this symbol. This is NOT available on
-                          // all platforms.
+    Offset        addr_;
+    Section*      sec_;
+    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
     void*         upPtr_;
+    bool          isInDynsymtab_;
+    bool          isInSymtab_;
+
     std::vector<std::string> mangledNames;
     std::vector<std::string> prettyNames;
     std::vector<std::string> typedNames;
@@ -182,7 +193,7 @@ inline
 Symbol::Symbol(unsigned)
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), upPtr_(NULL),
-    tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
+    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
 }
 
 inline
@@ -196,6 +207,8 @@ Symbol::operator==(const Symbol& s) const {
 	&& (sec_     == s.sec_)
 	&& (size_    == s.size_)
 	&& (upPtr_    == s.upPtr_)
+    && (isInDynsymtab_ == s.isInDynsymtab_)
+    && (isInSymtab_ == s.isInSymtab_)
 	&& (retType_    == s.retType_)
     	&& (mangledNames == s.mangledNames)
     	&& (prettyNames == s.prettyNames)
