@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2007/11/19 18:28:26 giri Exp $
+# $Id: Makefile,v 1.10 2007/12/04 18:05:37 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,20 +20,16 @@ SRCS =		../src/Object-elf.C \
                 ../src/parseDwarf.C \
 		../src/parseStab.C \
 		../src/emitElf.C \
-		../src/emitElf-64.C
-
-# VG(12/02/01) Using -g here seems a bad idea since it is passed from
-# make.confing any way and it is actually configurable there via
-# DEBUG_FLAG....
+		../src/emitElf-64.C \
+		../src/addrtranslate.C \
+		../src/addrtranslate-sysv.C \
+		../src/addrtranslate-solaris.C
 
 CFLAGS		+= -DNO_MDL_PRINT -I/usr/local/stow/bind-8.2.2.p5/include/
 #CFLAGS		+= -DNO_MDL_PRINT -O0 -I/usr/local/stow/bind-8.2.2.p5/include/ 
 CXXFLAGS	+= -DNO_MDL_PRINT -DUSES_ELF32_ONLY  -DUSES_DWARF_DEBUG -I/usr/local/stow/bind-8.2.2.p5/include/ -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 #CXXFLAGS	+= -DNO_MDL_PRINT -O0 -DUSES_ELF32_ONLY  -I/usr/local/stow/bind-8.2.2.p5/include/
 TFLAGS		+= -DUSES_ELF32_ONLY 
-
-# Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
-#TFLAGS 		+= -g
 
 LDFLAGS += -R$(LIBDWARF_LIB):$(LIBELF_LIB) -L$(LIBELF_LIB) -lelf -L$(LIBDWARF_LIB) -ldwarf
 SYSLIBS = -lsocket -lnsl -ldl -lrt

@@ -39,7 +39,9 @@ endif
 
 SRCS =		../src/Object-xcoff.C \
 		../src/Archive.C \
-		../src/parseStab.C
+		../src/parseStab.C \
+		../src/addrtranslate.C \
+		../src/addrtranslate-aix.C
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread

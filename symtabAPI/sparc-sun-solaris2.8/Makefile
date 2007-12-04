@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2007/11/19 18:28:25 giri Exp $
+# $Id: Makefile,v 1.8 2007/12/04 18:05:36 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,7 +20,10 @@ SRCS =		../src/Object-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
 		../src/emitElf.C \
-		../src/emitElf-64.C
+		../src/emitElf-64.C \
+		../src/addrtranslate.C \
+		../src/addrtranslate-sysv.C \
+		../src/addrtranslate-solaris.C
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from
 # make.confing any way and it is actually configurable there via

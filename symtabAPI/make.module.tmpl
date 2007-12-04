@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.9 2007/09/19 21:53:43 giri Exp $
+# $Id: make.module.tmpl,v 1.10 2007/12/04 18:05:31 legendre Exp $
 #
 
 SUITE_NAME	= symtabAPI 
@@ -52,7 +52,8 @@ SRCS	     +=	../src/Object.C \
 		../src/LineInformation.C \
 		../src/Symtab.C \
 		../src/Collections.C \
-		../src/Type.C 
+		../src/Type.C \
+      ../src/AddrLookup.C
 
 #IGEN_GEN_SRCS = 
 
