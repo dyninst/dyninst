@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.73 2007/12/04 17:58:15 bernat Exp $
+// $Id: arch-x86.C,v 1.74 2007/12/04 21:47:13 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -50,9 +50,9 @@
 
 #include <assert.h>
 #include <stdio.h>
-#include <boost/assign/list_of.hpp>
-#include <boost/assign/std/vector.hpp>
-#include <boost/assign/std/set.hpp>
+#include "boost/assign/list_of.hpp"
+#include "boost/assign/std/vector.hpp"
+#include "boost/assign/std/set.hpp"
 #include <map>
 #include <string>
 #include "common/h/Types.h"

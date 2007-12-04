@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.57 2007/12/04 17:57:58 bernat Exp $
+ * $Id: emit-x86.C,v 1.58 2007/12/04 21:47:16 bernat Exp $
  */
 
 #include <assert.h>
@@ -1303,7 +1303,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
             reg->keptValue || // Has a kept value
             (reg->liveState == registerSlot::live)) { // needs to be saved pre-call
             pair<unsigned, unsigned> regToSave;
-            regToSave.first = i; // Index of the register in the GPRs vector
+            regToSave.first = reg->number;
             
             regToSave.second = reg->refCount;
             // We can have both a keptValue and a refCount - so I invert
@@ -1356,7 +1356,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
     // Now restore any registers live over the call
 
     for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
-        registerSlot *reg = gen.rs()->GPRs()[savedRegsToRestore[i].first];
+        registerSlot *reg = (*gen.rs())[savedRegsToRestore[i].first];
         
         if (savedRegsToRestore[i].second < 1) {
             reg->refCount = -1*(savedRegsToRestore[i].second);
@@ -1375,7 +1375,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
     
     // Now restore any registers live over the call
     for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
-        registerSlot *reg = gen.rs()->GPRs()[savedRegsToRestore[i].first];
+        registerSlot *reg = (*gen.rs())[savedRegsToRestore[i].first];
 
         emitPopReg64(reg->encoding(), gen);
     }
@@ -1433,21 +1433,23 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 
 void EmitterAMD64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 {
-    if (ptType == otherPoint) {
+    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
+
+    if (ptType == otherPoint && useFPRs && BPatch::bpatch->isSaveFPROn()) {
         // pop the old RSP value into RAX
         emitPopReg64(REGNUM_RAX, gen);
-	
+        
         // restore saved FP state
         // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
-        GET_PTR(insn, gen);
-        *insn++ = 0x0f;
-        *insn++ = 0xae;
-        *insn++ = 0x0c;
-        *insn++ = 0x24;
-        SET_PTR(insn, gen);
-	
-        // restore stack pointer (deallocates FP save area)
-        emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
+        GET_PTR(buffer, gen);
+         *buffer++ = 0x0f;
+         *buffer++ = 0xae;
+         *buffer++ = 0x0c;
+         *buffer++ = 0x24;
+         SET_PTR(buffer, gen);
+         
+         // restore stack pointer (deallocates FP save area)
+         emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
     }
     
     // tear down the stack frame (LEAVE)
@@ -1464,8 +1466,11 @@ void EmitterAMD64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &g
             num_saved++;
         }
     }
+
+   if ((*gen.rs())[REGNUM_OF]->liveState == registerSlot::spilled)
+       num_saved++;
     
-    int reg_pad = 8 * (16 - num_saved);
+    int reg_pad = 8 * (17 - num_saved);
     if (reg_pad != 0) {
         // we always allocate space on the stack for all the GPRs (helps stack walk)
         if (reg_pad > 127) {
@@ -1477,18 +1482,18 @@ void EmitterAMD64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &g
             emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, reg_pad, true, gen);
         }
     }
-    
-    // Save the live ones
-    for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
-        registerSlot *reg = gen.rs()->GPRs()[i];
-        if (reg->liveState == registerSlot::spilled) {
-            emitPopReg64(reg->encoding(), gen);
-        }
-    }
-
-    // restore flags (POPFQ)
-    //emitSimpleInsn(0x9D, gen);
-    gen.rs()->restoreVolatileRegisters(gen);
+      
+   // restore saved registers
+   for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
+       registerSlot *reg = gen.rs()->GPRs()[i];
+       if (reg->liveState == registerSlot::spilled) {
+           emitPopReg64(reg->encoding(),gen);
+       }
+   }
+   
+   // restore flags (POPFQ)
+   //emitSimpleInsn(0x9D, gen);
+   gen.rs()->restoreVolatileRegisters(gen);
 
    // restore stack pointer (use LEA to not affect flags)
    if (STACK_PAD_CONSTANT)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.17 2007/09/12 20:57:53 bernat Exp $
+// $Id: miniTramp.h,v 1.18 2007/12/04 21:47:17 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -50,7 +50,7 @@
 #include "dyninstAPI/src/instPoint.h" // generatedCodeObject
 #include "dyninstAPI/src/multiTramp.h" // generatedCodeObject
 #include "dyninstAPI/src/ast.h"
-#include <boost/shared_ptr.hpp>
+#include "boost/shared_ptr.hpp"
 
 // This is a serious problem: our code generation has no way to check
 // the size of the buffer it's emitting to.

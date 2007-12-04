@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: bitArray.h,v 1.1 2007/12/04 17:59:48 bernat Exp $
+// $Id: bitArray.h,v 1.2 2007/12/04 21:47:15 bernat Exp $
 
 #ifndef _BITARRAY_
 #define _BITARRAY_
-#include <boost/dynamic_bitset.hpp>
+#include "boost/dynamic_bitset.hpp"
 typedef boost::dynamic_bitset<> bitArray;
 
 // Bitarrays for register liveness. This could move to registerSpace...

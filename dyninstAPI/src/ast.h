@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.101 2007/12/04 17:57:55 bernat Exp $
+// $Id: ast.h,v 1.102 2007/12/04 21:47:14 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -55,7 +55,7 @@
 #include "common/h/Types.h"
 
 // The great experiment: boost shared_ptr libraries
-#include <boost/shared_ptr.hpp>
+#include "boost/shared_ptr.hpp"
 
 class process;
 class AddressSpace;
