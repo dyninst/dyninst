@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.12 2007/10/04 22:04:40 giri Exp $
+// $Id: Object-xcoff.C,v 1.13 2007/12/04 18:05:55 legendre Exp $
 
 #include <regex.h>
 
@@ -811,6 +811,9 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
            linesfdptr = sectHdr[i].s_lnnoptr;
            //break;
        }
+       if (sectHdr[i].s_flags & STYP_BSS) {
+          bss_size_ = sectHdr[i].s_size;
+       }
    }
 
    for (i=0; i < hdr.f_nscns; i++)
@@ -1560,10 +1563,33 @@ bool Object::emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&fu
    return true;
 }
 
-bool AObject::getSegments(vector<Segment> &segs) const
+bool AObject::getSegments(vector<Segment> &/*segs*/) const
 {
-    return true;
+   return true;
 }
+
+bool AObject::getMappedRegions(std::vector<Region> &regs) const
+{
+   Region reg;
+   reg.addr = code_vldS_;
+   reg.size = code_len_;
+   reg.offset = code_off_;
+   regs.push_back(reg);
+
+   reg.addr = data_vldS_;
+   reg.size = data_len_;
+   reg.offset = data_off_;
+
+   const Object *obj = dynamic_cast<const Object *>(this);
+   if (obj) {
+      reg.size += obj->bss_size();
+   }
+
+   regs.push_back(reg);
+   
+   return true;
+}
+
 
 /* FIXME: hack. */
 Offset trueBaseAddress = 0;

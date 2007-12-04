@@ -1077,18 +1077,18 @@ bool Symtab::extractInfo()
 
     if (0 == imageLen_ || 0 == linkedFile->code_ptr()) {
         // for AIX, code_ptr()==NULL is normal behavior
-      #if !defined(os_aix)
-        if (0 == linkedFile->code_ptr()) {
-            fprintf(stderr, "[%s][%d]WARNING: null code pointer in Symtab, possibly due to a missing .text section.\n",__FILE__,__LINE__);
-            linkedFile->code_ptr_ = (char *) linkedFile->code_off();
-        }
-        else {
-      #endif
-        serr = Obj_Parsing;
-        return false;
-      #if !defined(os_aix)
+#if !defined(os_aix)
+       if (0 == linkedFile->code_ptr()) {
+          fprintf(stderr, "[%s][%d]WARNING: null code pointer in Symtab, possibly due to a missing .text section.\n",__FILE__,__LINE__);
+          linkedFile->code_ptr_ = (char *) linkedFile->code_off();
        }
-      #endif
+       else {
+#endif
+          serr = Obj_Parsing;
+          return false;
+#if !defined(os_aix)
+        }
+#endif
    }
 	
   //  if (!imageLen_ || !linkedFile->code_ptr()) {
@@ -1596,7 +1596,7 @@ bool Symtab::findVariable(std::vector <Symbol *> &ret, const std::string &name,
 }
 
 bool Symtab::findMod(std::vector <Symbol *> &ret, const std::string &name,
-                            bool isMangled, bool isRegex,
+                            bool /*isMangled*/, bool isRegex,
                             bool checkCase)
 {
     if(!isRegex)
@@ -3160,6 +3160,11 @@ DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
 DLLEXPORT bool Symtab::getSegments(vector<Segment> &segs) const
 {
     return linkedFile->getSegments(segs);
+}
+
+DLLEXPORT bool Symtab::getMappedRegions(std::vector<Region> &regs) const
+{
+   return linkedFile->getMappedRegions(regs);
 }
 
 DLLEXPORT bool Symtab::updateCode(void *buffer, unsigned size)

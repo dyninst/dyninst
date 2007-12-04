@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.10 2007/10/05 16:34:38 giri Exp $
+ * $Id: Object.h,v 1.11 2007/12/04 18:05:57 legendre Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -114,6 +114,8 @@ public:
     DLLEXPORT virtual  bool   get_func_binding_table(std::vector<relocationEntry> &) const;
     DLLEXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const;
     DLLEXPORT bool   getSegments(std::vector<Segment> &segs) const;
+    DLLEXPORT bool   getMappedRegions(std::vector<Region> &regs) const;
+
     DLLEXPORT bool have_deferred_parsing( void ) const;
     // for debuggering....
     DLLEXPORT const std::ostream &dump_state_info(std::ostream &s);

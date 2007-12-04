@@ -30,10 +30,9 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.19 2007/11/19 18:28:21 giri Exp $
+ * $Id: Object-elf.C,v 1.20 2007/12/04 18:05:52 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
-
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -3128,6 +3127,7 @@ bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functio
         em->checkIfStripped(obj ,functions, variables, mods, notypes); 
         return em->driver(obj, fName);
     }
+    return false;
 }
 
 #if 0
@@ -4127,24 +4127,24 @@ void Object::parseFileLineInfo()
 
 void Object::parseTypeInfo(Symtab *obj)
 {
-//  #if defined(TIMED_PARSE)
+#if defined(TIMED_PARSE)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
-//  #endif	 
+#endif	 
 
     parseStabTypes(obj);
     parseDwarfTypes(obj);
 
-//  #if defined(TIMED_PARSE)
+#if defined(TIMED_PARSE)
     struct timeval endtime;
     gettimeofday(&endtime, NULL);
     unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
     unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
     unsigned long difftime = lendtime - lstarttime;
     double dursecs = difftime/(1000 );
-//    cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->file()
-//	 <<") took "<< dursecs <<" msecs" << endl;
-//  #endif	 
+    cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->file()
+         <<") took "<< dursecs <<" msecs" << endl;
+#endif	 
 }
 
 void Object::parseStabTypes(Symtab *obj)
@@ -4167,7 +4167,7 @@ void Object::parseStabTypes(Symtab *obj)
 
     Module *mod;
 
- #if defined(TIMED_PARSE)
+#if defined(TIMED_PARSE)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
     unsigned int pss_count = 0;
@@ -4177,7 +4177,7 @@ void Object::parseStabTypes(Symtab *obj)
     unsigned int fun_count = 0;
     double fun_dur = 0;
     struct timeval t1, t2;
- #endif
+#endif
 
 
     stabptr = get_stab_info();
@@ -4216,10 +4216,10 @@ void Object::parseStabTypes(Symtab *obj)
            
 	   case N_SO: /* compilation source or file name */
 	       /* bperr("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
-	     #ifdef TIMED_PARSE
+#ifdef TIMED_PARSE
 	       src_count++;
 	       gettimeofday(&t1, NULL);
-	     #endif
+#endif
                current_func_name = ""; // reset for next object file
 	       current_mangled_func_name = ""; // reset for next object file
 	       current_func = NULL;
@@ -4238,11 +4238,11 @@ void Object::parseStabTypes(Symtab *obj)
 	       }else {
 		        parseActive = false;
 	       }
-	     #ifdef TIMED_PARSE
+#ifdef TIMED_PARSE
 	       gettimeofday(&t2, NULL);
 	       src_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
 	       //src_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
-	     #endif
+#endif
 	        break;
 	   case N_SLINE:
 	        mostRecentLinenum = stabptr->desc(i);
@@ -4254,10 +4254,10 @@ void Object::parseStabTypes(Symtab *obj)
 	    std::vector<Symbol *> bpfv;
             switch(stabptr->type(i)){
 	        case N_FUN:
-		  #ifdef TIMED_PARSE
+#ifdef TIMED_PARSE
 		    fun_count++;
 	            gettimeofday(&t1, NULL);
-	          #endif
+#endif
 		    //all we have to do with function stabs at this point is to assure that we have
 	            //properly set the var currentFunctionName for the later case of (parseActive)
 	            current_func = NULL;
@@ -4306,11 +4306,11 @@ void Object::parseStabTypes(Symtab *obj)
                         delete[] tmp;
     		    }
 		    delete[] ptr;
-		  #ifdef TIMED_PARSE
+#ifdef TIMED_PARSE
 		    gettimeofday(&t2, NULL);
 		    fun_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
 		    //fun_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
-		  #endif
+#endif
 	            break;
 	    }
 	    if (!parseActive) continue;
@@ -4383,10 +4383,10 @@ void Object::parseStabTypes(Symtab *obj)
 		case 160:   // parameter variable -- N_PSYM
 		case 0xc6:  // position-independant local typedefs -- N_ISYM
 		case 0xc8: // position-independant external typedefs -- N_ESYM
-	          #ifdef TIMED_PARSE
+#ifdef TIMED_PARSE
 	            pss_count++;
 	            gettimeofday(&t1, NULL);
-	          #endif
+#endif
 		    if (stabptr->type(i) == N_FUN) current_func = NULL;
 		    ptr = const_cast<char *>(stabptr->name(i));
 		    while (ptr[strlen(ptr)-1] == '\\') {
@@ -4413,18 +4413,18 @@ void Object::parseStabTypes(Symtab *obj)
 			//				                  temp.c_str());
 			// //bperr( "  symbol: %s\n", ptr);
 		    }
-		  #ifdef TIMED_PARSE
+#ifdef TIMED_PARSE
 		    gettimeofday(&t2, NULL);
 		    pss_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
 		    //      pss_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
-		  #endif
+#endif
 		    break;
 		default:
 		    break;
 	    }			    
 	}
     }
-  #if defined(TIMED_PARSE)
+#if defined(TIMED_PARSE)
     struct timeval endtime;
     gettimeofday(&endtime, NULL);
     unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
@@ -4439,5 +4439,19 @@ void Object::parseStabTypes(Symtab *obj)
     cout << "     parseStabString: " << pss_count << " took " << pss_dur << "msec" << endl;
     cout << "     Total: " << pss_dur + fun_dur + src_dur
          << " msec" << endl;
-  #endif
+#endif
 }  
+
+bool Object::getMappedRegions(std::vector<Region> &regs) const 
+{
+   for (unsigned i = 0; i < elfHdr.e_phnum(); i++) {
+      Elf_X_Phdr phdr = elfHdr.get_phdr(i);
+
+      Region newreg;
+      newreg.addr = phdr.p_vaddr();
+      newreg.size = phdr.p_memsz();
+      newreg.offset = phdr.p_offset();
+      regs.push_back(newreg);
+   }
+   return true;
+}

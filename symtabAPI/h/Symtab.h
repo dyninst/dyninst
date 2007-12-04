@@ -179,13 +179,14 @@ class Symtab : public LookupInterface {
 	
 	/*****Query Functions*****/
 	DLLEXPORT bool isExec() const;
-   	DLLEXPORT ObjectType getObjectType() const;
+   DLLEXPORT ObjectType getObjectType() const;
  
 	DLLEXPORT bool isCode(const Offset where) const;
 	DLLEXPORT bool isData(const Offset where) const;
 	DLLEXPORT bool isValidOffset(const Offset where) const;
 
 	DLLEXPORT bool isNativeCompiler() const;
+   DLLEXPORT bool getMappedRegions(std::vector<Region> &mappedregs) const;
 	
 	/***** Line Number Information *****/
 	DLLEXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
@@ -202,7 +203,7 @@ class Symtab : public LookupInterface {
 	DLLEXPORT virtual bool findVariableType(Type *&type, std::string name);
 
 	DLLEXPORT bool addType(Type *typ);
- 	void parseTypesNow();
+ 	DLLEXPORT void parseTypesNow();
 
 	/***** Local Variable Information *****/
 	DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
@@ -328,7 +329,6 @@ class Symtab : public LookupInterface {
 
 	void parseLineInformation();
 	void parseTypes();
-	
 
    /***** Private Data Members *****/
  private:

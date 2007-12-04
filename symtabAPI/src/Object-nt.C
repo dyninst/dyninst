@@ -29,13 +29,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.16 2007/10/04 22:04:38 giri Exp $
+// $Id: Object-nt.C,v 1.17 2007/12/04 18:05:54 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
 #include <cvconst.h>
 #include <oleauto.h>
+#if !defined __out_ecount_opt
+#define __out_ecount_opt(x)
+#endif
 #include <dbghelp.h>
 
 #include <iostream>
@@ -1826,6 +1829,24 @@ bool AObject::getSegments(vector<Segment> &segs) const
 {
     return true;
 }
+
+bool AObject::getMappedRegions(std::vector<Region> &regs) const
+{
+   Region reg;
+
+   reg.addr = code_vldS_;
+   reg.size = code_len_;
+   reg.offset = code_off_;
+   regs.push_back(reg);
+
+   reg.addr = data_vldS_;
+   reg.size = data_len_;
+   reg.offset = data_off_;
+   regs.push_back(reg);
+   
+   return true;
+}
+
 
 bool Object::emitDriver(Symtab *obj, std::string fName,std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag){
 	return true;

@@ -117,6 +117,12 @@ typedef struct{
     unsigned segFlags;
 }Segment;
 
+typedef struct {
+   Address addr;
+   unsigned long size;
+   Offset offset;
+} Region;
+    
 }//namespace SymtabAPI
 }//namespace Dyninst
 

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.9 2007/10/04 22:04:35 giri Exp $
+ * $Id: Object-elf.h,v 1.10 2007/12/04 18:05:53 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -208,6 +208,7 @@ class Object : public AObject {
   void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
   void parseFileLineInfo();
   void parseTypeInfo(Symtab *obj);
+  bool getMappedRegions(std::vector<Region> &regs) const;
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
   bool get_func_binding_table(std::vector<relocationEntry> &fbt) const;

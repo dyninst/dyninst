@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.9 2007/10/05 16:34:37 giri Exp $
+ * $Id: Object-xcoff.h,v 1.10 2007/12/04 18:05:56 legendre Exp $
 ************************************************************************/
 
 
@@ -206,6 +206,7 @@ class Object : public AObject {
     // needs to have a small value added back in. On shared objects.
     Offset data_reloc () const { return data_reloc_; }
     Offset text_reloc () const { return text_reloc_; }
+    Offset bss_size () const { return bss_size_; }
     
     void get_stab_info(char *&stabstr, int &nstabs, void *&stabs, char *&stringpool) const;
     
@@ -253,6 +254,7 @@ private:
     Offset toc_offset_;
     Offset data_reloc_;
     Offset text_reloc_;
+    Offset bss_size_;
 
     Offset   loadAddress_;      // The object may specify a load address
                                     //   Set to 0 if it may load anywhere
