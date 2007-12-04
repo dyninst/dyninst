@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.31 2007/06/20 20:49:37 ssuen Exp $
+ * $Id: Types.h,v 1.32 2007/12/04 18:05:10 legendre Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -169,11 +169,12 @@ WindowsNT    nonexistant
 
 typedef int64_t time64;
 
-#if !defined(address_type_defined)
-#define address_type_defined
-typedef long unsigned int Address;
+#if defined(__cplusplus)
+#include "dynutil/h/dyntypes.h"
+using namespace Dyninst;
+#else
+typedef unsigned long Address;
 #endif
-
 /* Note the inherent assumption that the size of a "long" integer matches
    that of an address (void*) on every supported Paradyn/Dyninst system!
    (This can be checked with Address_chk().)

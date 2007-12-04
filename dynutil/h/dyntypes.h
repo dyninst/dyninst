@@ -3,12 +3,13 @@
 #define DYNTYPES_H
 
 #if defined(_MSC_VER)
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
 
 namespace Dyninst
 {
-  //   typedef unsigned long Address;   
+   typedef unsigned long Address;   
    typedef unsigned long Offset;
    
 #if defined(_MSC_VER)
