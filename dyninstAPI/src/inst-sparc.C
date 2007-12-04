@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.198 2007/12/04 17:58:03 bernat Exp $
+// $Id: inst-sparc.C,v 1.199 2007/12/04 21:10:18 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/InstrucIter.h"
+#include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/src/dyn_thread.h" // get_index
 
