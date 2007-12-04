@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.94 2007/12/04 17:57:44 bernat Exp $
+// $Id: BPatch_function.C,v 1.95 2007/12/04 18:07:26 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -2090,4 +2090,25 @@ void BPatch_function::createDataDependenceGraph() {
   
   setAnnotation(getAnnotationType("DataDependenceGraph"), new Annotation(dataDependenceGraph));  
 }
+#else
+BPatch_dependenceGraphNode* BPatch_function::getSliceInt(BPatch_instruction*)
+{
+   return NULL;
+}
+
+BPatch_dependenceGraphNode* BPatch_function::getProgramDependenceGraphInt(BPatch_instruction*)
+{
+   return NULL;
+}
+
+BPatch_dependenceGraphNode* BPatch_function::getControlDependenceGraphInt(BPatch_instruction*)
+{
+   return NULL;
+}
+
+BPatch_dependenceGraphNode* BPatch_function::getDataDependenceGraphInt(BPatch_instruction *)
+{
+   return NULL;
+}
+
 #endif
