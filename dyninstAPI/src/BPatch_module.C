@@ -98,6 +98,7 @@ BPatch_type *getType(HANDLE p, Address mod_base, int typeIndex, BPatch_module *m
  */
 bool BPatch_module::getSourceObj(BPatch_Vector<BPatch_sourceObj *> &vect)
 {
+   if (!mod) return false;
     BPatch_Vector<BPatch_function *> *temp;
     temp = getProcedures();
     if (temp) {
@@ -660,6 +661,8 @@ void BPatch_module::parseTypes()
     pdstring currentSourceFile;
     bool inCommonBlock = false;
 
+   if (!mod) return;
+
 #if defined(TIMED_PARSE)
   struct timeval starttime;
   gettimeofday(&starttime, NULL);
@@ -890,6 +893,7 @@ void BPatch_module::parseTypes()
 /* Platforms which use DWARF call parseStabTypes() and parseDwarfTypes() directly.
    Our POWER, Alpha, and Windows ports have their own custom parseTypes() functions.  */
 void BPatch_module::parseTypes() {
+   if (!mod) return;
 	image *moduleImage = mod->obj()->parse_img();
 	assert( moduleImage != NULL );
 	Symtab *moduleObject = moduleImage->getObject();
@@ -927,6 +931,7 @@ void BPatch_module::parseTypes() {
 // does NOT parse file-line info anymore, this is done later, upon request.
 void BPatch_module::parseStabTypes() 
 {
+   if (!mod) return;
   stab_entry *stabptr = NULL;
   const char *next_stabstr = NULL;
 
@@ -1296,6 +1301,7 @@ extern void parseCoff(BPatch_module *mod, char *exeName,
 
 void BPatch_module::parseTypes()
 {
+  if (!mod) return;
   image * imgPtr=NULL;
 
   //Using mapped_module to get the image Object.
@@ -2337,7 +2343,8 @@ void *BPatch_module::getBaseAddrInt()
  */
 unsigned long BPatch_module::getSizeInt() 
 {
-    return (unsigned long) mod->obj()->imageSize();
+   if (!mod) return 0;
+   return (unsigned long) mod->obj()->imageSize();
 }
 
 
@@ -2348,6 +2355,7 @@ bool BPatch_module::isNativeCompilerInt()
 
 size_t BPatch_module::getAddressWidthInt()
 {
+  if (!mod) return 0;
   return mod->obj()->parse_img()->getObject()->getAddressWidth();
 }
 
@@ -2358,7 +2366,8 @@ void BPatch_module::setDefaultNamespacePrefix(char *name)
 
 bool BPatch_module::isSystemLib() 
 {
-    string str = mod->fileName();
+   if (!mod) return false;
+   string str = mod->fileName();
 
     // Solaris 2.8... we don't grab the initial func always,
     // so fix up this code as well...
@@ -2393,6 +2402,8 @@ bool BPatch_module::getLineNumbersInt( unsigned int & startLine, unsigned int & 
 {
     /* I don't think this function has ever returned nonzeroes.  Approximate a better 
        result by with the line numbers for the first and last addresses in the module. */
+   if (!mod) return false;
+
     void * startAddr, * endAddr;
     if( ! getAddressRangeInt( startAddr, endAddr ) ) {
     	return false;
@@ -2419,6 +2430,7 @@ bool BPatch_module::getLineNumbersInt( unsigned int & startLine, unsigned int & 
 bool BPatch_module::getAddressRangeInt(void * &start, void * &end)
 {
     // Code? Data? We'll do code for now...
+    if (!mod) return false;
     start = (void *)(mod->obj()->codeAbs());
     end = (void *)(mod->obj()->codeAbs() + mod->obj()->imageSize());
     return true;
@@ -2442,6 +2454,7 @@ char *BPatch_module::getUniqueStringInt(char *buffer, int length)
 #endif
     // Use "<program_name>|<module_name>" as the unique name if this module is
     // part of the executable and "<module_name>" if it is not.
+    if (!mod) return NULL;
     if(isSharedLib())
         snprintf(buffer, length, "%s", mod->fileName().c_str());
     else {
@@ -2467,6 +2480,7 @@ int BPatch_module::getBindingTypeInt()
 std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
 {
     std::vector<struct BPatch_module::Statement> statements;
+    if (!mod) return statements;
 
 	LineInformation *li = mod->getLineInformation();
     if(!li)
