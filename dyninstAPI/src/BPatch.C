@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.175 2007/12/04 17:57:38 bernat Exp $
+// $Id: BPatch.C,v 1.176 2007/12/04 22:00:33 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -94,6 +94,7 @@ BPatch::BPatch()
     trampMergeOn(true),
     saveFloatingPointsOn(true),
     livenessAnalysisOn_(true),
+    livenessAnalysisDepth_(3),
     asyncActive(false),
     delayedParsing_(false),
     systemPrelinkCommand(NULL),
@@ -403,6 +404,14 @@ void BPatch::setLivenessAnalysisInt(bool x)
 }
 bool BPatch::livenessAnalysisOnInt() {
     return livenessAnalysisOn_;
+}
+
+void BPatch::setLivenessDepthInt(int x)
+{
+    livenessAnalysisDepth_ = x;
+}
+int BPatch::livenessAnalysisDepthInt() {
+    return livenessAnalysisDepth_;
 }
 
 bool BPatch::hasForcedRelocation_NPInt()
