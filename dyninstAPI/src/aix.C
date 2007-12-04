@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.236 2007/09/19 21:54:37 giri Exp $
+// $Id: aix.C,v 1.237 2007/12/04 17:57:51 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -66,6 +66,8 @@
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/InstrucIter.h"
+
+#include "dyninstAPI/src/registerSpace.h"
 
 // save the world...
 #include "dyninstAPI/h/BPatch.h"
