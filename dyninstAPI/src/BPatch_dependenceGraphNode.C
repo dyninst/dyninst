@@ -64,13 +64,13 @@ BPatch_instruction* BPatch_dependenceGraphNode::getBPInstructionInt() {
 }
 
 void BPatch_dependenceGraphNode::getOutgoingEdgesInt(BPatch_Vector <BPatch_dependenceGraphEdge *>& out) {
-  int i;
+  unsigned i;
   for(i=0; i<outgoing->size(); i++)
     out.push_back((*outgoing)[i]);
 }
 
 void BPatch_dependenceGraphNode::getIncomingEdgesInt(BPatch_Vector <BPatch_dependenceGraphEdge *>& inc) {
-  int i;  
+  unsigned i;  
   for(i=0; i<incoming->size(); i++)
     inc.push_back((*incoming)[i]);
 }

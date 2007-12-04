@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.1 2007/09/17 15:14:24 tugrul Exp $
+// $Id: Annotatable.h,v 1.2 2007/12/04 18:05:06 legendre Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -64,6 +64,9 @@ class Annotation {
   void* getItem() {return item; }
 };
 
+#if defined(_MSC_VER)
+#pragma warning(disable:4661)
+#endif
 template <class T>
 class Annotatable
 {

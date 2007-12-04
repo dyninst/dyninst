@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.39 2007/09/25 17:28:16 giri Exp $
+ * $Id: image-flowGraph.C,v 1.40 2007/12/04 18:05:08 legendre Exp $
  */
 
 #include <stdio.h>
@@ -102,7 +102,6 @@ bool image::analyzeImage()
  // Hold function stubs created during parsing
   dictionary_hash< Address, image_func * > preParseStubs( addrHash );
   image_func *pdf;
-  image_parRegion *parReg;
   pdmodule *mod = NULL;
 
   assert(parseState_ < analyzed);
@@ -146,7 +145,7 @@ bool image::analyzeImage()
   */
 
 #if defined(os_solaris) || defined(os_aix)
-
+  image_parRegion *parReg;
   int currentSectionNum = 0;
 
   // Most of the time there will be no parallel regions in an image, so nothing will happen.

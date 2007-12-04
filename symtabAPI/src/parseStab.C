@@ -559,7 +559,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	      //Create Type.
 	      if (stabstr[cnt] == '=') {
 		/* More Stuff to parse, call parseTypeDef */
-		char *oldStr = stabstr;
+            //char *oldStr = stabstr;
 		stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
 		cnt = 0;
 		// AIX seems to append an semi at the end of these
