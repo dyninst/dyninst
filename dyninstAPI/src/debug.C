@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: debug.C,v 1.3 2007/06/13 18:50:36 bernat Exp $
+// $Id: debug.C,v 1.4 2007/12/04 17:58:19 bernat Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -240,6 +240,7 @@ int dyn_debug_bpatch = 0;
 int dyn_debug_regalloc = 0;
 int dyn_debug_ast = 0;
 int dyn_debug_write = 0;
+int dyn_debug_liveness = 0;
 
 static char *dyn_debug_write_filename = NULL;
 static FILE *dyn_debug_write_file = NULL;
@@ -343,9 +344,13 @@ bool init_debug() {
       dyn_debug_ast = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_WRITE"))) {
-    fprintf(stderr, "Enabling DyninstAPI process write debuging\n");
+    fprintf(stderr, "Enabling DyninstAPI process write debugging\n");
     dyn_debug_write = 1;
     dyn_debug_write_filename = p;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_LIVENESS"))) {
+    fprintf(stderr, "Enabling DyninstAPI liveness debugging\n");
+    dyn_debug_liveness = 1;
   }
 
   debugPrintLock = new eventLock();
@@ -739,6 +744,24 @@ int write_printf(const char *format, ...)
   va_list va;
   va_start(va, format);
   int ret = vfprintf(dyn_debug_write_file, format, va);
+  va_end(va);
+
+  debugPrintLock->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}
+
+int liveness_printf(const char *format, ...)
+{
+  if (!dyn_debug_liveness) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->_Lock(FILE__, __LINE__);
+  
+  fprintf(stderr, "[%s]: ", getThreadStr(getExecThreadID()));
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
   va_end(va);
 
   debugPrintLock->_Unlock(FILE__, __LINE__);
