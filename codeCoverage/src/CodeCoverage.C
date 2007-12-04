@@ -57,7 +57,6 @@
 
 #include "common/h/Types.h"
 #include "common/h/String.h"
-#include "dyninstAPI/src/LineInformation.h"
 
 #include <CCcommon.h>
 #include <FCAllBlocks.h>
