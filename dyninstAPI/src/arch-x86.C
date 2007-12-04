@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.72 2007/09/12 20:57:24 bernat Exp $
+// $Id: arch-x86.C,v 1.73 2007/12/04 17:58:15 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -50,6 +50,11 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <boost/assign/list_of.hpp>
+#include <boost/assign/std/vector.hpp>
+#include <boost/assign/std/set.hpp>
+#include <map>
+#include <string>
 #include "common/h/Types.h"
 #include "arch.h"
 #include "util.h"
@@ -238,6 +243,558 @@ enum {
   fCMPS
 };
 
+
+
+using namespace boost::assign;
+using namespace std;
+
+
+map<entryID, string> entryNames = map_list_of
+  (e_aaa, "aaa")
+  (e_aad, "aad")
+  (e_aam, "aam")
+  (e_aas, "aas")
+  (e_adc, "adc")
+  (e_add, "add")
+  (e_addpd, "addpd")
+  (e_addps, "addps")
+  (e_addsd, "addsd")
+  (e_addss, "addss")
+  (e_and, "and")
+  (e_andnpd, "andnpd")
+  (e_andnps, "andnps")
+  (e_andpd, "andpd")
+  (e_andps, "andps")
+  (e_arpl, "arpl")
+  (e_bound, "bound")
+  (e_bsf, "bsf")
+  (e_bsr, "bsr")
+  (e_bswap, "bswap")
+  (e_bt, "bt")
+  (e_btc, "btc")
+  (e_btr, "btr")
+  (e_bts, "bts")
+  (e_call, "call")
+  (e_cbw_cwde, "cbw/cwde")
+  (e_clc, "clc")
+  (e_cld, "cld")
+  (e_clflush, "clflush")
+  (e_cli, "cli")
+  (e_clts, "clts")
+  (e_cmc, "cmc")
+  (e_cmovbe, "cmovbe")
+  (e_cmove, "cmove")
+  (e_cmovnae, "cmovnae")
+  (e_cmovnb, "cmovnb")
+  (e_cmovnbe, "cmovnbe")
+  (e_cmovne, "cmovne")
+  (e_cmovng, "cmovng")
+  (e_cmovnge, "cmovnge")
+  (e_cmovnl, "cmovnl")
+  (e_cmovno, "cmovno")
+  (e_cmovns, "cmovns")
+  (e_cmovo, "cmovo")
+  (e_cmovpe, "cmovpe")
+  (e_cmovpo, "cmovpo")
+  (e_cmovs, "cmovs")
+  (e_cmp, "cmp")
+  (e_cmppd, "cmppd")
+  (e_cmpps, "cmpps")
+  (e_cmpsb, "cmpsb")
+  (e_cmpsd, "cmpsd")
+  (e_cmpss, "cmpss")
+  (e_cmpsw, "cmpsw")
+  (e_cmpxch, "cmpxch")
+  (e_cmpxch8b, "cmpxch8b")
+  (e_comisd, "comisd")
+  (e_comiss, "comiss")
+  (e_cpuid, "cpuid")
+  (e_cvtdq2pd, "cvtdq2pd")
+  (e_cvtdq2ps, "cvtdq2ps")
+  (e_cvtpd2dq, "cvtpd2dq")
+  (e_cvtpd2pi, "cvtpd2pi")
+  (e_cvtpd2ps, "cvtpd2ps")
+  (e_cvtpi2pd, "cvtpi2pd")
+  (e_cvtpi2ps, "cvtpi2ps")
+  (e_cvtps2dq, "cvtps2dq")
+  (e_cvtps2pd, "cvtps2pd")
+  (e_cvtps2pi, "cvtps2pi")
+  (e_cvtsd2si, "cvtsd2si")
+  (e_cvtsd2ss, "cvtsd2ss")
+  (e_cvtsi2sd, "cvtsi2sd")
+  (e_cvtsi2ss, "cvtsi2ss")
+  (e_cvtss2sd, "cvtss2sd")
+  (e_cvtss2si, "cvtss2si")
+  (e_cvttpd2dq, "cvttpd2dq")
+  (e_cvttpd2pi, "cvttpd2pi")
+  (e_cvttps2dq, "cvttps2dq")
+  (e_cvttps2pi, "cvttps2pi")
+  (e_cvttsd2si, "cvttsd2si")
+  (e_cvttss2si, "cvttss2si")
+  (e_cwd_cdq, "cwd/cdq")
+  (e_daa, "daa")
+  (e_das, "das")
+  (e_dec, "dec")
+  (e_div, "div")
+  (e_divpd, "divpd")
+  (e_divps, "divps")
+  (e_divsd, "divsd")
+  (e_divss, "divss")
+  (e_emms, "emms")
+  (e_enter, "enter")
+  (e_femms, "femms")
+  (e_fxrstor, "fxrstor")
+  (e_fxsave, "fxsave")
+  (e_hlt, "hlt")
+  (e_idiv, "idiv")
+  (e_imul, "imul")
+  (e_in, "in")
+  (e_inc, "inc")
+  (e_insb, "insb")
+  (e_insw_d, "insw/d")
+  (e_int, "int")
+  (e_int3, "int 3")
+  (e_int1, "int1")
+  (e_into, "into")
+  (e_invd, "invd")
+  (e_invlpg, "invlpg")
+  (e_iret, "iret")
+  (e_jb, "jb")
+  (e_jb_jnaej_j, "jb/jnaej/j")
+  (e_jbe, "jbe")
+  (e_jcxz_jec, "jcxz/jec")
+  (e_jl, "jl")
+  (e_jle, "jle")
+  (e_jmp, "jmp")
+  (e_jnb, "jnb")
+  (e_jnb_jae_j, "jnb/jae/j")
+  (e_jnbe, "jnbe")
+  (e_jnl, "jnl")
+  (e_jnle, "jnle")
+  (e_jno, "jno")
+  (e_jnp, "jnp")
+  (e_jns, "jns")
+  (e_jnz, "jnz")
+  (e_jo, "jo")
+  (e_jp, "jp")
+  (e_js, "js")
+  (e_jz, "jz")
+  (e_lahf, "lahf")
+  (e_lar, "lar")
+  (e_ldmxcsr, "ldmxcsr")
+  (e_lds, "lds")
+  (e_lea, "lea")
+  (e_leave, "leave")
+  (e_les, "les")
+  (e_lfence, "lfence")
+  (e_lfs, "lfs")
+  (e_lgdt, "lgdt")
+  (e_lgs, "lgs")
+  (e_lidt, "lidt")
+  (e_lldt, "lldt")
+  (e_lmsw, "lmsw")
+  (e_lodsb, "lodsb")
+  (e_lodsw, "lodsw")
+  (e_loop, "loop")
+  (e_loope, "loope")
+  (e_loopn, "loopn")
+  (e_lsl, "lsl")
+  (e_lss, "lss")
+  (e_ltr, "ltr")
+  (e_maskmovdqu, "maskmovdqu")
+  (e_maskmovq, "maskmovq")
+  (e_maxpd, "maxpd")
+  (e_maxps, "maxps")
+  (e_maxsd, "maxsd")
+  (e_maxss, "maxss")
+  (e_mfence, "mfence")
+  (e_minpd, "minpd")
+  (e_minps, "minps")
+  (e_minsd, "minsd")
+  (e_minss, "minss")
+  (e_mmxud, "mmxud")
+  (e_mov, "mov")
+  (e_movapd, "movapd")
+  (e_movaps, "movaps")
+  (e_movd, "movd")
+  (e_movdq2q, "movdq2q")
+  (e_movdqa, "movdqa")
+  (e_movdqu, "movdqu")
+  (e_movhpd, "movhpd")
+  (e_movhps, "movhps")
+  (e_movhps_movlhps, "movhps/movlhps")
+  (e_movlpd, "movlpd")
+  (e_movlps, "movlps")
+  (e_movlps_movhlps, "movlps/movhlps")
+  (e_movmskpd, "movmskpd")
+  (e_movmskps, "movmskps")
+  (e_movntdq, "movntdq")
+  (e_movnti, "movnti")
+  (e_movntpd, "movntpd")
+  (e_movntps, "movntps")
+  (e_movntq, "movntq")
+  (e_movq, "movq")
+  (e_movq2dq, "movq2dq")
+  (e_movsb, "movsb")
+  (e_movsd, "movsd")
+  (e_movss, "movss")
+  (e_movsw_d, "movsw/d")
+  (e_movsx, "movsx")
+  (e_movupd, "movupd")
+  (e_movups, "movups")
+  (e_movzx, "movzx")
+  (e_mul, "mul")
+  (e_mulpd, "mulpd")
+  (e_mulps, "mulps")
+  (e_mulsd, "mulsd")
+  (e_mulss, "mulss")
+  (e_neg, "neg")
+  (e_nop, "nop")
+  (e_not, "not")
+  (e_or, "or")
+  (e_orpd, "orpd")
+  (e_orps, "orps")
+  (e_out, "out")
+  (e_outsb, "outsb")
+  (e_outsw_d, "outsw/d")
+  (e_packssdw, "packssdw")
+  (e_packsswb, "packsswb")
+  (e_packuswb, "packuswb")
+  (e_paddb, "paddb")
+  (e_paddd, "paddd")
+  (e_paddq, "paddq")
+  (e_paddsb, "paddsb")
+  (e_paddsw, "paddsw")
+  (e_paddusb, "paddusb")
+  (e_paddusw, "paddusw")
+  (e_paddw, "paddw")
+  (e_pand, "pand")
+  (e_pandn, "pandn")
+  (e_pavgb, "pavgb")
+  (e_pavgw, "pavgw")
+  (e_pcmpeqb, "pcmpeqb")
+  (e_pcmpeqd, "pcmpeqd")
+  (e_pcmpeqw, "pcmpeqw")
+  (e_pcmpgdt, "pcmpgdt")
+  (e_pcmpgtb, "pcmpgtb")
+  (e_pcmpgtw, "pcmpgtw")
+  (e_pextrw, "pextrw")
+  (e_pinsrw, "pinsrw")
+  (e_pmaddwd, "pmaddwd")
+  (e_pmaxsw, "pmaxsw")
+  (e_pmaxub, "pmaxub")
+  (e_pminsw, "pminsw")
+  (e_pminub, "pminub")
+  (e_pmovmskb, "pmovmskb")
+  (e_pmulhuw, "pmulhuw")
+  (e_pmulhw, "pmulhw")
+  (e_pmullw, "pmullw")
+  (e_pmuludq, "pmuludq")
+  (e_pop, "pop")
+  (e_popa_d, "popa(d)")
+  (e_popf_d, "popf(d)")
+  (e_por, "por")
+  (e_prefetch, "prefetch")
+  (e_prefetchNTA, "prefetchNTA")
+  (e_prefetchT0, "prefetchT0")
+  (e_prefetchT1, "prefetchT1")
+  (e_prefetchT2, "prefetchT2")
+  (e_prefetch_w, "prefetch(w)")
+  (e_prefetchw, "prefetchw")
+  (e_psadbw, "psadbw")
+  (e_pshufd, "pshufd")
+  (e_pshufhw, "pshufhw")
+  (e_pshuflw, "pshuflw")
+  (e_pshufw, "pshufw")
+  (e_pslld, "pslld")
+  (e_pslldq, "pslldq")
+  (e_psllq, "psllq")
+  (e_psllw, "psllw")
+  (e_psrad, "psrad")
+  (e_psraw, "psraw")
+  (e_psrld, "psrld")
+  (e_psrldq, "psrldq")
+  (e_psrlq, "psrlq")
+  (e_psrlw, "psrlw")
+  (e_psubb, "psubb")
+  (e_psubd, "psubd")
+  (e_psubsb, "psubsb")
+  (e_psubsw, "psubsw")
+  (e_psubusb, "psubusb")
+  (e_psubusw, "psubusw")
+  (e_psubw, "psubw")
+  (e_punpckhbw, "punpckhbw")
+  (e_punpckhdq, "punpckhdq")
+  (e_punpckhqd, "punpckhqd")
+  (e_punpckhwd, "punpckhwd")
+  (e_punpcklbw, "punpcklbw")
+  (e_punpcklqd, "punpcklqd")
+  (e_punpcklqld, "punpcklqld")
+  (e_punpcklwd, "punpcklwd")
+  (e_push, "push")
+  (e_pusha_d, "pusha(d)")
+  (e_pushf_d, "pushf(d)")
+  (e_pxor, "pxor")
+  (e_rcl, "rcl")
+  (e_rcpps, "rcpps")
+  (e_rcpss, "rcpss")
+  (e_rcr, "rcr")
+  (e_rdmsr, "rdmsr")
+  (e_rdpmc, "rdpmc")
+  (e_rdtsc, "rdtsc")
+  (e_ret_far, "ret far")
+  (e_ret_near, "ret near")
+  (e_rol, "rol")
+  (e_ror, "ror")
+  (e_rsm, "rsm")
+  (e_rsqrtps, "rsqrtps")
+  (e_rsqrtss, "rsqrtss")
+  (e_sahf, "sahf")
+  (e_salc, "salc")
+  (e_sar, "sar")
+  (e_sbb, "sbb")
+  (e_scasb, "scasb")
+  (e_scasw_d, "scasw/d")
+  (e_setb, "setb")
+  (e_setbe, "setbe")
+  (e_setl, "setl")
+  (e_setle, "setle")
+  (e_setnb, "setnb")
+  (e_setnbe, "setnbe")
+  (e_setnl, "setnl")
+  (e_setnle, "setnle")
+  (e_setno, "setno")
+  (e_setnp, "setnp")
+  (e_setns, "setns")
+  (e_setnz, "setnz")
+  (e_seto, "seto")
+  (e_setp, "setp")
+  (e_sets, "sets")
+  (e_setz, "setz")
+  (e_sfence, "sfence")
+  (e_sgdt, "sgdt")
+  (e_shl_sal, "shl/sal")
+  (e_shld, "shld")
+  (e_shr, "shr")
+  (e_shrd, "shrd")
+  (e_shufpd, "shufpd")
+  (e_shufps, "shufps")
+  (e_sidt, "sidt")
+  (e_sldt, "sldt")
+  (e_smsw, "smsw")
+  (e_sqrtpd, "sqrtpd")
+  (e_sqrtps, "sqrtps")
+  (e_sqrtsd, "sqrtsd")
+  (e_sqrtss, "sqrtss")
+  (e_stc, "stc")
+  (e_std, "std")
+  (e_sti, "sti")
+  (e_stmxcsr, "stmxcsr")
+  (e_stosb, "stosb")
+  (e_stosw_d, "stosw/d")
+  (e_str, "str")
+  (e_sub, "sub")
+  (e_subpd, "subpd")
+  (e_subps, "subps")
+  (e_subsd, "subsd")
+  (e_subss, "subss")
+  (e_syscall, "syscall")
+  (e_sysenter, "sysenter")
+  (e_sysexit, "sysexit")
+  (e_sysret, "sysret")
+  (e_test, "test")
+  (e_ucomisd, "ucomisd")
+  (e_ucomiss, "ucomiss")
+  (e_ud2, "ud2")
+  (e_ud2grp10, "ud2grp10")
+  (e_unpckhpd, "unpckhpd")
+  (e_unpckhps, "unpckhps")
+  (e_unpcklpd, "unpcklpd")
+  (e_unpcklps, "unpcklps")
+  (e_verr, "verr")
+  (e_verw, "verw")
+  (e_wait, "wait")
+  (e_wbinvd, "wbinvd")
+  (e_wrmsr, "wrmsr")
+  (e_xadd, "xadd")
+  (e_xchg, "xchg")
+  (e_xlat, "xlat")
+  (e_xor, "xor")
+  (e_xorpd, "xorpd")
+  (e_xorps, "xorps");
+
+const char* ia32_entry::name()
+{
+  map<entryID, string>::const_iterator found = entryNames.find(id);
+  
+  if(found != entryNames.end())
+  {
+    return found->second.c_str();
+  }
+  return NULL;
+}
+
+struct flagInfo
+{
+  flagInfo(const vector<RegisterID>& rf, const vector<RegisterID>& wf) : readFlags(rf), writtenFlags(wf) 
+  {
+  }
+  vector<RegisterID> readFlags;
+  vector<RegisterID> writtenFlags;
+};
+
+
+vector<RegisterID> standardFlags = list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF);
+
+map<entryID, flagInfo> flagTable = map_list_of
+(e_aaa, flagInfo(list_of(r_AF), standardFlags))
+  (e_aad, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_aam, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_aas, flagInfo(list_of(r_AF), standardFlags))
+  (e_adc, flagInfo(list_of(r_CF), standardFlags))
+  (e_add, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_and, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_arpl, flagInfo(vector<RegisterID>(), list_of(r_ZF)))
+  (e_bsf, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_bt, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_bts, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_btr, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_btc, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_clc, flagInfo(vector<RegisterID>(), list_of(r_CF)))
+  (e_cld, flagInfo(vector<RegisterID>(), list_of(r_DF)))
+  (e_cli, flagInfo(vector<RegisterID>(), list_of(r_IF)))
+  (e_cmc, flagInfo(vector<RegisterID>(), list_of(r_CF)))
+  (e_cmovbe, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmove, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovnae, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovnb, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovnbe, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovne, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovng, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovnge, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovnl, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovno, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovns, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovo, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovpe, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovpo, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmovs, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_cmp, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_cmpsb, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_cmpsd, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_cmpss, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_cmpsw, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_cmpxch, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_cmpxch8b, flagInfo(vector<RegisterID>(), list_of(r_ZF)))
+  (e_comisd, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_comiss, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_daa, flagInfo(list_of(r_AF)(r_CF), standardFlags))
+  (e_das, flagInfo(list_of(r_AF)(r_CF), standardFlags))
+  (e_dec, flagInfo(vector<RegisterID>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)))
+  (e_div, flagInfo(list_of(r_AF)(r_CF), standardFlags))
+  // TODO: FCMOVcc (not in our entry table) (reads zf/pf/cf)
+  // TODO: FCOMI/FCOMIP/FUCOMI/FUCOMIP (writes/zf/pf/cf)
+  (e_idiv, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_imul, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_inc, flagInfo(vector<RegisterID>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)))
+  (e_insb, flagInfo(list_of(r_DF), vector<RegisterID>()))
+  (e_insw_d, flagInfo(list_of(r_DF), vector<RegisterID>()))
+  (e_int, flagInfo(vector<RegisterID>(), list_of(r_TF)(r_NT)))
+  (e_int3, flagInfo(vector<RegisterID>(), list_of(r_TF)(r_NT)))
+  (e_into, flagInfo(list_of(r_OF), list_of(r_TF)(r_NT)))
+  (e_ucomisd, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_ucomiss, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_iret, flagInfo(list_of(r_NT), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF)))
+  (e_jb, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jb_jnaej_j, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jbe, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jcxz_jec, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jl, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jle, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jnb, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jnb_jae_j, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jnbe, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jnl, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jnle, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jno, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jnp, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jns, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jnz, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jo, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jp, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_js, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_jz, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_lar, flagInfo(vector<RegisterID>(), list_of(r_ZF)))
+  (e_loop, flagInfo(list_of(r_DF), vector<RegisterID>()))
+  (e_loope, flagInfo(list_of(r_ZF), vector<RegisterID>()))
+  (e_loopn, flagInfo(list_of(r_ZF), vector<RegisterID>()))
+  (e_lsl, flagInfo(vector<RegisterID>(), list_of(r_ZF)))
+  // I'd expect that mov control/debug/test gets handled when we do operand analysis
+  // If it doesn't, fix later
+  (e_mul, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_neg, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_or, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_outsb, flagInfo(list_of(r_DF), vector<RegisterID>()))
+  (e_outsw_d, flagInfo(list_of(r_DF), vector<RegisterID>()))
+  (e_popf_d, flagInfo(vector<RegisterID>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF)(r_NT)))
+  (e_rcl, flagInfo(list_of(r_CF), list_of(r_OF)(r_CF)))
+  (e_rcr, flagInfo(list_of(r_CF), list_of(r_OF)(r_CF)))
+  (e_rol, flagInfo(list_of(r_CF), list_of(r_OF)(r_CF)))
+  (e_ror, flagInfo(list_of(r_CF), list_of(r_OF)(r_CF)))
+  (e_rsm, flagInfo(vector<RegisterID>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF)(r_NT)(r_RF)))
+  (e_sahf, flagInfo(list_of(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_sar, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_shr, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_setb, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setbe, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setl, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setle, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setnb, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setnbe, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setnl, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setnle, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setno, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setnp, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setns, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setnz, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_seto, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setp, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_sets, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_setz, flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<RegisterID>()))
+  (e_shld, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_shrd, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_shl_sal, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_stc, flagInfo(vector<RegisterID>(), list_of(r_CF)))
+  (e_std, flagInfo(vector<RegisterID>(), list_of(r_DF)))
+  (e_sti, flagInfo(vector<RegisterID>(), list_of(r_IF)))
+  (e_stosb, flagInfo(list_of(r_DF), vector<RegisterID>()))
+  (e_stosw_d, flagInfo(list_of(r_DF), vector<RegisterID>()))
+  (e_sub, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_verr, flagInfo(vector<RegisterID>(), list_of(r_ZF)))
+  (e_verw, flagInfo(vector<RegisterID>(), list_of(r_ZF)))
+  (e_xadd, flagInfo(vector<RegisterID>(), standardFlags))
+  (e_xor, flagInfo(vector<RegisterID>(), standardFlags))
+
+;
+
+
+bool ia32_entry::flagsUsed(std::set<RegisterID>& flagsRead, std::set<RegisterID>& flagsWritten)
+{
+  map<entryID, flagInfo>::const_iterator found = flagTable.find(id);
+  if(found == flagTable.end())
+  {
+    return false;
+  }
+  // No entries for something that touches no flags, so always return true if we had an entry
+  const flagInfo& foundInfo(found->second);
+
+  copy(foundInfo.readFlags.begin(), foundInfo.readFlags.end(), inserter(flagsRead, flagsRead.begin()));
+  copy(foundInfo.writtenFlags.begin(), foundInfo.writtenFlags.end(), inserter(flagsWritten,flagsWritten.begin()));
+  return true;
+}
+
+
+
 // Modded table entry for push/pop, daa, das, aaa, aas, insb/w/d, outsb/w/d, xchg, cbw
 // les, lds, aam, aad, loop(z/nz), cmpxch, lss, mul, imul, div, idiv, cmpxch8, [ld/st]mxcsr
 // clflush, prefetch*
@@ -246,754 +803,756 @@ enum {
 // oneByteMap: one byte opcode map
 static ia32_entry oneByteMap[256] = {
   /* 00 */
-  { "add",  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
-  { "add",  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "add",  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
-  { "add",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
-  { "add",  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "add",  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { "push", t_done, 0, false, { STHw, ES, eSP }, 0, s1W2R3RW },
-  { "pop",  t_done, 0, false, { ES, STPw, eSP }, 0, s1W2R3RW },
+  { e_add,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_add,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_add,  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { e_add,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { e_add,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { e_add,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_push, t_done, 0, false, { STHw, ES, eSP }, 0, s1W2R3RW },
+  { e_pop,  t_done, 0, false, { ES, STPw, eSP }, 0, s1W2R3RW },
   /* 08 */
-  { "or",   t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
-  { "or",   t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "or",   t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
-  { "or",   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
-  { "or",   t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "or",   t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { "push", t_done, 0, false, { STHw, CS, eSP }, 0, s1W2R3RW },
-  { 0,      t_twoB, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_or,   t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { e_or,   t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_push, t_done, 0, false, { STHw, CS, eSP }, 0, s1W2R3RW },
+  { e_No_Entry,      t_twoB, 0, false, { Zz, Zz, Zz }, 0, 0 },
   /* 10 */
-  { "adc",  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
-  { "adc",  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "adc",  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
-  { "adc",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
-  { "adc",  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "adc",  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { "push", t_done, 0, false, { STHw, SS, eSP }, 0, s1W2R3RW },
-  { "pop",  t_done, 0, false, { SS, STPw, eSP }, 0, s1W2R3RW },
+  { e_adc,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_adc,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_adc,  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { e_adc,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { e_adc,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { e_adc,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_push, t_done, 0, false, { STHw, SS, eSP }, 0, s1W2R3RW },
+  { e_pop,  t_done, 0, false, { SS, STPw, eSP }, 0, s1W2R3RW },
   /* 18 */
-  { "sbb",  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
-  { "sbb",  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "sbb",  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
-  { "sbb",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
-  { "sbb",  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "sbb",  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { "push", t_done, 0, false, { STHw, DS, eSP }, 0, s1W2R3RW },
-  { "pop" , t_done, 0, false, { DS, STPw, eSP }, 0, s1W2R3RW },
+  { e_sbb,  t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_sbb,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_sbb,  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { e_sbb,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { e_sbb,  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { e_sbb,  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_push, t_done, 0, false, { STHw, DS, eSP }, 0, s1W2R3RW },
+  { e_pop , t_done, 0, false, { DS, STPw, eSP }, 0, s1W2R3RW },
   /* 20 */
-  { "and", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
-  { "and", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "and", t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
-  { "and", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
-  { "and", t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "and", t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
-  { "daa", t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
+  { e_and, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_and, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_and, t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { e_and, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { e_and, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { e_and, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { e_daa, t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
   /* 28 */
-  { "sub", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
-  { "sub", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "sub", t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
-  { "sub", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
-  { "sub", t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "sub", t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
-  { "das" , t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
+  { e_sub, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_sub, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_sub, t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { e_sub, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { e_sub, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { e_sub, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { e_das , t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
   /* 30 */
-  { "xor", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
-  { "xor", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "xor", t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
-  { "xor", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
-  { "xor", t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "xor", t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
-  { "aaa", t_done, 0, false, { AX, Zz, Zz }, 0, s1RW2R },
+  { e_xor, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2R },
+  { e_xor, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_xor, t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
+  { e_xor, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { e_xor, t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
+  { e_xor, t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
+  { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { e_aaa, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW2R },
   /* 38 */
-  { "cmp", t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R },
-  { "cmp", t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
-  { "cmp", t_done, 0, true, { Gb, Eb, Zz }, 0, s1R2R },
-  { "cmp", t_done, 0, true, { Gv, Ev, Zz }, 0, s1R2R },
-  { "cmp", t_done, 0, false, { AL, Ib, Zz }, 0, s1R2R },
-  { "cmp", t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
-  { 0,     t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
-  { "aas", t_done, 0, false, { AX, Zz, Zz }, 0, s1RW },
+  { e_cmp, t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R },
+  { e_cmp, t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
+  { e_cmp, t_done, 0, true, { Gb, Eb, Zz }, 0, s1R2R },
+  { e_cmp, t_done, 0, true, { Gv, Ev, Zz }, 0, s1R2R },
+  { e_cmp, t_done, 0, false, { AL, Ib, Zz }, 0, s1R2R },
+  { e_cmp, t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
+  { e_No_Entry,     t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { e_aas, t_done, 0, false, { AX, Zz, Zz }, 0, s1RW },
   /* 40 */
-  { "inc", t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
-  { "inc", t_done, 0, false, { eCX, Zz, Zz }, 0, s1RW },
-  { "inc", t_done, 0, false, { eDX, Zz, Zz }, 0, s1RW },
-  { "inc", t_done, 0, false, { eBX, Zz, Zz }, 0, s1RW },
-  { "inc", t_done, 0, false, { eSP, Zz, Zz }, 0, s1RW },
-  { "inc", t_done, 0, false, { eBP, Zz, Zz }, 0, s1RW },
-  { "inc", t_done, 0, false, { eSI, Zz, Zz }, 0, s1RW },
-  { "inc", t_done, 0, false, { eDI, Zz, Zz }, 0, s1RW },
+  { e_inc, t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
+  { e_inc, t_done, 0, false, { eCX, Zz, Zz }, 0, s1RW },
+  { e_inc, t_done, 0, false, { eDX, Zz, Zz }, 0, s1RW },
+  { e_inc, t_done, 0, false, { eBX, Zz, Zz }, 0, s1RW },
+  { e_inc, t_done, 0, false, { eSP, Zz, Zz }, 0, s1RW },
+  { e_inc, t_done, 0, false, { eBP, Zz, Zz }, 0, s1RW },
+  { e_inc, t_done, 0, false, { eSI, Zz, Zz }, 0, s1RW },
+  { e_inc, t_done, 0, false, { eDI, Zz, Zz }, 0, s1RW },
   /* 48 */
-  { "dec", t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
-  { "dec", t_done, 0, false, { eCX, Zz, Zz }, 0, s1RW },
-  { "dec", t_done, 0, false, { eDX, Zz, Zz }, 0, s1RW },
-  { "dec", t_done, 0, false, { eBX, Zz, Zz }, 0, s1RW },
-  { "dec", t_done, 0, false, { eSP, Zz, Zz }, 0, s1RW },
-  { "dec", t_done, 0, false, { eBP, Zz, Zz }, 0, s1RW },
-  { "dec", t_done, 0, false, { eSI, Zz, Zz }, 0, s1RW },
-  { "dec", t_done, 0, false, { eDI, Zz, Zz }, 0, s1RW },
+  { e_dec, t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
+  { e_dec, t_done, 0, false, { eCX, Zz, Zz }, 0, s1RW },
+  { e_dec, t_done, 0, false, { eDX, Zz, Zz }, 0, s1RW },
+  { e_dec, t_done, 0, false, { eBX, Zz, Zz }, 0, s1RW },
+  { e_dec, t_done, 0, false, { eSP, Zz, Zz }, 0, s1RW },
+  { e_dec, t_done, 0, false, { eBP, Zz, Zz }, 0, s1RW },
+  { e_dec, t_done, 0, false, { eSI, Zz, Zz }, 0, s1RW },
+  { e_dec, t_done, 0, false, { eDI, Zz, Zz }, 0, s1RW },
   /* 50 */
-  { "push", t_done, 0, false, { STHv, eAX, eSP }, 0, s1W2R3RW },
-  { "push", t_done, 0, false, { STHv, eCX, eSP }, 0, s1W2R3RW },
-  { "push", t_done, 0, false, { STHv, eDX, eSP }, 0, s1W2R3RW },
-  { "push", t_done, 0, false, { STHv, eBX, eSP }, 0, s1W2R3RW },
-  { "push", t_done, 0, false, { STHv, eSP, eSP }, 0, s1W2R3RW },
-  { "push", t_done, 0, false, { STHv, eBP, eSP }, 0, s1W2R3RW },
-  { "push", t_done, 0, false, { STHv, eSI, eSP }, 0, s1W2R3RW },
-  { "push", t_done, 0, false, { STHv, eDI, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { STHv, eAX, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { STHv, eCX, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { STHv, eDX, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { STHv, eBX, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { STHv, eSP, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { STHv, eBP, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { STHv, eSI, eSP }, 0, s1W2R3RW },
+  { e_push, t_done, 0, false, { STHv, eDI, eSP }, 0, s1W2R3RW },
   /* 58 */
-  { "pop", t_done, 0, false, { eAX, STPv, eSP }, 0, s1W2R3RW },
-  { "pop", t_done, 0, false, { eCX, STPv, eSP }, 0, s1W2R3RW },
-  { "pop", t_done, 0, false, { eDX, STPv, eSP }, 0, s1W2R3RW },
-  { "pop", t_done, 0, false, { eBX, STPv, eSP }, 0, s1W2R3RW },
-  { "pop", t_done, 0, false, { eSP, STPv, eSP }, 0, s1W2R3RW },
-  { "pop", t_done, 0, false, { eBP, STPv, eSP }, 0, s1W2R3RW },
-  { "pop", t_done, 0, false, { eSI, STPv, eSP }, 0, s1W2R3RW },
-  { "pop", t_done, 0, false, { eDI, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, false, { eAX, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, false, { eCX, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, false, { eDX, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, false, { eBX, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, false, { eSP, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, false, { eBP, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, false, { eSI, STPv, eSP }, 0, s1W2R3RW },
+  { e_pop, t_done, 0, false, { eDI, STPv, eSP }, 0, s1W2R3RW },
   /* 60 */
-  { "pusha(d)", t_done, 0, false, { STHa, GPRS, eSP }, 0, s1W2R3RW },
-  { "popa(d)",  t_done, 0, false, { GPRS, STPa, eSP }, 0, s1W2R3RW },
-  { "bound",    t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R },
-  { "arpl",     t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R },
-  { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
-  { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
-  { 0,   t_prefixedSSE, 2, false, { Zz, Zz, Zz }, 0, 0 }, /* operand size prefix (PREFIX_OPR_SZ)*/
-  { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, /* address size prefix (PREFIX_ADDR_SZ)*/
+  { e_pusha_d, t_done, 0, false, { STHa, GPRS, eSP }, 0, s1W2R3RW },
+  { e_popa_d,  t_done, 0, false, { GPRS, STPa, eSP }, 0, s1W2R3RW },
+  { e_bound,    t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R },
+  { e_arpl,     t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R },
+  { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
+  { e_No_Entry,   t_prefixedSSE, 2, false, { Zz, Zz, Zz }, 0, 0 }, /* operand size prefix (PREFIX_OPR_SZ)*/
+  { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, /* address size prefix (PREFIX_ADDR_SZ)*/
   /* 68 */
-  { "push",    t_done, 0, false, { STHv, Iz, eSP }, 0, s1W2R3RW },
-  { "imul",    t_done, 0, true, { Gv, Ev, Iz }, 0, s1W2R3R },
-  { "push",    t_done, 0, false, { STHb, Ib, eSP }, 0, s1W2R3RW },
-  { "imul",    t_done, 0, true, { Gv, Ev, Ib }, 0, s1W2R3R },
-  { "insb",    t_done, 0, false, { Yb, DX, Zz }, 0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
-  { "insw/d",  t_done, 0, false, { Yv, DX, Zz }, 0, s1W2R | (fREP << FPOS) },
-  { "outsb",   t_done, 0, false, { DX, Xb, Zz }, 0, s1W2R | (fREP << FPOS) },
-  { "outsw/d", t_done, 0, false, { DX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_push,    t_done, 0, false, { STHv, Iz, eSP }, 0, s1W2R3RW },
+  { e_imul,    t_done, 0, true, { Gv, Ev, Iz }, 0, s1W2R3R },
+  { e_push,    t_done, 0, false, { STHb, Ib, eSP }, 0, s1W2R3RW },
+  { e_imul,    t_done, 0, true, { Gv, Ev, Ib }, 0, s1W2R3R },
+  { e_insb,    t_done, 0, false, { Yb, DX, Zz }, 0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
+  { e_insw_d,  t_done, 0, false, { Yv, DX, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_outsb,   t_done, 0, false, { DX, Xb, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_outsw_d, t_done, 0, false, { DX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
   /* 70 */
-  { "jo",         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jno",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jb/jnaej/j", t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jnb/jae/j",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jz",         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jnz",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jbe",        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jnbe",       t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jo,         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jno,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jb_jnaej_j, t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jnb_jae_j,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jz,         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jnz,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jbe,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jnbe,       t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
   /* 78 */
-  { "js",   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jns",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jp",   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jnp",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jl",   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jnl",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jle",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
-  { "jnle", t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_js,   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jns,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jp,   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jnp,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jl,   t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jnl,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jle,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
+  { e_jnle, t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
   /* 80 */
-  { 0, t_grp, Grp1a, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_grp, Grp1b, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_grp, Grp1c, true, { Zz, Zz, Zz }, 0, 0 }, // book says Grp1 however;sandpile.org agrees.
-  { 0, t_grp, Grp1d, true, { Zz, Zz, Zz }, 0, 0 },
-  { "test", t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R },
-  { "test", t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
-  { "xchg", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW },
-  { "xchg", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW },
+  { e_No_Entry, t_grp, Grp1a, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_grp, Grp1b, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_grp, Grp1c, true, { Zz, Zz, Zz }, 0, 0 }, // book says Grp1 however;sandpile.org agrees.
+  { e_No_Entry, t_grp, Grp1d, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_test, t_done, 0, true, { Eb, Gb, Zz }, 0, s1R2R },
+  { e_test, t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
+  { e_xchg, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW },
   /* 88 */
-  { "mov", t_done, 0, true, { Eb, Gb, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, true, { Ev, Gv, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, true, { Gb, Eb, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, true, { Ew, Sw, Zz }, 0, s1W2R },
-  { "lea", t_done, 0, true, { Gv, Mlea, Zz }, 0, s1W }, // this is just M in the book
+  { e_mov, t_done, 0, true, { Eb, Gb, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, true, { Ev, Gv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, true, { Gb, Eb, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, true, { Ew, Sw, Zz }, 0, s1W2R },
+  { e_lea, t_done, 0, true, { Gv, Mlea, Zz }, 0, s1W2R }, // this is just M in the book
                                                         // AFAICT the 2nd operand is not accessed
-  { "mov", t_done, 0, true, { Sw, Ew, Zz }, 0, s1W2R },
-  { "pop", t_done, 0, true, { Ev, STPv, eSP }, 0, s1W2R3RW },
+  { e_mov, t_done, 0, true, { Sw, Ew, Zz }, 0, s1W2R },
+  { e_pop, t_done, 0, true, { Ev, STPv, eSP }, 0, s1W2R3RW },
   /* 90 */
-  { "nop",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // actually xchg eax,eax
-  { "xchg", t_done, 0, false, { eCX, eAX, Zz }, 0, s1RW2RW },
-  { "xchg", t_done, 0, false, { eDX, eAX, Zz }, 0, s1RW2RW },
-  { "xchg", t_done, 0, false, { eBX, eAX, Zz }, 0, s1RW2RW },
-  { "xchg", t_done, 0, false, { eSP, eAX, Zz }, 0, s1RW2RW },
-  { "xchg", t_done, 0, false, { eBP, eAX, Zz }, 0, s1RW2RW },
-  { "xchg", t_done, 0, false, { eSI, eAX, Zz }, 0, s1RW2RW },
-  { "xchg", t_done, 0, false, { eDI, eAX, Zz }, 0, s1RW2RW },
+  { e_nop,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // actually xchg eax,eax
+  { e_xchg, t_done, 0, false, { eCX, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eDX, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eBX, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eSP, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eBP, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eSI, eAX, Zz }, 0, s1RW2RW },
+  { e_xchg, t_done, 0, false, { eDI, eAX, Zz }, 0, s1RW2RW },
   /* 98 */
-  { "cbw/cwde", t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
-  { "cwd/cdq",  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R },
-  { "call",     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R },
-  { "wait",     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "pushf(d)", t_done, 0, false, { STHv, Fv, eSP }, 0, s1W2R3RW },
-  { "popf(d)",  t_done, 0, false, { Fv, STPv, eSP }, 0, s1W2R3RW },
-  { "sahf",     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
-  { "lahf",     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
+  { e_cbw_cwde, t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
+  { e_cwd_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R },
+  { e_call,     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R },
+  { e_wait,     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_pushf_d, t_done, 0, false, { STHv, Fv, eSP }, 0, s1W2R3RW },
+  { e_popf_d,  t_done, 0, false, { Fv, STPv, eSP }, 0, s1W2R3RW },
+  { e_sahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
+  { e_lahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   /* A0 */
-  { "mov",   t_done, 0, false, { AL, Ob, Zz },  0, s1W2R },
-  { "mov",   t_done, 0, false, { eAX, Ov, Zz }, 0, s1W2R },
-  { "mov",   t_done, 0, false, { Ob, AL, Zz },  0, s1W2R },
-  { "mov",   t_done, 0, false, { Ov, eAX, Zz }, 0, s1W2R },
+  { e_mov,   t_done, 0, false, { AL, Ob, Zz },  0, s1W2R },
+  { e_mov,   t_done, 0, false, { eAX, Ov, Zz }, 0, s1W2R },
+  { e_mov,   t_done, 0, false, { Ob, AL, Zz },  0, s1W2R },
+  { e_mov,   t_done, 0, false, { Ov, eAX, Zz }, 0, s1W2R },
   // XXX: Xv is source, Yv is destination for movs, so they're swapped!
-  { "movsb", t_done, 0, false, { Yb, Xb, Zz },  0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
-  { "movsw/d", t_done, 0, false, { Yv, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
-  { "cmpsb", t_done, 0, false, { Xb, Yb, Zz },  0, s1R2R | (fCMPS << FPOS) },
-  { "cmpsw", t_done, 0, false, { Xv, Yv, Zz },  0, s1R2R | (fCMPS << FPOS) },
+  { e_movsb, t_done, 0, false, { Yb, Xb, Zz },  0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
+  { e_movsw_d, t_done, 0, false, { Yv, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_cmpsb, t_done, 0, false, { Xb, Yb, Zz },  0, s1R2R | (fCMPS << FPOS) },
+  { e_cmpsw, t_done, 0, false, { Xv, Yv, Zz },  0, s1R2R | (fCMPS << FPOS) },
   /* A8 */
-  { "test",     t_done, 0, false, { AL, Ib, Zz },  0, s1R2R },
-  { "test",     t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
-  { "stosb",    t_done, 0, false, { Yb, AL, Zz },  0, s1W2R | (fREP << FPOS) },
-  { "stosw/d",  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R | (fREP << FPOS) },
-  { "lodsb",    t_done, 0, false, { AL, Xb, Zz },  0, s1W2R | (fREP << FPOS) },
-  { "lodsw",    t_done, 0, false, { eAX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
-  { "scasb",    t_done, 0, false, { AL, Yb, Zz },  0, s1R2R | (fSCAS << FPOS) },
-  { "scasw/d",  t_done, 0, false, { eAX, Yv, Zz }, 0, s1R2R | (fSCAS << FPOS) },
+  { e_test,     t_done, 0, false, { AL, Ib, Zz },  0, s1R2R },
+  { e_test,     t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
+  { e_stosb,    t_done, 0, false, { Yb, AL, Zz },  0, s1W2R | (fREP << FPOS) },
+  { e_stosw_d,  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_lodsb,    t_done, 0, false, { AL, Xb, Zz },  0, s1W2R | (fREP << FPOS) },
+  { e_lodsw,    t_done, 0, false, { eAX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_scasb,    t_done, 0, false, { AL, Yb, Zz },  0, s1R2R | (fSCAS << FPOS) },
+  { e_scasw_d,  t_done, 0, false, { eAX, Yv, Zz }, 0, s1R2R | (fSCAS << FPOS) },
   /* B0 */
-  { "mov", t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { CL, Ib, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { DL, Ib, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { BL, Ib, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { AH, Ib, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { CH, Ib, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { DH, Ib, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { BH, Ib, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { CL, Ib, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { DL, Ib, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { BL, Ib, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { AH, Ib, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { CH, Ib, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { DH, Ib, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { BH, Ib, Zz }, 0, s1W2R },
   /* B8 */
-  { "mov", t_done, 0, false, { eAX, Iv, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { eCX, Iv, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { eDX, Iv, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { eBX, Iv, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { eSP, Iv, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { eBP, Iv, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { eSI, Iv, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, false, { eDI, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eAX, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eCX, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eDX, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eBX, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eSP, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eBP, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eSI, Iv, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, false, { eDI, Iv, Zz }, 0, s1W2R },
   /* C0 */
-  { 0, t_grp, Grp2, true, { Eb, Ib, Zz }, 0, s1RW2R },
-  { 0, t_grp, Grp2, true, { Ev, Ib, Zz }, 0, s1RW2R },
-  { "ret near", t_done, 0, false, { Iw, Zz, Zz }, (IS_RET | IS_RETC), s1R | (fNEARRET << FPOS) },
-  { "ret near", t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fNEARRET << FPOS },
-  { "les",      t_done, 0, true, { ES, Gv, Mp }, 0, s1W2W3R },
-  { "lds",      t_done, 0, true, { DS, Gv, Mp }, 0, s1W2W3R },
-  { 0, t_grp, Grp11, true, { Eb, Ib, Zz }, 0, s1W2R },
-  { 0, t_grp, Grp11, true, { Ev, Iz, Zz }, 0, s1W2R },
+  { e_No_Entry, t_grp, Grp2, true, { Eb, Ib, Zz }, 0, s1RW2R },
+  { e_No_Entry, t_grp, Grp2, true, { Ev, Ib, Zz }, 0, s1RW2R },
+  { e_ret_near, t_done, 0, false, { Iw, Zz, Zz }, (IS_RET | IS_RETC), s1R | (fNEARRET << FPOS) },
+  { e_ret_near, t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fNEARRET << FPOS },
+  { e_les,      t_done, 0, true, { ES, Gv, Mp }, 0, s1W2W3R },
+  { e_lds,      t_done, 0, true, { DS, Gv, Mp }, 0, s1W2W3R },
+  { e_No_Entry, t_grp, Grp11, true, { Eb, Ib, Zz }, 0, s1W2R },
+  { e_No_Entry, t_grp, Grp11, true, { Ev, Iz, Zz }, 0, s1W2R },
   /* C8 */
-  { "enter",   t_done, 0, false, { Iw, Ib, Zz }, 0, fENTER << FPOS },
-  { "leave",   t_done, 0, false, { Zz, Zz, Zz }, 0, fLEAVE << FPOS },
-  { "ret far", t_done, 0, false, { Iw, Zz, Zz }, (IS_RETF | IS_RETC), fFARRET << FPOS },
-  { "ret far", t_done, 0, false, { Zz, Zz, Zz }, (IS_RETF), fFARRET << FPOS },
-  { "int 3",   t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "int",     t_done, 0, false, { Ib, Zz, Zz }, 0, sNONE },
-  { "into",    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "iret",    t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fIRET << FPOS},
+  { e_enter,   t_done, 0, false, { Iw, Ib, Zz }, 0, fENTER << FPOS },
+  { e_leave,   t_done, 0, false, { Zz, Zz, Zz }, 0, fLEAVE << FPOS },
+  { e_ret_far, t_done, 0, false, { Iw, Zz, Zz }, (IS_RETF | IS_RETC), fFARRET << FPOS },
+  { e_ret_far, t_done, 0, false, { Zz, Zz, Zz }, (IS_RETF), fFARRET << FPOS },
+  { e_int3,   t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_int,     t_done, 0, false, { Ib, Zz, Zz }, 0, sNONE },
+  { e_into,    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_iret,    t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fIRET << FPOS},
   /* D0 */
-  { 0, t_grp, Grp2, true, { Eb, Zz, Zz }, 0, s1RW }, // const1
-  { 0, t_grp, Grp2, true, { Ev, Zz, Zz }, 0, s1RW }, // --"--
-  { 0, t_grp, Grp2, true, { Eb, CL, Zz }, 0, s1RW2R },
-  { 0, t_grp, Grp2, true, { Ev, CL, Zz }, 0, s1RW2R },
-  { "aam",  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
-  { "aad",  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
-  { "salc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // undocumeted
-  { "xlat", t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS }, // scream
+  { e_No_Entry, t_grp, Grp2, true, { Eb, Zz, Zz }, 0, s1RW }, // const1
+  { e_No_Entry, t_grp, Grp2, true, { Ev, Zz, Zz }, 0, s1RW }, // --"--
+  { e_No_Entry, t_grp, Grp2, true, { Eb, CL, Zz }, 0, s1RW2R },
+  { e_No_Entry, t_grp, Grp2, true, { Ev, CL, Zz }, 0, s1RW2R },
+  { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
+  { e_aad,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
+  { e_salc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // undocumeted
+  { e_xlat, t_done, 0, false, { Zz, Zz, Zz }, 0, fXLAT << FPOS }, // scream
   /* D8 */
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_coprocEsc, 0, true, { Zz, Zz, Zz }, 0, 0 },
   /* E0 */
-  { "loopn",    t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R }, // aren't these conditional jumps?
-  { "loope",    t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R },
-  { "loop",     t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R },
-  { "jcxz/jec", t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R },
-  { "in",       t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R | fIO << FPOS },
-  { "in",       t_done, 0, false, { eAX, Ib, Zz }, 0, s1W2R | fIO << FPOS },
-  { "out",      t_done, 0, false, { Ib, AL, Zz }, 0, s1W2R | fIO << FPOS },
-  { "out",      t_done, 0, false, { Ib, eAX, Zz }, 0, s1W2R | fIO << FPOS },
+  { e_loopn,    t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R }, // aren't these conditional jumps?
+  { e_loope,    t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R },
+  { e_loop,     t_done, 0, false, { Jb, eCX, Zz }, 0, s1R2R },
+  { e_jcxz_jec, t_done, 0, false, { Jb, eCX, Zz }, (IS_JCC | REL_B), s1R2R },
+  { e_in,       t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R | fIO << FPOS },
+  { e_in,       t_done, 0, false, { eAX, Ib, Zz }, 0, s1W2R | fIO << FPOS },
+  { e_out,      t_done, 0, false, { Ib, AL, Zz }, 0, s1W2R | fIO << FPOS },
+  { e_out,      t_done, 0, false, { Ib, eAX, Zz }, 0, s1W2R | fIO << FPOS },
   /* E8 */
-  { "call", t_done, 0, false, { Jz, Zz, Zz }, (IS_CALL | REL_X), fCALL << FPOS },
-  { "jmp",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JUMP | REL_X), s1R },
-  { "jmp",  t_done, 0, false, { Ap, Zz, Zz }, (IS_JUMP | PTR_WX), s1R },
-  { "jmp",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JUMP | REL_B), s1R },
-  { "in",   t_done, 0, false, { AL, DX, Zz }, 0, s1W2R | (fIO << FPOS) },
-  { "in",   t_done, 0, false, { eAX, DX, Zz }, 0, s1W2R | (fIO << FPOS) },
-  { "out",  t_done, 0, false, { DX, AL, Zz }, 0, s1W2R | (fIO << FPOS) },
-  { "out",  t_done, 0, false, { DX, eAX, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { e_call, t_done, 0, false, { Jz, Zz, Zz }, (IS_CALL | REL_X), fCALL << FPOS },
+  { e_jmp,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JUMP | REL_X), s1R },
+  { e_jmp,  t_done, 0, false, { Ap, Zz, Zz }, (IS_JUMP | PTR_WX), s1R },
+  { e_jmp,  t_done, 0, false, { Jb, Zz, Zz }, (IS_JUMP | REL_B), s1R },
+  { e_in,   t_done, 0, false, { AL, DX, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { e_in,   t_done, 0, false, { eAX, DX, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { e_out,  t_done, 0, false, { DX, AL, Zz }, 0, s1W2R | (fIO << FPOS) },
+  { e_out,  t_done, 0, false, { DX, eAX, Zz }, 0, s1W2R | (fIO << FPOS) },
   /* F0 */
-  { 0,      t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_INSTR
-  { "int1", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // undocumented
-  { 0, t_prefixedSSE, 3, false, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_prefixedSSE, 1, false, { Zz, Zz, Zz }, 0, 0 },
-  { "hlt",  t_done, 0, false, { Zz, Zz, Zz }, PRVLGD, sNONE },
-  { "cmc",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { 0, t_grp, Grp3a, true, { Zz, Zz, Zz }, 0, sNONE },
-  { 0, t_grp, Grp3b, true, { Zz, Zz, Zz }, 0, sNONE },
+  { e_No_Entry,      t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_INSTR
+  { e_int1, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // undocumented
+  { e_No_Entry, t_prefixedSSE, 3, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_prefixedSSE, 1, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_hlt,  t_done, 0, false, { Zz, Zz, Zz }, PRVLGD, sNONE },
+  { e_cmc,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_No_Entry, t_grp, Grp3a, true, { Zz, Zz, Zz }, 0, sNONE },
+  { e_No_Entry, t_grp, Grp3b, true, { Zz, Zz, Zz }, 0, sNONE },
   /* F8 */
-  { "clc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "stc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "cli", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "sti", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "cld", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "std", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { 0, t_grp, Grp4, true, { Zz, Zz, Zz }, 0, sNONE },
-  { 0, t_grp, Grp5, true, { Zz, Zz, Zz }, 0, sNONE }
+  { e_clc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_stc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_cli, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_sti, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_cld, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_std, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_No_Entry, t_grp, Grp4, true, { Zz, Zz, Zz }, 0, sNONE },
+  { e_No_Entry, t_grp, Grp5, true, { Zz, Zz, Zz }, 0, sNONE }
 };
 
 
 // twoByteMap: two byte opcode instructions (first byte is 0x0F)
 static ia32_entry twoByteMap[256] = {
   /* 00 */
-  { 0, t_grp, Grp6, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_grp, Grp7, false, { Zz, Zz, Zz }, 0, 0 },
-  { "lar",        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
-  { "lsl",        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
-  { 0,            t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 },
-  { "syscall",    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // AMD; XXX: fixme for kernel work
-  { "clts",       t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "sysret",     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // AMD; XXX: fixme for kernel work
+  // Syscall/sysret are somewhat hacked
+  // Syscall on amd64 will also read CS/SS for where to call in 32-bit mode
+  { e_No_Entry, t_grp, Grp6, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_grp, Grp7, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_lar,        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
+  { e_lsl,        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
+  { e_No_Entry,            t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_syscall,    t_done, 0, false, { eCX, Zz, Zz }, 0, s1W }, // AMD: writes return address to eCX; for liveness, treat as hammering all
+  { e_clts,       t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_sysret,     t_done, 0, false, { eCX, Zz, Zz }, 0, s1R }, // AMD; reads return address from eCX; unlikely to occur in Dyninst use cases but we'll be paranoid
   /* 08 */
-  { "invd",   t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // only in priviledge 0, so ignored
-  { "wbinvd", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // idem
-  { 0,        t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 },
-  { "ud2",    t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0,        t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { "prefetch(w)", t_grp, GrpAMD, true, { Zz, Zz, Zz }, 0, 0 },    // AMD prefetch group
-  { "femms",       t_done,  0, false, { Zz, Zz, Zz }, 0, sNONE },  // AMD specific
+  { e_invd,   t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // only in priviledge 0, so ignored
+  { e_wbinvd, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // idem
+  { e_No_Entry,        t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_ud2,    t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry,        t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_prefetch_w, t_grp, GrpAMD, true, { Zz, Zz, Zz }, 0, 0 },    // AMD prefetch group
+  { e_femms,       t_done,  0, false, { Zz, Zz, Zz }, 0, sNONE },  // AMD specific
   // semantic is bogus for the 1st operand - but correct for the 2nd,
   // which is the only one that can be a memory operand :)
   // fixing the 1st operand requires an extra table for the 3dnow instructions...
-  { 0,             t_3dnow, 0, true,  { Pq, Qq, Zz }, 0, s1RW2R }, // AMD 3DNow! suffixes
+  { e_No_Entry,             t_3dnow, 0, true,  { Pq, Qq, Zz }, 0, s1RW2R }, // AMD 3DNow! suffixes
   /* 10 */
-  { 0, t_sse, SSE10, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE11, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE12, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE13, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE14, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE15, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE16, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE17, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE10, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE11, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE12, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE13, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE14, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE15, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE16, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE17, true, { Zz, Zz, Zz }, 0, 0 },
   /* 18 */
-  { 0, t_grp, Grp16, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_grp, Grp16, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* 20 */
-  { "mov", t_done, 0, true, { Rd, Cd, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, true, { Rd, Dd, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, true, { Cd, Rd, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, true, { Dd, Rd, Zz }, 0, s1W2R },
-  { "mov", t_done, 0, true, { Rd, Td, Zz }, 0, s1W2R },
-  { 0,     t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { "mov", t_done, 0, true, { Td, Rd, Zz }, 0, s1W2R },
-  { 0,     t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_mov, t_done, 0, true, { Rd, Cd, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, true, { Rd, Dd, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, true, { Cd, Rd, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, true, { Dd, Rd, Zz }, 0, s1W2R },
+  { e_mov, t_done, 0, true, { Rd, Td, Zz }, 0, s1W2R },
+  { e_No_Entry,     t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_mov, t_done, 0, true, { Td, Rd, Zz }, 0, s1W2R },
+  { e_No_Entry,     t_ill,  0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* 28 */
-  { 0, t_sse, SSE28, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE29, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE2A, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE2B, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE2C, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE2D, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE2E, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE2F, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE28, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE29, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE2A, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE2B, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE2C, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE2D, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE2E, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE2F, true, { Zz, Zz, Zz }, 0, 0 },
   /* 30 */
-  { "wrmsr", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "rdtsc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE},
-  { "rdmsr", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "rdpmc", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "sysenter", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
-  { "sysexit",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_wrmsr, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_rdtsc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE},
+  { e_rdmsr, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_rdpmc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_sysenter, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
+  { e_sysexit,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
   /* 38 */
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0 ,0 },
   /* 40 */
-  { "cmovo",   t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovno",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovnae", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovnb",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmove",   t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovne",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovbe",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovnbe", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovo,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovno,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovnae, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovnb,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmove,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovne,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovbe,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovnbe, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
   /* 48 */
-  { "cmovs",   t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovns",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovpe",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovpo",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovnge", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovnl",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovng",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
-  { "cmovnl",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovs,   t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovns,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovpe,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovpo,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovnge, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovnl,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovng,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
+  { e_cmovnl,  t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R | (fCOND << FPOS) },
   /* 50 */
-  { 0, t_sse, SSE50, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE51, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE52, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE53, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE54, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE55, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE56, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE57, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE50, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE51, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE52, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE53, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE54, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE55, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE56, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE57, true, { Zz, Zz, Zz }, 0, 0 },
   /* 58 */
-  { 0, t_sse, SSE58, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE59, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE5A, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE5B, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE5C, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE5D, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE5E, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE5F, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE58, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE59, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE5A, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE5B, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE5C, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE5D, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE5E, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE5F, true, { Zz, Zz, Zz }, 0, 0 },
   /* 60 */
-  { 0, t_sse, SSE60, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE61, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE62, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE63, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE64, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE65, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE66, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE67, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE60, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE61, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE62, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE63, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE64, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE65, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE66, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE67, true, { Zz, Zz, Zz }, 0, 0 },
   /* 68 */
-  { 0, t_sse, SSE68, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE69, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE6A, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE6B, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE6C, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE6D, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE6E, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE6F, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE68, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE69, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE6A, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE6B, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE6C, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE6D, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE6E, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE6F, true, { Zz, Zz, Zz }, 0, 0 },
   /* 70 */
-  { 0, t_sse, SSE70, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_grp, Grp12, false, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_grp, Grp13, false, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_grp, Grp14, false, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE74, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE75, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE76, true, { Zz, Zz, Zz }, 0, 0 },
-  { "emms", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_No_Entry, t_sse, SSE70, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_grp, Grp12, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_grp, Grp13, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_grp, Grp14, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE74, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE75, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE76, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_emms, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   /* 78 */
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { "mmxud", t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE7E, 0, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSE7F, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE7E, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE7F, 0, { Zz, Zz, Zz }, 0, 0 },
   /* 80 */
-  { "jo",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jno",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jb",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnb",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jz",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnz",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jbe",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnbe", t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jo,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jno,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jb,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jnb,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jz,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jnz,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jbe,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jnbe, t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
   /* 88 */
-  { "js",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jns",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jp",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnp",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jl",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnl",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jle",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnle", t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_js,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jns,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jp,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jnp,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jl,   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jnl,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jle,  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { e_jnle, t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
   /* 90 */
-  { "seto",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setno",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setb",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setnb",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setz",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setnz",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setbe",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setnbe", t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_seto,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setno,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setb,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setnb,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setz,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setnz,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setbe,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setnbe, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   /* 98 */
-  { "sets",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setns",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setp",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setnp",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setl",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setnl",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setle",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
-  { "setnle", t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_sets,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setns,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setp,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setnp,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setl,   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setnl,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setle,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
+  { e_setnle, t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   /* A0 */
-  { "push",   t_done, 0, false, { STHw, FS, eSP }, 0, s1W2R3RW },
-  { "pop",    t_done, 0, false, { FS, STPw, eSP }, 0, s1W2R3RW },
-  { "cpuid",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "bt",     t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
-  { "shld",   t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },
-  { "shld",   t_done, 0, true, { Ev, Gv, CL }, 0, s1RW2R3R },
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_push,   t_done, 0, false, { STHw, FS, eSP }, 0, s1W2R3RW },
+  { e_pop,    t_done, 0, false, { FS, STPw, eSP }, 0, s1W2R3RW },
+  { e_cpuid,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_bt,     t_done, 0, true, { Ev, Gv, Zz }, 0, s1R2R },
+  { e_shld,   t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },
+  { e_shld,   t_done, 0, true, { Ev, Gv, CL }, 0, s1RW2R3R },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
   /* A8 */
-  { "push", t_done, 0, false, { STHw, GS, eSP }, 0, s1W2R3RW },
-  { "pop",  t_done, 0, false, { GS, STPw, eSP }, 0, s1W2R3RW },
-  { "rsm",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { "bts",  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "shrd", t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },
-  { "shrd", t_done, 0, true, { Ev, Gv, CL }, 0, s1RW2R3R },
-  { 0, t_grp, Grp15, 0, { Zz, Zz, Zz }, 0, 0 }, 
-  { "imul", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
+  { e_push, t_done, 0, false, { STHw, GS, eSP }, 0, s1W2R3RW },
+  { e_pop,  t_done, 0, false, { GS, STPw, eSP }, 0, s1W2R3RW },
+  { e_rsm,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_bts,  t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_shrd, t_done, 0, true, { Ev, Gv, Ib }, 0, s1RW2R3R },
+  { e_shrd, t_done, 0, true, { Ev, Gv, CL }, 0, s1RW2R3R },
+  { e_No_Entry, t_grp, Grp15, 0, { Zz, Zz, Zz }, 0, 0 }, 
+  { e_imul, t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   /* B0 */
   // Assuming this is used with LOCK prefix, the destination gets a write anyway
   // This is not the case without lock prefix, but I ignore that case
   // Also, given that the 3rd operand is a register I ignore that it may be written
-  { "cmpxch", t_done, 0, true, { Eb, Gb, AL }, 0, s1RW2R3R | (fCMPXCH << FPOS) },
-  { "cmpxch", t_done, 0, true, { Ev, Gv, eAX }, 0, s1RW2R3R | (fCMPXCH << FPOS) },
-  { "lss", t_done, 0, true, { SS, Gv, Mp }, 0, s1W2W3R },
-  { "btr", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "lfs", t_done, 0, true, { FS, Gv, Mp }, 0, s1W2W3R },
-  { "lgs", t_done, 0, true, { GS, Gv, Mp }, 0, s1W2W3R },
-  { "movzx", t_done, 0, true, { Gv, Eb, Zz }, 0, s1W2R },
-  { "movzx", t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R },
+  { e_cmpxch, t_done, 0, true, { Eb, Gb, AL }, 0, s1RW2R3R | (fCMPXCH << FPOS) },
+  { e_cmpxch, t_done, 0, true, { Ev, Gv, eAX }, 0, s1RW2R3R | (fCMPXCH << FPOS) },
+  { e_lss, t_done, 0, true, { SS, Gv, Mp }, 0, s1W2W3R },
+  { e_btr, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_lfs, t_done, 0, true, { FS, Gv, Mp }, 0, s1W2W3R },
+  { e_lgs, t_done, 0, true, { GS, Gv, Mp }, 0, s1W2W3R },
+  { e_movzx, t_done, 0, true, { Gv, Eb, Zz }, 0, s1W2R },
+  { e_movzx, t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R },
   /* B8 */
-  { 0, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { "ud2grp10", t_ill, 0, 0, { Zz, Zz, Zz }, 0, sNONE },
-  { 0, t_grp, Grp8, true, { Zz, Zz, Zz }, 0, 0 },
-  { "btc", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
-  { "bsf", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
-  { "bsr", t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
-  { "movsx", t_done, 0, true, { Gv, Eb, Zz }, 0, s1W2R },
-  { "movsx", t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R },
+  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_ud2grp10, t_ill, 0, 0, { Zz, Zz, Zz }, 0, sNONE },
+  { e_No_Entry, t_grp, Grp8, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_btc, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2R },
+  { e_bsf, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
+  { e_bsr, t_done, 0, true, { Gv, Ev, Zz }, 0, s1W2R },
+  { e_movsx, t_done, 0, true, { Gv, Eb, Zz }, 0, s1W2R },
+  { e_movsx, t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R },
   /* C0 */
-  { "xadd", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW },
-  { "xadd", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW },
-  { 0, t_sse, SSEC2, true, { Zz, Zz, Zz }, 0, 0 },
-  { "movnti" , t_done, 0, 0, { Ev, Gv, Zz }, 0, s1W2R | (fNT << FPOS) },
-  { 0, t_sse, SSEC4, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEC5, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEC6, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_grp, Grp9,  true, { Zz, Zz, Zz }, 0, 0 },
+  { e_xadd, t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW },
+  { e_xadd, t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW },
+  { e_No_Entry, t_sse, SSEC2, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_movnti , t_done, 0, 0, { Ev, Gv, Zz }, 0, s1W2R | (fNT << FPOS) },
+  { e_No_Entry, t_sse, SSEC4, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEC5, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEC6, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_grp, Grp9,  true, { Zz, Zz, Zz }, 0, 0 },
   /* C8 */
-  { "bswap", t_done, 0, false, { EAX, Zz, Zz }, 0, s1RW }, 
-  { "bswap", t_done, 0, false, { ECX, Zz, Zz }, 0, s1RW },
-  { "bswap", t_done, 0, false, { EDX, Zz, Zz }, 0, s1RW }, 
-  { "bswap", t_done, 0, false, { EBX, Zz, Zz }, 0, s1RW }, 
-  { "bswap", t_done, 0, false, { ESP, Zz, Zz }, 0, s1RW },
-  { "bswap", t_done, 0, false, { EBP, Zz, Zz }, 0, s1RW }, 
-  { "bswap", t_done, 0, false, { ESI, Zz, Zz }, 0, s1RW }, 
-  { "bswap", t_done, 0, false, { EDI, Zz, Zz }, 0, s1RW }, 
+  { e_bswap, t_done, 0, false, { EAX, Zz, Zz }, 0, s1RW }, 
+  { e_bswap, t_done, 0, false, { ECX, Zz, Zz }, 0, s1RW },
+  { e_bswap, t_done, 0, false, { EDX, Zz, Zz }, 0, s1RW }, 
+  { e_bswap, t_done, 0, false, { EBX, Zz, Zz }, 0, s1RW }, 
+  { e_bswap, t_done, 0, false, { ESP, Zz, Zz }, 0, s1RW },
+  { e_bswap, t_done, 0, false, { EBP, Zz, Zz }, 0, s1RW }, 
+  { e_bswap, t_done, 0, false, { ESI, Zz, Zz }, 0, s1RW }, 
+  { e_bswap, t_done, 0, false, { EDI, Zz, Zz }, 0, s1RW }, 
   /* D0 */
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSED1, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSED2, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSED3, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSED4, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSED5, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSED6, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSED7, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED1, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED2, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED3, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED4, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED5, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED6, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED7, true, { Zz, Zz, Zz }, 0, 0 },
   /* D8 */
-  { 0, t_sse, SSED8, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSED9, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEDA, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEDB, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEDC, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEDD, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEDE, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEDF, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED8, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSED9, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEDA, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEDB, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEDC, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEDD, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEDE, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEDF, true, { Zz, Zz, Zz }, 0, 0 },
   /* E0 */
-  { 0, t_sse, SSEE0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEE1, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEE2, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEE3, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEE4, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEE5, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEE6, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEE7, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE1, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE2, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE3, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE4, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE5, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE6, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE7, true, { Zz, Zz, Zz }, 0, 0 },
   /* E8 */
-  { 0, t_sse, SSEE8, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEE9, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEEA, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEEB, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEEC, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEED, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEEE, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEEF, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE8, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEE9, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEEA, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEEB, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEEC, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEED, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEEE, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEEF, true, { Zz, Zz, Zz }, 0, 0 },
   /* F0 */
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEF1, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEF2, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEF3, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEF4, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEF5, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEF6, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEF7, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEF1, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEF2, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEF3, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEF4, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEF5, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEF6, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEF7, true, { Zz, Zz, Zz }, 0, 0 },
   /* F8 */
-  { 0, t_sse, SSEF8, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEF9, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEFA, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEFB, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEFC, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEFD, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_sse, SSEFE, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
+  { e_No_Entry, t_sse, SSEF8, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEF9, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEFA, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEFB, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEFC, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEFD, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSEFE, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }
 };
 
 static ia32_entry groupMap[][8] = {
   { /* group 1a */
-    { "add", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "or",  t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "adc", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "sbb", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "and", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "sub", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "xor", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "cmp", t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
+    { e_add, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_or,  t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_adc, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_sbb, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_and, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_sub, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_xor, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_cmp, t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
   },
   { /* group 1b */
-    { "add", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
-    { "or",  t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
-    { "adc", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
-    { "sbb", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
-    { "and", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
-    { "sub", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
-    { "xor", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
-    { "cmp", t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R },
+    { e_add, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { e_or,  t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { e_adc, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { e_sbb, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { e_and, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { e_sub, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { e_xor, t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { e_cmp, t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R },
   },
   { /* group 1c */
-    { "add", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "or",  t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "adc", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "sbb", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "and", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "sub", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "xor", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
-    { "cmp", t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
+    { e_add, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_or,  t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_adc, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_sbb, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_and, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_sub, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_xor, t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
+    { e_cmp, t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
   },
   { /* group 1d */
-    { "add", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-    { "or",  t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-    { "adc", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-    { "sbb", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-    { "and", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-    { "sub", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-    { "xor", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-    { "cmp", t_done, 0, true, { Ev, Ib, Zz }, 0, s1R2R },
+    { e_add, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { e_or,  t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { e_adc, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { e_sbb, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { e_and, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { e_sub, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { e_xor, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+    { e_cmp, t_done, 0, true, { Ev, Ib, Zz }, 0, s1R2R },
   },
 
 
  {  /* group 2 - only opcode is defined here, 
        operands are defined in the one or two byte maps above */
-  { "rol", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "ror", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "rcl", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "rcr", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "shl/sal", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "shr", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "sar", t_done, 0, true, { Zz, Zz, Zz }, 0, 0 }
+  { e_rol, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_ror, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_rcl, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_rcr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_shl_sal, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_shr, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_sar, t_done, 0, true, { Zz, Zz, Zz }, 0, 0 }
  },
 
  { /* group 3a - operands are defined here */
-  { "test", t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "not",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
-  { "neg",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
-  { "mul",  t_done, 0, true, { AX, AL, Eb }, 0, s1W2RW3R },
-  { "imul", t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R },
-  { "div",  t_done, 0, true, { AX, AL, Eb }, 0, s1RW2R3R },
-  { "idiv", t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R }
+  { e_test, t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_not,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
+  { e_neg,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
+  { e_mul,  t_done, 0, true, { AX, AL, Eb }, 0, s1W2RW3R },
+  { e_imul, t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R },
+  { e_div,  t_done, 0, true, { AX, AL, Eb }, 0, s1RW2R3R },
+  { e_idiv, t_done, 0, true, { AX, AL, Eb }, 0, s1W2R3R }
  },
 
  { /* group 3b - operands are defined here */
-  { "test", t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "not",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
-  { "neg",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
-  { "mul",  t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R },
-  { "imul", t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R },
-  { "div",  t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R },
-  { "idiv", t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R }
+  { e_test, t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_not,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
+  { e_neg,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
+  { e_mul,  t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R },
+  { e_imul, t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R },
+  { e_div,  t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R },
+  { e_idiv, t_done, 0, true, { eDX, eAX, Ev }, 0, s1RW2RW3R }
  },
 
  { /* group 4 - operands are defined here */
-  { "inc", t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
-  { "dec", t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_inc, t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
+  { e_dec, t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  },
 
  { /* group 5 - operands are defined here */
-  { "inc",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
-  { "dec",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
-  { "call", t_done, 0, true, { Ev, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
-  { "call", t_done, 0, true, { Ep, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
-  { "jmp",  t_done, 0, true, { Ev, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
-  { "jmp",  t_done, 0, true, { Ep, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
-  { "push", t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_inc,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
+  { e_dec,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
+  { e_call, t_done, 0, true, { Ev, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
+  { e_call, t_done, 0, true, { Ep, Zz, Zz }, (IS_CALL | INDIR), s1R | (fINDIRCALL << FPOS) },
+  { e_jmp,  t_done, 0, true, { Ev, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
+  { e_jmp,  t_done, 0, true, { Ep, Zz, Zz }, (IS_JUMP | INDIR), s1R | (fINDIRJUMP << FPOS) },
+  { e_push, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  },
 
  { /* group 6 - operands are defined here */
    // these need to be fixed for kernel mode accesses
-  { "sldt", t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
-  { "str",  t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
-  { "lldt", t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
-  { "ltr",  t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
-  { "verr", t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
-  { "verw", t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_sldt, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
+  { e_str,  t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
+  { e_lldt, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { e_ltr,  t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { e_verr, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { e_verw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  },
 
  { /* group 7 - operands are defined here */
    // idem
-  { "sgdt", t_done, 0, true, { Ms, Zz, Zz }, 0, s1W },
-  { "sidt", t_done, 0, true, { Ms, Zz, Zz }, 0, s1W },
-  { "lgdt", t_done, 0, true, { Ms, Zz, Zz }, 0, s1R },
-  { "lidt", t_done, 0, true, { Ms, Zz, Zz }, 0, s1R },
-  { "smsw", t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "lmsw", t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
-  { "invlpg", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, // 64-bit: swapgs also uses this encoding (w/ mod=11)
+  { e_sgdt, t_done, 0, true, { Ms, Zz, Zz }, 0, s1W },
+  { e_sidt, t_done, 0, true, { Ms, Zz, Zz }, 0, s1W },
+  { e_lgdt, t_done, 0, true, { Ms, Zz, Zz }, 0, s1R },
+  { e_lidt, t_done, 0, true, { Ms, Zz, Zz }, 0, s1R },
+  { e_smsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_lmsw, t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
+  { e_invlpg, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, // 64-bit: swapgs also uses this encoding (w/ mod=11)
  },
 
  { /* group 8 - only opcode is defined here, 
      operands are defined in the one or two byte maps below */
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { "bt",  t_done, 0, true, { Ev, Ib, Zz }, 0, s1R2R },
-  { "bts", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-  { "btr", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
-  { "btc", t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_bt,  t_done, 0, true, { Ev, Ib, Zz }, 0, s1R2R },
+  { e_bts, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+  { e_btr, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
+  { e_btc, t_done, 0, true, { Ev, Ib, Zz }, 0, s1RW2R },
  },
 
  { /* group 9 - operands are defined here */
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
   // see comments for cmpxch
-  { "cmpxch8b", t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS) },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-  { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }
+  { e_cmpxch8b, t_done, 0, true, { EDXEAX, Mq, ECXEBX }, 0, s1RW2RW3R | (fCMPXCH8 << FPOS) },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }
  },
 
  /* group 10 is all illegal */
 
  { /* group 11, opcodes defined in one byte map */
-   { "mov", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { e_mov, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+   { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
  }
 
 };
@@ -1005,134 +1564,134 @@ static ia32_entry groupMap[][8] = {
 static ia32_entry groupMap2[][2][8] = {
   { /* group 12 */
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G12SSE010B, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G12SSE100B, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G12SSE110B, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G12SSE010B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G12SSE100B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G12SSE110B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   },
   { /* group 13 */
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G13SSE010B, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G13SSE100B, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G13SSE110B, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G13SSE010B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G13SSE100B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G13SSE110B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   },
   { /* group 14 */
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G14SSE010B, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G14SSE011B, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G14SSE110B, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_grpsse, G14SSE111B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G14SSE010B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G14SSE011B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G14SSE110B, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_grpsse, G14SSE111B, true, { Zz, Zz, Zz }, 0, 0 },
     }
   },
   { /* group 15 */
     {
-      { "fxsave",  t_done, 0, true, { M512, Zz, Zz }, 0, s1W | (fFXSAVE << FPOS) },
-      { "fxrstor", t_done, 0, true, { M512, Zz, Zz }, 0, s1R | (fFXRSTOR << FPOS) },
-      { "ldmxcsr", t_done, 0, true, { Md, Zz, Zz }, 0, s1R },
-      { "stmxcsr", t_done, 0, true, { Md, Zz, Zz }, 0, s1W },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { "clflush", t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS) },
+      { e_fxsave,  t_done, 0, true, { M512, Zz, Zz }, 0, s1W | (fFXSAVE << FPOS) },
+      { e_fxrstor, t_done, 0, true, { M512, Zz, Zz }, 0, s1R | (fFXRSTOR << FPOS) },
+      { e_ldmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1R },
+      { e_stmxcsr, t_done, 0, true, { Md, Zz, Zz }, 0, s1W },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_clflush, t_done, 0, true, { Mb, Zz, Zz }, 0, s1W | (fCLFLUSH << FPOS) },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { "lfence", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
-      { "mfence", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
-      { "sfence", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_lfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+      { e_mfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+      { e_sfence, t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
     }
   },
   { /* group 16 */
     {
-      { "prefetchNTA", t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHNT << FPOS) },
-      { "prefetchT0",  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT0 << FPOS) },
-      { "prefetchT1",  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS) },
-      { "prefetchT2",  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS) },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_prefetchNTA, t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHNT << FPOS) },
+      { e_prefetchT0,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT0 << FPOS) },
+      { e_prefetchT1,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS) },
+      { e_prefetchT2,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHT1 << FPOS) },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   },
   { /* AMD prefetch group */
     {
-      { "prefetch",   t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHAMDE << FPOS) },
-      { "prefetchw",  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHAMDW << FPOS) },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { e_prefetch,   t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHAMDE << FPOS) },
+      { e_prefetchw,  t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHAMDW << FPOS) },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 }, // this is reserved, not illegal, ugh...
     },
     {
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-      { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   }
 };
@@ -1140,622 +1699,622 @@ static ia32_entry groupMap2[][2][8] = {
 /* rows are not, F3, 66, F2 prefixed in this order (see book) */
 static ia32_entry sseMap[][4] = {
   { /* SSE10 */
-    { "movups", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { "movss",  t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
-    { "movupd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
-    { "movsd",  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
+    { e_movups, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { e_movss,  t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { e_movupd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
+    { e_movsd,  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE11 */
-    { "movups", t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
-    { "movss",  t_done, 0, true, { Wss, Vss, Zz }, 0, s1W2R },
-    { "movupd", t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R },
-    { "movsd",  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R }, // FIXME: bug in book?????
+    { e_movups, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
+    { e_movss,  t_done, 0, true, { Wss, Vss, Zz }, 0, s1W2R },
+    { e_movupd, t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R },
+    { e_movsd,  t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R }, // FIXME: bug in book?????
   },
   { /* SSE12 */
-    { "movlps/movhlps", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R }, // FIXME: wierd 1st op
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movlpd", t_done, 0, true, { Vq, Ws, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movlps_movhlps, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R }, // FIXME: wierd 1st op
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movlpd, t_done, 0, true, { Vq, Ws, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE13 */
-    { "movlps", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movlpd", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movlps, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movlpd, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE14 */
-    { "unpcklps", t_done, 0, true, { Vps, Wq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "unpcklpd", t_done, 0, true, { Vpd, Wq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_unpcklps, t_done, 0, true, { Vps, Wq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_unpcklpd, t_done, 0, true, { Vpd, Wq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE15 */
-    { "unpckhps", t_done, 0, true, { Vps, Wq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "unpckhpd", t_done, 0, true, { Vpd, Wq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_unpckhps, t_done, 0, true, { Vps, Wq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_unpckhpd, t_done, 0, true, { Vpd, Wq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE16 */
-    { "movhps/movlhps", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R }, // FIXME: wierd 2nd op
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movhpd", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movhps_movlhps, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R }, // FIXME: wierd 2nd op
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movhpd, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE17 */
-    { "movhps", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movhpd", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movhps, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movhpd, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE28 */
-    { "movaps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movapd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movaps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movapd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE29 */
-    { "movaps", t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movapd", t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movaps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movapd, t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE2A */
-    { "cvtpi2ps", t_done, 0, true, { Vps, Qq, Zz }, 0, s1W2R },
-    { "cvtsi2ss", t_done, 0, true, { Vss, Ev, Zz }, 0, s1W2R },
-    { "cvtpi2pd", t_done, 0, true, { Vpd, Qdq, Zz }, 0, s1W2R },
-    { "cvtsi2sd", t_done, 0, true, { Vsd, Ev, Zz }, 0, s1W2R },
+    { e_cvtpi2ps, t_done, 0, true, { Vps, Qq, Zz }, 0, s1W2R },
+    { e_cvtsi2ss, t_done, 0, true, { Vss, Ev, Zz }, 0, s1W2R },
+    { e_cvtpi2pd, t_done, 0, true, { Vpd, Qdq, Zz }, 0, s1W2R },
+    { e_cvtsi2sd, t_done, 0, true, { Vsd, Ev, Zz }, 0, s1W2R },
   },
   { /* SSE2B */
-    { "movntps", t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R | (fNT << FPOS) },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movntpd", t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R | (fNT << FPOS) }, // bug in book
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movntps, t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movntpd, t_done, 0, true, { Wpd, Vpd, Zz }, 0, s1W2R | (fNT << FPOS) }, // bug in book
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE2C */
-    { "cvttps2pi", t_done, 0, true, { Qq, Wps, Zz }, 0, s1W2R },
-    { "cvttss2si", t_done, 0, true, { Gv, Wss, Zz }, 0, s1W2R },
-    { "cvttpd2pi", t_done, 0, true, { Qdq, Wpd, Zz }, 0, s1W2R },
-    { "cvttsd2si", t_done, 0, true, { Gv, Wsd, Zz }, 0, s1W2R },
+    { e_cvttps2pi, t_done, 0, true, { Qq, Wps, Zz }, 0, s1W2R },
+    { e_cvttss2si, t_done, 0, true, { Gv, Wss, Zz }, 0, s1W2R },
+    { e_cvttpd2pi, t_done, 0, true, { Qdq, Wpd, Zz }, 0, s1W2R },
+    { e_cvttsd2si, t_done, 0, true, { Gv, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE2D */
-    { "cvtps2pi", t_done, 0, true, { Qq, Wps, Zz }, 0, s1W2R },
-    { "cvtss2si", t_done, 0, true, { Gv, Wss, Zz }, 0, s1W2R },
-    { "cvtpd2pi", t_done, 0, true, { Qdq, Wpd, Zz }, 0, s1W2R },
-    { "cvtsd2si", t_done, 0, true, { Gv, Wsd, Zz }, 0, s1W2R },
+    { e_cvtps2pi, t_done, 0, true, { Qq, Wps, Zz }, 0, s1W2R },
+    { e_cvtss2si, t_done, 0, true, { Gv, Wss, Zz }, 0, s1W2R },
+    { e_cvtpd2pi, t_done, 0, true, { Qdq, Wpd, Zz }, 0, s1W2R },
+    { e_cvtsd2si, t_done, 0, true, { Gv, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE2E */
-    { "ucomiss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "ucomisd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_ucomiss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_ucomisd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE2F */
-    { "comiss", t_done, 0, true, { Vps, Wps, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "comisd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_comiss, t_done, 0, true, { Vps, Wps, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_comisd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE50 */
-    { "movmskps", t_done, 0, true, { Ed, Vps, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movmskpd", t_done, 0, true, { Ed, Vpd, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movmskps, t_done, 0, true, { Ed, Vps, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movmskpd, t_done, 0, true, { Ed, Vpd, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE51 */
-    { "sqrtps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { "sqrtss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
-    { "sqrtpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
-    { "sqrtsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
+    { e_sqrtps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { e_sqrtss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { e_sqrtpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1W2R },
+    { e_sqrtsd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE52 */
-    { "rsqrtps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "rsqrtss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_rsqrtps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_rsqrtss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE53 */
-    { "rcpps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "rcpss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_rcpps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_rcpss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE54 */
-    { "andps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "andpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_andps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_andpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE55 */
-    { "andnps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "andnpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_andnps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_andnpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE56 */
-    { "orps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "orpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_orps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_orpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE57 */
-    { "xorps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "xorpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_xorps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_xorpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE58 */
-    { "addps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { "addss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
-    { "addpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { "addsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
+    { e_addps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_addss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { e_addpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_addsd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE59 */
-    { "mulps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { "mulss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
-    { "mulpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { "mulsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
+    { e_mulps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_mulss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { e_mulpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_mulsd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE5A */
-    { "cvtps2pd", t_done, 0, true, { Vpd, Wps, Zz }, 0, s1W2R },
-    { "cvtss2sd", t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
-    { "cvtpd2ps", t_done, 0, true, { Vps, Wpd, Zz }, 0, s1W2R }, // FIXME: book bug ???
-    { "cvtsd2ss", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
+    { e_cvtps2pd, t_done, 0, true, { Vpd, Wps, Zz }, 0, s1W2R },
+    { e_cvtss2sd, t_done, 0, true, { Vss, Wss, Zz }, 0, s1W2R },
+    { e_cvtpd2ps, t_done, 0, true, { Vps, Wpd, Zz }, 0, s1W2R }, // FIXME: book bug ???
+    { e_cvtsd2ss, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE5B */
-    { "cvtdq2ps", t_done, 0, true, { Vps, Wdq, Zz }, 0, s1W2R },
-    { "cvttps2dq", t_done, 0, true, { Vdq, Wps, Zz }, 0, s1W2R }, // book has this/next swapped!!! 
-    { "cvtps2dq", t_done, 0, true, { Vdq, Wps, Zz }, 0, s1W2R },  // FIXME: book bug ???
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_cvtdq2ps, t_done, 0, true, { Vps, Wdq, Zz }, 0, s1W2R },
+    { e_cvttps2dq, t_done, 0, true, { Vdq, Wps, Zz }, 0, s1W2R }, // book has this/next swapped!!! 
+    { e_cvtps2dq, t_done, 0, true, { Vdq, Wps, Zz }, 0, s1W2R },  // FIXME: book bug ???
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE5C */
-    { "subps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { "subss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
-    { "subpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { "subsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
+    { e_subps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_subss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { e_subpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_subsd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE5D */
-    { "minps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { "minss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
-    { "minpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { "minsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
+    { e_minps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_minss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { e_minpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_minsd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE5E */
-    { "divps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { "divss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
-    { "divpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { "divsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
+    { e_divps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_divss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { e_divpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_divsd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE5F */
-    { "maxps", t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
-    { "maxss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
-    { "maxpd", t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
-    { "maxsd", t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
+    { e_maxps, t_done, 0, true, { Vps, Wps, Zz }, 0, s1RW2R },
+    { e_maxss, t_done, 0, true, { Vss, Wss, Zz }, 0, s1RW2R },
+    { e_maxpd, t_done, 0, true, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_maxsd, t_done, 0, true, { Vsd, Wsd, Zz }, 0, s1RW2R },
   },
   { /* SSE60 */
-    { "punpcklbw", t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "punpcklbw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpcklbw, t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpcklbw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE61 */
-    { "punpcklwd", t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "punpcklwd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpcklwd, t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpcklwd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE62 */
-    { "punpcklqd", t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "punpcklqd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpcklqd, t_done, 0, true, { Pq, Qd, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpcklqd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE63 */
-    { "packsswb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "packsswb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_packsswb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_packsswb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE64 */
-    { "pcmpgtb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pcmpgtb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpgtb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpgtb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE65 */
-    { "pcmpgtw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pcmpgtw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpgtw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpgtw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE66 */
-    { "pcmpgdt", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pcmpgdt", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpgdt, t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpgdt, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE67 */
-    { "packuswb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "packuswb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_packuswb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_packuswb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE68 */
-    { "punpckhbw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "punpckhbw", t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpckhbw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpckhbw, t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE69 */
-    { "punpckhwd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "punpckhwd", t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpckhwd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpckhwd, t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6A */
-    { "punpckhdq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "punpckhdq", t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpckhdq, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpckhdq, t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6B */
-    { "packssdw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "packssdw", t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_packssdw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_packssdw, t_done, 0, true, { Pdq, Qdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6C */
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "punpcklqld", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpcklqld, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6D */
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "punpckhqd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_punpckhqd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6E */
-    { "movd", t_done, 0, true, { Pd, Ev, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movd", t_done, 0, true, { Vdq, Ev, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movd, t_done, 0, true, { Pd, Ev, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movd, t_done, 0, true, { Vdq, Ev, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6F */
-    { "movq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1W2R },
-    { "movdqu", t_done, 0, false, { Vdq, Wdq, Zz }, 0, s1W2R }, // book has this/next swapped!!!
-    { "movdqa", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movq, t_done, 0, true, { Pq, Qq, Zz }, 0, s1W2R },
+    { e_movdqu, t_done, 0, false, { Vdq, Wdq, Zz }, 0, s1W2R }, // book has this/next swapped!!!
+    { e_movdqa, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE70 */
-    { "pshufw", t_done, 0, true, { Pq, Qq, Ib }, 0, s1W2R3R },
-    { "pshufhw", t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R }, // book has this/next swapped!!!
-    { "pshufd", t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R },
-    { "pshuflw", t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R },
+    { e_pshufw, t_done, 0, true, { Pq, Qq, Ib }, 0, s1W2R3R },
+    { e_pshufhw, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R }, // book has this/next swapped!!!
+    { e_pshufd, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R },
+    { e_pshuflw, t_done, 0, true, { Vdq, Wdq, Ib }, 0, s1W2R3R },
   },
   { /* SSE74 */
-    { "pcmpeqb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pcmpeqb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpeqb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpeqb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE75 */
-    { "pcmpeqw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pcmpeqw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpeqw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpeqw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE76 */
-    { "pcmpeqd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pcmpeqd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpeqd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pcmpeqd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE7E */
-    { "movd", t_done, 0, true, { Ev, Pd, Zz }, 0, s1W2R },
-    { "movq", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R }, // book has this and next swapped!!!
-    { "movd", t_done, 0, true, { Ev, Vdq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movd, t_done, 0, true, { Ev, Pd, Zz }, 0, s1W2R },
+    { e_movq, t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R }, // book has this and next swapped!!!
+    { e_movd, t_done, 0, true, { Ev, Vdq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE7F */
-    { "movq", t_done, 0, true, { Qq, Pq, Zz }, 0, s1W2R },
-    { "movdqu", t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R }, // book has this and next swapped!!!
-    { "movdqa", t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movq, t_done, 0, true, { Qq, Pq, Zz }, 0, s1W2R },
+    { e_movdqu, t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R }, // book has this and next swapped!!!
+    { e_movdqa, t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEC2 */
-    { "cmpps", t_done, 0, true, { Vps, Wps, Ib }, 0, s1RW2R3R }, // comparison writes to dest!
-    { "cmpss", t_done, 0, true, { Vss, Wss, Ib }, 0, s1RW2R3R },
-    { "cmppd", t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
-    { "cmpsd", t_done, 0, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R },
+    { e_cmpps, t_done, 0, true, { Vps, Wps, Ib }, 0, s1RW2R3R }, // comparison writes to dest!
+    { e_cmpss, t_done, 0, true, { Vss, Wss, Ib }, 0, s1RW2R3R },
+    { e_cmppd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
+    { e_cmpsd, t_done, 0, true, { Vsd, Wsd, Ib }, 0, s1RW2R3R },
   },
   { /* SSEC4 */
-    { "pinsrw", t_done, 0, true, { Pq, Ed, Ib }, 0, s1RW2R3R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pinsrw", t_done, 0, true, { Vdq, Ed, Ib }, 0, s1RW2R3R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pinsrw, t_done, 0, true, { Pq, Ed, Ib }, 0, s1RW2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pinsrw, t_done, 0, true, { Vdq, Ed, Ib }, 0, s1RW2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEC5 */
-    { "pextrw", t_done, 0, true, { Gd, Pq, Ib }, 0, s1W2R3R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pextrw", t_done, 0, true, { Gd, Vdq, Ib }, 0, s1W2R3R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pextrw, t_done, 0, true, { Gd, Pq, Ib }, 0, s1W2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pextrw, t_done, 0, true, { Gd, Vdq, Ib }, 0, s1W2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEC6 */
-    { "shufps", t_done, 0, true, { Vps, Wps, Ib }, 0, s1RW2R3R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "shufpd", t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_shufps, t_done, 0, true, { Vps, Wps, Ib }, 0, s1RW2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_shufpd, t_done, 0, true, { Vpd, Wpd, Ib }, 0, s1RW2R3R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED1 */
-    { "psrlw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psrlw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psrlw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psrlw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED2 */
-    { "psrld", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psrld", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psrld, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psrld, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED3 */
-    { "psrlq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psrlq", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psrlq, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psrlq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED4 */
-    { "paddq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "paddq", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddq, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED5 */
-    { "pmullw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pmullw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmullw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmullw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED6 */
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movq2dq", t_done, 0, true, { Vdq, Qq, Zz }, 0, s1W2R }, // lines jumbled in book
-    { "movq", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R },
-    { "movdq2q", t_done, 0, true, { Pq, Wq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movq2dq, t_done, 0, true, { Vdq, Qq, Zz }, 0, s1W2R }, // lines jumbled in book
+    { e_movq, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R },
+    { e_movdq2q, t_done, 0, true, { Pq, Wq, Zz }, 0, s1W2R },
   },
   { /* SSED7 */
-    { "pmovmskb", t_done, 0, true, { Gd, Pq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pmovmskb", t_done, 0, true, { Gd, Vdq, Zz }, 0, s1W2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmovmskb, t_done, 0, true, { Gd, Pq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmovmskb, t_done, 0, true, { Gd, Vdq, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED8 */
-    { "psubusb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psubusb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubusb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubusb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSED9 */
-    { "psubusw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psubusw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubusw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubusw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDA */
-    { "pminub", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pminub", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pminub, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pminub, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDB */
-    { "pand", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pand", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pand, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pand, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDC */
-    { "paddusb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "paddusb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddusb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddusb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDD */
-    { "paddusw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "paddusw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddusw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddusw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDE */
-    { "pmaxub", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pmaxub", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmaxub, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmaxub, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEDF */
-    { "pandn", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pandn", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pandn, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pandn, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE0 */
-    { "pavgb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pavgb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pavgb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pavgb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE1 */
-    { "psraw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psraw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psraw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psraw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE2 */
-    { "psrad", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psrad", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psrad, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psrad, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE3 */
-    { "pavgw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pavgw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pavgw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pavgw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE4 */
-    { "pmulhuw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pmulhuw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmulhuw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmulhuw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE5 */
-    { "pmulhw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pmulhw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmulhw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmulhw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE6 */
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "cvtdq2pd", t_done, 0, true, { Vpd, Wdq, Zz }, 0, s1W2R }, // lines jumbled in book
-    { "cvttpd2dq", t_done, 0, true, { Vdq, Wpd, Zz }, 0, s1W2R },
-    { "cvtpd2dq", t_done, 0, true, { Vdq, Wpd, Zz }, 0, s1W2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_cvtdq2pd, t_done, 0, true, { Vpd, Wdq, Zz }, 0, s1W2R }, // lines jumbled in book
+    { e_cvttpd2dq, t_done, 0, true, { Vdq, Wpd, Zz }, 0, s1W2R },
+    { e_cvtpd2dq, t_done, 0, true, { Vdq, Wpd, Zz }, 0, s1W2R },
   },
   { /* SSEE7 */
-    { "movntq", t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R | (fNT << FPOS) },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movntdq", t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R | (fNT << FPOS) },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movntq, t_done, 0, true, { Wq, Vq, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_movntdq, t_done, 0, true, { Wdq, Vdq, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE8 */
-    { "psubsb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psubsb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubsb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubsb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEE9 */
-    { "psubsw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psubsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubsw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubsw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEA */
-    { "pminsw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pminsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pminsw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pminsw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEB */
-    { "por", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "por", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_por, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_por, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEC */
-    { "paddsb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "paddsb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddsb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddsb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEED */
-    { "paddsw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "paddsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddsw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddsw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEE */
-    { "pmaxsw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pmaxsw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmaxsw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmaxsw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEEF */
-    { "pxor", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pxor", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pxor, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pxor, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF1 */
-    { "psllw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psllw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psllw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psllw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF2 */
-    { "pslld", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pslld", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pslld, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pslld, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF3 */
-    { "psllq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psllq", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psllq, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psllq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF4 */
-    { "pmuludq", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pmuludq", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmuludq, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmuludq, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF5 */
-    { "pmaddwd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "pmaddwd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmaddwd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_pmaddwd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF6 */
-    { "psadbw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psadbw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psadbw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psadbw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF7 */
-    { "maskmovq", t_done, 0, true, { Ppi, Qpi, Zz }, 0, s1W2R | (fNT << FPOS) },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "maskmovdqu", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R | (fNT << FPOS) }, // bug in book
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_maskmovq, t_done, 0, true, { Ppi, Qpi, Zz }, 0, s1W2R | (fNT << FPOS) },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_maskmovdqu, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1W2R | (fNT << FPOS) }, // bug in book
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF8 */
-    { "psubb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psubb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEF9 */
-    { "psubw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psubw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFA */
-    { "psubd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psubd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFB */ // FIXME: Same????
-    { "psubd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "psubd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_psubd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFC */
-    { "paddb", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "paddb", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddb, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddb, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFD */
-    { "paddw", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "paddw", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddw, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddw, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSEFE */
-    { "paddd", t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "paddd", t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
-    { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddd, t_done, 0, true, { Pq, Qq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_paddd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1RW2R },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   }
 };
 
@@ -1763,53 +2322,53 @@ static ia32_entry sseMap[][4] = {
 static ia32_entry ssegrpMap[][2] = {
   /* G12SSE010B */
   {
-    { "psrlw", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { "psrlw", t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
+    { e_psrlw, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psrlw, t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G12SSE100B */
   {
-    { "psraw", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { "psraw", t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
+    { e_psraw, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psraw, t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G12SSE110B */
   {
-    { "psllw", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { "psllw", t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
+    { e_psllw, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psllw, t_done, 0, true, { Pdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G13SSE010B */
   {
-    { "psrld", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { "psrld", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_psrld, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psrld, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G13SSE100B */
   {
-    { "psrad", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { "psrad", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_psrad, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psrad, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G13SSE110B */
   {
-    { "pslld", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { "pslld", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_pslld, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_pslld, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE010B */
   {
-    { "psrlq", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { "psrlq", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_psrlq, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psrlq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE011B */
   {
-    { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-    { "psrldq", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+    { e_psrldq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE110B */
   {
-    { "psllq", t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
-    { "psllq", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_psllq, t_done, 0, true, { Pq, Ib, Zz }, 0, s1RW2R },
+    { e_psllq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   },
   /* G14SSE111B */
   {
-    { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
-    { "pslldq", t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
+    { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+    { e_pslldq, t_done, 0, true, { Wdq, Ib, Zz }, 0, s1RW2R }
   }
 };
 
@@ -1823,7 +2382,7 @@ bool ia32_is_mode_64() {
   return mode_64;
 }
 
-ia32_entry movsxd = { "movsxd", t_done, 0, true, { Gv, Ed, Zz }, 0, s1W2R };
+ia32_entry movsxd = { e_movsxd, t_done, 0, true, { Gv, Ed, Zz }, 0, s1W2R };
 
 static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 {

@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.76 2007/09/27 18:53:37 tugrul Exp $
+// $Id: templates2.C,v 1.77 2007/12/04 17:58:17 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -206,3 +206,7 @@ template <class T> int Annotatable<T>::number;
 template <class T> int Annotatable<T>::metadataNum;
 template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::annotationTypes;
 template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::metadataTypes;
+
+
+class registerSlot;
+template class dictionary_hash<unsigned, registerSlot *>;
