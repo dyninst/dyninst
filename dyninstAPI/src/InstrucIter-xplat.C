@@ -168,8 +168,8 @@ InstrucIter::InstrucIter( CONST_EXPORT BPatch_parRegion* bpParRegion) :
 
 InstrucIter::InstrucIter( int_basicBlock *ibb) :
   instructions_(ibb->proc()),
-  base( ((BPatch_basicBlock *)ibb->getHighLevelBlock())->getStartAddress()),
-  range( ((BPatch_basicBlock *)ibb->getHighLevelBlock())->size()),
+  base( ibb->origInstance()->firstInsnAddr()),
+  range( ibb->origInstance()->getSize()),
   current(base) {
   assert(current >= base);
   assert(current < base+range);
@@ -320,7 +320,7 @@ InstrucIter InstrucIter::operator++()
   prevInsns.push_back(std::make_pair(current, instPtr));
 #endif
   //  assert(instructions_ && instructions_->isValidAddress(peekNext()));  
-  setCurrentAddress(peekNext());
+  current = peekNext();
   initializeInsn();
   return *this;
 }
@@ -331,12 +331,12 @@ InstrucIter InstrucIter::operator--()
   if(hasPrev())
   {
     //assert(instructions_ && instructions_->isValidAddress(peekPrev()));
-    setCurrentAddress(peekPrev());
+      current = peekPrev();
     instPtr = prevInsns.back().second;
     prevInsns.pop_back();
   }
 #else
-  setCurrentAddress(peekPrev());
+  current = peekPrev();
 #endif
   initializeInsn();
   return *this;

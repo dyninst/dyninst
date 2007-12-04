@@ -43,6 +43,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <boost/assign/list_of.hpp>
+#include <set>
 
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
@@ -182,6 +184,11 @@ bool InstrucIter::isADynamicCallInstruction()
 {
   assert(instPtr);
   return insn.isCall() && insn.isIndir();
+}
+
+bool InstrucIter::isSyscall() {
+    assert(instPtr);
+    return insn.isSysCallInsn();
 }
 
 bool InstrucIter::isANopInstruction()
@@ -559,7 +566,6 @@ void InstrucIter::setCurrentAddress(Address addr)
   // Make sure the new addr is aligned
   // This is unsafe if we're looking at anything more than a basic block;
   // best-effort.
-
   if (current < addr) {
     while (current != addr) {
       if (current > addr) {
@@ -568,7 +574,11 @@ void InstrucIter::setCurrentAddress(Address addr)
 	break;
       }
       assert(current < addr);
+
+      // Copied from ++(*this) - it was making copies and thus slow.
+      prevInsns.push_back(std::make_pair(current, instPtr));
       current = peekNext();
+      initializeInsn();
     }
   }
   else if (current > addr) {
@@ -577,7 +587,14 @@ void InstrucIter::setCurrentAddress(Address addr)
 	current = addr;
 	break;
       }
-      current = peekPrev();
+      // See above
+      if(hasPrev()) {
+          //assert(instructions_ && instructions_->isValidAddress(peekPrev()));
+          current = peekPrev();
+          instPtr = prevInsns.back().second;
+          prevInsns.pop_back();
+      }
+      
     }
   }
   initializeInsn();
@@ -602,185 +619,259 @@ instruction *InstrucIter::getInsnPtr() {
   return insnPtr;
 }
 
-void parseRegisters(int * readArr, int * writeArr,
-		    instruction * i,ia32_instruction *ii,int whichOp, int readOrWrite)
+bool operandIsRead(int opsema, int operand)
 {
-  ia32_entry * entry = ii->getEntry();
-  ia32_prefixes * pref = ii->getPrefix();
+  switch(operand)
+  {
+  case 0:
+    return opsema == s1R || opsema == s1RW || opsema == s1R2R ||
+    opsema == s1RW2R || opsema == s1RW2RW || opsema == s1RW2R3R ||
+    opsema == s1RW2RW3R;
+  case 1:
+    return opsema == s1R2R || opsema == s1W2R || opsema == s1RW2R ||
+    opsema == s1RW2RW || opsema == s1W2R3R || opsema == s1RW2R3R ||
+    opsema == s1RW2RW3R || opsema == s1W2RW3R || opsema == s1W2R3RW;
+  case 2:
+    return opsema == s1W2R3R || opsema == s1W2W3R || opsema == s1W2RW3R ||
+    opsema == s1W2R3RW || opsema == s1RW2R3R || opsema == s1RW2RW3R;
+  default:
+    return false;
+  };
+}
 
-  const unsigned char * addr = i->ptr();
-
-  const unsigned char * addrPtr = addr;
-  int hasSIB = 0;
-  int hasModRM = 0;
-  int opCodeSize = 1;
+bool operandIsWritten(int opsema, int operand)
+{
+  switch(operand)
+  {
+  case 0:
+    return opsema == s1W || opsema == s1RW || opsema == s1W2R ||
+    opsema == s1RW2R || opsema == s1RW2RW || opsema == s1W2R3R || 
+    opsema == s1W2W3R || opsema == s1RW2R3R || opsema == s1RW2RW3R ||
+    opsema == s1W2RW3R || opsema == s1W2R3R;
+  case 1:
+    return opsema == s1RW2RW || opsema == s1W2W3R || opsema == s1W2RW3R ||
+    opsema == s1RW2RW3R;
+  case 2:
+    return opsema == s1W2R3RW;
+  default:
+    return false;
+  };
+}
+static RegisterID IntelRegTable[][8] = {
+  {
+    r_AL, r_CL, r_DL, r_BL, r_AH, r_CH, r_DH, r_BH
+  },
+  {
+    r_AX, r_eCX, r_DX, r_eBX, r_eSP, r_eBP, r_eSI, r_eDI
+  },
+  {
+    r_EAX, r_ECX, r_EDX, r_EBX, r_ESP, r_EBP, r_ESI, r_EDI
+  },
+  {
+    r_ES, r_CS, r_SS, r_DS, r_FS, r_GS, r_Reserved, r_Reserved
+  },
+  {
+    r_R8, r_R9, r_R10, r_R11, r_R12, r_R13, r_R14, r_R15
+  }
   
-  unsigned mod = 0;
-  unsigned reg = 0;
-  unsigned rm = 0;
+};
 
-  addrPtr += ii->getPrefixCount();
-
-  if (*addrPtr == 0x0f)
-    opCodeSize = 2;
-
-  if (entry->operands[whichOp].admet == am_G || 
-      entry->operands[whichOp].admet == am_R ||
-      entry->operands[whichOp].admet == am_E)
+RegisterID makeRegisterID(unsigned int intelReg, unsigned int opType, bool is64bitMode, bool isExtendedRegister)
+{
+  if(is64bitMode && isExtendedRegister)
   {
-    hasModRM = 1;
-    addrPtr += opCodeSize;
-    unsigned char modByte = *addrPtr;
-    mod = (modByte >> 6) & 0x03;
-    reg = (modByte >> 3) & 0x07;
-    rm =  modByte & 0x07;
-    if ((mod != 3) && (rm == 4))
-      hasSIB = 1;
-    addrPtr++;
+    return IntelRegTable[4][intelReg];
   }
-
-  int rIndex =0; 
-  int wIndex =0;
-  for (rIndex = 0; rIndex < 3 && readArr[rIndex] != -1; rIndex++)
-  {}
-
-  for (wIndex = 0; wIndex < 3 && writeArr[wIndex] != -1; wIndex++)
-  {}
-
-  if (entry->operands[whichOp].admet == am_G)
+  
+  switch(opType)
   {
-    if (pref->rexR())
-      reg = reg+8;
-    if (readOrWrite == READ_OP)
-      readArr[rIndex] = reg;
-    else if (readOrWrite == WRITE_OP)
-      writeArr[wIndex] = reg;
-  }
-  else if (entry->operands[whichOp].admet == am_R)
-  {
-    if (pref->rexB())
-      rm = rm+8;
-    if (readOrWrite == READ_OP)
-      readArr[rIndex] = rm;
-    else if (readOrWrite == WRITE_OP)
-      writeArr[wIndex] = rm;
-
-  }
-  else if (entry->operands[whichOp].admet == am_E)
-  {
-    int regi = -1; /* modRM reg 1 */
-    int regi2 = -1; /* SIB reg 1 */
-    int regi3 = -1; /* SIB reg 2 */
-    if (rm == 0)
-      regi = REGNUM_RAX;
-    else if (rm == 1)
-      regi = REGNUM_RCX;
-    else if (rm == 2)
-      regi = REGNUM_RDX;
-    else if (rm == 3)
-      regi = REGNUM_RBX;
-    else if (rm == 5 && mod != 0)
-      regi = REGNUM_RBP;
-    else if (rm == 5 && mod == 0)
-      regi = -1; /* RIP + disp32 */
-    else if (rm == 6)
-      regi = REGNUM_RSI;
-    else if (rm == 7)
-      regi = REGNUM_RDI;      
-    else if (mod == 3 && rm == 4)
-      regi = REGNUM_RSP; // Tugrul: replaced REGNUM_RBP with REGNUM_RSP
-    else if (mod != 3 && rm == 4)
+  case op_b:
+    // since we're doing this for liveness, up-cast to 32-bit registers
+    //    return IntelRegTable[0][intelReg];
     {
-      unsigned char sibByte = *addrPtr;
-      //unsigned scale = (sibByte >> 6) & 0x03;
-      unsigned ind = (sibByte >> 3) & 0x07;
-      unsigned base =  sibByte & 0x07;
-	  
-      if (ind == 0)
-	regi2 = REGNUM_RAX;
-      else if (ind == 1)
-	regi2 = REGNUM_RCX;
-      else if (ind == 2)
-	regi2 = REGNUM_RDX;
-      else if (ind == 3)
-	regi2 = REGNUM_RBX;
-      else if (ind == 4 && pref->rexX()) 
-	regi2 = REGNUM_RSP;
-      else if (ind == 5)
-	regi2 = REGNUM_RBP;
-      else if (ind == 6)
-	regi2 = REGNUM_RSI;
-      else if (ind == 7)
-	regi2 = REGNUM_RDI;
-
-      if (base == 0)
-	regi3 = REGNUM_RAX;
-      else if (base == 1)
-	regi3 = REGNUM_RCX;
-      else if (base == 2)
-	regi3 = REGNUM_RDX;
-      else if (base == 3)
-	regi3 = REGNUM_RBX;
-      else if (base == 4)
-	regi3 = REGNUM_RSP;//Tugrul: changed regi with regi3
-      else if (base == 5 && mod !=0 )
-	regi3 = REGNUM_RBP;
-      else if (base == 6)
-	regi3 = REGNUM_RSI;
-      else if (base == 7)
-	regi3 = REGNUM_RDI;
-
-      if (pref->rexX() && regi2 !=- 1)
-	regi2 = regi2+8;
-      readArr[rIndex] = regi2;
-      rIndex++;
-
-      if (pref->rexB() && regi3 != -1)
-	regi3 = regi3+8;
-      readArr[rIndex] = regi3;
-    }
-      
-    if (!hasSIB)
-    {
-      if (pref->rexB())
-	regi = regi+8;
-      /* If mod != 3 then we are writing to memory, not a register 
-	 We would then read that register to get the memory location*/
-      if (readOrWrite == WRITE_OP && mod == 3)
-	writeArr[wIndex] = regi;
+      if(intelReg < 4 || is64bitMode)
+      {
+	return IntelRegTable[2][intelReg];
+      }
       else
-	readArr[rIndex] = regi;
+      {
+	return IntelRegTable[2][intelReg - 4];
+      }
     }
+    
+  case op_d:
+  case op_si:
+  case op_w:
+  default:
+    return IntelRegTable[2][intelReg];
+    break;
   }
-  else if (entry->operands[whichOp].admet == am_reg)
+}
+
+const unsigned int modrm_use_sib = 0x04;
+const unsigned int sib_base_only = 0x04;
+
+void addSIBRegisters(std::set<RegisterID>& regs, const ia32_locations& locs, unsigned int opType)
+{
+  unsigned scale;
+  Register index, base;
+  decode_SIB(locs.sib_byte, scale, index, base);
+  regs.insert(makeRegisterID(base, opType, locs.rex_byte, locs.rex_b));
+  if(index != sib_base_only)
   {
-    int ot = entry->operands[whichOp].optype;
-    int regi = -1;
-    if (ot == r_eAX || ot == r_EAX)
-      regi = 0;
-    else if (ot == r_eBX || ot == r_EBX)
-      regi = 3;
-    else if(ot == r_eCX || ot == r_ECX)
-      regi = 1;
-    else if(ot == r_eDX || ot == r_EDX)
-      regi = 2;
-    else if(ot == r_eSP || ot == r_ESP)
-      regi = 4;
-    else if (ot == r_eBP || ot == r_EBP)
-      regi = 5;
-    else if (ot == r_eSI || ot == r_ESI)
-      regi = 6;
-    else if(ot == r_eDI || ot == r_EDI)
-      regi = 7;
+    regs.insert(makeRegisterID(index, opType, locs.rex_byte, locs.rex_x));
+  }
+}
 
-    if (pref->rexB())
-      regi = regi+8;
-    if (readOrWrite == READ_OP)
-      readArr[rIndex] = regi;
-    else if (readOrWrite == WRITE_OP)
-      writeArr[wIndex] = regi;
 
-  }  
+void addModRMRegisters(std::set<RegisterID>& regs, const ia32_locations& locs, unsigned int opType)
+{
+  if(locs.modrm_rm != modrm_use_sib)
+  {
+    regs.insert(makeRegisterID(locs.modrm_rm, opType, locs.rex_byte, locs.rex_b));
+  }
+  else
+  {
+    addSIBRegisters(regs, locs, opType);
+  }
+}
+
+
+void parseRegisters(std::set<RegisterID>& readArray, std::set<RegisterID>& writeArray,
+		    ia32_instruction& ii, int opsema)
+{
+  ia32_entry * entry = ii.getEntry();
+  const ia32_locations& locs(ii.getLocationInfo());
+  if(!entry) return;
+  for(int i = 0; i < 3; ++i)
+  {
+    ia32_operand operand = entry->operands[i];
+    bool isRead = operandIsRead(opsema, i);
+    bool isWritten = operandIsWritten(opsema, i);
+    switch(operand.admet)
+    {
+      // mod r/m byte addressing, mod and r/m fields
+    case am_E:
+      switch(locs.modrm_mod)
+      {
+	// modrm_mod is a 2-bit value.  We know that in the 00, 01, and 10 cases, am_E
+	// will dereference whatever modrm_mod and modrm_rm dictate, and in the 11 case
+	// it will directly access the register they determine.  Therefore, we treat the other
+	// three cases as read-only regardless of whether the memory is read/written.
+      case 0x03:
+	if(isRead) 
+	{
+	  readArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_r));
+	} 
+	if(isWritten)
+	{
+	  writeArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_r));
+	}
+	break;
+      default:
+	addModRMRegisters(readArray, locs, operand.optype);
+      };
+      break;
+      // mod r/m byte, reg field, general register
+    case am_G:
+      if(isRead) 
+      {
+	readArray.insert(makeRegisterID(locs.modrm_reg, operand.optype, locs.rex_byte, locs.rex_r));
+      }
+      if(isWritten)
+      {
+	writeArray.insert(makeRegisterID(locs.modrm_reg, operand.optype, locs.rex_byte, locs.rex_r));
+      }
+      break;
+      // same as am_E, except that we ignore the mod field and assume it's 11b
+    case am_M:
+        // mod r/m must refer to memory
+        // so it must have a mod field of 0, 1, or 2
+        // and it will only read the registers used in the effective address calcs
+        switch(locs.modrm_mod) {
+        case 0x03:
+            // technically a can't happen, but don't assert because some punk can
+            // do unnatural things
+            break;
+        default:
+            addModRMRegisters(readArray, locs, operand.optype);
+            break;
+        }
+        break;
+    case am_R:
+      if(isRead) 
+      {
+	readArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
+      } 
+      if(isWritten)
+      {
+	writeArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
+      }
+      break;
+    case am_S:
+      // segment register in modRM reg field
+      if(isRead) 
+      {
+	if(locs.rex_r)
+	{
+	  readArray.insert(IntelRegTable[4][locs.modrm_reg]);
+	}
+	else
+	{
+	  readArray.insert(IntelRegTable[3][locs.modrm_reg]);
+	}
+      }
+      if(isWritten) 
+      {
+	if(locs.rex_r)
+	{
+	  writeArray.insert(IntelRegTable[4][locs.modrm_reg]);
+	}
+	else
+	{
+	  writeArray.insert(IntelRegTable[3][locs.modrm_reg]);
+	}
+      }
+      break;
+    case am_W:
+        // This could be memory as per the mod r/m byte.  We want to do the same thing as the
+        // am_E case, except that if it comes back with "register" we don't care
+        // as the FP saves are still done all-or-nothing.
+        switch(locs.modrm_mod) {
+        case 0x03:
+            // working directly with a floating point register
+            break;
+        default:
+            // we read anything that's used in the effective address calcs
+            addModRMRegisters(readArray, locs, operand.optype);
+            break;
+        };
+        break;
+    case am_X:
+      // memory addressed by DS:SI, so we read those regardless of semantics
+      readArray.insert(r_DS);
+      readArray.insert(r_ESI);
+      break;
+    case am_Y:
+      // memory addressed by ES:DI, so again read those regardless of operand semantics
+      readArray.insert(r_ES);
+      readArray.insert(r_EDI);
+      break;
+    case am_reg:
+      if(isRead) 
+      {
+	readArray.insert(RegisterID(operand.optype));
+      }
+      if(isWritten)
+      {
+	writeArray.insert(RegisterID(operand.optype));
+      }
+      break;
+    default:
+      // do nothing
+      break;
+    };
+  }
 }
 
 
@@ -820,118 +911,131 @@ bool InstrucIter::isFPWrite()
   return false;
 }
 
-
-
-
 #define FPOS 16
-void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
+void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs)
 {
-  instruction i = getInstruction();
-  // mark the annotations
-  int read = i.createAnnotationType("ReadSet");
-  int write = i.createAnnotationType("WriteSet");
-  
-  int* read1 = (int*)i.getAnnotation(read);
-  int* write1 = (int*)i.getAnnotation(write);
-  //if(0)
-  int n;
-  if(read1 != NULL || write1 != NULL) {
-    for(n=0; n<3; n++) {
-      Annotation* r = i.getAnnotation(read,n);
-      if(r != NULL) {
-	readRegs[n] = *((int*)r->getItem());
-      }
-      else
-	break;
-    }
-    for(n=0; n<3; n++) {
-      Annotation* w = i.getAnnotation(write,n);
-      if(w != NULL) {
-	writeRegs[n] = *((int*)w->getItem());
-      }
-      else
-	break;
-    }
-    return;
-  }
+  // deprecating this; use getAllRegistersUsedAndDefined instead
+  // start with doing nothing, then we'll go around removing it and converting the call sites and stuff
+  //assert(0);
+}
 
-  ia32_instruction ii;
-  
-  const unsigned char * addr = i.ptr();
-  ia32_decode(0, addr,ii);
-  ia32_entry * entry = ii.getEntry();
+using namespace boost::assign;
 
-  if(entry != NULL)
+map<RegisterID, Register> reverseRegisterLookup = map_list_of
+(r_EAX, REGNUM_RAX)
+    (r_ECX, REGNUM_RCX)
+    (r_EDX, REGNUM_RDX)
+    (r_EBX, REGNUM_RBX)
+    (r_ESP, REGNUM_RSP)
+    (r_EBP, REGNUM_RBP)
+    (r_ESI, REGNUM_RSI)
+    (r_EDI, REGNUM_RDI)
+    (r_R8, REGNUM_R8)
+    (r_R9, REGNUM_R9)
+    (r_R10, REGNUM_R10)
+    (r_R11, REGNUM_R11)
+    (r_R12, REGNUM_R12)
+    (r_R13, REGNUM_R13)
+    (r_R14, REGNUM_R14)
+    (r_R15, REGNUM_R15)
+    (r_DummyFPR, REGNUM_DUMMYFPR)
+    (r_OF, REGNUM_OF)
+    (r_SF, REGNUM_SF)
+    (r_ZF, REGNUM_ZF)
+    (r_AF, REGNUM_AF)
+    (r_PF, REGNUM_PF)
+    (r_CF, REGNUM_CF)
+    (r_TF, REGNUM_TF)
+    (r_IF, REGNUM_IF)
+    (r_DF, REGNUM_DF)
+    (r_NT, REGNUM_NT)
+    (r_RF, REGNUM_RF)
+    (r_AH, REGNUM_RAX)
+    (r_BH, REGNUM_RBX)
+    (r_CH, REGNUM_RCX)
+    (r_DH, REGNUM_RDX)
+    (r_AL, REGNUM_RAX)
+    (r_BL, REGNUM_RBX)
+    (r_CL, REGNUM_RCX)
+    (r_DL, REGNUM_RDX)
+    (r_eAX, REGNUM_RAX)
+    (r_eBX, REGNUM_RBX)
+    (r_eCX, REGNUM_RCX)
+    (r_eDX, REGNUM_RDX)
+    (r_AX, REGNUM_RAX)
+    (r_DX, REGNUM_RDX)
+    (r_eSP, REGNUM_RSP)
+    (r_eBP, REGNUM_RBP)
+    (r_eSI, REGNUM_RSI)
+    (r_eDI, REGNUM_RDI)
+    // These are wrong, need to extend to make cmpxch8b work right
+    (r_EDXEAX, REGNUM_RAX)
+    (r_ECXEBX, REGNUM_RCX)
+    (r_CS, REGNUM_IGNORED)
+    (r_DS, REGNUM_IGNORED)
+    (r_ES, REGNUM_IGNORED)
+    (r_FS, REGNUM_IGNORED)
+    (r_GS, REGNUM_IGNORED)
+    (r_SS, REGNUM_IGNORED)
+;
+
+Register dummyConverter(RegisterID toBeConverted)
+{
+    map<RegisterID, Register>::const_iterator found = 
+        reverseRegisterLookup.find(toBeConverted);
+    if(found == reverseRegisterLookup.end()) {
+        fprintf(stderr, "Register ID %d not found in reverseRegisterLookup!\n", toBeConverted);
+        assert(!"Bad register ID");
+    }
+    return found->second;
+}
+
+void InstrucIter::getAllRegistersUsedAndDefined(std::set<Register> &used, 
+                                                std::set<Register> &defined)
+{
+    // We need to map between the internal register encoding and the one expected
+    // by codegen.
+    std::set<RegisterID> localUsed;
+    std::set<RegisterID> localDefined;
+
+    ia32_locations locs;
+    ia32_memacc mac[3];
+    ia32_condition cond;
+  ia32_instruction detailedInsn(mac, &cond, &locs);
+  instruction tmp = getInstruction();
+  ia32_decode(IA32_FULL_DECODER, tmp.ptr(), detailedInsn);
+  ia32_entry * entry = detailedInsn.getEntry();  
+  if(entry)
   {
+    entry->flagsUsed(localUsed, localDefined);
     unsigned int opsema = entry->opsema & ((1<<FPOS) -1);//0xFF;
-    for (int a = 0; a < 3; a++)
+    parseRegisters(localUsed, localDefined, detailedInsn, opsema);
+  }
+  if(isFPWrite())
+  {
+      localDefined.insert(r_DummyFPR);
+  }
+  if(detailedInsn.getPrefixCount())
+  {
+    unsigned char repPrefix = detailedInsn.getPrefix()->getPrefix(RepGroup);
+    switch(repPrefix)
     {
-      if (entry->operands[a].admet == am_G || /* GPR, selected by reg field (6) */
-	  entry->operands[a].admet == am_R || /* GPR, selected by mod field (13)*/
-	  entry->operands[a].admet == am_reg || /* implicit register (20)*/
-	  entry->operands[a].admet == am_E) /*register or memory location (4) */
-      {
-	if (a == 0)
-	{
-	  if (opsema == s1R || opsema == s1RW || opsema == s1R2R ||
-	      opsema == s1RW2R || opsema == s1RW2RW || opsema == s1RW2R3R ||
-	      opsema == s1RW2RW3R)
-	  {
-	    parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
-	  }
-	  if(opsema == s1W || opsema == s1RW || opsema == s1W2R ||
-	     opsema == s1RW2R || opsema == s1RW2RW || opsema == s1W2R3R || 
-	     opsema == s1W2W3R || opsema == s1RW2R3R || opsema == s1RW2RW3R ||
-	     opsema == s1W2RW3R || opsema == s1W2R3R)
-	  {
-	    parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
-	  }
-	}
-	else if (a == 1)
-	{
-	  if (opsema == s1R2R || opsema == s1W2R || opsema == s1RW2R ||
-	      opsema == s1RW2RW || opsema == s1W2R3R || opsema == s1RW2R3R ||
-	      opsema == s1RW2RW3R || opsema == s1W2RW3R || opsema == s1W2R3RW)
-	  {
-	    parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
-	  }
-	  if(opsema == s1RW2RW || opsema == s1W2W3R || opsema == s1W2RW3R ||
-	     opsema == s1RW2RW3R )
-	  {
-	    parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
-	  }
-	}
-	else if (a == 2)
-	{
-	  if (opsema == s1W2R3R || opsema == s1W2W3R || opsema == s1W2RW3R ||
-	      opsema == s1W2R3RW || opsema == s1RW2R3R || opsema == s1RW2RW3R)
-	  {
-	    parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
-	  }
-	  if( opsema == s1W2R3RW )
-	  {
-	    parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
-	  }
-	}
-      }
-    }
-    for(n=0; n<3; n++) {
-      if(readRegs[n] != -1) {
-	int* num = (int*)malloc(sizeof(int));
-	*num = readRegs[n];
-	i.setAnnotation(read,new Annotation(num));
-      }
-      else
-	break;
-    }
-    for(n=0; n<3; n++) {
-      if(writeRegs[n] != -1) {
-	int* num = (int*)malloc(sizeof(int));
-	*num = writeRegs[n];
-	i.setAnnotation(write,new Annotation(num));
-      }
-      else
-	break;
+    case PREFIX_REPNZ:
+      localUsed.insert(r_ZF);
+      // fall through
+    case PREFIX_REP:
+      localUsed.insert(r_DF);
+      localUsed.insert(r_ECX);
+      localDefined.insert(r_ECX);
+      break;
+    default:
+      break;
     }
   }
+  std::transform(localUsed.begin(), localUsed.end(), inserter(used, used.begin()),
+                 dummyConverter);
+  std::transform(localDefined.begin(), localDefined.end(), inserter(defined, defined.begin()),
+                 dummyConverter);
+
+
 }

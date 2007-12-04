@@ -277,6 +277,7 @@ class InstrucIter {
   bool isAnAbortInstruction();
   bool isAnAllocInstruction();
   bool isDelaySlot();
+  bool isSyscall();
   
   /* Power only */
   bool isA_RT_WriteInstruction();
@@ -341,6 +342,7 @@ class InstrucIter {
   /* x86 Only */
   void readWriteRegisters(int * readRegs, int * writeRegs);
   bool isFPWrite();
+  void getAllRegistersUsedAndDefined(std::set<Register>& used, std::set<Register> &defined);
   /* END x86 Only */
 
   bool isAIndirectJumpInstruction();
