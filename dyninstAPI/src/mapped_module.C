@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.23 2007/09/25 17:28:18 giri Exp $
+// $Id: mapped_module.C,v 1.24 2007/12/04 18:05:28 legendre Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -719,13 +719,10 @@ void mapped_module::parseLineInformation(AddressSpace * /* proc */,
 	 bigger range, but it's not clear how.  (If the function has inlined code, we won't know about
 	 it until we see the next section, so claiming "until the end of the function" will give bogus results.) */
       // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, previousLineAddr + 4 );
-      while (previousLineAddr < funcEndAddress) {
-      if(previousLineNo == 596 || previousLineNo == 597)
-	      cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," <<  previousLineAddr + 4 << ") for source " << whichFile << ":" << setbase(10) << previousLineNo << endl;
-		      
-	unsigned current_col = 0;
-	currentLineInformation.addLine( whichFile.c_str(), previousLineNo, current_col, previousLineAddr, previousLineAddr + 4 );
-	previousLineAddr += 4;
+       while (previousLineAddr < funcEndAddress) {
+          unsigned current_col = 0;
+          currentLineInformation.addLine( whichFile.c_str(), previousLineNo, current_col, previousLineAddr, previousLineAddr + 4 );
+          previousLineAddr += 4;
       }
     }
   } /* end if we found a C_FUN symbol */
