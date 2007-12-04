@@ -1526,3 +1526,4 @@ bool InstrucIter::isInterModuleCallSnippet(Address &info) {
   return retval;
 
 }
+
