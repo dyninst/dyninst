@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.174 2007/10/03 21:18:13 bernat Exp $
+// $Id: BPatch.C,v 1.175 2007/12/04 17:57:38 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -91,9 +91,9 @@ BPatch::BPatch()
     trampRecursiveOn(false),
     forceRelocation_NP(false),
     autoRelocation_NP(true),
-    disregardLiveness_NP_(false),
     trampMergeOn(true),
     saveFloatingPointsOn(true),
+    livenessAnalysisOn_(true),
     asyncActive(false),
     delayedParsing_(false),
     systemPrelinkCommand(NULL),
@@ -397,8 +397,14 @@ void BPatch::setTrampRecursiveInt(bool x)
 {
   trampRecursiveOn = x;
 }
-bool BPatch::disregardLiveness_NPInt() { return disregardLiveness_NP_; }
-void BPatch::setDisregardLiveness_NPInt(bool x) { disregardLiveness_NP_ = x; }
+void BPatch::setLivenessAnalysisInt(bool x)
+{
+    livenessAnalysisOn_ = x;
+}
+bool BPatch::livenessAnalysisOnInt() {
+    return livenessAnalysisOn_;
+}
+
 bool BPatch::hasForcedRelocation_NPInt()
 {
   return forceRelocation_NP;

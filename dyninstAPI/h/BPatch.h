@@ -116,10 +116,6 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
        deems it necessary.  Defaults to true */
     bool        autoRelocation_NP;
 
-    /* If true, ignore all liveness calculations. Will seriously impact performance
-       but is necessary if the user has information we don't about optimized code. */
-    bool        disregardLiveness_NP_;
-
     /* If true, base tramps and mini tramps are merged 
        Defaults to false */
     bool        trampMergeOn;
@@ -127,6 +123,13 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     /* If true, we save FPRs in situations we normally would 
        Defaults to true */
     bool saveFloatingPointsOn;
+
+    /* If true, we will use liveness calculations to avoid saving
+       registers on platforms that support it. 
+       Defaults to true. */
+    bool livenessAnalysisOn_;
+    /* How far through the CFG do we follow calls? */
+    int livenessAnalysisDepth_;
 
     /* If true, override requests to block while waiting for events,
        polling instead */
@@ -255,9 +258,6 @@ public:
 
     bool,isTrampRecursive,());
 
-    API_EXPORT(Int, (),
-    bool, disregardLiveness_NP, ());
-
     // BPatch::isMergeTramp:
     // returns whether base tramp and mini-tramp is merged
     API_EXPORT(Int, (),
@@ -289,6 +289,12 @@ public:
 
     bool,delayedParsingOn,());
 
+    // Liveness...
+    API_EXPORT(Int, (),
+    bool, livenessAnalysisOn, ());
+
+    API_EXPORT(Int, (),
+               int, livenessAnalysisDepth, ());
 
     //  User-specified callback functions...
 
@@ -414,9 +420,6 @@ public:
 
     void,setTrampRecursive,(bool x));
 
-    API_EXPORT_V(Int, (x),
-    void, setDisregardLiveness_NP, (bool x));
-
     //  BPatch::setMergeTramp:
     //  Turn on/off merged base & mini-tramps
     API_EXPORT_V(Int, (x),
@@ -446,6 +449,13 @@ public:
     API_EXPORT_V(Int, (x),
 
     void,setDelayedParsing,(bool x));
+
+    // Liveness...
+    API_EXPORT_V(Int, (x),
+    void, setLivenessAnalysis, (bool x));
+
+    API_EXPORT_V(Int, (x),
+                 void, setLivenessAnalysisDepth, (int x));
 
     // BPatch::processCreate:
     // Create a new mutatee process
