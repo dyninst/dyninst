@@ -486,8 +486,8 @@ bool BPatch_process::stopExecutionInt()
        return true;
    }
    else {
-       return false;
        isAttemptingAStop = false;
+       return false;
    }
 }
 
