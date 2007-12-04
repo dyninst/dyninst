@@ -37,5 +37,7 @@ unsigned long long PDYN_div1000(unsigned long long in);
 unsigned long long PDYN_divMillion(unsigned long long in);
 unsigned long long PDYN_mulMillion(unsigned long long in);
 
+bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid);
+
 #endif
 
