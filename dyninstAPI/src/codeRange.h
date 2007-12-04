@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.16 2007/10/26 17:17:47 bernat Exp $
+// $Id: codeRange.h,v 1.17 2007/12/04 17:58:18 bernat Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -95,8 +95,6 @@ class codeRange {
     // code range - as opposed to get_address_cr, which returns
     // the "remote" address.
     virtual void *get_local_ptr() const { 
-        codeRange *nonConst = (codeRange *)this;
-        nonConst->print_range(0);
         assert(0); return NULL; }
 
 
