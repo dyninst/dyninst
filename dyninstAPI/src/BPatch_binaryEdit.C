@@ -433,13 +433,6 @@ BPatchSnippetHandle *BPatch_binaryEdit::insertSnippetAtPointsWhen(const BPatch_s
         fprintf(stderr, "Error: attempt to use point specific to a different process\n");
         continue;
     }        
-
-#if defined(os_aix) || defined(arch_x86_64)
-        // Toss the const; the function _pointer_ doesn't though.
-    BPatch_function *func = point->getFunction();
-    func->calc_liveness(point);
-#endif 
-
     
     if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder)) {
       inst_printf("[%s:%u] - BPatchToInternalArgs failed for point %d\n",

@@ -148,8 +148,9 @@ public:
   API_EXPORT(Int, (name),
   BPatch_basicBlockLoop *,findLoop,(const char *name));
 
-  API_EXPORT_V(Int, (),
-  void, initLivenessInfo,());
+  // Deprecated - this should not be an API method
+  //API_EXPORT_V(Int, (),
+  //void, initLivenessInfo,());
 
   /*
   API_EXPORT(Int, (edge),

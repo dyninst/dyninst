@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.93 2007/09/27 18:52:43 tugrul Exp $
+// $Id: BPatch_function.C,v 1.94 2007/12/04 17:57:44 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -733,68 +733,6 @@ void BPatch_function::fixupUnknown(BPatch_module *module) {
       delete vars;
    }
 }
-
-#if defined(os_aix) || defined(arch_x86_64)
-void BPatch_function::calc_liveness(BPatch_point *point) {
-    assert(point);
-    instPoint *iP = point->getPoint();
-    assert(iP);
-    Address pA = iP->addr();
-    /*
-    int *liveRegisters = iP->liveRegisters;
-    int *liveFPRegisters = iP->liveFPRegisters;
-    int *liveSPRegisters = iP->liveSPRegisters;
-    */
-    
-    // BEGIN LIVENESS ANALYSIS STUFF
-    // Need to narrow it down to specific basic block at this point so we can 
-    // recover liveness information
-    
-    // Need the CFG to do liveness analysis 
-    BPatch_flowGraph * cfg = getCFG();
-    
-
-    // No CFG, no liveness.
-    if (!cfg) return;
-
-    // Initialize the liveness information once for each function
-    if (!liveInit)
-      {
-	cfg->initLivenessInfo();
-	liveInit = true;
-      }
-
-    BPatch_Set<BPatch_basicBlock*> allBlocks;
-    cfg->getAllBasicBlocks(allBlocks);
-    BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
-    allBlocks.elements(elements);
-    
-    for (unsigned int i = 0; i < allBlocks.size(); i++) {
-        
-      BPatch_basicBlock *bb = elements[i];
-      int_basicBlock *ibb = bb->lowlevel_block();
-
-      if (iP->block() == ibb) {
-	/* When we have the actual basic block belonging to the 
-	   inst address, we put the live Registers in for that inst point*/
-            
-	ibb->liveRegistersIntoSet(iP, pA );
-	
-	/* Function for handling special purpose registers on platforms,
-	   for Power it figures out MX register usage (big performance hit) ... 
-	   may be extended later for other special purpose registers */
-	ibb->liveSPRegistersIntoSet(iP, pA);
-	  
-	  //bb->printAll();
-      }
-    }
-    delete [] elements;
-    // END LIVENESS ANALYSIS STUFF
-}
-#else
-void BPatch_function::calc_liveness(BPatch_point *) {
-}
-#endif
 
 bool BPatch_function::containsSharedBlocks() {
     return func->containsSharedBlocks();

@@ -122,7 +122,8 @@ public:
     void fixupUnknown(BPatch_module *);
     
     // Calculate liveness at a particular address
-    void calc_liveness(BPatch_point *point);
+    // Deprecated - moved to internals
+    //void calc_liveness(BPatch_point *point);
 
         // This isn't so much for internal use only, but it *should*
         // remain undocumented for now.

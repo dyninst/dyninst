@@ -250,14 +250,6 @@ bool BPatch_addressSpace::replaceCodeInt(BPatch_point *point,
         return false;
     }
 
-    // Calculate liveness to make things cheaper
-
-#if defined(os_aix) || defined(arch_x86_64)
-        // Toss the const; the function _pointer_ doesn't though.
-        BPatch_function *func = point->getFunction();
-        func->calc_liveness(point);
-#endif 
-
 
     return point->point->replaceCode(*(snippet->ast_wrapper));
 }
