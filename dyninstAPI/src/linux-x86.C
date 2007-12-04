@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.132 2007/09/25 17:28:17 giri Exp $
+// $Id: linux-x86.C,v 1.133 2007/12/04 17:58:25 bernat Exp $
 
 #include <fstream>
 
@@ -78,6 +78,9 @@
 
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/linux.h"
+
+#include "dyninstAPI/src/registerSpace.h"
+
 #include <sstream>
 
 #include "dyninstAPI/src/addLibraryLinux.h"
@@ -1611,7 +1614,7 @@ bool process::loadDYNINSTlib_hidden() {
     startup_printf("Failed to disable stack protection.\n");
   }
 
-#if defined(arch_x86_64)
+#if defined(cap_32_64)
   if (getAddressWidth() == 4) {
 #endif
 
@@ -1635,7 +1638,7 @@ bool process::loadDYNINSTlib_hidden() {
       instruction::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
       
 
-#if defined(arch_x86_64)
+#if defined(cap_32_64)
   } else {
 
       // Push caller
