@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.57 2007/09/12 20:57:30 bernat Exp $
+// $Id: baseTramp.C,v 1.58 2007/12/04 17:57:56 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -132,7 +132,7 @@ void baseTramp::unregisterInstance(baseTrampInstance *inst) {
 #define PRE_TRAMP_SIZE 4096
 #define POST_TRAMP_SIZE 4096
 
-baseTramp::baseTramp(instPoint *iP) :
+baseTramp::baseTramp(instPoint *iP, callWhen when) :
     preSize(0),
     postSize(0),
     saveStartOffset(0),
@@ -170,12 +170,12 @@ baseTramp::baseTramp(instPoint *iP) :
     lastMini(NULL),
     preTrampCode_(),
     postTrampCode_(),
-	regSpace_(NULL),
     valid(false),
     optimized_out_guards(false),
     guardState_(unset_BTR),
     suppress_threads_(false),
-    instVersion_()
+    instVersion_(),
+    when_(when)
 {
 }
 
@@ -258,23 +258,18 @@ baseTramp::baseTramp(const baseTramp *pt, process *child) :
     lastMini(NULL),
     preTrampCode_(pt->preTrampCode_),
     postTrampCode_(pt->postTrampCode_),
-	regSpace_(NULL),
     valid(pt->valid),
     optimized_out_guards(false),
     guardState_(pt->guardState_),
     suppress_threads_(pt->suppress_threads_),
-    instVersion_(pt->instVersion_)
+    instVersion_(pt->instVersion_),
+    when_(pt->when_)
 {
     if (pt->clobberedGPR)
         assert(0); // Don't know how to copy these
     if (pt->clobberedFPR)
         assert(0);
-        
-	if (pt->regSpace_)
-		regSpace_ = new registerSpace(*(pt->regSpace_));
-	else
-		regSpace_ = NULL;
-
+    
 #if defined( cap_unwind )
     baseTrampRegion = duplicateRegionList( pt->baseTrampRegion );
 #endif /* defined( cap_unwind ) */
@@ -343,7 +338,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     if (baseT->instP()) {
        //iRPCs already have this set
        gen.setPoint(baseT->instP());
-       gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP()));
+       gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP(), baseT->when_));
     }
     
     if (BPatch::bpatch->isMergeTramp()) {
@@ -352,7 +347,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     }
     else {
         // /* DEBUG */ fprintf( stderr, "%s[%d]: generating code out-of-line\n", __FILE__, __LINE__ );
-	    return generateCodeOutlined(gen, baseInMutatee, unwindRegion);
+        return generateCodeOutlined(gen, baseInMutatee, unwindRegion);
     }
 
 }
@@ -409,17 +404,15 @@ bool baseTrampInstance::generateCodeOutlined(codeGen &gen,
     
     // So we'll get to it later.
     
-	// We're using a pre-generated code template and copying it in -
-	// which means the register information is _all_ screwed up.
-	// For now, we cheese out by assuming everything is saved (well, 
-	// it is) and swapping register spaces. The baseTramp keeps one,
-	// since it needs to know where registers are saved.
-	registerSpace *curRegSpace = gen.rs();
-	assert(baseT->regSpace_);
-	baseT->regSpace_->cleanSpace();
-	gen.setRegisterSpace(baseT->regSpace_);
+    // We're using a pre-generated code template and copying it in -
+    // which means the register information is _all_ screwed up.
+    // For now, we cheese out by assuming everything is saved (well, 
+    // it is) and swapping register spaces. The baseTramp keeps one,
+    // since it needs to know where registers are saved.
+    registerSpace *curRegSpace = gen.rs();
 
-
+    gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP(), baseT->when_));
+    
     for (unsigned miter = 0; miter < mtis.size(); miter++) {
         mtis[miter]->generateCode(gen, baseInMutatee, unwindRegion);
         // Will increment offset if it writes to baseInMutator;
@@ -494,7 +487,6 @@ bool baseTrampInstance::generateCodeOutlined(codeGen &gen,
 bool baseTrampInstance::generateCodeInlined(codeGen &gen,
                                             Address baseInMutatee,
                                             UNW_INFO_TYPE **unwindRegion) {
-
     if (!hasChanged() && generated_) {
         assert(gen.currAddr(baseInMutatee) == trampAddr_);
         gen.moveIndex(trampSize_);
@@ -537,7 +529,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
 
     // Specialize for the instPoint...
 	
-    gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP()));
+    gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP(), baseT->when_));
 
     pdvector<AstNodePtr> miniTramps;
     for (unsigned miter = 0; miter < mtis.size(); miter++) {
@@ -654,7 +646,6 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
       }
 #endif
 
-
     trampAddr_ = gen.currAddr();
 
     // Sets up state in the codeGen object (and gen.rs())
@@ -666,10 +657,12 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     baseT->generateSaves(gen, gen.rs());
     saveEndOffset = gen.used();
     bool retval = true;
+
     if (!baseTramp->generateCode(gen, false)) {
         fprintf(stderr, "Gripe: base tramp creation failed\n");
         retval = false;
     }
+
     trampPostOffset = gen.used();
     restoreStartOffset = 0;
     baseT->generateRestores(gen, gen.rs());
@@ -1160,7 +1153,7 @@ bool baseTramp::generateBT(codeGen &baseGen) {
 	// If we're calling generateBT, we're out-of-lining... so 
 	// we can't take advantage of instr-unused registers
   if (instP()) 
-     baseGen.setRegisterSpace(registerSpace::actualRegSpace(instP()));
+     baseGen.setRegisterSpace(registerSpace::actualRegSpace(instP(), when_));
 	
 
   assert(preTrampCode_ == NULL);
@@ -1265,10 +1258,6 @@ bool baseTramp::generateBT(codeGen &baseGen) {
     valid = true;
     preTrampCode_.finalize();
     postTrampCode_.finalize();
-
-	if (regSpace_)
-		delete regSpace_;
-    regSpace_ = new registerSpace(*(baseGen.rs()));
 
     /*
       inst_printf("pre size: %d, post size: %d\n",

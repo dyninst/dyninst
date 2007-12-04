@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.56 2007/11/09 20:10:59 bernat Exp $
+ * $Id: emit-x86.C,v 1.57 2007/12/04 17:57:58 bernat Exp $
  */
 
 #include <assert.h>
@@ -55,6 +55,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+#include "dyninstAPI/src/registerSpace.h"
 
 // get_index...
 #include "dyninstAPI/src/dyn_thread.h"
@@ -319,14 +320,22 @@ void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_
 {
     // Parameters are addressed by a positive offset from ebp,
     // the first is PARAM_OFFSET[ebp]
-    if(pt_type == callSite) {
-	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, CALLSITE_PARAM_OFFSET + param_num*4, gen);
-	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-    } else {
-	// assert(pt_type == functionEntry)
-	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, FUNC_PARAM_OFFSET + param_num*4, gen);
-	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
+
+    int offset = 0;
+    if (pt_type == callSite) {
+        offset = CALLSITE_PARAM_OFFSET + param_num*4;
     }
+    else {
+        offset = FUNC_PARAM_OFFSET + param_num*4;
+    }
+
+    if ((*gen.rs())[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::dead) {
+        // Adjust down because we didn't save the flags
+        offset -= 4;
+    }
+    
+    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, offset, gen);
+    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
 }
 
 bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
@@ -337,7 +346,8 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
         emitLEA(REGNUM_ESP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_ESP, gen);
 
     // These crank the saves forward
-    emitSimpleInsn(PUSHFD, gen);
+    //emitSimpleInsn(PUSHFD, gen);
+    gen.rs()->saveVolatileRegisters(gen);
     emitSimpleInsn(PUSHAD, gen);
     // For now, we'll do all saves then do the guard. Could inline
     // Return addr for stack frame walking; for lack of a better idea,
@@ -352,7 +362,14 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
     emitSimpleInsn(PUSH_EBP, gen);
     emitMovRegToReg(REGNUM_EBP, REGNUM_ESP, gen);
     
-    if (bt->isConservative() && gen.rs()->saveAllFPRs() && BPatch::bpatch->isSaveFPROn()) {
+    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
+
+    // Not sure liveness touches this yet, so not using
+    //bool liveFPRs = (gen.rs()->FPRs()[0]->liveState == registerSlot:live);
+
+    if (bt->isConservative() && 
+        BPatch::bpatch->isSaveFPROn() &&
+        useFPRs) {
         if (gen.rs()->hasXMM) {
             // Allocate space for temporaries
             emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
@@ -395,7 +412,13 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
 
 bool EmitterIA32::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
-    if (bt->isConservative() && gen.rs()->saveAllFPRs() && BPatch::bpatch->isSaveFPROn()) {
+    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
+    // Not sure liveness touches this yet, so not using
+    //bool liveFPRs = (gen.rs()->FPRs()[0]->liveState == registerSlot:live);
+
+    if (bt->isConservative() 
+        && BPatch::bpatch->isSaveFPROn() 
+        && useFPRs) {
         if (gen.rs()->hasXMM) {
             // pop the old ESP value into EAX
             emitSimpleInsn(0x58 + REGNUM_EAX, gen);
@@ -420,7 +443,8 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, codeGen &gen)
     if (bt->rpcMgr_ == NULL)
 	emitSimpleInsn(POP_EAX, gen);
     emitSimpleInsn(POPAD, gen);
-    emitSimpleInsn(POPFD, gen);
+    //emitSimpleInsn(POPFD, gen);
+    gen.rs()->restoreVolatileRegisters(gen);
 
     // Red zone skip - see comment in emitBTsaves
     if (STACK_PAD_CONSTANT)
@@ -969,9 +993,24 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
 
     // push RDX if it's in use, since we will need it
     bool save_rdx = false;
-    if (!gen.rs()->isFreeRegister(REGNUM_RDX)) {
+    if (!gen.rs()->isFreeRegister(REGNUM_RDX) && (dest != REGNUM_RDX)) {
 	save_rdx = true;
 	emitPushReg64(REGNUM_RDX, gen);
+    }
+
+    // If src2 is RDX we need to move it into a scratch register, as the sign extend
+    // will overwrite RDX.
+    // Note that this does not imply RDX is not free; both inputs are free if they
+    // are not used after this call.
+    Register scratchReg = src2;
+    if (scratchReg == REGNUM_RDX) {
+        pdvector<Register> dontUse;
+        dontUse.push_back(REGNUM_RAX);
+        dontUse.push_back(src2);
+        dontUse.push_back(dest);
+        dontUse.push_back(src1);
+        scratchReg = gen.rs()->getScratchRegister(gen, dontUse);
+        emitMovRegToReg64(scratchReg, src2, true, gen);
     }
 
     // mov %src1, %rax
@@ -982,7 +1021,7 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
     emitSimpleInsn(0x99, gen);
 
     // idiv %src2
-    emitOpRegReg64(0xF7, 0x7, src2, true, gen);
+    emitOpRegReg64(0xF7, 0x7, scratchReg, true, gen);
 
     // mov %rax, %dest
     emitMovRegToReg64(dest, REGNUM_RAX, true, gen);
@@ -1033,7 +1072,7 @@ void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, co
 
 	// push RDX if it's in use, since we will need it
 	bool save_rdx = false;
-	if (!gen.rs()->isFreeRegister(REGNUM_RDX)) {
+	if (!gen.rs()->isFreeRegister(REGNUM_RDX) && (dest != REGNUM_RDX)) {
 	    save_rdx = true;
 	    emitPushReg64(REGNUM_RDX, gen);
 	}
@@ -1143,7 +1182,7 @@ void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
 // this is the distance on the basetramp stack frame from the
 // start of the GPR save region to where the base pointer is,
 // in 8-byte quadwords
-#define GPR_SAVE_REGION_OFFSET 17
+#define GPR_SAVE_REGION_OFFSET 18
 
 void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen)
 {
@@ -1213,7 +1252,23 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
      True - FP Writes are present
      False - No FP Writes
   */
-    return callee->ifunc()->writesFPRs();
+
+  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);  
+  if (callee->ifunc()->writesFPRs()) {
+      for (unsigned i = 0; i < rs->FPRs().size(); i++) {
+          // We might want this to be another flag, actually
+          rs->FPRs()[i]->beenUsed = true;
+      }
+  }
+
+  // Since we are making a call, mark all caller-saved registers
+  // as used (therefore we will save them if they are live)
+  for (unsigned i = 0; i < rs->numGPRs(); i++) {
+      rs->GPRs()[i]->beenUsed = true;
+  }
+
+  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+  return true;
 }
 
 
@@ -1237,12 +1292,19 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
     // Before we generate argument code, save any register that's live across
     // the call. 
     pdvector<pair<unsigned,int> > savedRegsToRestore;
-    for (unsigned i = 0; i < gen.rs()->getRegisterCount(); i++) {
-        registerSlot *reg = gen.rs()->getRegSlot(i);
-        if (reg->refCount > 0 || reg->keptValue) {
+    for (unsigned i = 0; i < gen.rs()->numGPRs(); i++) {
+        registerSlot *reg = gen.rs()->GPRs()[i];
+        regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
+                        FILE__, __LINE__, reg->number,
+                        reg->refCount,
+                        reg->keptValue,
+                        (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
+        if (reg->refCount > 0 ||  // Currently active
+            reg->keptValue || // Has a kept value
+            (reg->liveState == registerSlot::live)) { // needs to be saved pre-call
             pair<unsigned, unsigned> regToSave;
-            regToSave.first = i; // Index of the register
-
+            regToSave.first = i; // Index of the register in the GPRs vector
+            
             regToSave.second = reg->refCount;
             // We can have both a keptValue and a refCount - so I invert
             // the refCount if there's a keptValue
@@ -1252,7 +1314,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
             savedRegsToRestore.push_back(regToSave);
 
             // The register is live; save it. 
-            emitPushReg64(reg->number, gen);
+            emitPushReg64(reg->encoding(), gen);
             // And now that it's saved, nuke it
             reg->refCount = 0;
             reg->keptValue = false;
@@ -1294,7 +1356,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
     // Now restore any registers live over the call
 
     for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
-        registerSlot *reg = gen.rs()->getRegSlot(savedRegsToRestore[i].first);
+        registerSlot *reg = gen.rs()->GPRs()[savedRegsToRestore[i].first];
         
         if (savedRegsToRestore[i].second < 1) {
             reg->refCount = -1*(savedRegsToRestore[i].second);
@@ -1313,8 +1375,9 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
     
     // Now restore any registers live over the call
     for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
-        registerSlot *reg = gen.rs()->getRegSlot(savedRegsToRestore[i].first);
-        emitPopReg64(reg->number, gen);
+        registerSlot *reg = gen.rs()->GPRs()[savedRegsToRestore[i].first];
+
+        emitPopReg64(reg->encoding(), gen);
     }
 
     return ret;
@@ -1393,45 +1456,39 @@ void EmitterAMD64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &g
     // pop "fake" return address
     emitPopReg64(REGNUM_RAX, gen);
 
-    if (gen.rs()->saveAllGPRs()) {
-        // restore saved registers (POP R15, POP R14, ...)
-        for (int reg = 15; reg >= 0; reg--) {
-            emitPopReg64(reg, gen);
+    // Count the saved registers
+    int num_saved = 0; // RAX, RSP, RBP always saved
+    for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
+        registerSlot *reg = gen.rs()->GPRs()[i];
+        if (reg->liveState == registerSlot::spilled) {
+            num_saved++;
         }
     }
-    else {
-        // Count the saved registers
-        int num_saved = 0; // RAX, RSP, RBP always saved
-        for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
-            registerSlot * reg = gen.rs()->getRegSlot(i);
-            if (reg->startsLive ||
-                (reg->number == REGNUM_RAX) ||
-                (reg->number == REGNUM_RBX) ||
-                (reg->number == REGNUM_RSP) ||
-                (reg->number == REGNUM_RBP)) {
-                num_saved++;
-            }
+    
+    int reg_pad = 8 * (16 - num_saved);
+    if (reg_pad != 0) {
+        // we always allocate space on the stack for all the GPRs (helps stack walk)
+        if (reg_pad > 127) {
+            // Can't use a signed char... at 127 we invert and add. 
+            // Since (signed) 128 = -128. 
+            emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_RSP, reg_pad, true, gen);
         }
-        
-        // move SP up to end of GPR save area
-        if (num_saved < 16) {
-            emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8 * (16 - num_saved), true, gen);
+        else {
+            emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, reg_pad, true, gen);
         }
-        
-        // Save the live ones
-        for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
-            registerSlot * reg = gen.rs()->getRegSlot(i);
-            if (reg->startsLive ||
-                (reg->number == REGNUM_RAX) ||
-                (reg->number == REGNUM_RBX) ||
-                (reg->number == REGNUM_RSP) ||
-                (reg->number == REGNUM_RBP)) {
-                emitPopReg64(reg->number,gen);
-            }
-        }    
     }
+    
+    // Save the live ones
+    for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
+        registerSlot *reg = gen.rs()->GPRs()[i];
+        if (reg->liveState == registerSlot::spilled) {
+            emitPopReg64(reg->encoding(), gen);
+        }
+    }
+
     // restore flags (POPFQ)
-    emitSimpleInsn(0x9D, gen);
+    //emitSimpleInsn(0x9D, gen);
+    gen.rs()->restoreVolatileRegisters(gen);
 
    // restore stack pointer (use LEA to not affect flags)
    if (STACK_PAD_CONSTANT)
@@ -1545,18 +1602,18 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
 	   emitLoadOrigRegister(REGNUM_RAX, REGNUM_RAX, gen);
        }
        if (restore_rsi) {
-           if (!gen.rs()->isFreeRegister(REGNUM_RSI)) {
+           if (!gen.rs()->isFreeRegister(REGNUM_RSI) && (dest != REGNUM_RSI)) {
                rsi_wasUsed = true;
                emitPushReg64(REGNUM_RSI, gen);
            }
            emitLoadOrigRegister(REGNUM_RSI, REGNUM_RSI, gen);
        }
-       if (!gen.rs()->isFreeRegister(REGNUM_RDI)) {
+       if (!gen.rs()->isFreeRegister(REGNUM_RDI) && (dest != REGNUM_RDI)) {
            rdi_wasUsed = true;
            emitPushReg64(REGNUM_RDI, gen);
        }
        emitLoadOrigRegister(REGNUM_RDI, REGNUM_RDI, gen);
-       if (!gen.rs()->isFreeRegister(REGNUM_RCX)) {
+       if (!gen.rs()->isFreeRegister(REGNUM_RCX) && (dest != REGNUM_RCX)) {
            rcx_wasUsed = true;
            emitPushReg64(REGNUM_RCX, gen);
        }
@@ -1616,7 +1673,7 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
 void EmitterAMD64::emitRestoreFlags(codeGen &gen, unsigned offset)
 {
     if (offset)
-        emitOpRMReg(PUSH_RM_OPC1, REGNUM_ESP, offset*8, PUSH_RM_OPC2, gen);
+        emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, offset*8, PUSH_RM_OPC2, gen);
     emitSimpleInsn(0x9D, gen);
 }
 
@@ -1638,53 +1695,51 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
         emitLEA64(REGNUM_RSP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
 
     // save flags (PUSHFQ)
-    emitSimpleInsn(0x9C, gen);
+    //emitSimpleInsn(0x9C, gen);
+
+    bool flagsSaved = gen.rs()->saveVolatileRegisters(gen);
 
     // We use RAX implicitly all over the place... so mark it read-only
     //gen.rs()->markReadOnly(REGNUM_RAX);
+    // This was done in registerSpace::initialize64()
 
     // We make a 128-byte skip (16*8) and push the flags register;
     // so the first register saved starts 17 slots down from the frame
     // pointer.
 
-    if (gen.rs()->saveAllGPRs()) {
-        for (int reg = 0; reg < 16; reg++) {
-            emitPushReg64(reg, gen);
-            gen.rs()->markSavedRegister(reg, 17-reg);
+    //	printf("Saving registers ...\n");
+    // Save the live ones
+    int num_saved = 0;
+    if (flagsSaved) num_saved++;
+    for (unsigned i = 0; i < gen.rs()->numGPRs(); i++) {
+        registerSlot *reg = gen.rs()->GPRs()[i];
+        
+        if (reg->liveState == registerSlot::live) {
+            emitPushReg64(reg->encoding(),gen);
+            // We move the FP down to just under here, so we're actually
+            // measuring _up_ from the FP. 
+            assert((18-num_saved) > 0);
+            gen.rs()->markSavedRegister(reg->encoding(), 18-num_saved);
+            num_saved++;
         }
     }
-    else {
-	
-        //	printf("Saving registers ...\n");
-        // Save the live ones
-        int num_saved = 0; 
-        for(u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
-            registerSlot * reg = gen.rs()->getRegSlot(i);    
-            if (reg->startsLive ||
-                (reg->number == REGNUM_RAX) ||
-                (reg->number == REGNUM_RBX) ||
-                (reg->number == REGNUM_RSP) ||
-                (reg->number == REGNUM_RBP)) {
-                emitPushReg64(reg->number,gen);
-                // We move the FP down to just under here, so we're actually
-                // measuring _up_ from the FP. 
-                assert((17-num_saved) > 0);
-            	gen.rs()->markSavedRegister(reg->number, 17-num_saved);
-                num_saved++;
-            }
-            else {
-            }
-	}
-        
-	// we always allocate space on the stack for all the GPRs (helps stack walk)
-	if (num_saved < 16) {
-	    emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, -8 * (16 - num_saved), true, gen);
-	}
-	//printf("\n");
+
+    // 17 - 16 GPRs + a flags register
+    int reg_pad = 8 * (17 - num_saved);
+    if (reg_pad != 0) {
+    // we always allocate space on the stack for all the GPRs (helps stack walk)
+        if (reg_pad > 128) {
+            // Can't use a signed char... at 128 we invert and add. 
+            emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, reg_pad, true, gen);
+        }
+        else {
+            emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, -1 * reg_pad, true, gen);
+        }
     }
     
     // push a return address for stack walking
     if (bt->instP()) {
+        // FIXME use a scratch register!
 	emitMovImmToReg64(REGNUM_RAX, bt->instP()->addr(), true, gen);
 	emitPushReg64(REGNUM_RAX, gen);
     }
@@ -1695,11 +1750,21 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
     // set up a fresh stack frame
     // pushl %rbp        (0x55)
     // movl  %rsp, %rbp  (0x48 0x89 0xe5)
+
+    // Push RBP...
     emitSimpleInsn(0x55, gen);
+    // And track where it went
+    (*gen.rs())[REGNUM_RBP]->liveState = registerSlot::spilled;
+    (*gen.rs())[REGNUM_RBP]->spilledState = registerSlot::framePointer;
+    (*gen.rs())[REGNUM_RBP]->saveOffset = 0;
+
     emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
     
-    
-    if (bt->isConservative() && BPatch::bpatch->isSaveFPROn() && gen.rs()->saveAllFPRs()) {
+    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
+
+    if (bt->isConservative() && 
+        BPatch::bpatch->isSaveFPROn() && 
+        useFPRs) {
         // need to save the floating point state (x87, MMX, SSE)
         // we do this on the stack, but the problem is that the save
         // area must be 16-byte aligned. the following sequence does
@@ -1730,7 +1795,11 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
 
 bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
-    if (bt->isConservative() && BPatch::bpatch->isSaveFPROn() && gen.rs()->saveAllFPRs()) {
+    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
+
+    if (bt->isConservative() && 
+        BPatch::bpatch->isSaveFPROn() && 
+        useFPRs) {
         // pop the old RSP value into RAX
         emitPopReg64(REGNUM_RAX, gen);
         
@@ -1754,53 +1823,41 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
    if (!bt->rpcMgr_)
       emitPopReg64(REGNUM_RAX, gen);
    
-   if (gen.rs()->saveAllGPRs())
-   {
-      // restore saved registers (POP R15, POP R14, ...)
-      for (int reg = 15; reg >= 0; reg--) {
-         emitPopReg64(reg, gen);
-      }
-   }
-   else
-   {
-      // Count the saved registers
-      int num_saved = 0; // RAX, RBX, RSP, RBP always saved
-      for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--) {
-         
-         registerSlot * reg = gen.rs()->getRegSlot(i);
-         if (reg->startsLive ||
-             (reg->number == REGNUM_RAX) ||
-             (reg->number == REGNUM_RBX) ||
-             (reg->number == REGNUM_RSP) ||
-             (reg->number == REGNUM_RBP)) {
-		  		num_saved++;
-	      }
-      }
+   // Count the saved registers
+   int num_saved = 0; // RAX, RBX, RSP, RBP always saved
+   for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
+       registerSlot *reg = gen.rs()->GPRs()[i];
+       if (reg->liveState == registerSlot::spilled) {
+           num_saved++;
+       }
+   }      
+   if ((*gen.rs())[REGNUM_OF]->liveState == registerSlot::spilled)
+       num_saved++;
+
+    int reg_pad = 8 * (17 - num_saved);
+    if (reg_pad != 0) {
+        // we always allocate space on the stack for all the GPRs (helps stack walk)
+        if (reg_pad > 127) {
+            // Can't use a signed char... at 127 we invert and add. 
+            // Since (signed) 128 = -128. 
+            emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_RSP, reg_pad, true, gen);
+        }
+        else {
+            emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, reg_pad, true, gen);
+        }
+    }
       
-      // move SP up to end of GPR save area
-      if (num_saved < 16) {
-	      emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8 * (16 - num_saved), true, gen);
-      }
-      
-      // restore saved registers
-      for(int i = gen.rs()->getRegisterCount()-1; i >= 0; i--)
-      {
-         registerSlot * reg = gen.rs()->getRegSlot(i);
-         
-         if (reg->startsLive ||
-             (reg->number == REGNUM_RAX) ||
-             (reg->number == REGNUM_RBX) ||
-             (reg->number == REGNUM_RSP) ||
-             (reg->number == REGNUM_RBP)) {
-            emitPopReg64(reg->number,gen);
-	      }
-      }
-      
+   // restore saved registers
+   for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
+       registerSlot *reg = gen.rs()->GPRs()[i];
+       if (reg->liveState == registerSlot::spilled) {
+           emitPopReg64(reg->encoding(),gen);
+       }
    }
    
    // restore flags (POPFQ)
-   emitSimpleInsn(0x9D, gen);
-
+   //emitSimpleInsn(0x9D, gen);
+   gen.rs()->restoreVolatileRegisters(gen);
 
    // restore stack pointer (use LEA to not affect flags)
    if (STACK_PAD_CONSTANT)
@@ -2011,17 +2068,6 @@ bool EmitterAMD64::emitAdjustStackPointer(int index, codeGen &gen) {
 	emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_ESP, popVal, true, gen);
 	return true;
 }
-
-registerSpace *globalRegSpace32 = NULL;
-registerSpace *conservativeRegSpace32 = NULL;
-registerSpace *optimisticRegSpace32 = NULL;
-registerSpace *actualRegSpace32 = NULL;
-registerSpace *savedRegSpace32 = NULL;
-registerSpace *globalRegSpace64 = NULL;
-registerSpace *conservativeRegSpace64 = NULL;
-registerSpace *optimisticRegSpace64 = NULL;
-registerSpace *actualRegSpace64 = NULL;
-registerSpace *savedRegSpace64 = NULL;
 
 
 #endif

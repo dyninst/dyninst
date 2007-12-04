@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.35 2007/01/02 23:25:28 bernat Exp $
+// $Id: inst-x86.h,v 1.36 2007/12/04 17:58:05 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -68,6 +68,8 @@
 
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
 #define NUM_FPR_REGISTERS (1)
+#define IA32_FPR_VIRTUAL_REGISTER (NUM_VIRTUAL_REGISTERS + 1)
+#define IA32_FLAG_VIRTUAL_REGISTER (IA32_FPR_VIRTUAL_REGISTER + 1)
 
 /* Add one for the REG_MT_POS 'reserved' reg */
 #define TRAMP_FRAME_SIZE ((NUM_VIRTUAL_REGISTERS+1)*4)
@@ -165,28 +167,37 @@
 #define REGNUM_EDI 7
 
 // 64-bit
-#define REGNUM_RAX (0)
-#define REGNUM_RCX (1)
-#define REGNUM_RDX (2)
-#define REGNUM_RBX (3)
-#define REGNUM_RSP (4)
-#define REGNUM_RBP (5)
-#define REGNUM_RSI (6)
-#define REGNUM_RDI (7)
-#define REGNUM_R8 (8)
-#define REGNUM_R9 (9)
-#define REGNUM_R10 (10)
-#define REGNUM_R11 (11)
-#define REGNUM_R12 (12)
-#define REGNUM_R13 (13)
-#define REGNUM_R14 (14)
-#define REGNUM_R15 (15)
-
-// Let's define the flags register as a "fake" register number - so we
-// can treat it as a register entry in our registerSpace, and get all
-// that good "saved/restored/spilled" loveliness.
-#define REGNUM_FLAGS (100)
-
+enum AMD64_REG_NUMBERS {
+    REGNUM_RAX = 0,
+    REGNUM_RCX,
+    REGNUM_RDX,
+    REGNUM_RBX,
+    REGNUM_RSP,
+    REGNUM_RBP,
+    REGNUM_RSI,
+    REGNUM_RDI,
+    REGNUM_R8,
+    REGNUM_R9,
+    REGNUM_R10,
+    REGNUM_R11,
+    REGNUM_R12,
+    REGNUM_R13,
+    REGNUM_R14,
+    REGNUM_R15,
+    REGNUM_DUMMYFPR,
+    REGNUM_OF,
+    REGNUM_SF,
+    REGNUM_ZF,
+    REGNUM_AF,
+    REGNUM_PF,
+    REGNUM_CF,
+    REGNUM_TF,
+    REGNUM_IF,
+    REGNUM_DF,
+    REGNUM_NT,
+    REGNUM_RF,
+    REGNUM_IGNORED,
+    REGNUM_LAST};
 
 class codeGen;
 

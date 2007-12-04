@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.270 2007/11/09 20:11:01 bernat Exp $
+ * $Id: inst-x86.C,v 1.271 2007/12/04 17:58:04 bernat Exp $
  */
 #include <iomanip>
 
@@ -65,6 +65,8 @@
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
+
+#include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/src/instP.h" // class returnInstance
 #include "dyninstAPI/src/rpcMgr.h"
@@ -107,108 +109,299 @@ unsigned relocatedInstruction::maxSizeRequired() {
     return insn->spaceToRelocate();
 }
 
+void registerSpace::initialize32() {
+    static bool done = false;
+    if (done) return;
+    done = true;
 
-Register regList[NUM_VIRTUAL_REGISTERS];
+    // On 32-bit x86 we use stack slots as "registers"; therefore we can
+    // create an arbitrary number, and use them. However, this can bite us
+    // if we want to use actual registers. Any ideas?
+    
+    pdvector<registerSlot *> registers;
 
-Register regList64[] = {REGNUM_RAX, REGNUM_RBX, REGNUM_RCX, REGNUM_RDX,
-						REGNUM_RSI, REGNUM_RDI, REGNUM_R8, REGNUM_R9,
-						REGNUM_R10, REGNUM_R11, REGNUM_R12, REGNUM_R13,
-						REGNUM_R14, REGNUM_R15, REGNUM_RBP, REGNUM_RSP};
-						
-unsigned int regList64Size = 16;
-						
-Register optimisticDeadList64[] = {REGNUM_RAX, REGNUM_R10, REGNUM_R11};
-unsigned int optimisticDeadNum = 3;
+#if 0
+    // When we use 
+    registerSlot eax = registerSlot(REGNUM_EAX,
+                                    true, // Off-limits due to our "stack slot" register mechanism
+                                    false, // Dead at function call?
+                                    registerSlot::GPR);
+    registerSlot ecx = registerSlot(REGNUM_ECX,
+                                    true,
+                                    false,                                    
+                                    registerSlot::GPR);
+    registerSlot edx = registerSlot(REGNUM_EDX,
+                                    true,
+                                    false,
+                                    registerSlot::GPR);
+    registerSlot ebx = registerSlot(REGNUM_EBX,
+                                    true,
+                                    false,
+                                    registerSlot::GPR);
+    registerSlot esp = registerSlot(REGNUM_ESP,
+                                    true, // Off-limits...
+                                    true,
+                                    registerSlot::SPR); // I'd argue the SP is a special-purpose reg
+    registerSlot ebp = registerSlot(REGNUM_EBP,
+                                    true,
+                                    true,
+                                    registerSlot::SPR);
+    registerSlot esi = registerSlot(REGNUM_ESI,
+                                    true,
+                                    false,
+                                    registerSlot::GPR);
+    registerSlot edi = registerSlot(REGNUM_EDI,
+                                    true,
+                                    false,
+                                    registerSlot::GPR);
+    
+    registers.push_back(eax);
+    registers.push_back(ecx);
+    registers.push_back(edx);
+    registers.push_back(ebx);
+    registers.push_back(esp);
+    registers.push_back(ebp);
+    registers.push_back(esi);
+    registers.push_back(edi);
+#endif
+    // FPRs...
 
-void initRegisters()
+    // SPRs...
+    
+    // "Virtual" registers
+    for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
+        registerSlot *virt = new registerSlot(i,
+                                              false,
+                                              registerSlot::deadAlways,
+                                              registerSlot::GPR);
+        registers.push_back(virt);
+    }
+
+    // Create a single FPR representation to represent
+    // whether any FPR is live
+    registerSlot *fpr = new registerSlot(IA32_FPR_VIRTUAL_REGISTER,
+                                         true, // off-limits...
+                                         registerSlot::liveAlways,
+                                         registerSlot::FPR);
+    registers.push_back(fpr);
+
+    // And a "do we save the flags" "register"
+    registers.push_back(new registerSlot(IA32_FLAG_VIRTUAL_REGISTER,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    // Create the global register space
+    registerSpace::createRegisterSpace(registers);
+
+    // Define:
+    // callRead
+    // callWritten
+    // Fortunately, both are basically zero...
+    
+    // callRead: no change
+    // callWritten: write to the flags
+    // TODO FIXME
+
+    // Define:
+    // callRead - argument registers
+    // callWritten - RAX
+
+    // Can't use numRegisters here because we're depending
+    // on the REGNUM_FOO numbering
+#if defined(cap_liveness)
+    returnRead_ = getBitArray();
+    // Return reads no registers
+
+    callRead_ = getBitArray();
+    // CallRead reads no registers
+
+    // TODO: Fix this for platform-specific calling conventions
+
+    // Assume calls write flags
+    callWritten_ = callRead_;
+    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
+        callWritten_[i] = true;
+
+
+    // And assume a syscall reads or writes _everything_
+    syscallRead_ = getBitArray().set();
+    syscallWritten_ = syscallRead_;
+#endif
+}
+
+#if defined(cap_32_64)
+void registerSpace::initialize64() {
+    static bool done = false;
+    if (done) return;
+    done = true;
+
+    // Create the 64-bit registers
+    // Well, let's just list them....
+
+    // Calling ABI:
+    // rax, rcx, rdx, r8, r9, r10, r11 are not preserved across a call
+    // However, rcx, rdx, r8, and r9 are used for arguments, and therefore
+    // should be assumed live. 
+    // So rax, r10, r11 are dead at a function call.
+
+    registerSlot * rax = new registerSlot(REGNUM_RAX,
+                                          true, // We use it implicitly _everywhere_
+                                          registerSlot::deadABI,
+                                          registerSlot::GPR);
+    registerSlot * rcx = new registerSlot(REGNUM_RCX,
+                                          false,
+                                          registerSlot::liveAlways,
+                                          registerSlot::GPR);
+    registerSlot * rdx = new registerSlot(REGNUM_RDX,
+                                          false,
+                                          registerSlot::liveAlways,
+                                          registerSlot::GPR);
+    registerSlot * rbx = new registerSlot(REGNUM_RBX,
+                                          false,
+                                          registerSlot::liveAlways,
+                                          registerSlot::GPR);
+    registerSlot * rsp = new registerSlot(REGNUM_RSP,
+                                          true, // Off-limits...
+                                          registerSlot::liveAlways,
+                                          registerSlot::SPR); 
+    registerSlot * rbp = new registerSlot(REGNUM_RBP,
+                                          true,
+                                          registerSlot::liveAlways,
+                                          registerSlot::SPR);
+    registerSlot * rsi = new registerSlot(REGNUM_RSI,
+                                          false,
+                                          registerSlot::liveAlways,
+                                          registerSlot::GPR);
+    registerSlot * rdi = new registerSlot(REGNUM_RDI,
+                                          false,
+                                          registerSlot::liveAlways,
+                                          registerSlot::GPR);
+    registerSlot * r8 = new registerSlot(REGNUM_R8,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR);
+    registerSlot * r9 = new registerSlot(REGNUM_R9,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR);
+    registerSlot * r10 = new registerSlot(REGNUM_R10,
+                                          false,
+                                          registerSlot::deadABI,
+                                          registerSlot::GPR);
+    registerSlot * r11 = new registerSlot(REGNUM_R11,
+                                          false,
+                                          registerSlot::deadABI,
+                                          registerSlot::GPR);
+    registerSlot * r12 = new registerSlot(REGNUM_R12,
+                                          false,
+                                          registerSlot::liveAlways,
+                                          registerSlot::GPR);
+    registerSlot * r13 = new registerSlot(REGNUM_R13,
+                                          false,
+                                          registerSlot::liveAlways,
+                                          registerSlot::GPR);
+    registerSlot * r14 = new registerSlot(REGNUM_R14,
+                                          false,
+                                          registerSlot::liveAlways,
+                                          registerSlot::GPR);
+    registerSlot * r15 = new registerSlot(REGNUM_R15,
+                                          false,
+                                          registerSlot::liveAlways,
+                                          registerSlot::GPR);
+
+    pdvector<registerSlot *> registers;
+    registers.push_back(rax);
+    registers.push_back(rbx);
+    registers.push_back(rsp);
+    registers.push_back(rbp);
+    registers.push_back(r10);
+    registers.push_back(r11);
+    registers.push_back(r12);
+    registers.push_back(r13);
+    registers.push_back(r14);
+    registers.push_back(r15);
+
+    // Put the call parameter registers last so that we are not
+    // likely to allocate them for general purposes
+    registers.push_back(r8);
+    registers.push_back(r9);
+    registers.push_back(rcx);
+    registers.push_back(rdx);
+    registers.push_back(rsi);
+    registers.push_back(rdi);
+
+
+    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
+        registers.push_back(new registerSlot(i,
+                                             true,
+                                             registerSlot::liveAlways,
+                                             registerSlot::SPR));
+    }
+
+    registers.push_back(new registerSlot(REGNUM_DUMMYFPR,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::FPR));
+
+    // For registers that we really just don't care about.
+    registers.push_back(new registerSlot(REGNUM_IGNORED,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+
+    registerSpace::createRegisterSpace64(registers);
+
+    // Define:
+    // callRead - argument registers
+    // callWritten - RAX
+
+#if defined(cap_liveness)
+    returnRead64_ = getBitArray();
+    returnRead64_[REGNUM_RAX] = true;
+
+    callRead64_ = getBitArray();
+    callRead64_[REGNUM_RCX] = true;
+    callRead64_[REGNUM_RDX] = true;
+    callRead64_[REGNUM_R8] = true;
+    callRead64_[REGNUM_R9] = true;
+    callRead64_[REGNUM_RDI] = true;
+    callRead64_[REGNUM_RSI] = true;
+
+    // Anything in those four is not preserved across a call...
+    // So we copy this as a shorthand then augment it
+    callWritten64_ = callRead64_;
+
+    // As well as RAX, R10, R11
+    callWritten64_[REGNUM_RAX] = true;
+    callWritten64_[REGNUM_R10] = true;
+    callWritten64_[REGNUM_R11] = true;
+    // And flags
+    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
+        callWritten64_[i] = true;
+
+    // What about floating point?
+
+    // And assume a syscall reads or writes _everything_
+    syscallRead64_ = getBitArray().set();
+    syscallWritten64_ = syscallRead_;
+
+#endif
+
+}
+#endif
+
+void registerSpace::initialize()
 {
     static bool inited = false;
     
     if (inited) return;
     inited = true;
 
-	// Initialize the 32-bit reg list.
-	for (unsigned i = 0; i < NUM_VIRTUAL_REGISTERS; i++) {
-		regList[i] = i+1; // Start at "register 1" as register 0 is the base pointer...
-	}
-
-    registerSpace::hasXMM = xmmCapable();
-	registerSpace::globalRegSpace_ = registerSpace::createAllDead(regList,
-														NUM_VIRTUAL_REGISTERS);
-
-	// 32-bit: everything is dead, always, because we're using stack slots.
-	registerSpace::conservativeRegSpace_ = registerSpace::globalRegSpace_;
-	registerSpace::optimisticRegSpace_ = registerSpace::conservativeRegSpace_;
-	registerSpace::actualRegSpace_ = registerSpace::conservativeRegSpace_;
-	registerSpace::savedRegSpace_ = registerSpace::conservativeRegSpace_;
-
-    instPoint::optimisticGPRLiveSet_ = new int[NUM_VIRTUAL_REGISTERS];
-    instPoint::pessimisticGPRLiveSet_ = new int[NUM_VIRTUAL_REGISTERS];
-    for (unsigned i = 0; i < NUM_VIRTUAL_REGISTERS; i++) {
-        instPoint::optimisticGPRLiveSet_[i] = 0;
-        instPoint::pessimisticGPRLiveSet_[i] = 0;
-    }
-
-   instPoint::pessimisticFPRLiveSet_ = new int[NUM_FPR_REGISTERS];
-   instPoint::optimisticFPRLiveSet_ = new int[NUM_FPR_REGISTERS];
-   for (unsigned i=0; i<NUM_FPR_REGISTERS; i++) {
-      instPoint::pessimisticFPRLiveSet_[i] = 0;
-      instPoint::optimisticFPRLiveSet_[i] = 0;
-   }
-#if defined(arch_x86_64)
-    instPoint::optimisticGPRLiveSet64_ = new int[maxGPR];
-    instPoint::pessimisticGPRLiveSet64_ = new int[maxGPR];    
-    // First, initialize to 1 (live)
-    for (unsigned i = 0; i < maxGPR; i++) {
-        instPoint::optimisticGPRLiveSet64_[i] = 1;
-        instPoint::pessimisticGPRLiveSet64_[i] = 1;
-    }
-
-    // Set dead registers at function call boundaries
-	for (unsigned i = 0; i < optimisticDeadNum; i++) {
-		instPoint::optimisticGPRLiveSet64_[optimisticDeadList64[i]] = 0;
-	}
-		
-	// Register space time...
-	// Grab the 32-bit ones before we overwrite.
-	globalRegSpace32 = registerSpace::globalRegSpace_;
-	conservativeRegSpace32 = registerSpace::conservativeRegSpace_;
-	optimisticRegSpace32 = registerSpace::optimisticRegSpace_;
-	actualRegSpace32 = registerSpace::actualRegSpace_;
-	savedRegSpace32 = registerSpace::savedRegSpace_;
-	
-	// Overwrite time
-	registerSpace::globalRegSpace_ = registerSpace::createAllLive(regList64,
-													regList64Size);
-	// Don't use these guys in code generation...
-	registerSpace::globalRegSpace_->markReadOnly(REGNUM_RBP);
-	registerSpace::globalRegSpace_->markReadOnly(REGNUM_RSP);
-
-	registerSpace::conservativeRegSpace_ = registerSpace::specializeRegisterSpace(NULL, 0);
-
-	registerSpace::optimisticRegSpace_ = registerSpace::specializeRegisterSpace(optimisticDeadList64,
-															optimisticDeadNum);
-
-	registerSpace::actualRegSpace_ = registerSpace::specializeRegisterSpace(NULL, 0);
-
-	// Make one where everyone's dead...
-	registerSpace::savedRegSpace_ = registerSpace::specializeRegisterSpace(regList64, regList64Size);
-
-	globalRegSpace64 = registerSpace::globalRegSpace_;
-	conservativeRegSpace64 = registerSpace::conservativeRegSpace_;
-	optimisticRegSpace64 = registerSpace::optimisticRegSpace_;
-	actualRegSpace64 = registerSpace::actualRegSpace_;
-	savedRegSpace64 = registerSpace::savedRegSpace_;
-
-   instPoint::pessimisticFPRLiveSet64_ = new int[NUM_FPR_REGISTERS];
-   instPoint::optimisticFPRLiveSet64_ = new int[NUM_FPR_REGISTERS];
-   for (unsigned i=0; i<NUM_FPR_REGISTERS; i++) {
-      instPoint::pessimisticFPRLiveSet64_[i] = 0;
-      instPoint::optimisticFPRLiveSet64_[i] = 0;
-   }
+    initialize32();
+#if defined(cap_32_64)
+    initialize64();
 #endif
 }
-
 
 /* This makes a call to the cpuid instruction, which returns an int where each bit is 
    a feature.  Bit 24 contains whether fxsave is possible, meaning that xmm registers
@@ -885,8 +1078,11 @@ that it calls, to a certain depth ... at which point we clobber everything
 Update-12/06, njr, since we're going to a cached system we are just going to 
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
+
+// Should be a member of the registerSpace class?
+
 bool EmitterIA32::clobberAllFuncCall( registerSpace *rs,
-                                    int_function *callee)
+                                      int_function *callee)
 		   
 {
   if (callee == NULL) return false;
@@ -898,9 +1094,13 @@ bool EmitterIA32::clobberAllFuncCall( registerSpace *rs,
   */
 
   stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);  
-  bool ret = callee->ifunc()->writesFPRs();
+  if (callee->ifunc()->writesFPRs()) {
+      for (unsigned i = 0; i < rs->FPRs().size(); i++) {
+          rs->FPRs()[i]->beenUsed = true;
+      }
+  }
   stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
-  return ret;
+  return true;
 }
 
 
@@ -1722,7 +1922,9 @@ void EmitterIA32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &ge
     emitSimpleInsn(LEAVE, gen);     // leave
     emitSimpleInsn(POP_EAX, gen);
     emitSimpleInsn(POPAD, gen);     // popad
-    emitSimpleInsn(POPFD, gen);
+
+    gen.rs()->restoreVolatileRegisters(gen);
+    //emitSimpleInsn(POPFD, gen);
 
     // Red zone skip - see comment in emitBTsaves
     if (STACK_PAD_CONSTANT)
@@ -1972,22 +2174,6 @@ bool int_function::setReturnValue(int val)
     return proc()->writeTextSpace((void *) addr, gen.used(), gen.start_ptr());
 }
 
-bool registerSpace::clobberRegister(Register reg) 
-{
-    for (u_int i=0; i < registers.size(); i++) {
-        if(registers[i].number == reg) {
-            registers[i].beenClobbered = true;
-            return true;
-        }
-    }
-  return false;
-}
-
-bool registerSpace::clobberFPRegister(Register /*reg*/)
-{
-  return false;
-}
-
 unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/, 
                                          baseTramp * /*bt*/,
                                          registerSpace * /*rs*/)
@@ -2006,272 +2192,8 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
 
 #if defined(arch_x86_64)
 
-bool int_basicBlock::initRegisterGenKill() 
-{
-    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-
-  int a;
-  int * writeRegs = (int *) malloc(sizeof(int)*3);
-  int * readRegs = (int *) malloc(sizeof(int)*3);
-
-  for (a = 0; a < 3; a++)
-  {
-     writeRegs[a] = readRegs[a] = -1;
-  }
-  
-  in = new bitArray;
-  in->bitarray_init(maxGPR,in);  
-  
-  out = new bitArray;
-  out->bitarray_init(maxGPR,out);  
-  
-  gen = new bitArray;
-  gen->bitarray_init(maxGPR,gen);  
-  
-  kill = new bitArray;
-  kill->bitarray_init(maxGPR,kill);  
-
-  InstrucIter ii(this);
-  while(ii.hasMore())
-  {
-     ii.readWriteRegisters(readRegs, writeRegs);
-     for (a = 0; a < 3; a++)
-     {
-        if (readRegs[a] != -1)
-        {
-           if (!kill->bitarray_check(readRegs[a],kill))
-              gen->bitarray_set(readRegs[a],gen);
-           readRegs[a] = -1;
-        }
-     }
-     for (a = 0; a < 3; a++)
-     {
-        if (writeRegs[a] != -1)
-        {
-           kill->bitarray_set(writeRegs[a],kill);
-           writeRegs[a] = -1;
-        }
-     }
-     ii++;
-  }
-  
-  free(readRegs);
-  free(writeRegs);
-
-  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
-  
-  return true;
-}
-
-
-
-/* This is used to do fixed point iteration until 
-   the in and out don't change anymore */
-bool int_basicBlock::updateRegisterInOut(bool isFP) 
-{
-  bool change = false;
-  // old_IN = IN(X)
-  
-  if (isFP)
-    return false;
-
-  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-
-  bitArray oldIn;
-  bitArray tmp; 
-  
-  oldIn.bitarray_init(maxGPR, &oldIn);
-  tmp.bitarray_init(maxGPR, &tmp);
-
-  if (!isFP)
-    {
-      in->bitarray_copy(&oldIn, in);
-      in->bitarray_and(in, &tmp, in);
-    }
- 
-  // OUT(X) = UNION(IN(Y)) for all successors Y of X
-  pdvector<int_basicBlock *> elements;
-  getTargets(elements);
-
-  for(unsigned  i=0;i<elements.size();i++)
-    {
-      //BPatch_basicBlock *bb = (BPatch_basicBlock*) elements[i]->getHighLevelBlock();
-      if (!isFP)
-	tmp.bitarray_or(&tmp,elements[i]->getInSet(),&tmp);
-    }
-    
-  if (!isFP)
-    tmp.bitarray_copy(out, &tmp);
-  
-
-  // IN(X) = USE(X) + (OUT(X) - DEF(X))
-  if (!isFP)
-    {
-      tmp.bitarray_diff(out, kill, &tmp);
-      tmp.bitarray_or(&tmp, gen, in);
-    }
- 
-  
-  // if (old_IN != IN(X)) then change = true
-  if (!isFP)
-    {
-      if (in->bitarray_same(&oldIn, in))
-	change = false;
-      else
-	change = true;
-    }
-
-  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
-
-  return change;
-}
-
-
-bitArray * int_basicBlock::getInSet()
-{
-  return in;
-}
-
-bitArray * int_basicBlock::getInFPSet()
-{
-  return inFP;
-}
-
-
-/*
-  Nothing for x86 yet
-*/
-int int_basicBlock::liveSPRegistersIntoSet(instPoint *,
-                                           unsigned long /* address */)
-{
-  return 0;
-}
-
-
-/* The liveReg int * is a instance variable in the instPoint classes.
-   This puts the liveness information into that variable so 
-   we can access it from every instPoint without recalculation */
-int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
-                                         unsigned long address)
-{
-
-    assert(iP);
-    int numLive = 0;
-    int a;
-    
-    if (iP->hasSpecializedGPRegisters()) return numLive;
-
-    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-    
-    int *liveReg = new int[maxGPR];
-    
-    bitArray newIn;
-    
-    newIn.bitarray_init(maxGPR, &newIn);
-    newIn.bitarray_copy(&newIn,in);
-    
-    InstrucIter ii(this);
-    
-    /* The liveness information from the bitarrays are for the
-       basic block, we need to do some more gen/kills until
-       we get to the individual instruction within the 
-       basic block that we want the liveness info for. */
-    
-    int * writeRegs = (int *) malloc(sizeof(int)*3);
-    int * readRegs = (int *) malloc(sizeof(int)*3);
-    
-    for (a = 0; a < 3; a++) {
-        writeRegs[a] = readRegs[a] = -1;
-    }
-    
-    while(ii.hasMore() &&
-          *ii <= address) {
-        ii.readWriteRegisters(readRegs, writeRegs);
-
-        for (a = 0; a < 3; a++) {
-            if (writeRegs[a] != -1) {
-                newIn.bitarray_set(writeRegs[a],&newIn);
-                writeRegs[a] = -1;
-                readRegs[a] = -1;
-            }
-        }
-        
-        ii++;
-    }    
-    numLive = 0;
-    
-    free(readRegs);
-    free(writeRegs);
-    for (a = 0; a < maxGPR; a++) {
-        if (newIn.bitarray_check(a,&newIn)) {
-            liveReg[a] = 1;
-            //printf("1 ");
-            numLive++;
-        }
-        else {
-            liveReg[a] = 0;
-            //printf("0 ");
-        }
-    } 
-    //printf("\n");
-
-    iP->actualGPRLiveSet_ = liveReg;
-
-    // No FPR analysis...
-
-    // No SPR analysis...
-    
-    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
-
-    return numLive;
-}
-
 #endif 
 
-
-void registerSpace::saveClobberInfo(const instPoint *)
-{
-  /*Stub function*/
-}
-
-
-// Takes information from instPoint and resets
-// regSpace liveness information accordingly
-// Right now, all the registers are assumed to be live by default
-void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
-				      const int * liveFPRegs,
-				      const int * /*liveSPRegs*/) {
-   assert(liveRegs != NULL);
-   for (u_int i = 0; i < registers.size(); i++) {
-      if (  liveRegs[ (int) registers[i].number ] == 1 ) {
-         registers[i].needsSaving = true;
-         registers[i].startsLive = true;
-      }
-      else {
-         if (registers[i].number != REGNUM_RBX) {
-            registers[i].needsSaving = false;
-            registers[i].startsLive = false;
-         }
-         else {
-            // ... okay, I guess...
-            registers[i].needsSaving = true;
-            registers[i].startsLive = true;
-         }
-      }
-   }
-
-   // Default to dead, since we've marked the ones that must be
-   // saved.
-   //saveAllGPRs_ = dead;
-   // Liveness calculation is broken, so disabling.
-   // 8NOV07 - bernat
-   saveAllGPRs_ = unknown;
-   // We don't do FPR analysis (yet)
-   saveAllFPRs_ = unknown;
-   // We don't analyze SPRs
-   saveAllSPRs_ = unknown;
-
-}
 
 int instPoint::liveRegSize()
 {

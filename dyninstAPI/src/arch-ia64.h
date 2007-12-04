@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.51 2007/09/12 20:57:19 bernat Exp $
+// $Id: arch-ia64.h,v 1.52 2007/12/04 17:57:53 bernat Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -349,7 +349,9 @@ class registerSpace;
 #define NUM_PRESERVED 35
 #define NUM_LOCALS 8
 #define NUM_OUTPUT 8
-registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location, Register * deadRegisterList);
+registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location,
+												Register &firstReg,
+												Register &lastReg);
 
 /* Constants for code generation. */
 #define BRANCH_SCRATCH		6	

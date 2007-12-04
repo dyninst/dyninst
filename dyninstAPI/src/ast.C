@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.196 2007/11/09 20:10:57 bernat Exp $
+// $Id: ast.C,v 1.197 2007/12/04 17:57:54 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -421,14 +421,6 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
     }
 
     
-    
-    if  (merged) {
-        /* We save the information at the inst-point, since
-           the next mini-tramp will reset the clobber information */
-        gen.rs()->saveClobberInfo(gen.point());
-        gen.rs()->resetClobbers();
-    }
-    
     return trampJumpOffset;
 }
 
@@ -501,19 +493,19 @@ void AstNode::cleanUseCount(void)
 // node is shared
 Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
 {
-	ast_printf("Allocating register for node %p, useCount %d\n", this, useCount);
+    ast_printf("Allocating register for node %p, useCount %d\n", this, useCount);
     // Allocate a register
     Register dest = gen.rs()->allocateRegister(gen, noCost);
-
-	if (useCount > 1) {
-		ast_printf("Adding kept register %d for node %p: useCount %d\n", dest, this, useCount);
-		// If use count is 0 or 1, we don't want to keep
-		// it around. If it's > 1, then we can keep the node
-		// (by construction) and want to since there's another
-		// use later.
-		gen.tracker()->addKeptRegister(gen, this, dest);
-	}
-	return dest;
+    
+    if (useCount > 1) {
+        ast_printf("Adding kept register %d for node %p: useCount %d\n", dest, this, useCount);
+        // If use count is 0 or 1, we don't want to keep
+        // it around. If it's > 1, then we can keep the node
+        // (by construction) and want to since there's another
+        // use later.
+        gen.tracker()->addKeptRegister(gen, this, dest);
+    }
+    return dest;
 }
 
 //
@@ -1372,10 +1364,14 @@ bool AstCallNode::initRegisters(codeGen &gen) {
         callee = gen.addrSpace()->findOnlyOneFunction(func_name_.c_str());
     }
     assert(callee);
-    bool fprUsed = gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
-    if (fprUsed)
-        gen.rs()->setSaveAllFPRs(true);
-    // Monotonically increasing...
+
+    // Marks registers as used based on the callee's behavior
+    // This means we'll save them if necessary (also, lets us use
+    // them in our generated code because we've saved, instead
+    // of saving others).
+    gen.codeEmitter()->clobberAllFuncCall(gen.rs(), callee);
+
+
 #endif
 #if defined(arch_power)
     // This code really doesn't work right now...
@@ -2067,12 +2063,12 @@ bool AstOperatorNode::canBeKept() const {
         return false;
     }
 
-	// The switch statement is a little odd, but hey. 
-	if (loperand && !loperand->canBeKept()) return false;
-	if (roperand && !roperand->canBeKept()) return false;
-	if (eoperand && !eoperand->canBeKept()) return false;
-	
-	return true;
+    // The switch statement is a little odd, but hey. 
+    if (loperand && !loperand->canBeKept()) return false;
+    if (roperand && !roperand->canBeKept()) return false;
+    if (eoperand && !eoperand->canBeKept()) return false;
+    
+    return true;
 }
 
 bool AstOperandNode::canBeKept() const {
@@ -2087,8 +2083,8 @@ bool AstOperandNode::canBeKept() const {
     default:
 		break;
     }
-	if (operand_ && !operand_->canBeKept()) return false;
-	return true;
+    if (operand_ && !operand_->canBeKept()) return false;
+    return true;
 }
 
 bool AstCallNode::canBeKept() const {

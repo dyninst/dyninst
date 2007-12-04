@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.100 2007/09/12 20:57:29 bernat Exp $
+// $Id: ast.h,v 1.101 2007/12/04 17:57:55 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -53,8 +53,6 @@
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 #include "common/h/Types.h"
-
-#include "registerSpace.h"
 
 // The great experiment: boost shared_ptr libraries
 #include <boost/shared_ptr.hpp>
@@ -101,6 +99,7 @@ typedef boost::shared_ptr<AstNode> AstNodePtr;
 class AstMiniTrampNode;
 typedef boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
 
+class registerSpace;
 
 class regTracker_t {
 public:

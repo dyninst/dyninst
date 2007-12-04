@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.197 2007/09/12 20:57:39 bernat Exp $
+// $Id: inst-sparc.C,v 1.198 2007/12/04 17:58:03 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -209,37 +209,29 @@ unsigned baseTramp::getBTCost() {
 /****************************************************************************/
 /****************************************************************************/
 
-void initRegisters()
-{
-    static bool inited=false;
-
-    if (inited) return;
-    inited = true;
-
+void registerSpace::initialize32() { 
+    static bool done = false;
+    if (done) return;
+    done = true;
     // registers 8 to 15: out registers 
     // registers 16 to 22: local registers
-    Register deadList[10] = { 16, 17, 18, 19, 20, 21, 22, 23, 0, 0 };
+    Register deadList[10] = { 16, 17, 18, 19, 20, 21, 22, 23};
     unsigned dead_reg_count = 8;
 
-	// There are no live registers - we rotate the window.
-	
-	// Overwrite time
-	registerSpace::globalRegSpace_ = registerSpace::createAllDead(deadList,
-													dead_reg_count);
-
-	// As with (amusingly) x86, everyone is dead
-	registerSpace::conservativeRegSpace_ = registerSpace::specializeRegisterSpace(deadList, dead_reg_count);
-
-	registerSpace::optimisticRegSpace_ = registerSpace::conservativeRegSpace_;
-	registerSpace::actualRegSpace_ = registerSpace::conservativeRegSpace_;
-	registerSpace::savedRegSpace_ = registerSpace::conservativeRegSpace_;
-
-	// This is a bit of overlap - unfortunate. Create the instPoint
-	// live sets
-	instPoint::optimisticGPRLiveSet_ = NULL;
-    instPoint::pessimisticGPRLiveSet_ = NULL;
-    
+    pdvector<registerSlot *> registers;
+    for (unsigned i = 0; i < dead_reg_count; i++) {
+        registers.push_back(new registerSlot(deadList[i],
+                                             false,
+                                             registerSlot::deadAlways,
+                                             registerSlot::GPR));
+    }
+    registerSpace::createRegisterSpace(registers);
 }
+
+void registerSpace::initialize() {
+    initialize32();
+}
+
 
 /****************************************************************************/
 /****************************************************************************/
@@ -614,16 +606,6 @@ bool isV9ISA()
       return true;
     return false;
   }
-}
-
-bool registerSpace::clobberRegister(Register /*reg*/) 
-{
-  return false;
-}
-
-bool registerSpace::clobberFPRegister(Register /*reg*/)
-{
-  return false;
 }
 
 extern bool relocateFunction(process *proc, instPoint *&location);
@@ -1645,11 +1627,6 @@ int instPoint::liveRegSize()
 {
   /* Stub function */
   return 0;
-}
-
-void registerSpace::saveClobberInfo(const instPoint *)
-{
-  /*Stub function*/
 }
 
 /**

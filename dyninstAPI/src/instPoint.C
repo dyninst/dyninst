@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.44 2007/11/01 21:41:01 bill Exp $
+// $Id: instPoint.C,v 1.45 2007/12/04 17:58:07 bernat Exp $
 // instPoint code
 
 
@@ -136,20 +136,20 @@ bool instPoint::replaceCode(AstNodePtr ast) {
 baseTramp *instPoint::getBaseTramp(callWhen when) {
   switch(when) {
   case callPreInsn:
-    if (!preBaseTramp_) {
-      preBaseTramp_ = new baseTramp(this);
-    }
+      if (!preBaseTramp_) {
+          preBaseTramp_ = new baseTramp(this, when);
+      }
     return preBaseTramp_;
     break;
   case callPostInsn:
-    if (!postBaseTramp_) {
-      postBaseTramp_ = new baseTramp(this);
+      if (!postBaseTramp_) {
+        postBaseTramp_ = new baseTramp(this, when);
     }
     return postBaseTramp_;
     break;
   case callBranchTargetInsn:
     if (!targetBaseTramp_) {
-      targetBaseTramp_ = new baseTramp(this);
+      targetBaseTramp_ = new baseTramp(this, when);
     }
     return targetBaseTramp_;
     break;
@@ -539,10 +539,7 @@ instPoint::instPoint(AddressSpace *proc,
     proc_(proc),
     img_p_(NULL),
     block_(block),
-    addr_(addr),
-    actualGPRLiveSet_(NULL),
-    actualFPRLiveSet_(NULL),
-    actualSPRLiveSet_(NULL)
+    addr_(addr)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -570,10 +567,7 @@ instPoint::instPoint(AddressSpace *proc,
      proc_(proc),
     img_p_(img_p),
     block_(block),
-    addr_(addr),
-    actualGPRLiveSet_(NULL),
-    actualFPRLiveSet_(NULL),
-    actualSPRLiveSet_(NULL)
+    addr_(addr)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -600,10 +594,7 @@ instPoint::instPoint(instPoint *parP,
     proc_(childP),
     img_p_(parP->img_p_),
     block_(child),
-    addr_(parP->addr()),
-    actualGPRLiveSet_(NULL),
-    actualFPRLiveSet_(NULL),
-    actualSPRLiveSet_(NULL)
+    addr_(parP->addr())
 {
 }
                   
@@ -735,9 +726,6 @@ instPoint::~instPoint() {
     if (postBaseTramp_) delete postBaseTramp_;
     if (targetBaseTramp_) delete targetBaseTramp_;
     
-    if (actualGPRLiveSet_) delete actualGPRLiveSet_;
-    if (actualFPRLiveSet_) delete actualFPRLiveSet_;
-    if (actualSPRLiveSet_) delete actualSPRLiveSet_;
 }
 
 
@@ -1048,125 +1036,4 @@ bool instPoint::optimizeBaseTramps(callWhen when) {
    if (tramp)
       return tramp->doOptimizations();
    return false;
-}
-
-int *instPoint::optimisticGPRLiveSet_ = NULL;
-int *instPoint::optimisticFPRLiveSet_ = NULL;
-int *instPoint::optimisticSPRLiveSet_ = NULL;
-int *instPoint::pessimisticGPRLiveSet_ = NULL;
-int *instPoint::pessimisticFPRLiveSet_ = NULL;
-int *instPoint::pessimisticSPRLiveSet_ = NULL;
-
-#if defined(arch_x86_64)
-int *instPoint::optimisticGPRLiveSet64_ = NULL;
-int *instPoint::optimisticFPRLiveSet64_ = NULL;
-int *instPoint::optimisticSPRLiveSet64_ = NULL;
-int *instPoint::pessimisticGPRLiveSet64_ = NULL;
-int *instPoint::pessimisticFPRLiveSet64_ = NULL;
-int *instPoint::pessimisticSPRLiveSet64_ = NULL;
-#endif
-
-bool instPoint::hasSpecializedGPRegisters() const {
-    return (actualGPRLiveSet_ != NULL);
-}
-bool instPoint::hasSpecializedFPRegisters() const {
-    return (actualFPRLiveSet_ != NULL);
-}
-bool instPoint::hasSpecializedSPRegisters() const {
-    return (actualSPRLiveSet_ != NULL);
-}
-
-int *instPoint::liveGPRegisters() const {
-    if (actualGPRLiveSet_) return actualGPRLiveSet_;
-
-    // If we're entry/exit/call site, return the optimistic version
-    if (getPointType() == functionEntry)
-        return optimisticGPRLiveSet();
-    if (getPointType() == functionExit)
-        return optimisticGPRLiveSet();
-    if (getPointType() == callSite)
-        return optimisticGPRLiveSet();
-
-    return pessimisticGPRLiveSet();
-}
-
-int *instPoint::liveFPRegisters() const {
-    if (actualFPRLiveSet_) return actualFPRLiveSet_;
-
-    // If we're entry/exit/call site, return the optimistic version
-    if (getPointType() == functionEntry)
-        return optimisticFPRLiveSet();
-    if (getPointType() == functionExit)
-        return optimisticFPRLiveSet();
-    if (getPointType() == callSite)
-        return optimisticFPRLiveSet();
-
-    return pessimisticFPRLiveSet();
-}
-
-int *instPoint::liveSPRegisters() const {
-    if (actualSPRLiveSet_) return actualSPRLiveSet_;
-
-    // If we're entry/exit/call site, return the optimistic version
-    if (getPointType() == functionEntry)
-        return optimisticSPRLiveSet();
-    if (getPointType() == functionExit)
-        return optimisticSPRLiveSet();
-    if (getPointType() == callSite)
-        return optimisticSPRLiveSet();
-
-    return pessimisticSPRLiveSet();
-}
-
-int *instPoint::optimisticGPRLiveSet() const {
-#if defined(arch_x86_64)
-    if (proc()->getAddressWidth() == 8) {
-        return optimisticGPRLiveSet64_;
-    }
-#endif
-    return optimisticGPRLiveSet_;
-}
-
-int *instPoint::optimisticFPRLiveSet() const {
-#if defined(arch_x86_64)
-    if (proc()->getAddressWidth() == 8) {
-        return optimisticFPRLiveSet64_;
-    }
-#endif
-    return optimisticFPRLiveSet_;
-}
-
-int *instPoint::optimisticSPRLiveSet() const {
-#if defined(arch_x86_64)
-    if (proc()->getAddressWidth() == 8) {
-        return optimisticSPRLiveSet64_;
-    }
-#endif
-    return optimisticSPRLiveSet_;
-}
-
-int *instPoint::pessimisticGPRLiveSet() const {
-#if defined(arch_x86_64)
-    if (proc()->getAddressWidth() == 8) {
-        return pessimisticGPRLiveSet64_;
-    }
-#endif
-    return pessimisticGPRLiveSet_;
-}
-int *instPoint::pessimisticFPRLiveSet() const {
-#if defined(arch_x86_64)
-    if (proc()->getAddressWidth() == 8) {
-        return pessimisticFPRLiveSet64_;
-    }
-#endif
-    return pessimisticFPRLiveSet_;
-}
-
-int *instPoint::pessimisticSPRLiveSet() const {
-#if defined(arch_x86_64)
-    if (proc()->getAddressWidth() == 8) {
-        return pessimisticSPRLiveSet64_;
-    }
-#endif
-    return pessimisticSPRLiveSet_;
 }

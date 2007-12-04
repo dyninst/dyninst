@@ -553,12 +553,18 @@ bool rpcThr::getReturnValueIRPC()
         returnValue = thr_lwp->readRegister(runningRPC_->resultRegister);
     }
 
+    inferiorrpc_printf("%s[%d]: return value is %p\n", FILE__, __LINE__, returnValue);
+
     runningRPC_->resultValue = (void *)returnValue;
     // we continue the process...but not quite at the PC where we left off,
     // since that will just re-do the trap!  Instead, we need to continue at
     // the location of the next instruction.
+    inferiorrpc_printf("%s[%d]: changing RPC PC to continue address 0x%lx\n",
+                       FILE__, __LINE__, runningRPC_->rpcContPostResultAddr);
     if (! thr_lwp->changePC(runningRPC_->rpcContPostResultAddr, NULL)) {
         // What if we're exited?
+        inferiorrpc_printf("%s[%d]: FAILED TO SET continue PC\n",
+                           FILE__, __LINE__);
         return false;
     }
 

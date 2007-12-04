@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.39 2007/09/12 20:57:45 bernat Exp $
+// $Id: instPoint.h,v 1.40 2007/12/04 17:58:08 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -52,6 +52,7 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/bitArray.h"
 
 class image_func;
 class int_function;
@@ -228,7 +229,7 @@ class instPoint : public instPointBase {
     friend class multiTramp;
     friend class int_basicBlock;
     friend void initRegisters();
-	friend class registerSpace; // POWER
+    friend class registerSpace; // Liveness
  private:
     // Generic instPoint...
     instPoint(AddressSpace *proc,
@@ -460,51 +461,28 @@ class instPoint : public instPointBase {
   int_basicBlock *block_;
   Address addr_;
 
+  // RegisterSpace-only methods; all data in here is
+  // specific to a registerSpace slot. 
+  // 
+  bitArray liveRegisters(callWhen when);
+
  public:
-
-  int *liveGPRegisters() const;
-  int *liveFPRegisters() const;
-  int *liveSPRegisters() const;
-  bool hasSpecializedGPRegisters() const;
-  bool hasSpecializedFPRegisters() const;
-  bool hasSpecializedSPRegisters() const;
-
-  // Global sets of what registers are dead; we use these until
-  // an instPoint gets its own analysis.
-  // Optimistic: function entry/exit/call site
-  // Pessimistic: function bodies
-  int *optimisticGPRLiveSet() const;
-  int *pessimisticGPRLiveSet() const;
-  int *optimisticFPRLiveSet() const;
-  int *pessimisticFPRLiveSet() const;
-  int *optimisticSPRLiveSet() const;
-  int *pessimisticSPRLiveSet() const;
-
+  // This is only needed by BPatch_point; can we
+  // remove it?
+  const int *liveRegisterArray();
  private:
-  int *actualGPRLiveSet_;
-  int *actualFPRLiveSet_;
-  int *actualSPRLiveSet_;
 
-  static int *optimisticGPRLiveSet_;
-  static int *optimisticFPRLiveSet_;
-  static int *optimisticSPRLiveSet_;
+  // From post liveness we can work out pre liveness. Nifty,
+  // huh? Almost as if it was a _backwards flow_ algorithm...
+  bitArray postLiveRegisters_;
 
-  static int *pessimisticGPRLiveSet_;
-  static int *pessimisticFPRLiveSet_;
-  static int *pessimisticSPRLiveSet_;
-
-#if defined(arch_x86_64)
-  // We need a set for 64-bit mode...
-  static int *optimisticGPRLiveSet64_;
-  static int *optimisticFPRLiveSet64_;
-  static int *optimisticSPRLiveSet64_;
-
-  static int *pessimisticGPRLiveSet64_;
-  static int *pessimisticFPRLiveSet64_;
-  static int *pessimisticSPRLiveSet64_;
-#endif
-
-  // AIX && AMD64 only.
+  // Calculate the liveness values for this
+  // particular (inst) point.
+  // A note: is this _pre_ or _post_? 
+  // I will assume that all liveness values are
+  // _input_, and so post-instruction instrumentation
+  // will need an additional piece of work.
+  void calcLiveness();
 };
 
 typedef instPoint::iterator instPointIter;

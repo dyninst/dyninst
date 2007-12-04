@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: replacedInstruction.C,v 1.9 2007/09/12 20:58:02 bernat Exp $
+// $Id: replacedInstruction.C,v 1.10 2007/12/04 17:58:12 bernat Exp $
 
 #include "multiTramp.h"
 #include "process.h"
 #include "instPoint.h"
 #include "ast.h"
+
+#include "registerSpace.h"
 
 // Necessary methods
 
@@ -90,7 +92,7 @@ bool replacedInstruction::generateCode(codeGen &gen,
     // now, just assume everything is live. TODO: pull out the
     // instPoint-stored register information
 
-    registerSpace *localRegSpace = registerSpace::actualRegSpace(point());
+    registerSpace *localRegSpace = registerSpace::actualRegSpace(point(), callPreInsn);
     gen.setRegisterSpace(localRegSpace);
 
     int cost = 0;

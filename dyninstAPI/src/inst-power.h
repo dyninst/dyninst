@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.33 2007/08/01 14:57:53 ssuen Exp $
+ * $Id: inst-power.h,v 1.34 2007/12/04 17:58:02 bernat Exp $
  */
 
 #ifndef INST_POWER_H
@@ -165,7 +165,7 @@
 #define TRAMP_GPR_OFFSET_64 (TRAMP_FPR_OFFSET_64 + FPRSAVE)
 
 #define FUNC_CALL_SAVE (LINKAREA + FUNCARGS)
-
+               
 
 ///////////////////////////// Multi-instruction sequences
 class codeGen;

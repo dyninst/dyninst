@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.56 2007/06/13 18:50:31 bernat Exp $
+// $Id: arch-ia64.C,v 1.57 2007/12/04 17:57:52 bernat Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -464,7 +464,7 @@ bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, u
 
 instruction generateAllocInstructionFor( registerSpace * rs, int locals, int outputs, int rotates ) {
 	insn_tmpl alloc = { 0x0 };
-	uint64_t sizeOfLocals = rs->getRegSlot( 0 )->number - 32 + locals;
+	uint64_t sizeOfLocals = rs->GPRs()[0]->number - 32 + locals;
 	assert( 0 <= outputs && outputs <= 8 );
 
 	if( sizeOfLocals + outputs > 96 ) {
@@ -731,7 +731,7 @@ void extractAllocatedRegistersFromBasicBlock( const instPoint * location, int_fu
 	} /* end extractAllocatedRegistersFromBasicBlock */
 
 registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location, 
-									  Register * deadRegisterList) {
+												Register &first, Register &last) {
 	/* If no alloc's definition reaches the instPoint _location_, create a base tramp
 	   register space compatible with any possible leaf function.
 
@@ -852,12 +852,14 @@ registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location,
 			
 			/* The largest possible unallocated frame (by the ABI, for leaf
 			   functions) is 8 input registers. */
-			for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-				deadRegisterList[i] = 32 + 8 + i + NUM_PRESERVED;
-				}
+			
+			first = 32+8+NUM_PRESERVED;
+			last = first + NUM_LOCALS + NUM_OUTPUT - 1;
 
 			/* Construct the registerSpace reflecting the desired frame. */
-			regSpace = registerSpace::createAllDead(deadRegisterList, NUM_LOCALS + NUM_OUTPUT);
+			registerSpace::overwriteRegisterSpace64(first, last);
+			regSpace = registerSpace::savedRegSpace(location->proc());
+
 			initBaseTrampStorageMap( regSpace, 8, pdf->getUsedFPregs() );
 
 			/* If we did not have a frame originally, create one such that wrapper functions
@@ -919,11 +921,11 @@ registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location,
 			if( baseReg > 128 - (NUM_LOCALS + NUM_OUTPUT) )
 				baseReg = 128 - (NUM_LOCALS + NUM_OUTPUT);
 
-			for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; i++ ) {
-				deadRegisterList[i] = baseReg + i;
-				}
+			first = baseReg;
+			last = baseReg + NUM_LOCALS + NUM_OUTPUT - 1;
+			registerSpace::overwriteRegisterSpace64(first, last);
+			regSpace = registerSpace::savedRegSpace(location->proc());
 
-			regSpace = registerSpace::createAllDead( deadRegisterList, NUM_LOCALS + NUM_OUTPUT );
 			initBaseTrampStorageMap( regSpace, sizeOfFrame, pdf->getUsedFPregs() );
 
 			/* Note that we assume that having extra registers can't be harmful;

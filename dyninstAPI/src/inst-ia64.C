@@ -88,7 +88,7 @@
 #include <libunwind.h>
 #define PRESERVATION_UNWIND_OPERATION_COUNT	32
 
-#define CALCULATE_KTI_REGISTER (rs->getRegSlot( 0 )->number - 1)
+#define CALCULATE_KTI_REGISTER (rs->GPRs()[0]->number - 1)
 
 /* Assembler-level labels for the dynamic basetramp. */
 extern "C" {
@@ -309,7 +309,7 @@ void emitRegisterToRegisterCopy( Register source, Register destination, codeGen 
 /* private refactoring function */
 Register findFreeLocal( registerSpace * rs, char * failure ) {
   Register freeLocalRegister = 0;
-  unsigned int localZero = rs->getRegSlot( 0 )->number;
+  unsigned int localZero = rs->GPRs()[0]->number;
   for( unsigned int i = 0; i < NUM_LOCALS; i++ ) {
 	if( rs->isFreeRegister( localZero + i ) ) { freeLocalRegister = localZero + i; break; }
   } /* end freeLocalRegister search */
@@ -356,7 +356,7 @@ Register emitFuncCall( opCode op, codeGen & gen,
   }
 
   /* source-to-output register copy */
-  unsigned int outputZero = gen.rs()->getRegSlot( NUM_LOCALS )->number;
+  unsigned int outputZero = gen.rs()->GPRs()[NUM_LOCALS]->number;
   for( unsigned int i = 0; i < sourceRegisters.size(); i++ ) {
 	// fprintf( stderr, "Copying argument in local register %d to output register %d\n", sourceRegisters[i], outputZero + i );
 	emitRegisterToRegisterCopy( sourceRegisters[i], outputZero + i, gen, gen.rs() );
@@ -419,11 +419,19 @@ void emitASload( const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,  boo
   emitLoadPreviousStackFrameRegister( as->getReg( 0 ), dest, gen, 0, 0 );
 } /* end emitASload() */
 
-/* Required by ast.C */
-Register deadRegisterList[] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF };
-unsigned int deadRegisterListLength = sizeof( deadRegisterList ) / sizeof( Register );
+// Used to have deadRegisterList. We now just keep the first and last registers,
+// and interpolate the middle
+Register firstDeadRegister = 0;
+Register lastDeadRegister = 0xf;
 
-void initRegisters() { 
+void registerSpace::initialize32() {
+}
+
+void registerSpace::initialize64() {
+	static bool done = false;
+	if (done) return;
+	done = true;
+
   /* Initialize the registerSpace pointer gen.rs() to the state of the
 	 registers that will exist at the end of the first part of the base
 	 tramp's code.  (That is, for the minitramps.)
@@ -434,30 +442,23 @@ void initRegisters() {
 
 	 For now, we'll just say 0x1 - 0xF. */
 
-  static bool haveInitializedTramps = false;
-  if( haveInitializedTramps ) { return; } else { haveInitializedTramps = true; }
-
 	// There are no live registers - we rotate the window.
-	
-	// Overwrite time
-	registerSpace::globalRegSpace_ = registerSpace::createAllDead(deadRegisterList,
-													deadRegisterListLength);
 
-	// As with (amusingly) x86, everyone is dead
-	registerSpace::conservativeRegSpace_ = registerSpace::globalRegSpace_;
+	pdvector<registerSlot *> registers;
+	for (unsigned i = firstDeadRegister; i <= lastDeadRegister; i++) {
+		registers.push_back(new registerSlot(i, 
+											 false, 
+											 registerSlot::deadAlways,
+											 registerSlot::GPR));
+	}
 
-	registerSpace::optimisticRegSpace_ = registerSpace::conservativeRegSpace_;
-	registerSpace::actualRegSpace_ = registerSpace::conservativeRegSpace_;
-	registerSpace::savedRegSpace_ = registerSpace::conservativeRegSpace_;
-
-	// This is a bit of overlap - unfortunate. Create the instPoint
-	// live sets
-	instPoint::optimisticGPRLiveSet_ = NULL;
-    instPoint::pessimisticGPRLiveSet_ = NULL;
+	registerSpace::createRegisterSpace64(registers);
     
 } /* end initTramps() */
 
-
+void registerSpace::initialize() {
+	initialize64();
+}
 
 /* Required by ast.C */
 void emitV( opCode op, Register src1, Register src2, Register dest,
@@ -1518,7 +1519,7 @@ void generateMemoryStackSave( codeGen &gen, bool * usedFPregs, unw_dyn_region_in
 	} else {
 	  // Since at least one stacked register is unused, the highest
 	  // register allocated for basetramp must be free.
-	  temp_gr[ 0 ] = gen.rs()->getRegSlot( gen.rs()->getRegisterCount() - 1 )->number;
+		temp_gr[0] = gen.rs()->GPRs().back()->number;
 
 	  bundle = IA64_bundle( MMIstop,
 							generateShortImmediateAdd( REGISTER_SP, -16, REGISTER_SP ),
@@ -1569,7 +1570,7 @@ void generateMemoryStackSave( codeGen &gen, bool * usedFPregs, unw_dyn_region_in
   //
   if( grSpillNeeded ) {
 	if( originalFrameSize == 96 ) {
-	  temp_gr[ 1 ] = gen.rs()->getRegSlot( 1 )->number;
+	  temp_gr[ 1 ] = gen.rs()->GPRs()[1]->number;
 	  // Undo register swapping to maintain uniform register state.
 	  bundle = IA64_bundle( MMIstop,
 							generateFloatToRegisterMove( temp_fr, temp_gr[ 0 ] ),
@@ -1588,8 +1589,8 @@ void generateMemoryStackSave( codeGen &gen, bool * usedFPregs, unw_dyn_region_in
   }
 
   // Save the FP regs
-  temp_gr[ 0 ] = gen.rs()->getRegSlot( 0 )->number;
-  temp_gr[ 1 ] = gen.rs()->getRegSlot( 1 )->number;
+  temp_gr[ 0 ] = gen.rs()->GPRs()[0]->number;
+  temp_gr[ 1 ] = gen.rs()->GPRs()[1]->number;
 
   /* This should only be necessary if an FP register is used; not sure
 	 that two more/fewer GP registers really matter. */
@@ -1645,8 +1646,8 @@ void generateMemoryStackRestore( codeGen &gen, bool * usedFPregs, unw_dyn_region
   int originalFrameSize = gen.rs()->originalLocals + gen.rs()->originalOutputs;
 
   // Prepare offsets for the FP regs
-  temp_gr[ 0 ] = gen.rs()->getRegSlot( 0 )->number;
-  temp_gr[ 1 ] = gen.rs()->getRegSlot( 1 )->number;
+  temp_gr[ 0 ] = gen.rs()->GPRs()[0]->number;
+  temp_gr[ 1 ] = gen.rs()->GPRs()[1]->number;
 
   bundle = IA64_bundle( MIIstop,
 						generateShortImmediateAdd( temp_gr[ 0 ], frStackOffset +  0, REGISTER_SP ),
@@ -1678,7 +1679,7 @@ void generateMemoryStackRestore( codeGen &gen, bool * usedFPregs, unw_dyn_region
   if( grSpillNeeded ) {
 	if( originalFrameSize == 96 ) {
 	  temp_gr[ 0 ] = 6;
-	  temp_gr[ 1 ] = gen.rs()->getRegSlot( 1 )->number;
+	  temp_gr[ 1 ] = gen.rs()->GPRs()[1]->number;
 	  // Redo register swapping to free up one extra general register..
 	  bundle = IA64_bundle( MstopMI,
 							generateShortImmediateAdd( temp_gr[ 1 ], gen.rs()->sizeOfStack + 16, REGISTER_SP ),
@@ -1695,7 +1696,7 @@ void generateMemoryStackRestore( codeGen &gen, bool * usedFPregs, unw_dyn_region
 	  unwindRegion->insn_count += 3;
 
 	} else {
-	  temp_gr[ 0 ] = gen.rs()->getRegSlot( gen.rs()->getRegisterCount() - 1 )->number;
+		temp_gr[0] = gen.rs()->GPRs().back()->number;
 	}
 
 	if( originalFrameSize != 96 && gen.rs()->storageMap[ BP_AR_PFS ] != 32 + originalFrameSize ) {
@@ -2470,11 +2471,14 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 		baseReg = 128 - (NUM_LOCALS + NUM_OUTPUT); // Never allocate over 128 registers.
 		}
 
-	Register deadRegisterList[NUM_LOCALS + NUM_OUTPUT];
-	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; ++i ) {
-		deadRegisterList[i] = baseReg + i;
-		} /* end deadRegisterList population */
-	registerSpace *rs = registerSpace::createAllDead(  deadRegisterList, NUM_LOCALS + NUM_OUTPUT);
+	registerSpace::overwriteRegisterSpace64(baseReg, (baseReg + NUM_LOCALS + NUM_OUTPUT - 1));
+	registerSpace *rs = registerSpace::savedRegSpace(proc());
+
+	// Whack the global "which registers are we", just in case there's obsolete
+	// code looking at that instead of the registerSpace.
+	firstDeadRegister = baseReg;
+	lastDeadRegister = baseReg + NUM_LOCALS + NUM_OUTPUT - 1;
+
 
 	initBaseTrampStorageMap( rs, reg.CFM.sof, NULL );
 	rs->originalLocals = reg.CFM.sol;
@@ -2484,8 +2488,6 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	/* The code generator needs to know about the register space
 	   as well, so just take advantage of the existing globals. */
 	gen.setRegisterSpace(rs);
-
-	memcpy( ::deadRegisterList, deadRegisterList, 16 * sizeof( Register ) );
 
 	if( needToHandleSyscall( lwpToUse ) ) {
 		if( ! emitSyscallHeader( lwpToUse, gen ) ) { return false; }
@@ -2687,9 +2689,9 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
   Address trampGuardBase = proc()->trampGuardBase();
   if (!trampGuardBase) return false;
 
-  int maxRegister = rs->getRegisterCount();
-  trampGuardFlagAddr = rs->getRegSlot( maxRegister - 1 )->number;
-  trampGuardFlagValue = rs->getRegSlot( maxRegister - 2 )->number;
+  int maxRegister = rs->numGPRs();
+  trampGuardFlagAddr = rs->GPRs()[maxRegister - 1]->number;
+  trampGuardFlagValue = rs->GPRs()[maxRegister - 2]->number;
 	
   IA64_bundle guardOnBundle0( MLXstop,
 							  instruction( NOP_M ),
@@ -2731,9 +2733,9 @@ bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &postIndex,
   Address trampGuardBase = proc()->trampGuardBase();
   if (!trampGuardBase) return false;
 
-  int maxRegister = rs->getRegisterCount();
-  Register trampGuardFlagAddr = rs->getRegSlot( maxRegister - 1 )->number;
-  Register trampGuardFlagValue = rs->getRegSlot( maxRegister - 2 )->number;
+  int maxRegister = rs->numGPRs();
+  Register trampGuardFlagAddr = rs->GPRs()[maxRegister-1]->number;
+  Register trampGuardFlagValue = rs->GPRs()[maxRegister-2]->number;
 
   IA64_bundle guardOffBundle0( MLXstop,
 							   generateShortConstantInRegister( trampGuardFlagValue, 1 ),
@@ -2999,7 +3001,7 @@ void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
 
   int outputRegisters = 8;
   int extraOuts = outputRegisters % 3;
-  int offset = gen.rs()->getRegSlot( 0 )->number + 5;
+  int offset = gen.rs()->GPRs()[0]->number + 5;
   
   // Generate a new register frame with an output size equal to the
   // original local size.
@@ -3370,26 +3372,9 @@ uint64_t InsnAddr::operator * () {
 } /* end operator * () */
 
 /* For AIX "on the fly" register allocation. */
-bool registerSpace::clobberRegister( Register ) {
-  return false;
-} /* end clobberRegister() */
-
-/* For AIX "on the fly" register allocation. */
-bool registerSpace::clobberFPRegister( Register ) {
-  return false;
-} /* end clobberFPRegister() */
-
-/* For AIX "on the fly" register allocation. */
 unsigned saveRestoreRegistersInBaseTramp( AddressSpace *, baseTramp *, registerSpace * ) {
   return 0;
 } /* end saveRestoreRegistersInBaseTramp() */
-
-/* For AIX "on the fly" register allocation. */
-void registerSpace::saveClobberInfo(const instPoint *)
-{
-  /*Stub function*/
-}
-
 
 
 #if defined( OLD_DYNAMIC_CALLSITE_MONITORING )
@@ -3456,7 +3441,9 @@ bool baseTramp::generateSaves( codeGen & gen, registerSpace * ) {
 	/* Determine this instrumentation point's gen.rs() and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	registerSpace *regSpace = defineBaseTrampRegisterSpaceFor( instP(), deadRegisterList );
+	registerSpace *regSpace = defineBaseTrampRegisterSpaceFor( instP(), 
+															   firstDeadRegister,
+															   lastDeadRegister);
 	
 	if( regSpace == NULL ) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );

@@ -50,6 +50,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/signalgenerator.h"
+#include "dyninstAPI/src/registerSpace.h"
 
 #if defined(arch_x86_64)
 #include "dyninstAPI/src/emit-x86.h"
@@ -62,7 +63,7 @@ rpcMgr::rpcMgr(process *proc) :
     recursionGuard(false)
 {
     // We use a base tramp skeleton to generate iRPCs.
-    irpcTramp = new baseTramp(NULL);
+    irpcTramp = new baseTramp(NULL, callUnset);
     irpcTramp->rpcMgr_ = this;
     irpcTramp->setRecursive(true);
 }
@@ -77,7 +78,7 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
     recursionGuard(pRM->recursionGuard)
 {
     // We use a base tramp skeleton to generate iRPCs.
-    irpcTramp = new baseTramp(NULL);
+    irpcTramp = new baseTramp(NULL, callUnset);
     irpcTramp->rpcMgr_ = this;
     irpcTramp->setRecursive(true);
 
@@ -815,15 +816,16 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
              << endl;
         return 0;
     }
-    
+
     resultReg = REG_NULL;
+
     if (!action->generateCode(irpcBuf,
                               noCost,
                               resultReg)) assert(0);
     if (!shouldStopForResult) {
         irpcBuf.rs()->freeRegister(resultReg);
     }
-    
+
     // Now, the trailer (restore, TRAP, illegal)
     // (the following is implemented in an arch-specific source file...)   
     // breakOffset: where the irpc ends

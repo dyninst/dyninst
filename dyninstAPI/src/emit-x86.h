@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.28 2007/11/09 20:11:00 bernat Exp $
+ * $Id: emit-x86.h,v 1.29 2007/12/04 17:57:59 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -244,20 +244,6 @@ class EmitterAMD64Stat : public EmitterAMD64 {
 
 extern EmitterAMD64Dyn emitterAMD64Dyn;
 extern EmitterAMD64Stat emitterAMD64Stat;
-
-// We pull swaps under the covers, as it were, so the
-// rest of the code can be oblivious.
-extern registerSpace *globalRegSpace32;
-extern registerSpace *conservativeRegSpace32;
-extern registerSpace *optimisticRegSpace32;
-extern registerSpace *actualRegSpace32;
-extern registerSpace *savedRegSpace32;
-extern registerSpace *globalRegSpace64;
-extern registerSpace *conservativeRegSpace64;
-extern registerSpace *optimisticRegSpace64;
-extern registerSpace *actualRegSpace64;
-extern registerSpace *savedRegSpace64;
-
 
 #endif
 

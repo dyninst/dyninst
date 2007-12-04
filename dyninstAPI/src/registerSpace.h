@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.11 2007/11/09 20:11:03 bernat Exp $
+// $Id: registerSpace.h,v 1.12 2007/12/04 17:58:11 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -49,14 +49,21 @@
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 #include "common/h/Types.h"
+#include "inst.h" // callWhen...
+
 #if defined(ia64_unknown_linux2_4)
 #include "inst-ia64.h"
+#endif
+
+#if defined(cap_liveness)
+#include "bitArray.h"
 #endif
 
 class codeGen;
 class instPoint;
 class process;
 class AddressSpace;
+class image_basicBlock;
 
 // A class to retain information about where the original register can be found. It can be in one of the following states: 
 // 1) Unsaved, and available via the register itself;
@@ -71,128 +78,118 @@ class AddressSpace;
 // Currently reserved by another AST, but we could recalculate if necessary
 // At a function call node, is it carrying a value?
 
+// Terminology:
+// "Live" : contains a value outside of instrumentation, and so must be saved before use
+// "Used" : used by instrumentation code. 
+
 class registerSlot {
  public:
-    Register number;    // what register is it
+    Register number;    // what register is it, using our Register enum
     int refCount;      	// == 0 if free
-    bool needsSaving;	// Does this need to be saved at an emitted function call
-    bool mustRestore;   // Did we tap this to be used in generated code (+ started live)
-    bool startsLive;	// starts life as a live register; if dead, then we can freely use it. 
-    bool beenClobbered; // Have we overwritten it (implying restore at end)
-    // Unsure how beenClobbered is different from mustRestore...
-	bool keptValue;     // Are we keeping this (as long as we can) to save
-	                    // the pre-calculated value? Note: refCount can be 0 and
-	                    // this still set.
+
+    typedef enum { live, spilled, dead } livenessState_t;
+    livenessState_t liveState;
+
+    bool keptValue;     // Are we keeping this (as long as we can) to save
+    // the pre-calculated value? Note: refCount can be 0 and
+    // this still set.
+
+    bool beenUsed;      // Has this register been used by generated code?
+
+    typedef enum { deadAlways, deadABI, liveAlways } initialLiveness_t;
+    initialLiveness_t initialState;
 
     // Are we off limits for allocation in this particular instance?
     bool offLimits; 
 
+    unsigned encoding() const;
+
     // New version of "if we were saved, then where?" It's a pair - true/false,
     // then offset from the "zeroed" stack pointer. 
     typedef enum { unspilled, stackPointer, framePointer } spillReference_t;
-    spillReference_t origValueSpilled_;
-    int saveOffset_; // Offset from base pointer or stack pointer
+    spillReference_t spilledState;
+    int saveOffset; // Offset from base pointer or stack pointer
     
     typedef enum { invalid, GPR, FPR, SPR } regType_t;
-    regType_t type_; 
-
-
-    static registerSlot deadReg(Register number);
-    static registerSlot liveReg(Register number);
-    static registerSlot thrIndexReg(Register number);
+    regType_t type; 
 
     void cleanSlot();
 
-    void resetSlot();
-
-    registerSlot() : 
-        number((Register) -1),
+    registerSlot(Register num,
+                 bool offLimits_,
+                 initialLiveness_t initial,
+                 regType_t type_) : 
+        number(num),
         refCount(0),
-        needsSaving(false),
-        mustRestore(false),
-        startsLive(false),
-        beenClobbered(false),
-		keptValue(false),
-        offLimits(false),
-        origValueSpilled_(unspilled),
-        saveOffset_(0),
-        type_(invalid)
-        {}
+        liveState(live),
+        keptValue(false),
+        beenUsed(false),
+        initialState(initial),
+        offLimits(offLimits_),
+        spilledState(unspilled),
+        saveOffset(-1),
+        type(type_) {}
 
-    registerSlot(const registerSlot &r) :
-        number(r.number),
-        refCount(r.refCount),
-        needsSaving(r.needsSaving),
-        mustRestore(r.mustRestore),
-        startsLive(r.startsLive),
-        beenClobbered(r.beenClobbered),
-		keptValue(r.keptValue),
-        offLimits(r.offLimits),
-        origValueSpilled_(r.origValueSpilled_),
-        saveOffset_(r.saveOffset_),
-        type_(r.type_)
-        {
-        }
-	void debugPrint(char *str = NULL);
+    void registerSlot::markUsed(bool incRefCount) {
+        assert(offLimits == false);
+        assert(refCount == 0);
+        assert(liveState != live);
+        
+        if (incRefCount) 
+            refCount = 1;
+        beenUsed = true;
+    }
+    
+    // Default is just fine
+    // registerSlot(const registerSlot &r)
+
+    void debugPrint(char *str = NULL);
+
+    // Don't want to use this...
+    registerSlot() {};
 
 };
 
 class instPoint;
 
 class registerSpace {
-	friend void initRegisters();
-
  private:
-	// A global mapping of register names to slots
-	static registerSpace *globalRegSpace_;
+    // A global mapping of register names to slots
+    static registerSpace *globalRegSpace_;
+    static registerSpace *globalRegSpace64_;
 
-	// Pre-set commonly used register spaces
-	// Everyone live...
-   static registerSpace *conservativeRegSpace_;
-	// Function boundary...
-	static registerSpace *optimisticRegSpace_;
-	// And the one we should use.
-	static registerSpace *actualRegSpace_;
-	// Oh, and everything _dead_ for out-of-line BTs.
-	static registerSpace *savedRegSpace_;
+    static void createRegSpaceInt(pdvector<registerSlot *> &regs,
+                                  registerSpace *regSpace);
 
  public:
-    // Legacy...
-    //static registerSpace *regSpace();
+    // Pre-set unknown register state:
+    // Everything is live...
+    static registerSpace *conservativeRegSpace(AddressSpace *proc);
+    // Everything is dead...
+    static registerSpace *optimisticRegSpace(AddressSpace *proc);
+    // IRPC-specific - everything live for now
+    static registerSpace *irpcRegSpace(AddressSpace *proc);
+    // Aaand instPoint-specific
+    static registerSpace *actualRegSpace(instPoint *iP, callWhen location);
+    // DO NOT DELETE THESE. 
+    static registerSpace *savedRegSpace(AddressSpace *proc);
 
-   // Pre-set unknown register state:
-	// Everything is live...
-   static registerSpace *conservativeRegSpace(AddressSpace *proc);
-   // Everything is dead...
-   static registerSpace *optimisticRegSpace(AddressSpace *proc);
-   // IRPC-specific - everything live for now
-   static registerSpace *irpcRegSpace(AddressSpace *proc);
-   // Aaand instPoint-specific
-   static registerSpace *actualRegSpace(instPoint *iP);
-   // DO NOT DELETE THESE. 
-   static registerSpace *savedRegSpace(AddressSpace *proc);
-
-   registerSpace();
-
-	registerSpace(const registerSpace &);
-	// Specialize a register space given a particular list of
-	// dead registers (everyone else is assumed live);
-	// Returns a copy.
-	static registerSpace *specializeRegisterSpace(Register *deadRegs,
-												  const unsigned int numDead);
-	static registerSpace *createAllLive(Register *liveRegs,
-										const unsigned int liveCount);
-	static registerSpace *createAllDead(Register *deadRegs,
-										const unsigned int deadCount);
-
-    // Inits the values for the clobbered variables for the floating point registers
-    void initFloatingPointRegisters(const unsigned int count, Register *fp);
-
-    // Inits the values for any tracked SPRegisters
-    // Platform specific
-    void initSpecialPurposeRegisters();
+    static registerSpace *getRegisterSpace(AddressSpace *proc);
+    static registerSpace *getRegisterSpace(unsigned addr_width);
+    
+    registerSpace();
+    
+    static void createRegisterSpace(pdvector<registerSlot *> &registers);
+    static void createRegisterSpace64(pdvector<registerSlot *> &registers);
     
     ~registerSpace();
+
+    // IA-64... it overrides the register space with particular register
+    // numbers based on its rotating window mechanism.
+    // Note: this screws with the default registerSpace, and so 
+    // _really_ needs to be used continually or not at all.
+    static void overwriteRegisterSpace(unsigned firstReg, unsigned lastReg);
+    static void overwriteRegisterSpace64(unsigned firstReg, unsigned lastReg);
 
     // Read the value in register souce from wherever we've stored it in
     // memory (including the register itself), and stick it in actual register
@@ -227,74 +224,23 @@ class registerSpace {
     void freeRegister(Register k);
     // Free the register even if its refCount is greater that 1
     void forceFreeRegister(Register k);
-	// And mark a register as not being kept any more
-	void unKeepRegister(Register k);
-	// Set a registerSpace back to defaults; equivalent to allocating a new
-	// one
-    void resetSpace();
-	// Mark all registers as unallocated, but keep live/dead info
-	void cleanSpace();
-	
-    void resetClobbers();
-    void saveClobberInfo(const instPoint * location);
-    void resetLiveDeadInfo(const int* liveRegs,
-                           const int *, 
-                           const int *);
-    
+    // And mark a register as not being kept any more
+    void unKeepRegister(Register k);
+
+
+    // Mark all registers as unallocated, but keep live/dead info
+    void cleanSpace();
     
     // Check to see if the register is free
     bool isFreeRegister(Register k);
-    
-    //Makes register unClobbered
-    void unClobberRegister(Register reg);
-    void unClobberFPRegister(Register reg);
-    
-    // Checks to see if register has been clobbered and clobbers it 
-    // if it hasn't been clobbered yet, returns true if we clobber it
-    // false if it has already been clobbered
-    bool clobberRegister(Register reg);
-    bool clobberFPRegister(Register reg);
-
-    // The efficient mass-production version of the above. Sets all registers
-    // to "clobbered"; that is, used in a function call and in need of saving
-    // (if it's live).
-    bool clobberAllRegisters();
-    
-    // Checks to see if given register has been clobbered, true if it has
-    bool beenSaved(Register reg);
-    bool beenSavedFP(Register reg);
     
     // Checks to see if register starts live
     bool isRegStartsLive(Register reg);
     int fillDeadRegs(Register * deadRegs, int num);
     
-    // Manually set the reference count of the specified register
-    // we need to do so when reusing an already-allocated register
-    void fixRefCount(Register k, int iRefCount);
-    
     // Bump up the reference count. Occasionally, we underestimate it
     // and call this routine to correct this.
     void incRefCount(Register k);
-    
-    u_int getRegisterCount() { return registers.size(); }
-    u_int getFPRegisterCount() { return fpRegisters.size(); }
-    
-    registerSlot *getRegSlot(Register k) { return (&registers[k]); }
-    registerSlot *getFPRegSlot(Register k) { return (&fpRegisters[k]); }
-
-    enum saveState_t { unknown, killed, unused, live, dead};
-    
-    // A bit of logic... for now, "unknown" is optimistic.
-    bool saveAllGPRs() const; 
-    bool saveAllFPRs() const; 
-    bool saveAllSPRs() const;
-    
-    void setSaveAllGPRs(bool val) { saveAllGPRs_ = val ? killed : unused; } 
-    void setSaveAllFPRs(bool val) { saveAllFPRs_ = val ? killed : unused; } 
-    void setSaveAllSPRs(bool val) { saveAllSPRs_ = val ? killed : unused; } 
-    
-    void copyInfo(registerSpace *rs) const;
-
     
     // Reset when the regSpace is reset - marked offlimits for 
     // allocation.
@@ -304,38 +250,72 @@ class registerSpace {
     // Used for assertion checking.
     void checkLeaks(Register to_exclude);
     
-    registerSpace &operator=(const registerSpace &src);
 
     void debugPrint();
     void printAllocedRegisters();
 
+    int numGPRs() const { return GPRs_.size(); }
+    int numFPRs() const { return FPRs_.size(); }
+    int numSPRs() const { return SPRs_.size(); }
+    int numRegisters() const { return registers_.size(); }
+
+    pdvector <registerSlot *> &GPRs() { return GPRs_; }
+    pdvector <registerSlot *> &FPRs() { return FPRs_; }
+    pdvector <registerSlot *> &SPRs() { return SPRs_; }
+
+    registerSlot *operator[](Register);
+
+    // For platforms with "save all" semantics...
+    bool anyLiveGPRsAtEntry() const;
+    bool anyLiveFPRsAtEntry() const;
+    bool anyLiveSPRsAtEntry() const;
+
+#if defined(cap_liveness)
+    // And for the bitarrays we use to track these
+    static bitArray getBitArray();
+#endif
+
  private:
 
-    unsigned GPRindex(unsigned index) const { return index; }
-    unsigned FPRindex(unsigned index) const { return index+registers.size(); }
-    unsigned SPRindex(unsigned index) const { return index+registers.size()+fpRegisters.size(); }
+    registerSpace(const registerSpace &);
     
-    registerSlot &getRegisterSlot(unsigned index);
+    registerSlot &getRegisterSlot(Register reg);
 
     registerSlot *findRegister(Register reg); 
 
-    bool spillRegister(unsigned index, codeGen &gen, bool noCost);
-    bool stealRegister(unsigned index, codeGen &gen, bool noCost);
+    bool spillRegister(Register reg, codeGen &gen, bool noCost);
+    bool stealRegister(Register reg, codeGen &gen, bool noCost);
 
-    bool restoreRegister(unsigned index, codeGen &gen, bool noCost); 
-	bool popRegister(unsigned index, codeGen &gen, bool noCost);
-    
-    // Track available registers
-    pdvector<registerSlot> registers;
-    pdvector<registerSlot> fpRegisters;
-    pdvector<registerSlot> spRegisters;
+    bool restoreRegister(Register reg, codeGen &gen, bool noCost); 
+    bool popRegister(Register reg, codeGen &gen, bool noCost);
     
     int currStackPointer; 
 
-    // And track what needs to be saved...
-    saveState_t saveAllGPRs_;
-    saveState_t saveAllFPRs_;
-    saveState_t saveAllSPRs_;
+    typedef dictionary_hash_iter<Register, registerSlot *> regDictIter;
+    dictionary_hash<Register, registerSlot *> registers_;
+
+    // And convenience vectors
+    pdvector<registerSlot *> GPRs_;
+    pdvector<registerSlot *> FPRs_;
+    pdvector<registerSlot *> SPRs_;
+
+    static void initialize();
+    static void initialize32();
+    static void initialize64();
+
+
+    registerSpace &operator=(const registerSpace &src);
+
+    typedef enum {arbitrary, ABI_boundary, allSaved} rs_location_t;
+
+    // Specialize liveness as represented by a bit array
+    void specializeSpace(rs_location_t state);
+
+#if defined(cap_liveness)
+    void specializeSpace(const bitArray &);
+#endif
+
+    unsigned addr_width;
 
  public:
     static bool hasXMM;  // for Intel architectures, XMM registers
@@ -353,7 +333,52 @@ class registerSpace {
     // 'Register' becuase negative values may be used.
     int storageMap[ BP_R_MAX ];
 #endif
-    
+
+ public:
+#if defined(arch_power)
+    typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
+                   fpr0, fpr1, fpr2, fpr3, fpr4, fpr5, fpr6, 
+                   fpr7, fpr8, fpr9, fpr10, fpr11, fpr12, fpr13,
+                   lr, cr, ctr, mq } powerRegisters_t;
+    static unsigned GPR(Register x) { return x; }
+    static unsigned FPR(Register x) { return x - fpr0; }
+
+#endif
+
+    // Bit vectors that represent the ABI behavior at call points
+    // and exits. 
+
+#if defined(cap_liveness)
+
+    const bitArray &getCallReadRegisters() const;
+    const bitArray &getCallWrittenRegisters() const;
+    const bitArray &getReturnReadRegisters() const;
+    // No such thing as return written...
+
+    // Syscall!
+    const bitArray &getSyscallReadRegisters() const;
+    const bitArray &getSyscallWrittenRegisters() const;
+
+ private:
+    static bitArray callRead_;
+    static bitArray callRead64_;
+
+    static bitArray callWritten_;
+    static bitArray callWritten64_;
+
+    static bitArray returnRead_;
+    static bitArray returnRead64_;
+
+    static bitArray syscallRead_;
+    static bitArray syscallRead64_;
+
+    static bitArray syscallWritten_;
+    static bitArray syscallWritten64_;
+
+
+#endif
+
+
 };
 
 #endif

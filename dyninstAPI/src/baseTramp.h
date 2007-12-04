@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.20 2007/09/12 20:57:31 bernat Exp $
+// $Id: baseTramp.h,v 1.21 2007/12/04 17:57:57 bernat Exp $
 
 // baseTramp class definition
 
@@ -224,10 +224,6 @@ class baseTramp {
     int * clobberedFPR;
     int totalClobbered;
 
-#if defined(arch_power)
-    registerSpace *theRegSpace;
-#endif
-
 #if defined(arch_ia64)
     // TODO: when we start dynamically deciding what regs to
     // use, stick this on other platforms as well. Oh, and
@@ -302,7 +298,7 @@ class baseTramp {
     miniTramp *lastMini;
 
     // Normal constructor
-    baseTramp(instPoint *iP);
+    baseTramp(instPoint *iP, callWhen when);
     // Fork constructor
     baseTramp(const baseTramp *parentT, process *proc);
 
@@ -341,7 +337,6 @@ class baseTramp {
 
     codeGen preTrampCode_;
     codeGen postTrampCode_;
-	registerSpace *regSpace_;
     bool valid;
     bool optimized_out_guards;
 
@@ -361,6 +356,7 @@ class baseTramp {
  private:
 
     unsigned instVersion_;
+    callWhen when_;
 };
 
 extern baseTramp baseTemplate;

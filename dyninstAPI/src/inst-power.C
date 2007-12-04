@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.278 2007/10/26 17:17:50 bernat Exp $
+ * $Id: inst-power.C,v 1.279 2007/12/04 17:58:01 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -214,69 +214,104 @@ unsigned relocatedInstruction::maxSizeRequired() {
 Register floatingLiveRegList[] = {13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 unsigned int floatingLiveRegListSize = 14;
 
-Register regList[] = {12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
-unsigned int regListSize = 13;
+void registerSpace::initialize32() {
+    static bool done = false;
+    if (done) return;
+    done = true;
 
-Register deadABIList[] = {12, 0};
-unsigned int deadABIListSize = 2;
-Register offLimitsList[] = {2, 1};
-unsigned int offLimitsListSize = 2;
+    pdvector<registerSlot *> registers;
 
-void initRegisters()
-{
-    static bool inited=false;
-    if (inited) return;
-    inited = true;
-
+    // At ABI boundary: R0 and R12 are dead, others are live.
     
-    // reg 12 is defined not to have a live value at procedure call points.
-    // reg 11 is the static chain register, used to hold an environment pointer
-    //   for languages like Pascal and PL/1; it is also apparently used by
-    //   OpenMP.  It should be considered live at entry points and call
-    //   sites.
-    // reg 3-10 are used to pass arguments to functions.
-    //   We must save them before we can use them.
-
-	// Overwrite time
-	registerSpace::globalRegSpace_ = registerSpace::createAllLive(regList,
-													regListSize);
-	// Don't use these guys in code generation...
-	for (unsigned i = 0; i < offLimitsListSize; i++) {
-		registerSpace::globalRegSpace_->markReadOnly(offLimitsList[i]);
-	}
-
-	registerSpace::globalRegSpace_->initFloatingPointRegisters(floatingLiveRegListSize, 
-					floatingLiveRegList);
-
-	// Everyone is live in conservative land
-	registerSpace::conservativeRegSpace_ = registerSpace::specializeRegisterSpace(NULL, 0);
-
-	// This being ABI time
-	registerSpace::optimisticRegSpace_ = registerSpace::specializeRegisterSpace(deadABIList,
-															deadABIListSize);
-
-	// The actual starts life as conservative
-	registerSpace::actualRegSpace_ = registerSpace::specializeRegisterSpace(NULL, 0);
-
-	// And post-tramp
-	registerSpace::savedRegSpace_ = registerSpace::specializeRegisterSpace(regList, regListSize);
-	
-	// This is a bit of overlap - unfortunate. Create the instPoint
-	// live sets
-	instPoint::optimisticGPRLiveSet_ = new int[regListSize];
-    instPoint::pessimisticGPRLiveSet_ = new int[regListSize];
+    registers.push_back(new registerSlot(r0,
+                                         true, // Don't use r0 - it has all sorts
+                                         // of implicit behavior.
+                                         registerSlot::deadABI,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r1,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r2,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r3,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r4,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r5,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r6,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r7,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r8,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r9,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r10,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r11,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r12,
+                                         false,
+                                         registerSlot::deadABI,
+                                         registerSlot::GPR));
     
-    // First, initialize to 1 (live)
-    for (unsigned i = 0; i < regListSize; i++) {
-        instPoint::optimisticGPRLiveSet_[i] = 1;
-        instPoint::pessimisticGPRLiveSet_[i] = 1;
+
+    for (unsigned i = fpr0; i <= fpr13; i++) {
+        registers.push_back(new registerSlot(i,
+                                             false,
+                                             registerSlot::liveAlways,
+                                             registerSlot::FPR));
     }
 
-    // ABI dead-ness
-	for (unsigned i = 0; i < deadABIListSize; i++) {
-		instPoint::optimisticGPRLiveSet_[deadABIList[i]] = 0;
-	}
-	
+    registers.push_back(new registerSlot(lr,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(cr,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(ctr,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(mq,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registerSpace::createRegisterSpace(registers);
+
+}
+
+void registerSpace::initialize64() {
+    // Uhh... what do we do here?
+}
+
+void registerSpace::initialize() {
+    initialize32();
+    initialize64();
 }
 
 /*
@@ -657,30 +692,15 @@ unsigned saveGPRegisters(codeGen &gen,
                          registerSpace *theRegSpace,
                          int save_off)
 {
-#if 0
-    // Clever version; check must_save. Not doing for now, saving everything.
     unsigned numRegs = 0;
-    for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
-        registerSlot *reg = theRegSpace->getRegSlot(i);
-        if ((reg->number >= 10 && reg->number <= 12) || 
-            reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
-            || reg->number == 0) {
-            saveRegister(gen, reg->number, save_off);
-            numRegs++;
-        }
-    }
-#else
-
-    unsigned numRegs = 0;
-    for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
-        registerSlot *reg = theRegSpace->getRegSlot(i);
-        if (reg->startsLive) {
-	    saveRegister(gen, reg->number, save_off);
+    for(int i = 0; i < theRegSpace->numGPRs(); i++) {
+        registerSlot *reg = theRegSpace->GPRs()[i];
+        if (reg->liveState == registerSlot::live) {
+	    saveRegister(gen, reg->encoding(), save_off);
 	    gen.rs()->markSavedRegister(reg->number, save_off + reg->number*gen.addrSpace()->getAddressWidth());	
 	    numRegs++;
 	}
     }
-#endif
     return numRegs;
 }
 
@@ -696,37 +716,14 @@ unsigned restoreGPRegisters(codeGen &gen,
                             registerSpace *theRegSpace,
                             int save_off)
 {
-#if 0
     unsigned numRegs = 0;
-    for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
-        registerSlot *reg = theRegSpace->getRegSlot(i);
-        if ((reg->number >= 10 && reg->number <= 12) || 
-            reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
-            || reg->number == 0) 
-            {
-                restoreRegister(gen, reg->number, save_off);
-                numRegs++;
-            }
-        else
-            {
-                if (reg->beenClobbered)
-                    {
-                        restoreRegister(gen, reg->number, TRAMP_GPR_OFFSET);
-                        regSpace->unClobberRegister(reg->number);
-                        numRegs++;
-                    }
-            }
-    }
-#else
-    unsigned numRegs = 0;
-    for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
-        registerSlot *reg = theRegSpace->getRegSlot(i);
-        if (reg->startsLive) {
-	    restoreRegister(gen, reg->number, save_off);
+    for(int i = 0; i < theRegSpace->numGPRs(); i++) {
+        registerSlot *reg = theRegSpace->GPRs()[i];
+        if (reg->liveState == registerSlot::spilled) {
+	    restoreRegister(gen, reg->encoding(), save_off);
 	    numRegs++;
         }
     }
-#endif
 
     return numRegs;
 }
@@ -742,24 +739,16 @@ unsigned saveFPRegisters(codeGen &gen,
                          int save_off)
 {
   unsigned numRegs = 0;
-  for(u_int i = 0; i < theRegSpace->getFPRegisterCount(); i++) {
-      registerSlot *reg = theRegSpace->getFPRegSlot(i);
-      if (reg->startsLive) {
-      	saveFPRegister(gen, reg->number, save_off);
-      	numRegs++;
+  for(int i = 0; i < theRegSpace->numFPRs(); i++) {
+      registerSlot *reg = theRegSpace->FPRs()[i];
+      if (reg->liveState == registerSlot::live) {
+          saveFPRegister(gen, reg->encoding(), save_off);
+          reg->liveState = registerSlot::spilled;
+          numRegs++;
       }
   }  
   
   return numRegs;
-  
-  /*
-    unsigned numRegs = 0;
-    for (unsigned i = 0; i <= 13; i++) {
-        numRegs++;
-        saveFPRegister(gen, i, save_off);
-    }
-    return numRegs;
-  */
 }
 
 /*
@@ -771,52 +760,18 @@ unsigned saveFPRegisters(codeGen &gen,
 unsigned restoreFPRegisters(codeGen &gen, 
                             registerSpace *theRegSpace,
                             int save_off)
-    {
+{
   
   unsigned numRegs = 0;
-  for(u_int i = 0; i < theRegSpace->getFPRegisterCount(); i++) {
-    registerSlot *reg = theRegSpace->getFPRegSlot(i);
-    if (reg->startsLive) {
-      restoreFPRegister(gen, reg->number, save_off);
-      numRegs++;
-    }
+  for(int i = 0; i < theRegSpace->numFPRs(); i++) {
+      registerSlot *reg = theRegSpace->FPRs()[i];
+      if (reg->liveState == registerSlot::spilled) {
+          restoreFPRegister(gen, reg->encoding(), save_off);
+          numRegs++;
+      }
   }
   
   return numRegs;
-
-  
-  /*
-    unsigned numRegs = 0;
-    for (unsigned i = 0; i <= 13; i++) {
-        numRegs++;
-        restoreFPRegister(gen, i, save_off);
-    }
-    return numRegs;
-  */
-
-
-    /*
-    unsigned numRegs = 0;
-    for(u_int i = 0; i < theRegSpace->getFPRegisterCount(); i++) {
-        registerSlot *reg = theRegSpace->getFPRegSlot(i);
-        if (reg->number == 10)
-            {
-                restoreFPRegister(gen, reg->number, save_off, offset);
-                numRegs++;
-            }
-        else
-            {
-                if (reg->beenClobbered)
-                    {
-                        restoreFPRegister(gen, reg->number, TRAMP_FPR_OFFSET, offset);
-                        regSpace->unClobberFPRegister(reg->number);
-                        numRegs++;
-                    }
-            }
-    }
-  return numRegs;
-    */    
-  
 }
 
 /*
@@ -827,8 +782,9 @@ unsigned saveSPRegisters(codeGen &gen,
 			 registerSpace * theRegSpace,
                          int save_off)
 {
+    unsigned num_saved = 0;
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
-
+    
     if (gen.addrSpace()->getAddressWidth() == 4) {
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
@@ -842,23 +798,23 @@ unsigned saveSPRegisters(codeGen &gen,
 	spr0_off  = STK_SPR0_64;
 	fpscr_off = STK_FP_CR_64;
     }
-
-    saveCR(gen, 10, save_off + cr_off);
-    saveSPR(gen, 10, SPR_CTR, save_off + ctr_off);
-    saveSPR(gen, 10, SPR_XER, save_off + xer_off);
-
+    
+    saveCR(gen, 10, save_off + cr_off); num_saved++;
+    saveSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_saved++;
+    saveSPR(gen, 10, SPR_XER, save_off + xer_off); num_saved++;
+    
 #if defined(os_aix)
     // MQ only exists on POWER, not PowerPC. Right now that's correlated
     // to AIX vs Linux, but we _really_ should fix that...
     // We need to dynamically determine the CPU and emit code based on that.
-    if (theRegSpace->saveAllSPRs())
-        saveSPR(gen, 10, SPR_SPR0, save_off + spr0_off);
+    registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
+    if (mq->liveState == registerSlot::live) {
+        saveSPR(gen, 10, SPR_SPR0, save_off + spr0_off); num_saved++;
+        mq->liveState = registerSlot::spilled;
+    }
 #endif
-    saveFPSCR(gen, 10, save_off + fpscr_off);
-    if (theRegSpace->saveAllSPRs())
-      return 5; // register saved
-    else
-      return 4;
+    saveFPSCR(gen, 10, save_off + fpscr_off); num_saved++;
+    return num_saved;
 }
 
 /*
@@ -871,6 +827,7 @@ unsigned restoreSPRegisters(codeGen &gen,
                             int save_off)
 {
     int cr_off, ctr_off, xer_off, spr0_off, fpscr_off;
+    unsigned num_restored = 0;
 
     if (gen.addrSpace()->getAddressWidth() == 4) {
 	cr_off    = STK_CR_32;
@@ -886,20 +843,19 @@ unsigned restoreSPRegisters(codeGen &gen,
 	fpscr_off = STK_FP_CR_64;
     }
 
-    restoreCR(gen, 10, save_off + cr_off);
-    restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off);
-    restoreSPR(gen, 10, SPR_XER, save_off + xer_off);
+    restoreCR(gen, 10, save_off + cr_off); num_restored++;
+    restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_restored++;
+    restoreSPR(gen, 10, SPR_XER, save_off + xer_off); num_restored++;
 
 #if defined(os_aix)
     // See comment in saveSPRegisters
-    if (theRegSpace->saveAllSPRs())
-      restoreSPR(gen, 10, SPR_SPR0, save_off + spr0_off);
+    registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
+    if (mq->liveState == registerSlot::spilled) {
+        restoreSPR(gen, 10, SPR_SPR0, save_off + spr0_off); num_restored++;
+    }
 #endif
-    restoreFPSCR(gen, 10, save_off + fpscr_off);
-    if (theRegSpace->saveAllSPRs())
-      return 5; // restored
-    else
-      return 4;
+    restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
+    return num_restored;
 }
 
 
@@ -960,9 +916,7 @@ bool baseTramp::generateSaves(codeGen &gen,
     // No more cookie. FIX aix stackwalking.
     if (isConservative())
         saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET);
-
-    // If we're at a callsite (or unknown) save the count register
-    if (isConservative() || isCallsite())
+    else if (isCallsite())
         saveSPR(gen, REG_SCRATCH, SPR_CTR, TRAMP_SPR_OFFSET + ctr_off);
 
     return true;
@@ -985,15 +939,15 @@ bool baseTramp::generateRestores(codeGen &gen,
     }
 
     // Restore possible SPR saves
-    if (isConservative() || isCallsite())
-        restoreSPR(gen, REG_SCRATCH, SPR_CTR, TRAMP_SPR_OFFSET + ctr_off);
-
     if (isConservative())
         restoreSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET);
+    else if (isCallsite())
+        restoreSPR(gen, REG_SCRATCH, SPR_CTR, TRAMP_SPR_OFFSET + ctr_off);
+
 
     // LR
     restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET + STK_LR);
-    
+
     if (BPatch::bpatch->isSaveFPROn()) // FPRs
 	restoreFPRegisters(gen, gen.rs(), fpr_off);
 
@@ -1249,7 +1203,7 @@ Update-12/06, njr, since we're going to a cached system we are just going to
 look at the first level and not do recursive, since we would have to also
 store and reexamine every call out instead of doing it on the fly like before*/
 bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
-                         int_function * callee)
+                                       int_function * callee)
 		   
 {
   unsigned i;
@@ -1261,33 +1215,34 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
      whether or not the callee is a leaf function.
      if it is, we use the register info we gathered,
      otherwise, we punt and save everything */
-//     bool isLeafFunc = callee->ifunc()->usedRegs();
+  //     bool isLeafFunc = callee->ifunc()->usedRegs();
 
   if (callee->ifunc()->isLeafFunc()) {
       std::set<Register> * gprs = callee->ifunc()->usedGPRs();
       std::set<Register>::iterator It = gprs->begin();
-      for(i = 0; i < gprs->size(); i++)
-      {
-      //while (It != gprs->end()){
-	rs->clobberRegister(*(It++));
+      for(i = 0; i < gprs->size(); i++) {
+          //while (It != gprs->end()){
+          rs->GPRs()[*(It++)]->beenUsed = true;
       }
       
       std::set<Register> * fprs = callee->ifunc()->usedFPRs();
       std::set<Register>::iterator It2 = fprs->begin();
       for(i = 0; i < fprs->size(); i++)
       {
-      //while (It2 != fprs->end()){
-	rs->clobberRegister(*(It2++));
+          //while (It2 != fprs->end()){
+          rs->FPRs()[*(It2++)]->beenUsed = true;
       }
-
-      stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
-      return false;
     }
   else {
-    rs->clobberAllRegisters();
-    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);   
-    return true;
+      for (unsigned i = 0; i < rs->numGPRs(); i++) {
+          rs->GPRs()[i]->beenUsed = true;
+      }
+      for (unsigned i = 0; i < rs->numFPRs(); i++) {
+          rs->FPRs()[i]->beenUsed = true;
+      }
   }
+  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+  return false;
 }
 
 
@@ -1355,26 +1310,6 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
     // changed by application code".
     // On these platforms, we return 0 when getTOCoffsetInfo is called.
    
-    // Generate the code for all function parameters, and keep a list
-    // of what registers they're in.
-    for (unsigned u = 0; u < operands.size(); u++) {
-	if (operands[u]->getSize() == 8) {
-	    // What does this do?
-	    bperr( "in weird code\n");
-	    Register dummyReg = gen.rs()->allocateRegister(gen, noCost);
-	    srcs.push_back(dummyReg);
-
-	    instruction::generateImm(gen, CALop, dummyReg, 0, 0);
-	}
-
-	Register src = REG_NULL;
-	Address unused = ADDR_NULL;
-	if (!operands[u]->generateCode_phase2( gen, false, unused, src)) assert(0);
-	assert(src != REG_NULL);
-	srcs.push_back(src);
-	//bperr( "Generated operand %d, base %d\n", u, base);
-    }
-
     pdvector<int> savedRegs;
   
     //  Save the link register.
@@ -1396,35 +1331,47 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
     }
 
     // see what others we need to save.
-    for (u_int i = 0; i < gen.rs()->getRegisterCount(); i++) {
-	registerSlot *reg = gen.rs()->getRegSlot(i);
+    for (u_int i = 0; i < gen.rs()->numGPRs(); i++) {
+	registerSlot *reg = gen.rs()->GPRs()[i];
 
-	if (reg->refCount > 0) {
-	    // inUse && !mustRestore -> in use scratch register 
-	    //		(i.e. part of an expression being evaluated).
-          
-	    // no reason to save the register if we are going to free it in a bit
-	    // we should keep it free, otherwise we might overwrite the register
-	    // we allocate for the return value -- we can't request that register
-	    // before, since we then might run out of registers
-	    unsigned u;
-	    for(u=0; u < srcs.size(); u++) {
-		if(reg->number == srcs[u]) break;
-	    }
-	    // since the register should be free
-	    // assert((u == srcs.size()) || (srcs[u] != (int) (u+3)));
-	    if(u == srcs.size()) {
-		saveRegister(gen, reg->number, FUNC_CALL_SAVE);
-		savedRegs.push_back(reg->number);
-		//cerr << "Saved inUse && ! mustRestore reg " << reg->number << endl;
-	    }
+        // We must save if:
+        // refCount > 0 (and not a source register)
+        // keptValue == true (keep over the call)
+        // liveState == live (technically, only if not saved by the callee) 
+        
+	if ((reg->refCount > 0) || 
+            reg->keptValue ||
+            (reg->liveState == registerSlot::live)) {
+            saveRegister(gen, reg->number, FUNC_CALL_SAVE);
+            savedRegs.push_back(reg->number);
+        }
+    }
+
+    // Generate the code for all function parameters, and keep a list
+    // of what registers they're in.
+    for (unsigned u = 0; u < operands.size(); u++) {
+	if (operands[u]->getSize() == 8) {
+	    // What does this do?
+	    bperr( "in weird code\n");
+	    Register dummyReg = gen.rs()->allocateRegister(gen, noCost);
+	    srcs.push_back(dummyReg);
+
+	    instruction::generateImm(gen, CALop, dummyReg, 0, 0);
 	}
-	if (reg->keptValue) {
-	    // We're keeping this value for later. Either save it
-	    // or invalidate it... we'll save.
-	    saveRegister(gen, reg->number, FUNC_CALL_SAVE);
-	    savedRegs.push_back(reg->number);
-	}
+
+	//Register src = REG_NULL;
+        // Try to target the code generation
+        
+        Register reg = REG_NULL;
+        // Try to allocate the correct parameter register
+        if (gen.rs()->allocateSpecificRegister(gen, registerSpace::r3 + u, true))
+            reg = registerSpace::r3 + u;
+
+	Address unused = ADDR_NULL;
+	if (!operands[u]->generateCode_phase2( gen, false, unused, reg)) assert(0);
+	assert(reg != REG_NULL);
+	srcs.push_back(reg);
+	//bperr( "Generated operand %d, base %d\n", u, base);
     }
   
     if(srcs.size() > 8) {
@@ -1438,6 +1385,8 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
 	cleanUpAndExit(-1);
     }
 
+    // If we got the wrong register, we may need to do a 3-way swap. 
+
     int scratchReg[8];
     for (int a = 0; a < 8; a++) {
 	scratchReg[a] = -1;
@@ -1445,51 +1394,36 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
 
     // Now load the parameters into registers.
     for (unsigned u=0; u<srcs.size(); u++){
-	// check that is is not already in the register
-	//rs->clobberRegister(u+3);
-	/*
-	  if (srcs[u] == (unsigned int) u+3) {
-	  rs->freeRegister(srcs[u]);
-	  continue;
-	  }
-	  assert(rs->isFreeRegister(u+3));
 
-	  // internal error we expect this register to be free here
-	  // if (!rs->isFreeRegister(u+3)) abort();
-
-	  rs->clobberRegister(u+3);
-	  //if(rs->clobberRegister(u+3))
-	  //	saveRegister(gen, u+3, TRAMP_GPR_OFFSET);
-
-	  instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
-	  inst_printf("move reg %d to %d (%d)...", srcs[u], u+3, base);
-
-	  // source register is now free.
-	  rs->freeRegister(srcs[u]);
-	*/
-     
-	if (srcs[u] == (unsigned int) u+3) {
+        // Parameters start at register 3 - so we're already done
+        // in this case
+	if (srcs[u] == (registerSpace::r3+u)) {
 	    gen.rs()->freeRegister(srcs[u]);
 	    continue;
 	}
 
 	int whichSource = -1;
 	bool hasSourceBeenCopied = true;
-	Register scratch = 13;
+        
 
+        // If the parameter we want exists in a scratch register...
 	if (scratchReg[u] != -1) {
 	    instruction::generateImm(gen, ORILop, scratchReg[u], u+3, 0);
 	    gen.rs()->freeRegister(scratchReg[u]);
-
+            // We should check to make sure the one we want isn't occupied?
 	} else {
 	    for (unsigned v=u; v < srcs.size(); v++) {
 		if (srcs[v] == u+3) {
+                    // Okay, so the source we want is actuall in srcs[v]
 		    hasSourceBeenCopied = false;
 		    whichSource = v;
+                    break;
 		}
 	    }
+            // Ummm... we didn't find it? Ah, so copying us (since we're wrong)
+            // into scratch.
 	    if (!hasSourceBeenCopied) {
-		scratch = gen.rs()->allocateRegister(gen, noCost);
+                Register scratch = gen.rs()->getScratchRegister(gen);
 		instruction::generateImm(gen, ORILop, u+3, scratch, 0);
 		gen.rs()->freeRegister(u+3);
 		scratchReg[whichSource] = scratch;
@@ -1501,7 +1435,8 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
 	    } else {
 		instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
 		gen.rs()->freeRegister(srcs[u]);
-		gen.rs()->clobberRegister(u+3);
+                // Not sure why this was needed
+		//gen.rs()->clobberRegister(u+3);
 	    }
 	} 
     }
@@ -1609,36 +1544,14 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 {
     //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
+    registerSlot *regSlot = NULL;
+
     switch (op) {
     case getRetValOp: {
-	// return value is in register 3
-	Register reg = 3;
-	registerSlot *regSlot = NULL;
-
-	// find the registerSlot for this register.
-	for (unsigned i = 0; i < gen.rs()->getRegisterCount(); i++) {
-	    regSlot = gen.rs()->getRegSlot(i);
-	    if (regSlot->number == reg) {
-		break;
-	    }
-	}
-        // FIXME
-	if (regSlot->mustRestore || 1) {
-	    int offset;
-	    if (gen.addrSpace()->getAddressWidth() == 4)
-		offset = TRAMP_GPR_OFFSET_32;
-	    else /* gen.addrSpace()->getAddressWidth() == 4 */
-		offset = TRAMP_GPR_OFFSET_64;
-
-            // its on the stack so load it.
-            restoreRegister(gen, reg, dest, offset);
-            return(dest);
-	} else {
-	    // its still in a register so return the register it is in.
-	    return(reg);
-	}
-      }
-    case getParamOp: {
+	regSlot = (*(gen.rs()))[registerSpace::r3];
+        break;
+    }
+    case getParamOp:
       // the first 8 parameters (0-7) are stored in registers (r3-r10) upon entering
       // the function and then saved above the stack upon entering the trampoline;
       // in emit functional call the stack pointer is moved so the saved registers
@@ -1648,30 +1561,11 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       // src1 is the argument number 0..X, the first 8 are stored in registers
       // r3 and 
       if(src1 < 8) {
-	registerSlot * regSlot = NULL;
-	// find the registerSlot for this register.
-	for (unsigned i = 0; i < gen.rs()->getRegisterCount(); i++) {
-	  regSlot = gen.rs()->getRegSlot(i);
-	  if (regSlot->number == src1+3) 
-	    {
-                // FIXME
-		int offset;
-		if (gen.addrSpace()->getAddressWidth() == 4)
-		    offset = TRAMP_GPR_OFFSET_32;
-		else /* gen.addrSpace()->getAddressWidth() == 4 */
-		    offset = TRAMP_GPR_OFFSET_64;
-
-                if (gen.rs()->beenSaved(regSlot->number) || 1) {
-                    restoreRegister(gen, src1+3, dest, offset);
-                }
-                else {
-                    instruction::generateImm(gen, ORILop,
-                                             src1+3, dest, 0);
-		}
-	    }
-	}    
-	return(dest);
-      } else {
+          // Note that src1 is 0..8 - it's not a register, it's a parameter number
+          regSlot = (*(gen.rs()))[registerSpace::r3 + src1];
+          break;
+      }
+      else {
           // Registers from 11 (src = 8) and beyond are saved on the
           // stack. On AIX this is +56 bytes; for ELF it's something different.
 	  if (gen.addrSpace()->getAddressWidth() == 4) {
@@ -1686,12 +1580,38 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 					       PARAM_OFFSET(gen.addrSpace()->getAddressWidth()));
 	  }
           return(dest);
-      }
-    }
+      }          
+      break;
     default:
-        assert(0);        // unexpected op for this emit!
+        assert(0);
+        break;
     }
-    return 0; // Compiler happiness
+
+    assert(regSlot);
+    Register reg = regSlot->number;
+
+    switch(regSlot->liveState) {
+    case registerSlot::spilled: {
+        int offset;
+        if (gen.addrSpace()->getAddressWidth() == 4)
+            offset = TRAMP_GPR_OFFSET_32;
+        else /* gen.addrSpace()->getAddressWidth() == 4 */
+            offset = TRAMP_GPR_OFFSET_64;
+        // its on the stack so load it.
+        restoreRegister(gen, reg, dest, offset);
+        return(dest);
+    }
+    case registerSlot::live: {
+        // its still in a register so return the register it is in.
+        return(reg);
+    }
+    case registerSlot::dead: {
+        // Uhhh... wha?
+        assert(0);
+    }
+    }
+    assert(0);
+    return REG_NULL;
 }
 
 void emitJmpMC(int /*condition*/, int /*offset*/, codeGen &)
@@ -2134,7 +2054,7 @@ int getInsnCost(opCode op)
       //   inside the code generator to know this amount.
       //
       // We know it is at *least* every live register (i.e. parameter reg)
-      cost += regListSize;
+      cost += 13;
       
       // clr r5
       // clr r6
@@ -2156,7 +2076,7 @@ int getInsnCost(opCode op)
       //   inside the code generator to know this amount.
       //
       // We know it is at *least* every live register (i.e. parameter reg)
-      cost += regListSize;
+      cost += 13;
       
       // mtlr	0 
       cost++;
@@ -2194,39 +2114,8 @@ int getInsnCost(opCode op)
     return (cost);
 }
 
-//Checks to see if register has been clobbered
-//If return true, it hasn't and we need to save register
-//If return false, it's been clobbered and we do nothing
-bool registerSpace::clobberRegister(Register reg) 
-{
-  for (u_int i=0; i < registers.size(); i++)
-    {
-      if(registers[i].number == reg)
-	{
-	  registers[i].beenClobbered = true;
-	  return true;
-	}
-    }
-  return false;
-
-}
-
-//Checks to see if register has been clobbered
-//If return true, it hasn't and we need to save register
-//If return false, it's been clobbered and we do nothing
-bool registerSpace::clobberFPRegister(Register reg) 
-{
-  for (u_int i=0; i < fpRegisters.size(); i++) 
-    {
-      if (fpRegisters[i].number == reg)
-	{
-	  fpRegisters[i].beenClobbered = true;
-	  return true;
-	}
-    }
-  return false;  
-}
-
+#if 0
+// What does this do???
 void registerSpace::saveClobberInfo(const instPoint *location)
 {
   registerSlot *regSlot = NULL;
@@ -2297,94 +2186,8 @@ void registerSpace::saveClobberInfo(const instPoint *location)
 	}
     }
 }
+#endif
 
-// Takes information from instPoint and resets
-// regSpace liveness information accordingly
-// Right now, all the registers are assumed to be live by default
-void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
-				      const int * liveFPRegs,
-				      const int * liveSPRegs)
-{
-    assert(liveRegs != NULL);
-
-    registerSlot *regSlot = NULL;
-    registerSlot *regFPSlot = NULL;
-
-    /*
-      printf("GPR  ");
-      for (int a = 0; a < 32; a++)
-      printf("%d ",liveRegs[a]);
-      printf("\n");
-      
-      printf("FPR  ");
-      for (int a = 0; a < 32; a++)
-      printf("%d ",liveFPRegs[a]);
-      printf("\n");
-    */
-    
-    for (u_int i = 0; i < getRegisterCount(); i++) {
-        regSlot = getRegSlot(i);
-        if (  liveRegs[ (int) registers[i].number ] == LIVE_REG ||
-              liveRegs[ (int) registers[i].number ] == LIVE_CLOBBERED_REG ) {
-            registers[i].needsSaving = true;
-            registers[i].startsLive = true;
-        }
-        else {
-            registers[i].needsSaving = false;
-            registers[i].startsLive = false;
-        }
-    }
-
-    for (u_int i = 0; i < getFPRegisterCount(); i++) {
-        regFPSlot = getFPRegSlot(i);
-        if ((liveFPRegs == NULL) || 
-            (liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_REG) ||
-            (liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_CLOBBERED_REG)) {
-            fpRegisters[i].needsSaving = true;
-            fpRegisters[i].startsLive = true;
-        }
-        else {
-            fpRegisters[i].needsSaving = false;
-            fpRegisters[i].startsLive = false;
-        }
-    }
-    
-    if (liveSPRegs == NULL)
-        saveAllSPRs_ = unknown;
-    else if (liveSPRegs[0] == 1) 
-        saveAllSPRs_ = live;
-    else
-        saveAllSPRs_ = dead;
-}
-
-
-bool registerSpace::beenSaved(Register reg)
-{
-	for (u_int i = 0; i < registers.size(); i++){
-		if (registers[i].number == reg){
-			if (registers[i].beenClobbered == true)
-				return true;
-      		else
-				return false;
-    	}
-  	}
-  	assert(0 && "Unreachable");
-  	return false;
-}
-
-bool registerSpace::beenSavedFP(Register reg)
-{
-	for (u_int i = 0; i < fpRegisters.size(); i++){
-    	if (fpRegisters[i].number == reg){
-      		if (fpRegisters[i].beenClobbered == true)
-				return true;
-      		else
-				return false;
-    	}
-  	}
-  	assert(0 && "Unreachable");
-  	return false;
-}
 
 bool doNotOverflow(int value)
 {
@@ -2612,442 +2415,6 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
 #endif
 }
 
-/* Iterates over instructions in the basic block to 
-   create the initial gen kill sets for that block */
-bool int_basicBlock::initRegisterGenKill() 
-{  
-  in = new bitArray;
-  in->bitarray_init(maxGPR,in);  
-
-  out = new bitArray;
-  out->bitarray_init(maxGPR,out);  
-
-  gen = new bitArray;
-  gen->bitarray_init(maxGPR,gen);  
-  
-  kill = new bitArray;
-  kill->bitarray_init(maxGPR,kill);  
-
-  inFP = new bitArray;
-  inFP->bitarray_init(maxFPR,inFP);  
-
-  outFP = new bitArray;
-  outFP->bitarray_init(maxFPR,outFP);  
-
-  genFP = new bitArray;
-  genFP->bitarray_init(maxFPR,genFP);  
-  
-  killFP = new bitArray;
-  killFP->bitarray_init(maxFPR,killFP);  
-
-  
-  InstrucIter ii(this);
-  
-  
-  while(ii.hasMore()) {
-    /* GPR Gens */
-    if (ii.isA_RT_ReadInstruction()){
-      if (!kill->bitarray_check(ii.getRTValue(),kill))
-	gen->bitarray_set(ii.getRTValue(),gen);
-    }
-    if (ii.isA_RA_ReadInstruction()){
-      if (!kill->bitarray_check(ii.getRAValue(),kill))
-	gen->bitarray_set(ii.getRAValue(),gen);
-    }
-    if (ii.isA_RB_ReadInstruction()){
-      if (!kill->bitarray_check(ii.getRBValue(),kill))
-	gen->bitarray_set(ii.getRBValue(),gen);
-    }
-    if (ii.isA_MRT_ReadInstruction()) {
-       /* Assume worst case scenario */
-       for (int i = ii.getRTValue(); i < 32; i++) {
-          if (!kill->bitarray_check(i,kill))
-             gen->bitarray_set(i,gen);
-       }
-    }
-    
-    /* FPR Gens */
-    if (ii.isA_FRT_ReadInstruction()){
-      if (!killFP->bitarray_check(ii.getFRTValue(),killFP))
-	genFP->bitarray_set(ii.getFRTValue(),genFP);
-    }
-    if (ii.isA_FRA_ReadInstruction()){
-      if (!killFP->bitarray_check(ii.getFRAValue(),killFP))
-	genFP->bitarray_set(ii.getFRAValue(),genFP);
-    }
-    if (ii.isA_FRB_ReadInstruction()){
-      if (!killFP->bitarray_check(ii.getFRBValue(),killFP))
-	genFP->bitarray_set(ii.getFRBValue(),genFP);
-    }
-    if (ii.isA_FRC_ReadInstruction()){
-      if (!killFP->bitarray_check(ii.getFRCValue(),killFP))
-	genFP->bitarray_set(ii.getFRCValue(),genFP);
-    }
-
-    /* GPR Kills */
-    if (ii.isA_RT_WriteInstruction()){
-      kill->bitarray_set(ii.getRTValue(),kill);
-    }    
-    if (ii.isA_RA_WriteInstruction()){
-      kill->bitarray_set(ii.getRAValue(),kill);
-    }
-    if (ii.isA_MRT_WriteInstruction()) {
-       /* Assume worst case scenario */
-       for (int i = ii.getRTValue(); i < 32; i++) {
-          kill->bitarray_set(i,kill);
-       }
-    }
-
-    /* FPR Kills */
-    if (ii.isA_FRT_WriteInstruction()){
-      killFP->bitarray_set(ii.getFRTValue(),killFP);
-    }    
-    if (ii.isA_FRA_WriteInstruction()){
-      killFP->bitarray_set(ii.getFRAValue(),killFP);
-    }
-
-    if (ii.isAReturnInstruction()){
-      /* Need to gen the possible regurn arguments */
-      gen->bitarray_set(3,gen);
-      gen->bitarray_set(4,gen);
-      genFP->bitarray_set(1,genFP);
-      genFP->bitarray_set(2,genFP);
-    }
-    if (ii.isAJumpInstruction()) {
-       Address branchAddress = ii.getBranchTargetAddress();
-       // Tail call optimization may mask a return
-
-       codeRange *range = func_->ifunc();
-
-       if (range) {
-          if (!(range->get_address_cr() <= branchAddress &&
-                branchAddress < (range->get_address_cr() + range->get_size_cr()))) {
-             gen->bitarray_set(3,gen);
-             gen->bitarray_set(4,gen);
-             genFP->bitarray_set(1,genFP);
-             genFP->bitarray_set(2,genFP);
-             
-          }
-       } else {
-          gen->bitarray_set(3,gen);
-          gen->bitarray_set(4,gen);
-          genFP->bitarray_set(1,genFP);
-          genFP->bitarray_set(2,genFP);
-       }
-    }
-
-    if (ii.isADynamicCallInstruction())
-      {
-	 for (int a = 3; a <= 10; a++)
-	   gen->bitarray_set(a,gen);
-	 for (int a = 1; a <= 13; a++)
-	   genFP->bitarray_set(a,genFP);
-      }
-
-    /* If it is a call instruction we look at which registers are used
-       at the beginning of the called function, If we can't do that, we just
-       gen registers 3-10 (the parameter holding volative 
-       registers for power) & (1-13 for FPR)*/
-    if (ii.isACallInstruction())
-      {
-	Address callAddress = ii.getBranchTargetAddress();
-	//printf("Call Address is 0x%x \n",callAddress);
-	
-	//process *proc = flowGraph->getBProcess()->lowlevel_process();
-	
-	// process * procc = proc();
-	int_function * funcc;
-          
-	codeRange * range = proc()->findOrigByAddr(callAddress);
-	
-	if (range)
-	  {
-	    funcc = range->is_function();
-	    if (funcc)
-	      {
-		InstrucIter ah(funcc);
-		while (ah.hasMore())
-		  {
-		    // GPR
-		    if (ah.isA_RT_ReadInstruction()){
-		      gen->bitarray_set(ah.getRTValue(),gen);
-		    }
-		    if (ah.isA_RA_ReadInstruction()){
-		      gen->bitarray_set(ah.getRAValue(),gen);
-		    }
-		    if (ah.isA_RB_ReadInstruction()){
-		      gen->bitarray_set(ah.getRBValue(),gen);
-		    }
-		    
-		    // FPR
-		    if (ah.isA_FRT_ReadInstruction()){
-		      genFP->bitarray_set(ah.getFRTValue(),genFP);
-		    }
-		    if (ah.isA_FRA_ReadInstruction()){
-		      genFP->bitarray_set(ah.getFRAValue(),genFP);
-		    }
-		    if (ah.isA_FRB_ReadInstruction()){
-		      genFP->bitarray_set(ah.getFRBValue(),genFP);
-		    }
-		    if (ah.isA_FRC_ReadInstruction()){
-		      genFP->bitarray_set(ah.getFRCValue(),genFP);
-		    }
-		    if (ah.isACallInstruction() || ah.isAIndirectJumpInstruction()) {
-		      // Non-leaf.  Called function may
-		      // use registers never used by callee,
-		      // but used by this function.
-		      
-		      // Tail call optimization can also use the CTR
-		      // register that would normally be used by an
-		      // indirect jump.  Err on the safe side
-		      for (int a = 3; a <= 10; a++)
-			gen->bitarray_set(a,gen);
-		      for (int a = 1; a <= 13; a++)
-			genFP->bitarray_set(a,genFP);
-		      break;
-		    }
-		    if (ii.isAJumpInstruction()) {
-		      Address branchAddress = ii.getBranchTargetAddress();
-		      // This function might not use any input registers
-		      // but the tail-call optimization could
-		      
-		      codeRange *range = func_->ifunc();
-		      
-		      if (range) {
-			if (!(range->get_address_cr() <= branchAddress &&
-			      branchAddress < (range->get_address_cr() + range->get_size_cr()))) {
-			  for (int a = 3; a <= 10; a++)
-			    gen->bitarray_set(a,gen);
-			  for (int a = 1; a <= 13; a++)
-			    genFP->bitarray_set(a,genFP);
-			  break;
-			}
-		      } else {
-			for (int a = 3; a <= 10; a++)
-			  gen->bitarray_set(a,gen);
-			for (int a = 1; a <= 13; a++)
-			  genFP->bitarray_set(a,genFP);
-			break;
-		      }
-		    }
-		    
-		    ah++;
-		  } /* ah.hasMore */
-	      }
-	    else
-	      {
-		for (int a = 3; a <= 10; a++)
-		  gen->bitarray_set(a,gen);
-		for (int a = 1; a <= 13; a++)
-		  genFP->bitarray_set(a,genFP);
-	      } /* funcc */
-	  }
-	else /* if range */
-	  {
-	    for (int a = 3; a <= 10; a++)
-	      gen->bitarray_set(a,gen);
-	    for (int a = 1; a <= 13; a++)
-	      genFP->bitarray_set(a,genFP);
-	  }
-      } /* if call */
-    ii++;
-  } /*while ii.hasMore */
-  return true;
-}
-
-/* This is used to do fixed point iteration until 
-   the in and out don't change anymore */
-bool int_basicBlock::updateRegisterInOut(bool isFP) 
-{
-  bool change = false;
-  // old_IN = IN(X)
-  
-  bitArray oldIn;
-
-  bitArray tmp; 
-  
-  oldIn.bitarray_init(maxGPR, &oldIn);
-  tmp.bitarray_init(maxGPR, &tmp);
-
-  if (!isFP)
-    {
-      in->bitarray_copy(&oldIn, in);
-      in->bitarray_and(in, &tmp, in);
-    }
-  else
-    {
-      inFP->bitarray_copy(&oldIn, inFP);
-      inFP->bitarray_and(inFP, &tmp, inFP);
-    }
-
-  // OUT(X) = UNION(IN(Y)) for all successors Y of X
-  pdvector<int_basicBlock *> elements;
-  getTargets(elements);
-  for(unsigned  i=0;i<elements.size();i++)
-    {
-      //BPatch_basicBlock *bb = (BPatch_basicBlock*) elements[i]->getHighLevelBlock();
-      if (!isFP)
-	tmp.bitarray_or(&tmp,elements[i]->getInSet(),&tmp);
-      else
-	tmp.bitarray_or(&tmp,elements[i]->getInFPSet(),&tmp);
-    }
-  
-  if (!isFP)
-    tmp.bitarray_copy(out, &tmp);
-  else
-    tmp.bitarray_copy(outFP, &tmp);
-
-
-  // IN(X) = USE(X) + (OUT(X) - DEF(X))
-  if (!isFP)
-    {
-      tmp.bitarray_diff(out, kill, &tmp);
-      tmp.bitarray_or(&tmp, gen, in);
-    }
-  else
-    {
-      tmp.bitarray_diff(outFP, killFP, &tmp);
-      inFP->bitarray_or(&tmp, genFP, inFP);
-    }
-  
-  // if (old_IN != IN(X)) then change = true
-  if (!isFP)
-    {
-      if (in->bitarray_same(&oldIn, in))
-	change = false;
-      else
-	change = true;
-    }
-  else
-    {
-      if (inFP->bitarray_same(&oldIn, inFP))
-	change = false;
-      else
-	change = true;
-    }
-  return change;
-}
-
-
-bitArray * int_basicBlock::getInSet()
-{
-  return in;
-}
-
-bitArray * int_basicBlock::getInFPSet()
-{
-  return inFP;
-}
-
-/* For Power it checks the basic block for any usage of the MQ
-   SPR, when other platforms are done we'll probably need to move
-   this into inst-* files
-   Right now it isn't really doing liveness, but just checks
-   to see if any instruction uses MQ ... it should be fairly
-   rare.  If there are alot of hits we can do full liveness
-   analysis on it and other SPR
-*/
-int int_basicBlock::liveSPRegistersIntoSet(instPoint *iP,
-                                           unsigned long address)
-{
-   if (iP->hasSpecializedSPRegisters()) return 0;
-
-   stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-
-    int *liveSPReg = new int[1]; // only care about MQ for Power for now
-    liveSPReg[0] = 0;
-    InstrucIter ii(this);
-    
-    while (ii.hasMore() &&
-           *ii <= address) {
-        if (ii.isA_MX_Instruction()) {
-            liveSPReg[0] = 1;
-            break;
-        }
-        ii++;
-    }
-
-    iP->actualSPRLiveSet_ = liveSPReg;
-    stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
-
-    return 1;
-}
-
-
-
-
-/* The liveReg int * is a instance variable in the instPoint classes.
-   This puts the liveness information into that variable so 
-   we can access it from every instPoint without recalculation */
-int int_basicBlock::liveRegistersIntoSet(instPoint *iP,
-                                         unsigned long address)
-{
-  int numLive = 0;
-
-  if (iP->hasSpecializedGPRegisters()) return 0;
-
-  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-
-  int *liveReg = new int[maxGPR];
-  int *liveFPReg = new int[maxFPR];
-  
-  bitArray newIn;
-  bitArray newInFP;
-  
-  newIn.bitarray_init(maxGPR, &newIn);
-  newIn.bitarray_copy(&newIn,in);
-  
-  newInFP.bitarray_init(maxFPR, &newInFP);
-  inFP->bitarray_copy(&newInFP,inFP);
-  
-  InstrucIter ii(this);
-  
-  /* The liveness information from the bitarrays are for the
-     basic block, we need to do some more gen/kills until
-     we get to the individual instruction within the 
-     basic block that we want the liveness info for. */
-  
-  while(ii.hasMore() &&
-        *ii <= address) {
-      if (ii.isA_RT_WriteInstruction())
-          newIn.bitarray_set(ii.getRTValue(),&newIn);
-      if (ii.isA_RA_WriteInstruction())
-          newIn.bitarray_set(ii.getRAValue(),&newIn);
-      
-      if (ii.isA_FRT_WriteInstruction())
-          newInFP.bitarray_set(ii.getFRTValue(),&newInFP);
-      if (ii.isA_FRA_WriteInstruction())
-          newInFP.bitarray_set(ii.getFRAValue(),&newInFP);
-      ii++;
-  }    
-  numLive = 0;
-  for (int a = 0; a < maxGPR; a++) {
-      if (newIn.bitarray_check(a,&newIn)) {
-          //printf("1 ");
-          liveReg[a] = 1;
-          numLive++;
-      }
-      else {
-          //printf("0 ");
-          liveReg[a] = 0;
-      }
-      if (newInFP.bitarray_check(a,&newInFP)) {
-          //printf("1 ");
-          liveFPReg[a] = 1;
-      }
-      else {
-          	//printf("0 ");
-          liveFPReg[a] = 0;
-      }
-  } 
-
-  iP->actualGPRLiveSet_ = liveReg;
-  iP->actualFPRLiveSet_ = liveReg;
-
-  //printf("\n");
-  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
-  return numLive;
-}
 
 Emitter *AddressSpace::getEmitter() 
 {

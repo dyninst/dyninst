@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.73 2007/11/01 21:41:01 bill Exp $
+// $Id: multiTramp.C,v 1.74 2007/12/04 17:58:09 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -847,9 +847,18 @@ void debugBreakpoint() {
 // Since we out-line multiTramps (effectively), we write
 // a jump into the inputs.
 bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
-                              Address /*baseInMutatee*/,
+                              Address baseInMutatee,
                               UNW_INFO_TYPE * * /* ignored */) 
 {
+    if (!hasChanged() && generated_) {
+        // We don't actually use the input code generator yet;
+        // if we go entirely inlined we will.
+        //assert(gen.currAddr(baseInMutatee) == instAddr_);
+        //gen.moveIndex(instSize_);
+        assert(generatedMultiT_.used() > 0);
+        return true;
+    }
+
     unsigned size_required = 0;
 
     generatedCFG_t::iterator cfgIter;
