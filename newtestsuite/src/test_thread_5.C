@@ -66,8 +66,8 @@ protected:
   BPatchSnippetHandle *at(BPatch_point * pt, BPatch_function *call,
 			  int testno, const char *testname);
   void dumpVars();
-  bool test_thread_5_Mutator::setVar(const char *vname, void *addr, int testno,
-				     const char *testname);
+  bool setVar(const char *vname, void *addr, int testno,
+              const char *testname);
 
 
 
