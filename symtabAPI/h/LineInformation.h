@@ -112,7 +112,7 @@ class LineInformation : private RangeLookup< LineInformationImpl::LineNoTuple, L
 		   (in the destructor).  Note that it speeds and simplifies things
 		   to have the string pointers be the same. */
 
-#if ! defined( os_windows )		   
+#if ! defined( _MSC_VER )		   
 		struct SourceLineCompare {
 			bool operator () ( const char * lhs, const char * rhs ) const;
 			};
