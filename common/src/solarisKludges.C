@@ -30,9 +30,12 @@
  */
 
 
-// $Id: solarisKludges.C,v 1.7 2007/05/30 19:20:29 legendre Exp $
+// $Id: solarisKludges.C,v 1.8 2007/12/04 18:05:22 legendre Exp $
 
 #include "common/h/headers.h"
+#include "common/h/parseauxv.h"
+
+#include <sys/auxv.h>
 
 void * P_memcpy (void *A1, const void *A2, size_t SIZE) {
   return (memcpy(A1, A2, SIZE));
@@ -129,4 +132,24 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
     */
 
    return result;
+}
+
+bool AuxvParser::readAuxvInfo()
+{
+  auxv_t auxv_elm;
+
+  char buffer[32];
+  snprintf(buffer, 32, "/proc/%d/auxv", pid);
+  int auxv_fd = P_open(buffer, O_RDONLY, pid);
+
+  while(read(auxv_fd, &auxv_elm, sizeof(auxv_elm)) == sizeof(auxv_elm)) {
+    if (auxv_elm.a_type == AT_BASE) {
+      interpreter_base = (Address)auxv_elm.a_un.a_ptr;
+      P_close(auxv_fd);
+      return true;
+    }
+  }
+
+  P_close(auxv_fd);  
+  return false;
 }

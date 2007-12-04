@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.698 2007/09/23 21:08:55 rutar Exp $
+// $Id: process.C,v 1.699 2007/12/04 18:05:25 legendre Exp $
 
 #include <ctype.h>
 
@@ -1606,6 +1606,7 @@ process::process(SignalGenerator *sh_) :
     , vsyscall_end_(0)
     , vsyscall_text_(0)
     , vsyscall_data_(NULL)
+    , auxv_parser(NULL)
 #endif
 {
     // Let's try to profile memory usage
@@ -1737,6 +1738,12 @@ bool process::prepareExec(fileDescriptor &desc)
     // Actually, it looks like only the as FD is closed (probably because
     // the file it refers to is gone). Reopen.
    getRepresentativeLWP()->reopen_fds();
+#endif
+#if defined(os_linux)
+   if (auxv_parser) {
+      auxv_parser->deleteAuxvParser();
+      auxv_parser = NULL;
+   }
 #endif
 
     // Revert the bootstrap state
@@ -2092,6 +2099,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     , vsyscall_end_(parentProc->vsyscall_end_)
     , vsyscall_text_(parentProc->vsyscall_text_)
     , vsyscall_data_(parentProc->vsyscall_data_)
+    , auxv_parser(NULL)
 #endif
 {
 }
@@ -3686,8 +3694,10 @@ bool process::addASharedObject(mapped_object *new_obj)
 	}
     pdstring longname = new_obj->fullName().c_str();
 
-    if((shortname == dyninstRT_name)
-        || (longname == dyninstRT_name)) {
+    if ((shortname == dyninstRT_name) || 
+        (longname == dyninstRT_name) ||
+        (shortname == dyninstRT_shortname))
+    {
       startup_printf("%s[%d]:  handling init of dyninst RT library\n", FILE__, __LINE__);
       if (!setDyninstLibPtr(new_obj)) {
         fprintf(stderr, "%s[%d]:  FATAL, failing to set dyninst lib\n", FILE__, __LINE__);

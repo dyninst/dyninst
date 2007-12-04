@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.74 2007/12/04 17:58:09 bernat Exp $
+// $Id: multiTramp.C,v 1.75 2007/12/04 18:07:27 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -533,7 +533,7 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
         InstrucIter ah(instAddr,proc);
         startAddr = instAddr;
         size = ah.getInstruction().size();
-	basicBlock = false;
+        basicBlock = false;
         return true;
     }
     

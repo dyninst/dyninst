@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.36 2007/06/20 20:49:42 ssuen Exp $
+// $Id: linux.h,v 1.37 2007/12/04 18:05:24 legendre Exp $
 
 #if !defined(os_linux)
 #error "invalid architecture-os inclusion"
@@ -131,19 +131,6 @@ typedef int procProcStatus_t;
 #define PREMS_READ    (1 << 2)
 #define PREMS_WRITE   (1 << 1)
 #define PREMS_EXEC    (1 << 0)
-
-typedef struct maps_entries {
-   Address start;
-   Address end;
-   unsigned prems;
-   Address offset;
-   int dev_major;
-   int dev_minor;
-   int inode;
-   char path[512];
-} map_entries;
-
-map_entries *getLinuxMaps(int pid, unsigned &maps_size);
 
 #define INDEPENDENT_LWP_CONTROL true
 

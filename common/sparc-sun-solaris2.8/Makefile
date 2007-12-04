@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2007/01/09 02:00:56 giri Exp $
+# $Id: Makefile,v 1.2 2007/12/04 18:05:17 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,7 +17,8 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../../common/src/solarisKludges.C \
-		../../common/src/timing-solaris.C
+		../../common/src/timing-solaris.C \
+		../../common/src/parseauxv.C 
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from
 # make.confing any way and it is actually configurable there via

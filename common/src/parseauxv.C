@@ -1,0 +1,93 @@
+
+#include "common/h/parseauxv.h"
+#include <elf.h>
+#include <unistd.h>
+#include <assert.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include <vector>
+
+std::map<int, AuxvParser *> AuxvParser::pid_to_parser;
+
+AuxvParser *AuxvParser::createAuxvParser(int pid, unsigned asize)
+{
+   AuxvParser *newparser = NULL;
+   if (pid_to_parser.count(pid))
+   {
+      newparser = pid_to_parser[pid];
+   }
+   else
+   {
+      newparser = new AuxvParser(pid, asize);
+      if (!newparser)
+      {
+         return NULL;
+      }
+      if (newparser->create_err)
+      {
+         delete newparser;
+         return NULL;
+      }
+      pid_to_parser[pid] = newparser;
+   }
+
+   newparser->ref_count++;
+   return newparser;
+}
+
+void AuxvParser::deleteAuxvParser()
+{
+   assert(ref_count);
+   ref_count--;
+   if (!ref_count) {
+      delete this;
+      return;
+   }
+}
+
+AuxvParser::~AuxvParser()
+{
+   pid_to_parser.erase(pid);
+}
+
+AuxvParser::AuxvParser(int pid_, unsigned addr_size_) :
+   pid(pid_),
+   ref_count(0),
+   interpreter_base(0x0),
+   vsyscall_base(0x0),
+   vsyscall_text(0x0),
+   vsyscall_end(0x0),
+   found_vsyscall(false),
+   page_size(0x0),
+   addr_size(addr_size_)
+{
+   create_err = !readAuxvInfo();
+}
+ 
+Address AuxvParser::getInterpreterBase()
+{
+   return interpreter_base;
+}
+ 
+bool AuxvParser::parsedVsyscall()
+{
+   return found_vsyscall;
+}
+
+Address AuxvParser::getVsyscallBase()
+{
+   return vsyscall_base;
+}
+
+Address AuxvParser::getVsyscallText()
+{
+   return vsyscall_text;
+}
+
+Address AuxvParser::getVsyscallEnd()
+{
+   return vsyscall_end;
+}   

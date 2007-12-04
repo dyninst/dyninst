@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.412 2007/10/30 19:03:07 bernat Exp $
+/* $Id: process.h,v 1.413 2007/12/04 18:05:26 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -94,6 +94,10 @@
 #include <libunwind.h>
 #include <libunwind-ptrace.h>
 #endif /* defined( cap_unwind ) */
+
+#if defined(os_linux)
+#include "common/h/parseauxv.h"
+#endif
 
 #if defined(SHM_SAMPLING)
 extern unsigned SHARED_SEGMENT_SIZE;
@@ -1045,6 +1049,7 @@ private:
   Address vsyscall_end_;
   Address vsyscall_text_;
   void *vsyscall_data_;
+  AuxvParser *auxv_parser;
 #endif
 
   ///////////////////
