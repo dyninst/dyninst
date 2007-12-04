@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.114 2007/02/14 23:04:18 legendre Exp $
+// $Id: sol_proc.C,v 1.115 2007/12/04 17:58:26 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1646,6 +1646,8 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
                 fprintf(stderr, "%s[%d]:  failed to decodeWaitPidStatus\n", FILE__, __LINE__);
                 continue;
             }
+            signal_printf("%s[%d]: after waitPidStatus, event %s\n",
+                          FILE__, __LINE__, eventType2str(ev.type));
             
             if (ev.type == evtSignalled && !decodeSignal(ev)) {
                 fprintf(stderr, "%s[%d]:  failed to decodeSignal\n", FILE__, __LINE__);

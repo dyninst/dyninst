@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.230 2007/09/12 20:59:34 bernat Exp $
+// $Id: unix.C,v 1.231 2007/12/04 17:58:27 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -86,6 +86,7 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status,
                         EventRecord &ev) {
     // Big if-then-else tree
     if (WIFEXITED(status)) {
+        signal_printf("%s[%d]: process exited normally\n", FILE__, __LINE__);
         ev.type = evtProcessExit;
         ev.status = statusNormal;
         ev.what = (eventWhat_t) (unsigned int) WEXITSTATUS(status);
@@ -95,9 +96,11 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status,
         ev.type = evtProcessExit;
         ev.status = statusSignalled;
         ev.what = (eventWhat_t) (unsigned int) WTERMSIG(status);
+        signal_printf("%s[%d]: process exited via signal %d\n", FILE__, __LINE__, ev.what);
         return true;
     }
     else if (WIFSTOPPED(status)) {
+        signal_printf("%s[%d]: process stopped\n", FILE__, __LINE__);
         ev.type = evtSignalled;
         ev.status = statusSignalled;
         ev.what = (eventWhat_t) (unsigned int) WSTOPSIG(status);
@@ -738,6 +741,9 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
   case SIGABRT:
     ev.type = evtCritical;
     break;
+  case SIGFPE:
+      ev.type = evtCritical;
+      break;
     
   default:
     signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
