@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.46 2007/09/19 21:54:42 giri Exp $
+// $Id: image-func.C,v 1.47 2007/12/04 17:58:23 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -149,6 +149,9 @@ image_func::image_func(const pdstring &symbol,
   originalCode(NULL),
   o7_live(false),
   bl_is_sorted(false)
+#if defined(cap_liveness)
+  , livenessCalculated_(false)
+#endif
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_func_count++;
@@ -198,6 +201,9 @@ image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
   originalCode(NULL),
   o7_live(false),
   bl_is_sorted(false)
+#if defined(cap_liveness)
+  , livenessCalculated_(false)
+#endif
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_func_count++;

@@ -696,16 +696,6 @@ int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int
     dataFlowGen(NULL),
     dataFlowKill(NULL),
 #endif
-#if defined (os_aix) || defined(arch_x86_64)
-    gen(NULL),
-    genFP(NULL),
-    kill(NULL),
-    killFP(NULL),
-    in(NULL),
-    inFP(NULL),
-    out(NULL),
-    outFP(NULL),
-#endif
     func_(func),
     ib_(ib),
     id_(id)
@@ -732,16 +722,7 @@ int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func,
     dataFlowGen(NULL),
     dataFlowKill(NULL),
 #endif
-#if defined (os_aix) || defined(arch_x86_64)
-    gen(NULL),
-    genFP(NULL),
-    kill(NULL),
-    killFP(NULL),
-    in(NULL),
-    inFP(NULL),
-    out(NULL),
-    outFP(NULL),
-#endif
+
     func_(func),
     ib_(parent->ib_),
     id_(id)
@@ -757,16 +738,6 @@ int_basicBlock::~int_basicBlock() {
 #if defined(arch_ia64)
     if (dataFlowIn) delete dataFlowIn;
     if (dataFlowOut) delete dataFlowOut;
-#endif
-#if defined (os_aix) || defined(arch_x86_64)
-    if (gen) delete gen;
-    if (genFP) delete genFP;
-    if (kill) delete kill;
-    if (killFP) delete killFP;
-    if (in) delete in;
-    if (inFP) delete inFP;
-    if (out) delete out;
-    if (outFP) delete outFP;
 #endif
     // Do not delete dataFlowGen and dataFlowKill; they're legal pointers
     // don't kill func_;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.29 2007/09/19 21:54:43 giri Exp $
+// $Id: image-func.h,v 1.30 2007/12/04 17:58:24 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -54,6 +54,7 @@
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "common/h/Dictionary.h"
 #include "symtabAPI/h/Symbol.h"
+#include "dyninstAPI/src/bitArray.h"
 #include <set>
 
 using namespace Dyninst;
@@ -211,6 +212,12 @@ class image_basicBlock : public codeRange {
 
     bool canBeRelocated() const { return canBeRelocated_; }
 
+#if defined(cap_liveness)
+    const bitArray &getLivenessIn() const {return in; };
+    // This is copied from the union of all successor blocks
+    const bitArray getLivenessOut() const;
+#endif
+
    private:
 
     // Try to shrink memory usage down.
@@ -244,6 +251,21 @@ class image_basicBlock : public codeRange {
     pdvector<image_edge *> sources_;
 
     pdvector<image_func *> funcs_;
+
+#if defined(cap_liveness)
+    /* Liveness analysis variables */
+    /** gen registers */
+    
+    bitArray use; // Registers used by instructions within the block
+    bitArray def; // Registers defined by instructions within the block
+    bitArray in;  // Summarized input liveness; we calculate output on the fly
+
+    void summarizeBlockLivenessInfo();
+    // Returns true if any information changed; false otherwise
+    bool updateBlockLivenessInfo();
+#endif
+
+
 };
 
 // Handle creation of edges and insertion of source/target pointers
@@ -510,6 +532,11 @@ class image_func : public codeRange {
    bool writesFPRs(unsigned level = 0);
    bool writesSPRs(unsigned level = 0);
 
+#if defined(cap_liveness)
+   void calcBlockLevelLiveness();
+#endif
+   
+
  private:
    
    void calcUsedRegs();/* Does one time calculation of registers used in a function, if called again
@@ -610,6 +637,11 @@ class image_func : public codeRange {
 
    // Block list must be sorted
    bool bl_is_sorted;
+
+#if defined(cap_liveness)
+   bool livenessCalculated_;
+#endif
+
 };
 
 typedef image_func *ifuncPtr;
