@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.16 2007/12/04 17:58:10 bernat Exp $
+// $Id: registerSpace.C,v 1.17 2007/12/05 19:30:40 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -513,45 +513,50 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
 
 
 // Free the specified register (decrement its refCount)
-void registerSpace::freeRegister(Register reg) 
+void registerSpace::freeRegister(Register num) 
 {
-    if (reg == REG_NULL) {
-        // This is okay - it's easier to unconditionally free
-        // even if the guy didn't allocate. So just return.
-        return;
-    }
+    registerSlot *reg = findRegister(num);
+    if (!reg) return;
 
-    registers_[reg]->refCount--;
-    regalloc_printf("Freed register %d: refcount now %d\n", reg, registers_[reg]->refCount);
-    registers_[reg]->debugPrint("");
-    if( registers_[reg]->refCount < 0 ) {
+    reg->refCount--;
+    regalloc_printf("Freed register %d: refcount now %d\n", num, reg->refCount);
+
+    if( reg->refCount < 0 ) {
 #if !defined(arch_ia_64)
         // IA-64 gets this with the frame pointer...
         bperr( "Freed free register!\n" );
 #endif
-        registers_[reg]->refCount = 0;
+        reg->refCount = 0;
     }
     return;
 
 }
 
 // Free the register even if its refCount is greater that 1
-void registerSpace::forceFreeRegister(Register reg) 
+void registerSpace::forceFreeRegister(Register num) 
 {
-    registers_[reg]->refCount = 0;
+    registerSlot *reg = findRegister(num);
+    if (!reg) return;
+
+    reg->refCount = 0;
 }
 
-bool registerSpace::isFreeRegister(Register reg) {
-    if (registers_[reg]->refCount > 0)
+bool registerSpace::isFreeRegister(Register num) {
+    registerSlot *reg = findRegister(num);
+    if (!reg) return false;
+
+    if (reg->refCount > 0)
         return false;
     return true;
 }
 
 // Bump up the reference count. Occasionally, we underestimate it
 // and call this routine to correct this.
-void registerSpace::incRefCount(Register reg)
+void registerSpace::incRefCount(Register num)
 {
-    registers_[reg]->refCount++;
+    registerSlot *reg = findRegister(num);
+    if (!reg) return;
+    reg->refCount++;
 }
 
 void registerSpace::cleanSpace() {
@@ -739,7 +744,10 @@ bool registerSpace::readRegister(codeGen &gen,
 registerSlot *registerSpace::findRegister(Register source) {
     // Oh, oops... we're handed a register number... and we can't tell if it's
     // GPR, FPR, or SPR...
-    return registers_[source];
+    if (source == REG_NULL) return NULL;
+    registerSlot *reg = NULL;
+    if (!registers_.find(source, reg)) return NULL;
+    return reg;
 }
 
 
