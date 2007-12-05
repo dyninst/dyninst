@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.176 2007/12/04 22:00:33 bernat Exp $
+// $Id: BPatch.C,v 1.177 2007/12/05 04:37:33 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -406,7 +406,7 @@ bool BPatch::livenessAnalysisOnInt() {
     return livenessAnalysisOn_;
 }
 
-void BPatch::setLivenessDepthInt(int x)
+void BPatch::setLivenessAnalysisDepthInt(int x)
 {
     livenessAnalysisDepth_ = x;
 }
