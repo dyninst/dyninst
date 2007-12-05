@@ -33,7 +33,6 @@
 #include <link.h>
 #include <stdio.h>
 #include <errno.h>
-#include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
