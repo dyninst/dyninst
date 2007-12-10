@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.13 2007/12/04 18:05:55 legendre Exp $
+// $Id: Object-xcoff.C,v 1.14 2007/12/10 22:33:36 giri Exp $
 
 #include <regex.h>
 
@@ -1558,8 +1558,7 @@ ObjectType Object::objType() const {
    return is_aout() ? obj_Executable : obj_SharedLib;
 }
 
-bool Object::emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag)
-{
+bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag) {
    return true;
 }
 
@@ -2063,6 +2062,17 @@ void Object::parseTypeInfo(Symtab *obj)
 
           if (inCommonBlock && commonBlock == NULL)
              continue;
+    
+      if(!mod){
+        std::string modName = currentSourceFile;
+        std::string fName = extract_pathname_tail(modName);
+        if(!obj->findModule(mod, fName))
+        {
+            modName = obj->file();
+            if(!obj->findModule(mod, modName))
+                continue;
+        }
+      }
 
 	  if (staticBlockBaseAddr && (sym->n_sclass == C_STSYM)) {
               parseStabString(mod, 0, nmPtr, 

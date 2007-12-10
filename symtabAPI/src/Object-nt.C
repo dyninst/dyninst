@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.17 2007/12/04 18:05:54 legendre Exp $
+// $Id: Object-nt.C,v 1.18 2007/12/10 22:33:34 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -952,7 +952,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
         ((pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_REGRELATIVE) && 
          (pSymInfo->Register = CV_REG_EBP)))
     {
-        reg = pSymInfo->Register;
+        reg = -1;
         frameOffset = (signed) pSymInfo->Address;
         storage = storageRegOffset;
         storageName = "Frame Relative";
@@ -1847,7 +1847,6 @@ bool AObject::getMappedRegions(std::vector<Region> &regs) const
    return true;
 }
 
-
-bool Object::emitDriver(Symtab *obj, std::string fName,std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag){
+bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag) {
 	return true;
 }

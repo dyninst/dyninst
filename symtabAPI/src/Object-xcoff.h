@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.10 2007/12/04 18:05:56 legendre Exp $
+ * $Id: Object-xcoff.h,v 1.11 2007/12/10 22:33:37 giri Exp $
 ************************************************************************/
 
 
@@ -230,7 +230,7 @@ class Object : public AObject {
     bool isEEL() const { return false; }
 
     void parseTypeInfo(Symtab *obj);
-    bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
+    bool emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
 
 private:
 
