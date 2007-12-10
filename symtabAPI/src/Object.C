@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.11 2007/09/19 22:23:34 giri Exp $
+// $Id: Object.C,v 1.12 2007/12/10 22:27:50 giri Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -95,6 +95,10 @@ bool AObject::get_func_binding_table_ptr(const std::vector<relocationEntry> *&) 
     return false;
 }
 
+bool AObject::addRelocationEntry(relocationEntry &){
+    return true;
+}
+
 char *AObject::mem_image() const
 {
 	return NULL;
@@ -109,10 +113,8 @@ DLLEXPORT Offset ExceptionBlock::catchStart() const {
 	return catchStart_;
 }
 
-DLLEXPORT relocationEntry::~relocationEntry() {}
-
 DLLEXPORT relocationEntry::relocationEntry(const relocationEntry& ra): target_addr_(ra.target_addr_), 
-    											rel_addr_(ra.rel_addr_), name_(ra.name_) {}
+										rel_addr_(ra.rel_addr_), name_(ra.name_), dynref_(ra.dynref_), relType_(ra.relType_) {}
 
 DLLEXPORT Offset relocationEntry::target_addr() const { 
 	return target_addr_;
@@ -126,6 +128,19 @@ DLLEXPORT const string &relocationEntry::name() const {
 	return name_;
 }
 
+DLLEXPORT Symbol *relocationEntry::getDynSym() const {
+    return dynref_;
+}
+
+DLLEXPORT bool relocationEntry::addDynSym(Symbol *dynref) {
+    dynref_ = dynref;
+    return true;
+}
+
+DLLEXPORT unsigned long relocationEntry::getRelType() const {
+    return relType_;
+}
+
 DLLEXPORT Symbol::~Symbol ()
 {
     	mangledNames.clear();
@@ -135,8 +150,9 @@ DLLEXPORT Symbol::~Symbol ()
 
 DLLEXPORT Symbol::Symbol(const Symbol& s)
     : module_(s.module_), type_(s.type_), linkage_(s.linkage_),
-    addr_(s.addr_), sec_(s.sec_), size_(s.size_), upPtr_(s.upPtr_), mangledNames(s.mangledNames), prettyNames(s.prettyNames),
-    typedNames(s.typedNames), tag_(s.tag_), retType_(s.retType_), vars_(s.vars_), params_(s.params_){
+    addr_(s.addr_), sec_(s.sec_), size_(s.size_), upPtr_(s.upPtr_), isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
+    mangledNames(s.mangledNames), prettyNames(s.prettyNames), typedNames(s.typedNames), tag_(s.tag_), retType_(s.retType_), 
+    vars_(s.vars_), params_(s.params_){
 }
 
 DLLEXPORT Symbol& Symbol::operator=(const Symbol& s) {
@@ -147,6 +163,8 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s) {
     sec_     = s.sec_;
     size_    = s.size_;
     upPtr_ = s.upPtr_;
+    isInDynsymtab_ = s.isInDynsymtab_;
+    isInSymtab_ = s.isInSymtab_;
     tag_     = s.tag_;
     mangledNames = s.mangledNames;
     prettyNames = s.prettyNames;
@@ -208,6 +226,14 @@ DLLEXPORT void *Symbol::getUpPtr() const {
 	return upPtr_;
 }
 
+DLLEXPORT bool Symbol::isInDynSymtab() const {
+    return isInDynsymtab_;
+}
+
+DLLEXPORT bool Symbol::isInSymtab() const {
+    return isInSymtab_;
+}
+
 DLLEXPORT unsigned Symbol::getSize() const {
     return size_;
 }
@@ -232,10 +258,31 @@ DLLEXPORT bool Symbol::setAddr (Offset newAddr) {
       return true;
 }
 
+DLLEXPORT bool Symbol::setDynSymtab() {
+    isInDynsymtab_= true;
+    return true;
+}
+
+DLLEXPORT bool Symbol::clearDynSymtab() {
+    isInDynsymtab_ = false;
+    return true;
+}
+
+DLLEXPORT bool Symbol::setIsInSymtab() {
+    isInSymtab_= true;
+    return true;
+}
+
+DLLEXPORT bool Symbol::clearIsInSymtab() {
+    isInSymtab_= false;
+    return true;
+}
+
 DLLEXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
-    upPtr_(NULL), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL){
+    upPtr_(NULL), isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), 
+    params_(NULL){
    // note: this ctor is called surprisingly often (when we have
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
 }
@@ -254,21 +301,21 @@ DLLEXPORT const std::vector<string>& Symbol::getAllTypedNames() const {
 
 DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
-    Section *isec, unsigned size, void *upPtr)
+    Section *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
     : type_(itype),
-    linkage_(ilinkage), addr_(iaddr), 
-    sec_(isec), size_(size), upPtr_(upPtr), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
+    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), upPtr_(upPtr), isInDynsymtab_(isInDynSymtab),
+    isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
     	module_ = new Module();
-	module_->setName(imodule);
+    	module_->setName(imodule);
     	mangledNames.push_back(iname);
 }
 
 DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
-    Section *isec, unsigned size, void *upPtr)
+    Section *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
     : module_(mod), type_(itype),
-    linkage_(ilinkage), addr_(iaddr), 
-    sec_(isec), size_(size), upPtr_(upPtr), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
+    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), upPtr_(upPtr), isInDynsymtab_(isInDynSymtab), 
+    isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
     	mangledNames.push_back(iname);
 }
 
@@ -387,6 +434,10 @@ DLLEXPORT bool	Symbol::setUpPtr(void *newUpPtr)
 {
 	upPtr_ = newUpPtr;
 	return true;
+}
+
+DLLEXPORT Type *Symbol::getReturnType(){
+	return retType_;
 }
 
 DLLEXPORT bool  Symbol::setReturnType(Type *retType){

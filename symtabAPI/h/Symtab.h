@@ -107,6 +107,8 @@ class Module : public LookupInterface {
     DLLEXPORT virtual bool findType(Type *&type, std::string name);
     DLLEXPORT virtual bool findVariableType(Type *&type, std::string name);
 
+    DLLEXPORT std::vector<Type *> *getAllTypes();
+    DLLEXPORT std::vector<std::pair<std::string, Type *> > *getAllGlobalVars();
     DLLEXPORT typeCollection *getModuleTypes();
 
     /***** Local Variable Information *****/
@@ -162,7 +164,6 @@ class Symtab : public LookupInterface {
 	DLLEXPORT bool getAllModules(std::vector<Module *>&ret);
 	DLLEXPORT bool getAllSections(std::vector<Section *>&ret);
 	DLLEXPORT bool getAllNewSections(std::vector<Section *>&ret);
-	DLLEXPORT bool getAllNewDynSyms(std::vector<Symbol *>&dynsyms);
 	
 	DLLEXPORT bool findModule(Module *&ret, const std::string name);
 	DLLEXPORT bool findSection(Section *&ret, std::string secname);
@@ -203,7 +204,11 @@ class Symtab : public LookupInterface {
 	DLLEXPORT virtual bool findVariableType(Type *&type, std::string name);
 
 	DLLEXPORT bool addType(Type *typ);
- 	DLLEXPORT void parseTypesNow();
+    	
+	DLLEXPORT static std::vector<Type *> *getAllstdTypes();
+	DLLEXPORT static std::vector<Type *> *getAllbuiltInTypes();
+ 	
+	DLLEXPORT void parseTypesNow();
 
 	/***** Local Variable Information *****/
 	DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
@@ -279,6 +284,7 @@ class Symtab : public LookupInterface {
 	DLLEXPORT bool extractInfo();
 
 	void setupTypes();
+	static void setupStdTypes();
 
 	bool buildDemangledName( const std::string &mangled, 
                             std::string &pretty,
@@ -402,11 +408,12 @@ class Symtab : public LookupInterface {
    std::vector<Symbol *> notypeSyms;
    std::vector<Module *> _mods;
 
-   std::vector<Symbol *> newDynSyms;
-
    typeCollection *APITypes;
 
-   //std::vector<relocationEntry *> relocation_table_;
+   // hashtable for looking up undefined symbols in the dynamic symbol
+   // tale. Entries are referred by the relocation table entries
+   hash_map <std::string, Symbol *> undefDynSyms;
+   std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;
     
     //Line Information valid flag;
@@ -476,10 +483,12 @@ class Section {
 	DLLEXPORT bool isLoadable() const;
 	DLLEXPORT unsigned long flags() const;
 	DLLEXPORT bool isDirty() const;
+	
+    DLLEXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType);
 
 	enum {textSection = 1, dataSection = 2,
               relocationSection = 4, symtabSection = 8,
-              stringSection = 16} sectionType;
+              stringSection = 16, dynsymtabSection = 32} sectionType;
 
 private:	
 	unsigned sidnumber_;
@@ -499,24 +508,34 @@ private:
 class relocationEntry {
 public:
    DLLEXPORT relocationEntry();
-   DLLEXPORT relocationEntry(Offset ta,Offset ra, std::string n);
+   DLLEXPORT relocationEntry(Offset ta,Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+   DLLEXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+   
    DLLEXPORT relocationEntry(const relocationEntry& ra);
-   DLLEXPORT ~relocationEntry();
    
    DLLEXPORT const relocationEntry& operator= (const relocationEntry &ra);
    DLLEXPORT Offset target_addr() const;
    DLLEXPORT Offset rel_addr() const;
    DLLEXPORT const std::string &name() const;
+   DLLEXPORT Symbol *relocationEntry::getDynSym() const;
+   DLLEXPORT bool relocationEntry::addDynSym(Symbol *dynref);
+   DLLEXPORT unsigned long getRelType() const;
    
    // dump output.  Currently setup as a debugging aid, not really
    //  for object persistance....
    DLLEXPORT std::ostream & operator<<(std::ostream &s) const;
    friend std::ostream &operator<<(std::ostream &os, relocationEntry &q);
+	
+   enum {pltrel = 1, dynrel = 2,
+         relocationSection = 4, symtabSection = 8,
+         stringSection = 16, dynsymtabSection = 32} sectionType;
    
 private:
    Offset target_addr_;	// target address of call instruction 
    Offset rel_addr_;		// address of corresponding relocation entry 
    std::string  name_;
+   Symbol *dynref_;
+   unsigned long relType_;
 };
 
 }//namespace SymtabAPI
