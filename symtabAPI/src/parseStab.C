@@ -239,7 +239,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	      loc->stClass = storageRegOffset;
 	      loc->refClass = storageNoRef;
 	      loc->frameOffset = framePtr;
-	      loc->reg = 0;
+	      loc->reg = -1;
 	      locVar->addLocation(loc);
 	      if (!ptrType) {
 		//bperr("adding local var with missing type %s, type = %d\n",
@@ -258,7 +258,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	  loc->stClass = storageRegOffset;
 	  loc->refClass = storageNoRef;
 	  loc->frameOffset = framePtr;
-	  loc->reg = 0;
+	  loc->reg = -1;
 	  locVar->addLocation(loc);
 	  
 	  if (!ptrType) {
@@ -679,7 +679,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 		  loc->stClass = storageAddr;
 		  loc->refClass = storageNoRef;
 		  loc->frameOffset = framePtr;
-		  loc->reg = 0;
+		  loc->reg = -1;
 		  locVar->addLocation(loc);
 		  
 		  if(!current_func->vars_)
