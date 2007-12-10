@@ -133,6 +133,11 @@ Address LoadedLib::symToAddress(Symbol *sym)
    return sym->getAddr() + getCodeLoadAddr();
 }
 
+Address LoadedLib::offToAddress(Offset off)
+{
+   return off + getCodeLoadAddr();
+}
+
 Offset LoadedLib::addrToOffset(Address addr)
 {
    return addr - getCodeLoadAddr();

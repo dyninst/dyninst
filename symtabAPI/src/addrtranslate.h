@@ -67,6 +67,7 @@ class LoadedLib {
    virtual ~LoadedLib();
 
    virtual Address symToAddress(Symbol *sym);
+   virtual Address offToAddress(Offset off);
    virtual Offset addrToOffset(Address addr);
 
    virtual Address getCodeLoadAddr();

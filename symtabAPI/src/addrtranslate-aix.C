@@ -72,6 +72,7 @@ public:
    virtual ~LoadedLibAIX();
 
    virtual Address symToAddress(Symbol *sym);
+   virtual Address offToAddress(Offset off);
    virtual Offset addrToOffset(Address addr);
 
    virtual Address getCodeLoadAddr();
@@ -267,11 +268,8 @@ AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<Lo
       if (!result)
          continue;
       
-      fprintf(stderr, "Regions for %s:\n", name_addrs[i].name.c_str());
-      fprintf(stderr, "\t%lx to %lx (+%lu)\n", name_addrs[i].codeAddr, name_addrs[i].codeAddr + regs[0].size, regs[0].size);
       ll->add_mapped_region(name_addrs[i].codeAddr, regs[0].size);
       if (name_addrs[i].dataAddr) {
-      fprintf(stderr, "\t%lx to %lx (+%lu)\n", name_addrs[i].dataAddr, name_addrs[i].dataAddr + regs[1].size, regs[1].size);
          ll->add_mapped_region(name_addrs[i].dataAddr, regs[1].size);
       }
       at->libs.push_back(ll);
@@ -305,6 +303,7 @@ static map<string, Archive *> openedArchives;
 Symtab *LoadedLib::getSymtab()
 {
    assert(0);
+   return NULL;
 }
 
 Symtab *LoadedLibAIX::getSymtab()
@@ -398,6 +397,23 @@ void LoadedLibAIX::setReals()
    }
 
    reals_set = true;
+}
+
+Address LoadedLibAIX::offToAddress(Offset off)
+{
+   setReals();
+   
+   Address addr = off;
+
+   if ((imageOffset < dataOffset && addr >= imageOffset && addr < dataOffset) ||
+       (imageOffset > dataOffset && addr > imageOffset))
+   {
+      return addr + real_codeBase;
+   }
+   else 
+   {
+      return addr + real_dataBase;
+   }
 }
 
 Address LoadedLibAIX::symToAddress(Symbol *sym)
