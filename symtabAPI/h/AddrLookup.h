@@ -12,10 +12,10 @@ namespace SymtabAPI {
 class AddressTranslate;
 class LoadedLib;
 
-//Needed for Linux
+//Needed for Linux and Solaris
 class ProcessReader {
  public:
-   int pid;
+   PID pid;
 
    ProcessReader(PID pid_);
 
@@ -48,7 +48,10 @@ class AddressLookup
    DLLEXPORT static AddressLookup *createAddressLookup(const std::vector<LoadedLibrary> &name_addrs);
    
    DLLEXPORT bool getAddress(Symtab *tab, Symbol *sym, Address &addr);
+   DLLEXPORT bool getAddress(Symtab *tab, Offset off, Address &addr);
+
    DLLEXPORT bool getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool close = false);
+   DLLEXPORT bool getOffset(Address addr, Symtab* &tab, Offset &off);
    
    DLLEXPORT bool getAllSymtabs(std::vector<Symtab *> &tabs);
    DLLEXPORT bool getLoadAddress(Symtab* sym, Address &load_addr);
