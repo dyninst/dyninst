@@ -47,6 +47,15 @@ AddressLookup *AddressLookup::createAddressLookup(const std::vector<LoadedLibrar
    return ar;
 }
 
+bool AddressLookup::getAddress(Symtab *tab, Offset off, Address &addr)
+{
+   LoadedLib *ll = translator->getLoadedLib(tab);
+   if (!ll)
+      return false;
+   addr = ll->offToAddress(off);
+   return true;
+}
+
 bool AddressLookup::getAddress(Symtab *tab, Symbol *sym, Address &addr)
 {
    LoadedLib *ll = translator->getLoadedLib(tab);
@@ -80,6 +89,21 @@ vector<Symbol *> *AddressLookup::getSymsVector(LoadedLib *lib)
    return &(syms[str]);
 }
 
+bool AddressLookup::getOffset(Address addr, Symtab* &tab, Offset &off)
+{
+   LoadedLib *lib;
+   bool result;
+
+   result = translator->getLibAtAddress(addr, lib);
+   if (!result || !lib) {
+      return false;
+   }
+
+   off = lib->addrToOffset(addr);
+   tab = lib->getSymtab();
+   return true;
+}
+
 bool AddressLookup::getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool close)
 {
    LoadedLib *lib;
@@ -87,14 +111,12 @@ bool AddressLookup::getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool clo
 
    result = translator->getLibAtAddress(addr, lib);
    if (!result || !lib) {
-      fprintf(stderr, "Couldn't getLibAtAddress\n");
       return false;
    }
 
    tab = lib->getSymtab();
    vector<Symbol *> *symbols = getSymsVector(lib);
    if (!symbols) {
-      fprintf(stderr, "Couldn't getSyms\n");
       return false;
    }
    
@@ -141,7 +163,6 @@ bool AddressLookup::getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool clo
       return true;
    }
 
-   fprintf(stderr, "Couldn't findSym\n");
    return false;
 }
 
