@@ -421,8 +421,8 @@ void emitElf::fixPhdrs(unsigned loadSecTotalSize)
 }
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
-void emitElf::updateDynamic(Elf_Data* dynData,  Elf32_Addr relAddr){
-}
+//void emitElf::updateDynamic(Elf_Data* dynData,  Elf32_Addr relAddr){
+//}
 
 //This method updates the symbol table,
 //it shifts each symbol address as necessary AND
