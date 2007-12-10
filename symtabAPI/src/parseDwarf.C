@@ -462,7 +462,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 			if( loc != NULL ) { 
 				loc->stClass = storageRegOffset;
 				loc->refClass = storageNoRef;
-                		loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
+                		loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
 			}
 			opStack.push( locations[i].lr_number );
 			continue;
@@ -840,7 +840,7 @@ bool SymtabAPI::walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	Dwarf_Off dieOffset;
 	status = dwarf_dieoffset( dieEntry, & dieOffset, NULL );
 	DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-	
+
 	Dwarf_Off dieCUOffset;
 	status = dwarf_die_CU_offset( dieEntry, & dieCUOffset, NULL );
 	DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -2054,7 +2054,7 @@ void Object::parseDwarfTypes( Symtab *objFile) {
         for(;variableIter!=moduleTypes->globalVarsByName.end();variableIter++){ 
 	    if(variableIter->second->getDataClass() == dataUnknownType && 
   	        moduleTypes->findType( variableIter->second->getID() ) != NULL ) {
-	        moduleTypes->globalVarsByName[ variableName ] = moduleTypes->findType( variableIter->second->getID() );
+	        moduleTypes->globalVarsByName[ variableIter->first ] = moduleTypes->findType( variableIter->second->getID() );
 	    } /* end if data class is unknown but the type exists. */
 	} /* end iteration over variables. */
 
