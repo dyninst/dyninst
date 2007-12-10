@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.20 2007/12/04 18:05:52 legendre Exp $
+ * $Id: Object-elf.C,v 1.21 2007/12/10 22:27:48 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -132,6 +132,21 @@ struct  SectionHeaderSortFunction: public binary_function<Elf_X_Shdr *, Elf_X_Sh
 	}
 };
 
+/* binary search to find the section starting at a particular address */
+Elf_X_Shdr *Object::getSectionHdrByAddr(Offset addr) {
+    unsigned end = allSectionHdrs.size() - 1, start = 0;
+    while(start < end) {
+        unsigned mid = start + (end-start)/2;
+        if(allSectionHdrs[mid]->sh_addr() == addr)
+            return allSectionHdrs[mid];
+        else if(allSectionHdrs[mid]->sh_addr() < addr)
+            start = mid;
+        else
+            end = mid;
+    }
+    return NULL;
+}
+
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
 bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
@@ -139,10 +154,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 			Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
 			Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
 			Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
-			Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp, 
-			Elf_X_Shdr*& dynstr_scnp,  Elf_X_Shdr*& eh_frame, 
-         Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
-			bool
+            Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
+            Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, Elf_X_Shdr*& eh_frame, 
+            Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp, bool
 #if defined(os_irix)
 			a_out  // variable not used on other platforms
 #endif
@@ -210,6 +224,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     rel_plt_addr_ = 0;
     rel_plt_size_ = 0;
     rel_plt_entry_size_ = 0;
+    rel_size_ = 0;
+    rel_entry_size_ = 0;
     stab_off_ = 0;
     stab_size_ = 0;
     stabstr_off_ = 0;
@@ -380,37 +396,38 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       interp_scnp = scnp;
    }
 //TODO clean up this. it is ugly
-#if defined(arch_x86)
-	else if (strcmp(name, DYNAMIC_NAME) == 0) {
-	    dynamic_addr_ = scnp->sh_addr();
-	}
-#endif
-
 #if defined(arch_ia64)
 	else if (strcmp(name, DYNAMIC_NAME) == 0) {
+        dynamic_scnp = scnp;
+        dynamic_addr_ = scnp->sh_addr()
 	    Elf_X_Data data = scnp->get_data();
 	    Elf_X_Dyn dyns = data.get_dyn();
 	    for (unsigned i = 0; i < dyns.count(); ++i) {
-		switch(dyns.d_tag(i)) {
-		case DT_PLTGOT:
-		    this->gp = dyns.d_ptr(i);
-		    // /* DEBUG */ fprintf( stderr, "%s[%d]: GP = 0x%lx\n", __FILE__, __LINE__, this->gp );
-		    break;
-
-		default:
-		    break;
-		} // switch
-	    } // for
+	    	switch(dyns.d_tag(i)) {
+    	    	case DT_PLTGOT:
+	    	        this->gp = dyns.d_ptr(i);
+		            // /* DEBUG */ fprintf( stderr, "%s[%d]: GP = 0x%lx\n", __FILE__, __LINE__, this->gp );
+        		    break;
+    
+	        	default:
+		            break;
+        	} // switch
+        } // for
+	}
+#else
+	else if (strcmp(name, DYNAMIC_NAME) == 0) {
+        dynamic_scnp = scnp;
+	    dynamic_addr_ = scnp->sh_addr();
 	}
 #endif /* ia64_unknown_linux2_4 */
     }
 
     if(!symscnp || !strscnp) {
     	isStripped = true;
-	if(dynsym_scnp && dynstr_scnp){
-	    symscnp = dynsym_scnp;
-	    strscnp = dynstr_scnp;
-	}
+	    if(dynsym_scnp && dynstr_scnp){
+	        symscnp = dynsym_scnp;
+	        strscnp = dynstr_scnp;
+	    }
     }
 
     loadAddress_ = 0x0;
@@ -458,6 +475,79 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 bool Object::is_offset_in_plt(Offset offset) const
 {
   return (offset > plt_addr_ && offset < plt_addr_ + plt_size_);
+}
+
+void Object::parseDynamic(Elf_X_Shdr *& dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
+                                                    Elf_X_Shdr *&dynstr_scnp)
+{
+    Elf_X_Data data = dyn_scnp->get_data();
+    Elf_X_Dyn dyns = data.get_dyn();
+    for (unsigned i = 0; i < dyns.count(); ++i) {
+        switch(dyns.d_tag(i)) {
+          case DT_REL:
+          case DT_RELA:
+                /*found Relocation section*/
+                Elf_X_Shdr *rel_scnp = getSectionHdrByAddr(dyns.d_ptr(i));
+                rel_size_ = rel_scnp->sh_size();
+                rel_entry_size_ = rel_scnp->sh_entsize();
+                get_relocationDyn_entries(rel_scnp, dynsym_scnp, dynstr_scnp);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+/* parse relocations for the sections represented by DT_REL/DT_RELA in
+ * the dynamic section. This section is the one we would want to emit
+ */
+bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
+				     Elf_X_Shdr *&dynsym_scnp, 
+				     Elf_X_Shdr *&dynstr_scnp )
+{
+	Elf_X_Data reldata = rel_scnp->get_data();
+	Elf_X_Data symdata = dynsym_scnp->get_data();
+	Elf_X_Data strdata = dynstr_scnp->get_data();
+	
+    if( reldata.isValid() && symdata.isValid() && strdata.isValid() ) {
+	    Elf_X_Sym sym = symdata.get_sym();
+	    Elf_X_Rel rel = reldata.get_rel();
+	    Elf_X_Rela rela = reldata.get_rela();
+	    const char *strs = strdata.get_string();
+
+	    if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
+    		/* Iterate over the entries. */
+	    	for( u_int i = 0; i < (rel_size_/rel_entry_size_); ++i ) {
+		        long offset;
+		        long index;
+
+    		    switch (reldata.d_type()) {
+	    	      case ELF_T_REL:
+    			    offset = rel.r_offset(i);
+	    	    	index = rel.R_SYM(i);
+        			break;
+
+	 	          case ELF_T_RELA:
+        			offset = rela.r_offset(i);
+	        		index = rela.R_SYM(i);
+        			break;
+
+     		      default:
+    	    		// We should never reach this case.
+	    	    	return false;
+		        };
+		        // /* DEBUG */ fprintf( stderr, "%s: relocation information for target 0x%lx\n", __FUNCTION__, next_plt_entry_addr );
+    		    relocationEntry re( offset, string( &strs[ sym.st_name(index) ] ) );
+                if(symbols_.find(&strs[ sym.st_name(index)]) != symbols_.end()){
+                    vector<Symbol *> syms = symbols_[&strs[ sym.st_name(index)]];
+                    re.addDynSym(syms[0]);
+                }
+	    	    relocation_table_.push_back(re);
+	    	}
+		return true;
+	    }
+    }
+    return false;
 }
 
 bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
@@ -527,7 +617,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
 		    // /* DEBUG */ fprintf( stderr, "%s: relocation information for target 0x%lx\n", __FUNCTION__, next_plt_entry_addr );
 		    relocationEntry re( next_plt_entry_addr, offset, string( &strs[ sym.st_name(index) ] ) );
-		    relocation_table_.push_back(re);
+		    fbt_.push_back(re);
 
 #if ! defined( arch_ia64 )
 		    next_plt_entry_addr += plt_entry_size_;
@@ -581,6 +671,7 @@ void Object::load_object()
     Elf_X_Shdr *got_scnp = 0;
     Elf_X_Shdr *dynsym_scnp = 0;
     Elf_X_Shdr *dynstr_scnp = 0;
+    Elf_X_Shdr *dynamic_scnp = 0;
     Elf_X_Shdr *eh_frame_scnp = 0;
     Elf_X_Shdr *gcc_except = 0;
     Elf_X_Shdr *interp_scnp = 0;
@@ -606,7 +697,7 @@ void Object::load_object()
 	if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
 			stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 			rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
-			dynstr_scnp,eh_frame_scnp,gcc_except, interp_scnp, true)) {
+			dynstr_scnp, dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true)) {
 	    goto cleanup;
 	}
 	addressWidth_nbytes = elfHdr.wordSize();
@@ -660,7 +751,7 @@ void Object::load_object()
 	}   
 	sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
 	//VECTOR_SORT(allsymbols,symbol_compare);
-
+   	
 	no_of_symbols_ = allsymbols.size();
 	fix_zero_function_sizes(allsymbols, 0);
 
@@ -678,6 +769,22 @@ void Object::load_object()
 
 	// DWARF format (.debug_info section)
 	fix_global_symbol_modules_static_dwarf(elfHdr);
+    
+    if (dynsym_scnp && dynstr_scnp && !isStripped)
+	{
+   	   symdata = dynsym_scnp->get_data();
+   	   strdata = dynstr_scnp->get_data();
+ 	   parse_dynamicSymbols(symdata, strdata, false, module);
+	}
+    //TODO
+    //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
+    //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
+    //         symbols only in dynsymtab & symbols present in both).
+    // Else add dynamic symbol to dictionary
+    // (or) Have two sepearate dictionaries. Makes life easy!
+    // Think about it today!!
+    
+    //allsymbols = merge(allsymbols, alldynSymbols);
         
 #if defined(TIMED_PARSE)
 	struct timeval endtime;
@@ -688,8 +795,11 @@ void Object::load_object()
 	double dursecs = difftime/(1000);
 	cout << "parsing/fixing/overriding elf took "<<dursecs <<" msecs" << endl;
 #endif
+    if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
+        parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
+    }
 
-	// populate "relocation_table_"
+	// populate "fbt_"
 	if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
 	    if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
           	goto cleanup;
@@ -732,6 +842,7 @@ void Object::load_shared_object()
     Elf_X_Shdr *got_scnp = 0;
     Elf_X_Shdr *dynsym_scnp = 0;
     Elf_X_Shdr *dynstr_scnp = 0;
+    Elf_X_Shdr *dynamic_scnp = 0;
     Elf_X_Shdr *eh_frame_scnp = 0;
     Elf_X_Shdr *gcc_except = 0;
     Elf_X_Shdr *interp_scnp = 0;
@@ -747,7 +858,7 @@ void Object::load_shared_object()
 	if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
 			stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 			rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp,
-			dynstr_scnp, eh_frame_scnp, gcc_except, interp_scnp))
+			dynstr_scnp, dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
 	    goto cleanup2;
 
 	addressWidth_nbytes = elfHdr.wordSize();
@@ -785,7 +896,7 @@ void Object::load_shared_object()
 	       goto cleanup2;
 	   }
  	   parse_symbols(allsymbols, symdata, strdata, false, module);
-	}   
+	} 
 	sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
 	//VECTOR_SORT(allsymbols,symbol_compare);
 	no_of_symbols_ = allsymbols.size();
@@ -803,6 +914,22 @@ void Object::load_shared_object()
 
 //	// DWARF format (.debug_info section)
 //	fix_global_symbol_modules_static_dwarf(elfHdr);
+
+    if (dynsym_scnp && dynstr_scnp && !isStripped)
+    {
+       symdata = dynsym_scnp->get_data();
+       strdata = dynstr_scnp->get_data();
+       parse_dynamicSymbols(symdata, strdata, false, module);
+    }
+    //TODO
+    //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
+    //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
+    //         symbols only in dynsymtab & symbols present in both).
+    // Else add dynamic symbol to dictionary
+    // (or) Have two sepearate dictionaries. Makes life easy!
+    // Think about it today!!
+
+    //allsymbols = merge(allsymbols, alldynSymbols);
         
 #if defined(TIMED_PARSE)
     	struct timeval endtime;
@@ -814,7 +941,10 @@ void Object::load_shared_object()
 	cout << "*INSERT SYMBOLS* elf took "<<dursecs <<" msecs" << endl;
 	//cout << "parsing/fixing/overriding/insertion elf took "<<dursecs <<" msecs" << endl;
 #endif
-
+    if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
+        parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
+    }
+    
 	if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
 	    if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
 		goto cleanup2;
@@ -862,26 +992,6 @@ static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
   return Symbol::SL_UNKNOWN;
 }
 
-static int elfSymType(Symbol::SymbolType sType)
-{
-  switch (sType) {
-  case Symbol::ST_MODULE: return STT_FILE;
-  case Symbol::ST_OBJECT: return STT_OBJECT;
-  case Symbol::ST_FUNCTION: return STT_FUNC;
-  case Symbol::ST_NOTYPE : return STT_NOTYPE;
-  default: return STT_SECTION;
-  }
-}
-
-static int elfSymBind(Symbol::SymbolLinkage sLinkage)
-{
-  switch (sLinkage) {
-  case Symbol::SL_LOCAL: return STB_LOCAL;
-  case Symbol::SL_WEAK: return STB_WEAK;
-  case Symbol::SL_GLOBAL: return STB_GLOBAL;
-  default: return STB_LOPROC;
-  }
-}
 //============================================================================
 
 //#include "dyninstAPI/src/arch.h"
@@ -960,19 +1070,80 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
      
       Section *sec;
       if(secNumber >= 1 && secNumber <= sections_.size())
-	 sec = sections_[secNumber];
+    	 sec = sections_[secNumber];
       else
          sec = NULL;		
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
           (shared) && (sname == extract_pathname_tail(smodule))) {
-         
-         // symbols_[sname] = newsym; // special case
-         symbols_[sname].push_back( newsym );
+              // symbols_[sname] = newsym; // special case
+              symbols_[sname].push_back( newsym );
       } else {
-         allsymbols.push_back(newsym); // normal case
+            allsymbols.push_back(newsym); // normal case
       }
+   }
+
+#if defined(TIMED_PARSE)
+    struct timeval endtime;
+    gettimeofday(&endtime, NULL);
+    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+    unsigned long difftime = lendtime - lstarttime;
+    double dursecs = difftime/(1000 * 1000);
+    cout << "parsing elf took "<<dursecs <<" secs" << endl;
+#endif
+    //if (addressWidth_nbytes == 8) fprintf(stderr, ">>> 64-bit parse_symbols() successful\n");
+}
+
+// parse_symbols(): populate "allsymbols"
+// Lazy parsing of dynamic symbol  & string tables
+// Parsing the dynamic symbols lazily would certainly not increase the overhead of the entire parse
+void Object::parse_dynamicSymbols ( Elf_X_Data &symdata, Elf_X_Data &strdata,
+			   bool shared, string smodule)
+{
+#if defined(TIMED_PARSE)
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
+#endif
+  
+   Elf_X_Sym syms = symdata.get_sym();
+   const char *strs = strdata.get_string();
+   for (unsigned i = 0; i < syms.count(); i++) {
+      // skip undefined symbols
+      int etype = syms.ST_TYPE(i);
+      int ebinding = syms.ST_BIND(i);
+      
+      // resolve symbol elements
+      string sname = &strs[ syms.st_name(i) ];
+      Symbol::SymbolType stype = pdelf_type(etype);
+      Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
+      unsigned ssize = syms.st_size(i);
+      Offset saddr = syms.st_value(i);
+      unsigned secNumber = syms.st_shndx(i);
+      if(symbols_.find(sname) != symbols_.end()) {
+          vector<Symbol *> syms = symbols_[sname];
+          for(unsigned i = 0; i < syms.size(); i++){
+              if(syms[i]->getAddr() == saddr)
+                  syms[i]->setDynSymtab();
+          }
+          continue;
+       }
+      
+      if (stype == Symbol::ST_UNKNOWN) continue;
+      if (slinkage == Symbol::SL_UNKNOWN) continue;
+     
+      Section *sec;
+      if(secNumber >= 1 && secNumber <= sections_.size())
+    	 sec = sections_[secNumber];
+      else
+         sec = NULL;		
+      
+      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, NULL, true, false);
+      // register symbol in dictionary
+         
+      // symbols_[sname] = newsym; // special case
+      symbols_[sname].push_back( newsym );
    }
 
 #if defined(TIMED_PARSE)
@@ -2199,6 +2370,7 @@ Object::Object(const Object& obj)
     loadAddress_ = obj.loadAddress_;
     entryAddress_ = obj.entryAddress_;
     relocation_table_ = obj.relocation_table_;
+    fbt_ = obj.fbt_;
     elfHdr = obj.elfHdr;
 }
 
@@ -2216,10 +2388,13 @@ Object::operator=(const Object& obj) {
     rel_plt_addr_ = obj.rel_plt_addr_;
     rel_plt_size_ = obj.rel_plt_size_;
     rel_plt_entry_size_ = obj.rel_plt_entry_size_;
+    rel_size_ = obj.rel_size_;
+    rel_entry_size_ = obj.rel_entry_size_;
     stab_off_ = obj.stab_off_;
     stab_size_ = obj.stab_size_;
     stabstr_off_ = obj.stabstr_off_;
     relocation_table_  = obj.relocation_table_;
+    fbt_  = obj.fbt_;
     dwarvenDebugInfo = obj.dwarvenDebugInfo;
     symbolNamesByAddr = obj.symbolNamesByAddr;
     elfHdr = obj.elfHdr; 
@@ -2239,14 +2414,19 @@ void Object::log_elferror(void (*err_func)(const char *), const char* msg) {
 }
 
 bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const {
-    if(!plt_addr_ || (!relocation_table_.size())) return false;
-    fbt = relocation_table_;
+    if(!plt_addr_ || (!fbt_.size())) return false;
+    fbt = fbt_;
     return true;
 }
 
 bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const {
-    if(!plt_addr_ || (!relocation_table_.size())) return false;
-    fbt = &relocation_table_;
+    if(!plt_addr_ || (!fbt_.size())) return false;
+    fbt = &fbt_;
+    return true;
+}
+
+bool Object::addRelocationEntry(relocationEntry &re){
+    relocation_table_.push_back(re);
     return true;
 }
 
@@ -2270,15 +2450,17 @@ const ostream &Object::dump_state_info(ostream &s)
   s << " rel_plt_addr_ = " << rel_plt_addr_ << endl; 
   s << " rel_plt_size_ = " << rel_plt_size_ << endl;
   s << " rel_plt_entry_size_ = " << rel_plt_entry_size_ << endl;
+  s << " rel_size_ = " << rel_size_ << endl;
+  s << " rel_entry_size_ = " << rel_entry_size_ << endl;
   s << " stab_off_ = " << stab_off_ << endl;
   s << " stab_size_ = " << stab_size_ << endl;
   s << " stabstr_off_ = " << stabstr_off_ << endl;
   s << " dwarvenDebugInfo = " << dwarvenDebugInfo << endl;
 
   // and dump the relocation table....
-  s << " relocation_table_ = (field seperator :: )" << endl;   
-  for (unsigned i=0; i < relocation_table_.size(); i++) {
-    s << relocation_table_[i] << " :: "; 
+  s << " fbt_ = (field seperator :: )" << endl;   
+  for (unsigned i=0; i < fbt_.size(); i++) {
+    s << fbt_[i] << " :: "; 
   }
   s << endl;
 
@@ -2293,10 +2475,10 @@ Offset Object::getPltSlot(string funcName) const{
 	relocationEntry re;
 	bool found= false;
 	Offset offset=0;
-	for( unsigned int i = 0; i < relocation_table_.size(); i++ ){
-		if(funcName == relocation_table_[i].name() ){
+	for( unsigned int i = 0; i < fbt_.size(); i++ ){
+		if(funcName == fbt_[i].name() ){
 			found = true;
-			offset =  relocation_table_[i].rel_addr();
+			offset =  fbt_[i].rel_addr();
 		}
 
 	}
@@ -3083,717 +3265,19 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
-bool getBackSymbol(Symbol *symbol, std::vector<Elf32_Sym *>&syms, unsigned &len, std::vector<string> &strs)
-{
-   Elf32_Sym *sym = new Elf32_Sym();
-   sym->st_name = len;
-   strs.push_back(symbol->getName());
-   len += symbol->getName().length()+1;
-   sym->st_value = symbol->getAddr();
-   sym->st_size = symbol->getSize();
-   sym->st_other = 0;
-   sym->st_info = ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
-   if(symbol->getSec())
-	sym->st_shndx = symbol->getSec()->getSecNumber();
-   syms.push_back(sym);
-   std::vector<string> names = symbol->getAllMangledNames();
-   for(unsigned i=1;i<names.size();i++)
-   {
-   	sym = new Elf32_Sym();
-	sym->st_name = len;
-	strs.push_back(names[i]);
-   	len += names[i].length()+1;
-	sym->st_value = symbol->getAddr();
-	sym->st_size = 0;
-   	sym->st_other = 0;
-   	sym->st_info = ELF32_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
-   	if(symbol->getSec())
-	    sym->st_shndx = symbol->getSec()->getSecNumber();
-	else if(symbol->getType() == Symbol::ST_MODULE)
-	    sym->st_shndx = SHN_ABS;
-   	syms.push_back(sym);
-   }
-   return true;
-}
-
 bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag){
     if(elfHdr.e_ident()[EI_CLASS] == 1) {
         emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
-        em->checkIfStripped(obj ,functions, variables, mods, notypes); 
+        em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
         return em->driver(obj, fName);
     }
     else if(elfHdr.e_ident()[EI_CLASS] == 2) {
         emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, err_func_);
-        em->checkIfStripped(obj ,functions, variables, mods, notypes); 
+        em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
         return em->driver(obj, fName);
     }
     return false;
 }
-
-#if 0
-bool Object::checkIfStripped( Symtab *obj, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
-{
-    unsigned i;
-    std::vector<Elf32_Sym *> symbols;
-    unsigned length = 1;
-    std::vector<string> strs;
-    strs.push_back("");
-    for(i=0; i<functions.size();i++)
-        getBackSymbol(functions[i], symbols, length, strs);
-    for(i=0; i<variables.size();i++)
-        getBackSymbol(variables[i], symbols, length, strs);
-    for(i=0; i<mods.size();i++)
-        getBackSymbol(mods[i], symbols, length, strs);
-    for(i=0; i<notypes.size();i++)
-        getBackSymbol(notypes[i], symbols, length, strs);
-    Elf32_Sym *syms = (Elf32_Sym *)malloc(symbols.size()* sizeof(Elf32_Sym));
-    for(i=0;i<symbols.size();i++)
-        syms[i] = *(symbols[i]);
-    --length;
-    char *str = (char *)malloc(length);
-    unsigned cur=0;
-    for(i=0;i<strs.size();i++)
-    {
-        strcpy(&str[cur],strs[i].c_str());
-        cur+=strs[i].length()+1;
-    }
-    
-    char *data = (char *)malloc(symbols.size()*sizeof(Elf32_Sym));
-    memcpy(data,syms, symbols.size()*sizeof(Elf32_Sym));
-
-    if(!isStripped)
-    {
-        Section *sec;
-        obj->findSection(sec,".symtab");
-        sec->setPtrToRawData(data, symbols.size()*sizeof(Elf32_Sym));
-    }
-    else
-        obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 8);
-						
-//    obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 8);
-
-    char *strData = (char *)malloc(length);
-    memcpy(strData, str,length);
-    
-    if(!isStripped)
-    {
-        Section *sec;
-        obj->findSection(sec,".strtab");
-        sec->setPtrToRawData(strData, length);
-    }
-    else
-        obj->addSection(0, strData, length , ".strtab", 16);
-						
-//    obj->addSection(0, strData, length, ".strtab", 16);
-    return true;
-}
-
-bool Object::writeBackSymbols( string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
-{
-    int newfd;
-    unsigned i;
-    Elf *newElf;
-    Elf *oldElf = elfHdr.e_elfp();
-    unsigned pgSize = getpagesize();
-    Elf32_Off dynSegOffset;	 	   
-    if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT)))==-1){ 
-        log_elferror(err_func_, "error opening file to write symbols");
-        return false;
-    }
-    if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
-        log_elferror(err_func_, "NEWELF_BEGIN_FAIL");
-        fflush(stdout);
-        return false;
-    }
-    
-    // ".shstrtab" section: string table for section header names
-    const char *shnames = pdelf_get_shnames(elfHdr);
-    if (shnames == NULL) {
-        log_elferror(err_func_, ".shstrtab section");
-        return false;
-    }
-
-    std::vector<Elf32_Sym *> symbols;
-    unsigned length = 1;
-    std::vector<string> strs;
-    strs.push_back("");
-    for(i=0; i<functions.size();i++)
-        getBackSymbol(functions[i], symbols, length, strs);
-    for(i=0; i<variables.size();i++)
-        getBackSymbol(variables[i], symbols, length, strs);
-    for(i=0; i<mods.size();i++)
-        getBackSymbol(mods[i], symbols, length, strs);
-    for(i=0; i<notypes.size();i++)
-        getBackSymbol(notypes[i], symbols, length, strs);
-    Elf32_Sym *syms = (Elf32_Sym *)malloc(symbols.size()* sizeof(Elf32_Sym));
-    for(i=0;i<symbols.size();i++)
-        syms[i] = *(symbols[i]);
-    --length;
-    char *str = (char *)malloc(length);
-    unsigned cur=0;
-    for(i=0;i<strs.size();i++)
-    {
-        strcpy(&str[cur],strs[i].c_str());
-        cur+=strs[i].length()+1;
-    }
-    	
-    // Write the Elf header first!
-    Elf32_Ehdr *newEhdr= elf32_newehdr(newElf);
-    if(!newEhdr){
-        log_elferror(err_func_, "newEhdr failed\n");
-        return false;
-    }
-    Elf32_Ehdr *oldEhdr = elf32_getehdr(oldElf);
-    memcpy(newEhdr, oldEhdr, sizeof(Elf32_Ehdr));
-    if(isStripped)
-        newEhdr->e_shnum += 2;
-    
-    Elf32_Phdr *tmp = elf32_getphdr(oldElf);
-    // Find the offset of the start of the dynamic segment  
-    for(i=0;i<oldEhdr->e_phnum;i++)
-    {
-        if(tmp->p_type == PT_LOAD && tmp->p_flags == 6)
-        {
-            dynSegOffset = tmp->p_offset;
-            break;
-        }
-        tmp++;
-    }	
-    Elf32_Shdr *prevHdr,*newshdr, *shdr, *dynHdr, *ctorHdr, *ehframeHdr;
-    Elf32_Sym *sym;
-    Elf_Scn *scn, *newscn, *prevscn;
-    Elf_Data *newdata = NULL, *olddata = NULL, *symStrData, *symTabData;
-    scn = NULL;
-    unsigned shstrtabSize = 0;
-    unsigned scncount;
-    std::vector<Elf32_Sym *>sectionSymbols;
-    if(isStripped)
-    {
-        sym = new Elf32_Sym();
-        sym->st_name = 0;
-        sym->st_value = 0;
-        sym->st_size = 0;
-        sym->st_other = 0;
-        sym->st_info = ELF32_ST_INFO(0, 0);
-        sym->st_shndx = SHN_UNDEF;
-        sectionSymbols.push_back(sym);
-    }
-    prevHdr = NULL;
-    for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
-    	//copy sections from oldElf to newElf
-        shdr = elf32_getshdr(scn);
-        if(isStripped)
-        {
-            sym = new Elf32_Sym();
-            sym->st_name = 0;
-            sym->st_value = shdr->sh_addr;
-            sym->st_size = 0;
-            sym->st_other = 0;
-            sym->st_info = ELF32_ST_INFO(0, 3);
-            sym->st_shndx = scncount+1;
-            sectionSymbols.push_back(sym);
-        }
-        if((newscn = elf_newscn(newElf)) == NULL)
-        {
-            log_elferror(err_func_, "unable to create new function");	
-            return false;
-        }    
-	
-	// resolve section name
-        const char *name = &shnames[shdr->sh_name];
-
-	//Hack : Trying to maintain the same offsets 
-        if(shdr->sh_offset == dynSegOffset)
-        {
-            if(prevHdr)
-            {	
-                Elf32_Off off = dynSegOffset - (prevHdr->sh_size + prevHdr->sh_offset);
-                Elf_Data *dat = elf_getdata(prevscn,NULL);
-                char *ptr = (char *)dat->d_buf+dat->d_size;
-                ptr = (char *)malloc(off);
-                memset(ptr, '\0', off);
-                dat->d_size += off;
-                prevHdr->sh_size += off;
-            }	
-        }
-        olddata = elf_getdata(scn,NULL);
-        if ((newdata = elf_newdata(newscn)) == NULL)
-        {
-            log_elferror(err_func_, "unable to create section data");	
-            return false;
-        } 
-
-        newshdr = elf32_getshdr(newscn);
-        memcpy(newshdr, shdr, sizeof(Elf32_Shdr));
-        memcpy(newdata, olddata, sizeof(Elf_Data));
-
-        if(!strcmp(name, ".strtab"))
-        {
-            newdata->d_buf = malloc(length);
-            memcpy(newdata->d_buf, str,length);
-            newdata->d_size = length;
-            newshdr->sh_size = length;
-            symStrData = newdata;
-        } 
-        else if(!strcmp(name, ".symtab"))
-        {
-            newdata->d_buf = malloc((oldEhdr->e_shnum+symbols.size())*sizeof(Elf32_Sym));
-            memcpy(newdata->d_buf,olddata->d_buf, (oldEhdr->e_shnum)*sizeof(Elf32_Sym));
-            char *newPtr = (char *)newdata->d_buf+oldEhdr->e_shnum*sizeof(Elf32_Sym);
-            memcpy(newPtr,syms, symbols.size()*sizeof(Elf32_Sym));
-            newdata->d_size = (oldEhdr->e_shnum+symbols.size())*sizeof(Elf32_Sym);
-            newshdr->sh_size = newdata->d_size;
-            symTabData = newdata;
-        }   
-        else if(!strcmp(name, ".dynamic"))
-            dynHdr = newshdr;
-        else if(!strcmp(name, ".ctors"))
-            ctorHdr = newshdr;
-        else if(olddata->d_buf) 	//copy data buffer from oldElf
-        {
-            if(isStripped && !strcmp(name, ".shstrtab"))
-            {
-            	newdata->d_buf = (char *)malloc(olddata->d_size+16);
-            	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-                memcpy((char *)newdata->d_buf+olddata->d_size, ".symtab\0.strtab\0",16);
-                shstrtabSize = olddata->d_size;
-                newdata->d_size += 16;
-                newshdr->sh_size = newdata->d_size;
-            }
-	    else
-	    {
-            	newdata->d_buf = (char *)malloc(olddata->d_size);
-            	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-	    }
-        }
-        if(!strcmp(name, ".eh_frame"))
-        {
-	   // char *ptr = (char *)newdata->d_buf+newdata->d_size;
-	   // ptr = (char *)malloc(1108);
-	   // memset(ptr, '\0', 1108);
-	   // newdata->d_size += 1108;
-            ehframeHdr = newshdr;
-        }
-        prevHdr  =  newshdr;
-        prevscn = newscn;
-    }
-    if(isStripped)	//stripped binary
-    {
-        elf_update(newElf, ELF_C_NULL);
-        sym = new Elf32_Sym();
-        sym->st_name = 0;
-        sym->st_value = 0;
-        sym->st_size = 0;
-        sym->st_other = 0;
-        sym->st_info = ELF32_ST_INFO(0, 3);
-        sym->st_shndx = scncount+1;
-        sectionSymbols.push_back(sym);
-        sym = new Elf32_Sym();
-        sym->st_name = 0;
-        sym->st_value = 0;
-        sym->st_size = 0;
-        sym->st_other = 0;
-        sym->st_info = ELF32_ST_INFO(0, 3);
-        sym->st_shndx = scncount+2;
-        sectionSymbols.push_back(sym);
-    	// Add a new symtab section
-        if((newscn = elf_newscn(newElf)) == NULL)
-        {
-            log_elferror(err_func_, "unable to create new function");	
-            return false;
-        }    
-        if ((newdata = elf_newdata(newscn)) == NULL)
-        {
-            log_elferror(err_func_, "unable to create section data");	
-            return false;
-        } 
-
-	elf_update(newElf,ELF_C_NULL);
-        newshdr = elf32_getshdr(newscn);
-        newshdr->sh_name = shstrtabSize;
-        newshdr->sh_type = SHT_SYMTAB;
-        newshdr->sh_addr = 0;
-        newshdr->sh_link = oldEhdr->e_shnum+1;
-        newshdr->sh_info = 0;
-        newshdr->sh_addralign = 4;
-        newshdr->sh_entsize = sizeof(Elf32_Sym);
-        newdata->d_buf = malloc((oldEhdr->e_shnum+2+symbols.size())*sizeof(Elf32_Sym));
-        for(i=0;i<sectionSymbols.size();i++)
-            memcpy((char *)newdata->d_buf+i*sizeof(Elf32_Sym), sectionSymbols[i], sizeof(Elf32_Sym));
-        char *newPtr = (char *)newdata->d_buf+(oldEhdr->e_shnum+2)*sizeof(Elf32_Sym);
-        memcpy(newPtr,syms, symbols.size()*sizeof(Elf32_Sym));
-        newdata->d_size = (oldEhdr->e_shnum+2+symbols.size())*sizeof(Elf32_Sym);
-        newshdr->sh_size = newdata->d_size;
-        newdata->d_type = ELF_T_SYM;
-        newdata->d_align = 4;
-        newdata->d_version = 1;
-        symTabData = newdata;
-
-	// Add a new strtab section
-        if((newscn = elf_newscn(newElf)) == NULL)
-        {
-            log_elferror(err_func_, "unable to create new section");	
-            return false;
-        }    
-        if ((newdata = elf_newdata(newscn)) == NULL)
-        {
-            log_elferror(err_func_, "unable to create section data");	
-            return false;
-        } 
-	elf_update(newElf,ELF_C_NULL);
-        newshdr = elf32_getshdr(newscn);
-        newshdr->sh_name = shstrtabSize+8;
-        newshdr->sh_type = SHT_STRTAB;
-        newshdr->sh_addr = 0;
-        newshdr->sh_link = SHN_UNDEF;
-        newshdr->sh_info = 0;
-        newdata->d_buf = malloc(length);
-        newshdr->sh_addralign = 1;
-        newshdr->sh_entsize = 0;
-        memcpy(newdata->d_buf, str,length);
-        newdata->d_size = length;
-        newshdr->sh_size = length;
-        newdata->d_type = ELF_T_BYTE;
-        newdata->d_align = 1;
-        newdata->d_version = 1;
-        symStrData = newdata;
-    }
-   
-    tmp = elf32_getphdr(oldElf);
-    Elf32_Phdr *newPhdr=elf32_newphdr(newElf,oldEhdr->e_phnum);
-    memcpy(newPhdr, tmp, (oldEhdr->e_phnum)*oldEhdr->e_phentsize);
-
-//    elf_update(newElf, ELF_C_NULL);
-/*    for(i=0;i<newEhdr->e_phnum;i++)
-    {
-    if(newPhdr->p_type == PT_LOAD && newPhdr->p_flags == 6)
-    newPhdr->p_offset = ctorHdr->sh_offset;
-    else if(newPhdr->p_type == PT_DYNAMIC)
-    newPhdr->p_offset = dynHdr->sh_offset;	    
-    newPhdr++;    
-}*/
-/*
-    printf("Sections prior to update:\n");
-    for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
-    shdr = elf32_getshdr(scn);
-    const char *name = &shnames[shdr->sh_name];
-
-    printf("  %s (addr: 0x%x offset: 0x%x)\n",
-    name, shdr->sh_addr, shdr->sh_offset);
-}
-    printf("\n");
-*/
-    
-    /* flag the file for no auto-layout */
-    elf_flagelf(newElf,ELF_C_SET,ELF_F_LAYOUT);    
-
-    if (elf_update(newElf, ELF_C_WRITE) < 0){
-        log_elferror(err_func_, "elf_update failed");
-        return false;
-    }
-/*
-    printf("Sections after update:\n");
-    for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
-    shdr = elf32_getshdr(scn);
-    const char *name = &shnames[shdr->sh_name];
-
-    printf("  %s (addr: 0x%x offset: 0x%x)\n",
-    name, shdr->sh_addr, shdr->sh_offset);
-}
-    printf("\n");
-*/
-
-    elf_end(newElf);
-    close(newfd);
-    
-    return true;
-}
-
-bool Object::writeBackSymbols( string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes)
-{
-    int newfd;
-    unsigned i;
-    Elf *newElf;
-    Elf *oldElf = elfHdr.e_elfp();
-    unsigned pgSize = getpagesize();
-    Elf32_Off dynSegOffset;	 	   
-    if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT)))==-1){ 
- 	log_elferror(err_func_, "error opening file to write symbols");
-	return false;
-    }
-    if((newElf = elf_begin(newfd, ELF_C_WRITE, NULL)) == NULL){
-    	log_elferror(err_func_, "NEWELF_BEGIN_FAIL");
-        fflush(stdout);
-        return false;
-    }
-    
-    // ".shstrtab" section: string table for section header names
-    const char *shnames = pdelf_get_shnames(elfHdr);
-    if (shnames == NULL) {
-	log_elferror(err_func_, ".shstrtab section");
-	return false;
-    }
-
-    std::vector<Elf32_Sym *> symbols;
-    unsigned length = 1;
-    std::vector<string> strs;
-    strs.push_back("");
-    for(i=0; i<functions.size();i++)
-	getBackSymbol(functions[i], symbols, length, strs);
-    for(i=0; i<variables.size();i++)
-	getBackSymbol(variables[i], symbols, length, strs);
-    for(i=0; i<mods.size();i++)
-	getBackSymbol(mods[i], symbols, length, strs);
-    for(i=0; i<notypes.size();i++)
-	getBackSymbol(notypes[i], symbols, length, strs);
-    Elf32_Sym *syms = (Elf32_Sym *)malloc(symbols.size()* sizeof(Elf32_Sym));
-    for(i=0;i<symbols.size();i++)
-    	syms[i] = *(symbols[i]);
-    --length;
-    char *str = (char *)malloc(length);
-    unsigned cur=0;
-    for(i=0;i<strs.size();i++)
-    {
-    	strcpy(&str[cur],strs[i].c_str());
-	cur+=strs[i].length()+1;
-    }
-    	
-    // Write the Elf header first!
-    Elf32_Ehdr *newEhdr= elf32_newehdr(newElf);
-    if(!newEhdr){
-    	log_elferror(err_func_, "newEhdr failed\n");
-        return false;
-    }
-    Elf32_Ehdr *oldEhdr = elf32_getehdr(oldElf);
-    memcpy(newEhdr, oldEhdr, sizeof(Elf32_Ehdr));
-    if(isStripped)
-   	newEhdr->e_shnum += 2;
-    
-    Elf32_Phdr *tmp = elf32_getphdr(oldElf);
-    // Find the offset of the start of the dynamic segment  
-    for(i=0;i<oldEhdr->e_phnum;i++)
-    {
-	if(tmp->p_type == PT_LOAD && tmp->p_flags == 6)
-	{
-	    dynSegOffset = tmp->p_offset;
-	    break;
-	}
-	tmp++;
-    }	
-    Elf32_Shdr *prevHdr,*newshdr, *shdr, *dynHdr, *ctorHdr;
-    Elf32_Sym *sym;
-    Elf_Scn *scn, *newscn, *prevscn;
-    Elf_Data *newdata = NULL, *olddata = NULL, *symStrData, *symTabData;
-    scn = NULL;
-    unsigned shstrtabSize = 0;
-    unsigned scncount;
-    std::vector<Elf32_Sym *>sectionSymbols;
-    if(isStripped)
-    {
-        sym = new Elf32_Sym();
-        sym->st_name = 0;
-	sym->st_value = 0;
-	sym->st_size = 0;
-   	sym->st_other = 0;
-   	sym->st_info = ELF32_ST_INFO(0, 0);
-	sym->st_shndx = SHN_UNDEF;
-   	sectionSymbols.push_back(sym);
-    }
-    prevHdr = NULL;
-    for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
-    	//copy sections from oldElf to newElf
-	shdr = elf32_getshdr(scn);
-	if(isStripped)
-	{
-   	    sym = new Elf32_Sym();
-	    sym->st_name = 0;
-	    sym->st_value = shdr->sh_addr;
-	    sym->st_size = 0;
-   	    sym->st_other = 0;
-   	    sym->st_info = ELF32_ST_INFO(0, 3);
-	    sym->st_shndx = scncount+1;
-   	    sectionSymbols.push_back(sym);
-	}
-	if((newscn = elf_newscn(newElf)) == NULL)
-	{
-	    log_elferror(err_func_, "unable to create new function");	
-	    return false;
-	}    
-	
-	// resolve section name
-	const char *name = &shnames[shdr->sh_name];
-
-#if 0
-	//Hack : Trying to maintain the same offsets 
-	if(shdr->sh_offset == dynSegOffset)
-	{
-		if(prevHdr)
-	   	{
-			Elf32_Off off = dynSegOffset - (prevHdr->sh_size + prevHdr->sh_offset);
-			Elf_Data *dat = elf_getdata(prevscn,NULL);
-			char *ptr = (char *)dat->d_buf+dat->d_size;
-	   		ptr = (char *)malloc(off);
-	   		memset(ptr, '\0', off);
-			dat->d_size += off;
-			prevHdr->sh_size += off;
-		}	
-	}
-#endif	
-
-	olddata = elf_getdata(scn,NULL);
-        if ((newdata = elf_newdata(newscn)) == NULL)
-        {
-	    log_elferror(err_func_, "unable to create section data");	
-	    return false;
-	} 
-
-	newshdr = elf32_getshdr(newscn);
-	memcpy(newshdr, shdr, sizeof(Elf32_Shdr));
-	memcpy(newdata, olddata, sizeof(Elf_Data));
-
-	if(!strcmp(name, ".strtab"))
-	{
-	    newdata->d_buf = malloc(length);
-	    memcpy(newdata->d_buf, str,length);
-	    newdata->d_size = length;
-	    newshdr->sh_size = length;
-	    symStrData = newdata;
-	} 
-	else if(!strcmp(name, ".symtab"))
-	{
-	    newdata->d_buf = malloc((oldEhdr->e_shnum+symbols.size())*sizeof(Elf32_Sym));
-	    memcpy(newdata->d_buf,olddata->d_buf, (oldEhdr->e_shnum)*sizeof(Elf32_Sym));
-	    char *newPtr = (char *)newdata->d_buf+oldEhdr->e_shnum*sizeof(Elf32_Sym);
-	    memcpy(newPtr,syms, symbols.size()*sizeof(Elf32_Sym));
-	    newdata->d_size = (oldEhdr->e_shnum+symbols.size())*sizeof(Elf32_Sym);
-	    newshdr->sh_size = newdata->d_size;
-	    symTabData = newdata;
-	}   
-	else if(!strcmp(name, ".dynamic"))
-	   dynHdr = newshdr;
-	else if(!strcmp(name, ".ctors"))
-	   ctorHdr = newshdr;
-	else if(olddata->d_buf) 	//copy data buffer from oldElf
-	{
-	    newdata->d_buf = (char *)malloc(olddata->d_size+16);
-	    memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
-	    if(isStripped && !strcmp(name, ".shstrtab"))
-	    {
-	    	memcpy((char *)newdata->d_buf+olddata->d_size, ".symtab\0.strtab\0",16);
-		shstrtabSize = olddata->d_size;
-		newdata->d_size += 16;
-	    	newshdr->sh_size = newdata->d_size;
-	    }
-	}
-	//prevHdr  =  newshdr;
-	//prevscn = newscn;
-    }
-    if(isStripped)	//stripped binary
-    {
-    	elf_update(newElf, ELF_C_NULL);
-   	sym = new Elf32_Sym();
-	sym->st_name = 0;
-	sym->st_value = 0;
-	sym->st_size = 0;
-   	sym->st_other = 0;
-   	sym->st_info = ELF32_ST_INFO(0, 3);
-	sym->st_shndx = scncount+1;
-   	sectionSymbols.push_back(sym);
-   	sym = new Elf32_Sym();
-	sym->st_name = 0;
-	sym->st_value = 0;
-	sym->st_size = 0;
-   	sym->st_other = 0;
-   	sym->st_info = ELF32_ST_INFO(0, 3);
-	sym->st_shndx = scncount+2;
-   	sectionSymbols.push_back(sym);
-    	// Add a new symtab section
-	if((newscn = elf_newscn(newElf)) == NULL)
-	{
-	    log_elferror(err_func_, "unable to create new function");	
-	    return false;
-	}    
-        if ((newdata = elf_newdata(newscn)) == NULL)
-        {
-	    log_elferror(err_func_, "unable to create section data");	
-	    return false;
-	} 
-	
-	newshdr = elf32_getshdr(newscn);
-	newshdr->sh_name = shstrtabSize;
-	newshdr->sh_type = SHT_SYMTAB;
-	newshdr->sh_addr = 0;
-	newshdr->sh_link = oldEhdr->e_shnum+1;
-	newshdr->sh_info = 0;
-	newshdr->sh_addralign = 4;
-	newshdr->sh_entsize = sizeof(Elf32_Sym);
-	newdata->d_buf = malloc((oldEhdr->e_shnum+2+symbols.size())*sizeof(Elf32_Sym));
-	for(i=0;i<sectionSymbols.size();i++)
-	    memcpy((char *)newdata->d_buf+i*sizeof(Elf32_Sym), sectionSymbols[i], sizeof(Elf32_Sym));
-	char *newPtr = (char *)newdata->d_buf+(oldEhdr->e_shnum+2)*sizeof(Elf32_Sym);
-	memcpy(newPtr,syms, symbols.size()*sizeof(Elf32_Sym));
-	newdata->d_size = (oldEhdr->e_shnum+2+symbols.size())*sizeof(Elf32_Sym);
-	newshdr->sh_size = newdata->d_size;
-	newdata->d_type = ELF_T_SYM;
-	newdata->d_align = 4;
-	newdata->d_version = 1;
-	symTabData = newdata;
-
-	// Add a new strtab section
-	if((newscn = elf_newscn(newElf)) == NULL)
-	{
-	    log_elferror(err_func_, "unable to create new function");	
-	    return false;
-	}    
-        if ((newdata = elf_newdata(newscn)) == NULL)
-        {
-	    log_elferror(err_func_, "unable to create section data");	
-	    return false;
-	} 
-	newshdr = elf32_getshdr(newscn);
-	newshdr->sh_name = shstrtabSize+8;
-	newshdr->sh_type = SHT_STRTAB;
-	newshdr->sh_addr = 0;
-	newshdr->sh_link = SHN_UNDEF;
-	newshdr->sh_info = 0;
-	newdata->d_buf = malloc(length);
-	newshdr->sh_addralign = 1;
-	newshdr->sh_entsize = 0;
-	memcpy(newdata->d_buf, str,length);
-	newdata->d_size = length;
-	newshdr->sh_size = length;
-	newdata->d_type = ELF_T_BYTE;
-	newdata->d_align = 1;
-	newdata->d_version = 1;
-	symStrData = newdata;
-    }
-   
-    tmp = elf32_getphdr(oldElf);
-    Elf32_Phdr *newPhdr=elf32_newphdr(newElf,oldEhdr->e_phnum);
-    memcpy(newPhdr, tmp, (oldEhdr->e_phnum)*oldEhdr->e_phentsize);
-
-//    elf_update(newElf, ELF_C_NULL);
-/*    for(i=0;i<newEhdr->e_phnum;i++)
-    {
-	if(newPhdr->p_type == PT_LOAD && newPhdr->p_flags == 6)
-	    newPhdr->p_offset = ctorHdr->sh_offset;
-    	else if(newPhdr->p_type == PT_DYNAMIC)
-	    newPhdr->p_offset = dynHdr->sh_offset;	    
-	newPhdr++;    
-    }
-*/
-    /* flag the file for no auto-layout */
-    elf_flagelf(newElf, ELF_C_SET, ELF_F_LAYOUT);
-    if (elf_update(newElf, ELF_C_WRITE) < 0){
-    	log_elferror(err_func_, "elf_update failed");
-	return false;
-    }
-    elf_end(newElf);
-    close(newfd);
-    
-    return true;
-}
-#endif	//writeBack
 
 const char *Object::interpreter_name() const {
    return interpreter_name_;

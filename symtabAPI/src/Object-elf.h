@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.10 2007/12/04 18:05:53 legendre Exp $
+ * $Id: Object-elf.h,v 1.11 2007/12/10 22:27:49 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -198,7 +198,7 @@ class Object : public AObject {
   virtual ~Object();
   const Object& operator=(const Object &);
 
-  bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
+  bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);  
   
   const char *elf_vaddr_to_ptr(Offset vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
@@ -213,6 +213,8 @@ class Object : public AObject {
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
   bool get_func_binding_table(std::vector<relocationEntry> &fbt) const;
   bool get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const;
+
+  bool addRelocationEntry(relocationEntry &re);
 
   //getLoadAddress may return 0 on shared objects
   Offset getLoadAddress() const { return loadAddress_; }
@@ -311,6 +313,9 @@ class Object : public AObject {
   Offset   rel_plt_addr_;       // .rel[a].plt section
   unsigned  rel_plt_size_;       // .rel[a].plt section
   unsigned  rel_plt_entry_size_; // .rel[a].plt section
+  
+  unsigned  rel_size_;       // DT_REL/DT_RELA in dynamic section
+  unsigned  rel_entry_size_; // DT_REL/DT_RELA in dynamic section
 
   Offset   stab_off_;           // .stab section
   unsigned  stab_size_;          // .stab section
@@ -326,7 +331,7 @@ class Object : public AObject {
   Offset entryAddress_;
   char *interpreter_name_;
   bool  isStripped;
-          
+
 #if defined(arch_ia64)
   Offset   gp;			 // The gp for this object.
 #endif
@@ -342,6 +347,7 @@ class Object : public AObject {
   // is bound....is this correct???? or should it be <PLTentry_addr, name> 
   // for both?
   std::vector<relocationEntry> relocation_table_;
+  std::vector<relocationEntry> fbt_;
 
   // all section headers, sorted by address
   // we use these to do a better job of finding the end of symbols
@@ -361,10 +367,10 @@ class Object : public AObject {
   bool loaded_elf( Offset &, Offset &,
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
-		    Elf_X_Shdr* &, Elf_X_Shdr* &,
+		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
 		    Elf_X_Shdr*& got_scnp,  Elf_X_Shdr*& dynsym_scnp,
-		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& eh_frame,
+		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& dynamic_scnp, Elf_X_Shdr*& eh_frame,
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
           bool a_out=false);
   
@@ -382,11 +388,22 @@ class Object : public AObject {
 			      Elf_X_Shdr *&dynsym_scnp, 
 			      Elf_X_Shdr *&dynstr_scnp);
 
+  bool get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
+                     Elf_X_Shdr *&dynsym_scnp,
+                     Elf_X_Shdr *&dynstr_scnp );
+  
+  void parseDynamic(Elf_X_Shdr *& dyn_scnp, Elf_X_Shdr *&dynsym_scnp, 
+                    Elf_X_Shdr *&dynstr_scnp);
+  
   void parse_symbols(std::vector<Symbol *> &allsymbols, 
 		     Elf_X_Data &symdata, Elf_X_Data &strdata,
 		     bool shared_library,
 		     std::string module);
   
+  void parse_dynamicSymbols( Elf_X_Data &symdata,
+             Elf_X_Data &strdata, bool shared_library,
+		     std::string module);
+
   void fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool EEL);
   void override_weak_symbols(std::vector<Symbol *> &allsymbols);
   void insert_symbols_shared(std::vector<Symbol *> &allsymbols);
@@ -399,6 +416,7 @@ class Object : public AObject {
 
   void get_valid_memory_areas(Elf_X &elf);
 
+  Elf_X_Shdr *getSectionHdrByAddr(Offset addr);
 #if defined(os_irix)
 
  public:
@@ -407,6 +425,7 @@ class Object : public AObject {
   Offset     get_base_addr() const { return base_addr; }
   const char *got_entry_name(Offset entry_off) const;
   int         got_gp_disp(const char *entry_name) const;
+  bool       
 
   Offset     MIPS_stubs_addr_;   // .MIPS.stubs section
   Offset     MIPS_stubs_off_;    // .MIPS.stubs section
