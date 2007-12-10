@@ -79,12 +79,12 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
  * 
  */
 Type::Type(std::string name, typeId_t ID, dataClass dataTyp)
-   :ID_(ID), name_(name), size_(sizeof(/*long*/ int)), type_(dataTyp), updatingSize(false), refCount(1)
+   :ID_(ID), name_(name), size_(sizeof(/*long*/ int)), type_(dataTyp), updatingSize(false), refCount(1), upPtr_(NULL)
 {
 }
 
 Type::Type(std::string name, dataClass dataTyp)
-   :ID_(USER_TYPE_ID--), name_(name), size_(sizeof(/*long*/ int)), type_(dataTyp), updatingSize(false), refCount(1)
+   :ID_(USER_TYPE_ID--), name_(name), size_(sizeof(/*long*/ int)), type_(dataTyp), updatingSize(false), refCount(1), upPtr_(NULL)
 {
 }
 
@@ -612,7 +612,7 @@ void typeArray::updateSize()
 	unsigned int elemSize = sizeHint_ ? sizeHint_ : arrayElem->getSize();
 	
 	// Calculate the size of the whole array
-	size_ = elemSize * hi_ ? hi_ - low_ + 1 : 1;
+	size_ = elemSize * (hi_ ? hi_ - low_ + 1 : 1);
 	
     }
    updatingSize = false;
@@ -669,9 +669,14 @@ typeStruct::typeStruct(std::string name)
 typeStruct *typeStruct::create(std::string &name, std::vector< std::pair<std::string, Type *> *> &flds,
                                                                 Symtab *obj)
 {
+   int offset = 0;
    typeStruct *typ = new typeStruct(name);
    for(unsigned i=0;i<flds.size();i++)
-   	typ->addField(flds[i]->first, flds[i]->second);
+   {
+   	   typ->addField(flds[i]->first, flds[i]->second, offset);
+       // Calculate next offset (in bits) into the struct
+       offset += (flds[i]->second->getSize() * 8);
+   }
    if(obj)
    	obj->addType(typ);
    else;
@@ -697,7 +702,7 @@ typeStruct *typeStruct::create(std::string &name, std::vector<Field *> &flds, Sy
 
 void typeStruct::merge(Type *other) {
    // Merging is only for forward references
-   assert(!fieldList.size());
+//   assert(!fieldList.size());
 
    typeStruct *otherstruct = dynamic_cast<typeStruct *>(other);
 
@@ -805,7 +810,7 @@ typeUnion *typeUnion::create(std::string &name, std::vector< std::pair<std::stri
 {
    typeUnion *typ = new typeUnion(name);
    for(unsigned i=0;i<flds.size();i++)
-   	typ->addField(flds[i]->first, flds[i]->second);
+   	typ->addField(flds[i]->first, flds[i]->second, 0);
    if(obj)
    	obj->addType(typ);
    else;
@@ -1015,16 +1020,23 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) {
 
     // create local variables in func's scope for each field of common block
     for (j=0; j < fieldList.size(); j++) {
-	localVar *locVar;
-	locVar = new localVar(fieldList[j]->getName(), 
-				     fieldList[j]->getType(), "", 0);
-				     
+
+	    localVar *locVar;
+    	locVar = new localVar(fieldList[j]->getName(), 
+	        			     fieldList[j]->getType(), "", 0);
+    	loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+        loc->stClass = storageAddr;
+        loc->refClass = storageNoRef;
+        loc->reg = -1;    
+        loc->frameOffset = fieldList[j]->getOffset()+(Offset) baseAddr;
+        locVar->addLocation(loc);
+
 	// localVar->addField() TODO????
 	//fieldList[j]->getOffset()+(Offset) baseAddr, -1, storageAddr);
 	
-	if(!func->vars_)
-	    func->vars_ = new localVarCollection();
-	func->vars_->addLocalVar(locVar);
+	    if(!func->vars_)
+	        func->vars_ = new localVarCollection();
+	    func->vars_->addLocalVar(locVar);
     }
 
     // look to see if the field list matches an existing block
@@ -1436,7 +1448,7 @@ static int findIntrensicType(std::string &name)
 {
     struct intrensicTypes_ *curr;
 
-    for (curr = intrensicTypes; curr; curr++) {
+    for (curr = intrensicTypes; curr->name; curr++) {
 	if ((name != "")&& curr->name && !strcmp(name.c_str(), curr->name)) {
 	    return curr->tid;
 	}
@@ -1454,7 +1466,7 @@ static int findIntrensicType(std::string &name)
  * type = offset = size = 0;
  */
 Field::Field(std::string name, Type *typ, int offsetVal, visibility_t vis)
-   :fieldName_(name), type_(typ), vis_(vis), offset_(offsetVal)
+   :fieldName_(name), type_(typ), vis_(vis), offset_(offsetVal), upPtr_(NULL)
 {
     if(typ)
         typ->incrRefCount();
@@ -1480,12 +1492,22 @@ unsigned int Field::getSize(){
    return type_->getSize();
 }
 
+void *Field::getUpPtr() const{
+    return upPtr_;
+}
+
+bool Field::setUpPtr(void *upPtr) {
+    upPtr_ = upPtr;
+    return true;
+}
+
 Field::Field(Field &oField) 
 {
    type_ = oField.type_;
    offset_ = oField.offset_;
    fieldName_ = std::string(oField.fieldName_);
    vis_ = oField.vis_;
+   upPtr_ = oField.upPtr_;
 
    if (type_ != NULL)
       type_->incrRefCount();
@@ -1514,9 +1536,35 @@ void Field::fixupUnknown(Module *module) {
  *
  */
 localVar::localVar(std::string name,  Type *typ, std::string fileName, int lineNum, std::vector<loc_t *>* locs)
- :name_(name), type_(typ), fileName_(fileName), lineNum_(lineNum), locs_(locs)
+ :name_(name), type_(typ), fileName_(fileName), lineNum_(lineNum), locs_(locs), upPtr_(NULL)
 {
     type_->incrRefCount();
+}
+
+localVar::localVar(localVar &lvar) 
+{
+   name_ = lvar.name_;
+   type_ = lvar.type_;
+   fileName_ = lvar.fileName_;
+   lineNum_ = lvar.lineNum_;
+   if(!lvar.locs_)
+       locs_ = NULL;
+   else {
+       locs_ = new vector<loc_t *>;
+       for(unsigned i=0;i<lvar.locs_->size();i++){
+           loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+	   loc->stClass = (*(lvar.locs_))[i]->stClass;
+	   loc->refClass = (*(lvar.locs_))[i]->refClass;
+	   loc->reg = (*(lvar.locs_))[i]->reg;
+	   loc->frameOffset = (*(lvar.locs_))[i]->frameOffset;
+	   loc->lo = (*(lvar.locs_))[i]->lo;
+	   loc->hi = (*(lvar.locs_))[i]->hi;
+	   locs_->push_back(loc);
+       }
+   }	
+   upPtr_ = lvar.upPtr_;
+   if (type_ != NULL)
+      type_->incrRefCount();
 }
 
 bool localVar::addLocation(loc_t *location)
@@ -1574,6 +1622,15 @@ std::vector<Dyninst::SymtabAPI::loc_t *> *localVar::getLocationLists() {
 	return locs_; 
 }
 
+void *localVar::getUpPtr() const{
+    return upPtr_;
+}
+
+bool localVar::setUpPtr(void *upPtr) {
+    upPtr_ = upPtr;
+    return true;
+}
+
 /**************************************************************************
  * CBlock
  *************************************************************************/
@@ -1592,3 +1649,13 @@ std::vector<Symbol *> *CBlock::getFunctions()
 {
   return &functions;
 }
+
+void *CBlock::getUpPtr() const{
+    return upPtr_;
+}
+
+bool CBlock::setUpPtr(void *upPtr) {
+    upPtr_ = upPtr;
+    return true;
+}
+
