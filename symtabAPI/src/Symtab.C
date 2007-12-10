@@ -138,7 +138,10 @@ void Symtab::setupTypes(){
     type_Error   = Type::createFake(name);
     name = "<no type>";
     type_Untyped = Type::createFake(name);
+    setupStdTypes();
+}    
 
+void Symtab::setupStdTypes() {
     if(builtInTypes)
     	return;
     builtInTypes = new builtInTypeCollection;
@@ -489,9 +492,16 @@ bool Symtab::symbolsToFunctions(std::vector<Symbol *> *raw_funcs)
         if (linkedFile->isEEL() && np[0] == '.')
         /* ignore these EEL symbols; we don't understand their values */
             continue; 
+        
+        // check for undefined dynamic symbols. Used when rewriting relocation section.
+        // relocation entries have references to these undefined dynamic symbols.
+        if(lookUp->getSec() == NULL && lookUp->isInDynSymtab()) {
+            undefDynSyms[np] = lookUp;
+            continue;
+        }
 
-	if (lookUp->getType() == Symbol::ST_FUNCTION) 
-	{
+    	if (lookUp->getType() == Symbol::ST_FUNCTION) 
+	    {
             // /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", FILE__, __LINE__, lookUp.getName().c_str(), lookUp.getModuleName().c_str() );
             
             std::string msg;
@@ -890,8 +900,8 @@ bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
     if(!newSym)
     	return false;
     if(isDynamic) {
-    	newDynSyms.push_back(newSym);
-	return true;
+        newSym->clearIsInSymtab();
+        newSym->setDynSymtab();
     }	
     std::vector<std::string> names;
     char *unmangledName = NULL;
@@ -1218,6 +1228,14 @@ bool Symtab::extractInfo()
     
     //addSymtabVariables();
     linkedFile->getAllExceptions(excpBlocks);
+
+    vector<relocationEntry >fbt;
+    linkedFile->get_func_binding_table(fbt);
+    for(unsigned i=0; i<fbt.size();i++) {
+        if(undefDynSyms.find(fbt[i].name()) != undefDynSyms.end())
+            fbt[i].addDynSym(undefDynSyms[fbt[i].name()]);
+        relocation_table_.push_back(fbt[i]);
+    }
     return true;
 }
 
@@ -1288,7 +1306,12 @@ Symtab::Symtab(const Symtab& obj)
         modSyms.push_back(new Symbol(*(modSyms[i])));
     
     for(i=0;i<notypeSyms.size();i++)
-        notypeSyms.push_back(new Symbol(*(notypeSyms[i])));
+        notypeSyms.push_back(new Symbol(*(obj.notypeSyms[i])));
+    
+    for(i=0; i<relocation_table_.size();i++) {
+        relocation_table_.push_back(relocationEntry(obj.relocation_table_[i]));
+        undefDynSyms[obj.relocation_table_[i].name()] = relocation_table_[i].getDynSym();
+    }
     
     for(i=0;i<excpBlocks.size();i++)
         excpBlocks.push_back(new ExceptionBlock(*(obj.excpBlocks[i])));
@@ -1409,15 +1432,6 @@ bool Symtab::getAllNewSections(std::vector<Section *>&ret)
 {
     if(newSections_.size() > 0) {
     	ret = newSections_;
-	return true;
-    }
-    return false;
-}
-
-bool Symtab::getAllNewDynSyms(std::vector<Symbol *>&ret)
-{
-    if(newDynSyms.size() > 0) {
-    	ret = newDynSyms;
 	return true;
     }
     return false;
@@ -1817,9 +1831,10 @@ bool Symtab::isData(const Offset where)  const
 
 bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
 {
-    return linkedFile->get_func_binding_table(fbt);	
+    fbt = relocation_table_;
+    return true;
 }
- 
+
 Symtab::~Symtab()
 {
    // Doesn't do anything yet, moved here so we don't mess with symtab.h
@@ -1846,6 +1861,8 @@ Symtab::~Symtab()
     for(i=0; i< modSyms.size(); i++)
         delete modSyms[i];
     modSyms.clear();	
+    modsByFileName.clear();
+    modsByFullName.clear();
 
     for(i=0; i< notypeSyms.size(); i++)
         delete notypeSyms[i];
@@ -1862,6 +1879,11 @@ Symtab::~Symtab()
     everyUniqueFunction.clear();
     createdFunctions.clear();
     exportedFunctions.clear();
+    
+    undefDynSyms.clear();
+    for(i=0;i<excpBlocks.size();i++)
+        delete excpBlocks[i];
+
     
     for (i = 0; i < allSymtabs.size(); i++) {
         if (allSymtabs[i] == this)
@@ -1936,6 +1958,18 @@ DLLEXPORT bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset ad
 	    
 }
 
+DLLEXPORT vector<Type *> *Module::getAllTypes(){
+    if(!moduleTypes_)
+    	moduleTypes_ = typeCollection::getModTypeCollection(this);
+    return moduleTypes_->getAllTypes();
+}
+
+DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars(){
+    if(!moduleTypes_)
+    	moduleTypes_ = typeCollection::getModTypeCollection(this);
+    return moduleTypes_->getAllGlobalVariables();
+}
+
 DLLEXPORT typeCollection *Module::getModuleTypes(){
     if(!moduleTypes_)
     	moduleTypes_ = typeCollection::getModTypeCollection(this);
@@ -1953,7 +1987,7 @@ DLLEXPORT bool Module::findType(Type *&type, std::string name)
 
 DLLEXPORT bool Module::findVariableType(Type *&type, std::string name)
 {
-	exec_->parseTypesNow();
+    exec_->parseTypesNow();
     type = getModuleTypes()->findVariableType(name);
     if(type == NULL)
     	return false;
@@ -2065,7 +2099,8 @@ bool regexEquiv( const std::string &str,const std::string &them, bool checkCase 
     const char *str_ = str.c_str();
     const char *s = them.c_str();
     // Would this work under NT?  I don't know.
-#if !defined(os_windows)
+//#if !defined(os_windows)
+#if 0
     regex_t r;
     bool match = false;
     int cflags = REG_NOSUB;
@@ -2515,6 +2550,16 @@ bool Symtab::addType(Type *type)
     	APITypes = typeCollection::getGlobalTypeCollection();
     APITypes->addType(type);	
     return true;
+}
+
+DLLEXPORT vector<Type *> *Symtab::getAllstdTypes(){
+    setupStdTypes();
+    return stdTypes->getAllTypes(); 	
+}
+
+DLLEXPORT vector<Type *> *Symtab::getAllbuiltInTypes(){
+    setupStdTypes();
+    return builtInTypes->getAllBuiltInTypes();
 }
 
 DLLEXPORT bool Symtab::findType(Type *&type, std::string name)
@@ -3462,13 +3507,25 @@ DLLEXPORT unsigned long Section::flags() const{
     return sflags_;
 }
 
+DLLEXPORT bool Section::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType){
+    relocationEntry re(ra, dynref->getPrettyName(), dynref, relType);
+//    return linkedFile->addRelocationEntry(re);
+    return true;
+}
+ 
+
 DLLEXPORT relocationEntry::relocationEntry()
-   :target_addr_(0),rel_addr_(0)
+   :target_addr_(0),rel_addr_(0), dynref_(NULL), relType_(0)
 {
 }   
 
-DLLEXPORT relocationEntry::relocationEntry(Offset ta,Offset ra, std::string n)
-   : target_addr_(ta), rel_addr_(ra),name_(n)
+DLLEXPORT relocationEntry::relocationEntry(Offset ta,Offset ra, std::string n, Symbol *dynref, unsigned long relType)
+   : target_addr_(ta), rel_addr_(ra),name_(n), dynref_(dynref), relType_(relType)
+{
+}   
+
+DLLEXPORT relocationEntry::relocationEntry(Offset ra, std::string n, Symbol *dynref, unsigned long relType)
+   : target_addr_(0), rel_addr_(ra),name_(n), dynref_(dynref), relType_(relType)
 {
 }   
 
@@ -3476,5 +3533,7 @@ DLLEXPORT const relocationEntry& relocationEntry::operator=(const relocationEntr
 {
     target_addr_ = ra.target_addr_; rel_addr_ = ra.rel_addr_; 
     name_ = ra.name_; 
+    dynref_ = ra.dynref_;
+    relType_ = ra.relType_;
     return *this;
 }
