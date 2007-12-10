@@ -33,6 +33,8 @@
 
 #include "symtabAPI/src/Collections.h"
 #include "Symtab.h"
+#include <string>
+using namespace std;
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -54,6 +56,8 @@ localVarCollection::~localVarCollection()
    // delete localVariablesByName collection
    for(;li!=localVariablesByName.end();li++)
 	delete li->second;
+   
+   localVars.clear();
 }
 
 /*
@@ -63,7 +67,10 @@ localVarCollection::~localVarCollection()
  */
 
 void localVarCollection::addLocalVar(localVar * var){
+  if(var->getName() == "globalVariable18_1")
+    cout << "found var" << endl;
   localVariablesByName[var->getName()]= var;
+  localVars.push_back(var);
 }
 
 /*
@@ -85,15 +92,7 @@ localVar *localVarCollection::findLocalVar(std::string &name){
  * this function returns all the local variables in the collection.
  */
 std::vector<localVar *> *localVarCollection::getAllVars() {
-    hash_map<std::string, localVar *>::iterator li = localVariablesByName.begin();
-
-    std::vector<localVar *> *localVarVec = new std::vector<localVar *>;
-
-    // get all local vars in the localVariablesByName collection
-    for(;li!=localVariablesByName.end();li++)
-	localVarVec->push_back(li->second);
-
-    return localVarVec;
+    return &localVars;
 }
   
 // Could be somewhere else... for DWARF-work.
@@ -262,6 +261,8 @@ Type * typeCollection::findOrCreateType( const int ID ) {
 } /* end findOrCreateType() */
 
 Type * typeCollection::addOrUpdateType( Type * type ) {
+    if(type->getID() == 14)
+        cout << "found type with ID 14" << endl;
     Type * existingType = findTypeLocal( type->getID() );
     if( existingType == NULL ) {
         if( type->getName() != "" ) {
@@ -381,6 +382,36 @@ void typeCollection::clearNumberedTypes() {
    typesByID.clear();
 }
 
+/*
+ * localVarCollection::getAllVars()
+ * this function returns all the local variables in the collection.
+ */
+std::vector<Type *> *typeCollection::getAllTypes() {
+   std::vector<Type *> *typesVec = new std::vector<Type *>;
+   for (hash_map<int, Type *>::iterator it = typesByID.begin();
+        it != typesByID.end();
+        it ++) {
+	typesVec->push_back(it->second);
+   }
+   if(!typesVec->size()){
+       free(typesVec);
+       return NULL;
+   }
+   return typesVec;
+}
+
+vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
+    vector<pair<string, Type *> > *varsVec = new vector<pair<string, Type *> >;
+    for(hash_map<string, Type *>::iterator it = globalVarsByName.begin();
+        it != globalVarsByName.end(); it++) {
+	varsVec->push_back(pair<string, Type *>(it->first, it->second));
+   }	
+   if(!varsVec->size()){
+       free(varsVec);
+       return NULL;
+   }
+   return varsVec;
+}
 
 /*
  * builtInTypeCollection::builtInTypeCollection
@@ -450,4 +481,18 @@ void builtInTypeCollection::addBuiltInType(Type *type)
   //All built-in types have unique IDs so far jdd 4/21/99
   builtInTypesByID[type->getID()] = type;
   type->incrRefCount();
+}
+
+std::vector<Type *> *builtInTypeCollection::getAllBuiltInTypes() {
+   std::vector<Type *> *typesVec = new std::vector<Type *>;
+   for (hash_map<int, Type *>::iterator it = builtInTypesByID.begin();
+        it != builtInTypesByID.end();
+        it ++) {
+	typesVec->push_back(it->second);
+   }
+   if(!typesVec->size()){
+       free(typesVec);
+       return NULL;
+   }
+   return typesVec;
 }

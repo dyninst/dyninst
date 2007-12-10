@@ -50,6 +50,7 @@ class Symtab;
 class DLLEXPORT localVarCollection{
   
   hash_map<std::string, localVar *> localVariablesByName;
+  vector<localVar *> localVars;
 
 public:
   localVarCollection(){}
@@ -113,7 +114,9 @@ public:
     Type * addOrUpdateType( Type * type );
 
     Type *findVariableType(std::string &name);
-    
+
+    std::vector<Type *> *getAllTypes();
+    std::vector<std::pair<std::string, Type *> > *getAllGlobalVariables();
     void clearNumberedTypes();
 };
 
@@ -139,6 +142,7 @@ public:
     Type	*findBuiltInType(std::string &name);
     Type	*findBuiltInType(const int ID);
     void	addBuiltInType(Type *type);
+    std::vector<Type *> *getAllBuiltInTypes();
    
 };
 
