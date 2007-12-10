@@ -40,7 +40,6 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
-#if defined(arch_ia64)
 // ------------------------------------------------------------------------
 // Class Elf_X_Dyn simulates the Elf(32|64)_Dyn structure.
 class Elf_X_Dyn {
@@ -84,7 +83,6 @@ class Elf_X_Dyn {
    Elf64_Dyn *dyn64;
    bool is64;
 };
-#endif
 
 #if defined(arch_mips)
 // ------------------------------------------------------------------------
@@ -344,9 +342,7 @@ class Elf_X_Data {
 
     // Data Interface
     const char *get_string() { return (const char *)data->d_buf; }
-#if defined(arch_ia64)
     Elf_X_Dyn get_dyn() { return Elf_X_Dyn(is64, data); }
-#endif
 #if defined(arch_mips)
     Elf_X_RegInfo get_regInfo() { return Elf_X_RegInfo(is64, data); }
 #endif
