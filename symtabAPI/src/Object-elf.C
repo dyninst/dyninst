@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.22 2007/12/11 17:18:23 giri Exp $
+ * $Id: Object-elf.C,v 1.23 2007/12/11 18:41:43 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -200,9 +200,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     const char* DYNSTR_NAME      = ".dynstr";
     const char* DATA_NAME        = ".data";
     const char* RO_DATA_NAME     = ".ro_data";  // mips
-#if defined(os_linux)
     const char* DYNAMIC_NAME     = ".dynamic";
-#endif
     const char* EH_FRAME_NAME    = ".eh_frame";
     const char* EXCEPT_NAME      = ".gcc_except_table";
     // initialize Object members
@@ -480,6 +478,7 @@ bool Object::is_offset_in_plt(Offset offset) const
 void Object::parseDynamic(Elf_X_Shdr *& dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
                                                     Elf_X_Shdr *&dynstr_scnp)
 {
+  #if !defined(os_solaris)
     Elf_X_Data data = dyn_scnp->get_data();
     Elf_X_Dyn dyns = data.get_dyn();
     Elf_X_Shdr *rel_scnp;
@@ -497,6 +496,7 @@ void Object::parseDynamic(Elf_X_Shdr *& dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
                 break;
         }
     }
+  #endif
 }
 
 /* parse relocations for the sections represented by DT_REL/DT_RELA in
