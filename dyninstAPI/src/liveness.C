@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.1 2007/12/04 17:58:28 bernat Exp $
+// $Id: liveness.C,v 1.2 2007/12/11 20:22:06 bill Exp $
 
 #if defined(cap_liveness)
 
@@ -115,9 +115,12 @@ const bitArray image_basicBlock::getLivenessOut() const {
 
 void image_basicBlock::summarizeBlockLivenessInfo() 
 {
-    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
+    if(in.size())
+    {
+      return;
+    }
 
-    assert(in.size() == 0); // Should only run once
+    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
 
     unsigned width = getFirstFunc()->img()->getObject()->getAddressWidth();
 

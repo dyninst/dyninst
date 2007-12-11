@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.57 2007/12/04 17:58:16 bernat Exp $
+// $Id: arch-x86.h,v 1.58 2007/12/11 20:22:06 bill Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
 #include <common/h/Vector.h>
 #include <common/h/Annotatable.h>
 #include <set>
+#include <map>
 
 #if !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
@@ -380,7 +381,6 @@ enum RegisterID { r_AH=0, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, //107
 		  r_R8, r_R9, r_R10, r_R11, r_R12, r_R13, r_R14, r_R15
 		  // AMD64 GPRs
 }; 
-
 
 
 
@@ -1002,7 +1002,18 @@ struct ia32_entry {
   unsigned int opsema;  
 };
 
-
+struct flagInfo
+{
+  flagInfo(const vector<RegisterID>& rf, const vector<RegisterID>& wf) : readFlags(rf), writtenFlags(wf) 
+  {
+  }
+  flagInfo() 
+  {
+  }
+  
+  vector<RegisterID> readFlags;
+  vector<RegisterID> writtenFlags;
+};
 
 class ia32_instruction
 {
@@ -1049,6 +1060,10 @@ class ia32_instruction
   const ia32_memacc& getMac(int which) const { return mac[which]; }
   const ia32_condition& getCond() const { return *cond; }
   const ia32_locations& getLocationInfo() const { return *loc; }
+
+  static const std::map<entryID, flagInfo>& getFlagTable();
+  static void initFlagTable(std::map<entryID, flagInfo>&);
+  
 };
 
 // VG(02/07/2002): Information that the decoder can return is

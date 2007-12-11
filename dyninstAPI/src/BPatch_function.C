@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.95 2007/12/04 18:07:26 legendre Exp $
+// $Id: BPatch_function.C,v 1.96 2007/12/11 20:22:05 bill Exp $
 
 #define BPATCH_FILE
 
@@ -62,7 +62,7 @@
 
 #include "symtabAPI/h/LineInformation.h"
 #include "common/h/Types.h"
-#include "InstrucIter.h"
+#include "InstrucIter-Function.h"
 
 #if defined(cap_slicing)
 // #include "BPatch_dependenceGraphNode.h"
@@ -466,7 +466,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
   if (func->funcEntries().size() == 0) return NULL;
   
   // Use an instruction iterator
-  InstrucIter ii(func);
+  InstrucIterFunction ii(func);
     
   return BPatch_point::getPoints(ops, ii, this);
 }

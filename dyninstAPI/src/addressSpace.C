@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.10 2007/11/07 02:35:28 bernat Exp $
+// $Id: addressSpace.C,v 1.11 2007/12/11 20:22:05 bill Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -254,6 +254,27 @@ void AddressSpace::removeModifiedRange(codeRange *range) {
     assert (range == tmp);
 
     modifiedRanges_.remove(range->get_address_cr());
+
+    instArea *area = dynamic_cast<instArea *>(range);
+    if (area) {
+      // We have just removed a multiTramp. If the dictionary
+      // entry is the same as the instArea pointer, remove it
+      // from the dictionary as well so we can't accidentally
+      // access it that way.
+
+      // If the pointers aren't equal, squawk because that shouldn't
+      // happen.
+      
+      if (area->multi) {
+	if (multiTrampsById_[area->multi->id()] == area->multi)
+	  multiTrampsById_[area->multi->id()] = NULL;
+	else {
+	  fprintf(stderr, "%d[%d]: Warning: odd case in removing instArea\n",
+		  FILE__, __LINE__);
+	}
+	
+      }
+    }
 }
 
 codeRange *AddressSpace::findOrigByAddr(Address addr) {
@@ -351,6 +372,11 @@ multiTramp *AddressSpace::findMultiTrampById(unsigned int id) {
 void AddressSpace::addMultiTramp(multiTramp *multi) {
     assert(multi);
     assert(multi->instAddr());
+
+    if (multi->id() == 11286) {
+      fprintf(stderr, "Replacing multiTramp with id %d: new %p\n",
+	      11286, multi);
+    }
 
     // Actually... we haven't copied it yet, so don't add anything. 
     //addOrigRange(multi);

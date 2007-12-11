@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.57 2007/12/04 17:57:52 bernat Exp $
+// $Id: arch-ia64.C,v 1.58 2007/12/11 20:22:06 bill Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -620,7 +620,7 @@ Address instruction_x::getTargetAddress() const {
 
 /* private refactoring function, for dBTRSF() */
 int_basicBlock * findBasicBlockInCFG( Address addr, 
-									  const pdvector<int_basicBlock *> &blocks ) {
+									  const std::vector<int_basicBlock *> &blocks ) {
 	for (unsigned i = 0; i < blocks.size(); i++) {
 		if ((blocks[i]->origInstance()->firstInsnAddr() <= addr) &&
 			(addr < blocks[i]->origInstance()->endAddr()))
@@ -751,7 +751,7 @@ registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location,
 		pdf->ifunc()->usedFPregs = doFloatingPointStaticAnalysis( location );
 		}
 	
-	const pdvector<int_basicBlock *> &blocks = pdf->blocks();
+	const std::vector<int_basicBlock *> &blocks = pdf->blocks();
 
 	/* Initialize the dataflow sets and construct the initial worklist. */
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: listing basic blocks for function beginning at 0x%lx... \n", __FILE__, __LINE__, pdf->getAddress() );

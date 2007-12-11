@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.45 2007/12/04 17:58:22 bernat Exp $
+// $Id: function.h,v 1.46 2007/12/11 20:22:06 bill Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -388,7 +388,7 @@ class int_function {
    // CFG and other function body methods
    ////////////////////////////////////////////////
 
-   const pdvector< int_basicBlock* > &blocks();
+   const std::vector< int_basicBlock* > &blocks();
 
    // Perform a lookup (either linear or log(n)).
    int_basicBlock *findBlockByAddr(Address addr);
@@ -564,7 +564,7 @@ class int_function {
 			// image_funcs to int_funcs
 
    ///////////////////// CFG and function body
-   pdvector< int_basicBlock* > blockList;
+   std::vector< int_basicBlock* > blockList;
 
    // Added to support translation between function-specific int_basicBlocks
    // and potentially shared image_basicBlocks

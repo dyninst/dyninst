@@ -490,7 +490,7 @@ BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 bool BPatch_flowGraph::createBasicBlocks()
 { 
     assert(ll_func());
-    const pdvector< int_basicBlock* > &iblocks	= ll_func()->blocks();
+    const std::vector< int_basicBlock* > &iblocks	= ll_func()->blocks();
     for( unsigned int i = 0; i < iblocks.size(); i++ )
     {
        BPatch_basicBlock *newblock = new BPatch_basicBlock(iblocks[i], this);

@@ -42,9 +42,11 @@
 #ifndef _InstrucIter_h_
 #define _InstrucIter_h_
 
+#include "common/h/Types.h"
 #include "BPatch_Set.h"
 #include "BPatch_eventLock.h" // CONST_EXPORT...
 #include <vector>
+#include <set>
 
 class InstrucIter;
 class InstructionSource;
@@ -103,7 +105,7 @@ class AddressSpace;
   */
 class InstrucIter {
     friend class BPatch_instruction;
- protected:
+ private:
     
     /* We can iterate either over a process address space or 
        within a parsed image */
@@ -132,20 +134,24 @@ class InstrucIter {
 
     std::vector<std::pair<Address, void*> >prevInsns;
 
- public:
-    
-    /** returns the instruction in the address of handle */
-    instruction getInstruction();
-    
-    // And a pointer if we need to worry about virtualization. This is
-    // "user needs to get rid of it" defined.
-    instruction *getInsnPtr();
-
     instruction insn;
     void* instPtr;
+
 #if defined(arch_ia64)
     // We need the bundle to iterate correctly
     IA64_bundle bundle;
+#endif
+
+ public:
+    
+    /** returns the instruction in the address of handle */
+    virtual instruction getInstruction();
+    
+    // And a pointer if we need to worry about virtualization. This is
+    // "user needs to get rid of it" defined.
+    virtual instruction *getInsnPtr();
+
+#if defined(arch_ia64)
     // Convenient access to correct virtual instruction::getType()
     instruction::insnType getInsnType();
 #endif
@@ -154,21 +160,10 @@ class InstrucIter {
     /** static method that returns true if the delay instruction is supported */
     static bool delayInstructionSupported ();
 
-    // Used in parsing -- relative addrs. Goes over the func linearly,
-    // which may be a spectacularly bad idea.
-    InstrucIter (Address start, image_func *func);
-    InstrucIter (image_func *func );
-
     InstrucIter (Address start, image_parRegion *parR);
 
     InstrucIter (image_basicBlock *b);
     
-    /* Iterate over a function... this goes linearly, which is probably a bad idea */
-    InstrucIter(int_function* func);
-    // Sometimes we don't care about basic blocks...
-    InstrucIter (Address start, int_function *func);
-
-
     InstrucIter(bblInstance *b);
         
     InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock);
@@ -176,6 +171,14 @@ class InstrucIter {
     InstrucIter( CONST_EXPORT BPatch_parRegion* bpParRegion);
 
     InstrucIter (int_basicBlock *ibb);
+
+ protected:
+    // For InstrucIterFunction
+    InstrucIter() : base(0), range(1), current(0)    
+    {    
+    }
+    
+ public:    
 
     /** copy constructor
      * @param ii InstrucIter to copy
@@ -186,8 +189,10 @@ class InstrucIter {
     InstrucIter( Address addr, unsigned size, AddressSpace *space);
     InstrucIter( Address addr, AddressSpace *space); 
 
+    InstrucIter(image_func* func);
+    InstrucIter(Address start, image_func* func);
 
-  ~InstrucIter() {  }
+  virtual ~InstrucIter() {  }
 
   /** return true iff the address is in the space represented by
    * the InstrucIter
@@ -219,23 +224,23 @@ class InstrucIter {
 
 
   /** method that returns true if there are more instructions to iterate */
-  bool hasMore();
+  virtual bool hasMore();
 
   /** method that returns true if there are instruction previous to the
    * current one */
-  bool hasPrev();
+  virtual bool hasPrev();
 
   /** Peek at the previous address */
-  Address peekPrev();
+  virtual Address peekPrev();
 
   /** And the next address */
-  Address peekNext();
+  virtual Address peekNext();
 
   /** set the content of the handle to the argument 
    * @param addr the value that handle will be set to
    */
-  void setCurrentAddress(Address);
-  Address getCurrentAddress(){return current;}
+  virtual void setCurrentAddress(Address);
+  virtual Address getCurrentAddress(){return current;}
   
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -245,19 +250,28 @@ class InstrucIter {
 #endif
 
   /** returns the content of the address  handle */
-  Address operator* ();
+  virtual Address operator*() const;
+  virtual Address begin() const
+  {
+    return base;
+  }
+  virtual Address end() const
+  {
+    return base + range;
+  }
+  
 
   /** prefix increment operation */
-  InstrucIter operator++ ();
+  virtual Address operator++ ();
 
   /** prefix decrement operation */
-  InstrucIter operator-- ();
+  virtual Address operator-- ();
 
   /** postfix increment operation */
-  InstrucIter operator++ (int);
+  virtual Address operator++ (int);
 
   /** postfix decrement operation */
-  InstrucIter operator-- (int);
+  virtual Address operator-- (int);
 
   /* Predicates */
    

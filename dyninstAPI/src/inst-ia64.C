@@ -70,7 +70,7 @@
 #include "dyninstAPI/src/inst-ia64.h"
 #include "dyninstAPI/src/instPoint.h"	// includes instPoint-ia64.h
 #include "dyninstAPI/src/instP.h"		// class returnInstance
-#include "dyninstAPI/src/InstrucIter.h"
+#include "dyninstAPI/src/InstrucIter-Function.h"
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -2135,7 +2135,7 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
   /* Cast away const-ness rather than fix broken int_function::getAddress(). */
   int_function * functionBase = location->func();
 
-  InstrucIter iAddr(functionBase);
+  InstrucIterFunction iAddr(functionBase);
 
   // /* DEBUG */ fprintf( stderr, "Mutator claims to have mutatee machine code from 0x%lx to 0x%lx\n", mutatorAddress, lastI );
   // /* DEBUG */ fprintf( stderr, "(claims to be function '%s')\n", functionBase->symTabName().c_str() );

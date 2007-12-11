@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.24 2007/09/19 19:25:12 bernat Exp $
+// $Id: multiTramp.h,v 1.25 2007/12/11 20:22:07 bill Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -146,16 +146,20 @@ class generatedCodeObject : public codeRange {
     // a 'single' point, we can do this.
 
     virtual Address uninstrumentedAddr() const = 0;
-
+ protected:
     // And modification times
     bool generated_;
     bool installed_;
     bool linked_;
     bool hasChanged_;
-
+ public:
     bool generated() const { return generated_; }
     bool installed() const { return installed_; }
     bool linked() const { return linked_; }
+    void markChanged(bool newValue) { hasChanged_ = newValue; }
+    void markGenerated(bool newValue) { generated_ = newValue; }
+    void markInstalled(bool newValue) { installed_ = newValue; }
+    void markLinked(bool newValue) { linked_ = newValue; }
 
     // Due to our one-pass generation structure, we might
     // want to pin one of these at a particular offset from wherever

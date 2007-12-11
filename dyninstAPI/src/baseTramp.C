@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.58 2007/12/04 17:57:56 bernat Exp $
+// $Id: baseTramp.C,v 1.59 2007/12/11 20:22:06 bill Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -533,10 +533,11 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
 
     pdvector<AstNodePtr> miniTramps;
     for (unsigned miter = 0; miter < mtis.size(); miter++) {
-        miniTramps.push_back(mtis[miter]->mini->ast_->getAST());
-        // And nuke the hasChanged flag in there - we don't generate
-        // code that way
-        mtis[miter]->hasChanged_ = false;
+      miniTramps.push_back(mtis[miter]->mini->ast_->getAST());
+      // And nuke the hasChanged flag in there - we don't generate
+      // code that way
+      mtis[miter]->markChanged(false);
+      mtis[miter]->markGenerated(true);
     }
     AstNodePtr minis = AstNode::sequenceNode(miniTramps);
 
@@ -662,6 +663,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
         fprintf(stderr, "Gripe: base tramp creation failed\n");
         retval = false;
     }
+
 
     trampPostOffset = gen.used();
     restoreStartOffset = 0;
@@ -1397,7 +1399,6 @@ void baseTrampInstance::invalidateCode() {
 
 bool baseTrampInstance::linkCode() {
     if (isEmpty()) {
-
         linked_ = true;
         return true;
     }

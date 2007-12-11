@@ -428,7 +428,7 @@ int_basicBlock *int_function::findBlockByAddr(Address addr) {
 }
 
 
-const pdvector<int_basicBlock *> &int_function::blocks() 
+const std::vector<int_basicBlock *> &int_function::blocks() 
 {
     parsing_printf("blocks() for %s, pointer %p\n", symTabName().c_str(), ifunc_);
     if (blockList.size() == 0) {
@@ -444,7 +444,7 @@ const pdvector<int_basicBlock *> &int_function::blocks()
         }
     }
     // And a quick consistency check...
-    blockList.reserve_exact(blockList.size());
+    //blockList.reserve_exact(blockList.size());
     return blockList;
 }
 

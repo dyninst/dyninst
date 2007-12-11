@@ -72,13 +72,13 @@
 bool InstrucIter::isALeaveInstruction()
 {
   assert(instPtr);
-  return insn.isLeave();
+  return getInstruction().isLeave();
 }
 
 bool InstrucIter::isAReturnInstruction()
 {
   assert(instPtr);
-  return insn.isReturn();
+  return getInstruction().isReturn();
 }
 
 /** is the instruction used to return from the functions,
@@ -97,13 +97,13 @@ bool InstrucIter::isACondReturnInstruction()
 bool InstrucIter::isAIndirectJumpInstruction()
 {
   assert(instPtr);
-  if((insn.type() & IS_JUMP) && (insn.type() & INDIR))
+  if((getInstruction().type() & IS_JUMP) && (getInstruction().type() & INDIR))
   {
     /* since there are two is_jump and indirect instructions
        we are looking for the one with the indirect register
        addressing mode one of which ModR/M contains 4 in its
        reg/opcode field */
-    const unsigned char* ptr = insn.op_ptr();
+    const unsigned char* ptr = getInstruction().op_ptr();
     assert(*ptr == 0xff);
     ptr++;
     if((*ptr & 0x38) == 0x20) 
@@ -114,7 +114,8 @@ bool InstrucIter::isAIndirectJumpInstruction()
 
 bool InstrucIter::isStackFramePreamble(int & /*unused*/)
 {
-  return ::isStackFramePreamble( insn );
+  instruction i = getInstruction();
+  return ::isStackFramePreamble( i );
 }
 
 bool InstrucIter::isFramePush()
@@ -122,7 +123,7 @@ bool InstrucIter::isFramePush()
   assert(instPtr);
   // test for
   // push %ebp (or push %rbp for 64-bit)
-  return (insn.size() == 1 && insn.ptr()[0] == 0x55);
+  return (getInstruction().size() == 1 && getInstruction().ptr()[0] == 0x55);
 }
 
 bool InstrucIter::isFrameSetup()
@@ -135,14 +136,14 @@ bool InstrucIter::isFrameSetup()
   // movq %rsp, %rbp
 
   if (!ia32_is_mode_64()) {
-    return (insn.size() == 2 && 
-            insn.ptr()[0] == 0x89 && insn.ptr()[1] == 0xe5);
+    return (getInstruction().size() == 2 && 
+            getInstruction().ptr()[0] == 0x89 && getInstruction().ptr()[1] == 0xe5);
   }
   else {
-    return (insn.size() == 3 &&
-	    insn.ptr()[0] == 0x48 &&
-	    insn.ptr()[1] == 0x89 &&
-	    insn.ptr()[2] == 0xe5);
+    return (getInstruction().size() == 3 &&
+	    getInstruction().ptr()[0] == 0x48 &&
+	    getInstruction().ptr()[1] == 0x89 &&
+	    getInstruction().ptr()[2] == 0xe5);
   }
 }
 
@@ -152,7 +153,7 @@ bool InstrucIter::isFrameSetup()
 bool InstrucIter::isACondBranchInstruction()
 {
   assert(instPtr);
-  if(insn.type() & IS_JCC)
+  if(getInstruction().type() & IS_JCC)
     return true;
   return false;
 }
@@ -163,10 +164,10 @@ bool InstrucIter::isACondBranchInstruction()
 bool InstrucIter::isAJumpInstruction()
 {
   assert(instPtr);
-  insn.setInstruction( (unsigned char *)instPtr );
-  if((insn.type() & IS_JUMP) &&
-     !(insn.type() & INDIR) && 
-     !(insn.type() & PTR_WX))
+  getInstruction().setInstruction( (unsigned char *)instPtr );
+  if((getInstruction().type() & IS_JUMP) &&
+     !(getInstruction().type() & INDIR) && 
+     !(getInstruction().type() & PTR_WX))
     return true;
   return false;
 }
@@ -177,34 +178,34 @@ bool InstrucIter::isAJumpInstruction()
 bool InstrucIter::isACallInstruction()
 {
   assert(instPtr);
-  return insn.isCall();
+  return getInstruction().isCall();
 }
 
 bool InstrucIter::isADynamicCallInstruction()
 {
   assert(instPtr);
-  return insn.isCall() && insn.isIndir();
+  return getInstruction().isCall() && getInstruction().isIndir();
 }
 
 bool InstrucIter::isSyscall() {
     assert(instPtr);
-    return insn.isSysCallInsn();
+    return getInstruction().isSysCallInsn();
 }
 
 bool InstrucIter::isANopInstruction()
 {
   assert(instPtr);
-  return insn.isNop();
+  return getInstruction().isNop();
 }
 
 bool InstrucIter::isAnAbortInstruction()
 {
   assert(instPtr);
-  const unsigned char *ptr = insn.op_ptr();
+  const unsigned char *ptr = getInstruction().op_ptr();
 
   // FIXME this all needs to be more general!
   // hlt
-  return(*ptr == 0xf4 || insn.isIllegal());
+  return(*ptr == 0xf4 || getInstruction().isIllegal());
 }
 
 bool InstrucIter::isAnAllocInstruction()
@@ -229,13 +230,13 @@ Address InstrucIter::getBranchTargetOffset()
 {
   assert(instPtr);
   // getTarget returns displacement+address parameter
-  return insn.getTarget(0);
+  return getInstruction().getTarget(0);
 }
 
 Address InstrucIter::getBranchTargetAddress(bool *)
 {
   assert(instPtr);
-  return insn.getTarget(current);
+  return getInstruction().getTarget(current);
 }
 
 void initOpCodeInfo()
@@ -255,7 +256,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
   ia32_condition cnd;
   ia32_instruction i(mac, &cnd);
     
-  const unsigned char* addr = insn.ptr();
+  const unsigned char* addr = getInstruction().ptr();
   BPatch_memoryAccess* bmap = BPatch_memoryAccess::none;
     
   ia32_decode(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION, addr, i);
@@ -557,7 +558,7 @@ Address InstrucIter::peekPrev()
 Address InstrucIter::peekNext() {
   assert(instPtr);
   Address tmp = current;
-  tmp += insn.size();
+  tmp += getInstruction().size();
   return tmp;
 }
 
@@ -877,8 +878,7 @@ void parseRegisters(std::set<RegisterID>& readArray, std::set<RegisterID>& write
 
 Address InstrucIter::getCallTarget()
 {
-  instruction i = getInstruction();
-  return i.getTarget(current);
+  return getInstruction().getTarget(current);
 }
 
 

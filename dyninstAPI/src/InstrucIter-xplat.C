@@ -88,16 +88,15 @@ void InstrucIter::initializeInsn() {
   // so we allow it. If the value gets used then choke.
 }
 #endif
-
+#if 0
 // FIXME: should do an in-order iteration over basic blocks or something
 InstrucIter::InstrucIter(int_function* func) :
   instructions_(func->proc()),
   base(func->getAddress()),
   range(func->getSize_NP()),
   current(base) {
-  assert(current >= base);
-  assert(current < base+range);
-  initializeInsn();
+  std::transform(func->blocks.begin(), func->blocks.end(), std::back_inserter(subIters), makeIter);
+  currentBlock = subIters.begin();
 }
 
 InstrucIter::InstrucIter(Address addr, int_function* func) :
@@ -105,11 +104,11 @@ InstrucIter::InstrucIter(Address addr, int_function* func) :
   base(addr),
   range(func->getSize_NP()),
   current(base) {
-  assert(current >= base);
-  assert(current < base+range);
-  initializeInsn();
+  std::transform(func->blocks.begin(), func->blocks.end(), std::back_inserter(subIters), makeIter);
+  currentBlock = subIters.begin();
+  setCurrentAddress(addr);
 }
-
+#endif
 
 InstrucIter::InstrucIter(bblInstance* b) :
   instructions_(b->proc()),
@@ -219,7 +218,6 @@ InstrucIter::InstrucIter( Address addr, unsigned size, AddressSpace *a) :
   initializeInsn();
 }
 
-
 InstrucIter::InstrucIter (image_func *func) :
   instructions_(func->img()),
   base(func->getOffset()),
@@ -263,10 +261,10 @@ InstrucIter::InstrucIter(Address current, image_parRegion *parR) :
 bool InstrucIter::hasMore()
 {
   if (instPtr == NULL) return false;
-
+  
   if ((range == 0) ||
       (range ==-1)) return true; // Unsafe iteration, but there is more
-
+  
   if((current < (base + range )) &&
      (current >= base))
     return true;
@@ -292,29 +290,29 @@ bool InstrucIter::hasPrev()
   return false;
 }
 
-Address InstrucIter::operator*()
+Address InstrucIter::operator*() const
 {
   return current;
 }
 
 // Postfix...
-InstrucIter InstrucIter::operator++(int)
+Address InstrucIter::operator++(int)
 {
   assert(instPtr);
-  InstrucIter oldThis(*this);
+  Address retVal = **this;
   ++(*this);
-  return oldThis;
+  return retVal;
 }
 
 // Postfix...
-InstrucIter InstrucIter::operator--(int)
+Address InstrucIter::operator--(int)
 {
-  InstrucIter oldThis(*this);
+  Address retVal = **this;
   --(*this);
-  return oldThis;
+  return retVal;
 }
 
-InstrucIter InstrucIter::operator++()
+Address InstrucIter::operator++()
 {
 #if defined(arch_x86) || defined(arch_x86_64) // arch_has_variable_length_insns...
   prevInsns.push_back(std::make_pair(current, instPtr));
@@ -322,10 +320,10 @@ InstrucIter InstrucIter::operator++()
   //  assert(instructions_ && instructions_->isValidAddress(peekNext()));  
   current = peekNext();
   initializeInsn();
-  return *this;
+  return **this;
 }
 
-InstrucIter InstrucIter::operator--()
+Address InstrucIter::operator--()
 {
 #if defined(arch_x86) || defined(arch_x86_64)
   if(hasPrev())
@@ -339,7 +337,7 @@ InstrucIter InstrucIter::operator--()
   current = peekPrev();
 #endif
   initializeInsn();
-  return *this;
+  return **this;
 }
 
 BPatch_instruction *InstrucIter::getBPInstruction() {
