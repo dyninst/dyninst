@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.h,v 1.18 2007/02/14 23:04:11 legendre Exp $
+// $Id: dynamiclinking.h,v 1.19 2007/12/12 22:20:43 roundy Exp $
 
 #if !defined(dynamic_linking_h)
 #define dynamic_linking_h
@@ -129,7 +129,8 @@ public:
     // added or removed. On error error_occured is true.
     // This function normally only runs if we're at the dlopen/dlclose break address
     bool handleIfDueToSharedObjectMapping(EventRecord &ev,
-                                          pdvector<mapped_object *> &changed_objects);
+                                          pdvector<mapped_object *> &changed_objects,
+                                          pdvector<bool> &is_new_object);
     bool decodeIfDueToSharedObjectMapping(EventRecord &, u_int &change_type);
     bool getChangedObjects(EventRecord &,pdvector<mapped_object *> &changed_objects);
                            
@@ -187,11 +188,9 @@ public:
     // findChangeToLinkMaps: This routine returns a shared objects
     // that have been deleted or added to the link maps as indicated by
     // change_type.  If an error occurs it sets error_occured to true.
-    bool findChangeToLinkMaps(u_int &change_type,
-			      pdvector<mapped_object *> &);
-    bool didLinkMapsChange(u_int &change_type,
-			   pdvector<fileDescriptor> &);
-    
+    bool findChangeToLinkMaps(pdvector<mapped_object *> &,
+                              pdvector<bool> &);
+
     // getNewSharedObjects: returns a vector of mapped_object one element for 
     // newly mapped shared object. 
     // Returns NULL if there is an error. 
