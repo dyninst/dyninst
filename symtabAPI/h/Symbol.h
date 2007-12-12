@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.4 2007/12/11 16:40:44 giri Exp $
+ * $Id: Symbol.h,v 1.5 2007/12/12 23:18:00 giri Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -65,15 +65,9 @@ class localVarCollection;
 
 class Symbol {
     friend class typeCommon;
+    friend class Symtab;
     friend std::string parseStabString(Module *, int linenum, char *, int, 
                               typeCommon *);
-  #if defined(USES_DWARF_DEBUG)
-
-       friend bool walkDwarvenTree(Dwarf_Debug &, Dwarf_Die,
-                                   Module *,  Symtab *, Dwarf_Off, char **, 
-                                   Symbol *,  typeCommon *, typeEnum *, fieldListType *);
-  #endif
-									
 public:
     enum SymbolType {
         ST_UNKNOWN,

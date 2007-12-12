@@ -154,14 +154,6 @@ class Type{
    friend class typeCollection;
    friend std::string parseStabString(Module *, int linenum, char *, int, 
                           typeCommon *);
-   /*
- #if defined(USES_DWARF_DEBUG)
-
-   friend bool walkDwarvenTree(Dwarf_Debug &, Dwarf_Die,
-                         	Module *,  Symtab *, Dwarf_Off, char **, 
-				Symbol *,  typeCommon *, typeEnum *, fieldListType *);
- #endif
- */
  protected:
    typeId_t ID_;           /* unique ID of type */
    std::string name_;
