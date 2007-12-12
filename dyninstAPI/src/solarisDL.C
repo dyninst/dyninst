@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.51 2007/09/19 21:55:05 giri Exp $
+// $Id: solarisDL.C,v 1.52 2007/12/12 22:20:54 roundy Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -383,14 +383,10 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
     link_addresses = 0;
 }
 
-// handleIfDueToSharedObjectMapping: returns true if the trap was caused
-// by a change to the link maps,  If it is, and if the linkmaps state is
-// safe, it processes the linkmaps to find out what has changed...if it
-// is not safe it sets the type of change currently going on (specified by
-// the value of r_debug.r_state in link.h
-// The added or removed shared objects are returned in changed_objects
-// the change_type value is set to indicate if the objects have been added 
-// or removed
+/* Return true if the exception was caused by the hook in the linker
+ * code, we'll worry about whether or not any libraries were
+ * added/removed later on when we handle the exception
+ */
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
                                                        u_int & /* change_type */) 
 {
@@ -411,22 +407,20 @@ bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
            break;
        }
    }
-
-   if (!hook) {
-      return false;
-   }
-
-   pdvector<fileDescriptor> newfds;
-   if (! didLinkMapsChange((u_int &)ev.what, newfds)) {
-     fprintf(stderr, "%s[%d]:  link maps not changed\n", FILE__, __LINE__);
-     return false;
-   }
-
-  return true;
+   return (bool) hook;
 }
 
+// handleIfDueToSharedObjectMapping: returns true if the trap was caused
+// by a change to the link maps,  If it is, and if the linkmaps state is
+// safe, it processes the linkmaps to find out what has changed...if it
+// is not safe it sets the type of change currently going on (specified by
+// the value of r_debug.r_state in link.h
+// The added or removed shared objects are returned in changed_objects
+// the change_type value is set to indicate if the objects have been added 
+// or removed
 bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev, 
-                                                       pdvector<mapped_object*> &changed_objects)
+                                 pdvector<mapped_object*> &changed_objects,
+                                 pdvector<bool> &is_new_object)
 {
 
    struct dyn_saved_regs regs;
@@ -472,7 +466,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
          // kludge: the state of the first add can get screwed up
          // so if both change_type and r_state are 0 set change_type to 1
          if(ev.what == 0) ev.what = SHAREDOBJECT_ADDED;
-         findChangeToLinkMaps((u_int &)ev.what, changed_objects);
+         findChangeToLinkMaps(changed_objects, is_new_object);
       } 
       
       // Don't need to reset PC

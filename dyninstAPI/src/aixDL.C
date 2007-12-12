@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.74 2007/06/13 18:50:29 bernat Exp $
+// $Id: aixDL.C,v 1.75 2007/12/12 22:20:41 roundy Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -236,6 +236,10 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
     return true;
 }
 
+/* Return true if the exception was caused by the hook in the linker
+ * code, we'll worry about whether or not any libraries were
+ * added/removed later on when we handle the exception
+ */
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
                                                        u_int & /* change_type */) 
 {
@@ -246,17 +250,7 @@ bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
     Frame brk_frame = brk_lwp->getActiveFrame();
     hook = reachedLibHook(brk_frame.getPC());
    
-    if (!hook) {
-      return false;
-    }
-
-    pdvector<fileDescriptor> newfds;
-    if (! didLinkMapsChange((u_int &)ev.what, newfds)) {
-      fprintf(stderr, "%s[%d]:  link maps not changed\n", FILE__, __LINE__);
-      return false;
-    }
-
-   return true;
+    return (bool) hook;
 }
 
 // handleIfDueToSharedObjectMapping: returns true if the trap was caused
@@ -268,7 +262,8 @@ bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
 // return value: true if there was a change to the link map,
 // false otherwise
 bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
-                                                      pdvector<mapped_object *> &changed_objects)
+                                pdvector<mapped_object *> &changed_objects,
+                                pdvector<bool> &is_new_object)
 {
     // We discover it by comparing sizes
     dyn_lwp *brk_lwp = instru_based ? NULL : ev.lwp;
@@ -281,8 +276,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
 
     if (force_library_load || hook || instru_based) {
         
-        if (!findChangeToLinkMaps((u_int &) ev.what, 
-                                  changed_objects))
+        if (!findChangeToLinkMaps(changed_objects, is_new_object))
             return false;
 	if (brk_lwp) {
 	  // Now we need to fix the PC. We overwrote the return instruction,
