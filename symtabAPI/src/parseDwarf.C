@@ -61,7 +61,7 @@ using namespace Dyninst::SymtabAPI;
 
 /* For location decode. */
 #include <stack>
-
+/*
 bool SymtabAPI::walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                         Module * module,
                         Symtab * objFile,
@@ -71,7 +71,7 @@ bool SymtabAPI::walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                         typeCommon * currentCommonBlock = NULL,
 			typeEnum *currentEnum = NULL,
                         fieldListType * currentEnclosure = NULL );
-																		
+*/																		
 
 // on 64-bit x86_64 targets, the DWARF register number does not
 // correspond to the machine encoding. See the AMD-64 ABI.
@@ -821,15 +821,16 @@ void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 	dwarf_dealloc( dbg, entryName, DW_DLA_STRING );
 	} /* end dumpAttributeList() */
 
-bool SymtabAPI::walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
-			Module * module, 
-			Symtab * objFile,
-			Dwarf_Off cuOffset,
-			char **srcFiles,
-			Symbol * currentFunction,
-			typeCommon * currentCommonBlock,
-			typeEnum * currentEnum,
-			fieldListType * currentEnclosure ) 
+
+bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
+                        Module * module,
+                        Symtab * objFile,
+                        Dwarf_Off cuOffset,
+		            	char **srcFiles,
+                        Symbol * currentFunction = NULL,
+                        typeCommon * currentCommonBlock = NULL,
+        			    typeEnum *currentEnum = NULL,
+                        fieldListType * currentEnclosure = NULL )
 {
 
 	/* optimization */ tail_recursion:;

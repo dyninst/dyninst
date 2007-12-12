@@ -64,6 +64,7 @@ class emitElf{
     Elf_Data *symTabData;
     Elf_Data *hashData;
     Elf_Data *dynsymData;
+    Elf_Data *dynData;
     Elf_Data *rodata;
     Elf_Data *dataData;
     
@@ -78,6 +79,7 @@ class emitElf{
  
     //text & data segment ends
     Elf32_Off dataSegEnd, textSegEnd;
+    Elf32_Off dynSegOff, dynSegAddr;
 
     //Section Names for all sections
     vector<std::string> secNames;
@@ -100,6 +102,7 @@ class emitElf{
     bool createLoadableSections( Elf32_Shdr *shdr, std::vector<Section *>&newSecs, unsigned &loadSecTotalSize);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
+    void updateDynamic(Elf_Data* dynData,  Elf32_Addr relAddr);
     
     void log_elferror(void (*err_func)(const char *), const char* msg);
 };

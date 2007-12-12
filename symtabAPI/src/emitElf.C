@@ -256,7 +256,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     	    	memset(newdata->d_buf, '\0', shdr->sh_size);
     	    	newdata->d_size = shdr->sh_size;
     	    	if(NOBITSstartPoint == oldEhdr->e_shnum)
-    		    NOBITSstartPoint = scncount;
+        		    NOBITSstartPoint = scncount;
     	        NOBITStotalsize += shdr->sh_size; 
 	        }
     	}    
@@ -289,8 +289,6 @@ bool emitElf::driver(Symtab *obj, string fName){
         if(!strcmp(name, ".data")){
     	    dataData = newdata;
 	    }
-        if(!strcmp(name, ".dynamic")){
-	    }
     	// Change offsets of sections based on the newly added sections
     	if(addNewSegmentFlag)
 	        newshdr->sh_offset += pgSize;
@@ -316,6 +314,16 @@ bool emitElf::driver(Symtab *obj, string fName){
             if(!createLoadableSections(newshdr, newSecs, loadSecTotalSize))
 	        	return false;
         }
+
+        if(!strcmp(name, ".dynamic")){
+            dynData = newdata;
+            dynSegOff = newshdr->sh_offset;
+            dynSegAddr = newshdr->sh_addr;
+            // Change the data to update the relocation addr
+            //newshdr->sh_type = SHT_PROGBITS;
+            //newSecs.push_back(new Section(oldEhdr->e_shnum+newSecs.size(),".dynamic", /*addr*/, newdata->d_size, dynData, Section::dynamicSection, true));
+	    }
+
 	    elf_update(newElf, ELF_C_NULL);
     }
 
@@ -381,6 +389,11 @@ void emitElf::fixPhdrs(unsigned loadSecTotalSize)
         memcpy(newPhdr, tmp, oldEhdr->e_phentsize);
     	// Expand the data segment to include the new loadable sections
     	// Also add a executable permission to the segment
+        if(tmp->p_type == PT_DYNAMIC){
+            newPhdr->p_vaddr = dynSegAddr;
+            newPhdr->p_paddr = dynSegAddr;
+            newPhdr->p_offset = dynSegOff;
+        }
     	if(BSSExpandFlag) {
     	    if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7))
     	    {
@@ -421,8 +434,20 @@ void emitElf::fixPhdrs(unsigned loadSecTotalSize)
 }
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
-//void emitElf::updateDynamic(Elf_Data* dynData,  Elf32_Addr relAddr){
-//}
+void emitElf::updateDynamic(Elf_Data* dynData,  Elf32_Addr relAddr){
+#if !defined(os_solaris)
+    Elf32_Dyn *dyns = (Elf32_Dyn *)dynData->d_buf;
+    int count = dynData->d_size/sizeof(Elf32_Dyn);
+    for(unsigned i = 0; i< count;i++){
+        switch(dyns[i].d_tag){
+            case DT_REL:
+            case DT_RELA:
+                dyns[i].d_un.d_ptr = relAddr;
+                break;
+        }
+    }
+#endif    
+}
 
 //This method updates the symbol table,
 //it shifts each symbol address as necessary AND
@@ -451,7 +476,9 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, std::vector<Section *>&ne
     firstNewLoadSec = NULL;
     unsigned extraSize = 0;
     unsigned pgSize = getpagesize();
-			
+    unsigned strtabIndex = 0;
+    Elf32_Shdr *prevshdr = NULL;
+
     for(unsigned i=0; i < newSecs.size(); i++)
     {
     	if(newSecs[i]->isLoadable())
@@ -479,11 +506,17 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, std::vector<Section *>&ne
     	    if (newSecs[i]->getFlags() && Section::dataSection)    
 	            newshdr->sh_flags |=  SHF_WRITE | SHF_ALLOC;
     	    newshdr->sh_type = SHT_PROGBITS;
+
+            // TODO - compute the correct offset && address. This is wrong!!
 	        if(shdr->sh_type == SHT_NOBITS)
 	        	newshdr->sh_offset = shdr->sh_offset;
     	    else
 	        	newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
-	        newshdr->sh_addr = newSecs[i]->getSecAddr();
+            if(newSecs[i]->getSecAddr())
+    	        newshdr->sh_addr = newSecs[i]->getSecAddr();
+            else{
+                newshdr->sh_addr = prevshdr->sh_addr+ prevshdr->sh_size;
+            }
     	    
             newshdr->sh_link = SHN_UNDEF;
 	        newshdr->sh_info = 0;
@@ -495,8 +528,9 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, std::vector<Section *>&ne
                 newshdr->sh_type = SHT_REL;
                 newshdr->sh_flags = SHF_WRITE;
                 newshdr->sh_entsize = sizeof(Elf32_Rel);
-                newshdr->sh_link = newSecs.size()+i+1;   //.rel.plt section should have sh_link = index of .strtab for dynsym
-                newdata->d_type = ELF_T_BYTE;
+                newshdr->sh_link = strtabIndex;   //.rel.plt section should have sh_link = index of .strtab for dynsym
+                newdata->d_type = ELF_T_REL;
+                updateDynamic(dynData, newshdr->sh_addr);
             }
             else if(newSecs[i]->getFlags() & Section::stringSection)    //String table Section
             {
@@ -505,6 +539,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, std::vector<Section *>&ne
                 newdata->d_type = ELF_T_BYTE;
                 newshdr->sh_link = SHN_UNDEF;
                 newshdr->sh_flags=  0;
+                strtabIndex = secNames.size()-1;
             }
             else if(newSecs[i]->getFlags() & Section::dynsymtabSection)
             {
@@ -513,6 +548,18 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, std::vector<Section *>&ne
                 newdata->d_type = ELF_T_SYM;
                 newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags=  0;
+            }
+            else if(newSecs[i]->getFlags() & Section::dynamicSection)
+            {
+    #if !defined(os_solaris)
+                newshdr->sh_entsize = sizeof(Elf32_Dyn);
+    #endif            
+                newshdr->sh_type = SHT_DYNAMIC;
+                newdata->d_type = ELF_T_DYN;
+                newshdr->sh_link = strtabIndex;   //.dynamic section should have sh_link = index of .strtab for .dynsym
+                newshdr->sh_flags=  0;
+                dynSegOff = newshdr->sh_offset;
+                dynSegAddr = newshdr->sh_addr;
             }
 
     	    if(addNewSegmentFlag)
@@ -552,6 +599,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, std::vector<Section *>&ne
 	        /* DEBUG */
     	    fprintf(stderr, "Added New Section : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
 	                                     newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
+            prevshdr = newshdr;
 	    }
 	    else
 	        nonLoadableSecs.push_back(newSecs[i]);
@@ -769,7 +817,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
 	    sec->setPtrToRawData(data, symbols.size()*sizeof(Elf32_Sym));
     }
     else
-    	obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", 8);
+    	obj->addSection(0, data, symbols.size()*sizeof(Elf32_Sym), ".symtab", Section::symtabSection);
 
     //reconstruct .strtab section
     char *strData = (char *)malloc(symbolNamesLength);
@@ -782,7 +830,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
 	    sec->setPtrToRawData(strData, symbolNamesLength);
     }
     else
-        obj->addSection(0, strData, symbolNamesLength , ".strtab", 16);
+        obj->addSection(0, strData, symbolNamesLength , ".strtab", Section::stringSection);
 
     //reconstruct .rel
     for(i=0;i<fbt.size();i++) {
@@ -814,7 +862,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
 //	    sec->setPtrToRawData(data, dynsymbols.size()*sizeof(Elf32_Sym));
 //    }
 //    else
-    	obj->addSection(0, data, dynsymbols.size()*sizeof(Elf32_Sym), ".dynsym", 32, true);
+    	obj->addSection(0, data, dynsymbols.size()*sizeof(Elf32_Sym), ".dynsym", Section::dynsymtabSection, true);
 
     //reconstruct .dynstr section
     strData = (char *)malloc(dynsymbolNamesLength);
@@ -827,7 +875,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
 //	    sec->setPtrToRawData(strData, dynsymbolNamesLength);
 //    }
 //    else
-        obj->addSection(0, strData, dynsymbolNamesLength , ".dynstr", 16, true);
+        obj->addSection(0, strData, dynsymbolNamesLength , ".dynstr", Section::stringSection, true);
     return true;
 }
 

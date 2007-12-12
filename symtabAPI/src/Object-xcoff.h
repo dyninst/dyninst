@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.11 2007/12/10 22:33:37 giri Exp $
+ * $Id: Object-xcoff.h,v 1.12 2007/12/12 19:18:22 giri Exp $
 ************************************************************************/
 
 
@@ -272,6 +272,18 @@ private:
     hash_map<std::string, LineInformation > lineInfo_;
 };
 
+/* This class is only used in symtab.C; the only reason it's in
+   this header file is so that template0.C can include it to
+   instantiate pdvector< IncludeFileInfo >. */
+class IncludeFileInfo {
+	public:
+		unsigned int begin;
+		unsigned int end;
+		std::string name;
+
+		IncludeFileInfo() : begin(0), end(0) {};
+		IncludeFileInfo( int _begin, const char *_name ) : begin(_begin), end(0), name(_name) {};
+	};
 
 }//namespace SymtabAPI
 

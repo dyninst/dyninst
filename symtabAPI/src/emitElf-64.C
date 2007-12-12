@@ -256,7 +256,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
     	    	memset(newdata->d_buf, '\0', shdr->sh_size);
     	    	newdata->d_size = shdr->sh_size;
     	    	if(NOBITSstartPoint == oldEhdr->e_shnum)
-    		    NOBITSstartPoint = scncount;
+        		    NOBITSstartPoint = scncount;
     	        NOBITStotalsize += shdr->sh_size; 
 	        }
     	}    
@@ -288,6 +288,12 @@ bool emitElf64::driver(Symtab *obj, string fName){
         }
         if(!strcmp(name, ".data")){
     	    dataData = newdata;
+	    }
+        if(!strcmp(name, ".dynamic")){
+            dynData = newdata;
+            // Change the data to update the relocation addr
+            //newshdr->sh_type = SHT_PROGBITS;
+            //newSecs.push_back(new Section(oldEhdr->e_shnum+newSecs.size(),".dynamic", newdata->d_size, dynData, Section::dynamicSection, true));
 	    }
     	// Change offsets of sections based on the newly added sections
     	if(addNewSegmentFlag)
@@ -418,6 +424,22 @@ void emitElf64::fixPhdrs(unsigned loadSecTotalSize)
     }
 }
 
+//This method updates the .dynamic section to reflect the changes to the relocation section
+void emitElf64::updateDynamic(Elf_Data* dynData,  Elf64_Addr relAddr){
+#if !defined(os_solaris)
+    Elf64_Dyn *dyns = (Elf64_Dyn *)dynData->d_buf;
+    int count = dynData->d_size/sizeof(Elf64_Dyn);
+    for(unsigned i = 0; i< count;i++){
+        switch(dyns[i].d_tag){
+            case DT_REL:
+            case DT_RELA:
+                dyns[i].d_un.d_ptr = relAddr;
+                break;
+        }
+    }
+#endif
+}
+
 //This method updates the symbol table,
 //it shifts each symbol address as necessary AND
 //sets _end and _END_ to move the heap
@@ -445,6 +467,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, std::vector<Section *>&
     firstNewLoadSec = NULL;
     unsigned extraSize = 0;
     unsigned pgSize = getpagesize();
+    unsigned strtabIndex = 0;
 			
     for(unsigned i=0; i < newSecs.size(); i++)
     {
@@ -489,8 +512,9 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, std::vector<Section *>&
                 newshdr->sh_type = SHT_REL;
                 newshdr->sh_flags = SHF_WRITE;
                 newshdr->sh_entsize = sizeof(Elf64_Rel);
-                newshdr->sh_link = newSecs.size()+i+1;   //.rel.plt section should have sh_link = index of .strtab for dynsym
-                newdata->d_type = ELF_T_BYTE;
+                newshdr->sh_link = strtabIndex;   //.rel.plt section should have sh_link = index of .strtab for dynsym
+                newdata->d_type = ELF_T_REL;
+                updateDynamic(dynData, newshdr->sh_addr);
             }
             else if(newSecs[i]->getFlags() & Section::stringSection)    //String table Section
             {
@@ -499,6 +523,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, std::vector<Section *>&
                 newdata->d_type = ELF_T_BYTE;
                 newshdr->sh_link = SHN_UNDEF;
                 newshdr->sh_flags=  0;
+                strtabIndex = secNames.size()-1;
             }
             else if(newSecs[i]->getFlags() & Section::dynsymtabSection)
             {
@@ -506,6 +531,16 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, std::vector<Section *>&
                 newshdr->sh_entsize = sizeof(Elf64_Sym);
                 newdata->d_type = ELF_T_SYM;
                 newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
+                newshdr->sh_flags=  0;
+            }
+            else if(newSecs[i]->getFlags() & Section::dynamicSection)
+            {
+#if !defined(os_solaris)
+                newshdr->sh_entsize = sizeof(Elf64_Dyn);
+#endif
+                newshdr->sh_type = SHT_DYNAMIC;
+                newdata->d_type = ELF_T_DYN;
+                newshdr->sh_link = strtabIndex;   //.dynamic section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags=  0;
             }
 
@@ -763,7 +798,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
 	    sec->setPtrToRawData(data, symbols.size()*sizeof(Elf64_Sym));
     }
     else
-    	obj->addSection(0, data, symbols.size()*sizeof(Elf64_Sym), ".symtab", 8);
+    	obj->addSection(0, data, symbols.size()*sizeof(Elf64_Sym), ".symtab", Section::symtabSection);
 
     //reconstruct .strtab section
     char *strData = (char *)malloc(symbolNamesLength);
@@ -776,7 +811,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
 	    sec->setPtrToRawData(strData, symbolNamesLength);
     }
     else
-        obj->addSection(0, strData, symbolNamesLength , ".strtab", 16);
+        obj->addSection(0, strData, symbolNamesLength , ".strtab", Section::stringSection);
 
     //reconstruct .rel
     for(i=0;i<fbt.size();i++) {
@@ -808,7 +843,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
 //	    sec->setPtrToRawData(data, dynsymbols.size()*sizeof(Elf64_Sym));
 //    }
 //    else
-    	obj->addSection(0, data, dynsymbols.size()*sizeof(Elf64_Sym), ".dynsym", 64, true);
+    	obj->addSection(0, data, dynsymbols.size()*sizeof(Elf64_Sym), ".dynsym", Section::dynsymtabSection, true);
 
     //reconstruct .dynstr section
     strData = (char *)malloc(dynsymbolNamesLength);
@@ -821,7 +856,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
 //	    sec->setPtrToRawData(strData, dynsymbolNamesLength);
 //    }
 //    else
-        obj->addSection(0, strData, dynsymbolNamesLength , ".dynstr", 16, true);
+        obj->addSection(0, strData, dynsymbolNamesLength , ".dynstr", Section::stringSection, true);
     return true;
 }
 

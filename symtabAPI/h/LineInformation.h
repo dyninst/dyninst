@@ -129,27 +129,6 @@ class LineInformation : private RangeLookup< LineInformationImpl::LineNoTuple, L
 		SourceLineInternTable sourceLineNames;
 	}; /* end class LineInformation */
 
-#if defined( os_aix )
-/* This class is only used in symtab.C; the only reason it's in
-   this header file is so that template0.C can include it to
-   instantiate pdvector< IncludeFileInfo >. */   
-}
-}
-#include "common/h/String.h"
-namespace Dyninst{
-namespace SymtabAPI{
-
-class IncludeFileInfo {
-	public:
-		unsigned int begin;
-		unsigned int end;
-		std::string name;
-
-		IncludeFileInfo() : begin(0), end(0) {};
-		IncludeFileInfo( int _begin, const char *_name ) : begin(_begin), end(0), name(_name) {};
-	};	
-#endif /* defined( os_aix ) */
-
 }//namespace SymtabAPI
 }//namespace Dyninst
 

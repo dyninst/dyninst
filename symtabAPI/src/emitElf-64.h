@@ -64,6 +64,7 @@ class emitElf64{
     Elf_Data *symTabData;
     Elf_Data *hashData;
     Elf_Data *dynsymData;
+    Elf_Data *dynData;
     Elf_Data *rodata;
     Elf_Data *dataData;
     
@@ -100,6 +101,7 @@ class emitElf64{
     bool createLoadableSections( Elf64_Shdr *shdr, std::vector<Section *>&newSecs, unsigned &loadSecTotalSize);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
+    void updateDynamic(Elf_Data* dynData,  Elf64_Addr relAddr);
     
     void log_elferror(void (*err_func)(const char *), const char* msg);
 };
