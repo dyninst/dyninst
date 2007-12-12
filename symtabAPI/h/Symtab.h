@@ -488,7 +488,8 @@ class Section {
 
 	enum {textSection = 1, dataSection = 2,
               relocationSection = 4, symtabSection = 8,
-              stringSection = 16, dynsymtabSection = 32} sectionType;
+              stringSection = 16, dynsymtabSection = 32,
+              dynamicSection = 64} sectionType;
 
 private:	
 	unsigned sidnumber_;

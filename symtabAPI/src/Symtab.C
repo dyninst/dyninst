@@ -638,7 +638,7 @@ void Symtab::checkPPC64DescriptorSymbols(){
                         lookUp->mangledNames[0] = newName;
 
                         //Change the type of the descriptor symbol
-                        syms[0]->type_ = Dyn_Symbol::ST_NOTYPE;
+                        syms[0]->type_ = Symbol::ST_NOTYPE;
                 }
          }
      }
