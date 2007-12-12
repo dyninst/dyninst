@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.29 2007/10/26 17:17:53 bernat Exp $
+// $Id: mapped_object.C,v 1.30 2007/12/12 22:20:49 roundy Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -173,11 +173,12 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 }
 
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
-                                                 AddressSpace *p) {
+                                                 AddressSpace *p,
+                                                 bool parseGaps) {
                                                  
     if (!p) return NULL;
     
-    image *img = image::parseImage(desc);
+    image *img = image::parseImage(desc, parseGaps);
     if (!img)  {
         return NULL;
     }
@@ -196,13 +197,13 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
        // Currently this has only been implemented for linux 
 #if defined(os_linux)
        vector <Symbol *>mainsyms;
-       if (p->proc() && 
-           !p->proc()->wasCreatedViaAttach() 
+       if (p->proc() && p->proc()->getTraceState() == noTracing_ts
+           && !p->proc()->wasCreatedViaAttach() 
            && !img->getObject()->findSymbolByType
                  (mainsyms,"main",Symbol::ST_UNKNOWN)
            && !img->getObject()->findSymbolByType
                  (mainsyms,"_main",Symbol::ST_UNKNOWN)) {
-           fprintf(stderr, "[%s][%d] ParseImage of module %s for process %d:\n"
+           fprintf(stderr, "[%s][%d] Module: %s in process %d:\n"
                    "\t  is not a shared object so it should contain a symbol for \n"
                    "\t  function main. Initial attempt to locate main failed,\n"
                    "\t  possibly due to the lack of a .text section\n",
@@ -794,7 +795,7 @@ int_variable *mapped_object::findVariable(image_variable *img_var) {
         pdvector<int_variable *> *varsByPrettyEntry = NULL;
         
         // Ensure a vector exists
-        if (!allVarsByPrettyName.find(pretty_name.c_str(),			      
+        if (!allVarsByPrettyName.find(pretty_name.c_str(),  
                                       varsByPrettyEntry)) {
             varsByPrettyEntry = new pdvector<int_variable *>;
             allVarsByPrettyName[pretty_name.c_str()] = varsByPrettyEntry;
@@ -811,7 +812,7 @@ int_variable *mapped_object::findVariable(image_variable *img_var) {
         pdvector<int_variable *> *varsBySymTabEntry = NULL;
         
         // Ensure a vector exists
-        if (!allVarsByMangledName.find(symtab_name.c_str(),			      
+        if (!allVarsByMangledName.find(symtab_name.c_str(),  
                                        varsBySymTabEntry)) {
             varsBySymTabEntry = new pdvector<int_variable *>;
             allVarsByMangledName[symtab_name.c_str()] = varsBySymTabEntry;
