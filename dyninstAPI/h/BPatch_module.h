@@ -241,6 +241,14 @@ public:
     API_EXPORT(Int, (), 
                bool, isValid, ());
 
+    //  BPatch_module::GetUnresolvedControlFlow
+    //
+    //  Every call instruction that calls into a region of memory that
+    //  is not recognized by Dyninst as pertaining to a code region in
+    //  an existing program module is tracked. This function returns
+    //  a list of all such calls being made in this module
+    API_EXPORT(Int, (), 
+    BPatch_Vector<BPatch_point *> *,getUnresolvedControlFlow, ());
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
@@ -284,7 +292,8 @@ private:
     void parseStabTypes();
     void parseDwarfTypes();
     bool isSystemLib();
-    
+	// vector of unresolved control flow instructions
+	BPatch_Vector<BPatch_point *> unresolvedCF;
 };
 
 #ifdef IBM_BPATCH_COMPAT
