@@ -559,6 +559,17 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     API_EXPORT(Int, (libname, reload),
     bool,loadLibrary,(const char *libname, bool reload = false));
 
+    // BPatch_process::setBeingDebuggedFlag
+    //
+    // This is a Windows only function that sets the user-space
+    // debuggerPresent flag to 0 or 1, 0 meaning that the process is not
+    // being debugged.  The debugging process will still have debug
+    // access, but system calls that ask if the process is being debugged
+    // will say that it is not because they merely return the value of the
+    // user-space beingDebugged flag. 
+    API_EXPORT(Int, (debuggerPresent),
+    bool,setBeingDebuggedFlag,(bool debuggerPresent));
+
     //  BPatch_process::enableDumpPatchedImage
     //  
     //  
