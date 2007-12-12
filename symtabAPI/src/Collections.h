@@ -34,6 +34,7 @@
 
 #include "symtabAPI/h/Type.h"
 
+using namespace std;
 namespace Dyninst {
 
 namespace SymtabAPI {
@@ -58,7 +59,7 @@ public:
 
   void addLocalVar(localVar * var);
   localVar * findLocalVar(std::string &name);
-  std::vector<localVar *> *getAllVars();  
+  vector<localVar *> *getAllVars();  
 };
   
 
