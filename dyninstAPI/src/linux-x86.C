@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.133 2007/12/04 17:58:25 bernat Exp $
+// $Id: linux-x86.C,v 1.134 2007/12/12 22:20:47 roundy Exp $
 
 #include <fstream>
 
@@ -88,7 +88,7 @@
 #include "dyninstAPI/src/debuggerinterface.h"
 
 #include "dyninstAPI/src/ast.h"
-
+#include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/h/BPatch.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
@@ -330,6 +330,7 @@ bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
 
 bool process::insertTrapAtEntryPointOfMain()
 {
+
     int_function *f_main = 0;
     pdvector<int_function *> funcs;
     //first check a.out for function symbol   
@@ -580,7 +581,7 @@ bool process::decodeStartupSysCalls(EventRecord &ev)
        Address regionStart = params[0];
        munmappedRegions.push_back(regionStart);
        startup_printf("%s[%d]: traced munmap syscall for region at 0x%x\n",
-                      __FILE__,__LINE__, regionStart);
+                      __FILE__,__LINE__, (int)regionStart);
     }
 
     // switch on state, this is an automaton
@@ -660,7 +661,7 @@ bool process::decodeStartupSysCalls(EventRecord &ev)
     return true;
 }// end decodeStartupSysCalls
 
-/* Find libc among the list of libraries that we've found
+/* Find libc and add it as a shared object
  * Search for __libc_start_main
  * Save old code at beginning of __libc_start_main
  * Insert trap
@@ -668,12 +669,36 @@ bool process::decodeStartupSysCalls(EventRecord &ev)
  */
 bool process::instrumentLibcStartMain() 
 {
-    // find libc
-    const pdvector<int_function *> *funcs;
-    mapped_object * libc = findObject("libc.so*",true);
-    assert (libc);
+   /*
+    // find libc, this will get shared object information from the dynamic linker
+   if (processSharedObjects()) {
+        logLine( "Failed to get dyninst's list of mapped objects\n");
+        return false;
+    }
+    mapped_object* libc = findObject("/libc*.so",true);
+    if (!libc) {
+        logLine("Libc seems not to have been loaded, could not instrument "
+                "__libc_start_main\n");
+        return false;
+    }
+    mapped_object *libc = mapped_object::createMappedObject(libs[libIdx], this);
+   */
+    unsigned int maps_size =0;
+    map_entries *maps = getLinuxMaps(getPid(), maps_size);
+    unsigned int libcIdx=0;
+    while (libcIdx < maps_size &&
+           ! (strstr(maps[libcIdx].path,"/libc")
+              && strstr(maps[libcIdx].path,".so"))) {
+       libcIdx++;
+    }
+    assert(libcIdx != maps_size);
+    //KEVINTODO: the last two args are not always 0,0: need to fix this (also in BPatch_image?)
+    fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path, true, 0, 0);
+    mapped_object *libc = mapped_object::createMappedObject(libcFD, this);
+    addASharedObject(libc);
 
     // find __libc_startmain
+    const pdvector<int_function*> *funcs;
     funcs = libc->findFuncVectorByPretty("__libc_start_main");
     if(funcs->size() == 0 || (*funcs)[0] == NULL) {
         logLine( "Couldn't find __libc_start_main\n");
@@ -700,7 +725,7 @@ bool process::instrumentLibcStartMain()
         return false;
     }
     startup_printf("%s[%d]: Saved %d bytes from entry of __libc_start_main\n", 
-                   FILE__, __LINE__, sizeof(savedCodeBuffer), getPid());
+                   FILE__, __LINE__, sizeof(savedCodeBuffer));
     // insert trap
     codeGen gen(1);
     instruction::generateTrap(gen);
@@ -715,9 +740,11 @@ bool process::instrumentLibcStartMain()
 }// end instrumentLibcStartMain
 
 
-/* Read parameters to startmain including the address of main restore
- * original instruction.  Similar to handleTrapAtEntryPointOfMain
- * Restore original instructions at this location, call insertTrapAtMain
+/* Read parameters to startmain including the address of main.
+ * See if there's an existing mapped object that contains the address of
+ *   main, which we'll call a_out, and set to be a.out for the process
+ * Restore original instruction in the libc library
+ * Call insertTrapAtMain
  */
 bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
 {
@@ -731,7 +758,7 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
     char namebuf[64];
     Address regionStart = 0;
     Address regionEnd = 0;
-    // there might not be an object that corresponds to a_out
+    // there might not be an object that corresponds to the a_out
     if (a_out == NULL) {
         // determine confines of region that encloses main, search from
         // end to get most recent mmap of an enclosing region
@@ -750,7 +777,7 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
         regionStart = mappedRegionStart[idx];
         regionEnd = mappedRegionEnd[idx];
         startup_printf("main(0x%x) is in region [0x%X 0x%X]\n", 
-                       mainaddr, regionStart, regionEnd);
+                       (int)mainaddr, (int)regionStart, (int)regionEnd);
 
         // found the right region, copy its contents to a temp file
         void *regionBuf = malloc(regionEnd - regionStart);
@@ -778,8 +805,8 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
                        (int)regionEnd, namebuf);
 
         // create a fileDescriptor and a new mapped_object for the region
-        fileDescriptor *fdesc = new fileDescriptor(namebuf,0,regionEnd-regionStart);
-        a_out = mapped_object::createMappedObject(*fdesc, this);
+        fileDescriptor fdesc = fileDescriptor(namebuf,false,0,regionEnd-regionStart);
+        a_out = mapped_object::createMappedObject(fdesc, this);
 
         // There is no function for adding an a.out, so we'll call
         // addASharedObject, and switch the old a.out to be this one.
@@ -1423,7 +1450,7 @@ bool process::hasBeenBound(const relocationEntry &entry,
 }
 
 bool process::getDyninstRTLibName() {
-    startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
+   startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
     if (dyninstRT_name.length() == 0) {
         // Get env variable
         if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
