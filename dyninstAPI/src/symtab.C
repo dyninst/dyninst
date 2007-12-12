@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.308 2007/09/28 15:37:14 giri Exp $
+ // $Id: symtab.C,v 1.309 2007/12/12 22:20:55 roundy Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,31 +78,41 @@
 #include <cvconst.h>
 #endif
 
+
 string fileDescriptor::emptyString(string(""));
 fileDescriptor::fileDescriptor() {
     // This shouldn't be called... must be public for pdvector, though
 }
 
 bool fileDescriptor::IsEqual(const fileDescriptor &fd) const {
-  // Don't test isShared, only file name and addresses
-  bool file_match_ = false;
+    // Don't test isShared, only file name and addresses
+    bool file_match_ = false;
 
-  // Annoying... we often get "foo vs ./foo" or such. So consider it a match
-  // if either file name is prefixed by the other; we don't get trailing crud.
-  string::size_type len1 = file_.length();
-  string::size_type len2 = fd.file_.length();
+    // Annoying... we often get "foo vs ./foo" or such. So consider it a match
+    // if either file name is prefixed by the other; we don't get trailing crud.
+    string::size_type len1 = file_.length();
+    string::size_type len2 = fd.file_.length();
   
-  if(((len1>=len2) && (file_.substr(len1-len2,len2) == fd.file_)) || ((len2>len1) && (fd.file_.substr(len2-len1,len1) == file_)))
-      file_match_ = true;   
-
-  if (file_match_ &&
-      (code_ == fd.code_) &&
-      (data_ == fd.data_) &&
-      (member_ == fd.member_) &&
-      (pid_ == fd.pid_))
-    return true;
-  else
-    return false;
+    if(((len1>=len2) && (file_.substr(len1-len2,len2) == fd.file_))
+       || ((len2>len1) && (fd.file_.substr(len2-len1,len1) == file_)))
+        file_match_ = true;   
+#if defined(os_linux)
+    struct stat buf1;
+    struct stat buf2;
+    if (!stat(file_.c_str(),&buf1)
+        && !stat(fd.file_.c_str(),&buf2)
+        && buf1.st_ino == buf2.st_ino) {
+        file_match_ = true;
+    }
+#endif  
+    if (file_match_ &&
+        (code_ == fd.code_) &&
+        (data_ == fd.data_) &&
+        (member_ == fd.member_) &&
+        (pid_ == fd.pid_))
+        return true;
+    else
+        return false;
 }
 
 void fileDescriptor::setLoadAddr(Address a) 
@@ -463,7 +473,9 @@ void image::findMain()
             Address curr = eAddr;
 			PVOID mapAddr = (PVOID)linkedFile->getBaseOffset();
 			PIMAGE_NT_HEADERS peHdr = ImageNtHeader( mapAddr ); //PE File Header
-   
+			//ImageRvaToVa: takes a relative virtual address in the image header 
+			// of a file that is mapped as a file, returning the virtual address 
+			// of the corresponding byte in the file
 			p = (const unsigned char*) ImageRvaToVa(peHdr, mapAddr, eAddr, 0);
             instruction insn((const void *)p);
             while( !insn.isReturn() )
@@ -494,6 +506,9 @@ void image::findMain()
               }
               curr += insn.size();
               p += insn.size();
+              if (!isCode(curr)) {
+                 break;
+              }
               insn.setInstruction(p);
             }
 			syms.clear();
@@ -528,6 +543,17 @@ void image::findMain()
                             Symbol::SL_GLOBAL, imageOffset_ + linkedFile->imageLength() - 1, 
                             0, UINT_MAX );
             	linkedFile->addSymbol(fSym);
+			}
+			//KEVIN: add entry point as main possibility if nothing else was found
+			if (possible_mains.size() == 0) {
+				Address entryPoint = linkedFile->getEntryOffset()/* KEVIN: fix this up if it works
+								   + getObject()->getLoadOffset()*/;
+				startup_printf("[%s:%u] - findmain could not find real candidates"
+						" for main, using binary entry point %x\n",
+						__FILE__, __LINE__, entryPoint);
+				possible_mains.push_back( entryPoint);
+				linkedFile->addSymbol(new Symbol("main","DEFAULT_MODULE",
+								Symbol::ST_FUNCTION,Symbol::SL_GLOBAL, entryPoint));
 			}
 		}
     }
@@ -819,6 +845,11 @@ pdmodule *image::findModule(const string &name, bool wildcard)
   return NULL;
 }
 
+const pdvector<image_instPoint*> &image::getBadControlFlow() const 
+{ 
+    return badControlFlow; 
+}
+
 const pdvector<image_func*> &image::getAllFunctions() 
 {
   analyzeIfNeeded();
@@ -918,7 +949,7 @@ unsigned int int_addrHash(const Address& addr) {
  *    physical offset. 
  */
 
-image *image::parseImage(fileDescriptor &desc)
+image *image::parseImage(fileDescriptor &desc, bool parseGaps)
 {
   /*
    * Check to see if we have parsed this image before. We will
@@ -955,7 +986,7 @@ image *image::parseImage(fileDescriptor &desc)
   gettimeofday(&starttime, NULL);
 #endif
 
-  image *ret = new image(desc, err); 
+  image *ret = new image(desc, err, parseGaps); 
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -1141,7 +1172,7 @@ void image::analyzeIfNeeded() {
 //        Both text and data sections have a relocation address
 
 
-image::image(fileDescriptor &desc, bool &err)
+image::image(fileDescriptor &desc, bool &err, bool parseGaps)
    : 
    desc_(desc),
    is_libdyninstRT(false),
@@ -1154,7 +1185,8 @@ image::image(fileDescriptor &desc, bool &err)
    nextBlockID_(0),
    varsByAddr(addrHash4),
    refCount(1),
-   parseState_(unparsed)
+   parseState_(unparsed),
+   parseGaps_(parseGaps)
 {
 #if defined(os_aix)
    string file = desc_.file().c_str();
@@ -1429,6 +1461,26 @@ void pdmodule::dumpMangled(pdstring &prefix) const
       }
   }
   cerr << endl;
+}
+
+/* This function is useful for seeding image parsing with function
+ * stubs to start the control-flow-traversal parsing from.  The
+ * function creates a module to add the symbol to if none exists.  I
+ * could instead have made everyUniqueFunction and getOrCreateModule
+ * public. -kevin
+ */
+void image::addFunctionStub(Address functionEntryAddr)
+{
+    pdmodule *mod;
+    if( everyUniqueFunction.size() <= 0 ) {
+        mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
+    } else {
+        mod = everyUniqueFunction[0]->pdmod();
+    }
+    char fname[32];
+    snprintf( fname, 32, "entry_%lx", functionEntryAddr);	
+    image_func *func = new image_func(fname, functionEntryAddr, UINT_MAX, mod, this);
+    everyUniqueFunction.push_back(func);
 }
 
 const string &pdmodule::fileName() const
