@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.47 2007/12/04 17:58:23 bernat Exp $
+// $Id: image-func.C,v 1.48 2007/12/12 22:20:45 roundy Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -159,11 +159,7 @@ image_func::image_func(const pdstring &symbol,
         fprintf(stderr, "image_func_count: %d (%d)\n",
                 image_func_count, image_func_count*sizeof(image_func));
 #endif
-#if defined(cap_stripped_binaries)
-    endOffset_ = offset;
-#else
     endOffset_ = offset + symTabSize;
-#endif
     Section * sec = NULL;
     Symtab * st = i->getObject();
     if(st)
@@ -211,11 +207,7 @@ image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
         fprintf(stderr, "image_func_count: %d (%d)\n",
                 image_func_count, image_func_count*sizeof(image_func));
 #endif
-#if defined(cap_stripped_binaries)
-    endOffset_ = symbol->getAddr();
-#else
     endOffset_ = symbol->getAddr() + symbol->getSize();
-#endif
  }	
 
 
@@ -1109,7 +1101,6 @@ void image_func::sortBlocklist()
 
 // No longer needed but kept around for reference
 #if 0
-#if defined(cap_stripped_binaries)
 
 //correct parsing errors that overestimate the function's size by
 // 1. updating all the vectors of instPoints
@@ -1218,7 +1209,6 @@ void image_func::updateFunctionEnd(Address newEnd)
     
 }    
 
-#endif
 #endif
 
 void image_basicBlock::addFunc(image_func * func)
