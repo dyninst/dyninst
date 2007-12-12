@@ -65,6 +65,10 @@
   #include <oleauto.h>
 #endif
 
+#if defined(arch_ia64)
+  #include "arch-ia64.h"
+#endif
+
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
@@ -2395,6 +2399,157 @@ bool BPatch_module::isSystemLib()
 
     return false;
 }
+
+
+// for use with VECTOR_SORT in getUnresolvedControlFlow
+bool callTargetCompare(image_instPoint *pt1, image_instPoint *pt2) 
+{ 
+    return pt1->callTarget() < pt2->callTarget(); 
+}
+
+/* Build up a vector of control flow instructions with suspicious targets
+ * 1. Gather all instructions with static targets that leave the low-level
+ *    mapped_object's image and check to see if they jump into another
+ *    existing module
+ * 2. Add all dynamic call instructions to the vector
+ * 3. Add all dynamic jump instructions to the vector
+ * 4. Add all tail calls to the vector
+ */
+#if !defined(arch_power)
+BPatch_Vector<BPatch_point *> *BPatch_module::getUnresolvedControlFlowInt()
+{
+    if (unresolvedCF.size()) {
+        return &unresolvedCF;
+    }
+    pdvector<image_instPoint*> modCalls 
+        = lowlevel_mod()->obj()->parse_img()->getBadControlFlow();
+    pdvector<mapped_object *> allObjs 
+        = ((BPatch_process*)addSpace)->llproc->mappedObjects();
+    VECTOR_SORT(modCalls, callTargetCompare);
+    Address curTarg;
+    Address prevTarg = 0;
+    BPatch_point *newPoint;
+    for (unsigned int i=0; i < modCalls.size(); i++) {
+        Address baseAddress = modCalls[i]->func()->img()->desc().loadAddr();
+        curTarg = modCalls[i]->callTarget() + baseAddress;
+        // eliminate dups from modCalls
+        if (curTarg != prevTarg) { 
+            prevTarg = curTarg;
+            //check that the target does not point into a known code region
+            bool inCodeSec = false;
+            for (unsigned int j=0; j < allObjs.size(); j++) {
+                if (allObjs[j]->codeAbs() <= curTarg &&
+                    curTarg < allObjs[j]->codeAbs() + allObjs[j]->imageSize()) {
+                    inCodeSec = true;
+                    break;
+                }
+            }
+            if (inCodeSec == false) {
+                BPatch_function *func = img->findFunctionInt
+                    ((unsigned long)modCalls[i]->offset()+baseAddress);
+                if (func) {
+                    instPoint *intPt = func->lowlevel_func()
+                        ->findInstPByAddr(modCalls[i]->offset() + baseAddress);
+                    if (!intPt) {//instPoint does not exist, create it
+                        intPt = instPoint::createParsePoint(func->lowlevel_func(), modCalls[i]);
+                    }
+#if defined (arch_ia64)
+                    if (intPt->insn().getType() == instruction::DIRECT_CALL 
+                        || intPt->insn().getType() == instruction::INDIRECT_CALL) {
+#else
+                    if (intPt->insn().isCall()) {
+#endif
+                        newPoint = addSpace->findOrCreateBPPoint(func, intPt, BPatch_locSubroutine);
+                    } else {
+                        newPoint = addSpace->findOrCreateBPPoint(func, intPt, BPatch_locLongJump);
+                    }
+                } else {
+                    fprintf(stderr,"%s[%d] Could not find function corresponding to "
+                            "static call at %lx\n",
+                            __FILE__,__LINE__, (long)modCalls[i]->offset());
+                } 
+                if (newPoint == NULL) {
+                    fprintf(stderr,"%s[%d] static call at %lx not instrumentable\n",
+                            __FILE__,__LINE__, (long)modCalls[i]->offset()+baseAddress);
+                } else {
+                    unresolvedCF.push_back(newPoint);
+                }
+            }
+        }
+    }
+    // add indirect calls 
+    pdvector<int_function*> funcs = lowlevel_mod()->getAllFunctions();
+    for (unsigned int i=0; i < funcs.size(); i++) {
+        pdvector<instPoint*> points = funcs[i]->funcCalls(); 
+        BPatch_function *curFunc = NULL;
+        for (unsigned int j=0; j < points.size(); j++) {
+            if (points[j]->isDynamicCall()) {
+                if (curFunc == NULL) {
+                    curFunc = addSpace->findOrCreateBPFunc(funcs[i],NULL);
+                }
+                newPoint = addSpace->findOrCreateBPPoint(curFunc, points[j], BPatch_locSubroutine);
+                if (newPoint == NULL) {
+                    fprintf(stderr,"%s[%d] indirect call at %lx not instrumentable\n",
+                            __FILE__,__LINE__, (long)points[j]->addr());
+                } else {
+                    unresolvedCF.push_back(newPoint);
+                }
+            }
+        }
+        // add indirect jumps
+        points = funcs[i]->funcArbitraryPoints(); 
+        for (unsigned int j=0; j < points.size(); j++) {
+#if defined (arch_ia64)
+            if (points[j]->insn().getType() == instruction::INDIRECT_BRANCH) {
+#elif defined (arch_sparc)
+            if (points[j]->insn().isJmplInsn()) {
+#else
+            if (points[j]->insn().isJumpIndir()) {
+#endif
+                if (curFunc == NULL) {
+                    curFunc = addSpace->findOrCreateBPFunc(funcs[i],NULL);
+                }
+                newPoint = addSpace->findOrCreateBPPoint(curFunc, points[j], BPatch_locLongJump);
+                if (newPoint == NULL) {
+                    fprintf(stderr,"%s[%d] indirect jump at %lx not instrumentable\n",
+                            __FILE__,__LINE__, (long)points[j]->addr());
+                } else {
+                    unresolvedCF.push_back(newPoint);
+                }
+            }
+        }
+        // add tail calls
+        points = funcs[i]->funcExits(); 
+        for (unsigned int j=0; j < points.size(); j++) {
+#if defined (arch_ia64)
+            if (points[j]->insn().getType() == instruction::INDIRECT_BRANCH) {
+#elif defined (arch_sparc)
+            if (points[j]->insn().isJmplInsn()) {
+#else
+            if (points[j]->insn().isJumpIndir()) {
+#endif
+                if (curFunc == NULL) {
+                    curFunc = addSpace->findOrCreateBPFunc(funcs[i],NULL);
+                }
+                newPoint = addSpace->findOrCreateBPPoint(curFunc, points[j], BPatch_locLongJump);
+                if (newPoint == NULL) {
+                    fprintf(stderr,"%s[%d] tail call at %lx not instrumentable\n",
+                            __FILE__,__LINE__, (long)points[j]->addr());
+                } else {
+                    unresolvedCF.push_back(newPoint);
+                }
+            }
+        }
+    }
+    return &unresolvedCF;
+}
+#else
+BPatch_Vector<BPatch_point *> *BPatch_module::getUnresolvedControlFlowInt()
+{
+    return NULL;
+}
+#endif
+
 
 #ifdef IBM_BPATCH_COMPAT
 
