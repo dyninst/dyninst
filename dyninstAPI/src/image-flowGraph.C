@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.40 2007/12/04 18:05:08 legendre Exp $
+ * $Id: image-flowGraph.C,v 1.41 2007/12/12 22:20:44 roundy Exp $
  */
 
 #include <stdio.h>
@@ -193,9 +193,9 @@ bool image::analyzeImage()
       VECTOR_APPEND(callTargets,new_targets); 
       new_targets.clear();
     }
-  
-#if defined(cap_stripped_binaries)
-    // Need to check to ensure that pdmodule mod is initialized
+#if !defined(arch_power) && !defined(arch_ia64) && !defined(arch_sparc)
+  if (parseGaps_) {
+	// Need to check to ensure that pdmodule mod is initialized
     // before searching the region, previous for loop will not have
     // executed
     if( everyUniqueFunction.size() <= 0 )
@@ -310,8 +310,9 @@ bool image::analyzeImage()
        }
        funcIdx++;
     } while (funcIdx < (int)everyUniqueFunction.size());
-#endif
-    
+  } // end gap parsing
+#endif    
+
     // Sort block list and bind all intra-module call points
     for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
        image_func *f = everyUniqueFunction[b_iter];
@@ -335,6 +336,7 @@ bool image::analyzeImage()
   stats_parse.stopTimer(PARSE_ANALYZE_TIMER);
   return true;
 }
+
 
 void image::DumpAllStats()
 {
@@ -425,8 +427,10 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
         // preParseStubs and are only added to the tables if
         // parsing is successful.
 
-        if( !isCode( callTargets[ j ] ) )
+        if( !isCode( callTargets[ j ] ) ) {
             continue;
+        }
+
         if( funcsByEntryAddr.defines( callTargets[ j ] ) )
             continue;
 
@@ -548,6 +552,9 @@ bool image_func::parse(
                 (void)FindOrCreateFunc(target,callTargets,preParseStubs);
             }
             parsing_printf("Jump or call at entry of function\n");
+            p = new image_instPoint(funcEntryAddr, ah.getInstruction(), 
+                                    this, target, false);
+            img()->badControlFlow.push_back(p);
         }
 
         endOffset_ = ah.peekNext();
@@ -937,6 +944,15 @@ bool image_func::buildCFG(
 
                 img()->addJumpTarget( target );
 
+                if( !img()->isValidAddress( target ) ) {
+                    p = new image_instPoint(currAddr,
+                                            ah.getInstruction(),
+                                            this,
+                                            target,
+                                            false);
+                    img()->badControlFlow.push_back(p);
+                }
+
                 if(ah.isDelaySlot())
                 {
                     // Skip delay slot (sparc)
@@ -1045,8 +1061,15 @@ bool image_func::buildCFG(
                 iter = targets.begin();
                 for(iter = targets.begin(); iter != targets.end(); iter++)
                 {
-                    if( !img()->isValidAddress( *iter ) )
+                    if( !img()->isValidAddress( *iter ) ) {
+                        p = new image_instPoint(currAddr,
+                                                ah.getInstruction(),
+                                                this,
+                                                *iter,
+                                                false);
+                        img()->badControlFlow.push_back(p);
                         continue;
+                    }
 
                     if(*iter < funcBegin) {
                         // FIXME see cond branch note, above
@@ -1108,8 +1131,15 @@ bool image_func::buildCFG(
                                   visited);
                 }
 
-                if( !img()->isValidAddress( target ) )
+                if( !img()->isValidAddress( target ) ) {
+                    p = new image_instPoint(currAddr,
+                                            ah.getInstruction(),
+                                            this,
+                                            target,
+                                            false);
+                    img()->badControlFlow.push_back(p);
                     break;
+                }
 
                 // NOTE we don't do anything with these?
                 img()->addJumpTarget( target );
@@ -1271,6 +1301,16 @@ bool image_func::buildCFG(
                                    currAddr);
                     if( validTarget == false )
                       {
+                         if (!img()->isCode(target)) {
+                             p = new image_instPoint(currAddr,
+                                                     ah.getInstruction(),
+                                                     this,
+                                                     target,
+                                                     false,
+                                                     isAbsolute);
+                             img()->badControlFlow.push_back(p);
+                         }
+
                         parsing_printf("... invalid call target\n");
                         currBlk->canBeRelocated_ = false;
                         canBeRelocated_ = false;
