@@ -21,7 +21,7 @@
  *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.18 2007/12/10 22:33:34 giri Exp $
+// $Id: Object-nt.C,v 1.19 2007/12/12 22:20:59 roundy Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -61,9 +61,9 @@ using namespace std;
 std::string convertCharToString(const char *ptr){
     std::string str;
     if(ptr)
-        str = ptr;
+	str = ptr;
     else
-    	str = "";
+	str = "";
     return str;
 }
 
@@ -71,10 +71,10 @@ static void printSysError(unsigned errNo) {
     char buf[1000];
 	
 	int result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo,
-    							MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+							MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 								buf, 1000, NULL);
     if (!result) {
-    	fprintf(stderr, "Couldn't print error message\n");
+	fprintf(stderr, "Couldn't print error message\n");
 		printSysError(GetLastError());
     }
     fprintf(stderr, "*** System error [%d]: %s\n", errNo, buf);
@@ -115,33 +115,33 @@ char *cplus_demangle(char *c, int, bool includeTypes) {
     
     char buf[1000];
     if (c[0]=='_') {
-    	// VC++ 5.0 seems to decorate C symbols differently to C++ symbols
+	// VC++ 5.0 seems to decorate C symbols differently to C++ symbols
 	// and the UnDecorateSymbolName() function provided by imagehlp.lib
 	// doesn't manage (or want) to undecorate them, so it has to be done
 	// manually, removing a leading underscore from functions & variables
 	// and the trailing "$stuff" from variables (actually "$Sstuff")
 	unsigned i;
 	for (i=1; i<sizeof(buf) && c[i]!='$' && c[i]!='\0'; i++)
-            buf[i-1]=c[i];
-       	buf[i-1]='\0';
-       	stripAtSuffix(buf);
-       	if (buf[0] == '\0') 
+	    buf[i-1]=c[i];
+	buf[i-1]='\0';
+	stripAtSuffix(buf);
+	if (buf[0] == '\0') 
 		return 0; // avoid null names which seem to annoy Paradyn
-       	return strdup(buf);
+	return strdup(buf);
     }
     else {
        if (includeTypes) {
-          if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
-            //   printf("Undecorate with types: %s = %s\n", c, buf);
-            stripAtSuffix(buf);
-            return strdup(buf);
-          }
+	  if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
+	    //	 printf("Undecorate with types: %s = %s\n", c, buf);
+	    stripAtSuffix(buf);
+	    return strdup(buf);
+	  }
        }
        else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
-         //else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
-         //printf("Undecorate: %s = %s\n", c, buf);
-         stripAtSuffix(buf);          
-         return strdup(buf);
+	 //else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
+	 //printf("Undecorate: %s = %s\n", c, buf);
+	 stripAtSuffix(buf);	      
+	 return strdup(buf);
        }
     }
     return 0;
@@ -150,7 +150,7 @@ char *cplus_demangle(char *c, int, bool includeTypes) {
 //---------------------------------------------------------------------------
 // Object method implementation
 //---------------------------------------------------------------------------
-struct  CompareSymAddresses: public binary_function<const Object::intSymbol*, const Object::intSymbol*, bool> 
+struct	CompareSymAddresses: public binary_function<const Object::intSymbol*, const Object::intSymbol*, bool> 
 {
 	bool operator()(const Object::intSymbol *s1, const Object::intSymbol* s2) {
 		bool ret = true;
@@ -183,7 +183,7 @@ struct  CompareSymAddresses: public binary_function<const Object::intSymbol*, co
 	}
 };
 
-Object::Module::Module( std::string _name, DWORD64 _baseAddr, DWORD64 _extent )  :
+Object::Module::Module( std::string _name, DWORD64 _baseAddr, DWORD64 _extent )	 :
 						name(_name),
 						baseAddr(_baseAddr),
 						extent(_extent),
@@ -215,15 +215,15 @@ Object::File::DefineSymbols( hash_map<std::string, std::vector< Symbol *> >& all
 {
 	for( std::vector<Object::intSymbol*>::const_iterator iter = syms.begin(); iter != syms.end(); iter++ )
     {
-        const Object::intSymbol* curSym = * iter;
-        assert( curSym != NULL );
-        curSym->DefineSymbol( allSyms, modName );
+	const Object::intSymbol* curSym = * iter;
+	assert( curSym != NULL );
+	curSym->DefineSymbol( allSyms, modName );
     }
 }
 
 void
 Object::intSymbol::DefineSymbol(hash_map<std::string,std::vector<Symbol *> >&allSyms,
-                                const std::string& modName ) const
+				const std::string& modName ) const
 {
     allSyms[GetName()].push_back(new Symbol(GetName(), 
 													modName,
@@ -253,36 +253,36 @@ Object::Module::DefineSymbols( const Object* obj,
 			// add a Symbol for the file
 			syms[curFile->GetName()].push_back( new Symbol( curFile->GetName(), 
 																	"",
-                													Symbol::ST_MODULE,
-                													Symbol::SL_GLOBAL,
-                													obj->code_off(),        // TODO use real base of symbols for file
-                													NULL, 0 ) );              // TODO Pass Section pointer also
+															Symbol::ST_MODULE,
+															Symbol::SL_GLOBAL,
+															obj->code_off(),	// TODO use real base of symbols for file
+															NULL, 0 ) );		  // TODO Pass Section pointer also
 																							// TODO also pass size
-            // add symbols for each of the file's symbols
-            curFile->DefineSymbols( syms, curFile->GetName() );
-        }
+	    // add symbols for each of the file's symbols
+	    curFile->DefineSymbols( syms, curFile->GetName() );
+	}
     }
     else
     {
-        // we represent a DLL
-        // add one Symbol for the entire module
+	// we represent a DLL
+	// add one Symbol for the entire module
 		syms[name].push_back( new Symbol( name,
-            "",
-            Symbol::ST_MODULE,
-            Symbol::SL_GLOBAL,
-            obj->code_off(),
-            NULL,					//TODO pass Sections pointer
-            obj->code_len()) );
-        // add symbols for each of the module's symbols
-        for( std::vector<Object::File*>::const_iterator iter = files.begin();
-                iter != files.end();
-                iter++ )
-        {
-            const File* curFile = *iter;
-            assert( curFile != NULL );
-            // add symbols for each of the file's symbols
-            curFile->DefineSymbols( syms, name );
-        }
+	    "",
+	    Symbol::ST_MODULE,
+	    Symbol::SL_GLOBAL,
+	    obj->code_off(),
+	    NULL,					//TODO pass Sections pointer
+	    obj->code_len()) );
+	// add symbols for each of the module's symbols
+	for( std::vector<Object::File*>::const_iterator iter = files.begin();
+		iter != files.end();
+		iter++ )
+	{
+	    const File* curFile = *iter;
+	    assert( curFile != NULL );
+	    // add symbols for each of the file's symbols
+	    curFile->DefineSymbols( syms, name );
+	}
     }
 }
 void
@@ -297,32 +297,32 @@ Object::Module::PatchSymbolSizes( const Object* obj,
 		Object::intSymbol* sym = allSyms[i];
 		assert( sym != NULL );
 		if( (sym->GetName() != "") && (sym->GetSize() == 0) &&
-            ((sym->GetType() == Symbol::ST_FUNCTION) ||
-             (sym->GetType() == Symbol::ST_OBJECT)))
-        {
-            // check for function aliases
-            // note that this check depends on the allSymbols
-            // array being sorted so that aliases are considered
-            // after the "real" function symbol
-            bool isAlias = false;
-            if( (sym->GetType() == Symbol::ST_FUNCTION) &&
-                (sym->GetAddr() == lastFuncAddr) &&
-                (sym->GetSize() == 0) )
-            {
-                // this function is an alias
+	    ((sym->GetType() == Symbol::ST_FUNCTION) ||
+	     (sym->GetType() == Symbol::ST_OBJECT)))
+	{
+	    // check for function aliases
+	    // note that this check depends on the allSymbols
+	    // array being sorted so that aliases are considered
+	    // after the "real" function symbol
+	    bool isAlias = false;
+	    if( (sym->GetType() == Symbol::ST_FUNCTION) &&
+		(sym->GetAddr() == lastFuncAddr) &&
+		(sym->GetSize() == 0) )
+	    {
+		// this function is an alias
 				// we currently leave their size as zero to indicate 
 				// that they are uninstrumentable.  Ideally, this will
 				// change once a mechanism becomes available to identify
 				// these as function aliases.
 				isAlias = true;
 			}
-            if( !isAlias )
+	    if( !isAlias )
 			{
 				//
 				// patch the symbol's size
 				//
 				// We consider the symbol's size to be the distance
-				// to the next symbol.  (Sometimes this causes us to
+				// to the next symbol.	(Sometimes this causes us to
 				// overestimate, because compilers sometimes leave some
 				// "padding" between the end of a function and the beginning
 				// of the next.)
@@ -330,8 +330,8 @@ Object::Module::PatchSymbolSizes( const Object* obj,
 				// Note that we have to use the next symbol whose
 				// address is different from the current one, to handle
 				// cases where aliases are included in the symbol table
-                //
-                DWORD64 cb;
+		//
+		DWORD64 cb;
 		
 				//
 				// find next function or object symbol in our section with
@@ -391,7 +391,7 @@ Object::Module::BuildSymbolMap( const Object* obj ) const
 {
 	std::vector<Object::intSymbol*> allSyms;
 	// add all symbols to our allSyms std::vector
-   	std::vector<Object::File*>::const_iterator iter = files.begin();
+	std::vector<Object::File*>::const_iterator iter = files.begin();
 	for(;	iter != files.end();	iter++ )
 	{
 		assert( *iter != NULL );
@@ -428,7 +428,7 @@ Object::~Object( void )
 #define SymTagFunction 0x5
 #define SymTagData 0x7
 #define SymTagPublicSymbol 0xa
-#define SymTagMisc 0x3808 		// Seen with NB11, VC++6-produced executables
+#define SymTagMisc 0x3808		// Seen with NB11, VC++6-produced executables
 //
 // Our recognition of interesting symbols (functions and global data)
 // is complicated due to lack of consistency in how they are
@@ -441,12 +441,12 @@ Object::~Object( void )
 //
 static BOOL isGlobalSymbol(PSYMBOL_INFO pSymInfo) {
  return ((pSymInfo->Flags & SYMFLAG_EXPORT) ||
-         (pSymInfo->Flags & SYMFLAG_FUNCTION) ||
-         ((!pSymInfo->Flags) && 
-          ((pSymInfo->Tag == SymTagFunction) ||
-           (pSymInfo->Tag == SymTagData) ||
-           (pSymInfo->Tag == SymTagPublicSymbol) ||
-           (pSymInfo->Tag == SymTagMisc))) );
+	 (pSymInfo->Flags & SYMFLAG_FUNCTION) ||
+	 ((!pSymInfo->Flags) && 
+	  ((pSymInfo->Tag == SymTagFunction) ||
+	   (pSymInfo->Tag == SymTagData) ||
+	   (pSymInfo->Tag == SymTagPublicSymbol) ||
+	   (pSymInfo->Tag == SymTagMisc))) );
 }
 
 void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
@@ -489,8 +489,8 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
 		symLinkage = Symbol::SL_UNKNOWN;
 	}
 	else if ((pSymInfo->Flags == SYMFLAG_EXPORT && 
-            isText((Offset) pSymInfo->Address - baseAddr)) ||
-            !strcmp(pSymInfo->Name, "_loadsnstores"))
+	    isText((Offset) pSymInfo->Address - baseAddr)) ||
+	    !strcmp(pSymInfo->Name, "_loadsnstores"))
 	{
 		symType = Symbol::ST_FUNCTION;
 		symLinkage = Symbol::SL_UNKNOWN;
@@ -502,9 +502,9 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
 	}
     // register the symbol
     Offset baseAddr = 0;
-    //  if (desc.isSharedObject())
+    //	if (desc.isSharedObject())
     //if(curModule->IsDll())
-    //   baseAddr = get_base_addr();
+    //	 baseAddr = get_base_addr();
 	if( !isForwarded( ((Offset) pSymInfo->Address) - baseAddr ) )
 	{
 		pFile->AddSymbol( new Object::intSymbol( pSymInfo->Name,
@@ -526,10 +526,10 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 #if 0
 	fprintf(stderr, "symEnumSymsCallback, %s, Flags:0x%x, Tag:0x%x, Type:%d, Addr:0x%x...\n",
 		   pSymInfo->Name,
-           pSymInfo->Flags,
-           pSymInfo->Tag,
-           pSymInfo->TypeIndex,
-           pSymInfo->Address);
+	   pSymInfo->Flags,
+	   pSymInfo->Tag,
+	   pSymInfo->TypeIndex,
+	   pSymInfo->Address);
 #endif
 
    if (isGlobalSymbol(pSymInfo))
@@ -537,7 +537,7 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
       obj->ParseGlobalSymbol(pSymInfo);
    }
    else if ((pSymInfo->Flags & SYMFLAG_LOCAL) ||
-            (pSymInfo->Flags & SYMFLAG_PARAMETER)) {
+	    (pSymInfo->Flags & SYMFLAG_PARAMETER)) {
       //parsing_printf("Is a local variable\n");
       //obj->ParseLocalSymbol(pSymInfo);
    }
@@ -568,45 +568,49 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 	static unsigned count = 1;
     hProc = (HANDLE) count++;
 	if(!SymInitialize(hProc, NULL, false)){
-        DWORD dwErr = GetLastError();
-        if(dwErr) {
+	DWORD dwErr = GetLastError();
+	if(dwErr) {
 			fprintf( stderr, "SymInitialize failed for %s\n",
-                     ((file_.length() > 0) ? file_.c_str() 
-                      : "<no name available>"));
-            goto done;
-        }
+		     ((file_.length() > 0) ? file_.c_str() 
+		      : "<no name available>"));
+	    goto done;
+	}
     }
     assert( hProc != NULL );
     assert( hProc != INVALID_HANDLE_VALUE );
 
     // find the sections we need to know about (.text and .data)
     FindInterestingSections();
-    // load symbols for this module
+    // grab load address
+	if (peHdr) imageBase = peHdr->OptionalHeader.ImageBase;
+	else imageBase = 0; //KEVINTODO: not sure what to do about this and the entry point thing
+	
+	// load symbols for this module
     //DWORD64 dw64BaseAddr = (DWORD64)desc.loadAddr();
     DWORD64 dw64BaseAddr = (DWORD64)mapAddr;
     //load address is always same(fake address space)
     DWORD64 loadRet = SymLoadModule64( hProc,			// proc handle
-										hFile,          // file handle
-										NULL,           // image name
-										NULL,           // shortcut name
-										dw64BaseAddr,   // load address
-										0 );            // size of DLL    
+										hFile,		// file handle
+										NULL,		// image name
+										NULL,		// shortcut name
+										dw64BaseAddr,	// load address
+										0 );		// size of DLL	  
     if(!loadRet) {
-        DWORD dwErr = GetLastError();
-        if(dwErr) {
-            fprintf( stderr, "SymLoadModule64 failed for %s\n",
-                     ((file_.length() > 0) ? file_.c_str() 
-                      : "<no name available>"));
-            //printSysError(dwErr);
-            goto done;
-        }
+	DWORD dwErr = GetLastError();
+	if(dwErr) {
+	    fprintf( stderr, "SymLoadModule64 failed for %s\n",
+		     ((file_.length() > 0) ? file_.c_str() 
+		      : "<no name available>"));
+	    //printSysError(dwErr);
+	    goto done;
+	}
     }
     // parse symbols for the module
-    if( !SymEnumSymbols(hProc,                     // process handle
-                        dw64BaseAddr,               // load address
-                        "",                     // symbol mask (we use none)
-                        SymEnumSymbolsCallback, // called for each symbol
-                        this ) )                // client data
+    if( !SymEnumSymbols(hProc,			   // process handle
+			dw64BaseAddr,		    // load address
+			"",			// symbol mask (we use none)
+			SymEnumSymbolsCallback, // called for each symbol
+			this ) )		// client data
     {
        int lasterr = GetLastError();
        fprintf( stderr, "Failed to enumerate symbols\n");
@@ -631,114 +635,162 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
     data_vldE_ = data_off_ + data_len_;
     
     done:
-    	delete curModule;
+	delete curModule;
 }
 
 void
 Object::FindInterestingSections()
 {
-    // map the file to our address space
-    // first, create a file mapping object
-	hMap = CreateFileMapping( hFile,
-								NULL,           // security attrs
-								PAGE_READONLY,  // protection flags
-								0,              // max size - high DWORD
-								0,              // max size - low DWORD
-								NULL );         // mapping name - not used
-	if( hMap == NULL )
-	{
-		// TODO how to handle the error?
-		fprintf( stderr, "CreateFileMapping failed: %x\n", GetLastError() );
-		LPVOID lpMsgBuf;
-		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-										|FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
-										GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
-										(LPTSTR)&lpMsgBuf,    0,    NULL );
+   // map the file to our address space
+   // first, create a file mapping object
+   hMap = CreateFileMapping( hFile,
+                             NULL,           // security attrs
+                             PAGE_READONLY,  // protection flags
+                             0,              // max size - high DWORD
+                             0,              // max size - low DWORD
+                             NULL );         // mapping name - not used
+   if( hMap == NULL )
+      {
+         // TODO how to handle the error?
+         fprintf( stderr, "CreateFileMapping failed: %x\n", GetLastError() );
+         LPVOID lpMsgBuf;
+         FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+                       |FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
+                       GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+                       (LPTSTR)&lpMsgBuf,    0,    NULL );
 
-		cout << (LPCTSTR)lpMsgBuf << endl;
-		LocalFree( lpMsgBuf );
-		return;
-	}  
-	// next, map the file to our address space
-	mapAddr = MapViewOfFileEx( hMap,             // mapping object
-								FILE_MAP_READ,  // desired access
-								0,              // loc to map - hi DWORD
-								0,              // loc to map - lo DWORD
-								0,              // #bytes to map - 0=all
-								NULL );         // suggested map addr
-	if( mapAddr == NULL )
-	{
-		// TODO how to handle the error?
-		fprintf( stderr, "MapViewOfFileEx failed: %x\n", GetLastError() );
-		CloseHandle( hMap );
-		hMap = INVALID_HANDLE_VALUE;
-		return;
-	}
-	   
-	// now that we have the file mapped, look for 
-	// the .text and .data sections
-	assert( peHdr == NULL );
-	peHdr = ImageNtHeader( mapAddr );
-	
-	assert( peHdr->FileHeader.SizeOfOptionalHeader > 0 ); 
-	assert( curModule != NULL );
-	curModule->SetIsDll( (peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL) != 0 );
-	if(curModule->IsDll())
-		is_aout_ = false;
-	else
-	   is_aout_ = true;
+         cout << (LPCTSTR)lpMsgBuf << endl;
+         LocalFree( lpMsgBuf );
+         return;
+      }  
+   // next, map the file to our address space
+   mapAddr = MapViewOfFileEx( hMap,             // mapping object
+                              FILE_MAP_READ,  // desired access
+                              0,              // loc to map - hi DWORD
+                              0,              // loc to map - lo DWORD
+                              0,              // #bytes to map - 0=all
+                              NULL );         // suggested map addr
+   if( mapAddr == NULL )
+      {
+         // TODO how to handle the error?
+         fprintf( stderr, "MapViewOfFileEx failed: %x\n", GetLastError() );
+         CloseHandle( hMap );
+         hMap = INVALID_HANDLE_VALUE;
+         return;
+      }
+   
+   // now that we have the file mapped, look for 
+   // the .text and .data sections
+   assert( peHdr == NULL );
+   peHdr = ImageNtHeader( mapAddr );
 
-	unsigned int nSections = peHdr->FileHeader.NumberOfSections;
-	no_of_sections_ = nSections;
-	PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
-									sizeof(DWORD) +         // for signature
-									sizeof(IMAGE_FILE_HEADER) +
-									peHdr->FileHeader.SizeOfOptionalHeader);
-	 	
-	for( unsigned int i = 0; i < nSections; i++ )
-	{
-		sections_.push_back(new Section(i, (const char*)pScnHdr->Name, pScnHdr->VirtualAddress, pScnHdr->Misc.VirtualSize, (void *)(((char*)mapAddr) +
-									pScnHdr->PointerToRawData)));
+   if (peHdr == NULL) {//KEVINTODO: add log message here, and maybe some fprintf output message
+	   code_ptr_ = (char*)mapAddr;
+	   code_off_ = 0;
+	   code_len_ = (Offset) GetFileSize(hFile, NULL);
+       is_aout_ = false;
+	   fprintf(stderr,"Adding Symtab object with no program header, will designate it as code\n");
+	   sections_.push_back(new Section(0, ".text", code_off_, code_len_, 0));
+	   return;
+   }
 
-		if( strncmp( (const char*)pScnHdr->Name, ".text", 5 ) == 0 )
-		{
-			// note that section numbers are one-based
-			textSectionId = i + 1;
-			code_ptr_    = (char*)(((char*)mapAddr) +
-									pScnHdr->PointerToRawData);
-			//if (GetDescriptor().isSharedObject())
-			//if (curModule->IsDll())
-				code_off_    = pScnHdr->VirtualAddress;
-			//else
-			//   code_off_    = get_base_addr() + pScnHdr->VirtualAddress;	//loadAddr = mapAddr
-			//code_off_    = pScnHdr->VirtualAddress + desc.loadAddr();
+   assert( peHdr->FileHeader.SizeOfOptionalHeader > 0 ); 
+   assert( curModule != NULL );
+   curModule->SetIsDll( (peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL) != 0 );
+   if(curModule->IsDll())
+      is_aout_ = false;
+   else
+      is_aout_ = true;
 
-            // Since we're reporting the size of sections on the disk,
-            // we need to check whether the size of raw data is smaller.
-			//code_len_ = pScnHdr->Misc.VirtualSize;
-            code_len_ = ((pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) ?
-                         pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
-		}
-		else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 )
-		{
-			// note that section numbers are one-based
-			dataSectionId = i + 1;
-			data_ptr_    = (char *)(((char*)mapAddr) +
-									pScnHdr->PointerToRawData);
+   unsigned int nSections = peHdr->FileHeader.NumberOfSections;
+   no_of_sections_ = nSections;
+   PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
+                                                           sizeof(DWORD) +         // for signature
+                                                           sizeof(IMAGE_FILE_HEADER) +
+                                                           peHdr->FileHeader.SizeOfOptionalHeader);
+   bool foundText = false;
+   for( unsigned int i = 0; i < nSections; i++ ) {
+       // make rawDataPtr should be set to be zero if the amount of raw data for the section is zero
+       void *rawDataPtr = 0;
+       if (pScnHdr->SizeOfRawData != 0) {
+           rawDataPtr = (void*)((unsigned int)pScnHdr->PointerToRawData + (unsigned int)mapAddr);
+       }
+       sections_.push_back(new Section(i, (const char*)pScnHdr->Name, 
+                                       pScnHdr->VirtualAddress, pScnHdr->Misc.VirtualSize, 
+                                       rawDataPtr));
 
-			//if (GetDescriptor().isSharedObject())
-			//if (curModule->IsDll())
-				data_off_    = pScnHdr->VirtualAddress;
-			//else
-				//data_off_    = desc.loadAddr() + pScnHdr->VirtualAddress;
-			//	data_off_    = get_base_addr()+pScnHdr->VirtualAddress;
+       if( strncmp( (const char*)pScnHdr->Name, ".text", 5 ) == 0 ) {
+           // note that section numbers are one-based
+           textSectionId = i + 1;
+           code_ptr_    = (char*)(((char*)mapAddr) +
+                                  pScnHdr->PointerToRawData);
+           //if (GetDescriptor().isSharedObject())
+           //if (curModule->IsDll())
+           code_off_    = pScnHdr->VirtualAddress;
+           //else
+           //   code_off_    = get_base_addr() + pScnHdr->VirtualAddress;	//loadAddr = mapAddr
+           //code_off_    = pScnHdr->VirtualAddress + desc.loadAddr();
 
-			//data_len_    = pScnHdr->Misc.VirtualSize;
-            data_len_ = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
-                         pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
-		}
-		pScnHdr += 1;
-	}
+           // Since we're reporting the size of sections on the disk,
+           // we need to check whether the size of raw data is smaller.
+           //code_len_    = pScnHdr->Misc.VirtualSize;
+           code_len_ = ((pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) ?
+                        pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
+           foundText = true;
+       }
+       else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 ) {
+           // note that section numbers are one-based
+           dataSectionId = i + 1;
+           data_ptr_    = (char *)(((char*)mapAddr) +
+                                   pScnHdr->PointerToRawData);
+
+           //if (GetDescriptor().isSharedObject())
+           //if (curModule->IsDll())
+           data_off_    = pScnHdr->VirtualAddress;
+           //else
+           //data_off_    = desc.loadAddr() + pScnHdr->VirtualAddress;
+           //	data_off_    = get_base_addr()+pScnHdr->VirtualAddress;
+
+           //data_len_    = pScnHdr->Misc.VirtualSize;
+           data_len_ = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
+                        pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
+       }
+       else {
+           // see if this section is executable, if so, set code_ptr_
+           // and offset (these would be overwritten if we eventually
+           // found a .text section) and extending code_len_ if
+           // code_ptr_ has already been set.  If there seems to be a
+           // gap with invalid code, submit a warning message.
+           if (!foundText) { // search other sections for code if there is no .text section
+               if ((pScnHdr->Characteristics & IMAGE_SCN_MEM_EXECUTE
+                    || pScnHdr->Characteristics & IMAGE_SCN_CNT_CODE)
+                   && pScnHdr->SizeOfRawData) { // if it is executable and initialized
+                   if (code_ptr_ == 0) { // haven't set code_ptr_
+                       code_ptr_ = (char*)(((char*)mapAddr) + pScnHdr->PointerToRawData);
+                       code_off_ = pScnHdr->VirtualAddress;
+                       textSectionId = i + 1;
+                   }
+                   else {// output a warning if there is a gap between
+                       // this and the previous code section
+                       if (pScnHdr->VirtualAddress > code_off_ + code_len_) {
+                           fprintf(stderr,"%s[%d]WARNING! Internal dyninst safety checks\n will mistakenly think "
+                                   "that the following region [0x%lx 0x%lx] contains code,\n we currently "
+                                   "have no mechanism for tracking non-consecutive code regions\n", 
+                                   __FILE__,__LINE__,code_off_+code_len_, pScnHdr->VirtualAddress);
+                       }
+                   }
+                   // Increment code length (initially 0) by the size
+                   // of the current section
+                   if (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) {
+                       code_len_ += pScnHdr->SizeOfRawData;
+                   } else {
+                       code_len_ += pScnHdr->Misc.VirtualSize;
+                   }
+               }
+           }
+       }
+       pScnHdr += 1;
+   }
 }
 
 bool Object::isForwarded( Offset addr )
@@ -749,7 +801,7 @@ bool Object::isForwarded( Offset addr )
 	
 	//we detect forwarded symbols by checking if the relative 
 	//virtual address of the symbol falls within the dll's exports section
-	if( peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL )
+	if(peHdr && peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL )
 	{
 		PIMAGE_DATA_DIRECTORY dataDir = peHdr->OptionalHeader.DataDirectory;
 		Offset exportStart = dataDir->VirtualAddress;
