@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.30 2007/12/04 17:58:24 bernat Exp $
+// $Id: image-func.h,v 1.31 2007/12/12 22:20:46 roundy Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -460,7 +460,7 @@ class image_func : public codeRange {
    void addCallInstPoint(image_instPoint *p);
    void addExitInstPoint(image_instPoint *p);
 
-#if defined(cap_stripped_binaries)
+#if 0
    // Update if symtab is incorrect
    void updateFunctionEnd( Address addr);  
 #endif
