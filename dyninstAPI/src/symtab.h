@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.203 2007/09/25 17:28:22 giri Exp $
+// $Id: symtab.h,v 1.204 2007/12/12 22:20:56 roundy Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -306,7 +306,7 @@ class image : public codeRange, public InstructionSource {
    void DumpAllStats();
 
    static image *parseImage(const pdstring file);
-   static image *parseImage(fileDescriptor &desc); 
+   static image *parseImage(fileDescriptor &desc, bool parseGaps=false); 
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -326,9 +326,11 @@ class image : public codeRange, public InstructionSource {
    bool parseFunction( image_func* pdf, pdvector< Address >& callTargets,
                 dictionary_hash< Address, image_func * >& preParseStubs); 
 
-   image(fileDescriptor &desc, bool &err); 
+   image(fileDescriptor &desc, bool &err, bool parseGaps=false); 
 
    void analyzeIfNeeded();
+
+   void addFunctionStub(Address functionEntryAddr);
 
 #if defined(i386_unknown_nt4_0)
    const pdvector<Address> &getPossibleMains() const   { return possible_mains; }
@@ -447,6 +449,8 @@ class image : public codeRange, public InstructionSource {
    bool symbol_info(const pdstring& symbol_name, Symbol& ret);
    // And used for finding inferior heaps.... hacky, but effective.
    bool findSymByPrefix(const pdstring &prefix, pdvector<Symbol *> &ret);
+
+   const pdvector<image_instPoint*> &getBadControlFlow() const;
 
    const pdvector<image_func*> &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
@@ -596,6 +600,9 @@ class image : public codeRange, public InstructionSource {
    pdvector<image_variable *> createdVariables;
    pdvector<image_variable *> exportedVariables;
 
+   //Control flow targets that fail isCode or isValidAddress checks
+   pdvector<image_instPoint*> badControlFlow;
+
    // This contains all parallel regions on the image
    // These line up with the code generated to support OpenMP, UPC, Titanium, ...
    pdvector<image_parRegion *> parallelRegions;
@@ -630,6 +637,7 @@ class image : public codeRange, public InstructionSource {
    int refCount;
    Address baseAddr_;
    imageParseState_t parseState_;
+   bool parseGaps_;
 };
 
 
