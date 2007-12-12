@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.11 2007/12/10 22:33:35 giri Exp $
+ * $Id: Object-nt.h,v 1.12 2007/12/12 22:21:00 roundy Exp $
 ************************************************************************/
 
 
@@ -63,6 +63,7 @@
 #endif
 #include <dbghelp.h>
 
+using namespace std;
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -74,98 +75,98 @@ class ExceptionBlock;
 
 class Object : public AObject
 {
-public:
-	class intSymbol
+ public:
+    class intSymbol
 	{
 	private:
-		std::string name;
-		DWORD64 addr;
-		DWORD type;
-		DWORD linkage;
-		DWORD size;
+            std::string name;
+            DWORD64 addr;
+            DWORD type;
+            DWORD linkage;
+            DWORD size;
 
 	public:
-		intSymbol( std::string _name,
-              DWORD64 _addr,
-              DWORD _type,
-              DWORD _linkage,
-			  DWORD _size)
-		  : name(_name),
-			addr(_addr),
-			type(_type),
-			size(_size)
+            intSymbol( std::string _name,
+                       DWORD64 _addr,
+                       DWORD _type,
+                       DWORD _linkage,
+                       DWORD _size)
+                : name(_name),
+                addr(_addr),
+                type(_type),
+                size(_size)
 		{}
 
-        std::string GetName( void ) const          { return name; }
-        DWORD64 GetAddr( void ) const           { return addr; }
-        DWORD	GetSize( void ) const				{ return size; }
-        DWORD	GetType( void ) const				{ return type; }
-        DWORD	GetLinkage( void ) const			{ return linkage; }
+            std::string GetName( void ) const          { return name; }
+            DWORD64 GetAddr( void ) const           { return addr; }
+            DWORD	GetSize( void ) const				{ return size; }
+            DWORD	GetType( void ) const				{ return type; }
+            DWORD	GetLinkage( void ) const			{ return linkage; }
 
-        void	SetSize( DWORD cb )					{ size = cb; }
+            void	SetSize( DWORD cb )					{ size = cb; }
 
-        void DefineSymbol( hash_map<std::string, std::vector< Symbol *> >& syms,
-                            const std::string& modName ) const;
+            void DefineSymbol( hash_map<std::string, std::vector< Symbol *> >& syms,
+                               const std::string& modName ) const;
 	};
 
-	class File
+    class File
 	{
 	private:
-		std::string name;
-		std::vector<intSymbol*> syms;
+            std::string name;
+            std::vector<intSymbol*> syms;
 
 	public:
-		File( std::string _name = "" )
-		  : name(_name)
+            File( std::string _name = "" )
+                : name(_name)
 		{}
 
-		void AddSymbol( intSymbol* pSym )
+            void AddSymbol( intSymbol* pSym )
 		{
-			syms.push_back( pSym );
+                    syms.push_back( pSym );
 		}
 
-      void DefineSymbols( hash_map<std::string, std::vector< Symbol *> >& syms,
-                          const std::string& modName ) const;
-      std::string GetName( void ) const		{ return name; }
-		const std::vector<intSymbol*>& GetSymbols( void )	const		{ return syms; }
+            void DefineSymbols( hash_map<std::string, std::vector< Symbol *> >& syms,
+                                const std::string& modName ) const;
+            std::string GetName( void ) const		{ return name; }
+            const std::vector<intSymbol*>& GetSymbols( void )	const		{ return syms; }
 	};
 
-	class Module
+    class Module
 	{
 	private:
-		std::string name;
-		DWORD64 baseAddr;
-		DWORD64 extent;
-      bool isDll;
+            std::string name;
+            DWORD64 baseAddr;
+            DWORD64 extent;
+            bool isDll;
 
-		std::vector<File *> files;
-		File* defFile;
+            std::vector<File *> files;
+            File* defFile;
 
-		void PatchSymbolSizes( const Object* obj,
-							   const std::vector<intSymbol*>& allSyms ) const;
+            void PatchSymbolSizes( const Object* obj,
+                                   const std::vector<intSymbol*>& allSyms ) const;
 
 	public:
-		Module( std::string name,
-				DWORD64 baseAddr,
-				DWORD64 extent = 0 );
+            Module( std::string name,
+                    DWORD64 baseAddr,
+                    DWORD64 extent = 0 );
 
-		File* GetDefaultFile( void )			{ return defFile; }
-		File* FindFile( std::string name );
-		void AddFile( File* pFile )				{ files.push_back( pFile ); }
+            File* GetDefaultFile( void )			{ return defFile; }
+            File* FindFile( std::string name );
+            void AddFile( File* pFile )				{ files.push_back( pFile ); }
 
-        void DefineSymbols( const Object* obj,
-                            hash_map<std::string, std::vector< Symbol *> > & syms ) const;
-		void BuildSymbolMap( const Object* obj ) const; 
+            void DefineSymbols( const Object* obj,
+                                hash_map<std::string, std::vector< Symbol *> > & syms ) const;
+            void BuildSymbolMap( const Object* obj ) const; 
 
-      std::string GetName( void ) const            { return name; }
-      bool IsDll( void ) const                { return isDll; }
-      void SetIsDll( bool v )                 { isDll = v; }
+            std::string GetName( void ) const            { return name; }
+            bool IsDll( void ) const                { return isDll; }
+            void SetIsDll( bool v )                 { isDll = v; }
 	};
 
-private:
-	Module* curModule;
+ private:
+    Module* curModule;
 
-public:
+ public:
     DLLEXPORT Object(std::string &filename, void (*)(const char *) = log_msg);
     DLLEXPORT Object(char *mem_image, size_t image_size, void (*)(const char *) = log_msg);
     DLLEXPORT Object(){};
@@ -182,17 +183,17 @@ public:
     DLLEXPORT unsigned int GetTextSectionId( void ) const         { return textSectionId;}
     DLLEXPORT PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
     DLLEXPORT PVOID GetMapAddr( void ) const                      { return mapAddr; }
-	DLLEXPORT Offset getEntryPoint( void ) const                { return peHdr->OptionalHeader.AddressOfEntryPoint; }
-													//+ desc.loadAddr(); } //laodAddr is always zero in our fake address space.
-	// TODO. Change these later.
-	DLLEXPORT Offset getLoadAddress() const { return get_base_addr(); }
-	DLLEXPORT Offset getEntryAddress() const { return getEntryPoint(); }
-	DLLEXPORT Offset getBaseAddress() const { return get_base_addr(); }
-	DLLEXPORT Offset getTOCoffset() const { return 0; }
+    DLLEXPORT Offset getEntryPoint( void ) const                { if (peHdr) return peHdr->OptionalHeader.AddressOfEntryPoint; return 0;}
+    //+ desc.loadAddr(); } //laodAddr is always zero in our fake address space.
+    // TODO. Change these later.
+    DLLEXPORT Offset getLoadAddress() const { return imageBase; }
+    DLLEXPORT Offset getEntryAddress() const { return getEntryPoint(); }
+    DLLEXPORT Offset getBaseAddress() const { return get_base_addr(); }
+    DLLEXPORT Offset getTOCoffset() const { return 0; }
     DLLEXPORT ObjectType objType() const;
     DLLEXPORT const char *interpreter_name() const { return NULL; }
-	DLLEXPORT hash_map <std::string, LineInformation> &getLineInfo();
-	DLLEXPORT void parseTypeInfo(Symtab *obj);
+    DLLEXPORT hash_map <std::string, LineInformation> &getLineInfo();
+    DLLEXPORT void parseTypeInfo(Symtab *obj);
    
     DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     DLLEXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
@@ -201,11 +202,12 @@ public:
 
 private:
     DLLEXPORT void    ParseDebugInfo( void );
-	DLLEXPORT void	  parseFileLineInfo(void);
+    DLLEXPORT void    parseFileLineInfo(void);
     DLLEXPORT void    FindInterestingSections();
 
-	Offset	baseAddr;					// location of this object in 
-								// mutatee address space
+    Offset baseAddr;     // location of this object in mutatee address space
+
+    Offset imageBase; // Virtual Address at which the binary is loaded in its address space
 
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers
     PIMAGE_OPTIONAL_HEADER optHdr;
