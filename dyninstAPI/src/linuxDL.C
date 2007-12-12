@@ -121,7 +121,6 @@ public:
 	for (unsigned int i = 0; i < sizeof(link_name); ++i) {
 	    if (!proc->readDataSpace((caddr_t)((Address)link_elm.l_name + i),
 				     sizeof(char), (caddr_t)(link_name + i), true)) {
-                fprintf(stderr, "%s[%d]:  readDataSpace\n", FILE__, __LINE__);
 		valid = false;
 		link_name[0] = '\0';
                 assert(0);
@@ -152,8 +151,6 @@ private:
     bool load_link(void *addr) {
 	bool ret =  proc->readDataSpace((caddr_t)addr, sizeof(link_elm),
 				   (caddr_t)&link_elm, true);
-        if (!ret)
-             assert(0);
         return ret;
     }
     link_map_dyn32 link_elm;
@@ -172,7 +169,6 @@ public:
 	for (unsigned int i = 0; i < sizeof(link_name); ++i) {
 	    if (!proc->readDataSpace((caddr_t)((Address)link_elm.l_name + i),
 				     sizeof(char), ((caddr_t)link_name + i), true)) {
-                fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 		valid = false;
 		link_name[0] = '\0';
 		return link_name;
@@ -250,9 +246,6 @@ public:
     r_debug_32(process *proc_, Address addr) : r_debug_x(proc_) {
 	valid = proc->readDataSpace((caddr_t)addr, sizeof(debug_elm),
 				    (caddr_t)&debug_elm, true);
-        if (valid && proc->getTraceState() != noTracing_ts)  {
-            memcpy(&debug_elm, (void*)addr, sizeof(debug_elm));
-        }
     }
     link_map_x *r_map() {
 	return new link_map_32(proc, reinterpret_cast<void *>(debug_elm.r_map));
@@ -470,8 +463,9 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
    // Use proc maps file instead of r_debug.  It's more detailed, and some
    // kernels don't report correct info in r_debug
 
-   // Apparently the r_debug stuff keeps things in some wacked out order
-   // that we need.  Use proc/maps to augment r_debug instead
+   // Apparently the r_debug stuff keeps things in some wacked out
+   // order that we need (i.e. the order in which the libs are loaded)
+   // Use proc/maps to augment r_debug instead
 
    unsigned maps_size = 0;
    map_entries *maps= getLinuxMaps(proc->getPid(), maps_size);
@@ -697,63 +691,19 @@ bool dynamic_linking::initialize() {
 
     return true;
 }
+
+/* Return true if the exception was caused by the hook in the linker
+ * code, we'll worry about whether or not any libraries were
+ * added/removed later on when we handle the exception
+ */
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
                                                        u_int &change_type)
 {
-   sharedLibHook *hook;
-   //dyn_lwp *lwp = ev.lwp; 
-   process *proc = ev.proc;
-
-   assert(ev.lwp);
-   Frame lwp_frame = ev.lwp->getActiveFrame();
-   hook = reachedLibHook(lwp_frame.getPC());
-   if (!hook) {
-     return false;
-   }
-
-   // find out what has changed in the link map
-   r_debug_x *debug_elm;
-   if (proc->getAddressWidth() == 4)
-     debug_elm = new r_debug_32(proc, r_debug_addr);
-   else
-     debug_elm = new r_debug_64(proc, r_debug_addr);
-    
-   if (!debug_elm->is_valid()) {
-       bperr("read failed r_debug_addr = 0x%x\n",r_debug_addr);
-       delete debug_elm;
-       return false;
-   }
-
-       switch(previous_r_state) {
-       case r_debug::RT_CONSISTENT:
-         change_type = SHAREDOBJECT_NOCHANGE;
-         break;
-       case r_debug::RT_ADD:
-          change_type = SHAREDOBJECT_ADDED;
-          break;
-        case r_debug::RT_DELETE:
-          change_type = SHAREDOBJECT_REMOVED;
-          break;
-        default:
-          break;
-       };
-
-    if (debug_elm->r_state() == r_debug::RT_CONSISTENT) {
-      // figure out how link maps have changed, and then create
-      // a list of either all the removed shared objects if this
-      // was a dlclose or the added shared objects if this was a dlopen
-      
-      // kludge: the state of the first add can get screwed up
-      // so if both change_type and r_state are 0 set change_type to 1
-      pdvector<fileDescriptor> newfds;
-      bool res = didLinkMapsChange(change_type, newfds);
-      if (!res) {
-        return false;
-      }
-      return true;
-    }
-
-    return true;
+    sharedLibHook *hook;
+    assert(ev.lwp);
+    Frame lwp_frame = ev.lwp->getActiveFrame();
+    hook = reachedLibHook(lwp_frame.getPC());
+    return (bool)hook;
 }
 
 bool dynamic_linking::getChangedObjects(EventRecord & /* ev */, pdvector<mapped_object*> & /* changed_objects */)
@@ -770,7 +720,8 @@ bool dynamic_linking::getChangedObjects(EventRecord & /* ev */, pdvector<mapped_
 // the change_type value is set to indicate if the objects have been added 
 // or removed
 bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
-                                                       pdvector<mapped_object*> &changed_objects)
+                                 pdvector<mapped_object*> &changed_objects,
+                                 pdvector<bool> &is_new_object)
 { 
    //  pdvector<dyn_thread *>::iterator iter = proc->threads.begin();
   
@@ -805,6 +756,9 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
     // if the state of the link maps is consistent then we can read
     // the link maps, otherwise just set the r_state value
     
+    // The EventRecord is used for passing information in, but not
+    // back out, it's not necessary to set ev.what.
+
     // We see two events: first a "something is changing..." then a 
     // "now consistent". We want the library list from consistent,
     // and the "what's new" from "changing".
@@ -827,15 +781,11 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
     delete debug_elm; 
     if (current_r_state == r_debug::RT_CONSISTENT) {
       // figure out how link maps have changed, and then create
-      // a list of either all the removed shared objects if this
-      // was a dlclose or the added shared objects if this was a dlopen
-      
-      // kludge: the state of the first add can get screwed up
-      // so if both change_type and r_state are 0 set change_type to 1
-      bool res = findChangeToLinkMaps((u_int &)ev.what,
-				      changed_objects);
-      if (!res) return false;
-
+      // a list of all the changes in shared object mappings
+      bool res = findChangeToLinkMaps(changed_objects, is_new_object);
+      if (!res) {
+          return false;
+      }
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       // SAVE THE WORLD
