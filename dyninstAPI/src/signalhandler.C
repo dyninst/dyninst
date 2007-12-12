@@ -637,11 +637,9 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
         buffer += pdstring(", loaded dyninst library");
         statusLine(buffer.c_str());
-        startup_printf("%s[%]:  trapDueToDyninstLib returned tru, trying to handle\n", 
-                       FILE__, __LINE__);
-        startup_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
         proc->loadDYNINSTlibCleanup(ev.lwp);
         proc->setBootstrapState(loadedRT_bs);
+        startup_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
         ret = true;
         continueHint = false;
         break;
