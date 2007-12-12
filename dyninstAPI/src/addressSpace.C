@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.11 2007/12/11 20:22:05 bill Exp $
+// $Id: addressSpace.C,v 1.12 2007/12/12 22:20:39 roundy Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -955,6 +955,17 @@ mapped_object *AddressSpace::findObject(const pdstring &obj_name, bool wildcard)
             (wildcard &&
              (obj_name.wildcardEquiv(mapped_objects[j]->fileName().c_str()) ||
               obj_name.wildcardEquiv(mapped_objects[j]->fullName().c_str()))))
+            return mapped_objects[j];
+    }
+    return NULL;
+}
+
+// findObject: returns the object associated with obj_name 
+// This just iterates over the mapped object vector
+mapped_object *AddressSpace::findObject(fileDescriptor desc)
+{
+    for(u_int j=0; j < mapped_objects.size(); j++){
+       if (desc == mapped_objects[j]->getFileDesc()) 
             return mapped_objects[j];
     }
     return NULL;

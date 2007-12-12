@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.h,v 1.5 2007/10/30 19:03:05 bernat Exp $
+// $Id: addressSpace.h,v 1.6 2007/12/12 22:20:40 roundy Exp $
 
 #ifndef ADDRESS_SPACE_H
 #define ADDRESS_SPACE_H
@@ -67,6 +67,7 @@ class BPatch_point;
 
 class Emitter;
 class generatedCodeObject;
+class fileDescriptor;
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -246,6 +247,7 @@ class AddressSpace : public InstructionSource {
     // Wildcard: handles "*" and "?"
     mapped_object *findObject(const pdstring &obj_name, bool wildcard = false);
     mapped_object *findObject(Address addr);
+    mapped_object *findObject(fileDescriptor desc);
 
     mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
     
