@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.699 2007/12/04 18:05:25 legendre Exp $
+// $Id: process.C,v 1.700 2007/12/12 22:20:52 roundy Exp $
 
 #include <ctype.h>
 
@@ -2151,6 +2151,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
                                                                     argv, envp,
                                                                     stdin_fd, stdout_fd, 
                                                                     stderr_fd);
+
    if (!theProc || !theProc->sh) {
        startup_printf("%s[%d]: For new process... failed (theProc %p, SH %p)\n", FILE__, __LINE__,
                       theProc, theProc ? theProc->sh : NULL);
@@ -2300,10 +2301,11 @@ bool process::loadDyninstLib() {
     }
 #endif
     while (!reachedBootstrapState(libcLoaded_bs)) {
-      startup_printf("%s[%d]: Waiting for process to load libc or reach "
+       startup_printf("%s[%d]: Waiting for process to load libc or reach "
                      "initialized state...\n", FILE__, __LINE__);
        if(hasExited()) {
-           return false;
+          fprintf(stderr,"%s[%d] Program exited early, never reached initialized state\n", FILE__, __LINE__);
+          return false;
        }
        getMailbox()->executeCallbacks(FILE__, __LINE__);
        pdvector<eventType> evts;
@@ -2342,6 +2344,30 @@ bool process::loadDyninstLib() {
     startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
 				                       dyninstRT_name.c_str());
 
+    // if tracing system calls then put a breakpoint at __libc_start_main
+    if (getTraceState() >= instrumentLibc_ts) {
+
+        // instrument libc
+        instrumentLibcStartMain();
+
+        // wait for process to reach initialized bootstrap state 
+        while (!reachedBootstrapState(initialized_bs)) {
+           startup_printf("%s[%d]: Waiting for process to reach initialized state...\n", 
+                          FILE__, __LINE__);
+           if(hasExited()) {
+              return false;
+           }
+           getMailbox()->executeCallbacks(FILE__, __LINE__);
+           pdvector<eventType> evts;
+           evts.push_back(evtProcessAttach); 
+           evts.push_back(evtProcessInit); 
+           evts.push_back(evtProcessExit); 
+           if (reachedBootstrapState(initialized_bs)) break;
+           sh->waitForOneOf(evts);
+           getMailbox()->executeCallbacks(FILE__, __LINE__);
+        }
+    }
+
     // And get the list of all shared objects in the process. More properly,
     // get the address of dlopen.
     if (!processSharedObjects()) {
@@ -2356,27 +2382,6 @@ bool process::loadDyninstLib() {
                        mapped_objects[debug_iter]->debugString().c_str());
 
     startup_printf("----\n");
-
-    if (getTraceState() >= instrumentLibc_ts) {
-        instrumentLibcStartMain();
-    }
-
-    // wait for process to reach initialized bootstrap state 
-    while (!reachedBootstrapState(initialized_bs)) {
-      startup_printf("%s[%d]: Waiting for process to reach initialized state...\n", 
-                     FILE__, __LINE__);
-       if(hasExited()) {
-           return false;
-       }
-       getMailbox()->executeCallbacks(FILE__, __LINE__);
-       pdvector<eventType> evts;
-       evts.push_back(evtProcessAttach); 
-       evts.push_back(evtProcessInit); 
-       evts.push_back(evtProcessExit); 
-       if (reachedBootstrapState(initialized_bs)) break;
-       sh->waitForOneOf(evts);
-       getMailbox()->executeCallbacks(FILE__, __LINE__);
-    }
 
     if (dyninstLibAlreadyLoaded()) {
 	// LD_PRELOAD worked or we are attaching for the second time
@@ -2472,7 +2477,6 @@ bool process::loadDyninstLib() {
 // Set the shared object mapping for the RT library
 bool process::setDyninstLibPtr(mapped_object *RTobj) {
     assert (!runtime_lib);
-
     runtime_lib = RTobj;
     return true;
 }
@@ -3449,7 +3453,7 @@ bool process::pause() {
   bool result;
 
 
-  if (!isAttached()) {
+  if (!isAttached()) { 
     bperr( "Warning: pause attempted on non-attached process\n");
     return false;
   }
@@ -3460,7 +3464,7 @@ bool process::pause() {
    // this case?
 
   if(! reachedBootstrapState(initialized_bs)) {
-    return true;
+     return true;
   }
 
    // Let's try having stopped mean all lwps stopped and running mean
@@ -3506,6 +3510,11 @@ bool process::stop_(bool waitUntilStop)
 }
 #endif
 
+// There also exists the possibility of objects having been both
+// loaded and unloaded (especially at startup) in which case the
+// options for ev.type and ev.what are inadequate, but it doesn't
+// really matter since both library loads and unloads are processed by
+// the same event handler
 bool process::decodeIfDueToSharedObjectMapping(EventRecord &ev)
 {
    if(!dyn) { 
@@ -3538,56 +3547,45 @@ bool process::decodeIfDueToSharedObjectMapping(EventRecord &ev)
    return false;
 }
 
+/* Uses dynamiclinking::handleIfDueToSharedObjectMapping to figure out
+ * what objects were loaded / removed and to create mapped_objects for
+ * them.  If an object was loaded we add it using addASharedObject.
+ * If one was removed, we call removeASharedObject, which currently
+ * doesn't do much.
+ */
 bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
 {
    pdvector<mapped_object *> changed_objs;
-
+   pdvector<bool> is_new_object;
    if(!dyn) { 
        fprintf(stderr, "%s[%d]:  no dyn objects, failing ...\n", FILE__, __LINE__);
        return false;
    }
-
-   //if (!dyn->getChangedObjects(ev,changed_objs)) {
-   if (!dyn->handleIfDueToSharedObjectMapping(ev,changed_objs)) {
+   if (!dyn->handleIfDueToSharedObjectMapping(ev,changed_objs, is_new_object)) {
        fprintf(stderr, "%s[%d]: change in mapping but no changed objs??\n", FILE__, __LINE__);
        return false;
    }
-
    // figure out how the list changed and either add or remove shared objects
-   // if something was added then call process::addASharedObject with
-   // each element in the vector of changed_objects
-   switch (ev.what) {
-
-     case SHAREDOBJECT_ADDED:
-       signal_printf("%s[%d]:  SHAREDOBJECT_ADDED\n", FILE__, __LINE__);
-       for(u_int i=0; i < changed_objs.size(); i++) {
- 	   if (changed_objs[i]->fileName().length()==0) {
-               cerr << "Warning: new shared object with no name!" << endl;
-               continue;
-           }
-           // addASharedObject is where all the interesting stuff happens.
-           if(!addASharedObject(changed_objs[i]))
-               cerr << "Failed to add library " << changed_objs[i]->fullName() << endl;
-       }
-       return true;
-
-     case SHAREDOBJECT_REMOVED:
-       signal_printf("%s[%d]: ... removed object...\n", FILE__, __LINE__);
-       // TODO: handle this case
-       // if something was removed then call process::removeASharedObject
-       // with each element in the vector of changed_objects
-       // for now, just delete shared_objects to avoid memory leeks
-       for(u_int i=0; i < changed_objs.size(); i++){
-           removeASharedObject(changed_objs[i]);
-       }
-       return true;
-     default:
-       signal_printf( "%s[%d]:  UNKNOWN\n", FILE__, __LINE__);
-       return true;
-       //return false;
-   };
-
-  return false; 
+   for (unsigned int i=0; i < changed_objs.size(); i++) {
+      if(is_new_object[i]) {// SHAREDOBJECT_ADDED
+         signal_printf("%s[%d]:  SHAREDOBJECT_ADDED\n", FILE__, __LINE__);
+         if (changed_objs[i]->fileName().length()==0) {
+            cerr << "Warning: new shared object with no name!" << endl;
+            continue;
+         }
+         // addASharedObject is where all the interesting stuff happens.
+         if(!addASharedObject(changed_objs[i])) {
+            cerr << "Failed to add library " << changed_objs[i]->fullName() << endl;
+         }
+      } else {// SHAREDOBJECT_REMOVED
+         signal_printf("%s[%d]:  SHAREDOBJECT_REMOVED...\n", FILE__, __LINE__);
+         //KEVINTODO: figure out what to do when instrumented library is dropped
+         if (!removeASharedObject(changed_objs[i])) {
+            cerr << "Failed to remove library " << changed_objs[i]->fullName() << endl;
+         }
+      }
+   }
+   return true; 
 }
 
 /* Checks whether the shared object SO is the runtime instrumentation
@@ -3675,8 +3673,6 @@ bool process::addASharedObject(mapped_object *new_obj)
                        FILE__, __LINE__);
     }
 
-
-    //fprintf(stderr, "%s[%d]:  newobj: %s, %s\n", FILE__, __LINE__, new_obj->fileName().c_str(), new_obj->fullName().c_str());
 	pdstring dyninstRT_shortname;
 	char *last_slash;
 #if defined(os_windows)
@@ -3779,6 +3775,9 @@ bool process::removeASharedObject(mapped_object *obj) {
         BPatch::bpatch->registerUnloadedModule(this, curr);
     }
 
+    //KEVINTODO: remove printf and the delete
+    printf("Deleting object=%s\n",obj->fileName().c_str());
+    delete obj;
     return true;
 }    
     
@@ -3789,14 +3788,14 @@ bool process::removeASharedObject(mapped_object *obj) {
 // that have been mapped into the process's address space
 bool process::processSharedObjects() 
 {
-    if (mapped_objects.size() > 1) {
+    if (mapped_objects.size() > 1 && getTraceState() == noTracing_ts) {
         // Already called... probably don't want to call again
         return true;
     }
 
     pdvector<mapped_object *> shared_objs;
     if (!dyn->getSharedObjects(shared_objs)) {
-        startup_printf("dyn failed to get shared objects");
+        startup_printf("dyn failed to get shared objects\n");
         return false;
     }
     statusLine("parsing shared object files");
@@ -3893,7 +3892,6 @@ void process::findSignalHandler(mapped_object *obj){
 
 bool process::continueProc(int signalToContinueWith) 
 {   
-
   signal_printf("%s[%d]: continuing process %d\n", FILE__, __LINE__, getPid());
   if (!isAttached()) {
     signal_printf("%s[%d]: warning continue on non-attached %d\n", 
