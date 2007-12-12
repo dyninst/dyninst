@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.23 2007/12/11 18:41:43 giri Exp $
+ * $Id: Object-elf.C,v 1.24 2007/12/12 22:20:58 roundy Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2496,7 +2496,9 @@ void Object::get_valid_memory_areas(Elf_X &elf)
 {
     for (unsigned i = 0; i < elf.e_shnum(); ++i) {
 	Elf_X_Shdr shdr = elf.get_shdr(i);
-
+        if ( !shdr.isValid()) { 
+           break; 
+        }
 	if (shdr.sh_flags() & SHF_ALLOC) { // This section is in memory
 	    if (code_off_ <= shdr.sh_addr() &&
 		shdr.sh_addr() <= code_off_ + code_len_) {
