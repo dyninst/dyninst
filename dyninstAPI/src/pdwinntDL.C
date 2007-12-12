@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.10 2007/09/19 21:55:00 giri Exp $
+// $Id: pdwinntDL.C,v 1.11 2007/12/12 22:20:51 roundy Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"
@@ -83,7 +83,8 @@ bool dynamic_linking::getChangedObjects(EventRecord &, pdvector<mapped_object *>
     return true;
 }
 bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev, 
-                                                       pdvector<mapped_object *> &changed_objs)
+                                 pdvector<mapped_object*> &changed_objects,
+                                 pdvector<bool> &is_new_object)
 {
    if (!ev.lwp)
        //Return early if we're in the call from loadDyninstLib.
@@ -126,7 +127,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
      // discover structure of new DLL, and incorporate into our
      // list of known DLLs
      mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
-     changed_objs.push_back(newobj);
+     changed_objects.push_back(newobj);
+     is_new_object.push_back(true);
      ev.what = SHAREDOBJECT_ADDED;
 	 return true;
    }
@@ -150,7 +152,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
 	}
 	if (!oldobj) 
             return true;
-    changed_objs.push_back(oldobj);
+    changed_objects.push_back(oldobj);
+    is_new_object.push_back(false);
     ev.what = SHAREDOBJECT_REMOVED;
     return true;
 }
