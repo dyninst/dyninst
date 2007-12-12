@@ -1422,7 +1422,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
        catchup_printf("%s[%d]: examining stack %d with %d frames\n",
                       FILE__, __LINE__, i, one_stack.size());
        
-       for (int j = one_stack.size()-1; j >= 0; j--) {
+       for (unsigned int j = one_stack.size()-1; j >= 0; j--) {
            // Are we in the "Active" (executing) frame?
            bool active = (j == (one_stack.size()-1)) ? true : false;
 
@@ -2329,3 +2329,54 @@ bool BPatchSnippetHandle::usesTrapInt() {
     }
     return false;
 }
+
+#if defined(os_windows)
+/* This is a Windows only function that sets the user-space
+ * debuggerPresent flag to 0 or 1, 0 meaning that the process is not
+ * being debugged.  The debugging process will still have debug
+ * access, but system calls that ask if the process is being debugged
+ * will say that it is not because they merely return the value of the
+ * user-space beingDebugged flag. 
+ */
+bool BPatch_process::setBeingDebuggedFlagInt(bool debuggerPresent)
+{
+	// use getRegisters to get value of the FS segment register
+	dyn_saved_regs regs;
+	dyn_lwp *lwp = llproc->getInitialLwp();
+	if (!lwp || !lwp->getRegisters(&regs)) {
+		return false;
+	}
+	// use the FS segment selector to look up the segment descriptor in the local descriptor table
+	LPLDT_ENTRY segDesc;
+	HANDLE lwphandle = (HANDLE)lwp->get_fd();
+	GetThreadSelectorEntry(lwphandle, (DWORD)regs.cont.SegFs, segDesc);
+	// calculate the address of the TIB
+	unsigned long tibPtr = segDesc->BaseLow;
+	unsigned long tmp = segDesc->HighWord.Bytes.BaseMid;
+	tibPtr = tibPtr | (tmp << (sizeof(WORD)*8));
+	tmp = segDesc->HighWord.Bytes.BaseHi;
+	tibPtr = tibPtr | (tmp << (sizeof(WORD)*8+8));
+	printf("FS register=%lx addr of TIB=%lx baseHi=%x baseMid=%x baseLow=%x\n", 
+		(long)regs.cont.SegFs, tibPtr, segDesc->HighWord.Bytes.BaseHi, segDesc->HighWord.Bytes.BaseMid, segDesc->BaseLow );
+	// read in address of PEB
+	unsigned int pebPtr;
+	if (!llproc->readDataSpace((void*)(tibPtr+48), llproc->getAddressWidth(),(void*)&pebPtr, true)) 
+		return false;
+	// read in processBeingDebugged flag
+	unsigned int flagWord;
+	if (!llproc->readDataSpace((void*)pebPtr, 4, (void*)&flagWord, true)) 
+		return false;
+	printf("Addr of PEB segment and flag=%lx flagWord=%x\n", pebPtr, flagWord);
+	// write back value of processBeingDebugged, if necessary
+	if (debuggerPresent && !(flagWord & 0x00ff0000)) {
+		flagWord = flagWord | 0x00010000;
+		if (!llproc->writeDataSpace((void*)pebPtr, 4, (void*)&flagWord)) 
+			return false;
+	} else if (!debuggerPresent && (flagWord & 0x00ff0000)) {
+		flagWord = flagWord & 0xff00ffff;
+		if (!llproc->writeDataSpace((void*)pebPtr, 4, (void*)&flagWord)) 
+			return false;
+	}
+	return true;
+}
+#endif
