@@ -293,13 +293,23 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
     char *,getProgramFileName,(char *name, unsigned int len));
 
-    // BPatch_image::addMemModule 
+    // BPatch_image::parseNewRegion
     //
     // Creates a module for the specified address range as a shared
     // object and parses the code it contains
-    API_EXPORT(Int, (addrStart, addrEnd),
-    BPatch_module *,addMemModule,(unsigned long addrStart, unsigned long addrEnd));
+    API_EXPORT(Int, (addrStart, addrEnd, funcEntryAddrs, parseGaps),
+    BPatch_module *,parseNewRegion, 
+    (unsigned long addrStart=0, unsigned long addrEnd=0, 
+     BPatch_Vector<unsigned long> *funcEntryAddrs=NULL, bool parseGaps=false));
 
+    //  BPatch_image::GetUnresolvedControlFlow
+    //
+    //  Every call instruction that calls into a region of memory that
+    //  is not recognized by Dyninst as pertaining to a code region in
+    //  an existing program module is tracked. This function returns
+    //  a list of all such call targets
+    API_EXPORT(Int, (), 
+    BPatch_Vector<BPatch_point *> *,getUnresolvedControlFlow, ());
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Ptr, (name, funcs, showError, regex_case_sensitive, incUninstrumentable),
@@ -330,6 +340,8 @@ private:
     void removeModule(BPatch_module *mod);
 
     AddrToVarExprHash *AddrToVarExpr;
+
+    BPatch_Vector<BPatch_point *> unresolvedCF;
 
     // These private "find" functions convert from internal int_function
     // representation to the exported BPatch_Function type
