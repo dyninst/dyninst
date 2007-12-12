@@ -328,6 +328,14 @@ public:
 
     bool,usesTrap_NP,());
 
+    //  BPatch_point::getCFTarget
+    //  Returns true if the point corresponds to a control flow
+    //  instruction whose target can be statically determined, in
+    //  which case "target" is set to the target of the control flow
+    //  instruction
+    API_EXPORT(Int, (targets),
+    bool, getCFTarget, (BPatch_Vector<unsigned long> *targets));
+
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { return getAddress(); }
     int getPointLine() { return -1; }

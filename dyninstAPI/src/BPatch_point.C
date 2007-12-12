@@ -378,7 +378,6 @@ bool BPatch_point::isDynamicInt()
  * Returns false if BPatch_point is not a dynamic call site.
  *
  */
-
 void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) 
 {
   BPatch_function *func_to_use = user_cb;
@@ -692,3 +691,28 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
     return result;
 }
                                                           
+/*  BPatch_point::getCFTarget
+ *  Returns true if the point corresponds to a control flow
+ *  instruction whose target can be statically determined, in which
+ *  case "target" is set to the targets of the control flow instruction
+ */
+bool BPatch_point::getCFTargetInt(BPatch_Vector<unsigned long> *targets)
+{
+    unsigned long callTarg = point->callTarget();
+    
+    if (!callTarg) {
+        return false;
+    }
+    if (targets == NULL) {
+        targets = new BPatch_Vector<unsigned long>();
+    }
+    targets->push_back(callTarg);
+    return true;
+    // KEVINTODO: not sure how / if conversion from image_instPoint to
+    // instPoint takes place, don't know if jumps will return anything
+    // for the callTarget function call.  Also don't know what
+    // instPointType_t jump instructions have
+
+    // KEVINTODO: need to add call to getMultipleJumpTargets on some
+    // platforms when this is a jump
+}
