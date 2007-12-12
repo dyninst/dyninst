@@ -254,6 +254,15 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\BPatch_addressSpace.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\BPatch_asyncEventHandler.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -298,6 +307,15 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="TRUE"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_binaryEdit.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -508,24 +526,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\BPatch_process.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_addressSpace.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_binaryEdit.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -958,6 +958,15 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="TRUE"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\InstrucIter-Function.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -1460,6 +1469,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\BPatch_addressSpace.h">
 			</File>
 			<File
+				RelativePath=".\h\BPatch_addressSpace.h">
+			</File>
+			<File
 				RelativePath=".\src\BPatch_asyncEventHandler.h">
 			</File>
 			<File
@@ -1467,6 +1479,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\BPatch_basicBlockLoop.h">
+			</File>
+			<File
+				RelativePath=".\h\BPatch_binaryEdit.h">
 			</File>
 			<File
 				RelativePath=".\h\BPatch_binaryEdit.h">
@@ -1518,12 +1533,6 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\BPatch_process.h">
-			</File>
-			<File
-				RelativePath=".\h\BPatch_addressSpace.h">
-			</File>
-			<File
-				RelativePath=".\h\BPatch_binaryEdit.h">
 			</File>
 			<File
 				RelativePath=".\h\BPatch_Set.h">
@@ -1629,6 +1638,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\instPoint.h">
+			</File>
+			<File
+				RelativePath=".\src\InstrucIter-Function.h">
 			</File>
 			<File
 				RelativePath="..\common\h\List.h">
