@@ -41,6 +41,14 @@
 
 #include "Symbol.h"
 #include "LineInformation.h"
+#include "common/h/Annotatable.h"
+
+typedef struct {} user_funcs_a;
+typedef struct {} user_sections_a;
+typedef struct {} user_types_a;
+typedef struct {} user_symbols_a;
+typedef struct {} module_line_info_a;
+typedef struct {} module_type_info_a;
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -73,7 +81,9 @@ class LookupInterface {
 	DLLEXPORT virtual ~LookupInterface();
 };
  
-class Module : public LookupInterface {
+class Module : public LookupInterface,
+               public Annotatable<LineInformation *, module_line_info_a>,
+               public Annotatable<typeCollection *, module_type_info_a> {
  public:
     DLLEXPORT Module();
     DLLEXPORT Module(supportedLanguages lang, Offset adr, std::string fullNm,
@@ -127,11 +137,20 @@ private:
     supportedLanguages language_;
     Offset addr_;                      // starting address of module
     Symtab *exec_;
+#if 0
     LineInformation *lineInfo_;
     typeCollection *moduleTypes_;	//type information
+#endif
 };
  
-class Symtab : public LookupInterface {
+
+
+class Symtab : public LookupInterface,
+              public Annotatable<Symbol *, user_funcs_a>, 
+              public Annotatable<Section *, user_sections_a>, 
+              public Annotatable<Type *, user_types_a>, 
+              public Annotatable<Symbol *, user_symbols_a> 
+{
     
     friend class Archive;
     friend class Symbol;
@@ -301,6 +320,7 @@ class Symtab : public LookupInterface {
 	bool buildFunctionLists(std::vector <Symbol *> &raw_funcs);
 	void enterFunctionInTables(Symbol *func, bool wasSymtab);
 	bool addSymtabVariables();
+	bool addSymbolInt(Symbol *newsym, bool from_user, bool isDynamic = false);
 	
 	bool findFunction(std::vector <Symbol *> &ret, const std::string &name, 
                      bool isMangled=false, bool isRegex = false,
@@ -369,8 +389,10 @@ class Symtab : public LookupInterface {
    std::vector<Section *> sections_;
    hash_map <Offset, Section *> secsByEntryAddr;
 
+#if 0
    //New Sections to be added back to the binary
    std::vector<Section *> newSections_; 
+#endif
    //Point where new loadable sections will be inserted
    unsigned newSectionInsertPoint;
 	
@@ -386,10 +408,12 @@ class Symtab : public LookupInterface {
    hash_map <std::string, std::vector<Symbol *>*> funcsByMangled;
    // A way to iterate over all the functions efficiently
    std::vector<Symbol *> everyUniqueFunction;
+#if 0
    // We make an initial list of functions based off the symbol table,
    // and may create more when we actually analyze. Keep track of
    // those created ones so we can distinguish them if necessary
    std::vector<Symbol *> createdFunctions;
+#endif
    // And the counterpart "ones that are there right away"
    std::vector<Symbol *> exportedFunctions;
 
@@ -408,7 +432,9 @@ class Symtab : public LookupInterface {
    std::vector<Symbol *> notypeSyms;
    std::vector<Module *> _mods;
 
+#if 0
    typeCollection *APITypes;
+#endif
 
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries

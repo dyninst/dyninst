@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.12 2007/12/12 22:21:00 roundy Exp $
+ * $Id: Object-nt.h,v 1.13 2007/12/14 04:16:48 jaw Exp $
 ************************************************************************/
 
 
@@ -198,7 +198,7 @@ class Object : public AObject
     DLLEXPORT void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     DLLEXPORT const std::vector<Offset> &getPossibleMains() const   { return possible_mains; }
     DLLEXPORT void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
-    DLLEXPORT bool emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
+    DLLEXPORT bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
 
 private:
     DLLEXPORT void    ParseDebugInfo( void );

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.58 2007/12/11 20:22:06 bill Exp $
+// $Id: arch-x86.h,v 1.59 2007/12/14 04:16:48 jaw Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
 #include <common/h/Vector.h>
-#include <common/h/Annotatable.h>
 #include <set>
 #include <map>
+#include <vector>
 
 #if !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
@@ -1002,6 +1002,7 @@ struct ia32_entry {
   unsigned int opsema;  
 };
 
+using std::vector;
 struct flagInfo
 {
   flagInfo(const vector<RegisterID>& rf, const vector<RegisterID>& wf) : readFlags(rf), writtenFlags(wf) 
@@ -1133,14 +1134,16 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 #define EXTENDED_0x81_XOR 6
 #define EXTENDED_0x81_CMP 7
 
-class instruction: public Annotatable<instruction> {
+
+class instruction {
  public:
     instruction(): type_(0), size_(0), ptr_(0), op_ptr_(0) {}
 
   instruction(const unsigned char *p, unsigned type, unsigned sz, const unsigned char* op = 0):
       type_(type), size_(sz), ptr_(p), op_ptr_(op ? op : p) {}
 
-  instruction(const instruction &insn): Annotatable<instruction>() {
+  instruction(const instruction &insn)
+  {
     type_ = insn.type_;
     size_ = insn.size_;
     ptr_ = insn.ptr_;

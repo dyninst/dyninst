@@ -82,17 +82,21 @@ class DLLEXPORT typeCollection {
     unsigned refcount;
     typeCollection();
 
+#if 0
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
        BPatch_functions are solitons, we don't have to cache them.) */
     static hash_map< std::string, typeCollection * > fileToTypesMap;
+#endif
 
     // DWARF...
     bool dwarfParsed_;
 
 public:
     static typeCollection *getGlobalTypeCollection();
+#if 0
     static typeCollection *getModTypeCollection(Module *mod);
+#endif
     static void freeTypeCollection(typeCollection *tc);
 
     // DWARF...

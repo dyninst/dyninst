@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.96 2007/12/11 20:22:05 bill Exp $
+// $Id: BPatch_function.C,v 1.97 2007/12/14 04:16:48 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -894,7 +894,8 @@ typedef struct ParameterWithFuncAddress{
 } annotation;
 
 /* returns true if a given actual parameter p1 matches a given formal parameter p2  */
-bool match(ParameterType* p1, ParameterType* p2) {
+bool parameterMatch(ParameterType* p1, ParameterType* p2) 
+{
 #if defined(sparc_sun_solaris2_4)
   return p1->reg+16 == p2->reg? true: false;
 #elif defined(arch_x86)
@@ -907,7 +908,8 @@ bool match(ParameterType* p1, ParameterType* p2) {
 }
 
 /* returns true if a given actual return value p1 matches a given formal return value p2 */
-bool returnMatch(ReturnParameterType* p1, ReturnParameterType* p2) {
+bool returnMatch(ReturnParameterType* p1, ReturnParameterType* p2) 
+{
 #if defined(sparc_sun_solaris2_4)
   return p1->reg+16 == p2->reg? true: false;
 #elif defined(arch_x86)
@@ -919,30 +921,32 @@ bool returnMatch(ReturnParameterType* p1, ReturnParameterType* p2) {
 /*
  * Locates the dependencies between a set of formal parameters and a set of actual parameters
  */
-void identifyParamDependencies(BPatch_function* thisFunc, BPatch_function* callee, void* calleeAddress) {
+void BPatch_function::identifyParamDependencies(BPatch_function* callee, 
+        void* calleeAddress) 
+{
   BPatch_Vector<ParameterType*>* parameters = (BPatch_Vector<ParameterType*>*)callee->getAnnotation("formalParams");
   
   BPatch_Vector<ParameterType*>* outParams = NULL;
   unsigned ctr;
   for(ctr=0; true; ctr++) {
-    annotation* ann = (annotation*)thisFunc->getAnnotation("actualParams",ctr);
+    annotation* ann = (annotation*)this->getAnnotation("actualParams",ctr);
     if(ann == NULL) break;
     if(ann->address == calleeAddress) {
-      outParams = ann->v.parameters;
-      unsigned i,j;
-      ParameterType* p1;
-      fprintf(stderr,"1. Size: %d\t2. Size %d\n",outParams->size(),parameters->size());
-      for(i=0; i<outParams->size(); i++) {
-	p1 = (*outParams)[i];
-	for(j=0; j<parameters->size(); j++) {
-	  ParameterType* p2 = (*parameters)[j];
-	  if(match(p1,p2)) {
-	    fprintf(stderr,"\n\nDepends\n\n");
-	    // TODO: check this line
-	    p2->node->inter->push_back(new BPatch_dependenceGraphEdge(p2->node,p1->node));
-	  }
-	}
-      }   
+        outParams = ann->v.parameters;
+        unsigned i,j;
+        ParameterType* p1;
+        fprintf(stderr,"1. Size: %d\t2. Size %d\n",outParams->size(),parameters->size());
+        for(i=0; i<outParams->size(); i++) {
+            p1 = (*outParams)[i];
+            for(j=0; j<parameters->size(); j++) {
+                ParameterType* p2 = (*parameters)[j];
+                if (parameterMatch(p1,p2)) {
+                    fprintf(stderr,"\n\nDepends\n\n");
+                    // TODO: check this line
+                    p2->node->inter->push_back(new BPatch_dependenceGraphEdge(p2->node,p1->node));
+                }
+            }
+        }   
     }
   }
   if(outParams == NULL) {
@@ -991,7 +995,8 @@ void identifyReturnDependencies(BPatch_function* thisFunc, BPatch_function* call
 /*
  * Locates dependencies between two functions (this and callee) that are results of parameter passing
  */
-void BPatch_function::identifyDependencies(BPatch_function* callee, void* calleeAddress) {
+void BPatch_function::identifyDependencies(BPatch_function* callee, void* calleeAddress) 
+{
   identifyParamDependencies(this, callee,  calleeAddress);
   identifyReturnDependencies(this, callee, calleeAddress);
 }
@@ -1165,39 +1170,46 @@ bool mergeGraphs(BPatch_Vector<BPatch_dependenceGraphNode*>* graph1, BPatch_Vect
 /* Used to copy the dependence graph of any kind.
  * Before calling mergeGraphs, I copy the first one since it will get modified by the mergeGraphs method.
  */
-BPatch_Vector<BPatch_dependenceGraphNode*>* copyDependenceGraph(BPatch_Vector<BPatch_dependenceGraphNode*>* graph) {
-  if(graph == NULL) {
-    fprintf(stderr,"Graph is empty (NULL)");
-    return NULL;
+bool copyDependenceGraph(BPatch_Vector<BPatch_dependenceGraphNode*> &target, BPatch_Vector<BPatch_dependenceGraphNode *> &src)
+{
+  if (!src.size()) {
+    fprintf(stderr,"%s[%d]: Graph is empty (NULL)\n", FILE__, __LINE__);
+    return false;
   }
-  BPatch_Vector<BPatch_dependenceGraphNode*>* copy = new BPatch_Vector<BPatch_dependenceGraphNode*>();
+
   unsigned i,j,k;
   BPatch_Vector<BPatch_dependenceGraphEdge*>* preds; //successors;
 
-  for(i=0; i<graph->size(); i++) {
-    BPatch_dependenceGraphNode* newInst = new BPatch_dependenceGraphNode((*graph)[i]->getBPInstruction(),new BPatch_Vector<BPatch_dependenceGraphEdge*>(),new BPatch_Vector<BPatch_dependenceGraphEdge*>());
-    copy->push_back(newInst);
+  for (i=0; i<src.size(); i++) {
+     BPatch_dependenceGraphNode* newInst = new BPatch_dependenceGraphNode(src[i]->getBPInstruction(),
+           new BPatch_Vector<BPatch_dependenceGraphEdge*>(),
+           new BPatch_Vector<BPatch_dependenceGraphEdge*>());
+     target.push_back(newInst);
   }
-  for(i=0; i<graph->size(); i++) {
-    preds = new BPatch_Vector<BPatch_dependenceGraphEdge*>();
-    (*graph)[i]->getIncomingEdges(*preds);
-    for(j=0; j<preds->size(); j++) {
-      bool found=false;
-      for(k=0; k<copy->size(); k++) {
-	if(((*copy)[k]->getBPInstruction() == NULL && (*preds)[j]->source->getBPInstruction()==NULL) || 
-	   ((*copy)[k]->getBPInstruction() != NULL && (*preds)[j]->source->getBPInstruction()!=NULL && (*copy)[k]->getBPInstruction()->getAddress() == (*preds)[j]->source->getBPInstruction()->getAddress())) {
-	  // add to predecessor list of i'th obj.
-	  (*copy)[i]->addToIncoming((*copy)[k]);
-	  // add to successor list of k'th object
-	  (*copy)[k]->addToOutgoing((*copy)[i]);
-	  found=true;
-	  break;
-	}
+
+  for (i=0; i<src.size(); i++) {
+     preds = new BPatch_Vector<BPatch_dependenceGraphEdge*>();
+     src[i]->getIncomingEdges(*preds);
+     for (j=0; j<preds->size(); j++) {
+        bool found=false;
+        for (k=0; k<target.size(); k++) {
+           if ( ( !target[k]->getBPInstruction() && !(*preds)[j]->source->getBPInstruction()) 
+                 || (target[k]->getBPInstruction() != NULL
+                    && (*preds)[j]->source->getBPInstruction()!=NULL 
+                    && (target[k]->getBPInstruction()->getAddress() 
+                       == (*preds)[j]->source->getBPInstruction()->getAddress() ) ) ) {
+              // add to predecessor list of i'th obj.
+              target[i]->addToIncoming(target[k]);
+              // add to successor list of k'th object
+              target[k]->addToOutgoing(target[i]);
+              found=true;
+              break;
+           }
       }
       assert(found);
     }
   }
-  return copy;
+  return true;
 }
 
 /*
@@ -1205,76 +1217,153 @@ BPatch_Vector<BPatch_dependenceGraphNode*>* copyDependenceGraph(BPatch_Vector<BP
  * This assumes that the variable/register that is in the slicing criteria is modified at this instruction
  * This function builds the extended program dependence graph if not built before, then searched for the given instruction in that graph 
  */
-BPatch_dependenceGraphNode* BPatch_function::getSliceInt(BPatch_instruction* inst) {
-  if(inst == NULL)
-    return NULL;
-  unsigned i;
-  createExtendedProgramDependenceGraph();
-  BPatch_Vector<BPatch_dependenceGraphNode*>* extendedProgramDependenceGraph = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ExtendedProgramDependenceGraph");
-  for(i=0; i<extendedProgramDependenceGraph->size(); i++) {
-    if((*extendedProgramDependenceGraph)[i]->getBPInstruction() != NULL && (*extendedProgramDependenceGraph)[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
-      return (*extendedProgramDependenceGraph)[i];
-    }
-  }
-  return NULL;
+BPatch_dependenceGraphNode* BPatch_function::getSliceInt(BPatch_instruction* inst) 
+{
+   if (inst == NULL)
+      return NULL;
+
+   Annotatable<BPatch_dependenceGraphNode *, extended_prog_dep_graph_a> &edg = *this;
+   createExtendedProgramDependenceGraph();
+
+   for (unsigned int i = 0; i < edg.size(); ++i)
+      if ( (NULL != edg[i]->getBPInstruction())
+            && (inst->getAddress() == edg[i]->getBPInstruction()->getAddress()) )
+         return edg[i];
+
+#if 0
+   BPatch_Vector<BPatch_dependenceGraphNode*>* extendedProgramDependenceGraph = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ExtendedProgramDependenceGraph");
+   for (unsigned int i=0; i<extendedProgramDependenceGraph->size(); i++) {
+      if ((*extendedProgramDependenceGraph)[i]->getBPInstruction() != NULL && (*extendedProgramDependenceGraph)[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
+         return (*extendedProgramDependenceGraph)[i];
+      }
+   }
+#endif
+   return NULL;
 }
 
 /*
  * Creates extended program dependence graph (program dependence graph + another graph which I call helper graph for now)
  */
-void BPatch_function::createExtendedProgramDependenceGraph() {
-  if(getAnnotation("ExtendedProgramDependenceGraph") == NULL) {
-    if(getAnnotation("ProgramDependenceGraph") == NULL)
-      createProgramDependenceGraph();
-    BPatch_Vector<BPatch_dependenceGraphNode*>* extendedProgramDependenceGraph = copyDependenceGraph((BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ProgramDependenceGraph"));
-    // now add the unconditional jump and return instructions.
-    mergeGraphs(extendedProgramDependenceGraph,(BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("HelperGraph"));
+void BPatch_function::createExtendedProgramDependenceGraph() 
+{
+   Annotatable<BPatch_dependenceGraphNode *, prog_dep_graph_a> &dg = *this;
+   Annotatable<BPatch_dependenceGraphNode *, extended_prog_dep_graph_a> &edg = *this;
+   Annotatable<BPatch_dependenceGraphNode *, dep_helper_graph_a> &helpergraph = *this;
+
+   if (!edg.size()) {
+      if (!dg.size()) {
+         createProgramDependenceGraph();
+      }
+      if (!copyDependenceGraph(edg.getDataStructure(), dg.getDataStructure())) {
+         fprintf(stderr, "%s[%d]:  failed to copy dependence graph\n", FILE__, __LINE__);
+         return;
+      }
+      mergeGraphs(&edg.getDataStructure(), &helpergraph.getDataStructure());
+   }
+
+#if 0
+   if(getAnnotation("ExtendedProgramDependenceGraph") == NULL) {
+      if(getAnnotation("ProgramDependenceGraph") == NULL)
+         createProgramDependenceGraph();
+      BPatch_Vector<BPatch_dependenceGraphNode*>* extendedProgramDependenceGraph = copyDependenceGraph((BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ProgramDependenceGraph"));
+      // now add the unconditional jump and return instructions.
+      mergeGraphs(extendedProgramDependenceGraph,(BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("HelperGraph"));
     setAnnotation(getAnnotationType("ExtendedProgramDependenceGraph"), new Annotation(extendedProgramDependenceGraph));
   }
+#endif
 }
 
 /*
  * Creates program dependence graph (Control dependence Graph + data dependence graph)
  */
-void BPatch_function::createProgramDependenceGraph(/*BPatch_flowGraph* cfg*/) {
-  if(getAnnotation("ProgramDependenceGraph") == NULL) {
-    if(getAnnotation("ControlDependenceGraph") == NULL) {
-      // updates the global controlDependenceGraph variable
-      createControlDependenceGraph();
-    }
-    if(getAnnotation("DataDependenceGraph") == NULL) {
-      // updates the global dataDependenceGraph variable
-      createDataDependenceGraph();
-    }
-    BPatch_Vector<BPatch_dependenceGraphNode*>* programDependenceGraph = copyDependenceGraph((BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ControlDependenceGraph"));
-    mergeGraphs(programDependenceGraph,(BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("DataDependenceGraph")); // updates programDependenceGraph
-    setAnnotation(getAnnotationType("ProgramDependenceGraph"), new Annotation(programDependenceGraph));
-  } 
+void BPatch_function::createProgramDependenceGraph(/*BPatch_flowGraph* cfg*/) 
+{
+   Annotatable<BPatch_dependenceGraphNode *, prog_dep_graph_a> &pdg = *this;
+   Annotatable<BPatch_dependenceGraphNode *, control_dep_graph_a> &cdg = *this;
+   Annotatable<BPatch_dependenceGraphNode *, data_dep_graph_a> &ddg = *this;
+
+   if (!pdg.size()) {
+      if (!cdg.size()) {
+         createControlDependenceGraph();
+      }
+      if (!ddg.size()) {
+         createDataDependenceGraph();
+      }
+
+      if (!copyDependenceGraph(pdg.getDataStructure(), cdg.getDataStructure())) {
+         fprintf(stderr, "%s[%d]:  failed to copy control dep. graph\n", FILE__, __LINE__);
+         return;
+      }
+      mergeGraphs(&pdg.getDataStructure(), &ddg.getDataStructure());
+   }
 
 #ifdef print_graphs
-  BPatch_Vector<BPatch_dependenceGraphNode*> * allNodes = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ProgramDependenceGraph");
-  printf("Progam Dependence Graph. Total Node Num: %d\n", allNodes->size());
-  outputGraph(allNodes);
+   if (pdg.size()) {
+      printf("Progam Dependence Graph. Total Node Num: %d\n", pdg.size());
+      outputGraph(allNodes);
+   }
+   else {
+      printf("Program Dependence Graph. No Nodes\n");
+   }
+#endif
+
+#if 0
+      if(getAnnotation("ProgramDependenceGraph") == NULL) {
+         if(getAnnotation("ControlDependenceGraph") == NULL) {
+            // updates the global controlDependenceGraph variable
+            createControlDependenceGraph();
+         }
+         if(getAnnotation("DataDependenceGraph") == NULL) {
+            // updates the global dataDependenceGraph variable
+            createDataDependenceGraph();
+         }
+         BPatch_Vector<BPatch_dependenceGraphNode*>* programDependenceGraph = copyDependenceGraph((BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ControlDependenceGraph"));
+         mergeGraphs(programDependenceGraph,(BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("DataDependenceGraph")); // updates programDependenceGraph
+         setAnnotation(getAnnotationType("ProgramDependenceGraph"), new Annotation(programDependenceGraph));
+      } 
+
+#ifdef print_graphs
+      BPatch_Vector<BPatch_dependenceGraphNode*> * allNodes = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ProgramDependenceGraph");
+      printf("Progam Dependence Graph. Total Node Num: %d\n", allNodes->size());
+      outputGraph(allNodes);
+#endif
 #endif
 }
-/*
- * BPatch_function::getProgramDependenceGraph
+
+   /*
+    * BPatch_function::getProgramDependenceGraph
  *
  * given a BPatch_instruction object, returns the corresponding BPatch_dependenceGraphNode object
  * which enables accessing the predecessors and successors of this instruction
  */
-BPatch_dependenceGraphNode* BPatch_function::getProgramDependenceGraphInt(BPatch_instruction* inst) {
-  unsigned int i;
-  if(getAnnotation("ProgramDependenceGraph") == NULL) {
-    createProgramDependenceGraph();
-  }
-  BPatch_Vector<BPatch_dependenceGraphNode*>* programDependenceGraph = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ProgramDependenceGraph");
-  for(i=0; i<programDependenceGraph->size(); i++) {
-    if((*programDependenceGraph)[i]->getBPInstruction() != NULL && (*programDependenceGraph)[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
-      return (*programDependenceGraph)[i];
-    }
-  }
-  return NULL;
+BPatch_dependenceGraphNode* BPatch_function::getProgramDependenceGraphInt(BPatch_instruction* inst) 
+{
+   Annotatable<BPatch_dependenceGraphNode *, prog_dep_graph_a> &pdg = *this;
+
+   if (!pdg.size()) {
+      createProgramDependenceGraph();
+   }
+
+   for (unsigned int i =0; i<pdg.size(); i++) {
+      if (pdg[i]->getBPInstruction() != NULL
+            && pdg[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
+         return pdg[i];
+      }
+   }
+
+#if 0
+   unsigned int i;
+   if(getAnnotation("ProgramDependenceGraph") == NULL) {
+      createProgramDependenceGraph();
+   }
+   BPatch_Vector<BPatch_dependenceGraphNode*>* programDependenceGraph = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ProgramDependenceGraph");
+   for(i=0; i<programDependenceGraph->size(); i++) {
+      if((*programDependenceGraph)[i]->getBPInstruction() != NULL && (*programDependenceGraph)[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
+         return (*programDependenceGraph)[i];
+      }
+   }
+#endif
+   return NULL;
 }
 
 /*
@@ -1284,18 +1373,33 @@ BPatch_dependenceGraphNode* BPatch_function::getProgramDependenceGraphInt(BPatch
  * that has information about which instructions dominate/are dominated by this instruction in the
  * control dependence graph
  */
-BPatch_dependenceGraphNode* BPatch_function::getControlDependenceGraphInt(BPatch_instruction* inst) {
-  unsigned int i;
-  if(getAnnotation("ControlDependenceGraph") == NULL) {
-    createControlDependenceGraph();
-  }
-  BPatch_Vector<BPatch_dependenceGraphNode*>* controlDependenceGraph = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ControlDependenceGraph");
-  for(i=0; i<controlDependenceGraph->size(); i++) {
-    if((*controlDependenceGraph)[i]->getBPInstruction() != NULL && (*controlDependenceGraph)[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
-      return (*controlDependenceGraph)[i];
-    }
-  }
-  return NULL;
+BPatch_dependenceGraphNode* BPatch_function::getControlDependenceGraphInt(BPatch_instruction* inst) 
+{
+   Annotatable<BPatch_dependenceGraphNode *, control_dep_graph_a> &cdg = *this;
+   if (!cdg.size()) {
+      createControlDependenceGraph();
+   }
+
+   for (unsigned int i = 0; i < cdg.size(); ++i) {
+      if (cdg[i]->getBPInstruction() != NULL
+            && cdg[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
+         return cdg[i];
+      }
+   }
+
+#if 0
+   unsigned int i;
+   if(getAnnotation("ControlDependenceGraph") == NULL) {
+      createControlDependenceGraph();
+   }
+   BPatch_Vector<BPatch_dependenceGraphNode*>* controlDependenceGraph = (BPatch_Vector<BPatch_dependenceGraphNode*>*)getAnnotation("ControlDependenceGraph");
+   for(i=0; i<controlDependenceGraph->size(); i++) {
+      if((*controlDependenceGraph)[i]->getBPInstruction() != NULL && (*controlDependenceGraph)[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
+         return (*controlDependenceGraph)[i];
+      }
+   }
+#endif
+   return NULL;
 }
 
 /*
@@ -1305,8 +1409,21 @@ BPatch_dependenceGraphNode* BPatch_function::getControlDependenceGraphInt(BPatch
  * that has information about which instructions dominate/are dominated by this instruction in the
  * data dependence graph
  */
-BPatch_dependenceGraphNode* BPatch_function::getDataDependenceGraphInt(BPatch_instruction* inst) {
-  unsigned int i;
+BPatch_dependenceGraphNode* BPatch_function::getDataDependenceGraphInt(BPatch_instruction* inst) 
+{
+   Annotatable<BPatch_dependenceGraphNode *, data_dep_graph_a> &ddg = *this;
+   if (!ddg.size()) {
+      createDataDependenceGraph();
+   }
+
+   for (unsigned int i = 0; i < ddg.size(); ++i) {
+      if (ddg[i]->getBPInstruction()->getAddress() == inst->getAddress()) {
+         return ddg[i];
+      }
+   }
+
+#if 0
+   unsigned int i;
   if(getAnnotation("DataDependenceGraph") == NULL) {
     createDataDependenceGraph();
   }
@@ -1316,64 +1433,67 @@ BPatch_dependenceGraphNode* BPatch_function::getDataDependenceGraphInt(BPatch_in
       return (*dataDependenceGraph)[i];
     }
   }
+#endif
   return NULL;
 }
 
 /*
  * Using post-dominator information, marks the control dependencies between basic blocks
  */
-BPatch_Vector<BPatch_basicBlock*>** createBlockDependency(int num_blocks, BPatch_basicBlock** blocks) {
-  unsigned j;
-  int i;
-  BPatch_Vector<BPatch_basicBlock*>** dependencies = (BPatch_Vector<BPatch_basicBlock*>**)malloc(sizeof(BPatch_Vector<BPatch_basicBlock*>*)*num_blocks);//new BPatch_Vector<BPatch_basicBlock*>[num_blocks];
-  for(i=0; i<num_blocks; i++) {
-    dependencies[i] = new BPatch_Vector<BPatch_basicBlock*>();
-  }
-  BPatch_Vector<BPatch_basicBlock*>* out;
-  int* parent_check = initialize_array(new int[num_blocks],num_blocks,-1);
-  for(i=0; i<num_blocks; i++) {
-    out = new BPatch_Vector<BPatch_basicBlock*>();
-    (blocks[i])->getTargets(*out);
-    for(j=0; j<out->size(); j++) {
-      if( ! ((*out)[j]->postdominates(blocks[i])) ) {
-	// Work on this edge right now;
-	// mark all parents of blocks[i]
-	BPatch_basicBlock* temp = blocks[i];
-	// According to Ferrante et al. page 325, marking only this node and its parent is enough
-	parent_check[ temp->getBlockNumber() ] = 1;
-	temp = temp->getImmediatePostDominator();
-	if(temp!=NULL) {
-	  parent_check[ temp->getBlockNumber() ] = 1;
-	}
-	// traverse from out[j] to one of the parents marked in the previous step
-	temp = (*out)[j];
-	while(temp!=NULL && parent_check[ temp->getBlockNumber() ] != 1) {
-	  // mark them as control dependent to blocks[i]
-	  dependencies[ temp->getBlockNumber() ]->push_back(blocks[i]);
-	  temp = temp->getImmediatePostDominator();
-	}
-	  }
-    }
-    delete out;
-  }
-  free(parent_check);
-  return dependencies;
+BPatch_Vector<BPatch_basicBlock*>** createBlockDependency(int num_blocks, 
+      BPatch_basicBlock** blocks) 
+{
+   unsigned j;
+   int i;
+   BPatch_Vector<BPatch_basicBlock*>** dependencies = (BPatch_Vector<BPatch_basicBlock*>**)malloc(sizeof(BPatch_Vector<BPatch_basicBlock*>*)*num_blocks);//new BPatch_Vector<BPatch_basicBlock*>[num_blocks];
+   for(i=0; i<num_blocks; i++) {
+      dependencies[i] = new BPatch_Vector<BPatch_basicBlock*>();
+   }
+   BPatch_Vector<BPatch_basicBlock*>* out;
+   int* parent_check = initialize_array(new int[num_blocks],num_blocks,-1);
+   for(i=0; i<num_blocks; i++) {
+      out = new BPatch_Vector<BPatch_basicBlock*>();
+      (blocks[i])->getTargets(*out);
+      for(j=0; j<out->size(); j++) {
+         if( ! ((*out)[j]->postdominates(blocks[i])) ) {
+            // Work on this edge right now;
+            // mark all parents of blocks[i]
+            BPatch_basicBlock* temp = blocks[i];
+            // According to Ferrante et al. page 325, marking only this node and its parent is enough
+            parent_check[ temp->getBlockNumber() ] = 1;
+            temp = temp->getImmediatePostDominator();
+            if(temp!=NULL) {
+               parent_check[ temp->getBlockNumber() ] = 1;
+            }
+            // traverse from out[j] to one of the parents marked in the previous step
+            temp = (*out)[j];
+            while(temp!=NULL && parent_check[ temp->getBlockNumber() ] != 1) {
+               // mark them as control dependent to blocks[i]
+               dependencies[ temp->getBlockNumber() ]->push_back(blocks[i]);
+               temp = temp->getImmediatePostDominator();
+            }
+         }
+      }
+      delete out;
+   }
+   free(parent_check);
+   return dependencies;
 }
 
 void determineReturnBranchDependencies(BPatch_Vector<BPatch_dependenceGraphNode*>* controlDependenceGraph, BPatch_Vector<BPatch_dependenceGraphNode*>* helperGraph, BPatch_Vector<BPatch_basicBlock*>** dependencies,
-				       BPatch_Vector<BPatch_basicBlock*>* blockNumbers, BPatch_basicBlock** blocks, int num_blocks,BPatch_dependenceGraphNode** last_inst_in_block,BPatch_dependenceGraphNode** last_inst_helper) {
-  unsigned i,j;
-  for(i=0; i<(unsigned)num_blocks; i++) {
-    BPatch_basicBlock * blck = blocks[i];
-    InstrucIter* iter;
-    for(iter = new InstrucIter(blck); iter->hasMore(); (*iter)++) {
-      BPatch_dependenceGraphNode* bpdom = new BPatch_dependenceGraphNode(iter->getBPInstruction(),new BPatch_Vector<BPatch_dependenceGraphEdge*>(),new BPatch_Vector<BPatch_dependenceGraphEdge*>());
-      // printf("in block %d\n",blck->getBlockNumber()/*bpdom->getBPInstruction()->getParent()->getBlockNumber()*/); fflush(stdout);
-      controlDependenceGraph->push_back(bpdom);
-      helperGraph->push_back(new BPatch_dependenceGraphNode(iter->getBPInstruction(),
-			    new BPatch_Vector<BPatch_dependenceGraphEdge*>(),new BPatch_Vector<BPatch_dependenceGraphEdge*>()));
-      blockNumbers->push_back(blck);
-    }
+      BPatch_Vector<BPatch_basicBlock*>* blockNumbers, BPatch_basicBlock** blocks, int num_blocks,BPatch_dependenceGraphNode** last_inst_in_block,BPatch_dependenceGraphNode** last_inst_helper) {
+   unsigned i,j;
+   for(i=0; i<(unsigned)num_blocks; i++) {
+      BPatch_basicBlock * blck = blocks[i];
+      InstrucIter* iter;
+      for(iter = new InstrucIter(blck); iter->hasMore(); (*iter)++) {
+         BPatch_dependenceGraphNode* bpdom = new BPatch_dependenceGraphNode(iter->getBPInstruction(),new BPatch_Vector<BPatch_dependenceGraphEdge*>(),new BPatch_Vector<BPatch_dependenceGraphEdge*>());
+         // printf("in block %d\n",blck->getBlockNumber()/*bpdom->getBPInstruction()->getParent()->getBlockNumber()*/); fflush(stdout);
+         controlDependenceGraph->push_back(bpdom);
+         helperGraph->push_back(new BPatch_dependenceGraphNode(iter->getBPInstruction(),
+                  new BPatch_Vector<BPatch_dependenceGraphEdge*>(),new BPatch_Vector<BPatch_dependenceGraphEdge*>()));
+         blockNumbers->push_back(blck);
+      }
     last_inst_in_block[blck->getBlockNumber()] = (*controlDependenceGraph)[ controlDependenceGraph->size()-1 ];
     (*iter)--;
     if(iter->hasMore() && (iter->isAReturnInstruction() || iter->isAJumpInstruction()) )
@@ -1400,40 +1520,57 @@ void determineReturnBranchDependencies(BPatch_Vector<BPatch_dependenceGraphNode*
  * Used to create the control dependence graph from the binary.
  * Called only once for each function
  */
-void BPatch_function::createControlDependenceGraph() {
-  unsigned num_blocks;
-  BPatch_flowGraph* cfg = getCFG();
-  
-  // if we already calculated graph, return immediately
-  if(getAnnotation("ControlDependenceGraph") != NULL)
-    return;
-  // if we are here, annotation type for helper graph must be missing. So, create it:
-  createAnnotationType("HelperGraph");
-  
-  // get the dominators
-  // already there! No need to do anything real
-  
-  // calculate dependency relation in terms of basic blocks
+void BPatch_function::createControlDependenceGraph() 
+{
+   Annotatable<BPatch_dependenceGraphNode *, control_dep_graph_a> &cdg = *this;
+   Annotatable<BPatch_dependenceGraphNode *, dep_helper_graph_a> &helper_graph = *this;
 
-  BPatch_Set<BPatch_basicBlock*> all_b_b;
+   if (cdg.size()) {
+      //  must've already generated it, return without doing anything
+      return;
+   }
 
-  cfg->getAllBasicBlocks(all_b_b); //getBasicBlocks(cfg, all_b_b);
-  num_blocks = all_b_b.size();
+   unsigned num_blocks;
+   BPatch_flowGraph* cfg = getCFG();
 
-  BPatch_basicBlock** blocks = new BPatch_basicBlock*[num_blocks];
-  all_b_b.elements(blocks);
+#if 0
+   // if we already calculated graph, return immediately
+   if(getAnnotation("ControlDependenceGraph") != NULL)
+      return;
+   // if we are here, annotation type for helper graph must be missing. So, create it:
+   createAnnotationType("HelperGraph");
+#endif
 
-  // create the dependencies between blocks.
-  BPatch_Vector<BPatch_basicBlock*>** dependencies = createBlockDependency(num_blocks, blocks);
+   // get the dominators
+   // already there! No need to do anything real
 
-  BPatch_Vector<BPatch_basicBlock*>* blockNumbers = new BPatch_Vector<BPatch_basicBlock*>();
-  BPatch_Vector<BPatch_dependenceGraphNode*>* controlDependenceGraph = new BPatch_Vector<BPatch_dependenceGraphNode*>();
-  BPatch_Vector<BPatch_dependenceGraphNode*>* helperGraph = new BPatch_Vector<BPatch_dependenceGraphNode*>();
+   // calculate dependency relation in terms of basic blocks
 
-  // use dependency relation to figure out which instruction depends on which instruction
-  BPatch_dependenceGraphNode** last_inst_in_block = (BPatch_dependenceGraphNode**)malloc(sizeof(BPatch_dependenceGraphNode*)*num_blocks);
-  BPatch_dependenceGraphNode** last_inst_helper = (BPatch_dependenceGraphNode**)malloc(sizeof(BPatch_dependenceGraphNode*)*num_blocks);
-  determineReturnBranchDependencies(controlDependenceGraph, helperGraph, dependencies, blockNumbers, blocks, num_blocks,last_inst_in_block,last_inst_helper);
+   BPatch_Set<BPatch_basicBlock*> all_b_b;
+
+   cfg->getAllBasicBlocks(all_b_b); //getBasicBlocks(cfg, all_b_b);
+   num_blocks = all_b_b.size();
+
+   BPatch_basicBlock** blocks = new BPatch_basicBlock*[num_blocks];
+   all_b_b.elements(blocks);
+
+   // create the dependencies between blocks.
+   BPatch_Vector<BPatch_basicBlock*>** dependencies = createBlockDependency(num_blocks, blocks);
+
+   BPatch_Vector<BPatch_basicBlock*>* blockNumbers = new BPatch_Vector<BPatch_basicBlock*>();
+#if 0
+   BPatch_Vector<BPatch_dependenceGraphNode*>* controlDependenceGraph = new BPatch_Vector<BPatch_dependenceGraphNode*>();
+   BPatch_Vector<BPatch_dependenceGraphNode*>* helperGraph = new BPatch_Vector<BPatch_dependenceGraphNode*>();
+#endif
+
+   // use dependency relation to figure out which instruction depends on which instruction
+   BPatch_dependenceGraphNode** last_inst_in_block = 
+      (BPatch_dependenceGraphNode**)malloc(sizeof(BPatch_dependenceGraphNode*)*num_blocks);
+   BPatch_dependenceGraphNode** last_inst_helper = 
+      (BPatch_dependenceGraphNode**)malloc(sizeof(BPatch_dependenceGraphNode*)*num_blocks);
+   determineReturnBranchDependencies(&cdg.getDataStructure(), 
+         &helper_graph.getDataStructure(), dependencies, blockNumbers, blocks, 
+         num_blocks,last_inst_in_block,last_inst_helper);
 
 #ifdef print_graphs
   printf("\nControlDependenceGraph\n");
@@ -1442,8 +1579,10 @@ void BPatch_function::createControlDependenceGraph() {
   printf("\nHelperGraph\n");
   outputGraph(helperGraph);
 #endif
+#if 0
   setAnnotation(getAnnotationType("ControlDependenceGraph"), new Annotation(controlDependenceGraph));
   setAnnotation(getAnnotationType("HelperGraph"), new Annotation(helperGraph));
+#endif
 } // end of createControlDependenceGraph
 
 
@@ -1751,7 +1890,11 @@ void handleWrittenRegister(BPatch_dependenceGraphNode* node, int rn, BPatch_Vect
  * Used to create the data dependence graph from the binary.
  * Called only once for each function
  */
-void BPatch_function::createDataDependenceGraph() {
+void BPatch_function::createDataDependenceGraph() 
+{
+   Annotatable<BPatch_dependenceGraphNode *, data_dep_graph_a> &ddg = *this;
+   Annotatable<ParameterType *, formal_param_set_a> &formal_params = *this;
+
   unsigned i,j;
   BPatch_flowGraph* cfg = getCFG();
 
@@ -1764,8 +1907,12 @@ void BPatch_function::createDataDependenceGraph() {
   int * writeArr = (int *) malloc(sizeof(int)*num_regs);
   int * readArr = (int *) malloc(sizeof(int)*num_regs);
   // ******************** Initializations and collecting required objects **************************
+#if 0
   if(getAnnotation("DataDependenceGraph") != NULL)
     return;
+#endif
+  if (ddg.size())
+     return;
 
 #if defined(interprocedural)
   BPatch_Vector<ParameterType*>* parameters = new BPatch_Vector<ParameterType*>();
@@ -1781,7 +1928,9 @@ void BPatch_function::createDataDependenceGraph() {
 #endif
 
 
+#if 0
   BPatch_Vector<BPatch_dependenceGraphNode*>* dataDependenceGraph = new BPatch_Vector<BPatch_dependenceGraphNode*>();
+#endif
   BPatch_Vector<entry *> blocks;// = *blocksPtr;
 
   BPatch_Set<BPatch_basicBlock*> all_b_b;
@@ -1834,37 +1983,37 @@ void BPatch_function::createDataDependenceGraph() {
 #endif
       // prevIter initally does not point to previous instruction, but it is OK.
       for(iter = new InstrucIter(blck), prevIter = new InstrucIter(blck); iter->hasMore(); (*iter)++) {
-	instruction ins = iter->getInstruction();
-	BPatch_instruction* bpins = iter->getBPInstruction();
-	// check whether a memory operation is performed
-	BPatch_memoryAccess * memAcc = iter->isLoadOrStore();
-	// create a node for this instruction in case we did not create yet
-	BPatch_dependenceGraphNode * node = getNode(dataDependenceGraph, bpins);
+         instruction ins = iter->getInstruction();
+         BPatch_instruction* bpins = iter->getBPInstruction();
+         // check whether a memory operation is performed
+         BPatch_memoryAccess * memAcc = iter->isLoadOrStore();
+         // create a node for this instruction in case we did not create yet
+         BPatch_dependenceGraphNode * node = getNode(&ddg.getDataStructure(), bpins);
 #if defined(arch_x86)
-	// if this instruction is a conditional branch instruction, it depends on the previous compare instruction
-	if(iter->isACondBranchInstruction()) {
-	  handleCondBranch(node, iter, dataDependenceGraph);
-	} // end checking whether this is conditional instruction
+         // if this instruction is a conditional branch instruction, it depends on the previous compare instruction
+         if(iter->isACondBranchInstruction()) {
+            handleCondBranch(node, iter, &ddg.getDataStructure());
+         } // end checking whether this is conditional instruction
 #endif
-	// initialize read/write arrays
-	for (j = 0; j < num_regs; j++) {
-	  writeArr[j] = readArr[j] = -1;
-	}
-       	iter->readWriteRegisters(readArr,writeArr);
+         // initialize read/write arrays
+         for (j = 0; j < num_regs; j++) {
+            writeArr[j] = readArr[j] = -1;
+         }
+         iter->readWriteRegisters(readArr,writeArr);
 #if defined(logging)
-	// ins.print();
-    fprintf(logFile,"Read Registers ");
-    int rg;
-    for(rg=0; rg<num_regs; rg++)
-      fprintf(logFile,"%d ", readArr[rg]);
-    fprintf(logFile,"Write Registers ");
-    for(rg=0; rg<num_regs; rg++)
-      fprintf(logFile,"%d ", writeArr[rg]);
-    if(memAcc != BPatch_memoryAccess::none) {
-      const BPatch_addrSpec_NP* spec = memAcc->getStartAddr(0);
-      fprintf(logFile,"Mem: %d %d %d %d",spec->getReg(0),spec->getReg(1),spec->getScale(),spec->getImm());
-    }
-    fprintf(logFile,"\n");
+         // ins.print();
+         fprintf(logFile,"Read Registers ");
+         int rg;
+         for(rg=0; rg<num_regs; rg++)
+            fprintf(logFile,"%d ", readArr[rg]);
+         fprintf(logFile,"Write Registers ");
+         for(rg=0; rg<num_regs; rg++)
+            fprintf(logFile,"%d ", writeArr[rg]);
+         if(memAcc != BPatch_memoryAccess::none) {
+            const BPatch_addrSpec_NP* spec = memAcc->getStartAddr(0);
+            fprintf(logFile,"Mem: %d %d %d %d",spec->getReg(0),spec->getReg(1),spec->getScale(),spec->getImm());
+         }
+         fprintf(logFile,"\n");
 #endif
 
 #if defined(interprocedural)
@@ -2088,7 +2237,9 @@ void BPatch_function::createDataDependenceGraph() {
   fclose(logFile);
 #endif
   
+#if 0
   setAnnotation(getAnnotationType("DataDependenceGraph"), new Annotation(dataDependenceGraph));  
+#endif
 }
 #else
 BPatch_dependenceGraphNode* BPatch_function::getSliceInt(BPatch_instruction*)

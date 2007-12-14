@@ -30,12 +30,16 @@
  */
 
 
-// $Id: headers.h,v 1.25 2007/05/30 19:19:50 legendre Exp $
+// $Id: headers.h,v 1.26 2007/12/14 04:16:47 jaw Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
 
 #include <sys/types.h>
+
+#ifndef FILE__
+#define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
+#endif
 
 /*
  * Kludges to handle broken system includes and such...
@@ -45,6 +49,24 @@ extern "C" {
 typedef int (*xdr_rd_func)(void *, char *, int);
 typedef int (*xdr_wr_func)(void *, char *, int);
 }
+
+#if defined (os_windows)
+#include <hash_map>
+using stdext::hash_map;
+#else
+#include <ext/hash_map>
+#include <ext/hash_set>
+using namespace __gnu_cxx;
+namespace __gnu_cxx {
+   template<> struct hash<std::string> {
+      hash<char*> h;
+      unsigned operator()(const std::string &s) const {
+         return h(s.c_str());
+      };
+   };
+};
+
+#endif
 
 #include "common/h/Types.h"
 

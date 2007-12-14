@@ -31,6 +31,7 @@
  
 #include <stdio.h>
 
+#include "common/h/headers.h"
 #include "symtabAPI/src/Collections.h"
 #include "Symtab.h"
 #include <string>
@@ -95,8 +96,10 @@ std::vector<localVar *> *localVarCollection::getAllVars() {
     return &localVars;
 }
   
+#if 0
 // Could be somewhere else... for DWARF-work.
 hash_map<std::string, typeCollection *> typeCollection::fileToTypesMap;
+#endif
 
 /*
  * Reference count
@@ -108,6 +111,7 @@ typeCollection *typeCollection::getGlobalTypeCollection() {
     return tc;
 }
 
+#if 0
 typeCollection *typeCollection::getModTypeCollection(Module *mod) {
     assert(mod);
 
@@ -126,11 +130,13 @@ typeCollection *typeCollection::getModTypeCollection(Module *mod) {
     newTC->refcount++;
     return newTC;
 }
+#endif
 
 void typeCollection::freeTypeCollection(typeCollection *tc) {
     assert(tc);
     tc->refcount--;
     if (tc->refcount == 0) {
+#if 0
         hash_map<std::string, typeCollection *>::iterator iter = fileToTypesMap.begin();
         for (; iter!= fileToTypesMap.end(); iter++) {
             if (iter->second == tc) {
@@ -138,6 +144,7 @@ void typeCollection::freeTypeCollection(typeCollection *tc) {
                 break;
             }
         }
+#endif
         delete tc;
     }
 }

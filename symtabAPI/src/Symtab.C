@@ -891,21 +891,36 @@ void Symtab::enterFunctionInTables(Symbol *func, bool wasSymtab)
     everyUniqueFunction.push_back(func);
     if (wasSymtab)
         exportedFunctions.push_back(func);
-    else
+    else {
+       Annotatable<Symbol *, user_funcs_a> &ufA = *this;
+       ufA.addAnnotation(func);
+#if 0
         createdFunctions.push_back(func);
+#endif
+    }
 }
 
-bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
+bool Symtab::addSymbol(Symbol *newSym, bool isDynamic) 
 {
-    if(!newSym)
+   //  This is the public flavor of addSymbol, and just calls the private one with 
+   //  the from_user flag set...  should not be called internally
+   return addSymbolInt(newSym, true, isDynamic);
+}
+
+bool Symtab::addSymbolInt(Symbol *newSym,bool from_user,  bool isDynamic)
+{
+    if (!newSym)
     	return false;
-    if(isDynamic) {
+
+    if (isDynamic) {
         newSym->clearIsInSymtab();
         newSym->setDynSymtab();
     }	
+
     std::vector<std::string> names;
     char *unmangledName = NULL;
     std::string sname = newSym->getName();
+
 #if !defined(os_windows)
     // Windows: variables are created with an empty module
     if (newSym->getModuleName().length() == 0) 
@@ -914,12 +929,15 @@ bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
         return false;
     }
 #endif
+
     Module *newMod = getOrCreateModule(sname, newSym->getAddr());
     delete(newSym->getModule());
     newSym->setModule(newMod);
-    if(newSym->getAllPrettyNames().size() == 0)
+
+    if (newSym->getAllPrettyNames().size() == 0)
         unmangledName = P_cplus_demangle(sname.c_str(), nativeCompiler,false);
-    if(newSym->getType() == Symbol::ST_FUNCTION)
+
+    if (newSym->getType() == Symbol::ST_FUNCTION)
     {
         names = newSym->getAllMangledNames();
         for(unsigned i=0;i<names.size();i++)
@@ -930,7 +948,7 @@ bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
         names = newSym->getAllTypedNames();
         for(unsigned i=0;i<names.size();i++)
             addFunctionName(newSym, names[i], false);
-	enterFunctionInTables(newSym,false);
+        enterFunctionInTables(newSym,false);
     }
     else if(newSym->getType() == Symbol::ST_OBJECT)
     {
@@ -943,7 +961,7 @@ bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
         names = newSym->getAllTypedNames();
         for(unsigned i=0;i<names.size();i++)
             addVariableName(newSym, names[i], false);
-	everyUniqueVariable.push_back(newSym);    
+        everyUniqueVariable.push_back(newSym);    
     }
     else if(newSym->getType() == Symbol::ST_MODULE)
     {
@@ -957,13 +975,23 @@ bool Symtab::addSymbol(Symbol *newSym, bool isDynamic)
     }	
     else
         notypeSyms.push_back(newSym);
-    if(newSym->getAllPrettyNames().size() == 0)		// add the unmangledName if there are no prettyNames
+
+    if (!newSym->getAllPrettyNames().size()) // add the unmangledName if there are no prettyNames
     {
-        if(unmangledName)
+        if (unmangledName)
             newSym->addPrettyName(unmangledName, true);
         else
             newSym->addPrettyName(sname,true);
     }		
+
+    if (from_user) {
+       //  The case that is yet unaccounted for is if the user adds a symbols
+       //  that causes the creation of a new module...  to be correct-ish here
+       //  this module should be acknowledged as "different"
+       Annotatable<Symbol *, user_symbols_a> &usA = *this;
+       usA.addAnnotation(newSym);
+    }
+
     return true;
 }
 
@@ -1239,8 +1267,12 @@ bool Symtab::extractInfo()
     return true;
 }
 
-Symtab::Symtab(const Symtab& obj)
-   : LookupInterface()
+Symtab::Symtab(const Symtab& obj) :
+   LookupInterface(),
+   Annotatable<Symbol *, user_funcs_a>(obj),
+   Annotatable<Section *, user_sections_a>(obj),
+   Annotatable<Type *, user_types_a> (obj),
+   Annotatable<Symbol *, user_symbols_a>(obj)
 {
     filename_ = obj.filename_;
     member_name_ = obj.member_name_;
@@ -1430,11 +1462,18 @@ bool Symtab::getAllSections(std::vector<Section *>&ret)
 
 bool Symtab::getAllNewSections(std::vector<Section *>&ret)
 {
+   Annotatable<Section *, user_sections_a> &usA = *this;
+   if (!usA.size())
+      return false;
+   ret = usA.getDataStructure();
+   return true;
+#if 0
     if(newSections_.size() > 0) {
     	ret = newSections_;
 	return true;
     }
     return false;
+#endif
 }
 
 bool Symtab::getAllExceptions(std::vector<ExceptionBlock *> &exceptions)
@@ -1848,10 +1887,17 @@ Symtab::~Symtab()
     }
     sections_.clear();
     
+    Annotatable<Section *, user_sections_a> &usA = *this;
+    for (i = 0; i < usA.size(); ++i) {
+       Section *s = usA[i];
+       delete(s);
+    }
+#if 0
     for (i = 0; i < newSections_.size(); i++) {
         delete newSections_[i];
     }
     newSections_.clear();
+#endif
     
     for (i = 0; i < _mods.size(); i++) {
         delete _mods[i];
@@ -1877,7 +1923,9 @@ Symtab::~Symtab()
         delete everyUniqueFunction[i];
     }
     everyUniqueFunction.clear();
+#if 0
     createdFunctions.clear();
+#endif
     exportedFunctions.clear();
     
     undefDynSyms.clear();
@@ -1925,11 +1973,33 @@ DLLEXPORT supportedLanguages Module::language() const {
     return language_;
 }
 
-DLLEXPORT LineInformation *Module::getLineInformation(){
+DLLEXPORT LineInformation *Module::getLineInformation()
+{
+   Annotatable<LineInformation *, module_line_info_a> &mt = *this;
+
+   if (!exec_->isLineInfoValid_) {
+      exec_->parseLineInformation();
+   }
+   if (exec_->isLineInfoValid_) {
+      if (!mt.size()) {
+         fprintf(stderr, "%s[%d]:  weird, line info is valid but nonexistant!\n", FILE__, __LINE__);
+         return NULL;
+      }
+      if (mt.size() > 1) {
+         fprintf(stderr, "%s[%d]:  weird, multiple line info: FIXME\n", FILE__, __LINE__);
+      }
+      return mt[0];
+   }
+   else {
+      fprintf(stderr, "%s[%d]:  FIXME:  line info not valid after parse\n", FILE__, __LINE__);
+   }
+   return NULL;
+#if 0
     if(exec_->isLineInfoValid_)
     	return lineInfo_;
     exec_->parseLineInformation();
     return lineInfo_;
+#endif
 }
 
 DLLEXPORT bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
@@ -1958,22 +2028,55 @@ DLLEXPORT bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset ad
 	    
 }
 
-DLLEXPORT vector<Type *> *Module::getAllTypes(){
+DLLEXPORT vector<Type *> *Module::getAllTypes()
+{
+   Annotatable<typeCollection *, module_type_info_a> &mtA = *this;
+   if (!mtA.size()) return NULL;
+   typeCollection *mt = mtA[0]; 
+   if (!mt) {
+       fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
+       return NULL;
+   }
+   return mt->getAllTypes();
+#if 0
     if(!moduleTypes_)
     	moduleTypes_ = typeCollection::getModTypeCollection(this);
     return moduleTypes_->getAllTypes();
+#endif
 }
 
-DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars(){
+DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars()
+{
+   Annotatable<typeCollection *, module_type_info_a> &mtA = *this;
+   if (!mtA.size()) return NULL;
+   typeCollection *mt = mtA[0]; 
+   if (!mt) {
+       fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
+       return NULL;
+   }
+   return mt->getAllGlobalVariables();
+#if 0
     if(!moduleTypes_)
     	moduleTypes_ = typeCollection::getModTypeCollection(this);
     return moduleTypes_->getAllGlobalVariables();
+#endif
 }
 
-DLLEXPORT typeCollection *Module::getModuleTypes(){
+DLLEXPORT typeCollection *Module::getModuleTypes()
+{
+   Annotatable<typeCollection *, module_type_info_a> &mtA = *this;
+   if (!mtA.size()) return NULL;
+   typeCollection *mt = mtA[0]; 
+   if (!mt) {
+       fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
+       return NULL;
+   }
+   return mt;
+#if 0
     if(!moduleTypes_)
     	moduleTypes_ = typeCollection::getModTypeCollection(this);
     return moduleTypes_;
+#endif
 }
 
 DLLEXPORT bool Module::findType(Type *&type, std::string name)
@@ -2000,8 +2103,13 @@ void Symtab::parseTypesNow(){
    parseTypes();
 }
 
-DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo) {
+DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo) 
+{
+   Annotatable<LineInformation *, module_line_info_a> *mt = this;
+   mt->addAnnotation(lineInfo);
+#if 0
     lineInfo_ = lineInfo;
+#endif
     return true;
 }
 
@@ -2021,25 +2129,44 @@ DLLEXPORT bool Module::findLocalVariable(std::vector<localVar *>&vars, std::stri
 
 DLLEXPORT Module::Module(supportedLanguages lang, Offset adr, 
                                  std::string fullNm, Symtab *img)
-    : fullName_(fullNm), language_(lang), addr_(adr), exec_(img),
+    : fullName_(fullNm), language_(lang), addr_(adr), exec_(img)
+#if 0
       lineInfo_(NULL), moduleTypes_(NULL)
+#endif
     
 {
     fileName_ = extract_pathname_tail(fullNm);
 }
 
 DLLEXPORT Module::Module()
-  : language_(lang_Unknown), addr_(0), exec_(NULL), 
+  : language_(lang_Unknown), addr_(0), exec_(NULL)
+#if 0
     lineInfo_(NULL), moduleTypes_(NULL)
+#endif
 {
 }
 
-DLLEXPORT Module::Module(const Module &mod)
-   : LookupInterface(),fileName_(mod.fileName_),
-     fullName_(mod.fullName_), language_(mod.language_),
-     addr_(mod.addr_), exec_(mod.exec_), lineInfo_(mod.lineInfo_),
+DLLEXPORT Module::Module(const Module &mod) :
+    LookupInterface(), 
+    Annotatable<LineInformation *, module_line_info_a>(),
+    Annotatable<typeCollection *, module_type_info_a>(),
+    fileName_(mod.fileName_),
+    fullName_(mod.fullName_), 
+    language_(mod.language_),
+    addr_(mod.addr_), 
+    exec_(mod.exec_)
+#if 0
+lineInfo_(mod.lineInfo_),
      moduleTypes_(mod.moduleTypes_)
+#endif
 {
+   Annotatable<LineInformation *, module_line_info_a> &liA = *this;
+   const Annotatable<LineInformation *, module_line_info_a> &liA_src = mod;
+   if (liA_src.size()) {
+       LineInformation *li_src = liA_src[0];
+       assert(li_src);
+       liA.addAnnotation(li_src);
+   }
 }
 
 DLLEXPORT Module::~Module()
@@ -2069,11 +2196,21 @@ bool Module::getAllSymbolsByType(std::vector<Symbol *> &found, Symbol::SymbolTyp
 }
 
 DLLEXPORT bool Module::operator==(const Module &mod) const {
+   const Annotatable<LineInformation *, module_line_info_a> *liA = this;
+   const Annotatable<LineInformation *, module_line_info_a> *liA_src = &mod;
+   if (liA->size() != liA_src->size()) return false;
+   if (liA->size()) {
+      LineInformation *li = liA->getAnnotation(0);
+      LineInformation *li_src = liA_src->getAnnotation(0);
+      if ((li != li_src)) return false;
+   }
     return ( (language_==mod.language_) &&
             (addr_==mod.addr_) &&
             (fullName_==mod.fullName_) &&
-            (exec_==mod.exec_) &&
-	    (lineInfo_ == mod.lineInfo_) 
+            (exec_==mod.exec_) 
+#if 0
+	   &&  (lineInfo_ == mod.lineInfo_) 
+#endif
           );
 }
 
@@ -2331,7 +2468,7 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
         iter = find(notypeSyms.begin(),notypeSyms.end(),sym);
         notypeSyms.erase(iter);
     }
-    addSymbol(sym);
+    addSymbolInt(sym, false);
     return true;
 }
 
@@ -2433,14 +2570,22 @@ bool Symtab::addSection(Offset vaddr, void *data, unsigned int dataSize, std::st
 	sec = new Section(sections_.size()+1, name, vaddr, dataSize, data, flags, loadable);
 	sections_.push_back(sec);
     }	
+    Annotatable<Section *, user_sections_a> &usA = *this;
+    usA.addAnnotation(sec);
+#if 0
     newSections_.push_back(sec);
+#endif
     return true;
 }
 
 bool Symtab::addSection(Section *sec)
 {
     sections_.push_back(sec);
+    Annotatable<Section *, user_sections_a> &usA = *this;
+    usA.addAnnotation(sec);
+#if 0
     newSections_.push_back(sec);
+#endif
     return true;
 }
 
@@ -2546,9 +2691,15 @@ void Symtab::parseTypes()
 
 bool Symtab::addType(Type *type)
 {
+   Annotatable<Type *, user_types_a> &utA = *this;
+   utA.addAnnotation(type);
+   typeCollection *globaltypes = typeCollection::getGlobalTypeCollection();
+   globaltypes->addType(type);
+#if 0
     if(!APITypes)
     	APITypes = typeCollection::getGlobalTypeCollection();
     APITypes->addType(type);	
+#endif
     return true;
 }
 

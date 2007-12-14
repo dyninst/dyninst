@@ -64,12 +64,42 @@ class BPatch_function;
 class BPatch_point;
 class BPatch_flowGraph;
 
+class BPatchTranslatorBase;
+typedef struct {} formal_param_set_a;
+typedef struct {} actual_param_set_a;
+typedef struct {} return_value_set_a;
+typedef struct {} actually_returned_set_a;
+typedef struct {} prog_dep_graph_a;
+typedef struct {} extended_prog_dep_graph_a;
+typedef struct {} control_dep_graph_a;
+typedef struct {} data_dep_graph_a;
+typedef struct {} dep_helper_graph_a;
+
+#if defined(cap_slicing)
+class ParameterType;
+class ReturnParameterType;
+#endif
+
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_function
 
-class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_eventLock, public Annotatable<BPatch_function>
+class BPATCH_DLL_EXPORT BPatch_function: 
+    public BPatch_sourceObj, 
+    public BPatch_eventLock
+#if defined(cap_slicing)
+    ,public Annotatable<ParameterType *, formal_param_set_a>,
+    public Annotatable<ParameterType *, actual_param_set_a>,
+    public Annotatable<ReturnParameterType *, return_value_set_a>,
+    public Annotatable<ReturnParameterType *, actually_returned_set_a>,
+    public Annotatable<BPatch_dependenceGraphNode *, prog_dep_graph_a>,
+    public Annotatable<BPatch_dependenceGraphNode *, extended_prog_dep_graph_a>,
+    public Annotatable<BPatch_dependenceGraphNode *, control_dep_graph_a>,
+    public Annotatable<BPatch_dependenceGraphNode *, data_dep_graph_a>,
+    public Annotatable<BPatch_dependenceGraphNode *, dep_helper_graph_a>
+#endif
+
 {
     friend class BPatch_flowGraph;
     friend class InstrucIter;
@@ -99,6 +129,9 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_
 
     int_function *func;
 
+#if defined (interprocedural)
+    void identifyParamDependencies(BPatch_function* callee, void* calleeAddress);
+#endif
 public:
     virtual	~BPatch_function();
 

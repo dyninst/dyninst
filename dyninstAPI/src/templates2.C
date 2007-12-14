@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.77 2007/12/04 17:58:17 bernat Exp $
+// $Id: templates2.C,v 1.78 2007/12/14 04:16:48 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -197,6 +197,7 @@ class Statistic;
 template class dictionary_hash<pdstring, Statistic *>;
 
 
+#if 0
 #include "common/src/Annotatable.C"
 template class Annotatable<BPatch_function>;
 #if defined(arch_x86) || defined(arch_x86_64) || defined(sparc_sun_solaris2_4)
@@ -206,6 +207,7 @@ template <class T> int Annotatable<T>::number;
 template <class T> int Annotatable<T>::metadataNum;
 template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::annotationTypes;
 template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::metadataTypes;
+#endif
 
 
 class registerSlot;

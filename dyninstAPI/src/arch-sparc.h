@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.49 2007/09/17 15:17:02 tugrul Exp $
+// $Id: arch-sparc.h,v 1.50 2007/12/14 04:16:48 jaw Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL
@@ -540,7 +540,12 @@ private:
 
 class codeGen;
 
-class instruction: public Annotatable<instruction> {
+typedef struct {} register_read_set_a;
+typedef struct {} register_write_set_a;
+class InsnRegister;
+class instruction : public Annotatable<InsnRegister, register_read_set_a>,
+                    public Annotatable<InsnRegister, register_write_set_a> {
+
  private:
     static instructUnion *insnPtr(codeGen &gen);
     static instructUnion *ptrAndInc(codeGen &gen);
@@ -549,7 +554,8 @@ class instruction: public Annotatable<instruction> {
     instruction(unsigned int raw) { insn_.raw = raw; }
 
     instruction(const instruction &insn) :
-      Annotatable<instruction>(),
+        Annotatable<InsnRegister, register_read_set_a>(),
+        Annotatable<InsnRegister, register_write_set_a>(),
         insn_(insn.insn_) {};
     instruction(instructUnion &insn) :
         insn_(insn) {};

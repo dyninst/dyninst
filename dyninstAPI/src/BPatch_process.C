@@ -1422,7 +1422,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
        catchup_printf("%s[%d]: examining stack %d with %d frames\n",
                       FILE__, __LINE__, i, one_stack.size());
        
-       for (unsigned int j = one_stack.size()-1; j >= 0; j--) {
+       for (int j = one_stack.size()-1; j >= 0; j--) {
            // Are we in the "Active" (executing) frame?
            bool active = (j == (one_stack.size()-1)) ? true : false;
 

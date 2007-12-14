@@ -40,17 +40,14 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.28 2007/09/19 19:25:07 bernat Exp $
+// $Id: arch.h,v 1.29 2007/12/14 04:16:48 jaw Exp $
 
 #if !defined(arch_h)
 #define arch_h
 
 #include <assert.h>
 
-//  JAW:  1/9/07 removed following platform switches:
-//  alpha_dec_osf4_0
-//  mips_sgi_irix6_4
-//  mips_unknown_ce2_11
+
 
 #if defined(sparc_sun_sunos4_1_3) \
  || defined(sparc_sun_solaris2_4)

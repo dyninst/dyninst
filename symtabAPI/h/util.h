@@ -57,6 +57,7 @@ using stdext::hash_map;
 #include <ext/hash_set>
 #include <string>
 
+#if 0
 using namespace __gnu_cxx;
 namespace __gnu_cxx {
    template<> struct hash<std::string> {
@@ -66,7 +67,7 @@ namespace __gnu_cxx {
       };
    };              
 }; //namespace
-
+#endif
 #endif
 namespace Dyninst{
 namespace SymtabAPI{

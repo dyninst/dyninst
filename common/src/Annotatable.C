@@ -39,118 +39,74 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.1 2007/09/17 15:13:57 tugrul Exp $
+// $Id: Annotatable.C,v 1.2 2007/12/14 04:16:48 jaw Exp $
 
 #include "common/h/Annotatable.h"
 #include "common/h/String.h"
 #include "common/h/Dictionary.h"
 
-template<class T>
-Annotatable<T>::Annotatable() {
-  if(annotationTypes == NULL) {
-    annotationTypes = new dictionary_hash<pdstring, int>(pdstring::hash);
-    number = 0;
-  }
-  if(metadataTypes == NULL) {
-    metadataTypes = new dictionary_hash<pdstring, int>(pdstring::hash);
-    metadataNum = 0;
-  }
+
+#if 0
+//  Outside declarations of static members
+template class dictionary_hash<std::string, int>;
+#endif
+//template class pdvector<dictionary_hash<std::string, int> >::entry;
+
+int AnnotatableBase::number;
+int AnnotatableBase::metadataNum;
+hash_map<std::string, int> AnnotatableBase::annotationTypes;
+hash_map<std::string, int> AnnotatableBase::metadataTypes;
+
+AnnotatableBase::AnnotatableBase() 
+{
+   number = -1;
 }
 
-template<class T>
-Annotatable<T>::~Annotatable() {
-  unsigned i,j;
-  for(i=0; i<annotations.size(); i++) {
-    vector<Annotation*>* list = annotations.at(i);
-    // vectorSet<Annotation*>* list = annotations[i];
-    for(j=0; j<list->size(); j++) {
-      delete (*list).at(j);
-      // delete (*list)[j];
-    }
-    delete list;
-  }
+DLLEXPORT int AnnotatableBase::createAnnotationType(std::string &name) 
+{
+   fprintf(stderr, "%s[%d]:  createAnnotationType(%s)\n", FILE__, __LINE__, name.c_str());
+   std::string n(name);
+   int num = getAnnotationType(name);
+   if (num != -1) {
+      fprintf(stderr, "%s[%d]:  annotation type %s exists in slot %d\n", FILE__, __LINE__, name.c_str(), num);
+      return num;
+   }
+
+   number++;
+   annotationTypes[n] = number;
+      fprintf(stderr, "%s[%d]:  created annotation type %s in slot %d\n", FILE__, __LINE__, name.c_str(), number);
+   return number;
 }
 
-template<class T>
-int Annotatable<T>::createAnnotationType(char* name) {
-  pdstring n(name);
-  int num = getAnnotationType(name);
-  if(num != -1) {
-    return num;
-  }
-  annotationTypes->set(n,number);
-  number++;
-  return number-1;
-}
-
-template<class T>
-int Annotatable<T>::getAnnotationType(char* name) {
-  pdstring str(name);
-  if(! annotationTypes->defines(str)) {
-    return -1;
-  }
-  int n = annotationTypes->get(str);
+DLLEXPORT int AnnotatableBase::getAnnotationType(std::string &name) 
+{
+  std::string str(name);
+  if (annotationTypes.find(name) == annotationTypes.end())
+     return -1;
+  int n = annotationTypes[name];
   return n;
 }
 
-template<class T>
-int Annotatable<T>::createMetadata(char* name) {
-  pdstring n(name);
+#if 0
+int AnnotatableBase::createMetadata(std::string &name) 
+{
+   std::string n(name);
   int num = getMetadata(name);
   if(num != -1) {
     return num;
   }
-  metadataTypes->set(n,metadataNum);
+
+  metadataTypes[n] = metadataNum;
+
   metadataNum++;
   return metadataNum-1;
 }
 
-template<class T>
-int Annotatable<T>::getMetadata(char* name) {
-  pdstring str(name);
-  if(! metadataTypes->defines(str)) {
-    return -1;
-  }
-  int n = metadataTypes->get(str);
+int AnnotatableBase::getMetadata(std::string &name) 
+{
+  if (annotationTypes.find(name) == annotationTypes.end())
+     return -1;
+  int n = annotationTypes[name];
   return n;
 }
-
-template<class T>
-void Annotatable<T>::setAnnotation(int type, Annotation* annotation) {
-  if(type<number) {
-    while((unsigned)type >= annotations.size()) {
-      annotations.push_back(new vector<Annotation*>());
-      // annotations+= new vectorSet<BPatch_annotation*>();
-      // annotations.push_back(new BPatch_Vector<BPatch_annotation*>());
-    }
-    (annotations.at(type))->push_back(annotation);
-    // (*annotations[type])+= annotation;
-    // (annotations[type])->push_back(annotation);
-  }
-  return;
-}
-
-template<class T>
-Annotation* Annotatable<T>::getAnnotation(int type, int index) {
-  if((unsigned)type<annotations.size()) {
-    vector<Annotation*>* v = annotations.at(type);
-    // vectorSet<BPatch_annotation*>* v = annotations[type];
-    if(v != NULL && v->size() > (unsigned)index) {
-      return (*v)[index];
-    }
-  }
-  return NULL;
-}
-
-template<class T>
-void* Annotatable<T>::getAnnotation(char* name, int index) {
-  int annotType = getAnnotationType(name);
-  if(annotType == -1) {
-    annotType = createAnnotationType(name);
-    return NULL;
-  }
-  Annotation* annot = getAnnotation(annotType, index);
-  if(annot == NULL)
-    return NULL;
-  return annot->getItem();
-}
+#endif

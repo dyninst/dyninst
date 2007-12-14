@@ -41,11 +41,11 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.23 2007/09/17 15:17:01 tugrul Exp $
+ * $Id: arch-sparc.C,v 1.24 2007/12/14 04:16:48 jaw Exp $
  */
 
 #include "common/h/Types.h"
-#include "arch-sparc.h"
+#include "arch.h"
 #include "inst-sparc.h"
 #include "util.h"
 #include "debug.h"
@@ -840,103 +840,120 @@ void instruction::get_register_operands(InsnRegister* reads,InsnRegister* writes
   for(i=0; i<5; i++)
     writes[i] = InsnRegister();
 
-        if(!valid())
-            return;
+  if(!valid())
+     return;
 
-	// mark the annotations
-	int read = createAnnotationType("ReadSet");
-	int write = createAnnotationType("WriteSet");
+  // mark the annotations
+  Annotatable<InsnRegister, register_read_set_a> &read_regs = *this;
+  Annotatable<InsnRegister, register_write_set_a> &write_regs = *this;
 
-	InsnRegister* read1 = (InsnRegister*)getAnnotation(read);
-	InsnRegister* write1 = (InsnRegister*)getAnnotation(write);
-	if(0)
-	if(read1 != NULL || write1 != NULL) {
-	  for(i=0; i<7; i++) {
-	    Annotation* r = getAnnotation(read,i);
-	    if(r != NULL) {
-	      reads[i] = *((InsnRegister*)r->getItem());
-	    }
-	    else
-	      break;
-	  }
-	  for(i=0; i<5; i++) {
-	    Annotation* w = getAnnotation(write,i);
-	    if(w != NULL) {
-	      writes[i] = *((InsnRegister*)w->getItem());
-	    }
-	    else
-	      break;
-	  }
-	  return;
-	}
-	
-        
-        switch(insn_.call.op){
-        case 0x0:
-            {
-                if((insn_.sethi.op2 == 0x4) &&
-                   (insn_.sethi.rd || insn_.sethi.imm22))
-                    writes[0] = InsnRegister(1,
-                                       InsnRegister::GlobalIntReg,
-                                       (short)(insn_.sethi.rd));
-		else if(insn_.branch.op2 == BProp2)
-		  reads[0] = InsnRegister(1,
-				      InsnRegister::GlobalIntReg,
-				      (short)(insn_.rest.rs1));
-		else if(insn_.branch.cond & 7) { // if not bpa or bpn
-		  unsigned firstTag = (((unsigned)(insn_.branch.disp22)) >> 20) & 0x03;
-		  if((insn_.sethi.op2 == Bop2icc) ||
-		     (insn_.sethi.op2 == BPop2cc && (!firstTag)))
-		    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,ICC);
-		  else if(insn_.sethi.op2 == BPop2cc && firstTag == 0x2)
-		    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,XCC);
-		  else if(insn_.sethi.op2 == FBop2fcc)
-		    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,FCC0);
-		  else if(insn_.sethi.op2 == FBPop2fcc)
-		    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,FCC0 + firstTag); // Assuming FCC0, FCC1, FCC2 and FCC3 are adjacent
-		}
-                break;
-            }
-	case 0x1:
-	    {
-	      // call instruction writes to reg 15
-	      writes[0] = InsnRegister(1,InsnRegister::GlobalIntReg,15);
-	      break;	      
-	    }
-        case 0x2:
-            {
-                unsigned firstTag = insn_.rest.op3 & 0x30;
-                unsigned secondTag = insn_.rest.op3 & 0xf;
-                
-                if((firstTag == 0x00) ||
-                   (firstTag == 0x10) ||
-                   ((firstTag == 0x20) && (secondTag < 0x8)) ||
-                   ((firstTag == 0x20) && (secondTag == 0xD)) || // TUGRUL: SDIVX
-                   ((firstTag == 0x30) && (secondTag >= 0x8)) ||
-                   ((firstTag == 0x30) && (secondTag < 0x4)))
-                    {
-                        reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
-                                            (short)(insn_.rest.rs1));
-                        if(!insn_.rest.i)
-                            reads[1] = InsnRegister(1, InsnRegister::GlobalIntReg,
-                                                (short)(insn_.rest.rs2));
-                        
-			if((firstTag == 0x30) && (secondTag == 0x0)) {
-			  switch(insn_.rest.rd) {
-			  case WRY: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_Y_reg); break; // WRY = 0
-			  case WRCCR: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CCR); break; // WRCCR 2
-			  case WRASI: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_ASI); break; // WRASI 3
-			  case WRFPRS: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_FPRS); // WRFPRS 6
-			  }
-			}
-			else if((firstTag == 0x30) && (secondTag == 0x2)) {
-			  unsigned num = 0;
-			  switch(insn_.rest.rd) {
-			  case TPC: num = REG_TPC; break;
-			  case TNPC: num = REG_TNPC; break;
-			  case TSTATE: num = REG_TSTATE; break;
-			  case TT: num = REG_TT; break;
-			  case TICK_reg: num = REG_TICK; break;
+  //  check to see if we already have made these register sets
+  if (read_regs.size() || write_regs.size()) {
+     //  yep, ...  just return them
+     for (unsigned int i = 0; i < 7; ++i) {
+        reads[i] = read_regs[i];
+     }
+     for (unsigned int i = 0; i < 5; ++i) {
+        writes[i] = write_regs[i];
+     }
+     return;
+  }
+
+#if 0
+  int read = createAnnotationType("ReadSet");
+  int write = createAnnotationType("WriteSet");
+
+  InsnRegister* read1 = (InsnRegister*)getAnnotation(read);
+  InsnRegister* write1 = (InsnRegister*)getAnnotation(write);
+  if(0)
+     if(read1 != NULL || write1 != NULL) {
+        for(i=0; i<7; i++) {
+           Annotation* r = getAnnotation(read,i);
+           if(r != NULL) {
+              reads[i] = *((InsnRegister*)r->getItem());
+           }
+           else
+              break;
+        }
+        for(i=0; i<5; i++) {
+           Annotation* w = getAnnotation(write,i);
+           if(w != NULL) {
+              writes[i] = *((InsnRegister*)w->getItem());
+           }
+           else
+              break;
+        }
+        return;
+     }
+#endif
+
+
+  switch(insn_.call.op){
+     case 0x0:
+        {
+           if((insn_.sethi.op2 == 0x4) &&
+                 (insn_.sethi.rd || insn_.sethi.imm22))
+              writes[0] = InsnRegister(1,
+                    InsnRegister::GlobalIntReg,
+                    (short)(insn_.sethi.rd));
+           else if(insn_.branch.op2 == BProp2)
+              reads[0] = InsnRegister(1,
+                    InsnRegister::GlobalIntReg,
+                    (short)(insn_.rest.rs1));
+           else if(insn_.branch.cond & 7) { // if not bpa or bpn
+              unsigned firstTag = (((unsigned)(insn_.branch.disp22)) >> 20) & 0x03;
+              if((insn_.sethi.op2 == Bop2icc) ||
+                    (insn_.sethi.op2 == BPop2cc && (!firstTag)))
+                 reads[0] = InsnRegister(1,InsnRegister::SpecialReg,ICC);
+              else if(insn_.sethi.op2 == BPop2cc && firstTag == 0x2)
+                 reads[0] = InsnRegister(1,InsnRegister::SpecialReg,XCC);
+              else if(insn_.sethi.op2 == FBop2fcc)
+                 reads[0] = InsnRegister(1,InsnRegister::SpecialReg,FCC0);
+              else if(insn_.sethi.op2 == FBPop2fcc)
+                 reads[0] = InsnRegister(1,InsnRegister::SpecialReg,FCC0 + firstTag); // Assuming FCC0, FCC1, FCC2 and FCC3 are adjacent
+           }
+           break;
+        }
+     case 0x1:
+        {
+           // call instruction writes to reg 15
+           writes[0] = InsnRegister(1,InsnRegister::GlobalIntReg,15);
+           break;	      
+        }
+     case 0x2:
+        {
+           unsigned firstTag = insn_.rest.op3 & 0x30;
+           unsigned secondTag = insn_.rest.op3 & 0xf;
+
+           if((firstTag == 0x00) ||
+                 (firstTag == 0x10) ||
+                 ((firstTag == 0x20) && (secondTag < 0x8)) ||
+                 ((firstTag == 0x20) && (secondTag == 0xD)) || // TUGRUL: SDIVX
+                 ((firstTag == 0x30) && (secondTag >= 0x8)) ||
+                 ((firstTag == 0x30) && (secondTag < 0x4)))
+           {
+              reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+                    (short)(insn_.rest.rs1));
+              if(!insn_.rest.i)
+                 reads[1] = InsnRegister(1, InsnRegister::GlobalIntReg,
+                       (short)(insn_.rest.rs2));
+
+              if((firstTag == 0x30) && (secondTag == 0x0)) {
+                 switch(insn_.rest.rd) {
+                    case WRY: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_Y_reg); break; // WRY = 0
+                    case WRCCR: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CCR); break; // WRCCR 2
+                    case WRASI: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_ASI); break; // WRASI 3
+                    case WRFPRS: writes[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_FPRS); // WRFPRS 6
+                 }
+              }
+              else if((firstTag == 0x30) && (secondTag == 0x2)) {
+                 unsigned num = 0;
+                 switch(insn_.rest.rd) {
+                    case TPC: num = REG_TPC; break;
+                    case TNPC: num = REG_TNPC; break;
+                    case TSTATE: num = REG_TSTATE; break;
+                    case TT: num = REG_TT; break;
+                    case TICK_reg: num = REG_TICK; break;
 			  case TBA: num = REG_TBA; break;
 			  case PSTATE: num = REG_PSTATE; break;
 			  case TL: num = REG_TL; break;
@@ -1240,23 +1257,31 @@ void instruction::get_register_operands(InsnRegister* reads,InsnRegister* writes
             break;
         }
 
+#if 0
 	// mark the annotations
 	read = createAnnotationType("ReadSet");
 	write = createAnnotationType("WriteSet");
+#endif
 
 	for(i=0; i<7; i++) {
+      read_regs.addAnnotation(reads[i]);
+#if 0
 	  if(reads[i].getNumber() != -1) {
 	    setAnnotation(read,new Annotation(&(reads[i])));
 	  }
 	  else
 	    break;
+#endif
 	}
 	for(i=0; i<5; i++) {
+        write_regs.addAnnotation(writes[i]);
+#if 0
 	  if(writes[i].getNumber() != -1) {
 	    setAnnotation(write,new Annotation(&(writes[i])));
 	  }
 	  else
 	    break;
+#endif
 	}
 	
         return;

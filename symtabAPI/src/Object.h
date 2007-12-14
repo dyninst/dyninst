@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.12 2007/12/10 22:33:38 giri Exp $
+ * $Id: Object.h,v 1.13 2007/12/14 04:16:48 jaw Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -48,6 +48,7 @@
 
 #include "symtabAPI/h/Symbol.h"
 #include "symtabAPI/h/LineInformation.h"
+#include "common/h/headers.h"
 #include "common/h/lprintf.h"
 
 namespace Dyninst{

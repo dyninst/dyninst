@@ -60,7 +60,6 @@
 #include "inst-x86.h"
 
 #include "BPatch_Set.h"
-#include <common/h/Annotatable.h>
 
 #include "BPatch_instruction.h"
 #include "BPatch_memoryAccess_NP.h"
