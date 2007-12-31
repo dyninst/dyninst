@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.12 2007/12/12 22:20:39 roundy Exp $
+// $Id: addressSpace.C,v 1.13 2007/12/31 16:08:03 bernat Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -539,6 +539,16 @@ int AddressSpace::findFreeIndex(unsigned size, int type, Address lo, Address hi)
         heapItem *h = freeList[i];
         // check if free block matches allocation constraints
         // Split out to facilitate debugging
+        infmalloc_printf("%s[%d]: comparing heap %d: 0x%lx-0x%lx/%d to desired %d bytes in 0x%lx-0x%lx/%d\n",
+                         FILE__, __LINE__, 
+                         i,
+                         h->addr, 
+                         h->addr + h->length,
+                         h->type,
+                         size,
+                         lo, 
+                         hi,
+                         type);
         if (h->addr >= lo &&
             (h->addr + size - 1) <= hi &&
             h->length >= size &&
@@ -549,6 +559,7 @@ int AddressSpace::findFreeIndex(unsigned size, int type, Address lo, Address hi)
             if (h->length < freeList[best]->length) best = i;
         }
     }
+    infmalloc_printf("%s[%d]: returning match %d\n", FILE__, __LINE__, best);
     return best;
 }
 
@@ -584,6 +595,8 @@ Address AddressSpace::inferiorMallocInternal(unsigned size,
                                              Address lo,
                                              Address hi,
                                              inferiorHeapType type) {
+    infmalloc_printf("%s[%d]: inferiorMallocInternal, %d bytes, type %d, between 0x%lx - 0x%lx\n",
+                     FILE__, __LINE__, size, type, lo, hi);
     int freeIndex = findFreeIndex(size, type, lo, hi);
     if (freeIndex == -1) return 0; // Failure is often an option
 
@@ -619,6 +632,7 @@ Address AddressSpace::inferiorMallocInternal(unsigned size,
 
 void AddressSpace::inferiorFree(Address block) {
     // find block on active list
+    infmalloc_printf("%s[%d]: inferiorFree for block at 0x%lx\n", FILE__, __LINE__, block);
     heapItem *h = NULL;  
     if (!heap_.heapActive.find(block, h)) {
         // We can do this if we're at process teardown.
@@ -634,10 +648,17 @@ void AddressSpace::inferiorFree(Address block) {
     heap_.heapFree.push_back(h);
     heap_.totalFreeMemAvailable += h->length;
     heap_.freed += h->length;
+    infmalloc_printf("%s[%d]: Freed block from 0x%lx - 0x%lx, %d bytes, type %d\n",
+                     FILE__, __LINE__,
+                     h->addr,
+                     h->addr + h->length,
+                     h->length,
+                     h->type);
 }
 
 void AddressSpace::inferiorMallocAlign(unsigned &size) {
     // Align to the process word
+
 #if !defined(arch_ia64)
     unsigned alignment = (getAddressWidth() - 1);
 #else
@@ -653,42 +674,96 @@ bool AddressSpace::inferiorRealloc(Address block, unsigned newSize) {
     inferiorMallocAlign(newSize);
 #endif
     
+    infmalloc_printf("%s[%d]: inferiorRealloc for block 0x%lx, new size %d\n",
+                     FILE__, __LINE__, block, newSize);
+
     // find block on active list
     heapItem *h = NULL;  
     if (!heap_.heapActive.find(block, h)) {
         // We can do this if we're at process teardown.
+        infmalloc_printf("%s[%d]: inferiorRealloc unable to find block, returning\n", FILE__, __LINE__);
         return false;
     }
     assert(h);
+    infmalloc_printf("%s[%d]: inferiorRealloc found block with addr 0x%lx, length %d\n",
+                     FILE__, __LINE__, h->addr, h->length);
     
-    if (h->length < newSize)
+    if (h->length < newSize) {
         return false; // Cannot make bigger...
+    }
     if (h->length == newSize)
         return true;
-    
+
     // We make a new "free" block that is the end of this one.
     Address freeStart = block + newSize;
+    Address succAddr = h->addr + h->length;
     int shrink = h->length - newSize;
     
     assert(shrink > 0);
     
     h->length = newSize;
     
-    heapItem *freeEnd = new heapItem(freeStart,
-                                     shrink,
-                                     h->type,
-                                     h->dynamic,
-                                     HEAPfree);
-    heap_.heapFree.push_back(freeEnd);
+
+#if 0
+    // Old slow way
     
-    heap_.totalFreeMemAvailable += shrink;
-    heap_.freed += shrink;
+    
     
     // And run a compact; otherwise we'll end up with hugely fragmented memory.
+    // This is also quite expensive...
     inferiorFreeCompact();
+
+#endif
+
+    // New speedy way. Find the block that is the successor of the
+    // active block; if it exists, simply enlarge it "downwards". Otherwise,
+    // make a new block. 
+    heapItem *succ = NULL;
+    for (unsigned i = 0; i < heap_.heapFree.size(); i++) {
+        heapItem *tmp = heap_.heapFree[i];
+        assert(tmp);
+        if (tmp->addr == succAddr) {
+            succ = tmp;
+            break;
+        }
+    }
+    if (succ != NULL) {
+        infmalloc_printf("%s[%d]: enlarging existing block; old 0x%lx - 0x%lx (%d), new 0x%lx - 0x%lx (%d)\n",
+                         FILE__, __LINE__,
+                         succ->addr,
+                         succ->addr + succ->length,
+                         succ->addr,
+                         succ->addr - shrink,
+                         succ->addr + succ->length,
+                         succ->length + shrink);
+
+
+        succ->addr -= shrink;
+        succ->length += shrink;
+    }
+    else {
+        // Must make a new block to represent the free memory
+        infmalloc_printf("%s[%d]: inferiorRealloc: creating new block 0x%lx to 0x%lx (%d), type %d\n",
+                         FILE__, __LINE__, 
+                         freeStart, 
+                         freeStart + shrink,
+                         shrink,
+                         h->type);
+
+        heapItem *freeEnd = new heapItem(freeStart,
+                                         shrink,
+                                         h->type,
+                                         h->dynamic,
+                                         HEAPfree);
+        heap_.heapFree.push_back(freeEnd);
+    }
+
+    heap_.totalFreeMemAvailable += shrink;
+    heap_.freed += shrink;
+
     
     return true;
-}
+}    
 
 /////////////////////////////////////////
 // Function lookup...

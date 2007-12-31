@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.10 2007/11/08 18:25:40 bernat Exp $
+// $Id: binaryEdit.C,v 1.11 2007/12/31 16:08:04 bernat Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -86,21 +86,49 @@ bool BinaryEdit::writeTextSpace(void *inOther,
     // This assumes we already have a memory tracker; inefficient, but
     // it works. 
     Address addr = (Address) inOther;
+    unsigned int to_do = size;
+    Address local = (Address) inSelf;
 
-    // Look up this address in the code range tree of memory
-    codeRange *range = NULL;
-    if (!memoryTracking_.find(addr, range)) {
-        assert(0);
-        return false;
+    bool debug = false;
+    if (inOther == (void *)0x81c6d75) {
+        debug = true;
     }
 
-    assert(addr >= range->get_address_cr());
 
-    Address offset = addr - range->get_address_cr();
-    assert(offset < range->get_size_cr());
+    while (to_do) {
+        // Look up this address in the code range tree of memory
+        codeRange *range = NULL;
+        if (!memoryTracking_.find(addr, range)) {
+            assert(0);
+            return false;
+        }
+        
+        // We might (due to fragmentation) be overlapping multiple backing
+        // store "chunks", so this has to be iterative rather than a one-shot.
 
-    void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
-    memcpy(local_ptr, inSelf, size);
+        Address chunk_start = range->get_address_cr();
+        Address chunk_end = range->get_address_cr() + range->get_size_cr();
+        
+        assert (addr >= chunk_start);
+
+        unsigned chunk_size = 0;
+        if ((addr + to_do) <= chunk_end) {
+            chunk_size = to_do;
+        }
+        else {
+            chunk_size = chunk_end - addr;
+        }
+
+        Address offset = addr - range->get_address_cr();
+        assert(offset < range->get_size_cr());
+        
+        void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
+        memcpy(local_ptr, (void *)local, chunk_size);
+        to_do -= chunk_size;
+        addr += chunk_size;
+        local += chunk_size;
+    }
+
 
     return true;
 }    
@@ -154,6 +182,10 @@ Address BinaryEdit::inferiorMalloc(unsigned size,
         }
         ret = inferiorMallocInternal(size, lo, hi, anyHeap);
         if (ret) break;
+    }
+
+    if (ret == 0x854106c) {
+        fprintf(stderr, "RETURNING B0RKEN ADDRESS\n");
     }
     
     return ret;
@@ -233,7 +265,7 @@ BinaryEdit *BinaryEdit::openFile(const pdstring &file) {
     // I assume we'll pass it to DynSymtab, then add our base
     // address to it at the mapped_ level. 
     
-    newBinaryEdit->highWaterMark_ = newBinaryEdit->getAOut()->parse_img()->getObject()->getFreeOffset(10*1024*1024);
+    newBinaryEdit->highWaterMark_ = newBinaryEdit->getAOut()->parse_img()->getObject()->getFreeOffset(50*1024*1024);
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
 
 
@@ -282,7 +314,9 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
     for (unsigned i = 0; i < newSegs.size(); i++) {
         codeRange *segRange = NULL;
         if (!memoryTracking_.find(newSegs[i].loadaddr, segRange)) {
-            // ???
+            // Looks like BSS
+            if (newSegs[i].name == ".bss")
+                continue;
             assert(0);
         }
         newSegs[i].data = segRange->get_local_ptr();
@@ -637,13 +671,31 @@ bool BinaryEdit::inferiorMallocStatic(unsigned size) {
     if (!buf) return false;
 #endif
     
-    // Build tracking objects for it
-    heapItem *h = new heapItem(highWaterMark_, 
-                               size,
-                               anyHeap,
-                               true,
-                               HEAPfree);
-    addHeap(h);
+    Address newStart = highWaterMark_;
+
+    // If there is a free heap that _ends_ at the highWaterMark,
+    // just extend it. This is a special case of inferiorFreeCompact;
+    // when we make that function faster, we can just call it. 
+    bool found = false;
+    for (unsigned i = 0; i < heap_.heapFree.size(); i++) {
+        heapItem *h = heap_.heapFree[i];
+        assert(h);
+        Address end = h->addr + h->length;
+        if (end == newStart) {
+            found = true;
+            h->length += size;
+            break;
+        }
+    }
+    if (!found) {
+        // Build tracking objects for it
+        heapItem *h = new heapItem(highWaterMark_, 
+                                   size,
+                                   anyHeap,
+                                   true,
+                                   HEAPfree);
+        addHeap(h);
+    }
 
     memoryTracker *newTracker = new memoryTracker(highWaterMark_, size);
     newTracker->alloced = true;
@@ -666,12 +718,19 @@ bool BinaryEdit::createMemoryBackingStore() {
     symObj->getSegments(segs);
 
     for (unsigned i = 0; i < segs.size(); i++) {
-        memoryTracker *newTracker = new memoryTracker(segs[i].loadaddr,
-                                                      segs[i].size,
-                                                      segs[i].data);
+        memoryTracker *newTracker = NULL;
+        if (segs[i].name == ".bss") {
+            continue;
+        }
+        else {
+            newTracker = new memoryTracker(segs[i].loadaddr,
+                                           segs[i].size,
+                                           segs[i].data);
+        }
         newTracker->alloced = false;
         memoryTracking_.insert(newTracker);
     }
+
     
     return true;
 }

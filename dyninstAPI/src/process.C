@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.700 2007/12/12 22:20:52 roundy Exp $
+// $Id: process.C,v 1.701 2007/12/31 16:08:05 bernat Exp $
 
 #include <ctype.h>
 
@@ -1042,6 +1042,14 @@ void process::addInferiorHeap(const mapped_object *obj)
             heapItem *h = new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
                                         infHeaps[j].type(), false);
 
+            infmalloc_printf("%s[%d]: Adding heap from 0x%lx - 0x%lx (%d bytes, type %d) from mapped object %s\n",
+                             FILE__, __LINE__, 
+                             infHeaps[j].addr(),
+                             infHeaps[j].addr() + infHeaps[j].size(),
+                             infHeaps[j].size(),
+                             infHeaps[j].type(),
+                             obj->fileName().c_str());
+                             
             addHeap(h);
         }
     }
@@ -1257,6 +1265,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    if (err) *err = false;
    assert(size > 0);
    
+
    // allocation range
    Address lo = ADDRESS_LO; // Should get reset to a more reasonable value
    Address hi = ADDRESS_HI; // Should get reset to a more reasonable value
@@ -1270,6 +1279,8 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    size = (size + 0x1f) & ~0x1f; 
 #endif
 
+   infmalloc_printf("%s[%d]: inferiorMalloc entered; size %d, type %d, near 0x%lx (0x%lx to 0x%lx)\n",
+                    FILE__, __LINE__, size, type, near_, lo, hi);
 
    // find free memory block (7 attempts)
    // attempt 0: as is
@@ -1288,16 +1299,24 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   break;
 #if defined(cap_dynamic_heap)
 	case 1: // compact free blocks
-	  gcInstrumentation();
-	  inferiorFreeCompact();
+            infmalloc_printf("%s[%d]: garbage collecting and compacting\n",
+                             FILE__, __LINE__);
+            gcInstrumentation();
+            inferiorFreeCompact();
 	  break;
 	case 2: // allocate new segment (1MB, constrained)
-        inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
-	   break;
+            infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
+                             FILE__, __LINE__, HEAP_DYN_BUF_SIZE, lo, hi);
+            inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
+            break;
 	case 3: // allocate new segment (sized, constrained)
+            infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
+                             FILE__, __LINE__, size, lo, hi);
 	   inferiorMallocDynamic(size, lo, hi);
 	   break;
 	case 4: // remove range constraints
+            infmalloc_printf("%s[%d]: inferiorMalloc: removing range constraints\n",
+                             FILE__, __LINE__);
 	   lo = ADDRESS_LO;
 	   hi = ADDRESS_HI;
 	   if (err) {
@@ -1306,12 +1325,17 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   }
 	   break;
 	case 5: // allocate new segment (1MB, unconstrained)
+            infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
+                             FILE__, __LINE__, HEAP_DYN_BUF_SIZE, lo, hi);
 	   inferiorMallocDynamic(HEAP_DYN_BUF_SIZE, lo, hi);
 	   break;
 	case 6: // allocate new segment (sized, unconstrained)
+            infmalloc_printf("%s[%d]: inferiorMallocDynamic for %d (0x%x) bytes between 0x%lx - 0x%lx\n",
+                             FILE__, __LINE__, size, lo, hi);
 	   inferiorMallocDynamic(size, lo, hi);
 	   break;
 	case 7: // deferred free, compact free blocks
+            infmalloc_printf("%s[%d]: inferiorMalloc: recompacting\n", FILE__, __LINE__);
             inferiorFreeCompact();
 	   break;
 #else /* !(cap_dynamic_heap) */
@@ -1327,6 +1351,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
       ret = inferiorMallocInternal(size, lo, hi, type);
       if (ret) break;
    }
+   infmalloc_printf("%s[%d]: inferiorMalloc, returning address 0x%lx\n", FILE__, __LINE__, ret);
    return ret;
 }
 
