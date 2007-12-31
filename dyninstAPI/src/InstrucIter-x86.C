@@ -761,11 +761,11 @@ void parseRegisters(std::set<RegisterID>& readArray, std::set<RegisterID>& write
       case 0x03:
 	if(isRead) 
 	{
-	  readArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_r));
+	  readArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
 	} 
 	if(isWritten)
 	{
-	  writeArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_r));
+	  writeArray.insert(makeRegisterID(locs.modrm_rm, operand.optype, locs.rex_byte, locs.rex_b));
 	}
 	break;
       default:
