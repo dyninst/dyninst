@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.75 2007/12/11 20:22:06 bill Exp $
+// $Id: arch-x86.C,v 1.76 2007/12/31 16:08:08 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2429,6 +2429,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     return instruct;
   }
 
+
   if (instruct.loc) instruct.loc->num_prefixes = pref.getCount();
   instruct.size = pref.getCount();
   addr += instruct.size;
@@ -2514,6 +2515,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
       break;
     case t_ill:
       instruct.legacy_type = ILLEGAL;
+      instruct.entry = gotit;
       return instruct;
     default:
       assert(!"wrong table");
