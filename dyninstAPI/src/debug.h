@@ -84,6 +84,7 @@ extern int dyn_debug_regalloc;
 extern int dyn_debug_ast;
 extern int dyn_debug_write;
 extern int dyn_debug_liveness;
+extern int dyn_debug_infmalloc;
 extern int dyn_stats_instru;
 extern int dyn_stats_ptrace;
 extern int dyn_stats_parse;
@@ -129,8 +130,9 @@ extern StatContainer stats_codegen;
 #define stackwalk_cerr    if (dyn_debug_stackwalk) cerr
 #define relocation_cerr   if (dyn_debug_relocation) cerr
 #define dyn_unw_cerr      if (dyn_debug_dyn_unw) cerr
-#define thread_cerr      if (dyn_debug_thread) cerr
-#define liveness_cerr    if (dyn_debug_liveness) cerr
+#define thread_cerr       if (dyn_debug_thread) cerr
+#define liveness_cerr     if (dyn_debug_liveness) cerr
+#define infmalloc_cerr    if (dyn_debug_infmalloc) cerr
 
 // C prototypes
 extern int signal_printf(const char *format, ...);
@@ -154,6 +156,7 @@ extern int regalloc_printf(const char *format, ...);
 extern int ast_printf(const char *format, ...);
 extern int write_printf(const char *format, ...);
 extern int liveness_printf(const char *format, ...);
+extern int infmalloc_printf(const char *forma, ...);
 
 // And initialization
 extern bool init_debug();
