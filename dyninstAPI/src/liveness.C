@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.2 2007/12/11 20:22:06 bill Exp $
+// $Id: liveness.C,v 1.3 2007/12/31 16:08:17 bernat Exp $
 
 #if defined(cap_liveness)
 
@@ -90,6 +90,18 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
         else
             i.currval()->liveState = registerSlot::dead;
     }
+#if defined(arch_x86_64)
+    // ???
+    registers_[REGNUM_RAX]->liveState = registerSlot::live;
+#endif
+
+}
+
+const bitArray &image_basicBlock::getLivenessIn() {
+    // Calculate if it hasn't been done already
+    if (in.size() == 0)
+        summarizeBlockLivenessInfo();
+    return in;
 }
 
 const bitArray image_basicBlock::getLivenessOut() const {
@@ -274,9 +286,9 @@ void instPoint::calcLiveness() {
 
     // We know: 
     //    liveness in at the block level:
-    bitArray block_in = block()->llb()->getLivenessIn();
+    const bitArray &block_in = block()->llb()->getLivenessIn();
     //    liveness _out_ at the block level:
-    bitArray block_out = block()->llb()->getLivenessOut();
+    const bitArray &block_out = block()->llb()->getLivenessOut();
 
     postLiveRegisters_ = block_out;
 
