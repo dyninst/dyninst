@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.46 2007/12/11 20:22:06 bill Exp $
+// $Id: function.h,v 1.47 2007/12/31 16:08:12 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -214,7 +214,7 @@ class bblInstance : public codeRange {
 class int_basicBlock {
     friend class int_function;
  public:
-    int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func, int id);
+    int_basicBlock(image_basicBlock *ib, Address baseAddr, int_function *func, int id);
     int_basicBlock(const int_basicBlock *parent, int_function *func, int id);
     ~int_basicBlock();
 
@@ -227,7 +227,7 @@ class int_basicBlock {
         // may be
     bool hasSharedBase() const { return ib_->isShared(); }
 
-    const image_basicBlock * llb() const { return ib_; }
+    image_basicBlock * llb() const { return ib_; }
     
     static int compare(int_basicBlock *&b1,
                        int_basicBlock *&b2) {
@@ -299,7 +299,7 @@ class int_basicBlock {
 
 
     int_function *func_;
-    const image_basicBlock *ib_;
+    image_basicBlock *ib_;
 
     int id_;
 

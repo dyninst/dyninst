@@ -689,7 +689,7 @@ void int_basicBlock::setDataFlowKill(int_basicBlock *kill) {
 
 int int_basicBlock_count = 0;
 
-int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func, int id) :
+int_basicBlock::int_basicBlock(image_basicBlock *ib, Address baseAddr, int_function *func, int id) :
 #if defined(arch_ia64)
     dataFlowIn(NULL),
     dataFlowOut(NULL),
