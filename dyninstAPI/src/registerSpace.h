@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.12 2007/12/04 17:58:11 bernat Exp $
+// $Id: registerSpace.h,v 1.13 2007/12/31 16:08:19 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -337,12 +337,17 @@ class registerSpace {
  public:
 #if defined(arch_power)
     typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,
+                   r13, r14, r15, r16, r17, r18, r19, r20, r21, r22, r23,
+                   r24, r25, r26, r27, r28, r29, r30, r31,
                    fpr0, fpr1, fpr2, fpr3, fpr4, fpr5, fpr6, 
                    fpr7, fpr8, fpr9, fpr10, fpr11, fpr12, fpr13,
-                   lr, cr, ctr, mq } powerRegisters_t;
+                   fpr14, fpr15, fpr16, fpr17, fpr18, fpr19, fpr20,
+                   fpr21, fpr22, fpr23, fpr24, fpr25, fpr26, fpr27,
+                   fpr28, fpr29, fpr30, fpr31,
+                   lr, cr, ctr, mq, lastReg } powerRegisters_t;
     static unsigned GPR(Register x) { return x; }
     static unsigned FPR(Register x) { return x - fpr0; }
-
+    static unsigned SPR(Register x);
 #endif
 
     // Bit vectors that represent the ABI behavior at call points

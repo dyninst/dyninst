@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.17 2007/12/05 19:30:40 bernat Exp $
+// $Id: registerSpace.C,v 1.18 2007/12/31 16:08:18 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -121,7 +121,10 @@ unsigned registerSlot::encoding() const {
 #if defined(arch_power)
     if (type == GPR) return registerSpace::GPR(number);
     if (type == FPR) return registerSpace::FPR(number);
+    // Handled in inst-power.C for now
     //if (type == SPR) return registerSpace::SPR(number);
+    assert(0);
+    return 0;
 #elif defined(arch_x86) || defined(arch_x86_64)
     // Should do a mapping here from entire register space to "expected" encodings.
     return number;
@@ -168,12 +171,35 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP, callWhen when) {
 #if defined(cap_liveness)
     if (BPatch::bpatch->livenessAnalysisOn()) {
         assert(iP);
+        registerSpace *ret = NULL;
+
+#if defined(arch_power)
+        // Power has some serious problems right now with GPR/FPR
+        // liveness. Disabling.
+        if ((iP->getPointType() == functionEntry) ||
+            (iP->getPointType() == functionExit) ||
+            (iP->getPointType() == callSite))
+            ret = optimisticRegSpace(iP->proc());
+        else
+            ret = conservativeRegSpace(iP->proc());
+        
+        // Listen to the MQ register setting
+        if ((iP->liveRegisters(when))[mq]) {
+            ret->registers_[mq]->liveState = registerSlot::live;
+        }
+        else {
+            ret->registers_[mq]->liveState = registerSlot::dead;
+        }
+#else
+
         liveness_printf("%s[%d] Asking for actualRegSpace for iP at 0x%lx, dumping info:\n",
                         FILE__, __LINE__, iP->addr());
         liveness_cerr << iP->liveRegisters(when) << endl;
-        
-        registerSpace *ret = getRegisterSpace(iP->proc());
+
+        ret = getRegisterSpace(iP->proc());
         ret->specializeSpace(iP->liveRegisters(when));
+
+#endif
         ret->cleanSpace();
         return ret;
     }
@@ -431,7 +457,7 @@ bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
 bool registerSpace::saveVolatileRegisters(codeGen &gen) {
 
 #if defined(arch_x86_64) || defined(arch_x86)
-    bool doWeSave = false;
+    bool doWeSave = false; 
     if (addr_width == 8) {
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
             registerSlot *reg = registers_[i];
@@ -941,9 +967,11 @@ const bitArray &registerSpace::getSyscallWrittenRegisters() const {
 bitArray registerSpace::getBitArray()  {
 #if defined(arch_x86) || defined(arch_x86_64)
     return bitArray(REGNUM_LAST+1);
+#elif defined(arch_power)
+    return bitArray(lastReg);
 #else
     assert(0);
-    return bitArray;
+    return bitArray();
 #endif
 }
 
