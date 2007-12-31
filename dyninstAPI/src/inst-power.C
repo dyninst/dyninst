@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.279 2007/12/04 17:58:01 bernat Exp $
+ * $Id: inst-power.C,v 1.280 2007/12/31 16:08:15 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -214,6 +214,15 @@ unsigned relocatedInstruction::maxSizeRequired() {
 Register floatingLiveRegList[] = {13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
 unsigned int floatingLiveRegListSize = 14;
 
+// It appears as though 32-bit AIX and 32-bit Linux have compatible
+// calling conventions, and thus we share the initialization code
+// for both. 
+
+// Note that while we have register definitions for r13..r31, we only
+// use r0..r12 (well, r3..r12). I believe this is to reduce the number
+// of saves that we execute. 
+
+
 void registerSpace::initialize32() {
     static bool done = false;
     if (done) return;
@@ -222,7 +231,51 @@ void registerSpace::initialize32() {
     pdvector<registerSlot *> registers;
 
     // At ABI boundary: R0 and R12 are dead, others are live.
+    // Also, define registers in reverse order - it helps with
+    // function calls
     
+    registers.push_back(new registerSlot(r12,
+                                         false,
+                                         registerSlot::deadABI,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r11,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r10,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r9,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r8,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r7,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r6,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r5,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r4,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r3,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    /// Aaaand the off-limits ones.
+
     registers.push_back(new registerSlot(r0,
                                          true, // Don't use r0 - it has all sorts
                                          // of implicit behavior.
@@ -236,47 +289,6 @@ void registerSpace::initialize32() {
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
-    registers.push_back(new registerSlot(r3,
-                                         false,
-                                         registerSlot::liveAlways,
-                                         registerSlot::GPR));
-    registers.push_back(new registerSlot(r4,
-                                         false,
-                                         registerSlot::liveAlways,
-                                         registerSlot::GPR));
-    registers.push_back(new registerSlot(r5,
-                                         false,
-                                         registerSlot::liveAlways,
-                                         registerSlot::GPR));
-    registers.push_back(new registerSlot(r6,
-                                         false,
-                                         registerSlot::liveAlways,
-                                         registerSlot::GPR));
-    registers.push_back(new registerSlot(r7,
-                                         false,
-                                         registerSlot::liveAlways,
-                                         registerSlot::GPR));
-    registers.push_back(new registerSlot(r8,
-                                         false,
-                                         registerSlot::liveAlways,
-                                         registerSlot::GPR));
-    registers.push_back(new registerSlot(r9,
-                                         false,
-                                         registerSlot::liveAlways,
-                                         registerSlot::GPR));
-    registers.push_back(new registerSlot(r10,
-                                         false,
-                                         registerSlot::liveAlways,
-                                         registerSlot::GPR));
-    registers.push_back(new registerSlot(r11,
-                                         false,
-                                         registerSlot::liveAlways,
-                                         registerSlot::GPR));
-    registers.push_back(new registerSlot(r12,
-                                         false,
-                                         registerSlot::deadABI,
-                                         registerSlot::GPR));
-    
 
     for (unsigned i = fpr0; i <= fpr13; i++) {
         registers.push_back(new registerSlot(i,
@@ -303,6 +315,40 @@ void registerSpace::initialize32() {
                                          registerSlot::SPR));
     registerSpace::createRegisterSpace(registers);
 
+    // Initialize the sets that encode which registers
+    // are used/defined by calls, returns, and syscalls. 
+    // These all assume the ABI, of course. 
+
+    // TODO: Linux/PPC needs these set as well.
+    
+#if defined(cap_liveness)
+    returnRead_ = getBitArray();
+    // Return reads r3, r4, fpr1, fpr2
+    returnRead_[r3] = true;
+    returnRead_[r4] = true;
+    returnRead_[fpr1] = true;
+    returnRead_[fpr2] = true;
+
+    // Calls
+    callRead_ = getBitArray();
+    // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
+    for (unsigned i = r3; i <= r10; i++) 
+        callRead_[i] = true;
+    for (unsigned i = fpr1; i <= fpr13; i++) 
+        callRead_[i] = true;
+    callWritten_ = getBitArray();
+    // Calls write to pretty much every register we use for code generation
+    callWritten_[r0] = true;
+    for (unsigned i = r3; i <= r12; i++)
+        callWritten_[i] = true;
+    // FPRs 0->13 are volatile
+    for (unsigned i = fpr0; i <= fpr13; i++)
+        callWritten_[i] = true;
+
+    // Syscall - assume the same as call
+    syscallRead_ = callRead_;
+    syscallWritten_ = syscallWritten_;
+#endif
 }
 
 void registerSpace::initialize64() {
