@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.31 2007/12/12 22:20:46 roundy Exp $
+// $Id: image-func.h,v 1.32 2007/12/31 16:08:14 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -213,7 +213,7 @@ class image_basicBlock : public codeRange {
     bool canBeRelocated() const { return canBeRelocated_; }
 
 #if defined(cap_liveness)
-    const bitArray &getLivenessIn() const {return in; };
+    const bitArray &getLivenessIn();
     // This is copied from the union of all successor blocks
     const bitArray getLivenessOut() const;
 #endif
