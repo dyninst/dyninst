@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.237 2007/12/04 17:57:51 bernat Exp $
+// $Id: aix.C,v 1.238 2007/12/31 16:08:06 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1903,7 +1903,11 @@ int_function *instPoint::findCallee() {
 
     // TODO: encapsulate this in the instPoint so we can handle absolute branches
     // acceptably.
-    
+
+    if (!proc()->isValidAddress(callTarget())) {
+        return NULL;
+    }
+        
     InstrucIter targetIter(callTarget(), proc());
     if (!targetIter.getInstruction().valid()) {
         return NULL;
