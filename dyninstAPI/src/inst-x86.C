@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.271 2007/12/04 17:58:04 bernat Exp $
+ * $Id: inst-x86.C,v 1.272 2007/12/31 16:08:16 bernat Exp $
  */
 #include <iomanip>
 
@@ -358,6 +358,15 @@ void registerSpace::initialize64() {
 #if defined(cap_liveness)
     returnRead64_ = getBitArray();
     returnRead64_[REGNUM_RAX] = true;
+    // Returns also "read" any callee-saved registers
+    returnRead64_[REGNUM_RBX] = true;
+    returnRead64_[REGNUM_R12] = true;
+    returnRead64_[REGNUM_R13] = true;
+    returnRead64_[REGNUM_R14] = true;
+    returnRead64_[REGNUM_R15] = true;
+
+    //returnRead64_[REGNUM_R10] = true;
+    
 
     callRead64_ = getBitArray();
     callRead64_[REGNUM_RCX] = true;
