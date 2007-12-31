@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.41 2007/12/12 22:20:44 roundy Exp $
+ * $Id: image-flowGraph.C,v 1.42 2007/12/31 16:08:13 bernat Exp $
  */
 
 #include <stdio.h>
@@ -193,7 +193,7 @@ bool image::analyzeImage()
       VECTOR_APPEND(callTargets,new_targets); 
       new_targets.clear();
     }
-#if !defined(arch_power) && !defined(arch_ia64) && !defined(arch_sparc)
+#if defined(cap_stripped_binaries)
   if (parseGaps_) {
 	// Need to check to ensure that pdmodule mod is initialized
     // before searching the region, previous for loop will not have
@@ -311,8 +311,7 @@ bool image::analyzeImage()
        funcIdx++;
     } while (funcIdx < (int)everyUniqueFunction.size());
   } // end gap parsing
-#endif    
-
+#endif
     // Sort block list and bind all intra-module call points
     for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
        image_func *f = everyUniqueFunction[b_iter];
