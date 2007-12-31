@@ -61,6 +61,8 @@
 #include "BPatch_instruction.h"
 #include "BPatch_memoryAccess_NP.h"
 
+#include "registerSpace.h"
+
 /* Prints the op code */
 void InstrucIter::printOpCode()
 {
@@ -1527,3 +1529,82 @@ bool InstrucIter::isInterModuleCallSnippet(Address &info) {
 
 }
 
+void InstrucIter::getAllRegistersUsedAndDefined(std::set<Register> &used,
+                                                std::set<Register> &defined) {
+    // Register numbers are by the numbering in registerSpace::powerRegisters_t...
+
+    if (isA_MX_Instruction()) {
+        // Used and defined, by the comments.
+        // TODO: MX register, not MQ... or is it MX?
+        used.insert(registerSpace::mq);
+        defined.insert(registerSpace::mq);
+    }
+
+    // The instrucIter calls tell us if the particular encoding in
+    // an instruction is on or off, not which register is used...
+    if (isA_RT_ReadInstruction()) {
+        // Return of getRTValue is a register number from 0...
+        Register reg = getRTValue() + registerSpace::r0;
+        used.insert(reg);
+    }
+    if (isA_RA_ReadInstruction()) {
+        used.insert(getRAValue() + registerSpace::r0);
+    }
+    if (isA_RB_ReadInstruction()) {
+        used.insert(getRBValue() + registerSpace::r0);
+    }
+    if (isA_MRT_ReadInstruction()) {
+        // Multiple store - mark all GPRs as used.
+        // If we ever use more than r12, increase this.
+        // Technically, there's an encoded lower bound... but over-approximate.
+        for (unsigned i = registerSpace::r0; i <= registerSpace::r12; i++) {
+            used.insert(i);
+        }
+    }
+
+
+    if (isA_RT_WriteInstruction()) {
+        // Return of getRTValue is a register number from 0...
+        Register reg = getRTValue() + registerSpace::r0;
+        defined.insert(reg);
+    }
+    if (isA_RA_WriteInstruction()) {
+        defined.insert(getRAValue() + registerSpace::r0);
+    }
+    if (isA_MRT_WriteInstruction()) {
+        // Multiple store - mark all GPRs as used.
+        // If we ever use more than r12, increase this.
+        // Technically, there's an encoded lower bound... but over-approximate.
+        for (unsigned i = registerSpace::r0; i <= registerSpace::r12; i++) {
+            used.insert(i);
+        }
+    }
+
+    //////////////////////////////////
+    // FPRs
+    //////////////////////////////////
+
+    if (isA_FRT_ReadInstruction()) {
+        used.insert(getFRTValue() + registerSpace::fpr0);
+    }
+    if (isA_FRA_ReadInstruction()) {
+        used.insert(getFRAValue() + registerSpace::fpr0);
+    }
+    if (isA_FRB_ReadInstruction()) {
+        used.insert(getFRBValue() + registerSpace::fpr0);
+    }
+    if (isA_FRC_ReadInstruction()) {
+        used.insert(getFRCValue() + registerSpace::fpr0);
+    }
+
+    if (isA_FRT_WriteInstruction()) {
+        used.insert(getFRTValue() + registerSpace::fpr0);
+    }
+    if (isA_FRA_WriteInstruction()) {
+        used.insert(getFRAValue() + registerSpace::fpr0);
+    }
+}
+
+bool InstrucIter::isSyscall() {
+    return ((*insn).iform.op == SVCop);
+}
