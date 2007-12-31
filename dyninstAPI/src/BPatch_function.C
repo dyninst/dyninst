@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.97 2007/12/14 04:16:48 jaw Exp $
+// $Id: BPatch_function.C,v 1.98 2007/12/31 16:08:00 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -518,6 +518,7 @@ BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
 
 BPatch_flowGraph* BPatch_function::getCFGInt()
 {
+    assert(mod);
     if (!mod->isValid()) return NULL;
     if (cfg)
         return cfg;
