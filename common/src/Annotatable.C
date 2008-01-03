@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.2 2007/12/14 04:16:48 jaw Exp $
+// $Id: Annotatable.C,v 1.3 2008/01/03 00:13:10 legendre Exp $
 
 #include "common/h/Annotatable.h"
 #include "common/h/String.h"
@@ -64,7 +64,6 @@ AnnotatableBase::AnnotatableBase()
 
 DLLEXPORT int AnnotatableBase::createAnnotationType(std::string &name) 
 {
-   fprintf(stderr, "%s[%d]:  createAnnotationType(%s)\n", FILE__, __LINE__, name.c_str());
    std::string n(name);
    int num = getAnnotationType(name);
    if (num != -1) {
@@ -74,7 +73,6 @@ DLLEXPORT int AnnotatableBase::createAnnotationType(std::string &name)
 
    number++;
    annotationTypes[n] = number;
-      fprintf(stderr, "%s[%d]:  created annotation type %s in slot %d\n", FILE__, __LINE__, name.c_str(), number);
    return number;
 }
 
