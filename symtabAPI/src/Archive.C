@@ -81,6 +81,7 @@ bool Archive::openArchive(Archive *&img, std::string filename)
 	return err;
 }
 
+#if 0 
 bool Archive::openArchive(Archive *&img, char *mem_image, size_t size)
 {
  	bool err;
@@ -89,6 +90,7 @@ bool Archive::openArchive(Archive *&img, char *mem_image, size_t size)
 		img = NULL;
 	return err;
 }
+#endif
 
 Archive::Archive(std::string &filename, bool &err) : filename_(filename)
 {
@@ -204,6 +206,7 @@ Archive::Archive(std::string &filename, bool &err) : filename_(filename)
 	err = true;
 }
 
+#if 0 
 Archive::Archive(char *mem_image, size_t size, bool &err)
 {
  	fileOpener *fo_ = fileOpener::openFile(mem_image, size);
@@ -315,7 +318,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
    delete archive;
 	err = true;
 }
-
+#endif
 bool Archive::getMember(Symtab *&img, std::string member_name)
 {
  	if(membersByName.find(member_name) == membersByName.end())

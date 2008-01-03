@@ -460,9 +460,19 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
     fprintf(stderr, "    Unable to find function %s\n",
 	    "func1_1");
     //  find the base exec module and dump all the functions:
-    BPatch_module *m = appImage->findModule("test1.mutatee.c");
+    BPatch_module *m;
+   if (mutateeFortran) m = appImage->findModule("test1.mutateeFort.F");
+   else  m = appImage->findModule("test1.mutatee.c");
     if (!m) {
-      fprintf(stderr, "%s[%d]:  cannot find base module\n", __FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  cannot find base module: test1.mutatee.c. Modules:\n", 
+            __FILE__, __LINE__);
+      BPatch_Vector<BPatch_module *> *mods = appImage->getModules();
+      for (unsigned int i = 0; i < mods->size(); ++i) {
+         BPatch_module *mod = (*mods)[i];
+         char modnm[1024];
+         mod->getName(modnm, 1024);
+         fprintf(stderr, "\t%s\n", modnm);
+      }
       exit(1);
     }
     BPatch_Vector<BPatch_function *> *funcs = m->getProcedures();

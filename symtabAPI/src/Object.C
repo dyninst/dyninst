@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.12 2007/12/10 22:27:50 giri Exp $
+// $Id: Object.C,v 1.13 2008/01/03 17:49:19 jaw Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -693,8 +693,8 @@ DLLEXPORT AObject::~AObject()
 }
 
 // explicitly protected
-DLLEXPORT AObject::AObject(const string file , void (*err_func)(const char *)) 
-   : file_(file), code_ptr_(0), code_off_(0),
+DLLEXPORT AObject::AObject(MappedFile *mf_ , void (*err_func)(const char *)) 
+   : mf(mf_), code_ptr_(0), code_off_(0),
      code_len_(0), data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0),
      loader_len_(0), deferredParse(false), err_func_(err_func),
      addressWidth_nbytes(4) 
@@ -702,7 +702,7 @@ DLLEXPORT AObject::AObject(const string file , void (*err_func)(const char *))
 }
 
 DLLEXPORT AObject::AObject(const AObject &obj)
-   : file_(obj.file_), symbols_(obj.symbols_), 
+   : mf(obj.mf), symbols_(obj.symbols_), 
      code_ptr_(obj.code_ptr_), code_off_(obj.code_off_), 
      code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
      data_off_(obj.data_off_), data_len_(obj.data_len_), 
@@ -716,10 +716,15 @@ DLLEXPORT AObject& AObject::operator=(const AObject &obj)
    if (this == &obj) {
       return *this;
    }
-   file_      = obj.file_; 	symbols_   = obj.symbols_;
-   code_ptr_  = obj.code_ptr_; 	code_off_  = obj.code_off_;
-   code_len_  = obj.code_len_; 	data_ptr_  = obj.data_ptr_;
-   data_off_  = obj.data_off_; 	data_len_  = obj.data_len_;
+
+   mf = obj.mf;
+   symbols_   = obj.symbols_;
+   code_ptr_  = obj.code_ptr_;
+   code_off_  = obj.code_off_;
+   code_len_  = obj.code_len_;
+   data_ptr_  = obj.data_ptr_;
+   data_off_  = obj.data_off_;
+   data_len_  = obj.data_len_;
    err_func_  = obj.err_func_;
    loader_off_ = obj.loader_off_; 
    loader_len_ = obj.loader_len_;

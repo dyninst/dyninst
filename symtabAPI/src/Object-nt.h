@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.13 2007/12/14 04:16:48 jaw Exp $
+ * $Id: Object-nt.h,v 1.14 2008/01/03 17:49:19 jaw Exp $
 ************************************************************************/
 
 
@@ -167,8 +167,8 @@ class Object : public AObject
     Module* curModule;
 
  public:
-    DLLEXPORT Object(std::string &filename, void (*)(const char *) = log_msg);
-    DLLEXPORT Object(char *mem_image, size_t image_size, void (*)(const char *) = log_msg);
+    Object(MappedFile *, hash_map<std::string, LineInformation> &, void (*)(const char *) = log_msg);
+    DLLEXPORT Object(MappedFile *, void (*)(const char *) = log_msg);
     DLLEXPORT Object(){};
   
     DLLEXPORT virtual ~Object( void );
@@ -176,13 +176,13 @@ class Object : public AObject
     DLLEXPORT bool isForwarded( Offset addr );
     DLLEXPORT bool isEEL() const { return false; }
     DLLEXPORT bool isText( const Offset& addr ) const; 
-    DLLEXPORT Offset get_base_addr() const { return (Offset)mapAddr;} 
+    DLLEXPORT Offset get_base_addr() const { return (Offset)mf->base_addr();} 
     DLLEXPORT Module* GetCurrentModule( void )				    { return curModule; }
    
     DLLEXPORT bool getCatchBlock(ExceptionBlock &b, Offset addr, unsigned size = 0) const;
     DLLEXPORT unsigned int GetTextSectionId( void ) const         { return textSectionId;}
     DLLEXPORT PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
-    DLLEXPORT PVOID GetMapAddr( void ) const                      { return mapAddr; }
+    DLLEXPORT PVOID GetMapAddr( void ) const                      { return mf->base_addr(); }
     DLLEXPORT Offset getEntryPoint( void ) const                { if (peHdr) return peHdr->OptionalHeader.AddressOfEntryPoint; return 0;}
     //+ desc.loadAddr(); } //laodAddr is always zero in our fake address space.
     // TODO. Change these later.
@@ -202,7 +202,7 @@ class Object : public AObject
 
 private:
     DLLEXPORT void    ParseDebugInfo( void );
-    DLLEXPORT void    parseFileLineInfo(void);
+    DLLEXPORT void    parseFileLineInfo(hash_map<std::string, LineInformation> &);
     DLLEXPORT void    FindInterestingSections();
 
     Offset baseAddr;     // location of this object in mutatee address space
@@ -215,13 +215,8 @@ private:
 	unsigned int textSectionId;		// id of .text segment (section)
 	unsigned int dataSectionId;		// id of .data segment (section)
    
-    HANDLE  hMap;                   // handle to mapping object
-	HANDLE  hFile;					// File Handle
 	HANDLE  hProc;					// Process Handle
-    LPVOID  mapAddr;                // location of mapped file in *our* address space
     std::vector<Offset> possible_mains; //Addresses of functions that may be main
-	std::string filename;				//Name of the file.
-	hash_map< std::string, LineInformation>lineInfo_; // LineNumber information
 };
 
 // In recent versions of the Platform SDK, the macros naming

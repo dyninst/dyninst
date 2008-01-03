@@ -306,72 +306,89 @@ void Symtab::setupStdTypes() {
     return;
 }
 
-DLLEXPORT unsigned Symtab::getAddressWidth() const {
-    return linkedFile->getAddressWidth();
+DLLEXPORT unsigned Symtab::getAddressWidth() const 
+{
+   return address_width_;
 }
  
-DLLEXPORT bool Symtab::isNativeCompiler() const {
+DLLEXPORT bool Symtab::isNativeCompiler() const 
+{
     return nativeCompiler; 
 }
  
-DLLEXPORT Symtab::Symtab(){
+DLLEXPORT Symtab::Symtab()
+{
 }
 
-DLLEXPORT bool Symtab::isExec() const {
+DLLEXPORT bool Symtab::isExec() const 
+{
     return is_a_out; 
 }
 
-DLLEXPORT Offset Symtab::imageOffset() const { 
+DLLEXPORT Offset Symtab::imageOffset() const 
+{
     return imageOffset_;
 }
 
-DLLEXPORT Offset Symtab::dataOffset() const { 
+DLLEXPORT Offset Symtab::dataOffset() const 
+{ 
     return dataOffset_;
 }
 
-DLLEXPORT Offset Symtab::dataLength() const { 
+DLLEXPORT Offset Symtab::dataLength() const 
+{
     return dataLen_;
 } 
 
-DLLEXPORT Offset Symtab::imageLength() const { 
+DLLEXPORT Offset Symtab::imageLength() const 
+{
     return imageLen_;
 }
  
-DLLEXPORT char* Symtab::image_ptr ()  const {
-    return (char *)linkedFile->code_ptr(); 
+DLLEXPORT char* Symtab::image_ptr ()  const 
+{
+   return code_ptr_;
 }
 
-DLLEXPORT char* Symtab::data_ptr ()  const { 
-    return (char *)linkedFile->data_ptr();
+DLLEXPORT char* Symtab::data_ptr ()  const 
+{ 
+   return data_ptr_;
 }
 
-DLLEXPORT const char*  Symtab::getInterpreterName() const {
-    return linkedFile->interpreter_name();
+DLLEXPORT const char*  Symtab::getInterpreterName() const 
+{
+   if (interpreter_name_.length())
+      return interpreter_name_.c_str();
+   return NULL;
 }
  
-DLLEXPORT Offset Symtab::getEntryOffset() const { 
-    return linkedFile->getEntryAddress(); 
+DLLEXPORT Offset Symtab::getEntryOffset() const 
+{ 
+   return entry_address_;
 }
 
-DLLEXPORT Offset Symtab::getBaseOffset() const {
-    return linkedFile->getBaseAddress(); 
+DLLEXPORT Offset Symtab::getBaseOffset() const 
+{
+   return base_address_;
 }
 
-DLLEXPORT Offset Symtab::getLoadOffset() const { 
-    return linkedFile->getLoadAddress(); 
+DLLEXPORT Offset Symtab::getLoadOffset() const 
+{ 
+   return load_address_;
 }
 
-DLLEXPORT Offset Symtab::getTOCoffset() const { 
-    return linkedFile->getTOCoffset(); 
+DLLEXPORT Offset Symtab::getTOCoffset() const 
+{
+   return toc_offset_;
 }
 	
 	
 // TODO -- is this g++ specific
 bool Symtab::buildDemangledName( const std::string &mangled, 
-                                     std::string &pretty,
-                                     std::string &typed,
-                                     bool nativeCompiler, 
-                                     supportedLanguages lang )
+      std::string &pretty,
+      std::string &typed,
+      bool nativeCompiler, 
+      supportedLanguages lang )
 {
    /* The C++ demangling function demangles MPI__Allgather (and other MPI__
     * functions with start with A) into the MPI constructor.  In order to
@@ -379,45 +396,45 @@ bool Symtab::buildDemangledName( const std::string &mangled,
     * approach.
     */
 
-    if((mangled.length()>5) && (mangled.substr(0,5)==std::string("MPI__"))) { 
-        return false;
-    }	  
+   if ((mangled.length()>5) && (mangled.substr(0,5)==std::string("MPI__"))) { 
+      return false;
+   }	  
 
-    /* If it's Fortran, eliminate the trailing underscores, if any. */
-    if(lang == lang_Fortran 
-      || lang == lang_CMFortran 
-      || lang == lang_Fortran_with_pretty_debug )
-    {
-        if( mangled[ mangled.length() - 1 ] == '_' ) 
-	{
-            char * demangled = strdup( mangled.c_str() );
-            demangled[ mangled.length() - 1 ] = '\0';
-            pretty = std::string( demangled );
-          
-            free( demangled );
-            return true;
-        }
-        else {
-            /* No trailing underscores, do nothing */
-            return false;
-        }
-    } /* end if it's Fortran. */
-  
-    //  Check to see if we have a gnu versioned symbol on our hands.
-    //  These are of the form <symbol>@<version> or <symbol>@@<version>
-    //
-    //  If we do, we want to create a "demangled" name for the one that
-    //  is of the form <symbol>@@<version> since this is, by definition,
-    //  the default.  The "demangled" name will just be <symbol>
+   /* If it's Fortran, eliminate the trailing underscores, if any. */
+   if (lang == lang_Fortran 
+         || lang == lang_CMFortran 
+         || lang == lang_Fortran_with_pretty_debug )
+   {
+      if ( mangled[ mangled.length() - 1 ] == '_' ) 
+      {
+         char * demangled = strdup( mangled.c_str() );
+         demangled[ mangled.length() - 1 ] = '\0';
+         pretty = std::string( demangled );
 
-    //  NOTE:  this is just a 0th order approach to dealing with versioned
-    //         symbols.  We may need to do something more sophisticated
-    //         in the future.  JAW 10/03
-  
+         free ( demangled );
+         return true;
+      }
+      else {
+         /* No trailing underscores, do nothing */
+         return false;
+      }
+   } /* end if it's Fortran. */
+
+   //  Check to see if we have a gnu versioned symbol on our hands.
+   //  These are of the form <symbol>@<version> or <symbol>@@<version>
+   //
+   //  If we do, we want to create a "demangled" name for the one that
+   //  is of the form <symbol>@@<version> since this is, by definition,
+   //  the default.  The "demangled" name will just be <symbol>
+
+   //  NOTE:  this is just a 0th order approach to dealing with versioned
+   //         symbols.  We may need to do something more sophisticated
+   //         in the future.  JAW 10/03
+
 #if !defined(os_windows)
-    char *atat;
-    if (NULL != (atat = strstr(mangled.c_str(), "@@"))) 
-    {
+   char *atat;
+   if (NULL != (atat = strstr(mangled.c_str(), "@@"))) 
+   {
         pretty = mangled.substr(0 /*start pos*/, 
                         (int)(atat - mangled.c_str())/*len*/);
         char msg[256];
@@ -464,7 +481,7 @@ bool Symtab::buildDemangledName( const std::string &mangled,
  * if found we flag this image as the executable (a.out). 
  */
 
-bool Symtab::symbolsToFunctions(std::vector<Symbol *> *raw_funcs) 
+bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_funcs) 
 {
 
 #if defined(TIMED_PARSE)
@@ -474,11 +491,7 @@ bool Symtab::symbolsToFunctions(std::vector<Symbol *> *raw_funcs)
 
     std::vector< Symbol *> lookUps;
     std::string symString;
-    is_a_out = linkedFile->is_aout();
 
-    // JAW 02-03 -- restructured below slightly to get rid of multiple loops
-    // through entire symbol list
-  
     // find the real functions -- those with the correct type in the symbol table
     for(SymbolIter symIter(*linkedFile); symIter;symIter++) 
     {
@@ -489,9 +502,9 @@ bool Symtab::symbolsToFunctions(std::vector<Symbol *> *raw_funcs)
 
         //fprintf(stderr,"np %s\n",np);
 
-        if (linkedFile->isEEL() && np[0] == '.')
-        /* ignore these EEL symbols; we don't understand their values */
-            continue; 
+        if (is_eel_ && (np[0] == '.'))
+           /* ignore these EEL symbols; we don't understand their values */
+           continue; 
         
         // check for undefined dynamic symbols. Used when rewriting relocation section.
         // relocation entries have references to these undefined dynamic symbols.
@@ -620,28 +633,30 @@ bool Symtab::symbolsToFunctions(std::vector<Symbol *> *raw_funcs)
  * and if it does we remove the preceding "." from the name of the symbol
  */
 
-void Symtab::checkPPC64DescriptorSymbols(){
-     // find the real functions -- those with the correct type in the symbol table
-     for(SymbolIter symIter(*linkedFile); symIter;symIter++)
-     {
-         Symbol *lookUp = symIter.currval();
-         const char *np = lookUp->getName().c_str();
-         if(!np)
-                continue;
-         if(np[0] == '.' && (lookUp->getType() == Symbol::ST_FUNCTION))
+void Symtab::checkPPC64DescriptorSymbols(Object *linkedFile)
+{
+   // find the real functions -- those with the correct type in the symbol table
+   for(SymbolIter symIter(*linkedFile); symIter;symIter++)
+   {
+      Symbol *lookUp = symIter.currval();
+      const char *np = lookUp->getName().c_str();
+      if(!np)
+         continue;
+      
+      if(np[0] == '.' && (lookUp->getType() == Symbol::ST_FUNCTION))
+      {
+         std::vector<Symbol *>syms;
+         std::string newName = np+1;
+         if(linkedFile->get_symbols(newName, syms) && (syms[0]->getSize() == 24 || syms[0]->getSize() == 0))
          {
-                std::vector<Symbol *>syms;
-                std::string newName = np+1;
-                if(linkedFile->get_symbols(newName, syms) && (syms[0]->getSize() == 24 || syms[0]->getSize() == 0))
-                {
-                        //Remove the "." from the name
-                        lookUp->mangledNames[0] = newName;
+            //Remove the "." from the name
+            lookUp->mangledNames[0] = newName;
 
-                        //Change the type of the descriptor symbol
-                        syms[0]->type_ = Symbol::ST_NOTYPE;
-                }
+            //Change the type of the descriptor symbol
+            syms[0]->type_ = Symbol::ST_NOTYPE;
          }
-     }
+      }
+   }
 
 }
 
@@ -652,47 +667,50 @@ void Symtab::checkPPC64DescriptorSymbols(){
 //  before names can be demangled.
 void Symtab::setModuleLanguages(hash_map<std::string, supportedLanguages> *mod_langs)
 {
-    if (!mod_langs->size())
-        return;  // cannot do anything here
-    //  this case will arise on non-stabs platforms until language parsing can be introduced at this level
-    std::vector<Module *> *modlist;
-    Module *currmod = NULL;
-    modlist = &_mods;
-    //int dump = 0;
+   if (!mod_langs->size())
+      return;  // cannot do anything here
+   //  this case will arise on non-stabs platforms until language parsing can be introduced at this level
+   std::vector<Module *> *modlist;
+   Module *currmod = NULL;
+   modlist = &_mods;
+   //int dump = 0;
 
-    for (unsigned int i = 0;  i < modlist->size(); ++i)
-    {
-        currmod = (*modlist)[i];
-        supportedLanguages currLang;
-        if (currmod->isShared())
-            continue;  // need to find some way to get shared object languages?
-        if(mod_langs->find(currmod->fileName()) != mod_langs->end())
-        {
-            currLang = (*mod_langs)[currmod->fileName()];
-                            currmod->setLanguage(currLang);
-        }
-        else
-        {
-            //cerr << __FILE__ << __LINE__ << ":  module " << currmod->fileName() 
-            //      				   << " not found in module<->language map" << endl;
-            //dump = 1;
-            //  here we should probably try to guess, based on filename conventions
-        }
-    }
+   for (unsigned int i = 0;  i < modlist->size(); ++i)
+   {
+      currmod = (*modlist)[i];
+      supportedLanguages currLang;
+      if (currmod->isShared()) {
+         continue;  // need to find some way to get shared object languages?
+      }
+      if (mod_langs->find(currmod->fileName()) != mod_langs->end())
+      {
+         currLang = (*mod_langs)[currmod->fileName()];
+         currmod->setLanguage(currLang);
+      }
+      else
+      {
+         if (currmod->fileName() != std::string("DEFAULT_MODULE"))
+            cerr << __FILE__ << __LINE__ << ":  module " << currmod->fileName() 
+               << " not found in module<->language map" << endl;
+         //dump = 1;
+         // here we should probably try to guess, based on filename conventions
+      }
+   }
 }
 
 Module *Symtab::getOrCreateModule(const std::string &modName, 
-                                          const Offset modAddr)
+      const Offset modAddr)
 {
-    std::string nameToUse;
-    if (modName.length() > 0)
-        nameToUse = modName;
-    else
-        nameToUse = "DEFAULT_MODULE";
+   std::string nameToUse;
+   if (modName.length() > 0)
+      nameToUse = modName;
+   else
+      nameToUse = "DEFAULT_MODULE";
 
-    Module *fm = new Module();
-    if (findModule(fm, nameToUse))
+   Module *fm = new Module();
+   if (findModule(fm, nameToUse)) {
         return fm;
+    }
     delete fm;
 
     const char *str = nameToUse.c_str();
@@ -702,6 +720,7 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
     // TODO ignore directory definitions for now
     if (str[len-1] == '/') 
         return NULL;
+
     return (newModule(nameToUse, modAddr, lang_Unknown));
 }
  
@@ -740,92 +759,92 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
 bool Symtab::buildFunctionLists(std::vector <Symbol *> &raw_funcs)
 {
 #if defined(TIMED_PARSE)
-    struct timeval starttime;
-    gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
-    for (unsigned int i = 0; i < raw_funcs.size(); i++) 
-    {
-        Symbol *raw = raw_funcs[i];
-        Module *rawmod = getOrCreateModule(raw->getModuleName(),raw->getAddr());
-            
-        assert(raw);
-        assert(rawmod);
-            
-        // At this point we need to generate the following information:
-        // A symtab name.
-        // A pretty (demangled) name.
-        // The symtab name goes in the global list as well as the module list.
-        // Same for the pretty name.
-        // Finally, check addresses to find aliases.
-            
-        std::string mangled_name = raw->getName();
-        std::string working_name = mangled_name;
-                
-        std::string pretty_name = "<UNSET>";
-        std::string typed_name = "<UNSET>";
+   for (unsigned int i = 0; i < raw_funcs.size(); i++) 
+   {
+      Symbol *raw = raw_funcs[i];
+      Module *rawmod = getOrCreateModule(raw->getModuleName(),raw->getAddr());
+
+      assert(raw);
+      assert(rawmod);
+
+      // At this point we need to generate the following information:
+      // A symtab name.
+      // A pretty (demangled) name.
+      // The symtab name goes in the global list as well as the module list.
+      // Same for the pretty name.
+      // Finally, check addresses to find aliases.
+
+      std::string mangled_name = raw->getName();
+      std::string working_name = mangled_name;
+
+      std::string pretty_name = "<UNSET>";
+      std::string typed_name = "<UNSET>";
 #if !defined(os_windows)        
-        //Remove extra stabs information
-        const char *p = strchr(working_name.c_str(), ':');
-        if( p )
-        {
-            unsigned nchars = p - mangled_name.c_str();
-            working_name = std::string(mangled_name.c_str(), nchars);
-        }
+      //Remove extra stabs information
+      const char *p = strchr(working_name.c_str(), ':');
+      if( p )
+      {
+         unsigned nchars = p - mangled_name.c_str();
+         working_name = std::string(mangled_name.c_str(), nchars);
+      }
 #endif        
-        if (!buildDemangledName(working_name, pretty_name, typed_name,
-                                nativeCompiler, rawmod->language())) 
-        {
-            pretty_name = working_name;
-        }
-        
-        //parsing_printf("%s: demangled %s, typed %s\n",
-        //	       mangled_name.c_str(),
-        //	       pretty_name.c_str(),
-        //	       typed_name.c_str());
-            
-        // Now, we see if there's already a function object for this
-        // address. If so, add a new name; 
-        Symbol *possiblyExistingFunction = NULL;
-        //funcsByEntryAddr.find(raw->getAddr(), possiblyExistingFunction);
-        if (funcsByEntryAddr.find(raw->getAddr())!=funcsByEntryAddr.end()) 
-        {
-            std::vector<Symbol *> &funcs = funcsByEntryAddr[raw->getAddr()];
-            unsigned flag = 0;
-            for(unsigned int j=0;j<funcs.size();j++)
+      if (!buildDemangledName(working_name, pretty_name, typed_name,
+               nativeCompiler, rawmod->language())) 
+      {
+         pretty_name = working_name;
+      }
+
+      //parsing_printf("%s: demangled %s, typed %s\n",
+      //	       mangled_name.c_str(),
+      //	       pretty_name.c_str(),
+      //	       typed_name.c_str());
+
+      // Now, we see if there's already a function object for this
+      // address. If so, add a new name; 
+      Symbol *possiblyExistingFunction = NULL;
+      //funcsByEntryAddr.find(raw->getAddr(), possiblyExistingFunction);
+      if (funcsByEntryAddr.find(raw->getAddr())!=funcsByEntryAddr.end()) 
+      {
+         std::vector<Symbol *> &funcs = funcsByEntryAddr[raw->getAddr()];
+         unsigned flag = 0;
+         for(unsigned int j=0;j<funcs.size();j++)
+         {
+            possiblyExistingFunction = funcsByEntryAddr[raw->getAddr()][j];
+            // On some platforms we see two symbols, one in a real module
+            // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
+            // the real one
+            Module *use = getOrCreateModule(possiblyExistingFunction->getModuleName(),
+                  possiblyExistingFunction->getAddr());
+            if(!(*rawmod == *use))
             {
-                possiblyExistingFunction = funcsByEntryAddr[raw->getAddr()][j];
-                // On some platforms we see two symbols, one in a real module
-                // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
-                // the real one
-                Module *use = getOrCreateModule(possiblyExistingFunction->getModuleName(),
-                                                            possiblyExistingFunction->getAddr());
-                if(!(*rawmod == *use))
-                {
-                    if (rawmod->fileName() == "DEFAULT_MODULE")
-                        rawmod = use;
-                    if(use->fileName() == "DEFAULT_MODULE") 
-                    {
-                        possiblyExistingFunction->setModuleName(std::string(rawmod->fullName()));
-                        use = rawmod; 
-                    }
-                }
-            
-                if(*rawmod == *use)
-                {
-                    // Keep the new mangled name
-                    possiblyExistingFunction->addMangledName(mangled_name);
-                    if (pretty_name != "<UNSET>")
-                        possiblyExistingFunction->addPrettyName(pretty_name);
-                    if (typed_name != "<UNSET>")
-                        possiblyExistingFunction->addTypedName(typed_name);
-                    raw_funcs[i] = NULL;
-                    delete raw; // Don't leak
-                    flag = 1;	
-                    break;
-                }	
+               if (rawmod->fileName() == "DEFAULT_MODULE")
+                  rawmod = use;
+               if(use->fileName() == "DEFAULT_MODULE") 
+               {
+                  possiblyExistingFunction->setModuleName(std::string(rawmod->fullName()));
+                  use = rawmod; 
+               }
+            }
+
+            if(*rawmod == *use)
+            {
+               // Keep the new mangled name
+               possiblyExistingFunction->addMangledName(mangled_name);
+               if (pretty_name != "<UNSET>")
+                  possiblyExistingFunction->addPrettyName(pretty_name);
+               if (typed_name != "<UNSET>")
+                  possiblyExistingFunction->addTypedName(typed_name);
+               raw_funcs[i] = NULL;
+               delete raw; // Don't leak
+               flag = 1;	
+               break;
             }	
-            if(!flag)
-            {
+         }	
+         if(!flag)
+         {
                 funcsByEntryAddr[raw->getAddr()].push_back(raw);
                 addFunctionName(raw, mangled_name, true);
                 if (pretty_name != "<UNSET>")
@@ -1023,7 +1042,7 @@ void Symtab::addVariableName(Symbol *var,
         varsByPretty[newName]->push_back(var);    
     }
     else {
-        if(varsByMangled.find(newName)==varsByMangled.end())
+        if (varsByMangled.find(newName)==varsByMangled.end())
             varsByMangled[newName] = new std::vector<Symbol *>;
         varsByMangled[newName]->push_back(var);    
     }
@@ -1032,43 +1051,68 @@ void Symtab::addVariableName(Symbol *var,
  
 void Symtab::addModuleName(Symbol *mod, const std::string newName)
 {
-    if(modsByName.find(newName)==modsByName.end())
+    if (modsByName.find(newName)==modsByName.end())
         modsByName[newName] = new std::vector<Symbol *>;
     modsByName[newName]->push_back(mod);    
 }
 
-Symtab::Symtab(std::string &filename,bool &err)
-   : filename_(filename), is_a_out(false), main_call_addr_(0),
-     nativeCompiler(false), isLineInfoValid_(false), isTypeInfoValid_(false),
-     type_Error(NULL), type_Untyped(NULL)
+Symtab::Symtab(std::string &filename,bool &err) :
+   is_a_out(false), 
+   main_call_addr_(0),
+   nativeCompiler(false), 
+   isLineInfoValid_(false), 
+   isTypeInfoValid_(false),
+   type_Error(NULL), 
+   type_Untyped(NULL)
 {
-    linkedFile = new Object(filename, pd_log_perror);
-    name_ = extract_pathname_tail(filename);
-    err = extractInfo();
+#if defined (os_windows)
+   extern void fixup_filename(std::string &);
+   fixup_filename(filename);
+#endif
+   mf = MappedFile::createMappedFile(filename);
+   assert(mf);
+    Object *linkedFile = new Object(mf, pd_log_perror);
+    err = extractInfo(linkedFile);
+    delete linkedFile;
 }
 
-Symtab::Symtab(char *mem_image, size_t image_size, bool &err):
+#if 0 
+Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false),
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
-   type_Error(NULL), type_Untyped(NULL)
+   type_Error(NULL), 
+   type_Untyped(NULL)
 {
-    linkedFile = new Object(mem_image, image_size, pd_log_perror);
-    err = extractInfo();
+    Object *linkedFile = new Object(mem_image, image_size, pd_log_perror);
+    err = extractInfo(linkedFile);
+    delete linkedFile;
 }
+#endif
 
 #if defined(os_aix)
 Symtab::Symtab(std::string &filename, std::string &member_name, Offset offset, 
-                       bool &err)
-   : filename_(filename), member_name_(member_name), is_a_out(false),
-     main_call_addr_(0), nativeCompiler(false), isLineInfoValid_(false),
-     isTypeInfoValid_(false), type_Error(NULL), type_Untyped(NULL)
+                       bool &err) :
+   member_name_(member_name), 
+   is_a_out(false),
+   main_call_addr_(0), 
+   nativeCompiler(false), 
+   isLineInfoValid_(false),
+   isTypeInfoValid_(false), 
+   type_Error(NULL), 
+   type_Untyped(NULL)
 {
-    linkedFile = new Object(filename, member_name, offset, pd_log_perror);
-    name_ = extract_pathname_tail(filename);
-    err = extractInfo();
+#if defined (os_windows)
+   extern void fixup_filename(std::string &);
+   fixup_filename(filename);
+#endif
+   mf = MappedFile::createMappedFile(filename);
+   assert(mf);
+    Object *linkedFile = new Object(mf, member_name, offset, pd_log_perror);
+    err = extractInfo(linkedFile);
+    delete linkedFile;
 }
 #else
 Symtab::Symtab(std::string &, std::string &, Offset, bool &)
@@ -1077,16 +1121,23 @@ Symtab::Symtab(std::string &, std::string &, Offset, bool &)
 }
 #endif
 
+#if 0 
 #if defined(os_aix)
 Symtab::Symtab(char *mem_image, size_t image_size, std::string &member_name,
-                       Offset offset, bool &err)
-   : member_name_(member_name), is_a_out(false), main_call_addr_(0),
-     nativeCompiler(false), isLineInfoValid_(false), isTypeInfoValid_(false), 
-     type_Error(NULL), type_Untyped(NULL)
+                       Offset offset, bool &err) :
+   member_name_(member_name), 
+   is_a_out(false), 
+   main_call_addr_(0),
+   nativeCompiler(false), 
+   isLineInfoValid_(false), 
+   isTypeInfoValid_(false), 
+   type_Error(NULL), 
+   type_Untyped(NULL)
 {
-    linkedFile = new Object(mem_image, image_size, member_name, offset, 
+    Object *linkedFile = new Object(mem_image, image_size, member_name, offset, 
                                                            pd_log_perror);
-    err = extractInfo();
+    err = extractInfo(linkedFile);
+    delete linkedFile;
 }
 #else 
 Symtab::Symtab(char *, size_t, std::string &, Offset, bool &)
@@ -1094,8 +1145,9 @@ Symtab::Symtab(char *, size_t, std::string &, Offset, bool &)
     assert(0);
 }
 #endif
+#endif
 
-bool Symtab::extractInfo()
+bool Symtab::extractInfo(Object *linkedFile)
 {
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -1201,27 +1253,49 @@ bool Symtab::extractInfo()
 
 #endif //if 0
 
+  	 
+    address_width_ = linkedFile->getAddressWidth();
+    is_a_out = linkedFile->is_aout();
+    code_ptr_ = linkedFile->code_ptr();
+    data_ptr_ = linkedFile->data_ptr();
+    if (linkedFile->interpreter_name())
+       interpreter_name_ = std::string(linkedFile->interpreter_name());
+    entry_address_ = linkedFile->getEntryAddress();
+    base_address_ = linkedFile->getBaseAddress();
+    load_address_ = linkedFile->getLoadAddress();
+    toc_offset_ = linkedFile->getTOCoffset();
+    object_type_  = linkedFile->objType();
+    is_eel_ = linkedFile->isEEL();
+    linkedFile->getMappedRegions(mapped_regions_);
+    linkedFile->getSegments(segments_);
+
+#if defined (os_aix)
+    //  These should go away
+    linkedFile->get_stab_info(stabstr_, nstabs_, stabs_, stringpool_);
+    linkedFile->get_line_info(nlines_, lines_, fdptr_);
+#endif
+
 #if defined(os_solaris) || defined(os_aix) || defined(os_linux)
     // make sure we're using the right demangler
     
     nativeCompiler = parseCompilerType(linkedFile);
     //parsing_printf("isNativeCompiler: %d\n", nativeCompiler);
 #endif
-  	 
+    
     // define all of the functions
     //statusLine("winnowing functions");
 
 #if defined(ppc64_linux)
-   checkPPC64DescriptorSymbols();
+    checkPPC64DescriptorSymbols(linkedFile);
 #endif
-    
+
     // a vector to hold all created functions until they are properly classified
     std::vector<Symbol *> raw_funcs;
 	
     // define all of the functions, this also defines all of the modules
-    if (!symbolsToFunctions(&raw_funcs))
+    if (!symbolsToFunctions(linkedFile, &raw_funcs))
     {
-        fprintf(stderr, "Error converting symbols to functions in file %s\n", filename_.c_str());
+        fprintf(stderr, "Error converting symbols to functions in file %s\n", mf->filename().c_str());
         err = false;
         serr = Syms_To_Functions;
         return false;
@@ -1239,6 +1313,24 @@ bool Symtab::extractInfo()
     linkedFile->getModuleLanguageInfo(&mod_langs);
     setModuleLanguages(&mod_langs);
 	
+#if 0
+    hash_map<std::string, supportedLanguages>::iterator lang_iter;
+    for (lang_iter = mod_langs.begin(); lang_iter != mod_langs.end(); lang_iter++) {
+       std::string modn = lang_iter->first;
+       supportedLanguages l = lang_iter->second;
+       fprintf(stderr, "%s[%d]: Module: %s --- ", FILE__, __LINE__, modn.c_str());
+       switch (l) {
+          case lang_Unknown: fprintf(stderr, "lang_Unknown\n"); break;
+          case lang_Assembly: fprintf(stderr, "lang_Assembly\n"); break;
+          case lang_C: fprintf(stderr, "lang_C\n"); break;
+          case lang_CPlusPlus: fprintf(stderr, "lang_CPlusPlus\n"); break;
+          case lang_GnuCPlusPlus: fprintf(stderr, "lang_GnuCPlusPlus\n"); break;
+          case lang_Fortran: fprintf(stderr, "lang_Fortran\n"); break;
+          default: fprintf(stderr, "language other FIXME\n"); break;
+       };
+    }
+#endif
+
     // Once languages are assigned, we can build demangled names (in
     // the wider sense of demangling which includes stripping _'s from
     // fortran names -- this is why language information must be
@@ -1248,7 +1340,7 @@ bool Symtab::extractInfo()
 
     if (!buildFunctionLists(raw_funcs))
     {
-        fprintf(stderr, "Error building function lists in file %s\n", filename_.c_str());
+        fprintf(stderr, "Error building function lists in file %s\n", mf->filename().c_str());
         err = false;
         serr = Build_Function_Lists;
         return false;
@@ -1274,9 +1366,7 @@ Symtab::Symtab(const Symtab& obj) :
    Annotatable<Type *, user_types_a> (obj),
    Annotatable<Symbol *, user_symbols_a>(obj)
 {
-    filename_ = obj.filename_;
     member_name_ = obj.member_name_;
-    name_ = obj.name_;
     imageOffset_ = obj.imageOffset_;
     imageLen_ = obj.imageLen_;
     dataOffset_ = obj.dataOffset_;
@@ -1295,9 +1385,6 @@ Symtab::Symtab(const Symtab& obj) :
     
     nativeCompiler = obj.nativeCompiler;
     
-    // data from the symbol table  //what should be done here??
-    linkedFile = obj.linkedFile; 
-	
     //sections
     no_of_sections = obj.no_of_sections;
     unsigned i;
@@ -1858,13 +1945,13 @@ bool Symtab::isValidOffset(const Offset where) const
 
 bool Symtab::isCode(const Offset where)  const
 {
-    return (linkedFile->code_ptr() && 
+    return (code_ptr_ && 
             (where >= imageOffset_) && (where < (imageOffset_+imageLen_)));
 }
 
 bool Symtab::isData(const Offset where)  const
 {
-    return (linkedFile->data_ptr() && 
+    return (data_ptr_ && 
             (where >= dataOffset_) && (where < (dataOffset_+dataLen_)));
 }
 
@@ -1957,19 +2044,23 @@ bool Module::findSymbolByType(std::vector<Symbol *> &found, const std::string na
     return false;	
 }
  
-DLLEXPORT const std::string &Module::fileName() const {
+DLLEXPORT const std::string &Module::fileName() const 
+{
     return fileName_; 
 }
 
-DLLEXPORT const std::string &Module::fullName() const { 
+DLLEXPORT const std::string &Module::fullName() const 
+{
     return fullName_; 
 }
  
-DLLEXPORT Symtab *Module::exec() const { 
+DLLEXPORT Symtab *Module::exec() const 
+{
     return exec_;
 }
 
-DLLEXPORT supportedLanguages Module::language() const { 
+DLLEXPORT supportedLanguages Module::language() const 
+{
     return language_;
 }
 
@@ -1980,6 +2071,7 @@ DLLEXPORT LineInformation *Module::getLineInformation()
    if (!exec_->isLineInfoValid_) {
       exec_->parseLineInformation();
    }
+
    if (exec_->isLineInfoValid_) {
       if (!mt.size()) {
          fprintf(stderr, "%s[%d]:  weird, line info is valid but nonexistant!\n", FILE__, __LINE__);
@@ -2003,29 +2095,29 @@ DLLEXPORT LineInformation *Module::getLineInformation()
 }
 
 DLLEXPORT bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
-                                                std::string lineSource, unsigned int lineNo)
+      std::string lineSource, unsigned int lineNo)
 {
-    unsigned int originalSize = ranges.size();
+   unsigned int originalSize = ranges.size();
 
-    LineInformation *lineInformation = getLineInformation();
-    if(lineInformation)
-        lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
-     if( ranges.size() != originalSize )
-     	return true;
-     return false;
+   LineInformation *lineInformation = getLineInformation();
+   if (lineInformation)
+      lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
+   if ( ranges.size() != originalSize )
+      return true;
+   return false;
 }
 
 DLLEXPORT bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
 {
-    unsigned int originalSize = lines.size();
+   unsigned int originalSize = lines.size();
 
-    LineInformation *lineInformation = getLineInformation();
-    if(lineInformation)
-        lineInformation->getSourceLines( addressInRange, lines );
-     if( lines.size() != originalSize )
-     	return true;
-     return false;
-	    
+   LineInformation *lineInformation = getLineInformation();
+   if (lineInformation)
+      lineInformation->getSourceLines( addressInRange, lines );
+   if ( lines.size() != originalSize )
+      return true;
+   return false;
+
 }
 
 DLLEXPORT vector<Type *> *Module::getAllTypes()
@@ -2034,15 +2126,10 @@ DLLEXPORT vector<Type *> *Module::getAllTypes()
    if (!mtA.size()) return NULL;
    typeCollection *mt = mtA[0]; 
    if (!mt) {
-       fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
-       return NULL;
+      fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
+      return NULL;
    }
    return mt->getAllTypes();
-#if 0
-    if(!moduleTypes_)
-    	moduleTypes_ = typeCollection::getModTypeCollection(this);
-    return moduleTypes_->getAllTypes();
-#endif
 }
 
 DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars()
@@ -2097,7 +2184,8 @@ DLLEXPORT bool Module::findVariableType(Type *&type, std::string name)
     return true;	
 }
 
-void Symtab::parseTypesNow(){
+void Symtab::parseTypesNow()
+{
    if(isTypeInfoValid_)
    	return;
    parseTypes();
@@ -2208,13 +2296,11 @@ DLLEXPORT bool Module::operator==(const Module &mod) const {
             (addr_==mod.addr_) &&
             (fullName_==mod.fullName_) &&
             (exec_==mod.exec_) 
-#if 0
-	   &&  (lineInfo_ == mod.lineInfo_) 
-#endif
           );
 }
 
-DLLEXPORT bool Module::setName(std::string newName) {
+DLLEXPORT bool Module::setName(std::string newName) 
+{
     fullName_ = newName;
     fileName_ = extract_pathname_tail(fullName_);
     return true;
@@ -2328,7 +2414,8 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
     }
 }
 
-bool Symtab::openFile(Symtab *&obj, std::string filename){
+bool Symtab::openFile(Symtab *&obj, std::string filename)
+{
     bool err;
 #if defined(TIMED_PARSE)
     struct timeval starttime;
@@ -2370,7 +2457,9 @@ bool Symtab::openFile(Symtab *&obj, std::string filename){
     return err;
 }
 	
-bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size){
+#if 0 
+bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
+{
     bool err;
     obj = new Symtab(mem_image, size, err);
     if(err == false)
@@ -2379,6 +2468,7 @@ bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size){
         obj->setupTypes();	
     return err;
 }
+#endif
 
 bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
 {
@@ -2583,40 +2673,42 @@ bool Symtab::addSection(Section *sec)
     sections_.push_back(sec);
     Annotatable<Section *, user_sections_a> &usA = *this;
     usA.addAnnotation(sec);
-#if 0
-    newSections_.push_back(sec);
-#endif
     return true;
 }
 
 void Symtab::parseLineInformation()
 {
-    hash_map <std::string, LineInformation> &lineInfo_ = linkedFile->getLineInfo();
-    isLineInfoValid_ = true;	
-    hash_map <std::string, LineInformation>::iterator iter;
-    for(iter = lineInfo_.begin(); iter!=lineInfo_.end(); iter++)
-    {
-        Module *mod = NULL;
-        if(findModule(mod, iter->first))
+   hash_map <std::string, LineInformation> lineInfo;
+   Object *linkedFile = new Object(mf, lineInfo, pd_log_perror);
+
+   isLineInfoValid_ = true;	
+   hash_map <std::string, LineInformation>::iterator iter;
+
+   for (iter = lineInfo.begin(); iter!=lineInfo.end(); iter++)
+   {
+      Module *mod = NULL;
+      if (findModule(mod, iter->first))
+         mod->setLineInfo(&(iter->second));
+      else if (findModule(mod, mf->filename()))
+      {
+         LineInformation *lineInformation = mod->getLineInformation();
+         if (!lineInformation)
             mod->setLineInfo(&(iter->second));
-	else if(findModule(mod, name_))
-	{
-	    LineInformation *lineInformation = mod->getLineInformation();
-	    if(!lineInformation)
-	        mod->setLineInfo(&(iter->second));
-	    else
-	    {
-	    	lineInformation->addLineInfo(&(iter->second));
-	    	mod->setLineInfo(lineInformation);
-	    }	
-	}
-    }
+         else
+         {
+            lineInformation->addLineInfo(&(iter->second));
+            mod->setLineInfo(lineInformation);
+         }	
+      }
+   }
+
+   delete linkedFile; 
 }
 
 DLLEXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
-                                            std::string lineSource, unsigned int lineNo)
+      std::string lineSource, unsigned int lineNo)
 {
-    unsigned int originalSize = ranges.size();
+   unsigned int originalSize = ranges.size();
 
     /* Iteratate over the modules, looking for ranges in each. */
     for( unsigned int i = 0; i < _mods.size(); i++ ) {
@@ -2646,47 +2738,48 @@ DLLEXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset ad
 }
 
 DLLEXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
-	                       unsigned int lineOffset, Offset lowInclAddr,
-        	               Offset highExclAddr)
+      unsigned int lineOffset, Offset lowInclAddr,
+      Offset highExclAddr)
 {
-    Module *mod;
-    if(!findModule(mod, lineSource))
-    {
-	std::string fileNm = extract_pathname_tail(lineSource);
-    	if(!findModule(mod, fileNm))
-	{
-	    if(!findModule(mod, name_))
- 	    return false;
-	}    
-    }
-    LineInformation *lineInfo = mod->getLineInformation();
-    if(!lineInfo)
-    	return false;
-    return(lineInfo->addLine(lineSource.c_str(), lineNo, lineOffset, lowInclAddr, highExclAddr));
+   Module *mod;
+   if(!findModule(mod, lineSource))
+   {
+      std::string fileNm = extract_pathname_tail(lineSource);
+      if(!findModule(mod, fileNm))
+      {
+         if(!findModule(mod, mf->pathname()))
+            return false;
+      }    
+   }
+   LineInformation *lineInfo = mod->getLineInformation();
+   if(!lineInfo)
+      return false;
+   return(lineInfo->addLine(lineSource.c_str(), lineNo, lineOffset, lowInclAddr, highExclAddr));
 }
 
 DLLEXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset highExclusiveAddr,
-					std::string lineSource, unsigned int lineNo,
-	                	        unsigned int lineOffset)
+      std::string lineSource, unsigned int lineNo,
+      unsigned int lineOffset)
 {
-    Module *mod;
-    if(!findModule(mod, lineSource))
-    {
-	std::string fileNm = extract_pathname_tail(lineSource);
-    	if(!findModule(mod, fileNm))
- 	    return false;
-    }
-    LineInformation *lineInfo = mod->getLineInformation();
-    if(!lineInfo)
-    	return false;
-    return(lineInfo->addAddressRange(lowInclusiveAddr, highExclusiveAddr, lineSource.c_str(), lineNo, lineOffset));
+   Module *mod;
+   if(!findModule(mod, lineSource))
+   {
+      std::string fileNm = extract_pathname_tail(lineSource);
+      if(!findModule(mod, fileNm))
+         return false;
+   }
+   LineInformation *lineInfo = mod->getLineInformation();
+   if(!lineInfo)
+      return false;
+   return(lineInfo->addAddressRange(lowInclusiveAddr, highExclusiveAddr, lineSource.c_str(), lineNo, lineOffset));
 }
-																			
+
 
 void Symtab::parseTypes()
 {
-    linkedFile->parseTypeInfo(this);
-    isTypeInfoValid_ = true;
+   Object *linkedFile = new Object(mf, pd_log_perror);
+   linkedFile->parseTypeInfo(this);
+   isTypeInfoValid_ = true;
 }
 
 bool Symtab::addType(Type *type)
@@ -2810,7 +2903,7 @@ bool Symtab::exportXML(std::string file)
         return false;
     }
     rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "file",
-                                             "%s", filename_.c_str());
+                                             "%s", mf->filename().c_str());
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
@@ -3343,24 +3436,32 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
     return true;
 }
 
-DLLEXPORT bool Symtab::emitSymbols(std::string filename, unsigned flag)
+DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
     return linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
 }
 
 DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
-    return linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
+   Object *linkedFile = new Object(mf, pd_log_perror);
+   assert(linkedFile);
+   bool ret = linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
+   delete linkedFile;
+   return ret;
 }
 
 DLLEXPORT bool Symtab::getSegments(vector<Segment> &segs) const
 {
-    return linkedFile->getSegments(segs);
+   segs = segments_;
+   if (!segments_.size()) return false;
+   return true;
 }
 
 DLLEXPORT bool Symtab::getMappedRegions(std::vector<Region> &regs) const
 {
-   return linkedFile->getMappedRegions(regs);
+   regs = mapped_regions_;
+   if (!mapped_regions_.size()) return false;
+   return true;
 }
 
 DLLEXPORT bool Symtab::updateCode(void *buffer, unsigned size)
@@ -3411,32 +3512,38 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) {
    return highWaterMark;
 }
 
-DLLEXPORT ObjectType Symtab::getObjectType() const {
-    return linkedFile->objType();
+DLLEXPORT ObjectType Symtab::getObjectType() const 
+{
+   return object_type_;
 }
 
-DLLEXPORT char *Symtab::mem_image() const { 
-    return linkedFile->mem_image(); 
+DLLEXPORT char *Symtab::mem_image() const 
+{
+   return (char *)mf->base_addr();
 }
 
-DLLEXPORT const std::string &Symtab::file() const {
-    return filename_;
+DLLEXPORT const std::string &Symtab::file() const 
+{
+   return mf->pathname();
 }
 
-DLLEXPORT const std::string &Symtab::name() const {
-    return name_;
+DLLEXPORT const std::string &Symtab::name() const 
+{
+   return mf->filename();
 }
 
-DLLEXPORT unsigned Symtab::getNumberofSections() const { 
+DLLEXPORT unsigned Symtab::getNumberofSections() const 
+{
     return no_of_sections; 
 }
 
-DLLEXPORT unsigned Symtab::getNumberofSymbols() const { 
+DLLEXPORT unsigned Symtab::getNumberofSymbols() const 
+{
     return no_of_symbols; 
 }
 
 #if defined(os_aix)
-void Symtab::get_stab_info(char *&stabstr, int &nstabs, void *&stabs, 
+void Symtab::get_stab_info(Object *linkedFile, char *&stabstr, int &nstabs, void *&stabs, 
                                char *&stringpool) const
 
 {
@@ -3444,19 +3551,29 @@ void Symtab::get_stab_info(char *&stabstr, int &nstabs, void *&stabs,
 }
 
 
-void Symtab::get_line_info(int& nlines, char*& lines,
+void Symtab::get_line_info(Object *linkedFile, int& nlines, char*& lines,
                                unsigned long& fdptr) const
 {
     linkedFile->get_line_info(nlines,lines,fdptr);
 }
-#else
-void Symtab::get_stab_info(char *&, int &, void *&, char *&) const 
+
+void Symtab::get_stab_info(char *&stabstr, int &nstabs, void *&stabs, 
+                               char *&stringpool) const
+
 {
+   stabstr = stabstr_;
+   nstabs = nstabs_;
+   stabs = stabs_;
+   stringpool = stringpool_;
 }
 
 
-void Symtab::get_line_info(int &, char *&, unsigned long&) const
+void Symtab::get_line_info(int& nlines, char*& lines,
+                               unsigned long& fdptr) const
 {
+   nlines = nlines_;
+   lines = lines_;
+   fdptr = fdptr_;
 }
 #endif
 

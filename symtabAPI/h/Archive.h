@@ -53,7 +53,9 @@ class Archive{
  public:
  	Archive() {}
 	static bool openArchive(Archive *&img, std::string filename);
+#if 0 
 	static bool openArchive(Archive *&img, char *mem_image, size_t image_size);
+#endif
 
 	bool getMember(Symtab *&img, std::string memberName);
 	bool getMemberByOffset(Symtab *&img, Offset memberOffset);
@@ -67,7 +69,9 @@ class Archive{
 
  private:
  	Archive(std::string &filename, bool &err);
+#if 0 
 	Archive(char *mem_image, size_t image_size, bool &err);
+#endif
  
  private:
  	std::string filename_;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.11 2007/12/31 16:08:04 bernat Exp $
+// $Id: binaryEdit.C,v 1.12 2008/01/03 17:49:18 jaw Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -287,7 +287,8 @@ bool BinaryEdit::getStatFileDescriptor(const pdstring &name, fileDescriptor &des
 
 #if 1
 
-bool BinaryEdit::writeFile(const pdstring &newFileName) {
+bool BinaryEdit::writeFile(const pdstring &newFileName) 
+{
     // We've made a bunch of changes and additions to the
     // mapped object.
     //   Changes: modifiedRanges_

@@ -30,7 +30,7 @@
  */
 
 
-// $Id: String.C,v 1.34 2007/05/30 19:20:14 legendre Exp $
+// $Id: String.C,v 1.35 2008/01/03 17:49:17 jaw Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -40,6 +40,11 @@
 #endif
 
 #include "common/h/String.h"
+
+// Declare static member vrbles:
+pdstring *pdstring::nilptr = NULL;
+int string_counter::count = 0;
+string_counter sc;
 
 /* This doesn't actually belong here. */
 void dedemangle( const char * demangled, char * result ) {
@@ -185,9 +190,6 @@ void dedemangle( const char * demangled, char * result ) {
    strcpy( result, resultBegins );
 } /* end dedemangle */
 
-// Declare static member vrbles:
-pdstring *pdstring::nilptr = NULL;
-int string_counter::count = 0;
 
 string_ll::string_ll()
     : str_(0), len_(0), key_(0) {

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.15 2008/01/03 00:13:23 legendre Exp $
+// $Id: Object-xcoff.C,v 1.16 2008/01/03 17:49:19 jaw Exp $
 
 #include <regex.h>
 
@@ -630,7 +630,7 @@ void *fileOpener::getPtrAtOffset(unsigned offset) const
 // File parsing error macro, assumes errorLine defined
 #define PARSE_AOUT_DIE(errType, errCode) { \
       fprintf(stderr,"warning:parsing a.out file %s(%s): %s \n", \
-              file_.c_str(), member_.c_str(), errType); \
+              mf->filename().c_str(), member_.c_str(), errType); \
       err_func_(errType); \
       return; \
       }
@@ -646,8 +646,8 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    unsigned textSecNo, dataSecNo , loaderSecNo;
    union auxent *aux = NULL;
    struct filehdr hdr;
-   struct syment *sym = NULL;
    struct aouthdr aout;
+   struct syment *sym = NULL;
    union auxent *csect = NULL;
    char *stringPool=NULL;
    Symbol::SymbolType type; 
@@ -669,6 +669,9 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    unsigned toc_offset = 0;
    std::string modName;
    baseAddress_ = (Offset)fo_->getPtrAtOffset(offset);
+#if 0
+   baseAddress_ = offset + (Offset) mf->base_addr();
+#endif
 
    int linesfdptr=0;
    struct lineno* lines=NULL;
@@ -679,6 +682,10 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
 
    if (!fo_->read(&hdr, sizeof(struct filehdr)))
        PARSE_AOUT_DIE("Reading file header", 49);
+
+#if 0
+   struct filehdr &hdr = *((char *)baseAddress_);
+#endif
 
    if (hdr.f_magic == 0x1ef || hdr.f_magic == 0x01F7) {
        // XCOFF64 file! We don't handle those yet.
@@ -692,25 +699,33 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
        //bperr( "Possible problem, magic number is %x, should be %x\n",
               //hdr.f_magic, 0x1df);
    }
-#if 0   
+#if 0 
    if(hdr.f_opthdr == 0)
     cout << "no aout header" << endl;
    if(hdr.f_opthdr == _AOUTHSZ_SHORT)
     cout << "short header" << endl;
 #endif   
   
+#if 0
+   struct aouthdr &aout = *((char *)baseAddress_ + sizeof(struct filehdr));
+#endif
    if (!fo_->read(&aout, hdr.f_opthdr))
        PARSE_AOUT_DIE("Reading a.out header", 49);
-
-
    sectHdr = (struct scnhdr *) fo_->ptr();
+
+
+#if 0
+   sectHdr = (struct scnhdr *) (((char *)&aout) +sizeof(aouthdr));
+#endif
+
    fo_->seek(sizeof(struct scnhdr) * hdr.f_nscns);
 
    if (!sectHdr)
        PARSE_AOUT_DIE("Reading section headers", 49);
    
+
    //if binary is not stripped 
-   if( hdr.f_symptr ) {
+   if ( hdr.f_symptr ) {
        fo_->set(offset + hdr.f_symptr);
        symbols = (struct syment *) fo_->ptr();
        fo_->seek(hdr.f_nsyms * SYMESZ);
@@ -718,6 +733,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
        if (!symbols)
            PARSE_AOUT_DIE("Reading symbol table", 49);
    }
+
    // Consistency check
    if(hdr.f_opthdr == _AOUTHSZ_EXEC) //complete aout header present
    {
@@ -741,14 +757,15 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
     if ((unsigned long) aout.dsize != sectHdr[aout.o_sndata-1].s_size)
         PARSE_AOUT_DIE("Checking data size", 49);
    }*/
-   if(hdr.f_opthdr !=  0)
+
+   if (hdr.f_opthdr !=  0)
 	 entryAddress_ = aout.entry;
 
     /*
     * Get the string pool, if there is one
     */
-   if( hdr.f_nsyms ) 
-   {
+
+   if ( hdr.f_nsyms )  {
        // We want to go after the symbol table...
        if (!fo_->set(offset + hdr.f_symptr + (hdr.f_nsyms*SYMESZ)))
            PARSE_AOUT_DIE("Could not seek to string pool", 49);
@@ -1197,11 +1214,11 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
          // Problem: libc and others show up as file names. So if the
          // file being loaded is a .a (it's a hack, remember?) use the
          // .a as the modName instead of the symbol we just found.
-  std::string::size_type len = file_.length(); 
-         if (((len>2)&&(file_.substr(len-2,2)==".a")) ||
-             ((len>3)&&(file_.substr(len-3,3)==".so")) ||
-             ((len>5)&&(file_.substr(len-5,5)==".so.1")))
-             modName = file_;
+         std::string::size_type len = mf->pathname().length(); 
+         if (((len>2)&&(mf->pathname().substr(len-2,2)==".a")) ||
+             ((len>3)&&(mf->pathname().substr(len-3,3)==".so")) ||
+             ((len>5)&&(mf->pathname().substr(len-5,5)==".so.1")))
+             modName = mf->pathname();
          else if (name == "glink.s")
              modName = std::string("Global_Linkage");
          else {
@@ -1253,12 +1270,13 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
 // More macros
 #define PARSE_AR_DIE(errType, errCode) { \
       sprintf(errorLine, "Error parsing archive file %s: %s\n", \
-              file_.c_str(), errType); \
+              mf->pathname().c_str(), errType); \
       err_func_(errType); \
       return; \
       }
    
-void Object::load_archive(bool is_aout) {
+void Object::load_archive(bool is_aout) 
+{
     xcoffArchive *archive;
     
     // Determine archive type
@@ -1315,92 +1333,92 @@ void Object::load_archive(bool is_aout) {
 
 void Object::load_object()
 {
-    // Load in an object (archive, object, .so)
+   // Load in an object (archive, object, .so)
 
-    assert(fo_);
+   assert(fo_);
 
-    unsigned char magic_number[2];
-    unsigned short f_flags;
-    
-    if (!fo_->set(0)) {
-        sprintf(errorLine, "Error reading file %s\n", 
-                file_.c_str());
- err_func_(errorLine); 
-        //statusLine(errorLine);
-        //showErrorCallback(49,(const char *) errorLine);
-        return;
-    }
+   unsigned char magic_number[2];
+   unsigned short f_flags;
 
-    if (!fo_->read((void *)magic_number, 2)) {
-        sprintf(errorLine, "Error reading file %s\n", 
-                file_.c_str());
- err_func_(errorLine); 
-        //statusLine(errorLine);
-        //showErrorCallback(49,(const char *) errorLine);
-        return;
-    }
+   if (!fo_->set(0)) {
+      sprintf(errorLine, "Error reading file %s\n", 
+            mf->pathname().c_str());
+      err_func_(errorLine); 
+      //statusLine(errorLine);
+      //showErrorCallback(49,(const char *) errorLine);
+      return;
+   }
 
-    if (!fo_->set(18)){
-        sprintf(errorLine, "Error moving to the offset 18 file %s\n", 
-                file_.c_str());
- err_func_(errorLine); 
-        //statusLine(errorLine);
-        //showErrorCallback(49,(const char *) errorLine);
-    }   
-       
-    if (!fo_->read((void *)(&f_flags), 2)) {
-        sprintf(errorLine, "Error reading file %s\n", 
-                file_.c_str());
- err_func_(errorLine); 
-        //statusLine(errorLine);
-        //showErrorCallback(49,(const char *) errorLine);
-        return;
-    }
-    
-    // a.out file: magic number = 0x01df
-    // archive file: magic number = 0x3c62 "<b", actually "<bigaf>"
-    // or magic number = "<a", actually "<aiaff>"
-    if (magic_number[0] == 0x01) {
-        if (magic_number[1] == 0xdf)
- {
-     if(f_flags & F_SHROBJ)
-     {
-  is_aout_ = false;
-             parse_aout(0, false);
-     }
-     else
-     {
-  is_aout_ = true;
-      parse_aout(0,true);
-     } 
- }    
-        else; 
-            //parse_aout_64(fd, 0);
-            //bperr( "Don't handle 64 bit files yet");
-    }
-    else if (magic_number[0] == '<') // archive of some sort
-    {
-     if(f_flags & F_SHROBJ)
- {
-     //load_archive(false);
-     is_aout_ = false;
-     parse_aout(offset_, false);
- }    
- else
- {
-     //load_archive(true);
-     is_aout_ = true;
-     parse_aout(offset_, true);
- }    
-    } 
-    else {// Fallthrough
-        sprintf(errorLine, "Bad magic number in file %s\n",
-                file_.c_str());
- err_func_(errorLine); 
-        //statusLine(errorLine);
-        //showErrorCallback(49,(const char *) errorLine);
-    }
-    return;
+   if (!fo_->read((void *)magic_number, 2)) {
+      sprintf(errorLine, "Error reading file %s\n", 
+            mf->pathname().c_str());
+      err_func_(errorLine); 
+      //statusLine(errorLine);
+      //showErrorCallback(49,(const char *) errorLine);
+      return;
+   }
+
+   if (!fo_->set(18)){
+      sprintf(errorLine, "Error moving to the offset 18 file %s\n", 
+            mf->pathname().c_str());
+      err_func_(errorLine); 
+      //statusLine(errorLine);
+      //showErrorCallback(49,(const char *) errorLine);
+   }   
+
+   if (!fo_->read((void *)(&f_flags), 2)) {
+      sprintf(errorLine, "Error reading file %s\n", 
+            mf->pathname().c_str());
+      err_func_(errorLine); 
+      //statusLine(errorLine);
+      //showErrorCallback(49,(const char *) errorLine);
+      return;
+   }
+
+   // a.out file: magic number = 0x01df
+   // archive file: magic number = 0x3c62 "<b", actually "<bigaf>"
+   // or magic number = "<a", actually "<aiaff>"
+   if (magic_number[0] == 0x01) {
+      if (magic_number[1] == 0xdf)
+      {
+         if(f_flags & F_SHROBJ)
+         {
+            is_aout_ = false;
+            parse_aout(0, false);
+         }
+         else
+         {
+            is_aout_ = true;
+            parse_aout(0,true);
+         } 
+      }    
+      else; 
+      //parse_aout_64(fd, 0);
+      //bperr( "Don't handle 64 bit files yet");
+   }
+   else if (magic_number[0] == '<') // archive of some sort
+   {
+      if(f_flags & F_SHROBJ)
+      {
+         //load_archive(false);
+         is_aout_ = false;
+         parse_aout(offset_, false);
+      }    
+      else
+      {
+         //load_archive(true);
+         is_aout_ = true;
+         parse_aout(offset_, true);
+      }    
+   } 
+   else {// Fallthrough
+      sprintf(errorLine, "Bad magic number in file %s\n",
+            mf->pathname().c_str());
+      err_func_(errorLine); 
+      //statusLine(errorLine);
+      //showErrorCallback(49,(const char *) errorLine);
+   }
+   return;
 }
 
 // There are three types of "shared" files:
@@ -1411,68 +1429,70 @@ void Object::load_object()
 // since static objects are just a.outs, we can use the same
 // function for all
 
-Object::Object(const Object& obj)
-    : AObject(obj) {
-    // You know, this really should never be called, but be careful.
-    if(obj.fo_->file() != "") 
-     fo_ = fileOpener::openFile(obj.fo_->file());
-    else
-     fo_ = fileOpener::openFile((void *)obj.fo_->mem_image(), obj.fo_->size());
-    assert(0);
-}
-
-
-Object::Object(std::string &filename, void (*err_func)(const char *))
-    : AObject(filename, err_func)
-{    
-    loadNativeDemangler();
-    fo_ = fileOpener::openFile(filename);
-    assert(fo_);
-    load_object(); 
-}
-
-Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *))
-    : AObject(NULL, err_func)
+Object::Object(const Object& obj) :
+   AObject(obj) 
 {
-    loadNativeDemangler();
-    fo_ = fileOpener::openFile((void *)mem_image, image_size);
-    assert(fo_);
-    load_object();
+   fo_ = fileOpener::openFile((void *)obj.fo_->mem_image(), obj.fo_->size());
 }
 
-Object::Object(std::string &filename, std::string &member_name, Offset offset, void (*err_func)(const char *))
-    : AObject(filename, err_func), member_(member_name), offset_(offset)
+
+Object::Object(MappedFile *mf_, void (*err_func)(const char *)) :
+   AObject(mf_, err_func)
 {    
-    loadNativeDemangler();
-    fo_ = fileOpener::openFile(filename);
-    assert(fo_);
-    load_object(); 
+   loadNativeDemangler();
+   fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
+   load_object(); 
 }
 
-Object::Object(char *mem_image, size_t image_size, std::string &member_name, Offset offset, void (*err_func)(const char *))
-    : AObject(NULL, err_func), member_(member_name), offset_(offset)
+Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, void (*err_func)(const char *)) :
+   AObject(mf_, err_func)
+{    
+   loadNativeDemangler();
+   fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
+   fprintf(stderr, "%s[%d]:  FIXME:  line info ctor!\n", FILE__, __LINE__);
+   //load_object(); 
+}
+
+Object::Object(MappedFile *mf_, std::string &member_name, Offset offset, void (*err_func)(const char *)) :
+   AObject(mf_, err_func), member_(member_name), offset_(offset)
+{    
+   loadNativeDemangler();
+   fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
+   load_object(); 
+}
+#if 0 
+Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *)) :
+   AObject(NULL, err_func)
 {
-    loadNativeDemangler();
-    fo_ = fileOpener::openFile((void *)mem_image, image_size);
-    assert(fo_);
-    load_object();
+   loadNativeDemangler();
+   fo_ = fileOpener::openFile((void *)mem_image, image_size);
+   assert(fo_);
+   load_object();
 }
 
-Object& Object::operator=(const Object& obj) {
-    (void) AObject::operator=(obj);
-    if(obj.fo_->file() != "") 
-     fo_ = fileOpener::openFile(obj.fo_->file());
-    else
-     fo_ = fileOpener::openFile((void *)obj.fo_->mem_image(), obj.fo_->size());
-    return *this;
+Object::Object(char *mem_image, size_t image_size, std::string &member_name, Offset offset, void (*err_func)(const char *)) :
+   AObject(NULL, err_func), member_(member_name), offset_(offset)
+{
+   loadNativeDemangler();
+   fo_ = fileOpener::openFile((void *)mem_image, image_size);
+   assert(fo_);
+   load_object();
+}
+#endif
+
+Object& Object::operator=(const Object& obj) 
+{
+   (void) AObject::operator=(obj);
+   fo_ = fileOpener::openFile((void *)obj.fo_->mem_image(), obj.fo_->size());
+   return *this;
 }
 
 
 void Object::get_stab_info(char *&stabstr, int &nstabs, void *&stabs, char *&stringpool) const {
-  stabstr = (char *) stabstr_;
-  nstabs = nstabs_;
-  stabs = stabs_;
-  stringpool = (char *) stringpool_;
+   stabstr = (char *) stabstr_;
+   nstabs = nstabs_;
+   stabs = stabs_;
+   stringpool = (char *) stringpool_;
 }
 
 //
@@ -1484,15 +1504,15 @@ void Object::get_stab_info(char *&stabstr, int &nstabs, void *&stabs, char *&str
 bool parseCompilerType(Object *objPtr) 
 {
 
-    SYMENT *syms;
-    int stab_nsyms;
-    char *stringPool;
-    union auxent *aux;
-    char *stabstr=NULL;
+   SYMENT *syms;
+   int stab_nsyms;
+   char *stringPool;
+   union auxent *aux;
+   char *stabstr=NULL;
 
-    void *syms_void = NULL;
-    objPtr->get_stab_info(stabstr, stab_nsyms, syms_void, stringPool);
-    syms = static_cast<SYMENT *>(syms_void);
+   void *syms_void = NULL;
+   objPtr->get_stab_info(stabstr, stab_nsyms, syms_void, stringPool);
+   syms = static_cast<SYMENT *>(syms_void);
     for (int i=0;i<stab_nsyms;i++) {
         SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
         char tempName[15];
@@ -1558,7 +1578,14 @@ ObjectType Object::objType() const {
    return is_aout() ? obj_Executable : obj_SharedLib;
 }
 
-bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag) {
+bool Object::emitDriver(Symtab * /*obj*/, 
+      string fName, 
+      std::vector<Symbol *>&functions, 
+      std::vector<Symbol *>&variables, 
+      std::vector<Symbol *>&mods, 
+      std::vector<Symbol *>&notypes, 
+      unsigned flag) 
+{
    return true;
 }
 
@@ -1593,12 +1620,13 @@ bool AObject::getMappedRegions(std::vector<Region> &regs) const
 /* FIXME: hack. */
 Offset trueBaseAddress = 0;
 
-void Object::parseFileLineInfo() {
+void Object::parseFileLineInfo()
+{
     static set<std::string> haveParsedFileMap;
 
-    cerr << "parsing line infor for file :" << file_ << endl;
+    cerr << "parsing line infor for file :" << mf->pathname() << endl;
 
-    if( haveParsedFileMap.count(file_) != 0 ) { return; }
+    if( haveParsedFileMap.count(mf->pathname()) != 0 ) { return; }
     // /* DEBUG */ fprintf( stderr, "%s[%d]: Considering image at 0x%lx\n", __FILE__, __LINE__, fileOnDisk );
 
     /* FIXME: hack.  Should be argument to parseLineInformation(), which should in turn be merged
@@ -1718,7 +1746,7 @@ void Object::parseFileLineInfo() {
     if( funcName != NULL ) {
         free( funcName );
     }
-    haveParsedFileMap.insert(file_);
+    haveParsedFileMap.insert(mf->pathname());
 } /* end parseFileLineInfo() */
 
 void Object::parseLineInformation(std::string * currentSourceFile,

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.13 2007/12/14 04:16:48 jaw Exp $
+ * $Id: Object.h,v 1.14 2008/01/03 17:49:19 jaw Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -49,6 +49,7 @@
 #include "symtabAPI/h/Symbol.h"
 #include "symtabAPI/h/LineInformation.h"
 #include "common/h/headers.h"
+#include "common/h/MappedFile.h"
 #include "common/h/lprintf.h"
 
 namespace Dyninst{
@@ -128,11 +129,12 @@ public:
 protected:
     DLLEXPORT virtual ~AObject();
     // explicitly protected
-    DLLEXPORT AObject(const std::string file , void (*err_func)(const char *));
+    DLLEXPORT AObject(MappedFile * , void (*err_func)(const char *));
+    DLLEXPORT AObject(MappedFile * , hash_map<std::string, LineInformation> &, void (*err_func)(const char *)) {assert(0);}
     DLLEXPORT AObject(const AObject &obj);
     DLLEXPORT AObject&  operator= (const AObject &obj);
 
-    std::string file_;
+    MappedFile *mf;
     std::vector< Section *> sections_;
     hash_map< std::string, std::vector< Symbol *> > symbols_;
 

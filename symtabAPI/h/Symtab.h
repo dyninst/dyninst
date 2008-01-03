@@ -50,6 +50,8 @@ typedef struct {} user_symbols_a;
 typedef struct {} module_line_info_a;
 typedef struct {} module_type_info_a;
 
+class MappedFile;
+
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -162,9 +164,10 @@ class Symtab : public LookupInterface,
 
 	DLLEXPORT Symtab(const Symtab& obj);
 	
-   	DLLEXPORT static bool openFile(Symtab *&obj, std::string filename);
-	
+   DLLEXPORT static bool openFile(Symtab *&obj, std::string filename);
+#if 0  
 	DLLEXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
+#endif
 	
 	DLLEXPORT bool exportXML(std::string filename);
 
@@ -233,7 +236,7 @@ class Symtab : public LookupInterface,
 	DLLEXPORT bool findLocalVariable(std::vector<localVar *>&vars, std::string name);
 
 	/***** Write Back binary functions *****/
-	DLLEXPORT bool emitSymbols(std::string filename, unsigned flag = 0);
+	DLLEXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
 	DLLEXPORT bool addSection(Offset vaddr, void *data, unsigned int dataSize, std::string name, unsigned long flags, bool loadable = false);
 	DLLEXPORT bool addSection(Section *newScn);
 	DLLEXPORT bool emit(std::string filename, unsigned flag = 0);
@@ -267,9 +270,23 @@ class Symtab : public LookupInterface,
 	DLLEXPORT unsigned getNumberofSections() const;
    	DLLEXPORT unsigned getNumberofSymbols() const;
 
+#if defined (os_aix)
+      //  These will go away.... (get_stab_info) and get_line_info, etc
 	void get_stab_info(char *&stabstr, int &nstabs, void *&stabs, 
                       char *&stringpool) const;
 	void get_line_info(int& nlines, char*& lines,unsigned long& fdptr) const;
+
+	void get_stab_info(Object *linkedFile, char *&stabstr, int &nstabs, void *&stabs, 
+                      char *&stringpool) const;
+	void get_line_info(Object *linkedFile, int& nlines, char*& lines,unsigned long& fdptr) const;
+   int nlines_;
+   unsigned long fdptr_;
+   char *lines_;
+   char *stabstr_;
+   int nstabs_;
+   void *stabs_;
+   char *stringpool_;
+#endif
    
 	/***** Error Handling *****/
 	DLLEXPORT static SymtabError getLastSymtabError();
@@ -293,14 +310,18 @@ class Symtab : public LookupInterface,
 	
  protected:
    Symtab(std::string &filename, std::string &member_name, Offset offset, bool &err);
+#if 0 
 	Symtab(char *mem_image, size_t size, std::string &member_name, 
               Offset offset, bool &err);
+#endif
 
    /***** Private Member Functions *****/
  private:
 	DLLEXPORT Symtab(std::string &filename, bool &err); 
+#if 0 
 	DLLEXPORT Symtab(char *mem_image, size_t image_size, bool &err);
-	DLLEXPORT bool extractInfo();
+#endif
+	DLLEXPORT bool extractInfo(Object *linkedFile);
 
 	void setupTypes();
 	static void setupStdTypes();
@@ -310,7 +331,7 @@ class Symtab : public LookupInterface,
                             std::string &typed,
                             bool nativeCompiler, 
                             supportedLanguages lang );
-	bool symbolsToFunctions(std::vector<Symbol *> *raw_funcs);
+	bool symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_funcs);
 	bool changeType(Symbol *sym, Symbol::SymbolType oldType);
 			       
 	void setModuleLanguages(hash_map<std::string, supportedLanguages> *mod_langs);
@@ -350,7 +371,7 @@ class Symtab : public LookupInterface,
 	bool getAllVariables(std::vector<Symbol *> &ret);
 	bool getAllSymbols(std::vector<Symbol *> &ret);
 
-	void checkPPC64DescriptorSymbols();
+	void checkPPC64DescriptorSymbols(Object *linkedFile);
 	   
 
 	void parseLineInformation();
@@ -358,9 +379,8 @@ class Symtab : public LookupInterface,
 
    /***** Private Data Members *****/
  private:
-   std::string filename_;
    std::string member_name_;
-   std::string name_;
+   MappedFile *mf;
 
    Offset imageOffset_;
    unsigned imageLen_;
@@ -377,8 +397,19 @@ class Symtab : public LookupInterface,
 
    bool nativeCompiler;
 
-   // data from the symbol table 
-   Object *linkedFile;
+   unsigned address_width_;
+   char *code_ptr_;
+   char *data_ptr_;
+   std::string interpreter_name_;
+   Offset entry_address_;
+   Offset base_address_;
+   Offset load_address_;
+   Offset toc_offset_;
+   ObjectType object_type_;
+   bool is_eel_;
+   std::vector<Region> mapped_regions_;
+   std::vector<Segment> segments_;
+   //  make sure is_a_out is set before calling symbolsToFunctions
 
    // A std::vector of all Symtabs. Used to avoid duplicating
    // a Symtab that already exists.

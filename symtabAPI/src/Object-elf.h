@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.11 2007/12/10 22:27:49 giri Exp $
+ * $Id: Object-elf.h,v 1.12 2008/01/03 17:49:18 jaw Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -39,7 +39,9 @@
 #define _Object_elf_h_
 
 
+#include "common/h/MappedFile.h"
 #include "symtabAPI/h/Symbol.h"
+#include "common/h/headers.h"
 #include "common/h/Types.h"
 #include <elf.h>
 #include <libelf.h>
@@ -189,11 +191,8 @@ class Section;
 class Object : public AObject {
  public:
   Object(){}
-  //void findMain( std::vector< Symbol *> &allsymbols );
-  //Offset findDynamic( std::vector< Symbol *> &allsymbols );
-  // "Filedescriptor" ctor
-  Object(std::string &filename, void (*)(const char *) = log_msg);
-  Object(char *mem_image, size_t image_size, void (*)(const char *) = log_msg);
+  Object(MappedFile *, void (*)(const char *) = log_msg);
+  Object(MappedFile *, hash_map<std::string, LineInformation> &, void (*)(const char *) = log_msg);
   Object(const Object &);
   virtual ~Object();
   const Object& operator=(const Object &);
@@ -204,9 +203,9 @@ class Object : public AObject {
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
   stab_entry * get_stab_info() const;
-  const char * getFileName() const { return fileName; }
+  const char * getFileName() const { return mf->filename().c_str(); }
   void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
-  void parseFileLineInfo();
+  void parseFileLineInfo(hash_map<std::string, LineInformation> &li);
   void parseTypeInfo(Symtab *obj);
   bool getMappedRegions(std::vector<Region> &regs) const;
 
@@ -224,10 +223,10 @@ class Object : public AObject {
   Offset getBaseAddress() const { return 0; }
   static bool truncateLineFilenames;
  
-  virtual char *mem_image() const { 
-  	if(fileName == NULL)
-		return mem_image_;
-  	return file_ptr_; 
+  virtual char *mem_image() const 
+  {
+     assert(mf);
+     return (char *)mf->base_addr();
   }
 
   DLLEXPORT ObjectType objType() const;
@@ -280,25 +279,12 @@ class Object : public AObject {
 	}
 
 	bool is_offset_in_plt(Offset offset) const;
-        hash_map<std::string, LineInformation > &getLineInfo()
-        {
-	    //Parse Line Info
-	    parseFileLineInfo();
-		   
-            return lineInfo_;
-        }
 
  private:
   static void log_elferror (void (*)(const char *), const char *);
     
-  int       file_fd_;            // mapped ELF file
-  unsigned  file_size_;          // mapped ELF file
-  char     *file_ptr_;           // mapped ELF file
   Elf_X    elfHdr;
   
-  const char * fileName;
-  char *mem_image_;
-  //Symbol    mainSym_;
   Offset   fini_addr_;
   Offset   text_addr_; 	 //.text section 
   Offset   text_size_; 	 //.text section size
@@ -357,13 +343,6 @@ class Object : public AObject {
   // the time we need it, and it's hard to get to anyway.
   hash_map< Offset, std::string > symbolNamesByAddr;
 
-  // LineNumber information
-  hash_map< std::string, LineInformation>lineInfo_;
-
-  // populates: file_fd_, file_size_, file_ptr_
-  bool mmap_file(const char *file, 
-		 bool &did_open, bool &did_mmap);
-
   bool loaded_elf( Offset &, Offset &,
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
@@ -374,8 +353,8 @@ class Object : public AObject {
 		    Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp,
           bool a_out=false);
   
-  void parseStabFileLineInfo();
-  void parseDwarfFileLineInfo();
+  void parseStabFileLineInfo(hash_map<std::string, LineInformation> &li);
+  void parseDwarfFileLineInfo(hash_map<std::string, LineInformation> &li);
 
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes(Symtab *obj);
@@ -417,6 +396,7 @@ class Object : public AObject {
   void get_valid_memory_areas(Elf_X &elf);
 
   Elf_X_Shdr *getSectionHdrByAddr(Offset addr);
+#if 0 
 #if defined(os_irix)
 
  public:
@@ -440,6 +420,7 @@ class Object : public AObject {
   int         dynsym_zero_index_;
 
 #endif /* mips_sgi_irix6_4 */
+#endif
 };
 
 //const char *pdelf_get_shnames(Elf *elfp, bool is64);

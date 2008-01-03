@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.12 2007/12/12 19:18:22 giri Exp $
+ * $Id: Object-xcoff.h,v 1.13 2008/01/03 17:49:19 jaw Exp $
 ************************************************************************/
 
 
@@ -185,17 +185,14 @@ class Object : public AObject {
     Object (const Object &);
     Object&   operator= (const Object &);
     Object(){}	
-    Object(std::string &filename,	
+    Object(MappedFile *, void (*)(const char *) = log_msg);
+    Object(MappedFile *, hash_map<std::string, LineInformation> &, 
+          void (*)(const char *) = log_msg);
+    Object(MappedFile *, std::string &member_name, Offset offset,	
             void (*)(const char *) = log_msg);
-    Object(char *mem_image, size_t image_size,
-            void (*)(const char *) = log_msg);
-    Object(std::string &filename, std::string &member_name, Offset offset,	
-            void (*)(const char *) = log_msg);
-    Object(char *mem_image, size_t image_size,std::string &member_name, Offset offset,
-            void (*)(const char *) = log_msg);
-    ~Object ()
+    virtual ~Object ()
     {
-        if(fo_)
+        if (fo_)
     	    fo_->closeFile();
     }
     

@@ -389,7 +389,7 @@ void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLengt
 	fprintf( stderr, "\n" );
 	} /* end dumpLocListAddrRanges */
 
-bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, Symtab *objFile, long int * initialStackValue = NULL,loc_t *loc=NULL) {
+bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, Symtab * objFile, long int * initialStackValue = NULL,loc_t *loc=NULL) {
 	/* We make a few heroic assumptions about locations in this decoder.
 	
 	   We assume that all locations are either frame base-relative offsets,

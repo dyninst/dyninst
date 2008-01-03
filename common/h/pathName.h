@@ -35,7 +35,6 @@
 #ifndef _PATH_NAME_H_
 #define _PATH_NAME_H_
 
-#include "common/h/String.h"
 #include <string>
 using namespace std;
 
@@ -62,7 +61,7 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
 				      const pdstring &path,
 				      const pdstring &cwd);
 pdstring extract_pathname_tail(const pdstring &path);
-std::string extract_pathname_tail(const std::string &path);
+DLLEXPORT string extract_pathname_tail(const string &path);
 
 
 #endif

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.19 2007/12/12 22:20:59 roundy Exp $
+// $Id: Object-nt.C,v 1.20 2008/01/03 17:49:19 jaw Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -418,11 +418,6 @@ Object::Module::BuildSymbolMap( const Object* obj ) const
 
 Object::~Object( void )
 {
-    if( mapAddr != NULL )
-    {
-    UnmapViewOfFile( mapAddr );
-    CloseHandle( hMap );
-    }
 }
 
 #define SymTagFunction 0x5
@@ -557,141 +552,108 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
  *
  */
  
- void Object::ParseDebugInfo( void )
- {
-    // build a Module object for the current module (EXE or DLL)
-    // Note that the CurrentModuleScoper object ensures that the
-    // curModule member will be reset when we leave the scope of
-    // this function.
-    // curModule = new Object::Module( file_, desc.code() );
-	curModule = new Object::Module( file_, 0 );
-	static unsigned count = 1;
-    hProc = (HANDLE) count++;
-	if(!SymInitialize(hProc, NULL, false)){
-	DWORD dwErr = GetLastError();
-	if(dwErr) {
-			fprintf( stderr, "SymInitialize failed for %s\n",
-		     ((file_.length() > 0) ? file_.c_str() 
-		      : "<no name available>"));
-	    goto done;
-	}
-    }
-    assert( hProc != NULL );
-    assert( hProc != INVALID_HANDLE_VALUE );
+void Object::ParseDebugInfo( void )
+{
+   // build a Module object for the current module (EXE or DLL)
+   // Note that the CurrentModuleScoper object ensures that the
+   // curModule member will be reset when we leave the scope of
+   // this function.
+   // curModule = new Object::Module( file_, desc.code() );
+   string file_ = mf->filename();
+   curModule = new Object::Module( file_, 0 );
+   static unsigned count = 1;
+   hProc = (HANDLE) count++;
+   if(!SymInitialize(hProc, NULL, false)){
+      DWORD dwErr = GetLastError();
+      if(dwErr) {
+         fprintf( stderr, "SymInitialize failed for %s\n",
+               ((file_.length() > 0) ? file_.c_str() 
+                : "<no name available>"));
+         goto done;
+      }
+   }
+   assert( hProc != NULL );
+   assert( hProc != INVALID_HANDLE_VALUE );
 
-    // find the sections we need to know about (.text and .data)
-    FindInterestingSections();
-    // grab load address
-	if (peHdr) imageBase = peHdr->OptionalHeader.ImageBase;
-	else imageBase = 0; //KEVINTODO: not sure what to do about this and the entry point thing
-	
-	// load symbols for this module
-    //DWORD64 dw64BaseAddr = (DWORD64)desc.loadAddr();
-    DWORD64 dw64BaseAddr = (DWORD64)mapAddr;
-    //load address is always same(fake address space)
-    DWORD64 loadRet = SymLoadModule64( hProc,			// proc handle
-										hFile,		// file handle
-										NULL,		// image name
-										NULL,		// shortcut name
-										dw64BaseAddr,	// load address
-										0 );		// size of DLL	  
-    if(!loadRet) {
-	DWORD dwErr = GetLastError();
-	if(dwErr) {
-	    fprintf( stderr, "SymLoadModule64 failed for %s\n",
-		     ((file_.length() > 0) ? file_.c_str() 
-		      : "<no name available>"));
-	    //printSysError(dwErr);
-	    goto done;
-	}
-    }
-    // parse symbols for the module
-    if( !SymEnumSymbols(hProc,			   // process handle
-			dw64BaseAddr,		    // load address
-			"",			// symbol mask (we use none)
-			SymEnumSymbolsCallback, // called for each symbol
-			this ) )		// client data
-    {
-       int lasterr = GetLastError();
-       fprintf( stderr, "Failed to enumerate symbols\n");
-       //printSysError(lasterr);
-    }
-    
-    // We have a module object, with one or more files,
-    // each with one or more symbols.  However, the symbols
-    // are not necessarily in order, nor do they necessarily have valid sizes.
-    assert( curModule != NULL );
-    curModule->BuildSymbolMap( this );
-    curModule->DefineSymbols( this, symbols_ );
-	no_of_symbols_ = symbols_.size();
+   // find the sections we need to know about (.text and .data)
+   FindInterestingSections();
+   // grab load address
+   if (peHdr) imageBase = peHdr->OptionalHeader.ImageBase;
+   else imageBase = 0; //KEVINTODO: not sure what to do about this and the entry point thing
 
-	parseFileLineInfo();
- 
-    // Since PE-COFF is very similar to COFF (in that it's not like ELF),
-    // the .text and .data sections are perfectly mapped to code/data segments
-    code_vldS_ = code_off_;
-    code_vldE_ = code_off_ + code_len_;
-    data_vldS_ = data_off_;
-    data_vldE_ = data_off_ + data_len_;
-    
-    done:
-	delete curModule;
+   // load symbols for this module
+   //DWORD64 dw64BaseAddr = (DWORD64)desc.loadAddr();
+   HANDLE mapAddr = mf->base_addr();
+   DWORD64 dw64BaseAddr = (DWORD64)mapAddr;
+   //load address is always same(fake address space)
+   HANDLE hFile = mf->getFileHandle();
+   DWORD64 loadRet = SymLoadModule64( hProc,			// proc handle
+         hFile,		// file handle
+         NULL,		// image name
+         NULL,		// shortcut name
+         dw64BaseAddr,	// load address
+         0 );		// size of DLL	  
+   if(!loadRet) {
+      DWORD dwErr = GetLastError();
+      if(dwErr) {
+         string file_ = mf->filename();
+         fprintf( stderr, "SymLoadModule64 failed for %s\n",
+               ((file_.length() > 0) ? file_.c_str() 
+                : "<no name available>"));
+         //printSysError(dwErr);
+         goto done;
+      }
+   }
+   // parse symbols for the module
+   if( !SymEnumSymbols(hProc,			   // process handle
+            dw64BaseAddr,		    // load address
+            "",			// symbol mask (we use none)
+            SymEnumSymbolsCallback, // called for each symbol
+            this ) )		// client data
+   {
+      int lasterr = GetLastError();
+      fprintf( stderr, "Failed to enumerate symbols\n");
+      //printSysError(lasterr);
+   }
+
+   // We have a module object, with one or more files,
+   // each with one or more symbols.  However, the symbols
+   // are not necessarily in order, nor do they necessarily have valid sizes.
+   assert( curModule != NULL );
+   curModule->BuildSymbolMap( this );
+   curModule->DefineSymbols( this, symbols_ );
+   no_of_symbols_ = symbols_.size();
+
+   fprintf(stderr, "%s[%d]:  removed call to parseFileLineInfo here\n", FILE__, __LINE__);
+
+   // Since PE-COFF is very similar to COFF (in that it's not like ELF),
+   // the .text and .data sections are perfectly mapped to code/data segments
+   code_vldS_ = code_off_;
+   code_vldE_ = code_off_ + code_len_;
+   data_vldS_ = data_off_;
+   data_vldE_ = data_off_ + data_len_;
+
+done:
+   delete curModule;
 }
 
-void
-Object::FindInterestingSections()
+void Object::FindInterestingSections()
 {
-   // map the file to our address space
-   // first, create a file mapping object
-   hMap = CreateFileMapping( hFile,
-                             NULL,           // security attrs
-                             PAGE_READONLY,  // protection flags
-                             0,              // max size - high DWORD
-                             0,              // max size - low DWORD
-                             NULL );         // mapping name - not used
-   if( hMap == NULL )
-      {
-         // TODO how to handle the error?
-         fprintf( stderr, "CreateFileMapping failed: %x\n", GetLastError() );
-         LPVOID lpMsgBuf;
-         FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-                       |FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
-                       GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
-                       (LPTSTR)&lpMsgBuf,    0,    NULL );
-
-         cout << (LPCTSTR)lpMsgBuf << endl;
-         LocalFree( lpMsgBuf );
-         return;
-      }  
-   // next, map the file to our address space
-   mapAddr = MapViewOfFileEx( hMap,             // mapping object
-                              FILE_MAP_READ,  // desired access
-                              0,              // loc to map - hi DWORD
-                              0,              // loc to map - lo DWORD
-                              0,              // #bytes to map - 0=all
-                              NULL );         // suggested map addr
-   if( mapAddr == NULL )
-      {
-         // TODO how to handle the error?
-         fprintf( stderr, "MapViewOfFileEx failed: %x\n", GetLastError() );
-         CloseHandle( hMap );
-         hMap = INVALID_HANDLE_VALUE;
-         return;
-      }
-   
    // now that we have the file mapped, look for 
    // the .text and .data sections
    assert( peHdr == NULL );
+   HANDLE mapAddr = mf->base_addr();
    peHdr = ImageNtHeader( mapAddr );
 
    if (peHdr == NULL) {//KEVINTODO: add log message here, and maybe some fprintf output message
-	   code_ptr_ = (char*)mapAddr;
-	   code_off_ = 0;
-	   code_len_ = (Offset) GetFileSize(hFile, NULL);
-       is_aout_ = false;
-	   fprintf(stderr,"Adding Symtab object with no program header, will designate it as code\n");
-	   sections_.push_back(new Section(0, ".text", code_off_, code_len_, 0));
-	   return;
+      code_ptr_ = (char*)mapAddr;
+      code_off_ = 0;
+      HANDLE hFile = mf->getFileHandle();
+      code_len_ = (Offset) GetFileSize(hFile, NULL);
+      is_aout_ = false;
+      fprintf(stderr,"Adding Symtab object with no program header, will designate it as code\n");
+      sections_.push_back(new Section(0, ".text", code_off_, code_len_, 0));
+      return;
    }
 
    assert( peHdr->FileHeader.SizeOfOptionalHeader > 0 ); 
@@ -705,31 +667,31 @@ Object::FindInterestingSections()
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;
    no_of_sections_ = nSections;
    PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
-                                                           sizeof(DWORD) +         // for signature
-                                                           sizeof(IMAGE_FILE_HEADER) +
-                                                           peHdr->FileHeader.SizeOfOptionalHeader);
+         sizeof(DWORD) +         // for signature
+         sizeof(IMAGE_FILE_HEADER) +
+         peHdr->FileHeader.SizeOfOptionalHeader);
    bool foundText = false;
    for( unsigned int i = 0; i < nSections; i++ ) {
-       // make rawDataPtr should be set to be zero if the amount of raw data for the section is zero
-       void *rawDataPtr = 0;
-       if (pScnHdr->SizeOfRawData != 0) {
-           rawDataPtr = (void*)((unsigned int)pScnHdr->PointerToRawData + (unsigned int)mapAddr);
-       }
-       sections_.push_back(new Section(i, (const char*)pScnHdr->Name, 
-                                       pScnHdr->VirtualAddress, pScnHdr->Misc.VirtualSize, 
-                                       rawDataPtr));
+      // make rawDataPtr should be set to be zero if the amount of raw data for the section is zero
+      void *rawDataPtr = 0;
+      if (pScnHdr->SizeOfRawData != 0) {
+         rawDataPtr = (void*)((unsigned int)pScnHdr->PointerToRawData + (unsigned int)mapAddr);
+      }
+      sections_.push_back(new Section(i, (const char*)pScnHdr->Name, 
+               pScnHdr->VirtualAddress, pScnHdr->Misc.VirtualSize, 
+               rawDataPtr));
 
-       if( strncmp( (const char*)pScnHdr->Name, ".text", 5 ) == 0 ) {
-           // note that section numbers are one-based
-           textSectionId = i + 1;
-           code_ptr_    = (char*)(((char*)mapAddr) +
-                                  pScnHdr->PointerToRawData);
-           //if (GetDescriptor().isSharedObject())
-           //if (curModule->IsDll())
-           code_off_    = pScnHdr->VirtualAddress;
-           //else
-           //   code_off_    = get_base_addr() + pScnHdr->VirtualAddress;	//loadAddr = mapAddr
-           //code_off_    = pScnHdr->VirtualAddress + desc.loadAddr();
+      if( strncmp( (const char*)pScnHdr->Name, ".text", 5 ) == 0 ) {
+         // note that section numbers are one-based
+         textSectionId = i + 1;
+         code_ptr_    = (char*)(((char*)mapAddr) +
+               pScnHdr->PointerToRawData);
+         //if (GetDescriptor().isSharedObject())
+         //if (curModule->IsDll())
+         code_off_    = pScnHdr->VirtualAddress;
+         //else
+         //   code_off_    = get_base_addr() + pScnHdr->VirtualAddress;	//loadAddr = mapAddr
+         //code_off_    = pScnHdr->VirtualAddress + desc.loadAddr();
 
            // Since we're reporting the size of sections on the disk,
            // we need to check whether the size of raw data is smaller.
@@ -823,13 +785,7 @@ bool Object::isText( const Offset& addr ) const
    return( addr >= code_off_ && addr <= code_len_ );
 }
 
-Object::Object(std::string &filename,
-                void (*err_func)(const char *)) 
-    : AObject(filename, err_func),
-     hMap( INVALID_HANDLE_VALUE ),
-     mapAddr( NULL ),
-     curModule( NULL ),
-     peHdr( NULL )
+void fixup_filename(std::string &filename)
 {
 	if (strcmp(filename.c_str(), "ntdll.dll") == 0)
 		filename = "c:\\windows\\system32\\ntdll.dll";
@@ -846,32 +802,27 @@ Object::Object(std::string &filename,
 			filename = "c:"+filename.substr(23);
 		}
 	}
-	hFile = CreateFile(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, 
-    				NULL,OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFile == NULL || hFile == INVALID_HANDLE_VALUE) {
-		printSysError(GetLastError());
-	}
-    assert( hFile != NULL );
-    assert( hFile != INVALID_HANDLE_VALUE );
-    ParseDebugInfo();
 }
 
-Object::Object(char *mem_image, size_t image_size,
+Object::Object(MappedFile *mf_,
                 void (*err_func)(const char *)) 
-    : AObject(NULL, err_func),
-     hMap( INVALID_HANDLE_VALUE ),
-     mapAddr( NULL ),
+    : AObject(mf_, err_func),
      curModule( NULL ),
      peHdr( NULL )
 {
-    hFile = LocalHandle( mem_image );	//For a mem image
-    assert( hFile != NULL );
-    assert( hFile != INVALID_HANDLE_VALUE );
     ParseDebugInfo();
 }
 
+Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
+                void (*err_func)(const char *)) 
+{
+   //  need to have is_aout set here
+   FindInterestingSections();
+   parseFileLineInfo(li);
+}
 
-DLLEXPORT ObjectType Object::objType() const {
+DLLEXPORT ObjectType Object::objType() const 
+{
 	return is_aout() ? obj_Executable : obj_SharedLib;
 }
 
@@ -891,11 +842,6 @@ std::string Dyninst::SymtabAPI::extract_pathname_tail(const std::string &path)
 void Object::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs)
 {
 	return;
-}
-
-hash_map <std::string, LineInformation> &Object::getLineInfo()
-{
-	return lineInfo_;
 }
 
 static SRCCODEINFO *last_srcinfo;
@@ -925,11 +871,12 @@ BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
   return TRUE;
 }
 
-void Object::parseFileLineInfo()
+void Object::parseFileLineInfo(hash_map<std::string, LineInformation> &li)
 {   
   int result;
   static Offset last_file = 0x0;
 
+  string file_ = mf->filename();
   const char *src_file_name = NULL;
   const char *libname = NULL;
 
@@ -951,7 +898,7 @@ void Object::parseFileLineInfo()
 			      0,
 			      0,
 			      add_line_info, 
-			      &lineInfo_); 
+			      &li); 
   if (!result) {
     //Not a big deal. The module probably didn't have any debug information.
     DWORD dwErr = GetLastError();
@@ -959,7 +906,7 @@ void Object::parseFileLineInfo()
 	//	   __FILE__, __LINE__, src_file_name, libname);
     return;
   }
-  add_line_info(NULL, &lineInfo_);
+  add_line_info(NULL, &li);
 }
 
 typedef struct localsStruct {
@@ -1860,6 +1807,7 @@ void Object::parseTypeInfo(Symtab *obj) {
         pair.base_addr = getLoadAddress();
     }
   
+   HANDLE mapAddr = mf->base_addr();
     result = SymEnumSymbols(hProc, (DWORD64)mapAddr, NULL, 
                             add_type_info, &pair);
 	if (!result){

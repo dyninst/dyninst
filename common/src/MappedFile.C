@@ -1,0 +1,275 @@
+#include "common/h/MappedFile.h"
+
+MappedFile *MappedFile::createMappedFile(std::string fullpath_)
+{
+   bool ok = false;
+   MappedFile *mf = new MappedFile(fullpath_, ok);
+   if (!mf) {
+     fprintf(stderr, "%s[%d]:  error mapping file %s\n", 
+           FILE__, __LINE__, fullpath_.c_str());
+     mf = NULL;
+  }
+
+  return mf;
+}
+
+MappedFile::MappedFile(std::string fullpath_, bool &ok) :
+   fullpath(std::string(fullpath_)),
+   did_mmap(false),
+   did_open(false)
+{
+  ok = check_path(fullpath);
+  if (!ok) return;
+  ok = open_file();
+  if (!ok) return;
+  ok = map_file();
+
+  //  I think on unixes we can close the fd after mapping the file, 
+  //  but is this really somehow better?
+}
+
+MappedFile *MappedFile::createMappedFile(void *loc)
+{
+   bool ok = false;
+   MappedFile *mf = new MappedFile(loc, ok);
+   if (!ok) {
+     fprintf(stderr, "%s[%d]:  error mapping file at %p", 
+           FILE__, __LINE__, loc);
+     mf = NULL;
+  }
+
+  return mf;
+}
+
+MappedFile::MappedFile(void *loc, bool &ok) :
+   fullpath("in_memory_file"),
+   did_mmap(false),
+   did_open(false)
+{
+  ok = open_file(loc);
+  if (!ok) return;
+  ok = map_file();
+}
+
+bool MappedFile::clean_up()
+{
+   if (did_mmap) {
+      if (!unmap_file()) goto err;
+   }
+   if (did_open) {
+      if (!close_file()) goto err;
+   }
+   return true;
+
+err:
+   fprintf(stderr, "%s[%d]:  error unmapping file %s\n", 
+         FILE__, __LINE__, fullpath.c_str() );
+   return false;
+}
+
+MappedFile::~MappedFile()
+{
+  //  warning, destructor should not allowed to throw exceptions
+   if (did_mmap) 
+      unmap_file();
+   if (did_open) 
+      close_file();
+}
+
+std::string MappedFile::filename()
+{
+  return extract_pathname_tail(fullpath);
+}
+
+bool MappedFile::check_path(std::string &filename)
+{
+   struct stat statbuf;
+   if (0 != stat(filename.c_str(), &statbuf)) {
+      char ebuf[1024];
+#if defined(os_windows)
+      LPVOID lpMsgBuf;
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+            |     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
+            GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)
+            &lpMsgBuf,    0,    NULL );
+
+      sprintf(ebuf, "stat: %s", (char *) lpMsgBuf);
+      LocalFree(lpMsgBuf);
+#else
+      sprintf(ebuf, "stat: %s", strerror(errno));
+#endif
+      goto err;
+   }
+
+   file_size = statbuf.st_size;
+
+   return true;
+
+err:
+   fprintf(stderr, "%s[%d]: bad path: %s\n", FILE__, __LINE__, filename.c_str());
+   return false;
+}
+
+bool MappedFile::open_file(void *loc)
+{
+#if defined(os_windows)
+   hFile = LocalHandle( loc );  //For a mem image
+   if (!hFile) {
+      LPVOID lpMsgBuf;
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+            |     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
+            GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)
+            &lpMsgBuf,    0,    NULL );
+
+      char ebuf[1024];
+      sprintf(ebuf, "CreateFileMapping failed: %s", (char *) lpMsgBuf);
+      LocalFree(lpMsgBuf);
+      goto err;
+   }
+   did_open = true;
+#else
+   did_open = false;
+   fd = -1;
+#endif
+
+   return true;
+
+err:
+   fprintf(stderr, "%s[%d]: failed to open file\n", FILE__, __LINE__);
+   return false;
+}
+
+bool MappedFile::open_file()
+{
+#if defined(os_windows)
+   hFile = CreateFile(fullpath.c_str(), GENERIC_READ, FILE_SHARE_READ,
+         NULL,OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+   if (hFile == NULL || hFile == INVALID_HANDLE_VALUE) {
+      LPVOID lpMsgBuf;
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+            |     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
+            GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)
+            &lpMsgBuf,    0,    NULL );
+
+      char ebuf[1024];
+      sprintf(ebuf, "CreateFileMapping failed: %s", (char *) lpMsgBuf);
+      LocalFree(lpMsgBuf);
+      goto err;
+   }
+#else
+   fd = open(fullpath.c_str(), O_RDONLY);
+   if (-1 == fd) {
+      char ebuf[1024];
+      sprintf(ebuf, "open(%s) failed: %s", fullpath.c_str(), strerror(errno));
+      goto err;
+   }
+#endif
+
+   did_open = true;
+   return true;
+err:
+   fprintf(stderr, "%s[%d]: failed to open file\n", FILE__, __LINE__);
+   return false;
+}
+
+bool MappedFile::map_file()
+{
+   char ebuf[1024];
+#if defined(os_windows)
+
+   // map the file to our address space
+   // first, create a file mapping object
+   
+   hMap = CreateFileMapping( hFile,
+         NULL,           // security attrs
+         PAGE_READONLY,  // protection flags
+         0,              // max size - high DWORD
+         0,              // max size - low DWORD
+         NULL );         // mapping name - not used
+
+   if (!hMap) {
+      LPVOID lpMsgBuf;
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+            |     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
+            GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)
+            &lpMsgBuf,    0,    NULL );
+
+      sprintf(ebuf, "CreateFileMapping failed: %s", (char *) lpMsgBuf);
+      LocalFree(lpMsgBuf);
+      goto err;
+   }
+
+   // next, map the file to our address space
+
+   mapAddr = MapViewOfFileEx( hMap,             // mapping object
+         FILE_MAP_READ,  // desired access
+         0,              // loc to map - hi DWORD
+         0,              // loc to map - lo DWORD
+         0,              // #bytes to map - 0=all
+         NULL );         // suggested map addr
+
+   if (!mapAddr) {
+      LPVOID lpMsgBuf;
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+            |     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
+            GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)
+            &lpMsgBuf,    0,    NULL );
+
+      sprintf(ebuf, "MapViewOfFileEx failed: %s", (char *) lpMsgBuf);
+      LocalFree(lpMsgBuf);
+      goto err;
+   }
+
+#else
+
+   map_addr = mmap(0, file_size, PROT_READ, MAP_SHARED, fd, 0);
+   if (MAP_FAILED == map_addr) {
+      sprintf(ebuf, "mmap(0, %d, PROT_READ, MAP_SHARED, %d, 0): %s", 
+            file_size, fd, strerror(errno));
+      goto err;
+   }
+
+#endif
+
+   did_mmap = true;
+   return true;
+err:
+   fprintf(stderr, "%s[%d]: failed to open file: %s\n", FILE__, __LINE__, ebuf);
+   return false;
+}
+
+bool MappedFile::unmap_file()
+{
+#if defined(os_windows)
+
+   UnmapViewOfFile(mapAddr);
+   CloseHandle(hMap);
+
+#else
+
+   if ( 0 != munmap(map_addr, file_size))  {
+      fprintf(stderr, "%s[%d]: failed to unmap file\n", FILE__, __LINE__);
+      return false;
+   }
+   
+#endif
+   return true;
+}
+
+bool MappedFile::close_file()
+{
+#if defined (os_windows)
+
+   CloseHandle(hFile);
+
+#else
+
+   if (-1 == close(fd)) {
+      fprintf(stderr, "%s[%d]: failed to close file\n", FILE__, __LINE__);
+      return false;
+   }
+
+#endif
+   return true;
+}
+

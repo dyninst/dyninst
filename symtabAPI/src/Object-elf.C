@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.25 2008/01/03 00:13:22 legendre Exp $
+ * $Id: Object-elf.C,v 1.26 2008/01/03 17:49:18 jaw Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -162,207 +162,208 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 #endif
     )
 {
-    dwarf_err_func  = err_func_;
-    entryAddress_ = elfHdr.e_entry();
+   dwarf_err_func  = err_func_;
+   entryAddress_ = elfHdr.e_entry();
 
-    no_of_sections_ = elfHdr.e_shnum();
+   no_of_sections_ = elfHdr.e_shnum();
 
-    // ".shstrtab" section: string table for section header names
-    const char *shnames = pdelf_get_shnames(elfHdr);
-    if (shnames == NULL) {
-        fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
-	log_elferror(err_func_, ".shstrtab section");
-	//return false;
-    }
+   // ".shstrtab" section: string table for section header names
+   const char *shnames = pdelf_get_shnames(elfHdr);
+   if (shnames == NULL) {
+      fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
+      log_elferror(err_func_, ".shstrtab section");
+      //return false;
+   }
 
-    const char* EDITED_TEXT_NAME = ".edited.text";
-    // const char* INIT_NAME        = ".init";
-    const char *INTERP_NAME      = ".interp";
-    const char* FINI_NAME        = ".fini";
-    const char* TEXT_NAME        = ".text";
-    const char* BSS_NAME         = ".bss";
-    const char* SYMTAB_NAME      = ".symtab";
-    const char* STRTAB_NAME      = ".strtab";
-    const char* STAB_NAME        = ".stab";
-    const char* STABSTR_NAME     = ".stabstr";
-    const char* STAB_INDX_NAME   = ".stab.index";
-    const char* STABSTR_INDX_NAME= ".stab.indexstr";
-    // sections from dynamic executables and shared objects
-    const char* PLT_NAME         = ".plt";
+   const char* EDITED_TEXT_NAME = ".edited.text";
+   // const char* INIT_NAME        = ".init";
+   const char *INTERP_NAME      = ".interp";
+   const char* FINI_NAME        = ".fini";
+   const char* TEXT_NAME        = ".text";
+   const char* BSS_NAME         = ".bss";
+   const char* SYMTAB_NAME      = ".symtab";
+   const char* STRTAB_NAME      = ".strtab";
+   const char* STAB_NAME        = ".stab";
+   const char* STABSTR_NAME     = ".stabstr";
+   const char* STAB_INDX_NAME   = ".stab.index";
+   const char* STABSTR_INDX_NAME= ".stab.indexstr";
+   // sections from dynamic executables and shared objects
+   const char* PLT_NAME         = ".plt";
 #if ! defined( arch_ia64 )
-    const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
+   const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
 #else  
-    const char* REL_PLT_NAME     = ".rela.IA_64.pltoff";
+   const char* REL_PLT_NAME     = ".rela.IA_64.pltoff";
 #endif  
-    const char* REL_PLT_NAME2    = ".rel.plt";  // x86-solaris
-    const char* GOT_NAME         = ".got";
-    const char* DYNSYM_NAME      = ".dynsym";
-    const char* DYNSTR_NAME      = ".dynstr";
-    const char* DATA_NAME        = ".data";
-    const char* RO_DATA_NAME     = ".ro_data";  // mips
-    const char* DYNAMIC_NAME     = ".dynamic";
-    const char* EH_FRAME_NAME    = ".eh_frame";
-    const char* EXCEPT_NAME      = ".gcc_except_table";
-    // initialize Object members
+   const char* REL_PLT_NAME2    = ".rel.plt";  // x86-solaris
+   const char* GOT_NAME         = ".got";
+   const char* DYNSYM_NAME      = ".dynsym";
+   const char* DYNSTR_NAME      = ".dynstr";
+   const char* DATA_NAME        = ".data";
+   const char* RO_DATA_NAME     = ".ro_data";  // mips
+   const char* DYNAMIC_NAME     = ".dynamic";
+   const char* EH_FRAME_NAME    = ".eh_frame";
+   const char* EXCEPT_NAME      = ".gcc_except_table";
+   // initialize Object members
 
-    text_addr_ = 0; //ccw 23 jan 2002
-    text_size_ = 0; //for determining if a mutation
-    //falls within the text section 
-    //of a shared library
+   text_addr_ = 0; //ccw 23 jan 2002
+   text_size_ = 0; //for determining if a mutation
+   //falls within the text section 
+   //of a shared library
 
-    dynamic_addr_ = 0;
-    dynsym_addr_ = 0;
-    dynstr_addr_ = 0;
-    fini_addr_ = 0;
-    got_addr_ = 0;
-    got_size_ = 0;
-    plt_addr_ = 0;
-    plt_size_ = 0;
-    plt_entry_size_ = 0;
-    rel_plt_addr_ = 0;
-    rel_plt_size_ = 0;
-    rel_plt_entry_size_ = 0;
-    rel_size_ = 0;
-    rel_entry_size_ = 0;
-    stab_off_ = 0;
-    stab_size_ = 0;
-    stabstr_off_ = 0;
-    stab_indx_off_ = 0;
-    stab_indx_size_ = 0;
-    stabstr_indx_off_ = 0;
+   dynamic_addr_ = 0;
+   dynsym_addr_ = 0;
+   dynstr_addr_ = 0;
+   fini_addr_ = 0;
+   got_addr_ = 0;
+   got_size_ = 0;
+   plt_addr_ = 0;
+   plt_size_ = 0;
+   plt_entry_size_ = 0;
+   rel_plt_addr_ = 0;
+   rel_plt_size_ = 0;
+   rel_plt_entry_size_ = 0;
+   rel_size_ = 0;
+   rel_entry_size_ = 0;
+   stab_off_ = 0;
+   stab_size_ = 0;
+   stabstr_off_ = 0;
+   stab_indx_off_ = 0;
+   stab_indx_size_ = 0;
+   stabstr_indx_off_ = 0;
 #if defined(os_irix)
-    MIPS_stubs_addr_ = 0;
-    MIPS_stubs_off_ = 0;
-    MIPS_stubs_size_ = 0;
-    got_zero_index_ = -1;
-    dynsym_zero_index_ = -1;
+   MIPS_stubs_addr_ = 0;
+   MIPS_stubs_off_ = 0;
+   MIPS_stubs_size_ = 0;
+   got_zero_index_ = -1;
+   dynsym_zero_index_ = -1;
 #endif
-    dwarvenDebugInfo = false;
+   dwarvenDebugInfo = false;
 
-    txtaddr = 0;
+   txtaddr = 0;
 
 #if defined(TIMED_PARSE)
-    struct timeval starttime;
-    gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 
-    Elf_X_Shdr *scnp;
-   
-    for (int i = 0; i < elfHdr.e_shnum(); ++i) {
-	scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
-        if (! scnp->isValid()) { // section is malformed
-            continue; 
-        } 
-	allSectionHdrs.push_back( scnp );
+   Elf_X_Shdr *scnp;
 
-	// resolve section name
-	const char *name = &shnames[scnp->sh_name()];
-	
-	//If the section appears in the memory image of a process address is given by sh_addr()
-	//otherwise this is zero and sh_offset() gives the offset to the first byte in section.
-	sections_.push_back(new Section(i, name, scnp->sh_addr(), scnp->sh_size(),(void *)(mem_image()+scnp->sh_offset()), scnp->sh_flags()));
-/*
-	if(scnp->sh_addr() != 0)
-		sections_.push_back(new Section(i, name, scnp->sh_addr(), scnp->sh_size()));
-	else	
-		sections_.push_back(new Section(i, name, scnp->sh_offset(), scnp->sh_size()));
-*/
-	// section-specific processing
-	if (P_strcmp(name, EDITED_TEXT_NAME) == 0) {
-	    // EEL rewritten executable
-	    EEL = true;
-	    if (txtaddr == 0)
-		txtaddr = scnp->sh_addr();
-	    code_ptr_ = (char *)(void*)&file_ptr_[scnp->sh_offset() - EXTRA_SPACE];
-	    code_off_ = scnp->sh_addr() - EXTRA_SPACE;
-	    code_len_ = scnp->sh_size() + EXTRA_SPACE;
-	}
-	if (strcmp(name, TEXT_NAME) == 0) {
-	    text_addr_ = scnp->sh_addr();
-	    text_size_ = scnp->sh_size();
+   for (int i = 0; i < elfHdr.e_shnum(); ++i) {
+      scnp = new Elf_X_Shdr( elfHdr.get_shdr(i) );
+      if (! scnp->isValid()) { // section is malformed
+         continue; 
+      } 
+      allSectionHdrs.push_back( scnp );
 
-	    if (txtaddr == 0)
-		txtaddr = scnp->sh_addr();
-	}
-    /* The following sections help us find the PH entry that
-       encompasses the data region. */
-	else if (strcmp(name, DATA_NAME) == 0) {
-	    dataddr = scnp->sh_addr();
-	}
-	else if (strcmp(name, RO_DATA_NAME) == 0) {
-	    if (!dataddr) dataddr = scnp->sh_addr();
-	}
-	else if (strcmp(name, GOT_NAME) == 0) {
-	    got_scnp = scnp;
-	    got_addr_ = scnp->sh_addr();
-	    got_size_ = scnp->sh_size();
-	    if (!dataddr) dataddr = scnp->sh_addr();
-	}
-	else if (strcmp(name, BSS_NAME) == 0) {
-	    if (!dataddr) dataddr = scnp->sh_addr();
-	}
-    /* End data region search */
-	else if (strcmp( name, FINI_NAME) == 0) {
-	    fini_addr_ = scnp->sh_addr();
-	}
-	else if (strcmp(name, SYMTAB_NAME) == 0) {
-	    symscnp = scnp;
-	}
-	else if (strcmp(name, STRTAB_NAME) == 0) {
-	    strscnp = scnp;
-	} else if (strcmp(name, STAB_INDX_NAME) == 0) {
-	    stabs_indxcnp = scnp;
-	    stab_indx_off_ = scnp->sh_offset();
-	    stab_indx_size_ = scnp->sh_size();
-	} else if (strcmp(name, STABSTR_INDX_NAME) == 0) {
-	    stabstrs_indxcnp = scnp;
-	    stabstr_indx_off_ = scnp->sh_offset();
-	} else if (strcmp(name, STAB_NAME) == 0) {
-	    stabscnp = scnp;
-	    stab_off_ = scnp->sh_offset();
-	    stab_size_ = scnp->sh_size();
-	} else if (strcmp(name, STABSTR_NAME) == 0) {
-	    stabstrscnp = scnp;
-	    stabstr_off_ = scnp->sh_offset();
-	} else if ((strcmp(name, REL_PLT_NAME) == 0) || 
-		   (strcmp(name, REL_PLT_NAME2) == 0)) {
-	    rel_plt_scnp = scnp;
-	    rel_plt_addr_ = scnp->sh_addr();
-	    rel_plt_size_ = scnp->sh_size();
-	    rel_plt_entry_size_ = scnp->sh_entsize();
-	}
-	else if (strcmp(name, PLT_NAME) == 0) {
-	    plt_scnp = scnp;
-	    plt_addr_ = scnp->sh_addr();
-	    plt_size_ = scnp->sh_size();
+      // resolve section name
+      const char *name = &shnames[scnp->sh_name()];
+
+      //If the section appears in the memory image of a process address is given by sh_addr()
+      //otherwise this is zero and sh_offset() gives the offset to the first byte in section.
+      sections_.push_back(new Section(i, name, scnp->sh_addr(), scnp->sh_size(),(void *)(mem_image()+scnp->sh_offset()), scnp->sh_flags()));
+      /*
+         if(scnp->sh_addr() != 0)
+         sections_.push_back(new Section(i, name, scnp->sh_addr(), scnp->sh_size()));
+         else	
+         sections_.push_back(new Section(i, name, scnp->sh_offset(), scnp->sh_size()));
+       */
+      // section-specific processing
+      if (P_strcmp(name, EDITED_TEXT_NAME) == 0) {
+         // EEL rewritten executable
+         EEL = true;
+         if (txtaddr == 0)
+            txtaddr = scnp->sh_addr();
+         char *file_ptr = (char *)mf->base_addr();
+         code_ptr_ = (char *)(void*)&file_ptr[scnp->sh_offset() - EXTRA_SPACE];
+         code_off_ = scnp->sh_addr() - EXTRA_SPACE;
+         code_len_ = scnp->sh_size() + EXTRA_SPACE;
+      }
+      if (strcmp(name, TEXT_NAME) == 0) {
+         text_addr_ = scnp->sh_addr();
+         text_size_ = scnp->sh_size();
+
+         if (txtaddr == 0)
+            txtaddr = scnp->sh_addr();
+      }
+      /* The following sections help us find the PH entry that
+         encompasses the data region. */
+      else if (strcmp(name, DATA_NAME) == 0) {
+         dataddr = scnp->sh_addr();
+      }
+      else if (strcmp(name, RO_DATA_NAME) == 0) {
+         if (!dataddr) dataddr = scnp->sh_addr();
+      }
+      else if (strcmp(name, GOT_NAME) == 0) {
+         got_scnp = scnp;
+         got_addr_ = scnp->sh_addr();
+         got_size_ = scnp->sh_size();
+         if (!dataddr) dataddr = scnp->sh_addr();
+      }
+      else if (strcmp(name, BSS_NAME) == 0) {
+         if (!dataddr) dataddr = scnp->sh_addr();
+      }
+      /* End data region search */
+      else if (strcmp( name, FINI_NAME) == 0) {
+         fini_addr_ = scnp->sh_addr();
+      }
+      else if (strcmp(name, SYMTAB_NAME) == 0) {
+         symscnp = scnp;
+      }
+      else if (strcmp(name, STRTAB_NAME) == 0) {
+         strscnp = scnp;
+      } else if (strcmp(name, STAB_INDX_NAME) == 0) {
+         stabs_indxcnp = scnp;
+         stab_indx_off_ = scnp->sh_offset();
+         stab_indx_size_ = scnp->sh_size();
+      } else if (strcmp(name, STABSTR_INDX_NAME) == 0) {
+         stabstrs_indxcnp = scnp;
+         stabstr_indx_off_ = scnp->sh_offset();
+      } else if (strcmp(name, STAB_NAME) == 0) {
+         stabscnp = scnp;
+         stab_off_ = scnp->sh_offset();
+         stab_size_ = scnp->sh_size();
+      } else if (strcmp(name, STABSTR_NAME) == 0) {
+         stabstrscnp = scnp;
+         stabstr_off_ = scnp->sh_offset();
+      } else if ((strcmp(name, REL_PLT_NAME) == 0) || 
+            (strcmp(name, REL_PLT_NAME2) == 0)) {
+         rel_plt_scnp = scnp;
+         rel_plt_addr_ = scnp->sh_addr();
+         rel_plt_size_ = scnp->sh_size();
+         rel_plt_entry_size_ = scnp->sh_entsize();
+      }
+      else if (strcmp(name, PLT_NAME) == 0) {
+         plt_scnp = scnp;
+         plt_addr_ = scnp->sh_addr();
+         plt_size_ = scnp->sh_size();
 #if defined(arch_x86)
-	    //
-	    // On x86, the GNU linker purposefully sets the PLT
-	    // table entry size to an incorrect value to be
-	    // compatible with the UnixWare linker.  (See the comment
-	    // in the elf_i386_finish_dynamic_sections function of
-	    // the BFD library.)  The GNU linker sets this value to 4,
-	    // when it should be 16.
-	    //
-	    // I see no good way to determine this value from the
-	    // ELF section header information.  We can either (a) hard-code
-	    // the value that is used in the BFD library, or (b) compute
-	    // it by dividing the size of the PLT by the number of entries
-	    // we think should be in the PLT.  I'm not certain, but I
-	    // believe the PLT and the .rel.plt section should have the
-	    // same number of "real" entries (the x86 PLT has one extra entry
-	    // at the beginning).
-	    // 
-	    // This code is applicable to any x86 system that uses the
-	    // GNU linker.  We currently only support Linux on x86 - if
-	    // we start supporting some other x86 OS that uses the GNU
-	    // linker in the future, it should be enabled for that platform as well.
-	    // Note that this problem does not affect the non-x86 platforms
-	    // that might use the GNU linker.  For example, programs linked
-	    // with gld on SPARC Solaris have the correct PLT entry size.
-	    //
-	    // Another potential headache in the future is if we support
-	    // some other x86 platform that has both the GNU linker and
+         //
+         // On x86, the GNU linker purposefully sets the PLT
+         // table entry size to an incorrect value to be
+         // compatible with the UnixWare linker.  (See the comment
+         // in the elf_i386_finish_dynamic_sections function of
+         // the BFD library.)  The GNU linker sets this value to 4,
+         // when it should be 16.
+         //
+         // I see no good way to determine this value from the
+         // ELF section header information.  We can either (a) hard-code
+         // the value that is used in the BFD library, or (b) compute
+         // it by dividing the size of the PLT by the number of entries
+         // we think should be in the PLT.  I'm not certain, but I
+         // believe the PLT and the .rel.plt section should have the
+         // same number of "real" entries (the x86 PLT has one extra entry
+         // at the beginning).
+         // 
+         // This code is applicable to any x86 system that uses the
+         // GNU linker.  We currently only support Linux on x86 - if
+         // we start supporting some other x86 OS that uses the GNU
+         // linker in the future, it should be enabled for that platform as well.
+         // Note that this problem does not affect the non-x86 platforms
+         // that might use the GNU linker.  For example, programs linked
+         // with gld on SPARC Solaris have the correct PLT entry size.
+         //
+         // Another potential headache in the future is if we support
+         // some other x86 platform that has both the GNU linker and
 	    // some other linker.  (Does BSD fall into this category?)
 	    // If the two linkers set the entry size differently, we may
 	    // need to re-evaluate this code.
@@ -634,363 +635,335 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
     return false;
 }
 
-// map object file into memory
-// populates: file_fd_, file_size_, file_ptr_
-bool Object::mmap_file(const char *file, 
-		       bool &did_open, bool &did_mmap)
-{
-  assert(file);
-  fileName = strdup( file );  assert( fileName != NULL );
-  file_fd_ = open(file, O_RDONLY);
-  //file_fd_ = open(file, O_RDWR);
-  if (file_fd_ == -1) return false;
-  did_open = true;
-  
-  struct stat st;
-  if (fstat(file_fd_, &st) == -1) return false;
-  file_size_ = st.st_size;
-  
-  file_ptr_ = (char *) mmap(0, file_size_, PROT_READ, MAP_SHARED, file_fd_, 0);
-  if (file_ptr_ == (char *)MAP_FAILED) return false;
-  did_mmap = true;
-  
-  return true;
-}
-
 void Object::load_object()
 {
-    Elf_X_Shdr *symscnp = 0;
-    Elf_X_Shdr *strscnp = 0;
-    Elf_X_Shdr *stabscnp = 0;
-    Elf_X_Shdr *stabstrscnp = 0;
-    Elf_X_Shdr *stabs_indxcnp = 0;
-    Elf_X_Shdr *stabstrs_indxcnp = 0;
-    Offset txtaddr = 0;
-    Offset dataddr = 0;
-    Elf_X_Shdr *rel_plt_scnp = 0;
-    Elf_X_Shdr *plt_scnp = 0; 
-    Elf_X_Shdr *got_scnp = 0;
-    Elf_X_Shdr *dynsym_scnp = 0;
-    Elf_X_Shdr *dynstr_scnp = 0;
-    Elf_X_Shdr *dynamic_scnp = 0;
-    Elf_X_Shdr *eh_frame_scnp = 0;
-    Elf_X_Shdr *gcc_except = 0;
-    Elf_X_Shdr *interp_scnp = 0;
+   Elf_X_Shdr *symscnp = 0;
+   Elf_X_Shdr *strscnp = 0;
+   Elf_X_Shdr *stabscnp = 0;
+   Elf_X_Shdr *stabstrscnp = 0;
+   Elf_X_Shdr *stabs_indxcnp = 0;
+   Elf_X_Shdr *stabstrs_indxcnp = 0;
+   Offset txtaddr = 0;
+   Offset dataddr = 0;
+   Elf_X_Shdr *rel_plt_scnp = 0;
+   Elf_X_Shdr *plt_scnp = 0; 
+   Elf_X_Shdr *got_scnp = 0;
+   Elf_X_Shdr *dynsym_scnp = 0;
+   Elf_X_Shdr *dynstr_scnp = 0;
+   Elf_X_Shdr *dynamic_scnp = 0;
+   Elf_X_Shdr *eh_frame_scnp = 0;
+   Elf_X_Shdr *gcc_except = 0;
+   Elf_X_Shdr *interp_scnp = 0;
 
-    { // binding contour (for "goto cleanup")
+   { // binding contour (for "goto cleanup")
 
-	// initialize object (for failure detection)
-	code_ptr_ = 0;
-	code_off_ = 0;
-	code_len_ = 0;
-	data_ptr_ = 0;
-	data_off_ = 0;
-	data_len_ = 0;
+      // initialize object (for failure detection)
+      code_ptr_ = 0;
+      code_off_ = 0;
+      code_len_ = 0;
+      data_ptr_ = 0;
+      data_off_ = 0;
+      data_len_ = 0;
 
-	// initialize "valid" regions of code and data segments
-	code_vldS_ = (Offset) -1;
-	code_vldE_ = 0;
-	data_vldS_ = (Offset) -1;
-	data_vldE_ = 0;
+      // initialize "valid" regions of code and data segments
+      code_vldS_ = (Offset) -1;
+      code_vldE_ = 0;
+      data_vldS_ = (Offset) -1;
+      data_vldE_ = 0;
 
-	// And attempt to parse the ELF data structures in the file....
-	// EEL, added one more parameter
-	if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
-			stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
-			rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
-			dynstr_scnp, dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true)) {
-	    goto cleanup;
-	}
-	addressWidth_nbytes = elfHdr.wordSize();
+      // And attempt to parse the ELF data structures in the file....
+      // EEL, added one more parameter
+      if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
+               stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
+               rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
+               dynstr_scnp, dynamic_scnp, eh_frame_scnp,gcc_except, interp_scnp, true)) {
+         goto cleanup;
+      }
+      addressWidth_nbytes = elfHdr.wordSize();
 
-	// find code and data segments....
-	find_code_and_data(elfHdr, txtaddr, dataddr);
-	if (!code_ptr_ || !code_len_) {
-	    //bpfatal( "no text segment\n");
-	    goto cleanup;
-	}
-	if (!data_ptr_ || !data_len_) {
-	    //bpfatal( "no data segment\n");
-	    goto cleanup;
-	}
+      // find code and data segments....
+      find_code_and_data(elfHdr, txtaddr, dataddr);
+      if (!code_ptr_ || !code_len_) {
+         //bpfatal( "no text segment\n");
+         goto cleanup;
+      }
+      if (!data_ptr_ || !data_len_) {
+         //bpfatal( "no data segment\n");
+         goto cleanup;
+      }
 
-	get_valid_memory_areas(elfHdr);
+      get_valid_memory_areas(elfHdr);
 
-	//fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
+      //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
-	if (eh_frame_scnp != 0 && gcc_except != 0) {
-	    find_catch_blocks(elfHdr, eh_frame_scnp, gcc_except, catch_addrs_);
-	}
+      if (eh_frame_scnp != 0 && gcc_except != 0) {
+         find_catch_blocks(elfHdr, eh_frame_scnp, gcc_except, catch_addrs_);
+      }
 #endif
-	if(interp_scnp)
-	   interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
+      if(interp_scnp)
+         interpreter_name_ = (char *) interp_scnp->get_data().d_buf(); 
 
-	// global symbols are put in global_symbols. Later we read the
-	// stab section to find the module to where they belong.
-	// Experiment : lets try to be a bit more intelligent about
-	// how we initially size the global_symbols table.  
-	// dictionary_lite takes an initial # of bins (2nd param), 
-	// a max bin load (3rd param), and a grow factor (4th param).
-	// Leaving aside the grow factor, lets allocate an initial #
-	// of bins = nsyms / max bin load.
-    
+      // global symbols are put in global_symbols. Later we read the
+      // stab section to find the module to where they belong.
+      // Experiment : lets try to be a bit more intelligent about
+      // how we initially size the global_symbols table.  
+      // dictionary_lite takes an initial # of bins (2nd param), 
+      // a max bin load (3rd param), and a grow factor (4th param).
+      // Leaving aside the grow factor, lets allocate an initial #
+      // of bins = nsyms / max bin load.
+
 #if defined(TIMED_PARSE)
-	struct timeval starttime;
-	gettimeofday(&starttime, NULL);
+      struct timeval starttime;
+      gettimeofday(&starttime, NULL);
 #endif
-	std::vector<Symbol *> allsymbols;
-	
-	// find symbol and string data
-	string module = "DEFAULT_MODULE";
-	string name   = "DEFAULT_NAME";
-   	Elf_X_Data symdata, strdata;
-   	if (symscnp && strscnp)
-	{
-   	   symdata = symscnp->get_data();
-   	   strdata = strscnp->get_data();
- 	   parse_symbols(allsymbols, symdata, strdata, false, module);
-	}   
-	sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
-	//VECTOR_SORT(allsymbols,symbol_compare);
-   	
-	no_of_symbols_ = allsymbols.size();
-	fix_zero_function_sizes(allsymbols, 0);
+      std::vector<Symbol *> allsymbols;
 
-	override_weak_symbols(allsymbols);
+      // find symbol and string data
+      string module = "DEFAULT_MODULE";
+      string name   = "DEFAULT_NAME";
+      Elf_X_Data symdata, strdata;
+      if (symscnp && strscnp)
+      {
+         symdata = symscnp->get_data();
+         strdata = strscnp->get_data();
+         parse_symbols(allsymbols, symdata, strdata, false, module);
+      }   
+      sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
+      //VECTOR_SORT(allsymbols,symbol_compare);
 
-	// dump "allsymbols" into "symbols_" (data member)
-	insert_symbols_static(allsymbols);
+      no_of_symbols_ = allsymbols.size();
+      fix_zero_function_sizes(allsymbols, 0);
 
-	// try to resolve the module names of global symbols
-	// Sun compiler stab.index section 
-	fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
+      override_weak_symbols(allsymbols);
 
-	// STABS format (.stab section)
-	fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
+      // dump "allsymbols" into "symbols_" (data member)
+      insert_symbols_static(allsymbols);
 
-	// DWARF format (.debug_info section)
-	fix_global_symbol_modules_static_dwarf(elfHdr);
-    
-    if (dynsym_scnp && dynstr_scnp && !isStripped)
-	{
-   	   symdata = dynsym_scnp->get_data();
-   	   strdata = dynstr_scnp->get_data();
- 	   parse_dynamicSymbols(symdata, strdata, false, module);
-	}
-    //TODO
-    //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
-    //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
-    //         symbols only in dynsymtab & symbols present in both).
-    // Else add dynamic symbol to dictionary
-    // (or) Have two sepearate dictionaries. Makes life easy!
-    // Think about it today!!
-    
-    //allsymbols = merge(allsymbols, alldynSymbols);
-        
+      // try to resolve the module names of global symbols
+      // Sun compiler stab.index section 
+      fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
+
+      // STABS format (.stab section)
+      fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
+
+      // DWARF format (.debug_info section)
+      fix_global_symbol_modules_static_dwarf(elfHdr);
+
+      if (dynsym_scnp && dynstr_scnp && !isStripped)
+      {
+         symdata = dynsym_scnp->get_data();
+         strdata = dynstr_scnp->get_data();
+         parse_dynamicSymbols(symdata, strdata, false, module);
+      }
+      //TODO
+      //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
+      //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
+      //         symbols only in dynsymtab & symbols present in both).
+      // Else add dynamic symbol to dictionary
+      // (or) Have two sepearate dictionaries. Makes life easy!
+      // Think about it today!!
+
+      //allsymbols = merge(allsymbols, alldynSymbols);
+
 #if defined(TIMED_PARSE)
-	struct timeval endtime;
-	gettimeofday(&endtime, NULL);
-	unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-	unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-	unsigned long difftime = lendtime - lstarttime;
-	double dursecs = difftime/(1000);
-	cout << "parsing/fixing/overriding elf took "<<dursecs <<" msecs" << endl;
+      struct timeval endtime;
+      gettimeofday(&endtime, NULL);
+      unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+      unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+      unsigned long difftime = lendtime - lstarttime;
+      double dursecs = difftime/(1000);
+      cout << "parsing/fixing/overriding elf took "<<dursecs <<" msecs" << endl;
 #endif
-    if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
-        parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
-    }
+      if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
+         parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
+      }
 
-	// populate "fbt_"
-	if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-	    if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
-          	goto cleanup;
-	    }
-	}
+      // populate "fbt_"
+      if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
+         if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
+            goto cleanup;
+         }
+      }
 
-    //Set object type
-   int e_type = elfHdr.e_type();
-   if (e_type == ET_DYN) {
-      obj_type_ = obj_SharedLib;
+      //Set object type
+      int e_type = elfHdr.e_type();
+      if (e_type == ET_DYN) {
+         obj_type_ = obj_SharedLib;
+      }
+      else if (e_type == ET_EXEC) {
+         obj_type_ = obj_Executable;
+      }
+
+      return;
+   } // end binding contour (for "goto cleanup2")
+
+cleanup: 
+   {
+      /* NOTE: The file should NOT be munmap()ed.  The mapped file is
+         used for function parsing (see dyninstAPI/src/symtab.C) */
+
+      fprintf(stderr, "%s[%d]:  failed to load elf object\n", FILE__, __LINE__);
    }
-   else if (e_type == ET_EXEC) {
-      obj_type_ = obj_Executable;
-   }
-     
-    } // end binding contour (for "goto cleanup2")
-
-  cleanup: 
-    {
-	/* NOTE: The file should NOT be munmap()ed.  The mapped file is
-	   used for function parsing (see dyninstAPI/src/symtab.C) */
-
-	//if (elfHdr.isValid()) elfHdr.end();
-	if(did_open) P_close(file_fd_);
-    }
 }
 
 void Object::load_shared_object() 
 {
-    Elf_X_Shdr *symscnp = 0;
-    Elf_X_Shdr *strscnp = 0;
-    Elf_X_Shdr *stabscnp = 0;
-    Elf_X_Shdr *stabstrscnp = 0;
-    Elf_X_Shdr *stabs_indxcnp = 0;
-    Elf_X_Shdr *stabstrs_indxcnp = 0;
-    Offset txtaddr = 0;
-    Offset dataddr = 0;
-    Elf_X_Shdr *rel_plt_scnp = 0;
-    Elf_X_Shdr *plt_scnp = 0; 
-    Elf_X_Shdr *got_scnp = 0;
-    Elf_X_Shdr *dynsym_scnp = 0;
-    Elf_X_Shdr *dynstr_scnp = 0;
-    Elf_X_Shdr *dynamic_scnp = 0;
-    Elf_X_Shdr *eh_frame_scnp = 0;
-    Elf_X_Shdr *gcc_except = 0;
-    Elf_X_Shdr *interp_scnp = 0;
+   Elf_X_Shdr *symscnp = 0;
+   Elf_X_Shdr *strscnp = 0;
+   Elf_X_Shdr *stabscnp = 0;
+   Elf_X_Shdr *stabstrscnp = 0;
+   Elf_X_Shdr *stabs_indxcnp = 0;
+   Elf_X_Shdr *stabstrs_indxcnp = 0;
+   Offset txtaddr = 0;
+   Offset dataddr = 0;
+   Elf_X_Shdr *rel_plt_scnp = 0;
+   Elf_X_Shdr *plt_scnp = 0; 
+   Elf_X_Shdr *got_scnp = 0;
+   Elf_X_Shdr *dynsym_scnp = 0;
+   Elf_X_Shdr *dynstr_scnp = 0;
+   Elf_X_Shdr *dynamic_scnp = 0;
+   Elf_X_Shdr *eh_frame_scnp = 0;
+   Elf_X_Shdr *gcc_except = 0;
+   Elf_X_Shdr *interp_scnp = 0;
 
-    { // binding contour (for "goto cleanup2")
+   { // binding contour (for "goto cleanup2")
 
-	// initialize "valid" regions of code and data segments
-	code_vldS_ = (Offset) -1;
-	code_vldE_ = 0;
-	data_vldS_ = (Offset) -1;
-	data_vldE_ = 0;
+      // initialize "valid" regions of code and data segments
+      code_vldS_ = (Offset) -1;
+      code_vldE_ = 0;
+      data_vldS_ = (Offset) -1;
+      data_vldE_ = 0;
 
-	if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
-			stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
-			rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp,
-			dynstr_scnp, dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
-	    goto cleanup2;
+      if (!loaded_elf(txtaddr, dataddr, symscnp, strscnp,
+               stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
+               rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp,
+               dynstr_scnp, dynamic_scnp, eh_frame_scnp, gcc_except, interp_scnp))
+         goto cleanup2;
 
-	addressWidth_nbytes = elfHdr.wordSize();
+      addressWidth_nbytes = elfHdr.wordSize();
 
-	// find code and data segments....
-	find_code_and_data(elfHdr, txtaddr, dataddr);
+      // find code and data segments....
+      find_code_and_data(elfHdr, txtaddr, dataddr);
 
-	get_valid_memory_areas(elfHdr);
+      get_valid_memory_areas(elfHdr);
 
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
-	//fprintf(stderr, "[%s:%u] - Mod Name is %s\n", __FILE__, __LINE__, name.c_str());
-	if (eh_frame_scnp != 0 && gcc_except != 0) {
-	    find_catch_blocks(elfHdr, eh_frame_scnp, gcc_except, catch_addrs_);
-	}
+      //fprintf(stderr, "[%s:%u] - Mod Name is %s\n", __FILE__, __LINE__, name.c_str());
+      if (eh_frame_scnp != 0 && gcc_except != 0) {
+         find_catch_blocks(elfHdr, eh_frame_scnp, gcc_except, catch_addrs_);
+      }
 #endif
 #if defined(TIMED_PARSE)
-	struct timeval starttime;
-	gettimeofday(&starttime, NULL);
+      struct timeval starttime;
+      gettimeofday(&starttime, NULL);
 #endif
 
-	// build symbol dictionary
-	std::vector<Symbol *> allsymbols;
-	// short module name
-	string module = file_;
-	string name   = "DEFAULT_NAME";
-	
-	// find symbol and string data
-   	Elf_X_Data symdata, strdata;
-   	if (symscnp && strscnp)
-	{
-   	   symdata = symscnp->get_data();
-   	   strdata = strscnp->get_data();
-	   if (!symdata.isValid() || !strdata.isValid()) {
-	       log_elferror(err_func_, "locating symbol/string data");
-	       goto cleanup2;
-	   }
- 	   parse_symbols(allsymbols, symdata, strdata, false, module);
-	} 
-	sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
-	//VECTOR_SORT(allsymbols,symbol_compare);
-	no_of_symbols_ = allsymbols.size();
-	
-	fix_zero_function_sizes(allsymbols, 0);
-	override_weak_symbols(allsymbols);
-	insert_symbols_shared(allsymbols);
+      // build symbol dictionary
+      std::vector<Symbol *> allsymbols;
+      string module = mf->filename();
+      string name   = "DEFAULT_NAME";
 
-//	// try to resolve the module names of global symbols
-//	// Sun compiler stab.index section 
-//	fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
+      // find symbol and string data
+      Elf_X_Data symdata, strdata;
+      if (symscnp && strscnp)
+      {
+         symdata = symscnp->get_data();
+         strdata = strscnp->get_data();
+         if (!symdata.isValid() || !strdata.isValid()) {
+            log_elferror(err_func_, "locating symbol/string data");
+            goto cleanup2;
+         }
+         parse_symbols(allsymbols, symdata, strdata, false, module);
+      } 
+      sort(allsymbols.begin(),allsymbols.end(),symbol_compare);
+      //VECTOR_SORT(allsymbols,symbol_compare);
+      no_of_symbols_ = allsymbols.size();
 
-//	// STABS format (.stab section)
-//	fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
+      fix_zero_function_sizes(allsymbols, 0);
+      override_weak_symbols(allsymbols);
+      insert_symbols_shared(allsymbols);
 
-//	// DWARF format (.debug_info section)
-//	fix_global_symbol_modules_static_dwarf(elfHdr);
+      //	// try to resolve the module names of global symbols
+      //	// Sun compiler stab.index section 
+      //	fix_global_symbol_modules_static_stab(stabs_indxcnp, stabstrs_indxcnp);
 
-    if (dynsym_scnp && dynstr_scnp && !isStripped)
-    {
-       symdata = dynsym_scnp->get_data();
-       strdata = dynstr_scnp->get_data();
-       parse_dynamicSymbols(symdata, strdata, false, module);
-    }
-    //TODO
-    //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
-    //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
-    //         symbols only in dynsymtab & symbols present in both).
-    // Else add dynamic symbol to dictionary
-    // (or) Have two sepearate dictionaries. Makes life easy!
-    // Think about it today!!
+      //	// STABS format (.stab section)
+      //	fix_global_symbol_modules_static_stab(stabscnp, stabstrscnp);
 
-    //allsymbols = merge(allsymbols, alldynSymbols);
-        
+      //	// DWARF format (.debug_info section)
+      //	fix_global_symbol_modules_static_dwarf(elfHdr);
+
+      if (dynsym_scnp && dynstr_scnp && !isStripped)
+      {
+         symdata = dynsym_scnp->get_data();
+         strdata = dynstr_scnp->get_data();
+         parse_dynamicSymbols(symdata, strdata, false, module);
+      }
+      //TODO
+      //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
+      //If yes set dynamic for the symbol ( How to distinguish between symbols only in symtab,
+      //         symbols only in dynsymtab & symbols present in both).
+      // Else add dynamic symbol to dictionary
+      // (or) Have two sepearate dictionaries. Makes life easy!
+      // Think about it today!!
+
+      //allsymbols = merge(allsymbols, alldynSymbols);
+
 #if defined(TIMED_PARSE)
-    	struct timeval endtime;
-    	gettimeofday(&endtime, NULL);
-    	unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-    	unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-    	unsigned long difftime = lendtime - lstarttime;
-    	double dursecs = difftime/(1000 * 1000);
-	cout << "*INSERT SYMBOLS* elf took "<<dursecs <<" msecs" << endl;
-	//cout << "parsing/fixing/overriding/insertion elf took "<<dursecs <<" msecs" << endl;
+      struct timeval endtime;
+      gettimeofday(&endtime, NULL);
+      unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+      unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+      unsigned long difftime = lendtime - lstarttime;
+      double dursecs = difftime/(1000 * 1000);
+      cout << "*INSERT SYMBOLS* elf took "<<dursecs <<" msecs" << endl;
+      //cout << "parsing/fixing/overriding/insertion elf took "<<dursecs <<" msecs" << endl;
 #endif
-    if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
-        parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
-    }
-    
-	if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
-	    if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
-		goto cleanup2;
-	    }
-	}
+      if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
+         parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
+      }
 
-    //Set object type
-   int e_type = elfHdr.e_type();
-   if (e_type == ET_DYN) {
-      obj_type_ = obj_SharedLib;
+      if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
+         if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
+            goto cleanup2;
+         }
+      }
+
+      //Set object type
+      int e_type = elfHdr.e_type();
+      if (e_type == ET_DYN) {
+         obj_type_ = obj_SharedLib;
+      }
+      else if (e_type == ET_EXEC) {
+         obj_type_ = obj_Executable;
+      }
+
+   } // end binding contour (for "goto cleanup2")
+
+cleanup2: 
+   {
    }
-   else if (e_type == ET_EXEC) {
-      obj_type_ = obj_Executable;
-   }
-
-    } // end binding contour (for "goto cleanup2")
-
-  cleanup2: 
-    {
-	/* NOTE: The file should NOT be munmap()ed.  The mapped file is
-	   used for function parsing (see dyninstAPI/src/symtab.C) */
-	//if (elfHdr.isValid()) elfHdr.end();
-	if (did_open) P_close(file_fd_);
-    }
 }
 
 static Symbol::SymbolType pdelf_type(int elf_type)
 {
-  switch (elf_type) {
-  case STT_FILE:   return Symbol::ST_MODULE;
-  case STT_OBJECT: return Symbol::ST_OBJECT;
-  case STT_FUNC:   return Symbol::ST_FUNCTION;
-  case STT_NOTYPE: return Symbol::ST_NOTYPE;
-  }
-  return Symbol::ST_UNKNOWN;
+   switch (elf_type) {
+      case STT_FILE:   return Symbol::ST_MODULE;
+      case STT_OBJECT: return Symbol::ST_OBJECT;
+      case STT_FUNC:   return Symbol::ST_FUNCTION;
+      case STT_NOTYPE: return Symbol::ST_NOTYPE;
+   }
+   return Symbol::ST_UNKNOWN;
 }
 
 static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
 {
-  switch (elf_binding) {
-  case STB_LOCAL:  return Symbol::SL_LOCAL;
-  case STB_WEAK:   return Symbol::SL_WEAK;
-  case STB_GLOBAL: return Symbol::SL_GLOBAL;
-  }
-  return Symbol::SL_UNKNOWN;
+   switch (elf_binding) {
+      case STB_LOCAL:  return Symbol::SL_LOCAL;
+      case STB_WEAK:   return Symbol::SL_WEAK;
+      case STB_GLOBAL: return Symbol::SL_GLOBAL;
+   }
+   return Symbol::SL_UNKNOWN;
 }
 
 //============================================================================
@@ -1004,33 +977,33 @@ static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
 //linear search
 bool lookUpSymbol( std::vector< Symbol *>& allsymbols, Offset& addr )
 {
-    for( unsigned i = 0; i < allsymbols.size(); i++ )
-    {
-        if( allsymbols[ i ]->getAddr() == addr )
-        {
-            return true;
-        }
-    }
-    return false;
+   for( unsigned i = 0; i < allsymbols.size(); i++ )
+   {
+      if( allsymbols[ i ]->getAddr() == addr )
+      {
+         return true;
+      }
+   }
+   return false;
 }
 
 bool lookUpAddress( std::vector< Offset >& jumpTargets, Offset& addr )
 {
-    for( unsigned i = 0; i < jumpTargets.size(); i++ )
-    {
-        if( jumpTargets[ i ] == addr )
-        {
-            return true;
-        }
-    }
-    return false;
+   for( unsigned i = 0; i < jumpTargets.size(); i++ )
+   {
+      if( jumpTargets[ i ] == addr )
+      {
+         return true;
+      }
+   }
+   return false;
 }
 
 //utitility function to print std::vector of symbols
 void printSyms( std::vector< Symbol *>& allsymbols )
 {
-    for( unsigned i = 0; i < allsymbols.size(); i++ )
-    {
+   for( unsigned i = 0; i < allsymbols.size(); i++ )
+   {
 	if( allsymbols[ i ]->getType() != Symbol::ST_FUNCTION )
 	{
 	    continue;
@@ -1101,7 +1074,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
 // Lazy parsing of dynamic symbol  & string tables
 // Parsing the dynamic symbols lazily would certainly not increase the overhead of the entire parse
 void Object::parse_dynamicSymbols ( Elf_X_Data &symdata, Elf_X_Data &strdata,
-			   bool shared, string smodule)
+			   bool /*shared*/, string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -2186,247 +2159,270 @@ void Object::insert_symbols_shared(std::vector<Symbol *> &allsymbols) {
 //   code_ptr_, code_off_, code_len_
 //   data_ptr_, data_off_, data_len_
 void Object::find_code_and_data(Elf_X &elf,
-				Offset txtaddr, 
-				Offset dataddr) 
+      Offset txtaddr, 
+      Offset dataddr) 
 {
-    for (int i = 0; i < elf.e_phnum(); ++i) {
-	Elf_X_Phdr phdr = elf.get_phdr(i);
-        
-	// The code pointer, offset, & length should be set even if
-        // txtaddr=0, so in this case we set these values by
-        // identifying the segment that contains the entryAddress
-	if (((phdr.p_vaddr() <= txtaddr) && 
-	    (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
-	    (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
-	    (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
+   for (int i = 0; i < elf.e_phnum(); ++i) {
+      Elf_X_Phdr phdr = elf.get_phdr(i);
 
-	    if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
-		code_ptr_ = (char *)(void*)&file_ptr_[phdr.p_offset()];
-		code_off_ = (Offset)phdr.p_vaddr();
-		code_len_ = (unsigned)phdr.p_filesz();
-	    }
+      // The code pointer, offset, & length should be set even if
+      // txtaddr=0, so in this case we set these values by
+      // identifying the segment that contains the entryAddress
+      char *file_ptr = (char *)mf->base_addr();
+      if (((phdr.p_vaddr() <= txtaddr) && 
+               (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
+            (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
+                          (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
 
-	} else if (((phdr.p_vaddr() <= dataddr) && 
-		   (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) || 
-		   (!dataddr && (phdr.p_type() == PT_LOAD))) {
-	    if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
-		data_ptr_ = (char *)(void *)&file_ptr_[phdr.p_offset()];
-		data_off_ = (Offset)phdr.p_vaddr();
-		data_len_ = (unsigned)phdr.p_filesz();
-	    }
-	}
-    }
-    //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
+         if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
+            code_ptr_ = (char *)(void*)&file_ptr[phdr.p_offset()];
+            code_off_ = (Offset)phdr.p_vaddr();
+            code_len_ = (unsigned)phdr.p_filesz();
+         }
+
+      } else if (((phdr.p_vaddr() <= dataddr) && 
+               (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) || 
+            (!dataddr && (phdr.p_type() == PT_LOAD))) {
+         if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
+            data_ptr_ = (char *)(void *)&file_ptr[phdr.p_offset()];
+            data_off_ = (Offset)phdr.p_vaddr();
+            data_len_ = (unsigned)phdr.p_filesz();
+         }
+      }
+   }
+   //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
 }
 
 const char *Object::elf_vaddr_to_ptr(Offset vaddr) const
 {
-  const char *ret = NULL;
-  unsigned code_size_ = code_len_;
-  unsigned data_size_ = data_len_;
+   const char *ret = NULL;
+   unsigned code_size_ = code_len_;
+   unsigned data_size_ = data_len_;
 
 #if defined(os_irix)
-  vaddr -= base_addr;
+   vaddr -= base_addr;
 #endif
 
-  if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
-    ret = ((char *)code_ptr_) + (vaddr - code_off_);
-  } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
-    ret = ((char *)data_ptr_) + (vaddr - data_off_);
-  } 
+   if (vaddr >= code_off_ && vaddr < code_off_ + code_size_) {
+      ret = ((char *)code_ptr_) + (vaddr - code_off_);
+   } else if (vaddr >= data_off_ && vaddr < data_off_ + data_size_) {
+      ret = ((char *)data_ptr_) + (vaddr - data_off_);
+   } 
 
-  return ret;
+   return ret;
 }
 
 stab_entry *Object::get_stab_info() const
 {
-    // check that file has .stab info
-    if (stab_off_ && stab_size_ && stabstr_off_) 
-    {
-	switch (addressWidth_nbytes) {
-	case 4: // 32-bit object
-	    return new stab_entry_32(file_ptr_ + stab_off_,
-				     file_ptr_ + stabstr_off_,
-				     stab_size_ / sizeof(stab32));
-	case 8: // 64-bit object
-	    return new stab_entry_64(file_ptr_ + stab_off_,
-				     file_ptr_ + stabstr_off_,
-				     stab_size_ / sizeof(stab64));
-	}
-    }
-    return new stab_entry_64();
+   char *file_ptr = (char *)mf->base_addr();
+
+   // check that file has .stab info
+   if (stab_off_ && stab_size_ && stabstr_off_) {
+      switch (addressWidth_nbytes) {
+         case 4: // 32-bit object
+            return new stab_entry_32(file_ptr + stab_off_,
+                  file_ptr + stabstr_off_,
+                  stab_size_ / sizeof(stab32));
+            break;
+         case 8: // 64-bit object
+            return new stab_entry_64(file_ptr + stab_off_,
+                  file_ptr + stabstr_off_,
+                  stab_size_ / sizeof(stab64));
+            break;
+      };
+   }
+
+   return new stab_entry_64();
 }
 
-Object::Object(string &filename, void (*err_func)(const char *))
-    : AObject(filename, err_func), fileName(filename.c_str()), mem_image_(NULL), EEL(false) 
+Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, 
+      void (*err_func)(const char *)) :
+   AObject(mf_, err_func), 
+   EEL(false) 
+{
+      elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
+
+      // ELF header: sanity check
+      //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
+      if (!elfHdr.isValid())  {
+         log_elferror(err_func_, "ELF header");
+         return;
+      }
+      else if (!pdelf_check_ehdr(elfHdr)) {
+         fprintf(stderr, "[%s][%d]: WARNING: ELF ehdr failed integrity check\n",
+               FILE__,__LINE__);
+         log_elferror(err_func_, "ELF header failed integrity check");
+      }
+      if( elfHdr.e_type() == 3 ) {
+       //  load_shared_object();
+      } else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
+         is_aout_ = true;
+        // load_object();
+      }    
+      else {
+         log_perror(err_func_,"Invalid filetype in Elf header");
+         return;
+      }
+
+      parseFileLineInfo(li);
+}
+
+Object::Object(MappedFile *mf_, void (*err_func)(const char *)) :
+   AObject(mf_, err_func), 
+   EEL(false) 
 {
 #if defined(TIMED_PARSE)
-    struct timeval starttime;
-    gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 #if defined(os_solaris)
-    loadNativeDemangler();
+   loadNativeDemangler();
 #endif    
-    is_aout_ = false;
-    did_open = false;
-    interpreter_name_ = NULL;
-    isStripped = false;
-    bool  did_mmap = false;         	
-    const char *file = file_.c_str();
-    assert(file);
-    if (mmap_file(file, did_open, did_mmap) == false) 
-    {
-    	char buf[500];
-    	sprintf(buf, "open/fstat/mmap failed on: %s", file);
-    	log_perror(err_func_, buf);
-    	//if (elfHdr.isValid()) elfHdr.end();
-    	if (did_open) P_close(file_fd_);
-    	return;
-    }
-    else
-    {
-    	elfHdr = Elf_X(file_fd_, ELF_C_READ);
+   is_aout_ = false;
+   did_open = false;
+   interpreter_name_ = NULL;
+   isStripped = false;
+   elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
 
-       	// ELF header: sanity check
-    	//if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
-    	if (!elfHdr.isValid()) 
-	{
-    	    log_elferror(err_func_, "ELF header");
-    	    return;
-       	}
-        else if (!pdelf_check_ehdr(elfHdr))
-        {
-            fprintf(stderr, "[%s][%d]WARNING: ELF ehdr failed integrity check\n",__FILE__,__LINE__);
-            log_elferror(err_func_, "ELF header failed integrity check");
-        }
-    	if( elfHdr.e_type() == 3 )
-    	    load_shared_object();
-        else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 )
-	{
-	    is_aout_ = true;
-    	    load_object();
-	}    
-	else
-	{
-	    log_perror(err_func_,"Invalid filetype in Elf header");
-	    return;
-	}
-    }
+   // ELF header: sanity check
+   //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
+   if (!elfHdr.isValid())  {
+      log_elferror(err_func_, "ELF header");
+      return;
+   }
+   else if (!pdelf_check_ehdr(elfHdr)) {
+      fprintf(stderr, "[%s][%d]: WARNING: ELF ehdr failed integrity check\n",
+            FILE__,__LINE__);
+      log_elferror(err_func_, "ELF header failed integrity check");
+   }
+   if( elfHdr.e_type() == 3 )
+      load_shared_object();
+   else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
+      is_aout_ = true;
+      load_object();
+   }    
+   else {
+      log_perror(err_func_,"Invalid filetype in Elf header");
+      return;
+   }
 #if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << "obj parsing in Object-elf took "<<dursecs <<" msecs" << endl;
 #endif
 }
 
-Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *))
-    : AObject(NULL, err_func), fileName(NULL), mem_image_(mem_image), EEL(false)
+#if 0 
+   Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *))
+: AObject(NULL, err_func), fileName(NULL), mem_image_(mem_image), EEL(false)
 {
 #if defined(os_solaris)
-    loadNativeDemangler();
+   loadNativeDemangler();
 #endif    
-    is_aout_ = false;
-    interpreter_name_ = NULL;
-    isStripped = false;
-    elfHdr = Elf_X(mem_image,image_size);
-    // ELF header: sanity check
-    if (!elfHdr.isValid()) 
-    {
-    	log_elferror(err_func_, "ELF header");
-    	return;
-    }
-    else if (!pdelf_check_ehdr(elfHdr))
-    {
-        fprintf(stderr, "[%s][%d]WARNING: ELF ehdr failed integrity check\n",__FILE__,__LINE__);
-        log_elferror(err_func_, "ELF header failed integrity check");
-    }
-    if( elfHdr.e_type() == 3 )
-    	load_shared_object();
-    else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 )
-    {
-    	is_aout_ = true;
-    	load_object();
-    }	
-    else
-    {
-	log_perror(err_func_,"Invalid filetype in Elf header");
-        return;
-    }	
+   is_aout_ = false;
+   interpreter_name_ = NULL;
+   isStripped = false;
+   elfHdr = Elf_X(mem_image,image_size);
+   // ELF header: sanity check
+   if (!elfHdr.isValid()) 
+   {
+      log_elferror(err_func_, "ELF header");
+      return;
+   }
+   else if (!pdelf_check_ehdr(elfHdr))
+   {
+      fprintf(stderr, "[%s][%d]WARNING: ELF ehdr failed integrity check\n",__FILE__,__LINE__);
+      log_elferror(err_func_, "ELF header failed integrity check");
+   }
+   if( elfHdr.e_type() == 3 )
+      load_shared_object();
+   else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 )
+   {
+      is_aout_ = true;
+      load_object();
+   }	
+   else
+   {
+      log_perror(err_func_,"Invalid filetype in Elf header");
+      return;
+   }	
 }
-
-Object::Object(const Object& obj)
-    : AObject(obj), fileName(NULL), EEL(false) 
+#endif
+   Object::Object(const Object& obj)
+: AObject(obj), EEL(false) 
 {
 #if defined(os_solaris)
-    loadNativeDemangler();
+   loadNativeDemangler();
 #endif    
-    file_ptr_ = obj.file_ptr_;	
-    interpreter_name_ = obj.interpreter_name_;
-    isStripped = obj.isStripped;
-    mem_image_ = mem_image_;
-    loadAddress_ = obj.loadAddress_;
-    entryAddress_ = obj.entryAddress_;
-    relocation_table_ = obj.relocation_table_;
-    fbt_ = obj.fbt_;
-    elfHdr = obj.elfHdr;
+   interpreter_name_ = obj.interpreter_name_;
+   isStripped = obj.isStripped;
+   loadAddress_ = obj.loadAddress_;
+   entryAddress_ = obj.entryAddress_;
+   relocation_table_ = obj.relocation_table_;
+   fbt_ = obj.fbt_;
+   elfHdr = obj.elfHdr;
 }
 
 const Object&
 Object::operator=(const Object& obj) {
 
-    (void) AObject::operator=(obj);
+   (void) AObject::operator=(obj);
 
-    dynsym_addr_ = obj.dynsym_addr_;
-    dynstr_addr_ = obj.dynstr_addr_;
-    got_addr_ = obj.got_addr_;
-    plt_addr_ = obj.plt_addr_;
-    plt_size_ = obj.plt_size_;
-    plt_entry_size_ = obj.plt_entry_size_;
-    rel_plt_addr_ = obj.rel_plt_addr_;
-    rel_plt_size_ = obj.rel_plt_size_;
-    rel_plt_entry_size_ = obj.rel_plt_entry_size_;
-    rel_size_ = obj.rel_size_;
-    rel_entry_size_ = obj.rel_entry_size_;
-    stab_off_ = obj.stab_off_;
-    stab_size_ = obj.stab_size_;
-    stabstr_off_ = obj.stabstr_off_;
-    relocation_table_  = obj.relocation_table_;
-    fbt_  = obj.fbt_;
-    dwarvenDebugInfo = obj.dwarvenDebugInfo;
-    symbolNamesByAddr = obj.symbolNamesByAddr;
-    elfHdr = obj.elfHdr; 
-    return *this;
+   dynsym_addr_ = obj.dynsym_addr_;
+   dynstr_addr_ = obj.dynstr_addr_;
+   got_addr_ = obj.got_addr_;
+   plt_addr_ = obj.plt_addr_;
+   plt_size_ = obj.plt_size_;
+   plt_entry_size_ = obj.plt_entry_size_;
+   rel_plt_addr_ = obj.rel_plt_addr_;
+   rel_plt_size_ = obj.rel_plt_size_;
+   rel_plt_entry_size_ = obj.rel_plt_entry_size_;
+   rel_size_ = obj.rel_size_;
+   rel_entry_size_ = obj.rel_entry_size_;
+   stab_off_ = obj.stab_off_;
+   stab_size_ = obj.stab_size_;
+   stabstr_off_ = obj.stabstr_off_;
+   relocation_table_  = obj.relocation_table_;
+   fbt_  = obj.fbt_;
+   dwarvenDebugInfo = obj.dwarvenDebugInfo;
+   symbolNamesByAddr = obj.symbolNamesByAddr;
+   elfHdr = obj.elfHdr; 
+   return *this;
 }
 
 Object::~Object()
 {
-//   if (fileName) free((void *)fileName);
+   //   if (fileName) free((void *)fileName);
 }
 
-void Object::log_elferror(void (*err_func)(const char *), const char* msg) {
-    const char* err = elf_errmsg(elf_errno());
+void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
+{
+   const char* err = elf_errmsg(elf_errno());
     err = err ? err: "(bad elf error)";
     string str = string(err)+string(msg);
     err_func(str.c_str());
 }
 
-bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const {
+bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const 
+{
     if(!plt_addr_ || (!fbt_.size())) return false;
     fbt = fbt_;
     return true;
 }
 
-bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const {
+bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const 
+{
     if(!plt_addr_ || (!fbt_.size())) return false;
     fbt = &fbt_;
     return true;
 }
 
-bool Object::addRelocationEntry(relocationEntry &re){
+bool Object::addRelocationEntry(relocationEntry &re)
+{
     relocation_table_.push_back(re);
     return true;
 }
@@ -2471,20 +2467,20 @@ const ostream &Object::dump_state_info(ostream &s)
 #endif
 
 
-Offset Object::getPltSlot(string funcName) const{
+Offset Object::getPltSlot(string funcName) const
+{
+   relocationEntry re;
+   bool found= false;
+   Offset offset=0;
 
-	relocationEntry re;
-	bool found= false;
-	Offset offset=0;
-	for( unsigned int i = 0; i < fbt_.size(); i++ ){
-		if(funcName == fbt_[i].name() ){
-			found = true;
-			offset =  fbt_[i].rel_addr();
-		}
+   for ( unsigned int i = 0; i < fbt_.size(); i++ ){
+      if (funcName == fbt_[i].name() ){
+         found = true;
+         offset =  fbt_[i].rel_addr();
+      }
+   }
 
-	}
-	return offset;	
-
+   return offset;	
 }
 
 //
@@ -2494,28 +2490,28 @@ Offset Object::getPltSlot(string funcName) const{
 
 void Object::get_valid_memory_areas(Elf_X &elf)
 {
-    for (unsigned i = 0; i < elf.e_shnum(); ++i) {
-	Elf_X_Shdr shdr = elf.get_shdr(i);
-        if ( !shdr.isValid()) { 
-           break; 
-        }
-	if (shdr.sh_flags() & SHF_ALLOC) { // This section is in memory
-	    if (code_off_ <= shdr.sh_addr() &&
-		shdr.sh_addr() <= code_off_ + code_len_) {
-		if (shdr.sh_addr() < code_vldS_)
-		    code_vldS_ = shdr.sh_addr();
-		if (shdr.sh_addr() + shdr.sh_size() > code_vldE_)
-		    code_vldE_ = shdr.sh_addr() + shdr.sh_size();
+   for (unsigned i = 0; i < elf.e_shnum(); ++i) {
+      Elf_X_Shdr shdr = elf.get_shdr(i);
+      if ( !shdr.isValid()) { 
+         break; 
+      }
+      if (shdr.sh_flags() & SHF_ALLOC) { // This section is in memory
+         if (code_off_ <= shdr.sh_addr() &&
+               shdr.sh_addr() <= code_off_ + code_len_) {
+            if (shdr.sh_addr() < code_vldS_)
+               code_vldS_ = shdr.sh_addr();
+            if (shdr.sh_addr() + shdr.sh_size() > code_vldE_)
+               code_vldE_ = shdr.sh_addr() + shdr.sh_size();
 
-	    } else if (data_off_ <= shdr.sh_addr() &&
-		       shdr.sh_addr() <= data_off_ + data_len_) {
-		if (shdr.sh_addr() < data_vldS_)
-		    data_vldS_ = shdr.sh_addr();
-		if (shdr.sh_addr() + shdr.sh_size() > data_vldE_)
-		    data_vldE_ = shdr.sh_addr() + shdr.sh_size();
-	    }
-	}
-    }
+         } else if (data_off_ <= shdr.sh_addr() &&
+               shdr.sh_addr() <= data_off_ + data_len_) {
+            if (shdr.sh_addr() < data_vldS_)
+               data_vldS_ = shdr.sh_addr();
+            if (shdr.sh_addr() + shdr.sh_size() > data_vldE_)
+               data_vldE_ = shdr.sh_addr() + shdr.sh_size();
+         }
+      }
+   }
 }
 
 //
@@ -2524,15 +2520,15 @@ void Object::get_valid_memory_areas(Elf_X &elf)
 //
 //
 #if defined(os_linux)
-    // Differentiating between g++ and pgCC by stabs info (as in the solaris/
-    // aix case, below) will not work; the gcc-compiled object files that
-    // get included at link time will fill in the N_OPT stabs line. Instead,
-    // look for "pgCC_compiled." symbols.
+// Differentiating between g++ and pgCC by stabs info (as in the solaris/
+// aix case, below) will not work; the gcc-compiled object files that
+// get included at link time will fill in the N_OPT stabs line. Instead,
+// look for "pgCC_compiled." symbols.
 bool parseCompilerType(Object *objPtr)
 {
    hash_map<string, std::vector<Symbol *> >*syms = objPtr->getAllSymbols();	
    if(syms->find("pgCC_compiled.") != syms->end())
-   	return true;
+      return true;
    return false;	
 } 
 #else
@@ -2540,7 +2536,7 @@ bool parseCompilerType(Object *objPtr)
 {
    stab_entry *stabptr = objPtr->get_stab_info();
    const char *next_stabstr = stabptr->getStringBase();
-   
+
    for (unsigned int i=0; i < stabptr->count(); ++i) {
       // if (stabstrs) bperr("parsing #%d, %s\n", stabptr->type(i), stabptr->name(i));
       switch (stabptr->type(i)) {
@@ -2555,7 +2551,7 @@ bool parseCompilerType(Object *objPtr)
          case N_OPT: /* Compiler options */
 #if defined(os_solaris) 
             if (strstr(stabptr->name(i), "Sun") != NULL ||
-                strstr(stabptr->name(i), "Forte") != NULL)
+                  strstr(stabptr->name(i), "Forte") != NULL)
             {
                delete stabptr;
                return true;
@@ -2672,151 +2668,152 @@ static int get_ptr_of_type(int type, unsigned long *value, const char *addr)
  *      to the function pointer from the FDE to get all of
  *      the try/catch blocks.  
  **/ 
+
 static int read_except_table_gcc3(Elf_X_Shdr *except_table, 
-				  Offset eh_frame_base, Offset except_base,
-				  Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
-				  std::vector<ExceptionBlock> &addresses)
+      Offset eh_frame_base, Offset except_base,
+      Dwarf_Fde *fde_data, Dwarf_Signed fde_count,
+      std::vector<ExceptionBlock> &addresses)
 {
-    Dwarf_Error err = (Dwarf_Error) NULL;
-    Dwarf_Addr low_pc, except_ptr;
-    Dwarf_Unsigned fde_byte_length, bytes_in_cie, outlen;
-    Dwarf_Ptr fde_bytes, lsda, outinstrs;
-    Dwarf_Off fde_offset;
-    Dwarf_Fde fde;
-    Dwarf_Cie cie;
-    int has_lsda = 0, is_pic = 0, has_augmentation_length = 0;
-    int augmentor_len, lsda_size, status;
-    unsigned bytes_read;
-    char *augmentor;
-    unsigned char lpstart_format, ttype_format, table_format;
-    unsigned long value, table_end, region_start, region_size, 
-	catch_block, action;
-    int i, j;
+   Dwarf_Error err = (Dwarf_Error) NULL;
+   Dwarf_Addr low_pc, except_ptr;
+   Dwarf_Unsigned fde_byte_length, bytes_in_cie, outlen;
+   Dwarf_Ptr fde_bytes, lsda, outinstrs;
+   Dwarf_Off fde_offset;
+   Dwarf_Fde fde;
+   Dwarf_Cie cie;
+   int has_lsda = 0, is_pic = 0, has_augmentation_length = 0;
+   int augmentor_len, lsda_size, status;
+   unsigned bytes_read;
+   char *augmentor;
+   unsigned char lpstart_format, ttype_format, table_format;
+   unsigned long value, table_end, region_start, region_size, 
+                 catch_block, action;
+   int i, j;
 
-    //For each FDE
-    for (i = 0; i < fde_count; i++) {
-	//Get the FDE
-	status = dwarf_get_fde_n(fde_data, (Dwarf_Unsigned) i, &fde, &err);
-	if (status != DW_DLV_OK) {
-	    pd_dwarf_handler(err, NULL);
-	    return false;
-	}
+   //For each FDE
+   for (i = 0; i < fde_count; i++) {
+      //Get the FDE
+      status = dwarf_get_fde_n(fde_data, (Dwarf_Unsigned) i, &fde, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }
 
-	//Get address of the function associated with this CIE
-	status = dwarf_get_fde_range(fde, &low_pc, NULL, &fde_bytes, 
-				     &fde_byte_length, NULL, NULL, &fde_offset, &err);
-	if (status != DW_DLV_OK) {
-	    pd_dwarf_handler(err, NULL);
-	    return false;
-	}
+      //Get address of the function associated with this CIE
+      status = dwarf_get_fde_range(fde, &low_pc, NULL, &fde_bytes, 
+            &fde_byte_length, NULL, NULL, &fde_offset, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }
 
-	//Get the CIE for the FDE
-	status = dwarf_get_cie_of_fde(fde, &cie, &err);
-	if (status != DW_DLV_OK) {
-	    pd_dwarf_handler(err, NULL);
-	    return false;
-	}
+      //Get the CIE for the FDE
+      status = dwarf_get_cie_of_fde(fde, &cie, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }
 
-	//Get the Augmentation string for the CIE
-	status = dwarf_get_cie_info(cie, &bytes_in_cie, NULL, &augmentor, 
-				    NULL, NULL, NULL, NULL, NULL, &err); 
-	if (status != DW_DLV_OK) {
-	    pd_dwarf_handler(err, NULL);
-	    return false;
-	}
-	//fprintf(stderr, "[%s:%u] - Augmentor string %s\n", __FILE__, __LINE__, augmentor);
-	augmentor_len = (augmentor == NULL) ? 0 : strlen(augmentor);
-	for (j = 0; j < augmentor_len; j++) {
-	    if (augmentor[j] == 'z')
-		has_augmentation_length = 1;
-	    if (augmentor[j] == 'L')
-		has_lsda = 1;
-	    if (augmentor[j] == 'R')
-		is_pic = 1;
-	}
+      //Get the Augmentation string for the CIE
+      status = dwarf_get_cie_info(cie, &bytes_in_cie, NULL, &augmentor, 
+            NULL, NULL, NULL, NULL, NULL, &err); 
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }
+      //fprintf(stderr, "[%s:%u] - Augmentor string %s\n", __FILE__, __LINE__, augmentor);
+      augmentor_len = (augmentor == NULL) ? 0 : strlen(augmentor);
+      for (j = 0; j < augmentor_len; j++) {
+         if (augmentor[j] == 'z')
+            has_augmentation_length = 1;
+         if (augmentor[j] == 'L')
+            has_lsda = 1;
+         if (augmentor[j] == 'R')
+            is_pic = 1;
+      }
 
-	//If we don't have a language specific data area, then
-	// we don't care about this FDE.
-	if (!has_lsda)
-	    continue;
+      //If we don't have a language specific data area, then
+      // we don't care about this FDE.
+      if (!has_lsda)
+         continue;
 
-	//Get the Language Specific Data Area pointer
-	status = dwarf_get_fde_instr_bytes(fde, &outinstrs, &outlen, &err);
-	if (status != DW_DLV_OK) {
-	    pd_dwarf_handler(err, NULL);
-	    return false;
-	}
-	lsda = ((char *) fde_bytes) + sizeof(int) * 4;
-	if (lsda == outinstrs) {
-	    continue;
-	}
-	lsda_size = (unsigned) read_uleb128((char *) lsda, &bytes_read);
-	lsda = ((char *) lsda) + bytes_read;
+      //Get the Language Specific Data Area pointer
+      status = dwarf_get_fde_instr_bytes(fde, &outinstrs, &outlen, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         return false;
+      }
+      lsda = ((char *) fde_bytes) + sizeof(int) * 4;
+      if (lsda == outinstrs) {
+         continue;
+      }
+      lsda_size = (unsigned) read_uleb128((char *) lsda, &bytes_read);
+      lsda = ((char *) lsda) + bytes_read;
 
-	//Read the exception table pointer from the LSDA, adjust for PIC
-	except_ptr = (Dwarf_Addr) *((long *) lsda);
-	if (!except_ptr) {
-	    // Sometimes the FDE doesn't have an associated 
-	    // exception table.
-	    continue;
-	}
-	if (is_pic) {
-	    low_pc = eh_frame_base + fde_offset + sizeof(int)*2 + (signed) low_pc;
-	    except_ptr += eh_frame_base + fde_offset + 
-		sizeof(int)*4 + bytes_read;
-	}
-	except_ptr -= except_base;
+      //Read the exception table pointer from the LSDA, adjust for PIC
+      except_ptr = (Dwarf_Addr) *((long *) lsda);
+      if (!except_ptr) {
+         // Sometimes the FDE doesn't have an associated 
+         // exception table.
+         continue;
+      }
+      if (is_pic) {
+         low_pc = eh_frame_base + fde_offset + sizeof(int)*2 + (signed) low_pc;
+         except_ptr += eh_frame_base + fde_offset + 
+            sizeof(int)*4 + bytes_read;
+      }
+      except_ptr -= except_base;
 
-	// Get the exception data from the section.
-	Elf_X_Data data = except_table->get_data();
-	if (!data.isValid()) {
-	    return true;
-	}
-	const char *datap = data.get_string();
-	int except_size = data.d_size();
+      // Get the exception data from the section.
+      Elf_X_Data data = except_table->get_data();
+      if (!data.isValid()) {
+         return true;
+      }
+      const char *datap = data.get_string();
+      int except_size = data.d_size();
 
-	j = except_ptr;
-	if (j < 0 || j >= except_size) {
-	    //fprintf(stderr, "[%s:%u] - Bad j %d.  except_size = %d\n", __FILE__, __LINE__, j, except_size);
-	    continue;
-	}
+      j = except_ptr;
+      if (j < 0 || j >= except_size) {
+         //fprintf(stderr, "[%s:%u] - Bad j %d.  except_size = %d\n", __FILE__, __LINE__, j, except_size);
+         continue;
+      }
 
-	// Read some variable length header info that we don't really
-	// care about.
-	lpstart_format = datap[j++];
-	if (lpstart_format != DW_EH_PE_omit)
-	    j += get_ptr_of_type(DW_EH_PE_uleb128, &value, datap + j);
-	ttype_format = datap[j++];
-	if (ttype_format != DW_EH_PE_omit)
-	    j += get_ptr_of_type(DW_EH_PE_uleb128, &value, datap + j);
+      // Read some variable length header info that we don't really
+      // care about.
+      lpstart_format = datap[j++];
+      if (lpstart_format != DW_EH_PE_omit)
+         j += get_ptr_of_type(DW_EH_PE_uleb128, &value, datap + j);
+      ttype_format = datap[j++];
+      if (ttype_format != DW_EH_PE_omit)
+         j += get_ptr_of_type(DW_EH_PE_uleb128, &value, datap + j);
 
-	// This 'type' byte describes the data format of the entries in the 
-	// table and the format of the table_size field.
-	table_format = datap[j++];
-	j += get_ptr_of_type(table_format, &table_end, datap + j);
-	table_end += j;
+      // This 'type' byte describes the data format of the entries in the 
+      // table and the format of the table_size field.
+      table_format = datap[j++];
+      j += get_ptr_of_type(table_format, &table_end, datap + j);
+      table_end += j;
 
-	while (j < (signed) table_end && j < (signed) except_size) {
-	    //The entries in the gcc_except_table are the following format:
-	    //   <type>   region start
-	    //   <type>   region length
-	    //   <type>   landing pad
-	    //  uleb128   action
-	    //The 'region' is the try block, the 'landing pad' is the catch.
-	    j += get_ptr_of_type(table_format, &region_start, datap + j);
-	    j += get_ptr_of_type(table_format, &region_size, datap + j);
-	    j += get_ptr_of_type(table_format, &catch_block, datap + j);
-	    j += get_ptr_of_type(DW_EH_PE_uleb128, &action, datap + j);
+      while (j < (signed) table_end && j < (signed) except_size) {
+         //The entries in the gcc_except_table are the following format:
+         //   <type>   region start
+         //   <type>   region length
+         //   <type>   landing pad
+         //  uleb128   action
+         //The 'region' is the try block, the 'landing pad' is the catch.
+         j += get_ptr_of_type(table_format, &region_start, datap + j);
+         j += get_ptr_of_type(table_format, &region_size, datap + j);
+         j += get_ptr_of_type(table_format, &catch_block, datap + j);
+         j += get_ptr_of_type(DW_EH_PE_uleb128, &action, datap + j);
 
-	    if (catch_block == 0)
-		continue;
-	    ExceptionBlock eb(region_start + low_pc, region_size, 
-			      catch_block + low_pc);
-	    addresses.push_back(eb);
-	}
-    }
+         if (catch_block == 0)
+            continue;
+         ExceptionBlock eb(region_start + low_pc, region_size, 
+               catch_block + low_pc);
+         addresses.push_back(eb);
+      }
+   }
 
-    return true;
+   return true;
 }
 
 /**
@@ -2830,40 +2827,40 @@ static int read_except_table_gcc3(Elf_X_Shdr *except_table,
  * out of it.
  **/
 static bool read_except_table_gcc2(Elf_X_Shdr *except_table, 
-                                   std::vector<ExceptionBlock> &addresses)
+      std::vector<ExceptionBlock> &addresses)
 {
-    Offset try_start;
-    Offset try_end;
-    Offset catch_start;
+   Offset try_start;
+   Offset try_end;
+   Offset catch_start;
 
-    Elf_X_Data data = except_table->get_data();
-    const char *datap = data.get_string();
-    unsigned except_size = data.d_size();
+   Elf_X_Data data = except_table->get_data();
+   const char *datap = data.get_string();
+   unsigned except_size = data.d_size();
 
-    unsigned i = 0;
-    while (i < except_size) {
-	i += get_ptr_of_type(DW_EH_PE_udata4, &try_start, datap + i);
-	i += get_ptr_of_type(DW_EH_PE_udata4, &try_end, datap + i);
-	i += get_ptr_of_type(DW_EH_PE_udata4, &catch_start, datap + i);
+   unsigned i = 0;
+   while (i < except_size) {
+      i += get_ptr_of_type(DW_EH_PE_udata4, &try_start, datap + i);
+      i += get_ptr_of_type(DW_EH_PE_udata4, &try_end, datap + i);
+      i += get_ptr_of_type(DW_EH_PE_udata4, &catch_start, datap + i);
 
-	if (try_start != (Offset) -1 && try_end != (Offset) -1) {
-	    ExceptionBlock eb(try_start, try_end - try_start, catch_start);
-	    addresses.push_back(eb);
-	}
-    }
-    return true;
+      if (try_start != (Offset) -1 && try_end != (Offset) -1) {
+         ExceptionBlock eb(try_start, try_end - try_start, catch_start);
+         addresses.push_back(eb);
+      }
+   }
+   return true;
 }
 
 struct  exception_compare: public binary_function<const ExceptionBlock &, const ExceptionBlock &, bool> 
 {
-    bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) {
-    	if (e1.tryStart() < e2.tryStart())
-      	    return true;
-	else if (e1.tryStart() > e2.tryStart())
-      	    return false;
-   	else
-            return true;
-    }
+   bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) {
+      if (e1.tryStart() < e2.tryStart())
+         return true;
+      else if (e1.tryStart() > e2.tryStart())
+         return false;
+      else
+         return true;
+   }
 };
 
 /**
@@ -2873,102 +2870,102 @@ struct  exception_compare: public binary_function<const ExceptionBlock &, const 
  *  the addresses will be pushed into 'addresses'
  **/
 static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *except_scn,
-                              std::vector<ExceptionBlock> &catch_addrs)
+      std::vector<ExceptionBlock> &catch_addrs)
 {
-    Dwarf_Cie *cie_data;
-    Dwarf_Fde *fde_data;
-    Dwarf_Signed cie_count, fde_count;
-    Dwarf_Error err = (Dwarf_Error) NULL;
-    Dwarf_Unsigned bytes_in_cie;
-    Offset eh_frame_base, except_base;
-    Dwarf_Debug dbg;
-    char *augmentor;
-    int status, gcc_ver = 3;
-    unsigned i;
-    bool result = false;
+   Dwarf_Cie *cie_data;
+   Dwarf_Fde *fde_data;
+   Dwarf_Signed cie_count, fde_count;
+   Dwarf_Error err = (Dwarf_Error) NULL;
+   Dwarf_Unsigned bytes_in_cie;
+   Offset eh_frame_base, except_base;
+   Dwarf_Debug dbg;
+   char *augmentor;
+   int status, gcc_ver = 3;
+   unsigned i;
+   bool result = false;
 
-    if (except_scn == NULL) {
-       //likely to happen if we're not using gcc
-       return true;
-    }
+   if (except_scn == NULL) {
+      //likely to happen if we're not using gcc
+      return true;
+   }
 #if defined(arch_x86_64)
-    return true;
+   return true;
 #endif
 
-    eh_frame_base = eh_frame->sh_addr();
-    except_base = except_scn->sh_addr();
+   eh_frame_base = eh_frame->sh_addr();
+   except_base = except_scn->sh_addr();
 
-    //Open dwarf object
-    status = dwarf_elf_init(elf.e_elfp(), DW_DLC_READ, &pd_dwarf_handler, NULL,
-			    &dbg, &err);
-    if( status != DW_DLV_OK ) {
-       // GCC 3.3.3 seems to generate incorrect DWARF entries
-       // on the x86_64 platform right now.  Hopefully this will
-       // be fixed, and this #if macro can be removed.
-       
-       pd_dwarf_handler(err, NULL);
-       goto err_noclose;
-    }
+   //Open dwarf object
+   status = dwarf_elf_init(elf.e_elfp(), DW_DLC_READ, &pd_dwarf_handler, NULL,
+         &dbg, &err);
+   if ( status != DW_DLV_OK ) {
+      // GCC 3.3.3 seems to generate incorrect DWARF entries
+      // on the x86_64 platform right now.  Hopefully this will
+      // be fixed, and this #if macro can be removed.
 
-    //Read the FDE and CIE information
-    status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
-				   &fde_data, &fde_count, &err);
-    if (status != DW_DLV_OK) {
-	//fprintf(stderr, "[%s:%u] - No fde data\n", __FILE__, __LINE__);
-	//No actual stackwalk info in this object
-	goto err_noalloc;
-    }
-    //fprintf(stderr, "[%s:%u] - Found %d fdes\n", __FILE__, __LINE__, fde_count);
+      pd_dwarf_handler(err, NULL);
+      goto err_noclose;
+   }
+
+   //Read the FDE and CIE information
+   status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
+         &fde_data, &fde_count, &err);
+   if (status != DW_DLV_OK) {
+      //fprintf(stderr, "[%s:%u] - No fde data\n", __FILE__, __LINE__);
+      //No actual stackwalk info in this object
+      goto err_noalloc;
+   }
+   //fprintf(stderr, "[%s:%u] - Found %d fdes\n", __FILE__, __LINE__, fde_count);
 
 
-    //GCC 2.x has "eh" as its augmentor string in the CIEs
-    for (i = 0; i < cie_count; i++) {
-	status = dwarf_get_cie_info(cie_data[i], &bytes_in_cie, NULL,
-				    &augmentor, NULL, NULL, NULL, NULL, NULL, &err);
-	if (status != DW_DLV_OK) {
-	    pd_dwarf_handler(err, NULL);
-	    goto cleanup;
-	}
-	if (augmentor[0] == 'e' && augmentor[1] == 'h') {
-	    gcc_ver = 2;
-	}
-    }
+   //GCC 2.x has "eh" as its augmentor string in the CIEs
+   for (i = 0; i < cie_count; i++) {
+      status = dwarf_get_cie_info(cie_data[i], &bytes_in_cie, NULL,
+            &augmentor, NULL, NULL, NULL, NULL, NULL, &err);
+      if (status != DW_DLV_OK) {
+         pd_dwarf_handler(err, NULL);
+         goto cleanup;
+      }
+      if (augmentor[0] == 'e' && augmentor[1] == 'h') {
+         gcc_ver = 2;
+      }
+   }
 
-    //Parse the gcc_except_table
-    if (gcc_ver == 2) {
-	result = read_except_table_gcc2(except_scn, catch_addrs);
+   //Parse the gcc_except_table
+   if (gcc_ver == 2) {
+      result = read_except_table_gcc2(except_scn, catch_addrs);
 
-    } else if (gcc_ver == 3) {
-	result = read_except_table_gcc3(except_scn, eh_frame_base, except_base,
-					fde_data, fde_count, catch_addrs);
-    }
-    sort(catch_addrs.begin(),catch_addrs.end(),exception_compare());
-    //VECTOR_SORT(catch_addrs, exception_compare);
+   } else if (gcc_ver == 3) {
+      result = read_except_table_gcc3(except_scn, eh_frame_base, except_base,
+            fde_data, fde_count, catch_addrs);
+   }
+   sort(catch_addrs.begin(),catch_addrs.end(),exception_compare());
+   //VECTOR_SORT(catch_addrs, exception_compare);
 
-  cleanup:
-    //Unallocate fde and cie information 
-    for (i = 0; i < cie_count; i++)
-	dwarf_dealloc(dbg, cie_data[i], DW_DLA_CIE);
-    for (i = 0; i < fde_count; i++)
-	dwarf_dealloc(dbg, fde_data[i], DW_DLA_FDE);
-    dwarf_dealloc(dbg, cie_data, DW_DLA_LIST);
-    dwarf_dealloc(dbg, fde_data, DW_DLA_LIST);
+cleanup:
+   //Unallocate fde and cie information 
+   for (i = 0; i < cie_count; i++)
+      dwarf_dealloc(dbg, cie_data[i], DW_DLA_CIE);
+   for (i = 0; i < fde_count; i++)
+      dwarf_dealloc(dbg, fde_data[i], DW_DLA_FDE);
+   dwarf_dealloc(dbg, cie_data, DW_DLA_LIST);
+   dwarf_dealloc(dbg, fde_data, DW_DLA_LIST);
 
-  err_noalloc:
-    dwarf_finish(dbg, &err);
+err_noalloc:
+   dwarf_finish(dbg, &err);
 
-  err_noclose:
-    return result;
+err_noclose:
+   return result;
 }
 
 #endif
 
-ObjectType Object::objType() const {
+ObjectType Object::objType() const 
+{
    return obj_type_;
 }
 
-void Object::getModuleLanguageInfo(
-                 hash_map<string, supportedLanguages> *mod_langs) 
+void Object::getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_langs)
 { 
    string working_module;
    char *ptr;
@@ -3268,394 +3265,420 @@ bool AObject::getSegments(vector<Segment> &segs) const
     return true;
 }
 
-bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag){
-    if(elfHdr.e_ident()[EI_CLASS] == 1) {
-        emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
-        em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
-        return em->driver(obj, fName);
-    }
-    else if(elfHdr.e_ident()[EI_CLASS] == 2) {
-        emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, err_func_);
-        em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
-        return em->driver(obj, fName);
-    }
-    return false;
+bool Object::emitDriver(Symtab *obj, string fName, 
+      std::vector<Symbol *>&functions, 
+      std::vector<Symbol *>&variables, 
+      std::vector<Symbol *>&mods, 
+      std::vector<Symbol *>&notypes, 
+      unsigned flag)
+{
+   if (elfHdr.e_ident()[EI_CLASS] == 1) {
+      emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
+      em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
+      return em->driver(obj, fName);
+   }
+   else if (elfHdr.e_ident()[EI_CLASS] == 2) {
+      emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, err_func_);
+      em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
+      return em->driver(obj, fName);
+   }
+   return false;
 }
 
-const char *Object::interpreter_name() const {
+const char *Object::interpreter_name() const 
+{
    return interpreter_name_;
 }
 
 /* Parse everything in the file on disk, and cache that we've done so,
    because our modules may not bear any relation to the name source files. */
-void Object::parseStabFileLineInfo() {
-    static hash_map< string, bool > haveParsedFileMap;
-	
-    //unsigned long int proc_addr = reinterpret_cast< unsigned long int >( proc() );
-    //pdstring key = pdstring( proc_addr ) + fileName;
-    //if( haveParsedFileMap.defines( key ) ) { return; } 
+void Object::parseStabFileLineInfo(hash_map<std::string, LineInformation> &li) 
+{
+   static hash_map< string, bool > haveParsedFileMap;
 
-    /* We haven't parsed this file already, so iterate over its stab entries. */
-  
-    stab_entry * stabEntry = get_stab_info();
-    assert( stabEntry != NULL );
-    const char * nextStabString = stabEntry->getStringBase();
-	
-    const char * currentSourceFile = NULL;
-    Offset currentFunctionBase = 0;
-    unsigned int previousLineNo = 0;
-    Offset previousLineAddress = 0;
-    bool isPreviousValid = false;
-	
-    Offset baseAddress = getBaseAddress();
-	
-    for( unsigned int i = 0; i < stabEntry->count(); i++ ) 
-    {
-    	switch( stabEntry->type( i ) ) {
-		
-    	case N_UNDF: /* start of an object file */ 
-	{
-            if( isPreviousValid )
-		/* DEBUG */ fprintf( stderr, "%s[%d]: unterminated N_SLINE at start of object file.  Line number information will be lost.\n", __FILE__, __LINE__ );
-			
-      	    stabEntry->setStringBase( nextStabString );
-            nextStabString = stabEntry->getStringBase() + stabEntry->val( i );
-				
-      	    currentSourceFile = NULL;
-            isPreviousValid = false;
-    	}
-	break;
-    	
-	case N_SO: /* compilation source or file name */
-	{
-            if( isPreviousValid ) {
-		/* Add the previous N_SLINE. */
-		Offset currentLineAddress = stabEntry->val( i );
-					
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-		unsigned current_col = 0; // stabs does not support column information
-		 //if(previousLineNo == 597 || previousLineNo == 596)
-		///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-	 	lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                	                              current_col, previousLineAddress, currentLineAddress );
-		//giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
-      	    }
-				
-      	    const char * sourceFile = stabEntry->name( i );
-      	    currentSourceFile = strrchr( sourceFile, '/' );
-      	    if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
-      	    else { ++currentSourceFile; }
-      	    // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
-				
-      	    isPreviousValid = false;
-    	}
-	break;
-				
-    	case N_SOL: /* file name (possibly an include file) */ 
-	{
-      	    if( isPreviousValid ) {
-		/* Add the previous N_SLINE. */
-		Offset currentLineAddress = stabEntry->val( i );
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-		unsigned current_col = 0;
-		 if(previousLineNo == 597 || previousLineNo == 596)
-		/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-		lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                	                              current_col, previousLineAddress, currentLineAddress );
-		//giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
-        	//                                  current_col, previousLineAddress, currentLineAddress  );
-      	    }
-            const char * sourceFile = stabEntry->name( i );
-      	    currentSourceFile = strrchr( sourceFile, '/' );
-      	    if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
-      	    else { ++currentSourceFile; }
-      	    // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
-				
-      	    isPreviousValid = false;
-    	}
-	break;
-				
-    	case N_FUN: /* a function */ 
-	{
-            if( * stabEntry->name( i ) == 0 ) {
-	    	/* An end-of-function marker.  The value is the size of the function. */
-	    	if( isPreviousValid ) {
-	    	    /* Add the previous N_SLINE. */
-	  	    Offset currentLineAddress = currentFunctionBase + stabEntry->val( i );
-	  	    // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-	  	    unsigned current_col = 0;
-		 if(previousLineNo == 597 || previousLineNo == 596)
-		/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-	 	    lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                 	                                  current_col, previousLineAddress, currentLineAddress );
-	  	    //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
-          	    //    	                              current_col, previousLineAddress, currentLineAddress  );
-	        }
-					
-	        /* We've added the previous N_SLINE and don't currently have a module. */
-	        isPreviousValid = false;
-	        break;
-      	    } /* end if the N_FUN is an end-of-function-marker. */
-							
-      	    if( isPreviousValid ) {
-	   	Offset currentLineAddress = stabEntry->val( i );
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-		unsigned current_col = 0;
-		 if(previousLineNo == 597 || previousLineNo == 596)
-		/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-	 	lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                	                              current_col, previousLineAddress, currentLineAddress );
-		//giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
-      	    }
-					
-	    currentFunctionBase = stabEntry->val( i );
-     	    currentFunctionBase += baseAddress;
-				
-      	    //giri: int_function * currentFunction = obj()->findFuncByAddr( currentFunctionBase );
-      	    //if( currentFunction == NULL ) {
-	    // /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, currentFunctionBase );
-	    //currentModule = NULL;
-            //}
-      	    //else {
-		//currentModule = currentFunction->mod();
-		//assert( currentModule != NULL );
-      	    //}
-											
-    	    isPreviousValid = false;
-    	}
-	break;
-				
-    	case N_SLINE: {
-      	    //if( currentModule ) {
-	    Address currentLineAddress = currentFunctionBase + stabEntry->val( i );
-	    unsigned int currentLineNo = stabEntry->desc( i );
-					
-	    if( isPreviousValid ) 
-	    {
-	  	// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-	  	unsigned current_col = 0;
-	//	 if(previousLineNo == 597 || previousLineNo == 596)
-	//	/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
-	  	lineInfo_[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
-                	                              current_col, previousLineAddress, currentLineAddress );
-	  	//currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
-	    }
-						
-	    previousLineAddress = currentLineAddress;
-	    previousLineNo = currentLineNo;
-	    isPreviousValid = true;
-      	    //} /* end if we've a module to which to add line information */
-    	}
-	break;
-						
-        } /* end switch on the ith stab entry's type */
-    
-    } /* end iteration over stab entries. */
-	
-//  haveParsedFileMap[ key ] = true;
+   /* We haven't parsed this file already, so iterate over its stab entries. */
+
+   stab_entry * stabEntry = get_stab_info();
+   assert( stabEntry != NULL );
+   const char * nextStabString = stabEntry->getStringBase();
+
+   const char * currentSourceFile = NULL;
+   Offset currentFunctionBase = 0;
+   unsigned int previousLineNo = 0;
+   Offset previousLineAddress = 0;
+   bool isPreviousValid = false;
+
+   Offset baseAddress = getBaseAddress();
+
+   for ( unsigned int i = 0; i < stabEntry->count(); i++ ) {
+      switch (stabEntry->type( i )) {
+
+         case N_UNDF: /* start of an object file */ 
+            {
+               if ( isPreviousValid )
+                  /* DEBUG */ fprintf( stderr, "%s[%d]: unterminated N_SLINE at start of object file.  Line number information will be lost.\n", __FILE__, __LINE__ );
+
+               stabEntry->setStringBase( nextStabString );
+               nextStabString = stabEntry->getStringBase() + stabEntry->val( i );
+
+               currentSourceFile = NULL;
+               isPreviousValid = false;
+            }
+            break;
+
+         case N_SO: /* compilation source or file name */
+            {
+               if ( isPreviousValid ) {
+                  /* Add the previous N_SLINE. */
+                  Offset currentLineAddress = stabEntry->val( i );
+
+                  // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+
+                  unsigned current_col = 0; // stabs does not support column information
+
+                  //if(previousLineNo == 597 || previousLineNo == 596)
+                  ///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+
+                  li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                        current_col, previousLineAddress, currentLineAddress );
+
+                  //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
+               }
+
+               const char * sourceFile = stabEntry->name( i );
+               currentSourceFile = strrchr( sourceFile, '/' );
+               if ( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
+               else { ++currentSourceFile; }
+
+               // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
+
+               isPreviousValid = false;
+            }
+            break;
+
+         case N_SOL: /* file name (possibly an include file) */ 
+            {
+               if (isPreviousValid) {
+                  /* Add the previous N_SLINE. */
+                  Offset currentLineAddress = stabEntry->val( i );
+
+                  // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+
+                  unsigned current_col = 0;
+                  //if (previousLineNo == 597 || previousLineNo == 596)
+                   //  /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+
+                  li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                        current_col, previousLineAddress, currentLineAddress );
+
+                  //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
+                  //     current_col, previousLineAddress, currentLineAddress  );
+               }
+               const char * sourceFile = stabEntry->name( i );
+               currentSourceFile = strrchr( sourceFile, '/' );
+               if ( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
+               else { ++currentSourceFile; }
+
+               // /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
+
+               isPreviousValid = false;
+            }
+            break;
+
+         case N_FUN: /* a function */ 
+            {
+               if ( *stabEntry->name( i ) == 0 ) {
+                  /* An end-of-function marker.  The value is the size of the function. */
+                  if ( isPreviousValid ) {
+                     /* Add the previous N_SLINE. */
+                     Offset currentLineAddress = currentFunctionBase + stabEntry->val( i );
+
+                     // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+
+                     unsigned current_col = 0;
+                     //if(previousLineNo == 597 || previousLineNo == 596)
+                     //   /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+
+                     li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                           current_col, previousLineAddress, currentLineAddress );
+
+                     //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, 
+                     //    	                              current_col, previousLineAddress, currentLineAddress  );
+                  }
+
+                  /* We've added the previous N_SLINE and don't currently have a module. */
+                  isPreviousValid = false;
+                  break;
+               } /* end if the N_FUN is an end-of-function-marker. */
+
+               if (isPreviousValid) {
+                  Offset currentLineAddress = stabEntry->val( i );
+
+                  // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+
+                  unsigned current_col = 0;
+                  //if(previousLineNo == 597 || previousLineNo == 596)
+                  //   /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+
+                  li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                        current_col, previousLineAddress, currentLineAddress );
+
+                  //giri: currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
+               }
+
+               currentFunctionBase = stabEntry->val( i );
+               currentFunctionBase += baseAddress;
+
+               //giri: int_function * currentFunction = obj()->findFuncByAddr( currentFunctionBase );
+               //if( currentFunction == NULL ) {
+               // /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, currentFunctionBase );
+               //currentModule = NULL;
+               //}
+               //else {
+               //currentModule = currentFunction->mod();
+               //assert( currentModule != NULL );
+               //}
+
+               isPreviousValid = false;
+            }
+            break;
+
+         case N_SLINE: 
+            {
+               //if( currentModule ) {
+               Address currentLineAddress = currentFunctionBase + stabEntry->val( i );
+               unsigned int currentLineNo = stabEntry->desc( i );
+
+               if (isPreviousValid) 
+               {
+                  // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+
+                  unsigned current_col = 0;
+
+                  //	 if(previousLineNo == 597 || previousLineNo == 596)
+                  //	/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+
+                  li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
+                        current_col, previousLineAddress, currentLineAddress );
+
+                  //currentModule->lineInfo_.addLine( currentSourceFile, previousLineNo, current_col, previousLineAddress, currentLineAddress  );
+               }
+
+               previousLineAddress = currentLineAddress;
+               previousLineNo = currentLineNo;
+               isPreviousValid = true;
+               //} /* end if we've a module to which to add line information */
+            }
+            break;
+
+      } /* end switch on the ith stab entry's type */
+
+   } /* end iteration over stab entries. */
+
+   //  haveParsedFileMap[ key ] = true;
 } /* end parseStabFileLineInfo() */
 
 // Dwarf Debug Format parsing
-void Object::parseDwarfFileLineInfo() 
+void Object::parseDwarfFileLineInfo(hash_map<std::string, LineInformation> &li) 
 {
-  Dwarf_Debug dbg;
-  int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
-  if ( status != DW_DLV_OK ) { return; }
-	
-  /* Itereate over the CU headers. */
-  Dwarf_Unsigned header;
-  while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) {
-    /* Acquire the CU DIE. */
-    Dwarf_Die cuDIE;
-    status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
-    if ( status != DW_DLV_OK ) { 
-      /* If we can get no (more) CUs, we're done. */
-      break;
-    }
-		
-    /* Acquire this CU's source lines. */
-    Dwarf_Line * lineBuffer;
-    Dwarf_Signed lineCount;
-    status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
-		
-    /* See if we can get anything useful out of the next CU
-       if this one is corrupt. */
-    assert( status != DW_DLV_ERROR );
-//{
-//      dwarf_printf( "%s[%d]: dwarf_srclines() error.\n" );
-//  }
-		
-    /* It's OK for a CU not to have line information. */
-    if ( status != DW_DLV_OK ) {
-      /* Free this CU's DIE. */
-      dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-      continue;
-    }
-    assert( status == DW_DLV_OK );
-		
-    /* The 'lines' returned are actually interval markers; the code
-       generated from lineNo runs from lineAddr up to but not including
-       the lineAddr of the next line. */			   
-    bool isPreviousValid = false;
-    Dwarf_Unsigned previousLineNo = 0;
-    Dwarf_Signed previousLineColumn = 0;
-    Dwarf_Addr previousLineAddr = 0x0;
-    char * previousLineSource = NULL;
-		
-    //Offset baseAddr = obj()->codeBase();
-    Offset baseAddr = getBaseAddress();
-		
-    /* Iterate over this CU's source lines. */
-    for ( int i = 0; i < lineCount; i++ ) {
-      /* Acquire the line number, address, source, and end of sequence flag. */
-      Dwarf_Unsigned lineNo;
-      status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
-      if ( status != DW_DLV_OK ) { continue; }
-				
-      Dwarf_Signed lineOff;
-      status = dwarf_lineoff( lineBuffer[i], & lineOff, NULL );
-      if ( status != DW_DLV_OK ) { lineOff = 0; }
+   Dwarf_Debug dbg;
+   int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
+   if ( status != DW_DLV_OK ) { return; }
 
-      Dwarf_Addr lineAddr;
-      status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
-      if ( status != DW_DLV_OK ) { continue; }
-      lineAddr += baseAddr;
-			
-      char * lineSource;
-      status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
-      if ( status != DW_DLV_OK ) { continue; }
-						
-      Dwarf_Bool isEndOfSequence;
-      status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
-      if ( status != DW_DLV_OK ) { continue; }
-			
-      if ( isPreviousValid ) {
-	/* If we're talking about the same (source file, line number) tuple,
-	   and it isn't the end of the sequence, we can coalesce the range.
-	   (The end of sequence marker marks discontinuities in the ranges.) */
-	if ( lineNo == previousLineNo && strcmp( lineSource, previousLineSource ) == 0 && ! isEndOfSequence ) {
-	  /* Don't update the prev* values; just keep going until we hit the end of a sequence or
-	     a new sourcefile. */
-	  continue;
-	} /* end if we can coalesce this range */
-                                
-	/* Determine into which mapped_module this line information should be inserted. */
-	//int_function * currentFunction = obj()->findFuncByAddr( previousLineAddr );
-	//if ( currentFunction == NULL ) {
-	  // /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line 1111number information will be lost.\n", __FILE__, __LINE__, lineAddr );
-	//}
-	//else {
-	  //mapped_module * currentModule = currentFunction->mod();
-	  //assert( currentModule != NULL );
-					
-         char *canonicalLineSource;
-         if (truncateLineFilenames) {
-            canonicalLineSource = strrchr( previousLineSource, '/' );
-            if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
-            else { ++canonicalLineSource; }
+   /* Itereate over the CU headers. */
+   Dwarf_Unsigned header;
+   while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) {
+      /* Acquire the CU DIE. */
+      Dwarf_Die cuDIE;
+      status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
+      if ( status != DW_DLV_OK ) { 
+         /* If we can get no (more) CUs, we're done. */
+         break;
+      }
+
+      /* Acquire this CU's source lines. */
+      Dwarf_Line * lineBuffer;
+      Dwarf_Signed lineCount;
+      status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
+
+      /* See if we can get anything useful out of the next CU
+         if this one is corrupt. */
+      assert( status != DW_DLV_ERROR );
+      //{
+      //      dwarf_printf( "%s[%d]: dwarf_srclines() error.\n" );
+      //  }
+
+      /* It's OK for a CU not to have line information. */
+      if ( status != DW_DLV_OK ) {
+         /* Free this CU's DIE. */
+         dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
+         continue;
+      }
+      assert( status == DW_DLV_OK );
+
+      /* The 'lines' returned are actually interval markers; the code
+         generated from lineNo runs from lineAddr up to but not including
+         the lineAddr of the next line. */			   
+      bool isPreviousValid = false;
+      Dwarf_Unsigned previousLineNo = 0;
+      Dwarf_Signed previousLineColumn = 0;
+      Dwarf_Addr previousLineAddr = 0x0;
+      char * previousLineSource = NULL;
+
+      //Offset baseAddr = obj()->codeBase();
+      Offset baseAddr = getBaseAddress();
+
+      /* Iterate over this CU's source lines. */
+      for ( int i = 0; i < lineCount; i++ ) {
+         /* Acquire the line number, address, source, and end of sequence flag. */
+         Dwarf_Unsigned lineNo;
+         status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
+         if ( status != DW_DLV_OK ) { continue; }
+
+         Dwarf_Signed lineOff;
+         status = dwarf_lineoff( lineBuffer[i], & lineOff, NULL );
+         if ( status != DW_DLV_OK ) { lineOff = 0; }
+
+         Dwarf_Addr lineAddr;
+         status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
+         if ( status != DW_DLV_OK ) { continue; }
+         lineAddr += baseAddr;
+
+         char * lineSource;
+         status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
+         if ( status != DW_DLV_OK ) { continue; }
+
+         Dwarf_Bool isEndOfSequence;
+         status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
+         if ( status != DW_DLV_OK ) { continue; }
+
+         if ( isPreviousValid ) {
+            /* If we're talking about the same (source file, line number) tuple,
+               and it isn't the end of the sequence, we can coalesce the range.
+               (The end of sequence marker marks discontinuities in the ranges.) */
+            if ( lineNo == previousLineNo && strcmp( lineSource, previousLineSource ) == 0 && ! isEndOfSequence ) {
+               /* Don't update the prev* values; just keep going until we hit the end of a sequence or
+                  a new sourcefile. */
+               continue;
+            } /* end if we can coalesce this range */
+
+            /* Determine into which mapped_module this line information should be inserted. */
+            //int_function * currentFunction = obj()->findFuncByAddr( previousLineAddr );
+            //if ( currentFunction == NULL ) {
+            // /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line 1111number information will be lost.\n", __FILE__, __LINE__, lineAddr );
+            //}
+            //else {
+            //mapped_module * currentModule = currentFunction->mod();
+            //assert( currentModule != NULL );
+
+            char *canonicalLineSource;
+            if (truncateLineFilenames) {
+               canonicalLineSource = strrchr( previousLineSource, '/' );
+               if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
+               else { ++canonicalLineSource; }
+            }
+            else {
+               canonicalLineSource = previousLineSource;
+            }
+
+            li[canonicalLineSource].addLine(canonicalLineSource, previousLineNo, 
+                  previousLineColumn, previousLineAddr, lineAddr );
+            /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
+            //currentModule->lineInfo_.addLine(canonicalLineSource, previousLineNo, 
+            //                                  previousLineColumn, previousLineAddr, lineAddr );
+            //currentModule->lineInfoValid_ = true;
+
+            // if(previousLineNo == 597 || previousLineNo == 596)
+            ///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << canonicalLineSource << ":" << setbase(10) << previousLineNo << endl;
+            //} /* end if we found the function by its address */
+         } /* end if the previous* variables are valid */
+
+         /* If the current line ends the sequence, invalidate previous; otherwise, update. */
+         if ( isEndOfSequence ) {
+            dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
+            isPreviousValid = false;
          }
          else {
-            canonicalLineSource = previousLineSource;
-         }
+            if( isPreviousValid ) { dwarf_dealloc( dbg, previousLineSource, DW_DLA_STRING ); }
+            previousLineNo = lineNo;
+            previousLineSource = lineSource;
+            previousLineAddr = lineAddr;
+            previousLineColumn = lineOff;
 
-	 lineInfo_[canonicalLineSource].addLine(canonicalLineSource, previousLineNo, 
-                                              previousLineColumn, previousLineAddr, lineAddr );
-	/* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
-	//currentModule->lineInfo_.addLine(canonicalLineSource, previousLineNo, 
-        //                                  previousLineColumn, previousLineAddr, lineAddr );
-        //currentModule->lineInfoValid_ = true;
-	
-	// if(previousLineNo == 597 || previousLineNo == 596)
-	///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << canonicalLineSource << ":" << setbase(10) << previousLineNo << endl;
-       //} /* end if we found the function by its address */
-     } /* end if the previous* variables are valid */
-				
-     /* If the current line ends the sequence, invalidate previous; otherwise, update. */
-     if ( isEndOfSequence ) {
-        dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
-        isPreviousValid = false;
-     }
-     else {
-     if( isPreviousValid ) { dwarf_dealloc( dbg, previousLineSource, DW_DLA_STRING ); }
-        previousLineNo = lineNo;
-        previousLineSource = lineSource;
-        previousLineAddr = lineAddr;
-        previousLineColumn = lineOff;
-							
-       isPreviousValid = true;
-     } /* end if line was not the end of a sequence */
-   } /* end iteration over source line entries. */
-		
-    /* Free this CU's source lines. */
-    for ( int i = 0; i < lineCount; i++ ) {
-      dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
-    }
-    dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
-		
-    /* Free this CU's DIE. */
-    dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-  } /* end CU header iteration */
+            isPreviousValid = true;
+         } /* end if line was not the end of a sequence */
+      } /* end iteration over source line entries. */
 
-  /* Wind down libdwarf. */
-  status = dwarf_finish( dbg, NULL );
-  assert(status == DW_DLV_OK);
-/*  if ( status != DW_DLV_OK ) {
-    dwarf_printf( "%s[%d]: failed to dwarf_finish()\n" );
-  }	
-*/
-  /* Note that we've parsed this file. */
+      /* Free this CU's source lines. */
+      for ( int i = 0; i < lineCount; i++ ) {
+         dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
+      }
+      dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
+
+      /* Free this CU's DIE. */
+      dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
+   } /* end CU header iteration */
+
+   /* Wind down libdwarf. */
+   status = dwarf_finish( dbg, NULL );
+   assert(status == DW_DLV_OK);
+   /*  if ( status != DW_DLV_OK ) {
+       dwarf_printf( "%s[%d]: failed to dwarf_finish()\n" );
+       }	
+    */
+   /* Note that we've parsed this file. */
 } /* end parseDwarfFileLineInfo() */
 
-void Object::parseFileLineInfo()
+void Object::parseFileLineInfo(hash_map<string, LineInformation> &li)
 {
-    parseStabFileLineInfo();
-    parseDwarfFileLineInfo();
+   parseStabFileLineInfo(li);
+   parseDwarfFileLineInfo(li);
 }
 
 void Object::parseTypeInfo(Symtab *obj)
 {
 #if defined(TIMED_PARSE)
-    struct timeval starttime;
-    gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif	 
 
-    parseStabTypes(obj);
-    parseDwarfTypes(obj);
+   parseStabTypes(obj);
+   parseDwarfTypes(obj);
 
 #if defined(TIMED_PARSE)
-    struct timeval endtime;
-    gettimeofday(&endtime, NULL);
-    unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-    unsigned long difftime = lendtime - lstarttime;
-    double dursecs = difftime/(1000 );
-    cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->file()
-         <<") took "<< dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->file()
+      <<") took "<< dursecs <<" msecs" << endl;
 #endif	 
 }
 
 void Object::parseStabTypes(Symtab *obj)
 {
-    stab_entry *stabptr = NULL;
-    const char *next_stabstr = NULL;
+   stab_entry *stabptr = NULL;
+   const char *next_stabstr = NULL;
 
-    unsigned i;
-    char *modName = NULL;
-    string temp;
-    char *ptr = NULL, *ptr2 = NULL, *ptr3 = NULL;
-    bool parseActive = false;
+   unsigned i;
+   char *modName = NULL;
+   string temp;
+   char *ptr = NULL, *ptr2 = NULL, *ptr3 = NULL;
+   bool parseActive = false;
 
-    string* currentFunctionName = NULL;
-    Offset currentFunctionBase = 0;
-    Symbol *commonBlockVar = NULL;
-    string *commonBlockName = NULL;
-    typeCommon *commonBlock = NULL;
-    int mostRecentLinenum = 0;
+   string* currentFunctionName = NULL;
+   Offset currentFunctionBase = 0;
+   Symbol *commonBlockVar = NULL;
+   string *commonBlockName = NULL;
+   typeCommon *commonBlock = NULL;
+   int mostRecentLinenum = 0;
 
-    Module *mod;
+   Module *mod;
 
 #if defined(TIMED_PARSE)
-    struct timeval starttime;
+   struct timeval starttime;
     gettimeofday(&starttime, NULL);
     unsigned int pss_count = 0;
     double pss_dur = 0;
