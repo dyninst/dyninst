@@ -134,7 +134,7 @@ BPatch_point *BPatch_instruction::getInstPointInt()
   }
 
   /* We don't have an instPoint for this address, so make one. */
-  instPoint *newInstP = instPoint::createArbitraryInstPoint((Address)addr, proc);
+  instPoint *newInstP = instPoint::createArbitraryInstPoint((Address)addr, proc, func);
   
   if (!newInstP) {
      fprintf(stderr, "%s[%d]:  createArbitraryInstPoint for %p failed\n", FILE__, __LINE__, (void *) addr);

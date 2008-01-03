@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.45 2007/12/04 17:58:07 bernat Exp $
+// $Id: instPoint.C,v 1.46 2008/01/03 00:13:15 legendre Exp $
 // instPoint code
 
 
@@ -169,12 +169,13 @@ bool instPoint::match(Address a) const {
     return false;
 }
 
-instPoint *instPoint::createArbitraryInstPoint(Address addr, AddressSpace *proc) {
+instPoint *instPoint::createArbitraryInstPoint(Address addr, 
+                                               AddressSpace *proc,
+                                               int_function *func) 
+{
   // See if we get lucky
-
-  int_function *func = proc->findFuncByAddr(addr);
-  // TODO: multiple functions... 
-  if (!func) return NULL;
+  if (!func) 
+     return NULL;
 
   //Create all non-arbitrary instPoints before creating arbitrary ones.
   func->funcEntries();

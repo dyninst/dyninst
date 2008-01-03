@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.40 2007/12/04 17:58:08 bernat Exp $
+// $Id: instPoint.h,v 1.41 2008/01/03 00:13:16 legendre Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -274,7 +274,8 @@ class instPoint : public instPointBase {
 
   // Make a new instPoint at an arbitrary location
   static instPoint *createArbitraryInstPoint(Address addr,
-					     AddressSpace *proc);
+                                             AddressSpace *proc,
+                                             int_function *func);
 
   static instPoint *createParsePoint(int_function *func,
                                      image_instPoint *img_p);

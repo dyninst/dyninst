@@ -315,7 +315,7 @@ BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when)
 }
 
 const int *
-BPatch_point::getLiveRegistersInt(int & size)
+BPatch_point::getLiveRegistersInt(int & /*size*/)
 {
 #if defined(cap_liveness)
   return getPoint()->liveRegisterArray();
@@ -604,7 +604,8 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
 // Create an arbitrary BPatch point
 BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addSpace,
                                                        void *address,
-                                                       BPatch_function *bpf) {
+                                                       BPatch_function *bpf) 
+{
 
     if (!bpf->getModule()->isValid()) return NULL;
 
@@ -615,7 +616,8 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addS
     AddressSpace *internalAS = addSpace->getAS();
 
     instPoint *iPoint = instPoint::createArbitraryInstPoint(internalAddr,
-                                                            internalAS);
+                                                            internalAS,
+                                                            bpf->lowlevel_func());
 
     if (!iPoint)
         return NULL;
@@ -675,17 +677,17 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
         }
         
         if (add) {
-	  BPatch_point *p = BPatch_point::createInstructionInstPoint(//bpf->getProc(),
-                                                                     bpf->getAddSpace(),  
-								     (void *)addr,
-                                                                       bpf);
-            if (p) {
-                if (p->memacc == NULL)
-                    p->attachMemAcc(ma);
-                else
-                    delete ma;
-                result->push_back(p);
-            }
+           BPatch_point *p = BPatch_point::createInstructionInstPoint(//bpf->getProc(),
+                                                                      bpf->getAddSpace(),  
+                                                                      (void *)addr,
+                                                                      bpf);
+           if (p) {
+              if (p->memacc == NULL)
+                 p->attachMemAcc(ma);
+              else
+                 delete ma;
+              result->push_back(p);
+           }
         }
     }
     return result;

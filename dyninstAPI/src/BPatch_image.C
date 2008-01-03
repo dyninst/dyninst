@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.104 2007/12/12 22:20:36 roundy Exp $
+// $Id: BPatch_image.C,v 1.105 2008/01/03 00:13:12 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -515,7 +515,7 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
     *alternative = NULL;
   
   /* We don't have an instPoint for this address, so make one. */
-  instPoint *newInstP = instPoint::createArbitraryInstPoint(address_int, llAS);
+  instPoint *newInstP = instPoint::createArbitraryInstPoint(address_int, llAS, func);
   if (!newInstP) return NULL;
 
   return addSpace->findOrCreateBPPoint(NULL, newInstP, BPatch_locInstruction);

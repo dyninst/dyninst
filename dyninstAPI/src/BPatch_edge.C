@@ -151,38 +151,38 @@ BPatch_basicBlock *BPatch_edge::getTargetInt() {
 
 BPatch_point *BPatch_edge::getPointInt()
 {
-    if (!point) {
-        // BPatch_points typically represent an instruction. This doesn't;
-        // we can have two per instruction (fallthrough edge and target
-        // edge). Argh. 
-        assert(source);
-        assert(target);
-        Address lastInsnAddr = (Address) source->getLastInsnAddress();
+   if (!point) {
+      // BPatch_points typically represent an instruction. This doesn't;
+      // we can have two per instruction (fallthrough edge and target
+      // edge). Argh. 
+      assert(source);
+      assert(target);
+      Address lastInsnAddr = (Address) source->getLastInsnAddress();
+      
+      
+      AddressSpace *as = flowGraph->getAddSpace()->getAS();
+      assert(as);
+      int_function *f = flowGraph->getBFunction()->lowlevel_func();
 
-        
-	AddressSpace *as = flowGraph->getAddSpace()->getAS();
-
-	assert(as);
-	
-	instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, as);
-                                                
-        if (ip == NULL) {
-            fprintf(stderr, "Failed to find inst point at address 0x%lx\n",
-                    lastInsnAddr);
-            return NULL;
-        }
-
-        BPatch_point *newPoint = new BPatch_point(flowGraph->getAddSpace(),
-                                                  flowGraph->getBFunction(),
-                                                  this,
-                                                  ip);
-        if (newPoint) {
-            point = newPoint;
-        }
-        else {
-            fprintf(stderr, "BPatch_edge: didn't create point!\n");
-        }
-    }
-    return point;
+      instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, as, f);
+      
+      if (ip == NULL) {
+         fprintf(stderr, "Failed to find inst point at address 0x%lx\n",
+                 lastInsnAddr);
+         return NULL;
+      }
+      
+      BPatch_point *newPoint = new BPatch_point(flowGraph->getAddSpace(),
+                                                flowGraph->getBFunction(),
+                                                this,
+                                                ip);
+      if (newPoint) {
+         point = newPoint;
+      }
+      else {
+         fprintf(stderr, "BPatch_edge: didn't create point!\n");
+      }
+   }
+   return point;
 }
 
