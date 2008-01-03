@@ -31,7 +31,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.31 2008/01/03 17:49:17 jaw Exp $
+ * $Id: String.h,v 1.32 2008/01/03 22:55:09 jaw Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -58,27 +58,27 @@ const char MULTIPLE_WILDCARD_CHAR = '*';
 
 class string_ll {
 public:
-    DLLEXPORT string_ll ();
-    DLLEXPORT string_ll (const char *);
-    DLLEXPORT string_ll (const char *, unsigned n); // just copy the first n chars
-    DLLEXPORT string_ll (const string_ll &);
-    DLLEXPORT ~string_ll ();
+    string_ll ();
+    string_ll (const char *);
+    string_ll (const char *, unsigned n); // just copy the first n chars
+    string_ll (const string_ll &);
+    ~string_ll ();
 
     // conversions to string_ll from standard types
-    DLLEXPORT string_ll (char);
-    DLLEXPORT string_ll (int);
-    DLLEXPORT string_ll (unsigned);
-    DLLEXPORT string_ll (long);
-    DLLEXPORT string_ll (unsigned long);
-    DLLEXPORT string_ll (float);
-    DLLEXPORT string_ll (double);
+    string_ll (char);
+    string_ll (int);
+    string_ll (unsigned);
+    string_ll (long);
+    string_ll (unsigned long);
+    string_ll (float);
+    string_ll (double);
 
-    DLLEXPORT string_ll& operator= (const char *);
-    DLLEXPORT string_ll& operator= (const string_ll &);
-    DLLEXPORT string_ll& operator+= (const string_ll &);
-    DLLEXPORT string_ll& operator+= (const char *);
-    DLLEXPORT string_ll  operator+ (const string_ll &) const;
-    DLLEXPORT string_ll  operator+ (const char *) const;
+    string_ll& operator= (const char *);
+    string_ll& operator= (const string_ll &);
+    string_ll& operator+= (const string_ll &);
+    string_ll& operator+= (const char *);
+    string_ll  operator+ (const string_ll &) const;
+    string_ll  operator+ (const char *) const;
 
     char operator[] (unsigned pos) const {return str_[pos];}
 
@@ -175,8 +175,8 @@ class pdstring {
    refCounter<string_ll> data;
 
 
-   DLLEXPORT static void initialize_static_stuff();
-   DLLEXPORT static void free_static_stuff();
+   static void initialize_static_stuff();
+   static void free_static_stuff();
 
  public:
    static pdstring *nilptr;
@@ -184,11 +184,11 @@ class pdstring {
    // we must rely on nil.data being initialized before any global string
    // objects (or static class members) created with this constructor.
 //   pdstring() : data(string_ll()) {};
-   DLLEXPORT pdstring() : data(nilptr->data) {} // should be more efficient than above
-   DLLEXPORT pdstring(const char *str) : data(string_ll(str)) {}
-   DLLEXPORT pdstring(const char *str, unsigned n) : data(string_ll(str,n)) {}
-   DLLEXPORT pdstring(const pdstring& src) : data(src.data) {}
-   DLLEXPORT ~pdstring() {}
+   pdstring() : data(nilptr->data) {} // should be more efficient than above
+   pdstring(const char *str) : data(string_ll(str)) {}
+   pdstring(const char *str, unsigned n) : data(string_ll(str,n)) {}
+   pdstring(const pdstring& src) : data(src.data) {}
+   ~pdstring() {}
 
    // don't allow implicit conversion to pdstring from standard types;
    // forces correct usage & removes ambiguities
@@ -399,11 +399,11 @@ class string_counter {
    static int count;
   
  public:
-   DLLEXPORT string_counter() {
+   string_counter() {
       if (count++ == 0)
          pdstring::initialize_static_stuff();
    }
-  DLLEXPORT ~string_counter() {
+  ~string_counter() {
       if (--count == 0)
          pdstring::free_static_stuff();
    }

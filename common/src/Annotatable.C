@@ -39,17 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.3 2008/01/03 00:13:10 legendre Exp $
+// $Id: Annotatable.C,v 1.4 2008/01/03 22:55:09 jaw Exp $
 
+#include "common/h/headers.h"
 #include "common/h/Annotatable.h"
-#include "common/h/String.h"
-#include "common/h/Dictionary.h"
 
 
-#if 0
-//  Outside declarations of static members
-template class dictionary_hash<std::string, int>;
-#endif
 //template class pdvector<dictionary_hash<std::string, int> >::entry;
 
 int AnnotatableBase::number;

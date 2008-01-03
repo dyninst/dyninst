@@ -41,16 +41,19 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.24 2007/12/14 04:16:48 jaw Exp $
+ * $Id: arch-sparc.C,v 1.25 2008/01/03 22:55:09 jaw Exp $
  */
 
 #include "common/h/Types.h"
+#include "common/h/Annotatable.h"
 #include "arch.h"
 #include "inst-sparc.h"
 #include "util.h"
 #include "debug.h"
 #include "InstrucIter.h"
 #include "addressSpace.h"
+
+hash_map<AnnotatableBase *, std::vector<InsnRegister> *> AnnotationSet<std::vector<InsnRegister> >::sets_by_obj;
 
 //inline unsigned getMaxBranch1Insn() {
 //   // The length we can branch using just 1 instruction is dictated by the

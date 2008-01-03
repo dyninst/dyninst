@@ -46,6 +46,7 @@
 #include "dyninstAPI/h/BPatch_process.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
+#include "common/h/util.h"
 #include "util.h"
 
 class BPatch_libInfo {

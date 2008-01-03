@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.115 2007/12/04 17:58:26 bernat Exp $
+// $Id: sol_proc.C,v 1.116 2008/01/03 22:55:10 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -825,7 +825,7 @@ bool dyn_lwp::representativeLWP_attach_()
    // Open the process-wise handles
    sprintf(temp, "/proc/%d/ctl", getPid());
 
-   if (!waitForFileToExist(temp, 5 /*seconds */)) {
+   if (!waitForFileToExist(temp, 10 /*seconds */)) {
      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
      return false;
    }

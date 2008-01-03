@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.310 2008/01/03 00:13:18 legendre Exp $
+ // $Id: symtab.C,v 1.311 2008/01/03 22:55:10 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -986,7 +986,9 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
   gettimeofday(&starttime, NULL);
 #endif
 
+  startup_printf("%s[%d]:  about to create image\n", FILE__, __LINE__);
   image *ret = new image(desc, err, parseGaps); 
+  startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -1172,8 +1174,7 @@ void image::analyzeIfNeeded() {
 //        Both text and data sections have a relocation address
 
 
-image::image(fileDescriptor &desc, bool &err, bool parseGaps)
-   : 
+image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    desc_(desc),
    is_libdyninstRT(false),
    is_a_out(false),
@@ -1189,42 +1190,54 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps)
    parseState_(unparsed),
    parseGaps_(parseGaps)
 {
+
 #if defined(os_aix)
    string file = desc_.file().c_str();
    SymtabError serr = Not_An_Archive;
    Archive *archive;
-   if(!Archive::openArchive(archive, file))
+
+   startup_printf("%s[%d]:  opening file (or archive)\n", FILE__, __LINE__);
+   if (!Archive::openArchive(archive, file))
    {
-   	err = true;
-	if(archive->getLastError() != serr)
-		return;
-	else
-	{
-   		if(!Symtab::openFile(linkedFile, file)) 
-   		{
-   			err = true;
-			return;
-		}
-	}
+      err = true;
+      if (archive->getLastError() != serr) {
+         startup_printf("%s[%d]:  opened archive\n", FILE__, __LINE__);
+         return;
+      }
+      else
+      {
+         startup_printf("%s[%d]:  opening file (not archive)\n", FILE__, __LINE__);
+         if (!Symtab::openFile(linkedFile, file)) 
+         {
+            startup_printf("%s[%d]:  opening file (not archive) failed\n", FILE__, __LINE__);
+            err = true;
+            return;
+         }
+         startup_printf("%s[%d]:  opened file\n", FILE__, __LINE__);
+      }
    }
    else
    {
-   	string member = desc_.member().c_str();
-   	if(!archive->getMember(linkedFile, member))
-   	{
-   		err = true;
-		return;
-	}
+      startup_printf("%s[%d]:  getting member\n", FILE__, __LINE__);
+      string member = desc_.member().c_str();
+      if (!archive->getMember(linkedFile, member))
+      {
+         startup_printf("%s[%d]:  getting member failed\n", FILE__, __LINE__);
+         err = true;
+         return;
+      }
+      startup_printf("%s[%d]:  got member\n", FILE__, __LINE__);
    }
 #else
    string file = desc_.file().c_str();
    //linkedFile = new Symtab();
    if(!Symtab::openFile(linkedFile, file)) 
    {
-       err = true;
-       return;
+      err = true;
+      return;
    }
 #endif  
+
    baseAddr_ = desc.loadAddr();
    err = false;
    name_ = extract_pathname_tail(string(desc.file().c_str()));
@@ -1234,14 +1247,14 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps)
 
    // initialize (data members) codeOffset_, dataOffset_,
    //  codeLen_, dataLen_.
-   
+
    imageOffset_ = linkedFile->imageOffset();
    dataOffset_ = linkedFile->dataOffset();
-   
+
    imageLen_ = linkedFile->imageLength();
    dataLen_ = linkedFile->dataLength();
 
-   
+
    // if unable to parse object file (somehow??), try to
    //  notify user/calling process + return....    
    if (!imageLen_ || !linkedFile->image_ptr()) {
@@ -1257,20 +1270,21 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps)
    // the image too soon, before we have a process we can
    // work with reliably.  If so, we must recognize it
    // and reparse at some later time.
-// check if this is been used anywhere??  
+   // check if this is been used anywhere??  
    /*if( linkedFile->have_deferred_parsing() )
-   {
-      // nothing else to do here
-      return;
+     {
+   // nothing else to do here
+   return;
    }*/
 
    string msg;
    // give luser some feedback....
    msg = string("Parsing object file: ") + desc.file();
-   
+
    statusLine(msg.c_str());
-   
+
    //Now add Main and Dynamic Symbols if they are not present
+   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
    findMain();
 
    vector<Symbol *> uniqMods;
@@ -1287,13 +1301,14 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps)
 
    // define all of the functions
    statusLine("winnowing functions");
-  
+
    // a vector to hold all created functions until they are properly classified
    	
    pdvector<image_func *> raw_funcs; 
 
 
    // define all of the functions, this also defines all of the modules
+   startup_printf("%s[%d]:  before symbolsToFunctions\n", FILE__, __LINE__);
    if (!symbolsToFunctions(uniqMods, &raw_funcs)) {
        fprintf(stderr, "Error converting symbols to functions in file %s\n", desc.file().c_str());
       err = true;
@@ -1321,6 +1336,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps)
 
    // Also identifies aliases (multiple names with equal addresses)
 
+   startup_printf("%s[%d]:  before buildFunctionLists\n", FILE__, __LINE__);
    if (!buildFunctionLists(raw_funcs)) {
        fprintf(stderr, "Error building function lists in file %s\n", desc.file().c_str());
      err = true;
@@ -1339,6 +1355,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps)
    // the symbol table.
    
 #ifdef CHECK_ALL_CALL_POINTS
+   startup_printf("%s[%d]:  before checkAllCallPoints\n", FILE__, __LINE__);
    statusLine("checking call points");
    checkAllCallPoints();
 #endif
@@ -1389,6 +1406,8 @@ image::~image()
        delete pltFuncs;
        pltFuncs = NULL;
     }
+
+    if (linkedFile) delete linkedFile;
 }
 
 bool pdmodule::findFunction( const pdstring &name, pdvector<image_func *> &found ) {

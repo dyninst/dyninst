@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.701 2007/12/31 16:08:05 bernat Exp $
+// $Id: process.C,v 1.702 2008/01/03 22:55:09 jaw Exp $
 
 #include <ctype.h>
 
@@ -1977,11 +1977,14 @@ unsigned process::getAddressWidth() const {
 
 bool process::setAOut(fileDescriptor &desc) 
 {
+   startup_printf("%s[%d]:  enter setAOut\n", FILE__, __LINE__);
     assert(reachedBootstrapState(attached_bs));
     assert(mapped_objects.size() == 0);
     mapped_object *aout = mapped_object::createMappedObject(desc, this);
-    if (!aout)
+    if (!aout) {
+       startup_printf("%s[%d]:  fail setAOut\n", FILE__, __LINE__);
         return false;
+    }
     
     mapped_objects.push_back(aout);
     addOrigRange(aout);
@@ -1989,6 +1992,7 @@ bool process::setAOut(fileDescriptor &desc)
     findSignalHandler(aout);
 
     // Find main
+   startup_printf("%s[%d]:  leave setAOut\n", FILE__, __LINE__);
     return setMainFunction();
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.3 2007/12/14 04:16:47 jaw Exp $
+// $Id: Annotatable.h,v 1.4 2008/01/03 22:55:09 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -48,56 +48,79 @@
 #include <string>
 #include <typeinfo>
 #include "headers.h"
+#include "util.h"
+
+#if 0
+extern unsigned addrHashCommon(Address addr);
+#endif
+class AnnotatableBase;
+#if defined(os_windows)
+#else
+namespace __gnu_cxx {
+   template<> struct hash<AnnotatableBase *> {
+      hash<char*> h;
+      unsigned operator()(const AnnotatableBase *b) const {
+         return addrHashCommon((Address)b);
+      };
+   };
+};
+#endif
 
 #if 0
 #include "serialize.h"
 #endif
 
-#if 0
-#if defined (os_windows)
-#include <hash_map>
-using stdext::hash_map;
-#else
-#include <ext/hash_map>
-#include <ext/hash_set>
-using namespace __gnu_cxx;
-namespace __gnu_cxx {
-   template<> struct hash<std::string> {
-      hash<char*> h; 
-      unsigned operator()(const std::string &s) const {
-         return h(s.c_str());
-      };
-   };
-};
-
-#endif
-#endif
-
-
 using std::vector;
 
-#if 0
-class AnnotationBase {
-  public:
-     AnnotationBase() {}
-     virtual ~AnnotationBase() {}
+class AnnotatableBase;
+
+template<class T>
+class AnnotationSet {
+   static hash_map<AnnotatableBase *, T*> sets_by_obj;
+
+   public:
+   AnnotationSet() {}
+   ~AnnotationSet() {}
+
+   static T *findAnnotationSet(AnnotatableBase *b) 
+   {
+      if (sets_by_obj.find(b) == sets_by_obj.end())
+         return NULL;
+      return sets_by_obj[b];
+   }
+
+   static T *getAnnotationSet(AnnotatableBase *b)
+   {
+      T *it = NULL;
+
+      if (NULL == (it = findAnnotationSet(b))) {
+         it = new T();
+         sets_by_obj[b] = it;
+      }
+
+      return it;
+   }
+
+   static bool removeAnnotationSet(AnnotatableBase *b)
+   {
+      typename hash_map<AnnotatableBase *, T *>::iterator iter;
+      iter = sets_by_obj.find(b);
+      if (iter == sets_by_obj.end())
+         return false;
+      delete iter->second;
+      sets_by_obj.erase(iter);
+
+      return true;
+   }
 };
 
-template <class T>
-class Annotation : public AnnotationBase{
-  T* item;
- public:
-  Annotation(T* it) : item(it) {}
-  void setItem(T* newItem) { item=newItem; }
-  T* getItem() {return item; }
-};
-#endif
 
 class AnnotatableBase
 {
    protected:
       DLLEXPORT AnnotatableBase();
-      virtual ~AnnotatableBase() {}
+      ~AnnotatableBase() {
+      }
       static int number;
       static hash_map<std::string, int> annotationTypes;
       static hash_map<std::string, int> metadataTypes;
@@ -117,170 +140,115 @@ class AnnotatableBase
 template <class T, class ANNOTATION_NAME_T>
 class Annotatable : public AnnotatableBase
 {
-   vector<T> *annotations;
    public:
    Annotatable() :
-      AnnotatableBase(),
-     annotations(NULL) 
+      AnnotatableBase()
    {
    }
-   virtual ~Annotatable() 
+   ~Annotatable() 
    {
-      if (annotations) {
-         annotations->clear();
-         delete annotations;
-      }
    }
 
    Annotatable(const Annotatable<T, ANNOTATION_NAME_T> &src) :
-      AnnotatableBase(),
-      annotations(src.annotations)
+      AnnotatableBase()
    {/*hrm deep copy here or no?*/}
 
-   bool initAnnotations()
+   typedef typename std::vector<T> Container_t;
+   Container_t *initAnnotations()
    {
-      if (annotations) return true;
-      annotations = new std::vector<T>();
-      if (!annotations) {
+      Container_t *v = NULL;
+      v = AnnotationSet<Container_t>::getAnnotationSet(this);
+      if (v) {
+#if 0
+         fprintf(stderr, "%s[%d]:  annotation set already existsfor %p\n", FILE__, __LINE__, this);
+#endif
+         return v;
+      }
+
+      if (!v) {
          fprintf(stderr, "%s[%d]:  malloc problem\n", FILE__, __LINE__);
          abort();
-         return false;
+         return NULL;
       }
 
       ANNOTATION_NAME_T name_t;
       std::string anno_name = typeid(name_t).name();
       int anno_type = getAnnotationType(anno_name);
       if (anno_type == -1) {
+         fprintf(stderr, "%s[%d]:  creating annotation type %s\n", 
+               FILE__, __LINE__, anno_name.c_str());
          anno_type = createAnnotationType(anno_name);
       }
 
       if (anno_type == -1) {
-         delete annotations;
-         annotations = NULL;
+         AnnotationSet<Container_t>::removeAnnotationSet(this);
+         delete v;
          fprintf(stderr, "%s[%d]:  failing to create annotation for type %s\n", 
                FILE__, __LINE__, anno_name.c_str());
-         return false;
+         return NULL;
       }
-      return true;
+      fprintf(stderr, "%s[%d]:  created annotation type %s\n", 
+            FILE__, __LINE__, anno_name.c_str());
+      return v;
    }
-
-#if 0
-   bool serialize_annotation(typename ANNOTATION_NAME_T::SerializerType *s, T &it)
-   {
-      void ANNOTATION_NAME_T::SerializerType::annotation_start(const char *string_id, const char *tag);
-      void ANNOTATION_NAME_T::SerializerType::annotation_end(const char *tag);
-      void ANNOTATION_NAME_T::SerializerType::translate_base(T &param, const char *tag);
-      ANNOTATION_NAME_T name_t;
-      std::string anno_name = typeid(name_t).name();
-      translate_annotation(s, it, anno_name.c_str());
-     return true;
-   }
-   bool addAnnotation(T it, std::vector<typename ANNOTATION_NAME_T::SerializerType *> *svp = NULL)
-#endif
 
    bool addAnnotation(T it)
    {
-      if (!annotations)
-         if (!initAnnotations()) {
+      Container_t *v = NULL;
+      v = AnnotationSet<std::vector<T> >::findAnnotationSet(this);
+      if (!v)
+         if (NULL == ( v = initAnnotations())) {
             fprintf(stderr, "%s[%d]:  bad annotation type\n", FILE__, __LINE__);
             return false;
          }
 
-      annotations->push_back(it);
+      if (!v) {
+         fprintf (stderr, "%s[%d]:  initAnnotations failed\n", FILE__, __LINE__);
+         return false;
+      }
+      v->push_back(it);
 
-#if 0
-      if (svp) {
-         std::vector<typename ANNOTATION_NAME_T::SerializerType *> &sv = *svp;
-         for (unsigned int i = 0; i < sv.size(); ++i) {
-            typename ANNOTATION_NAME_T::SerializerType *s = sv[i];
-            assert(s);
-            serialize_annotation(s, it);
-         }
-      }
-      else {
-         fprintf(stderr, "%s[%d]:  no serializers for annotation\n", FILE__, __LINE__);
-      }
-#endif
       return true;
    }
-
-#if 0
-   bool serializeAll(std::vector<typename ANNOTATION_NAME_T::SerializerType *> *svp) 
-   {
-      if (!annotations) {
-         //  Do we really want to do nothing here, or do we want to write out a null set?
-         return true; //  Nothing should be fine.
-      }
-
-      if (!svp) {
-         fprintf(stderr, "%s[%d]:  FIXME:  serializeAll called without any serializers\n", 
-               FILE__, __LINE__);
-      }
-
-      std::vector<typename ANNOTATION_NAME_T::SerializerType *> &sv = *svp;
-      if (sv.size()) {
-         fprintf(stderr, "%s[%d]:  FIXME:  serializeAll called without any serializers\n", 
-               FILE__, __LINE__);
-      }
-      for (unsigned int i = 0; i < annotations->size(); ++i) {
-         T &it = (*annotations)[i];
-        for (unsigned int j = 0; j < sv.size(); ++j) {
-            typename ANNOTATION_NAME_T::SerializerType *s = sv[j];
-            assert(s);
-            translate_annotation(s, it, NULL, NULL);
-        }
-      }
-      return true;
-   }
-#endif
 
    unsigned size() const {
-      if (!annotations) return 0;
-      return annotations->size();
+      Container_t *v = NULL;
+      
+      const Annotatable<T, ANNOTATION_NAME_T> *thc = this; 
+      Annotatable<T, ANNOTATION_NAME_T> *th  
+         = const_cast<Annotatable<T, ANNOTATION_NAME_T> *> (thc);
+      v = AnnotationSet<Container_t>::findAnnotationSet(th);
+      if (!v) return 0;
+      return v->size();
    }
 
    //  so called getDataStructure in case we generalize beyond vectors for annotations
    std::vector<T> &getDataStructure() {
-      if (!annotations)
-         if (!initAnnotations()) {
-            fprintf(stderr, "%s[%d]:  failed to init annotations here\n", FILE__, __LINE__);
+      Container_t *v = NULL;
+      v = AnnotationSet<Container_t>::findAnnotationSet(this);
+      if (!v)
+         if (NULL == (v = initAnnotations())) {
+            fprintf(stderr, "%s[%d]:  failed to init annotations here\n", 
+                  FILE__, __LINE__);
             assert(0);
          }
-      return *annotations;
+      return *v;
    }
 
    T &getAnnotation(unsigned index) const
    {
-      assert(annotations);
-      assert(index < annotations->size());
-      return (*annotations)[index];
+      Container_t *v = NULL;
+      const Annotatable<T, ANNOTATION_NAME_T> *thc = this; 
+      Annotatable<T, ANNOTATION_NAME_T> *th  
+         = const_cast<Annotatable<T, ANNOTATION_NAME_T> *> (thc);
+      v = AnnotationSet<Container_t>::findAnnotationSet(th);
+      assert(v);
+      assert(index < v->size());
+      return (*v)[index];
    }
 
    T &operator[](unsigned index) const {return getAnnotation(index);}
 
 };
-
-
-#if 0
-template <class SERIALIZER, class T>
-void translate_annotation(SERIALIZER *ser, T *it, const char *anno_str, const char *tag = NULL)
-{
-   ser->annotation_start(anno_str, tag);
-   if (ser->iomode() == sd_serialize) {
-      ser->translate_base(*it, tag);
-   }
-   ser->annotation_end();
-}
-
-template <class SERIALIZER, class T>
-void translate_annotation(SERIALIZER *ser, T &it, const char *anno_str, const char *tag = NULL)
-{
-   ser->annotation_start(anno_str, tag);
-   if (ser->iomode() == sd_serialize) {
-      ser->translate_base(it, tag);
-   }
-   ser->annotation_end();
-}
-#endif
 
 #endif

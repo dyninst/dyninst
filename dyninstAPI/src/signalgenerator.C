@@ -1585,6 +1585,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
 
       int status;
       fileDescriptor desc;
+      startup_printf("%s[%d]:  about to getExecFileDescriptor\n", FILE__, __LINE__);
       if (!getExecFileDescriptor(file_, getPid(), true, status, desc)) {
           signal_printf("%s[%d]: Failed to find exec descriptor\n", FILE__, __LINE__);
           fprintf(stderr,"%s[%d]: Failed to find exec descriptor\n", FILE__, __LINE__);
@@ -1598,6 +1599,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
           return false;
       }
 
+      startup_printf("%s[%d]:  about to setAOut\n", FILE__, __LINE__);
       if (!proc->setAOut(desc)) {
           sleep(1);
           startup_printf("%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
@@ -1615,12 +1617,14 @@ bool SignalGeneratorCommon::initialize_event_handler()
           proc = NULL;
           return false;
       }
+      startup_printf("%s[%d]:  after setAOut\n", FILE__, __LINE__);
       //HACKSTATUS = status;      
   }
   else if (!proc->getParent()){
       //  attach case (pid != -1 && proc->parent == NULL)
       proc->createRepresentativeLWP();
       
+      startup_printf("%s[%d]:  about to attachProcess\n", FILE__, __LINE__);
       if (!attachProcess()) {
           delete proc;
           proc = NULL;
@@ -1634,6 +1638,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
 #endif // defined(i386_unknown_nt4_0)
 
     fileDescriptor desc;
+      startup_printf("%s[%d]:  about to getExecFileDesc\n", FILE__, __LINE__);
     if (!getExecFileDescriptor(file_, getPid(), false, status, desc)) 
     {
         delete proc;
@@ -1641,6 +1646,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
         return false;
     }
 
+      startup_printf("%s[%d]:  about to setAOut\n", FILE__, __LINE__);
     if (!proc->setAOut(desc)) {
        delete proc;
        proc = NULL;

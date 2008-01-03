@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.32 2007/06/13 18:51:26 bernat Exp $
+/* $Id: util.C,v 1.33 2008/01/03 22:55:10 jaw Exp $
  * util.C - support functions.
  */
 
@@ -121,6 +121,7 @@ int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds)
 }
 #endif
 
+#if 0
 static unsigned addrHashCommon(Address addr) 
 {
    // inspired by hashs of string class
@@ -156,7 +157,7 @@ unsigned addrHash16(const Address &iaddr)
    return addrHashCommon(iaddr >> 4);
 }
 
-
+#endif
 
 
 

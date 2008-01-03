@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.16 2008/01/03 17:49:19 jaw Exp $
+// $Id: Object-xcoff.C,v 1.17 2008/01/03 22:55:10 jaw Exp $
 
 #include <regex.h>
 
@@ -476,56 +476,57 @@ fileOpener *fileOpener::openFile(void *ptr, unsigned size) {
     return newFO;
 }
 
-void fileOpener::closeFile() {
-    refcount_--;
+void fileOpener::closeFile() 
+{
+   refcount_--;
 
-    if (refcount_ > 0) return;
+   if (refcount_ > 0) return;
 
-    // Remove us from the big list...
-    std::vector<fileOpener *>::iterator iter = openedFiles.begin();
-    for(; iter!=openedFiles.end(); iter++)
-    {
-     if(*iter == this)
-  openedFiles.erase(iter);
-    }
-    
-    /*for (unsigned i = 0; i < openedFiles.size(); i++) {
-        if (openedFiles[i] == this)
-            openedFiles.erase(i));
-    }*/
+   // Remove us from the big list...
+   std::vector<fileOpener *>::iterator iter = openedFiles.begin();
+   for (; iter!=openedFiles.end(); iter++)
+   {
+      if (*iter == this)
+         openedFiles.erase(iter);
+   }
 
-    if(file()!="") //only if its not a mem image
-    {
-     ::munmap(mmapStart_, size_);
+   /*for (unsigned i = 0; i < openedFiles.size(); i++) {
+     if (openedFiles[i] == this)
+     openedFiles.erase(i));
+     }*/
 
-     ::close(fd_);
-    } 
-    mmapStart_ = 0;
-    fd_ = 0;
-    size_ = 0;
+   if (file()!="") //only if its not a mem image
+   {
+      ::munmap(mmapStart_, size_);
 
-    delete this;
+      ::close(fd_);
+   } 
+   mmapStart_ = 0;
+   fd_ = 0;
+   size_ = 0;
+
+   delete this;
 }
 
 fileOpener::~fileOpener() {
-    // Assert that we're already closed?
-    assert(fd_ == 0);
-    assert(mmapStart_ == 0);
-    assert(size_ == 0);
+   // Assert that we're already closed?
+   assert(fd_ == 0);
+   assert(mmapStart_ == 0);
+   assert(size_ == 0);
 }
 
-bool fileOpener::open() {
-    if (fd_ != 0)
-        return true;
-    fd_ = ::open(file_.c_str(), O_RDONLY, 0); 
-    if (fd_ < 0) {
-        sprintf(errorLine, "Unable to open %s: %s\n",
-                file_.c_str(), strerror(errno));
-        //statusLine(errorLine);
-        //showErrorCallback(27, errorLine);
-        fd_ = 0;
-        return false;
-    }
+   bool fileOpener::open() {
+      if (fd_ != 0)
+         return true;
+      fd_ = ::open(file_.c_str(), O_RDONLY, 0); 
+      if (fd_ < 0) {
+         sprintf(errorLine, "Unable to open %s: %s\n",
+               file_.c_str(), strerror(errno));
+         //statusLine(errorLine);
+         //showErrorCallback(27, errorLine);
+         fd_ = 0;
+         return false;
+      }
 
     // Set size
     struct stat statBuf;
@@ -1624,7 +1625,7 @@ void Object::parseFileLineInfo()
 {
     static set<std::string> haveParsedFileMap;
 
-    cerr << "parsing line infor for file :" << mf->pathname() << endl;
+    //cerr << "parsing line info for file :" << mf->pathname() << endl;
 
     if( haveParsedFileMap.count(mf->pathname()) != 0 ) { return; }
     // /* DEBUG */ fprintf( stderr, "%s[%d]: Considering image at 0x%lx\n", __FILE__, __LINE__, fileOnDisk );
@@ -1750,128 +1751,136 @@ void Object::parseFileLineInfo()
 } /* end parseFileLineInfo() */
 
 void Object::parseLineInformation(std::string * currentSourceFile,
-                                         char * symbolName,
-                                         SYMENT * sym,
-                                         Offset linesfdptr,
-                                         char * lines,
-                                         int nlines ) {
-  union auxent * aux;
-  std::vector<IncludeFileInfo> includeFiles;
+      char * symbolName,
+      SYMENT * sym,
+      Offset linesfdptr,
+      char * lines,
+      int nlines ) 
+{
+   union auxent * aux;
+   std::vector<IncludeFileInfo> includeFiles;
 
-  /* if it is beginning of include files then update the data structure
-     that keeps the beginning of the include files. If the include files contain
-     information about the functions and lines we have to keep it */
-  if( sym->n_sclass == C_BINCL ) {
-    includeFiles.push_back( IncludeFileInfo( (sym->n_value - linesfdptr)/LINESZ, symbolName ) );
-  }
-  /* similiarly if the include file contains function codes and line information
-     we have to keep the last line information entry for this include file */
-  else if( sym->n_sclass == C_EINCL ) {
-    if( includeFiles.size() > 0 ) {
-      includeFiles[includeFiles.size()-1].end = (sym->n_value-linesfdptr)/LINESZ;
-    }
-  }
-  /* if the enrty is for a function than we have to collect all info
-     about lines of the function */
-  else if( sym->n_sclass == C_FUN ) {
-    /* I have no idea what the old code did, except not work very well.
-       Somebody who understands XCOFF should look at this. */
-    int initialLine = 0;
-    int initialLineIndex = 0;
-    Offset funcStartAddress = 0;
-    Offset funcEndAddress = 0;
+   /* if it is beginning of include files then update the data structure
+      that keeps the beginning of the include files. If the include files contain
+      information about the functions and lines we have to keep it */
+   if ( sym->n_sclass == C_BINCL ) {
+      includeFiles.push_back(IncludeFileInfo((sym->n_value - linesfdptr)/LINESZ, symbolName ) );
+   }
 
-    for( int j = -1; ; --j ) {
-      SYMENT * extSym = (SYMENT *)( ((Offset)sym) + (j * SYMESZ) );
-      if( extSym->n_sclass == C_EXT || extSym->n_sclass == C_HIDEXT ) {
-        aux = (union auxent *)( ((Offset)extSym) + SYMESZ );
-#ifndef __64BIT__
-        initialLineIndex = ( aux->x_sym.x_fcnary.x_fcn.x_lnnoptr - linesfdptr )/LINESZ;
-#endif
-        funcStartAddress = extSym->n_value;
-        break;
-      } /* end if C_EXT found */
-    } /* end search for C_EXT */
-
-    /* access the line information now using the C_FCN entry*/
-    SYMENT * bfSym = (SYMENT *)( ((Offset)sym) + SYMESZ );
-    if( bfSym->n_sclass != C_FCN ) {
-      //bperr("unable to process line info for %s\n", symbolName);
-      return;
-    }
-    SYMENT * efSym = (SYMENT *)( ((Offset)bfSym) + (2 * SYMESZ) );
-    while (efSym->n_sclass != C_FCN)
-      efSym = (SYMENT *) ( ((Offset)efSym) + SYMESZ );
-    funcEndAddress = efSym->n_value;
-
-    aux = (union auxent *)( ((Offset)bfSym) + SYMESZ );
-    initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
-
-    std::string whichFile = *currentSourceFile;
-    for( unsigned int j = 0; j < includeFiles.size(); j++ ) {
-      if(( includeFiles[j].begin <= (unsigned)initialLineIndex )
-                && ( includeFiles[j].end >= (unsigned)initialLineIndex ) ) {
-        whichFile = includeFiles[j].name;
-        break;
+   /* similiarly if the include file contains function codes and line information
+      we have to keep the last line information entry for this include file */
+   else if (sym->n_sclass == C_EINCL) {
+      if (includeFiles.size() > 0) {
+         includeFiles[includeFiles.size()-1].end = (sym->n_value-linesfdptr)/LINESZ;
       }
-    } /* end iteration of include files */
+   }
+
+   /* if the enrty is for a function than we have to collect all info
+      about lines of the function */
+   else if ( sym->n_sclass == C_FUN ) {
+      /* I have no idea what the old code did, except not work very well.
+         Somebody who understands XCOFF should look at this. */
+      int initialLine = 0;
+      int initialLineIndex = 0;
+      Offset funcStartAddress = 0;
+      Offset funcEndAddress = 0;
+
+      for (int j = -1; ; --j) {
+         SYMENT * extSym = (SYMENT *)( ((Offset)sym) + (j * SYMESZ) );
+         if( extSym->n_sclass == C_EXT || extSym->n_sclass == C_HIDEXT ) {
+            aux = (union auxent *)( ((Offset)extSym) + SYMESZ );
+#ifndef __64BIT__
+            initialLineIndex = ( aux->x_sym.x_fcnary.x_fcn.x_lnnoptr - linesfdptr )/LINESZ;
+#endif
+            funcStartAddress = extSym->n_value;
+            break;
+         } /* end if C_EXT found */
+      } /* end search for C_EXT */
+
+      /* access the line information now using the C_FCN entry*/
+      SYMENT * bfSym = (SYMENT *)( ((Offset)sym) + SYMESZ );
+      if ( bfSym->n_sclass != C_FCN ) {
+         //bperr("unable to process line info for %s\n", symbolName);
+         return;
+      }
+
+      SYMENT * efSym = (SYMENT *)( ((Offset)bfSym) + (2 * SYMESZ) );
+      while (efSym->n_sclass != C_FCN)
+         efSym = (SYMENT *) ( ((Offset)efSym) + SYMESZ );
+      funcEndAddress = efSym->n_value;
+
+      aux = (union auxent *)( ((Offset)bfSym) + SYMESZ );
+      initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
+
+      std::string whichFile = *currentSourceFile;
+      for (unsigned int j = 0; j < includeFiles.size(); j++) {
+         if ((includeFiles[j].begin <= (unsigned)initialLineIndex)
+               && ( includeFiles[j].end >= (unsigned)initialLineIndex ) ) {
+            whichFile = includeFiles[j].name;
+            break;
+         }
+      } /* end iteration of include files */
 
 #if 0    
-    int_function * currentFunction = obj()->findFuncByAddr( funcStartAddress + trueBaseAddress );
-    if( currentFunction == NULL ) {
-      /* Some addresses point to gdb-inaccessible memory; others have symbols (gdb will disassemble them)
-         but the contents look like garbage, and may be data with symbol names.  (Who knows why.) */
-      // fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, funcStartAddress + trueBaseAddress );
-      return;
-    }
-    mapped_module * currentModule = currentFunction->mod();
-    assert( currentModule != NULL );
-    LineInformation & currentLineInformation = currentModule->lineInfo_; 
+      int_function * currentFunction = obj()->findFuncByAddr( funcStartAddress + trueBaseAddress );
+      if( currentFunction == NULL ) {
+         /* Some addresses point to gdb-inaccessible memory; others have symbols (gdb will disassemble them)
+            but the contents look like garbage, and may be data with symbol names.  (Who knows why.) */
+         // fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, funcStartAddress + trueBaseAddress );
+         return;
+      }
+      mapped_module * currentModule = currentFunction->mod();
+      assert( currentModule != NULL );
+      LineInformation & currentLineInformation = currentModule->lineInfo_; 
 #endif
 
-    unsigned int previousLineNo = 0;
-    Offset previousLineAddr = 0;
-    bool isPreviousValid = false;
+      unsigned int previousLineNo = 0;
+      Offset previousLineAddr = 0;
+      bool isPreviousValid = false;
 
-    /* Iterate over this entry's lines. */
-    for( int j = initialLineIndex + 1; j < nlines; j++ ) {
-      LINENO * lptr = (LINENO *)( lines + (j * LINESZ) );
-      if( ! lptr->l_lnno ) { break; }
-      unsigned int lineNo = lptr->l_lnno + initialLine - 1;
-      Offset lineAddr = lptr->l_addr.l_paddr + trueBaseAddress;
+      /* Iterate over this entry's lines. */
+      for (int j = initialLineIndex + 1; j < nlines; j++ ) {
+         LINENO * lptr = (LINENO *)( lines + (j * LINESZ) );
+         if (! lptr->l_lnno) { break; }
+         unsigned int lineNo = lptr->l_lnno + initialLine - 1;
+         Offset lineAddr = lptr->l_addr.l_paddr + trueBaseAddress;
 
-      if( isPreviousValid ) {
-        // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, lineAddr );
-        unsigned current_col = 0;
-	if(previousLineNo == 596 || previousLineNo == 597)
-	{
-		cerr << "FuncEndAddress: " <<setbase(16) << funcEndAddress << setbase(10) << ",totallines:" << nlines << ":" << endl;
-		cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << whichFile << ":" << setbase(10) << previousLineNo << endl;
-	}	
-	lineInfo_[whichFile].addLine(whichFile.c_str(), previousLineNo, current_col, previousLineAddr, lineAddr );
-        //currentLineInformation.addLine( whichFile.c_str(), previousLineNo, current_col, previousLineAddr, lineAddr );
+         if (isPreviousValid) {
+            // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, lineAddr );
+            unsigned current_col = 0;
+            if (previousLineNo == 596 || previousLineNo == 597)
+            {
+               //cerr << "FuncEndAddress: " <<setbase(16) << funcEndAddress << setbase(10) << ",totallines:" << nlines << ":" << endl;
+               cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << whichFile << ":" << setbase(10) << previousLineNo << endl;
+            }	
+            lineInfo_[whichFile].addLine(whichFile.c_str(), previousLineNo, current_col, previousLineAddr, lineAddr );
+            //currentLineInformation.addLine( whichFile.c_str(), previousLineNo, current_col, previousLineAddr, lineAddr );
+         }
+
+         previousLineNo = lineNo;
+         previousLineAddr = lineAddr;
+         isPreviousValid = true;
+      } /* end iteration over line information */
+
+      if (isPreviousValid) {
+         /* Add the instruction (always 4 bytes on power) pointed at by the last entry.  We'd like to add a
+            bigger range, but it's not clear how.  (If the function has inlined code, we won't know about
+            it until we see the next section, so claiming "until the end of the function" will give bogus results.) */
+         // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, previousLineAddr + 4 );
+
+         while (previousLineAddr < funcEndAddress) {
+            unsigned current_col = 0;
+            //if(previousLineNo == 596 || previousLineNo == 597)
+             //  cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," <<  previousLineAddr + 4 << ") for source " << whichFile << ":" << setbase(10) << previousLineNo << endl;
+
+            lineInfo_[whichFile].addLine(whichFile.c_str(), previousLineNo, current_col, previousLineAddr,  previousLineAddr + 4);
+
+            //currentLineInformation.addLine( whichFile.c_str(), previousLineNo, current_col, previousLineAddr, previousLineAddr + 4 );
+
+            previousLineAddr += 4;
+         }
       }
-
-      previousLineNo = lineNo;
-      previousLineAddr = lineAddr;
-      isPreviousValid = true;
-    } /* end iteration over line information */
-
-    if( isPreviousValid ) {
-      /* Add the instruction (always 4 bytes on power) pointed at by the last entry.  We'd like to add a
-         bigger range, but it's not clear how.  (If the function has inlined code, we won't know about
-         it until we see the next section, so claiming "until the end of the function" will give bogus results.) */
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, previousLineAddr + 4 );
-      while (previousLineAddr < funcEndAddress) {
-        unsigned current_col = 0;
-	if(previousLineNo == 596 || previousLineNo == 597)
-		cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," <<  previousLineAddr + 4 << ") for source " << whichFile << ":" << setbase(10) << previousLineNo << endl;
-	lineInfo_[whichFile].addLine(whichFile.c_str(), previousLineNo, current_col, previousLineAddr,  previousLineAddr + 4);
-        //currentLineInformation.addLine( whichFile.c_str(), previousLineNo, current_col, previousLineAddr, previousLineAddr + 4 );
-        previousLineAddr += 4;
-      }
-    }
-  } /* end if we found a C_FUN symbol */
+   } /* end if we found a C_FUN symbol */
 } /* end parseLineInformation() */
 
 
@@ -1879,247 +1888,247 @@ void Object::parseLineInformation(std::string * currentSourceFile,
 // and variables
 void Object::parseTypeInfo(Symtab *obj)
 {
-    int i, j;
-    int nstabs;
-    SYMENT *syms;
-    SYMENT *tsym;
-    char *stringPool;
-    char tempName[9];
-    char *stabstr=NULL;
-    union auxent *aux;
-    std::string funcName;
-    Offset staticBlockBaseAddr = 0;
-    typeCommon *commonBlock = NULL;
-    Symbol *commonBlockVar = NULL;
-    std::string currentSourceFile;
-    bool inCommonBlock = false;
-    Module *mod = NULL;
-    
-    void *syms_void = NULL;
-    get_stab_info(stabstr, nstabs, syms_void, stringPool);
-    syms = (SYMENT *) syms_void;
+   int i, j;
+   int nstabs;
+   SYMENT *syms;
+   SYMENT *tsym;
+   char *stringPool;
+   char tempName[9];
+   char *stabstr=NULL;
+   union auxent *aux;
+   std::string funcName;
+   Offset staticBlockBaseAddr = 0;
+   typeCommon *commonBlock = NULL;
+   Symbol *commonBlockVar = NULL;
+   std::string currentSourceFile;
+   bool inCommonBlock = false;
+   Module *mod = NULL;
 
-    bool parseActive = true;
-    //fprintf(stderr, "%s[%d]:  parseTypes for module %s: nstabs = %d\n", FILE__, __LINE__,mod->fileName().c_str(),nstabs);
-    //int num_active = 0;
+   void *syms_void = NULL;
+   get_stab_info(stabstr, nstabs, syms_void, stringPool);
+   syms = (SYMENT *) syms_void;
 
-     for (i=0; i < nstabs; i++) {
-         /* do the pointer addition by hand since sizeof(struct syment)
-	  *   seems to be 20 not 18 as it should be */
-	 SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
-	 if (sym->n_sclass == C_FILE) {
-	     char *moduleName;
-	     if (!sym->n_zeroes) {
-	          moduleName = &stringPool[sym->n_offset];
-	     } else {
-	          memset(tempName, 0, 9);
-	          strncpy(tempName, sym->n_name, 8);
-	          moduleName = tempName;
-	     }
-	     /* look in aux records */
-             for (j=1; j <= sym->n_numaux; j++) {
-                 aux = (union auxent *) ((char *) sym + j * SYMESZ);
-                 if (aux->x_file._x.x_ftype == XFT_FN) {
-                     if (!aux->x_file._x.x_zeroes) {
-                         moduleName = &stringPool[aux->x_file._x.x_offset];
-                     } else {
-			 memset(moduleName, 0, 15);
-			 strncpy(moduleName, aux->x_file.x_fname, 14);
-                   }
+   bool parseActive = true;
+   //fprintf(stderr, "%s[%d]:  parseTypes for module %s: nstabs = %d\n", FILE__, __LINE__,mod->fileName().c_str(),nstabs);
+   //int num_active = 0;
+
+   for (i=0; i < nstabs; i++) {
+      /* do the pointer addition by hand since sizeof(struct syment)
+       *   seems to be 20 not 18 as it should be */
+      SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
+      if (sym->n_sclass == C_FILE) {
+         char *moduleName;
+         if (!sym->n_zeroes) {
+            moduleName = &stringPool[sym->n_offset];
+         } else {
+            memset(tempName, 0, 9);
+            strncpy(tempName, sym->n_name, 8);
+            moduleName = tempName;
+         }
+         /* look in aux records */
+         for (j=1; j <= sym->n_numaux; j++) {
+            aux = (union auxent *) ((char *) sym + j * SYMESZ);
+            if (aux->x_file._x.x_ftype == XFT_FN) {
+               if (!aux->x_file._x.x_zeroes) {
+                  moduleName = &stringPool[aux->x_file._x.x_offset];
+               } else {
+                  memset(moduleName, 0, 15);
+                  strncpy(moduleName, aux->x_file.x_fname, 14);
                }
-	    }
-	    currentSourceFile = std::string(moduleName);
-	    if(!obj->findModule(mod, currentSourceFile))
-	    {
-	    	if(!obj->findModule(mod,extract_pathname_tail(currentSourceFile)))
-		    continue;
-	    }
-
-	    //TODO? check for process directories??
-            //currentSourceFile = mod->processDirectories(currentSourceFile);
-
-            if (strrchr(moduleName, '/')) {
-	        moduleName = strrchr(moduleName, '/');
-                moduleName++;
             }
+         }
+         currentSourceFile = std::string(moduleName);
+         if(!obj->findModule(mod, currentSourceFile))
+         {
+            if(!obj->findModule(mod,extract_pathname_tail(currentSourceFile)))
+               continue;
+         }
 
-            if (!strcmp(moduleName, mod->fileName().c_str())) {
-                parseActive = true;
-                // Clear out old types
-                mod->getModuleTypes()->clearNumberedTypes();
-	   }	
-	   else { 
-	       parseActive = false;
-           }
-     }
-     if (!parseActive) continue;
+         //TODO? check for process directories??
+         //currentSourceFile = mod->processDirectories(currentSourceFile);
 
-     //num_active++;
-     char *nmPtr;
-     if (!sym->n_zeroes && ((sym->n_sclass & DBXMASK) ||
-                            (sym->n_sclass == C_BINCL) ||
-                            (sym->n_sclass == C_EINCL))) {
+         if (strrchr(moduleName, '/')) {
+            moduleName = strrchr(moduleName, '/');
+            moduleName++;
+         }
+
+         if (!strcmp(moduleName, mod->fileName().c_str())) {
+            parseActive = true;
+            // Clear out old types
+            mod->getModuleTypes()->clearNumberedTypes();
+         }	
+         else { 
+            parseActive = false;
+         }
+      }
+      if (!parseActive) continue;
+
+      //num_active++;
+      char *nmPtr;
+      if (!sym->n_zeroes && ((sym->n_sclass & DBXMASK) ||
+               (sym->n_sclass == C_BINCL) ||
+               (sym->n_sclass == C_EINCL))) {
          if(sym->n_offset < 3) {
-	     if (sym->n_offset == 2 && stabstr[0]) {
-                 nmPtr = &stabstr[0];
-             } else
-                 nmPtr = &stabstr[sym->n_offset];
+            if (sym->n_offset == 2 && stabstr[0]) {
+               nmPtr = &stabstr[0];
+            } else
+               nmPtr = &stabstr[sym->n_offset];
          } else if (!stabstr[sym->n_offset-3]) {
-	     nmPtr = &stabstr[sym->n_offset];
-	 } else {
-             /* has off by two error */
-             nmPtr = &stabstr[sym->n_offset-2];
-	 }    
-      #if 0	 
-      #ifdef notdef
+            nmPtr = &stabstr[sym->n_offset];
+         } else {
+            /* has off by two error */
+            nmPtr = &stabstr[sym->n_offset-2];
+         }    
+#if 0	 
+#ifdef notdef
          bperr("using nmPtr = %s\n", nmPtr);
          bperr("got n_offset = (%d) %s\n", sym->n_offset, &stabstr[sym->n_offset]);
          if (sym->n_offset>=2)
-             bperr("got n_offset-2 = %s\n", &stabstr[sym->n_offset-2]);
+            bperr("got n_offset-2 = %s\n", &stabstr[sym->n_offset-2]);
          if (sym->n_offset>=3)
-             bperr("got n_offset-3 = %x\n", stabstr[sym->n_offset-3]);
+            bperr("got n_offset-3 = %x\n", stabstr[sym->n_offset-3]);
          if (sym->n_offset>=4)
-             bperr("got n_offset-4 = %x\n", stabstr[sym->n_offset-4]);
-      #endif
-      #endif
-     } else {
+            bperr("got n_offset-4 = %x\n", stabstr[sym->n_offset-4]);
+#endif
+#endif
+      } else {
          // names 8 or less chars on inline, not in stabstr
-	 memset(tempName, 0, 9);
-	 strncpy(tempName, sym->n_name, 8);
-	 nmPtr = tempName;
-     }
-     if ((sym->n_sclass == C_BINCL) ||
-          (sym->n_sclass == C_EINCL) ||
-          (sym->n_sclass == C_FUN)) 
-     {
+         memset(tempName, 0, 9);
+         strncpy(tempName, sym->n_name, 8);
+         nmPtr = tempName;
+      }
+      if ((sym->n_sclass == C_BINCL) ||
+            (sym->n_sclass == C_EINCL) ||
+            (sym->n_sclass == C_FUN)) 
+      {
          funcName = nmPtr;
          /* The call to parseLineInformation(), below, used to modify the symbols passed to it. */
          if (funcName.find(":") < funcName.length())
-             funcName = funcName.substr(0,funcName.find(":"));
+            funcName = funcName.substr(0,funcName.find(":"));
       }
       if (sym->n_sclass & DBXMASK) {
-	  if (sym->n_sclass == C_BCOMM) {
-	      char *commonBlockName;
+         if (sym->n_sclass == C_BCOMM) {
+            char *commonBlockName;
 
-              inCommonBlock = true;
-	      commonBlockName = nmPtr;
-		
-	      std::vector<Symbol *>vars;
-	      if(!obj->findSymbolByType(vars, commonBlockName, Symbol::ST_OBJECT))
-	      {
-	      	  if(!obj->findSymbolByType(vars, commonBlockName, Symbol::ST_OBJECT, true))
-		      commonBlockVar = NULL;
-	          else
-	      	      commonBlockVar = vars[0];
-	      }
-	      else
-	      	  commonBlockVar = vars[0];
-	      
-	      std::string cbName = commonBlockName;
-	      if (!commonBlockVar) {
-		  //bperr("unable to find variable %s\n", commonBlockName);
-	      } else {
-		  commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypes()->findVariableType(cbName));
-		  if (commonBlock == NULL) {
-		      // its still the null type, create a new one for it
-		      //TODO? ? ID for this typeCommon ?
-		      commonBlock = new typeCommon(cbName);
-		      mod->getModuleTypes()->addGlobalVariable(cbName, commonBlock);
-	          }
-		  // reset field list
-		  commonBlock->beginCommonBlock();
-	      }
-	  } else if (sym->n_sclass == C_ECOMM) {
-             inCommonBlock = false;
-             if (commonBlock == NULL)
-                continue;
+            inCommonBlock = true;
+            commonBlockName = nmPtr;
 
-	    // copy this set of fields
-	    std::vector<Symbol *> bpmv;
-   	    if (obj->findSymbolByType(bpmv, funcName, Symbol::ST_FUNCTION) || !bpmv.size()) {
-	      //bperr("unable to locate current function %s\n", funcName.c_str());
-	      } else {
-		Symbol *func = bpmv[0];
-		commonBlock->endCommonBlock(func, (void *)obj->getBaseOffset());
-	      }
+            std::vector<Symbol *>vars;
+            if(!obj->findSymbolByType(vars, commonBlockName, Symbol::ST_OBJECT))
+            {
+               if(!obj->findSymbolByType(vars, commonBlockName, Symbol::ST_OBJECT, true))
+                  commonBlockVar = NULL;
+               else
+                  commonBlockVar = vars[0];
+            }
+            else
+               commonBlockVar = vars[0];
 
- //TODO?? size for local variables??
-//	      // update size if needed
-//	      if (commonBlockVar)
-//		  commonBlockVar->setSize(commonBlock->getSize());
-	      commonBlockVar = NULL;
-	      commonBlock = NULL;
-	  } else if (sym->n_sclass == C_BSTAT) {
-	      // begin static block
-	      // find the variable for the common block
-	      tsym = (SYMENT *) (((unsigned) syms) + sym->n_value * SYMESZ);
+            std::string cbName = commonBlockName;
+            if (!commonBlockVar) {
+               //bperr("unable to find variable %s\n", commonBlockName);
+            } else {
+               commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypes()->findVariableType(cbName));
+               if (commonBlock == NULL) {
+                  // its still the null type, create a new one for it
+                  //TODO? ? ID for this typeCommon ?
+                  commonBlock = new typeCommon(cbName);
+                  mod->getModuleTypes()->addGlobalVariable(cbName, commonBlock);
+               }
+               // reset field list
+               commonBlock->beginCommonBlock();
+            }
+         } else if (sym->n_sclass == C_ECOMM) {
+            inCommonBlock = false;
+            if (commonBlock == NULL)
+               continue;
 
-	      // We can't lookup the value by name, because the name might have been
-	      // redefined later on (our lookup would then pick the last one)
+            // copy this set of fields
+            std::vector<Symbol *> bpmv;
+            if (obj->findSymbolByType(bpmv, funcName, Symbol::ST_FUNCTION) || !bpmv.size()) {
+               //bperr("unable to locate current function %s\n", funcName.c_str());
+            } else {
+               Symbol *func = bpmv[0];
+               commonBlock->endCommonBlock(func, (void *)obj->getBaseOffset());
+            }
 
-	      // Since this whole function is AIX only, we're ok to get this info
+            //TODO?? size for local variables??
+            //	      // update size if needed
+            //	      if (commonBlockVar)
+            //		  commonBlockVar->setSize(commonBlock->getSize());
+            commonBlockVar = NULL;
+            commonBlock = NULL;
+         } else if (sym->n_sclass == C_BSTAT) {
+            // begin static block
+            // find the variable for the common block
+            tsym = (SYMENT *) (((unsigned) syms) + sym->n_value * SYMESZ);
 
-	      staticBlockBaseAddr = tsym->n_value;
+            // We can't lookup the value by name, because the name might have been
+            // redefined later on (our lookup would then pick the last one)
 
-	      /*
-	      char *staticName, tempName[9];
-	      if (!tsym->n_zeroes) {
-		  staticName = &stringPool[tsym->n_offset];
-	      } else {
-		  memset(tempName, 0, 9);
-		  strncpy(tempName, tsym->n_name, 8);
-		  staticName = tempName;
-	      }
+            // Since this whole function is AIX only, we're ok to get this info
 
-	      BPatch_variableExpr *staticBlockVar = progam->findVariable(staticName);
-	      if (!staticBlockVar) {
-		  bperr("unable to find static block %s\n", staticName);
-		  staticBlockBaseAddr = 0;
-	      } else {
-		  staticBlockBaseAddr = (Offset) staticBlockVar->getBaseAddr();
-	      }
-	      */
+            staticBlockBaseAddr = tsym->n_value;
 
-	  } else if (sym->n_sclass == C_ESTAT) {
-	      staticBlockBaseAddr = 0;
-	  }
+            /*
+               char *staticName, tempName[9];
+               if (!tsym->n_zeroes) {
+               staticName = &stringPool[tsym->n_offset];
+               } else {
+               memset(tempName, 0, 9);
+               strncpy(tempName, tsym->n_name, 8);
+               staticName = tempName;
+               }
 
-          // There's a possibility that we were parsing a common block that
-          // was never instantiated (meaning there's type info, but no
-          // variable info
+               BPatch_variableExpr *staticBlockVar = progam->findVariable(staticName);
+               if (!staticBlockVar) {
+               bperr("unable to find static block %s\n", staticName);
+               staticBlockBaseAddr = 0;
+               } else {
+               staticBlockBaseAddr = (Offset) staticBlockVar->getBaseAddr();
+               }
+             */
 
-          if (inCommonBlock && commonBlock == NULL)
-             continue;
-    
-      if(!mod){
-        std::string modName = currentSourceFile;
-        std::string fName = extract_pathname_tail(modName);
-        if(!obj->findModule(mod, fName))
-        {
-            modName = obj->file();
-            if(!obj->findModule(mod, modName))
-                continue;
-        }
+         } else if (sym->n_sclass == C_ESTAT) {
+            staticBlockBaseAddr = 0;
+         }
+
+         // There's a possibility that we were parsing a common block that
+         // was never instantiated (meaning there's type info, but no
+         // variable info
+
+         if (inCommonBlock && commonBlock == NULL)
+            continue;
+
+         if(!mod){
+            std::string modName = currentSourceFile;
+            std::string fName = extract_pathname_tail(modName);
+            if(!obj->findModule(mod, fName))
+            {
+               modName = obj->file();
+               if(!obj->findModule(mod, modName))
+                  continue;
+            }
+         }
+
+         if (staticBlockBaseAddr && (sym->n_sclass == C_STSYM)) {
+            parseStabString(mod, 0, nmPtr, 
+                  sym->n_value+staticBlockBaseAddr, commonBlock);
+         } else {
+            parseStabString(mod, 0, nmPtr, sym->n_value, commonBlock);
+         }
       }
-
-	  if (staticBlockBaseAddr && (sym->n_sclass == C_STSYM)) {
-              parseStabString(mod, 0, nmPtr, 
-		  sym->n_value+staticBlockBaseAddr, commonBlock);
-	  } else {
-              parseStabString(mod, 0, nmPtr, sym->n_value, commonBlock);
-	  }
-      }
-    }
+   }
 #if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->exec()->file()
-       <<") took "<<dursecs <<" msecs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 );
+   cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->exec()->file()
+      <<") took "<<dursecs <<" msecs" << endl;
 #endif
 
-//  fprintf(stderr, "%s[%d]:  parseTypes for %s, num_active = %d\n", FILE__, __LINE__, mod->fileName().c_str(), num_active);
+   //  fprintf(stderr, "%s[%d]:  parseTypes for %s, num_active = %d\n", FILE__, __LINE__, mod->fileName().c_str(), num_active);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.30 2007/12/12 22:20:49 roundy Exp $
+// $Id: mapped_object.C,v 1.31 2008/01/03 22:55:09 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -174,12 +174,15 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
                                                  AddressSpace *p,
-                                                 bool parseGaps) {
+                                                 bool parseGaps) 
+{
                                                  
     if (!p) return NULL;
     
+    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
     image *img = image::parseImage(desc, parseGaps);
     if (!img)  {
+       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
         return NULL;
     }
     if (!desc.isSharedObject()) {
@@ -215,7 +218,9 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
     }
     
     // Adds exported functions and variables..
+    startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
     mapped_object *obj = new mapped_object(desc, img, p);
+    startup_printf("%s[%d]:  leaving createMappedObject\n", FILE__, __LINE__);
 
     return obj;
 }

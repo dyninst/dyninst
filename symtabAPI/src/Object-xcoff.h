@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.13 2008/01/03 17:49:19 jaw Exp $
+ * $Id: Object-xcoff.h,v 1.14 2008/01/03 22:55:10 jaw Exp $
 ************************************************************************/
 
 
@@ -192,8 +192,10 @@ class Object : public AObject {
             void (*)(const char *) = log_msg);
     virtual ~Object ()
     {
+#if 0
         if (fo_)
     	    fo_->closeFile();
+#endif
     }
     
     Offset getTOCoffset() const { return toc_offset_; }

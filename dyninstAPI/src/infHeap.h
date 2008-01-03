@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: infHeap.h,v 1.5 2007/09/12 20:59:34 bernat Exp $
+/* $Id: infHeap.h,v 1.6 2008/01/03 22:55:09 jaw Exp $
  * Inferior heap primitives, moved from process.h to ease compilation
  */
 
@@ -49,6 +49,7 @@
 #include "common/h/String.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
+#include "common/h/util.h"
 #include "util.h"
 
 typedef enum { HEAPfree, HEAPallocated } heapStatus;

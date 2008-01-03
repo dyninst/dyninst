@@ -268,7 +268,7 @@ pdstring extract_pathname_tail(const pdstring &path)
   return ret;
 }
 
-DLLEXPORT std::string extract_pathname_tail(const std::string &path)
+std::string extract_pathname_tail(const std::string &path)
 {
   const char *path_str = path.c_str();
   const char *path_sep = P_strrchr(path_str, PATH_SEP);
