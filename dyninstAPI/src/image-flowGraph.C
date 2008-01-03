@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.42 2007/12/31 16:08:13 bernat Exp $
+ * $Id: image-flowGraph.C,v 1.43 2008/01/03 00:13:17 legendre Exp $
  */
 
 #include <stdio.h>
@@ -727,14 +727,8 @@ bool image_func::buildCFG(
     codeRange *tmpRange;
 
     // ** Use to special-case abort and exit calls
-    Symtab *obj = img()->getObject();
-    vector<relocationEntry> fbt;
-    dictionary_hash<Address, pdstring> pltFuncs(addrHash);
-    if(obj->getFuncBindingTable(fbt))
-    {
-        for(unsigned k = 0; k < fbt.size(); k++)
-            pltFuncs[fbt[k].target_addr()] = fbt[k].name().c_str();
-    }
+    dictionary_hash<Address, pdstring> *pltFuncs = img()->getPltFuncs();
+    
 
     // ** end abort/exit setup
 
@@ -1053,8 +1047,8 @@ bool image_func::buildCFG(
                 if(!archGetMultipleJumpTargets(targets,currBlk,ah,
                                                allInstructions))
                 {
-                    instLevel_ = HAS_BR_INDIR;
-                    canBeRelocated_ = false;
+                   instLevel_ = HAS_BR_INDIR;
+                   canBeRelocated_ = false;
                 }
                 
                 iter = targets.begin();
@@ -1345,13 +1339,13 @@ bool image_func::buildCFG(
 				   targetFunc->symTabName().c_str(),
 				   target, currAddr);
 		  }
-                else if(pltFuncs[target] == "exit" || 
-                        pltFuncs[target] == "abort" ||
-                        pltFuncs[target] == "__f90_stop")
+                else if((*pltFuncs)[target] == "exit" || 
+                        (*pltFuncs)[target] == "abort" ||
+                        (*pltFuncs)[target] == "__f90_stop")
 		  {
-                    parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
-				   pltFuncs[target].c_str(),
-				   target, currAddr);
+           parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
+                          (*pltFuncs)[target].c_str(),
+                          target, currAddr);
 		  }
                 else if(!simulateJump)
 		  {

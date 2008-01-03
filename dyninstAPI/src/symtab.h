@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.204 2007/12/12 22:20:56 roundy Exp $
+// $Id: symtab.h,v 1.205 2008/01/03 00:13:19 legendre Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -474,6 +474,9 @@ class image : public codeRange, public InstructionSource {
    Address get_main_call_addr() const { return main_call_addr_; }
 
    void * getErrFunc() const { return (void *) pd_log_perror; }
+
+   dictionary_hash<Address, pdstring> *getPltFuncs();
+
  private:
 
    void findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
@@ -623,6 +626,9 @@ class image : public codeRange, public InstructionSource {
    //  was excluded....
    hash_map <string, pdmodule *> modsByFileName;
    hash_map <string, pdmodule*> modsByFullName;
+
+   dictionary_hash<Address, pdstring> *pltFuncs;
+
 /* 
    // Variables indexed by pretty (non-mangled) name
    dictionary_hash <pdstring, pdvector <image_variable *> *> varsByPretty;

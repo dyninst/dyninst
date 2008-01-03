@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.309 2007/12/12 22:20:55 roundy Exp $
+ // $Id: symtab.C,v 1.310 2008/01/03 00:13:18 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1183,6 +1183,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps)
    _mods(0),
    funcsByEntryAddr(addrHash4),
    nextBlockID_(0),
+   pltFuncs(NULL),
    varsByAddr(addrHash4),
    refCount(1),
    parseState_(unparsed),
@@ -1384,6 +1385,10 @@ image::~image()
             allImages.erase(i,i);
     }
 
+    if (pltFuncs) {
+       delete pltFuncs;
+       pltFuncs = NULL;
+    }
 }
 
 bool pdmodule::findFunction( const pdstring &name, pdvector<image_func *> &found ) {
@@ -2054,4 +2059,23 @@ bool image::findSymByPrefix(const pdstring &prefix, pdvector<Symbol *> &ret) {
     for(start=0;start< found.size();start++)
 		ret.push_back(found[start]);
 	return true;	
+}
+
+dictionary_hash<Address, pdstring> *image::getPltFuncs()
+{
+   bool result;
+   if (pltFuncs)
+      return pltFuncs;
+
+
+   vector<relocationEntry> fbt;
+   result = getObject()->getFuncBindingTable(fbt);
+   if (!result)
+      return NULL;
+
+   pltFuncs = new dictionary_hash<Address, pdstring>(addrHash);
+   assert(pltFuncs);
+   for(unsigned k = 0; k < fbt.size(); k++)
+      (*pltFuncs)[fbt[k].target_addr()] = fbt[k].name().c_str();
+   return pltFuncs;
 }
