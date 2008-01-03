@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.24 2007/12/12 22:20:58 roundy Exp $
+ * $Id: Object-elf.C,v 1.25 2008/01/03 00:13:22 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -75,9 +75,9 @@ static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *exce
                               std::vector<ExceptionBlock> &catch_addrs);
 #endif
     
-string current_func_name;
-string current_mangled_func_name;
-Symbol *current_func = NULL;
+string symt_current_func_name;
+string symt_current_mangled_func_name;
+Symbol *symt_current_func = NULL;
 
 #if defined(os_solaris)
 #include <dlfcn.h>
@@ -3707,9 +3707,9 @@ void Object::parseStabTypes(Symtab *obj)
 	       src_count++;
 	       gettimeofday(&t1, NULL);
 #endif
-               current_func_name = ""; // reset for next object file
-	       current_mangled_func_name = ""; // reset for next object file
-	       current_func = NULL;
+          symt_current_func_name = ""; // reset for next object file
+          symt_current_mangled_func_name = ""; // reset for next object file
+	       symt_current_func = NULL;
 
 	       modName = const_cast<char*>(stabptr->name(i));
 	       // cerr << "checkpoint B" << endl;
@@ -3747,7 +3747,7 @@ void Object::parseStabTypes(Symtab *obj)
 #endif
 		    //all we have to do with function stabs at this point is to assure that we have
 	            //properly set the var currentFunctionName for the later case of (parseActive)
-	            current_func = NULL;
+	            symt_current_func = NULL;
 	            int currentEntry = i;
 	            int funlen = strlen(stabptr->name(currentEntry));
 	            ptr = new char[funlen+1];
@@ -3874,7 +3874,7 @@ void Object::parseStabTypes(Symtab *obj)
 	            pss_count++;
 	            gettimeofday(&t1, NULL);
 #endif
-		    if (stabptr->type(i) == N_FUN) current_func = NULL;
+		    if (stabptr->type(i) == N_FUN) symt_current_func = NULL;
 		    ptr = const_cast<char *>(stabptr->name(i));
 		    while (ptr[strlen(ptr)-1] == '\\') {
 		        //ptr[strlen(ptr)-1] = '\0';

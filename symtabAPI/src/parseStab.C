@@ -49,9 +49,9 @@ using namespace Dyninst::SymtabAPI;
 #include "debug.h"
 */
 
-extern std::string current_func_name;
-extern std::string current_mangled_func_name;
-extern Symbol *current_func;
+extern std::string symt_current_func_name;
+extern std::string symt_current_mangled_func_name;
+extern Symbol *symt_current_func;
 
 // Forward references for parsing routines
 static int parseSymDesc(char *stabstr, int &cnt);
@@ -223,16 +223,16 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	  stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), ID);
 	  cnt = 0;
 	  ptrType = mod->getModuleTypes()->findOrCreateType(ID);
-	  if (!current_func) {
+	  if (!symt_current_func) {
 	      // XXX-may want to use N_LBRAC and N_RBRAC to set function scope 
 	      // -- jdd 5/13/99
 	      // Still need to add to local variable list if in a function
 
 	      std::string modName = mod->fileName();
 	      //bperr("%s[%d] Can't find function %s in module %s\n", __FILE__, __LINE__,
-		//     current_mangled_func_name.c_str(), modName);
+         //     symt_current_mangled_func_name.c_str(), modName);
 	      //bperr("Unable to add %s to local variable list in %s\n",
-		//     name.c_str(),current_func_name.c_str());
+         //     name.c_str(), symt_current_func_name.c_str());
 	  } else {
 	      locVar = new localVar(name, ptrType, fName, linenum);
 	      loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
@@ -245,11 +245,11 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 		//bperr("adding local var with missing type %s, type = %d\n",
 		//      name, ID);
 	      }
-	      if(!current_func->vars_)
-	          current_func->vars_ = new localVarCollection();
-	      current_func->vars_->addLocalVar( locVar);
+	      if(!symt_current_func->vars_)
+	          symt_current_func->vars_ = new localVarCollection();
+	      symt_current_func->vars_->addLocalVar( locVar);
 	  }
-	} else if (current_func) {
+	} else if (symt_current_func) {
 	  // Try to find the BPatch_Function
 	  ptrType = mod->getModuleTypes()->findOrCreateType( ID);
 	  
@@ -265,9 +265,9 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	    ////bperr("adding local var with missing type %s, type = %d\n",
 	    //	     name, ID);
 	  }
-	  if(!current_func->vars_)
-	      current_func->vars_ = new localVarCollection();
-	  current_func->vars_->addLocalVar( locVar);
+	  if(!symt_current_func->vars_)
+        symt_current_func->vars_ = new localVarCollection();
+	  symt_current_func->vars_->addLocalVar( locVar);
 	}
     } else if (stabstr[cnt]) {
       std::vector<Symbol *> bpfv;
@@ -277,8 +277,8 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	      std::string lfuncName;
 	      cnt++;
 
-	      current_func_name = name;
-	      current_mangled_func_name = mangledname;
+	      symt_current_func_name = name;
+	      symt_current_mangled_func_name = mangledname;
 
 	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
       
@@ -333,7 +333,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 		  //bperr("%s is an embedded function in %s\n",name.c_str(), scopeName.c_str());
 	      }
 
-              current_func = fp;
+         symt_current_func = fp;
 	      // skip to end - SunPro Compilers output extra info here - jkh 6/9/3
 	      cnt = strlen(stabstr);
 
@@ -346,8 +346,8 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 
 	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
-	      current_func_name = name;
-	      current_mangled_func_name = mangledname;
+	      symt_current_func_name = name;
+	      symt_current_mangled_func_name = mangledname;
 
 	      //
 	      // For SunPro compilers there may be a parameter list after 
@@ -365,14 +365,14 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	      if (!ptrType) ptrType = mod->exec()->type_Untyped;
 		
 	      std::vector<Symbol *>fpv;
-	      if(!mod->findSymbolByType(fpv, current_mangled_func_name, Symbol::ST_FUNCTION, true)) {
+	      if(!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true)) {
 		std::string modName = mod->fileName();
 		
-		if (NULL == (fp = mangledNameMatchKLUDGE(current_func_name.c_str(), 
-							 current_mangled_func_name.c_str(), mod))){
+		if (NULL == (fp = mangledNameMatchKLUDGE(symt_current_func_name.c_str(), 
+                                  symt_current_mangled_func_name.c_str(), mod))){
                    //bpwarn("%s L%d - Cannot find global function with mangled name '%s' or pretty name '%s' with return type '%s' in module '%s', possibly extern\n",
                    //       __FILE__, __LINE__,
-                   //       current_mangled_func_name.c_str(), current_func_name.c_str(),
+                   //       symt_current_mangled_func_name.c_str(), current_func_name.c_str(),
                    //       ((ptrType->getName() == NULL) ? "" : ptrType->getName()), 
                    //       modName);
                    //char prefix[5];
@@ -385,7 +385,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	      fp = fpv[0];
 
 	      fp->setReturnType(ptrType);
-	      current_func = fp;
+	      symt_current_func = fp;
 	      fpv.clear();
 	  }    
 	      break;
@@ -446,13 +446,13 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	      loc->reg = -1;
 	      param->addLocation(loc);
       
-	      if (current_func) {
-	  	  if(!current_func->params_)
-	      	      current_func->params_ = new localVarCollection();
-		  current_func->params_->addLocalVar(param);
+	      if (symt_current_func) {
+            if(!symt_current_func->params_)
+               symt_current_func->params_ = new localVarCollection();
+            symt_current_func->params_->addLocalVar(param);
 	      } else {
-		//showInfoCallback(string("parameter without local function ") 
-		//	 + string(stabstr) + "\n");
+            //showInfoCallback(string("parameter without local function ") 
+            //	 + string(stabstr) + "\n");
 	      }
 	      break;
 	  }
@@ -477,17 +477,17 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	      loc->reg = -1;
 	      var->addLocation(loc);
       
-	      if (current_mangled_func_name.length()) {
+	      if (symt_current_mangled_func_name.length()) {
 	        std::vector<Symbol *>fpv;
-		if(!mod->findSymbolByType(fpv, current_mangled_func_name, Symbol::ST_FUNCTION, true)){
+		if(!mod->findSymbolByType(fpv, symt_current_mangled_func_name, Symbol::ST_FUNCTION, true)){
 		  //showInfoCallback(string("missing local function ") + 
-		//		   current_func_name + "\n");
+         //		            symt_current_func_name + "\n");
 		} else { // found function, add parameter
 	          fp = fpv[0];	
-		  current_func = fp;
-		  if(!fp->params_)
-		  	fp->params_= new localVarCollection();
-		  fp->params_->addLocalVar(var);
+             symt_current_func = fp;
+             if(!fp->params_)
+                fp->params_= new localVarCollection();
+             fp->params_->addLocalVar(var);
 		}
 		fpv.clear();
 	      } else {
@@ -670,7 +670,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 		  }
 	      } else {
 		  // put it into the local variable scope
-		if (!current_func) {
+            if (!symt_current_func) {
 		  //bperr("Unable to add %s to local variable list in %s\n",
 		//	 name.c_str(),current_func_name.c_str());
 		} else {
@@ -682,9 +682,9 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 		  loc->reg = -1;
 		  locVar->addLocation(loc);
 		  
-		  if(!current_func->vars_)
-		  	current_func->vars_ = new localVarCollection();
-		  current_func->vars_->addLocalVar( locVar);
+		  if(!symt_current_func->vars_)
+           symt_current_func->vars_ = new localVarCollection();
+		  symt_current_func->vars_->addLocalVar( locVar);
 		}
 	      }
 	      break;

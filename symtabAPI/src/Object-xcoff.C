@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.14 2007/12/10 22:33:36 giri Exp $
+// $Id: Object-xcoff.C,v 1.15 2008/01/03 00:13:23 legendre Exp $
 
 #include <regex.h>
 
@@ -79,9 +79,9 @@ using namespace std;
 #endif
 
 char errorLine[100];
-std::string current_func_name;
-std::string current_mangled_func_name;
-Symbol *current_func = NULL;
+std::string symt_current_func_name;
+std::string symt_current_mangled_func_name;
+Symbol *symt_current_func = NULL;
 
 // 07/11/2006 giri: definitions below are borrowed from dyninstAPI/src/arch-power.h
 // to remove the dependency on dyninst. Only the ones required have been borrowed
