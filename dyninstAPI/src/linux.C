@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.265 2007/12/04 18:05:23 legendre Exp $
+// $Id: linux.C,v 1.266 2008/01/03 00:13:20 legendre Exp $
 
 #include <fstream>
 
@@ -1621,14 +1621,6 @@ bool dyn_lwp::realLWP_attach_() {
 
 bool dyn_lwp::representativeLWP_attach_() 
 {
-
-   // step 1) /proc open: attach to the inferior process memory file
-   char procName[128];
-   sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
-   fd_ = P_open(procName, O_RDWR, 0);
-   if (fd_ < 0) 
-    fd_ = INVALID_HANDLE_VALUE;
-   
    bool running = false;
    if( proc_->wasCreatedViaAttach() )
       running = proc_->isRunning_();
