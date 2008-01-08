@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.76 2007/12/31 16:08:08 bernat Exp $
+// $Id: arch-x86.C,v 1.77 2008/01/08 19:54:53 bill Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -1132,13 +1132,13 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE17, true, { Zz, Zz, Zz }, 0, 0 },
   /* 18 */
   { e_No_Entry, t_grp, Grp16, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // 19-1F according to sandpile and AMD are NOPs with an Ev operand
+  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // Can we go out on a limb that the 'operand' of a NOP is never read?
+  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // I think we can...so nullary operand semantics, but consume the
+  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // mod/rm byte operand.
+  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // -- BW 1/08
+  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 },
+  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 },
   /* 20 */
   { e_mov, t_done, 0, true, { Rd, Cd, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Rd, Dd, Zz }, 0, s1W2R },
