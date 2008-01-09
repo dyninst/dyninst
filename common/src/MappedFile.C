@@ -1,7 +1,15 @@
 #include "common/h/MappedFile.h"
 
+hash_map<std::string, MappedFile *> MappedFile::mapped_files;
+
 MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 {
+   if (mapped_files.find(fullpath_) != mapped_files.end()) {
+      MappedFile  *ret = mapped_files[fullpath_];
+      ret->refCount++;
+      return ret;
+   }
+
    bool ok = false;
    MappedFile *mf = new MappedFile(fullpath_, ok);
    if (!mf) {
@@ -10,13 +18,16 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
      mf = NULL;
   }
 
+   mapped_files[fullpath_] = mf;
+
   return mf;
 }
 
 MappedFile::MappedFile(std::string fullpath_, bool &ok) :
    fullpath(std::string(fullpath_)),
    did_mmap(false),
-   did_open(false)
+   did_open(false),
+   refCount(1)
 {
   ok = check_path(fullpath);
   if (!ok) return;
@@ -44,11 +55,26 @@ MappedFile *MappedFile::createMappedFile(void *loc)
 MappedFile::MappedFile(void *loc, bool &ok) :
    fullpath("in_memory_file"),
    did_mmap(false),
-   did_open(false)
+   did_open(false),
+   refCount(1)
 {
   ok = open_file(loc);
   if (!ok) return;
   ok = map_file();
+}
+
+void MappedFile::closeMappedFile(MappedFile *mf)
+{
+   //fprintf(stderr, "%s[%d]:  welcome to closeMappedFile(%s) refCount = %d\n", FILE__, __LINE__, mf->filename().c_str(), mf->refCount);
+   mf->refCount--;
+   if (mf->refCount <= 0) {
+      hash_map<std::string, MappedFile *>::iterator iter;
+      iter = mapped_files.find(mf->pathname());
+      if (iter != mapped_files.end())
+         mapped_files.erase(iter);
+      //  dtor handles unmap and close
+      delete mf;
+   }
 }
 
 bool MappedFile::clean_up()
@@ -74,11 +100,6 @@ MappedFile::~MappedFile()
       unmap_file();
    if (did_open) 
       close_file();
-}
-
-std::string MappedFile::filename()
-{
-  return extract_pathname_tail(fullpath);
 }
 
 bool MappedFile::check_path(std::string &filename)

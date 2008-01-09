@@ -7,21 +7,25 @@
 #include "pathName.h"
 
 class MappedFile {
+     static hash_map<std::string, MappedFile *> mapped_files;
 
    public:
-      static DLLEXPORT MappedFile *createMappedFile(std::string fullpath_);
-      static DLLEXPORT MappedFile *createMappedFile(void *map_loc);
+      DLLEXPORT static MappedFile *createMappedFile(std::string fullpath_);
+      DLLEXPORT static MappedFile *createMappedFile(void *map_loc);
+      DLLEXPORT static void closeMappedFile(MappedFile *mf);
+
       DLLEXPORT std::string &pathname() {return fullpath;}
-      DLLEXPORT std::string filename();
+      DLLEXPORT std::string filename() {return extract_pathname_tail(fullpath);}
       DLLEXPORT void *base_addr() {return map_addr;}
-      DLLEXPORT unsigned size() {return file_size;}
 #if defined(os_windows)
       DLLEXPORT HANDLE getFileHandle() {return hFile;}
 #else
       DLLEXPORT int getFD() {return fd;}
 #endif
+      DLLEXPORT unsigned size() {return file_size;}
 
    private:
+
       MappedFile(std::string fullpath, bool &ok);
       MappedFile(void *loc, bool &ok);
       ~MappedFile();
@@ -45,6 +49,7 @@ class MappedFile {
       bool did_mmap;
       bool did_open;
       unsigned file_size;
+      int refCount;
 };
 
 #endif
