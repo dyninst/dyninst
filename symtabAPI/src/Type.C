@@ -1226,6 +1226,7 @@ fieldListType::fieldListType(std::string &name, typeId_t ID, dataClass typeDes)
 fieldListType::~fieldListType() {
    if (derivedFieldList != NULL)
       delete derivedFieldList;
+   fieldList.clear();
 }
 
 bool fieldListType::operator==(const Type &otype) const {
