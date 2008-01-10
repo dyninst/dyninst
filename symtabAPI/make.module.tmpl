@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.10 2007/12/04 18:05:31 legendre Exp $
+# $Id: make.module.tmpl,v 1.11 2008/01/10 19:43:20 giri Exp $
 #
 
 SUITE_NAME	= symtabAPI 
@@ -25,6 +25,11 @@ ifdef GCC_2_95
 CFLAGS		+= -fno-squangle
 CXXFLAGS	+= -fno-squangle
 TFLAGS		+= -fno-squangle
+endif
+
+ifdef USE_LIBELF_SO_0
+CFLAGS += -Dcap_libelf_so_0
+CXXFLAGS += -Dcap_libelf_so_0
 endif
 
 ifndef TARGET
