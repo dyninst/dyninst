@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.26 2008/01/03 17:49:18 jaw Exp $
+ * $Id: Object-elf.C,v 1.27 2008/01/10 19:43:31 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -3250,17 +3250,16 @@ bool AObject::getSegments(vector<Segment> &segs) const
     for(i=0;i<sections_.size();i++)
     {
         if((sections_[i]->getSecName() == ".text") || (sections_[i]->getSecName() == ".init") || (sections_[i]->getSecName() == ".fini") ||
-	   (sections_[i]->getSecName() == ".rodata") || (sections_[i]->getSecName() == ".plt") || (sections_[i]->getSecName() == ".bss") ||
-	   (sections_[i]->getSecName() == ".data"))
-	{
-	    Segment seg;
-	    seg.data = sections_[i]->getPtrToRawData();
-	    seg.loadaddr = sections_[i]->getSecAddr();
-	    seg.size = sections_[i]->getSecSize();
-	    seg.name = sections_[i]->getSecName();
-	    seg.segFlags = sections_[i]->getFlags();
-	    segs.push_back(seg);
-	}
+	       (sections_[i]->getSecName() == ".rodata") || (sections_[i]->getSecName() == ".plt") || (sections_[i]->getSecName() == ".data"))
+        {
+            Segment seg;
+            seg.data = sections_[i]->getPtrToRawData();
+            seg.loadaddr = sections_[i]->getSecAddr();
+            seg.size = sections_[i]->getSecSize();
+            seg.name = sections_[i]->getSecName();
+            seg.segFlags = sections_[i]->getFlags();
+            segs.push_back(seg);
+        }
     }
     return true;
 }
@@ -3743,10 +3742,10 @@ void Object::parseStabTypes(Symtab *obj)
 		   modName = ptr;
 	       }
 	       if(obj->findModule(mod, modName)) {
-                   parseActive = true;
+               parseActive = true;
 	           mod->getModuleTypes()->clearNumberedTypes();
 	       }else {
-		        parseActive = false;
+               parseActive = false;
 	       }
 #ifdef TIMED_PARSE
 	       gettimeofday(&t2, NULL);
