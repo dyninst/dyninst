@@ -102,6 +102,7 @@ class LineInformation : private RangeLookup< LineInformationImpl::LineNoTuple, L
 		
 		DLLEXPORT const_iterator begin() const;
 		DLLEXPORT const_iterator end() const;
+        DLLEXPORT unsigned getSize() const;
 		
 		DLLEXPORT ~LineInformation();
 		
@@ -127,6 +128,7 @@ class LineInformation : private RangeLookup< LineInformationImpl::LineNoTuple, L
 		typedef std::set< const char *, SourceLineLess > SourceLineInternTable;
 #endif 
 		SourceLineInternTable sourceLineNames;
+        unsigned size_;
 	}; /* end class LineInformation */
 
 }//namespace SymtabAPI

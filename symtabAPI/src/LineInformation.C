@@ -52,6 +52,7 @@ using namespace std;
 DLLEXPORT LineInformation::LineInformation() : 
 	Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >(),
 	sourceLineNames() {
+        size_ = 0;
 	} /* end LineInformation constructor */
 
 DLLEXPORT bool LineInformation::addLine( const char * lineSource, 
@@ -75,6 +76,7 @@ DLLEXPORT bool LineInformation::addLine( const char * lineSource,
       lineSourceInternal = * found;
    }
    assert( lineSourceInternal != NULL );
+   size_++;
 
    return addValue( LineNoTuple(lineSourceInternal, lineNo, lineOffset), 
                     lowInclusiveAddr, highExclusiveAddr );
@@ -114,6 +116,9 @@ DLLEXPORT LineInformation::const_iterator LineInformation::end() const {
 	return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::end();
 	} /* end begin() */
 
+DLLEXPORT unsigned LineInformation::getSize() const{
+    return size_;
+}
 bool LineInformationImpl::LineNoTupleLess::operator () ( LineNoTuple lhs, LineNoTuple rhs ) const 
 {
    //  dont bother with ordering by column information yet.
