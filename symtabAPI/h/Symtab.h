@@ -248,7 +248,7 @@ class Symtab : public LookupInterface,
 	
 	/***** Data Member Access *****/
 	DLLEXPORT const std::string &file() const;
-	DLLEXPORT const std::string &name() const;
+	DLLEXPORT const std::string name() const;
 
 	DLLEXPORT char *mem_image() const;
 	
@@ -540,6 +540,8 @@ class Section {
 	DLLEXPORT bool isLoadable() const;
 	DLLEXPORT unsigned long flags() const;
 	DLLEXPORT bool isDirty() const;
+    DLLEXPORT std::vector<relocationEntry> &getRelocations();
+    DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
 	
     DLLEXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType);
 
@@ -557,6 +559,8 @@ private:
 	unsigned long sflags_;  //holds the type of section(text/data/bss/except etc)
 	bool isLoadable_;
 	bool isDirty_;
+    std::vector<relocationEntry> rels_;
+    void *buffer_;
 };
 
 // relocation information for calls to functions not in this image
@@ -584,9 +588,7 @@ public:
    DLLEXPORT std::ostream & operator<<(std::ostream &s) const;
    friend std::ostream &operator<<(std::ostream &os, relocationEntry &q);
 	
-   enum {pltrel = 1, dynrel = 2,
-         relocationSection = 4, symtabSection = 8,
-         stringSection = 16, dynsymtabSection = 32} sectionType;
+   enum {pltrel = 1, dynrel = 2} relocationType;
    
 private:
    Offset target_addr_;	// target address of call instruction 
