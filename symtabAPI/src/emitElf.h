@@ -72,6 +72,7 @@ class emitElf{
     Elf32_Shdr *rodataSh;
     
     std::vector<Section *>nonLoadableSecs;
+    std::vector<Section *> newSecs;
 
     // Needed when adding a new segment
     Elf32_Off newSegmentStart;
@@ -96,10 +97,10 @@ class emitElf{
 
     bool getBackSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf32_Sym *> &symbols);
     void findSegmentEnds();
-    void fixPhdrs(unsigned);
+    void fixPhdrs(unsigned &, unsigned &);
     bool addSectionHeaderTable(Elf32_Shdr *shdr);
     bool createNonLoadableSections(Elf32_Shdr *shdr);
-    bool createLoadableSections( Elf32_Shdr *shdr, std::vector<Section *>&newSecs, unsigned &loadSecTotalSize);
+    bool createLoadableSections( Elf32_Shdr *shdr, unsigned &loadSecTotalSize, unsigned &);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
     void updateDynamic(Elf_Data* dynData,  Elf32_Addr relAddr);

@@ -72,6 +72,7 @@ class emitElf64{
     Elf64_Shdr *rodataSh;
     
     std::vector<Section *>nonLoadableSecs;
+    std::vector<Section *> newSecs;
 
     // Needed when adding a new segment
     Elf64_Off newSegmentStart;
@@ -79,6 +80,7 @@ class emitElf64{
  
     //text & data segment ends
     Elf64_Off dataSegEnd, textSegEnd;
+    Elf64_Off dynSegOff, dynSegAddr;
 
     //Section Names for all sections
     vector<std::string> secNames;
@@ -95,10 +97,10 @@ class emitElf64{
 
     bool getBackSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf64_Sym *> &symbols);
     void findSegmentEnds();
-    void fixPhdrs(unsigned);
+    void fixPhdrs(unsigned &, unsigned &);
     bool addSectionHeaderTable(Elf64_Shdr *shdr);
     bool createNonLoadableSections(Elf64_Shdr *shdr);
-    bool createLoadableSections( Elf64_Shdr *shdr, std::vector<Section *>&newSecs, unsigned &loadSecTotalSize);
+    bool createLoadableSections( Elf64_Shdr *shdr, unsigned &loadSecTotalSize, unsigned &);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
     void updateDynamic(Elf_Data* dynData,  Elf64_Addr relAddr);
