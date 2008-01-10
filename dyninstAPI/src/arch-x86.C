@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.77 2008/01/08 19:54:53 bill Exp $
+// $Id: arch-x86.C,v 1.78 2008/01/10 21:14:54 bill Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -71,7 +71,7 @@ using namespace boost::assign;
 // groups
 enum {
   Grp1a=0, Grp1b, Grp1c, Grp1d, Grp2, Grp3a, Grp3b, Grp4, Grp5, Grp6, Grp7,
-  Grp8, Grp9, Grp11, Grp12, Grp13, Grp14, Grp15, Grp16, GrpAMD
+  Grp8, Grp9, Grp11, Grp12, Grp13, Grp14, Grp15, Grp16, Grp17, GrpAMD
 };
 
 // SSE
@@ -83,7 +83,7 @@ enum {
   SSE60, SSE61, SSE62, SSE63, SSE64, SSE65, SSE66, SSE67,
   SSE68, SSE69, SSE6A, SSE6B, SSE6C, SSE6D, SSE6E, SSE6F,
   SSE70, SSE74, SSE75, SSE76,
-  SSE7E, SSE7F,
+  SSE78, SSE79, SSE7C, SSE7D, SSE7E, SSE7F,
   SSEC2, SSEC4, SSEC5, SSEC6,
   SSED1, SSED2, SSED3, SSED4, SSED5, SSED6, SSED7,
   SSED8, SSED9, SSEDA, SSEDB, SSEDC, SSEDD, SSEDE, SSEDF,
@@ -148,6 +148,8 @@ enum {
 #define Vpd  { am_V, op_pd }
 #define Vps  { am_V, op_ps }
 #define Vq   { am_V, op_q }
+#define VRq  { am_VR, op_q }
+#define VRdq { am_VR, op_dq }
 #define Vss  { am_V, op_ss }
 #define Vsd  { am_V, op_sd }
 #define Wdq  { am_W, op_dq }
@@ -342,15 +344,21 @@ map<entryID, string> entryNames = map_list_of
   (e_divss, "divss")
   (e_emms, "emms")
   (e_enter, "enter")
+  (e_extrq, "extrq")
   (e_femms, "femms")
   (e_fxrstor, "fxrstor")
   (e_fxsave, "fxsave")
+  (e_haddpd, "haddpd")
+  (e_haddps, "haddps")
   (e_hlt, "hlt")
+  (e_hsubpd, "hsubpd")
+  (e_hsubps, "hsubps")
   (e_idiv, "idiv")
   (e_imul, "imul")
   (e_in, "in")
   (e_inc, "inc")
   (e_insb, "insb")
+  (e_insertq, "insertq")
   (e_insw_d, "insw/d")
   (e_int, "int")
   (e_int3, "int 3")
@@ -1132,13 +1140,13 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE17, true, { Zz, Zz, Zz }, 0, 0 },
   /* 18 */
   { e_No_Entry, t_grp, Grp16, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // 19-1F according to sandpile and AMD are NOPs with an Ev operand
-  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // Can we go out on a limb that the 'operand' of a NOP is never read?
-  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // I think we can...so nullary operand semantics, but consume the
-  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // mod/rm byte operand.
-  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 }, // -- BW 1/08
-  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 },
-  { e_nop, t_done, 0, 0, { Ev, Zz, Zz }, 0, 0 },
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // 19-1F according to sandpile and AMD are NOPs with an Ev operand
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // Can we go out on a limb that the 'operand' of a NOP is never read?
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // I think we can...so nullary operand semantics, but consume the
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // mod/rm byte operand.
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 }, // -- BW 1/08
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
+  { e_nop, t_done, 0, true, { Ev, Zz, Zz }, 0, 0 },
   /* 20 */
   { e_mov, t_done, 0, true, { Rd, Cd, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, true, { Rd, Dd, Zz }, 0, s1W2R },
@@ -1239,12 +1247,12 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE76, true, { Zz, Zz, Zz }, 0, 0 },
   { e_emms, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   /* 78 */
+  { e_No_Entry, t_sse, SSE78, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE79, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
-  { e_mmxud, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE7C, 0, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry, t_sse, SSE7D, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE7E, 0, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE7F, 0, { Zz, Zz, Zz }, 0, 0 },
   /* 80 */
@@ -1673,6 +1681,28 @@ static ia32_entry groupMap2[][2][8] = {
       { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
     }
   },
+  { /* group 17 */
+    {
+      { e_extrq, t_done, 0, true, { Vdq, Ib, Ib }, 0, s1RW2R3R },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+    },
+    {
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+      { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+    }
+  },
   { /* AMD prefetch group */
     {
       { e_prefetch,   t_done, 0, true, { Mb, Zz, Zz }, 0, s1R | (fPREFETCHAMDE << FPOS) },
@@ -2010,6 +2040,30 @@ static ia32_entry sseMap[][4] = {
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
     { e_pcmpeqd, t_done, 0, true, { Vdq, Wdq, Zz }, 0, s1R2R },
     { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+  },
+  { /* SSE78 */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_grp, Grp17, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_insertq, t_done, 0, false, {Vdq, VRq, Iw}, 0, s1RW2R3R}, // This is actually 2 8-bit immediates, treat as 1 16-bit for decode
+  },
+  { /* SSE79 */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_extrq, t_done, 0, false, {Vdq, VRq, Zz}, 0, s1RW2R},
+    { e_insertq, t_done, 0, false, {Vdq, VRdq, Zz}, 0, s1RW2R},
+  },
+  { /* SSE7C */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_haddpd, t_done, 0, false, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_haddps, t_done, 0, false, { Vps, Wps, Zz }, 0, s1RW2R },
+  },
+  { /* SSE7D */
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_No_Entry, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
+    { e_hsubpd, t_done, 0, false, { Vpd, Wpd, Zz }, 0, s1RW2R },
+    { e_hsubps, t_done, 0, false, { Vps, Wps, Zz }, 0, s1RW2R },
   },
   { /* SSE7E */
     { e_movd, t_done, 0, true, { Ev, Pd, Zz }, 0, s1W2R },

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.99 2008/01/03 22:55:09 jaw Exp $
+// $Id: BPatch_function.C,v 1.100 2008/01/10 21:14:54 bill Exp $
 
 #define BPATCH_FILE
 
@@ -70,7 +70,6 @@
 #include "common/h/Annotatable.h"
 #endif
 
-hash_map<AnnotatableBase *, std::vector<BPatch_dependenceGraphNode*> *> AnnotationSet<std::vector<BPatch_dependenceGraphNode *> >::sets_by_obj;
 /**************************************************************************
  * BPatch_function
  *************************************************************************/

@@ -56,14 +56,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-template<class T> hash_map<AnnotatableBase *, T *> AnnotationSet<T>::sets_by_obj;
-/*
-template<> hash_map<AnnotatableBase *, std::vector<Type *> *> AnnotationSet<std::vector<Type*> >::sets_by_obj;
-template<> hash_map<AnnotatableBase *, std::vector<Section *> *> AnnotationSet<std::vector<Section*> >::sets_by_obj;
-template<> hash_map<AnnotatableBase *, std::vector<Symbol *> *> AnnotationSet<std::vector<Symbol*> >::sets_by_obj;
-template<> hash_map<AnnotatableBase *, std::vector<typeCollection *> *> AnnotationSet<std::vector<typeCollection*> >::sets_by_obj;
-template<> hash_map<AnnotatableBase *, std::vector<LineInformation *> *> AnnotationSet<std::vector<LineInformation*> >::sets_by_obj;
-*/
 static std::string errMsg;
 extern bool parseCompilerType(Object *);
 bool regexEquiv( const std::string &str,const std::string &them, bool checkCase );

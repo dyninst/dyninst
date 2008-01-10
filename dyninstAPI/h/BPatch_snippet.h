@@ -57,7 +57,8 @@ class AstNode;
 namespace boost {
     template< typename T > class shared_ptr;
     template<> class shared_ptr<AstNode *>;
-};
+}
+
 typedef boost::shared_ptr<AstNode> AstNodePtr;
 
 class process;

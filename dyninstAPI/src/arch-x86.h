@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.59 2007/12/14 04:16:48 jaw Exp $
+// $Id: arch-x86.h,v 1.60 2008/01/10 21:14:54 bill Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -351,7 +351,7 @@ bool ia32_is_mode_64();
 // added: am_reg, am_stack, am_allgprs
 enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
        am_P, am_Q, am_R, am_S, am_T, am_V, am_W, am_X, am_Y, am_reg, // 20
-       am_stackH, am_stackP, am_allgprs }; // pusH and poP produce different addresses
+       am_stackH, am_stackP, am_allgprs, am_VR }; // pusH and poP produce different addresses
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
@@ -702,15 +702,21 @@ enum entryID {
   e_divss,
   e_emms,
   e_enter,
+  e_extrq,
   e_femms,
   e_fxrstor,
   e_fxsave,
+  e_haddpd,
+  e_haddps,
   e_hlt,
+  e_hsubpd,
+  e_hsubps,
   e_idiv,
   e_imul,
   e_in,
   e_inc,
   e_insb,
+  e_insertq,
   e_insw_d,
   e_int,
   e_int3,

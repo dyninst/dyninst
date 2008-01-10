@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.4 2008/01/03 22:55:09 jaw Exp $
+// $Id: Annotatable.h,v 1.5 2008/01/10 21:14:53 bill Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -113,6 +113,9 @@ class AnnotationSet {
       return true;
    }
 };
+
+template< class T > hash_map<AnnotatableBase*, T* >
+AnnotationSet< T >::sets_by_obj;
 
 
 class AnnotatableBase
