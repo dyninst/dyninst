@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.14 2008/01/03 17:49:19 jaw Exp $
+ * $Id: Object.h,v 1.15 2008/01/10 19:43:32 giri Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -130,7 +130,7 @@ protected:
     DLLEXPORT virtual ~AObject();
     // explicitly protected
     DLLEXPORT AObject(MappedFile * , void (*err_func)(const char *));
-    DLLEXPORT AObject(MappedFile * , hash_map<std::string, LineInformation> &, void (*err_func)(const char *)) {assert(0);}
+    DLLEXPORT AObject(MappedFile * , hash_map<std::string, LineInformation> &, void (*)(const char *)) {assert(0);}
     DLLEXPORT AObject(const AObject &obj);
     DLLEXPORT AObject&  operator= (const AObject &obj);
 
