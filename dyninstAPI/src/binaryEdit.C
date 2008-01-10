@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.12 2008/01/03 17:49:18 jaw Exp $
+// $Id: binaryEdit.C,v 1.13 2008/01/10 20:12:42 giri Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -445,7 +445,7 @@ bool BinaryEdit::writeFile(const pdstring &newFileName)
     
 
     // And now we generate the new binary
-    if (!symObj->emit(newFileName.c_str(), true)) {
+    if (!symObj->emit(newFileName.c_str())) {
         return false;
     }
 
@@ -654,7 +654,7 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
 
 
     // And now we generate the new binary
-    if (!symObj->emit(newFileName.c_str(), true)) {
+    if (!symObj->emit(newFileName.c_str())) {
         return false;
     }
 
