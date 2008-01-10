@@ -50,16 +50,20 @@
 #endif
 
 #include <libxml/xmlwriter.h>
+#include <iomanip>
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-hash_map<AnnotatableBase *, std::vector<Type *> *> AnnotationSet<std::vector<Type*> >::sets_by_obj;
-hash_map<AnnotatableBase *, std::vector<Section *> *> AnnotationSet<std::vector<Section*> >::sets_by_obj;
-hash_map<AnnotatableBase *, std::vector<Symbol *> *> AnnotationSet<std::vector<Symbol*> >::sets_by_obj;
-hash_map<AnnotatableBase *, std::vector<typeCollection *> *> AnnotationSet<std::vector<typeCollection*> >::sets_by_obj;
-hash_map<AnnotatableBase *, std::vector<LineInformation *> *> AnnotationSet<std::vector<LineInformation*> >::sets_by_obj;
+template<class T> hash_map<AnnotatableBase *, T *> AnnotationSet<T>::sets_by_obj;
+/*
+template<> hash_map<AnnotatableBase *, std::vector<Type *> *> AnnotationSet<std::vector<Type*> >::sets_by_obj;
+template<> hash_map<AnnotatableBase *, std::vector<Section *> *> AnnotationSet<std::vector<Section*> >::sets_by_obj;
+template<> hash_map<AnnotatableBase *, std::vector<Symbol *> *> AnnotationSet<std::vector<Symbol*> >::sets_by_obj;
+template<> hash_map<AnnotatableBase *, std::vector<typeCollection *> *> AnnotationSet<std::vector<typeCollection*> >::sets_by_obj;
+template<> hash_map<AnnotatableBase *, std::vector<LineInformation *> *> AnnotationSet<std::vector<LineInformation*> >::sets_by_obj;
+*/
 static std::string errMsg;
 extern bool parseCompilerType(Object *);
 bool regexEquiv( const std::string &str,const std::string &them, bool checkCase );
@@ -538,10 +542,10 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
             raw_funcs->push_back(lookUp);
         }
         if(lookUp->getType() == Symbol::ST_MODULE)
-	{
-	   const std::string mangledName = symIter.currkey();
-           char * unmangledName =
-                    P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+        {
+            const std::string mangledName = symIter.currkey();
+            char * unmangledName =
+                P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
             if (unmangledName)
                 lookUp->addPrettyName(unmangledName, true);
             else
@@ -551,20 +555,20 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
             lookUp->setModule(newMod);
             addModuleName(lookUp,mangledName);
             modSyms.push_back(lookUp);
-	}
-	else if(lookUp->getType() == Symbol::ST_NOTYPE)
+        }
+        else if(lookUp->getType() == Symbol::ST_NOTYPE)
         {
             const std::string mangledName = symIter.currkey();
             char * unmangledName =
-            P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
+                P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
             if (unmangledName)
                 lookUp->addPrettyName(unmangledName, true);
             else
                 lookUp->addPrettyName(mangledName, true);
             notypeSyms.push_back(lookUp);
         }	
-	else if(lookUp->getType() == Symbol::ST_OBJECT)
-	{
+        else if(lookUp->getType() == Symbol::ST_OBJECT)
+        {
             const std::string mangledName = symIter.currkey();
 #if 0
          fprintf(stderr, "Symbol %s, mod %s, addr 0x%x, type %d, linkage %d (obj %d, func %d)\n",
@@ -737,6 +741,7 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     if (findModule(ret, name)) {
         return(ret);
     }
+    delete ret;
 
     //parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
     //				name.c_str(), addr);
@@ -2029,7 +2034,6 @@ Symtab::~Symtab()
         if (allSymtabs[i] == this)
             allSymtabs.erase(allSymtabs.begin()+i);
     }
-
     if (mf) MappedFile::closeMappedFile(mf);
 }	
  
@@ -2076,21 +2080,20 @@ DLLEXPORT supportedLanguages Module::language() const
 
 DLLEXPORT LineInformation *Module::getLineInformation()
 {
-   Annotatable<LineInformation *, module_line_info_a> &mt = *this;
-
-   if (!exec_->isLineInfoValid_) {
+   if (!exec_->isLineInfoValid_)
       exec_->parseLineInformation();
-   }
+
+   Annotatable<LineInformation *, module_line_info_a> &mt = *this;
 
    if (exec_->isLineInfoValid_) {
       if (!mt.size()) {
-         fprintf(stderr, "%s[%d]:  weird, line info is valid but nonexistant!\n", 
-               FILE__, __LINE__);
+//         fprintf(stderr, "%s[%d]:  weird, line info is valid but nonexistant!\n", 
+//               FILE__, __LINE__);
          return NULL;
       }
       if (mt.size() > 1) {
-         fprintf(stderr, "%s[%d]:  weird, multiple line info: FIXME\n", 
-               FILE__, __LINE__);
+//         fprintf(stderr, "%s[%d]:  weird, multiple line info: FIXME\n", 
+//               FILE__, __LINE__);
       }
       return mt[0];
    }
@@ -2161,14 +2164,19 @@ DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars()
 DLLEXPORT typeCollection *Module::getModuleTypes()
 {
    Annotatable<typeCollection *, module_type_info_a> &mtA = *this;
-   if (!mtA.size()) return NULL;
+   typeCollection *mt;
 
-   typeCollection *mt = mtA[0]; 
-   if (!mt) {
-      fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
-      return NULL;
+   if(mtA.size()){
+       mt = mtA[0]; 
+       if (!mt) {
+           fprintf(stderr, "%s[%d]:  FIXME:  NULL type collection\n", FILE__, __LINE__);
+           return NULL;
+       }
    }
-
+   else{
+       mt = typeCollection::getModTypeCollection(this); 
+       mtA.addAnnotation(mt);
+   }
    return mt;
 }
 
@@ -2202,8 +2210,8 @@ void Symtab::parseTypesNow()
 
 DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo) 
 {
-   Annotatable<LineInformation *, module_line_info_a> *mt = this;
-   mt->addAnnotation(lineInfo);
+   Annotatable<LineInformation *, module_line_info_a> &mt = *this;
+   mt.addAnnotation(lineInfo);
    return true;
 }
 
@@ -2689,13 +2697,13 @@ bool Symtab::addSection(Section *sec)
 
 void Symtab::parseLineInformation()
 {
-   hash_map <std::string, LineInformation> lineInfo;
-   Object *linkedFile = new Object(mf, lineInfo, pd_log_perror);
+   hash_map <std::string, LineInformation> *lineInfo = new hash_map <std::string, LineInformation>;
+   Object *linkedFile = new Object(mf, *lineInfo, pd_log_perror);
 
    isLineInfoValid_ = true;	
    hash_map <std::string, LineInformation>::iterator iter;
 
-   for (iter = lineInfo.begin(); iter!=lineInfo.end(); iter++)
+   for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
    {
       Module *mod = NULL;
       if (findModule(mod, iter->first))
@@ -2723,7 +2731,7 @@ DLLEXPORT bool Symtab::getAddressRanges(std::vector<pair<Offset, Offset> >&range
 
     /* Iteratate over the modules, looking for ranges in each. */
     for( unsigned int i = 0; i < _mods.size(); i++ ) {
-	LineInformation *lineInformation = _mods[i]->getLineInformation();
+        LineInformation *lineInformation = _mods[i]->getLineInformation();
         if(lineInformation)
 	     lineInformation->getAddressRanges( lineSource.c_str(), lineNo, ranges );
      } /* end iteration over modules */
@@ -2738,7 +2746,7 @@ DLLEXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset ad
 
     /* Iteratate over the modules, looking for ranges in each. */
     for( unsigned int i = 0; i < _mods.size(); i++ ) {
-	LineInformation *lineInformation = _mods[i]->getLineInformation();
+        LineInformation *lineInformation = _mods[i]->getLineInformation();
         if(lineInformation)
 	    lineInformation->getSourceLines( addressInRange, lines );
      } /* end iteration over modules */
@@ -3449,11 +3457,22 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
 
 DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
+    // Add the undefined dynamic symbols so that they are added when emitting the binary
+    hash_map<string, Symbol *>::iterator iter = undefDynSyms.begin();
+    while(iter!=undefDynSyms.end()){
+        notypeSyms.push_back(iter->second);
+        iter++;
+    }
     return linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
 }
 
 DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
+    hash_map<string, Symbol *>::iterator iter = undefDynSyms.begin();
+    while(iter!=undefDynSyms.end()){
+        notypeSyms.push_back(iter->second);
+        iter++;
+    }
    Object *linkedFile = new Object(mf, pd_log_perror);
    assert(linkedFile);
    bool ret = linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
@@ -3497,30 +3516,50 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) {
     // Look through sections until we find a gap with
     // sufficient space.
     Offset highWaterMark = 0;
+    Offset secoffset = 0;
+    Offset prevSecoffset = 0;
+
+    Object *linkedFile = new Object(mf, pd_log_perror);
+    assert(linkedFile);
 
     for (unsigned i = 0; i < sections_.size(); i++) {
         Offset end = sections_[i]->getSecAddr() + sections_[i]->getSecSize();
         if (sections_[i]->getSecAddr() == 0) continue;
+        prevSecoffset = secoffset;
+        if((char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image() < prevSecoffset)
+            secoffset += sections_[i]->getSecSize();
+        else {
+            secoffset = (char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image();
+            secoffset += sections_[i]->getSecSize();
+        }
         /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
 	                i, sections_[i]->getSecAddr(), sections_[i]->getSecSize(),
 	                end,size);*/
-	if (end > highWaterMark) {
-	    //fprintf(stderr, "Increasing highWaterMark...\n");
-	     newSectionInsertPoint = i+1;
-	     highWaterMark = end;
+        if (end > highWaterMark) {
+            //fprintf(stderr, "Increasing highWaterMark...\n");
+            newSectionInsertPoint = i+1;
+            highWaterMark = end;
         }
         if ((i <= (sections_.size()-1)) &&
                ((end + size) < sections_[i+1]->getSecAddr())) {
-      /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
-					                    i, i+1);
-            fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
- 		                 end, sections_[i+1]->getSecAddr());
-    	*/   
-	     newSectionInsertPoint = i+1;
-	     return end;
-       }
-   }
-   return highWaterMark;
+            /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
+                    i, i+1);
+                    fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
+                    end, sections_[i+1]->getSecAddr());
+                    */   
+            newSectionInsertPoint = i+1;
+            highWaterMark = end;
+            break;
+        }
+    }
+    delete linkedFile;
+
+    //   return highWaterMark;
+    unsigned pgSize = getpagesize();
+    Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
+    if(newaddr < highWaterMark)
+        newaddr += pgSize;
+    return newaddr;
 }
 
 DLLEXPORT ObjectType Symtab::getObjectType() const 
@@ -3538,7 +3577,7 @@ DLLEXPORT const std::string &Symtab::file() const
    return mf->pathname();
 }
 
-DLLEXPORT const std::string &Symtab::name() const 
+DLLEXPORT const std::string Symtab::name() const 
 {
    return mf->filename();
 }
@@ -3641,7 +3680,7 @@ DLLEXPORT bool ExceptionBlock::contains(Offset a) const
     return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
-DLLEXPORT Section::Section()
+DLLEXPORT Section::Section() : buffer_(NULL)
 {
 }
 
@@ -3650,7 +3689,7 @@ DLLEXPORT Section::Section(unsigned sidnumber, std::string sname,
                                    void *secPtr, unsigned long sflags, bool isLoadable) 
    : sidnumber_(sidnumber), sname_(sname), saddr_(saddr), ssize_(ssize), 
      rawDataPtr_(secPtr), sflags_(sflags), isLoadable_(isLoadable),
-     isDirty_(false)
+     isDirty_(false), buffer_(NULL)
 {
 }
 
@@ -3659,7 +3698,7 @@ DLLEXPORT Section::Section(unsigned sidnumber, std::string sname,
                                    unsigned long sflags, bool isLoadable)
    : sidnumber_(sidnumber), sname_(sname), saddr_(0), ssize_(ssize), 
      rawDataPtr_(secPtr), sflags_(sflags), isLoadable_(isLoadable),
-     isDirty_(false)
+     isDirty_(false), buffer_(NULL)
 {
 }
 
@@ -3669,6 +3708,8 @@ DLLEXPORT Section::Section(const Section &sec)
      sflags_(sec.sflags_), isLoadable_(sec.isLoadable_),
      isDirty_(sec.isDirty_)
 {
+    buffer_ = malloc(ssize_);
+    memcpy(buffer_, sec.buffer_, ssize_);
 }
 
 DLLEXPORT Section& Section::operator=(const Section &sec)
@@ -3681,6 +3722,8 @@ DLLEXPORT Section& Section::operator=(const Section &sec)
     sflags_ = sec.sflags_;
     isLoadable_ = sec.isLoadable_;
     isDirty_ = sec.isDirty_;
+    buffer_ = malloc(ssize_);
+    memcpy(buffer_, sec.buffer_, ssize_);
     return *this;
 }
 	
@@ -3706,6 +3749,8 @@ DLLEXPORT bool Section::operator== (const Section &sec)
 
 DLLEXPORT Section::~Section() 
 {
+    if(buffer_)
+        free(buffer_);
 }
  
 DLLEXPORT unsigned Section::getSecNumber() const
@@ -3787,14 +3832,25 @@ DLLEXPORT unsigned long Section::flags() const{
 }
 
 DLLEXPORT bool Section::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType){
-    relocationEntry re(ra, dynref->getPrettyName(), dynref, relType);
-//    return linkedFile->addRelocationEntry(re);
+    rels_.push_back(relocationEntry(ra, dynref->getPrettyName(), dynref, relType));
     return true;
 }
- 
+
+DLLEXPORT bool Section::patchData(Offset off, void *buf, unsigned size){
+    if(off+size > ssize_)
+        return false;
+    if(!buffer_)
+        memcpy(buffer_, rawDataPtr_, ssize_);
+    memcpy((char *)buffer_+off, buf, size);
+    return setPtrToRawData(buffer_, ssize_);
+}
+
+DLLEXPORT vector<relocationEntry> &Section::getRelocations(){
+    return rels_;
+}
 
 DLLEXPORT relocationEntry::relocationEntry()
-   :target_addr_(0),rel_addr_(0), dynref_(NULL), relType_(0)
+   :target_addr_(0),rel_addr_(0), name_(""), dynref_(NULL), relType_(0)
 {
 }   
 
