@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef cap_libelf_so_0
+#if !defined(cap_libelf_so_0) && defined(os_linux)
 #define _FILE_OFFSET_BITS 64
 #endif
 
