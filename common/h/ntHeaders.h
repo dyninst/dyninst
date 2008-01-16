@@ -30,7 +30,7 @@
  */
 
 
-// $Id: ntHeaders.h,v 1.25 2007/05/30 19:19:59 legendre Exp $
+// $Id: ntHeaders.h,v 1.26 2008/01/16 22:01:08 legendre Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -143,6 +143,7 @@ inline char * P_strcat (char *TO, const char *FROM) {
 
 inline const char * P_strchr (const char *STRING, int C) {return (strchr(STRING, C));}
 inline char * P_strchr (char *STRING, int C) {return (strchr(STRING, C));}
+inline int P_getpagesize() { assert(0); return 0; }
 
 inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}

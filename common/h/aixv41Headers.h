@@ -167,6 +167,7 @@ extern int P_pipe(int fd[2]);
 extern int P_strcasecmp(const char *s1, const char *s2);
 extern int P_strncasecmp (const char *S1, const char *S2, size_t N);
 extern void P_endservent(void);
+inline int P_getpagesize() { return getpagesize(); }
 
 #ifdef NOTDEF // PDSEP
 inline int P_ptrace(int req, int pid, void *addr, int data, void *addr2)
