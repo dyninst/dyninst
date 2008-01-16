@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.60 2008/01/10 21:14:54 bill Exp $
+// $Id: arch-x86.h,v 1.61 2008/01/16 22:00:47 legendre Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -1110,7 +1110,8 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr);
 
 // Size of a jump rel32 instruction
-#define JUMP_REL32_SZ (5)
+#define JUMP_REL32_SZ (6)
+// Maxium size of an emitted jump
 #define JUMP_SZ (5)
 // Size of a call rel32 instruction
 #define CALL_REL32_SZ (5)
@@ -1196,9 +1197,10 @@ class instruction {
   static void generatePush64(codeGen &gen, Address val);
 
   // Code generation
-  static void generateBranch(codeGen &gen, Address from, Address to); 
-  static void generateBranch(codeGen &gen, int disp); 
+  static void generateBranch(codeGen &gen, Address from, Address to);
+  static void generateBranch(codeGen &gen, int disp);
   static void generateBranch64(codeGen &gen, Address to);
+  static void generateBranch32(codeGen &gen, Address to);
   static void generateCall(codeGen &gen, Address from, Address to);
   
   // Function relocation...
@@ -1227,8 +1229,8 @@ class instruction {
                 AddressSpace *addrSpace,
                 Address origAddr,
                 Address newAddr,
-                Address fallthroughOverride = 0,
-                Address targetOverride = 0);
+                patchTarget *fallthroughOverride = NULL,
+                patchTarget *targetOverride = NULL);
 
   bool getUsedRegs(pdvector<int> &regs);
   bool generateMem(codeGen &gen,
@@ -1294,6 +1296,14 @@ int displacement(const unsigned char *instr, unsigned type);
 
 int sizeOfMachineInsn(instruction *insn);
 long addressOfMachineInsn(instruction *insn);
+
+inline bool is_disp8(long disp) {
+   return (disp >= -128 && disp < 127);
+}
+
+inline bool is_disp16(long disp) {
+   return (disp >= -32768 && disp < 32767);
+}
 
 inline bool is_disp32(long disp) {
   return (disp <= I32_MAX && disp >= I32_MIN);
