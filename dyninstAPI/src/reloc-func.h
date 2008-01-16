@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.h,v 1.4 2006/05/25 20:11:41 bernat Exp $
+// $Id: reloc-func.h,v 1.5 2008/01/16 22:02:04 legendre Exp $
 
 #if !defined(FUNC_RELOC_H)
 #define FUNC_RELOC_H
@@ -56,7 +56,7 @@ class funcMod {
  public:
     virtual bool modifyBBL(int_basicBlock *block,
                            pdvector<bblInstance::reloc_info_t::relocInsn *> &insns, 
-                           unsigned &size) = 0;
+                           bblInstance &bbl) = 0;
     virtual bool update(int_basicBlock *block,
                         pdvector<bblInstance::reloc_info_t::relocInsn *> &insns,
                         unsigned size) = 0;
@@ -72,7 +72,7 @@ class enlargeBlock : public funcMod {
 
     virtual bool modifyBBL(int_basicBlock *block,
                            pdvector<bblInstance::reloc_info_t::relocInsn *> &,
-                           unsigned &size);
+                           bblInstance &bbl);
 
     virtual bool update(int_basicBlock *block,
                         pdvector<bblInstance::reloc_info_t::relocInsn *> &,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.33 2007/11/01 21:41:01 bill Exp $
+// $Id: reloc-func.C,v 1.34 2008/01/16 22:02:03 legendre Exp $
 
 
 
@@ -48,11 +48,11 @@
 #include "process.h"
 #include "debug.h"
 #include "codeRange.h"
-#include "instPoint.h"
-#include "multiTramp.h"
-#include "InstrucIter.h"
-#include "mapped_object.h"
-
+#include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/multiTramp.h"
+#include "dyninstAPI/src/InstrucIter.h"
+#include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/patch.h"
 class int_basicBlock;
 class instruction;
 
@@ -132,6 +132,134 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
     return ret;
 }
 
+Address int_function::allocRelocation(unsigned size_required)
+{
+   // AIX: we try to target the data heap, since it's near instrumentation; 
+   // we can do big branches at the start of a function, but not within. 
+   // So amusingly, function relocation probably won't _enlarge_ the function,
+   // just pick it up and move it nearer instrumentation. Bring the mountain 
+   // to Mohammed, I guess.
+#if defined(os_aix)
+   // Also, fork() instrumentation needs to go in data.
+   return proc()->inferiorMalloc(size_required, dataHeap);
+#elif defined(arch_x86_64)
+   return proc()->inferiorMalloc(size_required, anyHeap, getAddress());
+#else
+   // We're expandin'
+   return proc()->inferiorMalloc(size_required);
+#endif
+}
+
+#if defined(cap_fixpoint_gen)
+bool int_function::relocBlocks(Address baseInMutatee, 
+                               pdvector<bblInstance *> &newInstances)
+{
+   pdvector<Address> addrs; //Parallel array to newInstances for storing current 
+                            // addresses of basic blocks as we compute them
+
+   Address curAddr = baseInMutatee;
+   for (unsigned i=0; i<newInstances.size(); i++) {
+     bblInstance *bbl = newInstances[i];
+     reloc_printf("Initial address of block 0x%lx set to 0x%lx\n", 
+                  bbl->block()->origInstance()->firstInsnAddr(),
+                  curAddr);
+     addrs.push_back(curAddr);
+     curAddr += newInstances[i]->sizeRequired();
+   }
+
+   for (;;) {
+      reloc_printf("Computing address for all blocks\n");
+      for (unsigned i=0; i<newInstances.size(); i++) {
+         bblInstance *bbl = newInstances[i];
+         bbl->setStartAddr(addrs[i]);
+      }
+
+      for (unsigned i=0; i<newInstances.size(); i++) {
+         bblInstance *bbl = newInstances[i];
+         reloc_printf("Fixpoint set block 0x%lx to 0x%lx (+%lu), generating...\n", 
+                      bbl->block()->origInstance()->firstInsnAddr(),
+                      addrs[i],
+                      addrs[i] - baseInMutatee);
+         bbl->generate();
+         assert(!bbl->generatedBlock().hasPCRels());
+         reloc_printf("Block 0x%lx generation done.  Used %lu bytes\n",
+                      bbl->block()->origInstance()->firstInsnAddr(),
+                      bbl->generatedBlock().used());
+      }
+         
+      bool changeDetected = false;
+      for (unsigned i=0; i<newInstances.size(); i++) {
+         bblInstance *bbl = newInstances[i];
+
+         if (i+1 == newInstances.size()) {
+            //Size changes in the last block don't actually concern us
+            continue;
+         }
+
+         Address newBlockEndAddr = addrs[i] + bbl->getSize();
+         assert(newBlockEndAddr <= addrs[i+1]);
+         
+         if (newBlockEndAddr > addrs[i+1])
+         {
+            //Uh-Oh.  Rare, but possible.  We'd previously shrunk this block, but 
+            // the change in addresses (likely from previous blocks shrinking) caused 
+            // us to have to grow the block again.  This is likely if the block is 
+            // referencing an external object that isn't being relocated, and we were
+            // shrunk too far away from that object.
+            //We'll set the minSize of this block, so that we'll stop trying to shrink 
+            // this one.  If we didn't do this, the fixpoint could threoritically 
+            // infinite loop, as we could get into a scenario where we keep shrinking
+            // then growing this block.
+            bbl->minSize() = bbl->getSize();
+         }
+         if (newBlockEndAddr != addrs[i+1]) {
+            changeDetected = true;
+            reloc_printf("Fixpoint found block 0x%lx to be of size %u."
+                         "\n\tMoving block from %lx (+%lu) to %lx (+%lu).\n", 
+                         bbl->block()->origInstance()->firstInsnAddr(),
+                         bbl->getSize(),
+                         addrs[i+1],
+                         addrs[i+1] - baseInMutatee,
+                         newBlockEndAddr,
+                         newBlockEndAddr - baseInMutatee);
+            addrs[i+1] = newBlockEndAddr;
+         }
+      }
+      
+      if (!changeDetected) {
+         reloc_printf("Fixpoint concluded\n");
+         break;
+      }
+   }
+
+   return true;
+}
+#else
+bool int_function::relocBlocks(Address baseInMutatee, 
+                               pdvector<bblInstance *> &newInstances)
+{
+   Address currAddr = baseInMutatee;
+   // Inefficiency, part 1: we pin each block at a particular address
+   // so that we can one-pass generate and get jumps done correctly.
+   for (unsigned i = 0; i < newInstances.size(); i++) {
+      reloc_printf("Pinning block %d to 0x%lx\n", i, currAddr);
+      newInstances[i]->setStartAddr(currAddr);
+      currAddr += newInstances[i]->sizeRequired();
+   }
+
+   // Okay, so we have a set of "new" basicBlocks. Now go through and
+   // generate code for each; we can do branches appropriately, since
+   // we know where the targets will be.
+   // This builds the codeGen member of the bblInstance
+   bool success = true;
+   for (unsigned i = 0; i < newInstances.size(); i++) {
+      reloc_printf("... relocating block %d\n", blockList[i]->id());
+      success &= newInstances[i]->generate();
+      if (!success) break;
+   }
+}
+#endif
+
 bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods, 
                                       int sourceVersion,
                                       pdvector<int_function *> &needReloc) {
@@ -166,12 +294,11 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
     // Make the basic block instances; they're placeholders for now.
     pdvector<bblInstance *> newInstances;
     for (i = 0; i < blockList.size(); i++) {
-        reloc_printf("Block %d, creating instance...", i);
+        reloc_printf("Block %d, creating instance...\n", i);
         bblInstance *newInstance = new bblInstance(blockList[i], generatedVersion_);
         assert(newInstance);
         newInstances.push_back(newInstance);
         blockList[i]->instances_.push_back(newInstance);
-        reloc_printf("and added to basic block\n");
     }
     assert(newInstances.size() == blockList.size());
 
@@ -180,8 +307,6 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
     // we're at it...
     unsigned size_required = 0;
     for (i = 0; i < newInstances.size(); i++) {
-        reloc_printf("Calling relocationSetup on block %d...\n",
-                     i);
         reloc_printf("Calling newInst:relocationSetup(%d)\n",
                      sourceVersion);
         newInstances[i]->relocationSetup(blockList[i]->instVer(sourceVersion),
@@ -191,44 +316,11 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
                      i, size_required);
     }
 
-    // AIX: we try to target the data heap, since it's near instrumentation; 
-    // we can do big branches at the start of a function, but not within. 
-    // So amusingly, function relocation probably won't _enlarge_ the function,
-    // just pick it up and move it nearer instrumentation. Bring the mountain 
-    // to Mohammed, I guess.
-#if defined(os_aix)
-    // Also, fork() instrumentation needs to go in data.
-    Address baseInMutatee = proc()->inferiorMalloc(size_required, dataHeap);
-#elif defined(arch_x86_64)
-    Address baseInMutatee = proc()->inferiorMalloc(size_required, anyHeap, getAddress());
-#else
-    // We're expandin'
-    Address baseInMutatee = proc()->inferiorMalloc(size_required);
-#endif
-
+    Address baseInMutatee = allocRelocation(size_required);
     if (!baseInMutatee) return false;
     reloc_printf("... new version at 0x%lx in mutatee\n", baseInMutatee);
 
-    Address currAddr = baseInMutatee;
-    // Inefficiency, part 1: we pin each block at a particular address
-    // so that we can one-pass generate and get jumps done correctly.
-    for (i = 0; i < newInstances.size(); i++) {
-        reloc_printf("Pinning block %d to 0x%lx\n", i, currAddr);
-        newInstances[i]->setStartAddr(currAddr);
-        currAddr += newInstances[i]->sizeRequired();
-    }
-
-    // Okay, so we have a set of "new" basicBlocks. Now go through and
-    // generate code for each; we can do branches appropriately, since
-    // we know where the targets will be.
-    // This builds the codeGen member of the bblInstance
-    bool success = true;
-    for (i = 0; i < newInstances.size(); i++) {
-        reloc_printf("... relocating block %d\n", blockList[i]->id());
-        success &= newInstances[i]->generate();
-        if (!success) break;
-    }
-
+    bool success = relocBlocks(baseInMutatee, newInstances);
     if (!success) {
         relocationInvalidate();
         return false;
@@ -503,11 +595,14 @@ unsigned bblInstance::sizeRequired() {
     return getMaxSize();
 }
 
+bool bblInstance::reset()
+{
+  return true;
+}
 
 // Make a copy of the basic block (from the original provided),
 // applying the modifications stated in the vector of funcMod
 // objects.
-
 bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) {
    unsigned i;
    origInstance() = orig;
@@ -522,6 +617,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
 
    // Keep a running count of how big things are...
    maxSize() = 0;
+   minSize() = 0;
    InstrucIter insnIter(orig);
    while (insnIter.hasMore()) {
      instruction *insnPtr = insnIter.getInsnPtr();
@@ -542,16 +638,16 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    }
 
    // Apply any hanging-around relocations from our previous instance
-    for (i = 0; i < orig->appliedMods().size(); i++) {
-      if (orig->appliedMods()[i]->modifyBBL(block_, relocs(), maxSize())) {
-	appliedMods().push_back(orig->appliedMods()[i]);
+   for (i = 0; i < orig->appliedMods().size(); i++) {
+      if (orig->appliedMods()[i]->modifyBBL(block_, relocs(), *this)) {
+         appliedMods().push_back(orig->appliedMods()[i]);
       }
     }
 
     // So now we have a rough size and a list of insns. See if any of
     // those mods want to play.
     for (i = 0; i < mods.size(); i++) {
-        if (mods[i]->modifyBBL(block_, relocs(), maxSize())) {
+        if (mods[i]->modifyBBL(block_, relocs(), *this)) {
             // Store for possible further relocations.
             appliedMods().push_back(mods[i]);
         }
@@ -561,14 +657,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
 }
 
 void bblInstance::setStartAddr(Address addr) {
-    if (addr) {
-        // No implicit overriding - set it to 0 first.
-        assert(firstInsnAddr_ == 0);
-        firstInsnAddr_ = addr;
-    }
-    else {
-        firstInsnAddr_ = 0;
-    }
+  firstInsnAddr_ = addr;
 }
 
 bool bblInstance::generate() {
@@ -580,92 +669,100 @@ bool bblInstance::generate() {
     unsigned i;
 
     generatedBlock().allocate(maxSize());
+    generatedBlock().setAddrSpace(proc());
+    generatedBlock().setAddr(firstInsnAddr_);
 
     Address origAddr = origInstance()->firstInsnAddr();
     for (i = 0; i < relocs().size(); i++) {
       Address currAddr = generatedBlock().currAddr(firstInsnAddr_);
       relocs()[i]->relocAddr = currAddr;
-      Address fallthroughOverride = 0;
-      Address targetOverride = 0;
+      patchTarget *fallthroughOverride = NULL;
+      patchTarget *targetOverride = NULL;
       if (i == (relocs().size()-1)) {
-	// Check to see if we need to fix up the target....
-	pdvector<int_basicBlock *> targets;
-	block_->getTargets(targets);
-	if (targets.size() > 2) {
-	  // Multiple jump... we can't handle this yet
-            // Actually, I believe we can....
+         // Check to see if we need to fix up the target....
+         pdvector<int_basicBlock *> targets;
+         block_->getTargets(targets);
+         if (targets.size() > 2) {
             reloc_printf("WARNING: attempt to relocate function %s with indirect jump!\n",
                          block_->func()->symTabName().c_str());
-            //return false;
-	}
-	// We have edge types on the internal data, so we drop down and get that. 
-	// We want to find the "branch taken" edge and override the destination
-	// address for that guy.
-	pdvector<image_edge *> out_edges;
-	block_->llb()->getTargets(out_edges);
+         }
+         // We have edge types on the internal data, so we drop down and get that. 
+         // We want to find the "branch taken" edge and override the destination
+         // address for that guy.
+         pdvector<image_edge *> out_edges;
+         block_->llb()->getTargets(out_edges);
 	
-	// May be greater; we add "extra" edges for things like function calls, etc.
-	assert (out_edges.size() >= targets.size());
-	
-	int_basicBlock *hlTarget = NULL;
-	
-	for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
-	  EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
-	  // Update to Nate's commit...
-	  if ((edgeType == ET_COND_TAKEN) ||
-	      (edgeType == ET_DIRECT)) {
-	    // Got the right edge... now find the matching high-level
-	    // basic block
-	    image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
-	    for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
-	      // Should be the same index, but this is a small set...
-	      if (targets[t_iter]->llb() == llTarget)
-		hlTarget = targets[t_iter];
-	    }
-	    assert(hlTarget != NULL);
-	    break;
-	  }
-	}
-	if (hlTarget != NULL) {
-	  // Remap its destination
-	  // This is a jump target; get the start addr for the
-	  // new block.
-	  assert(targetOverride == 0);
-	  targetOverride = hlTarget->instVer(version_)->firstInsnAddr();
-	  reloc_printf("... found jmp target 0x%lx->0x%lx, now to 0x%lx\n",
-		       origInstance()->endAddr(),
-		       hlTarget->origInstance()->firstInsnAddr(),
-		       targetOverride);
-	}
+         // May be greater; we add "extra" edges for things like function calls, etc.
+         assert (out_edges.size() >= targets.size());
+         
+         int_basicBlock *hlTarget = NULL;
+         
+         for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
+            EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
+            // Update to Nate's commit...
+            if ((edgeType == ET_COND_TAKEN) ||
+                (edgeType == ET_DIRECT)) {
+               // Got the right edge... now find the matching high-level
+               // basic block
+               image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
+               for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
+                  // Should be the same index, but this is a small set...
+                  if (targets[t_iter]->llb() == llTarget)
+                     hlTarget = targets[t_iter];
+               }
+               assert(hlTarget != NULL);
+               break;
+            }
+         }
+         if (hlTarget != NULL) {
+            // Remap its destination
+            // This is a jump target; get the start addr for the
+            // new block.
+            assert(targetOverride == NULL);
+            targetOverride = hlTarget->instVer(version_);
+            reloc_printf("... found jmp target 0x%lx->0x%lx, now to 0x%lx\n",
+                         origInstance()->endAddr(),
+                         hlTarget->origInstance()->firstInsnAddr(),
+                         targetOverride->get_address());
+         }
       }
       reloc_printf("... generating insn %d, orig addr 0x%lx, new addr 0x%lx, " 
-		   "fallthrough 0x%lx, target 0x%lx\n",
-		   i, origAddr, currAddr, fallthroughOverride, targetOverride);
+                   "fallthrough 0x%lx, target 0x%lx\n",
+                   i, origAddr, currAddr, 
+                   fallthroughOverride ? fallthroughOverride->get_address() : 0, 
+                   targetOverride ? targetOverride->get_address() : 0);
       unsigned usedBefore = generatedBlock().used();
       relocs()[i]->origInsn->generate(generatedBlock(),
-				      proc(),
-				      origAddr,
-				      currAddr,
-				      fallthroughOverride,
-				      targetOverride); // targetOverride
-
-      relocs()[i]->relocTarget = targetOverride;
+                                      proc(),
+                                      origAddr,
+                                      currAddr,
+                                      fallthroughOverride,
+                                      targetOverride); // targetOverride
+      
+      relocs()[i]->relocTarget = targetOverride ? targetOverride->get_address() : 0;
       
       // And set the remaining bbl variables correctly
       // This may be overwritten multiple times, but will end
       // correct.
       lastInsnAddr_ = currAddr;
-
+      
       relocs()[i]->relocSize = generatedBlock().used() - usedBefore;
       
       origAddr += relocs()[i]->origInsn->size();
     }
 
-
+#if !defined(cap_fixpoint_gen)
+    //Fill out unused space at end of block with NOPs
     generatedBlock().fillRemaining(codeGen::cgNOP);
-
-
     blockEndAddr_ = firstInsnAddr_ + maxSize();
+#else
+    //No unused space.  Only expand if we're under the minimum size
+    // (which only happens if the block is being expanded.
+    unsigned space_used = generatedBlock().used();
+    if (space_used < minSize())
+       generatedBlock().fill(minSize() - space_used, codeGen::cgNOP);
+    blockEndAddr_ = firstInsnAddr_ + generatedBlock().used();
+#endif
 
     relocs().back()->relocSize = blockEndAddr_ - lastInsnAddr_;
     
@@ -681,11 +778,6 @@ bool bblInstance::install() {
     assert(firstInsnAddr_);
     assert(generatedBlock() != NULL);
     assert(maxSize());
-    if (maxSize() != generatedBlock().used()) {
-        fprintf(stderr, "ERROR: max size of block is %d, but %d used!\n",
-                maxSize(), generatedBlock().used());
-    }
-    assert(generatedBlock().used() == maxSize());
 
     reloc_printf("%s[%d]: Writing from 0x%lx 0x%lx to 0x%lx 0x%lx\n",
                  FILE__, __LINE__,
@@ -716,20 +808,23 @@ bool bblInstance::link(pdvector<codeRange *> &overwrittenObjs) {
 
 bool enlargeBlock::modifyBBL(int_basicBlock *block,
                              pdvector<bblInstance::reloc_info_t::relocInsn *> &,
-                             unsigned &size)
+                             bblInstance &bbl)
 {
-    if (block == targetBlock_) {
-        if (targetSize_ == (unsigned) -1) {
-            return true;
-        }
-
-        if (size < targetSize_) {
-            size = targetSize_;
-        }
-
-        return true;
-    }
-    return false;
+   if (block == targetBlock_) {
+      if (targetSize_ == (unsigned) -1) {
+         return true;
+      }
+      
+      if (bbl.maxSize() < targetSize_) {
+         bbl.maxSize() = targetSize_;
+      }
+      if (bbl.minSize() < targetSize_) {
+         bbl.minSize() = targetSize_;
+      }
+      
+      return true;
+   }
+   return false;
 }
 
 bool enlargeBlock::update(int_basicBlock *block,
@@ -761,12 +856,12 @@ functionReplacement::functionReplacement(int_basicBlock *sourceBlock,
     usesTrap_(false)
 {}
     
-Address functionReplacement::get_address_cr() const {
+Address functionReplacement::get_address() const {
     assert(sourceBlock_);
     return sourceBlock_->instVer(sourceVersion_)->firstInsnAddr();
 }
 
-unsigned functionReplacement::get_size_cr() const {
+unsigned functionReplacement::get_size() const {
     if (jumpToRelocated != NULL)
         return jumpToRelocated.used();
     else
@@ -797,6 +892,7 @@ bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needRelo
     assert(targetInst);
 
     jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize());
+    jumpToRelocated.setAddrSpace(proc());
     reloc_printf("******* generating interFunctionJump from 0x%lx (%d) to 0x%lx (%d)\n",
 		 sourceInst->firstInsnAddr(),
 		 sourceVersion_,
@@ -985,8 +1081,8 @@ bool functionReplacement::installFuncRep() {
 bool functionReplacement::checkFuncRep(pdvector<Address> &checkPCs) {
     unsigned i;
 
-    Address start = get_address_cr();
-    Address end = get_address_cr() + get_size_cr();
+    Address start = get_address();
+    Address end = get_address() + get_size();
     for (i = 0; i < checkPCs.size(); i++) {
         if ((checkPCs[i] > start) &&
             (checkPCs[i] < end))
@@ -995,8 +1091,8 @@ bool functionReplacement::checkFuncRep(pdvector<Address> &checkPCs) {
     return true;
 }
 
-bool functionReplacement::linkFuncRep(pdvector<codeRange *> &overwrittenObjs) {
-    if (sourceBlock_->proc()->writeTextSpace((void *)get_address_cr(),
+bool functionReplacement::linkFuncRep(pdvector<codeRange *> &/*overwrittenObjs*/) {
+    if (sourceBlock_->proc()->writeTextSpace((void *)get_address(),
                                              jumpToRelocated.used(),
                                              jumpToRelocated.start_ptr())) {
         sourceBlock_->proc()->addFuncReplacement(this); 
