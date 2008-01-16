@@ -45,7 +45,11 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo copy $(TargetDir)libcommon.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
+echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+echo copy $(TargetDir)libcommon.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libcommon.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 echo copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
@@ -95,7 +99,11 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo copy $(TargetDir)libcommon.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
+echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+echo copy $(TargetDir)libcommon.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libcommon.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 echo copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
@@ -127,51 +135,6 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
 				RelativePath=".\src\Annotatable.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\util.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\MappedFile.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\pathName.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -247,6 +210,36 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAsManaged="0"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\MappedFile.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\pathName.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -344,6 +337,21 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						CompileAsManaged="0"/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\src\util.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -351,15 +359,6 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
 			<File
 				RelativePath=".\h\Annotatable.h">
-			</File>
-			<File
-				RelativePath=".\h\util.h">
-			</File>
-			<File
-				RelativePath=".\h\MappedFile.h">
-			</File>
-			<File
-				RelativePath=".\h\pathName.h">
 			</File>
 			<File
 				RelativePath=".\h\debugOstream.h">
@@ -383,7 +382,13 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\machineType.h">
 			</File>
 			<File
+				RelativePath=".\h\MappedFile.h">
+			</File>
+			<File
 				RelativePath=".\h\ntHeaders.h">
+			</File>
+			<File
+				RelativePath=".\h\pathName.h">
 			</File>
 			<File
 				RelativePath=".\h\pathName.h">
@@ -411,6 +416,9 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\Types.h">
+			</File>
+			<File
+				RelativePath=".\h\util.h">
 			</File>
 		</Filter>
 		<Filter

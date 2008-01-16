@@ -50,7 +50,11 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo copy $(TargetDir)libsymtabAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
+echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+echo copy $(TargetDir)libsymtabAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libsymtabAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 echo copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
@@ -103,7 +107,11 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo copy $(TargetDir)libsymtabAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
+echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
+echo copy $(TargetDir)libsymtabAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libsymtabAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 echo copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
