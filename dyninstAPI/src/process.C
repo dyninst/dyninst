@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.702 2008/01/03 22:55:09 jaw Exp $
+// $Id: process.C,v 1.703 2008/01/16 22:02:02 legendre Exp $
 
 #include <ctype.h>
 
@@ -1388,6 +1388,7 @@ void process::deleteProcess()
 
   for (iter = 0; iter < deleted_objects.size(); iter++)
       delete deleted_objects[iter];
+  deleted_objects.clear();
 
   runtime_lib = NULL;
 
@@ -3688,7 +3689,7 @@ bool process::addASharedObject(mapped_object *new_obj)
     parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
            new_obj->fileName().c_str(), 
            new_obj->getBaseAddress(),
-           new_obj->get_size_cr());
+           new_obj->get_size());
     // TODO: check for "is_elf64" consistency (Object)
 
     // If the static inferior heap has been initialized, then 
@@ -3804,9 +3805,6 @@ bool process::removeASharedObject(mapped_object *obj) {
         BPatch::bpatch->registerUnloadedModule(this, curr);
     }
 
-    //KEVINTODO: remove printf and the delete
-    printf("Deleting object=%s\n",obj->fileName().c_str());
-    delete obj;
     return true;
 }    
     
