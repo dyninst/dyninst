@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.10 2007/09/12 20:57:26 bernat Exp $
+// $Id: arch.C,v 1.11 2008/01/16 22:01:55 legendre Exp $
 // Code generation
 
 //////////////////////////
@@ -66,7 +66,7 @@
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
 #endif
 
-const int codeGenPadding = 256;
+const unsigned int codeGenPadding = 256;
 
 codeGen::codeGen() :
     buffer_(NULL),
@@ -165,13 +165,16 @@ codeGen &codeGen::operator=(const codeGen &g) {
 
 void codeGen::allocate(unsigned size) 
 {
-    // No implicit reallocation
-    assert(buffer_ == NULL);
-    size_ = size;
-    offset_ = 0;
-    buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
-    allocated_ = true;
-    if (!buffer_) {
+   if (buffer_ && size > size_) {
+      free(buffer_);
+      buffer_ = NULL;
+   }
+   if (buffer_ == NULL)
+      buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
+   size_ = size;
+   offset_ = 0;
+   allocated_ = true;
+   if (!buffer_) {
       fprintf(stderr, "%s[%d]:  malloc (%d) failed: %s\n", FILE__, __LINE__, size, strerror(errno));
 #if defined (os_osf)
     //struct mallinfo my_mallinfo  = mallinfo();
@@ -387,6 +390,148 @@ void codeGen::setAddrSpace(AddressSpace *a)
    aSpace_ = a; 
    setCodeEmitter(a->getEmitter());
 }
+
+void codeGen::addPCRelRegion(pcRelRegion *reg) {
+#if !defined(cap_noaddr_gen)
+   //   assert(0);
+#endif
+   reg->gen = this;
+   reg->cur_offset = used();
+
+   if (startAddr() != (Address) -1 && reg->canPreApply()) {
+     //If we already have addressess for everything (usually when relocating a function)
+     // then don't bother creating the region, just generate the code.
+     reg->apply(startAddr() + reg->cur_offset);
+     delete reg;
+   }
+   else {
+     reg->cur_size = reg->maxSize();
+     fill(reg->cur_size, cgNOP);
+     pcrels_.push_back(reg);
+   }
+}
+
+void codeGen::applyPCRels(Address base)
+{
+   vector<pcRelRegion *>::iterator i;
+
+   codeBufIndex_t orig_position = used();
+   for (i = pcrels_.begin(); i != pcrels_.end(); i++) {
+      pcRelRegion *cur = *i;
+      bool is_last_entry = ((cur->cur_offset + cur->cur_size) >= orig_position);
+
+      //Apply the patch
+      setIndex(cur->cur_offset / CODE_GEN_OFFSET_SIZE);
+      unsigned patch_size = cur->apply(base + cur->cur_offset);
+      assert(patch_size <= cur->cur_size);
+      unsigned size_change = cur->cur_size - patch_size;
+
+      if (size_change) {
+         if (is_last_entry) {
+            //If we resized the last object in the codeGen, then change the
+            // codeGen's end address
+            orig_position = cur->cur_offset + patch_size;
+         }
+         //Fill in any size changes with nops
+         fill(size_change, cgNOP);
+      }
+      delete cur;
+   }
+   setIndex(orig_position / CODE_GEN_OFFSET_SIZE);
+   pcrels_.clear();
+}
+
+bool codeGen::hasPCRels() const {
+   return (pcrels_.size() != 0);
+}
+
+
+pcRelRegion::pcRelRegion(const instruction &i) :
+   gen(NULL),
+   orig_instruc(i),
+   cur_offset(0),
+   cur_size(0)
+{
+}
+
+pcRelRegion::~pcRelRegion()
+{
+}
+
+void codeGen::addPatch(const relocPatch &p)
+{
+   patches_.push_back(p);
+}
+
+void codeGen::addPatch(void *dest, patchTarget *source, 
+                       unsigned size,
+                       relocPatch::patch_type_t ptype,
+                       Dyninst::Offset off)
+{
+   relocPatch p(dest, source, ptype, this, off, size);
+   patches_.push_back(p);
+}
+
+void codeGen::applyPatches()
+{
+   std::vector<relocPatch>::iterator i;
+   for (i = patches_.begin(); i != patches_.end(); i++)
+      (*i).applyPatch();
+}
+
+
+relocPatch::relocPatch(void *d, patchTarget *s, patch_type_t ptype,
+                       codeGen *gen, Dyninst::Offset off, unsigned size) :
+   dest_(d),
+   source_(s),
+   size_(size),
+   ptype_(ptype),
+   gen_(gen),
+   offset_(off),
+   applied_(false)
+{
+}
+
+void relocPatch::applyPatch()
+{
+   assert(!applied_);
+
+   Address addr = source_->get_address();
+
+   switch (ptype_) {
+      case pcrel:
+         addr = addr - (gen_->startAddr() + offset_);
+      case abs:
+         memcpy(dest_, &addr, size_);
+         break;
+      default:
+         assert(0);
+   }
+   applied_ = true;
+}
+
+bool relocPatch::isApplied()
+{
+   return applied_;
+}
+
+bool pcRelRegion::canPreApply()
+{
+  return false;
+}
+
+std::string patchTarget::get_name() const {
+   return std::string("UNNAMED");
+}
+
+bool patchTarget::should_clean() const {
+   return false;
+}
+
+patchTarget::~patchTarget()
+{
+}
+
 
 codeGen codeGen::baseTemplate;
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.272 2007/12/31 16:08:16 bernat Exp $
+ * $Id: inst-x86.C,v 1.273 2008/01/16 22:01:59 legendre Exp $
  */
 #include <iomanip>
 
@@ -58,7 +58,7 @@
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/debug.h"
-
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -954,13 +954,13 @@ void emitMovMWToReg(Register dest, int disp, codeGen &gen)
 }
 
 // emit MOV reg, imm32
-void emitMovImmToReg(Register dest, int imm,
-		     codeGen &gen) {
-    GET_PTR(insn, gen);
+void emitMovImmToReg(Register dest, int imm, codeGen &gen)
+{
+   GET_PTR(insn, gen);
    *insn++ = 0xB8 + dest;
    *((int *)insn) = imm;
    insn += sizeof(int);
-    SET_PTR(insn, gen);
+   SET_PTR(insn, gen);
 }
 
 // emit MOV r/m32, imm32
@@ -1175,10 +1175,9 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
     // we are using an indirect call here because we don't know the
     // address of this instruction, so we can't use a relative call.
     // TODO: change this to use a direct call
-    
-    emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);       // mov eax, addr
-    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
-    return true;
+   emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);  // mov eax, addr
+   emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
+   return true;
 }
 
 // TODO: we need to know if we're doing an inter-module call. This
@@ -1188,12 +1187,14 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
 // pdstring version that doesn't take a callee...
 
 bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
-    Address to = callee->getAddress();
-    Address from = gen.currAddr();
-    
-    instruction::generateCall(gen, from, to);
-    
-    return true;
+    // make the call
+    // we are using an indirect call here because we don't know the
+    // address of this instruction, so we can't use a relative call.
+    // TODO: change this to use a direct call
+   emitMovImmToReg(REGNUM_EAX, 0x0, gen);  // mov eax, addr
+   emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
+
+   return true;
 }
 /*
  * emit code for op(src1,src2, dest)

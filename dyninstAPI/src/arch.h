@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 1996-2008 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -40,14 +40,15 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.29 2007/12/14 04:16:48 jaw Exp $
+// $Id: arch.h,v 1.30 2008/01/16 22:01:56 legendre Exp $
 
 #if !defined(arch_h)
 #define arch_h
 
 #include <assert.h>
+#include <vector>
 
-
+#include "dyninstAPI/src/patch.h"
 
 #if defined(sparc_sun_sunos4_1_3) \
  || defined(sparc_sun_solaris2_4)
@@ -79,6 +80,7 @@ class registerSpace;
 class regTracker_t;
 class AstNode;
 class Emitter;
+class pcRelRegion;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -174,6 +176,29 @@ class codeGen {
                  instPoint *point,
                  registerSpace *rs);
 
+    //Add a new PCRelative region that should be generated after 
+    // addresses are fixed
+    void addPCRelRegion(pcRelRegion *reg);
+
+    //Have each region generate code with this codeGen object being
+    // placed at addr
+    void applyPCRels(Address addr);
+
+    //Return true if there are any active regions.
+    bool hasPCRels() const;
+
+    //Add a new patch point
+    void addPatch(const relocPatch &p);
+
+    //Create a patch into the codeRange
+    void addPatch(void *dest, patchTarget *source, 
+                  unsigned size = sizeof(Address),
+                  relocPatch::patch_type_t ptype = relocPatch::abs,
+                  Dyninst::Offset off = 0);
+
+    //Apply all patches that have been added
+    void applyPatches();
+
     //void setProcess(process *p);
     void setAddrSpace(AddressSpace *a);
     void setThread(dyn_thread *t) { thr_ = t; }
@@ -208,14 +233,32 @@ class codeGen {
     dyn_thread *thr_;
     dyn_lwp * lwp_;
     registerSpace *rs_;
-	regTracker_t *t_;
+    regTracker_t *t_;
     Address addr_;
     instPoint *ip_;
+
+    std::vector<relocPatch> patches_;
+    std::vector<pcRelRegion *> pcrels_;
 };
 
+class pcRelRegion {
+   friend class codeGen;
+ protected:
+   codeGen *gen;
+   instruction orig_instruc;
+   unsigned cur_offset;
+   unsigned cur_size;
+ public:
+   pcRelRegion(const instruction &i);
+   virtual unsigned apply(Address addr) = 0;
+   virtual unsigned maxSize() = 0;
+   virtual bool canPreApply();
+   virtual ~pcRelRegion();
+}; 
+
 // For platforms that require bit-twiddling. These should go away in the future.
-#define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)gen.cur_ptr()
-#define SET_PTR(insn, gen) gen.update(insn)
-#define REGET_PTR(insn, gen) insn = (codeBuf_t *)gen.cur_ptr()
+#define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)(gen).cur_ptr()
+#define SET_PTR(insn, gen) (gen).update(insn)
+#define REGET_PTR(insn, gen) insn = (codeBuf_t *)(gen).cur_ptr()
 
 #endif
