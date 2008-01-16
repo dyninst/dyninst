@@ -247,8 +247,8 @@ class Symtab : public LookupInterface,
 	DLLEXPORT Offset getFreeOffset(unsigned size);
 	
 	/***** Data Member Access *****/
-	DLLEXPORT const std::string &file() const;
-	DLLEXPORT const std::string name() const;
+	DLLEXPORT std::string file() const;
+	DLLEXPORT std::string name() const;
 
 	DLLEXPORT char *mem_image() const;
 	

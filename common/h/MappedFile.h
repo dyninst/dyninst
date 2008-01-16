@@ -4,7 +4,6 @@
 
 #include "headers.h"
 #include "Types.h"
-#include "pathName.h"
 
 class MappedFile {
      static hash_map<std::string, MappedFile *> mapped_files;
@@ -14,8 +13,8 @@ class MappedFile {
       DLLEXPORT static MappedFile *createMappedFile(void *map_loc);
       DLLEXPORT static void closeMappedFile(MappedFile *mf);
 
-      DLLEXPORT std::string &pathname() {return fullpath;}
-      DLLEXPORT std::string filename() {return extract_pathname_tail(fullpath);}
+      DLLEXPORT std::string &pathname();
+      DLLEXPORT std::string filename();
       DLLEXPORT void *base_addr() {return map_addr;}
 #if defined(os_windows)
       DLLEXPORT HANDLE getFileHandle() {return hFile;}
@@ -41,7 +40,6 @@ class MappedFile {
       bool close_file();
 #if defined (os_windows)
       HANDLE hMap; 
-      HANDLE mapAddr; 
       HANDLE hFile; 
 #else
       int fd;

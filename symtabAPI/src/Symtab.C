@@ -39,9 +39,9 @@
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/src/Collections.h"
+#include "common/h/pathName.h"
 
 #if !defined(os_windows)
-#include "common/h/pathName.h"
 #include <dlfcn.h>
 #else
 #include "windows.h"
@@ -1072,10 +1072,13 @@ Symtab::Symtab(std::string &filename,bool &err) :
    fixup_filename(filename);
 #endif
    mf = MappedFile::createMappedFile(filename);
-   assert(mf);
-    Object *linkedFile = new Object(mf, pd_log_perror);
-    err = extractInfo(linkedFile);
-    delete linkedFile;
+   if (!mf) {
+      err = true;
+      return;
+   }
+   Object *linkedFile = new Object(mf, pd_log_perror);
+   err = extractInfo(linkedFile);
+   delete linkedFile;
 }
 
 #if 0 
@@ -3547,7 +3550,7 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) {
     delete linkedFile;
 
     //   return highWaterMark;
-    unsigned pgSize = getpagesize();
+    unsigned pgSize = P_getpagesize();
     Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
     if(newaddr < highWaterMark)
         newaddr += pgSize;
@@ -3564,12 +3567,12 @@ DLLEXPORT char *Symtab::mem_image() const
    return (char *)mf->base_addr();
 }
 
-DLLEXPORT const std::string &Symtab::file() const 
+DLLEXPORT std::string Symtab::file() const 
 {
    return mf->pathname();
 }
 
-DLLEXPORT const std::string Symtab::name() const 
+DLLEXPORT std::string Symtab::name() const 
 {
    return mf->filename();
 }

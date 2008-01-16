@@ -1,4 +1,5 @@
 #include "common/h/MappedFile.h"
+#include "common/h/pathName.h"
 
 hash_map<std::string, MappedFile *> MappedFile::mapped_files;
 
@@ -12,15 +13,15 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 
    bool ok = false;
    MappedFile *mf = new MappedFile(fullpath_, ok);
-   if (!mf) {
-     fprintf(stderr, "%s[%d]:  error mapping file %s\n", 
-           FILE__, __LINE__, fullpath_.c_str());
-     mf = NULL;
-  }
-
+   if (!mf || !ok) {
+      if (mf)
+         delete mf;
+      return NULL;
+   }
+   
    mapped_files[fullpath_] = mf;
-
-  return mf;
+   
+   return mf;
 }
 
 MappedFile::MappedFile(std::string fullpath_, bool &ok) :
@@ -43,10 +44,10 @@ MappedFile *MappedFile::createMappedFile(void *loc)
 {
    bool ok = false;
    MappedFile *mf = new MappedFile(loc, ok);
-   if (!ok) {
-     fprintf(stderr, "%s[%d]:  error mapping file at %p", 
-           FILE__, __LINE__, loc);
-     mf = NULL;
+   if (!mf || !ok) {
+      if (mf)
+         delete mf;
+      return NULL;
   }
 
   return mf;
@@ -148,16 +149,16 @@ bool MappedFile::open_file(void *loc)
       goto err;
    }
    did_open = true;
-#else
-   did_open = false;
-   fd = -1;
-#endif
 
    return true;
-
 err:
    fprintf(stderr, "%s[%d]: failed to open file\n", FILE__, __LINE__);
    return false;
+#else
+   did_open = false;
+   fd = -1;
+   return true;
+#endif
 }
 
 bool MappedFile::open_file()
@@ -222,14 +223,14 @@ bool MappedFile::map_file()
 
    // next, map the file to our address space
 
-   mapAddr = MapViewOfFileEx( hMap,             // mapping object
+   map_addr = MapViewOfFileEx( hMap,             // mapping object
          FILE_MAP_READ,  // desired access
          0,              // loc to map - hi DWORD
          0,              // loc to map - lo DWORD
          0,              // #bytes to map - 0=all
          NULL );         // suggested map addr
 
-   if (!mapAddr) {
+   if (!map_addr) {
       LPVOID lpMsgBuf;
       FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
             |     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
@@ -255,7 +256,6 @@ bool MappedFile::map_file()
    did_mmap = true;
    return true;
 err:
-   fprintf(stderr, "%s[%d]: failed to open file: %s\n", FILE__, __LINE__, ebuf);
    return false;
 }
 
@@ -263,7 +263,7 @@ bool MappedFile::unmap_file()
 {
 #if defined(os_windows)
 
-   UnmapViewOfFile(mapAddr);
+   UnmapViewOfFile(map_addr);
    CloseHandle(hMap);
 
 #else
@@ -294,3 +294,10 @@ bool MappedFile::close_file()
    return true;
 }
 
+std::string &MappedFile::pathname() {
+	return fullpath;
+}
+
+std::string MappedFile::filename() {
+	return extract_pathname_tail(fullpath);
+}
