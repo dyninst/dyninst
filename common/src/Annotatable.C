@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.4 2008/01/03 22:55:09 jaw Exp $
+// $Id: Annotatable.C,v 1.5 2008/01/16 22:00:56 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Annotatable.h"
@@ -62,7 +62,6 @@ DLLEXPORT int AnnotatableBase::createAnnotationType(std::string &name)
    std::string n(name);
    int num = getAnnotationType(name);
    if (num != -1) {
-      fprintf(stderr, "%s[%d]:  annotation type %s exists in slot %d\n", FILE__, __LINE__, name.c_str(), num);
       return num;
    }
 

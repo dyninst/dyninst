@@ -68,8 +68,6 @@ localVarCollection::~localVarCollection()
  */
 
 void localVarCollection::addLocalVar(localVar * var){
-  if(var->getName() == "globalVariable18_1")
-    cout << "found var" << endl;
   localVariablesByName[var->getName()]= var;
   localVars.push_back(var);
 }

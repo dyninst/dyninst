@@ -1603,7 +1603,6 @@ bool SignalGeneratorCommon::initialize_event_handler()
       if (!proc->setAOut(desc)) {
           sleep(1);
           startup_printf("%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
-          fprintf(stderr,"%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
 #if !defined(os_windows)
           P_kill(getPid(), SIGKILL);
 #if defined (os_linux)

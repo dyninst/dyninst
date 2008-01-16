@@ -389,7 +389,20 @@ void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLengt
 	fprintf( stderr, "\n" );
 	} /* end dumpLocListAddrRanges */
 
-bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, Symtab * objFile, long int * initialStackValue = NULL,loc_t *loc=NULL) {
+#if defined(arch_x86_64)
+bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, 
+                                                 Dwarf_Signed listLength, 
+                                                 Symtab * objFile, 
+                                                 long int * initialStackValue = NULL,
+                                                 loc_t *loc=NULL) 
+#else
+bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, 
+                                                 Dwarf_Signed listLength, 
+                                                 Symtab *, 
+                                                 long int * initialStackValue = NULL,
+                                                 loc_t *loc=NULL) 
+#endif
+{
 	/* We make a few heroic assumptions about locations in this decoder.
 	
 	   We assume that all locations are either frame base-relative offsets,
@@ -439,7 +452,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 			if( loc != NULL ) { 
 				loc->stClass = storageRegOffset;
 				loc->refClass = storageNoRef;
-                		loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
+            loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
 				loc->frameOffset = 0;
 				return true;
 			}
@@ -451,7 +464,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 			if( loc != NULL ) { 
 				loc->stClass = storageRegOffset;
 				loc->refClass = storageNoRef;
-                		loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
+            loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
 			}
 			opStack.push( locations[i].lr_number );
 			continue;
@@ -483,7 +496,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				if( loc != NULL ) { 
 					loc->stClass = storageRegOffset;
 					loc->refClass = storageNoRef;
-                    			loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
+               loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
 					loc->frameOffset = 0;
 				}
 				return true;

@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.58 2007/12/04 21:47:16 bernat Exp $
+ * $Id: emit-x86.C,v 1.59 2008/01/16 22:00:57 legendre Exp $
  */
 
 #include <assert.h>
@@ -236,7 +236,8 @@ void EmitterIA32::emitLoadOrigFrameRelative(Register dest, Address offset, codeG
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
-bool EmitterIA32::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
+bool EmitterIA32::emitLoadRelative(Register dest, Address offset, Register /*base*/, 
+                                   codeGen &gen)
 {
     assert(0);
     return false;
@@ -661,17 +662,17 @@ void EmitterIA32::emitAddSignedImm(Address addr, int imm, codeGen &gen,
 
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
 {
-    Register tmp_dest = dest;
-    emitRex(is_64, NULL, NULL, &tmp_dest, gen);
-    if (is_64) {
-	GET_PTR(insn, gen);
-	*insn++ = 0xB8 + tmp_dest;
-	*((long *)insn) = imm;
-	insn += sizeof(long);
-	SET_PTR(insn, gen);
-    }
-    else
-	emitMovImmToReg(tmp_dest, imm, gen);
+   Register tmp_dest = dest;
+   emitRex(is_64, NULL, NULL, &tmp_dest, gen);
+   if (is_64) {
+      GET_PTR(insn, gen);
+      *insn++ = 0xB8 + tmp_dest;
+      *((long *)insn) = imm;
+      insn += sizeof(long);
+      SET_PTR(insn, gen);
+   }
+   else
+      emitMovImmToReg(tmp_dest, imm, gen);
 }
 
 // on 64-bit x86_64 targets, the DWARF register number does not
@@ -1263,7 +1264,7 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 
   // Since we are making a call, mark all caller-saved registers
   // as used (therefore we will save them if they are live)
-  for (unsigned i = 0; i < rs->numGPRs(); i++) {
+  for (int i = 0; i < rs->numGPRs(); i++) {
       rs->GPRs()[i]->beenUsed = true;
   }
 
@@ -1284,7 +1285,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
     if (!callee) {
 	char msg[256];
 	sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-		"callee argument", __FILE__, __LINE__);
+           "callee argument", __FILE__, __LINE__);
 	showErrorCallback(80, msg);
 	assert(0);
     }
@@ -1292,7 +1293,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
     // Before we generate argument code, save any register that's live across
     // the call. 
     pdvector<pair<unsigned,int> > savedRegsToRestore;
-    for (unsigned i = 0; i < gen.rs()->numGPRs(); i++) {
+    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
         registerSlot *reg = gen.rs()->GPRs()[i];
         regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
                         FILE__, __LINE__, reg->number,
@@ -1334,7 +1335,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
             reg = amd64_arg_regs[u];
         else
             assert(0);
-	if (!operands[u]->generateCode_phase2(gen,
+        if (!operands[u]->generateCode_phase2(gen,
                                               noCost, 
                                               unused,
                                               reg)) assert(0);
@@ -1386,6 +1387,7 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
 bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
     // make the call (using an indirect call)
     emitMovImmToReg64(REGNUM_EAX, callee->getAddress(), true, gen);
+
     emitSimpleInsn(0xff, gen); // group 5
     emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
     return true;
@@ -1716,7 +1718,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
     // Save the live ones
     int num_saved = 0;
     if (flagsSaved) num_saved++;
-    for (unsigned i = 0; i < gen.rs()->numGPRs(); i++) {
+    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
         registerSlot *reg = gen.rs()->GPRs()[i];
         
         if (reg->liveState == registerSlot::live) {

@@ -198,7 +198,7 @@ typeRef *Type::getRefType(){
     return dynamic_cast<typeRef *>(this);
 }
 
-bool Type::isCompatible(Type *oType){
+bool Type::isCompatible(Type * /*oType*/){
 	return false;
 }
 
@@ -1377,7 +1377,7 @@ Type *derivedType::getConstituentType() const
 
 bool derivedType::operator==(const Type &otype) const {
    try {
-      const derivedType &oderivedtype = dynamic_cast<const derivedType &>(otype);
+      //const derivedType &oderivedtype = dynamic_cast<const derivedType &>(otype);
       return Type::operator==(otype);
    } catch (...) {
       return false;

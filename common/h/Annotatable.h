@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.5 2008/01/10 21:14:53 bill Exp $
+// $Id: Annotatable.h,v 1.6 2008/01/16 22:00:55 legendre Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -152,7 +152,7 @@ class Annotatable : public AnnotatableBase
    {
    }
 
-   Annotatable(const Annotatable<T, ANNOTATION_NAME_T> &src) :
+   Annotatable(const Annotatable<T, ANNOTATION_NAME_T> &/*src*/) :
       AnnotatableBase()
    {/*hrm deep copy here or no?*/}
 
