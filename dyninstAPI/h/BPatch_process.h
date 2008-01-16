@@ -157,6 +157,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     friend class BPatch_funcCallExpr;
     friend class BPatch_eventMailbox;
     friend class BPatch_instruction;
+    friend class BPatch_addressSpace;
     friend class process;
     friend class SignalHandler;
     friend int handleSignal(EventRecord &ev);
@@ -452,43 +453,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
 
     API_EXPORT(Int, (parentSnippet),
     BPatchSnippetHandle *,getInheritedSnippet,(BPatchSnippetHandle &parentSnippet));
-
-    //  BPatch_process::insertSnippet
-    //  
-    //  Insert new code into the mutatee
-
-    API_EXPORT(Int, (expr, point, order),
-    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr, BPatch_point &point,
-                                           BPatch_snippetOrder order = BPatch_firstSnippet));
-
-    //BPatch_process::insertSnippet
-      
-    //Insert new code into the mutatee, specifying "when" (before/after point)
-
-    API_EXPORT(When, (expr, point, when, order),
-    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr, BPatch_point &point,
-                                     BPatch_callWhen when,
-                                       BPatch_snippetOrder order = BPatch_firstSnippet));
-
-    //BPatch_process::insertSnippet
-      
-    //Insert new code into the mutatee at multiple points
-
-    API_EXPORT(AtPoints, (expr, points, order),
-    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr,
-                                   const BPatch_Vector<BPatch_point *> &points,
-                                       BPatch_snippetOrder order = BPatch_firstSnippet));
-
-      // BPatch_process::insertSnippet
-      
-      //Insert new code into the mutatee at multiple points, specifying "when"
-
-    API_EXPORT(AtPointsWhen, (expr, points, when, order),
-    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr,
-                                         const BPatch_Vector<BPatch_point *> &points,
-                                         BPatch_callWhen when,
-                                         BPatch_snippetOrder order = BPatch_firstSnippet));
-
 
 
         //  BPatch_binaryEdit::beginInsertionSet()

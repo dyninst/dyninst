@@ -39,8 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-
-
 #define BPATCH_FILE
 
 
@@ -457,5 +455,184 @@ BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
     
    return findOrCreateBPFunc(func, NULL);
 }
+
+
+/*
+ * BPatch_addressSpace::insertSnippet
+ *
+ * Insert a code snippet at a given instrumentation point.  Upon success,
+ * returns a handle to the created instance of the snippet, which can be used
+ * to delete it.  Otherwise returns NULL.
+ *
+ * expr		The snippet to insert.
+ * point	The point at which to insert it.
+ */
+BPatchSnippetHandle *BPatch_addressSpace::insertSnippetInt(const BPatch_snippet &expr, 
+						      BPatch_point &point, 
+						      BPatch_snippetOrder order)
+{
+   BPatch_callWhen when;
+   if (point.getPointType() == BPatch_exit)
+      when = BPatch_callAfter;
+   else
+      when = BPatch_callBefore;
+
+   return insertSnippetWhen(expr, point, when, order);
+}
+
+/*
+ * BPatch_addressSpace::insertSnippet
+ *
+ * Insert a code snippet at a given instrumentation point.  Upon succes,
+ * returns a handle to the created instance of the snippet, which can be used
+ * to delete it.  Otherwise returns NULL.
+ *
+ * expr		The snippet to insert.
+ * point	The point at which to insert it.
+ */
+// This handles conversion without requiring inst.h in a header file...
+extern bool BPatchToInternalArgs(BPatch_point *point,
+                                 BPatch_callWhen when,
+                                 BPatch_snippetOrder order,
+                                 callWhen &ipWhen,
+                                 callOrder &ipOrder);
+                           
+
+BPatchSnippetHandle *BPatch_addressSpace::insertSnippetWhen(const BPatch_snippet &expr,
+						       BPatch_point &point,
+						       BPatch_callWhen when,
+						       BPatch_snippetOrder order)
+{
+  BPatch_Vector<BPatch_point *> points;
+  points.push_back(&point);
+  return insertSnippetAtPointsWhen(expr,
+				   points,
+				   when,
+				   order);
+ 
+}
+
+
+/*
+ * BPatch_addressSpace::insertSnippet
+ *
+ * Insert a code snippet at each of a list of instrumentation points.  Upon
+ * success, Returns a handle to the created instances of the snippet, which
+ * can be used to delete them (as a unit).  Otherwise returns NULL.
+ *
+ * expr		The snippet to insert.
+ * points	The list of points at which to insert it.
+ */
+// A lot duplicated from the single-point version. This is unfortunate.
+BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch_snippet &expr,
+                                                               const BPatch_Vector<BPatch_point *> &points,
+                                                               BPatch_callWhen when,
+                                                               BPatch_snippetOrder order)
+{
+    
+    if (dyn_debug_inst) {
+        BPatch_function *f;
+        for (unsigned i=0; i<points.size(); i++) {
+            f = points[i]->getFunction();
+            const char *sname = f->func->prettyName().c_str();
+            inst_printf("[%s:%u] - %d. Insert instrumentation at function %s, "
+                        "address %p, when %d, order %d\n",
+                        FILE__, __LINE__, i,
+                        sname, points[i]->getAddress(), (int) when, (int) order);
+            
+        }
+    }
+    
+    if (BPatch::bpatch->isTypeChecked()) {
+        assert(expr.ast_wrapper);
+        if ((*(expr.ast_wrapper))->checkType() == BPatch::bpatch->type_Error) {
+            inst_printf("[%s:%u] - Type error inserting instrumentation\n",
+                        FILE__, __LINE__);
+            return false;
+        }
+    }
+    
+    if (!points.size()) {
+       inst_printf("%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
+      return false;
+    }
+    
+    
+    batchInsertionRecord *rec = new batchInsertionRecord;
+    rec->thread_ = NULL;
+    rec->snip = expr;
+    rec->trampRecursive_ = BPatch::bpatch->isTrampRecursive();
+
+    BPatchSnippetHandle *ret = new BPatchSnippetHandle(this);
+    rec->handle_ = ret;
+    
+    for (unsigned i = 0; i < points.size(); i++) {
+        BPatch_point *point = points[i];
+
+        if (point->addSpace == NULL) {
+            fprintf(stderr, "Error: attempt to use point with no process info\n");
+            continue;
+        }
+        if (dynamic_cast<BPatch_addressSpace *>(point->addSpace) != this) {
+            fprintf(stderr, "Error: attempt to use point specific to a different process\n");
+            continue;
+        }        
+
+        callWhen ipWhen;
+        callOrder ipOrder;
+        
+        if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder)) {
+            inst_printf("[%s:%u] - BPatchToInternalArgs failed for point %d\n",
+                        FILE__, __LINE__, i);
+            return NULL;
+        }
+
+        rec->points_.push_back(point);
+        rec->when_.push_back(ipWhen);
+        rec->order_ = ipOrder;
+
+        point->recordSnippet(when, order, ret);
+    }
+
+    assert(rec->points_.size() == rec->when_.size());
+
+    // Okey dokey... now see if we just tack it on, or insert now.
+    if (pendingInsertions) {
+        pendingInsertions->push_back(rec);
+    }
+    else {
+        BPatch_process *proc = dynamic_cast<BPatch_process *>(this);
+        assert(proc);
+        proc->beginInsertionSetInt();
+        pendingInsertions->push_back(rec);
+        // All the insertion work was moved here...
+        proc->finalizeInsertionSetInt(false);
+    }
+    return ret;
+}
+
+
+/*
+ * BPatch_addressSpace::insertSnippet
+ *
+ * Insert a code snippet at each of a list of instrumentation points.  Upon
+ * success, Returns a handle to the created instances of the snippet, which
+ * can be used to delete them (as a unit).  Otherwise returns NULL.
+ *
+ * expr		The snippet to insert.
+ * points	The list of points at which to insert it.
+ */
+
+BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPoints(
+                 const BPatch_snippet &expr,
+                 const BPatch_Vector<BPatch_point *> &points,
+                 BPatch_snippetOrder order)
+{
+    return insertSnippetAtPointsWhen(expr,
+                                     points,
+                                     BPatch_callUnset,
+                                     order);
+}
+
 
 

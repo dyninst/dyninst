@@ -179,66 +179,87 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   virtual bool getTerminated() = 0;
   virtual bool getMutationsActive() = 0;
 
-  //Insert snippet functions are virtual right now ... can be moved up to BPatch_addressSpace
-  //   if the implementations are the same
-  virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr, BPatch_point &point,
-					      BPatch_snippetOrder order = BPatch_firstSnippet) = 0;
+  //  BPatch_addressSpace::insertSnippet
+  //  
+  //  Insert new code into the mutatee
+  API_EXPORT_VIRT(Int, (expr, point, order),
+                  BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr, 
+                                                       BPatch_point &point,
+                                                       BPatch_snippetOrder order = BPatch_firstSnippet));
   
-  virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr, BPatch_point &point,
-					      BPatch_callWhen when,
-					      BPatch_snippetOrder order = BPatch_firstSnippet) = 0;
+    //BPatch_addressSpace::insertSnippet
+      
+    //Insert new code into the mutatee, specifying "when" (before/after point)
 
-  virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr,
-					      const BPatch_Vector<BPatch_point *> &points,
-					      BPatch_snippetOrder order = BPatch_firstSnippet) = 0;
-  
-  
-  virtual BPatchSnippetHandle * insertSnippet(const BPatch_snippet &expr,
-					      const BPatch_Vector<BPatch_point *> &points,
-					      BPatch_callWhen when,
-					      BPatch_snippetOrder order = BPatch_firstSnippet) = 0;
+    API_EXPORT_VIRT(When, (expr, point, when, order),
+                    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr, 
+                                                         BPatch_point &point,
+                                                         BPatch_callWhen when,
+                                                         BPatch_snippetOrder order = BPatch_firstSnippet));
+    
+    //BPatch_addressSpace::insertSnippet
+      
+    //Insert new code into the mutatee at multiple points
+
+    API_EXPORT_VIRT(AtPoints, (expr, points, order),
+                    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr,
+                                                         const BPatch_Vector<BPatch_point *> &points,
+                                                         BPatch_snippetOrder order = BPatch_firstSnippet));
+    
+      // BPatch_addressSpace::insertSnippet
+      
+      //Insert new code into the mutatee at multiple points, specifying "when"
+
+    API_EXPORT_VIRT(AtPointsWhen, (expr, points, when, order),
+                    BPatchSnippetHandle *,insertSnippet,(const BPatch_snippet &expr,
+                                                         const BPatch_Vector<BPatch_point *> &points,
+                                                         BPatch_callWhen when,
+                                                         BPatch_snippetOrder order = BPatch_firstSnippet));
+
+
+
   
   virtual void beginInsertionSet() = 0;
 
   virtual bool finalizeInsertionSet(bool atomic, bool *modified) = 0;
  
 
-  //  BPatch_process::deleteSnippet
+  //  BPatch_addressSpace::deleteSnippet
   //  
   //  Remove instrumentation from the mutatee process
 
   API_EXPORT(Int, (handle),
 	     bool,deleteSnippet,(BPatchSnippetHandle *handle));
 
-  //  BPatch_process::replaceCode
+  //  BPatch_addressSpace::replaceCode
   //
   //  Replace a point (must be an instruction...) with a given BPatch_snippet
 
     API_EXPORT(Int, (point, snippet), 
     bool, replaceCode, (BPatch_point *point, BPatch_snippet *snippet));
 
-    //  BPatch_process::replaceFunctionCall
+    //  BPatch_addressSpace::replaceFunctionCall
     //  
     //  Replace function call at one point with another
 
     API_EXPORT(Int, (point, newFunc),
     bool,replaceFunctionCall,(BPatch_point &point, BPatch_function &newFunc));
 
-    //  BPatch_process::removeFunctionCall
+    //  BPatch_addressSpace::removeFunctionCall
     //  
     //  Remove function call at one point 
 
     API_EXPORT(Int, (point),
     bool,removeFunctionCall,(BPatch_point &point));
 
-    //  BPatch_process::replaceFunction
+    //  BPatch_addressSpace::replaceFunction
     //  
     //  Replace all calls to a function with calls to another
 
     API_EXPORT(Int, (oldFunc, newFunc),
     bool,replaceFunction,(BPatch_function &oldFunc, BPatch_function &newFunc));
 
-    //  BPatch_process::getSourceLines
+    //  BPatch_addressSpace::getSourceLines
     //  
     //  Method that retrieves the line number and file name corresponding 
     //  to an address
@@ -246,43 +267,43 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (addr, lines),
     bool,getSourceLines,(unsigned long addr, BPatch_Vector< BPatch_statement > & lines ));
     
-    // BPatch_process::getAddressRanges
+    // BPatch_addressSpace::getAddressRanges
     //
     // Method that retrieves address range(s) for a given filename and line number.
     
     API_EXPORT(Int, (fileName, lineNo, ranges),
     bool,getAddressRanges,(const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
 	
-    //  BPatch_process::findFunctionByAddr
+    //  BPatch_addressSpace::findFunctionByAddr
     //  
     //  Returns the function containing an address
 
     API_EXPORT(Int, (addr),
     BPatch_function *,findFunctionByAddr,(void *addr));
 
-     //  BPatch_process::getImage
+     //  BPatch_addressSpace::getImage
     //
-    //  Obtain BPatch_image associated with this BPatch_process
+    //  Obtain BPatch_image associated with this BPatch_addressSpace
 
     API_EXPORT(Int, (),
     BPatch_image *,getImage,());
 
 
-    //  BPatch_process::malloc
+    //  BPatch_addressSpace::malloc
     //  
     //  Allocate memory for a new variable in the mutatee process
 
     API_EXPORT(Int, (n),
     BPatch_variableExpr *,malloc,(int n));
 
-    //  BPatch_process::malloc
+    //  BPatch_addressSpace::malloc
     //  
     //  Allocate memory for a new variable in the mutatee process
 
     API_EXPORT(ByType, (type),
     BPatch_variableExpr *,malloc,(const BPatch_type &type));
 
-    //  BPatch_process::free
+    //  BPatch_addressSpace::free
     //  
     //  Free memory allocated by Dyninst in the mutatee process
 

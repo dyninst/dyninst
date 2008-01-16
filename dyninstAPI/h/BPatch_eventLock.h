@@ -154,6 +154,10 @@ public:
                                        public:   t x y \
                                        { LOCK_FUNCTION(t, x##z, w);}
 
+#define API_EXPORT_VIRT(z, w, t, x, y)      private:  t x##z y; \
+                                            public:   virtual t x y \
+                                            { LOCK_FUNCTION(t, x##z, w);}
+
 //  API_EXPORT_V is used for functions that return void.
 //  This variant would not be necessary were (windows) vc6 not 
 //  buggy in its template specialization code.  But here we are...
