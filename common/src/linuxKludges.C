@@ -776,7 +776,7 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    char line[LINE_LEN], prems[16], *s;
    int result;
    FILE *f;
-   map_entries *maps;
+   map_entries *maps = NULL;
    unsigned i, no_lines = 0;
    
   
@@ -793,10 +793,10 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    }
    maps = (map_entries *) malloc(sizeof(map_entries) * (no_lines+1));
    if (!maps)
-      return NULL;
+      goto done_err;
    result = fseek(f, 0, SEEK_SET);
    if (result == -1)
-      return NULL;
+      goto done_err;
 
    //Read all of the maps entries
    for (i = 0; i < no_lines; i++) {
@@ -832,7 +832,14 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    //Zero out the last entry
    memset(&(maps[i]), 0, sizeof(map_entries));
    maps_size = i;
-   
+   fclose(f);
    return maps;
+
+ done_err:
+   if (f)
+      fclose(f);
+   if (maps)
+      free(maps);
+   return NULL;
 }
 
