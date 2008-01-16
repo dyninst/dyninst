@@ -47,6 +47,7 @@
 #include "BPatch_libInfo.h"
 #include "signalhandler.h"
 #include "signalgenerator.h"
+#include "mapped_object.h"
 #include <stdio.h>
 
 #if defined (os_windows)
@@ -139,14 +140,19 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
   //  find the runtime library module
 #if defined (os_windows)
   //  find the variable to set with the port number to connect to
-  BPatch_variableExpr *portVar;
-  portVar = p->getImage()->findVariable("connect_port");
-  if (!portVar) {
+  process *llproc = p->lowlevel_process();
+  assert(llproc->runtime_lib);
+  pdvector<int_variable *> res;
+  p->llproc->findVarsByAll("connect_port", res, llproc->runtime_lib->fullName().c_str());
+  if (!res.size()) {
     fprintf(stderr, "%s[%d]:  cannot find var connect_port in rt lib\n",
            FILE__, __LINE__);
     return false;
   }
-  if (!portVar->writeValue((void *) &listen_port, sizeof(listen_port), false)) {
+  int_variable *portVar = res[0];
+  bool result = llproc->writeDataSpace((void *) portVar->getAddress(), 
+                                       sizeof(listen_port), &listen_port);
+  if (!result) {
     fprintf(stderr, "%s[%d]:  cannot write var connect_port in rt lib\n",
            FILE__, __LINE__);
     return false;
@@ -1159,7 +1165,7 @@ bool BPatch_asyncEventHandler::startupThread()
 bool BPatch_asyncEventHandler::registerMonitoredPoint(BPatch_point *p)
 {
   if (monitored_points.defines((Address)p->getAddress())) {
-    fprintf(stderr, "%s[%d]:  address %lu already exists in monitored_points hash\n", FILE__, __LINE__, (unsigned long) p->getAddress());
+     //    fprintf(stderr, "%s[%d]:  address %lu already exists in monitored_points hash\n", FILE__, __LINE__, (unsigned long) p->getAddress());
     return false;
   }
   monitored_points[(Address)p->getAddress()] = p;
