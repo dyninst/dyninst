@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.32 2007/12/31 16:08:14 bernat Exp $
+// $Id: image-func.h,v 1.33 2008/01/16 22:01:31 legendre Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -168,8 +168,8 @@ class image_basicBlock : public codeRange {
     void getSources(pdvector<image_edge *> &ins) const;
     void getTargets(pdvector<image_edge *> &outs) const;
 
-    Address get_address_cr() const { return firstInsnOffset(); }
-    unsigned get_size_cr() const { return getSize(); }
+    Address get_address() const { return firstInsnOffset(); }
+    unsigned get_size() const { return getSize(); }
     void *getPtrToInstruction(Address addr) const;
 
     // splitting blocks
@@ -343,8 +343,8 @@ class image_func : public codeRange {
    unsigned getSymTabSize() const { return sym_->getSize(); }
 
    // coderange needs a get_address...
-   Address get_address_cr() const { return getOffset();}
-   unsigned get_size_cr() const { return endOffset_ - getOffset(); }
+   Address get_address() const { return getOffset();}
+   unsigned get_size() const { return endOffset_ - getOffset(); }
 
    void *getPtrToInstruction(Address addr) const;
 

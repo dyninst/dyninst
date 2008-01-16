@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.238 2007/12/31 16:08:06 bernat Exp $
+// $Id: aix.C,v 1.239 2008/01/16 22:01:25 legendre Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1846,13 +1846,13 @@ void process::copyDanglingMemory(process *parent) {
     modifiedRanges_.elements(mods);
 
     for (unsigned j = 0; j < mods.size(); j++) {
-        unsigned char buffer[mods[j]->get_size_cr()];
+        unsigned char buffer[mods[j]->get_size()];
 
-        parent->readDataSpace((void *)mods[j]->get_address_cr(),
-                              mods[j]->get_size_cr(),
+        parent->readDataSpace((void *)mods[j]->get_address(),
+                              mods[j]->get_size(),
                               (void *)buffer, true);
-        if (!writeDataSpace((void *)mods[j]->get_address_cr(),
-                       mods[j]->get_size_cr(),
+        if (!writeDataSpace((void *)mods[j]->get_address(),
+                       mods[j]->get_size(),
                        (void *)buffer))
             fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
     }

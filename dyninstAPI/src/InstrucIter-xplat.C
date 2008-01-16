@@ -221,7 +221,7 @@ InstrucIter::InstrucIter( Address addr, unsigned size, AddressSpace *a) :
 InstrucIter::InstrucIter (image_func *func) :
   instructions_(func->img()),
   base(func->getOffset()),
-  range(func->get_size_cr()), // Probably in the middle of
+  range(func->get_size()), // Probably in the middle of
   // parsing, so calling getSize is
   // a bad idea as it may
   // trigger... parsing.
@@ -236,7 +236,7 @@ InstrucIter::InstrucIter (image_func *func) :
 InstrucIter::InstrucIter(Address current, image_func *func) :
   instructions_(func->img()),
   base(func->getOffset()),
-  range(func->get_size_cr()), // Probably in the middle of
+  range(func->get_size()), // Probably in the middle of
   // parsing, so calling getSize is
   // a bad idea as it may
   // trigger... parsing.
@@ -249,7 +249,7 @@ InstrucIter::InstrucIter(Address current, image_func *func) :
 InstrucIter::InstrucIter(Address current, image_parRegion *parR) :
   instructions_(parR->getAssociatedFunc()->img()),
   base(parR->firstInsnOffset()),
-  range(parR->get_size_cr()), // Probably in the middle of
+  range(parR->get_size()), // Probably in the middle of
   // parsing, so calling getSize is
   // a bad idea as it may
   // trigger... parsing.

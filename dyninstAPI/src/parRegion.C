@@ -124,7 +124,7 @@ void image_parRegion::setClauseLoc(const char *key, Address value)
 int_parRegion::int_parRegion(image_parRegion *ip, Address baseAddr, int_function * iFunc)
 {
   ip_ = ip;
-  addr_ = baseAddr + ip->get_address_cr();
+  addr_ = baseAddr + ip->get_address();
   endAddr_ = addr_ + ip->getSize();
   intFunc_ = iFunc;
 }

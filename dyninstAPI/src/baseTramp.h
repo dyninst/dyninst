@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.21 2007/12/04 17:57:57 bernat Exp $
+// $Id: baseTramp.h,v 1.22 2008/01/16 22:01:27 legendre Exp $
 
 // baseTramp class definition
 
@@ -100,8 +100,8 @@ class baseTrampInstance : public generatedCodeObject {
     bool isInInstru(Address pc);
     
     // codeRange...
-    Address get_address_cr() const { return trampPreAddr(); }
-    unsigned get_size_cr() const; 
+    Address get_address() const { return trampPreAddr(); }
+    unsigned get_size() const; 
     void *getPtrToInstruction(Address addr) const;
 
 

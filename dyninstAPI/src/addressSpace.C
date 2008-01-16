@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.13 2007/12/31 16:08:03 bernat Exp $
+// $Id: addressSpace.C,v 1.14 2008/01/16 22:01:24 legendre Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -237,23 +237,23 @@ void AddressSpace::addModifiedRange(codeRange *range) {
 void AddressSpace::removeOrigRange(codeRange *range) {
     codeRange *tmp = NULL;
     
-    if (!textRanges_.find(range->get_address_cr(), tmp))
+    if (!textRanges_.find(range->get_address(), tmp))
         return;
 
     assert (range == tmp);
 
-    textRanges_.remove(range->get_address_cr());
+    textRanges_.remove(range->get_address());
 }
 
 void AddressSpace::removeModifiedRange(codeRange *range) {
     codeRange *tmp = NULL;
     
-    if (!modifiedRanges_.find(range->get_address_cr(), tmp))
+    if (!modifiedRanges_.find(range->get_address(), tmp))
         return;
 
     assert (range == tmp);
 
-    modifiedRanges_.remove(range->get_address_cr());
+    modifiedRanges_.remove(range->get_address());
 
     instArea *area = dynamic_cast<instArea *>(range);
     if (area) {
@@ -286,8 +286,8 @@ codeRange *AddressSpace::findOrigByAddr(Address addr) {
     
     assert(range);
     
-    bool in_range = (addr >= range->get_address_cr() &&
-                     addr <= (range->get_address_cr() + range->get_size_cr()));
+    bool in_range = (addr >= range->get_address() &&
+                     addr <= (range->get_address() + range->get_size()));
     assert(in_range); // Supposed to return NULL if this is the case
     
     // The top level tree doesn't go into mapped_objects, which is not
@@ -313,8 +313,8 @@ codeRange *AddressSpace::findModByAddr(Address addr) {
     
     assert(range);
     
-    bool in_range = (addr >= range->get_address_cr() &&
-                     addr <= (range->get_address_cr() + range->get_size_cr()));
+    bool in_range = (addr >= range->get_address() &&
+                     addr <= (range->get_address() + range->get_size()));
     assert(in_range); // Supposed to return NULL if this is the case
 
     return range;
@@ -433,9 +433,9 @@ functionReplacement *AddressSpace::findFuncReplacement(Address addr) {
 
 void AddressSpace::addFuncReplacement(functionReplacement *rep) {
     assert(rep);
-    Address currAddr = rep->get_address_cr();
+    Address currAddr = rep->get_address();
 
-    while (currAddr < (rep->get_address_cr() + rep->get_size_cr())) {
+    while (currAddr < (rep->get_address() + rep->get_size())) {
         codeRange *range = findModByAddr(currAddr);
 
         if (range) removeModifiedRange(range);
@@ -458,7 +458,7 @@ replacedFunctionCall *AddressSpace::findReplacedCall(Address addr) {
 }
 
 void AddressSpace::addReplacedCall(replacedFunctionCall *repcall) {
-    codeRange *range = findModByAddr(repcall->get_address_cr());
+    codeRange *range = findModByAddr(repcall->get_address());
     if (range) {
         // Can't replace instrumentation right now...
         assert(dynamic_cast<replacedFunctionCall *>(range));

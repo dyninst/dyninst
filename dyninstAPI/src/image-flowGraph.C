@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.43 2008/01/03 00:13:17 legendre Exp $
+ * $Id: image-flowGraph.C,v 1.44 2008/01/16 22:01:30 legendre Exp $
  */
 
 #include <stdio.h>
@@ -273,7 +273,7 @@ bool image::analyzeImage()
                          enterFunctionInTables(pdf, false);
                          
                          // Update size
-                         pdf->symbol()->setSize(pdf->get_size_cr());
+                         pdf->symbol()->setSize(pdf->get_size());
                          
                          // If any calls were discovered, adjust our
                          // position in the function vector accordingly
@@ -444,12 +444,12 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
                     pdf->symTabName().c_str(),pdf->getOffset());
 		
 		// Update the Symbol's impression of size
-		pdf->symbol()->setSize(pdf->get_size_cr());
+		pdf->symbol()->setSize(pdf->get_size());
 
                 enterFunctionInTables(pdf,false);
 
                 // Update the Symbol's impression of size
-                pdf->symbol()->setSize(pdf->get_size_cr());
+                pdf->symbol()->setSize(pdf->get_size());
                 
                 // mangled name
                 pdf->addSymTabName(pdf->symTabName().c_str());
@@ -729,7 +729,6 @@ bool image_func::buildCFG(
     // ** Use to special-case abort and exit calls
     dictionary_hash<Address, pdstring> *pltFuncs = img()->getPltFuncs();
     
-
     // ** end abort/exit setup
 
     Address funcEnd = funcBegin;

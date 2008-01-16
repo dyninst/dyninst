@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.7 2007/11/08 18:25:41 bernat Exp $
+// $Id: binaryEdit.h,v 1.8 2008/01/16 22:01:29 legendre Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -167,8 +167,8 @@ class memoryTracker : public codeRange {
         }
     ~memoryTracker() { free(b_); }
 
-    Address get_address_cr() const { return a_; }
-    unsigned get_size_cr() const { return s_; }
+    Address get_address() const { return a_; }
+    unsigned get_size() const { return s_; }
     void *get_local_ptr() const { return b_; }
 
     bool alloced;

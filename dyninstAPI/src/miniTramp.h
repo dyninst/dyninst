@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.18 2007/12/04 21:47:17 bernat Exp $
+// $Id: miniTramp.h,v 1.19 2008/01/16 22:01:37 legendre Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -102,8 +102,8 @@ class miniTrampInstance : public generatedCodeObject {
   Address trampBase;
   bool deleted;
 
-  Address get_address_cr() const { return trampBase; }
-  unsigned get_size_cr() const; // needs miniTramp and is so defined
+  Address get_address() const { return trampBase; }
+  unsigned get_size() const; // needs miniTramp and is so defined
                                 // in .C file
   void *getPtrToInstruction(Address addr) const;
 
@@ -176,7 +176,7 @@ class miniTramp {
   // The delete operator, just without delete. Uninstruments minis.
   bool uninstrument();
 
-  unsigned get_size_cr() const {
+  unsigned get_size() const {
     assert(returnOffset);
     return returnOffset;
   }

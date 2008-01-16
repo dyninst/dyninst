@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.3 2007/12/31 16:08:17 bernat Exp $
+// $Id: liveness.C,v 1.4 2008/01/16 22:01:34 legendre Exp $
 
 #if defined(cap_liveness)
 
@@ -569,8 +569,8 @@ bool int_basicBlock::initRegisterGenKill()
        codeRange *range = func_->ifunc();
 
        if (range) {
-          if (!(range->get_address_cr() <= branchAddress &&
-                branchAddress < (range->get_address_cr() + range->get_size_cr()))) {
+          if (!(range->get_address() <= branchAddress &&
+                branchAddress < (range->get_address() + range->get_size()))) {
              gen->bitarray_set(3,gen);
              gen->bitarray_set(4,gen);
              genFP->bitarray_set(1,genFP);
@@ -663,8 +663,8 @@ bool int_basicBlock::initRegisterGenKill()
 		      codeRange *range = func_->ifunc();
 		      
 		      if (range) {
-			if (!(range->get_address_cr() <= branchAddress &&
-			      branchAddress < (range->get_address_cr() + range->get_size_cr()))) {
+			if (!(range->get_address() <= branchAddress &&
+			      branchAddress < (range->get_address() + range->get_size()))) {
 			  for (int a = 3; a <= 10; a++)
 			    gen->bitarray_set(a,gen);
 			  for (int a = 1; a <= 13; a++)

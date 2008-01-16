@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.15 2007/08/16 20:43:47 bill Exp $
+// $Id: image-sparc.C,v 1.16 2008/01/16 22:01:33 legendre Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -400,7 +400,7 @@ void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int
       parseOMPFunc(false);
       parentFunc->parseOMPParent(parReg, 0, currentSectionNum);
     }
-  parReg->setLastInsn(get_address_cr() + get_size_cr());
+  parReg->setLastInsn(get_address() + get_size());
 }
 
 // This parses the parent functions that generated outlined do/for, parallel constructs */

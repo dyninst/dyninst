@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.59 2007/12/11 20:22:06 bill Exp $
+// $Id: baseTramp.C,v 1.60 2008/01/16 22:01:26 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -306,13 +306,13 @@ baseTramp::~baseTramp() {
     // Dunno
 }
 
-unsigned baseTrampInstance::get_size_cr() const { 
+unsigned baseTrampInstance::get_size() const { 
     // Odd... especially if there are minitramps in the middle. 
     // For now return a+b; eventually we'll need a codeRange
     // that can handle noncontiguous ranges.
     assert(baseT);
     Address endAddr = trampPostAddr() + baseT->postSize;
-    return endAddr - get_address_cr();
+    return endAddr - get_address();
 }
 
 // recursive into miniTramps
@@ -659,10 +659,10 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     saveEndOffset = gen.used();
     bool retval = true;
 
-    if (!baseTramp->generateCode(gen, false)) {
+    /*    if (!baseTramp->generateCode(gen, false)) {
         fprintf(stderr, "Gripe: base tramp creation failed\n");
         retval = false;
-    }
+        }*/
 
 
     trampPostOffset = gen.used();

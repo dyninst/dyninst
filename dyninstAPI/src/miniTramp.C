@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.39 2007/09/12 20:57:52 bernat Exp $
+// $Id: miniTramp.C,v 1.40 2008/01/16 22:01:36 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -618,7 +618,7 @@ bool miniTrampInstance::hasChanged() {
         return false;
 }
  
-unsigned miniTrampInstance::get_size_cr() const { 
+unsigned miniTrampInstance::get_size() const { 
      return mini->size_;
 }
 

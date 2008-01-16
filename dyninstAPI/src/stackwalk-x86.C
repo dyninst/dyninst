@@ -184,8 +184,8 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
 
     if (range &&
         range->is_basicBlockInstance()) {
-        InstrucIter ii(range->get_address_cr(),
-                       range->get_size_cr(),
+        InstrucIter ii(range->get_address(),
+                       range->get_size(),
                        proc);
         ii.setCurrentAddress(addr);
         if (ii.isAReturnInstruction() ||

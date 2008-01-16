@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.13 2008/01/10 20:12:42 giri Exp $
+// $Id: binaryEdit.C,v 1.14 2008/01/16 22:01:28 legendre Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -69,10 +69,10 @@ bool BinaryEdit::readTextSpace(const void *inOther,
     codeRange *range = NULL;
     if (!memoryTracking_.find(addr, range))
         return false;
-    assert(addr >= range->get_address_cr());
+    assert(addr >= range->get_address());
 
-    Address offset = addr - range->get_address_cr();
-    assert(offset < range->get_size_cr());
+    Address offset = addr - range->get_address();
+    assert(offset < range->get_size());
 
     void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
     memcpy(const_cast<void *>(inSelf), local_ptr, size);
@@ -94,41 +94,39 @@ bool BinaryEdit::writeTextSpace(void *inOther,
         debug = true;
     }
 
-
     while (to_do) {
-        // Look up this address in the code range tree of memory
-        codeRange *range = NULL;
-        if (!memoryTracking_.find(addr, range)) {
-            assert(0);
-            return false;
-        }
-        
-        // We might (due to fragmentation) be overlapping multiple backing
-        // store "chunks", so this has to be iterative rather than a one-shot.
-
-        Address chunk_start = range->get_address_cr();
-        Address chunk_end = range->get_address_cr() + range->get_size_cr();
-        
-        assert (addr >= chunk_start);
-
-        unsigned chunk_size = 0;
-        if ((addr + to_do) <= chunk_end) {
-            chunk_size = to_do;
-        }
-        else {
-            chunk_size = chunk_end - addr;
-        }
-
-        Address offset = addr - range->get_address_cr();
-        assert(offset < range->get_size_cr());
-        
-        void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
-        memcpy(local_ptr, (void *)local, chunk_size);
-        to_do -= chunk_size;
-        addr += chunk_size;
-        local += chunk_size;
+       // Look up this address in the code range tree of memory
+       codeRange *range = NULL;
+       if (!memoryTracking_.find(addr, range)) {
+          assert(0);
+          return false;
+       }
+       
+       // We might (due to fragmentation) be overlapping multiple backing
+       // store "chunks", so this has to be iterative rather than a one-shot.
+       
+       Address chunk_start = range->get_address();
+       Address chunk_end = range->get_address() + range->get_size();
+       
+       assert (addr >= chunk_start);
+       
+       unsigned chunk_size = 0;
+       if ((addr + to_do) <= chunk_end) {
+          chunk_size = to_do;
+       }
+       else {
+          chunk_size = chunk_end - addr;
+       }
+       
+       Address offset = addr - range->get_address();
+       assert(offset < range->get_size());
+       
+       void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
+       memcpy(local_ptr, (void *)local, chunk_size);
+       to_do -= chunk_size;
+       addr += chunk_size;
+       local += chunk_size;
     }
-
 
     return true;
 }    
@@ -339,11 +337,11 @@ bool BinaryEdit::writeFile(const pdstring &newFileName)
         if (!tracker->alloced) continue;
 
         // Copy whatever is in there into the big buffer, at the appropriate address
-        assert(tracker->get_address_cr() >= lowWaterMark_);
-        Address offset = tracker->get_address_cr() - lowWaterMark_;
-        assert((offset + tracker->get_size_cr()) < highWaterMark_);
+        assert(tracker->get_address() >= lowWaterMark_);
+        Address offset = tracker->get_address() - lowWaterMark_;
+        assert((offset + tracker->get_size()) < highWaterMark_);
         void *ptr = (void *)(offset + (Address)newSectionPtr);
-        memcpy(ptr, tracker->get_local_ptr(), tracker->get_size_cr());
+        memcpy(ptr, tracker->get_local_ptr(), tracker->get_size());
     }
         
 
@@ -410,9 +408,9 @@ bool BinaryEdit::writeFile(const pdstring &newFileName)
                                     "DyninstInst",
                                     Symbol::ST_FUNCTION,
                                     Symbol::SL_GLOBAL,
-                                    newCode[i]->get_address_cr(),
+                                    newCode[i]->get_address(),
                                     newSec,
-                                    newCode[i]->get_size_cr(),
+                                    newCode[i]->get_size(),
                                     (void *)newCode[i]);
             
         symObj->addSymbol(newSym, false);
@@ -486,36 +484,36 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
     pdvector<codeRange *> modified;
     modifiedRanges_.elements(modified);
     for (unsigned i = 0; i < modified.size(); i++) {
-        assert(modified[i]->get_address_cr() >= getAOut()->get_address_cr());
+        assert(modified[i]->get_address() >= getAOut()->get_address());
         bool found = false;
 
         // Find the segment this modification occurs in
         for (unsigned j = 0; j < oldSegs.size(); j++) {
-            if ((modified[i]->get_address_cr() >= oldSegs[j].loadaddr) &&
-                (modified[i]->get_address_cr() < (oldSegs[j].loadaddr + oldSegs[j].size))) {
+            if ((modified[i]->get_address() >= oldSegs[j].loadaddr) &&
+                (modified[i]->get_address() < (oldSegs[j].loadaddr + oldSegs[j].size))) {
                 if (oldSegs[j].data == newSegs[j].data) {
                     newSegs[j].data = malloc(oldSegs[j].size);
                     memcpy(newSegs[j].data, oldSegs[j].data, oldSegs[j].size);
                 }
-                Address offset = modified[i]->get_address_cr() - oldSegs[j].loadaddr;
+                Address offset = modified[i]->get_address() - oldSegs[j].loadaddr;
 
                 assert(offset < oldSegs[j].size);
                 void *local_addr = (void *)((Address) newSegs[j].data + offset);
-                memcpy(local_addr, modified[i]->get_local_ptr(), modified[i]->get_size_cr());
+                memcpy(local_addr, modified[i]->get_local_ptr(), modified[i]->get_size());
                 found = true;
 
                 break;
             }
         }
         if (!found) {
-	  if ((modified[i]->get_address_cr() >= lowWaterMark_) &&
-	      ((modified[i]->get_address_cr() + modified[i]->get_size_cr()) <= highWaterMark_)) {
+	  if ((modified[i]->get_address() >= lowWaterMark_) &&
+	      ((modified[i]->get_address() + modified[i]->get_size()) <= highWaterMark_)) {
             danglingMods.push_back(modified[i]);
 	  }
 	  else {
 	    // Where does this one belong?
 	    fprintf(stderr, "Modification to unknown location 0x%lx\n",
-		    modified[i]->get_address_cr());
+		    modified[i]->get_address());
 	    for (unsigned j = 0; j < oldSegs.size(); j++) {
 	      fprintf(stderr, "Segment %d: 0x%lx to 0x%lx\n",
 		      j, oldSegs[j].loadaddr, oldSegs[j].loadaddr + oldSegs[j].size);
@@ -583,10 +581,10 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
         for (unsigned i = 0; i < newStuff.size(); i++) {
             if (newStuff[i] == getAOut()) continue;
             
-            Address offset = newStuff[i]->get_address_cr() - low;
-            assert((offset + newStuff[i]->get_size_cr()) <= newSectionSize);
+            Address offset = newStuff[i]->get_address() - low;
+            assert((offset + newStuff[i]->get_size()) <= newSectionSize);
             void *local_addr = (void *)(offset + (Address)newSection);
-            memcpy(local_addr, newStuff[i]->get_local_ptr(), newStuff[i]->get_size_cr());
+            memcpy(local_addr, newStuff[i]->get_local_ptr(), newStuff[i]->get_size());
 
             char buffer[1025];
 
@@ -610,9 +608,9 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
                                         "DyninstInst",
                                         Symbol::ST_FUNCTION,
                                         Symbol::SL_GLOBAL,
-                                        newStuff[i]->get_address_cr(),
+                                        newStuff[i]->get_address(),
                                         newSec,
-                                        newStuff[i]->get_size_cr(),
+                                        newStuff[i]->get_size(),
                                         (void *)newStuff[i]);
             
             symObj->addSymbol(newSym, false);
@@ -620,10 +618,10 @@ bool BinaryEdit::writeFile(const pdstring &newFileName) {
         fprintf(stderr, "Applying %d dangling modifications...\n", danglingMods.size());
         for (unsigned i = 0; i < danglingMods.size(); i++) {
             // Overwrite whatever is there...
-            Address offset = danglingMods[i]->get_address_cr() - low;
-            assert((offset + danglingMods[i]->get_size_cr()) <= newSectionSize);
+            Address offset = danglingMods[i]->get_address() - low;
+            assert((offset + danglingMods[i]->get_size()) <= newSectionSize);
             void *local_addr = (void *)(offset + (Address)newSection);
-            memcpy(local_addr, danglingMods[i]->get_local_ptr(), danglingMods[i]->get_size_cr());
+            memcpy(local_addr, danglingMods[i]->get_local_ptr(), danglingMods[i]->get_size());
 
         }
     }

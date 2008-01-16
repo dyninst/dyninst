@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.33 2007/06/13 18:51:20 bernat Exp $
+/* $Id: signalhandler.h,v 1.34 2008/01/16 22:01:41 legendre Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -68,8 +68,8 @@ class fileDescriptor;
 class signal_handler_location : public codeRange {
  public:
     signal_handler_location(Address addr, unsigned size);
-    Address get_address_cr() const { return addr_; }
-    unsigned get_size_cr() const { return size_; }
+    Address get_address() const { return addr_; }
+    unsigned get_size() const { return size_; }
 
  private:
     Address addr_;

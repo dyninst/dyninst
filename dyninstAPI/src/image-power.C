@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.19 2007/08/16 02:34:22 rutar Exp $
+// $Id: image-power.C,v 1.20 2008/01/16 22:01:32 legendre Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -404,7 +404,7 @@ void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int
     }
 
   // sets the last instruction of the region
-  parReg->setLastInsn(get_address_cr() + get_size_cr());
+  parReg->setLastInsn(get_address() + get_size());
   
   // we need to parse the parent function to get all the information about the region, mostly for worksharing constructs
   bool hasLoop = parentFunc->parseOMPParent(parReg, desiredNum + totalSectionGroups, currentSectionNum);	    

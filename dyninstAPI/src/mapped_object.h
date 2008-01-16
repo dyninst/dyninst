@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.18 2007/12/12 22:20:50 roundy Exp $
+// $Id: mapped_object.h,v 1.19 2008/01/16 22:01:35 legendre Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -149,9 +149,9 @@ class mapped_object : public codeRange {
     const pdstring debugString() const;
 
     // Used for codeRange ONLY! DON'T USE THIS! BAD USER!
-    Address get_address_cr() const { return codeAbs(); }
+    Address get_address() const { return codeAbs(); }
     void *get_local_ptr() const;
-    unsigned get_size_cr() const { return imageSize(); }
+    unsigned get_size() const { return imageSize(); }
 
     AddressSpace *proc() const;
 
@@ -292,8 +292,8 @@ private:
 class mappedObjData : public codeRange {
  public:
     mappedObjData(mapped_object *obj_) : obj(obj_) {};
-    Address get_address_cr() const { return obj->dataAbs(); }
-    unsigned get_size_cr() const { return obj->dataSize(); }
+    Address get_address() const { return obj->dataAbs(); }
+    unsigned get_size() const { return obj->dataSize(); }
     mapped_object *obj;
 };
 

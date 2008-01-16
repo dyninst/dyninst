@@ -90,8 +90,8 @@ class image_parRegion : public codeRange {
   Address lastInsnOffset() const { return lastInsnOffset_; }
   Address getSize() const { return lastInsnOffset_ - firstInsnOffset_; }
 
-  Address get_address_cr() const {return firstInsnOffset_; }
-  unsigned int get_size_cr() const {return 0;}
+  Address get_address() const {return firstInsnOffset_; }
+  unsigned int get_size() const {return 0;}
 
   parRegType getRegionType(){return regionType;}
 

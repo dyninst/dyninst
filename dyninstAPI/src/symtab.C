@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.311 2008/01/03 22:55:10 jaw Exp $
+ // $Id: symtab.C,v 1.312 2008/01/16 22:01:43 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1104,7 +1104,7 @@ void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
     // the code range tree. They will be added after parsing. 
     if(!wasSymtab) {
         // TODO: out-of-line insertion here
-        if (func->get_size_cr())
+        if (func->get_size())
           funcsByRange.insert(func);
         Symbol *sym = func->symbol();
         getObject()->addSymbol(sym);
