@@ -886,198 +886,6 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle 
     return childSnippet;
 }
 
-
-/*
- * BPatch_process::insertSnippet
- *
- * Insert a code snippet at a given instrumentation point.  Upon success,
- * returns a handle to the created instance of the snippet, which can be used
- * to delete it.  Otherwise returns NULL.
- *
- * expr		The snippet to insert.
- * point	The point at which to insert it.
- */
-BPatchSnippetHandle *BPatch_process::insertSnippetInt(const BPatch_snippet &expr, 
-						      BPatch_point &point, 
-						      BPatch_snippetOrder order)
-{
-   BPatch_callWhen when;
-   if (point.getPointType() == BPatch_exit)
-      when = BPatch_callAfter;
-   else
-      when = BPatch_callBefore;
-
-   return insertSnippetWhen(expr, point, when, order);
-}
-
-/*
- * BPatch_process::insertSnippet
- *
- * Insert a code snippet at a given instrumentation point.  Upon succes,
- * returns a handle to the created instance of the snippet, which can be used
- * to delete it.  Otherwise returns NULL.
- *
- * expr		The snippet to insert.
- * point	The point at which to insert it.
- */
-// This handles conversion without requiring inst.h in a header file...
-extern bool BPatchToInternalArgs(BPatch_point *point,
-                                 BPatch_callWhen when,
-                                 BPatch_snippetOrder order,
-                                 callWhen &ipWhen,
-                                 callOrder &ipOrder);
-                           
-
-BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &expr,
-						       BPatch_point &point,
-						       BPatch_callWhen when,
-						       BPatch_snippetOrder order)
-{
-  BPatch_Vector<BPatch_point *> points;
-  points.push_back(&point);
-  return insertSnippetAtPointsWhen(expr,
-				   points,
-				   when,
-				   order);
- 
-}
-
-
-/*
- * BPatch_process::insertSnippet
- *
- * Insert a code snippet at each of a list of instrumentation points.  Upon
- * success, Returns a handle to the created instances of the snippet, which
- * can be used to delete them (as a unit).  Otherwise returns NULL.
- *
- * expr		The snippet to insert.
- * points	The list of points at which to insert it.
- */
-// A lot duplicated from the single-point version. This is unfortunate.
-
-
-
-BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snippet &expr,
-                                                               const BPatch_Vector<BPatch_point *> &points,
-                                                               BPatch_callWhen when,
-                                                               BPatch_snippetOrder order)
-{
-    
-    if (dyn_debug_inst) {
-        BPatch_function *f;
-        for (unsigned i=0; i<points.size(); i++) {
-            f = points[i]->getFunction();
-            const char *sname = f->func->prettyName().c_str();
-            inst_printf("[%s:%u] - %d. Insert instrumentation at function %s, "
-                        "address %p, when %d, order %d in proc %d\n",
-                        FILE__, __LINE__, i,
-                        sname, points[i]->getAddress(), (int) when, (int) order,
-                        llproc->getPid());
-            
-        }
-    }
-    
-    if (BPatch::bpatch->isTypeChecked()) {
-        assert(expr.ast_wrapper);
-        if ((*(expr.ast_wrapper))->checkType() == BPatch::bpatch->type_Error) {
-            inst_printf("[%s:%u] - Type error inserting instrumentation\n",
-                        FILE__, __LINE__);
-            return false;
-        }
-    }
-    
-    if (!points.size()) {
-       inst_printf("%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
-      return false;
-    }
-    
-    
-    batchInsertionRecord *rec = new batchInsertionRecord;
-    rec->thread_ = NULL;
-    rec->snip = expr;
-    rec->trampRecursive_ = BPatch::bpatch->isTrampRecursive();
-
-    BPatchSnippetHandle *ret = new BPatchSnippetHandle(this);
-    rec->handle_ = ret;
-    
-    for (unsigned i = 0; i < points.size(); i++) {
-        BPatch_point *point = points[i];
-
-        if (point->addSpace == NULL) {
-            fprintf(stderr, "Error: attempt to use point with no process info\n");
-            continue;
-        }
-        if (dynamic_cast<BPatch_process *>(point->addSpace) != this) {
-            fprintf(stderr, "Error: attempt to use point specific to a different process\n");
-            continue;
-        }        
-#if defined(os_aix)
-        if(llproc->collectSaveWorldData){
-            // Apparently we have problems with main....
-            // The things I do to not grab the name as a strcopy operation...
-	  if (point->getFunction()->lowlevel_func()->symTabName().c_str() == "main") {
-                rec->trampRecursive_ = true;
-            }
-        }
-
-#endif
-
-        callWhen ipWhen;
-        callOrder ipOrder;
-        
-        if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder)) {
-            inst_printf("[%s:%u] - BPatchToInternalArgs failed for point %d\n",
-                        FILE__, __LINE__, i);
-            return NULL;
-        }
-
-        rec->points_.push_back(point);
-        rec->when_.push_back(ipWhen);
-        rec->order_ = ipOrder;
-
-        point->recordSnippet(when, order, ret);
-    }
-
-    assert(rec->points_.size() == rec->when_.size());
-
-    // Okey dokey... now see if we just tack it on, or insert now.
-    if (pendingInsertions) {
-        pendingInsertions->push_back(rec);
-    }
-    else {
-        beginInsertionSetInt();
-        pendingInsertions->push_back(rec);
-        // All the insertion work was moved here...
-        finalizeInsertionSetInt(false);
-    }
-    return ret;
-}
-
-
-/*
- * BPatch_process::insertSnippet
- *
- * Insert a code snippet at each of a list of instrumentation points.  Upon
- * success, Returns a handle to the created instances of the snippet, which
- * can be used to delete them (as a unit).  Otherwise returns NULL.
- *
- * expr		The snippet to insert.
- * points	The list of points at which to insert it.
- */
-
-BPatchSnippetHandle *BPatch_process::insertSnippetAtPoints(
-                 const BPatch_snippet &expr,
-                 const BPatch_Vector<BPatch_point *> &points,
-                 BPatch_snippetOrder order)
-{
-    return insertSnippetAtPointsWhen(expr,
-                                     points,
-                                     BPatch_callUnset,
-                                     order);
-}
-
-
-
 /*
  * BPatch_addressSpace::beginInsertionSet
  * 
@@ -2347,17 +2155,17 @@ bool BPatch_process::setBeingDebuggedFlagInt(bool debuggerPresent)
 		return false;
 	}
 	// use the FS segment selector to look up the segment descriptor in the local descriptor table
-	LPLDT_ENTRY segDesc;
+	LDT_ENTRY segDesc;
 	HANDLE lwphandle = (HANDLE)lwp->get_fd();
-	GetThreadSelectorEntry(lwphandle, (DWORD)regs.cont.SegFs, segDesc);
+	GetThreadSelectorEntry(lwphandle, (DWORD)regs.cont.SegFs, &segDesc);
 	// calculate the address of the TIB
-	unsigned long tibPtr = segDesc->BaseLow;
-	unsigned long tmp = segDesc->HighWord.Bytes.BaseMid;
+	unsigned long tibPtr = segDesc.BaseLow;
+	unsigned long tmp = segDesc.HighWord.Bytes.BaseMid;
 	tibPtr = tibPtr | (tmp << (sizeof(WORD)*8));
-	tmp = segDesc->HighWord.Bytes.BaseHi;
+	tmp = segDesc.HighWord.Bytes.BaseHi;
 	tibPtr = tibPtr | (tmp << (sizeof(WORD)*8+8));
 	printf("FS register=%lx addr of TIB=%lx baseHi=%x baseMid=%x baseLow=%x\n", 
-		(long)regs.cont.SegFs, tibPtr, segDesc->HighWord.Bytes.BaseHi, segDesc->HighWord.Bytes.BaseMid, segDesc->BaseLow );
+		(long)regs.cont.SegFs, tibPtr, segDesc.HighWord.Bytes.BaseHi, segDesc.HighWord.Bytes.BaseMid, segDesc.BaseLow );
 	// read in address of PEB
 	unsigned int pebPtr;
 	if (!llproc->readDataSpace((void*)(tibPtr+48), llproc->getAddressWidth(),(void*)&pebPtr, true)) 
