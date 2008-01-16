@@ -934,7 +934,7 @@ const void *bblInstance::getPtrToOrigInstruction(Address addr) const {
   if (version_ > 0) {
     for (unsigned i = 0; i < get_relocs().size(); i++) {
       if (get_relocs()[i]->relocAddr == addr) {
-	return (void *)get_relocs()[i]->origPtr;
+         return (const void *) get_relocs()[i]->origPtr;
       }
     }
     assert(0);
@@ -995,6 +995,12 @@ unsigned &bblInstance::maxSize() {
    if (!reloc_info)
       reloc_info = new reloc_info_t();
    return reloc_info->maxSize_;
+}
+
+unsigned &bblInstance::minSize() {
+   if (!reloc_info)
+      reloc_info = new reloc_info_t();
+   return reloc_info->minSize_;
 }
 
 bblInstance *&bblInstance::origInstance() {
@@ -1063,13 +1069,15 @@ functionReplacement *bblInstance::getJumpToBlock() const {
 
 bblInstance::reloc_info_t::reloc_info_t() : 
    maxSize_(0), 
+   minSize_(0), 
    origInstance_(NULL), 
    jumpToBlock_(NULL)
 {};
 
 bblInstance::reloc_info_t::reloc_info_t(reloc_info_t *parent, 
                                         int_basicBlock *block)  :
-   maxSize_(0)
+   maxSize_(0),
+   minSize_(0)
 {
    if (parent->origInstance_)
       origInstance_ = block->instVer(parent->origInstance_->version());
@@ -1173,4 +1181,30 @@ bool int_function::getOverlappingFuncs(pdvector<int_function *> &funcs) {
     }
 
     return ret;
+}
+
+Address int_function::get_address() const 
+{
+#if !defined(cap_relocation)
+   return getAddress();
+#else
+   if (!entryPoints_.size())
+      return getAddress();
+   
+   instPoint *entryPoint = entryPoints_[0];
+   int_basicBlock *block = entryPoint->block();
+   bblInstance *inst = block->instVer(installedVersion_);
+   return inst->firstInsnAddr();
+#endif 
+}
+
+unsigned int_function::get_size() const 
+{
+   assert(0);
+   return 0x0;
+}
+
+std::string int_function::get_name() const
+{
+   return symTabName();
 }

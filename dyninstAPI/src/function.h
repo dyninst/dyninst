@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.47 2007/12/31 16:08:12 bernat Exp $
+// $Id: function.h,v 1.48 2008/01/16 22:02:01 legendre Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -118,8 +118,8 @@ class bblInstance : public codeRange {
     // class unless you just need some sort of ordering. We may create these
     // blocks in some random place; depending on address is just plain dumb.
 
-    Address get_address_cr() const { return firstInsnAddr(); }
-    unsigned get_size_cr() const { return getSize(); }
+    Address get_address() const { return firstInsnAddr(); }
+    unsigned get_size() const { return getSize(); }
     void *getPtrToInstruction(Address addr) const;
     void *get_local_ptr() const;
 
@@ -139,6 +139,11 @@ class bblInstance : public codeRange {
     // Get the most space necessary to relocate this basic block,
     // using worst-case analysis.
     bool relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods);
+    
+    //Re-initialize the block so that it can be regenerated at a new address,
+    // meant for use by fixpoint block regeneration.
+    bool reset();
+
     unsigned sizeRequired();
     // Pin a block to a particular address; in theory, we can only
     // do these for blocks that can be entered via jumps, but for now
@@ -153,12 +158,16 @@ class bblInstance : public codeRange {
     bool check(pdvector<Address> &checkPCs);
     // Link things up
     bool link(pdvector<codeRange *> &overwrittenObjs);
+
+    unsigned &maxSize();
+    unsigned &minSize();
 #endif
 
 #if defined(cap_relocation)
     class reloc_info_t {
     public:       
        unsigned maxSize_;
+       unsigned minSize_;
        bblInstance *origInstance_;
        pdvector<funcMod *> appliedMods_;
        codeGen generatedBlock_; // Kept so we can quickly iterate over the block
@@ -166,13 +175,13 @@ class bblInstance : public codeRange {
        functionReplacement *jumpToBlock_; // Kept here between generate->link
 
        struct relocInsn {
-	 // Where we ended up; can derive size from next - this one
-	 Address origAddr;
-	 Address relocAddr;
-	 instruction *origInsn;
-	 const void *origPtr;
-	 Address relocTarget;
-	 unsigned relocSize;
+          // Where we ended up; can derive size from next - this one
+          Address origAddr;
+          Address relocAddr;
+          instruction *origInsn;
+          const void *origPtr;
+          Address relocTarget;
+          unsigned relocSize;
        };
        
        pdvector<relocInsn *> relocs_;
@@ -186,7 +195,6 @@ class bblInstance : public codeRange {
 
     //Setter functions for relocation information
     pdvector<reloc_info_t::relocInsn *> &relocs();
-    unsigned &maxSize();
     bblInstance *&origInstance();
     pdvector<funcMod *> &appliedMods();
     codeGen &generatedBlock();
@@ -309,7 +317,7 @@ class int_basicBlock {
     pdvector<bblInstance *> instances_;
 };
 
-class int_function {
+class int_function : public patchTarget {
   friend class int_basicBlock;
  public:
    //static pdstring emptyString;
@@ -424,7 +432,10 @@ class int_function {
 
    bool isInstrumentable() const { return ifunc_->isInstrumentable(); }
 
-
+   Address get_address() const;
+   unsigned get_size() const;
+   std::string get_name() const;
+   
 #if defined(arch_x86) || defined(arch_x86_64)
    //Replaces the function with a 'return val' statement.
    // currently needed only on Linux/x86
@@ -594,6 +605,12 @@ class int_function {
    // We want to keep around expansions for instrumentation
    pdvector<funcMod *> enlargeMods_;
 
+   //Perform inferior malloc
+   Address allocRelocation(unsigned size_required);
+
+   //relocate all individual blocks
+   bool relocBlocks(Address baseInMutatee, pdvector<bblInstance *> &newInstances);
+
    // The actual relocation workhorse (the public method is just a facade)
    bool relocationGenerateInt(pdvector<funcMod *> &mods, 
                               int version,
@@ -641,8 +658,8 @@ class functionReplacement : public codeRange {
     unsigned sourceVersion();
     unsigned targetVersion();
 
-    Address get_address_cr() const;
-    unsigned get_size_cr() const;
+    Address get_address() const;
+    unsigned get_size() const;
     void *get_local_ptr() const { return jumpToRelocated.start_ptr(); }
 
     AddressSpace *proc() const;
