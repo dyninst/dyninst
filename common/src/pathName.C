@@ -246,7 +246,7 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
 }
 
 
-#if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
+#if defined(os_windows)
 #define PATH_SEP ('\\')
 #define SECOND_PATH_SEP ('/')
 #else

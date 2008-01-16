@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.20 2008/01/03 17:49:19 jaw Exp $
+// $Id: Object-nt.C,v 1.21 2008/01/16 22:01:12 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -624,7 +624,7 @@ void Object::ParseDebugInfo( void )
    curModule->DefineSymbols( this, symbols_ );
    no_of_symbols_ = symbols_.size();
 
-   fprintf(stderr, "%s[%d]:  removed call to parseFileLineInfo here\n", FILE__, __LINE__);
+   //fprintf(stderr, "%s[%d]:  removed call to parseFileLineInfo here\n", FILE__, __LINE__);
 
    // Since PE-COFF is very similar to COFF (in that it's not like ELF),
    // the .text and .data sections are perfectly mapped to code/data segments
@@ -826,18 +826,6 @@ DLLEXPORT ObjectType Object::objType() const
 	return is_aout() ? obj_Executable : obj_SharedLib;
 }
 
-#define PATH_SEP ('\\')
-#define SECOND_PATH_SEP ('/')
-std::string Dyninst::SymtabAPI::extract_pathname_tail(const std::string &path)
-{
-  const char *path_str = path.c_str();
-  const char *path_sep = P_strrchr(path_str, PATH_SEP);
-  const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
-  if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
-    path_sep = sec_path_sep;
-  std::string ret = (path_sep) ? (path_sep + 1) : (path_str);
-  return ret;
-}
 
 void Object::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs)
 {
@@ -983,38 +971,38 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
 	
 	std::string vName = convertCharToString(pSymInfo->Name);
 	std::string fName = convertCharToString(func->getModule()->fileName().c_str());
-    newvar = new localVar(vName, type, fName, -1);
+   newvar = new localVar(vName, type, fName, -1);
 	newvar->addLocation(loc);
 
     //Store the variable as a local or parameter appropriately
-    if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_PARAMETER) {
+   if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_PARAMETER) {
 		if(!func->params_)
 			func->params_ = new localVarCollection();
-        func->params_->addLocalVar(newvar);
-        paramType = "parameter";
-    }
-    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_LOCAL) {
-		if(!func->vars_)
-			func->vars_ = new localVarCollection();
-        func->vars_->addLocalVar(newvar);
-        paramType = "local";
-    }
-    else {
-        fprintf(stderr, "[%s:%u] - Local variable of unknown type.  %s in %s\n",
-                __FILE__, __LINE__, pSymInfo->Name, func->getPrettyName().c_str());
-        paramType = "unknown";
-    }
+      func->params_->addLocalVar(newvar);
+      paramType = "parameter";
+   }
+   else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_LOCAL) {
+      if(!func->vars_)
+         func->vars_ = new localVarCollection();
+      func->vars_->addLocalVar(newvar);
+      paramType = "local";
+   }
+   else {
+      fprintf(stderr, "[%s:%u] - Local variable of unknown type.  %s in %s\n",
+              __FILE__, __LINE__, pSymInfo->Name, func->getPrettyName().c_str());
+      paramType = "unknown";
+   }
 
     
-    const char *typeName;
-    if (type) {
-        typeName = type->getName().c_str();
-    }
-    else {
-        typeName = "unknown";
-    }
-
-    return true;
+   const char *typeName;
+   if (type) {
+      typeName = type->getName().c_str();
+   }
+   else {
+      typeName = "unknown";
+   }
+   
+   return true;
 }
 
 

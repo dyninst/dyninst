@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.14 2008/01/03 17:49:19 jaw Exp $
+ * $Id: Object-nt.h,v 1.15 2008/01/16 22:01:13 legendre Exp $
 ************************************************************************/
 
 
@@ -232,9 +232,6 @@ private:
 #  define SYMFLAG_PARAMETER     SYMF_PARAMETER
 #  define SYMFLAG_EXPORT        SYMF_EXPORT
 #endif // !defined(SYMFLAG_FUNCTION)
-
-
-std::string extract_pathname_tail(const std::string &path);
 
 }//namespace Dyninst
 }//namespace SymtabAPI
