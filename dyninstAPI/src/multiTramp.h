@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.25 2007/12/11 20:22:07 bill Exp $
+// $Id: multiTramp.h,v 1.26 2008/01/16 22:00:49 legendre Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -172,8 +172,8 @@ class generatedCodeObject : public codeRange {
     // And where we ended up
     Address addrInMutatee_;
 
-    Address get_address_cr() const { return addrInMutatee_; }
-    unsigned get_size_cr() const { return size_; }
+    Address get_address() const { return addrInMutatee_; }
+    unsigned get_size() const { return size_; }
 
     bool objIsChild(generatedCodeObject *obj);
 
@@ -276,30 +276,10 @@ class relocatedInstruction : public relocatedCode {
  public:
     relocatedInstruction(instruction *i,
                          Address o, // The original location in the untouched mutatee
-			 Address f, // Where we're coming from (function relocation)
-			 Address t, // Target (if already set)
-                         multiTramp *m) :
-        relocatedCode(),
-        insn(i),
-#if defined(arch_sparc)
-        ds_insn(NULL),
-        agg_insn(NULL),
-#endif
-        origAddr_(o), fromAddr_(f), targetAddr_(t),
-        multiT(m), targetOverride_(0) {}
-    relocatedInstruction(relocatedInstruction *prev,
-                         multiTramp *m) :
-        relocatedCode(),
-        insn(prev->insn),
-#if defined(arch_sparc)
-        ds_insn(prev->ds_insn),
-        agg_insn(prev->agg_insn),
-#endif
-      origAddr_(prev->origAddr_), fromAddr_(prev->fromAddr_),
-      targetAddr_(prev->targetAddr_),
-      multiT(m),
-        targetOverride_(prev->targetOverride_) {}
-    
+                         Address f, // Where we're coming from (function relocation)
+                         Address t, // Target (if already set)
+                         multiTramp *m);
+    relocatedInstruction(relocatedInstruction *prev, multiTramp *m);
     relocatedInstruction(const relocatedInstruction *parRI,
                          multiTramp *cMT,
                          process *child);
@@ -329,7 +309,7 @@ class relocatedInstruction : public relocatedCode {
                       UNW_INFO_TYPE * * unwindInformation);
 
     // Change the target of a jump 
-    void overrideTarget(Address newTarget);
+    void overrideTarget(patchTarget *target);
 
     // And get the original target
     Address originalTarget() const;
@@ -344,7 +324,7 @@ class relocatedInstruction : public relocatedCode {
 
  private:
     // TODO: move to vector of instructions
-    Address targetOverride_;
+    patchTarget *targetOverride_;
 };
 
 // Preliminary code to replace an instruction with an AST. 
@@ -364,22 +344,9 @@ class replacedInstruction : public relocatedCode {
     replacedInstruction(const relocatedInstruction *i,
                         AstNodePtr ast,
                         instPoint *p, // Needed for memory instrumentation
-                        multiTramp *m) :
-        relocatedCode(),
-        oldInsn_(i),
-        ast_(ast),
-        point_(p),
-        multiT_(m) {}
-    
+                        multiTramp *m);
     // Update constructor
-    replacedInstruction(replacedInstruction *prev,
-                        multiTramp *m) :
-        relocatedCode(),
-        oldInsn_(prev->oldInsn_),
-        ast_(prev->ast_),
-        point_(prev->point_),
-        multiT_(m) {
-    };
+    replacedInstruction(replacedInstruction *prev, multiTramp *m);
 
     // Fork constructor
     replacedInstruction(replacedInstruction *parRI,
@@ -394,7 +361,7 @@ class replacedInstruction : public relocatedCode {
     multiTramp *multi() const { return multiT_; }
     AddressSpace *proc() const;
 
-    Address relocAddr() const { return get_address_cr(); }
+    Address relocAddr() const { return get_address(); }
     Address uninstrumentedAddr() { return relocInsn()->uninstrumentedAddr(); }
 
     // Overridden from generatedCodeObject
@@ -404,8 +371,8 @@ class replacedInstruction : public relocatedCode {
                       UNW_INFO_TYPE **unwindInformation);
     unsigned maxSizeRequired();
     Address uninstrumentedAddr() const { return oldInsn_->uninstrumentedAddr(); }
-    Address get_address_cr() const { return addrInMutatee_; };
-    unsigned get_size_cr() const { return size_; };
+    Address get_address() const { return addrInMutatee_; };
+    unsigned get_size() const { return size_; };
 
     bool safeToFree(codeRange *range);
 
@@ -578,8 +545,8 @@ class multiTramp : public generatedCodeObject {
   baseTrampInstance *getBaseTrampInstanceByAddr(Address addr) const;
 
   // codeRange stuff
-  Address get_address_cr() const { return trampAddr_; }
-  unsigned get_size_cr() const { return trampSize_; }
+  Address get_address() const { return trampAddr_; }
+  unsigned get_size() const { return trampSize_; }
   void *get_local_ptr() const { return generatedMultiT_.start_ptr(); }
 
   void *getPtrToInstruction(Address addr) const;
@@ -615,6 +582,9 @@ class multiTramp : public generatedCodeObject {
   bool generateCode(codeGen &gen,
                     Address baseInMutatee,
                     UNW_INFO_TYPE * * unwindInformation);
+
+  //////////////// Helper to generateCode, Do the actual work of calling generate()
+  bool generateCodeWorker(unsigned size_required, UNW_INFO_TYPE **unwind_region);
 
   // The most that we can need to get to a multitramp...
   unsigned maxSizeRequired();
@@ -704,8 +674,8 @@ class instArea : public codeRange {
  public:
     instArea(multiTramp *m) : multi(m) {}
     multiTramp *multi;
-    Address get_address_cr() const { assert(multi); return multi->instAddr(); }
-    unsigned get_size_cr() const { assert(multi); return multi->instSize(); }
+    Address get_address() const { assert(multi); return multi->instAddr(); }
+    unsigned get_size() const { assert(multi); return multi->instSize(); }
     void *get_local_ptr() const { assert(multi); return multi->jumpBuf_.start_ptr(); }
 };
 
@@ -715,8 +685,8 @@ class instArea : public codeRange {
 // Sticking this here for now
 class replacedFunctionCall : public codeRange {
  public:
-    Address get_address_cr() const { return callAddr; }
-    unsigned get_size_cr() const { return callSize; }
+    Address get_address() const { return callAddr; }
+    unsigned get_size() const { return callSize; }
     void *get_local_ptr() const { return newCall.start_ptr(); }
     
     Address callAddr;

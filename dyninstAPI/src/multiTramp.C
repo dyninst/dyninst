@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.75 2007/12/04 18:07:27 legendre Exp $
+// $Id: multiTramp.C,v 1.76 2008/01/16 22:00:48 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -201,17 +201,11 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
         // We're empty. Time to leave.
         if (savedCodeBuf_) {
             // Okay, they're all empty. Overwrite the jump to this guy with the saved buffer.
-            bool res = proc()->writeTextSpace((void *)instAddr_,
+            proc()->writeTextSpace((void *)instAddr_,
                                              instSize_,
                                              (void *)savedCodeBuf_);
             // This better work, or we're going to be jumping into all sorts
             // of hurt.
-#if 0
-            if (!res) {
-                // Well, we could be detached... or exited... or deleted....
-                assert(!proc()->isAttached());
-            }
-#endif
 
             free(savedCodeBuf_);
             savedCodeBuf_ = 0;
@@ -847,7 +841,7 @@ void debugBreakpoint() {
 // Since we out-line multiTramps (effectively), we write
 // a jump into the inputs.
 bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
-                              Address baseInMutatee,
+                              Address /*baseInMutatee*/,
                               UNW_INFO_TYPE * * /* ignored */) 
 {
     if (!hasChanged() && generated_) {
@@ -911,18 +905,18 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         // First, we determine how much space we need.
 
         cfgIter.initialize(generatedCFG_);
-        obj = NULL;
-        
         while ((obj = cfgIter++)) {
             // If we're the target for someone, pin at this
             // addr. This means some wasted space; however, it's
             // easier and allows us to generate in one pass.
             
+#if !defined(cap_noaddr_gen)
             if (obj->previous_ &&
                 obj->previous_->target_ == obj) {
                 // We're a target for somebody.
                 obj->pinnedOffset = size_required;
             }
+#endif
             
             // Then update the size
             size_required += obj->maxSizeRequired();
@@ -953,7 +947,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         generatedMultiT_.allocate(size_required);
         generatedMultiT_.setAddrSpace(proc());
         generatedMultiT_.setAddr(trampAddr_);
-        
+
         // We don't want to generate the jump buffer until after
         // we've done the multiTramp; we may need to know
         // where instructions got moved to if we trap-fill.
@@ -971,6 +965,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     
     if (!generated_) {
         jumpBuf_.allocate(instSize_);
+        jumpBuf_.setAddrSpace(proc());
         // We set this = true before we call generateBranchToTramp
         generated_ = true;
         if (!generateBranchToTramp(jumpBuf_)) {
@@ -982,7 +977,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     
     
     generatedMultiT_.setIndex(0);
-    
+
+    UNW_INFO_TYPE **unwind_region = NULL; 
 #if defined( cap_unwind )
 	/* Initialize the unwind information structure. */
 	if( unwindInformation != NULL ) { free( unwindInformation ); }
@@ -1013,68 +1009,11 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     unwindInformation->u.pi.regions = initialRegion;
     
     /* For the iterator, below. */
-    unw_dyn_region_info_t * unwindRegion = initialRegion;
+    unwind_region = &initialRegion;
 #endif /* defined( cap_unwind ) */
             
-    inst_printf("multiTramp generation: local %p, remote 0x%x, size %d\n",
-                generatedMultiT_.start_ptr(), trampAddr_, size_required);
-    
-    cfgIter.initialize(generatedCFG_);
-    obj = NULL;
-    while ((obj = cfgIter++)) {
-        
-        if (obj->pinnedOffset) {
-            // We need to advance the pointer, backfilling
-            // with noops (or illegals, actually)
-            // This won't do anything if we're in the right place
-            assert(generatedMultiT_.used() <= obj->pinnedOffset);
-
-            inst_printf("... NOOP-filling to %d, currently %d\n",
-                        obj->pinnedOffset, generatedMultiT_.used());
-            generatedMultiT_.fill(obj->pinnedOffset - generatedMultiT_.used(),
-                                  codeGen::cgNOP);
-            assert(generatedMultiT_.used() == obj->pinnedOffset);
-        }
-        
-        // Target override if necessary
-        if (obj->target_) {
-            // TODO: what does replaced code mean here?
-            relocatedInstruction *relocInsn = dynamic_cast<relocatedInstruction *>(obj);
-            assert(relocInsn);
-            relocInsn->overrideTarget(trampAddr_ + obj->target_->pinnedOffset);
-        }
-
-#if ! defined( cap_unwind )
-        if( !obj->generateCode( generatedMultiT_, trampAddr_, NULL ) ) {
-            return false;
-        }
-#else
-        if( ! obj->generateCode( generatedMultiT_, trampAddr_, & unwindRegion ) ) {
-            return false;
-        }
-#endif /* ! defined( cap_unwind ) */
-        assert(obj->generated());
-
-        //Address tempAddr = 0;
-        //if (dynamic_cast<relocatedInstruction *>(obj)) {
-        //tempAddr = (dynamic_cast<relocatedInstruction *>(obj))->uninstrumentedAddr();
-        //}
-        //inst_printf("After node: mutatee 0x%lx (0x%lx), offset %d, size req %d\n",
-        //generatedMultiT_.currAddr(trampAddr_),
-        //tempAddr,
-        //generatedMultiT_.used(), size_required);
-        
-        // Safety...
-        assert(generatedMultiT_.used() <= size_required);
-	/*
-          if (counter == 0) {
-	  instruction trap = instruction::createBreakPoint();
-	  trap.generate(generatedMultiT_, mtOffset);
-          }
-          counter++;
-	*/	
-    }
-
+    //Call ::generate(...) for each object
+    generateCodeWorker(size_required, unwind_region);
 
     trampSize_ = generatedMultiT_.used();
 
@@ -1094,10 +1033,84 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     return true;
 }
 
+#if defined(cap_noaddr_gen)
+bool multiTramp::generateCodeWorker(unsigned size_required, 
+                                    UNW_INFO_TYPE **unwind_region)
+{
+   generatedCFG_t::iterator cfgIter;
+   generatedCodeObject *obj = NULL;
+   
+   inst_printf("address-less generation: local %p, remote 0x%x, size %d\n",
+               generatedMultiT_.start_ptr(), trampAddr_, size_required);
+   
+   cfgIter.initialize(generatedCFG_);
+   obj = NULL;
+   while ((obj = cfgIter++)) {
+      // Target override if necessary
+      if (obj->target_) {
+         relocatedInstruction *relocInsn = dynamic_cast<relocatedInstruction *>(obj);
+         assert(relocInsn);
+         relocInsn->overrideTarget(obj->target_);
+      }
+      
+      if( ! obj->generateCode( generatedMultiT_, trampAddr_, unwind_region ) ) {
+         return false;
+      }
+      assert(obj->generated());
+      // Safety...
+      assert(generatedMultiT_.used() <= size_required);
+   }
+
+   generatedMultiT_.applyPCRels(trampAddr_);
+   return true;
+}
+#else
+bool multiTramp::generateCodeWorker(unsigned size_required, 
+                                    UNW_INFO_TYPE **unwind_region)
+{
+   generatedCFG_t::iterator cfgIter;
+   generatedCodeObject *obj = NULL;
+   
+   inst_printf("multiTramp generation: local %p, remote 0x%x, size %d\n",
+               generatedMultiT_.start_ptr(), trampAddr_, size_required);
+   
+   cfgIter.initialize(generatedCFG_);
+   obj = NULL;
+   while ((obj = cfgIter++)) {
+      if (obj->pinnedOffset) {
+         // We need to advance the pointer, backfilling
+         // with noops (or illegals, actually)
+         // This won't do anything if we're in the right place
+         assert(generatedMultiT_.used() <= obj->pinnedOffset);
+         
+         inst_printf("... NOOP-filling to %d, currently %d\n",
+                     obj->pinnedOffset, generatedMultiT_.used());
+         generatedMultiT_.fill(obj->pinnedOffset - generatedMultiT_.used(),
+                               codeGen::cgNOP);
+         assert(generatedMultiT_.used() == obj->pinnedOffset);
+      }
+        
+      // Target override if necessary
+      if (obj->target_) {
+         relocatedInstruction *relocInsn = dynamic_cast<relocatedInstruction *>(obj);
+         assert(relocInsn);
+         relocInsn->overrideTarget(new toAddressPatch(obj->target_->pinnedOffset + trampAddr_));
+      }
+      
+      if( ! obj->generateCode( generatedMultiT_, trampAddr_, unwind_region ) ) {
+         return false;
+      }
+      assert(obj->generated());
+      // Safety...
+      assert(generatedMultiT_.used() <= size_required);
+   }
+   return true;
+}
+#endif
+
 bool multiTramp::installCode() {
     // We need to add a jump back and fix any conditional jump
     // instrumentation
-    static bool warned_buggy_libunwind = false;
     assert(generatedMultiT_.used() == trampSize_); // Nobody messed with things
     assert(generated_);
 
@@ -1121,6 +1134,7 @@ bool multiTramp::installCode() {
         if( success ) {
             proc()->addOrigRange(this);
 #if defined( cap_unwind )
+            static bool warned_buggy_libunwind = false;
             if( unwindInformation != NULL ) {
                 unwindInformation->start_ip = trampAddr_;
                 unwindInformation->end_ip = trampAddr_ + trampSize_;
@@ -1205,9 +1219,9 @@ bool multiTramp::linkCode() {
         if (!proc()->writeTextSpace((void *)instAddr_,
                                     instSize_,
                                     jumpBuf_.start_ptr())) {
-            fprintf(stderr, "ERROR: failed to write %d to 0x%lx\n",
-                    instSize_, instAddr_);
-            return false;
+           fprintf(stderr, "ERROR: failed to write %d to 0x%lx\n",
+                   instSize_, instAddr_);
+           return false;
         }
         
         linked_ = true;
@@ -1229,7 +1243,7 @@ bool multiTramp::linkCode() {
             }
             Address newMultiAddr = insns_[uninst]->relocAddr();
             
-            /*
+            
             if (!proc()->writeTextSpace((void *)oldMultiAddr,
                                         gen.used(),
                                         gen.start_ptr())) {
@@ -1237,7 +1251,7 @@ bool multiTramp::linkCode() {
                         gen.used(), gen.start_ptr());
                 return false;
             }
-            */
+            
             
 #if (defined(arch_x86) || defined(arch_x86_64)) 
             // x86: traps read at PC + 1
@@ -1348,11 +1362,11 @@ Address multiTramp::instToUninstAddr(Address addr) {
 
         if (insn && 
             (addr >= insn->relocAddr()) &&
-            (addr < insn->relocAddr() + insn->get_size_cr()))
+            (addr < insn->relocAddr() + insn->get_size()))
             return insn->fromAddr_;
         if (ri && 
-            (addr >= ri->get_address_cr()) &&
-            (addr < ri->get_address_cr() + ri->get_size_cr()))
+            (addr >= ri->get_address()) &&
+            (addr < ri->get_address() + ri->get_size()))
             return ri->uninstrumentedAddr();
 
         if (bti && bti->isInInstance(addr)) {
@@ -1395,13 +1409,13 @@ Address multiTramp::instToUninstAddr(Address addr) {
         replacedInstruction *ri = dynamic_cast<replacedInstruction *>(obj);
 
         if (ri && 
-            (addr >= ri->get_address_cr()) &&
-            (addr < ri->get_address_cr() + ri->get_size_cr()))
+            (addr >= ri->get_address()) &&
+            (addr < ri->get_address() + ri->get_size()))
             return ri->uninstrumentedAddr();
 
         if (insn && 
             (addr >= insn->relocAddr()) &&
-            (addr < insn->relocAddr() + insn->get_size_cr()))
+            (addr < insn->relocAddr() + insn->get_size()))
             return insn->fromAddr_;
         if (bti && bti->isInInstance(addr)) {
             // If we're pre for an insn, return that;
@@ -1445,12 +1459,12 @@ Address multiTramp::instToUninstAddr(Address addr) {
 
         if (ri) {
             fprintf(stderr, "Replaced instruction from 0x%lx to 0x%lx\n",
-                    ri->get_address_cr(),
-                    ri->get_address_cr() + ri->get_size_cr());
+                    ri->get_address(),
+                    ri->get_address() + ri->get_size());
         }
         if (insn) {
             fprintf(stderr, "Relocated instruction from 0x%lx to 0x%lx\n",
-                    insn->relocAddr(), insn->relocAddr() + insn->get_size_cr());
+                    insn->relocAddr(), insn->relocAddr() + insn->get_size());
         }
         if (bti)
             fprintf(stderr, "Base tramp instance from 0x%lx to 0x%lx\n",
@@ -1474,13 +1488,13 @@ Address multiTramp::instToUninstAddr(Address addr) {
 
         if (ri) {
             fprintf(stderr, "<DELETED> Replaced instruction from 0x%lx to 0x%lx\n",
-                    ri->get_address_cr(),
-                    ri->get_address_cr() + ri->get_size_cr());
+                    ri->get_address(),
+                    ri->get_address() + ri->get_size());
         }
 
         if (insn) {
             fprintf(stderr, "<DELETED> Relocated instruction from 0x%lx to 0x%lx\n",
-                    insn->relocAddr(), insn->relocAddr() + insn->get_size_cr());
+                    insn->relocAddr(), insn->relocAddr() + insn->get_size());
         }
         if (bti)
             fprintf(stderr, "<DELETED> Base tramp instance from 0x%lx to 0x%lx\n",
@@ -1509,8 +1523,8 @@ instPoint *multiTramp::findInstPointByAddr(Address addr) {
     generatedCodeObject *obj = NULL;
     
     while ((obj = cfgIter++)) {
-        if ((obj->get_address_cr() <= addr) &&
-            (addr < (obj->get_address_cr() + obj->get_size_cr()))) {
+        if ((obj->get_address() <= addr) &&
+            (addr < (obj->get_address() + obj->get_size()))) {
             const relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
             baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
             trampEnd *end = dynamic_cast<trampEnd *>(obj);
@@ -2333,7 +2347,7 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
         // Check to see if we're at the instPoint
         if (insn && 
             (pc >= insn->relocAddr()) &&
-            (pc < insn->relocAddr() + insn->get_size_cr())) {
+            (pc < insn->relocAddr() + insn->get_size())) {
             pcObj = insn;
         }
         else if (bti) {
@@ -2394,16 +2408,24 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     generateSetup(gen, baseInMutatee);
 
     // addrInMutatee_ == base for this insn
+    if (!targetOverride_) {
+       toAddressPatch *orig_target = new toAddressPatch(originalTarget());
+       targetOverride_ = orig_target;
+    }
+
     if (!insn->generate(gen,
-			multiT->proc(),
-			origAddr_,
-			addrInMutatee_,
-			0, // fallthrough is not overridden
-                        targetOverride_ ? targetOverride_ : originalTarget())) {
-        // We use the override if present, otherwise the original target (which may be
-        // overridden in function relocation....)
-      fprintf(stderr, "WARNING: returned false from relocate insn (orig at 0x%lx, from 0x%lx, now 0x%lx)\n", origAddr_, fromAddr_, addrInMutatee_);
-      return false;
+                        multiT->proc(),
+                        origAddr_,
+                        addrInMutatee_,
+                        NULL, // fallthrough is not overridden
+                        targetOverride_))
+    {
+       // We use the override if present, otherwise the original target (which may be
+       // overridden in function relocation....)
+       fprintf(stderr, "WARNING: returned false from relocate insn "
+               "(orig at 0x%lx, from 0x%lx, now 0x%lx)\n", 
+               origAddr_, fromAddr_, addrInMutatee_);
+       return false;
     }
 
 #if defined(arch_sparc) 
@@ -2566,4 +2588,58 @@ unsigned multiTramp::maxSizeRequired() {
     // A jump to the multiTramp, 
     // todo: in-line :)
     return instruction::maxJumpSize();
+}
+
+relocatedInstruction::relocatedInstruction(instruction *i,
+                      Address o, Address f, Address t,
+                      multiTramp *m) :
+   relocatedCode(),
+   insn(i),
+#if defined(arch_sparc)
+   ds_insn(NULL),
+   agg_insn(NULL),
+#endif
+   origAddr_(o), 
+   fromAddr_(f), 
+   targetAddr_(t),
+   multiT(m), 
+   targetOverride_(NULL) 
+{
+}
+
+relocatedInstruction::relocatedInstruction(relocatedInstruction *prev,
+                                           multiTramp *m) :
+   relocatedCode(),
+   insn(prev->insn),
+#if defined(arch_sparc)
+   ds_insn(prev->ds_insn),
+   agg_insn(prev->agg_insn),
+#endif
+   origAddr_(prev->origAddr_), fromAddr_(prev->fromAddr_),
+   targetAddr_(prev->targetAddr_),
+   multiT(m),
+   targetOverride_(prev->targetOverride_) 
+{
+}
+
+replacedInstruction::replacedInstruction(const relocatedInstruction *i,
+                                         AstNodePtr ast,
+                                         instPoint *p, 
+                                         multiTramp *m) :
+   relocatedCode(),
+   oldInsn_(i),
+   ast_(ast),
+   point_(p),
+   multiT_(m) 
+{
+}
+
+replacedInstruction::replacedInstruction(replacedInstruction *prev,
+                                         multiTramp *m) :
+   relocatedCode(),
+   oldInsn_(prev->oldInsn_),
+   ast_(prev->ast_),
+   point_(prev->point_),
+   multiT_(m) 
+{
 }
