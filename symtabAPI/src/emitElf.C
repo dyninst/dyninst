@@ -452,7 +452,7 @@ void emitElf::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 void emitElf::updateDynamic(Elf_Data* dynData,  Elf32_Addr relAddr){
 #if !defined(os_solaris)
     Elf32_Dyn *dyns = (Elf32_Dyn *)dynData->d_buf;
-    int count = dynData->d_size/sizeof(Elf32_Dyn);
+    unsigned count = dynData->d_size/sizeof(Elf32_Dyn);
     for(unsigned i = 0; i< count;i++){
         switch(dyns[i].d_tag){
             case DT_REL:
@@ -633,8 +633,8 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
 	        	firstNewLoadSec = shdr;
             secNameIndex += newSecs[i]->getSecName().size() + 1;
 	        /* DEBUG */
-    	    fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-	                                     newSecs[i]->getSecName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
+            fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
+                    newSecs[i]->getSecName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
             prevshdr = newshdr;
 	    }
 	    else
@@ -644,40 +644,40 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
 }
 	
 bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
-    Elf_Scn *newscn;
-    Elf_Data *newdata = NULL;
-    Elf32_Shdr *newshdr;
-    
-    if((newscn = elf_newscn(newElf)) == NULL)
-    {
-        log_elferror(err_func_, "unable to create new function");	
-        return false;
+   Elf_Scn *newscn;
+   Elf_Data *newdata = NULL;
+   Elf32_Shdr *newshdr;
+   
+   if((newscn = elf_newscn(newElf)) == NULL)
+   {
+      log_elferror(err_func_, "unable to create new function");	
+      return false;
 	}	
-    if ((newdata = elf_newdata(newscn)) == NULL)
-    {
-        log_elferror(err_func_, "unable to create section data");	
-        return false;
+   if ((newdata = elf_newdata(newscn)) == NULL)
+   {
+      log_elferror(err_func_, "unable to create section data");	
+      return false;
 	} 
-    //Fill out the new section header
-    newshdr = elf32_getshdr(newscn);
+   //Fill out the new section header
+   newshdr = elf32_getshdr(newscn);
 	newshdr->sh_name = secNameIndex;
-    secNames.push_back(".shstrtab");
-    secNameIndex += 10;
-    newshdr->sh_type = SHT_STRTAB;
-    newshdr->sh_entsize = 1;
-    newdata->d_type = ELF_T_BYTE;
-    newshdr->sh_link = SHN_UNDEF; 
+   secNames.push_back(".shstrtab");
+   secNameIndex += 10;
+   newshdr->sh_type = SHT_STRTAB;
+   newshdr->sh_entsize = 1;
+   newdata->d_type = ELF_T_BYTE;
+   newshdr->sh_link = SHN_UNDEF; 
 	newshdr->sh_flags=  0;
-    	
-    newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
+   
+   newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
 	newshdr->sh_addr = 0;
-    newshdr->sh_info = 0;
+   newshdr->sh_info = 0;
 	newshdr->sh_addralign = 4;
-
-    //Set up the data
-    newdata->d_buf = (char *)malloc(secNameIndex);
-    char *ptr = (char *)newdata->d_buf;
-    for(unsigned i=0;i<secNames.size(); i++)
+   
+   //Set up the data
+   newdata->d_buf = (char *)malloc(secNameIndex);
+   char *ptr = (char *)newdata->d_buf;
+   for(unsigned i=0;i<secNames.size(); i++)
 	{
 	    memcpy(ptr, secNames[i].c_str(), secNames[i].length());
         memcpy(ptr+secNames[i].length(), "\0", 1);
@@ -690,8 +690,9 @@ bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
                                     ".shstrtab", newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
     //elf_update(newElf, ELF_C_NULL);
    
-   	newdata->d_align = 4;
-    newdata->d_version = 1;
+   newdata->d_align = 4;
+   newdata->d_version = 1;
+   return true;
 }
 
 bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
@@ -835,7 +836,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
         syms[i] = *(symbols[i]);
     
     --symbolNamesLength;
-    char *str = (char *)malloc(symbolNamesLength);
+    char *str = (char *)malloc(symbolNamesLength+1);
     unsigned cur=0;
     for(i=0;i<symbolStrs.size();i++)
     {
@@ -879,7 +880,7 @@ bool emitElf::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Sy
     if(!dynsymbolNamesLength)
         return true; 
     --dynsymbolNamesLength;
-    char *dynstr = (char *)malloc(dynsymbolNamesLength);
+    char *dynstr = (char *)malloc(dynsymbolNamesLength+1);
     cur=0;
     hash_map<string, unsigned> dynSymNameMapping;
     for(i=0;i<dynsymbolStrs.size();i++)
