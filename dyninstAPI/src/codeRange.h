@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.17 2007/12/04 17:58:18 bernat Exp $
+// $Id: codeRange.h,v 1.18 2008/01/16 22:01:52 legendre Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -54,6 +54,8 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 #include "common/h/std_namesp.h"
+
+#include "dyninstAPI/src/patch.h"
 
 /** template class for codeRangeTree. The implementation is based on red black
   * tree implementation for efficiency concerns and for getting sorted
@@ -81,18 +83,19 @@ class replacedFunctionCall;
 class inferiorRPCinProgress;
 class image_basicBlock;
 
-class codeRange {
+class codeRange : public patchTarget {
   public:
     codeRange() { }
     virtual ~codeRange() { }
 
-    virtual Address get_address_cr() const = 0;
-    virtual unsigned get_size_cr() const = 0;
+    //These are now inherited from relocTarget
+    //virtual Address get_address() const = 0;
+    //virtual unsigned get_size() const = 0;
 
     virtual void *getPtrToInstruction(Address) const { assert(0); return NULL; }
 
     // This returns a local pointer to the "beginning" of the
-    // code range - as opposed to get_address_cr, which returns
+    // code range - as opposed to get_address, which returns
     // the "remote" address.
     virtual void *get_local_ptr() const { 
         assert(0); return NULL; }

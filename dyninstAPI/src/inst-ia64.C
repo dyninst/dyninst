@@ -180,7 +180,7 @@ void emitCSload( const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool
 void emitVload( opCode op, Address src1, Register src2, Register dest,
 				codeGen &gen, bool noCost, registerSpace *rs, 
 				int size, const instPoint * location, 
-				AddressSpace * proc) {
+				AddressSpace * /*proc*/) {
   switch( op ) {
   case loadOp: {
 	/* Stick the address src1 in the temporary register src2. */
@@ -836,13 +836,16 @@ IA64_bundle generateBundleFor( instruction insnToBundle ) {
 } /* end generateBundleFor() */
 
 /* private refactoring function */
-bool instruction_x::generate(	codeGen &gen, 
-								AddressSpace *,
-								Address originalLocation,
-								Address allocatedAddress,
-								Address fallthroughTarget,
-								Address branchTarget ) {
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: fallthroughTarget 0x%lx, branchTarget 0x%lx\n", __FILE__, __LINE__, fallthroughTarget, branchTarget );
+bool instruction_x::generate(	codeGen &gen,
+							AddressSpace *,
+							Address originalLocation,
+							Address allocatedAddress,
+							patchTarget *fallthroughTarget,
+							patchTarget *branchTarget ) {
+   Address ftTarget = fallthroughTarget ? fallthroughTarget->get_address() : 0;
+   Address bTarget = branchTarget ? branchTarget->get_address() : 0;
+
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: fallthroughTarget 0x%lx, branchTarget 0x%lx\n", __FILE__, __LINE__, ftTarget, bTarget );
 								
 	instruction::insnType instructionType = getType();
 	insn_tmpl tmpl = { getMachineCode().high };
@@ -867,10 +870,10 @@ bool instruction_x::generate(	codeGen &gen,
 	int64_t displacement = target - source;
 	
 	/* Handle edge instrumentation. */
-	if( branchTarget != 0x0 ) {
+	if( bTarget != 0x0 ) {
 		/* DEBUG */ fprintf( stderr, "%s[%d]: given branchTarget 0x%lx, changing displacement from 0x%lx to 0x%lx\n",
-			__FILE__, __LINE__, branchTarget, displacement, branchTarget - source );
-		displacement = branchTarget - source;
+			__FILE__, __LINE__, bTarget, displacement, bTarget - source );
+		displacement = bTarget - source;
 		}
 	
 	switch( instructionType ) {
@@ -882,10 +885,10 @@ bool instruction_x::generate(	codeGen &gen,
 	instruction_x alteredLong( imm.raw, tmpl.raw, getTemplateID() );
 	IA64_bundle( MLXstop, instruction( NOP_M ), alteredLong ).generate( gen );
 	
-	if( fallthroughTarget != 0x0 ) {
+	if( ftTarget != 0x0 ) {
 		/* DEBUG */ fprintf( stderr, "%s[%d]: given fallthroughTarget 0x%lx, generating second branch with displacement of 0x%lx\n",
-			__FILE__, __LINE__, fallthroughTarget, fallthroughTarget - source );
-		IA64_bundle( MLXstop, instruction( NOP_M ), generateLongBranchTo( fallthroughTarget - source ) ).generate( gen );
+			__FILE__, __LINE__, ftTarget, ftTarget - source );
+		IA64_bundle( MLXstop, instruction( NOP_M ), generateLongBranchTo( ftTarget - source ) ).generate( gen );
 		}
 
 	return true;
@@ -973,13 +976,15 @@ bool instruction::generate(	codeGen &gen,
 							AddressSpace *,
 							Address originalLocation,
 							Address allocatedAddress,
-							Address fallthroughTarget,
-							Address branchTarget ) {
+							patchTarget *fallthroughTarget,
+							patchTarget *branchTarget ) {
+   Address ftTarget = fallthroughTarget ? fallthroughTarget->get_address() : 0;
+   Address bTarget = branchTarget ? branchTarget->get_address() : 0;
 	insn_tmpl tmpl = { getMachineCode() };
 
 	switch( getType() ) {
 		case instruction::DIRECT_BRANCH:
-			rewriteShortOffset( *this, originalLocation, gen,  allocatedAddress, fallthroughTarget, branchTarget );
+			rewriteShortOffset( *this, originalLocation, gen,  allocatedAddress, ftTarget, bTarget );
 			break; /* end direct jump handling */
 		
 		case instruction::DIRECT_CALL: {
@@ -1008,7 +1013,7 @@ bool instruction::generate(	codeGen &gen,
 			   identically to each other, but their immediates are laid
 			   out a little different, so we can't handle them as we do
 			   the advanced loads. */
-			rewriteShortOffset( *this, originalLocation, gen, allocatedAddress, fallthroughTarget, branchTarget );
+			rewriteShortOffset( *this, originalLocation, gen, allocatedAddress, ftTarget, bTarget );
 		
 			/* FIXME: the jump back needs to be fixed.  Implies we need to leave the emulated code in-place. */
 			break; /* end speculation check handling */

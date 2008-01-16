@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.21 2007/09/12 20:57:20 bernat Exp $
+ * $Id: arch-power.C,v 1.22 2008/01/16 22:01:47 legendre Exp $
  */
 
 #include "common/h/Types.h"
@@ -564,9 +564,9 @@ bool instruction::generate(codeGen &gen,
                            AddressSpace *proc,
                            Address origAddr,
                            Address relocAddr,
-                           Address /* fallthroughOverride */,
-                           Address targetOverride) {
-
+                           patchTarget */* fallthroughOverride */,
+                           patchTarget *targetOverride) {
+    Address targetAddr = targetOverride ? targetOverride->get_address() : 0;
     int newOffset = 0;
     Address to;
 
@@ -574,23 +574,23 @@ bool instruction::generate(codeGen &gen,
         // unconditional pc relative branch.
 
         // If it's absolute, no change
-        if (isInsnType(Bmask, BAAmatch) && !targetOverride) {
+        if (isInsnType(Bmask, BAAmatch) && !targetAddr) {
             generate(gen);
             return true;
         }
-        if (isInsnType(Bmask, BCAAmatch) && !targetOverride) {
+        if (isInsnType(Bmask, BCAAmatch) && !targetAddr) {
             generate(gen);
             return true;
         }
         
-        if (!targetOverride) {
+        if (!targetAddr) {
             newOffset = origAddr - relocAddr + (int)getBranchOffset(); 
             to = getTarget(origAddr);
         }
         else {
             // We need to pin the jump
-            newOffset = targetOverride - relocAddr;
-            to = targetOverride;
+            newOffset = targetAddr - relocAddr;
+            to = targetAddr;
         }
 
         if (ABS(newOffset) >= MAX_BRANCH) {
@@ -633,7 +633,7 @@ bool instruction::generate(codeGen &gen,
             else {
                 // Crud.
                 fprintf(stderr, "Fatal error: relocating branch, orig at 0x%lx, now 0x%lx, target 0x%lx, orig offset 0x%lx\n",
-                        origAddr, relocAddr, targetOverride, getBranchOffset());
+                        origAddr, relocAddr, targetAddr, getBranchOffset());
                 assert(0);
             }
         } else {
@@ -644,12 +644,12 @@ bool instruction::generate(codeGen &gen,
     } 
     else if (isCondBranch()) {
         // conditional pc relative branch.
-        if (!targetOverride) {
+        if (!targetAddr) {
           newOffset = origAddr - relocAddr + getBranchOffset();
           to = origAddr + getBranchOffset();
         } else {
-	  newOffset = targetOverride - relocAddr;
-          to = targetOverride;
+	  newOffset = targetAddr - relocAddr;
+          to = targetAddr;
         }
 
         if (ABS(newOffset) >= MAX_CBRANCH) {

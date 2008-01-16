@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.50 2007/12/14 04:16:48 jaw Exp $
+// $Id: arch-sparc.h,v 1.51 2008/01/16 22:01:50 legendre Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL
@@ -670,8 +670,8 @@ class instruction : public Annotatable<InsnRegister, register_read_set_a>,
                   AddressSpace *proc,
                   Address origAddr,
                   Address newAddr,
-                  Address fallthroughOverride = 0,
-                  Address targetOverride = 0);
+                  patchTarget *fallthroughOverride = NULL,
+                  patchTarget *targetOverride = NULL);
 
     bool generateMem(codeGen &gen,
                      Address origAddr,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.20 2006/05/30 23:34:00 mjbrim Exp $
+// $Id: codeRange.C,v 1.21 2008/01/16 22:01:51 legendre Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -313,7 +313,7 @@ void codeRangeTree::traverse(pdvector<codeRange *> &all, entry* node) const{
 //////////////////////////// PUBLIC FUNCTIONS ////////////////////////////////
 
 void codeRangeTree::insert(codeRange *value) {
- 	entry* x = treeInsert(value->get_address_cr(), value);
+ 	entry* x = treeInsert(value->get_address(), value);
 	if(!x) {
          // We're done.
          return;
@@ -405,17 +405,17 @@ bool codeRangeTree::find(Address key, codeRange *& value) const{
     if (!precessor(key, value))
         return false;
     // Check to see if the range works
-    if (!value->get_size_cr()) {
+    if (!value->get_size()) {
         // XXX do we really need this warning?
         //fprintf(stderr, "%s[%d]:  Warning:  size was 0...\n", FILE__, __LINE__);
-        if(key > value->get_address_cr())
+        if(key > value->get_address())
             return false;
     }
-    else if(key >= (value->get_address_cr() + value->get_size_cr())) {
+    else if(key >= (value->get_address() + value->get_size())) {
         return false;
     }
     // We can also underflow
-    if (key < value->get_address_cr())
+    if (key < value->get_address())
         return false;
     return true;
 #if 0
@@ -424,9 +424,9 @@ bool codeRangeTree::find(Address key, codeRange *& value) const{
     fprintf(stderr, "find_internal returned %p\n", x);
     if (!x) return false;
     value = x->value;
-    assert(value->get_address_cr() <= key); // Otherwise it wouldn't have been returned.
+    assert(value->get_address() <= key); // Otherwise it wouldn't have been returned.
 
-    if (key >= (value->get_address_cr() + value->get_size_cr())) {
+    if (key >= (value->get_address() + value->get_size())) {
         fprintf(stderr, "... ret false\n");
         return false;
     }
@@ -570,21 +570,21 @@ void codeRange::print_range(Address addr) {
    if (multi_ptr) {
       PRINT_COMMA;
       fprintf(stderr, "multi:%p->%p+%u", (void *)multi_ptr->instAddr(), 
-              (void *)multi_ptr->get_address_cr(), multi_ptr->get_size_cr());
+              (void *)multi_ptr->get_address(), multi_ptr->get_size());
    }
    if (base_ptr) {
       PRINT_COMMA;
-      fprintf(stderr, "base:%p+%u", (void *)multi_ptr->get_address_cr(),
-              multi_ptr->get_size_cr());
+      fprintf(stderr, "base:%p+%u", (void *)multi_ptr->get_address(),
+              multi_ptr->get_size());
    }
    if (mini_ptr) {
       PRINT_COMMA;
-      fprintf(stderr, "mini:%p+%u", (void *)multi_ptr->get_address_cr(),
-              multi_ptr->get_size_cr());
+      fprintf(stderr, "mini:%p+%u", (void *)multi_ptr->get_address(),
+              multi_ptr->get_size());
    }
    if (rpc_ptr) {
       PRINT_COMMA;
-      fprintf(stderr, "rpc:%lx", rpc_ptr->get_address_cr());
+      fprintf(stderr, "rpc:%lx", rpc_ptr->get_address());
    }
    if (!print_comma)
    {

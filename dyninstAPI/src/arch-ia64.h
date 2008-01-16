@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.52 2007/12/04 17:57:53 bernat Exp $
+// $Id: arch-ia64.h,v 1.53 2008/01/16 22:01:45 legendre Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -55,6 +55,7 @@ class AddressSpace;
 
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
+#include "dyninstAPI/src/patch.h"
 
 /* So the IA-64 has these cute ideas about ILP, one consequence of which
    is the design of its instruction set.  Instructions execute in parallel
@@ -107,8 +108,8 @@ class instruction {
 						  AddressSpace *proc,
 						  Address origAddr,
 						  Address newAddr,
-						  Address fallthroughOverride = 0,
-						  Address targetOverride = 0);
+						  patchTarget *fallthroughOverride = NULL,
+						  patchTarget *targetOverride = NULL);
 
 
 	virtual bool generateMem(codeGen &gen,
@@ -213,8 +214,8 @@ class instruction_x : public instruction {
 							  AddressSpace *proc,
 							  Address origAddr,
 							  Address newAddr,
-							  Address fallthroughOverride = 0,
-							  Address targetOverride = 0);
+							  patchTarget *fallthroughOverride = NULL,
+							  patchTarget *targetOverride = NULL);
 							  
 	private:
 		uint64_t insn_x_;

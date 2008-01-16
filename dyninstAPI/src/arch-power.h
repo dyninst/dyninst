@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.40 2007/09/12 20:57:21 bernat Exp $
+// $Id: arch-power.h,v 1.41 2008/01/16 22:01:48 legendre Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -707,8 +707,8 @@ class instruction {
                   AddressSpace *proc,
                   Address origAddr,
                   Address newAddr,
-                  Address fallthroughOverride = 0,
-                  Address targetOverride = 0);
+                  patchTarget *fallthroughOverride = NULL,
+                  patchTarget *targetOverride = NULL);
     
     bool generateMem(codeGen &gen,
                      Address origAddr,
