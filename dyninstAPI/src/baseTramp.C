@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.60 2008/01/16 22:01:26 legendre Exp $
+// $Id: baseTramp.C,v 1.61 2008/01/17 16:40:32 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -659,10 +659,10 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     saveEndOffset = gen.used();
     bool retval = true;
 
-    /*    if (!baseTramp->generateCode(gen, false)) {
-        fprintf(stderr, "Gripe: base tramp creation failed\n");
-        retval = false;
-        }*/
+    if (!baseTramp->generateCode(gen, false)) {
+      fprintf(stderr, "Gripe: base tramp creation failed\n");
+      retval = false;
+    }
 
 
     trampPostOffset = gen.used();
