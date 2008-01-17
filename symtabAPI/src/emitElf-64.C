@@ -913,8 +913,8 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
 //            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[fbt[i].name()], R_SPARC_64);
 #elif defined(arch_x86_64)
             rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[fbt[i].name()], R_X86_64_64);
-#elif defined(arch_power)
-            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[fbt[i].name()], R_PPC_ADDR64);
+#elif defined(arch_power) && defined(arch_64bit)
+            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[fbt[i].name()], R_PPC64_ADDR64);
 #endif
             //rels[i].r_addend = 0;
         }
@@ -927,8 +927,8 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
 //            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_64);
 #elif defined(arch_x86_64)
             rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_64);
-#elif defined(arch_power)
-            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_ADDR64);
+#elif defined(arch_power) && defined(arch_64bit)
+            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC64_ADDR64);
 #endif
             //rels[i].r_addend = 0;
         }

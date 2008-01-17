@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.15 2007/10/26 17:17:51 bernat Exp $
+// $Id: linux-power.C,v 1.16 2008/01/17 20:03:38 legendre Exp $
 
 #include <dlfcn.h>
 
@@ -54,6 +54,7 @@
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/signalgenerator.h"
+#include "dyninstAPI/src/registerSpace.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
