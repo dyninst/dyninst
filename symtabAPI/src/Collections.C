@@ -260,16 +260,19 @@ Type * typeCollection::findOrCreateType( const int ID ) {
 } /* end findOrCreateType() */
 
 Type * typeCollection::addOrUpdateType( Type * type ) {
-    if(type->getID() == 14)
-        cout << "found type with ID 14" << endl;
+//    if(type->getID() == 14)
+//        cout << "found type with ID 14" << endl;
     Type * existingType = findTypeLocal( type->getID() );
     if( existingType == NULL ) {
         if( type->getName() != "" ) {
             typesByName[ type->getName() ] = type;
+            typesByID[ type->getID() ] = type;
             type->incrRefCount();
         }
-        typesByID[ type->getID() ] = type;
-        type->incrRefCount();
+        else{
+            typesByID[ type->getID() ] = type;
+            type->incrRefCount();
+        }
         return type;
     } else {
         /* Multiple inclusions of the same object file can result
@@ -387,8 +390,11 @@ void typeCollection::clearNumberedTypes() {
  */
 std::vector<Type *> *typeCollection::getAllTypes() {
    std::vector<Type *> *typesVec = new std::vector<Type *>;
-   for (hash_map<int, Type *>::iterator it = typesByID.begin();
-        it != typesByID.end();
+   //for (hash_map<int, Type *>::iterator it = typesByID.begin();
+   //     it != typesByID.end();
+   //     it ++) {
+   for (hash_map<string, Type *>::iterator it = typesByName.begin();
+        it != typesByName.end();
         it ++) {
 	typesVec->push_back(it->second);
    }
