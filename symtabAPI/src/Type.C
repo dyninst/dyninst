@@ -1593,8 +1593,12 @@ void localVar::fixupUnknown(Module *module) {
    if (type_->getDataClass() == dataUnknownType) {
       Type *otype = type_;
       type_ = module->getModuleTypes()->findType(type_->getID());
-      type_->incrRefCount();
-      otype->decrRefCount();
+      if(type_){
+          type_->incrRefCount();
+           otype->decrRefCount();
+      }
+      else
+          type_ = otype;
    }
 }
 
