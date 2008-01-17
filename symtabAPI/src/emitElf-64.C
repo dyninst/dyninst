@@ -42,7 +42,7 @@ using namespace Dyninst::SymtabAPI;
 using namespace std;
 
 extern const char *pdelf_get_shnames(Elf_X &elf);
-unsigned el64_newdynstrIndex;
+unsigned elf64_newdynstrIndex;
 unsigned elf64_newdynsymIndex;
 
 static int elfSymType(Symbol::SymbolType sType)
@@ -344,7 +344,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
     for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
     	shdr = elf64_getshdr(scn);
 /*        if(shdr->sh_link == olddynstrIndex)
-            shdr->sh_link = el64_newdynstrIndex;
+            shdr->sh_link = elf64_newdynstrIndex;
         else if(shdr->sh_link == olddynsymIndex)
             shdr->sh_link = elf64_newdynsymIndex;*/
     	olddata = elf_getdata(scn,NULL);
@@ -491,6 +491,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
     firstNewLoadSec = NULL;
     unsigned pgSize = getpagesize();
     unsigned strtabIndex = 0;
+    unsigned dynsymIndex = 0;
     Elf64_Shdr *prevshdr = NULL;
 
     for(unsigned i=0; i < newSecs.size(); i++)
@@ -499,7 +500,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
     	{
 	        secNames.push_back(newSecs[i]->getSecName());
             if(newSecs[i]->getSecName() == ".dynstr")
-                el64_newdynstrIndex = secNames.size() - 1;
+                elf64_newdynstrIndex = secNames.size() - 1;
             else if(newSecs[i]->getSecName() == ".dynsym")
                 elf64_newdynsymIndex = secNames.size() - 1;
     
@@ -547,7 +548,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
                 newshdr->sh_type = SHT_REL;
                 newshdr->sh_flags = SHF_ALLOC;
                 newshdr->sh_entsize = sizeof(Elf64_Rel);
-                newshdr->sh_link = strtabIndex;   //.rel.plt section should have sh_link = index of .strtab for dynsym
+                newshdr->sh_link = dynsymIndex;   //.rel.plt section should have sh_link = index of .dynsym
                 newdata->d_type = ELF_T_REL;
                 updateDynamic(dynData, newshdr->sh_addr);
             }
@@ -567,6 +568,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
                 newdata->d_type = ELF_T_SYM;
                 newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags = SHF_ALLOC ;
+                dynsymIndex = secNames.size()-1;
             }
             else if(newSecs[i]->getFlags() & Section::dynamicSection)
             {
@@ -633,8 +635,8 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
 	        	firstNewLoadSec = shdr;
             secNameIndex += newSecs[i]->getSecName().size() + 1;
 	        /* DEBUG */
-    	    fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-	                                     newSecs[i]->getSecName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
+            fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
+                    newSecs[i]->getSecName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
             prevshdr = newshdr;
 	    }
 	    else
@@ -673,7 +675,7 @@ bool emitElf64::addSectionHeaderTable(Elf64_Shdr *shdr) {
 	newshdr->sh_addr = 0;
    newshdr->sh_info = 0;
 	newshdr->sh_addralign = 4;
-
+   
    //Set up the data
    newdata->d_buf = (char *)malloc(secNameIndex);
    char *ptr = (char *)newdata->d_buf;
@@ -802,9 +804,22 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
     //Symbol table(.dynsymtab) symbols
     std::vector<Elf64_Sym *> dynsymbols;
 
-    unsigned symbolNamesLength = 1, dynsymbolNamesLength = 0;
+    unsigned symbolNamesLength = 1, dynsymbolNamesLength = 1;
     vector<string> symbolStrs, dynsymbolStrs;
     symbolStrs.push_back("");
+    dynsymbolStrs.push_back("");
+
+    Elf64_Sym *sym = new Elf64_Sym();
+    sym->st_name = 0;
+    sym->st_value = 0;
+    sym->st_size = 0;
+    sym->st_other = 0;
+    sym->st_info = ELF64_ST_INFO(elfSymBind(Symbol::SL_LOCAL), elfSymType (Symbol::ST_NOTYPE));
+    sym->st_shndx = SHN_ABS;
+
+    symbols.push_back(sym);
+    dynsymbols.push_back(sym);
+
     for(i=0; i<functions.size();i++) {
         if(functions[i]->isInSymtab())
             getBackSymbol(functions[i], symbolStrs, symbolNamesLength, symbols);
@@ -836,7 +851,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
         syms[i] = *(symbols[i]);
     
     --symbolNamesLength;
-    char *str = (char *)malloc(symbolNamesLength + 1);
+    char *str = (char *)malloc(symbolNamesLength+1);
     unsigned cur=0;
     for(i=0;i<symbolStrs.size();i++)
     {
@@ -844,30 +859,24 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
         cur+=symbolStrs[i].length()+1;
     }
     
-    char *data = (char *)malloc(symbols.size()*sizeof(Elf64_Sym));
-    memcpy(data,syms, symbols.size()*sizeof(Elf64_Sym));
-
     if(!isStripped)
     {
         Section *sec;
         obj->findSection(sec,".symtab");
-	    sec->setPtrToRawData(data, symbols.size()*sizeof(Elf64_Sym));
+	    sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf64_Sym));
     }
     else
-    	obj->addSection(0, data, symbols.size()*sizeof(Elf64_Sym), ".symtab", Section::symtabSection);
+    	obj->addSection(0, syms, symbols.size()*sizeof(Elf64_Sym), ".symtab", Section::symtabSection);
 
     //reconstruct .strtab section
-    char *strData = (char *)malloc(symbolNamesLength);
-    memcpy(strData, str, symbolNamesLength);
-    
     if(!isStripped)
     {
         Section *sec;
         obj->findSection(sec,".strtab");
-	    sec->setPtrToRawData(strData, symbolNamesLength);
+	    sec->setPtrToRawData(str, symbolNamesLength);
     }
     else
-        obj->addSection(0, strData, symbolNamesLength , ".strtab", Section::stringSection);
+        obj->addSection(0, str, symbolNamesLength , ".strtab", Section::stringSection);
     
     if(!obj->getAllNewSections(newSecs))
     	log_elferror(err_func_, "No new sections to add");
@@ -890,16 +899,10 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
         dynSymNameMapping[dynsymbolStrs[i]] = i;
     }
     
-    data = (char *)malloc(dynsymbols.size()*sizeof(Elf64_Sym));
-    memcpy(data, dynsyms, dynsymbols.size()*sizeof(Elf64_Sym));
-
-   	obj->addSection(0, data, dynsymbols.size()*sizeof(Elf64_Sym), ".dynsym", Section::dynsymtabSection, true);
+   	obj->addSection(0, dynsyms, dynsymbols.size()*sizeof(Elf64_Sym), ".dynsym", Section::dynsymtabSection, true);
 
     //reconstruct .dynstr section
-    strData = (char *)malloc(dynsymbolNamesLength);
-    memcpy(strData, dynstr, dynsymbolNamesLength);
-    
-    obj->addSection(0, strData, dynsymbolNamesLength , ".dynstr", Section::stringSection, true);
+    obj->addSection(0, dynstr, dynsymbolNamesLength+1 , ".dynstr", Section::stringSection, true);
     
     vector<relocationEntry> newRels = newSecs[0]->getRelocations();
     
@@ -909,13 +912,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
     {
         if(dynSymNameMapping.find(fbt[i].name()) != dynSymNameMapping.end()) {
             rels[i].r_offset = fbt[i].rel_addr();
-#if defined(arch_sparc)
-//            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[fbt[i].name()], R_SPARC_64);
-#elif defined(arch_x86_64)
-            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[fbt[i].name()], R_X86_64_64);
-#elif defined(arch_power) && defined(arch_64bit)
-            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[fbt[i].name()], R_PPC64_ADDR64);
-#endif
+            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[fbt[i].name()], fbt[i].getRelType());
             //rels[i].r_addend = 0;
         }
     }
@@ -923,6 +920,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
     {
         if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
             rels[i].r_offset = newRels[i].rel_addr();
+            //rels[i].r_addend = 0;
 #if defined(arch_sparc)
 //            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_64);
 #elif defined(arch_x86_64)
@@ -930,7 +928,6 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
 #elif defined(arch_power) && defined(arch_64bit)
             rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC64_ADDR64);
 #endif
-            //rels[i].r_addend = 0;
         }
     }
    	obj->addSection(0, rels, (fbt.size()+newRels.size())*sizeof(Elf64_Rel), ".rel.dyn", Section::relocationSection, true);
