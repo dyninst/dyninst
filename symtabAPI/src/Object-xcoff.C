@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.17 2008/01/03 22:55:10 jaw Exp $
+// $Id: Object-xcoff.C,v 1.18 2008/01/17 22:42:55 giri Exp $
 
 #include <regex.h>
 
@@ -696,7 +696,8 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    }
    
    if (hdr.f_magic != 0x1df) {
-        PARSE_AOUT_DIE("possible problem, magic number is not 0x1df", 49);
+        return;
+        //PARSE_AOUT_DIE("possible problem, magic number is not 0x1df", 49);
        //bperr( "Possible problem, magic number is %x, should be %x\n",
               //hdr.f_magic, 0x1df);
    }
@@ -1911,7 +1912,8 @@ void Object::parseTypeInfo(Symtab *obj)
    bool parseActive = true;
    //fprintf(stderr, "%s[%d]:  parseTypes for module %s: nstabs = %d\n", FILE__, __LINE__,mod->fileName().c_str(),nstabs);
    //int num_active = 0;
-
+   //
+   
    for (i=0; i < nstabs; i++) {
       /* do the pointer addition by hand since sizeof(struct syment)
        *   seems to be 20 not 18 as it should be */
@@ -1941,25 +1943,22 @@ void Object::parseTypeInfo(Symtab *obj)
          if(!obj->findModule(mod, currentSourceFile))
          {
             if(!obj->findModule(mod,extract_pathname_tail(currentSourceFile)))
-               continue;
+                parseActive = false;
+            else{
+                parseActive = true;
+                // Clear out old types
+                mod->getModuleTypes()->clearNumberedTypes();
+            }
+         }
+         else{
+            parseActive = true;
+            // Clear out old types
+            mod->getModuleTypes()->clearNumberedTypes();
          }
 
          //TODO? check for process directories??
          //currentSourceFile = mod->processDirectories(currentSourceFile);
 
-         if (strrchr(moduleName, '/')) {
-            moduleName = strrchr(moduleName, '/');
-            moduleName++;
-         }
-
-         if (!strcmp(moduleName, mod->fileName().c_str())) {
-            parseActive = true;
-            // Clear out old types
-            mod->getModuleTypes()->clearNumberedTypes();
-         }	
-         else { 
-            parseActive = false;
-         }
       }
       if (!parseActive) continue;
 
@@ -2046,10 +2045,17 @@ void Object::parseTypeInfo(Symtab *obj)
             // copy this set of fields
             std::vector<Symbol *> bpmv;
             if (obj->findSymbolByType(bpmv, funcName, Symbol::ST_FUNCTION) || !bpmv.size()) {
-               //bperr("unable to locate current function %s\n", funcName.c_str());
+                string newName = "." + funcName;
+                if (obj->findSymbolByType(bpmv, newName, Symbol::ST_FUNCTION) || !bpmv.size()) {
+                   //bperr("unable to locate current function %s\n", funcName.c_str());
+                }
+                else{
+                    Symbol *func = bpmv[0];
+                    commonBlock->endCommonBlock(func, (void *)commonBlockVar->getAddr());
+                }
             } else {
                Symbol *func = bpmv[0];
-               commonBlock->endCommonBlock(func, (void *)obj->getBaseOffset());
+               commonBlock->endCommonBlock(func, (void *)commonBlockVar->getAddr());
             }
 
             //TODO?? size for local variables??
