@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.27 2008/01/10 19:43:31 giri Exp $
+ * $Id: Object-elf.C,v 1.28 2008/01/17 22:42:54 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -522,16 +522,19 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
 	    	for( u_int i = 0; i < (rel_size_/rel_entry_size_); ++i ) {
 		        long offset;
 		        long index;
+                unsigned long type;
 
     		    switch (reldata.d_type()) {
 	    	      case ELF_T_REL:
     			    offset = rel.r_offset(i);
 	    	    	index = rel.R_SYM(i);
+                    type = rel.R_TYPE(i);
         			break;
 
 	 	          case ELF_T_RELA:
         			offset = rela.r_offset(i);
 	        		index = rela.R_SYM(i);
+                    type = rela.R_TYPE(i);
         			break;
 
      		      default:
@@ -539,7 +542,7 @@ bool Object::get_relocationDyn_entries( Elf_X_Shdr *&rel_scnp,
 	    	    	return false;
 		        };
 		        // /* DEBUG */ fprintf( stderr, "%s: relocation information for target 0x%lx\n", __FUNCTION__, next_plt_entry_addr );
-    		    relocationEntry re( offset, string( &strs[ sym.st_name(index) ] ) );
+    		    relocationEntry re( offset, string( &strs[ sym.st_name(index) ] ), NULL, type );
                 if(symbols_.find(&strs[ sym.st_name(index)]) != symbols_.end()){
                     vector<Symbol *> syms = symbols_[&strs[ sym.st_name(index)]];
                     re.addDynSym(syms[0]);
@@ -1090,6 +1093,8 @@ void Object::parse_dynamicSymbols ( Elf_X_Data &symdata, Elf_X_Data &strdata,
       
       // resolve symbol elements
       string sname = &strs[ syms.st_name(i) ];
+      if(sname == "")
+          continue;
       Symbol::SymbolType stype = pdelf_type(etype);
       Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
       unsigned ssize = syms.st_size(i);
@@ -3784,36 +3789,36 @@ void Object::parseStabTypes(Symtab *obj)
 		    if(!ptr || !(colonPtr = strchr(ptr,':')))
 	                currentFunctionName = NULL;
 		    else {
-		        char* tmp = new char[colonPtr-ptr+1];
-		        strncpy(tmp,ptr,colonPtr-ptr);
-		        tmp[colonPtr-ptr] = '\0';
-		        currentFunctionName = new string(tmp);
-                        currentFunctionBase = 0;
-	                Symbol *info = NULL;
-                        // Shouldn't this be a function name lookup?
-			std::vector<Symbol *>syms;
-			if(!obj->findSymbolByType(syms, *currentFunctionName, Symbol::ST_FUNCTION))
-			{
-			    if(!obj->findSymbolByType(syms, "_"+*currentFunctionName, Symbol::ST_FUNCTION))
-			    {
-			    	string fortranName = *currentFunctionName + string("_");
-                            	if (obj->findSymbolByType(syms, fortranName, Symbol::ST_FUNCTION))
-	                    	{
-	                            delete currentFunctionName;
-                                    currentFunctionName = new string(fortranName);
-				    info = syms[0];
-			    	}
-			    }
-			    else
-			    	info = syms[0];
-			}
-			else
-			    info = syms[0];
-			syms.clear();
-			if(info)
- 	                    currentFunctionBase = info->getAddr();
-                        delete[] tmp;
-    		    }
+                char* tmp = new char[colonPtr-ptr+1];
+                strncpy(tmp,ptr,colonPtr-ptr);
+                tmp[colonPtr-ptr] = '\0';
+                currentFunctionName = new string(tmp);
+                currentFunctionBase = 0;
+                Symbol *info = NULL;
+                // Shouldn't this be a function name lookup?
+                std::vector<Symbol *>syms;
+                if(!obj->findSymbolByType(syms, *currentFunctionName, Symbol::ST_FUNCTION))
+                {
+                    if(!obj->findSymbolByType(syms, "_"+*currentFunctionName, Symbol::ST_FUNCTION))
+                    {
+                        string fortranName = *currentFunctionName + string("_");
+                        if (obj->findSymbolByType(syms, fortranName, Symbol::ST_FUNCTION))
+                        {
+                            delete currentFunctionName;
+                            currentFunctionName = new string(fortranName);
+                            info = syms[0];
+                        }
+                    }
+                    else
+                        info = syms[0];
+                }
+                else
+                    info = syms[0];
+                syms.clear();
+                if(info)
+                    currentFunctionBase = info->getAddr();
+                delete[] tmp;
+            }
 		    delete[] ptr;
 #ifdef TIMED_PARSE
 		    gettimeofday(&t2, NULL);
@@ -3833,28 +3838,28 @@ void Object::parseStabTypes(Symtab *obj)
 		    //TODO? change this. findLocalVar will cause an infinite loop
 		    std::vector<Symbol *>vars;
 		    if(!obj->findSymbolByType(vars, *commonBlockName, Symbol::ST_OBJECT))
-                    {
-                        if(!obj->findSymbolByType(vars, *commonBlockName, Symbol::ST_OBJECT, true))
-                            commonBlockVar = NULL;
-                        else
-                            commonBlockVar = vars[0];
-                    }
-	            else
-	                commonBlockVar = vars[0];
-		    if (!commonBlockVar) {
-		        // //bperr("unable to find variable %s\n", commonBlockName);
-		    } else {
-		        commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypes()->findVariableType(*commonBlockName));
-		        if (commonBlock == NULL) {
-		            // its still the null type, create a new one for it
-		            commonBlock = new typeCommon(*commonBlockName);
-		            mod->getModuleTypes()->addGlobalVariable(*commonBlockName, commonBlock);
-		        }
-	                // reset field list
-		        commonBlock->beginCommonBlock();
-		    }
-		    break;
-	        }
+            {
+                if(!obj->findSymbolByType(vars, *commonBlockName, Symbol::ST_OBJECT, true))
+                    commonBlockVar = NULL;
+                else
+                    commonBlockVar = vars[0];
+            }
+            else
+                commonBlockVar = vars[0];
+            if (!commonBlockVar) {
+                // //bperr("unable to find variable %s\n", commonBlockName);
+            } else {
+                commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypes()->findVariableType(*commonBlockName));
+                if (commonBlock == NULL) {
+                    // its still the null type, create a new one for it
+                    commonBlock = new typeCommon(*commonBlockName);
+                    mod->getModuleTypes()->addGlobalVariable(*commonBlockName, commonBlock);
+                }
+                // reset field list
+                commonBlock->beginCommonBlock();
+            }
+            break;
+            }
 		case N_ECOMM: {
 		    //copy this set of fields
                     assert(currentFunctionName);
@@ -3864,7 +3869,7 @@ void Object::parseStabTypes(Symtab *obj)
 			}
 			else{
                             Symbol *func = bpfv[0];
-	                    commonBlock->endCommonBlock(func, (void *)obj->getBaseOffset());
+	                    commonBlock->endCommonBlock(func, (void *)commonBlockVar->getAddr());
 			}    
 		    } else {
 		        if (bpfv.size() > 1) {
@@ -3873,7 +3878,7 @@ void Object::parseStabTypes(Symtab *obj)
 				//                     __FILE__, __LINE__, bpfv.size(), currentFunctionName->c_str());
 		        }
                         Symbol *func = bpfv[0];
-	                commonBlock->endCommonBlock(func, (void *)obj->getBaseOffset());
+	                commonBlock->endCommonBlock(func, (void *)commonBlockVar->getAddr());
 		    }
 	     //TODO?? size for local variables??
 	     //       // update size if needed
