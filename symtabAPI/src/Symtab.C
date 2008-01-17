@@ -319,6 +319,7 @@ DLLEXPORT bool Symtab::isNativeCompiler() const
  
 DLLEXPORT Symtab::Symtab()
 {
+    defaultNamespacePrefix = "";
 }
 
 DLLEXPORT bool Symtab::isExec() const 
@@ -381,6 +382,10 @@ DLLEXPORT Offset Symtab::getLoadOffset() const
 DLLEXPORT Offset Symtab::getTOCoffset() const 
 {
    return toc_offset_;
+}
+
+DLLEXPORT string Symtab::getDefaultNamespacePrefix() const{
+    return defaultNamespacePrefix;
 }
 	
 	
@@ -1079,6 +1084,7 @@ Symtab::Symtab(std::string &filename,bool &err) :
    Object *linkedFile = new Object(mf, pd_log_perror);
    err = extractInfo(linkedFile);
    delete linkedFile;
+   defaultNamespacePrefix = "";
 }
 
 #if 0 
@@ -1094,6 +1100,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
     Object *linkedFile = new Object(mem_image, image_size, pd_log_perror);
     err = extractInfo(linkedFile);
     delete linkedFile;
+    defaultNamespacePrefix = "";
 }
 #endif
 
@@ -1115,9 +1122,10 @@ Symtab::Symtab(std::string &filename, std::string &member_name, Offset offset,
 #endif
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
-    Object *linkedFile = new Object(mf, member_name, offset, pd_log_perror);
-    err = extractInfo(linkedFile);
-    delete linkedFile;
+   Object *linkedFile = new Object(mf, member_name, offset, pd_log_perror);
+   err = extractInfo(linkedFile);
+   delete linkedFile;
+   defaultNamespacePrefix = "";
 }
 #else
 Symtab::Symtab(std::string &, std::string &, Offset, bool &)
@@ -1143,6 +1151,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string &member_name,
                                                            pd_log_perror);
     err = extractInfo(linkedFile);
     delete linkedFile;
+    defaultNamespacePrefix = "";
 }
 #else 
 Symtab::Symtab(char *, size_t, std::string &, Offset, bool &)
@@ -1389,6 +1398,7 @@ Symtab::Symtab(const Symtab& obj) :
     main_call_addr_ = obj.main_call_addr_; // address of call to main()
     
     nativeCompiler = obj.nativeCompiler;
+    defaultNamespacePrefix = obj.defaultNamespacePrefix;
     
     //sections
     no_of_sections = obj.no_of_sections;
@@ -2329,6 +2339,10 @@ DLLEXPORT Offset Module::addr() const
    return addr_; 
 }
 
+DLLEXPORT bool Module::setDefaultNamespacePrefix(string str){
+    return exec_->setDefaultNamespacePrefix(str);
+}
+
 // Use POSIX regular expression pattern matching to check if std::string s matches
 // the pattern in this std::string
 bool regexEquiv( const std::string &str,const std::string &them, bool checkCase ) 
@@ -2851,6 +2865,11 @@ DLLEXPORT bool Symtab::findLocalVariable(std::vector<localVar *>&vars, std::stri
    if(vars.size()>origSize)
    	return true;
    return false;	
+}
+
+bool Symtab::setDefaultNamespacePrefix(string &str){
+    defaultNamespacePrefix = str;
+    return true;
 }
 
 /********************************************************************************
