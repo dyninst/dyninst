@@ -204,7 +204,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 
     if( name[0] != '\0' && stabstr[cnt] != ':' ) {
 		return name;
-		}
+    }
     
     if (stabstr[cnt] == ':') {
        // skip to type part
@@ -393,7 +393,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	  case 'E':/* Extern'd Global ??? - undocumented type for Sun Compilers - jkh 6/6/03 */
 	  case 'G':/* Global Varaible */
 	      cnt++; /* skip the 'G' */
-
+            
 	      /* Get variable type number */
 	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 	      if (stabstr[cnt]) {
@@ -504,9 +504,9 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 
 #ifdef notdef
 	      /* often have rNN=*yy - what is this ? jkh 11/30/00 */
-	      if (stabstr[cnt])
+	     //if (stabstr[cnt])
 		//bperr("Parsing Error More register info to Parse!!: %s\n",
-		    &(stabstr[cnt]));
+        //	    &(stabstr[cnt]));
 #endif
 	      break;
 
@@ -519,28 +519,26 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	      // lookup symbol and set type
 	      Type *BPtype;
 
-              std::string nameTrailer;
+          std::string nameTrailer;
 	      if (name.find(".") < name.length()) {
-		  std::string defaultNameSpace;
-
-                  defaultNameSpace = name.substr(0,name.find("."));
-                  nameTrailer = name.substr(name.find(".")+1,name.length()-name.find(".")-1);
-		  //TODO?? set it in symtabAPI and use it for finding symbols(findSymbolByType)
-//		  mod->setDefaultNamespacePrefix(strdup(defaultNameSpace.c_str()));
+              std::string defaultNameSpace;
+              defaultNameSpace = name.substr(0,name.find("."));
+              nameTrailer = name.substr(name.find(".")+1,name.length()-name.find(".")-1);
+              mod->setDefaultNamespacePrefix(defaultNameSpace);
 	      } else
-                 nameTrailer = name;
+              nameTrailer = name;
 
 	      BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
 	      if (!BPtype) {
 		      //bperr("ERROR: unable to find type #%d for variable %s\n", 
 		      // symdescID, nameTrailer.c_str());
 	      } else {
-		  Symtab *img = mod->exec();
-		  std::vector<Symbol *>syms;
-		  if(img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT) || img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT, true)) {
-		      syms.clear();	
-		      mod->getModuleTypes()->addGlobalVariable(nameTrailer, BPtype);
-		  }
+              Symtab *img = mod->exec();
+              std::vector<Symbol *>syms;
+              if(img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT) || img->findSymbolByType(syms, nameTrailer, Symbol::ST_OBJECT, true)) {
+                  syms.clear();	
+                  mod->getModuleTypes()->addGlobalVariable(nameTrailer, BPtype);
+              }
 	      }
 
 	      if (stabstr[cnt]);
@@ -557,62 +555,61 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 
 	      //Create Type.
 	      if (stabstr[cnt] == '=') {
-		/* More Stuff to parse, call parseTypeDef */
-            //char *oldStr = stabstr;
-		stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
-		cnt = 0;
-		// AIX seems to append an semi at the end of these
-		if (stabstr[0] && strcmp(stabstr, ";")) {
-		    //bperr("\tMore to parse creating type %s\n", stabstr);
-		  //bperr( "\tFull String: %s\n", oldStr);
-		}
+              /* More Stuff to parse, call parseTypeDef */
+              //char *oldStr = stabstr;
+              stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
+              cnt = 0;
+              // AIX seems to append an semi at the end of these
+              if (stabstr[0] && strcmp(stabstr, ";")) {
+                  //bperr("\tMore to parse creating type %s\n", stabstr);
+                  //bperr( "\tFull String: %s\n", oldStr);
+              }
 	      } else {
-		//Create Type defined as a pre-exisitng type.
-		ptrType = mod->getModuleTypes()->findOrCreateType(symdescID);
-		if (!ptrType)
-		  ptrType = mod->exec()->type_Untyped;
-                newType = new typeTypedef(symdescID, ptrType, name);
-		if (newType) {
-		    mod->getModuleTypes()->addOrUpdateType(newType);
-		}
-                newType->decrRefCount();
+              //Create Type defined as a pre-exisitng type.
+              ptrType = mod->getModuleTypes()->findOrCreateType(symdescID);
+              if (!ptrType)
+                  ptrType = mod->exec()->type_Untyped;
+              newType = new typeTypedef(symdescID, ptrType, name);
+              if (newType) {
+                  mod->getModuleTypes()->addOrUpdateType(newType);
+              }
 	      }
 	      break;
     
 	  case ':':	// :T... - skip ":" and parse 'T'
 	      if ((stabstr[cnt+1] == 't') || (stabstr[cnt+1] == 'T')) {
-		  // parse as a normal typedef
-		  parseStabString(mod, linenum, &stabstr[cnt+1], framePtr);
+              // parse as a normal typedef
+              parseStabString(mod, linenum, &stabstr[cnt+1], framePtr);
 	      } else {
 	          //bperr("Unknown type seen %s\n", stabstr);
 	      }
 	      break;
 
-          case 'T':/* Aggregate type tag -struct, union, enum */
-	      cnt++; /*move past the 'T'*/
+      case 'T':/* Aggregate type tag -struct, union, enum */
+          cnt++; /*move past the 'T'*/
 
-	      if (stabstr[cnt] == 't') {
-		  //C++ struct  tag "T" and type def "t"
-		  ////bperr("SKipping C++ Identifier t of Tt\n");
-		  cnt++;  //skip it
-	      }
+          if (stabstr[cnt] == 't') {
+              //C++ struct  tag "T" and type def "t"
+              ////bperr("SKipping C++ Identifier t of Tt\n");
+              cnt++;  //skip it
+          }
 
 	      /* get type reference */
 	      symdescID = parseSymDesc(stabstr, cnt);
 
 	      //Create Type.
 	      if (stabstr[cnt] == '=') {
-		  /* More Stuff to parse, call parseTypeDef */
-		  stabstr = parseTypeDef(mod,(&stabstr[cnt+1]),name.c_str(),symdescID);
-		  cnt = 0;
-		  if (stabstr[0]) {
-		      //bperr( "\tMore to parse aggregate type %s\n", (&stabstr[cnt]));
-		  //bperr("\tFull String: %s\n", stabstr);
-		  }
-	      } else {
-		  //Create Type defined as a pre-exisitng type.
-		  newType = Type::createPlaceholder(symdescID, name);
-		  if (newType) { newType = mod->getModuleTypes()->addOrUpdateType(newType); }
+              /* More Stuff to parse, call parseTypeDef */
+              stabstr = parseTypeDef(mod,(&stabstr[cnt+1]),name.c_str(),symdescID);
+              cnt = 0;
+              if (stabstr[0]) {
+                  //bperr( "\tMore to parse aggregate type %s\n", (&stabstr[cnt]));
+                  //bperr("\tFull String: %s\n", stabstr);
+              }
+          } else {
+              //Create Type defined as a pre-exisitng type.
+              newType = Type::createPlaceholder(symdescID, name);
+              if (newType) { newType = mod->getModuleTypes()->addOrUpdateType(newType); }
 	      }
 
 	      break;
@@ -624,103 +621,103 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
 	      /* Get variable type number */
 	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 	      if (stabstr[cnt]) {
-		  //bperr( "\tMore to parse local static %s\n", &stabstr[cnt]);
-		  //bperr( "\tFull String: %s\n", stabstr);
+              //bperr( "\tMore to parse local static %s\n", &stabstr[cnt]);
+              //bperr( "\tFull String: %s\n", stabstr);
 	      }
 	      // lookup symbol and set type
 	      BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
 	      if (!BPtype) {
 		      //bperr("ERROR: unable to find type #%d for variable %s\n", 
 		      // symdescID, name.c_str());
-		  break;
+              break;
 	      }
 	      if (commonBlock) {
-		  /* This variable is in a common block */
-		  /* add it only if not already there, common block
-		     are re-defined for each subroutine but subroutines
-		     define only the member they care about
-		  */
-		  bool found = false;
-		  const std::vector<Field *> *fields;
-		  fields = commonBlock->getFields();
-		  if (fields) {
-		      for (unsigned int i=0; i < fields->size(); i++) {
-			  if (name == (*fields)[i]->getName()) {
-			      found = true;
-			      break;
-			  }
-			  int start1, start2, end1, end2;
-			  start1 = (*fields)[i]->getOffset();
-			  end1 = start1 + (*fields)[i]->getSize();
-			  start2 = framePtr;
-			  end2 = framePtr + BPtype->getSize();
-			  if (((start2 >= start1) && (start2 < end1)) ||
-			      ((start1 >= start2) && (start1 < end2))) {
-			      /* common block aliasing detected */
-			      //bpwarn("WARN: EQUIVALENCE used in %s: %s and %s\n",
-				//  current_func_name.c_str(), name.c_str(), (*fields)[i]->getName());
-			      found = true;
-			      break;
-			  }
-		      }
-		  }
-		  if (!found) {
-		      commonBlock->addField(name, BPtype, framePtr);
-		  }
-	      } else {
-		  // put it into the local variable scope
-            if (!symt_current_func) {
-		  //bperr("Unable to add %s to local variable list in %s\n",
-		//	 name.c_str(),current_func_name.c_str());
-		} else {
-		  locVar = new localVar(name, BPtype, fName, linenum);
-	  	  loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
-		  loc->stClass = storageAddr;
-		  loc->refClass = storageNoRef;
-		  loc->frameOffset = framePtr;
-		  loc->reg = -1;
-		  locVar->addLocation(loc);
-		  
-		  if(!symt_current_func->vars_)
-           symt_current_func->vars_ = new localVarCollection();
-		  symt_current_func->vars_->addLocalVar( locVar);
-		}
+              /* This variable is in a common block */
+              /* add it only if not already there, common block
+                 are re-defined for each subroutine but subroutines
+                 define only the member they care about
+                 */
+              bool found = false;
+              const std::vector<Field *> *fields;
+              fields = commonBlock->getFields();
+              if (fields) {
+                  for (unsigned int i=0; i < fields->size(); i++) {
+                      if (name == (*fields)[i]->getName()) {
+                          found = true;
+                          break;
+                      }
+                      int start1, start2, end1, end2;
+                      start1 = (*fields)[i]->getOffset();
+                      end1 = start1 + (*fields)[i]->getSize();
+                      start2 = framePtr;
+                      end2 = framePtr + BPtype->getSize();
+                      if (((start2 >= start1) && (start2 < end1)) ||
+                              ((start1 >= start2) && (start1 < end2))) {
+                          /* common block aliasing detected */
+                          //bpwarn("WARN: EQUIVALENCE used in %s: %s and %s\n",
+                          //  current_func_name.c_str(), name.c_str(), (*fields)[i]->getName());
+                          found = true;
+                          break;
+                      }
+                  }
+              }
+              if (!found) {
+                  commonBlock->addField(name, BPtype, framePtr);
+              }
+          } else {
+              // put it into the local variable scope
+              if (!symt_current_func) {
+                  //bperr("Unable to add %s to local variable list in %s\n",
+                  //	 name.c_str(),current_func_name.c_str());
+              } else {
+                  locVar = new localVar(name, BPtype, fName, linenum);
+                  loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+                  loc->stClass = storageAddr;
+                  loc->refClass = storageNoRef;
+                  loc->frameOffset = framePtr;
+                  loc->reg = -1;
+                  locVar->addLocation(loc);
+
+                  if(!symt_current_func->vars_)
+                      symt_current_func->vars_ = new localVarCollection();
+                  symt_current_func->vars_->addLocalVar( locVar);
+              }
 	      }
 	      break;
-          case 'l':
-	    /* These are string literals, of the form 
-	       name:l(type);value
-	       where type must be predefined, and value of of type type.
-	       It should be safe to ignore these. */
-	    cnt = strlen(stabstr);
-	    break;
+      case 'l':
+          /* These are string literals, of the form 
+	      name:l(type);value
+	      where type must be predefined, and value of of type type.
+	      It should be safe to ignore these. */
+          cnt = strlen(stabstr);
+          break;
 
 	  case 'Y':	// C++ specific stuff
-             cnt++; // Skip past the 'Y'
-             if (stabstr[cnt] == 'I') {
-               /* Template instantiation */
-                cnt++; // skip past the I;
-                if (stabstr[cnt] == 'f') /* Template function */ {
-                   while (stabstr[cnt] != '@') cnt++;
-                   cnt++; // Skip past '@'
-                   cnt++; // Skip past ';'
-                   cnt++; // Skip past ';'
-                   while (stabstr[cnt] != ':') cnt++;
-                   // Create fake stab string that cuts out template garbage
-                   char *dupstring = strdup(stabstr);
-                   strcpy(dupstring, mangledname.c_str());
-                   strcat(dupstring, stabstr+cnt);
-                   parseStabString(mod, linenum, dupstring, framePtr, commonBlock);
-                   free(dupstring);
-                }
-             } 
-	    cnt = strlen(stabstr);
-	    break;
+          cnt++; // Skip past the 'Y'
+          if (stabstr[cnt] == 'I') {
+              /* Template instantiation */
+              cnt++; // skip past the I;
+              if (stabstr[cnt] == 'f') /* Template function */ {
+                  while (stabstr[cnt] != '@') cnt++;
+                  cnt++; // Skip past '@'
+                  cnt++; // Skip past ';'
+                  cnt++; // Skip past ';'
+                  while (stabstr[cnt] != ':') cnt++;
+                  // Create fake stab string that cuts out template garbage
+                  char *dupstring = strdup(stabstr);
+                  strcpy(dupstring, mangledname.c_str());
+                  strcat(dupstring, stabstr+cnt);
+                  parseStabString(mod, linenum, dupstring, framePtr, commonBlock);
+                  free(dupstring);
+              }
+          } 
+          cnt = strlen(stabstr);
+          break;
 
 	  default:
-	      //bperr( "Unknown symbol descriptor: %c\n", stabstr[cnt]);
-	      //bperr( " : %s\n", stabstr);
-	      break;
+          //bperr( "Unknown symbol descriptor: %c\n", stabstr[cnt]);
+          //bperr( " : %s\n", stabstr);
+          break;
       }   
     }
     return(&stabstr[cnt]);
@@ -913,39 +910,39 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
     cnt++; /* skip 'x'*/
 
     if ((stabstr[cnt] == 's') || 	// struct 
-	(stabstr[cnt] == 'u') ||	// union
-        (stabstr[cnt] == 'e')) {	// enum
-      xreftype = stabstr[cnt++];
+            (stabstr[cnt] == 'u') ||	// union
+            (stabstr[cnt] == 'e')) {	// enum
+        xreftype = stabstr[cnt++];
 
-      temp = getIdentifier(stabstr, cnt);
-      cnt++; /*skip ':' */
+        temp = getIdentifier(stabstr, cnt);
+        cnt++; /*skip ':' */
 
-      // Find type that this one points to.
-      Type *ptrType = moduleTypes->findType(temp.c_str());
-      if (!ptrType) {
-         // This type name hasn't been seen before.  Create the
-         // skeleton for it, and we'll update it later when we actually see
-         // it
-         if (xreftype == 'e') {
-            newType = new typeEnum(ID, temp);
-         } else if (xreftype == 'u') {
-            newType = new typeUnion(ID, temp);
-         } else {
-            newType = new typeStruct(ID, temp);
-         }
-	// Add to typeCollection
-	if(newType) { newType2 = moduleTypes->addOrUpdateType(newType); }
-	if(!newType2) {
-	  //bperr(" Can't Allocate new type ");
-	  exit(-1);
-	} else
-          newType->decrRefCount();
-      }         
+        // Find type that this one points to.
+        Type *ptrType = moduleTypes->findType(temp.c_str());
+        if (!ptrType) {
+            // This type name hasn't been seen before.  Create the
+            // skeleton for it, and we'll update it later when we actually see
+            // it
+            if (xreftype == 'e') {
+                newType = new typeEnum(ID, temp);
+            } else if (xreftype == 'u') {
+                newType = new typeUnion(ID, temp);
+            } else {
+                newType = new typeStruct(ID, temp);
+            }
+            // Add to typeCollection
+            if(newType) { newType2 = moduleTypes->addOrUpdateType(newType); }
+            if(!newType2) {
+                //bperr(" Can't Allocate new type ");
+                exit(-1);
+            } else if(newType2 != newType)
+                newType->decrRefCount();
+        }         
     } else {
-      /* don't know what it is?? */
-      
-      temp = getIdentifier(stabstr, cnt);
-      cnt++; /*skip ':' */
+        /* don't know what it is?? */
+
+        temp = getIdentifier(stabstr, cnt);
+        cnt++; /*skip ':' */
     }
 
     return( &(stabstr[cnt]));
@@ -1040,17 +1037,18 @@ static Type *parseArrayDef(Module *mod, const char *name,
 
 
     if (ptrType) {
-	// Create new type - field in a struct or union
-	std::string tName = convertCharToString(name);
+        // Create new type - field in a struct or union
+        std::string tName = convertCharToString(name);
         newType = new typeArray(ID, ptrType, lowbound, hibound, tName, sizeHint);
-	if (newType) {
-	    // Add to Collection
-	    newType2 = mod->getModuleTypes()->addOrUpdateType(newType);
-            newType->decrRefCount();
-	} else {
-	    //bperr( " Could not create newType Array\n");
-	    exit(-1);
-	}
+        if (newType) {
+            // Add to Collection
+            newType2 = mod->getModuleTypes()->addOrUpdateType(newType);
+            if(newType2 != newType)
+                newType->decrRefCount();
+        } else {
+            //bperr( " Could not create newType Array\n");
+            exit(-1);
+        }
     }
 	    
     // //bperr( "parsed array def to %d, remaining %s\n", cnt, &stabstr[cnt]);
@@ -1164,28 +1162,26 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
    int j = atol(hi);
     
    if (j == 0) {
-      //Size
-      int size = atol(low);
+       //Size
+       int size = atol(low);
 
-	//Create new type
-	Type *newType = new typeScalar(ID, size, name);
-	//Add to Collection
-	mod->getModuleTypes()->addOrUpdateType(newType);
-        newType->decrRefCount();
-    }
-    else {
-	//Range
-        //Create new type
-        Type *newType;
-	std::string tName = convertCharToString(name);
-        if (baseType == NULL)
+       //Create new type
+       Type *newType = new typeScalar(ID, size, name);
+       //Add to Collection
+       mod->getModuleTypes()->addOrUpdateType(newType);
+   }
+   else {
+       //Range
+       //Create new type
+       Type *newType;
+       std::string tName = convertCharToString(name);
+       if (baseType == NULL)
            newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), atoi(low), atoi(hi), tName);
-        else
+       else
            newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), atoi(low), atoi(hi), tName);
-        //Add to Collection
-        mod->getModuleTypes()->addOrUpdateType(newType);
-        newType->decrRefCount();
-    }
+       //Add to Collection
+       mod->getModuleTypes()->addOrUpdateType(newType);
+   }
    free(low);
    free(hi);
    hi=low=NULL;
@@ -1256,42 +1252,45 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 
     std::string tname = convertCharToString(name);
     if( j <= 0 ){
-      /* range */
-      
-      // //bperr("\tLower limit: %s and Upper limit: %s\n", low, hi);
-      //Create new type
-    	
-      if (baseType == NULL)
-         newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), atoi(low), atoi(hi), tname);
-      else
-         newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), atoi(low), atoi(hi), tname);
-      //Add to Collection
-      newType2 = mod->getModuleTypes()->addOrUpdateType(newType);
-      newType->decrRefCount();
+        /* range */
+
+        // //bperr("\tLower limit: %s and Upper limit: %s\n", low, hi);
+        //Create new type
+
+        if (baseType == NULL)
+            newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : guessSize(low,hi), atoi(low), atoi(hi), tname);
+        else
+            newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), atoi(low), atoi(hi), tname);
+        //Add to Collection
+        newType2 = mod->getModuleTypes()->addOrUpdateType(newType);
+        if(newType2 != newType)
+            newType->decrRefCount();
 
     } else if( j > 0){
-      j = atol(hi);
-      if(j == 0){
-        /*size */
-        int size = (int)j;
+        j = atol(hi);
+        if(j == 0){
+            /*size */
+            int size = (int)j;
 
-	// //bperr("\tSize of Type : %d bytes\n",size);
-	//Create new type
+            // //bperr("\tSize of Type : %d bytes\n",size);
+            //Create new type
 
-        newType = new typeScalar(ID, size, name);
-	//Add to Collection
-	newType2 = mod->getModuleTypes()->addOrUpdateType(newType);
-        newType->decrRefCount();
-      } else {
-        /* range */
-	// //bperr("Type RANGE: ERROR!!\n");
-        if (baseType == NULL)
-           newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : sizeof(long), atoi(low), atoi(hi), tname);
-	else
-	   newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), atoi(low), atoi(hi),tname);
-	newType2 = mod->getModuleTypes()->addOrUpdateType(newType);
-        newType->decrRefCount();
-      }	
+            newType = new typeScalar(ID, size, name);
+            //Add to Collection
+            newType2 = mod->getModuleTypes()->addOrUpdateType(newType);
+            if(newType2 != newType)
+                newType->decrRefCount();
+        } else {
+            /* range */
+            // //bperr("Type RANGE: ERROR!!\n");
+            if (baseType == NULL)
+                newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : sizeof(long), atoi(low), atoi(hi), tname);
+            else
+                newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), atoi(low), atoi(hi),tname);
+            newType2 = mod->getModuleTypes()->addOrUpdateType(newType);
+            if(newType2 != newType)
+                newType->decrRefCount();
+        }	
     }
     free(low);
     free(hi);
@@ -1460,8 +1459,7 @@ static char *parseRefType(Module *mod, const char *name,
 
     // Add to typeCollection
     if(newType) {
-	mod->getModuleTypes()->addOrUpdateType(newType);
-        newType->decrRefCount();
+        mod->getModuleTypes()->addOrUpdateType(newType);
     } else {
         //bperr(" Can't Allocate new type ");
         exit(-1);
@@ -1480,14 +1478,14 @@ void addBaseClassToClass(Module *mod, int baseID,
     //Find base class
     fieldListType *baseCl = dynamic_cast<fieldListType *>(mod->getModuleTypes()->findType(baseID));
     if( ! baseCl ) {
-	std::string modName = mod->fileName();
+        std::string modName = mod->fileName();
         //bpwarn( "can't find base class id %d in module %s\n", baseID, modName);
         baseCl = new typeStruct(baseID);
         fieldListType *baseCl2 = dynamic_cast<typeStruct *>(mod->getModuleTypes()->addOrUpdateType( baseCl ));
-	std::string fName = "{superclass}";
-	newType->addField( fName, baseCl2, -1, visUnknown );
+        std::string fName = "{superclass}";
+        newType->addField( fName, baseCl2, -1, visUnknown );
         baseCl->decrRefCount();
-	return;
+        return;
     }
     std::string fName = "{superclass}";
     newType->addField( fName, baseCl, -1, visUnknown );
@@ -1794,7 +1792,8 @@ static char *parseCPlusPlusInfo(Module *mod,
     }
     //add to type collection
     newType2 = dynamic_cast<fieldListType *>(mod->getModuleTypes()->addOrUpdateType(newType));
-    newType->decrRefCount();
+    if(newType2 != newType)
+        newType->decrRefCount();
 
     if (sunStyle) {
 	cnt++;
@@ -1888,7 +1887,6 @@ static char *parseCPlusPlusInfo(Module *mod,
 static char *parseTypeDef(Module *mod, char *stabstr, 
                          	const char *name, int ID, unsigned int sizeHint)
 {
-
     Type * newType = NULL, *newType2 = NULL;
     fieldListType * newFieldType = NULL, *newFieldType2 = NULL;
     Type * ptrType = NULL;
@@ -1905,7 +1903,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
     cnt = i = j = k = 0;
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
     //bperr( "%s[%d]:  inside parseTypeDef, stabstr = %s\n", __FILE__, __LINE__, 
-	    (stabstr == NULL) ? "NULL" : stabstr);
+	//    (stabstr == NULL) ? "NULL" : stabstr);
 #endif
 
     assert (stabstr[0] != '=');
@@ -1915,47 +1913,45 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	typdescr = dataScalar;
 	type = parseSymDesc(stabstr, cnt);
 	 	    
-	if (ID == type) {
-            // Type:tFOO = FOO
-            // as far as I can tell, this only happens when defining an empty
-            // type (i.e. void)
-	    
-	    std::string tName = convertCharToString(name);
-            newType = new typeScalar(ID, 0, tName);
-	    if (newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
-	    if(!newType2) {
-	      //bpfatal(" Can't Allocate newType ");
-	      exit(-1);
-	    } else
-               newType->decrRefCount();
-	} else if (stabstr[cnt] == '=') {
-	    // XXX - in the new type t(0,1)=(0,2)=s... is possible
-	    // 	     skip the second id for now -- jkh 3/21/99
-	    stabstr = parseTypeDef(mod, &(stabstr[cnt+i+1]), name, type);
-	    cnt = 0;
-	    Type *oldType;
-	    
-	    oldType = mod->getModuleTypes()->findOrCreateType(type);
-	    if(!oldType) oldType = mod->exec()->type_Untyped;
-	    std::string tName = convertCharToString(name);
-            newType = new typeTypedef(ID, oldType, tName, sizeHint);
-	    if (newType) {
-               mod->getModuleTypes()->addOrUpdateType(newType);
-               newType->decrRefCount();
-            }
-            
-	} else {
-	    Type *oldType;
-	    std::string tName = convertCharToString(name);
-	    oldType = mod->getModuleTypes()->findOrCreateType(type);
-            newType = new typeTypedef(ID, oldType, tName, sizeHint);
-	    if(newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
-	    if(!newType2) {
-	        //bpfatal(" Can't Allocate newType ");
-	        exit(-1);
-	    } else
-               newType->decrRefCount();
-	}
+    if (ID == type) {
+        // Type:tFOO = FOO
+        // as far as I can tell, this only happens when defining an empty
+        // type (i.e. void)
+
+        std::string tName = convertCharToString(name);
+        newType = new typeScalar(ID, 0, tName);
+        if (newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
+        if(!newType2) {
+            //bpfatal(" Can't Allocate newType ");
+            exit(-1);
+        } else if(newType2 != newType)
+            newType->decrRefCount();
+    } else if (stabstr[cnt] == '=') {
+        // XXX - in the new type t(0,1)=(0,2)=s... is possible
+        // 	     skip the second id for now -- jkh 3/21/99
+        stabstr = parseTypeDef(mod, &(stabstr[cnt+i+1]), name, type);
+        cnt = 0;
+        Type *oldType;
+
+        oldType = mod->getModuleTypes()->findOrCreateType(type);
+        if(!oldType) oldType = mod->exec()->type_Untyped;
+        std::string tName = convertCharToString(name);
+        newType = new typeTypedef(ID, oldType, tName, sizeHint);
+        if (newType)
+            mod->getModuleTypes()->addOrUpdateType(newType);
+
+    } else {
+        Type *oldType;
+        std::string tName = convertCharToString(name);
+        oldType = mod->getModuleTypes()->findOrCreateType(type);
+        newType = new typeTypedef(ID, oldType, tName, sizeHint);
+        if(newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
+        if(!newType2) {
+            //bpfatal(" Can't Allocate newType ");
+            exit(-1);
+        } else if(newType2 != newType)
+            newType->decrRefCount();
+    }
     } else {
       switch (stabstr[0]) {
 	  case 'x':  //cross reference 
@@ -1979,20 +1975,20 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    if(!newType2) {
 		//bpfatal(" Can't Allocate new type ");
 		exit(-1);
-	    } else
-               newType->decrRefCount();
+	    } else if(newType2 != newType)
+            newType->decrRefCount();
 
 	    return(&(stabstr[cnt]));
 	    break;
 	  }
 	  case 'a':
-          case 'A':
+      case 'A':
 	  {
 	      (void) parseArrayDef(mod, name, ID, stabstr, cnt, sizeHint);
 	      return (&stabstr[cnt]);
 	      break;
-          }
-          case 'g':  
+      }
+      case 'g':  
 	  {
 	  	/* function with return type and prototype */
 
@@ -2011,7 +2007,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                    
                    if (newFunction) { 
                       newFunction2 = dynamic_cast<typeFunction*>(mod->getModuleTypes()->addOrUpdateType(newFunction)); 
-		      newFunction->decrRefCount();
+                      if(newFunction2 != newFunction)
+            		      newFunction->decrRefCount();
                    }
                    if (!newFunction2) {
                       //bpfatal(" Can't Allocate new type ");
@@ -2047,8 +2044,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		if (!newType2) {
 		  //bpfatal(" Can't Allocate new type ");
 		  exit(-1);
-		} else
-                   newType->decrRefCount();
+		} else if(newType2 != newType)
+            newType->decrRefCount();
 
 		// skip to end - SunPro Compilers output extra info here - jkh 6/9/3
 		// cnt = strlen(stabstr);
@@ -2081,9 +2078,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		    ptrType = mod->getModuleTypes()->findOrCreateType(baseType);
 		    std::string tName = convertCharToString(name);
-                    newType = new typeArray(ID, ptrType, 1, size, tName);
+            newType = new typeArray(ID, ptrType, 1, size, tName);
 		    mod->getModuleTypes()->addOrUpdateType(newType);
-                    newType->decrRefCount();
 		}
 		break;
 
@@ -2097,9 +2093,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		int bytes = parseSymDesc(stabstr, cnt);
 
-                newType = new typeScalar(ID, bytes, name);
+        newType = new typeScalar(ID, bytes, name);
 		mod->getModuleTypes()->addOrUpdateType(newType);
-                newType->decrRefCount();
 
 		if (stabstr[cnt] == ';') cnt++;	// skip the final ';'
 
@@ -2133,10 +2128,9 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		
 		if (stabstr[cnt]) cnt++;	// skip the final ';'
 
-                newType = new typeScalar(ID, size, name);
+        newType = new typeScalar(ID, size, name);
 		//Add to Collection
 		mod->getModuleTypes()->addOrUpdateType(newType);
-                newType->decrRefCount();
 
 		return &stabstr[cnt];
 		break;
@@ -2155,7 +2149,6 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    typeEnum *newEnumType = new typeEnum(ID, tName);
 	    // Add type to collection
 	    newEnumType = dynamic_cast<typeEnum *>(mod->getModuleTypes()->addOrUpdateType(newEnumType));
-            newEnumType->decrRefCount();
 		
 	    while (stabstr[cnt]) {
 		/* Get enum component value */
@@ -2164,7 +2157,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
 		//bperr( "%s[%d]:  before parseSymDesc -- enumerated type \n", 
-			__FILE__, __LINE__);
+	    //		__FILE__, __LINE__);
 #endif		  
 		value = parseSymDesc(stabstr, cnt);
 
@@ -2198,7 +2191,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 	case 's':	// struct
 	case 'u':	// union
-        case 'T':       // Fortran TYPE
+    case 'T':   // Fortran TYPE
 	{    
 	    /* Type descriptor */
 	    if (stabstr[cnt] == 's' || stabstr[cnt] == 'T') {
@@ -2218,9 +2211,13 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                newFieldType = new typeUnion(ID, tName);
 	    //add to type collection
 	    newFieldType2 = dynamic_cast<fieldListType *>(mod->getModuleTypes()->addOrUpdateType(newFieldType));
+        //TODO What if two different files have the same structure?? // on AIX
+        if(!newFieldType2)
+	        newFieldType2 = dynamic_cast<fieldListType *>(newFieldType);
+        if(newFieldType2 != newFieldType)
             newFieldType->decrRefCount();
 	    char *ret = parseFieldList(mod, newFieldType2, &stabstr[cnt], false);
-            return ret;
+        return ret;
 
 	    break;
 	}
