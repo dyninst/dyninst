@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.11 2008/01/16 22:01:55 legendre Exp $
+// $Id: arch.C,v 1.12 2008/01/17 16:40:34 legendre Exp $
 // Code generation
 
 //////////////////////////
@@ -52,6 +52,7 @@
 #include <string.h>
 #include "addressSpace.h"
 #include "common/h/Types.h"
+#include "common/h/parseauxv.h"
 #if defined (os_osf)
 #include <malloc.h>
 #endif
@@ -393,7 +394,7 @@ void codeGen::setAddrSpace(AddressSpace *a)
 
 void codeGen::addPCRelRegion(pcRelRegion *reg) {
 #if !defined(cap_noaddr_gen)
-   //   assert(0);
+   assert(0);
 #endif
    reg->gen = this;
    reg->cur_offset = used();
@@ -532,6 +533,21 @@ patchTarget::~patchTarget()
 {
 }
 
+toAddressPatch::~toAddressPatch() {
+}
+
+Address toAddressPatch::get_address() const 
+{ 
+  return addr; 
+}
+
+unsigned toAddressPatch::get_size() const { 
+  return 0; 
+}
+
+bool toAddressPatch::should_clean() const { 
+  return false; 
+}
 
 codeGen codeGen::baseTemplate;
 

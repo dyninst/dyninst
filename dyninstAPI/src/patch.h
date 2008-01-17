@@ -64,10 +64,11 @@ class toAddressPatch : public patchTarget {
    Address addr;
  public:
    toAddressPatch(Address a) : addr(a) {};
+   virtual ~toAddressPatch();
 
-   virtual Address get_address() const { return addr; }
-   virtual unsigned get_size() const { return 0; }
-   virtual bool should_clean() const { return true; }
+   virtual Address get_address() const;
+   virtual unsigned get_size() const;
+   virtual bool should_clean() const;
 };
 
 class relocPatch {
