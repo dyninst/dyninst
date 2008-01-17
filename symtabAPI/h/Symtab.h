@@ -132,6 +132,7 @@ class Module : public LookupInterface,
     DLLEXPORT bool getSourceLines(std::vector<LineInformationImpl::LineNoTuple> &lines, Offset addressInRange);
     DLLEXPORT bool setLineInfo(LineInformation *lineInfo);
     DLLEXPORT LineInformation *getLineInformation();
+    DLLEXPORT bool setDefaultNamespacePrefix(std::string str);
 
 private:
     std::string fileName_;                   // short file 
@@ -266,6 +267,8 @@ class Symtab : public LookupInterface,
 	DLLEXPORT Offset getEntryOffset() const;
 	DLLEXPORT Offset getBaseOffset() const;
 	DLLEXPORT Offset getTOCoffset() const;
+
+    DLLEXPORT std::string getDefaultNamespacePrefix() const;
 	
 	DLLEXPORT unsigned getNumberofSections() const;
    	DLLEXPORT unsigned getNumberofSymbols() const;
@@ -376,6 +379,7 @@ class Symtab : public LookupInterface,
 
 	void parseLineInformation();
 	void parseTypes();
+    bool setDefaultNamespacePrefix(std::string &str);
 
    /***** Private Data Members *****/
  private:
@@ -414,6 +418,7 @@ class Symtab : public LookupInterface,
    // A std::vector of all Symtabs. Used to avoid duplicating
    // a Symtab that already exists.
    static std::vector<Symtab *> allSymtabs;
+   std::string defaultNamespacePrefix;
 	
    //sections
    unsigned no_of_sections;
