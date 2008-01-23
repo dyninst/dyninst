@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.703 2008/01/16 22:02:02 legendre Exp $
+// $Id: process.C,v 1.704 2008/01/23 00:04:58 legendre Exp $
 
 #include <ctype.h>
 
@@ -148,6 +148,13 @@ Address process::getTOCoffsetInfo(Address /*dest */)
 #else
 Address process::getTOCoffsetInfo(Address dest)
 {
+   // Linux-power-32 bit: return 0 here, as it doesn't use the TOC.
+   // Linux-power-64 does. Lovely. 
+#if defined(arch_power) && defined(os_linux)
+   if (getAddressWidth() == 4)
+      return 0;
+#endif
+
     // We have an address, and want to find the module the addr is
     // contained in. Given the probabilities, we (probably) want
     // the module dyninst_rt is contained in.
@@ -167,12 +174,22 @@ Address process::getTOCoffsetInfo(Address dest)
             mobj = tmp->obj;
     }
     // Very odd case if this is not defined.
-    assert(mobj); 
-    return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
+    assert(mobj);
+    Address TOCOffset = mobj->parse_img()->getObject()->getTOCoffset(); 
+    if (!TOCOffset)
+       return 0;
+    return TOCOffset + mobj->dataBase();
 
 }
 
 Address process::getTOCoffsetInfo(int_function *func) {
+
+#if defined(arch_power) && defined(os_linux)
+   // See comment above.
+   if (getAddressWidth() == 4)
+      return 0;
+#endif
+
     mapped_object *mobj = func->obj();
 
     return mobj->parse_img()->getObject()->getTOCoffset() + mobj->dataBase();
