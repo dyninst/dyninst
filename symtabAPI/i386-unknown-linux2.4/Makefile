@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2008/01/23 14:45:53 jaw Exp $
+# $Id: Makefile,v 1.9 2008/01/23 20:25:07 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,8 +27,7 @@ SRCS =          ../src/Object-elf.C \
 		../src/addrtranslate.C \
 		../src/addrtranslate-linux.C \
 		../src/addrtranslate-sysv.C \
-		../src/emitElf.C \
-		../src/emitElf-64.C
+		../src/emitElf.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

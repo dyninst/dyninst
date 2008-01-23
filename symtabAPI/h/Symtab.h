@@ -158,6 +158,8 @@ class Symtab : public LookupInterface,
     friend class Archive;
     friend class Symbol;
     friend class Module;
+    friend class emitElf;
+    friend class emitElf64;
 	 
    /***** Public Member Functions *****/
  public:

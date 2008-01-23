@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2007/12/04 18:05:36 legendre Exp $
+# $Id: Makefile,v 1.9 2008/01/23 20:24:05 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,7 +20,6 @@ SRCS =		../src/Object-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
 		../src/emitElf.C \
-		../src/emitElf-64.C \
 		../src/addrtranslate.C \
 		../src/addrtranslate-sysv.C \
 		../src/addrtranslate-solaris.C

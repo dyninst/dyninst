@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.29 2008/01/23 14:45:53 jaw Exp $
+ * $Id: Object-elf.C,v 1.30 2008/01/23 20:24:06 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -38,7 +38,10 @@
 #include "symtabAPI/h/Symtab.h"
 
 #include "emitElf.h"
+
+#if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
 #include "emitElf-64.h"
+#endif
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -3304,11 +3307,13 @@ bool Object::emitDriver(Symtab *obj, string fName,
       em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
       return em->driver(obj, fName);
    }
+#if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
    else if (elfHdr.e_ident()[EI_CLASS] == 2) {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, err_func_);
       em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
       return em->driver(obj, fName);
    }
+#endif
    return false;
 }
 
