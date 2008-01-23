@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_30.C,v 1.5 2007/01/18 07:53:57 jaw Exp $
+// $Id: test1_30.C,v 1.6 2008/01/23 14:45:53 jaw Exp $
 /*
  * #Name: test1_30
  * #Desc: Line Information
@@ -167,11 +167,11 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     	}
 
     	
-        std::vector< std::pair< unsigned long, unsigned long > > ranges;
-        if( appImage->getAddressRanges( "test1.mutatee.c", call30_1_line_no, ranges ) ) {
-    	    n = ranges[0].first;
-    	    expr30_3->writeValue( & n );
-    	}
+   std::vector< std::pair< unsigned long, unsigned long > > ranges;
+   if ( appImage->getAddressRanges( "test1.mutatee.c", call30_1_line_no, ranges ) ) {
+      n = ranges[0].first;
+      expr30_3->writeValue( & n );
+   }
     	
 
 
