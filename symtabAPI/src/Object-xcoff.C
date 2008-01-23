@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.18 2008/01/17 22:42:55 giri Exp $
+// $Id: Object-xcoff.C,v 1.19 2008/01/23 14:45:53 jaw Exp $
 
 #include <regex.h>
 
@@ -835,8 +835,10 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
        }
    }
 
-   for (i=0; i < hdr.f_nscns; i++)
+   for (i=0; i < hdr.f_nscns; i++) {
        sections_.push_back(new Section(i, sectHdr[i].s_name, sectHdr[i].s_paddr, fo_->getPtrAtOffset(offset+sectHdr[i].s_scnptr), sectHdr[i].s_size));
+       //fprintf(stderr, "%s[%d]:  section named %s\n", FILE__, __LINE__, sectHdr[i].s_name);
+   }
 
    // Time to set up a lot of variables.
    // code_ptr_: a pointer to the text segment
@@ -937,7 +939,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
            break;
        }
    }
-   if( foundDebug ) 
+   if ( foundDebug ) 
    {
        stabs_ = (void *) symbols;
        nstabs_ = hdr.f_nsyms;
@@ -1446,13 +1448,31 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *)) :
    load_object(); 
 }
 
-Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, void (*err_func)(const char *)) :
+Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, std::vector<Section *> &, void (*err_func)(const char *)) :
    AObject(mf_, err_func)
 {    
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
-   fprintf(stderr, "%s[%d]:  FIXME:  line info ctor!\n", FILE__, __LINE__);
-   //load_object(); 
+#if 0
+   get_stab_info
+      get_line_info
+      is_aout
+      baseAddress
+   for (unsigned int i = 0; i < secs_.size(); ++i) {
+      string sname = secs_[i]->getSecName();
+      if (sname == STAB_NAME) {
+         stab_off_ = secs_[i]->getSecAddr();
+         stab_size_ = secs_[i]->getSecSize();
+      } else if (sname == STABSTR_NAME) {
+         stabstr_off_ = secs_[i]->getSecAddr();
+      }
+   }
+#endif
+   //  need to init just a couple basic vars here that are used later to access
+   //  the stabs sections and such:  therefore using load_object() is overkill
+
+   load_object(); 
+   parseFileLineInfo(li);
 }
 
 Object::Object(MappedFile *mf_, std::string &member_name, Offset offset, void (*err_func)(const char *)) :
@@ -1622,20 +1642,21 @@ bool AObject::getMappedRegions(std::vector<Region> &regs) const
 /* FIXME: hack. */
 Offset trueBaseAddress = 0;
 
-void Object::parseFileLineInfo()
+void Object::parseFileLineInfo(hash_map<std::string, LineInformation> &li)
 {
     static set<std::string> haveParsedFileMap;
 
     //cerr << "parsing line info for file :" << mf->pathname() << endl;
 
-    if( haveParsedFileMap.count(mf->pathname()) != 0 ) { return; }
+    if ( haveParsedFileMap.count(mf->pathname()) != 0 ) { return; }
+
     // /* DEBUG */ fprintf( stderr, "%s[%d]: Considering image at 0x%lx\n", __FILE__, __LINE__, fileOnDisk );
 
     /* FIXME: hack.  Should be argument to parseLineInformation(), which should in turn be merged
        back into here so it can tell how far to extend the range of the last line information point. */
  
     //Offset baseAddress = obj()->codeBase();
-    if(is_aout())
+    if (is_aout())
     	trueBaseAddress = 0;
     else
         trueBaseAddress = baseAddress_;
@@ -1741,7 +1762,7 @@ void Object::parseFileLineInfo()
       	    funcName = strdup( nmPtr );
 
       	    std::string pdCSF( currentSourceFile );
-      	    parseLineInformation(& pdCSF, funcName, (SYMENT *)sym, linesfdptr, lines, nlines );
+      	    parseLineInformation(li, & pdCSF, funcName, (SYMENT *)sym, linesfdptr, lines, nlines );
     	} /* end if we're actually parsing line information */
     } /* end iteration over STAB entries. */
 
@@ -1751,7 +1772,7 @@ void Object::parseFileLineInfo()
     haveParsedFileMap.insert(mf->pathname());
 } /* end parseFileLineInfo() */
 
-void Object::parseLineInformation(std::string * currentSourceFile,
+void Object::parseLineInformation(hash_map<std::string,  LineInformation> &lineInfo_, std::string * currentSourceFile,
       char * symbolName,
       SYMENT * sym,
       Offset linesfdptr,

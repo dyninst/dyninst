@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.15 2008/01/16 22:01:13 legendre Exp $
+ * $Id: Object-nt.h,v 1.16 2008/01/23 14:45:53 jaw Exp $
 ************************************************************************/
 
 
@@ -167,7 +167,7 @@ class Object : public AObject
     Module* curModule;
 
  public:
-    Object(MappedFile *, hash_map<std::string, LineInformation> &, void (*)(const char *) = log_msg);
+    Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Section *> &, void (*)(const char *) = log_msg);
     DLLEXPORT Object(MappedFile *, void (*)(const char *) = log_msg);
     DLLEXPORT Object(){};
   

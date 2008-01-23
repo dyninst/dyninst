@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.63 2007/09/19 21:55:10 giri Exp $
+// $Id: templates0.C,v 1.64 2008/01/23 14:45:52 jaw Exp $
 // Generate all the templates in one file.
 
 /*
@@ -79,11 +79,6 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 template class pdvector<callWhen>;
-
-#if defined(rs6000_ibm_aix4_1)
-#include "LineInformation.h"
-template class pdvector< IncludeFileInfo >;
-#endif
 
 #include <set>
 

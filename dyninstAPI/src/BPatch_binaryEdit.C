@@ -63,7 +63,6 @@
 
 #include "BPatch_binaryEdit.h"
 #include "BPatch_thread.h"
-#include "LineInformation.h"
 #include "BPatch_function.h"
 #include "callbacks.h"
 

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.12 2008/01/03 17:49:18 jaw Exp $
+ * $Id: Object-elf.h,v 1.13 2008/01/23 14:45:53 jaw Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -125,12 +125,54 @@ class stab_entry_32 : public stab_entry {
 	: stab_entry(_stabptr, _stabstr, _nsyms) { }
     virtual ~stab_entry_32() {};
 
-    const char *name(int i = 0) { return stabstr + ((stab32 *)stabptr)[i].name; }
-    unsigned long nameIdx(int i = 0) { return ((stab32 *)stabptr)[i].name; }
-    unsigned char type(int i = 0) { return ((stab32 *)stabptr)[i].type; }
-    unsigned char other(int i = 0) { return ((stab32 *)stabptr)[i].other; }
-    unsigned short desc(int i = 0) { return ((stab32 *)stabptr)[i].desc; }
-    unsigned long val(int i = 0) { return ((stab32 *)stabptr)[i].val; }
+    const char *name(int i = 0) { 
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return "bad_name";
+       }
+       return stabstr + ((stab32 *)stabptr)[i].name; 
+    }
+    unsigned long nameIdx(int i = 0) {
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0L;
+       }
+       return ((stab32 *)stabptr)[i].name; 
+    }
+    unsigned char type(int i = 0) {
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0;
+       }
+       return ((stab32 *)stabptr)[i].type; 
+    }
+    unsigned char other(int i = 0) {
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0;
+       }
+       return ((stab32 *)stabptr)[i].other; 
+    }
+    unsigned short desc(int i = 0) { 
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0;
+       }
+       return ((stab32 *)stabptr)[i].desc; 
+    }
+    unsigned long val(int i = 0) { 
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0L;
+       }
+       return ((stab32 *)stabptr)[i].val; 
+    }
 };
 
 class stab_entry_64 : public stab_entry {
@@ -139,12 +181,54 @@ class stab_entry_64 : public stab_entry {
 	: stab_entry(_stabptr, _stabstr, _nsyms) { }
     virtual ~stab_entry_64() {};
 
-    const char *name(int i = 0) { return stabstr + ((stab64 *)stabptr)[i].name; }
-    unsigned long nameIdx(int i = 0) { return ((stab64 *)stabptr)[i].name; }
-    unsigned char type(int i = 0) { return ((stab64 *)stabptr)[i].type; }
-    unsigned char other(int i = 0) { return ((stab64 *)stabptr)[i].other; }
-    unsigned short desc(int i = 0) { return ((stab64 *)stabptr)[i].desc; }
-    unsigned long val(int i = 0) { return ((stab64 *)stabptr)[i].val; }
+    const char *name(int i = 0) { 
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return "bad_name";
+       }
+       return stabstr + ((stab64 *)stabptr)[i].name; 
+    }
+    unsigned long nameIdx(int i = 0) {
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0L;
+       }
+       return ((stab64 *)stabptr)[i].name; 
+    }
+    unsigned char type(int i = 0) {
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0;
+       }
+       return ((stab64 *)stabptr)[i].type; 
+    }
+    unsigned char other(int i = 0) { 
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0;
+       }
+       return ((stab64 *)stabptr)[i].other; 
+    }
+    unsigned short desc(int i = 0) { 
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0;
+       }
+       return ((stab64 *)stabptr)[i].desc; 
+    }
+    unsigned long val(int i = 0) { 
+       if (!stabptr) {
+          fprintf(stderr, "%s[%d]:  warning, accessing uninitialized stab_entry\n",
+                FILE__, __LINE__);
+          return 0L;
+       }
+       return ((stab64 *)stabptr)[i].val; 
+    }
 };
 
 // Types 
@@ -192,7 +276,7 @@ class Object : public AObject {
  public:
   Object(){}
   Object(MappedFile *, void (*)(const char *) = log_msg);
-  Object(MappedFile *, hash_map<std::string, LineInformation> &, void (*)(const char *) = log_msg);
+  Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Section *> &, void (*)(const char *) = log_msg);
   Object(const Object &);
   virtual ~Object();
   const Object& operator=(const Object &);

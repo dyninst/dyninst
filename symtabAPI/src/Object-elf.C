@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.28 2008/01/17 22:42:54 giri Exp $
+ * $Id: Object-elf.C,v 1.29 2008/01/23 14:45:53 jaw Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -147,20 +147,49 @@ Elf_X_Shdr *Object::getSectionHdrByAddr(Offset addr) {
     return NULL;
 }
 
+const char* EDITED_TEXT_NAME = ".edited.text";
+// const char* INIT_NAME        = ".init";
+const char *INTERP_NAME      = ".interp";
+const char* FINI_NAME        = ".fini";
+const char* TEXT_NAME        = ".text";
+const char* BSS_NAME         = ".bss";
+const char* SYMTAB_NAME      = ".symtab";
+const char* STRTAB_NAME      = ".strtab";
+const char* STAB_NAME        = ".stab";
+const char* STABSTR_NAME     = ".stabstr";
+const char* STAB_INDX_NAME   = ".stab.index";
+const char* STABSTR_INDX_NAME= ".stab.indexstr";
+// sections from dynamic executables and shared objects
+const char* PLT_NAME         = ".plt";
+#if ! defined( arch_ia64 )
+const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
+#else  
+const char* REL_PLT_NAME     = ".rela.IA_64.pltoff";
+#endif  
+const char* REL_PLT_NAME2    = ".rel.plt";  // x86-solaris
+const char* GOT_NAME         = ".got";
+const char* DYNSYM_NAME      = ".dynsym";
+const char* DYNSTR_NAME      = ".dynstr";
+const char* DATA_NAME        = ".data";
+const char* RO_DATA_NAME     = ".ro_data";  // mips
+const char* DYNAMIC_NAME     = ".dynamic";
+const char* EH_FRAME_NAME    = ".eh_frame";
+const char* EXCEPT_NAME      = ".gcc_except_table";
+
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
 bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
-			Elf_X_Shdr*& symscnp, Elf_X_Shdr*& strscnp, 
-			Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
-			Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
-			Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
-            Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
-            Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, Elf_X_Shdr*& eh_frame, 
-            Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp, bool
+      Elf_X_Shdr*& symscnp, Elf_X_Shdr*& strscnp, 
+      Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
+      Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
+      Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
+      Elf_X_Shdr*& got_scnp, Elf_X_Shdr*& dynsym_scnp,
+      Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr* &dynamic_scnp, Elf_X_Shdr*& eh_frame, 
+      Elf_X_Shdr*& gcc_except, Elf_X_Shdr *& interp_scnp, bool
 #if defined(os_irix)
-			a_out  // variable not used on other platforms
+      a_out  // variable not used on other platforms
 #endif
-    )
+      )
 {
    dwarf_err_func  = err_func_;
    entryAddress_ = elfHdr.e_entry();
@@ -175,34 +204,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       //return false;
    }
 
-   const char* EDITED_TEXT_NAME = ".edited.text";
-   // const char* INIT_NAME        = ".init";
-   const char *INTERP_NAME      = ".interp";
-   const char* FINI_NAME        = ".fini";
-   const char* TEXT_NAME        = ".text";
-   const char* BSS_NAME         = ".bss";
-   const char* SYMTAB_NAME      = ".symtab";
-   const char* STRTAB_NAME      = ".strtab";
-   const char* STAB_NAME        = ".stab";
-   const char* STABSTR_NAME     = ".stabstr";
-   const char* STAB_INDX_NAME   = ".stab.index";
-   const char* STABSTR_INDX_NAME= ".stab.indexstr";
-   // sections from dynamic executables and shared objects
-   const char* PLT_NAME         = ".plt";
-#if ! defined( arch_ia64 )
-   const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
-#else  
-   const char* REL_PLT_NAME     = ".rela.IA_64.pltoff";
-#endif  
-   const char* REL_PLT_NAME2    = ".rel.plt";  // x86-solaris
-   const char* GOT_NAME         = ".got";
-   const char* DYNSYM_NAME      = ".dynsym";
-   const char* DYNSTR_NAME      = ".dynstr";
-   const char* DATA_NAME        = ".data";
-   const char* RO_DATA_NAME     = ".ro_data";  // mips
-   const char* DYNAMIC_NAME     = ".dynamic";
-   const char* EH_FRAME_NAME    = ".eh_frame";
-   const char* EXCEPT_NAME      = ".gcc_except_table";
    // initialize Object members
 
    text_addr_ = 0; //ccw 23 jan 2002
@@ -2237,20 +2238,42 @@ stab_entry *Object::get_stab_info() const
       };
    }
 
+   //fprintf(stderr, "%s[%d]:  WARNING:  FIXME, stab_off = %d, stab_size = %d, stabstr_off_ = %d\n", FILE__, __LINE__, stab_off_, stab_size_, stabstr_off_);
    return new stab_entry_64();
 }
 
-Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, 
+Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
+     std::vector<Section *> &secs_, 
       void (*err_func)(const char *)) :
    AObject(mf_, err_func), 
+   stab_off_(0),
+   stab_size_(0),
+   stabstr_off_(0),
    EEL(false) 
 {
+   for (unsigned int i = 0; i < secs_.size(); ++i) {
+      string sname = secs_[i]->getSecName();
+      if (sname == STAB_NAME) {
+         stab_off_ = secs_[i]->getSecAddr();
+         stab_size_ = secs_[i]->getSecSize();
+      } else if (sname == STABSTR_NAME) {
+         stabstr_off_ = secs_[i]->getSecAddr();
+      }
+   }
+
+#if 0
+   fprintf(stderr, "%s[%d]:  before new Object(%lu, %lu, %lu)\n", FILE__, __LINE__,
+         ((unsigned long)mf_->base_addr()) + stab_off_,
+         ((unsigned long)mf_->base_addr()) + stabstr_off_,
+         stab_size_/sizeof(stab32));
+#endif
       elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
 
       // ELF header: sanity check
       //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
       if (!elfHdr.isValid())  {
          log_elferror(err_func_, "ELF header");
+         fprintf(stderr, "%s[%d]:  failing to parse line info due to elf prob\n", FILE__, __LINE__);
          return;
       }
       else if (!pdelf_check_ehdr(elfHdr)) {
@@ -2269,7 +2292,7 @@ Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
          return;
       }
 
-      parseFileLineInfo(li);
+      this->parseFileLineInfo(li);
 }
 
 Object::Object(MappedFile *mf_, void (*err_func)(const char *)) :
@@ -3314,6 +3337,11 @@ void Object::parseStabFileLineInfo(hash_map<std::string, LineInformation> &li)
 
    Offset baseAddress = getBaseAddress();
 
+#if 0
+   fprintf(stderr, "%s[%d]:  iterating over %lu stab entries\n", 
+         FILE__, __LINE__, stabEntry->count());
+#endif
+
    for ( unsigned int i = 0; i < stabEntry->count(); i++ ) {
       switch (stabEntry->type( i )) {
 
@@ -3487,7 +3515,10 @@ void Object::parseDwarfFileLineInfo(hash_map<std::string, LineInformation> &li)
 {
    Dwarf_Debug dbg;
    int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
-   if ( status != DW_DLV_OK ) { return; }
+   if ( status != DW_DLV_OK ) { 
+//      fprintf(stderr, "%s[%d]:  dwarf init failed, no dwarf I guess\n", FILE__, __LINE__);
+      return; 
+   }
 
    /* Itereate over the CU headers. */
    Dwarf_Unsigned header;

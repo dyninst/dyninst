@@ -256,22 +256,22 @@ class Symtab : public LookupInterface,
 	DLLEXPORT Offset imageOffset() const;
 	DLLEXPORT Offset dataOffset() const;
 	DLLEXPORT Offset dataLength() const;
-	DLLEXPORT Offset imageLength() const;
-   	DLLEXPORT char*  image_ptr ()  const;
-   	DLLEXPORT char*  data_ptr ()  const;
+   DLLEXPORT Offset imageLength() const;
+   DLLEXPORT char*  image_ptr ()  const;
+   DLLEXPORT char*  data_ptr ()  const;
 
-   	DLLEXPORT const char*  getInterpreterName() const;
+   DLLEXPORT const char*  getInterpreterName() const;
 
-	DLLEXPORT unsigned getAddressWidth() const;
-	DLLEXPORT Offset getLoadOffset() const;
-	DLLEXPORT Offset getEntryOffset() const;
-	DLLEXPORT Offset getBaseOffset() const;
-	DLLEXPORT Offset getTOCoffset() const;
+   DLLEXPORT unsigned getAddressWidth() const;
+   DLLEXPORT Offset getLoadOffset() const;
+   DLLEXPORT Offset getEntryOffset() const;
+   DLLEXPORT Offset getBaseOffset() const;
+   DLLEXPORT Offset getTOCoffset() const;
 
-    DLLEXPORT std::string getDefaultNamespacePrefix() const;
+   DLLEXPORT std::string getDefaultNamespacePrefix() const;
 	
 	DLLEXPORT unsigned getNumberofSections() const;
-   	DLLEXPORT unsigned getNumberofSymbols() const;
+   DLLEXPORT unsigned getNumberofSymbols() const;
 
 #if defined (os_aix)
       //  These will go away.... (get_stab_info) and get_line_info, etc
@@ -379,7 +379,7 @@ class Symtab : public LookupInterface,
 
 	void parseLineInformation();
 	void parseTypes();
-    bool setDefaultNamespacePrefix(std::string &str);
+   bool setDefaultNamespacePrefix(std::string &str);
 
    /***** Private Data Members *****/
  private:
@@ -425,10 +425,6 @@ class Symtab : public LookupInterface,
    std::vector<Section *> sections_;
    hash_map <Offset, Section *> secsByEntryAddr;
 
-#if 0
-   //New Sections to be added back to the binary
-   std::vector<Section *> newSections_; 
-#endif
    //Point where new loadable sections will be inserted
    unsigned newSectionInsertPoint;
 	
@@ -444,12 +440,6 @@ class Symtab : public LookupInterface,
    hash_map <std::string, std::vector<Symbol *>*> funcsByMangled;
    // A way to iterate over all the functions efficiently
    std::vector<Symbol *> everyUniqueFunction;
-#if 0
-   // We make an initial list of functions based off the symbol table,
-   // and may create more when we actually analyze. Keep track of
-   // those created ones so we can distinguish them if necessary
-   std::vector<Symbol *> createdFunctions;
-#endif
    // And the counterpart "ones that are there right away"
    std::vector<Symbol *> exportedFunctions;
 
@@ -461,16 +451,10 @@ class Symtab : public LookupInterface,
    hash_map <std::string, std::vector <Symbol *> *> varsByMangled;
    hash_map <Offset, Symbol *> varsByAddr;
    std::vector<Symbol *> everyUniqueVariable;
-   //std::vector<Symbol *> createdVariables;
-   //std::vector<Symbol *> exportedVariables;
    std::vector<Symbol *> modSyms;
    hash_map <std::string, std::vector <Symbol *> *> modsByName;
    std::vector<Symbol *> notypeSyms;
    std::vector<Module *> _mods;
-
-#if 0
-   typeCollection *APITypes;
-#endif
 
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries
@@ -516,56 +500,56 @@ class ExceptionBlock {
 };
  
 class Section {
- public:
-  	DLLEXPORT Section();
-  	DLLEXPORT Section(unsigned sidnumber, std::string sname, Offset saddr, 
-                         unsigned long ssize, void *secPtr, 
-                         unsigned long sflags = 0, bool isLoadable = false);
-	DLLEXPORT Section(unsigned sidnumber, std::string sname, unsigned long ssize,
-                         void *secPtr, unsigned long sflags= 0, bool isLoadable = false);
-	DLLEXPORT Section(const Section &sec);
-	DLLEXPORT Section& operator=(const Section &sec);
-	DLLEXPORT std::ostream& operator<< (std::ostream &os);
-	DLLEXPORT bool operator== (const Section &sec);
+   public:
+      DLLEXPORT Section();
+      DLLEXPORT Section(unsigned sidnumber, std::string sname, Offset saddr, 
+            unsigned long ssize, void *secPtr, 
+            unsigned long sflags = 0, bool isLoadable = false);
+      DLLEXPORT Section(unsigned sidnumber, std::string sname, unsigned long ssize,
+            void *secPtr, unsigned long sflags= 0, bool isLoadable = false);
+      DLLEXPORT Section(const Section &sec);
+      DLLEXPORT Section& operator=(const Section &sec);
+      DLLEXPORT std::ostream& operator<< (std::ostream &os);
+      DLLEXPORT bool operator== (const Section &sec);
 
-	DLLEXPORT ~Section();
-	
- 	DLLEXPORT unsigned getSecNumber() const;
-	DLLEXPORT bool setSecNumber(unsigned sidnumber);
-	DLLEXPORT std::string getSecName() const;
-	DLLEXPORT Offset getSecAddr() const;
-	DLLEXPORT void *getPtrToRawData() const;
-	DLLEXPORT bool setPtrToRawData(void *, unsigned long); 
-	DLLEXPORT unsigned long getSecSize() const;
-	DLLEXPORT bool isBSS() const;
-	DLLEXPORT bool isText() const;
-	DLLEXPORT bool isData() const;
-	DLLEXPORT unsigned getFlags() const;
-	DLLEXPORT bool isOffsetInSection(const Offset &offset) const;
-	DLLEXPORT bool isLoadable() const;
-	DLLEXPORT unsigned long flags() const;
-	DLLEXPORT bool isDirty() const;
-    DLLEXPORT std::vector<relocationEntry> &getRelocations();
-    DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
-	
-    DLLEXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType);
+      DLLEXPORT ~Section();
 
-	enum {textSection = 1, dataSection = 2,
-              relocationSection = 4, symtabSection = 8,
-              stringSection = 16, dynsymtabSection = 32,
-              dynamicSection = 64} sectionType;
+      DLLEXPORT unsigned getSecNumber() const;
+      DLLEXPORT bool setSecNumber(unsigned sidnumber);
+      DLLEXPORT std::string getSecName() const;
+      DLLEXPORT Offset getSecAddr() const;
+      DLLEXPORT void *getPtrToRawData() const;
+      DLLEXPORT bool setPtrToRawData(void *, unsigned long); 
+      DLLEXPORT unsigned long getSecSize() const;
+      DLLEXPORT bool isBSS() const;
+      DLLEXPORT bool isText() const;
+      DLLEXPORT bool isData() const;
+      DLLEXPORT unsigned getFlags() const;
+      DLLEXPORT bool isOffsetInSection(const Offset &offset) const;
+      DLLEXPORT bool isLoadable() const;
+      DLLEXPORT unsigned long flags() const;
+      DLLEXPORT bool isDirty() const;
+      DLLEXPORT std::vector<relocationEntry> &getRelocations();
+      DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
 
-private:	
-	unsigned sidnumber_;
-	std::string sname_;
-	Offset saddr_;
-	unsigned long ssize_;
-	void *rawDataPtr_;
-	unsigned long sflags_;  //holds the type of section(text/data/bss/except etc)
-	bool isLoadable_;
-	bool isDirty_;
-    std::vector<relocationEntry> rels_;
-    void *buffer_;
+      DLLEXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType);
+
+      enum {textSection = 1, dataSection = 2,
+         relocationSection = 4, symtabSection = 8,
+         stringSection = 16, dynsymtabSection = 32,
+         dynamicSection = 64} sectionType;
+
+   private:	
+      unsigned sidnumber_;
+      std::string sname_;
+      Offset saddr_;
+      unsigned long ssize_;
+      void *rawDataPtr_;
+      unsigned long sflags_;  //holds the type of section(text/data/bss/except etc)
+      bool isLoadable_;
+      bool isDirty_;
+      std::vector<relocationEntry> rels_;
+      void *buffer_;
 };
 
 // relocation information for calls to functions not in this image
@@ -573,34 +557,34 @@ private:
 // on x86-solaris: target_addr_ = PLT entry addr
 //		   rel_addr_ =  GOT entry addr  corr. to PLT_entry
 class relocationEntry {
-public:
-   DLLEXPORT relocationEntry();
-   DLLEXPORT relocationEntry(Offset ta,Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
-   DLLEXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
-   
-   DLLEXPORT relocationEntry(const relocationEntry& ra);
-   
-   DLLEXPORT const relocationEntry& operator= (const relocationEntry &ra);
-   DLLEXPORT Offset target_addr() const;
-   DLLEXPORT Offset rel_addr() const;
-   DLLEXPORT const std::string &name() const;
-   DLLEXPORT Symbol *relocationEntry::getDynSym() const;
-   DLLEXPORT bool relocationEntry::addDynSym(Symbol *dynref);
-   DLLEXPORT unsigned long getRelType() const;
-   
-   // dump output.  Currently setup as a debugging aid, not really
-   //  for object persistance....
-   DLLEXPORT std::ostream & operator<<(std::ostream &s) const;
-   friend std::ostream &operator<<(std::ostream &os, relocationEntry &q);
-	
-   enum {pltrel = 1, dynrel = 2} relocationType;
-   
-private:
-   Offset target_addr_;	// target address of call instruction 
-   Offset rel_addr_;		// address of corresponding relocation entry 
-   std::string  name_;
-   Symbol *dynref_;
-   unsigned long relType_;
+   public:
+      DLLEXPORT relocationEntry();
+      DLLEXPORT relocationEntry(Offset ta,Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+      DLLEXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);
+
+      DLLEXPORT relocationEntry(const relocationEntry& ra);
+
+      DLLEXPORT const relocationEntry& operator= (const relocationEntry &ra);
+      DLLEXPORT Offset target_addr() const;
+      DLLEXPORT Offset rel_addr() const;
+      DLLEXPORT const std::string &name() const;
+      DLLEXPORT Symbol *relocationEntry::getDynSym() const;
+      DLLEXPORT bool relocationEntry::addDynSym(Symbol *dynref);
+      DLLEXPORT unsigned long getRelType() const;
+
+      // dump output.  Currently setup as a debugging aid, not really
+      //  for object persistance....
+      DLLEXPORT std::ostream & operator<<(std::ostream &s) const;
+      friend std::ostream &operator<<(std::ostream &os, relocationEntry &q);
+
+      enum {pltrel = 1, dynrel = 2} relocationType;
+
+   private:
+      Offset target_addr_;	// target address of call instruction 
+      Offset rel_addr_;		// address of corresponding relocation entry 
+      std::string  name_;
+      Symbol *dynref_;
+      unsigned long relType_;
 };
 
 }//namespace SymtabAPI

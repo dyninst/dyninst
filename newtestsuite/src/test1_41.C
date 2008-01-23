@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_41.C,v 1.1 2007/09/24 16:38:36 cooksey Exp $
+// $Id: test1_41.C,v 1.2 2008/01/23 14:45:52 jaw Exp $
 /*
  * #Name: test1_41
  * #Desc: Tests whether we lose line information running a mutatee twice
@@ -54,8 +54,6 @@
 #include "BPatch_snippet.h"
 #include "BPatch_statement.h"
 
-// This test uses some Dyninst-internal stuff..
-#include "../src/LineInformation.h"
 
 #include "test_lib.h"
 

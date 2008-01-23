@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.21 2008/01/16 22:01:12 legendre Exp $
+// $Id: Object-nt.C,v 1.22 2008/01/23 14:45:53 jaw Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -47,6 +47,7 @@
 #include <crtdbg.h>
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/src/Object-nt.h"
+#include "symtabAPI/h/LineInformation.h"
 #include "Collections.h"
 #include "Symtab.h"
 #include "common/h/headers.h"
@@ -805,18 +806,22 @@ void fixup_filename(std::string &filename)
 }
 
 Object::Object(MappedFile *mf_,
-                void (*err_func)(const char *)) 
-    : AObject(mf_, err_func),
-     curModule( NULL ),
-     peHdr( NULL )
+                void (*err_func)(const char *)) :
+    AObject(mf_, err_func),
+    curModule( NULL ),
+    peHdr( NULL )
 {
     ParseDebugInfo();
 }
 
-Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
-                void (*err_func)(const char *)) 
+Object::Object(MappedFile *mf_, 
+      hash_map<std::string, LineInformation> &li,
+      std::vector<Section *> &, 
+      void (*err_func)(const char *))  :
+   AObject(mf_, err_func)
 {
-   //  need to have is_aout set here
+   //  need to have is_aout set here (can probably just do this with an argument, rather
+   //  than calling FindInterestingSections again....
    FindInterestingSections();
    parseFileLineInfo(li);
 }

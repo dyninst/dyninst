@@ -2085,6 +2085,11 @@ DLLEXPORT supportedLanguages Module::language() const
 
 DLLEXPORT LineInformation *Module::getLineInformation()
 {
+   if (!exec_) {
+      fprintf(stderr, "%s[%d]:  FIXME\n");
+      return NULL;
+   }
+   
    if (!exec_->isLineInfoValid_)
       exec_->parseLineInformation();
 
@@ -2092,13 +2097,13 @@ DLLEXPORT LineInformation *Module::getLineInformation()
 
    if (exec_->isLineInfoValid_) {
       if (!mt.size()) {
-//         fprintf(stderr, "%s[%d]:  weird, line info is valid but nonexistant!\n", 
-//               FILE__, __LINE__);
+         //fprintf(stderr, "%s[%d]:  weird, line info is valid but nonexistant for %s!\n", 
+         //     FILE__, __LINE__, fileName_.c_str());
          return NULL;
       }
       if (mt.size() > 1) {
-//         fprintf(stderr, "%s[%d]:  weird, multiple line info: FIXME\n", 
-//               FILE__, __LINE__);
+         //fprintf(stderr, "%s[%d]:  weird, multiple line info: FIXME\n", 
+         //      FILE__, __LINE__);
       }
       return mt[0];
    }
@@ -2707,13 +2712,19 @@ bool Symtab::addSection(Section *sec)
 void Symtab::parseLineInformation()
 {
    hash_map <std::string, LineInformation> *lineInfo = new hash_map <std::string, LineInformation>;
-   Object *linkedFile = new Object(mf, *lineInfo, pd_log_perror);
+   Object *linkedFile = new Object(mf, *lineInfo, sections_, pd_log_perror);
 
+#if 0
+   fprintf(stderr, "%s[%d]:  after lowlevel parse of  line information, have info for modules:\n", FILE__, __LINE__);
+#endif
    isLineInfoValid_ = true;	
    hash_map <std::string, LineInformation>::iterator iter;
 
    for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
    {
+#if 0
+      fprintf(stderr, "\t%s\n", iter->first.c_str());
+#endif
       Module *mod = NULL;
       if (findModule(mod, iter->first))
          mod->setLineInfo(&(iter->second));
@@ -3526,54 +3537,55 @@ DLLEXPORT bool Symtab::updateData(void *buffer, unsigned size)
     return true;
 }
 
-DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) {
-    // Look through sections until we find a gap with
-    // sufficient space.
-    Offset highWaterMark = 0;
-    Offset secoffset = 0;
-    Offset prevSecoffset = 0;
+DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) 
+{
+   // Look through sections until we find a gap with
+   // sufficient space.
+   Offset highWaterMark = 0;
+   Offset secoffset = 0;
+   Offset prevSecoffset = 0;
 
-    Object *linkedFile = new Object(mf, pd_log_perror);
-    assert(linkedFile);
+   Object *linkedFile = new Object(mf, pd_log_perror);
+   assert(linkedFile);
 
-    for (unsigned i = 0; i < sections_.size(); i++) {
-        Offset end = sections_[i]->getSecAddr() + sections_[i]->getSecSize();
-        if (sections_[i]->getSecAddr() == 0) continue;
-        prevSecoffset = secoffset;
-        if((char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image() < prevSecoffset)
-            secoffset += sections_[i]->getSecSize();
-        else {
-            secoffset = (char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image();
-            secoffset += sections_[i]->getSecSize();
-        }
-        /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
-	                i, sections_[i]->getSecAddr(), sections_[i]->getSecSize(),
-	                end,size);*/
-        if (end > highWaterMark) {
-            //fprintf(stderr, "Increasing highWaterMark...\n");
-            newSectionInsertPoint = i+1;
-            highWaterMark = end;
-        }
-        if ((i <= (sections_.size()-1)) &&
-               ((end + size) < sections_[i+1]->getSecAddr())) {
-            /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
-                    i, i+1);
-                    fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
-                    end, sections_[i+1]->getSecAddr());
-                    */   
-            newSectionInsertPoint = i+1;
-            highWaterMark = end;
-            break;
-        }
-    }
-    delete linkedFile;
+   for (unsigned i = 0; i < sections_.size(); i++) {
+      Offset end = sections_[i]->getSecAddr() + sections_[i]->getSecSize();
+      if (sections_[i]->getSecAddr() == 0) continue;
+      prevSecoffset = secoffset;
+      if ((Offset)((char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image()) < prevSecoffset)
+         secoffset += sections_[i]->getSecSize();
+      else {
+         secoffset = (char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image();
+         secoffset += sections_[i]->getSecSize();
+      }
+      /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
+        i, sections_[i]->getSecAddr(), sections_[i]->getSecSize(),
+        end,size);*/
+      if (end > highWaterMark) {
+         //fprintf(stderr, "Increasing highWaterMark...\n");
+         newSectionInsertPoint = i+1;
+         highWaterMark = end;
+      }
+      if ((i <= (sections_.size()-1)) &&
+            ((end + size) < sections_[i+1]->getSecAddr())) {
+         /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
+                 i, i+1);
+                 fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
+                 end, sections_[i+1]->getSecAddr());
+          */   
+         newSectionInsertPoint = i+1;
+         highWaterMark = end;
+         break;
+      }
+   }
+   delete linkedFile;
 
-    //   return highWaterMark;
-    unsigned pgSize = P_getpagesize();
-    Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
-    if(newaddr < highWaterMark)
-        newaddr += pgSize;
-    return newaddr;
+   //   return highWaterMark;
+   unsigned pgSize = P_getpagesize();
+   Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1)) + (secoffset & (pgSize-1));
+   if(newaddr < highWaterMark)
+      newaddr += pgSize;
+   return newaddr;
 }
 
 DLLEXPORT ObjectType Symtab::getObjectType() const 

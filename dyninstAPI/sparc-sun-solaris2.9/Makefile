@@ -1,12 +1,12 @@
 #
-# $Id: Makefile,v 1.18 2007/06/13 18:50:17 bernat Exp $
+# $Id: Makefile,v 1.19 2008/01/23 14:45:50 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_LIBERTY = true
 #NO_OPT_FLAG = true
-DEBUG_FLAG = -g
+#DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_BOOST = true
 

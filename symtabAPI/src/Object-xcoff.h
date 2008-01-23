@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.14 2008/01/03 22:55:10 jaw Exp $
+ * $Id: Object-xcoff.h,v 1.15 2008/01/23 14:45:53 jaw Exp $
 ************************************************************************/
 
 
@@ -186,7 +186,7 @@ class Object : public AObject {
     Object&   operator= (const Object &);
     Object(){}	
     Object(MappedFile *, void (*)(const char *) = log_msg);
-    Object(MappedFile *, hash_map<std::string, LineInformation> &, 
+    Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Section *> &, 
           void (*)(const char *) = log_msg);
     Object(MappedFile *, std::string &member_name, Offset offset,	
             void (*)(const char *) = log_msg);
@@ -220,10 +220,12 @@ class Object : public AObject {
     Offset getBaseAddress() const { return baseAddress_; }
     void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
     const char *interpreter_name() const { return NULL; }
+#if 0
     hash_map<std::string, LineInformation > &getLineInfo() { 
     	parseFileLineInfo();
     	return lineInfo_; 
     }
+#endif
     
     ObjectType objType() const;
     bool isEEL() const { return false; }
@@ -236,8 +238,8 @@ private:
     void load_object();
     void load_archive(bool is_aout);
     void parse_aout(int offset, bool is_aout);
-    void parseFileLineInfo();
-    void parseLineInformation(std::string * currentSourceFile,
+    void parseFileLineInfo(hash_map<std::string, LineInformation> &li);
+    void parseLineInformation(hash_map<std::string, LineInformation> &li, std::string * currentSourceFile,
                                 	char * symbolName,
                                 	SYMENT * sym,
                                  	Offset linesfdptr,
