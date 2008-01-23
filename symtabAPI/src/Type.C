@@ -198,8 +198,12 @@ typeRef *Type::getRefType(){
     return dynamic_cast<typeRef *>(this);
 }
 
-bool Type::isCompatible(Type * /*oType*/){
-	return false;
+bool Type::isCompatible(Type * oType){
+    if ( name_ == "" || oType->name_ == "")
+        return size_ == oType->size_;
+    else if (name_ == oType->name_)
+        return size_ == oType->size_;
+    return false;
 }
 
 /*
