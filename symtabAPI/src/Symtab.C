@@ -2083,6 +2083,12 @@ DLLEXPORT supportedLanguages Module::language() const
    return language_;
 }
 
+DLLEXPORT  bool Module::hasLineInformation()
+{
+   Annotatable<LineInformation *, module_line_info_a> &liA = *this;
+   return ( 0 != liA.size());
+}
+
 DLLEXPORT LineInformation *Module::getLineInformation()
 {
    if (!exec_->isLineInfoValid_)
@@ -2092,20 +2098,23 @@ DLLEXPORT LineInformation *Module::getLineInformation()
 
    if (exec_->isLineInfoValid_) {
       if (!mt.size()) {
-//         fprintf(stderr, "%s[%d]:  weird, line info is valid but nonexistant!\n", 
-//               FILE__, __LINE__);
+         //fprintf(stderr, "%s[%d]:  weird, line info for %s is valid but nonexistant!\n", 
+          //     FILE__, __LINE__, fileName_.c_str());
          return NULL;
       }
       if (mt.size() > 1) {
-//         fprintf(stderr, "%s[%d]:  weird, multiple line info: FIXME\n", 
-//               FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  weird, multiple line info for %s: FIXME\n", 
+               FILE__, __LINE__, fileName_.c_str());
+      }
+      if (!mt[0]) {
+         fprintf(stderr, "%s[%d]:  FIXME:  Line info annotation is NULL!\n", FILE__, __LINE__);
       }
       return mt[0];
    }
-   else {
-      fprintf(stderr, "%s[%d]:  FIXME:  line info not valid after parse\n", 
-            FILE__, __LINE__);
-   }
+   
+   fprintf(stderr, "%s[%d]:  FIXME:  line info not valid after parse\n", 
+         FILE__, __LINE__);
+
    return NULL;
 }
 
@@ -2216,6 +2225,9 @@ void Symtab::parseTypesNow()
 DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo) 
 {
    Annotatable<LineInformation *, module_line_info_a> &mt = *this;
+   if (mt.size()) {
+      fprintf(stderr, "%s[%d]:  WARNING, already have lineInfo set for module %s\n", FILE__, __LINE__, fileName_.c_str());
+   }
    mt.addAnnotation(lineInfo);
    return true;
 }
@@ -2712,21 +2724,27 @@ void Symtab::parseLineInformation()
    isLineInfoValid_ = true;	
    hash_map <std::string, LineInformation>::iterator iter;
 
+   //fprintf(stderr, "%s[%d]:  after parse of line information, found info for mods:\n", FILE__, __LINE__);
    for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
    {
+      //std::string s = iter->first;
+      //fprintf(stderr, "\t%s\n", s.c_str());
       Module *mod = NULL;
       if (findModule(mod, iter->first))
          mod->setLineInfo(&(iter->second));
       else if (findModule(mod, mf->filename()))
       {
          LineInformation *lineInformation = mod->getLineInformation();
-         if (!lineInformation)
+         if (!lineInformation) {
             mod->setLineInfo(&(iter->second));
-         else
-         {
+         } else {
             lineInformation->addLineInfo(&(iter->second));
             mod->setLineInfo(lineInformation);
          }	
+      }
+      else {
+         //  What are these??  maybe "DEFAULT_MODULE"??
+         fprintf(stderr, "%s[%d]:  FIXME:  cannot find home for line information here\n", FILE__, __LINE__);
       }
    }
 

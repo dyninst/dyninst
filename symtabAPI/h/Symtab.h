@@ -132,6 +132,7 @@ class Module : public LookupInterface,
     DLLEXPORT bool getSourceLines(std::vector<LineInformationImpl::LineNoTuple> &lines, Offset addressInRange);
     DLLEXPORT bool setLineInfo(LineInformation *lineInfo);
     DLLEXPORT LineInformation *getLineInformation();
+    DLLEXPORT bool hasLineInformation();
     DLLEXPORT bool setDefaultNamespacePrefix(std::string str);
 
 private:

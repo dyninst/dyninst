@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.85 2007/10/18 15:54:35 cooksey Exp $
+# $Id: Makefile,v 1.86 2008/01/24 11:20:42 jaw Exp $
 #
 
 TO_CORE = .
@@ -193,7 +193,7 @@ visiClients/phaseTable: visi
 visiClients/histVisi: visi
 visiClients/terrain: visi
 visiClients/termWin: visi mrnet pdthread
-dyner codeCoverage dyninstAPI/tests testsuite: dyninstAPI
+dyner codeCoverage dyninstAPI/tests testsuite newtestsuite: dyninstAPI
 rtinst: igen dyninstAPI_RT 
 
 # This rule passes down the documentation-related make stuff to

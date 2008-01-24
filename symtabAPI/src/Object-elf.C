@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.30 2008/01/23 20:24:06 giri Exp $
+ * $Id: Object-elf.C,v 1.31 2008/01/24 11:20:44 jaw Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -3376,6 +3376,8 @@ void Object::parseStabFileLineInfo(hash_map<std::string, LineInformation> &li)
                   //if(previousLineNo == 597 || previousLineNo == 596)
                   ///* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 
+                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
+
                   li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
                         current_col, previousLineAddress, currentLineAddress );
 
@@ -3404,6 +3406,8 @@ void Object::parseStabFileLineInfo(hash_map<std::string, LineInformation> &li)
                   unsigned current_col = 0;
                   //if (previousLineNo == 597 || previousLineNo == 596)
                    //  /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
+
+                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
 
                   li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
                         current_col, previousLineAddress, currentLineAddress );
@@ -3436,6 +3440,7 @@ void Object::parseStabFileLineInfo(hash_map<std::string, LineInformation> &li)
                      //if(previousLineNo == 597 || previousLineNo == 596)
                      //   /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 
+                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
                      li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
                            current_col, previousLineAddress, currentLineAddress );
 
@@ -3457,6 +3462,7 @@ void Object::parseStabFileLineInfo(hash_map<std::string, LineInformation> &li)
                   //if(previousLineNo == 597 || previousLineNo == 596)
                   //   /* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 
+                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
                   li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
                         current_col, previousLineAddress, currentLineAddress );
 
@@ -3495,6 +3501,7 @@ void Object::parseStabFileLineInfo(hash_map<std::string, LineInformation> &li)
                   //	 if(previousLineNo == 597 || previousLineNo == 596)
                   //	/* DEBUG */ cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddress << "," << currentLineAddress << ") for source " << currentSourceFile << ":" << setbase(10) << previousLineNo << endl;
 
+                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress);
                   li[currentSourceFile].addLine(currentSourceFile, previousLineNo, 
                         current_col, previousLineAddress, currentLineAddress );
 
@@ -3621,6 +3628,7 @@ void Object::parseDwarfFileLineInfo(hash_map<std::string, LineInformation> &li)
                canonicalLineSource = previousLineSource;
             }
 
+                  //fprintf(stderr, "%s[%d]:  addLine(%s:%d [%p-%p]\n", FILE__, __LINE__, canonicalLineSource, previousLineNo, previousLineAddr, lineAddr);
             li[canonicalLineSource].addLine(canonicalLineSource, previousLineNo, 
                   previousLineColumn, previousLineAddr, lineAddr );
             /* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */

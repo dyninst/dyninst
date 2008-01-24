@@ -649,6 +649,7 @@ class Elf_X {
     bool is64;
 };
 
+#if 0
 // ------------------------------------------------------------------------
 // Class Elf_X_Verdef simulates the Elf(32|64)_Verdef structure.
 class Elf_X_Verdef {
@@ -692,7 +693,6 @@ class Elf_X_Verdef {
    Elf64_Verdef *verdef64;
    bool is64;
 };
-
 // ------------------------------------------------------------------------
 // Class Elf_X_Verdaux simulates the Elf(32|64)_Verdaux structure.
 class Elf_X_Verdaux {
@@ -806,6 +806,7 @@ class Elf_X_Vernaux {
    Elf64_Vernaux *vernaux64;
    bool is64;
 };
+#endif
 
 }//namespace SymtabAPI
 }//namespace Dyninst

@@ -2248,34 +2248,45 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 
 /* This function should be deprecated. */
 bool BPatch_module::getLineToAddrInt( unsigned int lineNo, 
-                                      BPatch_Vector< unsigned long > & buffer, bool ) 
+      BPatch_Vector< unsigned long > & buffer, bool ) 
 {
-   if (!isValid()) return false;
+   if (!isValid()) {
+      fprintf(stderr, "%s[%d]: module is not valid\n", FILE__, __LINE__);
+      return false;
+   }
 
-std::vector< std::pair< Address, Address > > ranges;
-   if ( ! getAddressRangesInt( NULL, lineNo, ranges ) ) { return false; }
+   std::vector< std::pair< Address, Address > > ranges;
+   if ( ! getAddressRangesInt( NULL, lineNo, ranges ) ) { 
+      fprintf(stderr, "%s[%d]:  getAddressRanges failed!\n", FILE__, __LINE__);
+      return false; 
+   }
 
    for ( unsigned int i = 0; i < ranges.size(); ++i ) {
-      buffer.push_back( ranges[i].first );
+      buffer.push_back( ranges[i].first + mod->obj()->codeBase());
    }
 
    return true;
 } /* end getLineToAddr() */
 
 bool BPatch_module::getSourceLinesInt(unsigned long addr, 
-                                      BPatch_Vector< BPatch_statement> &lines) 
+      BPatch_Vector< BPatch_statement> &lines) 
 {
    if (!isValid()) return false;
 
    unsigned int originalSize = lines.size();
    LineInformation *li = mod->getLineInformation();
    std::vector<LineInformationImpl::LineNoTuple> lines_ll;
-   if(li)
-   	li->getSourceLines( addr, lines_ll );
+   if (li) {
+   	li->getSourceLines( addr - mod->obj()->codeBase(), lines_ll );
+   }
+   else {
+      return false;
+   }
 
    for (unsigned int j = 0; j < lines_ll.size(); ++j) {
       LineInformationImpl::LineNoTuple &t = lines_ll[j];
-      lines.push_back(BPatch_statement(this, t.first, t.second, t.column));
+      lines.push_back(BPatch_statement(this, t.first, 
+               t.second, t.column));
    }
 
    return (lines.size() != originalSize);
@@ -2305,10 +2316,12 @@ bool BPatch_module::getStatementsInt(BPatch_Vector<BPatch_statement> &statements
          ++i) {
 
       // Form a BPatch_statement object for this entry
+      // Note:  Line information stores offsets, so we need to adjust to
+      //  addresses
       BPatch_statement statement(this, i->second.first, i->second.second,
             i->second.column, 
-            (void *)i->first.first, 
-            (void *)i->first.second);
+            (void *)(i->first.first + mod->obj()->codeBase()), 
+            (void *)(i->first.second + mod->obj()->codeBase()));
 
       // Add this statement
       statements.push_back(statement);
@@ -2320,14 +2333,34 @@ bool BPatch_module::getStatementsInt(BPatch_Vector<BPatch_statement> &statements
 bool BPatch_module::getAddressRangesInt( const char * fileName, 
       unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) 
 {
-   if (!isValid()) return false;
+   unsigned int starting_size = ranges.size();
+
+   if (!isValid()) {
+      fprintf(stderr, "%s[%d]:  module is not valid\n", FILE__, __LINE__);
+      return false;
+   }
 
    LineInformation *li = mod->getLineInformation();
-   if ( fileName == NULL ) { fileName = mod->fileName().c_str(); }
-   if (li)
-      return li->getAddressRanges( fileName, lineNo, ranges );
-   else
+   if ( fileName == NULL ) {
+      fileName = mod->fileName().c_str(); 
+   }
+   if (li) {
+      bool ok = li->getAddressRanges( fileName, lineNo, ranges );
+      if (ok) {
+         //  Iterate over the returned offset ranges to turn them into addresses
+         for (unsigned int i = starting_size; i < ranges.size(); ++i) {
+            ranges[i].first += mod->obj()->codeBase();
+            ranges[i].second += mod->obj()->codeBase();
+         }
+      }
+      else {
+         //fprintf(stderr, "%s[%d]:  failed to get address ranges for %s:%d, lineInfo %p, lowlevel module = %p\n", FILE__, __LINE__, fileName, lineNo, li, mod->pmod());
+      }
+      return ok;
+   }
+   else {
       return false;
+   }
 } /* end getAddressRanges() */
 
 bool BPatch_module::isSharedLibInt() 
@@ -2650,8 +2683,8 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
     for(LineInformation::const_iterator i = li->begin(); i != li->end(); ++i) {
         // Form a Statement object for this entry
         struct BPatch_module::Statement statement;
-        statement.begin = i->first.first;
-        statement.end = i->first.second;
+        statement.begin = i->first.first + mod->obj()->codeBase();
+        statement.end = i->first.second + mod->obj()->codeBase();
         statement.path = i->second.first;
         statement.line = i->second.second;
         statement.column = 0;
@@ -2660,6 +2693,7 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
         statements.push_back(statement);
 
     }
+
     // Return the statements to the caller
     return statements;
 }

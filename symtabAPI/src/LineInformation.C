@@ -104,9 +104,11 @@ DLLEXPORT bool LineInformation::getSourceLines( Offset addressInRange,
    return getValues( addressInRange, lines );
 } /* end getLinesFromAddress() */
 
-DLLEXPORT bool LineInformation::getAddressRanges( const char * lineSource, unsigned int lineNo, vector< AddressRange > & ranges ) {
+DLLEXPORT bool LineInformation::getAddressRanges( const char * lineSource, 
+      unsigned int lineNo, vector< AddressRange > & ranges ) 
+{
 	return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::getAddressRanges( LineNoTuple( lineSource, lineNo ), ranges );
-	} /* end getAddressRangesFromLine() */
+} /* end getAddressRangesFromLine() */
 
 DLLEXPORT LineInformation::const_iterator LineInformation::begin() const {
 	return Dyninst::SymtabAPI::RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::begin();

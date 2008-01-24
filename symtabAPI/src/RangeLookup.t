@@ -328,49 +328,50 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::getValues( Offset add
 
 template< class Value, class ValueRange > 
 bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::getAddressRanges(Value v, 
-                                                        std::vector<AddressRange> &ranges) 
+      std::vector<AddressRange> &ranges) 
 {
-  /* Look for the specified lineSource:lineNo. */
-  typedef typename AddressRangeByValue::const_iterator IteratorType;
-  std::pair< IteratorType, IteratorType > range = addressRangesByValueMap.equal_range( v );
+   /* Look for the specified lineSource:lineNo. */
+   typedef typename AddressRangeByValue::const_iterator IteratorType;
+   std::pair< IteratorType, IteratorType > range = addressRangesByValueMap.equal_range( v );
 
-  /* If equal_range() doesn't find anything, range.first and range.second will be equal. */
-  if ( range.first == range.second ) 
-    return false;
-  /* Otherwise, copy out the found ranges. */
-  for ( IteratorType i = range.first; i != range.second; ++i ) {
-//    ranges.push_back( AddressRange(i->second));
-    ranges.push_back(i->second);
-  } /* end iteration over located address ranges. */
+   /* If equal_range() doesn't find anything, range.first and range.second will be equal. */
+   if ( range.first == range.second ) 
+      return false;
 
-  return true;
+   /* Otherwise, copy out the found ranges. */
+   for ( IteratorType i = range.first; i != range.second; ++i ) {
+      //    ranges.push_back( AddressRange(i->second));
+      ranges.push_back(i->second);
+   } /* end iteration over located address ranges. */
+
+   return true;
 } /* end getAddressRangesFromLine() */
 
 template< class Value, class ValueRange > 
 typename Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::const_iterator Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::begin() const 
 {
-  return valuesByAddressRangeMap.begin();
-} /* end begin() */
-	
-template< class Value, class ValueRange > 
-typename Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::const_iterator Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::end() const 
-{
-  return valuesByAddressRangeMap.end();
+   return valuesByAddressRangeMap.begin();
 } /* end begin() */
 
 template< class Value, class ValueRange > 
+typename Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::const_iterator Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::end() const 
+{
+   return valuesByAddressRangeMap.end();
+} /* end begin() */
+
+   template< class Value, class ValueRange > 
 Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::~RangeLookup() 
 {
 } /* end RangeLookup destructor */
 
 bool Dyninst::SymtabAPI::RangeLookupImpl::AddressRangeLess::operator()(const AddressRange &lhs,
-                                                   const AddressRange &rhs) const 
+      const AddressRange &rhs) const 
 {
-  if( lhs.first < rhs.first ) { return true; }
-  else if( lhs.first == rhs.first ) {
-    if( lhs.second < rhs.second ) { return true; }
-    else{ return false; }
-  }
-  else{ return false; }
+   if( lhs.first < rhs.first ) { return true; }
+   else if( lhs.first == rhs.first ) {
+      if( lhs.second < rhs.second ) { return true; }
+      else{ return false; }
+   }
+   else{ return false; }
 } /* end AddressRangeLess() */
 

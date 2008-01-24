@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.312 2008/01/16 22:01:43 legendre Exp $
+ // $Id: symtab.C,v 1.313 2008/01/24 11:20:43 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,31 +136,44 @@ int codeBytesSeen = 0;
 pdmodule *image::newModule(const string &name, const Address addr, supportedLanguages lang)
 {
 
-    pdmodule *ret = NULL;
-    // modules can be defined several times in C++ due to templates and
-    //   in-line member functions.
-    if ((ret = findModule(name))) {
+   pdmodule *ret = NULL;
+   // modules can be defined several times in C++ due to templates and
+   //   in-line member functions.
+   if ((ret = findModule(name))) {
       return(ret);
-    }
+   }
 
-    parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
-                   name.c_str(), addr);
+   parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
+         name.c_str(), addr);
 
-    string fileNm, fullNm;
-    fullNm = name;
-    fileNm = extract_pathname_tail(name).c_str();
+   string fileNm, fullNm;
+   fullNm = name;
+   fileNm = extract_pathname_tail(name).c_str();
 
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
-    Module *mod;
-    if(linkedFile->findModule(mod, fileNm))
-    	ret = new pdmodule(mod, this);
-    else
-    	ret = new pdmodule(lang, addr, fullNm, this);
-    modsByFileName[ret->fileName()] = ret;
-    modsByFullName[ret->fullName()] = ret;
-    _mods.push_back(ret);
+   // /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
+   Module *mod;
+   if (linkedFile->findModule(mod, fileNm))
+      ret = new pdmodule(mod, this);
+   else {
+#if 0
+      fprintf(stderr, "%s[%d]: FIXME:  pdmodule without underlying module=%s, have modules:\n", FILE__, __LINE__, fileNm.c_str());
+      std::vector<Module *> mods;
+      bool ok = linkedFile->getAllModules(mods);
+      if (!ok) {
+         fprintf(stderr, "%s[%d]:  failed to getAllModules\n", FILE__, __LINE__);
+         abort();
+      }
+      for (unsigned int  i =0; i < mods.size(); ++i) {
+         fprintf(stderr, "\t%s\n", mods[i]->fileName().c_str());
+      }
+#endif
+      ret = new pdmodule(lang, addr, fullNm, this);
+   }
+   modsByFileName[ret->fileName()] = ret;
+   modsByFullName[ret->fullName()] = ret;
+   _mods.push_back(ret);
 
-    return(ret);
+   return(ret);
 }
 
 
@@ -172,55 +185,55 @@ pdmodule *image::newModule(const string &name, const Address addr, supportedLang
 //   #3 - file name (a.out, libXXX.so)
 // (in order of decreasing reliability)
 image_func *image::makeOneFunction(vector<Symbol *> &mods,
-				     Symbol *lookUp) 
+      Symbol *lookUp) 
 {
-  // find module name
-  Address modAddr = 0;
-  string modName = lookUp->getModuleName();
-  // /* DEBUG */ fprintf( stderr, "%s[%d]: makeOneFunction()'s module: %s\n", FILE__, __LINE__, modName.c_str() );
-  
-  if (modName == "") {
-    modName = name_ + "_module";
-  } else if (modName == "DEFAULT_MODULE") {
-    string modName_3 = modName;
-    findModByAddr(lookUp, mods, modName, modAddr, modName_3);
-  }
+   // find module name
+   Address modAddr = 0;
+   string modName = lookUp->getModuleName();
+   // /* DEBUG */ fprintf( stderr, "%s[%d]: makeOneFunction()'s module: %s\n", FILE__, __LINE__, modName.c_str() );
 
-  pdmodule *use = getOrCreateModule(modName, modAddr);
-  assert(use);
+   if (modName == "") {
+      modName = name_ + "_module";
+   } else if (modName == "DEFAULT_MODULE") {
+      string modName_3 = modName;
+      findModByAddr(lookUp, mods, modName, modAddr, modName_3);
+   }
+
+   pdmodule *use = getOrCreateModule(modName, modAddr);
+   assert(use);
 
 #if defined(arch_ia64)
-  parsing_printf("New function %s at 0x%llx\n",
-          lookUp->getName().c_str(), 
-          lookUp->getAddr());
+   parsing_printf("New function %s at 0x%llx\n",
+         lookUp->getName().c_str(), 
+         lookUp->getAddr());
 #else
-  parsing_printf("New function %s at 0x%x\n",
-          lookUp->getName().c_str(), 
-          lookUp->getAddr());
+   parsing_printf("New function %s at 0x%x\n",
+         lookUp->getName().c_str(), 
+         lookUp->getAddr());
 #endif
 
-  image_func *func = new image_func(lookUp, 
-                                    use, 
-                                    this);
+   image_func *func = new image_func(lookUp, 
+         use, 
+         this);
 
-  /* Among symbol table functions, the ones with @ in the name are most likely OpenMP functions,
-     if any non-OpenMP functions sneak in here we'll take care of them later when 
-     closer analysis is done */
+   /* Among symbol table functions, the ones with @ in the name are most likely OpenMP functions,
+      if any non-OpenMP functions sneak in here we'll take care of them later when 
+      closer analysis is done */
 
 #if defined(os_solaris)
-  if(strstr(lookUp->getName().c_str(), "_$") != NULL){
-    image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
-    parallelRegions.push_back(pR);
-  }
+   if(strstr(lookUp->getName().c_str(), "_$") != NULL){
+      image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
+      parallelRegions.push_back(pR);
+   }
 #endif 
-  
+
 
 #if defined(os_aix)
 
-  if(strstr(lookUp->getName().c_str(), "@OL@") != NULL){
-    image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
-    parallelRegions.push_back(pR);
-  } 
+   if(strstr(lookUp->getName().c_str(), "@OL@") != NULL){
+      image_parRegion * pR = new image_parRegion(lookUp->getAddr(),func);    
+      parallelRegions.push_back(pR);
+   } 
 #endif
 
   assert(func);

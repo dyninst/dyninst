@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.11 2008/01/23 20:24:02 giri Exp $
+// $Id: mapped_module.h,v 1.12 2008/01/24 11:20:43 jaw Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -69,94 +69,85 @@ class image;
 // major pain.
 
 class mapped_module {
- public:
-    static mapped_module *createMappedModule(mapped_object *obj,
-                                             pdmodule *pdmod);
+   public:
+      static mapped_module *createMappedModule(mapped_object *obj,
+            pdmodule *pdmod);
 
-    mapped_object *obj() const;
-    pdmodule *pmod() const;
+      mapped_object *obj() const;
+      pdmodule *pmod() const;
 
-    const string &fileName() const;
-    const string &fullName() const;
+      const string &fileName() const;
+      const string &fullName() const;
 
-    AddressSpace *proc() const;
+      AddressSpace *proc() const;
 
-    //bool analyze();
-    
-    // A lot of stuff shared with the internal module
-    // Were we compiled with the native compiler?
-    bool isNativeCompiler() const;
+      // A lot of stuff shared with the internal module
+      // Were we compiled with the native compiler?
+      bool isNativeCompiler() const;
 
-    supportedLanguages language() const;
-    
-    const pdvector<int_function *> &getAllFunctions();
-    const pdvector<int_variable *> &getAllVariables();
+      supportedLanguages language() const;
 
-    bool findFuncVectorByPretty(const pdstring &funcname,
-                                pdvector<int_function *> &funcs);
-    // Yeah, we can have multiple mangled matches -- for libraries there
-    // is a single module. Even if we went multiple, we might not have
-    // module information, and so we can get collisions.
-    bool findFuncVectorByMangled(const pdstring &funcname,
-                                 pdvector<int_function *> &funcs);
-    
-    int_function *findFuncByAddr(const Address &address);
-    codeRange *findCodeRangeByAddress(const Address &address);
+      const pdvector<int_function *> &getAllFunctions();
+      const pdvector<int_variable *> &getAllVariables();
+
+      bool findFuncVectorByPretty(const pdstring &funcname,
+            pdvector<int_function *> &funcs);
+
+      // Yeah, we can have multiple mangled matches -- for libraries there
+      // is a single module. Even if we went multiple, we might not have
+      // module information, and so we can get collisions.
+      bool findFuncVectorByMangled(const pdstring &funcname,
+            pdvector<int_function *> &funcs);
+
+      int_function *findFuncByAddr(const Address &address);
+      codeRange *findCodeRangeByAddress(const Address &address);
 
 
-    void dumpMangled(pdstring prefix) const;
-    
-    /////////////////////////////////////////////////////
-    // Line information
-    /////////////////////////////////////////////////////
-    // Line info is something we _definitely_ don't want multiple copies
-    // of. So instead we provide pass-through functions that handle
-    // things like converting absolute addresses (external) into offsets
-    // (internal).
-    
-    pdstring processDirectories(const pdstring &fn) const;
+      void dumpMangled(pdstring prefix) const;
 
-    // Have we parsed line information yet?
-    bool lineInformation() const { return lineInfoValid_; }
+      /////////////////////////////////////////////////////
+      // Line information
+      /////////////////////////////////////////////////////
+      // Line info is something we _definitely_ don't want multiple copies
+      // of. So instead we provide pass-through functions that handle
+      // things like converting absolute addresses (external) into offsets
+      // (internal).  Its all in SymtabAPI now
 
-#if defined(os_aix)
-    void parseLineInformation(	AddressSpace *,
-                                pdstring * currentSourceFile,
-                                char * symbolName,
-                                SYMENT * sym,
-                                Address linesfdptr,
-                                char * lines,
-                                int nlines );
-#endif
+      pdstring processDirectories(const pdstring &fn) const;
 
-    // We're not generic-asizing line information yet, so this
-    // calls into the pdmodule class to do the work.
-    LineInformation *getLineInformation();
-    // Given a line in the module, get the set of addresses that it maps
-    // to. Calls the internal getAddrFromLine and then adds the base
-    // address to the returned list of offsets.
-    bool getAddrFromLine(unsigned lineNum,
-                         pdvector<Address> &addresses,
-                         bool exactMatch);
-    
-    void addFunction(int_function *func);
-    void addVariable(int_variable *var);
+      // Have we parsed line information yet?
+      bool lineInformation() const { 
+         Module *m = pmod()->mod();
+         return m->hasLineInformation(); 
+      }
 
-    static bool truncateLineFilenames;
- private:
-   void parseFileLineInfo();
+      // We're not generic-asizing line information yet, so this
+      // calls into the pdmodule class to do the work.
+      LineInformation *getLineInformation();
 
-   pdmodule *internal_mod_;
-   mapped_object *obj_;
-   
-   mapped_module();
-   mapped_module(mapped_object *obj,
-                 pdmodule *pdmod);
-   
-   pdvector<int_function *> everyUniqueFunction;
-   pdvector<int_variable *> everyUniqueVariable;
-   bool lineInfoValid_;
-   LineInformation lineInfo_;
+      // Given a line in the module, get the set of addresses that it maps
+      // to. Calls the internal getAddrFromLine and then adds the base
+      // address to the returned list of offsets.
+      bool getAddrFromLine(unsigned lineNum,
+            pdvector<Address> &addresses,
+            bool exactMatch);
+
+      void addFunction(int_function *func);
+      void addVariable(int_variable *var);
+
+      static bool truncateLineFilenames;
+
+   private:
+
+      pdmodule *internal_mod_;
+      mapped_object *obj_;
+
+      mapped_module();
+      mapped_module(mapped_object *obj,
+            pdmodule *pdmod);
+
+      pdvector<int_function *> everyUniqueFunction;
+      pdvector<int_variable *> everyUniqueVariable;
 };
 
 #endif

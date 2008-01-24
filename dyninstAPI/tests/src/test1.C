@@ -3557,16 +3557,16 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
         	exit(1);
     	}
 	BPatch_Vector<BPatch_module*>* appModules = appImage->getModules();
-	for(unsigned int i=0;i<appModules->size();i++){
+	for (unsigned int i=0;i<appModules->size();i++){
 		char mname[256];
 		(*appModules)[i]->getName(mname,255);mname[255] = '\0';
-		if(!strncmp(mname,"test1.mutatee.c",15)){
+		if (!strncmp(mname,"test1.mutatee.c",15)){
 			ranges.clear();
-			if( (*appModules)[i]->getAddressRanges( NULL, call30_1_line_no, ranges ) ) {
+			if ( (*appModules)[i]->getAddressRanges( NULL, call30_1_line_no, ranges ) ) {
 				n = ranges[0].first;
 				expr30_4->writeValue( & n );
 			}
-			else cerr << "BPatch_module->getLineToAddr returned false!" << endl;
+			else fprintf(stderr,  "%s[%d]: BPatch_module->getAddressRanges returned false for line %d!\n", __FILE__, __LINE__, call30_1_line_no); 
 			break;
 		}
 	}
