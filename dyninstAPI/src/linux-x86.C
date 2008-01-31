@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.134 2007/12/12 22:20:47 roundy Exp $
+// $Id: linux-x86.C,v 1.135 2008/01/31 18:01:50 legendre Exp $
 
 #include <fstream>
 
@@ -1018,6 +1018,9 @@ void calcVSyscallFrame(process *p)
    * If we've already calculated and cached the DSO information then 
    * just return.
    **/
+  if (p->getVsyscallData())
+     return;
+  
 
   if (p->getAddressWidth() == 8) {
      // FIXME: HACK to disable vsyscall page for AMD64, for now.
@@ -1315,7 +1318,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 
         newElf->alignHighMem(compactedHighmemUpdates);
 
-	saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates, (void*) newElf);
+        saveWorldCreateHighMemSections(compactedHighmemUpdates, highmemUpdates, (void*) newElf);
 
 
 	unsigned int k;
