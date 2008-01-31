@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.h,v 1.6 2007/12/12 22:20:40 roundy Exp $
+// $Id: addressSpace.h,v 1.7 2008/01/31 18:01:49 legendre Exp $
 
 #ifndef ADDRESS_SPACE_H
 #define ADDRESS_SPACE_H
@@ -49,6 +49,7 @@
 #include "InstructionSource.h"
 #include "ast.h"
 #include "symtabAPI/h/Symtab.h"
+#include "dyninstAPI/src/trapMappings.h"
 
 class codeRange;
 class multiTramp;
@@ -77,7 +78,7 @@ class int_function;
 
 class Dyn_Symbol;
 class BinaryEdit;
-
+class trampTrapMappings;
 
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 
@@ -158,7 +159,7 @@ class AddressSpace : public InstructionSource {
     virtual bool isValidAddress(const Address &) const;
 
     // Trap address to base tramp address (for trap instrumentation)
-    dictionary_hash<Address, Address> trampTrapMapping;
+    trampTrapMappings trapMapping;
     
     // Should return iterators
     bool getOrigRanges(pdvector<codeRange *> &);
@@ -389,8 +390,6 @@ class AddressSpace : public InstructionSource {
     void *up_ptr_;
 
     Address costAddr_;
-
-    
 };
 
 extern int heapItemCmpByAddr(const heapItem **A, const heapItem **B);

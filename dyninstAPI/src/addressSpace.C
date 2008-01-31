@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.14 2008/01/16 22:01:24 legendre Exp $
+// $Id: addressSpace.C,v 1.15 2008/01/31 18:01:48 legendre Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -60,7 +60,7 @@
 // class.
 
 AddressSpace::AddressSpace() :
-    trampTrapMapping(addrHash4),
+    trapMapping(this),
     multiTrampsById_(intHash),
     trampGuardBase_(0),
     up_ptr_(NULL),
@@ -92,9 +92,7 @@ void AddressSpace::copyAddressSpace(process *parent) {
     for (unsigned i = 0; i < parent->mapped_objects.size(); i++) {
         mapped_object *par_obj = parent->mapped_objects[i];
         mapped_object *child_obj = new mapped_object(par_obj, proc());
-        if (!child_obj) {
-            delete child_obj;
-        }
+        assert(child_obj);
         
         mapped_objects.push_back(child_obj);
         addOrigRange(child_obj);
@@ -143,6 +141,11 @@ void AddressSpace::copyAddressSpace(process *parent) {
 #endif
     }
     // That will also create all baseTramps, miniTramps, ...
+
+    /////////////////////////
+    // Trap mappings
+    /////////////////////////
+    trapMapping.copyTrapMappings(& (parent->trapMapping));
 }
 
 void AddressSpace::deleteAddressSpace() {
@@ -269,7 +272,7 @@ void AddressSpace::removeModifiedRange(codeRange *range) {
 	if (multiTrampsById_[area->multi->id()] == area->multi)
 	  multiTrampsById_[area->multi->id()] = NULL;
 	else {
-	  fprintf(stderr, "%d[%d]: Warning: odd case in removing instArea\n",
+	  fprintf(stderr, "%s[%u]: Warning: odd case in removing instArea\n",
 		  FILE__, __LINE__);
 	}
 	
@@ -1122,3 +1125,295 @@ void AddressSpace::deleteGeneratedCode(generatedCodeObject *delInst)
 
     delete delInst;
 }
+
+trampTrapMappings::trampTrapMappings(AddressSpace *a) :
+   needs_updating(false),
+   as(a),
+   trapTableUsed(NULL),
+   trapTableVersion(NULL),
+   trapTable(NULL),
+   trapTableSorted(NULL),
+   table_version(0),
+   table_used(0),
+   table_allocated(0),
+   table_mutatee_size(0),
+   current_table(0x0)
+{
+}
+
+void trampTrapMappings::copyTrapMappings(trampTrapMappings *parent)
+{
+  needs_updating = parent->needs_updating;
+  trapTableUsed = NULL;
+  trapTableVersion = NULL;
+  trapTable = NULL;
+  trapTableSorted = NULL;
+  table_version = parent->table_version;
+  table_used = parent->table_used;
+  table_allocated = parent->table_allocated;
+  table_mutatee_size = parent->table_mutatee_size;
+  current_table = parent->current_table;
+  mapping = parent->mapping;
+}
+
+void trampTrapMappings::clearTrapMappings()
+{
+  needs_updating = false;
+  trapTableUsed = NULL;
+  trapTableVersion = NULL;
+  trapTable = NULL;
+  trapTableSorted = NULL;
+  table_version = 0;
+  table_used = 0;
+  table_allocated = 0;
+  table_mutatee_size = 0;
+  current_table = 0;
+  mapping.clear();
+}
+
+void trampTrapMappings::addTrapMapping(Address from, Address to, 
+                                       bool write_to_mutatee)
+{
+#if defined(arch_x86) || defined(arch_x86_64)
+   //x86 traps occur at +1 addr
+   from++;
+#endif
+   tramp_mapping_t m;
+   bool existing_trap = (mapping.count(from) != 0);
+   m.from_addr = from;
+   m.to_addr = to;
+   m.written = false;
+   m.cur_index = existing_trap ? mapping[from].cur_index : INDEX_INVALID;
+   m.mutatee_side = write_to_mutatee;
+   mapping[from] = m;
+#if defined(cap_mutatee_traps)
+   if (write_to_mutatee && !existing_trap) {
+      table_mutatee_size++;
+   }
+   needs_updating = true;
+#endif
+}
+
+bool trampTrapMappings::definesTrapMapping(Address from)
+{
+   return mapping.count(from) != 0;
+}
+
+Address trampTrapMappings::getTrapMapping(Address from)
+{
+   if (!mapping.count(from))
+      return 0;
+   return mapping[from].to_addr;
+}
+
+bool trampTrapMappings::needsUpdating()
+{
+   return needs_updating;
+}
+
+AddressSpace *trampTrapMappings::proc() const {
+   return as;
+}
+
+bool mapping_sort(const trampTrapMappings::tramp_mapping_t *lhs,
+                  const trampTrapMappings::tramp_mapping_t *rhs)
+{
+   return lhs->from_addr < rhs->from_addr;
+}
+
+#if defined(cap_32_64)
+void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
+                                      unsigned addr_width)
+{
+   //Deal with the case when mutatee word size != mutator word size
+   if (addr_width != sizeof(Address)) {
+      //Currently only support 64-bit mutators with 32-bit mutatees
+      assert(addr_width == 4);
+      assert(sizeof(Address) == 8);
+      *((uint32_t *) buffer) = (uint32_t) val;
+      return;
+   }
+   *((unsigned long *) buffer) = val;
+}
+#else
+void trampTrapMappings::writeToBuffer(unsigned char *buffer, unsigned long val,
+                                      unsigned)
+{
+   *((unsigned long *) buffer) = val;
+}
+#endif
+
+
+void trampTrapMappings::writeTrampVariable(const int_variable *var, 
+                                           unsigned long val)
+{
+   unsigned char buffer[16];
+   unsigned aw = proc()->getAddressWidth();
+
+   writeToBuffer(buffer, val, aw);
+   bool result = proc()->writeDataSpace((void *) var->getAddress(), aw, buffer);
+   assert(result);
+}
+                  
+void trampTrapMappings::flush() {
+   if (!needs_updating)
+      return;
+
+   process *p = dynamic_cast<process *>(proc());
+   mapped_object *rtlib;
+   if (p) {
+      rtlib = p->runtime_lib;
+   }
+   else {
+      //Binary rewritter needs RT library loaded before this will work.
+      // Set rtlib when this becomes possible.
+      assert(0);
+   }
+
+   //We'll sort addresses in the binary rewritter (when writting only happens
+   // once and we may do frequent lookups)
+   //If we're using the dynamic instrumentor and creating a new table we might
+   // as well sort it.
+   //If we're just adding a few entries to the table which already fit, then
+   // we'll just append them to the end of the table.
+   //
+   //If we're sorting, then everytime we update we'll generate a whole new table
+  //If we're not sorting, then each update will just append to the end of the
+   // table.
+   bool should_sort = (dynamic_cast<process *>(proc()) == NULL ||
+                       table_mutatee_size > table_allocated);
+
+   if (should_sort) {
+      table_used = 0; //We're rebuilding the table, nothing's used.
+   }
+
+   std::vector<tramp_mapping_t*> mappings_to_add;
+   std::vector<tramp_mapping_t*> mappings_to_update;
+   hash_map<Address, tramp_mapping_t>::iterator i;
+   for (i = mapping.begin(); i != mapping.end(); i++) {
+      tramp_mapping_t &m = (*i).second;
+      if (!m.mutatee_side || (m.written && !should_sort))
+         continue;
+      m.written = true;
+      if (should_sort || m.cur_index == INDEX_INVALID)
+         mappings_to_add.push_back(&m);
+      else if (m.cur_index != INDEX_INVALID)
+         mappings_to_update.push_back(&m);
+   }
+   assert(mappings_to_add.size() + table_used == table_mutatee_size);
+
+   for (unsigned k=0; k<mappings_to_add.size(); k++)
+   {
+       mappings_to_add[k]->written = true;
+   }
+
+   //Sort the mappings (if needed) 
+   if (should_sort) 
+      std::sort(mappings_to_add.begin(), mappings_to_add.end(), mapping_sort);
+
+   // Assign the cur_index field of each entry in the new mappings we're adding
+   for (unsigned j=0; j<mappings_to_add.size(); j++) {
+      mappings_to_add[j]->cur_index = table_used + j;
+   }
+   
+   //Each table entry has two pointers.
+   unsigned entry_size = proc()->getAddressWidth() * 2;
+
+   //Allocate the space for the tramp mapping table, or make sure that enough
+   // space already exists.
+   Address write_addr = 0x0;
+   if (table_mutatee_size > table_allocated) {
+      //Free old table
+      if (current_table) {
+         proc()->inferiorFree(current_table);
+      }
+      
+      //Calculate size of new table
+      table_allocated = (unsigned long) (table_mutatee_size * 1.5);
+      if (table_allocated < MIN_TRAP_TABLE_SIZE)
+         table_allocated = MIN_TRAP_TABLE_SIZE;
+      
+      //allocate
+      current_table = proc()->inferiorMalloc(table_allocated * entry_size);
+      assert(current_table);
+   }
+
+   //Add any new entries to the table
+   unsigned char *buffer = NULL;
+   if (mappings_to_add.size()) {
+      //Create a buffer containing the new entries we're going to write.
+      unsigned long bytes_to_add = mappings_to_add.size() * entry_size;
+      buffer = (unsigned char *) malloc(bytes_to_add);
+      assert(buffer);
+      
+      unsigned char *cur = buffer;
+      std::vector<tramp_mapping_t*>::iterator j;
+      for (j = mappings_to_add.begin(); j != mappings_to_add.end(); j++) {
+         tramp_mapping_t &tm = **j;
+         writeToBuffer(cur, tm.from_addr, proc()->getAddressWidth());
+         cur += proc()->getAddressWidth();
+         writeToBuffer(cur, tm.to_addr, proc()->getAddressWidth());
+         cur += proc()->getAddressWidth();
+      }
+      assert(cur == buffer + bytes_to_add);
+      
+      //Write the new entries into the process
+      write_addr = current_table + (table_used * entry_size);
+      bool result = proc()->writeDataSpace((void *) write_addr, bytes_to_add, 
+                                           buffer);
+      assert(result);
+      free(buffer);
+      buffer = NULL;
+
+      table_used += mappings_to_add.size();
+   }
+
+   //Now we get to update existing entries that have been modified.
+   if (mappings_to_update.size()) {
+      assert(!should_sort);
+      unsigned aw = proc()->getAddressWidth();
+      buffer = (unsigned char *) malloc(aw);
+      assert(buffer);
+
+      //For each entry, use its cur_index field to figure out where in the
+      // process it is, and write it.
+      //We only need to update the to_addr, since this is an update of an
+      // existing from_addr
+      std::vector<tramp_mapping_t*>::iterator j;
+      for (j = mappings_to_update.begin(); j != mappings_to_update.end(); j++) {
+         tramp_mapping_t &tm = **j;
+         writeToBuffer(buffer, tm.to_addr, aw);
+
+         Address write_addr = current_table + (tm.cur_index * entry_size) + aw;
+         bool result = proc()->writeDataSpace((void *) write_addr, aw, buffer);
+         assert(result);
+      }
+      
+      free(buffer);
+      buffer = NULL;
+   }
+
+   //This function just keeps going... Now we need to take all of those 
+   // mutatee side variables and update them.
+   if (!trapTable) {
+      //Lookup all variables that are in the rtlib
+      assert(rtlib);
+      trapTableUsed = rtlib->getVariable("dyninstTrapTableUsed");
+      trapTableVersion = rtlib->getVariable("dyninstTrapTableVersion");
+      trapTable = rtlib->getVariable("dyninstTrapTable");
+      trapTableSorted = rtlib->getVariable("dyninstTrapTableIsSorted");
+
+      assert(trapTableUsed);
+      assert(trapTableVersion);
+      assert(trapTable);
+      assert(trapTableSorted);
+   }
+   
+   writeTrampVariable(trapTableUsed, table_used);
+   writeTrampVariable(trapTableVersion, ++table_version);
+   writeTrampVariable(trapTable, (unsigned long) current_table);
+   writeTrampVariable(trapTableSorted, should_sort ? 1 : 0);
+
+   needs_updating = false;
+}
+
