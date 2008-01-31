@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2007/04/24 23:06:03 legendre Exp $
+# $Id: Makefile,v 1.11 2008/01/31 18:01:34 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -35,6 +35,7 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTmutatedBinary.c \
 		   ../src/RTmutatedBinary_ELF.c \
 			../src/RTthread-x86-64.c \
+			../src/RTsignal-x86_64.S \
 			../src/RTthread.c \
 			../src/RTthread-index.c \
 			../src/RTspace.S
@@ -52,7 +53,7 @@ endif
 include ../make.module.tmpl
 
 # 32-bit runtime library
-ASM_SRCS_32  = ../src/RTfake-ret-x86.S ../src/RTspace.S
+ASM_SRCS_32  = ../src/RTfake-ret-x86.S ../src/RTspace.S ../src/RTsignal-x86.S
 
 TARGET_32_SO = libdyninstAPI_RT_m32.so.1
 XTARGET_32   = $(basename $(basename $(TARGET_32_SO)))

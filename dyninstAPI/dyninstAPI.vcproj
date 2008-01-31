@@ -1732,6 +1732,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\syscalltrap.h">
 			</File>
 			<File
+				RelativePath=".\src\trapMappings.h">
+			</File>
+			<File
 				RelativePath=".\src\util.h">
 			</File>
 			<File
