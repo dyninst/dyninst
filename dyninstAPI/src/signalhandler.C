@@ -542,12 +542,11 @@ bool SignalHandler::handleSyscallExit(EventRecord &ev, bool &continueHint)
     // We need to multiplex "run" between the generic trap decoding and
     // and the specific handlers.
     bool runProcess = false;
-    bool retval = false;
 
     signal_printf( "%s[%d]:  welcome to handleSyscallExit\n", FILE__, __LINE__);
 
 #if defined(cap_syscall_trap)
-    retval = ev.lwp->handleSyscallTrap(ev, continueHint);
+    ev.lwp->handleSyscallTrap(ev, continueHint);
 #endif
 
     // Fall through no matter what since some syscalls have their
@@ -647,9 +646,11 @@ bool SignalHandler::handleEvent(EventRecord &ev)
      case evtInstPointTrap: {
          // Linux inst via traps
          // First, we scream... this is undesired behavior.
-         signal_printf("%s[%d]: WARNING: inst point trap detected at 0x%lx, trap to 0x%lx\n",
-                       FILE__, __LINE__, ev.address, proc->trampTrapMapping[ev.address]);
-         ev.lwp->changePC(proc->trampTrapMapping[ev.address], NULL);
+         Address target_addr = proc->trapMapping.getTrapMapping(ev.address);
+         signal_printf("%s[%d]: WARNING: inst point trap detected at 0x%lx, " 
+		       "trap to 0x%lx\n", FILE__, __LINE__, ev.address, 
+		       target_addr);
+         ev.lwp->changePC(target_addr, NULL);
          continueHint = true;
          ret = true;
          break;

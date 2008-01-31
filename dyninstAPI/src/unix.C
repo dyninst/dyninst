@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.231 2007/12/04 17:58:27 bernat Exp $
+// $Id: unix.C,v 1.232 2008/01/31 18:01:35 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -768,7 +768,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
   Frame af = ev.lwp->getActiveFrame();
 
   // (1)  Is this trap due to an instPoint ??
-  if (proc->trampTrapMapping.defines(af.getPC())) {
+  if (proc->trapMapping.definesTrapMapping(af.getPC())) {
      ev.type = evtInstPointTrap;
      ev.address = af.getPC();
      return true;

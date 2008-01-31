@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.34 2008/01/16 22:02:03 legendre Exp $
+// $Id: reloc-func.C,v 1.35 2008/01/31 18:01:41 legendre Exp $
 
 
 
@@ -1103,13 +1103,10 @@ bool functionReplacement::linkFuncRep(pdvector<codeRange *> &/*overwrittenObjs*/
             bblInstance *targetInst = targetBlock_->instVer(targetVersion_);
             assert(targetInst);
 
-#if (defined(arch_x86) || defined(arch_x86_64)) 
-            sourceBlock_->proc()->trampTrapMapping[sourceInst->firstInsnAddr() + 1] = 
-                targetInst->firstInsnAddr();
-#else
-            sourceBlock_->proc()->trampTrapMapping[sourceInst->firstInsnAddr()] = 
-                targetInst->firstInsnAddr();
-#endif
+            AddressSpace *as = sourceBlock_->proc();
+            as->trapMapping.addTrapMapping(sourceInst->firstInsnAddr(),
+                                           targetInst->firstInsnAddr(),
+                                           true);
         }       
 
         return true;

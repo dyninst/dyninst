@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.180 2007/12/04 21:10:19 legendre Exp $
+// $Id: pdwinnt.C,v 1.181 2008/01/31 18:01:38 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -487,7 +487,7 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
      signal_printf("%s[%d]:  BREAKPOINT due to RPC\n", FILE__, __LINE__);
      ret = true;
   }
-  else if (proc->trampTrapMapping.defines(ev.address)) {
+  else if (proc->trapMapping.definesTrapMapping(ev.address)) {
      ev.type = evtInstPointTrap;
      ret = true;
   }

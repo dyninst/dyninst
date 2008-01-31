@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.22 2008/01/16 22:01:47 legendre Exp $
+ * $Id: arch-power.C,v 1.23 2008/01/31 18:01:36 legendre Exp $
  */
 
 #include "common/h/Types.h"
@@ -97,7 +97,7 @@ void instruction::generateBranch(codeGen &gen, Address from, Address to, bool li
     if (ABS(disp) > MAX_BRANCH) {
 	if (gen.addrSpace()) {
 	    // Too far to branch.  Use trap-based instrumentation.
-	    gen.addrSpace()->trampTrapMapping[from] = to;
+            gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
 	    instruction::generateTrap(gen);
 
 	} else {

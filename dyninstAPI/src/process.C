@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.704 2008/01/23 00:04:58 legendre Exp $
+// $Id: process.C,v 1.705 2008/01/31 18:01:39 legendre Exp $
 
 #include <ctype.h>
 
@@ -1502,6 +1502,8 @@ void process::deleteProcess()
           delete syscallTraps_[iter];
   }
   syscallTraps_.clear();
+
+  trapMapping.clearTrapMappings();
 
   for (iter = 0; iter < tracingRequests.size(); iter++) {
       if(tracingRequests[iter] != NULL)

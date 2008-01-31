@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.76 2008/01/16 22:00:48 legendre Exp $
+// $Id: multiTramp.C,v 1.77 2008/01/31 18:01:37 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1115,7 +1115,7 @@ bool multiTramp::installCode() {
     assert(generated_);
 
     // Try to branch to the tramp, but if we can't use a trap
-    if (branchSize_ > instSize_) {
+    if (branchSize_ > instSize_)  {
         // Crud. Go with traps.
         jumpBuf_.setIndex(0);
         if (!generateTrapToTramp(jumpBuf_))
@@ -1252,13 +1252,7 @@ bool multiTramp::linkCode() {
                 return false;
             }
             
-            
-#if (defined(arch_x86) || defined(arch_x86_64)) 
-            // x86: traps read at PC + 1
-            proc()->trampTrapMapping[oldMultiAddr+1] = newMultiAddr;
-#else
-            proc()->trampTrapMapping[oldMultiAddr] = newMultiAddr;
-#endif
+            proc()->trapMapping.addTrapMapping(oldMultiAddr, newMultiAddr, false);
         }
 
         delete previousInsnAddrs_;
@@ -2493,14 +2487,9 @@ bool multiTramp::fillJumpBuf(codeGen &gen) {
             Address origAddr = gen.currAddr(instAddr_);
             Address addrInMulti = uninstToInstAddr(origAddr);
             if (addrInMulti) {
-                // addrInMulti may be 0 if our trap instruction does not
-                // map onto a real instruction
-#if (defined(arch_x86) || defined(arch_x86_64)) 
-                // x86: traps read at PC + 1
-                proc()->trampTrapMapping[origAddr+1] = addrInMulti;
-#else
-                proc()->trampTrapMapping[origAddr] = addrInMulti;
-#endif
+               // addrInMulti may be 0 if our trap instruction does not
+               // map onto a real instruction
+               proc()->trapMapping.addTrapMapping(origAddr, addrInMulti, false);
             }
             instruction::generateTrap(gen);
         }
@@ -2558,11 +2547,7 @@ bool multiTramp::generateTrapToTramp(codeGen &gen) {
 
     // We're doing a trap. Now, we know that trap addrs are reported
     // as "finished" address... so use that one (not instAddr_)
-#if (defined(arch_x86) || defined(arch_x86_64)) 
-    proc()->trampTrapMapping[gen.currAddr(instAddr_)+1] = trampAddr_;
-#else
-    proc()->trampTrapMapping[gen.currAddr(instAddr_)] = trampAddr_;
-#endif
+    proc()->trapMapping.addTrapMapping(gen.currAddr(instAddr_), trampAddr_, true);
     unsigned start = gen.used();
     instruction::generateTrap(gen);
     branchSize_ = gen.used() - start;
