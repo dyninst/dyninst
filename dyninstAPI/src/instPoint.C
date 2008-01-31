@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.46 2008/01/03 00:13:15 legendre Exp $
+// $Id: instPoint.C,v 1.47 2008/01/31 18:01:45 legendre Exp $
 // instPoint code
 
 
@@ -500,8 +500,11 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs)
 }
 
 // See comment in generateInst w.r.t. return value
-
-bool instPoint::linkInst() {
+//  If update_trap_table is true then update the mutatee's trap
+//   table with any traps that we added.  We may not want to do
+//   this yet if we're dealing with insertion sets, since large
+//   updates are more efficient than smaller ones.
+bool instPoint::linkInst(bool update_trap_table) {
     bool success = false;
     stats_instru.startTimer(INST_LINK_TIMER);
     stats_instru.incrementCounter(INST_LINK_COUNTER);
@@ -510,6 +513,11 @@ bool instPoint::linkInst() {
         bool ret = instances[i]->linkInst();
         if (ret) success = true;
     }
+    
+    if (update_trap_table) {
+      proc()->trapMapping.flush();
+    }
+
     stats_instru.stopTimer(INST_LINK_TIMER);
     
     return success;

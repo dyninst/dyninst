@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.41 2008/01/03 00:13:16 legendre Exp $
+// $Id: instPoint.h,v 1.42 2008/01/31 18:01:46 legendre Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -390,7 +390,7 @@ class instPoint : public instPointBase {
   // TODO: if we're out-of-lining miniTramps or something, this should
   // be the call that causes linkage of the OOL MT to occur, just for
   // completeness of the model.
-  bool linkInst();
+  bool linkInst(bool update_trap_table = true);
 
   // Catchup: 1) does a PC correspond to the area covered by an
   // instPoint (aka multiTramp). 2) is the PC "before" or "after"

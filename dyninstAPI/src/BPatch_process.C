@@ -1135,7 +1135,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
            BPatch_point *bppoint = bir->points_[j];
            instPoint *point = bppoint->point;
              
-          if (!point->linkInst()) {
+          if (!point->linkInst(false)) {
                fprintf(stderr, "%s[%d]: ERROR: failed to insert instrumentation: link\n",
                        FILE__, __LINE__);
                err = true;
@@ -1148,6 +1148,8 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
 
    if (atomic && err) 
       goto cleanup;
+
+   llproc->trapMapping.flush();
 
   cleanup:
     bool ret = true;

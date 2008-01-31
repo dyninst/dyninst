@@ -258,7 +258,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
            BPatch_point *bppoint = bir->points_[j];
            instPoint *point = bppoint->point;
              
-          if (!point->linkInst()) {
+          if (!point->linkInst(false)) {
                err = true;
            }
 
@@ -269,6 +269,8 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 
    if (atomic && err) 
       goto cleanup;
+
+   llBinEdit->trapMapping.flush();
 
   cleanup:
     bool ret = true;
