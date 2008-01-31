@@ -688,19 +688,32 @@ void Symtab::setModuleLanguages(hash_map<std::string, supportedLanguages> *mod_l
       if (currmod->isShared()) {
          continue;  // need to find some way to get shared object languages?
       }
+
+      const std::string fn = currmod->fileName();
       if (mod_langs->find(currmod->fileName()) != mod_langs->end())
       {
-         currLang = (*mod_langs)[currmod->fileName()];
-         currmod->setLanguage(currLang);
+         currLang = (*mod_langs)[fn];
+      }
+      else if (fn.rfind(".s") != std::string::npos ||
+               fn.rfind(".asm") != std::string::npos)
+      {
+         currLang = lang_Assembly;
+      }
+      else if (fn.rfind(".c") != std::string::npos)
+      {
+         currLang = lang_C;
+      }
+      else if (fn.rfind(".cpp") != std::string::npos ||
+               fn.rfind(".cc") != std::string::npos ||
+               fn.rfind(".C") != std::string::npos)
+      {
+         currLang = lang_CPlusPlus;
       }
       else
       {
-         if (currmod->fileName() != std::string("DEFAULT_MODULE"))
-            cerr << __FILE__ << __LINE__ << ":  module " << currmod->fileName() 
-               << " not found in module<->language map" << endl;
-         //dump = 1;
-         // here we should probably try to guess, based on filename conventions
+         continue;
       }
+      currmod->setLanguage(currLang);
    }
 }
 
