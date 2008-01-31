@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.32 2007/06/20 20:49:51 ssuen Exp $
+ * $Id: RTposix.c,v 1.33 2008/01/31 18:01:56 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -234,3 +234,21 @@ int unmap_region(void *addr, int len) {
         return 0;
     return 1;
 }
+
+#if defined(cap_mutatee_traps)
+extern void dyninstTrapHandler(int sig, siginfo_t *info, void *context);
+
+int DYNINSTinitializeTrapHandler()
+{
+   int result;
+   struct sigaction new_handler;
+
+   new_handler.sa_sigaction = dyninstTrapHandler;
+   new_handler.sa_restorer = NULL;
+   sigemptyset(&new_handler.sa_mask);
+   new_handler.sa_flags = SA_SIGINFO | SA_NOMASK;
+   
+   result = sigaction(SIGTRAP, &new_handler, NULL);
+   return (result == 0) ? 1 /*Success*/ : 0 /*Fail*/ ;
+}
+#endif

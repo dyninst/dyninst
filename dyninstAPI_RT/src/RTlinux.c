@@ -40,11 +40,13 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.51 2007/09/13 20:13:05 legendre Exp $
+ * $Id: RTlinux.c,v 1.52 2008/01/31 18:01:55 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+#include "dyninstAPI_RT/src/RTthread.h"
+#include "dyninstAPI_RT/src/RTcommon.h"
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
@@ -70,15 +72,14 @@ extern unsigned long sizeOfAnyHeap1;
 
 void DYNINSTbreakPoint()
 {
-    /* We set a global flag here so that we can tell
-       if we're ever in a call to this when we get a 
-       SIGBUS */
-   int thread_index = DYNINSTthreadIndex();
-    DYNINST_break_point_event = 1;
-    while (DYNINST_break_point_event)  {
-        kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
-    }
-    /* Mutator resets to 0... */
+   /* We set a global flag here so that we can tell
+      if we're ever in a call to this when we get a 
+      SIGBUS */
+   DYNINST_break_point_event = 1;
+   while (DYNINST_break_point_event)  {
+      kill(dyn_lwp_self(), DYNINST_BREAKPOINT_SIGNUM);
+   }
+   /* Mutator resets to 0... */
 }
 
 static int failed_breakpoint = 0;
@@ -314,6 +315,8 @@ dyntid_t dyn_pthread_self()
    return (dyntid_t) me;
 }
 
+
+
 /* 
    We reserve index 0 for the initial thread. This value varies by
    platform but is always constant for that platform. Wrap that
@@ -332,7 +335,7 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
 		return 1;
 		}
 	return 0;
-	} /* end DYNINST_am_initial_thread() */
+} /* end DYNINST_am_initial_thread() */
 
 /**
  * We need to extract certain pieces of information from the usually opaque 
@@ -415,7 +418,7 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
   {
      pid_t pid = READ_FROM_BUF(positions32[i].pid_pos, pid_t);
      int lwp = READ_FROM_BUF(positions32[i].lwp_pos, int);
-     unsigned int start_pc =  READ_FROM_BUF(positions32[i].start_func_pos, void*);
+     /*unsigned int start_pc =  (unsigned) READ_FROM_BUF(positions32[i].start_func_pos, void*);*/
      if( pid != ev->ppid || lwp != ev->lwp){
         // /* DEBUG */ fprintf( stderr, "%s[%d]: pid %d != ev->ppid %d or lwp %d != ev->lwp %d\n", __FILE__, __LINE__, pid, ev->ppid, lwp, ev->lwp );
         continue;
@@ -431,7 +434,7 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
     //If you get this error, then Dyninst is having trouble figuring out
     //how to read the information from the positions structure above.
     //It needs a new entry filled in.  Running the commented out program
-    //that follows this function can help you collect the necessary data.
+    //at the end of this file can help you collect the necessary data.
     RTprintf( "[%s:%d] Unable to parse the pthread_t structure for this version of libpthread.  Making a best guess effort.\n",  __FILE__, __LINE__ );
     err_printed = 1;
   }
@@ -439,6 +442,113 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
   return 1;
 }
 
+#if defined(cap_mutatee_traps)
+
+#include <ucontext.h>
+
+#if defined(arch_x86) || defined(MUTATEE_32)
+
+#if !defined(REG_EIP)
+#define REG_EIP 14
+#endif
+#if !defined(REG_ESP)
+#define REG_ESP 7
+#endif
+#define REG_IP REG_EIP
+#define REG_SP REG_ESP
+#define MAX_REG 18
+
+#elif defined(arch_x86_64)
+
+#if !defined(REG_RIP)
+#define REG_RIP 16
+#endif
+#if !defined(REG_RSP)
+#define REG_RSP 15
+#endif
+#define REG_IP REG_RIP
+#define REG_SP REG_RSP
+#define MAX_REG 15
+#if !defined(REG_RAX)
+#define REG_RAX 13
+#endif
+#if !defined(REG_R10)
+#define REG_R10 2
+#endif
+#if !defined(REG_R11)
+#define REG_R11 3
+#endif
+
+#endif
+
+extern void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoint);
+
+/**
+ * Called by the SIGTRAP handler, dyninstTrapHandler.  This function is 
+ * closly intwined with dyninstTrapHandler, don't modify one without 
+ * understanding the other.
+ *
+ * This function sets up the calling context that was passed to the
+ * SIGTRAP handler so that control will be redirected to our instrumentation
+ * when we do the setcontext call.
+ * 
+ * There are a couple things that make this more difficult than it should be:
+ *   1. The OS provided calling context is similar to the GLIBC calling context,
+ *      but not compatible.  We'll create a new GLIBC compatible context and
+ *      copy the possibly stomped registers from the OS context into it.  The
+ *      incompatiblities seem to deal with FP and other special purpose registers.
+ *   2. setcontext doesn't restore the flags register.  Thus dyninstTrapHandler
+ *      will save the flags register first thing and pass us its value in the
+ *      flags parameter.  We'll then push the instrumentation entry and flags
+ *      onto the context's stack.  Instead of transfering control straight to the
+ *      instrumentation, we'll actually go back to dyninstTrapHandler, which will
+ *      do a popf/ret to restore flags and go to instrumentation.  The 'retPoint'
+ *      parameter is the address in dyninstTrapHandler the popf/ret can be found.
+ **/
+void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoint)
+{
+   ucontext_t newcontext;
+   unsigned i;
+   unsigned long *orig_sp;
+   void *orig_ip;
+
+   getcontext(&newcontext);
+   
+   //Set up the 'context' parameter so that when we restore 'context' control
+   // will get transfered to our instrumentation.
+   for (i=0; i<MAX_REG; i++) {
+      newcontext.uc_mcontext.gregs[i] = context->uc_mcontext.gregs[i];
+   }
+
+   orig_sp = (unsigned long *) context->uc_mcontext.gregs[REG_SP];
+   orig_ip = (void *) context->uc_mcontext.gregs[REG_IP];
+
+   assert(orig_ip);
+
+   //Set up the PC to go to the 'ret_point' in RTsignal-x86.s
+   newcontext.uc_mcontext.gregs[REG_IP] = (unsigned long) retPoint;
+
+   //simulate a "push" of the flags and instrumentation entry points onto
+   // the stack.
+   *(orig_sp - 1) = (unsigned long) dyninstTrapTranslate(orig_ip);
+   *(orig_sp - 2) = flags;
+   unsigned shift = 2;
+#if defined(arch_x86_64) && !defined(MUTATEE_32)
+   *(orig_sp - 3) = context->uc_mcontext.gregs[REG_R11];
+   *(orig_sp - 4) = context->uc_mcontext.gregs[REG_R10];
+   *(orig_sp - 5) = context->uc_mcontext.gregs[REG_RAX];
+   shift = 5;
+#endif
+   newcontext.uc_mcontext.gregs[REG_SP] = (unsigned long) (orig_sp - shift);
+
+   //Restore the context.  This will move all the register values of 
+   // context into the actual registers and transfer control away from
+   // this function.  This function shouldn't actually return.
+   setcontext(&newcontext);
+   assert(0);
+}
+
+#endif /* cap_mutatee_traps */
 
 /*
 //Small program for finding the correct values to fill in pos_in_pthreadt
