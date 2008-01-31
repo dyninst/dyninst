@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.43 2006/06/07 20:35:07 bernat Exp $
+ * $Id: dyninstAPI_RT.h,v 1.44 2008/01/31 18:01:51 legendre Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -178,6 +178,11 @@ extern unsigned DYNINST_thread_hash_size;
 #define DYNINST_NOT_IN_HASHTABLE ((unsigned)-1)
 
 extern int DYNINST_break_point_event;
+
+typedef struct {
+   void *source;
+   void *target;
+} trapMapping_t;
 
 #include "dyninstRTExport.h"
 #endif /* _DYNINSTAPI_RT_H */

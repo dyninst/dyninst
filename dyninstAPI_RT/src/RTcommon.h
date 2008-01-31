@@ -56,6 +56,9 @@ int DYNINSTreturnZero();
 int DYNINSTwriteEvent(void *ev, size_t sz);
 int DYNINSTasyncConnect(int pid);
 
+int DYNINSTinitializeTrapHandler();
+void* dyninstTrapTranslate(void *source);
+
 extern int DYNINSTdebuPrintRT;
 extern int DYNINST_mutatorPid;
 extern int libdyninstAPI_RT_init_localCause;

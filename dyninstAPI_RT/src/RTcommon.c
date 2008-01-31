@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.75 2007/09/13 20:13:04 legendre Exp $ */
+/* $Id: RTcommon.c,v 1.76 2008/01/31 18:01:52 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <assert.h>
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTcommon.h"
 #include "RTthread.h"
@@ -121,6 +122,10 @@ int DYNINSTdebugPrintRT = 0;
 int isMutatedExec = 0;
 
 unsigned *DYNINST_tramp_guards;
+
+#if defined(os_linux)
+void DYNINSTlinuxBreakPoint();
+#endif
 
 DECLARE_DYNINST_LOCK(DYNINST_trace_lock);
 
@@ -233,7 +238,9 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
 #endif
    DYNINSTos_init(calledByFork, calledByAttach);
    DYNINST_initialize_index_list();
-      
+#if defined(cap_mutatee_traps)
+   DYNINSTinitializeTrapHandler();
+#endif
 
    DYNINST_bootstrap_info.pid = dyn_pid_self();
    DYNINST_bootstrap_info.ppid = pid;    
@@ -538,3 +545,54 @@ char *asyncEventType2str(rtBPatch_asyncEventType t)
   }
 } 
 
+volatile unsigned long dyninstTrapTableUsed;
+volatile unsigned long dyninstTrapTableVersion;
+volatile trapMapping_t *dyninstTrapTable;
+volatile unsigned long dyninstTrapTableIsSorted;
+
+void* dyninstTrapTranslate(void *source)
+{
+   volatile unsigned local_version;
+   unsigned i;
+   void *target;
+
+   do {
+      local_version = dyninstTrapTableVersion;
+      target = NULL;
+
+      if (dyninstTrapTableIsSorted) 
+      {
+         unsigned min = 0;
+         unsigned mid = 0;
+         unsigned max = dyninstTrapTableUsed;
+         unsigned prev = max+1;
+         
+         for (;;) {
+            mid = (min + max) / 2;
+            if (mid == prev)
+               break;
+            prev = mid;
+            
+            if (dyninstTrapTable[mid].source < source)
+               min = mid;
+            else if (dyninstTrapTable[mid].source > source)
+               max = mid;
+            else {
+               target = dyninstTrapTable[mid].target;
+               break;
+            }
+         }
+      } 
+      else { /*!dyninstTrapTableIsSorted*/
+         for (i = 0; i<dyninstTrapTableUsed; i++) {
+            if (dyninstTrapTable[i].source == source) {
+               target = dyninstTrapTable[i].target;
+               break;
+            }
+         }
+      }         
+   } while (local_version != dyninstTrapTableVersion);
+
+   //   fprintf(stderr, "Mapped %p to %p\n", source, target);
+   return target;
+}
