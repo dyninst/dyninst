@@ -51,6 +51,8 @@ int dyn_pid_self();        //PID identifier representing the containing process
 
 unsigned DYNINSTthreadIndexFAST();
 unsigned DYNINSTthreadIndexSLOW();
+int DYNINSTthreadIndex();
+
 int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev);
 
 dyntid_t DYNINST_getThreadFromIndex(unsigned index);
