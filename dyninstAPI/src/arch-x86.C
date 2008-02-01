@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.79 2008/01/16 22:00:45 legendre Exp $
+// $Id: arch-x86.C,v 1.80 2008/02/01 17:05:37 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -4765,7 +4765,7 @@ bool instruction::generate(codeGen &gen,
                            AddressSpace *addrSpace,
                            Address origAddr, // Could be kept in the instruction class..
                            Address /*newAddr*/,
-                           patchTarget */*fallthroughOverride*/,
+                           patchTarget * /*fallthroughOverride*/,
                            patchTarget *targetOverride) 
 {
    // We grab the maximum space we might need
