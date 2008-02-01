@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.22 2008/01/23 14:45:53 jaw Exp $
+// $Id: Object-nt.C,v 1.23 2008/02/01 17:05:33 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -545,15 +545,12 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 }
 
 /*
- *
- * The name here is a little desceptive.  We're not parsing debug info
- * as in line or type information.  This function finds all the global symbols
+ * This function finds all the global symbols
  * in a module and all of the source files. (i.e. so this function would find
  * the 'main' symbol and find the starting point of 'foo.c'
  *
  */
- 
-void Object::ParseDebugInfo( void )
+void Object::ParseSymbolInfo( void )
 {
    // build a Module object for the current module (EXE or DLL)
    // Note that the CurrentModuleScoper object ensures that the
@@ -561,7 +558,6 @@ void Object::ParseDebugInfo( void )
    // this function.
    // curModule = new Object::Module( file_, desc.code() );
    string file_ = mf->filename();
-   curModule = new Object::Module( file_, 0 );
    static unsigned count = 1;
    hProc = (HANDLE) count++;
    if(!SymInitialize(hProc, NULL, false)){
@@ -576,8 +572,6 @@ void Object::ParseDebugInfo( void )
    assert( hProc != NULL );
    assert( hProc != INVALID_HANDLE_VALUE );
 
-   // find the sections we need to know about (.text and .data)
-   FindInterestingSections();
    // grab load address
    if (peHdr) imageBase = peHdr->OptionalHeader.ImageBase;
    else imageBase = 0; //KEVINTODO: not sure what to do about this and the entry point thing
@@ -646,19 +640,25 @@ void Object::FindInterestingSections()
    HANDLE mapAddr = mf->base_addr();
    peHdr = ImageNtHeader( mapAddr );
 
-   if (peHdr == NULL) {//KEVINTODO: add log message here, and maybe some fprintf output message
+   if (peHdr == NULL) {
+      //KEVINTODO: add log message here, and maybe some fprintf output message
       code_ptr_ = (char*)mapAddr;
       code_off_ = 0;
       HANDLE hFile = mf->getFileHandle();
       code_len_ = (Offset) GetFileSize(hFile, NULL);
       is_aout_ = false;
-      fprintf(stderr,"Adding Symtab object with no program header, will designate it as code\n");
+      fprintf(stderr,"Adding Symtab object with no program header, will " 
+              "designate it as code\n");
       sections_.push_back(new Section(0, ".text", code_off_, code_len_, 0));
       return;
    }
 
    assert( peHdr->FileHeader.SizeOfOptionalHeader > 0 ); 
+
+   string file_ = mf->filename();
+   curModule = new Object::Module( file_, 0 );
    assert( curModule != NULL );
+
    curModule->SetIsDll( (peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL) != 0 );
    if(curModule->IsDll())
       is_aout_ = false;
@@ -668,25 +668,27 @@ void Object::FindInterestingSections()
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;
    no_of_sections_ = nSections;
    PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
-         sizeof(DWORD) +         // for signature
-         sizeof(IMAGE_FILE_HEADER) +
-         peHdr->FileHeader.SizeOfOptionalHeader);
+                                 sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
+                                 peHdr->FileHeader.SizeOfOptionalHeader);
    bool foundText = false;
    for( unsigned int i = 0; i < nSections; i++ ) {
-      // make rawDataPtr should be set to be zero if the amount of raw data for the section is zero
+      // make rawDataPtr should be set to be zero if the amount of raw data 
+      //  for the section is zero
       void *rawDataPtr = 0;
       if (pScnHdr->SizeOfRawData != 0) {
-         rawDataPtr = (void*)((unsigned int)pScnHdr->PointerToRawData + (unsigned int)mapAddr);
+         rawDataPtr = (void*)((unsigned int)pScnHdr->PointerToRawData + 
+                              (unsigned int)mapAddr);
       }
       sections_.push_back(new Section(i, (const char*)pScnHdr->Name, 
-               pScnHdr->VirtualAddress, pScnHdr->Misc.VirtualSize, 
-               rawDataPtr));
+                                      pScnHdr->VirtualAddress, 
+                                      pScnHdr->Misc.VirtualSize, 
+                                      rawDataPtr));
 
       if( strncmp( (const char*)pScnHdr->Name, ".text", 5 ) == 0 ) {
          // note that section numbers are one-based
          textSectionId = i + 1;
          code_ptr_    = (char*)(((char*)mapAddr) +
-               pScnHdr->PointerToRawData);
+                                pScnHdr->PointerToRawData);
          //if (GetDescriptor().isSharedObject())
          //if (curModule->IsDll())
          code_off_    = pScnHdr->VirtualAddress;
@@ -694,65 +696,71 @@ void Object::FindInterestingSections()
          //   code_off_    = get_base_addr() + pScnHdr->VirtualAddress;	//loadAddr = mapAddr
          //code_off_    = pScnHdr->VirtualAddress + desc.loadAddr();
 
-           // Since we're reporting the size of sections on the disk,
-           // we need to check whether the size of raw data is smaller.
-           //code_len_    = pScnHdr->Misc.VirtualSize;
-           code_len_ = ((pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) ?
-                        pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
-           foundText = true;
-       }
-       else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 ) {
-           // note that section numbers are one-based
-           dataSectionId = i + 1;
-           data_ptr_    = (char *)(((char*)mapAddr) +
-                                   pScnHdr->PointerToRawData);
+         // Since we're reporting the size of sections on the disk,
+         // we need to check whether the size of raw data is smaller.
+         //code_len_    = pScnHdr->Misc.VirtualSize;
+         code_len_ = ((pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) ?
+                      pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
+         foundText = true;
+      }
+      else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 ) {
+         // note that section numbers are one-based
+         dataSectionId = i + 1;
+         data_ptr_    = (char *)(((char*)mapAddr) +
+                                 pScnHdr->PointerToRawData);
 
-           //if (GetDescriptor().isSharedObject())
-           //if (curModule->IsDll())
-           data_off_    = pScnHdr->VirtualAddress;
-           //else
-           //data_off_    = desc.loadAddr() + pScnHdr->VirtualAddress;
-           //	data_off_    = get_base_addr()+pScnHdr->VirtualAddress;
+         //if (GetDescriptor().isSharedObject())
+         //if (curModule->IsDll())
+         data_off_    = pScnHdr->VirtualAddress;
+         //else
+         //data_off_    = desc.loadAddr() + pScnHdr->VirtualAddress;
+         //	data_off_    = get_base_addr()+pScnHdr->VirtualAddress;
 
-           //data_len_    = pScnHdr->Misc.VirtualSize;
-           data_len_ = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
-                        pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
-       }
-       else {
-           // see if this section is executable, if so, set code_ptr_
-           // and offset (these would be overwritten if we eventually
-           // found a .text section) and extending code_len_ if
-           // code_ptr_ has already been set.  If there seems to be a
-           // gap with invalid code, submit a warning message.
-           if (!foundText) { // search other sections for code if there is no .text section
-               if ((pScnHdr->Characteristics & IMAGE_SCN_MEM_EXECUTE
-                    || pScnHdr->Characteristics & IMAGE_SCN_CNT_CODE)
-                   && pScnHdr->SizeOfRawData) { // if it is executable and initialized
-                   if (code_ptr_ == 0) { // haven't set code_ptr_
-                       code_ptr_ = (char*)(((char*)mapAddr) + pScnHdr->PointerToRawData);
-                       code_off_ = pScnHdr->VirtualAddress;
-                       textSectionId = i + 1;
-                   }
-                   else {// output a warning if there is a gap between
-                       // this and the previous code section
-                       if (pScnHdr->VirtualAddress > code_off_ + code_len_) {
-                           fprintf(stderr,"%s[%d]WARNING! Internal dyninst safety checks\n will mistakenly think "
-                                   "that the following region [0x%lx 0x%lx] contains code,\n we currently "
-                                   "have no mechanism for tracking non-consecutive code regions\n", 
-                                   __FILE__,__LINE__,code_off_+code_len_, pScnHdr->VirtualAddress);
-                       }
-                   }
-                   // Increment code length (initially 0) by the size
-                   // of the current section
-                   if (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) {
-                       code_len_ += pScnHdr->SizeOfRawData;
-                   } else {
-                       code_len_ += pScnHdr->Misc.VirtualSize;
-                   }
+         //data_len_    = pScnHdr->Misc.VirtualSize;
+         data_len_ = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
+                      pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
+      }
+      else {
+         // see if this section is executable, if so, set code_ptr_
+         // and offset (these would be overwritten if we eventually
+         // found a .text section) and extending code_len_ if
+         // code_ptr_ has already been set.  If there seems to be a
+         // gap with invalid code, submit a warning message.
+         if (!foundText) { // search other sections for code if there is no .text section
+            if ((pScnHdr->Characteristics & IMAGE_SCN_MEM_EXECUTE || 
+                 pScnHdr->Characteristics & IMAGE_SCN_CNT_CODE) && 
+                pScnHdr->SizeOfRawData) { 
+               // if it is executable and initialized
+               if (code_ptr_ == 0) { 
+                  // haven't set code_ptr_
+                  code_ptr_ = (char*)(((char*)mapAddr) + pScnHdr->PointerToRawData);
+                  code_off_ = pScnHdr->VirtualAddress;
+                  textSectionId = i + 1;
                }
-           }
-       }
-       pScnHdr += 1;
+               else {
+                  // output a warning if there is a gap between
+                  // this and the previous code section
+                  if (pScnHdr->VirtualAddress > code_off_ + code_len_) {
+                     fprintf(stderr, "%s[%d]WARNING! Internal dyninst safety " 
+                             "checks will mistakenly think that the following " 
+                             "region [0x%lx 0x%lx] contains code, we currently "
+                             "have no mechanism for tracking non-consecutive " 
+                             "code regions\n", 
+                             __FILE__,__LINE__, code_off_ + code_len_, 
+                             pScnHdr->VirtualAddress);
+                  }
+               }
+               // Increment code length (initially 0) by the size
+               // of the current section
+               if (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) {
+                  code_len_ += pScnHdr->SizeOfRawData;
+               } else {
+                  code_len_ += pScnHdr->Misc.VirtualSize;
+               }
+            }
+         }
+      }
+      pScnHdr += 1;
    }
 }
 
@@ -806,22 +814,25 @@ void fixup_filename(std::string &filename)
 }
 
 Object::Object(MappedFile *mf_,
-                void (*err_func)(const char *)) :
+               void (*err_func)(const char *)) :
     AObject(mf_, err_func),
     curModule( NULL ),
     peHdr( NULL )
 {
-    ParseDebugInfo();
+   FindInterestingSections();
+   ParseSymbolInfo();
 }
 
-Object::Object(MappedFile *mf_, 
-      hash_map<std::string, LineInformation> &li,
-      std::vector<Section *> &, 
-      void (*err_func)(const char *))  :
-   AObject(mf_, err_func)
+Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
+               std::vector<Section *> &, void (*err_func)(const char *))  :
+   AObject(mf_, err_func),
+   baseAddr(0),
+   imageBase(0),
+   peHdr(NULL),
+   optHdr(NULL)
 {
-   //  need to have is_aout set here (can probably just do this with an argument, rather
-   //  than calling FindInterestingSections again....
+   // need to have is_aout set here (can probably just do this with an 
+   // argument, rather than calling FindInterestingSections again....
    FindInterestingSections();
    parseFileLineInfo(li);
 }
@@ -840,18 +851,18 @@ void Object::getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mo
 static SRCCODEINFO *last_srcinfo;
 BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
 {
-  hash_map< std::string, LineInformation> *lineInfo = (hash_map< std::string, LineInformation> *)param;
+   hash_map< std::string, LineInformation> *lineInfo = (hash_map< std::string, LineInformation> *)param;
    
-  if (last_srcinfo && srcinfo) {
-    //All the middle iterations.  Use the previous line information with the 
-    // current line info to build LineInformation structure.
-    assert(last_srcinfo->Address <= srcinfo->Address);
-    (*lineInfo)[last_srcinfo->FileName].addLine(last_srcinfo->FileName, last_srcinfo->LineNumber, 0 /* no col info for windows*/,
-		(Offset) last_srcinfo->Address, (Offset) srcinfo->Address);
-    return TRUE;
-  }
-  else if (!last_srcinfo && srcinfo) {
-    //First iteration.  Don't add anything until the next
+   if (last_srcinfo && srcinfo) {
+      //All the middle iterations.  Use the previous line information with the 
+      // current line info to build LineInformation structure.
+      assert(last_srcinfo->Address <= srcinfo->Address);
+      (*lineInfo)[last_srcinfo->FileName].addLine(last_srcinfo->FileName, last_srcinfo->LineNumber, 0 /* no col info for windows*/,
+                                                  (Offset) last_srcinfo->Address, (Offset) srcinfo->Address);
+      return TRUE;
+   }
+   else if (!last_srcinfo && srcinfo) {
+      //First iteration.  Don't add anything until the next
     last_srcinfo = srcinfo;
     return TRUE;
   }

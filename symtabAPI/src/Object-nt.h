@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.16 2008/01/23 14:45:53 jaw Exp $
+ * $Id: Object-nt.h,v 1.17 2008/02/01 17:05:34 legendre Exp $
 ************************************************************************/
 
 
@@ -201,7 +201,7 @@ class Object : public AObject
     DLLEXPORT bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
 
 private:
-    DLLEXPORT void    ParseDebugInfo( void );
+    DLLEXPORT void    ParseSymbolInfo( void );
     DLLEXPORT void    parseFileLineInfo(hash_map<std::string, LineInformation> &);
     DLLEXPORT void    FindInterestingSections();
 
