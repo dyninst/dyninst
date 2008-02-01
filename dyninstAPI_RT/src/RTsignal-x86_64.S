@@ -9,7 +9,7 @@ dyninstTrapHandler:
 .Lnext_insn:
         addq $.Lret_point - .Lnext_insn, %rdx
         mov 0x8(%rbp), %rsi
-        call dyninstSetupContext
+        call dyninstSetupContext@PLT
         movl $0x0, 0x0
 .Lret_point:
         pop %rax
