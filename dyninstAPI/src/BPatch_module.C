@@ -2201,8 +2201,38 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
 }
 
 void BPatch_module::parseTypes() {
-	//TODO?? Is this the only change required for windows to work??
-	mod->pmod()->mod()->exec()->parseTypesNow();
+    proc_mod_pair pair;
+    BOOL result;
+    //
+    //Parse global variable type information
+    //
+
+    assert(addSpace->getType() == TRADITIONAL_PROCESS);
+    BPatch_process *proc  = dynamic_cast<BPatch_process *>(addSpace);
+
+    pair.proc = proc->lowlevel_process();
+    pair.module = this;
+    pair.base_addr = mod->obj()->getBaseAddress();
+    pair.mmod = mod;
+
+    if (!pair.base_addr) {
+        pair.base_addr = mod->obj()->getFileDesc().loadAddr();
+    }
+  
+    result = SymEnumSymbols(pair.proc->processHandle_, pair.base_addr, NULL, 
+                            add_type_info, &pair);
+    if (!result) {
+        parsing_printf("SymEnumSymbols was unsuccessful.  Type info may be incomplete\n");
+    }
+
+    //
+    // Parse local variables and local type information
+    //
+    BPatch_Vector<BPatch_function *> *funcs;
+    funcs = getProcedures();
+    for (unsigned i=0; i < funcs->size(); i++) {
+        findLocalVars((*funcs)[i], pair.base_addr);
+    }
 }
 #endif
 
