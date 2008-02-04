@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.177 2007/12/05 04:37:33 bernat Exp $
+// $Id: BPatch.C,v 1.178 2008/02/04 22:58:14 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1580,8 +1580,6 @@ bool BPatch::waitForStatusChangeInt()
     }
   } 
   if (!sh) {
-    fprintf(stderr, "%s[%d]:  cannot find an event generator to wait for!\n", FILE__, __LINE__);
-
     clearNotificationFD();
     return false;
   }
