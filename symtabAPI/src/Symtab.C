@@ -327,6 +327,16 @@ DLLEXPORT bool Symtab::isExec() const
     return is_a_out; 
 }
 
+DLLEXPORT bool Symtab::isStripped() 
+{
+#if defined(os_linux) || defined(os_solaris)
+    Section *sec;
+    return findSection(sec,".symtab");
+#else
+    return (no_of_symbols==0);
+#endif
+}
+
 DLLEXPORT Offset Symtab::imageOffset() const 
 {
     return imageOffset_;
@@ -939,6 +949,19 @@ void Symtab::enterFunctionInTables(Symbol *func, bool wasSymtab)
     }
 }
 
+bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) {
+    if (!newSym)
+    	return false;
+    string filename = referringSymbol->getModule()->exec()->name();
+    vector<string> *vers, *newSymVers = new vector<string>;
+    if(referringSymbol->getVersions(vers)){
+        newSym->setVersionFileName(filename);
+        newSymVers->push_back((*vers)[0]);
+        newSym->setVersions(*newSymVers);
+    }
+    return addSymbol(newSym, true);
+}
+
 bool Symtab::addSymbol(Symbol *newSym, bool isDynamic) 
 {
    //  This is the public flavor of addSymbol, and just calls the private one with 
@@ -1378,11 +1401,8 @@ bool Symtab::extractInfo(Object *linkedFile)
 
     vector<relocationEntry >fbt;
     linkedFile->get_func_binding_table(fbt);
-    for(unsigned i=0; i<fbt.size();i++) {
-        if(undefDynSyms.find(fbt[i].name()) != undefDynSyms.end())
-            fbt[i].addDynSym(undefDynSyms[fbt[i].name()]);
+    for(unsigned i=0; i<fbt.size();i++)
         relocation_table_.push_back(fbt[i]);
-    }
     return true;
 }
 
@@ -2111,13 +2131,12 @@ DLLEXPORT LineInformation *Module::getLineInformation()
 
    if (exec_->isLineInfoValid_) {
       if (!mt.size()) {
-         //fprintf(stderr, "%s[%d]:  weird, line info for %s is valid but nonexistant!\n", 
-          //     FILE__, __LINE__, fileName_.c_str());
+          // There is no line info valid for this module
          return NULL;
       }
       if (mt.size() > 1) {
-         fprintf(stderr, "%s[%d]:  weird, multiple line info for %s: FIXME\n", 
-               FILE__, __LINE__, fileName_.c_str());
+        // fprintf(stderr, "%s[%d]:  weird, multiple line info for %s: FIXME\n", 
+        //       FILE__, __LINE__, fileName_.c_str());
       }
       if (!mt[0]) {
          fprintf(stderr, "%s[%d]:  FIXME:  Line info annotation is NULL!\n", FILE__, __LINE__);
@@ -2239,7 +2258,7 @@ DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo)
 {
    Annotatable<LineInformation *, module_line_info_a> &mt = *this;
    if (mt.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING, already have lineInfo set for module %s\n", FILE__, __LINE__, fileName_.c_str());
+      //fprintf(stderr, "%s[%d]:  WARNING, already have lineInfo set for module %s\n", FILE__, __LINE__, fileName_.c_str());
    }
    mt.addAnnotation(lineInfo);
    return true;
@@ -2756,8 +2775,8 @@ void Symtab::parseLineInformation()
          }	
       }
       else {
-         //  What are these??  maybe "DEFAULT_MODULE"??
-         fprintf(stderr, "%s[%d]:  FIXME:  cannot find home for line information here\n", FILE__, __LINE__);
+         // What are these??  maybe "DEFAULT_MODULE"??
+         // fprintf(stderr, "%s[%d]:  FIXME:  cannot find home for line information here\n", FILE__, __LINE__);
       }
    }
 
@@ -3503,7 +3522,7 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
 DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
     // Add the undefined dynamic symbols so that they are added when emitting the binary
-    hash_map<string, Symbol *>::iterator iter = undefDynSyms.begin();
+    map<string, Symbol *>::iterator iter = undefDynSyms.begin();
     while(iter!=undefDynSyms.end()){
         notypeSyms.push_back(iter->second);
         iter++;
@@ -3513,7 +3532,7 @@ DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsi
 
 DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
-    hash_map<string, Symbol *>::iterator iter = undefDynSyms.begin();
+    map<string, Symbol *>::iterator iter = undefDynSyms.begin();
     while(iter!=undefDynSyms.end()){
         notypeSyms.push_back(iter->second);
         iter++;
