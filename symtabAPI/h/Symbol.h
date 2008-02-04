@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.5 2007/12/12 23:18:00 giri Exp $
+ * $Id: Symbol.h,v 1.6 2008/02/04 18:22:57 giri Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -50,6 +50,11 @@
 #include "util.h"
 #include "Type.h"
 
+#include "common/h/Annotatable.h"
+
+typedef struct {} symbol_file_name_a;
+typedef struct {} symbol_version_names_a;
+
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -63,7 +68,8 @@ class localVarCollection;
  * class Symbol
 ************************************************************************/
 
-class Symbol {
+class Symbol : public Annotatable <std::string, symbol_file_name_a>,
+               public Annotatable <std::vector<std::string>, symbol_version_names_a> {
     friend class typeCommon;
     friend class Symtab;
     friend std::string parseStabString(Module *, int linenum, char *, int, 
@@ -142,8 +148,14 @@ public:
     DLLEXPORT bool  setIsInSymtab();
     DLLEXPORT bool  clearIsInSymtab();
 
-    DLLEXPORT Type      *getReturnType();
+    DLLEXPORT Type  *getReturnType();
     DLLEXPORT bool	setReturnType(Type *);
+    DLLEXPORT bool  setVersionFileName(std::string &fileName);
+    DLLEXPORT bool  setVersions(std::vector<std::string> &vers);
+    DLLEXPORT bool  setVersionNum(unsigned verNum);
+    DLLEXPORT bool  getVersionFileName(std::string &fileName);
+    DLLEXPORT bool  getVersions(std::vector<std::string> *&vers);
+    DLLEXPORT bool  VersionNum(unsigned &verNum);
     
     // Bool: returns true if the name is new (and therefore added)
     DLLEXPORT bool addMangledName(std::string name, bool isPrimary = false);
@@ -178,6 +190,7 @@ private:
     SymbolTag     tag_;
 
     Type *retType_;
+
 public:
     localVarCollection *vars_;
     localVarCollection *params_;
