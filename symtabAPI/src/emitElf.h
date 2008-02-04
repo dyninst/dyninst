@@ -41,7 +41,7 @@ class emitElf{
   public:
     emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, int BSSexpandflag = false, void (*)(const char *) = log_msg);
     ~emitElf();
-    bool checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Symbol *>&variables, vector<Symbol *>&mods, vector<Symbol *>&notypes, std::vector<relocationEntry> &fbt);
+    bool checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<Symbol *>&variables, vector<Symbol *>&mods, vector<Symbol *>&notypes, std::vector<relocationEntry> &relocation_table, std::vector<relocationEntry> &fbt);
     bool driver(Symtab *obj, std::string fName);
  
   private:
@@ -61,6 +61,7 @@ class emitElf{
     Elf_Data *textData;
     Elf_Data *symStrData;
     Elf_Data *dynStrData;
+    char *olddynStrData;
     Elf_Data *symTabData;
     Elf_Data *hashData;
     Elf_Data *dynsymData;
@@ -73,6 +74,18 @@ class emitElf{
     
     std::vector<Section *>nonLoadableSecs;
     std::vector<Section *> newSecs;
+#if !defined(os_solaris)
+    std::map<unsigned, std::vector<Elf32_Dyn *> > dynamicSecData;
+    std::vector<std::string> DT_NEEDEDEntries;
+#endif
+
+    // Symbol version table data
+    std::map<std::string, std::map<std::string, unsigned> >verneedEntries;    //verneed entries
+    std::map<std::string, unsigned> verdefEntries;                            //verdef entries
+    std::map<unsigned, std::vector<std::string> > verdauxEntries;
+    std::map<std::string, unsigned> versionNames;
+    std::vector<Elf32_Half> versionSymTable;
+    int curVersionNum, verneednum, verdefnum;
 
     // Needed when adding a new segment
     Elf32_Off newSegmentStart;
@@ -81,6 +94,7 @@ class emitElf{
     //text & data segment ends
     Elf32_Off dataSegEnd, textSegEnd;
     Elf32_Off dynSegOff, dynSegAddr;
+    unsigned dynSegSize;
 
     //Section Names for all sections
     vector<std::string> secNames;
@@ -95,7 +109,7 @@ class emitElf{
 
     void (*err_func_)(const char*);
 
-    bool getBackSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf32_Sym *> &symbols);
+    bool getBackSymbol(Symbol *symbol, std::vector<std::string> &symbolstrs, unsigned &symbolNamesLength, vector<Elf32_Sym *> &symbols, bool dynSymFlag = false);
     void findSegmentEnds();
     void fixPhdrs(unsigned &, unsigned &);
     bool addSectionHeaderTable(Elf32_Shdr *shdr);
@@ -103,8 +117,13 @@ class emitElf{
     bool createLoadableSections( Elf32_Shdr *shdr, unsigned &loadSecTotalSize, unsigned &);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
-    void updateDynamic(Elf_Data* dynData,  Elf32_Addr relAddr);
-    
+
+#if !defined(os_solaris)
+    void updateDynamic(unsigned tag, Elf32_Addr val);
+    void createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
+    void createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
+#endif 
+
     void log_elferror(void (*err_func)(const char *), const char* msg);
 };
 
