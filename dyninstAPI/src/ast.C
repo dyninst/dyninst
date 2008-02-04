@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.197 2007/12/04 17:57:54 bernat Exp $
+// $Id: ast.C,v 1.198 2008/02/04 21:16:36 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -76,6 +76,10 @@
 #include "registerSpace.h"
 
 extern bool doNotOverflow(int value);
+
+AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
+AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
+
 
 AstNode::AstNode() {
 #if defined(ASTDEBUG)
@@ -159,6 +163,20 @@ AstNodePtr AstNode::insnNode(BPatch_instruction *insn) {
     } 
     
     return AstNodePtr(new AstInsnNode(insn->insn(), (Address) insn->getAddress()));
+}
+
+AstNodePtr AstNode::originalAddrNode() {
+    if (originalAddrNode_ == NULL) {
+        originalAddrNode_ = AstNodePtr(new AstOriginalAddrNode());
+    }
+    return originalAddrNode_;
+}
+
+AstNodePtr AstNode::actualAddrNode() {
+    if (actualAddrNode_ == NULL) {
+        actualAddrNode_ = AstNodePtr(new AstActualAddrNode());
+    }
+    return actualAddrNode_;
 }
 
 bool isPowerOf2(int value, int &result)
@@ -1561,6 +1579,39 @@ bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     return true;
 }
 
+
+bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
+                                              bool noCost,
+                                              Address &,
+                                              Register &retReg) {
+    if (retReg == REG_NULL) {
+        retReg = allocateAndKeep(gen, noCost);
+    }
+    if (retReg == REG_NULL) return false;
+
+    emitVload(loadConstOp, 
+              (Address) gen.point()->addr(),
+              retReg, retReg, gen, noCost);
+
+    return true;
+}
+
+bool AstActualAddrNode::generateCode_phase2(codeGen &gen,
+                                            bool noCost,
+                                            Address &,
+                                            Register &retReg) {
+    if (retReg == REG_NULL) {
+        retReg = allocateAndKeep(gen, noCost);
+    }
+    if (retReg == REG_NULL) return false;
+
+    emitVload(loadConstOp, 
+              (Address) gen.currAddr(),
+              retReg, retReg, 
+              gen, noCost);
+
+    return true;
+}
 
 #if defined(AST_PRINT)
 pdstring getOpString(opCode op)

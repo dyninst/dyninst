@@ -665,6 +665,39 @@ class BPATCH_DLL_EXPORT BPatch_insnExpr : public BPatch_snippet {
 
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_originalAddressExpr
+
+class BPATCH_DLL_EXPORT BPatch_originalAddressExpr : public BPatch_snippet
+{
+
+  //  BPatch_originalAddressExpr
+  //  Construct a snippet representing the original address of an 
+  //  instruction
+
+  API_EXPORT_CTOR(Int, (),
+  BPatch_originalAddressExpr, ());
+};
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_actualAddressExpr
+
+class BPATCH_DLL_EXPORT BPatch_actualAddressExpr : public BPatch_snippet
+{
+
+  //  BPatch_actualAddressExpr
+  //  Construct a snippet representing the actual (relocated) address
+  //  where the snippet was executed.
+
+  API_EXPORT_CTOR(Int, (),
+  BPatch_actualAddressExpr, ());
+};
+
+
 
 
 #endif /* _BPatch_snippet_h_ */

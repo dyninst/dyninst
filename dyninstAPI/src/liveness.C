@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.4 2008/01/16 22:01:34 legendre Exp $
+// $Id: liveness.C,v 1.5 2008/02/04 21:16:36 bernat Exp $
 
 #if defined(cap_liveness)
 
@@ -396,6 +396,17 @@ bitArray instPoint::liveRegisters(callWhen when) {
     // instrumentation is pre-point, we need to update it with
     // the effects of this instruction.
 
+    // Override: if we have an unparsed jump table in the _function_,
+    // return "everything could be live".
+    if (func()->ifunc()->instLevel() == HAS_BR_INDIR ||
+        func()->ifunc()->instLevel() == UNINSTRUMENTABLE) {
+        bitArray allOn(postLiveRegisters_.size());
+        fprintf(stderr, "BLAH BLAH BLAH\n");
+        allOn.set();
+        return allOn;
+    }
+        
+        
     bool debug = false;
 
     calcLiveness();

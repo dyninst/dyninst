@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.102 2007/12/04 21:47:14 bernat Exp $
+// $Id: ast.h,v 1.103 2008/02/04 21:16:36 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -195,6 +195,8 @@ class AstNode {
 
         static AstNodePtr miniTrampNode(AstNodePtr tramp);
 
+        static AstNodePtr originalAddrNode();
+        static AstNodePtr actualAddrNode();
 
         AstNode(AstNodePtr src);
         //virtual AstNode &operator=(const AstNode &src);
@@ -318,6 +320,11 @@ class AstNode {
 	void		  setType(BPatch_type *t);
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }
 	virtual BPatch_type	  *checkType();
+
+ private:
+        static AstNodePtr originalAddrNode_;
+        static AstNodePtr actualAddrNode_;
+
 };
 
 
@@ -613,6 +620,40 @@ class AstMemoryNode : public AstNode {
     memoryType mem_;
     unsigned which_;
 };
+
+class AstOriginalAddrNode : public AstNode {
+ public:
+    AstOriginalAddrNode() {};
+
+    virtual ~AstOriginalAddrNode() {};
+
+    virtual BPatch_type *checkType() { return getType(); };
+    virtual bool canBeKept() const { return true; }
+
+ private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+
+};
+
+class AstActualAddrNode : public AstNode {
+ public:
+    AstActualAddrNode() {};
+
+    virtual ~AstActualAddrNode() {};
+
+    virtual BPatch_type *checkType() { return getType(); };
+    virtual bool canBeKept() const { return false; }
+
+ private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+};
+
 
 
 

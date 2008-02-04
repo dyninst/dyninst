@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.101 2007/11/01 21:41:01 bill Exp $
+// $Id: BPatch_snippet.C,v 1.102 2008/02/04 21:16:36 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -1400,4 +1400,24 @@ bool BPatch_insnExpr::overrideStoreAddressInt(BPatch_snippet &s) {
     assert(insnAst);
 
     return insnAst->overrideStoreAddr(*(s.ast_wrapper));
+}
+
+void BPatch_originalAddressExpr::BPatch_originalAddressExprInt() {
+    ast_wrapper = new AstNodePtr(AstNode::originalAddrNode());
+
+    assert(BPatch::bpatch != NULL);
+    (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long");
+    assert(type != NULL);
+    (*ast_wrapper)->setType(type);
+}
+
+void BPatch_actualAddressExpr::BPatch_actualAddressExprInt() {
+    ast_wrapper = new AstNodePtr(AstNode::actualAddrNode());
+
+    assert(BPatch::bpatch != NULL);
+    (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long");
+    assert(type != NULL);
+    (*ast_wrapper)->setType(type);
 }
