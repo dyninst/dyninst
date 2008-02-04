@@ -1169,7 +1169,11 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
         unsigned i = 0;
         for(iter = it->second.begin(); iter!= it->second.end(); iter++){
             Elf32_Vernaux *vernaux = (Elf32_Vernaux *)(verneedSecData+verneed->vn_aux+ i*sizeof(Elf32_Vernaux));
+#if !defined(cap_libelf_so_0)
+            vernaux->vna_hash = elf_hash(iter->first.c_str());
+#else
             vernaux->vna_hash = elf_hash((const unsigned char *)iter->first.c_str());
+#endif
             vernaux->vna_flags = 1;
             vernaux->vna_other = iter->second;
             vernaux->vna_name = versionNames[iter->first];
@@ -1194,7 +1198,11 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
         verdef->vd_flags = 1;
         verdef->vd_ndx = iter->second;
         verdef->vd_cnt = verdauxEntries[iter->second].size();
+#if !defined(cap_libelf_so_0)
+        verdef->vd_hash = elf_hash(iter->first.c_str());
+#else
         verdef->vd_hash = elf_hash((const unsigned char *)iter->first.c_str());
+#endif
         verdef->vd_aux = curpos + sizeof(Elf32_Verdef);
         verdef->vd_next = curpos + sizeof(Elf32_Verdef) + verdauxEntries[iter->second].size()*sizeof(Elf32_Verdaux);
         if(verdef->vd_next == verdefSecSize)
