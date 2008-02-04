@@ -6,6 +6,9 @@
 
 #include "runTests-utils.h"
 
+#include <sys/types.h>
+#include <dirent.h>
+
 extern string pdscrdir;
 
 int timeout = 1200;
@@ -43,8 +46,9 @@ void generateTestString(bool resume, bool useLog, bool staticTests,
    }
    
    stringstream timerString;
-   timerString << pdscrdir << "/timer.pl -t " << timeout;
-   shellString = timerString.str() + " " + testString.str();
+   if (pdscrdir.length()) 
+      timerString << pdscrdir << "/timer.pl -t " << timeout << " ";
+   shellString = timerString.str() + testString.str();
    
 }
 
@@ -88,6 +92,15 @@ char *setLibPath()
    return l_tmp;
 }
 
+static bool dir_exists(const char *name) 
+{
+   DIR *dir = opendir(name);
+   if (!dir) 
+      return false;
+   closedir(dir);
+   return true;
+}
+
 void setupVars(bool useLog, string &logfile)
 {
    string base_dir, tlog_dir;
@@ -104,32 +117,18 @@ void setupVars(bool useLog, string &logfile)
 #endif
   
    // Determine Base Dir
-   if ( getenv("PARADYN_BASE") == NULL )
-   {
-      if ( getenv("DYNINST_ROOT") == NULL )
-      {
-	fprintf(stderr, "** WARNING: DYNINST_ROOT not set.  Please set the environment variable\n");
-	fprintf(stderr, "\tto the path for the top of the Dyninst library installation.\n");
-	fprintf(stderr, "\tUsing default: '../../..'\n");
-	base_dir = string("../../..");
-      }
-      else
-      {
-         base_dir = getenv("DYNINST_ROOT");
-      }
-   } else
-   {
-      base_dir = getenv("PARADYN_BASE");
-   }
+   char *cstr_base_dir = NULL;
+   cstr_base_dir = getenv("PARADYN_BASE");
+   if (!cstr_base_dir || !dir_exists(cstr_base_dir))
+      cstr_base_dir = getenv("DYNINST_ROOT");
+   if (!cstr_base_dir || !dir_exists(cstr_base_dir))
+      cstr_base_dir = "../../../";
+   base_dir = string(cstr_base_dir);
 
    pdscrdir = base_dir + "/scripts";
-   if ( ! isDir(pdscrdir) )
-   {
-      cerr << pdscrdir << " does not exist.  Paradyn scripts dir required." 
-         << endl;
-      exit(1);
-   }
-
+   if (!dir_exists(pdscrdir.c_str()))
+      pdscrdir = string("");
+   
    // Determine Test log dir
    char *pdtst = getenv("PDTST");
    if ( pdtst == NULL )
