@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.13 2008/01/23 14:45:53 jaw Exp $
+ * $Id: Object-elf.h,v 1.14 2008/02/04 18:23:06 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -363,6 +363,7 @@ class Object : public AObject {
 	}
 
 	bool is_offset_in_plt(Offset offset) const;
+    Elf_X_Shdr *getSectionHdrByAddr(Offset addr);
 
  private:
   static void log_elferror (void (*)(const char *), const char *);
@@ -427,6 +428,13 @@ class Object : public AObject {
   // the time we need it, and it's hard to get to anyway.
   hash_map< Offset, std::string > symbolNamesByAddr;
 
+#if !defined(os_solaris)
+  // Symbol version mappings. used to store symbol version names.
+  hash_map<unsigned, std::vector<std::string> >versionMapping;
+  hash_map<unsigned, std::string> versionFileNameMapping;
+#endif
+
+
   bool loaded_elf( Offset &, Offset &,
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
@@ -463,7 +471,7 @@ class Object : public AObject {
 		     bool shared_library,
 		     std::string module);
   
-  void parse_dynamicSymbols( Elf_X_Data &symdata,
+  void parse_dynamicSymbols( Elf_X_Shdr *& dyn_scnp, Elf_X_Data &symdata,
              Elf_X_Data &strdata, bool shared_library,
 		     std::string module);
 
@@ -479,7 +487,6 @@ class Object : public AObject {
 
   void get_valid_memory_areas(Elf_X &elf);
 
-  Elf_X_Shdr *getSectionHdrByAddr(Offset addr);
 #if 0 
 #if defined(os_irix)
 

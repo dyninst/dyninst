@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.31 2008/01/24 11:20:44 jaw Exp $
+ * $Id: Object-elf.C,v 1.32 2008/02/04 18:23:05 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -138,15 +138,18 @@ struct  SectionHeaderSortFunction: public binary_function<Elf_X_Shdr *, Elf_X_Sh
 /* binary search to find the section starting at a particular address */
 Elf_X_Shdr *Object::getSectionHdrByAddr(Offset addr) {
     unsigned end = allSectionHdrs.size() - 1, start = 0;
+    unsigned mid = 0; 
     while(start < end) {
-        unsigned mid = start + (end-start)/2;
+        mid = start + (end-start)/2;
         if(allSectionHdrs[mid]->sh_addr() == addr)
             return allSectionHdrs[mid];
         else if(allSectionHdrs[mid]->sh_addr() < addr)
-            start = mid;
+            start = mid + 1;
         else
             end = mid;
     }
+    if(allSectionHdrs[start]->sh_addr() == addr)
+        return allSectionHdrs[start];
     return NULL;
 }
 
@@ -480,7 +483,7 @@ bool Object::is_offset_in_plt(Offset offset) const
   return (offset > plt_addr_ && offset < plt_addr_ + plt_size_);
 }
 
-void Object::parseDynamic(Elf_X_Shdr *& dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
+void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
                                                     Elf_X_Shdr *&dynstr_scnp)
 {
   #if !defined(os_solaris)
@@ -607,17 +610,20 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 		for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); ++i ) {
 		    long offset;
 		    long index;
+            unsigned long type;
 
 		    switch (reldata.d_type()) {
 		    case ELF_T_REL:
-			offset = rel.r_offset(i);
-			index = rel.R_SYM(i);
-			break;
+                offset = rel.r_offset(i);
+                index = rel.R_SYM(i);
+                type = rel.R_TYPE(i);
+                break;
 
 		    case ELF_T_RELA:
-			offset = rela.r_offset(i);
-			index = rela.R_SYM(i);
-			break;
+                offset = rela.r_offset(i);
+                index = rela.R_SYM(i);
+                type = rela.R_TYPE(i);
+                break;
 
 		    default:
 			// We should never reach this case.
@@ -625,7 +631,11 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 		    };
 
 		    // /* DEBUG */ fprintf( stderr, "%s: relocation information for target 0x%lx\n", __FUNCTION__, next_plt_entry_addr );
-		    relocationEntry re( next_plt_entry_addr, offset, string( &strs[ sym.st_name(index) ] ) );
+		    relocationEntry re( next_plt_entry_addr, offset, string( &strs[ sym.st_name(index) ] ), NULL, type );
+            if(symbols_.find(&strs[ sym.st_name(index)]) != symbols_.end()){
+                vector<Symbol *> syms = symbols_[&strs[ sym.st_name(index)]];
+                re.addDynSym(syms[0]);
+            }
 		    fbt_.push_back(re);
 
 #if ! defined( arch_ia64 )
@@ -756,11 +766,11 @@ void Object::load_object()
       // DWARF format (.debug_info section)
       fix_global_symbol_modules_static_dwarf(elfHdr);
 
-      if (dynsym_scnp && dynstr_scnp && !isStripped)
+      if (dynamic_addr_ && dynsym_scnp && dynstr_scnp && !isStripped)
       {
          symdata = dynsym_scnp->get_data();
          strdata = dynstr_scnp->get_data();
-         parse_dynamicSymbols(symdata, strdata, false, module);
+         parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
       }
       //TODO
       //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
@@ -900,11 +910,11 @@ void Object::load_shared_object()
       //	// DWARF format (.debug_info section)
       //	fix_global_symbol_modules_static_dwarf(elfHdr);
 
-      if (dynsym_scnp && dynstr_scnp && !isStripped)
+      if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
       {
          symdata = dynsym_scnp->get_data();
          strdata = dynstr_scnp->get_data();
-         parse_dynamicSymbols(symdata, strdata, false, module);
+         parse_dynamicSymbols(dynamic_scnp, symdata, strdata, false, module);
       }
       //TODO
       //Have a hash on the symbol table. Iterate over dynamic symbol table to check if it exists
@@ -1080,16 +1090,80 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
 // parse_symbols(): populate "allsymbols"
 // Lazy parsing of dynamic symbol  & string tables
 // Parsing the dynamic symbols lazily would certainly not increase the overhead of the entire parse
-void Object::parse_dynamicSymbols ( Elf_X_Data &symdata, Elf_X_Data &strdata,
+void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, Elf_X_Data &strdata,
 			   bool /*shared*/, string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
 #endif
-  
+
    Elf_X_Sym syms = symdata.get_sym();
    const char *strs = strdata.get_string();
+#if !defined(os_solaris)
+   Elf_X_Shdr *versymSec = NULL, *verneedSec = NULL, *verdefSec = NULL;
+   Elf_X_Data data = dyn_scnp->get_data();
+   Elf_X_Dyn dyns = data.get_dyn();
+   unsigned verneednum = 0, verdefnum = 0;
+   Elf_X_Versym symVersions;
+   Elf_X_Verdef *symVersionDefs;
+   Elf_X_Verneed *symVersionNeeds;
+   for (unsigned i = 0; i < dyns.count(); ++i) {
+       switch(dyns.d_tag(i)) {
+           case DT_VERSYM:
+               versymSec = getSectionHdrByAddr(dyns.d_ptr(i));
+               break;
+           case DT_VERNEED:
+               verneedSec = getSectionHdrByAddr(dyns.d_ptr(i));
+               break;
+           case DT_VERDEF:
+               verdefSec = getSectionHdrByAddr(dyns.d_ptr(i));
+               break;
+           case DT_VERNEEDNUM:
+               verneednum = dyns.d_ptr(i);
+               break;
+           case DT_VERDEFNUM:
+               verdefnum = dyns.d_ptr(i);
+               break;
+           default:
+               break;
+       }
+   }
+   symVersions = versymSec->get_data().get_versyms();
+   if(verdefSec)
+       symVersionDefs = verdefSec->get_data().get_verDefSym();
+   if(verneedSec)
+       symVersionNeeds = verneedSec->get_data().get_verNeedSym();
+    
+   for(unsigned i = 0; i < verdefnum ;i++) {
+       Elf_X_Verdaux *aux = symVersionDefs->get_aux();
+       for(unsigned j=0; j< symVersionDefs->vd_cnt(); j++){
+           versionMapping[symVersionDefs->vd_ndx()].push_back(&strs[aux->vda_name()]);
+           Elf_X_Verdaux *auxnext = aux->get_next();
+           delete aux;
+           aux = auxnext;
+       }
+       Elf_X_Verdef *symVersionDefsnext = symVersionDefs->get_next();
+       delete symVersionDefs;
+       symVersionDefs = symVersionDefsnext;
+   }
+
+   for(unsigned i = 0; i < verneednum; i++){
+       Elf_X_Vernaux *aux = symVersionNeeds->get_aux();
+       for(unsigned j=0; j< symVersionNeeds->vn_cnt(); j++){
+           versionMapping[aux->vna_other()].push_back(&strs[aux->vna_name()]);
+           versionFileNameMapping[aux->vna_other()] = &strs[symVersionNeeds->vn_file()];
+           Elf_X_Vernaux *auxnext = aux->get_next();
+           delete aux;
+           aux = auxnext;
+       }
+       Elf_X_Verneed *symVersionNeedsnext = symVersionNeeds->get_next();
+       delete symVersionNeeds;
+       symVersionNeeds = symVersionNeedsnext;
+   }
+   
+#endif
+  
    for (unsigned i = 0; i < syms.count(); i++) {
       // skip undefined symbols
       int etype = syms.ST_TYPE(i);
@@ -1106,9 +1180,16 @@ void Object::parse_dynamicSymbols ( Elf_X_Data &symdata, Elf_X_Data &strdata,
       unsigned secNumber = syms.st_shndx(i);
       if(symbols_.find(sname) != symbols_.end()) {
           vector<Symbol *> syms = symbols_[sname];
-          for(unsigned i = 0; i < syms.size(); i++){
-              if(syms[i]->getAddr() == saddr)
-                  syms[i]->setDynSymtab();
+          for(unsigned j = 0; j < syms.size(); j++){
+              if(syms[j]->getAddr() == saddr){
+#if !defined(os_solaris)
+      if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
+          syms[j]->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
+      if(versionMapping.find(symVersions.get(i)) != versionMapping.end())
+          syms[j]->setVersions(versionMapping[symVersions.get(i)]);
+#endif
+                  syms[j]->setDynSymtab();
+              }
           }
           continue;
        }
@@ -1123,6 +1204,12 @@ void Object::parse_dynamicSymbols ( Elf_X_Data &symdata, Elf_X_Data &strdata,
          sec = NULL;		
       
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, NULL, true, false);
+#if !defined(os_solaris)
+      if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
+          newsym->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
+      if(versionMapping.find(symVersions.get(i)) != versionMapping.end())
+          newsym->setVersions(versionMapping[symVersions.get(i)]);
+#endif
       // register symbol in dictionary
          
       // symbols_[sname] = newsym; // special case
@@ -2421,6 +2508,10 @@ Object::operator=(const Object& obj) {
    fbt_  = obj.fbt_;
    dwarvenDebugInfo = obj.dwarvenDebugInfo;
    symbolNamesByAddr = obj.symbolNamesByAddr;
+#if !defined(os_solaris)
+   versionMapping = obj.versionMapping;
+   versionFileNameMapping = obj.versionFileNameMapping;
+#endif
    elfHdr = obj.elfHdr; 
    return *this;
 }
@@ -2428,6 +2519,17 @@ Object::operator=(const Object& obj) {
 Object::~Object()
 {
    //   if (fileName) free((void *)fileName);
+   unsigned i;
+   relocation_table_.clear();
+   fbt_.clear();
+   for(i=0; i<allSectionHdrs.size();i++)
+       free(allSectionHdrs[i]);
+   allSectionHdrs.clear();
+   symbolNamesByAddr.clear();
+#if !defined(os_solaris)
+   versionMapping.clear();
+   versionFileNameMapping.clear();
+#endif
 }
 
 void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
@@ -3304,13 +3406,13 @@ bool Object::emitDriver(Symtab *obj, string fName,
 {
    if (elfHdr.e_ident()[EI_CLASS] == 1) {
       emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
-      em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
+      em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_, fbt_); 
       return em->driver(obj, fName);
    }
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
    else if (elfHdr.e_ident()[EI_CLASS] == 2) {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, err_func_);
-      em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_); 
+      em->checkIfStripped(obj ,functions, variables, mods, notypes, relocation_table_, fbt_); 
       return em->driver(obj, fName);
    }
 #endif
