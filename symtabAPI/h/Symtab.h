@@ -196,6 +196,7 @@ class Symtab : public LookupInterface,
 	DLLEXPORT bool findSectionByEntry(Section *&ret, const Offset offset);
 
 	DLLEXPORT bool addSymbol(Symbol *newsym, bool isDynamic = false);
+    DLLEXPORT bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
 	
 	DLLEXPORT bool findException(ExceptionBlock &excp,Offset addr);
 	DLLEXPORT bool getAllExceptions(std::vector<ExceptionBlock *> &exceptions);
@@ -206,14 +207,15 @@ class Symtab : public LookupInterface,
 	
 	/*****Query Functions*****/
 	DLLEXPORT bool isExec() const;
-   DLLEXPORT ObjectType getObjectType() const;
+    DLLEXPORT bool isStripped();
+    DLLEXPORT ObjectType getObjectType() const;
  
 	DLLEXPORT bool isCode(const Offset where) const;
 	DLLEXPORT bool isData(const Offset where) const;
 	DLLEXPORT bool isValidOffset(const Offset where) const;
 
 	DLLEXPORT bool isNativeCompiler() const;
-   DLLEXPORT bool getMappedRegions(std::vector<Region> &mappedregs) const;
+    DLLEXPORT bool getMappedRegions(std::vector<Region> &mappedregs) const;
 	
 	/***** Line Number Information *****/
 	DLLEXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
@@ -461,7 +463,7 @@ class Symtab : public LookupInterface,
 
    // hashtable for looking up undefined symbols in the dynamic symbol
    // tale. Entries are referred by the relocation table entries
-   hash_map <std::string, Symbol *> undefDynSyms;
+   std::map <std::string, Symbol *> undefDynSyms;
    std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;
     
@@ -540,7 +542,8 @@ class Section {
       enum {textSection = 1, dataSection = 2,
          relocationSection = 4, symtabSection = 8,
          stringSection = 16, dynsymtabSection = 32,
-         dynamicSection = 64} sectionType;
+         dynamicSection = 64, versymSection = 128,
+         verneedSection = 256, verdefSection = 512 } sectionType;
 
    private:	
       unsigned sidnumber_;
@@ -571,8 +574,8 @@ class relocationEntry {
       DLLEXPORT Offset target_addr() const;
       DLLEXPORT Offset rel_addr() const;
       DLLEXPORT const std::string &name() const;
-      DLLEXPORT Symbol *relocationEntry::getDynSym() const;
-      DLLEXPORT bool relocationEntry::addDynSym(Symbol *dynref);
+      DLLEXPORT Symbol *getDynSym() const;
+      DLLEXPORT bool addDynSym(Symbol *dynref);
       DLLEXPORT unsigned long getRelType() const;
 
       // dump output.  Currently setup as a debugging aid, not really
