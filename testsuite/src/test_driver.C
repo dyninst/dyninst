@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.41 2007/08/07 15:52:44 bill Exp $
+// $Id: test_driver.C,v 1.42 2008/02/04 22:58:13 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -1415,47 +1415,48 @@ void DebugPause() {
 // variable 'PDSCRDIR', or we pick up a default location for the UW and UMD
 // sites, or we generate a default based on the DYNINST_ROOT directory, or
 // we use a default '../../../scripts'.
-void setPDScriptDir(bool skip_warning)
+void setPDScriptDir(bool /*skip_warning*/)
 {
   pdscrdir = getenv("PDSCRDIR");
   if ( pdscrdir == NULL )
   {
-#if defined(i386_unknown_nt4_0)
-#else
-    // Environment variable not set, try default wisc/umd directories
-    DIR *dir;
-    dir = opendir(uw_pdscrdir);
-    if ( dir != NULL ) {
-      closedir(dir);
-      pdscrdir = uw_pdscrdir;
-      return;
-    }
-    dir = opendir(umd_pdscrdir);
-    if ( dir != NULL ) {
-      closedir(dir);
-      pdscrdir = umd_pdscrdir;
-      return;
-    }
+#if !defined(os_windows)
+     // Environment variable not set, try default wisc/umd directories
+     DIR *dir;
+     dir = opendir(uw_pdscrdir);
+     if ( dir != NULL ) {
+        closedir(dir);
+        pdscrdir = uw_pdscrdir;
+        return;
+     }
+     dir = opendir(umd_pdscrdir);
+     if ( dir != NULL ) {
+        closedir(dir);
+        pdscrdir = umd_pdscrdir;
+        return;
+     }
+     
+     // Environment variable not set and default UW/UMD directories missing.
+     // Derive default from DYNINST_ROOT
+     char *basedir = getenv("DYNINST_ROOT");
+     if (NULL == basedir) {
+        basedir = "../../..";
+     }
+     int basedir_len = strlen(basedir);
+     int pdscrdir_len = basedir_len + strlen("/scripts") + 1;
+     // BUG This allocated array lasts for the lifetime of the program, so it's
+     // currently not worth worrying about freeing the memory.
+     pdscrdir = new char[pdscrdir_len];
+     strncpy(pdscrdir, basedir, basedir_len + 1);
+     strcat(pdscrdir, "/scripts");
 
-    // Environment variable not set and default UW/UMD directories missing.
-    // Derive default from DYNINST_ROOT
-    char *basedir = getenv("DYNINST_ROOT");
-    if (NULL == basedir) {
-      // DYNINST_ROOT not set.  Print a warning, and default it to "../../.."
-      if (!skip_warning) {
-	fprintf(stderr, "** WARNING: DYNINST_ROOT not set.  Please set the environment variable\n");
-	fprintf(stderr, "\tto the path for the top of the Dyninst library installation.\n");
-	fprintf(stderr, "\tUsing default: '../../..'\n");
-      }
-      basedir = "../../..";
-    }
-    int basedir_len = strlen(basedir);
-    int pdscrdir_len = basedir_len + strlen("/scripts") + 1;
-    // BUG This allocated array lasts for the lifetime of the program, so it's
-    // currently not worth worrying about freeing the memory.
-    pdscrdir = new char[pdscrdir_len];
-    strncpy(pdscrdir, basedir, basedir_len + 1);
-    strcat(pdscrdir, "/scripts");
+     dir = opendir(pdscrdir);
+     if ( !dir ) {
+        pdscrdir = NULL;
+     }
+     else {
+        closedir(dir);
+     }
 
 #endif
   }
