@@ -39,19 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.18 2007/06/20 20:49:46 ssuen Exp $
+// $Id: syscall-linux.C,v 1.19 2008/02/04 22:58:15 legendre Exp $
 
-#if defined( arch_x86 ) || defined( arch_x86_64 ) || defined( arch_power )
-#define FORK_FUNC "__libc_fork"
-#define EXEC_FUNC "__execve"
-#define EXIT_FUNC "_exit"
-#elif defined( arch_ia64 )
 #define FORK_FUNC "__libc_fork"
 #define EXEC_FUNC "execve"
 #define EXIT_FUNC "_exit"
-#else
-#error Unsupported linux platform.
-#endif
 
 #include "dyninstAPI/src/miniTramp.h"
 #include "common/h/headers.h"
