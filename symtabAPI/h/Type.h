@@ -267,7 +267,7 @@ class fieldListType : public Type, public fieldListInterface {
    DLLEXPORT bool operator==(const Type &) const;
    DLLEXPORT std::vector<Field *> *getComponents() const;
    
-   DLLEXPORT std::vector<Field *> * fieldListType::getFields() const;
+   DLLEXPORT std::vector<Field *> *getFields() const;
    
    DLLEXPORT virtual void postFieldInsert(int nsize) = 0;
    

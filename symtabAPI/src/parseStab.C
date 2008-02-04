@@ -51,6 +51,12 @@ using namespace Dyninst::SymtabAPI;
 extern std::string symt_current_func_name;
 extern std::string symt_current_mangled_func_name;
 extern Symbol *symt_current_func;
+namespace Dyninst{
+namespace SymtabAPI{
+    std::string parseStabString(Module *mod, int linenum, char *stabstr, 
+		      int framePtr, typeCommon *commonBlock = NULL);
+}
+}
 
 // Forward references for parsing routines
 static int parseSymDesc(char *stabstr, int &cnt);
@@ -175,10 +181,9 @@ Symbol *mangledNameMatchKLUDGE(const char *pretty, const char *mangled,
 //
 // <paramList> = | <typeUse>;<paramList> 
 //
-std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr, 
-		      int framePtr, typeCommon *commonBlock = NULL)
+std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr, 
+		      int framePtr, typeCommon *commonBlock)
 {
-    
     int cnt;
     int ID = 0;
     int symdescID = 0;
@@ -205,7 +210,7 @@ std::string SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr,
     if( name[0] != '\0' && stabstr[cnt] != ':' ) {
 		return name;
     }
-    
+
     if (stabstr[cnt] == ':') {
        // skip to type part
        cnt++;
