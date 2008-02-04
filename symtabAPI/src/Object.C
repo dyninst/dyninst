@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.13 2008/01/03 17:49:19 jaw Exp $
+// $Id: Object.C,v 1.14 2008/02/04 18:22:59 giri Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -149,10 +149,22 @@ DLLEXPORT Symbol::~Symbol ()
 }
 
 DLLEXPORT Symbol::Symbol(const Symbol& s)
-    : module_(s.module_), type_(s.type_), linkage_(s.linkage_),
+    : Annotatable <std::string, symbol_file_name_a>(), 
+    Annotatable <std::vector<std::string>, symbol_version_names_a>(), module_(s.module_), 
+    type_(s.type_), linkage_(s.linkage_),
     addr_(s.addr_), sec_(s.sec_), size_(s.size_), upPtr_(s.upPtr_), isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
     mangledNames(s.mangledNames), prettyNames(s.prettyNames), typedNames(s.typedNames), tag_(s.tag_), retType_(s.retType_), 
-    vars_(s.vars_), params_(s.params_){
+    vars_(s.vars_), params_(s.params_) 
+{
+    Annotatable <std::string, symbol_file_name_a> &sfa = *this;
+    const Annotatable <std::string, symbol_file_name_a> &sfa_src = s;
+    if (sfa_src.size())
+        sfa.addAnnotation(sfa_src[0]);
+    
+    Annotatable <std::vector<std::string>, symbol_version_names_a> &sva = *this;
+    const Annotatable <std::vector<std::string>, symbol_version_names_a> &sva_src = s;
+    if (sva_src.size())
+        sva.addAnnotation(sva_src[0]);
 }
 
 DLLEXPORT Symbol& Symbol::operator=(const Symbol& s) {
@@ -443,6 +455,44 @@ DLLEXPORT Type *Symbol::getReturnType(){
 DLLEXPORT bool  Symbol::setReturnType(Type *retType){
 	retType_ = retType;
 	return true;
+}
+
+DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName){
+    Annotatable<std::string, symbol_file_name_a> &fn = *this;
+    if (fn.size()) {
+        //fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", FILE__, __LINE__, getName().c_str());
+        return false;
+    }
+    fn.addAnnotation(fileName);
+    return true;
+}
+
+DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers){
+    Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
+    if (sv.size()) {
+        //fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getName().c_str());
+        return false;
+    }
+    sv.addAnnotation(vers);
+    return true;
+}
+
+DLLEXPORT bool Symbol::getVersionFileName(std::string &fileName){
+    Annotatable<std::string, symbol_file_name_a> &fn = *this;
+    if (!fn.size()) {
+        return false;
+    }
+    fileName = fn[0];
+    return true;
+}
+
+DLLEXPORT bool Symbol::getVersions(std::vector<std::string> *&vers){
+    Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
+    if (!sv.size()) {
+        return false;
+    }
+    vers = &(sv[0]);
+    return true;
 }
 
 DLLEXPORT bool Symbol::getLocalVariables(std::vector<localVar *>&vars)
