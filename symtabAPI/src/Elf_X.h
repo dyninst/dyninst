@@ -316,6 +316,223 @@ class Elf_X_Options {
 };
 #endif
 
+#if !defined(os_solaris)
+// ------------------------------------------------------------------------
+// Class Elf_X_Versym simulates the SHT_GNU_versym structure.
+class Elf_X_Versym {
+ public:
+   Elf_X_Versym()
+      : data(NULL), versym32(NULL), versym64(NULL), is64(false) { }
+   
+   Elf_X_Versym(bool is64_, Elf_Data *input)
+      : data(input), versym32(NULL), versym64(NULL), is64(is64_) {
+      
+      if (input) {
+         if (!is64) versym32 = (Elf32_Half *)data->d_buf;
+         else       versym64 = (Elf64_Half *)data->d_buf;
+      }
+   }
+   // Read Interface
+   unsigned long get(int i) const { return (!is64 ? versym32[i]
+                                                   : versym64[i]); }
+   // Meta-Info Interface
+   unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Half)
+                                                         : sizeof(Elf64_Half) )); }
+   bool isValid() const { return (versym32 || versym64); }
+   
+ protected:
+   Elf_Data *data;
+   Elf32_Half *versym32;
+   Elf64_Half *versym64;
+   bool is64;
+};
+
+// ------------------------------------------------------------------------
+// Class Elf_X_Verdaux simulates the Elf(32|64)_Verdaux structure.
+class Elf_X_Verdaux {
+ public:
+   Elf_X_Verdaux()
+      : data(NULL), verdaux32(NULL), verdaux64(NULL), is64(false) { }
+   
+   Elf_X_Verdaux(bool is64_, void *input)
+      : data(input), verdaux32(NULL), verdaux64(NULL), is64(is64_) {
+      
+      if (input) {
+         if (!is64) verdaux32 = (Elf32_Verdaux *)data;
+         else       verdaux64 = (Elf64_Verdaux *)data;
+      }
+   }
+
+   // Read Interface
+   unsigned long vda_name() const { return (!is64 ? verdaux32->vda_name
+                                                   : verdaux64->vda_name); }
+   unsigned long vda_next() const { return (!is64 ? verdaux32->vda_next
+                                                 : verdaux64->vda_next); }
+   Elf_X_Verdaux *get_next() { 
+       if(vda_next() == 0)
+           return NULL;
+       return new Elf_X_Verdaux(is64, (char *)data+vda_next());
+   }
+
+   // Meta-Info Interface
+   bool isValid() const { return (verdaux32 || verdaux64); }
+   
+ protected:
+   void *data;
+   Elf32_Verdaux *verdaux32;
+   Elf64_Verdaux *verdaux64;
+   bool is64;
+};
+
+// ------------------------------------------------------------------------
+// Class Elf_X_Verdef simulates the Elf(32|64)_Verdef structure.
+class Elf_X_Verdef {
+ public:
+   Elf_X_Verdef()
+      : data(NULL), verdef32(NULL), verdef64(NULL), is64(false) { }
+   
+   Elf_X_Verdef(bool is64_, void *input)
+      : data(input), verdef32(NULL), verdef64(NULL), is64(is64_) {
+      
+      if (input) {
+         if (!is64) verdef32 = (Elf32_Verdef *)data;
+         else       verdef64 = (Elf64_Verdef *)data;
+      }
+   }
+   
+   // Read Interface
+   unsigned long vd_version() const { return (!is64 ? verdef32->vd_version
+                                                   : verdef64->vd_version); }
+   unsigned long vd_flags() const { return (!is64 ? verdef32->vd_flags
+                                                 : verdef64->vd_flags); }
+   unsigned long vd_ndx() const { return (!is64 ? verdef32->vd_ndx
+                                                   : verdef64->vd_ndx); }
+   unsigned long vd_cnt() const { return (!is64 ? verdef32->vd_cnt
+                                                   : verdef64->vd_cnt); }
+   unsigned long vd_hash() const { return (!is64 ? verdef32->vd_hash
+                                                   : verdef64->vd_hash); }
+   unsigned long vd_aux() const { return (!is64 ? verdef32->vd_aux
+                                                   : verdef64->vd_aux); }
+   unsigned long vd_next() const { return (!is64 ? verdef32->vd_next
+                                                   : verdef64->vd_next); }
+
+   Elf_X_Verdaux *get_aux() {
+       if(vd_cnt() == 0)
+           return NULL;
+       return new Elf_X_Verdaux(is64, (char *)data+vd_aux());
+   }
+
+   Elf_X_Verdef *get_next() {
+       if(vd_next() == 0)
+           return NULL;
+       return new Elf_X_Verdef(is64, (char *)data+vd_next());
+   }
+
+   // Meta-Info Interface
+   bool isValid() const { return (verdef32 || verdef64); }
+   
+ protected:
+   void *data;
+   Elf32_Verdef *verdef32;
+   Elf64_Verdef *verdef64;
+   bool is64;
+};
+
+// ------------------------------------------------------------------------
+// Class Elf_X_Vernaux simulates the Elf(32|64)_Vernaux structure.
+class Elf_X_Vernaux {
+ public:
+   Elf_X_Vernaux()
+      : data(NULL), vernaux32(NULL), vernaux64(NULL), is64(false) { }
+   
+   Elf_X_Vernaux(bool is64_, void *input)
+      : data(input), vernaux32(NULL), vernaux64(NULL), is64(is64_) {
+      
+      if (input) {
+         if (!is64) vernaux32 = (Elf32_Vernaux *)data;
+         else       vernaux64 = (Elf64_Vernaux *)data;
+      }
+   }
+   
+   // Read Interface
+   unsigned long vna_hash() const { return (!is64 ? vernaux32->vna_hash
+                                                   : vernaux64->vna_hash); }
+   unsigned long vna_flags() const { return (!is64 ? vernaux32->vna_flags
+                                                   : vernaux64->vna_flags); }
+   unsigned long vna_other() const { return (!is64 ? vernaux32->vna_other
+                                                   : vernaux64->vna_other); }
+   unsigned long vna_name() const { return (!is64 ? vernaux32->vna_name
+                                                   : vernaux64->vna_name); }
+   unsigned long vna_next() const { return (!is64 ? vernaux32->vna_next
+                                                 : vernaux64->vna_next); }
+   Elf_X_Vernaux *get_next() { 
+       if(vna_next() == 0)
+           return NULL;
+       return new Elf_X_Vernaux(is64, (char *)data+vna_next());
+   }
+
+   // Meta-Info Interface
+   bool isValid() const { return (vernaux32 || vernaux64); }
+   
+ protected:
+   void *data;
+   Elf32_Vernaux *vernaux32;
+   Elf64_Vernaux *vernaux64;
+   bool is64;
+};
+
+// ------------------------------------------------------------------------
+// Class Elf_X_Verneed simulates the Elf(32|64)_Verneed structure.
+class Elf_X_Verneed {
+ public:
+   Elf_X_Verneed()
+      : data(NULL), verneed32(NULL), verneed64(NULL), is64(false) { }
+   
+   Elf_X_Verneed(bool is64_, void *input)
+      : data(input), verneed32(NULL), verneed64(NULL), is64(is64_) {
+      
+      if (input) {
+         if (!is64) verneed32 = (Elf32_Verneed *)data;
+         else       verneed64 = (Elf64_Verneed *)data;
+      }
+   }
+   
+   // Read Interface
+   unsigned long vn_version() const { return (!is64 ? verneed32->vn_version
+                                                   : verneed64->vn_version); }
+   unsigned long vn_cnt() const { return (!is64 ? verneed32->vn_cnt
+                                                   : verneed64->vn_cnt); }
+   unsigned long vn_file() const { return (!is64 ? verneed32->vn_file
+                                                   : verneed64->vn_file); }
+   unsigned long vn_aux() const { return (!is64 ? verneed32->vn_aux
+                                                   : verneed64->vn_aux); }
+   unsigned long vn_next() const { return (!is64 ? verneed32->vn_next
+                                                   : verneed64->vn_next); }
+   Elf_X_Vernaux *get_aux() {
+       if(vn_cnt() == 0)
+           return NULL;
+       return new Elf_X_Vernaux(is64, (char *)data+vn_aux());
+   }
+
+   Elf_X_Verneed *get_next() {
+       if(vn_next() == 0)
+           return NULL;
+       return new Elf_X_Verneed(is64, (char *)data+vn_next());
+   }
+
+
+   // Meta-Info Interface
+   bool isValid() const { return (verneed32 || verneed64); }
+   
+ protected:
+   void *data;
+   Elf32_Verneed *verneed32;
+   Elf64_Verneed *verneed64;
+   bool is64;
+};
+
+#endif
+
 // ------------------------------------------------------------------------
 // Class Elf_X_Data simulates the Elf_Data structure.
 class Elf_X_Data {
@@ -346,6 +563,9 @@ class Elf_X_Data {
     const char *get_string() { return (const char *)data->d_buf; }
 #if !defined(os_solaris)    
     Elf_X_Dyn get_dyn() { return Elf_X_Dyn(is64, data); }
+    Elf_X_Versym get_versyms() { return Elf_X_Versym(is64, data); }
+    Elf_X_Verneed *get_verNeedSym() { return new Elf_X_Verneed(is64, data->d_buf); }
+    Elf_X_Verdef *get_verDefSym() { return new Elf_X_Verdef(is64, data->d_buf); }
 #endif
 
 #if defined(arch_mips)
@@ -520,6 +740,13 @@ class Elf_X {
 	if (elf_version(EV_CURRENT) != EV_NONE) {
 	    elf_errno(); // Reset elf_errno to zero.
 	    elf = elf_begin(input, cmd, NULL);
+        int err;
+	    if ((err = elf_errno()) != 0)
+       	{
+	    	const char *msg = elf_errmsg(err);
+    		/* print msg */
+    		fprintf(stderr, "Error: Unable to open ELF file: %s\n", msg);
+	    }
 	    if (elf) {
 		if (elf_kind(elf) == ELF_K_ELF) {
 		    char *identp = elf_getident(elf, NULL);
@@ -648,165 +875,6 @@ class Elf_X {
     Elf64_Phdr *phdr64;
     bool is64;
 };
-
-#if 0
-// ------------------------------------------------------------------------
-// Class Elf_X_Verdef simulates the Elf(32|64)_Verdef structure.
-class Elf_X_Verdef {
- public:
-   Elf_X_Verdef()
-      : data(NULL), verdef32(NULL), verdef64(NULL), is64(false) { }
-   
-   Elf_X_Verdef(bool is64_, Elf_Data *input)
-      : data(input), verdef32(NULL), verdef64(NULL), is64(is64_) {
-      
-      if (input) {
-         if (!is64) verdef32 = (Elf32_Verdef *)data->d_buf;
-         else       verdef64 = (Elf64_Verdef *)data->d_buf;
-      }
-   }
-
-   // Read Interface
-   unsigned long vd_version(int i) const { return (!is64 ? verdef32[i].vd_version
-                                                   : verdef64[i].vd_version); }
-   unsigned long vd_flags(int i) const { return (!is64 ? verdef32[i].vd_flags
-                                                 : verdef64[i].vd_flags); }
-   unsigned long vd_ndx(int i) const { return (!is64 ? verdef32[i].vd_ndx
-                                                   : verdef64[i].vd_ndx); }
-   unsigned long vd_cnt(int i) const { return (!is64 ? verdef32[i].vd_cnt
-                                                   : verdef64[i].vd_cnt); }
-   unsigned long vd_hash(int i) const { return (!is64 ? verdef32[i].vd_hash
-                                                   : verdef64[i].vd_hash); }
-   unsigned long vd_aux(int i) const { return (!is64 ? verdef32[i].vd_aux
-                                                   : verdef64[i].vd_aux); }
-   unsigned long vd_next(int i) const { return (!is64 ? verdef32[i].vd_next
-                                                   : verdef64[i].vd_next); }
-
-   // Meta-Info Interface
-   unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Verdef)
-                                                         : sizeof(Elf64_Verdef) )); }
-   bool isValid() const { return (verdef32 || verdef64); }
-   
- protected:
-   Elf_Data *data;
-   Elf32_Verdef *verdef32;
-   Elf64_Verdef *verdef64;
-   bool is64;
-};
-// ------------------------------------------------------------------------
-// Class Elf_X_Verdaux simulates the Elf(32|64)_Verdaux structure.
-class Elf_X_Verdaux {
- public:
-   Elf_X_Verdaux()
-      : data(NULL), verdaux32(NULL), verdaux64(NULL), is64(false) { }
-   
-   Elf_X_Verdaux(bool is64_, Elf_Data *input)
-      : data(input), verdaux32(NULL), verdaux64(NULL), is64(is64_) {
-      
-      if (input) {
-         if (!is64) verdaux32 = (Elf32_Verdaux *)data->d_buf;
-         else       verdaux64 = (Elf64_Verdaux *)data->d_buf;
-      }
-   }
-
-   // Read Interface
-   unsigned long vda_name(int i) const { return (!is64 ? verdaux32[i].vda_name
-                                                   : verdaux64[i].vda_name); }
-   unsigned long vda_next(int i) const { return (!is64 ? verdaux32[i].vda_next
-                                                 : verdaux64[i].vda_next); }
-
-   // Meta-Info Interface
-   unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Verdaux)
-                                                         : sizeof(Elf64_Verdaux))); }
-   bool isValid() const { return (verdaux32 || verdaux64); }
-   
- protected:
-   Elf_Data *data;
-   Elf32_Verdaux *verdaux32;
-   Elf64_Verdaux *verdaux64;
-   bool is64;
-};
-
-// ------------------------------------------------------------------------
-// Class Elf_X_Verneed simulates the Elf(32|64)_Verneed structure.
-class Elf_X_Verneed {
- public:
-   Elf_X_Verneed()
-      : data(NULL), verneed32(NULL), verneed64(NULL), is64(false) { }
-   
-   Elf_X_Verneed(bool is64_, Elf_Data *input)
-      : data(input), verneed32(NULL), verneed64(NULL), is64(is64_) {
-      
-      if (input) {
-         if (!is64) verneed32 = (Elf32_Verneed *)data->d_buf;
-         else       verneed64 = (Elf64_Verneed *)data->d_buf;
-      }
-   }
-
-   // Read Interface
-   unsigned long vn_version(int i) const { return (!is64 ? verneed32[i].vn_version
-                                                   : verneed64[i].vn_version); }
-   unsigned long vn_cnt(int i) const { return (!is64 ? verneed32[i].vn_cnt
-                                                   : verneed64[i].vn_cnt); }
-   unsigned long vn_file(int i) const { return (!is64 ? verneed32[i].vn_file
-                                                   : verneed64[i].vn_file); }
-   unsigned long vn_aux(int i) const { return (!is64 ? verneed32[i].vn_aux
-                                                   : verneed64[i].vn_aux); }
-   unsigned long vn_next(int i) const { return (!is64 ? verneed32[i].vn_next
-                                                   : verneed64[i].vn_next); }
-
-   // Meta-Info Interface
-   unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Verneed)
-                                                         : sizeof(Elf64_Verneed) )); }
-   bool isValid() const { return (verneed32 || verneed64); }
-   
- protected:
-   Elf_Data *data;
-   Elf32_Verneed *verneed32;
-   Elf64_Verneed *verneed64;
-   bool is64;
-};
-
-// ------------------------------------------------------------------------
-// Class Elf_X_Vernaux simulates the Elf(32|64)_Vernaux structure.
-class Elf_X_Vernaux {
- public:
-   Elf_X_Vernaux()
-      : data(NULL), vernaux32(NULL), vernaux64(NULL), is64(false) { }
-   
-   Elf_X_Vernaux(bool is64_, Elf_Data *input)
-      : data(input), vernaux32(NULL), vernaux64(NULL), is64(is64_) {
-      
-      if (input) {
-         if (!is64) vernaux32 = (Elf32_Vernaux *)data->d_buf;
-         else       vernaux64 = (Elf64_Vernaux *)data->d_buf;
-      }
-   }
-
-   // Read Interface
-   unsigned long vna_hash(int i) const { return (!is64 ? vernaux32[i].vna_hash
-                                                   : vernaux64[i].vna_hash); }
-   unsigned long vna_flags(int i) const { return (!is64 ? vernaux32[i].vna_flags
-                                                   : vernaux64[i].vna_flags); }
-   unsigned long vna_other(int i) const { return (!is64 ? vernaux32[i].vna_other
-                                                   : vernaux64[i].vna_other); }
-   unsigned long vna_name(int i) const { return (!is64 ? vernaux32[i].vna_name
-                                                   : vernaux64[i].vna_name); }
-   unsigned long vna_next(int i) const { return (!is64 ? vernaux32[i].vna_next
-                                                 : vernaux64[i].vna_next); }
-
-   // Meta-Info Interface
-   unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Vernaux)
-                                                         : sizeof(Elf64_Vernaux))); }
-   bool isValid() const { return (vernaux32 || vernaux64); }
-   
- protected:
-   Elf_Data *data;
-   Elf32_Vernaux *vernaux32;
-   Elf64_Vernaux *vernaux64;
-   bool is64;
-};
-#endif
 
 }//namespace SymtabAPI
 }//namespace Dyninst
