@@ -44,6 +44,7 @@ using namespace std;
 extern const char *pdelf_get_shnames(Elf_X &elf);
 unsigned elf64_newdynstrIndex;
 unsigned elf64_newdynsymIndex;
+extern unsigned int elfHash(const char *name);
 
 static int elfSymType(Symbol::SymbolType sType)
 {
@@ -1170,11 +1171,7 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
         unsigned i = 0;
         for(iter = it->second.begin(); iter!= it->second.end(); iter++){
             Elf64_Vernaux *vernaux = (Elf64_Vernaux *)(verneedSecData+verneed->vn_aux+ i*sizeof(Elf64_Vernaux));
-#if !defined(cap_libelf_so_0)
-            vernaux->vna_hash = elf_hash(iter->first.c_str());
-#else
-            vernaux->vna_hash = elf_hash((const unsigned char *)iter->first.c_str());
-#endif
+            vernaux->vna_hash = elfHash(iter->first.c_str());
             vernaux->vna_flags = 1;
             vernaux->vna_other = iter->second;
             vernaux->vna_name = versionNames[iter->first];

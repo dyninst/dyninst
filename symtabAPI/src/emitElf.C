@@ -45,6 +45,19 @@ extern const char *pdelf_get_shnames(Elf_X &elf);
 unsigned newdynstrIndex;
 unsigned newdynsymIndex;
 
+unsigned int elfHash(const char *name)
+{
+    unsigned int h = 0, g;
+
+    while (*name) {
+        h = (h << 4) + *name++;
+        if ((g = h & 0xf0000000))
+            h ^= g >> 24;
+        h &= ~g;
+    }
+    return h;
+}
+      
 static int elfSymType(Symbol::SymbolType sType)
 {
   switch (sType) {
@@ -1169,11 +1182,7 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
         unsigned i = 0;
         for(iter = it->second.begin(); iter!= it->second.end(); iter++){
             Elf32_Vernaux *vernaux = (Elf32_Vernaux *)(verneedSecData+verneed->vn_aux+ i*sizeof(Elf32_Vernaux));
-#if !defined(cap_libelf_so_0)
-            vernaux->vna_hash = elf_hash(iter->first.c_str());
-#else
-            vernaux->vna_hash = elf_hash((const unsigned char *)iter->first.c_str());
-#endif
+            vernaux->vna_hash = elfHash(iter->first.c_str());
             vernaux->vna_flags = 1;
             vernaux->vna_other = iter->second;
             vernaux->vna_name = versionNames[iter->first];
@@ -1260,7 +1269,6 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
     dynsecData[curpos].d_un.d_val = 0;
 }
 #endif
-
 
 void emitElf::log_elferror(void (*err_func)(const char *), const char* msg) {
     const char* err = elf_errmsg(elf_errno());
