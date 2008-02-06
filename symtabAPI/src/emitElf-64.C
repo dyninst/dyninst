@@ -1196,11 +1196,7 @@ void emitElf64::createSymbolVersions(Elf64_Half *&symVers, char*&verneedSecData,
         verdef->vd_flags = 1;
         verdef->vd_ndx = iter->second;
         verdef->vd_cnt = verdauxEntries[iter->second].size();
-#if !defined(cap_libelf_so_0)
-        verdef->vd_hash = elf_hash(iter->first.c_str());
-#else
-        verdef->vd_hash = elf_hash((const unsigned char *)iter->first.c_str());
-#endif
+        verdef->vd_hash = elfHash(iter->first.c_str());
         verdef->vd_aux = curpos + sizeof(Elf64_Verdef);
         verdef->vd_next = curpos + sizeof(Elf64_Verdef) + verdauxEntries[iter->second].size()*sizeof(Elf64_Verdaux);
         if(verdef->vd_next == verdefSecSize)
