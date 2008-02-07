@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.33 2008/01/03 22:55:10 jaw Exp $
+/* $Id: util.C,v 1.34 2008/02/07 16:07:55 jaw Exp $
  * util.C - support functions.
  */
 
@@ -47,6 +47,7 @@
 #include "common/h/Time.h"
 #include "dyninstAPI/src/util.h"
 
+using namespace Dyninst;
 // TIMING code
 
 #if defined(i386_unknown_solaris2_5) || defined(sparc_sun_solaris2_4)
@@ -121,43 +122,6 @@ int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds)
 }
 #endif
 
-#if 0
-static unsigned addrHashCommon(Address addr) 
-{
-   // inspired by hashs of string class
-
-   register unsigned result = 5381;
-
-   register Address accumulator = addr;
-   while (accumulator > 0) {
-      // We use 3 bits at a time from the address
-      result = (result << 4) + result + (accumulator & 0x07);
-      accumulator >>= 3;
-   }
-
-   return result;
-}
-
-unsigned addrHash(const Address & iaddr) 
-{
-   return addrHashCommon(iaddr);
-}
-
-unsigned addrHash4(const Address &iaddr) 
-{
-   // call when you know that the low 2 bits are 0 (meaning they contribute
-   // nothing to an even hash distribution)
-   return addrHashCommon(iaddr >> 2);
-}
-
-unsigned addrHash16(const Address &iaddr) 
-{
-   // call when you know that the low 4 bits are 0 (meaning they contribute
-   // nothing to an even hash distribution)
-   return addrHashCommon(iaddr >> 4);
-}
-
-#endif
 
 
 

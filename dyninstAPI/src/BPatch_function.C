@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.100 2008/01/10 21:14:54 bill Exp $
+// $Id: BPatch_function.C,v 1.101 2008/02/07 16:07:55 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -67,7 +67,7 @@
 #if defined(cap_slicing)
 // #include "BPatch_dependenceGraphNode.h"
 #include "BPatch_dependenceGraphEdge.h"
-#include "common/h/Annotatable.h"
+#include "dynutil/h/Annotatable.h"
 #endif
 
 /**************************************************************************

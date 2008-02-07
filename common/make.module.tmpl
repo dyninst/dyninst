@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.34 2008/01/03 22:55:09 jaw Exp $
+# $Id: make.module.tmpl,v 1.35 2008/02/07 16:07:53 jaw Exp $
 #
 
 SUITE_NAME	= common 
@@ -45,7 +45,7 @@ endif #sparc
 endif #USES_NATIVE
 TFLAGS		+= -fPIC
 
-VPATH	     += ../.. common/src:../../paradyn/h
+VPATH	     += ../.. common/src dynutil/h
 
 SRCS	     +=	../../common/src/Ident.C \
 		../../common/src/String.C \

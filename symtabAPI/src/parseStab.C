@@ -39,6 +39,7 @@
 #include "Symtab.h" // For looking up compiler type
 #include "Symbol.h" 
 #include "symtabAPI/src/Collections.h"
+#include "common/h/headers.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;

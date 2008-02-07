@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.106 2008/01/24 11:20:43 jaw Exp $
+// $Id: BPatch_image.C,v 1.107 2008/02/07 16:07:55 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -68,6 +68,8 @@
 #include "addressSpace.h"
 
 #include "ast.h"
+using namespace Dyninst;
+
 
 //
 // We made this a seperate class to allow us to only expose a pointer to

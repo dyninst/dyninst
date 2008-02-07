@@ -58,6 +58,8 @@
 
 //pdstring int_function::emptyString("");
 
+using namespace Dyninst;
+
 
 int int_function_count = 0;
 

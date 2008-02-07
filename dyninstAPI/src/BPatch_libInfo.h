@@ -46,7 +46,7 @@
 #include "dyninstAPI/h/BPatch_process.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
-#include "common/h/util.h"
+#include "dynutil/h/util.h"
 #include "util.h"
 
 class BPatch_libInfo {
@@ -58,7 +58,7 @@ public:
 class BPatch_funcMap {
    dictionary_hash<const int_function*, BPatch_function*> chart;
    static unsigned hash_bp(const int_function * const &bp ) {
-      return(addrHash4((Address) bp));
+      return(Dyninst::addrHash4((Address) bp));
    }
  public:
    BPatch_funcMap() : chart(hash_bp) {}
@@ -102,7 +102,7 @@ class BPatch_instpMap {
   // be an instPoint -> vector for BPatch_point map
    dictionary_hash<const instPoint *, BPatch_point *> chart;
    static unsigned hash_ip(const instPoint *const &ip) {
-     return (addrHash4((Address)ip));
+     return (Dyninst::addrHash4((Address)ip));
    }
  public:
    BPatch_instpMap() : chart(hash_ip) {}

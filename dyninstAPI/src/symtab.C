@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.313 2008/01/24 11:20:43 jaw Exp $
+ // $Id: symtab.C,v 1.314 2008/02/07 16:07:55 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,6 +79,7 @@
 #endif
 
 
+using namespace Dyninst;
 string fileDescriptor::emptyString(string(""));
 fileDescriptor::fileDescriptor() {
     // This shouldn't be called... must be public for pdvector, though

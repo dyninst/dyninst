@@ -50,7 +50,7 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_memoryAccess_NP.h"
-#include "common/h/Annotatable.h"
+#include "dynutil/h/Annotatable.h"
 #include "BPatch_dependenceGraphNode.h"
 // class BPatch_dependenceGraphNode;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.198 2008/02/04 21:16:36 bernat Exp $
+// $Id: ast.C,v 1.199 2008/02/07 16:07:55 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -74,6 +74,8 @@
 #include "emitter.h"
 
 #include "registerSpace.h"
+
+using namespace Dyninst;
 
 extern bool doNotOverflow(int value);
 

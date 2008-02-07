@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.77 2008/01/31 18:01:37 legendre Exp $
+// $Id: multiTramp.C,v 1.78 2008/02/07 16:07:55 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -49,6 +49,8 @@
 #include "process.h"
 #include "InstrucIter.h"
 #include "BPatch.h"
+
+using namespace Dyninst;
 
 unsigned int multiTramp::id_ctr = 1;
 

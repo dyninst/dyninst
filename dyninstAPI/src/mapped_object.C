@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.31 2008/01/03 22:55:09 jaw Exp $
+// $Id: mapped_object.C,v 1.32 2008/02/07 16:07:55 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -48,6 +48,8 @@
 #include "dyninstAPI/src/debug.h"
 #include "symtabAPI/h/Symtab.h"
 #include "process.h"
+
+using namespace Dyninst;
 
 #define FS_FIELD_SEPERATOR '/'
 

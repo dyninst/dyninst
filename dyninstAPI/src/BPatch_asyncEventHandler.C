@@ -80,6 +80,8 @@
 #include "util.h"
 #include "process.h"
 
+using namespace Dyninst;
+
 extern unsigned long primary_thread_id;
 
 BPatch_asyncEventHandler *global_async_event_handler = NULL;

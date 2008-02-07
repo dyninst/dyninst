@@ -39,9 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: infHeap.C,v 1.1 2007/09/12 20:57:15 bernat Exp $
+// $Id: infHeap.C,v 1.2 2008/02/07 16:07:55 jaw Exp $
 
 #include "infHeap.h"
+
+using namespace Dyninst;
 
 // create a new inferior heap that is a copy of src. This is used when a process
 // we are tracing forks.

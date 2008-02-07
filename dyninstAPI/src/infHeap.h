@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: infHeap.h,v 1.6 2008/01/03 22:55:09 jaw Exp $
+/* $Id: infHeap.h,v 1.7 2008/02/07 16:07:55 jaw Exp $
  * Inferior heap primitives, moved from process.h to ease compilation
  */
 
@@ -49,7 +49,7 @@
 #include "common/h/String.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
-#include "common/h/util.h"
+#include "dynutil/h/util.h"
 #include "util.h"
 
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
@@ -180,7 +180,7 @@ class inferiorHeap {
  public:
     void clear();
     
-  inferiorHeap(): heapActive(addrHash16) {
+  inferiorHeap(): heapActive(Dyninst::addrHash16) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
   inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy

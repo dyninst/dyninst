@@ -358,7 +358,7 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
 			<File
-				RelativePath=".\h\Annotatable.h">
+				RelativePath="..\..\dynutil\h\Annotatable.h">
 			</File>
 			<File
 				RelativePath=".\h\debugOstream.h">

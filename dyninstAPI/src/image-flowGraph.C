@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.44 2008/01/16 22:01:30 legendre Exp $
+ * $Id: image-flowGraph.C,v 1.45 2008/02/07 16:07:55 jaw Exp $
  */
 
 #include <stdio.h>
@@ -67,6 +67,8 @@
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
 #endif
+
+using namespace Dyninst;
 
 int addrfunccmp( image_func*& pdf1, image_func*& pdf2 )
 {

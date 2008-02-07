@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.5 2008/01/16 22:00:56 legendre Exp $
+// $Id: Annotatable.C,v 1.6 2008/02/07 16:07:54 jaw Exp $
 
 #include "common/h/headers.h"
-#include "common/h/Annotatable.h"
+#include "dynutil/h/Annotatable.h"
 
-
+using namespace Dyninst;
 //template class pdvector<dictionary_hash<std::string, int> >::entry;
 
 int AnnotatableBase::number;

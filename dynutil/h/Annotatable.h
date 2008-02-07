@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.6 2008/01/16 22:00:55 legendre Exp $
+// $Id: Annotatable.h,v 1.1 2008/02/07 16:07:56 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -47,20 +47,24 @@
 #include <vector>
 #include <string>
 #include <typeinfo>
-#include "headers.h"
-#include "util.h"
+#include <assert.h>
+#include "dyntypes.h"
+#include "dynutil/h/util.h"
 
-#if 0
-extern unsigned addrHashCommon(Address addr);
+#if 0 
+#include "headers.h"
+extern unsigned addrHashCommon(unsigned long addr);
 #endif
+
 class AnnotatableBase;
+
 #if defined(os_windows)
 #else
 namespace __gnu_cxx {
    template<> struct hash<AnnotatableBase *> {
       hash<char*> h;
       unsigned operator()(const AnnotatableBase *b) const {
-         return addrHashCommon((Address)b);
+         return ::Dyninst::addrHashCommon((Dyninst::Address)b);
       };
    };
 };
@@ -253,5 +257,4 @@ class Annotatable : public AnnotatableBase
    T &operator[](unsigned index) const {return getAnnotation(index);}
 
 };
-
 #endif

@@ -56,6 +56,8 @@
 #include "process.h"
 #include "common/h/Dictionary.h"
 
+using namespace Dyninst;
+
 eventLock *threadMapLock = NULL;
 
 dictionary_hash<Address, threadmap_t *> *threadmap;

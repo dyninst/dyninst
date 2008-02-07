@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.51 2008/01/16 22:01:50 legendre Exp $
+// $Id: arch-sparc.h,v 1.52 2008/02/07 16:07:55 jaw Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL
-#include <common/h/Annotatable.h>
+#include <dynutil/h/Annotatable.h>
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.135 2008/01/31 18:01:50 legendre Exp $
+// $Id: linux-x86.C,v 1.136 2008/02/07 16:07:55 jaw Exp $
 
 #include <fstream>
 
@@ -90,6 +90,8 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/h/BPatch.h"
+
+using namespace Dyninst;
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 

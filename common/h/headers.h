@@ -30,7 +30,7 @@
  */
 
 
-// $Id: headers.h,v 1.26 2007/12/14 04:16:47 jaw Exp $
+// $Id: headers.h,v 1.27 2008/02/07 16:07:54 jaw Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
@@ -50,23 +50,6 @@ typedef int (*xdr_rd_func)(void *, char *, int);
 typedef int (*xdr_wr_func)(void *, char *, int);
 }
 
-#if defined (os_windows)
-#include <hash_map>
-using stdext::hash_map;
-#else
-#include <ext/hash_map>
-#include <ext/hash_set>
-using namespace __gnu_cxx;
-namespace __gnu_cxx {
-   template<> struct hash<std::string> {
-      hash<char*> h;
-      unsigned operator()(const std::string &s) const {
-         return h(s.c_str());
-      };
-   };
-};
-
-#endif
 
 #include "common/h/Types.h"
 
