@@ -29,9 +29,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/*
 #if !defined(cap_libelf_so_0) && defined(os_linux)
 #define _FILE_OFFSET_BITS 64
 #endif
+*/
 
 #include "emitElf-64.h"
 #include "Symtab.h"
@@ -806,19 +808,19 @@ bool emitElf64::addSectionHeaderTable(Elf64_Shdr *shdr) {
 	} 
    //Fill out the new section header
    newshdr = elf64_getshdr(newscn);
-	newshdr->sh_name = secNameIndex;
+   newshdr->sh_name = secNameIndex;
    secNames.push_back(".shstrtab");
    secNameIndex += 10;
    newshdr->sh_type = SHT_STRTAB;
    newshdr->sh_entsize = 1;
    newdata->d_type = ELF_T_BYTE;
    newshdr->sh_link = SHN_UNDEF; 
-	newshdr->sh_flags=  0;
-   
+   newshdr->sh_flags=  0;
+
    newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
-	newshdr->sh_addr = 0;
+   newshdr->sh_addr = 0;
    newshdr->sh_info = 0;
-	newshdr->sh_addralign = 4;
+   newshdr->sh_addralign = 4;
    
    //Set up the data
    newdata->d_buf = (char *)malloc(secNameIndex);
