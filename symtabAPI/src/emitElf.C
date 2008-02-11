@@ -48,6 +48,17 @@ extern const char *pdelf_get_shnames(Elf_X &elf);
 unsigned newdynstrIndex;
 unsigned newdynsymIndex;
 
+/* Descriptor for data to be converted to or from memory format.  */
+typedef struct
+{
+  void *d_buf;			/* Pointer to the actual data.  */
+  Elf_Type d_type;		/* Type of this piece of data.  */
+  unsigned int d_version;	/* ELF version.  */
+  size_t d_size;		/* Size in bytes.  */
+  off64_t d_off;			/* Offset into section.  */
+  size_t d_align;		/* Alignment in section.  */
+} Elf_Data64;
+
 bool libelfso0Flag;
 void setVersion(){
     unsigned nEntries;
@@ -609,6 +620,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
 {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
+    Elf_Data64 *newdata64 = NULL;
     Elf32_Shdr *newshdr;
     firstNewLoadSec = NULL;
     unsigned pgSize = getpagesize();
@@ -638,6 +650,8 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
            		return false;
 	        } 
             memset(newdata, 0, sizeof(Elf_Data));
+            if(!libelfso0Flag)
+                newdata64 = (Elf_Data64 *)malloc(sizeof(Elf_Data64));
 
     	    // Fill out the new section header	
 	        newshdr = elf32_getshdr(newscn);
@@ -671,8 +685,14 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
                 newshdr->sh_flags = SHF_ALLOC;
                 newshdr->sh_entsize = sizeof(Elf32_Rel);
                 newshdr->sh_link = dynsymIndex;   //.rel.plt section should have sh_link = index of .dynsym
-                newdata->d_type = ELF_T_REL;
-                //newdata->d_align = 4;
+                if(!libelfso0Flag) {
+                    newdata64->d_type = ELF_T_REL;
+                    newdata64->d_align = 4;
+                }
+                else {
+                    newdata->d_type = ELF_T_REL;
+                    newdata->d_align = 4;
+                }
 #if !defined(os_solaris)
                 if(newSecs[i]->getSecName() == ".rel.plt")
                     updateDynamic(DT_JMPREL, newshdr->sh_addr);
@@ -684,10 +704,16 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
             {
                 newshdr->sh_type = SHT_STRTAB;
                 newshdr->sh_entsize = 1;
-                newdata->d_type = ELF_T_BYTE;
+                if(!libelfso0Flag) {
+                    newdata64->d_type = ELF_T_BYTE;
+                    newdata64->d_align = 1;
+                }
+                else {
+                    newdata->d_type = ELF_T_BYTE;
+                    newdata->d_align = 1;
+                }
                 newshdr->sh_link = SHN_UNDEF;
                 newshdr->sh_flags=  SHF_ALLOC;
-                //newdata->d_align = 1;
                 strtabIndex = secNames.size()-1;
                 newshdr->sh_addralign = 1;
 #if !defined(os_solaris)
@@ -699,8 +725,14 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
             {
                 newshdr->sh_type = SHT_DYNSYM;
                 newshdr->sh_entsize = sizeof(Elf32_Sym);
-                newdata->d_type = ELF_T_SYM;
-                //newdata->d_align = 4;
+                if(!libelfso0Flag) {
+                    newdata64->d_type = ELF_T_SYM;
+                    newdata64->d_align = 4;
+                }
+                else {
+                    newdata->d_type = ELF_T_SYM;
+                    newdata->d_align = 4;
+                }
                 newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags = SHF_ALLOC ;
                 dynsymIndex = secNames.size()-1;
@@ -714,8 +746,14 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
                 newshdr->sh_entsize = sizeof(Elf32_Dyn);
 #endif            
                 newshdr->sh_type = SHT_DYNAMIC;
-                newdata->d_type = ELF_T_DYN;
-                //newdata->d_align = 4;
+                if(!libelfso0Flag) {
+                    newdata64->d_type = ELF_T_DYN;
+                    newdata64->d_align = 4;
+                }
+                else {
+                    newdata->d_type = ELF_T_DYN;
+                    newdata->d_align = 4;
+                }
                 newshdr->sh_link = strtabIndex;   //.dynamic section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
                 dynSegOff = newshdr->sh_offset;
@@ -728,8 +766,14 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
                 newshdr->sh_type = SHT_GNU_versym;
                 newshdr->sh_entsize = sizeof(Elf32_Half);
                 newshdr->sh_addralign = 2;
-                newdata->d_type = ELF_T_HALF;
-                //newdata->d_align = 2;
+                if(!libelfso0Flag) {
+                    newdata64->d_type = ELF_T_HALF;
+                    newdata64->d_align = 2;
+                }
+                else {
+                    newdata->d_type = ELF_T_HALF;
+                    newdata->d_align = 2;
+                }
                 newshdr->sh_link = dynsymIndex;   //.symtab section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags = SHF_ALLOC ;
                 updateDynamic(DT_VERSYM, newshdr->sh_addr);
@@ -739,8 +783,14 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
                 newshdr->sh_type = SHT_GNU_verneed;
                 newshdr->sh_entsize = 0;
                 newshdr->sh_addralign = 4;
-                newdata->d_type = ELF_T_VNEED;
-                //newdata->d_align = 4;
+                if(!libelfso0Flag) {
+                    newdata64->d_type = ELF_T_VNEED;
+                    newdata64->d_align = 4;
+                }
+                else {
+                    newdata->d_type = ELF_T_VNEED;
+                    newdata->d_align = 4;
+                }
                 newshdr->sh_link = strtabIndex;   //.symtab section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags = SHF_ALLOC ;
                 updateDynamic(DT_VERNEED, newshdr->sh_addr);
@@ -749,8 +799,14 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
             {
                 newshdr->sh_type = SHT_GNU_verdef;
                 newshdr->sh_entsize = 0;
-                newdata->d_type = ELF_T_VDEF;
-                //newdata->d_align = 4;
+                if(!libelfso0Flag) {
+                    newdata64->d_type = ELF_T_VDEF;
+                    newdata64->d_align = 4;
+                }
+                else {
+                    newdata->d_type = ELF_T_VDEF;
+                    newdata->d_align = 4;
+                }
                 newshdr->sh_link = strtabIndex;   //.symtab section should have sh_link = index of .strtab for .dynsym
                 newshdr->sh_flags = SHF_ALLOC ;
                 updateDynamic(DT_VERDEF, newshdr->sh_addr);
@@ -791,12 +847,23 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
             // newshdr->sh_offset = shdr->sh_offset;
 
     	    //Set up the data
-            newdata->d_buf = malloc(newSecs[i]->getSecSize());
-            memcpy(newdata->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getSecSize());
-            newdata->d_off = 0;
-            newdata->d_version = 1;
-            newdata->d_size = newSecs[i]->getSecSize();
-            newshdr->sh_size = newdata->d_size;
+            if(!libelfso0Flag) {
+                newdata64->d_buf = malloc(newSecs[i]->getSecSize());
+                memcpy(newdata64->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getSecSize());
+                newdata64->d_off = 0;
+                newdata64->d_version = 1;
+                newdata64->d_size = newSecs[i]->getSecSize();
+                newshdr->sh_size = newdata64->d_size;
+                memcpy(newdata, newdata64, sizeof(Elf_Data));
+            }
+            else {
+                newdata->d_buf = malloc(newSecs[i]->getSecSize());
+                memcpy(newdata->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getSecSize());
+                newdata->d_off = 0;
+                newdata->d_version = 1;
+                newdata->d_size = newSecs[i]->getSecSize();
+                newshdr->sh_size = newdata->d_size;
+            }
 
             loadSecTotalSize += newshdr->sh_size;
     	    elf_update(newElf, ELF_C_NULL);
@@ -819,6 +886,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr *shdr, unsigned &loadSecTotalSiz
 bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
+    Elf_Data64 *newdata64 = NULL;
     Elf32_Shdr *newshdr;
 
     if((newscn = elf_newscn(newElf)) == NULL)
@@ -831,6 +899,8 @@ bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
         log_elferror(err_func_, "unable to create section data");	
         return false;
     } 
+    if(!libelfso0Flag)
+        newdata64 = (Elf_Data64 *) malloc(sizeof(Elf_Data64));
     
     //Fill out the new section header
     newshdr = elf32_getshdr(newscn);
@@ -858,10 +928,22 @@ bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
         ptr += secNames[i].length()+1;
     }    
 
-    newdata->d_size = secNameIndex;
-    //newdata->d_align = 4;
-    newdata->d_version = 1;
-    newshdr->sh_size = newdata->d_size;
+    if(!libelfso0Flag){
+        newdata64->d_size = secNameIndex;
+        newdata64->d_align = 4;
+        newdata64->d_version = 1;
+        newdata64->d_off = 0;
+        newshdr->sh_size = newdata64->d_size;
+        memcpy(newdata, newdata64, sizeof(Elf_Data));
+    }
+    else {
+        newdata->d_size = secNameIndex;
+        newdata->d_align = 4;
+        newdata->d_version = 1;
+        newdata->d_off = 0;
+        newshdr->sh_size = newdata->d_size;
+    }
+
 
     fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
             ".shstrtab", newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
@@ -874,6 +956,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
 {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
+    Elf_Data64 *newdata64 = NULL;
     Elf32_Shdr *newshdr;
     
     Elf32_Shdr *prevshdr = shdr; 
@@ -891,6 +974,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
             log_elferror(err_func_, "unable to create section data");	
             return false;
         } 
+        newdata64 = (Elf_Data64 *)malloc(sizeof(Elf_Data64));
     	
         //Fill out the new section header
     	newshdr = elf32_getshdr(newscn);
@@ -901,27 +985,39 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
     	    newshdr->sh_type = SHT_PROGBITS;
     	    newshdr->sh_flags = SHF_EXECINSTR | SHF_WRITE;
             newshdr->sh_entsize = 1;
-    	    newdata->d_type = ELF_T_BYTE;
+            if(!libelfso0Flag)
+                newdata64->d_type = ELF_T_BYTE;
+            else
+        	    newdata->d_type = ELF_T_BYTE;
     	}
     	else if(nonLoadableSecs[i]->getFlags() & Section::dataSection)	//Data Section
 	    {
     	    newshdr->sh_type = SHT_PROGBITS;
     	    newshdr->sh_flags = SHF_WRITE;
             newshdr->sh_entsize = 1;
-            newdata->d_type = ELF_T_BYTE;
+            if(!libelfso0Flag)
+                newdata64->d_type = ELF_T_BYTE;
+            else
+        	    newdata->d_type = ELF_T_BYTE;
     	}
 	    else if(nonLoadableSecs[i]->getFlags() & Section::relocationSection)	//Relocatons section
     	{
 	        newshdr->sh_type = SHT_REL;
             newshdr->sh_flags = SHF_WRITE;
             newshdr->sh_entsize = sizeof(Elf32_Rel);
-            newdata->d_type = ELF_T_BYTE;
+            if(!libelfso0Flag)
+                newdata64->d_type = ELF_T_BYTE;
+            else
+        	    newdata->d_type = ELF_T_BYTE;
     	}
     	else if(nonLoadableSecs[i]->getFlags() & Section::symtabSection)
 	    {
     	    newshdr->sh_type = SHT_SYMTAB;
             newshdr->sh_entsize = sizeof(Elf32_Sym);
-            newdata->d_type = ELF_T_SYM;
+            if(!libelfso0Flag)
+                newdata64->d_type = ELF_T_SYM;
+            else
+        	    newdata->d_type = ELF_T_SYM;
     	    //newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
     	    newshdr->sh_flags=  0;
 	    }
@@ -929,7 +1025,10 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
 	    {
     	    newshdr->sh_type = SHT_STRTAB;
             newshdr->sh_entsize = 1;
-            newdata->d_type = ELF_T_BYTE;
+            if(!libelfso0Flag)
+                newdata64->d_type = ELF_T_BYTE;
+            else
+        	    newdata->d_type = ELF_T_BYTE;
     	    newshdr->sh_link = SHN_UNDEF; 
 	        newshdr->sh_flags=  0;
     	}
@@ -937,7 +1036,10 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
     	{
 	        newshdr->sh_type = SHT_DYNSYM;
             newshdr->sh_entsize = sizeof(Elf32_Sym);
-            newdata->d_type = ELF_T_SYM;
+            if(!libelfso0Flag)
+                newdata64->d_type = ELF_T_SYM;
+            else
+        	    newdata->d_type = ELF_T_SYM;
     	   //newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
 	        newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
 	    }
@@ -947,11 +1049,21 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
 	    newshdr->sh_addralign = 4;
 
         //Set up the data
-        newdata->d_buf = nonLoadableSecs[i]->getPtrToRawData();
-        newdata->d_size = nonLoadableSecs[i]->getSecSize();
-        newshdr->sh_size = newdata->d_size;
-        //newdata->d_align = 4;
-        newdata->d_version = 1;
+        if(!libelfso0Flag) {
+            newdata64->d_buf = nonLoadableSecs[i]->getPtrToRawData();
+            newdata64->d_size = nonLoadableSecs[i]->getSecSize();
+            newshdr->sh_size = newdata64->d_size;
+            newdata64->d_align = 4;
+            newdata64->d_version = 1;
+            memcpy(newdata, newdata64, sizeof(Elf_Data));
+        }
+        else{
+            newdata->d_buf = nonLoadableSecs[i]->getPtrToRawData();
+            newdata->d_size = nonLoadableSecs[i]->getSecSize();
+            newshdr->sh_size = newdata->d_size;
+            newdata->d_align = 4;
+            newdata->d_version = 1;
+        }
 	    
         //elf_update(newElf, ELF_C_NULL);
 	    
