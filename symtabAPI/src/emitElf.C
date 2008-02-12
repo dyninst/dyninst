@@ -62,14 +62,16 @@ typedef struct
 bool libelfso0Flag;
 void setVersion(){
     unsigned nEntries;
-    libelfso0Flag = false;
+    libelfso0Flag = true;
+#if !defined(os_solaris)
     map_entries *maps = getLinuxMaps(getpid(), nEntries);
     for(unsigned i=0; i< nEntries; i++){
-        if(strstr(maps[i].path, "libelf.so.0")){
-            libelfso0Flag = true;
+        if(strstr(maps[i].path, "libelf.so.1")){
+            libelfso0Flag = false;
             break;
         }
     }
+#endif
 }
 
 unsigned int elfHash(const char *name)
