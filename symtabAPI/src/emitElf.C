@@ -66,7 +66,7 @@ void setVersion(){
 #if !defined(os_solaris)
     map_entries *maps = getLinuxMaps(getpid(), nEntries);
     for(unsigned i=0; i< nEntries; i++){
-        if(strstr(maps[i].path, "libelf.so.1")){
+        if(strstr(maps[i].path, "libelf") && strstr(maps[i].path,"1.so")){
             libelfso0Flag = false;
             break;
         }
