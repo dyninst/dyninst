@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.26 2008/01/16 22:00:49 legendre Exp $
+// $Id: multiTramp.h,v 1.27 2008/02/14 22:03:51 legendre Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -173,6 +173,7 @@ class generatedCodeObject : public codeRange {
     Address addrInMutatee_;
 
     Address get_address() const { return addrInMutatee_; }
+    void set_address(Address a) { addrInMutatee_ = a; }
     unsigned get_size() const { return size_; }
 
     bool objIsChild(generatedCodeObject *obj);

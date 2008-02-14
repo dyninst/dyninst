@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.12 2008/01/17 16:40:34 legendre Exp $
+// $Id: arch.C,v 1.13 2008/02/14 22:03:49 legendre Exp $
 // Code generation
 
 //////////////////////////
@@ -525,10 +525,6 @@ std::string patchTarget::get_name() const {
    return std::string("UNNAMED");
 }
 
-bool patchTarget::should_clean() const {
-   return false;
-}
-
 patchTarget::~patchTarget()
 {
 }
@@ -545,8 +541,8 @@ unsigned toAddressPatch::get_size() const {
   return 0; 
 }
 
-bool toAddressPatch::should_clean() const { 
-  return false; 
+void toAddressPatch::set_address(Address a) {
+   addr = a;
 }
 
 codeGen codeGen::baseTemplate;

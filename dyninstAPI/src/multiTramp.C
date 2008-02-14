@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.78 2008/02/07 16:07:55 jaw Exp $
+// $Id: multiTramp.C,v 1.79 2008/02/14 22:03:50 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1093,10 +1093,12 @@ bool multiTramp::generateCodeWorker(unsigned size_required,
       }
         
       // Target override if necessary
+      toAddressPatch override(0);
       if (obj->target_) {
          relocatedInstruction *relocInsn = dynamic_cast<relocatedInstruction *>(obj);
          assert(relocInsn);
-         relocInsn->overrideTarget(new toAddressPatch(obj->target_->pinnedOffset + trampAddr_));
+         override.set_address(obj->target_->pinnedOffset + trampAddr_);
+         relocInsn->overrideTarget(&override);
       }
       
       if( ! obj->generateCode( generatedMultiT_, trampAddr_, unwind_region ) ) {
@@ -2404,9 +2406,14 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     generateSetup(gen, baseInMutatee);
 
     // addrInMutatee_ == base for this insn
+    toAddressPatch orig_target(0);
+    patchTarget *target;
     if (!targetOverride_) {
-       toAddressPatch *orig_target = new toAddressPatch(originalTarget());
-       targetOverride_ = orig_target;
+       orig_target.set_address(originalTarget());
+       target = &orig_target;
+    }
+    else {
+       target = targetOverride_;
     }
 
     if (!insn->generate(gen,
@@ -2414,7 +2421,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
                         origAddr_,
                         addrInMutatee_,
                         NULL, // fallthrough is not overridden
-                        targetOverride_))
+                        target))
     {
        // We use the override if present, otherwise the original target (which may be
        // overridden in function relocation....)

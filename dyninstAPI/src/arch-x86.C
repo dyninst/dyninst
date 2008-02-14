@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.80 2008/02/01 17:05:37 legendre Exp $
+// $Id: arch-x86.C,v 1.81 2008/02/14 22:03:48 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -4396,9 +4396,13 @@ static void addPatch(codeGen &gen, patchTarget *src, imm_location_t &imm)
 
 class pcRelJump : public pcRelRegion {
 private:
+   Address addr_targ;
    patchTarget *targ;
+
+   Address get_target();
 public:
    pcRelJump(patchTarget *t, const instruction &i);
+   pcRelJump(Address target, const instruction &i);
    virtual unsigned apply(Address addr);
    virtual unsigned maxSize();        
    virtual bool canPreApply();
@@ -4407,14 +4411,27 @@ public:
 
 pcRelJump::pcRelJump(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
+   addr_targ(0x0),
    targ(t)
 {
 }
 
+pcRelJump::pcRelJump(Address target, const instruction &i) :
+   pcRelRegion(i),
+   addr_targ(target),
+   targ(NULL)
+{
+}
+
+Address pcRelJump::get_target() 
+{
+   if (targ)
+      return targ->get_address();
+   return addr_targ;
+}
+
 pcRelJump::~pcRelJump()
 {
-   if (targ && targ->should_clean())
-      delete targ;
 }
 
 unsigned pcRelJump::apply(Address addr)
@@ -4427,7 +4444,7 @@ unsigned pcRelJump::apply(Address addr)
 
    copy_prefixes(origInsn, newInsn, insnType);
    SET_PTR(newInsn, *gen);
-   instruction::generateBranch(*gen, addr, targ->get_address());
+   instruction::generateBranch(*gen, addr, get_target());
    REGET_PTR(newInsn, *gen);
    return (unsigned) (newInsn - orig_loc);
 }
@@ -4444,14 +4461,18 @@ unsigned pcRelJump::maxSize()
 
 bool pcRelJump::canPreApply()
 {
-  return (gen->startAddr() && targ->get_address());
+  return (gen->startAddr() && get_target());
 }
 
 class pcRelJCC : public pcRelRegion {
 private:
+   Address addr_targ;
    patchTarget *targ;
+
+   Address get_target();
 public:
    pcRelJCC(patchTarget *t, const instruction &i);
+   pcRelJCC(Address target, const instruction &i);
    virtual unsigned apply(Address addr);
    virtual unsigned maxSize();        
    virtual bool canPreApply();
@@ -4460,14 +4481,27 @@ public:
 
 pcRelJCC::pcRelJCC(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
+   addr_targ(0x0),
    targ(t)
 {
 }
 
+pcRelJCC::pcRelJCC(Address target, const instruction &i) :
+   pcRelRegion(i),
+   addr_targ(target),
+   targ(NULL)
+{
+}
+
+Address pcRelJCC::get_target() 
+{
+   if (targ)
+      return targ->get_address();
+   return addr_targ;
+}
+
 pcRelJCC::~pcRelJCC()
 {
-   if (targ && targ->should_clean())
-      delete targ;
 }
 
 unsigned pcRelJCC::apply(Address addr)
@@ -4475,7 +4509,7 @@ unsigned pcRelJCC::apply(Address addr)
    const unsigned char *origInsn = orig_instruc.ptr();
    unsigned insnType = orig_instruc.type();
    unsigned char *orig_loc;
-   Address target = targ->get_address();
+   Address target = get_target();
    Address potential;
    signed long disp;
    GET_PTR(newInsn, *gen);
@@ -4565,14 +4599,19 @@ unsigned pcRelJCC::maxSize()
 
 bool pcRelJCC::canPreApply()
 {
-  return (gen->startAddr() && targ->get_address());
+  return (gen->startAddr() && get_target());
 }
 
 class pcRelCall: public pcRelRegion {
 private:
+   Address targ_addr;
    patchTarget *targ;
+
+   Address get_target();
 public:
    pcRelCall(patchTarget *t, const instruction &i);
+   pcRelCall(Address targ_addr, const instruction &i);
+
    virtual unsigned apply(Address addr);
    virtual unsigned maxSize();        
    virtual bool canPreApply();
@@ -4581,14 +4620,27 @@ public:
 
 pcRelCall::pcRelCall(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
+   targ_addr(0x0),
    targ(t)
 {
 }
 
+pcRelCall::pcRelCall(Address target, const instruction &i) :
+   pcRelRegion(i),
+   targ_addr(target),
+   targ(NULL)
+{
+}
+
+Address pcRelCall::get_target()
+{
+   if (targ)
+      return targ->get_address();
+   return targ_addr;
+}
+
 pcRelCall::~pcRelCall()
 {
-   if (targ && targ->should_clean())
-      delete targ;
 }
 
 unsigned pcRelCall::apply(Address addr)
@@ -4601,7 +4653,7 @@ unsigned pcRelCall::apply(Address addr)
 
    copy_prefixes_nosize(origInsn, newInsn, insnType);
    SET_PTR(newInsn, *gen);
-   instruction::generateCall(*gen, addr, targ->get_address());
+   instruction::generateCall(*gen, addr, get_target());
    REGET_PTR(newInsn, *gen);
    return (unsigned) (newInsn - orig_loc);
 }
@@ -4618,7 +4670,7 @@ unsigned pcRelCall::maxSize()
 
 bool pcRelCall::canPreApply()
 {
-  return (gen->startAddr() && targ->get_address());
+  return (gen->startAddr() && get_target());
 }
 
 class pcRelData : public pcRelRegion {
@@ -4763,7 +4815,7 @@ bool pcRelData::canPreApply()
 
 bool instruction::generate(codeGen &gen,
                            AddressSpace *addrSpace,
-                           Address origAddr, // Could be kept in the instruction class..
+                           Address origAddr, // Could be kept in the instruction class.
                            Address /*newAddr*/,
                            patchTarget * /*fallthroughOverride*/,
                            patchTarget *targetOverride) 
@@ -4894,14 +4946,26 @@ bool instruction::generate(codeGen &gen,
    }
 
    // We're addr-relative...
-   Address orig_target = origAddr + size() + get_disp(this);
+   Address orig_target;
+   if (dynamic_cast<toAddressPatch *>(targetOverride)) {
+      //targetOverride's address is known now, we'll keep the address around
+      // rather than the targetOverride.
+      orig_target = targetOverride->get_address();
+      targetOverride = NULL;
+   }
+   else {
+      orig_target = origAddr + size() + get_disp(this);
+   }
    
    if (insnType & IS_JUMP) {
      // Create pcRelRegion that eventually will call pcRelJump::apply
-     if (!targetOverride) {
-        targetOverride = new toAddressPatch(orig_target);
+     pcRelJump *pcr_jump;
+     if (targetOverride) {
+        pcr_jump = new pcRelJump(targetOverride, *this);
      }
-     pcRelJump *pcr_jump = new pcRelJump(targetOverride, *this);
+     else {
+        pcr_jump = new pcRelJump(orig_target, *this);
+     }
      assert(pcr_jump);
      gen.addPCRelRegion(pcr_jump);
      return true;
@@ -4909,10 +4973,13 @@ bool instruction::generate(codeGen &gen,
 
    if (insnType & IS_JCC) {
      // Create pcRelRegion that eventually will call pcRelJCC::apply
-     if (!targetOverride) {
-        targetOverride = new toAddressPatch(orig_target);
+     pcRelJCC *pcr_jcc;
+     if (targetOverride) {
+        pcr_jcc = new pcRelJCC(targetOverride, *this);
      }
-     pcRelJCC *pcr_jcc = new pcRelJCC(targetOverride, *this);
+     else {
+        pcr_jcc = new pcRelJCC(orig_target, *this);
+     }
      assert(pcr_jcc);
      gen.addPCRelRegion(pcr_jcc);
      return true;
@@ -4920,10 +4987,13 @@ bool instruction::generate(codeGen &gen,
 
    if (insnType & IS_CALL) {
      // Create pcRelRegion that eventually will call pcRelCall::apply
-     if (!targetOverride) {
-        targetOverride = new toAddressPatch(orig_target);
+     pcRelCall *pcr_call;
+     if (targetOverride) {
+        pcr_call = new pcRelCall(targetOverride, *this);
      }
-     pcRelCall *pcr_call = new pcRelCall(targetOverride, *this);
+     else {
+        pcr_call = new pcRelCall(orig_target, *this);
+     }
      assert(pcr_call);
      gen.addPCRelRegion(pcr_call);
      return true;

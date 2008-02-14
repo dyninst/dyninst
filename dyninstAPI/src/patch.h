@@ -55,7 +55,6 @@ class patchTarget {
    virtual Address get_address() const = 0;
    virtual unsigned get_size() const = 0;
    virtual std::string get_name() const;
-   virtual bool should_clean() const;
    virtual ~patchTarget();
 };
 
@@ -68,7 +67,7 @@ class toAddressPatch : public patchTarget {
 
    virtual Address get_address() const;
    virtual unsigned get_size() const;
-   virtual bool should_clean() const;
+   void set_address(Address a);
 };
 
 class relocPatch {
