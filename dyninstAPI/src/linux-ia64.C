@@ -306,12 +306,14 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
   /* We assume here, and below, that the two stackwalking errors before
      bootstrapping are from loading the run-time library. */
   if( range == NULL && dynLWP->proc()->reachedBootstrapState( bootstrapped_bs ) ) {
+#if 0
     /* We don't maintain the auxv page in the code range tree, so manually
        check if we're in it. */
     dynLWP->proc()->readAuxvInfo();
     if( !( dynLWP->proc()->getVsyscallStart() <= ip && ip < dynLWP->proc()->getVsyscallEnd() )) {
-      /* DEBUG */ fprintf( stderr, "%s[%d]: warning: no code range found for ip 0x%lx\n", __FILE__, __LINE__, ip );
+       /* DEBUG */ fprintf( stderr, "%s[%d]: warning: no code range found for ip 0x%lx\n", __FILE__, __LINE__, ip ); 
     }
+#endif
   }
   else {
     if( range->is_minitramp() != NULL || range->is_multitramp() != NULL ) {
