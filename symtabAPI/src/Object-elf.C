@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.33 2008/02/14 22:03:53 legendre Exp $
+ * $Id: Object-elf.C,v 1.34 2008/02/14 22:09:27 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -412,7 +412,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	    	switch(dyns.d_tag(i)) {
     	    	case DT_PLTGOT:
 	    	        this->gp = dyns.d_ptr(i);
-		            // /* DEBUG */ fprintf( stderr, "%s[%d]: GP = 0x%lx\n", __FILE__, __LINE__, this->gp );
+		             ///* DEBUG */ fprintf( stderr, "%s[%d]: GP = 0x%lx\n", __FILE__, __LINE__, this->gp );
         		    break;
     
 	        	default:
@@ -766,7 +766,7 @@ void Object::load_object()
       // DWARF format (.debug_info section)
       fix_global_symbol_modules_static_dwarf(elfHdr);
 
-      if (dynamic_addr_ && dynsym_scnp && dynstr_scnp && !isStripped)
+      if (dynamic_addr_ && dynsym_scnp && dynstr_scnp)
       {
          symdata = dynsym_scnp->get_data();
          strdata = dynstr_scnp->get_data();
@@ -1129,7 +1129,8 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
                break;
        }
    }
-   symVersions = versymSec->get_data().get_versyms();
+   if(versymSec)
+       symVersions = versymSec->get_data().get_versyms();
    if(verdefSec)
        symVersionDefs = verdefSec->get_data().get_verDefSym();
    if(verneedSec)
@@ -1183,10 +1184,12 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
           for(unsigned j = 0; j < syms.size(); j++){
               if(syms[j]->getAddr() == saddr){
 #if !defined(os_solaris)
-      if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
-          syms[j]->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
-      if(versionMapping.find(symVersions.get(i)) != versionMapping.end())
-          syms[j]->setVersions(versionMapping[symVersions.get(i)]);
+                  if(versymSec) {
+                      if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
+                          syms[j]->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
+                      if(versionMapping.find(symVersions.get(i)) != versionMapping.end())
+                          syms[j]->setVersions(versionMapping[symVersions.get(i)]);
+                  }
 #endif
                   syms[j]->setDynSymtab();
               }
@@ -1205,10 +1208,12 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
       
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, NULL, true, false);
 #if !defined(os_solaris)
-      if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
-          newsym->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
-      if(versionMapping.find(symVersions.get(i)) != versionMapping.end())
-          newsym->setVersions(versionMapping[symVersions.get(i)]);
+      if(versymSec) {
+          if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
+              newsym->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
+          if(versionMapping.find(symVersions.get(i)) != versionMapping.end())
+              newsym->setVersions(versionMapping[symVersions.get(i)]);
+      }
 #endif
       // register symbol in dictionary
          
