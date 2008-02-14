@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.199 2008/02/07 16:07:55 jaw Exp $
+// $Id: ast.C,v 1.200 2008/02/14 19:58:59 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -469,9 +469,9 @@ void AstNode::setUseCount()
 {
     // This code fails on IA-64. Until I can ask Todd about it, 
     // it's just getting commented out...
-#if defined(arch_ia64)
-    return;
-#endif
+    //#if defined(arch_ia64)
+    //return;
+    //#endif
 	if (useCount) {
 		// If the useCount is 1, then it means this node can
 		// be shared, and there is a copy. In that case, we assume
@@ -1455,25 +1455,25 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
     
 	// TODO: put register allocation here and have emitCall just
 	// move the return result.
-
+    
     if (retReg == REG_NULL) {
-		//emitFuncCall allocated tmp; we can use it, but let's see
-		// if we should keep it around.
+        //emitFuncCall allocated tmp; we can use it, but let's see
+        // if we should keep it around.
         retReg = tmp;
-		// from allocateAndKeep:
-		if (useCount > 1) {
-			// If use count is 0 or 1, we don't want to keep
-			// it around. If it's > 1, then we can keep the node
-			// (by construction) and want to since there's another
-			// use later.
-			gen.tracker()->addKeptRegister(gen, this, retReg);
-		}
-	}		
+        // from allocateAndKeep:
+        if (useCount > 1) {
+            // If use count is 0 or 1, we don't want to keep
+            // it around. If it's > 1, then we can keep the node
+            // (by construction) and want to since there's another
+            // use later.
+            gen.tracker()->addKeptRegister(gen, this, retReg);
+        }
+    }		
     else if (retReg != tmp) {
-       emitImm(orOp, tmp, 0, retReg, gen, noCost, gen.rs());
-       gen.rs()->freeRegister(tmp);
+        emitImm(orOp, tmp, 0, retReg, gen, noCost, gen.rs());
+        gen.rs()->freeRegister(tmp);
     }
-	decUseCount(gen);
+    decUseCount(gen);
     return true;
 }
 
@@ -2143,7 +2143,11 @@ bool AstOperandNode::canBeKept() const {
 bool AstCallNode::canBeKept() const {
     if (constFunc_) {
         for (unsigned i = 0; i < args_.size(); i++) {
-            if (!args_[i]->canBeKept()) return false;
+            if (!args_[i]->canBeKept()) {
+                fprintf(stderr, "AST %p: labelled const func but argument %d cannot be kept!\n",
+                        this, i);
+                return false;
+            }
         }
         return true;
     }
@@ -2359,14 +2363,14 @@ void AstNode::debugPrint(unsigned level) {
     
     pdstring type;
     if (dynamic_cast<AstNullNode *>(this)) type = "nullNode";
-    if (dynamic_cast<AstOperatorNode *>(this)) type = "operatorNode";
-    if (dynamic_cast<AstOperandNode *>(this)) type = "operandNode";
-    if (dynamic_cast<AstCallNode *>(this)) type = "callNode";
-    if (dynamic_cast<AstReplacementNode *>(this)) type = "replacementNode";
-    if (dynamic_cast<AstSequenceNode *>(this)) type = "sequenceNode";
-    if (dynamic_cast<AstInsnNode *>(this)) type = "insnNode";
-    if (dynamic_cast<AstMiniTrampNode *>(this)) type = "miniTrampNode";
-    if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";
+    else if (dynamic_cast<AstOperatorNode *>(this)) type = "operatorNode";
+    else if (dynamic_cast<AstOperandNode *>(this)) type = "operandNode";
+    else if (dynamic_cast<AstCallNode *>(this)) type = "callNode";
+    else if (dynamic_cast<AstReplacementNode *>(this)) type = "replacementNode";
+    else if (dynamic_cast<AstSequenceNode *>(this)) type = "sequenceNode";
+    else if (dynamic_cast<AstInsnNode *>(this)) type = "insnNode";
+    else if (dynamic_cast<AstMiniTrampNode *>(this)) type = "miniTrampNode";
+    else if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";
     
     
     ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d\n", type.c_str(), this, useCount, canBeKept());

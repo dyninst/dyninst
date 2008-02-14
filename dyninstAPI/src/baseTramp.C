@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.61 2008/01/17 16:40:32 legendre Exp $
+// $Id: baseTramp.C,v 1.62 2008/02/14 19:58:59 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -572,12 +572,12 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
         if (threadIndex) {
             trampGuardAddr = AstNode::operandNode(AstNode::DataIndir,
                                                   AstNode::operatorNode(plusOp,
-                                                                        AstNode::operatorNode(getAddrOp,
-                                                                                              proc()->trampGuardAST()),
                                                                         AstNode::operatorNode(timesOp,
                                                                                               threadIndex,
                                                                                               AstNode::operandNode(AstNode::Constant, 
-                                                                                                                   (void *)sizeof(unsigned)))));
+                                                                                                                   (void *)sizeof(unsigned))),
+                                                                        proc()->trampGuardAST()));
+
             /* At the moment, we can't directly specify the fact
                that we're loading 4 bytes instead of a normal
                (address-width) word. */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.5 2008/02/04 21:16:36 bernat Exp $
+// $Id: liveness.C,v 1.6 2008/02/14 19:58:59 bernat Exp $
 
 #if defined(cap_liveness)
 
@@ -71,6 +71,7 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
     // to the liveRegs input set. We handle this as a special case, and
     // look only for the flags representation (which is used to set
     // the IA32_FLAG_VIRTUAL_REGISTER "register"
+    assert(liveRegs.size() == getBitArray().size());
     if (addr_width == 4) {
         registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::dead;
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
@@ -292,6 +293,8 @@ void instPoint::calcLiveness() {
 
     postLiveRegisters_ = block_out;
 
+    assert(postLiveRegisters_.size());
+
     // We now want to do liveness analysis for straight-line code. 
         
     stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
@@ -363,6 +366,8 @@ void instPoint::calcLiveness() {
 
     stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
 
+    assert(postLiveRegisters_.size());
+
     return;
 }
 
@@ -400,8 +405,7 @@ bitArray instPoint::liveRegisters(callWhen when) {
     // return "everything could be live".
     if (func()->ifunc()->instLevel() == HAS_BR_INDIR ||
         func()->ifunc()->instLevel() == UNINSTRUMENTABLE) {
-        bitArray allOn(postLiveRegisters_.size());
-        fprintf(stderr, "BLAH BLAH BLAH\n");
+        bitArray allOn(registerSpace::getBitArray().size());
         allOn.set();
         return allOn;
     }

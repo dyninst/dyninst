@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.15 2008/01/31 18:01:48 legendre Exp $
+// $Id: addressSpace.C,v 1.16 2008/02/14 19:58:58 bernat Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -1097,9 +1097,8 @@ AstNodePtr AddressSpace::trampGuardAST() {
     }
     if (trampGuardAST_) return trampGuardAST_;
 
-    trampGuardAST_ = AstNode::operandNode(AstNode::DataAddr, 
+    trampGuardAST_ = AstNode::operandNode(AstNode::Constant,
                                           (void *)trampGuardBase_);
-
     return trampGuardAST_;
 }
 
