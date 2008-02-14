@@ -716,7 +716,10 @@ bool BPatch_process::detachInt(bool cont)
             __FILE__, __LINE__, getPid());
    }
   // __LOCK;
+   if (image)
+      image->removeAllModules();
    detached = llproc->detachProcess(cont);
+   BPatch::bpatch->unRegisterProcess(getPid(), this);
    return detached;
 }
 

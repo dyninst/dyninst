@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.178 2008/02/04 22:58:14 legendre Exp $
+// $Id: BPatch.C,v 1.179 2008/02/14 22:03:44 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1052,7 +1052,7 @@ void BPatch::registerExecExit(process *proc)
     assert(process);
    // build a new BPatch_image for this one
    if (process->image)
-       delete process->image;
+      process->image->removeAllModules();
    process->image = new BPatch_image(process);
 
    // The async pipe should be gone... handled in registerExecEntry
@@ -1077,7 +1077,6 @@ void BPatch::registerExecExit(process *proc)
         if (cb)
             (*cb)(process->threads[0]);
     }
-
 }
 
 void BPatch::registerNormalExit(process *proc, int exitcode)

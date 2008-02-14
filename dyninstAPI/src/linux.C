@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.266 2008/01/03 00:13:20 legendre Exp $
+// $Id: linux.C,v 1.267 2008/02/14 22:03:47 legendre Exp $
 
 #include <fstream>
 
@@ -489,7 +489,6 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
 
   if (!ev.lwp || stop_request) {
       // Process was deleted? Run away in any case...
-      fprintf(stderr, "%s[%d]:  got STOP REQUEST\n", FILE__, __LINE__);
       ev.type = evtShutDown;
       return true;
   }
@@ -994,6 +993,7 @@ void dyn_lwp::realLWP_detach_()
       fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", __FILE__, __LINE__, strerror(ptrace_errno));
     }
     proc()->sh->remove_lwp_from_poll_list(get_lwp_id());
+    proc()->sh->unregisterLWP(get_lwp_id());
 
     if (fd_ != INVALID_HANDLE_VALUE) {
         close(fd_);
@@ -1015,6 +1015,8 @@ void dyn_lwp::representativeLWP_detach_() {
    int ptrace_errno = 0;
     DBI_ptrace(PTRACE_DETACH, get_lwp_id(),1, SIGCONT, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__); 
     proc()->sh->remove_lwp_from_poll_list(get_lwp_id());
+    proc()->sh->unregisterLWP(get_lwp_id());
+
     return;
 }
 

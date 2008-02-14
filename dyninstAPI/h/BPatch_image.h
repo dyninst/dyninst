@@ -338,6 +338,7 @@ private:
     BPatch_module *findModule(mapped_module *base);
     BPatch_module *findOrCreateModule(mapped_module *base);
     void removeModule(BPatch_module *mod);
+    void removeAllModules();
 
     AddrToVarExprHash *AddrToVarExpr;
 

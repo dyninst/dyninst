@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.107 2008/02/07 16:07:55 jaw Exp $
+// $Id: BPatch_image.C,v 1.108 2008/02/14 22:03:45 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -1280,6 +1280,16 @@ BPatch_Vector<BPatch_point *> *BPatch_image::getUnresolvedControlFlowInt()
       }
    }
    return &unresolvedCF;
+}
+
+void BPatch_image::removeAllModules()
+{
+   BPatch_Vector<BPatch_module *>::iterator i;
+   for (i = modlist.begin(); i != modlist.end(); i++)
+   {
+      (*i)->handleUnload();
+   }
+   modlist.clear();
 }
 
 void BPatch_image::removeModule(BPatch_module *mod) 
