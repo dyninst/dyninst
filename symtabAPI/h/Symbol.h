@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.7 2008/02/07 16:07:56 jaw Exp $
+ * $Id: Symbol.h,v 1.8 2008/02/14 22:09:23 giri Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -150,6 +150,8 @@ public:
 
     DLLEXPORT Type  *getReturnType();
     DLLEXPORT bool	setReturnType(Type *);
+    DLLEXPORT bool  setFramePtrRegnum(int regnum);
+    DLLEXPORT int   getFramePtrRegnum();
     DLLEXPORT bool  setVersionFileName(std::string &fileName);
     DLLEXPORT bool  setVersions(std::vector<std::string> &vers);
     DLLEXPORT bool  setVersionNum(unsigned verNum);
@@ -188,8 +190,8 @@ private:
     std::vector<std::string> prettyNames;
     std::vector<std::string> typedNames;
     SymbolTag     tag_;
-
-    Type *retType_;
+    int           framePtrRegNum_;
+    Type          *retType_;
 
 public:
     localVarCollection *vars_;

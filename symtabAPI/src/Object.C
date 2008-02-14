@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.14 2008/02/04 18:22:59 giri Exp $
+// $Id: Object.C,v 1.15 2008/02/14 22:09:25 giri Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -150,11 +150,12 @@ DLLEXPORT Symbol::~Symbol ()
 
 DLLEXPORT Symbol::Symbol(const Symbol& s)
     : Annotatable <std::string, symbol_file_name_a>(), 
-    Annotatable <std::vector<std::string>, symbol_version_names_a>(), module_(s.module_), 
+    Annotatable <std::vector<std::string>, symbol_version_names_a>(), 
+    module_(s.module_), 
     type_(s.type_), linkage_(s.linkage_),
     addr_(s.addr_), sec_(s.sec_), size_(s.size_), upPtr_(s.upPtr_), isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
-    mangledNames(s.mangledNames), prettyNames(s.prettyNames), typedNames(s.typedNames), tag_(s.tag_), retType_(s.retType_), 
-    vars_(s.vars_), params_(s.params_) 
+    mangledNames(s.mangledNames), prettyNames(s.prettyNames), typedNames(s.typedNames), tag_(s.tag_), framePtrRegNum_(s.framePtrRegNum_),
+    retType_(s.retType_), vars_(s.vars_), params_(s.params_) 
 {
     Annotatable <std::string, symbol_file_name_a> &sfa = *this;
     const Annotatable <std::string, symbol_file_name_a> &sfa_src = s;
@@ -181,6 +182,7 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s) {
     mangledNames = s.mangledNames;
     prettyNames = s.prettyNames;
     typedNames = s.typedNames;
+    framePtrRegNum_ = s.framePtrRegNum_;
     vars_ = s.vars_;
     params_ = s.params_;
 
@@ -293,8 +295,8 @@ DLLEXPORT bool Symbol::clearIsInSymtab() {
 DLLEXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
-    upPtr_(NULL), isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), 
-    params_(NULL){
+    upPtr_(NULL), isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), 
+    retType_(NULL), vars_(NULL), params_(NULL) {
    // note: this ctor is called surprisingly often (when we have
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
 }
@@ -316,7 +318,7 @@ DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
     Section *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
     : type_(itype),
     linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), upPtr_(upPtr), isInDynsymtab_(isInDynSymtab),
-    isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
+    isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL), vars_(NULL), params_(NULL) {
     	module_ = new Module();
     	module_->setName(imodule);
     	mangledNames.push_back(iname);
@@ -327,7 +329,7 @@ DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
     Section *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
     : module_(mod), type_(itype),
     linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), upPtr_(upPtr), isInDynsymtab_(isInDynSymtab), 
-    isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
+    isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL), vars_(NULL), params_(NULL) {
     	mangledNames.push_back(iname);
 }
 
@@ -455,6 +457,15 @@ DLLEXPORT Type *Symbol::getReturnType(){
 DLLEXPORT bool  Symbol::setReturnType(Type *retType){
 	retType_ = retType;
 	return true;
+}
+
+DLLEXPORT bool Symbol::setFramePtrRegnum(int regnum){
+    framePtrRegNum_ = regnum;
+    return true;
+}
+
+DLLEXPORT int Symbol::getFramePtrRegnum(){
+    return framePtrRegNum_;
 }
 
 DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName){

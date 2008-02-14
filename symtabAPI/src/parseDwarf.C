@@ -389,6 +389,72 @@ void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLengt
 	fprintf( stderr, "\n" );
 	} /* end dumpLocListAddrRanges */
 
+int convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, Symtab *proc /* process parameter only needed on x86_64*/) {
+	/* Until such time as we see more-complicated location lists, assume single entries
+	   consisting of a register name.  Using an AST for this is massive overkill, but if
+	   we need to handle more complicated frame base calculations later, the infastructure
+	   will be in place. */
+	   
+	/* There is only one location. */
+	if (listLength != 1) {
+		//bpwarn("%s[%d]: unable to handle location lists of more than one element in frame base.\n", __FILE__, __LINE__);
+		return -1 ;
+	}
+
+	Dwarf_Locdesc locationDescriptor = locationList[0];
+	
+	/* It is defined by a single operation. */
+	if (locationDescriptor.ld_cents != 1) {
+		//bpwarn("%s[%d]: unable to handle multioperation locations in frame base.\n", __FILE__, __LINE__ );
+		return -1;
+	}
+	Dwarf_Loc location = locationDescriptor.ld_s[0];
+
+	/* That operation is naming a register. */
+	int registerNumber = 0;	
+	if( DW_OP_reg0 <= location.lr_atom && location.lr_atom <= DW_OP_reg31 ) {
+		    registerNumber = DWARF_TO_MACHINE_ENC(location.lr_atom - DW_OP_reg0,
+												  proc);
+		}
+	else if( DW_OP_breg0 <= location.lr_atom && location.lr_atom <= DW_OP_breg31 ) {
+		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_atom - DW_OP_breg0,
+											  proc);
+		if( location.lr_number != 0 ) {
+			/* Actually, we should be able whip up an AST node for this. */
+			return -1;
+		}
+	}
+	else if( location.lr_atom == DW_OP_regx ) {
+		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_number,
+											  proc);
+		}
+	else if( location.lr_atom == DW_OP_bregx ) {
+		registerNumber = DWARF_TO_MACHINE_ENC(location.lr_number,
+											  proc);
+		if( location.lr_number2 != 0 ) {
+			/* Actually, we should be able whip up an AST node for this. */
+			return -1;
+		}
+	}
+	else {
+		return -1;
+	}
+
+    return registerNumber;
+
+	/* We have to make sure no arithmetic is actually done to the frame pointer,
+	   so add zero to it and shove it in some other register. */
+/*	AstNodePtr constantZero = AstNode::operandNode(AstNode::Constant, (void *)0);
+	AstNodePtr framePointer = AstNode::operandNode(AstNode::DataReg, (void *)(long unsigned int)registerNumber);
+	AstNodePtr moveFPtoDestination = AstNode::operatorNode(plusOp,
+														 constantZero,
+														 framePointer);
+	
+	return moveFPtoDestination;
+    */
+} /* end convertFrameBaseToAST(). */
+
+
 #if defined(arch_x86_64)
 bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, 
                                                  Dwarf_Signed listLength, 
@@ -452,7 +518,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList,
 			if( loc != NULL ) { 
 				loc->stClass = storageRegOffset;
 				loc->refClass = storageNoRef;
-            loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
+                loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
 				loc->frameOffset = 0;
 				return true;
 			}
@@ -496,7 +562,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList,
 				if( loc != NULL ) { 
 					loc->stClass = storageRegOffset;
 					loc->refClass = storageNoRef;
-               loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
+                    loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
 					loc->frameOffset = 0;
 				}
 				return true;
@@ -970,6 +1036,8 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				//dwarf_printf( "Failed to find function '%s'\n", functionName );
 				parsedChild = true;
 
+                //Add the function to the list of functions and continue parsing the FDE ??
+
 				if( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
 				dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
 				break;
@@ -1010,6 +1078,12 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				dwarf_dealloc( dbg, frameBaseAttribute, DW_DLA_ATTR );
+
+#if defined(ia64_unknown_linux2_4)
+				/* Convert location list to an AST for later code generation. */
+                newFunction->setFramePtrRegnum(convertFrameBaseToAST( locationList[0], listLength, objFile ));
+//				newFunction->lowlevel_func()->ifunc()->framePointerCalculator = convertFrameBaseToAST( locationList[0], listLength, proc );
+#endif
 				
 				deallocateLocationList( dbg, locationList, listLength );
 			} /* end if this DIE has a frame base attribute */
@@ -1967,7 +2041,7 @@ void Object::parseDwarfTypes( Symtab *objFile) {
 
 	/* Start the dwarven debugging. */
 	Dwarf_Debug dbg;
-	Module *mod = NULL;
+	Module *mod = NULL, *fixUnknownMod = NULL;
 
 	int status = dwarf_elf_init( elfHdr.e_elfp(), DW_DLC_READ, & pd_dwarf_handler, getErrFunc(), & dbg, NULL );
 	DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error initializing libdwarf.\n", __FILE__, __LINE__ );
@@ -2018,6 +2092,8 @@ void Object::parseDwarfTypes( Symtab *objFile) {
 			    continue;
 		    }
 		}
+        if(!fixUnknownMod)
+            fixUnknownMod = mod;
 	
 		Dwarf_Signed cnt;
 		char **srcfiles;
@@ -2040,26 +2116,26 @@ void Object::parseDwarfTypes( Symtab *objFile) {
 		dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
 	} /* end iteration over compilation-unit headers. */
 
-	if(!mod)
-	    return;
+    if(!fixUnknownMod)
+        return;
 
-        /* Fix type list. */
-        typeCollection *moduleTypes = mod->getModuleTypes();
-	assert(moduleTypes);
-        hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
-	for(;typeIter!=moduleTypes->typesByID.end();typeIter++){
-	    typeIter->second->fixupUnknowns(mod);
-	} /* end iteratation over types. */
-	
-        /* Fix the types of variables. */   
-        std::string variableName;
-        hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
-        for(;variableIter!=moduleTypes->globalVarsByName.end();variableIter++){ 
-	    if(variableIter->second->getDataClass() == dataUnknownType && 
-  	        moduleTypes->findType( variableIter->second->getID() ) != NULL ) {
-	        moduleTypes->globalVarsByName[ variableIter->first ] = moduleTypes->findType( variableIter->second->getID() );
-	    } /* end if data class is unknown but the type exists. */
-	} /* end iteration over variables. */
+    /* Fix type list. */
+    typeCollection *moduleTypes = fixUnknownMod->getModuleTypes();
+    assert(moduleTypes);
+    hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
+    for(;typeIter!=moduleTypes->typesByID.end();typeIter++){
+        typeIter->second->fixupUnknowns(fixUnknownMod);
+    } /* end iteratation over types. */
+
+    /* Fix the types of variables. */   
+    std::string variableName;
+    hash_map< std::string, Type * >::iterator variableIter = moduleTypes->globalVarsByName.begin();
+    for(;variableIter!=moduleTypes->globalVarsByName.end();variableIter++){ 
+        if(variableIter->second->getDataClass() == dataUnknownType && 
+                moduleTypes->findType( variableIter->second->getID() ) != NULL ) {
+            moduleTypes->globalVarsByName[ variableIter->first ] = moduleTypes->findType( variableIter->second->getID() );
+        } /* end if data class is unknown but the type exists. */
+    } /* end iteration over variables. */
 
 
 // Do Not clean up Elf. We need the Elf pointer when we are writing back to a file again
