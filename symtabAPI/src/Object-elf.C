@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.32 2008/02/04 18:23:05 giri Exp $
+ * $Id: Object-elf.C,v 1.33 2008/02/14 22:03:53 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2523,7 +2523,7 @@ Object::~Object()
    relocation_table_.clear();
    fbt_.clear();
    for(i=0; i<allSectionHdrs.size();i++)
-       free(allSectionHdrs[i]);
+      delete allSectionHdrs[i];
    allSectionHdrs.clear();
    symbolNamesByAddr.clear();
 #if !defined(os_solaris)
