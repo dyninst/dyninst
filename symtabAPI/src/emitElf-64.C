@@ -926,6 +926,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *shdr)
 	    //elf_update(newElf, ELF_C_NULL);
 	    
     	newdata->d_align = 4;
+        newdata->d_off = 0;
 	    newdata->d_version = 1;
 	    
 	    prevshdr = newshdr;

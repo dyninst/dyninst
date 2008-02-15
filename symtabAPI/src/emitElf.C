@@ -1056,6 +1056,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
             newdata64->d_size = nonLoadableSecs[i]->getSecSize();
             newshdr->sh_size = newdata64->d_size;
             newdata64->d_align = 4;
+            newdata64->d_off = 0;
             newdata64->d_version = 1;
             memcpy(newdata, newdata64, sizeof(Elf_Data));
         }
@@ -1064,6 +1065,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
             newdata->d_size = nonLoadableSecs[i]->getSecSize();
             newshdr->sh_size = newdata->d_size;
             newdata->d_align = 4;
+            newdata->d_off = 0;
             newdata->d_version = 1;
         }
 	    
