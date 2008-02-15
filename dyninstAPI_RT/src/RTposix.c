@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.33 2008/01/31 18:01:56 legendre Exp $
+ * $Id: RTposix.c,v 1.34 2008/02/15 23:44:36 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -90,7 +90,7 @@ void libdyninstAPI_RT_init()
    mark_heaps_exec();
 #endif
 
-   RTmutatedBinary_init();
+   /* RTmutatedBinary_init(); */
    
    if (libdyninstAPI_RT_init_localCause != -1 && 
        libdyninstAPI_RT_init_localPid != -1 &&
