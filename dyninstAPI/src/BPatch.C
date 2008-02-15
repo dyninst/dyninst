@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.179 2008/02/14 22:03:44 legendre Exp $
+// $Id: BPatch.C,v 1.180 2008/02/15 17:27:38 giri Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -51,7 +51,7 @@
 #include "signalhandler.h"
 #include "stats.h"
 #include "BPatch.h"
-#include "BPatch_typePrivate.h"
+//#include "BPatch_typePrivate.h"
 #include "process.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_collections.h"
@@ -141,12 +141,29 @@ BPatch::BPatch()
      */
     type_Error   = BPatch_type::createFake("<error>");
     type_Untyped = BPatch_type::createFake("<no type>");
+    
+    /*
+     * Initialize hash table of API types.
+     */
+    APITypes = BPatch_typeCollection::getGlobalTypeCollection();
 
+    stdTypes = BPatch_typeCollection::getGlobalTypeCollection();
+    vector<Type *> *sTypes = Symtab::getAllstdTypes();
+    for(unsigned i=0; i< sTypes->size(); i++)
+        stdTypes->addType(new BPatch_type((*sTypes)[i]));
+
+    builtInTypes = new BPatch_builtInTypeCollection;
+    sTypes = Symtab::getAllbuiltInTypes();
+    for(unsigned i=0; i< sTypes->size(); i++)
+        builtInTypes->addBuiltInType(new BPatch_type((*sTypes)[i]));
+
+#if 0
+    // Initialization done in symtabAPI
     /*
      * Initialize hash table of standard types.
      */
     BPatch_type *newType;
-    stdTypes = BPatch_typeCollection::getGlobalTypeCollection();
+    stdTypes = typeCollection::getGlobalTypeCollection();
     stdTypes->addType(newType = new BPatch_typeScalar(-1, sizeof(int), "int"));
     newType->decrRefCount();
     BPatch_type *charType = new BPatch_typeScalar(-2, sizeof(char), "char");
@@ -169,16 +186,11 @@ BPatch::BPatch()
     newType->decrRefCount();
 
     /*
-     * Initialize hash table of API types.
-     */
-    APITypes = BPatch_typeCollection::getGlobalTypeCollection();
-
-    /*
      *  Initialize hash table of Built-in types.
      *  Negative type numbers defined in the gdb stab-docs
      */
      
-    builtInTypes = new BPatch_builtInTypeCollection;
+    builtInTypes = new builtInTypeCollection;
     
     // NOTE: integral type  mean twos-complement
     // -1  int, 32 bit signed integral type
@@ -306,6 +318,8 @@ BPatch::BPatch()
     // -34 integer*8, 64 bit signed integral type
     builtInTypes->addBuiltInType(newType = new BPatch_typeScalar(-34, 8, "integer*8"));
     newType->decrRefCount();
+
+#endif
 
     loadNativeDemangler();
 
@@ -1636,20 +1650,21 @@ BPatch_type * BPatch::createEnumInt( const char * name,
 				     BPatch_Vector<char *> &elementNames,
 				     BPatch_Vector<int> &elementIds)
 {
-
     if (elementNames.size() != elementIds.size()) {
       return NULL;
     }
-
-    BPatch_fieldListType * newType = new BPatch_typeEnum(name);
+    string typeName = name;
+    vector<pair<string, int> *>elements;
+    for (unsigned int i=0; i < elementNames.size(); i++) 
+        elements.push_back(new pair<string, int>(elementNames[i], elementIds[i]));
+    
+    Type *typ = typeEnum::create( typeName, elements);
+    if (!typ) return NULL;
+    
+    BPatch_type *newType = new BPatch_type(typ);
     if (!newType) return NULL;
     
     APITypes->addType(newType);
-
-    // ADD components to type
-    for (unsigned int i=0; i < elementNames.size(); i++) {
-        newType->addField(elementNames[i], elementIds[i]);
-    }
 
     return(newType);
 }
@@ -1667,16 +1682,18 @@ BPatch_type * BPatch::createEnumInt( const char * name,
 BPatch_type * BPatch::createEnumAutoId( const char * name, 
 				        BPatch_Vector<char *> &elementNames)
 {
-    BPatch_fieldListType * newType = new BPatch_typeEnum(name);
-
+    string typeName = name;
+    vector<pair<string, int> *>elements;
+    for (unsigned int i=0; i < elementNames.size(); i++) 
+        elements.push_back(new pair<string, int>(elementNames[i], i));
+    
+    Type *typ = typeEnum::create( typeName, elements);
+    if (!typ) return NULL;
+    
+    BPatch_type *newType = new BPatch_type(typ);
     if (!newType) return NULL;
     
     APITypes->addType(newType);
-
-    // ADD components to type
-    for (unsigned int i=0; i < elementNames.size(); i++) {
-        newType->addField(elementNames[i], i);
-    }
 
     return(newType);
 }
@@ -1696,35 +1713,27 @@ BPatch_type * BPatch::createStructInt( const char * name,
 				       BPatch_Vector<BPatch_type *> &fieldTypes)
 {
     unsigned int i;
-    int offset, size;
-
-    offset = size = 0;
+    
     if (fieldNames.size() != fieldTypes.size()) {
       return NULL;
     }
 
-    //Compute the size of the struct
-    for (i=0; i < fieldNames.size(); i++) {
-        BPatch_type *type = fieldTypes[i];
-        size = type->getSize();
-        size += size;
-    }
-  
-    BPatch_fieldListType *newType = new BPatch_typeStruct(name);
-    if (!newType) return NULL;
+    string typeName = name;
+    vector<pair<string, Type *> *> fields;
+    for(i=0; i<fieldNames.size(); i++)
+    {
+        if(!fieldTypes[i])
+	    return NULL;
+        fields.push_back(new pair<string, Type *> (fieldNames[i], fieldTypes[i]->getSymtabType()));
+    }	
     
-    APITypes->addType(newType);
+    Type *typ = typeStruct::create(typeName, fields);
+    if (!typ) return NULL;
+    
+    BPatch_type *newType = new BPatch_type(typ);
+    if (!newType) return NULL;
 
-    // ADD components to type
-    size = 0;
-    for (i=0; i < fieldNames.size(); i++) {
-        BPatch_type *type = fieldTypes[i];
-        size = type->getSize();
-        newType->addField(fieldNames[i], type->getDataClass(), type, offset, size);
-  
-        // Calculate next offset (in bits) into the struct
-        offset += (size * 8);
-    }
+    APITypes->addType(newType);
 
     return(newType);
 }
@@ -1744,34 +1753,30 @@ BPatch_type * BPatch::createUnionInt( const char * name,
 				      BPatch_Vector<BPatch_type *> &fieldTypes)
 {
     unsigned int i;
-    int offset, size, newsize;
-    offset = size = newsize = 0;
-
+    
     if (fieldNames.size() != fieldTypes.size()) {
-        return NULL;
+      return NULL;
     }
 
-    // Compute the size of the union
-    for (i=0; i < fieldTypes.size(); i++) {
-	BPatch_type *type = fieldTypes[i];
-	newsize = type->getSize();
-	if(size < newsize) size = newsize;
-    }
-  
-    BPatch_fieldListType * newType = new BPatch_typeUnion(name);
+    string typeName = name;
+    vector<pair<string, Type *> *> fields;
+    for(i=0; i<fieldNames.size(); i++)
+    {
+        if(!fieldTypes[i])
+	    return NULL;
+        fields.push_back(new pair<string, Type *> (fieldNames[i], fieldTypes[i]->getSymtabType()));
+    }	
+    
+    Type *typ = typeUnion::create(typeName, fields);
+    if (!typ) return NULL;
+    
+    BPatch_type *newType = new BPatch_type(typ);
     if (!newType) return NULL;
 
     APITypes->addType(newType);
 
-    // ADD components to type
-    for (i=0; i < fieldNames.size(); i++) {
-        BPatch_type *type = fieldTypes[i];
-	size = type->getSize();
-	newType->addField(fieldNames[i], type->getDataClass(), type, offset, size);
-    }  
     return(newType);
-}
-
+}    
 
 /*
  * createArray for Arrays and SymTypeRanges
@@ -1787,16 +1792,17 @@ BPatch_type * BPatch::createArrayInt( const char * name, BPatch_type * ptr,
 {
 
     BPatch_type * newType;
-
-    if (!ptr) {
+    if (!ptr) 
         return NULL;
-    } else {
-        newType = new BPatch_typeArray(ptr, low, hi, name);
-        if (!newType) return NULL;
-    }
+        
+    string typeName = name;
+    Type *typ = typeArray::create(typeName, ptr->getSymtabType(), low, hi);
+    if (!typ) return NULL;
+    
+    newType = new BPatch_type(typ);
+    if (!newType) return NULL;
 
     APITypes->addType(newType);
-
     return newType;
 }
 
@@ -1812,12 +1818,18 @@ BPatch_type * BPatch::createArrayInt( const char * name, BPatch_type * ptr,
 BPatch_type * BPatch::createPointerInt(const char * name, BPatch_type * ptr,
                                        int /*size*/)
 {
-
-    BPatch_type * newType = new BPatch_typePointer(ptr, name);
-    if(!newType) return NULL;
+    BPatch_type * newType;
+    if(!ptr)
+        return NULL;
+    
+    string typeName = name;
+    Type *typ = typePointer::create(typeName, ptr->getSymtabType());
+    if (!typ) return NULL;
+    
+    newType = new BPatch_type(typ);
+    if (!newType) return NULL;
 
     APITypes->addType(newType);
-  
     return newType;
 }
 
@@ -1833,11 +1845,16 @@ BPatch_type * BPatch::createPointerInt(const char * name, BPatch_type * ptr,
 
 BPatch_type * BPatch::createScalarInt( const char * name, int size)
 {
-    BPatch_type * newType = new BPatch_typeScalar(size, name);
+    BPatch_type * newType;
+    
+    string typeName = name;
+    Type *typ = typeScalar::create(typeName, size);
+    if (!typ) return NULL;
+    
+    newType = new BPatch_type(typ);
     if (!newType) return NULL;
 
     APITypes->addType(newType);
- 
     return newType;
 }
 
@@ -1852,12 +1869,18 @@ BPatch_type * BPatch::createScalarInt( const char * name, int size)
  */
 BPatch_type * BPatch::createTypedefInt( const char * name, BPatch_type * ptr)
 {
-    BPatch_type * newType = new BPatch_typeTypedef(ptr, name);
-
+    BPatch_type * newType;
+    if(!ptr)
+        return NULL;
+    
+    string typeName = name;
+    Type *typ = typeTypedef::create(typeName, ptr->getSymtabType());
+    if (!typ) return NULL;
+    
+    newType = new BPatch_type(typ);
     if (!newType) return NULL;
 
     APITypes->addType(newType);
-  
     return newType;
 }
 
