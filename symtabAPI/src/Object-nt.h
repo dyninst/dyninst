@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.17 2008/02/01 17:05:34 legendre Exp $
+ * $Id: Object-nt.h,v 1.18 2008/02/15 23:44:44 legendre Exp $
 ************************************************************************/
 
 
@@ -50,7 +50,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include "symtabAPI/h/util.h"
+#include "symtabAPI/h/symutil.h"
 
 #include <stdio.h>
 #include <stdlib.h>

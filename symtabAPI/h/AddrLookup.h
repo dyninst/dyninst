@@ -32,7 +32,7 @@
 #ifndef __AddrLookup_H__
 #define __AddrLookup_H__
 
-#include "util.h"
+#include "symutil.h"
 #include "Symtab.h"
 
 #include <string>

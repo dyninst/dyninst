@@ -32,7 +32,7 @@
 #ifndef Archive_h
 #define Archive_h
  
-#include "util.h" 
+#include "symutil.h" 
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>

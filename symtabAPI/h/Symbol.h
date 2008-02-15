@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.8 2008/02/14 22:09:23 giri Exp $
+ * $Id: Symbol.h,v 1.9 2008/02/15 23:44:40 legendre Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -47,10 +47,10 @@
 #include <algorithm>
 #include <iostream>
 
-#include "util.h"
+#include "symutil.h"
 #include "Type.h"
 
-#include "dynutil/h/Annotatable.h"
+#include "Annotatable.h"
 
 typedef struct {} symbol_file_name_a;
 typedef struct {} symbol_version_names_a;

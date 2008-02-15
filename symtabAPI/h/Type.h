@@ -33,7 +33,7 @@
 #define Type_h_
 
 #include <assert.h>
-#include "util.h"
+#include "symutil.h"
 
 namespace Dyninst{
 namespace SymtabAPI{

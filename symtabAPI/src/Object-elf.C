@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.34 2008/02/14 22:09:27 giri Exp $
+ * $Id: Object-elf.C,v 1.35 2008/02/15 23:44:43 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -60,7 +60,7 @@ using namespace std;
 #include "libdwarf.h"
 #endif
 
-//#include "util.h"
+//#include "symutil.h"
 #include "common/h/pathName.h"
 #include "Collections.h"
 #if defined(TIMED_PARSE)
