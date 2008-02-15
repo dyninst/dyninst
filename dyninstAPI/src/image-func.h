@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.33 2008/01/16 22:01:31 legendre Exp $
+// $Id: image-func.h,v 1.34 2008/02/15 17:27:45 giri Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -491,15 +491,15 @@ class image_func : public codeRange {
    // in the base tramp.  
    pdvector< Address > allocs;
    
-   // Since the IA-64 ABI does not define a frame pointer register,
-   // we use DWARF debug records (DW_AT_frame_base entries) to 
-   // construct an AST which calculates the frame pointer.
-   AstNodePtr framePointerCalculator;
-   
    // Place to store the results of doFloatingPointStaticAnalysis().
    // This way, if they are ever needed in a mini-tramp, emitFuncJump()
    // for example, the expensive operation doesn't need to happen again.
    bool * usedFPregs;
+   
+   // Since the IA-64 ABI does not define a frame pointer register,
+   // we use DWARF debug records (DW_AT_frame_base entries) to 
+   // construct an AST which calculates the frame pointer.
+   int getFramePointerCalculator();
 #endif
 
    // Ifdef relocation... but set at parse time.

@@ -232,7 +232,15 @@ pdvector< Address > & int_function::getAllocs() {
 	} /* end getAllocs() */
 
 AstNodePtr int_function::getFramePointerCalculator() {
-	return ifunc_->framePointerCalculator;
+    if(ifunc_->getFramePointerCalculator() == -1)
+        return AstNodePtr();
+
+    AstNodePtr constantZero = AstNode::operandNode(AstNode::Constant, (void *)0);
+	AstNodePtr framePointer = AstNode::operandNode(AstNode::DataReg, (void *)(long unsigned int)ifunc_->getFramePointerCalculator());
+	AstNodePtr moveFPtoDestination = AstNode::operatorNode(plusOp,
+														 constantZero,
+														 framePointer);
+	return moveFPtoDestination;
 }
 	
 bool * int_function::getUsedFPregs() {

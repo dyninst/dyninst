@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.48 2007/12/12 22:20:45 roundy Exp $
+// $Id: image-func.C,v 1.49 2008/02/15 17:27:44 giri Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -140,7 +140,6 @@ image_func::image_func(const pdstring &symbol,
   retStatus_(RS_UNSET),
   isTrap(false),
 #if defined(arch_ia64)
-  framePointerCalculator(),
   usedFPregs(NULL),
 #endif
   instLevel_(NORMAL),
@@ -188,7 +187,6 @@ image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
   retStatus_(RS_UNSET),
   isTrap(false),
 #if defined(arch_ia64)
-  framePointerCalculator(),
   usedFPregs(NULL),
 #endif
   instLevel_(NORMAL),
@@ -215,6 +213,12 @@ image_func::~image_func() {
   /* TODO */ 
   delete usedRegisters;
 }
+
+#if defined(arch_ia64)
+int image_func::getFramePointerCalculator(){
+    return sym_->getFramePtrRegnum();
+}
+#endif
 
 // Two-copy version... can't really do better.
 bool image_func::addSymTabName(pdstring name, bool isPrimary) {
