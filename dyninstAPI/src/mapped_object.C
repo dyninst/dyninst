@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.32 2008/02/07 16:07:55 jaw Exp $
+// $Id: mapped_object.C,v 1.33 2008/02/15 17:27:41 giri Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -566,7 +566,7 @@ const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const pdstr
         }
         assert(everyUniqueVariable[var]);
     }
-    assert(allVarsByPrettyName.defines(varname));
+    //assert(allVarsByPrettyName.defines(varname));
     delete img_vars;
     return allVarsByPrettyName[varname];
 } 
@@ -599,7 +599,7 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const pds
       }
       assert(everyUniqueVariable[var]);
   }
-  assert(allVarsByMangledName.defines(varname));
+  //assert(allVarsByMangledName.defines(varname));
   delete img_vars;
   return allVarsByMangledName[varname];
 } 

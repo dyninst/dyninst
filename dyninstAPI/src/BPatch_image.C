@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.108 2008/02/14 22:03:45 legendre Exp $
+// $Id: BPatch_image.C,v 1.109 2008/02/15 17:27:40 giri Exp $
 
 #define BPATCH_FILE
 
@@ -62,7 +62,6 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_statement.h"
 #include "symtabAPI/h/LineInformation.h"
-#include "symtabAPI/src/Collections.h"
 #include "BPatch_function.h" 
 
 #include "addressSpace.h"
@@ -788,32 +787,39 @@ BPatch_function *BPatch_image::findFunctionInt(unsigned long addr)
 
 BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showError)
 {
-   pdvector<int_variable *> vars;
-   AddressSpace *as = addSpace->getAS();
+    pdvector<int_variable *> vars;
+    AddressSpace *as = addSpace->getAS();
 
-   if (!as->findVarsByAll(name,vars)) {
-      // _name?
-      pdstring under_name = pdstring("_") + pdstring(name);
-      if (!as->findVarsByAll(under_name,vars)) {
-         // "default Namespace prefix?
-         if (defaultNamespacePrefix) {
-            pdstring prefix_name = pdstring(defaultNamespacePrefix) + pdstring(".") + pdstring(name);
-            if (!as->findVarsByAll(prefix_name, vars) ) {
-               if (showError) {
-                  pdstring msg = pdstring("Unable to find variable: ") + pdstring(prefix_name);
-                  showErrorCallback(100, msg);
-               }
-               return NULL;
+    if (!as->findVarsByAll(name,vars)) {
+        // _name?
+        pdstring under_name = pdstring("_") + pdstring(name);
+        if (!as->findVarsByAll(under_name,vars)) {
+            // "default Namespace prefix?
+            string defaultNamespacePref = as->getAOut()->parse_img()->getObject()->getDefaultNamespacePrefix();
+            if (defaultNamespacePref != "") {
+                pdstring prefix_name = pdstring(defaultNamespacePref.c_str()) + pdstring(".") + pdstring(name);
+                if (!as->findVarsByAll(prefix_name, vars) ) {
+                    if (showError) {
+                        pdstring msg = pdstring("Unable to find variable: ") + pdstring(prefix_name);
+                        showErrorCallback(100, msg);
+                    }
+                    return NULL;
+                }
+            } else {
+                if (showError) {
+                    pdstring msg = pdstring("Unable to find variable: ") + pdstring(name);
+                    showErrorCallback(100, msg);
+                }
+                return NULL;
             }
-         } else {
+        } else {
             if (showError) {
-               pdstring msg = pdstring("Unable to find variable: ") + pdstring(name);
-               showErrorCallback(100, msg);
+                pdstring msg = pdstring("Unable to find variable: ") + pdstring(name);
+                showErrorCallback(100, msg);
             }
             return NULL;
-         }
-      }
-   }
+        }
+    }
 
    assert(vars.size());
 
@@ -923,16 +929,16 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
    if ( gsVar == NULL ) {
       /* Try finding it with the function's scope prefixed. */
 
-      if ( (lastScoping = strrchr( mangledName, ':' )) != NULL ) {
-         * (lastScoping + sizeof(char)) = '\0';
-         char scopedName[200];
-         memmove( scopedName, mangledName, strlen( mangledName ) );
-         memmove( scopedName + strlen( mangledName ), name, strlen( name ) );
-         scopedName[ strlen( mangledName ) + strlen( name ) ] = '\0';
-         bperr( "Searching for scoped name '%s'\n", scopedName );
-         gsVar = findVariable( scopedName ); 
-      }
-      }
+        if( (lastScoping = strrchr( mangledName, ':' )) != NULL ) {
+            * (lastScoping + sizeof(char)) = '\0';
+            char scopedName[200];
+            memmove( scopedName, mangledName, strlen( mangledName ) );
+            memmove( scopedName + strlen( mangledName ), name, strlen( name ) );
+            scopedName[ strlen( mangledName ) + strlen( name ) ] = '\0';
+            bperr( "Searching for scoped name '%s'\n", scopedName );
+            gsVar = findVariable( scopedName ); 
+        }
+    }
     return gsVar;
 }
 
