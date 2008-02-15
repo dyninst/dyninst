@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.45 2008/02/07 16:07:55 jaw Exp $
+ * $Id: image-flowGraph.C,v 1.46 2008/02/15 23:44:33 legendre Exp $
  */
 
 #include <stdio.h>
@@ -1378,13 +1378,14 @@ bool image_func::buildCFG(
 
                 if( currAddr >= funcEnd )
                     funcEnd = ah.peekNext();
-            
-                parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
+                /*
+                parsing_printf("... making new exit point at 0x%lx\n", currAddr);
                 p = new image_instPoint( currAddr,
                                          ah.getInstruction(),
                                          this,
                                          functionExit);
                 funcReturns.push_back( p );
+                */
                 retStatus_ = RS_NORETURN;
                 break;
             }
