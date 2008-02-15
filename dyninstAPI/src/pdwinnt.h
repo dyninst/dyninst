@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.17 2006/05/22 04:45:22 jaw Exp $
+// $Id: pdwinnt.h,v 1.18 2008/02/15 17:27:35 giri Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -90,7 +90,6 @@ typedef unsigned long internal_thread_t;
 typedef CRITICAL_SECTION EventLock_t;
 typedef HANDLE EventCond_t;
 
-#include <winsock2.h>
 #define ssize_t int
 typedef SOCKET PDSOCKET;
 #define DYNINST_ASYNC_PORT 28003

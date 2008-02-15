@@ -53,7 +53,7 @@
 #include "BPatch_statement.h"
 #include "BPatch_collections.h"
 #include "common/h/String.h"
-#include "BPatch_typePrivate.h"    // For BPatch_type related stuff
+#include "symtabAPI/h/Type.h"    // For BPatch_type related stuff
 
 #include "mapped_module.h"
 #include "mapped_object.h"
@@ -260,36 +260,54 @@ BPatch_module::~BPatch_module()
 }
 
 /************Changes still to be made**************************
- * Remove moduleTypes from BPatch_module
- * Remove API Types, builtin Types, std types from BPatch
- * Add new types directly to symtabAPI from BPacth::
- * Make sure fixupUnknown is performed for all functions
- * Remove the type parsing stuff from here
- * class BPatch_type:public class Type
- * class BPatch_field:public class field
- * class BPacth_cblock:public class CBlock
- * Change the classes to use symtabAPI classes
- * Add the locationList to framePtr conversions on all platforms
+ * Build moduleTypes from Module::moduleTypes //DONE
+ * Build API Types, builtin Types, std types in BPatch from symtab//DONE
+ * Add new types directly to symtabAPI from BPatch:: //DONE
+ * Make sure fixupUnknown is performed for all functions //I THINK SO(??)
+ * Remove the type parsing stuff from here //NOT CALLED
+ * class BPatch_type:public class Type //DONE
+ * class BPatch_field:public class field //DONE
+ * class BPatch_cblock:public class CBlock //DONE
+ * Change the classes to use symtabAPI classes //DONE
+ * Add the locationList to framePtr conversions on all platforms in dyninst
  * Store the lowAddr, hiAddr in loc_t for variables
- * Store the ranges of function addresse info from DWARF
- * Based on the address passed construct an ASTNodeptr and return
+ * Store the ranges of function address info from DWARF in SymtabAPI
+ * Based on the address passed, construct an ASTNodeptr and return
  * To add new features: location lists, variablesInScope
- * Change storage classes wherever used in dyninstAPI
- * BPatch_variableExpr->type is basically AstNodePtr->type. change appropriately.
- * windows is it done on a module-by-module basis(chekcing now)
+ * Change storage classes wherever used in dyninstAPI  //DONE(Check again)
+ * BPatch_variableExpr->type is basically AstNodePtr->type. change appropriately.//DONE(check)
+ * Windows: Is it done on a module-by-module basis??(checking now)
+ * Set return types for all functions from Symbol/ Access return types directly from Symbol class//DONE
  */
 
-void BPatch_module::parseTypesIfNecessary() 
-{
-   if ( moduleTypes != NULL ) { 
-      return;
-   }
+bool BPatch_module::parseTypesIfNecessary() {
+    if( moduleTypes != NULL ) { 
+    	return false;
+    	}
+    if (!isValid()) return false;
 
-   if (!isValid()) return;
+    mod->pmod()->mod()->exec()->parseTypesNow();
+    moduleTypes = BPatch_typeCollection::getModTypeCollection(this);
+    vector<Type *> *modtypes = mod->pmod()->mod()->getAllTypes();
+    if(!modtypes) return false;
+    for(unsigned i=0; i<modtypes->size(); i++) {
+        Type *typ = (*modtypes)[i];
+        BPatch_type *type = new BPatch_type(typ);
+        moduleTypes->addType(type);
+    }
+    vector<pair<string, Type *> > *globalVars = mod->pmod()->mod()->getAllGlobalVars();
+    if(!globalVars) return false;
+    for(unsigned i=0; i<globalVars->size(); i++){
+        if(!(*globalVars)[i].second->getUpPtr())
+            BPatch_type *type = new BPatch_type((*globalVars)[i].second);
+        moduleTypes->addGlobalVariable((*globalVars)[i].first.c_str(), (BPatch_type *)(*globalVars)[i].second->getUpPtr());
+    }
+    return true; 
+}
 
-   moduleTypes = BPatch_typeCollection::getModTypeCollection( this );
-
-   // /* DEBUG */ fprintf( stderr, "%s[%d]: parsing module '%s' @ %p (file %s) with type collection %p\n",	__FILE__, __LINE__, mod->fileName().c_str(), this, mod->obj()->fileName().c_str(), moduleTypes );
+#if 0
+    moduleTypes = BPatch_typeCollection::getModTypeCollection( this );
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing module '%s' @ %p (file %s) with type collection %p\n",	__FILE__, __LINE__, mod->fileName().c_str(), this, mod->obj()->fileName().c_str(), moduleTypes );
 
 #if ! defined( USES_DWARF_DEBUG )
    if ( BPatch::bpatch->parseDebugInfo() ) {
@@ -381,8 +399,9 @@ void BPatch_module::parseTypesIfNecessary()
 #else 
 #error DWARF on platforms other than 86, x86-64, and IA-64 is unsupported.
 #endif /* ! defined( USES_DWARF_DEBUG ) */
-   return;
-} /* end parseTypesIfNecessary() */
+	return;
+	} /* end parseTypesIfNecessary() */
+#endif
 
 BPatch_typeCollection *BPatch_module::getModuleTypesInt() 
 {
@@ -635,6 +654,7 @@ bool BPatch_module::dumpMangledInt(char * prefix)
    return true;
 }
 
+#if 0
 extern pdstring parseStabString(BPatch_module *, int linenum, char *str, 
       int fPtr, BPatch_typeCommon *commonBlock = NULL);
 
@@ -665,6 +685,7 @@ void BPatch_module::parseTypes()
 
    if (!mod) return;
 
+   current_func_name = "";
    imgPtr = mod->obj()->parse_img();
 
    Symtab *objPtr = imgPtr->getObject();
@@ -1286,6 +1307,7 @@ void BPatch_module::parseStabTypes()
 }
 
 #endif //end of #if defined(i386_unknown_linux2_0)
+#endif //if 0
 
 // Parsing symbol table for Alpha platform
 // Mehmet
@@ -1317,8 +1339,8 @@ void BPatch_module::parseTypes()
 
 #endif
 
-#if defined(os_windows)
-
+//#if defined(os_windows)
+#if 0
 typedef struct localsStruct {
    BPatch_function *func;
    Address base;
@@ -2199,8 +2221,12 @@ BOOL CALLBACK add_type_info(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, void *info)
  
    return TRUE;
 }
+#endif
 
 void BPatch_module::parseTypes() {
+	//TODO?? Is this the only change required for windows to work??
+    mod->pmod()->mod()->exec()->parseTypesNow();
+#if 0
     proc_mod_pair pair;
     BOOL result;
     //
@@ -2233,8 +2259,8 @@ void BPatch_module::parseTypes() {
     for (unsigned i=0; i < funcs->size(); i++) {
         findLocalVars((*funcs)[i], pair.base_addr);
     }
-}
 #endif
+}
 
 bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {

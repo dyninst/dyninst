@@ -52,7 +52,6 @@
 #include "mapped_object.h"
 
 #include "BPatch_module.h"
-#include "BPatch_typePrivate.h"
 #include "BPatch_collections.h"
 #include "BPatch_function.h"
 #include "BPatch_image.h"
@@ -65,6 +64,7 @@
 
 #include "process.h"
 
+#if 0
 /* For location decode. */
 #include <stack>
 
@@ -1876,7 +1876,6 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	return true;
 	} /* end walkDwarvenTree() */
 
-extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 
 void BPatch_module::parseDwarfTypes() {
 	const char *fileName = mod->obj()->fullName().c_str();
@@ -2020,7 +2019,9 @@ void BPatch_module::parseDwarfTypes() {
 	}
 	moduleTypes->setDwarfParsed();
 } /* end parseDwarfTypes() */
+#endif
 
+extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 
