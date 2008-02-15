@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.102 2008/02/04 21:16:36 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.103 2008/02/15 17:27:42 giri Exp $
 
 #define BPATCH_FILE
 
@@ -54,13 +54,16 @@
 #include "BPatch_snippet.h"
 #include "BPatch_type.h"
 #include "BPatch_function.h"
-#include "BPatch_typePrivate.h"
+#include "symtabAPI/h/Type.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
 #include "common/h/Time.h"
 #include "common/h/timing.h"
 
 #include "mapped_object.h" // for savetheworld
+
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 
 // Need REG_MT_POS, defined in inst-<arch>...
 
@@ -201,8 +204,12 @@ AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand,
     if (*(lOperand.ast_wrapper) == AstNodePtr()) return new AstNodePtr();
     if (*(rOperand.ast_wrapper) == AstNodePtr()) return new AstNodePtr();
 
+    if ((*(lOperand.ast_wrapper))->getType() == NULL) 
+         BPatch_reportError(BPatchSerious, 109,
+                            "array reference has no type information");
+
     //  We have to be a little forgiving of the
-    const BPatch_typeArray *arrayType = dynamic_cast<const BPatch_typeArray *>((*(lOperand.ast_wrapper))->getType());
+    typeArray *arrayType = (*(lOperand.ast_wrapper))->getType()->getSymtabType()->getArrayType();
     if (!arrayType) {
         if ((*(lOperand.ast_wrapper))->getType() == NULL) 
             BPatch_reportError(BPatchSerious, 109,
@@ -215,7 +222,7 @@ AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand,
         return new AstNodePtr();
     }
 
-    BPatch_type *elementType = arrayType->getConstituentType();
+    Type *elementType = arrayType->getBaseType();
 
     assert(elementType);
     long int elementSize = elementType->getSize();
@@ -266,7 +273,9 @@ AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand,
                                                                            AstNode::operandNode(AstNode::Constant,
                                                                                                 (void *)elementSize),
                                                                            *(rOperand.ast_wrapper))));
-    ast->setType(elementType);
+    if(!elementType->getUpPtr())
+        new BPatch_type(elementType);
+    ast->setType((BPatch_type *)elementType -> getUpPtr());
 
     return new AstNodePtr(ast);
 }
@@ -281,7 +290,11 @@ AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand,
     if (*(lOperand.ast_wrapper) == AstNodePtr()) return new AstNodePtr();
     if (*(rOperand.ast_wrapper) == AstNodePtr()) return new AstNodePtr();
 
-    const BPatch_typeStruct *structType = dynamic_cast<const BPatch_typeStruct *>((*(lOperand.ast_wrapper))->getType());
+    if ((*(lOperand.ast_wrapper))->getType() == NULL) 
+         BPatch_reportError(BPatchSerious, 109,
+                            "array reference has no type information");
+
+    typeStruct *structType = (*(lOperand.ast_wrapper))->getType()->getSymtabType()->getStructType();
     if (!structType) {
 	BPatch_reportError(BPatchSerious, 109,
 	       "structure reference has no type information, or structure reference to non-structure type");
@@ -298,9 +311,9 @@ AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand,
 			   "field name is not of type char *");
         return new AstNodePtr();
     }
-
-    const BPatch_Vector<BPatch_field *> *fields;
-    BPatch_field *field = NULL;
+    
+    vector<Field *> *fields;
+    Field *field = NULL;
 
     // check that the name of the right operand is a field of the left operand
     fields = structType->getComponents();
@@ -309,7 +322,7 @@ AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand,
 
     for (i=0; i < fields->size(); i++) {
       field = (*fields)[i];
-      if (!strcmp(field->getName(), (const char *) (*(rOperand.ast_wrapper))->getOValue()))
+      if (!strcmp(field->getName().c_str(), (const char *) (*(rOperand.ast_wrapper))->getOValue()))
 	break;
     }
     if (i==fields->size()) {
@@ -329,7 +342,9 @@ AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand,
                                                      AstNode::operatorNode(getAddrOp, *(lOperand.ast_wrapper)),
                                                      AstNode::operandNode(AstNode::Constant,
                                                                           (void *)offset)));
-    ast->setType(field->getType());
+    if(!field->getType()->getUpPtr())
+        new BPatch_type(field->getType());
+    ast->setType((BPatch_type *)field->getType()->getUpPtr());
 
     return new AstNodePtr(ast);
 }
@@ -475,7 +490,8 @@ void BPatch_arithExpr::BPatch_arithExprUn(BPatch_unOp op,
           if (!type || (type->getDataClass() != BPatch_dataPointer)) {
               (*ast_wrapper)->setType(BPatch::bpatch->stdTypes->findType("int"));
           } else {
-              (*ast_wrapper)->setType(dynamic_cast<BPatch_typePointer *>(type)->getConstituentType());
+	      (*ast_wrapper)->setType(type->getConstituentType());
+//              (*ast_wrapper)->setType(dynamic_cast<BPatch_typePointer *>(type)->getConstituentType());
           }
           break;
       }
@@ -1238,47 +1254,35 @@ void *BPatch_variableExpr::getBaseAddrInt()
  */
 BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
 {
-    const BPatch_fieldListInterface *type;
     const BPatch_Vector<BPatch_field *> *fields;
-    BPatch_Vector<BPatch_variableExpr *> *retList;
+    BPatch_Vector<BPatch_variableExpr *> *retList = new BPatch_Vector<BPatch_variableExpr *>;
 
-    type = dynamic_cast<const BPatch_fieldListInterface *>(getType());
-    if (type == NULL) {
-	return NULL;
-    }
-
-    retList = new BPatch_Vector<BPatch_variableExpr *>;
-    assert(retList);
-
-    fields = type->getComponents();
+    fields = getType()->getComponents();
     if (fields == NULL) return NULL;
     for (unsigned int i=0; i < fields->size(); i++) {
-
-	BPatch_field *field = (*fields)[i];
-	long int offset = (field->offset / 8);
-
-	BPatch_variableExpr *newVar;
-
-	// convert to *(&basrVar + offset)
-        AstNodePtr fieldExpr = AstNode::operandNode(AstNode::DataIndir,
-                                                  AstNode::operatorNode(plusOp,
-                                                                        AstNode::operatorNode(getAddrOp, (*ast_wrapper)),
-                                                                        AstNode::operandNode(AstNode::Constant, (void *)offset)));
-
-        // VG(03/02/02): What about setting the base address??? Here we go:
-	if( field->_type != NULL ) {
+       
+       BPatch_field *field = (*fields)[i];
+       long int offset = (field->getOffset() / 8);
+       BPatch_variableExpr *newVar;
+       
+       // convert to *(&basrVar + offset)
+       AstNodePtr fieldExpr = AstNode::operandNode(AstNode::DataIndir,
+                                                   AstNode::operatorNode(plusOp,
+                                                   AstNode::operatorNode(getAddrOp, (*ast_wrapper)),
+                                                   AstNode::operandNode(AstNode::Constant, (void *)offset)));
+       // VG(03/02/02): What about setting the base address??? Here we go:
+       if( field->getType() != NULL ) {
             AstNodePtr *newAst = new AstNodePtr(fieldExpr);
-	    newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
-					     /*appProcess,*/ appAddSpace, newAst,
-                                             const_cast<BPatch_type *>(field->_type),
+            newVar = new BPatch_variableExpr(const_cast<char *> (field->getName()),
+				              /*appProcess,*/ appAddSpace, newAst,
+	    		                     field->getType(),
 					     (char*)address + offset);
-	    retList->push_back(newVar);
-	} else {
-	    bperr( "Warning: not returning field '%s' with NULL type.\n", field->getName() );
-	}
-    }
-
-    return retList;
+					     retList->push_back(newVar);
+       } else {
+             bperr( "Warning: not returning field '%s' with NULL type.\n", field->getName() );
+       }
+   }
+   return retList;
 }
 
 /*
