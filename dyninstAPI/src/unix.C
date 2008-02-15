@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.232 2008/01/31 18:01:35 legendre Exp $
+// $Id: unix.C,v 1.233 2008/02/15 23:44:35 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -766,6 +766,8 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
   }
 
   Frame af = ev.lwp->getActiveFrame();
+  signal_printf("[%s:%u] - Starting decodeSigTrap from trap at 0x%lx\n",
+                FILE__, __LINE__, af.getPC());
 
   // (1)  Is this trap due to an instPoint ??
   if (proc->trapMapping.definesTrapMapping(af.getPC())) {
@@ -1268,18 +1270,6 @@ bool forkNewProcess_real(pdstring file,
       }else
          P_execvp(file.c_str(), args);
 
-    
-      char argline[2048];
-      {
-         int i=0;
-         int cum_len = 0;
-         while (args[i]) {
-            if (cum_len + strlen(args[i]) > 2047) break;
-            cum_len += sprintf(argline, "%s %s", argline, args[i] ? args[i] : "<nil>");
-            i++;
-         }
-      }
-
       P_abort();
       //P__exit(-1);
       // not reached
@@ -1666,6 +1656,9 @@ SignalGenerator::~SignalGenerator()
 
 bool SignalHandler::handleProcessAttach(EventRecord &ev, bool &continueHint) {
     ev.proc->setBootstrapState(initialized_bs);
+    if (ev.proc->main_brk_addr) {
+       ev.proc->handleTrapAtEntryPointOfMain(ev.lwp);
+    }
     continueHint = false;
     return true;
 }

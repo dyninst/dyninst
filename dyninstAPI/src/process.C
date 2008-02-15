@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.706 2008/02/07 16:07:55 jaw Exp $
+// $Id: process.C,v 1.707 2008/02/15 23:44:34 legendre Exp $
 
 #include <ctype.h>
 
@@ -2341,187 +2341,192 @@ process *ll_attachProcess(const pdstring &progpath, int pid, void *container_pro
 // Return val: false=error condition
 
 bool process::loadDyninstLib() {
-  startup_printf("%s[%d]: Entry to loadDyninstLib\n", FILE__, __LINE__);
-    // Wait for the process to get to an initialized (dlopen exists)
-    // state
+   startup_printf("%s[%d]: Entry to loadDyninstLib\n", FILE__, __LINE__);
+   // Wait for the process to get to an initialized (dlopen exists)
+   // state
 #if !defined(os_windows)    
-    if (!reachedBootstrapState(initialized_bs) && wasCreatedViaAttach())
-    {
-       insertTrapAtEntryPointOfMain();
-       continueProc();
-    }
+   if (!reachedBootstrapState(initialized_bs) && wasCreatedViaAttach())
+   {
+      insertTrapAtEntryPointOfMain();
+      continueProc();
+   }
 #endif
-    while (!reachedBootstrapState(libcLoaded_bs)) {
-       startup_printf("%s[%d]: Waiting for process to load libc or reach "
+   while (!reachedBootstrapState(libcLoaded_bs)) {
+      startup_printf("%s[%d]: Waiting for process to load libc or reach "
                      "initialized state...\n", FILE__, __LINE__);
-       if(hasExited()) {
-          fprintf(stderr,"%s[%d] Program exited early, never reached initialized state\n", FILE__, __LINE__);
-          return false;
-       }
-       getMailbox()->executeCallbacks(FILE__, __LINE__);
-       pdvector<eventType> evts;
-       evts.push_back(evtProcessAttach); 
-       evts.push_back(evtProcessInit); 
-       evts.push_back(evtLibcLoaded);
-       evts.push_back(evtProcessExit); 
-       if (reachedBootstrapState(libcLoaded_bs)) break;
-       sh->waitForOneOf(evts);
-       getMailbox()->executeCallbacks(FILE__, __LINE__);
-    }
-    startup_printf("%s[%d]: Ready to initialize dynamic linking tracer\n", 
-                   FILE__, __LINE__);
+      if(hasExited()) {
+         fprintf(stderr,"%s[%d] Program exited early, never reached initialized state\n", FILE__, __LINE__);
+         return false;
+      }
+      getMailbox()->executeCallbacks(FILE__, __LINE__);
+      pdvector<eventType> evts;
+      evts.push_back(evtProcessAttach); 
+      evts.push_back(evtProcessInit); 
+      evts.push_back(evtLibcLoaded);
+      evts.push_back(evtProcessExit); 
+      if (reachedBootstrapState(libcLoaded_bs)) break;
+      sh->waitForOneOf(evts);
+      getMailbox()->executeCallbacks(FILE__, __LINE__);
+   }
+   startup_printf("%s[%d]: Ready to initialize dynamic linking tracer\n", 
+                  FILE__, __LINE__);
 
-    // We've hit the initialization trap, so load dyninst lib and
-    // force initialization
-    pdstring buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", initializing shared objects");       
-    statusLine(buffer.c_str());
+   // We've hit the initialization trap, so load dyninst lib and
+   // force initialization
+   pdstring buffer = pdstring("PID=") + pdstring(getPid());
+   buffer += pdstring(", initializing shared objects");       
+   statusLine(buffer.c_str());
 
-    // Perform initialization...
-    if (!dyn->initialize()) 
-    {
-       cerr << "Dyninst was unable to load the dyninst runtime library "
-            << "into the application.  This may be caused by statically "
-            << "linked executables, or by having dyninst linked against a "
-            << "different version of libelf than it was built with." << endl;
-       return false;
-    }
-    startup_printf("Initialized dynamic linking tracer\n");
+   // Perform initialization...
+   if (!dyn->initialize()) 
+   {
+      cerr << "Dyninst was unable to load the dyninst runtime library "
+           << "into the application.  This may be caused by statically "
+           << "linked executables, or by having dyninst linked against a "
+           << "different version of libelf than it was built with." << endl;
+      return false;
+   }
+   startup_printf("Initialized dynamic linking tracer\n");
 
-    if (!getDyninstRTLibName()) {
-        startup_printf("Failed to get Dyninst RT lib name\n");
-        return false;
-    }
-    startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
-				                       dyninstRT_name.c_str());
+   if (!getDyninstRTLibName()) {
+      startup_printf("Failed to get Dyninst RT lib name\n");
+      return false;
+   }
+   startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
+                  dyninstRT_name.c_str());
 
-    // if tracing system calls then put a breakpoint at __libc_start_main
-    if (getTraceState() >= instrumentLibc_ts) {
+   // if tracing system calls then put a breakpoint at __libc_start_main
+   if (getTraceState() >= instrumentLibc_ts) {
 
-        // instrument libc
-        instrumentLibcStartMain();
+      // instrument libc
+      instrumentLibcStartMain();
 
-        // wait for process to reach initialized bootstrap state 
-        while (!reachedBootstrapState(initialized_bs)) {
-           startup_printf("%s[%d]: Waiting for process to reach initialized state...\n", 
-                          FILE__, __LINE__);
-           if(hasExited()) {
-              return false;
-           }
-           getMailbox()->executeCallbacks(FILE__, __LINE__);
-           pdvector<eventType> evts;
-           evts.push_back(evtProcessAttach); 
-           evts.push_back(evtProcessInit); 
-           evts.push_back(evtProcessExit); 
-           if (reachedBootstrapState(initialized_bs)) break;
-           sh->waitForOneOf(evts);
-           getMailbox()->executeCallbacks(FILE__, __LINE__);
-        }
-    }
+      // wait for process to reach initialized bootstrap state 
+      while (!reachedBootstrapState(initialized_bs)) {
+         startup_printf("%s[%d]: Waiting for process to reach initialized state...\n", 
+                        FILE__, __LINE__);
+         if(hasExited()) {
+            return false;
+         }
+         getMailbox()->executeCallbacks(FILE__, __LINE__);
+         pdvector<eventType> evts;
+         evts.push_back(evtProcessAttach); 
+         evts.push_back(evtProcessInit); 
+         evts.push_back(evtProcessExit); 
+         if (reachedBootstrapState(initialized_bs)) break;
+         sh->waitForOneOf(evts);
+         getMailbox()->executeCallbacks(FILE__, __LINE__);
+      }
+   }
 
-    // And get the list of all shared objects in the process. More properly,
-    // get the address of dlopen.
-    if (!processSharedObjects()) {
+   // And get the list of all shared objects in the process. More properly,
+   // get the address of dlopen.
+   if (!processSharedObjects()) {
       startup_printf("Failed to get initial shared objects\n");
       return false;
-    }
+   }
 
-    startup_printf("Processed initial shared objects:\n");
+   startup_printf("Processed initial shared objects:\n");
 
-    for (unsigned debug_iter = 1; debug_iter < mapped_objects.size(); debug_iter++)
-        startup_printf("%d: %s\n", debug_iter, 
-                       mapped_objects[debug_iter]->debugString().c_str());
+   for (unsigned debug_iter = 1; debug_iter < mapped_objects.size(); debug_iter++)
+      startup_printf("%d: %s\n", debug_iter, 
+                     mapped_objects[debug_iter]->debugString().c_str());
 
-    startup_printf("----\n");
+   startup_printf("----\n");
 
-    if (dyninstLibAlreadyLoaded()) {
-	// LD_PRELOAD worked or we are attaching for the second time
-	// or app was linked with RTlib
-	setBootstrapState(loadedRT_bs);
-    }
-    else {
-	// Force a call to dlopen(dyninst_lib)
-	buffer = pdstring("PID=") + pdstring(getPid());
-	buffer += pdstring(", loading dyninst library");       
-	statusLine(buffer.c_str());
+   if (dyninstLibAlreadyLoaded()) {
+      // LD_PRELOAD worked or we are attaching for the second time
+      // or app was linked with RTlib
+      setBootstrapState(loadedRT_bs);
+      if (main_brk_addr) {
+         //The trap at the entry of is usually cleaned when we handle a RT
+         // library load.  Since that's not going to happen, clean it manually.
+         handleTrapAtEntryPointOfMain(getInitialLwp());
+      }
+   }
+   else {
+      // Force a call to dlopen(dyninst_lib)
+      buffer = pdstring("PID=") + pdstring(getPid());
+      buffer += pdstring(", loading dyninst library");       
+      statusLine(buffer.c_str());
+       
+      startup_printf("%s[%d]: Starting load of Dyninst library...\n",
+                     FILE__, __LINE__);
+      if (!loadDYNINSTlib()) {
+         fprintf(stderr, "%s[%d]:  FIXME:  loadDYNINSTlib failed\n", FILE__, __LINE__);
+      }
+      startup_printf("%s[%d]: Think we have Dyninst RT lib set up...\n", FILE__, __LINE__);
+       
+      setBootstrapState(loadingRT_bs);
 
-	startup_printf("%s[%d]: Starting load of Dyninst library...\n",
-		       FILE__, __LINE__);
-	if (!loadDYNINSTlib()) {
-            fprintf(stderr, "%s[%d]:  FIXME:  loadDYNINSTlib failed\n", FILE__, __LINE__);
-        }
-	startup_printf("%s[%d]: Think we have Dyninst RT lib set up...\n", FILE__, __LINE__);
+      if (!sh->continueProcessAsync()) {
+         assert(0);
+      }
+       
+      // Loop until the dyninst lib is loaded
+      while (!reachedBootstrapState(loadedRT_bs)) {
+         if(hasExited()) {
+            startup_printf("Odd, process exited while waiting for "
+                           "Dyninst RT lib load\n");
+            return false;
+         }
+          
+         sh->waitForEvent(evtProcessLoadedRT);
+      }
+      getMailbox()->executeCallbacks(FILE__, __LINE__);
 
-	setBootstrapState(loadingRT_bs);
+      // We haven't inserted a trap at dlopen yet (as we require the
+      // runtime lib for that) So re-check all loaded libraries (and
+      // add to the list gotten earlier) We force a compare even
+      // though the PC is not at the correct address.
+      dyn->set_force_library_check();
+      EventRecord load_rt_event;
+      load_rt_event.proc = this;
+      load_rt_event.lwp = NULL;
+      load_rt_event.type = evtLoadLibrary;
+      load_rt_event.what = SHAREDOBJECT_ADDED;
+      if (!handleChangeInSharedObjectMapping(load_rt_event)) {
+         fprintf(stderr, "%s[%d]:  handleChangeInSharedObjectMapping "
+                 "failed!\n", FILE__, __LINE__);
+      }
+      dyn->unset_force_library_check();
 
-        if (!sh->continueProcessAsync()) {
-            assert(0);
-        }
+      // Make sure the library was actually loaded
+      if (!runtime_lib) {
+         fprintf(stderr, "%s[%d]:  Don't have runtime library handle\n",
+                 FILE__, __LINE__);
+         return false;
+      }
+   }    
+   buffer = pdstring("PID=") + pdstring(getPid());
+   buffer += pdstring(", initializing mutator-side structures");
+   statusLine(buffer.c_str());    
 
-       // Loop until the dyninst lib is loaded
-	while (!reachedBootstrapState(loadedRT_bs)) {
-	    if(hasExited()) {
-		startup_printf("Odd, process exited while waiting for "
-			       "Dyninst RT lib load\n");
-		return false;
-	    }
+   // The library is loaded, so do mutator-side initialization
+   buffer = pdstring("PID=") + pdstring(getPid());
+   buffer += pdstring(", finalizing RT library");
+   statusLine(buffer.c_str());    
+   startup_printf("%s[%d]: (%d) finalizing dyninst RT library\n", FILE__, __LINE__, getPid());
 
-            sh->waitForEvent(evtProcessLoadedRT);
-	}
-	getMailbox()->executeCallbacks(FILE__, __LINE__);
-
-	// We haven't inserted a trap at dlopen yet (as we require the
-	// runtime lib for that) So re-check all loaded libraries (and
-	// add to the list gotten earlier) We force a compare even
-	// though the PC is not at the correct address.
-	dyn->set_force_library_check();
-	EventRecord load_rt_event;
-	load_rt_event.proc = this;
-	load_rt_event.lwp = NULL;
-	load_rt_event.type = evtLoadLibrary;
-	load_rt_event.what = SHAREDOBJECT_ADDED;
-	if (!handleChangeInSharedObjectMapping(load_rt_event)) {
-	    fprintf(stderr, "%s[%d]:  handleChangeInSharedObjectMapping "
-		    "failed!\n", FILE__, __LINE__);
-	}
-	dyn->unset_force_library_check();
-
-	// Make sure the library was actually loaded
-	if (!runtime_lib) {
-	    fprintf(stderr, "%s[%d]:  Don't have runtime library handle\n",
-		    FILE__, __LINE__);
-	    return false;
-	}
-    }    
-    buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", initializing mutator-side structures");
-    statusLine(buffer.c_str());    
-
-    // The library is loaded, so do mutator-side initialization
-    buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", finalizing RT library");
-    statusLine(buffer.c_str());    
-    startup_printf("%s[%d]: (%d) finalizing dyninst RT library\n", FILE__, __LINE__, getPid());
-
-    if (!finalizeDyninstLib())
+   if (!finalizeDyninstLib())
       startup_printf("%s[%d]:  failed to finalize dyninst lib\n", FILE__, __LINE__);
 
-    if (!reachedBootstrapState(bootstrapped_bs)) {
-        // For some reason we haven't run dyninstInit successfully.
-        // Probably because we didn't set parameters before 
-        // dyninstInit was automatically run. Catchup with
-        // an inferiorRPC is the best bet.
-        buffer = pdstring("PID=") + pdstring(getPid());
-        buffer += pdstring(", finalizing library via inferior RPC");
-        statusLine(buffer.c_str());    
-        iRPCDyninstInit();        
-    }
+   if (!reachedBootstrapState(bootstrapped_bs)) {
+      // For some reason we haven't run dyninstInit successfully.
+      // Probably because we didn't set parameters before 
+      // dyninstInit was automatically run. Catchup with
+      // an inferiorRPC is the best bet.
+      buffer = pdstring("PID=") + pdstring(getPid());
+      buffer += pdstring(", finalizing library via inferior RPC");
+      statusLine(buffer.c_str());    
+      iRPCDyninstInit();        
+   }
 
-    buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", dyninst RT lib ready");
-    statusLine(buffer.c_str());    
+   buffer = pdstring("PID=") + pdstring(getPid());
+   buffer += pdstring(", dyninst RT lib ready");
+   statusLine(buffer.c_str());    
 
-    return true;
+   return true;
 }
 
 
