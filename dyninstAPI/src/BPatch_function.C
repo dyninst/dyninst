@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.101 2008/02/07 16:07:55 jaw Exp $
+// $Id: BPatch_function.C,v 1.102 2008/02/15 17:27:31 giri Exp $
 
 #define BPATCH_FILE
 
@@ -59,6 +59,7 @@
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_basicBlock.h"
 #include "BPatch_statement.h"
+#include "mapped_module.h"
 
 #include "symtabAPI/h/LineInformation.h"
 #include "common/h/Types.h"
@@ -84,7 +85,8 @@ int bpatch_function_count = 0;
 
 BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
 	BPatch_module *_mod) :
-	addSpace(_addSpace), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func)
+	addSpace(_addSpace), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func), 
+	varsAndParamsValid(false)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     bpatch_function_count++;
@@ -117,7 +119,8 @@ BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, int_function *_
  */
 BPatch_function::BPatch_function(BPatch_addressSpace *_addSpace, int_function *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
-	addSpace(_addSpace), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func)
+	addSpace(_addSpace), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func),
+	varsAndParamsValid(false)
 {
   //assert(proc && !proc->func_map->defines(_func));
   assert(addSpace && !addSpace->func_map->defines(_func));
@@ -323,7 +326,7 @@ unsigned int BPatch_function::getSizeInt()
  */
 BPatch_type *BPatch_function::getReturnTypeInt()
 {
-    mod->parseTypesIfNecessary();
+    constructVarsAndParams();
     return retType;
 }
 
@@ -343,12 +346,9 @@ BPatch_module *BPatch_function::getModuleInt()
 BPatch_Vector<BPatch_localVar *> * BPatch_function::getParamsInt()
 {
     if (!mod->isValid()) return NULL;
-    mod->parseTypesIfNecessary();
+    constructVarsAndParams();
     return funcParameters->getAllVars();
 }
-
-
-
 
 /*
  * BPatch_function::findPoint
@@ -477,6 +477,15 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
  * This function adds a function parameter to the BPatch_function parameter
  * vector.
  */
+void BPatch_function::addParam(Dyninst::SymtabAPI::localVar *lvar)
+{
+  BPatch_localVar * param = new BPatch_localVar(lvar);
+  
+  // Add parameter to list of parameters
+  params.push_back(param);
+}
+
+#if 0
 void BPatch_function::addParam(const char * _name, BPatch_type *_type,
 			       int _linenum, long _frameOffset, int _reg,
 			       BPatch_storageClass _sc)
@@ -487,6 +496,7 @@ void BPatch_function::addParam(const char * _name, BPatch_type *_type,
   // Add parameter to list of parameters
   params.push_back(param);
 }
+#endif
 
 /*
  * BPatch_function::findLocalVarInt()
@@ -497,7 +507,7 @@ void BPatch_function::addParam(const char * _name, BPatch_type *_type,
 BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
 {
     if (!mod->isValid()) return NULL;
-    mod->parseTypesIfNecessary();
+    constructVarsAndParams();
     BPatch_localVar * var = localVariables->findLocalVar(name);
     return (var);
 }
@@ -511,7 +521,7 @@ BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
 BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
 {
     if (!mod->isValid()) return NULL;
-    mod->parseTypesIfNecessary();
+    constructVarsAndParams();
     BPatch_localVar * var = funcParameters->findLocalVar(name);
     return (var);
 }
@@ -533,11 +543,45 @@ BPatch_flowGraph* BPatch_function::getCFGInt()
     return cfg;
 }
 
+void BPatch_function::constructVarsAndParams(){
+    if(varsAndParamsValid)
+       return;
+    mod->parseTypesIfNecessary();
+
+    //Check flag to see if vars & params are already constructed
+    std::vector<localVar *>vars;
+    if(lowlevel_func()->ifunc()->symbol()->getLocalVariables(vars)) {
+        for(unsigned i = 0; i< vars.size(); i++) 
+	    {
+	        vars[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
+	        localVariables->addLocalVar(new BPatch_localVar(vars[i]));
+	    }    
+    }
+    std::vector<localVar *>parameters;
+    if(lowlevel_func()->ifunc()->symbol()->getParams(parameters)) {
+        for(unsigned i = 0; i< parameters.size(); i++) {
+	        parameters[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
+	        BPatch_localVar *lparam = new BPatch_localVar(parameters[i]);
+    	    funcParameters->addLocalVar(lparam);
+	        params.push_back(lparam);
+    	}    
+    }
+    if(!lowlevel_func()->ifunc()->symbol()->getReturnType()) {
+        varsAndParamsValid = true;
+        return;
+    }
+        
+    if(!lowlevel_func()->ifunc()->symbol()->getReturnType()->getUpPtr())
+        retType = new BPatch_type(lowlevel_func()->ifunc()->symbol()->getReturnType());
+    else
+        retType = (BPatch_type *)lowlevel_func()->ifunc()->symbol()->getReturnType()->getUpPtr();
+    varsAndParamsValid = true;
+}
 
 BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt() 
 {
     if (!mod->isValid()) return NULL;
-    mod->parseTypesIfNecessary();
+    constructVarsAndParams();
     return localVariables->getAllVars(); 
 }
 
@@ -545,7 +589,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(
         const char *name)
 {
     if (!mod->isValid()) return NULL;
-   getModule()->parseTypesIfNecessary();
+   constructVarsAndParams();
    BPatch_Vector<BPatch_variableExpr *> *ret;
    BPatch_localVar *lv = findLocalVar(name);
    if (!lv) {
@@ -2262,5 +2306,4 @@ BPatch_dependenceGraphNode* BPatch_function::getDataDependenceGraphInt(BPatch_in
 {
    return NULL;
 }
-
 #endif

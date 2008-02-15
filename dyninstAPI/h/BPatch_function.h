@@ -128,6 +128,10 @@ class BPATCH_DLL_EXPORT BPatch_function:
     BPatch_point* createMemInstPoint(void *addr, BPatch_memoryAccess* ma);
 
     int_function *func;
+    bool varsAndParamsValid;
+
+private:
+   void constructVarsAndParams();
 
 #if defined (interprocedural)
     void identifyParamDependencies(BPatch_function* callee, void* calleeAddress);
@@ -149,9 +153,12 @@ public:
     BPatch_localVarCollection * funcParameters;
     void setReturnType(BPatch_type * _retType){retType = _retType;}
     void setModule(BPatch_module *module) { if (this->mod == NULL) this->mod = module;}
-    void addParam(const char * _name, BPatch_type *_type, int _linenum,
-                  long _frameOffset, int _reg = -1,
-                  BPatch_storageClass _sc = BPatch_storageFrameOffset);
+
+    void addParam(Dyninst::SymtabAPI::localVar *lvar);
+
+//    void addParam(const char * _name, BPatch_type *_type, int _linenum,
+//                  long _frameOffset, int _reg = -1,
+//                  BPatch_storageClass _sc = BPatch_storageFrameOffset);
     void fixupUnknown(BPatch_module *);
     
     // Calculate liveness at a particular address
@@ -190,7 +197,6 @@ public:
     API_EXPORT(Buffer, (s, len),     
 
     char *,getName,(char *s, int len));
-
 
     /************************ SLICING *********************************************/
     // BPatch_function::getSlice
