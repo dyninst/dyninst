@@ -284,7 +284,7 @@ public:
 
 private:
     // Parse wrapper
-    void parseTypesIfNecessary();
+    bool parseTypesIfNecessary();
     BPatch_typeCollection *moduleTypes;
 
     // In particular, we understand the type information
