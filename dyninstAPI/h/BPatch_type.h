@@ -48,11 +48,6 @@
 #include "symtabAPI/h/Type.h"
 #include <string.h>	
 
-#if defined (USES_DWARF_DEBUG)
-#include <dwarf.h>
-#include <libdwarf.h>
-#endif
-
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,
 	      BPatchSymLocalFunc, BPatchSymGlobalFunc, BPatchSymFuncParam,

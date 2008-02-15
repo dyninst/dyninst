@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.102 2008/02/15 17:27:31 giri Exp $
+// $Id: BPatch_function.C,v 1.103 2008/02/15 23:44:32 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -967,7 +967,7 @@ bool returnMatch(ReturnParameterType* p1, ReturnParameterType* p2)
  * Locates the dependencies between a set of formal parameters and a set of actual parameters
  */
 void BPatch_function::identifyParamDependencies(BPatch_function* callee, 
-        void* calleeAddress) 
+                                                void* calleeAddress) 
 {
   BPatch_Vector<ParameterType*>* parameters = (BPatch_Vector<ParameterType*>*)callee->getAnnotation("formalParams");
   
@@ -1053,6 +1053,12 @@ void copyFuncCallVector(BPatch_Vector<BPatch_dependenceGraphNode*>* original,BPa
     copy->push_back((*original)[i]);
   }
 }
+#else /*!cap_slicing*/
+void BPatch_function::identifyParamDependencies(BPatch_function*, 
+                                                void*)
+{
+}
+
 #endif
 
 /* If we come across a basic block more than once, check if we need to re-visit it
