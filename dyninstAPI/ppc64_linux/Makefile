@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2007/06/20 21:19:14 ssuen Exp $
+# $Id: Makefile,v 1.2 2008/02/15 17:27:51 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -31,7 +31,6 @@ SRCS =          ../src/linux.C \
                 ../src/inst-power.C \
                 ../src/arch-power.C \
                 ../src/unix.C \
-		../src/parseStab.C \
 		../src/InstrucIter-power.C \
 		../src/addLibraryLinux.C \
 		../src/writeBackElf.C \

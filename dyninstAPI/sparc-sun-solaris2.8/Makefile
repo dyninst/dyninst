@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.31 2007/06/13 18:50:16 bernat Exp $
+# $Id: Makefile,v 1.32 2008/02/15 17:27:53 giri Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,7 +24,6 @@ SRCS =		../src/solaris.C \
 		../src/sol_proc.C \
 		../src/inst-sparc.C \
 		../src/inst-sunos.C \
-		../src/parseStab.C \
 		../src/parseDwarf.C \
 		../src/unix.C \
 		../src/InstrucIter-sparc.C \

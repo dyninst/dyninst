@@ -45,7 +45,6 @@ SRCS = 		../src/aix.C \
 		../src/sol_proc.C \
 		../src/inst-power.C \
 		../src/inst-aix.C \
-		../src/parseStab.C \
 		../src/image-power.C \
 		../src/unix.C \
 		../src/arch-power.C \
