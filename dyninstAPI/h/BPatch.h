@@ -56,10 +56,15 @@ class BPatch_module;
 class int_function;
 class process;
 
+//Keep old versions defined, that way someone can test if we're more
+// at or more recent than version 5.1 with '#if defined(DYNINST_5_1)'
+//If they want to get the current version, they should use DYNINST_MAJOR,
+// DYNINST_MINOR, and DYNINST_SUBMINOR
 #define DYNINST_5_1
+#define DYNINST_5_2
 
 #define DYNINST_MAJOR 5
-#define DYNINST_MINOR 1
+#define DYNINST_MINOR 2
 #define DYNINST_SUBMINOR 0
 
 #ifdef IBM_BPATCH_COMPAT
