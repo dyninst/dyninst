@@ -42,8 +42,8 @@
 #ifndef _BPatch_edge_h_
 #define _BPatch_edge_h_
 
-#include <BPatch_dll.h>
-#include <BPatch_eventLock.h>
+#include "BPatch_dll.h"
+#include "BPatch_eventLock.h"
 
 class BPatch_flowGraph;
 class BPatch_basicBlock;
