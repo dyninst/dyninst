@@ -47,22 +47,26 @@
 
 #include "util.h"
 #include "BPatch_Vector.h"
-#include "BPatch_typePrivate.h"
+//#include "BPatch_typePrivate.h"
 #include "BPatch_collections.h"
 #include "debug.h"
 #include "BPatch_function.h"
 #include "BPatch.h"
+#include "mapped_module.h"
 
 #ifdef i386_unknown_nt4_0
 #define snprintf _snprintf
 #endif
 
-static int findIntrensicType(const char *name);
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+
+//static int findIntrensicType(const char *name);
 
 // This is the ID that is decremented for each type a user defines. It is
 // Global so that every type that the user defines has a unique ID.
 // jdd 7/29/99
-int BPatch_type::USER_BPATCH_TYPE_ID = -1000;
+//int BPatch_type::USER_BPATCH_TYPE_ID = -1000;
 
 
 /* These are the wrappers for constructing a type.  Since we can create
@@ -80,782 +84,27 @@ BPatch_type *BPatch_type::createFake(const char *_name) {
 }
 
 /*
- * ENUM
- */
-
-BPatch_typeEnum::BPatch_typeEnum(int _ID, const char *_name)
-   : BPatch_fieldListType(_name, _ID, BPatch_dataUnion) {
-   size = sizeof(int);
-}
-
-BPatch_typeEnum::BPatch_typeEnum(const char *_name)
-   : BPatch_fieldListType(_name, USER_BPATCH_TYPE_ID--, BPatch_dataUnion) {
-   size = sizeof(int);
-}
-
-bool BPatch_typeEnum::isCompatibleInt(BPatch_type *otype) {
-   BPatch_typeTypedef *otypedef = dynamic_cast<BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatibleInt(otypedef->getConstituentType());
-
-   BPatch_typeEnum *oEnumtype = dynamic_cast<BPatch_typeEnum *>(otype);
-
-   if (oEnumtype == NULL)
-      return false;
-      
-   if( name && oEnumtype->name && !strcmp( name, oEnumtype->name) && (ID == oEnumtype->ID))
-      return true;
-   
-   const BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
-   const BPatch_Vector<BPatch_field *> * fields2 = oEnumtype->getComponents();
-   //BPatch_Vector<BPatch_field *> * fields2 = &oEnumtype->fieldList;
-   
-   if( fields1->size() != fields2->size()) {
-      BPatch_reportError(BPatchWarning, 112, "enumerated type mismatch ");
-      return false;
-   }
-   
-   //need to compare componment by component to verify compatibility
-   for(unsigned int i=0;i<fields1->size();i++){
-      BPatch_field * field1 = (*fields1)[i];
-      BPatch_field * field2 = (*fields2)[i];
-      if( (field1->getValue() != field2->getValue()) ||
-          (strcmp(field1->getName(), field2->getName())))
-         BPatch_reportError(BPatchWarning, 112, "enum element mismatch ");
-      return false;
-   }
-   // Everything matched so they are the same
-   return true;
-}
-
-/* 
- * POINTER
- */
-
-BPatch_typePointer::BPatch_typePointer(int _ID, BPatch_type *_ptr, const char *_name) 
-   : BPatch_type(_name, _ID, BPatch_dataPointer) {
-   size = sizeof(void *);
-   if (_ptr)
-     setPtr(_ptr);
-}
-
-BPatch_typePointer::BPatch_typePointer(BPatch_type *_ptr, const char *_name) 
-   : BPatch_type(_name, USER_BPATCH_TYPE_ID--, BPatch_dataPointer) {
-   size = sizeof(void *);
-   if (_ptr)
-     setPtr(_ptr);
-}
-
-void BPatch_typePointer::setPtr(BPatch_type *_ptr) { 
-  assert(_ptr);
-  ptr = _ptr; 
-  _ptr->incrRefCount(); 
-
-  if (name == NULL && _ptr->getName() != NULL) {
-     char buf[1024];
-     snprintf(buf,1023,"%s *",_ptr->getName());
-     name = strdup(buf);
-  }
-}
-
-bool BPatch_typePointer::isCompatibleInt(BPatch_type *otype) {
-   BPatch_typeTypedef *otypedef = dynamic_cast<BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatibleInt(otypedef->getConstituentType());
-
-   BPatch_typePointer *oPointertype = dynamic_cast<BPatch_typePointer *>(otype);
-
-   if (oPointertype == NULL) {
-      BPatch_reportError(BPatchWarning, 112, 
-                         "Pointer and non-Pointer are not type compatible");
-      return false;
-   }
-   // verify type that each one points to is compatible
-   return ptr->isCompatibleInt(oPointertype->ptr);
-}
-
-void BPatch_typePointer::fixupUnknowns(BPatch_module *module) {
-   if (ptr->getDataClass() == BPatch_dataUnknownType) {
-      BPatch_type *optr = ptr;
-      ptr = module->getModuleTypes()->findType(ptr->getID());
-      ptr->incrRefCount();
-      optr->decrRefCount();
-   }
-}
-
-/*
- * FUNCTION
- */
-
-BPatch_typeFunction::BPatch_typeFunction(int _ID, BPatch_type *_retType, const char *_name)
-   : BPatch_fieldListType(_name, _ID, BPatch_dataFunction), retType(_retType) {
-   size = sizeof(void *);
-   if (retType)
-     retType->incrRefCount();
-}
-
-void BPatch_typeFunction::setRetType(BPatch_type *rtype) {
-    retType = rtype;
-    retType->incrRefCount();
-}
-
-void BPatch_typeFunction::setName(const char *name_) {
-    name = strdup(name_);
-}
-
-bool BPatch_typeFunction::isCompatibleInt(BPatch_type *otype) {
-   BPatch_typeTypedef *otypedef = dynamic_cast<BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatibleInt(otypedef->getConstituentType());
-
-   BPatch_typeFunction *oFunctiontype = dynamic_cast<BPatch_typeFunction *>(otype);
-
-   if (oFunctiontype == NULL)
-      return false;
-
-   if (retType != oFunctiontype->retType)
-      return false;
-
-   const BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
-   const BPatch_Vector<BPatch_field *> * fields2 = oFunctiontype->getComponents();
-   //const BPatch_Vector<BPatch_field *> * fields2 = (BPatch_Vector<BPatch_field *> *) &(otype->fieldList);
-   
-   if (fields1->size() != fields2->size()) {
-      BPatch_reportError(BPatchWarning, 112, 
-                         "function number of params mismatch ");
-      return false;
-   }
-    
-   //need to compare componment by component to verify compatibility
-   for (unsigned int i=0;i<fields1->size();i++) {
-      BPatch_field * field1 = (*fields1)[i];
-      BPatch_field * field2 = (*fields2)[i];
-      
-      BPatch_type * ftype1 = (BPatch_type *)field1->getType();
-      BPatch_type * ftype2 = (BPatch_type *)field2->getType();
-      
-      if(!(ftype1->isCompatibleInt(ftype2))) {
-         BPatch_reportError(BPatchWarning, 112, 
-                            "function param type mismatch ");
-         return false;
-      }
-   }
-   return true;
-}   
-
-void BPatch_typeFunction::fixupUnknowns(BPatch_module *module) {
-   if (retType->getDataClass() == BPatch_dataUnknownType) {
-      BPatch_type *otype = retType;
-      retType = module->getModuleTypes()->findType(retType->getID());
-      retType->incrRefCount();
-      otype->decrRefCount();
-   }
-
-   for (unsigned int i = 0; i < fieldList.size(); i++)
-      fieldList[i]->fixupUnknown(module);
-}
-
-/*
- * RANGE
- */
-
-BPatch_typeRange::BPatch_typeRange(int _ID, int _size, const char *_low, const char *_hi, const char *_name)
-   : BPatch_rangedType(_name, _ID, BPatchSymTypeRange, _size, _low, _hi) 
-{
-}
-
-bool BPatch_typeRange::isCompatibleInt(BPatch_type *otype) {
-   BPatch_typeTypedef *otypedef = dynamic_cast<BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatibleInt(otypedef->getConstituentType());
-
-   BPatch_typeRange *oRangetype = dynamic_cast<BPatch_typeRange *>(otype);
-
-   if (oRangetype == NULL)
-      return false;
-
-   return getSize() == oRangetype->getSize();
-}
-
-/*
- * ARRAY
- */
-
-BPatch_typeArray::BPatch_typeArray(int _ID,
-                                   BPatch_type *_base,
-                                   int _low,
-                                   int _hi,
-                                   const char *_name,
-                                   unsigned int _sizeHint)
-   : BPatch_rangedType(_name, _ID, BPatch_dataArray, 0, _low, _hi), arrayElem(_base), sizeHint(_sizeHint) {
-   assert(_base != NULL);
-   arrayElem->incrRefCount();
-}
-
-BPatch_typeArray::BPatch_typeArray(BPatch_type *_base,
-                                   int _low,
-                                   int _hi,
-                                   const char *_name)
-   : BPatch_rangedType(_name, USER_BPATCH_TYPE_ID--, BPatch_dataArray, 0, _low, _hi), arrayElem(_base), sizeHint(0) {
-   assert(_base != NULL);
-   arrayElem->incrRefCount();
-}
-
-bool BPatch_typeArray::operator==(const BPatch_type &otype) const {
-   try {
-      const BPatch_typeArray &oArraytype = dynamic_cast<const BPatch_typeArray &>(otype);
-      return (BPatch_rangedType::operator==(otype) && 
-              (*arrayElem)==*oArraytype.arrayElem);
-   } catch (...) {
-      return false;
-   }
-}
-
-void BPatch_typeArray::merge(BPatch_type *other) {
-   // There are wierd cases where we may define an array with an element
-   // that is a forward reference
-   
-   BPatch_typeArray *otherarray = dynamic_cast<BPatch_typeArray *>(other);
-
-   if ( otherarray == NULL || this->ID != otherarray->ID || 
-        this->arrayElem->getDataClass() != BPatch_dataUnknownType) {
-      bperr( "Ignoring attempt to merge dissimilar types.\n" );
-      return;
-   }
-
-   arrayElem->decrRefCount();
-   otherarray->arrayElem->incrRefCount();
-   arrayElem = otherarray->arrayElem;
-}
-
-void BPatch_typeArray::updateSize()
-{    
-   if (updatingSize) {
-      size = 0;
-      return;
-   }
-   updatingSize = true;
-    // Is our array element's type still a placeholder?
-    if(arrayElem->getDataClass() == BPatch_dataUnknownType)
-	size = 0;
-    
-    // Otherwise we can now calculate the array type's size
-    else {
-
-	// Calculate the size of a single element
-	unsigned int elemSize = sizeHint ? sizeHint : arrayElem->getSize();
-	
-	// Calculate the size of the whole array
-	size = elemSize * (atoi(hi) ? (atoi(hi) - atoi(low) + 1) : 1);
-	
-    }
-   updatingSize = false;
-}
-
-bool BPatch_typeArray::isCompatibleInt(BPatch_type *otype) {
-   BPatch_typeTypedef *otypedef = dynamic_cast<BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatibleInt(otypedef->getConstituentType());
-
-   BPatch_typeArray *oArraytype = dynamic_cast<BPatch_typeArray *>(otype);
-
-   if (oArraytype == NULL) {
-      BPatch_reportError(BPatchWarning, 112, 
-                         "Array and non-array are not type compatible");
-      return false;      
-   }
-   unsigned int ec1, ec2;
-
-   ec1 = atoi(hi) - atoi(low) + 1;
-   ec2 = atoi(oArraytype->hi) - atoi(oArraytype->low) + 1;
-   if (ec1 != ec2) {
-      char message[80];
-      sprintf(message, "Incompatible number of elements [%s..%s] vs. [%s..%s]",
-	      this->low, this->hi, oArraytype->low, oArraytype->hi);
-      BPatch_reportError(BPatchWarning, 112, message);
-      return false;
-   }
-   return arrayElem->isCompatibleInt(oArraytype->arrayElem);
-}
-
-void BPatch_typeArray::fixupUnknowns(BPatch_module *module) {
-   if (arrayElem->getDataClass() == BPatch_dataUnknownType) {
-      BPatch_type *otype = arrayElem;
-      arrayElem = module->getModuleTypes()->findType(arrayElem->getID());
-      arrayElem->incrRefCount();
-      otype->decrRefCount();
-   }
-}
-
-/*
- * STRUCT
- */
-
-BPatch_typeStruct::BPatch_typeStruct(int _ID, const char *_name) 
-   : BPatch_fieldListType(_name, _ID, BPatch_dataStructure) 
-{ 
-}
-
-BPatch_typeStruct::BPatch_typeStruct(const char *_name) 
-   : BPatch_fieldListType(_name, USER_BPATCH_TYPE_ID--, BPatch_dataStructure) 
-{
-}
-
-void BPatch_typeStruct::merge(BPatch_type *other) {
-   // Merging is only for forward references
-   assert(!fieldList.size());
-
-   BPatch_typeStruct *otherstruct = dynamic_cast<BPatch_typeStruct *>(other);
-
-   if( otherstruct == NULL || this->ID != otherstruct->ID) {
-      bperr( "Ignoring attempt to merge dissimilar types.\n" );
-      return;
-   }
-
-   if (otherstruct->name != NULL)
-      name = strdup(otherstruct->name);
-   size = otherstruct->size;
-
-   fieldList = otherstruct->fieldList;
-
-   if (otherstruct->derivedFieldList) {
-      derivedFieldList = new BPatch_Vector<BPatch_field *>;
-      *derivedFieldList = *otherstruct->derivedFieldList;
-   }
-}
-
-void BPatch_typeStruct::updateSize()
-{
-   if (updatingSize) {
-      size = 0;
-      return;
-   }
-   updatingSize = true;
-
-    // Calculate the size of the entire structure
-    size = 0;
-    for(unsigned int i = 0; i < fieldList.size(); ++i) {
-	size += fieldList[i]->getType()->getSize();
-
-	// Is the type of this field still a placeholder?
-	if(fieldList[i]->getType()->getDataClass() == BPatch_dataUnknownType) {
-	    size = 0;
-         break;
-	}
-    }
-   updatingSize = false;
-}
-
-bool BPatch_typeStruct::isCompatibleInt(BPatch_type *otype) 
-{
-   BPatch_typeTypedef *otypedef = dynamic_cast<BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatibleInt(otypedef->getConstituentType());
-
-   BPatch_typeStruct *oStructtype = dynamic_cast<BPatch_typeStruct *>(otype);
-
-   if (oStructtype == NULL)
-      return false;
-
-   const BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
-   const BPatch_Vector<BPatch_field *> * fields2 = oStructtype->getComponents();
-   //const BPatch_Vector<BPatch_field *> * fields2 = (BPatch_Vector<BPatch_field *> *) &(otype->fieldList);
-   
-   if (fields1->size() != fields2->size()) {
-      BPatch_reportError(BPatchWarning, 112, 
-                         "struct/union numer of elements mismatch ");
-      return false;
-   }
-    
-   //need to compare componment by component to verify compatibility
-   for (unsigned int i=0;i<fields1->size();i++) {
-      BPatch_field * field1 = (*fields1)[i];
-      BPatch_field * field2 = (*fields2)[i];
-      
-      BPatch_type * ftype1 = (BPatch_type *)field1->getType();
-      BPatch_type * ftype2 = (BPatch_type *)field2->getType();
-      
-      if(!(ftype1->isCompatibleInt(ftype2))) {
-         BPatch_reportError(BPatchWarning, 112, 
-                            "struct/union field type mismatch ");
-         return false;
-      }
-   }
-   return true;
-}
-
-void BPatch_typeStruct::fixupUnknowns(BPatch_module *module) {
-   for (unsigned int i = 0; i < fieldList.size(); i++)
-      fieldList[i]->fixupUnknown(module);
-}
-
-/*
- * UNION
- */
-
-BPatch_typeUnion::BPatch_typeUnion(int _ID, const char *_name) 
-   : BPatch_fieldListType(_name, _ID, BPatch_dataUnion) {}
-
-BPatch_typeUnion::BPatch_typeUnion(const char *_name)
-   : BPatch_fieldListType(_name, USER_BPATCH_TYPE_ID--, BPatch_dataUnion) {}
-
-void BPatch_typeUnion::merge(BPatch_type *other) {
-   // Merging is only for forward references
-   assert(!fieldList.size());
-
-   BPatch_typeUnion *otherunion = dynamic_cast<BPatch_typeUnion *>(other);
-
-   if( otherunion == NULL || this->ID != otherunion->ID) {
-      bperr( "Ignoring attempt to merge dissimilar types.\n" );
-      return;
-   }
-
-   if (otherunion->name != NULL)
-      name = strdup(otherunion->name);
-   size = otherunion->size;
-
-   fieldList = otherunion->fieldList;
-
-   if (otherunion->derivedFieldList) {
-      derivedFieldList = new BPatch_Vector<BPatch_field *>;
-      *derivedFieldList = *otherunion->derivedFieldList;
-   }
-}
-
-void BPatch_typeUnion::updateSize()
-{
-   if (updatingSize) {
-      size = 0;
-      return;
-   }
-   updatingSize = true;
-
-    // Calculate the size of the union
-    size = 0;
-    for(unsigned int i = 0; i < fieldList.size(); ++i) {
-	if(fieldList[i]->getType()->getSize() > size)
-	    size = fieldList[i]->getType()->getSize();
-
-	// Is the type of this field still a placeholder?
-        if(fieldList[i]->getType()->getDataClass() == BPatch_dataUnknownType) {
-            size = 0;
-         break;
-        }
-    }
-   updatingSize = false;
-}
-
-bool BPatch_typeUnion::isCompatibleInt(BPatch_type *otype) {
-   BPatch_typeTypedef *otypedef = dynamic_cast<BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatibleInt(otypedef->getConstituentType());
-
-   BPatch_typeUnion *oUniontype = dynamic_cast<BPatch_typeUnion *>(otype);
-
-   if (oUniontype == NULL)
-      return false;
-
-   const BPatch_Vector<BPatch_field *> * fields1 = this->getComponents();
-   const BPatch_Vector<BPatch_field *> * fields2 = oUniontype->getComponents();
-   //const BPatch_Vector<BPatch_field *> * fields2 = (BPatch_Vector<BPatch_field *> *) &(otype->fieldList);
-   
-   if (fields1->size() != fields2->size()) {
-      BPatch_reportError(BPatchWarning, 112, 
-                         "struct/union numer of elements mismatch ");
-      return false;
-   }
-    
-   //need to compare componment by component to verify compatibility
-   for (unsigned int i=0;i<fields1->size();i++) {
-      BPatch_field * field1 = (*fields1)[i];
-      BPatch_field * field2 = (*fields2)[i];
-      
-      BPatch_type * ftype1 = (BPatch_type *)field1->getType();
-      BPatch_type * ftype2 = (BPatch_type *)field2->getType();
-      
-      if(!(ftype1->isCompatibleInt(ftype2))) {
-         BPatch_reportError(BPatchWarning, 112, 
-                            "struct/union field type mismatch ");
-         return false;
-      }
-   }
-   return true;
-}
-
-void BPatch_typeUnion::fixupUnknowns(BPatch_module *module) {
-   for (unsigned int i = 0; i < fieldList.size(); i++)
-      fieldList[i]->fixupUnknown(module);
-}
-
-/*
- * SCALAR
- */
-
-BPatch_typeScalar::BPatch_typeScalar(int _ID, unsigned int _size, const char *_name) 
-   : BPatch_type(_name, _ID, BPatch_dataScalar) {
-   size = _size;
-}
-
-BPatch_typeScalar::BPatch_typeScalar(unsigned int _size, const char *_name) 
-   : BPatch_type(_name, USER_BPATCH_TYPE_ID--, BPatch_dataScalar) {
-   size = _size;
-}
-
-bool BPatch_typeScalar::isCompatibleInt(BPatch_type *otype) {
-   bool ret = false;
-   const BPatch_typeTypedef *otypedef = dynamic_cast<const BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL)  {
-      ret =  isCompatibleInt(otypedef->getConstituentType());
-      return ret;
-   }
-
-   const BPatch_typeScalar *oScalartype = dynamic_cast<const BPatch_typeScalar *>(otype);
-   if (oScalartype == NULL) {
-      //  Check to see if we have a range type, which can be compatible.
-      BPatch_typeRange *oRangeType = dynamic_cast<BPatch_typeRange *>(otype);
-      if (oRangeType != NULL) {
-        if ( name == NULL || oRangeType->getName() == NULL)
-           return size == oRangeType->getSize();
-        else if (!strcmp(name, oRangeType->getName()))
-           return size == oRangeType->getSize();
-        else if (size == oRangeType->getSize()) {
-          int t1 = findIntrensicType(name);
-          int t2 = findIntrensicType(oRangeType->getName());
-          if (t1 & t2 & (t1 == t2)) {
-            return true;
-          }
-        }
-
-      }
-      return false;
-   }
-
-   if ( name == NULL || oScalartype->name == NULL)
-      return size == oScalartype->size;
-   else if (!strcmp(name, oScalartype->name))
-      return size == oScalartype->size;
-   else if (size == oScalartype->size) {
-      int t1 = findIntrensicType(name);
-      int t2 = findIntrensicType(oScalartype->name);
-      if (t1 & t2 & (t1 == t2)) {
-         return true;
-      }
-   }
-   return false;
-}
-
-/* 
- * COMMON BLOCK
- */
-
-BPatch_typeCommon::BPatch_typeCommon(int _ID, const char *_name) 
-   : BPatch_fieldListType(_name, _ID, BPatch_dataCommon) {}
-
-BPatch_typeCommon::BPatch_typeCommon(const char *_name) 
-   : BPatch_fieldListType(_name, USER_BPATCH_TYPE_ID--, BPatch_dataCommon) {}
-
-void BPatch_typeCommon::beginCommonBlock() {
-    BPatch_Vector<BPatch_field*> emptyList;
-
-    // null out field list
-    fieldList = emptyList;
-}
-
-void BPatch_typeCommon::endCommonBlock(BPatch_function *func, void *baseAddr) {
-    unsigned int i, j;
-
-    // create local variables in func's scope for each field of common block
-    for (j=0; j < fieldList.size(); j++) {
-	BPatch_localVar *locVar;
-	locVar = new BPatch_localVar(const_cast<char *>( fieldList[j]->getName()), 
-				     fieldList[j]->getType(), 0, 
-				     fieldList[j]->getOffset()+(Address) baseAddr,
-				     -1, BPatch_storageAddr);
-	func->localVariables->addLocalVar( locVar);
-    }
-
-    // look to see if the field list matches an existing block
-    for (i=0; i < cblocks.size(); i++) {
-	BPatch_cblock *curr = cblocks[i];
-	for (j=0; j < fieldList.size(); j++) {
-	    if (strcmp(fieldList[j]->getName(),curr->fieldList[j]->getName()) ||
-		(fieldList[j]->getOffset() !=curr->fieldList[j]->getOffset()) ||
-		(fieldList[j]->getSize() != curr->fieldList[j]->getSize())) {
-		break; // no match
-	    }
-	}
-	if (j == fieldList.size() && (j == curr->fieldList.size())) {
-	    // match
-	    curr->functions.push_back(func);
-	    return;
-	}
-    }
-
-    // this one is unique
-    BPatch_cblock *newBlock = new BPatch_cblock();
-    newBlock->fieldList = fieldList;
-    newBlock->functions.push_back(func);
-    cblocks.push_back(newBlock);
-}
-
-void BPatch_typeCommon::fixupUnknowns(BPatch_module *module) {
-   for (unsigned int i = 0; i < cblocks.size(); i++)
-      cblocks[i]->fixupUnknowns(module);   
-}
-
-/*
- * TYPEDEF
- */
-
-BPatch_typeTypedef::BPatch_typeTypedef(int _ID, BPatch_type *_base, const char *_name, unsigned int _sizeHint) 
-   : BPatch_type(_name, _ID, BPatch_dataTypeDefine) {
-   assert(_base != NULL);
-   base = _base;
-   sizeHint = _sizeHint / 8;
-   size = 0;
-   base->incrRefCount();
-}
-
-BPatch_typeTypedef::BPatch_typeTypedef(BPatch_type *_base, const char *_name) 
-   : BPatch_type(_name, USER_BPATCH_TYPE_ID--, BPatch_dataTypeDefine) {
-   // The whole point of a typedef is to rename a type
-   assert(_base != NULL && _name != NULL);
-   base = _base;
-   sizeHint = 0;
-   size = 0;
-   base->incrRefCount();
-}
-
-bool BPatch_typeTypedef::operator==(const BPatch_type &otype) const {
-   try {
-      const BPatch_typeTypedef &oDeftype = dynamic_cast<const BPatch_typeTypedef &>(otype);
-      return base==oDeftype.base;
-   } catch (...) {
-      return false;
-   }
-}
-
-BPatch_Vector<BPatch_field *> *BPatch_typeTypedef::getComponents() const {
-   BPatch_fieldListType *otype = dynamic_cast<BPatch_fieldListType *>(base);
-   if (otype == NULL)
-      return NULL;
-   else
-      return otype->getComponents();
-}
-
-const char *BPatch_typeTypedef::getLow() const {
-   BPatch_rangedType *otype = dynamic_cast<BPatch_rangedType *>(base);
-   if (otype == NULL)
-      return NULL;
-   else
-      return otype->getLow();
-}
-
-const char *BPatch_typeTypedef::getHigh() const {
-   BPatch_rangedType *otype = dynamic_cast<BPatch_rangedType *>(base);
-   if (otype == NULL)
-      return NULL;
-   else
-      return otype->getHigh();
-}
-
-void BPatch_typeTypedef::updateSize()
-{
-   if (updatingSize) {
-      size = 0;
-      return;
-   }
-   updatingSize = true;
-
-    // Is our base type still a placeholder?
-    if(base->getDataClass() == BPatch_dataUnknownType)
-	size = 0;
-
-    // Otherwise we can now calculate the type definition's size
-    else {
-	// Calculate the size of the type definition
-	size = sizeHint ? sizeHint : base->getSize();
-    }
-   updatingSize = false;
-}
-
-void BPatch_typeTypedef::fixupUnknowns(BPatch_module *module) {
-   if (base->getDataClass() == BPatch_dataUnknownType) {
-      BPatch_type *otype = base;
-      base = module->getModuleTypes()->findType(base->getID());   
-      base->incrRefCount();
-      otype->decrRefCount();
-   }
-}
-
-/*
- * REFERENCE
- */
-
-BPatch_typeRef::BPatch_typeRef(int _ID, BPatch_type *_refType, const char *_name)
-   : BPatch_type(_name, _ID, BPatch_dataReference), BPatch_fieldListInterface(), BPatch_rangedInterface(), refType(_refType) {
-   refType->incrRefCount();
-}
-
-bool BPatch_typeRef::operator==(const BPatch_type &otype) const {
-   try {
-      const BPatch_typeRef &oReftype = dynamic_cast<const BPatch_typeRef &>(otype);
-      return refType==oReftype.refType;
-   } catch (...) {
-      return false;
-   }
-}
-
-bool BPatch_typeRef::isCompatibleInt(BPatch_type *otype) {
-   BPatch_typeTypedef *otypedef = dynamic_cast<BPatch_typeTypedef *>(otype);
-   if (otypedef != NULL) return isCompatibleInt(otypedef->getConstituentType());
-
-   BPatch_typeRef *oReftype = dynamic_cast< BPatch_typeRef *>(otype);
-   if (oReftype == NULL) {
-      return false;
-   }
-   return refType->isCompatibleInt(const_cast<BPatch_type *>(oReftype->refType));
-}   
-
-BPatch_Vector<BPatch_field *> *BPatch_typeRef::getComponents() const {
-   BPatch_fieldListType *otype = dynamic_cast<BPatch_fieldListType *>(refType);
-   if (otype == NULL)
-      return NULL;
-   else
-      return otype->getComponents();
-}
-
-const char *BPatch_typeRef::getLow() const {
-   BPatch_rangedType *otype = dynamic_cast<BPatch_rangedType *>(refType);
-   if (otype == NULL)
-      return NULL;
-   else
-      return otype->getLow();
-}
-
-const char *BPatch_typeRef::getHigh() const {
-   BPatch_rangedType *otype = dynamic_cast<BPatch_rangedType *>(refType);
-   if (otype == NULL)
-      return NULL;
-   else
-      return otype->getHigh();
-}
-
-void BPatch_typeRef::fixupUnknowns(BPatch_module *module) {
-   if (refType->getDataClass() == BPatch_dataUnknownType) {
-      BPatch_type *otype = refType;
-      refType = module->getModuleTypes()->findType(refType->getID());
-      refType->incrRefCount();
-      otype->decrRefCount();
-   }
-}
-
-/*
  * BPatch_type::BPatch_type
  *
  * EMPTY Constructor for BPatch_type.  
  * 
  */
+
+BPatch_type::BPatch_type(Type *typ_): ID(typ_->getID()), typ(typ_),
+    refCount(1)
+{
+    typ_->setUpPtr(this);
+    type_ = convertToBPatchdataClass(typ_->getDataClass());
+}
+
 BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
-   ID(_ID), size(sizeof(/*long*/ int)), updatingSize(false), type_(_type), refCount(1)
+   ID(_ID), type_(_type), refCount(1)
 {
   if (_name != NULL)
-     name = strdup(_name);
+     typ = new Type(_name, ID, convertToSymtabType(_type));
   else
-     name = NULL;
+     typ = new Type("", ID, convertToSymtabType(_type));
+  typ->setUpPtr(this);
 }
 
 /* BPatch_type destructor
@@ -863,147 +112,178 @@ BPatch_type::BPatch_type(const char *_name, int _ID, BPatch_dataClass _type) :
  */
 BPatch_type::~BPatch_type()
 {
-    if (name) free(name);
 }
 
 bool BPatch_type::operator==(const BPatch_type &otype) const 
 {
-   return (ID==otype.ID && size==otype.size && type_ == otype.type_ &&
-           (name == otype.name || 
-            (name != NULL && otype.name != NULL && !strcmp(name, otype.name))));
+   return (ID==otype.ID && type_ == otype.type_ && typ == otype.typ);
 }
 
 unsigned int BPatch_type::getSizeInt()
 {
-  if (!size) 
-    const_cast<BPatch_type *>(this)->updateSize(); 
-  return size;
-}
-/* 
- * Subclasses of BPatch_type, with interfaces
- */
-
-/*
- * FIELD LIST
- */
-
-BPatch_fieldListType::BPatch_fieldListType(const char *_name, int _ID, BPatch_dataClass _class) 
-   : BPatch_type(_name, _ID, _class), derivedFieldList(NULL) { size = 0; }
-
-BPatch_fieldListType::~BPatch_fieldListType() {
-   if (derivedFieldList != NULL)
-      delete derivedFieldList;
+  return typ->getSize();
 }
 
-bool BPatch_fieldListType::operator==(const BPatch_type &otype) const {
-   try {
-      const BPatch_fieldListType &oFieldtype = dynamic_cast<const BPatch_fieldListType &>(otype);
-      if (fieldList.size() != oFieldtype.fieldList.size())
-         return false;
-      for (unsigned int i = 0; i < fieldList.size(); i++) {
-         if (fieldList[i] != oFieldtype.fieldList[i])
-            return false;
-      }
-      return BPatch_type::operator==(otype);
-   } catch (...) {
-      return false;
-   }
+const char *BPatch_type::getName() const { 
+   return typ->getName().c_str(); 
 }
 
-BPatch_Vector<BPatch_field *> * BPatch_fieldListType::getComponents() const 
-{
-   if (derivedFieldList == NULL)
-      const_cast<BPatch_fieldListType *>(this)->fixupComponents();
-   return derivedFieldList;
+Type *BPatch_type::getSymtabType() const {
+    return typ;
+}    
+
+const char *BPatch_type::getLow() const {
+    rangedInterface *rangetype = dynamic_cast<rangedInterface *>(typ);
+    if(!rangetype)
+        return NULL;
+    return (const char *)rangetype->getLow(); 
 }
 
-void BPatch_fieldListType::fixupComponents() 
-{
-   // bperr "Getting the %d components of '%s' at 0x%x\n", fieldList.size(), getName(), this );
-   /* Iterate over the field list.  Recursively (replace)
-      '{superclass}' with the superclass's non-private fields. */
-   derivedFieldList = new BPatch_Vector< BPatch_field * >();
-   for( unsigned int i = 0; i < fieldList.size(); i++ ) {
-      BPatch_field * currentField = fieldList[i];
-      // bperr( "Considering field '%s'\n", currentField->getName() );
-      if( currentField->getName() &&
-          strcmp( currentField->getName(), "{superclass}" ) == 0 ) {
-         /* Note that this is a recursive call.  However, because
-            the class-graph is acyclic (Stroustrup SpecialEd pg 308),
-            we're OK. */
-         // bperr( "Found superclass '%s'...\n", currentField->getType()->getName() );
-         BPatch_fieldListInterface *superclass = dynamic_cast<BPatch_fieldListInterface *>(currentField->getType());
-         assert (superclass != NULL);
-         const BPatch_Vector<BPatch_field *> * superClassFields = superclass->getComponents();
-         // bperr( "Superclass has %d components.\n", superClassFields->size() );
-         /* FIXME: do we also need to consider the visibility of the superclass itself? */
-         /* FIXME: visibility can also be described on a per-name basis in the
-            subclass.  We have now way to convey this information currently, but I'm not
-            sure that it matters for our purposes... */
-         for( unsigned int i = 0; i < superClassFields->size(); i++ ) {
-            BPatch_field * currentSuperField = (*superClassFields)[i];
-            // bperr( "Considering superfield '%s'\n", currentSuperField->getName() );
-            if( currentSuperField->getVisibility() != BPatch_private ) {
-               derivedFieldList->push_back( currentSuperField );
-            }
-         } /* end super-class iteration */
-      } /* end if currentField is a superclass */
-      else {
-         derivedFieldList->push_back( currentField );
-      }
-   } /* end field iteration */
+bool BPatch_type::isCompatible(BPatch_type *otype) { 
+    return typ->isCompatible(otype->typ);
 }
 
-//void BPatch_fieldListType::fixupUnknown(BPatch_module *m)
-//{
-//  BPatch_type *t = dynamic_cast<BPatch_type *>(this);
-//  assert(t);
-//  t->fixupUnknown(m);
-  //((BPatch_type *)this)->fixupUnknown(m);
-//}
-/*
- * RANGED
- */
-
-BPatch_rangedType::BPatch_rangedType(const char *_name, int _ID, BPatch_dataClass _class, int _size, int _low, int _hi) 
-   : BPatch_type(_name, _ID, _class) {
-   char buf[16];
-
-   sprintf(buf, "%d", _low);
-   low = strdup(buf);
-   sprintf(buf, "%d", _hi);
-   hi = strdup(buf);
-
-   size = _size;
+bool BPatch_type::isCompatibleInt(BPatch_type *otype) { 
+    return typ->isCompatible(otype->typ);
 }
 
-BPatch_rangedType::BPatch_rangedType(const char *_name, int _ID, BPatch_dataClass _class, int _size, const char *_low, const char *_hi) 
-   : BPatch_type(_name, _ID, _class) {
-
-   low = strdup(_low);
-   hi = strdup(_hi);
-
-   size = _size;
+BPatch_type *BPatch_type::getConstituentType() const {
+    derivedInterface *derivedType = dynamic_cast<derivedInterface *>(typ);
+    if(!derivedType)
+        return NULL;
+    return (BPatch_type *)derivedType->getConstituentType()->getUpPtr();
 }
 
-BPatch_rangedType::~BPatch_rangedType() {
-   if (low != NULL) free(low);
-   if (hi != NULL) free(hi);
+BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
+    fieldListInterface *fieldlisttype = dynamic_cast<fieldListInterface *>(typ);
+    typeEnum *enumtype = dynamic_cast<typeEnum *>(typ);
+    typeTypedef *typedeftype = dynamic_cast<typeTypedef *>(typ);
+    if(!fieldlisttype && !enumtype && !typedeftype)
+        return NULL;	
+    BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>();
+    if(fieldlisttype) {
+        vector<Field *> *comps = fieldlisttype->getComponents();
+    	if(!comps){
+	        free(components);
+	        return NULL;
+    	}    
+	    for(unsigned i = 0 ; i< comps->size(); i++)
+	        components->push_back(new BPatch_field((*comps)[i]));
+    	return components;    
+    }
+    if(enumtype) {
+        vector<pair<string, int> *> constants = enumtype->getConstants();
+	    for(unsigned i = 0; i < constants.size(); i++){
+	        Field *fld = new Field(constants[i]->first.c_str(), NULL);
+	        components->push_back(new BPatch_field(fld, BPatch_dataScalar, constants[i]->second, 0));
+	    }
+	    return components;    
+    }
+    if(typedeftype)
+        return getConstituentType()->getComponents();
 }
 
-bool BPatch_rangedType::operator==(const BPatch_type &otype) const {
-   try {
-      const BPatch_rangedType &oRangedtype = dynamic_cast<const BPatch_rangedType &>(otype);
-      return (!strcmp(low, oRangedtype.low) && !strcmp(hi, oRangedtype.hi) &&
-              BPatch_type::operator==(otype));
-   } catch (...) {
-      return false;
-   }
+BPatch_Vector<BPatch_cblock *> *BPatch_type::getCblocks() const {
+    typeCommon *commontype = dynamic_cast<typeCommon *>(typ);
+    if(!commontype)
+	return NULL;
+    	
+    std::vector<CBlock *> *cblocks = commontype->getCblocks();
+    if(!cblocks)
+        return NULL;
+    BPatch_Vector<BPatch_cblock *> *ret = new BPatch_Vector<BPatch_cblock *>();
+    for(unsigned i = 0; i < cblocks->size(); i++)
+        ret->push_back((BPatch_cblock *)(*cblocks)[i]->getUpPtr());
+    return ret;	
+}
+
+const char *BPatch_type::getHigh() const {
+    rangedInterface *rangetype = dynamic_cast<rangedInterface *>(typ);
+    if(!rangetype)
+        return NULL;
+    return (const char *)rangetype->getHigh(); 
+}
+
+BPatch_dataClass BPatch_type::convertToBPatchdataClass(dataClass type) {
+    switch(type){
+      case dataEnum:
+          return BPatch_dataEnumerated;
+      case dataPointer:
+          return BPatch_dataPointer;
+      case dataFunction:
+          return BPatch_dataMethod;
+      case dataSubrange:
+          return BPatchSymTypeRange;
+      case dataArray:
+          return BPatch_dataArray;
+      case dataStructure:
+          return BPatch_dataStructure;
+      case dataUnion:
+          return BPatch_dataUnion;
+      case dataCommon:
+          return BPatch_dataCommon;
+      case dataScalar:
+          return BPatch_dataScalar;
+      case dataTypedef:
+          return BPatch_dataTypeDefine;
+      case dataReference:
+          return BPatch_dataReference;
+      case dataUnknownType:
+          return BPatch_dataUnknownType;
+      case dataNullType:
+          return BPatch_dataNullType;
+      case dataTypeClass:
+          return BPatch_dataTypeClass;
+      default:
+          return BPatch_dataNullType;
+    }  
+}
+
+Dyninst::SymtabAPI::dataClass BPatch_type::convertToSymtabType(BPatch_dataClass type){
+    switch(type){
+      case BPatch_dataScalar:
+          return dataScalar;
+      case BPatch_dataEnumerated:
+          return dataEnum;
+      case BPatch_dataTypeClass:
+          return dataTypeClass;
+      case BPatch_dataStructure:
+          return dataStructure;
+      case BPatch_dataUnion:
+          return dataUnion;
+      case BPatch_dataArray:
+      	  return dataArray;
+      case BPatch_dataPointer:
+          return dataPointer;
+      case BPatch_dataReferance:
+          return dataReference;
+      case BPatch_dataFunction:
+          return dataFunction;
+      case BPatch_dataReference:	// NOT sure-- TODO
+          return dataNullType;
+      case BPatch_dataUnknownType:
+          return dataUnknownType;
+      case BPatchSymTypeRange:
+          return dataSubrange;
+      case BPatch_dataMethod:
+          return dataFunction;
+      case BPatch_dataCommon:
+          return dataCommon;
+      case BPatch_dataTypeDefine:
+          return dataTypedef;
+      case BPatch_dataTypeAttrib:	//Never used
+      case BPatch_dataTypeNumber:
+      case BPatch_dataPrimitive:
+      case BPatch_dataNullType:
+      default:
+          return dataNullType;
+    }	  
 }
 
 #ifdef IBM_BPATCH_COMPAT
 char *BPatch_type::getName(char *buffer, int max) const
 {
+  char *name = typ->getName();
   if (!name) {
      strncpy(buffer, "bad type name", (max > strlen("bad_type_name")) ?
              (strlen("bad_type_name") +1) : max);
@@ -1053,6 +333,7 @@ static int findIntrensicType(const char *name)
     return 0;
 }
 
+#if 0
 /*
  * void BPatch_type::addField
  * Creates field object and adds it to the list of fields for this
@@ -1168,86 +449,20 @@ void BPatch_field::BPatch_fieldEnum(const char * fName, BPatch_dataClass _typeDe
   // bperr("adding field %s\n", fName);
 
 }
+#endif
 
-/*
- * BPatch_field::BPatch_field
- *
- * Constructor for BPatch_field.  Creates a field object for 
- * an enumerated type with a C++ visibility value
- * type = offset = size = 0;
- */
-void BPatch_field::BPatch_fieldEnumCpp(const char * fName, BPatch_dataClass _typeDes,
-			   int evalue, BPatch_visibility _vis)
+BPatch_field::BPatch_field(Dyninst::SymtabAPI::Field *fld_, BPatch_dataClass typeDescriptor, int value_, int size_) :
+    typeDes(typeDescriptor), value(value_), size(size_), fld(fld_)
 {
-  typeDes = _typeDes;
-  value = evalue;
-  fieldname = strdup(fName);
-
-  _type = NULL;
-  offset = size = 0;
-  vis = _vis;
-  // bperr("adding field %s\n", fName);
-
-}
-
-/*
- * BPatch_field::BPatch_field
- *
- * Constructor for BPatch_field.  Creates a field object for 
- * an struct and union types.
- * value= 0;
- */
-void BPatch_field::BPatch_fieldSU(const char * fName, BPatch_dataClass _typeDes,
-			   BPatch_type *suType, int suOffset, int suSize)
-{
-  
-  typeDes = _typeDes;
-  _type = suType;
-  offset = suOffset;
-  fieldname = strdup(fName);
-  size = suSize;
-
-  _type->incrRefCount();
-  value = 0;
-  vis = BPatch_visUnknown;
-}
-
-/*
- * BPatch_field::BPatch_field
- *
- * Constructor for BPatch_field.  Creates a field object for 
- * a struct and union types for C++ fields that have visibility.
- * value= 0;
- */
-void BPatch_field::BPatch_fieldSUCpp(const char * fName, BPatch_dataClass _typeDes,
-			   BPatch_type *suType, int suOffset, int suSize,
-			   BPatch_visibility _vis)
-{
-  
-  typeDes = _typeDes;
-  _type = suType;
-  offset = suOffset;
-  fieldname = strdup(fName);
-  size = suSize;
-  
-  _type->incrRefCount();
-  value = 0;
-  vis = _vis;
+    fld_->setUpPtr(this);
 }
 
 void BPatch_field::copy(BPatch_field &oField) 
 {
+   fld = oField.fld;
    typeDes = oField.typeDes;
-   _type = oField._type;
-   offset = oField.offset;
-   if (oField.fieldname != NULL)
-      fieldname = strdup(oField.fieldname);
    size = oField.size;
    value = oField.value;
-   vis = oField.vis;
-
-   if (_type != NULL)
-      _type->incrRefCount();
 }
 
 BPatch_field::BPatch_field(BPatch_field &oField) : BPatch_eventLock()
@@ -1265,20 +480,18 @@ BPatch_field &BPatch_field::operator_equals(BPatch_field &oField)
 
 void BPatch_field::BPatch_field_dtor() 
 {
-   if (_type != NULL) 
-      _type->decrRefCount();
-   if (fieldname != NULL)
-      free(fieldname);
 }
 
 const char *BPatch_field::getNameInt()
 {
-  return fieldname;
+  return fld->getName().c_str();
 }
 
 BPatch_type *BPatch_field::getTypeInt()
 {
-  return _type;
+  if(!fld->getType()->getUpPtr())
+      return new BPatch_type (fld->getType());
+  return (BPatch_type *)fld->getType()->getUpPtr();
 }
 
 int BPatch_field::getValueInt()
@@ -1288,7 +501,7 @@ int BPatch_field::getValueInt()
 
 BPatch_visibility BPatch_field::getVisibilityInt()
 {
-  return vis;
+  return (BPatch_visibility)fld->getVisibility();
 }
 
 BPatch_dataClass BPatch_field::getTypeDescInt()
@@ -1303,16 +516,11 @@ int BPatch_field::getSizeInt()
 
 int BPatch_field::getOffsetInt()
 {
-  return offset;
+  return fld->getOffset();
 }
 
 void BPatch_field::fixupUnknown(BPatch_module *module) {
-   if (_type->getDataClass() == BPatch_dataUnknownType) {
-      BPatch_type *otype = _type;
-      _type = module->getModuleTypes()->findType(_type->getID());
-      _type->incrRefCount();
-      otype->decrRefCount();
-   }
+   fld->fixupUnknown(module->lowlevel_mod()->pmod()->mod());
 }
 
 /**************************************************************************
@@ -1322,6 +530,8 @@ void BPatch_field::fixupUnknown(BPatch_module *module) {
  * BPatch_localVar Constructor
  *
  */
+
+#if 0
 BPatch_localVar::BPatch_localVar(const char * _name,  BPatch_type * _type,
 				 int _lineNum, long _frameOffset, int _reg,
 				 BPatch_storageClass _storageClass)
@@ -1335,6 +545,70 @@ BPatch_localVar::BPatch_localVar(const char * _name,  BPatch_type * _type,
 
     type->incrRefCount();
 }
+#endif
+
+BPatch_localVar::BPatch_localVar(localVar *lVar_) : lVar(lVar_)
+{
+    type = (BPatch_type *)lVar->getType()->getUpPtr();
+    if(!type)
+        type = new BPatch_type(lVar->getType());
+    type->incrRefCount();
+    storageClass = convertToBPatchStorage(lVar_); 
+    lVar->setUpPtr(this);
+}
+
+BPatch_storageClass BPatch_localVar::convertToBPatchStorage(localVar *lVar)
+{
+   vector<Dyninst::SymtabAPI::loc_t *> *locs = lVar->getLocationLists();
+   if(!locs)
+   	return BPatch_storageFrameOffset;
+   
+   Dyninst::SymtabAPI::storageClass stClass = (*locs)[0]->stClass;
+   storageRefClass refClass = (*locs)[0]->refClass;
+   if((stClass == storageAddr) && (refClass == storageNoRef))
+       return BPatch_storageAddr;
+   else if((stClass == storageAddr) && (refClass == storageRef))
+       return BPatch_storageAddrRef;
+   else if((stClass == storageReg) && (refClass == storageNoRef))
+       return BPatch_storageReg;
+   else if((stClass == storageReg) && (refClass == storageRef))
+       return BPatch_storageRegRef;
+   else if((stClass == storageRegOffset) && ((*locs)[0]->reg == -1))
+       return BPatch_storageFrameOffset;
+   else if((stClass == storageRegOffset))
+   	return BPatch_storageRegOffset;
+}
+				      
+const char *BPatch_localVar::getName() { 
+    return lVar->getName().c_str();
+}
+
+BPatch_type *BPatch_localVar::getType() { 
+    return type; 
+}
+
+int BPatch_localVar::getLineNum() { 
+    return lVar->getLineNum(); 
+}
+
+//TODO?? - get the first frame offset
+long BPatch_localVar::getFrameOffset() { 
+    vector<Dyninst::SymtabAPI::loc_t *> *locs = lVar->getLocationLists();
+    if(!locs)
+        return -1;
+    return (*(locs))[0]->frameOffset;
+}
+
+int BPatch_localVar::getRegister() { 
+    vector<Dyninst::SymtabAPI::loc_t *> *locs = lVar->getLocationLists();
+    if(!locs)
+        return -1;
+    return (*(locs))[0]->reg;
+}
+
+BPatch_storageClass BPatch_localVar::getStorageClass() {
+    return storageClass; 
+}
 
 /*
  * BPatch_localVar destructor
@@ -1343,8 +617,8 @@ BPatch_localVar::BPatch_localVar(const char * _name,  BPatch_type * _type,
 BPatch_localVar::~BPatch_localVar()
 {
     //XXX jdd 5/25/99 More to do later
-    if (name) free(name);
-    type->decrRefCount();
+    if(type)
+        type->decrRefCount();
 }
 
 void BPatch_localVar::fixupUnknown(BPatch_module *module) {
@@ -1360,17 +634,32 @@ void BPatch_localVar::fixupUnknown(BPatch_module *module) {
  * BPatch_cblock
  *************************************************************************/
 
+BPatch_cblock::BPatch_cblock(CBlock *cBlk_) : cBlk(cBlk_) {
+//TODO construct components here
+}
+
 void BPatch_cblock::fixupUnknowns(BPatch_module *module) {
-   for (unsigned int i = 0; i < fieldList.size(); i++) {
-      fieldList[i]->fixupUnknown(module);
-   }
+   cBlk->fixupUnknowns(module->lowlevel_mod()->pmod()->mod());
 }
 
 BPatch_Vector<BPatch_field *> *BPatch_cblock::getComponentsInt()
 {
-  return &fieldList;
+  BPatch_Vector<BPatch_field *> *components = new BPatch_Vector<BPatch_field *>;
+  std::vector<Field *> *vars = cBlk->getComponents();
+  if(!vars)
+     return NULL;
+  for(unsigned i=0; i<vars->size();i++)
+      components->push_back((BPatch_field *)(*vars)[i]->getUpPtr());
+  return components;
 }
+
 BPatch_Vector<BPatch_function *> *BPatch_cblock::getFunctionsInt()
 {
-  return &functions;
+  std::vector<Symbol *> *funcs = cBlk->getFunctions();
+  if(!funcs)
+      return NULL;   
+//Return BPatch_functions corresponding to Symbols in SymtabAPI
+//Lookup again from BPatch::bpatch with the name. Then return the BPatch_functions
+//TODO
+
 }

@@ -45,15 +45,13 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
+#include "symtabAPI/h/Type.h"
 #include <string.h>	
 
 #if defined (USES_DWARF_DEBUG)
 #include <dwarf.h>
 #include <libdwarf.h>
 #endif
-
-class BPatch_typeCommon;
-class pdstring;
 
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,
@@ -180,28 +178,24 @@ class BPatch_module;
 
 class BPATCH_DLL_EXPORT BPatch_field : public BPatch_eventLock{
   friend class BPatch_variableExpr;
-  friend class BPatch_typeFunction;
-  friend class BPatch_typeStruct;
-  friend class BPatch_typeUnion;
   friend class BPatch_cblock;
-  char *fieldname;
+  
   BPatch_dataClass   typeDes;
-  BPatch_visibility  vis;
   /* For Enums */
   int          value;
 
   /* For structs and unions */
-  BPatch_type *_type;
-  int         offset;
   int         size;
-
-  /* Method vars */
   
+  //Symtab field
+  Dyninst::SymtabAPI::Field *fld;
+
   protected:
   void copy(BPatch_field &);
   void fixupUnknown(BPatch_module *);
 
   public:
+/*  
   // Enum constructor
   API_EXPORT_CTOR(Enum, (fName, _typeDes, eValue),
   BPatch_field,(const char * fName,  BPatch_dataClass _typeDes, int eValue));
@@ -218,9 +212,11 @@ class BPATCH_DLL_EXPORT BPatch_field : public BPatch_eventLock{
   BPatch_field,(const char * fName,  BPatch_dataClass _typeDes, 
 	       BPatch_type *suType, int suOffset, int suSize,
 	       BPatch_visibility _vis));
+*/
 
   // Copy constructor
   BPatch_field(BPatch_field &f);
+  BPatch_field(Dyninst::SymtabAPI::Field *fld_, BPatch_dataClass typeDescriptor = BPatch_dataUnknownType, int value_ = 0, int size_ = 0);
 
   API_EXPORT_DTOR(_dtor,(),
   ~,BPatch_field,());
@@ -264,8 +260,6 @@ class BPATCH_DLL_EXPORT BPatch_field : public BPatch_eventLock{
 #endif
 #define DYNINST_CLASS_NAME BPatch_cblock
 class BPATCH_DLL_EXPORT BPatch_cblock : public BPatch_eventLock{
-   friend class BPatch_typeCommon;
-
 private:
   // the list of fields
   BPatch_Vector<BPatch_field *> fieldList;
@@ -273,8 +267,12 @@ private:
   // which functions use this list
   BPatch_Vector<BPatch_function *> functions;
 
+  Dyninst::SymtabAPI::CBlock *cBlk;
+
   void fixupUnknowns(BPatch_module *);
 public:
+  BPatch_cblock(Dyninst::SymtabAPI::CBlock *cBlk_);
+  
   API_EXPORT(Int, (),
   BPatch_Vector<BPatch_field *> *,getComponents,());
   API_EXPORT(Int, (),
@@ -287,24 +285,19 @@ public:
 #define DYNINST_CLASS_NAME BPatch_type
 class BPATCH_DLL_EXPORT BPatch_type : public BPatch_eventLock{
     friend class BPatch;
+    friend class BPatch_module;
+    friend class BPatch_function;
     friend class BPatch_typeCollection;
-    friend pdstring parseStabString(BPatch_module *, int, char *,
-                                 int, BPatch_typeCommon *);
-protected:
-  char		*name;
-  int           ID;                /* unique ID of type */
-  unsigned int  size;              /* size of typee */
+    friend class BPatch_localVar;
+    friend class BPatch_field;
 
-  /**
-   * We set updatingSize to true when we're in the process of 
-   * calculating the size of container structures.  This helps avoid
-   * infinite recursion for self referencial types.  Getting a 
-   * self-referencial type probably signifies an error in another
-   * part of the type processing code (or an error in the binary).
-   **/
-  bool updatingSize;
-  
+protected:
+  int           ID;                /* unique ID of type */
+
   BPatch_dataClass   type_;
+
+  //Symtab type
+  Dyninst::SymtabAPI::Type *typ;
 
   /* For common blocks */
 
@@ -315,14 +308,13 @@ protected:
   unsigned int refCount;
 
  protected:
-  virtual void updateSize() {}
   // Simple Destructor
   virtual ~BPatch_type();
   BPatch_type(const char *name = NULL, int _ID = 0, BPatch_dataClass = BPatch_dataNullType);
-
-  virtual void merge( BPatch_type * /* other */ ) { assert(0); }
-
+  
   // A few convenience functions
+  BPatch_dataClass convertToBPatchdataClass(Dyninst::SymtabAPI::dataClass type);
+  Dyninst::SymtabAPI::dataClass convertToSymtabType(BPatch_dataClass type);
 
   static BPatch_type *createFake(const char *_name);
   /* Placeholder for real type, to be filled in later */
@@ -330,6 +322,7 @@ protected:
          { return new BPatch_type(_name, _ID, BPatch_dataUnknownType); }
 
 public:
+  BPatch_type(Dyninst::SymtabAPI::Type *typ_);
   virtual bool operator==(const BPatch_type &) const;
 
   int  getID() const { return ID;}
@@ -337,26 +330,31 @@ public:
   API_EXPORT(Int, (),
   unsigned int,getSize,());
 
-  const char *getName() const { return name; }
+  Dyninst::SymtabAPI::Type *getSymtabType() const;
+
+//Define all of these in .C 
+  const char *getName() const;
 
 #ifdef IBM_BPATCH_COMPAT
   char *getName(char *buffer, int max) const; 
   BPatch_dataClass type() const { return type_; }
 #endif
   BPatch_dataClass getDataClass() const { return type_; }
-  virtual const char *getLow() const { return NULL; }
-  virtual const char *getHigh() const { return NULL; }
-  virtual BPatch_Vector<BPatch_field *> * getComponents() const { return NULL; }
-  virtual bool isCompatible(BPatch_type * /* otype */) { return true; }
-  virtual bool isCompatibleInt(BPatch_type * /* otype */) { return true; }
-  virtual BPatch_type *getConstituentType() const { return NULL; }
-  virtual BPatch_Vector<BPatch_cblock *> *getCblocks() const { return NULL; }
+
+  //TODO - implement these functions later -- giri
+  const char *getLow() const;
+  const char *getHigh() const;
+  BPatch_Vector<BPatch_field *> * getComponents() const;
+  bool isCompatible(BPatch_type * /* otype */);
+  bool isCompatibleInt(BPatch_type * /* otype */);
+  BPatch_type *getConstituentType() const;
+  BPatch_Vector<BPatch_cblock *> *getCblocks() const;
 
   // INTERNAL METHODS
 
   void incrRefCount() { ++refCount; }
   void decrRefCount() { assert(refCount > 0); if (!--refCount) delete this; }
-  virtual void fixupUnknowns(BPatch_module *) { }
+  void fixupUnknowns(BPatch_module *) { }
 };
 
 //
@@ -369,45 +367,34 @@ public:
 #endif
 #define DYNINST_CLASS_NAME BPatch_localVar
 class process;
-class BPatch_fieldListType;
 class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
     friend class BPatch;
     friend class BPatch_function;
-    friend class BPatch_typeCommon;
-    friend class BPatch_localVarCollection;
-    friend pdstring parseStabString(BPatch_module *, int, char *,
-                                 int, BPatch_typeCommon *);
-#if defined(USES_DWARF_DEBUG)
-    friend bool walkDwarvenTree(Dwarf_Debug &, char *, Dwarf_Die,
-                        BPatch_module *, process *, Dwarf_Off, BPatch_function *,
-                        BPatch_typeCommon *, BPatch_fieldListType *);
-#endif
 
-    char *name;
     BPatch_type *type;
-    int lineNum;
-    long frameOffset;
-    int reg;
     BPatch_storageClass storageClass;
     // scope_t scope;
 
+    Dyninst::SymtabAPI::localVar *lVar;
+
 public:
     //  Internal use only
-    BPatch_localVar(const char *_name,  BPatch_type *_type,
-		    int _lineNum, long _frameOffset, int _reg=-1,
-		    BPatch_storageClass _storageClass=BPatch_storageFrameOffset);
+    BPatch_localVar(Dyninst::SymtabAPI::localVar *lVar_);
+    
+		    
     ~BPatch_localVar();
 
     void fixupUnknown(BPatch_module *);
+    BPatch_storageClass convertToBPatchStorage(Dyninst::SymtabAPI::localVar *lVar);
 
 public:
     //  end of functions for nternal use only
-    const char *	getName() { return name; }
-    BPatch_type *	getType() { return type; }
-    int			getLineNum() { return lineNum; }
-    long		getFrameOffset() { return frameOffset; }
-    int			getRegister() { return reg; }
-    BPatch_storageClass	getStorageClass() { return storageClass; }
+    const char *	getName();
+    BPatch_type *	getType();
+    int			getLineNum();
+    long		getFrameOffset();
+    int			getRegister();
+    BPatch_storageClass	getStorageClass();
 
 };
 
