@@ -31,7 +31,7 @@
 			     
 #include <stdio.h>
 
-#include "symtabAPI/h/util.h"
+#include "symtabAPI/h/symutil.h"
 #include "symtabAPI/h/Type.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/src/Collections.h"

@@ -34,7 +34,7 @@
 
 #include "symtabAPI/src/addrtranslate.h"
 #include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/util.h"
+#include "symtabAPI/h/symutil.h"
 
 namespace Dyninst {
 namespace SymtabAPI {

@@ -38,7 +38,7 @@ void check_sync()
          break;
       }
    }
-
+   
    if(threads_equal(tid, sync_test)) {
       logerror("Thread %d [tid %lu] - oneTimeCode completed successfully\n", 
              id, tid);
@@ -46,9 +46,12 @@ void check_sync()
       return;
    }
    else if( thread_int(sync_test) != 0)
-      logerror("%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCode for thread with tid %lu\n", __FILE__, __LINE__, id, thread_int(tid), thread_int(sync_test));
+      logerror("%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCode "
+               "for thread with tid %lu\n", __FILE__, __LINE__, id, thread_int(tid), 
+               thread_int(sync_test));
    else
-      logerror("%s[%d]: ERROR: Thread %d [tid %lu] - sync_test is 0\n", __FILE__, __LINE__, id, thread_int(tid));
+      logerror("%s[%d]: ERROR: Thread %d [tid %lu] - sync_test is 0\n", 
+               __FILE__, __LINE__, id, thread_int(tid));
    sync_failure++;
 }
 
@@ -229,5 +232,5 @@ int main(int argc, char *argv[])
      fclose(outlog);
    }
    
-   return 0;
+   return (sync_failure || async_failure) ? -1 : 0;
 }

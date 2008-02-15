@@ -35,7 +35,7 @@
 #define DMGL_ANSI     (1 << 1) 
 #define DMGL_VERBOSE  (1 << 3) 
 
-#include "util.h"
+#include "symutil.h"
 #include "Symtab.h" // For looking up compiler type
 #include "Symbol.h" 
 #include "symtabAPI/src/Collections.h"

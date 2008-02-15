@@ -41,7 +41,7 @@
 
 #include "Symbol.h"
 #include "LineInformation.h"
-#include "dynutil/h/Annotatable.h"
+#include "Annotatable.h"
 
 typedef struct {} user_funcs_a;
 typedef struct {} user_sections_a;
