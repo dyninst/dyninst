@@ -323,7 +323,7 @@ BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
            existingType = type;
         } else {
            /* Merge the type information. */
-           existingType->merge(type);
+//           existingType->merge(type);  //TODO - change
         }
 #endif
     /* The type may have gained a name. */
