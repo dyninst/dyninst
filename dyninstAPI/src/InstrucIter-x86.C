@@ -386,7 +386,8 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
                                          instruction& tableInsn, 
                                          instruction& maxSwitchInsn,
                                          instruction& branchInsn,
-                                         bool isAddressInJmp )
+                                         bool isAddressInJmp,
+					 Address tableOffsetFromThunk)
 { 
   int addrWidth;
   if(!instructions_)
@@ -484,7 +485,8 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
     if(
        ( ((*ptr & 0xc7) == 0x04) &&
 	 ( ((*(ptr+1) & 0xc7) == 0x85) || ((*(ptr+1) & 0xc7) == 0xc5) ) ) ||
-       ((*ptr & 0xc7) == 0x80) )
+       ((*ptr & 0xc7) == 0x80) ||
+       ((*ptr & 0xc7) == 0x84))
     {
       if((*ptr & 0xc7) == 0x80)
 	ptr += 1;
@@ -503,12 +505,13 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
     }
   }
 
-  if(!jumpTable)
+  if(!jumpTable && !tableOffsetFromThunk)
   {
     result += backupAddress;	
     return false;
   }
-  else if( !instructions_->isValidAddress(jumpTable) )
+  jumpTable += tableOffsetFromThunk;
+  if( !instructions_->isValidAddress(jumpTable) )
   {
     // If the "jump table" has a start address that is outside
     // of the valid range of the binary, we can say with high
@@ -518,11 +521,11 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
     result += backupAddress;
     return false;
   }
-
   for(unsigned int i=0;i<maxSwitch;i++)
   {
     Address tableEntry = jumpTable + (i * addrWidth);
     int jumpAddress = 0;
+    
     if(instructions_->isValidAddress(tableEntry))
     {
       if(addrWidth == sizeof(Address))
@@ -535,7 +538,14 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
       }
     }
     if (jumpAddress)
+    {
+      if(tableOffsetFromThunk)
+      {
+	jumpAddress += tableOffsetFromThunk;
+      }
       result += jumpAddress;
+    }
+    
   }
   return true;
 }

@@ -215,7 +215,8 @@ class InstrucIter {
                                instruction& tableInsn, 
                                instruction& maxSwitchInsn, 
                                instruction& branchInsn,
-                               bool isAddressInJmp );
+                               bool isAddressInJmp,
+			       Address tableOffsetFromThunk = 0);
 #else
   
   bool getMultipleJumpTargets( BPatch_Set< Address >& result );

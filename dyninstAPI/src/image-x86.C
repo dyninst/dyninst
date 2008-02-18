@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.26 2007/09/19 21:54:45 giri Exp $
+ * $Id: image-x86.C,v 1.27 2008/02/18 19:14:44 bill Exp $
  */
 
 #include "common/h/Vector.h"
@@ -53,7 +53,10 @@
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "InstrucIter.h"
 #include "debug.h"
-
+#include <deque>
+#include <set>
+#include <algorithm>
+#include "arch.h"
 
 /**************************************************************
  *
@@ -309,6 +312,135 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
     WL.zap();
     return foundMaxSwitch && foundCondBranch;
 }
+
+bool isNonCallEdge(image_edge* e)
+{
+  return e->getType() != ET_CALL;
+}
+bool leadsToVisitedBlock(image_edge* e, const std::set<image_basicBlock*>& visited)
+{
+  image_basicBlock* src = e->getSource();
+  return visited.find(src) != visited.end();
+}
+
+struct copyToWorkList
+{
+  copyToWorkList(std::deque<image_basicBlock*>& wl, 
+		      const std::set<image_basicBlock*>& v) :
+  worklist(wl), visited(v)
+  {
+  }
+  std::deque<image_basicBlock*>& worklist;
+  const std::set<image_basicBlock*>& visited;
+  void operator()(image_edge* e)
+  {
+    if(isNonCallEdge(e) && !leadsToVisitedBlock(e, visited))
+    {
+      worklist.push_back(e->getSource());
+    }
+  }
+};
+
+
+bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkOffset)
+{
+  InstrucIter ah(curBlock);
+  bool isValidTarget, dummy;
+  
+  while(ah.hasMore())
+  {
+    if(ah.isACallInstruction() && !f->archIsRealCall(ah, isValidTarget, dummy))
+    {
+      ah++;
+      thunkOffset = *ah;
+      ia32_memacc mac[3];
+      ia32_locations loc;
+      ia32_condition cond;
+      ia32_instruction itmp(mac, &cond, &loc);
+      ia32_decode(IA32_FULL_DECODER, (unsigned char*)(ah.getInstruction().ptr()), itmp);
+      int immediate;
+      if(itmp.getEntry()->id == e_add)
+      {
+	switch(loc.imm_size)
+	{
+	case 4:
+	  immediate = *(int*)(ah.getInstruction().ptr() + loc.imm_position);
+	  thunkOffset += immediate;
+	  break;
+	case 1:
+	  immediate = *(char*)(ah.getInstruction().ptr() + loc.imm_position);
+	  thunkOffset += immediate;
+	  break;
+	default:
+	  thunkOffset = 0;
+	  break;
+	}
+      }
+    }
+    else // Look for an AMD64 IP-relative LEA.  If we find one, it should point to the start of a
+    {    // relative jump table.
+
+      ia32_memacc mac[3];
+      ia32_locations loc;
+      ia32_condition cond;
+      ia32_instruction itmp(mac, &cond, &loc);
+      ia32_decode(IA32_FULL_DECODER, (unsigned char*)(ah.getInstruction().ptr()), itmp);
+
+      if(itmp.getEntry()->id == e_lea && 
+	 loc.modrm_rm == 0x05 && loc.modrm_mod == 0x00) // IP-relative
+      {
+	int immediate;
+	switch(loc.disp_size)
+	{
+	case 4:
+	  immediate = *(int*)(ah.getInstruction().ptr() + loc.disp_position);
+	  ah++;
+	  thunkOffset = *ah + immediate;
+	  break;
+	case 1:
+	  immediate = *(char*)(ah.getInstruction().ptr() + loc.disp_position);
+	  ah++;
+	  thunkOffset = *ah + immediate;
+	  break;
+	default:
+	  thunkOffset = 0;
+	  break;	  
+	  }
+      }
+    }
+    ah++;
+  }
+  return false;
+}
+
+
+bool findThunkAndOffset(image_func* f, image_basicBlock* start, Address& thunkOffset)
+{
+  std::set<image_basicBlock*> visited;
+  std::deque<image_basicBlock*> worklist;
+  pdvector<image_edge*> sources;
+  image_basicBlock* curBlock;
+  worklist.insert(worklist.begin(), start);
+  while(!worklist.empty())
+  {
+    curBlock = worklist.front();
+    worklist.pop_front();
+    visited.insert(curBlock);
+    if(findThunkInBlock(f, curBlock, thunkOffset))
+    {
+      return true;
+    }
+    else
+    {
+      sources.clear();
+      curBlock->getSources(sources);
+      std::for_each(sources.begin(), sources.end(), copyToWorkList(worklist, visited));
+    }
+  }
+  return false;
+}
+
+
 // Very complicated for x86. Look for a jump table in the blocks preceeding
 // this block, and extract targets from it if found or mark this function
 // unrelocatable if it was not found or not understood.
@@ -326,7 +458,7 @@ bool image_func::archGetMultipleJumpTargets(
 
     if( in.size() < 1 )
     {
-        return false;
+      return false;
     }
     else {
         instruction tableInsn = ah.getInstruction();
@@ -340,6 +472,8 @@ bool image_func::archGetMultipleJumpTargets(
         assert(j > 0);
         
         const unsigned char* ptr = ah.getInstruction().op_ptr();
+	const unsigned char LEA = 0x8D;
+	
         assert( *ptr == 0xff );
         ptr++;
         if( (*ptr & 0xc7) != 0x04) // if not SIB
@@ -354,41 +488,40 @@ bool image_func::archGetMultipleJumpTargets(
                 while(findReg.hasPrev()) {
                     findReg--;
                     parsing_printf("Checking 0x%lx for register...\n", *findReg);
-                    if ((*findReg.getInstruction().op_ptr()) == MOVREGMEM_REG) {
+                    if ((*findReg.getInstruction().op_ptr()) == MOVREGMEM_REG || (*findReg.getInstruction().op_ptr()) == LEA) {
                         tableInsn = findReg.getInstruction();
                         foundTableInsn = true;
                         parsing_printf("Found register at 0x%lx\n", *findReg);
                         break;    
                     }
                 }
-                if( !foundTableInsn )
-                    {
-                        //can't determine register contents
-                        //give up on this possible jump table
-                        return false;
-                    }
-            }
+	    }
+	
 
         // search backward over the blocks that reach this one. we're looking
         // for a comparison on this register. if we find an assignment to the
         // register but don't find the comparison, we give up on this jump
         // table.
         bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn);
-        
+	Address thunkOffset = 0;
+	bool foundThunk = findThunkAndOffset(this, currBlk, thunkOffset);
+	
         if( !foundMaxSwitch ) {
-            parsing_printf("... unable to fix max switch size\n");
-            return false;
+	  parsing_printf("... unable to fix max switch size\n");
+	  return false;
         }
         //found the max switch assume jump table
         else {
-            if( !ah.getMultipleJumpTargets( targets, tableInsn, 
-                                            maxSwitch, branchInsn, isAddInJmp ))
-            {
-                return false;
-            }
-            else
-                return targets.size() > 0;
-        }
+	  if( !ah.getMultipleJumpTargets( targets, tableInsn, 
+					  maxSwitch, branchInsn, isAddInJmp, thunkOffset ))
+	  {
+	    return false;
+	  }
+	  else
+	  {
+	    return targets.size() > 0;
+	  }
+	}
     }
 }
 
