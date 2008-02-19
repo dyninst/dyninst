@@ -44,7 +44,7 @@
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
 
-/* $Id: imageUpdate.h,v 1.7 2004/03/23 19:10:57 eli Exp $ */
+/* $Id: imageUpdate.h,v 1.8 2008/02/19 13:37:29 rchen Exp $ */
 
 
 //ccw 28 oct 2001
@@ -61,7 +61,7 @@ class imageUpdate{
 
         public:
 
-        unsigned int address;
+        unsigned long address;
         unsigned int size;
         unsigned int startPage, stopPage; //ccw 13 july 2002 : fix for AIX 
 
@@ -118,7 +118,7 @@ static inline int imageUpdateSort(const void * left,
 
 
 typedef struct dataUpdate__ {
-	unsigned int address;
+	unsigned long address;
 	unsigned int size;
 	char* value;	
 } dataUpdate;
