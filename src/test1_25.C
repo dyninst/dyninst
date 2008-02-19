@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_25.C,v 1.4 2006/10/11 21:52:53 cooksey Exp $
+// $Id: test1_25.C,v 1.5 2008/02/19 23:50:11 legendre Exp $
 /*
  * #Name: test1_25
  * #Desc: Unary Operators
@@ -63,81 +63,64 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 	// Used as hack for Fortran to allow assignment of a pointer to an int
 	bpatch->setTypeChecking (false);
-#if !defined(mips_sgi_irix6_4)
-    //     First verify that we can find a local variable in call25_1
-  BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("call25_1", found_funcs)) || !found_funcs.size()) {
-       logerror("    Unable to find function %s\n",
-	      "call25_1");
+   //     First verify that we can find a local variable in call25_1
+   BPatch_Vector<BPatch_function *> found_funcs;
+   if ((NULL == appImage->findFunction("call25_1", found_funcs)) || !found_funcs.size()) {
+      logerror("    Unable to find function %s\n",
+               "call25_1");
       return -1;
-    }
+   }
 
-    if (1 < found_funcs.size()) {
+   if (1 < found_funcs.size()) {
       logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs.size(), "call25_1");
-    }
+               __FILE__, __LINE__, found_funcs.size(), "call25_1");
+   }
 
-    BPatch_Vector<BPatch_point *> *point25_1 = found_funcs[0]->findPoint(BPatch_entry);
+   BPatch_Vector<BPatch_point *> *point25_1 = found_funcs[0]->findPoint(BPatch_entry);
 
-    assert(point25_1);
-//    assert(point25_1 && (point25_1->size() == 1));
+   assert(point25_1);
+   //    assert(point25_1 && (point25_1->size() == 1));
 
-    BPatch_variableExpr *gvar[8];
+   BPatch_variableExpr *gvar[8];
 
-    for (int i=1; i <= 7; i++) {
-        char name[80];
+   for (int i=1; i <= 7; i++) {
+      char name[80];
 
-        sprintf (name, "globalVariable25_%d", i);
-        gvar [i] = findVariable (appImage, name, point25_1);
+      sprintf (name, "globalVariable25_%d", i);
+      gvar [i] = findVariable (appImage, name, point25_1);
 
-	if (!gvar[i]) {
-	    logerror("**Failed** test #25 (unary operaors)\n");
-	    logerror("  can't find variable globalVariable25_%d\n", i);
-	    return -1;
-	}
-    }
+      if (!gvar[i]) {
+         logerror("**Failed** test #25 (unary operaors)\n");
+         logerror("  can't find variable globalVariable25_%d\n", i);
+         return -1;
+      }
+   }
 
-    //     globalVariable25_2 = &globalVariable25_1
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(rs6000_ibm_aix4_1) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4) \
- && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_nt4_0)
+   //     globalVariable25_2 = &globalVariable25_1
+   BPatch_arithExpr assignment1(BPatch_assign, *gvar[2],
+                                BPatch_arithExpr(BPatch_addr, *gvar[1]));
 
-    // without type info need to inform
-    BPatch_type *type = appImage->findType("void *");
-    assert(type);
-    gvar[2]->setType(type);
-#endif
+   appThread->insertSnippet(assignment1, *point25_1);
 
-    BPatch_arithExpr assignment1(BPatch_assign, *gvar[2],
-	BPatch_arithExpr(BPatch_addr, *gvar[1]));
+   // 	   globalVariable25_3 = *globalVariable25_2
+   //		Need to make sure this happens after the first one
+   BPatch_arithExpr assignment2(BPatch_assign, *gvar[3],
+                                BPatch_arithExpr(BPatch_deref, *gvar[2]));
+   appThread->insertSnippet(assignment2, *point25_1,  BPatch_callBefore,
+                            BPatch_lastSnippet);
 
-    appThread->insertSnippet(assignment1, *point25_1);
+   // 	   globalVariable25_5 = -globalVariable25_4
+   BPatch_arithExpr assignment3(BPatch_assign, *gvar[5],
+                                BPatch_arithExpr(BPatch_negate, *gvar[4]));
+   appThread->insertSnippet(assignment3, *point25_1);
 
-    // 	   globalVariable25_3 = *globalVariable25_2
-    //		Need to make sure this happens after the first one
-    BPatch_arithExpr assignment2(BPatch_assign, *gvar[3],
-	BPatch_arithExpr(BPatch_deref, *gvar[2]));
-    appThread->insertSnippet(assignment2, *point25_1,  BPatch_callBefore,
-	    BPatch_lastSnippet);
+   // 	   globalVariable25_7 = -globalVariable25_6
+   BPatch_arithExpr assignment4(BPatch_assign, *gvar[7],
+                                BPatch_arithExpr(BPatch_negate, *gvar[6]));
+   appThread->insertSnippet(assignment4, *point25_1);
 
-    // 	   globalVariable25_5 = -globalVariable25_4
-    BPatch_arithExpr assignment3(BPatch_assign, *gvar[5],
-	BPatch_arithExpr(BPatch_negate, *gvar[4]));
-    appThread->insertSnippet(assignment3, *point25_1);
-
-    // 	   globalVariable25_7 = -globalVariable25_6
-    BPatch_arithExpr assignment4(BPatch_assign, *gvar[7],
-	BPatch_arithExpr(BPatch_negate, *gvar[6]));
-    appThread->insertSnippet(assignment4, *point25_1);
-
-#endif
 	bpatch->setTypeChecking (true);
-        return 0;
+   return 0;
 }
 
 // External Interface
