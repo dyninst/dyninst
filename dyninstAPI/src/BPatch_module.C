@@ -286,6 +286,20 @@ bool BPatch_module::parseTypesIfNecessary() {
     	}
     if (!isValid()) return false;
 
+    bool is64 = (mod->pmod()->imExec()->getAddressWidth() == 8);
+    if (sizeof(void *) == 8 && !is64) {
+	// Terrible Hack:
+	//   If mutatee and mutator address width is different,
+	//   we need to patch up certain standard types.
+	BPatch_type *typePtr;
+
+	typePtr = BPatch::bpatch->builtInTypes->findBuiltInType(-10);
+	typePtr->getSymtabType()->setSize(4);
+
+	typePtr = BPatch::bpatch->builtInTypes->findBuiltInType(-19);
+	typePtr->getSymtabType()->setSize(4);
+    }
+
     mod->pmod()->mod()->exec()->parseTypesNow();
     moduleTypes = BPatch_typeCollection::getModTypeCollection(this);
     vector<Type *> *modtypes = mod->pmod()->mod()->getAllTypes();
@@ -660,8 +674,7 @@ extern pdstring parseStabString(BPatch_module *, int linenum, char *str,
 
 
 #if defined(rs6000_ibm_aix4_1)
-
-#include <syms.h>
+#include <xcoff.h>
 
 // Gets the stab and stabstring section and parses it for types
 // and variables
@@ -689,6 +702,23 @@ void BPatch_module::parseTypes()
    imgPtr = mod->obj()->parse_img();
 
    Symtab *objPtr = imgPtr->getObject();
+   bool is64 = (mod->pmod()->imExec()->getAddressWidth() == 8);
+
+   fprintf(stderr, "BPatch_module::parseTypes run with is64 == %s\n", is64 ? "true" : "false");
+   // If mutatee and mutator address width is different,
+   // we need to patch up certain standard types.
+   if (sizeof(void *) == 8 && !is64) {
+       BPatch_type *oldType;
+       BPatch_typeScalar *newType;
+
+       oldType  = BPatch::bpatch->builtInTypes->findBuiltInType(-10);
+       newType  = dynamic_cast<BPatch_typeScalar *>(oldType);
+       *newType = BPatch_typeScalar(-10, 4, "unsigned long");
+
+       oldType  = BPatch::bpatch->builtInTypes->findBuiltInType(-19);
+       newType  = dynamic_cast<BPatch_typeScalar *>(oldType);
+       *newType = BPatch_typeScalar(-19, 4, "stringptr");
+   }
 
    void *syms_void = NULL;
    objPtr->get_stab_info(stabstr, nstabs, syms_void, stringPool); 
@@ -701,17 +731,18 @@ void BPatch_module::parseTypes()
    for (i=0; i < nstabs; i++) {
       /* do the pointer addition by hand since sizeof(struct syment)
        *   seems to be 20 not 18 as it should be */
-      SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
-      // SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * sizeof(struct syment));
-
+      SYMENT *sym = (SYMENT *) (((char *) syms) + i * SYMESZ);
+      unsigned long sym_value = (is64 ? sym->n_value64 : sym->n_value32);
 
       if (sym->n_sclass == C_FILE) {
          char *moduleName;
-         if (!sym->n_zeroes) {
-            moduleName = &stringPool[sym->n_offset];
+	 if (is64) {
+	    moduleName = &stringPool[sym->n_offset64];
+	 } else if (!sym->n_zeroes32) {
+	    moduleName = &stringPool[sym->n_offset32];
          } else {
             memset(tempName, 0, 9);
-            strncpy(tempName, sym->n_name, 8);
+            strncpy(tempName, sym->n_name32, 8);
             moduleName = tempName;
          }
          /* look in aux records */
@@ -750,35 +781,43 @@ void BPatch_module::parseTypes()
       //num_active++;
 
       char *nmPtr;
-      if (!sym->n_zeroes && ((sym->n_sclass & DBXMASK) ||
-               (sym->n_sclass == C_BINCL) ||
-               (sym->n_sclass == C_EINCL))) {
-         if (sym->n_offset < 3) {
-            if (sym->n_offset == 2 && stabstr[0]) {
+      if (!sym->n_zeroes32 && ((sym->n_sclass & DBXMASK) ||
+                               (sym->n_sclass == C_BINCL) ||
+                               (sym->n_sclass == C_EINCL))) {
+         long sym_offset = (is64 ? sym->n_offset64 : sym->n_offset32);
+
+         // Symbol name stored in STABS, not string pool.
+         if (sym_offset < 3) {
+            if (sym_offset == 2 && stabstr[0]) {
                nmPtr = &stabstr[0];
             } else {
-               nmPtr = &stabstr[sym->n_offset];
+               nmPtr = &stabstr[sym_offset];
             }
-         } else if (!stabstr[sym->n_offset-3]) {
-            nmPtr = &stabstr[sym->n_offset];
+         } else if (!stabstr[sym_offset-3]) {
+            nmPtr = &stabstr[sym_offset];
          } else {
             /* has off by two error */
-            nmPtr = &stabstr[sym->n_offset-2];
+            nmPtr = &stabstr[sym_offset-2];
          }
 #if 0
          bperr("using nmPtr = %s\n", nmPtr);
-         bperr("got n_offset = (%d) %s\n", sym->n_offset, &stabstr[sym->n_offset]);
-         if (sym->n_offset>=2) 
-            bperr("got n_offset-2 = %s\n", &stabstr[sym->n_offset-2]);
-         if (sym->n_offset>=3) 
-            bperr("got n_offset-3 = %x\n", stabstr[sym->n_offset-3]);
-         if (sym->n_offset>=4) 
-            bperr("got n_offset-4 = %x\n", stabstr[sym->n_offset-4]);
+         bperr("got n_offset = (%d) %s\n", sym_offset, &stabstr[sym_offset]);
+         if (sym_offset>=2)
+            bperr("got n_offset-2 = %s\n", &stabstr[sym_offset-2]);
+         if (sym_offset>=3)
+            bperr("got n_offset-3 = %x\n", stabstr[sym_offset-3]);
+         if (sym_offset>=4)
+            bperr("got n_offset-4 = %x\n", stabstr[sym_offset-4]);
 #endif
+
+      } else if (is64) {
+         nmPtr = &stringPool[sym->n_offset64];
+      } else if (!sym->n_zeroes32) {
+         nmPtr = &stringPool[sym->n_offset32];
       } else {
          // names 8 or less chars on inline, not in stabstr
          memset(tempName, 0, 9);
-         strncpy(tempName, sym->n_name, 8);
+         strncpy(tempName, sym->n_name32, 8);
          nmPtr = tempName;
       }
 
@@ -843,23 +882,25 @@ void BPatch_module::parseTypes()
          } else if (sym->n_sclass == C_BSTAT) {
             // begin static block
             // find the variable for the common block
-            tsym = (SYMENT *) (((unsigned) syms) + sym->n_value * SYMESZ);
+            tsym = (SYMENT *) (((char *) syms) + sym_value * SYMESZ);
 
             // We can't lookup the value by name, because the name might have been
             // redefined later on (our lookup would then pick the last one)
 
             // Since this whole function is AIX only, we're ok to get this info
 
-            staticBlockBaseAddr = tsym->n_value;
+            staticBlockBaseAddr = (is64 ? tsym->n_value64 : tsym->n_value32);;
 
             /*
                char *staticName, tempName[9];
-               if (!tsym->n_zeroes) {
-               staticName = &stringPool[tsym->n_offset];
+               if (is64) {
+                  staticName = &stringPool[tsym->n_offset64];
+               } else if (!tsym->n_zeroes32) {
+                  staticName = &stringPool[tsym->n_offset32];
                } else {
-               memset(tempName, 0, 9);
-               strncpy(tempName, tsym->n_name, 8);
-               staticName = tempName;
+                  memset(tempName, 0, 9);
+                  strncpy(tempName, tsym->n_name32, 8);
+                  staticName = tempName;
                }
                BPatch_image *progam = (BPatch_image *) getObjParent();
 
@@ -885,9 +926,9 @@ void BPatch_module::parseTypes()
 
          if (staticBlockBaseAddr && (sym->n_sclass == C_STSYM)) {
             parseStabString(this, 0, nmPtr, 
-                  sym->n_value+staticBlockBaseAddr, commonBlock);
+                  sym_value+staticBlockBaseAddr, commonBlock);
          } else {
-            parseStabString(this, 0, nmPtr, sym->n_value, commonBlock);
+            parseStabString(this, 0, nmPtr, sym_value, commonBlock);
          }
       }
    }
