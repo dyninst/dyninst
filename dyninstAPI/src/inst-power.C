@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.281 2008/02/19 13:37:39 rchen Exp $
+ * $Id: inst-power.C,v 1.282 2008/02/19 23:50:10 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -2048,21 +2048,23 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     instruction insn;
 
     if (op == loadIndirOp) {
-        // really load dest, (dest)imm
-        assert(src2 == 0); // Since we don't use it.
-
-        if (size == 1)
-            instruction::generateImm(gen, LBZop, dest, src1, 0);
-        else if (size == 2)
-            instruction::generateImm(gen, LHZop, dest, src1, 0);
-        else if ((size == 4) ||
-		 (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
-            instruction::generateImm(gen, Lop,   dest, src1, 0);
-        else if (size == 8) {
-            instruction::generateMemAccess64(gen, LDop, LDxop,
-                                             dest, src1, 0);
-        } else assert(0 && "Incompatible loadOp size");
-
+       // really load dest, (dest)imm
+       assert(src2 == 0); // Since we don't use it.
+       if (!size)
+          size = proc->getAddressWidth();
+       if (size == 1)
+          instruction::generateImm(gen, LBZop, dest, src1, 0);
+       else if (size == 2)
+          instruction::generateImm(gen, LHZop, dest, src1, 0);
+       else if ((size == 4) ||
+                (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
+          instruction::generateImm(gen, Lop,   dest, src1, 0);
+       else if (size == 8) {
+          instruction::generateMemAccess64(gen, LDop, LDxop,
+                                           dest, src1, 0);
+       } 
+       else 
+          assert(0 && "Incompatible loadOp size");
     } else if (op == storeIndirOp) {
         // generate -- st src1, dest
         if (size == 1)
