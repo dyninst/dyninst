@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.32 2007/12/04 18:05:10 legendre Exp $
+ * $Id: Types.h,v 1.33 2008/02/19 13:37:00 rchen Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -77,16 +77,35 @@ WindowsNT    nonexistant
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
 
-#elif defined(arch_power) && defined(os_aix)
 #  ifndef _ALL_SOURCE
 #     define _ALL_SOURCE
 #  endif
 #  include <sys/types.h>     /* if aix4.3, this will include inttypes.h */
 #  ifndef _H_INTTYPES        /* for aix4.2 */
-   typedef int int32_t;
-   typedef long long int64_t;
-   typedef unsigned int uint32_t;
-   typedef unsigned long long uint64_t;
+typedef int int32_t;
+typedef long int64_t;
+typedef unsigned int uint32_t;
+typedef unsigned long uint64_t;
+#  endif
+
+#elif defined(arch_power) && defined(os_aix)
+#  if defined(rs6000_ibm_aix64)
+#       define TYPE64BIT
+#  endif
+#  ifndef _ALL_SOURCE
+#     define _ALL_SOURCE
+#  endif
+#  include <sys/types.h>     /* if aix4.3, this will include inttypes.h */
+#  ifndef _H_INTTYPES        /* for aix4.2 */
+     typedef int int32_t;
+     typedef unsigned int uint32_t;
+#    if defined(rs6000_ibm_aix64)
+        typedef long int64_t;
+        typedef unsigned long uint64_t;
+#    else
+        typedef long long int64_t;
+        typedef unsigned long long uint64_t;
+#    endif
 #  endif
 
 #elif defined(arch_alpha)

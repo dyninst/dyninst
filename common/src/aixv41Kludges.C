@@ -88,7 +88,7 @@ int P_kill(pid_t PID, int SIGNUM) { return (kill(PID, SIGNUM));}
 off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
   return (lseek(FILEDES, OFFSET, WHENCE));}
 int P_open(const char *FILENAME, int FLAGS, mode_t MODE) {
-  return (open(FILENAME, FLAGS, MODE));}
+  return (open64(FILENAME, FLAGS, MODE));}
 int P_pclose (FILE *STREAM) { return (pclose(STREAM));}
 FILE *P_popen (const char *COMMAND, const char *MODE) { return (popen(COMMAND, MODE));}
 size_t P_read (int FILEDES, void *BUFFER, size_t SIZE) {
@@ -144,20 +144,20 @@ unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE){
 
 /* BSD */
 
-int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
+int P_accept (int SOCK, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
 #if defined(CROSSCOMPILER)
   return (accept(SOCK, ADDR, (int *)LENGTH_PTR));
 #else
-  return (accept(SOCK, ADDR, (long unsigned int *)LENGTH_PTR));
+  return (accept(SOCK, ADDR, LENGTH_PTR));
 #endif
 }
 
-int P_bind(int socket, struct sockaddr *addr, size_t len) {
+int P_bind(int socket, struct sockaddr *addr, socklen_t len) {
   return (bind(socket, addr, len));}
 
 // void P_bzero(void *block, size_t size) { bzero(block, size);}
 
-int P_connect(int socket, struct sockaddr *addr, size_t len) {
+int P_connect(int socket, struct sockaddr *addr, socklen_t len) {
   return (connect(socket, addr, len));}
 
 struct hostent *P_gethostbyname (const char *NAME) { 
@@ -172,11 +172,11 @@ int P_getrusage(int i, struct rusage *r) {return (getrusage(i, r));}
 struct servent *P_getservbyname (const char *NAME, const char *PROTO) {
   return (getservbyname(NAME, PROTO));}
 
-int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR) {
+int P_getsockname (int SOCKET, struct sockaddr *ADDR, socklen_t *LENGTH_PTR) {
 #if defined(CROSSCOMPILER)
   return (getsockname(SOCKET, ADDR, (int *)LENGTH_PTR));
 #else
-  return (getsockname(SOCKET, ADDR, (long unsigned int *)LENGTH_PTR));
+  return (getsockname(SOCKET, ADDR, LENGTH_PTR));
 #endif
 }
 

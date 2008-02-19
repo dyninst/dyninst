@@ -149,14 +149,14 @@ extern long int P_strtol (const char *P_STRING, char **TAILPTR, int BASE);
 extern unsigned long int P_strtoul(const char *P_STRING, char **TAILPTR, int BASE);
 
 /* BSD */
-extern int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR);
-extern int P_bind(int socket, struct sockaddr *addr, size_t len);
-extern int P_connect(int socket, struct sockaddr *addr, size_t len);
+extern int P_accept (int SOCK, struct sockaddr *ADDR, socklen_t *LENGTH_PTR);
+extern int P_bind(int socket, struct sockaddr *addr, socklen_t len);
+extern int P_connect(int socket, struct sockaddr *addr, socklen_t len);
 extern struct hostent * P_gethostbyname (const char *NAME);
 /* extern int P_gethostname(char *name, size_t size); */
 /* extern int P_getrusage(int, struct rusage*); */
 extern struct servent * P_getservbyname (const char *NAME, const char *PROTO);
-extern int P_getsockname (int SOCKET, struct sockaddr *ADDR, size_t *LENGTH_PTR);
+extern int P_getsockname (int SOCKET, struct sockaddr *ADDR, socklen_t *LENGTH_PTR);
 /* extern int P_gettimeofday (struct timeval *TP, struct timezone *TZP); */
 extern int P_listen (int socket, unsigned int n);
 caddr_t P_mmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t off);
@@ -169,11 +169,10 @@ extern int P_strncasecmp (const char *S1, const char *S2, size_t N);
 extern void P_endservent(void);
 inline int P_getpagesize() { return getpagesize(); }
 
-#ifdef NOTDEF // PDSEP
-inline int P_ptrace(int req, int pid, void *addr, int data, void *addr2)
-  { return(ptrace(req, pid, (int *)addr, data, (int *)addr2));}
+inline int P_ptrace(int req, pid_t pid, Address addr, Address data, Address addr2)
+#if defined(rs6000_ibm_aix64)
+  { return(ptrace64(req, pid, addr, data, reinterpret_cast<int *>(addr2)));}
 #else
-inline int P_ptrace(int req, pid_t pid,  Address addr, Address data, Address addr2)
   { return(ptrace(req, pid, (int *)addr, data, (int *)addr2));}
 #endif
 
