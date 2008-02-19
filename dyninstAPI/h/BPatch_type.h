@@ -45,8 +45,9 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
-#include "symtabAPI/h/Type.h"
 #include <string.h>	
+
+#include "Type.h"
 
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,

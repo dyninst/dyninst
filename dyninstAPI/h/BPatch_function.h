@@ -50,7 +50,7 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_memoryAccess_NP.h"
-#include "dynutil/h/Annotatable.h"
+#include "Annotatable.h"
 #include "BPatch_dependenceGraphNode.h"
 // class BPatch_dependenceGraphNode;
 
@@ -179,7 +179,8 @@ public:
 
 	// This function should be deprecated.
 	API_EXPORT(Int, (start, end, filename, max),
-	bool,getLineAndFile,( unsigned int & start, unsigned int & end, char * filename, unsigned int max ));
+              bool,getLineAndFile,( unsigned int & start, unsigned int & end, 
+                                    char * filename, unsigned int max ));
 	
 	// This function should be deprecated.
 	API_EXPORT(Int, (lineNo, buffer, exactMatch),

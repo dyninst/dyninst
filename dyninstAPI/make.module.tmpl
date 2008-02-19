@@ -3,11 +3,11 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.95 2007/12/11 21:19:34 bill Exp $
+# $Id: make.module.tmpl,v 1.96 2008/02/19 23:50:08 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_NUM	= 5.0b1
+RELEASE_NUM	= 5.2
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 DEFINES		     += -UMT_THREAD \
@@ -144,7 +144,7 @@ SYSLIBS		+= -ldemangle
 endif
 
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
