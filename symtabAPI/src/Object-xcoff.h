@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.16 2008/02/19 13:39:32 rchen Exp $
+ * $Id: Object-xcoff.h,v 1.17 2008/02/19 23:50:15 legendre Exp $
 ************************************************************************/
 
 
@@ -161,6 +161,7 @@ class fileOpener {
     int fd() const { return fd_; }
     unsigned size() const { return size_; }
     void *mem_image() const { return mmapStart_; }
+    void set_file(std::string f) { file_ = f; }
 
  private:
     int refcount_;
