@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.42 2008/02/04 22:58:13 legendre Exp $
+// $Id: test_driver.C,v 1.43 2008/02/19 23:50:16 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -1537,6 +1537,7 @@ int main(unsigned int argc, char *argv[]) {
   bool called_from_runTests = false;
   std::vector<char *> mutatee_list;
   bool quietFormat = false;
+  bool logfile_found = false;
     
   updateSearchPaths(argv[0]);
     
@@ -1561,15 +1562,19 @@ int main(unsigned int argc, char *argv[]) {
     else if ( strcmp(argv[i], "-log")==0)
     {
       enableLogging = true;
+      if (!logfile_found)
+         logfilename = "-";
     }
     else if ( strcmp(argv[i], "-logfile") == 0) {
       /* Store the log file name */
       if ((i + 1) >= argc) {
-	fprintf(stderr, "Missing log file name\n");
-	exit(NOTESTS);
+         fprintf(stderr, "Missing log file name\n");
+         exit(NOTESTS);
       }
       i += 1;
       logfilename = argv[i];
+      enableLogging = true;
+      logfile_found = true;
     }
     else if ( strcmp(argv[i], "-debug")==0)
     {
