@@ -590,7 +590,10 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 
     void *ptr;
 
-#if defined(mips_sgi_irix6_4) || defined(x86_64_unknown_linux2_4)
+#if defined(mips_sgi_irix6_4)        \
+ || defined(x86_64_unknown_linux2_4) \
+ || defined(rs6000_ibm_aix64)
+
     BPatch_variableExpr *pointerSizeVar = appImage->findVariable("pointerSize");
     if (!pointerSizeVar) {
 	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
@@ -753,7 +756,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
     checkCost(call3Expr);
     appThread->insertSnippet(call3Expr, *point3_1);
 
-    BPatch_arithExpr expr3_5(BPatch_assign, *expr3_2, BPatch_constExpr(32));
+    BPatch_arithExpr expr3_5(BPatch_assign, *expr3_2, BPatch_constExpr((int)32));
     checkCost(expr3_5);
     appThread->insertSnippet(expr3_5, *point3_1);
 
@@ -4992,17 +4995,31 @@ BPatch_function *findFunction40(const char *fname,
   return bpfv[0];
 }
 
-void setVar40(const char *vname, void *addr, BPatch_image *appImage)
+void setVar40(const char *vname, void *value, BPatch_image *appImage)
 {
    BPatch_variableExpr *v;
-   void *buf = addr;
+   void *buf = value;
+
    if (NULL == (v = appImage->findVariable(vname))) {
       fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
       fprintf(stderr, "  cannot find variable %s\n", vname);
          return;
    }
 
-   if (! v->writeValue(&buf, sizeof(unsigned int),false)) {
+   // Get around endieness on cross address-width mutators.
+   // Note: Can't use reinterpret_cast here.  G++ produces an error:
+   //   reinterpret_cast from `void*' to `unsigned int' loses precision
+   unsigned long longAddr = (unsigned long)(value);
+   unsigned int shortAddr = (unsigned  int)(value);
+
+   switch (v->getSize()) {
+     case 4: buf = reinterpret_cast<void *>(&shortAddr); break;
+     case 8: buf = reinterpret_cast<void *>(&longAddr);  break;
+     default: assert(0 && "Invalid size of mutatee address variable");
+   }
+
+   // Done silly casting magic.  Write the value.
+   if (! v->writeValue(buf, false)) {
       fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
       fprintf(stderr, "  failed to write call site var to mutatee\n");
       return;
@@ -5074,6 +5091,7 @@ void mutatorTest40(BPatch_thread * /*appThread*/, BPatch_image *appImage)
       fprintf(stderr, "  cannot monitor calls\n");
       return;
    }
+
 #endif
 }
 
@@ -5516,6 +5534,16 @@ int mutatorMAIN(char *pathname, bool useAttach)
     return retVal;
 }
 
+#if defined(x86_64_unknown_linux2_4)
+  const char *abi_flag = "-m32";
+  const char *abi_str = "_m32";
+
+#elif defined(rs6000_ibm_aix64)
+  const char *abi_flag = "-32";
+  const char *abi_str = "_32";
+#endif
+
+
 //
 // main - decide our role and call the correct "main"
 //
@@ -5625,8 +5653,9 @@ main(unsigned int argc, char *argv[])
 #endif
         } else if (!strcmp(argv[i], "-delayedparse")) {
 	  delayedParse = true;
-#if defined(x86_64_unknown_linux2_4)
-	} else if (!strcmp(argv[i], "-m32")) {
+#if defined(x86_64_unknown_linux2_4) \
+ || defined(rs6000_ibm_aix64)
+	} else if (!strcmp(argv[i], abi_flag)) {
             ABI_32 = true;
 #endif
 	} else {
@@ -5634,6 +5663,9 @@ main(unsigned int argc, char *argv[])
 		    "[-V] [-verbose] [-attach] "
 #if defined(x86_64_unknown_linux2_4)
 		    "[-m32] "
+#endif
+#if defined(rs6000_ibm_aix64)
+		    "[-32] "
 #endif
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -5668,13 +5700,17 @@ main(unsigned int argc, char *argv[])
 #else
         strcat(mutateeName,"_gcc");
 #endif
-    if (ABI_32 || strstr(mutateeName,"_m32")) {
+
+#if defined(x86_64_unknown_linux2_4) \
+ || defined(rs6000_ibm_aix64)
+    if (ABI_32 || strstr(mutateeName, abi_str)) {
         // patch up file names based on alternate ABI (as necessary)
-        if (!strstr(mutateeName, "_m32")) strcat(mutateeName,"_m32");
-        strcat(libNameA,"_m32");
-        strcat(libNameB,"_m32");
+        if (!strstr(mutateeName, abi_str)) strcat(mutateeName, abi_str);
+        strcat(libNameA, abi_str);
+        strcat(libNameB, abi_str);
     }
-		
+#endif
+
     // patch up the platform-specific filename extensions
 #if defined(i386_unknown_nt4_0)
     if (!strstr(mutateeName, ".exe")) strcat(mutateeName,".exe");
