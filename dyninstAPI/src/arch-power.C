@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.23 2008/01/31 18:01:36 legendre Exp $
+ * $Id: arch-power.C,v 1.24 2008/02/19 13:37:49 rchen Exp $
  */
 
 #include "common/h/Types.h"
@@ -68,14 +68,14 @@ void instruction::generateTrap(codeGen &gen) {
 void instruction::generateBranch(codeGen &gen, long disp, bool link)
 {
     if (ABS(disp) > MAX_BRANCH) {
-        fprintf(stderr, "ABS OFF: 0x%x, MAX: 0x%x\n",
-                ABS(disp), MAX_BRANCH);
-        bperr( "Error: attempted a branch of 0x%x\n", disp);
+	// Too far to branch, and no proc to register trap.
+	fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+		ABS(disp), MAX_BRANCH);
+	bperr( "Error: attempted a branch of 0x%lx\n", disp);
 	logLine("a branch too far\n");
 	showErrorCallback(52, "Internal error: branch too far");
-	bperr( "Attempted to make a branch of offset %x\n", disp);
-        assert(0);
-	return;	
+	bperr( "Attempted to make a branch of offset 0x%lx\n", disp);
+	assert(0);
     }
 
     instruction insn;
@@ -88,7 +88,6 @@ void instruction::generateBranch(codeGen &gen, long disp, bool link)
         insn.insn_.iform.lk = 0;
 
     insn.generate(gen);
-
 }
 
 void instruction::generateBranch(codeGen &gen, Address from, Address to, bool link) {
@@ -123,6 +122,7 @@ void instruction::generateInterFunctionBranch(codeGen &gen,
                                               Address from,
                                               Address to) {
     long disp = to - from;
+
     if (ABS(disp) <= MAX_BRANCH) {
         // We got lucky...
         return generateBranch(gen, from, to);
@@ -497,14 +497,15 @@ bool instruction::isCondBranch() const {
 }
 
 unsigned instruction::jumpSize(Address from, Address to) {
-    int disp = (to - from);
+    Address disp = (to - from);
     return jumpSize(disp);
 }
 
 // -1 is infinite, don't ya know.
-unsigned instruction::jumpSize(int disp) {
+unsigned instruction::jumpSize(Address disp) {
     if (ABS(disp) >= MAX_BRANCH) {
-        return (unsigned) -1;
+	return maxInterFunctionJumpSize();
+//        return (unsigned) -1;
     }
     return instruction::size();
 }
@@ -531,9 +532,9 @@ unsigned instruction::maxInterFunctionJumpSize() {
     // move <bot-low>, r0
     // move r0 -> ctr
     // branch to ctr
-    //return 7*instruction::size();
+    return 7*instruction::size();
 
-    return 4*instruction::size();
+//    return 4*instruction::size();
 }
 
 unsigned instruction::spaceToRelocate() const {
@@ -555,7 +556,9 @@ unsigned instruction::spaceToRelocate() const {
     if (isUncondBranch()) {
         // Worst case... branch to LR
         // and save/restore r0
-        return 6*instruction::size();
+	//
+	// Upgraded from 6 to 9 for 64-bit
+        return 9*instruction::size();
     }
     return instruction::size();
 }
@@ -567,7 +570,7 @@ bool instruction::generate(codeGen &gen,
                            patchTarget */* fallthroughOverride */,
                            patchTarget *targetOverride) {
     Address targetAddr = targetOverride ? targetOverride->get_address() : 0;
-    int newOffset = 0;
+    long newOffset = 0;
     Address to;
 
     if (isUncondBranch()) {
@@ -582,7 +585,7 @@ bool instruction::generate(codeGen &gen,
             generate(gen);
             return true;
         }
-        
+
         if (!targetAddr) {
             newOffset = origAddr - relocAddr + (int)getBranchOffset(); 
             to = getTarget(origAddr);
@@ -612,7 +615,7 @@ bool instruction::generate(codeGen &gen,
 		if (proc->getAddressWidth() == 4)
 		    instruction::generateImm(gen, STop, 0, 1, 16 /* offset */);
 		else /* gen.addrSpace()->getAddressWidth() == 8 */
-		    instruction::generateMemAccess64(gen, STDop, STDxop, 0, 1, 32);
+		    instruction::generateMemAccess64(gen, STDop, STDxop, 0, 1, 16);
 
                 // Whee. Stomp that link register.
 		instruction::loadImmIntoReg(gen, 0, to);
@@ -628,13 +631,18 @@ bool instruction::generate(codeGen &gen,
 		if (proc->getAddressWidth() == 4)
 		    instruction::generateImm(gen, Lop, 0, 1, 16);
 		else /* gen.addrSpace()->getAddressWidth() == 8 */
-		    instruction::generateMemAccess64(gen, LDop, LDxop, 0, 1, 32);
-            }
-            else {
+		    instruction::generateMemAccess64(gen, LDop, LDxop, 0, 1, 16);
+
+            } else /* insn_.bform.lk != 1 */ {
+		// Crud.  Use trap based?
+		
+                proc->trapMapping.addTrapMapping(relocAddr, to, true);
+                instruction::generateTrap(gen);
+
                 // Crud.
-                fprintf(stderr, "Fatal error: relocating branch, orig at 0x%lx, now 0x%lx, target 0x%lx, orig offset 0x%lx\n",
-                        origAddr, relocAddr, targetAddr, getBranchOffset());
-                assert(0);
+                //fprintf(stderr, "Fatal error: relocating branch, orig at 0x%lx, now 0x%lx, target 0x%lx, orig offset 0x%lx\n",
+                //        origAddr, relocAddr, targetOverride, getBranchOffset());
+                //assert(0);
             }
         } else {
             instruction newInsn(insn_);
@@ -667,35 +675,35 @@ bool instruction::generate(codeGen &gen,
                 // taken.  We'll set up our new branch to be predicted the same way
                 // the old one was.
                 
-              // This makes my brain melt... here's what I think is happening. 
-              // We have two sources of information, the bd (destination) 
-              // and the predict bit. 
-              // The processor predicts the jump as taken if the offset
-              // is negative, and not taken if the offset is positive. 
-              // The predict bit says "invert whatever you decided".
-              // Since we're forcing the offset to positive, we need to
-              // invert the bit if the offset was negative, and leave it
-              // alone if positive.
+		// This makes my brain melt... here's what I think is happening. 
+		// We have two sources of information, the bd (destination) 
+		// and the predict bit. 
+		// The processor predicts the jump as taken if the offset
+		// is negative, and not taken if the offset is positive. 
+		// The predict bit says "invert whatever you decided".
+		// Since we're forcing the offset to positive, we need to
+		// invert the bit if the offset was negative, and leave it
+		// alone if positive.
               
-              // Get the old flags (includes the predict bit)
-              int flags = insn_.bform.bo;
+		// Get the old flags (includes the predict bit)
+		int flags = insn_.bform.bo;
 
-              if (insn_.bform.bd < 0) {
-                  // Flip the bit.
-                  // xor operator
-                  flags ^= BPREDICTbit;
-              }
+		if (insn_.bform.bd < 0) {
+		    // Flip the bit.
+		    // xor operator
+		    flags ^= BPREDICTbit;
+		}
               
-              instruction newCondBranch(insn_);
-              (*newCondBranch).bform.lk = 0; // This one is non-linking for sure
-              
-              // Set up the flags
-              (*newCondBranch).bform.bo = flags;
-              
-              // Change the branch to move one instruction ahead
-              (*newCondBranch).bform.bd = 2;
-              
-              newCondBranch.generate(gen);
+		instruction newCondBranch(insn_);
+		(*newCondBranch).bform.lk = 0; // This one is non-linking for sure
+
+		// Set up the flags
+		(*newCondBranch).bform.bo = flags;
+
+		// Change the branch to move one instruction ahead
+		(*newCondBranch).bform.bd = 2;
+
+		newCondBranch.generate(gen);
 
               // We don't "relocate" the fallthrough target of a conditional
               // branch; instead relying on a third party to make sure
@@ -713,8 +721,8 @@ bool instruction::generate(codeGen &gen,
               // in case the branch is too far, and trap-based instrumentation
               // is needed.
               instruction::generateBranch(gen,
-                                          relocAddr,
-                                          to - 2*instruction::size(),
+                                          relocAddr + (2 * instruction::size()),
+                                          to,
                                           link);
           }
       } else {
@@ -723,8 +731,8 @@ bool instruction::generate(codeGen &gen,
           newInsn.generate(gen);
       }
 #if defined(os_aix)
-    // I don't understand why this is here, so we'll allow relocation
-    // for Linux since it's a new port.
+	// I don't understand why this is here, so we'll allow relocation
+	// for Linux since it's a new port.
     } else if (insn_.iform.op == SVCop) {
         logLine("attempt to relocate a system call\n");
         assert(0);
@@ -749,4 +757,3 @@ bool instruction::getUsedRegs(pdvector<int> &) {
 bool image::isAligned(const Address where) const {
    return (!(where & 0x3));
 }
-

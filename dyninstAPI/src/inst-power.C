@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.280 2007/12/31 16:08:15 bernat Exp $
+ * $Id: inst-power.C,v 1.281 2008/02/19 13:37:39 rchen Exp $
  */
 
 #include "common/h/headers.h"
@@ -68,7 +68,7 @@
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/h/BPatch.h"
-
+#include "dyninstAPI/src/BPatch_collections.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/registerSpace.h"
 
@@ -352,7 +352,131 @@ void registerSpace::initialize32() {
 }
 
 void registerSpace::initialize64() {
-    // Uhh... what do we do here?
+    static bool done = false;
+    if (done) return;
+    done = true;
+
+    pdvector<registerSlot *> registers;
+
+    // At ABI boundary: R0 and R12 are dead, others are live.
+    // Also, define registers in reverse order - it helps with
+    // function calls
+    
+    registers.push_back(new registerSlot(r12,
+                                         false,
+                                         registerSlot::deadABI,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r11,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r10,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r9,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r8,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r7,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r6,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r5,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r4,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r3,
+                                         false,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    /// Aaaand the off-limits ones.
+
+    registers.push_back(new registerSlot(r0,
+                                         true, // Don't use r0 - it has all sorts
+                                         // of implicit behavior.
+                                         registerSlot::deadABI,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r1,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+    registers.push_back(new registerSlot(r2,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::GPR));
+
+    for (unsigned i = fpr0; i <= fpr13; i++) {
+        registers.push_back(new registerSlot(i,
+                                             false,
+                                             registerSlot::liveAlways,
+                                             registerSlot::FPR));
+    }
+
+    registers.push_back(new registerSlot(lr,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(cr,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(ctr,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(mq,
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registerSpace::createRegisterSpace64(registers);
+
+    // Initialize the sets that encode which registers
+    // are used/defined by calls, returns, and syscalls. 
+    // These all assume the ABI, of course. 
+
+    // TODO: Linux/PPC needs these set as well.
+    
+#if defined(cap_liveness)
+    returnRead64_ = getBitArray();
+    // Return reads r3, r4, fpr1, fpr2
+    returnRead64_[r3] = true;
+    returnRead64_[r4] = true;
+    returnRead64_[fpr1] = true;
+    returnRead64_[fpr2] = true;
+
+    // Calls
+    callRead64_ = getBitArray();
+    // Calls read r3 -> r10 (parameters), fpr1 -> fpr13 (volatile FPRs)
+    for (unsigned i = r3; i <= r10; i++) 
+        callRead64_[i] = true;
+    for (unsigned i = fpr1; i <= fpr13; i++) 
+        callRead64_[i] = true;
+    callWritten64_ = getBitArray();
+    // Calls write to pretty much every register we use for code generation
+    callWritten64_[r0] = true;
+    for (unsigned i = r3; i <= r12; i++)
+        callWritten64_[i] = true;
+    // FPRs 0->13 are volatile
+    for (unsigned i = fpr0; i <= fpr13; i++)
+        callWritten64_[i] = true;
+
+    // Syscall - assume the same as call
+    syscallRead64_ = callRead_;
+    syscallWritten64_ = syscallWritten_;
+#endif
 }
 
 void registerSpace::initialize() {
@@ -364,14 +488,14 @@ void registerSpace::initialize() {
  * Saving and restoring registers
  * We create a new stack frame in the base tramp and save registers
  * above it. Currently, the plan is this:
- *                 < 220 bytes as per system spec      >
- *                 < 14 GPR slots @ 4 bytes each       >
- *                 < 14 FPR slots @ 8 bytes each       >
- *                 < 6 SPR slots @ 4 bytes each        >
- *                 < 1 FP SPR slot @ 8 bytes           >
- *                 < Space to save live regs at func call >
- *                 < Func call overflow area, 32 bytes > 
- *                 < Linkage area, 24 bytes            >
+ *          < 220 bytes as per system spec      > + 4 for 64-bit alignment
+ *          < 14 GPR slots @ 4 bytes each       >
+ *          < 14 FPR slots @ 8 bytes each       >
+ *          < 6 SPR slots @ 4 bytes each        >
+ *          < 1 FP SPR slot @ 8 bytes           >
+ *          < Space to save live regs at func call >
+ *          < Func call overflow area, 32 bytes > 
+ *          < Linkage area, 24 bytes            >
  *
  * Of course, change all the 4's to 8's for 64-bit mode.
  */
@@ -849,10 +973,12 @@ unsigned saveSPRegisters(codeGen &gen,
     saveSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_saved++;
     saveSPR(gen, 10, SPR_XER, save_off + xer_off); num_saved++;
     
-#if defined(os_aix)
+#if defined(os_aix) && !defined(rs6000_ibm_aix64)
     // MQ only exists on POWER, not PowerPC. Right now that's correlated
     // to AIX vs Linux, but we _really_ should fix that...
     // We need to dynamically determine the CPU and emit code based on that.
+    //
+    // Apparently, AIX64 doesn't use the MQ register either.
     registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
     if (mq->liveState == registerSlot::live) {
         saveSPR(gen, 10, SPR_SPR0, save_off + spr0_off); num_saved++;
@@ -893,7 +1019,7 @@ unsigned restoreSPRegisters(codeGen &gen,
     restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_restored++;
     restoreSPR(gen, 10, SPR_XER, save_off + xer_off); num_restored++;
 
-#if defined(os_aix)
+#if defined(os_aix) && !defined(rs6000_ibm_aix64)
     // See comment in saveSPRegisters
     registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
     if (mq->liveState == registerSlot::spilled) {
@@ -975,12 +1101,10 @@ bool baseTramp::generateRestores(codeGen &gen,
     if (gen.addrSpace()->getAddressWidth() == 4) {
         gpr_off = TRAMP_GPR_OFFSET_32;
         fpr_off = TRAMP_FPR_OFFSET_32;
-//        spr_off = TRAMP_SPR_OFFSET_32;
         ctr_off = STK_CTR_32;
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         gpr_off = TRAMP_GPR_OFFSET_64;
         fpr_off = TRAMP_FPR_OFFSET_64;
-//        spr_off = TRAMP_SPR_OFFSET_64;
         ctr_off = STK_CTR_64;
     }
 
@@ -1330,11 +1454,10 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
                                    codeGen &gen,
                                    const pdvector<AstNodePtr> &operands, bool noCost,
                                    int_function *callee) {
-    
+
     Address toc_anchor = 0;
     pdvector <Register> srcs;
 
-   
     //  Sanity check for NULL address argument
     if (!callee) {
         char msg[256];
@@ -1355,9 +1478,9 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
     // r2 is described as "reserved for system use and is not to be 
     // changed by application code".
     // On these platforms, we return 0 when getTOCoffsetInfo is called.
-   
+
     pdvector<int> savedRegs;
-  
+
     //  Save the link register.
     // mflr r0
     instruction mflr0(MFLR0raw);
@@ -1368,7 +1491,6 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
     saveRegister(gen, 0, FUNC_CALL_SAVE);
     // Add 0 to the list of saved registers
     savedRegs.push_back(0);
-
 
     if (toc_anchor) {
         // Save register 2 (TOC)
@@ -1396,6 +1518,7 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
     // Generate the code for all function parameters, and keep a list
     // of what registers they're in.
     for (unsigned u = 0; u < operands.size(); u++) {
+/*
 	if (operands[u]->getSize() == 8) {
 	    // What does this do?
 	    bperr( "in weird code\n");
@@ -1404,7 +1527,7 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
 
 	    instruction::generateImm(gen, CALop, dummyReg, 0, 0);
 	}
-
+*/
 	//Register src = REG_NULL;
         // Try to target the code generation
         
@@ -1610,8 +1733,8 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
           // Note that src1 is 0..8 - it's not a register, it's a parameter number
           regSlot = (*(gen.rs()))[registerSpace::r3 + src1];
           break;
-      }
-      else {
+
+      } else {
           // Registers from 11 (src = 8) and beyond are saved on the
           // stack. On AIX this is +56 bytes; for ELF it's something different.
 	  if (gen.addrSpace()->getAddressWidth() == 4) {
@@ -1626,7 +1749,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 					       PARAM_OFFSET(gen.addrSpace()->getAddressWidth()));
 	  }
           return(dest);
-      }          
+      }
       break;
     default:
         assert(0);
@@ -1641,7 +1764,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
         int offset;
         if (gen.addrSpace()->getAddressWidth() == 4)
             offset = TRAMP_GPR_OFFSET_32;
-        else /* gen.addrSpace()->getAddressWidth() == 4 */
+        else /* gen.addrSpace()->getAddressWidth() == 8 */
             offset = TRAMP_GPR_OFFSET_64;
         // its on the stack so load it.
         restoreRegister(gen, reg, dest, offset);
@@ -1810,7 +1933,7 @@ void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
 void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
                codeGen &gen, bool /*noCost*/, 
                registerSpace * /*rs*/, int size,
-               const instPoint * /* location */, AddressSpace * /* proc */)
+               const instPoint * /* location */, AddressSpace *proc)
 {
     if (op == loadConstOp) {
         instruction::loadImmIntoReg(gen, dest, (long)src1);
@@ -1823,21 +1946,33 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
             instruction::generateImm(gen, LBZop, dest, dest, LOW(src1));
         else if (size == 2)
             instruction::generateImm(gen, LHZop, dest, dest, LOW(src1));
-        else if (size == 4)
+        else if ((size == 4) ||
+		 (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
             instruction::generateImm(gen, Lop,   dest, dest, LOW(src1));
         else if (size == 8)
             instruction::generateMemAccess64(gen, LDop, LDxop,
                                              dest, dest, (int16_t)LOW(src1));
-        else assert(0);
+        else assert(0 && "Incompatible loadOp size");
 
     } else if (op == loadFrameRelativeOp) {
+	long offset = (long)src1;
+	if (gen.addrSpace()->getAddressWidth() == 4)
+	    offset += TRAMP_FRAME_SIZE_32;
+	else /* gen.addrSpace()->getAddressWidth() == 8 */
+	    offset += TRAMP_FRAME_SIZE_64;
+
 	// return the value that is FP offset from the original fp
-        if (gen.addrSpace()->getAddressWidth() == 4)
-            instruction::generateImm(gen, Lop, dest, REG_SP,
-                                     (long)src1 + TRAMP_FRAME_SIZE_32);
-        else /* gen.addrSpace()->getAddressWidth() == 8 */
-            instruction::generateMemAccess64(gen, LDop, LDxop, dest, REG_SP,
-                                             (long)src1 + TRAMP_FRAME_SIZE_64);
+	if (size == 1)
+	    instruction::generateImm(gen, LBZop, dest, REG_SP, offset);
+	else if (size == 2)
+	    instruction::generateImm(gen, LHZop, dest, REG_SP, offset);
+	else if ((size == 4) ||
+		 (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
+	    instruction::generateImm(gen, Lop,   dest, REG_SP, offset);
+	else if (size == 8)
+	    instruction::generateMemAccess64(gen, LDop, LDxop,
+					     dest, REG_SP, offset);
+	else assert(0 && "Incompatible loadFrameRelativeOp size");
 
     } else if (op == loadFrameAddr) {
 	// offsets are signed!
@@ -1854,36 +1989,52 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
-	      codeGen &gen, bool noCost, 
-                registerSpace * /* rs */, int /* size */,
-                const instPoint * /* location */, AddressSpace * /* proc */)
+		codeGen &gen, bool noCost, 
+                registerSpace * /* rs */, int size,
+                const instPoint * /* location */, AddressSpace *proc)
 {
     if (op == storeOp) {
 	// temp register to hold base address for store (added 6/26/96 jkh)
 	Register temp = gen.rs()->getScratchRegister(gen, noCost);
 
         instruction::loadPartialImmIntoReg(gen, temp, (long)dest);
-        if (gen.addrSpace()->getAddressWidth() == 4)
-            instruction::generateImm(gen, STop, src1, temp, LOW(dest));
-        else /* gen.addrSpace()->getAddressWidth() == 8 */
+        if (size == 1)
+            instruction::generateImm(gen, STBop, src1, temp, LOW(dest));
+        else if (size == 2)
+            instruction::generateImm(gen, STHop, src1, temp, LOW(dest));
+        else if ((size == 4) ||
+		 (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
+            instruction::generateImm(gen, STop,  src1, temp, LOW(dest));
+        else if (size == 8)
             instruction::generateMemAccess64(gen, STDop, STDxop,
                                              src1, temp, (int16_t)BOT_LO(dest));
+        else assert(0 && "Incompatible storeOp size");
 
     } else if (op == storeFrameRelativeOp) {
-        if (gen.addrSpace()->getAddressWidth() == 4)
-            instruction::generateImm(gen, STop,  src1, REG_SP,
-                                     (long)dest + TRAMP_FRAME_SIZE_32);
-        else /* gen.addrSpace()->getAddressWidth() == 8 */
-            instruction::generateMemAccess64(gen, STDop, STDxop, src1, REG_SP,
-                                             (long)dest + TRAMP_FRAME_SIZE_64);
+        long offset = (long)dest;
+        offset += (gen.addrSpace()->getAddressWidth() == 4
+		   ? TRAMP_FRAME_SIZE_32
+		   : TRAMP_FRAME_SIZE_64);
 
-    } else assert(0);       // unexpected op for this emit!
+        if (size == 1)
+            instruction::generateImm(gen, STBop, src1, REG_SP, offset);
+        else if (size == 2)
+            instruction::generateImm(gen, STHop, src1, REG_SP, offset);
+        else if ((size == 4) ||
+		 (size == 8 || proc->getAddressWidth() == 4)) // Override bogus size
+            instruction::generateImm(gen, STop,  src1, REG_SP, offset);
+        else if (size == 8)
+            instruction::generateMemAccess64(gen, STDop, STDxop, src1,
+                                             REG_SP, offset);
+        else assert(0 && "Incompatible storeFrameRelativeOp size");
+
+    } else assert(0 && "Unknown op passed to emitVstore");
 }
 
 void emitV(opCode op, Register src1, Register src2, Register dest,
            codeGen &gen, bool /*noCost*/,
-           registerSpace * /*rs*/, int /* size */,
-           const instPoint * /* location */, AddressSpace * /* proc */)
+           registerSpace * /*rs*/, int size,
+           const instPoint * /* location */, AddressSpace *proc)
 {
     //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
@@ -1900,19 +2051,31 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         // really load dest, (dest)imm
         assert(src2 == 0); // Since we don't use it.
 
-        if (gen.addrSpace()->getAddressWidth() == 4)
-            instruction::generateImm(gen, Lop, dest, src1, 0);
-        else /* gen.addrSpace()->getAddressWidth() == 8 */
+        if (size == 1)
+            instruction::generateImm(gen, LBZop, dest, src1, 0);
+        else if (size == 2)
+            instruction::generateImm(gen, LHZop, dest, src1, 0);
+        else if ((size == 4) ||
+		 (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
+            instruction::generateImm(gen, Lop,   dest, src1, 0);
+        else if (size == 8) {
             instruction::generateMemAccess64(gen, LDop, LDxop,
                                              dest, src1, 0);
+        } else assert(0 && "Incompatible loadOp size");
 
     } else if (op == storeIndirOp) {
         // generate -- st src1, dest
-        if (gen.addrSpace()->getAddressWidth() == 4)
-            instruction::generateImm(gen, STop, src1, dest, 0);
-        else /* gen.addrSpace()->getAddressWidth() == 8 */
+        if (size == 1)
+            instruction::generateImm(gen, STBop, src1, dest, 0);
+        else if (size == 2)
+            instruction::generateImm(gen, STHop, src1, dest, 0);
+        else if ((size == 4) ||
+		 (size == 8 && proc->getAddressWidth() == 4)) // Override bogus size
+            instruction::generateImm(gen, STop,  src1, dest, 0);
+        else if (size == 8)
             instruction::generateMemAccess64(gen, STDop, STDxop,
-                                             dest, src1, 0);
+                                             src1, dest, 0);
+        else assert(0 && "Incompatible storeOp size");
 
     } else if (op == noOp) {
         instruction::generateNOOP(gen);
@@ -1949,7 +2112,10 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
                 instOp = DIVSop;   // POWER divide instruction
                                    // Same as DIVWop for PowerPC
 #if defined(os_aix)                // Should use runtime CPU detection ...
-                instXop = DIVSxop; // POWER
+		if (gen.addrSpace()->getAddressWidth() == 8)
+		    instXop = DIVWxop; // divs instruction deleted on 64-bit
+		else
+		    instXop = DIVSxop;
 #else
                 instXop = DIVWxop; // PowerPC
 #endif
@@ -2269,7 +2435,7 @@ bool process::hasBeenBound(const relocationEntry &,int_function *&, Address ) {
 void emitFuncJump(opCode              op, 
                   codeGen            &gen,
                   const int_function *func,
-                  AddressSpace            *proc,
+                  AddressSpace       *proc,
                   const instPoint    *point, bool)
 {
     // Performs the following steps:
@@ -2317,6 +2483,9 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 					int size,
 					bool noCost)
 {
+    // As of 10/24/2007, the size parameter is still incorrect.
+    // Luckily, we know implicitly what size they actually want.
+
     // Offset if needed
     int offset;
     // Unused, 3OCT03
@@ -2334,7 +2503,8 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
         emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
                 gen, noCost, gen.rs());
         // Load LR into register dest
-        emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(), size);
+        emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(),
+              gen.addrSpace()->getAddressWidth(), gen.point(), gen.addrSpace());
         break;
 
     case REG_CTR:
@@ -2348,7 +2518,8 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
         emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest,
                 gen, noCost, gen.rs());
         // Load LR into register dest
-        emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(), size);
+        emitV(loadIndirOp, dest, 0, dest, gen, noCost, gen.rs(),
+              gen.addrSpace()->getAddressWidth(), gen.point(), gen.addrSpace());
       break;
 
     default:
@@ -2365,7 +2536,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
 
     const instruction &i = callSite->insn();
     Register branch_target;
-    
+
     // Is this a branch conditional link register (BCLR)
     // BCLR uses the xlform (6,5,5,5,10,1)
     if((*i).xlform.op == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
@@ -2391,12 +2562,16 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                     // So just return false instead.
                     return false;
                 }
+
+
             // Where we're jumping to (link register, count register)
             args.push_back( AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
                                                  (void *) branch_target));
+
             // Where we are now
             args.push_back( AstNode::operandNode(AstNode::Constant,
                                                  (void *) callSite->addr()));
+
             return true;
         }
     else if ((*i).xlform.op == Bop) {

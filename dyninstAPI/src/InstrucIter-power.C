@@ -1154,8 +1154,8 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	if((*check).dform.op == CAUop && (*check).dform.rt == jumpAddressReg)
 	{
 	  tableStartAddress += ((*check).dform.d_or_si * 0x10000) & 0xFFFF0000;
-	  //fprintf(stderr, "Found CAU and CAL at %x, ", current);
-	  //fprintf(stderr, "tableStartAddress is %x, high half is %x\n", tableStartAddress, (*check).dform.d_or_si);
+	  //fprintf(stderr, "Found CAU and CAL at %lx, ", current);
+	  //fprintf(stderr, "tableStartAddress is %lx, high half is %lx\n", tableStartAddress, (*check).dform.d_or_si);
 	  break;
 	}
 	else
@@ -1187,10 +1187,17 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
   else if (tableIsRelative) {
     while( hasPrev() ){
       check = getInstruction();
-      if(((*check).dform.op == Lop) && ((*check).dform.ra == TOC_register)){
+      if(((*check).dform.op == Lop) && ((*check).dform.ra == TOC_register)) { // 32-bit form
 	//fprintf(stderr, "Jump offset from TOC: %d\n", (*check).dform.d_or_si);
 	jumpStartAddress = 
 	(Address)(TOC_address + (*check).dform.d_or_si);
+	break;
+      }
+
+      if (((*check).dsform.op == LDop) && ((*check).dsform.ra == TOC_register)) { // 64-bit form
+	//fprintf(stderr, "Jump offset from TOC: %d\n", ((*check).dsform.ds << 2));
+	jumpStartAddress = 
+	(Address)(TOC_address + ((*check).dsform.ds << 2));
 	break;
       }
       (*this)--;
@@ -1198,19 +1205,26 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     // Anyone know what this does?
     (*this)--;
     check = getInstruction();
-    if(((*check).dform.op == Lop)) {
+    if(((*check).dform.op == Lop)) { // 32-bit form
       adjustEntry = (*check).dform.d_or_si;
-      //fprintf(stderr, "adjustEntry is 0x%x (%d)\n",
+      //fprintf(stderr, "adjustEntry is 0x%lx (%d)\n",
       //adjustEntry, adjustEntry);
     }
        
     while(hasPrev()){
       instruction check = getInstruction();
-      if(((*check).dform.op == Lop) && ((*check).dform.ra == TOC_register)){
+      if(((*check).dform.op == Lop) && ((*check).dform.ra == TOC_register)){ // 32-bit form
 	//fprintf(stderr, "Table offset from TOC: %d\n", (*check).dform.d_or_si);
 	tableStartAddress = 
 	(Address)(TOC_address + (*check).dform.d_or_si);
-	//fprintf(stderr, "tableStartAddr is 0x%x\n", tableStartAddress);
+	//fprintf(stderr, "tableStartAddr is 0x%lx\n", tableStartAddress);
+	break;
+      }
+      if(((*check).dsform.op == LDop) && ((*check).dsform.ra == TOC_register)){ // 64-bit form
+	//fprintf(stderr, "Table offset from TOC: %d\n", ((*check).dsform.ds << 2));
+	tableStartAddress = 
+	(Address)(TOC_address + ((*check).dsform.ds << 2));
+	//fprintf(stderr, "tableStartAddr is 0x%lx\n", tableStartAddress);
 	break;
       }
       (*this)--;
@@ -1269,16 +1283,19 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 
   Address jumpStart = 0;
   Address tableStart = 0;
+  bool is64 = (instructions_->getAddressWidth() == 8);
 
   if(TOC_address)
   {
     if (img) {
       if (tableIsRelative) {
 	void *jumpStartPtr = img->getPtrToData(jumpStartAddress);
-	//fprintf(stderr, "jumpStartPtr (0x%x) = %p\n", jumpStartAddress, jumpStartPtr);
+	//fprintf(stderr, "jumpStartPtr (0x%lx) = %p\n", jumpStartAddress, jumpStartPtr);
 	if (jumpStartPtr)
-	  jumpStart = *((Address *)jumpStartPtr);
-	//fprintf(stderr, "jumpStart 0x%x, initialAddr 0x%x\n",
+	  jumpStart = (is64
+		       ? *((Address  *)jumpStartPtr)
+		       : *((uint32_t *)jumpStartPtr));
+	//fprintf(stderr, "jumpStart 0x%lx, initialAddr 0x%lx\n",
 	//	jumpStart, initialAddress);
 	if (jumpStartPtr == NULL) {
 	  setCurrentAddress(initialAddress);
@@ -1286,14 +1303,17 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	}
       }
       void *tableStartPtr = img->getPtrToData(tableStartAddress);
-      //fprintf(stderr, "tableStartPtr (0x%x) = %p\n", tableStartAddress, tableStartPtr);
-      if (tableStartPtr)
+      //fprintf(stderr, "tableStartPtr (0x%lx) = %p\n", tableStartAddress, tableStartPtr);
 	tableStart = *((Address *)tableStartPtr);
+      if (tableStartPtr)
+	tableStart = (is64
+		      ? *((Address  *)tableStartPtr)
+		      : *((uint32_t *)tableStartPtr));
       else {
 	setCurrentAddress(initialAddress);                    
 	return false;
       }
-      //fprintf(stderr, "... tableStart 0x%x\n", tableStart);
+      //fprintf(stderr, "... tableStart 0x%lx\n", tableStart);
       
       // We're getting an absolute out of the TOC. Figure out
       // whether we're in code or data.
@@ -1309,17 +1329,17 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	if (tableStart > dataStart) {
 	  tableData = true;
 	  tableStart -= dataStart;
-	  //fprintf(stderr, "Table in data, offset 0x%x\n", tableStart);
+	  //fprintf(stderr, "Table in data, offset 0x%lx\n", tableStart);
 	}
 	else {
 	  tableData = false;
 	  tableStart -= textStart;
-	  //fprintf(stderr, "Table in text, offset 0x%x\n", tableStart);
+	  //fprintf(stderr, "Table in text, offset 0x%lx\n", tableStart);
 	}
       }
       else {
 	//fprintf(stderr, "*** Table neither in data nor in text, confused\n");
-	//fprintf(stderr, "tableStart 0x%x, codeOff 0x%x, codeLen 0x%x, dataOff 0x%x, dataLen 0x%x\n",
+	//fprintf(stderr, "tableStart 0x%lx, codeOff 0x%lx, codeLen 0x%lx, dataOff 0x%lx, dataLen 0x%lx\n",
 	//tableStart, img->codeOffset(), img->codeLength(),
 	//img->dataOffset(), img->dataLength());
 	
@@ -1329,7 +1349,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
       
       for(int i=0;i<maxSwitch;i++){                    
 	Address tableEntry = adjustEntry + tableStart + (i * instruction::size());
-	//fprintf(stderr, "Table entry at 0x%x\n", tableEntry);
+	//fprintf(stderr, "Table entry at 0x%lx\n", tableEntry);
 	if (instructions_->isValidAddress(tableEntry)) {
 	  int jumpOffset;
 	  if (tableData) {
@@ -1338,11 +1358,11 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	  else
 	  jumpOffset = *((int *)instructions_->getPtrToInstruction(tableEntry));
 	  
-	  //fprintf(stderr, "jumpOffset 0x%x\n", jumpOffset);
+	  //fprintf(stderr, "jumpOffset 0x%lx\n", jumpOffset);
 	  Address res = (Address)(jumpStart + jumpOffset);
 	  if (img->isCode(res))
 	    result += (Address)(jumpStart+jumpOffset);
-	  //fprintf(stderr, "Entry of 0x%x\n", (Address)(jumpStart + jumpOffset));
+	  //fprintf(stderr, "Entry of 0x%lx\n", (Address)(jumpStart + jumpOffset));
 	}
 	else {
 	  //fprintf(stderr, "Address not valid!\n");
@@ -1354,13 +1374,18 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
       if (tableIsRelative) {
 	ptr = instructions_->getPtrToInstruction(jumpStartAddress);
 	assert(ptr);
-	jumpStart = *((Address *)ptr);
+	jumpStart = (is64
+		     ? *((Address  *)ptr)
+		     : *((uint32_t *)ptr));
+
       }
       ptr = NULL;
       ptr = instructions_->getPtrToInstruction(tableStartAddress);
       assert(ptr);
-      tableStart = *((Address *)ptr);
-      
+      tableStart = (is64
+		    ? *((Address  *)ptr)
+		    : *((uint32_t *)ptr));
+
       for(int i=0;i<maxSwitch;i++){
       Address tableEntry = adjustEntry + tableStart + (i * instruction::size());
       ptr = instructions_->getPtrToInstruction(tableEntry);

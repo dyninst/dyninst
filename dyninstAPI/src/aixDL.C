@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.75 2007/12/12 22:20:41 roundy Exp $
+// $Id: aixDL.C,v 1.76 2008/02/19 13:38:09 rchen Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -73,13 +73,20 @@ bool dynamic_linking::installTracing() {
   // Should check only libc.a...
 
   AstNodePtr retval = AstNode::operandNode(AstNode::ReturnVal, (void *)0);
-  instMapping *loadInst = new instMapping("load1", "DYNINST_instLoadLibrary",
+  
+  char *loadfunc;
+  switch (proc->getAddressWidth()) {
+    case 4: loadfunc = "load1"; break;
+    case 8: loadfunc = "uload"; break;
+    default: assert(0 && "Unknown process address width");
+  }
+
+  instMapping *loadInst = new instMapping(loadfunc, "DYNINST_instLoadLibrary",
 					  FUNC_EXIT | FUNC_ARG,
 					  retval);
   instMapping *unloadInst = new instMapping("unload", "DYNINST_instLoadLibrary",
                                             FUNC_EXIT | FUNC_ARG,
                                             retval);
-  
   loadInst->dontUseTrampGuard();
   unloadInst->dontUseTrampGuard();
 
@@ -169,7 +176,6 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
     int pid;
 
     pid = proc->getPid();
-    
     prmap_t mapEntry;
     int iter = 0; // Starting with the a.out is _just fine_.
 
@@ -200,7 +206,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
             else {
                 objname[0] = objname[1] = objname[2] = 0;
             }
- 
+
             Address textOrg = (Address) mapEntry.pr_vaddr;
             Address dataOrg = (Address) next.pr_vaddr;
             
@@ -232,7 +238,8 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
             is_aout = false;
         }
         
-    } while (mapEntry.pr_size != 0);    
+    } while (mapEntry.pr_size != 0);
+
     return true;
 }
 

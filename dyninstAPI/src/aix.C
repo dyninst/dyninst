@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.239 2008/01/16 22:01:25 legendre Exp $
+// $Id: aix.C,v 1.240 2008/02/19 13:38:04 rchen Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -401,11 +401,9 @@ Address process::getTOCoffsetInfo(Address dest)
 #endif
 
 #if defined(cap_dynamic_heap)
-static const Address branch_range = 0x01ff0000;
-static const Address lowest_addr = 0x10000000;
-static const Address highest_addr = 0xe0000000;
-Address data_low_addr;
-static const Address data_hi_addr = 0xcfffff00;
+
+// 32-bit Address Space
+// --------------------
 // Segment 0 is kernel space, and off-limits
 // Segment 1 is text space, and OK
 // Segment 2-12 (c) is data space
@@ -414,46 +412,91 @@ static const Address data_hi_addr = 0xcfffff00;
 // Segment 15 (f) is shared library data, and we don't care about it.
 // However, we can scavenge some space in with the shared libraries.
 
+static const Address lowest_addr32  = 0x10000000;
+static const Address highest_addr32 = 0xe0000000;
+static const Address data_hi_addr32 = 0xcfffff00;
+
+// 64-bit Address Space
+// --------------------
+// 0x0000000000000000 -> 0x000000000fffffff Contains the kernel
+// 0x00000000d0000000 -> 0x00000000dfffffff Contains 32-bit shared library text (inaccessable to 64-bit apps)
+// 0x00000000e0000000 -> 0x00000000efffffff Shared memory segment available to 32-bit apps
+// 0x00000000f0000000 -> 0x00000000ffffffff Contains 32-bit shared library data (inaccessable to 64-bit apps)
+// 0x0000000100000000 -> 0x07ffffffffffffff Contains program data & text, plus shared memory or mmap segments
+// 0x0800000000000000 -> 0x08ffffffffffffff Privately loaded 64-bit modules
+// 0x0900000000000000 -> 0x09ffffffffffffff 64-bit shared library text & data
+// 0x0f00000000000000 -> 0x0fffffffffffffff 64-bit application stack
+
+#if defined(rs6000_ibm_aix64)
+static const Address lowest_addr64  = 0x0000000100000000;
+static const Address highest_addr64 = 0x0f00000000000000;
+static const Address data_hi_addr64 = 0xffffffffffffffff;
+// XXX
+// According to the map above, data_hi_addr64 should probably be 0x0800000000000000.
+// But, that causes us to write instrumentation into an invalid region of mutatee
+// memory, though.  This should probably be fixed.
+#endif
+
+static const Address branch_range   = 0x01ff0000;
+Address data_low_addr;
+
 void process::inferiorMallocConstraints(Address near, Address &lo, 
 					Address &hi, inferiorHeapType type)
 {
-  lo = lowest_addr;
-  hi = highest_addr;
-  if (near)
-  {
-      if (near < (lowest_addr + branch_range))
-          lo = lowest_addr;
-      else
-          lo = near - branch_range;
-      if (near > (highest_addr - branch_range))
-          hi = highest_addr;
-      else
-          hi = near + branch_range;
-  }
-  switch (type)
-  {
- case dataHeap:
-     // mmap, preexisting dataheap constraints
-     // so shift down lo and hi accordingly
-     if (lo < data_low_addr) {
-         lo = data_low_addr;
-         // Keep within branch range so that we know we can
-         // reach anywhere inside.
-         if (hi < (lo + branch_range))
-             hi = lo + branch_range;
-     }
-     if (hi > data_hi_addr) {
-         hi = data_hi_addr;
+    int addrWidth = getAddressWidth();
+    int lowest_addr, highest_addr, data_hi_addr;
+
+    switch (addrWidth) {
+    case 4:	lowest_addr = lowest_addr32;
+		highest_addr = highest_addr32;
+		data_hi_addr = data_hi_addr32;
+		break;
+#if defined(rs6000_ibm_aix64)
+    case 8:	lowest_addr = lowest_addr64;
+		highest_addr = highest_addr64;
+		data_hi_addr = data_hi_addr64;
+		break;
+#endif
+    default:	assert(0 && "Unknown address width");
+    }
+
+    // The notion of "near" only works on 32-bit processes. (For now?)
+    if (addrWidth == 4 && near) {
+	if (near < (lowest_addr + branch_range))
+	    lo = lowest_addr;
+	else
+	    lo = near - branch_range;
+
+	if (near > (highest_addr - branch_range))
+	    hi = highest_addr;
+	else
+	    hi = near + branch_range;
+    }
+
+    switch (type) {
+    case dataHeap:
+	// mmap, preexisting dataheap constraints
+	// so shift down lo and hi accordingly
+	if (lo < data_low_addr) {
+	    lo = data_low_addr;
+	    // Keep within branch range so that we know we can
+	    // reach anywhere inside.
+	    if (hi < (lo + branch_range))
+		hi = lo + branch_range;
+	}
+	if (hi > data_hi_addr) {
+	    hi = data_hi_addr;
 /*
-         if (lo > (hi - branch_range))
-             lo = hi - branch_range;
+	    // Not sure why this is commented out.
+	    if (lo > (hi - branch_range))
+		lo = hi - branch_range;
 */
-     }
-     break;
- default:
-     // no change
-     break;
-  }
+	}
+	break;
+    default:
+	// no change
+	break;
+    }
 }
 
 #endif
@@ -924,7 +967,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
         (char*) data = new char[compactedUpdates[0]->size];
 #endif
 
-	readDataSpace((void*) compactedUpdates[0]->address,
+	readDataSpace((void *) compactedUpdates[0]->address,
                  compactedUpdates[0]->size, data, true);	
 
 	newXCOFF->attachToText(compactedUpdates[0]->address,
@@ -1257,6 +1300,27 @@ bool process::getDyninstRTLibName() {
            return false;
         }
     }
+
+    // Automatically choose 32-bit library if necessary.
+    const char *modifier = "_32";
+    const char *name = dyninstRT_name.c_str();
+
+    if (getAddressWidth() != sizeof(void *) && !P_strstr(name, modifier)) {
+        const char *split = P_strrchr(name, '/');
+
+        if (!split) split = name;
+        split = P_strchr(split, '.');
+        if (!split) {
+            // We should probably print some error here.
+            // Then, of course, the user will find out soon enough.
+            return false;
+        }
+
+        dyninstRT_name = pdstring(name, split - name) +
+                         pdstring(modifier) +
+                         pdstring(split);
+    }
+
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {
         pdstring msg = pdstring("Runtime library ") + dyninstRT_name
@@ -1303,7 +1367,7 @@ bool process::loadDYNINSTlib()
     // Round it up to the nearest instruction. 
     Address codeBase = scratch->getAddress();
 
-    startup_printf("[%d]: using address of 0x%x for call to dlopen\n",
+    startup_printf("[%d]: using address of 0x%lx for call to dlopen\n",
                    getPid(), codeBase);
 
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
@@ -1345,7 +1409,7 @@ bool process::loadDYNINSTlib()
 
     dlopencall_addr = codeBase + scratchCodeBuffer.used();
 
-    startup_printf("[%d]: call to dlopen starts at 0x%x\n", getPid(), dlopencall_addr);
+    startup_printf("[%d]: call to dlopen starts at 0x%lx\n", getPid(), dlopencall_addr);
 
     // We need to push down the stack before we call this
     pushStack(scratchCodeBuffer);
@@ -1358,7 +1422,7 @@ bool process::loadDYNINSTlib()
     dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
     instruction::generateTrap(scratchCodeBuffer);
 
-    startup_printf("[%d]: call to dlopen breaks at 0x%x\n", getPid(),
+    startup_printf("[%d]: call to dlopen breaks at 0x%lx\n", getPid(),
                    dyninstlib_brk_addr);
 
     readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);

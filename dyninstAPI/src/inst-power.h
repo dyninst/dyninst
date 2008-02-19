@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.34 2007/12/04 17:58:02 bernat Exp $
+ * $Id: inst-power.h,v 1.35 2008/02/19 13:37:44 rchen Exp $
  */
 
 #ifndef INST_POWER_H
@@ -104,11 +104,25 @@
 #define SPRSAVE_64 (6*8+8)
 #define PDYNSAVE   (8)
 #define FUNCSAVE   (14*4)
-#define FUNCARGS   32
+#define FUNCARGS   64
 #define LINKAREA   24
 
 #if defined(os_aix)
-#define PARAM_OFFSET(mutatee_address_width) (14*4)  //FIXME for AIX 64-bit
+// The offset values for AIX are pretty fragile, AFAIK.  Things change
+// when there are parameters of different sizes involved (or floats).
+// We should probably do some mapping back to variable, and determine
+// location by debug information.
+#define PARAM_OFFSET(mutatee_address_width)                         \
+        (                                                           \
+            ((mutatee_address_width) == sizeof(uint64_t))           \
+            ? (   /* 64-bit XCOFF AIX */                            \
+                  112                                               \
+              )                                                     \
+            : (   /* 32-bit XCOFF AIX */                            \
+                  56                                                \
+              )                                                     \
+        )
+
 #elif defined(os_linux)
 #define PARAM_OFFSET(mutatee_address_width)                         \
         (                                                           \
