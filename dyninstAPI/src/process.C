@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.707 2008/02/15 23:44:34 legendre Exp $
+// $Id: process.C,v 1.708 2008/02/19 13:38:14 rchen Exp $
 
 #include <ctype.h>
 
@@ -1107,8 +1107,18 @@ bool process::initTrampGuard()
     }
     assert(vars.size() == 1);
 
-    readDataSpace((void *) vars[0]->getAddress(), sizeof(Address), &trampGuardBase_, 
-                  true);
+    if (getAddressWidth() == 4) {
+	// Don't write directly into trampGuardBase_ as a buffer,
+	//   in case we're on a big endian architechture.
+	uint32_t value;
+	readDataSpace((void *)vars[0]->getAddress(), 4, &value, true);
+	trampGuardBase_ = value;
+
+    } else if (getAddressWidth() == 8) {
+	readDataSpace((void *)vars[0]->getAddress(), 8, &trampGuardBase_, true);
+
+    } else assert(0 && "Incompatible mutatee address width");
+
     return true;
 }
 
