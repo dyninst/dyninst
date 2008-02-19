@@ -31,7 +31,7 @@
 
 /************************************************************************
  * String.h: a simple character string class.
- * $Id: String.h,v 1.32 2008/01/03 22:55:09 jaw Exp $
+ * $Id: String.h,v 1.33 2008/02/19 19:43:38 mlam Exp $
 ************************************************************************/
 
 #if !defined(_String_h_)
@@ -169,22 +169,36 @@ private:
 
 #include "common/h/refCounter.h"
 
+#define MAGIC_NILPTR_FLAG 1234567
+
 class pdstring {
    friend class string_counter;
  private:
    refCounter<string_ll> data;
 
+   static pdstring *nilptr;
+   static long nilptr_initialized;
 
    static void initialize_static_stuff();
    static void free_static_stuff();
 
  public:
-   static pdstring *nilptr;
+   inline pdstring * getNilptr() {
+	   // Lam(01/28/08): static members are not always initialized when
+	   // nilptr is needed, so we use a magic number to ensure that the
+	   // static initialization flag is not zero or some random
+	   // (uninitialized) value
+	   if (nilptr_initialized != MAGIC_NILPTR_FLAG) {
+		   initialize_static_stuff();
+	   }
+	   return nilptr;
+   }
+
    // The second of the constructors below should be faster, but it means
    // we must rely on nil.data being initialized before any global string
    // objects (or static class members) created with this constructor.
 //   pdstring() : data(string_ll()) {};
-   pdstring() : data(nilptr->data) {} // should be more efficient than above
+   pdstring() : data(getNilptr()->data) {} // should be more efficient than above
    pdstring(const char *str) : data(string_ll(str)) {}
    pdstring(const char *str, unsigned n) : data(string_ll(str,n)) {}
    pdstring(const pdstring& src) : data(src.data) {}

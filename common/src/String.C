@@ -30,7 +30,7 @@
  */
 
 
-// $Id: String.C,v 1.35 2008/01/03 17:49:17 jaw Exp $
+// $Id: String.C,v 1.36 2008/02/19 19:43:51 mlam Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -43,6 +43,7 @@
 
 // Declare static member vrbles:
 pdstring *pdstring::nilptr = NULL;
+long pdstring::nilptr_initialized = 0;
 int string_counter::count = 0;
 string_counter sc;
 
@@ -685,6 +686,9 @@ void pdstring::initialize_static_stuff() {
    nilptr = new pdstring((char*)NULL);
       // the typecast is essential, lest NULL be interpreted
       // as the integer 0 instead of the pointer 0!
+
+   nilptr_initialized = MAGIC_NILPTR_FLAG;
+      // magic value: see getNilptr() for explanation
 }
 
 void pdstring::free_static_stuff() {
