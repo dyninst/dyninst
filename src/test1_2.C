@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_2.C,v 1.5 2006/10/11 21:52:47 cooksey Exp $
+// $Id: test1_2.C,v 1.6 2008/02/19 13:39:07 rchen Exp $
 /*
  * #Name: test1_2
  * #Desc: Mutator Side (call a four argument function)
@@ -99,7 +99,9 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
   void *ptr;
 
-#if defined(mips_sgi_irix6_4) || defined(arch_x86_64)
+#if defined(mips_sgi_irix6_4) \
+ || defined(arch_x86_64) \
+ || defined(rs6000_ibm_aix64)
   unsigned pointer_size = pointerSize(appImage);
   /* Determine the size of pointer we should use dynamically. */
   if (pointer_size == 4) {

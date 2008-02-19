@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.24 2007/10/05 21:06:41 bernat Exp $
+// $Id: test_lib.C,v 1.25 2008/02/19 13:39:16 rchen Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -727,6 +727,13 @@ void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
    dest_len = strlen(dest);
 
    // Patch up alternate ABI filenames
+#if defined(rs6000_ibm_aix64)
+   if (psize == 4) {
+       strncat(dest, "_32", dest_max_len - dest_len);
+       dest_len += 3;
+   }
+#endif
+
 #if defined(arch_x86_64)
    if (psize == 4) {
       strncat(dest,"_m32", dest_max_len - dest_len);

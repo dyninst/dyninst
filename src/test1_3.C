@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_3.C,v 1.7 2006/10/11 21:52:58 cooksey Exp $
+// $Id: test1_3.C,v 1.8 2008/02/19 13:39:12 rchen Exp $
 /*
  * #Name: test1_3
  * #Desc: Mutator Side (passing variables to a function)
@@ -150,7 +150,7 @@ static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     checkCost(call3Expr);
     appThread->insertSnippet(call3Expr, *point3_1);
 
-    BPatch_arithExpr expr3_5(BPatch_assign, *expr3_2, BPatch_constExpr(32));
+    BPatch_arithExpr expr3_5(BPatch_assign, *expr3_2, BPatch_constExpr((int)32));
     checkCost(expr3_5);
     appThread->insertSnippet(expr3_5, *point3_1);
 

@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.12 2007/06/20 20:49:57 ssuen Exp $ */
+/* $Id: test1.mutatee.c,v 1.13 2008/02/19 13:38:55 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2704,16 +2704,16 @@ void call40_4(void) {  gvDummy40 += -1;}
 /*  these should be set by the monitoring function
   (and will be checked afterwards)
    callees: */
-unsigned gv40_call40_1_addr = (unsigned)-1;
-unsigned gv40_call40_2_addr = (unsigned)-1;
-unsigned gv40_call40_3_addr = (unsigned)-1;
+unsigned long gv40_call40_1_addr = (unsigned long)-1;
+unsigned long gv40_call40_2_addr = (unsigned long)-1;
+unsigned long gv40_call40_3_addr = (unsigned long)-1;
 
 /*   callsite addr -- measured thrice: */
-unsigned gv40_call40_5_addr1 = (unsigned)-1;
-unsigned gv40_call40_5_addr2 = (unsigned)-1;
-unsigned gv40_call40_5_addr3 = (unsigned)-1;
+unsigned long gv40_call40_5_addr1 = (unsigned long)-1;
+unsigned long gv40_call40_5_addr2 = (unsigned long)-1;
+unsigned long gv40_call40_5_addr3 = (unsigned long)-1;
 
-unsigned callsite40_5_addr =  0;
+unsigned long callsite40_5_addr =  0;
 int call40_5(intFuncArg callme)
 {
   int ret = 0;
@@ -2731,12 +2731,12 @@ int call40_5(intFuncArg callme)
   return ret;
 }
 
-unsigned int gv_addr_of_call40_1 = 0;
-unsigned int gv_addr_of_call40_2 = 0;
-unsigned int gv_addr_of_call40_3 = 0;
+unsigned long gv_addr_of_call40_1 = 0;
+unsigned long gv_addr_of_call40_2 = 0;
+unsigned long gv_addr_of_call40_3 = 0;
 int call_counter = 0;
 
-void func_40_monitorFunc(unsigned int callee_addr, unsigned int callsite_addr)
+void func_40_monitorFunc(unsigned long callee_addr, unsigned long callsite_addr)
 {
   if (call_counter == 0) {
     gv40_call40_5_addr1 = callsite_addr;
