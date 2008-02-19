@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.13 2007/12/31 16:08:19 bernat Exp $
+// $Id: registerSpace.h,v 1.14 2008/02/19 23:50:13 legendre Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -130,7 +130,7 @@ class registerSlot {
         saveOffset(-1),
         type(type_) {}
 
-    void registerSlot::markUsed(bool incRefCount) {
+    void markUsed(bool incRefCount) {
         assert(offLimits == false);
         assert(refCount == 0);
         assert(liveState != live);
