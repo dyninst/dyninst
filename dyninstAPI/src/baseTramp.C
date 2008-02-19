@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.63 2008/02/15 17:47:03 bernat Exp $
+// $Id: baseTramp.C,v 1.64 2008/02/19 13:37:24 rchen Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -586,6 +586,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
         else {
             trampGuardAddr = AstNode::operandNode(AstNode::DataIndir,
                                                   proc()->trampGuardAST());
+	    trampGuardAddr->setType( BPatch::getBPatch()->builtInTypes->findBuiltInType( "unsigned int" ) );
         }
     }
 
