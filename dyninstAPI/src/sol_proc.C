@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.116 2008/01/03 22:55:10 jaw Exp $
+// $Id: sol_proc.C,v 1.117 2008/02/19 13:38:19 rchen Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -92,10 +92,10 @@ void safeClose(handleT &fd) {
 void OS::osTraceMe(void) 
 {
     sysset_t *exitSet = SYSSET_ALLOC(getpid());
-    int bufsize = SYSSET_SIZE(exitSet) + sizeof(long);
+    int bufsize = SYSSET_SIZE(exitSet) + sizeof(int);
 
     char *buf = new char[bufsize];
-    long *bufptr = (long *)buf;
+    int *bufptr = (int *)buf;
     char procName[128];
     
     // Get the current set of syscalls
@@ -169,7 +169,7 @@ bool dyn_lwp::isRunning() const
    if (!get_status(&theStatus)) return false;
 
    // Don't consider PR_ASLEEP to be stopped
-   long stopped_flags = PR_STOPPED | PR_ISTOP;
+   uint32_t stopped_flags = PR_STOPPED | PR_ISTOP;
 
    if (theStatus.pr_flags & stopped_flags)
       return false;
@@ -183,14 +183,14 @@ bool dyn_lwp::clearSignal()
     get_status(&status);
 
     if (status.pr_why == PR_SIGNALLED) {
-        long command[2];
+        int command[2];
         command[0] = PCRUN; command[1] = PRSTOP | PRCSIG;
-        if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+        if (write(ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
             perror("clearSignal: PCRUN");
             return false;
         }
         command[0] = PCWSTOP;        
-        if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+        if (write(ctl_fd(), command, sizeof(int)) != sizeof(int)) {
             perror("clearSignal: PCWSTOP");
             return false;
         }
@@ -201,9 +201,9 @@ bool dyn_lwp::clearSignal()
         // use signals. Did anyone else think of linux?
         
         // Non-blocking stop...
-        long command[2];
+        int command[2];
         command[0] = PCDSTOP;
-        if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+        if (write(ctl_fd(), command, sizeof(int)) != sizeof(int)) {
             perror("clearSignal: PCWSTOP");
             return false;
         }
@@ -212,7 +212,7 @@ bool dyn_lwp::clearSignal()
         kill(proc()->getPid(), SIGCONT);
 
         command[0] = PCWSTOP;        
-        if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+        if (write(ctl_fd(), command, sizeof(int)) != sizeof(int)) {
             perror("clearSignal: PCWSTOP");
             return false;
         }
@@ -229,7 +229,7 @@ bool dyn_lwp::clearSignal()
 bool dyn_lwp::continueLWP_(int signalToContinueWith) 
 {
   procProcStatus_t status;
-  long command[2];
+  int command[2];
   Address pc;  // PC at which we are trying to continue
   // Check the current status
   if (!get_status(&status)) {
@@ -273,7 +273,7 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith)
   // Continue the process the easy way
  busy_retry:
   errno = 0;
-  if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+  if (write(ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
       if (errno == EBUSY) {
         struct timeval slp;
         slp.tv_sec = 0;
@@ -289,6 +289,47 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith)
   return true;
   
 }
+
+#if 0
+// Not implemented.  At least not in AIX.
+Address dyn_lwp::step_next_insn() {
+   int result;
+   int command[2];
+
+   if (status() != stopped) {
+      fprintf(stderr, "[%s:%u] - Internal Error.  lwp wasn't stopped\n",
+              __FILE__, __LINE__);
+      return (Address) -1;
+   }
+
+   singleStepping = true;
+   proc()->set_lwp_status(this, running);
+
+   command[0] = PCRUN;
+   command[1] = PRSTEP;
+  busy_retry:
+   if (write(ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
+       if (errno == EBUSY) {
+	   struct timeval slp;
+	   slp.tv_sec = 0;
+	   slp.tv_usec = 1 /*ms*/ *1000;
+	   select(0, NULL, NULL, NULL, &slp);
+	   fprintf(stderr, "%s[%d]: continueLWP_, ctl_fd is busy, trying again\n", FILE__, __LINE__);
+	   goto busy_retry;
+       }
+       perror("Couldn't PCRUN PRSTEP");
+       return (Address)-1;
+   }
+
+   do {
+      if(proc()->hasExited()) 
+         return (Address) -1;
+      proc()->sh->waitForEvent(evtDebugStep);
+   } while (singleStepping);
+
+   return getActiveFrame().getPC();
+}
+#endif
 
 // Abort a system call. Place a trap at the exit of the syscall in
 // question, and run with the ABORT flag set. Wait for the trap
@@ -381,8 +422,8 @@ bool dyn_lwp::abortSyscall()
     
     // Set the signals to "ignore" and run, aborting the syscall
 #if 0
-    int bufsize = sizeof(long) + sizeof(proc_sigset_t);
-    char buf[bufsize]; long *bufptr = (long *)buf;
+    int bufsize = sizeof(int) + sizeof(proc_sigset_t);
+    char buf[bufsize]; int *bufptr = (int *)buf;
     *bufptr = PCSHOLD; bufptr++;
     memcpy(bufptr, &sigs, sizeof(proc_sigset_t));
 
@@ -390,17 +431,17 @@ bool dyn_lwp::abortSyscall()
         perror("abortSyscall: PCSHOLD"); return false;
     }
 #endif
-    long command[2];
+    int command[2];
     
     command[0] = PCRUN;
     command[1] = PRSABORT;
 
-    if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+    if (write(ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
         perror("abortSyscall: PCRUN"); return false;
     }
     
     command[0] = PCWSTOP;
-    if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+    if (write(ctl_fd(), command, sizeof(int)) != sizeof(int)) {
         perror("abortSyscall: PCWSTOP"); return false;
     }
     
@@ -466,8 +507,8 @@ bool dyn_lwp::restartSyscall()
     // The signals were blocked as part of the abort mechanism.
     stoppedInSyscall_ = false;
 #if 0
-    int bufsize = sizeof(long) + sizeof(proc_sigset_t);
-    char buf[bufsize]; long *bufptr = (long *)buf;
+    int bufsize = sizeof(int) + sizeof(proc_sigset_t);
+    char buf[bufsize]; int *bufptr = (int *)buf;
     *bufptr = PCSHOLD; bufptr++;
     memcpy(bufptr, &sighold_, sizeof(proc_sigset_t));
     
@@ -491,12 +532,12 @@ dyn_lwp *process::createRepresentativeLWP()
 // Stop the LWP in question
 bool dyn_lwp::stop_() 
 {
-  long command[2];
+  int command[2];
   command[0] = PCSTOP;
 
   signal_printf("%s[%d]: writing stop command\n", FILE__, __LINE__);
 
-  if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+  if (write(ctl_fd(), command, sizeof(int)) != sizeof(int)) {
       fprintf(stderr, "%s[%d][%s]: ", FILE__, __LINE__, getThreadStr(getExecThreadID()));
       perror("pauseLWP: PCSTOP");
       return false;
@@ -590,8 +631,8 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeF
 
     // The fact that this routine can be shared between solaris/sparc and
     // solaris/x86 is just really, really cool.  /proc rules!
-    const int regbufsize = sizeof(long) + sizeof(prgregset_t);
-    char regbuf[regbufsize]; long *regbufptr = (long *)regbuf;
+    const int regbufsize = sizeof(int) + sizeof(prgregset_t);
+    char regbuf[regbufsize]; int *regbufptr = (int *)regbuf;
     *regbufptr = PCSREG; regbufptr++;
     memcpy(regbufptr, &(regs.theIntRegs), sizeof(prgregset_t));
     int writesize;
@@ -612,8 +653,8 @@ try_again:
         perror("restoreRegisters: GPR write");
         return false;
     }
-    const int fpbufsize = sizeof(long) + sizeof(prfpregset_t);
-    char fpbuf[fpbufsize]; long *fpbufptr = (long *)fpbuf;
+    const int fpbufsize = sizeof(int) + sizeof(prfpregset_t);
+    char fpbuf[fpbufsize]; int *fpbufptr = (int *)fpbuf;
     *fpbufptr = PCSFPREG; fpbufptr++;
     memcpy(fpbufptr, &(regs.theFpRegs), sizeof(prfpregset_t));
     
@@ -664,8 +705,8 @@ bool dyn_lwp::executingSystemCall()
   // I've seen cases where we're apparently not in a system
   // call, but can't write registers... we'll label this case
   // a syscall for now
-  const int regbufsize = sizeof(long) + sizeof(prgregset_t);
-  char regbuf[regbufsize]; long *regbufptr = (long *)regbuf;
+  const int regbufsize = sizeof(int) + sizeof(prgregset_t);
+  char regbuf[regbufsize]; int *regbufptr = (int *)regbuf;
   *regbufptr = PCSREG; regbufptr++;
   memcpy(regbufptr, &(status.pr_reg), sizeof(prgregset_t));
   int writesize = write(ctl_fd(), regbuf, regbufsize);
@@ -958,24 +999,21 @@ void dyn_lwp::representativeLWP_detach_()
 
 bool process::setProcessFlags()
 {
-    long command[2];
+    int command[2];
 
     // Unset all flags
     command[0] = PCUNSET;
     command[1] = PR_BPTADJ | PR_MSACCT | PR_RLC | PR_KLC | PR_FORK;
 
     dyn_lwp *replwp = getRepresentativeLWP();
-    if (write(replwp->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+    if (write(replwp->ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
         perror("installProcessFlags: PRUNSET");
         return false;
     }
     command[0] = PCSET;
+    command[1] = PR_BPTADJ | PR_MSACCT | PR_FORK;
 
-    long flags = PR_BPTADJ | PR_MSACCT | PR_FORK;
-
-    command[1] = flags;
-
-    if (write(replwp->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+    if (write(replwp->ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
         perror("installProcessFlags: PCSET");
         return false;
     }
@@ -1000,9 +1038,9 @@ bool process::setProcessFlags()
    praddset(&sigs, SIGSEGV);
    praddset(&sigs, SIGILL);
     
-   const int bufsize = sizeof(long) + sizeof(proc_sigset_t);
-   char buf[bufsize]; 
-   long *bufptr = (long *) buf;
+   const int bufsize = sizeof(int) + sizeof(proc_sigset_t);
+   char buf[bufsize];
+   int *bufptr = (int *) buf;
    *bufptr = PCSTRACE;
    bufptr++;
    memcpy(bufptr, &sigs, sizeof(proc_sigset_t));
@@ -1017,7 +1055,7 @@ bool process::setProcessFlags()
 
 bool process::unsetProcessFlags()
 {
-    long command[2];
+    int command[2];
 
     if (!isAttached()) return false;
     // Unset all flags
@@ -1025,17 +1063,17 @@ bool process::unsetProcessFlags()
     command[1] = PR_BPTADJ | PR_MSACCT | PR_RLC | PR_KLC | PR_FORK;
 
     dyn_lwp *replwp = getRepresentativeLWP();
-    if (write(replwp->ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+    if (write(replwp->ctl_fd(), command, 2*sizeof(int)) != 2*sizeof(int)) {
         perror("unsetProcessFlags: PRUNSET");
         return false;
     }
 
     proc_sigset_t sigs;
     premptyset(&sigs);
-    const int sigbufsize = sizeof(long) + sizeof(proc_sigset_t);
-    char sigbuf[sigbufsize]; long *sigbufptr = (long *)sigbuf;
+    const int sigbufsize = sizeof(int) + sizeof(proc_sigset_t);
+    char sigbuf[sigbufsize]; int *sigbufptr = (int *)sigbuf;
 
-    sigbufptr = (long *)sigbuf;
+    sigbufptr = (int *)sigbuf;
     *sigbufptr = PCSTRACE;
     if (write(replwp->ctl_fd(), sigbuf, sigbufsize) != sigbufsize) {
         perror("unsetProcessFlags: PCSTRACE");
@@ -1105,7 +1143,7 @@ bool process::isRunning_() const
     if (sz_read != sizeof(pstatus_t))
         return false;
 
-    long stopped_flags = PR_STOPPED | PR_ISTOP;
+    uint32_t stopped_flags = PR_STOPPED | PR_ISTOP;
 
     if (procstatus.pr_flags & stopped_flags) {
         return false;
@@ -1131,13 +1169,13 @@ terminateProcStatus_t process::terminateProc_()
     if(status() == stopped)
       status_ = running;
 
-    long command[2];
+    int command[2];
     command[0] = PCKILL;
     command[1] = SIGKILL;
     dyn_lwp *cntl_lwp = getRepresentativeLWP();
     if (cntl_lwp) {
       if (write(cntl_lwp->ctl_fd(), 
-		command, 2*sizeof(long)) != 2*sizeof(long)) {
+		command, 2*sizeof(int)) != 2*sizeof(int)) {
 	perror("terminateProc: PCKILL");
 	// TODO: what gets returned if the process is already dead?
 	// proc man page doesn't say.
@@ -1265,7 +1303,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
    off64_t loc;
    // Problem: we may be getting a address with the high bit
    // set. So how to convince the system that it's not negative?
-   loc = (off64_t) ((unsigned) inTraced);
+   loc = (off64_t) ((unsigned long) inTraced);
 
    errno = 0;
 
@@ -1285,7 +1323,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf)
     ptraceOps++; ptraceBytes += amount;
 
     off64_t loc;
-    loc = (off64_t) ((unsigned) inTraced);
+    loc = (off64_t)((unsigned long)inTraced);
 
     int res = pread64(as_fd(), inSelf, amount, loc);
     //fprintf(stderr, "%s[%d][%s]:  %d = readDataSpace(%p, amt=%d, %p)\n",
@@ -1325,8 +1363,8 @@ bool process::set_entry_syscalls(sysset_t *entry)
 {
     if (!isAttached()) return false;
     
-    int bufentrysize = sizeof(long) + SYSSET_SIZE(entry);
-    char *bufentry = new char[bufentrysize]; long *bufptr = (long *)bufentry;
+    int bufentrysize = sizeof(int) + SYSSET_SIZE(entry);
+    char *bufentry = new char[bufentrysize]; int *bufptr = (int *)bufentry;
     
     // Write entry syscalls
     *bufptr = PCSENTRY; bufptr++;
@@ -1347,8 +1385,8 @@ bool process::set_exit_syscalls(sysset_t *exit)
 {
     if (!isAttached()) return false;
     
-    int bufexitsize = sizeof(long) + SYSSET_SIZE(exit);
-    char *bufexit = new char[bufexitsize]; long *bufptr = (long *)bufexit;
+    int bufexitsize = sizeof(int) + SYSSET_SIZE(exit);
+    char *bufexit = new char[bufexitsize]; int *bufptr = (int *)bufexit;
     *bufptr = PCSEXIT; bufptr++;
     memcpy(bufptr, exit, SYSSET_SIZE(exit));
 
