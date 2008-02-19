@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.200 2008/02/14 19:58:59 bernat Exp $
+// $Id: ast.C,v 1.201 2008/02/19 13:37:19 rchen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -970,7 +970,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             if (retReg == REG_NULL) {
                 retReg = allocateAndKeep(gen, noCost);
             }
-            emitVload(loadConstOp, addr, retReg, retReg, gen, noCost);
+            emitVload(loadConstOp, addr, retReg, retReg, gen,
+		      noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             break;
         case FrameAddr: {
             // load the address fp + addr into dest
@@ -1035,7 +1036,8 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         case DataAddr:
             addr = (Address) loperand->getOValue();
             assert(addr != 0); // check for NULL
-            emitVstore(storeOp, src1, src2, addr, gen, noCost, gen.rs(), size);
+            emitVstore(storeOp, src1, src2, addr, gen,
+		       noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             // We are not calling generateCode for the left branch,
             // so need to decrement the refcount by hand
             loperand->decUseCount(gen);
@@ -1098,7 +1100,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
         if (!loperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
         REGISTER_CHECK(src1);
         REGISTER_CHECK(src2);
-        emitV(op, src1, 0, src2, gen, noCost);          
+        emitV(op, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
         gen.rs()->freeRegister(src1);
         gen.rs()->freeRegister(src2);
         retReg = REG_NULL;
@@ -1174,7 +1176,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
 
 bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
                                          Address &,
-                                         Register &retReg) {										
+                                         Register &retReg) {
 	RETURN_KEPT_REG(retReg);
     
 
@@ -1197,8 +1199,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    BPatch_type *Type;
    switch (oType) {
    case Constant:
-       emitVload(loadConstOp, (Address)oValue, retReg, retReg, 
-		 gen, noCost);
+       emitVload(loadConstOp, (Address)oValue, retReg, retReg, gen,
+		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        break;
    case DataIndir:
        if (!operand_->generateCode_phase2(gen, noCost, addr, src)) ERROR_RETURN;
@@ -1242,7 +1244,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        break;
    case DataAddr:
        addr = (Address) oValue;
-       emitVload(loadOp, addr, retReg, retReg, gen, noCost, NULL, size);
+       emitVload(loadOp, addr, retReg, retReg, gen, noCost, NULL, size, gen.point(), gen.addrSpace());
        break;
    case FrameAddr:
        addr = (Address) oValue;
@@ -1272,7 +1274,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        if (!gen.addrSpace()->writeDataSpace((char *)addr, len, (char *)oValue))
            perror("ast.C(1351): writing string value");
        
-       emitVload(loadConstOp, addr, retReg, retReg, gen, noCost);
+       emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        break;
 	case RegValue: {
 		gen.rs()->readRegister(gen, (Register) (long) oValue, retReg);
