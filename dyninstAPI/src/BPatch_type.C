@@ -283,7 +283,7 @@ Dyninst::SymtabAPI::dataClass BPatch_type::convertToSymtabType(BPatch_dataClass 
 #ifdef IBM_BPATCH_COMPAT
 char *BPatch_type::getName(char *buffer, int max) const
 {
-  char *name = typ->getName();
+  const char *name = typ->getName().c_str();
   if (!name) {
      strncpy(buffer, "bad type name", (max > strlen("bad_type_name")) ?
              (strlen("bad_type_name") +1) : max);
