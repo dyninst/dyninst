@@ -1,5 +1,5 @@
 #
-# $Id: make.platform.tmpl,v 1.12 2006/05/03 00:20:56 jodom Exp $
+# $Id: make.platform.tmpl,v 1.13 2008/02/19 13:36:40 rchen Exp $
 # make.platform.tmpl: toplevel, platform-specific make configuration
 #
 
@@ -107,7 +107,7 @@ endif  # sparc-sun-solaris2.8
 endif  # SOLARIS_NATIVE
 
 # AIX 5.1 xlC/xlc
-ifeq (aix,$(findstring aix,$(PLATFORM)))
+ifeq (ibm-aix,$(findstring ibm-aix,$(PLATFORM)))
 ifdef IBM_BPATCH_COMPAT
 CC              = $(NATIVE_CC)
 CXX             = $(NATIVE_CXX)
@@ -138,5 +138,4 @@ CXXFLAGS        += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS) $(XLC_TEMPLATE_PARAMETERS)
 TFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS) $(XLC_TEMPLATE_PARAMETERS)KFLAGS          += $(NATIVE_FLAGS) $(NATIVE_CXXFLAGS) $(XLC_TEMPLATE_PARAMETERS)
 LIBDIR          += -L/usr/local/lib
 endif #AIX_USE_XLC
-endif #RS6K-AIX
-
+endif #IBM-AIX

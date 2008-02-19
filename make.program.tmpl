@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.30 2005/12/19 19:41:37 pack Exp $
+# $Id: make.program.tmpl,v 1.31 2008/02/19 13:36:45 rchen Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -128,7 +128,7 @@ endif
 	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
 
 ifdef IBM_BPATCH_COMPAT 
-ifeq (aix,$(findstring aix,$(PLATFORM)))
+ifeq (ibm-aix,$(findstring ibm-aix,$(PLATFORM)))
 	cat *.u > DEPENDS
 	rm -f *.u
 endif
