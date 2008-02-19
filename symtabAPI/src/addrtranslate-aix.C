@@ -190,10 +190,10 @@ bool AddressTranslateAIX::refresh()
       }
       is_aout = false;
       
-      LoadedLib *ll = new LoadedLibAIX(filename, mapEntry.pr_vaddr, object_name);
+      LoadedLib *ll = new LoadedLibAIX(filename, (unsigned long)mapEntry.pr_vaddr, object_name);
 
       iter++;
-      ll->add_mapped_region(mapEntry.pr_vaddr, mapEntry.pr_size);
+      ll->add_mapped_region((unsigned long)mapEntry.pr_vaddr, mapEntry.pr_size);
       libs.push_back(ll);
 
       prmap_t next;
@@ -204,8 +204,8 @@ bool AddressTranslateAIX::refresh()
          continue;
 
       iter++;
-      ll->add_mapped_region(next.pr_vaddr, next.pr_size);
-      ll->setDataLoadAddr(next.pr_vaddr);
+      ll->add_mapped_region((unsigned long)next.pr_vaddr, next.pr_size);
+      ll->setDataLoadAddr((unsigned long)next.pr_vaddr);
    }
    
    P_close(map_fd);

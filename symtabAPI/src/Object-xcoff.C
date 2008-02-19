@@ -29,7 +29,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.19 2008/01/23 14:45:53 jaw Exp $
+// $Id: Object-xcoff.C,v 1.20 2008/02/19 13:39:26 rchen Exp $
+
+// Define this before all others to insure xcoff.h is included
+// with __XCOFF_HYBRID__ defined.
+#define __XCOFF_HYBRID__
 
 #include <regex.h>
 
@@ -53,7 +57,6 @@ using namespace Dyninst::SymtabAPI;
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-#include <scnhdr.h>
 #include <sys/time.h>
 #include <sys/reg.h>
 #include <sys/user.h>
@@ -69,6 +72,7 @@ using namespace std;
 #define __AR_BIG__
 #define __AR_SMALL__
 #include <ar.h> // archive file format.
+#include <scnhdr.h>
 
 #include <dlfcn.h>
 #include "common/h/debugOstream.h"
@@ -123,9 +127,8 @@ typedef union {
 } instructUnion;
 
 unsigned long roundup4(unsigned long val) {
-   while (val % 4 != 0)
-      val++;
-   return val;
+    val += 3;
+    return val - (val % 4);
 }
 
 // giri: Brought in here from dyninst/src/aix.C
@@ -636,13 +639,36 @@ void *fileOpener::getPtrAtOffset(unsigned offset) const
       return; \
       }
 
+// ----------------------------------------------------------------------------
+// 32/64-bit section header member access macros.
+// These macros depend on the definition of variables scnh_base and is64,
+// and are only meant to be used from within Object::parse_aout().
+// 
+#define SCNH_NAME(i)           (char *)(scnh_base + scn_size * (i) + s_name_off)
+#define SCNH_PADDR(i)   ((*(uint64_t *)(scnh_base + scn_size * (i) + s_paddr_off)) >> word_shift)
+#define SCNH_VADDR(i)   ((*(uint64_t *)(scnh_base + scn_size * (i) + s_vaddr_off)) >> word_shift)
+#define SCNH_SIZE(i)    ((*(uint64_t *)(scnh_base + scn_size * (i) + s_size_off)) >> word_shift)
+#define SCNH_SCNPTR(i)  ((*(uint64_t *)(scnh_base + scn_size * (i) + s_scnptr_off)) >> word_shift)
+#define SCNH_RELPTR(i)  ((*(uint64_t *)(scnh_base + scn_size * (i) + s_relptr_off)) >> word_shift)
+#define SCNH_LNNOPTR(i) ((*(uint64_t *)(scnh_base + scn_size * (i) + s_lnnoptr_off)) >> word_shift)
+#define SCNH_NRELOC(i)  ((*(uint32_t *)(scnh_base + scn_size * (i) + s_nreloc_off)) >> half_shift)
+#define SCNH_NLNNO(i)   ((*(uint32_t *)(scnh_base + scn_size * (i) + s_nlnno_off)) >> half_shift)
+#define SCNH_FLAGS(i)    (*(uint32_t *)(scnh_base + scn_size * (i) + s_flags_off))
+
+// ----------------------------------------------------------------------------
+// 32/64-bit symbol table entry member access macros.
+// These macros depend on the definition of variables scnh_base and is64,
+// and are only meant to be used from within Object::parse_aout().
+// 
+
+
 void Object::parse_aout(int offset, bool /*is_aout*/)
 {
    // all these vrble declarations need to be up here due to the gotos,
    // which mustn't cross vrble initializations.  Too bad.
    long i,j;
    std::string name;
-   unsigned value;
+   unsigned long value;
    unsigned secno;
    unsigned textSecNo, dataSecNo , loaderSecNo;
    union auxent *aux = NULL;
@@ -665,7 +691,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    linesfdptr_ = 0;
 
    struct syment *symbols = NULL;
-   struct scnhdr *sectHdr = NULL;
+   unsigned char *scnh_base = NULL;
    Symbol::SymbolLinkage linkage = Symbol::SL_UNKNOWN;
    unsigned toc_offset = 0;
    std::string modName;
@@ -681,109 +707,180 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    if (!fo_->set(offset))
        PARSE_AOUT_DIE("Seeking to correct offset", 49);
 
-   if (!fo_->read(&hdr, sizeof(struct filehdr)))
+   // -------------------------------------------------------------------------
+   // Read the 2 byte magic number.  Everything depends on it.
+   //
+   uint16_t magic;
+   if (!fo_->read(&magic, 2))
+       PARSE_AOUT_DIE("Reading magic number", 49);
+
+   // Determine file address width.
+   bool is64 = false;
+   if (magic == 0x1EF /* XCOFF64 on AIX4.3 or earlier */ ||
+       magic == 0x1F7 /* XCOFF64 on AIX5.1 or later   */) {
+       is64 = true;
+       addressWidth_nbytes = 8;
+
+   } else if (magic != 0x1DF /* XCOFF32 */) {
+       PARSE_AOUT_DIE("possible problem, invalid magic number", 49);
+       // bperr( "Possible problem, magic number is %x, should be %x\n",
+       //       magic, 0x1df);
+   }
+   is64_ = is64;
+
+   // -------------------------------------------------------------------------
+   // Set up 32/64 bit offset variables.
+   //
+   uint64_t scn_size;
+   uint64_t s_name_off, s_paddr_off, s_vaddr_off, s_size_off, s_scnptr_off;
+   uint64_t s_relptr_off, s_lnnoptr_off, s_nreloc_off, s_nlnno_off, s_flags_off;
+   uint64_t word_shift, half_shift;
+
+   if (is64) {
+       scn_size      = SCNHSZ_64;
+       s_name_off    = offsetof(struct scnhdr, s_name);
+       s_paddr_off   = offsetof(struct scnhdr, s_paddr64);
+       s_vaddr_off   = offsetof(struct scnhdr, s_vaddr64);
+       s_size_off    = offsetof(struct scnhdr, s_size64);
+       s_scnptr_off  = offsetof(struct scnhdr, s_scnptr64);
+       s_relptr_off  = offsetof(struct scnhdr, s_relptr64);
+       s_lnnoptr_off = offsetof(struct scnhdr, s_lnnoptr64);
+       s_nreloc_off  = offsetof(struct scnhdr, s_nreloc64);
+       s_nlnno_off   = offsetof(struct scnhdr, s_nlnno64);
+       s_flags_off   = offsetof(struct scnhdr, s_flags64);
+       word_shift    = 0;
+       half_shift    = 0;
+
+   } else {
+       scn_size      = SCNHSZ_32;
+       s_name_off    = offsetof(struct scnhdr, s_name);
+       s_paddr_off   = offsetof(struct scnhdr, s_paddr32);
+       s_vaddr_off   = offsetof(struct scnhdr, s_vaddr32);
+       s_size_off    = offsetof(struct scnhdr, s_size32);
+       s_scnptr_off  = offsetof(struct scnhdr, s_scnptr32);
+       s_relptr_off  = offsetof(struct scnhdr, s_relptr32);
+       s_lnnoptr_off = offsetof(struct scnhdr, s_lnnoptr32);
+       s_nreloc_off  = offsetof(struct scnhdr, s_nreloc32);
+       s_nlnno_off   = offsetof(struct scnhdr, s_nlnno32);
+       s_flags_off   = offsetof(struct scnhdr, s_flags32);
+       word_shift    = 32;
+       half_shift    = 16;
+   }
+
+   // Begin file processing.  Re-seek to beginning of file.
+   if (!fo_->set(offset))
+       PARSE_AOUT_DIE("Seeking to correct offset", 49);
+
+   // -------------------------------------------------------------------------
+   // Read and process file header.
+   //
+   if (!fo_->read(&hdr, (is64 ? FILHSZ_64 : FILHSZ_32)))
        PARSE_AOUT_DIE("Reading file header", 49);
 
+   uint64_t symptr, nsyms;
+   if (is64) {
+       symptr = hdr.f_symptr64;
+       nsyms  = hdr.f_nsyms64;
+
+   } else {
+       symptr = hdr.f_symptr32;
+       nsyms  = hdr.f_nsyms32;
+   }
+   is_aout_ = !(hdr.f_flags & F_SHROBJ);
+
 #if 0
-   struct filehdr &hdr = *((char *)baseAddress_);
+   if (hdr.f_opthdr == 0)
+       cout << "no aout header" << endl;
+   if (hdr.f_opthdr == _AOUTHSZ_SHORT)
+       cout << "short header" << endl;
 #endif
 
-   if (hdr.f_magic == 0x1ef || hdr.f_magic == 0x01F7) {
-       // XCOFF64 file! We don't handle those yet.
-         //PARSE_AOUT_DIE("unhandled XCOFF64 header found", 49);
-         //bperr("Unhandled XCOFF64 header found!\n");
-         return;
-   }
-   
-   if (hdr.f_magic != 0x1df) {
-        return;
-        //PARSE_AOUT_DIE("possible problem, magic number is not 0x1df", 49);
-       //bperr( "Possible problem, magic number is %x, should be %x\n",
-              //hdr.f_magic, 0x1df);
-   }
-#if 0 
-   if(hdr.f_opthdr == 0)
-    cout << "no aout header" << endl;
-   if(hdr.f_opthdr == _AOUTHSZ_SHORT)
-    cout << "short header" << endl;
-#endif   
-  
-#if 0
-   struct aouthdr &aout = *((char *)baseAddress_ + sizeof(struct filehdr));
-#endif
+   // -------------------------------------------------------------------------
+   // Read and process optional (a.out) header.
+   //
    if (!fo_->read(&aout, hdr.f_opthdr))
        PARSE_AOUT_DIE("Reading a.out header", 49);
-   sectHdr = (struct scnhdr *) fo_->ptr();
 
+   uint64_t text_start, tsize;
+   uint64_t data_start, dsize;
+   uint64_t entry;
 
-#if 0
-   sectHdr = (struct scnhdr *) (((char *)&aout) +sizeof(aouthdr));
-#endif
+   if (is64) {
+       text_start = aout.o_text_start64;
+       data_start = aout.o_data_start64;
+       tsize = aout.o_tsize64;
+       dsize = aout.o_dsize64;
+       entry = aout.o_entry64;
 
-   fo_->seek(sizeof(struct scnhdr) * hdr.f_nscns);
+   } else {
+       text_start = aout.o_text_start32;
+       data_start = aout.o_data_start32;
+       tsize = aout.o_tsize32;
+       dsize = aout.o_dsize32;
+       entry = aout.o_entry32;
+   }
 
-   if (!sectHdr)
+   scnh_base = (unsigned char *)fo_->ptr();
+   if (!scnh_base)
        PARSE_AOUT_DIE("Reading section headers", 49);
    
-
+   fo_->seek((is64 ? SCNHSZ_64 : SCNHSZ_32) * hdr.f_nscns);
    //if binary is not stripped 
-   if ( hdr.f_symptr ) {
-       fo_->set(offset + hdr.f_symptr);
+
+   if( symptr ) {
+       fo_->set(offset + symptr);
        symbols = (struct syment *) fo_->ptr();
-       fo_->seek(hdr.f_nsyms * SYMESZ);
+       fo_->seek(nsyms * SYMESZ);
        
        if (!symbols)
            PARSE_AOUT_DIE("Reading symbol table", 49);
    }
 
    // Consistency check
-   if(hdr.f_opthdr == _AOUTHSZ_EXEC) //complete aout header present
+   if(hdr.f_opthdr == (is64 ? _AOUTHSZ_EXEC_64 : _AOUTHSZ_EXEC_32))
    {
-    if ((unsigned) aout.text_start != sectHdr[aout.o_sntext-1].s_paddr)
-        PARSE_AOUT_DIE("Checking text address", 49);
-    if ((unsigned) aout.data_start != sectHdr[aout.o_sndata-1].s_paddr) 
-        PARSE_AOUT_DIE("Checking data address", 49);
-    if ((unsigned) aout.tsize != sectHdr[aout.o_sntext-1].s_size) 
-        PARSE_AOUT_DIE("Checking text size", 49);
-    if ((unsigned long) aout.dsize != sectHdr[aout.o_sndata-1].s_size)
-        PARSE_AOUT_DIE("Checking data size", 49);
+        // complete aout header present
+        if ( text_start != SCNH_PADDR(aout.o_sntext-1))
+            PARSE_AOUT_DIE("Checking text address", 49);
+        if ( data_start != SCNH_PADDR(aout.o_sndata-1))
+            PARSE_AOUT_DIE("Checking data address", 49);
+        if ( tsize != SCNH_SIZE(aout.o_sntext-1)) 
+            PARSE_AOUT_DIE("Checking text size", 49);
+        if ( dsize != SCNH_SIZE(aout.o_sndata-1))
+            PARSE_AOUT_DIE("Checking data size", 49);
    }
-   /*else if(hdr.f_opthdr == _AOUTHSZ_SHORT)
+   /* else if(hdr.f_opthdr == _AOUTHSZ_SHORT)
    {
-    if ((unsigned) aout.text_start != sectHdr[aout.o_sntext-1].s_paddr)
-        PARSE_AOUT_DIE("Checking text address", 49);
-    if ((unsigned) aout.data_start != sectHdr[aout.o_sndata-1].s_paddr) 
-        PARSE_AOUT_DIE("Checking data address", 49);
-    if ((unsigned) aout.tsize != sectHdr[aout.o_sntext-1].s_size) 
-        PARSE_AOUT_DIE("Checking text size", 49);
-    if ((unsigned long) aout.dsize != sectHdr[aout.o_sndata-1].s_size)
-        PARSE_AOUT_DIE("Checking data size", 49);
+        if ( text_start != SCNH_PADDR(aout.o_sntext-1))
+            PARSE_AOUT_DIE("Checking text address", 49);
+        if ( data_start != SCNH_PADDR(aout.o_sndata-1))
+            PARSE_AOUT_DIE("Checking data address", 49);
+        if ( tsize != SCNH_SIZE(aout.o_sntext-1))
+            PARSE_AOUT_DIE("Checking text size", 49);
+        if ( dsize != SCNH_SIZE(aout.o_sndata-1))
+            PARSE_AOUT_DIE("Checking data size", 49);
    }*/
-
-   if (hdr.f_opthdr !=  0)
-	 entryAddress_ = aout.entry;
+   if(hdr.f_opthdr !=  0)
+	entryAddress_ = entry;
 
     /*
     * Get the string pool, if there is one
     */
-
-   if ( hdr.f_nsyms )  {
-       // We want to go after the symbol table...
-       if (!fo_->set(offset + hdr.f_symptr + (hdr.f_nsyms*SYMESZ)))
-           PARSE_AOUT_DIE("Could not seek to string pool", 49);
-       Offset stringPoolSize;
-       fo_->read(&stringPoolSize, 4);
-       
-       if (!fo_->set(offset + hdr.f_symptr + (hdr.f_nsyms*SYMESZ)))
+   if( nsyms ) 
+   {
+       // We want to jump past the symbol table...
+       if (!fo_->set(offset + symptr + (nsyms*SYMESZ)))
            PARSE_AOUT_DIE("Could not seek to string pool", 49);
 
-       // First 4 bytes is the length; this is included in the string pool pointer
        stringPool = (char *)fo_->ptr();
-
        if (!stringPool)
            PARSE_AOUT_DIE("Getting pointer to string pool", 49);
+
+       // First 4 bytes is the length; this is included in the string pool pointer
+       Offset stringPoolSize;
+       fo_->read(&stringPoolSize, 4);
    }
-   
+
    /* find the text section such that we access the line information */
    nlines_ = 0;
    no_of_sections_ = hdr.f_nscns;
@@ -792,52 +889,53 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    
    for (i=0; i < hdr.f_nscns; i++)
    {
-       if(sectHdr[i].s_flags & STYP_DATA)
+       if(SCNH_FLAGS(i) & STYP_DATA)
        {
-           dataSecNo = i;
-    foundData = true;
-       }   
-       else if(sectHdr[i].s_flags & STYP_LOADER)
+       	   dataSecNo = i;
+	   foundData = true;
+       }
+       else if(SCNH_FLAGS(i) & STYP_LOADER)
        {
-           loaderSecNo = i;
-    foundLoader = true;
-       }    
-       if (sectHdr[i].s_flags & STYP_TEXT) {
+       	   loaderSecNo = i;
+	   foundLoader = true;
+       }	   
+       if (SCNH_FLAGS(i) & STYP_TEXT) {
            textSecNo = i;
-           nlines_ = sectHdr[i].s_nlnno;
-           
+           nlines_ = SCNH_NLNNO(i);
+
            /* if there is overflow in the number of lines */
-           if (nlines_ == 65535)
+           if (!is64 && nlines_ == 65535)
                for (j=0; j < hdr.f_nscns; j++)
-                   if ((sectHdr[j].s_flags & STYP_OVRFLO) &&
-                       (sectHdr[j].s_nlnno == (i+1))){
-                       nlines_ = (unsigned int)(sectHdr[j].s_vaddr);
+                   if ((SCNH_FLAGS(j) & STYP_OVRFLO) &&
+                       (SCNH_NLNNO(j) == (i+1))) {
+                       nlines_ = (unsigned int)(SCNH_VADDR(j));
                        break;
                    }
-           
+
            /* There may not be any line information. */
            if (nlines_ == 0)
                continue;
 
            /* read the line information table */
-           if (!fo_->set(offset + sectHdr[i].s_lnnoptr))
+           if (!fo_->set(offset + SCNH_LNNOPTR(i)))
                PARSE_AOUT_DIE("Seeking to line information table", 49);
            lines = (struct lineno *)fo_->ptr();
            if (!lines)
                PARSE_AOUT_DIE("Reading line information table", 49);
-           fo_->seek(nlines_ * LINESZ);
+           fo_->seek(nlines_ * (is64 ? LINESZ_64 : LINESZ_32));
            
-           linesfdptr = sectHdr[i].s_lnnoptr;
+           linesfdptr = offset + SCNH_LNNOPTR(i);
            //break;
        }
-       if (sectHdr[i].s_flags & STYP_BSS) {
-          bss_size_ = sectHdr[i].s_size;
+       if (SCNH_FLAGS(i) & STYP_BSS) {
+          bss_size_ = SCNH_SIZE(i);
        }
    }
 
    for (i=0; i < hdr.f_nscns; i++) {
-       sections_.push_back(new Section(i, sectHdr[i].s_name, sectHdr[i].s_paddr, fo_->getPtrAtOffset(offset+sectHdr[i].s_scnptr), sectHdr[i].s_size));
-       //fprintf(stderr, "%s[%d]:  section named %s\n", FILE__, __LINE__, sectHdr[i].s_name);
+       sections_.push_back(new Section(i, SCNH_NAME(i), SCNH_PADDR(i),
+				       fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), SCNH_SIZE(i)));
+       //fprintf(stderr, "%s[%d]:  section named %s\n", FILE__, __LINE__, SCNH_NAME(i));
    }
 
    // Time to set up a lot of variables.
@@ -852,16 +950,15 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    // data_reloc_: the amount to add to the "base address" given us by the system.
 
    // Temporaries: the file is loaded read-only and thus we can't modify it.
-   //Offset fileTextOffset = roundup4(sectHdr[aout.o_sntext-1].s_scnptr);
-   //Offset fileDataOffset = roundup4(sectHdr[aout.o_sndata-1].s_scnptr);
-   Offset fileTextOffset = roundup4(sectHdr[textSecNo].s_scnptr);
+   //Offset fileTextOffset = roundup4(SCNH_SCNPTR(aout.o_sntext-1));
+   //Offset fileDataOffset = roundup4(SCNH_SCNPTR(aout.o_sndata-1));
+   Offset fileTextOffset = roundup4(SCNH_SCNPTR(textSecNo));
    Offset fileDataOffset;
    if(foundData)
-    fileDataOffset = roundup4(sectHdr[dataSecNo].s_scnptr);
+       fileDataOffset = roundup4(SCNH_SCNPTR(dataSecNo));
    else
-    fileDataOffset = (Offset) -1;
+       fileDataOffset = (Offset) -1;
    
-
    if (!fo_->set(fileTextOffset + offset))
        PARSE_AOUT_DIE("Seeking to start of text segment", 49);
    code_ptr_ = (char *)fo_->ptr();
@@ -883,36 +980,36 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    // that now.  These are defined (and asserted, above) to be equal
    // to the s_paddr (and s_vaddr) fields in their respective
    // sections.
-   //code_off_ = roundup4(aout.text_start);
-   //data_off_ = roundup4(aout.data_start);
-   code_off_ = roundup4(sectHdr[textSecNo].s_paddr);
+   //code_off_ = roundup4(text_start);
+   //data_off_ = roundup4(data_start);
+   code_off_ = roundup4(SCNH_PADDR(textSecNo));
    if(foundData)
- data_off_ = roundup4(sectHdr[dataSecNo].s_paddr);
+       data_off_ = roundup4(SCNH_PADDR(dataSecNo));
    else
-    data_off_ = (Offset) -1;
+       data_off_ = (Offset) -1;
 
    // As above, these are equal to the s_size fields in the respective fields.
-   //code_len_ = aout.tsize;
-   //data_len_ = aout.dsize;
-   code_len_ = sectHdr[textSecNo].s_size;
+   //code_len_ = tsize;
+   //data_len_ = dsize;
+   code_len_ = SCNH_SIZE(textSecNo);
    if(foundData)
- data_len_ = sectHdr[dataSecNo].s_size;
+       data_len_ = SCNH_SIZE(dataSecNo);
    else
-    data_len_ = 0;
+       data_len_ = 0;
 
    if(foundLoader)
    {
-    //FIND LOADER INFO!
-    loader_off_ = sectHdr[loaderSecNo].s_scnptr;
-    //loader_off_ = sectHdr[aout.o_snloader-1].s_scnptr;
-    loadAddress_ = loader_off_;
-    loader_len_ = sectHdr[loaderSecNo].s_size; 
-    //loader_len_ = sectHdr[aout.o_snloader-1].s_size; 
-   } 
+   	//FIND LOADER INFO!
+   	loader_off_ = SCNH_SCNPTR(loaderSecNo);
+   	//loader_off_ = SCNH_SCNPTR(aout.o_snloader-1);
+   	loadAddress_ = loader_off_;
+   	loader_len_ = SCNH_SIZE(loaderSecNo); 
+   	//loader_len_ = SCNH_SIZE(aout.o_snloader-1);
+   }	
 
 #if 0
-   fprintf(stderr, "Loader offset: 0x%x, len 0x%x\n", loader_off_, loader_len_);
-   fprintf(stderr, "Loader vaddr: 0x%x\n", sectHdr[aout.o_snloader-1].s_vaddr);
+   fprintf(stderr, "Loader offset: 0x%lx, len 0x%x\n", loader_off_, loader_len_);
+   fprintf(stderr, "Loader vaddr: 0x%lx\n", SCNH_VADDR(aout.o_snloader-1));
 #endif
 
    text_reloc_ = fileTextOffset;
@@ -933,7 +1030,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    // Find the debug symbol table.
    for (i=0; i < hdr.f_nscns; i++)
    {
-       if (sectHdr[i].s_flags & STYP_DEBUG) 
+       if (SCNH_FLAGS(i) & STYP_DEBUG) 
        {
            foundDebug = true;
            break;
@@ -942,10 +1039,10 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    if ( foundDebug ) 
    {
        stabs_ = (void *) symbols;
-       nstabs_ = hdr.f_nsyms;
+       nstabs_ = nsyms;
        stringpool_ = (void *) stringPool;
-       if( hdr.f_nsyms ) {
-           if (!fo_->set(sectHdr[i].s_scnptr + offset))
+       if( nsyms ) {
+           if (!fo_->set(SCNH_SCNPTR(i) + offset))
                PARSE_AOUT_DIE("Seeking to initialized debug section", 49);
 
            stabstr_ = fo_->ptr();
@@ -968,34 +1065,38 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
        linesfdptr_ = 0;
    }
    
-   no_of_symbols_ = hdr.f_nsyms;
+   no_of_symbols_ = nsyms;
    // Now the symbol table itself:
-   for (i=0; i < hdr.f_nsyms; i++) 
+   for (i=0; i < nsyms; i++) 
    {
      /* do the pointer addition by hand since sizeof(struct syment)
       *   seems to be 20 not 18 as it should be. Mmm alignment. */
-     sym = (struct syment *) (((unsigned) symbols) + i * SYMESZ);
-
+     sym = (struct syment *) (((char *)symbols) + i * SYMESZ);
+     unsigned long sym_value = (is64 ? sym->n_value64 : sym->n_value32);
 
      if (sym->n_sclass & DBXMASK) {
          continue;
      }
-     
+
      secno = sym->n_scnum;
      if ((C_WEAKEXT && (sym->n_sclass == C_WEAKEXT)) ||
          (sym->n_sclass == C_HIDEXT) || 
          (sym->n_sclass == C_EXT) ||
          (sym->n_sclass == C_FILE)) {
-         if (!sym->n_zeroes) {
-             name = std::string(&stringPool[sym->n_offset]);
+
+         if (is64) {
+	     name = std::string( &stringPool[ sym->n_offset64 ] );
+	 } else if (!sym->n_zeroes32) {
+             name = std::string( &stringPool[ sym->n_offset32 ] );
          } else {
              char tempName[9];
              memset(tempName, 0, 9);
-             strncpy(tempName, sym->n_name, 8);
+             strncpy(tempName, sym->n_name32, 8);
              name = std::string(tempName);
          }
      }
 
+     unsigned long size = 0;
      if ((C_WEAKEXT && (sym->n_sclass == C_WEAKEXT)) ||
          (sym->n_sclass == C_HIDEXT) || 
          (sym->n_sclass == C_EXT)) {
@@ -1004,48 +1105,54 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
          } else {
              linkage = Symbol::SL_GLOBAL;
          }
-         
+
          if (sym->n_scnum == aout.o_sntext) {
              type = Symbol::ST_FUNCTION;
-             value = sym->n_value;
+             value = sym_value;
              /*
-             fprintf(stderr, "Text symbol %s, at 0x%x\n",
+             fprintf(stderr, "Text symbol %s, at 0x%lx\n",
                      name.c_str(), value);
              */
          } else {
              // bss or data
              csect = (union auxent *)
              ((char *) sym + sym->n_numaux * SYMESZ);
-             
+
+             // Bits 5-7 of x_smtyp (last three bits) hold symbol type.
+             unsigned smtyp = csect->x_csect.x_smtyp & 0x3;
+             if (smtyp == XTY_SD || smtyp == XTY_CM) {
+                 size = csect->x_csect.x_scnlen32;
+                 if (is64) size &= csect->x_csect.x_scnlen_hi64 * 0x10000;
+             }
+
              if (csect->x_csect.x_smclas == XMC_TC0) { 
                  if (toc_offset);
                      //logLine("Found more than one XMC_TC0 entry.");
-                 toc_offset = sym->n_value;
+                 toc_offset = sym_value;
                  continue;
              }
-             
-           if ((csect->x_csect.x_smclas == XMC_TC) ||
-               (csect->x_csect.x_smclas == XMC_DS)) {
-               // table of contents related entry not a real symbol.
-               //dump << " toc entry -- ignoring" << endl;
-               continue;
-           }
-           type = Symbol::ST_OBJECT;
 
-           if (foundData && sym->n_value < sectHdr[dataSecNo].s_paddr) {
-               // Very strange; skip
-               continue;
-           }
+             if ((csect->x_csect.x_smclas == XMC_TC) ||
+                 (csect->x_csect.x_smclas == XMC_DS)) {
+                 // table of contents related entry not a real symbol.
+                 //dump << " toc entry -- ignoring" << endl;
+                 continue;
+             }
+             type = Symbol::ST_OBJECT;
 
-           value = sym->n_value;
+             if (foundData && sym_value < SCNH_PADDR(dataSecNo)) {
+                 // Very strange; skip
+                 continue;
+             }
 
+             value = sym_value;
 
-           // Shift it back down; data_org will be added back in later.
+	     // Shift it back down; data_org will be added back in later.
 
-           //fprintf(stderr, "Sym %s, at 0x%x\n",
-           //      name.c_str(), value);
-       } 
-       
+	     //fprintf(stderr, "Sym %s, at 0x%lx\n",
+	     //      name.c_str(), value);
+       }
+
        // skip .text entries
        if (name == ".text")  {
            continue;
@@ -1061,10 +1168,10 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
            continue;
        }
        
-       unsigned int size = 0;
        if (type == Symbol::ST_FUNCTION) {
            // Find address of inst relative to code_ptr_, instead of code_off_
            
+           size = 0;
            Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
            // If the instruction we got is a unconditional branch, flag it.
            // I've seen that in some MPI functions as a poor man's aliasing
@@ -1077,46 +1184,46 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
                while (inst[size] != 0) size++;
                size *= sizeof(Word);
            }
-       }
 
-       // AIX linkage code appears as a function. Since we don't remove it from
-       // the whereaxis yet, I append a _linkage tag to each so that they don't
-       // appear as duplicate functions
+           // AIX linkage code appears as a function. Since we don't remove it from
+           // the whereaxis yet, I append a _linkage tag to each so that they don't
+           // appear as duplicate functions
 
-       // 2/07 rutar - There are some good usages for having the _linkage functions
-       // appear (such as distinguishing program information by the names of 
-       // functions being callsed so I put these functions back in the mix ...
-       // the name "_linkage" is appended so that the difference is noted
-       
-       // Template for linkage functions:
-       // l      r12,<offset>(r2) // address of call into R12
-       // st     r2,20(r1)        // Store old TOC on the stack
-       // l      r0,0(r12)        // Address of callee func
-       // l      r2,4(r12)        // callee TOC
-       // mtctr  0                // We keep the LR static, use the CTR
-       // bctr                    // non-saving branch to CTR
-       
-       if (size == 0x18) {
-           // See if this is linkage code, and if so skip (so it doesn't go in the
-           // list of functions). 
-           Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
-           instructUnion lr12, lr0, bctr;
-           lr12.raw = inst[0];
-           lr0.raw = inst[2];
-           bctr.raw = inst[5];
+           // 2/07 rutar - There are some good usages for having the _linkage functions
+           // appear (such as distinguishing program information by the names of 
+           // functions being callsed so I put these functions back in the mix ...
+           // the name "_linkage" is appended so that the difference is noted
 
-           if ((lr12.dform.op == Lop) && (lr12.dform.rt == 12) && (lr12.dform.ra == 2) &&
-                (lr0.dform.op == Lop) && (lr0.dform.rt == 0) &&
-                (lr0.dform.ra == 1 || lr0.dform.ra == 12) &&
-               (bctr.xlform.op == BCLRop) && (bctr.xlform.xo == BCCTRxop))
-	     {
-	       int sourceSize = strlen(name.c_str());
-	       char tempLinkName[sourceSize + 9];
-	       memset(tempLinkName, 0, sourceSize+8);
-	       strncpy(tempLinkName, name.c_str(),sourceSize);
-	       strcat(tempLinkName,"_linkage"); 
-	       name = std::string(tempLinkName);
-	     }
+           // Template for linkage functions:
+           // l      r12,<offset>(r2) // address of call into R12
+           // st     r2,20(r1)        // Store old TOC on the stack
+           // l      r0,0(r12)        // Address of callee func
+           // l      r2,4(r12)        // callee TOC
+           // mtctr  0                // We keep the LR static, use the CTR
+           // bctr                    // non-saving branch to CTR
+
+           if (size == 0x18) {
+               // See if this is linkage code, and if so skip (so it doesn't go in the
+               // list of functions). 
+               Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
+               instructUnion lr12, lr0, bctr;
+               lr12.raw = inst[0];
+               lr0.raw = inst[2];
+               bctr.raw = inst[5];
+
+               if ((lr12.dform.op == Lop) && (lr12.dform.rt == 12) && (lr12.dform.ra == 2) &&
+                   (lr0.dform.op == Lop) && (lr0.dform.rt == 0) &&
+                   (lr0.dform.ra == 1 || lr0.dform.ra == 12) &&
+                   (bctr.xlform.op == BCLRop) && (bctr.xlform.xo == BCCTRxop))
+                   {
+                       int sourceSize = strlen(name.c_str());
+                       char tempLinkName[sourceSize + 9];
+                       memset(tempLinkName, 0, sourceSize+8);
+                       strncpy(tempLinkName, name.c_str(),sourceSize);
+                       strcat(tempLinkName,"_linkage"); 
+                       name = std::string(tempLinkName);
+                   }
+           }
        }
 
        /*giri: Dyninst related. Moved there.
@@ -1125,7 +1232,6 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
            size == 0x18) {
            continue;
        }*/
-       
 
 #if 0
        // We ignore the symbols for the floating-point and general purpose
@@ -1164,7 +1270,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
        // If we don't want the function size for some reason, comment out
        // the above and use this:
        // Symbol sym(name, modName, type, linkage, value, false);
-       // fprintf( stderr, "Added symbol %s at addr 0x%x, size 0x%x, module %s\n", name.c_str(), value, size, modName.c_str());
+       // fprintf( stderr, "Added symbol %s at addr 0x%lx, size 0x%lx, module %s\n", name.c_str(), value, size, modName.c_str());
        
        symbols_[name].push_back( sym );
        if (symbols_.find(modName)!=symbols_.end()) {
@@ -1243,7 +1349,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
          continue;
      }
    }
-   
+
    toc_offset_ = toc_offset;
       
    code_vldS_ = code_off_;
@@ -1379,50 +1485,29 @@ void Object::load_object()
       return;
    }
 
-   // a.out file: magic number = 0x01df
-   // archive file: magic number = 0x3c62 "<b", actually "<bigaf>"
-   // or magic number = "<a", actually "<aiaff>"
-   if (magic_number[0] == 0x01) {
-      if (magic_number[1] == 0xdf)
-      {
-         if(f_flags & F_SHROBJ)
-         {
-            is_aout_ = false;
-            parse_aout(0, false);
-         }
-         else
-         {
-            is_aout_ = true;
-            parse_aout(0,true);
-         } 
-      }    
-      else; 
-      //parse_aout_64(fd, 0);
-      //bperr( "Don't handle 64 bit files yet");
-   }
-   else if (magic_number[0] == '<') // archive of some sort
-   {
-      if(f_flags & F_SHROBJ)
-      {
-         //load_archive(false);
-         is_aout_ = false;
-         parse_aout(offset_, false);
-      }    
-      else
-      {
-         //load_archive(true);
-         is_aout_ = true;
-         parse_aout(offset_, true);
-      }    
-   } 
-   else {// Fallthrough
-      sprintf(errorLine, "Bad magic number in file %s\n",
-            mf->pathname().c_str());
-      err_func_(errorLine); 
-      //statusLine(errorLine);
-      //showErrorCallback(49,(const char *) errorLine);
-   }
-   return;
+    if (magic_number[0] == 0x01) {
+        if (magic_number[1] == 0xdf ||
+	    magic_number[1] == 0xef ||
+	    magic_number[1] == 0xf7)
+	{
+	    parse_aout(0, is_aout_);
+	}
+    }
+    else if (magic_number[0] == '<') // archive of some sort
+    {
+	// What?  Why aren't we calling load_archive here?
+	// load_archive(true);
+	is_aout_ = !(f_flags & F_SHROBJ);
+	parse_aout(offset_, true);
+    }	
+    else {// Fallthrough
+        sprintf(errorLine, "Bad magic number in file %s\n",
+                mf->pathname().c_str());
+	err_func_(errorLine);
+        //statusLine(errorLine);
+        //showErrorCallback(49,(const char *) errorLine);
+    }
+    return;
 }
 
 // There are three types of "shared" files:
@@ -1525,28 +1610,33 @@ void Object::get_stab_info(char *&stabstr, int &nstabs, void *&stabs, char *&str
 //
 bool parseCompilerType(Object *objPtr) 
 {
+    bool is64 = (objPtr->getAddressWidth() == 8);
+    SYMENT *syms;
+    int stab_nsyms;
+    char *stringPool;
+    union auxent *aux;
+    char *stabstr=NULL;
+    void *syms_void = NULL;
 
-   SYMENT *syms;
-   int stab_nsyms;
-   char *stringPool;
-   union auxent *aux;
-   char *stabstr=NULL;
-
-   void *syms_void = NULL;
-   objPtr->get_stab_info(stabstr, stab_nsyms, syms_void, stringPool);
-   syms = static_cast<SYMENT *>(syms_void);
+    objPtr->get_stab_info(stabstr, stab_nsyms, syms_void, stringPool);
+    syms = static_cast<SYMENT *>(syms_void);
     for (int i=0;i<stab_nsyms;i++) {
-        SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
+        SYMENT *sym = (SYMENT *) (((char *) syms) + i * SYMESZ);
         char tempName[15];
         char *compilerName;
+
         std::string name;
         if (sym->n_sclass == C_FILE) {
-            if (!sym->n_zeroes) {
-                name = std::string(&stringPool[sym->n_offset]);
+	    if (is64) {
+		name = std::string( &stringPool[ sym->n_offset64 ] );
+
+	    } else if (!sym->n_zeroes32) {
+                name = std::string( &stringPool[ sym->n_offset32 ] );
+
             } else {
                 char tempName[9];
                 memset(tempName, 0, 9);
-                strncpy(tempName, sym->n_name, 8);
+                strncpy(tempName, sym->n_name32, 8);
                 name = std::string(tempName);
             }
      if (!strcmp(name.c_str(), ".file")) {
@@ -1683,16 +1773,18 @@ void Object::parseFileLineInfo(hash_map<std::string, LineInformation> &li)
     /* Iterate over STAB entries. */
     for( int i = 0; i < nstabs; i++ ) {
      	/* sizeof( SYMENT ) is 20, not 18, as it should be. */
-        SYMENT * sym = (SYMENT *)( (unsigned)syms + (i * SYMESZ) );
+        SYMENT * sym = (SYMENT *)( (char *)syms + (i * SYMESZ) );
 
         /* Get the name (period) */
-	if (!sym->n_zeroes) {
-     	    moduleName = &stringpool[sym->n_offset];
+	if (is64_) {
+	    moduleName = &stringpool[ sym->n_offset64 ];
+	} else if (!sym->n_zeroes32) {
+	    moduleName = &stringpool[ sym->n_offset32 ];
 	} else {
-     	    memset(temporaryName, 0, 9);
-     	    strncpy(temporaryName, sym->n_name, 8);
-            moduleName = temporaryName;
- 	}
+	    memset(temporaryName, 0, 9);
+	    strncpy(temporaryName, sym->n_name32, 8);
+	    moduleName = temporaryName;
+	}
 
         /* Extract the current source file from the C_FILE entries. */
         if( sym->n_sclass == C_FILE ) {
@@ -1726,35 +1818,42 @@ void Object::parseFileLineInfo(hash_map<std::string, LineInformation> &li)
 
         /* This apparently compensates for a bug in the naming of certain entries. */
         char * nmPtr = NULL;
-        if(! sym->n_zeroes && (
-                                    ( sym->n_sclass & DBXMASK ) ||
-                                    ( sym->n_sclass == C_BINCL ) ||
-                                    ( sym->n_sclass == C_EINCL )
-                                    ) ) {
-            if( sym->n_offset < 3 ) {
-                if( sym->n_offset == 2 && stabstr[ 0 ] ) {
+        if (!sym->n_zeroes32 && ( ( sym->n_sclass & DBXMASK  ) ||
+				  ( sym->n_sclass == C_BINCL ) ||
+				  ( sym->n_sclass == C_EINCL ) ) ) {
+	    long sym_offset = (is64_ ? sym->n_offset64 : sym->n_offset32);
+
+            if( sym_offset < 3 ) {
+                if( sym_offset == 2 && stabstr[ 0 ] ) {
           	    nmPtr = & stabstr[ 0 ];
             	} else {
-          	    nmPtr = & stabstr[ sym->n_offset ];
+          	    nmPtr = & stabstr[ sym_offset ];
             	}
-            } else if( ! stabstr[ sym->n_offset - 3 ] ) {
-            	nmPtr = & stabstr[ sym->n_offset ];
+            } else if( ! stabstr[ sym_offset - 3 ] ) {
+            	nmPtr = & stabstr[ sym_offset ];
             } else {
             	/* has off by two error */
-            	nmPtr = & stabstr[ sym->n_offset - 2 ];
+            	nmPtr = & stabstr[ sym_offset - 2 ];
             }
-        } else {
+        } else if (is64_) {
+	    nmPtr = &stringpool[sym->n_offset64];
+
+	} else if (!sym->n_zeroes32) {
+	    nmPtr = &stringpool[sym->n_offset32];
+
+	} else {
       	    // names 8 or less chars on inline, not in stabstr
       	    memset( temporaryName, 0, 9 );
-      	    strncpy( temporaryName, sym->n_name, 8 );
+      	    strncpy( temporaryName, sym->n_name32, 8 );
       	    nmPtr = temporaryName;
     	} /* end bug compensation */
 
     	/* Now that we've compensated for buggy naming, actually
        	parse the line information. */
-    	if( ( sym->n_sclass == C_BINCL )
-        	|| ( sym->n_sclass == C_EINCL )
-        	|| ( sym->n_sclass == C_FUN ) ) {
+    	if( ( sym->n_sclass == C_BINCL ) ||
+	    ( sym->n_sclass == C_EINCL ) ||
+	    ( sym->n_sclass == C_FUN ) ) {
+
       	    if( funcName ) {
         	free( funcName );
         	funcName = NULL;
@@ -1781,19 +1880,20 @@ void Object::parseLineInformation(hash_map<std::string,  LineInformation> &lineI
 {
    union auxent * aux;
    std::vector<IncludeFileInfo> includeFiles;
+   unsigned long value = (is64_ ? sym->n_value64 : sym->n_value32);
+   unsigned long LINESZ = (is64_ ? LINESZ_64 : LINESZ_32);
 
    /* if it is beginning of include files then update the data structure
       that keeps the beginning of the include files. If the include files contain
       information about the functions and lines we have to keep it */
    if ( sym->n_sclass == C_BINCL ) {
-      includeFiles.push_back(IncludeFileInfo((sym->n_value - linesfdptr)/LINESZ, symbolName ) );
+      includeFiles.push_back( IncludeFileInfo( (value - linesfdptr)/LINESZ, symbolName ) );
    }
-
    /* similiarly if the include file contains function codes and line information
       we have to keep the last line information entry for this include file */
    else if (sym->n_sclass == C_EINCL) {
       if (includeFiles.size() > 0) {
-         includeFiles[includeFiles.size()-1].end = (sym->n_value-linesfdptr)/LINESZ;
+         includeFiles[includeFiles.size()-1].end = (value - linesfdptr)/LINESZ;
       }
    }
 
@@ -1808,36 +1908,38 @@ void Object::parseLineInformation(hash_map<std::string,  LineInformation> &lineI
       Offset funcEndAddress = 0;
 
       for (int j = -1; ; --j) {
-         SYMENT * extSym = (SYMENT *)( ((Offset)sym) + (j * SYMESZ) );
+         SYMENT * extSym = (SYMENT *)( ((char *)sym) + (j * SYMESZ) );
          if( extSym->n_sclass == C_EXT || extSym->n_sclass == C_HIDEXT ) {
-            aux = (union auxent *)( ((Offset)extSym) + SYMESZ );
-#ifndef __64BIT__
-            initialLineIndex = ( aux->x_sym.x_fcnary.x_fcn.x_lnnoptr - linesfdptr )/LINESZ;
-#endif
-            funcStartAddress = extSym->n_value;
+            aux = (union auxent *)( ((char *)extSym) + SYMESZ );
+	    initialLineIndex = (is64_ ? aux->x_fcn64.x_lnnoptr
+				      : aux->x_sym32.x_fcnary.x_fcn.x_lnnoptr);
+	    initialLineIndex = (initialLineIndex - linesfdptr )/LINESZ;
+
+            funcStartAddress = (is64_ ? extSym->n_value64 : extSym->n_value32);
             break;
          } /* end if C_EXT found */
       } /* end search for C_EXT */
 
       /* access the line information now using the C_FCN entry*/
-      SYMENT * bfSym = (SYMENT *)( ((Offset)sym) + SYMESZ );
+      SYMENT * bfSym = (SYMENT *)( ((char *)sym) + SYMESZ );
       if ( bfSym->n_sclass != C_FCN ) {
          //bperr("unable to process line info for %s\n", symbolName);
          return;
       }
 
-      SYMENT * efSym = (SYMENT *)( ((Offset)bfSym) + (2 * SYMESZ) );
+      SYMENT * efSym = (SYMENT *)( ((char *)bfSym) + (2 * SYMESZ) );
       while (efSym->n_sclass != C_FCN)
          efSym = (SYMENT *) ( ((Offset)efSym) + SYMESZ );
-      funcEndAddress = efSym->n_value;
+      funcEndAddress = (is64_ ? efSym->n_value64 : efSym->n_value32);
 
-      aux = (union auxent *)( ((Offset)bfSym) + SYMESZ );
-      initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
+      aux = (union auxent *)( ((char *)bfSym) + SYMESZ );
+      initialLine = (is64_ ? aux->x_sym64.x_misc.x_lnsz.x_lnno
+			   : aux->x_sym32.x_misc.x_lnsz.x_lnno);
 
       std::string whichFile = *currentSourceFile;
       for (unsigned int j = 0; j < includeFiles.size(); j++) {
-         if ((includeFiles[j].begin <= (unsigned)initialLineIndex)
-               && ( includeFiles[j].end >= (unsigned)initialLineIndex ) ) {
+         if ( (includeFiles[j].begin <= (unsigned)initialLineIndex) &&
+	      (includeFiles[j].end   >= (unsigned)initialLineIndex) ) {
             whichFile = includeFiles[j].name;
             break;
          }
@@ -1863,9 +1965,12 @@ void Object::parseLineInformation(hash_map<std::string,  LineInformation> &lineI
       /* Iterate over this entry's lines. */
       for (int j = initialLineIndex + 1; j < nlines; j++ ) {
          LINENO * lptr = (LINENO *)( lines + (j * LINESZ) );
-         if (! lptr->l_lnno) { break; }
-         unsigned int lineNo = lptr->l_lnno + initialLine - 1;
-         Offset lineAddr = lptr->l_addr.l_paddr + trueBaseAddress;
+	 unsigned long lnno = (is64_ ? lptr->l_lnno64 : lptr->l_lnno32);
+	 unsigned long paddr = (is64_ ? lptr->l_addr64.l_paddr : lptr->l_addr32.l_paddr);
+
+         if (! lnno) { break; }
+         unsigned int lineNo = lnno + initialLine - 1;
+         Offset lineAddr = paddr + trueBaseAddress;
 
          if (isPreviousValid) {
             // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, lineAddr );
@@ -1873,7 +1978,7 @@ void Object::parseLineInformation(hash_map<std::string,  LineInformation> &lineI
             if (previousLineNo == 596 || previousLineNo == 597)
             {
                //cerr << "FuncEndAddress: " <<setbase(16) << funcEndAddress << setbase(10) << ",totallines:" << nlines << ":" << endl;
-               cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << whichFile << ":" << setbase(10) << previousLineNo << endl;
+               //cerr << __FILE__ <<"[" << __LINE__ << "]:inserted address range [" << setbase(16) << previousLineAddr << "," << lineAddr << ") for source " << whichFile << ":" << setbase(10) << previousLineNo << endl;
             }	
             lineInfo_[whichFile].addLine(whichFile.c_str(), previousLineNo, current_col, previousLineAddr, lineAddr );
             //currentLineInformation.addLine( whichFile.c_str(), previousLineNo, current_col, previousLineAddr, lineAddr );
@@ -1938,14 +2043,18 @@ void Object::parseTypeInfo(Symtab *obj)
    for (i=0; i < nstabs; i++) {
       /* do the pointer addition by hand since sizeof(struct syment)
        *   seems to be 20 not 18 as it should be */
-      SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
+      SYMENT *sym = (SYMENT *) (((char *) syms) + i * SYMESZ);
+      unsigned long sym_value = (is64_ ? sym->n_value64 : sym->n_value32);
+
       if (sym->n_sclass == C_FILE) {
          char *moduleName;
-         if (!sym->n_zeroes) {
-            moduleName = &stringPool[sym->n_offset];
+	 if (is64_) {
+	     moduleName = &stringPool[sym->n_offset64];
+         } else if (!sym->n_zeroes32) {
+	     moduleName = &stringPool[sym->n_offset32];
          } else {
             memset(tempName, 0, 9);
-            strncpy(tempName, sym->n_name, 8);
+            strncpy(tempName, sym->n_name32, 8);
             moduleName = tempName;
          }
          /* look in aux records */
@@ -1985,38 +2094,45 @@ void Object::parseTypeInfo(Symtab *obj)
 
       //num_active++;
       char *nmPtr;
-      if (!sym->n_zeroes && ((sym->n_sclass & DBXMASK) ||
-               (sym->n_sclass == C_BINCL) ||
-               (sym->n_sclass == C_EINCL))) {
-         if(sym->n_offset < 3) {
-            if (sym->n_offset == 2 && stabstr[0]) {
-               nmPtr = &stabstr[0];
-            } else
-               nmPtr = &stabstr[sym->n_offset];
-         } else if (!stabstr[sym->n_offset-3]) {
-            nmPtr = &stabstr[sym->n_offset];
-         } else {
-            /* has off by two error */
-            nmPtr = &stabstr[sym->n_offset-2];
-         }    
+      if (!sym->n_zeroes32 && ((sym->n_sclass & DBXMASK) ||
+			       (sym->n_sclass == C_BINCL) ||
+			       (sym->n_sclass == C_EINCL))) {
+	  long sym_offset = (is64_ ? sym->n_offset64 : sym->n_offset32);
+
+	  // Symbol name stored in STABS, not string pool.
+	  if(sym_offset < 3) {
+	      if (sym_offset == 2 && stabstr[0]) {
+		  nmPtr = &stabstr[0];
+	      } else {
+		  nmPtr = &stabstr[sym_offset];
+	      }
+	  } else if (!stabstr[sym_offset-3]) {
+	      nmPtr = &stabstr[sym_offset];
+	  } else {
+	      /* has off by two error */
+	      nmPtr = &stabstr[sym_offset-2];
+	  }
 #if 0	 
-#ifdef notdef
          bperr("using nmPtr = %s\n", nmPtr);
-         bperr("got n_offset = (%d) %s\n", sym->n_offset, &stabstr[sym->n_offset]);
-         if (sym->n_offset>=2)
-            bperr("got n_offset-2 = %s\n", &stabstr[sym->n_offset-2]);
-         if (sym->n_offset>=3)
-            bperr("got n_offset-3 = %x\n", stabstr[sym->n_offset-3]);
-         if (sym->n_offset>=4)
-            bperr("got n_offset-4 = %x\n", stabstr[sym->n_offset-4]);
+         bperr("got n_offset = (%d) %s\n", sym_offset, &stabstr[sym_offset]);
+         if (sym_offset>=2)
+            bperr("got n_offset-2 = %s\n", &stabstr[sym_offset-2]);
+         if (sym_offset>=3)
+            bperr("got n_offset-3 = %x\n", stabstr[sym_offset-3]);
+         if (sym_offset>=4)
+            bperr("got n_offset-4 = %x\n", stabstr[sym_offset-4]);
 #endif
-#endif
+      } else if (is64_) {
+	  nmPtr = &stringPool[sym->n_offset64];
+      } else if (!sym->n_zeroes32) {
+	  nmPtr = &stringPool[sym->n_offset32];
       } else {
          // names 8 or less chars on inline, not in stabstr
          memset(tempName, 0, 9);
-         strncpy(tempName, sym->n_name, 8);
+         strncpy(tempName, sym->n_name32, 8);
          nmPtr = tempName;
       }
+
       if ((sym->n_sclass == C_BINCL) ||
             (sym->n_sclass == C_EINCL) ||
             (sym->n_sclass == C_FUN)) 
@@ -2088,33 +2204,35 @@ void Object::parseTypeInfo(Symtab *obj)
          } else if (sym->n_sclass == C_BSTAT) {
             // begin static block
             // find the variable for the common block
-            tsym = (SYMENT *) (((unsigned) syms) + sym->n_value * SYMESZ);
+            tsym = (SYMENT *) (((char *) syms) + sym_value * SYMESZ);
 
             // We can't lookup the value by name, because the name might have been
             // redefined later on (our lookup would then pick the last one)
 
             // Since this whole function is AIX only, we're ok to get this info
 
-            staticBlockBaseAddr = tsym->n_value;
+            staticBlockBaseAddr = (is64_ ? tsym->n_value64 : tsym->n_value32);
 
-            /*
-               char *staticName, tempName[9];
-               if (!tsym->n_zeroes) {
-               staticName = &stringPool[tsym->n_offset];
-               } else {
-               memset(tempName, 0, 9);
-               strncpy(tempName, tsym->n_name, 8);
-               staticName = tempName;
-               }
+	    /*
+	    char *staticName, tempName[9];
+	    if (is64_) {
+		staticName = &stringPool[tsym->n_offset64];
+	    } else if (!tsym->n_zeroes32) {
+		staticName = &stringPool[tsym->n_offset32];
+	    } else {
+		memset(tempName, 0, 9);
+		strncpy(tempName, tsym->n_name32, 8);
+		staticName = tempName;
+	    }
 
-               BPatch_variableExpr *staticBlockVar = progam->findVariable(staticName);
-               if (!staticBlockVar) {
-               bperr("unable to find static block %s\n", staticName);
-               staticBlockBaseAddr = 0;
-               } else {
-               staticBlockBaseAddr = (Offset) staticBlockVar->getBaseAddr();
-               }
-             */
+	    BPatch_variableExpr *staticBlockVar = progam->findVariable(staticName);
+	    if (!staticBlockVar) {
+		bperr("unable to find static block %s\n", staticName);
+		staticBlockBaseAddr = 0;
+	    } else {
+		staticBlockBaseAddr = (Offset) staticBlockVar->getBaseAddr();
+	    }
+	    */
 
          } else if (sym->n_sclass == C_ESTAT) {
             staticBlockBaseAddr = 0;
@@ -2140,9 +2258,9 @@ void Object::parseTypeInfo(Symtab *obj)
 
          if (staticBlockBaseAddr && (sym->n_sclass == C_STSYM)) {
             parseStabString(mod, 0, nmPtr, 
-                  sym->n_value+staticBlockBaseAddr, commonBlock);
+                  sym_value+staticBlockBaseAddr, commonBlock);
          } else {
-            parseStabString(mod, 0, nmPtr, sym->n_value, commonBlock);
+            parseStabString(mod, 0, nmPtr, sym_value, commonBlock);
          }
       }
    }

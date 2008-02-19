@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.15 2008/01/23 14:45:53 jaw Exp $
+ * $Id: Object-xcoff.h,v 1.16 2008/02/19 13:39:32 rchen Exp $
 ************************************************************************/
 
 
@@ -270,6 +270,7 @@ private:
     void *stringpool_;
     void *linesptr_;
     Offset linesfdptr_;
+    bool is64_;
     hash_map<std::string, LineInformation > lineInfo_;
 };
 
