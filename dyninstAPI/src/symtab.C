@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.314 2008/02/07 16:07:55 jaw Exp $
+ // $Id: symtab.C,v 1.315 2008/02/19 13:38:24 rchen Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -376,10 +376,11 @@ void image::findMain()
 #elif defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)
    
    bool foundMain = false;
-   vector <Symbol *>syms;
-   if(linkedFile->findSymbolByType(syms,"main",Symbol::ST_UNKNOWN)==true)
+   vector <Symbol *> syms;
+   if(linkedFile->findSymbolByType(syms,"main",Symbol::ST_UNKNOWN)==true ||
+      linkedFile->findSymbolByType(syms,"usla_main",Symbol::ST_UNKNOWN)==true)
    	foundMain = true;
-   
+
    Section *sec;
    linkedFile->findSection(sec, ".text"); 	
 
@@ -722,12 +723,12 @@ bool image::addSymtabVariables()
       const pdstring &mangledName = (*symIter)->getName().c_str();
       Symbol *symInfo = *symIter;
 #if 0
-      fprintf(stderr, "Symbol %s, mod %s, addr 0x%x, type %d, linkage %d (obj %d, func %d)\n",
-              symInfo.getName().c_str(),
-              symInfo.getModuleName().c_str(),
-              symInfo.getAddr(),
-              symInfo.getType(),
-              symInfo.getLinkage(),
+      fprintf(stderr, "Symbol %s, mod %s, addr 0x%lx, type %d, linkage %d (obj %d, func %d)\n",
+              symInfo->getName().c_str(),
+              symInfo->getModuleName().c_str(),
+              symInfo->getAddr(),
+              symInfo->getType(),
+              symInfo->getLinkage(),
               Symbol::ST_OBJECT,
               Symbol::ST_FUNCTION);
 #endif
