@@ -360,16 +360,16 @@ CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
 #CXXTFLAGS += -fimplicit-templates
 
 %_$(NATIVE_CC).o : %.c
-	$(NATIVE_CC) -c $< $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -o $@
+	$(NATIVE_CC) $(STD_NATIVE_ABI_FLAG) -c $< $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -o $@
 %_$(NATIVE_CXX).o : %.c
-	$(NATIVE_CXX) -c $< $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -o $@
+	$(NATIVE_CXX) $(STD_NATIVE_ABI_FLAG) -c $< $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -o $@
 
 %_gcc.o: %.c
-	$(M_GCC) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@
+	$(M_GCC) $(STD_ABI_FLAG) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@
 %_g++.o: %.c 
-	$(M_GXX) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
+	$(M_GXX) $(STD_ABI_FLAG) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 %_g++.o: %.C 
-	$(M_GXX) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
+	$(M_GXX) $(STD_ABI_FLAG) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 
 ifdef M_ABI
 %_gcc_$(M_ABI).o: %.c
@@ -381,7 +381,7 @@ ifdef M_ABI
 endif
 
 .C.o:
-	$(CXX) -c $< $(CXXFLAGS) $(MUTATOR_CXXFLAGS) -o $@
+	$(CXX) $(STD_ABI_FLAG) -c $< $(CXXFLAGS) $(MUTATOR_CXXFLAGS) -o $@
 
 $(TEST_DEST)/%: %
 	-$(CP) $< $(TEST_DEST)
@@ -478,40 +478,40 @@ $(TEST6_AS_OBJ_GNU): $(TEST6_AS_SRC)
 
 $(TESTLIBS): %.so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
-	$(CC) -g -c $(CFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+	$(CC) $(STD_ABI_FLAG) -g -c $(CFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(MAKE_SHARED_LIB) $(STD_NATIVE_ABI_LDFLAG) $(TESTLIB_FLAGS) $*.o -o $@
 else
-	$(CC) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
+	$(CC) $(STD_ABI_FLAG) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
 endif
 
 ifdef M_ABI
 $(TESTLIBS_ABI): %_$(M_ABI).so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
-	$(CC) -g -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+	$(CC) $(M_ABI_FLAG) -g -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(MAKE_SHARED_LIB) $(M_NATIVE_ABI_LDFLAG) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
 endif
 endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C 
-	$(M_GXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
+	$(M_GXX) $(STD_ABI_FLAG) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 test_lib_templates.o : ../src/test_lib_templates.C 
-	$(M_GXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
+	$(M_GXX) $(STD_ABI_FLAG) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
-	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+	$(M_GXX) $(STD_ABI_FLAG) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
-	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) -ldyninstAPI -lsymtabAPI -lcommon $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
+	$(CXX) $(STD_ABI_FLAG) -shared $(TESTSUITE_FLAGS) $(LIBDIR) -ldyninstAPI -lsymtabAPI -lcommon $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
 
 libTest12.so: libTest12.c $(DEPENDDIR)/libTest12.dep
 ifdef MAKE_SHARED_LIB
-	$(CC) -g -c $(CFLAGS) -I$(TO_CORE)/dyninst_RT/h $(CFLAGS_TESTLIBS) $(filter %.c, $^)  -o libTest12.o
-	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $(LIBTEST12_FLAGS) libTest12.o -o $@
+	$(CC) $(STD_ABI_FLAG) -g -c $(CFLAGS) -I$(TO_CORE)/dyninst_RT/h $(CFLAGS_TESTLIBS) $(filter %.c, $^)  -o libTest12.o
+	$(MAKE_SHARED_LIB) $(STD_NATIVE_ABI_LDFLAG) $(TESTLIB_FLAGS) $(LIBTEST12_FLAGS) libTest12.o -o $@
 else
-	$(CC) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $(LIBTEST12_FLAGS) $(filter %.c, $^) -o $@
+	$(CC) $(STD_ABI_FLAG) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $(LIBTEST12_FLAGS) $(filter %.c, $^) -o $@
 endif
 
 #######################################################################
@@ -525,8 +525,8 @@ test1.mutatee_$(NATIVE_CC): $(CALL35_1_SRC) test1.mutateeCommon.c
 test1.mutatee_$(NATIVE_CXX): $(CALL35_1_SRC) test1.mutateeCommon.c
 
 ifdef M_ABI
-test1.mutatee_gcc_$(M_ABI): $(CALL35_1_OBJ_ABI) test1.mutateeCommon_gcc_m32.o
-test1.mutatee_g++_$(M_ABI): $(CALL35_1_OBJ_ABI) test1.mutateeCommon_g++_m32.o
+test1.mutatee_gcc_$(M_ABI): $(CALL35_1_OBJ_ABI) test1.mutateeCommon_gcc_$(M_ABI).o
+test1.mutatee_g++_$(M_ABI): $(CALL35_1_OBJ_ABI) test1.mutateeCommon_g++_$(M_ABI).o
 test1.mutatee_$(NATIVE_CC)_$(M_ABI): $(CALL35_1_SRC_ABI) test1.mutateeCommon.c
 test1.mutatee_$(NATIVE_CXX)_$(M_ABI): $(CALL35_1_SRC_ABI) test1.mutateeCommon.c
 endif
@@ -542,7 +542,7 @@ test9.mutatee_$(NATIVE_CC): libInstMe.so
 
 ifdef M_ABI
 test9.mutatee_gcc: libInstMe_$(M_ABI).so
-test9.mutatee_$(NATIVE_CC): libInstMe_(M_ABI).so
+test9.mutatee_$(NATIVE_CC): libInstMe_$(M_ABI).so
 endif
 
 test13.mutatee_$(NATIVE_CXX): mutatee_util_mt_$(NATIVE_CXX).o
@@ -641,11 +641,11 @@ endif
 # GNU Mutatees
 
 $(MUTATEES_GCC): test%.mutatee_gcc : test%.mutatee_gcc.o $(DEPENDDIR)/test%.mutatee_gcc.dep mutatee_util_gcc.o
-	$(M_GCC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
+	$(M_GCC) $(STD_ABI_FLAG) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU)))
 
 $(MUTATEES_GXX): test%.mutatee_g++ : test%.mutatee_g++.o $(DEPENDDIR)/test%.mutatee_g++.dep mutatee_util_g++.o
-	$(M_GXX) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
+	$(M_GXX) $(STD_ABI_FLAG) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU)))
 
 # GNU Secondary ABI Mutatees
@@ -667,30 +667,30 @@ endif
 
 ifdef M_G77
 test1.mutatee_g77.o: ../src/test1.mutateeFort.F
-	$(M_G77) -g  $(MUTATEE_G77_FFLAGS) -c -o $@ $^ 
+	$(M_G77) $(STD_ABI_FLAG) -g  $(MUTATEE_G77_FFLAGS) -c -o $@ $^ 
 test1.mutateeFortC_g77.o: $(TEST1_FORTRAN_CSOURCE)
-	$(M_GCC) $(MUTATEE_G77_CFLAGS) $(filter %.c,$^) -o $@
+	$(M_GCC) $(STD_ABI_FLAG) $(MUTATEE_G77_CFLAGS) $(filter %.c,$^) -o $@
 
 $(MUTATEES_G77): test%.mutatee_g77 : test%.mutatee_g77.o test1.mutateeFortC_g77.o test1.mutateeCommon_gcc.o mutatee_util_gcc.o $(DEPENDDIR)/test%.mutatee_g77.dep
-	$(M_G77) -o $@ $(filter %.o,$^) $(MUTATEE_G77_LDFLAGS) $(MUTATEE_LIBS) 
+	$(M_G77) $(STD_ABI_FLAG) -o $@ $(filter %.o,$^) $(MUTATEE_G77_LDFLAGS) $(MUTATEE_LIBS) 
 endif
 
 # Native Mutatees
 
 ifdef NATIVE_CC
 $(MUTATEES_NATIVE_CC): test%.mutatee_$(NATIVE_CC) : test%.mutatee.c mutatee_util_$(NATIVE_CC).o
-	$(NATIVE_CC) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -o $@ $(MUTATEE_LIBS) $(filter %.c  %.s %.S %.o, $^) \
+	$(NATIVE_CC) $(STD_NATIVE_ABI_FLAG) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -o $@ $(MUTATEE_LIBS) $(filter %.c  %.s %.S %.o, $^) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE))) 
 
 endif
 
 ifdef NATIVE_CXX
 $(MUTATEES_NATIVE_CXX): test%.mutatee_$(NATIVE_CXX) : test%.mutatee.c mutatee_util_$(NATIVE_CXX).o
-	$(NATIVE_CXX) $(MUTATEE_CXXFLAGS_NATIVE) -o $@ $(filter %.c %.s %.S %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) $(MUTATEE_LIBS) \
+	$(NATIVE_CXX) $(STD_NATIVE_ABI_FLAG) $(MUTATEE_CXXFLAGS_NATIVE) -o $@ $(filter %.c %.s %.S %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE)))
 
 $(MUTATEES_NATIVE_CXX_ONLY): test%.mutatee_$(NATIVE_CXX) : test%.mutatee.C mutatee_util_$(NATIVE_CXX).o
-	$(NATIVE_CXX) $(MUTATEE_CXXFLAGS_NATIVE) -o $@ $(filter %.C %.s %.S %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) $(MUTATEE_LIBS) \
+	$(NATIVE_CXX) $(STD_NATIVE_ABI_FLAG) $(MUTATEE_CXXFLAGS_NATIVE) -o $@ $(filter %.C %.s %.S %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE)))
 endif
 
@@ -702,12 +702,12 @@ endif
 
 ifdef NATIVE_FC 
 test1.mutatee_$(NATIVE_FC).o: ../src/test1.mutateeFort.F
-	$(NATIVE_FC) -g  $(MUTATEE_NATIVE_FFLAGS) -c -o $@ $^ 
+	$(NATIVE_FC) $(STD_NATIVE_ABI_FLAG) -g $(MUTATEE_NATIVE_FFLAGS) -c -o $@ $^ 
 test1.mutateeFortC_$(NATIVE_FC).o: ../src/test1.mutateeFortC.c
-	$(NATIVE_FORTRAN_CC) $(MUTATEE_NATIVE_FC_CFLAGS) -c $(filter %.c,$^) -o $@
+	$(NATIVE_FORTRAN_CC) $(STD_NATIVE_ABI_FLAG) $(MUTATEE_NATIVE_FC_CFLAGS) -c $(filter %.c,$^) -o $@
 
 $(MUTATEES_NATIVE_FC): test%.mutatee_$(NATIVE_FC) : test%.mutatee_$(NATIVE_FC).o test1.mutateeFortC_$(NATIVE_FC).o test1.mutateeCommon_$(NATIVE_FORTRAN_CC).o mutatee_util_$(NATIVE_FORTRAN_CC).o $(DEPENDDIR)/test%.mutatee_$(NATIVE_FC).dep
-	$(NATIVE_FC) -o $@ $(filter %.o,$^) $(MUTATEE_NATIVE_FC_LDFLAGS) $(MUTATEE_LIBS) 
+	$(NATIVE_FC) $(STD_NATIVE_ABI_FFLAG) -o $@ $(filter %.o,$^) $(MUTATEE_NATIVE_FC_LDFLAGS) $(MUTATEE_LIBS) 
 endif
 
 # Native OpenMP mutatees
@@ -715,13 +715,13 @@ endif
 # (ie for test16), thus all constituent files are built explicitly
 ifdef NATIVE_CXX_OMP 
 test16.mutatee_$(NATIVE_CXX_OMP).o: ../src/test16.mutatee.c
-	$(NATIVE_CXX_OMP) -g  $(MUTATEE_NATIVE_CXX_CFLAGS) -o $@ $^ 
+	$(NATIVE_CXX_OMP) $(STD_NATIVE_ABI_FLAG) -g  $(MUTATEE_NATIVE_CXX_CFLAGS) -o $@ $^ 
 
 $(MUTATEES_NATIVE_CXX_OMP): test%.mutatee_$(NATIVE_CXX_OMP) : test%.mutatee_$(NATIVE_CXX_OMP).o $(DEPENDDIR)/test%.mutatee_$(NATIVE_CXX_OMP).dep
-	$(NATIVE_CXX_OMP) $(MUTATEE_NATIVE_CXX_OMP_LDFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LIBS) 
+	$(NATIVE_CXX_OMP) $(STD_NATIVE_ABI_FLAG) $(MUTATEE_NATIVE_CXX_OMP_LDFLAGS) -o $@ $(filter %.o,$^) $(MUTATEE_LIBS) 
 
 #$(MUTATEES_NATIVE_CXX_OMP): ../src/test16.mutatee.c
-#	$(NATIVE_CXX_OMP) -g  $(MUTATEE_NATIVE_CXX_CFLAGS) -o $@ $^ 
+#	$(NATIVE_CXX_OMP) $(STD_NATIVE_ABI_FLAG) -g  $(MUTATEE_NATIVE_CXX_CFLAGS) -o $@ $^ 
 
 endif
 
@@ -741,7 +741,7 @@ $(TEST_DEST):
 #######################################################################
 
 $(OBJS_ALL_MUTATORS): %.o : %.C $(DEPENDDIR)/%.dep
-	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+	$(CXX) $(STD_ABI_FLAG) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 MUTATEE_DEFS := -Dgnu_cc=_gcc -Dgnu_cxx=_g++
 
@@ -774,32 +774,32 @@ STATIC_FLAGS = -DSTATIC_TEST_DRIVER
 endif
 
 runTests.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests.C
+	$(CXX) $(STD_ABI_FLAG) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests.C
 runTests_static.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) -DSTATIC_TEST_DRIVER ../src/runTests.C
+	$(CXX) $(STD_ABI_FLAG) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) -DSTATIC_TEST_DRIVER ../src/runTests.C
 
 runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
+	$(CXX) $(STD_ABI_FLAG) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
 
 runTests: runTests.o runTests-utils.o test_driver_templates.o 
-	$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
+	$(CXX) $(STD_ABI_FLAG) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
 runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
-	$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
+	$(CXX) $(STD_ABI_FLAG) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
 
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+	$(CXX) $(STD_ABI_FLAG) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
-	$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+	$(CXX) $(STD_ABI_FLAG) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver: test_driver.o test_driver_templates.o $(LIBTESTSUITE_DEST) $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
+	$(CXX) $(STD_ABI_FLAG) -o $@ test_driver.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
 
 test_driver_static: test_driver_static.o test_driver_templates.o $(OBJS_ALL_MUTATORS) $(LIBTESTSUITE_DEST) $(DEPENDDIR)/test_driver_static.dep $(LIBTESTSUITE)
-	$(CXX) -o $@ test_driver_static.o test_driver_templates.o $(OBJS_ALL_MUTATORS) $(MUTATOR_LDFLAGS) $(LIBS)
+	$(CXX) $(STD_ABI_FLAG) -o $@ test_driver_static.o test_driver_templates.o $(OBJS_ALL_MUTATORS) $(MUTATOR_LDFLAGS) $(LIBS)
 
 $(MUTATORS_SO): test%.so : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep $(LIBTESTSUITE)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) 
+	$(CXX) $(STD_ABI_FLAG) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -860,23 +860,23 @@ depend_dir:
 
 $(DEPENDDIR)/test_driver_static.dep: test_driver.C
 	@mkdir -p $(DEPENDDIR)
-	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) -DSTATIC_TEST_DRIVER $(DEPENDFLAGS) $*.o > $@
+	$(DEPCC) $(STD_ABI_FLAG) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) -DSTATIC_TEST_DRIVER $(DEPENDFLAGS) $*.o > $@
 
 $(DEPS_MUTATORS): $(DEPENDDIR)/%.dep : %.C 
 	@mkdir -p $(DEPENDDIR)
-	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
+	$(DEPCC) $(STD_ABI_FLAG) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
 $(DEPS_MUTATEES_GCC): $(DEPENDDIR)/test%.mutatee_gcc.dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
-	$(M_GCC) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_gcc.o > $@
+	$(M_GCC) $(STD_ABI_FLAG) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_gcc.o > $@
 
 $(DEPS_MUTATEES_GXX): $(DEPENDDIR)/test%.mutatee_g++.dep : $(wildcard test%.mutatee.*) $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
-	$(M_GXX) $(CXXFLAGS) $< $(MUTATEE_CXXFLAGS) $(DEPENDFLAGS) test$*.mutatee_gxx.o > $@
+	$(M_GXX) $(STD_ABI_FLAG) $(CXXFLAGS) $< $(MUTATEE_CXXFLAGS) $(DEPENDFLAGS) test$*.mutatee_gxx.o > $@
 
 $(DEPS_MUTATEES_G77): $(DEPENDDIR)/test%.mutatee_g77.dep : test%.mutateeFort.F $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
-	$(M_G77) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutateeFort_g77.o > $@
+	$(M_G77) $(STD_ABI_FLAG) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutateeFort_g77.o > $@
 
 
 # Use gcc to generate deps for native compilers
@@ -884,35 +884,35 @@ $(DEPS_MUTATEES_G77): $(DEPENDDIR)/test%.mutatee_g77.dep : test%.mutateeFort.F $
 ifdef NATIVE_CC
 $(DEPS_MUTATEES_NATIVE_CC): $(DEPENDDIR)/test%.mutatee_$(NATIVE_CC).dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
-	$(M_GCC) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_$(NATIVE_CC).o > $@
+	$(M_GCC) $(STD_ABI_FLAG) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_$(NATIVE_CC).o > $@
 endif
 
 ifdef NATIVE_CXX
 $(DEPS_MUTATEES_NATIVE_CXX): $(DEPENDDIR)/test%.mutatee_$(NATIVE_CXX).dep : $(wildcard test%.mutatee.*) $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
-	$(M_GXX) $(CXXFLAGS) $< $(MUTATEE_CXXFLAGS) $(DEPENDFLAGS) test$*.mutatee_$(NATIVE_CXX).o > $@
+	$(M_GXX) $(STD_ABI_FLAG) $(CXXFLAGS) $< $(MUTATEE_CXXFLAGS) $(DEPENDFLAGS) test$*.mutatee_$(NATIVE_CXX).o > $@
 endif
 
 ifdef NATIVE_FC
 $(DEPS_MUTATEES_NATIVE_FC): $(DEPENDDIR)/test%.mutatee_$(NATIVE_FC).dep : test%.mutateeFort.F $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
-	$(M_G77) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutateeFort_$(NATIVE_FC).o > $@
+	$(M_G77) $(STD_ABI_FLAG) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutateeFort_$(NATIVE_FC).o > $@
 endif
 
 ifdef NATIVE_CXX_OMP
 $(DEPS_MUTATEES_NATIVE_CXX_OMP): $(DEPENDDIR)/test%.mutatee_$(NATIVE_CXX_OMP).dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
-	$(M_GXX) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_$(NATIVE_CXX_OMP).o > $@
+	$(M_GXX) $(STD_ABI_FLAG) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_$(NATIVE_CXX_OMP).o > $@
 endif
 
 
 $(DEPS_TESTLIBS): $(DEPENDDIR)/lib%.dep : lib%.c 
 	@mkdir -p $(DEPENDDIR)
-	$(DEPCC) $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
+	$(DEPCC) $(STD_ABI_FLAG) $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
 
 $(DEPS_LIBTESTSUITE): $(DEPENDDIR)/%.dep : %.C
 	@mkdir -p $(DEPENDDIR)
-	$(DEPCC) $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
+	$(DEPCC) $(STD_ABI_FLAG) $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
 
 # do not include dep files for "clean" targets
