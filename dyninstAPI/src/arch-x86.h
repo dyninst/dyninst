@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.61 2008/01/16 22:00:47 legendre Exp $
+// $Id: arch-x86.h,v 1.62 2008/02/20 22:34:15 legendre Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -1205,13 +1205,12 @@ class instruction {
   
   // Function relocation...
   static void generateInterFunctionBranch(codeGen &gen, Address from, Address to) { generateBranch(gen, from, to); }
-  static unsigned maxInterFunctionJumpSize() { return maxJumpSize(); }
+  static unsigned maxInterFunctionJumpSize(unsigned addr_width) { return maxJumpSize(addr_width); }
 
   // And tell us how much space we'll need...
-  static unsigned jumpSize(Address from, Address to);
-  static unsigned jumpSize(long disp);
-  static unsigned maxJumpSize();
-
+  static unsigned jumpSize(Address from, Address to, unsigned addr_width);
+  static unsigned jumpSize(long disp, unsigned addr_width);
+  static unsigned maxJumpSize(unsigned addr_width);
 
   // We may want to generate an efficient set 'o nops
   static void generateNOOP(codeGen &gen, unsigned size = 1);

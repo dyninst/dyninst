@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.35 2008/01/31 18:01:41 legendre Exp $
+// $Id: reloc-func.C,v 1.36 2008/02/20 22:34:22 legendre Exp $
 
 
 
@@ -891,7 +891,8 @@ bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needRelo
     bblInstance *targetInst = targetBlock_->instVer(targetVersion_);
     assert(targetInst);
 
-    jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize());
+    unsigned addr_width = proc()->getAddressWidth();
+    jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize(addr_width));
     jumpToRelocated.setAddrSpace(proc());
     reloc_printf("******* generating interFunctionJump from 0x%lx (%d) to 0x%lx (%d)\n",
 		 sourceInst->firstInsnAddr(),
@@ -1038,7 +1039,8 @@ bool functionReplacement::generateFuncRepTrap(pdvector<int_function *> &needRelo
     bblInstance *targetInst = targetBlock_->instVer(targetVersion_);
     assert(targetInst);
 
-    jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize());
+    unsigned addr_width = proc()->getAddressWidth();
+    jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize(addr_width));
     reloc_printf("******* generating interFunctionTrap from 0x%lx (%d) to 0x%lx (%d)\n",
 		 sourceInst->firstInsnAddr(),
 		 sourceVersion_,

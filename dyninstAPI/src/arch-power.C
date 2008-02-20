@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.24 2008/02/19 13:37:49 rchen Exp $
+ * $Id: arch-power.C,v 1.25 2008/02/20 22:34:10 legendre Exp $
  */
 
 #include "common/h/Types.h"
@@ -344,33 +344,35 @@ void instruction::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
 // Given a value, load it into a register.
 void instruction::loadImmIntoReg(codeGen &gen, Register rt, long value)
 {
-    // Writing a full 64 bits takes 5 instructions in the worst case.
-    // Let's see if we use sign-extention to cheat.
-    if (MIN_IMM16 <= value && value <= MAX_IMM16) {
-            instruction::generateImm(gen, CALop,  rt, 0,  BOT_LO(value));
-
-    } else if (MIN_IMM32 <= value && value <= MAX_IMM32) {
-	instruction::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
-	instruction::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
-
-    } else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
-	instruction::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
-	instruction::generateLShift64(gen, rt, 32, rt);
-	if (BOT_HI(value))
-	    instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
-	if (BOT_LO(value))
-	    instruction::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
-
-    } else {
-	instruction::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
-	if (TOP_LO(value))
-	    instruction::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
-	instruction::generateLShift64(gen, rt, 32, rt);
-	if (BOT_HI(value))
-	    instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
-	if (BOT_LO(value))
-	    instruction::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
-    }
+   // Writing a full 64 bits takes 5 instructions in the worst case.
+   // Let's see if we use sign-extention to cheat.
+   if (MIN_IMM16 <= value && value <= MAX_IMM16) {
+      instruction::generateImm(gen, CALop,  rt, 0,  BOT_LO(value));
+      
+   } else if (MIN_IMM32 <= value && value <= MAX_IMM32) {
+      instruction::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
+      instruction::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
+   } 
+#if defined(arch_64bit)
+   else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
+      instruction::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
+      instruction::generateLShift64(gen, rt, 32, rt);
+      if (BOT_HI(value))
+         instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+      if (BOT_LO(value))
+         instruction::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
+      
+   } else {
+      instruction::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
+      if (TOP_LO(value))
+         instruction::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
+      instruction::generateLShift64(gen, rt, 32, rt);
+      if (BOT_HI(value))
+         instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+      if (BOT_LO(value))
+         instruction::generateImm(gen, ORILop, rt, rt, BOT_LO(value));
+   }
+#endif
 }
 
 // Helper method.  Fills register with partial value to be completed
@@ -378,36 +380,38 @@ void instruction::loadImmIntoReg(codeGen &gen, Register rt, long value)
 // stores.
 void instruction::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
 {
-    if (MIN_IMM16 <= value && value <= MAX_IMM16) return;
-
-    if (BOT_LO(value) & 0x8000) {
-	// high bit of lowest half-word is set, so the sign extension of
-	// the next op will cause the wrong effective addr to be computed.
-        // so we subtract the sign ext value from the other half-words.
-	// sounds odd, but works and saves an instruction - jkh 5/25/95
-
-	// Modified to be 64-bit compatible.  Use (-1 >> 16) instead of
-        // 0xFFFF constant.
-	value = ((value >> 16) - (-1 >> 16)) << 16;
-    }
-
-    if (MIN_IMM32 <= value && value <= MAX_IMM32) {
-	instruction::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));
-
-    } else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
-	instruction::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
-	instruction::generateLShift64(gen, rt, 32, rt);
-	if (BOT_HI(value))
-	    instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
-
-    } else {
-	instruction::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
-	if (TOP_LO(value))
-	    instruction::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
-	instruction::generateLShift64(gen, rt, 32, rt);
-	if (BOT_HI(value))
-	    instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
-    }
+   if (MIN_IMM16 <= value && value <= MAX_IMM16) return;
+   
+   if (BOT_LO(value) & 0x8000) {
+      // high bit of lowest half-word is set, so the sign extension of
+      // the next op will cause the wrong effective addr to be computed.
+      // so we subtract the sign ext value from the other half-words.
+      // sounds odd, but works and saves an instruction - jkh 5/25/95
+      
+      // Modified to be 64-bit compatible.  Use (-1 >> 16) instead of
+      // 0xFFFF constant.
+      value = ((value >> 16) - (-1 >> 16)) << 16;
+   }
+   
+   if (MIN_IMM32 <= value && value <= MAX_IMM32) {
+      instruction::generateImm(gen, CAUop,  rt, 0,  BOT_HI(value));       
+   } 
+#if defined(arch_64bit)
+   else if (MIN_IMM48 <= value && value <= MAX_IMM48) {
+      instruction::generateImm(gen, CALop,  rt, 0,  TOP_LO(value));
+      instruction::generateLShift64(gen, rt, 32, rt);
+      if (BOT_HI(value))
+         instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+      
+   } else {
+      instruction::generateImm(gen, CAUop,  rt,  0, TOP_HI(value));
+      if (TOP_LO(value))
+         instruction::generateImm(gen, ORILop, rt, rt, TOP_LO(value));
+      instruction::generateLShift64(gen, rt, 32, rt);
+      if (BOT_HI(value))
+         instruction::generateImm(gen, ORIUop, rt, rt, BOT_HI(value));
+   }
+#endif
 }
 
 Address instruction::getBranchOffset() const {
@@ -496,45 +500,48 @@ bool instruction::isCondBranch() const {
     return isInsnType(Bmask, BCmatch);
 }
 
-unsigned instruction::jumpSize(Address from, Address to) {
+unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width) {
     Address disp = (to - from);
-    return jumpSize(disp);
+    return jumpSize(disp, addr_width);
 }
 
 // -1 is infinite, don't ya know.
-unsigned instruction::jumpSize(Address disp) {
-    if (ABS(disp) >= MAX_BRANCH) {
-	return maxInterFunctionJumpSize();
-//        return (unsigned) -1;
-    }
-    return instruction::size();
+unsigned instruction::jumpSize(Address disp, unsigned addr_width) {
+   if (ABS(disp) >= MAX_BRANCH) {
+      return maxInterFunctionJumpSize(addr_width);
+   }
+   return instruction::size();
 }
 
-unsigned instruction::maxJumpSize() {
-    // TODO: some way to do a full-range branch
-    // For now, a BRL-jump'll do.
-    // plus two - store r0 and restore afterwards
-    return 4*instruction::size();
+unsigned instruction::maxJumpSize(unsigned addr_width) {
+   // TODO: some way to do a full-range branch
+   // For now, a BRL-jump'll do.
+   // plus two - store r0 and restore afterwards
+   if (addr_width == 4)
+      return 4*instruction::size();
+   else
+      return 7*instruction::size();
 }
 
-unsigned instruction::maxInterFunctionJumpSize() {
-    // 4 for 32-bit...
-    // move <high>, r0
-    // move <low>, r0
-    // move r0 -> ctr
-    // branch to ctr
-
-    // 7 for 64-bit...
-    // move <top-high>, r0
-    // move <top-low>, r0
-    // lshift r0, 32
-    // move <bot-high>, r0
-    // move <bot-low>, r0
-    // move r0 -> ctr
-    // branch to ctr
-    return 7*instruction::size();
-
-//    return 4*instruction::size();
+unsigned instruction::maxInterFunctionJumpSize(unsigned addr_width) {
+   // 4 for 32-bit...
+   // move <high>, r0
+   // move <low>, r0
+   // move r0 -> ctr
+   // branch to ctr
+   
+   // 7 for 64-bit...
+   // move <top-high>, r0
+   // move <top-low>, r0
+   // lshift r0, 32
+   // move <bot-high>, r0
+   // move <bot-low>, r0
+   // move r0 -> ctr
+   // branch to ctr
+   if (addr_width == 8)
+      return 7*instruction::size();
+   else
+      return 4*instruction::size();
 }
 
 unsigned instruction::spaceToRelocate() const {

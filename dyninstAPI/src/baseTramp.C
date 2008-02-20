@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.64 2008/02/19 13:37:24 rchen Exp $
+// $Id: baseTramp.C,v 1.65 2008/02/20 22:34:16 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -1332,7 +1332,7 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
                 // we occasionally see a case where this->trampAddr_ has 
                 // already been reset to zero, assume no need to update
                 if(trampPreAddr() != 0) {
-                    codeGen gen(instruction::maxJumpSize());
+                    codeGen gen(instruction::maxJumpSize(proc()->getAddressWidth()));
                     generateBranchToMT(gen);
                     proc()->writeDataSpace((void *)(trampPreAddr() + baseT->instStartOffset),
                                            gen.used(),
@@ -1423,7 +1423,7 @@ bool baseTrampInstance::linkCode() {
         generateAndWriteBranch(baseT->proc(), 
                                leave, 
                                arrive, 
-                               instruction::maxJumpSize());
+                               instruction::maxJumpSize(proc()->getAddressWidth()));
     }
 
     // Cost calculation

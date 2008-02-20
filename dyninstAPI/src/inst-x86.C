@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.273 2008/01/16 22:01:59 legendre Exp $
+ * $Id: inst-x86.C,v 1.274 2008/02/20 22:34:18 legendre Exp $
  */
 #include <iomanip>
 
@@ -1232,7 +1232,8 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
          // generate the template for a jump -- actual jump is generated
          // elsewhere
          retval = gen.getIndex();
-         gen.fill(instruction::maxJumpSize(), codeGen::cgNOP);
+         gen.fill(instruction::maxJumpSize(gen.addrSpace()->getAddressWidth()),
+                  codeGen::cgNOP);
          instruction::generateIllegal(gen);
          break;
      }

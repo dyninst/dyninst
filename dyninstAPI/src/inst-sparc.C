@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.199 2007/12/04 21:10:18 legendre Exp $
+// $Id: inst-sparc.C,v 1.200 2008/02/20 22:34:17 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -1097,7 +1097,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	// Unconditional branch
         retval = gen.getIndex();
         instruction::generateBranch(gen, dest);
-	instruction::generateNOOP(gen);
+        instruction::generateNOOP(gen);
         break;
     case trampPreamble: {
         return(0);      // let's hope this is expected!
@@ -1106,7 +1106,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	 // generate the template for a jump -- actual jump is generated
 	 // elsewhere
         retval = gen.getIndex();
-        gen.fill(instruction::maxJumpSize(), codeGen::cgNOP);
+        gen.fill(instruction::maxJumpSize(gen.addrSpace()->getAddressWidth()), codeGen::cgNOP);
         instruction::generateIllegal(gen);
         break;
     default:

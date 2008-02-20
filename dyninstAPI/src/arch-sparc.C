@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.28 2008/02/07 16:07:55 jaw Exp $
+ * $Id: arch-sparc.C,v 1.29 2008/02/20 22:34:12 legendre Exp $
  */
 
 #include "common/h/Types.h"
@@ -504,12 +504,12 @@ int instruction::get_disp()
 }
 
 
-unsigned instruction::jumpSize(Address from, Address to) {
+unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width) {
     int disp = (to - from);
-    return jumpSize(disp);
+    return jumpSize(disp, addr_width);
 }
 
-unsigned instruction::jumpSize(int disp) {
+unsigned instruction::jumpSize(int disp, unsigned /* addr_width */) {
     if (offsetWithinRangeOfBranchInsn(disp)) {
         return instruction::size();
     }
@@ -519,13 +519,13 @@ unsigned instruction::jumpSize(int disp) {
     }
 }
 
-unsigned instruction::maxJumpSize() {
+unsigned instruction::maxJumpSize(unsigned /* addr_width */) {
     // Save/call/restore triplet
     return 3*instruction::size();
 }
 
-unsigned instruction::maxInterFunctionJumpSize() {
-    return maxJumpSize();
+unsigned instruction::maxInterFunctionJumpSize(unsigned addr_width) {
+    return maxJumpSize(addr_width);
 }
 
 /****************************************************************************/

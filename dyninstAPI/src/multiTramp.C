@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.80 2008/02/19 13:37:34 rchen Exp $
+// $Id: multiTramp.C,v 1.81 2008/02/20 22:34:21 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -2525,7 +2525,8 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
     unsigned origUsed = gen.used();
 
     // TODO: we can use shorter branches, ya know.
-    unsigned long jumpSizeNeeded = instruction::jumpSize(instAddr_, trampAddr_);
+    unsigned long jumpSizeNeeded = instruction::jumpSize(instAddr_, trampAddr_,
+                                                         proc()->getAddressWidth());
 
     if (instSize_ <  jumpSizeNeeded) { // jumpSizeNeeded > 0...
         branchSize_ = jumpSizeNeeded;
@@ -2580,8 +2581,7 @@ void *multiTramp::getPtrToInstruction(Address addr) const {
 
 unsigned multiTramp::maxSizeRequired() {
     // A jump to the multiTramp, 
-    // todo: in-line :)
-    return instruction::maxJumpSize();
+    return instruction::maxJumpSize(proc()->getAddressWidth());
 }
 
 relocatedInstruction::relocatedInstruction(instruction *i,

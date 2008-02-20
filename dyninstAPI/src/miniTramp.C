@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.40 2008/01/16 22:01:36 legendre Exp $
+// $Id: miniTramp.C,v 1.41 2008/02/20 22:34:20 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -48,6 +48,7 @@
 #include "instPoint.h"
 #include "process.h"
 #include "ast.h"
+#include "addressSpace.h"
 #include "dyninstAPI/h/BPatch.h"
 
 // for AIX
@@ -228,7 +229,7 @@ unsigned miniTrampInstance::maxSizeRequired() {
     else {
         if (mini->baseT->firstMini == mini) {
             //inst_printf("Size request for first mini\n");
-            return instruction::maxJumpSize();
+            return instruction::maxJumpSize(proc()->getAddressWidth());
         }
         else
             return 0;
@@ -267,23 +268,24 @@ bool miniTrampInstance::generateCode(codeGen &gen,
     
     if (!mini->generateMT(gen.rs()))
         return false;
+
+    unsigned addr_width = proc()->getAddressWidth();
       
     if (!BPatch::bpatch->isMergeTramp()) {
         // Out of line code generation
         // Are we first?
         if (mini->baseT->firstMini == mini) {
-            if (!generated_) { 
-                gen.fill(instruction::maxJumpSize(),
-                         codeGen::cgNOP);
-                mini->baseT->instSize = instruction::maxJumpSize();
-            }
-            else {
-                gen.moveIndex(instruction::maxJumpSize());
-            }
+           if (!generated_) { 
+              mini->baseT->instSize = instruction::maxJumpSize(addr_width);
+              gen.fill(mini->baseT->instSize, codeGen::cgNOP);
+           }
+           else {
+              gen.moveIndex(instruction::maxJumpSize(addr_width));
+           }
 #if defined( cap_unwind )
             /* maxJumpSize() returns bytes */
 #if defined( arch_ia64 )
-            (*unwindInformation)->insn_count += (instruction::maxJumpSize() / 16) * 3;
+            (*unwindInformation)->insn_count += (instruction::maxJumpSize(addr_width) / 16) * 3;
 #else
 #error How do I know how many instructions are in the jump region?
 #endif /* defined( arch_ia64 ) */
@@ -541,7 +543,7 @@ bool miniTrampInstance::linkCode() {
             generateAndWriteBranch(mini->proc(), 
                                    trampBase + mini->returnOffset,
                                    nextI->trampBase,
-                                   instruction::maxJumpSize());
+                                   instruction::maxJumpSize(proc()->getAddressWidth()));
         }
     }
     else {
@@ -559,7 +561,7 @@ bool miniTrampInstance::linkCode() {
            generateAndWriteBranch(mini->proc(),
                                   (trampBase + mini->returnOffset),
                                   baseTI->miniTrampReturnAddr(),
-                                  instruction::maxJumpSize());
+                                  instruction::maxJumpSize(proc()->getAddressWidth()));
         }
     }
 
@@ -681,8 +683,8 @@ miniTramp::miniTramp(const miniTramp *parMini,
     proc_(proc),
     when(parMini->when),
     cost(parMini->cost),
-	topDownDelete_(parMini->topDownDelete_),
     noCost_(parMini->noCost_),
+    topDownDelete_(parMini->topDownDelete_),
     prev(NULL),
     next(NULL),
     callback(NULL),

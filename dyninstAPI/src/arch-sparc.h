@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.52 2008/02/07 16:07:55 jaw Exp $
+// $Id: arch-sparc.h,v 1.53 2008/02/20 22:34:13 legendre Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL
@@ -699,11 +699,11 @@ class instruction : public Annotatable<InsnRegister, register_read_set_a>,
   Address getOffset() const;
 
   // And tell us how much space we'll need...
-  static unsigned jumpSize(Address from, Address to);
-  static unsigned jumpSize(int disp);
-  static unsigned maxJumpSize();
+  static unsigned jumpSize(Address from, Address to, unsigned addr_width);
+  static unsigned jumpSize(int disp, unsigned addr_width);
+  static unsigned maxJumpSize(unsigned addr_width);
 
-  static unsigned maxInterFunctionJumpSize();
+  static unsigned maxInterFunctionJumpSize(unsigned addr_width);
 
 
   bool isInsnType(const unsigned mask,

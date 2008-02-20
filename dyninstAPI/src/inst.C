@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.161 2008/01/17 16:40:35 legendre Exp $
+// $Id: inst.C,v 1.162 2008/02/20 22:34:19 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -120,7 +120,7 @@ unsigned trampEnd::maxSizeRequired() {
     unsigned illegalSize = instruction::size();
 #endif
     // Return branch, illegal.
-    return (instruction::maxJumpSize() + illegalSize);
+    return (instruction::maxJumpSize(multi_->proc()->getAddressWidth()) + illegalSize);
 }
 
 
