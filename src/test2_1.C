@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_1.C,v 1.3 2006/10/11 21:53:18 cooksey Exp $
+// $Id: test2_1.C,v 1.4 2008/02/20 08:31:08 jaw Exp $
 /*
  * #Name: test2_1
  * #Desc: Run an executable that does not exist
@@ -64,42 +64,42 @@
 
 static int mutatorTest(BPatch *bpatch, bool useAttach)
 {
-   
-    if (useAttach) {
-	logerror("Skipping test #1 (run an executable that does not exist)\n");
-	logerror("    not relevant with -attach option\n");
-        return 0;
-    } else {
-	// try to run a program that does not exist
-        
-        clearError();
-	BPatch_thread *ret = startMutateeTest(bpatch, "./noSuchFile", 1, useAttach, NULL);
-        bool gotError = getError();
-	if (ret || !gotError) {
-	    logerror("**Failed** test #1 (run an executable that does not exist)\n");
-	    if (ret)
-		logerror("    created a thread handle for a non-existant file\n");
-	    if (!gotError)
-		logerror("    the error callback should have been called but wasn't\n");
-            return -1;
-	} else {
-	    logerror("Passed test #1 (run an executable that does not exist)\n");
-            return 0;
-	}
-    }
+
+   if (useAttach) {
+      logerror("Skipping test #1 (run an executable that does not exist)\n");
+      logerror("    not relevant with -attach option\n");
+      return 0;
+   } else {
+      // try to run a program that does not exist
+
+      clearError();
+      BPatch_thread *ret = startMutateeTest(bpatch, "./noSuchFile", 1, false /*useAttach*/, NULL);
+      bool gotError = getError();
+      if (ret || !gotError) {
+         logerror("**Failed** test #1 (run an executable that does not exist)\n");
+         if (ret)
+            logerror("    created a thread handle for a non-existant file\n");
+         if (!gotError)
+            logerror("    the error callback should have been called but wasn't\n");
+         return -1;
+      } else {
+         logerror("Passed test #1 (run an executable that does not exist)\n");
+         return 0;
+      }
+   }
 }
 
 extern "C" TEST_DLL_EXPORT int test2_1_mutatorMAIN(ParameterDict &param)
 {
-  bool useAttach = param["useAttach"]->getInt();
-  BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
-  
-  // Get log file pointers
-  FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-  FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-  setOutputLog(outlog);
-  setErrorLog(errlog);
+   bool useAttach = param["useAttach"]->getInt();
+   BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
-  return mutatorTest(bpatch, useAttach);
+   // Get log file pointers
+   FILE *outlog = (FILE *)(param["outlog"]->getPtr());
+   FILE *errlog = (FILE *)(param["errlog"]->getPtr());
+   setOutputLog(outlog);
+   setErrorLog(errlog);
+
+   return mutatorTest(bpatch, useAttach);
 
 }
