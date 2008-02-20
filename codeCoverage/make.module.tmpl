@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.2 2007/01/22 22:19:46 giri Exp $
+# $Id: make.module.tmpl,v 1.3 2008/02/20 22:34:04 legendre Exp $
 #
 
 SUITE_NAME	= DynCov
@@ -47,6 +47,6 @@ endif
 
 SYSLIBS += -lcommon
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dyninstAPI/h -I../../common/h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dyninstAPI/h -I../../common/h -I../../symtabAPI/h/
 
 all: $(TARGET)
