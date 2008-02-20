@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.201 2008/02/19 13:37:19 rchen Exp $
+// $Id: ast.C,v 1.202 2008/02/20 22:34:25 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1203,17 +1203,17 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
 		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        break;
    case DataIndir:
-       if (!operand_->generateCode_phase2(gen, noCost, addr, src)) ERROR_RETURN;
-       REGISTER_CHECK(src);
-       Type = const_cast<BPatch_type *> (getType());
-       // Internally generated calls will not have type information set
-       if(Type)
-           tSize = Type->getSize();
-       else
-           tSize = sizeof(long);
-       emitV(loadIndirOp, src, 0, retReg, gen, noCost, gen.rs(), tSize, gen.point(), gen.addrSpace()); 
-       gen.rs()->freeRegister(src);
-       break;
+      if (!operand_->generateCode_phase2(gen, noCost, addr, src)) ERROR_RETURN;
+      REGISTER_CHECK(src);
+      Type = const_cast<BPatch_type *> (getType());
+      // Internally generated calls will not have type information set
+      if(Type)
+         tSize = Type->getSize();
+      else
+         tSize = sizeof(long);
+      emitV(loadIndirOp, src, 0, retReg, gen, noCost, gen.rs(), tSize, gen.point(), gen.addrSpace()); 
+      gen.rs()->freeRegister(src);
+      break;
    case DataReg:
        retReg = (Register) (long) oValue;
        break;

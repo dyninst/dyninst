@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.282 2008/02/19 23:50:10 legendre Exp $
+ * $Id: inst-power.C,v 1.283 2008/02/20 22:34:26 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -1315,7 +1315,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         break;
         
     case timesOp:
-        if (isPowerOf2(src2imm,result) && (result < (gen.addrSpace()->getAddressWidth() * 8))) {
+       if (isPowerOf2(src2imm,result) && (result < (int) (gen.addrSpace()->getAddressWidth() * 8))) {
             instruction::generateLShift(gen, src1, result, dest);
             return;
         }
@@ -1328,7 +1328,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         break;
         
     case divOp:
-        if (isPowerOf2(src2imm,result) && (result < (gen.addrSpace()->getAddressWidth() * 8))) {
+        if (isPowerOf2(src2imm,result) && (result < (int) (gen.addrSpace()->getAddressWidth() * 8))) {
             instruction::generateRShift(gen, src1, result, dest);
             return;
         }
@@ -1404,10 +1404,10 @@ bool EmitterPOWER::clobberAllFuncCall( registerSpace *rs,
       }
     }
   else {
-      for (unsigned i = 0; i < rs->numGPRs(); i++) {
+      for (int i = 0; i < rs->numGPRs(); i++) {
           rs->GPRs()[i]->beenUsed = true;
       }
-      for (unsigned i = 0; i < rs->numFPRs(); i++) {
+      for (int i = 0; i < rs->numFPRs(); i++) {
           rs->FPRs()[i]->beenUsed = true;
       }
   }
@@ -1499,20 +1499,20 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
     }
 
     // see what others we need to save.
-    for (u_int i = 0; i < gen.rs()->numGPRs(); i++) {
-	registerSlot *reg = gen.rs()->GPRs()[i];
+    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
+       registerSlot *reg = gen.rs()->GPRs()[i];
 
-        // We must save if:
-        // refCount > 0 (and not a source register)
-        // keptValue == true (keep over the call)
-        // liveState == live (technically, only if not saved by the callee) 
-        
-	if ((reg->refCount > 0) || 
-            reg->keptValue ||
-            (reg->liveState == registerSlot::live)) {
-            saveRegister(gen, reg->number, FUNC_CALL_SAVE);
-            savedRegs.push_back(reg->number);
-        }
+       // We must save if:
+       // refCount > 0 (and not a source register)
+       // keptValue == true (keep over the call)
+       // liveState == live (technically, only if not saved by the callee) 
+       
+       if ((reg->refCount > 0) || 
+           reg->keptValue ||
+           (reg->liveState == registerSlot::live)) {
+          saveRegister(gen, reg->number, FUNC_CALL_SAVE);
+          savedRegs.push_back(reg->number);
+       }
     }
 
     // Generate the code for all function parameters, and keep a list
@@ -1688,7 +1688,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
       }
     case branchOp: {
         retval = gen.getIndex();
-	instruction::generateBranch(gen, dest);
+        instruction::generateBranch(gen, dest);
         break;
     }
     case trampPreamble: {
@@ -1697,7 +1697,8 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
     }        
     case trampTrailer: {
         retval = gen.getIndex();
-        gen.fill(instruction::maxJumpSize(), codeGen::cgNOP);
+        unsigned addr_width = gen.addrSpace()->getAddressWidth();
+        gen.fill(instruction::maxJumpSize(addr_width), codeGen::cgNOP);
         instruction::generateIllegal(gen);
         break;
       }
@@ -2437,8 +2438,9 @@ bool process::hasBeenBound(const relocationEntry &,int_function *&, Address ) {
 void emitFuncJump(opCode              op, 
                   codeGen            &gen,
                   const int_function *func,
-                  AddressSpace       *proc,
-                  const instPoint    *point, bool)
+                  AddressSpace       * /*proc*/,
+                  const instPoint    *point,
+                  bool)
 {
     // Performs the following steps:
     // 1) Unwinds the base tramp that we're in; equivalent to generateRestores.
@@ -2480,10 +2482,10 @@ void emitFuncJump(opCode              op,
 #define REG_CTR 132
 
 void emitLoadPreviousStackFrameRegister(Address register_num, 
-					Register dest,
+                                        Register dest,
                                         codeGen &gen,
-					int size,
-					bool noCost)
+                                        int /*size*/,
+                                        bool noCost)
 {
     // As of 10/24/2007, the size parameter is still incorrect.
     // Luckily, we know implicitly what size they actually want.
@@ -2660,3 +2662,20 @@ Emitter *AddressSpace::getEmitter()
     assert(0);
     return NULL;
 }
+
+Register EmitterPOWER32Stat::emitCall(opCode, codeGen &,
+                                      const pdvector<AstNodePtr> &,
+                                      bool, int_function *) 
+{ 
+   assert(0); 
+   return 0;
+}
+
+Register EmitterPOWER64Stat::emitCall(opCode, codeGen &,
+                                      const pdvector<AstNodePtr> &,
+                                      bool, int_function *) 
+{ 
+   assert(0); 
+   return 0; 
+}
+

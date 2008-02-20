@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-power.h,v 1.4 2007/09/19 19:25:13 bernat Exp $
+ * $Id: emit-power.h,v 1.5 2008/02/20 22:34:23 legendre Exp $
  */
 
 #ifndef _EMITTER_POWER_H
@@ -141,7 +141,7 @@ class EmitterPOWER32Stat : public EmitterPOWERStat {
 
     Register emitCall(opCode op, codeGen &gen,
                       const pdvector<AstNodePtr> &operands,
-                      bool noCost, int_function *callee) { assert(0); return 0;} 
+                      bool noCost, int_function *callee);
 };
 
 class EmitterPOWER64Dyn : public EmitterPOWERDyn {
@@ -156,7 +156,7 @@ class EmitterPOWER64Stat : public EmitterPOWERStat {
 
     Register emitCall(opCode op, codeGen &gen,
                       const pdvector<AstNodePtr> &operands,
-                      bool noCost, int_function *callee) { assert(0); return 0; }
+                      bool noCost, int_function *callee);
 };
 
 #endif

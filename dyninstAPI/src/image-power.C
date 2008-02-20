@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.20 2008/01/16 22:01:32 legendre Exp $
+// $Id: image-power.C,v 1.21 2008/02/20 22:34:24 legendre Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -176,176 +176,178 @@ region we discover informations such as what type of parallel region we're
 dealing with */
 bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum )
 {
-  Address funcBegin = getOffset();
-  InstrucIter ah(funcBegin, this);
-  InstrucIter callFind(funcBegin, this);
-  int currentNum = 0;
-  int regValues[10 + 1];  /* Only care about registers 3-10 (params) */
-  Address regWriteLocations[10 + 1];
+   Address funcBegin = getOffset();
+   InstrucIter ah(funcBegin, this);
+   InstrucIter callFind(funcBegin, this);
+   int currentNum = 0;
+   int regValues[10 + 1];  /* Only care about registers 3-10 (params) */
+   Address regWriteLocations[10 + 1];
 
-  for (int i = 0; i < 11; i++)
-    regValues[i] = -1;
+   for (int i = 0; i < 11; i++)
+      regValues[i] = -1;
   
   
-  const char * regionFuncName = iPar->getAssociatedFunc()->symTabName().c_str();
+   const char * regionFuncName = iPar->getAssociatedFunc()->symTabName().c_str();
 
-  while (callFind.hasMore())
-    {
+   while (callFind.hasMore())
+   {
       if( callFind.isACallInstruction() ||
-	  callFind.isADynamicCallInstruction() )
-	{
-	  bool isAbsolute = false;
-	  Address target = callFind.getBranchTargetAddress(&isAbsolute);
-	  image * im = img();
+          callFind.isADynamicCallInstruction() )
+      {
+         bool isAbsolute = false;
+         Address target = callFind.getBranchTargetAddress(&isAbsolute);
+         image * im = img();
 
-	  image_func *ppdf = im->findFuncByEntry(target);
+         image_func *ppdf = im->findFuncByEntry(target);
 
-	  if (ppdf != NULL)
-	    {
-	      if (strstr(ppdf->symTabName().c_str(),regionFuncName)!=NULL)
-		return 0;
-	    }
-	}
+         if (ppdf != NULL)
+         {
+            if (strstr(ppdf->symTabName().c_str(),regionFuncName)!=NULL)
+               return 0;
+         }
+      }
       callFind++;
-    }
+   }
 
-  while (ah.hasMore())
-    {
+   while (ah.hasMore())
+   {
       if( ah.isRegConstantAssignment(regValues, regWriteLocations) ) /* Record param values */
-	{	}
+      {	}
       else if( ah.isACallInstruction() ||
-	       ah.isADynamicCallInstruction() )
-	{
+               ah.isADynamicCallInstruction() )
+      {
 	  
-	  // XXX move this out of archIsRealCall protection... safe?
-	  bool isAbsolute = false;
-	  Address target = ah.getBranchTargetAddress(&isAbsolute);
+         // XXX move this out of archIsRealCall protection... safe?
+         bool isAbsolute = false;
+         Address target = ah.getBranchTargetAddress(&isAbsolute);
 	  
 	  
-	  /* Finding Out if the call is to OpenMP Functions */
+         /* Finding Out if the call is to OpenMP Functions */
 	  
-	  /* Return one of the following 
-	     OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE, 
-	     OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
-	     OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
-	  image * im = img();
-	  image_func *ppdf = im->findFuncByEntry(target);
+         /* Return one of the following 
+            OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE, 
+            OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
+            OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
+         image * im = img();
+         image_func *ppdf = im->findFuncByEntry(target);
 	  
-	  if (ppdf != NULL)
-	    {
-	      if (strstr(ppdf->symTabName().c_str(),"_TPO_linkage")!=NULL
-		  && ( strstr(ppdf->symTabName().c_str(), "ParRegionSetup")!= NULL
-		       || strstr(ppdf->symTabName().c_str(), "WSDoSetup")     != NULL
-		       || strstr(ppdf->symTabName().c_str(), "WSSectSetup")   != NULL
-		       || strstr(ppdf->symTabName().c_str(), "SingleSetup")   != NULL		   
-		       || strstr(ppdf->symTabName().c_str(), "ParallelDoSetup")!=NULL		
-		       || strstr(ppdf->symTabName().c_str(), "WSSectSetup")   != NULL))		    
-		{
+         if (ppdf != NULL)
+         {
+            if (strstr(ppdf->symTabName().c_str(),"_TPO_linkage")!=NULL
+                && ( strstr(ppdf->symTabName().c_str(), "ParRegionSetup")!= NULL
+                     || strstr(ppdf->symTabName().c_str(), "WSDoSetup")     != NULL
+                     || strstr(ppdf->symTabName().c_str(), "WSSectSetup")   != NULL
+                     || strstr(ppdf->symTabName().c_str(), "SingleSetup")   != NULL		   
+                     || strstr(ppdf->symTabName().c_str(), "ParallelDoSetup")!=NULL		
+                     || strstr(ppdf->symTabName().c_str(), "WSSectSetup")   != NULL))		    
+            {
 
-		  if (currentNum != desiredNum)
-		    currentNum++;
-		  else
-		    {
-		      /* Standard outlined function */
-		      if (strstr(ppdf->symTabName().c_str(), "ParRegionSetup")!=NULL)
-			iPar->setRegionType(OMP_PARALLEL);
+               if (currentNum != desiredNum)
+                  currentNum++;
+               else
+               {
+                  /* Standard outlined function */
+                  if (strstr(ppdf->symTabName().c_str(), "ParRegionSetup")!=NULL)
+                     iPar->setRegionType(OMP_PARALLEL);
 		      
-		      /* Standard outlined function */
-		      else if(strstr(ppdf->symTabName().c_str(), "WSDoSetup")!=NULL)
-			{			
-			  iPar->setRegionType(OMP_DO_FOR);
-			  iPar->setClause("NUM_ITERATIONS",regValues[6]); 
-			  iPar->setClause("SCHEDULE",regValues[7]);
-			  iPar->setClause("CHUNK_SIZE", regValues[8]);
-			  iPar->setClauseLoc("CHUNK_SIZE", regWriteLocations[8]);
-			  iPar->setClauseLoc("SCHEDULE", regWriteLocations[7]);
-			}
+                  /* Standard outlined function */
+                  else if(strstr(ppdf->symTabName().c_str(), "WSDoSetup")!=NULL)
+                  {			
+                     iPar->setRegionType(OMP_DO_FOR);
+                     iPar->setClause("NUM_ITERATIONS",regValues[6]); 
+                     iPar->setClause("SCHEDULE",regValues[7]);
+                     iPar->setClause("CHUNK_SIZE", regValues[8]);
+                     iPar->setClauseLoc("CHUNK_SIZE", regWriteLocations[8]);
+                     iPar->setClauseLoc("SCHEDULE", regWriteLocations[7]);
+                  }
 		      
-		      /* Standard outlined function */
-		      else if(strstr(ppdf->symTabName().c_str(), "WSSectSetup")!=NULL)
-			{
-			  iPar->setRegionType(OMP_SECTIONS);
-			  iPar->setClause("NUM_SECTIONS",regValues[5]);
+                  /* Standard outlined function */
+                  else if(strstr(ppdf->symTabName().c_str(), "WSSectSetup")!=NULL)
+                  {
+                     iPar->setRegionType(OMP_SECTIONS);
+                     iPar->setClause("NUM_SECTIONS",regValues[5]);
 			  
-			  currentSectionNum++;
+                     currentSectionNum++;
 			  
-			  if (currentSectionNum == regValues[5])
-			    currentSectionNum = 0;
-			}
+                     if (currentSectionNum == regValues[5])
+                        currentSectionNum = 0;
+                  }
 		      
-		      /* Standard outlined function */
-		      else if(strstr(ppdf->symTabName().c_str(), "SingleSetup")!=NULL)		    
-			iPar->setRegionType(OMP_SINGLE);
+                  /* Standard outlined function */
+                  else if(strstr(ppdf->symTabName().c_str(), "SingleSetup")!=NULL)		    
+                     iPar->setRegionType(OMP_SINGLE);
 		      
-		      /* Standard outlined function */
-		      else if(strstr(ppdf->symTabName().c_str(), "ParallelDoSetup")!=NULL)
-			{		    
-			  iPar->setRegionType(OMP_PAR_DO);
-			  iPar->setClause("NUM_ITERATIONS",regValues[6]); 
-			  iPar->setClause("SCHEDULE",regValues[7]);
-			  iPar->setClause("CHUNK_SIZE", regValues[8]);
-			  iPar->setClauseLoc("CHUNK_SIZE", regWriteLocations[8]);
-			  iPar->setClauseLoc("SCHEDULE", regWriteLocations[7]);
-			}
-		      /* Standard outlined function */
-		      else if(strstr(ppdf->symTabName().c_str(), "WSSectSetup")!=NULL)		    
-			iPar->setRegionType(OMP_PAR_SECTIONS);
-		      else		      
-			{
-			  ah++;
-			  continue;
+                  /* Standard outlined function */
+                  else if(strstr(ppdf->symTabName().c_str(), "ParallelDoSetup")!=NULL)
+                  {		    
+                     iPar->setRegionType(OMP_PAR_DO);
+                     iPar->setClause("NUM_ITERATIONS",regValues[6]); 
+                     iPar->setClause("SCHEDULE",regValues[7]);
+                     iPar->setClause("CHUNK_SIZE", regValues[8]);
+                     iPar->setClauseLoc("CHUNK_SIZE", regWriteLocations[8]);
+                     iPar->setClauseLoc("SCHEDULE", regWriteLocations[7]);
+                  }
+                  /* Standard outlined function */
+                  else if(strstr(ppdf->symTabName().c_str(), "WSSectSetup")!=NULL)		    
+                     iPar->setRegionType(OMP_PAR_SECTIONS);
+                  else		      
+                  {
+                     ah++;
+                     continue;
 			  
-			}/* End Checking Different Directive Types */
+                  }/* End Checking Different Directive Types */
 
-		      iPar->decodeClauses(regValues[3]);
-		      iPar->setParentFunc(this);
+                  iPar->decodeClauses(regValues[3]);
+                  iPar->setParentFunc(this);
 
-		      fprintf(stderr, "Pushing back standard outlined function\n");
-		      parRegionsList.push_back(iPar);
+                  fprintf(stderr, "Pushing back standard outlined function\n");
+                  parRegionsList.push_back(iPar);
 
-		      if (iPar->getRegionType() == OMP_DO_FOR || 
-			  iPar->getRegionType() == OMP_PAR_DO)
-			return true;
-		      else
-			return false;
+                  if (iPar->getRegionType() == OMP_DO_FOR || 
+                      iPar->getRegionType() == OMP_PAR_DO)
+                     return true;
+                  else
+                     return false;
 		    
-		    }		
-		} 
-	    } 
-	}
+               }		
+            } 
+         } 
+      }
       ah++;
-    }
+   }
+   return true;
 }
 
 
 
 	
-pdstring image_func::calcParentFunc(const image_func * imf,pdvector<image_parRegion *> & pR)
+pdstring image_func::calcParentFunc(const image_func * imf,
+                                    pdvector<image_parRegion *> &/*pR*/)
 {
   /* We need to figure out the function that called the outlined
      parallel region function.  We do this by chopping off the
      last @OL@number */
-  const char * nameStart = imf->prettyName().c_str();
-  char * nameEnd = strrchr(nameStart, '@');
-  int strSize = nameEnd - nameStart - 3;
-  
-  /* Make sure that the shortened string is not of size 0,
-   this would happen if a function started with @ or if there
-   was less than two characters between the beginning and @
-   This wouldn't happen for OpenMP functions, but might for imposters*/
-  if (strSize > 0)
-    {
+   const char * nameStart = imf->prettyName().c_str();
+   char * nameEnd = strrchr(nameStart, '@');
+   int strSize = nameEnd - nameStart - 3;
+   
+   /* Make sure that the shortened string is not of size 0,
+      this would happen if a function started with @ or if there
+      was less than two characters between the beginning and @
+      This wouldn't happen for OpenMP functions, but might for imposters*/
+   if (strSize > 0)
+   {
       char tempBuf[strlen(nameStart)];
       strncpy(tempBuf, nameStart, strSize);
       tempBuf[strSize] = '\0';
       pdstring tempPDS(tempBuf);
       return tempPDS;
-    }
-  else   /* if it starts with @ just return the full function as its parent, we'll sort it out later */
-    {
+   }
+   else   /* if it starts with @ just return the full function as its parent, we'll sort it out later */
+   {
       pdstring tempPDS(nameStart);
       return tempPDS;
-    }
+   }
 }
 
 
@@ -372,246 +374,245 @@ void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int
   /* First, we increment the desired num for each region we've already
      parsed from the parent function.  A parent function can spawn multiple
      outlined functions, so we don't want to mix up already parsed ones */
-  for(int a = 0; a < parentFunc->parRegions().size();a++)
-    {		  
+   for(unsigned a = 0; a < parentFunc->parRegions().size();a++)
+   {		  
       image_parRegion * tempReg = parentFunc->parRegions()[a];
-        
+      
       if (tempReg->getRegionType() == OMP_PARALLEL ||
-	  tempReg->getRegionType() == OMP_DO_FOR ||
-	  tempReg->getRegionType() == OMP_PAR_DO ||
-	  tempReg->getRegionType() == OMP_PAR_SECTIONS ||
-	  tempReg->getRegionType() == OMP_SINGLE )
-	{
-	  desiredNum++;
-	}
+          tempReg->getRegionType() == OMP_DO_FOR ||
+          tempReg->getRegionType() == OMP_PAR_DO ||
+          tempReg->getRegionType() == OMP_PAR_SECTIONS ||
+          tempReg->getRegionType() == OMP_SINGLE )
+      {
+         desiredNum++;
+      }
 
       /* For the sections, we can't just count the number of section constructs
-	 we run into, since multiple outlined functions line up to one section construct */
+         we run into, since multiple outlined functions line up to one section construct */
       if (tempReg->getRegionType() == OMP_SECTIONS)
-	{
-	  lastSecSize = tempReg->getClause("NUM_SECTIONS");
-	  a += (lastSecSize-1);
-	  totalSectionGroups++;
-	}
-    }
-  
-  
-  // if the currentSectionNum is not zero, it means there are still more outlined functions
-  // for a single section construct still out there, so we don't count the current section towards the total
-  if (currentSectionNum != 0)
-    {
+      {
+         lastSecSize = tempReg->getClause("NUM_SECTIONS");
+         a += (lastSecSize-1);
+         totalSectionGroups++;
+      }
+   }
+   
+   
+   // if the currentSectionNum is not zero, it means there are still more outlined functions
+   // for a single section construct still out there, so we don't count the current section towards the total
+   if (currentSectionNum != 0)
+   {
       totalSectionGroups--;
-    }
-
-  // sets the last instruction of the region
-  parReg->setLastInsn(get_address() + get_size());
-  
-  // we need to parse the parent function to get all the information about the region, mostly for worksharing constructs
-  bool hasLoop = parentFunc->parseOMPParent(parReg, desiredNum + totalSectionGroups, currentSectionNum);	    
-
-  // we parse the outlined function to look for inlined constructs like "Master" and "Ordered"
-  parseOMPFunc(hasLoop);
+   }
+   
+   // sets the last instruction of the region
+   parReg->setLastInsn(get_address() + get_size());
+   
+   // we need to parse the parent function to get all the information about the region, mostly for worksharing constructs
+   bool hasLoop = parentFunc->parseOMPParent(parReg, desiredNum + totalSectionGroups, currentSectionNum);	    
+   
+   // we parse the outlined function to look for inlined constructs like "Master" and "Ordered"
+   parseOMPFunc(hasLoop);
 }	  
 
 
 void image_func::parseOMPFunc(bool hasLoop)
 {
-  if (OMPparsed_)
-    return;
-  OMPparsed_ = true;
+   if (OMPparsed_)
+      return;
+   OMPparsed_ = true;
   
-  /* We parse the parent to get info if we are in an outlined function, but there can be some
-     inlined functions we might miss out on if we don't check those out too */
-  Address funcBegin = getOffset();
-  InstrucIter ah(funcBegin, this);
-  int currentNum = 0;
-  int regValues[10 + 1];  /* Only care about registers 3-10 (params) */
-  for (int i = 0; i < 11; i++)
-    regValues[i] = -1;
+   /* We parse the parent to get info if we are in an outlined function, but there can be some
+      inlined functions we might miss out on if we don't check those out too */
+   Address funcBegin = getOffset();
+   InstrucIter ah(funcBegin, this);
+   int regValues[10 + 1];  /* Only care about registers 3-10 (params) */
+   for (int i = 0; i < 11; i++)
+      regValues[i] = -1;
   
   
-  while (ah.hasMore())
-    {
+   while (ah.hasMore())
+   {
       if( /*ah.isRegConstantAssignment(regValues)*/ 0 ) /* Record param values */
-	{	}
+      {	}
       // Loop parsing for the Do/For constructs
       else if( hasLoop && ah.isACondBDZInstruction())
-	{
-	  InstrucIter ah2(ah.getCurrentAddress(), this);
+      {
+         InstrucIter ah2(ah.getCurrentAddress(), this);
 	  
-	  Address startLoop = ah.getCurrentAddress() + 4;
+         Address startLoop = ah.getCurrentAddress() + 4;
 	  
-	  while (ah2.hasMore())
-	    {
-	      if (ah2.isACondBDNInstruction())
-		{
-		  image_parRegion * iPar = new image_parRegion(startLoop,this);
-		  iPar->setRegionType(OMP_DO_FOR_LOOP_BODY);
-		  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		  Address endLoop = ah2.getCurrentAddress();
-		  iPar->setLastInsn(endLoop);
-		  fprintf(stderr, "Pushing back OMP_DO_FOR_LOOP\n");
-		  parRegionsList.push_back(iPar);
-		  break;
-		}
-	      ah2++;
-	    }
-	}
+         while (ah2.hasMore())
+         {
+            if (ah2.isACondBDNInstruction())
+            {
+               image_parRegion * iPar = new image_parRegion(startLoop,this);
+               iPar->setRegionType(OMP_DO_FOR_LOOP_BODY);
+               iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+               Address endLoop = ah2.getCurrentAddress();
+               iPar->setLastInsn(endLoop);
+               fprintf(stderr, "Pushing back OMP_DO_FOR_LOOP\n");
+               parRegionsList.push_back(iPar);
+               break;
+            }
+            ah2++;
+         }
+      }
       // Here we get all the info for the inlined constructs that don't have outlined functions
       else if( ah.isACallInstruction() ||
-	       ah.isADynamicCallInstruction() )
-	{
-	  bool isAbsolute = false;
-	  Address target = ah.getBranchTargetAddress(&isAbsolute);
+               ah.isADynamicCallInstruction() )
+      {
+         bool isAbsolute = false;
+         Address target = ah.getBranchTargetAddress(&isAbsolute);
 	  
 	  
-	  /* Finding Out if the call is to OpenMP Functions */
+         /* Finding Out if the call is to OpenMP Functions */
 	  
-	  /* Return one of the following 
-	     OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE, 
-	     OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
-	     OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
-	  image * im = img();
-	  image_func *ppdf = im->findFuncByEntry(target);
-	  if (ppdf != NULL)
-	    {
-	      if (strstr(ppdf->symTabName().c_str(),"_xlsmp")!=NULL)
-		{
-		  /* Section consists of only one instruction, call to "_xlsmpBarrier_TPO" */
-		  if(strstr(ppdf->symTabName().c_str(), "Barrier")!=NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_BARRIER);
+         /* Return one of the following 
+            OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE, 
+            OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
+            OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
+         image * im = img();
+         image_func *ppdf = im->findFuncByEntry(target);
+         if (ppdf != NULL)
+         {
+            if (strstr(ppdf->symTabName().c_str(),"_xlsmp")!=NULL)
+            {
+               /* Section consists of only one instruction, call to "_xlsmpBarrier_TPO" */
+               if(strstr(ppdf->symTabName().c_str(), "Barrier")!=NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_BARRIER);
 		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
-		      fprintf(stderr, "Pushing back OMP_BARRIER\n");
-		      parRegionsList.push_back(iPar);
-		    }
-		  /* Section begins with "BeginOrdered, ends with EndOrdered" */
-		  else if(strstr(ppdf->symTabName().c_str(), "BeginOrdered") !=NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_ORDERED);
+                  fprintf(stderr, "Pushing back OMP_BARRIER\n");
+                  parRegionsList.push_back(iPar);
+               }
+               /* Section begins with "BeginOrdered, ends with EndOrdered" */
+               else if(strstr(ppdf->symTabName().c_str(), "BeginOrdered") !=NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_ORDERED);
 		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		      
-		      InstrucIter ah2(ah.getCurrentAddress(), this);
-		      while (ah2.hasMore())
-			{
-			  if( ah2.isACallInstruction() ||
-			      ah2.isADynamicCallInstruction() )
-			    {
-			      Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
+                  InstrucIter ah2(ah.getCurrentAddress(), this);
+                  while (ah2.hasMore())
+                  {
+                     if( ah2.isACallInstruction() ||
+                         ah2.isADynamicCallInstruction() )
+                     {
+                        Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
 			      
-			      image_func *ppdf2 = im->findFuncByEntry(target2);
-			      if (ppdf2 != NULL)
-				{
-				  if(strstr(ppdf2->symTabName().c_str(), "EndOrdered") !=NULL)
-				    break;
-				}
-			    }
-			  ah2++;
-			}
-		      iPar->setLastInsn(ah2.getCurrentAddress());
-		      fprintf(stderr, "Pushing back OMP_ORDERED\n");
-		      parRegionsList.push_back(iPar);
-		    }
-		  /* Master construct */
-		  else if(strstr(ppdf->symTabName().c_str(), "Master") !=NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_MASTER);
+                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        if (ppdf2 != NULL)
+                        {
+                           if(strstr(ppdf2->symTabName().c_str(), "EndOrdered") !=NULL)
+                              break;
+                        }
+                     }
+                     ah2++;
+                  }
+                  iPar->setLastInsn(ah2.getCurrentAddress());
+                  fprintf(stderr, "Pushing back OMP_ORDERED\n");
+                  parRegionsList.push_back(iPar);
+               }
+               /* Master construct */
+               else if(strstr(ppdf->symTabName().c_str(), "Master") !=NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_MASTER);
 		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
-		      fprintf(stderr, "Pushing back OMP_MASTER\n");
-		      parRegionsList.push_back(iPar);
-		    }
-		  /* Flush construct */
-		  else if(strstr(ppdf->symTabName().c_str(), "Flush") !=NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_FLUSH);
+                  fprintf(stderr, "Pushing back OMP_MASTER\n");
+                  parRegionsList.push_back(iPar);
+               }
+               /* Flush construct */
+               else if(strstr(ppdf->symTabName().c_str(), "Flush") !=NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_FLUSH);
 		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
-		      fprintf(stderr, "Pushing back OMP_FLUSH\n");
-		      parRegionsList.push_back(iPar);
-		    }
-		  /* Critical Construct, Starts with GetDefaultSLock, ends with RelDefaultSLock */
-		  else if(strstr(ppdf->symTabName().c_str(), "GetDefaultSLock") != NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_CRITICAL);
+                  fprintf(stderr, "Pushing back OMP_FLUSH\n");
+                  parRegionsList.push_back(iPar);
+               }
+               /* Critical Construct, Starts with GetDefaultSLock, ends with RelDefaultSLock */
+               else if(strstr(ppdf->symTabName().c_str(), "GetDefaultSLock") != NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_CRITICAL);
 		      
-		      InstrucIter ah2(ah.getCurrentAddress(), this);
-		      while (ah2.hasMore())
-			{
-			  if( ah2.isACallInstruction() ||
-			      ah2.isADynamicCallInstruction() )
-			    {
-			      Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
+                  InstrucIter ah2(ah.getCurrentAddress(), this);
+                  while (ah2.hasMore())
+                  {
+                     if( ah2.isACallInstruction() ||
+                         ah2.isADynamicCallInstruction() )
+                     {
+                        Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
 			      
-			      image_func *ppdf2 = im->findFuncByEntry(target2);
-			      if (ppdf2 != NULL)
-				{
-				  if(strstr(ppdf2->symTabName().c_str(), "RelDefaultSLock") !=NULL)
-				    break;
-				}
-			    }
-			  ah2++;
-			}
-		      iPar->setLastInsn(ah2.getCurrentAddress());
+                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        if (ppdf2 != NULL)
+                        {
+                           if(strstr(ppdf2->symTabName().c_str(), "RelDefaultSLock") !=NULL)
+                              break;
+                        }
+                     }
+                     ah2++;
+                  }
+                  iPar->setLastInsn(ah2.getCurrentAddress());
 
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		      
-		      fprintf(stderr, "Pushing back OMP_CRITICAL\n");
-		      parRegionsList.push_back(iPar);
-		    }
-		  /*Atomic Construct,  Begins with GetAtomicLock, ends with RelAtomicLock */
-		  else if(strstr(ppdf->symTabName().c_str(), "GetAtomicLock") != NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_ATOMIC);
+                  fprintf(stderr, "Pushing back OMP_CRITICAL\n");
+                  parRegionsList.push_back(iPar);
+               }
+               /*Atomic Construct,  Begins with GetAtomicLock, ends with RelAtomicLock */
+               else if(strstr(ppdf->symTabName().c_str(), "GetAtomicLock") != NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_ATOMIC);
 
-		      InstrucIter ah2(ah.getCurrentAddress(), this);
-		      while (ah2.hasMore())
-			{
-			  if( ah2.isACallInstruction() ||
-			      ah2.isADynamicCallInstruction() )
-			    {
-			      Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
+                  InstrucIter ah2(ah.getCurrentAddress(), this);
+                  while (ah2.hasMore())
+                  {
+                     if( ah2.isACallInstruction() ||
+                         ah2.isADynamicCallInstruction() )
+                     {
+                        Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
 			      
-			      image_func *ppdf2 = im->findFuncByEntry(target2);
-			      if (ppdf2 != NULL)
-				{
-				  if(strstr(ppdf2->symTabName().c_str(), "RelDefaultSLock") !=NULL)
-				    break;
-				}
-			    }
-			  ah2++;
-			}
-		      iPar->setLastInsn(ah2.getCurrentAddress());
+                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        if (ppdf2 != NULL)
+                        {
+                           if(strstr(ppdf2->symTabName().c_str(), "RelDefaultSLock") !=NULL)
+                              break;
+                        }
+                     }
+                     ah2++;
+                  }
+                  iPar->setLastInsn(ah2.getCurrentAddress());
 		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
-		      fprintf(stderr, "Pushing back OMP_ATOMIC\n");
-		      parRegionsList.push_back(iPar);
-		    }
-		  else
-		    {
-		    }/* End Checking Different Directive Types */
+                  fprintf(stderr, "Pushing back OMP_ATOMIC\n");
+                  parRegionsList.push_back(iPar);
+               }
+               else
+               {
+               }/* End Checking Different Directive Types */
 		 
-		}
-	    }
-	}
+            }
+         }
+      }
       ah++;
-    }
+   }
 }
 
 /* This does a linear scan to find out which registers are used in the function,
@@ -619,11 +620,10 @@ void image_func::parseOMPFunc(bool hasLoop)
    It returns true or false based on whether the function is a leaf function,
    since if it is not the function could call out to another function that
    clobbers more registers so more analysis would be needed */
-
 void image_func::calcUsedRegs()
 {
-  if (usedRegisters != NULL)
-       return; 
+   if (usedRegisters != NULL)
+      return; 
    else
    {
       usedRegisters = new image_func_registers();
@@ -632,21 +632,21 @@ void image_func::calcUsedRegs()
       //while there are still instructions to check for in the
       //address space of the function      
       while (ah.hasMore()) 
-	{
-	  if (ah.isA_RT_WriteInstruction())
-	    if (ah.getRTValue() >= 3 && ah.getRTValue() <= 12)
-	      usedRegisters->generalPurposeRegisters.insert(ah.getRTValue());
-	  if (ah.isA_RA_WriteInstruction())
-	    if (ah.getRAValue() >= 3 && ah.getRAValue() <= 12)
-	      usedRegisters->generalPurposeRegisters.insert(ah.getRAValue());
-	  if (ah.isA_FRT_WriteInstruction())
-	    if (ah.getRTValue() >= 0 && ah.getRTValue() <= 13)
-	      usedRegisters->floatingPointRegisters.insert(ah.getRTValue());
-	  if (ah.isA_FRA_WriteInstruction())
-	    if (ah.getRAValue() >= 0 && ah.getRAValue() <= 13)
-	      usedRegisters->floatingPointRegisters.insert(ah.getRAValue());
-	  ah++;
-	}
+      {
+         if (ah.isA_RT_WriteInstruction())
+            if (ah.getRTValue() >= 3 && ah.getRTValue() <= 12)
+               usedRegisters->generalPurposeRegisters.insert(ah.getRTValue());
+         if (ah.isA_RA_WriteInstruction())
+            if (ah.getRAValue() >= 3 && ah.getRAValue() <= 12)
+               usedRegisters->generalPurposeRegisters.insert(ah.getRAValue());
+         if (ah.isA_FRT_WriteInstruction())
+            if (ah.getRTValue() <= 13)
+               usedRegisters->floatingPointRegisters.insert(ah.getRTValue());
+         if (ah.isA_FRA_WriteInstruction())
+            if (ah.getRAValue() <= 13)
+               usedRegisters->floatingPointRegisters.insert(ah.getRAValue());
+         ah++;
+      }
    }
-  return;
+   return;
 }
