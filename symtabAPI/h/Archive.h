@@ -58,7 +58,6 @@ class Archive{
 #endif
 
 	bool getMember(Symtab *&img, std::string memberName);
-	bool getMemberByOffset(Symtab *&img, Offset memberOffset);
 	bool getAllMembers(std::vector <Symtab *> &members);
 	bool isMemberInArchive(std::string member_name);
 
@@ -77,7 +76,7 @@ class Archive{
  	std::string filename_;
 	char *mem_image_;
 	hash_map <std::string, Symtab *> membersByName;
-	hash_map <Offset, Symtab *> membersByOffset;
+    hash_map <std::string, Offset> memberToOffsetMapping;
 
 	// A vector of all Archive. Used to avoid duplicating
    // a Archive that already exists.

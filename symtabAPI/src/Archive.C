@@ -198,9 +198,13 @@ Archive::Archive(std::string &filename, bool &err) : filename_(filename)
 		std::string::size_type len = member_name.length();
 		if((len >= 4)&&(member_name.substr(len-4,4) == ".imp" || member_name.substr(len-4,4) == ".exp"))
 			continue;
+        memberToOffsetMapping[member_name] = archive->aout_offset;
+        //Do it lazily
+		membersByName[member_name] = NULL;
+/*        
 		Symtab *memImg = new Symtab(filename ,member_name, archive->aout_offset, err);
 		membersByName[member_name] = memImg;
-		membersByOffset[archive->aout_offset] = memImg;
+*/
    } 	
    delete archive;
 	err = true;
@@ -328,45 +332,44 @@ bool Archive::getMember(Symtab *&img, std::string member_name)
 		return false;
 	}	
 	img = membersByName[member_name];
-	return true;
-}
-
-bool Archive::getMemberByOffset(Symtab *&img, Offset memberOffset)
-{
- 	if(membersByOffset.find(memberOffset) == membersByOffset.end())
-	{
-		serr = No_Such_Member;
-		errMsg = "Member Does not exist";
-		return false;
-	}	
-	img = membersByOffset[memberOffset];
+    if(img == NULL) {
+        bool err;
+	    img = new Symtab(filename_ ,member_name, memberToOffsetMapping[member_name], err);
+		membersByName[member_name] = img;
+    }
 	return true;
 }
 
 bool Archive::getAllMembers(std::vector <Symtab *> &members)
 {
  	hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
-	for(; iter!=membersByName.end();iter++)
+	for(; iter!=membersByName.end();iter++) {
+        if(iter->second == NULL) {
+            bool err;
+            string member_name = iter->first;
+            iter->second = new Symtab(filename_, member_name, memberToOffsetMapping[iter->first], err);
+            membersByName[iter->first] = iter->second;
+        }
 		members.push_back(iter->second);
+    }
 	return true;	
 }
 
 bool Archive::isMemberInArchive(std::string member_name)
 {
- 	hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
-	for(; iter!=membersByName.end();iter++)
-	{
-		if(iter->first == member_name)
-			return true;
-	}	
-	return false;
+    if(membersByName.find(member_name) != membersByName.end())
+        return true;
+    return false;
 }
 
 Archive::~Archive()
 {
  	hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
-	for(; iter!=membersByName.end();iter++)
+	for(; iter!=membersByName.end();iter++) {
+        if(iter->second)
       		delete (iter->second);
+    }
+    memberToOffsetMapping.clear();
 	for (unsigned i = 0; i < allArchives.size(); i++) {
       	if (allArchives[i] == this)
         	allArchives.erase(allArchives.begin()+i);
