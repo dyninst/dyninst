@@ -771,6 +771,7 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
  * Writes the mutated file back to disk,
  * in ELF format.
  */
+#if defined (cap_save_the_world)
 #if defined(os_solaris) || (defined(os_linux) && defined(arch_x86)) || defined(os_aix)
 char* BPatch_process::dumpPatchedImageInt(const char* file)
 {
@@ -787,6 +788,7 @@ char* BPatch_process::dumpPatchedImageInt(const char* file)
    return ret;
    return NULL;
 }
+#endif
 #else
 char* BPatch_process::dumpPatchedImageInt(const char*)
 {

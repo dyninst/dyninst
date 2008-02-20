@@ -691,9 +691,11 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
     }
 
     // We have work to do. Pause the process.
-    if (!proc()->IndependentLwpControl() && !proc_->pause()) {
-        recursionGuard = false;
-        return false;
+    if (!proc()->IndependentLwpControl()) {
+       if (!proc_->pause()) {
+          recursionGuard = false;
+          return false;
+       }
     }
     
     // Okay, there is an inferior RPC to do somewhere. Now we just need
@@ -781,7 +783,8 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
                                Register &resultReg,
                                bool lowmem, 
                                dyn_thread *thr,
-                               dyn_lwp * lwp) {
+                               dyn_lwp * lwp) 
+{
    // Returns addr of temp tramp, which was allocated in the inferior heap.
    // You must free it yourself when done.
    // Note how this is, in many ways, a greatly simplified version of

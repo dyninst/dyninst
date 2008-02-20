@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2008/02/15 17:27:51 giri Exp $
+# $Id: Makefile,v 1.3 2008/02/20 08:31:02 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -32,12 +32,12 @@ SRCS =          ../src/linux.C \
                 ../src/arch-power.C \
                 ../src/unix.C \
 		../src/InstrucIter-power.C \
-		../src/addLibraryLinux.C \
-		../src/writeBackElf.C \
-		../src/saveSharedLibrary.C \
 		../src/image-power.C \
 		../src/parseDwarf.C \
 		../src/syscall-linux.C
+#		../src/addLibraryLinux.C \
+#		../src/writeBackElf.C \
+#		../src/saveSharedLibrary.C \
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

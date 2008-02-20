@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary.c,v 1.9 2006/01/13 00:00:48 jodom Exp $ */
+/* $Id: RTmutatedBinary.c,v 1.10 2008/02/20 08:31:08 jaw Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -61,7 +61,9 @@ extern int checkMutatedFile();
  * data structures for SaveTheWorld. Ensure
  * it is called _before_ DYNINSTinit
  */ 
-void RTmutatedBinary_init(){
+#if defined (cap_save_the_world)
+void RTmutatedBinary_init()
+{
 
 /* this buffer is allocated to clear
    the first page on the heap. This is necessary
@@ -82,4 +84,5 @@ void RTmutatedBinary_init(){
     }
     
 }
+#endif
 

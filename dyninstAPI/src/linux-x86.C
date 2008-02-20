@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.136 2008/02/07 16:07:55 jaw Exp $
+// $Id: linux-x86.C,v 1.137 2008/02/20 08:31:03 jaw Exp $
 
 #include <fstream>
 
@@ -1095,6 +1095,7 @@ bool Frame::setPC(Address newpc) {
    return false;
 }
 
+#if defined (cap_save_the_world)
 void process::setPrelinkCommand(char *command){
 	if(command){
 		struct stat buf;
@@ -1106,7 +1107,9 @@ void process::setPrelinkCommand(char *command){
 		}
 	}
 }
+#endif
 
+#if defined (cap_save_the_world)
 bool process::prelinkSharedLibrary(string originalLibNameFullPath, 
                                    char* dirName, Address baseAddr)
 {
@@ -1155,7 +1158,8 @@ bool process::prelinkSharedLibrary(string originalLibNameFullPath,
 
 	return res;
 }
-
+#endif
+#if defined (cap_save_the_world)
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002 
 
 	addLibrary addLibraryElf;
@@ -1365,7 +1369,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 	return directoryName;	
 
 }
-
+#endif // (cap_save_the_world)
 // Laziness here: this func is used by the iRPC code
 // to get result registers. Don't use it other than that. 
 

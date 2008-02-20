@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.220 2007/12/04 21:10:20 legendre Exp $
+// $Id: solaris.C,v 1.221 2008/02/20 08:31:07 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -159,6 +159,7 @@ bool process::get_exit_syscalls(sysset_t *exit)
     return true;
 }    
 
+#if defined (cap_save_the_world)
 //TODO: This function should be converted to use process objects, not BPatch.
 bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirName){
     BPatch_Vector<BPatch_snippet *> args;
@@ -218,7 +219,9 @@ bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirNam
     delete [] newLibName;
     return res;
 }
+#endif
 
+#if defined(cap_save_the_world)
 
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
@@ -530,6 +533,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	delete newElf; // INSURE CCW
 	return directoryName;
 }
+#endif
 
 bool process::dumpImage(pdstring imageFileName) 
 {

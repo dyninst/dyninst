@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.76 2008/02/19 13:38:09 rchen Exp $
+// $Id: aixDL.C,v 1.77 2008/02/20 08:31:03 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -185,10 +185,12 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
 
     int mapfd = proc->getRepresentativeLWP()->map_fd();
     do {
-        pread(mapfd, &mapEntry, sizeof(prmap_t), iter*sizeof(prmap_t));
+        if (sizeof(prmap_t) != pread(mapfd, &mapEntry, sizeof(prmap_t), iter*sizeof(prmap_t)))
+           fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
         if (mapEntry.pr_size != 0) {
             prmap_t next;
-            pread(mapfd, &next, sizeof(prmap_t), (iter+1)*sizeof(prmap_t));
+            if (sizeof(prmap_t) != pread(mapfd, &next, sizeof(prmap_t), (iter+1)*sizeof(prmap_t)))
+               fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
             if (strcmp(mapEntry.pr_mapname, next.pr_mapname)) {
                 // Must only have a text segment (?)
                 next.pr_vaddr = 0;
@@ -199,9 +201,13 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
             }
             
             char objname[256];
+            objname[0] = '\0';
             if (mapEntry.pr_pathoff) {
-                pread(mapfd, objname, 256,
-                      mapEntry.pr_pathoff);
+               pread(mapfd, objname, 256,
+                     mapEntry.pr_pathoff);
+               if (objname[0] == '\0')
+                  fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, 
+                        strerror(errno));
             }
             else {
                 objname[0] = objname[1] = objname[2] = 0;

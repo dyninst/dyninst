@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.34 2008/02/15 23:44:36 legendre Exp $
+ * $Id: RTposix.c,v 1.35 2008/02/20 08:31:08 jaw Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -151,6 +151,8 @@ int DYNINSTasyncConnect(int pid)
   }
 
   /* maybe need to do fcntl to set nonblocking writes on this fd */
+
+  unlink(sock_fd);
 
   assert(async_socket == -1);
   async_socket = sock_fd;

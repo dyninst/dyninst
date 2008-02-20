@@ -39,11 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.180 2008/02/15 17:27:38 giri Exp $
+// $Id: BPatch.C,v 1.181 2008/02/20 08:31:03 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #define BPATCH_FILE
 #include "common/h/Pair.h"
@@ -1344,31 +1347,35 @@ void BPatch::registerProcess(BPatch_process *process, int pid)
  */
 void BPatch::unRegisterProcess(int pid, BPatch_process *proc)
 {
-    if (pid == -1 || !info->procsByPid.defines(pid)) {
-        // Deleting an exited process; search and nuke
-        dictionary_hash_iter<int, BPatch_process *> procsIter(info->procsByPid);
-        BPatch_process *p;
-        int pid2;
-        while (procsIter.next(pid2, p)) {
-            if (p == proc) {
-                info->procsByPid.undef(pid2);
-                return;
-            }
-        }
-    }
-    
-    if (!info->procsByPid.defines(pid)) {
-        fprintf(stderr, "%s[%d]:  ERROR, no process %d defined in procsByPid\n", FILE__,  __LINE__, pid);
-        dictionary_hash_iter<int, BPatch_process *> iter(info->procsByPid);
-        BPatch_process *p;
-        int pid;
-        while (iter.next(pid, p)) {
-            fprintf(stderr, "%s[%d]:  have process %d\n", FILE__, __LINE__, pid);
-        }
-    }
-    assert(info->procsByPid.defines(pid));
-    info->procsByPid.undef(pid);	
-    assert(!info->procsByPid.defines(pid));
+   if (pid == -1 || !info->procsByPid.defines(pid)) {
+      // Deleting an exited process; search and nuke
+      dictionary_hash_iter<int, BPatch_process *> procsIter(info->procsByPid);
+      BPatch_process *p;
+      int pid2;
+      while (procsIter.next(pid2, p)) {
+         if (p == proc) {
+            info->procsByPid.undef(pid2);
+            return;
+         }
+      }
+   }
+
+   if (!info->procsByPid.defines(pid)) {
+      char ebuf[256];
+      sprintf(ebuf, "%s[%d]: no process %d defined in procsByPid\n", FILE__, __LINE__, pid);
+      reportError(BPatchFatal, 68, ebuf);
+      //fprintf(stderr, "%s[%d]:  ERROR, no process %d defined in procsByPid\n", FILE__,  __LINE__, pid);
+      //dictionary_hash_iter<int, BPatch_process *> iter(info->procsByPid);
+      //BPatch_process *p;
+      //int pid;
+      //while (iter.next(pid, p)) {
+      //   fprintf(stderr, "%s[%d]:  have process %d\n", FILE__, __LINE__, pid);
+      //}
+      return;
+   }
+   assert(info->procsByPid.defines(pid));
+   info->procsByPid.undef(pid);	
+   assert(!info->procsByPid.defines(pid));
 }
 
 
@@ -1393,37 +1400,69 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
                                          const char **envp, int stdin_fd, 
                                          int stdout_fd, int stderr_fd)
 {
-    clearError();
+   clearError();
 
-    if( path == NULL ) { return NULL; }
+   if ( path == NULL ) { return NULL; }
 
-    BPatch_process *ret = 
-       new BPatch_process(path, argv, 
-                          envp, 
-                          stdin_fd, stdout_fd, stderr_fd);
-    
-    if (!ret->llproc ||
-        ret->llproc->status() != stopped ||
-        !ret->llproc->isBootstrappedYet()) {
-        ret->BPatch_process_dtor();  
-        delete ret;
-        reportError(BPatchFatal, 68, "create process failed bootstrap");
-        return NULL;
-    }
+#if !defined (os_windows)
+   //  This might be ok on windows...  not 100%sure and it takes to long to build for
+   //  the moment.
+
+   //  just a sanity check for the exitence of <path>
+   struct stat statbuf;
+   if (-1 == stat(path, &statbuf)) {
+      char ebuf[2048];
+      sprintf(ebuf, "createProcess(%s,...):  file does not exist\n", path);
+      reportError(BPatchFatal, 68, ebuf);
+      return NULL;
+   }
+
+   //  and ensure its a regular file:
+   if (!S_ISREG(statbuf.st_mode)) {
+      char ebuf[2048];
+      sprintf(ebuf, "createProcess(%s,...):  not a regular file \n", path);
+      reportError(BPatchFatal, 68, ebuf);
+      return NULL;
+   }
+
+   //  and ensure its executable (does not check permissions):
+   if (! ( (statbuf.st_mode & S_IXUSR)
+            || (statbuf.st_mode & S_IXGRP)
+            || (statbuf.st_mode & S_IXOTH) )) {
+      char ebuf[2048];
+      sprintf(ebuf, "createProcess(%s,...):  not an executable  \n", path);
+      reportError(BPatchFatal, 68, ebuf);
+      return NULL;
+   }
+#endif
+
+   BPatch_process *ret = 
+      new BPatch_process(path, argv, 
+            envp, 
+            stdin_fd, stdout_fd, stderr_fd);
+
+   if (!ret->llproc 
+         ||  ret->llproc->status() != stopped 
+         ||  !ret->llproc->isBootstrappedYet()) {
+      ret->BPatch_process_dtor();  
+      delete ret;
+      reportError(BPatchFatal, 68, "create process failed bootstrap");
+      return NULL;
+   }
 
 #if defined(cap_async_events)
-    async_printf("%s[%d]:  about to connect to process\n", FILE__, __LINE__);
-    if (!getAsync()->connectToProcess(ret)) {
-       bpfatal("%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
-       fprintf(stderr,"%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
-       return NULL;
-    }
-    asyncActive = true;
+   async_printf("%s[%d]:  about to connect to process\n", FILE__, __LINE__);
+   if (!getAsync()->connectToProcess(ret)) {
+      bpfatal("%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+      fprintf(stderr,"%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+      return NULL;
+   }
+   asyncActive = true;
 #endif
-    ret->updateThreadInfo();
-    
 
-    return ret;
+   ret->updateThreadInfo();
+
+   return ret;
 }
 
 /*

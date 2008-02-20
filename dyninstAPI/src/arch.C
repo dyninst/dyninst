@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.13 2008/02/14 22:03:49 legendre Exp $
+// $Id: arch.C,v 1.14 2008/02/20 08:31:03 jaw Exp $
 // Code generation
 
 //////////////////////////
@@ -101,10 +101,10 @@ codeGen::codeGen(unsigned size) :
 
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
-    memset(buffer_, 0, size+codeGenPadding);
     if (!buffer_)
-        fprintf(stderr, "Malloc failed for buffer of size %d\n", size_);
+       fprintf(stderr, "%s[%d]: malloc failed: size is %d + codeGenPadding = %d\n", FILE__, __LINE__, size, codeGenPadding);
     assert(buffer_);
+    memset(buffer_, 0, size+codeGenPadding);
 }
 
 

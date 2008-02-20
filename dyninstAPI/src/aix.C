@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.240 2008/02/19 13:38:04 rchen Exp $
+// $Id: aix.C,v 1.241 2008/02/20 08:31:03 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -831,6 +831,7 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 }
 
 
+#if defined (cap_save_the_world)
 void process::addLib(char* lname){
 
 	BPatch_process *appThread = BPatch::bpatch->getProcessByPid(getPid());
@@ -879,8 +880,9 @@ void process::addLib(char* lname){
    
 	BPatch::bpatch->setTrampRecursive( isTrampRecursive ); //ccw 31 jan 2003
 }
+#endif
 
-
+#if defined (cap_save_the_world)
 //save world
 char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
@@ -999,7 +1001,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	return directoryName;
 }
-
+#endif
 bool process::handleTrapAtLibcStartMain(dyn_lwp *)  { assert(0); return false; }
 bool process::instrumentLibcStartMain() { assert(0); return false; }
 bool process::decodeStartupSysCalls(EventRecord &) { assert(0); return false; }
@@ -1597,6 +1599,7 @@ bool process::get_entry_syscalls(sysset_t *entry)
         if(pread(getRepresentativeLWP()->status_fd(), entry, 
                  SYSSET_SIZE(entry), status.pr_sysentry_offset)
            != (int) SYSSET_SIZE(entry)) {
+           fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
             perror("get_entry_syscalls: read");
             return false;
         }
@@ -1617,6 +1620,7 @@ bool process::get_exit_syscalls(sysset_t *exit)
         if(pread(getRepresentativeLWP()->status_fd(), exit, 
                  SYSSET_SIZE(exit), status.pr_sysexit_offset)
            != (int) SYSSET_SIZE(exit)) {
+           fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
             perror("get_exit_syscalls: read");
             return false;
         }
@@ -1797,8 +1801,10 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
             if (stat_fd <= 0) 
                 stat_fd = P_open(tempstr, O_RDONLY, 0);
             if (stat_fd > 0) {
-                if (pread(stat_fd, &pstatus, sizeof(pstatus), 0) != sizeof(pstatus))
+                if (pread(stat_fd, &pstatus, sizeof(pstatus), 0) != sizeof(pstatus)) {
+                   fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
                     perror("pread failed while waiting for initial trap\n");
+                }
                 
                 if ((pstatus.pr_lwp.pr_why == PR_SYSEXIT))
                     trapped = 1;
@@ -1827,14 +1833,19 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
 
     prmap_t text_map;
     char prog_name[512];
+    prog_name[0] = '\0';
 
     prmap_t data_map;
     
-    pread(map_fd, &text_map, sizeof(prmap_t), 0);
+    if (sizeof(prmap_t) != pread(map_fd, &text_map, sizeof(prmap_t), 0))
+       fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
     pread(map_fd, prog_name, 512, text_map.pr_pathoff);
+    if (prog_name[0] == '\0')
+       fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
     //assert(text_map.pr_mflags & MA_MAINEXEC);
     
-    pread(map_fd, &data_map, sizeof(prmap_t), sizeof(prmap_t));
+    if (sizeof(prmap_t) != pread(map_fd, &data_map, sizeof(prmap_t), sizeof(prmap_t)))
+       fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
     if (!(data_map.pr_mflags & MA_MAINEXEC))
         data_map.pr_vaddr = 0;
     

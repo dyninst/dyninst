@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.233 2008/02/15 23:44:35 legendre Exp $
+// $Id: unix.C,v 1.234 2008/02/20 08:31:07 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -527,12 +527,13 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
      // and let it run. 
      fprintf(stderr, "%s[%d][%s]:  ERROR:  couldn't insert at entry of main,\n",
              FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     fprintf(stderr, "\tinstrumenting process impossible\n");
      // We should actually delete any mention of this
      // process... including (for Paradyn) removing it from the
      // frontend.
      proc->triggerNormalExitCallback(0);
+     fprintf(stderr, "\tinstrumenting process impossible\n");
      proc->handleProcessExit();
+     fprintf(stderr, "\tinstrumenting process impossible\n");
      continueHint = true;
   }
   return false;
@@ -662,6 +663,8 @@ bool SignalGenerator::decodeSignal_NP(EventRecord &)
 bool SignalGenerator::decodeSignal(EventRecord &ev)
 {
 
+   //char ebuf[128];
+   //fprintf(stderr, "%s[%d]:  DECODE SIGNAL: %s\n", FILE__, __LINE__, ev.sprint_event(ebuf));
   //  allow for platform specific decoding of signals, currently only used on
   //  AIX.  If decodeSignal_NP() returns true, the event is fully decoded
   //  so we're done here.
@@ -758,6 +761,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
   char buf[128];
   process *proc = ev.proc;
 
+  //fprintf(stderr, "%s[%d]:  SIGTRAP: %s\n", FILE__, __LINE__, ev.sprint_event(buf));
   if (decodeIfDueToProcessStartup(ev)) {
      signal_printf("%s[%d]:  decodeSigTrap for %s, state: %s\n",
                 FILE__, __LINE__, ev.sprint_event(buf), 
@@ -1270,8 +1274,9 @@ bool forkNewProcess_real(pdstring file,
       }else
          P_execvp(file.c_str(), args);
 
-      P_abort();
-      //P__exit(-1);
+      fprintf(stderr, "%s[%d]:  exec %s failed, aborting child process\n", __FILE__, __LINE__, file.c_str());
+      //P_abort();
+      P__exit(-1);
       // not reached
     
       return false;

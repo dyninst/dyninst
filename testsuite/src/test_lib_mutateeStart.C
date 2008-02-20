@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_mutateeStart.C,v 1.4 2006/10/11 21:54:32 cooksey Exp $
+// $Id: test_lib_mutateeStart.C,v 1.5 2008/02/20 08:31:08 jaw Exp $
 // Functions Dealing with mutatee Startup
 
 #include "test_lib.h"
@@ -49,52 +49,52 @@
 BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach, char *logfilename)
 {
    BPatch_thread *appThread;
-    if (useAttach) {
-        FILE *outlog = stdout;
-	FILE *errlog = stderr;
-        if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
-	   outlog = fopen(logfilename, "a");
-	   if (outlog == NULL) {
-	     outlog = stdout;
-	   } else {
-	     errlog = outlog;
-	   }
-        }
-	int pid = startNewProcessForAttach(pathname, child_argv,
-					   outlog, errlog);
-	if (pid < 0) {
-	    fprintf(stderr, "*ERROR*: unable to start tests due to error creating mutatee process\n");
-            return NULL;
-        } else {
-            dprintf("New mutatee process pid %d started; attaching...\n", pid);
-	}
-        P_sleep(1); // let the mutatee catch its breath for a moment
-        dprintf("Attaching to process: %s, %d\n", pathname, pid);
-	appThread = bpatch->attachProcess(pathname, pid);
-        dprintf("Attached to process\n");
-	// Is if safe to close the files now?
-	if ((outlog != NULL) && (outlog != stdout)) {
-	  fclose(outlog);
-	}
-    } else {
-       /*
-        printf("before createProcess, bpatch %x, %s\n", bpatch, pathname);
-        for ( int i = 0; child_argv[i] != NULL; i++)
-        {
-           printf("%s ", child_argv[i]);
-        }
-        printf("\n");
-        */
+   if (useAttach) {
+      FILE *outlog = stdout;
+      FILE *errlog = stderr;
       if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
-	FILE *logfile = fopen(logfilename, "a");
-	int logfile_fd = 1;
-	if (logfile != NULL) {
-	  logfile_fd = fileno(logfile);
-	}
-	appThread = bpatch->createProcess(pathname, child_argv, NULL,
-					  0, logfile_fd, logfile_fd);
+         outlog = fopen(logfilename, "a");
+         if (outlog == NULL) {
+            outlog = stdout;
+         } else {
+            errlog = outlog;
+         }
+      }
+      int pid = startNewProcessForAttach(pathname, child_argv,
+            outlog, errlog);
+      if (pid < 0) {
+         fprintf(stderr, "*ERROR*: unable to start tests due to error creating mutatee process\n");
+         return NULL;
       } else {
-	appThread = bpatch->createProcess(pathname, child_argv, NULL);
+         dprintf("New mutatee process pid %d started; attaching...\n", pid);
+      }
+      P_sleep(1); // let the mutatee catch its breath for a moment
+      dprintf("Attaching to process: %s, %d\n", pathname, pid);
+      appThread = bpatch->attachProcess(pathname, pid);
+      dprintf("Attached to process\n");
+      // Is if safe to close the files now?
+      if ((outlog != NULL) && (outlog != stdout)) {
+         fclose(outlog);
+      }
+   } else {
+      /*
+         printf("before createProcess, bpatch %x, %s\n", bpatch, pathname);
+         for ( int i = 0; child_argv[i] != NULL; i++)
+         {
+         printf("%s ", child_argv[i]);
+         }
+         printf("\n");
+       */
+      if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+         FILE *logfile = fopen(logfilename, "a");
+         int logfile_fd = 1;
+         if (logfile != NULL) {
+            logfile_fd = fileno(logfile);
+         }
+         appThread = bpatch->createProcess(pathname, child_argv, NULL,
+               0, logfile_fd, logfile_fd);
+      } else {
+         appThread = bpatch->createProcess(pathname, child_argv, NULL);
       }
 
         //printf("after createProcess: %x\n", appThread);

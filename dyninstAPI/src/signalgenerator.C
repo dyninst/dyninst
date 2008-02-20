@@ -1601,6 +1601,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
 
       startup_printf("%s[%d]:  about to setAOut\n", FILE__, __LINE__);
       if (!proc->setAOut(desc)) {
+          fprintf(stderr, "%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
           sleep(1);
           startup_printf("%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
 #if !defined(os_windows)

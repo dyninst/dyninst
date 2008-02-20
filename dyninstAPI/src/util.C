@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.34 2008/02/07 16:07:55 jaw Exp $
+/* $Id: util.C,v 1.35 2008/02/20 08:31:07 jaw Exp $
  * util.C - support functions.
  */
 
@@ -63,7 +63,7 @@ using namespace Dyninst;
 bool waitForFileToExist(char *fname, int timeout_seconds)
 {
   int timeout = 0; // milliseconds
-  int sleep_increment = 100; // ms
+  int sleep_increment = 10; // ms
   int timeout_milliseconds = 1000 *timeout_seconds;
 
   struct stat statbuf;
@@ -95,14 +95,14 @@ int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds)
 {
 
   int timeout = 0; // milliseconds
-  int sleep_increment = 100; // ms
+  int sleep_increment = 10; // ms
   int timeout_milliseconds = 1000 *timeout_seconds;
 
   
   int fd = 0;
   while (0 >= (fd = P_open(fname, flags, mode))) {
     if ((errno != EBUSY) && (errno != ETXTBSY) && (errno != 0)){
-      fprintf(stderr, "%s[%d]:  open failed with %s\n", FILE__, __LINE__, strerror(errno));
+      fprintf(stderr, "%s[%d]:  open(%s) failed with %s\n", FILE__, __LINE__, fname, strerror(errno));
       return -1;
     }
 

@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.117 2008/02/19 13:38:19 rchen Exp $
+// $Id: sol_proc.C,v 1.118 2008/02/20 08:31:06 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -104,14 +104,17 @@ void OS::osTraceMe(void)
     int stat_fd = P_open(procName, O_RDONLY, 0);
     if (pread(stat_fd, (void *)&status, sizeof(pstatus_t), 0) !=
         sizeof(pstatus_t)) {
+       fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
         perror("osTraceMe::pread");
         SYSSET_FREE(exitSet);
         delete [] buf;
         return;
     }
 #if defined(os_aix) 
-    if (status.pr_sysexit_offset)
-        pread(stat_fd, exitSet, SYSSET_SIZE(exitSet), status.pr_sysexit_offset);
+    if (status.pr_sysexit_offset) {
+        if (SYSSET_SIZE(exitSet) != pread(stat_fd, exitSet, SYSSET_SIZE(exitSet), status.pr_sysexit_offset))
+       fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
+    }
     else // No syscalls are being traced 
         premptysysset(exitSet);
 #else
@@ -561,7 +564,7 @@ Frame dyn_lwp::getActiveFrame()
 }
 
 // Get the registers of the stopped thread and return them.
-bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP)
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool /*includeFP*/)
 {
     lwpstatus_t stat;
 
@@ -620,7 +623,7 @@ bool process::determineLWPs(pdvector<unsigned > &lwp_ids) {
 }
 
 // Restore registers saved as above.
-bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeFP)
+bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool /*includeFP*/)
 {
     assert(status() != running);
 
@@ -790,6 +793,7 @@ bool dyn_lwp::get_status(lwpstatus_t *stat) const
                 (void *)stat, 
                 sizeof(lwpstatus_t), 0) != sizeof(lwpstatus_t)) {
           // When we fork a LWP file might disappear.
+         fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
           if ((errno != ENOENT) && (errno != EBADF)) {
               fprintf(stderr, "%s[%d]:  dyn_lwp::get_status: %s\n", FILE__, __LINE__, strerror(errno));
           }
@@ -845,7 +849,7 @@ bool dyn_lwp::realLWP_attach_()
        return true;
    }
 
-   if (procstatus.pr_aslwpid == get_lwp_id()) 
+   if ((unsigned)procstatus.pr_aslwpid == get_lwp_id()) 
        is_as_lwp_ = true;
 #endif
 
@@ -854,9 +858,30 @@ bool dyn_lwp::realLWP_attach_()
 
 bool dyn_lwp::representativeLWP_attach_() 
 {
+#if defined(os_aix) 
+   fprintf(stderr, "%s[%d]:   0.5s sleep in representativeLWP_attach()\n", FILE__, __LINE__);
+   usleep(500 * 1000);
+   //sleep(3);
+   //sleep(1);
+#if 0
+   struct timeval slp;
+   slp.tv_sec = 0;
+   slp.tv_usec = 50 /*ms*/ * 1000;
+   select(0, NULL, NULL, NULL, &slp);
+#endif
+#endif
+#if defined (os_solaris)
+   fprintf(stderr, "%s[%d]:  50ms sleep in representativeLWP_attach()\n", FILE__, __LINE__);
+   struct timeval slp;
+   slp.tv_sec = 0;
+   slp.tv_usec = 50 /*ms*/ * 1000;
+   select(0, NULL, NULL, NULL, &slp);
+#endif
+#if 0 
 #if defined(os_aix) || defined(os_solaris)
-    // Wait a sec; we often outrun process creation.
+   // Wait a sec; we often outrun process creation.
     sleep(2);
+#endif
 #endif
    /*
      Open the /proc file corresponding to process pid
@@ -872,7 +897,7 @@ bool dyn_lwp::representativeLWP_attach_()
    }
    //ctl_fd_ = openFileWhenNotBusy(temp, O_WRONLY | O_EXCL, 0, 5/*seconds*/);
    ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);    
-   if (ctl_fd_ < 0) perror("Opening (LWP) ctl");
+   if (ctl_fd_ < 0) fprintf(stderr, "%s[%d]: Opening (LWP) ctl: %s", FILE__, __LINE__, strerror(errno));
    
    sprintf(temp, "/proc/%d/status", getPid());
    if (!waitForFileToExist(temp, 5 /*seconds */)) {
@@ -881,7 +906,7 @@ bool dyn_lwp::representativeLWP_attach_()
    }
    //status_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
    status_fd_ = P_open(temp, O_RDONLY, 0);    
-   if (status_fd_ < 0) perror("Opening (LWP) status");
+   if (status_fd_ < 0) fprintf(stderr, "%s[%d]: Opening (LWP) status: %s", FILE__, __LINE__, strerror(errno));
 
    as_fd_ = INVALID_HANDLE_VALUE;
    sprintf(temp, "/proc/%d/as", getPid());
@@ -891,7 +916,7 @@ bool dyn_lwp::representativeLWP_attach_()
    }
    //as_fd_ = openFileWhenNotBusy(temp, O_RDWR, 0, 5/*seconds*/);
    as_fd_ = P_open(temp, O_RDWR, 0);
-   if (as_fd_ < 0) perror("Opening as fd");
+   if (as_fd_ < 0) fprintf(stderr, "%s[%d]: Opening as fd: %s", FILE__, __LINE__, strerror(errno));
 
 #if !defined(os_aix)
    sprintf(temp, "/proc/%d/auxv", getPid());
@@ -901,7 +926,7 @@ bool dyn_lwp::representativeLWP_attach_()
    }
    //auxv_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
    auxv_fd_ = P_open(temp, O_RDONLY, 0);
-   if (auxv_fd_ < 0) perror("Opening auxv fd");
+   if (auxv_fd_ < 0) fprintf(stderr, "%s[%d]: Opening auxv fd: %s", FILE__, __LINE__, strerror(errno));
 #else
    // AIX doesn't have the auxv file
    auxv_fd_ = INVALID_HANDLE_VALUE;
@@ -923,7 +948,7 @@ bool dyn_lwp::representativeLWP_attach_()
    }
    //ps_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
    ps_fd_ = P_open(temp, O_RDONLY, 0);
-   if (ps_fd_ < 0) perror("Opening ps fd");
+   if (ps_fd_ < 0) fprintf(stderr, "%s[%d]: Opening ps fd: %s", FILE__, __LINE__, strerror(errno));
 
    is_attached_ = true;
 
@@ -1140,8 +1165,10 @@ bool process::isRunning_() const
     size_t sz_read = pread(status_fd, (void *)&procstatus, sizeof(pstatus_t), 0);
     close(status_fd);
 
-    if (sz_read != sizeof(pstatus_t))
+    if (sz_read != sizeof(pstatus_t)) {
+       fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
         return false;
+    }
 
     uint32_t stopped_flags = PR_STOPPED | PR_ISTOP;
 
@@ -1280,6 +1307,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 
    //  cerr << "process::writeDataSpace_ pid " << getPid() << " writing "
    //       << amount << " bytes at loc " << inTraced << endl;
+#if defined (cap_save_the_world)
 #if defined (sparc_sun_solaris2_4)
    if(proc_->collectSaveWorldData &&  ((Address) inTraced) >
       proc_->getDyn()->getlowestSObaseaddr() ) {
@@ -1299,6 +1327,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
            }
        }
    }
+#endif
 #endif
    off64_t loc;
    // Problem: we may be getting a address with the high bit
@@ -1330,6 +1359,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf)
     //       FILE__, __LINE__, getThreadStr(getExecThreadID()), res,
     //       inTraced, amount, inSelf);
     if (res != (int) amount) {
+       fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
         /*
           // Commented out; the top-level call will print an error if desired.
           perror("readDataSpace");

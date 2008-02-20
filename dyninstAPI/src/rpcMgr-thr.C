@@ -198,7 +198,8 @@ bool rpcThr::isReadyForIRPC() const {
 // 1) We have a pending RPC (in pendingRPC_) that we already prepped
 //    and we want to run it (and a system call breakpoint was set)
 // 2) We don't have a pending IRPC but there is one on the queue.
-irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
+irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) 
+{
 
     if (runningRPC_ || pendingRPC_) {
         return irpcError;
@@ -297,7 +298,8 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
     return runPendingIRPC();
 }
 
-irpcLaunchState_t rpcThr::runPendingIRPC() {
+irpcLaunchState_t rpcThr::runPendingIRPC() 
+{
     if (!pendingRPC_) {
         return irpcNoIRPC;
     }

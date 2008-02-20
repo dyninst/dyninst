@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.35 2008/02/15 17:27:48 giri Exp $
+# $Id: Makefile,v 1.36 2008/02/20 08:31:02 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -34,13 +34,13 @@ SRCS =          ../src/linux.C \
                 ../src/arch-x86.C \
                 ../src/unix.C \
 		../src/InstrucIter-x86.C \
-		../src/addLibraryLinux.C \
-		../src/writeBackElf.C \
-		../src/saveSharedLibrary.C \
 		../src/stackwalk-x86.C \
 		../src/image-x86.C \
 		../src/syscall-linux.C \
 		../src/parseDwarf.C
+#		../src/addLibraryLinux.C \
+#		../src/writeBackElf.C \
+#		../src/saveSharedLibrary.C \
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

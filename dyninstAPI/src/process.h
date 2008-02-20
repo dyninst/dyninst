@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.413 2007/12/04 18:05:26 legendre Exp $
+/* $Id: process.h,v 1.414 2008/02/20 08:31:03 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -266,6 +266,8 @@ class process : public AddressSpace {
     void continueAfterNextStop() { continueAfterNextStop_ = true; }
     static process *findProcess(int pid);
 
+#if defined (cap_save_the_world) 
+    
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -288,8 +290,12 @@ class process : public AddressSpace {
     void setPrelinkCommand(char *command);
 #endif
     
+#endif
+
 #else
+#if 0
     char* dumpPatchedImage(pdstring /*outFile*/) { return NULL; } 
+#endif
 #endif
 
     bool applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize);

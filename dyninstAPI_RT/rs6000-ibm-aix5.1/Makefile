@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2006/04/26 03:43:04 jaw Exp $
+# $Id: Makefile,v 1.12 2008/02/20 08:31:08 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -28,11 +28,11 @@ SRCS  += ../src/RTposix.c \
 	../src/RTaix.c \
 	../src/RTheap.c \
 	../src/RTheap-aix.c \
-	../src/RTmutatedBinary.c \
-	../src/RTmutatedBinary_XCOFF.c \
 	../src/RTthread-power-asm.s \
 	../src/RTthread-index.c \
 	../src/RTthread.c
+#	../src/RTmutatedBinary.c \
+#	../src/RTmutatedBinary_XCOFF.c \
 
 # Build and link the library text heap
 ifdef USES_LIB_TEXT_HEAP

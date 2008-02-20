@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.25 2008/02/19 13:39:16 rchen Exp $
+// $Id: test_lib.C,v 1.26 2008/02/20 08:31:08 jaw Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -1571,10 +1571,13 @@ bool createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&
 }
 
 
-int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, char *instrumentee, char*patch, int testNo, char *testName){
+int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, 
+      char *instrumentee, char*patch, int testNo, char *testName)
+{
 
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction(instrumentee, found_funcs)) || !found_funcs.size()) {
+     fprintf(stderr, "%s[%d]:  cannot find function %s\n", __FILE__, __LINE__, instrumentee);
     logerror("    Unable to find function %s\n",instrumentee);
     return -1;
   }
@@ -1588,6 +1591,7 @@ int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, ch
 
 
   if (!point1_1 || ((*point1_1).size() == 0)) {
+     fprintf(stderr, "%s[%d]:  cannot find entry to function %s\n", __FILE__, __LINE__, instrumentee);
     logerror("**Failed** test #%d (%s)\n", testNo,testName);
     logerror("    Unable to find entry point to \"%s.\"\n",instrumentee);
     return -1;
@@ -1596,6 +1600,7 @@ int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, ch
   BPatch_Vector<BPatch_function *> bpfv;
   if (NULL == appImage->findFunction(patch, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
+     fprintf(stderr, "%s[%d]:  cannot find entry to function %s\n", __FILE__, __LINE__, patch);
     logerror("**Failed** test #%d (%s)\n", testNo, testName);
     logerror("    Unable to find function %s\n", patch);
     return -1;

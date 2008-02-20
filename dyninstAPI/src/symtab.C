@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.315 2008/02/19 13:38:24 rchen Exp $
+ // $Id: symtab.C,v 1.316 2008/02/20 08:31:07 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1211,7 +1211,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    SymtabError serr = Not_An_Archive;
    Archive *archive;
 
-   startup_printf("%s[%d]:  opening file (or archive)\n", FILE__, __LINE__);
+   startup_printf("%s[%d]:  opening file %s (or archive)\n", FILE__, __LINE__, file.c_str());
    if (!Archive::openArchive(archive, file))
    {
       err = true;
@@ -1243,6 +1243,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
       }
       startup_printf("%s[%d]:  got member\n", FILE__, __LINE__);
    }
+   startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
 #else
    string file = desc_.file().c_str();
    //linkedFile = new Symtab();

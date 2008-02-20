@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.708 2008/02/19 13:38:14 rchen Exp $
+// $Id: process.C,v 1.709 2008/02/20 08:31:03 jaw Exp $
 
 #include <ctype.h>
 
@@ -435,6 +435,8 @@ void process::saveWorldData( Address, int, const void* ) { ; }
 
 #endif
 
+#if defined (cap_save_the_world) 
+
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -481,7 +483,9 @@ char* process::saveWorldFindDirectory(){
 
 }
 #endif
+#endif
 
+#if defined (cap_save_the_world)
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -747,7 +751,9 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 	return dyninst_SharedLibrariesData;
 }
 #endif
+#endif
 
+#if defined (cap_save_the_world)
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -973,7 +979,9 @@ void process::saveWorldCreateDataSections(void* ptr){
 
 }
 #endif
+#endif
 
+#if defined (cap_save_the_world)
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -1024,7 +1032,7 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 }
 
 #endif
-
+#endif
 
 /*
  * Given an image, add all static heaps inside it
@@ -2520,6 +2528,7 @@ bool process::loadDyninstLib() {
 
    if (!finalizeDyninstLib())
       startup_printf("%s[%d]:  failed to finalize dyninst lib\n", FILE__, __LINE__);
+      //fprintf(stderr, "%s[%d]:  failed to finalize dyninst lib\n", FILE__, __LINE__);
 
    if (!reachedBootstrapState(bootstrapped_bs)) {
       // For some reason we haven't run dyninstInit successfully.
@@ -2629,8 +2638,9 @@ bool process::setDyninstLibInitParams() {
 }
 
 // Call DYNINSTinit via an inferiorRPC
-bool process::iRPCDyninstInit() {
-    startup_printf("[%s:%u] - Running DYNINSTinit via irpc\n", FILE__, __LINE__);
+bool process::iRPCDyninstInit() 
+{
+    startup_printf("%s[%d]: Running DYNINSTinit via irpc\n", FILE__, __LINE__);
     // Duplicates the parameter code in setDyninstLibInitParams()
     int pid = getpid();
     int maxthreads = maxNumberOfThreads();
@@ -2667,6 +2677,7 @@ bool process::iRPCDyninstInit() {
                              true, // Use reserved memory
                              NULL, NULL);// No particular thread or LWP
 
+    startup_printf("%s[%d][%s]:  posted RPC\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
     // We loop until dyninst init has run (check via the callback)
      inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
 
@@ -2677,7 +2688,8 @@ bool process::iRPCDyninstInit() {
      continueProc();
 
     while (!reachedBootstrapState(bootstrapped_bs)) {
-        if(hasExited()) {
+    startup_printf("%s[%d][%s]:  waiting for RPC completion\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        if (hasExited()) {
             fprintf(stderr, "%s[%d][%s]:  unexpected exit\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
            return false;
         }
@@ -2685,7 +2697,8 @@ bool process::iRPCDyninstInit() {
         // This needs to be before after _anything_ that can give up the global lock.
         if (reachedBootstrapState(bootstrapped_bs)) break;
 
-        sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+        //sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+        sh->waitForEvent(evtAnyEvent, this, NULL /*lwp*/);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
     startup_printf("%s[%d][%s]:  bootstrapped\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -3215,17 +3228,17 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
 
    if (!isAttached()) {
       fprintf(stderr, "%s[%d][%s]:  readDataSpace() failing, not attached\n",
-             FILE__, __LINE__, getThreadStr(getExecThreadID()));
+            FILE__, __LINE__, getThreadStr(getExecThreadID()));
       return false;
    }
 
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
-     stopped_lwp = stop_an_lwp(&needToCont);
+      stopped_lwp = stop_an_lwp(&needToCont);
       if (stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to read to process data "
-                     "space: couldn't stop an lwp\n");
+                  "space: couldn't stop an lwp\n");
          fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
          return false;
@@ -3235,23 +3248,23 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
    errno = 0;
    bool res = stopped_lwp->readDataSpace(inTracedProcess, size, inSelf);
    if (!res) {
-       if (displayErrMsg) {
-           sprintf(errorLine, "System error: "
-                   "<>unable to read %d@%s from process data space: %s (pid=%d)",
-                   size, Address_str((Address)inTracedProcess), 
-                   strerror(errno), getPid());
-	   fprintf(stderr, "Failed to read %d from %p: LWP %d\n", 
-		   size, inTracedProcess, stopped_lwp->get_lwp_id());
+      if (displayErrMsg) {
+         sprintf(errorLine, "System error: "
+               "<>unable to read %d@%s from process data space: %s (pid=%d)",
+               size, Address_str((Address)inTracedProcess), 
+               strerror(errno), getPid());
+         fprintf(stderr, "%s[%d]: Failed to read %d from %p: LWP %d\n", 
+               FILE__, __LINE__, size, inTracedProcess, stopped_lwp->get_lwp_id());
 
-           pdstring msg(errorLine);
-           showErrorCallback(38, msg);
-       }
+         pdstring msg(errorLine);
+         showErrorCallback(38, msg);
+      }
    }
-   
+
    if (needToCont) {
-       stopped_lwp->continueLWP();
+      stopped_lwp->continueLWP();
    }
-   
+
    return res;
 }
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.29 2008/02/15 17:27:49 giri Exp $
+# $Id: Makefile,v 1.30 2008/02/20 08:31:02 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -30,11 +30,11 @@ SRCS =	../src/linux.C \
 		../src/arch-ia64.C \
 		../src/image-ia64.C \
 		../src/unix.C \
-		../src/addLibraryLinux.C \
 		../src/InstrucIter-ia64.C \
 		../src/parseDwarf.C \
 		../src/ia64-template.s \
 		../src/syscall-linux.C
+#		../src/addLibraryLinux.C \
 
 MYFLAGS		+= 	-DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) \
 				-I$(LIBUNWIND_INC) -I$(LIBELF_INC)

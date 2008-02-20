@@ -12,6 +12,17 @@ DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR)
 
+DYNINST_INCDIR = -I../../dyninstAPI/h
+SYMTAB_INCDIR = -I../../symtabAPI/h
+DYNUTIL_INCDIR = -I../../dynutil/h
+
+IFLAGS += $(DYNINST_INCDIR)
+IFLAGS += $(DYNUTIL_INCDIR)
+IFLAGS += $(SYMTAB_INCDIR)
+CXXFLAGS += $(DYNINST_INCDIR)
+CXXFLAGS += $(DYNUTIL_INCDIR)
+CXXFLAGS += $(SYMTAB_INCDIR)
+
 #######################################################################
 ###  Generate compiler id strings
 ###
@@ -108,8 +119,6 @@ LIBTESTSUITE_DEST               = $(addprefix $(LIB_DEST)/,$(LIBTESTSUITE))
 ###  Some pattern rules
 #######################################################################
 
-DYNINST_INCDIR = -I$(TO_CORE)/dyninstAPI/h 
-CXXFLAGS += $(DYNINST_INCDIR)
 CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
 #CXXTFLAGS += -fimplicit-templates
 
