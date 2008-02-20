@@ -394,7 +394,6 @@ bool emitElf::driver(Symtab *obj, string fName){
         if(!strcmp(name, ".dynsym")){
             //Change the type of the original dynsym section if we are changing it.
     	    newshdr->sh_type = SHT_PROGBITS;
-            newshdr->sh_link = secNames.size();
             dynsymData = newdata;
             olddynsymIndex = scncount+1;
         }
@@ -460,18 +459,12 @@ bool emitElf::driver(Symtab *obj, string fName){
 
     // Second iteratioon to fix the link fields to point to the correct section
     scn = NULL;
-    for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++) {
+    for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++)
     	shdr = elf32_getshdr(scn);
-/*        if(shdr->sh_link == olddynstrIndex)
-            shdr->sh_link = newdynstrIndex;
-        else if(shdr->sh_link == olddynsymIndex)
-            shdr->sh_link = newdynsymIndex;*/
-    	olddata = elf_getdata(scn,NULL);
-    }
     newEhdr->e_shstrndx = scncount;
 
     // Move the section header to the end
-    newEhdr->e_shoff =shdr->sh_offset+shdr->sh_size+1;
+    newEhdr->e_shoff =shdr->sh_offset+shdr->sh_size;
     if(addNewSegmentFlag)
         newEhdr->e_shoff += pgSize;
 
@@ -911,7 +904,6 @@ bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
     secNameIndex += 10;
     newshdr->sh_type = SHT_STRTAB;
     newshdr->sh_entsize = 1;
-    newdata->d_type = ELF_T_BYTE;
     newshdr->sh_link = SHN_UNDEF; 
     newshdr->sh_flags=  0;
 
@@ -920,9 +912,16 @@ bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
     newshdr->sh_info = 0;
     newshdr->sh_addralign = 4;
 
+    char *ptr;
     //Set up the data
-    newdata->d_buf = (char *)malloc(secNameIndex);
-    char *ptr = (char *)newdata->d_buf;
+    if(!libelfso0Flag){
+        newdata64->d_buf = (char *)malloc(secNameIndex);
+        ptr = (char *)newdata64->d_buf;
+    }
+    else{
+        newdata->d_buf = (char *)malloc(secNameIndex);
+        ptr = (char *)newdata->d_buf;
+    }
     for(unsigned i=0;i<secNames.size(); i++)
     {
         memcpy(ptr, secNames[i].c_str(), secNames[i].length());
@@ -931,6 +930,7 @@ bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
     }    
 
     if(!libelfso0Flag){
+        newdata64->d_type = ELF_T_BYTE;
         newdata64->d_size = secNameIndex;
         newdata64->d_align = 4;
         newdata64->d_version = 1;
@@ -939,6 +939,7 @@ bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
         memcpy(newdata, newdata64, sizeof(Elf_Data));
     }
     else {
+        newdata->d_type = ELF_T_BYTE;
         newdata->d_size = secNameIndex;
         newdata->d_align = 4;
         newdata->d_version = 1;
@@ -954,7 +955,7 @@ bool emitElf::addSectionHeaderTable(Elf32_Shdr *shdr) {
     return true;
 }
 
-bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
+bool emitElf::createNonLoadableSections(Elf32_Shdr *&shdr)
 {
     Elf_Scn *newscn;
     Elf_Data *newdata = NULL;
@@ -965,6 +966,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
     //All of them that are left are non-loadable. stack'em up at the end.
     for(unsigned i = 0; i < nonLoadableSecs.size(); i++)
     {
+	    secNames.push_back(nonLoadableSecs[i]->getSecName());
         // Add a new non-loadable section
         if((newscn = elf_newscn(newElf)) == NULL)
         {
@@ -1020,7 +1022,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
                 newdata64->d_type = ELF_T_SYM;
             else
         	    newdata->d_type = ELF_T_SYM;
-    	    //newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
+            newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab 
     	    newshdr->sh_flags=  0;
 	    }
     	else if(nonLoadableSecs[i]->getFlags() & Section::stringSection)	//String table Section
@@ -1070,6 +1072,9 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *shdr)
         }
 	    
         //elf_update(newElf, ELF_C_NULL);
+        /* DEBUG */
+        fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
+                nonLoadableSecs[i]->getSecName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
 	    
 	    prevshdr = newshdr;
     }	
@@ -1308,14 +1313,14 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
         dynSymbolNamesLength+= it->first.size()+1;
         if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), it->first) == DT_NEEDEDEntries.end())
             DT_NEEDEDEntries.push_back(it->first);
-        verneed->vn_aux = curpos + sizeof(Elf32_Verneed);
-        verneed->vn_next = curpos + sizeof(Elf32_Verneed) + it->second.size()*sizeof(Elf32_Vernaux);
-        if(verneed->vn_next == verneedSecSize)
+        verneed->vn_aux = sizeof(Elf32_Verneed);
+        verneed->vn_next = sizeof(Elf32_Verneed) + it->second.size()*sizeof(Elf32_Vernaux);
+        if(curpos + verneed->vn_next == verneedSecSize)
             verneed->vn_next = 0;
         verneednum++;
         unsigned i = 0;
         for(iter = it->second.begin(); iter!= it->second.end(); iter++){
-            Elf32_Vernaux *vernaux = (Elf32_Vernaux *)(verneedSecData+verneed->vn_aux+ i*sizeof(Elf32_Vernaux));
+            Elf32_Vernaux *vernaux = (Elf32_Vernaux *)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf32_Vernaux));
             vernaux->vna_hash = elfHash(iter->first.c_str());
             vernaux->vna_flags = 1;
             vernaux->vna_other = iter->second;
@@ -1326,6 +1331,7 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
                 vernaux->vna_next = sizeof(Elf32_Vernaux);
             i++;
         }
+        curpos += verneed->vn_next;
     }
 
     //reconstruct .gnu.version_d section
@@ -1342,12 +1348,12 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
         verdef->vd_ndx = iter->second;
         verdef->vd_cnt = verdauxEntries[iter->second].size();
         verdef->vd_hash = elfHash(iter->first.c_str());
-        verdef->vd_aux = curpos + sizeof(Elf32_Verdef);
-        verdef->vd_next = curpos + sizeof(Elf32_Verdef) + verdauxEntries[iter->second].size()*sizeof(Elf32_Verdaux);
-        if(verdef->vd_next == verdefSecSize)
+        verdef->vd_aux = sizeof(Elf32_Verdef);
+        verdef->vd_next = sizeof(Elf32_Verdef) + verdauxEntries[iter->second].size()*sizeof(Elf32_Verdaux);
+        if(curpos + verdef->vd_next == verdefSecSize)
             verdef->vd_next = 0;
         for(unsigned i = 0; i< verdauxEntries[iter->second].size(); i++){
-            Elf32_Verdaux *verdaux = (Elf32_Verdaux *)(verdefSecData + verdef->vd_aux + i*sizeof(Elf32_Verdaux));
+            Elf32_Verdaux *verdaux = (Elf32_Verdaux *)(verdefSecData + curpos +verdef->vd_aux + i*sizeof(Elf32_Verdaux));
             verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
             if(i == verdef->vd_cnt-1)
                 verdaux->vda_next = 0;
@@ -1355,6 +1361,7 @@ void emitElf::createSymbolVersions(Elf32_Half *&symVers, char*&verneedSecData, u
                 verdaux->vda_next = sizeof(Elf32_Verdaux);
             i++;
         }
+        curpos += verdef->vd_next;
     }
     return;
 }
@@ -1363,7 +1370,7 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
     dynamicSecData.clear();
     Elf32_Dyn *dyns = (Elf32_Dyn *)dynData;
     unsigned count = size/sizeof(Elf32_Dyn);
-    dynsecSize = count+ DT_NEEDEDEntries.size();    //We don't know the size before hand. So allocate the maximum possible size;
+    dynsecSize = 2*count+ DT_NEEDEDEntries.size();    //We don't know the size before hand. So allocate the maximum possible size;
     dynsecData = (Elf32_Dyn *)malloc(dynsecSize*sizeof(Elf32_Dyn));
     unsigned curpos = 0;
     string rpathstr;
@@ -1376,8 +1383,18 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
     for(unsigned i = 0; i< count;i++){
         switch(dyns[i].d_tag){
             case DT_NULL:
+                break;
             case DT_NEEDED:
-                continue;
+                rpathstr = &olddynStrData[dyns[i].d_un.d_val];
+                if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), rpathstr) != DT_NEEDEDEntries.end())
+                    break;
+                dynsecData[curpos].d_tag = dyns[i].d_tag;
+                dynsecData[curpos].d_un.d_val = dynSymbolNamesLength;
+                dynStrs.push_back(rpathstr);
+                dynSymbolNamesLength += rpathstr.size() + 1;
+                dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
+                curpos++;
+                break;
             case DT_RPATH:
             case DT_RUNPATH:
                 dynsecData[curpos].d_tag = dyns[i].d_tag;
@@ -1397,6 +1414,8 @@ void emitElf::createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dyn
     }
     dynsecData[curpos].d_tag = DT_NULL;
     dynsecData[curpos].d_un.d_val = 0;
+    curpos++;
+    dynsecSize = curpos+1;                            //assign size to the correct number of entries
 }
 #endif
 

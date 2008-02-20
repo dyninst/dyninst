@@ -113,7 +113,7 @@ class emitElf64{
     void findSegmentEnds();
     void fixPhdrs(unsigned &, unsigned &);
     bool addSectionHeaderTable(Elf64_Shdr *shdr);
-    bool createNonLoadableSections(Elf64_Shdr *shdr);
+    bool createNonLoadableSections(Elf64_Shdr *& shdr);
     bool createLoadableSections( Elf64_Shdr *shdr, unsigned &loadSecTotalSize, unsigned &);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
