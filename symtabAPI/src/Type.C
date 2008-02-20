@@ -1562,8 +1562,8 @@ localVar::localVar(localVar &lvar)
 	   loc->refClass = (*(lvar.locs_))[i]->refClass;
 	   loc->reg = (*(lvar.locs_))[i]->reg;
 	   loc->frameOffset = (*(lvar.locs_))[i]->frameOffset;
-	   loc->lo = (*(lvar.locs_))[i]->lo;
-	   loc->hi = (*(lvar.locs_))[i]->hi;
+	   loc->lowPC = (*(lvar.locs_))[i]->lowPC;
+	   loc->hiPC = (*(lvar.locs_))[i]->hiPC;
 	   locs_->push_back(loc);
        }
    }	
