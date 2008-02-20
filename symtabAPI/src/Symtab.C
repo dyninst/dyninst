@@ -3891,10 +3891,6 @@ DLLEXPORT bool Section::isDirty() const
     return isDirty_;
 }
 
-DLLEXPORT unsigned long Section::flags() const{
-    return sflags_;
-}
-
 DLLEXPORT bool Section::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType){
     rels_.push_back(relocationEntry(ra, dynref->getPrettyName(), dynref, relType));
     return true;

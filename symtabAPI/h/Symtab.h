@@ -532,7 +532,6 @@ class Section {
       DLLEXPORT unsigned getFlags() const;
       DLLEXPORT bool isOffsetInSection(const Offset &offset) const;
       DLLEXPORT bool isLoadable() const;
-      DLLEXPORT unsigned long flags() const;
       DLLEXPORT bool isDirty() const;
       DLLEXPORT std::vector<relocationEntry> &getRelocations();
       DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
