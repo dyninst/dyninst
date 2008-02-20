@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.118 2008/02/20 08:31:06 jaw Exp $
+// $Id: sol_proc.C,v 1.119 2008/02/20 22:34:28 legendre Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -653,6 +653,7 @@ try_again:
           select(0, NULL, NULL, NULL, &slp);
           goto try_again;
         }
+        //If this fails, we may be attaching to a mutatee in a system call
         perror("restoreRegisters: GPR write");
         return false;
     }
@@ -859,29 +860,15 @@ bool dyn_lwp::realLWP_attach_()
 bool dyn_lwp::representativeLWP_attach_() 
 {
 #if defined(os_aix) 
-   fprintf(stderr, "%s[%d]:   0.5s sleep in representativeLWP_attach()\n", FILE__, __LINE__);
    usleep(500 * 1000);
    //sleep(3);
    //sleep(1);
-#if 0
-   struct timeval slp;
-   slp.tv_sec = 0;
-   slp.tv_usec = 50 /*ms*/ * 1000;
-   select(0, NULL, NULL, NULL, &slp);
-#endif
 #endif
 #if defined (os_solaris)
-   fprintf(stderr, "%s[%d]:  50ms sleep in representativeLWP_attach()\n", FILE__, __LINE__);
    struct timeval slp;
    slp.tv_sec = 0;
    slp.tv_usec = 50 /*ms*/ * 1000;
    select(0, NULL, NULL, NULL, &slp);
-#endif
-#if 0 
-#if defined(os_aix) || defined(os_solaris)
-   // Wait a sec; we often outrun process creation.
-    sleep(2);
-#endif
 #endif
    /*
      Open the /proc file corresponding to process pid
