@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.8 2008/02/19 23:50:04 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.9 2008/02/20 22:34:08 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -12,7 +12,7 @@ RELEASE_NUM	= 5.2
 
 DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs_new
 
-CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h /D_DEBUG /Zi -I$(TO_CORE)/dynutil/h
+CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h /D_DEBUG /Zi -I$(TO_CORE)/dynutil/h -I$(TO_CORE)/symtabAPI/h
 CXXFLAGS_NORM = $(CXXFLAGS)
 CXXFLAGS     = $(CXXFLAGS) -DTESTLIB_DLL_BUILD
 CFLAGS       = $(CFLAGS) -I$(TO_CORE)/h
