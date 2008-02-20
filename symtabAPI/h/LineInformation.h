@@ -41,7 +41,7 @@
 
 #if ! defined( LINE_INFORMATION_H )
 #define LINE_INFORMATION_H
-#include "util.h"
+#include "symutil.h"
 #include "RangeLookup.h"
 
 namespace Dyninst{

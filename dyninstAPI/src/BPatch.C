@@ -39,14 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.181 2008/02/20 08:31:03 jaw Exp $
+// $Id: BPatch.C,v 1.182 2008/02/20 22:34:06 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#if !defined(os_windows)
 #include <unistd.h>
+#endif
 
 #define BPATCH_FILE
 #include "common/h/Pair.h"
