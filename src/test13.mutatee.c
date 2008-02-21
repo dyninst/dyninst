@@ -118,7 +118,8 @@ int main(int argc, char *argv[])
       close(attached_fd);
       /* fprintf(stderr, "test13.mutatee: closed pipe\n"); /* *DEBUG* */
       while (!checkIfAttached()) {
-         //usleep(1);
+         /*Sleeps mess with AIX attach*/
+         /*usleep(1);*/
       }
    }
    /* fprintf(stderr, "test13.mutatee: wrote to pipe\n"); /* *DEBUG* */
