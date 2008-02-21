@@ -311,7 +311,7 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
        check if we're in it. */
     dynLWP->proc()->readAuxvInfo();
     if( !( dynLWP->proc()->getVsyscallStart() <= ip && ip < dynLWP->proc()->getVsyscallEnd() )) {
-       /* DEBUG */ fprintf( stderr, "%s[%d]: warning: no code range found for ip 0x%lx\n", __FILE__, __LINE__, ip ); 
+       /* DEBUG  fprintf( stderr, "%s[%d]: warning: no code range found for ip 0x%lx\n", __FILE__, __LINE__, ip ); */
     }
 #endif
   }

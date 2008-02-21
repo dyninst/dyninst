@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.267 2008/02/14 22:03:47 legendre Exp $
+// $Id: linux.C,v 1.268 2008/02/21 20:12:00 legendre Exp $
 
 #include <fstream>
 
@@ -462,8 +462,8 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
         Valgrind, and that the proper thing to do is just go back and try again.  I'm
         leaving the fprintf() in because while this condition is thus not always erroneous,
         we should be worried about it when it shows up otherwise. */
-     fprintf( stderr, "%s[%d]:  waitpid(%d) failed with ECHILD\n", 
-              __FILE__, __LINE__, pid_to_wait_for );
+     signal_printf("%s[%d]:  waitpid(%d) failed with ECHILD\n", 
+                   __FILE__, __LINE__, pid_to_wait_for );
      return false; /* nothing to wait for */
   } else if (waitpid_pid < 0) {
      perror("checkForEventLinux: waitpid failure");

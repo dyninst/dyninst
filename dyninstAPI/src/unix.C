@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.234 2008/02/20 08:31:07 jaw Exp $
+// $Id: unix.C,v 1.235 2008/02/21 20:11:59 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -531,9 +531,7 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
      // process... including (for Paradyn) removing it from the
      // frontend.
      proc->triggerNormalExitCallback(0);
-     fprintf(stderr, "\tinstrumenting process impossible\n");
      proc->handleProcessExit();
-     fprintf(stderr, "\tinstrumenting process impossible\n");
      continueHint = true;
   }
   return false;
