@@ -39,14 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: BPatch_memoryAccess_NP.h,v 1.22 2006/10/16 20:17:06 bernat Exp $ */
+/* $Id: BPatch_memoryAccess_NP.h,v 1.23 2008/02/21 21:27:47 legendre Exp $ */
 
 #ifndef _MemoryAccess_h_
 #define _MemoryAccess_h_
 
 #include "BPatch_Vector.h"
 #include <stdlib.h>
-//#include <BPatch_point.h>
 #include "BPatch_instruction.h"
 
 class BPatch_point;

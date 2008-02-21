@@ -11,7 +11,7 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
-#if defined (os_windows)
+#if defined (_MSC_VER)
 #include <hash_map>
 using stdext::hash_map;
 #else

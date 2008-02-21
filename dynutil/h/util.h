@@ -3,7 +3,7 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
-#include "dynutil/h/dyntypes.h"
+#include "dyntypes.h"
 namespace Dyninst {
 
 #if !defined(DLLEXPORT)

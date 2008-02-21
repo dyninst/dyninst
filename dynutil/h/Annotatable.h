@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.1 2008/02/07 16:07:56 jaw Exp $
+// $Id: Annotatable.h,v 1.2 2008/02/21 21:27:48 legendre Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -49,12 +49,7 @@
 #include <typeinfo>
 #include <assert.h>
 #include "dyntypes.h"
-#include "dynutil/h/util.h"
-
-#if 0 
-#include "headers.h"
-extern unsigned addrHashCommon(unsigned long addr);
-#endif
+#include "util.h"
 
 class AnnotatableBase;
 
@@ -68,10 +63,6 @@ namespace __gnu_cxx {
       };
    };
 };
-#endif
-
-#if 0
-#include "serialize.h"
 #endif
 
 using std::vector;
