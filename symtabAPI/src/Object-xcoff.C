@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.21 2008/02/19 23:50:14 legendre Exp $
+// $Id: Object-xcoff.C,v 1.22 2008/02/22 17:48:00 giri Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -724,7 +724,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
 
    } else if (magic != 0x1DF /* XCOFF32 */) {
       PARSE_AOUT_DIE("possible problem, invalid magic number", 49);
-      // bperr( "Possible problem, magic number is %x, should be %x\n",
+      //bperr("Possible problem, magic number is %x, should be %x\n",
       //       magic, 0x1df);
    }
    is64_ = is64;
@@ -1484,8 +1484,8 @@ Object::Object(const Object& obj) :
 }
 
 
-Object::Object(MappedFile *mf_, void (*err_func)(const char *)) :
-   AObject(mf_, err_func)
+Object::Object(MappedFile *mf_, void (*err_func)(const char *), Offset offset) :
+   AObject(mf_, err_func), offset_(offset)
 {    
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
@@ -1493,8 +1493,8 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *)) :
    load_object(); 
 }
 
-Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, std::vector<Section *> &, void (*err_func)(const char *)) :
-   AObject(mf_, err_func)
+Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, std::vector<Section *> &, void (*err_func)(const char *), Offset offset) :
+   AObject(mf_, err_func), offset_(offset)
 {    
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());

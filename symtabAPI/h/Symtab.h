@@ -389,6 +389,7 @@ class Symtab : public LookupInterface,
    /***** Private Data Members *****/
  private:
    std::string member_name_;
+   Offset member_offset_;
    MappedFile *mf;
 
    Offset imageOffset_;

@@ -1144,6 +1144,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
 Symtab::Symtab(std::string &filename, std::string &member_name, Offset offset, 
                        bool &err) :
    member_name_(member_name), 
+   member_offset_(offset),
    is_a_out(false),
    main_call_addr_(0), 
    nativeCompiler(false), 
@@ -2751,7 +2752,11 @@ bool Symtab::addSection(Section *sec)
 void Symtab::parseLineInformation()
 {
    hash_map <std::string, LineInformation> *lineInfo = new hash_map <std::string, LineInformation>;
+#if defined(os_aix)
+   Object *linkedFile = new Object(mf, *lineInfo, sections_, pd_log_perror, member_offset_);
+#else
    Object *linkedFile = new Object(mf, *lineInfo, sections_, pd_log_perror);
+#endif
 
    isLineInfoValid_ = true;	
    hash_map <std::string, LineInformation>::iterator iter;
@@ -2855,7 +2860,11 @@ DLLEXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset highExcl
 
 void Symtab::parseTypes()
 {
+#if defined(os_aix)
+   Object *linkedFile = new Object(mf, pd_log_perror, member_offset_);
+#else
    Object *linkedFile = new Object(mf, pd_log_perror);
+#endif
    linkedFile->parseTypeInfo(this);
    isTypeInfoValid_ = true;
 }
