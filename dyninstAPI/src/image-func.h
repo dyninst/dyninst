@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.34 2008/02/15 17:27:45 giri Exp $
+// $Id: image-func.h,v 1.35 2008/02/23 02:09:05 jaw Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
 
-#include "common/h/String.h"
+#include <string>
 #include "common/h/Vector.h"
 #include "common/h/Types.h"
 #include "common/h/Pair.h"
@@ -296,10 +296,10 @@ class image_func_registers {
 // does _not_ do function relocation.
 class image_func : public codeRange {
  public:
-   static pdstring emptyString;
+   static std::string emptyString;
 
    // Almost everything gets filled in later.
-   image_func(const pdstring &symbol, 
+   image_func(const std::string &symbol, 
 	      Address offset, 
 	      const unsigned symTabSize, 
 	      pdmodule *m,
@@ -334,9 +334,9 @@ class image_func : public codeRange {
    void copyNames(image_func *duplicate);
 
    // Bool: returns true if the name is new (and therefore added)
-   bool addSymTabName(pdstring name, bool isPrimary = false);
-   bool addPrettyName(pdstring name, bool isPrimary = false);
-   bool addTypedName(pdstring name, bool isPrimary = false);
+   bool addSymTabName(std::string name, bool isPrimary = false);
+   bool addPrettyName(std::string name, bool isPrimary = false);
+   bool addTypedName(std::string name, bool isPrimary = false);
 
    Address getOffset() const {return sym_->getAddr();}
    Address getEndOffset(); // May trigger parsing
@@ -512,7 +512,7 @@ class image_func : public codeRange {
    image_basicBlock * entryBlock();
 
    /****** OpenMP Parsing Functions *******/
-   pdstring calcParentFunc(const image_func * imf, pdvector<image_parRegion *> & pR);
+   std::string calcParentFunc(const image_func * imf, pdvector<image_parRegion *> & pR);
    void parseOMP(image_parRegion * parReg, image_func * parentFunc, int & currentSectionNum);
    void parseOMPSectFunc(image_func * parentFunc);
    void parseOMPFunc(bool hasLoop);
@@ -547,9 +547,9 @@ class image_func : public codeRange {
 
 #if 0
 //   Now a part of Symbol. Moved to Symbol.h - giri
-   pdvector<pdstring> symTabNames_;	/* name as it appears in the symbol table */
-   pdvector<pdstring> prettyNames_;	/* user's view of name (i.e. de-mangled) */
-   pdvector<pdstring> typedNames_;      /* de-mangled with types */
+   pdvector<std::string> symTabNames_;	/* name as it appears in the symbol table */
+   pdvector<std::string> prettyNames_;	/* user's view of name (i.e. de-mangled) */
+   pdvector<std::string> typedNames_;      /* de-mangled with types */
    Address startOffset_;		/* address of the start of the func */
    unsigned symTabSize_;        /* What we get from the symbol table (if any) */
 #endif

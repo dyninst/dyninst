@@ -559,7 +559,7 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 	   after copying them to the output. */
 
 	/* Find address for functions __divsi3 */
-	pdstring callee = pdstring("__divsi3");
+   std::string callee = std::string("__divsi3");
 	int_function *calleefunc = proc->findOnlyOneFunction(callee.c_str());
 	if (!calleefunc) {
 	  char msg[256];
@@ -3352,12 +3352,12 @@ bool InsnAddr::replaceBundlesWith( const IA64_bundle * replacementBundles, unsig
   return myProc->writeTextSpace( (void *)alignedAddress, (numberOfReplacementBundles * 16), rawReplacementBundles );
 } /* end replaceBundlesWith() */
 
-bool InsnAddr::writeStringAtOffset( unsigned int offsetInBundles, const char * pdstring, unsigned int length ) {
+bool InsnAddr::writeStringAtOffset( unsigned int offsetInBundles, const char * str, unsigned int length ) {
   /* Align the instruction address and compute in the offset. */
   unsigned short offset = encodedAddress % 16;
   Address alignedOffset = encodedAddress - offset + (offsetInBundles * 16);
 
-  return myProc->writeTextSpace( (void *)alignedOffset, length + 1, pdstring );
+  return myProc->writeTextSpace( (void *)alignedOffset, length + 1, str );
 } /* end writeStringAtOffset() */
 
 uint64_t InsnAddr::operator * () {

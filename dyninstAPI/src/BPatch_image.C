@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.109 2008/02/15 17:27:40 giri Exp $
+// $Id: BPatch_image.C,v 1.110 2008/02/23 02:09:04 jaw Exp $
 
 #define BPATCH_FILE
 
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <string>
 
 #include "process.h"
 #include "instPoint.h"
@@ -302,11 +303,11 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariablesInt()
       BPatch_module *module = (*mods)[m];
       char name[255];
       module->getName(name, sizeof(name));
-      pdvector<pdstring> keys = module->getModuleTypes()->globalVarsByName.keys();
+      pdvector<std::string> keys = module->getModuleTypes()->globalVarsByName.keys();
 
       int limit = keys.size();
       for (int j = 0; j < limit; j++) {
-         pdstring name = keys[j];
+         std::string name = keys[j];
          var = createVarExprByName(module, name.c_str());
 
          if (var != NULL) {
@@ -551,12 +552,12 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
    if (NULL == strpbrk(name, REGEX_CHARSET)) {
       //  usual case, no regex
       pdvector<int_function *> foundIntFuncs;
-      if (!as->findFuncsByAll(pdstring(name), 
+      if (!as->findFuncsByAll(std::string(name), 
                foundIntFuncs)) {
          // Error callback...
          if (showError) {
-            pdstring msg = pdstring("Image: Unable to find function: ") + 
-               pdstring(name);
+            std::string msg = std::string("Image: Unable to find function: ") + 
+               std::string(name);
             BPatch_reportError(BPatchSerious, 100, msg.c_str());
          }
          return NULL;
@@ -576,8 +577,8 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
       } else {
 
          if (showError) {
-            pdstring msg = pdstring("Image: Unable to find function: ") + 
-               pdstring(name);
+            std::string msg = std::string("Image: Unable to find function: ") + 
+               std::string(name);
             BPatch_reportError(BPatchSerious, 100, msg.c_str());
          }
          return NULL;
@@ -599,8 +600,8 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
       regerror( err, &comp_pat, errbuf, 80 );
       if (showError) {
          cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-         pdstring msg = pdstring("Image: Unable to find function pattern: ") 
-            + pdstring(name) + ": regex error --" + pdstring(errbuf);
+         std::string msg = std::string("Image: Unable to find function pattern: ") 
+            + std::string(name) + ": regex error --" + std::string(errbuf);
          BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
       // remove this line
@@ -662,7 +663,7 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name,
    } 
 
    if (showError) {
-      pdstring msg = pdstring("Unable to find pattern: ") + pdstring(name);
+      std::string msg = std::string("Unable to find pattern: ") + std::string(name);
       BPatch_reportError(BPatchSerious, 100, msg.c_str());
    }
 #endif
@@ -731,7 +732,7 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
       // Apparently don't check mangled at all
 
       for (unsigned miter = 0; miter < func->symTabNameVector().size(); miter++) {
-         const pdstring &mName = func->symTabNameVector()[miter];
+         const std::string &mName = func->symTabNameVector()[miter];
          int err;
 
          if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
@@ -792,29 +793,29 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
 
     if (!as->findVarsByAll(name,vars)) {
         // _name?
-        pdstring under_name = pdstring("_") + pdstring(name);
+        std::string under_name = std::string("_") + std::string(name);
         if (!as->findVarsByAll(under_name,vars)) {
             // "default Namespace prefix?
             string defaultNamespacePref = as->getAOut()->parse_img()->getObject()->getDefaultNamespacePrefix();
             if (defaultNamespacePref != "") {
-                pdstring prefix_name = pdstring(defaultNamespacePref.c_str()) + pdstring(".") + pdstring(name);
+                std::string prefix_name = std::string(defaultNamespacePref.c_str()) + std::string(".") + std::string(name);
                 if (!as->findVarsByAll(prefix_name, vars) ) {
                     if (showError) {
-                        pdstring msg = pdstring("Unable to find variable: ") + pdstring(prefix_name);
+                        std::string msg = std::string("Unable to find variable: ") + std::string(prefix_name);
                         showErrorCallback(100, msg);
                     }
                     return NULL;
                 }
             } else {
                 if (showError) {
-                    pdstring msg = pdstring("Unable to find variable: ") + pdstring(name);
+                    std::string msg = std::string("Unable to find variable: ") + std::string(name);
                     showErrorCallback(100, msg);
                 }
                 return NULL;
             }
         } else {
             if (showError) {
-                pdstring msg = pdstring("Unable to find variable: ") + pdstring(name);
+                std::string msg = std::string("Unable to find variable: ") + std::string(name);
                 showErrorCallback(100, msg);
             }
             return NULL;
@@ -896,7 +897,7 @@ BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
    // XXX - should really use more detailed scoping info here - jkh 6/30/99
    BPatch_function *func = const_cast<BPatch_function *> (scp.getFunction());
    if (!func) {
-      pdstring msg = pdstring("point passed to findVariable lacks a function\n address point type passed?");
+      std::string msg = std::string("point passed to findVariable lacks a function\n address point type passed?");
       showErrorCallback(100, msg);
       return NULL;
    }

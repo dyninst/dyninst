@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: infHeap.h,v 1.7 2008/02/07 16:07:55 jaw Exp $
+/* $Id: infHeap.h,v 1.8 2008/02/23 02:09:05 jaw Exp $
  * Inferior heap primitives, moved from process.h to ease compilation
  */
 
 #if !defined(infHeap_h)
 #define infHeap_h
 
-#include "common/h/String.h"
+#include <string>
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
 #include "dynutil/h/util.h"
@@ -148,13 +148,13 @@ class disabledItem {
 */
 class heapDescriptor {
  public:
-  heapDescriptor(const pdstring name,
+  heapDescriptor(const std::string name,
 		 Address addr,
 		 unsigned int size,
 		 const inferiorHeapType type):
     name_(name),addr_(addr),size_(size), type_(type) {}
   heapDescriptor():
-    name_(pdstring("")),addr_(0),size_(0),type_(anyHeap) {}
+    name_(std::string("")),addr_(0),size_(0),type_(anyHeap) {}
   ~heapDescriptor() {}
   heapDescriptor &operator=(const heapDescriptor& h)
     {
@@ -164,12 +164,12 @@ class heapDescriptor {
       type_ = h.type();
       return *this;
     }
-  const pdstring &name() const {return name_;}
+  const std::string &name() const {return name_;}
   const Address &addr() const {return addr_;}
   const unsigned &size() const {return size_;}
   const inferiorHeapType &type() const {return type_;}
  private:
-  pdstring name_;
+  std::string name_;
   Address addr_;
   unsigned size_;
   inferiorHeapType type_;

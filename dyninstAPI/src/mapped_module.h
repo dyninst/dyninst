@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.12 2008/01/24 11:20:43 jaw Exp $
+// $Id: mapped_module.h,v 1.13 2008/02/23 02:09:09 jaw Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -54,7 +54,7 @@ class parse_image;
 class pdmodule;
 class image;
 
-#include "common/h/String.h"
+#include <string>
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
 #include "symtabAPI/h/Symtab.h"
@@ -90,20 +90,20 @@ class mapped_module {
       const pdvector<int_function *> &getAllFunctions();
       const pdvector<int_variable *> &getAllVariables();
 
-      bool findFuncVectorByPretty(const pdstring &funcname,
+      bool findFuncVectorByPretty(const std::string &funcname,
             pdvector<int_function *> &funcs);
 
       // Yeah, we can have multiple mangled matches -- for libraries there
       // is a single module. Even if we went multiple, we might not have
       // module information, and so we can get collisions.
-      bool findFuncVectorByMangled(const pdstring &funcname,
+      bool findFuncVectorByMangled(const std::string &funcname,
             pdvector<int_function *> &funcs);
 
       int_function *findFuncByAddr(const Address &address);
       codeRange *findCodeRangeByAddress(const Address &address);
 
 
-      void dumpMangled(pdstring prefix) const;
+      void dumpMangled(std::string prefix) const;
 
       /////////////////////////////////////////////////////
       // Line information
@@ -113,7 +113,7 @@ class mapped_module {
       // things like converting absolute addresses (external) into offsets
       // (internal).  Its all in SymtabAPI now
 
-      pdstring processDirectories(const pdstring &fn) const;
+      std::string processDirectories(const std::string &fn) const;
 
       // Have we parsed line information yet?
       bool lineInformation() const { 

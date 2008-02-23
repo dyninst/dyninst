@@ -41,6 +41,7 @@
 
 // $Id: signalhandler.C,v 
 
+#include <string>
 #include "process.h"
 #include "dyn_lwp.h"
 #include "dyn_thread.h"
@@ -1142,8 +1143,8 @@ bool SignalGenerator::attachProcess()
       proc->set_status(detached);      
       startup_printf("%s[%d] attach failing here: thread %s\n", 
                      FILE__, __LINE__, getThreadStr(getExecThreadID()));
-      pdstring msg = pdstring("Warning: unable to attach to specified process:")
-         + pdstring(getPid());
+      std::string msg = std::string("Warning: unable to attach to specified process:")
+         + utos(getPid());
       showErrorCallback(26, msg.c_str());
       return false;
    }
@@ -1157,9 +1158,9 @@ bool SignalGenerator::attachProcess()
 }
 
 
-pdstring SignalGeneratorCommon::createExecPath(pdstring &file, pdstring &dir)
+std::string SignalGeneratorCommon::createExecPath(std::string &file, std::string &dir)
 {
-  pdstring ret = file;
+  std::string ret = file;
 #if defined (os_windows)
   if (dir.length() > 0) {
       if ( (file.length() < 2)      // file is too short to be a drive specifier
@@ -1169,10 +1170,10 @@ pdstring SignalGeneratorCommon::createExecPath(pdstring &file, pdstring &dir)
   }
 #else
   if (dir.length() > 0) {
-     if (!file.prefixed_by("/") ) {
+     if (file[0] == ('/')) {
          // file does not start  with a '/', so it is a relative pathname
          // we modify it to prepend the given directory
-         if (dir.suffixed_by("/") ) {
+         if (dir[dir.length()-1 ] == ('/') ) {
              // the dir already has a trailing '/', so we can
              // just concatenate them to get an absolute path
              ret =  dir + file;
@@ -1194,11 +1195,11 @@ pdstring SignalGeneratorCommon::createExecPath(pdstring &file, pdstring &dir)
 #endif
   return ret;
 }
-SignalGenerator *SignalGeneratorCommon::newSignalGenerator(pdstring file, pdstring dir,
-                                                         pdvector<pdstring> *argv,
-                                                         pdvector<pdstring> *envp,
-                                                         pdstring inputFile,
-                                                         pdstring outputFile,
+SignalGenerator *SignalGeneratorCommon::newSignalGenerator(std::string file, std::string dir,
+                                                         pdvector<std::string> *argv,
+                                                         pdvector<std::string> *envp,
+                                                         std::string inputFile,
+                                                         std::string outputFile,
                                                          int stdin_fd, int stdout_fd,
                                                          int stderr_fd)
 {
@@ -1210,25 +1211,25 @@ SignalGenerator *SignalGeneratorCommon::newSignalGenerator(pdstring file, pdstri
                              stdin_fd, stdout_fd, stderr_fd);
 }
 
-SignalGenerator *SignalGeneratorCommon::newSignalGenerator(pdstring file, int pid)
+SignalGenerator *SignalGeneratorCommon::newSignalGenerator(std::string file, int pid)
 {
   char idstr[32];
   sprintf(idstr, "SG-%d", pid);
   return new SignalGenerator(idstr, file, pid);
 }
 
-process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir, 
-                                                     pdvector<pdstring> *argv,
-                                                     pdvector<pdstring> *envp,
+process *SignalGeneratorCommon::newProcess(std::string file_, std::string dir, 
+                                                     pdvector<std::string> *argv,
+                                                     pdvector<std::string> *envp,
                                                      int stdin_fd, int stdout_fd, 
                                                      int stderr_fd)
 {
    // Verify existence of exec file
-   pdstring file = createExecPath(file_, dir);
+   std::string file = createExecPath(file_, dir);
 
    if (!OS::executableExists(file)) {
       startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
-      pdstring msg = pdstring("Can't read executable file ") + file + (": ") + strerror(errno);
+      std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
       showErrorCallback(68, msg.c_str());
       return NULL;
    }
@@ -1236,8 +1237,8 @@ process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir,
    
 
    // check for I/O redirection in arg list.
-   pdstring inputFile;
-   pdstring outputFile;
+   std::string inputFile;
+   std::string outputFile;
    // TODO -- this assumes no more than 1 of each "<", ">"
    // also, do we want this behavior in general, or should there be a switch to enable/disable?
    for (unsigned i1=0; i1<argv->size(); i1++) {
@@ -1332,7 +1333,7 @@ void SignalGeneratorCommon::deleteSignalGenerator(SignalGenerator *sg)
 }
 
 
-process *SignalGeneratorCommon::newProcess(pdstring &progpath, int pid)
+process *SignalGeneratorCommon::newProcess(std::string &progpath, int pid)
 {
   SignalGenerator *sg = newSignalGenerator(progpath, pid);
 
@@ -1443,12 +1444,12 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     waitForHandlerExitLock = new eventLock;
 }
 
-bool SignalGeneratorCommon::setupCreated(pdstring file,
-                                         pdstring dir,
-                                         pdvector <pdstring> *argv,
-                                         pdvector <pdstring> *envp,
-                                         pdstring inputFile,
-                                         pdstring outputFile,
+bool SignalGeneratorCommon::setupCreated(std::string file,
+                                         std::string dir,
+                                         pdvector <std::string> *argv,
+                                         pdvector <std::string> *envp,
+                                         std::string inputFile,
+                                         std::string outputFile,
                                          int stdin_fd,
                                          int stdout_fd,
                                          int stderr_fd) 
@@ -1465,7 +1466,7 @@ bool SignalGeneratorCommon::setupCreated(pdstring file,
     return true;
 }
 
-bool SignalGeneratorCommon::setupAttached(pdstring file,
+bool SignalGeneratorCommon::setupAttached(std::string file,
                                           int pid) {
     file_ = file;
     pid_ = pid;
@@ -1710,7 +1711,6 @@ bool SignalGeneratorCommon::handleEvent(EventRecord &) {
 
 bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp *lwp /* = NULL */) 
 {
-    static int num_waiting_for_continue = 0;
     if (exitRequested()) {
         // We're going away... so don't do anything
         return true;
@@ -2012,11 +2012,11 @@ processRunState_t SignalGeneratorCommon::overrideAsyncContinueState(processRunSt
     return current;
 }
 
-SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
-                                 pdvector<pdstring> *argv,
-                                 pdvector<pdstring> *envp,
-                                 pdstring inputFile,
-                                 pdstring outputFile,
+SignalGenerator::SignalGenerator(char *idstr, std::string file, std::string dir,
+                                 pdvector<std::string> *argv,
+                                 pdvector<std::string> *envp,
+                                 std::string inputFile,
+                                 std::string outputFile,
                                  int stdin_fd, int stdout_fd,
                                  int stderr_fd) :
    SignalGeneratorCommon(idstr),

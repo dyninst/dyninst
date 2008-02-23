@@ -22,6 +22,7 @@
 #include "callbacks.h"
 #include "util.h"
 #include <stdlib.h>
+#include <string>
 
 #include "debug.h"
 
@@ -121,9 +122,9 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
 
   virtual ~DebuggerInterface() {}
 
-  bool forkNewProcess(pdstring file, pdstring dir, pdvector<pdstring> *argv, 
-                      pdvector<pdstring> *envp,
-                      pdstring inputFile, pdstring outputFile, int &traceLink,
+  bool forkNewProcess(std::string file, std::string dir, pdvector<std::string> *argv, 
+                      pdvector<std::string> *envp,
+                      std::string inputFile, std::string outputFile, int &traceLink,
                       int &pid, int stdin_fd, int stdout_fd, int stderr_fd,
                       SignalGenerator *sg = NULL);
 
@@ -194,10 +195,10 @@ bool DBI_writeDataSpace(pid_t pid, Address addr, int nelem, Address data, int wo
 bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int word_len, const char *file = NULL, unsigned int line = 0); 
 
 // Process creation may be a responsibility of the DBI.
-bool forkNewProcess_real(pdstring file,
-                    pdstring dir, pdvector<pdstring> *argv,
-                    pdvector<pdstring> *envp,
-                    pdstring inputFile, pdstring outputFile, int &traceLink,
+bool forkNewProcess_real(std::string file,
+                    std::string dir, pdvector<std::string> *argv,
+                    pdvector<std::string> *envp,
+                    std::string inputFile, std::string outputFile, int &traceLink,
                     pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd);
 
 //  Helper callback classes for use with mailbox system
@@ -246,9 +247,9 @@ class ForkNewProcessCallback : public DBICallbackBase
 
    CallbackBase *copy() { return new ForkNewProcessCallback(*this);}
    bool execute_real(void);
-   bool operator()(pdstring file, pdstring dir, pdvector<pdstring> *argv, 
-                   pdvector<pdstring> *envp,
-                   pdstring inputFile, pdstring outputFile, int &traceLink,
+   bool operator()(std::string file, std::string dir, pdvector<std::string> *argv, 
+                   pdvector<std::string> *envp,
+                   std::string inputFile, std::string outputFile, int &traceLink,
                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd,
                    SignalGenerator *sg = NULL);
 
@@ -256,12 +257,12 @@ class ForkNewProcessCallback : public DBICallbackBase
 
   private:
    bool ret;
-   pdstring *file_;
-   pdstring *dir_;
-   pdvector<pdstring> *argv_;
-   pdvector<pdstring> *envp_;
-   pdstring *inputFile_;
-   pdstring *outputFile_;
+   std::string *file_;
+   std::string *dir_;
+   pdvector<std::string> *argv_;
+   pdvector<std::string> *envp_;
+   std::string *inputFile_;
+   std::string *outputFile_;
    int *traceLink_;
    int *pid_;
    SignalGenerator *sg_;

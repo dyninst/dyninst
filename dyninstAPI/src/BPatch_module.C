@@ -41,6 +41,7 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <string>
 
 #define BPATCH_FILE
 
@@ -52,7 +53,6 @@
 #include "BPatch_function.h"
 #include "BPatch_statement.h"
 #include "BPatch_collections.h"
-#include "common/h/String.h"
 #include "symtabAPI/h/Type.h"    // For BPatch_type related stuff
 
 #include "mapped_module.h"
@@ -530,8 +530,8 @@ BPatch_module::findFunctionInt(const char *name,
          regerror( err, &comp_pat, errbuf, 80 );
          if (notify_on_failure) {
             cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-            pdstring msg = pdstring("Image: Unable to find function pattern: ") 
-               + pdstring(name) + ": regex error --" + pdstring(errbuf);
+            std::string msg = std::string("Image: Unable to find function pattern: ") 
+               + std::string(name) + ": regex error --" + std::string(errbuf);
             BPatch_reportError(BPatchSerious, 100, msg.c_str());
          }
          return NULL;
@@ -588,7 +588,7 @@ BPatch_module::findFunctionInt(const char *name,
       } 
 
       if (notify_on_failure) {
-         pdstring msg = pdstring("Unable to find pattern: ") + pdstring(name);
+         std::string msg = std::string("Unable to find pattern: ") + std::string(name);
          BPatch_reportError(BPatchSerious, 100, msg.c_str());
       }
 #endif
@@ -643,7 +643,7 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
    BPatch_function *bpfunc = NULL;
 
    pdvector<int_function *> int_funcs;
-   pdstring mangled_str(mangled_name);
+   std::string mangled_str(mangled_name);
 
    if (!mod->findFuncVectorByMangled(mangled_str,
             int_funcs))
@@ -669,7 +669,7 @@ bool BPatch_module::dumpMangledInt(char * prefix)
 }
 
 #if 0
-extern pdstring parseStabString(BPatch_module *, int linenum, char *str, 
+extern std::string parseStabString(BPatch_module *, int linenum, char *str, 
       int fPtr, BPatch_typeCommon *commonBlock = NULL);
 
 
@@ -689,11 +689,11 @@ void BPatch_module::parseTypes()
    char *stabstr=NULL;
    union auxent *aux;
    image * imgPtr=NULL;
-   pdstring funcName;
+   std::string funcName;
    Address staticBlockBaseAddr = 0;
    BPatch_typeCommon *commonBlock = NULL;
    BPatch_variableExpr *commonBlockVar = NULL;
-   pdstring currentSourceFile;
+   std::string currentSourceFile;
    bool inCommonBlock = false;
 
    if (!mod) return;
@@ -759,7 +759,7 @@ void BPatch_module::parseTypes()
             }
          }
 
-         currentSourceFile = pdstring(moduleName);
+         currentSourceFile = std::string(moduleName);
          currentSourceFile = mod->processDirectories(currentSourceFile);
 
          if (strrchr(moduleName, '/')) {
@@ -986,12 +986,12 @@ void BPatch_module::parseStabTypes()
 
    unsigned i;
    char *modName = NULL;
-   pdstring temp;
+   std::string temp;
    image * imgPtr=NULL;
    char *ptr = NULL, *ptr2 = NULL, *ptr3 = NULL;
    bool parseActive = false;
 
-   pdstring* currentFunctionName = NULL;
+   std::string* currentFunctionName = NULL;
    Address currentFunctionBase = 0;
    BPatch_variableExpr *commonBlockVar = NULL;
    char *commonBlockName = NULL;
@@ -1181,7 +1181,7 @@ void BPatch_module::parseStabTypes()
                   char* tmp = new char[colonPtr-ptr+1];
                   strncpy(tmp,ptr,colonPtr-ptr);
                   tmp[colonPtr-ptr] = '\0';
-                  currentFunctionName = new pdstring(tmp);
+                  currentFunctionName = new std::string(tmp);
 
                   currentFunctionBase = 0;
                   Symbol info;
@@ -1192,12 +1192,12 @@ void BPatch_module::parseStabTypes()
                   if (!addSpace->getAS()->getSymbolInfo(*currentFunctionName,
                            info))
                   {
-                     pdstring fortranName = *currentFunctionName + pdstring("_");
+                     std::string fortranName = *currentFunctionName + std::string("_");
                      //if (proc->llproc->getSymbolInfo(fortranName,info))
                      if (addSpace->getAS()->getSymbolInfo(fortranName,info))
                      {
                         delete currentFunctionName;
-                        currentFunctionName = new pdstring(fortranName);
+                        currentFunctionName = new std::string(fortranName);
                      }
                   }
 
@@ -1355,7 +1355,7 @@ void BPatch_module::parseStabTypes()
 
 #if defined(alpha_dec_osf4_0)
 extern void parseCoff(BPatch_module *mod, char *exeName, 
-      const pdstring& modName, LineInformation& linfo);
+      const std::string& modName, LineInformation& linfo);
 
 void BPatch_module::parseTypes()
 {
@@ -1370,7 +1370,7 @@ void BPatch_module::parseTypes()
    //Get the path name of the process
    //char *file = const_cast<char *>((imgPtr->file()).c_str());
    const fileDescriptor fdesc = imgPtr->desc();
-   pdstring fnamestr = fdesc.file(); 
+   std::string fnamestr = fdesc.file(); 
    char *file = const_cast<char *>(fnamestr.c_str());
 
    assert(file);
@@ -2310,10 +2310,10 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
      BPatch_variableExpr *var;
      parseTypesIfNecessary();
      
-     pdvector<pdstring> keys = moduleTypes->globalVarsByName.keys();
+     pdvector<std::string> keys = moduleTypes->globalVarsByName.keys();
      int limit = keys.size();
      for (int j = 0; j < limit; j++) {
-         pdstring name = keys[j];
+         std::string name = keys[j];
          var = img->createVarExprByName(this, name.c_str());
          if (var != NULL)
              vars.push_back(var);

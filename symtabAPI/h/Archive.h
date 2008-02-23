@@ -44,6 +44,7 @@
 using namespace std;
 using namespace __gnu_cxx; 
 
+class MappedFile;
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -63,7 +64,7 @@ class Archive{
 
 	static SymtabError getLastError();
 	static std::string printError(SymtabError serr);
-	std::string file() { return filename_; }
+	std::string file(); 
 	~Archive();
 
  private:
@@ -73,7 +74,10 @@ class Archive{
 #endif
  
  private:
+   MappedFile *mf;
+#if 0
  	std::string filename_;
+#endif
 	char *mem_image_;
 	hash_map <std::string, Symtab *> membersByName;
     hash_map <std::string, Offset> memberToOffsetMapping;

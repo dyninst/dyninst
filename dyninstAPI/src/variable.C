@@ -39,89 +39,98 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: variable.C,v 1.8 2007/09/19 21:55:13 giri Exp $
+// $Id: variable.C,v 1.9 2008/02/23 02:09:12 jaw Exp $
 
 // Variable.C
 
+#include <string>
 #include "mapped_object.h"
 
 image_variable::image_variable(Address offset,
-                               const pdstring &name,
-                               pdmodule *mod) :
-    pdmod_(mod) {
-    sym_ = new Symbol(name.c_str(), mod->fileName(), Symbol::ST_OBJECT , Symbol:: SL_GLOBAL,
-                                                                    offset);
-    mod->imExec()->getObject()->addSymbol(sym_);
-    sym_->setUpPtr(this);								    
-//    addSymTabName(name);
+      const std::string &name,
+      pdmodule *mod) :
+   pdmod_(mod) 
+{
+   sym_ = new Symbol(name.c_str(), mod->fileName(), 
+         Symbol::ST_OBJECT , Symbol::SL_GLOBAL, offset);
+   mod->imExec()->getObject()->addSymbol(sym_);
+   sym_->setUpPtr(this);								    
 }
 
-image_variable::image_variable(Symbol *sym,
-                               pdmodule *mod) :
-    sym_(sym),			       
-    pdmod_(mod) {
+image_variable::image_variable(Symbol *sym, pdmodule *mod) :
+   sym_(sym),			       
+   pdmod_(mod) 
+{
 }								    
 
-Address image_variable::getOffset() const {
-    return sym_->getAddr();
+Address image_variable::getOffset() const 
+{
+   return sym_->getAddr();
 }
 
-bool image_variable::addSymTabName(const pdstring &name, bool isPrimary) {
-       if(sym_->addMangledName(name.c_str(), isPrimary)){
-	    // Add to image class...
-            //pdmod_->imExec()->addVariableName(this, name, true);
-            return true;
-       }
-       // Bool: true if the name is new; AKA !found
-       return false;
+bool image_variable::addSymTabName(const std::string &name, bool isPrimary) 
+{
+   if (sym_->addMangledName(name.c_str(), isPrimary)){
+      // Add to image class...
+      //pdmod_->imExec()->addVariableName(this, name, true);
+      return true;
+   }
+   // Bool: true if the name is new; AKA !found
+   return false;
 }
-					   
-bool image_variable::addPrettyName(const pdstring &name, bool isPrimary) {
-       if(sym_->addPrettyName(name.c_str(), isPrimary)){
-	    // Add to image class...
-            //pdmod_->imExec()->addVariableName(this, name, false);
-            return true;
-       }
-       // Bool: true if the name is new; AKA !found
-       return false;
+
+bool image_variable::addPrettyName(const std::string &name, bool isPrimary) 
+{
+   if (sym_->addPrettyName(name.c_str(), isPrimary)){
+      // Add to image class...
+      //pdmod_->imExec()->addVariableName(this, name, false);
+      return true;
+   }
+   // Bool: true if the name is new; AKA !found
+   return false;
 }       
 
-const vector<string>& image_variable::symTabNameVector() const {
-    return sym_->getAllMangledNames();
+const vector<string>& image_variable::symTabNameVector() const 
+{
+   return sym_->getAllMangledNames();
 }
 
-const vector<string>& image_variable::prettyNameVector() const {
-    return sym_->getAllPrettyNames();
+const vector<string>& image_variable::prettyNameVector() const 
+{
+   return sym_->getAllPrettyNames();
 }
 
 int_variable::int_variable(image_variable *var, 
-                           Address base,
-                           mapped_module *mod) :
-    addr_(base + var->getOffset()),
-    size_(0),
-    ivar_(var),
-    mod_(mod)
+      Address base,
+      mapped_module *mod) :
+   addr_(base + var->getOffset()),
+   size_(0),
+   ivar_(var),
+   mod_(mod)
 {
 }
 
 int_variable::int_variable(int_variable *parVar,
-                           mapped_module *childMod) :
-    addr_(parVar->addr_),
-    size_(parVar->size_),
-    ivar_(parVar->ivar_),
-    mod_(childMod)
+      mapped_module *childMod) :
+   addr_(parVar->addr_),
+   size_(parVar->size_),
+   ivar_(parVar->ivar_),
+   mod_(childMod)
 {
-    // Mmm forkage
+   // Mmm forkage
 }
 
-const vector<string>& int_variable::prettyNameVector() const {
-    return ivar_->prettyNameVector();
+const vector<string>& int_variable::prettyNameVector() const 
+{
+   return ivar_->prettyNameVector();
 }
 
-const vector<string>& int_variable::symTabNameVector() const {
-    return ivar_->symTabNameVector();
+const vector<string>& int_variable::symTabNameVector() const 
+{
+   return ivar_->symTabNameVector();
 }
 
-const string &int_variable::symTabName() const {
-    return ivar_->symTabName();
+const string &int_variable::symTabName() const 
+{
+   return ivar_->symTabName();
 }

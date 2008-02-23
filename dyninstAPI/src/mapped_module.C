@@ -39,16 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.27 2008/01/24 11:20:43 jaw Exp $
+// $Id: mapped_module.C,v 1.28 2008/02/23 02:09:09 jaw Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/symtab.h"
-#include "common/h/String.h"
 #include "dyninstAPI/src/debug.h"
 #include "symtabAPI/src/Object.h"
 #include "process.h"
 #include <iomanip>
+#include <string>
 
 bool mapped_module::truncateLineFilenames = true;
 
@@ -125,7 +125,7 @@ supportedLanguages mapped_module::language() const
    return pmod()->language(); 
 }
 
-bool mapped_module::findFuncVectorByMangled(const pdstring &funcname,
+bool mapped_module::findFuncVectorByMangled(const std::string &funcname,
       pdvector<int_function *> &funcs)
 {
    // For efficiency sake, we grab the image vector and strip out the
@@ -147,7 +147,7 @@ bool mapped_module::findFuncVectorByMangled(const pdstring &funcname,
    return funcs.size() > orig_size;
 }
 
-bool mapped_module::findFuncVectorByPretty(const pdstring &funcname,
+bool mapped_module::findFuncVectorByPretty(const std::string &funcname,
       pdvector<int_function *> &funcs)
 {
    // For efficiency sake, we grab the image vector and strip out the
@@ -172,7 +172,7 @@ pdmodule *mapped_module::pmod() const
    return internal_mod_;
 }
 
-void mapped_module::dumpMangled(pdstring prefix) const 
+void mapped_module::dumpMangled(std::string prefix) const 
 {
    // No reason to have this process specific... it just dumps
    // function names.
@@ -211,7 +211,7 @@ int_function *mapped_module::findFuncByAddr(const Address &addr)
 }
 
 
-pdstring mapped_module::processDirectories(const pdstring &fn) const 
+std::string mapped_module::processDirectories(const std::string &fn) const 
 {
    // This is black magic... assume Todd (I think) knew what
    // he was doing....
@@ -222,7 +222,7 @@ pdstring mapped_module::processDirectories(const pdstring &fn) const
          !strstr(fn.c_str(),"/../"))
       return fn;
 
-   pdstring ret;
+   std::string ret;
    char suffix[10] = "";
    char prefix[10] = "";
    char* pPath = new char[strlen(fn.c_str())+1];

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.47 2008/01/31 18:01:45 legendre Exp $
+// $Id: instPoint.C,v 1.48 2008/02/23 02:09:07 jaw Exp $
 // instPoint code
 
 
@@ -70,7 +70,7 @@
 
 unsigned int instPointBase::id_ctr = 1;
 
-dictionary_hash <pdstring, unsigned> primitiveCosts(pdstring::hash);
+dictionary_hash <std::string, unsigned> primitiveCosts(::Dyninst::hash);
 
 #if defined(rs6000_ibm_aix4_1)
   extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C

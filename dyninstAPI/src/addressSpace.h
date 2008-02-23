@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.h,v 1.7 2008/01/31 18:01:49 legendre Exp $
+// $Id: addressSpace.h,v 1.8 2008/02/23 02:09:04 jaw Exp $
 
 #ifndef ADDRESS_SPACE_H
 #define ADDRESS_SPACE_H
@@ -190,23 +190,23 @@ class AddressSpace : public InstructionSource {
     // findFuncByName: returns function associated with "func_name"
     // This routine checks both the a.out image and any shared object images 
     // for this function
-    //int_function *findFuncByName(const pdstring &func_name);
+    //int_function *findFuncByName(const std::string &func_name);
     
-    bool findFuncsByAll(const pdstring &funcname,
+    bool findFuncsByAll(const std::string &funcname,
                         pdvector<int_function *> &res,
-                        const pdstring &libname = "");
+                        const std::string &libname = "");
     
     // Specific versions...
-    bool findFuncsByPretty(const pdstring &funcname,
+    bool findFuncsByPretty(const std::string &funcname,
                            pdvector<int_function *> &res,
-                           const pdstring &libname = "");
-    bool findFuncsByMangled(const pdstring &funcname, 
+                           const std::string &libname = "");
+    bool findFuncsByMangled(const std::string &funcname, 
                             pdvector<int_function *> &res,
-                            const pdstring &libname = "");
+                            const std::string &libname = "");
     
-    bool findVarsByAll(const pdstring &varname,
+    bool findVarsByAll(const std::string &varname,
                        pdvector<int_variable *> &res,
-                       const pdstring &libname = "");
+                       const std::string &libname = "");
     
     // And we often internally want to wrap the above to return one
     // and only one func...
@@ -216,8 +216,8 @@ class AddressSpace : public InstructionSource {
 
     // This will find the named symbol in the image or in a shared object
     // Necessary since some things don't show up as a function or variable.
-    //    bool getSymbolInfo( const pdstring &name, Dyn_Symbol &ret );
-    bool getSymbolInfo( const pdstring &name, Dyninst::SymtabAPI::Symbol &ret );
+    //    bool getSymbolInfo( const std::string &name, Dyn_Symbol &ret );
+    bool getSymbolInfo( const std::string &name, Dyninst::SymtabAPI::Symbol &ret );
 
     // getAllFunctions: returns a vector of all functions defined in the
     // a.out and in the shared objects
@@ -243,10 +243,10 @@ class AddressSpace : public InstructionSource {
     //  if substring_match is true, the first module whose name contains
     //  the provided string is returned.
     // Wildcard: handles "*" and "?"
-    mapped_module *findModule(const pdstring &mod_name, bool wildcard = false);
+    mapped_module *findModule(const std::string &mod_name, bool wildcard = false);
     // And the same for objects
     // Wildcard: handles "*" and "?"
-    mapped_object *findObject(const pdstring &obj_name, bool wildcard = false);
+    mapped_object *findObject(const std::string &obj_name, bool wildcard = false);
     mapped_object *findObject(Address addr);
     mapped_object *findObject(fileDescriptor desc);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.h,v 1.68 2006/12/06 21:23:41 bernat Exp $
+// $Id: inst-sparc.h,v 1.69 2008/02/23 02:09:06 jaw Exp $
 
 #if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
 #error "invalid architecture-os inclusion"
@@ -121,8 +121,8 @@ extern void genImm(process *proc, Address fromAddr, int op, Register rs1,
 
 extern int getInsnCost(opCode op);
 extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne, 
-			 pdstring name); 
-extern bool isReturnInsn(instruction i, Address adr, pdstring name);
+			 std::string name); 
+extern bool isReturnInsn(instruction i, Address adr, std::string name);
 extern bool isBranchInsn(instruction i);
 extern bool branchInsideRange(instruction i, Address branchAddress, 
       Address firstAddress, Address lastAddress); 

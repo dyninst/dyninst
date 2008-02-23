@@ -61,6 +61,11 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
 				      const pdstring &path,
 				      const pdstring &cwd);
 
+bool executableFromArgv0AndPathAndCwd(std::string &result,
+				      const std::string &i_argv0,
+				      const std::string &path,
+				      const std::string &cwd);
+
 DLLEXPORT pdstring extract_pathname_tail(const pdstring &path);
 DLLEXPORT string extract_pathname_tail(const string &path);
 

@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.48 2008/01/16 22:02:01 legendre Exp $
+// $Id: function.h,v 1.49 2008/02/23 02:09:05 jaw Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
 
-#include "common/h/String.h"
+#include <string>
 #include "common/h/Vector.h"
 #include "common/h/Types.h"
 #include "common/h/Pair.h"
@@ -320,7 +320,7 @@ class int_basicBlock {
 class int_function : public patchTarget {
   friend class int_basicBlock;
  public:
-   //static pdstring emptyString;
+   //static std::string emptyString;
 
    // Almost everything gets filled in later.
    int_function(image_func *f,
@@ -352,9 +352,9 @@ class int_function : public patchTarget {
    void debugPrint() const;
 
    // And add...
-   // Don't make the pdstring a reference; we want a copy.
-   void addSymTabName(const pdstring name, bool isPrimary = false);
-   void addPrettyName(const pdstring name, bool isPrimary = false);
+   // Don't make the std::string a reference; we want a copy.
+   void addSymTabName(const std::string name, bool isPrimary = false);
+   void addPrettyName(const std::string name, bool isPrimary = false);
 
    // May change when we relocate...
    Address getAddress() const {return addr_;}

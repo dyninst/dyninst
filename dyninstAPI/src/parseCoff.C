@@ -39,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include <string>
 #include <stdio.h>
 #include <filehdr.h>
 #include <syms.h>
@@ -75,8 +76,8 @@
 #define STABS_SYMBOL "@stabs"
 
 // Main functions needed to parse stab strings.
-extern pdstring current_func_name;
-extern pdstring parseStabString(BPatch_module *, int linenum, char *str,
+extern std::string current_func_name;
+extern std::string parseStabString(BPatch_module *, int linenum, char *str,
 			     int fPtr, BPatch_typeCommon *commonBlock = NULL);
 
 typedef union {
@@ -112,7 +113,7 @@ class eCoffSymbol {
     eCoffParseInfo *info;
 
 public:
-    pdstring name;
+    std::string name;
     pSYMR sym;
     pAUXU aux;
     int ifd;
@@ -267,16 +268,16 @@ void eCoffSymbol::clear(bool cleanup)
 // --------------------------------------------------------------------------
 
 // Function Prototypes.
-bool eCoffFindModule(pCHDRR, const pdstring &, eCoffParseInfo &);
+bool eCoffFindModule(pCHDRR, const std::string &, eCoffParseInfo &);
 void eCoffFillInfo(pCHDRR, int, eCoffParseInfo &);
-void FindLineInfo(LDFILE *, eCoffParseInfo &, pdstring, LineInformation &);
+void FindLineInfo(LDFILE *, eCoffParseInfo &, std::string, LineInformation &);
 BPatch_type *eCoffParseType(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffHandleTIR(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffHandleTQ(eCoffSymbol &, BPatch_type *, unsigned int);
 void eCoffParseProc(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffParseStruct(BPatch_module *, eCoffSymbol &, bool = false);
 void eCoffHandleRange(eCoffSymbol &, long int &, long int &, bool = false);
-void eCoffHandleRange(eCoffSymbol &, pdstring &, pdstring &, bool = false);
+void eCoffHandleRange(eCoffSymbol &, std::string &, std::string &, bool = false);
 long int eCoffHandleWidth(eCoffSymbol &, bool = false);
 eCoffSymbol eCoffHandleRNDX(eCoffSymbol &, bool = false);
 int eCoffGetOffset(eCoffSymbol &, pPDR);
@@ -284,12 +285,12 @@ pPDR eCoffGetFunction(eCoffSymbol &);
 int stabsGetOffset(eCoffSymbol &, const char *, int);
 
 // *** FUTURE BUG: The following code is currently designed for
-// paradyn/dyninst's internal pdstring class.  While this code will still
-// work if ever replaced by the STL pdstring, it could be better optimized.
+// paradyn/dyninst's internal std::string class.  While this code will still
+// work if ever replaced by the STL std::string, it could be better optimized.
 // RSC (11/2002)
 
 // fcn to construct type information
-void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
+void parseCoff(BPatch_module *mod, char *exeName, const std::string &modName,
 	       LineInformation & lineInformation)
 {
     LDFILE *ldptr;
@@ -381,7 +382,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 		    value = stabsGetOffset(symbol, current_func_name.c_str(), varType);
 		}
 
-		pdstring temp = parseStabString(mod, 0, const_cast<char *>(symbol.name.c_str()),
+		std::string temp = parseStabString(mod, 0, const_cast<char *>(symbol.name.c_str()),
                                              value);
 		if (temp != "") {
 		    // Error parsing the stabstr, return should be \0
@@ -454,7 +455,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
     ldaclose(ldptr);
 }
 
-bool eCoffFindModule(pCHDRR symtab, const pdstring &modName, eCoffParseInfo &info)
+bool eCoffFindModule(pCHDRR symtab, const std::string &modName, eCoffParseInfo &info)
 {
     if (modName == "DEFAULT_MODULE") {
 	// As far as I can tell, the external symbols hold the
@@ -522,7 +523,7 @@ void eCoffFillInfo(pCHDRR symtab, int fileIndex, eCoffParseInfo &info)
 }
 
 void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
-                  pdstring fileName, LineInformation& lineInformation)
+                  std::string fileName, LineInformation& lineInformation)
 {
     // For some reason, the count fields of pCFDR structures are not
     // filled out correctly when the symbol table is read in via the
@@ -561,7 +562,7 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
 		if (P_strlen(funcName) == 0)
 		    continue;
 
-//      lineInformation->insertSourceFileName( pdstring(funcName), fileName.c_str(),
+//      lineInformation->insertSourceFileName( std::string(funcName), fileName.c_str(),
 //            &currentFileInfo,&currentFuncInfo);
 
         // no line information for the filedesc is available
@@ -676,7 +677,7 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
 BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef) 
 {
     int id = symbol.id();
-    pdstring name;
+    std::string name;
     eCoffSymbol remoteSymbol;
     BPatch_type *newType = NULL;
 
@@ -752,7 +753,7 @@ BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 
 BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool /*typeDef*/)
 {
-    pdstring low, high, name;
+    std::string low, high, name;
     long int width = -1;
     eCoffSymbol remoteSymbol;
     pAUXU currTIR = (symbol.aux)++;
@@ -1003,7 +1004,7 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
     BPatch_function *fp = NULL;
 
        // get the base address of the procedure
-    pdstring sname = symbol.name;
+    std::string sname = symbol.name;
     const char *fname = sname.c_str();
     if (!fname) return;  // Some findFunction in this file is passing in NULL
 
@@ -1116,7 +1117,7 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 			// Bad hack.  Fortran common blocks have both a module, and a
 			// global variable defined in the symbol table using the same
 			// name.  Since AObject::symbols_ was modified to be a
-			// dictionary_hash< pdstring, pdvector< Symbol > >, the symbol
+			// dictionary_hash< std::string, pdvector< Symbol > >, the symbol
 			// is no longer correctly found by BPatch_image::findVariable.
 			// 
 			// So, we use the following manual search instead.
@@ -1279,14 +1280,14 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
 
    endIndex = symbol.sym->index - 1;
    while (symbol.index() < endIndex) {
-      pdstring fieldName = symbol.name;
+      std::string fieldName = symbol.name;
       long fieldOffset = symbol.sym->value;
 
       // Terrible capitalization hack (Fortran only).
       if (dataType == BPatch_dataCommon) {
          fieldName = "";
          for (unsigned int i = 0; i < symbol.name.length(); ++i)
-            fieldName += pdstring((char)tolower(symbol.name[i]));
+            fieldName += std::string((char)tolower(symbol.name[i]));
          symbol.name = fieldName;
       }
 
@@ -1361,7 +1362,7 @@ void eCoffHandleRange(eCoffSymbol &symbol, long int &low, long int &high, bool r
     }
 }
 
-void eCoffHandleRange(eCoffSymbol &symbol, pdstring &s_low, pdstring &s_high,
+void eCoffHandleRange(eCoffSymbol &symbol, std::string &s_low, std::string &s_high,
                       bool range_64)
 {
     long int i_low, i_high;
@@ -1472,7 +1473,7 @@ int stabsGetOffset(eCoffSymbol &symbol, const char *func, int st)
     pPDR func_pdr = stabsGetFunction(symbol, func);
 
     if (!func_pdr) {
-       extern pdstring current_mangled_func_name;
+       extern std::string current_mangled_func_name;
        func_pdr = stabsGetFunction(symbol, current_mangled_func_name.c_str());
        if (!func_pdr) {
          fprintf(stderr, "%s[%d]:  stabsGetFunction failed for %s/%s\n", FILE__, __LINE__, symbol.name.c_str(), func);

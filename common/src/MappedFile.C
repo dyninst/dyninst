@@ -6,10 +6,12 @@ hash_map<std::string, MappedFile *> MappedFile::mapped_files;
 MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 {
    if (mapped_files.find(fullpath_) != mapped_files.end()) {
+      fprintf(stderr, "%s[%d]:  mapped file exists for %s\n", FILE__, __LINE__, fullpath_.c_str());
       MappedFile  *ret = mapped_files[fullpath_];
       ret->refCount++;
       return ret;
    }
+
 
    bool ok = false;
    MappedFile *mf = new MappedFile(fullpath_, ok);
@@ -21,6 +23,7 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
    
    mapped_files[fullpath_] = mf;
    
+//   fprintf(stderr, "%s[%d]:  MMAPFILE %s: mapped_files.size() =  %d\n", FILE__, __LINE__, fullpath_.c_str(), mapped_files.size());
    return mf;
 }
 
@@ -66,13 +69,15 @@ MappedFile::MappedFile(void *loc, bool &ok) :
 
 void MappedFile::closeMappedFile(MappedFile *mf)
 {
-   //fprintf(stderr, "%s[%d]:  welcome to closeMappedFile(%s) refCount = %d\n", FILE__, __LINE__, mf->filename().c_str(), mf->refCount);
+ //  fprintf(stderr, "%s[%d]:  welcome to closeMappedFile(%s) refCount = %d\n", FILE__, __LINE__, mf->pathname().c_str(), mf->refCount);
    mf->refCount--;
    if (mf->refCount <= 0) {
       hash_map<std::string, MappedFile *>::iterator iter;
       iter = mapped_files.find(mf->pathname());
-      if (iter != mapped_files.end())
+      if (iter != mapped_files.end()) {
          mapped_files.erase(iter);
+      }
+  //    fprintf(stderr, "%s[%d]:  DELETING mapped file\n", FILE__, __LINE__);
       //  dtor handles unmap and close
       delete mf;
    }
@@ -97,8 +102,10 @@ err:
 MappedFile::~MappedFile()
 {
   //  warning, destructor should not allowed to throw exceptions
-   if (did_mmap) 
+   if (did_mmap)  {
+      fprintf(stderr, "%s[%d]: unmapping %s\n", FILE__, __LINE__, fullpath.c_str());
       unmap_file();
+   }
    if (did_open) 
       close_file();
 }
@@ -132,9 +139,9 @@ err:
    return false;
 }
 
+#if defined(os_windows)
 bool MappedFile::open_file(void *loc)
 {
-#if defined(os_windows)
    hFile = LocalHandle( loc );  //For a mem image
    if (!hFile) {
       LPVOID lpMsgBuf;
@@ -154,12 +161,15 @@ bool MappedFile::open_file(void *loc)
 err:
    fprintf(stderr, "%s[%d]: failed to open file\n", FILE__, __LINE__);
    return false;
+}
 #else
+bool MappedFile::open_file(void * /*loc*/)
+{
    did_open = false;
    fd = -1;
    return true;
-#endif
 }
+#endif
 
 bool MappedFile::open_file()
 {

@@ -39,28 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.15 2006/06/06 00:45:41 legendre Exp $
+/* $Id: signalgenerator-unix.h,v 1.16 2008/02/23 02:09:10 jaw Exp $
  */
 
 
 #ifndef _SIGNAL_GENERATOR_UNIX_H_
 #define _SIGNAL_GENERATOR_UNIX_H_
 
+#include <string>
 #include "dyninstAPI/src/os.h"
-
-#if 0
-class SignalGenerator;
-
-typedef struct waitpid_ret_pair {
-   int pid;
-   int status;
-} waitpid_ret_pair_t;
-
-typedef struct pid_generator_pair {
-   int pid;
-   SignalGenerator *sg;
-} pid_generator_pair_t;
-#endif
 
 class SignalGenerator : public SignalGeneratorCommon
 {
@@ -78,15 +65,15 @@ class SignalGenerator : public SignalGeneratorCommon
    void expectFakeSignal() {expect_fake_signal = true;}
   private:
   //  SignalGenerator should only be constructed by process
-  SignalGenerator(char *idstr, pdstring file, pdstring dir,
-                  pdvector<pdstring> *argv,
-                  pdvector<pdstring> *envp,
-                  pdstring inputFile,
-                  pdstring outputFile,
+  SignalGenerator(char *idstr, std::string file, std::string dir,
+                  pdvector<std::string> *argv,
+                  pdvector<std::string> *envp,
+                  std::string inputFile,
+                  std::string outputFile,
                   int stdin_fd, int stdout_fd,
                   int stderr_fd);
 
-  SignalGenerator(char *idstr, pdstring file, int pid);
+  SignalGenerator(char *idstr, std::string file, int pid);
 
   virtual SignalHandler *newSignalHandler(char *name, int id);
 

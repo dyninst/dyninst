@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.103 2008/02/04 21:16:36 bernat Exp $
+// $Id: ast.h,v 1.104 2008/02/23 02:09:05 jaw Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -49,9 +49,9 @@
 //
 
 #include <stdio.h>
+#include <string>
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "common/h/String.h"
 #include "common/h/Types.h"
 
 // The great experiment: boost shared_ptr libraries
@@ -158,7 +158,7 @@ class AstNode {
         // Factory methods....
         static AstNodePtr nullNode();
 
-        static AstNodePtr labelNode(pdstring &label);
+        static AstNodePtr labelNode(std::string &label);
 
         static AstNodePtr operandNode(operandType ot, void *arg);
         static AstNodePtr operandNode(operandType ot, AstNodePtr ast);
@@ -172,7 +172,7 @@ class AstNode {
                                        AstNodePtr r = AstNodePtr(), 
                                        AstNodePtr e = AstNodePtr());
 
-        static AstNodePtr funcCallNode(const pdstring &func, pdvector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
+        static AstNodePtr funcCallNode(const std::string &func, pdvector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
         static AstNodePtr funcCallNode(int_function *func, pdvector<AstNodePtr > &args);
         static AstNodePtr funcCallNode(Address addr, pdvector<AstNodePtr > &args); // For when you absolutely need
         // to jump somewhere.
@@ -342,7 +342,7 @@ class AstNullNode : public AstNode {
 
 class AstLabelNode : public AstNode {
  public:
-    AstLabelNode(pdstring &label) : AstNode(), label_(label), generatedAddr_(0) {};
+    AstLabelNode(std::string &label) : AstNode(), label_(label), generatedAddr_(0) {};
 
 	bool canBeKept() const { return true; }
  private:
@@ -350,7 +350,7 @@ class AstLabelNode : public AstNode {
                                      bool noCost,
                                      Address &retAddr,
                                      Register &retReg);
-    pdstring label_;
+    std::string label_;
     Address generatedAddr_;
 };
 
@@ -437,7 +437,7 @@ class AstOperandNode : public AstNode {
 class AstCallNode : public AstNode {
  public:
     AstCallNode(int_function *func, pdvector<AstNodePtr>&args);
-    AstCallNode(const pdstring &str, pdvector<AstNodePtr>&args);
+    AstCallNode(const std::string &str, pdvector<AstNodePtr>&args);
     AstCallNode(Address addr, pdvector<AstNodePtr> &args);
     
     ~AstCallNode() {}
@@ -463,7 +463,7 @@ class AstCallNode : public AstNode {
 
     AstCallNode() {};
     // Sometimes we just don't have enough information...
-    const pdstring func_name_;
+    const std::string func_name_;
     Address func_addr_;
     
     int_function *func_;

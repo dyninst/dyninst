@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.46 2008/02/15 23:44:33 legendre Exp $
+ * $Id: image-flowGraph.C,v 1.47 2008/02/23 02:09:05 jaw Exp $
  */
 
 #include <stdio.h>
@@ -125,7 +125,7 @@ bool image::analyzeImage()
     pdf = everyUniqueFunction[i];
     mod = pdf->pdmod();
     assert(pdf); assert(mod);
-    pdstring name = pdf->symTabName().c_str();
+    std::string name = pdf->symTabName().c_str();
     parseFunction( pdf, callTargets, preParseStubs);
         
     // these functions have not been added to the code range tree
@@ -729,7 +729,7 @@ bool image_func::buildCFG(
     codeRange *tmpRange;
 
     // ** Use to special-case abort and exit calls
-    dictionary_hash<Address, pdstring> *pltFuncs = img()->getPltFuncs();
+    dictionary_hash<Address, std::string> *pltFuncs = img()->getPltFuncs();
     
     // ** end abort/exit setup
 

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.34 2008/01/16 22:01:41 legendre Exp $
+/* $Id: signalhandler.h,v 1.35 2008/02/23 02:09:11 jaw Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
 #define _SIGNAL_HANDLER_H
 
+#include <string>
 #include "common/h/Vector.h"
-#include "common/h/String.h"
 #include "dyninstAPI/src/EventHandler.h"
 #include "codeRange.h"
 

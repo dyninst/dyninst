@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.221 2008/02/20 08:31:07 jaw Exp $
+// $Id: solaris.C,v 1.222 2008/02/23 02:09:11 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -51,6 +51,7 @@
 #include <fcntl.h>
 #include <sys/termios.h>
 #include <unistd.h>
+#include <string>
 #include "dyninstAPI/src/debug.h"
 #include "common/h/pathName.h" // concat_pathname_components()
 #include "common/h/debugOstream.h"
@@ -161,7 +162,7 @@ bool process::get_exit_syscalls(sysset_t *exit)
 
 #if defined (cap_save_the_world)
 //TODO: This function should be converted to use process objects, not BPatch.
-bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirName){
+bool process::dldumpSharedLibrary(std::string originalLibNameFullPath, char* dirName){
     BPatch_Vector<BPatch_snippet *> args;
     char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath.c_str(),dirName);
     
@@ -223,7 +224,7 @@ bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirNam
 
 #if defined(cap_save_the_world)
 
-char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
+char* process::dumpPatchedImage(std::string imageFileName){ //ccw 28 oct 2001
 
 	writeBackElf *newElf;
 	addLibrary *addLibraryElf;
@@ -535,7 +536,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 }
 #endif
 
-bool process::dumpImage(pdstring imageFileName) 
+bool process::dumpImage(std::string imageFileName) 
 {
     int newFd;
     string command;
@@ -698,18 +699,18 @@ bool process::getDyninstRTLibName() {
          dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
       }
       else {
-         pdstring msg = pdstring("Environment variable ") +
-                        pdstring("DYNINSTAPI_RT_LIB") +
-                        pdstring(" has not been defined for process ") +
-                        pdstring(getPid());
+         std::string msg = std::string("Environment variable ") +
+                        std::string("DYNINSTAPI_RT_LIB") +
+                        std::string(" has not been defined for process ") +
+                        utos(getPid());
          showErrorCallback(101, msg);
          return false;
       }
    }
    // Check to see if the library given exists.
    if (access(dyninstRT_name.c_str(), R_OK)) {
-      pdstring msg = pdstring("Runtime library ") + dyninstRT_name +
-                     pdstring(" does not exist or cannot be accessed!");
+      std::string msg = std::string("Runtime library ") + dyninstRT_name +
+                     std::string(" does not exist or cannot be accessed!");
       showErrorCallback(101, msg);
       return false;
    }
@@ -854,7 +855,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *)
     return true;
 }
 
-bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
+bool SignalGeneratorCommon::getExecFileDescriptor(std::string filename,
                                     int /*pid*/,
                                     bool /*whocares*/,
                                     int &,
@@ -877,7 +878,7 @@ void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
 }
 #endif
 
-bool process::dumpCore_(const pdstring coreName) 
+bool process::dumpCore_(const std::string coreName) 
 {
   char command[100];
 
@@ -1253,7 +1254,7 @@ int_function *instPoint::findCallee() {
  * Searches for function in order, with preference given first 
  * to libpthread, then to libc, then to the process.
  **/
-static void findThreadFuncs(process *p, pdstring func, 
+static void findThreadFuncs(process *p, std::string func, 
                             pdvector<int_function *> &result)
 {
    bool found = false;

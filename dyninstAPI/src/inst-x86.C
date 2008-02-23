@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.274 2008/02/20 22:34:18 legendre Exp $
+ * $Id: inst-x86.C,v 1.275 2008/02/23 02:09:06 jaw Exp $
  */
 #include <iomanip>
 
@@ -1170,7 +1170,8 @@ Register EmitterIA32::emitCall(opCode op,
    return ret;
 }
 
-bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
+bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee) 
+{
     // make the call
     // we are using an indirect call here because we don't know the
     // address of this instruction, so we can't use a relative call.
@@ -1184,9 +1185,10 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
 // means we need to know where we're _coming_ from, which currently
 // isn't possible. Time to add more to the codeGen structure, such as
 // "function where we're inserting new code."  Also, we'll need a
-// pdstring version that doesn't take a callee...
+// std::string version that doesn't take a callee...
 
-bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
+bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function * /*calleei*/) 
+{
     // make the call
     // we are using an indirect call here because we don't know the
     // address of this instruction, so we can't use a relative call.
@@ -1801,7 +1803,7 @@ int getInsnCost(opCode op)
 }
 
 
-dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
+dictionary_hash<std::string, unsigned> funcFrequencyTable(::Dyninst::hash);
 
 //
 // initDefaultPointFrequencyTable - define the expected call frequency of
@@ -2254,6 +2256,7 @@ Emitter *AddressSpace::getEmitter()
    }
 }
 
-bool image::isAligned(const Address where) const {
+bool image::isAligned(const Address/* where*/) const 
+{
    return true;
 }

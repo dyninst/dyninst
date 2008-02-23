@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.206 2008/01/16 22:01:44 legendre Exp $
+// $Id: symtab.h,v 1.207 2008/02/23 02:09:11 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string>
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
 #include <regex.h>
 #endif
@@ -61,7 +62,6 @@
 #include "dyninstAPI/src/util.h"
 
 #include "symtabAPI/h/LineInformation.h"
-#include "common/h/String.h"
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/InstructionSource.h"
@@ -224,7 +224,7 @@ class image_variable {
     image_variable() {};
  public:
     image_variable(Address offset,
-                   const pdstring &name,
+                   const std::string &name,
                    pdmodule *mod);
 
     image_variable(Symbol *sym,
@@ -236,8 +236,8 @@ class image_variable {
     const vector<string>&  symTabNameVector() const;
     const vector<string>& prettyNameVector() const;
 
-    bool addSymTabName(const pdstring &, bool isPrimary = false);
-    bool addPrettyName(const pdstring &, bool isPrimary = false);
+    bool addSymTabName(const std::string &, bool isPrimary = false);
+    bool addPrettyName(const std::string &, bool isPrimary = false);
 
     pdmodule *pdmod() const { return pdmod_; }
     Symbol *symbol() const { return sym_; }
@@ -259,12 +259,12 @@ class lineDict {
    dictionary_hash<unsigned, Address> lineMap;
 };
 
-void print_func_vector_by_pretty_name(pdstring prefix,
+void print_func_vector_by_pretty_name(std::string prefix,
                                       pdvector<image_func *>*funcs);
-void print_module_vector_by_short_name(pdstring prefix,
+void print_module_vector_by_short_name(std::string prefix,
                                        pdvector<pdmodule*> *mods);
-pdstring getModuleName(pdstring constraint);
-pdstring getFunctionName(pdstring constraint);
+std::string getModuleName(std::string constraint);
+std::string getFunctionName(std::string constraint);
 
 int rawfuncscmp( image_func*& pdf1, image_func*& pdf2 );
 
@@ -305,7 +305,7 @@ class image : public codeRange, public InstructionSource {
     // remove after testing
    void DumpAllStats();
 
-   static image *parseImage(const pdstring file);
+   static image *parseImage(const std::string file);
    static image *parseImage(fileDescriptor &desc, bool parseGaps=false); 
 
    // And to get rid of them if we need to re-parse
@@ -346,7 +346,7 @@ class image : public codeRange, public InstructionSource {
    // Check the list of symbols returned by the parser, return
    // name/addr pair
 
-   //Address findInternalAddress (const pdstring &name, const bool warn, bool &err);
+   //Address findInternalAddress (const std::string &name, const bool warn, bool &err);
    // find the named module  
    pdmodule *findModule(const string &name, bool wildcard = false);
 
@@ -356,11 +356,11 @@ class image : public codeRange, public InstructionSource {
 
    // Find the vector of functions associated with a (demangled) name
    // Returns internal pointer, so label as const
-   const pdvector <image_func *> *findFuncVectorByPretty(const pdstring &name);
-   const pdvector <image_func *> *findFuncVectorByMangled(const pdstring &name);
+   const pdvector <image_func *> *findFuncVectorByPretty(const std::string &name);
+   const pdvector <image_func *> *findFuncVectorByMangled(const std::string &name);
    // Variables: nearly identical
-   const pdvector <image_variable *> *findVarVectorByPretty(const pdstring &name);
-   const pdvector <image_variable *> *findVarVectorByMangled(const pdstring &name);
+   const pdvector <image_variable *> *findVarVectorByPretty(const std::string &name);
+   const pdvector <image_variable *> *findVarVectorByMangled(const std::string &name);
 
 
 
@@ -372,7 +372,7 @@ class image : public codeRange, public InstructionSource {
                                                      void *user_data, 
                                                      pdvector<image_func *> *found);
 
-   image_func *findOnlyOneFunction(const pdstring &name);
+   image_func *findOnlyOneFunction(const std::string &name);
 
    // Given an address (offset into the image), find the function that occupies
    // that address
@@ -390,8 +390,8 @@ class image : public codeRange, public InstructionSource {
    //overloaded functions in paradyn)
    void addTypedPrettyName(image_func *func, const char *typedName);
 	
-   bool symbolExists(const pdstring &); /* Does the symbol exist in the image? */
-   void postProcess(const pdstring);          /* Load .pif file */
+   bool symbolExists(const std::string &); /* Does the symbol exist in the image? */
+   void postProcess(const std::string);          /* Load .pif file */
 
 
    void addJumpTarget(Address addr) {
@@ -446,9 +446,9 @@ class image : public codeRange, public InstructionSource {
    bool isNativeCompiler() const { return nativeCompiler; }
 
    // Return symbol table information
-   bool symbol_info(const pdstring& symbol_name, Symbol& ret);
+   bool symbol_info(const std::string& symbol_name, Symbol& ret);
    // And used for finding inferior heaps.... hacky, but effective.
-   bool findSymByPrefix(const pdstring &prefix, pdvector<Symbol *> &ret);
+   bool findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret);
 
    const pdvector<image_instPoint*> &getBadControlFlow() const;
 
@@ -475,7 +475,7 @@ class image : public codeRange, public InstructionSource {
 
    void * getErrFunc() const { return (void *) pd_log_perror; }
 
-   dictionary_hash<Address, pdstring> *getPltFuncs();
+   dictionary_hash<Address, std::string> *getPltFuncs();
 
  private:
 
@@ -497,15 +497,15 @@ class image : public codeRange, public InstructionSource {
 
    // private methods for findind an excluded function by name or
    //  address....
-   //bool find_excluded_function(const pdstring &name,
+   //bool find_excluded_function(const std::string &name,
    //    pdvector<image_func*> &retList);
    //image_func *find_excluded_function(const Address &addr);
 
    void findMain();
 
    // A helper routine for removeInstrumentableFunc -- removes function from specified hash
-   void removeFuncFromNameHash(image_func *func, pdstring &fname,
-                               dictionary_hash<pdstring, pdvector<image_func *> > *func_hash);
+   void removeFuncFromNameHash(image_func *func, std::string &fname,
+                               dictionary_hash<std::string, pdvector<image_func *> > *func_hash);
 
 #ifdef CHECK_ALL_CALL_POINTS
    void checkAllCallPoints();
@@ -522,14 +522,14 @@ class image : public codeRange, public InstructionSource {
    // And all those we find via analysis... like, how?
    bool addDiscoveredVariables();
 
-   void getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
-   void setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
+   void getModuleLanguageInfo(dictionary_hash<std::string, supportedLanguages> *mod_langs);
+   void setModuleLanguages(dictionary_hash<std::string, supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
    // wasSymtab: name was found in symbol table. False if invented name
    void enterFunctionInTables(image_func *func, bool wasSymtab);
-   //void addFunctionName(image_func *func, const pdstring newName, bool isMangled = false);
-   //void addVariableName(image_variable *var, const pdstring newName, bool isMangled = false);
+   //void addFunctionName(image_func *func, const std::string newName, bool isMangled = false);
+   //void addVariableName(image_variable *var, const std::string newName, bool isMangled = false);
 
    bool buildFunctionLists(pdvector<image_func *> &raw_funcs);
    bool analyzeImage();
@@ -560,6 +560,9 @@ class image : public codeRange, public InstructionSource {
 
    // data from the symbol table 
    Symtab *linkedFile;
+#if defined (os_aix)
+   Archive *archive;
+#endif
 
 
    // A vector of all images. Used to avoid duplicating
@@ -586,10 +589,10 @@ class image : public codeRange, public InstructionSource {
    // note, a prettyName is not unique, it may map to a function appearing
    // in several modules.  Also only contains instrumentable functions....
 /*
-   dictionary_hash <pdstring, pdvector<image_func*>*> funcsByPretty;
+   dictionary_hash <std::string, pdvector<image_func*>*> funcsByPretty;
    // Hash table holding functions by mangled name.
    // Should contain same functions as funcsByPretty....
-   dictionary_hash <pdstring, pdvector<image_func*>*> funcsByMangled;
+   dictionary_hash <std::string, pdvector<image_func*>*> funcsByMangled;
    // A way to iterate over all the functions efficiently
 */   
    pdvector<image_func *> everyUniqueFunction;
@@ -627,12 +630,12 @@ class image : public codeRange, public InstructionSource {
    hash_map <string, pdmodule *> modsByFileName;
    hash_map <string, pdmodule*> modsByFullName;
 
-   dictionary_hash<Address, pdstring> *pltFuncs;
+   dictionary_hash<Address, std::string> *pltFuncs;
 
 /* 
    // Variables indexed by pretty (non-mangled) name
-   dictionary_hash <pdstring, pdvector <image_variable *> *> varsByPretty;
-   dictionary_hash <pdstring, pdvector <image_variable *> *> varsByMangled;
+   dictionary_hash <std::string, pdvector <image_variable *> *> varsByPretty;
+   dictionary_hash <std::string, pdvector <image_variable *> *> varsByMangled;
 */   
    dictionary_hash <Address, image_variable *> varsByAddr;
 
@@ -664,7 +667,7 @@ class pdmodule {
 #endif
    bool getFunctions(pdvector<image_func *> &funcs);
 
-   bool findFunction(const pdstring &name,
+   bool findFunction(const std::string &name,
                       pdvector<image_func *> &found);
 
    bool getVariables(pdvector<image_variable *> &vars);
@@ -676,11 +679,11 @@ class pdmodule {
       libc.a on AIX lacks debug information), which means one of our
       module classes may contain information about an entire object,
       and therefore, multiple functons with the same mangled name. */
-   bool findFunctionByMangled (const pdstring &name,
+   bool findFunctionByMangled (const std::string &name,
                                pdvector<image_func *> &found);
-   bool findFunctionByPretty (const pdstring &name,
+   bool findFunctionByPretty (const std::string &name,
                               pdvector<image_func *> &found);
-   void dumpMangled(pdstring &prefix) const;
+   void dumpMangled(std::string &prefix) const;
    const string &fileName() const;
    const string &fullName() const;
    supportedLanguages language() const;

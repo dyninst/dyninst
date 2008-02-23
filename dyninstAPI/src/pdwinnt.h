@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.18 2008/02/15 17:27:35 giri Exp $
+// $Id: pdwinnt.h,v 1.19 2008/02/23 02:09:10 jaw Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -60,7 +60,7 @@ struct dyn_saved_regs {
 };
 
 #define EXIT_NAME "_exit"
-#define SIGNAL_HANDLER 0
+#define SIGNAL_HANDLER "no_signal_handler"
 #endif
 
 // Number of bytes to save in an overwrite operation

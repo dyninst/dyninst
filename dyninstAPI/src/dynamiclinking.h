@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.h,v 1.19 2007/12/12 22:20:43 roundy Exp $
+// $Id: dynamiclinking.h,v 1.20 2008/02/23 02:09:05 jaw Exp $
 
 #if !defined(dynamic_linking_h)
 #define dynamic_linking_h
 
 #include "common/h/Vector.h"
 #include "common/h/Types.h"
-#include "common/h/String.h"
+#include <string>
 
 class process;
 class dyn_lwp;
@@ -131,7 +131,7 @@ public:
     bool handleIfDueToSharedObjectMapping(EventRecord &ev,
                                           pdvector<mapped_object *> &changed_objects,
                                           pdvector<bool> &is_new_object);
-    bool decodeIfDueToSharedObjectMapping(EventRecord &, u_int &change_type);
+    bool decodeIfDueToSharedObjectMapping(EventRecord &, unsigned int &change_type);
     bool getChangedObjects(EventRecord &,pdvector<mapped_object *> &changed_objects);
                            
 
@@ -234,7 +234,7 @@ public:
        // it returns false on error
        // f_name_addr can't be passed in by reference since it makes calling it
        // with a NULL parameter unpleasant.
-       bool findFunctionIn_ld_so_1(pdstring f_name, int ld_fd, 
+       bool findFunctionIn_ld_so_1(std::string f_name, int ld_fd, 
                                    Address ld_base_addr, Address *f_name_addr, 
                                    int st_type);
        

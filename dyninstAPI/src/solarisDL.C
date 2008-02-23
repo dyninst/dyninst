@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.52 2007/12/12 22:20:54 roundy Exp $
+// $Id: solarisDL.C,v 1.53 2008/02/23 02:09:11 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -53,6 +53,7 @@
 #include <sys/types.h>
 #include <procfs.h>
 #include <sys/auxv.h>
+#include <string>
 
 
 // initialize: perform initialization tasks on a platform-specific level
@@ -61,7 +62,7 @@ bool dynamic_linking::initialize() {
     r_debug_addr = 0;
     r_state = 0;
     // First, find if we're a dynamic executable
-    pdstring dyn_str = pdstring("DYNAMIC");
+    std::string dyn_str = std::string("DYNAMIC");
     Symbol dyn_sym;
     if( ! proc->getSymbolInfo(dyn_str, dyn_sym)) {
         bperr( "Failed to find string DYNAMIC\n");
@@ -147,7 +148,7 @@ bool dynamic_linking::get_ld_name(char *ld_name, Address ld_base, int map_fd, in
 // findFunctionIn_ld_so_1: this routine finds the symbol table for ld.so.1 and 
 // parses it to find the address of symbol r_debug
 // it returns false on error
-bool dynamic_linking::findFunctionIn_ld_so_1(pdstring f_name, int ld_fd, 
+bool dynamic_linking::findFunctionIn_ld_so_1(std::string f_name, int ld_fd, 
 					     Address ld_base_addr, 
 					     Address *f_addr, int st_type)
 {
@@ -193,7 +194,7 @@ bool dynamic_linking::findFunctionIn_ld_so_1(pdstring f_name, int ld_fd,
 	    for (u_int i = 0; i < syms.count(); ++i) {
 		if (syms.st_shndx(i) != SHN_UNDEF) {
 		    if (syms.ST_TYPE(i) == st_type) {
-			pdstring name = pdstring(&strs[ syms.st_name(i) ]);
+			std::string name = std::string(&strs[ syms.st_name(i) ]);
 			if (name == f_name) {
 			    if (f_addr != NULL) {
 				*f_addr = syms.st_value(i) + ld_base_addr;
@@ -388,7 +389,7 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
  * added/removed later on when we handle the exception
  */
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
-                                                       u_int & /* change_type */) 
+                                                       unsigned int & /* change_type */) 
 {
    // multi-threaded: possible one of many threads hit the breakpoint
 

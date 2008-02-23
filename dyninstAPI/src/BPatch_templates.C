@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.41 2007/07/24 20:22:47 bernat Exp $
+// $Id: BPatch_templates.C,v 1.42 2008/02/23 02:09:04 jaw Exp $
 
 #include <sys/types.h>
 
@@ -70,8 +70,8 @@
 #pragma implementation "refCounter.h"
 #endif
 #endif
+#include <string>
 #include "common/h/refCounter.h"
-#include "common/h/String.h"
 #include "common/h/Types.h"
 #include "common/h/Pair.h"
 #include "symtab.h"

@@ -39,11 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-winnt.h,v 1.8 2006/05/17 21:46:32 legendre Exp $
+/* $Id: signalgenerator-winnt.h,v 1.9 2008/02/23 02:09:10 jaw Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_WINNT_H
 #define _SIGNAL_GENERATOR_WINNT_H
+
+#include <string>
 
 // Normally included automatically in signalgenerator.h
 
@@ -71,15 +73,15 @@ class SignalGenerator : public SignalGeneratorCommon
 
    HANDLE getProcessHandle() {return (HANDLE)procHandle;}
    HANDLE getThreadHandle() {return (HANDLE)thrHandle;}
-  SignalGenerator(char *idstr, pdstring file, pdstring dir,
-                         pdvector<pdstring> *argv,
-                         pdvector<pdstring> *envp,
-                         pdstring inputFile,
-                         pdstring outputFile,
+  SignalGenerator(char *idstr, std::string file, std::string dir,
+                         pdvector<std::string> *argv,
+                         pdvector<std::string> *envp,
+                         std::string inputFile,
+                         std::string outputFile,
                          int stdin_fd, int stdout_fd,
                          int stderr_fd);
 
-  SignalGenerator(char *idstr, pdstring file, int pid);
+  SignalGenerator(char *idstr, std::string file, int pid);
 
    bool waitingForStop() {return false;}
    void setWaitingForStop(bool flag) {;}

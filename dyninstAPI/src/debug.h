@@ -42,7 +42,7 @@
 #ifndef SHOWERROR_H
 #define SHOWERROR_H
 
-#include "common/h/String.h"
+#include <string>
 #include "common/h/Pair.h"
 
 #define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
@@ -57,9 +57,9 @@ extern int bpinfo(const char *format, ...);
 extern int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, ...);
 
 
-extern void showErrorCallback(int num, pdstring msg);
+extern void showErrorCallback(int num, std::string msg);
 
-extern void showInfoCallback(pdstring msg);
+extern void showInfoCallback(std::string msg);
 
 void BPatch_reportError(int errLevel, int num, const char *str);
 

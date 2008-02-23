@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: debug.C,v 1.5 2007/12/31 16:08:09 bernat Exp $
+// $Id: debug.C,v 1.6 2008/02/23 02:09:05 jaw Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <string>
 #include "common/h/Pair.h"
 #include "common/h/Vector.h"
 #include "util.h"
@@ -65,14 +66,14 @@ pd_log_perror(const char* msg) {
     logLine(errorLine);
     // fprintf(stderr, "%s", log_buffer);
 }
-void showInfoCallback(pdstring msg)
+void showInfoCallback(std::string msg)
 {
     BPatch::reportError(BPatchWarning, 0, msg.c_str());
 }
 
 char errorLine[1024];
 
-void showErrorCallback(int num, pdstring msg)
+void showErrorCallback(int num, std::string msg)
 {
     BPatch::reportError(BPatchSerious, num, msg.c_str());
 }

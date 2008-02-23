@@ -41,10 +41,11 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.36 2006/12/06 21:17:49 bernat Exp $
+ * $Id: stats.C,v 1.37 2008/02/23 02:09:11 jaw Exp $
  */
 
 #include <sstream>
+#include <string>
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -84,7 +85,7 @@ void printDyninstStats()
 }
 
 Statistic*
-StatContainer::operator[](pdstring name) const
+StatContainer::operator[](std::string name) const
 {
     if(stats_.defines(name)) {
         return stats_[name];
@@ -94,7 +95,7 @@ StatContainer::operator[](pdstring name) const
 }
 
 void
-StatContainer::add(pdstring name, StatType type)
+StatContainer::add(std::string name, StatType type)
 {
     Statistic *s = NULL;
 
@@ -114,31 +115,31 @@ StatContainer::add(pdstring name, StatType type)
     stats_[name] = s;
 }
 
-void StatContainer::startTimer(pdstring name) {
+void StatContainer::startTimer(std::string name) {
     TimeStatistic *timer = dynamic_cast<TimeStatistic *>(stats_[name]);
     if (!timer) return;
     timer->start();
 }
 
-void StatContainer::stopTimer(pdstring name) {
+void StatContainer::stopTimer(std::string name) {
     TimeStatistic *timer = dynamic_cast<TimeStatistic *>(stats_[name]);
     if (!timer) return;
     timer->stop();
 }
 
-void StatContainer::incrementCounter(pdstring name) {
+void StatContainer::incrementCounter(std::string name) {
     CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
     if (!counter) return;
     (*counter)++;
 }
 
-void StatContainer::decrementCounter(pdstring name) {
+void StatContainer::decrementCounter(std::string name) {
     CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
     if (!counter) return;
     (*counter)--;
 }
 
-void StatContainer::addCounter(pdstring name, int val) {
+void StatContainer::addCounter(std::string name, int val) {
     CntStatistic *counter = dynamic_cast<CntStatistic *>(stats_[name]);
     if (!counter) return;
     (*counter) += val;

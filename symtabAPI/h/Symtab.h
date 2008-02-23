@@ -317,7 +317,7 @@ class Symtab : public LookupInterface,
 	static typeCollection *stdTypes;
 	
  protected:
-   Symtab(std::string &filename, std::string &member_name, Offset offset, bool &err);
+   Symtab(std::string filename, std::string &member_name, Offset offset, bool &err);
 #if 0 
 	Symtab(char *mem_image, size_t size, std::string &member_name, 
               Offset offset, bool &err);
@@ -325,7 +325,7 @@ class Symtab : public LookupInterface,
 
    /***** Private Member Functions *****/
  private:
-	DLLEXPORT Symtab(std::string &filename, bool &err); 
+	DLLEXPORT Symtab(std::string filename, bool &err); 
 #if 0 
 	DLLEXPORT Symtab(char *mem_image, size_t image_size, bool &err);
 #endif

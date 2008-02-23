@@ -43,6 +43,7 @@
 #define _BPatch_basicBlockLoop_h
 
 #include <stdlib.h>
+#include <string>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
@@ -59,7 +60,6 @@
 
 class BPatch_variableExpr;
 class BPatch_loopTreeNode;
-class pdstring;
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
@@ -71,7 +71,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlockLoop : public BPatch_eventLock {
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlockLoop&);
 	friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
                                            BPatch_Vector<BPatch_basicBlockLoop *> &loops,
-                                           pdstring level);
+                                           std::string level);
 
 private:
 	BPatch_edge *backEdge;

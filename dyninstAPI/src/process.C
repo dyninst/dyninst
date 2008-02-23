@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.709 2008/02/20 08:31:03 jaw Exp $
+// $Id: process.C,v 1.710 2008/02/23 02:09:10 jaw Exp $
 
 #include <ctype.h>
 
@@ -48,6 +48,7 @@
 #endif
 
 #include <set>
+#include <string>
 
 #include <stdio.h>
 
@@ -736,7 +737,7 @@ char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibraries
 		*/
 #if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
 		Symbol info;
-		pdstring dynamicSection = "_DYNAMIC";
+		std::string dynamicSection = "_DYNAMIC";
 		sh_obj->getSymbolInfo(dynamicSection,info);
 		baseAddr = sh_obj->getBaseAddress() + info.getAddr();
 		//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->fileName().c_str(), baseAddr);
@@ -1106,7 +1107,7 @@ bool process::initTrampGuard()
   // which resides in the runtime library. However, this is not
   // enough for MT paradyn. So Paradyn overrides this setting as 
   // part of its initialization.
-    const pdstring vrbleName = "DYNINST_tramp_guards";
+    const std::string vrbleName = "DYNINST_tramp_guards";
     pdvector<int_variable *> vars;
     if (!findVarsByAll(vrbleName, vars)) 
     {
@@ -1191,7 +1192,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   // (see "DYNINSTheap_align" in rtinst/src/RTheap-<os>.c)
   alignUp(size, 4);
   // build AstNode for "DYNINSTos_malloc" call
-  pdstring callee = "DYNINSTos_malloc";
+  std::string callee = "DYNINSTos_malloc";
   pdvector<AstNodePtr> args(3);
   args[0] = AstNode::operandNode(AstNode::Constant, (void *)(Address)size);
   args[1] = AstNode::operandNode(AstNode::Constant, (void *)lo);
@@ -1713,8 +1714,8 @@ bool process::setupCreated(int iTraceLink)
     if (!attach()) { // error check?
         status_ = detached;
          fprintf(stderr, "%s[%d] attach failing here\n", FILE__, __LINE__);
-         pdstring msg = pdstring("Warning: unable to attach to specified process :")
-            + pdstring(getPid());
+         std::string msg = std::string("Warning: unable to attach to specified process :")
+            + utos(getPid());
         showErrorCallback(26, msg.c_str());
         return false;
     }
@@ -1752,8 +1753,8 @@ bool process::setupAttached()
        status_ = detached;
        
          fprintf(stderr, "%s[%d] attach failing here\n", FILE__, __LINE__);
-      pdstring msg = pdstring("Warning: unable to attach to specified process: ")
-                   + pdstring(getPid());
+      std::string msg = std::string("Warning: unable to attach to specified process: ")
+                   + utos(getPid());
       showErrorCallback(26, msg.c_str());
       return false;
    }
@@ -2027,12 +2028,14 @@ bool process::setAOut(fileDescriptor &desc)
     }
     
     mapped_objects.push_back(aout);
+   startup_printf("%s[%d]:  setAOut: adding range\n", FILE__, __LINE__);
     addOrigRange(aout);
 
+   startup_printf("%s[%d]:  setAOut: finding signal handler\n", FILE__, __LINE__);
     findSignalHandler(aout);
 
     // Find main
-   startup_printf("%s[%d]:  leave setAOut\n", FILE__, __LINE__);
+   startup_printf("%s[%d]:  leave setAOut/setting main\n", FILE__, __LINE__);
     return setMainFunction();
 }
 
@@ -2183,8 +2186,8 @@ static void cleanupBPatchHandle(int pid)
  * Create a new instance of the named process.  Read the symbols and start
  *   the program
  */
-process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
-			  pdvector<pdstring> *envp, const pdstring dir = "",
+process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
+			  pdvector<std::string> *envp, const std::string dir = "",
 			  int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
 
@@ -2264,7 +2267,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 }
 
 
-process *ll_attachProcess(const pdstring &progpath, int pid, void *container_proc_) 
+process *ll_attachProcess(const std::string &progpath, int pid, void *container_proc_) 
 {
   // implementation of dynRPC::attach() (the igen call)
   // This is meant to be "the other way" to start a process (competes w/ createProcess)
@@ -2291,7 +2294,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid, void *container_pro
   
   // When we attach to a process, we don't fork...so this routine is much
   // simpler than its "competitor", ll_createProcess() (above).
-  pdstring fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
+  std::string fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
 
   if (!fullPathToExecutable.length()) {
       return NULL;
@@ -2391,8 +2394,8 @@ bool process::loadDyninstLib() {
 
    // We've hit the initialization trap, so load dyninst lib and
    // force initialization
-   pdstring buffer = pdstring("PID=") + pdstring(getPid());
-   buffer += pdstring(", initializing shared objects");       
+   std::string buffer = std::string("PID=") + utos(getPid());
+   buffer += std::string(", initializing shared objects");       
    statusLine(buffer.c_str());
 
    // Perform initialization...
@@ -2464,8 +2467,8 @@ bool process::loadDyninstLib() {
    }
    else {
       // Force a call to dlopen(dyninst_lib)
-      buffer = pdstring("PID=") + pdstring(getPid());
-      buffer += pdstring(", loading dyninst library");       
+      buffer = std::string("PID=") + utos(getPid());
+      buffer += std::string(", loading dyninst library");       
       statusLine(buffer.c_str());
        
       startup_printf("%s[%d]: Starting load of Dyninst library...\n",
@@ -2516,13 +2519,13 @@ bool process::loadDyninstLib() {
          return false;
       }
    }    
-   buffer = pdstring("PID=") + pdstring(getPid());
-   buffer += pdstring(", initializing mutator-side structures");
+   buffer = std::string("PID=") + utos(getPid());
+   buffer += std::string(", initializing mutator-side structures");
    statusLine(buffer.c_str());    
 
    // The library is loaded, so do mutator-side initialization
-   buffer = pdstring("PID=") + pdstring(getPid());
-   buffer += pdstring(", finalizing RT library");
+   buffer = std::string("PID=") + utos(getPid());
+   buffer += std::string(", finalizing RT library");
    statusLine(buffer.c_str());    
    startup_printf("%s[%d]: (%d) finalizing dyninst RT library\n", FILE__, __LINE__, getPid());
 
@@ -2535,14 +2538,14 @@ bool process::loadDyninstLib() {
       // Probably because we didn't set parameters before 
       // dyninstInit was automatically run. Catchup with
       // an inferiorRPC is the best bet.
-      buffer = pdstring("PID=") + pdstring(getPid());
-      buffer += pdstring(", finalizing library via inferior RPC");
+      buffer = std::string("PID=") + utos(getPid());
+      buffer += std::string(", finalizing library via inferior RPC");
       statusLine(buffer.c_str());    
       iRPCDyninstInit();        
    }
 
-   buffer = pdstring("PID=") + pdstring(getPid());
-   buffer += pdstring(", dyninst RT lib ready");
+   buffer = std::string("PID=") + utos(getPid());
+   buffer += std::string(", dyninst RT lib ready");
    statusLine(buffer.c_str());    
 
    return true;
@@ -2550,7 +2553,8 @@ bool process::loadDyninstLib() {
 
 
 // Set the shared object mapping for the RT library
-bool process::setDyninstLibPtr(mapped_object *RTobj) {
+bool process::setDyninstLibPtr(mapped_object *RTobj) 
+{
     assert (!runtime_lib);
     runtime_lib = RTobj;
     return true;
@@ -2559,8 +2563,8 @@ bool process::setDyninstLibPtr(mapped_object *RTobj) {
 
 // Set up the parameters for DYNINSTinit in the RT lib
 
-bool process::setDyninstLibInitParams() {
-
+bool process::setDyninstLibInitParams() 
+{
    startup_cerr << "process::setDYNINSTinitArguments()" << endl;
 
    int pid = getpid();
@@ -2789,7 +2793,7 @@ bool process::finalizeDyninstLib()
    if (!calledFromFork) {
 
        // Install initial instrumentation requests
-       pdstring str=pdstring("PID=") + pdstring(bs_record.pid) + ", installing default (DYNINST) inst...";
+       std::string str=std::string("PID=") + utos(bs_record.pid) + ", installing default (DYNINST) inst...";
        statusLine(str.c_str());
        
        extern pdvector<instMapping*> initialRequests; // init.C
@@ -2848,7 +2852,7 @@ bool process::finalizeDyninstLib()
 #endif
 
    if (!calledFromAttach) {
-       pdstring str=pdstring("PID=") + pdstring(bs_record.pid) + ", dyninst ready.";
+       std::string str=std::string("PID=") + utos(bs_record.pid) + ", dyninst ready.";
        statusLine(str.c_str());
    }
 
@@ -3193,8 +3197,8 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
-         pdstring msg =
-            pdstring("System error: unable to write to process data "
+         std::string msg =
+            std::string("System error: unable to write to process data "
                      "space (WDS): couldn't stop an lwp\n");
          fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
@@ -3206,8 +3210,8 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
    if (!res) {
        fprintf(stderr, "%s[%d]: WDS failure - %d bytes from %p to %p, lwp %p\n",
                FILE__, __LINE__, size, inSelf, inTracedProcess, stopped_lwp);
-       pdstring msg = pdstring("System error: unable to write to process data "
-                               "space (WDS):") + pdstring(strerror(errno));
+       std::string msg = std::string("System error: unable to write to process data "
+                               "space (WDS):") + std::string(strerror(errno));
        showErrorCallback(38, msg);
        return false;
    }
@@ -3236,8 +3240,8 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
       if (stopped_lwp == NULL) {
-         pdstring msg =
-            pdstring("System error: unable to read to process data "
+         std::string msg =
+            std::string("System error: unable to read to process data "
                   "space: couldn't stop an lwp\n");
          fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
@@ -3256,7 +3260,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
          fprintf(stderr, "%s[%d]: Failed to read %d from %p: LWP %d\n", 
                FILE__, __LINE__, size, inTracedProcess, stopped_lwp->get_lwp_id());
 
-         pdstring msg(errorLine);
+         std::string msg(errorLine);
          showErrorCallback(38, msg);
       }
    }
@@ -3277,8 +3281,8 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
-         pdstring msg =
-            pdstring("System error: unable to write word to process text "
+         std::string msg =
+            std::string("System error: unable to write word to process text "
                      "space: couldn't stop an lwp\n");
          fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
@@ -3288,8 +3292,8 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 
   bool res = stopped_lwp->writeTextWord(inTracedProcess, data);
   if (!res) {
-     pdstring msg = pdstring("System error: unable to write word to process "
-                             "text space:") + pdstring(strerror(errno));
+     std::string msg = std::string("System error: unable to write word to process "
+                             "text space:") + std::string(strerror(errno));
          fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
      showErrorCallback(38, msg);
      return false;
@@ -3321,8 +3325,8 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
-         pdstring msg =
-            pdstring("System error: unable to write to process text "
+         std::string msg =
+            std::string("System error: unable to write to process text "
                      "space (WTS): couldn't stop an lwp\n");
          fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
@@ -3333,8 +3337,8 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
   bool res = stopped_lwp->writeTextSpace(inTracedProcess, amount, inSelf);
 
   if (!res) {
-     pdstring msg = pdstring("System error: unable to write to process text "
-                             "space (WTS):") + pdstring(strerror(errno));
+     std::string msg = std::string("System error: unable to write to process text "
+                             "space (WTS):") + std::string(strerror(errno));
          fprintf(stderr, "%s[%d]:  writeTextSpace failed\n", FILE__, __LINE__);
      showErrorCallback(38, msg);
      return false;
@@ -3361,8 +3365,8 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
       if(stopped_lwp == NULL) {
-         pdstring msg =
-            pdstring("System error: unable to read to process text "
+         std::string msg =
+            std::string("System error: unable to read to process text "
                      "space: couldn't stop an lwp\n");
          showErrorCallback(39, msg);
          return false;
@@ -3377,7 +3381,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
               "<>unable to read %d@%s from process text space: %s (pid=%d)",
               amount, Address_str((Address)inTracedProcess), 
               strerror(errno), getPid());
-      pdstring msg(errorLine);
+      std::string msg(errorLine);
       showErrorCallback(38, msg);
       fprintf(stderr, "%s[%d]:  readTextSpace failed\n", FILE__, __LINE__);
 
@@ -3729,7 +3733,7 @@ bool process::addASharedObject(mapped_object *new_obj)
     addOrigRange(new_obj);
 
     findSignalHandler(new_obj);
-    pdstring msg;
+    std::string msg;
 
     //if(new_obj->fileName().length() == 0) {
     //return false;
@@ -3752,22 +3756,22 @@ bool process::addASharedObject(mapped_object *new_obj)
                        FILE__, __LINE__);
     }
 
-	pdstring dyninstRT_shortname;
+	std::string dyninstRT_shortname;
 	char *last_slash;
 #if defined(os_windows)
     last_slash = strrchr(new_obj->fileName().c_str(), '\\');
 	if (!last_slash) last_slash = strrchr(new_obj->fileName().c_str(), '/');
-    pdstring shortname = last_slash ? pdstring(last_slash +1) : new_obj->fileName().c_str();
+    std::string shortname = last_slash ? std::string(last_slash +1) : new_obj->fileName().c_str();
 #else
-    pdstring shortname = new_obj->fileName().c_str();
+    std::string shortname = new_obj->fileName().c_str();
 #endif
 	
 	if (dyninstRT_name.c_str()) {
 		last_slash = strrchr(dyninstRT_name.c_str(), '\\');
 		if (!last_slash) last_slash = strrchr(dyninstRT_name.c_str(), '/');
-		dyninstRT_shortname = last_slash ? pdstring(last_slash +1) : dyninstRT_name.c_str();
+		dyninstRT_shortname = last_slash ? std::string(last_slash +1) : dyninstRT_name.c_str();
 	}
-    pdstring longname = new_obj->fullName().c_str();
+    std::string longname = new_obj->fullName().c_str();
 
     if ((shortname == dyninstRT_name) || 
         (longname == dyninstRT_name) ||
@@ -3794,16 +3798,16 @@ bool process::addASharedObject(mapped_object *new_obj)
         if (ret == 1) {
             /* The runtime library has been loaded, but not initialized.
                Proceed anyway. */
-            msg = pdstring("Application was linked with Dyninst/Paradyn runtime library -- this is not necessary");
+            msg = std::string("Application was linked with Dyninst/Paradyn runtime library -- this is not necessary");
             statusLine(msg.c_str());
         } else {
             /* The runtime library has been loaded into the inferior
                and previously initialized, probably by a previous
                run or Dyninst or Paradyn.  Bail.  */
 	      if (ret == 2)
-		   msg = pdstring("This process was previously modified by Dyninst -- cannot reattach");
+		   msg = std::string("This process was previously modified by Dyninst -- cannot reattach");
 	      else if (ret == 3)
-		   msg = pdstring("This process was previously modified by Paradyn -- cannot reattach");
+		   msg = std::string("This process was previously modified by Paradyn -- cannot reattach");
 	      else
 		   assert(0);
 	      showErrorCallback(26, msg);
@@ -3879,13 +3883,13 @@ bool process::processSharedObjects()
     // for each element in shared_objects list process the 
     // image file to find new instrumentaiton points
     for(u_int j=0; j < shared_objs.size(); j++){
-        // pdstring temp2 = pdstring(j);
-        // 	    temp2 += pdstring(" ");
-        // 	    temp2 += pdstring("the shared obj, addr: ");
-        // 	    temp2 += pdstring(((*shared_objects)[j])->getBaseAddress());
-        // 	    temp2 += pdstring(" name: ");
-        // 	    temp2 += pdstring(((*shared_objects)[j])->getName());
-        // 	    temp2 += pdstring("\n");
+        // std::string temp2 = std::string(j);
+        // 	    temp2 += std::string(" ");
+        // 	    temp2 += std::string("the shared obj, addr: ");
+        // 	    temp2 += std::string(((*shared_objects)[j])->getBaseAddress());
+        // 	    temp2 += std::string(" name: ");
+        // 	    temp2 += std::string(((*shared_objects)[j])->getName());
+        // 	    temp2 += std::string("\n");
         // 	    logLine(P_strdup(temp2.c_str()));
         if (!addASharedObject(shared_objs[j]))
            logLine("Error after call to addASharedObject\n");
@@ -3928,7 +3932,7 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
 }
 
 // Returns the named symbol from the image or a shared object
-/*bool process::getSymbolInfo( const pdstring &name, Symbol &ret ) 
+/*bool process::getSymbolInfo( const std::string &name, Symbol &ret ) 
 {
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         bool sflag;
@@ -3949,21 +3953,27 @@ void process::addSignalHandler(Address addr, unsigned size) {
 }
 
 // We keep a vector of all signal handler locations
-void process::findSignalHandler(mapped_object *obj){
+void process::findSignalHandler(mapped_object *obj)
+{
+   startup_printf("%s[%d]: findSignalhandler(%p)\n", FILE__, __LINE__, obj);
     assert(obj);
 
     // Old skoon
     Symbol sigSym;
-    pdstring signame(SIGNAL_HANDLER);
+    std::string signame(SIGNAL_HANDLER);
 
+   startup_printf("%s[%d]: findSignalhandler(%p): gettingSymbolInfo\n", FILE__, __LINE__, obj);
     if (obj->getSymbolInfo(signame, sigSym)) {
         // Symbols often have a size of 0. This b0rks the codeRange code,
         // so override to 1 if this is true...
         unsigned size_to_use = sigSym.getSize();
-        if (!size_to_use) size_to_use = 1;
-	        addSignalHandler(sigSym.getAddr(), size_to_use);
+        if (!size_to_use) 
+           size_to_use = 1;
+        startup_printf("%s[%d]: findSignalhandler(%p): addingSignalHandler(%p, %d)\n", FILE__, __LINE__, obj, (void *) sigSym.getAddr(), size_to_use);
+        addSignalHandler(sigSym.getAddr(), size_to_use);
     }
 
+   startup_printf("%s[%d]: leaving findSignalhandler(%p)\n", FILE__, __LINE__, obj);
 }
 
 bool process::continueProc(int signalToContinueWith) 
@@ -4355,7 +4365,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
 
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 {
-  const pdstring vrbleName = "DYNINST_bootstrap_info";
+  const std::string vrbleName = "DYNINST_bootstrap_info";
 
   pdvector<int_variable *> bootstrapInfoVec;
   if (!findVarsByAll(vrbleName, bootstrapInfoVec))
@@ -4393,7 +4403,7 @@ bool process::hasExited() const {
 	    status_ == deleted);
 }
 
-bool process::dumpCore(const pdstring fileOut) {
+bool process::dumpCore(const std::string fileOut) {
   bool res = dumpCore_(fileOut);
   if (!res) {
     return false;
@@ -4417,7 +4427,8 @@ process *process::findProcess(int pid) {
   return NULL;
 }
 
-pdstring process::getBootstrapStateAsString() const {
+std::string process::getBootstrapStateAsString() const 
+{
    // useful for debugging
    switch(bootstrapState) {
      case unstarted_bs:
@@ -4455,9 +4466,9 @@ char *processStateAsString(processState state) {
     return "<INVALID>";
 }
 
-pdstring process::getStatusAsString() const 
+std::string process::getStatusAsString() const 
 {
-    return pdstring(processStateAsString(status_));
+    return std::string(processStateAsString(status_));
 }
 
 bool process::uninstallMutations() {

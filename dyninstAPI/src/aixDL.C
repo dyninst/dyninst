@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.77 2008/02/20 08:31:03 jaw Exp $
+// $Id: aixDL.C,v 1.78 2008/02/23 02:09:04 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -131,7 +131,7 @@ bool dynamic_linking::installTracing() {
       // Now, libc may have been parsed... in which case we pull the function vector
       // from it. If not, we parse it manually.
       
-      const pdvector<int_function *> *loadFuncs = libc->findFuncVectorByPretty(pdstring("load1"));
+      const pdvector<int_function *> *loadFuncs = libc->findFuncVectorByPretty(std::string("load1"));
       assert(loadFuncs);
       assert(loadFuncs->size() > 0);
       
@@ -254,7 +254,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
  * added/removed later on when we handle the exception
  */
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
-                                                       u_int & /* change_type */) 
+                                                       unsigned int & /* change_type */) 
 {
     assert(ev.lwp);
     dyn_lwp *brk_lwp = ev.lwp;

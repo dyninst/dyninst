@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.11 2007/12/12 22:20:51 roundy Exp $
+// $Id: pdwinntDL.C,v 1.12 2008/02/23 02:09:10 jaw Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"
@@ -47,11 +47,12 @@
 #include "dyn_lwp.h"
 #include "mapped_object.h"
 #include <windows.h>
+#include <string>
 
 // Since Windows handles library loads for us, there is nothing to do here
 // Write in stubs to make the platform-indep code happy
 
-extern pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
+extern std::string GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
 extern void printSysError(unsigned errNo);
 
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
@@ -70,7 +71,7 @@ bool dynamic_linking::installTracing()
     return true;
 }
 
-bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &, u_int &)
+bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &, unsigned int &)
 {
     // This can be called by a platform indep. layer that wants
     // to get the list of new libraries loaded. 
@@ -95,7 +96,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
    handleT procHandle = ev.lwp->getProcessHandle();
 
    if (ev.type == evtLoadLibrary) {
-     pdstring imageName = GetLoadedDllImageName( proc, ev.info );
+     std::string imageName = GetLoadedDllImageName( proc, ev.info );
 
 	 parsing_printf("%s[%d]: load dll %s: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
          __FILE__, __LINE__,

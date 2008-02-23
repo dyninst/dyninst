@@ -45,12 +45,12 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <string>
 
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Pair.h"
-#include "common/h/String.h"
 
 #include "BPatch_process.h"
 #include "BPatch_edge.h"
@@ -758,189 +758,180 @@ void BPatch_flowGraph::findBBForBackEdge(BPatch_edge* backEdge,
 
 
 // return a pair of the min and max source lines for this loop
-pdpair<u_short, u_short> 
+   pdpair<u_short, u_short> 
 getLoopMinMaxSourceLines(BPatch_loop * loop) 
 {
-    BPatch_Vector<BPatch_basicBlock*> blocks;
-    loop->getLoopBasicBlocks(blocks);
+   BPatch_Vector<BPatch_basicBlock*> blocks;
+   loop->getLoopBasicBlocks(blocks);
 
-    BPatch_Vector<u_short> lines;
-	
-    for (u_int j = 0; j < blocks.size (); j++) {
-	BPatch_Vector<BPatch_sourceBlock*> sourceBlocks;
-	blocks[j]->getSourceBlocks(sourceBlocks);
-	
-	for (u_int k = 0; k < sourceBlocks.size (); k++) {
-	    BPatch_Vector<u_short> sourceLines;
-	    sourceBlocks[k]->getSourceLines(sourceLines);
-	    for (u_int l = 0; l < sourceLines.size(); l++) 
-		lines.push_back(sourceLines[l]);
-	}
-    }
+   BPatch_Vector<u_short> lines;
 
-    pdpair<u_short, u_short> mm = min_max_pdpair<u_short>(lines);
-    return mm;
+   for (u_int j = 0; j < blocks.size (); j++) {
+      BPatch_Vector<BPatch_sourceBlock*> sourceBlocks;
+      blocks[j]->getSourceBlocks(sourceBlocks);
+
+      for (u_int k = 0; k < sourceBlocks.size (); k++) {
+         BPatch_Vector<u_short> sourceLines;
+         sourceBlocks[k]->getSourceLines(sourceLines);
+         for (u_int l = 0; l < sourceLines.size(); l++) 
+            lines.push_back(sourceLines[l]);
+      }
+   }
+
+   pdpair<u_short, u_short> mm = min_max_pdpair<u_short>(lines);
+   return mm;
 }
 
 
 // sort blocks by address ascending
 void bsort_loops_addr_asc(BPatch_Vector<BPatch_loop*> &v) 
 {
-    if (v.size()==0) return;
-    for (unsigned i=0; i < v.size()-1; i++) 
-	for (unsigned j=0; j < v.size()-1-i; j++)
-	    if (v[j+1]->getLoopHead()->getStartAddress() 
-                < v[j]->getLoopHead()->getStartAddress()) {    
-		BPatch_loop *tmp = v[j]; 
-		v[j] = v[j+1];
-		v[j+1] = tmp;
-            }
+   if (v.size()==0) return;
+   for (unsigned i=0; i < v.size()-1; i++) 
+      for (unsigned j=0; j < v.size()-1-i; j++)
+         if (v[j+1]->getLoopHead()->getStartAddress() 
+               < v[j]->getLoopHead()->getStartAddress()) {    
+            BPatch_loop *tmp = v[j]; 
+            v[j] = v[j+1];
+            v[j+1] = tmp;
+         }
 }
 
 
-void 
-dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
-		       BPatch_Vector<BPatch_loop *> &loops, 
-		       pdstring level)
+void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
+      BPatch_Vector<BPatch_loop *> &loops, 
+      std::string level)
 {
-    for (unsigned int i = 0; i < loops.size (); i++) {
-	// loop name is hierarchical level
-	pdstring clevel = (level != "") 
-	    ? level + "." + pdstring(i+1)
-	    : pdstring(i+1);
-	
-	// add new tree nodes to parent
-	BPatch_loopTreeNode * child = 
-	    new BPatch_loopTreeNode(loops[i],
-				    (pdstring("loop_"+clevel)).c_str());
+   for (unsigned int i = 0; i < loops.size (); i++) {
+      // loop name is hierarchical level
+      std::string clevel = (level != "") 
+         ? level + "." + utos(i+1)
+         : utos(i+1);
 
-	parent->children.push_back(child);
+      // add new tree nodes to parent
+      BPatch_loopTreeNode * child = 
+         new BPatch_loopTreeNode(loops[i],
+               (std::string("loop_"+clevel)).c_str());
 
-	// recurse with this child's outer loops
-	BPatch_Vector<BPatch_loop*> outerLoops;
-	loops[i]->getOuterLoops(outerLoops);
-        bsort_loops_addr_asc(outerLoops);
+      parent->children.push_back(child);
 
-	dfsCreateLoopHierarchy(child, outerLoops, clevel);
-    }
+      // recurse with this child's outer loops
+      BPatch_Vector<BPatch_loop*> outerLoops;
+      loops[i]->getOuterLoops(outerLoops);
+      bsort_loops_addr_asc(outerLoops);
+
+      dfsCreateLoopHierarchy(child, outerLoops, clevel);
+   }
 }
 
 
-void 
-BPatch_flowGraph::createLoopHierarchy()
+void BPatch_flowGraph::createLoopHierarchy()
 {
-    loopRoot = new BPatch_loopTreeNode(NULL, NULL);
+   loopRoot = new BPatch_loopTreeNode(NULL, NULL);
 
-    BPatch_Vector<BPatch_loop *> outerLoops;
-    getOuterLoops(outerLoops);
+   BPatch_Vector<BPatch_loop *> outerLoops;
+   getOuterLoops(outerLoops);
 
-    bsort_loops_addr_asc(outerLoops);
+   bsort_loops_addr_asc(outerLoops);
 
-    dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
+   dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
 
-    const pdvector<instPoint*> &instPs = ll_func()->funcCalls();
+   const pdvector<instPoint*> &instPs = ll_func()->funcCalls();
 
-    for (unsigned i = 0; i < instPs.size(); i++) {
-	int_function *f = instPs[i]->findCallee();
-        
-	if (f != NULL) 
-	    insertCalleeIntoLoopHierarchy(f, instPs[i]->addr());
-// 	else 
-// 	    fprintf(stderr, "BPatch_flowGraph::createLoopHierarchy "
-//                     "couldn't find callee by inst point.\n");
-    }
+   for (unsigned i = 0; i < instPs.size(); i++) {
+      int_function *f = instPs[i]->findCallee();
+
+      if (f != NULL) 
+         insertCalleeIntoLoopHierarchy(f, instPs[i]->addr());
+      // 	else 
+      // 	    fprintf(stderr, "BPatch_flowGraph::createLoopHierarchy "
+      //                     "couldn't find callee by inst point.\n");
+   }
 }
 
 
 // try to insert func into the appropriate spot in the loop tree based on
 // address ranges. if succesful return true, return false otherwise.
-bool 
-BPatch_flowGraph::dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
-						   int_function *callee,
-						   unsigned long addr)
+bool BPatch_flowGraph::dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
+      int_function *callee,
+      unsigned long addr)
 {
-    // if this node contains func then insert it
-    if ((node->loop != NULL) && node->loop->containsAddress(addr)) {
-	node->callees.push_back(callee);
-	return true;
-    }
+   // if this node contains func then insert it
+   if ((node->loop != NULL) && node->loop->containsAddress(addr)) {
+      node->callees.push_back(callee);
+      return true;
+   }
 
-    // otherwise recur with each of node's children
-    bool success = false;
+   // otherwise recur with each of node's children
+   bool success = false;
 
-    for (unsigned int i = 0; i < node->children.size(); i++) 
-	success = success || 
-	    dfsInsertCalleeIntoLoopHierarchy(node->children[i], callee, addr);
-    
-    return success;
+   for (unsigned int i = 0; i < node->children.size(); i++) 
+      success = success || 
+         dfsInsertCalleeIntoLoopHierarchy(node->children[i], callee, addr);
+
+   return success;
 }
 
 
-void 
-BPatch_flowGraph::insertCalleeIntoLoopHierarchy(int_function *callee,
-						unsigned long addr)
+void BPatch_flowGraph::insertCalleeIntoLoopHierarchy(int_function *callee,
+      unsigned long addr)
 {
-    // try to insert func into the loop hierarchy
-    bool success = dfsInsertCalleeIntoLoopHierarchy(loopRoot, callee, addr);
+   // try to insert func into the loop hierarchy
+   bool success = dfsInsertCalleeIntoLoopHierarchy(loopRoot, callee, addr);
 
-    // if its not in a loop make it a child of the root
-    if (!success) {
-	loopRoot->callees.push_back(callee);
-    }
+   // if its not in a loop make it a child of the root
+   if (!success) {
+      loopRoot->callees.push_back(callee);
+   }
 }
 
 
-BPatch_loopTreeNode *
-BPatch_flowGraph::getLoopTreeInt() 
+BPatch_loopTreeNode *BPatch_flowGraph::getLoopTreeInt() 
 { 
-    if (loopRoot == NULL) 
-	createLoopHierarchy();
-    return loopRoot; 
+   if (loopRoot == NULL) 
+      createLoopHierarchy();
+   return loopRoot; 
 }
 
 
-BPatch_loop *
-BPatch_flowGraph::findLoopInt(const char *name) 
+BPatch_loop *BPatch_flowGraph::findLoopInt(const char *name) 
 { 
-    return getLoopTree()->findLoop(name);
+   return getLoopTree()->findLoop(name);
 }
 
 
-void 
-BPatch_flowGraph::dfsPrintLoops(BPatch_loopTreeNode *n) {
-
-  if (n->loop != NULL) {
+void BPatch_flowGraph::dfsPrintLoops(BPatch_loopTreeNode *n) 
+{
+   if (n->loop != NULL) {
       //    pdpair<u_short, u_short> mm = getLoopMinMaxSourceLines(n->loop);
       //  printf("%s (source %d-%d)\n", n->name(), mm.first, mm.second);
-        
+
       printf("%s %s\n", n->name(),ll_func()->prettyName().c_str());
-  }
+   }
 
-  for (unsigned i = 0; i < n->children.size(); i++) {
+   for (unsigned i = 0; i < n->children.size(); i++) {
       dfsPrintLoops(n->children[i]);
-  }
+   }
 }
 
 
-void 
-BPatch_flowGraph::printLoopsInt()
+void BPatch_flowGraph::printLoopsInt()
 {    
-    dfsPrintLoops(getLoopTree());
+   dfsPrintLoops(getLoopTree());
 }
 
 
-void 
-BPatch_flowGraph::dump()
+void BPatch_flowGraph::dump()
 {    
-    BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
-    allBlocks.elements(blocks);
-    for (unsigned i=0; i < allBlocks.size(); i++) {
-        fprintf(stderr,"[%u 0x%p 0x%p]\n",
-                blocks[i]->blockNo(),
-                (void *)blocks[i]->getStartAddress(), 
-                (void *)blocks[i]->getEndAddress());
-        
-    }
+   BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
+   allBlocks.elements(blocks);
+   for (unsigned i=0; i < allBlocks.size(); i++) {
+      fprintf(stderr,"[%u 0x%p 0x%p]\n",
+            blocks[i]->blockNo(),
+            (void *)blocks[i]->getStartAddress(), 
+            (void *)blocks[i]->getEndAddress());
+
+   }
 
 }
 
@@ -950,5 +941,5 @@ bool BPatch_flowGraph::containsDynamicCallsitesInt()
 }
 
 int_function *BPatch_flowGraph::ll_func() const {
-    return func_->lowlevel_func();
+   return func_->lowlevel_func();
 }

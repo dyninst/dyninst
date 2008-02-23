@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.80 2007/09/19 21:55:11 giri Exp $
+//$Id: templates1.C,v 1.81 2008/02/23 02:09:11 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -48,18 +48,7 @@
 #endif
 #include "common/src/Dictionary.C"
 
-#include "common/h/String.h"
-
-#if 0
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "symtabAPI/src/Symtab.h"
-#include "common/h/List.h"
-#endif
+#include <string>
 
 //begin from templates05
 template class refCounter<string_ll>;
@@ -76,17 +65,17 @@ class BPatch_variableExpr;
 
 #include "symtab.h" // supportedLanguages is a typedef; could move.
 
-template class  dictionary_hash <pdstring, supportedLanguages>;
-template class  pdvector<dictionary_hash <pdstring, supportedLanguages>::entry>;
+template class  dictionary_hash <std::string, supportedLanguages>;
+template class  pdvector<dictionary_hash <std::string, supportedLanguages>::entry>;
 
 template class  dictionary_hash <Address, unsigned>;
 // symbolNamesByAddr
-template class  dictionary_hash <Address, pdstring>;
+template class  dictionary_hash <Address, std::string>;
 template class  pdvector<dictionary_hash <Address, unsigned>::entry>;
 template class  dictionary_hash_iter <Address, unsigned>;
-template class  dictionary_hash <pdstring, unsigned>;
-template class  pdvector<dictionary_hash <pdstring, unsigned>::entry>;
-template class  pdvector<dictionary_hash <Address, pdstring>::entry>;
+template class  dictionary_hash <std::string, unsigned>;
+template class  pdvector<dictionary_hash <std::string, unsigned>::entry>;
+template class  pdvector<dictionary_hash <Address, std::string>::entry>;
 
 // For the LWP list in the process class
 class dyn_lwp;
@@ -116,20 +105,20 @@ template class  dictionary_hash <Address, instPoint*>;
 template class  pdvector<dictionary_hash <Address, instPoint *>::entry>;
 
 class pdmodule;
-template class  dictionary_hash <pdstring, pdmodule *>;
-template class  pdvector<dictionary_hash <pdstring, pdmodule *>::entry>;
+template class  dictionary_hash <std::string, pdmodule *>;
+template class  pdvector<dictionary_hash <std::string, pdmodule *>::entry>;
 
 class int_function;
-template class  dictionary_hash <pdstring, pdvector<int_function*>*>;
-template class  pdvector<dictionary_hash <pdstring, pdvector<int_function*>*>::entry>;
+template class  dictionary_hash <std::string, pdvector<int_function*>*>;
+template class  pdvector<dictionary_hash <std::string, pdvector<int_function*>*>::entry>;
 
 class int_variable;
-template class  dictionary_hash <pdstring, pdvector<int_variable*>*>;
-template class  pdvector<dictionary_hash <pdstring, pdvector<int_variable*> *>::entry>;
+template class  dictionary_hash <std::string, pdvector<int_variable*>*>;
+template class  pdvector<dictionary_hash <std::string, pdvector<int_variable*> *>::entry>;
 
 class image_func;
-template class  dictionary_hash <pdstring, pdvector<image_func*> *>;
-template class  pdvector<dictionary_hash <pdstring, pdvector<image_func*> *>::entry>;
+template class  dictionary_hash <std::string, pdvector<image_func*> *>;
+template class  pdvector<dictionary_hash <std::string, pdvector<image_func*> *>::entry>;
 template class  dictionary_hash <Address, image_func*>;
 template class  pdvector<dictionary_hash <Address, image_func*>::entry>;
 template class  dictionary_hash<const image_func *, int_function *>;
@@ -138,8 +127,8 @@ template class  pdvector<dictionary_hash<const image_func *, int_function *>::en
 class image_variable;
 template class  dictionary_hash <Address, image_variable*>;
 template class  pdvector<dictionary_hash <Address, image_variable*>::entry>;
-template class  dictionary_hash <pdstring, pdvector<image_variable*>*>;
-template class  pdvector<dictionary_hash <pdstring, pdvector<image_variable*> *>::entry>;
+template class  dictionary_hash <std::string, pdvector<image_variable*>*>;
+template class  pdvector<dictionary_hash <std::string, pdvector<image_variable*> *>::entry>;
 template class  dictionary_hash<const image_variable *, int_variable *>;
 template class  pdvector<dictionary_hash<const image_variable *, int_variable *>::entry>;
 
@@ -216,5 +205,5 @@ template class  pdvector<image_edge*>;
 template class dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>;
 template class pdvector<dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>::entry >;
 
-template class  pdvector<dictionary_hash<pdstring, Address>::entry >;
-template class dictionary_hash<pdstring, Address>;
+template class  pdvector<dictionary_hash<std::string, Address>::entry >;
+template class dictionary_hash<std::string, Address>;

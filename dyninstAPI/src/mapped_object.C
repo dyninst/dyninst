@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.33 2008/02/15 17:27:41 giri Exp $
+// $Id: mapped_object.C,v 1.34 2008/02/23 02:09:09 jaw Exp $
+
+#include <string>
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/symtab.h"
-#include "common/h/String.h"
 #include "dyninstAPI/src/debug.h"
 #include "symtabAPI/h/Symtab.h"
 #include "process.h"
@@ -54,114 +55,116 @@ using namespace Dyninst;
 #define FS_FIELD_SEPERATOR '/'
 
 // Whee hasher...
+
 unsigned imgFuncHash(const image_func * const &func) {
     return addrHash4((Address) func);
 }
-unsigned imgVarHash(const image_variable * const &func) {
+unsigned imgVarHash(const image_variable * const &func) 
+{
     return addrHash4((Address) func);
 }
 
 mapped_object::mapped_object(fileDescriptor fileDesc,
-                             image *img,
-			     AddressSpace *proc):
-    desc_(fileDesc),
-    fullName_(fileDesc.file()), 
-    everyUniqueFunction(imgFuncHash),
-    everyUniqueVariable(imgVarHash),
-    allFunctionsByMangledName(pdstring::hash),
-    allFunctionsByPrettyName(pdstring::hash),
-    allVarsByMangledName(pdstring::hash),
-    allVarsByPrettyName(pdstring::hash),
-    dirty_(false),
-    dirtyCalled_(false),
-    image_(img),
-    dlopenUsed(false),
-    proc_(proc),
-    analyzed_(false)
+      image *img,
+      AddressSpace *proc):
+   desc_(fileDesc),
+   fullName_(fileDesc.file()), 
+   everyUniqueFunction(imgFuncHash),
+   everyUniqueVariable(imgVarHash),
+   allFunctionsByMangledName(::Dyninst::hash),
+   allFunctionsByPrettyName(::Dyninst::hash),
+   allVarsByMangledName(::Dyninst::hash),
+   allVarsByPrettyName(::Dyninst::hash),
+   dirty_(false),
+   dirtyCalled_(false),
+   image_(img),
+   dlopenUsed(false),
+   proc_(proc),
+   analyzed_(false)
 { 
-    // Set occupied range (needs to be ranges)
-    codeBase_ = fileDesc.code();
-    dataBase_ = fileDesc.data();
+   // Set occupied range (needs to be ranges)
+   codeBase_ = fileDesc.code();
+   dataBase_ = fileDesc.data();
 #if defined(os_windows)
-    codeBase_ = fileDesc.loadAddr();
-	dataBase_ = fileDesc.loadAddr();
+   codeBase_ = fileDesc.loadAddr();
+   dataBase_ = fileDesc.loadAddr();
 #endif
 #if defined(os_aix)
-    // AIX defines "virtual" addresses for an a.out inside the file as
-    // well as when the system loads the object. As far as I can tell,
-    // this only happens for the a.out (for shobjs the file-addresses
-    // are 0).  The file-provided addresses are correct, but the
-    // OS-provided addresses are not. So if the file includes
-    // addresses, use those.  If it doesn't, all of the offsets are
-    // from a "section start" that isn't our start. Getting a headache
-    // yet? So _that_ needs to be adjusted. We've stored these values
-    // in the Object file. We could also adjust all addresses of
-    // symbols, but...
-    if (image_->imageOffset() >= codeBase_) {
-        codeBase_ = 0;
-    }
-    else if (image_->imageOffset() <= 0x1fffffff) {
-        // GCC-ism. This is a shared library with a a.out-like codeOffset.
-        // We need to make our base the difference between the two...
-        codeBase_ -= image_->imageOffset();
-	Section *sec;
-	image_->getObject()->findSection(sec, ".text");
-	//fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
-	//	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
-	codeBase_ += ((Address)sec->getPtrToRawData() - image_->getObject()->getBaseOffset());	
-//      codeBase_ += image_->getObject()->text_reloc();
-    }
-    else {
-        // codeBase_ is the address that the chunk was loaded at; the actual interesting
-        // bits start within the chunk. So add in text_reloc (actually, "offset from start
-        // of file to interesting bits"). 
-        // Non-GCC shared libraries.
-        //codeBase_ += image_->getObject()->text_reloc();
-	Section *sec;
-	image_->getObject()->findSection(sec, ".text");
-	//fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
-	//	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseOffset());
-        codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseOffset());
-    }
-    if (image_->dataOffset() >= dataBase_) {
-        dataBase_ = 0;
-    }
-    else if (image_->dataOffset() <= 0x2fffffff) {
-        // More GCC-isms. 
-        dataBase_ -= image_->dataOffset();
-    }
-    else {
-        // *laughs* You'd think this was the same way, right?
-        // Well, you're WRONG!
-        // For some reason we don't need to add in the data_reloc_...
-        //dataBase_ += image_->getObject()->data_reloc();
-    }
+   // AIX defines "virtual" addresses for an a.out inside the file as
+   // well as when the system loads the object. As far as I can tell,
+   // this only happens for the a.out (for shobjs the file-addresses
+   // are 0).  The file-provided addresses are correct, but the
+   // OS-provided addresses are not. So if the file includes
+   // addresses, use those.  If it doesn't, all of the offsets are
+   // from a "section start" that isn't our start. Getting a headache
+   // yet? So _that_ needs to be adjusted. We've stored these values
+   // in the Object file. We could also adjust all addresses of
+   // symbols, but...
+   if (image_->imageOffset() >= codeBase_) {
+      codeBase_ = 0;
+   }
+   else if (image_->imageOffset() <= 0x1fffffff) {
+      // GCC-ism. This is a shared library with a a.out-like codeOffset.
+      // We need to make our base the difference between the two...
+      codeBase_ -= image_->imageOffset();
+      Section *sec;
+      image_->getObject()->findSection(sec, ".text");
+      //fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
+      //	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
+      codeBase_ += ((Address)sec->getPtrToRawData() - image_->getObject()->getBaseOffset());	
+      //      codeBase_ += image_->getObject()->text_reloc();
+   }
+   else {
+      // codeBase_ is the address that the chunk was loaded at; the actual interesting
+      // bits start within the chunk. So add in text_reloc (actually, "offset from start
+      // of file to interesting bits"). 
+      // Non-GCC shared libraries.
+      //codeBase_ += image_->getObject()->text_reloc();
+      Section *sec;
+      image_->getObject()->findSection(sec, ".text");
+      //fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
+      //	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseOffset());
+      codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseOffset());
+   }
+   if (image_->dataOffset() >= dataBase_) {
+      dataBase_ = 0;
+   }
+   else if (image_->dataOffset() <= 0x2fffffff) {
+      // More GCC-isms. 
+      dataBase_ -= image_->dataOffset();
+   }
+   else {
+      // *laughs* You'd think this was the same way, right?
+      // Well, you're WRONG!
+      // For some reason we don't need to add in the data_reloc_...
+      //dataBase_ += image_->getObject()->data_reloc();
+   }
 #endif
 
-    #if 0
-    fprintf(stderr, "Creating new mapped_object %s/%s\n",
-            fullName_.c_str(), getFileDesc().member().c_str());
-    fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
-            codeBase_, image_->imageOffset(), image_->imageLength());
-    fprintf(stderr, "dataBase 0x%x, dataOffset 0x%x, size %d\n",
-            dataBase_, image_->dataOffset(), image_->dataLength());
-    fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
-            fileDesc.code(), fileDesc.data());
-    fprintf(stderr, "Code: 0x%lx to 0x%lx\n",
-            codeAbs(), codeAbs() + imageSize());
-    fprintf(stderr, "Data: 0x%lx to 0x%lx\n",
-            dataAbs(), dataAbs() + dataSize());
-    #endif
-
-
-    // Sets "fileName_"
-    set_short_name();
-    
 #if 0
-    // Let's try delayed parsing, shall we?
+   fprintf(stderr, "Creating new mapped_object %s/%s\n",
+         fullName_.c_str(), getFileDesc().member().c_str());
+   fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
+         codeBase_, image_->imageOffset(), image_->imageLength());
+   fprintf(stderr, "dataBase 0x%x, dataOffset 0x%x, size %d\n",
+         dataBase_, image_->dataOffset(), image_->dataLength());
+   fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
+         fileDesc.code(), fileDesc.data());
+   fprintf(stderr, "Code: 0x%lx to 0x%lx\n",
+         codeAbs(), codeAbs() + imageSize());
+   fprintf(stderr, "Data: 0x%lx to 0x%lx\n",
+         dataAbs(), dataAbs() + dataSize());
+#endif
 
-    const pdvector<image_func *> &exportedFuncs = image_->getExportedFunctions();
-    //fprintf(stderr, "%d exported functions\n", exportedFuncs.size());
+
+   // Sets "fileName_"
+   set_short_name();
+
+#if 0
+   // Let's try delayed parsing, shall we?
+
+   const pdvector<image_func *> &exportedFuncs = image_->getExportedFunctions();
+   //fprintf(stderr, "%d exported functions\n", exportedFuncs.size());
     for (unsigned fi = 0; fi < exportedFuncs.size(); fi++) {
         addFunction(exportedFuncs[fi]);
     }
@@ -175,165 +178,168 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 }
 
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
-                                                 AddressSpace *p,
-                                                 bool parseGaps) 
+      AddressSpace *p,
+      bool parseGaps) 
 {
-                                                 
-    if (!p) return NULL;
-    
-    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
-    image *img = image::parseImage(desc, parseGaps);
-    if (!img)  {
-       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
-        return NULL;
-    }
-    if (!desc.isSharedObject()) {
-        //We've seen a case where the a.out is a shared object (RHEL4's
-        // version of ssh).  Check if the shared object flag is set in the
-        // binary (which is different from the isSharedObject()) call above.
-        // If so, we need to update the load address.
-        if (p->proc() &&
-            (img->getObject()->getObjectType() == obj_SharedLib)) {
-            //Executable is a shared lib
-            p->proc()->setAOutLoadAddress(desc);
-        }
-       // Search for main, if we can't find it, and we're creating the process, 
-       // and not attaching to it, we can find it by instrumenting libc.so
-       // Currently this has only been implemented for linux 
-#if defined(os_linux)
-       vector <Symbol *>mainsyms;
-       if (p->proc() && p->proc()->getTraceState() == noTracing_ts
-           && !p->proc()->wasCreatedViaAttach() 
-           && !img->getObject()->findSymbolByType
-                 (mainsyms,"main",Symbol::ST_UNKNOWN)
-           && !img->getObject()->findSymbolByType
-                 (mainsyms,"_main",Symbol::ST_UNKNOWN)) {
-           fprintf(stderr, "[%s][%d] Module: %s in process %d:\n"
-                   "\t  is not a shared object so it should contain a symbol for \n"
-                   "\t  function main. Initial attempt to locate main failed,\n"
-                   "\t  possibly due to the lack of a .text section\n",
-                   __FILE__,__LINE__,desc.file().c_str(), p->proc()->getPid());
-           p->proc()->setTraceSysCalls(true);
-           p->proc()->setTraceState(libcOpenCall_ts);
-       }
-#endif
-    }
-    
-    // Adds exported functions and variables..
-    startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
-    mapped_object *obj = new mapped_object(desc, img, p);
-    startup_printf("%s[%d]:  leaving createMappedObject\n", FILE__, __LINE__);
 
-    return obj;
+   if (!p) return NULL;
+
+   startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
+   image *img = image::parseImage(desc, parseGaps);
+   if (!img)  {
+      startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
+      return NULL;
+   }
+   if (!desc.isSharedObject()) {
+      //We've seen a case where the a.out is a shared object (RHEL4's
+      // version of ssh).  Check if the shared object flag is set in the
+      // binary (which is different from the isSharedObject()) call above.
+      // If so, we need to update the load address.
+      if (p->proc() &&
+            (img->getObject()->getObjectType() == obj_SharedLib)) {
+         //Executable is a shared lib
+         p->proc()->setAOutLoadAddress(desc);
+      }
+      // Search for main, if we can't find it, and we're creating the process, 
+      // and not attaching to it, we can find it by instrumenting libc.so
+      // Currently this has only been implemented for linux 
+#if defined(os_linux)
+      vector <Symbol *>mainsyms;
+      if (p->proc() && p->proc()->getTraceState() == noTracing_ts
+            && !p->proc()->wasCreatedViaAttach() 
+            && !img->getObject()->findSymbolByType
+            (mainsyms,"main",Symbol::ST_UNKNOWN)
+            && !img->getObject()->findSymbolByType
+            (mainsyms,"_main",Symbol::ST_UNKNOWN)) {
+         fprintf(stderr, "[%s][%d] Module: %s in process %d:\n"
+               "\t  is not a shared object so it should contain a symbol for \n"
+               "\t  function main. Initial attempt to locate main failed,\n"
+               "\t  possibly due to the lack of a .text section\n",
+               __FILE__,__LINE__,desc.file().c_str(), p->proc()->getPid());
+         p->proc()->setTraceSysCalls(true);
+         p->proc()->setTraceState(libcOpenCall_ts);
+      }
+#endif
+   }
+
+   // Adds exported functions and variables..
+   startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
+   mapped_object *obj = new mapped_object(desc, img, p);
+   startup_printf("%s[%d]:  leaving createMappedObject(%s)\n", FILE__, __LINE__, desc.file().c_str());
+
+   return obj;
 }
 
 mapped_object::mapped_object(const mapped_object *s, process *child) :
-  codeRange(),
-  desc_(s->desc_),
-  fullName_(s->fullName_),
-  fileName_(s->fileName_),
-  codeBase_(s->codeBase_),
-  dataBase_(s->dataBase_),
-  everyUniqueFunction(imgFuncHash),
-  everyUniqueVariable(imgVarHash),
-  allFunctionsByMangledName(pdstring::hash),
-  allFunctionsByPrettyName(pdstring::hash),
-  allVarsByMangledName(pdstring::hash),
-  allVarsByPrettyName(pdstring::hash),
-  dirty_(s->dirty_),
-  dirtyCalled_(s->dirtyCalled_),
-  image_(s->image_),
-  dlopenUsed(s->dlopenUsed),
-  proc_(child),
-  analyzed_(s->analyzed_)
+   codeRange(),
+   desc_(s->desc_),
+   fullName_(s->fullName_),
+   fileName_(s->fileName_),
+   codeBase_(s->codeBase_),
+   dataBase_(s->dataBase_),
+   everyUniqueFunction(imgFuncHash),
+   everyUniqueVariable(imgVarHash),
+   allFunctionsByMangledName(::Dyninst::hash),
+   allFunctionsByPrettyName(::Dyninst::hash),
+   allVarsByMangledName(::Dyninst::hash),
+   allVarsByPrettyName(::Dyninst::hash),
+   dirty_(s->dirty_),
+   dirtyCalled_(s->dirtyCalled_),
+   image_(s->image_),
+   dlopenUsed(s->dlopenUsed),
+   proc_(child),
+   analyzed_(s->analyzed_)
 {
-    // Let's do modules
-    for (unsigned k = 0; k < s->everyModule.size(); k++) {
-        // Doesn't copy things like line info. Ah, well.
-        mapped_module *parMod = s->everyModule[k];
-        mapped_module *mod = mapped_module::createMappedModule(this, parMod->pmod());
-        assert(mod);
-        everyModule.push_back(mod);
-    }
-    
-    const pdvector<int_function *> parFuncs = s->everyUniqueFunction.values();
-    for (unsigned i = 0; i < parFuncs.size(); i++) {
-        int_function *parFunc = parFuncs[i];
-        assert(parFunc->mod());
-        mapped_module *mod = getOrCreateForkedModule(parFunc->mod());
-        int_function *newFunc = new int_function(parFunc,
-                                                 mod,
-                                                 child);
-        addFunction(newFunc);
-    }
-    
-    const pdvector<int_variable *> parVars = s->everyUniqueVariable.values();
-    for (unsigned j = 0; j < parVars.size(); j++) {
-        int_variable *parVar = parVars[j];
-        assert(parVar->mod());
-        mapped_module *mod = getOrCreateForkedModule(parVar->mod());
-        int_variable *newVar = new int_variable(parVar,
-                                                mod);
-        addVariable(newVar);
-    }
-    
-    image_ = s->image_->clone();
+   // Let's do modules
+   for (unsigned k = 0; k < s->everyModule.size(); k++) {
+      // Doesn't copy things like line info. Ah, well.
+      mapped_module *parMod = s->everyModule[k];
+      mapped_module *mod = mapped_module::createMappedModule(this, parMod->pmod());
+      assert(mod);
+      everyModule.push_back(mod);
+   }
+
+   const pdvector<int_function *> parFuncs = s->everyUniqueFunction.values();
+   for (unsigned i = 0; i < parFuncs.size(); i++) {
+      int_function *parFunc = parFuncs[i];
+      assert(parFunc->mod());
+      mapped_module *mod = getOrCreateForkedModule(parFunc->mod());
+      int_function *newFunc = new int_function(parFunc,
+            mod,
+            child);
+      addFunction(newFunc);
+   }
+
+   const pdvector<int_variable *> parVars = s->everyUniqueVariable.values();
+   for (unsigned j = 0; j < parVars.size(); j++) {
+      int_variable *parVar = parVars[j];
+      assert(parVar->mod());
+      mapped_module *mod = getOrCreateForkedModule(parVar->mod());
+      int_variable *newVar = new int_variable(parVar,
+            mod);
+      addVariable(newVar);
+   }
+
+   image_ = s->image_->clone();
 }
 
-mapped_object::~mapped_object() {
-    // desc_ is static
-    // fullName_ is static
-    // fileName_ is static
-    // codeBase_ is static
-    // dataBase_ is static
 
-    for (unsigned i = 0; i < everyModule.size(); i++)
-        delete everyModule[i];
-    everyModule.clear();    
-    
-    pdvector<int_function *> funcs = everyUniqueFunction.values();
-    for (unsigned j = 0; j < funcs.size(); j++) {
-        delete funcs[j];
-    }
-    everyUniqueFunction.clear();
-    
-    pdvector<int_variable *> vars = everyUniqueVariable.values();
-    for (unsigned k = 0; k < vars.size(); k++) {
-        delete vars[k];
-    }
-    everyUniqueVariable.clear();
-    
-    pdvector<pdvector<int_function *> * > mangledFuncs = allFunctionsByMangledName.values();
-    for (unsigned i = 0; i < mangledFuncs.size(); i++) {
-        delete mangledFuncs[i];
-    }
-    allFunctionsByMangledName.clear();
+mapped_object::~mapped_object() 
+{
+   // desc_ is static
+   // fullName_ is static
+   // fileName_ is static
+   // codeBase_ is static
+   // dataBase_ is static
 
-    pdvector<pdvector<int_function *> * > prettyFuncs = allFunctionsByPrettyName.values();
-    for (unsigned i = 0; i < prettyFuncs.size(); i++) {
-        delete prettyFuncs[i];
-    }
-    allFunctionsByPrettyName.clear();
+   for (unsigned i = 0; i < everyModule.size(); i++)
+      delete everyModule[i];
+   everyModule.clear();    
 
-    pdvector<pdvector<int_variable *> * > mV = allVarsByMangledName.values();
-    for (unsigned i = 0; i < mV.size(); i++) {
-        delete mV[i];
-    }
-    allVarsByMangledName.clear();
+   pdvector<int_function *> funcs = everyUniqueFunction.values();
+   for (unsigned j = 0; j < funcs.size(); j++) {
+      delete funcs[j];
+   }
+   everyUniqueFunction.clear();
 
-    pdvector<pdvector<int_variable *> * > pV = allVarsByPrettyName.values();
-    for (unsigned i = 0; i < pV.size(); i++) {
-        delete pV[i];
-    }
-    allVarsByPrettyName.clear();
+   pdvector<int_variable *> vars = everyUniqueVariable.values();
+   for (unsigned k = 0; k < vars.size(); k++) {
+      delete vars[k];
+   }
+   everyUniqueVariable.clear();
 
-    // codeRangesByAddr_ is static
+   pdvector<pdvector<int_function *> * > mangledFuncs = allFunctionsByMangledName.values();
+   for (unsigned i = 0; i < mangledFuncs.size(); i++) {
+      delete mangledFuncs[i];
+   }
+   allFunctionsByMangledName.clear();
+
+   pdvector<pdvector<int_function *> * > prettyFuncs = allFunctionsByPrettyName.values();
+   for (unsigned i = 0; i < prettyFuncs.size(); i++) {
+      delete prettyFuncs[i];
+   }
+   allFunctionsByPrettyName.clear();
+
+   pdvector<pdvector<int_variable *> * > mV = allVarsByMangledName.values();
+   for (unsigned i = 0; i < mV.size(); i++) {
+      delete mV[i];
+   }
+   allVarsByMangledName.clear();
+
+   pdvector<pdvector<int_variable *> * > pV = allVarsByPrettyName.values();
+   for (unsigned i = 0; i < pV.size(); i++) {
+      delete pV[i];
+   }
+   allVarsByPrettyName.clear();
+
+   // codeRangesByAddr_ is static
     // Remainder are static
 
     image::removeImage(image_);
 }
 
-bool mapped_object::analyze() {
+bool mapped_object::analyze() 
+{
     if (analyzed_) return true;
   // Create a process-specific version of the image; all functions and
   // variables at an absolute address (and modifiable).
@@ -371,7 +377,7 @@ bool mapped_object::analyze() {
 // from a string that is a complete path name to a function in a module
 // (ie. "/usr/lib/libc.so.1/write") return a string with the function
 // part removed.  return 0 on error
-char *mapped_object::getModulePart(pdstring &full_path_name) {
+char *mapped_object::getModulePart(std::string &full_path_name) {
     
     char *whole_name = P_strdup(full_path_name.c_str());
     char *next=0;
@@ -399,24 +405,24 @@ char *mapped_object::getModulePart(pdstring &full_path_name) {
 mapped_module *mapped_object::findModule(string m_name, bool wildcard)
 {
    parsing_printf("findModule for %s (substr match %d)\n",
-                  m_name.c_str(), wildcard);
-   pdstring tmp = m_name.c_str();	  
+         m_name.c_str(), wildcard);
+   std::string tmp = m_name.c_str();	  
    for (unsigned i = 0; i < everyModule.size(); i++) {
       if (everyModule[i]->fileName() == m_name ||
-          everyModule[i]->fullName() == m_name ||
-          (wildcard &&
-           (tmp.wildcardEquiv(everyModule[i]->fileName().c_str()) ||
-            tmp.wildcardEquiv(everyModule[i]->fullName().c_str())))) {
+            everyModule[i]->fullName() == m_name ||
+            (wildcard &&
+             (wildcardEquiv(tmp, everyModule[i]->fileName()) ||
+              wildcardEquiv(tmp, everyModule[i]->fullName())))) {
          //parsing_printf("... found!\n");
          return everyModule[i];
       }
    }
    // Create a new one IF there's one in the child pd_module
-    
+
    pdmodule *pdmod = image_->findModule(m_name, wildcard);
    if (pdmod) {
       mapped_module *mod = mapped_module::createMappedModule(this,
-                                                             pdmod);
+            pdmod);
       everyModule.push_back(mod);
       //parsing_printf("... made new module!\n");
       return mod;
@@ -429,73 +435,73 @@ mapped_module *mapped_object::findModule(string m_name, bool wildcard)
 
 
 mapped_module *mapped_object::findModule(pdmodule *pdmod) {
-    assert(pdmod);
+   assert(pdmod);
 
-    if (pdmod->imExec() != parse_img()) {
-        cerr << "WARNING: lookup for module in wrong mapped object!" << endl;
-        return NULL;
-    }
+   if (pdmod->imExec() != parse_img()) {
+      cerr << "WARNING: lookup for module in wrong mapped object!" << endl;
+      return NULL;
+   }
 
-    //parsing_printf("findModule for pdmod %s\n",
-    //pdmod->fullName().c_str());
+   //parsing_printf("findModule for pdmod %s\n",
+   //pdmod->fullName().c_str());
 
-    for (unsigned i = 0; i < everyModule.size(); i++) {
-        if (everyModule[i]->pmod() == pdmod) {
-            //parsing_printf("... found at index %d\n", i);
-            return everyModule[i];
-        }
-    }
-    
-    mapped_module *mod = mapped_module::createMappedModule(this,
-                                                           pdmod);
-    if (mod) {
-        //parsing_printf("... created new module\n");
-        everyModule.push_back(mod);
-        return mod;
-    }
-    else
-        return NULL;
+   for (unsigned i = 0; i < everyModule.size(); i++) {
+      if (everyModule[i]->pmod() == pdmod) {
+         //parsing_printf("... found at index %d\n", i);
+         return everyModule[i];
+      }
+   }
+
+   mapped_module *mod = mapped_module::createMappedModule(this,
+         pdmod);
+   if (mod) {
+      //parsing_printf("... created new module\n");
+      everyModule.push_back(mod);
+      return mod;
+   }
+   else
+      return NULL;
 }
 
 // fill in "short_name" data member.  Use last component of "name" data
 // member with FS_FIELD_SEPERATOR ("/") as field seperator....
 void mapped_object::set_short_name() {
-    const char *name_string = fullName_.c_str();
-    const char *ptr = strrchr(name_string, FS_FIELD_SEPERATOR);
-    if (ptr != NULL) {
-        fileName_ = ptr+1;
-    } else {
-        fileName_ = fullName_;
-    }
+   const char *name_string = fullName_.c_str();
+   const char *ptr = strrchr(name_string, FS_FIELD_SEPERATOR);
+   if (ptr != NULL) {
+      fileName_ = ptr+1;
+   } else {
+      fileName_ = fullName_;
+   }
 }
 
-const pdvector<int_function *> *mapped_object::findFuncVectorByPretty(const pdstring &funcname)
+const pdvector<int_function *> *mapped_object::findFuncVectorByPretty(const std::string &funcname)
 {
-  if (funcname.c_str() == 0) return NULL;
-  // First, check the underlying image.
-  const pdvector<image_func *> *img_funcs = parse_img()->findFuncVectorByPretty(funcname);
-  if (img_funcs == NULL) {
+   if (funcname.c_str() == 0) return NULL;
+   // First, check the underlying image.
+   const pdvector<image_func *> *img_funcs = parse_img()->findFuncVectorByPretty(funcname);
+   if (img_funcs == NULL) {
       return NULL;
-  }
+   }
 
-  assert(img_funcs->size());
-  // Fast path:
-  if (allFunctionsByPrettyName.defines(funcname)) {
+   assert(img_funcs->size());
+   // Fast path:
+   if (allFunctionsByPrettyName.defines(funcname)) {
       // Okay, we've pulled in some of the functions before (this can happen as a
       // side effect of adding functions). But did we get them all?
       pdvector<int_function *> *map_funcs = allFunctionsByPrettyName[funcname];
       if (map_funcs->size() == img_funcs->size()) {
-          // We're allocating at the lower level....
-          delete img_funcs;
-          return map_funcs;
+         // We're allocating at the lower level....
+         delete img_funcs;
+         return map_funcs;
       }
-  }
+   }
 
-  // Slow path: check each img_func, add those we don't already have, and return.
-  for (unsigned i = 0; i < img_funcs->size(); i++) {
+   // Slow path: check each img_func, add those we don't already have, and return.
+   for (unsigned i = 0; i < img_funcs->size(); i++) {
       image_func *func = (*img_funcs)[i];
       if (!everyUniqueFunction.defines(func)) {
-          findFunction(func);
+         findFunction(func);
       }
       assert(everyUniqueFunction[func]);
   }
@@ -504,7 +510,7 @@ const pdvector<int_function *> *mapped_object::findFuncVectorByPretty(const pdst
   return allFunctionsByPrettyName[funcname];
 } 
 
-const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const pdstring &funcname)
+const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const std::string &funcname)
 {
     if (funcname.c_str() == 0) return NULL;
     
@@ -538,7 +544,7 @@ const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const pd
 } 
 
 
-const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const pdstring &varname)
+const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const std::string &varname)
 {
     if (varname.c_str() == 0) return NULL;
     
@@ -571,7 +577,7 @@ const pdvector<int_variable *> *mapped_object::findVarVectorByPretty(const pdstr
     return allVarsByPrettyName[varname];
 } 
 
-const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const pdstring &varname)
+const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const std::string &varname)
 {
   if (varname.c_str() == 0) return NULL;
 
@@ -605,7 +611,7 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const pds
 } 
 
 //Returns one variable, doesn't search other mapped_objects.  Use carefully.
-const int_variable *mapped_object::getVariable(const pdstring &varname) {
+const int_variable *mapped_object::getVariable(const std::string &varname) {
     const pdvector<int_variable *> *vars = NULL; 
     vars = findVarVectorByPretty(varname);
     if (!vars) vars = findVarVectorByMangled(varname);
@@ -719,7 +725,7 @@ int_function *mapped_object::findFunction(image_func *img_func) {
 }
 
 void mapped_object::addFunctionName(int_function *func,
-                                    const pdstring newName,
+                                    const std::string newName,
                                     bool isMangled) { /* = false */    
     pdvector<int_function *> *funcsByName = NULL;
     
@@ -840,185 +846,195 @@ int_variable *mapped_object::findVariable(image_variable *img_var) {
 
 AddressSpace *mapped_object::proc() const { return proc_; }
 
-bool mapped_object::isSharedLib() const {
+bool mapped_object::isSharedLib() const 
+{
     return desc_.isSharedObject();
 }
 
-const pdstring mapped_object::debugString() const {
-    pdstring debug;
-    debug = pdstring(fileName_.c_str()) + ":" + pdstring(codeBase_) + "/" + pdstring(imageSize()); 
+const std::string mapped_object::debugString() const 
+{
+    std::string debug;
+    debug = std::string(fileName_.c_str()) + ":" 
+       + utos(codeBase_) 
+       + "/" + utos(imageSize()); 
     return debug;
 }
 
 // This gets called once per image. Poke through to the internals;
 // all we care about, amusingly, is symbol table information. 
 
-void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const {
-    pdvector<Symbol *> foundHeapSyms;
+void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
+{
+   pdvector<Symbol *> foundHeapSyms;
 
-    parse_img()->findSymByPrefix("DYNINSTstaticHeap", foundHeapSyms);
-    parse_img()->findSymByPrefix("_DYNINSTstaticHeap", foundHeapSyms);
+   parse_img()->findSymByPrefix("DYNINSTstaticHeap", foundHeapSyms);
+   parse_img()->findSymByPrefix("_DYNINSTstaticHeap", foundHeapSyms);
 
-    for (unsigned i = 0; i < foundHeapSyms.size(); i++) {
-        foundHeapDesc foo;
-        foo.name = foundHeapSyms[i]->getName().c_str();
-        foo.addr = foundHeapSyms[i]->getAddr();
-        // foo.addr is now relative to the start of the heap; check the type of the symbol to 
-        // determine whether it's a function (off codeBase_) or variable (off dataBase_)
-        switch(foundHeapSyms[i]->getType()) {
-        case Symbol::ST_FUNCTION:
+   for (unsigned i = 0; i < foundHeapSyms.size(); i++) {
+      foundHeapDesc foo;
+      foo.name = foundHeapSyms[i]->getName().c_str();
+      foo.addr = foundHeapSyms[i]->getAddr();
+      // foo.addr is now relative to the start of the heap; check the type of the symbol to 
+      // determine whether it's a function (off codeBase_) or variable (off dataBase_)
+      switch(foundHeapSyms[i]->getType()) {
+         case Symbol::ST_FUNCTION:
             foo.addr += codeBase_;
             foundHeaps.push_back(foo);
             break;
-        case Symbol::ST_OBJECT:
+         case Symbol::ST_OBJECT:
             foo.addr += dataBase_;
             foundHeaps.push_back(foo);
             break;
-        default:
+         default:
             // We don't know what this is, and can't tell the base. Skip it (but warn)
             fprintf(stderr, "Warning: skipping inferior heap with type %d, %s@0x%lx\n", foundHeapSyms[i]->getType(), foo.name.c_str(), foo.addr);
             break;
-        }
-    }
-    
-    // AIX: we scavenge space. Do that here.
+      }
+   }
+
+   // AIX: we scavenge space. Do that here.
 
 #if defined(os_aix)
-    // ...
+   // ...
 
-    // a.out: from the end of the loader to 0x20000000
-    // Anything in 0x2....: skip
-    // Anything in 0xd....: to the next page
+   // a.out: from the end of the loader to 0x20000000
+   // Anything in 0x2....: skip
+   // Anything in 0xd....: to the next page
 
-    foundHeapDesc tmp;
-    Address start = 0;
-    unsigned size = 0;
-    
+   foundHeapDesc tmp;
+   Address start = 0;
+   unsigned size = 0;
+
 #if 0
-    fprintf(stderr, "Looking for inferior heap in %s/%s, codeAbs 0x%x (0x%x/0x%x)\n",
-            getFileDesc().file().c_str(),
-            getFileDesc().member().c_str(),
-            codeAbs(),
-            codeBase(),
-            codeOffset());
+   fprintf(stderr, "Looking for inferior heap in %s/%s, codeAbs 0x%x (0x%x/0x%x)\n",
+         getFileDesc().file().c_str(),
+         getFileDesc().member().c_str(),
+         codeAbs(),
+         codeBase(),
+         codeOffset());
 #endif
 
-    if (codeAbs() >= 0xd0000000) {
-        // This caused problems on sp3-01.cs.wisc.edu; apparently we were overwriting
-        // necessary library information. For now I'm disabling it (10FEB06) until
-        // we can get a better idea of what was going on.
+   if (codeAbs() >= 0xd0000000) {
+      // This caused problems on sp3-01.cs.wisc.edu; apparently we were overwriting
+      // necessary library information. For now I'm disabling it (10FEB06) until
+      // we can get a better idea of what was going on.
 #if 0
-        start = codeAbs() + imageSize();
-        start += instruction::size() - (start % (Address)instruction::size());
-        size = PAGESIZE - (start % PAGESIZE);
+      start = codeAbs() + imageSize();
+      start += instruction::size() - (start % (Address)instruction::size());
+      size = PAGESIZE - (start % PAGESIZE);
 #endif
-    }
-    else if (codeAbs() > 0x20000000) {
-        // ...
-    }
-    else if (codeAbs() > 0x10000000) {
-        // We also have the loader; there is no information on where
-        // it goes (ARGH) so we pad the end of the code segment to
-        // try and avoid it.
-	
-	Section *sec;
-	image_->getObject()->findSection(sec, ".loader");
-        Address loader_end = codeAbs() + 
-            //sec.getSecAddr() +
-	    image_->getObject()->getLoadOffset() +
-            sec->getSecSize();
-        //Address loader_end = codeAbs() + 
-        //    image_->getObject()->loader_off() +
-        //    image_->getObject()->loader_len();
-        // If we loaded it up in the data segment, don't use...
-        if (loader_end > 0x20000000)
-            loader_end = 0;
-        Address code_end = codeAbs() + imageSize();
+   }
+   else if (codeAbs() > 0x20000000) {
+      // ...
+   }
+   else if (codeAbs() > 0x10000000) {
+      // We also have the loader; there is no information on where
+      // it goes (ARGH) so we pad the end of the code segment to
+      // try and avoid it.
 
-        start = (loader_end > code_end) ? loader_end : code_end;
+      Section *sec;
+      image_->getObject()->findSection(sec, ".loader");
+      Address loader_end = codeAbs() + 
+         //sec.getSecAddr() +
+         image_->getObject()->getLoadOffset() +
+         sec->getSecSize();
+      //Address loader_end = codeAbs() + 
+      //    image_->getObject()->loader_off() +
+      //    image_->getObject()->loader_len();
+      // If we loaded it up in the data segment, don't use...
+      if (loader_end > 0x20000000)
+         loader_end = 0;
+      Address code_end = codeAbs() + imageSize();
 
-        start += instruction::size() - (start % (Address)instruction::size());
-        size = (0x20000000 - start);
-    }
+      start = (loader_end > code_end) ? loader_end : code_end;
+
+      start += instruction::size() - (start % (Address)instruction::size());
+      size = (0x20000000 - start);
+   }
 
 
-    if (start) {
-        char name_scratch[1024];
-        snprintf(name_scratch, 1023,
-                 "DYNINSTstaticHeap_%i_uncopiedHeap_0x%lx_scratchpage_%s",
-                 (unsigned) size,
-                 start,
-                 fileName().c_str());
-        
-        tmp.name = pdstring(name_scratch);
-        tmp.addr = start;
-        //fprintf(stderr, "Adding heap %s\n", name_scratch);
+   if (start) {
+      char name_scratch[1024];
+      snprintf(name_scratch, 1023,
+            "DYNINSTstaticHeap_%i_uncopiedHeap_0x%lx_scratchpage_%s",
+            (unsigned) size,
+            start,
+            fileName().c_str());
+
+      tmp.name = std::string(name_scratch);
+      tmp.addr = start;
+      //fprintf(stderr, "Adding heap %s\n", name_scratch);
         foundHeaps.push_back(tmp);
     }
 #endif
 }
     
 
-void *mapped_object::getPtrToInstruction(Address addr) const {
-    if (addr < codeAbs()) return NULL;
-    if (addr >= (codeAbs() + imageSize())) return NULL;
+void *mapped_object::getPtrToInstruction(Address addr) const 
+{
+   if (addr < codeAbs()) return NULL;
+   if (addr >= (codeAbs() + imageSize())) return NULL;
 
-    // Only subtract off the codeBase, not the codeBase plus
-    // codeOffset -- the image class includes the codeOffset.
-    Address offset = addr - codeBase();
-    return image_->getPtrToInstruction(offset);
+   // Only subtract off the codeBase, not the codeBase plus
+   // codeOffset -- the image class includes the codeOffset.
+   Address offset = addr - codeBase();
+   return image_->getPtrToInstruction(offset);
 }
 
-void *mapped_object::getPtrToData(Address addr) const {
-    assert(addr >= dataAbs());
-    assert(addr < (dataAbs() + dataSize()));
+void *mapped_object::getPtrToData(Address addr) const 
+{
+   assert(addr >= dataAbs());
+   assert(addr < (dataAbs() + dataSize()));
 
-    // Don't go from the code base... the image adds back in the code
-    // offset.
-    Address offset = addr - dataBase();
-    return image_->getPtrToData(offset);
+   // Don't go from the code base... the image adds back in the code
+   // offset.
+   Address offset = addr - dataBase();
+   return image_->getPtrToData(offset);
 }
 
-void *mapped_object::get_local_ptr() const {
-    return image_->getObject()->image_ptr();
+void *mapped_object::get_local_ptr() const 
+{
+   return image_->getObject()->image_ptr();
 }
 
 
-bool mapped_object::getSymbolInfo(const pdstring &n, Symbol &info) {
-    if (image_) {
-        if (!image_->symbol_info(n, info)) {
-            // Leading underscore...
-            pdstring n1 = pdstring("_") + n;
-            if (!image_->symbol_info(n1, info))
-                return false;
-        }
+bool mapped_object::getSymbolInfo(const std::string &n, Symbol &info) 
+{
+   if (image_) {
+      if (!image_->symbol_info(n, info)) {
+         // Leading underscore...
+         std::string n1 = std::string("_") + n;
+         if (!image_->symbol_info(n1, info))
+            return false;
+      }
 
-        // Shift to specialize; we check whether code or data, and
-        // add the appropriate offset. On most platforms these are the
-        // same, but may be different (cf. AIX)
+      // Shift to specialize; we check whether code or data, and
+      // add the appropriate offset. On most platforms these are the
+      // same, but may be different (cf. AIX)
 
-        // Check symbol type.
-        if (info.getType() == Symbol::ST_OBJECT) {
-            info.setAddr(info.getAddr() + dataBase_);
-        }
-        else {
-            info.setAddr(info.getAddr() + codeBase_);
-        }
+      // Check symbol type.
+      if (info.getType() == Symbol::ST_OBJECT) {
+         info.setAddr(info.getAddr() + dataBase_);
+      }
+      else {
+         info.setAddr(info.getAddr() + codeBase_);
+      }
 
-        return true;
-    }
-    assert(0);
-    return false;
+      return true;
+   }
+   assert(0);
+   return false;
 }
 
-mapped_module *mapped_object::getOrCreateForkedModule(mapped_module *parMod) {
-    // Okay. We're forking, and this is the child mapped_object.
-    // And now, given a parent module, we need to find the right one
-    // in our little baby modules.
-    
-    // Since we've already copied modules, we can just do a name lookup.
-    mapped_module *childModule = findModule(parMod->fileName(), false);
-    assert(childModule);
-    return childModule;
+mapped_module *mapped_object::getOrCreateForkedModule(mapped_module *parMod) 
+{
+   // Okay. We're forking, and this is the child mapped_object.
+   // And now, given a parent module, we need to find the right one
+   // in our little baby modules.
+
+   // Since we've already copied modules, we can just do a name lookup.
+   mapped_module *childModule = findModule(parMod->fileName(), false);
+   assert(childModule);
+   return childModule;
 
 }

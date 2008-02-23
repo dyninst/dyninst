@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.36 2007/09/12 20:59:34 bernat Exp $
+// $Id: os.h,v 1.37 2008/02/23 02:09:09 jaw Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -74,7 +74,7 @@
 #include "dyninstAPI/src/linux.h"
 #endif
 
-#include "common/h/String.h"
+#include <string>
 #include "common/h/Types.h"
 
 typedef enum { neonatal, running, stopped, detached, exited, deleted, unknown_ps } processState;
@@ -88,7 +88,7 @@ public:
   static void make_tempfile(char *);
   static bool execute_file(char *);
   static void unlink(char *);
-  static bool executableExists(const pdstring &file);
+  static bool executableExists(const std::string &file);
 };
 
 #endif

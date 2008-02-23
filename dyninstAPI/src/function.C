@@ -56,7 +56,7 @@
 #include "reloc-func.h"
 #endif
 
-//pdstring int_function::emptyString("");
+//std::string int_function::emptyString("");
 
 using namespace Dyninst;
 
@@ -401,7 +401,7 @@ void int_function::unregisterInstPointAddr(Address addr, instPoint* inst) {
     instPsByAddr_.undef(addr);
 }
 
-void print_func_vector_by_pretty_name(pdstring prefix,
+void print_func_vector_by_pretty_name(std::string prefix,
 				      pdvector<int_function *>*funcs) {
     unsigned int i;
     int_function *func;
@@ -613,12 +613,12 @@ void int_function::debugPrint() const {
 
 // Add to internal
 // Add to mapped_object if a "new" name (true return from internal)
-void int_function::addSymTabName(const pdstring name, bool isPrimary) {
+void int_function::addSymTabName(const std::string name, bool isPrimary) {
     if (ifunc()->addSymTabName(name, isPrimary))
         obj()->addFunctionName(this, name, true);
 }
 
-void int_function::addPrettyName(const pdstring name, bool isPrimary) {
+void int_function::addPrettyName(const std::string name, bool isPrimary) {
     if (ifunc()->addPrettyName(name, isPrimary))
         obj()->addFunctionName(this, name, false);
 }

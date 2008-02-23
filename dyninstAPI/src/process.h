@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.414 2008/02/20 08:31:03 jaw Exp $
+/* $Id: process.h,v 1.415 2008/02/23 02:09:10 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -51,10 +51,10 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string>
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
-#include "common/h/String.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
 #include "common/h/Timer.h"
@@ -253,7 +253,7 @@ class process : public AddressSpace {
     
     Address previousSignalAddr() const { return previousSignalAddr_; }
     void setPreviousSignalAddr(Address a) { previousSignalAddr_ = a; }
-    pdstring getStatusAsString() const; // useful for debug printing etc.
+    std::string getStatusAsString() const; // useful for debug printing etc.
     
     bool checkContinueAfterStop() {
         if( continueAfterNextStop_ ) {
@@ -272,7 +272,7 @@ class process : public AddressSpace {
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix4_1)
-    char* dumpPatchedImage(pdstring outFile);//ccw 28 oct 2001
+    char* dumpPatchedImage(std::string outFile);//ccw 28 oct 2001
     
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4)
@@ -280,7 +280,7 @@ class process : public AddressSpace {
 #endif
     
 #if defined(sparc_sun_solaris2_4)  //ccw 10 mar 2004
-    bool dldumpSharedLibrary(pdstring dyninstRT_name, char* directoryname);
+    bool dldumpSharedLibrary(std::string dyninstRT_name, char* directoryname);
 #endif
     
 #if defined(i386_unknown_linux2_0) \
@@ -294,14 +294,14 @@ class process : public AddressSpace {
 
 #else
 #if 0
-    char* dumpPatchedImage(pdstring /*outFile*/) { return NULL; } 
+    char* dumpPatchedImage(std::string /*outFile*/) { return NULL; } 
 #endif
 #endif
 
     bool applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize);
     
     
-    bool dumpImage(pdstring outFile);
+    bool dumpImage(std::string outFile);
     
     //  SignalHandler::dumpMemory()
     //
@@ -314,7 +314,7 @@ class process : public AddressSpace {
     
     // This will find the named symbol in the image or in a shared object
     // Necessary since some things don't show up as a function or variable.
-    //    bool getSymbolInfo( const pdstring &name, Dyninst::SymtabAPI::Symbol &ret );
+    //    bool getSymbolInfo( const std::string &name, Dyninst::SymtabAPI::Symbol &ret );
     
     // Not at all sure we want to use this anymore...
     void overwriteImage( image* /*img */) {
@@ -389,7 +389,7 @@ class process : public AddressSpace {
                                         void *newElf);
     void saveWorldCreateDataSections(void* ptr);
     void saveWorldAddSharedLibs(void *ptr);//ccw 14 may 2002
-    void saveWorldloadLibrary(pdstring tmp, void *brk_ptr) {
+    void saveWorldloadLibrary(std::string tmp, void *brk_ptr) {
         loadLibraryUpdates.push_back(tmp);
         loadLibraryBRKs.push_back(brk_ptr);
     };
@@ -436,7 +436,7 @@ class process : public AddressSpace {
     ~process();
     bool pause();
     
-    bool dumpCore(const pdstring coreFile);
+    bool dumpCore(const std::string coreFile);
     bool attach();
     // Set whatever OS-level process flags are needed
     bool setProcessFlags();
@@ -488,7 +488,7 @@ class process : public AddressSpace {
   // True if we've reached or past a certain state
   bool reachedBootstrapState(bootstrapState_t state) const { return bootstrapState >= state; }
 
-  pdstring getBootstrapStateAsString() const;
+  std::string getBootstrapStateAsString() const;
   bootstrapState_t getBootstrapState() {return bootstrapState;}
 
   // Strictly increments (we never drop back down)
@@ -581,7 +581,7 @@ class process : public AddressSpace {
 
   bool shouldSaveFPState();
 
-  static pdstring tryToFindExecutable(const pdstring &progpath, int pid);
+  static std::string tryToFindExecutable(const std::string &progpath, int pid);
       // os-specific implementation.  Returns empty string on failure.
       // Otherwise, returns a full-path-name for the file.  Tries every
       // trick to determine the full-path-name, even though "progpath" may
@@ -734,8 +734,8 @@ private:
   
   // terminateProcStatus_t is defined at the top of this file.
   terminateProcStatus_t terminateProc_();
-  bool dumpCore_(const pdstring coreFile);
-  bool osDumpImage(const pdstring &imageFileName,  pid_t pid, Address codeOff);
+  bool dumpCore_(const std::string coreFile);
+  bool osDumpImage(const std::string &imageFileName,  pid_t pid, Address codeOff);
 
   dyn_lwp *query_for_stopped_lwp();
   dyn_lwp *stop_an_lwp(bool *wasRunning);
@@ -854,7 +854,7 @@ private:
   // And a shortcut pointer
   mapped_object *runtime_lib;
   // ... and keep the name around
-  pdstring dyninstRT_name;
+  std::string dyninstRT_name;
 
   // We have to perform particular steps based on how we were started.
   typedef enum { unknown_cm, 
@@ -909,8 +909,8 @@ private:
   // Currently: Linux/ptrace
   bool nextTrapIsExec;
   // More sure then looking at /proc/pid
-  pdstring execPathArg;		// Argument given to exec
-  pdstring execFilePath;	// Full path info
+  std::string execPathArg;		// Argument given to exec
+  std::string execFilePath;	// Full path info
   bool inExec_; // Used to be a status vrble, but is orthogonal to running/stopped
 
   ///////////////////////////////
@@ -928,8 +928,8 @@ private:
   pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
   pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
   pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
-  pdvector<pdstring> loadLibraryCalls;//ccw 14 may 2002 
-  pdvector<pdstring> loadLibraryUpdates;//ccw 14 may 2002
+  pdvector<std::string> loadLibraryCalls;//ccw 14 may 2002 
+  pdvector<std::string> loadLibraryUpdates;//ccw 14 may 2002
   pdvector<void*> loadLibraryBRKs;
   int requestTextMiniTramp; //ccw 20 jul 2002
 	void setRequestTextMiniTramp(int flag){requestTextMiniTramp=flag;};
@@ -1066,12 +1066,12 @@ private:
 };// end class process
 
 
-process *ll_createProcess(const pdstring file, pdvector<pdstring> *argv, 
-                          pdvector<pdstring> *envp,
-                          const pdstring dir, int stdin_fd, int stdout_fd,
+process *ll_createProcess(const std::string file, pdvector<std::string> *argv, 
+                          pdvector<std::string> *envp,
+                          const std::string dir, int stdin_fd, int stdout_fd,
                           int stderr_fd);
 
-process *ll_attachProcess(const pdstring &progpath, int pid, void *container_proc_);
+process *ll_attachProcess(const std::string &progpath, int pid, void *container_proc_);
 
 
 bool isInferiorAllocated(process *p, Address block);

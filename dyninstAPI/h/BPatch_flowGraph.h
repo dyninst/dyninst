@@ -42,6 +42,7 @@
 #ifndef _BPatch_flowGraph_h_
 #define _BPatch_flowGraph_h_
 
+#include <string>
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
@@ -52,7 +53,6 @@
 
 class int_function;
 class process;
-class pdstring;
 
 class BPatch_edge;
 
@@ -78,7 +78,7 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock {
   friend std::ostream& operator<<(std::ostream&,BPatch_flowGraph&);
   friend void dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
                                      BPatch_Vector<BPatch_basicBlockLoop *> &loops,
-                                     pdstring level);
+                                     std::string level);
  
   BPatch_flowGraph (BPatch_function *func, bool &valid); 
 

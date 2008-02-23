@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.22 2008/02/22 17:48:00 giri Exp $
+// $Id: Object-xcoff.C,v 1.23 2008/02/23 02:09:13 jaw Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -411,7 +411,8 @@ int xcoffArchive_64::read_mbrhdr()
 
 std::vector<fileOpener *> fileOpener::openedFiles;
 
-fileOpener *fileOpener::openFile(const std::string &filename) {
+fileOpener *fileOpener::openFile(const std::string &filename) 
+{
     // Logic: if we're opening a library, match by name. If
     // we're opening an a.out, then we have to uniquely
     // open each time (as we open in /proc, and exec has the
@@ -446,6 +447,8 @@ fileOpener *fileOpener::openFile(const std::string &filename) {
         //perror("Opening file");
         return NULL;
     }
+    fprintf(stderr, "%s[%d]:  FIXME: DOING MMAP HERE!\n", FILE__, __LINE__);
+    abort();
     if (!newFO->mmap()) {
         fprintf(stderr, "File %s\n", filename.c_str());
         //perror("mmaping file");
@@ -549,7 +552,9 @@ fileOpener::~fileOpener() {
     return true;
 }
 
-bool fileOpener::mmap() {
+bool fileOpener::mmap() 
+{
+   fprintf(stderr, "%s[%d]:  FIXME:  should not be mmaping here\n", FILE__, __LINE__);
     assert(fd_);
     assert(size_);
 
@@ -570,13 +575,14 @@ bool fileOpener::mmap() {
     return true;
 }
     
-bool fileOpener::set(unsigned addr) {
+bool fileOpener::set(unsigned addr) 
+{
     //assert(fd_);     may not be present if its a mem image
     assert(size_);
     assert(mmapStart_);
 
     if (addr >= size_) {
-        fprintf(stderr, "Warning: attempting to set offset to address %d (0x%x) greater than size %d (0x%x)\n",
+        fprintf(stderr, "%s[%d]: Warning: attempting to set offset to address %d (0x%x) greater than size %d (0x%x)\n", FILE__, __LINE__, 
                 addr, addr,
                 size_, size_);
         return false;
@@ -909,7 +915,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
          if (!is64 && nlines_ == 65535)
             for (j=0; j < hdr.f_nscns; j++)
                if ((SCNH_FLAGS(j) & STYP_OVRFLO) &&
-                   (SCNH_NLNNO(j) == (i+1))) {
+                   (SCNH_NLNNO(j) == (unsigned) (i+1))) {
                   nlines_ = (unsigned int)(SCNH_VADDR(j));
                   break;
                }
@@ -1051,7 +1057,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    
    no_of_symbols_ = nsyms;
    // Now the symbol table itself:
-   for (i=0; i < nsyms; i++) 
+   for (i=0; i < (signed)nsyms; i++) 
    {
       /* do the pointer addition by hand since sizeof(struct syment)
        *   seems to be 20 not 18 as it should be. Mmm alignment. */
@@ -1654,12 +1660,12 @@ ObjectType Object::objType() const {
 }
 
 bool Object::emitDriver(Symtab * /*obj*/, 
-      string fName, 
-      std::vector<Symbol *>&functions, 
-      std::vector<Symbol *>&variables, 
-      std::vector<Symbol *>&mods, 
-      std::vector<Symbol *>&notypes, 
-      unsigned flag) 
+      string /*fName*/, 
+      std::vector<Symbol *>&/*functions*/, 
+      std::vector<Symbol *>&/*variables*/, 
+      std::vector<Symbol *>&/*mods*/, 
+      std::vector<Symbol *>&/*notypes*/, 
+      unsigned /*flag*/) 
 {
    return true;
 }

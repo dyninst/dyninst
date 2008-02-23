@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.162 2008/02/20 22:34:19 legendre Exp $
+// $Id: inst.C,v 1.163 2008/02/23 02:09:07 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -67,7 +67,7 @@
  * return the time required to execute the passed primitive.
  *
  */
-unsigned getPrimitiveCost(const pdstring &name)
+unsigned getPrimitiveCost(const std::string &name)
 {
 
     static bool init=false;
@@ -82,7 +82,7 @@ unsigned getPrimitiveCost(const pdstring &name)
 
 
 // find any tags to associate semantic meaning to function
-unsigned findTags(const pdstring ) {
+unsigned findTags(const std::string ) {
   return 0;
 #ifdef notdef
   if (tagDict.defines(funcName))

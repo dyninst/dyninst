@@ -41,13 +41,14 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.119 2008/02/20 22:34:28 legendre Exp $
+// $Id: sol_proc.C,v 1.120 2008/02/23 02:09:11 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
 #else
 #include <procfs.h>
 #endif
+#include <string>
 #include <limits.h>
 #include <poll.h>
 #include <sys/types.h>  // for reading lwps out of proc
@@ -112,7 +113,7 @@ void OS::osTraceMe(void)
     }
 #if defined(os_aix) 
     if (status.pr_sysexit_offset) {
-        if (SYSSET_SIZE(exitSet) != pread(stat_fd, exitSet, SYSSET_SIZE(exitSet), status.pr_sysexit_offset))
+        if ((signed)SYSSET_SIZE(exitSet) != pread(stat_fd, exitSet, SYSSET_SIZE(exitSet), status.pr_sysexit_offset))
        fprintf(stderr, "%s[%d]:  pread: %s\n", FILE__, __LINE__, strerror(errno));
     }
     else // No syscalls are being traced 
@@ -1792,7 +1793,7 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
     return true;
 }
 
-pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) 
+std::string process::tryToFindExecutable(const std::string &iprogpath, int pid) 
 {
    char buffer[2];
    int result;
@@ -1815,7 +1816,7 @@ pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid)
   // pids will not match (and should)
   // Case 2: an exec'ed program will have the same /proc path,
   // but different program paths
-  pdstring procpath = pdstring("/proc/") + pdstring(pid) + pdstring("/object/a.out");
+  std::string procpath = std::string("/proc/") + utos(pid) + std::string("/object/a.out");
 
   // Sure would be nice if we could get the original....
 

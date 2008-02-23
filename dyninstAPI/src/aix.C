@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.241 2008/02/20 08:31:03 jaw Exp $
+// $Id: aix.C,v 1.242 2008/02/23 02:09:04 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -47,7 +47,15 @@
 #include <termio.h>
 
 #include <pthread.h>
+
 #include "common/h/headers.h"
+#include "common/h/Types.h"
+#include "common/h/Dictionary.h"
+#include "common/h/pathName.h"
+#include "common/h/debugOstream.h"
+
+#include "symtabAPI/h/Symtab.h"
+
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/signalgenerator.h"
@@ -56,10 +64,6 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/stats.h"
-#include "common/h/Types.h"
-#include "common/h/Dictionary.h"
-#include "symtabAPI/h/Symtab.h"
-#include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -88,7 +92,6 @@
 #include "writeBackXCOFF.h"
 
 #include "dyninstAPI/src/debug.h"
-#include "common/h/debugOstream.h"
 
 extern "C" {
 extern int ioctl(int, int, ...);
@@ -443,60 +446,60 @@ Address data_low_addr;
 void process::inferiorMallocConstraints(Address near, Address &lo, 
 					Address &hi, inferiorHeapType type)
 {
-    int addrWidth = getAddressWidth();
-    int lowest_addr, highest_addr, data_hi_addr;
+   int addrWidth = getAddressWidth();
+   int lowest_addr, highest_addr, data_hi_addr;
 
-    switch (addrWidth) {
-    case 4:	lowest_addr = lowest_addr32;
-		highest_addr = highest_addr32;
-		data_hi_addr = data_hi_addr32;
-		break;
+   switch (addrWidth) {
+      case 4:	lowest_addr = lowest_addr32;
+               highest_addr = highest_addr32;
+               data_hi_addr = data_hi_addr32;
+               break;
 #if defined(rs6000_ibm_aix64)
-    case 8:	lowest_addr = lowest_addr64;
-		highest_addr = highest_addr64;
-		data_hi_addr = data_hi_addr64;
-		break;
+      case 8:	lowest_addr = lowest_addr64;
+               highest_addr = highest_addr64;
+               data_hi_addr = data_hi_addr64;
+               break;
 #endif
-    default:	assert(0 && "Unknown address width");
-    }
+      default:	assert(0 && "Unknown address width");
+   }
 
-    // The notion of "near" only works on 32-bit processes. (For now?)
-    if (addrWidth == 4 && near) {
-	if (near < (lowest_addr + branch_range))
-	    lo = lowest_addr;
-	else
-	    lo = near - branch_range;
+   // The notion of "near" only works on 32-bit processes. (For now?)
+   if (addrWidth == 4 && near) {
+      if (near < (lowest_addr + branch_range))
+         lo = lowest_addr;
+      else
+         lo = near - branch_range;
 
-	if (near > (highest_addr - branch_range))
-	    hi = highest_addr;
-	else
-	    hi = near + branch_range;
-    }
+      if (near > (highest_addr - branch_range))
+         hi = highest_addr;
+      else
+         hi = near + branch_range;
+   }
 
-    switch (type) {
-    case dataHeap:
-	// mmap, preexisting dataheap constraints
-	// so shift down lo and hi accordingly
-	if (lo < data_low_addr) {
-	    lo = data_low_addr;
-	    // Keep within branch range so that we know we can
-	    // reach anywhere inside.
-	    if (hi < (lo + branch_range))
-		hi = lo + branch_range;
-	}
-	if (hi > data_hi_addr) {
-	    hi = data_hi_addr;
-/*
-	    // Not sure why this is commented out.
-	    if (lo > (hi - branch_range))
-		lo = hi - branch_range;
-*/
-	}
-	break;
-    default:
-	// no change
-	break;
-    }
+   switch (type) {
+      case dataHeap:
+         // mmap, preexisting dataheap constraints
+         // so shift down lo and hi accordingly
+         if (lo < data_low_addr) {
+            lo = data_low_addr;
+            // Keep within branch range so that we know we can
+            // reach anywhere inside.
+            if (hi < (lo + branch_range))
+               hi = lo + branch_range;
+         }
+         if (hi > (unsigned) data_hi_addr) {
+            hi = (unsigned) data_hi_addr;
+            /*
+            // Not sure why this is commented out.
+            if (lo > (hi - branch_range))
+            lo = hi - branch_range;
+             */
+         }
+         break;
+      default:
+         // no change
+         break;
+   }
 }
 
 #endif
@@ -505,44 +508,44 @@ void process::inferiorMallocConstraints(Address near, Address &lo,
 #define DEBUG_MSG 0 
 #define _DEBUG_MSG 0
 void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*> &newPatches){
-	int startPage, stopPage;
-	imageUpdate *patch;
-	//this function now returns only ONE section that is loadable.
-	int pageSize = getpagesize();
+   int startPage, stopPage;
+   imageUpdate *patch;
+   //this function now returns only ONE section that is loadable.
+   int pageSize = getpagesize();
 
-	imageUpdate *curr, *next;
-	bool foundDup=true;
-	unsigned int j;
+   imageUpdate *curr, *next;
+   bool foundDup=true;
+   unsigned int j;
 
-	VECTOR_SORT(imagePatches, imageUpdateSort);
+   VECTOR_SORT(imagePatches, imageUpdateSort);
 
-	while(foundDup){
-		foundDup = false;
-		j =0;
-	        while(imagePatches[j]->address==0 && j < imagePatches.size()){
-       	        	j++;
-        	}
-		curr = imagePatches[j];
+   while(foundDup){
+      foundDup = false;
+      j =0;
+      while(imagePatches[j]->address==0 && j < imagePatches.size()){
+         j++;
+      }
+      curr = imagePatches[j];
 
-		for(j++;j<imagePatches.size();j++){
-			next = imagePatches[j];		
-			if(curr->address == next->address){
-				//duplicate
-				//find which is bigger and save that one.
-				if(curr->size > next->size){
-					next->address=0;
-				}else{
-					curr->address=0;
-					curr=next;
-				}
-				foundDup =true;
-			}else{
-				curr=next;
-			}
+      for(j++;j<imagePatches.size();j++){
+         next = imagePatches[j];		
+         if(curr->address == next->address){
+            //duplicate
+            //find which is bigger and save that one.
+            if(curr->size > next->size){
+               next->address=0;
+            }else{
+               curr->address=0;
+               curr=next;
+            }
+            foundDup =true;
+         }else{
+            curr=next;
+         }
 
-		}
-		VECTOR_SORT(imagePatches, imageUpdateSort);
-	}
+      }
+      VECTOR_SORT(imagePatches, imageUpdateSort);
+   }
 
 
 	for(unsigned int i=0;i<imagePatches.size();i++){
@@ -884,7 +887,7 @@ void process::addLib(char* lname){
 
 #if defined (cap_save_the_world)
 //save world
-char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
+char* process::dumpPatchedImage(std::string imageFileName){ //ccw 28 oct 2001
 
 	writeBackXCOFF *newXCOFF;
 	//addLibrary *addLibraryXCOFF;
@@ -1294,10 +1297,10 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-           pdstring msg = pdstring("Environment variable ")
-              + pdstring("DYNINSTAPI_RT_LIB")
-              + pdstring(" has not been defined for process ")
-              + pdstring(getPid());
+           std::string msg = std::string("Environment variable ")
+              + std::string("DYNINSTAPI_RT_LIB")
+              + std::string(" has not been defined for process ")
+              + utos(getPid());
            showErrorCallback(101, msg);
            return false;
         }
@@ -1318,15 +1321,15 @@ bool process::getDyninstRTLibName() {
             return false;
         }
 
-        dyninstRT_name = pdstring(name, split - name) +
-                         pdstring(modifier) +
-                         pdstring(split);
+        dyninstRT_name = std::string(name, split - name) +
+                         std::string(modifier) +
+                         std::string(split);
     }
 
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {
-        pdstring msg = pdstring("Runtime library ") + dyninstRT_name
-        + pdstring(" does not exist or cannot be accessed!");
+        std::string msg = std::string("Runtime library ") + dyninstRT_name
+        + std::string(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         return false;
     }
@@ -1630,7 +1633,7 @@ bool process::get_exit_syscalls(sysset_t *exit)
 
 
 
-bool process::dumpCore_(const pdstring coreFile)
+bool process::dumpCore_(const std::string coreFile)
 {
     pause();
     
@@ -1641,7 +1644,7 @@ bool process::dumpCore_(const pdstring coreFile)
     return true;
 }
 
-bool process::dumpImage(const pdstring outFile)
+bool process::dumpImage(const std::string outFile)
 {
     // formerly OS::osDumpImage()
     const string &imageFileName = getAOut()->fullName();
@@ -1764,7 +1767,7 @@ bool SignalGenerator::decodeSignal_NP(EventRecord &ev)
   return false;  // signall needs further deccoding
 }
 
-bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
+bool SignalGeneratorCommon::getExecFileDescriptor(std::string /*filename*/,
                                                   int pid,
                                                   bool waitForTrap,
                                                   int &status,
@@ -2032,7 +2035,7 @@ int_function *instPoint::findCallee() {
  * Searches for function in order, with preference given first 
  * to libpthread, then to libc, then to the process.
  **/
-static void findThreadFuncs(process *p, pdstring func, 
+static void findThreadFuncs(process *p, std::string func, 
                             pdvector<int_function *> &result)
 {
    bool found = false;
@@ -2051,7 +2054,7 @@ static void findThreadFuncs(process *p, pdstring func,
    p->findFuncsByPretty(func, result);
 }
 
-static bool initWrapperFunction(process *p, pdstring symbol_name, pdstring func_name)
+static bool initWrapperFunction(process *p, std::string symbol_name, std::string func_name)
 {
    //Find symbol_name
    bool res;

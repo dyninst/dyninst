@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.39 2008/02/07 16:07:56 jaw Exp $
+// $Id: util.h,v 1.40 2008/02/23 02:09:11 jaw Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -48,10 +48,10 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
+#include <string>
 #include "common/h/headers.h"
 #include "common/h/Time.h"
 #include "common/h/Types.h"
-#include "common/h/String.h"
 
 bool waitForFileToExist(char *fname, int timeout_seconds);
 int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds);

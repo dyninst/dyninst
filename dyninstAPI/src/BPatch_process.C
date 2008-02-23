@@ -45,6 +45,7 @@
 
 #define BPATCH_FILE
 
+#include <string>
 
 #include "process.h"
 #include "EventHandler.h"
@@ -125,8 +126,8 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
 
    isVisiblyStopped = true;
 
-   pdvector<pdstring> argv_vec;
-   pdvector<pdstring> envp_vec;
+   pdvector<std::string> argv_vec;
+   pdvector<std::string> envp_vec;
    // Contruct a vector out of the contents of argv
    if (argv) {
       for(int i = 0; argv[i] != NULL; i++)
@@ -139,7 +140,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
          envp_vec.push_back(envp[i]);
    }
    
-   pdstring directoryName = "";
+   std::string directoryName = "";
 
 #if !defined(os_windows)
    // this fixes a problem on linux and alpha platforms where pathless
@@ -1239,7 +1240,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
        
        for (int j = one_stack.size()-1; j >= 0; j--) {
            // Are we in the "Active" (executing) frame?
-           bool active = (j == (one_stack.size()-1)) ? true : false;
+           bool active = (j == (int)(one_stack.size()-1)) ? true : false;
 
            Frame &frame = one_stack[j];
 
@@ -1871,8 +1872,8 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       return false;
    }
    if (bpfv.size() > 1) {
-      pdstring msg = pdstring("Found ") + pdstring(bpfv.size()) + 
-         pdstring("functions called DYNINSTloadLibrary -- not fatal but weird");
+      std::string msg = std::string("Found ") + utos(bpfv.size()) + 
+         std::string("functions called DYNINSTloadLibrary -- not fatal but weird");
       BPatch_reportError(BPatchSerious, 100, msg.c_str());
    }
    BPatch_function *dlopen_func = bpfv[0]; 

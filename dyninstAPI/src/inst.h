@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.102 2007/12/04 17:58:06 bernat Exp $
+// $Id: inst.h,v 1.103 2008/02/23 02:09:07 jaw Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
 
+#include <string>
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "common/h/String.h"
 #include "opcode.h" // enum opCode now defined here.
 #include "common/h/Types.h"
 #include "arch.h" // codeBufIndex_t 
@@ -114,24 +114,24 @@ int_function *getFunction(instPoint *point);
 // What I want to know is who is allergic to multi-letter arguments? Yeesh.
 class instMapping {
 public:
-  instMapping(const pdstring f, const pdstring i, const int w, 
-	      callWhen wn, callOrder o, AstNodePtr a = AstNodePtr(), pdstring l = "")
+  instMapping(const std::string f, const std::string i, const int w, 
+	      callWhen wn, callOrder o, AstNodePtr a = AstNodePtr(), std::string l = "")
       : func(f), inst(i), lib(l),
       where(w), when(wn), order(o), useTrampGuard(true),
       mt_only(false), allow_trap(false) {
       if (a != AstNodePtr()) args.push_back(a);
   }
   
-  instMapping(const pdstring f, const pdstring i, const int w, 
-              AstNodePtr a = AstNodePtr(), pdstring l = "")
+  instMapping(const std::string f, const std::string i, const int w, 
+              AstNodePtr a = AstNodePtr(), std::string l = "")
       : func(f), inst(i), lib(l),
       where(w), when(callPreInsn), order(orderLastAtPoint),
       useTrampGuard(true), mt_only(false), allow_trap(false) {
       if (a != AstNodePtr()) args.push_back(a);
   }
   
-  instMapping(const pdstring f, const pdstring i, const int w, 
-              pdvector<AstNodePtr> &aList, pdstring l = "") :
+  instMapping(const std::string f, const std::string i, const int w, 
+              pdvector<AstNodePtr> &aList, std::string l = "") :
       func(f), inst(i), lib(l),
       where(w), when(callPreInsn), order(orderLastAtPoint),
       useTrampGuard(true), mt_only(false), allow_trap(false) {
@@ -152,9 +152,9 @@ public:
   void canUseTrap(bool t) { allow_trap = t; }
   bool is_MTonly() { return mt_only; }
 
-  pdstring func;                 /* function to instrument */
-  pdstring inst;                 /* inst. function to place at func */
-  pdstring lib;                  /* library name */
+  std::string func;                 /* function to instrument */
+  std::string inst;                 /* inst. function to place at func */
+  std::string lib;                  /* library name */
   int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
   callWhen when;               /* callPreInsn, callPostInsn */
   callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
@@ -176,7 +176,7 @@ void initDefaultPointFrequencyTable();
 //
 // Return the expected runtime of the passed function in instruction times.
 //
-unsigned getPrimitiveCost(const pdstring &name);
+unsigned getPrimitiveCost(const std::string &name);
 
 /*
  * Generate an instruction.
@@ -253,17 +253,17 @@ int getInsnCost(opCode t);
  */
 Register getParameter(Register dest, int param);
 
-extern pdstring getProcessStatus(const AddressSpace *p);
+extern std::string getProcessStatus(const AddressSpace *p);
 
 // TODO - what about mangled names ?
 // expects the symbol name advanced past the underscore
-extern unsigned findTags(const pdstring funcName);
+extern unsigned findTags(const std::string funcName);
 
 extern Address getMaxBranch();
 
 // find these internal functions before finding any other functions
-// extern dictionary_hash<pdstring, unsigned> tagDict;
-extern dictionary_hash <pdstring, unsigned> primitiveCosts;
+// extern dictionary_hash<std::string, unsigned> tagDict;
+extern dictionary_hash <std::string, unsigned> primitiveCosts;
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f);
 

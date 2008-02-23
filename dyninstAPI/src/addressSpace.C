@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.16 2008/02/14 19:58:58 bernat Exp $
+// $Id: addressSpace.C,v 1.17 2008/02/23 02:09:04 jaw Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -324,7 +324,7 @@ codeRange *AddressSpace::findModByAddr(Address addr) {
 }
 
 // Returns the named symbol from the image or a shared object
-bool AddressSpace::getSymbolInfo( const pdstring &name, Symbol &ret ) 
+bool AddressSpace::getSymbolInfo( const std::string &name, Symbol &ret ) 
 {
   for (unsigned i = 0; i < mapped_objects.size(); i++) {
     bool sflag;
@@ -772,9 +772,9 @@ bool AddressSpace::inferiorRealloc(Address block, unsigned newSize) {
 // Function lookup...
 /////////////////////////////////////////
 
-bool AddressSpace::findFuncsByAll(const pdstring &funcname,
+bool AddressSpace::findFuncsByAll(const std::string &funcname,
                              pdvector<int_function *> &res,
-                             const pdstring &libname) { // = "", btw
+                             const std::string &libname) { // = "", btw
     
     unsigned starting_entries = res.size(); // We'll return true if we find something
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
@@ -802,9 +802,9 @@ bool AddressSpace::findFuncsByAll(const pdstring &funcname,
 }
 
 
-bool AddressSpace::findFuncsByPretty(const pdstring &funcname,
+bool AddressSpace::findFuncsByPretty(const std::string &funcname,
                              pdvector<int_function *> &res,
-                             const pdstring &libname) { // = "", btw
+                             const std::string &libname) { // = "", btw
 
     unsigned starting_entries = res.size(); // We'll return true if we find something
 
@@ -825,9 +825,9 @@ bool AddressSpace::findFuncsByPretty(const pdstring &funcname,
 }
 
 
-bool AddressSpace::findFuncsByMangled(const pdstring &funcname,
+bool AddressSpace::findFuncsByMangled(const std::string &funcname,
                                  pdvector<int_function *> &res,
-                                 const pdstring &libname) { // = "", btw
+                                 const std::string &libname) { // = "", btw
     unsigned starting_entries = res.size(); // We'll return true if we find something
 
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
@@ -864,9 +864,9 @@ int_function *AddressSpace::findOnlyOneFunction(const string &name,
 // Variable lookup...
 /////////////////////////////////////////
 
-bool AddressSpace::findVarsByAll(const pdstring &varname,
+bool AddressSpace::findVarsByAll(const std::string &varname,
                             pdvector<int_variable *> &res,
-                            const pdstring &libname) { // = "", btw
+                            const std::string &libname) { // = "", btw
     unsigned starting_entries = res.size(); // We'll return true if we find something
     
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
@@ -1009,7 +1009,7 @@ int_function *AddressSpace::findFuncByInternalFunc(image_func *ifunc) {
 // findModule: returns the module associated with mod_name 
 // this routine checks both the a.out image and any shared object
 // images for this resource
-mapped_module *AddressSpace::findModule(const pdstring &mod_name, bool wildcard)
+mapped_module *AddressSpace::findModule(const std::string &mod_name, bool wildcard)
 {
     // KLUDGE: first search any shared libraries for the module name 
     //  (there is only one module in each shared library, and that 
@@ -1025,14 +1025,14 @@ mapped_module *AddressSpace::findModule(const pdstring &mod_name, bool wildcard)
 
 // findObject: returns the object associated with obj_name 
 // This just iterates over the mapped object vector
-mapped_object *AddressSpace::findObject(const pdstring &obj_name, bool wildcard)
+mapped_object *AddressSpace::findObject(const std::string &obj_name, bool wildcard)
 {
     for(u_int j=0; j < mapped_objects.size(); j++){
         if (mapped_objects[j]->fileName() == obj_name.c_str() ||
             mapped_objects[j]->fullName() == obj_name.c_str() ||
-            (wildcard &&
-             (obj_name.wildcardEquiv(mapped_objects[j]->fileName().c_str()) ||
-              obj_name.wildcardEquiv(mapped_objects[j]->fullName().c_str()))))
+           (wildcard &&
+             (wildcardEquiv(obj_name, mapped_objects[j]->fileName()) ||
+              wildcardEquiv(obj_name, mapped_objects[j]->fullName()))))
             return mapped_objects[j];
     }
     return NULL;

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.66 2007/06/26 14:54:48 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.67 2008/02/23 02:09:05 jaw Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -152,7 +152,7 @@ class dyn_lwp
   bool waitUntilStopped();
 
   processState status() const { return status_;}
-  pdstring getStatusAsString() const; // useful for debug printing etc.
+  std::string getStatusAsString() const; // useful for debug printing etc.
   // to set dyn_lwp status, use process::set_lwp_status()
   void internal_lwp_set_status___(processState st);
   

@@ -39,14 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.17 2007/09/06 20:14:58 roundy Exp $
+/* $Id: signalgenerator.h,v 1.18 2008/02/23 02:09:11 jaw Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
 #define _SIGNAL_GENERATOR_H_
 
+#include <string>
 #include "common/h/Vector.h"
-#include "common/h/String.h"
 #include "dyninstAPI/src/EventHandler.h"
 #include "codeRange.h"
 
@@ -66,12 +66,12 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
  friend class dyn_lwp;
 
  public:
-   static process *newProcess(pdstring file_, pdstring dir, 
-                                            pdvector<pdstring> *argv,
-                                            pdvector<pdstring> *envp,
+   static process *newProcess(std::string file_, std::string dir, 
+                                            pdvector<std::string> *argv,
+                                            pdvector<std::string> *envp,
                                             int stdin_fd, int stdout_fd, 
                                             int stderr_fd);
-   static process *newProcess(pdstring &progpath, int pid);
+   static process *newProcess(std::string &progpath, int pid);
    process *newProcess(process *parent, int pid_, int traceLink);
 
    static void deleteSignalGenerator(SignalGenerator *sg);
@@ -79,14 +79,14 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
 
     //  newSignalGenerator provides a way to make a signal generator in
     //  a platform indep manner.
-    static SignalGenerator *newSignalGenerator(pdstring file, pdstring dir,
-                                                pdvector<pdstring> *argv,
-                                                pdvector<pdstring> *envp,
-                                                pdstring inputFile,
-                                                pdstring outputFile,
+    static SignalGenerator *newSignalGenerator(std::string file, std::string dir,
+                                                pdvector<std::string> *argv,
+                                                pdvector<std::string> *envp,
+                                                std::string inputFile,
+                                                std::string outputFile,
                                                 int stdin_fd, int stdout_fd,
                                                 int stderr_fd);
-    static SignalGenerator *newSignalGenerator(pdstring file, int pid);
+    static SignalGenerator *newSignalGenerator(std::string file, int pid);
 
    virtual ~SignalGeneratorCommon(); 
 
@@ -155,14 +155,14 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
 
    //  SignalGeneratorCommon should only be constructed via derived classes
    SignalGeneratorCommon(char *idstr);
-   bool setupCreated(pdstring file, pdstring dir,
-                     pdvector<pdstring> *argv,
-                     pdvector<pdstring> *envp,
-                     pdstring inputFile,
-                     pdstring outputFile,
+   bool setupCreated(std::string file, std::string dir,
+                     pdvector<std::string> *argv,
+                     pdvector<std::string> *envp,
+                     std::string inputFile,
+                     std::string outputFile,
                      int stdin_fd, int stdout_fd,
                      int stderr_fd);
-   bool setupAttached(pdstring file, int pid);
+   bool setupAttached(std::string file, int pid);
 
  protected:
    // Main loop functionality
@@ -205,21 +205,21 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    virtual bool attachProcess() = 0;
    virtual bool waitForStopInline() = 0;
    //  process creation parameters
-   pdstring file_;
-   pdstring dir_;
+   std::string file_;
+   std::string dir_;
 
-   pdstring inputFile_, outputFile_;
+   std::string inputFile_, outputFile_;
    int stdin_fd_, stdout_fd_, stderr_fd_;
-   pdvector<pdstring> *argv_;
-   pdvector<pdstring> *envp_;
+   pdvector<std::string> *argv_;
+   pdvector<std::string> *envp_;
    
    process *proc;
    pid_t pid_;
    int traceLink_;
    bool requested_wait_until_active;
 
-   static pdstring createExecPath(pdstring &file, pdstring &dir);
-   bool getExecFileDescriptor(pdstring filename,
+   static std::string createExecPath(std::string &file, std::string &dir);
+   bool getExecFileDescriptor(std::string filename,
                               int pid,
                               bool waitForTrap, // Should we wait for process init
                               int &status,

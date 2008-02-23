@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.64 2008/01/23 14:45:52 jaw Exp $
+// $Id: templates0.C,v 1.65 2008/02/23 02:09:11 jaw Exp $
 // Generate all the templates in one file.
 
 /*
@@ -72,8 +72,7 @@
 #endif
 #include "symtabAPI/h/Symbol.h"
 
-#include "common/h/String.h"
-
+#include <string>
 #include "dyninstAPI/src/inst.h"
 
 using namespace Dyninst;
@@ -84,8 +83,8 @@ template class pdvector<callWhen>;
 
 template class  pdvector<int>;
 template class  pdvector<bool>;
-template class  pdvector<pdstring>;
-template class  pdvector<pdvector<pdstring> >;
+template class  pdvector<std::string>;
+template class  pdvector<pdvector<std::string> >;
 template class  pdvector<unsigned>;
 template class  pdvector<long>;
 

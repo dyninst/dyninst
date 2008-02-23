@@ -39,14 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: stats.h,v 1.12 2006/12/06 21:17:50 bernat Exp $
+// $Id: stats.h,v 1.13 2008/02/23 02:09:11 jaw Exp $
 
 #ifndef STATS_H
 #define STATS_H
 
+#include <string>
 #include "common/h/Dictionary.h"
-#include "common/h/String.h"
 #include "common/h/Timer.h"
+#include "dynutil/h/util.h"
 
 extern void printDyninstStats();
 
@@ -176,7 +177,7 @@ typedef enum {
 class StatContainer {
  public:
     StatContainer() :
-        stats_(pdstring::hash)
+        stats_(::Dyninst::hash)
     { }
 
     /* Access or create a statistic indexed by the provided name.
@@ -184,27 +185,27 @@ class StatContainer {
      * This operator may return null if the named statistic does
      * not exist.
      */
-    Statistic * operator[](pdstring) const;
+    Statistic * operator[](std::string) const;
 
     // Create a new statistic of the given type indexed by name.
     // **This will replace any existing stat with the same index
     //   within this container**
-    void add(pdstring name, StatType type);
+    void add(std::string name, StatType type);
 
     // Access all of the existing statistics
-    const dictionary_hash< pdstring, Statistic * > &
+    const dictionary_hash< std::string, Statistic * > &
     allStats() const { return stats_; }
 
     // And some pass-through methods, encapsulated for
     // ease of use
-    void startTimer(pdstring);
-    void stopTimer(pdstring);
-    void incrementCounter(pdstring);
-    void decrementCounter(pdstring);
-    void addCounter(pdstring, int);
+    void startTimer(std::string);
+    void stopTimer(std::string);
+    void incrementCounter(std::string);
+    void decrementCounter(std::string);
+    void addCounter(std::string, int);
 
  private:
-    dictionary_hash< pdstring, Statistic * > stats_;
+    dictionary_hash< std::string, Statistic * > stats_;
 
 };
 #endif

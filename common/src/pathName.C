@@ -246,6 +246,20 @@ bool executableFromArgv0AndPathAndCwd(pdstring &result,
 }
 
 
+bool executableFromArgv0AndPathAndCwd(std::string &result,
+				      const std::string &i_argv0,
+				      const std::string &path,
+				      const std::string &cwd) 
+{
+   pdstring pdresult(result.c_str());
+   pdstring pdargv0(i_argv0.c_str());
+   pdstring pdpath(path.c_str());
+   pdstring pdcwd(cwd.c_str());
+   bool ret = executableFromArgv0AndPathAndCwd(pdresult, pdargv0, pdpath, pdcwd);
+   result = std::string(pdresult.c_str());
+   return ret;
+}
+
 #if defined(os_windows)
 #define PATH_SEP ('\\')
 #define SECOND_PATH_SEP ('/')

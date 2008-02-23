@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.17 2007/09/12 20:57:37 bernat Exp $
+// $Id: inst-ia64.h,v 1.18 2008/02/23 02:09:05 jaw Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
@@ -110,7 +110,7 @@ class InsnAddr {
 		bool writeBundlesFrom( unsigned char * savedCodeBuffer, unsigned int numberOfBundles );
 		bool replaceBundleWith( const IA64_bundle & bundle );
 		bool replaceBundlesWith( const IA64_bundle * replacementBundles, unsigned int numberOfReplacementBundles );
-		bool writeStringAtOffset( unsigned int offsetInBundles, const char * pdstring, unsigned int length );
+		bool writeStringAtOffset( unsigned int offsetInBundles, const char * str, unsigned int length );
 
 	private:
 		InsnAddr( Address addr, AddressSpace * p ) : encodedAddress( addr ), myProc( p ) { }

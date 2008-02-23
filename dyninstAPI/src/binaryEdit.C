@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.14 2008/01/16 22:01:28 legendre Exp $
+// $Id: binaryEdit.C,v 1.15 2008/02/23 02:09:05 jaw Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -226,10 +226,10 @@ void BinaryEdit::deleteBinaryEdit() {
     lowWaterMark_ = 0;
 }
 
-BinaryEdit *BinaryEdit::openFile(const pdstring &file) {
+BinaryEdit *BinaryEdit::openFile(const std::string &file) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
-        pdstring msg = pdstring("Can't read executable file ") + file + (": ") + strerror(errno);
+        std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
         showErrorCallback(68, msg.c_str());
         return NULL;
     }
@@ -274,7 +274,7 @@ BinaryEdit *BinaryEdit::openFile(const pdstring &file) {
     return newBinaryEdit;
 }
 
-bool BinaryEdit::getStatFileDescriptor(const pdstring &name, fileDescriptor &desc) {
+bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &desc) {
     // Wow, I think this was easy
     desc = fileDescriptor(name.c_str(),
                           0, // code base address
@@ -285,7 +285,7 @@ bool BinaryEdit::getStatFileDescriptor(const pdstring &name, fileDescriptor &des
 
 #if 1
 
-bool BinaryEdit::writeFile(const pdstring &newFileName) 
+bool BinaryEdit::writeFile(const std::string &newFileName) 
 {
     // We've made a bunch of changes and additions to the
     // mapped object.
@@ -452,7 +452,7 @@ bool BinaryEdit::writeFile(const pdstring &newFileName)
 
 #else // Old version, keeping for reference
 
-bool BinaryEdit::writeFile(const pdstring &newFileName) {
+bool BinaryEdit::writeFile(const std::string &newFileName) {
     // We've made a bunch of changes and additions to the
     // mapped object.
     //   Changes: modifiedRanges_

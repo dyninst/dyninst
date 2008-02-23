@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.23 2006/05/10 02:31:01 jaw Exp $
+// $Id: aix.h,v 1.24 2008/02/23 02:09:04 jaw Exp $
 
 #if !defined(os_aix)
 #error "invalid architecture-os inclusion"
@@ -57,7 +57,7 @@
 #include "sol_proc.h"
 #define EXIT_NAME "exit"
 
-#define SIGNAL_HANDLER  0
+#define SIGNAL_HANDLER "no_signal_handler" 
 
 /* How many bytes our insertion of "dlopen <libname>" needs */
 /* Should be set dynamically */

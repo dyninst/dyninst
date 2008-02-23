@@ -41,6 +41,7 @@
 
 // $Id: signalhandler.C,v 
 
+#include <string>
 #include "signalhandler.h"
 #include "signalgenerator.h"
 #include "process.h"
@@ -633,8 +634,8 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         break;
      case evtProcessLoadedRT:
      {
-        pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
-        buffer += pdstring(", loaded dyninst library");
+        std::string buffer = std::string("PID=") + utos(proc->getPid());
+        buffer += std::string(", loaded dyninst library");
         statusLine(buffer.c_str());
         proc->loadDYNINSTlibCleanup(ev.lwp);
         proc->setBootstrapState(loadedRT_bs);

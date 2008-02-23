@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.2 2008/02/21 21:27:48 legendre Exp $
+// $Id: Annotatable.h,v 1.3 2008/02/23 02:09:12 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -116,12 +116,12 @@ AnnotationSet< T >::sets_by_obj;
 class AnnotatableBase
 {
    protected:
-      DLLEXPORT AnnotatableBase();
+      AnnotatableBase();
       ~AnnotatableBase() {
       }
       static int number;
-      static hash_map<std::string, int> annotationTypes;
-      static hash_map<std::string, int> metadataTypes;
+      static DLLEXPORT hash_map<std::string, int> annotationTypes;
+      static DLLEXPORT hash_map<std::string, int> metadataTypes;
       static int metadataNum;
 
    public:
@@ -139,113 +139,115 @@ template <class T, class ANNOTATION_NAME_T>
 class Annotatable : public AnnotatableBase
 {
    public:
-   Annotatable() :
-      AnnotatableBase()
-   {
-   }
-   ~Annotatable() 
-   {
-   }
+      Annotatable() :
+         AnnotatableBase()
+      {
+      }
+      ~Annotatable() 
+      {
+      }
 
-   Annotatable(const Annotatable<T, ANNOTATION_NAME_T> &/*src*/) :
-      AnnotatableBase()
-   {/*hrm deep copy here or no?*/}
+      Annotatable(const Annotatable<T, ANNOTATION_NAME_T> &/*src*/) :
+         AnnotatableBase()
+      {/*hrm deep copy here or no?*/}
 
-   typedef typename std::vector<T> Container_t;
-   Container_t *initAnnotations()
-   {
-      Container_t *v = NULL;
-      v = AnnotationSet<Container_t>::getAnnotationSet(this);
-      if (v) {
+      typedef typename std::vector<T> Container_t;
+      Container_t *initAnnotations()
+      {
+         Container_t *v = NULL;
+         v = AnnotationSet<Container_t>::getAnnotationSet(this);
+         if (v) {
 #if 0
-         fprintf(stderr, "%s[%d]:  annotation set already existsfor %p\n", FILE__, __LINE__, this);
+            fprintf(stderr, "%s[%d]:  annotation set already existsfor %p\n", FILE__, __LINE__, this);
 #endif
+            return v;
+         }
+
+         if (!v) {
+            fprintf(stderr, "%s[%d]:  malloc problem\n", FILE__, __LINE__);
+            abort();
+            return NULL;
+         }
+
+#if 0
+         ANNOTATION_NAME_T name_t;
+#endif
+         std::string anno_name = typeid(ANNOTATION_NAME_T).name();
+         int anno_type = getAnnotationType(anno_name);
+         if (anno_type == -1) {
+            fprintf(stderr, "%s[%d]:  creating annotation type %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+            anno_type = createAnnotationType(anno_name);
+         }
+
+         if (anno_type == -1) {
+            AnnotationSet<Container_t>::removeAnnotationSet(this);
+            delete v;
+            fprintf(stderr, "%s[%d]:  failing to create annotation for type %s\n", 
+                  FILE__, __LINE__, anno_name.c_str());
+            return NULL;
+         }
+         fprintf(stderr, "%s[%d]:  created annotation type %s\n", 
+               FILE__, __LINE__, anno_name.c_str());
          return v;
       }
 
-      if (!v) {
-         fprintf(stderr, "%s[%d]:  malloc problem\n", FILE__, __LINE__);
-         abort();
-         return NULL;
-      }
+      bool addAnnotation(T it)
+      {
+         Container_t *v = NULL;
+         v = AnnotationSet<std::vector<T> >::findAnnotationSet(this);
+         if (!v)
+            if (NULL == ( v = initAnnotations())) {
+               fprintf(stderr, "%s[%d]:  bad annotation type\n", FILE__, __LINE__);
+               return false;
+            }
 
-      ANNOTATION_NAME_T name_t;
-      std::string anno_name = typeid(name_t).name();
-      int anno_type = getAnnotationType(anno_name);
-      if (anno_type == -1) {
-         fprintf(stderr, "%s[%d]:  creating annotation type %s\n", 
-               FILE__, __LINE__, anno_name.c_str());
-         anno_type = createAnnotationType(anno_name);
-      }
-
-      if (anno_type == -1) {
-         AnnotationSet<Container_t>::removeAnnotationSet(this);
-         delete v;
-         fprintf(stderr, "%s[%d]:  failing to create annotation for type %s\n", 
-               FILE__, __LINE__, anno_name.c_str());
-         return NULL;
-      }
-      fprintf(stderr, "%s[%d]:  created annotation type %s\n", 
-            FILE__, __LINE__, anno_name.c_str());
-      return v;
-   }
-
-   bool addAnnotation(T it)
-   {
-      Container_t *v = NULL;
-      v = AnnotationSet<std::vector<T> >::findAnnotationSet(this);
-      if (!v)
-         if (NULL == ( v = initAnnotations())) {
-            fprintf(stderr, "%s[%d]:  bad annotation type\n", FILE__, __LINE__);
+         if (!v) {
+            fprintf (stderr, "%s[%d]:  initAnnotations failed\n", FILE__, __LINE__);
             return false;
          }
+         v->push_back(it);
 
-      if (!v) {
-         fprintf (stderr, "%s[%d]:  initAnnotations failed\n", FILE__, __LINE__);
-         return false;
+         return true;
       }
-      v->push_back(it);
 
-      return true;
-   }
+      unsigned size() const {
+         Container_t *v = NULL;
 
-   unsigned size() const {
-      Container_t *v = NULL;
-      
-      const Annotatable<T, ANNOTATION_NAME_T> *thc = this; 
-      Annotatable<T, ANNOTATION_NAME_T> *th  
-         = const_cast<Annotatable<T, ANNOTATION_NAME_T> *> (thc);
-      v = AnnotationSet<Container_t>::findAnnotationSet(th);
-      if (!v) return 0;
-      return v->size();
-   }
+         const Annotatable<T, ANNOTATION_NAME_T> *thc = this; 
+         Annotatable<T, ANNOTATION_NAME_T> *th  
+            = const_cast<Annotatable<T, ANNOTATION_NAME_T> *> (thc);
+         v = AnnotationSet<Container_t>::findAnnotationSet(th);
+         if (!v) return 0;
+         return v->size();
+      }
 
-   //  so called getDataStructure in case we generalize beyond vectors for annotations
-   std::vector<T> &getDataStructure() {
-      Container_t *v = NULL;
-      v = AnnotationSet<Container_t>::findAnnotationSet(this);
-      if (!v)
-         if (NULL == (v = initAnnotations())) {
-            fprintf(stderr, "%s[%d]:  failed to init annotations here\n", 
-                  FILE__, __LINE__);
-            assert(0);
-         }
-      return *v;
-   }
+      //  so called getDataStructure in case we generalize beyond vectors for annotations
+      std::vector<T> &getDataStructure() {
+         Container_t *v = NULL;
+         v = AnnotationSet<Container_t>::findAnnotationSet(this);
+         if (!v)
+            if (NULL == (v = initAnnotations())) {
+               fprintf(stderr, "%s[%d]:  failed to init annotations here\n", 
+                     FILE__, __LINE__);
+               assert(0);
+            }
+         return *v;
+      }
 
-   T &getAnnotation(unsigned index) const
-   {
-      Container_t *v = NULL;
-      const Annotatable<T, ANNOTATION_NAME_T> *thc = this; 
-      Annotatable<T, ANNOTATION_NAME_T> *th  
-         = const_cast<Annotatable<T, ANNOTATION_NAME_T> *> (thc);
-      v = AnnotationSet<Container_t>::findAnnotationSet(th);
-      assert(v);
-      assert(index < v->size());
-      return (*v)[index];
-   }
+      T &getAnnotation(unsigned index) const
+      {
+         Container_t *v = NULL;
+         const Annotatable<T, ANNOTATION_NAME_T> *thc = this; 
+         Annotatable<T, ANNOTATION_NAME_T> *th  
+            = const_cast<Annotatable<T, ANNOTATION_NAME_T> *> (thc);
+         v = AnnotationSet<Container_t>::findAnnotationSet(th);
+         assert(v);
+         assert(index < v->size());
+         return (*v)[index];
+      }
 
-   T &operator[](unsigned index) const {return getAnnotation(index);}
+      T &operator[](unsigned index) const {return getAnnotation(index);}
 
 };
 #endif

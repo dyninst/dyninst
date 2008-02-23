@@ -1,5 +1,3 @@
-/* -*- Mode: C; indent-tabs-mode: true; tab-width: 4 -*- */
-
 /*
  * Copyright (c) 1996-2004 Barton P. Miller
  * 
@@ -41,6 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#include <string>
 #include "common/h/Types.h"
 
 #include "elf.h"
@@ -89,7 +88,7 @@ extern int Register_DWARFtoMachineEnc64(int n);
 /* A bound attribute can be either (a constant) or (a reference
    to a DIE which (describes an object containing the bound value) or
    (a constant value itself)). */
-bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring &boundString ) {
+bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, std::string &boundString ) {
 	Dwarf_Half boundForm;
 	int status = dwarf_whatform( boundAttribute, & boundForm, NULL );
 	DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: unable to decode form of bounds attribute.\n", __FILE__, __LINE__ );
@@ -105,7 +104,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring 
 			status = dwarf_formudata( boundAttribute, & constantBound, NULL );
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: unable decode unsigned data in bounds attribute.\n", __FILE__, __LINE__ );
 
-			boundString = pdstring((unsigned long)constantBound);
+			boundString = std::string((unsigned long)constantBound);
 			return true;
 			} break;
 
@@ -146,7 +145,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring 
 				status = dwarf_formudata( constBoundAttribute, & constBoundValue, NULL );
 				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error decoding unsigned data of bounds constant value attribute.\n", __FILE__, __LINE__ );
 
-				boundString = pdstring((unsigned long)constBoundValue);
+				boundString = std::string((unsigned long)constBoundValue);
 
 				dwarf_dealloc( dbg, boundEntry, DW_DLA_DIE );
 				dwarf_dealloc( dbg, constBoundAttribute, DW_DLA_ATTR );
@@ -178,7 +177,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring 
 
 /* We don't have a sane way of dealing with DW_TAG_enumeration bounds, so
    just put the name of the enumeration, or {enum} if none, in the string. */
-void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, pdstring & loBound, pdstring & hiBound, BPatch_module * module ) {
+void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, std::string & loBound, std::string & hiBound, BPatch_module * module ) {
 	loBound = "{unknown or default}";
 	hiBound = "{unknown or default}";
 
@@ -269,8 +268,8 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	DWARF_NULL_IF( status != DW_DLV_OK, "%s[%d]: error while parsing multidimensional array.\n", __FILE__, __LINE__ );
 
 	/* Determine the range. */
-	pdstring loBound;
-	pdstring hiBound;
+	std::string loBound;
+	std::string hiBound;
 	parseSubRangeDIE( dbg, range, loBound, hiBound, module );
 
 	/* Does the recursion continue? */
@@ -1056,7 +1055,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					wholeProgram->findVariable( commonBlockName, false );
 			if (!commonBlockVar) {
 			   //pgcc 6 is naming common blocks with a trailing underscore
-			   pdstring cbvname = pdstring(commonBlockName) + pdstring("_");
+			   std::string cbvname = std::string(commonBlockName) + std::string("_");
 			   commonBlockVar = wholeProgram->findVariable( cbvname.c_str(),
 															false );
 			}
@@ -1529,8 +1528,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			} break;
 
 		case DW_TAG_subrange_type: {
-			pdstring loBound;
-			pdstring hiBound;
+			std::string loBound;
+			std::string hiBound;
 			parseSubRangeDIE( dbg, dieEntry, loBound, hiBound, module );
 			} break;
 
@@ -2002,8 +2001,8 @@ void BPatch_module::parseDwarfTypes() {
 		} /* end iteratation over types. */
 	
 	/* Fix the types of variables. */   
-	pdstring variableName;
-	dictionary_hash_iter< pdstring, BPatch_type * > variableIter( moduleTypes->globalVarsByName );
+	std::string variableName;
+	dictionary_hash_iter< std::string, BPatch_type * > variableIter( moduleTypes->globalVarsByName );
 	while( variableIter.next( variableName, bpType ) ) {
 		if(	bpType->getDataClass() == BPatch_dataUnknownType && 
 			moduleTypes->findType( bpType->getID() ) != NULL ) {
@@ -2080,7 +2079,7 @@ void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p)
 	  iresult = dwarf_elf_init(eh_frame->elf, DW_DLC_READ, pd_dwarf_handler, 
 							   NULL, &eh_frame->dbg, &err);
 	  if (iresult != DW_DLV_OK) {
-		 pdstring msg = "libdwarf failed to open the VSyscall DSO\n";
+		 std::string msg = "libdwarf failed to open the VSyscall DSO\n";
 		 showErrorCallback(130, msg);
 		 goto err_handler;
 	  }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.202 2008/02/20 22:34:25 legendre Exp $
+// $Id: ast.C,v 1.203 2008/02/23 02:09:05 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -100,7 +100,7 @@ AstNodePtr AstNode::nullNode() {
     return AstNodePtr(new AstNullNode());
 }
 
-AstNodePtr AstNode::labelNode(pdstring &label) {
+AstNodePtr AstNode::labelNode(std::string &label) {
     return AstNodePtr (new AstLabelNode(label));
 }
 
@@ -121,7 +121,7 @@ AstNodePtr AstNode::operatorNode(opCode ot, AstNodePtr l, AstNodePtr r, AstNodeP
     return AstNodePtr(new AstOperatorNode(ot, l, r, e));
 }
 
-AstNodePtr AstNode::funcCallNode(const pdstring &func, pdvector<AstNodePtr > &args,
+AstNodePtr AstNode::funcCallNode(const std::string &func, pdvector<AstNodePtr > &args,
                                  AddressSpace *addrSpace) {
     if (addrSpace) {
         int_function *ifunc = addrSpace->findOnlyOneFunction(func.c_str());
@@ -277,7 +277,7 @@ AstCallNode::AstCallNode(int_function *func,
     }
 }
 
-AstCallNode::AstCallNode(const pdstring &func,
+AstCallNode::AstCallNode(const std::string &func,
                          pdvector<AstNodePtr > &args) :
     AstNode(),
     func_name_(func),
@@ -1261,7 +1261,7 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        emitVload(loadRegRelativeOp, addr, (long)oValue, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        break;
    case ConstantString:
-       // XXX This is for the pdstring type.  If/when we fix the pdstring type
+       // XXX This is for the std::string type.  If/when we fix the std::string type
        // to make it less of a hack, we'll need to change this.
        len = strlen((char *)oValue) + 1;
        
@@ -1618,7 +1618,7 @@ bool AstActualAddrNode::generateCode_phase2(codeGen &gen,
 }
 
 #if defined(AST_PRINT)
-pdstring getOpString(opCode op)
+std::string getOpString(opCode op)
 {
     switch (op) {
 	case plusOp: return("+");
@@ -2363,7 +2363,7 @@ void AstNode::debugPrint(unsigned level) {
     
     for (unsigned i = 0; i < level; i++) fprintf(stderr, "%s", " ");
     
-    pdstring type;
+    std::string type;
     if (dynamic_cast<AstNullNode *>(this)) type = "nullNode";
     else if (dynamic_cast<AstOperatorNode *>(this)) type = "operatorNode";
     else if (dynamic_cast<AstOperandNode *>(this)) type = "operandNode";

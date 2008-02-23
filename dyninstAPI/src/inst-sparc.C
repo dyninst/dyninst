@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.200 2008/02/20 22:34:17 legendre Exp $
+// $Id: inst-sparc.C,v 1.201 2008/02/23 02:09:05 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -64,7 +64,7 @@
 /****************************************************************************/
 /****************************************************************************/
 
-static dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
+static dictionary_hash<std::string, unsigned> funcFrequencyTable(::Dyninst::hash);
 
 
 /****************************************************************************/
@@ -417,7 +417,7 @@ int getInsnCost(opCode op)
 /****************************************************************************/
 /****************************************************************************/
 
-bool isReturnInsn(instruction instr, Address addr, pdstring name) {
+bool isReturnInsn(instruction instr, Address addr, std::string name) {
     if (instr.isInsnType(RETmask, RETmatch) ||
         instr.isInsnType(RETLmask, RETLmatch)) {
         //  Why 8 or 12?
@@ -982,7 +982,7 @@ Register emitFuncCall(opCode op,
    
    for (unsigned u=0; u<srcs.size(); u++){
       if (u >= 5) {
-         pdstring msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
+         std::string msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
          bperr( msg.c_str());
          showErrorCallback(94,msg);
          cleanUpAndExit(-1);
@@ -1042,7 +1042,7 @@ Register emitFuncCall(opCode op,
    
    for (unsigned u=0; u<srcs.size(); u++){
       if (u >= 5) {
-         pdstring msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
+         std::string msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
          bperr( msg.c_str());
          showErrorCallback(94,msg);
          cleanUpAndExit(-1);

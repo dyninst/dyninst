@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.49 2008/02/15 17:27:44 giri Exp $
+// $Id: image-func.C,v 1.50 2008/02/23 02:09:05 jaw Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -47,7 +47,7 @@
 #include "symtab.h"
 #include "debug.h"
 
-pdstring image_func::emptyString("");
+std::string image_func::emptyString("");
 
 int image_func_count = 0;
 
@@ -116,7 +116,7 @@ char * image_edge::getTypeString()
 //
 // Note - this must define funcEntry and funcReturn
 // 
-image_func::image_func(const pdstring &symbol,
+image_func::image_func(const std::string &symbol,
 		       Address offset, 
 		       const unsigned symTabSize,
 		       pdmodule *m,
@@ -221,7 +221,7 @@ int image_func::getFramePointerCalculator(){
 #endif
 
 // Two-copy version... can't really do better.
-bool image_func::addSymTabName(pdstring name, bool isPrimary) {
+bool image_func::addSymTabName(std::string name, bool isPrimary) {
     if(sym_->addMangledName(name.c_str(), isPrimary)){
         // Add to image class...
 //        image_->addFunctionName(this, name, true);
@@ -232,7 +232,7 @@ bool image_func::addSymTabName(pdstring name, bool isPrimary) {
     return false;
 
 #if 0
-    pdvector<pdstring> newSymTabName;
+    pdvector<std::string> newSymTabName;
 
     // isPrimary defaults to false
     if (isPrimary)
@@ -264,7 +264,7 @@ bool image_func::addSymTabName(pdstring name, bool isPrimary) {
 }
 
 // Two-copy version... can't really do better.
-bool image_func::addPrettyName(pdstring name, bool isPrimary) {
+bool image_func::addPrettyName(std::string name, bool isPrimary) {
     if (sym_->addPrettyName(name.c_str(), isPrimary)) {
         // Add to image class...
 //        image_->addFunctionName(this, name, false);
@@ -275,7 +275,7 @@ bool image_func::addPrettyName(pdstring name, bool isPrimary) {
     return false;
  
 #if 0 
-    pdvector<pdstring> newPrettyName;
+    pdvector<std::string> newPrettyName;
 
     // isPrimary defaults to false
     if (isPrimary)
@@ -307,7 +307,7 @@ bool image_func::addPrettyName(pdstring name, bool isPrimary) {
 }
 
 // Two-copy version... can't really do better.
-bool image_func::addTypedName(pdstring name, bool isPrimary) {
+bool image_func::addTypedName(std::string name, bool isPrimary) {
     // Count this as a pretty name in function lookup...
     if (sym_->addTypedName(name.c_str(), isPrimary)) {
         // Add to image class...
@@ -319,7 +319,7 @@ bool image_func::addTypedName(pdstring name, bool isPrimary) {
     return false;
 
 #if 0
-    pdvector<pdstring> newTypedName;
+    pdvector<std::string> newTypedName;
 
     // isPrimary defaults to false
     if (isPrimary)

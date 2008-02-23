@@ -39,15 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.14 2008/02/19 23:50:13 legendre Exp $
+// $Id: registerSpace.h,v 1.15 2008/02/23 02:09:10 jaw Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
 
 #include <stdio.h>
+#include <string>
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "common/h/String.h"
 #include "common/h/Types.h"
 #include "inst.h" // callWhen...
 

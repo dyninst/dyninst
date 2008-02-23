@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.42 2008/01/31 18:01:46 legendre Exp $
+// $Id: instPoint.h,v 1.43 2008/02/23 02:09:08 jaw Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -164,7 +164,12 @@ class image_instPoint : public instPointBase {
           return -1;
       if (ip2->offset() < ip1->offset())
           return 1;
+#if 0
       assert(ip1 == ip2);
+#endif
+      if (ip1 != ip2) {
+         fprintf(stderr, "%s[%d]:  WARNING:  duplicate instPoints?? [%p %p] [%p %p]\n", FILE__, __LINE__, ip1, ip2, (void *)ip1->offset(), (void *)ip2->offset());
+      }
       return 0;
   };
 };

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.82 2008/02/20 22:34:14 legendre Exp $
+// $Id: arch-x86.C,v 1.83 2008/02/23 02:09:04 jaw Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -5015,26 +5015,39 @@ bool instruction::generate(codeGen &gen,
    return false;
 }
 
-unsigned instruction::jumpSize(long disp, unsigned addr_width) {
 #if defined(arch_x86_64)
+unsigned instruction::jumpSize(long disp, unsigned addr_width) 
+{
    if (addr_width == 8 && !is_disp32(disp))
       return JUMP_ABS64_SZ;
-#endif
    return JUMP_SZ;
 }
+#else
+unsigned instruction::jumpSize(long /*disp*/, unsigned /*addr_width*/) 
+{
+   return JUMP_SZ;
+}
+#endif
 
-unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width) {
+unsigned instruction::jumpSize(Address from, Address to, unsigned addr_width) 
+{
     long disp = to - (from + JUMP_SZ);
     return jumpSize(disp, addr_width);
 }
 
-unsigned instruction::maxJumpSize(unsigned addr_width) {
 #if defined(arch_x86_64)
+unsigned instruction::maxJumpSize(unsigned addr_width) 
+{
    if (addr_width == 8)
       return JUMP_ABS64_SZ;
-#endif
    return JUMP_SZ;
 }
+#else
+unsigned instruction::maxJumpSize(unsigned /*addr_width*/) 
+{
+   return JUMP_SZ;
+}
+#endif
 
 bool instruction::isCmp() const {
     if(*op_ptr_ == CMP_EB_GB || *op_ptr_ == CMP_EV_GV ||

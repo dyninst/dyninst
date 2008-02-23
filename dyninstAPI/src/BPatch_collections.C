@@ -67,9 +67,9 @@
  */
 BPatch_localVarCollection::~BPatch_localVarCollection()
 {
-   dictionary_hash_iter<pdstring, BPatch_localVar *> li(localVariablesByName);
+   dictionary_hash_iter<std::string, BPatch_localVar *> li(localVariablesByName);
        
-   pdstring	         name;
+   std::string	         name;
    BPatch_localVar	*localVar;
 
    // delete localVariablesByName collection
@@ -108,9 +108,9 @@ BPatch_localVar * BPatch_localVarCollection::findLocalVar(const char *name){
  * this function returns all the local variables in the collection.
  */
 BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
-    dictionary_hash_iter<pdstring, BPatch_localVar *> li(localVariablesByName);
+    dictionary_hash_iter<std::string, BPatch_localVar *> li(localVariablesByName);
 
-    pdstring               name;
+    std::string               name;
     BPatch_localVar     *localVar;
 
     BPatch_Vector<BPatch_localVar *> *localVarVec = new BPatch_Vector<BPatch_localVar *>;
@@ -123,7 +123,7 @@ BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
 }
   
 // Could be somewhere else... for DWARF-work.
-dictionary_hash<pdstring, BPatch_typeCollection * > BPatch_typeCollection::fileToTypesMap(pdstring::hash);
+dictionary_hash<std::string, BPatch_typeCollection * > BPatch_typeCollection::fileToTypesMap(::Dyninst::hash);
 
 /*
  * Reference count
@@ -159,7 +159,7 @@ void BPatch_typeCollection::freeTypeCollection(BPatch_typeCollection *tc) {
     assert(tc);
     tc->refcount--;
     if (tc->refcount == 0) {
-        dictionary_hash_iter<pdstring, BPatch_typeCollection *> iter(fileToTypesMap);
+        dictionary_hash_iter<std::string, BPatch_typeCollection *> iter(fileToTypesMap);
         for (; iter; iter++) {
             if (iter.currval() == tc) {
                 fileToTypesMap.undef(iter.currkey());
@@ -177,8 +177,8 @@ void BPatch_typeCollection::freeTypeCollection(BPatch_typeCollection *tc) {
  * for the type, by Name and ID.
  */
 BPatch_typeCollection::BPatch_typeCollection():
-    typesByName(pdstring::hash),
-    globalVarsByName(pdstring::hash),
+    typesByName(::Dyninst::hash),
+    globalVarsByName(::Dyninst::hash),
     typesByID(intHash),
     refcount(0),
     dwarfParsed_(false)
@@ -201,12 +201,12 @@ BPatch_typeCollection::~BPatch_typeCollection()
     // delete all of the types
     // This doesn't seem to work - jkh 1/31/00
 #if 0
-    dictionary_hash_iter<pdstring, BPatch_type *> ti(typesByName);
+    dictionary_hash_iter<std::string, BPatch_type *> ti(typesByName);
     dictionary_hash_iter<int, BPatch_type *> tid(typesByID);
-    dictionary_hash_iter<pdstring, BPatch_type *> gi(globalVarsByName);
+    dictionary_hash_iter<std::string, BPatch_type *> gi(globalVarsByName);
     
-    pdstring      gname; 
-    pdstring	name;
+    std::string      gname; 
+    std::string	name;
     BPatch_type	*type;
     int         id;
     while (tid.next(id, type))
@@ -226,7 +226,7 @@ BPatch_typeCollection::~BPatch_typeCollection()
          it ++) {
         (*it)->decrRefCount();
     }
-    for (dictionary_hash_iter<pdstring, BPatch_type *> it2 = typesByName.begin();
+    for (dictionary_hash_iter<std::string, BPatch_type *> it2 = typesByName.begin();
          it2 != typesByName.end();
          it2 ++) {
         (*it2)->decrRefCount();
@@ -419,7 +419,7 @@ void BPatch_typeCollection::clearNumberedTypes() {
  * it is created just in case. jdd 4/21/99
  */
 BPatch_builtInTypeCollection::BPatch_builtInTypeCollection():
-  builtInTypesByName(pdstring::hash),
+  builtInTypesByName(::Dyninst::hash),
   builtInTypesByID(intHash)
 {
   /* Initialize hash tables: builtInTypesByName, builtInTypesByID */
@@ -433,10 +433,10 @@ BPatch_builtInTypeCollection::BPatch_builtInTypeCollection():
  */
 BPatch_builtInTypeCollection::~BPatch_builtInTypeCollection()
 {
-    dictionary_hash_iter<pdstring, BPatch_type *> bit(builtInTypesByName);
+    dictionary_hash_iter<std::string, BPatch_type *> bit(builtInTypesByName);
     dictionary_hash_iter<int, BPatch_type *> bitid(builtInTypesByID);
      
-      pdstring	name;
+      std::string	name;
     int         id;
     BPatch_type	*type;
 

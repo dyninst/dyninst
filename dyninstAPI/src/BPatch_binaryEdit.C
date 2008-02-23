@@ -96,12 +96,12 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path) :
   instp_map = new BPatch_instpMap();
   pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
  
-  pdvector<pdstring> argv_vec;
-  pdvector<pdstring> envp_vec;
+  pdvector<std::string> argv_vec;
+  pdvector<std::string> envp_vec;
   
-  pdstring directoryName = "";
+  std::string directoryName = "";
   
-  llBinEdit = BinaryEdit::openFile(pdstring(path));
+  llBinEdit = BinaryEdit::openFile(std::string(path));
   if (!llBinEdit){
      creation_error = true;
      return;

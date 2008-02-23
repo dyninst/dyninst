@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.316 2008/02/20 08:31:07 jaw Exp $
+ // $Id: symtab.C,v 1.317 2008/02/23 02:09:11 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
+#include <string>
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -54,7 +54,6 @@
 
 #include <fstream>
 #include "dyninstAPI/src/util.h"
-#include "common/h/String.h"
 #include "dyninstAPI/src/inst.h"
 #include "common/h/Timer.h"
 #include "dyninstAPI/src/debug.h"
@@ -63,6 +62,7 @@
 #include "dyninstAPI/src/function.h"
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
+#include "dynutil/h/util.h"
 
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
@@ -713,14 +713,14 @@ bool image::addSymtabVariables()
    gettimeofday(&starttime, NULL);
 #endif
 
-   pdstring mangledName; 
+   std::string mangledName; 
 
    vector<Symbol *> allVars;
    linkedFile->getAllSymbolsByType(allVars,Symbol::ST_OBJECT);
    vector<Symbol *>::iterator symIter = allVars.begin();
 
    for(; symIter!=allVars.end() ; symIter++) {
-      const pdstring &mangledName = (*symIter)->getName().c_str();
+      const std::string &mangledName = (*symIter)->getName().c_str();
       Symbol *symInfo = *symIter;
 #if 0
       fprintf(stderr, "Symbol %s, mod %s, addr 0x%lx, type %d, linkage %d (obj %d, func %d)\n",
@@ -780,7 +780,7 @@ bool image::addSymtabVariables()
  * returns false on failure 
  */
 #if 0
-bool image::findInternalSymbol(const pdstring &name, 
+bool image::findInternalSymbol(const std::string &name, 
 			       const bool warn, 
 			       internalSym &ret_sym)
 {
@@ -794,8 +794,8 @@ bool image::findInternalSymbol(const pdstring &name,
       return true;
    }
    else {
-       pdstring new_sym;
-       new_sym = pdstring("_") + name;
+       std::string new_sym;
+       new_sym = std::string("_") + name;
        if(linkedFile->get_symbols(new_sym,lookUps)){
           if( lookUps.size() == 1 ) { lookUp = lookUps[0]; }
           else { return false; } 
@@ -804,8 +804,8 @@ bool image::findInternalSymbol(const pdstring &name,
        }
    } 
    if(warn){
-      pdstring msg;
-      msg = pdstring("Unable to find symbol: ") + name;
+      std::string msg;
+      msg = std::string("Unable to find symbol: ") + name;
       statusLine(msg.c_str());
       showErrorCallback(28, msg);
    }
@@ -815,54 +815,54 @@ bool image::findInternalSymbol(const pdstring &name,
 
 pdmodule *image::findModule(const string &name, bool wildcard)
 {
-  pdmodule *found = NULL;
-  //cerr << "image::findModule " << name << " , " << find_if_excluded
-  //     << " called" << endl;
+   pdmodule *found = NULL;
+   //cerr << "image::findModule " << name << " , " << find_if_excluded
+   //     << " called" << endl;
 
-  if (!wildcard) {
+   if (!wildcard) {
       if (modsByFileName.find(name) != modsByFileName.end()) {
-          //cerr << " (image::findModule) found module in modsByFileName" << endl;
-          found = modsByFileName[name];
+         //cerr << " (image::findModule) found module in modsByFileName" << endl;
+         found = modsByFileName[name];
       }
       else if (modsByFullName.find(name) != modsByFullName.end()) {
-          //cerr << " (image::findModule) found module in modsByFullName" << endl;
-          found = modsByFullName[name];
+         //cerr << " (image::findModule) found module in modsByFullName" << endl;
+         found = modsByFullName[name];
       }
-  }
-  else {
+   }
+   else {
       //  if we want a substring, have to iterate over all module names
       //  this is ok b/c there are not usually more than a handful or so
       //
       hash_map <string, pdmodule *>::iterator mi;
       string str; pdmodule *mod;
-      pdstring pds = name.c_str();
-      
+      std::string pds = name.c_str();
+
       for(mi = modsByFileName.begin(); mi != modsByFileName.end() ; mi++)
       {
-      	  str = mi->first;
-	  mod = mi->second;
-          if (pds.wildcardEquiv(mod->fileName().c_str()) ||
-              pds.wildcardEquiv(mod->fullName().c_str())) {
-              found = mod; 
-              break;
-          }
+         str = mi->first;
+         mod = mi->second;
+         if (wildcardEquiv(pds, mod->fileName()) ||
+               wildcardEquiv(pds, mod->fullName())) {
+            found = mod; 
+            break;
+         }
       }
-  }
-  
-  //cerr << " (image::findModule) did not find module, returning NULL" << endl;
-  if (found) {
+   }
+
+   //cerr << " (image::findModule) did not find module, returning NULL" << endl;
+   if (found) {
       // Just-in-time...
       //if (parseState_ == symtab)
       //analyzeImage();
       return found;
-  }
-  
-  return NULL;
+   }
+
+   return NULL;
 }
 
 const pdvector<image_instPoint*> &image::getBadControlFlow() const 
 { 
-    return badControlFlow; 
+   return badControlFlow; 
 }
 
 const pdvector<image_func*> &image::getAllFunctions() 
@@ -898,7 +898,7 @@ const pdvector <pdmodule*> &image::getModules()
   return _mods;
 }
 
-void print_module_vector_by_short_name(pdstring prefix ,
+void print_module_vector_by_short_name(std::string prefix ,
 				       pdvector<pdmodule*> *mods) 
 {
     unsigned int i;
@@ -1151,7 +1151,7 @@ bool image::buildFunctionLists(pdvector <image_func *> &raw_funcs)
         if (!possiblyExistingFunction)
 	{
             funcsByEntryAddr[raw->getOffset()] = raw;
-	    pdstring name = (raw->symTabNameVector())[raw->symTabNameVector().size()-1].c_str();
+	    std::string name = (raw->symTabNameVector())[raw->symTabNameVector().size()-1].c_str();
             raw->addSymTabName(name);
         }
     }
@@ -1207,11 +1207,12 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
 {
 
 #if defined(os_aix)
+   archive = NULL;
    string file = desc_.file().c_str();
    SymtabError serr = Not_An_Archive;
-   Archive *archive;
 
    startup_printf("%s[%d]:  opening file %s (or archive)\n", FILE__, __LINE__, file.c_str());
+   //fprintf(stderr, "%s[%d]:  opening file %s (or archive)\n", FILE__, __LINE__, file.c_str());
    if (!Archive::openArchive(archive, file))
    {
       err = true;
@@ -1233,6 +1234,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    }
    else
    {
+      assert (archive);
       startup_printf("%s[%d]:  getting member\n", FILE__, __LINE__);
       string member = desc_.member().c_str();
       if (!archive->getMember(linkedFile, member))
@@ -1340,7 +1342,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
   
    // get Information on the language each modules is written in
    // (prior to making modules)
-   dictionary_hash<pdstring, supportedLanguages> mod_langs(pdstring::hash);
+   dictionary_hash<std::string, supportedLanguages> mod_langs(std::string::hash);
    getModuleLanguageInfo(&mod_langs);
    setModuleLanguages(&mod_langs);
  #endif  
@@ -1424,15 +1426,19 @@ image::~image()
     }
 
     if (linkedFile) delete linkedFile;
+#if defined (os_aix)
+    fprintf(stderr, "%s[%d]:  IMAGE DTOR:  archive = %p\n", FILE__, __LINE__, archive);
+    if (archive) delete archive;
+#endif
 }
 
-bool pdmodule::findFunction( const pdstring &name, pdvector<image_func *> &found ) {
+bool pdmodule::findFunction( const std::string &name, pdvector<image_func *> &found ) {
     if (findFunctionByMangled(name, found))
         return true;
     return findFunctionByPretty(name, found);
 }
 
-bool pdmodule::findFunctionByMangled( const pdstring &name,
+bool pdmodule::findFunctionByMangled( const std::string &name,
                                       pdvector<image_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
@@ -1458,7 +1464,7 @@ bool pdmodule::findFunctionByMangled( const pdstring &name,
 }
 
 
-bool pdmodule::findFunctionByPretty( const pdstring &name,
+bool pdmodule::findFunctionByPretty( const std::string &name,
                                      pdvector<image_func *> &found)
 {
     // For efficiency sake, we grab the image vector and strip out the
@@ -1483,7 +1489,7 @@ bool pdmodule::findFunctionByPretty( const pdstring &name,
     return false;
 }
 
-void pdmodule::dumpMangled(pdstring &prefix) const
+void pdmodule::dumpMangled(std::string &prefix) const
 {
   cerr << fileName() << "::dumpMangled("<< prefix << "): " << endl;
 
@@ -1633,7 +1639,7 @@ image_basicBlock *image::findBlockByAddr(const Address &addr) {
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
-const pdvector<image_func *> *image::findFuncVectorByPretty(const pdstring &name) {
+const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &name) {
     //Have to change here
     pdvector<image_func *>* res = new pdvector<image_func *>;
     vector<Symbol *>syms;
@@ -1661,7 +1667,7 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const pdstring &name
 // Return the vector of functions associated with a mangled name
 // Very well might be more than one! -- multiple static functions in different .o files
 
-const pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &name)
+const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string &name)
 {
 
     //    fprintf(stderr,"findFuncVectorByMangled %s\n",name.c_str());
@@ -1685,7 +1691,7 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &na
     }   
 }
 
-const pdvector <image_variable *> *image::findVarVectorByPretty(const pdstring &name)
+const pdvector <image_variable *> *image::findVarVectorByPretty(const std::string &name)
 {
     //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
@@ -1708,7 +1714,7 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const pdstring &
     }
 }
 
-const pdvector <image_variable *> *image::findVarVectorByMangled(const pdstring &name)
+const pdvector <image_variable *> *image::findVarVectorByMangled(const std::string &name)
 {
     //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
 #ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
@@ -1737,7 +1743,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const pdstring 
 }
 
 
-//  image::findOnlyOneFunction(const pdstring &name
+//  image::findOnlyOneFunction(const std::string &name
 //  
 //  searches for function with name <name> and fails if it finds more than
 //  one match.
@@ -1746,7 +1752,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const pdstring 
 //  "pretty" list, a search on the mangled list is performed.  Due to
 //  duplication between many pretty and mangled names, this function does not
 //  care about the same name appearing in both the pretty and mangled lists.
-image_func *image::findOnlyOneFunction(const pdstring &name) {
+image_func *image::findOnlyOneFunction(const std::string &name) {
   const pdvector<image_func *> *pdfv;
 
   pdfv = findFuncVectorByPretty(name);
@@ -1777,7 +1783,7 @@ image_func *image::findOnlyOneFunction(const pdstring &name) {
 
 #if 0
 #if !defined(os_windows)
-int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, pdstring pattern,
+int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, std::string pattern,
 				       bool case_sensitive)
 {
   // This function compiles regex patterns and then calls its overloaded variant,
@@ -1807,7 +1813,7 @@ int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, pdstring p
   return -1;
 }
 
-int image::findFuncVectorByMangledRegex(pdvector<image_func *> *found, pdstring pattern,
+int image::findFuncVectorByMangledRegex(pdvector<image_func *> *found, std::string pattern,
 					bool case_sensitive)
 {
   // Almost identical to its "Pretty" counterpart
@@ -1854,8 +1860,8 @@ pdvector<image_func *> *image::findFuncVectorByPretty(functionNameSieve_t bpsiev
  #if 0 
   pdvector<pdvector<image_func *> *> result;
   //result = funcsByPretty.linear_filter(bpsieve, user_data);
-  dictionary_hash_iter <pdstring, pdvector<image_func*>*> iter(funcsByPretty);
-  pdstring fname;
+  dictionary_hash_iter <std::string, pdvector<image_func*>*> iter(funcsByPretty);
+  std::string fname;
   pdvector<image_func *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*bpsieve)(iter.currkey().c_str(), user_data)) {
@@ -1898,8 +1904,8 @@ pdvector<image_func *> *image::findFuncVectorByMangled(functionNameSieve_t bpsie
   pdvector<pdvector<image_func *> *> result;
   // result = funcsByMangled.linear_filter(bpsieve, user_data);
 
-  dictionary_hash_iter <pdstring, pdvector<image_func*>*> iter(funcsByMangled);
-  pdstring fname;
+  dictionary_hash_iter <std::string, pdvector<image_func*>*> iter(funcsByMangled);
+  std::string fname;
   pdvector<image_func *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*bpsieve)(fname.c_str(), user_data)) {
@@ -1931,14 +1937,14 @@ int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, regex_t *c
   //  This is a bit ugly in that it has to iterate through the entire dict hash 
   //  to find matches.  If this turns out to be a popular way of searching for
   //  functions (in particular "name*"), we might consider adding a data struct that
-  //  preserves the pdstring ordering realation to make this O(1)-ish in that special case.
+  //  preserves the std::string ordering realation to make this O(1)-ish in that special case.
   //  jaw 01-03
 
   pdvector<pdvector<image_func *> *> result;
   //  result = funcsByPretty.linear_filter(&regex_filter_func, (void *) comp_pat);
 
-  dictionary_hash_iter <pdstring, pdvector<image_func*>*> iter(funcsByPretty);
-  pdstring fname;
+  dictionary_hash_iter <std::string, pdvector<image_func*>*> iter(funcsByPretty);
+  std::string fname;
   pdvector<image_func *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
@@ -1968,8 +1974,8 @@ int image::findFuncVectorByMangledRegex(pdvector<image_func *> *found, regex_t *
   pdvector<pdvector<image_func *> *> result;
   //result = funcsByMangled.linear_filter(&regex_filter_func, (void *) comp_pat);
   //cerr <<"mangled regex result.size() = " << result.size() <<endl;
-  dictionary_hash_iter <pdstring, pdvector<image_func*>*> iter(funcsByMangled);
-  pdstring fname;
+  dictionary_hash_iter <std::string, pdvector<image_func*>*> iter(funcsByMangled);
+  std::string fname;
   pdvector<image_func *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
@@ -2067,7 +2073,7 @@ bool image::isData(const Address &where)  const{
    return linkedFile->isData(addr); 
 }
 
-bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
+bool image::symbol_info(const std::string& symbol_name, Symbol &ret_sym) {
 
    /* We temporarily adopt the position that an image has exactly one
       symbol per name.  While local functions (etc) make this untrue, it
@@ -2085,10 +2091,10 @@ bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
 }
 
 
-bool image::findSymByPrefix(const pdstring &prefix, pdvector<Symbol *> &ret) {
+bool image::findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret) {
     unsigned start;
     vector <Symbol *>found;	
-    pdstring reg = prefix+pdstring("*");
+    std::string reg = prefix+std::string("*");
     if(!linkedFile->findSymbolByType(found, reg.c_str(), Symbol::ST_UNKNOWN, false, true))
     	return false;
     for(start=0;start< found.size();start++)
@@ -2096,7 +2102,7 @@ bool image::findSymByPrefix(const pdstring &prefix, pdvector<Symbol *> &ret) {
 	return true;	
 }
 
-dictionary_hash<Address, pdstring> *image::getPltFuncs()
+dictionary_hash<Address, std::string> *image::getPltFuncs()
 {
    bool result;
    if (pltFuncs)
@@ -2108,7 +2114,7 @@ dictionary_hash<Address, pdstring> *image::getPltFuncs()
    if (!result)
       return NULL;
 
-   pltFuncs = new dictionary_hash<Address, pdstring>(addrHash);
+   pltFuncs = new dictionary_hash<Address, std::string>(addrHash);
    assert(pltFuncs);
    for(unsigned k = 0; k < fbt.size(); k++)
       (*pltFuncs)[fbt[k].target_addr()] = fbt[k].name().c_str();

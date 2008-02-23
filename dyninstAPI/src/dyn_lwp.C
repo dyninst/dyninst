@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.66 2007/06/26 14:54:47 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.67 2008/02/23 02:09:05 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -199,7 +199,7 @@ bool dyn_lwp::continueLWP(int signalToContinueWith, bool clear_stackwalk)
 }
 
 
-pdstring dyn_lwp::getStatusAsString() const 
+std::string dyn_lwp::getStatusAsString() const 
 {
    // useful for debugging
    if (status_ == neonatal)

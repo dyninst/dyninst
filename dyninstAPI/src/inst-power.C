@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.283 2008/02/20 22:34:26 legendre Exp $
+ * $Id: inst-power.C,v 1.284 2008/02/23 02:09:05 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -94,7 +94,7 @@ const char *registerNames[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
 			"r16", "r17", "r18", "r19", "r20", "r21", "r22", "r23",
 			"r24", "r25", "r26", "r27", "r28", "r29", "r30", "r31"};
 
-dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
+dictionary_hash<std::string, unsigned> funcFrequencyTable(::Dyninst::hash);
 
 void initDefaultPointFrequencyTable()
 {
@@ -1547,7 +1547,7 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
 	// This is not necessarily true; more then 8 arguments could be passed,
 	// the first 8 need to be in registers while the others need to be on
 	// the stack, -- sec 3/1/97
-	pdstring msg = "Too many arguments to function call in instrumentation code:"
+       std::string msg = "Too many arguments to function call in instrumentation code:"
 	    " only 8 arguments can (currently) be passed on the POWER architecture.\n";
 	bperr( msg.c_str());
 	showErrorCallback(94,msg);

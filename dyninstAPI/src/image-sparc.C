@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.16 2008/01/16 22:01:33 legendre Exp $
+// $Id: image-sparc.C,v 1.17 2008/02/23 02:09:05 jaw Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -316,7 +316,7 @@ bool image_func::archProcExceptionBlock(Address & /* catchStart */,
 }
 
 
-pdstring image_func::calcParentFunc(const image_func * imf, pdvector<image_parRegion *> & pR)
+std::string image_func::calcParentFunc(const image_func * imf, pdvector<image_parRegion *> & pR)
 {
   /* We need to figure out the function that called the outlined
      parallel region function.  
@@ -361,16 +361,16 @@ pdstring image_func::calcParentFunc(const image_func * imf, pdvector<image_parRe
 	      strncpy(tempBuf2 + strSize2, tempBuf,sizeof(tempBuf));
 	      tempBuf2[totalStrSize] = '\0';
 	     
-	      pdstring tempPDS(tempBuf2);
+	      std::string tempPDS(tempBuf2);
 	      return tempPDS;
 	    }
 	}
-      pdstring tempPDS(tempBuf);
+      std::string tempPDS(tempBuf);
       return tempPDS;
     }
   else if (strstr(imf->prettyName().c_str(),"_$p") != NULL)
     {
-      pdstring tempPDS(tempBuf);
+      std::string tempPDS(tempBuf);
       return tempPDS;
     }
   else
@@ -404,329 +404,330 @@ void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int
 }
 
 // This parses the parent functions that generated outlined do/for, parallel constructs */
-bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum)
+bool image_func::parseOMPParent(image_parRegion * iPar, 
+      int /*desiredNum*/, int & currentSectionNum)
 {
-  Address funcBegin = getOffset();
-  InstrucIter ah(funcBegin, this);
+   Address funcBegin = getOffset();
+   InstrucIter ah(funcBegin, this);
 
-  bool isDoFor = false;
-  while (ah.hasMore())
-    {
+   bool isDoFor = false;
+   while (ah.hasMore())
+   {
 
       if( ah.isAOMPDoFor() ) /* Record param values */
-      	{
-	  isDoFor = true;
-	}
+      {
+         isDoFor = true;
+      }
       if( ah.isACallInstruction() ||
-	  ah.isADynamicCallInstruction() )
-	{
-	  bool isAbsolute = false;
-	  Address target = ah.getBranchTargetAddress(&isAbsolute);
-	  
-	  
-	  /* Finding Out if the call is to OpenMP Functions */
-	  
-	  /* Return one of the following 
-	     OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE, 
-	     OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
-	     OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
-	  image * im = img();
-	  image_func *ppdf = im->findFuncByEntry(target);
-	  if (ppdf != NULL)
-	    {
+            ah.isADynamicCallInstruction() )
+      {
+         bool isAbsolute = false;
+         Address target = ah.getBranchTargetAddress(&isAbsolute);
 
-	      if (strstr(ppdf->symTabName().c_str(),"__mt_MasterFunction")!=NULL)
-		{
-		  if (isDoFor)
-		    {
-		      iPar->setRegionType(OMP_PAR_DO);
-		      iPar->setParentFunc(this);
-		      parRegionsList.push_back(iPar);
-		    }
-		  else
-		    {
-		      iPar->setRegionType(OMP_PARALLEL);
-		      iPar->setParentFunc(this);
-		      parRegionsList.push_back(iPar);
-		    }
-		  return false;
-		}
-	      else if(strstr(ppdf->symTabName().c_str(),"__mt_WorkSharing_")!=NULL)
-		{
-		  if (isDoFor)
-		    {
-		      iPar->setRegionType(OMP_DO_FOR);
-		      iPar->setParentFunc(this);
-		      parRegionsList.push_back(iPar);
-		      //return;
-		    }
-		  return true;
-		}
-	    }
-	}
+
+         /* Finding Out if the call is to OpenMP Functions */
+
+         /* Return one of the following 
+            OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE, 
+            OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
+            OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
+         image * im = img();
+         image_func *ppdf = im->findFuncByEntry(target);
+         if (ppdf != NULL)
+         {
+
+            if (strstr(ppdf->symTabName().c_str(),"__mt_MasterFunction")!=NULL)
+            {
+               if (isDoFor)
+               {
+                  iPar->setRegionType(OMP_PAR_DO);
+                  iPar->setParentFunc(this);
+                  parRegionsList.push_back(iPar);
+               }
+               else
+               {
+                  iPar->setRegionType(OMP_PARALLEL);
+                  iPar->setParentFunc(this);
+                  parRegionsList.push_back(iPar);
+               }
+               return false;
+            }
+            else if(strstr(ppdf->symTabName().c_str(),"__mt_WorkSharing_")!=NULL)
+            {
+               if (isDoFor)
+               {
+                  iPar->setRegionType(OMP_DO_FOR);
+                  iPar->setParentFunc(this);
+                  parRegionsList.push_back(iPar);
+                  //return;
+               }
+               return true;
+            }
+         }
+      }
       ah++;
-    }
+   }
+   return true;
 }
 
 // Parses through all the inlined sections within one outlined function for entire section construct
 
 void image_func::parseOMPSectFunc(image_func * parentFunc)
 {
-  Address funcBegin = getOffset();
-  InstrucIter ah(funcBegin, this);
-  
-  Address sectBegin = funcBegin;
-  bool inSection = false;
-  
-  while (ah.hasMore())
-    {
+   Address funcBegin = getOffset();
+   InstrucIter ah(funcBegin, this);
+
+   Address sectBegin = funcBegin;
+   bool inSection = false;
+
+   while (ah.hasMore())
+   {
       if (ah.isACondBranchInstruction())
-	{
-	  if (inSection == false)
-	    sectBegin = ah.getCurrentAddress();
-	  inSection = true;
-	}
+      {
+         if (inSection == false)
+            sectBegin = ah.getCurrentAddress();
+         inSection = true;
+      }
       if (ah.isAReturnInstruction())
-	{
-	  image_parRegion * iPar = new image_parRegion(sectBegin,this);
-	  iPar->setRegionType(OMP_SECTIONS);
-      
-	  iPar->setParentFunc(parentFunc); 
-	  iPar->setLastInsn(ah.getCurrentAddress()); 
-	  parRegionsList.push_back(iPar);
-	  sectBegin = ah.getCurrentAddress() + 0x8;
-	}      
+      {
+         image_parRegion * iPar = new image_parRegion(sectBegin,this);
+         iPar->setRegionType(OMP_SECTIONS);
+
+         iPar->setParentFunc(parentFunc); 
+         iPar->setLastInsn(ah.getCurrentAddress()); 
+         parRegionsList.push_back(iPar);
+         sectBegin = ah.getCurrentAddress() + 0x8;
+      }      
       ah++;
-    }
+   }
 }
 
 void image_func::parseOMPFunc(bool hasLoop)
 {
-  if (OMPparsed_)
-    return;
-  OMPparsed_ = true;
-  
-  /* We parse the parent to get info if we are in an outlined function, but there can be some
-     inlined functions we might miss out on if we don't check those out too */
-  Address funcBegin = getOffset();
-  InstrucIter ah(funcBegin, this);
-  int currentNum = 0;
+   if (OMPparsed_)
+      return;
+   OMPparsed_ = true;
 
-  while (ah.hasMore())
-    {
+   /* We parse the parent to get info if we are in an outlined function, but there can be some
+      inlined functions we might miss out on if we don't check those out too */
+   Address funcBegin = getOffset();
+   InstrucIter ah(funcBegin, this);
+
+   while (ah.hasMore())
+   {
       if ( hasLoop && ah.isACondBLEInstruction() )
-	{
-	  if (ah.getBranchTargetAddress() < ah.getCurrentAddress())
-	    {
-	      image_parRegion * iPar = new image_parRegion(ah.getBranchTargetAddress()+4, this);				
-	      iPar->setRegionType(OMP_DO_FOR_LOOP_BODY);
-	      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-	      iPar->setLastInsn(ah.getCurrentAddress());
-	      parRegionsList.push_back(iPar);
-	    }
-	}
+      {
+         if (ah.getBranchTargetAddress() < ah.getCurrentAddress())
+         {
+            image_parRegion * iPar = new image_parRegion(ah.getBranchTargetAddress()+4, this);				
+            iPar->setRegionType(OMP_DO_FOR_LOOP_BODY);
+            iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+            iPar->setLastInsn(ah.getCurrentAddress());
+            parRegionsList.push_back(iPar);
+         }
+      }
       else if( ah.isACallInstruction() ||
-	       ah.isADynamicCallInstruction() )
-	{
-	  bool isAbsolute = false;
-	  Address target = ah.getBranchTargetAddress(&isAbsolute);
-	  
-	  
-	  /* Finding Out if the call is to OpenMP Functions */
-	  
-	  /* Return one of the following 
-	     OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE, 
-	     OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
-	     OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
-	  image * im = img();
-	  image_func *ppdf = im->findFuncByEntry(target);
-	  if (ppdf != NULL)
-	    {
-	      if (strstr(ppdf->symTabName().c_str(),"__mt_")!=NULL)
-		{
-		  /* Section consists of only one instruction, call to "_xlsmpBarrier_TPO" */
-		  if(strstr(ppdf->symTabName().c_str(), "barrier")!=NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_BARRIER);
-		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
-		      
-		      parRegionsList.push_back(iPar);
-		    }
-		  /* Section begins with "BeginOrdered, ends with EndOrdered" */
-		  else if(strstr(ppdf->symTabName().c_str(), "begin_ordered") !=NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_ORDERED);
-		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      
-		      InstrucIter ah2(ah.getCurrentAddress(), this);
-		      while (ah2.hasMore())
-			{
-			  if( ah2.isACallInstruction() ||
-			      ah2.isADynamicCallInstruction() )
-			    {
-			      Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
-			      
-			      image_func *ppdf2 = im->findFuncByEntry(target2);
-			      if (ppdf2 != NULL)
-				{
-				  if(strstr(ppdf2->symTabName().c_str(), "end_ordered") !=NULL)
-				    break;
-				}
-			    }
-			  ah2++;
-			}
-		      iPar->setLastInsn(ah2.getCurrentAddress());
- 		      
-		      parRegionsList.push_back(iPar);
-		    }
-		  /* Section begins with "single_begin, ends with single_end" */
-		  else if(strstr(ppdf->symTabName().c_str(), "single_begin") !=NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_SINGLE);
-		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      
-		      InstrucIter ah2(ah.getCurrentAddress(), this);
-		      while (ah2.hasMore())
-			{
-			  if( ah2.isACallInstruction() ||
-			      ah2.isADynamicCallInstruction() )
-			    {
-			      Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
-			      
-			      image_func *ppdf2 = im->findFuncByEntry(target2);
-			      if (ppdf2 != NULL)
-				{
-				  if(strstr(ppdf2->symTabName().c_str(), "single_end") !=NULL)
-				    break;
-				}
-			    }
-			  ah2++;
-			}
-		      iPar->setLastInsn(ah2.getCurrentAddress());
- 		      
-		      parRegionsList.push_back(iPar);
-		    }
-		  /* Section is precursored by a call to mt_get_thread_num followed by a nop, 
-		     then a test on that thread number, followed by a bne
-		     the instruction after the branch is the first instruction, the 
-		     branch destination is the end of the section */
-		  else if(strstr(ppdf->symTabName().c_str(), "get_thread_num") !=NULL)
-		    {
-		      InstrucIter ah2(ah.getCurrentAddress(), this);
-		      
-		      /* This should put us at the nop */
-		      ah2++;
-		      
-		      /* This should put us at the tst instruction */
-		      ah2++;
-		      if (ah2.isTstInsn())
-			{
-			  
-			  ah2++;
-			  /* Now we should be at the branch, and we know this is a Master section */
-			  			  
-			  if (ah2.isACondBranchInstruction())
-			    {
-			      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-			      iPar->setRegionType(OMP_MASTER);
-			      
-			      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-			  			  			      
-			      bool xx = true; // I don't really think the function uses this
-			      iPar->setLastInsn(ah2.getBranchTargetAddress(&xx));
-			      
-			      parRegionsList.push_back(iPar);
-			      			      
-			    }
-			}
-		      
-		    }		      
+            ah.isADynamicCallInstruction() )
+      {
+         bool isAbsolute = false;
+         Address target = ah.getBranchTargetAddress(&isAbsolute);
 
-		  else if(strstr(ppdf->symTabName().c_str(), "flush") !=NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_FLUSH);
-		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
-		      
-		      parRegionsList.push_back(iPar);
-		    }
-		  /* Starts with BeginCritSect, ends with EndCritSect */
-		  else if(strstr(ppdf->symTabName().c_str(), "BeginCritSect") != NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_CRITICAL);
-		      
-		      InstrucIter ah2(ah.getCurrentAddress(), this);
-		      while (ah2.hasMore())
-			{
-			  if( ah2.isACallInstruction() ||
-			      ah2.isADynamicCallInstruction() )
-			    {
-			      Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
-			      
-			      image_func *ppdf2 = im->findFuncByEntry(target2);
-			      if (ppdf2 != NULL)
-				{
-				  if(strstr(ppdf2->symTabName().c_str(), "EndCritSect") !=NULL)
-				    break;
-				}
-			    }
-			  ah2++;
-			}
-		      iPar->setLastInsn(ah2.getCurrentAddress());
 
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      
-		      parRegionsList.push_back(iPar);
-		    }
-		  /* Begins with b_atomic, ends with e_atomic */
-		  else if(strstr(ppdf->symTabName().c_str(), "b_atomic") != NULL)
-		    {
-		      image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-		      iPar->setRegionType(OMP_ATOMIC);
+         /* Finding Out if the call is to OpenMP Functions */
 
-		      InstrucIter ah2(ah.getCurrentAddress(), this);
-		      while (ah2.hasMore())
-			{
-			  if( ah2.isACallInstruction() ||
-			      ah2.isADynamicCallInstruction() )
-			    {
-			      Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
-			      
-			      image_func *ppdf2 = im->findFuncByEntry(target2);
-			      if (ppdf2 != NULL)
-				{
-				  if(strstr(ppdf2->symTabName().c_str(), "e_atomic") !=NULL)
-				    break;
-				}
-			    }
-			  ah2++;
-			}
-		      iPar->setLastInsn(ah2.getCurrentAddress());
-		      
-		      iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
-		      
-		      parRegionsList.push_back(iPar);
-		    }
-		  else
-		    {
-		    }/* End Checking Different Directive Types */
-		 
-		}
-	    }
-	}
+         /* Return one of the following 
+            OMP_PARALLEL, OMP_DO_FOR, OMP_SECTIONS, OMP_SINGLE, 
+            OMP_PAR_DO, OMP_PAR_SECTIONS, OMP_MASTER, OMP_CRITICAL,
+            OMP_BARRIER, OMP_ATOMIC, OMP_FLUSH, OMP_ORDERED */
+         image * im = img();
+         image_func *ppdf = im->findFuncByEntry(target);
+         if (ppdf != NULL)
+         {
+            if (strstr(ppdf->symTabName().c_str(),"__mt_")!=NULL)
+            {
+               /* Section consists of only one instruction, call to "_xlsmpBarrier_TPO" */
+               if(strstr(ppdf->symTabName().c_str(), "barrier")!=NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_BARRIER);
+
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
+
+                  parRegionsList.push_back(iPar);
+               }
+               /* Section begins with "BeginOrdered, ends with EndOrdered" */
+               else if(strstr(ppdf->symTabName().c_str(), "begin_ordered") !=NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_ORDERED);
+
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+
+                  InstrucIter ah2(ah.getCurrentAddress(), this);
+                  while (ah2.hasMore())
+                  {
+                     if( ah2.isACallInstruction() ||
+                           ah2.isADynamicCallInstruction() )
+                     {
+                        Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
+
+                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        if (ppdf2 != NULL)
+                        {
+                           if(strstr(ppdf2->symTabName().c_str(), "end_ordered") !=NULL)
+                              break;
+                        }
+                     }
+                     ah2++;
+                  }
+                  iPar->setLastInsn(ah2.getCurrentAddress());
+
+                  parRegionsList.push_back(iPar);
+               }
+               /* Section begins with "single_begin, ends with single_end" */
+               else if(strstr(ppdf->symTabName().c_str(), "single_begin") !=NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_SINGLE);
+
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+
+                  InstrucIter ah2(ah.getCurrentAddress(), this);
+                  while (ah2.hasMore())
+                  {
+                     if( ah2.isACallInstruction() ||
+                           ah2.isADynamicCallInstruction() )
+                     {
+                        Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
+
+                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        if (ppdf2 != NULL)
+                        {
+                           if(strstr(ppdf2->symTabName().c_str(), "single_end") !=NULL)
+                              break;
+                        }
+                     }
+                     ah2++;
+                  }
+                  iPar->setLastInsn(ah2.getCurrentAddress());
+
+                  parRegionsList.push_back(iPar);
+               }
+               /* Section is precursored by a call to mt_get_thread_num followed by a nop, 
+                  then a test on that thread number, followed by a bne
+                  the instruction after the branch is the first instruction, the 
+                  branch destination is the end of the section */
+               else if(strstr(ppdf->symTabName().c_str(), "get_thread_num") !=NULL)
+               {
+                  InstrucIter ah2(ah.getCurrentAddress(), this);
+
+                  /* This should put us at the nop */
+                  ah2++;
+
+                  /* This should put us at the tst instruction */
+                  ah2++;
+                  if (ah2.isTstInsn())
+                  {
+
+                     ah2++;
+                     /* Now we should be at the branch, and we know this is a Master section */
+
+                     if (ah2.isACondBranchInstruction())
+                     {
+                        image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                        iPar->setRegionType(OMP_MASTER);
+
+                        iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+
+                        bool xx = true; // I don't really think the function uses this
+                        iPar->setLastInsn(ah2.getBranchTargetAddress(&xx));
+
+                        parRegionsList.push_back(iPar);
+
+                     }
+                  }
+
+               }		      
+
+               else if(strstr(ppdf->symTabName().c_str(), "flush") !=NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_FLUSH);
+
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
+
+                  parRegionsList.push_back(iPar);
+               }
+               /* Starts with BeginCritSect, ends with EndCritSect */
+               else if(strstr(ppdf->symTabName().c_str(), "BeginCritSect") != NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_CRITICAL);
+
+                  InstrucIter ah2(ah.getCurrentAddress(), this);
+                  while (ah2.hasMore())
+                  {
+                     if( ah2.isACallInstruction() ||
+                           ah2.isADynamicCallInstruction() )
+                     {
+                        Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
+
+                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        if (ppdf2 != NULL)
+                        {
+                           if(strstr(ppdf2->symTabName().c_str(), "EndCritSect") !=NULL)
+                              break;
+                        }
+                     }
+                     ah2++;
+                  }
+                  iPar->setLastInsn(ah2.getCurrentAddress());
+
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+
+                  parRegionsList.push_back(iPar);
+               }
+               /* Begins with b_atomic, ends with e_atomic */
+               else if(strstr(ppdf->symTabName().c_str(), "b_atomic") != NULL)
+               {
+                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
+                  iPar->setRegionType(OMP_ATOMIC);
+
+                  InstrucIter ah2(ah.getCurrentAddress(), this);
+                  while (ah2.hasMore())
+                  {
+                     if( ah2.isACallInstruction() ||
+                           ah2.isADynamicCallInstruction() )
+                     {
+                        Address target2 = ah2.getBranchTargetAddress(&isAbsolute);
+
+                        image_func *ppdf2 = im->findFuncByEntry(target2);
+                        if (ppdf2 != NULL)
+                        {
+                           if(strstr(ppdf2->symTabName().c_str(), "e_atomic") !=NULL)
+                              break;
+                        }
+                     }
+                     ah2++;
+                  }
+                  iPar->setLastInsn(ah2.getCurrentAddress());
+
+                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
+
+                  parRegionsList.push_back(iPar);
+               }
+               else
+               {
+               }/* End Checking Different Directive Types */
+
+            }
+         }
+      }
       ah++;
-    }
+   }
 }
 
 

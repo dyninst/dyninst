@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.103 2008/02/15 23:44:32 legendre Exp $
+// $Id: BPatch_function.C,v 1.104 2008/02/23 02:09:04 jaw Exp $
 
 #define BPATCH_FILE
 
 #include <string.h>
+#include <string>
 #include "symtab.h"
 #include "process.h"
 #include "instPoint.h"
@@ -794,11 +795,11 @@ const char *BPatch_function::addNameInt(const char *name,
     //       Add to the container image class
 
     if (isMangled) {
-        func->addSymTabName(pdstring(name),
+        func->addSymTabName(std::string(name),
                             isPrimary);
     }
     else {
-        func->addPrettyName(pdstring(name),
+        func->addPrettyName(std::string(name),
                               isPrimary);
     }
     return name;

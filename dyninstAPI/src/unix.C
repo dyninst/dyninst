@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.235 2008/02/21 20:11:59 legendre Exp $
+// $Id: unix.C,v 1.236 2008/02/23 02:09:11 jaw Exp $
 
+#include <string>
 #include "common/h/headers.h"
-#include "common/h/String.h"
 #include "common/h/Vector.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/os.h"
@@ -83,7 +83,8 @@
 
 // Turn the return result of waitpid into something we can use
 bool decodeWaitPidStatus(procWaitpidStatus_t status,
-                        EventRecord &ev) {
+                        EventRecord &ev) 
+{
     // Big if-then-else tree
     if (WIFEXITED(status)) {
         signal_printf("%s[%d]: process exited normally\n", FILE__, __LINE__);
@@ -131,48 +132,48 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
 
    // First, check breakpoint...
    if (sync_event_breakpoint_addr == 0) {
-       pdstring status_str = pdstring("DYNINST_break_point_event");
-       
-       pdvector<int_variable *> vars;
-       if (!proc->findVarsByAll(status_str, vars)) {
-           return false;
-       }
-       
-       if (vars.size() != 1) {
-           fprintf(stderr, "%s[%d]:  ERROR, found %d copies of var %s\n", 
-                   FILE__, __LINE__, vars.size(), status_str.c_str());
-           return false;
-       }
+      std::string status_str = std::string("DYNINST_break_point_event");
 
-       sync_event_breakpoint_addr = vars[0]->getAddress();
+      pdvector<int_variable *> vars;
+      if (!proc->findVarsByAll(status_str, vars)) {
+         return false;
+      }
+
+      if (vars.size() != 1) {
+         fprintf(stderr, "%s[%d]:  ERROR, found %d copies of var %s\n", 
+               FILE__, __LINE__, vars.size(), status_str.c_str());
+         return false;
+      }
+
+      sync_event_breakpoint_addr = vars[0]->getAddress();
    }
 
    if (!proc->readDataSpace((void *)sync_event_breakpoint_addr, 
-                            sizeof(int),
-                            &breakpoint, true)) {
-       fprintf(stderr, "%s[%d]:  readDataSpace failed (ev.proc %d, ev.lwp %d)\n", 
-               FILE__, __LINE__, ev.proc->getPid(), ev.lwp->get_lwp_id());
-       return false;
+            sizeof(int),
+            &breakpoint, true)) {
+      fprintf(stderr, "%s[%d]:  readDataSpace failed (ev.proc %d, ev.lwp %d)\n", 
+            FILE__, __LINE__, ev.proc->getPid(), ev.lwp->get_lwp_id());
+      return false;
    }
 
    switch (breakpoint) {
-   case 0:
-       return false;
-   case 1:
-       // We SIGNUMed it
-       if (ev.what != DYNINST_BREAKPOINT_SIGNUM) {
-           // False alarm...
-           return false;
-       }
-       break;
-   case 2:
-       if (ev.what != SIGSTOP) {
-           // Again, false alarm...
-           return false;
-       }
-       break;
-   default:
-       assert(0);
+      case 0:
+         return false;
+      case 1:
+         // We SIGNUMed it
+         if (ev.what != DYNINST_BREAKPOINT_SIGNUM) {
+            // False alarm...
+            return false;
+         }
+         break;
+      case 2:
+         if (ev.what != SIGSTOP) {
+            // Again, false alarm...
+            return false;
+         }
+         break;
+      default:
+         assert(0);
    }
 
    // Definitely a breakpoint... set that up and clear the flag
@@ -182,37 +183,37 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
 
    // Make sure we don't get this event twice....
    if (!proc->writeDataSpace((void *)sync_event_breakpoint_addr, sizeof(int), &zero)) {
-       fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    }
 
    if (sync_event_id_addr == 0) {
-       pdstring status_str = pdstring("DYNINST_synch_event_id");
-       
-       
-       pdvector<int_variable *> vars;
-       if (!proc->findVarsByAll(status_str, vars)) {
-           fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
-                   FILE__, __LINE__, status_str.c_str());
-           return false;
-       }
-       
-       if (vars.size() != 1) {
-           fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-                   FILE__, __LINE__, vars.size(), status_str.c_str());
-           return false;
-       }
+      std::string status_str = std::string("DYNINST_synch_event_id");
 
-       sync_event_id_addr = vars[0]->getAddress();
+
+      pdvector<int_variable *> vars;
+      if (!proc->findVarsByAll(status_str, vars)) {
+         fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
+               FILE__, __LINE__, status_str.c_str());
+         return false;
+      }
+
+      if (vars.size() != 1) {
+         fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
+               FILE__, __LINE__, vars.size(), status_str.c_str());
+         return false;
+      }
+
+      sync_event_id_addr = vars[0]->getAddress();
    }
 
    if (!proc->readDataSpace((void *)sync_event_id_addr, sizeof(int),
-                            &status, true)) {
-       fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
-       return false;
+            &status, true)) {
+      fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+      return false;
    }
-   
+
    if (status == DSE_undefined) {
-       return false; // Nothing to see here
+      return false; // Nothing to see here
    }
 
    // Make sure we don't get this event twice....
@@ -222,7 +223,7 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
    }
 
    if (sync_event_arg1_addr == 0) {
-       pdstring arg_str = pdstring("DYNINST_synch_event_arg1");
+       std::string arg_str = std::string("DYNINST_synch_event_arg1");
        
        pdvector<int_variable *> vars;
        if (!proc->findVarsByAll(arg_str, vars)) {
@@ -351,50 +352,40 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
    ev.info = GETREG_INFO(status.pr_reg);
 
    switch (status.pr_why) {
-     case PR_SIGNALLED:
-        ev.type = evtSignalled;
-        ev.what = status.pr_what;
-        if (!decodeSignal(ev)) {
-          char buf[128];
-          fprintf(stderr, "%s[%d]:  decodeSignal failed\n", FILE__, __LINE__, ev.sprint_event(buf));
-          return false;
-        }
-        break;
-     case PR_SYSENTRY:
-        ev.type = evtSyscallEntry;
-        ev.what = status.pr_what;
+      case PR_SIGNALLED:
+         ev.type = evtSignalled;
+         ev.what = status.pr_what;
+         if (!decodeSignal(ev)) {
+            char buf[128];
+            fprintf(stderr, "%s[%d]:  decodeSignal failed\n", 
+                  FILE__, __LINE__, ev.sprint_event(buf));
+            return false;
+         }
+         break;
+      case PR_SYSENTRY:
+         ev.type = evtSyscallEntry;
+         ev.what = status.pr_what;
 #if defined(os_aix)
-        // We actually pull from the syscall argument vector
-        if (status.pr_nsysarg > 0)
-           ev.info = status.pr_sysarg[0];
-        else
-           ev.info = 0;
+         // We actually pull from the syscall argument vector
+         if (status.pr_nsysarg > 0)
+            ev.info = status.pr_sysarg[0];
+         else
+            ev.info = 0;
 #endif
-#if defined (os_osf)
-       ev.info = status.pr_reg.regs[REG_A0];
-#endif
-        decodeSyscall(ev);
-        break;
-     case PR_SYSEXIT:
-        ev.type = evtSyscallExit;
-#if defined(os_osf)
-        // Alpha doesn't have a pr_syscall
-        ev.what = status.pr_what;
-#else
-        ev.what = status.pr_syscall;
-#endif
+         decodeSyscall(ev);
+         break;
+      case PR_SYSEXIT:
+         ev.type = evtSyscallExit;
+         ev.what = status.pr_syscall;
 
 #if defined(os_aix)
-        // This from the proc header file: system returns are
-        // left in pr_sysarg[0]. NOT IN MAN PAGE.
-        ev.info = status.pr_sysarg[0];
+         // This from the proc header file: system returns are
+         // left in pr_sysarg[0]. NOT IN MAN PAGE.
+         ev.info = status.pr_sysarg[0];
 #endif
-#if defined (os_osf)
-       ev.info = status.pr_reg.regs[REG_V0];
-#endif
-        decodeSyscall(ev);
-        break;
-     case PR_REQUESTED:
+         decodeSyscall(ev);
+         break;
+      case PR_REQUESTED:
          // Because we asked for it... for example:
          // Thread 1: poll for /proc event
          // Thread 2: pause process
@@ -403,46 +394,46 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
          break;
 
 #if defined(PR_SUSPENDED)
-     case PR_SUSPENDED:
-        // I'm seeing this state at times with a forking multi-threaded
-        // child process, currently handling by just continuing the process
-        ev.type = evtSuspended;
-        break;
+      case PR_SUSPENDED:
+         // I'm seeing this state at times with a forking multi-threaded
+         // child process, currently handling by just continuing the process
+         ev.type = evtSuspended;
+         break;
 #endif
-     case PR_JOBCONTROL:
-        //  not really sure what this means
-        fprintf(stderr, "%s[%d]:  WARNING:  got PR_JOBCONTROL\n", FILE__, __LINE__);
-        ev.type = evtSuspended;
-        return false;
-        break;
-     case PR_FAULTED:
-        fprintf(stderr, "%s[%d]:  WARNING:  got PR_FAULTED\n", FILE__, __LINE__);
-        ev.type = evtCritical;
-        return false;
-        break;
-     default:
-        fprintf(stderr, "%s[%d]:  WARNING:  unknown process status: %d\n", FILE__, __LINE__, status.pr_why);
-        ev.type = evtSuspended;
-        return false;
-        break;
+      case PR_JOBCONTROL:
+         //  not really sure what this means
+         fprintf(stderr, "%s[%d]:  WARNING:  got PR_JOBCONTROL\n", FILE__, __LINE__);
+         ev.type = evtSuspended;
+         return false;
+         break;
+      case PR_FAULTED:
+         fprintf(stderr, "%s[%d]:  WARNING:  got PR_FAULTED\n", FILE__, __LINE__);
+         ev.type = evtCritical;
+         return false;
+         break;
+      default:
+         fprintf(stderr, "%s[%d]:  WARNING:  unknown process status: %d\n", FILE__, __LINE__, status.pr_why);
+         ev.type = evtSuspended;
+         return false;
+         break;
    }
 
    if (ev.type == evtUndefined) {
-     fprintf(stderr, "%s[%d]: WARNING:  could not decode event: \n", FILE__, __LINE__);
-     fprintf(stderr, "\tpr.what = %d, pr.why = %d\n", status.pr_what, status.pr_why);
-     fprintf(stderr, "Thread status flags: 0x%x (STOPPED %d, ISTOP %d, ASLEEP %d)\n",
-                 status.pr_flags,
-                 status.pr_flags & PR_STOPPED,
-                 status.pr_flags & PR_ISTOP,
-                 status.pr_flags & PR_ASLEEP);
-     fprintf(stderr, "Current signal: %d, reason for stopping: %d, (REQ %d, SIG %d, ENT %d, EXIT %d), what %d\n",
+      fprintf(stderr, "%s[%d]: WARNING:  could not decode event: \n", FILE__, __LINE__);
+      fprintf(stderr, "\tpr.what = %d, pr.why = %d\n", status.pr_what, status.pr_why);
+      fprintf(stderr, "Thread status flags: 0x%x (STOPPED %d, ISTOP %d, ASLEEP %d)\n",
+            status.pr_flags,
+            status.pr_flags & PR_STOPPED,
+            status.pr_flags & PR_ISTOP,
+            status.pr_flags & PR_ASLEEP);
+      fprintf(stderr, "Current signal: %d, reason for stopping: %d, (REQ %d, SIG %d, ENT %d, EXIT %d), what %d\n",
             status.pr_cursig, status.pr_why,
             status.pr_why == PR_REQUESTED,
             status.pr_why == PR_SIGNALLED,
             status.pr_why == PR_SYSENTRY,
             status.pr_why == PR_SYSEXIT,
             status.pr_what);
-     return false;
+      return false;
    }
    return true;
 }
@@ -457,102 +448,102 @@ bool SignalGenerator::decodeSyscall(EventRecord &ev)
 #endif
    int syscall = (int) ev.what;
 
-    if (syscall == SYSSET_MAP(SYS_fork, pid) ||
-        syscall == SYSSET_MAP(SYS_fork1, pid) ||
-        syscall == SYSSET_MAP(SYS_vfork, pid)) {
-        signal_printf("%s[%d]: decoded fork\n",
-                      FILE__, __LINE__);
-        ev.what = (int) procSysFork;
-        return true;
-    }
-    if (syscall == SYSSET_MAP(SYS_exec, pid) ||
-        syscall == SYSSET_MAP(SYS_execv, pid) ||
-        syscall == SYSSET_MAP(SYS_execve, pid)) {
-        signal_printf("%s[%d]: decoded exec\n",
-                      FILE__, __LINE__);
-        ev.what = (int) procSysExec;
-        return true;
-    }
-    if (syscall == SYSSET_MAP(SYS_exit, pid)) {
-        signal_printf("%s[%d]: decoded exit\n",
-                      FILE__, __LINE__);
-        ev.what = (int) procSysExit; 
-        return true;
-    }
-    if (syscall == SYSSET_MAP(SYS_lwp_exit, pid)) {
-        signal_printf("%s[%d]: decoded lwp exit\n",
-                      FILE__, __LINE__);
-       ev.type = evtThreadExit;
-       ev.what = (int) procLwpExit;
+   if (syscall == SYSSET_MAP(SYS_fork, pid) ||
+         syscall == SYSSET_MAP(SYS_fork1, pid) ||
+         syscall == SYSSET_MAP(SYS_vfork, pid)) {
+      signal_printf("%s[%d]: decoded fork\n",
+            FILE__, __LINE__);
+      ev.what = (int) procSysFork;
+      return true;
+   }
+   if (syscall == SYSSET_MAP(SYS_exec, pid) ||
+         syscall == SYSSET_MAP(SYS_execv, pid) ||
+         syscall == SYSSET_MAP(SYS_execve, pid)) {
+      signal_printf("%s[%d]: decoded exec\n",
+            FILE__, __LINE__);
+      ev.what = (int) procSysExec;
+      return true;
+   }
+   if (syscall == SYSSET_MAP(SYS_exit, pid)) {
+      signal_printf("%s[%d]: decoded exit\n",
+            FILE__, __LINE__);
+      ev.what = (int) procSysExit; 
+      return true;
+   }
+   if (syscall == SYSSET_MAP(SYS_lwp_exit, pid)) {
+      signal_printf("%s[%d]: decoded lwp exit\n",
+            FILE__, __LINE__);
+      ev.type = evtThreadExit;
+      ev.what = (int) procLwpExit;
 
-       // Hop forward a bit...
-       if (ev.proc->IndependentLwpControl()) {
-           ev.proc->set_lwp_status(ev.lwp, exited);
-       }
+      // Hop forward a bit...
+      if (ev.proc->IndependentLwpControl()) {
+         ev.proc->set_lwp_status(ev.lwp, exited);
+      }
 
-       return true;
-    }
-    // Don't map -- we make this up
-    if (syscall == SYS_load) {
-        signal_printf("%s[%d]: decoded load\n",
-                      FILE__, __LINE__);
+      return true;
+   }
+   // Don't map -- we make this up
+   if (syscall == SYS_load) {
+      signal_printf("%s[%d]: decoded load\n",
+            FILE__, __LINE__);
       ev.what = procSysLoad;
       return true;
-    }
+   }
 
-    // Swap the syscall number into the info field
-    ev.info = ev.what;
-    ev.what = procSysOther;
-    return false;
+   // Swap the syscall number into the info field
+   ev.info = ev.what;
+   ev.what = procSysOther;
+   return false;
 }
 
 bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
 {
-  process * proc = ev.proc;
-  proc->setBootstrapState(begun_bs);
-  if (proc->insertTrapAtEntryPointOfMain()) {
-     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
-     buffer += pdstring(", attached to process, stepping to main");
-     statusLine(buffer.c_str());
-     continueHint = true;
-     return true;
-  } else if (proc->getTraceSysCalls()) {
-     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
-     buffer += pdstring(", attached to process, looking for __libc_start_main");
-     statusLine(buffer.c_str());
-     continueHint = true;
-     return true;
-  } else {
-     // We couldn't insert the trap... so detach from the process
-     // and let it run. 
-     fprintf(stderr, "%s[%d][%s]:  ERROR:  couldn't insert at entry of main,\n",
-             FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     // We should actually delete any mention of this
-     // process... including (for Paradyn) removing it from the
-     // frontend.
-     proc->triggerNormalExitCallback(0);
-     proc->handleProcessExit();
-     continueHint = true;
-  }
-  return false;
+   process * proc = ev.proc;
+   proc->setBootstrapState(begun_bs);
+   if (proc->insertTrapAtEntryPointOfMain()) {
+      std::string buffer = std::string("PID=") + utos(proc->getPid());
+      buffer += std::string(", attached to process, stepping to main");
+      statusLine(buffer.c_str());
+      continueHint = true;
+      return true;
+   } else if (proc->getTraceSysCalls()) {
+      std::string buffer = std::string("PID=") + utos(proc->getPid());
+      buffer += std::string(", attached to process, looking for __libc_start_main");
+      statusLine(buffer.c_str());
+      continueHint = true;
+      return true;
+   } else {
+      // We couldn't insert the trap... so detach from the process
+      // and let it run. 
+      fprintf(stderr, "%s[%d][%s]:  ERROR:  couldn't insert at entry of main,\n",
+            FILE__, __LINE__, getThreadStr(getExecThreadID()));
+      // We should actually delete any mention of this
+      // process... including (for Paradyn) removing it from the
+      // frontend.
+      proc->triggerNormalExitCallback(0);
+      proc->handleProcessExit();
+      continueHint = true;
+   }
+   return false;
 }
 
 bool SignalHandler::handleThreadCreate(EventRecord &, bool &)
 {
-  assert(0);
-  return false;
+   assert(0);
+   return false;
 }
 
 //  checkForExit returns true when an exit has been detected
 bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
 {
-  int waitpid_flags = block ? 0 : WNOHANG|WNOWAIT;
-  int status;
+   int waitpid_flags = block ? 0 : WNOHANG|WNOWAIT;
+   int status;
 
-  int retWait = waitpid(getPid(), &status, waitpid_flags);
-  if (retWait == -1) {
-       fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
-       return false;
+   int retWait = waitpid(getPid(), &status, waitpid_flags);
+   if (retWait == -1) {
+      fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
+      return false;
    }
    else if (retWait > 1) {
       //fprintf(stderr, "%s[%d]:  checkForExit is returning true: pid %d exited, status was %s\n", FILE__, __LINE__, ev.proc->getPid(), ev.proc->getStatusAsString().c_str());
@@ -562,89 +553,89 @@ bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
       ev.info = 0;
       return true;
    }
-     fprintf(stderr, "[%s:%u] - Finished waitpid with %d\n", FILE__, __LINE__, retWait);
+   fprintf(stderr, "[%s:%u] - Finished waitpid with %d\n", FILE__, __LINE__, retWait);
 
-  return false;
+   return false;
 }
 
 #if !defined (os_linux)
 
 bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
 {
-    assert(events.size() == 0);
-    EventRecord ev;
-    ev.clear();
+   assert(events.size() == 0);
+   EventRecord ev;
+   ev.clear();
 
-  bool ret = true;
-  int timeout = POLL_TIMEOUT;
-  signal_printf("%s[%d][%s]:  waitNextEvent\n", FILE__, __LINE__, 
-                getThreadStr(getExecThreadID()));
+   bool ret = true;
+   int timeout = POLL_TIMEOUT;
+   signal_printf("%s[%d][%s]:  waitNextEvent\n", FILE__, __LINE__, 
+         getThreadStr(getExecThreadID()));
 
-  assert(getExecThreadID() == getThreadID());
-  assert(getExecThreadID() != primary_thread_id);
+   assert(getExecThreadID() == getThreadID());
+   assert(getExecThreadID() != primary_thread_id);
 
-  assert(proc);
-  assert(proc->getRepresentativeLWP());
+   assert(proc);
+   assert(proc->getRepresentativeLWP());
 
-  struct pollfd pfds[1]; 
+   struct pollfd pfds[1]; 
 
-  pfds[0].fd = proc->getRepresentativeLWP()->POLL_FD;
-  pfds[0].events = POLLPRI;
-  pfds[0].revents = 0;
+   pfds[0].fd = proc->getRepresentativeLWP()->POLL_FD;
+   pfds[0].events = POLLPRI;
+   pfds[0].revents = 0;
 
-  waitingForOS_ = true;
-  __UNLOCK;
-  int num_selected_fds = poll(pfds, 1, timeout);
+   waitingForOS_ = true;
+   __UNLOCK;
+   int num_selected_fds = poll(pfds, 1, timeout);
 
-  signal_printf("%s[%d]: poll returned, acquiring lock...\n", FILE__, __LINE__);
-  
-  __LOCK;
-  waitingForOS_ = false;
+   signal_printf("%s[%d]: poll returned, acquiring lock...\n", FILE__, __LINE__);
 
-  if (num_selected_fds < 0) {
-    ret = false;
+   __LOCK;
+   waitingForOS_ = false;
+
+   if (num_selected_fds < 0) {
+      ret = false;
 #if defined(os_osf)
-  //  alpha-osf apparently does not detect process exits from poll events,
-  //  so we have to check for exits before calling poll().
-  if (checkForExit(ev)) {
-    char buf[128];
-    signal_printf("%s[%d][%s]:  process exited %s\n", FILE__, __LINE__, 
-                getThreadStr(getExecThreadID()), ev.sprint_event(buf));
-    ret = true;
-    decodeSignal(ev);
-    //decodeKludge(ev);
-  }
+      //  alpha-osf apparently does not detect process exits from poll events,
+      //  so we have to check for exits before calling poll().
+      if (checkForExit(ev)) {
+         char buf[128];
+         signal_printf("%s[%d][%s]:  process exited %s\n", FILE__, __LINE__, 
+               getThreadStr(getExecThreadID()), ev.sprint_event(buf));
+         ret = true;
+         decodeSignal(ev);
+         //decodeKludge(ev);
+      }
 #else
-    stopThreadNextIter();
-    fprintf(stderr, "%s[%d]:  checkForProcessEvents: poll failed: %s\n", FILE__, __LINE__, strerror(errno));
+      stopThreadNextIter();
+      fprintf(stderr, "%s[%d]:  checkForProcessEvents: poll failed: %s\n", FILE__, __LINE__, strerror(errno));
 #endif
-    events.push_back(ev);
-    return ret;
-  } else if (num_selected_fds == 0) {
-    //  poll timed out with nothing to report
-    signal_printf("%s[%d]:  poll timed out\n", FILE__, __LINE__);
-    ev.type = evtTimeout;
-    ev.proc = proc;
-    events.push_back(ev);
-    return true;
-  }
+      events.push_back(ev);
+      return ret;
+   } else if (num_selected_fds == 0) {
+      //  poll timed out with nothing to report
+      signal_printf("%s[%d]:  poll timed out\n", FILE__, __LINE__);
+      ev.type = evtTimeout;
+      ev.proc = proc;
+      events.push_back(ev);
+      return true;
+   }
 
-  if (!pfds[0].revents) {
-     fprintf(stderr, "%s[%d]:  weird, no event for signalled process\n", 
-             FILE__, __LINE__);
-     return false;
-  }
+   if (!pfds[0].revents) {
+      fprintf(stderr, "%s[%d]:  weird, no event for signalled process\n", 
+            FILE__, __LINE__);
+      return false;
+   }
 
-  ev.type = evtUndefined;
-  ev.proc = proc;
-  ev.lwp = proc->getRepresentativeLWP();
-  ev.info  = pfds[0].revents;
+   ev.type = evtUndefined;
+   ev.proc = proc;
+   ev.lwp = proc->getRepresentativeLWP();
+   ev.info  = pfds[0].revents;
 
-  if (ev.proc->status() == running) {
+   if (ev.proc->status() == running) {
       ev.proc->set_status(stopped);
-  }
-  
-  events.push_back(ev);
+   }
+
+   events.push_back(ev);
   return true;
 }
 
@@ -663,101 +654,101 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
 
    //char ebuf[128];
    //fprintf(stderr, "%s[%d]:  DECODE SIGNAL: %s\n", FILE__, __LINE__, ev.sprint_event(ebuf));
-  //  allow for platform specific decoding of signals, currently only used on
-  //  AIX.  If decodeSignal_NP() returns true, the event is fully decoded
-  //  so we're done here.
+   //  allow for platform specific decoding of signals, currently only used on
+   //  AIX.  If decodeSignal_NP() returns true, the event is fully decoded
+   //  so we're done here.
 
-  if (decodeSignal_NP(ev)) {
-    return true;
-  }
+   if (decodeSignal_NP(ev)) {
+      return true;
+   }
 
-  errno = 0;
+   errno = 0;
 
-  if (ev.type != evtSignalled) {
-    char buf[128];
-    fprintf(stderr, "%s[%d]:  decodeSignal:  event %s is not a signal event??\n", FILE__, __LINE__,
+   if (ev.type != evtSignalled) {
+      char buf[128];
+      fprintf(stderr, "%s[%d]:  decodeSignal:  event %s is not a signal event??\n", FILE__, __LINE__,
             ev.sprint_event(buf));
-    return false;
-  }
+      return false;
+   }
 
-  signal_printf("%s[%d]: decoding signal %d\n", FILE__, __LINE__, ev.what);
+   signal_printf("%s[%d]: decoding signal %d\n", FILE__, __LINE__, ev.what);
 
-  //  signal number is assumed to be in ev.what
-  switch(ev.what)  {
-  case SIGSTOP:
-  case SIGINT:
-      if (!decodeRTSignal(ev) && !decodeSigStopNInt(ev)) {
-          fprintf(stderr, "%s[%d]:  weird, decodeSigStop failed for SIGSTOP\n", FILE__, __LINE__);
-      }
+   //  signal number is assumed to be in ev.what
+   switch(ev.what)  {
+      case SIGSTOP:
+      case SIGINT:
+         if (!decodeRTSignal(ev) && !decodeSigStopNInt(ev)) {
+            fprintf(stderr, "%s[%d]:  weird, decodeSigStop failed for SIGSTOP\n", FILE__, __LINE__);
+         }
 
-      // We have to use SIGSTOP for RTsignals in some cases, since we
-      // may not be attached at that point...
-      break;
-  case SIGTRAP:
-  {
-    signal_printf("%s[%d]:  SIGTRAP\n", FILE__, __LINE__);
-    return decodeSigTrap(ev);
-  }
-  case SIGILL:
-  {
-     signal_printf("%s[%d]:  SIGILL\n", FILE__, __LINE__);
+         // We have to use SIGSTOP for RTsignals in some cases, since we
+         // may not be attached at that point...
+         break;
+      case SIGTRAP:
+         {
+            signal_printf("%s[%d]:  SIGTRAP\n", FILE__, __LINE__);
+            return decodeSigTrap(ev);
+         }
+      case SIGILL:
+         {
+            signal_printf("%s[%d]:  SIGILL\n", FILE__, __LINE__);
 #if defined (arch_ia64)
-     if (!ev.lwp) {
-       fprintf(stderr, "%s[%d]:  CRITICAL SIGNAL\n", FILE__, __LINE__);
-       break;
-     }
-     
-     Frame frame = ev.lwp->getActiveFrame();
+            if (!ev.lwp) {
+               fprintf(stderr, "%s[%d]:  CRITICAL SIGNAL\n", FILE__, __LINE__);
+               break;
+            }
 
-     Address pc = frame.getPC();
+            Frame frame = ev.lwp->getActiveFrame();
 
-     if (pc == ev.proc->dyninstlib_brk_addr ||
-         pc == ev.proc->main_brk_addr ||
-         ev.proc->getDyn()->reachedLibHook(pc)) {
-        ev.what = SIGTRAP;
-        decodeSigTrap(ev);
-      }
-      else
-        decodeSigIll(ev);
+            Address pc = frame.getPC();
 
-      signal_printf("%s[%d]:  SIGILL:  main brk = %p, dyn brk = %p, pc = %p\n",
-           FILE__, __LINE__, ev.proc->main_brk_addr, ev.proc->dyninstlib_brk_addr,
-           pc);
+            if (pc == ev.proc->dyninstlib_brk_addr ||
+                  pc == ev.proc->main_brk_addr ||
+                  ev.proc->getDyn()->reachedLibHook(pc)) {
+               ev.what = SIGTRAP;
+               decodeSigTrap(ev);
+            }
+            else
+               decodeSigIll(ev);
+
+            signal_printf("%s[%d]:  SIGILL:  main brk = %p, dyn brk = %p, pc = %p\n",
+                  FILE__, __LINE__, ev.proc->main_brk_addr, ev.proc->dyninstlib_brk_addr,
+                  pc);
 #else
 
-      decodeSigIll(ev);
+            decodeSigIll(ev);
 #endif
-      break;
-  }
+            break;
+         }
 
-  case DYNINST_BREAKPOINT_SIGNUM: /*SIGBUS2*/
-    signal_printf("%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
-    ev.type = evtCritical;
+      case DYNINST_BREAKPOINT_SIGNUM: /*SIGBUS2*/
+         signal_printf("%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
+         ev.type = evtCritical;
 
-    // This may override the type..
-    decodeRTSignal(ev);
+         // This may override the type..
+         decodeRTSignal(ev);
 
-    break;
-  case SIGSEGV:
-  case SIGABRT:
-    ev.type = evtCritical;
-    break;
-  case SIGFPE:
-      ev.type = evtCritical;
-      break;
-    
-  default:
-    signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
-    break;
-  }
-  
-  return true;
+         break;
+      case SIGSEGV:
+      case SIGABRT:
+         ev.type = evtCritical;
+         break;
+      case SIGFPE:
+         ev.type = evtCritical;
+         break;
+
+      default:
+         signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
+         break;
+   }
+
+   return true;
 }
 
 bool SignalGenerator::decodeSigTrap(EventRecord &ev)
 {
-  char buf[128];
-  process *proc = ev.proc;
+   char buf[128];
+   process *proc = ev.proc;
 
   //fprintf(stderr, "%s[%d]:  SIGTRAP: %s\n", FILE__, __LINE__, ev.sprint_event(buf));
   if (decodeIfDueToProcessStartup(ev)) {
@@ -823,8 +814,6 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
     }
 #endif
 
-
-
     signal_printf("%s[%d]: decodeSigTrap failing, PC at 0x%lx\n", FILE__, __LINE__, af.getPC());
   return false;
 }
@@ -837,21 +826,21 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
 
 bool SignalGenerator::decodeSigStopNInt(EventRecord &ev)
 {
-  process *proc = ev.proc;
+   process *proc = ev.proc;
 
-  signal_printf("%s[%d]:  welcome to decodeSigStopNInt for %d, state is %s\n",
-                FILE__, __LINE__, ev.proc->getPid(), 
-                proc->getBootstrapStateAsString().c_str());
+   signal_printf("%s[%d]:  welcome to decodeSigStopNInt for %d, state is %s\n",
+         FILE__, __LINE__, ev.proc->getPid(), 
+         proc->getBootstrapStateAsString().c_str());
 
-  if (ev.lwp && !ev.lwp->is_attached() && ev.what == SIGSTOP) {
-     //The result of a PTRACE_ATTACH
-     ev.type = evtLwpAttach;
-     return true;
-  }
+   if (ev.lwp && !ev.lwp->is_attached() && ev.what == SIGSTOP) {
+      //The result of a PTRACE_ATTACH
+      ev.type = evtLwpAttach;
+      return true;
+   }
 
-  ev.type = evtProcessStop;
+   ev.type = evtProcessStop;
 
-  return true;
+   return true;
 }
 
 ///////////////////////////////////////////
@@ -862,204 +851,204 @@ unsigned long dbi_thread_id = -1UL;
 DebuggerInterface *global_dbi = NULL;
 DebuggerInterface *getDBI()
 {
-    if (global_dbi) return global_dbi;
-    global_dbi = new DebuggerInterface();
-    return global_dbi; 
+   if (global_dbi) return global_dbi;
+   global_dbi = new DebuggerInterface();
+   return global_dbi; 
 }
 
 void DBICallbackBase::dbi_signalCompletion(CallbackBase *cbb) 
 {
-  DBICallbackBase *cb = (DBICallbackBase *) cbb;
-  cb->lock->_Lock(FILE__, __LINE__); 
-  cb->completion_signalled = true;
-  dbi_printf("%s[%d]:  DBICallback, signalling completion\n", FILE__, __LINE__);
-  cb->lock->_Broadcast(FILE__, __LINE__); 
-  cb->lock->_Unlock(FILE__, __LINE__); 
+   DBICallbackBase *cb = (DBICallbackBase *) cbb;
+   cb->lock->_Lock(FILE__, __LINE__); 
+   cb->completion_signalled = true;
+   dbi_printf("%s[%d]:  DBICallback, signalling completion\n", FILE__, __LINE__);
+   cb->lock->_Broadcast(FILE__, __LINE__); 
+   cb->lock->_Unlock(FILE__, __LINE__); 
 }
 
 bool DBICallbackBase::waitForCompletion()
 {
-  assert(lock->depth() == 1);
+   assert(lock->depth() == 1);
 
-  getDBI()->evt = type;
+   getDBI()->evt = type;
 
-  while (!completion_signalled) {
-    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    if (0 != lock->_Broadcast(FILE__, __LINE__)) assert(0);
-    if (0 != lock->_WaitForSignal(FILE__, __LINE__)) assert(0);
-  }
-  dbi_printf("%s[%d]:  callback completion signalled\n", FILE__, __LINE__);
-  return true;
+   while (!completion_signalled) {
+      dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+      if (0 != lock->_Broadcast(FILE__, __LINE__)) assert(0);
+      if (0 != lock->_WaitForSignal(FILE__, __LINE__)) assert(0);
+   }
+   dbi_printf("%s[%d]:  callback completion signalled\n", FILE__, __LINE__);
+   return true;
 }
 
 bool DebuggerInterface::waitNextEvent(DBIEvent &ev)
 {
-  isReady = true;
-  dbi_printf("%s[%d]:  welcome to waitNextEvent for DebugInterface\n", FILE__, __LINE__);
-  dbilock._Lock(FILE__, __LINE__);
-  if (evt == dbiUndefined) {
-    dbi_printf("%s[%d]:  DebugInterface waiting for something to do\n", FILE__, __LINE__);
-    dbilock._WaitForSignal(FILE__, __LINE__);
-  }
-  //  got something
-  ev.type = evt;
-  dbi_printf("%s[%d]:  DebuggerInterface got event %s\n", FILE__, __LINE__, 
-             dbiEventType2str(evt));
+   isReady = true;
+   dbi_printf("%s[%d]:  welcome to waitNextEvent for DebugInterface\n", FILE__, __LINE__);
+   dbilock._Lock(FILE__, __LINE__);
+   if (evt == dbiUndefined) {
+      dbi_printf("%s[%d]:  DebugInterface waiting for something to do\n", FILE__, __LINE__);
+      dbilock._WaitForSignal(FILE__, __LINE__);
+   }
+   //  got something
+   ev.type = evt;
+   dbi_printf("%s[%d]:  DebuggerInterface got event %s\n", FILE__, __LINE__, 
+         dbiEventType2str(evt));
    //       eventType2str(ev.type));
-  dbilock._Unlock(FILE__, __LINE__);
-  return true;
+   dbilock._Unlock(FILE__, __LINE__);
+   return true;
 }
 
 bool DBICallbackBase::execute() {
-    return execute_real();
+   return execute_real();
 }
 
 bool DebuggerInterface::handleEventLocked(DBIEvent &ev)
 {
-  assert(dbilock.depth());
+   assert(dbilock.depth());
 
-  evt = ev.type;
+   evt = ev.type;
 
-  getMailbox()->executeCallbacks(FILE__, __LINE__);
+   getMailbox()->executeCallbacks(FILE__, __LINE__);
 
-  //  event is handled, so set evt back to undefined. (our waiting criterion)
-  evt = dbiUndefined;
-  dbilock._Broadcast(FILE__, __LINE__);
-  return true;
+   //  event is handled, so set evt back to undefined. (our waiting criterion)
+   evt = dbiUndefined;
+   dbilock._Broadcast(FILE__, __LINE__);
+   return true;
 }
 
 bool PtraceCallback::operator()(int req, pid_t pid, Address addr,
-                                Address data, int word_len)
+      Address data, int word_len)
 {
-  //  No need to copy buffers since dbi callbacks will only be used in
-  //  the immediate context of the call;
-  lock->_Lock(FILE__, __LINE__);
-  req_ = req;
-  pid_ = pid;
-  addr_ = addr;
-  data_ = data;
-  word_len_  = word_len;
-  ret = (PTRACE_RETURN)0;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
+   //  No need to copy buffers since dbi callbacks will only be used in
+   //  the immediate context of the call;
+   lock->_Lock(FILE__, __LINE__);
+   req_ = req;
+   pid_ = pid;
+   addr_ = addr;
+   data_ = data;
+   word_len_  = word_len;
+   ret = (PTRACE_RETURN)0;
+   getMailbox()->executeOrRegisterCallback(this);
+   if (synchronous) {
+      dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+      waitForCompletion();
+   }
 
-  lock->_Unlock(FILE__, __LINE__);
-  return true;
+   lock->_Unlock(FILE__, __LINE__);
+   return true;
 }
 
 bool PtraceCallback::execute_real()
 {
-  errno = 0;
+   errno = 0;
 
-  ret = P_ptrace(req_, pid_, addr_, data_, word_len_);
-  ptrace_errno = errno;
+   ret = P_ptrace(req_, pid_, addr_, data_, word_len_);
+   ptrace_errno = errno;
 
 #if defined(os_linux)
-  if (ptrace_errno == ESRCH && req_ == PTRACE_ATTACH) {
-     //Handled higher up
-     return false;
-  }
-#endif
-  switch (ptrace_errno) {
-  case 0:
-      break;
-  case ESRCH:
-      //fprintf(stderr, "... got esrch, returning true anyway\n");
-      // Don't report an error... and LWP could have gone away and we don't know
-      // about it yet.
+   if (ptrace_errno == ESRCH && req_ == PTRACE_ATTACH) {
+      //Handled higher up
       return false;
-      break;
-  default:
-     perror("ptrace error");
-     return false;
-     break;
-  }
+   }
+#endif
+   switch (ptrace_errno) {
+      case 0:
+         break;
+      case ESRCH:
+         //fprintf(stderr, "... got esrch, returning true anyway\n");
+         // Don't report an error... and LWP could have gone away and we don't know
+         // about it yet.
+         return false;
+         break;
+      default:
+         perror("ptrace error");
+         return false;
+         break;
+   }
 
-  return true;
+   return true;
 }
 
 PTRACE_RETURN DebuggerInterface::ptrace(int req, pid_t pid, Address addr, 
-                              Address data, int word_len, int *ptrace_errno)
+      Address data, int word_len, int *ptrace_errno)
 {
-  dbi_printf("%s[%d][%s]:  welcome to DebuggerInterface::ptrace()\n",
-          FILE__, __LINE__, getThreadStr(getExecThreadID()));
-  getBusy();
+   dbi_printf("%s[%d][%s]:  welcome to DebuggerInterface::ptrace()\n",
+         FILE__, __LINE__, getThreadStr(getExecThreadID()));
+   getBusy();
 
-  PTRACE_RETURN ret;
-  PtraceCallback *ptp = new PtraceCallback(&dbilock);
-  PtraceCallback &pt = *ptp;
+   PTRACE_RETURN ret;
+   PtraceCallback *ptp = new PtraceCallback(&dbilock);
+   PtraceCallback &pt = *ptp;
 
-  pt.enableDelete(false);
-  pt(req, pid, addr, data, word_len);
-  ret = pt.getReturnValue();
-  if (ptrace_errno) 
-    *ptrace_errno = pt.getErrno();
-  pt.enableDelete();
+   pt.enableDelete(false);
+   pt(req, pid, addr, data, word_len);
+   ret = pt.getReturnValue();
+   if (ptrace_errno) 
+      *ptrace_errno = pt.getErrno();
+   pt.enableDelete();
 
-  releaseBusy();
-  return ret;
+   releaseBusy();
+   return ret;
 }
 
 
 
 PTRACE_RETURN DBI_ptrace(int req, pid_t pid, Address addr, Address data, int *ptrace_errno, int word_len,  const char * /* file */, unsigned int /* line */) 
 {
-  PTRACE_RETURN ret;
-  ret = getDBI()->ptrace(req, pid, addr, data, word_len, ptrace_errno);
-  return ret;
+   PTRACE_RETURN ret;
+   ret = getDBI()->ptrace(req, pid, addr, data, word_len, ptrace_errno);
+   return ret;
 }
 
 bool WaitPidNoBlockCallback::operator()(int *status)
 {
-  lock->_Lock(FILE__, __LINE__);
-  status_ = status;
-  getMailbox()->executeOrRegisterCallback(this);
-  //DBIEvent ev(dbiWaitPid);
-  if (synchronous) {
-    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  lock->_Unlock(FILE__, __LINE__);
-  return true;
+   lock->_Lock(FILE__, __LINE__);
+   status_ = status;
+   getMailbox()->executeOrRegisterCallback(this);
+   //DBIEvent ev(dbiWaitPid);
+   if (synchronous) {
+      dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+      waitForCompletion();
+   }
+   lock->_Unlock(FILE__, __LINE__);
+   return true;
 }
 
 bool WaitPidNoBlockCallback::execute_real() 
 {
 #if defined (os_linux)
-  int wait_options = __WALL | WNOHANG;
-  ret = waitpid(-1, status_, wait_options);
+   int wait_options = __WALL | WNOHANG;
+   ret = waitpid(-1, status_, wait_options);
 #else
-  assert(0);
+   assert(0);
 #endif
-  return true;
+   return true;
 }
 
 int DebuggerInterface::waitpidNoBlock(int *status)
 {
-  dbi_printf("%s[%d][%s]:  welcome to DebuggerInterface::waitPidNoBlock()\n",
-          FILE__, __LINE__, getThreadStr(getExecThreadID()));
-  getBusy();
+   dbi_printf("%s[%d][%s]:  welcome to DebuggerInterface::waitPidNoBlock()\n",
+         FILE__, __LINE__, getThreadStr(getExecThreadID()));
+   getBusy();
 
-  bool ret;
-  WaitPidNoBlockCallback *cbp = new WaitPidNoBlockCallback(&dbilock);
-  WaitPidNoBlockCallback &cb = *cbp;
+   bool ret;
+   WaitPidNoBlockCallback *cbp = new WaitPidNoBlockCallback(&dbilock);
+   WaitPidNoBlockCallback &cb = *cbp;
 
-  cb.enableDelete(false);
-  cb(status);
-  ret = cb.getReturnValue();
-  cb.enableDelete();
+   cb.enableDelete(false);
+   cb(status);
+   ret = cb.getReturnValue();
+   cb.enableDelete();
 
-  releaseBusy();
-  return ret;
+   releaseBusy();
+   return ret;
 }
 
-void reportPreloadError(const pdstring &msg)
+void reportPreloadError(const std::string &msg)
 {
-    showErrorCallback(101, msg);
-    cerr << msg << endl;
+   showErrorCallback(101, msg);
+   cerr << msg << endl;
 }
 
 // Setup the environment for preloading our runtime library
@@ -1069,14 +1058,14 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
    unsigned num_entries = *pnum_entries;
    char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
    if (rt_lib_name == 0) {
-      reportPreloadError(pdstring("setEnvPreload: DYNINSTAPI_RT_LIB is "
-                                  "undefined"));
+      reportPreloadError(std::string("setEnvPreload: DYNINSTAPI_RT_LIB is "
+               "undefined"));
       return false;
    }
    // Check to see if the library given exists.
    if (access(rt_lib_name, R_OK)) {
-      pdstring msg = pdstring("Runtime library ") + pdstring(rt_lib_name) +
-         pdstring(" does not exist or cannot be accessed!");
+      std::string msg = std::string("Runtime library ") + std::string(rt_lib_name) +
+         std::string(" does not exist or cannot be accessed!");
       reportPreloadError(msg);
       return false;
    }
@@ -1086,18 +1075,18 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
       // Check if some LD_PRELOAD is already part of the environment.
       unsigned ivar;
       for (ivar=0; ivar < num_entries &&
-              strncmp(envs[ivar], var_name, strlen(var_name)) != 0;
-           ivar++);
+            strncmp(envs[ivar], var_name, strlen(var_name)) != 0;
+            ivar++);
       if (ivar == num_entries) {
          // Not found, append an entry to envs
-         pdstring ld_preload = pdstring(var_name) + pdstring("=") +
-            pdstring(rt_lib_name);
+         std::string ld_preload = std::string(var_name) + std::string("=") +
+            std::string(rt_lib_name);
          if (num_entries >= max_entries) {
-            reportPreloadError(pdstring("setEnvPreload: out of space"));
+            reportPreloadError(std::string("setEnvPreload: out of space"));
             return false;
          }
          if ((envs[num_entries++] = P_strdup(ld_preload.c_str())) == 0) {
-            reportPreloadError(pdstring("setEnvPreload: out of memory"));
+            reportPreloadError(std::string("setEnvPreload: out of memory"));
             return false;
          }
          envs[num_entries] = NULL;
@@ -1105,10 +1094,10 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
       }
       else {
          // Found, modify envs in-place
-         pdstring ld_preload = pdstring(envs[ivar]) + pdstring(":") + 
-            pdstring(rt_lib_name);
+         std::string ld_preload = std::string(envs[ivar]) + std::string(":") + 
+            std::string(rt_lib_name);
          if ((envs[ivar] = P_strdup(ld_preload.c_str())) == 0) {
-            reportPreloadError(pdstring("setEnvPreload: out of memory"));
+            reportPreloadError(std::string("setEnvPreload: out of memory"));
             return false;
          }
       }
@@ -1116,23 +1105,23 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
    else {
       // Environment inherited from this process, do putenv
       char *ld_preload_orig = getenv("LD_PRELOAD");
-      pdstring ld_preload;
+      std::string ld_preload;
 
       if (ld_preload_orig != 0) {
          // Append to existing var
-         ld_preload = pdstring(var_name) + pdstring("=") +
-            pdstring(ld_preload_orig) + pdstring(":") +
-            pdstring(rt_lib_name);
+         ld_preload = std::string(var_name) + std::string("=") +
+            std::string(ld_preload_orig) + std::string(":") +
+            std::string(rt_lib_name);
       }
       else {
          // Define a new var
-         ld_preload = pdstring(var_name) + pdstring("=") +
-            pdstring(rt_lib_name);
+         ld_preload = std::string(var_name) + std::string("=") +
+            std::string(rt_lib_name);
       }
       char *ld_preload_cstr = P_strdup(ld_preload.c_str());
       if (ld_preload_cstr == 0 ||
           P_putenv(ld_preload_cstr) < 0) {
-         reportPreloadError(pdstring("setEnvPreload: out of memory"));
+         reportPreloadError(std::string("setEnvPreload: out of memory"));
          return false;
       }
    }
@@ -1160,10 +1149,10 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
  // *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
 
-bool forkNewProcess_real(pdstring file,
-                            pdstring dir, pdvector<pdstring> *argv,
-                            pdvector<pdstring> *envp,
-                            pdstring /* inputFile */, pdstring /* outputFile */,
+bool forkNewProcess_real(std::string file,
+                            std::string dir, pdvector<std::string> *argv,
+                            pdvector<std::string> *envp,
+                            std::string /* inputFile */, std::string /* outputFile */,
                             int &/* traceLink */,
                             pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
 {
@@ -1262,7 +1251,7 @@ bool forkNewProcess_real(pdstring file,
       char argstr[2048];
       argstr[0] = '\0';
       for (unsigned int ji=0; ji < argv->size(); ji++) {
-         pdstring &s = (*argv)[ji];
+         std::string &s = (*argv)[ji];
          sprintf(argstr, "%s %s", argstr, s.c_str());
       }
       startup_printf("%s[%d]:  EXEC: %s %s\n", FILE__, __LINE__, 
@@ -1546,7 +1535,7 @@ const char *dbiEventType2str(DBIEventType t)
 /// Experiment: wait for the process we're attaching to to be created
 // before we return. 
 
-SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
+SignalGenerator::SignalGenerator(char *idstr, std::string file, int pid)
     : SignalGeneratorCommon(idstr),
       waiting_for_stop(false),
       sync_event_id_addr(0),
@@ -1627,11 +1616,13 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
     return true;
 }
 
-bool SignalGeneratorCommon::postSignalHandler() {
+bool SignalGeneratorCommon::postSignalHandler() 
+{
     return true;
 }
 
-bool OS::executableExists(const pdstring &file) {
+bool OS::executableExists(const std::string &file) 
+{
    struct stat file_stat;
    int stat_result;
 
@@ -1639,15 +1630,16 @@ bool OS::executableExists(const pdstring &file) {
    return (stat_result != -1);
 }
 
-int_function *dyn_thread::map_initial_func(int_function *ifunc) {
+int_function *dyn_thread::map_initial_func(int_function *ifunc) 
+{
     return ifunc;
 }
 
-void SignalGenerator::clearCachedLocations()  {
+void SignalGenerator::clearCachedLocations()  
+{
     sync_event_id_addr = 0;
     sync_event_arg1_addr = 0;
     sync_event_breakpoint_addr = 0;
-    // waiting_for_stop = false; ?
 }
 
 SignalGenerator::~SignalGenerator() 

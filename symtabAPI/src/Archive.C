@@ -64,21 +64,24 @@ std::string Archive::printError(SymtabError serr)
 		       
 bool Archive::openArchive(Archive *&img, std::string filename)
 {
- 	bool err;
-	for(unsigned i=0;i<allArchives.size();i++)
+ 	bool ok;
+	for (unsigned i=0;i<allArchives.size();i++)
 	{
-      if(allArchives[i]->file() == filename)
+      if (allArchives[i]->file() == filename)
       {
 	    	img = allArchives[i];
          return true;
       }
 	}
-	img = new Archive(filename ,err);
-	if(err)	// No errors
+	img = new Archive(filename ,ok);
+	if (ok)	// No errors
 		allArchives.push_back(img);	
-	else
+	else {
+      if (img) delete img;
 		img = NULL;
-	return err;
+   }
+
+	return ok;
 }
 
 #if 0 
@@ -92,16 +95,16 @@ bool Archive::openArchive(Archive *&img, char *mem_image, size_t size)
 }
 #endif
 
-Archive::Archive(std::string &filename, bool &err) : filename_(filename)
+Archive::Archive(std::string &filename, bool &err) 
 {
-   fileOpener *fo_ = fileOpener::openFile(filename);
-	assert(fo_);
+   mf  = MappedFile::createMappedFile(filename);
+   fileOpener *fo_ = fileOpener::openFile(mf->base_addr(), mf->size());
 	unsigned char magic_number[2];
     
    if (!fo_->set(0)) 
 	{
       sprintf(errorLine, "Error reading file %s\n", 
-              filename_.c_str());
+              filename.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
@@ -110,7 +113,7 @@ Archive::Archive(std::string &filename, bool &err) : filename_(filename)
    if (!fo_->read((void *)magic_number, 2)) 
 	{
       sprintf(errorLine, "Error reading file %s\n", 
-              filename_.c_str());
+              filename.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
@@ -131,7 +134,7 @@ Archive::Archive(std::string &filename, bool &err) : filename_(filename)
    else if ( magic_number[0] != '<')
 	{
       sprintf(errorLine, "Bad magic number in file %s\n",
-              filename_.c_str());
+              filename.c_str());
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
@@ -144,7 +147,7 @@ Archive::Archive(std::string &filename, bool &err) : filename_(filename)
    if (!fo_->set(0))
 	{
       sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-              filename_.c_str(), "Seeking to file start" );	
+              filename.c_str(), "Seeking to file start" );	
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
@@ -154,7 +157,7 @@ Archive::Archive(std::string &filename, bool &err) : filename_(filename)
    if (!fo_->read(magicNumber, SAIAMAG))
 	{
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-              filename_.c_str(), "Reading magic number" );
+              filename.c_str(), "Reading magic number" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
@@ -167,7 +170,7 @@ Archive::Archive(std::string &filename, bool &err) : filename_(filename)
    else
 	{
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-              filename_.c_str(), "Unknown Magic number" );
+              filename.c_str(), "Unknown Magic number" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
@@ -176,7 +179,7 @@ Archive::Archive(std::string &filename, bool &err) : filename_(filename)
    if (archive->read_arhdr())
 	{
 		sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-              filename_.c_str(), "Reading file header" );
+              filename.c_str(), "Reading file header" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
@@ -187,7 +190,7 @@ Archive::Archive(std::string &filename, bool &err) : filename_(filename)
       if (archive->read_mbrhdr())
 		{
 			sprintf(errorLine, "Error parsing a.out file %s: %s \n",
-                 filename_.c_str(), "Reading Member Header" );
+                 filename.c_str(), "Reading Member Header" );
 			serr = Obj_Parsing;
 			errMsg = errorLine;
 			err = false;
@@ -323,55 +326,69 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
 	err = true;
 }
 #endif
+
 bool Archive::getMember(Symtab *&img, std::string member_name)
 {
- 	if(membersByName.find(member_name) == membersByName.end())
-	{
-		serr = No_Such_Member;
-		errMsg = "Member Does not exist";
-		return false;
-	}	
-	img = membersByName[member_name];
-    if(img == NULL) {
-        bool err;
-	    img = new Symtab(filename_ ,member_name, memberToOffsetMapping[member_name], err);
-		membersByName[member_name] = img;
-    }
-	return true;
+   if (membersByName.find(member_name) == membersByName.end())
+   {
+      serr = No_Such_Member;
+      errMsg = "Member Does not exist";
+      return false;
+   }	
+   img = membersByName[member_name];
+   if (img == NULL) {
+      bool err;
+#if 0
+      img = new Symtab(filename_ ,member_name, memberToOffsetMapping[member_name], err);
+#endif
+      std::string fn = file();
+      img = new Symtab(fn,member_name, memberToOffsetMapping[member_name], err);
+      membersByName[member_name] = img;
+   }
+   return true;
 }
 
 bool Archive::getAllMembers(std::vector <Symtab *> &members)
 {
- 	hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
-	for(; iter!=membersByName.end();iter++) {
-        if(iter->second == NULL) {
-            bool err;
-            string member_name = iter->first;
-            iter->second = new Symtab(filename_, member_name, memberToOffsetMapping[iter->first], err);
-            membersByName[iter->first] = iter->second;
-        }
-		members.push_back(iter->second);
-    }
-	return true;	
+   hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
+   for (; iter!=membersByName.end();iter++) {
+      if (iter->second == NULL) {
+         bool err;
+         string member_name = iter->first;
+#if 0
+         iter->second = new Symtab(filename_, member_name, memberToOffsetMapping[iter->first], err);
+#endif
+         iter->second = new Symtab(file(), member_name, memberToOffsetMapping[iter->first], err);
+         membersByName[iter->first] = iter->second;
+      }
+      members.push_back(iter->second);
+   }
+   return true;	
 }
 
 bool Archive::isMemberInArchive(std::string member_name)
 {
-    if(membersByName.find(member_name) != membersByName.end())
-        return true;
-    return false;
+   if(membersByName.find(member_name) != membersByName.end())
+      return true;
+   return false;
+}
+
+std::string Archive::file()
+{
+  return mf->pathname();
 }
 
 Archive::~Archive()
 {
- 	hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
-	for(; iter!=membersByName.end();iter++) {
-        if(iter->second)
-      		delete (iter->second);
-    }
-    memberToOffsetMapping.clear();
-	for (unsigned i = 0; i < allArchives.size(); i++) {
-      	if (allArchives[i] == this)
-        	allArchives.erase(allArchives.begin()+i);
+   hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
+   for (; iter!=membersByName.end();iter++) {
+      if (iter->second)
+         delete (iter->second);
    }
+   memberToOffsetMapping.clear();
+   for (unsigned i = 0; i < allArchives.size(); i++) {
+      if (allArchives[i] == this)
+         allArchives.erase(allArchives.begin()+i);
+   }
+   MappedFile::closeMappedFile(mf);
 }

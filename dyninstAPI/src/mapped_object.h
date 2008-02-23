@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.19 2008/01/16 22:01:35 legendre Exp $
+// $Id: mapped_object.h,v 1.20 2008/02/23 02:09:09 jaw Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
 
-#include "common/h/String.h"
+#include <string>
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
 
@@ -146,7 +146,7 @@ class mapped_object : public codeRange {
 
     // Return an appropriate identification string for debug purposes.
     // Will eventually be required by a debug base class.
-    const pdstring debugString() const;
+    const std::string debugString() const;
 
     // Used for codeRange ONLY! DON'T USE THIS! BAD USER!
     Address get_address() const { return codeAbs(); }
@@ -163,7 +163,7 @@ class mapped_object : public codeRange {
     // the symbol table.
     class foundHeapDesc {
     public:
-        pdstring name;
+        std::string name;
         Address addr;
     };
 
@@ -189,7 +189,7 @@ class mapped_object : public codeRange {
 #endif
 
     // Annoying low-level requirement... direct access to the symbol table.
-    bool  getSymbolInfo(const pdstring &n,Symbol &info);
+    bool  getSymbolInfo(const std::string &n,Symbol &info);
 
     // All name lookup functions are vectorized, because you can have
     // multiple overlapping names for all sorts of reasons.
@@ -197,15 +197,15 @@ class mapped_object : public codeRange {
     // Mangled: multiple modules with static/private functions and
     // we've lost the module name.
 
-    const pdvector<int_function *> *findFuncVectorByPretty(const pdstring &funcname);
-    const pdvector<int_function *> *findFuncVectorByMangled(const pdstring &funcname); 
+    const pdvector<int_function *> *findFuncVectorByPretty(const std::string &funcname);
+    const pdvector<int_function *> *findFuncVectorByMangled(const std::string &funcname); 
 
     int_function *findFuncByAddr(const Address &address);
     codeRange *findCodeRangeByAddress(const Address &address);
 
-    const pdvector<int_variable *> *findVarVectorByPretty(const pdstring &varname);
-    const pdvector<int_variable *> *findVarVectorByMangled(const pdstring &varname); 
-    const int_variable *getVariable(const pdstring &varname);
+    const pdvector<int_variable *> *findVarVectorByPretty(const std::string &varname);
+    const pdvector<int_variable *> *findVarVectorByMangled(const std::string &varname); 
+    const int_variable *getVariable(const std::string &varname);
     
 
 #if defined(cap_save_the_world)
@@ -253,11 +253,11 @@ private:
     dictionary_hash<const image_func *, int_function *> everyUniqueFunction;
     dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
 
-    dictionary_hash< pdstring, pdvector<int_function *> * > allFunctionsByMangledName;
-    dictionary_hash< pdstring, pdvector<int_function *> * > allFunctionsByPrettyName;
+    dictionary_hash< std::string, pdvector<int_function *> * > allFunctionsByMangledName;
+    dictionary_hash< std::string, pdvector<int_function *> * > allFunctionsByPrettyName;
 
-    dictionary_hash< pdstring, pdvector<int_variable *> * > allVarsByMangledName;
-    dictionary_hash< pdstring, pdvector<int_variable *> * > allVarsByPrettyName;
+    dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByMangledName;
+    dictionary_hash< std::string, pdvector<int_variable *> * > allVarsByPrettyName;
 
     codeRangeTree codeRangesByAddr_;
 
@@ -268,7 +268,7 @@ private:
     void addVariable(int_variable *var);
 
     // Add a name after-the-fact
-    void addFunctionName(int_function *func, const pdstring newName, bool isMangled = false);
+    void addFunctionName(int_function *func, const std::string newName, bool isMangled = false);
 
     bool dirty_; // marks the shared object as dirty 
     bool dirtyCalled_;//see comment for setDirtyCalled
@@ -284,7 +284,7 @@ private:
     // from a string that is a complete path name to a function in a module
     // (ie. "/usr/lib/libc.so.1/write") return a string with the function
     // part removed.  return 0 on error
-    char *getModulePart(pdstring &full_path_name) ;
+    char *getModulePart(std::string &full_path_name) ;
 
 };
 

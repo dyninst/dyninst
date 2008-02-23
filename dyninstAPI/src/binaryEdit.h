@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.h,v 1.8 2008/01/16 22:01:29 legendre Exp $
+// $Id: binaryEdit.h,v 1.9 2008/02/23 02:09:05 jaw Exp $
 
 #ifndef BINARY_H
 #define BINARY_H
@@ -128,9 +128,9 @@ class BinaryEdit : public AddressSpace {
     void deleteBinaryEdit();
 
     // And the "open" factory method.
-    static BinaryEdit *openFile(const pdstring &file);
+    static BinaryEdit *openFile(const std::string &file);
 
-    bool writeFile(const pdstring &newFileName);
+    bool writeFile(const std::string &newFileName);
     
     virtual bool canUseTraps() { return false; }
 
@@ -139,7 +139,7 @@ class BinaryEdit : public AddressSpace {
     Address highWaterMark_;
     Address lowWaterMark_;
 
-    static bool getStatFileDescriptor(const pdstring &file,
+    static bool getStatFileDescriptor(const std::string &file,
                                       fileDescriptor &desc);
 
     bool inferiorMallocStatic(unsigned size);

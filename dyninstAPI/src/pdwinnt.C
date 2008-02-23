@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.181 2008/01/31 18:01:38 legendre Exp $
+// $Id: pdwinnt.C,v 1.182 2008/02/23 02:09:09 jaw Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
+#include <string>
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -95,11 +96,11 @@ void printSysError(unsigned errNo) {
 
 
 // check if a file handle is for kernel32.dll
-static bool kludge_isKernel32Dll(HANDLE fileHandle, pdstring &kernel32Name) {
+static bool kludge_isKernel32Dll(HANDLE fileHandle, std::string &kernel32Name) {
     static DWORD IndxHigh, IndxLow;
     static bool firstTime = true;
     BY_HANDLE_FILE_INFORMATION info;
-    static pdstring kernel32Name_;
+    static std::string kernel32Name_;
 
     if (firstTime) {
        HANDLE kernel32H;
@@ -107,7 +108,7 @@ static bool kludge_isKernel32Dll(HANDLE fileHandle, pdstring &kernel32Name) {
        char sysRootDir[MAX_PATH+1];
        if (GetSystemDirectory(sysRootDir, MAX_PATH) == 0)
           assert(0);
-       kernel32Name_ = pdstring(sysRootDir) + "\\kernel32.dll";
+       kernel32Name_ = std::string(sysRootDir) + "\\kernel32.dll";
        kernel32H = CreateFile(kernel32Name_.c_str(), GENERIC_READ, 
                               FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL);
        assert(kernel32H);
@@ -148,7 +149,7 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
 // osTraceMe is not needed in Windows NT
 void OS::osTraceMe(void) {}
 
-bool process::dumpImage(pdstring outFile)
+bool process::dumpImage(std::string outFile)
 {
   fprintf(stderr, "%s[%d]:  Sorry, dumpImage() not implemented for windows yet\n", FILE__, __LINE__);
   fprintf(stderr, "\t cannot create '%s' as requested\n", outFile.c_str());
@@ -586,7 +587,7 @@ bool dyn_lwp::stop_() {
       return true;
 }
 
-bool process::dumpCore_(const pdstring) {
+bool process::dumpCore_(const std::string) {
     return false;
 }
 
@@ -721,8 +722,8 @@ bool process::isRunning_() const {
 }
 
 
-pdstring 
-process::tryToFindExecutable(const pdstring& iprogpath, int pid)
+std::string 
+process::tryToFindExecutable(const std::string& iprogpath, int pid)
 {
     if( iprogpath.length() == 0 )
     {
@@ -851,7 +852,7 @@ bool SignalGenerator::waitForStopInline()
 bool SignalGenerator::forkNewProcess()
 {
     // create the child process    
-    pdstring args;
+    std::string args;
     for (unsigned ai=0; ai<argv_->size(); ai++) {
        args += (*argv_)[ai];
        args += " ";
@@ -987,7 +988,7 @@ bool OS::osKill(int pid) {
     return res;
 }
 
-bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
+bool SignalGeneratorCommon::getExecFileDescriptor(std::string filename,
                                     int pid,
                                     bool,
                                     int &status,
@@ -1124,10 +1125,10 @@ bool getLWPIDs(pdvector <unsigned> &LWPids)
 //     we read the entire image name string.  If not, we have to adjust
 //     the amount we read and try again.
 //
-pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
+std::string GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
 {
     char *msgText = NULL;
-	pdstring ret;
+	std::string ret;
 	void* pImageName = NULL;
 
 	if( ev.u.LoadDll.lpImageName != NULL )
@@ -1327,7 +1328,7 @@ pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
                 char filename[MAX_PATH+1];
                 int result = GetMappedFileName(GetCurrentProcess(), pmap, filename, MAX_PATH);
                 if (result)
-                    ret = pdstring(filename);
+                    ret = std::string(filename);
                 UnmapViewOfFile(pmap);
             }
             CloseHandle(fmap);
@@ -1530,10 +1531,10 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            pdstring msg = pdstring("Environment variable " +
-                           pdstring("DYNINSTAPI_RT_LIB") +
+            std::string msg = std::string("Environment variable " +
+                           std::string("DYNINSTAPI_RT_LIB") +
                            " has not been defined for process ") +
-                           pdstring(getPid());
+                           std::string(getPid());
             showErrorCallback(101, msg);
             return false;
         }
@@ -1546,8 +1547,8 @@ bool process::getDyninstRTLibName() {
     free(sptr);
            
     if (_access(dyninstRT_name.c_str(), 04)) {
-        pdstring msg = pdstring("Runtime library ") + dyninstRT_name +
-                       pdstring(" does not exist or cannot be accessed!");
+        std::string msg = std::string("Runtime library ") + dyninstRT_name +
+                       std::string(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         return false;
     }
@@ -2144,7 +2145,7 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
    return true;
 }
 
-SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
+SignalGenerator::SignalGenerator(char *idstr, std::string file, int pid)
     : SignalGeneratorCommon(idstr)
 {
     setupAttached(file, pid);
@@ -2172,13 +2173,13 @@ bool ReadDataSpaceCallback::execute_real() {return false;}
 bool WaitPidNoBlockCallback::execute_real() {return false;}
 bool WriteDataSpaceCallback::execute_real() {return false;}
 
-bool OS::executableExists(const pdstring &file) {
+bool OS::executableExists(const std::string &file) {
    struct stat file_stat;
    int stat_result;
 
    stat_result = stat(file.c_str(), &file_stat);
    if (stat_result == -1)
-       stat_result = stat((file + pdstring(".exe")).c_str(), &file_stat);
+       stat_result = stat((file + std::string(".exe")).c_str(), &file_stat);
    return (stat_result != -1);
 }
 

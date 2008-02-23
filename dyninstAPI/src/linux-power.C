@@ -39,8 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.16 2008/01/17 20:03:38 legendre Exp $
+// $Id: linux-power.C,v 1.17 2008/02/23 02:09:08 jaw Exp $
 
+#include <string>
 #include <dlfcn.h>
 
 #include "dyninstAPI/src/debuggerinterface.h"
@@ -699,10 +700,10 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            pdstring msg = pdstring("Environment variable ") +
-                            pdstring("DYNINSTAPI_RT_LIB") +
-                            pdstring(" has not been defined for process ")
-                            + pdstring(getPid());
+            std::string msg = std::string("Environment variable ") +
+                            std::string("DYNINSTAPI_RT_LIB") +
+                            std::string(" has not been defined for process ")
+                            + std::string(getPid());
             showErrorCallback(101, msg);
             return false;
         }
@@ -723,15 +724,15 @@ bool process::getDyninstRTLibName() {
             return false;
         }
 
-        dyninstRT_name = pdstring(name, split - name) +
-                         pdstring(modifier) +
-                         pdstring(split);
+        dyninstRT_name = std::string(name, split - name) +
+                         std::string(modifier) +
+                         std::string(split);
     }
 
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {
-        pdstring msg = pdstring("Runtime library ") + dyninstRT_name
-        + pdstring(" does not exist or cannot be accessed!");
+        std::string msg = std::string("Runtime library ") + dyninstRT_name
+        + std::string(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         return false;
     }

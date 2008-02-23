@@ -39,9 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.137 2008/02/20 08:31:03 jaw Exp $
+// $Id: linux-x86.C,v 1.138 2008/02/23 02:09:08 jaw Exp $
 
 #include <fstream>
+#include <string>
 
 #include "dyninstAPI/src/process.h"
 
@@ -129,7 +130,8 @@ const int FPREGS_STRUCT_SIZE = sizeof( user_i387_struct );
 
 /* ********************************************************************** */
 
-bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
+bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) 
+{
    // Cycle through all registers, reading each from the
    // process user space with ptrace(PTRACE_PEEKUSER ...
    int error;
@@ -137,23 +139,23 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs, bool includeFP) {
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
    error = DBI_ptrace(PTRACE_GETREGS, get_lwp_id(), 0, (long)&(regs->gprs), 
-			&ptrace_errno, proc_->getAddressWidth(),  
-			__FILE__, __LINE__ );
+         &ptrace_errno, proc_->getAddressWidth(),  
+         __FILE__, __LINE__ );
    if( error ) {
       perror("dyn_lwp::getRegisters PTRACE_GETREGS" );
       errorFlag = true;
       return false;
    }
 
-    if (includeFP)
-    {
+   if (includeFP)
+   {
       error = DBI_ptrace(PTRACE_GETFPREGS, get_lwp_id(), 0,
-                         (long)&(regs->fprs), &ptrace_errno,
-                         proc_->getAddressWidth(),  __FILE__, __LINE__);
+            (long)&(regs->fprs), &ptrace_errno,
+            proc_->getAddressWidth(),  __FILE__, __LINE__);
 
       if( error ) {
          perror("dyn_lwp::getRegisters PTRACE_GETFPREGS" );
-	 return false;
+         return false;
       }
    }
    return true;
@@ -163,8 +165,8 @@ void dyn_lwp::dumpRegisters()
 {
    dyn_saved_regs regs;
    if (!getRegisters(&regs)) {
-     fprintf(stderr, "%s[%d]:  registers unavailable\n", FILE__, __LINE__);
-     return;
+      fprintf(stderr, "%s[%d]:  registers unavailable\n", FILE__, __LINE__);
+      return;
    }
 
 #if defined(arch_x86)
@@ -178,19 +180,19 @@ void dyn_lwp::dumpRegisters()
 }
 
 bool dyn_lwp::changePC(Address loc,
-                       struct dyn_saved_regs */*ignored registers*/)
+      struct dyn_saved_regs */*ignored registers*/)
 {
    Address regaddr = P_offsetof(struct user_regs_struct, PTRACE_REG_IP);
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
    if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc, 
-		       &ptrace_errno, proc_->getAddressWidth(),  
-		       __FILE__, __LINE__ )) {
+            &ptrace_errno, proc_->getAddressWidth(),  
+            __FILE__, __LINE__ )) {
       fprintf(stderr, "dyn_lwp::changePC - PTRACE_POKEUSER failure for %u",
-              get_lwp_id());
+            get_lwp_id());
       return false;
    }
-   
+
    return true;
 }
 
@@ -210,25 +212,25 @@ bool dyn_lwp::clearOPC()
 #define REG_STR_(x)	#x
 void printRegs( void *save ) 
 {
-    user_regs_struct *regs = (user_regs_struct*)save;
-    cerr
-	<< REG_STR( PTRACE_REG_AX ) ": " << (void*)regs->PTRACE_REG_AX
-	<< REG_STR( PTRACE_REG_BX ) ": " << (void*)regs->PTRACE_REG_BX
-	<< REG_STR( PTRACE_REG_CX ) ": " << (void*)regs->PTRACE_REG_CX
-	<< REG_STR( PTRACE_REG_DX ) ": " << (void*)regs->PTRACE_REG_DX << endl
-	<< REG_STR( PTRACE_REG_DI ) ": " << (void*)regs->PTRACE_REG_DI
-	<< REG_STR( PTRACE_REG_SI ) ": " << (void*)regs->PTRACE_REG_SI << endl
-	<< REG_STR( PTRACE_REG_CS ) ": " << (void*)regs->PTRACE_REG_CS
-	<< REG_STR( PTRACE_REG_DS ) ": " << (void*)regs->PTRACE_REG_DS
-	<< REG_STR( PTRACE_REG_ES ) ": " << (void*)regs->PTRACE_REG_ES
-	<< REG_STR( PTRACE_REG_FS ) ": " << (void*)regs->PTRACE_REG_FS
-	<< REG_STR( PTRACE_REG_GS ) ": " << (void*)regs->PTRACE_REG_GS
-	<< REG_STR( PTRACE_REG_SS ) ": " << (void*)regs->PTRACE_REG_SS << endl
-	<< REG_STR( PTRACE_REG_IP ) ": " << (void*)regs->PTRACE_REG_IP
-	<< REG_STR( PTRACE_REG_SP ) ": " << (void*)regs->PTRACE_REG_SP
-	<< REG_STR( PTRACE_REG_BP ) ": " << (void*)regs->PTRACE_REG_BP << endl
-	<< REG_STR( PTRACE_REG_ORIG_AX ) ": " << (void*)regs->PTRACE_REG_ORIG_AX
-	<< REG_STR( PTRACE_REG_FLAGS ) ": " << (void*)regs->PTRACE_REG_FLAGS << endl;
+   user_regs_struct *regs = (user_regs_struct*)save;
+   cerr
+      << REG_STR( PTRACE_REG_AX ) ": " << (void*)regs->PTRACE_REG_AX
+      << REG_STR( PTRACE_REG_BX ) ": " << (void*)regs->PTRACE_REG_BX
+      << REG_STR( PTRACE_REG_CX ) ": " << (void*)regs->PTRACE_REG_CX
+      << REG_STR( PTRACE_REG_DX ) ": " << (void*)regs->PTRACE_REG_DX << endl
+      << REG_STR( PTRACE_REG_DI ) ": " << (void*)regs->PTRACE_REG_DI
+      << REG_STR( PTRACE_REG_SI ) ": " << (void*)regs->PTRACE_REG_SI << endl
+      << REG_STR( PTRACE_REG_CS ) ": " << (void*)regs->PTRACE_REG_CS
+      << REG_STR( PTRACE_REG_DS ) ": " << (void*)regs->PTRACE_REG_DS
+      << REG_STR( PTRACE_REG_ES ) ": " << (void*)regs->PTRACE_REG_ES
+      << REG_STR( PTRACE_REG_FS ) ": " << (void*)regs->PTRACE_REG_FS
+      << REG_STR( PTRACE_REG_GS ) ": " << (void*)regs->PTRACE_REG_GS
+      << REG_STR( PTRACE_REG_SS ) ": " << (void*)regs->PTRACE_REG_SS << endl
+      << REG_STR( PTRACE_REG_IP ) ": " << (void*)regs->PTRACE_REG_IP
+      << REG_STR( PTRACE_REG_SP ) ": " << (void*)regs->PTRACE_REG_SP
+      << REG_STR( PTRACE_REG_BP ) ": " << (void*)regs->PTRACE_REG_BP << endl
+      << REG_STR( PTRACE_REG_ORIG_AX ) ": " << (void*)regs->PTRACE_REG_ORIG_AX
+      << REG_STR( PTRACE_REG_FLAGS ) ": " << (void*)regs->PTRACE_REG_FLAGS << endl;
 }
 
 
@@ -238,25 +240,25 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs, bool includeF
 
    bool retVal = true;
    int ptrace_errno = 0;
-   
+
 
    assert(get_lwp_id() != 0);
    if( DBI_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(long)&(regs.gprs), 
-		   &ptrace_errno, proc_->getAddressWidth(),  
-                   __FILE__, __LINE__ ) )
+            &ptrace_errno, proc_->getAddressWidth(),  
+            __FILE__, __LINE__ ) )
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
       retVal = false;
    }
-   
+
    if (includeFP) {
       if( DBI_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (long)&(regs.fprs), 
-                      &ptrace_errno, proc_->getAddressWidth(),  
-                      __FILE__, __LINE__))
-     {
-        perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
-        retVal = false;
-     }
+               &ptrace_errno, proc_->getAddressWidth(),  
+               __FILE__, __LINE__))
+      {
+         perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
+         retVal = false;
+      }
    }
    return retVal;
 }
@@ -266,9 +268,9 @@ Frame dyn_lwp::getActiveFrame()
 {
    if(status() == running) {
       fprintf(stderr, "%s[%d][%s]:  FIXME\n", __FILE__, __LINE__, 
-              getThreadStr(getExecThreadID()));
+            getThreadStr(getExecThreadID()));
       cerr << "    performance problem in call to dyn_lwp::getActiveFrame\n"
-           << "       successive pauses and continues with ptrace calls\n";
+         << "       successive pauses and continues with ptrace calls\n";
    }
 
    Address pc, fp, sp;
@@ -284,118 +286,119 @@ Frame dyn_lwp::getActiveFrame()
    if (ptrace_errno) return Frame();
 
    dbi_printf("%s[%d]:  GET ACTIVE FRAME (pc = %p, sp = %p, fp = %p\n", 
-              FILE__, __LINE__, pc, sp, fp);
+         FILE__, __LINE__, pc, sp, fp);
 
    return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
 }
 
 bool process::loadDYNINSTlibCleanup(dyn_lwp *trappingLWP)
 {
-  // rewrite original instructions in the text segment we use for 
-  // the inferiorRPC - naim
-  unsigned count = sizeof(savedCodeBuffer);
+   // rewrite original instructions in the text segment we use for 
+   // the inferiorRPC - naim
+   unsigned count = sizeof(savedCodeBuffer);
 
-  Address codeBase = findFunctionToHijack(this);
-  assert(codeBase);
+   Address codeBase = findFunctionToHijack(this);
+   assert(codeBase);
 
-  writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
+   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
 
-  // restore registers
-  assert(savedRegs != NULL);
-  trappingLWP->restoreRegisters(*savedRegs);
+   // restore registers
+   assert(savedRegs != NULL);
+   trappingLWP->restoreRegisters(*savedRegs);
 
-  delete savedRegs;
-  savedRegs = NULL;
-  return true;
+   delete savedRegs;
+   savedRegs = NULL;
+   return true;
 }
 
 bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
 {
-    assert(main_brk_addr);
-    assert(trappingLWP);
-    // restore original instruction 
-    // Use this for the size -- make sure that we're using the same
-    // insn in both places. Or give savedCodeBuffer a size twin.
+   assert(main_brk_addr);
+   assert(trappingLWP);
+   // restore original instruction 
+   // Use this for the size -- make sure that we're using the same
+   // insn in both places. Or give savedCodeBuffer a size twin.
 
-    if (!writeDataSpace((void *)main_brk_addr, sizeof(savedCodeBuffer), (char *)savedCodeBuffer))
-        return false;
+   if (!writeDataSpace((void *)main_brk_addr, sizeof(savedCodeBuffer), (char *)savedCodeBuffer))
+      return false;
 
-    if (! trappingLWP->changePC(main_brk_addr,NULL))
-        {
-            logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
-            assert(0);
-        }
-    
-    main_brk_addr = 0;
-    return true;
+   if (! trappingLWP->changePC(main_brk_addr,NULL))
+   {
+      logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+      assert(0);
+   }
+
+   main_brk_addr = 0;
+   return true;
 }
 
 bool process::insertTrapAtEntryPointOfMain()
 {
 
-    int_function *f_main = 0;
-    pdvector<int_function *> funcs;
-    //first check a.out for function symbol   
-    bool res = findFuncsByPretty("main", funcs);
-    if (!res)
-    {
-        logLine( "a.out has no main function. checking for PLT entry\n" );
-        //we have not found a "main" check if we have a plt entry
-	res = findFuncsByPretty( "DYNINST_pltMain", funcs );
- 
-	if (!res) {
-            logLine( "no PLT entry for main found\n" );
-            return false;
-	  }       
-    }
-    
-    if( funcs.size() > 1 ) {
-        cerr << __FILE__ << __LINE__ 
-             << ": found more than one main! using the first" << endl;
-    }
-    f_main = funcs[0];
-    assert(f_main);
-    Address addr = f_main->getAddress();
+   int_function *f_main = 0;
+   pdvector<int_function *> funcs;
+   //first check a.out for function symbol   
+   bool res = findFuncsByPretty("main", funcs);
+   if (!res)
+   {
+      logLine( "a.out has no main function. checking for PLT entry\n" );
+      //we have not found a "main" check if we have a plt entry
+      res = findFuncsByPretty( "DYNINST_pltMain", funcs );
 
-    // and now, insert trap
-    // For some reason, using a trap breaks but using an illegal works. Anyone 
-    // have any idea?
-    // It looks like the trap PC is actual PC + 1...
-    // This is ugly, but we'll have the "check if this was entry of main" function
-    // check main_brk_addr or main_brk_addr + 1...
-    startup_printf("%s[%d]: Saving %d bytes from entry of main of %d...\n", 
-                   FILE__, __LINE__, sizeof(savedCodeBuffer), getPid());
+      if (!res) {
+         logLine( "no PLT entry for main found\n" );
+         return false;
+      }       
+   }
 
-    // save original instruction first
-    if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer), savedCodeBuffer, true)) {
-        fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-        fprintf(stderr, "%s[%d][%s]:  failing insertTrapAtEntryPointOfMain\n",
+   if( funcs.size() > 1 ) {
+      cerr << __FILE__ << __LINE__ 
+         << ": found more than one main! using the first" << endl;
+   }
+   f_main = funcs[0];
+   assert(f_main);
+   Address addr = f_main->getAddress();
+
+   // and now, insert trap
+   // For some reason, using a trap breaks but using an illegal works. Anyone 
+   // have any idea?
+   // It looks like the trap PC is actual PC + 1...
+   // This is ugly, but we'll have the "check if this was entry of main" function
+   // check main_brk_addr or main_brk_addr + 1...
+   startup_printf("%s[%d]: Saving %d bytes from entry of main of %d...\n", 
+         FILE__, __LINE__, sizeof(savedCodeBuffer), getPid());
+
+   // save original instruction first
+   if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer), savedCodeBuffer, true)) {
+      fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+      fprintf(stderr, "%s[%d][%s]:  failing insertTrapAtEntryPointOfMain\n",
             __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        fprintf(stderr, "Failed to read at address 0x%lx\n", addr);
-        return false;
-    }
+      fprintf(stderr, "Failed to read at address 0x%lx\n", addr);
+      return false;
+   }
 
-    codeGen gen(1);
-    instruction::generateTrap(gen);
-    
-    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
-        fprintf(stderr, "%s[%d][%s]:  failing insertTrapAtEntryPointOfMain\n",
+   codeGen gen(1);
+   instruction::generateTrap(gen);
+
+   if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
+      fprintf(stderr, "%s[%d][%s]:  failing insertTrapAtEntryPointOfMain\n",
             __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        return false;
-    }
-    
-    main_brk_addr = addr;
+      return false;
+   }
 
-    signal_printf("Added trap at entry of main, address 0x%x\n", main_brk_addr);
-    return true;
+   main_brk_addr = addr;
+
+   signal_printf("Added trap at entry of main, address 0x%x\n", main_brk_addr);
+   return true;
 }
 
 #if defined(arch_x86_64)
 
-bool process::getSysCallParameters(dyn_saved_regs *regs, long *params, int numparams) {
+bool process::getSysCallParameters(dyn_saved_regs *regs, long *params, int numparams) 
+{
    if (getAddressWidth() == 4) { // 32 bit mutatee
    } else { // 64 bit mutatee, have to use ifdef, otherwise it won't
-            // compile on a 32 bit machine
+      // compile on a 32 bit machine
       if (numparams > 0) {
          params[0] = regs->gprs.rdi;
       }
@@ -416,7 +419,7 @@ bool process::getSysCallParameters(dyn_saved_regs *regs, long *params, int numpa
       }
       for (int i=6; i < numparams; i++) {
          if (!readDataSpace((void*)regs->gprs.rsp, getAddressWidth(), 
-                                  (void*)(params + i * getAddressWidth()), true)) {
+                  (void*)(params + i * getAddressWidth()), true)) {
             return false;
          }
       }
@@ -453,7 +456,7 @@ Address process::getLibcStartMainParam(dyn_lwp *trappingLWP) {
    trappingLWP->getRegisters(&regs);
    if (getAddressWidth() == 4) { // 32 bit mutatee
       if (!readDataSpace((void*)(regs.gprs.rsp + getAddressWidth()),
-                               getAddressWidth(), (void*)&mainaddr,true)) {
+               getAddressWidth(), (void*)&mainaddr,true)) {
          fprintf(stderr,"[%s][%d]: failed readDataSpace\n", __FILE__,__LINE__); 
       }
    } else { // 64 bit mutatee
@@ -465,75 +468,87 @@ Address process::getLibcStartMainParam(dyn_lwp *trappingLWP) {
 #else 
 // 32 bit architecture
 bool process::getSysCallParameters(dyn_saved_regs *regs, 
-                                   long *params, int numparams) {
-    if (numparams > 0) {
-        params[0] = regs->gprs.ebx;
-    }
-    if (numparams > 1) {
-        params[1] = regs->gprs.ecx;
-    }
-    if (numparams > 2) {
-        params[2] = regs->gprs.edx;
-    }
-    if (numparams > 3) {
-        params[3] = regs->gprs.esi;
-    }
-    if (numparams > 4) {
-        params[4] = regs->gprs.edi;
-    }
-    if (numparams > 5) {
-        params[5] = regs->gprs.ebp;
-    }
-    for (int i=6; i < numparams; i++) {
-        if (!readDataSpace((void*)regs->gprs.esp, getAddressWidth(), 
-                         (void*)(params + i * getAddressWidth()), true)) {
-            return false;
-        }
-    }
-    return true;
-}
-int process::getSysCallNumber(dyn_saved_regs *regs) {
-    return regs->gprs.orig_eax;
-}
-long process::getSysCallReturnValue(dyn_saved_regs *regs) {
-    return regs->gprs.eax;
-}
-Address process::getSysCallProgramCounter(dyn_saved_regs *regs) {
-    return regs->gprs.eip;
-}
-bool process::isMmapSysCall(int callnum) {
-    return (callnum == SYS_mmap || callnum == SYS_mmap2);
+      long *params, int numparams) {
+   if (numparams > 0) {
+      params[0] = regs->gprs.ebx;
+   }
+   if (numparams > 1) {
+      params[1] = regs->gprs.ecx;
+   }
+   if (numparams > 2) {
+      params[2] = regs->gprs.edx;
+   }
+   if (numparams > 3) {
+      params[3] = regs->gprs.esi;
+   }
+   if (numparams > 4) {
+      params[4] = regs->gprs.edi;
+   }
+   if (numparams > 5) {
+      params[5] = regs->gprs.ebp;
+   }
+   for (int i=6; i < numparams; i++) {
+      if (!readDataSpace((void*)regs->gprs.esp, getAddressWidth(), 
+               (void*)(params + i * getAddressWidth()), true)) {
+         return false;
+      }
+   }
+   return true;
 }
 
-Offset process::getMmapLength(int callnum, dyn_saved_regs *regs) {
-    if (callnum == SYS_mmap) {
-        Offset length;
-        readDataSpace((void*)(regs->gprs.ebx + getAddressWidth()),
-                            getAddressWidth(), (void*)&length, true);
-        return length;
-    }
-    else {
-        return (Offset) regs->gprs.ecx;
-    }
+int process::getSysCallNumber(dyn_saved_regs *regs) 
+{
+   return regs->gprs.orig_eax;
 }
-Address process::getLibcStartMainParam(dyn_lwp *trappingLWP) {
-    dyn_saved_regs regs;
-    trappingLWP->getRegisters(&regs);
-    Address mainaddr;
-    if (!readDataSpace((void*)(regs.gprs.esp + getAddressWidth()),
-                       getAddressWidth(), (void*)&mainaddr,true)) {
-        fprintf(stderr,"[%s][%d]: failed readDataSpace\n", __FILE__,__LINE__); 
-    }
-    return mainaddr;
+
+long process::getSysCallReturnValue(dyn_saved_regs *regs) 
+{
+   return regs->gprs.eax;
+}
+
+Address process::getSysCallProgramCounter(dyn_saved_regs *regs) 
+{
+   return regs->gprs.eip;
+}
+
+bool process::isMmapSysCall(int callnum) {
+   return (callnum == SYS_mmap || callnum == SYS_mmap2);
+}
+
+Offset process::getMmapLength(int callnum, dyn_saved_regs *regs) 
+{
+   if (callnum == SYS_mmap) {
+      Offset length;
+      readDataSpace((void*)(regs->gprs.ebx + getAddressWidth()),
+            getAddressWidth(), (void*)&length, true);
+      return length;
+   }
+   else {
+      return (Offset) regs->gprs.ecx;
+   }
+}
+
+Address process::getLibcStartMainParam(dyn_lwp *trappingLWP) 
+{
+   dyn_saved_regs regs;
+   trappingLWP->getRegisters(&regs);
+   Address mainaddr;
+   if (!readDataSpace((void*)(regs.gprs.esp + getAddressWidth()),
+            getAddressWidth(), (void*)&mainaddr,true)) {
+      fprintf(stderr,"[%s][%d]: failed readDataSpace\n", __FILE__,__LINE__); 
+   }
+   return mainaddr;
 } 
 
 #endif
 
-void process::setTraceSysCalls(bool traceSys) {
+void process::setTraceSysCalls(bool traceSys) 
+{
    traceSysCalls_ = traceSys;
 }
 
-void process::setTraceState(traceState_t state) {
+void process::setTraceState(traceState_t state) 
+{
    traceState_ = state;
 }
 
@@ -544,52 +559,52 @@ void process::setTraceState(traceState_t state) {
  */
 bool process::decodeStartupSysCalls(EventRecord &ev) 
 {
-    // set up parameters & variables, which is platform dependent
-    const int NUMPARAMS = 6;
-    dyn_saved_regs regs;
-    ev.lwp->getRegisters(&regs);
-    long params[NUMPARAMS];
-    int callnum = getSysCallNumber(&regs);
-    long retval = getSysCallReturnValue(&regs);
-    Address programCounter = getSysCallProgramCounter(&regs);
-    getSysCallParameters(&regs, params, NUMPARAMS);
+   // set up parameters & variables, which is platform dependent
+   const int NUMPARAMS = 6;
+   dyn_saved_regs regs;
+   ev.lwp->getRegisters(&regs);
+   long params[NUMPARAMS];
+   int callnum = getSysCallNumber(&regs);
+   long retval = getSysCallReturnValue(&regs);
+   Address programCounter = getSysCallProgramCounter(&regs);
+   getSysCallParameters(&regs, params, NUMPARAMS);
 
-    int traceerr = 0;
-    ev.type = evtNullEvent;
-    int addrWidth=getAddressWidth();
+   int traceerr = 0;
+   ev.type = evtNullEvent;
+   int addrWidth=getAddressWidth();
 
-    startup_printf("%s[%d]: decodeStartupSysCalls got tracestate=%d callnum=%d PC=0x%lx\n", 
-           FILE__, __LINE__, getTraceState(), callnum, programCounter);
+   startup_printf("%s[%d]: decodeStartupSysCalls got tracestate=%d callnum=%d PC=0x%lx\n", 
+         FILE__, __LINE__, getTraceState(), callnum, programCounter);
 
-    // mmap syscall (there are multiple mmap syscalls on some platforms)
-    // store the start and end addresses of the region so that we can later
-    // determine which of the regions contains main
-    if (isMmapSysCall(callnum)) {
-       if (retval == -ENOSYS) { // grab the mmap region end address
-           mappedRegionEnd.push_back(getMmapLength(callnum, &regs));
-       } else { // the return value of mmap is the region's start address
-           mappedRegionStart.push_back(retval);
-           // turn the OFFSET we put into mappedRegionEnd into an absolute Address
-           mappedRegionEnd[mappedRegionEnd.size()-1] 
-               = mappedRegionEnd[mappedRegionEnd.size()-1] + retval;
-           startup_printf("%s[%d]: traced mmap syscall for region[0x%x 0x%x]\n",
-                   __FILE__,__LINE__,
-                   (int)mappedRegionStart[mappedRegionStart.size()-1],
-                   (int)mappedRegionEnd[mappedRegionEnd.size()-1]);
-       }
-    }
-    // munmap: we also keep track of memory regions that are removed
-    else if (callnum==SYS_munmap && retval == -ENOSYS) { 
-       Address regionStart = params[0];
-       munmappedRegions.push_back(regionStart);
-       startup_printf("%s[%d]: traced munmap syscall for region at 0x%x\n",
-                      __FILE__,__LINE__, (int)regionStart);
-    }
+   // mmap syscall (there are multiple mmap syscalls on some platforms)
+   // store the start and end addresses of the region so that we can later
+   // determine which of the regions contains main
+   if (isMmapSysCall(callnum)) {
+      if (retval == -ENOSYS) { // grab the mmap region end address
+         mappedRegionEnd.push_back(getMmapLength(callnum, &regs));
+      } else { // the return value of mmap is the region's start address
+         mappedRegionStart.push_back(retval);
+         // turn the OFFSET we put into mappedRegionEnd into an absolute Address
+         mappedRegionEnd[mappedRegionEnd.size()-1] 
+            = mappedRegionEnd[mappedRegionEnd.size()-1] + retval;
+         startup_printf("%s[%d]: traced mmap syscall for region[0x%x 0x%x]\n",
+               __FILE__,__LINE__,
+               (int)mappedRegionStart[mappedRegionStart.size()-1],
+               (int)mappedRegionEnd[mappedRegionEnd.size()-1]);
+      }
+   }
+   // munmap: we also keep track of memory regions that are removed
+   else if (callnum==SYS_munmap && retval == -ENOSYS) { 
+      Address regionStart = params[0];
+      munmappedRegions.push_back(regionStart);
+      startup_printf("%s[%d]: traced munmap syscall for region at 0x%x\n",
+            __FILE__,__LINE__, (int)regionStart);
+   }
 
-    // switch on state, this is an automaton
-    switch (getTraceState()) { 
-    case libcOpenCall_ts: // wait for call to open libc.so
-        if(callnum == SYS_open) { // open syscall
+   // switch on state, this is an automaton
+   switch (getTraceState()) { 
+      case libcOpenCall_ts: // wait for call to open libc.so
+         if(callnum == SYS_open) { // open syscall
             char *oneword = (char*) malloc(addrWidth);
             char *pathbuffer = (char*) malloc(256);
             char *ptr = pathbuffer;
@@ -598,69 +613,69 @@ bool process::decodeStartupSysCalls(EventRecord &ev)
             // recover the opened path from the call's arguments
             do {
                if (!readDataSpace((void*)stringAddr, addrWidth,
-                                        (void*)oneword,true)) {
-                   fprintf(stderr,"%s[%d]: failed readDataSpace\n",FILE__,__LINE__ );
-                   return false;
+                        (void*)oneword,true)) {
+                  fprintf(stderr,"%s[%d]: failed readDataSpace\n",FILE__,__LINE__ );
+                  return false;
                }
                strncpy(ptr, oneword, addrWidth);
                stringAddr += addrWidth; 
                ptr += addrWidth;
                for (int idx=0; idx < addrWidth; idx++) {
-                   if (oneword[idx] == '\0') {
-                       lastchar = idx;
-                   }
+                  if (oneword[idx] == '\0') {
+                     lastchar = idx;
+                  }
                }
             }while (ptr - pathbuffer < 256 && lastchar == addrWidth);
             pathbuffer[255] = '\0';
             // if the path matches libc.so, transition state
             if (strstr(pathbuffer, "libc.so")) {
-                setTraceState(libcOpenRet_ts);
+               setTraceState(libcOpenRet_ts);
             }
             free(pathbuffer);
             free(oneword);
-        } // end if syscall to open
-        break;
-    case libcOpenRet_ts: // Save file-handle returned by open
-        // syscall on libc
-        if(callnum == SYS_open) { // call to open
+         } // end if syscall to open
+         break;
+      case libcOpenRet_ts: // Save file-handle returned by open
+         // syscall on libc
+         if(callnum == SYS_open) { // call to open
             if (retval >= 0) {
-                libcHandle_ = retval; 
-                setTraceState(libcClose_ts);
+               libcHandle_ = retval; 
+               setTraceState(libcClose_ts);
             }
             else {// open syscall was unsuccessful, revert to previous state
-                setTraceState(libcOpenCall_ts);
+               setTraceState(libcOpenCall_ts);
             }
-        }
-        break;
-    case libcClose_ts:  //find close syscall matching libc open 
-        if (callnum == SYS_close && retval == -ENOSYS) {
+         }
+         break;
+      case libcClose_ts:  //find close syscall matching libc open 
+         if (callnum == SYS_close && retval == -ENOSYS) {
             int fd = params[0];
             if (traceerr != 0) { 
-                fprintf(stderr,"[%s][%d]: ptrace err here\n", __FILE__,__LINE__); 
+               fprintf(stderr,"[%s][%d]: ptrace err here\n", __FILE__,__LINE__); 
             }
             if (fd == libcHandle_) { // found close
-                setTraceState(instrumentLibc_ts); 
-                setBootstrapState(libcLoaded_bs);
-                ev.type = evtLibcLoaded;
+               setTraceState(instrumentLibc_ts); 
+               setBootstrapState(libcLoaded_bs);
+               ev.type = evtLibcLoaded;
             }
-        }
-        break;
-    case instrumentLibc_ts: // results in handling of trap in startmain 
-        if (abs((long)getlibcstartmain_brk_addr() -(long)programCounter) <= 1) {
+         }
+         break;
+      case instrumentLibc_ts: // results in handling of trap in startmain 
+         if (abs((long)getlibcstartmain_brk_addr() -(long)programCounter) <= 1) {
             setTraceState(done_ts);
             setTraceSysCalls(false);
             ev.type = evtLibcTrap;
-        }
-        else {
+         }
+         else {
             return false;
-        }
-        break;
-    default:
-        fprintf(stderr,"[%s][%d] Internal error, should not reach this point\n",
-                __FILE__,__LINE__);
-        return false;
-    }// end switch statement
-    return true;
+         }
+         break;
+      default:
+         fprintf(stderr,"[%s][%d] Internal error, should not reach this point\n",
+               __FILE__,__LINE__);
+         return false;
+   }// end switch statement
+   return true;
 }// end decodeStartupSysCalls
 
 /* Find libc and add it as a shared object
@@ -672,73 +687,75 @@ bool process::decodeStartupSysCalls(EventRecord &ev)
 bool process::instrumentLibcStartMain() 
 {
    /*
-    // find libc, this will get shared object information from the dynamic linker
+   // find libc, this will get shared object information from the dynamic linker
    if (processSharedObjects()) {
-        logLine( "Failed to get dyninst's list of mapped objects\n");
-        return false;
-    }
-    mapped_object* libc = findObject("/libc*.so",true);
-    if (!libc) {
-        logLine("Libc seems not to have been loaded, could not instrument "
-                "__libc_start_main\n");
-        return false;
-    }
-    mapped_object *libc = mapped_object::createMappedObject(libs[libIdx], this);
-   */
-    unsigned int maps_size =0;
-    map_entries *maps = getLinuxMaps(getPid(), maps_size);
-    unsigned int libcIdx=0;
-    while (libcIdx < maps_size &&
-           ! (strstr(maps[libcIdx].path,"/libc")
-              && strstr(maps[libcIdx].path,".so"))) {
-       libcIdx++;
-    }
-    assert(libcIdx != maps_size);
-    //KEVINTODO: the last two args are not always 0,0: need to fix this (also in BPatch_image?)
-    fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path, true, 0, 0);
-    mapped_object *libc = mapped_object::createMappedObject(libcFD, this);
-    addASharedObject(libc);
+   logLine( "Failed to get dyninst's list of mapped objects\n");
+   return false;
+   }
+   mapped_object* libc = findObject("/libc*.so",true);
+   if (!libc) {
+   logLine("Libc seems not to have been loaded, could not instrument "
+   "__libc_start_main\n");
+   return false;
+   }
+   mapped_object *libc = mapped_object::createMappedObject(libs[libIdx], this);
+    */
+   unsigned int maps_size =0;
+   map_entries *maps = getLinuxMaps(getPid(), maps_size);
+   unsigned int libcIdx=0;
+   while (libcIdx < maps_size &&
+         ! (strstr(maps[libcIdx].path,"/libc")
+            && strstr(maps[libcIdx].path,".so"))) {
+      libcIdx++;
+   }
+   assert(libcIdx != maps_size);
+   //KEVINTODO: the last two args are not always 0,0: need to fix this (also in BPatch_image?)
+   fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path, true, 0, 0);
+   mapped_object *libc = mapped_object::createMappedObject(libcFD, this);
+   addASharedObject(libc);
 
-    // find __libc_startmain
-    const pdvector<int_function*> *funcs;
-    funcs = libc->findFuncVectorByPretty("__libc_start_main");
-    if(funcs->size() == 0 || (*funcs)[0] == NULL) {
-        logLine( "Couldn't find __libc_start_main\n");
-        return false;
-    } else if (funcs->size() > 1) {
-        pdstring msg = pdstring("Found ") + pdstring(funcs->size()) + 
-            pdstring("functions called __libc_start_main, not fatal but weird\n");
-        BPatch_reportError(BPatchSerious, 100, msg.c_str());
-    }
-    if (!(*funcs)[0]->isInstrumentable()) {
-        logLine( "__libc_start_main is not instrumentable\n");
-        return false;
-    }
-    Address addr = (*funcs)[0]->getAddress();
-    startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
-                   FILE__, __LINE__, (int)addr);
+   // find __libc_startmain
+   const pdvector<int_function*> *funcs;
+   funcs = libc->findFuncVectorByPretty("__libc_start_main");
+   if(funcs->size() == 0 || (*funcs)[0] == NULL) {
+      logLine( "Couldn't find __libc_start_main\n");
+      return false;
+   } else if (funcs->size() > 1) {
+      char sizestr[50];
+      sprintf(sizestr, "%d", funcs->size());
+      std::string msg = std::string("Found ") + std::string(sizestr) + 
+         std::string("functions called __libc_start_main, not fatal but weird\n");
+      BPatch_reportError(BPatchSerious, 100, msg.c_str());
+   }
+   if (!(*funcs)[0]->isInstrumentable()) {
+      logLine( "__libc_start_main is not instrumentable\n");
+      return false;
+   }
+   Address addr = (*funcs)[0]->getAddress();
+   startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
+         FILE__, __LINE__, (int)addr);
 
-    // save original code at beginning of function
-    if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer),savedCodeBuffer,true)) {
-        fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-        fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
+   // save original code at beginning of function
+   if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer),savedCodeBuffer,true)) {
+      fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+      fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
             __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        fprintf(stderr, "Failed to read at address 0x%lx\n", addr);
-        return false;
-    }
-    startup_printf("%s[%d]: Saved %d bytes from entry of __libc_start_main\n", 
-                   FILE__, __LINE__, sizeof(savedCodeBuffer));
-    // insert trap
-    codeGen gen(1);
-    instruction::generateTrap(gen);
-    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
-        fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
+      fprintf(stderr, "Failed to read at address 0x%lx\n", addr);
+      return false;
+   }
+   startup_printf("%s[%d]: Saved %d bytes from entry of __libc_start_main\n", 
+         FILE__, __LINE__, sizeof(savedCodeBuffer));
+   // insert trap
+   codeGen gen(1);
+   instruction::generateTrap(gen);
+   if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
+      fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
             __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        return false;
-    }
-    libcstartmain_brk_addr = addr;
-    continueProc(); // signal process to continue
-    return true;
+      return false;
+   }
+   libcstartmain_brk_addr = addr;
+   continueProc(); // signal process to continue
+   return true;
 }// end instrumentLibcStartMain
 
 
@@ -750,131 +767,131 @@ bool process::instrumentLibcStartMain()
  */
 bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
 {
-    assert(libcstartmain_brk_addr);
-    assert(trappingLWP);
+   assert(libcstartmain_brk_addr);
+   assert(trappingLWP);
 
-    // Read the parameters from the call to libcStartMain
-    Address mainaddr = getLibcStartMainParam(trappingLWP);
-    mapped_object *a_out = findObject(mainaddr);
+   // Read the parameters from the call to libcStartMain
+   Address mainaddr = getLibcStartMainParam(trappingLWP);
+   mapped_object *a_out = findObject(mainaddr);
 
-    char namebuf[64];
-    Address regionStart = 0;
-    Address regionEnd = 0;
-    // there might not be an object that corresponds to the a_out
-    if (a_out == NULL) {
-        // determine confines of region that encloses main, search from
-        // end to get most recent mmap of an enclosing region
-        int idx =  (int)mappedRegionStart.size()-1;
-        while (idx >= 0  && 
-               !(mappedRegionStart[idx] <= mainaddr 
-                 && mainaddr <= mappedRegionEnd[idx])) {
-            idx--;
-        }
-        if (idx < 0) {
-            fprintf(stderr,"%s[%d] No valid memory region seems to contain "
-                    "the address of main=0x%x\n",__FILE__,__LINE__, 
-                    (int)mainaddr);
-            return false;
-        }
-        regionStart = mappedRegionStart[idx];
-        regionEnd = mappedRegionEnd[idx];
-        startup_printf("main(0x%x) is in region [0x%X 0x%X]\n", 
-                       (int)mainaddr, (int)regionStart, (int)regionEnd);
+   char namebuf[64];
+   Address regionStart = 0;
+   Address regionEnd = 0;
+   // there might not be an object that corresponds to the a_out
+   if (a_out == NULL) {
+      // determine confines of region that encloses main, search from
+      // end to get most recent mmap of an enclosing region
+      int idx =  (int)mappedRegionStart.size()-1;
+      while (idx >= 0  && 
+            !(mappedRegionStart[idx] <= mainaddr 
+               && mainaddr <= mappedRegionEnd[idx])) {
+         idx--;
+      }
+      if (idx < 0) {
+         fprintf(stderr,"%s[%d] No valid memory region seems to contain "
+               "the address of main=0x%x\n",__FILE__,__LINE__, 
+               (int)mainaddr);
+         return false;
+      }
+      regionStart = mappedRegionStart[idx];
+      regionEnd = mappedRegionEnd[idx];
+      startup_printf("main(0x%x) is in region [0x%X 0x%X]\n", 
+            (int)mainaddr, (int)regionStart, (int)regionEnd);
 
-        // found the right region, copy its contents to a temp file
-        void *regionBuf = malloc(regionEnd - regionStart);
-        if (!readDataSpace((void*)regionStart, regionEnd-regionStart, 
-                          regionBuf, false)) {
-            fprintf(stderr, "%s[%d]: Failed to read from region [%X %X]\n",
-                       __FILE__, __LINE__,(int)regionStart, 
-                       (int)regionEnd);
-        }
-        // Make sure bytes 12-15 of magic header are set to 0 (for x86-64 bit)
-        ((int*)regionBuf)[3] = 0;
-        // We have no section information, so don't try to point to it
-        ((int*)regionBuf)[10] = 0;
+      // found the right region, copy its contents to a temp file
+      void *regionBuf = malloc(regionEnd - regionStart);
+      if (!readDataSpace((void*)regionStart, regionEnd-regionStart, 
+               regionBuf, false)) {
+         fprintf(stderr, "%s[%d]: Failed to read from region [%X %X]\n",
+               __FILE__, __LINE__,(int)regionStart, 
+               (int)regionEnd);
+      }
+      // Make sure bytes 12-15 of magic header are set to 0 (for x86-64 bit)
+      ((int*)regionBuf)[3] = 0;
+      // We have no section information, so don't try to point to it
+      ((int*)regionBuf)[10] = 0;
 
-        snprintf(namebuf, 64, "/tmp/MemRegion_%X_%X", 
-                 (int)regionStart, (int)regionEnd);
-        namebuf[63]='\0';
-        FILE *regionFD = fopen(namebuf, "w");
-        assert(regionFD != NULL);
-        fwrite(regionBuf, 1, regionEnd-regionStart, regionFD);
-        fclose(regionFD);
-        free(regionBuf);
-        startup_printf("%s[%d]: Read region [%X %X] into temp file %s\n",
-                       __FILE__, __LINE__,(int)regionStart, 
-                       (int)regionEnd, namebuf);
+      snprintf(namebuf, 64, "/tmp/MemRegion_%X_%X", 
+            (int)regionStart, (int)regionEnd);
+      namebuf[63]='\0';
+      FILE *regionFD = fopen(namebuf, "w");
+      assert(regionFD != NULL);
+      fwrite(regionBuf, 1, regionEnd-regionStart, regionFD);
+      fclose(regionFD);
+      free(regionBuf);
+      startup_printf("%s[%d]: Read region [%X %X] into temp file %s\n",
+            __FILE__, __LINE__,(int)regionStart, 
+            (int)regionEnd, namebuf);
 
-        // create a fileDescriptor and a new mapped_object for the region
-        fileDescriptor fdesc = fileDescriptor(namebuf,false,0,regionEnd-regionStart);
-        a_out = mapped_object::createMappedObject(fdesc, this);
+      // create a fileDescriptor and a new mapped_object for the region
+      fileDescriptor fdesc = fileDescriptor(namebuf,false,0,regionEnd-regionStart);
+      a_out = mapped_object::createMappedObject(fdesc, this);
 
-        // There is no function for adding an a.out, so we'll call
-        // addASharedObject, and switch the old a.out to be this one.
-        // a.out is always the first object in the mapped_objects
-        // vector, our new mapped_object should be at or near the end.
-        addASharedObject(a_out);
-        idx = mapped_objects.size() -1;
-        while (mapped_objects[idx] != a_out && idx >= 0) {
-            idx--;
-        }
-        assert(idx >= 0);
-        mapped_objects[idx] = mapped_objects[0];
-        mapped_objects[0] = a_out;
-    }// end if (a_out == NULL)
-    else {
-        regionStart = a_out->codeBase();
-        regionEnd = regionStart + a_out->imageSize();
-    }
+      // There is no function for adding an a.out, so we'll call
+      // addASharedObject, and switch the old a.out to be this one.
+      // a.out is always the first object in the mapped_objects
+      // vector, our new mapped_object should be at or near the end.
+      addASharedObject(a_out);
+      idx = mapped_objects.size() -1;
+      while (mapped_objects[idx] != a_out && idx >= 0) {
+         idx--;
+      }
+      assert(idx >= 0);
+      mapped_objects[idx] = mapped_objects[0];
+      mapped_objects[0] = a_out;
+   }// end if (a_out == NULL)
+   else {
+      regionStart = a_out->codeBase();
+      regionEnd = regionStart + a_out->imageSize();
+   }
 
-    // if (a function exists at mainaddr)
-    // then: rename it "main" and set main_function to its int_function
-    // else: force a re-parse with "main" as a guaranteed function location 
-    snprintf(namebuf,64,"gap_%lx", (long)mainaddr);
-    a_out->parse_img()->analyzeIfNeeded();
-    int_function* mainfunc = findOnlyOneFunction(namebuf,a_out->fileName());
-    if (mainfunc) {
-        mainfunc->addSymTabName("main", true);
-        mainfunc->addPrettyName("main", true);
-        main_function = mainfunc;
-        startup_printf("found main via gap parsing at %x in mapped_obj [%x %x]\n",
-                (int)main_function->getAddress(),
-                (int)a_out->codeBase(),
-                (int)(a_out->codeBase()+a_out->imageSize()));
-    }
-    else {
-        startup_printf("gap parsing failed to find main, forcing main to be "
-                "parsed at 0x%x in mapped object [%x %x]\n",
-                (int)mainaddr,
-                (int)a_out->codeBase(),
-                (int)(a_out->codeBase()+a_out->imageSize()));
-        image_func *mainfunc = new image_func("main", mainaddr, UINT_MAX, 
-             a_out->parse_img()->findModule("DEFAULT_MODULE"), a_out->parse_img());
-        pdvector<Address>callTargets;
-        dictionary_hash<Address,image_func*> preParseStubs(addrHash);
-        if (!mainfunc->parse(callTargets, preParseStubs)) {
-            fprintf(stderr, "%s[%d] unable to parse main at 0x%x\n",
-                    FILE__, __LINE__, (int)mainaddr);
-        }
-    }
+   // if (a function exists at mainaddr)
+   // then: rename it "main" and set main_function to its int_function
+   // else: force a re-parse with "main" as a guaranteed function location 
+   snprintf(namebuf,64,"gap_%lx", (long)mainaddr);
+   a_out->parse_img()->analyzeIfNeeded();
+   int_function* mainfunc = findOnlyOneFunction(namebuf,a_out->fileName());
+   if (mainfunc) {
+      mainfunc->addSymTabName("main", true);
+      mainfunc->addPrettyName("main", true);
+      main_function = mainfunc;
+      startup_printf("found main via gap parsing at %x in mapped_obj [%x %x]\n",
+            (int)main_function->getAddress(),
+            (int)a_out->codeBase(),
+            (int)(a_out->codeBase()+a_out->imageSize()));
+   }
+   else {
+      startup_printf("gap parsing failed to find main, forcing main to be "
+            "parsed at 0x%x in mapped object [%x %x]\n",
+            (int)mainaddr,
+            (int)a_out->codeBase(),
+            (int)(a_out->codeBase()+a_out->imageSize()));
+      image_func *mainfunc = new image_func("main", mainaddr, UINT_MAX, 
+            a_out->parse_img()->findModule("DEFAULT_MODULE"), a_out->parse_img());
+      pdvector<Address>callTargets;
+      dictionary_hash<Address,image_func*> preParseStubs(addrHash);
+      if (!mainfunc->parse(callTargets, preParseStubs)) {
+         fprintf(stderr, "%s[%d] unable to parse main at 0x%x\n",
+               FILE__, __LINE__, (int)mainaddr);
+      }
+   }
 
-    // Restore __libc_start_main to its original state
-    if (!writeDataSpace((void *)libcstartmain_brk_addr, 
-                        sizeof(savedCodeBuffer), 
-                        (char *)savedCodeBuffer)) {
-        fprintf(stderr, "%s[%d]: Failed to restore code in libcstartmain at 0x%X\n",
-                __FILE__, __LINE__,(int)libcstartmain_brk_addr);
-        return false;
-    }
-    if (! trappingLWP->changePC(libcstartmain_brk_addr,NULL)) {
-        logLine("WARNING: in handleTrapAtLibcStartMain: "
-                "changePC failed in handleTrapAtLibcStartmain\n");
-        assert(0);
-    }
-    libcstartmain_brk_addr = 0;
-    // now let insertTrapAtEntryPointOfMain insert the trap at main
-    return insertTrapAtEntryPointOfMain();
+   // Restore __libc_start_main to its original state
+   if (!writeDataSpace((void *)libcstartmain_brk_addr, 
+            sizeof(savedCodeBuffer), 
+            (char *)savedCodeBuffer)) {
+      fprintf(stderr, "%s[%d]: Failed to restore code in libcstartmain at 0x%X\n",
+            __FILE__, __LINE__,(int)libcstartmain_brk_addr);
+      return false;
+   }
+   if (! trappingLWP->changePC(libcstartmain_brk_addr,NULL)) {
+      logLine("WARNING: in handleTrapAtLibcStartMain: "
+            "changePC failed in handleTrapAtLibcStartmain\n");
+      assert(0);
+   }
+   libcstartmain_brk_addr = 0;
+   // now let insertTrapAtEntryPointOfMain insert the trap at main
+   return insertTrapAtEntryPointOfMain();
 }// handleTrapAtLibcStartmain
 
 
@@ -1160,7 +1177,7 @@ bool process::prelinkSharedLibrary(string originalLibNameFullPath,
 }
 #endif
 #if defined (cap_save_the_world)
-char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002 
+char* process::dumpPatchedImage(std::string imageFileName){ //ccw 7 feb 2002 
 
 	addLibrary addLibraryElf;
 	unsigned int errFlag=0;
@@ -1261,7 +1278,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 				*/
 
 				Symbol info;
-				const pdstring dynamicSection = "_DYNAMIC";
+				const std::string dynamicSection = "_DYNAMIC";
 				
 				mapped_obj->getSymbolInfo(dynamicSection,info);
 				baseAddr = /*mapped_obj->codeBase() + */ info.getAddr(); //ccw 14 dec 2005 : again, the ret value of mapped_obj->codeBase seems to have changed
@@ -1306,7 +1323,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 			*/
 
 			Symbol info;
-			const pdstring dynamicSection = "_DYNAMIC";
+			const std::string dynamicSection = "_DYNAMIC";
 			mapped_obj->getSymbolInfo(dynamicSection,info);
 			rtlibAddr = /*mapped_obj->codeBase() + */ info.getAddr();
 			// i guess codeBase used to return 0 and now returns the correct value ccw 14 Dec 2005
@@ -1466,10 +1483,10 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            pdstring msg = pdstring("Environment variable ") +
-                            pdstring("DYNINSTAPI_RT_LIB") +
-                            pdstring(" has not been defined for process ")
-                            + pdstring(getPid());
+            std::string msg = std::string("Environment variable ") +
+                            std::string("DYNINSTAPI_RT_LIB") +
+                            std::string(" has not been defined for process ")
+                            + utos(getPid());
             showErrorCallback(101, msg);
             return false;
         }
@@ -1490,15 +1507,15 @@ bool process::getDyninstRTLibName() {
 	    return false;
 	}
 
-	dyninstRT_name = pdstring(name, split - name) +
-			 pdstring(modifier) +
-			 pdstring(split);
+	dyninstRT_name = std::string(name, split - name) +
+			 std::string(modifier) +
+			 std::string(split);
     }
 
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {
-        pdstring msg = pdstring("Runtime library ") + dyninstRT_name
-        + pdstring(" does not exist or cannot be accessed!");
+        std::string msg = std::string("Runtime library ") + dyninstRT_name
+        + std::string(" does not exist or cannot be accessed!");
         showErrorCallback(101, msg);
         return false;
     }

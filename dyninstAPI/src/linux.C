@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.268 2008/02/21 20:12:00 legendre Exp $
+// $Id: linux.C,v 1.269 2008/02/23 02:09:08 jaw Exp $
 
 #include <fstream>
 
@@ -61,6 +61,7 @@
 #include <sys/resource.h>
 #include <math.h> // for floor()
 #include <unistd.h>
+#include <string>
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
@@ -1020,7 +1021,7 @@ void dyn_lwp::representativeLWP_detach_() {
     return;
 }
 
-bool process::dumpCore_(const pdstring/* coreFile*/) { return false; }
+bool process::dumpCore_(const std::string/* coreFile*/) { return false; }
 
 bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
    //  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
@@ -1212,140 +1213,146 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
 
 
 
-static pdstring getNextLine(int fd)
+static std::string getNextLine(int fd)
 {
-    pdstring line = "";
-    while(true) {
-	char byte;
-	size_t retval = P_read(fd, &byte, 1);
-	if((retval > 0) && (byte > 0))
-	    line += pdstring(byte);
-	else
-	    break;
-    }
-    return line;
+   std::string line = "";
+   while(true) {
+      int buf = 0;
+      char *byte = (char *)& buf;
+      byte[0] = '\0';
+      size_t retval = P_read(fd, (char *)&buf, 1);
+      byte[1] = '\0';
+      if ((retval > 0) && (byte[0] > 0))
+         line = line + std::string(byte, 1);
+      else
+         break;
+   }
+   return line;
 }
 
-pdstring process::tryToFindExecutable(const pdstring& /* progpath */, int pid)
+std::string process::tryToFindExecutable(const std::string& /* progpath */, int pid)
 {
-    char buffer[PATH_MAX];
-    int fd, length;
-    
-    //
-    // Simply dereferencing the symbolic link at /proc/<pid>/exe will give the
-    // full path of the executable 99% of the time on Linux. Check there first.
-    // The funky business with memset() and strlen() here is to deal with early
-    // Linux kernels that returned incorrect length values from readlink().
-    //
-    memset(buffer, 0, sizeof(buffer));
-    readlink((pdstring("/proc/") + pdstring(pid) + pdstring("/exe")).c_str(),
-	     buffer, sizeof(buffer) - 1);
-    length = strlen(buffer);
-    if((length > 0) && (buffer[length-1] == '*'))
-        buffer[length-1] = 0;
-    if(strlen(buffer) > 0)
-	return buffer;
-    
-    //
-    // Currently the only known case where the above fails is on the back-end
-    // nodes of a bproc (http://bproc.sourceforge.net/) system. On these systems
-    // /proc/<pid>/exe is simply a zero-sized file and the /proc/<pid>/maps
-    // table has an empty name for the executable's mappings. So we have to get
-    // a little more creative.
-    //
-    
-    // Obtain the command name from /proc/<pid>/cmdline
-    pdstring cmdname = "";
-    fd = P_open((pdstring("/proc/") + pdstring(pid) +
-		 pdstring("/cmdline")).c_str(), O_RDONLY, 0);
-    if(fd >= 0) {
-	cmdname = getNextLine(fd);
-	P_close(fd);
-    }
-    
-    // Obtain the path from /proc/<pid>/environ
-    pdstring path = "";
-    fd = P_open((pdstring("/proc/") + pdstring(pid) +
-		 pdstring("/environ")).c_str(), O_RDONLY, 0);
-    if(fd >= 0) {
-	while(true) {
-	    path = getNextLine(fd);
-	    if(path.prefixed_by("PATH=")) {
-		path = path.substr(5, path.length() - 5);
-		break;
-	    }
-	    else if(path.length() == 0)
-		break;
-	}
-	P_close(fd);
-    }
-    
-    // Obtain the current working directory from /proc/<pid>/cwd
-    pdstring cwd = "";
-    memset(buffer, 0, sizeof(buffer));
-    readlink((pdstring("/proc/") + pdstring(pid) +
-              pdstring("/cwd")).c_str(), buffer, sizeof(buffer) - 1);
-    length = strlen(buffer);
-    if(length > 0)
-	cwd = buffer;
-    
-    // Now try to find the executable using these three items
-    pdstring executable = "";
-    if(executableFromArgv0AndPathAndCwd(executable, cmdname, path, cwd))
-	return executable;
-    
-    // Indicate an error if none of the above methods succeeded
-    return "";
+   char buffer[PATH_MAX];
+   int fd, length;
+   char pidstr[16];
+   sprintf(pidstr, "%d", pid);
+
+   //
+   // Simply dereferencing the symbolic link at /proc/<pid>/exe will give the
+   // full path of the executable 99% of the time on Linux. Check there first.
+   // The funky business with memset() and strlen() here is to deal with early
+   // Linux kernels that returned incorrect length values from readlink().
+   //
+   memset(buffer, 0, sizeof(buffer));
+   readlink((std::string("/proc/") + std::string(pidstr) + std::string("/exe")).c_str(),
+         buffer, sizeof(buffer) - 1);
+   length = strlen(buffer);
+   if ((length > 0) && (buffer[length-1] == '*'))
+      buffer[length-1] = 0;
+   if (strlen(buffer) > 0)
+      return buffer;
+
+   //
+   // Currently the only known case where the above fails is on the back-end
+   // nodes of a bproc (http://bproc.sourceforge.net/) system. On these systems
+   // /proc/<pid>/exe is simply a zero-sized file and the /proc/<pid>/maps
+   // table has an empty name for the executable's mappings. So we have to get
+   // a little more creative.
+   //
+
+   // Obtain the command name from /proc/<pid>/cmdline
+   std::string cmdname = "";
+   fd = P_open((std::string("/proc/") + std::string(pidstr) +
+            std::string("/cmdline")).c_str(), O_RDONLY, 0);
+   if (fd >= 0) {
+      cmdname = getNextLine(fd);
+      P_close(fd);
+   }
+
+   // Obtain the path from /proc/<pid>/environ
+   std::string path = "";
+   fd = P_open((std::string("/proc/") + std::string(pidstr) +
+            std::string("/environ")).c_str(), O_RDONLY, 0);
+   if (fd >= 0) {
+      while(true) {
+         path = getNextLine(fd);
+         //if (path.prefixed_by("PATH=")) {
+         if (!strncmp(path.c_str(), "PATH=", strlen("PATH="))) {
+            path = path.substr(5, path.length() - 5);
+            break;
+         }
+         else if(path.length() == 0)
+            break;
+      }
+      P_close(fd);
+   }
+
+   // Obtain the current working directory from /proc/<pid>/cwd
+   std::string cwd = "";
+   memset(buffer, 0, sizeof(buffer));
+   readlink((std::string("/proc/") + std::string(pidstr) +
+            std::string("/cwd")).c_str(), buffer, sizeof(buffer) - 1);
+   length = strlen(buffer);
+   if (length > 0)
+      cwd = buffer;
+
+   // Now try to find the executable using these three items
+   std::string executable = "";
+   if (executableFromArgv0AndPathAndCwd(executable, cmdname, path, cwd))
+      return executable;
+
+   // Indicate an error if none of the above methods succeeded
+   return "";
 }
 
 
 bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
 {
-  char name[128];
-  struct dirent *direntry;
-  
-  /**
-   * Linux 2.6:
-   **/
-  sprintf(name, "/proc/%d/task", getPid());
-  DIR *dirhandle = opendir(name);
-  if (dirhandle)
-  {
-     //Only works on Linux 2.6
-     while((direntry = readdir(dirhandle)) != NULL) {
-        unsigned lwp_id = atoi(direntry->d_name);
-        if (lwp_id) 
-           lwp_ids.push_back(lwp_id);
-     }
-     closedir(dirhandle);
-     return true;
-  }
-  /**
-   * Linux 2.4:
-   *
-   * PIDs that are created by pthreads have a '.' prepending their name
-   * in /proc.  We'll check all of those for the ones that have this lwp
-   * as a parent pid.
-   **/
-  dirhandle = opendir("/proc");
-  if (!dirhandle)
-  {
-     //No /proc directory.  I give up.  No threads for you.
-     return false;
-  } 
-  while ((direntry = readdir(dirhandle)) != NULL)
-  {
-      if (direntry->d_name[0] != '.') {
-          //fprintf(stderr, "%s[%d]: Skipping entry %s\n", FILE__, __LINE__, direntry->d_name);
-          continue;
+   char name[128];
+   struct dirent *direntry;
+
+   /**
+    * Linux 2.6:
+    **/
+   sprintf(name, "/proc/%d/task", getPid());
+   DIR *dirhandle = opendir(name);
+   if (dirhandle)
+   {
+      //Only works on Linux 2.6
+      while((direntry = readdir(dirhandle)) != NULL) {
+         unsigned lwp_id = atoi(direntry->d_name);
+         if (lwp_id) 
+            lwp_ids.push_back(lwp_id);
       }
-     unsigned lwp_id = atoi(direntry->d_name+1);
-     int lwp_ppid;
-     if (!lwp_id) 
+      closedir(dirhandle);
+      return true;
+   }
+   /**
+    * Linux 2.4:
+    *
+    * PIDs that are created by pthreads have a '.' prepending their name
+    * in /proc.  We'll check all of those for the ones that have this lwp
+    * as a parent pid.
+    **/
+   dirhandle = opendir("/proc");
+   if (!dirhandle)
+   {
+      //No /proc directory.  I give up.  No threads for you.
+      return false;
+   } 
+   while ((direntry = readdir(dirhandle)) != NULL)
+   {
+      if (direntry->d_name[0] != '.') {
+         //fprintf(stderr, "%s[%d]: Skipping entry %s\n", FILE__, __LINE__, direntry->d_name);
          continue;
-     sprintf(name, "/proc/%d/status", lwp_id);
-     FILE *fd = P_fopen(name, "r");
-     if (!fd) {
+      }
+      unsigned lwp_id = atoi(direntry->d_name+1);
+      int lwp_ppid;
+      if (!lwp_id) 
+         continue;
+      sprintf(name, "/proc/%d/status", lwp_id);
+      FILE *fd = P_fopen(name, "r");
+      if (!fd) {
          continue;
      }
      char buffer[1024];
@@ -1370,7 +1377,7 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
 }
 
 
-bool process::dumpImage( pdstring imageFileName ) 
+bool process::dumpImage( std::string imageFileName ) 
 {
 	/* What we do is duplicate the original file,
 	   and replace the copy's .text section with
@@ -1387,7 +1394,7 @@ bool process::dumpImage( pdstring imageFileName )
    string originalFileName = mapped_objects[0]->fullName();
 	
 	/* Use system() to execute the copy. */
-	//pdstring copyCommand = "cp " + originalFileName + " " + imageFileName;
+	//std::string copyCommand = "cp " + originalFileName + " " + imageFileName;
         //system( copyCommand.c_str() );
    if (P_copy(originalFileName.c_str(), imageFileName.c_str()) == -1) {
        fprintf(stderr, "Failure in copying file %s to %s\n",
@@ -1537,7 +1544,7 @@ int_function *instPoint::findCallee() {
    return NULL;
 }
 
-bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
+bool SignalGeneratorCommon::getExecFileDescriptor(std::string filename,
                                                   int /*pid*/,
                                                   bool /*whocares*/,
                                                   int &,
@@ -1720,7 +1727,7 @@ Address findFunctionToHijack(process *p)
  * Searches for function in order, with preference given first 
  * to libpthread, then to libc, then to the process.
  **/
-static void findThreadFuncs(process *p, pdstring func, 
+static void findThreadFuncs(process *p, std::string func, 
                             pdvector<int_function *> &result)
 {
    bool found = false;
@@ -1921,10 +1928,10 @@ Address dyn_lwp::step_next_insn() {
 
 // ****** Support linux-specific forkNewProcess DBI callbacks ***** //
 
-bool ForkNewProcessCallback::operator()(pdstring file, 
-                    pdstring dir, pdvector<pdstring> *argv,
-                    pdvector<pdstring> *envp,
-                    pdstring inputFile, pdstring outputFile, int &traceLink,
+bool ForkNewProcessCallback::operator()(std::string file, 
+                    std::string dir, pdvector<std::string> *argv,
+                    pdvector<std::string> *envp,
+                    std::string inputFile, std::string outputFile, int &traceLink,
                     pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd,
                     SignalGenerator *sg)
 {
@@ -1970,10 +1977,10 @@ bool ForkNewProcessCallback::execute_real()
     return ret;
 }
 
-bool DebuggerInterface::forkNewProcess(pdstring file, 
-                    pdstring dir, pdvector<pdstring> *argv,
-                    pdvector<pdstring> *envp,
-                    pdstring inputFile, pdstring outputFile, int &traceLink,
+bool DebuggerInterface::forkNewProcess(std::string file, 
+                    std::string dir, pdvector<std::string> *argv,
+                    pdvector<std::string> *envp,
+                    std::string inputFile, std::string outputFile, int &traceLink,
                     pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd,
                     SignalGenerator *sg)
 {
@@ -2362,7 +2369,7 @@ bool process::hasPassedMain()
    // We only need to parse /lib/ld-2.x.x once for any process,
    // so just do it once for any process.  We'll cache the result
    // in lib_to_addr.
-   static dictionary_hash<pdstring, Address> lib_to_addr(pdstring::hash);
+   static dictionary_hash<std::string, Address> lib_to_addr(::Dyninst::hash);
    Symtab *ld_file = NULL;
    bool result, tresult;
    std::string name;
@@ -2489,7 +2496,7 @@ bool process::readAuxvInfo()
 
    auxv_parser = AuxvParser::createAuxvParser(getPid(), getAddressWidth());
    if (!auxv_parser) {
-      startup_printf("[%s:%u] - ERROR, failed to parse Auxv", FILE__, __LINE__);
+      startup_printf("%s[%u]: - ERROR, failed to parse Auxv\n", FILE__, __LINE__);
       vsys_status_ = vsys_notfound;
       return false;
    }

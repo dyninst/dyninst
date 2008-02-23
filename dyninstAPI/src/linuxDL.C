@@ -469,7 +469,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
 
    unsigned maps_size = 0;
    map_entries *maps= getLinuxMaps(proc->getPid(), maps_size);
-   //   pdstring aout = process::tryToFindExecutable("", proc->getPid());
+   //   std::string aout = process::tryToFindExecutable("", proc->getPid());
 
    /*
    if (maps) {
@@ -609,7 +609,7 @@ bool dynamic_linking::initialize() {
     previous_r_state = r_debug::RT_CONSISTENT;
     
     /* Is this a dynamic executable? */
-    pdstring dyn_str = pdstring("DYNAMIC");
+    std::string dyn_str = std::string("DYNAMIC");
     Symbol dyn_sym;
     if( ! proc->getSymbolInfo( dyn_str, dyn_sym ) ) { 
         startup_printf("[%s][%d]Failed to find DYNAMIC symbol in dyn::init, "
@@ -697,7 +697,7 @@ bool dynamic_linking::initialize() {
  * added/removed later on when we handle the exception
  */
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
-                                                       u_int &change_type)
+                                                       unsigned int &change_type)
 {
     sharedLibHook *hook;
     assert(ev.lwp);

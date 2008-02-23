@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.21 2008/02/20 22:34:24 legendre Exp $
+// $Id: image-power.C,v 1.22 2008/02/23 02:09:05 jaw Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -321,7 +321,7 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
 
 
 	
-pdstring image_func::calcParentFunc(const image_func * imf,
+std::string image_func::calcParentFunc(const image_func * imf,
                                     pdvector<image_parRegion *> &/*pR*/)
 {
   /* We need to figure out the function that called the outlined
@@ -340,12 +340,12 @@ pdstring image_func::calcParentFunc(const image_func * imf,
       char tempBuf[strlen(nameStart)];
       strncpy(tempBuf, nameStart, strSize);
       tempBuf[strSize] = '\0';
-      pdstring tempPDS(tempBuf);
+      std::string tempPDS(tempBuf);
       return tempPDS;
    }
    else   /* if it starts with @ just return the full function as its parent, we'll sort it out later */
    {
-      pdstring tempPDS(nameStart);
+      std::string tempPDS(nameStart);
       return tempPDS;
    }
 }

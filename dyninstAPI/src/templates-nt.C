@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.68 2007/12/14 04:16:48 jaw Exp $
+// $Id: templates-nt.C,v 1.69 2008/02/23 02:09:11 jaw Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -49,6 +49,7 @@
  */
 #pragma warning (disable: 4660)
 
+#include <string>
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -59,20 +60,20 @@ template class dictionary_hash<unsigned int, heapItem *>;
 template class dictionary_hash<unsigned int, int_function *>;
 class image_func;
 template class pdvector<image_func *>;
-template class dictionary_hash<pdstring, pdvector<image_func *> *>;
+template class dictionary_hash<std::string, pdvector<image_func *> *>;
 template class dictionary_hash<Address, image_func *>;
 template class dictionary_hash<const image_func *, int_function *>;
 
 class int_variable;
 template class pdvector<int_variable *>;
-template class dictionary_hash<pdstring, int_variable *>;
-template class dictionary_hash<pdstring, pdvector<int_variable *> *>;
+template class dictionary_hash<std::string, int_variable *>;
+template class dictionary_hash<std::string, pdvector<int_variable *> *>;
 template class dictionary_hash<Address, int_variable *>;
 
 class image_variable;
 template class pdvector<image_variable *>;
-template class dictionary_hash<pdstring, image_variable *>;
-template class dictionary_hash<pdstring, pdvector<image_variable *> *>;
+template class dictionary_hash<std::string, image_variable *>;
+template class dictionary_hash<std::string, pdvector<image_variable *> *>;
 template class dictionary_hash<Address, image_variable *>;
 template class dictionary_hash<const image_variable *, int_variable *>;
 
@@ -98,18 +99,18 @@ template class  BPatch_Set<image_basicBlock *>;
 class fileDescriptor;
 template class pdvector<fileDescriptor>;
 
-template class dictionary_hash<pdstring, unsigned int>;
-template class dictionary_hash<pdstring, pdstring>;
-template class dictionary_hash<pdstring, Symbol>;
-template class dictionary_hash<pdstring, pdmodule *>;
-template class dictionary_hash<pdstring, int_function *>;
-//template class dictionary_hash<pdstring, internalSym *>;
+template class dictionary_hash<std::string, unsigned int>;
+template class dictionary_hash<std::string, std::string>;
+template class dictionary_hash<std::string, Symbol>;
+template class dictionary_hash<std::string, pdmodule *>;
+template class dictionary_hash<std::string, int_function *>;
+//template class dictionary_hash<std::string, internalSym *>;
 
-template class dictionary_hash<pdstring, pdvector<pdstring> *>;
-template class dictionary_hash<pdstring, pdvector<int_function *> *>;
+template class dictionary_hash<std::string, pdvector<std::string> *>;
+template class dictionary_hash<std::string, pdvector<int_function *> *>;
 
 class BPatch_typeCollection;
-template class dictionary_hash<pdstring, BPatch_typeCollection *>;
+template class dictionary_hash<std::string, BPatch_typeCollection *>;
 
 #include "dyninstAPI/src/rpcMgr.h"
 template class  dictionary_hash<unsigned, rpcLWP *>;
@@ -123,14 +124,13 @@ template class List<miniTramp*>;
 template class ListBase<miniTramp*, void*>;
 template class dictionary_hash<instPoint const *, baseTramp *>;
 
-#include "common/h/String.h"
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "dyninstAPI/h/BPatch_type.h"
 
-template class dictionary_hash<pdstring, BPatch_type *>;
+template class dictionary_hash<std::string, BPatch_type *>;
 template class dictionary_hash<int, BPatch_thread *>;
 template class dictionary_hash<int, BPatch_type *>;
-template class dictionary_hash<pdstring, BPatch_localVar *>;
+template class dictionary_hash<std::string, BPatch_localVar *>;
 template class dictionary_hash<int_function*, BPatch_function*>;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
 template class dictionary_hash<Address, BPatch_point *>;
@@ -154,11 +154,11 @@ template class BPatch_Vector<BPatch_frame>;
 template class dictionary_hash<Address, unsigned char>;
 template class pdvector<dictionary_hash <Address, unsigned char>::entry >;
 
-template class dictionary_hash<pdstring,supportedLanguages>;
-template class pdvector<dictionary_hash<pdstring,supportedLanguages>::entry>;
+template class dictionary_hash<std::string,supportedLanguages>;
+template class pdvector<dictionary_hash<std::string,supportedLanguages>::entry>;
 
 template class pdvector< Symbol >;
-template class dictionary_hash< pdstring, pdvector< Symbol > >;
+template class dictionary_hash< std::string, pdvector< Symbol > >;
 
 template class dictionary_hash<int, BPatch_process *>;
 template class pdvector<dictionary_hash <int, BPatch_process *>::entry>;
@@ -195,8 +195,8 @@ template class  pdvector<image_edge*>;
 template class  dictionary_hash <int, int>;
 template class  pdvector<dictionary_hash<int,int>::entry >;
 
-template class  dictionary_hash <unsigned long, pdstring>;
-template class  pdvector<dictionary_hash<unsigned long,pdstring>::entry >;
+template class  dictionary_hash <unsigned long, std::string>;
+template class  pdvector<dictionary_hash<unsigned long,std::string>::entry >;
 
 template class dictionary_hash<Address, threadmap_t *>;
 template class pdvector<dictionary_hash<Address, threadmap_t *>::entry>;
@@ -209,18 +209,18 @@ template class dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>
 template class pdvector<dictionary_hash<AstNode *, regTracker_t::commonExpressionTracker>::entry>;
 
 class Statistic;
-template class dictionary_hash<pdstring, Statistic *>;
+template class dictionary_hash<std::string, Statistic *>;
 
 #if 0
 #include "common/src/Annotatable.C"
-template class dictionary_hash<pdstring, int>;
+template class dictionary_hash<std::string, int>;
 
 template class Annotatable<instruction>;
 template class Annotatable<BPatch_function>;
 template <class T> int Annotatable<T>::number;
 template <class T> int Annotatable<T>::metadataNum;
-template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::annotationTypes;
-template <class T> dictionary_hash<pdstring,int>* Annotatable<T>::metadataTypes;
+template <class T> dictionary_hash<std::string,int>* Annotatable<T>::annotationTypes;
+template <class T> dictionary_hash<std::string,int>* Annotatable<T>::metadataTypes;
 #endif
 
 class registerSlot;

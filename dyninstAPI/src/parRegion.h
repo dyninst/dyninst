@@ -43,7 +43,7 @@
 #ifndef PARREGION_H
 #define PARREGION_H
 
-#include "common/h/String.h"
+#include <string>
 #include "common/h/Vector.h"
 #include "common/h/Types.h"
 #include "common/h/Pair.h"

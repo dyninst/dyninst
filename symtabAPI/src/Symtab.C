@@ -41,6 +41,14 @@
 #include "symtabAPI/src/Collections.h"
 #include "common/h/pathName.h"
 
+#if defined (os_linux) | defined (os_aix)
+//  gcc is complaining about the constness of the library-provided
+//  typecast (XMLCHAR_CAST) (which is defined in xmlstring.h), so we make our own
+#define XMLCHAR_CAST (const xmlChar *)
+#else
+#define XMLCHAR_CAST BAD_CAST
+#endif
+
 #if !defined(os_windows)
 #include <dlfcn.h>
 #else
@@ -1099,7 +1107,7 @@ void Symtab::addModuleName(Symbol *mod, const std::string newName)
     modsByName[newName]->push_back(mod);    
 }
 
-Symtab::Symtab(std::string &filename,bool &err) :
+Symtab::Symtab(std::string filename,bool &err) :
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false), 
@@ -1112,6 +1120,7 @@ Symtab::Symtab(std::string &filename,bool &err) :
    extern void fixup_filename(std::string &);
    fixup_filename(filename);
 #endif
+   //  createMappedFile handles reference counting
    mf = MappedFile::createMappedFile(filename);
    if (!mf) {
       err = true;
@@ -1122,6 +1131,7 @@ Symtab::Symtab(std::string &filename,bool &err) :
    delete linkedFile;
    defaultNamespacePrefix = "";
 }
+
 
 #if 0 
 Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
@@ -1141,7 +1151,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
 #endif
 
 #if defined(os_aix)
-Symtab::Symtab(std::string &filename, std::string &member_name, Offset offset, 
+Symtab::Symtab(std::string filename, std::string &member_name, Offset offset, 
                        bool &err) :
    member_name_(member_name), 
    member_offset_(offset),
@@ -1165,7 +1175,7 @@ Symtab::Symtab(std::string &filename, std::string &member_name, Offset offset,
    defaultNamespacePrefix = "";
 }
 #else
-Symtab::Symtab(std::string &, std::string &, Offset, bool &)
+Symtab::Symtab(std::string , std::string &, Offset, bool &)
 {
     assert(0);
 }
@@ -2073,6 +2083,7 @@ Symtab::~Symtab()
         if (allSymtabs[i] == this)
             allSymtabs.erase(allSymtabs.begin()+i);
     }
+
     if (mf) MappedFile::closeMappedFile(mf);
 }	
  
@@ -2988,13 +2999,13 @@ bool Symtab::exportXML(std::string file)
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartDocument";
 	return false;
     }
-    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Symtab");
+    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Symtab");
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "file",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "file",
                                              "%s", mf->filename().c_str());
     if (rc < 0) {
     	serr = Export_Error;
@@ -3002,35 +3013,35 @@ bool Symtab::exportXML(std::string file)
         return false;
     }
     
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "imageOff",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "imageOff",
                                              "0x%lx", imageOffset_);
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "imageLen",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "imageLen",
                                              "%ld", imageLen_);
     if (rc < 0) {
         serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "dataOff",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "dataOff",
                                              "0x%lx", dataOffset_);
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "dataLen",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "dataLen",
                                              "%ld", dataLen_);
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "isExec",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "isExec",
                                                  "%d", is_a_out);
     if (rc < 0) {
     	serr = Export_Error;
@@ -3069,14 +3080,14 @@ bool generateXMLforSyms( xmlTextWriterPtr &writer, std::vector<Symbol *> &everyU
     if(!tot)
     	return true;
     int rc;
-    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Symbols");
+    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Symbols");
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
 
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
                                          "%d", tot);
     if (rc < 0) {
     	serr = Export_Error;
@@ -3117,34 +3128,34 @@ bool generateXMLforSyms( xmlTextWriterPtr &writer, std::vector<Symbol *> &everyU
 bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym)
 {
     int rc,j,tot;
-    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Symbol");
+    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Symbol");
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "type",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "type",
                                              "%d", sym->getType());
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "linkage",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "linkage",
                                              "%d", sym->getLinkage());
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "addr",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "addr",
                                              "0x%lx", sym->getAddr());
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "size",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "size",
                                              "%ld", sym->getSize());
     if (rc < 0) {
     	serr = Export_Error;
@@ -3152,13 +3163,13 @@ bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym)
         return false;
     }
     tot = sym->getAllMangledNames().size();
-    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "mangledNames");
+    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "mangledNames");
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
        			                                 "%d", tot);
     if (rc < 0) {
     	serr = Export_Error;
@@ -3170,7 +3181,7 @@ bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym)
 	std::vector<std::string> names = sym->getAllMangledNames();
         for(j=0;j<tot;j++)
 	{
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "name",
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "name",
             	                                 "%s", names[j].c_str());
 	    if (rc < 0) {
     		serr = Export_Error;
@@ -3186,13 +3197,13 @@ bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym)
         return false;
     }
     tot = sym->getAllPrettyNames().size();
-    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "prettyNames");
+    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "prettyNames");
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
        			                                 "%d", tot);
     if (rc < 0) {
     	serr = Export_Error;
@@ -3204,7 +3215,7 @@ bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym)
 	std::vector<std::string> names = sym->getAllPrettyNames();
         for(j=0;j<tot;j++)
 	{
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "name",
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "name",
             	                                 "%s", names[j].c_str());
 	    if (rc < 0) {
     		serr = Export_Error;
@@ -3220,13 +3231,13 @@ bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym)
         return false;
     }
     tot = sym->getAllTypedNames().size();
-    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "typedNames");
+    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "typedNames");
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
        			                                 "%d", tot);
     if (rc < 0) {
     	serr = Export_Error;
@@ -3238,7 +3249,7 @@ bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym)
 	std::vector<std::string> names = sym->getAllTypedNames();
         for(j=0;j<tot;j++)
 	{
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "name",
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "name",
             	                                 "%s", names[j].c_str());
 	    if (rc < 0) {
     		serr = Export_Error;
@@ -3253,7 +3264,7 @@ bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym)
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterEndElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "moduleName",
+    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "moduleName",
                                              "%s", sym->getModuleName().c_str());
     if (rc < 0) {
     	serr = Export_Error;
@@ -3273,13 +3284,13 @@ bool generateXMLforExcps(xmlTextWriterPtr &writer, std::vector<ExceptionBlock *>
 {
     unsigned tot = excpBlocks.size(), i;
     int rc;
-    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "ExcpBlocks");
+    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "ExcpBlocks");
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
                                          "%d", tot);
     if (rc < 0) {
     	serr = Export_Error;
@@ -3288,13 +3299,13 @@ bool generateXMLforExcps(xmlTextWriterPtr &writer, std::vector<ExceptionBlock *>
     }
     for(i=0;i<excpBlocks.size();i++)
     {
-        rc = my_xmlTextWriterStartElement(writer, BAD_CAST "ExcpBlock");
+        rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "ExcpBlock");
         if (rc < 0) {
     	    serr = Export_Error;
             errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
             return false;
     	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "hasTry",
+    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "hasTry",
                                              "%d", excpBlocks[i]->hasTry());
    	if (rc < 0) {
     	    serr = Export_Error;
@@ -3303,14 +3314,14 @@ bool generateXMLforExcps(xmlTextWriterPtr &writer, std::vector<ExceptionBlock *>
     	}
 	if(excpBlocks[i]->hasTry())
 	{
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "tryStart",
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "tryStart",
             		                                 "0x%lx", excpBlocks[i]->tryStart());
     	    if (rc < 0) {
     		serr = Export_Error;
         	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
         	return false;
     	    }
-    	    rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "trySize",
+    	    rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "trySize",
             		                                 "%ld", excpBlocks[i]->trySize());
     	    if (rc < 0) {
     		serr = Export_Error;
@@ -3318,7 +3329,7 @@ bool generateXMLforExcps(xmlTextWriterPtr &writer, std::vector<ExceptionBlock *>
 		return false;
 	    }	
 	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "catchStart",
+    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "catchStart",
         	                                 "0x%lx", excpBlocks[i]->catchStart());
     	if (rc < 0) {
     	    serr = Export_Error;
@@ -3345,13 +3356,13 @@ bool generateXMLforRelocations(xmlTextWriterPtr &writer, std::vector<relocationE
 {
     unsigned tot = fbt.size(), i;
     int rc;
-    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Relocations");
+    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Relocations");
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
                                          "%d", tot);
     if (rc < 0) {
     	serr = Export_Error;
@@ -3360,27 +3371,27 @@ bool generateXMLforRelocations(xmlTextWriterPtr &writer, std::vector<relocationE
     }
     for(i=0;i<fbt.size();i++)
     {
-        rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Relocation");
+        rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Relocation");
         if (rc < 0) {
     	    serr = Export_Error;
             errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
             return false;
     	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "targetAddr",
+    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "targetAddr",
         	                                 "%lx", fbt[i].target_addr());
     	if (rc < 0) {
     	    serr = Export_Error;
             errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
             return false;
     	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "relAddr",
+    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "relAddr",
         	                                 "%lx", fbt[i].rel_addr());
     	if (rc < 0) {
     	    serr = Export_Error;
             errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
             return false;
     	}
-    	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "name",
+    	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "name",
         	                                     "%s", fbt[i].name().c_str());
     	if (rc < 0) {
     	    serr = Export_Error;
@@ -3407,13 +3418,13 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
 {
     unsigned tot = mods.size(), i;
     int rc;
-    rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Modules");
+    rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Modules");
     if (rc < 0) {
     	serr = Export_Error;
         errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
         return false;
     }
-    rc = my_xmlTextWriterWriteFormatAttribute(writer, BAD_CAST "number",
+    rc = my_xmlTextWriterWriteFormatAttribute(writer, XMLCHAR_CAST "number",
                                          "%d", tot);
     if (rc < 0) {
     	serr = Export_Error;
@@ -3422,27 +3433,27 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
     }	
     for(i=0; i<mods.size(); i++)
     {
-        rc = my_xmlTextWriterStartElement(writer, BAD_CAST "Module");
+        rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "Module");
         if (rc < 0) {
     	    serr = Export_Error;
             errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
 	    return false;
 	}    
-	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "fullName",
+	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "fullName",
         			                                 "%s", mods[i]->fullName().c_str());
     	if (rc < 0) {
 	   serr = Export_Error;
        	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
        	   return false;
 	}   
-	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "addr",
+	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "addr",
         			                                 "0x%lx", mods[i]->addr());
     	if (rc < 0) {
 	   serr = Export_Error;
        	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
        	   return false;
 	}   
-	rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "lang",
+	rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "lang",
         			                                 "%d", mods[i]->language());
     	if (rc < 0) {
 	   serr = Export_Error;
@@ -3452,7 +3463,7 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
 	
 	LineInformation *lineInformation = mods[i]->getLineInformation();
         if(lineInformation) {
-            rc = my_xmlTextWriterStartElement(writer, BAD_CAST "LineMap");
+            rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "LineMap");
             if (rc < 0) {
     	    	serr = Export_Error;
             	errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
@@ -3463,41 +3474,41 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
 	    {
 	        const std::pair<Offset, Offset> range = iter->first;
 	        LineNoTuple line = iter->second;
-                rc = my_xmlTextWriterStartElement(writer, BAD_CAST "LineMapEntry");
+                rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST "LineMapEntry");
                 if (rc < 0) {
     	    	    serr = Export_Error;
             	    errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterStartElement";
 	            return false;
 	        }
-    		rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "rangeStart",
+    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "rangeStart",
 	        			                                 "0x%lx", range.first);
 	    	if (rc < 0) {
     		   serr = Export_Error;
            	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
              	   return false;
 		}   
-    		rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "rangeEnd",
+    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "rangeEnd",
 	        			                                 "0x%lx", range.second);
 	    	if (rc < 0) {
     		   serr = Export_Error;
            	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
              	   return false;
 		}   
-    		rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "lineSource",
+    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "lineSource",
 	        			                                 "%s", line.first);
 	    	if (rc < 0) {
     		   serr = Export_Error;
            	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
              	   return false;
 		}   
-    		rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "lineNumber",
+    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "lineNumber",
 	        			                                 "%d", line.second);
 	    	if (rc < 0) {
     		   serr = Export_Error;
            	   errMsg = "testXmlwriterDoc: Error at my_xmlTextWriterFormatElement";
              	   return false;
 		}   
-    		rc = my_xmlTextWriterWriteFormatElement(writer, BAD_CAST "lineColumn",
+    		rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST "lineColumn",
 	        			                                 "%d", line.column);
 	    	if (rc < 0) {
     		   serr = Export_Error;
@@ -3599,7 +3610,7 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) {
         Offset end = sections_[i]->getSecAddr() + sections_[i]->getSecSize();
         if (sections_[i]->getSecAddr() == 0) continue;
         prevSecoffset = secoffset;
-        if((char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image() < prevSecoffset)
+        if((char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image() < (signed)prevSecoffset)
             secoffset += sections_[i]->getSecSize();
         else {
             secoffset = (char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image();
