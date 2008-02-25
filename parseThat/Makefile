@@ -1,18 +1,19 @@
 # ----------------------------------------------
 # Configuration variables taken from ./configure
 # ----------------------------------------------
-CPPFLAGS     = -I/core -I/core/dyninstAPI/h 
+CPPFLAGS     = -I$(DYNINST_ROOT)/core/dynutil/h -I$(DYNINST_ROOT)/core/dyninstAPI/h -I$(DYNINST_ROOT)/core/symtabAPI/h -I$(DYNINST_ROOT)/core -g
 CXX          = g++
-CXXFLAGS     = -I/p/paradyn/development/legendre/head/core/dyninstAPI/h -I/p/paradyn/development/legendre/head/core -g
+CXXFLAGS     = -I$(DYNINST_ROOT)/core/dynutil/h -I$(DYNINST_ROOT)/core/dyninstAPI/h -I$(DYNINST_ROOT)/core/symtabAPI/h -I$(DYNINST_ROOT)/core -g
 DEFINES      = -DPACKAGE_NAME=\"parseThat\" -DPACKAGE_TARNAME=\"parsethat\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"parseThat\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_BPATCH_PROCESS_H=1 
-LDFLAGS      = -L/i386-unknown-linux2.4/lib -L/p/paradyn/development/legendre/head/i386-unknown-linux2.4/lib
+LDFLAGS      = -L$(DYNINST_ROOT)/$(PLATFORM)/lib
 LIBS         = 
 
 prefix       = .
 PLATFORM    ?= i686-pc-linux-gnu
 DYNINST_VER  = 5
 
-INSTALL      = /usr/bin/install -c
+INSTALL      =
+#INSTALL      = install -c
 
 vpath % ./src
 
@@ -44,7 +45,7 @@ OBJDIR       = obj-$(PLATFORM)
 OBJS         = $(addprefix $(OBJDIR)/, $(SRCS:%.C=%.o))
 
 CXXFLAGS    += -Wall
-LIBS        += -ldyninstAPI -liberty
+LIBS        += -ldyninstAPI -lsymtabAPI -liberty
 
 ifneq (, $(findstring sparc, $(PLATFORM)))
 LIBS        += -lelf -lstdc++ -lsocket -lrt
@@ -71,6 +72,7 @@ distclean: clean
 	rm -rf config.log config.status $(OBJDIR) Makefile
 
 ready:
+	mkdir -p obj-$(PLATFORM)
 	$(INSTALL) -d $(OBJDIR)
 
 $(OBJDIR)/parseThat: $(OBJS)
