@@ -75,9 +75,7 @@ class Archive{
  
  private:
    MappedFile *mf;
-#if 0
  	std::string filename_;
-#endif
 	char *mem_image_;
 	hash_map <std::string, Symtab *> membersByName;
     hash_map <std::string, Offset> memberToOffsetMapping;

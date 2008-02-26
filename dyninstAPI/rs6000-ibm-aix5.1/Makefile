@@ -8,7 +8,7 @@ INSTANTIATE_TEMPLATES   = true
 DO_INLINE_ALL           = true
 NO_OPT_FLAG = true
 #NO_IMPLICIT_TEMPLATES    = true
-#AUTO_TEMPLATES 		 = true
+AUTO_TEMPLATES 		 = true
 OVERRIDE_INSTALL	= true
 USES_BOOST = true
 

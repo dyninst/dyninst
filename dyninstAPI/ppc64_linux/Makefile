@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2008/02/20 08:31:02 jaw Exp $
+# $Id: Makefile,v 1.4 2008/02/26 06:59:39 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,10 +7,11 @@
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
 #DEBUG_FLAG = -g
-NO_IMPLICIT_TEMPLATES = true
+#NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
 USES_BOOST = true
+AUTO_TEMPLATES=true
 
 # For debugging.
 #NO_OPT_FLAG = true

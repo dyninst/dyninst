@@ -2084,6 +2084,7 @@ Symtab::~Symtab()
             allSymtabs.erase(allSymtabs.begin()+i);
     }
 
+    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
     if (mf) MappedFile::closeMappedFile(mf);
 }	
  

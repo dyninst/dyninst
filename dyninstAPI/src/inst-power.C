@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.284 2008/02/23 02:09:05 jaw Exp $
+ * $Id: inst-power.C,v 1.285 2008/02/26 06:59:42 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -2529,7 +2529,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     default:
         cerr << "Fallthrough in emitLoadPreviousStackFrameRegister" << endl;
         cerr << "Unexpected register " << register_num << endl;
-        abort();
+        assert(0);
         break;
     }
 }

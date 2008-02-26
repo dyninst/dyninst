@@ -1,15 +1,17 @@
 #
-# $Id: Makefile,v 1.30 2008/02/20 08:31:02 jaw Exp $
+# $Id: Makefile,v 1.31 2008/02/26 06:59:38 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 DEBUG_FLAG = -g
-NO_IMPLICIT_TEMPLATES = true
+#NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
 USES_UNWIND_LIB = true
 USES_BOOST = true
+AUTO_TEMPLATES=true
+INSTANTIATE_TEMPLATES=true
 
 # Turns off optimization, and enables debugging.
 # NO_OPT_FLAG = true

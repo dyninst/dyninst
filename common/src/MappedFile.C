@@ -6,7 +6,7 @@ hash_map<std::string, MappedFile *> MappedFile::mapped_files;
 MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 {
    if (mapped_files.find(fullpath_) != mapped_files.end()) {
-      fprintf(stderr, "%s[%d]:  mapped file exists for %s\n", FILE__, __LINE__, fullpath_.c_str());
+      //fprintf(stderr, "%s[%d]:  mapped file exists for %s\n", FILE__, __LINE__, fullpath_.c_str());
       MappedFile  *ret = mapped_files[fullpath_];
       ret->refCount++;
       return ret;
@@ -69,7 +69,7 @@ MappedFile::MappedFile(void *loc, bool &ok) :
 
 void MappedFile::closeMappedFile(MappedFile *mf)
 {
- //  fprintf(stderr, "%s[%d]:  welcome to closeMappedFile(%s) refCount = %d\n", FILE__, __LINE__, mf->pathname().c_str(), mf->refCount);
+   //fprintf(stderr, "%s[%d]:  welcome to closeMappedFile(%s) refCount = %d\n", FILE__, __LINE__, mf->pathname().c_str(), mf->refCount);
    mf->refCount--;
    if (mf->refCount <= 0) {
       hash_map<std::string, MappedFile *>::iterator iter;
@@ -77,7 +77,7 @@ void MappedFile::closeMappedFile(MappedFile *mf)
       if (iter != mapped_files.end()) {
          mapped_files.erase(iter);
       }
-  //    fprintf(stderr, "%s[%d]:  DELETING mapped file\n", FILE__, __LINE__);
+      //fprintf(stderr, "%s[%d]:  DELETING mapped file\n", FILE__, __LINE__);
       //  dtor handles unmap and close
       delete mf;
    }
@@ -103,7 +103,7 @@ MappedFile::~MappedFile()
 {
   //  warning, destructor should not allowed to throw exceptions
    if (did_mmap)  {
-      fprintf(stderr, "%s[%d]: unmapping %s\n", FILE__, __LINE__, fullpath.c_str());
+      //fprintf(stderr, "%s[%d]: unmapping %s\n", FILE__, __LINE__, fullpath.c_str());
       unmap_file();
    }
    if (did_open) 
@@ -283,6 +283,7 @@ bool MappedFile::unmap_file()
       return false;
    }
    
+   map_addr = NULL;
 #endif
    return true;
 }

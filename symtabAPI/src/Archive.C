@@ -77,7 +77,10 @@ bool Archive::openArchive(Archive *&img, std::string filename)
 	if (ok)	// No errors
 		allArchives.push_back(img);	
 	else {
-      if (img) delete img;
+      if (img) {
+         //fprintf(stderr, "%s[%d]:  deleting archive here\n", FILE__, __LINE__);
+         delete img;
+      }
 		img = NULL;
    }
 
@@ -95,7 +98,8 @@ bool Archive::openArchive(Archive *&img, char *mem_image, size_t size)
 }
 #endif
 
-Archive::Archive(std::string &filename, bool &err) 
+Archive::Archive(std::string &filename, bool &err) :
+   filename_(filename)
 {
    mf  = MappedFile::createMappedFile(filename);
    fileOpener *fo_ = fileOpener::openFile(mf->base_addr(), mf->size());
@@ -209,7 +213,10 @@ Archive::Archive(std::string &filename, bool &err)
 		membersByName[member_name] = memImg;
 */
    } 	
+   if (mf)
+      MappedFile::closeMappedFile(mf);
    delete archive;
+   mf = NULL;
 	err = true;
 }
 
@@ -322,6 +329,7 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
 		membersByName[member_name] = memImg;
 		membersByOffset[archive->aout_offset] = memImg;
    } 	
+   fprintf(stderr, "%s[%d]:  deleting archive\n", FILE__, __LINE__);
    delete archive;
 	err = true;
 }
@@ -375,7 +383,7 @@ bool Archive::isMemberInArchive(std::string member_name)
 
 std::string Archive::file()
 {
-  return mf->pathname();
+  return filename_;
 }
 
 Archive::~Archive()
@@ -390,5 +398,7 @@ Archive::~Archive()
       if (allArchives[i] == this)
          allArchives.erase(allArchives.begin()+i);
    }
-   MappedFile::closeMappedFile(mf);
+   //fprintf(stderr, "%s[%d]:  archive DTOR\n", FILE__, __LINE__);
+   if (mf)
+      MappedFile::closeMappedFile(mf);
 }

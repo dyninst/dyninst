@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.15 2006/06/08 12:25:12 jaw Exp $ */
+/* $Id: test3.mutatee.c,v 1.16 2008/02/26 06:59:43 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -121,6 +121,7 @@ int func3_1()
      return (dummy * 2);
 }
 
+#include <errno.h>
 /*
  * Test #3 - call a function which should be instrumented to set the 
  *     global variable test3ret to a value (by the mutator).
@@ -134,6 +135,9 @@ void test3()
 
      sprintf(filename, "test3.out.%d", (int)getpid());
      fp = fopen(filename, "w");
+     if (!fp) {
+        fprintf(stderr, "%s[%d]:  failed to fopen %s: %s\n", __FILE__, __LINE__, filename, strerror(errno));
+     }
      assert(fp);
      fprintf(fp, "%d\n", test3ret);
      fclose(fp);
@@ -146,6 +150,7 @@ void test5()
 {
      dprintf("Mutatee aborting.\n");
      abort();
+     //exit(0);
 }
 
 unsigned int test7counter = 0;

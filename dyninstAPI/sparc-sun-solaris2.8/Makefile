@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.33 2008/02/20 08:31:02 jaw Exp $
+# $Id: Makefile,v 1.34 2008/02/26 06:59:42 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,8 +7,9 @@
 #USES_LIBERTY = true
 #NO_OPT_FLAG = true
 #DEBUG_FLAG = -g
-NO_IMPLICIT_TEMPLATES = true
+#NO_IMPLICIT_TEMPLATES = true
 USES_BOOST = true
+AUTO_TEMPLATES=true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.

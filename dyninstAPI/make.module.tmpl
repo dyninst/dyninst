@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.96 2008/02/19 23:50:08 legendre Exp $
+# $Id: make.module.tmpl,v 1.97 2008/02/26 06:59:38 jaw Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -50,11 +50,16 @@ TFLAGS		+= -fPIC
 VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
 		../../common/src:../../paradyn/h
 
+ifdef AUTO_TEMPLATES
+CFLAGS += -DAUTO_TEMPLATES
+CXXFLAGS += -DAUTO_TEMPLATES
+endif
+
 ifndef AUTO_TEMPLATES
 SRCS         += ../src/BPatch_templates.C \
 		../src/templates0.C \
 		../src/templates1.C \
-		../src/templates2.C \
+		../src/templates2.C 
 
 endif
 

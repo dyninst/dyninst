@@ -85,16 +85,16 @@ eventLock::eventLock()
   int err = 0;
   pthread_mutexattr_t mutex_type;
   if (0 != pthread_mutexattr_init(&mutex_type)) {
-   abort();
+     assert(0);
   }
   if (0 != pthread_mutexattr_settype(&mutex_type, PTHREAD_MUTEX_TYPE)) {
-    abort();
+     assert(0);
   }
   if (0 != pthread_mutex_init(&mutex, &mutex_type)) {
    ERROR_BUFFER;
     fprintf(stderr, "%s[%d]:  failed to init mutex: %s[%d]\n",
             FILE__, __LINE__, STRERROR(err, buf), err);
-    abort();
+     assert(0);
   }
   pthread_cond_init(&cond, NULL);
 #endif // !Windows
@@ -270,7 +270,7 @@ int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
   unsigned cached_lock_depth = lock_depth;
   if (!lock_depth) {
     fprintf(stderr, "%s[%d][%s]: cannot call wait until lock is obtained, see %s[%d]\n", FILE__, __LINE__, getThreadStr(getExecThreadID()), __file__, __line__);
-    abort();
+     assert(0);
   }
   
   lstack = lock_stack;

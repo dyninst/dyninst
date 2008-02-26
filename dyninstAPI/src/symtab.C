@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.317 2008/02/23 02:09:11 jaw Exp $
+ // $Id: symtab.C,v 1.318 2008/02/26 06:59:42 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,7 +162,7 @@ pdmodule *image::newModule(const string &name, const Address addr, supportedLang
       bool ok = linkedFile->getAllModules(mods);
       if (!ok) {
          fprintf(stderr, "%s[%d]:  failed to getAllModules\n", FILE__, __LINE__);
-         abort();
+         assert(0);
       }
       for (unsigned int  i =0; i < mods.size(); ++i) {
          fprintf(stderr, "\t%s\n", mods[i]->fileName().c_str());
@@ -1256,6 +1256,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    }
 #endif  
 
+
    baseAddr_ = desc.loadAddr();
    err = false;
    name_ = extract_pathname_tail(string(desc.file().c_str()));
@@ -1427,7 +1428,7 @@ image::~image()
 
     if (linkedFile) delete linkedFile;
 #if defined (os_aix)
-    fprintf(stderr, "%s[%d]:  IMAGE DTOR:  archive = %p\n", FILE__, __LINE__, archive);
+    //fprintf(stderr, "%s[%d]:  IMAGE DTOR:  archive = %p\n", FILE__, __LINE__, archive);
     if (archive) delete archive;
 #endif
 }
@@ -2039,7 +2040,8 @@ void *image::getPtrToData(Address offset) const {
 }
     
 // return a pointer to the instruction at address adr
-void *image::getPtrToInstruction(Address offset) const {
+void *image::getPtrToInstruction(Address offset) const 
+{
    assert(isValidAddress(offset));
 
    if (isCode(offset)) {
@@ -2051,7 +2053,7 @@ void *image::getPtrToInstruction(Address offset) const {
       unsigned char *inst = (unsigned char *)(linkedFile->data_ptr());
       return (void *)(&inst[offset]);
    } else {
-      abort();
+      assert(0);
       return 0;
    }
 }

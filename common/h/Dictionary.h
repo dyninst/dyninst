@@ -380,7 +380,7 @@ class dictionary_hash_iter {
   operator bool() const {return i < the_end;}
 };
 
-#if defined(__XLC__) || defined(__xlC__)
+#if defined(__XLC__) || defined(__xlC__) || defined (AUTO_TEMPLATES)
 #define DICT_C_IS_HEADER
 #include "../src/Dictionary.C"
 #endif

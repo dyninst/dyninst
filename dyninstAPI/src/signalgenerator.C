@@ -858,7 +858,7 @@ eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts, dyn_lwp
   if (getExecThreadID() == getThreadID()) {
     fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal\n", 
             FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    abort();
+    assert(0);
   }
 
   signal_printf("%s[%d]: waitForOneOf... \n", FILE__, __LINE__);
@@ -976,7 +976,7 @@ eventType SignalGeneratorCommon::waitForEvent(eventType evt,
   if (getExecThreadID() == getThreadID()) {
     fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal: %s\n", 
             FILE__, __LINE__, getThreadStr(getExecThreadID()), eventType2str(evt));
-    abort();
+    assert(0);
   }
 
   signal_printf("%s[%d]:  welcome to waitForEvent(%s)\n", FILE__, __LINE__, eventType2str(evt));

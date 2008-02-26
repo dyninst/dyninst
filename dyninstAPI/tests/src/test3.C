@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.55 2006/06/20 04:49:39 jaw Exp $
+// $Id: test3.C,v 1.56 2008/02/26 06:59:43 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -426,7 +426,7 @@ int readResult(int pid)
     sprintf(filename, "test3.out.%d", pid);
     fp = fopen(filename, "r");
     if (!fp) {
-	printf("ERROR: unable to open output file %s\n", filename);
+	fprintf(stderr, "%s[%d]: ERROR: unable to open output file %s: %s\n", FILE__, __LINE__, filename,strerror(errno));
 	return -1;
     }
     fscanf(fp, "%d\n", &ret);
@@ -686,8 +686,11 @@ void mutatorTest5(char *pathname, BPatch *bpatch)
         appThread->continueExecution();
 
         while (!appThread->isTerminated()) {
-            if (appThread->isStopped())
+               fprintf(stderr, "%s[%d]:  !terminated\n", FILE__, __LINE__);
+            if (appThread->isStopped()) {
+               fprintf(stderr, "%s[%d]:  hitting continue...\n", FILE__, __LINE__);
               appThread->continueExecution();
+            }
             bpatch->waitForStatusChange();
         }
 

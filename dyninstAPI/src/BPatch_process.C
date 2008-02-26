@@ -193,7 +193,8 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
        }
    }
    
-   llproc = ll_createProcess(path, &argv_vec, (envp ? &envp_vec : NULL), 
+   std::string spath(path);
+   llproc = ll_createProcess(spath, &argv_vec, (envp ? &envp_vec : NULL), 
                              directoryName, stdin_fd, stdout_fd, stderr_fd);
    if (llproc == NULL) { 
       BPatch::bpatch->reportError(BPatchFatal, 68, 
@@ -327,15 +328,20 @@ BPatch_process::BPatch_process(const char *path, int pid)
    assert(BPatch::bpatch != NULL);
    BPatch::bpatch->registerProcess(this, pid);
 
+    startup_printf("%s[%d]:  creating new BPatch_image...\n", FILE__, __LINE__);
    image = new BPatch_image(this);
-
-   llproc = ll_attachProcess(path, pid, this);
+    startup_printf("%s[%d]:  created new BPatch_image...\n", FILE__, __LINE__);
+   std::string spath = path ? std::string(path) : std::string();
+    startup_printf("%s[%d]:  attaching to process %s/%d\n", FILE__, __LINE__, 
+          path ? path : "no_path", pid);
+   llproc = ll_attachProcess(spath, pid, this);
    if (!llproc) {
       BPatch::bpatch->unRegisterProcess(pid, this);
       BPatch::bpatch->reportError(BPatchFatal, 68, 
              "Dyninst was unable to attach to the specified process");
       return;
    }
+    startup_printf("%s[%d]:  attached to process %s/%d\n", FILE__, __LINE__, path ? path : "no_path", pid);
 
    // Create an initial thread
    dyn_thread *dynthr = llproc->getInitialThread();
