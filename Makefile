@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.86 2008/01/24 11:20:42 jaw Exp $
+# $Id: Makefile,v 1.87 2008/03/12 20:08:23 legendre Exp $
 #
 
 TO_CORE = .
@@ -21,7 +21,7 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 # "DyninstAPI" is the list of additional API components (optional).
 
 basicComps	= igen mrnet pdutil 
-ParadynD	= pdutil igen mrnet sharedMem rtinst dyninstAPI dyninstAPI_RT paradynd
+ParadynD	= pdutil igen mrnet sharedMem rtinst symtabAPI dyninstAPI dyninstAPI_RT paradynd
 ParadynFE	= pdthread paradyn
 ParadynVC	= visi \
 		visiClients/tclVisi visiClients/barchart \
@@ -29,18 +29,11 @@ ParadynVC	= visi \
 		visiClients/histVisi visiClients/terrain \
 		visiClients/termWin
 
-subSystems	= $(basicComps) $(ParadynD) $(ParadynFE) $(ParadynVC)
-SymtabAPI 	= ready common symtabAPI
-DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dyninstAPI/tests testsuite dyner codeCoverage
+subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
+SymtabAPI 	= ready common symtabAPI dynutil
+DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dyninstAPI/tests testsuite dyner codeCoverage dynutil
 
-allSubdirs	= $(basicComps) $(subSystems) common symtabAPI dyninstAPI dyninstAPI_RT dyninstAPI/tests testsuite dyner codeCoverage
-
-# Only include the newtestsuite directory for i386 Linux.  It's not ready yet
-# on other platforms
-ifeq ($(PLATFORM),i386-unknown-linux2.4)
-DyninstAPI      += newtestsuite
-allSubdirs      += newtestsuite
-endif
+allSubdirs	= $(subSystems) common dyninstAPI/tests testsuite dyner codeCoverage dynutil
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
@@ -78,9 +71,9 @@ all: ready world
 clean depend distclean:
 	+@for subsystem in $(fullSystem); do 			\
 	    if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
-		$(MAKE) -C $$subsystem/$(PLATFORM) $@;		\
+			$(MAKE) -C $$subsystem/$(PLATFORM) $@;		\
 	    else						\
-		true;						\
+			true;						\
 	    fi							\
 	done
 
@@ -88,7 +81,9 @@ install:	ready world
 	+@for subsystem in $(fullSystem); do 			\
 		if [ -f $$subsystem/$(PLATFORM)/Makefile ]; then	\
 			$(MAKE) -C $$subsystem/$(PLATFORM) install;		\
-		else						\
+		elif [ -f $$subsytem/Makefile ]; then 			\
+			$(MAKE) -C $$subsystem install; \
+	   else	\
 			true;						\
 	   fi							\
 	done	
@@ -98,7 +93,7 @@ install:	ready world
 # if needed.
 
 ready:
-	+@for installdir in $(LIBRARY_DEST) $(PROGRAM_DEST); do \
+	+@for installdir in $(LIBRARY_DEST) $(PROGRAM_DEST) $(INCLUDE_DEST); do \
 	    if [ -d $$installdir ]; then			\
 		echo "Installation directory $$installdir exists...";	\
 	        true;						\
@@ -174,13 +169,22 @@ Paradyn ParadynD ParadynFE ParadynVC DyninstAPI SymtabAPI basicComps subSystems:
 .PHONY: $(allSubdirs)
 
 $(allSubdirs): 
-	@echo "Building in $@ ... "
-	$(MAKE) -C $@/$(PLATFORM) 
-	$(MAKE) -C $@/$(PLATFORM) install
+	@if [ -f $@/$(PLATFORM)/Makefile ]; then \
+		$(MAKE) -C $@/$(PLATFORM) && \
+		$(MAKE) -C $@/$(PLATFORM) install; \
+	elif [ -f $@/Makefile ]; then \
+		$(MAKE) -C $@ && \
+		$(MAKE) -C $@ install; \
+	else \
+		echo $@ has no Makefile; \
+		false; \
+	fi
+
 
 # dependencies -- keep parallel make from building out of order
 symtabAPI igen: common
 dyninstAPI: symtabAPI
+symtabAPI dyninstAPI: dynutil
 paradynd:  pdutil dyninstAPI 
 paradyn: pdutil pdthread 
 pdthread: igen mrnet 

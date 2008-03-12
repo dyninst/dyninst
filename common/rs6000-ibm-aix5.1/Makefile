@@ -60,7 +60,7 @@ ifdef IBM_BPATCH_COMPAT
 else
   # On AIX all symbols must be resolved at link time, even for a library.
   # We need the cplus.demangle function from libiberty.
-  LDFLAGS += -liberty -Wl,-bbigtoc,-bexpall -lgcc 
+  LDFLAGS += -liberty -Wl,-bbigtoc,-bexpall -lgcc -lc
   # Override default of gcc -- need g++ on AIX
   LD = $(GXX)
 endif

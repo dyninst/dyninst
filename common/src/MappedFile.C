@@ -135,7 +135,6 @@ bool MappedFile::check_path(std::string &filename)
    return true;
 
 err:
-   fprintf(stderr, "%s[%d]: bad path: %s\n", FILE__, __LINE__, filename.c_str());
    return false;
 }
 

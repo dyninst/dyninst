@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.30 2005/12/19 19:41:36 pack Exp $
+# $Id: make.library.tmpl,v 1.31 2008/03/12 20:08:25 legendre Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -53,6 +53,15 @@ $(TARGET): $(OBJS) $(EXTRA_LIBS)
 endif # STATIC_LIBRARY
 endif  # OVERRIDE_LINK
 
+ifdef PUBLIC_H
+$(TO_CORE)/$(INCLUDE_DEST)/%.h: $(TO_INC)/%.h
+	$(CP) $^ $(TO_CORE)/$(INCLUDE_DEST)
+
+public_includes: $(patsubst %,$(TO_CORE)/$(INCLUDE_DEST)/%,$(PUBLIC_H))
+else
+public_includes:
+endif 
+
 ifndef DEST
 DEST		= $(TO_CORE)/$(LIBRARY_DEST)
 endif
@@ -66,12 +75,13 @@ clean:
 distclean: clean
 	$(RM) DEPENDS
 
-install_generic: $(TARGET)
+$(DEST)/$(TARGET): $(TARGET)
 	-$(CP) $(TARGET) $(DEST)
 
+install_generic: $(DEST)/$(TARGET)
 
 ifndef OVERRIDE_INSTALL
-install: install_generic
+install: install_generic public_includes
 endif
 
 #
