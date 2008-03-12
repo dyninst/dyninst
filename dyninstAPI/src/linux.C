@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.269 2008/02/23 02:09:08 jaw Exp $
+// $Id: linux.C,v 1.270 2008/03/12 20:09:17 legendre Exp $
 
 #include <fstream>
 
@@ -1917,11 +1917,12 @@ Address dyn_lwp::step_next_insn() {
       return (Address) -1;
    }
 
-   do {
+   proc()->getSG()->signalActiveProcess();
+   while (singleStepping) {
       if(proc()->hasExited()) 
          return (Address) -1;
       proc()->sh->waitForEvent(evtDebugStep);
-   } while (singleStepping);
+   }
 
    return getActiveFrame().getPC();
 }

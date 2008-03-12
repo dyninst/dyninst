@@ -4,11 +4,13 @@
 
 # XXX get rid of these:
 
-INSTANTIATE_TEMPLATES   = true
-DO_INLINE_ALL           = true
-NO_OPT_FLAG = true
-#NO_IMPLICIT_TEMPLATES    = true
-AUTO_TEMPLATES 		 = true
+#INSTANTIATE_TEMPLATES   = true
+#DO_INLINE_ALL           = true
+NO_IMPLICIT_TEMPLATES    = true
+#AUTO_TEMPLATES 	       = true
+
+# we override the common install command with a custom one provided below
+# since wel need to also install libdemangle
 OVERRIDE_INSTALL	= true
 USES_BOOST = true
 
@@ -73,7 +75,7 @@ ifdef IBM_BPATCH_COMPAT
 else
   # On AIX all symbols must be resolved at link time, even for a library.
   # We need the cplus.demangle function from libiberty.
-  LDFLAGS += -liberty -Wl,-bbigtoc,-bexpall -lgcc 
+  LDFLAGS += -liberty -Wl,-bbigtoc,-bexpall 
   # Override default of gcc -- need g++ on AIX
   LD = $(GXX)
 endif

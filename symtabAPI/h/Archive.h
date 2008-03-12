@@ -45,6 +45,7 @@ using namespace std;
 using namespace __gnu_cxx; 
 
 class MappedFile;
+
 namespace Dyninst{
 namespace SymtabAPI{
 

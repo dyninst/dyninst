@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.18 2007/12/31 16:08:18 bernat Exp $
+// $Id: registerSpace.C,v 1.19 2008/03/12 20:09:21 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -104,16 +104,17 @@ bool registerSpace::hasXMM = false;
 
 void registerSlot::cleanSlot() {
     assert(this);
-    // Undo anything set during code generation
+    // number does not change
     refCount = 0;
-
-    // startsLive doesn't change on cleaning
+    //liveState = live;
+    //liveState does not change
     keptValue = false;
     beenUsed = false;
-    // callerSaved doesn't change
+    // initialState doesn't change
     // offLimits doesn't change
-    // origValueSpilled_ doesn't change
-    // saveOffset doesn't change
+    spilledState = unspilled;
+    saveOffset = 0;
+    // type doesn't change
 }
 
 unsigned registerSlot::encoding() const {
@@ -172,7 +173,7 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP, callWhen when) {
     if (BPatch::bpatch->livenessAnalysisOn()) {
         assert(iP);
         registerSpace *ret = NULL;
-
+        /*
 #if defined(arch_power)
         // Power has some serious problems right now with GPR/FPR
         // liveness. Disabling.
@@ -190,7 +191,7 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP, callWhen when) {
         else {
             ret->registers_[mq]->liveState = registerSlot::dead;
         }
-#else
+        */
 
         liveness_printf("%s[%d] Asking for actualRegSpace for iP at 0x%lx, dumping info:\n",
                         FILE__, __LINE__, iP->addr());
@@ -199,7 +200,7 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP, callWhen when) {
         ret = getRegisterSpace(iP->proc());
         ret->specializeSpace(iP->liveRegisters(when));
 
-#endif
+        //#endif
         ret->cleanSpace();
         return ret;
     }

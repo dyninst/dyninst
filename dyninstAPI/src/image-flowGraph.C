@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.47 2008/02/23 02:09:05 jaw Exp $
+ * $Id: image-flowGraph.C,v 1.48 2008/03/12 20:09:09 legendre Exp $
  */
 
 #include <stdio.h>
@@ -511,6 +511,9 @@ bool image_func::parse(
         return false;
     }
     parsed_ = true;
+
+    parsing_printf("[%s:%u] parsing %s at 0x%lx\n", FILE__,__LINE__,
+                symTabName().c_str(), getOffset());
 
     // Some architectures have certain functions or classes of functions
     // that should appear to be parsed without actually being parsed.
@@ -1247,7 +1250,6 @@ bool image_func::buildCFG(
                 if( currAddr >= funcEnd )
                     funcEnd = ah.peekNext();
 
-                parsing_printf("... 0x%lx is a call\n", currAddr);
                
 		
 
@@ -1265,24 +1267,31 @@ bool image_func::buildCFG(
                 bool isAbsolute = false;
                 Address target = ah.getBranchTargetAddress(&isAbsolute);
 
+
 		if ( archIsRealCall(ah, validTarget, simulateJump) )
 		  {
                     if (ah.isADynamicCallInstruction()) {
-		      p = new image_instPoint( currAddr,
+                        p = new image_instPoint( currAddr,
 					       ah.getInstruction(),
 					       this,
 					       0,
 					       true);
+
+                        parsing_printf("[%s:%u] dynamic call 0x%lx -> ?\n",
+                            FILE__,__LINE__,currAddr);
                     }
                     else {
-		      p = new image_instPoint( currAddr,
+                        p = new image_instPoint( currAddr,
 					       ah.getInstruction(),
 					       this,
 					       target,
 					       false,
 					       isAbsolute);
 		      
-		      targetFunc = bindCallTarget(target,currBlk,callTargets,
+                        parsing_printf("[%s:%u] binding call 0x%lx -> 0x%lx\n",
+                            FILE__,__LINE__,currAddr,target);
+
+		                targetFunc = bindCallTarget(target,currBlk,callTargets,
 						  preParseStubs);
                     }
                     calls.push_back( p );
@@ -1602,10 +1611,29 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
             curBlk->funcs_[0]->needsRelocation_ = true;
         }
 
+        /* Copy instrumentation points (if any) to this function that
+           will incorporate the shared code.
+
+           XXX
+           Given parsing errors that are possible given misparsed
+           control flow (e.g., badly parsed indirect control flow,
+           non-returning functions, and opaque conditional branches),
+           it is possible for misaligned blocks to overlap &
+           include the same instpoint. This is /not safe/ and should
+           be addressed in a new, overlap-friendly parser, but
+           in the meanwhile it is imperative that instpoints are not
+           duplicated in these [rare] cases.
+
+           XXX
+           For the moment we are not implementing a check before
+           copy to continue to exercise parsing bugs.
+        */
+
         // note that these have to occur before this function
         // is added to the block's ownership list
         if((tmpInstPt = curBlk->getCallInstPoint()) != NULL)
         {
+            parsing_printf("... copying call point at 0x%lx\n", tmpInstPt->offset());                
             cpyInstPt = new image_instPoint(tmpInstPt->offset(),
                                     tmpInstPt->insn(),
                                     this,

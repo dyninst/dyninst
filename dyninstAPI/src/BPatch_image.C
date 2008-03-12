@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.110 2008/02/23 02:09:04 jaw Exp $
+// $Id: BPatch_image.C,v 1.111 2008/03/12 20:08:51 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -996,7 +996,6 @@ bool BPatch_image::getSourceLinesInt(unsigned long addr,
 
    if ( lines.size() != originalSize ) { return true; }	
 
-   fprintf(stderr, "%s[%d]:  getSourceLines failing\n", FILE__, __LINE__);
    return false;
 } /* eng getSourceLines() */
 
@@ -1113,7 +1112,7 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base)
  * both 0.  
  *
  */
-   BPatch_module *BPatch_image::parseNewRegionInt
+BPatch_module *BPatch_image::parseNewRegionInt
 (unsigned long addrStart, unsigned long addrEnd, 
  BPatch_Vector<unsigned long> *funcEntryAddrs, bool parseGaps)
 {
@@ -1279,11 +1278,15 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base)
 BPatch_Vector<BPatch_point *> *BPatch_image::getUnresolvedControlFlowInt()
 {
    unresolvedCF.clear();
-   for (unsigned int i=0; i < modlist.size(); i++) {
-      BPatch_Vector<BPatch_point*> *modCalls = 
-         modlist[i]->getUnresolvedControlFlow();
-      for (unsigned int j=0; j < modCalls->size(); j++) {
-         unresolvedCF.push_back((*modCalls)[j]);
+   pdvector<mapped_object*> objs = addSpace->getAS()->mappedObjects();
+   for (unsigned i=0; i < objs.size(); i++) {
+      pdvector<mapped_module *> mods = objs[i]->getModules();
+      if (mods.size()) {
+         BPatch_Vector<BPatch_point*> *badCF = 
+             findOrCreateModule(mods[0])->getUnresolvedControlFlow();
+         for (unsigned j=0; j < badCF->size(); j++) {
+            unresolvedCF.push_back((*badCF)[j]);
+         }
       }
    }
    return &unresolvedCF;

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.52 2008/01/31 18:01:55 legendre Exp $
+ * $Id: RTlinux.c,v 1.53 2008/03/12 20:09:31 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -323,17 +323,9 @@ dyntid_t dyn_pthread_self()
    platform-ness here. 
 */
 int DYNINST_am_initial_thread( dyntid_t tid ) {
-	static dyntid_t already_matched = (dyntid_t) -1;
 	if( dyn_lwp_self() == getpid() ) {
-		if( already_matched != (dyntid_t) -1 && already_matched != tid ) {
-			/* This can only happen in 2.4; we don't have lwp_self(),
-			   or multiple tids share the same lwp. Error case. */
-			assert(0);
-			return 0;
-			}
-		already_matched = tid;
 		return 1;
-		}
+   }
 	return 0;
 } /* end DYNINST_am_initial_thread() */
 

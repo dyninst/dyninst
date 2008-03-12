@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.285 2008/02/26 06:59:42 jaw Exp $
+ * $Id: inst-power.C,v 1.286 2008/03/12 20:09:12 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -347,7 +347,7 @@ void registerSpace::initialize32() {
 
     // Syscall - assume the same as call
     syscallRead_ = callRead_;
-    syscallWritten_ = syscallWritten_;
+    syscallWritten_ = callWritten_;
 #endif
 }
 

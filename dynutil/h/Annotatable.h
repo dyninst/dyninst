@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.3 2008/02/23 02:09:12 jaw Exp $
+// $Id: Annotatable.h,v 1.4 2008/03/12 20:09:34 legendre Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -53,8 +53,7 @@
 
 class AnnotatableBase;
 
-#if defined(os_windows)
-#else
+#if !defined(_MSC_VER)
 namespace __gnu_cxx {
    template<> struct hash<AnnotatableBase *> {
       hash<char*> h;
@@ -62,7 +61,7 @@ namespace __gnu_cxx {
          return ::Dyninst::addrHashCommon((Dyninst::Address)b);
       };
    };
-};
+}
 #endif
 
 using std::vector;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.710 2008/02/23 02:09:10 jaw Exp $
+// $Id: process.C,v 1.711 2008/03/12 20:09:20 legendre Exp $
 
 #include <ctype.h>
 
@@ -1945,25 +1945,6 @@ bool process::setupFork()
     for (unsigned ii = 0; ii < parent->pendingGCInstrumentation.size(); ii++) {
         // TODO. For now we'll just "leak"
     }
-
-#if 0
-    // We create instPoints as part of copying functions
-
-    std::set<instPoint *> allInstPoints;
-    dictionary_hash_iter<Address, instPoint *> ipIter(parent->instPMapping_);
-    for (; ipIter; ipIter++) {
-        instPoint *p = ipIter.currval();
-        allInstPoints.insert(p);
-    }
-    
-    for (std::set<instPoint *>::iterator ip = allInstPoints.begin();
-         ip != allInstPoints.end();
-         ip++) {
-        instPoint *newIP = new instPoint(*ip, this);
-        assert(newIP);
-        // Adds to instPMapping_
-    }
-#endif
 
     // Now that we have instPoints, we can create the (possibly) instrumentation-
     // based tracing code

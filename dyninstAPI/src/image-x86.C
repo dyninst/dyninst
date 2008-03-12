@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.27 2008/02/18 19:14:44 bill Exp $
+ * $Id: image-x86.C,v 1.28 2008/03/12 20:09:11 legendre Exp $
  */
 
 #include "common/h/Vector.h"
@@ -275,13 +275,13 @@ bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
             // check for cmp 
             if( iter.getInstruction().isCmp() )
             {
-                parsing_printf("Found jmp table cmp instruction at 0x%lx\n",
+                parsing_printf("\tFound jmp table cmp instruction at 0x%lx\n",
                                 *iter);
                 maxSwitch = iter.getInstruction();
                 foundMaxSwitch = true;
             }
             if( iter.getInstruction().type() & IS_JCC ) {
-                parsing_printf("Found jmp table cond br instruction at 0x%lx\n",
+                parsing_printf("\tFound jmp table cond br instruction at 0x%lx\n",
                     *iter);
                 branchInsn = iter.getInstruction();
                 foundCondBranch = true;
@@ -341,7 +341,6 @@ struct copyToWorkList
   }
 };
 
-
 bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkOffset)
 {
   InstrucIter ah(curBlock);
@@ -365,11 +364,15 @@ bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkO
 	{
 	case 4:
 	  immediate = *(int*)(ah.getInstruction().ptr() + loc.imm_position);
+      parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx) (1)\n",thunkOffset+immediate,thunkOffset,immediate);
 	  thunkOffset += immediate;
+      return true;
 	  break;
 	case 1:
 	  immediate = *(char*)(ah.getInstruction().ptr() + loc.imm_position);
+      parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx) (2)\n",thunkOffset+immediate,thunkOffset,immediate);
 	  thunkOffset += immediate;
+      return true;
 	  break;
 	default:
 	  thunkOffset = 0;
@@ -396,11 +399,15 @@ bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkO
 	  immediate = *(int*)(ah.getInstruction().ptr() + loc.disp_position);
 	  ah++;
 	  thunkOffset = *ah + immediate;
+      parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx) (3)\n",thunkOffset,*ah,immediate);
+      return true;
 	  break;
 	case 1:
 	  immediate = *(char*)(ah.getInstruction().ptr() + loc.disp_position);
 	  ah++;
 	  thunkOffset = *ah + immediate;
+      parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx) (4)\n",thunkOffset,*ah,immediate);
+      return true;
 	  break;
 	default:
 	  thunkOffset = 0;
@@ -441,9 +448,37 @@ bool findThunkAndOffset(image_func* f, image_basicBlock* start, Address& thunkOf
 }
 
 
-// Very complicated for x86. Look for a jump table in the blocks preceeding
-// this block, and extract targets from it if found or mark this function
-// unrelocatable if it was not found or not understood.
+/* Recognizes particular ``jump table'' idioms on IA32/x86-64 platforms.
+ 
+   There are two pieces of information needed:
+
+   1. The base address of the table. This can be computed in one of two
+      ways:
+      - As an immediate value encoded in the indirect branch instruction
+      - As an offset from a thunk
+
+   2. The size of the table (number of indices). Knowing this value
+      requires knowing two more things:
+      - The address size in length (4 or 8 bytes)
+      - The stride length of the addressing method used to compute
+        offsets into the table (4 or 8 bytes)
+
+   Note:
+    The code below is extremely ad-hoc and recognizes several different
+    jump tables. Having developed in multiple iterations over a long
+    period of time, it is currently /hard to read/, in particular using
+    redundant information in multiple contexts. This routine and its
+    callees may require /cleanup/ to meet Wikipedia's /quality standards/.
+
+   Suggestions for future improvement:
+    1. Segregate functionality for jump table parsing into different
+       routines corresponding to the different idioms we can recognize.
+    
+    2. Consider register identities when searching for comparison and
+       load instructions used for the indirect branch. Currently none
+       of the routines take this into account.
+       /This is a serious deficiency/
+*/
 bool image_func::archGetMultipleJumpTargets( 
                                 BPatch_Set< Address >& targets,
                                 image_basicBlock * currBlk,
@@ -456,72 +491,121 @@ bool image_func::archGetMultipleJumpTargets(
     pdvector< image_edge* > in;
     currBlk->getSources( in );
 
+    Address tableInsnAddr;
+
     if( in.size() < 1 )
     {
       return false;
     }
     else {
+        // Assume that the table base address is calculated in the
+        // branch instruction (encoded using SIB)
         instruction tableInsn = ah.getInstruction();
-        // Obviously, since the indirect branch brought us here
-        instruction branchInsn = ah.getInstruction();
+        bool isAddInJmp = true;
+        tableInsnAddr = *ah;
+
+        // branchInsn refers to the conditional branch that guards
+        // the jump table, not the indirect branch.
+        instruction branchInsn;
         instruction maxSwitch;
 
-        bool isAddInJmp = true;
-        
-        int j = allInstructions.size() - 2;
-        assert(j > 0);
+        // There must be at least 3 instructions to form a jump table
+        // idiom. XXX we don't even use this on IA32/x86-64!
+        assert((allInstructions.size() - 2) > 0);
         
         const unsigned char* ptr = ah.getInstruction().op_ptr();
-	const unsigned char LEA = 0x8D;
-	
+        const unsigned char LEA = 0x8D;
+
+        // Instruction must be in ``group 5'' (includes indirect call
+        // and branch)	
         assert( *ptr == 0xff );
+
+        // If rm portion of mod/rm byte is not 0x4, then this instruction
+        // does not use SIB addressing and so we assume (correct?) that
+        // it cannot encode the address. Search backward for /any move
+        // from reg/memory -> reg OR an LEA instruction that populates a 
+        // register.
+        //  
+        // FIXME this is the first place where /no correlation between the
+        // target register of the branch is required/
         ptr++;
-        if( (*ptr & 0xc7) != 0x04) // if not SIB
-            {
-                isAddInJmp = false;
-                //jump via register so examine the previous instructions 
-                //in current block to determine the register value
-                bool foundTableInsn = false;
+        if((*ptr & 0xc7) != 0x04) // if not SIB
+        {
+            isAddInJmp = false;
+            bool foundTableInsn = false;
                 
-                InstrucIter findReg(ah);
+            InstrucIter findReg(ah);
 
-                while(findReg.hasPrev()) {
-                    findReg--;
-                    parsing_printf("Checking 0x%lx for register...\n", *findReg);
-                    if ((*findReg.getInstruction().op_ptr()) == MOVREGMEM_REG || (*findReg.getInstruction().op_ptr()) == LEA) {
-                        tableInsn = findReg.getInstruction();
-                        foundTableInsn = true;
-                        parsing_printf("Found register at 0x%lx\n", *findReg);
-                        break;    
-                    }
+            while(findReg.hasPrev()) {
+                findReg--;
+                parsing_printf("\tChecking 0x%lx for register...\n", *findReg);
+                if((*findReg.getInstruction().op_ptr()) == MOVREGMEM_REG 
+                    || (*findReg.getInstruction().op_ptr()) == LEA) 
+                {
+                    // tableInsn now points to the instruction that loads
+                    // what we presume to be the table base into
+                    // /some register/
+
+                    tableInsn = findReg.getInstruction();
+                    tableInsnAddr = *findReg;
+                    foundTableInsn = true;
+                    parsing_printf("\tFound register at 0x%lx\n", *findReg);
+                    break;    
                 }
+            }
 	    }
-	
 
+        /* Previous comment said:	
         // search backward over the blocks that reach this one. we're looking
         // for a comparison on this register. if we find an assignment to the
         // register but don't find the comparison, we give up on this jump
         // table.
+
+           XXX By "this register" it means "any register".
+
+           This routine finds the comparison & conditional branch that guard
+           the jump table.
+        */
         bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn);
-	Address thunkOffset = 0;
-	bool foundThunk = findThunkAndOffset(this, currBlk, thunkOffset);
+
+        // Searches for a thunk (call-thunk or rip-relative LEA as one
+        // sees on x86-64). thunkOffset is filled in with the /base address
+        // of the jump table/. Full stop.
+        Address thunkOffset = 0;
+        bool foundThunk = findThunkAndOffset(this, currBlk, thunkOffset);
 	
         if( !foundMaxSwitch ) {
-	  parsing_printf("... unable to fix max switch size\n");
-	  return false;
+            parsing_printf("\tunable to fix max switch size\n");
+            return false;
         }
-        //found the max switch assume jump table
         else {
-	  if( !ah.getMultipleJumpTargets( targets, tableInsn, 
+            parsing_printf("\ttableInsn at 0x%lx\n",tableInsnAddr);
+            if(thunkOffset) {
+                parsing_printf("\tThunk-calculated table base address: 0x%lx\n",
+                    thunkOffset);
+            }
+
+            // This routine does the work of computing target addresses
+            // from the jump table. It:
+            //   - computes the number of table entries from maxSwitch
+            //   - figures out how to adjust that value based on the 
+            //     branchInsn (e.g., jge vs jg)
+            //   - computes the base address of the jump table from 
+            //     tableInsn /IF/ isAddInJmp is est
+            //   - or, uses thunkOffset as the base of the table if it
+            //     is set (FIXME note that it could use both, adding
+            //     thunkOffset to the base from tableInsn). This path
+            //     of code is probably a bug but I don't know for sure.
+            if( !ah.getMultipleJumpTargets( targets, tableInsn, 
 					  maxSwitch, branchInsn, isAddInJmp, thunkOffset ))
-	  {
-	    return false;
-	  }
-	  else
-	  {
-	    return targets.size() > 0;
-	  }
-	}
+            {
+                return false;
+            }
+            else
+            {
+                return targets.size() > 0;
+            }
+        }
     }
 }
 

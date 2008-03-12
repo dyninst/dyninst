@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.12 2008/02/15 23:44:37 legendre Exp $
+# $Id: make.module.tmpl,v 1.13 2008/03/12 20:09:45 legendre Exp $
 #
 
 SUITE_NAME	= symtabAPI 
@@ -62,6 +62,16 @@ SRCS	     +=	../src/Object.C \
 		../src/Collections.C \
 		../src/Type.C \
       ../src/AddrLookup.C
+
+TO_INC     = ../h
+PUBLIC_H   = AddrLookup.h \
+             Archive.h \
+             LineInformation.h \
+             RangeLookup.h \
+             Symbol.h \
+             Symtab.h \
+             symutil.h \
+             Type.h
 
 #IGEN_GEN_SRCS = 
 

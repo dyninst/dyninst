@@ -112,7 +112,16 @@ bool BPatch_loopTreeNode::getCalleesInt(BPatch_Vector<BPatch_function *> &v,
 {
    for (unsigned i=0; i<callees.size(); i++)
    {
+      //  get() will not allocate a NULL entry in the map
       BPatch_function *f = p->func_map->get(callees[i]);
+      if (!f) {
+         f = p->findOrCreateBPFunc(callees[i], NULL);
+         assert(f);
+         //  for some reason findOrCreate does not insert new BPatch_function into map
+         //  but we make sure anyways since duplicates can be hard to track down.
+         assert(NULL == p->func_map->get(callees[i]));
+         p->func_map->add(callees[i], f);
+      }
       v.push_back(f);
    }
    return true;

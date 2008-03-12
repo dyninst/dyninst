@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.275 2008/02/23 02:09:06 jaw Exp $
+ * $Id: inst-x86.C,v 1.276 2008/03/12 20:09:14 legendre Exp $
  */
 #include <iomanip>
 
@@ -1187,15 +1187,12 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee)
 // "function where we're inserting new code."  Also, we'll need a
 // std::string version that doesn't take a callee...
 
-bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function * /*calleei*/) 
-{
-    // make the call
-    // we are using an indirect call here because we don't know the
-    // address of this instruction, so we can't use a relative call.
-    // TODO: change this to use a direct call
-   emitMovImmToReg(REGNUM_EAX, 0x0, gen);  // mov eax, addr
-   emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
-
+bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
+   Address to = callee->getAddress();
+   Address from = gen.currAddr();
+   
+   instruction::generateCall(gen, from, to);
+   
    return true;
 }
 /*
@@ -2202,11 +2199,6 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
 }
-
-#if defined(arch_x86_64)
-
-#endif 
-
 
 int instPoint::liveRegSize()
 {

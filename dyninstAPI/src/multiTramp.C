@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.81 2008/02/20 22:34:21 legendre Exp $
+// $Id: multiTramp.C,v 1.82 2008/03/12 20:09:19 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -949,6 +949,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         generatedMultiT_.allocate(size_required);
         generatedMultiT_.setAddrSpace(proc());
         generatedMultiT_.setAddr(trampAddr_);
+        generatedMultiT_.setFunction(func());
 
         // We don't want to generate the jump buffer until after
         // we've done the multiTramp; we may need to know
@@ -1193,9 +1194,13 @@ bool multiTramp::linkCode() {
     if (!linked_) {
         codeRange *prevRange = proc()->findModByAddr(instAddr_);
         if (prevRange != NULL) {
+            
+            inst_printf("Someone already present at this address...\n");
+
             // Someone's already here....
             if (prevRange->is_function_replacement()) {
                 // Don't install here, just dummy-return true
+                inst_printf("Linking at function replacement, skip, ret true\n");
                 return true;
             }
             else if (prevRange->is_replaced_call()) {
@@ -1220,6 +1225,7 @@ bool multiTramp::linkCode() {
                                        savedCodeBuf_)) {
             }
         }
+
         if (!proc()->writeTextSpace((void *)instAddr_,
                                     instSize_,
                                     jumpBuf_.start_ptr())) {
@@ -1227,7 +1233,7 @@ bool multiTramp::linkCode() {
                    instSize_, instAddr_);
            return false;
         }
-        
+
         linked_ = true;
     }
 
@@ -1678,7 +1684,7 @@ void multiTramp::invalidateCode() {
     generated_ = false;
     installed_ = false;
 }
-    
+
 // Return value: were we replaced with a new one.
 bool multiTramp::replaceMultiTramp(multiTramp *oldMulti, 
                                    bool &deleteReplaced) {
@@ -1700,6 +1706,14 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
     // through calls to generateCode, installCode, and linkCode; 
     // all we have to do is make sure the data structures are set
     // up right.
+
+    if (!oldMulti->proc()->findMultiTrampById(oldMulti->id()))
+    {
+       //The old multitramp has already been unlinked and removed.
+       //Don't bother doing the replacement.
+       return true;
+    }
+    
     
     multiTramp *newMulti = dynamic_cast<multiTramp *>(oldMulti->replaceCode(NULL));
     assert(newMulti);

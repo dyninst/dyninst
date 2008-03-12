@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.318 2008/02/26 06:59:42 jaw Exp $
+ // $Id: symtab.C,v 1.319 2008/03/12 20:09:26 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1016,15 +1016,12 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
 #endif
 
   if (err || !ret) {
-      if (err)
-          fprintf(stderr, "Error parsing file %s, skipping...\n", desc.file().c_str());
-
      if (ret) {
         delete ret;
      }
      else {
-         fprintf(stderr, "Failed to allocate memory for parsing %s!\n", 
-                 desc.file().c_str());
+        fprintf(stderr, "Failed to allocate memory for parsing %s!\n", 
+                desc.file().c_str());
      }
      stats_parse.stopTimer(PARSE_SYMTAB_TIMER);
      return NULL;
@@ -1248,6 +1245,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
 #else
    string file = desc_.file().c_str();
+   startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
    //linkedFile = new Symtab();
    if(!Symtab::openFile(linkedFile, file)) 
    {

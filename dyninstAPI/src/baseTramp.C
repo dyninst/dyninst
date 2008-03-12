@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.65 2008/02/20 22:34:16 legendre Exp $
+// $Id: baseTramp.C,v 1.66 2008/03/12 20:09:05 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -863,7 +863,7 @@ instPoint *baseTrampInstance::findInstPointByAddr(Address /*addr*/) {
     return baseT->instP_;
 }
 
-bool baseTrampInstance::isEmpty() {
+bool baseTrampInstance::isEmpty() const {
     return (mtis.size() == 0);
 }
 
@@ -1508,4 +1508,26 @@ void baseTramp::setThreaded(bool new_val)
 void *baseTrampInstance::getPtrToInstruction(Address /*addr*/ ) const {
     assert(0); // FIXME if we do out-of-line baseTramps
     return NULL;
+}
+
+Address baseTrampInstance::trampPreAddr() const 
+{ 
+   return trampAddr_;
+}
+
+Address baseTrampInstance::trampPostAddr() const 
+{ 
+   return trampPreAddr() + trampPostOffset; 
+}
+
+Address baseTrampInstance::get_address() const
+{
+   if (trampAddr_)
+      return trampAddr_;
+
+   if (isEmpty() && generated_ && fallthrough_) {
+      return fallthrough_->get_address();
+   }
+   
+   return 0;
 }

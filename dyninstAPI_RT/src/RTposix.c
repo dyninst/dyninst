@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.35 2008/02/20 08:31:08 jaw Exp $
+ * $Id: RTposix.c,v 1.36 2008/03/12 20:09:32 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -110,6 +110,7 @@ void libdyninstAPI_RT_init()
 
 static int async_socket = -1;
 static int needToDisconnect = 0;
+char socket_path[255];
 
 int DYNINSTasyncConnect(int pid)
 {
@@ -120,7 +121,6 @@ int DYNINSTasyncConnect(int pid)
   rtBPatch_asyncEventRecord ev;
   uid_t euid;
   struct passwd *passwd_info;
-  char path[255];
 
   if (async_socket != -1)
   {
@@ -136,7 +136,7 @@ int DYNINSTasyncConnect(int pid)
   passwd_info = getpwuid(euid);
   assert(passwd_info);
 
-  snprintf(path, (size_t) 255, "%s/dyninstAsync.%s.%d", P_tmpdir, passwd_info->pw_name, pid);
+  snprintf(socket_path, (size_t) 255, "%s/dyninstAsync.%s.%d", P_tmpdir, passwd_info->pw_name, pid);
   sock_fd = socket(PF_UNIX, SOCK_STREAM, 0);
   if (sock_fd < 0) {
     perror("DYNINSTasyncConnect() socket()");
@@ -144,15 +144,13 @@ int DYNINSTasyncConnect(int pid)
   }
 
   sadr.sun_family = PF_UNIX;
-  strcpy(sadr.sun_path, path);
+  strcpy(sadr.sun_path, socket_path);
 
   if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
     perror("DYNINSTasyncConnect() connect()");
   }
 
   /* maybe need to do fcntl to set nonblocking writes on this fd */
-
-  unlink(sock_fd);
 
   assert(async_socket == -1);
   async_socket = sock_fd;
@@ -164,6 +162,9 @@ int DYNINSTasyncConnect(int pid)
   rtdebug_printf("%s[%d]:  sending new connection info to mutator\n", __FILE__, __LINE__);
   err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
   rtdebug_printf("%s[%d]:  sent new connection info to mutator\n", __FILE__, __LINE__);
+
+
+ /* unlink(path); */
 
   if (err) {
     fprintf(stderr, "%s[%d]:  report new connection failed\n", __FILE__, __LINE__);
@@ -183,6 +184,7 @@ int DYNINSTasyncDisconnect()
     rtdebug_printf("%s[%d]:  welcome to DYNINSTasyncDisconnect\n", __FILE__, __LINE__);
     if (needToDisconnect) {
         close (async_socket);
+        unlink(socket_path);
         needToDisconnect = 0;
     }
     async_socket = -1;

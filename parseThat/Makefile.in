@@ -44,7 +44,7 @@ OBJDIR       = obj-$(PLATFORM)
 OBJS         = $(addprefix $(OBJDIR)/, $(SRCS:%.C=%.o))
 
 CXXFLAGS    += -Wall
-LIBS        += -ldyninstAPI -liberty
+LIBS        += -ldyninstAPI -lsymtabAPI -liberty
 
 ifneq (, $(findstring sparc, $(PLATFORM)))
 LIBS        += -lelf -lstdc++ -lsocket -lrt

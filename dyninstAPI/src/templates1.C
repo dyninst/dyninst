@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.81 2008/02/23 02:09:11 jaw Exp $
+//$Id: templates1.C,v 1.82 2008/03/12 20:09:27 legendre Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -51,7 +51,6 @@
 #include <string>
 
 //begin from templates05
-template class refCounter<string_ll>;
 //end from templates05
 
 #include "dyninstAPI/h/BPatch_Set.h"

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.35 2008/02/15 23:44:43 legendre Exp $
+ * $Id: Object-elf.C,v 1.36 2008/03/12 20:09:50 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -652,7 +652,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
     return false;
 }
 
-void Object::load_object()
+void Object::load_object(bool alloc_syms)
 {
    Elf_X_Shdr *symscnp = 0;
    Elf_X_Shdr *strscnp = 0;
@@ -733,6 +733,7 @@ void Object::load_object()
       struct timeval starttime;
       gettimeofday(&starttime, NULL);
 #endif
+      if (alloc_syms) {
       std::vector<Symbol *> allsymbols;
 
       // find symbol and string data
@@ -801,6 +802,7 @@ void Object::load_object()
             goto cleanup;
          }
       }
+      }
 
       //Set object type
       int e_type = elfHdr.e_type();
@@ -823,7 +825,7 @@ cleanup:
    }
 }
 
-void Object::load_shared_object() 
+void Object::load_shared_object(bool alloc_syms) 
 {
    Elf_X_Shdr *symscnp = 0;
    Elf_X_Shdr *strscnp = 0;
@@ -875,9 +877,10 @@ void Object::load_shared_object()
       gettimeofday(&starttime, NULL);
 #endif
 
+      if (alloc_syms) {
       // build symbol dictionary
       std::vector<Symbol *> allsymbols;
-      string module = mf->filename();
+      string module = mf->pathname();
       string name   = "DEFAULT_NAME";
 
       // find symbol and string data
@@ -944,6 +947,7 @@ void Object::load_shared_object()
          if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 
             goto cleanup2;
          }
+      }
       }
 
       //Set object type
@@ -1032,8 +1036,8 @@ void printSyms( std::vector< Symbol *>& allsymbols )
 
 // parse_symbols(): populate "allsymbols"
 void Object::parse_symbols(std::vector<Symbol *> &allsymbols, 
-			   Elf_X_Data &symdata, Elf_X_Data &strdata,
-			   bool shared, string smodule)
+                           Elf_X_Data &symdata, Elf_X_Data &strdata,
+                           bool shared, string smodule)
 {
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -1047,7 +1051,7 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       if (syms.st_shndx(i) == SHN_UNDEF) continue;
       int etype = syms.ST_TYPE(i);
       int ebinding = syms.ST_BIND(i);
-      
+
       // resolve symbol elements
       string sname = &strs[ syms.st_name(i) ];
       Symbol::SymbolType stype = pdelf_type(etype);
@@ -1058,23 +1062,23 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       
       if (stype == Symbol::ST_UNKNOWN) continue;
       if (slinkage == Symbol::SL_UNKNOWN) continue;
-     
+      
       Section *sec;
       if(secNumber >= 1 && secNumber <= sections_.size())
-    	 sec = sections_[secNumber];
+         sec = sections_[secNumber];
       else
          sec = NULL;		
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
           (shared) && (sname == extract_pathname_tail(smodule))) {
-              // symbols_[sname] = newsym; // special case
-              symbols_[sname].push_back( newsym );
+         // symbols_[sname] = newsym; // special case
+         symbols_[sname].push_back( newsym );
       } else {
-            allsymbols.push_back(newsym); // normal case
+         allsymbols.push_back(newsym); // normal case
       }
    }
-
+   
 #if defined(TIMED_PARSE)
     struct timeval endtime;
     gettimeofday(&endtime, NULL);
@@ -2390,7 +2394,7 @@ Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
       this->parseFileLineInfo(li);
 }
 
-Object::Object(MappedFile *mf_, void (*err_func)(const char *)) :
+Object::Object(MappedFile *mf_, void (*err_func)(const char *), bool alloc_syms) :
    AObject(mf_, err_func), 
    EEL(false) 
 {
@@ -2419,10 +2423,10 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *)) :
       log_elferror(err_func_, "ELF header failed integrity check");
    }
    if( elfHdr.e_type() == 3 )
-      load_shared_object();
+      load_shared_object(alloc_syms);
    else if( elfHdr.e_type() == 1 || elfHdr.e_type() == 2 ) {
       is_aout_ = true;
-      load_object();
+      load_object(alloc_syms);
    }    
    else {
       log_perror(err_func_,"Invalid filetype in Elf header");

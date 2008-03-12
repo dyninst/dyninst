@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_util.C,v 1.28 2006/04/26 21:31:28 jodom Exp $
+// $Id: test_util.C,v 1.29 2008/03/12 20:09:30 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -309,7 +309,12 @@ void updateSearchPaths(const char *filename) {
       // If it contains slashes, it's a relative path
       char *filename_copy = strdup(filename);
       
+      char *loc = strrchr(filename_copy, '/');
+      if (loc)
+         *loc = '\0';
+#if 0
       *strrchr(filename_copy,'/') = '\0';
+#endif
       execpath = (char *) ::malloc(strlen(pathname) + strlen(filename_copy) + 2);
       strcpy(execpath,pathname);
       strcat(execpath,"/");

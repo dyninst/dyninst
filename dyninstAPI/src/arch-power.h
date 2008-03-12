@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.43 2008/02/20 22:34:11 legendre Exp $
+// $Id: arch-power.h,v 1.44 2008/03/12 20:09:01 legendre Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -196,7 +196,7 @@ typedef unsigned codeBufIndex_t;
 #define SPR_LR	8
 #define SPR_CTR	9
 #define SPR_SPR0 0 
-
+#define SPR_MQ 0
 
 /*
  * Register saving constants
@@ -296,6 +296,7 @@ typedef unsigned codeBufIndex_t;
 #define LBZUXxop	119
 #define LHZXxop		279
 #define LHZUXxop	311
+#define MFSPRop         31
 #define MFSPRxop	339
 #define LHAXxop		343
 #define LWAXxop		341
@@ -384,10 +385,10 @@ typedef unsigned codeBufIndex_t;
 #define TLBIxop        306
 #define XORxop         316
 #define DIVxop         331
-#define MFSPRxop       339
 #define ABSxop         360
 #define ORCxop         412
 #define DIVWUxop       459
+#define MTSPRop         31
 #define MTSPRxop       467
 #define DCBIxop        470
 #define NANDxop        476
@@ -426,6 +427,7 @@ typedef unsigned codeBufIndex_t;
 // ------------- Op Codes, instruction form XL  -----------------
 #define BCLRop		19	/* branch conditional link register */
 #define BCLRxop		16	/* branch conditional link register */
+#define BCCTRop         19      /* branch conditional count register */
 #define BCCTRxop        528     /* branch conditional count register */
 
 
@@ -630,14 +632,27 @@ class instruction {
     static void generateCall(codeGen &gen,
                              Address from,
                              Address to);
-    
-    // This is a register-stomping, full-range branch. Only use if you're sure that
-    // R0 and CTR are dead.
-    // We put "from" in so that we can decide what kind of branch to use; cheap is
-    // better if the range is short.
+
+    // This is a register-stomping, full-range branch. Uses one GPR
+    // and either LR or CTR. New addition: use liveness information to
+    // calculate which registers to use; otherwise, trap.
+
+    static void generateLongBranch(codeGen &gen,
+                                   Address from,
+                                   Address to,
+                                   bool isCall);
+
+    // A specialization of the above that assumes R0/CTR are dead.
+
     static void generateInterFunctionBranch(codeGen &gen,
                                             Address from,
                                             Address to);
+
+    // Using the process trap mapping for a branch
+    static void generateBranchViaTrap(codeGen &gen,
+                                      Address from,
+                                      Address to,
+                                      bool isCall);
 
     static void generateImm(codeGen &gen, int op,
                             Register rt, Register ra, int immd);

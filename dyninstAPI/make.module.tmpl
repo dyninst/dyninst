@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.97 2008/02/26 06:59:38 jaw Exp $
+# $Id: make.module.tmpl,v 1.98 2008/03/12 20:08:48 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -134,6 +134,39 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/liveness.C \
 		../src/InstrucIter-Function.C
 
+TO_INC   = ../h
+PUBLIC_H = BPatch_addressSpace.h \
+           BPatch_basicBlock.h \
+           BPatch_basicBlockLoop.h \
+           BPatch_binaryEdit.h \
+           BPatch_callbacks.h \
+           BPatch_dependenceGraphEdge.h \
+           BPatch_dependenceGraphNode.h \
+           BPatch_dll.h \
+           BPatch_edge.h \
+           BPatch_eventLock.h \
+           BPatch_flowGraph.h \
+           BPatch_frame.h \
+           BPatch_function.h \
+           BPatch.h \
+           BPatch_image.h \
+           BPatch_instruction.h \
+           BPatch_loopTreeNode.h \
+           BPatch_memoryAccess_NP.h \
+           BPatch_module.h \
+           BPatch_parRegion.h \
+           BPatch_point.h \
+           BPatch_process.h \
+           BPatch_Set.h \
+           BPatch_snippet.h \
+           BPatch_sourceBlock.h \
+           BPatch_sourceObj.h \
+           BPatch_statement.h \
+           BPatch_thread.h \
+           BPatch_type.h \
+           BPatch_Vector.h
+
+
 #IGEN_GEN_SRCS = 
 
 #IGEN_ISRCS    = 
@@ -161,7 +194,7 @@ all: $(TARGET) $(EXTRA_LIBS)
 # function is only used internally by LineInformation, the
 # templates won't be duplicated.
 # LineInformation.o : ../../dyninstAPI/src/LineInformation.C
-#	$(CXX) -g $(TFLAGS) -c $<
+#	$(CXX) $(DEBUG_FLAG) $(TFLAGS) -c $<
     
 BPatch_templates.o: ../src/BPatch_templates.C
 	$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C

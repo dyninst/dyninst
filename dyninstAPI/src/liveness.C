@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.6 2008/02/14 19:58:59 bernat Exp $
+// $Id: liveness.C,v 1.7 2008/03/12 20:09:18 legendre Exp $
 
 #if defined(cap_liveness)
 
@@ -301,10 +301,11 @@ void instPoint::calcLiveness() {
 
     // We iterate backwards over instructions in the block. 
 
-    InstrucIter ii(const_cast<image_basicBlock *>(block()->llb()));
+    InstrucIter ii(block());
+
     // set to the last instruction in the block; setCurrentAddress handles the x86
     // ii's inability to be a random-access iterator
-    ii.setCurrentAddress(block()->llb()->lastInsnOffset());
+    ii.setCurrentAddress(block()->origInstance()->lastInsnAddr());
 
     bitArray read(block_out.size());
     bitArray written(block_out.size());

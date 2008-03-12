@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.130 2006/07/07 00:01:11 jaw Exp $ */
+/* $Id: context.C,v 1.131 2008/03/12 20:09:38 legendre Exp $ */
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -104,29 +104,6 @@ void deleteThread(traceThread *fr)
     // how do we delete a resource id? - naim
 }
 #endif
-
-static unsigned addrHashCommon(Address addr) 
-{
-   // inspired by hashs of string class
-
-   register unsigned result = 5381;
-
-   register Address accumulator = addr;
-   while (accumulator > 0) {
-      // We use 3 bits at a time from the address
-      result = (result << 4) + result + (accumulator & 0x07);
-      accumulator >>= 3;
-   }
-
-   return result;
-}
-
-unsigned addrHash16(const Address &iaddr) 
-{
-   // call when you know that the low 4 bits are 0 (meaning they contribute
-   // nothing to an even hash distribution)
-   return addrHashCommon(iaddr >> 4);
-}
 
 unsigned miniTrampHandlePtrHash(miniTrampHandle * const &ptr) {
    // would be a static fn but for now aix.C needs it.

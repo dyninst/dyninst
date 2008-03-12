@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2007/08/07 16:32:31 rutar Exp $
+# $Id: Makefile,v 1.10 2008/03/12 20:09:51 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -25,8 +25,8 @@ NATIVE_CXX_OMP = xlC_r
 
 COMMA=,
 
-CXXFLAGS += -g -DAIX5 -Wa,-many
-CFLAGS += -g -DAIX5 -Wa,-many
+CXXFLAGS +=   -DAIX5 -Wa,-many
+CFLAGS +=   -DAIX5 -Wa,-many
 
 MUTATEE_NATIVE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX5,-DXLF
 MUTATEE_NATIVE_FC_LDFLAGS += -g -bgcbypass:3 -ldl `$(GCC) -print-libgcc-file-name`
@@ -50,7 +50,7 @@ versionArray += unknown
 COMPILERT_NATIVE_CC = $(NATIVE_CC) version $(firstword $(versionArray))
 COMPILERT_NATIVE_CXX = $(COMPILERT_NATIVE_CC)
 
-MUTATEE_CFLAGS_NATIVE = $(UNIFIED_DEF) 
+MUTATEE_CFLAGS_NATIVE =  -g $(UNIFIED_DEF) 
 MUTATEE_CFLAGS_NATIVE += -D__XLC__ -qnoinline -qnooptimize 
 MUTATEE_CXXFLAGS_NATIVE = $(MUTATEE_CFLAGS_NATIVE) -+
 MUTATEE_CFLAGS_NATIVE += -qcpluscmt
@@ -59,13 +59,27 @@ MUTATEE_NATIVE_CXX_CFLAGS = -qsmp=omp
 
 MUTATOR_CXXFLAGS = $(UNIFIED_DEF) 
 
-MUTATEE_CFLAGS_GNU = $(UNIFIED_DEF)
+MUTATEE_CFLAGS_GNU = -g $(UNIFIED_DEF)
 MUTATEE_LDFLAGS_GNU += -Wl,-bgcbypass:3  -Wl,-bnoobjreorder 
 MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CFLAGS_GNU)
 
 MUTATEE_LDFLAGS_NATIVE += -bnoobjreorder -bgcbypass:3 -g -DAIX5 -Drs6000_ibm_aix4_1 -D__XLC__
-MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -ldl -lpthread -lxlsmp
- 
+MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -g -ldl -lpthread -lxlsmp
+
+#Check for viable OpenMP Compiler
+HPC_V = $(shell $(NATIVE_CXX_OMP) -qversion)
+ifeq (V8,$(findstring V8,$(HPC_V)))
+	HPC_COMPILER_EXISTS=1
+endif 
+ifeq (V7,$(findstring V7,$(HPC_V)))
+	HPC_COMPILER_EXISTS=1
+endif 
+ifeq (V9,$(findstring V9,$(HPC_V)))
+	HPC_COMPILER_EXISTS=1
+endif 
+
+
+
 CFLAGS_TESTLIBS = -I../src -I$(TO_CORE)/dyninstAPI_RT/h
 TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok -bnoobjreorder
 LIBTEST12_FLAGS = $(TESTLIB_FLAGS) -lc -L$(TO_CORE)/dyninstAPI_RT/$(PLATFORM) -ldyninstAPI_RT -lpthread

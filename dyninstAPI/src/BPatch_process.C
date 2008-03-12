@@ -2152,7 +2152,6 @@ bool BPatchSnippetHandle::usesTrapInt() {
     return false;
 }
 
-#if defined(os_windows)
 /* This is a Windows only function that sets the user-space
  * debuggerPresent flag to 0 or 1, 0 meaning that the process is not
  * being debugged.  The debugging process will still have debug
@@ -2162,6 +2161,9 @@ bool BPatchSnippetHandle::usesTrapInt() {
  */
 bool BPatch_process::setBeingDebuggedFlagInt(bool debuggerPresent)
 {
+#if ! defined(os_windows)
+    return false && debuggerPresent; // eliminates compiler warning :)
+#else
 	// use getRegisters to get value of the FS segment register
 	dyn_saved_regs regs;
 	dyn_lwp *lwp = llproc->getInitialLwp();
@@ -2178,8 +2180,6 @@ bool BPatch_process::setBeingDebuggedFlagInt(bool debuggerPresent)
 	tibPtr = tibPtr | (tmp << (sizeof(WORD)*8));
 	tmp = segDesc.HighWord.Bytes.BaseHi;
 	tibPtr = tibPtr | (tmp << (sizeof(WORD)*8+8));
-	printf("FS register=%lx addr of TIB=%lx baseHi=%x baseMid=%x baseLow=%x\n", 
-		(long)regs.cont.SegFs, tibPtr, segDesc.HighWord.Bytes.BaseHi, segDesc.HighWord.Bytes.BaseMid, segDesc.BaseLow );
 	// read in address of PEB
 	unsigned int pebPtr;
 	if (!llproc->readDataSpace((void*)(tibPtr+48), llproc->getAddressWidth(),(void*)&pebPtr, true)) 
@@ -2188,7 +2188,6 @@ bool BPatch_process::setBeingDebuggedFlagInt(bool debuggerPresent)
 	unsigned int flagWord;
 	if (!llproc->readDataSpace((void*)pebPtr, 4, (void*)&flagWord, true)) 
 		return false;
-	printf("Addr of PEB segment and flag=%lx flagWord=%x\n", pebPtr, flagWord);
 	// write back value of processBeingDebugged, if necessary
 	if (debuggerPresent && !(flagWord & 0x00ff0000)) {
 		flagWord = flagWord | 0x00010000;
@@ -2200,5 +2199,5 @@ bool BPatch_process::setBeingDebuggedFlagInt(bool debuggerPresent)
 			return false;
 	}
 	return true;
-}
 #endif
+}

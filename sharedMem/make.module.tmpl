@@ -4,7 +4,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.4 2006/11/22 21:44:53 bernat Exp $
+# $Id: make.module.tmpl,v 1.5 2008/03/12 20:09:43 legendre Exp $
 #
 
 # This is from the point of view of the build directories... so ../
@@ -21,8 +21,8 @@ MUTATOR_OBJS	= shmMgr.o \
 
 SRCS = $(MUTATOR_SRCS)
 
-CXXFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -fPIC
-CFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -fPIC
+CXXFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -I$(TO_ROOT)/dynutil/h -I$(TO_ROOT)/symtabAPI/h -fPIC
+CFLAGS += -I$(TO_ROOT)/dyninstAPI/h -I$(TO_ROOT) -I$(TO_ROOT)/dynutil/h -I$(TO_ROOT)/symtabAPI/h -fPIC
 
 TARGETS = libdynShmMutatee.so libdynShmMutator.so
 

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.25 2008/02/20 22:34:10 legendre Exp $
+ * $Id: arch-power.C,v 1.26 2008/03/12 20:09:00 legendre Exp $
  */
 
 #include "common/h/Types.h"
@@ -50,6 +50,9 @@
 #include "debug.h"
 #include "symtab.h"
 #include "addressSpace.h"
+#include "bitArray.h"
+#include "registerSpace.h"
+#include "instPoint.h"
 
 instruction *instruction::copy() const {
     return new instruction(*this);
@@ -67,6 +70,8 @@ void instruction::generateTrap(codeGen &gen) {
 
 void instruction::generateBranch(codeGen &gen, long disp, bool link)
 {
+    
+
     if (ABS(disp) > MAX_BRANCH) {
 	// Too far to branch, and no proc to register trap.
 	fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
@@ -91,27 +96,28 @@ void instruction::generateBranch(codeGen &gen, long disp, bool link)
 }
 
 void instruction::generateBranch(codeGen &gen, Address from, Address to, bool link) {
+    if (to < MAX_BRANCH) {
+        // Generate an absolute branch
+        instruction insn;
+        insn.insn_.iform.op = Bop;
+        insn.insn_.iform.li = to >> 2;
+        insn.insn_.iform.aa = 1;
+        if (link) 
+            insn.insn_.iform.lk = 1;
+        else
+            insn.insn_.iform.lk = 0;
+        insn.generate(gen);
+        return;
+    }
+
     long disp = (to - from);
 
     if (ABS(disp) > MAX_BRANCH) {
-	if (gen.addrSpace()) {
-	    // Too far to branch.  Use trap-based instrumentation.
-            gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
-	    instruction::generateTrap(gen);
-
-	} else {
-	    // Too far to branch and no proc to register trap.
-	    fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
-		    ABS(disp), MAX_BRANCH);
-	    bperr( "Error: attempted a branch of 0x%lx\n", disp);
-	    logLine("a branch too far\n");
-	    showErrorCallback(52, "Internal error: branch too far");
-	    bperr( "Attempted to make a branch of offset 0x%lx\n", disp);
-	    assert(0);
-	}
-    } else {
-	generateBranch(gen, disp, link);
+        return generateLongBranch(gen, from, to, link);
     }
+
+    return generateBranch(gen, disp, link);
+   
 }
 
 void instruction::generateCall(codeGen &gen, Address from, Address to) {
@@ -132,7 +138,7 @@ void instruction::generateInterFunctionBranch(codeGen &gen,
 
     instruction insn;
     (*insn).raw = 0;                    //mtspr:  mtctr scratchReg
-    (*insn).xform.op = EXTop;
+    (*insn).xform.op = MTSPRop;
     (*insn).xform.rt = 0;
     (*insn).xform.ra = SPR_CTR & 0x1f;
     (*insn).xform.rb = (SPR_CTR >> 5) & 0x1f;
@@ -142,6 +148,148 @@ void instruction::generateInterFunctionBranch(codeGen &gen,
     // And branch to CTR
     instruction btctr(BCTRraw);
     btctr.generate(gen);
+}
+
+void instruction::generateLongBranch(codeGen &gen, 
+                                     Address from, 
+                                     Address to, 
+                                     bool isCall) {
+    // First, see if we can cheap out
+    long disp = (to - from);
+    if (ABS(disp) <= MAX_BRANCH) {
+        return generateBranch(gen, disp, isCall);
+    }
+
+    // We can use a register branch via the LR or CTR, if either of them
+    // is free.
+    
+    // Let's see if we can grab a free GPregister...
+    assert(gen.func());
+    
+    instPoint *point = gen.point();
+    if (!point) {
+        return generateBranchViaTrap(gen, from, to, isCall);
+    }
+
+    assert(point);
+    
+    // Could see if the codeGen has it, but right now we have assert
+    // code there and we don't want to hit that.
+    registerSpace *rs = registerSpace::actualRegSpace(point,
+                                                      callPreInsn);
+    
+    Register scratch = rs->getScratchRegister(gen, true);
+
+    bool mustRestore = false;
+    
+    if (scratch == REG_NULL) { 
+        // On AIX we use an open slot in the stack frame. 
+        // On Linux we save under the stack and hope it doesn't
+        // cause problems.
+#if !defined(os_aix)
+        return generateBranchViaTrap(gen, from, to, isCall);
+#endif
+        
+        // 32-bit: we can use the word at +16 from the stack pointer
+        if (gen.addrSpace()->getAddressWidth() == 4)
+            instruction::generateImm(gen, STop, 0, 1, 4*4);
+        else /* gen.addrSpace()->getAddressWidth() == 8 */
+            instruction::generateMemAccess64(gen, STDop, STDxop, 0, 1, 4*8);
+
+        mustRestore = true;
+        scratch = 0;
+    }
+    
+    // Load the destination into our scratch register
+    instruction::loadImmIntoReg(gen, scratch, to);
+    
+    // Find out whether the LR or CTR is "dead"...
+    bitArray liveRegs = point->liveRegisters(callPreInsn);
+    unsigned branchRegister = 0;
+    if (liveRegs[registerSpace::lr] == false) {
+        branchRegister = registerSpace::lr;
+    }
+    else if (liveRegs[registerSpace::ctr] == false) {
+        branchRegister = registerSpace::ctr;
+    }
+
+    if (!branchRegister) {
+        return generateBranchViaTrap(gen, from, to, isCall); 
+    }
+    
+    assert(branchRegister);
+    
+    instructUnion moveToBr;
+    moveToBr.raw = 0;
+    moveToBr.xfxform.op = MTSPRop;
+    moveToBr.xfxform.rt = scratch;
+    if (branchRegister == registerSpace::lr) {
+        moveToBr.xform.ra = SPR_LR & 0x1f;
+        moveToBr.xform.rb = (SPR_LR >> 5) & 0x1f;
+        // The two halves (top 5 bits/bottom 5 bits) are _reversed_ in this encoding. 
+    }
+    else {
+        moveToBr.xform.ra = SPR_CTR & 0x1f;
+        moveToBr.xform.rb = (SPR_CTR >> 5) & 0x1f;
+    }
+    moveToBr.xfxform.xo = MTSPRxop; // From assembly manual
+    
+    instruction m1(moveToBr.raw);
+    m1.generate(gen);
+    
+    if (mustRestore) {
+        if (gen.addrSpace()->getAddressWidth() == 4)
+            instruction::generateImm(gen, Lop, 0, 1, 4*4);
+        else /* gen.addrSpace()->getAddressWidth() == 8 */
+            instruction::generateMemAccess64(gen, LDop, LDxop, 0, 1, 4*8);
+    }
+    
+    // Aaaand now branch, linking if appropriate
+    instructUnion branchToBr;
+    branchToBr.raw = 0;
+    branchToBr.xlform.op = BCLRop;
+    branchToBr.xlform.bt = 0x14; // From architecture manual
+    branchToBr.xlform.ba = 0; // Unused
+    branchToBr.xlform.bb = 0; // Unused
+    if (branchRegister == registerSpace::lr) {
+        branchToBr.xlform.xo = BCLRxop;
+    }
+    else {
+        branchToBr.xlform.xo = BCCTRxop;
+    }
+    if (isCall)
+        branchToBr.xlform.lk = 1;
+    else
+        branchToBr.xlform.lk = 0;
+    
+    instruction m2(branchToBr.raw);
+    m2.generate(gen);
+}
+
+void instruction::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
+
+    long disp = to - from;
+    if (ABS(disp) <= MAX_BRANCH) {
+        // We shouldn't be here, since this is an internal-called-only func.
+        return generateBranch(gen, disp, isCall);
+    }
+    
+    assert (isCall == false); // Can't do this yet
+    
+    if (gen.addrSpace()) {
+        // Too far to branch.  Use trap-based instrumentation.
+        gen.addrSpace()->trapMapping.addTrapMapping(from, to, true);
+        instruction::generateTrap(gen);        
+    } else {
+        // Too far to branch and no proc to register trap.
+        fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
+                ABS(disp), MAX_BRANCH);
+        bperr( "Error: attempted a branch of 0x%lx\n", disp);
+        logLine("a branch too far\n");
+        showErrorCallback(52, "Internal error: branch too far");
+        bperr( "Attempted to make a branch of offset 0x%lx\n", disp);
+        assert(0);
+    }
 }
 
 void instruction::generateImm(codeGen &gen, int op, Register rt, Register ra, int immd)
@@ -583,78 +731,31 @@ bool instruction::generate(codeGen &gen,
     if (isUncondBranch()) {
         // unconditional pc relative branch.
 
-        // If it's absolute, no change
-        if (isInsnType(Bmask, BAAmatch) && !targetAddr) {
-            generate(gen);
-            return true;
-        }
-        if (isInsnType(Bmask, BCAAmatch) && !targetAddr) {
-            generate(gen);
-            return true;
-        }
+        // This was a check in old code. Assert it isn't the case,
+        // since this is a _conditional_ branch...
+        assert(isInsnType(Bmask, BCAAmatch) == false); 
+        
+        // We may need an instPoint for liveness calculations
 
-        if (!targetAddr) {
-            newOffset = origAddr - relocAddr + (int)getBranchOffset(); 
-            to = getTarget(origAddr);
+        instPoint *point = gen.func()->findInstPByAddr(origAddr);
+        if (!point) 
+            point = instPoint::createArbitraryInstPoint(origAddr,
+                                                        gen.addrSpace(),
+                                                        gen.func());
+        gen.setPoint(point);
+
+
+        if (targetAddr) {
+            generateBranch(gen, 
+                           relocAddr,
+                           targetAddr,
+                           (insn_.iform.lk));
         }
         else {
-            // We need to pin the jump
-            newOffset = targetAddr - relocAddr;
-            to = targetAddr;
-        }
-
-        if (ABS(newOffset) >= MAX_BRANCH) {
-            // If we're doing a branch-n-link we can pull this off by making
-            // several assumptions...
-            if (insn_.bform.lk == 1) {
-                // The native compiler can be really aggravating. In this
-                // case, see the following sequence:
-                // mflr    r0
-                // bl      0x100098d8 <_savef14>
-                // mtlr    r0
-                // ... which looks like a call, but has a live r0. So we cannot
-                // assume that r0 is dead at the point of a call. 
-                // Fortunately, there's the extra stack slots... grab one to 
-                // stash r0 in. I'm open to other suggestions, but I don't think 
-                // there are any.
-
-                // st r0, 16 (r1)
-		if (proc->getAddressWidth() == 4)
-		    instruction::generateImm(gen, STop, 0, 1, 16 /* offset */);
-		else /* gen.addrSpace()->getAddressWidth() == 8 */
-		    instruction::generateMemAccess64(gen, STDop, STDxop, 0, 1, 16);
-
-                // Whee. Stomp that link register.
-		instruction::loadImmIntoReg(gen, 0, to);
-                
-                instruction mtlr(MTLR0raw);
-                mtlr.generate(gen);
-                
-                // And branch to LR
-                instruction btlr(BRLraw);
-                btlr.generate(gen);
-
-                // lw r0, 16 (r1)
-		if (proc->getAddressWidth() == 4)
-		    instruction::generateImm(gen, Lop, 0, 1, 16);
-		else /* gen.addrSpace()->getAddressWidth() == 8 */
-		    instruction::generateMemAccess64(gen, LDop, LDxop, 0, 1, 16);
-
-            } else /* insn_.bform.lk != 1 */ {
-		// Crud.  Use trap based?
-		
-                proc->trapMapping.addTrapMapping(relocAddr, to, true);
-                instruction::generateTrap(gen);
-
-                // Crud.
-                //fprintf(stderr, "Fatal error: relocating branch, orig at 0x%lx, now 0x%lx, target 0x%lx, orig offset 0x%lx\n",
-                //        origAddr, relocAddr, targetOverride, getBranchOffset());
-                //assert(0);
-            }
-        } else {
-            instruction newInsn(insn_);
-            newInsn.setBranchOffset(newOffset);
-            newInsn.generate(gen);
+            generateBranch(gen,
+                           relocAddr,
+                           getTarget(origAddr),
+                           (insn_.iform.lk));
         }
     } 
     else if (isCondBranch()) {

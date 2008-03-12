@@ -1231,7 +1231,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 if test -n ${DYNINST_ROOT}; then
    # Add search paths to CPPFLAGS and LDFLAGS.
-   CPPFLAGS="-I${DYNINST_ROOT}/core -I${DYNINST_ROOT}/core/dyninstAPI/h ${CPPFLAGS}"
+   CPPFLAGS="-I${DYNINST_ROOT}/core -I${DYNINST_ROOT}/core/dyninstAPI/h -I${DYNINST_ROOT}/core/symtabAPI/h -I${DYNINST_ROOT}/core/dynutil/h ${CPPFLAGS}"
 
    LDFLAGS="-L${DYNINST_ROOT}/${PLATFORM}/lib ${LDFLAGS}"
 

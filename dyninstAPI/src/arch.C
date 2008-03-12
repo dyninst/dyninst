@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.14 2008/02/20 08:31:03 jaw Exp $
+// $Id: arch.C,v 1.15 2008/03/12 20:09:03 legendre Exp $
 // Code generation
 
 //////////////////////////
@@ -81,7 +81,8 @@ codeGen::codeGen() :
     rs_(NULL),
     t_(NULL),
     addr_((Address)-1),
-    ip_(NULL)
+    ip_(NULL),
+    f_(NULL)
 {}
 
 // size is in bytes
@@ -97,7 +98,8 @@ codeGen::codeGen(unsigned size) :
     rs_(NULL),
 	t_(NULL),
     addr_((Address)-1),
-    ip_(NULL)
+    ip_(NULL),
+    f_(NULL)
 
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
@@ -126,7 +128,8 @@ codeGen::codeGen(const codeGen &g) :
     rs_(g.rs_),
 	t_(g.t_),
     addr_(g.addr_),
-    ip_(g.ip_)
+    ip_(g.ip_),
+    f_(g.f_)
 {
     if (size_ != 0) {
         assert(allocated_); 
@@ -384,6 +387,7 @@ void codeGen::applyTemplate(codeGen &c) {
     rs_ = c.rs_;
     addr_ = c.addr_;
     ip_ = c.ip_;
+    f_ = c.f_;
 }
 
 void codeGen::setAddrSpace(AddressSpace *a)

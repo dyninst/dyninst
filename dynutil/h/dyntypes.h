@@ -25,7 +25,7 @@ namespace __gnu_cxx {
          return h(s.c_str());
       };
    };
-};
+}
 
 #endif
 

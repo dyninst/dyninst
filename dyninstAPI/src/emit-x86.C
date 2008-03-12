@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.59 2008/01/16 22:00:57 legendre Exp $
+ * $Id: emit-x86.C,v 1.60 2008/03/12 20:09:08 legendre Exp $
  */
 
 #include <assert.h>
@@ -1146,7 +1146,8 @@ void EmitterAMD64::emitLoadOrigFrameRelative(Register dest, Address offset, code
 bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
 {
     // mov offset(%base), %dest
-    emitMovRMToReg64(dest, base, offset*gen.addrSpace()->getAddressWidth(), false, gen);
+    emitMovRMToReg64(dest, base, offset*gen.addrSpace()->getAddressWidth(), 
+                     (gen.addrSpace()->getAddressWidth() == 8), gen);
     return true;
 }
 

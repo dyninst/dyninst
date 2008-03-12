@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.242 2008/02/23 02:09:04 jaw Exp $
+// $Id: aix.C,v 1.243 2008/03/12 20:08:59 legendre Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -73,7 +73,6 @@
 
 #include "dyninstAPI/src/registerSpace.h"
 
-// save the world...
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/h/BPatch_function.h"
@@ -86,7 +85,6 @@
 
 #if defined(cap_proc)
 #include <sys/procfs.h>
-#include <poll.h>
 #endif
 
 #include "writeBackXCOFF.h"
@@ -143,6 +141,7 @@ Frame Frame::getCallerFrame()
   if (!getProc()->readDataSpace((caddr_t)fp_, sizeof(linkArea_t),
                         (caddr_t)&thisStackFrame, false))
     return Frame();
+
   getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp, sizeof(linkArea_t),
 			   (caddr_t) &lastStackFrame, false);
   
@@ -169,6 +168,7 @@ Frame Frame::getCallerFrame()
   else if (range->is_minitramp()) {
       bti = range->is_minitramp()->baseTI;
   }
+
   if (bti) {
       // Oy. We saved the LR in the middle of the tramp; so pull it out
       // by hand.
@@ -184,6 +184,7 @@ Frame Frame::getCallerFrame()
       // function frame if there is one as well.
       instPoint *point = bti->baseT->instP();
       assert(point); // Will only be null if we're in an inferior RPC, which can't be.
+
       // If we're inside the function (callSite or arbitrary; bad assumption about
       // arbitrary but we don't know exactly where the frame was constructed) and the
       // function has a frame, tear it down as well.
@@ -244,8 +245,8 @@ Frame Frame::getCallerFrame()
   return Frame(newPC, newFP, 0, newpcAddr, this);
 }
 
-bool Frame::setPC(Address newpc) {
-    
+bool Frame::setPC(Address newpc) 
+{
     // Encapsulate all the logic necessary to set a new PC in a frame
     // If the function is a leaf function, we need to overwrite the LR directly.
     // The return addr for a frame is basically the parent's pc...
@@ -267,11 +268,14 @@ bool Frame::setPC(Address newpc) {
             // Get the current LR and reset it to our new version
             dyn_saved_regs regs;
             bool status = lwp->getRegisters(&regs);
+
             if (!status) {
                 bperr( "Failure to get registers in catchupSideEffect\n");
                 return false;
             }
+
             regs.theIntRegs.__lr = newpc;
+
             if (!lwp->restoreRegisters(regs)) {
                 bperr( "Failure to restore registers in catchupSideEffect\n");
                 return false;
@@ -281,10 +285,12 @@ bool Frame::setPC(Address newpc) {
             // Process-wide
             dyn_saved_regs regs;
             bool status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
+
             if (!status) {
                 bperr("Failure to get registers in catchupSideEffect\n");
                 return false;
             }
+
             regs.theIntRegs.__lr = newpc;
             getProc()->getRepresentativeLWP()->restoreRegisters(regs);
         }
@@ -302,7 +308,8 @@ bool Frame::setPC(Address newpc) {
 }
 
 #ifdef DEBUG 
-void decodeInstr(unsigned instr_raw) {
+void decodeInstr(unsigned instr_raw) 
+{
   // Decode an instruction. Fun, eh?
   union instructUnion instr;
   instr.raw = instr_raw;
@@ -375,13 +382,12 @@ void decodeInstr(unsigned instr_raw) {
 
 // already setup on this FD.
 // disconnect from controlling terminal 
-void OS::osDisconnect(void) {
+void OS::osDisconnect(void) 
+{
   int ttyfd = open ("/dev/tty", O_RDONLY);
   ioctl (ttyfd, TIOCNOTTY, NULL); 
   P_close (ttyfd);
 }
-
-// #include "paradynd/src/costmetrics.h"
 
 #if defined(duplicated_in_process_c_because_linux_ia64_needs_it)
 Address process::getTOCoffsetInfo(Address dest)
@@ -395,7 +401,7 @@ Address process::getTOCoffsetInfo(Address dest)
     return (Address) (symbols->getObject())->getTOCoffset();
 
   if (shared_objects)
-    for(u_int j=0; j < shared_objects->size(); j++)
+      for (u_int j=0; j < shared_objects->size(); j++)
       if (((*shared_objects)[j])->getImage()->findFuncByAddr(dest, this))
 	return (Address) (((*shared_objects)[j])->getImage()->getObject())->getTOCoffset();
   // Serious error! Assert?
@@ -559,22 +565,27 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
 
 	foundDup = true;
 
-	while(foundDup){
+   while (foundDup){
 		foundDup = false;
+
                 j =0;
-                while(imagePatches[j]->address==0 && j < imagePatches.size()){
+
+      while (imagePatches[j]->address==0 && j < imagePatches.size()){
                         j++;
                 }
+
 		imagePatches.erase(0,j-1);
 		j=0;
-		for(;j<imagePatches.size()-1;j++){
-			if(imagePatches[j]->stopPage > imagePatches[j+1]->startPage){
-				foundDup = true;
-				if(imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
-					imagePatches[j+1]->address = 0;	
-				}else{
 
-					imagePatches[j]->size = (imagePatches[j+1]->address + imagePatches[j+1]->size) -
+      for (;j<imagePatches.size()-1;j++){
+         if (imagePatches[j]->stopPage > imagePatches[j+1]->startPage){
+				foundDup = true;
+
+            if (imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
+               imagePatches[j+1]->address = 0;	
+            } else {
+               imagePatches[j]->size = 
+                  (imagePatches[j+1]->address + imagePatches[j+1]->size) -
 						imagePatches[j]->address;
 					imagePatches[j+1]->address = 0; 
 					imagePatches[j]->stopPage = imagePatches[j]->address + imagePatches[j]->size-
@@ -582,18 +593,20 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
 				}
 			}  
 		}
+      
 		VECTOR_SORT(imagePatches, imageUpdateSort);
 	}
 
 	unsigned int k=0;
 
-	while(imagePatches[k]->address==0 && k < imagePatches.size()){
+   while (imagePatches[k]->address==0 && k < imagePatches.size()){
 	        k++;
         }
 
 	startPage = imagePatches[k]->startPage;
 	stopPage = imagePatches[imagePatches.size()-1]->stopPage;
 	int startIndex=k, stopIndex=imagePatches.size()-1;
+
 	/*if(DEBUG_MSG){
 		bperr("COMPACTING....\n");	
 		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
@@ -606,43 +619,50 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
 	if(DEBUG_MSG){
 		bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 	}*/
+
 	bool finished = false;
+
 	if(_DEBUG_MSG){
 		bperr("COMPACTING....\n");	
 		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
-	for(;k<imagePatches.size();k++){
-		if(imagePatches[k]->address!=0){
-			if(_DEBUG_MSG){
+
+   for (;k<imagePatches.size();k++){
+      if (imagePatches[k]->address!=0){
+         if (_DEBUG_MSG){
 				bperr("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
-			if(imagePatches[k]->startPage <= (unsigned int)stopPage){
+         if (imagePatches[k]->startPage <= (unsigned int)stopPage){
 				stopIndex = k;
 				stopPage = imagePatches[k]->stopPage;
-			}else{
+         } else {
 
 				patch = new imageUpdate;
 				patch->address = imagePatches[startIndex]->address;
 				patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address + 
 						imagePatches[stopIndex]->size;
 				newPatches.push_back(patch);
-				if(_DEBUG_MSG){
+
+            if (_DEBUG_MSG){
 					bperr(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
 						patch->address, patch->size, startPage,  stopPage);
 				}
 				finished = true;
+
 				//was k+1	
-				if(k < imagePatches.size()){
-					while(imagePatches[k]->address==0 && k < imagePatches.size()){
+            if (k < imagePatches.size()){
+               while (imagePatches[k]->address==0 && k < imagePatches.size()){
 						k++;
 					}
+
 					startIndex = k;
 					stopIndex = k;
 					startPage = imagePatches[k]->startPage;
 					stopPage  = imagePatches[k]->stopPage;
 					finished = false;
-					if(k == imagePatches.size()){
+
+               if (k == imagePatches.size()){
 						finished = true;
 					}
 				} 
@@ -651,13 +671,14 @@ void compactLoadableSections(pdvector <imageUpdate*> imagePatches, pdvector<imag
 
 	}
 
-	if(!finished){
+   if (!finished) {
 		patch = new imageUpdate;
                 patch->address = imagePatches[startIndex]->address;
                 patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
                                    imagePatches[stopIndex]->size;
                 newPatches.push_back(patch);
-		if(_DEBUG_MSG){
+
+      if (_DEBUG_MSG){
 			bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 			fflush(stdout);
 		}
@@ -679,20 +700,20 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 
 	VECTOR_SORT(imagePatches, imageUpdateSort);
 
-	while(foundDup){
+   while (foundDup){
 		foundDup = false;
 		j =0;
-	        while(imagePatches[j]->address==0 && j < imagePatches.size()){
+      while (imagePatches[j]->address==0 && j < imagePatches.size()){
        	        	j++;
         	}
 		curr = imagePatches[j];
 
-		for(j++;j<imagePatches.size();j++){
+      for (j++;j<imagePatches.size();j++){
 			next = imagePatches[j];		
-			if(curr->address == next->address){
+         if (curr->address == next->address){
 				//duplicate
 				//find which is bigger and save that one.
-				if(curr->size > next->size){
+            if (curr->size > next->size){
 					next->address=0;
 				}else{
 					curr->address=0;
@@ -704,9 +725,11 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 			}
 
 		}
+
 		VECTOR_SORT(imagePatches, imageUpdateSort);
 	}
-	if(DEBUG_MSG){
+
+   if (DEBUG_MSG){
 		bperr(" SORT 1 %d \n", imagePatches.size());
 	
 		for(unsigned int kk=0;kk<imagePatches.size();kk++){
@@ -716,14 +739,14 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 	}
 
 	unsigned int endAddr;
-	for(unsigned int i=0;i<imagePatches.size();i++){
-		if(imagePatches[i]->address!=0){
+   for (unsigned int i=0;i<imagePatches.size();i++){
+      if (imagePatches[i]->address!=0){
 			imagePatches[i]->startPage = imagePatches[i]->address- (imagePatches[i]->address%pageSize);
 				
 			endAddr = imagePatches[i]->address + imagePatches[i]->size;
 			imagePatches[i]->stopPage =  endAddr - (endAddr % pageSize);
 
-			if(DEBUG_MSG){
+         if (DEBUG_MSG){
 				bperr("%d address %x end addr %x : start page %x stop page %x \n",
 					i,imagePatches[i]->address ,imagePatches[i]->address + imagePatches[i]->size,
 					imagePatches[i]->startPage, imagePatches[i]->stopPage);
@@ -733,18 +756,19 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 	}
 	foundDup = true;
 
-	while(foundDup){
+   while (foundDup){
 		foundDup = false;
                 j =0;
-                while(imagePatches[j]->address==0 && j < imagePatches.size()){
+      while (imagePatches[j]->address==0 && j < imagePatches.size()){
                         j++;
                 }
+
 		//imagePatches.erase(0,j-1); //is it correct to erase here? 
 		//j = 0;
-		for(;j<imagePatches.size()-1;j++){ 
-			if(imagePatches[j]->address!=0 && imagePatches[j]->stopPage >= imagePatches[j+1]->startPage){
+      for (;j<imagePatches.size()-1;j++){ 
+         if (imagePatches[j]->address!=0 && imagePatches[j]->stopPage >= imagePatches[j+1]->startPage){
 				foundDup = true;
-				if(imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
+            if (imagePatches[j]->stopPage > imagePatches[j+1]->stopPage){
 					imagePatches[j+1]->address = 0;	
 				}else{
 					imagePatches[j]->size = (imagePatches[j+1]->address + imagePatches[j+1]->size) -
@@ -755,20 +779,21 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 				}
 			}  
 		}
+
 		VECTOR_SORT(imagePatches, imageUpdateSort);
 	}
 
 	unsigned int k=0;
 
-	if(DEBUG_MSG){
+   if (DEBUG_MSG){
 		bperr(" SORT 3 %d \n", imagePatches.size());
 
-		for(unsigned int kk=0;kk<imagePatches.size();kk++){
+      for (unsigned int kk=0;kk<imagePatches.size();kk++){
 			bperr("%d address 0x%x  size 0x%x \n",kk, imagePatches[kk]->address, imagePatches[kk]->size);
 		}
 		fflush(stdout);
 	}
-	while(imagePatches[k]->address==0 && k < imagePatches.size()){
+   while (imagePatches[k]->address==0 && k < imagePatches.size()){
 	        k++;
         }
 
@@ -776,34 +801,38 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 	stopPage = imagePatches[k]->stopPage;
 	int startIndex=k, stopIndex=k;
 	bool finished = false;
-	if(DEBUG_MSG){
+   if (DEBUG_MSG){
 		bperr("COMPACTING....\n");	
 		bperr("COMPACTING %x %x %x\n", imagePatches[0]->startPage, stopPage, imagePatches[0]->address);
 	}
-	for(;k<imagePatches.size();k++){
-		if(imagePatches[k]->address!=0){
-			if(DEBUG_MSG){
+
+   for (;k<imagePatches.size();k++){
+      if (imagePatches[k]->address!=0){
+         if (DEBUG_MSG){
 				bperr("COMPACTING k[start] %x k[stop] %x stop %x addr %x size %x\n", imagePatches[k]->startPage, 
 					imagePatches[k]->stopPage,stopPage, imagePatches[k]->address, imagePatches[k]->size);
 			}
-			if(imagePatches[k]->startPage <= (unsigned int) stopPage){
+         if (imagePatches[k]->startPage <= (unsigned int) stopPage){
 				stopIndex = k;
 				stopPage = imagePatches[k]->stopPage;
-			}else{
+         } else {
 
 				patch = new imageUpdate;
 				patch->address = imagePatches[startIndex]->address;
 				patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address + 
 						imagePatches[stopIndex]->size;
 				newPatches.push_back(patch);
-				if(DEBUG_MSG){
+
+            if (DEBUG_MSG){
 					bperr(" COMPACTED: address %x --> %x    start %x  stop %x\n", 
 						patch->address, patch->size, startPage,  stopPage);
 				}
+
 				finished = true;
+
 				//was k+1	
-				if(k < imagePatches.size()){
-					while(imagePatches[k]->address==0 && k < imagePatches.size()){
+            if (k < imagePatches.size()){
+               while (imagePatches[k]->address==0 && k < imagePatches.size()){
 						k++;
 					}
 					startIndex = k;
@@ -811,7 +840,7 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 					startPage = imagePatches[k]->startPage;
 					stopPage  = imagePatches[k]->stopPage;
 					finished = false;
-					if(k == imagePatches.size()){
+               if (k == imagePatches.size()){
 						finished = true;
 					}
 				} 
@@ -820,13 +849,14 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 
 	}
 
-	if(!finished){
+   if (!finished){
 		patch = new imageUpdate;
                 patch->address = imagePatches[startIndex]->address;
                 patch->size = imagePatches[stopIndex]->address - imagePatches[startIndex]->address +
                                    imagePatches[stopIndex]->size;
                 newPatches.push_back(patch);
-		if(DEBUG_MSG){
+
+      if (DEBUG_MSG){
 			bperr(" COMPACTED: %x --> %x \n", patch->address, patch->size);
 		}
 	}	
@@ -835,7 +865,8 @@ void compactSections(pdvector <imageUpdate*> imagePatches, pdvector<imageUpdate*
 
 
 #if defined (cap_save_the_world)
-void process::addLib(char* lname){
+void process::addLib(char* lname)
+{
 
 	BPatch_process *appThread = BPatch::bpatch->getProcessByPid(getPid());
 	BPatch_image *appImage = appThread->getImage();
@@ -988,7 +1019,7 @@ char* process::dumpPatchedImage(std::string imageFileName){ //ccw 28 oct 2001
 
 	newXCOFF->createXCOFF();
 	newXCOFF->outputXCOFF();
-/*
+   /*
 	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
    strcpy(fullName, directoryName);
    strcat(fullName, (char*)imageFileName.c_str());
@@ -997,7 +1028,7 @@ char* process::dumpPatchedImage(std::string imageFileName){ //ccw 28 oct 2001
                                    "libdyninstAPI_RT.so.1");
 
 	addLibraryXCOFF->outputXCOFF();
-*/
+    */
    delete [] fullName;
 
 	delete newXCOFF;
@@ -1290,7 +1321,8 @@ bool process::insertTrapAtEntryPointOfMain()
     return true;
 }
 
-bool process::getDyninstRTLibName() {
+bool process::getDyninstRTLibName() 
+{
     if (dyninstRT_name.length() == 0) {
         // Get env variable
         if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
@@ -1439,6 +1471,7 @@ bool process::loadDYNINSTlib()
     // save registers
     assert(savedRegs == NULL);
     savedRegs = new dyn_saved_regs;
+   assert(savedRegs != NULL);
     bool status = getRepresentativeLWP()->getRegisters(savedRegs);
     assert((status!=false) && (savedRegs!=(void *)-1));
 

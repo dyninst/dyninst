@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.17 2008/02/23 02:09:04 jaw Exp $
+// $Id: addressSpace.C,v 1.18 2008/03/12 20:08:58 legendre Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -268,14 +268,13 @@ void AddressSpace::removeModifiedRange(codeRange *range) {
       // If the pointers aren't equal, squawk because that shouldn't
       // happen.
       
-      if (area->multi) {
-	if (multiTrampsById_[area->multi->id()] == area->multi)
-	  multiTrampsById_[area->multi->id()] = NULL;
-	else {
-	  fprintf(stderr, "%s[%u]: Warning: odd case in removing instArea\n",
-		  FILE__, __LINE__);
-	}
-	
+       if (area->multi) {
+          if (multiTrampsById_[area->multi->id()] == area->multi)
+             multiTrampsById_[area->multi->id()] = NULL;
+          else {
+             fprintf(stderr, "%s[%u]: Warning: odd case in removing instArea\n",
+                     FILE__, __LINE__);
+          }
       }
     }
 }
@@ -375,11 +374,6 @@ multiTramp *AddressSpace::findMultiTrampById(unsigned int id) {
 void AddressSpace::addMultiTramp(multiTramp *multi) {
     assert(multi);
     assert(multi->instAddr());
-
-    if (multi->id() == 11286) {
-      fprintf(stderr, "Replacing multiTramp with id %d: new %p\n",
-	      11286, multi);
-    }
 
     // Actually... we haven't copied it yet, so don't add anything. 
     //addOrigRange(multi);

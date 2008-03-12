@@ -315,6 +315,9 @@ class InstrucIter {
   bool isA_MRT_ReadInstruction();
   bool isA_MRT_WriteInstruction();
 
+  bool usesSPR(std::set<Register> &);
+  bool definesSPR(std::set<Register> &);
+
   unsigned getRTValue();
   unsigned getRAValue();
   unsigned getRBValue();

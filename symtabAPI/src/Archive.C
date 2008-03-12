@@ -37,7 +37,11 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
+#if 0
 extern char errorLine[80];
+#endif
+extern char errorLine[];
+
 static SymtabError serr;
 static std::string errMsg;
 
@@ -64,7 +68,7 @@ std::string Archive::printError(SymtabError serr)
 		       
 bool Archive::openArchive(Archive *&img, std::string filename)
 {
- 	bool ok;
+ 	bool err;
 	for (unsigned i=0;i<allArchives.size();i++)
 	{
       if (allArchives[i]->file() == filename)
@@ -73,18 +77,16 @@ bool Archive::openArchive(Archive *&img, std::string filename)
          return true;
       }
 	}
-	img = new Archive(filename ,ok);
-	if (ok)	// No errors
+
+	img = new Archive(filename ,err);
+	if (err)	// No errors
 		allArchives.push_back(img);	
 	else {
-      if (img) {
-         //fprintf(stderr, "%s[%d]:  deleting archive here\n", FILE__, __LINE__);
+      if (img)
          delete img;
-      }
 		img = NULL;
    }
-
-	return ok;
+	return err;
 }
 
 #if 0 
@@ -103,6 +105,8 @@ Archive::Archive(std::string &filename, bool &err) :
 {
    mf  = MappedFile::createMappedFile(filename);
    fileOpener *fo_ = fileOpener::openFile(mf->base_addr(), mf->size());
+
+	assert(fo_);
 	unsigned char magic_number[2];
     
    if (!fo_->set(0)) 
@@ -112,6 +116,9 @@ Archive::Archive(std::string &filename, bool &err) :
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
+      fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
+      MappedFile::closeMappedFile(mf);
+      mf = NULL;
       return;
    }
    if (!fo_->read((void *)magic_number, 2)) 
@@ -121,6 +128,9 @@ Archive::Archive(std::string &filename, bool &err) :
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
+      fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
+      MappedFile::closeMappedFile(mf);
+      mf = NULL;
       return;
    }
 
@@ -133,6 +143,8 @@ Archive::Archive(std::string &filename, bool &err) :
       sprintf(errorLine, "Not an Archive. Call Symtab::openFile"); 
 		errMsg = errorLine;
 		err = false;
+      MappedFile::closeMappedFile(mf);
+      mf = NULL;
 		return;
 	}
    else if ( magic_number[0] != '<')
@@ -142,6 +154,8 @@ Archive::Archive(std::string &filename, bool &err) :
 		serr = Obj_Parsing;
 		errMsg = errorLine;
 		err = false;
+      MappedFile::closeMappedFile(mf);
+      mf = NULL;
 		return;
    }
 	xcoffArchive *archive = NULL;
@@ -154,6 +168,7 @@ Archive::Archive(std::string &filename, bool &err) :
               filename.c_str(), "Seeking to file start" );	
 		serr = Obj_Parsing;
 		errMsg = errorLine;
+      fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
 		err = false;
 	}					     
 
@@ -164,6 +179,7 @@ Archive::Archive(std::string &filename, bool &err) :
               filename.c_str(), "Reading magic number" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
+      fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
 		err = false;
 	}	
 
@@ -177,6 +193,7 @@ Archive::Archive(std::string &filename, bool &err) :
               filename.c_str(), "Unknown Magic number" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
+      fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
 		err = false;
 	}	
     
@@ -186,6 +203,7 @@ Archive::Archive(std::string &filename, bool &err) :
               filename.c_str(), "Reading file header" );
 		serr = Obj_Parsing;
 		errMsg = errorLine;
+      fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
 		err = false;
 	}	
     
@@ -197,6 +215,7 @@ Archive::Archive(std::string &filename, bool &err) :
                  filename.c_str(), "Reading Member Header" );
 			serr = Obj_Parsing;
 			errMsg = errorLine;
+      fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
 			err = false;
 		}	
 					     
@@ -363,9 +382,6 @@ bool Archive::getAllMembers(std::vector <Symtab *> &members)
       if (iter->second == NULL) {
          bool err;
          string member_name = iter->first;
-#if 0
-         iter->second = new Symtab(filename_, member_name, memberToOffsetMapping[iter->first], err);
-#endif
          iter->second = new Symtab(file(), member_name, memberToOffsetMapping[iter->first], err);
          membersByName[iter->first] = iter->second;
       }
@@ -398,7 +414,8 @@ Archive::~Archive()
       if (allArchives[i] == this)
          allArchives.erase(allArchives.begin()+i);
    }
-   //fprintf(stderr, "%s[%d]:  archive DTOR\n", FILE__, __LINE__);
-   if (mf)
+
+   if (mf) {
       MappedFile::closeMappedFile(mf);
+   }
 }

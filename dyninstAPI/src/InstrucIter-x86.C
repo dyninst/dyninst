@@ -455,7 +455,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
     return false;
   }
 
-  parsing_printf("maxSwitch set to %d\n",maxSwitch);
+  parsing_printf("\tmaxSwitch set to %d\n",maxSwitch);
 
   const unsigned char * p = branchInsn.op_ptr();
   if( *p == 0x0f ) {
@@ -474,6 +474,32 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
   if( (*p & 0x0f) == 0x07 || (*p & 0x0f) == 0x0f ) {
     maxSwitch++;
   } 
+
+    /* XXX addresses into jump tables are computed using some form
+       of addressing like the following one:
+
+                movslq (%rdx,%rax,4),%rax
+
+       If working with quadword addresses, the index (in rax) is going
+       to be a multiple of 2, not a multiple of 1. So, maxSwitch is actually
+       twice as large as it should be.
+
+       HOWEVER: that instruction could also be encoded as
+                movslq (%rdx,%rax,8),%rax
+       in case of which indexing would be a multiple of 1 again.
+       I have never seen this, but it is possible.
+
+       So, this hack reduces the number of jump table entries by 1/2
+       when working with quadword addresses. More comprehensive
+       analysis should be implemented to figure out whether to
+       apply this adjustment or not.
+
+       Questions, see nater@cs
+    */
+    if(addrWidth == 8) {
+        maxSwitch = maxSwitch >> 1;
+        parsing_printf("\tmaxSwitch revised to %d\n",maxSwitch);
+    }
     
   Address jumpTable = 0;
   ptr = tableInsn.op_ptr();
@@ -505,12 +531,15 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
     }
   }
 
+  parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
+
   if(!jumpTable && !tableOffsetFromThunk)
   {
     result += backupAddress;	
     return false;
   }
   jumpTable += tableOffsetFromThunk;
+  parsing_printf("\tjumpTable revised to 0x%lx\n",jumpTable);
   if( !instructions_->isValidAddress(jumpTable) )
   {
     // If the "jump table" has a start address that is outside
@@ -525,6 +554,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
   {
     Address tableEntry = jumpTable + (i * addrWidth);
     int jumpAddress = 0;
+  
     
     if(instructions_->isValidAddress(tableEntry))
     {
@@ -537,6 +567,9 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
 	jumpAddress = *(const int *)instructions_->getPtrToInstruction(tableEntry);
       }
     }
+
+    parsing_printf("\tentry %d [0x%lx] -> 0x%x\n",i,tableEntry,jumpAddress);
+
     if (jumpAddress)
     {
       if(tableOffsetFromThunk)

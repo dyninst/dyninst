@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.48 2008/02/23 02:09:07 jaw Exp $
+// $Id: instPoint.C,v 1.49 2008/03/12 20:09:15 legendre Exp $
 // instPoint code
 
 
@@ -282,7 +282,12 @@ bool instPoint::updateInstances() {
 bool instPoint::updateInstancesBatch() {
     unsigned i;
 
+    reloc_printf("updateInstancesBatch for instPoint at 0x%lx\n",
+                 addr());
+
     if (func()->version() == funcVersion) {
+        reloc_printf(".... func version %d == our version %d, no work, returning\n",
+                     func()->version(), funcVersion);
         return false;
     }
     else if (func()->version() < funcVersion) {
@@ -315,6 +320,8 @@ bool instPoint::updateInstancesBatch() {
         // Might be smaller as well...
         
         const pdvector<bblInstance *> &bbls = block()->instances();
+        reloc_printf("Func version > our version, adding instances (us %d, func %d\n",
+                     bbls.size(), instances.size());
         assert(instances.size() < bbls.size());
         for (i = instances.size(); i < bbls.size(); i++) {
             bblInstance *bblI = bbls[i];
@@ -324,6 +331,8 @@ bool instPoint::updateInstancesBatch() {
             // However, check if we can do a multiTramp at this point (as we may have
             // overwritten with a jump). If we can't, then skip the instance.
             unsigned multiID_ = multiTramp::findOrCreateMultiTramp(newAddr, proc());
+            reloc_printf("... found multi ID %d for addl instance %d\n",
+                         multiID_, i);
             if (multiID_) {
                 instPointInstance *ipInst = new instPointInstance(newAddr,
                                                                   bblI,
@@ -346,44 +355,28 @@ bool instPoint::updateInstancesFinalize() {
     // We need all instances to stay in step; so if the first (default)
     // instance is generated/installed/linked, then make sure any new
     // instances are the same.
-    bool generated = false;
-    bool installed = false;
-    bool linked = false;
     
     // If we can't be instrumented - well, we shouldn't have an instPoint
     // here, but oh well. Just return.
     if (!instances.size()) return true;
     
-    if (instances[0]->multi()) {
-        generated = instances[0]->multi()->generated();
-        installed = instances[0]->multi()->installed();
-        linked = instances[0]->multi()->linked();
-    }
     
     // Check whether there's something at my address...
     for (unsigned i = 0; i < instances.size(); i++) {
-        
         if (!instances[i]->multi()) {
             instances[i]->multiID_ = multiTramp::findOrCreateMultiTramp(instances[i]->addr(),
                                                                         proc());
             if (instances[i]->multi()) {
-                if (generated) {
+                if (shouldGenerateNewInstances_) {
                     instances[i]->multi()->generateMultiTramp();
                 }
-                if (installed) {
+                if (shouldInstallNewInstances_) {
                     instances[i]->multi()->installMultiTramp();
                 }
-                if (linked) {
+                if (shouldLinkNewInstances_) {
                     instances[i]->multi()->linkMultiTramp();
                 }
             }
-            /*
-            // Not actually an error anymore, leaving in for debug purposes
-            else {
-            fprintf(stderr, "ERROR: instance %p, addr 0x%lx, IP %p, no multitramp!\n",
-            instances[i], instances[i]->addr(), this);
-            }
-            */
         }
     }
     return true;
@@ -442,6 +435,7 @@ bool instPoint::generateInst() {
         bool ret = instances[i]->generateInst();
         if (ret) success = true;
     }
+    shouldGenerateNewInstances_ = true;
     stats_instru.stopTimer(INST_GENERATE_TIMER);
     return success;
 }
@@ -456,6 +450,7 @@ bool instPoint::installInst() {
         bool ret = instances[i]->installInst();
         if (ret) success = true;
     }
+    shouldInstallNewInstances_ = true;
     stats_instru.stopTimer(INST_INSTALL_TIMER);
     return success;
 }
@@ -518,6 +513,8 @@ bool instPoint::linkInst(bool update_trap_table) {
       proc()->trapMapping.flush();
     }
 
+    shouldLinkNewInstances_ = true;
+
     stats_instru.stopTimer(INST_LINK_TIMER);
     
     return success;
@@ -548,7 +545,10 @@ instPoint::instPoint(AddressSpace *proc,
     proc_(proc),
     img_p_(NULL),
     block_(block),
-    addr_(addr)
+    addr_(addr),
+    shouldGenerateNewInstances_(false),
+    shouldInstallNewInstances_(false),
+    shouldLinkNewInstances_(false)    
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -576,7 +576,10 @@ instPoint::instPoint(AddressSpace *proc,
      proc_(proc),
     img_p_(img_p),
     block_(block),
-    addr_(addr)
+    addr_(addr),
+    shouldGenerateNewInstances_(false),
+    shouldInstallNewInstances_(false),
+    shouldLinkNewInstances_(false)    
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -603,7 +606,10 @@ instPoint::instPoint(instPoint *parP,
     proc_(childP),
     img_p_(parP->img_p_),
     block_(child),
-    addr_(parP->addr())
+    addr_(parP->addr()),
+    shouldGenerateNewInstances_(parP->shouldGenerateNewInstances_),
+    shouldInstallNewInstances_(parP->shouldInstallNewInstances_),
+    shouldLinkNewInstances_(parP->shouldLinkNewInstances_)    
 {
 }
                   

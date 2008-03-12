@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.43 2008/02/23 02:09:08 jaw Exp $
+// $Id: instPoint.h,v 1.44 2008/03/12 20:09:16 legendre Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -467,6 +467,15 @@ class instPoint : public instPointBase {
   int_basicBlock *block_;
   Address addr_;
 
+  // We used to decide whether to generate/install/link new instances
+  // based on whether the first instance was G/I/L, as appropriate. However,
+  // function relocation can remove that first multiTramp, leaving us
+  // with no information. Instead, we keep it here.
+  bool shouldGenerateNewInstances_;
+  bool shouldInstallNewInstances_;
+  bool shouldLinkNewInstances_;
+
+ public:
   // RegisterSpace-only methods; all data in here is
   // specific to a registerSpace slot. 
   // 

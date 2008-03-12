@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.15 2008/02/23 02:09:10 jaw Exp $
+// $Id: registerSpace.h,v 1.16 2008/03/12 20:09:22 legendre Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
@@ -344,7 +344,7 @@ class registerSpace {
                    fpr14, fpr15, fpr16, fpr17, fpr18, fpr19, fpr20,
                    fpr21, fpr22, fpr23, fpr24, fpr25, fpr26, fpr27,
                    fpr28, fpr29, fpr30, fpr31,
-                   lr, cr, ctr, mq, lastReg } powerRegisters_t;
+                   xer, lr, ctr, mq, cr, lastReg } powerRegisters_t;
     static unsigned GPR(Register x) { return x; }
     static unsigned FPR(Register x) { return x - fpr0; }
     static unsigned SPR(Register x);

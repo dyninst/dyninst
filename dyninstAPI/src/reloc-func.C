@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.36 2008/02/20 22:34:22 legendre Exp $
+// $Id: reloc-func.C,v 1.37 2008/03/12 20:09:23 legendre Exp $
 
 
 
@@ -257,6 +257,7 @@ bool int_function::relocBlocks(Address baseInMutatee,
       success &= newInstances[i]->generate();
       if (!success) break;
    }
+   return true;
 }
 #endif
 
@@ -394,6 +395,8 @@ bool int_function::relocationInstall() {
     // Fix up all of our instPoints....
     // This will cause multiTramps, etc. to be built in the new
     // version of the function.  
+
+    reloc_printf("RELOCATION INSTALL, updating instances...\n");
 
     for (i = 0; i < entryPoints_.size(); i++)
         entryPoints_[i]->updateInstancesBatch();
@@ -671,6 +674,7 @@ bool bblInstance::generate() {
     generatedBlock().allocate(maxSize());
     generatedBlock().setAddrSpace(proc());
     generatedBlock().setAddr(firstInsnAddr_);
+    generatedBlock().setFunction(func());
 
     Address origAddr = origInstance()->firstInsnAddr();
     for (i = 0; i < relocs().size(); i++) {
@@ -732,6 +736,10 @@ bool bblInstance::generate() {
                    fallthroughOverride ? fallthroughOverride->get_address() : 0, 
                    targetOverride ? targetOverride->get_address() : 0);
       unsigned usedBefore = generatedBlock().used();
+
+      // Find and drop in the instPoint for that instruction, since we may need it.
+
+
       relocs()[i]->origInsn->generate(generatedBlock(),
                                       proc(),
                                       origAddr,

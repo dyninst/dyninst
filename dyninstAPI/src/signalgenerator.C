@@ -36,7 +36,7 @@
  * will, or computer failure or malfunction.  You agree to indemnify
  * us (and any other person or entity with proprietary rights in the
  * software licensed hereunder) for any and all liability it may
-+ * incur to third parties resulting from your use of Paradyn.
+ * incur to third parties resulting from your use of Paradyn.
  */
 
 // $Id: signalhandler.C,v 
@@ -1242,7 +1242,10 @@ process *SignalGeneratorCommon::newProcess(std::string file_, std::string dir,
    // TODO -- this assumes no more than 1 of each "<", ">"
    // also, do we want this behavior in general, or should there be a switch to enable/disable?
    for (unsigned i1=0; i1<argv->size(); i1++) {
-     if ((*argv)[i1] == "<") {
+     if ((*argv)[i1] == "\\<") {
+        (*argv)[i1] = "<";
+     }
+     else if ((*argv)[i1] == "<") {
        inputFile = (*argv)[i1+1];
        for (unsigned j=i1+2, k=i1; j<argv->size(); j++, k++)
          (*argv)[k] = (*argv)[j];
@@ -1250,7 +1253,10 @@ process *SignalGeneratorCommon::newProcess(std::string file_, std::string dir,
      }
    }
    for (unsigned i2=0; i2<argv->size(); i2++) {
-     if ((*argv)[i2] == ">") {
+     if ((*argv)[i2] == "\\>") {
+        (*argv)[i2] = ">";
+     }
+     else if ((*argv)[i2] == ">") {
        outputFile = (*argv)[i2+1];
        for (unsigned j=i2+2, k=i2; j<argv->size(); j++, k++)
          (*argv)[k] = (*argv)[j];

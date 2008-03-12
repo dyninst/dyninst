@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.9 2008/02/15 23:44:40 legendre Exp $
+ * $Id: Symbol.h,v 1.10 2008/03/12 20:09:48 legendre Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -192,6 +192,10 @@ private:
     SymbolTag     tag_;
     int           framePtrRegNum_;
     Type          *retType_;
+    // Module Objects are created in Symtab and not in Object.
+    // So we need a way to store the name of the module in 
+    // which the symbol is present.
+    std::string moduleName_;  
 
 public:
     localVarCollection *vars_;
@@ -202,7 +206,8 @@ inline
 Symbol::Symbol(unsigned)
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), upPtr_(NULL),
-    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), vars_(NULL), params_(NULL) {
+    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_(""), 
+    vars_(NULL), params_(NULL) {
 }
 
 inline
@@ -221,7 +226,8 @@ Symbol::operator==(const Symbol& s) const {
 	&& (retType_    == s.retType_)
     	&& (mangledNames == s.mangledNames)
     	&& (prettyNames == s.prettyNames)
-    	&& (typedNames == s.typedNames));
+    	&& (typedNames == s.typedNames)
+        && (moduleName_ == s.moduleName_));
 }
 
 }//namespace SymtabAPI

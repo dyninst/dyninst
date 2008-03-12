@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.30 2008/01/16 22:01:56 legendre Exp $
+// $Id: arch.h,v 1.31 2008/03/12 20:09:04 legendre Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -81,6 +81,7 @@ class regTracker_t;
 class AstNode;
 class Emitter;
 class pcRelRegion;
+class int_function;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -208,13 +209,15 @@ class codeGen {
     void setPoint(instPoint *i) { ip_ = i; }
     void setRegTracker(regTracker_t *t) { t_ = t; }
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
+    void setFunction(int_function *f) { f_ = f; }
 
     dyn_lwp *lwp() { return lwp_; }
     dyn_thread *thread() { return thr_; }
     //process *proc() { assert(proc_); return proc_; }
     AddressSpace *addrSpace() { assert(aSpace_); return aSpace_; }
     Address startAddr() const { return addr_; }
-    const instPoint *point() const { return ip_; }
+    instPoint *point() const { return ip_; }
+    int_function *func() const { return f_; }
     registerSpace *rs() { assert(rs_); return rs_; }
     regTracker_t *tracker() { assert(t_); return t_;}
     Emitter *codeEmitter() { assert(emitter_); return emitter_; }
@@ -236,6 +239,7 @@ class codeGen {
     regTracker_t *t_;
     Address addr_;
     instPoint *ip_;
+    int_function *f_;
 
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;

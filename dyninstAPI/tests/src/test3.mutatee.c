@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test3.mutatee.c,v 1.16 2008/02/26 06:59:43 jaw Exp $ */
+/* $Id: test3.mutatee.c,v 1.17 2008/03/12 20:09:29 legendre Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -150,7 +150,6 @@ void test5()
 {
      dprintf("Mutatee aborting.\n");
      abort();
-     //exit(0);
 }
 
 unsigned int test7counter = 0;

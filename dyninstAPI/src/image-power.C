@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.22 2008/02/23 02:09:05 jaw Exp $
+// $Id: image-power.C,v 1.23 2008/03/12 20:09:10 legendre Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -300,8 +300,7 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
                   iPar->decodeClauses(regValues[3]);
                   iPar->setParentFunc(this);
 
-                  fprintf(stderr, "Pushing back standard outlined function\n");
-                  parRegionsList.push_back(iPar);
+		  parRegionsList.push_back(iPar);
 
                   if (iPar->getRegionType() == OMP_DO_FOR || 
                       iPar->getRegionType() == OMP_PAR_DO)
@@ -451,8 +450,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
                Address endLoop = ah2.getCurrentAddress();
                iPar->setLastInsn(endLoop);
-               fprintf(stderr, "Pushing back OMP_DO_FOR_LOOP\n");
-               parRegionsList.push_back(iPar);
+	       parRegionsList.push_back(iPar);
                break;
             }
             ah2++;
@@ -487,8 +485,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                   iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
                   iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
-                  fprintf(stderr, "Pushing back OMP_BARRIER\n");
-                  parRegionsList.push_back(iPar);
+		  parRegionsList.push_back(iPar);
                }
                /* Section begins with "BeginOrdered, ends with EndOrdered" */
                else if(strstr(ppdf->symTabName().c_str(), "BeginOrdered") !=NULL)
@@ -516,8 +513,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                      ah2++;
                   }
                   iPar->setLastInsn(ah2.getCurrentAddress());
-                  fprintf(stderr, "Pushing back OMP_ORDERED\n");
-                  parRegionsList.push_back(iPar);
+		  parRegionsList.push_back(iPar);
                }
                /* Master construct */
                else if(strstr(ppdf->symTabName().c_str(), "Master") !=NULL)
@@ -528,8 +524,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                   iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
                   iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
-                  fprintf(stderr, "Pushing back OMP_MASTER\n");
-                  parRegionsList.push_back(iPar);
+		  parRegionsList.push_back(iPar);
                }
                /* Flush construct */
                else if(strstr(ppdf->symTabName().c_str(), "Flush") !=NULL)
@@ -540,8 +535,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                   iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
                   iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
-                  fprintf(stderr, "Pushing back OMP_FLUSH\n");
-                  parRegionsList.push_back(iPar);
+		  parRegionsList.push_back(iPar);
                }
                /* Critical Construct, Starts with GetDefaultSLock, ends with RelDefaultSLock */
                else if(strstr(ppdf->symTabName().c_str(), "GetDefaultSLock") != NULL)
@@ -570,8 +564,7 @@ void image_func::parseOMPFunc(bool hasLoop)
 
                   iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		      
-                  fprintf(stderr, "Pushing back OMP_CRITICAL\n");
-                  parRegionsList.push_back(iPar);
+		  parRegionsList.push_back(iPar);
                }
                /*Atomic Construct,  Begins with GetAtomicLock, ends with RelAtomicLock */
                else if(strstr(ppdf->symTabName().c_str(), "GetAtomicLock") != NULL)
@@ -601,8 +594,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                   iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
                   iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
 		      
-                  fprintf(stderr, "Pushing back OMP_ATOMIC\n");
-                  parRegionsList.push_back(iPar);
+		  parRegionsList.push_back(iPar);
                }
                else
                {
