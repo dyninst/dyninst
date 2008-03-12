@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.15 2008/02/14 22:09:25 giri Exp $
+// $Id: Object.C,v 1.16 2008/03/12 22:48:55 legendre Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -155,7 +155,7 @@ DLLEXPORT Symbol::Symbol(const Symbol& s)
     type_(s.type_), linkage_(s.linkage_),
     addr_(s.addr_), sec_(s.sec_), size_(s.size_), upPtr_(s.upPtr_), isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
     mangledNames(s.mangledNames), prettyNames(s.prettyNames), typedNames(s.typedNames), tag_(s.tag_), framePtrRegNum_(s.framePtrRegNum_),
-    retType_(s.retType_), vars_(s.vars_), params_(s.params_) 
+    retType_(s.retType_), moduleName_(s.moduleName_), vars_(s.vars_), params_(s.params_) 
 {
     Annotatable <std::string, symbol_file_name_a> &sfa = *this;
     const Annotatable <std::string, symbol_file_name_a> &sfa_src = s;
@@ -208,7 +208,10 @@ DLLEXPORT const string& Symbol::getTypedName() const {
 }
 
 DLLEXPORT const string& Symbol::getModuleName() const {
-    return module_->fullName();
+    if(module_)
+        return module_->fullName();
+    else
+        return moduleName_;
 }
 
 DLLEXPORT Module* Symbol::getModule() const {
@@ -263,7 +266,7 @@ DLLEXPORT Symbol::SymbolTag Symbol::tag() const {
 
 DLLEXPORT bool Symbol::setModuleName(string module)
 {
-	module_->setName(module);
+	moduleName_ = module;
 	return true;
 }
 
@@ -296,7 +299,7 @@ DLLEXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
     upPtr_(NULL), isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), 
-    retType_(NULL), vars_(NULL), params_(NULL) {
+    retType_(NULL), moduleName_(""), vars_(NULL), params_(NULL) {
    // note: this ctor is called surprisingly often (when we have
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
 }
@@ -319,8 +322,8 @@ DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
     : type_(itype),
     linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), upPtr_(upPtr), isInDynsymtab_(isInDynSymtab),
     isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL), vars_(NULL), params_(NULL) {
-    	module_ = new Module();
-    	module_->setName(imodule);
+        module_ = NULL;
+    	moduleName_ = imodule;
     	mangledNames.push_back(iname);
 }
 

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.23 2008/02/23 02:09:13 jaw Exp $
+// $Id: Object-xcoff.C,v 1.24 2008/03/12 22:48:53 legendre Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -144,11 +144,15 @@ char *(*P_varName)(Name *) = NULL;
 char *(*P_text)(Name *) = NULL;
 NameKind (*P_kind)(Name *) = NULL;
 
+void *hDemangler = NULL;
+
 void loadNativeDemangler() 
 {
+   if (hDemangler) return;
+
    P_native_demangle = NULL;
    
-   void *hDemangler = dlopen("libdemangle.so.1", RTLD_LAZY|RTLD_MEMBER);
+   hDemangler = dlopen("libdemangle.so.1", RTLD_LAZY|RTLD_MEMBER);
    if (hDemangler != NULL) {
       P_native_demangle = (Name*(*)(char*, char**, long unsigned int)) dlsym(hDemangler, "demangle");
       //if (!P_native_demangle) 
@@ -411,8 +415,8 @@ int xcoffArchive_64::read_mbrhdr()
 
 std::vector<fileOpener *> fileOpener::openedFiles;
 
-fileOpener *fileOpener::openFile(const std::string &filename) 
-{
+#if 0
+fileOpener *fileOpener::openFile(const std::string &filename) {
     // Logic: if we're opening a library, match by name. If
     // we're opening an a.out, then we have to uniquely
     // open each time (as we open in /proc, and exec has the
@@ -458,7 +462,7 @@ fileOpener *fileOpener::openFile(const std::string &filename)
 
     return newFO;
 }
-
+#endif
 fileOpener *fileOpener::openFile(void *ptr, unsigned size) {
     // Logic: if we're opening a library, match by name. If
     // we're opening an a.out, then we have to uniquely
@@ -521,6 +525,7 @@ fileOpener::~fileOpener() {
    assert(size_ == 0);
 }
 
+#if 0
    bool fileOpener::open() {
       if (fd_ != 0)
          return true;
@@ -551,16 +556,17 @@ fileOpener::~fileOpener() {
     assert(size_);
     return true;
 }
+#endif
 
-bool fileOpener::mmap() 
-{
-   fprintf(stderr, "%s[%d]:  FIXME:  should not be mmaping here\n", FILE__, __LINE__);
+#if 0
+bool fileOpener::mmap() {
     assert(fd_);
     assert(size_);
 
     if (mmapStart_ != NULL)
         return true;
 
+    assert(0);
     mmapStart_ = ::mmap(NULL, size_, PROT_READ, MAP_SHARED, fd_, 0);
 
     if (mmapStart_ == MAP_FAILED) {
@@ -574,6 +580,7 @@ bool fileOpener::mmap()
 
     return true;
 }
+#endif
     
 bool fileOpener::set(unsigned addr) 
 {
@@ -591,7 +598,8 @@ bool fileOpener::set(unsigned addr)
     return true;
 }
 
-bool fileOpener::read(void *buf, unsigned size) {
+bool fileOpener::read(void *buf, unsigned size) 
+{
     //assert(fd_); may not be present if its a mem image
     assert(size_);
     assert(mmapStart_);
@@ -668,7 +676,7 @@ void *fileOpener::getPtrAtOffset(unsigned offset) const
 // 
 
 
-void Object::parse_aout(int offset, bool /*is_aout*/)
+void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
 {
    // all these vrble declarations need to be up here due to the gotos,
    // which mustn't cross vrble initializations.  Too bad.
@@ -834,7 +842,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    fo_->seek((is64 ? SCNHSZ_64 : SCNHSZ_32) * hdr.f_nscns);
    //if binary is not stripped 
 
-   if( symptr ) {
+   if ( symptr ) {
       fo_->set(offset + symptr);
       symbols = (struct syment *) fo_->ptr();
       fo_->seek(nsyms * SYMESZ);
@@ -844,7 +852,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    }
 
    // Consistency check
-   if(hdr.f_opthdr == (is64 ? _AOUTHSZ_EXEC_64 : _AOUTHSZ_EXEC_32))
+   if (hdr.f_opthdr == (is64 ? _AOUTHSZ_EXEC_64 : _AOUTHSZ_EXEC_32))
    {
       // complete aout header present
       if ( text_start != SCNH_PADDR(aout.o_sntext-1))
@@ -867,13 +875,13 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
       if ( dsize != SCNH_SIZE(aout.o_sndata-1))
       PARSE_AOUT_DIE("Checking data size", 49);
       }*/
-   if(hdr.f_opthdr !=  0)
+   if (hdr.f_opthdr !=  0)
       entryAddress_ = entry;
 
    /*
     * Get the string pool, if there is one
     */
-   if( nsyms ) 
+   if ( nsyms ) 
    {
       // We want to jump past the symbol table...
       if (!fo_->set(offset + symptr + (nsyms*SYMESZ)))
@@ -915,7 +923,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
          if (!is64 && nlines_ == 65535)
             for (j=0; j < hdr.f_nscns; j++)
                if ((SCNH_FLAGS(j) & STYP_OVRFLO) &&
-                   (SCNH_NLNNO(j) == (unsigned) (i+1))) {
+                   ((long) SCNH_NLNNO(j) == (i+1))) {
                   nlines_ = (unsigned int)(SCNH_VADDR(j));
                   break;
                }
@@ -940,11 +948,12 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
       }
    }
 
-   for (i=0; i < hdr.f_nscns; i++) {
-      sections_.push_back(new Section(i, SCNH_NAME(i), SCNH_PADDR(i),
-                                      fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), SCNH_SIZE(i)));
-      //fprintf(stderr, "%s[%d]:  section named %s\n", FILE__, __LINE__, SCNH_NAME(i));
-   }
+   if (alloc_syms)
+      for (i=0; i < hdr.f_nscns; i++) {
+         sections_.push_back(new Section(i, SCNH_NAME(i), SCNH_PADDR(i),
+                  fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), SCNH_SIZE(i)));
+         //fprintf(stderr, "%s[%d]:  section named %s\n", FILE__, __LINE__, SCNH_NAME(i));
+      }
 
    // Time to set up a lot of variables.
    // code_ptr_: a pointer to the text segment
@@ -1057,6 +1066,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
    
    no_of_symbols_ = nsyms;
    // Now the symbol table itself:
+   if (alloc_syms) {
    for (i=0; i < (signed)nsyms; i++) 
    {
       /* do the pointer addition by hand since sizeof(struct syment)
@@ -1305,14 +1315,18 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
                                      );
                              
          /* The old code always had the last module win. */
-         if( symbols_[modName].size() == 0 ) {
+         if ( symbols_[modName].size() == 0 ) {
             symbols_[modName].push_back( modSym );
          } else {
+            //  not sure if this is dangerous (anyone else have a pointer to this object?)
+            //  but if we don't delete, or do something else, its a leak.
+            delete (symbols_[modName][0]);
             symbols_[modName][0] = modSym;
          }
          
          continue;
       }
+   }
    }
 
    toc_offset_ = toc_offset;
@@ -1350,7 +1364,7 @@ void Object::parse_aout(int offset, bool /*is_aout*/)
       return; \
       }
    
-void Object::load_archive(bool is_aout) 
+void Object::load_archive(bool is_aout, bool alloc_syms) 
 {
     xcoffArchive *archive;
     
@@ -1392,7 +1406,7 @@ void Object::load_archive(bool is_aout)
     {
             // At this point, we should be able to read the a.out
             // file header.
-            parse_aout(archive->aout_offset, is_aout);
+            parse_aout(archive->aout_offset, is_aout, alloc_syms);
     }
     else
     {
@@ -1406,7 +1420,7 @@ void Object::load_archive(bool is_aout)
 // file type (archive or a.out). Assumes that two bytes are
 // enough to identify the file format. 
 
-void Object::load_object()
+void Object::load_object(bool alloc_syms)
 {
    // Load in an object (archive, object, .so)
 
@@ -1455,15 +1469,15 @@ void Object::load_object()
 	    magic_number[1] == 0xef ||
 	    magic_number[1] == 0xf7)
 	{
-	    parse_aout(0, is_aout_);
+	    parse_aout(0, is_aout_, alloc_syms);
 	}
     }
     else if (magic_number[0] == '<') // archive of some sort
     {
 	// What?  Why aren't we calling load_archive here?
-	// load_archive(true);
+	// load_archive(true, alloc_syms);
 	is_aout_ = !(f_flags & F_SHROBJ);
-	parse_aout(offset_, true);
+	parse_aout(offset_, true, alloc_syms);
     }	
     else {// Fallthrough
         sprintf(errorLine, "Bad magic number in file %s\n",
@@ -1490,13 +1504,13 @@ Object::Object(const Object& obj) :
 }
 
 
-Object::Object(MappedFile *mf_, void (*err_func)(const char *), Offset offset) :
+Object::Object(MappedFile *mf_, void (*err_func)(const char *), Offset offset, bool alloc_syms) :
    AObject(mf_, err_func), offset_(offset)
 {    
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
    fo_->set_file(mf_->filename());
-   load_object(); 
+   load_object(alloc_syms); 
 }
 
 Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, std::vector<Section *> &, void (*err_func)(const char *), Offset offset) :
@@ -1524,7 +1538,7 @@ Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, std:
    //  need to init just a couple basic vars here that are used later to access
    //  the stabs sections and such:  therefore using load_object() is overkill
 
-   load_object(); 
+   load_object(false); 
    parseFileLineInfo(li);
 }
 
@@ -1534,7 +1548,7 @@ Object::Object(MappedFile *mf_, std::string &member_name, Offset offset, void (*
    loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
    fo_->set_file(member_name);
-   load_object(); 
+   load_object(true); 
 }
 #if 0 
 Object::Object(char *mem_image, size_t image_size, void (*err_func)(const char *)) :

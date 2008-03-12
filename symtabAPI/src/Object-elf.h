@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.14 2008/02/04 18:23:06 giri Exp $
+ * $Id: Object-elf.h,v 1.15 2008/03/12 22:48:50 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -275,7 +275,7 @@ class Section;
 class Object : public AObject {
  public:
   Object(){}
-  Object(MappedFile *, void (*)(const char *) = log_msg);
+  Object(MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
   Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Section *> &, void (*)(const char *) = log_msg);
   Object(const Object &);
   virtual ~Object();
@@ -451,8 +451,8 @@ class Object : public AObject {
   void parseDwarfTypes(Symtab *obj);
   void parseStabTypes(Symtab *obj);
 
-  void load_object();
-  void load_shared_object();
+  void load_object(bool);
+  void load_shared_object(bool);
 
   // initialize relocation_table_ from .rel[a].plt section entries 
   bool get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,

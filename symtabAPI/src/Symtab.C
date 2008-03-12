@@ -151,168 +151,173 @@ void Symtab::setupTypes(){
 }    
 
 void Symtab::setupStdTypes() {
-    if(builtInTypes)
+   if(builtInTypes)
     	return;
-    builtInTypes = new builtInTypeCollection;
-    typeScalar *newType;
+   builtInTypes = new builtInTypeCollection;
+   typeScalar *newType;
 
-    // NOTE: integral type  mean twos-complement
-    // -1  int, 32 bit signed integral type
-    // in stab document, size specified in bits, system size is in bytes
-    builtInTypes->addBuiltInType(newType = new typeScalar(-1, 4, "int", true));
-    newType->decrRefCount();
-    // -2  char, 8 bit type holding a character. GDB & dbx(AIX) treat as signed
-    builtInTypes->addBuiltInType(newType = new typeScalar(-2, 1, "char", true));
-    newType->decrRefCount();
-    // -3  short, 16 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-3, 2, "short", true));
-    newType->decrRefCount();
-    // -4  long, 32/64 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-4, sizeof(long), "long", true));
-    newType->decrRefCount();
-    // -5  unsigned char, 8 bit unsigned integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-5, 1, "unsigned char"));
-    newType->decrRefCount();
-    // -6  signed char, 8 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-6, 1, "signed char", true));
-    newType->decrRefCount();
-    // -7  unsigned short, 16 bit unsigned integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-7, 2, "unsigned short"));
-    newType->decrRefCount();
-    // -8  unsigned int, 32 bit unsigned integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-8, 4, "unsigned int"));
-    newType->decrRefCount();
-    // -9  unsigned, 32 bit unsigned integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-9, 4, "unsigned"));
-    newType->decrRefCount();
-    // -10 unsigned long, 32 bit unsigned integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-10, sizeof(unsigned long), "unsigned long"));
-    newType->decrRefCount();
-    // -11 void, type indicating the lack of a value
-    //  XXX-size may not be correct jdd 4/22/99
-    builtInTypes->addBuiltInType(newType = new typeScalar(-11, 0, "void", false));
-    newType->decrRefCount();
-    // -12 float, IEEE single precision
-    builtInTypes->addBuiltInType(newType = new typeScalar(-12, sizeof(float), "float", true));
-    newType->decrRefCount();
-    // -13 double, IEEE double precision
-    builtInTypes->addBuiltInType(newType = new typeScalar(-13, sizeof(double), "double", true));
-    newType->decrRefCount();
-    // -14 long double, IEEE double precision, size may increase in future
-    builtInTypes->addBuiltInType(newType = new typeScalar(-14, sizeof(long double), "long double", true));
-    newType->decrRefCount();
-    // -15 integer, 32 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-15, 4, "integer", true));
-    newType->decrRefCount();
-    // -16 boolean, 32 bit type. GDB/GCC 0=False, 1=True, all other values
-    //  have unspecified meaning
-    builtInTypes->addBuiltInType(newType = new typeScalar(-16, sizeof(bool), "boolean"));
-    newType->decrRefCount();
-    // -17 short real, IEEE single precision
-    //  XXX-size may not be correct jdd 4/22/99
-    builtInTypes->addBuiltInType(newType = new typeScalar(-17, sizeof(float), "short real", true));
-    newType->decrRefCount();
-    // -18 real, IEEE double precision XXX-size may not be correct jdd 4/22/99
-    builtInTypes->addBuiltInType(newType = new typeScalar(-18, sizeof(double), "real", true));
-    newType->decrRefCount();
-    // -19 stringptr XXX- size of void * -- jdd 4/22/99
-    builtInTypes->addBuiltInType(newType = new typeScalar(-19, sizeof(void *), "stringptr"));
-    newType->decrRefCount();
-    // -20 character, 8 bit unsigned character type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-20, 1, "character"));
-    newType->decrRefCount();
-    // -21 logical*1, 8 bit type (Fortran, used for boolean or unsigned int)
-    builtInTypes->addBuiltInType(newType = new typeScalar(-21, 1, "logical*1"));
-    newType->decrRefCount();
-    // -22 logical*2, 16 bit type (Fortran, some for boolean or unsigned int)
-    builtInTypes->addBuiltInType(newType = new typeScalar(-22, 2, "logical*2"));
-    newType->decrRefCount();
-    // -23 logical*4, 32 bit type (Fortran, some for boolean or unsigned int)
-    builtInTypes->addBuiltInType(newType = new typeScalar(-23, 4, "logical*4"));
-    newType->decrRefCount();
-    // -24 logical, 32 bit type (Fortran, some for boolean or unsigned int)
-    builtInTypes->addBuiltInType(newType = new typeScalar(-24, 4, "logical"));
-    newType->decrRefCount();
-    // -25 complex, consists of 2 IEEE single-precision floating point values
-    builtInTypes->addBuiltInType(newType = new typeScalar(-25, sizeof(float)*2, "complex", true));
-    newType->decrRefCount();
-    // -26 complex, consists of 2 IEEE double-precision floating point values
-    builtInTypes->addBuiltInType(newType = new typeScalar(-26, sizeof(double)*2, "complex*16", true));
-    newType->decrRefCount();
-    // -27 integer*1, 8 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-27, 1, "integer*1", true));
-    newType->decrRefCount();
-    // -28 integer*2, 16 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-28, 2, "integer*2", true));
-    newType->decrRefCount();
+   // NOTE: integral type  mean twos-complement
+   // -1  int, 32 bit signed integral type
+   // in stab document, size specified in bits, system size is in bytes
+   builtInTypes->addBuiltInType(newType = new typeScalar(-1, 4, "int", true));
+   newType->decrRefCount();
+   // -2  char, 8 bit type holding a character. GDB & dbx(AIX) treat as signed
+   builtInTypes->addBuiltInType(newType = new typeScalar(-2, 1, "char", true));
+   newType->decrRefCount();
+   // -3  short, 16 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-3, 2, "short", true));
+   newType->decrRefCount();
+   // -4  long, 32/64 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-4, sizeof(long), "long", true));
+   newType->decrRefCount();
+   // -5  unsigned char, 8 bit unsigned integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-5, 1, "unsigned char"));
+   newType->decrRefCount();
+   // -6  signed char, 8 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-6, 1, "signed char", true));
+   newType->decrRefCount();
+   // -7  unsigned short, 16 bit unsigned integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-7, 2, "unsigned short"));
+   newType->decrRefCount();
+   // -8  unsigned int, 32 bit unsigned integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-8, 4, "unsigned int"));
+   newType->decrRefCount();
+   // -9  unsigned, 32 bit unsigned integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-9, 4, "unsigned"));
+   newType->decrRefCount();
+   // -10 unsigned long, 32 bit unsigned integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-10, sizeof(unsigned long), "unsigned long"));
+   newType->decrRefCount();
+   // -11 void, type indicating the lack of a value
+   //  XXX-size may not be correct jdd 4/22/99
+   builtInTypes->addBuiltInType(newType = new typeScalar(-11, 0, "void", false));
+   newType->decrRefCount();
+   // -12 float, IEEE single precision
+   builtInTypes->addBuiltInType(newType = new typeScalar(-12, sizeof(float), "float", true));
+   newType->decrRefCount();
+   // -13 double, IEEE double precision
+   builtInTypes->addBuiltInType(newType = new typeScalar(-13, sizeof(double), "double", true));
+   newType->decrRefCount();
+   // -14 long double, IEEE double precision, size may increase in future
+   builtInTypes->addBuiltInType(newType = new typeScalar(-14, sizeof(long double), "long double", true));
+   newType->decrRefCount();
+   // -15 integer, 32 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-15, 4, "integer", true));
+   newType->decrRefCount();
+   // -16 boolean, 32 bit type. GDB/GCC 0=False, 1=True, all other values
+   //  have unspecified meaning
+   builtInTypes->addBuiltInType(newType = new typeScalar(-16, sizeof(bool), "boolean"));
+   newType->decrRefCount();
+   // -17 short real, IEEE single precision
+   //  XXX-size may not be correct jdd 4/22/99
+   builtInTypes->addBuiltInType(newType = new typeScalar(-17, sizeof(float), "short real", true));
+   newType->decrRefCount();
+   // -18 real, IEEE double precision XXX-size may not be correct jdd 4/22/99
+   builtInTypes->addBuiltInType(newType = new typeScalar(-18, sizeof(double), "real", true));
+   newType->decrRefCount();
+   // -19 stringptr XXX- size of void * -- jdd 4/22/99
+   builtInTypes->addBuiltInType(newType = new typeScalar(-19, sizeof(void *), "stringptr"));
+   newType->decrRefCount();
+   // -20 character, 8 bit unsigned character type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-20, 1, "character"));
+   newType->decrRefCount();
+   // -21 logical*1, 8 bit type (Fortran, used for boolean or unsigned int)
+   builtInTypes->addBuiltInType(newType = new typeScalar(-21, 1, "logical*1"));
+   newType->decrRefCount();
+   // -22 logical*2, 16 bit type (Fortran, some for boolean or unsigned int)
+   builtInTypes->addBuiltInType(newType = new typeScalar(-22, 2, "logical*2"));
+   newType->decrRefCount();
+   // -23 logical*4, 32 bit type (Fortran, some for boolean or unsigned int)
+   builtInTypes->addBuiltInType(newType = new typeScalar(-23, 4, "logical*4"));
+   newType->decrRefCount();
+   // -24 logical, 32 bit type (Fortran, some for boolean or unsigned int)
+   builtInTypes->addBuiltInType(newType = new typeScalar(-24, 4, "logical"));
+   newType->decrRefCount();
+   // -25 complex, consists of 2 IEEE single-precision floating point values
+   builtInTypes->addBuiltInType(newType = new typeScalar(-25, sizeof(float)*2, "complex", true));
+   newType->decrRefCount();
+   // -26 complex, consists of 2 IEEE double-precision floating point values
+   builtInTypes->addBuiltInType(newType = new typeScalar(-26, sizeof(double)*2, "complex*16", true));
+   newType->decrRefCount();
+   // -27 integer*1, 8 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-27, 1, "integer*1", true));
+   newType->decrRefCount();
+   // -28 integer*2, 16 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-28, 2, "integer*2", true));
+   newType->decrRefCount();
 
-    /* Quick hack to make integer*4 compatible with int for Fortran
-    jnb 6/20/01 */
-    // This seems questionable - let's try removing that hack - jmo 05/21/04
-    /*
-    builtInTypes->addBuiltInType(newType = new type("int",-29,
-					         built_inType, 4));
-    newType->decrRefCount();
-    */
-    // -29 integer*4, 32 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-29, 4, "integer*4", true));
-    newType->decrRefCount();
-    // -30 wchar, Wide character, 16 bits wide, unsigned (unknown format)
-    builtInTypes->addBuiltInType(newType = new typeScalar(-30, 2, "wchar"));
-    newType->decrRefCount();
-  #if defined(os_windows)
-    // -31 long long, 64 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-31, sizeof(LONGLONG), "long long", true));
-    newType->decrRefCount();
-    // -32 unsigned long long, 64 bit unsigned integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-32, sizeof(ULONGLONG), "unsigned long long"));
-    newType->decrRefCount();
-  #else
-    // -31 long long, 64 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-31, sizeof(long long), "long long", true));
-    newType->decrRefCount();
-    // -32 unsigned long long, 64 bit unsigned integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-32, sizeof(unsigned long long), "unsigned long long"));
-    newType->decrRefCount();
-  #endif
-    // -33 logical*8, 64 bit unsigned integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-33, 8, "logical*8"));
-    newType->decrRefCount();
-    // -34 integer*8, 64 bit signed integral type
-    builtInTypes->addBuiltInType(newType = new typeScalar(-34, 8, "integer*8", true));
-    newType->decrRefCount();
+   /* Quick hack to make integer*4 compatible with int for Fortran
+      jnb 6/20/01 */
+   // This seems questionable - let's try removing that hack - jmo 05/21/04
+   /*
+     builtInTypes->addBuiltInType(newType = new type("int",-29,
+     built_inType, 4));
+     newType->decrRefCount();
+   */
+   // -29 integer*4, 32 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-29, 4, "integer*4", true));
+   newType->decrRefCount();
+   // -30 wchar, Wide character, 16 bits wide, unsigned (unknown format)
+   builtInTypes->addBuiltInType(newType = new typeScalar(-30, 2, "wchar"));
+   newType->decrRefCount();
+#if defined(os_windows)
+   // -31 long long, 64 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-31, sizeof(LONGLONG), "long long", true));
+   newType->decrRefCount();
+   // -32 unsigned long long, 64 bit unsigned integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-32, sizeof(ULONGLONG), "unsigned long long"));
+   newType->decrRefCount();
+#else
+   // -31 long long, 64 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-31, sizeof(long long), "long long", true));
+   newType->decrRefCount();
+   // -32 unsigned long long, 64 bit unsigned integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-32, sizeof(unsigned long long), "unsigned long long"));
+   newType->decrRefCount();
+#endif
+   // -33 logical*8, 64 bit unsigned integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-33, 8, "logical*8"));
+   newType->decrRefCount();
+   // -34 integer*8, 64 bit signed integral type
+   builtInTypes->addBuiltInType(newType = new typeScalar(-34, 8, "integer*8", true));
+   newType->decrRefCount();
 
 	/*
-     * Initialize hash table of standard types.
-     */
+    * Initialize hash table of standard types.
+    */
 	if(stdTypes)
     	return;
-    stdTypes = typeCollection::getGlobalTypeCollection();
-    stdTypes->addType(newType = new typeScalar(-1, sizeof(int), "int"));
-    newType->decrRefCount();
-    Type *charType = new typeScalar(-2, sizeof(char), "char");
-    stdTypes->addType(charType);
+   stdTypes = typeCollection::getGlobalTypeCollection();
+   stdTypes->addType(newType = new typeScalar(-1, sizeof(int), "int"));
+   newType->decrRefCount();
+
+   Type *charType = new typeScalar(-2, sizeof(char), "char");
+   stdTypes->addType(charType);
+
 	std::string tName = "char *";
 	typePointer *newPtrType;
-    stdTypes->addType(newPtrType = new typePointer(-3, charType, tName));
-    charType->decrRefCount();
-    newType->decrRefCount();
-    Type *voidType = new typeScalar(-11, 0, "void", false);
-    stdTypes->addType(voidType);
+   stdTypes->addType(newPtrType = new typePointer(-3, charType, tName));
+   charType->decrRefCount();
+   newPtrType->decrRefCount();
+
+   Type *voidType = new typeScalar(-11, 0, "void", false);
+   stdTypes->addType(voidType);
+
 	tName = "void *";
-    stdTypes->addType(newPtrType = new typePointer(-4, voidType, tName));
-    voidType->decrRefCount();
-    newType->decrRefCount();
-    stdTypes->addType(newType = new typeScalar(-12, sizeof(float), "float"));
-    newType->decrRefCount();
+   stdTypes->addType(newPtrType = new typePointer(-4, voidType, tName));
+   voidType->decrRefCount();
+   newPtrType->decrRefCount();
+
+   stdTypes->addType(newType = new typeScalar(-12, sizeof(float), "float"));
+   newType->decrRefCount();
 #if defined(i386_unknown_nt4_0)
-    stdTypes->addType(newType = new typeScalar(-31, sizeof(LONGLONG), "long long"));    
+   stdTypes->addType(newType = new typeScalar(-31, sizeof(LONGLONG), "long long"));    
 #else
-    stdTypes->addType(newType = new typeScalar(-31, sizeof(long long), "long long"));
+   stdTypes->addType(newType = new typeScalar(-31, sizeof(long long), "long long"));
 #endif
 	newType->decrRefCount();
 
-    return;
+   return;
 }
 
 DLLEXPORT unsigned Symtab::getAddressWidth() const 
@@ -517,7 +522,7 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
     std::string symString;
 
     // find the real functions -- those with the correct type in the symbol table
-    for(SymbolIter symIter(*linkedFile); symIter;symIter++) 
+    for (SymbolIter symIter(*linkedFile); symIter;symIter++) 
     {
         Symbol *lookUp = symIter.currval();
         const char *np = lookUp->getName().c_str();
@@ -532,7 +537,7 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
         
         // check for undefined dynamic symbols. Used when rewriting relocation section.
         // relocation entries have references to these undefined dynamic symbols.
-        if(lookUp->getSec() == NULL && lookUp->isInDynSymtab()) {
+        if (lookUp->getSec() == NULL && lookUp->isInDynSymtab()) {
             undefDynSyms[np] = lookUp;
             continue;
         }
@@ -552,28 +557,28 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
             }
             // Fill in _mods.
             Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
-            delete(lookUp->getModule());
             lookUp->setModule(newMod);
             raw_funcs->push_back(lookUp);
         }
-        if(lookUp->getType() == Symbol::ST_MODULE)
+        if (lookUp->getType() == Symbol::ST_MODULE)
         {
             const std::string mangledName = symIter.currkey();
+            Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
+            lookUp->setModule(newMod);
             char * unmangledName =
                 P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
             if (unmangledName)
                 lookUp->addPrettyName(unmangledName, true);
             else
                 lookUp->addPrettyName(mangledName, true);
-            Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
-            delete(lookUp->getModule());
-            lookUp->setModule(newMod);
             addModuleName(lookUp,mangledName);
             modSyms.push_back(lookUp);
         }
-        else if(lookUp->getType() == Symbol::ST_NOTYPE)
+        else if (lookUp->getType() == Symbol::ST_NOTYPE)
         {
             const std::string mangledName = symIter.currkey();
+            Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
+            lookUp->setModule(newMod);
             char * unmangledName =
                 P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
             if (unmangledName)
@@ -582,7 +587,7 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
                 lookUp->addPrettyName(mangledName, true);
             notypeSyms.push_back(lookUp);
         }	
-        else if(lookUp->getType() == Symbol::ST_OBJECT)
+        else if (lookUp->getType() == Symbol::ST_OBJECT)
         {
             const std::string mangledName = symIter.currkey();
 #if 0
@@ -608,7 +613,6 @@ bool Symtab::symbolsToFunctions(Object *linkedFile, std::vector<Symbol *> *raw_f
                             
             //Fill in _mods.
             Module *newMod = getOrCreateModule(lookUp->getModuleName(),lookUp->getAddr());
-            delete(lookUp->getModule());
             lookUp->setModule(newMod);
             Symbol *var;
             //bool addToPretty = false;
@@ -1000,8 +1004,9 @@ bool Symtab::addSymbolInt(Symbol *newSym,bool from_user,  bool isDynamic)
     }
 #endif
 
-    Module *newMod = getOrCreateModule(sname, newSym->getAddr());
-    delete(newSym->getModule());
+    Module *newMod = getOrCreateModule(newSym->getModuleName(), newSym->getAddr());
+    if(newSym->getModule())
+        delete(newSym->getModule());
     newSym->setModule(newMod);
 
     if (newSym->getAllPrettyNames().size() == 0)
@@ -1126,7 +1131,7 @@ Symtab::Symtab(std::string filename,bool &err) :
       err = true;
       return;
    }
-   Object *linkedFile = new Object(mf, pd_log_perror);
+   Object *linkedFile = new Object(mf, pd_log_perror, true);
    err = extractInfo(linkedFile);
    delete linkedFile;
    defaultNamespacePrefix = "";
@@ -1498,6 +1503,18 @@ Symtab::Symtab(const Symtab& obj) :
 
 bool Symtab::findModule(Module *&ret, const std::string name)
 {
+   hash_map<std::string, Module *>::iterator loc;
+   loc = modsByFileName.find(name);
+   if (loc != modsByFileName.end()) {
+      ret = loc->second;
+      return true;
+   }
+   loc = modsByFullName.find(name);
+   if (loc != modsByFullName.end()) {
+      ret = loc->second;
+      return true;
+   }
+#if 0
     if (modsByFileName.find(name)!=modsByFileName.end()) 
     {
         ret = modsByFileName[name];
@@ -1508,6 +1525,7 @@ bool Symtab::findModule(Module *&ret, const std::string name)
         ret = modsByFullName[name];
         return true;
     }
+#endif
   
     serr = No_Such_Module;
     ret = NULL;
@@ -2306,6 +2324,8 @@ DLLEXPORT Module::Module(supportedLanguages lang, Offset adr,
 }
 
 DLLEXPORT Module::Module() :
+   fileName_(""), 
+   fullName_(""),
    language_(lang_Unknown), 
    addr_(0), 
    exec_(NULL) 
@@ -2873,12 +2893,13 @@ DLLEXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset highExcl
 void Symtab::parseTypes()
 {
 #if defined(os_aix)
-   Object *linkedFile = new Object(mf, pd_log_perror, member_offset_);
+   Object *linkedFile = new Object(mf, pd_log_perror, member_offset_, false);
 #else
-   Object *linkedFile = new Object(mf, pd_log_perror);
+   Object *linkedFile = new Object(mf, pd_log_perror, false);
 #endif
    linkedFile->parseTypeInfo(this);
    isTypeInfoValid_ = true;
+   delete linkedFile;
 }
 
 bool Symtab::addType(Type *type)
@@ -2895,12 +2916,14 @@ bool Symtab::addType(Type *type)
     return true;
 }
 
-DLLEXPORT vector<Type *> *Symtab::getAllstdTypes(){
+DLLEXPORT vector<Type *> *Symtab::getAllstdTypes()
+{
     setupStdTypes();
     return stdTypes->getAllTypes(); 	
 }
 
-DLLEXPORT vector<Type *> *Symtab::getAllbuiltInTypes(){
+DLLEXPORT vector<Type *> *Symtab::getAllbuiltInTypes()
+{
     setupStdTypes();
     return builtInTypes->getAllBuiltInTypes();
 }
@@ -3558,7 +3581,7 @@ DLLEXPORT bool Symtab::emit(std::string filename, unsigned flag)
         notypeSyms.push_back(iter->second);
         iter++;
     }
-   Object *linkedFile = new Object(mf, pd_log_perror);
+   Object *linkedFile = new Object(mf, pd_log_perror, true);
    assert(linkedFile);
    bool ret = linkedFile->emitDriver(this, filename, everyUniqueFunction, everyUniqueVariable, modSyms, notypeSyms, flag);
    delete linkedFile;
@@ -3597,21 +3620,22 @@ DLLEXPORT bool Symtab::updateData(void *buffer, unsigned size)
     return true;
 }
 
-DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) {
+DLLEXPORT Offset Symtab::getFreeOffset(unsigned size) 
+{
     // Look through sections until we find a gap with
     // sufficient space.
     Offset highWaterMark = 0;
     Offset secoffset = 0;
     Offset prevSecoffset = 0;
 
-    Object *linkedFile = new Object(mf, pd_log_perror);
+    Object *linkedFile = new Object(mf, pd_log_perror, false);
     assert(linkedFile);
 
     for (unsigned i = 0; i < sections_.size(); i++) {
         Offset end = sections_[i]->getSecAddr() + sections_[i]->getSecSize();
         if (sections_[i]->getSecAddr() == 0) continue;
         prevSecoffset = secoffset;
-        if((char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image() < (signed)prevSecoffset)
+        if ((char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image() < (unsigned)prevSecoffset)
             secoffset += sections_[i]->getSecSize();
         else {
             secoffset = (char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image();

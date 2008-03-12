@@ -31,7 +31,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.18 2008/02/22 17:48:01 giri Exp $
+ * $Id: Object-xcoff.h,v 1.19 2008/03/12 22:48:54 legendre Exp $
 ************************************************************************/
 
 
@@ -131,10 +131,12 @@ class fileOpener {
     
     void closeFile();
 
+#if 0
     fileOpener(const std::string &file) : refcount_(1), 
         file_(file), fd_(0), 
         size_(0), mmapStart_(NULL),
         offset_(0) {}
+#endif
 
     fileOpener(void *ptr, unsigned size) : refcount_(1), 
         file_(""), fd_(0), 
@@ -143,10 +145,12 @@ class fileOpener {
 	
     ~fileOpener();
 
+#if  0
     bool open();
     bool mmap();
     bool unmap();
     bool close();
+#endif
 
     bool pread(void *buf, unsigned size, unsigned offset);
     bool read(void *buf, unsigned size);
@@ -186,7 +190,7 @@ class Object : public AObject {
     Object (const Object &);
     Object&   operator= (const Object &);
     Object(){}	
-    Object(MappedFile *, void (*)(const char *) = log_msg, Offset off = 0);
+    Object(MappedFile *, void (*)(const char *) = log_msg, Offset off = 0, bool alloc_syms = true);
     Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Section *> &, 
           void (*)(const char *) = log_msg, Offset off = 0);
     Object(MappedFile *, std::string &member_name, Offset offset,	
@@ -236,9 +240,9 @@ class Object : public AObject {
 
 private:
 
-    void load_object();
-    void load_archive(bool is_aout);
-    void parse_aout(int offset, bool is_aout);
+    void load_object(bool alloc_syms);
+    void load_archive(bool is_aout, bool alloc_syms);
+    void parse_aout(int offset, bool is_aout, bool alloc_syms);
     void parseFileLineInfo(hash_map<std::string, LineInformation> &li);
     void parseLineInformation(hash_map<std::string, LineInformation> &li, std::string * currentSourceFile,
                                 	char * symbolName,

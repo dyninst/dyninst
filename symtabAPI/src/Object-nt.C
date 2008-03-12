@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.23 2008/02/01 17:05:33 legendre Exp $
+// $Id: Object-nt.C,v 1.24 2008/03/12 22:48:51 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -550,7 +550,7 @@ BOOL CALLBACK SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
  * the 'main' symbol and find the starting point of 'foo.c'
  *
  */
-void Object::ParseSymbolInfo( void )
+void Object::ParseSymbolInfo( bool alloc_syms )
 {
    // build a Module object for the current module (EXE or DLL)
    // Note that the CurrentModuleScoper object ensures that the
@@ -616,7 +616,8 @@ void Object::ParseSymbolInfo( void )
    // are not necessarily in order, nor do they necessarily have valid sizes.
    assert( curModule != NULL );
    curModule->BuildSymbolMap( this );
-   curModule->DefineSymbols( this, symbols_ );
+   if (alloc_syms)
+      curModule->DefineSymbols( this, symbols_ );
    no_of_symbols_ = symbols_.size();
 
    //fprintf(stderr, "%s[%d]:  removed call to parseFileLineInfo here\n", FILE__, __LINE__);
@@ -632,7 +633,7 @@ done:
    delete curModule;
 }
 
-void Object::FindInterestingSections()
+void Object::FindInterestingSections(bool alloc_syms)
 {
    // now that we have the file mapped, look for 
    // the .text and .data sections
@@ -649,7 +650,8 @@ void Object::FindInterestingSections()
       is_aout_ = false;
       fprintf(stderr,"Adding Symtab object with no program header, will " 
               "designate it as code\n");
-      sections_.push_back(new Section(0, ".text", code_off_, code_len_, 0));
+      if (alloc_syms)
+         sections_.push_back(new Section(0, ".text", code_off_, code_len_, 0));
       return;
    }
 
@@ -679,6 +681,7 @@ void Object::FindInterestingSections()
          rawDataPtr = (void*)((unsigned int)pScnHdr->PointerToRawData + 
                               (unsigned int)mapAddr);
       }
+      if (alloc_syms);
       sections_.push_back(new Section(i, (const char*)pScnHdr->Name, 
                                       pScnHdr->VirtualAddress, 
                                       pScnHdr->Misc.VirtualSize, 
@@ -814,13 +817,13 @@ void fixup_filename(std::string &filename)
 }
 
 Object::Object(MappedFile *mf_,
-               void (*err_func)(const char *)) :
+               void (*err_func)(const char *), bool alloc_syms) :
     AObject(mf_, err_func),
     curModule( NULL ),
     peHdr( NULL )
 {
-   FindInterestingSections();
-   ParseSymbolInfo();
+   FindInterestingSections(alloc_syms);
+   ParseSymbolInfo(alloc_syms);
 }
 
 Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
@@ -833,7 +836,7 @@ Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
 {
    // need to have is_aout set here (can probably just do this with an 
    // argument, rather than calling FindInterestingSections again....
-   FindInterestingSections();
+   FindInterestingSections(false);
    parseFileLineInfo(li);
 }
 

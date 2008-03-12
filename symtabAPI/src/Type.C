@@ -143,11 +143,13 @@ bool Type::setName(std::string name){
     return true;
 }
 
-typeId_t Type::getID() const{
+typeId_t Type::getID() const
+{
     return ID_;
 }
 
-dataClass Type::getDataClass() const{
+dataClass Type::getDataClass() const
+{
     return type_;
 }
 
