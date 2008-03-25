@@ -69,6 +69,7 @@
 
 #include "BPatch_addressSpace.h"
 
+#include "BPatch_instruction.h"
 
 BPatch_addressSpace::BPatch_addressSpace() :
    func_map(NULL),
@@ -210,12 +211,13 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
 {   
    if (getTerminated()) return true;
 
-   //    if (handle->proc_ == this) {
+   if (handle == NULL) return true;
+
    if (handle->addSpace_ == this) {  
-      for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
-         handle->mtHandles_[i]->uninstrument();
-      delete handle;
-      return true;
+       for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
+           handle->mtHandles_[i]->uninstrument();
+       delete handle;
+       return true;
    } 
    // Handle isn't to a snippet instance in this process
    cerr << "Error: wrong address space in deleteSnippet" << endl;     
@@ -652,5 +654,41 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPoints(
          order);
 }
 
+#include "registerSpace.h"
 
+std::vector<BPatch_register> BPatch_addressSpace::getRegistersInt() {
+#if defined(arch_power) || defined(arch_x86_64)
+    if (registers_.size()) {
+        return registers_;
+    }
+
+    registerSpace *rs = registerSpace::getRegisterSpace(getAS());
+    std::vector<std::string> regNames;
+    rs->getAllRegisterNames(regNames);
+    for (unsigned i = 0; i < rs->GPRs().size(); i++) {
+        // Let's do just GPRs for now
+        registerSlot *regslot = rs->GPRs()[i];
+        registers_.push_back(BPatch_register(regslot->name, regslot->number));
+    }
+    return registers_;
+#else
+    // Empty vector since we're not supporting register objects on
+    // these platforms (yet)
+    return registers_;
+#endif
+}
+
+bool BPatch_addressSpace::createRegister_NPInt(std::string regName,
+                                               BPatch_register &reg) {
+    // Build the register list.
+    getRegisters();
+
+    for (unsigned i = 0; i < registers_.size(); i++) {
+        if (registers_[i].getName() == regName) {
+            reg = registers_[i];
+            return true;
+        }
+    }
+    return false;
+}
 

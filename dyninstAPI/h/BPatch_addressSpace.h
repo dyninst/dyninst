@@ -48,6 +48,8 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_point.h"
 
+#include "BPatch_instruction.h" // for register type
+
 #include "BPatch_callbacks.h"
 
 #include <vector>
@@ -162,6 +164,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
   //  AddressSpace * as;
   
+  std::vector<BPatch_register> registers_;
  
  public:
 
@@ -310,7 +313,11 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (ptr),
     bool,free,(BPatch_variableExpr &ptr));
 
+    API_EXPORT(Int, (),
+               std::vector<BPatch_register>, getRegisters, ());
 
+    API_EXPORT(Int, (regName, reg),
+    bool, createRegister_NP, (std::string regName, BPatch_register &reg)); 
 };
 
 #endif 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.182 2008/02/20 22:34:06 legendre Exp $
+// $Id: BPatch.C,v 1.183 2008/03/25 19:24:13 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -2251,3 +2251,4 @@ BPatch_binaryEdit *BPatch::openBinaryInt(const char *path) {
    }
    return editor;
 }
+
