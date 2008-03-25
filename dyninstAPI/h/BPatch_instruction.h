@@ -45,6 +45,8 @@
 #include "BPatch_dll.h"
 #include "BPatch_eventLock.h"
 
+#include <string>
+
 class InstrucIter;
 class BPatch_basicBlock;
 class BPatch_point;
@@ -146,5 +148,32 @@ class BPATCH_DLL_EXPORT BPatch_branchInstruction : public BPatch_instruction{
     void *target_;
 };
 
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_register
+
+class BPatch_registerExpr;
+class BPatch_addressSpace;
+class BPatch_point;
+
+class BPATCH_DLL_EXPORT BPatch_register : public BPatch_eventLock {
+    friend class BPatch_registerExpr;
+    friend class BPatch_addressSpace;
+    friend class BPatch_point;
+
+ public:
+    API_EXPORT(Int, (), std::string, getName, ());
+
+ private:
+    BPatch_register(std::string n,
+                    int e) :
+        name_(n),
+        number_(e) {};
+    
+    std::string name_;
+    int number_;
+};
 
 #endif

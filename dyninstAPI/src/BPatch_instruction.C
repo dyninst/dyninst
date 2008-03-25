@@ -147,4 +147,7 @@ BPatch_point *BPatch_instruction::getInstPointInt()
   return ret;
 }
 
+std::string BPatch_register::getNameInt() {
+    return name_;
+}
 
