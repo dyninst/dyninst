@@ -51,6 +51,8 @@
 //#include "BPatch_function.h"
 #include "BPatch_eventLock.h"
 
+#include "BPatch_instruction.h" // for register type
+
 class AstNode;
 // Don't include the boost shared_ptr library
 
@@ -286,6 +288,8 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
 
 class BPATCH_DLL_EXPORT BPatch_regExpr : public BPatch_snippet {
 
+    // DEPRECATED!!!
+
     //  BPatch_regExpr::BPatch_regExpr
     //  Creates a representation of the contents of a particular register
     //  specified by <value>
@@ -386,6 +390,21 @@ class BPATCH_DLL_EXPORT BPatch_retExpr : public BPatch_snippet {
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
+#define DYNINST_CLASS_NAME BPatch_registerExpr
+
+class BPATCH_DLL_EXPORT BPatch_registerExpr : public BPatch_snippet {
+    friend class BPatch_addressSpace;
+    //  BPatch_registerExpr::BPatch_registerExpr
+    //  Represents the return value from the function in which the 
+    //  snippet is inserted
+
+    API_EXPORT_CTOR(Int, (reg),
+                    BPatch_registerExpr, (BPatch_register reg));
+};
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
 #define DYNINST_CLASS_NAME BPatch_sequence
 
 class BPATCH_DLL_EXPORT BPatch_sequence : public BPatch_snippet {
@@ -460,8 +479,9 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
     //  avoid using this constructor, it may not be here in the future).
     API_EXPORT_CTOR(Int, (name, in_addSpace, in_address, type),
 		    BPatch_variableExpr,(char *name, /*BPatch_process *in_process,*/
-					 BPatch_addressSpace *in_addSpace,
-                         void *in_address, BPatch_type *type));
+		    BPatch_addressSpace *in_addSpace,
+                    void *in_address, BPatch_type *type));
+
     // Public functions for use by users of the library:
 
     //  BPatch_variableExpr::getSize

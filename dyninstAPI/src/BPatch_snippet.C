@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.103 2008/02/15 17:27:42 giri Exp $
+// $Id: BPatch_snippet.C,v 1.104 2008/03/25 19:24:22 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -61,6 +61,8 @@
 #include "common/h/timing.h"
 
 #include "mapped_object.h" // for savetheworld
+
+#include "registerSpace.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -892,6 +894,24 @@ void BPatch_retExpr::BPatch_retExprInt()
 }
 
 /*
+ * BPatch_registerExpr::BPatch_registerExpr
+ *
+ * Construct a snippet representing a register in original code. Can be read
+ * or written.
+ *
+ */
+void BPatch_registerExpr::BPatch_registerExprInt(BPatch_register reg)
+{
+    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, (void *)reg.number_));
+    
+    assert(BPatch::bpatch != NULL);
+
+    // Registers can hold a lot of different types...
+    (*ast_wrapper)->setTypeChecking(false);
+    //(*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+/*
  * BPatch_sequence::BPatch_sequence
  *
  * Construct a snippet representing a sequence of snippets.
@@ -1078,7 +1098,7 @@ BPatch_variableExpr::BPatch_variableExpr(//BPatch_process *in_process,
 	    isLocal = false;
 	    break;
 	case BPatch_storageReg:
-	    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::PreviousStackFrameDataReg, (void *)in_register));
+	    ast_wrapper = new AstNodePtr(AstNode::operandNode(AstNode::origRegister, (void *)in_register));
 	    isLocal = true;
 	    break;
 	case BPatch_storageRegRef:
