@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.7 2008/03/12 20:09:18 legendre Exp $
+// $Id: liveness.C,v 1.8 2008/03/25 19:24:38 bernat Exp $
 
 #if defined(cap_liveness)
 
@@ -370,29 +370,6 @@ void instPoint::calcLiveness() {
     assert(postLiveRegisters_.size());
 
     return;
-}
-
-const int *instPoint::liveRegisterArray() {
-    calcLiveness();
-
-    if (postLiveRegisters_.size() == 0) return NULL;
-
-    registerSpace *rs = registerSpace::getRegisterSpace(proc());
-
-    // Only do GPRs. 
-    unsigned size = rs->numGPRs();
-
-    int *liveRegs = new int[size];
-
-    for (unsigned i = 0; i < size; i++) {
-        int regNum = rs->GPRs()[i]->number;
-        assert(regNum < size);
-        if (postLiveRegisters_[i])
-            liveRegs[regNum] = 1;
-        else
-            liveRegs[regNum] = 0;
-    }
-    return liveRegs;
 }
 
 
