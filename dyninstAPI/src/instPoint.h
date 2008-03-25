@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.44 2008/03/12 20:09:16 legendre Exp $
+// $Id: instPoint.h,v 1.45 2008/03/25 19:24:36 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -481,10 +481,6 @@ class instPoint : public instPointBase {
   // 
   bitArray liveRegisters(callWhen when);
 
- public:
-  // This is only needed by BPatch_point; can we
-  // remove it?
-  const int *liveRegisterArray();
  private:
 
   // From post liveness we can work out pre liveness. Nifty,
