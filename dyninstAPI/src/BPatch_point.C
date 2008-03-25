@@ -314,13 +314,26 @@ BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when)
     }
 }
 
-const int *
-BPatch_point::getLiveRegistersInt(int & /*size*/)
+#include "registerSpace.h"
+
+bool BPatch_point::getLiveRegistersInt(std::vector<BPatch_register> &liveRegs)
 {
+    // Good question: pre- or post-instruction? I'm going to assume pre-instruction.
 #if defined(cap_liveness)
-  return getPoint()->liveRegisterArray();
+
+    bitArray live = point->liveRegisters(callPreInsn);
+    
+    std::vector<BPatch_register> allRegs = addSpace->getRegisters();
+    
+    for (unsigned i = 0; i < allRegs.size(); i++) {
+        if (live[allRegs[i].number_])
+            liveRegs.push_back(allRegs[i]);
+    }
+    return true;
+
 #else
-  return NULL;
+    // Oops
+    return false;
 #endif
 }
 

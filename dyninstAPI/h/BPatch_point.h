@@ -274,9 +274,9 @@ public:
     //  
     //  Get Live registers at this point
 
-    API_EXPORT(Int, (size),
+    API_EXPORT(Int, (liveRegs),
 
-    const int *,getLiveRegisters,(int & size));
+    bool, getLiveRegisters, (std::vector<BPatch_register> &liveRegs));
 
   
     //  BPatch_point::isDynamic
