@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.19 2008/03/12 20:09:21 legendre Exp $
+// $Id: registerSpace.C,v 1.20 2008/03/25 19:24:39 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -60,25 +60,20 @@
 #include "dyninstAPI/h/BPatch_point.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)
+#include <map>
+#include <boost/assign/list_of.hpp>
+using namespace boost::assign;
+
+
+#if defined(arch_sparc)
 #include "dyninstAPI/src/inst-sparc.h"
-
-#elif defined(hppa1_1_hp_hpux)
-#include "dyninstAPI/src/inst-hppa.h"
-
-#elif defined(rs6000_ibm_aix3_2) \
-   || defined(rs6000_ibm_aix4_1)
+#elif defined(arch_power)
 #include "dyninstAPI/src/inst-power.h"
-
-#elif defined(i386_unknown_solaris2_5) \
-   || defined(i386_unknown_nt4_0) \
-   || defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4)
+#include "dyninstAPI/src/emit-power.h"
+#elif defined(arch_x86) || defined(arch_x86_64)
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
-
-#elif defined(ia64_unknown_linux2_4) /* Why is this done here, instead of, e.g., inst.h? */
+#elif defined(arch_ia64)
 #include "dyninstAPI/src/inst-ia64.h"
 #endif
 
@@ -120,12 +115,21 @@ void registerSlot::cleanSlot() {
 unsigned registerSlot::encoding() const {
     // Should write this for all platforms when the encoding is done.
 #if defined(arch_power)
-    if (type == GPR) return registerSpace::GPR(number);
-    if (type == FPR) return registerSpace::FPR(number);
-    // Handled in inst-power.C for now
-    //if (type == SPR) return registerSpace::SPR(number);
-    assert(0);
-    return 0;
+    switch (type) {
+    case GPR:
+        return registerSpace::GPR(number);
+        break;
+    case FPR:
+        return registerSpace::FPR(number);
+        break;
+    case SPR:
+        return registerSpace::SPR(number);
+        break;
+    default:
+        assert(0);
+        return REG_NULL;
+        break;
+    }
 #elif defined(arch_x86) || defined(arch_x86_64)
     // Should do a mapping here from entire register space to "expected" encodings.
     return number;
@@ -217,11 +221,10 @@ registerSpace *registerSpace::actualRegSpace(instPoint *iP, callWhen when) {
     return conservativeRegSpace(iP->proc());
 }
 
-void registerSpace::overwriteRegisterSpace(Register first,
-                                           Register last) {
+void registerSpace::overwriteRegisterSpace(Register,
+                                           Register) {
     // This should _NOT_ be used; it's defined to catch errors.
     assert(0);
-    
 }
 
 // Ugly IA-64-age.
@@ -232,7 +235,10 @@ void registerSpace::overwriteRegisterSpace64(Register first,
     
     pdvector<registerSlot *> regs;
     for (unsigned i = first; i <= last; i++) {
+        char buf[128];
+        sprintf(buf, "reg%d", i);
         regs.push_back(new registerSlot(i,
+                                        buf,
                                         false,
                                         registerSlot::deadAlways,
                                         registerSlot::GPR));
@@ -266,6 +272,7 @@ void registerSpace::createRegisterSpace(pdvector<registerSlot *> &registers) {
     globalRegSpace_ = new registerSpace();
     globalRegSpace_->addr_width = 4;
     createRegSpaceInt(registers, globalRegSpace_);
+
 }
 
 void registerSpace::createRegisterSpace64(pdvector<registerSlot *> &registers) {
@@ -279,13 +286,18 @@ void registerSpace::createRegisterSpace64(pdvector<registerSlot *> &registers) {
     globalRegSpace64_ = new registerSpace();
     globalRegSpace64_->addr_width = 8;
     createRegSpaceInt(registers, globalRegSpace64_);
+    
 }
 
 void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
                                       registerSpace *rs) {
     for (unsigned i = 0; i < registers.size(); i++) {
         Register reg = registers[i]->number;
+
         rs->registers_[reg] = registers[i];
+
+        rs->registersByName[registers[i]->name] = registers[i]->number;
+
         switch (registers[i]->type) {
         case registerSlot::GPR: 
             rs->GPRs_.push_back(registers[i]);
@@ -421,16 +433,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
 bool registerSpace::spillRegister(Register reg, codeGen &gen, bool noCost) {
     assert(!registers_[reg]->offLimits);
 
-    // TODO for other platforms that build a stack frame for saving
-
-    regalloc_printf("Spilling register %d\n", reg);
-    debugPrint();
-
-    emitV(saveRegOp, reg, 0, 0, gen, noCost);
-    
-    registers_[reg]->liveState = registerSlot::spilled;
-    registers_[reg]->spilledState = registerSlot::stackPointer;
-    registers_[reg]->saveOffset = ++currStackPointer;
+    assert(0 && "Unimplemented!");
 
     return true;
 }
@@ -594,7 +597,7 @@ void registerSpace::cleanSpace() {
     }
 }
 
-bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
+bool registerSpace::restoreAllRegisters(codeGen &, bool) {
 #if 0
     // This will only restore "saved" registers, not "spilled" registers.
     // We should do both, but the individual "restoreRegister" can't build
@@ -652,7 +655,7 @@ bool registerSpace::restoreAllRegisters(codeGen &gen, bool noCost) {
     return true;
 }
 
-bool registerSpace::restoreRegister(Register reg, codeGen &gen, bool /*noCost*/) 
+bool registerSpace::restoreRegister(Register, codeGen &, bool /*noCost*/) 
 {
 #if 0
     // We can get an index > than the number of registers - we use those as fake
@@ -676,7 +679,7 @@ bool registerSpace::restoreRegister(Register reg, codeGen &gen, bool /*noCost*/)
     return true;
 }
 
-bool registerSpace::popRegister(Register reg, codeGen &gen, bool noCost) {
+bool registerSpace::popRegister(Register, codeGen &, bool) {
 #if 0
     assert(!registers[reg].offLimits);
     
@@ -706,67 +709,135 @@ bool registerSpace::popRegister(Register reg, codeGen &gen, bool noCost) {
     return true;
 }
 
-bool registerSpace::markReadOnly(Register num) {
+bool registerSpace::markReadOnly(Register) {
     assert(0);
     return true;
 }
 
-bool registerSpace::readRegister(codeGen &gen, 
-                                 Register source,
-                                 Register destination) {
-#if defined(arch_x86) || defined(arch_x86_64)
+bool registerSpace::readProgramRegister(codeGen &gen,
+                                        Register source,
+                                        Register destination,
+                                        unsigned size) {
+#if !defined(arch_x86_64) && !defined(arch_power)
+    emitLoadPreviousStackFrameRegister((Address)source,
+                                       destination,
+                                       gen,
+                                       size,
+                                       true);
+    return true;
+#else
+    // Real version that uses stored information
+
+#if defined(arch_x86_64) 
+    // If we're in 32-bit mode, use emitLoadPrevious...
+    if (gen.addrSpace()->getAddressWidth() == 4) {
+        emitLoadPreviousStackFrameRegister((Address) source,
+                                           destination,
+                                           gen,
+                                           size,
+                                           true);
+        return true;
+    }
+#endif
 
     // First step: identify the registerSlot that contains information
     // about the source register.
+    // cap_emitter
 
-    registerSlot *s = registers_[source];
-    if (s == NULL) {
-        fprintf(stderr, "No information about register %d!\n", source);
-        return false;
+    registerSlot *src = registers_[source];
+    assert(src);
+    registerSlot *dest = registers_[destination];
+    assert(dest);
+
+    // Okay. We need to know where the register is compared with our
+    // current location vis-a-vis the stack pointer. Now, on most
+    // platforms this doesn't matter, as the SP never moves. Well, not
+    // so x86. 
+    switch (src->spilledState) {
+    case registerSlot::unspilled:
+        gen.codeEmitter()->emitMoveRegToReg(src, dest, gen);
+        return true;
+        break;
+    case registerSlot::framePointer: {
+        registerSlot *frame = registers_[FRAME_POINTER];
+        assert(frame);
+
+        // We can't use existing mechanisms because they're all built
+        // off the "non-instrumented" case - emit a load from the
+        // "original" frame pointer, whereas we want the current one. 
+        gen.codeEmitter()->emitLoadRelative(dest, src->saveOffset, frame, gen);
+        return true;
+        break;
     }
+    default:
+        assert(0);
+        return false;
+        break;
+    }
+    
+
+#endif         
+    
+}
+bool registerSpace::writeProgramRegister(codeGen &gen,
+                                         Register destination,
+                                         Register source,
+                                         unsigned size) {
+#if !defined(arch_x86_64) && !defined(arch_power)
+    emitStorePreviousStackFrameRegister((Address) destination,
+                                        source,
+                                        gen,
+                                        size,
+                                        true);
+    return true;
+#else
+
+#if defined(arch_x86_64) 
+    // If we're in 32-bit mode, use emitLoadPrevious...
+    if (gen.addrSpace()->getAddressWidth() == 4) {
+        emitStorePreviousStackFrameRegister((Address) destination,
+                                            source,
+                                            gen,
+                                            size,
+                                            true);
+        return true;
+    }
+#endif
+
+    registerSlot *src = registers_[source];
+    assert(source);
+    registerSlot *dest = registers_[destination];
+    assert(dest);
 
     // Okay. We need to know where the register is compared with our
     // current location vis-a-vis the stack pointer. Now, on most
     // platforms this doesn't matter, as the SP never moves. Well, not
     // so x86. 
 
-    // Option 1: still alive
-    if (s->spilledState == registerSlot::unspilled) {
+    switch (src->spilledState) {
+    case registerSlot::unspilled:
         if (source != destination)
             gen.codeEmitter()->emitMoveRegToReg(source, destination, gen);
         return true;
-    }
-    else if (s->spilledState == registerSlot::stackPointer) {
-        // Emit load from stack pointer...
-        // The math here is straightforward: saveOffset in the
-        // registerSlot is the offset where the guy was stored (from
-        // theoretical stack pointer 0), and currStackPointer is the
-        // offset of the stack pointer from that 0. So the actual
-        // displacement is (saveOffset - currStackPointer). 
-        int offset = s->saveOffset - currStackPointer;
-        if (offset < 0) { 
-            // Uhh... below the stack pointer?
-            fprintf(stderr, "WARNING: weird math in readRegister, offset %d and SP %d\n", s->saveOffset, currStackPointer);
-        }
-        gen.codeEmitter()->emitLoadRelative(destination, s->saveOffset, REGNUM_RSP, gen);
-        return true;
-    }
-    else if (s->spilledState == registerSlot::framePointer) {
-        // We can't use existing mechanisms because they're all built
-        // off the "non-instrumented" case - emit a load from the
-        // "original" frame pointer, whereas we want the current one. 
-        gen.codeEmitter()->emitLoadRelative(destination, s->saveOffset, REGNUM_RBP, gen);
-        return true;
-    }
+        break;
+    case registerSlot::framePointer: {
+        registerSlot *frame = registers_[FRAME_POINTER];
+        assert(frame);
 
-    // Can't be reached
-    assert(0);
-    return false;
-#else
-    assert(0 && "Unimplemented");
-    return false;
+        // When this register was saved we stored its offset from the base pointer.
+        // Use that to load it. 
+        gen.codeEmitter()->emitStoreRelative(src, dest->saveOffset, frame, gen);
+        return true;
+        break;
+    }
+    default:
+        assert(0);
+        return false;
+        break;
+    }
 #endif
 }
+
 
 registerSlot *registerSpace::findRegister(Register source) {
     // Oh, oops... we're handed a register number... and we can't tell if it's
@@ -793,7 +864,8 @@ bool registerSpace::markSavedRegister(Register num, int offsetFromFP) {
     if (s->spilledState != registerSlot::unspilled) {
         // Things to do... add this check in, yo. Right now we don't clean
         // properly.
-        //assert(0);
+        
+        assert(0);
     }
 
     s->liveState = registerSlot::spilled;
@@ -807,8 +879,9 @@ void registerSlot::debugPrint(char *prefix) {
     if (!dyn_debug_regalloc) return;
 
 	if (prefix) fprintf(stderr, "%s", prefix);
-	fprintf(stderr, "Num: %d, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d\n",
+	fprintf(stderr, "Num: %d, name %s, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d\n",
                 number, 
+                name.c_str(),
                 (type == GPR) ? "GPR" : ((type == FPR) ? "FPR" : "SPR"),
                 refCount, 
                 (liveState == live ) ? "live" : ((liveState == spilled) ? "spilled" : "dead"),
@@ -977,3 +1050,25 @@ bitArray registerSpace::getBitArray()  {
 }
 
 #endif
+
+
+// Big honkin' name->register map
+
+void registerSpace::getAllRegisterNames(std::vector<std::string> &ret) {
+    // Currently GPR only
+    for (unsigned i = 0; i < GPRs_.size(); i++) {
+        ret.push_back(GPRs_[i]->name);
+    }
+}
+
+Register registerSpace::getRegByName(const std::string name) {
+    map<std::string,Register>::iterator cur = registersByName.find(name);
+    if (cur == registersByName.end())
+        return REG_NULL;
+    return (*cur).second;
+}
+
+std::string registerSpace::getRegByNumber(Register reg) {
+    return registers_[reg]->name;
+}
+

@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.h,v 1.16 2008/03/12 20:09:22 legendre Exp $
+// $Id: registerSpace.h,v 1.17 2008/03/25 19:24:40 bernat Exp $
 
 #ifndef REGISTER_SPACE_H
 #define REGISTER_SPACE_H
 
 #include <stdio.h>
 #include <string>
+#include <map>
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
@@ -53,7 +54,10 @@
 
 #if defined(ia64_unknown_linux2_4)
 #include "inst-ia64.h"
+#elif defined(arch_x86_64)
+#include "inst-x86.h"
 #endif
+
 
 #if defined(cap_liveness)
 #include "bitArray.h"
@@ -84,7 +88,20 @@ class image_basicBlock;
 
 class registerSlot {
  public:
-    Register number;    // what register is it, using our Register enum
+    const Register number;    // what register is it, using our Register enum
+    const std::string name;
+
+    typedef enum { deadAlways, deadABI, liveAlways } initialLiveness_t;
+    const initialLiveness_t initialState;
+
+    // Are we off limits for allocation in this particular instance?
+    const bool offLimits; 
+
+    typedef enum { invalid, GPR, FPR, SPR } regType_t;
+    const regType_t type; 
+
+    ////////// Code generation
+
     int refCount;      	// == 0 if free
 
     typedef enum { live, spilled, dead } livenessState_t;
@@ -96,39 +113,22 @@ class registerSlot {
 
     bool beenUsed;      // Has this register been used by generated code?
 
-    typedef enum { deadAlways, deadABI, liveAlways } initialLiveness_t;
-    initialLiveness_t initialState;
+    // New version of "if we were saved, then where?" It's a pair - true/false,
+    // then offset from the "zeroed" stack pointer. 
+    typedef enum { unspilled, framePointer } spillReference_t;
+    spillReference_t spilledState;
+    int saveOffset; // Offset where this register can be
+                    // retrieved.
+    // AMD-64: this is the number of words
+    // POWER: this is the number of bytes
+    // I know it's inconsistent, but it's easier this way since POWER
+    // has some funky math.
 
-    // Are we off limits for allocation in this particular instance?
-    bool offLimits; 
+    //////// Member functions
 
     unsigned encoding() const;
 
-    // New version of "if we were saved, then where?" It's a pair - true/false,
-    // then offset from the "zeroed" stack pointer. 
-    typedef enum { unspilled, stackPointer, framePointer } spillReference_t;
-    spillReference_t spilledState;
-    int saveOffset; // Offset from base pointer or stack pointer
-    
-    typedef enum { invalid, GPR, FPR, SPR } regType_t;
-    regType_t type; 
-
     void cleanSlot();
-
-    registerSlot(Register num,
-                 bool offLimits_,
-                 initialLiveness_t initial,
-                 regType_t type_) : 
-        number(num),
-        refCount(0),
-        liveState(live),
-        keptValue(false),
-        beenUsed(false),
-        initialState(initial),
-        offLimits(offLimits_),
-        spilledState(unspilled),
-        saveOffset(-1),
-        type(type_) {}
 
     void markUsed(bool incRefCount) {
         assert(offLimits == false);
@@ -146,7 +146,30 @@ class registerSlot {
     void debugPrint(char *str = NULL);
 
     // Don't want to use this...
-    registerSlot() {};
+    registerSlot() :
+        number(REG_NULL),
+        name("DEFAULT REGISTER"),
+        initialState(deadAlways),
+        offLimits(true),
+        type(invalid)
+        {};
+
+    registerSlot(Register num,
+                 std::string name_,
+                 bool offLimits_,
+                 initialLiveness_t initial,
+                 regType_t type_) : 
+        number(num),
+        name(name_),
+        initialState(initial),
+        offLimits(offLimits_),
+        type(type_),
+        refCount(0),
+        liveState(live),
+        keptValue(false),
+        beenUsed(false),
+        spilledState(unspilled),
+        saveOffset(-1) {}
 
 };
 
@@ -194,7 +217,17 @@ class registerSpace {
     // Read the value in register souce from wherever we've stored it in
     // memory (including the register itself), and stick it in actual register
     // destination. So the source is the label, and destination is an actual.
-    bool readRegister(codeGen &gen, Register source, Register destination);
+    // Size is a legacy parameter for places where we don't have register information
+    // (SPARC/IA-64)
+    bool readProgramRegister(codeGen &gen, Register source, 
+                             Register destination,
+                             unsigned size);
+
+    // And the reverse
+    bool writeProgramRegister(codeGen &gen, Register destination, 
+                              Register source,
+                              unsigned size);
+
 
     Register allocateRegister(codeGen &gen, bool noCost);
     bool allocateSpecificRegister(codeGen &gen, Register r, bool noCost);
@@ -211,7 +244,7 @@ class registerSpace {
     bool restoreAllRegisters(codeGen &gen, bool noCost);
 
     // For now, we save registers elsewhere and mark them here. 
-    bool markSavedRegister(Register num, int offsetFromSP);
+    bool markSavedRegister(Register num, int offsetFromFP);
     // 
     bool markKeptRegister(Register num);
 
@@ -262,7 +295,7 @@ class registerSpace {
     pdvector <registerSlot *> &GPRs() { return GPRs_; }
     pdvector <registerSlot *> &FPRs() { return FPRs_; }
     pdvector <registerSlot *> &SPRs() { return SPRs_; }
-
+    
     registerSlot *operator[](Register);
 
     // For platforms with "save all" semantics...
@@ -349,6 +382,21 @@ class registerSpace {
     static unsigned FPR(Register x) { return x - fpr0; }
     static unsigned SPR(Register x);
 #endif
+
+    // Which is the frame pointer?
+#if defined(arch_power)
+    typedef enum { FRAME_POINTER = r1 } specialRegisters_t;
+#elif defined(arch_x86_64)
+    typedef enum { FRAME_POINTER = REGNUM_RBP } specialRegisters_t;
+#endif
+
+    // Create a map of register names to register numbers
+    std::map<std::string, Register> registersByName;
+    // The reverse map can be handled by doing a rs[x]->name
+
+    Register getRegByName(const std::string name);
+    std::string getRegByNumber(Register num);
+    void getAllRegisterNames(std::vector<std::string> &ret);
 
     // Bit vectors that represent the ABI behavior at call points
     // and exits. 
