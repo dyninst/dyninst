@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-power.C,v 1.17 2008/02/23 02:09:08 jaw Exp $
+// $Id: linux-power.C,v 1.18 2008/03/25 19:24:37 bernat Exp $
 
 #include <string>
 #include <dlfcn.h>
@@ -701,9 +701,9 @@ bool process::getDyninstRTLibName() {
         }
         else {
             std::string msg = std::string("Environment variable ") +
-                            std::string("DYNINSTAPI_RT_LIB") +
-                            std::string(" has not been defined for process ")
-                            + std::string(getPid());
+                std::string("DYNINSTAPI_RT_LIB") +
+                std::string(" has not been defined for process ")
+                + utos(getPid());
             showErrorCallback(101, msg);
             return false;
         }
