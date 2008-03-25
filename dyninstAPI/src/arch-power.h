@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.44 2008/03/12 20:09:01 legendre Exp $
+// $Id: arch-power.h,v 1.45 2008/03/25 19:24:23 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -195,7 +195,6 @@ typedef unsigned codeBufIndex_t;
 #define SPR_XER	1
 #define SPR_LR	8
 #define SPR_CTR	9
-#define SPR_SPR0 0 
 #define SPR_MQ 0
 
 /*
