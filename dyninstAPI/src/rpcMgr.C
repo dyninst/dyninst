@@ -958,7 +958,8 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
         justAfter_stopForResultOffset = gen.used();
     }
     assert(irpcTramp);
-    irpcTramp->generateBT(gen);
+    //irpcTramp->generateBT(gen);
+    // Should already be built by the call to generateBT in emit... header
     gen.copy(irpcTramp->postTrampCode_);
 
     breakOffset = gen.used();
