@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.29 2007/12/04 17:57:59 bernat Exp $
+ * $Id: emit-x86.h,v 1.30 2008/03/25 19:24:28 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -55,6 +55,8 @@
 #include "dyninstAPI/src/emitter.h"
 class codeGen;
 class registerSpace;
+
+class registerSlot;
 
 // Emitter moved to emitter.h - useful on other platforms as well
 
@@ -77,15 +79,22 @@ public:
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
     bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
+    bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen) { assert(0); return true; }
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
     
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
     void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
     void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
 
+    void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen);
+
     void emitStore(Address addr, Register src, int size, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
+
+    void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen);
+    void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen) { assert(0); }
+
     bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // We can overload this for the stat/dyn case
@@ -124,6 +133,8 @@ public:
     bool emitAdjustStackPointer(int index, codeGen &gen);
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
+    bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) { assert(0); return true; }
+
 
  protected:
     virtual bool emitCallInstruction(codeGen &gen, int_function *target) = 0;
@@ -180,15 +191,22 @@ public:
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
     bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
+    bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
 
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
     void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
     void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen);
 
+    void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen);
+
     void emitStore(Address addr, Register src, int size, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
+    void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen);
+
+    void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);
+
     bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
     void setFPSaveOrNot(const int * liveFPReg,bool saveOrNot);
     // See comment on 32-bit emitCall
@@ -222,6 +240,7 @@ public:
     bool emitAdjustStackPointer(int index, codeGen &gen);
 
     bool emitMoveRegToReg(Register src, Register dest, codeGen &gen);
+    bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
  protected:
     virtual bool emitCallInstruction(codeGen &gen, int_function *target) = 0;

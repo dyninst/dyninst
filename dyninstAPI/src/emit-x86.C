@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.60 2008/03/12 20:09:08 legendre Exp $
+ * $Id: emit-x86.C,v 1.61 2008/03/25 19:24:27 bernat Exp $
  */
 
 #include <assert.h>
@@ -249,9 +249,16 @@ bool EmitterIA32::emitLoadRelative(Register dest, Address offset, Register /*bas
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
+void EmitterIA32::emitStoreRelative(Register src, Address offset, Register base, 
+                                    codeGen &gen)
+{
+    assert(0);
+    return;
+}
+
 void EmitterIA32::emitLoadOrigRegRelative(Register dest, Address offset,
-                                        Register base, codeGen &gen,
-                                        bool store)
+                                          Register base, codeGen &gen,
+                                          bool store)
 {
     GET_GPR(base,gen);  // loads value of stored register 'base' into EAX
     // either load the address or the contents at that address
@@ -287,6 +294,18 @@ void EmitterIA32::emitLoadOrigRegister(Address register_num, Register dest, code
 
     emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, offset, gen); //mov eax, offset[ebp]
     emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen); //mov dest, 0[eax]
+}
+
+void EmitterIA32::emitStoreOrigRegister(Address register_num, Register src, codeGen &gen) {
+
+   //Previous stack frame register is stored on the stack,
+    //it was stored there at the begining of the base tramp.
+    
+    //Calculate the register's offset from the frame pointer in REGNUM_EBP
+    unsigned offset = SAVED_EAX_OFFSET - (register_num * 4);
+
+    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);
+    emitMovRegToRM(REGNUM_EBP, offset, REGNUM_EAX, gen);
 }
 
 void EmitterIA32::emitStore(Address addr, Register src, int /*size*/, codeGen &gen)
@@ -880,6 +899,11 @@ bool EmitterAMD64::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
     return true;
 }
 
+bool EmitterAMD64::emitMoveRegToReg(registerSlot *source, registerSlot *dest, codeGen &gen) {
+    // TODO: make this work for getting the flag register too.
+
+    return emitMoveRegToReg(source->encoding(), dest->encoding(), gen);
+}
 
 codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
@@ -1151,6 +1175,11 @@ bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base
     return true;
 }
 
+bool EmitterAMD64::emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen)
+{
+    return emitLoadRelative(dest->encoding(), offset, base->encoding(), gen);
+}
+
 void EmitterAMD64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
     // mov (%rbp), %dest
@@ -1188,8 +1217,13 @@ void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
 
 void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen)
 {
+    unsigned size = (gen.addrSpace()->getAddressWidth());
+    gen.rs()->readProgramRegister(gen, register_num, dest, size);
+}
 
-    gen.rs()->readRegister(gen, register_num, dest);
+void EmitterAMD64::emitStoreOrigRegister(Address register_num, Register src, codeGen &gen) {
+    unsigned size = (gen.addrSpace()->getAddressWidth());
+    gen.rs()->writeProgramRegister(gen, register_num, src, size);
 }
 
 void EmitterAMD64::emitStore(Address addr, Register src, int size, codeGen &gen)
@@ -1221,7 +1255,18 @@ void EmitterAMD64::emitStoreFrameRelative(Address offset, Register src, Register
     emitMovRegToRM64(scratch, offset, src, (size == 8), gen);
 }
 
+void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base, codeGen &gen) {
+    emitMovRegToRM64(base, 
+                     offset*gen.addrSpace()->getAddressWidth(), 
+                     src, 
+                     (gen.addrSpace()->getAddressWidth() == 8),
+                     gen);
+}
 
+void EmitterAMD64::emitStoreRelative(registerSlot *src, Address offset, registerSlot *base, codeGen &gen) {
+    return emitStoreRelative(src->encoding(), offset, base->encoding(), gen);
+}
+    
 void EmitterAMD64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 {
   if (liveFPReg != NULL)
@@ -1721,13 +1766,14 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
     if (flagsSaved) num_saved++;
     for (int i = 0; i < gen.rs()->numGPRs(); i++) {
         registerSlot *reg = gen.rs()->GPRs()[i];
-        
+
         if (reg->liveState == registerSlot::live) {
             emitPushReg64(reg->encoding(),gen);
             // We move the FP down to just under here, so we're actually
             // measuring _up_ from the FP. 
             assert((18-num_saved) > 0);
             gen.rs()->markSavedRegister(reg->encoding(), 18-num_saved);
+
             num_saved++;
         }
     }

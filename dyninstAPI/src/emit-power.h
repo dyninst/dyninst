@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-power.h,v 1.5 2008/02/20 22:34:23 legendre Exp $
+ * $Id: emit-power.h,v 1.6 2008/03/25 19:24:26 bernat Exp $
  */
 
 #ifndef _EMITTER_POWER_H
@@ -51,6 +51,8 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/ast.h"
+
+#include "dyninstAPI/src/emitter.h"
 
 class codeGen;
 class registerSpace;
@@ -75,6 +77,9 @@ class EmitterPOWER : public Emitter {
     virtual void emitLoadConst(Register, Address, codeGen &) { assert(0); }
     virtual void emitLoadIndir(Register, Register, codeGen &) { assert(0); }
     virtual bool emitLoadRelative(Register, Address, Register, codeGen &) { assert(0); return true;}
+    virtual bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen);
+
+
     virtual void emitLoadFrameAddr(Register, Address, codeGen &) { assert(0); }
 
     // These implicitly use the stored original/non-inst value
@@ -85,8 +90,13 @@ class EmitterPOWER : public Emitter {
     virtual void emitStore(Address, Register, int, codeGen &) { assert(0); }
     virtual void emitStoreIndir(Register, Register, codeGen &) { assert(0); }
     virtual void emitStoreFrameRelative(Address, Register, Register, int, codeGen &) { assert(0); }
-    virtual bool emitMoveRegToReg(Register, Register, codeGen &) { assert(0); return 0;}
+    virtual void emitStoreRelative(Register, Address, Register, codeGen &) { assert(0); }
+    virtual void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);
 
+    virtual void emitStoreOrigRegister(Address, Register, codeGen &) { assert(0); }
+
+    virtual bool emitMoveRegToReg(Register, Register, codeGen &) { assert(0); return 0;}
+    virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
     // This one we actually use now.
     virtual Register emitCall(opCode, codeGen &, const pdvector<AstNodePtr> &,
 			      bool, int_function *) = 0;

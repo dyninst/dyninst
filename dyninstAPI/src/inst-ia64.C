@@ -447,7 +447,10 @@ void registerSpace::initialize64() {
 
 	pdvector<registerSlot *> registers;
 	for (unsigned i = firstDeadRegister; i <= lastDeadRegister; i++) {
+		char buf[128];
+		sprintf(buf, "r%d", i);
 		registers.push_back(new registerSlot(i, 
+											 buf,
 											 false, 
 											 registerSlot::deadAlways,
 											 registerSlot::GPR));
@@ -798,6 +801,12 @@ void emitLoadPreviousStackFrameRegister( Address register_num, Register dest,
 
   /* Insert bundle. */
   bundle.generate(gen);
+}
+
+void emitStorePreviousStackFrameRegister(Address register_num, Register source,
+										 codeGen &gen, int, bool) {
+	// TODO implement me...
+	assert(0);
 }
 
 /* in arch-ia64.C */
@@ -3397,7 +3406,7 @@ bool AddressSpace::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNod
 	/* This should be the only place on the IA-64 using this poorly-named constant.
 	   Note that the cast to void * is necessary to avoid picking up the (x86) memory
 	   instrumentation node constructor. */
-	AstNodePtr target = AstNode::operandNode( AstNode::PreviousStackFrameDataReg, (void *)(BP_BR0 + targetAddrRegister) );
+	AstNodePtr target = AstNode::operandNode( AstNode::origRegister, (void *)(BP_BR0 + targetAddrRegister) );
 	assert( target != NULL );
 	// arguments[0] = target;
 	arguments.push_back( target );

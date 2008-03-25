@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.36 2007/12/04 17:58:05 bernat Exp $
+// $Id: inst-x86.h,v 1.37 2008/03/25 19:24:35 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -198,6 +198,7 @@ enum AMD64_REG_NUMBERS {
     REGNUM_RF,
     REGNUM_IGNORED,
     REGNUM_LAST};
+
 
 class codeGen;
 

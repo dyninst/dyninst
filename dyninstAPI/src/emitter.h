@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emitter.h,v 1.9 2007/06/13 18:50:44 bernat Exp $
+ * $Id: emitter.h,v 1.10 2008/03/25 19:24:29 bernat Exp $
  */
 
 #ifndef _EMITTER_H
@@ -55,6 +55,8 @@
 class codeGen;
 class registerSpace;
 class baseTramp;
+
+class registerSlot;
 
 // class for encapsulating
 // platform dependent code generation functions
@@ -74,18 +76,28 @@ class Emitter {
     virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen) = 0;
     virtual void emitLoadConst(Register dest, Address imm, codeGen &gen) = 0;
     virtual void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen) = 0;
+
     virtual bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen) = 0;
+    virtual bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen) = 0;
+
     virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
 
     // These implicitly use the stored original/non-inst value
     virtual void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen) = 0;
     virtual void emitLoadOrigRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store) = 0;
     virtual void emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen) = 0;
+    
+    virtual void emitStoreOrigRegister(Address register_num, Register dest, codeGen &gen) = 0;
 
     virtual void emitStore(Address addr, Register src, int size, codeGen &gen) = 0;
     virtual void emitStoreIndir(Register addr_reg, Register src, codeGen &gen) = 0;
     virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen) = 0;
+
+    virtual void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen) = 0;
+    virtual void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen) = 0;
+
     virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
+    virtual bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen) = 0;
 
     virtual Register emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
 			      bool noCost, int_function *callee) = 0;

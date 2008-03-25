@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.276 2008/03/12 20:09:14 legendre Exp $
+ * $Id: inst-x86.C,v 1.277 2008/03/25 19:24:34 bernat Exp $
  */
 #include <iomanip>
 
@@ -170,7 +170,11 @@ void registerSpace::initialize32() {
     
     // "Virtual" registers
     for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
+        char buf[128];
+        sprintf(buf, "virtGPR%d", i);
+
         registerSlot *virt = new registerSlot(i,
+                                              buf,
                                               false,
                                               registerSlot::deadAlways,
                                               registerSlot::GPR);
@@ -180,6 +184,7 @@ void registerSpace::initialize32() {
     // Create a single FPR representation to represent
     // whether any FPR is live
     registerSlot *fpr = new registerSlot(IA32_FPR_VIRTUAL_REGISTER,
+                                         "virtFPR",
                                          true, // off-limits...
                                          registerSlot::liveAlways,
                                          registerSlot::FPR);
@@ -187,6 +192,7 @@ void registerSpace::initialize32() {
 
     // And a "do we save the flags" "register"
     registers.push_back(new registerSlot(IA32_FLAG_VIRTUAL_REGISTER,
+                                         "virtFlags",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
@@ -245,66 +251,82 @@ void registerSpace::initialize64() {
     // So rax, r10, r11 are dead at a function call.
 
     registerSlot * rax = new registerSlot(REGNUM_RAX,
+                                          "rax",
                                           true, // We use it implicitly _everywhere_
                                           registerSlot::deadABI,
                                           registerSlot::GPR);
     registerSlot * rcx = new registerSlot(REGNUM_RCX,
+                                          "rcx",
                                           false,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
     registerSlot * rdx = new registerSlot(REGNUM_RDX,
+                                          "rdx",
                                           false,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
     registerSlot * rbx = new registerSlot(REGNUM_RBX,
+                                          "rbx",
                                           false,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
     registerSlot * rsp = new registerSlot(REGNUM_RSP,
+                                          "rsp",
                                           true, // Off-limits...
                                           registerSlot::liveAlways,
                                           registerSlot::SPR); 
     registerSlot * rbp = new registerSlot(REGNUM_RBP,
+                                          "rbp",
                                           true,
                                           registerSlot::liveAlways,
                                           registerSlot::SPR);
     registerSlot * rsi = new registerSlot(REGNUM_RSI,
+                                          "rsi",
                                           false,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
     registerSlot * rdi = new registerSlot(REGNUM_RDI,
+                                          "rdi",
                                           false,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
     registerSlot * r8 = new registerSlot(REGNUM_R8,
+                                         "r8",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR);
     registerSlot * r9 = new registerSlot(REGNUM_R9,
+                                         "r9",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR);
     registerSlot * r10 = new registerSlot(REGNUM_R10,
+                                          "r10",
                                           false,
                                           registerSlot::deadABI,
                                           registerSlot::GPR);
     registerSlot * r11 = new registerSlot(REGNUM_R11,
+                                          "r11",
                                           false,
                                           registerSlot::deadABI,
                                           registerSlot::GPR);
     registerSlot * r12 = new registerSlot(REGNUM_R12,
+                                          "r12",
                                           false,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
     registerSlot * r13 = new registerSlot(REGNUM_R13,
+                                          "r13",
                                           false,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
     registerSlot * r14 = new registerSlot(REGNUM_R14,
+                                          "r14",
                                           false,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
     registerSlot * r15 = new registerSlot(REGNUM_R15,
+                                          "r15",
                                           false,
                                           registerSlot::liveAlways,
                                           registerSlot::GPR);
@@ -331,20 +353,71 @@ void registerSpace::initialize64() {
     registers.push_back(rdi);
 
 
-    for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
-        registers.push_back(new registerSlot(i,
-                                             true,
-                                             registerSlot::liveAlways,
-                                             registerSlot::SPR));
-    }
+    registers.push_back(new registerSlot(REGNUM_OF,
+                                         "of",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_SF,
+                                         "sf",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_ZF,
+                                         "zf",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_AF,
+                                         "af",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_PF,
+                                         "pf",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_CF,
+                                         "cf",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_TF,
+                                         "tf",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_IF,
+                                         "if",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_DF,
+                                         "df",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_NT,
+                                         "nt",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
+    registers.push_back(new registerSlot(REGNUM_RF,
+                                         "rf",
+                                         true,
+                                         registerSlot::liveAlways,
+                                         registerSlot::SPR));
 
     registers.push_back(new registerSlot(REGNUM_DUMMYFPR,
+                                         "dummyFPR",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::FPR));
 
     // For registers that we really just don't care about.
     registers.push_back(new registerSlot(REGNUM_IGNORED,
+                                         "ignored",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
@@ -1600,10 +1673,10 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         assert(src2 == 0);
         assert(dest == 0);
         gen.codeEmitter()->emitPush(gen, src1);
-	} else if (op == loadRegOp) {
-		assert(src1 == 0);
-		assert(src2 == 0);
-		gen.codeEmitter()->emitPop(gen, dest);
+    } else if (op == loadRegOp) {
+        assert(src1 == 0);
+        assert(src2 == 0);
+        gen.codeEmitter()->emitPop(gen, dest);
     } else {
         unsigned opcode = 0;//initialize to placate gcc warnings
         switch (op) {
@@ -1990,6 +2063,14 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     gen.codeEmitter()->emitLoadOrigRegister(register_num, dest, gen);
 }
 
+void emitStorePreviousStackFrameRegister(Address register_num,
+                                        Register src,
+                                        codeGen &gen,
+                                        int,
+                                        bool) {
+    gen.codeEmitter()->emitStoreOrigRegister(register_num, src, gen);
+}
+
 // First AST node: target of the call
 // Second AST node: source of the call
 
@@ -2017,13 +2098,13 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
 	  // constructor below avoids a mess of compiler warnings on AMD64
         case REGISTER_DIRECT:
            {
-               args.push_back(AstNode::operandNode(AstNode::PreviousStackFrameDataReg, (void *)(long)base_reg));
+               args.push_back(AstNode::operandNode(AstNode::origRegister, (void *)(long)base_reg));
                break;
            }
         case REGISTER_INDIRECT:
            {
                args.push_back(AstNode::operandNode(AstNode::DataIndir,
-                                                   AstNode::operandNode(AstNode::PreviousStackFrameDataReg, 
+                                                   AstNode::operandNode(AstNode::origRegister, 
                                                                         (void *)(long)base_reg)));
               break;
            }
@@ -2033,7 +2114,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                                    AstNode::operatorNode(plusOp,
                                                                          AstNode::operandNode(AstNode::Constant,
                                                                                               (void *)displacement),
-                                                                         AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                                         AstNode::operandNode(AstNode::origRegister,
                                                                                               (void *)(long)base_reg))));
                break;
            }
@@ -2056,9 +2137,9 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                     useBaseReg = false;
                  }
 
-                 AstNodePtr index = AstNode::operandNode(AstNode::PreviousStackFrameDataReg, 
+                 AstNodePtr index = AstNode::operandNode(AstNode::origRegister, 
                                                          (void *)(long) index_reg);
-                 AstNodePtr base = AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                 AstNodePtr base = AstNode::operandNode(AstNode::origRegister,
                                                         (void *)(long) base_reg);
 
                  AstNodePtr disp = AstNode::operandNode(AstNode::Constant,
@@ -2108,7 +2189,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                                      AstNode::operatorNode(plusOp,
                                                                            AstNode::operandNode(AstNode::Constant,
                                                                                                 (void *)(long)displacement),
-                                                                           AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                                           AstNode::operandNode(AstNode::origRegister,
                                                                                                 (void *)(long)base_reg))));
 
                  
@@ -2252,3 +2333,4 @@ bool image::isAligned(const Address/* where*/) const
 {
    return true;
 }
+

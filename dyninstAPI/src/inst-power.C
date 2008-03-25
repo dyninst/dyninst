@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.286 2008/03/12 20:09:12 legendre Exp $
+ * $Id: inst-power.C,v 1.287 2008/03/25 19:24:31 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -235,81 +235,101 @@ void registerSpace::initialize32() {
     // function calls
     
     registers.push_back(new registerSlot(r12,
+                                         "r12",
                                          false,
                                          registerSlot::deadABI,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r11,
+                                         "r11",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r10,
+                                         "r10",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r9,
+                                         "r9",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r8,
+                                         "r8",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r7,
+                                         "r7",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r6,
+                                         "r6",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r5,
+                                         "r5",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r4,
+                                         "r4",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r3,
+                                         "r3",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     /// Aaaand the off-limits ones.
 
     registers.push_back(new registerSlot(r0,
+                                         "r0",
                                          true, // Don't use r0 - it has all sorts
                                          // of implicit behavior.
                                          registerSlot::deadABI,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r1,
+                                         "r1",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r2,
+                                         "r2",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
 
     for (unsigned i = fpr0; i <= fpr13; i++) {
+        char buf[128];
+        sprintf(buf, "fpr%d", i - fpr0);
         registers.push_back(new registerSlot(i,
+                                             buf,
                                              false,
                                              registerSlot::liveAlways,
                                              registerSlot::FPR));
     }
 
     registers.push_back(new registerSlot(lr,
+                                         "lr",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
     registers.push_back(new registerSlot(cr,
+                                         "cr",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
     registers.push_back(new registerSlot(ctr,
+                                         "ctr",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
     registers.push_back(new registerSlot(mq,
+                                         "mq",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
@@ -363,81 +383,101 @@ void registerSpace::initialize64() {
     // function calls
     
     registers.push_back(new registerSlot(r12,
+                                         "r12",
                                          false,
                                          registerSlot::deadABI,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r11,
+                                         "r11",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r10,
+                                         "r10",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r9,
+                                         "r9",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r8,
+                                         "r8",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r7,
+                                         "r7",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r6,
+                                         "r6",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r5,
+                                         "r5",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r4,
+                                         "r4",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r3,
+                                         "r3",
                                          false,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     /// Aaaand the off-limits ones.
 
     registers.push_back(new registerSlot(r0,
+                                         "r0",
                                          true, // Don't use r0 - it has all sorts
                                          // of implicit behavior.
                                          registerSlot::deadABI,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r1,
+                                         "r1",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
     registers.push_back(new registerSlot(r2,
+                                         "r2",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::GPR));
 
     for (unsigned i = fpr0; i <= fpr13; i++) {
+        char buf[128];
+        sprintf(buf, "fpr%d", i - fpr0);
         registers.push_back(new registerSlot(i,
+                                             buf,
                                              false,
                                              registerSlot::liveAlways,
                                              registerSlot::FPR));
     }
 
     registers.push_back(new registerSlot(lr,
+                                         "lr",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
     registers.push_back(new registerSlot(cr,
+                                         "cr",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
     registers.push_back(new registerSlot(ctr,
+                                         "ctr",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
     registers.push_back(new registerSlot(mq,
+                                         "mq",
                                          true,
                                          registerSlot::liveAlways,
                                          registerSlot::SPR));
@@ -483,6 +523,33 @@ void registerSpace::initialize() {
     initialize32();
     initialize64();
 }
+
+unsigned registerSpace::SPR(Register x) {
+    // Encodings from architecture manual
+    switch ((powerRegisters_t) x) {
+    case xer:
+        return SPR_XER;
+        break;
+    case lr:
+        return SPR_LR;
+        break;
+    case ctr:
+        return SPR_CTR;
+        break;
+    case mq:
+        return SPR_MQ;
+        break;
+    case cr:
+        fprintf(stderr, "Error: condition register has no encoding!\n");
+        return REG_NULL;
+        break;
+    default:
+        assert(0);
+        return REG_NULL;
+        break;
+    }
+}
+            
 
 /*
  * Saving and restoring registers
@@ -578,6 +645,7 @@ void saveLR(codeGen &gen,       //Instruction storage pointer
             int           stkOffset)  //Offset from stack pointer
 {
     saveSPR(gen, scratchReg, SPR_LR, stkOffset);
+    gen.rs()->markSavedRegister(registerSpace::lr, stkOffset);
 }
 
            ////////////////////////////////////////////////////////////////////
@@ -777,7 +845,8 @@ void saveRegister(codeGen &gen,
 // Dest != reg : optimizate away a load/move pair
 void restoreRegister(codeGen &gen,
                      Register source,
-                     Register dest, int saved_off)
+                     Register dest, 
+                     int saved_off)
 {
     if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, Lop, 
@@ -867,7 +936,14 @@ unsigned saveGPRegisters(codeGen &gen,
         registerSlot *reg = theRegSpace->GPRs()[i];
         if (reg->liveState == registerSlot::live) {
 	    saveRegister(gen, reg->encoding(), save_off);
-	    gen.rs()->markSavedRegister(reg->number, save_off + reg->number*gen.addrSpace()->getAddressWidth());	
+            // saveRegister implicitly adds in (reg * word size)
+            // Do that by hand here.
+            
+            int actual_save_off = save_off;
+
+            actual_save_off += (reg->encoding() * gen.addrSpace()->getAddressWidth());
+
+	    gen.rs()->markSavedRegister(reg->number, actual_save_off);
 	    numRegs++;
 	}
     }
@@ -970,21 +1046,30 @@ unsigned saveSPRegisters(codeGen &gen,
     }
     
     saveCR(gen, 10, save_off + cr_off); num_saved++;
+    gen.rs()->markSavedRegister(registerSpace::cr, save_off + cr_off);
     saveSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_saved++;
+    gen.rs()->markSavedRegister(registerSpace::ctr, save_off + ctr_off);
     saveSPR(gen, 10, SPR_XER, save_off + xer_off); num_saved++;
+    gen.rs()->markSavedRegister(registerSpace::xer, save_off + xer_off);
     
-#if defined(os_aix) && !defined(rs6000_ibm_aix64)
     // MQ only exists on POWER, not PowerPC. Right now that's correlated
     // to AIX vs Linux, but we _really_ should fix that...
     // We need to dynamically determine the CPU and emit code based on that.
     //
     // Apparently, AIX64 doesn't use the MQ register either.
+    //
+    // Well, if it isn't used, then it's dead, and we won't save it.
+    // ARGH inferior RPCs...
+#if defined(os_aix)
     registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
     if (mq->liveState == registerSlot::live) {
-        saveSPR(gen, 10, SPR_SPR0, save_off + spr0_off); num_saved++;
+        saveSPR(gen, 10, mq->encoding(), save_off + spr0_off); num_saved++;
         mq->liveState = registerSlot::spilled;
+        gen.rs()->markSavedRegister(registerSpace::mq, save_off + spr0_off);
+
     }
 #endif
+
     saveFPSCR(gen, 10, save_off + fpscr_off); num_saved++;
     return num_saved;
 }
@@ -1019,13 +1104,14 @@ unsigned restoreSPRegisters(codeGen &gen,
     restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_restored++;
     restoreSPR(gen, 10, SPR_XER, save_off + xer_off); num_restored++;
 
-#if defined(os_aix) && !defined(rs6000_ibm_aix64)
+#if defined(os_aix)
     // See comment in saveSPRegisters
     registerSlot *mq = ((*theRegSpace)[registerSpace::mq]);
     if (mq->liveState == registerSlot::spilled) {
-        restoreSPR(gen, 10, SPR_SPR0, save_off + spr0_off); num_restored++;
+        restoreSPR(gen, 10, mq->encoding(), save_off + spr0_off); num_restored++;
     }
 #endif
+
     restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
     return num_restored;
 }
@@ -1088,8 +1174,10 @@ bool baseTramp::generateSaves(codeGen &gen,
     // No more cookie. FIX aix stackwalking.
     if (isConservative())
         saveSPRegisters(gen, gen.rs(), TRAMP_SPR_OFFSET);
-    else if (isCallsite())
+    else if (isCallsite()) {
         saveSPR(gen, REG_SCRATCH, SPR_CTR, TRAMP_SPR_OFFSET + ctr_off);
+        gen.rs()->markSavedRegister(registerSpace::ctr, TRAMP_SPR_OFFSET + ctr_off);
+    }
 
     return true;
 }
@@ -1097,6 +1185,9 @@ bool baseTramp::generateSaves(codeGen &gen,
 bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *)
 {
+
+    regalloc_printf("========== baseTramp::generateRestores\n");
+
     int gpr_off, fpr_off, ctr_off;
     if (gen.addrSpace()->getAddressWidth() == 4) {
         gpr_off = TRAMP_GPR_OFFSET_32;
@@ -2477,10 +2568,6 @@ void emitFuncJump(opCode              op,
     return;
 }
 
-// atch AIX register numbering (sys/reg.h)
-#define REG_LR  131
-#define REG_CTR 132
-
 void emitLoadPreviousStackFrameRegister(Address register_num, 
                                         Register dest,
                                         codeGen &gen,
@@ -2495,8 +2582,9 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     // Unused, 3OCT03
     //instruction *insn_ptr = (instruction *)insn;
     // We need values to define special registers.
+
     switch ( (int) register_num) {
-    case REG_LR:
+    case registerSpace::lr:
         // LR is saved on the stack
         // Note: this is only valid for non-function entry/exit instru. 
         // Once we've entered a function, the LR is stomped to point
@@ -2511,7 +2599,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
               gen.addrSpace()->getAddressWidth(), gen.point(), gen.addrSpace());
         break;
 
-    case REG_CTR:
+    case registerSpace::ctr:
         // CTR is saved down the stack
         if (gen.addrSpace()->getAddressWidth() == 4)
             offset = TRAMP_SPR_OFFSET + STK_CTR_32;
@@ -2548,7 +2636,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
             if ((*i).xlform.xo == BCLRxop) // BLR (bclr)
                 {
                     //bperr( "Branch target is the link register\n");
-                    branch_target = REG_LR;
+                    branch_target = registerSpace::lr;
                 }
             else if ((*i).xlform.xo == BCCTRxop)
                 {
@@ -2557,7 +2645,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                     // graph is built (Paradyn), after all objects have been read
                     // and parsed.
                     //bperr( "Branch target is the count register\n");
-                    branch_target = REG_CTR;
+                    branch_target = registerSpace::ctr;
                 }
             else
                 {
@@ -2569,7 +2657,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
 
 
             // Where we're jumping to (link register, count register)
-            args.push_back( AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+            args.push_back( AstNode::operandNode(AstNode::origRegister,
                                                  (void *) branch_target));
 
             // Where we are now
@@ -2679,3 +2767,88 @@ Register EmitterPOWER64Stat::emitCall(opCode, codeGen &,
    return 0; 
 }
 
+bool EmitterPOWER::emitLoadRelative(registerSlot *dest,
+                                    Address offset,
+                                    registerSlot *base,
+                                    codeGen &gen) {
+    // Loads a saved register from the stack. 
+
+    if (gen.addrSpace()->getAddressWidth() == 4) {
+        instruction::generateImm(gen, Lop,
+                                 dest->encoding(),
+                                 base->encoding(),
+                                 offset);
+    }
+    else {
+        instruction::generateMemAccess64(gen, LDop, LDxop,
+                                         dest->encoding(),
+                                         base->encoding(),
+                                         offset);
+    }
+    return true;
+}
+
+void EmitterPOWER::emitStoreRelative(registerSlot *source,
+                                    Address offset,
+                                    registerSlot *base,
+                                    codeGen &gen) {
+    // Loads a saved register from the stack. 
+
+    if (gen.addrSpace()->getAddressWidth() == 4) {
+        instruction::generateImm(gen, STop,
+                                 source->encoding(),
+                                 base->encoding(),
+                                 offset);
+    }
+    else {
+        instruction::generateMemAccess64(gen, STDop, STDxop,
+                                         source->encoding(),
+                                         base->encoding(),
+                                         offset);
+    }
+
+}
+
+bool EmitterPOWER::emitMoveRegToReg(registerSlot *src, 
+                                    registerSlot *dest, 
+                                    codeGen &gen) {
+    assert(dest->type == registerSlot::GPR);
+
+    switch (src->type) {
+    case registerSlot::GPR:
+        instruction::generateImm(gen, ORILop, src->encoding(), dest->encoding(), 0);
+        break;
+    case registerSlot::SPR: {
+        instruction insn;
+        
+        switch (src->number) {
+        case registerSpace::lr:
+        case registerSpace::xer:
+        case registerSpace::ctr:
+        case registerSpace::mq:
+            (*insn).raw = 0;
+            (*insn).xform.op = EXTop;
+            (*insn).xform.rt = dest->encoding();
+            (*insn).xform.ra = src->encoding() & 0x1f;
+            (*insn).xform.rb = (src->encoding() >> 5) & 0x1f;
+            (*insn).xform.xo = MFSPRxop;
+            insn.generate(gen);
+            break;
+        case registerSpace::cr:
+            (*insn).raw = 0;                    //mtcrf:  scratchReg
+            (*insn).xfxform.op  = EXTop;
+            (*insn).xfxform.rt  = dest->encoding();
+            (*insn).xfxform.xo  = MFCRxop;
+            insn.generate(gen);
+            break;
+        default:
+            assert(0);
+            break;
+        }
+    }
+    default:
+        assert(0);
+        break;
+    }
+    return true;
+}

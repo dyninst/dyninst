@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.203 2008/02/23 02:09:05 jaw Exp $
+// $Id: ast.C,v 1.204 2008/03/25 19:24:24 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -708,6 +708,30 @@ bool AstReplacementNode::generateCode_phase2(codeGen &gen, bool noCost,
 	return true;
 }
 
+bool AstOperatorNode::initRegisters(codeGen &g) {
+    bool ret = true;
+    pdvector<AstNodePtr> kids;
+    getChildren(kids);
+    for (unsigned i = 0; i < kids.size(); i++) {
+        if (!kids[i]->initRegisters(g))
+            ret = false;
+    }
+    
+    // Override: if we're trying to save to an original
+    // register, make sure it's saved on the stack.
+    if (op == storeOp) {
+        if (loperand->getoType() == origRegister) {
+            Address origReg = (Address) loperand->getOValue();
+            // Mark that register as live so we are sure to save it.
+            registerSlot *r = (*(g.rs()))[origReg];
+            r->liveState = registerSlot::live;
+        }
+    }
+
+    return ret;
+}
+
+
 bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost) 
 {
 #if defined(arch_x86) || defined(arch_x86_64)
@@ -1078,6 +1102,13 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
             loperand->decUseCount(gen);
             break;
         }
+        case origRegister:
+            gen.rs()->writeProgramRegister(gen, (Register) loperand->getOValue(),
+                                           src1, getSize());
+            //emitStorePreviousStackFrameRegister((Address) loperand->getOValue(),
+            //src1, gen, getSize(), noCost);
+            loperand->decUseCount(gen);
+            break;
         default: {
             // Could be an error, could be an attempt to load based on an arithmetic expression
             // Generate the left hand side, store the right to that address
@@ -1217,9 +1248,10 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case DataReg:
        retReg = (Register) (long) oValue;
        break;
-   case PreviousStackFrameDataReg:
-       emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
-                                          size, noCost);
+   case origRegister:
+       gen.rs()->readProgramRegister(gen, (Register)oValue, retReg, size);
+       //emitLoadPreviousStackFrameRegister((Address) oValue, retReg, gen,
+       //size, noCost);
        break;
    case ReturnVal:
        src = emitR(getRetValOp, 0, 0, retReg, gen, noCost, gen.point(),
@@ -1276,10 +1308,6 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        
        emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        break;
-	case RegValue: {
-		gen.rs()->readRegister(gen, (Register) (long) oValue, retReg);
-		break;
-	}
    default:
        fprintf(stderr, "[%s:%d] ERROR: Unknown operand type %d in AstOperandNode generation\n",
                __FILE__, __LINE__, oType);
@@ -1856,6 +1884,8 @@ BPatch_type *AstOperatorNode::checkType() {
         ret = lType;
         if (lType != NULL && rType != NULL) {
             if (!lType->isCompatible(rType)) {
+                fprintf(stderr, "WARNING: LHS type %s not compatible with RHS type %s\n",
+                        lType->getName(), rType->getName());
                 errorFlag = true;
             }
         }
@@ -1911,15 +1941,18 @@ BPatch_type *AstOperandNode::checkType()
     if (oType == DataIndir) {
         // XXX Should really be pointer to lType -- jkh 7/23/99
         ret = BPatch::bpatch->type_Untyped;
-    } else {
-        if ((oType == Param) || (oType == ReturnVal)) {
+    } 
+    else if ((oType == Param) || (oType == ReturnVal)) {
             // XXX Params and ReturnVals untyped for now
-            ret = BPatch::bpatch->type_Untyped; 
-        } else {
-            ret = const_cast<BPatch_type *>(getType());
-        }
-        assert(ret != NULL);
+        ret = BPatch::bpatch->type_Untyped; 
     }
+    else if ((oType == origRegister)) {
+        ret = BPatch::bpatch->stdTypes->findType("int");
+    }
+    else {
+        ret = const_cast<BPatch_type *>(getType());
+    }
+    assert(ret != NULL);
 
     if (errorFlag && doTypeCheck) {
 	ret = BPatch::bpatch->type_Error;
@@ -2132,7 +2165,7 @@ bool AstOperandNode::canBeKept() const {
     case DataReg:
     case DataIndir:
     case RegOffset:
-    case RegValue:
+    case origRegister:
     case DataAddr:
         return false;
     default:

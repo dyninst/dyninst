@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.201 2008/02/23 02:09:05 jaw Exp $
+// $Id: inst-sparc.C,v 1.202 2008/03/25 19:24:32 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -221,7 +221,10 @@ void registerSpace::initialize32() {
 
     pdvector<registerSlot *> registers;
     for (unsigned i = 0; i < dead_reg_count; i++) {
+        char buf[128];
+        sprintf(buf, "r%d", deadList[i]);
         registers.push_back(new registerSlot(deadList[i],
+                                             buf,
                                              false,
                                              registerSlot::deadAlways,
                                              registerSlot::GPR));
@@ -479,7 +482,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
         //calling function register rs1+simm13
         if((*insn).rest.i == 1){
             
-            AstNodePtr base =  AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+            AstNodePtr base =  AstNode::operandNode(AstNode::origRegister,
                                                   (void *) (*insn).rest.rs1);
             AstNodePtr offset = AstNode::operandNode(AstNode::Constant,
                                           (void *) (*insn).resti.simm13);
@@ -493,9 +496,9 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
             //that the registers from the previous stack frame
             //specified by rs1 and rs2 are stored on the stack
             args.push_back( AstNode::operatorNode(plusOp, 
-                                                  AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                  AstNode::operandNode(AstNode::origRegister,
                                                                        (void *) (*insn).rest.rs1),
-                                                  AstNode::operandNode(AstNode::PreviousStackFrameDataReg,
+                                                  AstNode::operandNode(AstNode::origRegister,
                                                                        (void *) (*insn).rest.rs2)));
         }
         else assert(0);

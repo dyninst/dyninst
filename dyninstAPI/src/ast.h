@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.104 2008/02/23 02:09:05 jaw Exp $
+// $Id: ast.h,v 1.105 2008/03/25 19:24:25 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -140,13 +140,15 @@ class AstNode {
                            ConstantString,
                            DataReg,
                            DataIndir,
-			   Param, 
+			   Param,
                            ReturnVal, 
                            DataAddr,  // ?
                            FrameAddr, // Calculate FP 
                            RegOffset, // Calculate *reg + offset; oValue is reg, loperand->oValue is offset. 
-                           PreviousStackFrameDataReg,
-						   RegValue, // A possibly spilled, possibly saved register.
+                           //PreviousStackFrameDataReg,
+                           //RegValue, // A possibly spilled, possibly saved register.
+                           // Both the above are now: origRegister 
+                           origRegister,
                            undefOperandType };
 
         enum memoryType {
@@ -367,6 +369,9 @@ class AstOperatorNode : public AstNode {
 
     virtual void getChildren(pdvector<AstNodePtr> &children);
     virtual bool containsFuncCall() const;
+
+    // We override initRegisters in the case of writing to an original register.
+    virtual bool initRegisters(codeGen &gen);
 
  private:
 
@@ -662,6 +667,12 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
                                         codeGen &gen,
 					int size,
 					bool noCost);
+void emitStorePreviousStackFrameRegister(Address register_num,
+                                         Register src,
+                                         codeGen &gen,
+                                         int size,
+                                         bool noCost);
+
 void emitFuncJump(opCode op, codeGen &gen,
 		  const int_function *func, AddressSpace *addrSpace,
 		  const instPoint *loc, bool noCost);
