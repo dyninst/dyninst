@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.36 2008/03/12 20:09:50 legendre Exp $
+ * $Id: Object-elf.C,v 1.37 2008/03/31 21:23:09 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1068,6 +1068,10 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
          sec = sections_[secNumber];
       else
          sec = NULL;		
+
+      if((secNumber == SHN_ABS) && sections_.size())
+          sec = sections_[0];
+
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
@@ -1209,6 +1213,9 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
     	 sec = sections_[secNumber];
       else
          sec = NULL;		
+
+      if((secNumber == SHN_ABS) && sections_.size())
+          sec = sections_[0];
       
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, NULL, true, false);
 #if !defined(os_solaris)
