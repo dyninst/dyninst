@@ -1335,6 +1335,10 @@ bool Symtab::extractInfo(Object *linkedFile)
     linkedFile->getMappedRegions(mapped_regions_);
     linkedFile->getSegments(segments_);
 
+#if !defined(os_aix) && !defined(os_windows)
+    linkedFile->getDependencies(deps_);
+#endif
+
 #if defined (os_aix)
     //  These should go away
     linkedFile->get_stab_info(stabstr_, nstabs_, stabs_, stringpool_);
@@ -1498,6 +1502,8 @@ Symtab::Symtab(const Symtab& obj) :
     
     for(i=0;i<excpBlocks.size();i++)
         excpBlocks.push_back(new ExceptionBlock(*(obj.excpBlocks[i])));
+
+    deps_ = obj.deps_;
     setupTypes();
 }
 
@@ -2038,6 +2044,11 @@ bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
     return true;
 }
 
+DLLEXPORT std::vector<std::string> &Symtab::getDependencies(){
+    return deps_;
+}
+
+
 Symtab::~Symtab()
 {
    // Doesn't do anything yet, moved here so we don't mess with symtab.h
@@ -2095,7 +2106,8 @@ Symtab::~Symtab()
     undefDynSyms.clear();
     for (i=0;i<excpBlocks.size();i++)
         delete excpBlocks[i];
-
+    
+    deps_.clear();
     
     for (i = 0; i < allSymtabs.size(); i++) {
         if (allSymtabs[i] == this)

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.37 2008/03/31 21:23:09 giri Exp $
+ * $Id: Object-elf.C,v 1.38 2008/04/01 18:52:33 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1069,9 +1069,6 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       else
          sec = NULL;		
 
-      if((secNumber == SHN_ABS) && sections_.size())
-          sec = sections_[0];
-
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
@@ -1118,6 +1115,9 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
    Elf_X_Verneed *symVersionNeeds;
    for (unsigned i = 0; i < dyns.count(); ++i) {
        switch(dyns.d_tag(i)) {
+           case DT_NEEDED:
+               deps_.push_back(&strs[dyns.d_ptr(i)]);
+               break;
            case DT_VERSYM:
                versymSec = getSectionHdrByAddr(dyns.d_ptr(i));
                break;
@@ -1214,9 +1214,6 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
       else
          sec = NULL;		
 
-      if((secNumber == SHN_ABS) && sections_.size())
-          sec = sections_[0];
-      
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, NULL, true, false);
 #if !defined(os_solaris)
       if(versymSec) {
@@ -2499,6 +2496,7 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *), bool alloc_syms)
    relocation_table_ = obj.relocation_table_;
    fbt_ = obj.fbt_;
    elfHdr = obj.elfHdr;
+   deps_ = obj.deps_;
 }
 
 const Object&
@@ -2524,10 +2522,9 @@ Object::operator=(const Object& obj) {
    fbt_  = obj.fbt_;
    dwarvenDebugInfo = obj.dwarvenDebugInfo;
    symbolNamesByAddr = obj.symbolNamesByAddr;
-#if !defined(os_solaris)
    versionMapping = obj.versionMapping;
    versionFileNameMapping = obj.versionFileNameMapping;
-#endif
+   deps_ = obj.deps_;
    elfHdr = obj.elfHdr; 
    return *this;
 }
@@ -2542,10 +2539,9 @@ Object::~Object()
       delete allSectionHdrs[i];
    allSectionHdrs.clear();
    symbolNamesByAddr.clear();
-#if !defined(os_solaris)
    versionMapping.clear();
    versionFileNameMapping.clear();
-#endif
+   deps_.clear();
 }
 
 void Object::log_elferror(void (*err_func)(const char *), const char* msg) 
@@ -2568,6 +2564,10 @@ bool Object::get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt
     if(!plt_addr_ || (!fbt_.size())) return false;
     fbt = &fbt_;
     return true;
+}
+
+void Object::getDependencies(std::vector<std::string> &deps){
+    deps = deps_;
 }
 
 bool Object::addRelocationEntry(relocationEntry &re)

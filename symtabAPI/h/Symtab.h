@@ -261,22 +261,24 @@ class Symtab : public LookupInterface,
 	DLLEXPORT Offset imageOffset() const;
 	DLLEXPORT Offset dataOffset() const;
 	DLLEXPORT Offset dataLength() const;
-   DLLEXPORT Offset imageLength() const;
-   DLLEXPORT char*  image_ptr ()  const;
-   DLLEXPORT char*  data_ptr ()  const;
+    DLLEXPORT Offset imageLength() const;
+    DLLEXPORT char*  image_ptr ()  const;
+    DLLEXPORT char*  data_ptr ()  const;
 
-   DLLEXPORT const char*  getInterpreterName() const;
+    DLLEXPORT const char*  getInterpreterName() const;
 
-   DLLEXPORT unsigned getAddressWidth() const;
-   DLLEXPORT Offset getLoadOffset() const;
-   DLLEXPORT Offset getEntryOffset() const;
-   DLLEXPORT Offset getBaseOffset() const;
-   DLLEXPORT Offset getTOCoffset() const;
+    DLLEXPORT unsigned getAddressWidth() const;
+    DLLEXPORT Offset getLoadOffset() const;
+    DLLEXPORT Offset getEntryOffset() const;
+    DLLEXPORT Offset getBaseOffset() const;
+    DLLEXPORT Offset getTOCoffset() const;
 
-   DLLEXPORT std::string getDefaultNamespacePrefix() const;
-	
-	DLLEXPORT unsigned getNumberofSections() const;
-   DLLEXPORT unsigned getNumberofSymbols() const;
+    DLLEXPORT std::string getDefaultNamespacePrefix() const;
+
+    DLLEXPORT unsigned getNumberofSections() const;
+    DLLEXPORT unsigned getNumberofSymbols() const;
+    
+    DLLEXPORT std::vector<std::string> &getDependencies();
 
 #if defined (os_aix)
       //  These will go away.... (get_stab_info) and get_line_info, etc
@@ -467,6 +469,8 @@ class Symtab : public LookupInterface,
    std::map <std::string, Symbol *> undefDynSyms;
    std::vector<relocationEntry > relocation_table_;
    std::vector<ExceptionBlock *> excpBlocks;
+
+   std::vector<std::string> deps_;
     
     //Line Information valid flag;
     bool isLineInfoValid_;

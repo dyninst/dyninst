@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.15 2008/03/12 22:48:50 legendre Exp $
+ * $Id: Object-elf.h,v 1.16 2008/04/01 18:52:34 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -296,6 +296,7 @@ class Object : public AObject {
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
   bool get_func_binding_table(std::vector<relocationEntry> &fbt) const;
   bool get_func_binding_table_ptr(const std::vector<relocationEntry> *&fbt) const;
+  void getDependencies(std::vector<std::string> &deps);
 
   bool addRelocationEntry(relocationEntry &re);
 
@@ -428,12 +429,11 @@ class Object : public AObject {
   // the time we need it, and it's hard to get to anyway.
   hash_map< Offset, std::string > symbolNamesByAddr;
 
-#if !defined(os_solaris)
   // Symbol version mappings. used to store symbol version names.
   hash_map<unsigned, std::vector<std::string> >versionMapping;
   hash_map<unsigned, std::string> versionFileNameMapping;
-#endif
 
+  std::vector<std::string> deps_;
 
   bool loaded_elf( Offset &, Offset &,
 		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
