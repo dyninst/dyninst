@@ -22,7 +22,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
+				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf"
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
@@ -1588,6 +1588,9 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\dyninst.h">
 			</File>
 			<File
+				RelativePath="..\dynutil\h\dyntypes.h">
+			</File>
+			<File
 				RelativePath=".\src\editSharedLibrary.h">
 			</File>
 			<File
@@ -1735,7 +1738,7 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\src\trapMappings.h">
 			</File>
 			<File
-				RelativePath=".\src\util.h">
+				RelativePath="..\dynutil\h\util.h">
 			</File>
 			<File
 				RelativePath="..\common\h\Vector.h">
