@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.4 2008/03/12 20:09:34 legendre Exp $
+// $Id: Annotatable.h,v 1.5 2008/04/07 22:32:37 giri Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -115,7 +115,7 @@ AnnotationSet< T >::sets_by_obj;
 class AnnotatableBase
 {
    protected:
-      AnnotatableBase();
+      DLLEXPORT AnnotatableBase();
       ~AnnotatableBase() {
       }
       static int number;

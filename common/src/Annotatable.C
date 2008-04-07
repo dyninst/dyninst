@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.C,v 1.6 2008/02/07 16:07:54 jaw Exp $
+// $Id: Annotatable.C,v 1.7 2008/04/07 22:32:36 giri Exp $
 
 #include "common/h/headers.h"
 #include "dynutil/h/Annotatable.h"
@@ -52,7 +52,7 @@ int AnnotatableBase::metadataNum;
 hash_map<std::string, int> AnnotatableBase::annotationTypes;
 hash_map<std::string, int> AnnotatableBase::metadataTypes;
 
-AnnotatableBase::AnnotatableBase() 
+DLLEXPORT AnnotatableBase::AnnotatableBase() 
 {
    number = -1;
 }
