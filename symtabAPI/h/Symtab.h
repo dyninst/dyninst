@@ -44,7 +44,7 @@
 #include "Annotatable.h"
 
 typedef struct {} user_funcs_a;
-typedef struct {} user_sections_a;
+typedef struct {} user_regions_a;
 typedef struct {} user_types_a;
 typedef struct {} user_symbols_a;
 typedef struct {} module_line_info_a;
@@ -64,6 +64,75 @@ class Object;
 class relocationEntry;
 
 //class lineDict;
+
+class Region {
+    friend class Object;
+    friend class Symtab;
+  public:  
+    enum perm_t{
+        RP_R, RP_RW, RP_RX, RP_RWX };
+
+    enum region_t{
+        RT_TEXT, RT_DATA, RT_TEXTDATA, RT_SYMTAB, RT_STRTAB , RT_BSS, RT_SYMVERSIONS,
+        RT_SYMVERDEF, RT_SYMVERNEEDED, RT_REL, RT_DYNAMIC, RT_OTHER
+    };
+
+    DLLEXPORT Region();
+    DLLEXPORT static bool createRegion( Offset diskOff, perm_t perms, region_t regType,
+                       unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0,
+                       std::string name = "", char *rawDataPtr = NULL);
+    DLLEXPORT Region(const Region &reg);
+    DLLEXPORT Region& operator=(const Region &reg);
+    DLLEXPORT std::ostream& operator<< (std::ostream &os);
+    DLLEXPORT bool operator== (const Region &reg);
+
+    DLLEXPORT ~Region();
+
+    DLLEXPORT unsigned getRegionNumber() const;
+    DLLEXPORT bool setRegionNumber(unsigned regnumber);
+    DLLEXPORT std::string getRegionName() const;
+	DLLEXPORT Offset getRegionAddr() const;
+	DLLEXPORT unsigned long getRegionSize() const;
+
+    DLLEXPORT Offset getDiskOffset() const;
+    DLLEXPORT unsigned long getDiskSize() const;
+    DLLEXPORT Offset getMemOffset() const;
+    DLLEXPORT unsigned long getMemSize() const;
+    DLLEXPORT void *getPtrToRawData() const;
+    DLLEXPORT bool setPtrToRawData(void *, unsigned long); 
+    
+    DLLEXPORT bool isBSS() const;
+    DLLEXPORT bool isText() const;
+    DLLEXPORT bool isData() const;
+    DLLEXPORT bool isOffsetInRegion(const Offset &offset) const;
+    DLLEXPORT bool isLoadable() const;
+    DLLEXPORT bool isDirty() const;
+    DLLEXPORT std::vector<relocationEntry> &getRelocations();
+    DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
+
+    DLLEXPORT perm_t getRegionPermissions() const;
+    DLLEXPORT region_t getRegionType() const;
+      
+    DLLEXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType);
+
+  protected:                     
+    DLLEXPORT Region(unsigned regnum, std::string name, Offset diskOff,
+                    unsigned long diskSize, Offset memOff, unsigned long memSize,
+                    char *rawDataPtr, perm_t perms, region_t regType);
+  private:
+    unsigned regNum_;
+    std::string name_;
+    Offset diskOff_;
+    unsigned long diskSize_;
+    Offset memOff_;
+    unsigned long memSize_;
+    void *rawDataPtr_;
+    perm_t permissions_;
+    region_t rType_;
+    bool isDirty_;
+    std::vector<relocationEntry> rels_;
+    char *buffer_;  //To hold dirty data
+};
 
  
 class LookupInterface {
@@ -151,7 +220,7 @@ private:
 
 class Symtab : public LookupInterface,
               public Annotatable<Symbol *, user_funcs_a>, 
-              public Annotatable<Section *, user_sections_a>, 
+              public Annotatable<Region *, user_regions_a>, 
               public Annotatable<Type *, user_types_a>, 
               public Annotatable<Symbol *, user_symbols_a> 
 {
@@ -188,12 +257,15 @@ class Symtab : public LookupInterface,
 	DLLEXPORT virtual bool getAllSymbolsByType(std::vector<Symbol *> &ret, 
                                               Symbol::SymbolType sType);
 	DLLEXPORT bool getAllModules(std::vector<Module *>&ret);
-	DLLEXPORT bool getAllSections(std::vector<Section *>&ret);
-	DLLEXPORT bool getAllNewSections(std::vector<Section *>&ret);
+
+	DLLEXPORT bool getCodeRegions(std::vector<Region *>&ret);
+	DLLEXPORT bool getDataRegions(std::vector<Region *>&ret);
+	DLLEXPORT bool getAllRegions(std::vector<Region *>&ret);
+	DLLEXPORT bool getAllNewRegions(std::vector<Region *>&ret);
 	
 	DLLEXPORT bool findModule(Module *&ret, const std::string name);
-	DLLEXPORT bool findSection(Section *&ret, std::string secname);
-	DLLEXPORT bool findSectionByEntry(Section *&ret, const Offset offset);
+	DLLEXPORT bool findRegion(Region *&ret, std::string regname);
+	DLLEXPORT bool findRegionByEntry(Region *&ret, const Offset offset);
 
 	DLLEXPORT bool addSymbol(Symbol *newsym, bool isDynamic = false);
     DLLEXPORT bool addSymbol(Symbol *newSym, Symbol *referringSymbol);
@@ -215,7 +287,7 @@ class Symtab : public LookupInterface,
 	DLLEXPORT bool isValidOffset(const Offset where) const;
 
 	DLLEXPORT bool isNativeCompiler() const;
-    DLLEXPORT bool getMappedRegions(std::vector<Region> &mappedregs) const;
+    DLLEXPORT bool getMappedRegions(std::vector<Region *> &mappedRegs) const;
 	
 	/***** Line Number Information *****/
 	DLLEXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
@@ -243,15 +315,15 @@ class Symtab : public LookupInterface,
 
 	/***** Write Back binary functions *****/
 	DLLEXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
-	DLLEXPORT bool addSection(Offset vaddr, void *data, unsigned int dataSize, std::string name, unsigned long flags, bool loadable = false);
-	DLLEXPORT bool addSection(Section *newScn);
+	DLLEXPORT bool addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, Region::region_t rType_, bool loadable = false);
+    DLLEXPORT bool addRegion(Region *newreg);
 	DLLEXPORT bool emit(std::string filename, unsigned flag = 0);
 
 	DLLEXPORT bool getSegments(std::vector<Segment> &segs) const;
 	DLLEXPORT bool updateCode(void *buffer, unsigned size);
 	DLLEXPORT bool updateData(void *buffer, unsigned size);
 	DLLEXPORT Offset getFreeOffset(unsigned size);
-	
+
 	/***** Data Member Access *****/
 	DLLEXPORT std::string file() const;
 	DLLEXPORT std::string name() const;
@@ -275,7 +347,7 @@ class Symtab : public LookupInterface,
 
     DLLEXPORT std::string getDefaultNamespacePrefix() const;
 
-    DLLEXPORT unsigned getNumberofSections() const;
+    DLLEXPORT unsigned getNumberofRegions() const;
     DLLEXPORT unsigned getNumberofSymbols() const;
     
     DLLEXPORT std::vector<std::string> &getDependencies();
@@ -419,7 +491,6 @@ class Symtab : public LookupInterface,
    Offset toc_offset_;
    ObjectType object_type_;
    bool is_eel_;
-   std::vector<Region> mapped_regions_;
    std::vector<Segment> segments_;
    //  make sure is_a_out is set before calling symbolsToFunctions
 
@@ -430,8 +501,10 @@ class Symtab : public LookupInterface,
 	
    //sections
    unsigned no_of_sections;
-   std::vector<Section *> sections_;
-   hash_map <Offset, Section *> secsByEntryAddr;
+   std::vector<Region *> regions_;
+   std::vector<Region *> codeRegions_;
+   std::vector<Region *> dataRegions_;
+   hash_map <Offset, Region *> regionsByEntryAddr;
 
    //Point where new loadable sections will be inserted
    unsigned newSectionInsertPoint;
@@ -508,7 +581,8 @@ class ExceptionBlock {
    Offset catchStart_;
    bool hasTry_;
 };
- 
+
+#if 0
 class Section {
    public:
       DLLEXPORT Section();
@@ -561,6 +635,7 @@ class Section {
       std::vector<relocationEntry> rels_;
       void *buffer_;
 };
+#endif
 
 // relocation information for calls to functions not in this image
 // on sparc-solaris: target_addr_ = rel_addr_ = PLT entry addr

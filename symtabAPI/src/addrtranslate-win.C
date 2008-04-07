@@ -211,11 +211,11 @@ AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<Lo
       if (!st)
          continue;
 
-      vector<Region> regs;
+      vector<Region *> regs;
       st->getMappedRegions(regs);
 
-      ll->add_mapped_region(name_addrs[i].codeAddr + regs[0].addr, regs[0].size);
-      ll->add_mapped_region(name_addrs[i].dataAddr + regs[1].addr, regs[1].size);
+      ll->add_mapped_region(name_addrs[i].codeAddr + regs[0]->getRegionAddr(), regs[0]->getRegionSize());
+      ll->add_mapped_region(name_addrs[i].dataAddr + regs[1]->getRegionAddr(), regs[1]->getRegionSize());
    }
    return at;
 }

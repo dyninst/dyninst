@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.16 2008/04/01 18:52:34 giri Exp $
+ * $Id: Object-elf.h,v 1.17 2008/04/07 22:32:49 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -270,13 +270,13 @@ class stab_entry_64 : public stab_entry {
 class pdElfShdr;
 
 class Symtab;
-class Section;
+class Region;
 
 class Object : public AObject {
  public:
   Object(){}
   Object(MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
-  Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Section *> &, void (*)(const char *) = log_msg);
+  Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
   Object(const Object &);
   virtual ~Object();
   const Object& operator=(const Object &);
@@ -291,7 +291,6 @@ class Object : public AObject {
   void getModuleLanguageInfo(hash_map<std::string, supportedLanguages> *mod_langs);
   void parseFileLineInfo(hash_map<std::string, LineInformation> &li);
   void parseTypeInfo(Symtab *obj);
-  bool getMappedRegions(std::vector<Region> &regs) const;
 
   bool needs_function_binding() const { return (plt_addr_ > 0); } 
   bool get_func_binding_table(std::vector<relocationEntry> &fbt) const;
@@ -364,7 +363,8 @@ class Object : public AObject {
 	}
 
 	bool is_offset_in_plt(Offset offset) const;
-    Elf_X_Shdr *getSectionHdrByAddr(Offset addr);
+    Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
+    bool isRegionPresent(Offset segmentStart, Offset segmentSize);
 
  private:
   static void log_elferror (void (*)(const char *), const char *);
@@ -423,7 +423,7 @@ class Object : public AObject {
 
   // all section headers, sorted by address
   // we use these to do a better job of finding the end of symbols
-  std::vector<Elf_X_Shdr*> allSectionHdrs;
+  std::vector<Elf_X_Shdr*> allRegionHdrs;
 
   // It doesn't look like image's equivalent hashtable is built by
   // the time we need it, and it's hard to get to anyway.

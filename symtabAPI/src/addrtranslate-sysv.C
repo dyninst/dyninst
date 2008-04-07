@@ -326,11 +326,11 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
    if (!fc)
       return false;
 
-   vector<Region> regs;
+   vector<Region *> regs;
    fc->getRegions(regs);
    
    for (unsigned i=0; i<regs.size(); i++) {
-      pair<Address, unsigned long> p(load_addr + regs[i].addr, regs[i].size);
+      pair<Address, unsigned long> p(load_addr + regs[i]->getRegionAddr(), regs[i]->getRegionSize());
       mapped_regions.push_back(p);
    }
    
@@ -572,7 +572,7 @@ Symtab *FCNode::getSymtab()
    return symtable;
 }
 
-void FCNode::getRegions(vector<Region> &regs) {
+void FCNode::getRegions(vector<Region *> &regs) {
    parsefile();
 
    for (unsigned i=0; i<regions.size(); i++)

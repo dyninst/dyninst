@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.24 2008/03/12 22:48:51 legendre Exp $
+// $Id: Object-nt.C,v 1.25 2008/04/07 22:32:50 giri Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -210,6 +210,7 @@ Object::Module::FindFile( std::string name )
 	}
 	return ret;
 }
+
 void
 Object::File::DefineSymbols( hash_map<std::string, std::vector< Symbol *> >& allSyms,
 				const std::string& modName ) const
@@ -242,50 +243,51 @@ Object::Module::DefineSymbols( const Object* obj,
 	// define Paradyn/dyninst modules and symbols
 	if( !isDll )
 	{
-		// this is an EXE
-		for( std::vector<Object::File*>::const_iterator iter = files.begin();
-					iter != files.end();
-					iter++ )
-		{
-			const File* curFile = *iter;
-			assert( curFile != NULL );
-			
-			//fprintf(stderr, "ObjMod::DefineSymbols for %s\n", curFile->GetName().c_str());
-			// add a Symbol for the file
-			syms[curFile->GetName()].push_back( new Symbol( curFile->GetName(), 
-																	"",
-															Symbol::ST_MODULE,
-															Symbol::SL_GLOBAL,
-															obj->code_off(),	// TODO use real base of symbols for file
-															NULL, 0 ) );		  // TODO Pass Section pointer also
-																							// TODO also pass size
-	    // add symbols for each of the file's symbols
-	    curFile->DefineSymbols( syms, curFile->GetName() );
-	}
+        // this is an EXE
+        for( std::vector<Object::File*>::const_iterator iter = files.begin();
+                iter != files.end();
+                iter++ )
+        {
+            const File* curFile = *iter;
+            assert( curFile != NULL );
+
+            //fprintf(stderr, "ObjMod::DefineSymbols for %s\n", curFile->GetName().c_str());
+            // add a Symbol for the file
+            syms[curFile->GetName()].push_back( new Symbol( curFile->GetName(), 
+                        "",
+                        Symbol::ST_MODULE,
+                        Symbol::SL_GLOBAL,
+                        obj->code_off(),	// TODO use real base of symbols for file
+                        NULL, 0 ) );		  // TODO Pass Section pointer also
+            // TODO also pass size
+            // add symbols for each of the file's symbols
+            curFile->DefineSymbols( syms, curFile->GetName() );
+        }
     }
     else
     {
-	// we represent a DLL
-	// add one Symbol for the entire module
-		syms[name].push_back( new Symbol( name,
-	    "",
-	    Symbol::ST_MODULE,
-	    Symbol::SL_GLOBAL,
-	    obj->code_off(),
-	    NULL,					//TODO pass Sections pointer
-	    obj->code_len()) );
-	// add symbols for each of the module's symbols
-	for( std::vector<Object::File*>::const_iterator iter = files.begin();
-		iter != files.end();
-		iter++ )
-	{
-	    const File* curFile = *iter;
-	    assert( curFile != NULL );
-	    // add symbols for each of the file's symbols
-	    curFile->DefineSymbols( syms, name );
-	}
+        // we represent a DLL
+        // add one Symbol for the entire module
+        syms[name].push_back( new Symbol( name,
+                    "",
+                    Symbol::ST_MODULE,
+                    Symbol::SL_GLOBAL,
+                    obj->code_off(),
+                    NULL,					//TODO pass Sections pointer
+                    obj->code_len()) );
+        // add symbols for each of the module's symbols
+        for( std::vector<Object::File*>::const_iterator iter = files.begin();
+                iter != files.end();
+                iter++ )
+        {
+            const File* curFile = *iter;
+            assert( curFile != NULL );
+            // add symbols for each of the file's symbols
+            curFile->DefineSymbols( syms, name );
+        }
     }
 }
+
 void
 Object::Module::PatchSymbolSizes( const Object* obj,
 								  const std::vector<Object::intSymbol*>& allSyms ) const
@@ -633,6 +635,28 @@ done:
    delete curModule;
 }
 
+Region::perm_t getRegionPerms(DWORD flags){
+    if((flags & IMAGE_SCN_MEM_EXECUTE) && (flags & IMAGE_SCN_MEM_WRITE))
+        return Region::RP_RWX;
+    else if(flags & IMAGE_SCN_MEM_EXECUTE)
+        return Region::RP_RX;
+    else if(flags & IMAGE_SCN_MEM_WRITE)
+        return Region::RP_RW;
+    else
+        return Region::RP_R;
+}
+
+Region::region_t getRegionType(DWORD flags){
+    if((flags & IMAGE_SCN_CNT_CODE) && (flags & IMAGE_SCN_CNT_INITIALIZED_DATA))
+        return Region::RT_TEXTDATA;
+    else if(flags & IMAGE_SCN_CNT_CODE)
+        return Region::RT_TEXT;
+    else if((flags & IMAGE_SCN_CNT_INITIALIZED_DATA) || (flags & IMAGE_SCN_CNT_UNINITIALIZED_DATA))
+        return Region::RT_DATA;
+    else
+        return Region::RT_OTHER;
+}
+
 void Object::FindInterestingSections(bool alloc_syms)
 {
    // now that we have the file mapped, look for 
@@ -651,7 +675,8 @@ void Object::FindInterestingSections(bool alloc_syms)
       fprintf(stderr,"Adding Symtab object with no program header, will " 
               "designate it as code\n");
       if (alloc_syms)
-         sections_.push_back(new Section(0, ".text", code_off_, code_len_, 0));
+          regions_.push_back(new Region(0, ".text", code_off_, code_len_, code_off_, code_len_, 0, Region::RP_RX, Region::RT_TEXT));
+//         regions_.push_back(new Section(0, ".text", code_off_, code_len_, 0));
       return;
    }
 
@@ -681,11 +706,18 @@ void Object::FindInterestingSections(bool alloc_syms)
          rawDataPtr = (void*)((unsigned int)pScnHdr->PointerToRawData + 
                               (unsigned int)mapAddr);
       }
-      if (alloc_syms);
-      sections_.push_back(new Section(i, (const char*)pScnHdr->Name, 
-                                      pScnHdr->VirtualAddress, 
-                                      pScnHdr->Misc.VirtualSize, 
-                                      rawDataPtr));
+	  unsigned long secSize = (pScnHdr->Misc.VirtualSize >= pScnHdr->SizeOfRawData) ? pScnHdr->Misc.VirtualSize 
+																					: pScnHdr->SizeOfRawData ;
+	  if (alloc_syms)
+          regions_.push_back(new Region(i, (const char *)pScnHdr->Name, 
+                                    pScnHdr->Misc.PhysicalAddress, pScnHdr->SizeOfRawData,
+                                    pScnHdr->VirtualAddress, secSize,
+                                    (char *)rawDataPtr, getRegionPerms(pScnHdr->Characteristics),
+                                    getRegionType(pScnHdr->Characteristics)));
+//        regions_.push_back(new Section(i, (const char*)pScnHdr->Name, 
+//                                      pScnHdr->VirtualAddress, 
+//                                      pScnHdr->Misc.VirtualSize, 
+//                                      rawDataPtr));
 
       if( strncmp( (const char*)pScnHdr->Name, ".text", 5 ) == 0 ) {
          // note that section numbers are one-based
@@ -827,7 +859,7 @@ Object::Object(MappedFile *mf_,
 }
 
 Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
-               std::vector<Section *> &, void (*err_func)(const char *))  :
+               std::vector<Region *> &, void (*err_func)(const char *))  :
    AObject(mf_, err_func),
    baseAddr(0),
    imageBase(0),
@@ -1835,23 +1867,6 @@ void Object::parseTypeInfo(Symtab *obj) {
 bool AObject::getSegments(vector<Segment> &segs) const
 {
     return true;
-}
-
-bool AObject::getMappedRegions(std::vector<Region> &regs) const
-{
-   Region reg;
-
-   reg.addr = code_vldS_;
-   reg.size = code_len_;
-   reg.offset = code_off_;
-   regs.push_back(reg);
-
-   reg.addr = data_vldS_;
-   reg.size = data_len_;
-   reg.offset = data_off_;
-   regs.push_back(reg);
-   
-   return true;
 }
 
 bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag) {

@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.10 2008/03/12 20:09:48 legendre Exp $
+ * $Id: Symbol.h,v 1.11 2008/04/07 22:32:46 giri Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -58,7 +58,7 @@ typedef struct {} symbol_version_names_a;
 namespace Dyninst{
 namespace SymtabAPI{
 
-class Section;
+class Region;
 class Module;
 class typeCommon;
 class localVarCollection;
@@ -100,10 +100,10 @@ public:
     DLLEXPORT Symbol (); // note: this ctor is called surprisingly often!
     DLLEXPORT Symbol (unsigned);
     DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
-             Offset, Section *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false, 
+             Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false, 
              bool isInSymtab_ = true);
     DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
-             Offset, Section *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false,
+             Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false,
              bool isInSymtab_ = true);
     DLLEXPORT Symbol (const Symbol &);
     DLLEXPORT ~Symbol();
@@ -116,7 +116,7 @@ public:
     DLLEXPORT SymbolType        getType ()              const;
     DLLEXPORT SymbolLinkage     getLinkage ()           const;
     DLLEXPORT Offset            getAddr ()              const;
-    DLLEXPORT Section		    *getSec ()      	    const;
+    DLLEXPORT Region		    *getSec ()      	    const;
     DLLEXPORT void 		        *getUpPtr()		        const;
     DLLEXPORT bool              isInDynSymtab()         const;
     DLLEXPORT bool              isInSymtab()            const;
@@ -180,7 +180,7 @@ private:
     SymbolType    type_;
     SymbolLinkage linkage_;
     Offset        addr_;
-    Section*      sec_;
+    Region*      sec_;
     unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
     void*         upPtr_;
     bool          isInDynsymtab_;

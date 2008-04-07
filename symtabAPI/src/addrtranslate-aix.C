@@ -263,14 +263,14 @@ AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<Lo
       Symtab *st = ll->getSymtab();
       if (!st)
          continue;
-      vector<Region> regs;
+      vector<Region *> regs;
       bool result = st->getMappedRegions(regs);
       if (!result)
          continue;
       
-      ll->add_mapped_region(name_addrs[i].codeAddr, regs[0].size);
+      ll->add_mapped_region(name_addrs[i].codeAddr, regs[0]->getRegionSize());
       if (name_addrs[i].dataAddr) {
-         ll->add_mapped_region(name_addrs[i].dataAddr, regs[1].size);
+         ll->add_mapped_region(name_addrs[i].dataAddr, regs[1]->getRegionSize());
       }
       at->libs.push_back(ll);
    }
@@ -384,8 +384,8 @@ void LoadedLibAIX::setReals()
       real_codeBase = load_addr;
       if (imageOffset < 0x20000000)
          real_codeBase -= imageOffset;
-      Section *sec;
-      bool result = sym->findSection(sec, ".text");
+      Region *sec;
+      bool result = sym->findRegion(sec, ".text");
       if (result && sec)
          real_codeBase += (Address) sec->getPtrToRawData() - sym->getBaseOffset();
    }

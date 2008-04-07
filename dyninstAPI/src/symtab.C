@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.319 2008/03/12 20:09:26 legendre Exp $
+ // $Id: symtab.C,v 1.320 2008/04/07 22:32:45 giri Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -269,8 +269,8 @@ void image::findMain()
     	else if(linkedFile->findSymbolByType(syms,"_fini",Symbol::ST_UNKNOWN)==true)
     		foundFini = true;
     
-    	Section *textsec = NULL;
-    	bool foundText = linkedFile->findSection(textsec, ".text");
+    	Region *textsec = NULL;
+    	bool foundText = linkedFile->findRegion(textsec, ".text");
         if (foundText == false) {
             return;
         }
@@ -280,7 +280,7 @@ void image::findMain()
     	    //find and add main to allsymbols
             const unsigned char* p;
 		                   
-	    p = (( const unsigned char * )linkedFile->image_ptr()) + (textsec->getSecAddr() - imageOffset_);
+	    p = (( const unsigned char * )linkedFile->image_ptr()) + (textsec->getRegionAddr() - imageOffset_);
             const unsigned char *lastP = 0;
 
             switch(linkedFile->getAddressWidth()) {
@@ -324,8 +324,8 @@ void image::findMain()
 
             logLine( "No main symbol found: creating symbol for main\n" );
 
-    	    Section *pltsec;
-            if((linkedFile->findSection(pltsec, ".plt")) && pltsec->isOffsetInSection(mainAddress))
+    	    Region *pltsec;
+            if((linkedFile->findRegion(pltsec, ".plt")) && pltsec->isOffsetInRegion(mainAddress))
             {
             	//logLine( "No static symbol for function main\n" );
                 Symbol *newSym = new Symbol("DYNINST_pltMain", "DEFAULT_MODULE",
@@ -344,7 +344,7 @@ void image::findMain()
     	if( !foundStart )
     	{
             Symbol *startSym = new Symbol( "_start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                   Symbol::SL_GLOBAL, textsec->getSecAddr(),textsec, UINT_MAX );
+                   Symbol::SL_GLOBAL, textsec->getRegionAddr(),textsec, UINT_MAX );
     
             //cout << "sim for start!" << endl;
         
@@ -352,23 +352,23 @@ void image::findMain()
     	}
     	if( !foundFini )
     	{
-	    Section *finisec;
-	    linkedFile->findSection(finisec,".fini");
+	    Region *finisec;
+	    linkedFile->findRegion(finisec,".fini");
             Symbol *finiSym = new Symbol( "_fini","DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                        Symbol::SL_GLOBAL, finisec->getSecAddr(), finisec, UINT_MAX );
+                        Symbol::SL_GLOBAL, finisec->getRegionAddr(), finisec, UINT_MAX );
 	    linkedFile->addSymbol(finiSym);		
     	}
     }
 
-    Section *dynamicsec;
+    Region *dynamicsec;
     vector < Symbol *>syms;
-    if(linkedFile->findSection(dynamicsec, ".dynamic")==true)
+    if(linkedFile->findRegion(dynamicsec, ".dynamic")==true)
     {
         if(linkedFile->findSymbolByType(syms,"_DYNAMIC",Symbol::ST_UNKNOWN)==false)
         {
 	    Symbol *newSym = new Symbol( "_DYNAMIC", "DEFAULT_MODULE", 
 					Symbol::ST_OBJECT, Symbol::SL_GLOBAL,
-					dynamicsec->getSecAddr(), dynamicsec, 0 );
+					dynamicsec->getRegionAddr(), dynamicsec, 0 );
 	    linkedFile->addSymbol(newSym);
 	}
     }
@@ -381,8 +381,8 @@ void image::findMain()
       linkedFile->findSymbolByType(syms,"usla_main",Symbol::ST_UNKNOWN)==true)
    	foundMain = true;
 
-   Section *sec;
-   linkedFile->findSection(sec, ".text"); 	
+   Region *sec;
+   linkedFile->findRegion(sec, ".text"); 	
 
    if( !foundMain && linkedFile->isExec() )
    {
@@ -416,7 +416,7 @@ void image::findMain()
            c--;
        }
        
-       Offset currAddr = sec->getSecAddr() + c * instruction::size();
+       Offset currAddr = sec->getRegionAddr() + c * instruction::size();
        Offset mainAddr = 0;
        
        if( ( i.iform.op == Bop ) || ( i.bform.op == BCop ) )
@@ -449,7 +449,7 @@ void image::findMain()
        //since we are here make up a sym for _start as well
 
        Symbol *sym1 = new Symbol( "__start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                   Symbol::SL_GLOBAL, sec->getSecAddr(), sec);
+                   Symbol::SL_GLOBAL, sec->getRegionAddr(), sec);
        linkedFile->addSymbol(sym1);
    }
 

@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.16 2008/03/12 22:48:55 legendre Exp $
+// $Id: Object.C,v 1.17 2008/04/07 22:32:53 giri Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -235,7 +235,7 @@ DLLEXPORT Offset Symbol::getAddr() const {
     return addr_;
 }
 
-DLLEXPORT Section *Symbol::getSec() const {
+DLLEXPORT Region *Symbol::getSec() const {
     return sec_;
 }
 
@@ -318,7 +318,7 @@ DLLEXPORT const std::vector<string>& Symbol::getAllTypedNames() const {
 
 DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
-    Section *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
+    Region *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
     : type_(itype),
     linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), upPtr_(upPtr), isInDynsymtab_(isInDynSymtab),
     isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL), vars_(NULL), params_(NULL) {
@@ -329,7 +329,7 @@ DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
 
 DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
-    Section *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
+    Region *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
     : module_(mod), type_(itype),
     linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), upPtr_(upPtr), isInDynsymtab_(isInDynSymtab), 
     isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL), vars_(NULL), params_(NULL) {
@@ -718,9 +718,9 @@ DLLEXPORT bool AObject::getAllExceptions(std::vector<ExceptionBlock *>&excpBlock
    return true;
 }
 
-DLLEXPORT std::vector<Section *> AObject::getAllSections() const
+DLLEXPORT std::vector<Region *> AObject::getAllRegions() const
 {
-   return sections_;	
+   return regions_;	
 }
 
 DLLEXPORT Offset AObject::loader_off() const 

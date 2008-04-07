@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.111 2008/03/12 20:08:51 legendre Exp $
+// $Id: BPatch_image.C,v 1.112 2008/04/07 22:32:38 giri Exp $
 
 #define BPATCH_FILE
 
@@ -1173,33 +1173,33 @@ BPatch_module *BPatch_image::parseNewRegionInt
       for (unsigned int i=0; !foundSection && i < allmods->size(); i++) {
          image *curImg = (*allmods)[i]->lowlevel_mod()->pmod()->imExec();
          // check the PE header for uninitialized data sections
-         std::vector<Section*> peSections;
-         if (curImg->getObject()->getAllSections(peSections)) {
+         std::vector<Region*> peSections;
+         if (curImg->getObject()->getAllRegions(peSections)) {
             Address baseAddress = curImg->desc().loadAddr();
             printf("sections list in image %s\n", curImg->name().c_str());
             for (unsigned int j=0; j < peSections.size(); j++) {
-               Section *cursec = peSections[j];
+               Region *cursec = peSections[j];
                printf("section #%d: \"%s\"isLoadable=%d [0x%x 0x%x] "
                      "rawDataPtr=0x%x\n", //KEVINTODO: remove or hide this 
-                     cursec->getSecNumber(), cursec->getSecName().c_str(), 
+                     cursec->getRegionNumber(), cursec->getRegionName().c_str(), 
                      cursec->isLoadable(), 
-                     cursec->getSecAddr() +baseAddress,
-                     cursec->getSecAddr() +cursec->getSecSize() +baseAddress,
+                     cursec->getRegionAddr() +baseAddress,
+                     cursec->getRegionAddr() +cursec->getRegionSize() +baseAddress,
                      cursec->getPtrToRawData());
                bool inSection = true;
                for (unsigned int k=0; inSection && k < funcEntryAddrs->size(); k++) {
                   if (cursec->getPtrToRawData() 
-                        || (*funcEntryAddrs)[k] < cursec->getSecAddr() + baseAddress
-                        || (*funcEntryAddrs)[k] >= (cursec->getSecAddr() 
-                           + cursec->getSecSize() 
+                        || (*funcEntryAddrs)[k] < cursec->getRegionAddr() + baseAddress
+                        || (*funcEntryAddrs)[k] >= (cursec->getRegionAddr() 
+                           + cursec->getRegionSize() 
                            + baseAddress)) {
                      inSection = false;
                   }
                }
                if (inSection) {
                   foundSection = true;
-                  addrStart = cursec->getSecAddr() + baseAddress;
-                  addrEnd = cursec->getSecAddr() + cursec->getSecSize() + baseAddress;
+                  addrStart = cursec->getRegionAddr() + baseAddress;
+                  addrEnd = cursec->getRegionAddr() + cursec->getRegionSize() + baseAddress;
                }
             }
          }

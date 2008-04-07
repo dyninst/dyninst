@@ -102,7 +102,7 @@ bool emitElf64::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsign
    sym->st_other = 0;
    sym->st_info = ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
    if(symbol->getSec())
-	sym->st_shndx = symbol->getSec()->getSecNumber();
+	sym->st_shndx = symbol->getSec()->getRegionNumber();
    else if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
         sym->st_shndx = SHN_ABS;
    
@@ -184,7 +184,7 @@ bool emitElf64::getBackSymbol(Symbol *symbol, vector<string> &symbolStrs, unsign
        	sym->st_other = 0;
        	sym->st_info = ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
        	if(symbol->getSec())
-    	    sym->st_shndx = symbol->getSec()->getSecNumber();
+    	    sym->st_shndx = symbol->getSec()->getRegionNumber();
     	else if(symbol->getType() == Symbol::ST_MODULE || symbol->getType() == Symbol::ST_NOTYPE)
     	    sym->st_shndx = SHN_ABS;
        	symbols.push_back(sym);
@@ -219,7 +219,7 @@ void emitElf64::findSegmentEnds()
 
 bool emitElf64::driver(Symtab *obj, string fName){
     int newfd;
-    Section *foundSec;
+    Region *foundSec;
     unsigned pgSize = getpagesize();
 
     //open ELf File for writing
@@ -286,7 +286,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
         shdr = elf64_getshdr(scn);
     	// resolve section name
         const char *name = &shnames[shdr->sh_name];
-	    obj->findSection(foundSec, name);
+	    obj->findRegion(foundSec, name);
         // write the shstrtabsection at the end
         if(!strcmp(name, ".shstrtab"))
             continue;
@@ -304,10 +304,10 @@ bool emitElf64::driver(Symtab *obj, string fName){
     
     	if(foundSec->isDirty())
     	{
-    	    newdata->d_buf = (char *)malloc(foundSec->getSecSize());
-    	    memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getSecSize());
-    	    newdata->d_size = foundSec->getSecSize();
-    	    newshdr->sh_size = foundSec->getSecSize();
+    	    newdata->d_buf = (char *)malloc(foundSec->getDiskSize());
+    	    memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
+    	    newdata->d_size = foundSec->getDiskSize();
+    	    newshdr->sh_size = foundSec->getDiskSize();
     	}
     	else if(olddata->d_buf)     //copy the data buffer from oldElf
     	{
@@ -587,10 +587,10 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
     {
     	if(newSecs[i]->isLoadable())
     	{
-	        secNames.push_back(newSecs[i]->getSecName());
-            if(newSecs[i]->getSecName() == ".dynstr")
+	        secNames.push_back(newSecs[i]->getRegionName());
+            if(newSecs[i]->getRegionName() == ".dynstr")
                 elf64_newdynstrIndex = secNames.size() - 1;
-            else if(newSecs[i]->getSecName() == ".dynsym")
+            else if(newSecs[i]->getRegionName() == ".dynsym")
                 elf64_newdynsymIndex = secNames.size() - 1;
     
             // Add a new loadable section
@@ -610,10 +610,19 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
 	        newshdr = elf64_getshdr(newscn);
 	        newshdr->sh_name = secNameIndex;
     	    newshdr->sh_flags = 0;
-    	    if(newSecs[i]->getFlags() && Section::textSection)
-	        	newshdr->sh_flags |=  SHF_EXECINSTR | SHF_ALLOC;
-    	    if (newSecs[i]->getFlags() && Section::dataSection)    
-	            newshdr->sh_flags |=  SHF_WRITE | SHF_ALLOC;
+            switch(newSecs[i]->getRegionType()){
+                case Region::RT_TEXTDATA:
+                    newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;
+                    break;
+                case Region::RT_TEXT:
+                    newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC;
+                    break;
+                case Region::RT_DATA:
+                    newshdr->sh_flags = SHF_WRITE | SHF_ALLOC;
+                    break;
+                default:
+                    break;
+            }
     	    newshdr->sh_type = SHT_PROGBITS;
 
             // TODO - compute the correct offset && address. This is wrong!!
@@ -621,8 +630,8 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
 	        	newshdr->sh_offset = shdr->sh_offset;
     	    else
 	        	newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
-            if(newSecs[i]->getSecAddr())
-    	        newshdr->sh_addr = newSecs[i]->getSecAddr();
+            if(newSecs[i]->getDiskOffset())
+    	        newshdr->sh_addr = newSecs[i]->getDiskOffset();
             else{
                 newshdr->sh_addr = prevshdr->sh_addr+ prevshdr->sh_size;
             }
@@ -632,7 +641,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
 	        newshdr->sh_addralign = 4;
        	    newshdr->sh_entsize = 0;
             
-            if(newSecs[i]->getFlags() & Section::relocationSection)    //Relocation section
+            if(newSecs[i]->getRegionType() == Region::RT_REL)    //Relocation section
             {
                 newshdr->sh_type = SHT_REL;
                 newshdr->sh_flags = SHF_ALLOC;
@@ -641,13 +650,13 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
                 newdata->d_type = ELF_T_REL;
 	            newdata->d_align = 4;
 #if !defined(os_solaris)
-                if(newSecs[i]->getSecName() == ".rel.plt")
+                if(newSecs[i]->getRegionName() == ".rel.plt")
                     updateDynamic(DT_JMPREL, newshdr->sh_addr);
                 else
                     updateDynamic(DT_REL, newshdr->sh_addr);
 #endif
             }
-            else if(newSecs[i]->getFlags() & Section::stringSection)    //String table Section
+            else if(newSecs[i]->getRegionType() == Region::RT_STRTAB)    //String table Section
             {
                 newshdr->sh_type = SHT_STRTAB;
                 newshdr->sh_entsize = 1;
@@ -659,10 +668,10 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
                 newshdr->sh_addralign = 1;
 #if !defined(os_solaris)
                 updateDynamic(DT_STRTAB, newshdr->sh_addr);
-                updateDynamic(DT_STRSZ, newSecs[i]->getSecSize());
+                updateDynamic(DT_STRSZ, newSecs[i]->getDiskSize());
 #endif
             }
-            else if(newSecs[i]->getFlags() & Section::dynsymtabSection)
+            else if(newSecs[i]->getRegionType() == Region::RT_SYMTAB)
             {
                 newshdr->sh_type = SHT_DYNSYM;
                 newshdr->sh_entsize = sizeof(Elf64_Sym);
@@ -675,7 +684,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
                 updateDynamic(DT_SYMTAB, newshdr->sh_addr);
 #endif
             }
-            else if(newSecs[i]->getFlags() & Section::dynamicSection)
+            else if(newSecs[i]->getRegionType() == Region::RT_DYNAMIC)
             {
 #if !defined(os_solaris)
                 newshdr->sh_entsize = sizeof(Elf64_Dyn);
@@ -687,10 +696,10 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
                 newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
                 dynSegOff = newshdr->sh_offset;
                 dynSegAddr = newshdr->sh_addr;
-                dynSegSize = newSecs[i]->getSecSize();
+                dynSegSize = newSecs[i]->getDiskSize();
             }
 #if !defined(os_solaris)
-            else if(newSecs[i]->getFlags() & Section::versymSection)
+            else if(newSecs[i]->getRegionType() == Region::RT_SYMVERSIONS)
             {
                 newshdr->sh_type = SHT_GNU_versym;
                 newshdr->sh_entsize = sizeof(Elf64_Half);
@@ -701,7 +710,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
                 newshdr->sh_flags = SHF_ALLOC ;
                 updateDynamic(DT_VERSYM, newshdr->sh_addr);
             }
-            else if(newSecs[i]->getFlags() & Section::verneedSection)
+            else if(newSecs[i]->getRegionType() == Region::RT_SYMVERNEEDED)
             {
                 newshdr->sh_type = SHT_GNU_verneed;
                 newshdr->sh_entsize = 0;
@@ -712,7 +721,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
                 newshdr->sh_flags = SHF_ALLOC ;
                 updateDynamic(DT_VERNEED, newshdr->sh_addr);
             }
-            else if(newSecs[i]->getFlags() & Section::verdefSection)
+            else if(newSecs[i]->getRegionType() == Region::RT_SYMVERDEF)
             {
                 newshdr->sh_type = SHT_GNU_verdef;
                 newshdr->sh_entsize = 0;
@@ -758,10 +767,10 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
             // newshdr->sh_offset = shdr->sh_offset;
 
     	    //Set up the data
-            newdata->d_buf = malloc(newSecs[i]->getSecSize());
-    	    memcpy(newdata->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getSecSize());
+            newdata->d_buf = malloc(newSecs[i]->getDiskSize());
+    	    memcpy(newdata->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getDiskSize());
             newdata->d_off = 0;
-	        newdata->d_size = newSecs[i]->getSecSize();
+	        newdata->d_size = newSecs[i]->getDiskSize();
 	        newshdr->sh_size = newdata->d_size;
     	    loadSecTotalSize += newshdr->sh_size;
 	    
@@ -772,10 +781,10 @@ bool emitElf64::createLoadableSections(Elf64_Shdr *shdr, unsigned &loadSecTotalS
 	        shdr = newshdr;
     	    if(!firstNewLoadSec)
 	        	firstNewLoadSec = shdr;
-            secNameIndex += newSecs[i]->getSecName().size() + 1;
+            secNameIndex += newSecs[i]->getRegionName().size() + 1;
 	        /* DEBUG */
             fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-                    newSecs[i]->getSecName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
+                    newSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
             prevshdr = newshdr;
 	    }
 	    else
@@ -846,7 +855,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
     //All of them that are left are non-loadable. stack'em up at the end.
     for(unsigned i = 0; i < nonLoadableSecs.size(); i++)
     {
-        secNames.push_back(nonLoadableSecs[i]->getSecName());
+        secNames.push_back(nonLoadableSecs[i]->getRegionName());
         // Add a new non-loadable section
         if((newscn = elf_newscn(newElf)) == NULL)
         {
@@ -862,29 +871,29 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
         //Fill out the new section header
         newshdr = elf64_getshdr(newscn);
         newshdr->sh_name = secNameIndex;
-        secNameIndex += nonLoadableSecs[i]->getSecName().length() + 1;
-        if(nonLoadableSecs[i]->getFlags() & Section::textSection)		//Text Section
+        secNameIndex += nonLoadableSecs[i]->getRegionName().length() + 1;
+        if(nonLoadableSecs[i]->getRegionType() == Region::RT_TEXT)		//Text Section
         {
             newshdr->sh_type = SHT_PROGBITS;
             newshdr->sh_flags = SHF_EXECINSTR | SHF_WRITE;
             newshdr->sh_entsize = 1;
             newdata->d_type = ELF_T_BYTE;
         }
-        else if(nonLoadableSecs[i]->getFlags() & Section::dataSection)	//Data Section
+        else if(nonLoadableSecs[i]->getRegionType() == Region::RT_DATA)	//Data Section
         {
             newshdr->sh_type = SHT_PROGBITS;
             newshdr->sh_flags = SHF_WRITE;
             newshdr->sh_entsize = 1;
             newdata->d_type = ELF_T_BYTE;
         }
-        else if(nonLoadableSecs[i]->getFlags() & Section::relocationSection)	//Relocations section
+        else if(nonLoadableSecs[i]->getRegionType() == Region::RT_REL)	//Relocations section
         {
             newshdr->sh_type = SHT_REL;
             newshdr->sh_flags = SHF_WRITE;
             newshdr->sh_entsize = sizeof(Elf64_Rel);
             newdata->d_type = ELF_T_BYTE;
         }
-        else if(nonLoadableSecs[i]->getFlags() & Section::symtabSection)
+        else if(nonLoadableSecs[i]->getRegionType() == Region::RT_SYMTAB)
         {
             newshdr->sh_type = SHT_SYMTAB;
             newshdr->sh_entsize = sizeof(Elf64_Sym);
@@ -892,7 +901,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
             newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab 
             newshdr->sh_flags=  0;
         }
-        else if(nonLoadableSecs[i]->getFlags() & Section::stringSection)	//String table Section
+        else if(nonLoadableSecs[i]->getRegionType() == Region::RT_STRTAB)	//String table Section
         {
             newshdr->sh_type = SHT_STRTAB;
             newshdr->sh_entsize = 1;
@@ -900,6 +909,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
             newshdr->sh_link = SHN_UNDEF; 
             newshdr->sh_flags=  0;
         }
+        /*
         else if(nonLoadableSecs[i]->getFlags() & Section::dynsymtabSection)
         {
             newshdr->sh_type = SHT_DYNSYM;
@@ -907,7 +917,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
             newdata->d_type = ELF_T_SYM;
             //newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
             newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
-        }
+        }*/
         newshdr->sh_offset = prevshdr->sh_offset+prevshdr->sh_size;
         newshdr->sh_addr = 0;
         newshdr->sh_info = 0;
@@ -915,7 +925,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
 
         //Set up the data
         newdata->d_buf = nonLoadableSecs[i]->getPtrToRawData();
-        newdata->d_size = nonLoadableSecs[i]->getSecSize();
+        newdata->d_size = nonLoadableSecs[i]->getDiskSize();
         newshdr->sh_size = newdata->d_size;
         //elf_update(newElf, ELF_C_NULL);
 
@@ -924,7 +934,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
         newdata->d_version = 1;
         /* DEBUG */
         fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-                nonLoadableSecs[i]->getSecName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
+                nonLoadableSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
 
         prevshdr = newshdr;
     }	
@@ -1006,24 +1016,24 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
     
     if(!isStripped)
     {
-        Section *sec;
-        obj->findSection(sec,".symtab");
+        Region *sec;
+        obj->findRegion(sec,".symtab");
 	    sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf64_Sym));
     }
     else
-    	obj->addSection(0, syms, symbols.size()*sizeof(Elf64_Sym), ".symtab", Section::symtabSection);
+    	obj->addRegion(0, syms, symbols.size()*sizeof(Elf64_Sym), ".symtab", Region::RT_SYMTAB);
 
     //reconstruct .strtab section
     if(!isStripped)
     {
-        Section *sec;
-        obj->findSection(sec,".strtab");
+        Region *sec;
+        obj->findRegion(sec,".strtab");
 	    sec->setPtrToRawData(str, symbolNamesLength);
     }
     else
-        obj->addSection(0, str, symbolNamesLength , ".strtab", Section::stringSection);
+        obj->addRegion(0, str, symbolNamesLength , ".strtab", Region::RT_STRTAB);
     
-    if(!obj->getAllNewSections(newSecs))
+    if(!obj->getAllNewRegions(newSecs))
     	log_elferror(err_func_, "No new sections to add");
 
     //reconstruct .dynsym section
@@ -1037,13 +1047,13 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
     unsigned verneedSecSize = 0, verdefSecSize = 0, dynsecSize = 0;
                
     createSymbolVersions(symVers, verneedSecData, verneedSecSize, verdefSecData, verdefSecSize, dynsymbolNamesLength, dynsymbolStrs);
-    Section *sec;
-    if(obj->findSection(sec, ".dynstr"))
+    Region *sec;
+    if(obj->findRegion(sec, ".dynstr"))
         olddynStrData = (char *)sec->getPtrToRawData();
 
     Elf64_Dyn *dynsecData;
-    if(obj->findSection(sec, ".dynamic"))
-        createDynamicSection(sec->getPtrToRawData(), sec->getSecSize(), dynsecData, dynsecSize, dynsymbolNamesLength, dynsymbolStrs);
+    if(obj->findRegion(sec, ".dynamic"))
+        createDynamicSection(sec->getPtrToRawData(), sec->getDiskSize(), dynsecData, dynsecSize, dynsymbolNamesLength, dynsymbolStrs);
 #endif
    
     if(!dynsymbolNamesLength)
@@ -1059,19 +1069,19 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
         dynSymNameMapping[dynsymbolStrs[i]] = i;
     }
     
-  	obj->addSection(0, dynsyms, dynsymbols.size()*sizeof(Elf64_Sym), ".dynsym", Section::dynsymtabSection, true);
+  	obj->addRegion(0, dynsyms, dynsymbols.size()*sizeof(Elf64_Sym), ".dynsym", Region::RT_SYMTAB, true);
 
     //reconstruct .dynstr section
-    obj->addSection(0, dynstr, dynsymbolNamesLength+1 , ".dynstr", Section::stringSection, true);
+    obj->addRegion(0, dynstr, dynsymbolNamesLength+1 , ".dynstr", Region::RT_STRTAB, true);
 
 #if !defined(os_solaris)
     //add .gnu.version section
-    obj->addSection(0, symVers, versionSymTable.size() * sizeof(Elf64_Half), ".gnu.version", Section::versymSection, true);
+    obj->addRegion(0, symVers, versionSymTable.size() * sizeof(Elf64_Half), ".gnu.version", Region::RT_SYMVERSIONS, true);
     //add .gnu.version_r section
     if(verneedSecSize)
-        obj->addSection(0, verneedSecData, verneedSecSize, ".gnu.version_r", Section::verneedSection, true);
+        obj->addRegion(0, verneedSecData, verneedSecSize, ".gnu.version_r", Region::RT_SYMVERNEEDED, true);
     if(verdefSecSize)
-        obj->addSection(0, verdefSecData, verdefSecSize, ".gnu.version_d", Section::verdefSection, true);
+        obj->addRegion(0, verdefSecData, verdefSecSize, ".gnu.version_d", Region::RT_SYMVERDEF, true);
 #endif
 
     Elf64_Rel *relplts = (Elf64_Rel *)malloc(sizeof(Elf64_Rel) * (fbt.size()));
@@ -1084,7 +1094,7 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
             //rels[i].r_addend = 0;
         }
     }
-   	obj->addSection(0, relplts, fbt.size()*sizeof(Elf64_Rel), ".rel.plt", Section::relocationSection, true);
+   	obj->addRegion(0, relplts, fbt.size()*sizeof(Elf64_Rel), ".rel.plt", Region::RT_REL, true);
     
     vector<relocationEntry> newRels = newSecs[0]->getRelocations();
     
@@ -1110,19 +1120,19 @@ bool emitElf64::checkIfStripped(Symtab *obj, vector<Symbol *>&functions, vector<
 #elif defined(arch_x86_64)
             rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_64);
 #elif defined(arch_power)
-            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_ADDR64);
+//            rels[i].r_info = ELF64_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_ADDR64);
 #endif
         }
     }
-   	obj->addSection(0, rels, (relocation_table.size()+newRels.size())*sizeof(Elf64_Rel), ".rel.dyn", Section::relocationSection, true);
+   	obj->addRegion(0, rels, (relocation_table.size()+newRels.size())*sizeof(Elf64_Rel), ".rel.dyn", Region::RT_REL, true);
     
 #if !defined(os_solaris)
     //add .dynamic section
     if(dynsecSize)
-        obj->addSection(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Section::dynamicSection, true);
+        obj->addRegion(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
 #endif 
 
-    if(!obj->getAllNewSections(newSecs))
+    if(!obj->getAllNewRegions(newSecs))
     	log_elferror(err_func_, "No new sections to add");
 
     return true;

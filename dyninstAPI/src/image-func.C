@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.50 2008/02/23 02:09:05 jaw Exp $
+// $Id: image-func.C,v 1.51 2008/04/07 22:32:41 giri Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -159,10 +159,10 @@ image_func::image_func(const std::string &symbol,
                 image_func_count, image_func_count*sizeof(image_func));
 #endif
     endOffset_ = offset + symTabSize;
-    Section * sec = NULL;
+    Region * sec = NULL;
     Symtab * st = i->getObject();
     if(st)
-        st->findSection(sec, ".text");
+        st->findRegion(sec, ".text");
      sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
 	  		     								offset, sec, symTabSize);
      //i->getObject()->addSymbol(sym_);								

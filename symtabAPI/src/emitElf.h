@@ -72,8 +72,8 @@ class emitElf{
     Elf32_Shdr *textSh;
     Elf32_Shdr *rodataSh;
     
-    std::vector<Section *>nonLoadableSecs;
-    std::vector<Section *> newSecs;
+    std::vector<Region *>nonLoadableSecs;
+    std::vector<Region *> newSecs;
 #if !defined(os_solaris)
     std::map<unsigned, std::vector<Elf32_Dyn *> > dynamicSecData;
     std::vector<std::string> DT_NEEDEDEntries;

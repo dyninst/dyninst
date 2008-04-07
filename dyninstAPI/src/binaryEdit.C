@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: binaryEdit.C,v 1.15 2008/02/23 02:09:05 jaw Exp $
+// $Id: binaryEdit.C,v 1.16 2008/04/07 22:32:40 giri Exp $
 
 #include "binaryEdit.h"
 #include "common/h/headers.h"
@@ -363,22 +363,22 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
     //    we might have both.
     // bool loadable: heck yeah...
     
-    Section *newSec = NULL;
-    symObj->findSection(newSec, ".dyninstInst");
+    Region *newSec = NULL;
+    symObj->findRegion(newSec, ".dyninstInst");
     if (newSec) {
         // We're re-instrumenting - will fail for now
         fprintf(stderr, "ERROR:  unable to reinstrument previously instrumented binary!\n");
         return false;
     }
     
-    symObj->addSection(lowWaterMark_,
+    symObj->addRegion(lowWaterMark_,
                        newSectionPtr,
                        highWaterMark_ - lowWaterMark_,
                        ".dyninstInst",
-                       Section::textSection | Section::dataSection,
+                       Region::RT_TEXTDATA,
                        true);
     
-    symObj->findSection(newSec, ".dyninstInst");
+    symObj->findRegion(newSec, ".dyninstInst");
     assert(newSec);
 
 
@@ -560,22 +560,22 @@ bool BinaryEdit::writeFile(const std::string &newFileName) {
         //    we might have both.
         // bool loadable: heck yeah...
 
-        Section *newSec = NULL;
-        symObj->findSection(newSec, ".dyninstInst");
+        Region *newSec = NULL;
+        symObj->findRegion(newSec, ".dyninstInst");
         if (newSec) {
             // We're re-instrumenting - will fail for now
             fprintf(stderr, "ERROR:  unable to reinstrument previously instrumented binary!\n");
             return false;
         }
 
-        symObj->addSection(lowWaterMark_,
+        symObj->addRegion(lowWaterMark_,
                            newSection,
                            newSectionSize,
                            ".dyninstInst",
-                           Section::textSection | Section::dataSection,
+                           Region::RT_TEXTDATA,
                            true);
 
-        symObj->findSection(newSec, ".dyninstInst");
+        symObj->findRegion(newSec, ".dyninstInst");
         assert(newSec);
         
         for (unsigned i = 0; i < newStuff.size(); i++) {

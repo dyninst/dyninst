@@ -51,7 +51,7 @@ protected:
    bool parse_error;
 
    string interpreter_name;
-   vector<Region> regions;
+   vector<Region *> regions;
    unsigned addr_size;
    Offset r_debug_offset;
    Symtab *symtable;
@@ -63,7 +63,7 @@ public:
    string getFilename();
 
    string getInterpreter();
-   void getRegions(vector<Region> &regs);
+   void getRegions(vector<Region *> &regs);
    unsigned getAddrSize();
    Offset get_r_debug();
    Symtab *getSymtab();

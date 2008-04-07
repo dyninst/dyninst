@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.270 2008/03/12 20:09:17 legendre Exp $
+// $Id: linux.C,v 1.271 2008/04/07 22:32:43 giri Exp $
 
 #include <fstream>
 
@@ -1460,9 +1460,9 @@ bool process::dumpImage( std::string imageFileName )
 bool isPLT(int_function *f)
 {
     Symtab *obj = f->mod()->obj()->parse_img()->getObject();
-    Section *sec;
-    if(obj->findSection(sec, ".plt"))
-	return sec->isOffsetInSection(f->ifunc()->getOffset());
+    Region *sec;
+    if(obj->findRegion(sec, ".plt"))
+	return sec->isOffsetInRegion(f->ifunc()->getOffset());
     return false;	
 }
 

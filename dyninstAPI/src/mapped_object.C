@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.34 2008/02/23 02:09:09 jaw Exp $
+// $Id: mapped_object.C,v 1.35 2008/04/07 22:32:44 giri Exp $
 
 #include <string>
 
@@ -107,8 +107,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       // GCC-ism. This is a shared library with a a.out-like codeOffset.
       // We need to make our base the difference between the two...
       codeBase_ -= image_->imageOffset();
-      Section *sec;
-      image_->getObject()->findSection(sec, ".text");
+      Region *sec;
+      image_->getObject()->findRegion(sec, ".text");
       //fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
       //	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
       codeBase_ += ((Address)sec->getPtrToRawData() - image_->getObject()->getBaseOffset());	
@@ -120,8 +120,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       // of file to interesting bits"). 
       // Non-GCC shared libraries.
       //codeBase_ += image_->getObject()->text_reloc();
-      Section *sec;
-      image_->getObject()->findSection(sec, ".text");
+      Region *sec;
+      image_->getObject()->findRegion(sec, ".text");
       //fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
       //	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseOffset());
       codeBase_ += ((Address)sec->getPtrToRawData()-image_->getObject()->getBaseOffset());
@@ -932,12 +932,12 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const
       // it goes (ARGH) so we pad the end of the code segment to
       // try and avoid it.
 
-      Section *sec;
-      image_->getObject()->findSection(sec, ".loader");
+      Region *sec;
+      image_->getObject()->findRegion(sec, ".loader");
       Address loader_end = codeAbs() + 
          //sec.getSecAddr() +
          image_->getObject()->getLoadOffset() +
-         sec->getSecSize();
+         sec->getDiskSize();
       //Address loader_end = codeAbs() + 
       //    image_->getObject()->loader_off() +
       //    image_->getObject()->loader_len();

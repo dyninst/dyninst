@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.15 2008/01/10 19:43:32 giri Exp $
+ * $Id: Object.h,v 1.16 2008/04/07 22:32:54 giri Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -58,6 +58,7 @@ namespace SymtabAPI{
 extern bool symbol_compare(const Symbol *s1, const Symbol *s2);
 
 class Symtab;
+class Region;
 class ExceptionBlock;
 class relocationEntry;
 
@@ -100,7 +101,7 @@ public:
     DLLEXPORT unsigned	      no_of_symbols  ()	const;
 
     DLLEXPORT bool getAllExceptions(std::vector<ExceptionBlock *>&excpBlocks) const;
-    DLLEXPORT std::vector<Section *> getAllSections() const;
+    DLLEXPORT std::vector<Region *> getAllRegions() const;
 
 
     DLLEXPORT supportedLanguages pickLanguage(std::string &working_module, char *working_options,
@@ -117,7 +118,6 @@ public:
     DLLEXPORT virtual  bool   get_func_binding_table_ptr(const std::vector<relocationEntry> *&) const; 
     DLLEXPORT virtual  bool   addRelocationEntry(relocationEntry &re);
     DLLEXPORT bool   getSegments(std::vector<Segment> &segs) const;
-    DLLEXPORT bool   getMappedRegions(std::vector<Region> &regs) const;
 
     DLLEXPORT bool have_deferred_parsing( void ) const;
     // for debuggering....
@@ -135,7 +135,7 @@ protected:
     DLLEXPORT AObject&  operator= (const AObject &obj);
 
     MappedFile *mf;
-    std::vector< Section *> sections_;
+    std::vector< Region *> regions_;
     hash_map< std::string, std::vector< Symbol *> > symbols_;
 
     char*   code_ptr_;

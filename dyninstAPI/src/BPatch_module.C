@@ -353,7 +353,7 @@ if ( BPatch::bpatch->parseDebugInfo() ) {
       assert( moduleImage != NULL );
 
       bool found = true;
-      Section *sec;
+      tion *sec;
       Address   stab_off;
       unsigned  stab_size;          
       Address   stabstr_off;
@@ -940,17 +940,17 @@ void BPatch_module::parseTypes() {
    Symtab *moduleObject = moduleImage->getObject();
 
    bool found = true;
-   Section *sec;
+   Region *sec;
    Address   stab_off_= 0;
    unsigned  stab_size_ = 0;          
    Address   stabstr_off_ = 0;
-   if (!moduleObject->findSection(sec, ".stab"))
+   if (!moduleObject->findRegion(sec, ".stab"))
       found = false;
    else
    {
-      stab_off_ = sec->getSecAddr();
-      stab_size_ = sec->getSecSize();
-      if (!moduleObject->findSection(sec, ".stabstr"))
+      stab_off_ = sec->getDiskaddr();
+      stab_size_ = sec->getDiskSize();
+      if (!moduleObject->findRegion(sec, ".stabstr"))
          found = false;
       else
          stabstr_off_ = sec->getSecAddr();	
@@ -1007,18 +1007,18 @@ void BPatch_module::parseStabTypes()
    Symtab *objPtr = imgPtr->getObject();
 
    bool found = true;
-   Section *sec;
+   Region *sec;
    char* stab_off_ = 0;
    unsigned stab_size_ = 0;
    char* stabstr_off_ = 0;
 
-   if (!objPtr->findSection(sec, ".stab"))
+   if (!objPtr->findion(sec, ".stab"))
       found = false;
    else
    {
       stab_off_ = (char *)sec->getPtrToRawData();
-      stab_size_ = sec->getSecSize();
-      if (!objPtr->findSection(sec, ".stabstr"))
+      stab_size_ = sec->getRegionAddr();
+      if (!objPtr->findRegion(sec, ".stabstr"))
          found = false;
       else
          stabstr_off_ = (char *)sec->getPtrToRawData();

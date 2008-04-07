@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object-xcoff.C,v 1.24 2008/03/12 22:48:53 legendre Exp $
+// $Id: Object-xcoff.C,v 1.25 2008/04/07 22:32:51 giri Exp $
 
 // Define this before all others to insure xcoff.h is included
 // with __XCOFF_HYBRID__ defined.
@@ -632,6 +632,34 @@ void *fileOpener::getPtrAtOffset(unsigned offset) const
     char *tmpPtr = (char *)mmapStart_ + offset;
     return (void *)tmpPtr;
 }
+
+Region::perm_t getRegionPerms(unsigned flags){
+    if(flags & STYP_TEXT)
+        return Region::RP_RX;
+    else if(flags & STYP_DATA)
+        return Region::RP_RW;
+    else if(flags & STYP_DATA)
+        return Region::RP_RW;
+    else if(flags & STYP_DATA)
+        return Region::RP_RW;
+    else
+        return Region::RP_R;
+}
+
+Region::region_t getRegionType(unsigned flags){
+    if(flags & STYP_TEXT)
+        return Region::RT_TEXT;
+    else if(flags & STYP_DATA)
+        return Region::RT_DATA;
+    else if(flags & STYP_DATA)
+        return Region::RT_BSS;
+    else if(flags & STYP_DATA)
+        return Region::RT_DATA;
+    else if(flags & STYP_DEBUG)
+        return Region::RT_SYMTAB;
+    else
+        return Region::RT_OTHER;
+}
     
 // This function parses a 32-bit XCOFF file, either as part of an
 // archive (library) or from an a.out file. It takes an open file
@@ -950,8 +978,9 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
 
    if (alloc_syms)
       for (i=0; i < hdr.f_nscns; i++) {
-         sections_.push_back(new Section(i, SCNH_NAME(i), SCNH_PADDR(i),
-                  fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), SCNH_SIZE(i)));
+          regions_.push_back(new Region(i, SCNH_NAME(i), SCNH_PADDR(i), SCNH_SIZE(i), SCNH_PADDR(i), SCNH_SIZE(i), (char *)fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), getRegionPerms(SCNH_FLAGS(i)), getRegionType(SCNH_FLAGS(i))));
+//         regions_.push_back(new Section(i, SCNH_NAME(i), SCNH_PADDR(i),
+//                  fo_->getPtrAtOffset(offset+SCNH_SCNPTR(i)), SCNH_SIZE(i)));
          //fprintf(stderr, "%s[%d]:  section named %s\n", FILE__, __LINE__, SCNH_NAME(i));
       }
 
@@ -1235,9 +1264,9 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
 
          //parsing_printf("Symbol %s, addr 0x%lx, mod %s, size %d\n",
          //              name.c_str(), value, modName.c_str(), size);
-         Section *sec;
-         if(secno >= 1 && secno <= sections_.size())
-            sec = sections_[secno-1];
+         Region *sec;
+         if(secno >= 1 && secno <= regions_.size())
+            sec = regions_[secno-1];
          else
             sec = NULL;
          Symbol *sym = new Symbol(name, modName, type, linkage, value, sec, size);
@@ -1513,7 +1542,7 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *), Offset offset, b
    load_object(alloc_syms); 
 }
 
-Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, std::vector<Section *> &, void (*err_func)(const char *), Offset offset) :
+Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li, std::vector<Region *> &, void (*err_func)(const char *), Offset offset) :
    AObject(mf_, err_func), offset_(offset)
 {    
    loadNativeDemangler();
@@ -1688,29 +1717,6 @@ bool AObject::getSegments(vector<Segment> &/*segs*/) const
 {
    return true;
 }
-
-bool AObject::getMappedRegions(std::vector<Region> &regs) const
-{
-   Region reg;
-   reg.addr = code_vldS_;
-   reg.size = code_len_;
-   reg.offset = code_off_;
-   regs.push_back(reg);
-
-   reg.addr = data_vldS_;
-   reg.size = data_len_;
-   reg.offset = data_off_;
-
-   const Object *obj = dynamic_cast<const Object *>(this);
-   if (obj) {
-      reg.size += obj->bss_size();
-   }
-
-   regs.push_back(reg);
-   
-   return true;
-}
-
 
 /* FIXME: hack. */
 Offset trueBaseAddress = 0;

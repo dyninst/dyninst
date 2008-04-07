@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.38 2008/04/01 18:52:33 giri Exp $
+ * $Id: Object-elf.C,v 1.39 2008/04/07 22:32:48 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -136,21 +136,93 @@ struct  SectionHeaderSortFunction: public binary_function<Elf_X_Shdr *, Elf_X_Sh
 };
 
 /* binary search to find the section starting at a particular address */
-Elf_X_Shdr *Object::getSectionHdrByAddr(Offset addr) {
-    unsigned end = allSectionHdrs.size() - 1, start = 0;
+Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) {
+    unsigned end = allRegionHdrs.size() - 1, start = 0;
     unsigned mid = 0; 
     while(start < end) {
         mid = start + (end-start)/2;
-        if(allSectionHdrs[mid]->sh_addr() == addr)
-            return allSectionHdrs[mid];
-        else if(allSectionHdrs[mid]->sh_addr() < addr)
+        if(allRegionHdrs[mid]->sh_addr() == addr)
+            return allRegionHdrs[mid];
+        else if(allRegionHdrs[mid]->sh_addr() < addr)
             start = mid + 1;
         else
             end = mid;
     }
-    if(allSectionHdrs[start]->sh_addr() == addr)
-        return allSectionHdrs[start];
+    if(allRegionHdrs[start]->sh_addr() == addr)
+        return allRegionHdrs[start];
     return NULL;
+}
+
+bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize){
+    for(unsigned i = 0; i < allRegionHdrs.size(); i++){
+        if((allRegionHdrs[i]->sh_offset() >= segmentStart) && (allRegionHdrs[i]->sh_offset() + allRegionHdrs[i]->sh_size()<= segmentStart+segmentSize))
+            return true;
+    }
+    return false;
+}
+
+Region::perm_t getRegionPerms(unsigned long flags){
+    if((flags & SHF_WRITE) && !(flags & SHF_EXECINSTR))
+        return Region::RP_RW;
+    else if(!(flags & SHF_WRITE) && (flags & SHF_EXECINSTR))
+        return Region::RP_RX;
+    else if((flags & SHF_WRITE) && (flags & SHF_EXECINSTR))
+        return Region::RP_RWX;
+    else
+        return Region::RP_R;
+}
+
+Region::region_t getRegionType(unsigned long type, unsigned long flags){
+    switch(type){
+        case SHT_SYMTAB:
+        case SHT_DYNSYM:
+            return Region::RT_SYMTAB;
+        case SHT_STRTAB:
+            return Region::RT_STRTAB;
+        case SHT_REL:
+        case SHT_RELA:
+            return Region::RT_REL;
+        case SHT_PROGBITS:
+            if((flags & SHF_EXECINSTR) && (flags & SHF_WRITE))
+                return Region::RT_TEXTDATA;
+            else if(flags & SHF_EXECINSTR)
+                return Region::RT_TEXT;
+            else
+                return Region::RT_DATA;
+        case SHT_DYNAMIC:
+            return Region::RT_DYNAMIC;
+        case SHT_GNU_versym:
+            return Region::RT_SYMVERSIONS;
+        case SHT_GNU_verdef:
+            return Region::RT_SYMVERDEF;
+        case SHT_GNU_verneed:
+            return Region::RT_SYMVERNEEDED;
+        default:
+            return Region::RT_OTHER;
+    }
+}
+
+Region::perm_t getSegmentPerms(unsigned long flags){
+    if(flags == 7)
+        return Region::RP_RWX;
+    else if(flags == 6)
+        return Region::RP_RW;
+    else if(flags == 5)
+        return Region::RP_RX;
+    else
+        return Region::RP_R;
+}
+
+Region::region_t getSegmentType(unsigned long type, unsigned long flags){
+    if(type == PT_DYNAMIC)
+        return Region::RT_DYNAMIC;
+    if(flags == 7)
+        return Region::RT_TEXTDATA;
+    if(flags == 5)
+        return Region::RT_TEXT;
+    if(flags == 6)
+        return Region::RT_DATA;
+    return Region::RT_OTHER;
 }
 
 const char* EDITED_TEXT_NAME = ".edited.text";
@@ -260,19 +332,23 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       if (! scnp->isValid()) { // section is malformed
          continue; 
       } 
-      allSectionHdrs.push_back( scnp );
+      allRegionHdrs.push_back( scnp );
 
       // resolve section name
       const char *name = &shnames[scnp->sh_name()];
 
       //If the section appears in the memory image of a process address is given by sh_addr()
       //otherwise this is zero and sh_offset() gives the offset to the first byte in section.
-      sections_.push_back(new Section(i, name, scnp->sh_addr(), scnp->sh_size(),(void *)(mem_image()+scnp->sh_offset()), scnp->sh_flags()));
+      if(scnp->sh_flags() & SHF_ALLOC)
+          regions_.push_back(new Region(i, name, scnp->sh_addr(), scnp->sh_size(), scnp->sh_addr(), scnp->sh_size(), (mem_image()+scnp->sh_offset()), getRegionPerms(scnp->sh_flags()), getRegionType(scnp->sh_type(), scnp->sh_flags())));
+      else
+          regions_.push_back(new Region(i, name, scnp->sh_addr(), scnp->sh_size(), 0, 0, (mem_image()+scnp->sh_offset()), getRegionPerms(scnp->sh_flags()), getRegionType(scnp->sh_type(), scnp->sh_flags())));
+//      sections_.push_back(new Region(i, name, scnp->sh_addr(), scnp->sh_size(),(void *)(mem_image()+scnp->sh_offset()), scnp->sh_flags(), scnp->sh_flags() & SHF_EXECINSTR));
       /*
          if(scnp->sh_addr() != 0)
-         sections_.push_back(new Section(i, name, scnp->sh_addr(), scnp->sh_size()));
+         sections_.push_back(new Region(i, name, scnp->sh_addr(), scnp->sh_size()));
          else	
-         sections_.push_back(new Section(i, name, scnp->sh_offset(), scnp->sh_size()));
+         sections_.push_back(new Region(i, name, scnp->sh_offset(), scnp->sh_size()));
        */
       // section-specific processing
       if (P_strcmp(name, EDITED_TEXT_NAME) == 0) {
@@ -456,8 +532,8 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   
 
   // sort the section headers by base address
-  //allSectionHdrs.sort( SectionHeaderSortFunction );
-  sort(allSectionHdrs.begin(), allSectionHdrs.end(), SectionHeaderSortFunction());
+  //allRegionHdrs.sort( SectionHeaderSortFunction );
+  sort(allRegionHdrs.begin(), allRegionHdrs.end(), SectionHeaderSortFunction());
 #if defined(TIMED_PARSE)
   struct timeval endtime;
   gettimeofday(&endtime, NULL);
@@ -495,7 +571,7 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
           case DT_REL:
           case DT_RELA:
                 /*found Relocation section*/
-                rel_scnp = getSectionHdrByAddr(dyns.d_ptr(i));
+                rel_scnp = getRegionHdrByAddr(dyns.d_ptr(i));
                 rel_size_ = rel_scnp->sh_size();
                 rel_entry_size_ = rel_scnp->sh_entsize();
                 get_relocationDyn_entries(rel_scnp, dynsym_scnp, dynstr_scnp);
@@ -1063,12 +1139,12 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       if (stype == Symbol::ST_UNKNOWN) continue;
       if (slinkage == Symbol::SL_UNKNOWN) continue;
       
-      Section *sec;
-      if(secNumber >= 1 && secNumber <= sections_.size())
-         sec = sections_[secNumber];
+      Region *sec;
+      if(secNumber >= 1 && secNumber <= regions_.size())
+         sec = regions_[secNumber];
       else
-         sec = NULL;		
-
+         sec = NULL;
+      
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
@@ -1119,13 +1195,13 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
                deps_.push_back(&strs[dyns.d_ptr(i)]);
                break;
            case DT_VERSYM:
-               versymSec = getSectionHdrByAddr(dyns.d_ptr(i));
+               versymSec = getRegionHdrByAddr(dyns.d_ptr(i));
                break;
            case DT_VERNEED:
-               verneedSec = getSectionHdrByAddr(dyns.d_ptr(i));
+               verneedSec = getRegionHdrByAddr(dyns.d_ptr(i));
                break;
            case DT_VERDEF:
-               verdefSec = getSectionHdrByAddr(dyns.d_ptr(i));
+               verdefSec = getRegionHdrByAddr(dyns.d_ptr(i));
                break;
            case DT_VERNEEDNUM:
                verneednum = dyns.d_ptr(i);
@@ -1208,9 +1284,9 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
       if (stype == Symbol::ST_UNKNOWN) continue;
       if (slinkage == Symbol::SL_UNKNOWN) continue;
      
-      Section *sec;
-      if(secNumber >= 1 && secNumber <= sections_.size())
-    	 sec = sections_[secNumber];
+      Region *sec;
+      if(secNumber >= 1 && secNumber <= regions_.size())
+    	 sec = regions_[secNumber];
       else
          sec = NULL;		
 
@@ -1281,10 +1357,10 @@ void Object::fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool isE
 			// Note that this assumes the section headers std::vector is sorted
 			// in increasing order
 			//
-			while( u_section_idx < allSectionHdrs.size() )
+			while( u_section_idx < allRegionHdrs.size() )
 			{
-				Offset slow = allSectionHdrs[u_section_idx]->sh_addr();
-				Offset shi = slow + allSectionHdrs[u_section_idx]->sh_size();
+				Offset slow = allRegionHdrs[u_section_idx]->sh_addr();
+				Offset shi = slow + allRegionHdrs[u_section_idx]->sh_size();
 #if defined(os_irix)
 				slow -= get_base_addr();
 				shi -= get_base_addr();
@@ -1303,7 +1379,7 @@ void Object::fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool isE
          //Some platforms (Fedora Core 2) thought it would be really 
          // funny if they stuck size 0 symbols inbetween sections.  
          // we'll just delete the symbol in this case.
-         if (u_section_idx == allSectionHdrs.size())
+         if (u_section_idx == allRegionHdrs.size())
          {
             //Delete item u
             for (unsigned i = u; i < allsymbols.size()-1; i++)
@@ -1314,7 +1390,7 @@ void Object::fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool isE
             continue;
          }
 
-			assert( u_section_idx < allSectionHdrs.size() );
+			assert( u_section_idx < allRegionHdrs.size() );
 
 			// search for the next symbol after allsymbols[u]
          v = u+1;
@@ -1331,10 +1407,10 @@ void Object::fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool isE
 				// (most likely, it is in the same section as symbol u)
 				// Note that this assumes the section headers std::vector is
 				// sorted in increasing order
-				while( v_section_idx < allSectionHdrs.size() )
+				while( v_section_idx < allRegionHdrs.size() )
 				{
-					Offset slow = allSectionHdrs[v_section_idx]->sh_addr();
-					Offset shi = slow + allSectionHdrs[v_section_idx]->sh_size();
+					Offset slow = allRegionHdrs[v_section_idx]->sh_addr();
+					Offset shi = slow + allRegionHdrs[v_section_idx]->sh_size();
 #if defined(os_irix)
 					slow -= get_base_addr();
 					shi -= get_base_addr();
@@ -1369,8 +1445,8 @@ void Object::fix_zero_function_sizes(std::vector<Symbol *> &allsymbols, bool isE
 				// its size is the distance from its address to the
 				// end of its section
 				//
-				symSize = allSectionHdrs[u_section_idx]->sh_addr() + 
-               allSectionHdrs[u_section_idx]->sh_size() -
+				symSize = allRegionHdrs[u_section_idx]->sh_addr() + 
+               allRegionHdrs[u_section_idx]->sh_size() -
 #if defined(os_irix)
                (allsymbols[u]->getAddr() + get_base_addr());
 #else
@@ -2273,11 +2349,15 @@ void Object::find_code_and_data(Elf_X &elf,
 {
    for (int i = 0; i < elf.e_phnum(); ++i) {
       Elf_X_Phdr phdr = elf.get_phdr(i);
+      
+      char *file_ptr = (char *)mf->base_addr();
+
+      if(!isRegionPresent(phdr.p_offset(), phdr.p_filesz()))
+          regions_.push_back(new Region(i, "", phdr.p_paddr(), phdr.p_filesz(), phdr.p_vaddr(), phdr.p_memsz(), &file_ptr[phdr.p_offset()], getSegmentPerms(phdr.p_flags()), getSegmentType(phdr.p_type(), phdr.p_flags())));
 
       // The code pointer, offset, & length should be set even if
       // txtaddr=0, so in this case we set these values by
       // identifying the segment that contains the entryAddress
-      char *file_ptr = (char *)mf->base_addr();
       if (((phdr.p_vaddr() <= txtaddr) && 
                (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
             (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
@@ -2346,7 +2426,7 @@ stab_entry *Object::get_stab_info() const
 }
 
 Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
-     std::vector<Section *> &secs_, 
+     std::vector<Region *> &secs_, 
       void (*err_func)(const char *)) :
    AObject(mf_, err_func), 
    stab_off_(0),
@@ -2355,12 +2435,12 @@ Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
    EEL(false) 
 {
    for (unsigned int i = 0; i < secs_.size(); ++i) {
-      string sname = secs_[i]->getSecName();
+      string sname = secs_[i]->getRegionName();
       if (sname == STAB_NAME) {
-         stab_off_ = secs_[i]->getSecAddr();
-         stab_size_ = secs_[i]->getSecSize();
+         stab_off_ = secs_[i]->getDiskOffset();
+         stab_size_ = secs_[i]->getDiskSize();
       } else if (sname == STABSTR_NAME) {
-         stabstr_off_ = secs_[i]->getSecAddr();
+         stabstr_off_ = secs_[i]->getDiskOffset();
       }
    }
 
@@ -2535,9 +2615,9 @@ Object::~Object()
    unsigned i;
    relocation_table_.clear();
    fbt_.clear();
-   for(i=0; i<allSectionHdrs.size();i++)
-      delete allSectionHdrs[i];
-   allSectionHdrs.clear();
+   for(i=0; i<allRegionHdrs.size();i++)
+      delete allRegionHdrs[i];
+   allRegionHdrs.clear();
    symbolNamesByAddr.clear();
    versionMapping.clear();
    versionFileNameMapping.clear();
@@ -3396,17 +3476,17 @@ void Object::getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_lan
 bool AObject::getSegments(vector<Segment> &segs) const
 {
     unsigned i;
-    for(i=0;i<sections_.size();i++)
+    for(i=0;i<regions_.size();i++)
     {
-        if((sections_[i]->getSecName() == ".text") || (sections_[i]->getSecName() == ".init") || (sections_[i]->getSecName() == ".fini") ||
-	       (sections_[i]->getSecName() == ".rodata") || (sections_[i]->getSecName() == ".plt") || (sections_[i]->getSecName() == ".data"))
+        if((regions_[i]->getRegionName() == ".text") || (regions_[i]->getRegionName() == ".init") || (regions_[i]->getRegionName() == ".fini") ||
+	       (regions_[i]->getRegionName() == ".rodata") || (regions_[i]->getRegionName() == ".plt") || (regions_[i]->getRegionName() == ".data"))
         {
             Segment seg;
-            seg.data = sections_[i]->getPtrToRawData();
-            seg.loadaddr = sections_[i]->getSecAddr();
-            seg.size = sections_[i]->getSecSize();
-            seg.name = sections_[i]->getSecName();
-            seg.segFlags = sections_[i]->getFlags();
+            seg.data = regions_[i]->getPtrToRawData();
+            seg.loadaddr = regions_[i]->getDiskOffset();
+            seg.size = regions_[i]->getDiskSize();
+            seg.name = regions_[i]->getRegionName();
+//            seg.segFlags = regions_[i]->getFlags();
             segs.push_back(seg);
         }
     }
@@ -4116,18 +4196,4 @@ void Object::parseStabTypes(Symtab *obj)
     cout << "     Total: " << pss_dur + fun_dur + src_dur
          << " msec" << endl;
 #endif
-}  
-
-bool Object::getMappedRegions(std::vector<Region> &regs) const 
-{
-   for (unsigned i = 0; i < elfHdr.e_phnum(); i++) {
-      Elf_X_Phdr phdr = elfHdr.get_phdr(i);
-
-      Region newreg;
-      newreg.addr = phdr.p_vaddr();
-      newreg.size = phdr.p_memsz();
-      newreg.offset = phdr.p_offset();
-      regs.push_back(newreg);
-   }
-   return true;
-}
+} 

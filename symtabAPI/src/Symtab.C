@@ -120,8 +120,8 @@ std::string Symtab::printError(SymtabError serr)
             return "Variable does not exist";
         case No_Such_Module:
             return "Module does not exist";
-        case No_Such_Section:
-            return "Section does not exist";
+        case No_Such_Region:
+            return "Region does not exist";
         case No_Such_Symbol:
             return "Symbol does not exist";
         case Not_A_File:
@@ -343,8 +343,8 @@ DLLEXPORT bool Symtab::isExec() const
 DLLEXPORT bool Symtab::isStripped() 
 {
 #if defined(os_linux) || defined(os_solaris)
-    Section *sec;
-    return findSection(sec,".symtab");
+    Region *sec;
+    return findRegion(sec,".symtab");
 #else
     return (no_of_symbols==0);
 #endif
@@ -1256,9 +1256,14 @@ bool Symtab::extractInfo(Object *linkedFile)
     newSectionInsertPoint = no_of_sections;
     no_of_symbols = linkedFile->no_of_symbols();
 
-    sections_ = linkedFile->getAllSections();
-    for(unsigned index=0;index<sections_.size();index++)
-        secsByEntryAddr[sections_[index]->getSecAddr()] = sections_[index];
+    regions_ = linkedFile->getAllRegions();
+    for(unsigned index=0;index<regions_.size();index++){
+        if((regions_[index]->getRegionPermissions() == Region::RP_RX) || (regions_[index]->getRegionPermissions() == Region::RP_RWX))
+            codeRegions_.push_back(regions_[index]);
+        else if((regions_[index]->getRegionPermissions() == Region::RP_RW) || (regions_[index]->getRegionPermissions() == Region::RP_RWX))
+            dataRegions_.push_back(regions_[index]);
+        regionsByEntryAddr[regions_[index]->getRegionAddr()] = regions_[index];
+    }
 
 	/* insert error check here. check if parsed */
 #if 0
@@ -1332,7 +1337,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     toc_offset_ = linkedFile->getTOCoffset();
     object_type_  = linkedFile->objType();
     is_eel_ = linkedFile->isEEL();
-    linkedFile->getMappedRegions(mapped_regions_);
     linkedFile->getSegments(segments_);
 
 #if !defined(os_aix) && !defined(os_windows)
@@ -1429,7 +1433,7 @@ bool Symtab::extractInfo(Object *linkedFile)
 Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
    Annotatable<Symbol *, user_funcs_a>(obj),
-   Annotatable<Section *, user_sections_a>(obj),
+   Annotatable<Region *, user_regions_a>(obj),
    Annotatable<Type *, user_types_a> (obj),
    Annotatable<Symbol *, user_symbols_a>(obj)
 {
@@ -1456,10 +1460,10 @@ Symtab::Symtab(const Symtab& obj) :
     //sections
     no_of_sections = obj.no_of_sections;
     unsigned i;
-    for(i=0;i<obj.sections_.size();i++)
-        sections_.push_back(new Section(*(obj.sections_[i])));
-    for(i=0;i<sections_.size();i++)
-        secsByEntryAddr[sections_[i]->getSecAddr()] = sections_[i];
+    for(i=0;i<obj.regions_.size();i++)
+        regions_.push_back(new Region(*(obj.regions_[i])));
+    for(i=0;i<regions_.size();i++)
+        regionsByEntryAddr[regions_[i]->getRegionAddr()] = regions_[i];
     
     //symbols
     no_of_symbols = obj.no_of_symbols;
@@ -1620,26 +1624,46 @@ bool Symtab::getAllModules(std::vector<Module *> &ret)
     return false;
 }
 
-bool Symtab::getAllSections(std::vector<Section *>&ret)
+bool Symtab::getAllRegions(std::vector<Region *>&ret)
 {
-    if(sections_.size() > 0)
+    if(regions_.size() > 0)
     {
-        ret = sections_;
+        ret = regions_;
         return true;
     }
     return false;
 }
 
-bool Symtab::getAllNewSections(std::vector<Section *>&ret)
+bool Symtab::getCodeRegions(std::vector<Region *>&ret)
 {
-   Annotatable<Section *, user_sections_a> &usA = *this;
-   if (!usA.size())
+    if(codeRegions_.size() > 0)
+    {
+        ret = codeRegions_;
+        return true;
+    }
+    return false;
+}
+
+bool Symtab::getDataRegions(std::vector<Region *>&ret)
+{
+    if(dataRegions_.size() > 0)
+    {
+        ret = dataRegions_;
+        return true;
+    }
+    return false;
+}
+
+bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
+{
+   Annotatable<Region *, user_regions_a> &urA = *this;
+   if (!urA.size())
       return false;
-   ret = usA.getDataStructure();
+   ret = urA.getDataStructure();
    return true;
 #if 0
-    if(newSections_.size() > 0) {
-    	ret = newSections_;
+    if(newRegions_.size() > 0) {
+    	ret = newRegions_;
 	return true;
     }
     return false;
@@ -1994,28 +2018,28 @@ bool Symtab::findModByRegex(const std::string &rexp, bool checkCase, std::vector
     return false;
 }
 
-bool Symtab::findSectionByEntry(Section *&ret, const Offset offset)
+bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
 {
-    if(secsByEntryAddr.find(offset) != secsByEntryAddr.end())
+    if(regionsByEntryAddr.find(offset) != regionsByEntryAddr.end())
     {
-        ret = secsByEntryAddr[offset];
+        ret = regionsByEntryAddr[offset];
         return true;
     }
-    serr = No_Such_Section;
+    serr = No_Such_Region;
     return false;
 }
 
-bool Symtab::findSection(Section *&ret, const std::string secName)
+bool Symtab::findRegion(Region *&ret, const std::string secName)
 {
-    for(unsigned index=0;index<sections_.size();index++)
+    for(unsigned index=0;index<regions_.size();index++)
     {
-        if(sections_[index]->getSecName() == secName)
+        if(regions_[index]->getRegionName() == secName)
         {
-            ret = sections_[index];
+            ret = regions_[index];
             return true;
         }
     }
-    serr = No_Such_Section;
+    serr = No_Such_Region;
     return false;
 }
  
@@ -2028,14 +2052,29 @@ bool Symtab::isValidOffset(const Offset where) const
 
 bool Symtab::isCode(const Offset where)  const
 {
-    return (code_ptr_ && 
-            (where >= imageOffset_) && (where < (imageOffset_+imageLen_)));
+    if(!codeRegions_.size())
+        return false;
+    for(unsigned i=0; i< codeRegions_.size(); i++){
+//        if((where>=codeRegions_[i]->getRegionAddr()) && (where < (codeRegions_[i]->getRegionAddr() + codeRegions_[i]->getDiskSize())))
+        if((where>=codeRegions_[i]->getMemOffset()) && (where < (codeRegions_[i]->getMemOffset() + codeRegions_[i]->getMemSize())))
+			return true;
+    }
+    return false;
+//    return (code_ptr_ && 
+//            (where >= imageOffset_) && (where < (imageOffset_+imageLen_)));
 }
 
 bool Symtab::isData(const Offset where)  const
 {
-    return (data_ptr_ && 
-            (where >= dataOffset_) && (where < (dataOffset_+dataLen_)));
+    if(!dataRegions_.size())
+        return false;
+    for(unsigned i=0; i< dataRegions_.size(); i++){
+        if((where>=dataRegions_[i]->getRegionAddr()) && (where < (dataRegions_[i]->getRegionAddr() + dataRegions_[i]->getDiskSize())))
+            return true;
+    }
+    return false;
+//    return (data_ptr_ && 
+//            (where >= dataOffset_) && (where < (dataOffset_+dataLen_)));
 }
 
 bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
@@ -2057,21 +2096,21 @@ Symtab::~Symtab()
 	
     unsigned i;
             
-    for (i = 0; i < sections_.size(); i++) {
-        delete sections_[i];
+    for (i = 0; i < regions_.size(); i++) {
+        delete regions_[i];
     }
-    sections_.clear();
+    regions_.clear();
     
-    Annotatable<Section *, user_sections_a> &usA = *this;
+    Annotatable<Region *, user_regions_a> &usA = *this;
     for (i = 0; i < usA.size(); ++i) {
-       Section *s = usA[i];
+       Region *s = usA[i];
        delete(s);
     }
 #if 0
-    for (i = 0; i < newSections_.size(); i++) {
-        delete newSections_[i];
+    for (i = 0; i < newRegions_.size(); i++) {
+        delete newRegions_[i];
     }
-    newSections_.clear();
+    newRegions_.clear();
 #endif
     
     for (i = 0; i < _mods.size(); i++) {
@@ -2761,35 +2800,32 @@ bool Symtab::delSymbol(Symbol *sym)
     return true;
 }
 
-bool Symtab::addSection(Offset vaddr, void *data, unsigned int dataSize, std::string name, unsigned long flags, bool loadable)
+bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, Region::region_t rType_, bool loadable)
 {
-    Section *sec;
+    Region *sec;
     unsigned i;
     if(loadable)
     {
-        sec = new Section(newSectionInsertPoint, name, vaddr, dataSize, data, flags, loadable);
-	sections_.insert(sections_.begin()+newSectionInsertPoint, sec);
-	for(i = newSectionInsertPoint+1; i < sections_.size(); i++)
-		sections_[i]->setSecNumber(sections_[i]->getSecNumber() + 1);
+        sec = new Region(newSectionInsertPoint, name, vaddr, dataSize, vaddr, dataSize, (char *)data, Region::RP_R, rType_);
+        regions_.insert(regions_.begin()+newSectionInsertPoint, sec);
+        for(i = newSectionInsertPoint+1; i < regions_.size(); i++)
+            regions_[i]->setRegionNumber(regions_[i]->getRegionNumber() + 1);
     }
     else
     {
-	sec = new Section(sections_.size()+1, name, vaddr, dataSize, data, flags, loadable);
-	sections_.push_back(sec);
+        sec = new Region(regions_.size()+1, name, vaddr, dataSize, 0, 0, (char *)data, Region::RP_R, rType_);
+        regions_.push_back(sec);
     }	
-    Annotatable<Section *, user_sections_a> &usA = *this;
-    usA.addAnnotation(sec);
-#if 0
-    newSections_.push_back(sec);
-#endif
+    Annotatable<Region *, user_regions_a> &urA = *this;
+    urA.addAnnotation(sec);
     return true;
 }
 
-bool Symtab::addSection(Section *sec)
+bool Symtab::addRegion(Region *sec)
 {
-    sections_.push_back(sec);
-    Annotatable<Section *, user_sections_a> &usA = *this;
-    usA.addAnnotation(sec);
+    regions_.push_back(sec);
+    Annotatable<Region *, user_regions_a> &urA = *this;
+    urA.addAnnotation(sec);
     return true;
 }
 
@@ -2797,9 +2833,9 @@ void Symtab::parseLineInformation()
 {
    hash_map <std::string, LineInformation> *lineInfo = new hash_map <std::string, LineInformation>;
 #if defined(os_aix)
-   Object *linkedFile = new Object(mf, *lineInfo, sections_, pd_log_perror, member_offset_);
+   Object *linkedFile = new Object(mf, *lineInfo, regions_, pd_log_perror, member_offset_);
 #else
-   Object *linkedFile = new Object(mf, *lineInfo, sections_, pd_log_perror);
+   Object *linkedFile = new Object(mf, *lineInfo, regions_, pd_log_perror);
 #endif
 
    isLineInfoValid_ = true;	
@@ -3607,17 +3643,22 @@ DLLEXPORT bool Symtab::getSegments(vector<Segment> &segs) const
    return true;
 }
 
-DLLEXPORT bool Symtab::getMappedRegions(std::vector<Region> &regs) const
+DLLEXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) const
 {
-   regs = mapped_regions_;
-   if (!mapped_regions_.size()) return false;
-   return true;
+    unsigned origSize = mappedRegs.size();
+	for(unsigned i = 0; i < regions_.size(); i++){
+		if(regions_[i]->isLoadable())
+			mappedRegs.push_back(regions_[i]);
+	}
+	if(mappedRegs.size() > origSize)
+		return true;
+	return false;
 }
 
 DLLEXPORT bool Symtab::updateCode(void *buffer, unsigned size)
 {
-    Section *sec;
-    if(!findSection(sec, ".text"))
+    Region *sec;
+    if(!findRegion(sec, ".text"))
     	return false;
     sec->setPtrToRawData(buffer, size);
     return true;
@@ -3625,8 +3666,8 @@ DLLEXPORT bool Symtab::updateCode(void *buffer, unsigned size)
 
 DLLEXPORT bool Symtab::updateData(void *buffer, unsigned size)
 {
-    Section *sec;
-    if(!findSection(sec, ".data"))
+    Region *sec;
+    if(!findRegion(sec, ".data"))
     	return false;
     sec->setPtrToRawData(buffer, size);
     return true;
@@ -3643,30 +3684,30 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size)
     Object *linkedFile = new Object(mf, pd_log_perror, false);
     assert(linkedFile);
 
-    for (unsigned i = 0; i < sections_.size(); i++) {
-        Offset end = sections_[i]->getSecAddr() + sections_[i]->getSecSize();
-        if (sections_[i]->getSecAddr() == 0) continue;
+    for (unsigned i = 0; i < regions_.size(); i++) {
+        Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
+        if (regions_[i]->getRegionAddr() == 0) continue;
         prevSecoffset = secoffset;
-        if ((char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image() < (unsigned)prevSecoffset)
-            secoffset += sections_[i]->getSecSize();
+        if ((char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image() < (unsigned)prevSecoffset)
+            secoffset += regions_[i]->getDiskSize();
         else {
-            secoffset = (char *)(sections_[i]->getPtrToRawData()) - linkedFile->mem_image();
-            secoffset += sections_[i]->getSecSize();
+            secoffset = (char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image();
+            secoffset += regions_[i]->getDiskSize();
         }
         /*fprintf(stderr, "%d: secAddr 0x%lx, size %d, end 0x%lx, looking for %d\n",
-	                i, sections_[i]->getSecAddr(), sections_[i]->getSecSize(),
+	                i, regions_[i]->getSecAddr(), regions_[i]->getSecSize(),
 	                end,size);*/
         if (end > highWaterMark) {
             //fprintf(stderr, "Increasing highWaterMark...\n");
             newSectionInsertPoint = i+1;
             highWaterMark = end;
         }
-        if ((i <= (sections_.size()-1)) &&
-               ((end + size) < sections_[i+1]->getSecAddr())) {
+        if ((i <= (regions_.size()-1)) &&
+               ((end + size) < regions_[i+1]->getRegionAddr())) {
             /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
                     i, i+1);
                     fprintf(stderr, "End at 0x%lx, next one at 0x%lx\n",
-                    end, sections_[i+1]->getSecAddr());
+                    end, regions_[i+1]->getSecAddr());
                     */   
             newSectionInsertPoint = i+1;
             highWaterMark = end;
@@ -3703,7 +3744,7 @@ DLLEXPORT std::string Symtab::name() const
    return mf->filename();
 }
 
-DLLEXPORT unsigned Symtab::getNumberofSections() const 
+DLLEXPORT unsigned Symtab::getNumberofRegions() const 
 {
     return no_of_sections; 
 }
@@ -3801,10 +3842,185 @@ DLLEXPORT bool ExceptionBlock::contains(Offset a) const
     return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
-DLLEXPORT Section::Section() : buffer_(NULL)
+DLLEXPORT Region::Region(): rawDataPtr_(NULL), buffer_(NULL)
 {
 }
 
+DLLEXPORT Region::Region(unsigned regnum, std::string name, Offset diskOff,
+                    unsigned long diskSize, Offset memOff, unsigned long memSize,
+                    char *rawDataPtr, perm_t perms, region_t regType):
+    regNum_(regnum), name_(name), diskOff_(diskOff), diskSize_(diskSize), memOff_(memOff),
+    memSize_(memSize), rawDataPtr_(rawDataPtr), permissions_(perms), rType_(regType), 
+    isDirty_(false), buffer_(NULL)
+{
+}
+
+DLLEXPORT Region::Region(const Region &reg) : regNum_(reg.regNum_), name_(reg.name_),
+                    diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
+                    memSize_(reg.memSize_), rawDataPtr_(reg.rawDataPtr_), permissions_(reg.permissions_),
+                    rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_)
+{
+}
+
+DLLEXPORT Region& Region::operator=(const Region &reg){
+    regNum_ = reg.regNum_;
+    name_ = reg.name_;
+    diskOff_ = reg.diskOff_;
+    diskSize_ = reg.diskSize_;
+    memOff_ = reg.memOff_;
+    memSize_ = reg.memSize_;
+    rawDataPtr_ = reg.rawDataPtr_;
+    permissions_ = reg.permissions_;
+    rType_ = reg.rType_;
+    isDirty_ = reg.isDirty_;
+    rels_ = reg.rels_;
+    buffer_ = reg.buffer_;
+
+    return *this;
+}
+
+DLLEXPORT bool Region::operator==(const Region &reg){
+    return ((regNum_== reg.regNum_) &&
+            (name_ == reg.name_) &&
+            (diskOff_ == reg.diskOff_) &&
+            (diskSize_ == reg.diskSize_) &&
+            (memOff_ == reg.memOff_) &&
+            (memSize_ == reg.memSize_) &&
+            (rawDataPtr_ == reg.rawDataPtr_) &&
+            (permissions_ == reg.permissions_) &&
+            (rType_ == reg.rType_) &&
+            (isDirty_ == reg.isDirty_) &&
+            (buffer_ == reg.buffer_));
+}
+
+DLLEXPORT ostream& Region::operator<< (ostream &os) 
+{
+    return os   << "{"
+                << " Region Number="      << regNum_
+                << " name="    << name_
+                << " disk offset="    << diskOff_
+                << " disk size="    << diskSize_
+                << " memory offset="    << memOff_
+                << " memory size="    << memSize_
+                << " Permissions=" << permissions_
+        		<< " region type " << rType_
+                << " }" << endl;
+}
+
+DLLEXPORT Region::~Region() 
+{
+    if(buffer_)
+        free(buffer_);
+}
+
+DLLEXPORT unsigned Region::getRegionNumber() const
+{
+    return regNum_;
+}
+
+DLLEXPORT bool Region::setRegionNumber(unsigned regnumber){
+    regNum_ = regnumber;
+    return true;
+}
+
+DLLEXPORT std::string Region::getRegionName() const{
+    return name_;
+}
+
+DLLEXPORT Offset Region::getRegionAddr() const{
+#if defined(_MSC_VER)
+	return memOff_;
+#else
+	return diskOff_;
+#endif
+}
+
+DLLEXPORT Offset Region::getRegionSize() const{
+#if defined(_MSC_VER)
+	return memSize_;
+#else
+	return diskSize_;
+#endif
+}
+
+DLLEXPORT Offset Region::getDiskOffset() const{
+    return diskOff_;
+}
+
+DLLEXPORT unsigned long Region::getDiskSize() const{
+    return diskSize_;
+}
+
+DLLEXPORT Offset Region::getMemOffset() const{
+    return memOff_;
+}
+
+DLLEXPORT unsigned long Region::getMemSize() const{
+    return memSize_;
+}
+
+DLLEXPORT void *Region::getPtrToRawData() const{
+    return rawDataPtr_;
+}
+ 
+DLLEXPORT bool Region::setPtrToRawData(void *buf, unsigned long newsize){
+    rawDataPtr_ = buf;
+    diskSize_ = diskSize_;
+    isDirty_ = true;
+    return true;
+}
+    
+DLLEXPORT bool Region::isBSS() const {
+    return rType_==RT_BSS;
+}
+    
+DLLEXPORT bool Region::isText() const{
+    return rType_==RT_TEXT;
+}
+
+DLLEXPORT bool Region::isData() const{
+    return rType_ == RT_DATA;
+}
+
+DLLEXPORT bool Region::isOffsetInRegion(const Offset &offset) const {
+    return (offset >= diskOff_ && offset<=(diskOff_+diskSize_));
+}
+
+DLLEXPORT bool Region::isLoadable() const{
+    return (memOff_ != 0);
+}
+
+DLLEXPORT bool Region::isDirty() const{
+    return isDirty_;
+}
+
+DLLEXPORT std::vector<relocationEntry> &Region::getRelocations(){
+    return rels_;
+}
+
+DLLEXPORT bool Region::patchData(Offset off, void *buf, unsigned size){
+    if(off+size > diskSize_)
+        return false;
+    if(!buffer_)
+        memcpy(buffer_, rawDataPtr_, diskSize_);
+    memcpy((char *)buffer_+off, buf, size);
+    return setPtrToRawData(buffer_, diskSize_);
+}
+
+DLLEXPORT bool Region::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType){
+    rels_.push_back(relocationEntry(ra, dynref->getPrettyName(), dynref, relType));
+    return true;
+}
+
+DLLEXPORT Region::perm_t Region::getRegionPermissions() const {
+    return permissions_;
+}
+
+DLLEXPORT Region::region_t Region::getRegionType() const {
+    return rType_;
+}
+
+#if 0
 DLLEXPORT Section::Section(unsigned sidnumber, std::string sname, 
                                    Offset saddr, unsigned long ssize, 
                                    void *secPtr, unsigned long sflags, bool isLoadable) 
@@ -3965,6 +4181,7 @@ DLLEXPORT bool Section::patchData(Offset off, void *buf, unsigned size){
 DLLEXPORT vector<relocationEntry> &Section::getRelocations(){
     return rels_;
 }
+#endif
 
 DLLEXPORT relocationEntry::relocationEntry()
    :target_addr_(0),rel_addr_(0), name_(""), dynref_(NULL), relType_(0)
