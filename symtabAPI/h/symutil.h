@@ -94,7 +94,7 @@ typedef enum { Obj_Parsing,
                No_Such_Function,
                No_Such_Variable,
                No_Such_Module,
-               No_Such_Section,
+               No_Such_Region,
                No_Such_Symbol,
 	       No_Such_Member,
 	       Not_A_File,
@@ -104,12 +104,6 @@ typedef enum { Obj_Parsing,
 	       No_Error
 } SymtabError;
 
-typedef enum{
-    SF_READ = 1,
-    SF_WRITE = 2,
-    SF_EXECUTABLE = 4
-}segflags_t;
-
 typedef struct{
     void *data;
     Offset loadaddr;
@@ -118,12 +112,6 @@ typedef struct{
     unsigned segFlags;
 }Segment;
 
-typedef struct {
-   Address addr;
-   unsigned long size;
-   Offset offset;
-} Region;
-    
 }//namespace SymtabAPI
 }//namespace Dyninst
 
