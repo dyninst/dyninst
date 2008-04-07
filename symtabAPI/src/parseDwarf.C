@@ -189,30 +189,29 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, std::stri
 
 				dwarf_dealloc( dbg, boundName, DW_DLA_STRING );
 				return true;
-				}
+            }
 
 			/* Does it describe a nameless constant? */
 			Dwarf_Attribute constBoundAttribute;
 			status = dwarf_attr( boundEntry, DW_AT_const_value, & constBoundAttribute, NULL );
 			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error checking for constant value of bounds attribute.\n", __FILE__, __LINE__ );
 
-			if( status == DW_DLV_OK ) {
-				Dwarf_Unsigned constBoundValue;
-				status = dwarf_formudata( constBoundAttribute, & constBoundValue, NULL );
-				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error decoding unsigned data of bounds constant value attribute.\n", __FILE__, __LINE__ );
+            if( status == DW_DLV_OK ) {
+                Dwarf_Unsigned constBoundValue;
+                status = dwarf_formudata( constBoundAttribute, & constBoundValue, NULL );
+                DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error decoding unsigned data of bounds constant value attribute.\n", __FILE__, __LINE__ );
 
-				char bString[40];
-				sprintf(bString, "%lu", (unsigned long)constBoundValue);
-				boundString = bString;
+                char bString[40];
+                sprintf(bString, "%lu", (unsigned long)constBoundValue);
+                boundString = bString;
 
-				dwarf_dealloc( dbg, boundEntry, DW_DLA_DIE );
-				dwarf_dealloc( dbg, constBoundAttribute, DW_DLA_ATTR );
-				return true;
-				}
+                dwarf_dealloc( dbg, boundEntry, DW_DLA_DIE );
+                dwarf_dealloc( dbg, constBoundAttribute, DW_DLA_ATTR );
+                return true;
+            }
 
-			return false;
-			} break;
-
+            return false;
+        } break;
 		case DW_FORM_block:
 		case DW_FORM_block1:
 		   {
@@ -230,16 +229,16 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, std::stri
 			boundString = "{invalid bound form}";
 			return false;
 			break;
-		} /* end boundForm switch */
-	} /* end decipherBound() */
+    } /* end boundForm switch */
+} /* end decipherBound() */
 
 /* We don't have a sane way of dealing with DW_TAG_enumeration bounds, so
    just put the name of the enumeration, or {enum} if none, in the string. */
 void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, std::string & loBound, std::string & hiBound, Module * module ) {
-	loBound = "{unknown or default}";
-	hiBound = "{unknown or default}";
+    loBound = "{unknown or default}";
+    hiBound = "{unknown or default}";
 
-	/* Set the default lower bound, if we know it. */
+    /* Set the default lower bound, if we know it. */
 	switch( module->language() ) {
 		case lang_Fortran:
 		case lang_Fortran_with_pretty_debug:
@@ -252,72 +251,72 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, std::string & l
 			break;
 		default:
 			break;
-		} /* end default lower bound switch */
+    } /* end default lower bound switch */
 
-	Dwarf_Half subrangeTag;
-	int status = dwarf_tag( subrangeDIE, & subrangeTag, NULL );
-	DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: unable to obtain tag of subrange DIE.\n", __FILE__, __LINE__ );
+    Dwarf_Half subrangeTag;
+    int status = dwarf_tag( subrangeDIE, & subrangeTag, NULL );
+    DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: unable to obtain tag of subrange DIE.\n", __FILE__, __LINE__ );
 
-	/* Could be an enumerated range. */
-	if( subrangeTag == DW_TAG_enumeration_type ) {
-		/* FIXME? First child of enumeration type is lowest, last is highest. */
-		char * enumerationName = NULL;
-		status = dwarf_diename( subrangeDIE, & enumerationName, NULL );
-		DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error cehcking for name of enumeration.\n", __FILE__, __LINE__ );
+    /* Could be an enumerated range. */
+    if( subrangeTag == DW_TAG_enumeration_type ) {
+        /* FIXME? First child of enumeration type is lowest, last is highest. */
+        char * enumerationName = NULL;
+        status = dwarf_diename( subrangeDIE, & enumerationName, NULL );
+        DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error cehcking for name of enumeration.\n", __FILE__, __LINE__ );
 
-		if( enumerationName != NULL ) {
-			loBound = enumerationName;
-			hiBound = enumerationName;
-			} else {
-			loBound = "{nameless enum lo}";
-			hiBound = "{nameless enum hi}";
-			}
-		dwarf_dealloc( dbg, enumerationName, DW_DLA_STRING );
-		return;
-		} /* end if an enumeration type */
+        if( enumerationName != NULL ) {
+            loBound = enumerationName;
+            hiBound = enumerationName;
+        } else {
+            loBound = "{nameless enum lo}";
+            hiBound = "{nameless enum hi}";
+        }
+        dwarf_dealloc( dbg, enumerationName, DW_DLA_STRING );
+        return;
+    } /* end if an enumeration type */
 
-	/* Is a subrange type. */
-	DWARF_RETURN_IF( subrangeTag != DW_TAG_subrange_type, "%s[%d]: unknown tag while parsing subrange\n", __FILE__, __LINE__ );
+    /* Is a subrange type. */
+    DWARF_RETURN_IF( subrangeTag != DW_TAG_subrange_type, "%s[%d]: unknown tag while parsing subrange\n", __FILE__, __LINE__ );
 
-	/* Look for the lower bound. */
-	Dwarf_Attribute lowerBoundAttribute;
-	status = dwarf_attr( subrangeDIE, DW_AT_lower_bound, & lowerBoundAttribute, NULL );
-	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for lower bound of subrange\n", __FILE__, __LINE__ );
+    /* Look for the lower bound. */
+    Dwarf_Attribute lowerBoundAttribute;
+    status = dwarf_attr( subrangeDIE, DW_AT_lower_bound, & lowerBoundAttribute, NULL );
+    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for lower bound of subrange\n", __FILE__, __LINE__ );
 
-	if( status == DW_DLV_OK ) {
-		decipherBound( dbg, lowerBoundAttribute, loBound );
-		dwarf_dealloc( dbg, lowerBoundAttribute, DW_DLA_ATTR );
-		} /* end if we found a lower bound. */
+    if( status == DW_DLV_OK ) {
+        decipherBound( dbg, lowerBoundAttribute, loBound );
+        dwarf_dealloc( dbg, lowerBoundAttribute, DW_DLA_ATTR );
+    } /* end if we found a lower bound. */
 
-	/* Look for the upper bound. */
-	Dwarf_Attribute upperBoundAttribute;
-	status = dwarf_attr( subrangeDIE, DW_AT_upper_bound, & upperBoundAttribute, NULL );
-	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for upper bound of subrange\n", __FILE__, __LINE__ );
-	if( status == DW_DLV_NO_ENTRY ) {
-		status = dwarf_attr( subrangeDIE, DW_AT_count, & upperBoundAttribute, NULL );
-		DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for count of subrange\n", __FILE__, __LINE__ );
-		}
-	if( status == DW_DLV_OK ) {
-		decipherBound( dbg, upperBoundAttribute, hiBound );
-		dwarf_dealloc( dbg, upperBoundAttribute, DW_DLA_ATTR );
-		} /* end if we found an upper bound or count. */
+    /* Look for the upper bound. */
+    Dwarf_Attribute upperBoundAttribute;
+    status = dwarf_attr( subrangeDIE, DW_AT_upper_bound, & upperBoundAttribute, NULL );
+    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for upper bound of subrange\n", __FILE__, __LINE__ );
+    if( status == DW_DLV_NO_ENTRY ) {
+        status = dwarf_attr( subrangeDIE, DW_AT_count, & upperBoundAttribute, NULL );
+        DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for count of subrange\n", __FILE__, __LINE__ );
+    }
+    if( status == DW_DLV_OK ) {
+        decipherBound( dbg, upperBoundAttribute, hiBound );
+        dwarf_dealloc( dbg, upperBoundAttribute, DW_DLA_ATTR );
+    } /* end if we found an upper bound or count. */
 
-	/* Construct the range type. */
-	char * subrangeName = "{anonymous range}"; // type doesn't like NULL.
-	status = dwarf_diename( subrangeDIE, & subrangeName, NULL );
-	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for name of subrange\n", __FILE__, __LINE__ );
-	int dwarvenName = status;
+    /* Construct the range type. */
+    char * subrangeName = "{anonymous range}"; // type doesn't like NULL.
+    status = dwarf_diename( subrangeDIE, & subrangeName, NULL );
+    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for name of subrange\n", __FILE__, __LINE__ );
+    int dwarvenName = status;
 
-	Dwarf_Off subrangeOffset;
-	status = dwarf_dieoffset( subrangeDIE, & subrangeOffset, NULL );
-	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dereferencing DWARF pointer\n", __FILE__, __LINE__ );
+    Dwarf_Off subrangeOffset;
+    status = dwarf_dieoffset( subrangeDIE, & subrangeOffset, NULL );
+    DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dereferencing DWARF pointer\n", __FILE__, __LINE__ );
 
-	std::string srName = subrangeName;
-	Type * rangeType = new typeSubrange( (int) subrangeOffset, 0, atoi(loBound.c_str()), atoi(hiBound.c_str()), srName );
-	assert( rangeType != NULL );
-	rangeType = module->getModuleTypes()->addOrUpdateType( rangeType );
-	if( dwarvenName == DW_DLV_OK ) { dwarf_dealloc( dbg, subrangeName, DW_DLA_STRING ); }	
-	} /* end parseSubRangeDIE() */
+    std::string srName = subrangeName;
+    Type * rangeType = new typeSubrange( (int) subrangeOffset, 0, atoi(loBound.c_str()), atoi(hiBound.c_str()), srName );
+    assert( rangeType != NULL );
+    rangeType = module->getModuleTypes()->addOrUpdateType( rangeType );
+    if( dwarvenName == DW_DLV_OK ) { dwarf_dealloc( dbg, subrangeName, DW_DLA_STRING ); }	
+} /* end parseSubRangeDIE() */
 
 typeArray *parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, Type * elementType, Module * module ) {
     char buf[32];
@@ -456,16 +455,16 @@ int convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength
 
 
 #if defined(arch_x86_64)
-bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, 
+bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
                                                  Dwarf_Signed listLength, 
                                                  Symtab * objFile, 
-                                                 loc_t *loc,
+                                                 vector<loc_t *>*& locs,
                                                  long int * initialStackValue = NULL)
 #else
-bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, 
+bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList, 
                                                  Dwarf_Signed listLength, 
                                                  Symtab *, 
-                                                 loc_t *loc,  
+                                                 vector<loc_t *>*& locs,  
                                                  long int * initialStackValue = NULL)
 #endif
 {
@@ -493,332 +492,347 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList,
      * May be we would need to parse the location list for IA64 functions to store the 
      * register numbers and offsets and use it based on the pc value. 
      */
-
+/*
     DWARF_FALSE_IF( listLength != 1, "%s[%d]: unable to decode location lists of non-unit length.\n", __FILE__, __LINE__ );
 	if( listLength != 1)
 	printf("%s[%d]: unable to decode location lists of non-unit length.\n", __FILE__, __LINE__ );
+*/
+    for(unsigned locIndex = 0 ; locIndex < listLength; locIndex++) {
+        bool isLocSet = false;
+        loc_t *loc = (loc_t *)malloc(sizeof(loc_t));
+        // Initialize location values.
+        loc->stClass = storageAddr;
+        loc->refClass = storageNoRef;
+        loc->reg = -1;
 
-    // Initialize location values.
-    loc->stClass = storageAddr;
-    loc->refClass = storageNoRef;
-    loc->reg = -1;
+        /* Initialize the stack. */
+        std::stack< long int > opStack = std::stack<long int>();
+        if( initialStackValue != NULL ) { opStack.push( * initialStackValue ); }
 
-	/* Initialize the stack. */
-	std::stack< long int > opStack = std::stack<long int>();
-	if( initialStackValue != NULL ) { opStack.push( * initialStackValue ); }
+        /* There is only one location. */
+        Dwarf_Locdesc *location = locationList[locIndex];
+        loc->lowPC = (Offset)location->ld_lopc;
+        loc->hiPC = (Offset)location->ld_hipc;
+        Dwarf_Loc * locations = location->ld_s;
+        for( unsigned int i = 0; i < location->ld_cents; i++ ) {
+            /* Handle the literals w/o 32 case statements. */
+            if( DW_OP_lit0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_lit31 ) {
+                //dwarf_printf( "pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
+                opStack.push( locations[i].lr_atom - DW_OP_lit0 );
+                continue;
+            }
 
-	/* There is only one location. */
-	Dwarf_Locdesc location = locationList[0];
-    loc->lowPC = (Offset)location.ld_lopc;
-    loc->hiPC = (Offset)location.ld_hipc;
-	Dwarf_Loc * locations = location.ld_s;
-	for( unsigned int i = 0; i < location.ld_cents; i++ ) {
-		/* Handle the literals w/o 32 case statements. */
-		if( DW_OP_lit0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_lit31 ) {
-			//dwarf_printf( "pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
-			opStack.push( locations[i].lr_atom - DW_OP_lit0 );
-			continue;
-			}
-
-		/* Haandle registers w/o 32 case statements. */
-		if( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) {
-			/* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
-			//dwarf_printf( "location is named register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile) );
-            loc->stClass = storageRegOffset;
-            loc->refClass = storageNoRef;
-            loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
-            loc->frameOffset = 0;
-            return true;
-		}	
-			
-		/* Haandle registers w/o 32 case statements. */
-		if( DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31 ) {
-			//dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile), locations[i].lr_number );
-            loc->stClass = storageRegOffset;
-            loc->refClass = storageNoRef;
-            loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
-			opStack.push( locations[i].lr_number );
-			continue;
-		}
-
-		switch( locations[i].lr_atom ) {
-			case DW_OP_addr:
-			case DW_OP_const1u:
-			case DW_OP_const2u:
-			case DW_OP_const4u:
-			case DW_OP_const8u:
-			case DW_OP_constu:
-				//dwarf_printf( "pushing unsigned constant %lu\n", (unsigned long)locations[i].lr_number );
-				opStack.push( (Dwarf_Unsigned)locations[i].lr_number );
-				break;
-
-			case DW_OP_const1s:
-			case DW_OP_const2s:
-			case DW_OP_const4s:
-			case DW_OP_const8s:
-			case DW_OP_consts:
-				//dwarf_printf( "pushing signed constant %ld\n", (signed long)(locations[i].lr_number) );
-				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
-				break;
-
-			case DW_OP_regx:
-				/* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
-				//dwarf_printf( "location is register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile) );
+            /* Haandle registers w/o 32 case statements. */
+            if( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) {
+                /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
+                //dwarf_printf( "location is named register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile) );
                 loc->stClass = storageRegOffset;
                 loc->refClass = storageNoRef;
-                loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
+                loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
                 loc->frameOffset = 0;
-				return true;
+                isLocSet = true;
+                break;
+            }	
 
-			case DW_OP_fbreg:
-				//dwarf_printf( "setting storage class to frame base\n" );
-				//if( storageClass != NULL ) { * storageClass = storageFrameOffset; }
+            /* Haandle registers w/o 32 case statements. */
+            if( DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31 ) {
+                //dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile), locations[i].lr_number );
                 loc->stClass = storageRegOffset;
                 loc->refClass = storageNoRef;
-				opStack.push( locations[i].lr_number );
-				break;
+                loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
+                opStack.push( locations[i].lr_number );
+                locs->push_back(loc);
+                continue;
+            }
 
-			case DW_OP_bregx:
-				//dwarf_printf( "setting storage class to register, regNum to %d\n", locations[i].lr_number );
-                loc->stClass = storageRegOffset;
-                loc->refClass = storageNoRef;
-                loc->reg = DWARF_TO_MACHINE_ENC( locations[i].lr_number, objFile );
-                loc->frameOffset = 0;
-				opStack.push( locations[i].lr_number2 );
-				break;
+            switch( locations[i].lr_atom ) {
+                case DW_OP_addr:
+                case DW_OP_const1u:
+                case DW_OP_const2u:
+                case DW_OP_const4u:
+                case DW_OP_const8u:
+                case DW_OP_constu:
+                    //dwarf_printf( "pushing unsigned constant %lu\n", (unsigned long)locations[i].lr_number );
+                    opStack.push( (Dwarf_Unsigned)locations[i].lr_number );
+                    break;
 
-			case DW_OP_dup:
-				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				opStack.push( opStack.top() );
-				break;
+                case DW_OP_const1s:
+                case DW_OP_const2s:
+                case DW_OP_const4s:
+                case DW_OP_const8s:
+                case DW_OP_consts:
+                    //dwarf_printf( "pushing signed constant %ld\n", (signed long)(locations[i].lr_number) );
+                    opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
+                    break;
 
-			case DW_OP_drop:
-				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				opStack.pop();
-				break;
+                case DW_OP_regx:
+                    /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
+                    //dwarf_printf( "location is register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile) );
+                    loc->stClass = storageRegOffset;
+                    loc->refClass = storageNoRef;
+                    loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
+                    loc->frameOffset = 0;
+                    isLocSet = true;
+                    break;
 
-			case DW_OP_pick: {
-				/* Duplicate the entry at index locations[i].lr_number. */
-				std::stack< long int > temp = std::stack< long int >();
-				for( unsigned int j = 0; j < locations[i].lr_number; j++ ) {
-					temp.push( opStack.top() ); opStack.pop();
-				}
-				long int dup = opStack.top();
-				for( unsigned int j = 0; j < locations[i].lr_number; j++ ) {
-					opStack.push( temp.top() ); temp.pop();
-				}
-				opStack.push( dup );
-				} break;
+                case DW_OP_fbreg:
+                    //dwarf_printf( "setting storage class to frame base\n" );
+                    //if( storageClass != NULL ) { * storageClass = storageFrameOffset; }
+                    loc->stClass = storageRegOffset;
+                    loc->refClass = storageNoRef;
+                    opStack.push( locations[i].lr_number );
+                    break;
 
-			case DW_OP_over: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second ); opStack.push( first ); opStack.push( second );
-				} break;
+                case DW_OP_bregx:
+                    //dwarf_printf( "setting storage class to register, regNum to %d\n", locations[i].lr_number );
+                    loc->stClass = storageRegOffset;
+                    loc->refClass = storageNoRef;
+                    loc->reg = DWARF_TO_MACHINE_ENC( locations[i].lr_number, objFile );
+                    loc->frameOffset = 0;
+                    opStack.push( locations[i].lr_number2 );
+                    break;
 
-			case DW_OP_swap: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( first ); opStack.push( second );
-				} break;
+                case DW_OP_dup:
+                    DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                    opStack.push( opStack.top() );
+                    break;
 
-			case DW_OP_rot: {
-				DWARF_FALSE_IF( opStack.size() < 3, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				long int third = opStack.top(); opStack.pop();
-				opStack.push( first ); opStack.push( third ); opStack.push( second );
-				} break;
+                case DW_OP_drop:
+                    DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                    opStack.pop();
+                    break;
 
-			case DW_OP_abs: {
-				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int top = opStack.top(); opStack.pop();
-				opStack.push( abs( top ) );
-				} break;
+                case DW_OP_pick: {
+                                     /* Duplicate the entry at index locations[i].lr_number. */
+                                     std::stack< long int > temp = std::stack< long int >();
+                                     for( unsigned int j = 0; j < locations[i].lr_number; j++ ) {
+                                         temp.push( opStack.top() ); opStack.pop();
+                                     }
+                                     long int dup = opStack.top();
+                                     for( unsigned int j = 0; j < locations[i].lr_number; j++ ) {
+                                         opStack.push( temp.top() ); temp.pop();
+                                     }
+                                     opStack.push( dup );
+                                 } break;
 
-			case DW_OP_and: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second & first );
-				} break;
-			
-			case DW_OP_div: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second / first );
-				} break;
+                case DW_OP_over: {
+                                     DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                     long int first = opStack.top(); opStack.pop();
+                                     long int second = opStack.top(); opStack.pop();
+                                     opStack.push( second ); opStack.push( first ); opStack.push( second );
+                                 } break;
 
-			case DW_OP_minus: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second - first );
-				} break;
+                case DW_OP_swap: {
+                                     DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                     long int first = opStack.top(); opStack.pop();
+                                     long int second = opStack.top(); opStack.pop();
+                                     opStack.push( first ); opStack.push( second );
+                                 } break;
 
-			case DW_OP_mod: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second % first );
-				} break;
+                case DW_OP_rot: {
+                                    DWARF_FALSE_IF( opStack.size() < 3, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    long int second = opStack.top(); opStack.pop();
+                                    long int third = opStack.top(); opStack.pop();
+                                    opStack.push( first ); opStack.push( third ); opStack.push( second );
+                                } break;
 
-			case DW_OP_mul: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second * first );
-				} break;
+                case DW_OP_abs: {
+                                    DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int top = opStack.top(); opStack.pop();
+                                    opStack.push( abs( top ) );
+                                } break;
 
-			case DW_OP_neg: {
-				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				opStack.push( first * (-1) );
-				} break;
+                case DW_OP_and: {
+                                    DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    long int second = opStack.top(); opStack.pop();
+                                    opStack.push( second & first );
+                                } break;
 
-			case DW_OP_not: {
-				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				opStack.push( ~ first );
-				} break;
+                case DW_OP_div: {
+                                    DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    long int second = opStack.top(); opStack.pop();
+                                    opStack.push( second / first );
+                                } break;
 
-			case DW_OP_or: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second | first );
-				} break;
+                case DW_OP_minus: {
+                                      DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                      long int first = opStack.top(); opStack.pop();
+                                      long int second = opStack.top(); opStack.pop();
+                                      opStack.push( second - first );
+                                  } break;
 
-			case DW_OP_plus: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second + first );
-				} break;
+                case DW_OP_mod: {
+                                    DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    long int second = opStack.top(); opStack.pop();
+                                    opStack.push( second % first );
+                                } break;
 
-			case DW_OP_plus_uconst: {
-				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				opStack.push( first + locations[i].lr_number );
-				} break;
+                case DW_OP_mul: {
+                                    DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    long int second = opStack.top(); opStack.pop();
+                                    opStack.push( second * first );
+                                } break;
 
-			case DW_OP_shl: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second << first );
-				} break;
+                case DW_OP_neg: {
+                                    DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    opStack.push( first * (-1) );
+                                } break;
 
-			case DW_OP_shr: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( (long int)((unsigned long)second >> (unsigned long)first) );
-				} break;
+                case DW_OP_not: {
+                                    DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    opStack.push( ~ first );
+                                } break;
 
-			case DW_OP_shra: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second >> first );
-				} break;
+                case DW_OP_or: {
+                                   DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                   long int first = opStack.top(); opStack.pop();
+                                   long int second = opStack.top(); opStack.pop();
+                                   opStack.push( second | first );
+                               } break;
 
-			case DW_OP_xor: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( second ^ first );
-				} break;
+                case DW_OP_plus: {
+                                     DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                     long int first = opStack.top(); opStack.pop();
+                                     long int second = opStack.top(); opStack.pop();
+                                     opStack.push( second + first );
+                                 } break;
 
-			case DW_OP_le: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( first <= second ? 1 : 0 );
-				} break;
+                case DW_OP_plus_uconst: {
+                                            DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                            long int first = opStack.top(); opStack.pop();
+                                            opStack.push( first + locations[i].lr_number );
+                                        } break;
 
-			case DW_OP_ge: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( first >= second ? 1 : 0 );
-				} break;
+                case DW_OP_shl: {
+                                    DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    long int second = opStack.top(); opStack.pop();
+                                    opStack.push( second << first );
+                                } break;
 
-			case DW_OP_eq: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( first == second ? 1 : 0 );
-				} break;
+                case DW_OP_shr: {
+                                    DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    long int second = opStack.top(); opStack.pop();
+                                    opStack.push( (long int)((unsigned long)second >> (unsigned long)first) );
+                                } break;
 
-			case DW_OP_lt: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( first < second ? 1 : 0 );
-				} break;
+                case DW_OP_shra: {
+                                     DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                     long int first = opStack.top(); opStack.pop();
+                                     long int second = opStack.top(); opStack.pop();
+                                     opStack.push( second >> first );
+                                 } break;
 
-			case DW_OP_gt: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( first > second ? 1 : 0 );
-				} break;
+                case DW_OP_xor: {
+                                    DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                    long int first = opStack.top(); opStack.pop();
+                                    long int second = opStack.top(); opStack.pop();
+                                    opStack.push( second ^ first );
+                                } break;
 
-			case DW_OP_ne: {
-				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				long int first = opStack.top(); opStack.pop();
-				long int second = opStack.top(); opStack.pop();
-				opStack.push( first != second ? 1 : 0 );
-				} break;
+                case DW_OP_le: {
+                                   DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                   long int first = opStack.top(); opStack.pop();
+                                   long int second = opStack.top(); opStack.pop();
+                                   opStack.push( first <= second ? 1 : 0 );
+                               } break;
 
-			case DW_OP_bra:
-				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
-				if( opStack.top() == 0 ) { break; }
-				opStack.pop();
-			case DW_OP_skip: {
-				int bytes = (int)(Dwarf_Signed)locations[i].lr_number;
-				unsigned int target = locations[i].lr_offset + bytes;
+                case DW_OP_ge: {
+                                   DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                   long int first = opStack.top(); opStack.pop();
+                                   long int second = opStack.top(); opStack.pop();
+                                   opStack.push( first >= second ? 1 : 0 );
+                               } break;
 
-				int j = i;
-				if( bytes < 0 ) {
-					for( j = i - 1; j >= 0; j-- ) {
-						if( locations[j].lr_offset == target ) { break; }
-						} /* end search backward */
-					} else {
-					for( j = i + 1; j < location.ld_cents; j ++ ) {
-						if( locations[j].lr_offset == target ) { break; }
-						} /* end search forward */
-					} /* end if positive offset */
+                case DW_OP_eq: {
+                                   DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                   long int first = opStack.top(); opStack.pop();
+                                   long int second = opStack.top(); opStack.pop();
+                                   opStack.push( first == second ? 1 : 0 );
+                               } break;
 
-				/* Because i will be incremented the next time around the loop. */
-				i = j - 1;
-				} break;
+                case DW_OP_lt: {
+                                   DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                   long int first = opStack.top(); opStack.pop();
+                                   long int second = opStack.top(); opStack.pop();
+                                   opStack.push( first < second ? 1 : 0 );
+                               } break;
 
-			case DW_OP_piece:
-				/* For multi-part variables, which we don't handle. */
-				//bperr ( "Warning: dyninst does not handle multi-part variables.\n" );
-				break;
+                case DW_OP_gt: {
+                                   DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                   long int first = opStack.top(); opStack.pop();
+                                   long int second = opStack.top(); opStack.pop();
+                                   opStack.push( first > second ? 1 : 0 );
+                               } break;
 
-			case DW_OP_nop:
-				break;
+                case DW_OP_ne: {
+                                   DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                                   long int first = opStack.top(); opStack.pop();
+                                   long int second = opStack.top(); opStack.pop();
+                                   opStack.push( first != second ? 1 : 0 );
+                               } break;
 
-			default:
-				//dwarf_printf( "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
-				return false;
-			} /* end operand switch */
-		} /* end iteration over Dwarf_Loc entries. */
+                case DW_OP_bra:
+                               DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
+                               if( opStack.top() == 0 ) { break; }
+                               opStack.pop();
+                case DW_OP_skip: {
+                                     int bytes = (int)(Dwarf_Signed)locations[i].lr_number;
+                                     unsigned int target = locations[i].lr_offset + bytes;
 
-	/* The top of the stack is the computed location. */
-	if( opStack.empty() ) {
-		//dwarf_printf( "ignoring malformed location list (stack empty at end of list).\n" );
-		return false;
-		}
-	//dwarf_printf( "setting offset to %d\n", opStack.top() );
-	loc->frameOffset = opStack.top();
+                                     int j = i;
+                                     if( bytes < 0 ) {
+                                         for( j = i - 1; j >= 0; j-- ) {
+                                             if( locations[j].lr_offset == target ) { break; }
+                                         } /* end search backward */
+                                     } else {
+                                         for( j = i + 1; j < location->ld_cents; j ++ ) {
+                                             if( locations[j].lr_offset == target ) { break; }
+                                         } /* end search forward */
+                                     } /* end if positive offset */
+
+                                     /* Because i will be incremented the next time around the loop. */
+                                     i = j - 1;
+                                 } break;
+
+                case DW_OP_piece:
+                                 /* For multi-part variables, which we don't handle. */
+                                 //bperr ( "Warning: dyninst does not handle multi-part variables.\n" );
+                                 break;
+
+                case DW_OP_nop:
+                                 break;
+
+                default:
+                                 //dwarf_printf( "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
+                                 //return false;
+                                 break;
+            } /* end operand switch */
+        } /* end iteration over Dwarf_Loc entries. */
+
+        if(!isLocSet){
+            /* The top of the stack is the computed location. */
+            if( opStack.empty() ) {
+                //dwarf_printf( "ignoring malformed location list (stack empty at end of list).\n" );
+                //return false;
+            }
+            else {
+                //dwarf_printf( "setting offset to %d\n", opStack.top() );
+                loc->frameOffset = opStack.top();
+                locs->push_back(loc);
+            }
+        }
+        else
+            locs->push_back(loc);
+    }
 	
 	/* decode successful */
 	return true;
@@ -1252,9 +1266,9 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				if( status == DW_DLV_NO_ENTRY ) { break; }
 				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
-				Dwarf_Locdesc * locationList;
+				Dwarf_Locdesc **locationList;
 				Dwarf_Signed listLength;
-				status = dwarf_loclist( locationAttribute, & locationList, & listLength, NULL );
+				status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
 				dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
 				if( status != DW_DLV_OK ) {
 					/* I think this is OK if the local variable was optimized away. */
@@ -1263,8 +1277,9 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 
-				loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
-				bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, loc, NULL);
+				//loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
+				vector<loc_t *>* locs = new vector<loc_t *>;
+				bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, NULL);
 				deallocateLocationList( dbg, locationList, listLength );
 				
 				if( ! decodedAddressOrOffset ) { break; }
@@ -1358,27 +1373,27 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				/* We now have the variable name, type, offset, and line number.
 				   Tell Dyninst about it. */
 				//dwarf_printf( "localVariable '%s', currentFunction %p\n", variableName, currentFunction );
-				if( currentFunction != NULL ) {
-                    		    if(!hasLineNumber){
-                        		variableLineNo = 0;
-					fileName = "";
-				    }
-				    else
-				    	fileName = srcFiles[fileNameDeclVal-1];
-				    std::string vName = convertCharToString(variableName);
-				    localVar * newVariable = new localVar( vName, variableType, fileName, variableLineNo);
-				    newVariable->addLocation(loc);
-				    if(!currentFunction->vars_)
-			    	        currentFunction->vars_ = new localVarCollection();
-				    currentFunction->vars_->addLocalVar( newVariable );
-				} /* end if a local or static variable. */
-				else if( currentEnclosure != NULL ) {
-					//assert( sClass != storageFrameOffset );
-					assert( loc->stClass != storageRegOffset );
-					std::string vName = convertCharToString(variableName);
-					currentEnclosure->addField( vName, variableType, loc->frameOffset);
-					} /* end if a C++ static member. */
-				} /* end if this variable is not global */
+                if( currentFunction != NULL ) {
+                    if(!hasLineNumber){
+                        variableLineNo = 0;
+                        fileName = "";
+                    }
+                    else
+                        fileName = srcFiles[fileNameDeclVal-1];
+                    std::string vName = convertCharToString(variableName);
+                    localVar * newVariable = new localVar( vName, variableType, fileName, variableLineNo);
+                    newVariable->setLocation(locs);
+                    if(!currentFunction->vars_)
+                        currentFunction->vars_ = new localVarCollection();
+                    currentFunction->vars_->addLocalVar( newVariable );
+                } /* end if a local or static variable. */
+                else if( currentEnclosure != NULL ) {
+                    //assert( sClass != storageFrameOffset );
+                    assert( (*locs)[0]->stClass != storageRegOffset );
+                    std::string vName = convertCharToString(variableName);
+                    currentEnclosure->addField( vName, variableType, (*locs)[0]->frameOffset);
+                } /* end if a C++ static member. */
+            } /* end if this variable is not global */
 			} break;
 		
 		/* It's probably worth noting that a formal parameter may have a
@@ -1418,9 +1433,9 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			status = dwarf_attr( dieEntry, DW_AT_location, & locationAttribute, NULL );
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
-			Dwarf_Locdesc * locationList;
+			Dwarf_Locdesc **locationList;
 			Dwarf_Signed listLength;
-			status = dwarf_loclist( locationAttribute, & locationList, & listLength, NULL );
+			status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
 			dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
 			if( status != DW_DLV_OK ) {
 				/* I think this is legal if the parameter was optimized away. */
@@ -1429,8 +1444,9 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				}
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
-			loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
-			bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, loc, NULL);
+			//loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
+			vector<loc_t *>* locs = new vector<loc_t *>;
+			bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, NULL);
 			deallocateLocationList( dbg, locationList, listLength );
 			
 			if( ! decodedOffset ) {
@@ -1438,7 +1454,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				break;
 				}
 			
-			assert( loc->stClass != storageAddr );
+			assert( (*locs)[0]->stClass != storageAddr );
 
 			/* If the DIE has an _abstract_origin, we'll use that for the
 			   remainder of our inquiries. */
@@ -1525,7 +1541,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			std::string pName = convertCharToString(parameterName);
 			localVar * newParameter = new localVar( pName, parameterType, fileName, parameterLineNo);
 			assert( newParameter != NULL );
-			newParameter->addLocation(loc);
+			newParameter->setLocation(locs);
 			
 			/* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
 			if(!currentFunction->params_)
@@ -1825,22 +1841,23 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			if( status == DW_DLV_NO_ENTRY ) { break; }
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-			Dwarf_Locdesc * locationList;
+			Dwarf_Locdesc **locationList;
 			Dwarf_Signed listLength;
-			status = dwarf_loclist( locationAttr, & locationList, & listLength, NULL );
+			status = dwarf_loclist_n( locationAttr, & locationList, & listLength, NULL );
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 
-			loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
+			//loc_t *loc = (loc_t *)malloc(listLength * sizeof(loc_t));
+			vector<loc_t *>* locs = new vector<loc_t *>;
 			long int baseAddress = 0;
-			bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, loc, & baseAddress );
+			bool decodedAddress = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, & baseAddress );
 			deallocateLocationList( dbg, locationList, listLength );
 			
 			if( ! decodedAddress ) { break; }
 			assert( decodedAddress );
 			
-			assert( loc->stClass == storageAddr );
+			assert( (*locs)[0]->stClass == storageAddr );
 
 			/* DWARF stores offsets in bytes unless the member is a bit field.
 			   Correct memberOffset as indicated.  Also, memberSize is in bytes
@@ -1853,7 +1870,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			if( status == DW_DLV_OK ) {
-				Dwarf_Unsigned memberOffset_du = loc->frameOffset;
+				Dwarf_Unsigned memberOffset_du = (*locs)[0]->frameOffset;
 				status = dwarf_formudata( bitOffset, &memberOffset_du, NULL );
 				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
@@ -1874,20 +1891,20 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				   bitfields right in getComponents() anyway...) */
 				}
 			else {
-				loc->frameOffset *= 8;
-				memberSize *= 8;
-				} /* end if not a bit field member. */
+                (*locs)[0]->frameOffset *= 8;
+                memberSize *= 8;
+            } /* end if not a bit field member. */
 
 			if( memberName != NULL ) {
-				// /* DEBUG */ fprint( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, loc->frameOffset, memberType->getSize() );
-				std::string fName = convertCharToString(memberName);
-				currentEnclosure->addField( fName, memberType, loc->frameOffset);
-				dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
-				} else {
-				/* An anonymous union [in a struct]. */
-				std::string fName = "[anonymous union]";
-				currentEnclosure->addField( fName, memberType, loc->frameOffset);
-				}
+                // /* DEBUG */ fprint( stderr, "Adding member to enclosure '%s' (%d): '%s' with type %lu at %ld and size %d\n", currentEnclosure->getName(), currentEnclosure->getID(), memberName, (unsigned long)typeOffset, loc->frameOffset, memberType->getSize() );
+                std::string fName = convertCharToString(memberName);
+                currentEnclosure->addField( fName, memberType, (*locs)[0]->frameOffset);
+                dwarf_dealloc( dbg, memberName, DW_DLA_STRING );
+            } else {
+                /* An anonymous union [in a struct]. */
+                std::string fName = "[anonymous union]";
+                currentEnclosure->addField( fName, memberType, (*locs)[0]->frameOffset);
+            }
 		} break;
 
 		case DW_TAG_const_type:

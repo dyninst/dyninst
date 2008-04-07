@@ -1582,6 +1582,13 @@ bool localVar::addLocation(loc_t *location)
     return true;
 }
 
+bool localVar::setLocation(vector<loc_t *> *locs) {
+    if(locs_)
+        return false;
+    locs_ = locs;
+    return true;
+}
+
 /*
  * localVar destructor
  *

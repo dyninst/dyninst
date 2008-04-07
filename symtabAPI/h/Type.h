@@ -527,6 +527,7 @@ class DLLEXPORT localVar
       // Copy constructor
       localVar(localVar &lvar);
       bool addLocation(loc_t *location);
+      bool setLocation(std::vector<loc_t *> *locs);
       ~localVar();
       void fixupUnknown(Module *);
  public:
