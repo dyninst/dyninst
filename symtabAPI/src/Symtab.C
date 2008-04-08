@@ -2055,8 +2055,7 @@ bool Symtab::isCode(const Offset where)  const
     if(!codeRegions_.size())
         return false;
     for(unsigned i=0; i< codeRegions_.size(); i++){
-//        if((where>=codeRegions_[i]->getRegionAddr()) && (where < (codeRegions_[i]->getRegionAddr() + codeRegions_[i]->getDiskSize())))
-        if((where>=codeRegions_[i]->getMemOffset()) && (where < (codeRegions_[i]->getMemOffset() + codeRegions_[i]->getMemSize())))
+        if((where>=codeRegions_[i]->getRegionAddr()) && (where < (codeRegions_[i]->getRegionAddr() + codeRegions_[i]->getDiskSize())))
 			return true;
     }
     return false;
