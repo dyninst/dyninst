@@ -4015,6 +4015,11 @@ DLLEXPORT Region::perm_t Region::getRegionPermissions() const {
     return permissions_;
 }
 
+DLLEXPORT bool Region::setRegionPermissions(Region::perm_t newPerms){
+    permissions_ = newPerms;
+    return true;
+}
+
 DLLEXPORT Region::region_t Region::getRegionType() const {
     return rType_;
 }

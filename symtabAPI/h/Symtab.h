@@ -111,6 +111,7 @@ class Region {
     DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
 
     DLLEXPORT perm_t getRegionPermissions() const;
+    DLLEXPORT bool setRegionPermissions(perm_t newPerms);
     DLLEXPORT region_t getRegionType() const;
       
     DLLEXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType);
