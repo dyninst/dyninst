@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.39 2008/04/07 22:32:48 giri Exp $
+ * $Id: Object-elf.C,v 1.40 2008/04/08 18:51:24 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -191,12 +191,14 @@ Region::region_t getRegionType(unsigned long type, unsigned long flags){
                 return Region::RT_DATA;
         case SHT_DYNAMIC:
             return Region::RT_DYNAMIC;
+#if !defined(os_solaris)            
         case SHT_GNU_versym:
             return Region::RT_SYMVERSIONS;
         case SHT_GNU_verdef:
             return Region::RT_SYMVERDEF;
         case SHT_GNU_verneed:
             return Region::RT_SYMVERNEEDED;
+#endif
         default:
             return Region::RT_OTHER;
     }
