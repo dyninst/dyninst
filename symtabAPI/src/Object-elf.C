@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.40 2008/04/08 18:51:24 giri Exp $
+ * $Id: Object-elf.C,v 1.41 2008/04/08 22:55:21 giri Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -135,6 +135,29 @@ struct  SectionHeaderSortFunction: public binary_function<Elf_X_Shdr *, Elf_X_Sh
 	}
 };
 
+Region::perm_t getSegmentPerms(unsigned long flags){
+    if(flags == 7)
+        return Region::RP_RWX;
+    else if(flags == 6)
+        return Region::RP_RW;
+    else if(flags == 5)
+        return Region::RP_RX;
+    else
+        return Region::RP_R;
+}
+
+Region::region_t getSegmentType(unsigned long type, unsigned long flags){
+    if(type == PT_DYNAMIC)
+        return Region::RT_DYNAMIC;
+    if(flags == 7)
+        return Region::RT_TEXTDATA;
+    if(flags == 5)
+        return Region::RT_TEXT;
+    if(flags == 6)
+        return Region::RT_DATA;
+    return Region::RT_OTHER;
+}
+
 /* binary search to find the section starting at a particular address */
 Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) {
     unsigned end = allRegionHdrs.size() - 1, start = 0;
@@ -153,12 +176,19 @@ Elf_X_Shdr *Object::getRegionHdrByAddr(Offset addr) {
     return NULL;
 }
 
-bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize){
-    for(unsigned i = 0; i < allRegionHdrs.size(); i++){
-        if((allRegionHdrs[i]->sh_offset() >= segmentStart) && (allRegionHdrs[i]->sh_offset() + allRegionHdrs[i]->sh_size()<= segmentStart+segmentSize))
-            return true;
+/* Check if there is a section which belongs to the segment and update permissions of that section.
+ * Return value indicates whether the segment has to be added to the list of regions*/
+
+bool Object::isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned segPerms){
+    bool present = false;
+    for(unsigned i = 0; i < regions_.size() ;i++){
+        if((regions_[i]->getRegionAddr() >= segmentStart) && ((regions_[i]->getRegionAddr()+regions_[i]->getRegionSize()) <= (segmentStart+segmentSize))){
+            present = true;
+            regions_[i]->setRegionPermissions(getSegmentPerms(segPerms));
+        }
+
     }
-    return false;
+    return present;
 }
 
 Region::perm_t getRegionPerms(unsigned long flags){
@@ -202,29 +232,6 @@ Region::region_t getRegionType(unsigned long type, unsigned long flags){
         default:
             return Region::RT_OTHER;
     }
-}
-
-Region::perm_t getSegmentPerms(unsigned long flags){
-    if(flags == 7)
-        return Region::RP_RWX;
-    else if(flags == 6)
-        return Region::RP_RW;
-    else if(flags == 5)
-        return Region::RP_RX;
-    else
-        return Region::RP_R;
-}
-
-Region::region_t getSegmentType(unsigned long type, unsigned long flags){
-    if(type == PT_DYNAMIC)
-        return Region::RT_DYNAMIC;
-    if(flags == 7)
-        return Region::RT_TEXTDATA;
-    if(flags == 5)
-        return Region::RT_TEXT;
-    if(flags == 6)
-        return Region::RT_DATA;
-    return Region::RT_OTHER;
 }
 
 const char* EDITED_TEXT_NAME = ".edited.text";
@@ -2354,7 +2361,7 @@ void Object::find_code_and_data(Elf_X &elf,
       
       char *file_ptr = (char *)mf->base_addr();
 
-      if(!isRegionPresent(phdr.p_offset(), phdr.p_filesz()))
+      if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags()))
           regions_.push_back(new Region(i, "", phdr.p_paddr(), phdr.p_filesz(), phdr.p_vaddr(), phdr.p_memsz(), &file_ptr[phdr.p_offset()], getSegmentPerms(phdr.p_flags()), getSegmentType(phdr.p_type(), phdr.p_flags())));
 
       // The code pointer, offset, & length should be set even if

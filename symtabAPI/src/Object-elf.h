@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.17 2008/04/07 22:32:49 giri Exp $
+ * $Id: Object-elf.h,v 1.18 2008/04/08 22:55:21 giri Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -364,7 +364,7 @@ class Object : public AObject {
 
 	bool is_offset_in_plt(Offset offset) const;
     Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
-    bool isRegionPresent(Offset segmentStart, Offset segmentSize);
+    bool isRegionPresent(Offset segmentStart, Offset segmentSize, unsigned newPerms);
 
  private:
   static void log_elferror (void (*)(const char *), const char *);
