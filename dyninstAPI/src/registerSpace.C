@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: registerSpace.C,v 1.20 2008/03/25 19:24:39 bernat Exp $
+// $Id: registerSpace.C,v 1.21 2008/04/10 17:07:17 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -61,9 +61,6 @@
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 
 #include <map>
-#include <boost/assign/list_of.hpp>
-using namespace boost::assign;
-
 
 #if defined(arch_sparc)
 #include "dyninstAPI/src/inst-sparc.h"
