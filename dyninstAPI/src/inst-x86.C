@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.277 2008/03/25 19:24:34 bernat Exp $
+ * $Id: inst-x86.C,v 1.278 2008/04/11 23:30:19 legendre Exp $
  */
 #include <iomanip>
 
@@ -2030,7 +2030,7 @@ bool EmitterIA32::emitPush(codeGen &gen, Register r) {
     }
     assert(r < 8);
 
-    *insn++ = 0x58 + r; // 0x58 is push EAX, and it increases from there.
+    *insn++ = 0x50 + r; // 0x50 is push EAX, and it increases from there.
 
     SET_PTR(insn, gen);
     return true;
@@ -2039,7 +2039,7 @@ bool EmitterIA32::emitPush(codeGen &gen, Register r) {
 bool EmitterIA32::emitPop(codeGen &gen, Register r) {
     GET_PTR(insn, gen);
     assert(r < 8);
-    *insn++ = 0x50 + r;
+    *insn++ = 0x58 + r;
     
     SET_PTR(insn, gen);
     return true;

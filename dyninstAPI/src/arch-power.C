@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.26 2008/03/12 20:09:00 legendre Exp $
+ * $Id: arch-power.C,v 1.27 2008/04/11 23:30:09 legendre Exp $
  */
 
 #include "common/h/Types.h"
@@ -722,8 +722,10 @@ bool instruction::generate(codeGen &gen,
                            AddressSpace *proc,
                            Address origAddr,
                            Address relocAddr,
-                           patchTarget */* fallthroughOverride */,
+                           patchTarget *fallthroughOverride,
                            patchTarget *targetOverride) {
+    assert(fallthroughOverride == NULL);
+
     Address targetAddr = targetOverride ? targetOverride->get_address() : 0;
     long newOffset = 0;
     Address to;

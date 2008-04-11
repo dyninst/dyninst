@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.51 2008/04/07 22:32:41 giri Exp $
+// $Id: image-func.C,v 1.52 2008/04/11 23:30:17 legendre Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -554,10 +554,15 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     // Because of the way that pre-parsed code is handled, only functions
     // that have already been parsed need this information.
     existing = newBlk->getFirstFunc();
+    parsing_printf("... newBlk->getFirstFunc() location: 0x%lx\n",
+        (existing ? existing->getOffset() : 0));
     for(unsigned int i=0;i<funcs_.size();i++)
     {
         if(funcs_[i] != existing && funcs_[i]->parsed())
         {
+            parsing_printf("... adding func at 0x%lx to newBlk\n",
+                funcs_[i]->getOffset());
+
             // tell the functions they own newBlk
             funcs_[i]->addToBlocklist(newBlk);
             // tell newBlk it's owned by the functions
@@ -679,12 +684,27 @@ bool image_func::addBasicBlock(Address newAddr,
 
         if(splitBlk->firstInsnOffset_ == newAddr)
         {
-            // not a split, but a re-use
+            // not a split, but a re-use of an existing block.
             newBlk = splitBlk;
-            // add worklist, but only if we haven't already
+            // The block can be in one of two states: it can be parsed
+            // block of another function, or it can be a stub block of
+            // this current function or the stub block representing the
+            // first block of another function (i.e., a block
+            // created by parsing a call instruction).
+            // 
+            // If the block is fully parsed (isStub_ == false), then
+            // we'll end up calling parseSharedCode on it in buildCFG().
+            // If isStub_ == true, then we'll do the parsing ourselves.
+            // In this latter case, we need to add ourselves to the block's
+            // function list here.
+            //
+            // If we've already parsed this block, naturally it doesn't
+            // go back on the worklist
             if(!leaders.contains(newAddr))
             {
-                newBlk->addFunc(this);
+                if(newBlk->isStub_) {
+                    newBlk->addFunc(this); // see above comment
+                }
                 worklist.push_back(newAddr);
                 parsing_printf("[%s:%u] adding block %d (0x%lx) to worklist\n",
                     FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
@@ -707,7 +727,7 @@ bool image_func::addBasicBlock(Address newAddr,
             else if(!leaders.contains(newBlk->firstInsnOffset_))
             {
                 // This is a new (to this function) block that will not be
-                // parsed, and so much be added to the blocklist here.
+                // parsed, and so must be added to the blocklist here.
                 parsing_printf("[%s:%u] adding block %d (0x%lx) to blocklist\n",
                     FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
                 blockList.push_back(newBlk);
@@ -1217,8 +1237,15 @@ void image_func::updateFunctionEnd(Address newEnd)
 
 void image_basicBlock::addFunc(image_func * func)
 {
-    //if(funcs_.contains(func))
-    //    return;
+    /* enforced elsewhere; uncomment to debug
+    for(unsigned i=0;i<funcs_.size(); ++i) {
+        //assert(funcs_[i] != func);
+        if(funcs_[i] == func) {
+            fprintf(stderr,"duplicate function in addFunc\n");
+            assert(0);
+        }
+    }
+    */
 
     funcs_.push_back(func);
 

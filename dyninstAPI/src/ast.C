@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.204 2008/03/25 19:24:24 bernat Exp $
+// $Id: ast.C,v 1.205 2008/04/11 23:30:13 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -2408,7 +2408,7 @@ void AstNode::debugPrint(unsigned level) {
     else if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";
     
     
-    ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d\n", type.c_str(), this, useCount, canBeKept());
+    ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d, type %s\n", type.c_str(), this, useCount, canBeKept(), getType() ? getType()->getName() : "<NULL TYPE>");
     
     pdvector<AstNodePtr> children;
     getChildren(children);

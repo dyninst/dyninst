@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.53 2008/03/12 20:09:31 legendre Exp $
+ * $Id: RTlinux.c,v 1.54 2008/04/11 23:30:44 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -349,9 +349,10 @@ typedef struct pthread_offset_t
 } pthread_offset_t;
 
 #if defined(arch_x86)
-#define POS_ENTRIES 3
+#define POS_ENTRIES 4
 static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
                                                    { 72, 76, 516, 84 },
+                                                   { 72, 76, 532, 96 },
                                                    { 72, 476, 516, 80 } };
 #else
 //x86_64 and ia64 share structrues
@@ -393,13 +394,31 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
         void * stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
         void * start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
 
-        // Sanity checking. On x86_64 there are two places the stack address
-        // has been found on different compiles of libc. If we look in the
-        // wrong place, it looks like the value will be nil.
-        if(stack_addr == (void*)0) continue;
+        // Sanity checking. There are multiple different places that we have
+        // found the stack address for a given pair of pid/lwpid locations,
+        // so we need to do the best job we can of verifying that we've
+        // identified the real stack. 
+        //
+        // Currently we just check for known incorrect values. We should
+        // generalize this to check for whether the address is in a valid
+        // memory region, but it is not clear whether that information is
+        // available at this point.
+        //
+        
+        if(stack_addr == (void*)0 || stack_addr == (void*)0xffffffec) {
+            continue;
+        }
 
         ev->stack_addr = stack_addr;
         ev->start_pc = start_pc;
+
+           /* DEBUG */ /* fprintf( stderr, "%s[%d]: pid_pos %d, lwp_pos %d " 
+                                       "stck_start_pos: %d start_func_pos %d\n",
+            __FILE__, __LINE__, 
+            positions[i].pid_pos, 
+            positions[i].lwp_pos,
+            positions[i].stck_start_pos,
+            positions[i].start_func_pos); */
 
          // /* DEBUG */ fprintf( stderr, "%s[%d]: stack_addr %p, start_pc %p\n", __FILE__, __LINE__, ev->stack_addr, ev->start_pc );
      return 1;

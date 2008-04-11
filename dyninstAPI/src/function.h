@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.49 2008/02/23 02:09:05 jaw Exp $
+// $Id: function.h,v 1.50 2008/04/11 23:30:15 legendre Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -123,6 +123,8 @@ class bblInstance : public codeRange {
     void *getPtrToInstruction(Address addr) const;
     void *get_local_ptr() const;
 
+    bblInstance *getTargetBBL();
+    bblInstance *getFallthroughBBL();
 
     const void *getPtrToOrigInstruction(Address addr) const;
     unsigned getRelocInsnSize(Address addr) const;
@@ -144,14 +146,14 @@ class bblInstance : public codeRange {
     // meant for use by fixpoint block regeneration.
     bool reset();
 
-    unsigned sizeRequired();
+    unsigned sizeRequired(bblInstance *nextBBL);
     // Pin a block to a particular address; in theory, we can only
     // do these for blocks that can be entered via jumps, but for now
     // we do it all the time.
     void setStartAddr(Address addr);
 
     // And generate a moved copy into ze basic block
-    bool generate();
+    bool generate(bblInstance *nextBBL);
     // And write the block into the addr space
     bool install();
     // Check for safety...

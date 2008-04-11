@@ -646,6 +646,10 @@ void usage(const char *progname)
     fprintf(stderr, "    Send all output from monitor to specified file.\n");
     fprintf(stderr, "    NOTE: Mutator and mutatee output will not be sent to file.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -binary-edit <filename>\n");
+    fprintf(stderr, "    Use the binary rewriting feature to output a rewriten binary to");
+    fprintf(stderr, "    <filename>\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -p <int>\n");
     fprintf(stderr, "    Parse level.  Valid parameters range from 0 to %d, where:\n", PARSE_MAX - 1);
     fprintf(stderr, "      0 = Parse for module data\n");

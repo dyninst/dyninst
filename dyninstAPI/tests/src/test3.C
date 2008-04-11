@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.56 2008/02/26 06:59:43 jaw Exp $
+// $Id: test3.C,v 1.57 2008/04/11 23:30:33 legendre Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -1034,7 +1034,7 @@ void mutatorTest7(char *pathname, BPatch *bpatch)
 	delete irpcSnippets;
 }
 
-int main(unsigned int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     bool ABI_32=false;
     char mutateeName[128];

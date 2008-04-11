@@ -211,7 +211,10 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
 {   
    if (getTerminated()) return true;
 
-   if (handle == NULL) return true;
+   if (handle == NULL) {
+       bperr("Request to delete NULL snippet handle, returning false\n");
+       return false;
+   }
 
    if (handle->addSpace_ == this) {  
        for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
@@ -220,7 +223,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        return true;
    } 
    // Handle isn't to a snippet instance in this process
-   cerr << "Error: wrong address space in deleteSnippet" << endl;     
+   bperr("Error: wrong address space in deleteSnippet\n");
    return false;
 }
 
@@ -567,6 +570,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       if ((*(expr.ast_wrapper))->checkType() == BPatch::bpatch->type_Error) {
          inst_printf("[%s:%u] - Type error inserting instrumentation\n",
                FILE__, __LINE__);
+         (*(expr.ast_wrapper))->debugPrint();
          return false;
       }
    }

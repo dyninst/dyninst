@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2.C,v 1.67 2006/05/03 00:31:24 jodom Exp $
+// $Id: test2.C,v 1.68 2008/04/11 23:30:32 legendre Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -759,7 +759,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 // main - decide our role and call the correct "main"
 //
 int
-main(unsigned int argc, char *argv[])
+main(int argc, char *argv[])
 {
     BPatch_thread *ret;
 

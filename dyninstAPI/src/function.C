@@ -1218,3 +1218,79 @@ std::string int_function::get_name() const
 {
    return symTabName();
 }
+
+bblInstance * bblInstance::getTargetBBL() {
+    // Check to see if we need to fix up the target....
+    pdvector<int_basicBlock *> targets;
+    block_->getTargets(targets);
+    
+    // We have edge types on the internal data, so we drop down and get that. 
+    // We want to find the "branch taken" edge and override the destination
+    // address for that guy.
+    pdvector<image_edge *> out_edges;
+    block_->llb()->getTargets(out_edges);
+    
+    // May be greater; we add "extra" edges for things like function calls, etc.
+    assert (out_edges.size() >= targets.size());
+    
+    for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
+        EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
+        // Update to Nate's commit...
+        if ((edgeType == ET_COND_TAKEN) ||
+            (edgeType == ET_DIRECT)) {
+            // Got the right edge... now find the matching high-level
+            // basic block
+            image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
+            int_basicBlock *hlTarget = NULL;
+            for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
+                // Should be the same index, but this is a small set...
+                if (targets[t_iter]->llb() == llTarget) {
+                    hlTarget = targets[t_iter];
+                    break;
+                }
+            }
+            assert(hlTarget != NULL);
+            return hlTarget->instVer(version_);
+        }
+    }
+    return NULL;
+}
+
+bblInstance * bblInstance::getFallthroughBBL() {
+    // Check to see if we need to fix up the target....
+    pdvector<int_basicBlock *> targets;
+    block_->getTargets(targets);
+    
+    // We have edge types on the internal data, so we drop down and get that. 
+    // We want to find the "branch taken" edge and override the destination
+    // address for that guy.
+    pdvector<image_edge *> out_edges;
+    block_->llb()->getTargets(out_edges);
+    
+    // May be greater; we add "extra" edges for things like function calls, etc.
+    assert (out_edges.size() >= targets.size());
+    
+    for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
+        EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
+        // Update to Nate's commit...
+        if ((edgeType == ET_COND_NOT_TAKEN) ||
+            (edgeType == ET_FALLTHROUGH) ||
+            (edgeType == ET_FUNLINK)) {
+            // Got the right edge... now find the matching high-level
+            // basic block
+            image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
+            int_basicBlock *hlTarget = NULL;
+            for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
+                // Should be the same index, but this is a small set...
+                if (targets[t_iter]->llb() == llTarget) {
+                    hlTarget = targets[t_iter];
+                    break;
+                }
+            }
+            assert(hlTarget != NULL);
+            
+            return hlTarget->instVer(version_);
+        }
+    }
+    return NULL;
+}

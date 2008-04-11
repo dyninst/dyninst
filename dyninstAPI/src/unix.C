@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.237 2008/03/12 20:09:28 legendre Exp $
+// $Id: unix.C,v 1.238 2008/04/11 23:30:28 legendre Exp $
 
 #include <string>
 #include "common/h/headers.h"
@@ -522,8 +522,11 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
       // process... including (for Paradyn) removing it from the
       // frontend.
       proc->triggerNormalExitCallback(0);
-      proc->handleProcessExit();
       continueHint = true;
+
+     // Returning false would send unneeded error messages to the user.
+     return true;
+
    }
    return false;
 }
@@ -1248,14 +1251,15 @@ bool forkNewProcess_real(std::string file,
       args[argv->size()] = NULL;
 
       startup_printf("%s[%d]:  before exec\n", FILE__, __LINE__);
-      char argstr[2048];
-      argstr[0] = '\0';
-      for (unsigned int ji=0; ji < argv->size(); ji++) {
-         std::string &s = (*argv)[ji];
-         sprintf(argstr, "%s %s", argstr, s.c_str());
+      startup_printf("%s[%d]:  EXEC: %s\n", FILE__, __LINE__, 
+                     file.c_str());
+      if (dyn_debug_startup) {
+         for (unsigned int ji=0; ji < argv->size(); ji++) {
+            fprintf(stderr, "%s ", ((*argv)[ji]).c_str());
+         }
       }
-      startup_printf("%s[%d]:  EXEC: %s %s\n", FILE__, __LINE__, 
-                     file.c_str(), argstr);
+      startup_printf("\n");
+
       if (envp) {
          P_execve(file.c_str(), args, envs);
       }else

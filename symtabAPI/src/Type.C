@@ -201,11 +201,7 @@ typeRef *Type::getRefType(){
 }
 
 bool Type::isCompatible(Type * oType){
-    if ( name_ == "" || oType->name_ == "")
         return size_ == oType->size_;
-    else if (name_ == oType->name_)
-        return size_ == oType->size_;
-    return false;
 }
 
 /*

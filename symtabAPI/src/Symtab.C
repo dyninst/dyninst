@@ -96,6 +96,9 @@ bool generateXMLforExcps(xmlTextWriterPtr &writer, std::vector<ExceptionBlock *>
 bool generateXMLforRelocations(xmlTextWriterPtr &writer, std::vector<relocationEntry> &fbt);
 bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods);
 
+#include <stdarg.h>
+int symtab_printf(const char *format, ...);
+
 
 static SymtabError serr;
 
@@ -332,6 +335,7 @@ DLLEXPORT bool Symtab::isNativeCompiler() const
  
 DLLEXPORT Symtab::Symtab()
 {
+  symtab_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
     defaultNamespacePrefix = "";
 }
 
@@ -1121,6 +1125,10 @@ Symtab::Symtab(std::string filename,bool &err) :
    type_Error(NULL), 
    type_Untyped(NULL)
 {
+   // Initialize error parameter
+   err = false;
+   
+   symtab_printf("%s[%d]: created symtab for %s\n", FILE__, __LINE__, filename.c_str());
 #if defined (os_windows)
    extern void fixup_filename(std::string &);
    fixup_filename(filename);
@@ -1128,17 +1136,24 @@ Symtab::Symtab(std::string filename,bool &err) :
    //  createMappedFile handles reference counting
    mf = MappedFile::createMappedFile(filename);
    if (!mf) {
+      symtab_printf("%s[%d]: WARNING: creating symtab for %s, " 
+                    "createMappedFile() failed\n", FILE__, __LINE__, 
+                    filename.c_str());
       err = true;
       return;
    }
    Object *linkedFile = new Object(mf, pd_log_perror, true);
-   err = extractInfo(linkedFile);
+   if(!extractInfo(linkedFile))
+   {
+      symtab_printf("%s[%d]: WARNING: creating symtab for %s, extractInfo() " 
+                    "failed\n", FILE__, __LINE__, filename.c_str());
+      err = true;
+   }
    delete linkedFile;
    defaultNamespacePrefix = "";
 }
 
 
-#if 0 
 Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    is_a_out(false), 
    main_call_addr_(0),
@@ -1148,15 +1163,33 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    type_Error(NULL), 
    type_Untyped(NULL)
 {
-    Object *linkedFile = new Object(mem_image, image_size, pd_log_perror);
-    err = extractInfo(linkedFile);
-    delete linkedFile;
-    defaultNamespacePrefix = "";
+   // Initialize error parameter
+   err = false;
+  
+   symtab_printf("%s[%d]: created symtab for memory image at addr %u\n", 
+                 FILE__, __LINE__, mem_image);
+   //  createMappedFile handles reference counting
+   mf = MappedFile::createMappedFile(mem_image, image_size);
+   if (!mf) {
+      symtab_printf("%s[%d]: WARNING: creating symtab for memory image at " 
+                    "addr %u, createMappedFile() failed\n", FILE__, __LINE__, 
+                    mem_image);
+      err = true;
+      return;
+   }
+   Object *linkedFile = new Object(mf, pd_log_perror, true);
+   if(!extractInfo(linkedFile))
+   {
+      symtab_printf("%s[%d]: WARNING: creating symtab for memory image at addr" 
+                    "%u, extractInfo() failed\n", FILE__, __LINE__, mem_image);
+      err = true;
+   }
+   delete linkedFile;
+   defaultNamespacePrefix = "";
 }
-#endif
 
 #if defined(os_aix)
-Symtab::Symtab(std::string filename, std::string &member_name, Offset offset, 
+Symtab::Symtab(std::string filename, std::string member_name, Offset offset, 
                        bool &err) :
    member_name_(member_name), 
    member_offset_(offset),
@@ -1180,7 +1213,7 @@ Symtab::Symtab(std::string filename, std::string &member_name, Offset offset,
    defaultNamespacePrefix = "";
 }
 #else
-Symtab::Symtab(std::string , std::string &, Offset, bool &)
+Symtab::Symtab(std::string, std::string, Offset, bool &)
 {
     assert(0);
 }
@@ -1437,6 +1470,8 @@ Symtab::Symtab(const Symtab& obj) :
    Annotatable<Type *, user_types_a> (obj),
    Annotatable<Symbol *, user_symbols_a>(obj)
 {
+  symtab_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
+  
     member_name_ = obj.member_name_;
     imageOffset_ = obj.imageOffset_;
     imageLen_ = obj.imageLen_;
@@ -2144,6 +2179,8 @@ Symtab::~Symtab()
     undefDynSyms.clear();
     for (i=0;i<excpBlocks.size();i++)
         delete excpBlocks[i];
+    symtab_printf("%s[%d]: Symtab::~Symtab removing %p from allSymtabs\n", 
+                  FILE__, __LINE__, this);
     
     deps_.clear();
     
@@ -2339,6 +2376,8 @@ DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo)
 {
    Annotatable<LineInformation *, module_line_info_a> &mt = *this;
    if (mt.size()) {
+      // We need to remove the existing annotation and make sure there is only one annotation.
+      mt.clearAnnotations();
       //fprintf(stderr, "%s[%d]:  WARNING, already have lineInfo set for module %s\n", FILE__, __LINE__, fileName_.c_str());
    }
    mt.addAnnotation(lineInfo);
@@ -2404,6 +2443,11 @@ DLLEXPORT Module::Module(const Module &mod) :
 
 DLLEXPORT Module::~Module()
 {
+   Annotatable<LineInformation *, module_line_info_a> &liA = *this;
+   if (liA.size()){
+       delete liA[0];
+       liA.clearAnnotations();
+   }
 }
 
 bool Module::isShared() const 
@@ -2571,7 +2615,7 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
 
 bool Symtab::openFile(Symtab *&obj, std::string filename)
 {
-    bool err;
+    bool err = false;
 #if defined(TIMED_PARSE)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
@@ -2584,6 +2628,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
     if(filename.find("/proc") == std::string::npos)
     {
         for (unsigned u=0; u<numSymtabs; u++) {
+	  assert(allSymtabs[u]);
             if (filename == allSymtabs[u]->file()) {
                 // return it
                 obj = allSymtabs[u];
@@ -2601,15 +2646,20 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
     double dursecs = difftime/(1000 );
     cout << __FILE__ << ":" << __LINE__ <<": openFile "<< filename<< " took "<<dursecs <<" msecs" << endl;
 #endif
-    if(err == true)
+    if(!err)
     {
         if(filename.find("/proc") == std::string::npos)
             allSymtabs.push_back(obj);
         obj->setupTypes();	
     }
     else
+    {
+      symtab_printf("%s[%d]: WARNING: failed to open symtab for %s\n", FILE__, __LINE__, filename.c_str());
+      delete obj;
         obj = NULL;
-    return err;
+    }
+    // returns true on success (not an error)
+    return !err;
 }
 	
 #if 0 
@@ -2843,8 +2893,6 @@ void Symtab::parseLineInformation()
    //fprintf(stderr, "%s[%d]:  after parse of line information, found info for mods:\n", FILE__, __LINE__);
    for (iter = lineInfo->begin(); iter!=lineInfo->end(); iter++)
    {
-      //std::string s = iter->first;
-      //fprintf(stderr, "\t%s\n", s.c_str());
       Module *mod = NULL;
       if (findModule(mod, iter->first))
          mod->setLineInfo(&(iter->second));
@@ -3735,6 +3783,7 @@ DLLEXPORT char *Symtab::mem_image() const
 
 DLLEXPORT std::string Symtab::file() const 
 {
+  assert(mf);
    return mf->pathname();
 }
 
@@ -3752,42 +3801,6 @@ DLLEXPORT unsigned Symtab::getNumberofSymbols() const
 {
     return no_of_symbols; 
 }
-
-#if defined(os_aix)
-void Symtab::get_stab_info(Object *linkedFile, char *&stabstr, int &nstabs, void *&stabs, 
-                               char *&stringpool) const
-
-{
-    linkedFile->get_stab_info(stabstr,nstabs, stabs, stringpool);
-}
-
-
-void Symtab::get_line_info(Object *linkedFile, int& nlines, char*& lines,
-                               unsigned long& fdptr) const
-{
-    linkedFile->get_line_info(nlines,lines,fdptr);
-}
-
-void Symtab::get_stab_info(char *&stabstr, int &nstabs, void *&stabs, 
-                               char *&stringpool) const
-
-{
-   stabstr = stabstr_;
-   nstabs = nstabs_;
-   stabs = stabs_;
-   stringpool = stringpool_;
-}
-
-
-void Symtab::get_line_info(int& nlines, char*& lines,
-                               unsigned long& fdptr) const
-{
-   nlines = nlines_;
-   lines = lines_;
-   fdptr = fdptr_;
-}
-#endif
-
 
 DLLEXPORT LookupInterface::LookupInterface() 
 {
@@ -4209,4 +4222,37 @@ DLLEXPORT const relocationEntry& relocationEntry::operator=(const relocationEntr
     dynref_ = ra.dynref_;
     relType_ = ra.relType_;
     return *this;
+}
+
+
+int symtab_printf(const char *format, ...)
+{
+   static int dyn_debug_symtab = 0;
+
+   if (dyn_debug_symtab == -1) {
+      return 0;
+   }
+   if (!dyn_debug_symtab) {
+      char *p = getenv("DYNINST_DEBUG_SYMTAB");
+      if (!p)
+         p = getenv("SYMTAB_DEBUG_SYMTAB");
+      if (p) {
+         fprintf(stderr, "Enabling SymtabAPI debug logging\n");
+         dyn_debug_symtab = 1;
+      }
+      else {
+         dyn_debug_symtab = -1;
+         return 0;
+      }
+   }
+
+   if (!format)
+      return -1;
+   
+   va_list va;
+   va_start(va, format);
+   int ret = vfprintf(stderr, format, va);
+   va_end(va);
+   
+   return ret;
 }

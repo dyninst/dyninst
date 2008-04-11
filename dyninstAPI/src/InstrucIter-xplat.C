@@ -241,7 +241,9 @@ InstrucIter::InstrucIter(Address current, image_func *func) :
   // a bad idea as it may
   // trigger... parsing.
   current(current) {
-  assert(current >= base);
+  // Removed assert, functions can have blocks ahead of their entry
+  // point, other similar asserts in this file are not problematic
+  // assert(current >= base);
   initializeInsn();
 }
 

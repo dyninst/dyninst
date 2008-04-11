@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_util.C,v 1.29 2008/03/12 20:09:30 legendre Exp $
+// $Id: test_util.C,v 1.30 2008/04/11 23:30:40 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -58,6 +58,10 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#endif
+
+#if defined(os_linux)
+#include <linux/limits.h>
 #endif
 
 #include "BPatch.h"

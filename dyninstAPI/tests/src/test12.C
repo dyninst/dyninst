@@ -1239,7 +1239,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 }
 
 int
-main(unsigned int argc, char *argv[])
+main(int argc, char *argv[])
 {
     char libRTname[256];
 

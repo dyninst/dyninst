@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.48 2008/03/12 20:09:09 legendre Exp $
+ * $Id: image-flowGraph.C,v 1.49 2008/04/11 23:30:16 legendre Exp $
  */
 
 #include <stdio.h>
@@ -756,8 +756,11 @@ bool image_func::buildCFG(
 
         image_basicBlock* currBlk = leadersToBlock[worklist[i]];
 
-        parsing_printf("... parsing block at 0x%lx, first insn offset 0x%lx\n",
-                       worklist[i], currBlk->firstInsnOffset());
+        parsing_printf("[%s:%d] parsing block at 0x%lx, "
+                       "first insn offset 0x%lx\n",
+                       FILE__,__LINE__,
+                       worklist[i], 
+                       currBlk->firstInsnOffset());
 
         // debuggin' 
         assert(currBlk->firstInsnOffset() == worklist[i]);
@@ -960,15 +963,12 @@ bool image_func::buildCFG(
                 // the fallthrough block and the target block.
                 if( target < funcBegin )
                 {
-                    // FIXME This is actually not true in the new model,
-                    // but there are numerous sanity checks based on ranges
-                    // of functions that need investigating before we can
-                    // turn this off.
-                    currBlk->isExitBlock_ = true;
-                    // FIXME if this stays an exit block, it needs an exit
-                    // point
+                    parsing_printf("Parse of mod:func[%s:%s] Tying up conditional "
+                                   "jump target to address above the funcEntry"
+                                   "[0x%lx]: jump[0x%lx]=>[0x%lx]\n", 
+                                   img()->name().c_str(),
+                                   prettyName().c_str(),funcBegin, currAddr, target);
                 }
-                else {
                     addBasicBlock(target,
                                   currBlk,
                                   leaders,
@@ -976,7 +976,6 @@ bool image_func::buildCFG(
                                   ET_COND_TAKEN,
                                   worklist,
                                   visited);
-                }
 
                 Address t2 = ah.peekNext(); 
                 //Address t2 = currAddr + insnSize;
@@ -1156,23 +1155,16 @@ bool image_func::buildCFG(
                     currBlk->containsRet_ = true;
                     //retStatus_ = RS_RETURN;
                 }
-                else if( target < funcBegin )
-                {
-                    //FIXME demonstrably wrong, but see note in cond. branch
-                    // code, above 
-                    parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
-                    p = new image_instPoint(currAddr,
-                                            ah.getInstruction(),
-                                           this,
-                                            functionExit);
-                    
-                    funcReturns.push_back( p );
-                    currBlk->containsRet_ = true;
-                //    retStatus_ = RS_RETURN;
-                }
                 else
                 {
+                  if( target < funcBegin ) {
+                    parsing_printf("Parse of mod:func[%s:%s] Tying up jump target "
+                                   "to address above the funcEntry[0x%lx]: "
+                                   "jump[0x%lx]=>[0x%lx]\n", img()->name().c_str(),
+                                   prettyName().c_str(),funcBegin, currAddr, target);
+                  } else {
                     parsing_printf("... tying up unconditional branch target\n");                   
+                  }
                     addBasicBlock(target,
                                   currBlk,
                                   leaders,
@@ -1568,6 +1560,7 @@ image_func * image_func::FindOrCreateFunc(Address target,
  *  - Adds to leadersToBlock
  *  - Adds to parserVisited
  *  - May update other functions' "shared" status
+ *
  */
 void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
                 BPatch_Set< Address > &leaders,
@@ -1593,6 +1586,24 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
 
     // remember that we have shared blocks
     containsSharedBlocks_ = true;
+
+    // There are several cases that can lead to a pre-parsed block
+    // having the current function (this) on its funcs_ list:
+    //
+    // 1. The shared block is the result of splitting a block in another
+    // function (current function added to funcs_ in block creation)
+    //
+    // 2. The shared block was created by a call operation to an unparsed
+    //    function *and then subsequently parsed prior to parsing the
+    //    function for which it is the entry block* (whew). In that case
+    //    the entire "called" function is pre-parsed, but it is already
+    //    on the funcs_ list of the *first* block (bound up in 
+    //    bindCallTarget. 
+    //
+    // In both cases, 'this' will always be the first function on the funcs_
+    // list, if it is there at all, so we always check whether funcs_[0] == 
+    // this prior to adding this to the funcs_ list. 
+    //
 
     while(WL.size() > 0)
     {
@@ -1651,7 +1662,12 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
             funcReturns.push_back(cpyInstPt);
         }
 
+        // As described in the comment above, the
+        // only cases in which 'this' could be on the block's funcs_ list
+        // are when it is the first entry. 
+        if(curBlk->funcs_[0] != this) {
         curBlk->addFunc(this);
+        }
 
         // update block
         blockList.push_back(curBlk);
@@ -1696,5 +1712,9 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock)
     //endOffset_ = startOffset_;
     endOffset_ = getOffset();
     
-    parseSharedBlocks(firstBlock,leaders,leadersToBlock,pv,endOffset_);  
+    parseSharedBlocks(firstBlock,
+                      leaders,          /* unused */
+                      leadersToBlock,   /* unused */
+                      pv,               /* unused */
+                      endOffset_);
 }

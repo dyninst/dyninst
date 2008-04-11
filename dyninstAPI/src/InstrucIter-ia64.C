@@ -150,11 +150,14 @@ bool InstrucIter::isACondBranchInstruction()
   case instruction::DIRECT_BRANCH:
     /* Not sure if this second case is intended. */
   case instruction::INDIRECT_BRANCH: 
-    if( itmp->getPredicate() != 0 ) 
+    if( itmp->getPredicate() != 0) 
       ret = true; 
     else
       ret = false;
     break;  
+  case instruction::COND_BRANCH:
+    ret = true;
+    break;
   default:
     ret = false;
     break;

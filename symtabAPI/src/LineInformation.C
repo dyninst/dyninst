@@ -42,6 +42,8 @@
 #include "symtabAPI/h/LineInformation.h"
 #include <assert.h>
 #include <list>
+#include <cstring>
+
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -165,3 +167,18 @@ LineInformation::~LineInformation() {
 		free( const_cast< char * >( internedString ) );
 		}	
 } /* end LineInformation destructor */
+
+LineInformationImpl::LineNoTuple::LineNoTuple(const char *file_, unsigned int line_, unsigned int col_) :
+         first(file_),
+         second(line_),
+         column(col_) 
+{
+}
+
+bool LineInformationImpl::LineNoTuple::operator==(const LineNoTuple &cmp) const 
+{
+   if (second != cmp.second) return false;
+   if (column != cmp.column) return false;
+   //  is compare-by-pointer OK here, or do we really have to really strcmp?
+   return (!strcmp(first,cmp.first)); 
+}

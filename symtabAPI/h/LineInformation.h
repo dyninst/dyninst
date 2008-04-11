@@ -41,6 +41,7 @@
 
 #if ! defined( LINE_INFORMATION_H )
 #define LINE_INFORMATION_H
+
 #include "symutil.h"
 #include "RangeLookup.h"
 
@@ -51,19 +52,11 @@ namespace SymtabAPI{
 namespace LineInformationImpl {
         class LineNoTuple{
            public:
-           DLLEXPORT LineNoTuple(const char *file_, unsigned int line_, unsigned int col_=0) : 
-             first(file_),
-             second(line_),
-             column(col_) {}
+      DLLEXPORT LineNoTuple(const char *file_, unsigned int line_, unsigned int col_ = 0);
            const char *first; // really file
            unsigned int second; // really line
            unsigned int column;
-           DLLEXPORT bool operator==(const LineNoTuple &cmp) const {
-             if (second != cmp.second) return false;
-             if (column != cmp.column) return false;
-             //  is compare-by-pointer OK here, or do we really have to really strcmp?
-             return (!strcmp(first,cmp.first)); 
-           }
+      DLLEXPORT bool operator==(const LineNoTuple &cmp) const;
         };
 	
 	/* Explicit comparison functors seems slightly less confusing than using

@@ -90,7 +90,7 @@ int DYNINSTthreadIndex()
    }
    
    curr_index = DYNINSTthreadIndexSLOW(tid);
-   if( curr_index == DYNINST_NOT_IN_HASHTABLE )
+   if ( curr_index == DYNINST_NOT_IN_HASHTABLE )
    {
        rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): doing threadCreate for %lu\n", __FILE__, __LINE__, tid);
        curr_index = threadCreate(tid);
@@ -145,7 +145,7 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    
  done:
    tc_lock_unlock(&DYNINST_trace_lock);
-  rtdebug_printf("%s[%d]:  leaving DYNINSTsendThreadEvent: status = %s\n", 
+  rtdebug_printf("%s[%d]:  leaving asyncSendThreadEvent: status = %s\n", 
                  __FILE__, __LINE__, result ? "error" : "ok");
    return result;
 }
@@ -163,7 +163,6 @@ static unsigned threadCreate(dyntid_t tid)
                  __FILE__, __LINE__);
    if (!DYNINSThasInitialized)
    {
-      /* ERROR_HANDLING_BAD */
       return DYNINST_max_num_threads;
    }
    
@@ -183,7 +182,6 @@ static unsigned threadCreate(dyntid_t tid)
    res = DYNINSTthreadInfo(&ev);
    if (!res)
    {
-      /* ERROR_HANDLING_BAD */
       return DYNINST_max_num_threads;
    }
    

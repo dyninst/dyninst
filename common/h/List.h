@@ -36,6 +36,7 @@
 
 #include "common/h/language.h"
 #include "common/h/std_namesp.h"
+#include <cstring>
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation ("../src/List.C")

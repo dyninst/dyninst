@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.121 2008/03/12 20:09:25 legendre Exp $
+// $Id: sol_proc.C,v 1.122 2008/04/11 23:30:26 legendre Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -861,8 +861,9 @@ bool dyn_lwp::realLWP_attach_()
 bool dyn_lwp::representativeLWP_attach_() 
 {
 #if defined(os_aix) 
-   usleep(500 * 1000);
+   //usleep(500 * 1000);
    //sleep(3);
+   sleep(2);
    //sleep(1);
 #endif
 #if defined (os_solaris)
@@ -1191,7 +1192,6 @@ terminateProcStatus_t process::terminateProc_()
       if (cntl_lwp) {
          if (write(cntl_lwp->ctl_fd(), 
                   command, 2*sizeof(int)) != 2*sizeof(int)) {
-            perror("terminateProc: PCKILL");
             // TODO: what gets returned if the process is already dead?
             // proc man page doesn't say.
             return terminateFailed;

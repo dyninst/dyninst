@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.183 2008/03/25 19:24:13 bernat Exp $
+// $Id: BPatch.C,v 1.184 2008/04/11 23:29:57 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1147,8 +1147,10 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    // We now run the process out; set its state to terminated. Really, the user shouldn't
    // try to do anything else with this, but we can get that happening.
    BPatch_process *stillAround = getProcessByPid(pid);
-   if (stillAround)
-       stillAround->terminated = true;
+   if (stillAround) {
+      stillAround->reportedExit = true;
+      stillAround->terminated = true;
+   }
 }
 
 void BPatch::registerSignalExit(process *proc, int signalnum)

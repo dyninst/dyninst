@@ -2,21 +2,24 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "symtabAPI/h/Dyn_Symtab.h"
-#include "symtabAPI/h/Dyn_Archive.h"
+#include "Symtab.h"
+#include "Archive.h"
 #define logerror printf
 
-static int mutatorTest(Dyn_Symtab *symtab)
+using namespace Dyninst;
+using namespace SymtabAPI;
+
+static int mutatorTest(Symtab *symtab)
 {
-	vector <Dyn_Symbol *>syms;
+	vector <Symbol *>syms;
 	
 	/*********************************************************************************
-		Dyn_Symtab::getAllSymbolsByType: ST_UNKNOWN
+		Symtab::getAllSymbolsByType: ST_UNKNOWN
 	*********************************************************************************/	
-	if(!symtab->getAllSymbolsByType(syms,Dyn_Symbol::ST_UNKNOWN))
+	if(!symtab->getAllSymbolsByType(syms,Symbol::ST_UNKNOWN))
 	{
 		logerror("unable to get all symbols\n");
-		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
+		logerror("%s\n", Symtab::printError(Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms.size() != 1)
@@ -25,12 +28,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	syms.clear();
 	
 	/*********************************************************************************
-		Dyn_Symtab::getAllSymbolsByType: ST_FUNCTION
+		Symtab::getAllSymbolsByType: ST_FUNCTION
 	*********************************************************************************/	
-	if(!symtab->getAllSymbolsByType(syms,Dyn_Symbol::ST_FUNCTION))
+	if(!symtab->getAllSymbolsByType(syms,Symbol::ST_FUNCTION))
 	{
 		logerror("unable to get all Functions\n");
-		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
+		logerror("%s\n", Symtab::printError(Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms.size() != 1)
@@ -39,12 +42,12 @@ static int mutatorTest(Dyn_Symtab *symtab)
 	syms.clear();
 	
 	/*********************************************************************************
-		Dyn_Symtab::getAllSymbolsByType: ST_OBJECT
+		Symtab::getAllSymbolsByType: ST_OBJECT
 	*********************************************************************************/	
-	if(!symtab->getAllSymbolsByType(syms,Dyn_Symbol::ST_OBJECT))
+	if(!symtab->getAllSymbolsByType(syms,Symbol::ST_OBJECT))
 	{
 		logerror("unable to get all symbols\n");
-		logerror("%s\n", Dyn_Symtab::printError(Dyn_Symtab::getLastSymtabError()).c_str());
+		logerror("%s\n", Symtab::printError(Symtab::getLastSymtabError()).c_str());
 		return -1;
 	}
 	if(syms.size() != 1)
@@ -54,13 +57,13 @@ static int mutatorTest(Dyn_Symtab *symtab)
 }
 
 //extern "C" TEST_DLL_EXPORT int test1__mutatorMAIN(ParameterDict &param)
-int main()
+int main(int argc, char *argv[])
 {
 	// dprintf("Entered test1_1 mutatorMAIN()\n");
-	string s = "/p/paradyn/development/giri/core/testsuite/i386-unknown-linux2.4/test1.mutatee_gcc";
+	string s = argv[1];
 	//string s = "/p/paradyn/development/giri/core/testsuite/rs6000-ibm-aix5.1/test1.mutatee_gcc";
-	Dyn_Symtab *symtab;
-	bool err = Dyn_Symtab::openFile(s,symtab);
+	Symtab *symtab;
+	bool err = Symtab::openFile(symtab, s);
         //symtab = param["symtab"]->getPtr();
 	// Get log file pointers
 	//FILE *outlog = (FILE *)(param["outlog"]->getPtr());

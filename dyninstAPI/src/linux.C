@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.271 2008/04/07 22:32:43 giri Exp $
+// $Id: linux.C,v 1.272 2008/04/11 23:30:20 legendre Exp $
 
 #include <fstream>
 
@@ -1477,16 +1477,19 @@ bool isPLT(int_function *f)
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
 
-int_function *instPoint::findCallee() {
+int_function *instPoint::findCallee() 
+{
 
    // Already been bound
    if (callee_) {
       return callee_;
    }  
+
    if (ipType_ != callSite) {
       // Assert?
       return NULL; 
    }
+
    if (isDynamicCall()) {
       return NULL;
    }
@@ -1497,14 +1500,17 @@ int_function *instPoint::findCallee() {
      callee_ = proc()->findFuncByInternalFunc(icallee);
      //callee_ may be NULL if the function is unloaded
 
+       //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
      return callee_;
    }
+
    // Do this the hard way - an inter-module jump
    // get the target address of this function
    Address target_addr = img_p_->callTarget();
    if(!target_addr) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
+       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
       return NULL;
    }
 
@@ -1512,35 +1518,47 @@ int_function *instPoint::findCallee() {
    Symtab *obj = func()->obj()->parse_img()->getObject();
    pdvector<relocationEntry> fbt;
    vector <relocationEntry> fbtvector;
-   if(!obj->getFuncBindingTable(fbtvector))
+   if (!obj->getFuncBindingTable(fbtvector)) {
+
+       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
    	return NULL;
-   for(unsigned index=0; index< fbtvector.size();index++)
+	}
+
+   if (!fbtvector.size())
+      fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
+
+   for (unsigned index=0; index< fbtvector.size();index++)
    	fbt.push_back(fbtvector[index]);
   
    Address base_addr = func()->obj()->codeBase();
+
    // find the target address in the list of relocationEntries
-   for(u_int i=0; i < fbt.size(); i++) {
-      if(fbt[i].target_addr() == target_addr) {
+   for (u_int i=0; i < fbt.size(); i++) {
+      if (fbt[i].target_addr() == target_addr) 
+      {
          // check to see if this function has been bound yet...if the
          // PLT entry for this function has been modified by the runtime
          // linker
          int_function *target_pdf = 0;
-         if(proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
+         if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
             callee_ = target_pdf;
+            //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
             return callee_;  // target has been bound
          } 
          else {
             pdvector<int_function *> pdfv;
             bool found = proc()->findFuncsByMangled(fbt[i].name().c_str(), pdfv);
-            if(found) {
+            if (found) {
                assert(pdfv.size());
                callee_ = pdfv[0];
+               //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
                return callee_;
             }
          }
          break;
       }
    }
+       //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
    return NULL;
 }
 

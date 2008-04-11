@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.17 2008/04/07 22:32:53 giri Exp $
+// $Id: Object.C,v 1.18 2008/04/11 23:30:57 legendre Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -474,8 +474,9 @@ DLLEXPORT int Symbol::getFramePtrRegnum(){
 DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName){
     Annotatable<std::string, symbol_file_name_a> &fn = *this;
     if (fn.size()) {
+        fn.clearAnnotations();
         //fprintf(stderr, "%s[%d]:  WARNING, already have filename set for symbol %s\n", FILE__, __LINE__, getName().c_str());
-        return false;
+        //return false;
     }
     fn.addAnnotation(fileName);
     return true;
@@ -484,8 +485,9 @@ DLLEXPORT bool Symbol::setVersionFileName(std::string &fileName){
 DLLEXPORT bool Symbol::setVersions(std::vector<std::string> &vers){
     Annotatable<std::vector<std::string>, symbol_version_names_a> &sv = *this;
     if (sv.size()) {
+        sv.clearAnnotations();
         //fprintf(stderr, "%s[%d]:  WARNING, already have versions set for symbol %s\n", FILE__, __LINE__, getName().c_str());
-        return false;
+        //return false;
     }
     sv.addAnnotation(vers);
     return true;

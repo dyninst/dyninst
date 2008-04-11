@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.20 2008/04/07 22:32:56 giri Exp $
+ * $Id: Object-nt.h,v 1.21 2008/04/11 23:30:56 legendre Exp $
 ************************************************************************/
 
 
@@ -168,7 +168,7 @@ class Object : public AObject
 
  public:
     Object(MappedFile *, hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
-    DLLEXPORT Object(MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms);
+    DLLEXPORT Object(MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
     DLLEXPORT Object(){};
   
     DLLEXPORT virtual ~Object( void );
@@ -201,9 +201,9 @@ class Object : public AObject
     DLLEXPORT bool emitDriver(Symtab *obj, std::string fName, std::vector<Symbol *>&functions, std::vector<Symbol *>&variables, std::vector<Symbol *>&mods, std::vector<Symbol *>&notypes, unsigned flag);
 
 private:
-    DLLEXPORT void    ParseSymbolInfo( void );
+    DLLEXPORT void    ParseSymbolInfo( bool );
     DLLEXPORT void    parseFileLineInfo(hash_map<std::string, LineInformation> &);
-    DLLEXPORT void    FindInterestingSections();
+    DLLEXPORT void    FindInterestingSections( bool );
 
     Offset baseAddr;     // location of this object in mutatee address space
 

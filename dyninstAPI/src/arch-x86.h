@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.62 2008/02/20 22:34:15 legendre Exp $
+// $Id: arch-x86.h,v 1.63 2008/04/11 23:30:12 legendre Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -1288,10 +1288,13 @@ class instruction {
   const unsigned char *op_ptr_;    // pointer to the opcode
 };
 
-
+/** Only appropriate for call/jump functions **/
 int get_disp(instruction *insn);
 int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc);
 int displacement(const unsigned char *instr, unsigned type);
+
+/** Returns the immediate operand of an instruction **/
+Address get_immediate_operand(instruction *instr);
 
 int sizeOfMachineInsn(instruction *insn);
 long addressOfMachineInsn(instruction *insn);
@@ -1314,9 +1317,11 @@ inline bool is_addr32(Address addr) {
     return (addr < UI32_MAX);
 }
 
+/** This method only works for call instructions **/
 int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 
 			    unsigned& scale, unsigned &mod);
+
 void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
 const unsigned char* skip_headers(const unsigned char*, ia32_prefixes* = NULL);
 

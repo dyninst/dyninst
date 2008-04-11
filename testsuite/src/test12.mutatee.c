@@ -78,6 +78,25 @@ typedef unsigned long long Thread_t;
 typedef pthread_t Thread_t;
 #endif
 typedef pthread_mutex_t Lock_t;
+void sleep_ms(int ms) 
+{
+  struct timespec ts,rem;
+  ts.tv_sec = 0;
+  ts.tv_nsec = ms * 1000 /*us*/ * 1000/*ms*/;
+  assert(ms < 1000);
+
+ sleep:
+ if (0 != nanosleep(&ts, &rem)) {
+    if (errno == EINTR) {
+      dprintf("%s[%d]:  sleep interrupted\n", __FILE__, __LINE__);
+      ts.tv_sec = rem.tv_sec;
+      ts.tv_nsec = rem.tv_nsec;
+      goto sleep;
+    }
+    sleep(1);
+ }
+
+}
   /*
     createThreads()
     createThreads creates specified number of threads and returns
@@ -199,25 +218,6 @@ int checkIfAttached()
     return isAttached;
 }
 
-void sleep_ms(int ms) 
-{
-  struct timespec ts,rem;
-  ts.tv_sec = 0;
-  ts.tv_nsec = ms * 1000 /*us*/ * 1000/*ms*/;
-  assert(ms < 1000);
-
- sleep:
- if (0 != nanosleep(&ts, &rem)) {
-    if (errno == EINTR) {
-      dprintf("%s[%d]:  sleep interrupted\n", __FILE__, __LINE__);
-      ts.tv_sec = rem.tv_sec;
-      ts.tv_nsec = rem.tv_nsec;
-      goto sleep;
-    }
-    sleep(1);
- }
-
-}
 
 /********************************************************************/
 /********************************************************************/
@@ -467,19 +467,35 @@ void func2_1()
 
 Lock_t test3lock;
 
-void *thread_main3(void *arg)
+void *thread_main3(void * arg)
 {
   long x, i;
-  arg = NULL; /*silence warnings*/
+  dprintf("%s[%d]:  %lu startedyy...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+  arg = NULL;
   lockLock(&test3lock);
+  dprintf("%s[%d]:  %lu locked...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
   x = 0;
+
+#if 0
+#if defined (os_aix)
+  for (i = 0; i < 0xfffffff; ++i) {
+    x = x + i;
+  }
+#else
+  for (i = 0; i < 0xffff; ++i) {
+    x = x + i;
+  }
+#endif
+#endif
 
   for (i = 0; i < 0xffff; ++i) {
     x = x + i;
   }
-  /*dprintf("%s[%d]:  PTHREAD_DESTROY\n", __FILE__, __LINE__); */
-
   unlockLock(&test3lock);
+  dprintf("%s[%d]:  %lu unlocked...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+#if defined (os_aix)
+  //sleep(2);
+#endif
   dprintf("%s[%d]:  %lu exiting...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
   return (void *) x;
 }

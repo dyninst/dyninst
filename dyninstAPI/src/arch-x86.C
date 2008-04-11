@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.83 2008/02/23 02:09:04 jaw Exp $
+// $Id: arch-x86.C,v 1.84 2008/04/11 23:30:11 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2701,7 +2701,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         instruct.mac[1].sizehack = shREPNECMPS;
         break;
       default:
-        bperr( "IA32 DECODER: unexpected repnz prefix ignored...\n");
+        bpwarn( "IA32 DECODER: unexpected repnz prefix ignored...\n");
       }
       break;
     case PREFIX_REP:
@@ -2718,7 +2718,9 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         instruct.mac[1].sizehack = shREP;
         break;
       default:
-        bperr( "IA32 DECODER: unexpected rep prefix ignored...\n");
+         if (gotit->id == e_nop)
+            break;
+         bpwarn( "IA32 DECODER: unexpected rep prefix ignored...\n");
       }
       break;
     case 0:
@@ -3631,6 +3633,41 @@ int sizeOfMachineInsn(instruction *insn) {
   return insn->size();
 }
 
+Address get_immediate_operand(instruction *instr)
+{
+    ia32_memacc mac[3];
+    ia32_condition cond;
+    ia32_locations loc;
+    ia32_instruction detail(mac,&cond,&loc);
+
+    ia32_decode(IA32_FULL_DECODER,(const unsigned char *)(instr->ptr()),detail);
+
+    // now find the immediate value in the locations
+    Address immediate = 0;
+
+    switch(loc.imm_size) {
+        case 8:
+            immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position);
+            break;
+        case 4:
+            immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position);
+            break;
+        case 2:
+            immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position);
+            break;
+        case 1:
+            immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position);
+            break;
+        default:
+            parsing_printf("%s[%u]:  invalid immediate size %d in insn\n",
+                FILE__,__LINE__,loc.imm_size);
+            break;
+    }
+
+    return immediate;
+}
+
+
 // find the target of a jump or call
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr) {
@@ -3640,7 +3677,6 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 
 // get the displacement of a jump or call
 int displacement(const unsigned char *instr, unsigned type) {
-
   int disp = 0;
   //skip prefix
   instr = skip_headers( instr );
@@ -4398,28 +4434,31 @@ class pcRelJump : public pcRelRegion {
 private:
    Address addr_targ;
    patchTarget *targ;
+    bool copy_prefixes_;
 
    Address get_target();
 public:
-   pcRelJump(patchTarget *t, const instruction &i);
-   pcRelJump(Address target, const instruction &i);
+   pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes = true);
+   pcRelJump(Address target, const instruction &i, bool copyPrefixes = true);
    virtual unsigned apply(Address addr);
    virtual unsigned maxSize();        
    virtual bool canPreApply();
    virtual ~pcRelJump();
 };
 
-pcRelJump::pcRelJump(patchTarget *t, const instruction &i) :
+pcRelJump::pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes) :
    pcRelRegion(i),
    addr_targ(0x0),
-   targ(t)
+   targ(t),
+   copy_prefixes_(copyPrefixes)
 {
 }
 
-pcRelJump::pcRelJump(Address target, const instruction &i) :
+pcRelJump::pcRelJump(Address target, const instruction &i, bool copyPrefixes) :
    pcRelRegion(i),
    addr_targ(target),
-   targ(NULL)
+   targ(NULL),
+   copy_prefixes_(copyPrefixes)
 {
 }
 
@@ -4439,11 +4478,14 @@ unsigned pcRelJump::apply(Address addr)
    const unsigned char *origInsn = orig_instruc.ptr();
    unsigned insnType = orig_instruc.type();
    unsigned char *orig_loc;
+        
    GET_PTR(newInsn, *gen);
    orig_loc = newInsn;
-
+    if (copy_prefixes_) {
    copy_prefixes(origInsn, newInsn, insnType);
+    }
    SET_PTR(newInsn, *gen);
+    
    instruction::generateBranch(*gen, addr, get_target());
    REGET_PTR(newInsn, *gen);
    return (unsigned) (newInsn - orig_loc);
@@ -4461,7 +4503,7 @@ unsigned pcRelJump::maxSize()
 
 bool pcRelJump::canPreApply()
 {
-  return (gen->startAddr() && get_target());
+   return gen->startAddr() && (!targ || get_target());
 }
 
 class pcRelJCC : public pcRelRegion {
@@ -4599,7 +4641,7 @@ unsigned pcRelJCC::maxSize()
 
 bool pcRelJCC::canPreApply()
 {
-  return (gen->startAddr() && get_target());
+   return gen->startAddr() && (!targ || get_target());
 }
 
 class pcRelCall: public pcRelRegion {
@@ -4670,7 +4712,7 @@ unsigned pcRelCall::maxSize()
 
 bool pcRelCall::canPreApply()
 {
-  return (gen->startAddr() && get_target());
+   return gen->startAddr() && (!targ || get_target());
 }
 
 class pcRelData : public pcRelRegion {
@@ -4817,7 +4859,7 @@ bool instruction::generate(codeGen &gen,
                            AddressSpace *addrSpace,
                            Address origAddr, // Could be kept in the instruction class.
                            Address /*newAddr*/,
-                           patchTarget * /*fallthroughOverride*/,
+                           patchTarget *fallthroughOverride,
                            patchTarget *targetOverride) 
 {
    // We grab the maximum space we might need
@@ -4859,8 +4901,6 @@ bool instruction::generate(codeGen &gen,
    // This moves as we emit code
    unsigned char *newInsn = insnBuf;
 
-   bool done = false;
-    
    // Check to see if we're doing the "get my PC" via a call
    // We do this first as those aren't "real" jumps.
    if (isCall() && !isCallIndir()) {
@@ -4886,7 +4926,8 @@ bool instruction::generate(codeGen &gen,
          assert(sizeof(unsigned int) == 4);
          newInsn += sizeof(unsigned int);
          assert((newInsn - insnBuf) == 5);
-         done = true;
+         SET_PTR(newInsn, gen);
+         goto done;
       }
       else if (addrSpace->isValidAddress(target)) {
          // Get us an instrucIter
@@ -4918,7 +4959,8 @@ bool instruction::generate(codeGen &gen,
                   //assert(sizeof(unsigned int *)==4);
                   //newInsn += sizeof(unsigned int *);
                   newInsn += 4;  // fix for AMD64
-                  done = true;
+                  SET_PTR(newInsn, gen);
+                  goto done;
                }
             }
          }
@@ -4927,11 +4969,6 @@ bool instruction::generate(codeGen &gen,
          fprintf(stderr, "Warning: call at 0x%lx did not have a valid "
                  "calculated target addr 0x%lx\n", origAddr, target);
       }
-   }
-   if (done) {
-     // Reset the generator and return
-     SET_PTR(newInsn, gen);
-     return true;
    }
 
    if (!((insnType & REL_B) ||
@@ -4942,7 +4979,7 @@ bool instruction::generate(codeGen &gen,
      for (unsigned u = 0; u < insnSz; u++)
        *newInsn++ = *origInsn++;
      SET_PTR(newInsn, gen);
-     return true;
+     goto done;
    }
 
    // We're addr-relative...
@@ -4968,7 +5005,7 @@ bool instruction::generate(codeGen &gen,
      }
      assert(pcr_jump);
      gen.addPCRelRegion(pcr_jump);
-     return true;
+     goto done;
    }
 
    if (insnType & IS_JCC) {
@@ -4982,7 +5019,7 @@ bool instruction::generate(codeGen &gen,
      }
      assert(pcr_jcc);
      gen.addPCRelRegion(pcr_jcc);
-     return true;
+     goto done;
    }
 
    if (insnType & IS_CALL) {
@@ -4996,7 +5033,7 @@ bool instruction::generate(codeGen &gen,
      }
      assert(pcr_call);
      gen.addPCRelRegion(pcr_call);
-     return true;
+     goto done;
    }
 
 #if defined(arch_x86_64)
@@ -5005,7 +5042,7 @@ bool instruction::generate(codeGen &gen,
       pcRelData *pcr_data = new pcRelData(orig_target, *this);
       assert(pcr_data);
       gen.addPCRelRegion(pcr_data);
-      return true;
+      goto done;
    }
 #endif
 
@@ -5013,6 +5050,15 @@ bool instruction::generate(codeGen &gen,
    // or we mis-identified an instruction as PC-relative.
    assert(0);
    return false;
+
+ done:
+   if (fallthroughOverride) {
+       pcRelJump *ft_jump = new pcRelJump(fallthroughOverride, *this, false);
+       assert(ft_jump);
+       gen.addPCRelRegion(ft_jump);
+   }
+
+   return true;
 }
 
 #if defined(arch_x86_64)

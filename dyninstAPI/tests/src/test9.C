@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.23 2006/05/03 00:31:25 jodom Exp $
+// $Id: test9.C,v 1.24 2008/04/11 23:30:39 legendre Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -1121,7 +1121,7 @@ void removeDirectoryAndAllFiles ( char* dirname) {
 // main - decide our role and call the correct "main"
 //
 int
-main(unsigned int argc, char *argv[])
+main(int argc, char *argv[])
 {
     char mutateeName[128];
     char libRTname[256];

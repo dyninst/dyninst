@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2008/02/20 08:31:08 jaw Exp $
+# $Id: Makefile,v 1.13 2008/04/11 23:30:47 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -82,8 +82,11 @@ RTspace.o: ../src/RTspace.S
 
 $(DEST)/$(TARGET_32_SO): $(TARGET_32_SO)
 	-$(CP) $(TARGET_32_SO) $(DEST)
+
+ifndef SKIP_BUILD_RTLIB_32
 install: $(DEST)/$(TARGET_32_SO)
 all: $(TARGET_32_SO)
+endif
 
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.

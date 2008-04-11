@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_12.C,v 1.6 2006/10/11 21:52:39 cooksey Exp $
+// $Id: test1_12.C,v 1.7 2008/04/11 23:31:08 legendre Exp $
 /*
  * #Name: test1_12
  * #Desc: Mutator Side - Insert/Remove and Malloc/Free
@@ -144,20 +144,30 @@ static int mutatorTesta(BPatch_thread *appThread, BPatch_image *appImage)
 
 static int mutatorTestb(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 {
+  int retval = 0;
     waitUntilStopped(bpatch, appThread, 12, "insert/remove and malloc/free");
 
     // remove instrumentation and free memory
     if (!appThread->deleteSnippet(snippetHandle12_1)) {
 	logerror("**Failed test #12 (insert/remove and malloc/free)\n");
 	logerror("    deleteSnippet returned an error\n");
-        return -1;
-    }
+    retval = -1;
+  } else {
+    // Don't free the variable unless we've removed the snippet successfully
     appThread->free(*varExpr12_1);
+  }
+
+  // Check that calling deleteSnippet with a NULL handle works properly
+  if (appThread->getProcess()->deleteSnippet(NULL) != false) {
+    logerror("**Failed test #12 (insert/remove and malloc/free)\n");
+    logerror("    deleteSnippet returned success with NULL argument\n");
+    retval = -1;
+  }
 
     // continue process
     appThread->continueExecution();
 
-    return 0;
+  return retval;
 }
 
 // External Interface

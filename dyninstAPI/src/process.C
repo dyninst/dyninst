@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.711 2008/03/12 20:09:20 legendre Exp $
+// $Id: process.C,v 1.712 2008/04/11 23:30:23 legendre Exp $
 
 #include <ctype.h>
 
@@ -2230,6 +2230,7 @@ process *ll_createProcess(const std::string File, pdvector<std::string> *argv,
 
     if (!theProc->setupGeneral()) {
         startup_printf("[%s:%u] - Couldn't setupGeneral\n", FILE__, __LINE__);
+        if (theProc->sh)
         cleanupBPatchHandle(theProc->sh->getPid());
         processVec.pop_back();
         delete theProc;
@@ -2357,7 +2358,22 @@ bool process::loadDyninstLib() {
       startup_printf("%s[%d]: Waiting for process to load libc or reach "
                      "initialized state...\n", FILE__, __LINE__);
       if(hasExited()) {
-         fprintf(stderr,"%s[%d] Program exited early, never reached initialized state\n", FILE__, __LINE__);
+#if defined(os_linux)
+         bperr("The process exited during startup.  This is likely due to one " 
+               "of two reasons:\n"
+               "A). The application is mis-built and unable to load.  Try " 
+               "running the application outside of Dyninst and see if it " 
+               "loads properly.\n"
+               "B). libdyninstAPI_RT is mis-built.  Try loading the library " 
+               "into another application and see if it reports any errors.  "
+               "Ubuntu users - You may need to rebuild the RT library "
+               "with the DISABLE_STACK_PROT line enabled in " 
+               "core/make.config.local");
+#endif
+         startup_printf("%s[%d] Program exited early, never reached " 
+                        "initialized state\n", FILE__, __LINE__);
+         startup_printf("Error is likely due to the application or RT " 
+                        "library having missing symbols or dependencies\n");
          return false;
       }
       getMailbox()->executeCallbacks(FILE__, __LINE__);
@@ -2617,6 +2633,9 @@ bool process::setDyninstLibInitParams()
    if (!writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &dyn_debug_rtlib))
      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
    vars.clear();   
+   if (dyn_debug_rtlib) {
+      fprintf(stderr, "%s[%d]:  set var in RTlib for debug...\n", FILE__, __LINE__);
+   }
 
    startup_cerr << "process::installBootstrapInst() complete" << endl;   
    return true;
@@ -4219,6 +4238,7 @@ bool process::checkTrappedSyscallsInternal(Address syscall)
 }
 #endif
 
+#if 0
 #if defined(ox_aix) 
 //When we save the world on AIX we must instrument the
 //beginning of main() to call dlopen() to load the
@@ -4237,6 +4257,7 @@ bool process::checkTrappedSyscallsInternal(Address syscall)
 //start of main().
 
 BPatchSnippetHandle *handle; //ccw 17 jul 2002
+#endif
 #endif
 
 

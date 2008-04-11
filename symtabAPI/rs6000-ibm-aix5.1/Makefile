@@ -5,8 +5,8 @@
 # XXX get rid of these:
 
 INSTANTIATE_TEMPLATES   = true
-DO_INLINE_ALL           = true
-NO_OPT_FLAG = true
+#DO_INLINE_ALL           = true
+#NO_OPT_FLAG = true
 #NO_IMPLICIT_TEMPLATES    = true
 #AUTO_TEMPLATES 		 = true
 OVERRIDE_INSTALL	= true

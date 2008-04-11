@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.21 2006/05/03 00:31:25 jodom Exp $
+// $Id: test8.C,v 1.22 2008/04/11 23:30:38 legendre Exp $
 //
 
 #include <stdio.h>
@@ -601,7 +601,7 @@ int mutatorMAIN(char *pathname)
 // main
 //
 int
-main(unsigned int argc, char *argv[])
+main(int argc, char *argv[])
 {
     unsigned int i;
     bool ABI_32=false;

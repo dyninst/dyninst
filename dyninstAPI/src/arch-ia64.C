@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.58 2007/12/11 20:22:06 bill Exp $
+// $Id: arch-ia64.C,v 1.59 2008/04/11 23:30:07 legendre Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -96,7 +96,7 @@ instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3] = {
 	instruction::RESERVED, instruction::RESERVED, instruction::RESERVED,
 
 	instruction::RESERVED, instruction::RESERVED, instruction::RESERVED,
-	};
+};
 
 /* NOTE: for the IA64_bundle constructor to work, the individual
 	instruction 'halves' should left-aligned as if they were independent instructions. */
@@ -114,11 +114,11 @@ instruction::instruction( uint64_t insn, uint8_t templ, uint8_t slotN ) {
 
 const void * instruction::ptr() const { 
 	return & insn_;
-	} /* end ptr() */
+} /* end ptr() */
 	
 const void * instruction_x::ptr() const { 
 	return & insn_x_;
-	} /* end ptr() */
+} /* end ptr() */
 
 uint8_t instruction::getPredicate() const {
 	return GET_PREDICATE( (const insn_tmpl *)(&insn_) );
@@ -126,11 +126,11 @@ uint8_t instruction::getPredicate() const {
 
 uint8_t instruction_x::getPredicate() const {
 	return GET_PREDICATE( (const insn_tmpl *)(&insn_x_) );
-	} /* end long instruciton predication fetch */
+} /* end long instruciton predication fetch */
 
 instruction::unitType instruction::getUnitType() const {
 	return INSTRUCTION_TYPE_ARRAY[(templateID * 3) + slotNumber];
-	} /* end getUnitType() */
+} /* end getUnitType() */
 
 instruction::insnType instruction::getType() const {
 	/* We'll try to be a little smarter, now, and just look up the unit type. */
@@ -291,7 +291,18 @@ instruction::insnType instruction::getType() const {
 					return OTHER;
 					} break;
 
-				case 0x4: return DIRECT_BRANCH;
+	case 0x4: 
+	  {
+		uint8_t btype = tmpl.B.btype;
+		if(btype == 5 || btype == 6 || btype == 7) // cloop, cexit, ctop don't rely on predicates; cond does, so exclude it
+		{
+		  return COND_BRANCH;
+		}
+				
+		return DIRECT_BRANCH;
+	  }
+	  break;
+			  
 				case 0x5: return DIRECT_CALL;
 				case 0x7: return BRANCH_PREDICT;
 
@@ -315,11 +326,11 @@ instruction::insnType instruction::getType() const {
 		} /* end i-unit type switch */
 
 	return INVALID;
-	} /* end getType() */
+} /* end getType() */
 
 instruction_x::unitType instruction_x::getUnitType() const { 
 	return instruction_x::X;
-	} /* end getUnitType() */
+} /* end getUnitType() */
 
 instruction::insnType instruction_x::getType() const {
 	/* We know we're a long instruction, so just check the major opcode to see which one. */
@@ -340,22 +351,22 @@ instruction::insnType instruction_x::getType() const {
 		case 0xC: return DIRECT_BRANCH;
 		default: return OTHER;
 		} /* end opcode switch */
-	} /* end getType() */
+} /* end getType() */
 
 IA64_bundle::IA64_bundle( ia64_bundle_t rawBundle ) {
 	* this = IA64_bundle( rawBundle.low, rawBundle.high );
-	} /* end IA64_bundle() */
+} /* end IA64_bundle() */
 
 IA64_bundle::IA64_bundle( uint8_t templateID, const instruction & instruction0, const instruction instruction1, const instruction instruction2 ) {
 	* this = IA64_bundle( templateID, instruction0.getMachineCode(), instruction1.getMachineCode(), instruction2.getMachineCode() );
-	} /* end IA64_bundle() */
+} /* end IA64_bundle() */
 
 /* This handles the MLX template/long instructions. */
 IA64_bundle::IA64_bundle( uint8_t templateID, const instruction & instruction0, const instruction_x & instructionLX ) {
 	if( templateID != MLXstop && templateID != MLX ) { bpfatal( "Attempting to generate a bundle with a long instruction without using the MLX template, aborting.\n" ); abort(); }
 
 	* this = IA64_bundle( templateID, instruction0, instructionLX.getMachineCode().low, instructionLX.getMachineCode().high );
-	} /* end IA64_bundle() */
+} /* end IA64_bundle() */
 
 IA64_bundle::IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t instruction1, uint64_t instruction2 ) {
 	this->templateID = templateID;
@@ -368,7 +379,7 @@ IA64_bundle::IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t in
 					 ( (instruction1 << 23) & INSTRUCTION1_LOW_MASK ));
 	myBundle.high = (( (instruction1 >> (ALIGN_RIGHT_SHIFT + 18)) & INSTRUCTION1_HIGH_MASK ) |
 					 ( (instruction2 & INSTRUCTION2_MASK )));
-	} /* end IA64_bundle() */
+} /* end IA64_bundle() */
 
 IA64_bundle::IA64_bundle( uint64_t lowHalfBundle, uint64_t highHalfBundle ) {
 	/* The template is right-aligned; the instructions are left-aligned. */
@@ -386,7 +397,7 @@ IA64_bundle::IA64_bundle( uint64_t lowHalfBundle, uint64_t highHalfBundle ) {
 instruction_x IA64_bundle::getLongInstruction() {
 	longInstruction = instruction_x( instruction1.getMachineCode(), instruction2.getMachineCode(), templateID );
 	return longInstruction;
-	} /* end getLongInstruction() */
+} /* end getLongInstruction() */
 
 instruction * IA64_bundle::getInstruction( unsigned int slot ) {
 	if( (slot == 1 || slot == 2) && hasLongInstruction() ) {
@@ -398,7 +409,7 @@ instruction * IA64_bundle::getInstruction( unsigned int slot ) {
 		case 2: return new instruction( instruction2 );
 		default: bpfatal("Request of invalid instruction (%d), aborting.\n", slot ); abort();
 		}
-	} /* end getInstruction() */
+} /* end getInstruction() */
 
 // Aids bundle modification.  Used by set_breakpoint_for_syscall_completion().
 bool IA64_bundle::setInstruction(instruction &newInst)
@@ -460,7 +471,7 @@ bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, u
 
 	/* Completed successfully. */
 	return true;
-	} /* end extractAllocatedRegisters() */
+} /* end extractAllocatedRegisters() */
 
 instruction generateAllocInstructionFor( registerSpace * rs, int locals, int outputs, int rotates ) {
 	insn_tmpl alloc = { 0x0 };
@@ -478,7 +489,7 @@ instruction generateAllocInstructionFor( registerSpace * rs, int locals, int out
 	SET_M34_FIELDS( & alloc, sizeOfLocals, outputs, rotates );
 
 	return instruction( alloc.raw );
-	} /* end generateAllocInstructionFor() */
+} /* end generateAllocInstructionFor() */
 
 instruction generateOriginalAllocFor( registerSpace * rs ) {
 	insn_tmpl alloc = { 0x0 };
@@ -495,7 +506,7 @@ instruction generateOriginalAllocFor( registerSpace * rs ) {
 	SET_M34_FIELDS( & alloc, rs->originalLocals, rs->originalOutputs, rs->originalRotates );
 
 	return instruction( alloc.raw );
-	} /* end generateOriginalAllocFor() */
+} /* end generateOriginalAllocFor() */
 
 /* imm22 is assumed to be right-aligned, e.g., an actual value. :) */
 instruction generateShortConstantInRegister( unsigned int registerN, int imm22 ) {
@@ -506,7 +517,7 @@ instruction generateShortConstantInRegister( unsigned int registerN, int imm22 )
 	SET_A5_IMM(&addl, imm22);
 
 	return instruction( addl.raw );
-	} /* end generateConstantInRegister( imm22 ) */
+} /* end generateConstantInRegister( imm22 ) */
 
 instruction_x generateLongConstantInRegister( unsigned int registerN, long long int immediate ) {
 	insn_tmpl movl = { 0x0 }, imm = { 0x0 };
@@ -516,7 +527,7 @@ instruction_x generateLongConstantInRegister( unsigned int registerN, long long 
 	SET_X2_IMM(&movl, &imm, immediate);
 
 	return instruction_x( imm.raw, movl.raw );
-	} /* end generateConstantInRegister( imm64 ) */
+} /* end generateConstantInRegister( imm64 ) */
 
 instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister, Register predicate ) {
 	insn_tmpl call = { 0x0 }, imm = { 0x0 };
@@ -527,7 +538,7 @@ instruction_x generateLongCallTo( long long int displacement64, unsigned int bra
 	SET_X4_TARGET(&call, &imm, displacement64);
 
 	return instruction_x( imm.raw, call.raw );
-	} /* end generateLongCallTo( displacement64 ) */
+} /* end generateLongCallTo( displacement64 ) */
 
 instruction_x generateLongBranchTo( long long int displacement64, Register predicate ) {
 	insn_tmpl brl = { 0x0 }, imm = { 0x0 };
@@ -536,7 +547,7 @@ instruction_x generateLongBranchTo( long long int displacement64, Register predi
 	SET_X3_TARGET(&brl, &imm, displacement64);
 
 	return instruction_x( imm.raw, brl.raw );
-	} /* end generateLongBranchTo( displacement64 ) */
+} /* end generateLongBranchTo( displacement64 ) */
 
 instruction generateReturnTo( unsigned int branchRegister ) {
 	insn_tmpl ret = { 0x0 };
@@ -548,36 +559,36 @@ instruction generateReturnTo( unsigned int branchRegister ) {
 	ret.B4.b2		= branchRegister;
 
 	return instruction( ret.raw );
-	} /* end generateReturnTo */
+} /* end generateReturnTo */
 
 /* Required by func-reloc.C to calculate relative displacements. */
 int get_disp( instruction * /* insn */ ) {
 	assert( 0 );
 	return 0;
-	} /* end get_disp() */
+} /* end get_disp() */
 
 /* Required by func-reloc.C to correct relative displacements after relocation. */
 int set_disp( bool /* setDisp */, instruction * /* insn */, int /* newOffset */, bool /* outOfFunc */ ) {
 	assert( 0 );
 	return 0;
-	} /* end set_disp() */
+} /* end set_disp() */
 
 /* Convience methods for func-reloc.C */
 int sizeOfMachineInsn( instruction * /* insn */ ) {
 	assert( 0 );
 	return 0;
-	} /* end sizeOfMachineInsn() */
+} /* end sizeOfMachineInsn() */
 
 int addressOfMachineInsn( instruction * /* insn */ ) {
 	assert( 0 );
 	return 0;
-	} /* end addressOfMachineInsn */
+} /* end addressOfMachineInsn */
 
 /* Convience method for inst-ia64.C */
 IA64_bundle generateBundleFromLongInstruction( instruction_x longInstruction ) {
 	instruction memoryNOP( NOP_M );
 	return IA64_bundle( MLXstop, memoryNOP, longInstruction );
-	} /* end generateBundleFromLongInstruction() */
+} /* end generateBundleFromLongInstruction() */
 
 /* Required by inst-ia64.C */
 Address instruction::getTargetAddress() const {
@@ -599,7 +610,7 @@ Address instruction::getTargetAddress() const {
 		// /* DEBUG */ bperr( "getTargetAddress() returning 0 for indirect branch or call.\n" );
 		}
 	return 0;
-	} /* end getTargetAddress() */
+} /* end getTargetAddress() */
 
 Address instruction_x::getTargetAddress() const {
 	insnType myType = getType();
@@ -612,7 +623,7 @@ Address instruction_x::getTargetAddress() const {
 		}
 	}
 	return 0;
-	} /* end getTargetAddress() */
+} /* end getTargetAddress() */
 
 #include "process.h"
 #include "function.h"
@@ -728,7 +739,7 @@ void extractAllocatedRegistersFromBasicBlock( const instPoint * location, int_fu
 
 	extractAllocatedRegisters( allocBundle.getInstruction( slotNumber )->getMachineCode(),
 		locals, outputs, rotates );
-	} /* end extractAllocatedRegistersFromBasicBlock */
+} /* end extractAllocatedRegistersFromBasicBlock */
 
 registerSpace *defineBaseTrampRegisterSpaceFor( const instPoint * location, 
 												Register &first, Register &last) {
@@ -967,7 +978,7 @@ instruction generateIPToRegisterMove( Register destination ) {
 	mov.I25.r1		= destination;
 
 	return instruction( mov.raw );
-	} /* end generateIPToRegisterMove() */
+} /* end generateIPToRegisterMove() */
 
 instruction generateBranchToRegisterMove( Register source, Register destination ) {
 	insn_tmpl mov = { 0x0 };
@@ -977,7 +988,7 @@ instruction generateBranchToRegisterMove( Register source, Register destination 
 	mov.I22.r1 = destination;
 
 	return instruction( mov.raw );
-	} /* end generateBranchToRegisterMove() */
+} /* end generateBranchToRegisterMove() */
 
 instruction generateRegisterToBranchMove( Register source, Register destination, int immediate ) {
 	insn_tmpl mov = { 0x0 };
@@ -988,7 +999,7 @@ instruction generateRegisterToBranchMove( Register source, Register destination,
 	mov.I21.timm9c	= immediate;
 
 	return instruction( mov.raw );	
-	} /* end generateRegisterToBranchMove() */
+} /* end generateRegisterToBranchMove() */
 
 instruction generateShortImmediateAdd( Register destination, int immediate, Register source ) {
 	insn_tmpl add = { 0x0 };
@@ -1000,7 +1011,7 @@ instruction generateShortImmediateAdd( Register destination, int immediate, Regi
 	SET_A4_IMM(&add, immediate);
 
 	return instruction( add.raw );
-	} /* end generateShortImmediateAdd() */
+} /* end generateShortImmediateAdd() */
 
 instruction generateArithmetic( opCode op, Register destination, Register lhs, Register rhs ) {
 	insn_tmpl alu = { 0x0 };
@@ -1021,7 +1032,7 @@ instruction generateArithmetic( opCode op, Register destination, Register lhs, R
 		} /* end op switch */
 
 	return instruction( alu.raw );
-	} /* end generateArithmetic() */
+} /* end generateArithmetic() */
 
 instruction generateIndirectCallTo( Register indirect, Register rp ) {
 	insn_tmpl call = { 0x0 };
@@ -1032,7 +1043,7 @@ instruction generateIndirectCallTo( Register indirect, Register rp ) {
 	call.B5.b1		= rp;
 
 	return instruction( call.raw );
-	} /* end generateIndirectCallTo() */
+} /* end generateIndirectCallTo() */
 
 instruction generatePredicatesToRegisterMove( Register destination ) {
 	insn_tmpl mov = { 0x0 };
@@ -1042,7 +1053,7 @@ instruction generatePredicatesToRegisterMove( Register destination ) {
 	mov.I25.r1		= destination;
 
 	return instruction( mov.raw );
-	} /* end generatePredicatesToRegisterMove() */
+} /* end generatePredicatesToRegisterMove() */
 
 instruction generateRegisterToPredicatesMove( Register source, int64_t mask64 ) {
 	insn_tmpl mov = { 0x0 };
@@ -1053,7 +1064,7 @@ instruction generateRegisterToPredicatesMove( Register source, int64_t mask64 ) 
 	SET_I23_MASK(&mov, mask64);
 
 	return instruction( mov.raw );
-	} /* end generateRegisterToPredicatesMove() */
+} /* end generateRegisterToPredicatesMove() */
 
 instruction generateSpillTo( Register address, Register source, int64_t imm9 ) {
 	insn_tmpl spill = { 0x0 };
@@ -1065,7 +1076,7 @@ instruction generateSpillTo( Register address, Register source, int64_t imm9 ) {
 	SET_M5_IMM(&spill, imm9);
 
 	return instruction( spill.raw );
-	} /* end generateSpillTo() */
+} /* end generateSpillTo() */
 
 instruction generateFillFrom( Register address, Register destination, int64_t imm9 ) {
 	insn_tmpl fill = { 0x0 };
@@ -1087,11 +1098,11 @@ instruction generateFillFrom( Register address, Register destination, int64_t im
 	}
 
 	return instruction( fill.raw );
-	} /* end generateFillFrom() */
+} /* end generateFillFrom() */
 
 instruction generateRegisterStore( Register address, Register source, int size, Register predicate ) {
 	return generateRegisterStoreImmediate( address, source, 0, size, predicate );
-	} /* generateRegisterStore() */
+} /* generateRegisterStore() */
 
 instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size, Register predicate ) {
 	insn_tmpl store = { 0x0 };
@@ -1113,7 +1124,7 @@ instruction generateRegisterStoreImmediate( Register address, Register source, i
 	SET_M5_IMM(&store, imm9);
 
 	return instruction( store.raw );
-	} /* end generateRegisterStore() */
+} /* end generateRegisterStore() */
 
 /* This is the no-update form, which lets the code generator do dumb
    stuff like load from and into the same register. */
@@ -1135,7 +1146,7 @@ instruction generateRegisterLoad( Register destination, Register address, int si
 		} /* end sizeSpec determiner */
 
 	return instruction( load.raw );	
-	} /* end generateRegisterLoad() */
+} /* end generateRegisterLoad() */
 
 instruction generateRegisterLoadImmediate( Register destination, Register address, int imm9, int size ) { 
 	insn_tmpl load = { 0x0 };
@@ -1156,7 +1167,7 @@ instruction generateRegisterLoadImmediate( Register destination, Register addres
 	SET_M3_IMM(&load, imm9);
 
 	return instruction( load.raw );
-	} /* end generateRegisterLoad() */
+} /* end generateRegisterLoad() */
 
 instruction generateRegisterToApplicationMove( Register source, Register destination ) {
 	/* The lower 48 application registers are only accessible via the M unit.  For simplicity,
@@ -1178,7 +1189,7 @@ instruction generateRegisterToApplicationMove( Register source, Register destina
 	}
 
 	return instruction( mov.raw );
-	} /* end generateRegisterToApplicationMove() */
+} /* end generateRegisterToApplicationMove() */
 
 instruction generateApplicationToRegisterMove( Register source, Register destination ) {
 	/* The lower 48 application registers are only accessible via the M unit.  For simplicity,
@@ -1200,21 +1211,21 @@ instruction generateApplicationToRegisterMove( Register source, Register destina
 	}
 
 	return instruction( mov.raw );
-	} /* end generateRegisterToApplicationMove() */
+} /* end generateRegisterToApplicationMove() */
 
 instruction predicateInstruction( Register predicate, instruction insn ) {
 	insn_tmpl tmpl = { insn.getMachineCode() };
 
 	SET_PREDICATE(&tmpl, predicate);
 	return instruction( tmpl.raw, insn.getTemplateID(), insn.getSlotNumber() );
-	} /* end predicateInstruction() */
+} /* end predicateInstruction() */
 
 instruction_x predicateLongInstruction( Register predicate, instruction_x insn ) {
 	insn_tmpl tmpl = { insn.getMachineCode().high };
 
 	SET_PREDICATE(&tmpl, predicate);
 	return instruction_x( insn.getMachineCode().low, tmpl.raw, insn.getTemplateID() );
-	} /* end predicateLongInstruction() */
+} /* end predicateLongInstruction() */
 
 #define SWAP(a, b)	((a) ^= (b), (b) ^= (a), (a) ^= (b))
 instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs ) {
@@ -1249,7 +1260,7 @@ instruction generateComparison( opCode op, Register destination, Register lhs, R
 	cmp.A6.p2	= anti_destination;
 
 	return instruction( cmp.raw );
-	} /* end generateComparison() */
+} /* end generateComparison() */
 
 instruction generateFPSpillTo( Register address, Register source, int64_t imm9 ) {
 	insn_tmpl spill_f = { 0x0 };
@@ -1261,7 +1272,7 @@ instruction generateFPSpillTo( Register address, Register source, int64_t imm9 )
 	SET_M10_IMM(&spill_f, imm9);
 
 	return instruction( spill_f.raw );
-	} /* end generateFPSpillTo() */
+} /* end generateFPSpillTo() */
 
 instruction generateFPFillFrom( Register address, Register destination, int64_t imm9 ) {
 	insn_tmpl fill_f = { 0x0 };
@@ -1273,7 +1284,7 @@ instruction generateFPFillFrom( Register address, Register destination, int64_t 
 	SET_M8_IMM(&fill_f, imm9);
 
 	return instruction( fill_f.raw );
-	} /* end generateFPFillFrom() */
+} /* end generateFPFillFrom() */
 
 instruction generateRegisterToFloatMove( Register source, Register destination ) {
 	insn_tmpl mov_f = { 0x0 };
@@ -1285,7 +1296,7 @@ instruction generateRegisterToFloatMove( Register source, Register destination )
 	mov_f.M18.f1		= destination;
 
 	return instruction( mov_f.raw );
-	} /* end generateRegisterToFloatMove() */
+} /* end generateRegisterToFloatMove() */
 
 instruction generateFloatToRegisterMove( Register source, Register destination ) {
 	insn_tmpl mov_f = { 0x0 };
@@ -1297,7 +1308,7 @@ instruction generateFloatToRegisterMove( Register source, Register destination )
 	mov_f.M19.r1		= destination;
 
 	return instruction( mov_f.raw );
-	} /* end generateFloatToRegisterMove() */
+} /* end generateFloatToRegisterMove() */
 
 instruction generateFixedPointMultiply( Register destination, Register lhs, Register rhs ) {
 	insn_tmpl xma_l = { 0x0 };
@@ -1311,7 +1322,7 @@ instruction generateFixedPointMultiply( Register destination, Register lhs, Regi
 	xma_l.F2.f1		= destination;
 
 	return instruction( xma_l.raw );
-	} /* end generateFixedPointMultiply() */
+} /* end generateFixedPointMultiply() */
 
 void alterLongMoveAtTo( Address target, Address imm64 ) {
 	ia64_bundle_t *rawBundle = (ia64_bundle_t *)target;
@@ -1321,7 +1332,7 @@ void alterLongMoveAtTo( Address target, Address imm64 ) {
 
 	rawBundle->high	= movl.raw;
 	rawBundle->low	= imm.raw;
-	} /* end alterLongMoveAtTo() */
+} /* end alterLongMoveAtTo() */
 
 instruction generateShortImmediateBranch( int64_t target25 ) {
 	insn_tmpl br_cond = { 0x0 };
@@ -1330,7 +1341,7 @@ instruction generateShortImmediateBranch( int64_t target25 ) {
 	SET_B1_TARGET(&br_cond, target25);
 
 	return instruction( br_cond.raw );
-	} /* end generateShortImmediateBranch() */
+} /* end generateShortImmediateBranch() */
 
 
 
@@ -1344,7 +1355,7 @@ IA64_bundle generateTrapBundle() {
 	   a SIGILL, (0x40000) because SIGTRAP does silly things. */
 
 	return IA64_bundle( MIIstop, TRAP_M, NOP_I, NOP_I );
-	} /* end generateTrapBundle() */
+} /* end generateTrapBundle() */
 
 
 void IA64_bundle::generate(codeGen &gen) {
@@ -1406,7 +1417,7 @@ instruction generateShiftLeftAndAdd( Register destination, Register shifted, uin
 	shladd.A2.ct2d = count - 1;
 
 	return instruction( shladd.raw );
-	} /* end generateShiftLeftAndAdd() */
+} /* end generateShiftLeftAndAdd() */
 
 bool instruction::generateMem(codeGen &,
                               Address, 

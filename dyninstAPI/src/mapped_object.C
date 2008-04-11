@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.35 2008/04/07 22:32:44 giri Exp $
+// $Id: mapped_object.C,v 1.36 2008/04/11 23:30:22 legendre Exp $
 
 #include <string>
 
@@ -204,6 +204,9 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       // and not attaching to it, we can find it by instrumenting libc.so
       // Currently this has only been implemented for linux 
 #if defined(os_linux)
+      // More specifically, x86 and x86_64 linux
+#if defined(arch_x86) || defined(arch_x86_64)
+
       vector <Symbol *>mainsyms;
       if (p->proc() && p->proc()->getTraceState() == noTracing_ts
             && !p->proc()->wasCreatedViaAttach() 
@@ -219,7 +222,9 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
          p->proc()->setTraceSysCalls(true);
          p->proc()->setTraceState(libcOpenCall_ts);
       }
-#endif
+
+#endif // arch_x86 || arch_x86_64
+#endif // os_linux
    }
 
    // Adds exported functions and variables..

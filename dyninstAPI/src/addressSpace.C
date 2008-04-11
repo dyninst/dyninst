@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: addressSpace.C,v 1.18 2008/03/12 20:08:58 legendre Exp $
+// $Id: addressSpace.C,v 1.19 2008/04/11 23:30:05 legendre Exp $
 
 #include "addressSpace.h"
 #include "codeRange.h"
@@ -1396,6 +1396,9 @@ void trampTrapMappings::flush() {
       trapTable = rtlib->getVariable("dyninstTrapTable");
       trapTableSorted = rtlib->getVariable("dyninstTrapTableIsSorted");
 
+      if (!trapTableUsed) {
+         fprintf(stderr, "Dyninst is about to crash with an assert.  Either your dyninstAPI_RT library is stripped, or you're using an older version of dyninstAPI_RT with a newer version of dyninst.  Check your DYNINSTAPI_RT_LIB enviroment variable.\n");
+      }
       assert(trapTableUsed);
       assert(trapTableVersion);
       assert(trapTable);

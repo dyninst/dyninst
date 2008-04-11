@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_4.C,v 1.5 2006/10/11 21:53:36 cooksey Exp $
+// $Id: test3_4.C,v 1.6 2008/04/11 23:31:13 legendre Exp $
 /*
  * #Name: test3_4
  * #Desc: sequential multiple-process management - exit
@@ -104,7 +104,6 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
            if (signalNum || debugPrint)
                dprintf("Mutatee %d exited from signal 0x%d\n", n, signalNum);
         }
-	delete appThread;
     }
 
     logerror("Passed Test #4 (sequential multiple-process management - exit)\n");

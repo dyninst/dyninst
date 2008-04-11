@@ -33,6 +33,8 @@
 #include "symtabAPI/src/addrtranslate-sysv.h"
 #include "common/h/linuxKludges.h"
 
+#include <linux/limits.h>
+
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/wait.h>

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.37 2008/03/12 20:09:23 legendre Exp $
+// $Id: reloc-func.C,v 1.38 2008/04/11 23:30:24 legendre Exp $
 
 
 
@@ -164,7 +164,10 @@ bool int_function::relocBlocks(Address baseInMutatee,
                   bbl->block()->origInstance()->firstInsnAddr(),
                   curAddr);
      addrs.push_back(curAddr);
-     curAddr += newInstances[i]->sizeRequired();
+     if (i < (newInstances.size() - 1))
+         curAddr += newInstances[i]->sizeRequired(newInstances[i+1]);
+     else
+         curAddr += newInstances[i]->sizeRequired(NULL);
    }
 
    for (;;) {
@@ -180,7 +183,10 @@ bool int_function::relocBlocks(Address baseInMutatee,
                       bbl->block()->origInstance()->firstInsnAddr(),
                       addrs[i],
                       addrs[i] - baseInMutatee);
-         bbl->generate();
+         if (i < (newInstances.size() - 1))
+             bbl->generate(newInstances[i+1]);
+         else
+             bbl->generate(NULL);
          assert(!bbl->generatedBlock().hasPCRels());
          reloc_printf("Block 0x%lx generation done.  Used %lu bytes\n",
                       bbl->block()->origInstance()->firstInsnAddr(),
@@ -244,7 +250,10 @@ bool int_function::relocBlocks(Address baseInMutatee,
    for (unsigned i = 0; i < newInstances.size(); i++) {
       reloc_printf("Pinning block %d to 0x%lx\n", i, currAddr);
       newInstances[i]->setStartAddr(currAddr);
-      currAddr += newInstances[i]->sizeRequired();
+      if (i < (newInstances.size() - 1))
+          currAddr += newInstances[i]->sizeRequired(newInstances[i+1]);
+      else
+          currAddr += newInstances[i]->sizeRequired(NULL);
    }
 
    // Okay, so we have a set of "new" basicBlocks. Now go through and
@@ -254,7 +263,11 @@ bool int_function::relocBlocks(Address baseInMutatee,
    bool success = true;
    for (unsigned i = 0; i < newInstances.size(); i++) {
       reloc_printf("... relocating block %d\n", blockList[i]->id());
-      success &= newInstances[i]->generate();
+      // Hand in the physical successor block
+      if (i < (newInstances.size() - 1))
+          success &= newInstances[i]->generate(newInstances[i+1]);
+      else
+          success &= newInstances[i]->generate(NULL);
       if (!success) break;
    }
    return true;
@@ -312,7 +325,11 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
                      sourceVersion);
         newInstances[i]->relocationSetup(blockList[i]->instVer(sourceVersion),
                                          mods);
-        size_required += newInstances[i]->sizeRequired();
+        if (i < (newInstances.size() - 1))
+            size_required += newInstances[i]->sizeRequired(newInstances[i+1]);
+        else
+            size_required += newInstances[i]->sizeRequired(NULL);
+
         reloc_printf("After block %d, %d bytes required\n",
                      i, size_required);
     }
@@ -593,9 +610,17 @@ bool int_function::expandForInstrumentation() {
 // classes.
 // This is a bit inefficient, since we rapidly use and delete
 // relocatedInstructions... ah, well :)
-unsigned bblInstance::sizeRequired() {
+unsigned bblInstance::sizeRequired(bblInstance *nextBBL) {
     assert(getMaxSize());
-    return getMaxSize();
+
+    unsigned jumpToFallthrough = 0;
+    if (nextBBL &&
+        getFallthroughBBL() &&
+        (nextBBL != getFallthroughBBL())) {
+        jumpToFallthrough = instruction::maxJumpSize(proc()->getAddressWidth());
+    }
+
+    return getMaxSize() + jumpToFallthrough;
 }
 
 bool bblInstance::reset()
@@ -663,7 +688,7 @@ void bblInstance::setStartAddr(Address addr) {
   firstInsnAddr_ = addr;
 }
 
-bool bblInstance::generate() {
+bool bblInstance::generate(bblInstance *nextBBL) {
     assert(firstInsnAddr_);
     assert(relocs().size());
     assert(maxSize());
@@ -671,7 +696,15 @@ bool bblInstance::generate() {
     assert(origInstance());
     unsigned i;
 
-    generatedBlock().allocate(maxSize());
+    unsigned fallthroughJumpSizeNeeded = 0;
+    if (nextBBL &&
+        getFallthroughBBL() &&
+        (nextBBL != getFallthroughBBL())) {
+        fallthroughJumpSizeNeeded = instruction::maxJumpSize(proc()->getAddressWidth());
+    }
+    
+
+    generatedBlock().allocate(maxSize() + fallthroughJumpSizeNeeded);
     generatedBlock().setAddrSpace(proc());
     generatedBlock().setAddr(firstInsnAddr_);
     generatedBlock().setFunction(func());
@@ -683,52 +716,7 @@ bool bblInstance::generate() {
       patchTarget *fallthroughOverride = NULL;
       patchTarget *targetOverride = NULL;
       if (i == (relocs().size()-1)) {
-         // Check to see if we need to fix up the target....
-         pdvector<int_basicBlock *> targets;
-         block_->getTargets(targets);
-         if (targets.size() > 2) {
-            reloc_printf("WARNING: attempt to relocate function %s with indirect jump!\n",
-                         block_->func()->symTabName().c_str());
-         }
-         // We have edge types on the internal data, so we drop down and get that. 
-         // We want to find the "branch taken" edge and override the destination
-         // address for that guy.
-         pdvector<image_edge *> out_edges;
-         block_->llb()->getTargets(out_edges);
-	
-         // May be greater; we add "extra" edges for things like function calls, etc.
-         assert (out_edges.size() >= targets.size());
-         
-         int_basicBlock *hlTarget = NULL;
-         
-         for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
-            EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
-            // Update to Nate's commit...
-            if ((edgeType == ET_COND_TAKEN) ||
-                (edgeType == ET_DIRECT)) {
-               // Got the right edge... now find the matching high-level
-               // basic block
-               image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
-               for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
-                  // Should be the same index, but this is a small set...
-                  if (targets[t_iter]->llb() == llTarget)
-                     hlTarget = targets[t_iter];
-               }
-               assert(hlTarget != NULL);
-               break;
-            }
-         }
-         if (hlTarget != NULL) {
-            // Remap its destination
-            // This is a jump target; get the start addr for the
-            // new block.
-            assert(targetOverride == NULL);
-            targetOverride = hlTarget->instVer(version_);
-            reloc_printf("... found jmp target 0x%lx->0x%lx, now to 0x%lx\n",
-                         origInstance()->endAddr(),
-                         hlTarget->origInstance()->firstInsnAddr(),
-                         targetOverride->get_address());
-         }
+          targetOverride = getTargetBBL();
       }
       reloc_printf("... generating insn %d, orig addr 0x%lx, new addr 0x%lx, " 
                    "fallthrough 0x%lx, target 0x%lx\n",
@@ -737,8 +725,21 @@ bool bblInstance::generate() {
                    targetOverride ? targetOverride->get_address() : 0);
       unsigned usedBefore = generatedBlock().used();
 
-      // Find and drop in the instPoint for that instruction, since we may need it.
-
+      // Added 4APR08 to handle de-overlapping blocks; our fallthrough may
+      // not be the contextual successor...
+      bblInstance *fallthrough = getFallthroughBBL();
+      
+      if ((nextBBL != NULL) &&
+          (fallthrough != NULL) &&
+          (fallthrough != nextBBL)) {
+          reloc_printf("%s[%d]: Handling case where fallthrough is not next block; func %s, block at 0x%lx, fallthrough at 0x%lx, next block at 0x%lx\n",
+                       FILE__, __LINE__,
+                       func()->prettyName().c_str(),
+                       block()->origInstance()->firstInsnAddr(),
+                       fallthrough->origInstance()->firstInsnAddr(),
+                       nextBBL->origInstance()->firstInsnAddr());
+          fallthroughOverride = fallthrough;
+      }
 
       relocs()[i]->origInsn->generate(generatedBlock(),
                                       proc(),
@@ -758,6 +759,7 @@ bool bblInstance::generate() {
       
       origAddr += relocs()[i]->origInsn->size();
     }
+
 
 #if !defined(cap_fixpoint_gen)
     //Fill out unused space at end of block with NOPs

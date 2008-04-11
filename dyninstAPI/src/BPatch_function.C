@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.104 2008/02/23 02:09:04 jaw Exp $
+// $Id: BPatch_function.C,v 1.105 2008/04/11 23:29:59 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -891,11 +891,14 @@ typedef struct MemoryUpdate{
   BPatch_dependenceGraphNode* node;
 } memUpdate;
 
-#if defined(interprocedural)
 
-/* should probably included from another file*/
 #if defined(arch_x86)
 #define EAX 0
+#endif
+
+#if defined(interprocedural)
+/* should probably included from another file*/
+#if defined(arch_x86)
 #define ESP 4
 #define EBP 5
 #endif
@@ -1938,6 +1941,58 @@ void handleWrittenRegister(BPatch_dependenceGraphNode* node, int rn, BPatch_Vect
  }
 #endif
 
+#if defined(arch_x86)
+void markEAXasWritten(bool isCall, int num_regs, int* writeArr) {
+  // if a call instruction, mark eax as written by that call instruction
+  if(isCall) {
+    int k = 0;
+    for(; k<num_regs && writeArr[k] != -1; k++);
+    assert(k<num_regs);
+    writeArr[k] = EAX;
+    // TODO: if void func!
+  }
+}
+#endif
+
+int getReadWriteSets(InstrucIter& iter, int** readArr, int** writeArr) {
+#if defined(arch_x86)
+  std::set<Register> used;
+  std::set<Register> defined;
+  iter.getAllRegistersUsedAndDefined(used, defined);
+  int num_regs = used.size() > defined.size()? used.size():defined.size()+1;
+#else
+  int num_regs = 8;
+#endif
+
+  int* read, *write;
+  (*readArr) = read = (int*)malloc(sizeof(int)*num_regs);
+  (*writeArr) = write = (int*)malloc(sizeof(int)*num_regs);
+
+  int i;
+  // initialize read/write arrays
+  for (i = 0; i < num_regs; i++) {
+    write[i] = read[i] = -1;
+  }
+
+#if defined(arch_x86)
+  assert(num_regs>=(int)used.size());
+  set<Register>::iterator pos;
+  for(pos = used.begin(), i=0; pos!=used.end(); pos++, i++) {
+    read[i] = (int)(*pos);
+  }
+  assert(num_regs>=(int)defined.size());
+  for(pos = defined.begin(), i=0; pos!=defined.end(); pos++, i++) {
+    write[i] = (int)(*pos);
+  }
+  
+  markEAXasWritten(iter.isACallInstruction(), num_regs, write);
+#else
+  iter.readWriteRegisters(*readArr,*writeArr);
+#endif
+
+  return num_regs;
+}
+
 /*
  * Used to create the data dependence graph from the binary.
  * Called only once for each function
@@ -1950,14 +2005,9 @@ void BPatch_function::createDataDependenceGraph()
   unsigned i,j;
   BPatch_flowGraph* cfg = getCFG();
 
-#if defined(arch_x86)
-  unsigned num_regs=3;
-#else
-  unsigned num_regs=8;
+  int* readArr, *writeArr;
+  // reg_offset is only used for sparc for save and restore instructions
   int reg_offset = 0;
-#endif
-  int * writeArr = (int *) malloc(sizeof(int)*num_regs);
-  int * readArr = (int *) malloc(sizeof(int)*num_regs);
   // ******************** Initializations and collecting required objects **************************
 #if 0
   if(getAnnotation("DataDependenceGraph") != NULL)
@@ -2047,11 +2097,9 @@ void BPatch_function::createDataDependenceGraph()
             handleCondBranch(node, iter, &ddg.getDataStructure());
          } // end checking whether this is conditional instruction
 #endif
-         // initialize read/write arrays
-         for (j = 0; j < num_regs; j++) {
-            writeArr[j] = readArr[j] = -1;
-         }
-         iter->readWriteRegisters(readArr,writeArr);
+ 
+        // find out which registers are used by this instruction
+        int num_regs = getReadWriteSets(*iter, &readArr, &writeArr);
 #if defined(logging)
          // ins.print();
          fprintf(logFile,"Read Registers ");

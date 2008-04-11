@@ -10,10 +10,10 @@ class MappedFile {
 
    public:
       DLLEXPORT static MappedFile *createMappedFile(std::string fullpath_);
-      DLLEXPORT static MappedFile *createMappedFile(void *map_loc);
+      DLLEXPORT static MappedFile *createMappedFile(void *map_loc, unsigned long size_);
       DLLEXPORT static void closeMappedFile(MappedFile *mf);
 
-      DLLEXPORT std::string &pathname();
+      DLLEXPORT std::string pathname();
       DLLEXPORT std::string filename();
       DLLEXPORT void *base_addr() {return map_addr;}
 #if defined(os_windows)
@@ -26,7 +26,7 @@ class MappedFile {
    private:
 
       MappedFile(std::string fullpath, bool &ok);
-      MappedFile(void *loc, bool &ok);
+      MappedFile(void *loc, unsigned long size_, bool &ok);
       ~MappedFile();
       bool clean_up();
       std::string fullpath;
@@ -34,7 +34,7 @@ class MappedFile {
 
       bool check_path(std::string &);
       bool open_file();
-      bool open_file(void *);
+      bool open_file(void *, unsigned long size_ = 0);
       bool map_file();
       bool unmap_file();
       bool close_file();

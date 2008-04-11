@@ -202,6 +202,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     // Used because callbacks go (and can clean up user code) before the low-level process
     // sets flags.
     bool terminated; 
+    bool reportedExit;
 
     //When an async RPC is posted on a stopped process we post it, but haven't 
     // yet launched it.  The next process level continue should start the RPC 

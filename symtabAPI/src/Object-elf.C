@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.41 2008/04/08 22:55:21 giri Exp $
+ * $Id: Object-elf.C,v 1.42 2008/04/11 23:30:55 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -306,10 +306,15 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
    got_size_ = 0;
    plt_addr_ = 0;
    plt_size_ = 0;
+#if defined (ppc32_linux)
+   plt_entry_size_ = 8;
+   rel_plt_entry_size_ = 8;
+#else
    plt_entry_size_ = 0;
+   rel_plt_entry_size_ = 0;
+#endif
    rel_plt_addr_ = 0;
    rel_plt_size_ = 0;
-   rel_plt_entry_size_ = 0;
    rel_size_ = 0;
    rel_entry_size_ = 0;
    stab_off_ = 0;
@@ -463,7 +468,17 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	    plt_entry_size_ = plt_size_ / ((rel_plt_size_ / rel_plt_entry_size_) + 1);
 	    assert( plt_entry_size_ == 16 );
 #else
+
 	    plt_entry_size_ = scnp->sh_entsize();
+#if defined (ppc32_linux)
+       if (!plt_entry_size_)
+          plt_entry_size_ = 8;
+       else {
+          if (plt_entry_size_ != 8) 
+             fprintf(stderr, "%s[%d]:  weird plt_entry_size_ is %d, not 8\n", 
+                   FILE__, __LINE__, plt_entry_size_);
+       }
+#endif
 #endif
 	}
 	else if (strcmp(name, DYNSYM_NAME) == 0) {
@@ -681,6 +696,21 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
 #elif defined(arch_x86) || defined(arch_x86_64)
 	    next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
+#elif defined (ppc32_linux)
+       //  Do not expect same parameters for ppc64_linux
+       if (!plt_entry_size_) {
+          fprintf(stderr, "%s[%d]:  FIXME:  plt_entry_size not established\n", FILE__, __LINE__);
+          plt_entry_size_ = 8;
+       }
+	    next_plt_entry_addr += 9*plt_entry_size_;  // 1st 9 PLT entries are special
+       //fprintf(stderr, "%s[%d]:  skipping %d (6*%d) bytes initial plt\n", 
+       //        FILE__, __LINE__, 9*plt_entry_size_, plt_entry_size_);
+       //  actually this is just fudged to make the offset value 72, which is what binutils uses
+       //  Note that binutils makes the distinction between PLT_SLOT_SIZE (8), 
+       //  and PLT_ENTRY_SIZE (12).  PLT_SLOT_SIZE seems to be what we want, even though we also
+       //  have PLT_INITIAL_ENTRY_SIZE (72)
+       //  see binutils/bfd/elf32-ppc.c/h if more info is needed
+	    //next_plt_entry_addr += 72;  // 1st 6 PLT entries art special
 #else
 	    next_plt_entry_addr += 4*(plt_entry_size_); //1st 4 entries are special
 #endif
@@ -1154,6 +1184,9 @@ void Object::parse_symbols(std::vector<Symbol *> &allsymbols,
       else
          sec = NULL;
       
+      if((secNumber == SHN_ABS) && regions_.size())
+         sec = regions_[0];
+      
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize);
       // register symbol in dictionary
       if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
@@ -1298,6 +1331,9 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
     	 sec = regions_[secNumber];
       else
          sec = NULL;		
+
+      if((secNumber == SHN_ABS) && regions_.size())
+         sec = regions_[0];     
 
       Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, NULL, true, false);
 #if !defined(os_solaris)
@@ -2459,7 +2495,10 @@ Object::Object(MappedFile *mf_, hash_map<std::string, LineInformation> &li,
          ((unsigned long)mf_->base_addr()) + stabstr_off_,
          stab_size_/sizeof(stab32));
 #endif
+   if(mf->getFD() != -1)
       elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
+   else
+       elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
 
       // ELF header: sanity check
       //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
@@ -2502,7 +2541,10 @@ Object::Object(MappedFile *mf_, void (*err_func)(const char *), bool alloc_syms)
    did_open = false;
    interpreter_name_ = NULL;
    isStripped = false;
+   if(mf->getFD() != -1)
    elfHdr = Elf_X(mf->getFD(), ELF_C_READ);
+   else
+       elfHdr = Elf_X((char *)mf->base_addr(), mf->size());
 
    // ELF header: sanity check
    //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
@@ -3421,6 +3463,10 @@ void Object::getModuleLanguageInfo(hash_map<string, supportedLanguages> *mod_lan
          
          /* Extract the name of this module. */
          status = dwarf_diename( moduleDIE, & moduleName, NULL );
+         if (status != DW_DLV_OK || !moduleName) {
+            done = true;
+            goto cleanup_dwarf;
+         }
          ptr = strrchr(moduleName, '/');
          if (ptr)
             ptr++;

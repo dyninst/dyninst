@@ -6,35 +6,35 @@
 #include "dyntypes.h"
 namespace Dyninst {
 
-#if !defined(DLLEXPORT)
+#if !defined(DLLEXPORT_COMMON)
 #if defined (_MSC_VER)
 /* If we're on Windows, we need to explicetely export these functions: */
    #if defined(DLL_BUILD)
-      #define DLLEXPORT __declspec(dllexport)
+      #define DLLEXPORT_COMMON __declspec(dllexport)
    #else
-      #define DLLEXPORT __declspec(dllimport)   
+      #define DLLEXPORT_COMMON __declspec(dllimport)   
    #endif
 #else
-   #define DLLEXPORT
+   #define DLLEXPORT_COMMON
 #endif
 #endif
 
 
-DLLEXPORT unsigned addrHashCommon(const Address &addr);
-DLLEXPORT unsigned ptrHash(const void * addr);
+DLLEXPORT_COMMON unsigned addrHashCommon(const Address &addr);
+DLLEXPORT_COMMON unsigned ptrHash(const void * addr);
 
-DLLEXPORT unsigned addrHash(const Address &addr);
-DLLEXPORT unsigned addrHash4(const Address &addr);
-DLLEXPORT unsigned addrHash16(const Address &addr);
+DLLEXPORT_COMMON unsigned addrHash(const Address &addr);
+DLLEXPORT_COMMON unsigned addrHash4(const Address &addr);
+DLLEXPORT_COMMON unsigned addrHash16(const Address &addr);
 
-DLLEXPORT unsigned hash(const std::string &s);
-DLLEXPORT std::string itos(int);
-DLLEXPORT std::string utos(unsigned);
+DLLEXPORT_COMMON unsigned hash(const std::string &s);
+DLLEXPORT_COMMON std::string itos(int);
+DLLEXPORT_COMMON std::string utos(unsigned);
 
 #define WILDCARD_CHAR '?'
 #define MULTIPLE_WILDCARD_CHAR '*'
 
-DLLEXPORT bool wildcardEquiv(const std::string &us, const std::string &them, bool checkCase = false );
+DLLEXPORT_COMMON bool wildcardEquiv(const std::string &us, const std::string &them, bool checkCase = false );
 
 }
 #endif

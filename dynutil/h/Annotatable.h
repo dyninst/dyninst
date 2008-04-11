@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.5 2008/04/07 22:32:37 giri Exp $
+// $Id: Annotatable.h,v 1.6 2008/04/11 23:30:48 legendre Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
 
+#include <cstring>
 #include <vector>
 #include <string>
 #include <typeinfo>
@@ -112,10 +113,10 @@ template< class T > hash_map<AnnotatableBase*, T* >
 AnnotationSet< T >::sets_by_obj;
 
 
-class AnnotatableBase
+class DLLEXPORT_COMMON AnnotatableBase
 {
    protected:
-      DLLEXPORT AnnotatableBase();
+      AnnotatableBase();
       ~AnnotatableBase() {
       }
       static int number;
@@ -125,8 +126,8 @@ class AnnotatableBase
 
    public:
 
-      DLLEXPORT int createAnnotationType(std::string &name);
-      DLLEXPORT int getAnnotationType(std::string &name);
+      int createAnnotationType(std::string &name);
+      int getAnnotationType(std::string &name);
 #if 0
       virtual int createMetadata(std::string &name);
       virtual int getMetadata(std::string &name);
@@ -168,9 +169,6 @@ class Annotatable : public AnnotatableBase
             return NULL;
          }
 
-#if 0
-         ANNOTATION_NAME_T name_t;
-#endif
          std::string anno_name = typeid(ANNOTATION_NAME_T).name();
          int anno_type = getAnnotationType(anno_name);
          if (anno_type == -1) {
@@ -208,6 +206,14 @@ class Annotatable : public AnnotatableBase
          v->push_back(it);
 
          return true;
+      }
+
+      void clearAnnotations()
+      {
+         Container_t *v = NULL;
+         v = AnnotationSet<std::vector<T> >::findAnnotationSet(this);
+         if (v)
+            v->clear();
       }
 
       unsigned size() const {

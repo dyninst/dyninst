@@ -5548,7 +5548,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 // main - decide our role and call the correct "main"
 //
 int
-main(unsigned int argc, char *argv[])
+main(int argc, char *argv[])
 {
     char mutateeName[128];
     char libRTname[256];

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.36 2008/03/12 20:09:32 legendre Exp $
+ * $Id: RTposix.c,v 1.37 2008/04/11 23:30:45 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -99,6 +99,7 @@ void libdyninstAPI_RT_init()
       DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
                   libdyninstAPI_RT_init_maxthreads, libdyninstAPI_RT_init_debug_flag);
    }
+   rtdebug_printf("%s[%d]:  did DYNINSTinit\n", __FILE__, __LINE__);
 }
 
 
@@ -110,11 +111,12 @@ void libdyninstAPI_RT_init()
 
 static int async_socket = -1;
 static int needToDisconnect = 0;
-char socket_path[255];
+static char socket_path[255];
 
 int DYNINSTasyncConnect(int pid)
 {
   
+   rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  entry\n", __FILE__, __LINE__);
   int sock_fd;
   int err = 0;
   struct sockaddr_un sadr;
@@ -130,6 +132,7 @@ int DYNINSTasyncConnect(int pid)
              __FILE__, __LINE__);
       */
 
+     rtdebug_printf("%s[%d]:  DYNINSTasyncConnnect:  already connected\n", __FILE__, __LINE__);
      return 0;
   }
   euid = geteuid();
@@ -184,7 +187,6 @@ int DYNINSTasyncDisconnect()
     rtdebug_printf("%s[%d]:  welcome to DYNINSTasyncDisconnect\n", __FILE__, __LINE__);
     if (needToDisconnect) {
         close (async_socket);
-        unlink(socket_path);
         needToDisconnect = 0;
     }
     async_socket = -1;

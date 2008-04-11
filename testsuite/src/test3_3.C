@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_3.C,v 1.4 2006/10/11 21:53:35 cooksey Exp $
+// $Id: test3_3.C,v 1.5 2008/04/11 23:31:12 legendre Exp $
 /*
  * #Name: test3_3
  * #Desc: instrument multiple processes
@@ -216,7 +216,6 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
                         dprintf("Mutatee %d exited from signal 0x%d\n", n,
                                 signalNum);
                 }
-                delete appThread[n];
 		terminated[n]=true;
                 numTerminated++;
             }

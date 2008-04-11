@@ -1,7 +1,7 @@
 #include <string>
 #include "dynutil/h/util.h"
 namespace Dyninst {
-DLLEXPORT unsigned addrHashCommon(const Address &addr)
+DLLEXPORT_COMMON unsigned addrHashCommon(const Address &addr)
 {
    // inspired by hashs of string class
 
@@ -17,24 +17,24 @@ DLLEXPORT unsigned addrHashCommon(const Address &addr)
    return result;
 }
 
-DLLEXPORT unsigned addrHash(const Address & iaddr)
+DLLEXPORT_COMMON unsigned addrHash(const Address & iaddr)
 {
    return Dyninst::addrHashCommon(iaddr);
 }
 
-DLLEXPORT unsigned ptrHash(const void * iaddr)
+DLLEXPORT_COMMON unsigned ptrHash(const void * iaddr)
 {
    return Dyninst::addrHashCommon((Address)iaddr);
 }
 
-DLLEXPORT unsigned addrHash4(const Address &iaddr)
+DLLEXPORT_COMMON unsigned addrHash4(const Address &iaddr)
 {
    // call when you know that the low 2 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)
    return Dyninst::addrHashCommon(iaddr >> 2);
 }
 
-DLLEXPORT unsigned addrHash16(const Address &iaddr)
+DLLEXPORT_COMMON unsigned addrHash16(const Address &iaddr)
 {
    // call when you know that the low 4 bits are 0 (meaning they contribute
    // nothing to an even hash distribution)

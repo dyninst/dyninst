@@ -43,10 +43,10 @@ MappedFile::MappedFile(std::string fullpath_, bool &ok) :
   //  but is this really somehow better?
 }
 
-MappedFile *MappedFile::createMappedFile(void *loc)
+MappedFile *MappedFile::createMappedFile(void *loc, unsigned long size_)
 {
    bool ok = false;
-   MappedFile *mf = new MappedFile(loc, ok);
+   MappedFile *mf = new MappedFile(loc, size_, ok);
    if (!mf || !ok) {
       if (mf)
          delete mf;
@@ -56,15 +56,17 @@ MappedFile *MappedFile::createMappedFile(void *loc)
   return mf;
 }
 
-MappedFile::MappedFile(void *loc, bool &ok) :
+MappedFile::MappedFile(void *loc, unsigned long size_, bool &ok) :
    fullpath("in_memory_file"),
    did_mmap(false),
    did_open(false),
    refCount(1)
 {
-  ok = open_file(loc);
+  ok = open_file(loc, size_);
+#if defined(os_windows)  
   if (!ok) return;
   ok = map_file();
+#endif
 }
 
 void MappedFile::closeMappedFile(MappedFile *mf)
@@ -138,16 +140,16 @@ err:
    return false;
 }
 
-#if defined(os_windows)
-bool MappedFile::open_file(void *loc)
+bool MappedFile::open_file(void *loc, unsigned long size_)
 {
+#if defined(os_windows)
    hFile = LocalHandle( loc );  //For a mem image
    if (!hFile) {
       LPVOID lpMsgBuf;
-      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
-            |     FORMAT_MESSAGE_IGNORE_INSERTS,    NULL,
-            GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)
-            &lpMsgBuf,    0,    NULL );
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                    FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+                    GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), 
+                    (LPTSTR) &lpMsgBuf, 0, NULL);
 
       char ebuf[1024];
       sprintf(ebuf, "CreateFileMapping failed: %s", (char *) lpMsgBuf);
@@ -160,15 +162,14 @@ bool MappedFile::open_file(void *loc)
 err:
    fprintf(stderr, "%s[%d]: failed to open file\n", FILE__, __LINE__);
    return false;
-}
 #else
-bool MappedFile::open_file(void * /*loc*/)
-{
+   map_addr = loc;
+   file_size = size_;
    did_open = false;
    fd = -1;
    return true;
-}
 #endif
+}
 
 bool MappedFile::open_file()
 {
@@ -304,7 +305,7 @@ bool MappedFile::close_file()
    return true;
 }
 
-std::string &MappedFile::pathname() {
+std::string MappedFile::pathname() {
 	return fullpath;
 }
 

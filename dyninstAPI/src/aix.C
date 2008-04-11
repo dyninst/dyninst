@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.243 2008/03/12 20:08:59 legendre Exp $
+// $Id: aix.C,v 1.244 2008/04/11 23:30:06 legendre Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -453,7 +453,7 @@ void process::inferiorMallocConstraints(Address near, Address &lo,
 					Address &hi, inferiorHeapType type)
 {
    int addrWidth = getAddressWidth();
-   int lowest_addr, highest_addr, data_hi_addr;
+   Address lowest_addr = 0, highest_addr = 0, data_hi_addr = 0;
 
    switch (addrWidth) {
       case 4:	lowest_addr = lowest_addr32;
@@ -2121,10 +2121,41 @@ static bool initWrapperFunction(process *p, std::string symbol_name, std::string
    return true;
 }
 
+static bool instrumentThrdFunc(int_function *dummy_create, std::string func_name, 
+                               process *proc) 
+{
+   //Find create_thread
+   pdvector<int_function *> thread_init_funcs;
+   findThreadFuncs(proc, func_name.c_str(), thread_init_funcs);
+   //findThreadFuncs(this, "init_func", &thread_init_funcs);
+   if (!thread_init_funcs.size()) {
+      return false;
+   }
+   //Instrument
+   for (unsigned i=0; i<thread_init_funcs.size(); i++)
+   {
+      pdvector<AstNodePtr> args;
+      AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
+      const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
+      for (unsigned j=0; j<ips.size(); j++)
+      {
+         miniTramp *mt;
+         mt = ips[j]->instrument(call_dummy_create, callPreInsn, orderFirstAtPoint, false, 
+               false);
+         if (!mt)
+         {
+            fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
+                  __FILE__, __LINE__);
+         }
+      }
+   }   
+   return true;
+}
+
 bool process::initMT()
 {
-   unsigned i;
    bool res;
+   bool result = true;
 
    /** Check the magic environment variable.
     *  We want AIXTHREAD_SCOPE to be "S", which means map 1:1 pthread->kernel threads.
@@ -2140,16 +2171,6 @@ bool process::initMT()
    /**
     * Instrument thread_create with calls to DYNINST_dummy_create
     **/
-   //Find create_thread
-   pdvector<int_function *> thread_init_funcs;
-   findThreadFuncs(this, "_pthread_body", thread_init_funcs);
-   //findThreadFuncs(this, "init_func", &thread_init_funcs);
-   if (thread_init_funcs.size() < 1)
-   {
-      fprintf(stderr, "[%s:%d] - Found no copies of pthread_body, expected 1\n",
-              __FILE__, __LINE__);
-      return false;
-   }
    //Find DYNINST_dummy_create
    pdvector<int_function *> dummy_create_funcs;
    int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
@@ -2159,34 +2180,24 @@ bool process::initMT()
               __FILE__, __LINE__);
       return false;
    }
-   //Instrument
-   for (i=0; i<thread_init_funcs.size(); i++)
+
+   bool res1 = instrumentThrdFunc(dummy_create, "_pthread_body", this);
+   bool res2 = instrumentThrdFunc(dummy_create, "_pthread_body_start", this);
+   if (!res1 && !res2)
    {
-      pdvector<AstNodePtr> args;
-      AstNodePtr call_dummy_create = AstNode::funcCallNode(dummy_create, args);
-      const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
-      for (unsigned j=0; j<ips.size(); j++)
-      {
-         miniTramp *mt;
-         mt = ips[j]->instrument(call_dummy_create, callPreInsn, orderFirstAtPoint, false, 
-                                 false);
-         if (!mt)
-         {
-            fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
-                    __FILE__, __LINE__);
-         }
-         //TODO: Save the mt objects for detach
-      }
+      startup_printf("[%s:%u] - Error. Couldn't find any thread init functions " 
+                     "to instrument\n", FILE__, __LINE__);
+      result = false;
    }
    
    res = initWrapperFunction(this, "DYNINST_pthread_getthrds_np_record", 
                              "pthread_getthrds_np");
-   if (!res) return false;
+   if (!res) result = false;
    res = initWrapperFunction(this, "DYNINST_pthread_self_record", 
                              "pthread_self");
-   if (!res) return false;
+   if (!res) result = false;
 
-   return true;
+   return result;
 }
  
 #include <sched.h>

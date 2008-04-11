@@ -239,9 +239,7 @@ class Symtab : public LookupInterface,
 	DLLEXPORT Symtab(const Symtab& obj);
 	
    DLLEXPORT static bool openFile(Symtab *&obj, std::string filename);
-#if 0  
 	DLLEXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
-#endif
 	
 	DLLEXPORT bool exportXML(std::string filename);
 
@@ -353,7 +351,8 @@ class Symtab : public LookupInterface,
     
     DLLEXPORT std::vector<std::string> &getDependencies();
 
-#if defined (os_aix)
+//#if defined (os_aix)
+#if 0
       //  These will go away.... (get_stab_info) and get_line_info, etc
 	void get_stab_info(char *&stabstr, int &nstabs, void *&stabs, 
                       char *&stringpool) const;
@@ -362,13 +361,6 @@ class Symtab : public LookupInterface,
 	void get_stab_info(Object *linkedFile, char *&stabstr, int &nstabs, void *&stabs, 
                       char *&stringpool) const;
 	void get_line_info(Object *linkedFile, int& nlines, char*& lines,unsigned long& fdptr) const;
-   int nlines_;
-   unsigned long fdptr_;
-   char *lines_;
-   char *stabstr_;
-   int nstabs_;
-   void *stabs_;
-   char *stringpool_;
 #endif
    
 	/***** Error Handling *****/
@@ -377,22 +369,13 @@ class Symtab : public LookupInterface,
 
 	DLLEXPORT ~Symtab();
 	
-	void addFunctionName(Symbol *func,
-                        const std::string newName,
-                        bool isMangled /*=false*/);
-	void addVariableName(Symbol *var,
-                        const std::string newName,
-                        bool isMangled /*=false*/);
-	void addModuleName(Symbol *mod,
-                        const std::string newName);
-
 	bool delSymbol(Symbol *sym); 
 	
 	static builtInTypeCollection *builtInTypes;
 	static typeCollection *stdTypes;
 	
  protected:
-   Symtab(std::string filename, std::string &member_name, Offset offset, bool &err);
+   Symtab(std::string filename, std::string member_name, Offset offset, bool &err);
 #if 0 
 	Symtab(char *mem_image, size_t size, std::string &member_name, 
               Offset offset, bool &err);
@@ -401,9 +384,8 @@ class Symtab : public LookupInterface,
    /***** Private Member Functions *****/
  private:
 	DLLEXPORT Symtab(std::string filename, bool &err); 
-#if 0 
 	DLLEXPORT Symtab(char *mem_image, size_t image_size, bool &err);
-#endif
+
 	DLLEXPORT bool extractInfo(Object *linkedFile);
 
 	void setupTypes();
@@ -460,6 +442,15 @@ class Symtab : public LookupInterface,
 	void parseLineInformation();
 	void parseTypes();
    bool setDefaultNamespacePrefix(std::string &str);
+
+	void addFunctionName(Symbol *func,
+                        const std::string newName,
+                        bool isMangled /*=false*/);
+	void addVariableName(Symbol *var,
+                        const std::string newName,
+                        bool isMangled /*=false*/);
+	void addModuleName(Symbol *mod,
+                        const std::string newName);
 
    /***** Private Data Members *****/
  private:
@@ -550,6 +541,14 @@ class Symtab : public LookupInterface,
     bool isLineInfoValid_;
     //type info valid flag
     bool isTypeInfoValid_;
+
+    int nlines_;
+   unsigned long fdptr_;
+   char *lines_;
+   char *stabstr_;
+   int nstabs_;
+   void *stabs_;
+   char *stringpool_;
 
 public:
     Type *type_Error;

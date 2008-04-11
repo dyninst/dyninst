@@ -115,8 +115,8 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    : llproc(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), unreportedStop(false), 
-     unreportedTermination(false), terminated(false), unstartedRPC(false),
-     activeOneTimeCodes_(0),
+     unreportedTermination(false), terminated(false), reportedExit(false),
+     unstartedRPC(false), activeOneTimeCodes_(0),
      resumeAfterCompleted_(false)    
 {
   image = NULL;
@@ -296,9 +296,8 @@ BPatch_process::BPatch_process(const char *path, int pid)
    : llproc(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), unreportedStop(false), 
-     unreportedTermination(false), terminated(false), unstartedRPC(false),
-     activeOneTimeCodes_(0),
-     resumeAfterCompleted_(false)
+     unreportedTermination(false), terminated(false), reportedExit(false),
+     unstartedRPC(false), activeOneTimeCodes_(0), resumeAfterCompleted_(false)
 {
   image = NULL;
    func_map = new BPatch_funcMap();
@@ -371,7 +370,7 @@ BPatch_process::BPatch_process(process *nProc)
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false),
      unreportedStop(false), unreportedTermination(false), terminated(false),
-     unstartedRPC(false), activeOneTimeCodes_(0),
+     reportedExit(false), unstartedRPC(false), activeOneTimeCodes_(0),
      resumeAfterCompleted_(false)
 {
    // Add this object to the list of threads
@@ -588,26 +587,6 @@ bool BPatch_process::statusIsStopped()
 bool BPatch_process::isStoppedInt()
 {
     return isVisiblyStopped;
-
-#if 0
-
-   assert(BPatch::bpatch);
-   if (statusIsStopped()) {
-      //  if there are signal handler threads that are acting on this process
-      //  that are not idle, we may not really be stopped from the end-user
-      //  perspective (ie a continue might be imminent).
-      if (llproc->sh->activeHandlerForProcess(llproc)) {
-        signal_printf("%s[%d]:  pending events for proc %d, assuming still running\n",
-                      FILE__, __LINE__, llproc->getPid());
-        return false;
-      }
-      setUnreportedStop(false);
-      return true;
-   }
-   
-
-   return false;
-#endif
 }
 
 /*
@@ -633,8 +612,6 @@ int BPatch_process::stopSignalInt()
 bool BPatch_process::statusIsTerminated()
 {
    if (llproc == NULL) {
-     fprintf(stderr, "%s[%d]:  status is terminated becuase llproc is NULL\n", 
-             FILE__, __LINE__);
      return true;
    }
    return llproc->hasExited();
@@ -654,6 +631,8 @@ bool BPatch_process::isTerminatedInt()
     getMailbox()->executeCallbacks(FILE__, __LINE__);
     // First see if we've already terminated to avoid 
     // checking process status too often.
+    if (reportedExit)
+       return true;
     if (statusIsTerminated()) {
         proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__); 
         llproc->terminateProc();

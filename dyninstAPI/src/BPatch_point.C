@@ -202,7 +202,7 @@ void BPatch_point::setLoop(BPatch_basicBlockLoop *l) {
  * Returns type of BPatch_point
  */
 
-const BPatch_procedureLocation BPatch_point::getPointTypeInt() 
+BPatch_procedureLocation BPatch_point::getPointTypeInt() 
 { 
    return pointType; 
 }
@@ -244,12 +244,16 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    if (addSpace->getType() == TRADITIONAL_PROCESS) {
        BPatch_process *proc = dynamic_cast<BPatch_process *>(addSpace);
        mapped_object *obj = func->getModule()->lowlevel_mod()->obj();
-       if (proc->lowlevel_process()->mappedObjIsDeleted(obj))
+       if (proc->lowlevel_process()->mappedObjIsDeleted(obj)) {
+       fprintf(stderr, "%s[%d]:  WARN, object is deleted\n", FILE__, __LINE__);
            return NULL;
    }
+   }
 
-   if (point->getPointType() != callSite)
+   if (point->getPointType() != callSite) {
+       fprintf(stderr, "%s[%d]:  WARN, asked for called function at non-call-site\n", FILE__, __LINE__);
       return NULL;
+      }
    
    int_function *_func;
    

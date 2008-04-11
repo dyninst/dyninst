@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.76 2008/01/31 18:01:52 legendre Exp $ */
+/* $Id: RTcommon.c,v 1.77 2008/04/11 23:30:43 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -226,6 +226,8 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    DYNINST_max_num_threads = maxthreads;
    DYNINSTdebugRTlib = debug_flag; /* set by mutator on request */
 
+   rtdebug_printf("%s[%d]:  welcome to DYNINSTinit\n", __FILE__, __LINE__);
+
    /* sanity check */
    assert(sizeof(int64_t) == 8);
    assert(sizeof(int32_t) == 4);
@@ -245,6 +247,7 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    DYNINST_bootstrap_info.pid = dyn_pid_self();
    DYNINST_bootstrap_info.ppid = pid;    
    DYNINST_bootstrap_info.event = cause;
+   rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
 }
 
  

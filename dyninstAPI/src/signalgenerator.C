@@ -187,7 +187,8 @@ void SignalGeneratorCommon::main() {
 
             // Check for process detach/exit...
             signal_printf("%s[%d]: post-activation, process status %s\n",
-                          FILE__, __LINE__, proc->getStatusAsString().c_str());
+                          FILE__, __LINE__, 
+                          proc ? proc->getStatusAsString().c_str() : "NULL");
 
             // We blocked; therefore, check to see if the process is gone
             if( exitRequested() ) {

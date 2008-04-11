@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.54 2008/02/20 22:34:09 legendre Exp $
+// $Id: arch-ia64.h,v 1.55 2008/04/11 23:30:08 legendre Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -168,7 +168,7 @@ class instruction {
 					INVALID, ALLOC, INTEGER_STORE, INTEGER_16_STORE,
 					INTEGER_LOAD, INTEGER_16_LOAD, FP_STORE, FP_LOAD,
 					INTEGER_PAIR_LOAD, FP_PAIR_LOAD, PREFETCH, BREAK,
-					SYSCALL };
+					SYSCALL, COND_BRANCH };
 
 		enum unitType { M, I, F, B, L, X, RESERVED };
 		virtual insnType getType() const;

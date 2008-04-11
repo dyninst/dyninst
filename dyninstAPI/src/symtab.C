@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.320 2008/04/07 22:32:45 giri Exp $
+ // $Id: symtab.C,v 1.321 2008/04/11 23:30:27 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -277,6 +277,8 @@ void image::findMain()
 	
     	if( !foundMain )
     	{
+            logLine( "No main symbol found: creating symbol for main\n" );
+
     	    //find and add main to allsymbols
             const unsigned char* p;
 		                   
@@ -286,9 +288,13 @@ void image::findMain()
             switch(linkedFile->getAddressWidth()) {
        	    	case 4:
             	    // 32-bit...
+                    startup_printf("%s[%u]:  setting 32-bit mode\n",
+                        FILE__,__LINE__);
             	    ia32_set_mode_64(false);
                     break;
          	case 8:
+                    startup_printf("%s[%u]:  setting 64-bit mode\n",
+                        FILE__,__LINE__);
             	    ia32_set_mode_64(true);
             	    break;
         	default:
@@ -315,14 +321,25 @@ void image::findMain()
             preCall.setInstruction(lastP);
 
             Address mainAddress;
-            if (linkedFile->getAddressWidth() == 8)
-                mainAddress = get_disp(&preCall);
-            else
-                // get_disp doesn't work here... skip the "push" opcode and grab the immediate
-            	mainAddress = *(unsigned *)(lastP+1);
+            mainAddress = get_immediate_operand(&preCall);
 
+            if(!mainAddress || !isValidAddress(mainAddress)) {
+                startup_printf("%s[%u]:  invalid main address 0x%lx\n",
+                    mainAddress);   
+            } else {
+                startup_printf("%s[%u]:  set main address to 0x%lx\n",
+                    FILE__,__LINE__,mainAddress);
+            }
 
-            logLine( "No main symbol found: creating symbol for main\n" );
+            /* Note: creating a symbol for main at the invalid address 
+               anyway, because there is guard code for this later in the
+               process and otherwise we end up in a weird "this is not an
+               a.out" path.
+
+               findMain, like all important utility functions, should have
+               a way of gracefully indicating that it has failed. It should
+               not return void. NR
+            */
 
     	    Region *pltsec;
             if((linkedFile->findRegion(pltsec, ".plt")) && pltsec->isOffsetInRegion(mainAddress))

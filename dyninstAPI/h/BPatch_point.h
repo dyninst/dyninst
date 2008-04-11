@@ -221,8 +221,7 @@ public:
     //  BPatch_point::getPointType
     //  
     API_EXPORT(Int, (),
-
-    const BPatch_procedureLocation,getPointType,());
+    BPatch_procedureLocation,getPointType,());
 
     //  BPatch_point::getFunction
     //  Returns function to which this point belongs

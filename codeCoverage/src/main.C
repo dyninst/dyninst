@@ -40,7 +40,7 @@
  */
 
 #include <stdio.h>
-#include <iostream.h>
+#include <iostream>
 #include <stdlib.h>
 
 #ifdef sparc_sun_solaris2_4
@@ -56,6 +56,8 @@
 #include <pthread.h>
 
 #endif
+
+using namespace std;
 
 #ifdef sparc_sun_solaris2_4
 

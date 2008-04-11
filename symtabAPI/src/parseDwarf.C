@@ -41,20 +41,8 @@
 #include "symtabAPI/src/Collections.h"
 #include "common/h/pathName.h"
 
-/*
-#include "mapped_module.h"
-#include "mapped_object.h"
-
-#include "Module.h"
-#include "TypePrivate.h"
-#include "BPatch_collections.h"
-#include "Symbol.h"
-#include "BPatch_image.h"
-#include "symtab.h"
-#include "process.h"
-
-#include "ast.h"
-*/
+#include <stdarg.h>
+int dwarf_printf(const char *format, ...);
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -91,8 +79,8 @@ static int const amd64_register_map[] =
 int Register_DWARFtoMachineEnc32(int n)
 {
     if(n > IA32_MAX_MAP) {
-       // dwarf_printf("%s[%d]: unexpected map lookup for DWARF register %d\n",
-       //						             __FILE__,__LINE__,n);
+       dwarf_printf("%s[%d]: unexpected map lookup for DWARF register %d\n",
+                    __FILE__,__LINE__,n);
     }
     return n;
 }
@@ -103,8 +91,8 @@ int Register_DWARFtoMachineEnc64(int n)
     if(n <= AMD64_MAX_MAP)
         return amd64_register_map[n];
     else {
-        //dwarf_printf("%s[%d]: unexpected map lookup for DWARF register %d\n",
-	//						             __FILE__,__LINE__,n);
+        dwarf_printf("%s[%d]: unexpected map lookup for DWARF register %d\n",
+                     __FILE__,__LINE__,n);
         return n;
     }
 }
@@ -517,15 +505,15 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
         for( unsigned int i = 0; i < location->ld_cents; i++ ) {
             /* Handle the literals w/o 32 case statements. */
             if( DW_OP_lit0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_lit31 ) {
-                //dwarf_printf( "pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
-                opStack.push( locations[i].lr_atom - DW_OP_lit0 );
-                continue;
+               dwarf_printf( "pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
+               opStack.push( locations[i].lr_atom - DW_OP_lit0 );
+               continue;
             }
 
             /* Haandle registers w/o 32 case statements. */
             if( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) {
                 /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
-                //dwarf_printf( "location is named register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile) );
+                dwarf_printf( "location is named register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile) );
                 loc->stClass = storageRegOffset;
                 loc->refClass = storageNoRef;
                 loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_reg0, objFile);
@@ -536,7 +524,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
 
             /* Haandle registers w/o 32 case statements. */
             if( DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31 ) {
-                //dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile), locations[i].lr_number );
+                dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile), locations[i].lr_number );
                 loc->stClass = storageRegOffset;
                 loc->refClass = storageNoRef;
                 loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_atom - DW_OP_breg0, objFile);
@@ -552,7 +540,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
                 case DW_OP_const4u:
                 case DW_OP_const8u:
                 case DW_OP_constu:
-                    //dwarf_printf( "pushing unsigned constant %lu\n", (unsigned long)locations[i].lr_number );
+                    dwarf_printf( "pushing unsigned constant %lu\n", (unsigned long)locations[i].lr_number );
                     opStack.push( (Dwarf_Unsigned)locations[i].lr_number );
                     break;
 
@@ -561,13 +549,13 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
                 case DW_OP_const4s:
                 case DW_OP_const8s:
                 case DW_OP_consts:
-                    //dwarf_printf( "pushing signed constant %ld\n", (signed long)(locations[i].lr_number) );
+                    dwarf_printf( "pushing signed constant %ld\n", (signed long)(locations[i].lr_number) );
                     opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
                     break;
 
                 case DW_OP_regx:
                     /* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
-                    //dwarf_printf( "location is register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile) );
+                    dwarf_printf( "location is register %d\n", DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile) );
                     loc->stClass = storageRegOffset;
                     loc->refClass = storageNoRef;
                     loc->reg = DWARF_TO_MACHINE_ENC(locations[i].lr_number, objFile); 
@@ -576,7 +564,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
                     break;
 
                 case DW_OP_fbreg:
-                    //dwarf_printf( "setting storage class to frame base\n" );
+                    dwarf_printf( "setting storage class to frame base\n" );
                     //if( storageClass != NULL ) { * storageClass = storageFrameOffset; }
                     loc->stClass = storageRegOffset;
                     loc->refClass = storageNoRef;
@@ -584,7 +572,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
                     break;
 
                 case DW_OP_bregx:
-                    //dwarf_printf( "setting storage class to register, regNum to %d\n", locations[i].lr_number );
+                    dwarf_printf( "setting storage class to register, regNum to %d\n", locations[i].lr_number );
                     loc->stClass = storageRegOffset;
                     loc->refClass = storageNoRef;
                     loc->reg = DWARF_TO_MACHINE_ENC( locations[i].lr_number, objFile );
@@ -812,7 +800,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
                                  break;
 
                 default:
-                                 //dwarf_printf( "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
+                                 dwarf_printf( "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
                                  //return false;
                                  break;
             } /* end operand switch */
@@ -821,11 +809,11 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
         if(!isLocSet){
             /* The top of the stack is the computed location. */
             if( opStack.empty() ) {
-                //dwarf_printf( "ignoring malformed location list (stack empty at end of list).\n" );
+                dwarf_printf( "ignoring malformed location list (stack empty at end of list).\n" );
                 //return false;
             }
             else {
-                //dwarf_printf( "setting offset to %d\n", opStack.top() );
+                dwarf_printf( "setting offset to %d\n", opStack.top() );
                 loc->frameOffset = opStack.top();
                 locs->push_back(loc);
             }
@@ -927,7 +915,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	status = dwarf_die_CU_offset( dieEntry, & dieCUOffset, NULL );
 	DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
-	//dwarf_printf( "Considering DIE at %lu (%lu CU-relative) with tag 0x%x\n", (unsigned long)dieOffset, (unsigned long)dieCUOffset, dieTag );
+	dwarf_printf( "Considering DIE at %lu (%lu CU-relative) with tag 0x%x\n", (unsigned long)dieOffset, (unsigned long)dieCUOffset, dieTag );
 	
 	/* If this entry is a function, common block, or structure (class),
 	   its children will be in its scope, rather than its
@@ -999,7 +987,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			if( functionName == NULL ) {
 				/* I'm not even sure what an anonymous function _means_,
 				   but we sure can't do anything with it. */
-				//dwarf_printf( "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
+				dwarf_printf( "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
 
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
@@ -1008,6 +996,12 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
 				break;
 			} /* end if there's no name at all. */
+
+         if (strcmp(functionName, "ggPoint2") == 0) {
+            static volatile int foundit = 0;
+            fprintf(stderr, "Found it\n");
+            while (!foundit);
+         }
 
 			/* Try to find the function by its mangled name. */
 			Dwarf_Addr baseAddr = 0;
@@ -1033,7 +1027,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			}
 			if( functions.size() == 0 ) { // Still....
 				/* If we can't find it by address, try searching by pretty name. */
-				if( baseAddr != 0 ) { //dwarf_printf( "%s[%d]: unable to locate function %s by address 0x%llx\n", __FILE__, __LINE__, functionName, baseAddr ); 
+				if( baseAddr != 0 ) { dwarf_printf( "%s[%d]: unable to locate function %s by address 0x%llx\n", __FILE__, __LINE__, functionName, baseAddr ); 
 				}
 				std::vector<Symbol *> prettyFuncs;
 				if (objFile->findSymbolByType(prettyFuncs, functionName, Symbol::ST_FUNCTION)) {
@@ -1045,7 +1039,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			
 			if( functions.size() == 0 ) {
 				/* Don't parse the children, since we can't add them. */
-				//dwarf_printf( "Failed to find function '%s'\n", functionName );
+				dwarf_printf( "Failed to find function '%s'\n", functionName );
 				parsedChild = true;
 
                 //Add the function to the list of functions and continue parsing the FDE ??
@@ -1055,7 +1049,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				break;
 			}
 			else if( functions.size() > 1 ) {
-				//dwarf_printf( "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
+				dwarf_printf( "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
 
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
@@ -1133,7 +1127,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
 				char * leftMost = NULL;
 				if( demangledName == NULL ) {
-					//dwarf_printf( "%s[%d]: unable to demangle '%s', using mangled name.\n", __FILE__, __LINE__, functionName );
+					dwarf_printf( "%s[%d]: unable to demangle '%s', using mangled name.\n", __FILE__, __LINE__, functionName );
 					demangledName = strdup( functionName );
 					assert( demangledName != NULL );
 					leftMost = demangledName;
@@ -1248,7 +1242,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				
 				/* The typeOffset forms a module-unique type identifier,
 				   so the Type look-ups by it rather than name. */
-				//dwarf_printf( "%s/%d: %s/%d\n", __FILE__, __LINE__, variableName, typeOffset );
+				dwarf_printf( "%s/%d: %s/%d\n", __FILE__, __LINE__, variableName, typeOffset );
 				Type * variableType = module->getModuleTypes()->findOrCreateType( typeOffset );
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				
@@ -1372,7 +1366,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 							
 				/* We now have the variable name, type, offset, and line number.
 				   Tell Dyninst about it. */
-				//dwarf_printf( "localVariable '%s', currentFunction %p\n", variableName, currentFunction );
+				dwarf_printf( "localVariable '%s', currentFunction %p\n", variableName, currentFunction );
                 if( currentFunction != NULL ) {
                     if(!hasLineNumber){
                         variableLineNo = 0;
@@ -1404,7 +1398,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			   (That is, we can't do anything with a formal parameter to a
 			   function we don't know about.) */
 			if( currentFunction == NULL ) {
-				//dwarf_printf( "%s[%d]: ignoring formal parameter without corresponding function.\n", __FILE__, __LINE__ );
+				dwarf_printf( "%s[%d]: ignoring formal parameter without corresponding function.\n", __FILE__, __LINE__ );
 				break;
 				}
 			
@@ -1424,7 +1418,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			if( !hasLocation ) {
-				//dwarf_printf( "%s[%d]: ignoring formal parameter without location.\n", __FILE__, __LINE__ );
+				dwarf_printf( "%s[%d]: ignoring formal parameter without location.\n", __FILE__, __LINE__ );
 				break;
 				}
 		
@@ -1439,7 +1433,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
 			if( status != DW_DLV_OK ) {
 				/* I think this is legal if the parameter was optimized away. */
-				//dwarf_printf( "%s[%d]: ignoring formal parameter with bogus location.\n", __FILE__, __LINE__ );
+				dwarf_printf( "%s[%d]: ignoring formal parameter with bogus location.\n", __FILE__, __LINE__ );
 				break;
 				}
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -1450,7 +1444,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			deallocateLocationList( dbg, locationList, listLength );
 			
 			if( ! decodedOffset ) {
-				//dwarf_printf( "%s[%d]: ignoring formal parameter with undecodable location.\n", __FILE__, __LINE__ );
+				dwarf_printf( "%s[%d]: ignoring formal parameter with undecodable location.\n", __FILE__, __LINE__ );
 				break;
 				}
 			
@@ -1498,7 +1492,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			
 			/* The typeOffset forms a module-unique type identifier,
 			   so the Type look-ups by it rather than name. */
-			//dwarf_printf( "%s[%d]: found formal parameter %s with type %ld\n", __FILE__, __LINE__, parameterName, typeOffset );
+			dwarf_printf( "%s[%d]: found formal parameter %s with type %ld\n", __FILE__, __LINE__, parameterName, typeOffset );
 			Type * parameterType = module->getModuleTypes()->findOrCreateType( typeOffset );
 
 			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -1526,7 +1520,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			if( status == DW_DLV_NO_ENTRY ) {
-				//dwarf_printf( "%s[%d]: ignoring formal parameter without line number.\n", __FILE__, __LINE__ );
+				dwarf_printf( "%s[%d]: ignoring formal parameter without line number.\n", __FILE__, __LINE__ );
 				parameterLineNo = 0;
 			}
 			else{
@@ -1551,7 +1545,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			//TODO ??NOT REQUIRED??
 			//currentFunction->addParam( parameterName, parameterType, parameterLineNo, parameterOffset );
 
-			//dwarf_printf( "%s[%d]: added formal parameter '%s' (at FP + %ld) of type %p from line %lu.\n", __FILE__, __LINE__, parameterName, parameterOffset, parameterType, (unsigned long)parameterLineNo );
+			dwarf_printf( "%s[%d]: added formal parameter '%s' of type %p from line %lu.\n", __FILE__, __LINE__, parameterName, parameterType, (unsigned long)parameterLineNo );
 			} break;
 
 		case DW_TAG_base_type: {
@@ -1578,7 +1572,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			assert( baseType != NULL );
 
 			/* Add the basic type to our collection. */
-			//dwarf_printf( "Adding base type '%s' (%lu) of size %lu to type collection %p\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize, module->getModuleTypes() );
+			dwarf_printf( "Adding base type '%s' (%lu) of size %lu to type collection %p\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize, module->getModuleTypes() );
 			baseType = module->getModuleTypes()->addOrUpdateType( baseType );
 			
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -1992,7 +1986,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			}
 
 			assert( indirectType != NULL );
-			//dwarf_printf( "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
+			dwarf_printf( "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			indirectType = module->getModuleTypes()->addOrUpdateType( indirectType );
 
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -2043,7 +2037,7 @@ void Object::parseDwarfTypes( Symtab *objFile) {
 	assert( moduleTypes );
 
 	if( moduleTypes->dwarfParsed() ) {
-		//dwarf_printf( "%s[%d]: already parsed %s, moduleTypes = %p\n", __FILE__, __LINE__, fileName, moduleTypes );
+		dwarf_printf( "%s[%d]: already parsed %s, moduleTypes = %p\n", __FILE__, __LINE__, fileName, moduleTypes );
 		std::vector<Symbol *> * bpfuncs = getProcedures( true );
 		assert( bpfuncs );
 		for( unsigned int i = 0; i < bpfuncs->size(); i++ ) {
@@ -2052,7 +2046,7 @@ void Object::parseDwarfTypes( Symtab *objFile) {
 		return;
 		}
 */		
-	//dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, fileName );
+	dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, objFile );
 
 	/* Start the dwarven debugging. */
 	Dwarf_Debug dbg;
@@ -2089,7 +2083,7 @@ void Object::parseDwarfTypes( Symtab *objFile) {
 			assert( moduleName != NULL );
 			}
 		DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring module name.\n", __FILE__, __LINE__ );
-		//dwarf_printf( "%s[%d]: considering compilation unit '%s'\n", __FILE__, __LINE__, moduleName );
+		dwarf_printf( "%s[%d]: considering compilation unit '%s'\n", __FILE__, __LINE__, moduleName );
 
 		/* Set the language, if any. */
 		Dwarf_Attribute languageAttribute;
@@ -2178,3 +2172,35 @@ void Object::parseDwarfTypes( Symtab *objFile) {
 	moduleTypes->setDwarfParsed();
 
 } /* end parseDwarfTypes() */
+
+int dwarf_printf(const char *format, ...)
+{
+   static int dyn_debug_dwarf = 0;
+
+   if (dyn_debug_dwarf == -1) {
+      return 0;
+   }
+   if (!dyn_debug_dwarf) {
+      char *p = getenv("DYNINST_DEBUG_DWARF");
+      if (!p)
+         p = getenv("SYMTAB_DEBUG_DWARF");
+      if (p) {
+         fprintf(stderr, "Enabling SymtabAPI dwarf parsing\n");
+         dyn_debug_dwarf = 1;
+      }
+      else {
+         dyn_debug_dwarf = -1;
+         return 0;
+      }
+   }
+
+   if (!format)
+      return -1;
+   
+   va_list va;
+   va_start(va, format);
+   int ret = vfprintf(stderr, format, va);
+   va_end(va);
+   
+   return ret;
+}

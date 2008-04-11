@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: liveness.C,v 1.8 2008/03/25 19:24:38 bernat Exp $
+// $Id: liveness.C,v 1.9 2008/04/11 23:30:21 legendre Exp $
 
 #if defined(cap_liveness)
 
@@ -73,6 +73,9 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
     // the IA32_FLAG_VIRTUAL_REGISTER "register"
     assert(liveRegs.size() == getBitArray().size());
     if (addr_width == 4) {
+        for (unsigned i = 1; i <= NUM_VIRTUAL_REGISTERS; i++) {
+            registers_[i]->liveState = registerSlot::dead;
+        }
         registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::dead;
         for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) {
             if (liveRegs[i]) {
