@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7_6.C,v 1.5 2006/10/11 21:54:11 cooksey Exp $
+// $Id: test7_6.C,v 1.6 2008/04/11 23:31:22 legendre Exp $
 /*
  * #Name: test7_6
  * #Desc: OneTimeCode in parent & child
@@ -165,7 +165,6 @@ static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     if ( !setupMessaging(&msgid) )
     {
        passedTest = false;
-       delete parentThread;
        return passedTest;
     }
 
@@ -190,7 +189,6 @@ static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     if (doError(&passedTest, childThread == NULL,
              "childThread == NULL: postForkFunc must not have run\n") )
     {
-       delete parentThread;
        return passedTest;
     }
     
@@ -198,10 +196,6 @@ static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     {
        bpatch->waitForStatusChange();
     }
-
-    // Cleanup child, parent
-    delete childThread;
-    delete parentThread;
 
     return passedTest;
 }

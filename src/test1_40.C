@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_40.C,v 1.8 2008/02/19 13:39:21 rchen Exp $
+// $Id: test1_40.C,v 1.9 2008/04/11 23:31:09 legendre Exp $
 /*
  * #Name: test1_40
  * #Desc: Verify that we can monitor call sites
@@ -92,7 +92,7 @@ static int setVar40(const char *vname, void *value, BPatch_image *appImage)
    // Note: Can't use reinterpret_cast here.  G++ produces an error:
    //   reinterpret_cast from `void*' to `unsigned int' loses precision
    unsigned long longAddr = (unsigned long)(value);
-   unsigned int shortAddr = (unsigned  int)(value);
+   unsigned int shortAddr = (unsigned  int)(unsigned int)(value);
 
    switch (v->getSize()) {
 	case 4: buf = reinterpret_cast<void *>(&shortAddr); break;

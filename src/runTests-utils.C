@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <sstream>
 #include <string>
+#include <cstring>
 
 #include "runTests-utils.h"
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_2.C,v 1.6 2006/10/11 21:53:34 cooksey Exp $
+// $Id: test3_2.C,v 1.7 2008/04/11 23:31:11 legendre Exp $
 /*
  * #Name: test3_2
  * #Desc: simultaneous multiple-process management - exit
@@ -116,7 +116,6 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
                                 signalNum);
                 }
                 terminated[n]=true;
-		delete appThread[n];
                 numTerminated++;
             }
             else if (!terminated[n] && (appThread[n]->isStopped())) {

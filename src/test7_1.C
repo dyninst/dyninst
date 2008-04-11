@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7_1.C,v 1.5 2006/10/11 21:54:06 cooksey Exp $
+// $Id: test7_1.C,v 1.6 2008/04/11 23:31:17 legendre Exp $
 /*
  * #Name: test7_1
  * #Desc: Delete snippet in parent
@@ -177,7 +177,6 @@ static bool mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     if ( !setupMessaging(&msgid) )
     {
        passedTest = false;
-       delete parentThread;
        return passedTest;
     }
 
@@ -202,7 +201,6 @@ static bool mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     if (doError(&passedTest, childThread == NULL,
              "childThread == NULL: postForkFunc must not have run\n") )
     {
-       delete parentThread;
        return passedTest;
     }
     
@@ -210,8 +208,6 @@ static bool mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     {
        bpatch->waitForStatusChange();
     }
-    delete childThread;
-    delete parentThread;
 
     return passedTest;
 }

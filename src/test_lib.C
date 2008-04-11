@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.26 2008/02/20 08:31:08 jaw Exp $
+// $Id: test_lib.C,v 1.27 2008/04/11 23:31:27 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -1061,10 +1061,6 @@ TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *app
       }
    }
    
-   dprintf("All threads terminated, deleting\n");
-   for (int i=0; i < *threadCount; i++) {
-     delete mythreads[i];
-   }
    *threadCount = 0;
 }
 

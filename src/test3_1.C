@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_1.C,v 1.6 2006/10/11 21:53:33 cooksey Exp $
+// $Id: test3_1.C,v 1.7 2008/04/11 23:31:10 legendre Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -120,7 +120,6 @@ static int mutatorTest(char *pathname, BPatch *bpatch)
         int signalNum = appThread[n]->getExitSignal();
         dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
         numTerminated++;
-	delete appThread[n];
     }
 
     if (numTerminated == Mutatees) {

@@ -9,6 +9,7 @@
 #include "error.h"
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <cstring>
 
 // To prevent run away never run test_driver more the MAX_ITER times
 #define MAX_ITER 1000

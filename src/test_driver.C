@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.43 2008/02/19 23:50:16 legendre Exp $
+// $Id: test_driver.C,v 1.44 2008/04/11 23:31:26 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -552,11 +552,6 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
   // Cleanup
   // result will hold the value of the complete test's success
   result = cleanup(bpatch, appThread, test, proc_list, result);
-
-  if ( appThread != NULL && !(test.state == SELFSTART || test.cleanup == NONE ) )
-  {
-    delete appThread;
-  }
 
   // Test Exit Status Log
   if ( enableLogging && result != 0 )
@@ -1327,13 +1322,6 @@ int startTestFastAndLoose(test_data_t tests[], unsigned int n_tests,
 	result = cleanup(bpatch, appThread, tests[first_test],
 			 proc_list, result);
 
-	// FIXME Not sure if this block below is correct
-	if (appThread != NULL
-	    && !(tests[first_test].state == SELFSTART
-		 || tests[first_test].cleanup == NONE ) ) {
-	  delete appThread;
-	}
-
 	// Test Exit Status Log
 	if ( enableLogging && result != 0 )
 	{
@@ -1531,7 +1519,7 @@ void updateSearchPaths(const char *filename) {
 #endif
 }
 
-int main(unsigned int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   unsigned int i;
   bool shouldDebugBreak = false;
   bool called_from_runTests = false;
