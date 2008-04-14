@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.288 2008/04/11 23:30:18 legendre Exp $
+ * $Id: inst-power.C,v 1.289 2008/04/14 20:44:24 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -2666,6 +2666,15 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
         break;
     }
 }
+
+void emitStorePreviousStackFrameRegister(Address,
+                                         Register,
+                                         codeGen &,
+                                         int,
+                                         bool) {
+    assert(0);
+}
+
 
 bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                     pdvector<AstNodePtr> &args)

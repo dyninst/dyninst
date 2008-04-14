@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.202 2008/03/25 19:24:32 bernat Exp $
+// $Id: inst-sparc.C,v 1.203 2008/04/14 20:44:24 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -951,6 +951,14 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
   }
   /* else assert(0); */
   
+}
+
+void emitStorePreviousStackFrameRegister(Address,
+                                         Register,
+                                         codeGen &,
+                                         int,
+                                         bool) {
+    assert(0);
 }
 
 /****************************************************************************/
