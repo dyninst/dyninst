@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.321 2008/04/11 23:30:27 legendre Exp $
+ // $Id: symtab.C,v 1.322 2008/04/15 16:43:39 roundy Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -485,10 +485,8 @@ void image::findMain()
 	if(linkedFile->isExec())
 	//if( !( peHdr->FileHeader.Characteristics & IMAGE_FILE_DLL ) )
     {
-        const unsigned char *t, *p;
 		vector <Symbol *>syms;
 		Address eAddr = linkedFile->getEntryOffset();
-        //Address eAddr = peHdr->OptionalHeader.AddressOfEntryPoint;
 
         bool found_main = false;
         for (unsigned i=0; i<NUMBER_OF_MAIN_POSSIBILITIES; i++) {
@@ -498,96 +496,43 @@ void image::findMain()
                 break;
             }
         }
-	    if (!found_main)
-		{
-			Address eAddr = linkedFile->getEntryOffset();
-            //Address curr = eAddr + (Address) dw64BaseAddr;
-            Address curr = eAddr;
-			PVOID mapAddr = (PVOID)linkedFile->getBaseOffset();
-			PIMAGE_NT_HEADERS peHdr = ImageNtHeader( mapAddr ); //PE File Header
-			//ImageRvaToVa: takes a relative virtual address in the image header 
-			// of a file that is mapped as a file, returning the virtual address 
-			// of the corresponding byte in the file
-			p = (const unsigned char*) ImageRvaToVa(peHdr, mapAddr, eAddr, 0);
-            instruction insn((const void *)p);
-            while( !insn.isReturn() )
-            {
-              if ( insn.isTrueCallInsn() )  {
-                Address callTarget = insn.getTarget(curr);
-                Address endTarget = callTarget;
-
-                // Sometimes the call to main bounces through a direct ILT table jump.
-                //  If so, take the jump target as main's address.
-                t = (const unsigned char *) ImageRvaToVa(peHdr, mapAddr, callTarget, 0);
-                if (t) {
-                    instruction insn(t);
-                    if (insn.isJumpDir())
-                        endTarget = insn.getTarget(callTarget);
-                }
- 
-                bool found = false;
-                for (unsigned i=0; i<possible_mains.size(); i++) {
-                    if (possible_mains[i] == endTarget) {
-                        found = true;
-                        break;
-                    }                
-                }
-                if (!found) {
-                    possible_mains.push_back( endTarget );
-                }
-              }
-              curr += insn.size();
-              p += insn.size();
-              if (!isCode(curr)) {
-                 break;
-              }
-              insn.setInstruction(p);
-            }
-			syms.clear();
-			if(linkedFile->findSymbolByType(syms,"DEFAULT_MODULE",Symbol::ST_UNKNOWN)) {
-        //  if (!symbols_.defines("DEFAULT_MODULE")) {
+        if (!found_main) {
+            syms.clear();
+            if(linkedFile->findSymbolByType(syms,"DEFAULT_MODULE",Symbol::ST_UNKNOWN)) {
                 //make up a symbol for default module too
-				Symbol *modSym = new Symbol("DEFAULT_MODULE", "DEFAULT_MODULE", Symbol::ST_MODULE, 
-					Symbol::SL_GLOBAL, imageOffset_, NULL, 0);
-				linkedFile->addSymbol(modSym);
+                Symbol *modSym = new Symbol("DEFAULT_MODULE", "DEFAULT_MODULE", Symbol::ST_MODULE, 
+                                            Symbol::SL_GLOBAL, imageOffset_, NULL, 0);
+                linkedFile->addSymbol(modSym);
             }
-			syms.clear();
-			if(linkedFile->findSymbolByType(syms,"start",Symbol::ST_UNKNOWN)) {
-        //  if (!symbols_.defines("start")) {
+            syms.clear();
+            if(linkedFile->findSymbolByType(syms,"start",Symbol::ST_UNKNOWN)) {
                 //use 'start' for mainCRTStartup.
                 Symbol *startSym = new Symbol( "start", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                                Symbol::SL_GLOBAL, eAddr , 0, UINT_MAX );
-				linkedFile->addSymbol(startSym);
+                                               Symbol::SL_GLOBAL, eAddr , 0, UINT_MAX );
+                linkedFile->addSymbol(startSym);
             }
-			syms.clear();
-			if(linkedFile->findSymbolByType(syms,"winStart",Symbol::ST_UNKNOWN)) {
-        //  if (!symbols_.defines("winStart")) {
+            syms.clear();
+            if(linkedFile->findSymbolByType(syms,"winStart",Symbol::ST_UNKNOWN)) {
                 //make up a func name for the start of the text section
                 Symbol *sSym = new Symbol( "winStart", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-					Symbol::SL_GLOBAL, imageOffset_, 0, UINT_MAX );
-            	linkedFile->addSymbol(sSym);
+                                           Symbol::SL_GLOBAL, imageOffset_, 0, UINT_MAX );
+                linkedFile->addSymbol(sSym);
             }
-			syms.clear();
-			if(linkedFile->findSymbolByType(syms,"winFini",Symbol::ST_UNKNOWN)) {
-        //  if (!symbols_.defines("winFini")) {
+            syms.clear();
+            if(linkedFile->findSymbolByType(syms,"winFini",Symbol::ST_UNKNOWN)) {
                 //make up one for the end of the text section
                 Symbol *fSym = new Symbol( "winFini", "DEFAULT_MODULE", Symbol::ST_FUNCTION,
-                            Symbol::SL_GLOBAL, imageOffset_ + linkedFile->imageLength() - 1, 
-                            0, UINT_MAX );
-            	linkedFile->addSymbol(fSym);
-			}
-			//KEVIN: add entry point as main possibility if nothing else was found
-			if (possible_mains.size() == 0) {
-				Address entryPoint = linkedFile->getEntryOffset()/* KEVIN: fix this up if it works
-								   + getObject()->getLoadOffset()*/;
-				startup_printf("[%s:%u] - findmain could not find real candidates"
-						" for main, using binary entry point %x\n",
-						__FILE__, __LINE__, entryPoint);
-				possible_mains.push_back( entryPoint);
-				linkedFile->addSymbol(new Symbol("main","DEFAULT_MODULE",
-								Symbol::ST_FUNCTION,Symbol::SL_GLOBAL, entryPoint));
-			}
-		}
+                                           Symbol::SL_GLOBAL, imageOffset_ + linkedFile->imageLength() - 1, 
+                                           0, UINT_MAX );
+                linkedFile->addSymbol(fSym);
+            }
+            // add entry point as main given that nothing else was found
+            startup_printf("[%s:%u] - findmain could not find symbol "
+                           "for main, using binary entry point %x\n",
+                           __FILE__, __LINE__, eAddr);
+            linkedFile->addSymbol(new Symbol("main","DEFAULT_MODULE",
+                                     Symbol::ST_FUNCTION,Symbol::SL_GLOBAL, eAddr));
+        }
     }
 #endif    
 }
@@ -877,9 +822,10 @@ pdmodule *image::findModule(const string &name, bool wildcard)
    return NULL;
 }
 
-const pdvector<image_instPoint*> &image::getBadControlFlow() const 
+const pdvector<image_instPoint*> &image::getBadControlFlow()
 { 
-   return badControlFlow; 
+    analyzeIfNeeded();
+    return badControlFlow; 
 }
 
 const pdvector<image_func*> &image::getAllFunctions() 
@@ -1527,22 +1473,41 @@ void pdmodule::dumpMangled(std::string &prefix) const
 
 /* This function is useful for seeding image parsing with function
  * stubs to start the control-flow-traversal parsing from.  The
- * function creates a module to add the symbol to if none exists.  I
- * could instead have made everyUniqueFunction and getOrCreateModule
- * public. -kevin
+ * function creates a module to add the symbol to if none exists.  
+ * If parseState_ == analyzed, triggers parsing of the function
  */
-void image::addFunctionStub(Address functionEntryAddr)
-{
-    pdmodule *mod;
-    if( everyUniqueFunction.size() <= 0 ) {
-        mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
-    } else {
-        mod = everyUniqueFunction[0]->pdmod();
-    }
-    char fname[32];
-    snprintf( fname, 32, "entry_%lx", functionEntryAddr);	
-    image_func *func = new image_func(fname, functionEntryAddr, UINT_MAX, mod, this);
-    everyUniqueFunction.push_back(func);
+image_func *image::addFunctionStub(Address functionEntryAddr, char *fName)
+ {
+     // get or create module
+     pdmodule *mod;
+     if( everyUniqueFunction.size() <= 0 ) {
+         mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
+     } else {
+         mod = everyUniqueFunction[0]->pdmod();
+     }
+     // copy or create function name
+     char funcName[32];
+     if (fName) {
+         snprintf( funcName, 32, "%s", fName);
+     } else {
+         snprintf( funcName, 32, "entry_%lx", functionEntryAddr);	
+     }
+     Symbol *funcSym = new Symbol(funcName, "DEFAULT_MODULE",
+                                 Symbol::ST_FUNCTION,
+                                 Symbol::SL_GLOBAL, 
+                                 functionEntryAddr, 
+                                0,
+                                UINT_MAX);
+     // create function stub, update datastructures
+     linkedFile->addSymbol( funcSym );
+     image_func *func = new image_func(funcSym, mod, this);
+     func->symbol()->setUpPtr(func);
+     func->addSymTabName( funcName ); 
+     func->addPrettyName( funcName );
+     funcsByEntryAddr[func->getOffset()] = func;
+     everyUniqueFunction.push_back(func);
+     createdFunctions.push_back(func);
+     return func;
 }
 
 const string &pdmodule::fileName() const
@@ -2045,7 +2010,7 @@ void * image::getPtrToDataInText( Address offset ) const {
 	offset -= imageOffset_;
 	unsigned char * inst = (unsigned char *) (linkedFile->image_ptr());
 	return (void *)(& inst[ offset ]);	
-	} /* end getPtrToDataInText() */
+} /* end getPtrToDataInText() */
 
 void *image::getPtrToData(Address offset) const {
     if (!isData(offset)) return NULL;
@@ -2060,6 +2025,12 @@ void *image::getPtrToInstruction(Address offset) const
    assert(isValidAddress(offset));
 
    if (isCode(offset)) {
+      Region *reg;
+      if (linkedFile->findEnclosingRegion(reg, offset) &&
+          (reg->getRegionPermissions() == Region::RP_RX ||
+           reg->getRegionPermissions() == Region::RP_RWX)) {
+          return (void*) ((Address)reg->getPtrToRawData() + offset - reg->getMemOffset());
+      }
       offset -= imageOffset_;
       unsigned char *inst = (unsigned char *)(linkedFile->image_ptr());
       return (void *)(&inst[offset]);
