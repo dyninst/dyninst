@@ -86,4 +86,10 @@ typedef void (*BPatchSignalCallback)(BPatch_thread *proc, int sigNum);
 typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point,
                                               BPatch_function *called_function);
 
+typedef void (*BPatchStopThreadCallback)(BPatch_point *at_point, 
+                                         void *returnValue);
+
+typedef void (*BPatchSignalHandlerCallback)(BPatch_point *at_point, 
+                         long signum, BPatch_Vector<Dyninst::Address> *handlers);
+
 #endif
