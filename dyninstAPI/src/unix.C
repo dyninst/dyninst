@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.238 2008/04/11 23:30:28 legendre Exp $
+// $Id: unix.C,v 1.239 2008/04/15 16:43:41 roundy Exp $
 
 #include <string>
 #include "common/h/headers.h"
@@ -114,209 +114,6 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status,
         return false;
     }
     return false;
-}
-
-bool SignalGenerator::decodeRTSignal(EventRecord &ev)
-{
-   // We've received a signal we believe was sent
-   // from the runtime library. Check the RT lib's
-   // status variable and return it.
-   // These should be made constants
-   process *proc = ev.proc;
-   if (!proc) return false;
-
-   int breakpoint;
-   int status;
-   Address arg = 0x0;
-   int zero = 0;
-
-   // First, check breakpoint...
-   if (sync_event_breakpoint_addr == 0) {
-      std::string status_str = std::string("DYNINST_break_point_event");
-
-      pdvector<int_variable *> vars;
-      if (!proc->findVarsByAll(status_str, vars)) {
-         return false;
-      }
-
-      if (vars.size() != 1) {
-         fprintf(stderr, "%s[%d]:  ERROR, found %d copies of var %s\n", 
-               FILE__, __LINE__, vars.size(), status_str.c_str());
-         return false;
-      }
-
-      sync_event_breakpoint_addr = vars[0]->getAddress();
-   }
-
-   if (!proc->readDataSpace((void *)sync_event_breakpoint_addr, 
-            sizeof(int),
-            &breakpoint, true)) {
-      fprintf(stderr, "%s[%d]:  readDataSpace failed (ev.proc %d, ev.lwp %d)\n", 
-            FILE__, __LINE__, ev.proc->getPid(), ev.lwp->get_lwp_id());
-      return false;
-   }
-
-   switch (breakpoint) {
-      case 0:
-         return false;
-      case 1:
-         // We SIGNUMed it
-         if (ev.what != DYNINST_BREAKPOINT_SIGNUM) {
-            // False alarm...
-            return false;
-         }
-         break;
-      case 2:
-         if (ev.what != SIGSTOP) {
-            // Again, false alarm...
-            return false;
-         }
-         break;
-      default:
-         assert(0);
-   }
-
-   // Definitely a breakpoint... set that up and clear the flag
-   ev.type = evtProcessStop;
-
-   // Further processing may narrow this down some more.
-
-   // Make sure we don't get this event twice....
-   if (!proc->writeDataSpace((void *)sync_event_breakpoint_addr, sizeof(int), &zero)) {
-      fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-   }
-
-   if (sync_event_id_addr == 0) {
-      std::string status_str = std::string("DYNINST_synch_event_id");
-
-
-      pdvector<int_variable *> vars;
-      if (!proc->findVarsByAll(status_str, vars)) {
-         fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
-               FILE__, __LINE__, status_str.c_str());
-         return false;
-      }
-
-      if (vars.size() != 1) {
-         fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-               FILE__, __LINE__, vars.size(), status_str.c_str());
-         return false;
-      }
-
-      sync_event_id_addr = vars[0]->getAddress();
-   }
-
-   if (!proc->readDataSpace((void *)sync_event_id_addr, sizeof(int),
-            &status, true)) {
-      fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
-      return false;
-   }
-
-   if (status == DSE_undefined) {
-      return false; // Nothing to see here
-   }
-
-   // Make sure we don't get this event twice....
-   if (!proc->writeDataSpace((void *)sync_event_id_addr, sizeof(int), &zero)) {
-       fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-       return false;
-   }
-
-   if (sync_event_arg1_addr == 0) {
-       std::string arg_str = std::string("DYNINST_synch_event_arg1");
-       
-       pdvector<int_variable *> vars;
-       if (!proc->findVarsByAll(arg_str, vars)) {
-           fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
-                   FILE__, __LINE__, arg_str.c_str());
-           return false;
-       }
-       
-       if (vars.size() != 1) {
-           fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-                   FILE__, __LINE__, vars.size(), arg_str.c_str());
-           return false;
-       }
-       sync_event_arg1_addr = vars[0]->getAddress();
-   }
-
-   if (!proc->readDataSpace((void *)sync_event_arg1_addr, 
-                            proc->getAddressWidth(), &arg, true)) {
-       fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
-       return false;
-   }
-
-   /* Okay... we use both DYNINST_BREAKPOINT_SIGNUM and sigstop,
-      depending on what we're trying to stop. So we have to check the 
-      flags against the signal
-   */
-
-   // This is split into two to make things easier
-   if (ev.what == SIGSTOP) {
-       // We only use stop on fork...
-       if (status != DSE_forkExit) return false;
-       // ... of the child
-       if (arg != 0) {
-          return false;
-       }
-   }
-   else if (ev.what == DYNINST_BREAKPOINT_SIGNUM) {
-       if ((status == DSE_forkExit) &&
-           (arg == 0)) {
-           return false;
-       }
-   }
-   else {
-       assert(0);
-   }
-
-   ev.info = (eventInfo_t)arg;
-
-   switch(status) {
-     case DSE_forkEntry:
-        /* Entry to fork */
-        ev.type = evtSyscallEntry;
-        ev.what = SYS_fork;
-        break;
-     case DSE_forkExit:
-        ev.type = evtSyscallExit;
-        ev.what = SYSSET_MAP(SYS_fork, proc->getPid());
-        break;
-     case DSE_execEntry:
-        /* Entry to exec */
-        ev.type = evtSyscallEntry;
-        ev.what = SYS_exec;
-        break;
-     case DSE_execExit:
-        ev.type = evtSyscallExit;
-        ev.what = SYS_exec;
-        /* Exit of exec, unused */
-        break;
-     case DSE_exitEntry:
-        /* Entry of exit, used for the callback. We need to trap before
-           the process has actually exited as the callback may want to
-           read from the process */
-        ev.type = evtSyscallEntry;
-        ev.what = SYS_exit;
-        break;
-   case DSE_loadLibrary:
-     /* We need to hook this into the shared library handling code... */
-        ev.type = evtSyscallExit;
-        ev.what = SYS_load;
-        break;
-   case DSE_lwpExit:
-        ev.type = evtSyscallEntry;
-        ev.what = SYS_lwp_exit;
-        break;
-   case DSE_snippetBreakpoint:
-        ev.type = evtProcessStop;
-        return true;
-        break;
-   default:
-        assert(0);
-        break;
-   }
-  return decodeSyscall(ev);
 }
 
 
@@ -747,6 +544,86 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
 
    return true;
 }
+
+bool SignalGeneratorCommon::decodeRTSignal_NP(EventRecord &ev, 
+                                              Address rt_arg, int status)
+{
+   /* Okay... we use both DYNINST_BREAKPOINT_SIGNUM and sigstop,
+      depending on what we're trying to stop. So we have to check the 
+      flags against the signal
+   */
+   // This is split into two to make things easier
+   if (ev.what == SIGSTOP) {
+       // We only use stop on fork...
+       if (status != DSE_forkExit) return false;
+       // ... of the child
+       if (rt_arg != 0) {
+          return false;
+       }
+   }
+   else if (ev.what == DYNINST_BREAKPOINT_SIGNUM) {
+       if ((status == DSE_forkExit) &&
+           (rt_arg == 0)) {
+           return false;
+       }
+   }
+   else {
+       assert(0);
+   }
+
+   ev.info = (eventInfo_t)rt_arg;
+
+   switch(status) {
+     case DSE_forkEntry:
+        /* Entry to fork */
+        ev.type = evtSyscallEntry;
+        ev.what = SYS_fork;
+        break;
+     case DSE_forkExit:
+        ev.type = evtSyscallExit;
+        ev.what = SYSSET_MAP(SYS_fork, proc->getPid());
+        break;
+     case DSE_execEntry:
+        /* Entry to exec */
+        ev.type = evtSyscallEntry;
+        ev.what = SYS_exec;
+        break;
+     case DSE_execExit:
+        ev.type = evtSyscallExit;
+        ev.what = SYS_exec;
+        /* Exit of exec, unused */
+        break;
+     case DSE_exitEntry:
+        /* Entry of exit, used for the callback. We need to trap before
+           the process has actually exited as the callback may want to
+           read from the process */
+        ev.type = evtSyscallEntry;
+        ev.what = SYS_exit;
+        break;
+   case DSE_loadLibrary:
+     /* We need to hook this into the shared library handling code... */
+        ev.type = evtSyscallExit;
+        ev.what = SYS_load;
+        break;
+   case DSE_lwpExit:
+        ev.type = evtSyscallEntry;
+        ev.what = SYS_lwp_exit;
+        break;
+   case DSE_snippetBreakpoint:
+        ev.type = evtProcessStop;
+        return true;
+        break;
+   case DSE_stopThread: 
+       ev.type = evtStopThread;
+       return true; 
+   default:
+       assert(0);
+       break;
+   }
+
+   return decodeSyscall(ev);
+}
+
 
 bool SignalGenerator::decodeSigTrap(EventRecord &ev)
 {
@@ -1541,10 +1418,7 @@ const char *dbiEventType2str(DBIEventType t)
 
 SignalGenerator::SignalGenerator(char *idstr, std::string file, int pid)
     : SignalGeneratorCommon(idstr),
-      waiting_for_stop(false),
-      sync_event_id_addr(0),
-      sync_event_arg1_addr(0),
-      sync_event_breakpoint_addr(0)
+      waiting_for_stop(false)
 {
 
     char buffer[128];
@@ -1620,6 +1494,20 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
     return true;
 }
 
+bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
+{
+    pdvector<CallbackBase *> cbs;
+    if (!getCBManager()->dispenseCallbacksMatching(evtSignalled, cbs)) {
+        return false;
+    }
+    printf("Handling signal number 0x%X\n",ev.what);
+
+    //KEVINTODO: need one time code here to call sigaction so we can
+    //retrieve the registered signal handler address and trigger a
+    //callback, if there is one
+    assert(false); // for now
+}
+
 bool SignalGeneratorCommon::postSignalHandler() 
 {
     return true;
@@ -1638,13 +1526,6 @@ bool OS::executableExists(const std::string &file)
 int_function *dyn_thread::map_initial_func(int_function *ifunc) 
 {
     return ifunc;
-}
-
-void SignalGenerator::clearCachedLocations()  
-{
-    sync_event_id_addr = 0;
-    sync_event_arg1_addr = 0;
-    sync_event_breakpoint_addr = 0;
 }
 
 SignalGenerator::~SignalGenerator() 
