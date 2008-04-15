@@ -381,6 +381,27 @@ public:
     API_EXPORT(Int, (cb),
     bool,removeUserEventCallback,(BPatchUserEventCallback cb));
 
+    // BPatch::registerSignalHandlerCallback 
+    // 
+    // If the mutator produces a signal matching an element of
+    // signal_numbers, the callback is invoked, returning the point
+    // that caused the exception, the signal number, and a Vector
+    // representing the address of signal handler(s) in the mutatee
+    // for the exception.  In Windows this is the handler stack, each
+    // function of which is invoked until one is found that agrees to
+    // handle the exception.  In Unix there will be at most one
+    // handler for the signal number, the handler registered with
+    // syscalls signal() or sigaction(), or the default system
+    // handler, in which case we return an empty vector.
+     API_EXPORT(Int, (cb,signal_numbers), 
+                bool,registerSignalHandlerCallback,
+                (BPatchSignalHandlerCallback cb, 
+                 BPatch_Set<long> *signal_numbers)); 
+
+     API_EXPORT(Int, (cb), 
+     bool,removeSignalHandlerCallback,(BPatchSignalHandlerCallback cb)); 
+
+
     //  BPatch::getThreads:
     //  Get a vector of all threads
     API_EXPORT(Int, (),
