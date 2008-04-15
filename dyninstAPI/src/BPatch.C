@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.184 2008/04/11 23:29:57 legendre Exp $
+// $Id: BPatch.C,v 1.185 2008/04/15 16:42:58 roundy Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -67,6 +67,7 @@
 #include "debug.h"
 #include "signalgenerator.h"
 #include "mapped_module.h"
+#include "instPoint.h"
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "nt_signal_emul.h"
@@ -2149,6 +2150,44 @@ bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
     return ret;
 }
 
+bool BPatch::registerSignalHandlerCallbackInt(BPatchSignalHandlerCallback func,
+                                              BPatch_Set<long> *signums)
+{
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtSignalHandlerCB, cbs);
+    SignalHandlerCallback *cb = new SignalHandlerCallback(func, signums);
+    bool ret = getCBManager()->registerCallback(evtSignalHandlerCB, cb);
+    return ret;
+}
+
+bool BPatch::removeSignalHandlerCallbackInt(BPatchSignalHandlerCallback cb)
+{
+    bool ret = false;
+    pdvector<CallbackBase *> cbs;
+    if (!getCBManager()->removeCallbacks(evtSignalHandlerCB, cbs)) {
+        fprintf(stderr, "%s[%d]:  Cannot remove callback for evtSignalHandlerCB,"
+                " not found\n", FILE__, __LINE__);
+        return false;
+    }
+
+    //  See if supplied function was in the set of removed functions
+    for (int i = cbs.size() -1; i >= 0; i--) {
+        SignalHandlerCallback *test = (SignalHandlerCallback *)cbs[i];
+        if (test->getFunc() == cb) {
+            //  found it, destroy it
+            cbs.erase(i,i);
+            ret = true;
+            delete test;
+        } 
+    }
+
+    //  we deleted any found target functions, put the others back.
+    for (unsigned int i = 0; i < cbs.size(); ++i) 
+        if (!getCBManager()->registerCallback(evtSignalHandlerCB, cbs[i]))
+            ret = false;
+
+    return ret;
+}
 
 
 void BPatch::continueIfExists(int pid) 

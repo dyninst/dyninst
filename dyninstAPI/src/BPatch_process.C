@@ -2121,6 +2121,97 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
   return newthr;
 }
 
+/* BPatch::triggerStopThread
+ *
+ * Causes the execution of a callback in the mutator that was
+ * triggered for the evtStopThread event. As BPatch_stopThreadExpr
+ * snippets allow a different callback to be triggered to each
+ * snippet instance, the cb_ID is used to find the right callback to
+ * trigger. This code had to be in a BPatch-level class so that we
+ * could utilize the findOrCreateBPFunc and findOrCreateBPPoint
+ * functions.
+ *
+ * @intPoint: the instPoint at which the event occurred, will be
+ *    wrapped in a BPatch_point and sent to the callback as a parameter
+ * @intFunc: the function in which the event occurred, will be wrapped 
+ *    in a BPatch_function and sent to the callback as a parameter
+ * @proc: the process is needed for the creation of BPatch level objects
+ * @cb_ID: helps us identify the correct call
+ * @retVal: the return value of a parameter snippet that gets passed 
+ *    down in the stopThread snippet and evaluated.  
+ *
+ * Return Value: Will always be true if code unless an error occurs, a
+ *    callback is triggered for every stopThread snippet instance.
+ */
+bool BPatch_process::triggerStopThread(instPoint *intPoint, 
+         int_function *intFunc, int cb_ID, void *retVal)
+{
+    // find the BPatch_point corresponding to the instrumentation point
+    BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
+    BPatch_point *bpPoint;
+    if (intPoint->getPointType() == callSite) {
+        bpPoint = findOrCreateBPPoint(bpFunc, intPoint, BPatch_locSubroutine);
+    } else {
+        bpPoint = findOrCreateBPPoint(bpFunc, intPoint, BPatch_locLongJump);
+    }
+    if (!bpPoint) { return false; }
+
+    // trigger all callbacks matching the snippet and event type
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->dispenseCallbacksMatching(evtStopThread,cbs);
+    BPatch::bpatch->signalNotificationFD();
+    StopThreadCallback *cb;    
+    for (unsigned i = 0; i < cbs.size(); ++i) {
+        cb = dynamic_cast<StopThreadCallback *>(cbs[i]);
+        if ( cb && cb_ID == llproc->getStopThreadCB_ID((Address)(cb->getFunc()))) {
+            (*cb)(bpPoint, retVal);
+        }
+    }
+    return true;
+}
+
+
+/* BPatch::triggerSignalHandlerCB
+ *
+ * Grabs BPatch level objects for the instPoint and enclosing function
+ * and triggers any registered callbacks for this signal/exception
+ *
+ * @intPoint: the instPoint at which the event occurred, will be
+ * wrapped in a BPatch_point and sent to the callback as a parameter
+ * @intFunc: the function in which the event occurred, will be
+ * wrapped in a BPatch_function and sent to the callback as a parameter
+ *
+ * Return Value: true if a matching callback was found and no error occurred
+ * 
+ */
+bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint, 
+        int_function *intFunc, long signum, BPatch_Vector<Address> *handlers)
+{
+    // find the BPatch_point corresponding to the exception-raising instruction
+    BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
+    BPatch_point *bpPoint;
+    if (intPoint->getPointType() == callSite) {
+        bpPoint = findOrCreateBPPoint(bpFunc, intPoint, BPatch_locSubroutine);
+    } else {
+        bpPoint = findOrCreateBPPoint(bpFunc, intPoint, BPatch_locLongJump);
+    }
+    if (!bpPoint) { return false; }
+    // trigger all callbacks for this signal
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->dispenseCallbacksMatching(evtSignalHandlerCB,cbs);
+    BPatch::bpatch->signalNotificationFD();
+    bool foundCallback = false;
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+        SignalHandlerCallback *cb = 
+            dynamic_cast<SignalHandlerCallback *>(cbs[i]);
+        if (cb && cb->handlesSignal(signum)) {
+            (*cb)(bpPoint, signum, handlers);
+            foundCallback = true;
+        }
+    }
+    return foundCallback;
+}
+
 // Return true if any sub-minitramp uses a trap? Other option
 // is "if all"...
 bool BPatchSnippetHandle::usesTrapInt() {
@@ -2140,43 +2231,10 @@ bool BPatchSnippetHandle::usesTrapInt() {
  */
 bool BPatch_process::setBeingDebuggedFlagInt(bool debuggerPresent)
 {
-#if ! defined(os_windows)
-    return false && debuggerPresent; // eliminates compiler warning :)
+#if defined (os_windows)
+    return llproc->setBeingDebuggedFlag(debuggerPresent);
 #else
-	// use getRegisters to get value of the FS segment register
-	dyn_saved_regs regs;
-	dyn_lwp *lwp = llproc->getInitialLwp();
-	if (!lwp || !lwp->getRegisters(&regs)) {
-		return false;
-	}
-	// use the FS segment selector to look up the segment descriptor in the local descriptor table
-	LDT_ENTRY segDesc;
-	HANDLE lwphandle = (HANDLE)lwp->get_fd();
-	GetThreadSelectorEntry(lwphandle, (DWORD)regs.cont.SegFs, &segDesc);
-	// calculate the address of the TIB
-	unsigned long tibPtr = segDesc.BaseLow;
-	unsigned long tmp = segDesc.HighWord.Bytes.BaseMid;
-	tibPtr = tibPtr | (tmp << (sizeof(WORD)*8));
-	tmp = segDesc.HighWord.Bytes.BaseHi;
-	tibPtr = tibPtr | (tmp << (sizeof(WORD)*8+8));
-	// read in address of PEB
-	unsigned int pebPtr;
-	if (!llproc->readDataSpace((void*)(tibPtr+48), llproc->getAddressWidth(),(void*)&pebPtr, true)) 
-		return false;
-	// read in processBeingDebugged flag
-	unsigned int flagWord;
-	if (!llproc->readDataSpace((void*)pebPtr, 4, (void*)&flagWord, true)) 
-		return false;
-	// write back value of processBeingDebugged, if necessary
-	if (debuggerPresent && !(flagWord & 0x00ff0000)) {
-		flagWord = flagWord | 0x00010000;
-		if (!llproc->writeDataSpace((void*)pebPtr, 4, (void*)&flagWord)) 
-			return false;
-	} else if (!debuggerPresent && (flagWord & 0x00ff0000)) {
-		flagWord = flagWord & 0xff00ffff;
-		if (!llproc->writeDataSpace((void*)pebPtr, 4, (void*)&flagWord)) 
-			return false;
-	}
-	return true;
+    return false && debuggerPresent; // using arg to remove compiler warning :)
 #endif
 }
+
