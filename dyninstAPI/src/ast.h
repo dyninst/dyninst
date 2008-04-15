@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.105 2008/03/25 19:24:25 bernat Exp $
+// $Id: ast.h,v 1.106 2008/04/15 16:43:10 roundy Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -199,7 +199,8 @@ class AstNode {
 
         static AstNodePtr originalAddrNode();
         static AstNodePtr actualAddrNode();
-
+        static AstNodePtr dynamicTargetNode();
+ 
         AstNode(AstNodePtr src);
         //virtual AstNode &operator=(const AstNode &src);
         
@@ -326,7 +327,7 @@ class AstNode {
  private:
         static AstNodePtr originalAddrNode_;
         static AstNodePtr actualAddrNode_;
-
+        static AstNodePtr dynamicTargetNode_;
 };
 
 
@@ -659,8 +660,21 @@ class AstActualAddrNode : public AstNode {
                                      Register &retReg);
 };
 
+class AstDynamicTargetNode : public AstNode {
+ public:
+    AstDynamicTargetNode() {};
 
+    virtual ~AstDynamicTargetNode() {};
 
+    virtual BPatch_type *checkType() { return getType(); };
+    virtual bool canBeKept() const { return false; }
+
+ private:
+    virtual bool generateCode_phase2(codeGen &gen,
+                                     bool noCost,
+                                     Address &retAddr,
+                                     Register &retReg);
+};
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,
@@ -672,7 +686,6 @@ void emitStorePreviousStackFrameRegister(Address register_num,
                                          codeGen &gen,
                                          int size,
                                          bool noCost);
-
 void emitFuncJump(opCode op, codeGen &gen,
 		  const int_function *func, AddressSpace *addrSpace,
 		  const instPoint *loc, bool noCost);

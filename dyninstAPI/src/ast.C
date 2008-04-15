@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.205 2008/04/11 23:30:13 legendre Exp $
+// $Id: ast.C,v 1.206 2008/04/15 16:43:09 roundy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/InstrucIter.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
@@ -65,6 +66,8 @@
 #include "dyninstAPI/src/inst-power.h"
 #elif defined(arch_x86) || defined (arch_x86_64)
 #include "dyninstAPI/src/inst-x86.h"
+extern int tramp_pre_frame_size_32;
+extern int tramp_pre_frame_size_64;
 #elif defined(arch_ia64)
 #include "dyninstAPI/src/inst-ia64.h"
 #else
@@ -81,7 +84,7 @@ extern bool doNotOverflow(int value);
 
 AstNodePtr AstNode::originalAddrNode_ = AstNodePtr();
 AstNodePtr AstNode::actualAddrNode_ = AstNodePtr();
-
+AstNodePtr AstNode::dynamicTargetNode_ = AstNodePtr();
 
 AstNode::AstNode() {
 #if defined(ASTDEBUG)
@@ -180,6 +183,14 @@ AstNodePtr AstNode::actualAddrNode() {
     }
     return actualAddrNode_;
 }
+
+AstNodePtr AstNode::dynamicTargetNode() {
+    if (dynamicTargetNode_ == NULL) {
+        dynamicTargetNode_ = AstNodePtr(new AstDynamicTargetNode());
+    }
+    return dynamicTargetNode_;
+}
+
 
 bool isPowerOf2(int value, int &result)
 {
@@ -1611,7 +1622,6 @@ bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     return true;
 }
 
-
 bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
                                               bool noCost,
                                               Address &,
@@ -1624,7 +1634,6 @@ bool AstOriginalAddrNode::generateCode_phase2(codeGen &gen,
     emitVload(loadConstOp, 
               (Address) gen.point()->addr(),
               retReg, retReg, gen, noCost);
-
     return true;
 }
 
@@ -1644,6 +1653,66 @@ bool AstActualAddrNode::generateCode_phase2(codeGen &gen,
 
     return true;
 }
+
+bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
+                                            bool noCost,
+                                            Address & retAddr,
+                                            Register &retReg) {
+
+    InstrucIter instruc(gen.point()->addr(), gen.addrSpace());
+    // if this is a return instruction our AST reads the top stack value
+    if (instruc.isAReturnInstruction()) {
+        if (retReg == REG_NULL) {
+            retReg = allocateAndKeep(gen, noCost);
+        }
+        if (retReg == REG_NULL) return false;
+
+#if defined (arch_x86)
+        emitVload(loadRegRelativeOp, 
+                  (Address) sizeof(Address), 
+                  REGNUM_ESP, 
+                  retReg, 
+                  gen, noCost);
+#elif defined (arch_x86_64) // KEVINTODO: untested
+        emitVload(loadRegRelativeOp, 
+                  (Address) sizeof(Address), 
+                  REGNUM_RSP, 
+                  retReg, 
+                  gen, noCost);
+#elif defined (arch_sparc) // KEVINTODO: untested
+        emitVload(loadRegRelativeOp, 
+                  (Address) sizeof(Address), 
+                  REG_SPTR, 
+                  retReg, 
+                  gen, noCost);
+#elif defined (arch_power) // KEVINTODO: untested
+        emitVload(loadRegRelativeOp, 
+                  (Address) sizeof(Address), 
+                  REG_SP,
+                  retReg, 
+                  gen, noCost);
+#elif defined (arch_arch_ia64) // KEVINTODO: untested
+        emitVload(loadRegRelativeOp, 
+                  (Address) sizeof(Address), 
+                  REGISTER_SP, 
+                  retReg, 
+                  gen, noCost);
+#else
+        assert(0);
+#endif
+        return true;
+    }
+    else {// this is a dynamic ctrl flow instruction, have
+          // getDynamicCallSiteArgs generate the necessary AST
+        pdvector<AstNodePtr> args;
+        if (!gen.addrSpace()->getDynamicCallSiteArgs
+            (const_cast<instPoint*>(gen.point()),args)) {
+            return false;
+        }
+        return args[0]->generateCode_phase2(gen, noCost, retAddr, retReg);
+    }
+}
+
 
 #if defined(AST_PRINT)
 std::string getOpString(opCode op)
