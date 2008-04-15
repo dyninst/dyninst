@@ -1,5 +1,7 @@
 #ifndef __CALLBACKS_H__
 #define __CALLBACKS_H__
+#include "dyninstAPI/h/BPatch_Vector.h"
+#include "dyninstAPI/h/BPatch_Set.h"
 #include "mailbox.h"
 #include "rpcMgr.h"
 #include "util.h"
@@ -247,6 +249,59 @@ class UserEventCallback : public SyncCallback
    void *buf;
    int bufsize;
 };
+
+class StopThreadCallback : public SyncCallback
+{
+ public:
+    StopThreadCallback(BPatchStopThreadCallback callback) : SyncCallback(),
+        cb(callback), point(NULL), return_value(NULL) {}
+    StopThreadCallback(StopThreadCallback &src) : SyncCallback(),
+        cb(src.cb), point(NULL), return_value(NULL) {}
+    ~StopThreadCallback() {}
+
+    CallbackBase *copy() { return new StopThreadCallback(*this); }
+    bool execute_real(void);
+    bool operator()(BPatch_point *atPoint, void *returnValue);
+    BPatchStopThreadCallback getFunc() {return cb;}
+ private:
+    BPatchStopThreadCallback cb;
+    BPatch_point *point;
+    void *return_value;
+};
+
+class SignalHandlerCallback : public SyncCallback
+{
+ public:
+    SignalHandlerCallback(BPatchSignalHandlerCallback callback, 
+                          BPatch_Set<long> *signums) :
+        SyncCallback(), 
+        cb(callback), 
+        point(NULL), 
+        signum(0), 
+        handlers(NULL),
+        signals(signums),
+        lastSigAddr(0)
+        {}
+    SignalHandlerCallback(SignalHandlerCallback &src) : SyncCallback(),
+        cb(src.cb), point(NULL), signum(0), handlers(NULL), signals(src.signals), 
+        lastSigAddr(lastSigAddr) {}
+    ~SignalHandlerCallback() {}
+    CallbackBase *copy() { return new SignalHandlerCallback(*this); }
+    bool execute_real(void);
+    bool operator()(BPatch_point *at_point, long signum, 
+                    BPatch_Vector<Dyninst::Address> *handlerVec);
+    BPatchSignalHandlerCallback getFunc() {return cb;}
+    Address getLastSigAddr() { return lastSigAddr; }
+    bool handlesSignal(long signum);
+ private:
+    BPatchSignalHandlerCallback cb;
+    BPatch_point *point;
+    long signum;
+    BPatch_Vector<Dyninst::Address> *handlers;
+    BPatch_Set<long> *signals;
+    Address lastSigAddr; // address of instruction that caused the previous signal 
+};
+
 
 class AsyncThreadEventCallback : public SyncCallback 
 {  

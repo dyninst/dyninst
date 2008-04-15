@@ -311,6 +311,46 @@ bool UserEventCallback::operator()(BPatch_process *process, void *buffer, int bu
    return do_it();
 }
 
+bool StopThreadCallback::execute_real(void) 
+{
+  cb(point, return_value);
+  return true;
+}
+
+bool StopThreadCallback::operator()(BPatch_point *atPoint, void *returnValue)
+{
+  assert(lock->depth());
+  point = atPoint;
+  return_value = returnValue;
+
+  return do_it();
+}
+
+bool SignalHandlerCallback::execute_real(void) 
+{
+  cb(point, signum, handlers);
+  return true;
+}
+
+bool SignalHandlerCallback::handlesSignal(long signum) 
+{
+  if (NULL == signals) {
+    return true;
+  } else {
+    return signals->contains(signum);
+  }
+}
+
+bool SignalHandlerCallback::operator()(BPatch_point *at_point, long signal_number, 
+                                       BPatch_Vector<Dyninst::Address> *handler_vec)
+{
+  assert(lock->depth());
+  point = at_point;
+  signum = signal_number;
+  handlers = handler_vec;
+  return do_it();
+}
+
 bool AsyncThreadEventCallback::execute_real(void) 
 {
    async_printf("%s[%d][%s]:  welcome to AsyncThreadEventCallback: execute\n", 
