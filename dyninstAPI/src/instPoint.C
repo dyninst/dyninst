@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.49 2008/03/12 20:09:15 legendre Exp $
+// $Id: instPoint.C,v 1.50 2008/04/15 16:43:20 roundy Exp $
 // instPoint code
 
 
@@ -537,7 +537,7 @@ instPoint::instPoint(AddressSpace *proc,
     instPointBase(insn, otherPoint),
     funcVersion(-1),
     callee_(NULL),
-    isDynamicCall_(false),
+    isDynamic_(false),
     preBaseTramp_(NULL),
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
@@ -568,7 +568,7 @@ instPoint::instPoint(AddressSpace *proc,
                   img_p->id()),
     funcVersion(-1),
     callee_(NULL),
-    isDynamicCall_(img_p->isDynamicCall()),
+    isDynamic_(img_p->isDynamic()),
     preBaseTramp_(NULL),
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),
@@ -598,7 +598,7 @@ instPoint::instPoint(instPoint *parP,
                   parP->id()),
     funcVersion(parP->funcVersion),
     callee_(NULL), // Will get set later
-    isDynamicCall_(parP->isDynamicCall_),
+    isDynamic_(parP->isDynamic_),
     preBaseTramp_(NULL),
     postBaseTramp_(NULL),
     targetBaseTramp_(NULL),

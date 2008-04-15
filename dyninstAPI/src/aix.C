@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.244 2008/04/11 23:30:06 legendre Exp $
+// $Id: aix.C,v 1.245 2008/04/15 16:43:08 roundy Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1980,7 +1980,7 @@ int_function *instPoint::findCallee() {
         return NULL;
     }
 
-    if (isDynamicCall()) { 
+    if (isDynamic()) { 
         return NULL;
     }
 

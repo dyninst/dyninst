@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.272 2008/04/11 23:30:20 legendre Exp $
+// $Id: linux.C,v 1.273 2008/04/15 16:43:23 roundy Exp $
 
 #include <fstream>
 
@@ -88,10 +88,11 @@
 
 #include "dynamiclinking.h"
 
+#if defined (cap_save_the_world)
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
 // #include "saveSharedLibrary.h" 
-
+#endif
 #include "symtabAPI/h/Symtab.h"
 
 //TODO: Remove the writeBack functions and get rid of this include
@@ -222,27 +223,27 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
         
         errno = 0;
         if (ev.type == evtSignalled) {
-        	/* There's a process-wide waiting for stop we need to worry about;
-        	   we could be asking the process to stop but any of the independent
-        	   LWPs to, yet.  (If the SIGSTOP is delayed, by, say, an iRPC completion,
-        	   then we don't know which LWP will receive the STOP.) */
-        	if( waiting_for_stop || (ev.lwp && ev.lwp->isWaitingForStop()) ) {
-                signal_printf("%s[%d]: independentLwpStop_ %d (lwp %d %s), checking for suppression...\n",
-                              FILE__, __LINE__,
-                              independentLwpStop_,
-                              ev.lwp ? ev.lwp->get_lwp_id() : (unsigned)-1,
-                              ev.lwp ? (ev.lwp->isWaitingForStop() ? "waiting for stop" : "not waiting for stop") : "no LWP");
-
-                if (suppressSignalWhenStopping(ev)) {
-                    signal_printf("%s[%d]: suppressing signal... \n", FILE__, __LINE__);
-                    //  we suppress this signal, just send a null event
-                    ev.type = evtIgnore;
-                    signal_printf("%s[%d]: suppressing signal during wait for stop\n", FILE__, __LINE__);
-                    return true;
-                }
-            }
-            signal_printf("%s[%d]: decoding signal \n", FILE__, __LINE__);
-            decodeSignal(ev);
+           /* There's a process-wide waiting for stop we need to worry about;
+              we could be asking the process to stop but any of the independent
+              LWPs to, yet.  (If the SIGSTOP is delayed, by, say, an iRPC completion,
+              then we don't know which LWP will receive the STOP.) */
+           if( waiting_for_stop || (ev.lwp && ev.lwp->isWaitingForStop()) ) {
+              signal_printf("%s[%d]: independentLwpStop_ %d (lwp %d %s), checking for suppression...\n",
+                            FILE__, __LINE__,
+                            independentLwpStop_,
+                            ev.lwp ? ev.lwp->get_lwp_id() : (unsigned)-1,
+                            ev.lwp ? (ev.lwp->isWaitingForStop() ? "waiting for stop" : "not waiting for stop") : "no LWP");
+              
+              if (suppressSignalWhenStopping(ev)) {
+                 signal_printf("%s[%d]: suppressing signal... \n", FILE__, __LINE__);
+                 //  we suppress this signal, just send a null event
+                 ev.type = evtIgnore;
+                 signal_printf("%s[%d]: suppressing signal during wait for stop\n", FILE__, __LINE__);
+                 return true;
+              }
+           }
+           signal_printf("%s[%d]: decoding signal \n", FILE__, __LINE__);
+           decodeSignal(ev);
         }
         
         if (ev.type == evtUndefined) {
@@ -1489,8 +1490,7 @@ int_function *instPoint::findCallee()
       // Assert?
       return NULL; 
    }
-
-   if (isDynamicCall()) {
+   if (isDynamic()) {
       return NULL;
    }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.45 2008/03/25 19:24:36 bernat Exp $
+// $Id: instPoint.h,v 1.46 2008/04/15 16:43:21 roundy Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -132,14 +132,14 @@ class image_instPoint : public instPointBase {
                   instruction insn,
 		  image_func *func,
 		  instPointType_t type);
-    // Call site
+    // Call site or otherPoint that has a target
     image_instPoint(Address offset,
                     instruction insn,
                     image_func *func,
                     Address callTarget_,
-                    bool isDynamicCall,
-                    bool isAbsolute = false);
-  
+                    bool isDynamic,
+                    bool isAbsolute = false,
+                    instPointType_t type = callSite);
 
   Address offset_;
   Address offset() const { return offset_; }
@@ -153,8 +153,8 @@ class image_instPoint : public instPointBase {
   bool targetIsAbsolute_;
   Address callTarget() const { return callTarget_; }
   bool targetIsAbsolute() const { return targetIsAbsolute_; }
-  bool isDynamicCall_; 
-  bool isDynamicCall() const { return isDynamicCall_; }
+  bool isDynamic_; 
+  bool isDynamic() const { return isDynamic_; }
 
   image_func *getCallee() const { return callee_; }
   void setCallee(image_func *f) { callee_ = f; }
@@ -307,8 +307,8 @@ class instPoint : public instPointBase {
   // instPoint dodge to get the callee and store the information in
   // the int_function directly?
   int_function *callee_;
-  bool isDynamicCall_;
-  bool isDynamicCall() const { return isDynamicCall_; }
+  bool isDynamic_;
+  bool isDynamic() const { return isDynamic_; }
 
   // Get the base tramp (conglomerate) corresponding to this instPoint
   // (conglomerate)

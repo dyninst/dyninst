@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.222 2008/02/23 02:09:11 jaw Exp $
+// $Id: solaris.C,v 1.223 2008/04/15 16:43:37 roundy Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1169,7 +1169,7 @@ int_function *instPoint::findCallee() {
         return NULL;
     }
 
-    if (isDynamicCall()) { 
+    if (isDynamic()) { 
         return NULL;
     }
 

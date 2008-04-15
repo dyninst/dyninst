@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.52 2008/04/11 23:30:17 legendre Exp $
+// $Id: image-func.C,v 1.53 2008/04/15 16:43:17 roundy Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -599,7 +599,7 @@ image_instPoint::image_instPoint(Address offset,
     func_(func),
     callee_(NULL),
     callTarget_(0),
-    isDynamicCall_(0)
+    isDynamic_(0)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_instPoint_count++;
@@ -614,15 +614,16 @@ image_instPoint::image_instPoint(Address offset,
                                  instruction insn,
                                  image_func *func,
                                  Address callTarget,
-                                 bool isDynamicCall,
-                                 bool isAbsolute) :
-    instPointBase(insn, callSite),
+                                 bool isDynamic,
+                                 bool isAbsolute,
+                                 instPointType_t ptType) :
+    instPointBase(insn, ptType),
     offset_(offset),
     func_(func),
     callee_(NULL),
     callTarget_(callTarget),
     targetIsAbsolute_(isAbsolute),
-    isDynamicCall_(isDynamicCall)
+    isDynamic_(isDynamic)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_instPoint_count++;
@@ -630,10 +631,8 @@ image_instPoint::image_instPoint(Address offset,
         fprintf(stderr, "image_instPoint_count: %d (%d)\n",
                 image_instPoint_count, image_instPoint_count * sizeof(image_instPoint));
 #endif
-    if (isDynamicCall_)
+    if (isDynamic_)
         assert(callTarget_ == 0);
-    else
-        assert(!isDynamicCall_);
 }
 
 // Leaving some sensible const modifiers in place elsewhere, but

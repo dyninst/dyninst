@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.49 2008/04/11 23:30:16 legendre Exp $
+ * $Id: image-flowGraph.C,v 1.50 2008/04/15 16:43:16 roundy Exp $
  */
 
 #include <stdio.h>
@@ -125,7 +125,6 @@ bool image::analyzeImage()
     pdf = everyUniqueFunction[i];
     mod = pdf->pdmod();
     assert(pdf); assert(mod);
-    std::string name = pdf->symTabName().c_str();
     parseFunction( pdf, callTargets, preParseStubs);
         
     // these functions have not been added to the code range tree
@@ -195,15 +194,9 @@ bool image::analyzeImage()
       VECTOR_APPEND(callTargets,new_targets); 
       new_targets.clear();
     }
+
 #if defined(cap_stripped_binaries)
   if (parseGaps_) {
-	// Need to check to ensure that pdmodule mod is initialized
-    // before searching the region, previous for loop will not have
-    // executed
-    if( everyUniqueFunction.size() <= 0 )
-    {
-        mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
-    }
 
     // Sort functions to find gaps
     VECTOR_SORT(everyUniqueFunction, addrfunccmp);
@@ -553,16 +546,24 @@ bool image_func::parse(
                !preParseStubs.defines(target))
             {
                 // makes sure a function exists at the point for later parsing
-                (void)FindOrCreateFunc(target,callTargets,preParseStubs);
+                image_func *targFunc = 
+                    FindOrCreateFunc(target,callTargets,preParseStubs);
+                if (targFunc == NULL) {
+                    if (ah.isAJumpInstruction()) {
+                        p = new image_instPoint(funcEntryAddr, ah.getInstruction(), 
+                                                this, target, false, false, otherPoint);
+                    } else {
+                        p = new image_instPoint(funcEntryAddr, ah.getInstruction(), 
+                                                this, target, false, false, callSite);
+                    }
+                    img()->badControlFlow.push_back(p);
+                }
             }
             parsing_printf("Jump or call at entry of function\n");
-            p = new image_instPoint(funcEntryAddr, ah.getInstruction(), 
-                                    this, target, false);
-            img()->badControlFlow.push_back(p);
         }
 
         endOffset_ = ah.peekNext();
-        instLevel_ = UNINSTRUMENTABLE;
+        instLevel_ = UNINSTRUMENTABLE; 
         return false;
     }
 
@@ -949,7 +950,9 @@ bool image_func::buildCFG(
                                             ah.getInstruction(),
                                             this,
                                             target,
-                                            false);
+                                            false,
+                                            false,
+                                            otherPoint);
                     img()->badControlFlow.push_back(p);
                 }
 
@@ -969,6 +972,7 @@ bool image_func::buildCFG(
                                    img()->name().c_str(),
                                    prettyName().c_str(),funcBegin, currAddr, target);
                 }
+                if ( img()->isValidAddress( target ) ) {
                     addBasicBlock(target,
                                   currBlk,
                                   leaders,
@@ -976,6 +980,7 @@ bool image_func::buildCFG(
                                   ET_COND_TAKEN,
                                   worklist,
                                   visited);
+                }
 
                 Address t2 = ah.peekNext(); 
                 //Address t2 = currAddr + insnSize;
@@ -1015,9 +1020,17 @@ bool image_func::buildCFG(
                     // this "function" is a single instruction long
                     // (a jmp to the "real" function)
                     parsing_printf("... uninstrumentable due to 0 size\n");
-                    instLevel_ = UNINSTRUMENTABLE;
+                    instLevel_ = UNINSTRUMENTABLE; 
                     //endOffset_ = startOffset_;
                     endOffset_ = getOffset();
+                    p = new image_instPoint(currAddr,
+                                            ah.getInstruction(),
+                                            this,
+                                            0,
+                                            true,
+                                            true,
+                                            functionExit); 
+                    img()->badControlFlow.push_back(p);
                     return false; 
                 }                 
 
@@ -1028,7 +1041,11 @@ bool image_func::buildCFG(
                     p = new image_instPoint(currAddr,
                                             ah.getInstruction(),
                                             this,
+                                            0,
+                                            true,
+                                            true,
                                             functionExit);
+                    img()->badControlFlow.push_back(p); 
                     break;
                 }
 
@@ -1052,18 +1069,32 @@ bool image_func::buildCFG(
                 {
                    instLevel_ = HAS_BR_INDIR;
                    canBeRelocated_ = false;
+                   p = new image_instPoint(currAddr,
+                                           ah.getInstruction(),
+                                           this,
+                                           0,
+                                           true,
+                                           true,
+                                           otherPoint);
+                   img()->badControlFlow.push_back(p);
                 }
                 
                 iter = targets.begin();
+                bool foundBadTarget = false;
                 for(iter = targets.begin(); iter != targets.end(); iter++)
                 {
                     if( !img()->isValidAddress( *iter ) ) {
-                        p = new image_instPoint(currAddr,
-                                                ah.getInstruction(),
-                                                this,
-                                                *iter,
-                                                false);
-                        img()->badControlFlow.push_back(p);
+                        if (!foundBadTarget) {
+                            p = new image_instPoint(currAddr,
+                                                    ah.getInstruction(),
+                                                    this,
+                                                    0,
+                                                    true, 
+                                                    false,
+                                                    otherPoint);
+                            img()->badControlFlow.push_back(p);
+                            foundBadTarget = true;
+                        }
                         continue;
                     }
 
@@ -1132,7 +1163,9 @@ bool image_func::buildCFG(
                                             ah.getInstruction(),
                                             this,
                                             target,
-                                            false);
+                                            false,
+                                            false,
+                                            otherPoint); 
                     img()->badControlFlow.push_back(p);
                     break;
                 }
@@ -1150,12 +1183,15 @@ bool image_func::buildCFG(
                     p = new image_instPoint(currAddr,
                                             ah.getInstruction(),
                                             this,
+                                            target,
+                                            false,
+                                            false,
                                             functionExit);
                     funcReturns.push_back( p );
                     currBlk->containsRet_ = true;
                     //retStatus_ = RS_RETURN;
                 }
-                else
+                else 
                 {
                   if( target < funcBegin ) {
                     parsing_printf("Parse of mod:func[%s:%s] Tying up jump target "
@@ -1163,15 +1199,15 @@ bool image_func::buildCFG(
                                    "jump[0x%lx]=>[0x%lx]\n", img()->name().c_str(),
                                    prettyName().c_str(),funcBegin, currAddr, target);
                   } else {
-                    parsing_printf("... tying up unconditional branch target\n");                   
+                    parsing_printf("... tying up unconditional branch target\n");
                   }
-                    addBasicBlock(target,
-                                  currBlk,
-                                  leaders,
-                                  leadersToBlock,
-                                  ET_DIRECT,
-                                  worklist,
-                                  visited);
+                  addBasicBlock(target,
+                                currBlk,
+                                leaders,
+                                leadersToBlock,
+                                ET_DIRECT,
+                                worklist,
+                                visited);
                 }
                 break;
             }
@@ -1264,10 +1300,13 @@ bool image_func::buildCFG(
 		  {
                     if (ah.isADynamicCallInstruction()) {
                         p = new image_instPoint( currAddr,
-					       ah.getInstruction(),
-					       this,
-					       0,
-					       true);
+                                                 ah.getInstruction(),
+                                                 this,
+                                                 0,
+                                                 true,
+                                                 true,
+                                                 callSite);
+                        img()->badControlFlow.push_back(p);
 
                         parsing_printf("[%s:%u] dynamic call 0x%lx -> ?\n",
                             FILE__,__LINE__,currAddr);
@@ -1289,9 +1328,9 @@ bool image_func::buildCFG(
                     calls.push_back( p );
                     currBlk->containsCall_ = true;
 		    
-		  } // real call
+                    } // real call
                 else
-		  {
+                  {
                     parsing_printf(" ! call at 0x%lx rejected by isRealCall()\n",
                                    currAddr);
                     if( validTarget == false )
@@ -1311,21 +1350,21 @@ bool image_func::buildCFG(
                         canBeRelocated_ = false;
 		      }
                     else if( simulateJump )
-		      {
-                        addBasicBlock(target,
-				      currBlk,
-				      leaders,
-				      leadersToBlock,
-				      ET_DIRECT,
-				      worklist,
-				      visited);
-		      }
+                      {
+                          addBasicBlock(target,
+                                        currBlk,
+                                        leaders,
+                                        leadersToBlock,
+                                        ET_DIRECT,
+                                        worklist,
+                                        visited);
+                      }
 		  }
 		
 		if (ah.isDelaySlot()) {
-		  // Delay slots get skipped; effectively pinned to 
-		  // the prev. insn.
-		  ah++;
+                    // Delay slots get skipped; effectively pinned to 
+                    // the prev. insn.
+                    ah++;
 		}
 		
 		//printf("Call to %s (%x) detected at 0x%x\n",
@@ -1345,7 +1384,7 @@ bool image_func::buildCFG(
                         (*pltFuncs)[target] == "abort" ||
                         (*pltFuncs)[target] == "__f90_stop")
 		  {
-           parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
+                      parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
                           (*pltFuncs)[target].c_str(),
                           target, currAddr);
 		  }
@@ -1649,7 +1688,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
                                     tmpInstPt->insn(),
                                     this,
                                     tmpInstPt->callTarget(),
-                                    tmpInstPt->isDynamicCall());
+                                    tmpInstPt->isDynamic());
             calls.push_back(cpyInstPt);    
         }
         if((tmpInstPt = curBlk->getRetInstPoint()) != NULL)

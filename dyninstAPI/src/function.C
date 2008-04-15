@@ -578,7 +578,7 @@ unsigned int_function::getNumDynamicCalls()
 
    for (unsigned i=0; i<callPoints.size(); i++)
    {
-      if (callPoints[i]->isDynamicCall())
+      if (callPoints[i]->isDynamic())
           count++;
    }
    return count;

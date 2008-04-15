@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.29 2007/09/12 20:59:34 bernat Exp $
+// $Id: inst-winnt.C,v 1.30 2008/04/15 16:43:18 roundy Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -126,7 +126,7 @@ int_function *instPoint::findCallee()
        return NULL;
    }
   
-   if (!isDynamicCall()) {
+   if (!isDynamic()) {
       // We have a direct call but don't yet know the callee.
       // This may be because we didn't see a symbol for a
       // thunk in the ILT.
