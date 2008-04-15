@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.112 2008/04/07 22:32:38 giri Exp $
+// $Id: BPatch_image.C,v 1.113 2008/04/15 16:43:00 roundy Exp $
 
 #define BPATCH_FILE
 
@@ -1021,6 +1021,7 @@ bool BPatch_image::getAddressRangesInt( const char * lineSource,
    return false;
 } 
 
+
 char *BPatch_image::getProgramNameInt(char *name, unsigned int len) 
 {
    if (!addSpace->getAS()->mappedObjects().size()) {
@@ -1092,193 +1093,405 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base)
 }
 
 
-/* BPatch_image::parseNewRegion
- *
- * This function parses a region in memory owned by a BPatch_process
- *
- * addrStart and addrEnd: these parameters are taken as the bounds for
- * the mapped object that we create.  We check that they do not
- * overlap existing modules.  These values should be set to 0 if they
- * are unknown.  
- * 
- * funcEntryAddrs: this is a vector of function start addresses that
- * seed the control-flow-traversal parsing.  We check to ensure that
- * none of these addresses lie in existing modules.  They must all
- * lie in a contiguous valid region of memory.
- *
- * If both addrStart and addrEnd are 0, we attempt to find a valid 
- * memory region that encloses all of the entries in the funcEntryAddrs
- * vector.  funcEntryAddrs cannot be empty if addrStart and addrEnd are
- * both 0.  
- *
+/* This function should only be invoked when regionStart and regionEnd
+ * have been verified as not conflicting with existing mapped objects,
+ * and when it has also been verified that all elements of
+ * funcEntryAddrs lie between the region regionStart and regionEnd
  */
-BPatch_module *BPatch_image::parseNewRegionInt
-(unsigned long addrStart, unsigned long addrEnd, 
- BPatch_Vector<unsigned long> *funcEntryAddrs, bool parseGaps)
+BPatch_module *parseRegion(BPatch_process *bpProc, 
+                           Address regionStart, Address regionEnd, 
+                           vector<Address> *funcEntryAddrs, 
+                           bool parseGaps, const string *namePrefix,
+                           Address loadAddress)
 {
-   assert(addSpace->getType() == TRADITIONAL_PROCESS);// KEVINTODO: this should not be an assert
+    // Copy the region to a temp file
+    void *regionBuf = malloc(regionEnd - regionStart);
+    if (!bpProc->lowlevel_process()->readDataSpace
+          ((void*)regionStart, regionEnd-regionStart, regionBuf, false)) {
+        fprintf(stderr, "%s[%d]: Failed to read from region [%lX %lX]\n",
+                __FILE__, __LINE__,(long)regionStart, 
+                (long)regionEnd);
+    }
+    char regName[64];
+    if (namePrefix) {
+        sprintf(regName, "%s_%lX_%lX", namePrefix->c_str(), regionStart, regionEnd);
+    } else {
+        sprintf(regName, "MemRegion_%lX_%lX", regionStart, regionEnd);
+    }
+    FILE *regionFD = fopen(regName, "wb");
+    if (regionFD == NULL) {
+        fprintf(stderr,"%s[%d]Was unable to open file %s for writing\n",
+                FILE__, __LINE__, regName);
+        return NULL;
+    }
+    unsigned writeBytes = fwrite(regionBuf, 1, regionEnd-regionStart, regionFD);
+    if (writeBytes != regionEnd-regionStart) {
+        fprintf(stderr, "%s[%d] Wrote 0x%x bytes to file %s"
+                "when writing region [%lx %lx] to disk\n",
+                FILE__,__LINE__,writeBytes, regName, (long)regionStart, (long)regionEnd);
+    }
+    fclose(regionFD);
+    free(regionBuf);
 
-   // ensure that start/end addrs are set or that func entry addrs are given
-   if (addrStart == 0 && addrEnd == 0 
-         && (funcEntryAddrs == NULL || funcEntryAddrs->size() == 0)) {
-      fprintf(stderr,"%s[%d] parseNewRegion requires a list of function entry "
-            "addresses to be provided, or the start and end addresses "
-            "of a valid memory region to be provided, but got neither\n", 
-            __FILE__, __LINE__);
-      return NULL;
-   }
+    // create a fileDescriptor and mapped_object and add region as shared object
+    fileDescriptor fdesc;
+    if (loadAddress == 0) {
+        loadAddress = regionStart;
+    }
+    fdesc = fileDescriptor(regName, regionStart - loadAddress, 
+                           regionEnd - regionStart, loadAddress);
+    mapped_object *obj = mapped_object::createMappedObject
+        (fdesc, bpProc->lowlevel_process(), parseGaps);
 
-   BPatch_Vector<BPatch_module *> *allmods = getModules();
+    // add function stubs for the entry points we found
+    for (unsigned int i=0; funcEntryAddrs && i < funcEntryAddrs->size(); i++) {
+        obj->parse_img()->addFunctionStub((*funcEntryAddrs)[i] - loadAddress);
+    }
 
-   // check that the function entry addrs are not in existing modules
-   // and that addrStart and addrEnd do not overlap existing modules
-   for (unsigned int i=0; i < allmods->size(); i++) {
-      Address curStart, curEnd;
-      image *curImg = (*allmods)[i]->lowlevel_mod()->pmod()->imExec();
-      curStart = (curImg->imageOffset() < curImg->dataOffset()) ? 
-         curImg->imageOffset() : curImg->dataOffset();
-      curEnd = (curImg->imageOffset()+curImg->imageLength() 
-            < curImg->imageOffset()+curImg->dataLength()) ? 
-         curImg->imageOffset()+curImg->imageLength() :
-            curImg->dataOffset()+curImg->dataLength();
-      // function entry address check
-      for (unsigned int j=0; funcEntryAddrs && j < funcEntryAddrs->size(); j++) {
-         if ((*funcEntryAddrs)[j] >= curStart && (*funcEntryAddrs)[j] < curEnd ) {
-            fprintf(stderr, "%s[%d] Call to parseNewRegion included function "
-                  "entry point %lx that overlaps existing module %s, which "
-                  "occupies memory range [0x%lX 0x%lX]\n",__FILE__,__LINE__,
-                  (*funcEntryAddrs)[j], curImg->file().c_str(), 
-                  (long)curStart, (long)curEnd);
-            return NULL;
-         }
-      }
-
-      // overlap check
-      if (addrStart <= (curEnd + curImg->desc().loadAddr()) 
-            && addrEnd >= (curStart + curImg->desc().loadAddr())) {
-         fprintf(stderr, "%s[%d] addMemModule received a request for a new "
-               "region that overlaps existing module %s, which occupies "
-               "memory range [0x%lX 0x%lX]", __FILE__,__LINE__,
-               curImg->file().c_str(), (long)curStart, (long)curEnd);
-         return NULL;
-      }
-   }
-
-   // if addrStart & addrEnd are not set, find the module that
-   // contains all funcEntryAddrs and set addrStart and addrEnd
-
-   if (addrStart == 0 && addrEnd == 0 && funcEntryAddrs != NULL) { // KEVINTODO: could make this more general
-      bool foundSection = false;
-#if defined(os_windows) 
-      for (unsigned int i=0; !foundSection && i < allmods->size(); i++) {
-         image *curImg = (*allmods)[i]->lowlevel_mod()->pmod()->imExec();
-         // check the PE header for uninitialized data sections
-         std::vector<Region*> peSections;
-         if (curImg->getObject()->getAllRegions(peSections)) {
-            Address baseAddress = curImg->desc().loadAddr();
-            printf("sections list in image %s\n", curImg->name().c_str());
-            for (unsigned int j=0; j < peSections.size(); j++) {
-               Region *cursec = peSections[j];
-               printf("section #%d: \"%s\"isLoadable=%d [0x%x 0x%x] "
-                     "rawDataPtr=0x%x\n", //KEVINTODO: remove or hide this 
-                     cursec->getRegionNumber(), cursec->getRegionName().c_str(), 
-                     cursec->isLoadable(), 
-                     cursec->getRegionAddr() +baseAddress,
-                     cursec->getRegionAddr() +cursec->getRegionSize() +baseAddress,
-                     cursec->getPtrToRawData());
-               bool inSection = true;
-               for (unsigned int k=0; inSection && k < funcEntryAddrs->size(); k++) {
-                  if (cursec->getPtrToRawData() 
-                        || (*funcEntryAddrs)[k] < cursec->getRegionAddr() + baseAddress
-                        || (*funcEntryAddrs)[k] >= (cursec->getRegionAddr() 
-                           + cursec->getRegionSize() 
-                           + baseAddress)) {
-                     inSection = false;
-                  }
-               }
-               if (inSection) {
-                  foundSection = true;
-                  addrStart = cursec->getRegionAddr() + baseAddress;
-                  addrEnd = cursec->getRegionAddr() + cursec->getRegionSize() + baseAddress;
-               }
-            }
-         }
-      }
-      // KEVINTODO: search list of loaded Windows dlls for dlls not listed in allmods
-      // KEVINTODO: should I be searching the list of segments listed in the LDT?
-#else       // check in procfs or linkmaps for a region that might contain this
-      //KEVINTODO: implement procfs and linkmaps searching for empty regions
-#endif
-      if (!foundSection) {
-         fprintf(stderr, "%s[%d] parseNewRegion tried to find a region to "
-               "parse based on the addresses that were sent to it, but "
-               "failed to find a valid memory region that contained all "
-               "addresses\n", __FILE__, __LINE__);
-         return NULL;
-      }
-   }
-
-   // Copy the region to a temp file: /tmp/MemRegion_START_END
-   BPatch_process * proc = dynamic_cast<BPatch_process *>(addSpace);
-   void *regionBuf = malloc(addrEnd - addrStart);
-   if (!addSpace->getAS()->readDataSpace((void*)addrStart, addrEnd-addrStart, 
-            regionBuf, false)) {
-      fprintf(stderr, "%s[%d]: Failed to read from region [%X %X]\n",
-            __FILE__, __LINE__,(int)addrStart, 
-            (int)addrEnd);
-   }
-
-   char regName[64];
-   sprintf(regName, "/tmp/MemRegion_%lX_%lX", addrStart, addrEnd);
-   FILE *regionFD = fopen(regName, "w");
-   if (regionFD == NULL) { // try to write to /tmp
-      fprintf(stderr,"%s[%d]Was unable to open file %s for writing, will "
-            "attempt to write to current working directory\n",
-            FILE__,__LINE__,regName);
-      sprintf(regName, "MemRegion_%lX_%lX", addrStart, addrEnd);
-      FILE *regionFD = fopen(regName, "w");
-      if (regionFD == NULL) { // try writing to working directory
-         fprintf(stderr,"%s[%d]Secondary attempt to open %s also failed\n",
-               FILE__,__LINE__,regName);
-         free(regionBuf);
-         return NULL;
-      }
-   }
-   fwrite(regionBuf, 1, addrEnd-addrStart, regionFD);
-   fclose(regionFD);
-   free(regionBuf);
-
-   // create a fileDescriptor and mapped_object and add region as shared object
-   sprintf(regName, "/tmp/MemRegion_%lX_%lX", addrStart, addrEnd);
-   fileDescriptor fdesc = fileDescriptor(regName,0,addrEnd - addrStart);
-   mapped_object *obj = mapped_object::createMappedObject
-      (fdesc, addSpace->getAS(), parseGaps);
-
-   // add function for the entry point we found
-   for (unsigned int i=0; funcEntryAddrs && i < funcEntryAddrs->size(); i++) {
-      obj->parse_img()->addFunctionStub((*funcEntryAddrs)[i] - addrStart);
-   }
-
-   // force module to be parsed and return BPatch_module
-   obj->parse_img()->analyzeIfNeeded(); 
-   proc->llproc->addASharedObject(obj);
-   pdvector<mapped_module*> mods = obj->getModules();
-   if (mods.size() == 0) {
-      fprintf(stderr,"%s[%d] Failed to create module for region [%lx %lx]\n",
-            FILE__, __LINE__, addrStart, addrEnd);
-      return NULL;
-   }
-
-   return new BPatch_module(addSpace, mods[0], this);
+    // force mapped_object to be parsed and return BPatch_module for it
+    obj->analyze(); 
+    bpProc->lowlevel_process()->addASharedObject(obj);
+    pdvector<mapped_module*> mods = obj->getModules();
+    if (mods.size() == 0) {
+        fprintf(stderr,"%s[%d] Failed to create module for region [%lx %lx]\n",
+                FILE__, __LINE__, regionStart, regionEnd);
+        return NULL;
+    }
+    return new BPatch_module(bpProc, mods[0], bpProc->getImage());
 }
 
-// Merge unresolved control flow vectors of all mapped objects
-// return the merged vector of all unresolved control flow
+/* Object re-parsed, if new modules need to be created in order to do
+ * so they are added to the newModules vector.  This function should
+ * only be invoked if all funcEntryAddrs lie within the boundaries of
+ * the module.  A true return value means that an EXISTING object was
+ * re-parsed via the addition of new code, a false return value means
+ * that this was not the case.  The parseGaps parameter only applies
+ * to newly created modules
+*/
+bool reparseObject(BPatch_addressSpace *addSpace, 
+                   BPatch_Vector<BPatch_module*> *newModules,
+                   mapped_object *obj, vector<Address> *funcEntryAddrs, 
+                   bool parseGaps)
+{
+    // parse all functions with valid entry addresses in the module
+    bool reparsedObject = false;
+    Address baseAddress = obj->parse_img()->desc().loadAddr();
+    vector<Address>::iterator curEntry = funcEntryAddrs->begin();
+    Region *reg;
+    vector<image_func*> regFuncs;
+    while (curEntry != funcEntryAddrs->end()) {
+        // if isCode is true and the address is in the mapped portion of the region
+        if (obj->parse_img()->isCode((*curEntry) - baseAddress) &&
+            (! obj->parse_img()->getObject()->findEnclosingRegion(reg, (*curEntry)-baseAddress) ||
+             (*curEntry) - baseAddress < reg->getRegionAddr() + reg->getDiskSize())){
+            image_func *imgfunc = obj->parse_img()->addFunctionStub
+                ((*curEntry) - baseAddress);
+            regFuncs.clear();
+            regFuncs.push_back(imgfunc);
+            obj->analyzeNewFunctions(&regFuncs);
+            curEntry = funcEntryAddrs->erase(curEntry);
+            reparsedObject = true;
+        } else {
+            curEntry++;
+        }
+    }
 
+    // return now if there are no more unresolved funcEntryAddrs
+    if (funcEntryAddrs->size() == 0) {
+        return reparsedObject;
+    }
+    // get the binary's code regions from symtabAPI or return 
+    std::vector<Region*> regions;
+    if( ! obj->parse_img()->getObject()->getCodeRegions(regions) ) {
+        fprintf(stderr,"%s[%d] Found no code regions for object %s\n", 
+                __FILE__,__LINE__, obj->parse_img()->pathname().c_str());
+        return false;
+    }
+    vector<Address> regEntries;
+    // for each region, determine which entry addrs lie within it
+    for (unsigned ridx=0; funcEntryAddrs->size() && ridx < regions.size(); ridx++) { 
+        regEntries.clear();
+        // if entry point in region, pass from funcEntryAddrs to regEntries
+        curEntry = funcEntryAddrs->begin();
+        while (curEntry != funcEntryAddrs->end()) {
+            if ((*curEntry) >=(regions[ridx]->getRegionAddr() + baseAddress) &&
+                (*curEntry) < (regions[ridx]->getRegionAddr() + 
+                               regions[ridx]->getMemSize() + baseAddress)) {
+                regEntries.push_back(*curEntry);
+                curEntry = funcEntryAddrs->erase(curEntry);
+            } else {
+                curEntry++;
+            }
+        }
+        if (regEntries.size()) {
+            // This case only happens on PE binaries.  We would like
+            // to re-parse the region, but we already know that the
+            // address lies in an unmapped memory region and SymtabAPI
+            // doesn't have memory allocated for those addresses.  If
+            // there's code here it didn't come from the binary on
+            // disk, so the region was overwritten dynamically and the
+            // data will have to be fetched from memory.
+            Address regionStart;
+            Address regionSize;
+            unsigned long rawDataSize = regions[ridx]->getDiskSize();
+            if (rawDataSize == 0 || regions[ridx]->getPtrToRawData() == NULL) {
+                // Case 1: There is no allocated memory for the region
+                // Set rawDataPtr for the region to a newly malloc'ed
+                // region and trigger parsing on the region.  
+                regionStart = regions[ridx]->getRegionAddr() + baseAddress;
+                regionSize = regions[ridx]->getMemSize();
+                void* regBuf = malloc (regionSize);
+                if (!((BPatch_process*)addSpace)->lowlevel_process()->
+                    readDataSpace((void*)regionStart, regionSize, regBuf, true)) {
+                    fprintf(stderr, "%s[%d] Failed to read from region [%lX %lX]\n",
+                            __FILE__, __LINE__,(long)regions[ridx]->getRegionAddr(), 
+                            regions[ridx]->getMemSize());
+                    free(regBuf);
+                    continue;
+                }
+                regions[ridx]->setPtrToRawData(regBuf,regions[ridx]->getMemSize());
+                curEntry = regEntries.begin();
+                regFuncs.clear();
+                while (curEntry != regEntries.end()) {
+                    image_func *imgfunc = obj->parse_img()->addFunctionStub
+                        ((*curEntry) - baseAddress);
+                    regFuncs.push_back(imgfunc);
+                    curEntry++;
+                }
+                obj->analyzeNewFunctions(&regFuncs);
+                reparsedObject = true;
+            } else {
+                // Case 2: The points lie past the end of mapped region memory
+                // Create a new module corresponding to the gap between
+                // the end of the mapped memory for the region and the
+                // end of the region boundary, and parse it. 
+                // KEVINTODO: a better approach for this case would be to
+                // malloc a new region and copy over the mapped part and
+                // grab the rest from the mutatee's address space, but I'm
+                // not sure what would happen if I did that.
+                regionStart = baseAddress + regions[ridx]->getDiskSize();
+                regionSize = baseAddress + regions[ridx]->getMemSize()
+                    - regionStart;
+                BPatch_module * mod = parseRegion((BPatch_process*)addSpace, 
+                                                  regionStart,
+                                                  regionStart + regionSize,
+                                                  &regEntries, parseGaps, 
+                                                  &obj->parse_img()->desc().file(),
+                                                  obj->parse_img()->desc().loadAddr());
+                newModules->push_back(mod);
+            }
+        }
+    }
+    return reparsedObject;
+}
+
+/* This function is only called when functionEntryAddrs is non-empty
+ * and the entries do not overlap any existing mapped_object.  The
+ * function's implementation depends on the second assumption.
+ * Searches /proc for regions that might have mapped in.  The linker
+ * tables changes are immediately handled and the mapped object list
+ * gets updated, so we don't need to search for them. 
+ */
+void findEnclosingRegions(BPatch_Vector<Address> *funcEntryAddrs, 
+                          vector<Address> *regionStartVec, 
+                          vector<Address> *regionEndVec, 
+                          vector<vector<Address> > *regionEntryPoints,
+                          vector<string*> *regionNames, 
+                          process *proc)
+{
+#if defined(os_linux) //search /proc for regions
+    vector<Address>::iterator curEntry;
+    unsigned maps_size=0; 
+    map_entries *maps = getLinuxMaps(proc->getPid(), maps_size);
+    if (maps) {
+        for (unsigned i=0; i < maps_size; i++) {
+            curEntry = funcEntryAddrs->begin();
+            bool firstEntryInRegion = true;
+            while (curEntry != funcEntryAddrs->end()) {
+                if (maps[i].start <= (*curEntry) &&
+                    maps[i].end > (*curEntry)) {
+                    if (firstEntryInRegion) {
+                        regionStartVec->push_back(maps[i].start);
+                        regionEndVec->push_back(maps[i].end);
+                        regionEntryPoints->push_back(vector<Address>());
+                        regionNames->push_back(new string(maps[i].path));
+                        firstEntryInRegion = false;
+                    }
+                    regionEntryPoints->back().push_back(*curEntry);
+                    curEntry = funcEntryAddrs->erase(curEntry);
+                }
+                else {
+                    curEntry++;
+                }
+            }
+        }
+        free(maps);
+    }
+#endif
+    return;
+}
+
+/* BPatch_image::parseNewRegion
+ *
+ * Uses function entry addresses and/or region boundaries to parses
+ * region(s) containing code.  Uses helper functions parseRegion,
+ * findEnclosingRegions, and reparseObject
+ *
+ * (full description in ../h/BPatch_image.h)
+ */
+// KEVINTODO: should I drop boundaries option and call it parseEnclosingCodeRegion?
+bool BPatch_image::parseNewRegionInt
+     (BPatch_Vector<BPatch_module*> *newModules, 
+      Dyninst::Address regionStart, Dyninst::Address regionEnd, 
+      BPatch_Vector<Dyninst::Address> *funcEntryAddrs, bool parseGaps)
+{
+    if (!addSpace->getType() == TRADITIONAL_PROCESS) {
+        fprintf(stderr,"%s[%d] ERROR: parseNewRegion has only been "
+                "implemented for live processes\n", __FILE__, __LINE__);
+        return false;
+    }
+
+    pdvector<mapped_object *> allobjs = addSpace->getAS()->mappedObjects();
+
+    if (regionStart != 0 && regionEnd != 0) {
+        // overlap check with all mapped objects
+        for (unsigned i=0; i < allobjs.size(); i++) { 
+            image *curImg = allobjs[i]->parse_img();
+            // check for overlap w/ all mapped regions
+            Address regStart, regEnd;
+            Address baseAddress = curImg->desc().loadAddr();
+            std::vector<Region *> regions;
+            curImg->getObject()->getAllRegions(regions);
+            std::vector<Region *>::iterator curreg = regions.begin();
+            while(curreg != regions.end()) {
+                regStart = baseAddress + (*curreg)->getRegionAddr();
+                regEnd = regStart + (*curreg)->getMemSize();
+                // KEVINTODO: add isLoadable here, once it gets straightened out
+                // for our binaries, currently it's pretty much always false
+                if (regionStart >= regEnd || regionEnd <= regStart){
+                    curreg++;
+                } else { // region overlaps region
+                    fprintf(stderr, "%s[%d] parseNewRegion received a request to "
+                            "parse new region [0x%lX 0x%lX] that overlaps a "
+                            "region in existing module %s, which occupies memory "
+                            "range [0x%lX 0x%lX]", __FILE__,__LINE__, regionStart, 
+                            regionEnd, curImg->file().c_str(), (long)regStart, 
+                            (long)regEnd);
+                    return false;
+                }
+            }
+        }
+        // KEVINTODO: I could do away with the following restriction
+        // all function entry addresses must lie within the specified boundaries
+        for (unsigned i=0; funcEntryAddrs && i < funcEntryAddrs->size(); i++) { 
+            Address curAddr = (*funcEntryAddrs)[i];
+            if (curAddr < regionStart || curAddr >= regionEnd) {
+                fprintf(stderr, "%s[%d] parseNewRegion received a request for a new "
+                        "region from [0x%lx 0x%lx], but function entry address 0x%lx "
+                        "does not lie in that region\n", __FILE__,__LINE__,
+                        (long)regionStart, (long)regionEnd, (long)curAddr);
+                return false;
+            }
+        }
+        BPatch_module *mod = parseRegion((BPatch_process*)addSpace, regionStart, 
+                                         regionEnd, funcEntryAddrs, false, NULL, 0);
+        if (mod == NULL) {
+            return false;
+        } 
+        newModules->push_back(mod);
+    }
+    else if (funcEntryAddrs != NULL && funcEntryAddrs->size() > 0) {
+        // group funcEntryAddrs by the mapped_objects that they fit into
+        vector<Address>::iterator curEntry;
+        vector<Address> objEntries;
+        for (unsigned int i=0; i < allobjs.size() && funcEntryAddrs->size(); i++) { 
+            image *curImg = allobjs[i]->parse_img();
+            // determine region start/end boundaries
+            Address regStart, regEnd;
+            Address baseAddress = curImg->desc().loadAddr();
+            // iterate through executable regions
+            std::vector<Region*> regions;
+            if( ! curImg->getObject()->getCodeRegions(regions) ) {
+                fprintf(stderr,"%s[%d] Found no code regions for object %s\n", 
+                        __FILE__,__LINE__, curImg->pathname().c_str());
+                break;
+            }
+            std::vector<Region *>::const_iterator curreg = regions.begin();
+            while(curreg != regions.end() && funcEntryAddrs->size()) {
+                regStart = baseAddress + (*curreg)->getRegionAddr();
+                regEnd = regStart + (*curreg)->getMemSize();
+                // iterate through func entry addrs
+                curEntry = funcEntryAddrs->begin();
+                while (curEntry != funcEntryAddrs->end()) {
+                    if ((*curEntry) >= regStart && (*curEntry) < regEnd) {
+                        objEntries.push_back(*curEntry);
+                        curEntry = funcEntryAddrs->erase(curEntry);
+                    } else {
+                        curEntry++;
+                    }
+                }
+                curreg++;
+            }
+            // re-parse object if it contains entry points
+            if (objEntries.size()) {
+                if (reparseObject(addSpace, newModules, 
+                                  allobjs[i], &objEntries, parseGaps)) {
+                    pdvector<mapped_module*> mods = allobjs[i]->getModules();
+                    //reparseObject adds all new functions to mods[0]
+                    // since that's what image::addFunctionStub does
+                    newModules->push_back(findOrCreateModule(mods[0]));
+                }
+                objEntries.clear();
+            }
+        }
+        // if entry points left over, find regions that contain them
+        // and parse each region
+        if (funcEntryAddrs->size()) {
+            vector<Address> regionStartVec, regionEndVec;
+            vector<vector<Address> > regionEntries;
+            vector<string*> regionNames;
+            findEnclosingRegions(funcEntryAddrs, 
+                                 &regionStartVec, 
+                                 &regionEndVec, 
+                                 &regionEntries, 
+                                 &regionNames,
+                                 (process*)addSpace->getAS());
+            for (unsigned ridx=0; ridx < regionStartVec.size(); ridx++) {
+                BPatch_module *mod = parseRegion((BPatch_process*)addSpace, 
+                                                 regionStartVec[ridx], 
+                                                 regionEndVec[ridx],
+                                                 &regionEntries[ridx],
+                                                 parseGaps,
+                                                 regionNames[ridx],0);
+                if (mod) {
+                    newModules->push_back(mod);
+                }
+                free(regionNames[ridx]);
+                regionNames[ridx] = NULL;
+            }
+        }
+    } 
+    else {
+        fprintf(stderr,"%s[%d] parseNewRegion requires a list of function entry "
+                "addresses to be provided and/or the start and end addresses "
+                "of a valid memory region to be provided, but got neither\n", 
+                __FILE__, __LINE__);
+        return false;
+    }
+    if (newModules->size() == 0) {
+        return false;
+    }
+    return true;
+}
+
+// Merges unresolved control flow vectors of all mapped objects return
+// the merged vector of all unresolved control flow do this by
+// grabbing one module per mapped object, and calling
+// BPatch_module::getUnresolvedControlFlow on that module
 BPatch_Vector<BPatch_point *> *BPatch_image::getUnresolvedControlFlowInt()
 {
    unresolvedCF.clear();
-   pdvector<mapped_object*> objs = addSpace->getAS()->mappedObjects();
+   pdvector<mapped_object *> objs = addSpace->getAS()->mappedObjects();
    for (unsigned i=0; i < objs.size(); i++) {
       pdvector<mapped_module *> mods = objs[i]->getModules();
       if (mods.size()) {
