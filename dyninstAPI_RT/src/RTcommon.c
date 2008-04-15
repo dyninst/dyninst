@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.77 2008/04/11 23:30:43 legendre Exp $ */
+/* $Id: RTcommon.c,v 1.78 2008/04/15 16:43:44 roundy Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -105,7 +105,12 @@ const unsigned long sizeOfAnyHeap1 = sizeof( DYNINSTstaticHeap_16M_anyHeap_1 );
  **/
 DYNINST_synch_event_t DYNINST_synch_event_id = DSE_undefined;
 void *DYNINST_synch_event_arg1;
-
+// Code to read args 2,3 would have to be moved from dyninstAPI's
+// process::handleStopThread to signalgenerator::decodeRTSignal in
+// order for other signals to make use of them, as currently only the
+// stopThread event needs makes use of them.  
+void *DYNINST_synch_event_arg2 = NULL; // not read in dyninst's decodeRTSignal
+void *DYNINST_synch_event_arg3 = NULL; // not read in dyninst's decodeRTSignal
 int DYNINST_break_point_event = 0;
 
 /**
@@ -371,6 +376,28 @@ void DYNINST_instLwpExit(void) {
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
 }
+
+
+/** 
+ * Receives two snippets as arguments, stops the mutator, and sends
+ * the arguments back to the mutator
+ **/     
+void DYNINST_stopThread (void * pointAddr, void *callBackID, void *calculation)
+{
+   /* Set the state so the mutator knows what's up */
+   DYNINST_synch_event_id = DSE_stopThread;
+   DYNINST_synch_event_arg1 = pointAddr;
+   DYNINST_synch_event_arg2 = callBackID;
+   DYNINST_synch_event_arg3 = calculation;
+   /* Stop ourselves */
+   DYNINSTbreakPoint();
+   /* Once the stop completes, clean up */
+   DYNINST_synch_event_id = DSE_undefined;
+   DYNINST_synch_event_arg1 = NULL;
+   DYNINST_synch_event_arg2 = NULL;
+   DYNINST_synch_event_arg3 = NULL;
+}
+
 
 /**
  * Used to report addresses of functions called at dynamic call sites 
