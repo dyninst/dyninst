@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.138 2008/02/23 02:09:08 jaw Exp $
+// $Id: linux-x86.C,v 1.139 2008/04/15 16:43:22 roundy Exp $
 
 #include <fstream>
 #include <string>
@@ -84,8 +84,10 @@
 
 #include <sstream>
 
+#if defined (cap_save_the_world)
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
+#endif
 #include "dyninstAPI/src/debuggerinterface.h"
 
 #include "dyninstAPI/src/ast.h"
@@ -686,59 +688,43 @@ bool process::decodeStartupSysCalls(EventRecord &ev)
  */
 bool process::instrumentLibcStartMain() 
 {
-   /*
-   // find libc, this will get shared object information from the dynamic linker
-   if (processSharedObjects()) {
-   logLine( "Failed to get dyninst's list of mapped objects\n");
-   return false;
-   }
-   mapped_object* libc = findObject("/libc*.so",true);
-   if (!libc) {
-   logLine("Libc seems not to have been loaded, could not instrument "
-   "__libc_start_main\n");
-   return false;
-   }
-   mapped_object *libc = mapped_object::createMappedObject(libs[libIdx], this);
-    */
-   unsigned int maps_size =0;
-   map_entries *maps = getLinuxMaps(getPid(), maps_size);
-   unsigned int libcIdx=0;
-   while (libcIdx < maps_size &&
-         ! (strstr(maps[libcIdx].path,"/libc")
-            && strstr(maps[libcIdx].path,".so"))) {
-      libcIdx++;
-   }
-   assert(libcIdx != maps_size);
-   //KEVINTODO: the last two args are not always 0,0: need to fix this (also in BPatch_image?)
-   fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path, true, 0, 0);
-   mapped_object *libc = mapped_object::createMappedObject(libcFD, this);
-   addASharedObject(libc);
+    unsigned int maps_size =0;
+    map_entries *maps = getLinuxMaps(getPid(), maps_size);
+    unsigned int libcIdx=0;
+    while (libcIdx < maps_size &&
+           ! (strstr(maps[libcIdx].path,"/libc")
+              && strstr(maps[libcIdx].path,".so"))) {
+       libcIdx++;
+    }
+    assert(libcIdx != maps_size);
+    //KEVINTODO: address code and data are not always 0,0: need to fix this
+    fileDescriptor libcFD = fileDescriptor(maps[libcIdx].path, 0, 0);
+    mapped_object *libc = mapped_object::createMappedObject(libcFD, this);
+    addASharedObject(libc);
 
-   // find __libc_startmain
-   const pdvector<int_function*> *funcs;
-   funcs = libc->findFuncVectorByPretty("__libc_start_main");
-   if(funcs->size() == 0 || (*funcs)[0] == NULL) {
-      logLine( "Couldn't find __libc_start_main\n");
-      return false;
-   } else if (funcs->size() > 1) {
-      char sizestr[50];
-      sprintf(sizestr, "%d", funcs->size());
-      std::string msg = std::string("Found ") + std::string(sizestr) + 
-         std::string("functions called __libc_start_main, not fatal but weird\n");
-      BPatch_reportError(BPatchSerious, 100, msg.c_str());
-   }
-   if (!(*funcs)[0]->isInstrumentable()) {
-      logLine( "__libc_start_main is not instrumentable\n");
-      return false;
-   }
-   Address addr = (*funcs)[0]->getAddress();
-   startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
-         FILE__, __LINE__, (int)addr);
+    // find __libc_startmain
+    const pdvector<int_function*> *funcs;
+    funcs = libc->findFuncVectorByPretty("__libc_start_main");
+    if(funcs->size() == 0 || (*funcs)[0] == NULL) {
+        logLine( "Couldn't find __libc_start_main\n");
+        return false;
+    } else if (funcs->size() > 1) {
+        std::string msg = std::string("Found " + funcs->size())
+            + std::string("functions called __libc_start_main, not fatal but weird\n");
+        BPatch_reportError(BPatchSerious, 100, msg.c_str());
+    }
+    if (!(*funcs)[0]->isInstrumentable()) {
+        logLine( "__libc_start_main is not instrumentable\n");
+        return false;
+    }
+    Address addr = (*funcs)[0]->getAddress();
+    startup_printf("%s[%d]: Instrumenting libc.so:__libc_start_main() at 0x%x\n", 
+                   FILE__, __LINE__, (int)addr);
 
-   // save original code at beginning of function
-   if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer),savedCodeBuffer,true)) {
-      fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-      fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
+    // save original code at beginning of function
+    if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer),savedCodeBuffer,true)) {
+        fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
             __FILE__, __LINE__, getThreadStr(getExecThreadID()));
       fprintf(stderr, "Failed to read at address 0x%lx\n", addr);
       return false;
@@ -767,114 +753,115 @@ bool process::instrumentLibcStartMain()
  */
 bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
 {
-   assert(libcstartmain_brk_addr);
-   assert(trappingLWP);
+    assert(libcstartmain_brk_addr);
+    assert(trappingLWP);
 
-   // Read the parameters from the call to libcStartMain
-   Address mainaddr = getLibcStartMainParam(trappingLWP);
-   mapped_object *a_out = findObject(mainaddr);
+    // Read the parameters from the call to libcStartMain
+    Address mainaddr = getLibcStartMainParam(trappingLWP);
+    mapped_object *a_out = findObject(mainaddr);
 
-   char namebuf[64];
-   Address regionStart = 0;
-   Address regionEnd = 0;
-   // there might not be an object that corresponds to the a_out
-   if (a_out == NULL) {
-      // determine confines of region that encloses main, search from
-      // end to get most recent mmap of an enclosing region
-      int idx =  (int)mappedRegionStart.size()-1;
-      while (idx >= 0  && 
-            !(mappedRegionStart[idx] <= mainaddr 
-               && mainaddr <= mappedRegionEnd[idx])) {
-         idx--;
-      }
-      if (idx < 0) {
-         fprintf(stderr,"%s[%d] No valid memory region seems to contain "
-               "the address of main=0x%x\n",__FILE__,__LINE__, 
-               (int)mainaddr);
-         return false;
-      }
-      regionStart = mappedRegionStart[idx];
-      regionEnd = mappedRegionEnd[idx];
-      startup_printf("main(0x%x) is in region [0x%X 0x%X]\n", 
-            (int)mainaddr, (int)regionStart, (int)regionEnd);
+    char namebuf[64];
+    Address regionStart = 0;
+    Address regionEnd = 0;
+    // there might not be an object that corresponds to the a_out
+    if (a_out == NULL) {
+        // determine confines of region that encloses main, search from
+        // end to get most recent mmap of an enclosing region
+        int idx =  (int)mappedRegionStart.size()-1;
+        while (idx >= 0  && 
+               !(mappedRegionStart[idx] <= mainaddr 
+                 && mainaddr <= mappedRegionEnd[idx])) {
+            idx--;
+        }
+        if (idx < 0) {
+            fprintf(stderr,"%s[%d] No valid memory region seems to contain "
+                    "the address of main=0x%x\n",__FILE__,__LINE__, 
+                    (int)mainaddr);
+            return false;
+        }
+        regionStart = mappedRegionStart[idx];
+        regionEnd = mappedRegionEnd[idx];
+        startup_printf("main(0x%x) is in region [0x%X 0x%X]\n", 
+                       (int)mainaddr, (int)regionStart, (int)regionEnd);
 
-      // found the right region, copy its contents to a temp file
-      void *regionBuf = malloc(regionEnd - regionStart);
-      if (!readDataSpace((void*)regionStart, regionEnd-regionStart, 
-               regionBuf, false)) {
-         fprintf(stderr, "%s[%d]: Failed to read from region [%X %X]\n",
-               __FILE__, __LINE__,(int)regionStart, 
-               (int)regionEnd);
-      }
-      // Make sure bytes 12-15 of magic header are set to 0 (for x86-64 bit)
-      ((int*)regionBuf)[3] = 0;
-      // We have no section information, so don't try to point to it
-      ((int*)regionBuf)[10] = 0;
+        // found the right region, copy its contents to a temp file
+        void *regionBuf = malloc(regionEnd - regionStart);
+        if (!readDataSpace((void*)regionStart, regionEnd-regionStart, 
+                          regionBuf, false)) {
+            fprintf(stderr, "%s[%d]: Failed to read from region [%X %X]\n",
+                       __FILE__, __LINE__,(int)regionStart, 
+                       (int)regionEnd);
+        }
+        // Make sure bytes 12-15 of magic header are set to 0 (for x86-64 bit)
+        ((int*)regionBuf)[3] = 0;
+        // We have no section information, so don't try to point to it
+        ((int*)regionBuf)[10] = 0;
 
-      snprintf(namebuf, 64, "/tmp/MemRegion_%X_%X", 
-            (int)regionStart, (int)regionEnd);
-      namebuf[63]='\0';
-      FILE *regionFD = fopen(namebuf, "w");
-      assert(regionFD != NULL);
-      fwrite(regionBuf, 1, regionEnd-regionStart, regionFD);
-      fclose(regionFD);
-      free(regionBuf);
-      startup_printf("%s[%d]: Read region [%X %X] into temp file %s\n",
-            __FILE__, __LINE__,(int)regionStart, 
-            (int)regionEnd, namebuf);
+        snprintf(namebuf, 64, "/tmp/MemRegion_%X_%X", 
+                 (int)regionStart, (int)regionEnd);
+        namebuf[63]='\0';
+        FILE *regionFD = fopen(namebuf, "w");
+        assert(regionFD != NULL);
+        fwrite(regionBuf, 1, regionEnd-regionStart, regionFD);
+        fclose(regionFD);
+        free(regionBuf);
+        startup_printf("%s[%d]: Read region [%X %X] into temp file %s\n",
+                       __FILE__, __LINE__,(int)regionStart, 
+                       (int)regionEnd, namebuf);
 
-      // create a fileDescriptor and a new mapped_object for the region
-      fileDescriptor fdesc = fileDescriptor(namebuf,false,0,regionEnd-regionStart);
-      a_out = mapped_object::createMappedObject(fdesc, this);
+        //KEVINTODO: address code and data are not always 0,0: need to fix this
+        // create a fileDescriptor and a new mapped_object for the region
+        // create it as though it were a shared object
+        fileDescriptor fdesc = fileDescriptor(namebuf, 0, regionEnd-regionStart);
+        a_out = mapped_object::createMappedObject(fdesc, this);
 
-      // There is no function for adding an a.out, so we'll call
-      // addASharedObject, and switch the old a.out to be this one.
-      // a.out is always the first object in the mapped_objects
-      // vector, our new mapped_object should be at or near the end.
-      addASharedObject(a_out);
-      idx = mapped_objects.size() -1;
-      while (mapped_objects[idx] != a_out && idx >= 0) {
-         idx--;
-      }
-      assert(idx >= 0);
-      mapped_objects[idx] = mapped_objects[0];
-      mapped_objects[0] = a_out;
-   }// end if (a_out == NULL)
-   else {
-      regionStart = a_out->codeBase();
-      regionEnd = regionStart + a_out->imageSize();
-   }
+        // There is no function for adding an a.out, so we'll call
+        // addASharedObject, and switch the old a.out to be this one.
+        // a.out is always the first object in the mapped_objects
+        // vector, our new mapped_object should be at or near the end.
+        addASharedObject(a_out);
+        idx = mapped_objects.size() -1;
+        while (mapped_objects[idx] != a_out && idx >= 0) {
+            idx--;
+        }
+        assert(idx >= 0);
+        mapped_objects[idx] = mapped_objects[0];
+        mapped_objects[0] = a_out;
+        ((fileDescriptor)(a_out->getFileDesc())).setIsShared(false);
+    }
+    else {// (a_out != NULL)
+        regionStart = a_out->getFileDesc().loadAddr();
+        regionEnd = regionStart + a_out->imageSize();
+    }
 
-   // if (a function exists at mainaddr)
-   // then: rename it "main" and set main_function to its int_function
-   // else: force a re-parse with "main" as a guaranteed function location 
-   snprintf(namebuf,64,"gap_%lx", (long)mainaddr);
-   a_out->parse_img()->analyzeIfNeeded();
-   int_function* mainfunc = findOnlyOneFunction(namebuf,a_out->fileName());
-   if (mainfunc) {
-      mainfunc->addSymTabName("main", true);
-      mainfunc->addPrettyName("main", true);
-      main_function = mainfunc;
-      startup_printf("found main via gap parsing at %x in mapped_obj [%x %x]\n",
-            (int)main_function->getAddress(),
-            (int)a_out->codeBase(),
-            (int)(a_out->codeBase()+a_out->imageSize()));
-   }
-   else {
-      startup_printf("gap parsing failed to find main, forcing main to be "
-            "parsed at 0x%x in mapped object [%x %x]\n",
-            (int)mainaddr,
-            (int)a_out->codeBase(),
-            (int)(a_out->codeBase()+a_out->imageSize()));
-      image_func *mainfunc = new image_func("main", mainaddr, UINT_MAX, 
-            a_out->parse_img()->findModule("DEFAULT_MODULE"), a_out->parse_img());
-      pdvector<Address>callTargets;
-      dictionary_hash<Address,image_func*> preParseStubs(addrHash);
-      if (!mainfunc->parse(callTargets, preParseStubs)) {
-         fprintf(stderr, "%s[%d] unable to parse main at 0x%x\n",
-               FILE__, __LINE__, (int)mainaddr);
-      }
-   }
+    // if gap parsing is on, check for a function at mainaddr, rename
+    // it to "main" and set main_function to its int_function
+    int_function* mainfunc = NULL;
+    if (a_out->parse_img()->parseGaps()) {
+        a_out->analyze();
+        snprintf(namebuf,64,"gap_%lx", (long)mainaddr);
+        int_function* mainfunc = findOnlyOneFunction(namebuf,a_out->fileName());
+        if (mainfunc) {
+            mainfunc->addSymTabName("main", true);
+            mainfunc->addPrettyName("main", true);
+            main_function = mainfunc;
+            startup_printf("found main via gap parsing at %x in mapped_obj [%x %x]\n",
+                           (int)main_function->getAddress(),
+                           (int)a_out->getFileDesc().loadAddr(),
+                           (int)(a_out->getFileDesc().loadAddr() + a_out->imageSize()));
+        }
+    }
+    // parse the binary with "main" as a function location
+    if (!mainfunc) {
+        startup_printf("Parsing main at 0x%x in mapped object [%x %x]"
+                       " which is its location according to __libc_start_main \n",
+                (int)mainaddr,
+                (int)a_out->getFileDesc().loadAddr(),
+                (int)(a_out->getFileDesc().loadAddr() + a_out->imageSize()));
+        // add function stub and parsed object
+        a_out->parse_img()->addFunctionStub(mainaddr, "main");
+        a_out->analyze(); 
+    }
 
    // Restore __libc_start_main to its original state
    if (!writeDataSpace((void *)libcstartmain_brk_addr, 
