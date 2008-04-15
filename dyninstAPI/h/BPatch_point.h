@@ -333,7 +333,7 @@ public:
     //  which case "target" is set to the target of the control flow
     //  instruction
     API_EXPORT(Int, (targets),
-    bool, getCFTarget, (BPatch_Vector<unsigned long> *targets));
+    bool, getCFTarget, (BPatch_Vector<Dyninst::Address> *targets));
 
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { return getAddress(); }
