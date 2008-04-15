@@ -293,14 +293,46 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
     char *,getProgramFileName,(char *name, unsigned int len));
 
-    // BPatch_image::parseNewRegion
-    //
-    // Creates a module for the specified address range as a shared
-    // object and parses the code it contains
-    API_EXPORT(Int, (addrStart, addrEnd, funcEntryAddrs, parseGaps),
-    BPatch_module *,parseNewRegion, 
-    (unsigned long addrStart=0, unsigned long addrEnd=0, 
-     BPatch_Vector<unsigned long> *funcEntryAddrs=NULL, bool parseGaps=false));
+    /* BPatch_image::parseNewRegion
+     *
+     * This function uses function entry addresses and/or region
+     * boundaries to parses region(s) containing code.  Can only be
+     * invoked on a BPatch_process
+     *
+     * regionStart and regionEnd: these parameters are taken as the bounds
+     * for the mapped object that we create.  We check that they do not
+     * overlap existing modules.  These values should be set to 0 if they
+     * are unknown.  If these parameters are set, all elements of
+     * functionEntryAddrs must lie in the specified range
+     * 
+     * funcEntryAddrs: this is a vector of function start addresses that
+     * seed the control-flow-traversal parsing.  If they lie in an existing
+     * module the The must all lie in the
+     * same contiguous valid region of memory.  If the functions lie
+     * inside the boundaries of an existing module, this function should
+     * not be used 
+     *
+     * If both regionStart and regionEnd are 0, we attempt to find a valid
+     * memory region that encloses all of the entries in the
+     * funcEntryAddrs vector.  funcEntryAddrs cannot be empty if
+     * regionStart and regionEnd are both 0.
+     *
+     * newModules: BPatch_modules will be added to this vector if no
+     * existing modules bounded the specified function entry points.
+     * Unfortunately, new modules will also sometimes have to be created
+     * for dynamically created code in memory that does not map to the
+     * file version of the binary.  
+     *
+     * parseGaps: if true, triggers gap parsing on all newly created modules
+     *
+     * Return value: This value is true if a new module was created or if
+     * new code was parsed in an existing module
+     */
+    API_EXPORT(Int, (newModules, regionStart, regionEnd, funcEntryAddrs, parseGaps),
+    bool ,parseNewRegion, 
+    (BPatch_Vector<BPatch_module*> *newModules, 
+     Dyninst::Address regionStart=0, Dyninst::Address regionEnd=0, 
+     BPatch_Vector<Dyninst::Address> *funcEntryAddrs=NULL, bool parseGaps=false));
 
     //  BPatch_image::GetUnresolvedControlFlow
     //
