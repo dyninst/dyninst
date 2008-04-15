@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.18 2008/02/23 02:09:11 jaw Exp $
+/* $Id: signalgenerator.h,v 1.19 2008/04/15 16:43:34 roundy Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -188,6 +188,16 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
 
    bool decodeStartupSysCalls(EventRecord &ev);
 
+   /* Cached for speed */
+   void clearCachedLocations();
+
+   bool decodeRTSignal(EventRecord &ev);
+   bool decodeRTSignal_NP(EventRecord &ev, Address rt_arg, int status);
+  //  decodeSyscall changes the field ev.what from a platform specific
+  //  syscall representation, eg, SYS_fork, to a platform indep. one,
+  //  eg. procSysFork.  returns false if there is no available mapping.
+  virtual bool decodeSyscall(EventRecord &ev) = 0;
+
    virtual SignalHandler *newSignalHandler(char *name, int shid)  = 0;
    void deleteSignalHandler(SignalHandler *sh);
 
@@ -327,6 +337,12 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
 
    void MONITOR_ENTRY();
    void MONITOR_EXIT();
+
+   Address sync_event_id_addr;
+   Address sync_event_arg1_addr;
+   Address sync_event_arg2_addr;
+   Address sync_event_arg3_addr;
+   Address sync_event_breakpoint_addr;
 
    unsigned usage_count;
 };

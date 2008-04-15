@@ -1100,20 +1100,19 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
 #if 0
   //  windows has more info available here, not just from getActiveFrame -- we
   //  used to use it, but it may not be necessary anymore...
-
-     if (proc->dyninstlib_brk_addr &&
+        
+        if (proc->dyninstlib_brk_addr &&
             (proc->dyninstlib_brk_addr == (Address)ev.info.u.Exception.ExceptionRecord.ExceptionAddress)) {
-
-        ev.type = evtProcessLoadedRT;
-       ret = true;
-     }
+            ev.type = evtProcessLoadedRT;
+            ret = true;
+        }
 
 #endif
         break;
     case initialized_bs:
     case loadedRT_bs:
     default:
-      break;
+        break;
   };
   
   if (ret) 
@@ -1123,6 +1122,154 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
 
   return ret;
 }
+
+void SignalGeneratorCommon::clearCachedLocations()  {
+    sync_event_id_addr = 0;
+    sync_event_arg1_addr = 0;
+    sync_event_arg2_addr = 0;
+    sync_event_arg3_addr = 0;
+    sync_event_breakpoint_addr = 0;
+}
+
+bool SignalGeneratorCommon::decodeRTSignal(EventRecord &ev)
+{
+   // We've received a signal we believe was sent
+   // from the runtime library. Check the RT lib's
+   // status variable and return it.
+   // These should be made constants
+   process *proc = ev.proc;
+   if (!proc) return false;
+
+   int breakpoint;
+   int status;
+   Address arg1 = 0x0;
+   int zero = 0;
+
+   // First, check breakpoint...
+   if (sync_event_breakpoint_addr == 0) {
+       std::string status_str ("DYNINST_break_point_event");
+       
+       pdvector<int_variable *> vars;
+       if (!proc->findVarsByAll(status_str, vars)) {
+           return false;
+       }
+       
+       if (vars.size() != 1) {
+           fprintf(stderr, "%s[%d]:  ERROR, found %d copies of var %s\n", 
+                   FILE__, __LINE__, vars.size(), status_str.c_str());
+           return false;
+       }
+
+       sync_event_breakpoint_addr = vars[0]->getAddress();
+   }
+
+   if (!proc->readDataSpace((void *)sync_event_breakpoint_addr, 
+                            sizeof(int),
+                            &breakpoint, true)) {
+       fprintf(stderr, "%s[%d]:  readDataSpace failed (ev.proc %d, ev.lwp %d)\n", 
+               FILE__, __LINE__, ev.proc->getPid(), ev.lwp->get_lwp_id());
+       return false;
+   }
+
+   switch (breakpoint) {
+   case 0:
+       return false;
+   case 1:
+#if ! defined (os_windows)
+       // We SIGNUMed it
+       if (ev.what != DYNINST_BREAKPOINT_SIGNUM) {
+           // False alarm...
+           return false;
+       }
+       break;
+   case 2:
+       if (ev.what != SIGSTOP) {
+           // Again, false alarm...
+           return false;
+       }
+#endif
+       break;
+   default:
+       assert(0);
+   }
+
+   // Definitely a breakpoint... set that up and clear the flag
+   ev.type = evtProcessStop;
+
+   // Further processing may narrow this down some more.
+
+   // Make sure we don't get this event twice....
+   if (!proc->writeDataSpace((void *)sync_event_breakpoint_addr, sizeof(int), &zero)) {
+       fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+   }
+
+   if (sync_event_id_addr == 0) {
+       std::string status_str ("DYNINST_synch_event_id");
+       
+       
+       pdvector<int_variable *> vars;
+       if (!proc->findVarsByAll(status_str, vars)) {
+           fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
+                   FILE__, __LINE__, status_str.c_str());
+           return false;
+       }
+       
+       if (vars.size() != 1) {
+           fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
+                   FILE__, __LINE__, vars.size(), status_str.c_str());
+           return false;
+       }
+
+       sync_event_id_addr = vars[0]->getAddress();
+   }
+
+   if (!proc->readDataSpace((void *)sync_event_id_addr, sizeof(int),
+                            &status, true)) {
+       fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+       return false;
+   }
+   
+   if (status == DSE_undefined) {
+       return false; // Nothing to see here
+   }
+
+   // Make sure we don't get this event twice....
+   if (!proc->writeDataSpace((void *)sync_event_id_addr, sizeof(int), &zero)) {
+       fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
+       return false;
+   }
+
+   // get runtime library arg1 address
+   if (sync_event_arg1_addr == 0) {
+       std::string arg_str ("DYNINST_synch_event_arg1");
+       
+       pdvector<int_variable *> vars;
+       if (!proc->findVarsByAll(arg_str, vars)) {
+           fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
+                   FILE__, __LINE__, arg_str.c_str());
+           return false;
+       }
+       
+       if (vars.size() != 1) {
+           fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
+                   FILE__, __LINE__, vars.size(), arg_str.c_str());
+           return false;
+       }
+       sync_event_arg1_addr = vars[0]->getAddress();
+   }
+   //read arg1
+   if (!proc->readDataSpace((void *)sync_event_arg1_addr, 
+                            proc->getAddressWidth(), &arg1, true)) {
+       fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+       return false;
+   }
+
+   // Do platform dependent decoding, sets ev.type and ev.what, adds
+   // arg1 to EventRecord
+   return decodeRTSignal_NP(ev, arg1, status);
+
+}
+
 
 bool SignalGenerator::attachProcess()
 {
@@ -1440,6 +1587,11 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     activeProcessSignalled_(false),
     independentLwpStop_(0),
     childForkStopAlreadyReceived_(false),
+    sync_event_id_addr(0),
+    sync_event_arg1_addr(0),
+    sync_event_arg2_addr(0),
+    sync_event_arg3_addr(0),
+    sync_event_breakpoint_addr(0),
     usage_count(0)
 {
     signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
@@ -2027,10 +2179,7 @@ SignalGenerator::SignalGenerator(char *idstr, std::string file, std::string dir,
                                  int stdin_fd, int stdout_fd,
                                  int stderr_fd) :
    SignalGeneratorCommon(idstr),
-   waiting_for_stop(false),
-   sync_event_id_addr(0),
-   sync_event_arg1_addr(0),
-   sync_event_breakpoint_addr(0)
+   waiting_for_stop(false)
 {
     setupCreated(file, dir, 
                  argv, envp, 
