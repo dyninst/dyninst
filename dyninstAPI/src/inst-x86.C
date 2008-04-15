@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.278 2008/04/11 23:30:19 legendre Exp $
+ * $Id: inst-x86.C,v 1.279 2008/04/15 16:43:19 roundy Exp $
  */
 #include <iomanip>
 
@@ -2073,7 +2073,7 @@ void emitStorePreviousStackFrameRegister(Address register_num,
 
 // First AST node: target of the call
 // Second AST node: source of the call
-
+// This can handle indirect control transfers as well 
 bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                      pdvector<AstNodePtr> &args)
 {
@@ -2089,7 +2089,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
       return false;
    }
 
-   if(i.isCallIndir()){
+   if(i.isCallIndir() || i.isJumpIndir()){
       addr_mode = get_instruction_operand(i.ptr(), base_reg, index_reg,
                                           displacement, scale, Mod);
       switch(addr_mode){
@@ -2182,9 +2182,6 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                  }
               }
               else { //We do not use a scaled index.
-                 cerr << "Inserting untested call site monitoring "
-                      << "instrumentation at address " << std::hex
-                      << callSite->addr() << std::dec << endl;
                  args.push_back(AstNode::operandNode(AstNode::DataIndir,
                                                      AstNode::operatorNode(plusOp,
                                                                            AstNode::operandNode(AstNode::Constant,
@@ -2210,7 +2207,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
       args.push_back( AstNode::operandNode(AstNode::Constant,
                                            (void *) callSite->addr()));
    }
-   else if(i.isCall()){
+   else if(i.isCall()){ 
       //Regular callees are statically determinable, so no need to
       //instrument them
       //return true;
