@@ -101,6 +101,8 @@ typedef enum {
   evtShutDown,
   evtLibcLoaded, /* libc has been loaded */
   evtLibcTrap, /* reached trap in __libc_start_main, handle the trap */
+  evtStopThread, /* executed stop thread code snippet */
+  evtSignalHandlerCB, /* invoke SignalHandlerCallback in response to signal */
   evtProcessInit, /*aka "initialized" */
   evtProcessLoadedRT, /* dyninst RTlib has been loaded */
   evtProcessInitDone, /* aka bootstrapped */
@@ -133,9 +135,9 @@ class EventRecord {
    eventWhat_t what;
    eventStatusCode_t status;
    eventInfo_t info;
+   eventMoreInfo_t info2;
    eventAddress_t address;
    eventFileDesc_t fd; /* only used in async events -- wasteful for clarity*/
-
    char *sprint_event(char *buf); 
    bool isTemplateOf(EventRecord &src);
 
