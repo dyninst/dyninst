@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.207 2008/02/23 02:09:11 jaw Exp $
+// $Id: symtab.h,v 1.208 2008/04/15 16:43:40 roundy Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -132,6 +132,7 @@ class fileDescriptor {
         data_(data),
         shared_(isShared),
         pid_(0),
+        loadAddr_(0),
         startAddr_(0),
         endAddr_(0),
         inMem_(false)
@@ -139,13 +140,15 @@ class fileDescriptor {
 
     // Constructor for a fileDescriptor that represents a dynamically 
     // allocated memory region
-    fileDescriptor(string regionName, Address start, Address end) :
+    fileDescriptor(string regionName, Address start, Address end, 
+                   Address loadAddress=0) :
         file_(regionName),
         member_(emptyString),
         code_(start),
         data_(start),
         shared_(true),
         pid_(0),
+        loadAddr_(loadAddress),
         startAddr_(start),
         endAddr_(end),
         inMem_(true)
@@ -183,6 +186,7 @@ class fileDescriptor {
      void setLoadAddr(Address a);
      void setMember(string member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
+     void setIsShared(bool shared) { shared_ = shared; }
 
 #if defined(os_windows)
      // Windows gives you file handles. Since I collapsed the fileDescriptors
@@ -191,7 +195,7 @@ class fileDescriptor {
                     bool isShared, Address loadAddr) :
          file_(name), code_(baseAddr), data_(baseAddr),
          procHandle_(procH), fileHandle_(fileH),
-         shared_(isShared), pid_(0), loadAddr_(loadAddr) {}
+         shared_(isShared), pid_(0), loadAddr_(loadAddr), inMem_(false) {}
      HANDLE procHandle() const { return procHandle_; }
      HANDLE fileHandle() const { return fileHandle_; }
 
@@ -330,11 +334,8 @@ class image : public codeRange, public InstructionSource {
 
    void analyzeIfNeeded();
 
-   void addFunctionStub(Address functionEntryAddr);
+   image_func* addFunctionStub(Address functionEntryAddr, char *name=NULL);
 
-#if defined(i386_unknown_nt4_0)
-   const pdvector<Address> &getPossibleMains() const   { return possible_mains; }
-#endif
 
  protected:
    ~image();
@@ -393,7 +394,8 @@ class image : public codeRange, public InstructionSource {
    bool symbolExists(const std::string &); /* Does the symbol exist in the image? */
    void postProcess(const std::string);          /* Load .pif file */
 
-
+   // The following two functions & the knownJumpTargets
+   // dictionary_hash are unused as of 4/4/2008 -- scrap them?
    void addJumpTarget(Address addr) {
       if (!knownJumpTargets.defines(addr)) knownJumpTargets[addr] = addr; 
    }
@@ -401,7 +403,6 @@ class image : public codeRange, public InstructionSource {
    bool isJumpTarget(Address addr) { 
       return knownJumpTargets.defines(addr); 
    }
-
 
    // data member access
 
@@ -450,7 +451,7 @@ class image : public codeRange, public InstructionSource {
    // And used for finding inferior heaps.... hacky, but effective.
    bool findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret);
 
-   const pdvector<image_instPoint*> &getBadControlFlow() const;
+   const pdvector<image_instPoint*> &getBadControlFlow();
 
    const pdvector<image_func*> &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
@@ -534,10 +535,11 @@ class image : public codeRange, public InstructionSource {
    bool buildFunctionLists(pdvector<image_func *> &raw_funcs);
    bool analyzeImage();
    Address getBaseAddress() { return baseAddr_; }
+   bool parseGaps() { return parseGaps_; }
    //
    //  ****  PRIVATE DATA MEMBERS  ****
    //
-
+ private:
    fileDescriptor desc_; /* file descriptor (includes name) */
    string name_;		 /* filename part of file, no slashes */
    string pathname_;      /* file name with path */
@@ -639,9 +641,6 @@ class image : public codeRange, public InstructionSource {
 */   
    dictionary_hash <Address, image_variable *> varsByAddr;
 
-#if defined(i386_unknown_nt4_0)
-	pdvector<Address> possible_mains; //Addresses of functions that may be main
-#endif
 
    int refCount;
    Address baseAddr_;
