@@ -688,6 +688,14 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         if(ret) continueHint = true;
         else    continueHint = false;
         break;
+    case evtStopThread:
+        continueHint = false;
+        ret = ev.proc->handleStopThread(ev);
+        break;
+    case evtSignalHandlerCB:
+        ret = handleSignalHandlerCallback(ev);
+        forwardSigToProcess(ev, continueHint);
+        break;
      // Now the /proc only
      // AIX clones some of these (because of fork/exec/load notification)
      case evtRPCSignal:
@@ -916,3 +924,4 @@ void SignalHandler::flagBPatchStatusChange() {
 void SignalHandler::setBPatchProcessSignal(BPatch_process *p, int t) {
     p->lastSignal = t;
 }
+
