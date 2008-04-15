@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.12 2008/02/23 02:09:10 jaw Exp $
+// $Id: pdwinntDL.C,v 1.13 2008/04/15 16:43:28 roundy Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"
@@ -128,6 +128,11 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
      // discover structure of new DLL, and incorporate into our
      // list of known DLLs
      mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
+     if (!newobj) {
+         fprintf(stderr, "[%s:%u] - Couldn't parse loaded module %s\n", 
+                 FILE__,__LINE__, imageName.c_str());
+         return true;
+     }
      changed_objects.push_back(newobj);
      is_new_object.push_back(true);
      ev.what = SHAREDOBJECT_ADDED;
