@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.182 2008/02/23 02:09:09 jaw Exp $
+// $Id: pdwinnt.C,v 1.183 2008/04/15 16:43:26 roundy Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -452,8 +452,21 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
          ev.what = SHAREDOBJECT_REMOVED;
          ret = true;
          break;
-     default:
-        fprintf(stderr, "%s[%d]:  WARN:  unknown debug event\n", FILE__, __LINE__);
+   case OUTPUT_DEBUG_STRING_EVENT:
+       ev.type = evtNullEvent;
+       if (ev.info.u.DebugString.fUnicode == false && ev.info.u.DebugString.nDebugStringLength > 0) {
+           int buflen = (ev.info.u.DebugString.nDebugStringLength < 512) ? 
+               ev.info.u.DebugString.nDebugStringLength : 512;
+           char *buf = (char*) malloc(buflen);
+           if (proc->readDataSpace(ev.info.u.DebugString.lpDebugStringData, 
+                                   buflen, buf, true)) {
+               signal_printf("Captured OUTPUT_DEBUG_STRING_EVENT, debug string = %s\n", buf);
+           }
+           free (buf);
+       }
+       break;
+     default: // RIP_EVENT or unknown event
+        fprintf(stderr, "%s[%d]:  WARN:  unknown debug event=0x%x\n", FILE__, __LINE__, ev.info.dwDebugEventCode);
         ev.type = evtNullEvent;
         ret = true;
         break;
@@ -492,6 +505,9 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
      ev.type = evtInstPointTrap;
      ret = true;
   }
+  else if (decodeRTSignal(ev)) {
+      ret = true;
+  }
   else {
      ev.type = evtProcessStop;
      ret = true;
@@ -515,11 +531,30 @@ bool SignalGenerator::decodeException(EventRecord &ev)
      case EXCEPTION_ILLEGAL_INSTRUCTION:
      case EXCEPTION_ACCESS_VIOLATION:
      {
-         Frame af = ev.lwp->getActiveFrame();
-         signal_printf("DECODE CRITICAL --  ILLEGAL INSN OR ACCESS VIOLATION\n");
-         ev.type = evtCritical;
          requested_wait_until_active = true;
          ev.address = (eventAddress_t) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
+         // if it's a write access violation to an existing code range that was write-protected
+         if (ev.what == EXCEPTION_ACCESS_VIOLATION 
+             && ev.info.u.Exception.ExceptionRecord.ExceptionInformation[0] == 1) {
+             Address violationAddr = ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1];
+             codeRange *range = findOrigByAddr(violationAddr);
+             if (range) {
+                 fprintf(stderr,"%s[%d] Program attempted to overwrite code at 0x%x\n", __FILE__,__LINE__);
+             }
+         }
+         // trigger callback if a signalHandlerCallback is registered
+         pdvector<CallbackBase *> sigCBs;
+         SignalHandlerCallback *sigHandlerCB = NULL;
+         if (getCBManager()->dispenseCallbacksMatching(evtSignalHandlerCB, sigCBs)
+             && ev.address != ((SignalHandlerCallback*)sigCBs[0])->getLastSigAddr()
+             && ((SignalHandlerCallback*)sigCBs[0])->handlesSignal(ev.what)) {
+             ev.type = evtSignalHandlerCB;
+         }
+         else {
+             Frame af = ev.lwp->getActiveFrame();
+             signal_printf("DECODE CRITICAL --  ILLEGAL INSN OR ACCESS VIOLATION\n");
+             ev.type = evtCritical;
+         }
          ret = true;
          break;
      }
@@ -530,12 +565,53 @@ bool SignalGenerator::decodeException(EventRecord &ev)
          ret = true;
          break;
      default:
-        ev.type = evtSignalled;
-        requested_wait_until_active = true;
-        ret = true;
-        break;
+         ev.address = (eventAddress_t) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
+         // see if a signalHandlerCallback is registered
+         pdvector<CallbackBase *> sigCBs;
+         SignalHandlerCallback *sigHandlerCB = NULL;
+         /*
+             for (unsigned i=0; i < sigCBs.size(); sigCBs++) {
+                  sigHandlerCB = dynamic_cast<SignalHandlerCallback *> sigCBs[i];
+                  if (sigHandlerCB != NULL && ev.addr == sigHandler->lastSigAddr()) {
+         */
+         if (getCBManager()->dispenseCallbacksMatching(evtSignalHandlerCB, sigCBs)
+             && ev.address != ((SignalHandlerCallback*)sigCBs[0])->getLastSigAddr()
+             && ((SignalHandlerCallback*)sigCBs[0])->handlesSignal(ev.what)) {
+             ev.type = evtSignalHandlerCB;
+         }
+         else {
+             ev.type = evtSignalled;
+         }
+         requested_wait_until_active = true;
+         ret = true;
+         break;
    }
    return ret;
+}
+
+bool SignalGeneratorCommon::decodeRTSignal_NP(EventRecord &ev, 
+                                              Address rt_arg, int status)
+{
+    // windows uses ev.info for the DEBUG_EVENT struct, so we
+    // shanghai the fd field instead
+    ev.fd = (eventFileDesc_t) rt_arg;
+
+    switch(status) {
+    case DSE_snippetBreakpoint:
+        ev.type = evtProcessStop;
+        return true;
+    case DSE_StopThread: 
+        ev.type = evtStopThread;
+        return true; 
+    default:
+        assert(0);
+        return false;
+    }
+}
+
+bool SignalGenerator::decodeSyscall(EventRecord &) 
+{
+    return false;
 }
 
 // already setup on this FD.
@@ -1413,7 +1489,6 @@ bool process::insertTrapAtEntryPointOfMain() {
   mapped_object *aout = getAOut();
   Symtab *aout_obj = aout->parse_img()->getObject();
   pdvector<int_function *> funcs;
-  Address brk_address;
   Address min_addr = 0xffffffff;
   Address max_addr = 0x0;
   bool result;
@@ -1439,23 +1514,6 @@ bool process::insertTrapAtEntryPointOfMain() {
      return true;
   }
 
-  const pdvector<Address> &possible_mains = aout->parse_img()->getPossibleMains();
-
-  for (unsigned i=0; i<possible_mains.size(); i++) {
-    brk_address = possible_mains[i] + aout->codeBase();
-    startup_printf("[%s:%u] - insertTrapAtEntryPointOfMain found potential main at %x\n",
-          __FILE__, __LINE__, brk_address);
-    result = this->readDataSpace((void *) brk_address, 1, &oldbyte, false);
-    if (!result)
-        continue;
-    main_breaks[brk_address] = oldbyte;
-    result = writeDataSpace((void *) brk_address, 1, (void *) &trapInsn);
-    assert(result);
-    if (brk_address > max_addr)
-        max_addr = brk_address;
-    if (brk_address < min_addr)
-        min_addr = brk_address;
-  }
 
   if (max_addr >= min_addr)
     flushInstructionCache_( (void*)min_addr, max_addr - min_addr + 1 );
@@ -1531,10 +1589,10 @@ bool process::getDyninstRTLibName() {
             dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
         }
         else {
-            std::string msg = std::string("Environment variable " +
+            std::string msg = std::string("Environment variable ") +
                            std::string("DYNINSTAPI_RT_LIB") +
-                           " has not been defined for process ") +
-                           std::string(getPid());
+						   std::string(" has not been defined for process ") +
+                           std::string("" + getPid());
             showErrorCallback(101, msg);
             return false;
         }
@@ -2145,6 +2203,57 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
    return true;
 }
 
+bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
+{
+    process *proc = ev.proc;
+    pdvector<CallbackBase *> cbs;
+    if (!getCBManager()->dispenseCallbacksMatching(evtSignalHandlerCB, cbs)) {
+        return false;
+    }
+    printf("Handling exception, excCode=0x%X\n",ev.what);
+    Address tibPtr = ev.lwp->getThreadInfoBlockAddr();
+    struct EXCEPTION_REGISTRATION handler;
+    EXCEPTION_REGISTRATION *prevEvtReg=NULL;
+    if (!proc->readDataSpace((void*)tibPtr,sizeof(Address),
+                             (void*)&prevEvtReg,false)) {
+        fprintf(stderr, "%s[%d]Error reading from TIB at 0x%x\n", 
+                FILE__, __LINE__,tibPtr);
+        return false;
+    }
+    BPatch_Vector<Address> handlers;
+    while(((long)prevEvtReg) != -1 && prevEvtReg != NULL) {
+        if (!proc->readDataSpace((void*)prevEvtReg,sizeof(handler),
+                                 &handler,false)) {
+            fprintf(stderr, "%s[%d]Error reading from SEH chain at 0x%lx\n", 
+                    FILE__, __LINE__,(long)prevEvtReg);
+            return false;
+        }
+        prevEvtReg = handler.prev;
+        if (!proc->findOrigByAddr((Address)prevEvtReg) &&
+            !proc->findModByAddr((Address)prevEvtReg)) {
+            printf("EUREKA! Found handler at 0x%x while handling "
+                   "exceptionCode=0x%X ... %s[%d]\n",
+                   handler.handler, ev.what, FILE__,__LINE__);
+            handlers.push_back(handler.handler);
+        }
+    }
+    if (handlers.size() > 0) {
+        // create instPoint at faulting instruction & trigger callback
+        int_function *func = proc->findFuncByAddr(ev.address);
+        instPoint *point = instPoint::createArbitraryInstPoint
+            (ev.address, proc, func);
+        if (!func || !point) {
+            return false;
+        }
+        // cause callbacks registered for this event to be triggered, if any.
+        if (((BPatch_process*)proc->up_ptr())->triggerSignalHandlerCB
+            (point, func, proc, ev.what, &handlers)) {
+            return true;
+        }
+    }
+    return true;
+}
+
 SignalGenerator::SignalGenerator(char *idstr, std::string file, int pid)
     : SignalGeneratorCommon(idstr)
 {
@@ -2249,4 +2358,64 @@ bool SignalHandler::handleProcessAttach(EventRecord &ev, bool &continueHint) {
 bool process::hasPassedMain() 
 {
    return true;
+}
+
+Address dyn_lwp::getThreadInfoBlockAddr()
+{
+    if (threadInfoBlockAddr_) {
+        return threadInfoBlockAddr_;
+    }
+    // use getRegisters to get value of the FS segment register
+    dyn_saved_regs regs;
+    if (!getRegisters(&regs)) {
+        return 0;
+    }
+    // use the FS segment selector to look up the segment descriptor in the local descriptor table
+    LDT_ENTRY segDesc;
+	if (!GetThreadSelectorEntry(fd_, (DWORD)regs.cont.SegFs, &segDesc)) {
+		fprintf(stderr, "%s[%d] Failed to read segment register FS for thread 0x%x with FS index of 0x%x\n", 
+			FILE__,__LINE__,fd_,regs.cont.SegFs);
+		return 0;
+	}
+    // calculate the address of the TIB
+    threadInfoBlockAddr_ = (Address) segDesc.BaseLow;
+    Address tmp = (Address) segDesc.HighWord.Bytes.BaseMid;
+    threadInfoBlockAddr_ = threadInfoBlockAddr_ | (tmp << (sizeof(WORD)*8));
+    tmp = segDesc.HighWord.Bytes.BaseHi;
+    threadInfoBlockAddr_ = threadInfoBlockAddr_ | (tmp << (sizeof(WORD)*8+8));
+    return threadInfoBlockAddr_;
+}
+
+bool process::setBeingDebuggedFlag(bool debuggerPresent) 
+{
+    dyn_lwp *lwp = getInitialLwp();
+    if (!lwp) {
+        return false;
+    }
+    Address tibPtr = lwp->getThreadInfoBlockAddr();
+    if (!tibPtr) {
+        return false;
+    }
+    // read in address of PEB
+    unsigned int pebPtr;
+    if (!readDataSpace((void*)(tibPtr+48), getAddressWidth(),(void*)&pebPtr, false)) {
+		fprintf(stderr, "%s[%d] Failed to read address of Process Environment "
+			"Block at 0x%x, which is TIB + 0x30\n", FILE__,__LINE__,tibPtr+48);
+        return false;
+	}
+    // read in processBeingDebugged flag
+    unsigned int flagWord;
+    if (!readDataSpace((void*)pebPtr, 4, (void*)&flagWord, true)) 
+        return false;
+    // write back value of processBeingDebugged, if necessary
+    if (debuggerPresent && !(flagWord & 0x00ff0000)) {
+        flagWord = flagWord | 0x00010000;
+        if (!writeDataSpace((void*)pebPtr, 4, (void*)&flagWord)) 
+            return false;
+    } else if (!debuggerPresent && (flagWord & 0x00ff0000)) {
+        flagWord = flagWord & 0xff00ffff;
+        if (writeDataSpace((void*)pebPtr, 4, (void*)&flagWord)) 
+            return false;
+    }
+    return true;
 }
