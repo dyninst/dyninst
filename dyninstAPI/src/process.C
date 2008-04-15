@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.712 2008/04/11 23:30:23 legendre Exp $
+// $Id: process.C,v 1.713 2008/04/15 16:43:29 roundy Exp $
 
 #include <ctype.h>
 
@@ -72,7 +72,6 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/debug.h"
-#include "dyninstAPI/src/callbacks.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/BPatch_asyncEventHandler.h"
 #include "dyninstAPI/src/debuggerinterface.h"
@@ -1661,7 +1660,9 @@ process::process(SignalGenerator *sh_) :
     tracedSyscalls_(NULL),
     traceSysCalls_(false),
     traceState_(noTracing_ts),
-    libcstartmain_brk_addr(0)
+    libcstartmain_brk_addr(0),
+    stopThread_ID_counter(0),
+    stopThread_callbacks( addrHash )
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -2142,7 +2143,9 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     tracedSyscalls_(NULL),  // Later
     traceSysCalls_(parentProc->getTraceSysCalls()),
     traceState_(parentProc->getTraceState()),
-    libcstartmain_brk_addr(parentProc->getlibcstartmain_brk_addr())
+    libcstartmain_brk_addr(parentProc->getlibcstartmain_brk_addr()),
+    stopThread_ID_counter(0),
+    stopThread_callbacks( addrHash )
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -3652,7 +3655,8 @@ bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
    for (unsigned int i=0; i < changed_objs.size(); i++) {
       if(is_new_object[i]) {// SHAREDOBJECT_ADDED
          signal_printf("%s[%d]:  SHAREDOBJECT_ADDED\n", FILE__, __LINE__);
-         if (changed_objs[i]->fileName().length()==0) {
+         const string filename = changed_objs[i]->fileName();
+         if (filename.length()==0) {
             cerr << "Warning: new shared object with no name!" << endl;
             continue;
          }
@@ -3662,7 +3666,6 @@ bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
          }
       } else {// SHAREDOBJECT_REMOVED
          signal_printf("%s[%d]:  SHAREDOBJECT_REMOVED...\n", FILE__, __LINE__);
-         //KEVINTODO: figure out what to do when instrumented library is dropped
          if (!removeASharedObject(changed_objs[i])) {
             cerr << "Failed to remove library " << changed_objs[i]->fullName() << endl;
          }
@@ -4225,6 +4228,102 @@ bool process::handleExecExit(fileDescriptor &desc)
 
    return true;
 }
+
+int process::getStopThreadCB_ID(const Address cb)
+{
+    if (stopThread_callbacks.defines((Address)cb)) {
+        return stopThread_callbacks[(Address)cb];
+    }
+    else {
+        int cb_id = ++stopThread_ID_counter;
+        stopThread_callbacks[(Address)cb] = cb_id;
+        return cb_id;
+    }
+}
+
+/* Need three pieces of information: the ID of the callback function
+ * given at the registration of the stopThread snippet, the address of
+ * the instrumentation in the original binary, and the result of the
+ * snippet calculation that was given by the user 
+ */ 
+bool process::handleStopThread(EventRecord &ev) 
+{
+
+    Address pointAddress = // arg1
+#if defined (os_windows)
+       (Address) ev.fd;
+#else
+       (Address) ev.info;
+#endif
+    // get instPoint from point address
+    int_function *func = findFuncByAddr(pointAddress);
+    if (!func) 
+        { return false; }
+    instPoint *intPoint = func->findInstPByAddr(pointAddress);
+    if (!intPoint) 
+        { return false; }
+
+    // Read args 2,3 from the runtime library, as in decodeRTSignal,
+    // didn't do it there since this is the only RT library event that
+    // makes use of them 
+    int callbackID = 0x0; //arg2
+    void *calculation = 0x0; // arg3
+
+    pdvector<int_variable *> vars;
+    // get runtime library arg2 address from runtime lib
+    if (sh->sync_event_arg2_addr == 0) {
+        std::string arg_str ("DYNINST_synch_event_arg2");
+        if (!findVarsByAll(arg_str, vars)) {
+            fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
+                    FILE__, __LINE__, arg_str.c_str());
+            return false;
+        }
+        if (vars.size() != 1) {
+            fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
+                    FILE__, __LINE__, vars.size(), arg_str.c_str());
+            return false;
+        }
+        sh->sync_event_arg2_addr = vars[0]->getAddress();
+    }
+    // get runtime library arg2 address from runtime lib
+    if (sh->sync_event_arg3_addr == 0) {
+        std::string arg_str ("DYNINST_synch_event_arg3");
+        vars.clear();
+        if (!findVarsByAll(arg_str, vars)) {
+            fprintf(stderr, "%s[%d]:  cannot find var %s\n", 
+                    FILE__, __LINE__, arg_str.c_str());
+            return false;
+        }
+        if (vars.size() != 1) {
+            fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
+                    FILE__, __LINE__, vars.size(), arg_str.c_str());
+            return false;
+        }
+        sh->sync_event_arg3_addr = vars[0]->getAddress();
+    }
+
+    //read arg2 (callbackID)
+    if (!readDataSpace((void *)sh->sync_event_arg2_addr, 
+                             sizeof(int), &callbackID, true)) {
+        fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+        return false;
+    }
+    //read arg3 (calculation)
+    if (!readDataSpace((void *)sh->sync_event_arg3_addr, 
+                             sizeof(void*), &calculation, true)) {
+        fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+        return false;
+    }
+
+    // trigger callback in mutator for this snippet instance ID & event type
+    ((BPatch_process*)up_ptr())->triggerStopThread(intPoint, func, 
+                                                   callbackID, calculation);
+    return true;
+
+} // handleStopThread
+
+
+
 
 #if defined(cap_syscall_trap)
 bool process::checkTrappedSyscallsInternal(Address syscall)

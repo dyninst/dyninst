@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.415 2008/02/23 02:09:10 jaw Exp $
+/* $Id: process.h,v 1.416 2008/04/15 16:43:30 roundy Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -70,6 +70,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/callbacks.h"
 
 #include "debug.h"
 
@@ -482,6 +483,7 @@ class process : public AddressSpace {
 #if defined(os_windows)
   bool instrumentThreadInitialFunc(int_function *f);
   pdvector<int_function *> initial_thread_functions;
+  bool setBeingDebuggedFlag(bool debuggerPresent);
 #endif
 
   public:
@@ -660,6 +662,9 @@ class process : public AddressSpace {
   bool handleForkExit(process *child);
   bool handleExecEntry(char *arg0);
   bool handleExecExit(fileDescriptor &desc);
+
+  bool handleStopThread(EventRecord &ev);
+  int getStopThreadCB_ID(const Address cb);
 
   public:
 
@@ -977,6 +982,7 @@ private:
 
   pdvector<int> continueHandles;
   pdvector<int> continueTypes;
+
 #endif
 
   ////////////////////
@@ -1032,6 +1038,8 @@ private:
   int libcHandle_;
   traceState_t traceState_;
   Address libcstartmain_brk_addr;
+  int stopThread_ID_counter;
+  dictionary_hash< Address, unsigned > stopThread_callbacks;
  public:  
 
   ///////////////////////////////
