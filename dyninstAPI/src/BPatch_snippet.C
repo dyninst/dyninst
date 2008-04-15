@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.104 2008/03/25 19:24:22 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.105 2008/04/15 16:43:04 roundy Exp $
 
 #define BPATCH_FILE
 
@@ -1426,6 +1426,44 @@ bool BPatch_insnExpr::overrideStoreAddressInt(BPatch_snippet &s) {
     return insnAst->overrideStoreAddr(*(s.ast_wrapper));
 }
 
+
+/* BPatch_stopThreadExpr 
+ *
+ *  This snippet type stops the thread that executes it.  It
+ *  evaluates a calculation snippet and triggers a callback to the
+ *  user program with the result of the calculation and a pointer to
+ *  the BPatch_point at which the snippet was inserted
+ */
+void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
+      (BPatch_process *proc,
+       const BPatchStopThreadCallback &bp_cb,
+       const BPatch_snippet &calculation) 
+{
+    //register the callback 
+    StopThreadCallback *cb = new StopThreadCallback(bp_cb);
+    getCBManager()->registerCallback(evtStopThread, cb);
+
+    // create callback ID argument
+    int cb_id = ((process*)proc->lowlevel_process())->
+        getStopThreadCB_ID((Address)bp_cb); 
+    AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*) cb_id );
+    assert(BPatch::bpatch != NULL);
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+    assert(type != NULL);
+    idNode->setType(type);
+    
+    // set up funcCall args
+    pdvector<AstNodePtr> ast_args;
+    ast_args.push_back(AstNode::originalAddrNode());
+    ast_args.push_back(idNode);
+    ast_args.push_back(*(calculation.ast_wrapper));
+
+    // create func call & set type 
+    (*ast_wrapper) = AstNodePtr(AstNode::funcCallNode("DYNINST_stopThread", ast_args));
+    (*ast_wrapper)->setType(BPatch::bpatch->type_Untyped);
+    (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
 void BPatch_originalAddressExpr::BPatch_originalAddressExprInt() {
     ast_wrapper = new AstNodePtr(AstNode::originalAddrNode());
 
@@ -1445,3 +1483,14 @@ void BPatch_actualAddressExpr::BPatch_actualAddressExprInt() {
     assert(type != NULL);
     (*ast_wrapper)->setType(type);
 }
+
+void BPatch_dynamicTargetExpr::BPatch_dynamicTargetExprInt() {
+    ast_wrapper = new AstNodePtr(AstNode::dynamicTargetNode());
+
+    assert(BPatch::bpatch != NULL);
+    (*ast_wrapper)->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long");
+    assert(type != NULL);
+    (*ast_wrapper)->setType(type);
+}
+

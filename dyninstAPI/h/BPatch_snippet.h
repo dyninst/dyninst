@@ -50,6 +50,7 @@
 //#include "BPatch_addressSpace.h"
 //#include "BPatch_function.h"
 #include "BPatch_eventLock.h"
+#include "BPatch_callbacks.h"
 
 #include "BPatch_instruction.h" // for register type
 
@@ -138,6 +139,7 @@ class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend class BPatch_ifMachineConditionExpr;
     friend class BPatch_sequence;
     friend class BPatch_insnExpr;
+    friend class BPatch_stopThreadExpr;
     friend AstNodePtr *generateArrayRef(const BPatch_snippet &lOperand, 
                                         const BPatch_snippet &rOperand);
     friend AstNodePtr *generateFieldRef(const BPatch_snippet &lOperand, 
@@ -688,6 +690,27 @@ class BPATCH_DLL_EXPORT BPatch_insnExpr : public BPatch_snippet {
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
+#define DYNINST_CLASS_NAME BPatch_stopThreadExpr
+
+class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
+
+  // BPatch_stopThreadExpr 
+  //  This snippet type stops the thread that executes it.  It
+  //  evaluates a calculation snippet and triggers a callback to the
+  //  user program with the result of the calculation and a pointer to
+  //  the BPatch_point at which the snippet was inserted
+
+  API_EXPORT_CTOR(Int, (proc, cb, calculation),
+  BPatch_stopThreadExpr, 
+  (BPatch_process *proc, 
+   const BPatchStopThreadCallback &cb,
+   const BPatch_snippet &calculation));
+};
+
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
 #define DYNINST_CLASS_NAME BPatch_originalAddressExpr
 
 class BPATCH_DLL_EXPORT BPatch_originalAddressExpr : public BPatch_snippet
@@ -717,7 +740,22 @@ class BPATCH_DLL_EXPORT BPatch_actualAddressExpr : public BPatch_snippet
   BPatch_actualAddressExpr, ());
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_dynamicTargetExpr
 
+class BPATCH_DLL_EXPORT BPatch_dynamicTargetExpr : public BPatch_snippet
+{
 
+  //  BPatch_dynamicTargetExpr
+  //  Construct a snippet to calculate the target of a 
+  //  dynamic control transfer instruction
+
+  API_EXPORT_CTOR(Int, (),
+  BPatch_dynamicTargetExpr, ());
+};
 
 #endif /* _BPatch_snippet_h_ */
+
+
