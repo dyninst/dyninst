@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.35 2008/02/23 02:09:11 jaw Exp $
+/* $Id: signalhandler.h,v 1.36 2008/04/15 16:43:36 roundy Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -148,6 +148,7 @@ class SignalHandler : public EventHandler<EventRecord>
 
   bool handleProcessCreate(EventRecord &ev, bool &continueHint);
   bool handleProcessAttach(EventRecord &ev, bool &continueHint);
+  bool handleSignalHandlerCallback(EventRecord &ev);
 
   bool assignEvent(EventRecord &ev);
   pdvector<EventRecord> events_to_handle;
