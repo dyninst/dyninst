@@ -1246,6 +1246,11 @@ Symtab::Symtab(char *, size_t, std::string &, Offset, bool &)
 #endif
 #endif
 
+bool sort_reg_by_addr(const Region* a, const Region* b)
+{
+   return a->getRegionAddr() < b->getRegionAddr();
+}
+
 bool Symtab::extractInfo(Object *linkedFile)
 {
 #if defined(TIMED_PARSE)
@@ -1297,6 +1302,9 @@ bool Symtab::extractInfo(Object *linkedFile)
             dataRegions_.push_back(regions_[index]);
         regionsByEntryAddr[regions_[index]->getRegionAddr()] = regions_[index];
     }
+    // sort regions_ & codeRegions_ vectors
+    std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
+    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
 
 	/* insert error check here. check if parsed */
 #if 0
@@ -1362,6 +1370,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     is_a_out = linkedFile->is_aout();
     code_ptr_ = linkedFile->code_ptr();
     data_ptr_ = linkedFile->data_ptr();
+
     if (linkedFile->interpreter_name())
        interpreter_name_ = std::string(linkedFile->interpreter_name());
     entry_address_ = linkedFile->getEntryAddress();
@@ -2064,6 +2073,35 @@ bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
     return false;
 }
 
+/* Similar to binary search in isCode with the exception that here
+ * we search to the end of regions without regards to whether they
+ * have corresponding raw data on disk. 
+ */
+bool Symtab::findEnclosingRegion(Region *&reg, const Offset where)
+{
+    // search for "where" in regions (regions must not overlap)
+    int first = 0; 
+    int last = regions_.size() - 1;
+    while (last >= first) {
+        Region *curreg = regions_[(first + last) / 2];
+        if (where >= curreg->getRegionAddr()
+            && where < (curreg->getRegionAddr()
+                        + curreg->getMemSize())) {
+            reg = curreg;
+            return true;
+        }
+        else if (where < curreg->getRegionAddr()) {
+            last = ((first + last) / 2) - 1;
+        }
+        else {/* where >= (cursec->getSecAddr()
+                           + cursec->getSecSize()) */
+            first = ((first + last) / 2) + 1;
+        }
+    }
+    reg = NULL;
+    return false;
+}
+
 bool Symtab::findRegion(Region *&ret, const std::string secName)
 {
     for(unsigned index=0;index<regions_.size();index++)
@@ -2085,17 +2123,37 @@ bool Symtab::isValidOffset(const Offset where) const
     return isCode(where) || isData(where);
 }
 
+/* Performs a binary search on the codeRegions_ vector, which must
+ * always be sorted.  
+ */
 bool Symtab::isCode(const Offset where)  const
 {
     if(!codeRegions_.size())
         return false;
-    for(unsigned i=0; i< codeRegions_.size(); i++){
-        if((where>=codeRegions_[i]->getRegionAddr()) && (where < (codeRegions_[i]->getRegionAddr() + codeRegions_[i]->getDiskSize())))
-			return true;
+    // search for "where" in codeRegions_ (code regions must not overlap)
+    int first = 0; 
+    int last = codeRegions_.size() - 1;
+    while (last >= first) {
+        Region *curreg = codeRegions_[(first + last) / 2];
+        if (where >= curreg->getRegionAddr()
+            && where < (curreg->getRegionAddr()
+                        + curreg->getDiskSize())) {
+            return true;
+        }
+        else if (where < curreg->getRegionAddr()) {
+            last = ((first + last) / 2) - 1;
+        }
+        else if (where >= (curreg->getRegionAddr()
+                           + curreg->getMemSize())) {
+            first = ((first + last) / 2) + 1;
+        }
+        else { // "where" is in the range: 
+               // [memOffset + diskSize , memOffset + memSize]
+               // meaning that it's in an uninitialized data region 
+            return false;
+        }
     }
     return false;
-//    return (code_ptr_ && 
-//            (where >= imageOffset_) && (where < (imageOffset_+imageLen_)));
 }
 
 bool Symtab::isData(const Offset where)  const
@@ -2867,6 +2925,7 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
     }	
     Annotatable<Region *, user_regions_a> &urA = *this;
     urA.addAnnotation(sec);
+    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
     return true;
 }
 
@@ -3735,7 +3794,7 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size)
         Offset end = regions_[i]->getRegionAddr() + regions_[i]->getDiskSize();
         if (regions_[i]->getRegionAddr() == 0) continue;
         prevSecoffset = secoffset;
-        if ((char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image() < (unsigned)prevSecoffset)
+        if ((unsigned)((char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image()) < (unsigned)prevSecoffset)
             secoffset += regions_[i]->getDiskSize();
         else {
             secoffset = (char *)(regions_[i]->getPtrToRawData()) - linkedFile->mem_image();
@@ -3977,7 +4036,7 @@ DLLEXPORT void *Region::getPtrToRawData() const{
  
 DLLEXPORT bool Region::setPtrToRawData(void *buf, unsigned long newsize){
     rawDataPtr_ = buf;
-    diskSize_ = diskSize_;
+    diskSize_ = newsize;
     isDirty_ = true;
     return true;
 }
@@ -4039,8 +4098,8 @@ DLLEXPORT Region::region_t Region::getRegionType() const {
 
 #if 0
 DLLEXPORT Section::Section(unsigned sidnumber, std::string sname, 
-                                   Offset saddr, unsigned long ssize, 
-                                   void *secPtr, unsigned long sflags, bool isLoadable) 
+                           Offset saddr, unsigned long ssize, 
+                           void *secPtr, unsigned long sflags, bool isLoadable) 
    : sidnumber_(sidnumber), sname_(sname), saddr_(saddr), ssize_(ssize), 
      rawDataPtr_(secPtr), sflags_(sflags), isLoadable_(isLoadable),
      isDirty_(false), buffer_(NULL)
@@ -4048,8 +4107,8 @@ DLLEXPORT Section::Section(unsigned sidnumber, std::string sname,
 }
 
 DLLEXPORT Section::Section(unsigned sidnumber, std::string sname, 
-                                   unsigned long ssize, void *secPtr, 
-                                   unsigned long sflags, bool isLoadable)
+                           unsigned long ssize, void *secPtr, 
+                           unsigned long sflags, bool isLoadable)
    : sidnumber_(sidnumber), sname_(sname), saddr_(0), ssize_(ssize), 
      rawDataPtr_(secPtr), sflags_(sflags), isLoadable_(isLoadable),
      isDirty_(false), buffer_(NULL)
@@ -4077,7 +4136,7 @@ DLLEXPORT Section& Section::operator=(const Section &sec)
     isLoadable_ = sec.isLoadable_;
     isDirty_ = sec.isDirty_;
     buffer_ = malloc(ssize_);
-    memcpy(buffer_, sec.buffer_, ssize_);
+    memcpy(buffer_, sec.buffer_, ssize_); 
     return *this;
 }
 	
