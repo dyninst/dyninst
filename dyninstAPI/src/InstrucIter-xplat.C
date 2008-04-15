@@ -265,7 +265,7 @@ bool InstrucIter::hasMore()
   if (instPtr == NULL) return false;
   
   if ((range == 0) ||
-      (range ==-1)) return true; // Unsafe iteration, but there is more
+      ((long)range ==-1)) return true; // Unsafe iteration, but there is more
   
   if((current < (base + range )) &&
      (current >= base))
@@ -345,7 +345,6 @@ Address InstrucIter::operator--()
 BPatch_instruction *InstrucIter::getBPInstruction() {
 
   BPatch_memoryAccess *ma = isLoadOrStore();
-  BPatch_instruction *in;
 
   if (ma != BPatch_memoryAccess::none)
     return ma;
