@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.36 2008/04/11 23:30:22 legendre Exp $
+// $Id: mapped_object.C,v 1.37 2008/04/15 16:43:24 roundy Exp $
 
 #include <string>
 
@@ -376,6 +376,54 @@ bool mapped_object::analyze()
   return true;
 }
 
+/* In the event that new functions are discovered after the analysis
+ * phase, we need to trigger analysis and enter it into the
+ * appropriate datastructures.
+ */
+bool mapped_object::analyzeNewFunctions(vector<image_func *> *funcs)
+{
+    if (!funcs || !funcs->size()) {
+        return false;
+    }
+    pdvector< Address > callTargets;
+    dictionary_hash< Address, image_func * > preParseStubs( addrHash );
+    vector<image_func *>::iterator curfunc = funcs->begin();
+    while (curfunc != funcs->end()) {
+        if (everyUniqueFunction.defines(*curfunc)) {
+            curfunc = funcs->erase(curfunc);
+        } else {
+            callTargets.push_back((*curfunc)->getOffset());
+            preParseStubs[callTargets.back()] = *curfunc;
+            curfunc++;
+        }
+    }
+    if (! funcs->size()) {
+        return true;
+    }
+    // do control-flow traversal parsing starting from this function
+    pdvector< Address > newTargets;
+    // parse any new discovered functions
+    while(callTargets.size() > 0) {
+        parse_img()->parseStaticCallTargets
+            ( callTargets, newTargets, preParseStubs );
+        callTargets.clear();
+        VECTOR_APPEND( callTargets, newTargets ); 
+        newTargets.clear();
+    }
+    // add the functions we created to our datastructures
+    pdvector<image_func *> newFuncs = parse_img()->getCreatedFunctions();
+    for (unsigned i=0; i < newFuncs.size(); i++) {
+        image_func *curFunc = newFuncs[i];
+        if ( ! everyUniqueFunction.defines(curFunc) ) { 
+            if(!curFunc->isBLSorted())
+                curFunc->sortBlocklist();
+            curFunc->checkCallPoints();
+            // add function to datastructures
+            findFunction(curFunc);
+        }
+    }
+    return true;
+}
 
 // TODO: this should probably not be a mapped_object method, but since
 // for now it is only used by mapped_objects it is

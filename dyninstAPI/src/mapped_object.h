@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.20 2008/02/23 02:09:09 jaw Exp $
+// $Id: mapped_object.h,v 1.21 2008/04/15 16:43:25 roundy Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -123,6 +123,7 @@ class mapped_object : public codeRange {
     ~mapped_object();
 
     bool analyze();
+    bool isAnalyzed() { return analyzed_; }
 
     const fileDescriptor &getFileDesc() const { return desc_; }
     // Full name, including path
@@ -207,6 +208,9 @@ class mapped_object : public codeRange {
     const pdvector<int_variable *> *findVarVectorByMangled(const std::string &varname); 
     const int_variable *getVariable(const std::string &varname);
     
+    // After analysis has taken place, trigger control-flow traversal
+    // parsing of new function and add it to the mapped_object
+    bool analyzeNewFunctions(vector<image_func*> *func);
 
 #if defined(cap_save_the_world)
 	//this marks the shared object as dirty, mutated
