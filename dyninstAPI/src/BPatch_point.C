@@ -371,18 +371,21 @@ bool BPatch_point::usesTrap_NPInt()
 /*
  * BPatch_point::isDynamic
  *
- * Returns true if this point is a dynamic call site.
+ * Returns true if this point is a dynamic control transfer site.
  *
  */
 bool BPatch_point::isDynamicInt()
 {
     if (!func->getModule()->isValid()) return false;
 
-    if (!dynamic_call_site_flag) return false;
     if (dynamic_call_site_flag == 1) return true;
+    if (dynamic_call_site_flag == 0 &&
+        pointType == BPatch_subroutine) return false;
     
-    bool is_dyn = point->isDynamicCall();
-    dynamic_call_site_flag = is_dyn ? 1 : 0;
+    bool is_dyn = point->isDynamic();
+    if (pointType == BPatch_subroutine) {
+        dynamic_call_site_flag = is_dyn ? 1 : 0;
+    }
     return is_dyn;
 }
 
@@ -715,23 +718,20 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
  *  instruction whose target can be statically determined, in which
  *  case "target" is set to the targets of the control flow instruction
  */
-bool BPatch_point::getCFTargetInt(BPatch_Vector<unsigned long> *targets)
+bool BPatch_point::getCFTargetInt(BPatch_Vector<Address> *targets)
 {
-    unsigned long callTarg = point->callTarget();
+    if (point->isDynamic()) {
+        return false;
+    }
+    // This works for branches as well as calls
+    unsigned long targ = point->callTarget();
     
-    if (!callTarg) {
+    if (!targ) {
         return false;
     }
     if (targets == NULL) {
-        targets = new BPatch_Vector<unsigned long>();
+        targets = new BPatch_Vector<Address>();
     }
-    targets->push_back(callTarg);
+    targets->push_back(targ);
     return true;
-    // KEVINTODO: not sure how / if conversion from image_instPoint to
-    // instPoint takes place, don't know if jumps will return anything
-    // for the callTarget function call.  Also don't know what
-    // instPointType_t jump instructions have
-
-    // KEVINTODO: need to add call to getMultipleJumpTargets on some
-    // platforms when this is a jump
 }
