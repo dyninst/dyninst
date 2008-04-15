@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.67 2008/02/23 02:09:05 jaw Exp $
+ * $Id: dyn_lwp.h,v 1.68 2008/04/15 16:43:14 roundy Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -268,6 +268,9 @@ class dyn_lwp
   void set_lwp_id(int newid) {
      lwp_id_ = newid;
   }
+#if defined (os_windows)
+  Address getThreadInfoBlockAddr();
+#endif
 
   bool is_dead() const { return is_dead_; }
   void set_dead() { is_dead_ = true; }
@@ -339,6 +342,12 @@ class dyn_lwp
                           // (note we do not save FP registers)
   sigset_t sighold_;       // Blocked signals during sleeping syscall
 #endif
+
+  // Windows maintains a Thread Information Block (TIB) per-process,
+  // we currently use it for identifying exception handlers and for
+  // unsetting the "beingDebugged" bit for the process.  It's a bit
+  // tricky to calculate the TIB pointer, so we cache it here
+  Address threadInfoBlockAddr_;
 
   int lastSig_;
   // Pointer to the syscall trap data structure

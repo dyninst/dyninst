@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.67 2008/02/23 02:09:05 jaw Exp $
+ * $Id: dyn_lwp.C,v 1.68 2008/04/15 16:43:13 roundy Exp $
  */
 
 #include "common/h/headers.h"
@@ -68,6 +68,7 @@ dyn_lwp::dyn_lwp() :
   stoppedInSyscall_(false),
   postsyscallpc_(0),
   waiting_for_stop(false),
+  threadInfoBlockAddr_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), isDoingAttach_(false), is_attached_(false),
@@ -94,6 +95,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   stoppedInSyscall_(false),
   postsyscallpc_(0),
   waiting_for_stop(false),
+  threadInfoBlockAddr_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), isDoingAttach_(false), is_attached_(false),
@@ -120,6 +122,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   stoppedInSyscall_(false),
   postsyscallpc_(0),
   waiting_for_stop(false),
+  threadInfoBlockAddr_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), isDoingAttach_(false), is_attached_(false),
@@ -273,7 +276,7 @@ bool dyn_lwp::markRunningIRPC() {
    return proc_->walkStackFromFrame(active, cached_stackwalk.getStackwalk());
 }
 
-bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk, bool ignoreRPC /* = false */)
+bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk, bool /* ignoreRPC = false */)
 {
    stackWalk.clear();
    if (cached_stackwalk.isValid()) {
@@ -439,3 +442,4 @@ bool dyn_lwp::is_asLWP() {
 void dyn_lwp::clearStackwalk() {
    cached_stackwalk.clear();
 }
+
