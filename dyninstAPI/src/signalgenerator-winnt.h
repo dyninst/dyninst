@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-winnt.h,v 1.9 2008/02/23 02:09:10 jaw Exp $
+/* $Id: signalgenerator-winnt.h,v 1.10 2008/04/15 16:43:32 roundy Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_WINNT_H
@@ -99,15 +99,11 @@ class SignalGenerator : public SignalGeneratorCommon
   bool decodeEvent(EventRecord &event);
   bool decodeBreakpoint(EventRecord &);
   bool decodeException(EventRecord &);
-
-  void clearCachedLocations() {};
+  virtual bool decodeSyscall(EventRecord &ev);
 
   int procHandle;
   int thrHandle;
   bool waiting_for_stop;
-  Address sync_event_id_addr;
-  Address sync_event_arg1_addr;
-  Address sync_event_breakpoint_addr;
 };
 
 #endif

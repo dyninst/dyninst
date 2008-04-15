@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.16 2008/02/23 02:09:10 jaw Exp $
+/* $Id: signalgenerator-unix.h,v 1.17 2008/04/15 16:43:31 roundy Exp $
  */
 
 
@@ -89,7 +89,6 @@ class SignalGenerator : public SignalGeneratorCommon
   //  has taken place and it  will not do any further decoding.
   bool decodeSignal_NP(EventRecord &ev);
   bool decodeSignal(EventRecord &ev);
-  bool decodeRTSignal(EventRecord &ev);
   bool decodeSigTrap(EventRecord &ev);
   bool decodeSigStopNInt(EventRecord &ev);
   bool decodeSigIll(EventRecord &ev);
@@ -97,19 +96,13 @@ class SignalGenerator : public SignalGeneratorCommon
   //  decodeSyscall changes the field ev.what from a platform specific
   //  syscall representation, eg, SYS_fork, to a platform indep. one,
   //  eg. procSysFork.  returns false if there is no available mapping.
-  bool decodeSyscall(EventRecord &ev);
+  virtual bool decodeSyscall(EventRecord &ev);
 
 #if !defined (os_linux) 
    bool decodeProcStatus(procProcStatus_t status, EventRecord &ev);
 #endif
 
    bool waiting_for_stop;
-   /* Cached for speed */
-   Address sync_event_id_addr;
-   Address sync_event_arg1_addr;
-   Address sync_event_breakpoint_addr;
-
-   void clearCachedLocations();
 
    bool expect_fake_signal;
 
