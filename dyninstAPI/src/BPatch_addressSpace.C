@@ -468,8 +468,16 @@ BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 
    func = range->is_function();
 
-   if (!func)
+   if (!func) {
+      // if it's a mapped_object that has yet to be analyzed, 
+      // trigger analysis and re-invoke this function
+      if ( range->is_mapped_object() && 
+          ! ((mapped_object*)range)->isAnalyzed() ) {
+         ((mapped_object*)range)->analyze();
+         return findFunctionByAddrInt(addr);
+      }
       return NULL;
+   }
 
    return findOrCreateBPFunc(func, NULL);
 }
