@@ -2506,9 +2506,15 @@ bool BPatch_module::isSystemLib()
 
 
 // for use with VECTOR_SORT in getUnresolvedControlFlow
-bool callTargetCompare(image_instPoint *pt1, image_instPoint *pt2) 
+int addrPointCmp(image_instPoint *pt1, image_instPoint *pt2) 
 { 
-   return pt1->callTarget() < pt2->callTarget(); 
+    if (pt1->offset() < pt2->offset()) {
+        return 1;
+    }
+    if (pt1->offset() > pt2->offset()) {
+        return -1;
+    }
+    return 0;
 }
 
 /* Build up a vector of control flow instructions with suspicious targets
@@ -2520,77 +2526,68 @@ bool callTargetCompare(image_instPoint *pt1, image_instPoint *pt2)
  */
 BPatch_Vector<BPatch_point *> *BPatch_module::getUnresolvedControlFlowInt()
 {
-   if (unresolvedCF.size()) {
-      return &unresolvedCF;
-   }
-
-   pdvector<image_instPoint*> ctrlTransfers 
-      = lowlevel_mod()->obj()->parse_img()->getBadControlFlow();
-   VECTOR_SORT(ctrlTransfers, callTargetCompare);
-
-   Address prevAddr = 0;
-
-   for (unsigned int i=0; i < ctrlTransfers.size(); i++) {
-      image_instPoint *curPoint = ctrlTransfers[i];
-      Address curAddr = curPoint->offset() 
-         + curPoint->func()->img()->desc().loadAddr();
-
-      // eliminate dups from ctrlTransfers
-      if (prevAddr != curAddr) { 
-         prevAddr = curAddr;
-
-         // if this is a static CT skip if target leads to known code
-         if ( ! curPoint->isDynamicCall() &&
-               (addSpace->getAS()->findOrigByAddr(curPoint->callTarget()) ||
-                addSpace->getAS()->findModByAddr(curPoint->callTarget()))) {
-            continue;
-         }
-
-         // find or create BPatch_point from image_instPoint
-         BPatch_point *bpPoint = NULL;
-         BPatch_function *func = img->findFunctionInt
-            ((unsigned long)curAddr);
-
-         if (func) {
-            instPoint *intPt = func->lowlevel_func()
-               ->findInstPByAddr(curAddr);
-
-            if (!intPt) {// instPoint does not exist, create it
-               intPt = instPoint::createParsePoint(func->lowlevel_func(), curPoint);
+    if (unresolvedCF.size()) {
+        return &unresolvedCF;
+    }
+    pdvector<image_instPoint*> ctrlTransfers 
+        = lowlevel_mod()->obj()->parse_img()->getBadControlFlow();
+    VECTOR_SORT(ctrlTransfers, addrPointCmp);
+    Address prevAddr = 0;
+    for (unsigned int i=0; i < ctrlTransfers.size(); i++) {
+        image_instPoint *curPoint = ctrlTransfers[i];
+        Address curAddr = curPoint->offset() 
+            + curPoint->func()->img()->desc().loadAddr();
+        // eliminate dups from ctrlTransfers
+        if (prevAddr != curAddr) { 
+            prevAddr = curAddr;
+            // if this is a static CT skip if target leads to known code
+            if ( ! curPoint->isDynamic() &&
+                 (addSpace->getAS()->findOrigByAddr(curPoint->callTarget()) ||
+                  addSpace->getAS()->findModByAddr(curPoint->callTarget()))) {
+                continue;
             }
-
-            if (!intPt) {
-               fprintf(stderr,"%s[%d] Could not find instPoint corresponding to "
-                     "unresolved control transfer at %lx\n",
-                     __FILE__,__LINE__, (long)curAddr);
-               continue;
-            }
-
-            if (intPt->getPointType() == callSite) {
-               bpPoint = addSpace->findOrCreateBPPoint(func, intPt, BPatch_locSubroutine);
+            // find or create BPatch_point from image_instPoint
+            BPatch_point *bpPoint = NULL;
+            BPatch_function *func = img->findFunctionInt
+                ((unsigned long)curAddr);
+            if (func) {
+                // Create the vector of call points in the low-level func
+                if (curPoint->getPointType() == callSite) {
+                    func->lowlevel_func()->funcCalls();
+                }
+				
+                instPoint *intPt = func->lowlevel_func()
+                    ->findInstPByAddr(curAddr);
+                if (!intPt) {// instPoint does not exist, create it
+                    intPt = instPoint::createParsePoint(func->lowlevel_func(), curPoint);
+                }
+                if (!intPt) {
+                    fprintf(stderr,"%s[%d] Could not find instPoint corresponding to "
+                            "unresolved control transfer at %lx\n",
+                            __FILE__,__LINE__, (long)curAddr);
+                    continue;
+                }
+                if (intPt->getPointType() == callSite) {
+                    bpPoint = addSpace->findOrCreateBPPoint(func, intPt, BPatch_locSubroutine);
+                } else {
+                    bpPoint = addSpace->findOrCreateBPPoint(func, intPt, BPatch_locLongJump);
+                }
             } else {
-               bpPoint = addSpace->findOrCreateBPPoint(func, intPt, BPatch_locLongJump);
+                fprintf(stderr,"%s[%d] Could not find function corresponding to "
+                        "unresolved control transfer at %lx\n",
+                        __FILE__,__LINE__, (long)curAddr);
+            } 
+            // add BPatch_point to vector of unresolved control transfers
+            if (bpPoint == NULL) {
+                fprintf(stderr,"%s[%d] Control transfer at %lx not instrumentable\n",
+                        __FILE__,__LINE__, (long)curAddr);
+            } else {
+                unresolvedCF.push_back(bpPoint);
             }
-
-         } else {
-            fprintf(stderr,"%s[%d] Could not find function corresponding to "
-                  "unresolved control transfer at %lx\n",
-                  __FILE__,__LINE__, (long)curAddr);
-         } 
-
-         // add BPatch_point to vector of unresolved control transfers
-         if (bpPoint == NULL) {
-            fprintf(stderr,"%s[%d] Control transfer at %lx not instrumentable\n",
-                  __FILE__,__LINE__, (long)curAddr);
-         } else {
-            unresolvedCF.push_back(bpPoint);
-         }
-      }
-   }
-
-   return &unresolvedCF;
+        }
+    }
+    return &unresolvedCF;
 }
-
 
 #ifdef IBM_BPATCH_COMPAT
 
