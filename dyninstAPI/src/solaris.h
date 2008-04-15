@@ -67,6 +67,8 @@ struct dyn_saved_regs
 
 typedef lwpstatus_t procProcStatus_t;
 
+#if defined (cap_save_the_world)
 #include "writeBackElf.h" //ccw 28 oct 2001
 #include "addLibrary.h" //ccw 3 dec 2001
+#endif
 #endif
