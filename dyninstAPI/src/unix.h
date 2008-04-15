@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: unix.h,v 1.3 2006/05/22 04:45:23 jaw Exp $
+/* $Id: unix.h,v 1.4 2008/04/15 16:43:42 roundy Exp $
  */
 
 #ifndef _UNIX_H_
@@ -103,6 +103,7 @@ extern int SYSSET_MAP(int, int);
 #endif
 
 typedef unsigned long eventInfo_t;
+typedef void * eventMoreInfo_t;
 typedef unsigned int eventWhat_t;
 #define THREAD_RETURN void *
 #define DO_THREAD_RETURN return NULL
