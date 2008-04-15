@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.19 2008/02/23 02:09:10 jaw Exp $
+// $Id: pdwinnt.h,v 1.20 2008/04/15 16:43:27 roundy Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -59,6 +59,11 @@ struct dyn_saved_regs {
     w32CONTEXT cont;
 };
 
+struct EXCEPTION_REGISTRATION {
+    EXCEPTION_REGISTRATION *prev;
+    Address handler;
+};
+
 #define EXIT_NAME "_exit"
 #define SIGNAL_HANDLER "no_signal_handler"
 #endif
@@ -76,6 +81,7 @@ struct dyn_saved_regs {
 
 typedef DEBUG_EVENT eventInfo_t;
 typedef DWORD eventWhat_t;
+typedef void * eventMoreInfo_t;
 #define THREAD_RETURN void
 #define DO_THREAD_RETURN return
 
