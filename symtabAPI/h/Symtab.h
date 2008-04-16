@@ -265,7 +265,7 @@ class Symtab : public LookupInterface,
 	DLLEXPORT bool findModule(Module *&ret, const std::string name);
 	DLLEXPORT bool findRegion(Region *&ret, std::string regname);
 	DLLEXPORT bool findRegionByEntry(Region *&ret, const Offset offset);
-	DLLEXPORT bool findEnclosingRegion(Region *&ret, const Offset offset);
+	DLLEXPORT Region *findEnclosingRegion(const Offset offset);
 
 	DLLEXPORT bool addSymbol(Symbol *newsym, bool isDynamic = false);
     DLLEXPORT bool addSymbol(Symbol *newSym, Symbol *referringSymbol);

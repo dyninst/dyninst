@@ -2073,11 +2073,11 @@ bool Symtab::findRegionByEntry(Region *&ret, const Offset offset)
     return false;
 }
 
-/* Similar to binary search in isCode with the exception that here
- * we search to the end of regions without regards to whether they
- * have corresponding raw data on disk. 
+/* Similar to binary search in isCode with the exception that here we
+ * search to the end of regions without regards to whether they have
+ * corresponding raw data on disk, and searches all regions.  
  */
-bool Symtab::findEnclosingRegion(Region *&reg, const Offset where)
+Region *Symtab::findEnclosingRegion(const Offset where)
 {
     // search for "where" in regions (regions must not overlap)
     int first = 0; 
@@ -2087,8 +2087,7 @@ bool Symtab::findEnclosingRegion(Region *&reg, const Offset where)
         if (where >= curreg->getRegionAddr()
             && where < (curreg->getRegionAddr()
                         + curreg->getMemSize())) {
-            reg = curreg;
-            return true;
+            return curreg;
         }
         else if (where < curreg->getRegionAddr()) {
             last = ((first + last) / 2) - 1;
@@ -2098,8 +2097,7 @@ bool Symtab::findEnclosingRegion(Region *&reg, const Offset where)
             first = ((first + last) / 2) + 1;
         }
     }
-    reg = NULL;
-    return false;
+    return NULL;
 }
 
 bool Symtab::findRegion(Region *&ret, const std::string secName)
