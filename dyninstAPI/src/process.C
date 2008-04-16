@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.714 2008/04/16 18:12:31 roundy Exp $
+// $Id: process.C,v 1.715 2008/04/16 20:59:25 roundy Exp $
 
 #include <ctype.h>
 
@@ -1660,9 +1660,7 @@ process::process(SignalGenerator *sh_) :
     tracedSyscalls_(NULL),
     traceSysCalls_(false),
     traceState_(noTracing_ts),
-    libcstartmain_brk_addr(0),
-    stopThread_ID_counter(0),
-    stopThread_callbacks( addrHash )
+    libcstartmain_brk_addr(0)
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -2143,9 +2141,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     tracedSyscalls_(NULL),  // Later
     traceSysCalls_(parentProc->getTraceSysCalls()),
     traceState_(parentProc->getTraceState()),
-    libcstartmain_brk_addr(parentProc->getlibcstartmain_brk_addr()),
-    stopThread_ID_counter(0),
-    stopThread_callbacks( addrHash )
+    libcstartmain_brk_addr(parentProc->getlibcstartmain_brk_addr())
 #if defined(arch_ia64)
     , unwindAddressSpace( NULL )
     , unwindProcessArgs( addrHash )
@@ -4229,7 +4225,10 @@ bool process::handleExecExit(fileDescriptor &desc)
    return true;
 }
 
-static int process::getStopThreadCB_ID(const Address cb)
+dictionary_hash< Address, unsigned > process::stopThread_callbacks( addrHash );
+int process::stopThread_ID_counter = 0;
+
+int process::getStopThreadCB_ID(const Address cb)
 {
     if (stopThread_callbacks.defines((Address)cb)) {
         return stopThread_callbacks[(Address)cb];
