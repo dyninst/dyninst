@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.322 2008/04/15 16:43:39 roundy Exp $
+ // $Id: symtab.C,v 1.323 2008/04/16 17:02:39 roundy Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1479,12 +1479,10 @@ void pdmodule::dumpMangled(std::string &prefix) const
 image_func *image::addFunctionStub(Address functionEntryAddr, char *fName)
  {
      // get or create module
-     pdmodule *mod;
-     if( everyUniqueFunction.size() <= 0 ) {
-         mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
-     } else {
-         mod = everyUniqueFunction[0]->pdmod();
-     }
+     pdmodule *mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
+     //KEVINTODO: if there are functions both preceding and succeeding
+     //this one that lie in the same module, use that module instead
+
      // copy or create function name
      char funcName[32];
      if (fName) {
@@ -2025,8 +2023,8 @@ void *image::getPtrToInstruction(Address offset) const
    assert(isValidAddress(offset));
 
    if (isCode(offset)) {
-      Region *reg;
-      if (linkedFile->findEnclosingRegion(reg, offset) &&
+      Region *reg = linkedFile->findEnclosingRegion(offset);
+      if (reg != NULL &&
           (reg->getRegionPermissions() == Region::RP_RX ||
            reg->getRegionPermissions() == Region::RP_RWX)) {
           return (void*) ((Address)reg->getPtrToRawData() + offset - reg->getMemOffset());
