@@ -700,10 +700,9 @@ class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
   //  user program with the result of the calculation and a pointer to
   //  the BPatch_point at which the snippet was inserted
 
-  API_EXPORT_CTOR(Int, (proc, cb, calculation),
+  API_EXPORT_CTOR(Int, (cb, calculation),
   BPatch_stopThreadExpr, 
-  (BPatch_process *proc, 
-   const BPatchStopThreadCallback &cb,
+  (const BPatchStopThreadCallback &cb,
    const BPatch_snippet &calculation));
 };
 

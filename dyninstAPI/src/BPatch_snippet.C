@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.105 2008/04/15 16:43:04 roundy Exp $
+// $Id: BPatch_snippet.C,v 1.106 2008/04/16 18:12:30 roundy Exp $
 
 #define BPATCH_FILE
 
@@ -1435,8 +1435,7 @@ bool BPatch_insnExpr::overrideStoreAddressInt(BPatch_snippet &s) {
  *  the BPatch_point at which the snippet was inserted
  */
 void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
-      (BPatch_process *proc,
-       const BPatchStopThreadCallback &bp_cb,
+      (const BPatchStopThreadCallback &bp_cb,
        const BPatch_snippet &calculation) 
 {
     //register the callback 
@@ -1444,8 +1443,7 @@ void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
     getCBManager()->registerCallback(evtStopThread, cb);
 
     // create callback ID argument
-    int cb_id = ((process*)proc->lowlevel_process())->
-        getStopThreadCB_ID((Address)bp_cb); 
+    int cb_id = process::getStopThreadCB_ID((Address)bp_cb); 
     AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*) cb_id );
     assert(BPatch::bpatch != NULL);
     BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
