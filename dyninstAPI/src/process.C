@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.713 2008/04/15 16:43:29 roundy Exp $
+// $Id: process.C,v 1.714 2008/04/16 18:12:31 roundy Exp $
 
 #include <ctype.h>
 
@@ -4229,7 +4229,7 @@ bool process::handleExecExit(fileDescriptor &desc)
    return true;
 }
 
-int process::getStopThreadCB_ID(const Address cb)
+static int process::getStopThreadCB_ID(const Address cb)
 {
     if (stopThread_callbacks.defines((Address)cb)) {
         return stopThread_callbacks[(Address)cb];

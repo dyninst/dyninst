@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.416 2008/04/15 16:43:30 roundy Exp $
+/* $Id: process.h,v 1.417 2008/04/16 18:12:32 roundy Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -664,7 +664,7 @@ class process : public AddressSpace {
   bool handleExecExit(fileDescriptor &desc);
 
   bool handleStopThread(EventRecord &ev);
-  int getStopThreadCB_ID(const Address cb);
+  static int getStopThreadCB_ID(const Address cb);
 
   public:
 
@@ -1038,8 +1038,8 @@ private:
   int libcHandle_;
   traceState_t traceState_;
   Address libcstartmain_brk_addr;
-  int stopThread_ID_counter;
-  dictionary_hash< Address, unsigned > stopThread_callbacks;
+  static int stopThread_ID_counter;
+  static dictionary_hash< Address, unsigned > stopThread_callbacks;
  public:  
 
   ///////////////////////////////
