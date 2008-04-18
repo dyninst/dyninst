@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.42 2008/04/11 23:30:55 legendre Exp $
+ * $Id: Object-elf.C,v 1.43 2008/04/18 17:07:25 jaw Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -1335,7 +1335,7 @@ void Object::parse_dynamicSymbols ( Elf_X_Shdr *&dyn_scnp, Elf_X_Data &symdata, 
       if((secNumber == SHN_ABS) && regions_.size())
          sec = regions_[0];     
 
-      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, NULL, true, false);
+      Symbol *newsym = new Symbol(sname, smodule, stype, slinkage, saddr, sec, ssize, /*NULL,*/ true, false);
 #if !defined(os_solaris)
       if(versymSec) {
           if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())

@@ -586,43 +586,96 @@ int getRegisterNumber(int n, InsnRegister::RegisterType type) {
   return n;
 }
 
-void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs) {
-  InsnRegister* reads = (InsnRegister*)malloc(sizeof(InsnRegister)*7);//[7];
-  InsnRegister* writes = (InsnRegister*)malloc(sizeof(InsnRegister)*5);
-  getInstruction().get_register_operands(reads, writes);
+void InstrucIter::readWriteRegisters(int* readRegs, int* writeRegs) 
+{
+   instruction insn = getInstruction();
+   insn.get_register_operands();
+   Annotatable<InsnRegister, register_read_set_a> &read_regs = insn;
+   Annotatable<InsnRegister, register_write_set_a> &write_regs = insn;
 
-  int c=0;
-  int wC;
-  int i, j;
-  for(i=0; i<7; i++) {
-    int regNum = reads[i].getNumber();
-    if(regNum != -1) {
-      regNum = getRegisterNumber(regNum, reads[i].getType());
-      if(regNum != 0)
-	for(j=0, wC=reads[i].getWordCount(); j<wC; j++,c++) {
-	  readRegs[c] = regNum + j;
-	}
-    }
-    else
-      break;
-  }
-  c=0;
-  for(i=0; i<5; i++) {
-    int regNum = writes[i].getNumber();
-    if(regNum != -1) {
-      regNum = getRegisterNumber(regNum, writes[i].getType());
-      if(regNum != 0)
-	for(j=0, wC=writes[i].getWordCount(); j<wC; j++,c++) {
-	  writeRegs[c] = regNum + j;
-	}
-    }
-    else
-      break;
-  }
+#if 0
+   InsnRegister* reads = (InsnRegister*)malloc(sizeof(InsnRegister)*7);//[7];
+   InsnRegister* writes = (InsnRegister*)malloc(sizeof(InsnRegister)*5);
+   getInstruction().get_register_operands(reads, writes);
+#endif
+
+   int c=0;
+
+   unsigned int reads_size = read_regs.size();
+   assert(reads_size < 9);
+
+   for (unsigned int i  = 0; i < reads_size; ++i) {
+      
+      InsnRegister &read_reg = read_regs[i];
+      int regNum = read_reg.getNumber();
+      if (regNum == -1) 
+         break;
+
+      regNum = getRegisterNumber(regNum, read_reg.getType());
+
+      if (regNum != 0) {
+         for (unsigned int j=0, wC=read_reg.getWordCount(); j<wC; j++,c++) {
+            readRegs[c] = regNum + j;
+         }
+      }
+   }
+
+#if 0
+   int wC;
+   int i, j;
+   for(i=0; i<7; i++) {
+      int regNum = reads[i].getNumber();
+      if(regNum != -1) {
+         regNum = getRegisterNumber(regNum, reads[i].getType());
+         if(regNum != 0)
+            for(j=0, wC=reads[i].getWordCount(); j<wC; j++,c++) {
+               readRegs[c] = regNum + j;
+            }
+      }
+      else
+         break;
+   }
+#endif
+
+   c=0;
+   unsigned int writes_size = write_regs.size();
+   assert(writes_size < 7);
+
+   for (unsigned int i  = 0; i < writes_size; ++i) {
+      
+      InsnRegister &write_reg = write_regs[i];
+      int regNum = write_reg.getNumber();
+      if (regNum == -1) 
+         break;
+
+      regNum = getRegisterNumber(regNum, write_reg.getType());
+
+      if (regNum != 0) {
+         for (unsigned int j=0, wC=write_reg.getWordCount(); j<wC; j++,c++) {
+            writeRegs[c] = regNum + j;
+         }
+      }
+   }
+
+#if 0
+   c=0;
+   for(i=0; i<5; i++) {
+      int regNum = writes[i].getNumber();
+      if(regNum != -1) {
+         regNum = getRegisterNumber(regNum, writes[i].getType());
+         if(regNum != 0)
+            for(j=0, wC=writes[i].getWordCount(); j<wC; j++,c++) {
+               writeRegs[c] = regNum + j;
+            }
+      }
+      else
+         break;
+   }
+#endif
 }
 
 void InstrucIter::adjustRegNumbers(int* readRegs, int* writeRegs,int window) {
-  int i=0;
+   int i=0;
   if(isASaveInstruction()) {
     for(i=0; i<2; i++) {
       if(readRegs[i] <32 && readRegs[i] > 7)

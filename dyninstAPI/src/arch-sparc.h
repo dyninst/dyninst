@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.53 2008/02/20 22:34:13 legendre Exp $
+// $Id: arch-sparc.h,v 1.54 2008/04/18 17:07:24 jaw Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL
@@ -713,8 +713,11 @@ class instruction : public Annotatable<InsnRegister, register_read_set_a>,
 
   bool isCall() const;
 
+  void get_register_operands();
+#if 0
   void get_register_operands(InsnRegister * reads,
 			     InsnRegister * writes);
+#endif
 
   //  is instruction i a "true" call?
   //  2 types of call insn in sparc:

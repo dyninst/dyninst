@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.11 2008/03/12 20:09:52 legendre Exp $
+# $Id: Makefile,v 1.12 2008/04/18 17:07:25 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -46,6 +46,8 @@ MUTATEE_NATIVE_CXX_OMP_LDFLAGS = -lthread -xopenmp
 # does quick check to see if OpenMP compiler exists, if not, makes native default
 ifneq (,$(findstring Sun C ,$(shell $(NATIVE_CXX_OMP) -V 2>&1)))
 HPC_COMPILER_EXISTS=1
+MUTATOR_CXXFLAGS += -Dhpc_compiler_exists
+MUTATOR_CFLAGS += -Dhpc_compiler_exists
 endif 
 
 

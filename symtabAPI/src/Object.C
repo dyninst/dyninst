@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.18 2008/04/11 23:30:57 legendre Exp $
+// $Id: Object.C,v 1.19 2008/04/18 17:07:25 jaw Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -153,7 +153,7 @@ DLLEXPORT Symbol::Symbol(const Symbol& s)
     Annotatable <std::vector<std::string>, symbol_version_names_a>(), 
     module_(s.module_), 
     type_(s.type_), linkage_(s.linkage_),
-    addr_(s.addr_), sec_(s.sec_), size_(s.size_), upPtr_(s.upPtr_), isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
+    addr_(s.addr_), sec_(s.sec_), size_(s.size_), /*upPtr_(s.upPtr_),*/ isInDynsymtab_(s.isInDynsymtab_), isInSymtab_(s.isInSymtab_), 
     mangledNames(s.mangledNames), prettyNames(s.prettyNames), typedNames(s.typedNames), tag_(s.tag_), framePtrRegNum_(s.framePtrRegNum_),
     retType_(s.retType_), moduleName_(s.moduleName_), vars_(s.vars_), params_(s.params_) 
 {
@@ -175,7 +175,9 @@ DLLEXPORT Symbol& Symbol::operator=(const Symbol& s) {
     addr_    = s.addr_;
     sec_     = s.sec_;
     size_    = s.size_;
+#if 0
     upPtr_ = s.upPtr_;
+#endif
     isInDynsymtab_ = s.isInDynsymtab_;
     isInSymtab_ = s.isInSymtab_;
     tag_     = s.tag_;
@@ -239,9 +241,11 @@ DLLEXPORT Region *Symbol::getSec() const {
     return sec_;
 }
 
+#if 0
 DLLEXPORT void *Symbol::getUpPtr() const {
 	return upPtr_;
 }
+#endif
 
 DLLEXPORT bool Symbol::isInDynSymtab() const {
     return isInDynsymtab_;
@@ -298,7 +302,7 @@ DLLEXPORT bool Symbol::clearIsInSymtab() {
 DLLEXPORT Symbol::Symbol()
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0),
-    upPtr_(NULL), isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), 
+    /*upPtr_(NULL),*/ isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), 
     retType_(NULL), moduleName_(""), vars_(NULL), params_(NULL) {
    // note: this ctor is called surprisingly often (when we have
    // vectors of Symbols and/or dictionaries of Symbols).  So, make it fast.
@@ -318,9 +322,9 @@ DLLEXPORT const std::vector<string>& Symbol::getAllTypedNames() const {
 
 DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
-    Region *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
+    Region *isec, unsigned size, /*void *upPtr,*/ bool isInDynSymtab, bool isInSymtab)
     : type_(itype),
-    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), upPtr_(upPtr), isInDynsymtab_(isInDynSymtab),
+    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), /*upPtr_(upPtr), */isInDynsymtab_(isInDynSymtab),
     isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL), vars_(NULL), params_(NULL) {
         module_ = NULL;
     	moduleName_ = imodule;
@@ -329,9 +333,9 @@ DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
 
 DLLEXPORT Symbol::Symbol(const string iname, Module *mod,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
-    Region *isec, unsigned size, void *upPtr, bool isInDynSymtab, bool isInSymtab)
+    Region *isec, unsigned size, /*void *upPtr,*/ bool isInDynSymtab, bool isInSymtab)
     : module_(mod), type_(itype),
-    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), upPtr_(upPtr), isInDynsymtab_(isInDynSymtab), 
+    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), /*upPtr_(upPtr),*/ isInDynsymtab_(isInDynSymtab), 
     isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL), vars_(NULL), params_(NULL) {
     	mangledNames.push_back(iname);
 }
@@ -447,11 +451,13 @@ DLLEXPORT bool Symbol::setSymbolType(SymbolType sType){
         return true;
 }
 
+#if 0
 DLLEXPORT bool	Symbol::setUpPtr(void *newUpPtr)
 {
 	upPtr_ = newUpPtr;
 	return true;
 }
+#endif
 
 DLLEXPORT Type *Symbol::getReturnType(){
 	return retType_;

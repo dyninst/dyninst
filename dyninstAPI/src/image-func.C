@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.53 2008/04/15 16:43:17 roundy Exp $
+// $Id: image-func.C,v 1.54 2008/04/18 17:07:24 jaw Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -166,7 +166,9 @@ image_func::image_func(const std::string &symbol,
      sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
 	  		     								offset, sec, symTabSize);
      //i->getObject()->addSymbol(sym_);								
-     sym_->setUpPtr(this);
+     image_func *th = this;
+     annotate<Symbol, image_func *>(sym_, th, std::string("image_func_ptr"));
+     //sym_->setUpPtr(this);
      //symTabNames_.push_back(symbol);
 }
 

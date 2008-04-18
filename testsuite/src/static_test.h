@@ -125,7 +125,9 @@ extern "C" int test12_8_mutatorMAIN(ParameterDict &param);
 extern "C" int test13_1_mutatorMAIN(ParameterDict &param);
 extern "C" int test14_1_mutatorMAIN(ParameterDict &param);
 extern "C" int test15_1_mutatorMAIN(ParameterDict &param);
+#if defined (hpc_compiler_exists)
 extern "C" int test16_1_mutatorMAIN(ParameterDict &param);
+#endif
 
 static_mutator_t static_mutators[] = {
   {"test1_1", test1_1_mutatorMAIN},
@@ -245,7 +247,9 @@ static_mutator_t static_mutators[] = {
   {"test13_1", test13_1_mutatorMAIN},
   {"test14_1", test14_1_mutatorMAIN},
   {"test15_1", test15_1_mutatorMAIN},
+#if defined (hpc_compiler_exists)
   {"test16_1", test16_1_mutatorMAIN},
+#endif
 };
 const unsigned int static_mutators_count =
   sizeof(static_mutators) / sizeof(static_mutator_t);

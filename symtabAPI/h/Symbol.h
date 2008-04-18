@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.11 2008/04/07 22:32:46 giri Exp $
+ * $Id: Symbol.h,v 1.12 2008/04/18 17:07:25 jaw Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -99,12 +99,21 @@ public:
 
     DLLEXPORT Symbol (); // note: this ctor is called surprisingly often!
     DLLEXPORT Symbol (unsigned);
+    DLLEXPORT Symbol (const std::string name,const std::string modulename, 
+          SymbolType, SymbolLinkage,
+             Offset, Region *sec = NULL, unsigned size = 0,  
+             bool isInDynsymtab_ = false, bool isInSymtab_ = true);
+    DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
+             Offset, Region *sec = NULL, unsigned size = 0,  bool isInDynsymtab_ = false,
+             bool isInSymtab_ = true);
+#if 0
     DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
              Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false, 
              bool isInSymtab_ = true);
     DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
              Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false,
              bool isInSymtab_ = true);
+#endif
     DLLEXPORT Symbol (const Symbol &);
     DLLEXPORT ~Symbol();
 
@@ -117,7 +126,6 @@ public:
     DLLEXPORT SymbolLinkage     getLinkage ()           const;
     DLLEXPORT Offset            getAddr ()              const;
     DLLEXPORT Region		    *getSec ()      	    const;
-    DLLEXPORT void 		        *getUpPtr()		        const;
     DLLEXPORT bool              isInDynSymtab()         const;
     DLLEXPORT bool              isInSymtab()            const;
     
@@ -142,7 +150,10 @@ public:
     DLLEXPORT bool	setSize(unsigned ns);
     DLLEXPORT bool	setModuleName(std::string module);
     DLLEXPORT bool 	setModule(Module *mod);
+#if 0
     DLLEXPORT bool	setUpPtr(void *newUpPtr);
+    DLLEXPORT void 		        *getUpPtr()		        const;
+#endif
     DLLEXPORT bool  setDynSymtab();
     DLLEXPORT bool  clearDynSymtab();
     DLLEXPORT bool  setIsInSymtab();
@@ -182,7 +193,9 @@ private:
     Offset        addr_;
     Region*      sec_;
     unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
+#if 0
     void*         upPtr_;
+#endif
     bool          isInDynsymtab_;
     bool          isInSymtab_;
 
@@ -202,6 +215,7 @@ public:
     localVarCollection *params_;
 };
 
+#if 0
 inline
 Symbol::Symbol(unsigned)
    : //name_("*bad-symbol*"), module_("*bad-module*"),
@@ -209,7 +223,15 @@ Symbol::Symbol(unsigned)
     isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_(""), 
     vars_(NULL), params_(NULL) {
 }
+#endif
 
+inline
+Symbol::Symbol(unsigned)
+   : //name_("*bad-symbol*"), module_("*bad-module*"),
+    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
+    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_(""), 
+    vars_(NULL), params_(NULL) {
+}
 inline
 bool
 Symbol::operator==(const Symbol& s) const {
@@ -220,7 +242,9 @@ Symbol::operator==(const Symbol& s) const {
         && (addr_    == s.addr_)
 	&& (sec_     == s.sec_)
 	&& (size_    == s.size_)
+#if 0
 	&& (upPtr_    == s.upPtr_)
+#endif
     && (isInDynsymtab_ == s.isInDynsymtab_)
     && (isInSymtab_ == s.isInSymtab_)
 	&& (retType_    == s.retType_)
