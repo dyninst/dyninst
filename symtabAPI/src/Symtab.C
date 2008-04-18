@@ -2134,14 +2134,14 @@ bool Symtab::isCode(const Offset where)  const
     while (last >= first) {
         Region *curreg = codeRegions_[(first + last) / 2];
         if (where >= curreg->getRegionAddr()
-            && where < (curreg->getRegionAddr()
+            && where <= (curreg->getRegionAddr()
                         + curreg->getDiskSize())) {
             return true;
         }
         else if (where < curreg->getRegionAddr()) {
             last = ((first + last) / 2) - 1;
         }
-        else if (where >= (curreg->getRegionAddr()
+        else if (where > (curreg->getRegionAddr()
                            + curreg->getMemSize())) {
             first = ((first + last) / 2) + 1;
         }
@@ -2159,7 +2159,7 @@ bool Symtab::isData(const Offset where)  const
     if(!dataRegions_.size())
         return false;
     for(unsigned i=0; i< dataRegions_.size(); i++){
-        if((where>=dataRegions_[i]->getRegionAddr()) && (where < (dataRegions_[i]->getRegionAddr() + dataRegions_[i]->getDiskSize())))
+        if((where>=dataRegions_[i]->getRegionAddr()) && (where <= (dataRegions_[i]->getRegionAddr() + dataRegions_[i]->getDiskSize())))
             return true;
     }
     return false;
@@ -2912,6 +2912,7 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
     if(loadable)
     {
         sec = new Region(newSectionInsertPoint, name, vaddr, dataSize, vaddr, dataSize, (char *)data, Region::RP_R, rType_);
+        sec->setLoadable(true);
         regions_.insert(regions_.begin()+newSectionInsertPoint, sec);
         for(i = newSectionInsertPoint+1; i < regions_.size(); i++)
             regions_[i]->setRegionNumber(regions_[i]->getRegionNumber() + 1);
@@ -2921,6 +2922,14 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
         sec = new Region(regions_.size()+1, name, vaddr, dataSize, 0, 0, (char *)data, Region::RP_R, rType_);
         regions_.push_back(sec);
     }	
+    if((sec->getRegionType() == Region::RT_TEXT) || (sec->getRegionType() == Region::RT_TEXTDATA)){
+        codeRegions_.push_back(sec);
+        std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
+    }
+    if((sec->getRegionType() == Region::RT_DATA) || (sec->getRegionType() == Region::RT_TEXTDATA)){
+        dataRegions_.push_back(sec);
+        std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
+    }
     Annotatable<Region *, user_regions_a> &urA = *this;
     urA.addAnnotation(sec);
     std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
@@ -2929,7 +2938,16 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
 
 bool Symtab::addRegion(Region *sec)
 {
+    if((sec->getRegionType() == Region::RT_TEXT) || (sec->getRegionType() == Region::RT_TEXTDATA)){
+        codeRegions_.push_back(sec);
+        std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
+    }
+    if((sec->getRegionType() == Region::RT_DATA) || (sec->getRegionType() == Region::RT_TEXTDATA)){
+        dataRegions_.push_back(sec);
+        std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
+    }
     regions_.push_back(sec);
+    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
     Annotatable<Region *, user_regions_a> &urA = *this;
     urA.addAnnotation(sec);
     return true;
@@ -3806,7 +3824,7 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size)
             newSectionInsertPoint = i+1;
             highWaterMark = end;
         }
-        if ((i <= (regions_.size()-1)) &&
+        if ((i <= (regions_.size() - 1)) &&
                ((end + size) < regions_[i+1]->getRegionAddr())) {
             /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
                     i, i+1);
@@ -3922,12 +3940,15 @@ DLLEXPORT Region::Region(unsigned regnum, std::string name, Offset diskOff,
     memSize_(memSize), rawDataPtr_(rawDataPtr), permissions_(perms), rType_(regType), 
     isDirty_(false), buffer_(NULL)
 {
+    if(memOff)
+        isLoadable_ = true;
 }
 
 DLLEXPORT Region::Region(const Region &reg) : regNum_(reg.regNum_), name_(reg.name_),
                     diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
                     memSize_(reg.memSize_), rawDataPtr_(reg.rawDataPtr_), permissions_(reg.permissions_),
-                    rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_)
+                    rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_),
+                    isLoadable_(reg.isLoadable_)
 {
 }
 
@@ -3944,6 +3965,7 @@ DLLEXPORT Region& Region::operator=(const Region &reg){
     isDirty_ = reg.isDirty_;
     rels_ = reg.rels_;
     buffer_ = reg.buffer_;
+    isLoadable_ = reg.isLoadable_;
 
     return *this;
 }
@@ -3959,7 +3981,8 @@ DLLEXPORT bool Region::operator==(const Region &reg){
             (permissions_ == reg.permissions_) &&
             (rType_ == reg.rType_) &&
             (isDirty_ == reg.isDirty_) &&
-            (buffer_ == reg.buffer_));
+            (buffer_ == reg.buffer_) &&
+            (isLoadable_ == reg.isLoadable_));
 }
 
 DLLEXPORT ostream& Region::operator<< (ostream &os) 
@@ -4056,7 +4079,7 @@ DLLEXPORT bool Region::isOffsetInRegion(const Offset &offset) const {
 }
 
 DLLEXPORT bool Region::isLoadable() const{
-    return (memOff_ != 0);
+    return isLoadable_;
 }
 
 DLLEXPORT bool Region::isDirty() const{
@@ -4092,6 +4115,11 @@ DLLEXPORT bool Region::setRegionPermissions(Region::perm_t newPerms){
 
 DLLEXPORT Region::region_t Region::getRegionType() const {
     return rType_;
+}
+
+DLLEXPORT bool Region::setLoadable(bool isLoadable){
+    isLoadable_ = isLoadable;
+    return true;
 }
 
 #if 0

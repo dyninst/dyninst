@@ -106,6 +106,7 @@ class Region {
     DLLEXPORT bool isData() const;
     DLLEXPORT bool isOffsetInRegion(const Offset &offset) const;
     DLLEXPORT bool isLoadable() const;
+    DLLEXPORT bool setLoadable(bool isLoadable);
     DLLEXPORT bool isDirty() const;
     DLLEXPORT std::vector<relocationEntry> &getRelocations();
     DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
@@ -133,6 +134,7 @@ class Region {
     bool isDirty_;
     std::vector<relocationEntry> rels_;
     char *buffer_;  //To hold dirty data
+    bool isLoadable_;
 };
 
  
