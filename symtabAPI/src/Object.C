@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-// $Id: Object.C,v 1.19 2008/04/18 17:07:25 jaw Exp $
+// $Id: Object.C,v 1.20 2008/04/22 04:39:27 jaw Exp $
 
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
@@ -324,7 +324,7 @@ DLLEXPORT Symbol::Symbol(const string iname, const string imodule,
     SymbolType itype, SymbolLinkage ilinkage, Offset iaddr,
     Region *isec, unsigned size, /*void *upPtr,*/ bool isInDynSymtab, bool isInSymtab)
     : type_(itype),
-    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), /*upPtr_(upPtr), */isInDynsymtab_(isInDynSymtab),
+    linkage_(ilinkage), addr_(iaddr), sec_(isec), size_(size), /*upPtr_(upPtr),*/ isInDynsymtab_(isInDynSymtab),
     isInSymtab_(isInSymtab), tag_(TAG_UNKNOWN), framePtrRegNum_(-1), retType_(NULL), vars_(NULL), params_(NULL) {
         module_ = NULL;
     	moduleName_ = imodule;

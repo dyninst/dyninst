@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.18 2008/04/18 17:07:24 jaw Exp $
+// $Id: image-sparc.C,v 1.19 2008/04/22 04:39:26 jaw Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -288,40 +288,46 @@ bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
 
 void image_func::archInstructionProc(InstrucIter &ah)
 {
-   // Check whether "07" is live, AKA we can't call safely.
-   // Could we just always assume this?
-
-   if (!o7_live) {
+    // Check whether "07" is live, AKA we can't call safely.
+    // Could we just always assume this?
+    if (!o7_live) {
+       
 #if 0
-      InsnRegister reads[7];
-      InsnRegister writes[7];
+	InsnRegister reads[7];
+	InsnRegister writes[7];
 
-      ah.getInstruction().get_register_operands(reads, writes);
-      ah.getInstruction().get_register_operands();
+	ah.getInstruction().get_register_operands(reads, writes);
+	int i;
+        for(i=0; i<7; i++) {
+	  if (reads[i].is_o7()) {
+	    o7_live = true;
+	    break;
+	  }
+	}
 #endif
-      instruction insn = ah.getInstruction();
-      insn.get_register_operands();
-      Annotatable<InsnRegister, register_read_set_a> &read_regs = insn;
-      assert(read_regs.size() < 9);
+        instruction insn = ah.getInstruction();
+        insn.get_register_operands();
+        Annotatable<InsnRegister, register_read_set_a> &read_regs = insn;
+        assert(read_regs.size() < 9);
 
-      for (unsigned int i = 0; i < read_regs.size(); ++i) {
-         if (read_regs[i].is_o7()) {
-            o7_live = true;
-            break;
-         }
-      }
+        for (unsigned int i = 0; i < read_regs.size(); ++i) {
+           if (read_regs[i].is_o7()) {
+              o7_live = true;
+              break;
+           }
+        }
 
-      if (o7_live) {	  
-         parsing_printf("Setting o7 to live at 0x%x, func %s\n",
-               *ah, symTabName().c_str());
-      }
-   }
+	if(o7_live) {	  
+            parsing_printf("Setting o7 to live at 0x%x, func %s\n",
+                    *ah, symTabName().c_str());
+        }
+    }
 }
 
 bool image_func::archProcExceptionBlock(Address & /* catchStart */, 
-      Address /* a */)
+                                        Address /* a */)
 {
-   return false;
+    return false;
 }
 
 

@@ -68,6 +68,9 @@ class relocationEntry;
 class Region {
     friend class Object;
     friend class Symtab;
+    friend class SymtabTranslatorBase;
+    friend class SymtabTranslatorBin;
+
   public:  
     enum perm_t{
         RP_R, RP_RW, RP_RX, RP_RWX };
@@ -106,7 +109,6 @@ class Region {
     DLLEXPORT bool isData() const;
     DLLEXPORT bool isOffsetInRegion(const Offset &offset) const;
     DLLEXPORT bool isLoadable() const;
-    DLLEXPORT bool setLoadable(bool isLoadable);
     DLLEXPORT bool isDirty() const;
     DLLEXPORT std::vector<relocationEntry> &getRelocations();
     DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
@@ -134,7 +136,6 @@ class Region {
     bool isDirty_;
     std::vector<relocationEntry> rels_;
     char *buffer_;  //To hold dirty data
-    bool isLoadable_;
 };
 
  
@@ -156,8 +157,10 @@ class LookupInterface {
 };
  
 class Module : public LookupInterface,
-               public Annotatable<LineInformation *, module_line_info_a>,
-               public Annotatable<typeCollection *, module_type_info_a> {
+               public Annotatable<LineInformation *, module_line_info_a, true>,
+               public Annotatable<typeCollection *, module_type_info_a, true> {
+    friend class SymtabTranslatorBase;
+    friend class SymtabTranslatorBin;
  public:
     DLLEXPORT Module();
     DLLEXPORT Module(supportedLanguages lang, Offset adr, std::string fullNm,
@@ -222,10 +225,10 @@ private:
 
 
 class Symtab : public LookupInterface,
-              public Annotatable<Symbol *, user_funcs_a>, 
-              public Annotatable<Region *, user_regions_a>, 
-              public Annotatable<Type *, user_types_a>, 
-              public Annotatable<Symbol *, user_symbols_a> 
+              public Annotatable<Symbol *, user_funcs_a, true>, 
+              public Annotatable<Region *, user_regions_a, true>, 
+              public Annotatable<Type *, user_types_a, true>, 
+              public Annotatable<Symbol *, user_symbols_a, true> 
 {
     
     friend class Archive;
@@ -233,9 +236,13 @@ class Symtab : public LookupInterface,
     friend class Module;
     friend class emitElf;
     friend class emitElf64;
+    friend class SymtabTranslatorBase;
+    friend class SymtabTranslatorBin;
 	 
    /***** Public Member Functions *****/
  public:
+    DLLEXPORT Symtab(MappedFile *);
+        
    	DLLEXPORT Symtab();
 
 	DLLEXPORT Symtab(const Symtab& obj);
@@ -244,6 +251,9 @@ class Symtab : public LookupInterface,
 	DLLEXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
 	
 	DLLEXPORT bool exportXML(std::string filename);
+   DLLEXPORT bool exportBin(std::string filename);
+   static Symtab *importBin(std::string filename);
+
 
 	/***** Lookup Functions *****/
 	DLLEXPORT virtual bool findSymbolByType(std::vector<Symbol *> &ret, 
@@ -265,6 +275,9 @@ class Symtab : public LookupInterface,
 	DLLEXPORT bool getAllNewRegions(std::vector<Region *>&ret);
 	
 	DLLEXPORT bool findModule(Module *&ret, const std::string name);
+   //  change me to use a hash
+   Module *findModuleByOffset(Offset off);
+
 	DLLEXPORT bool findRegion(Region *&ret, std::string regname);
 	DLLEXPORT bool findRegionByEntry(Region *&ret, const Offset offset);
 	DLLEXPORT Region *findEnclosingRegion(const Offset offset);
@@ -564,6 +577,8 @@ public:
  * Currently only used on Linux/x86
  **/
 class ExceptionBlock {
+    friend class SymtabTranslatorBase;
+    friend class SymtabTranslatorBin;
  public:
    DLLEXPORT ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
    DLLEXPORT ExceptionBlock(Offset cStart);
@@ -645,6 +660,8 @@ class Section {
 // on x86-solaris: target_addr_ = PLT entry addr
 //		   rel_addr_ =  GOT entry addr  corr. to PLT_entry
 class relocationEntry {
+    friend class SymtabTranslatorBase;
+    friend class SymtabTranslatorBin;
    public:
       DLLEXPORT relocationEntry();
       DLLEXPORT relocationEntry(Offset ta,Offset ra, std::string n, Symbol *dynref = NULL, unsigned long relType = 0);

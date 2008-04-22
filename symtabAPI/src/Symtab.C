@@ -39,6 +39,7 @@
 #include "symtabAPI/src/Object.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/src/Collections.h"
+#include "symtabAPI/src/serialize.h"
 #include "common/h/pathName.h"
 
 #if defined (os_linux) | defined (os_aix)
@@ -72,6 +73,7 @@ void pd_log_perror(const char *msg){
    errMsg = msg;
 };
 
+#if 0
 #if !defined(os_windows)
     //libxml2 functions
 	void *hXML;
@@ -95,7 +97,7 @@ bool generateXMLforSymbol(xmlTextWriterPtr &writer, Symbol *sym);
 bool generateXMLforExcps(xmlTextWriterPtr &writer, std::vector<ExceptionBlock *> &excpBlocks);
 bool generateXMLforRelocations(xmlTextWriterPtr &writer, std::vector<relocationEntry> &fbt);
 bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods);
-
+#endif
 #include <stdarg.h>
 int symtab_printf(const char *format, ...);
 
@@ -121,7 +123,7 @@ std::string Symtab::printError(SymtabError serr)
             return "Function does not exist";
         case No_Such_Variable:
             return "Variable does not exist";
-        case No_Such_Module:
+       case No_Such_Module:
             return "Module does not exist";
         case No_Such_Region:
             return "Region does not exist";
@@ -333,6 +335,17 @@ DLLEXPORT bool Symtab::isNativeCompiler() const
     return nativeCompiler; 
 }
  
+DLLEXPORT Symtab::Symtab(MappedFile *mf_) :
+   Annotatable<Symbol *, user_funcs_a, true>(),
+   Annotatable<Region *, user_regions_a, true>(),
+   Annotatable<Type *, user_types_a, true>(),
+   Annotatable<Symbol *, user_symbols_a, true>(),
+   mf(mf_)
+{   
+
+}   
+
+
 DLLEXPORT Symtab::Symtab()
 {
   symtab_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
@@ -957,7 +970,7 @@ void Symtab::enterFunctionInTables(Symbol *func, bool wasSymtab)
     if (wasSymtab)
         exportedFunctions.push_back(func);
     else {
-       Annotatable<Symbol *, user_funcs_a> &ufA = *this;
+       Annotatable<Symbol *, user_funcs_a, true> &ufA = *this;
        ufA.addAnnotation(func);
 #if 0
         createdFunctions.push_back(func);
@@ -1067,7 +1080,7 @@ bool Symtab::addSymbolInt(Symbol *newSym,bool from_user,  bool isDynamic)
        //  The case that is yet unaccounted for is if the user adds a symbols
        //  that causes the creation of a new module...  to be correct-ish here
        //  this module should be acknowledged as "different"
-       Annotatable<Symbol *, user_symbols_a> &usA = *this;
+       Annotatable<Symbol *, user_symbols_a, true> &usA = *this;
        usA.addAnnotation(newSym);
     }
 
@@ -1474,10 +1487,10 @@ bool Symtab::extractInfo(Object *linkedFile)
 
 Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
-   Annotatable<Symbol *, user_funcs_a>(obj),
-   Annotatable<Region *, user_regions_a>(obj),
-   Annotatable<Type *, user_types_a> (obj),
-   Annotatable<Symbol *, user_symbols_a>(obj)
+   Annotatable<Symbol *, user_funcs_a, true>(obj),
+   Annotatable<Region *, user_regions_a, true>(obj),
+   Annotatable<Type *, user_types_a, true> (obj),
+   Annotatable<Symbol *, user_symbols_a, true>(obj)
 {
   symtab_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
@@ -1586,13 +1599,27 @@ bool Symtab::findModule(Module *&ret, const std::string name)
     return false;
 }
 
+Module *Symtab::findModuleByOffset(Offset off)
+{   
+   Module *ret = NULL;
+   //  this should be a hash, really
+   for (unsigned int i = 0; i < _mods.size(); ++i) {
+      Module *mod = _mods[i];
+      if (off == mod->addr()) {
+         ret = mod;
+         break;
+      }
+   } 
+   return ret;
+}
+
 bool Symtab::getAllSymbolsByType(std::vector<Symbol *> &ret, Symbol::SymbolType sType)
 {
-    if(sType == Symbol::ST_FUNCTION)
-        return getAllFunctions(ret);
-    else if(sType == Symbol::ST_OBJECT)
-        return getAllVariables(ret);
-    else if(sType == Symbol::ST_MODULE)
+   if(sType == Symbol::ST_FUNCTION)
+      return getAllFunctions(ret);
+   else if(sType == Symbol::ST_OBJECT)
+      return getAllVariables(ret);
+   else if(sType == Symbol::ST_MODULE)
     {
         if(modSyms.size()>0)
         {
@@ -1700,7 +1727,7 @@ bool Symtab::getDataRegions(std::vector<Region *>&ret)
 
 bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
 {
-   Annotatable<Region *, user_regions_a> &urA = *this;
+   Annotatable<Region *, user_regions_a, true> &urA = *this;
    if (!urA.size())
       return false;
    ret = urA.getDataStructure();
@@ -2134,14 +2161,14 @@ bool Symtab::isCode(const Offset where)  const
     while (last >= first) {
         Region *curreg = codeRegions_[(first + last) / 2];
         if (where >= curreg->getRegionAddr()
-            && where <= (curreg->getRegionAddr()
+            && where < (curreg->getRegionAddr()
                         + curreg->getDiskSize())) {
             return true;
         }
         else if (where < curreg->getRegionAddr()) {
             last = ((first + last) / 2) - 1;
         }
-        else if (where > (curreg->getRegionAddr()
+        else if (where >= (curreg->getRegionAddr()
                            + curreg->getMemSize())) {
             first = ((first + last) / 2) + 1;
         }
@@ -2159,7 +2186,7 @@ bool Symtab::isData(const Offset where)  const
     if(!dataRegions_.size())
         return false;
     for(unsigned i=0; i< dataRegions_.size(); i++){
-        if((where>=dataRegions_[i]->getRegionAddr()) && (where <= (dataRegions_[i]->getRegionAddr() + dataRegions_[i]->getDiskSize())))
+        if((where>=dataRegions_[i]->getRegionAddr()) && (where < (dataRegions_[i]->getRegionAddr() + dataRegions_[i]->getDiskSize())))
             return true;
     }
     return false;
@@ -2191,7 +2218,7 @@ Symtab::~Symtab()
     }
     regions_.clear();
     
-    Annotatable<Region *, user_regions_a> &usA = *this;
+    Annotatable<Region *, user_regions_a, true> &usA = *this;
     for (i = 0; i < usA.size(); ++i) {
        Region *s = usA[i];
        delete(s);
@@ -2292,7 +2319,7 @@ DLLEXPORT supportedLanguages Module::language() const
 
 DLLEXPORT  bool Module::hasLineInformation()
 {
-   Annotatable<LineInformation *, module_line_info_a> &liA = *this;
+   Annotatable<LineInformation *, module_line_info_a, true> &liA = *this;
    return ( 0 != liA.size());
 }
 
@@ -2301,7 +2328,7 @@ DLLEXPORT LineInformation *Module::getLineInformation()
    if (!exec_->isLineInfoValid_)
       exec_->parseLineInformation();
 
-   Annotatable<LineInformation *, module_line_info_a> &mt = *this;
+   Annotatable<LineInformation *, module_line_info_a, true> &mt = *this;
 
    if (exec_->isLineInfoValid_) {
       if (!mt.size()) {
@@ -2355,7 +2382,7 @@ DLLEXPORT bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset ad
 
 DLLEXPORT vector<Type *> *Module::getAllTypes()
 {
-   Annotatable<typeCollection *, module_type_info_a> &mtA = *this;
+   Annotatable<typeCollection *, module_type_info_a, true> &mtA = *this;
    if (!mtA.size()) return NULL;
 
    typeCollection *mt = mtA[0]; 
@@ -2369,7 +2396,7 @@ DLLEXPORT vector<Type *> *Module::getAllTypes()
 
 DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars()
 {
-   Annotatable<typeCollection *, module_type_info_a> &mtA = *this;
+   Annotatable<typeCollection *, module_type_info_a, true> &mtA = *this;
    if (!mtA.size()) return NULL;
 
    typeCollection *mt = mtA[0]; 
@@ -2383,7 +2410,7 @@ DLLEXPORT vector<pair<string, Type *> > *Module::getAllGlobalVars()
 
 DLLEXPORT typeCollection *Module::getModuleTypes()
 {
-   Annotatable<typeCollection *, module_type_info_a> &mtA = *this;
+   Annotatable<typeCollection *, module_type_info_a, true> &mtA = *this;
    typeCollection *mt;
 
    if(mtA.size()){
@@ -2430,7 +2457,7 @@ void Symtab::parseTypesNow()
 
 DLLEXPORT bool Module::setLineInfo(LineInformation *lineInfo) 
 {
-   Annotatable<LineInformation *, module_line_info_a> &mt = *this;
+   Annotatable<LineInformation *, module_line_info_a, true> &mt = *this;
    if (mt.size()) {
       // We need to remove the existing annotation and make sure there is only one annotation.
       mt.clearAnnotations();
@@ -2479,16 +2506,16 @@ DLLEXPORT Module::Module() :
 
 DLLEXPORT Module::Module(const Module &mod) :
    LookupInterface(), 
-   Annotatable<LineInformation *, module_line_info_a>(),
-   Annotatable<typeCollection *, module_type_info_a>(),
+   Annotatable<LineInformation *, module_line_info_a, true>(),
+   Annotatable<typeCollection *, module_type_info_a, true>(),
    fileName_(mod.fileName_),
    fullName_(mod.fullName_), 
    language_(mod.language_),
    addr_(mod.addr_), 
    exec_(mod.exec_)
 {
-   Annotatable<LineInformation *, module_line_info_a> &liA = *this;
-   const Annotatable<LineInformation *, module_line_info_a> &liA_src = mod;
+   Annotatable<LineInformation *, module_line_info_a, true> &liA = *this;
+   const Annotatable<LineInformation *, module_line_info_a, true> &liA_src = mod;
 
    if (liA_src.size()) {
       LineInformation *li_src = liA_src[0];
@@ -2499,7 +2526,7 @@ DLLEXPORT Module::Module(const Module &mod) :
 
 DLLEXPORT Module::~Module()
 {
-   Annotatable<LineInformation *, module_line_info_a> &liA = *this;
+   Annotatable<LineInformation *, module_line_info_a, true> &liA = *this;
    if (liA.size()){
        delete liA[0];
        liA.clearAnnotations();
@@ -2532,8 +2559,8 @@ bool Module::getAllSymbolsByType(std::vector<Symbol *> &found, Symbol::SymbolTyp
 
 DLLEXPORT bool Module::operator==(const Module &mod) const 
 {
-   const Annotatable<LineInformation *, module_line_info_a> *liA = this;
-   const Annotatable<LineInformation *, module_line_info_a> *liA_src = &mod;
+   const Annotatable<LineInformation *, module_line_info_a, true> *liA = this;
+   const Annotatable<LineInformation *, module_line_info_a, true> *liA_src = &mod;
    if (liA->size() != liA_src->size()) return false;
    if (liA->size()) {
       LineInformation *li = liA->getAnnotation(0);
@@ -2669,22 +2696,91 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
     }
 }
 
+bool Symtab::exportXML(string file)
+{
+   try {
+      SymtabTranslatorXML trans(this, file);
+      if ( serialize(*this, trans));
+      return true;
+   } catch (const SerializerError &err) {
+      fprintf(stderr, "%s[%d]: error serializing xml: %s\n", FILE__, __LINE__, err.what());
+      return false;
+   }
+
+   return false;
+}
+
+bool Symtab::exportBin(string file)
+{
+   try
+   {
+      bool verbose = false;
+      if (strstr(file.c_str(), "cache_ld")) verbose = true;
+      SymtabTranslatorBin trans(this, file, sd_serialize, verbose);
+      if (serialize(*this, trans))
+         return true;
+   }
+   catch (const SerializerError &err)
+   {
+      fprintf(stderr, "%s[%d]: %s\n\tfrom %s[%d]\n", FILE__, __LINE__,
+            err.what(), err.file().c_str(), err.line());
+   }
+
+
+   fprintf(stderr, "%s[%d]:  error doing binary serialization\n", __FILE__, __LINE__);
+   return false;
+}
+
+Symtab *Symtab::importBin(std::string file)
+{
+   MappedFile *mf= MappedFile::createMappedFile(file);
+   if (!mf) {
+      fprintf(stderr, "%s[%d]:  failed to map file %s\n", FILE__, __LINE__, file.c_str());
+      return NULL;
+   }
+
+   Symtab *st = new Symtab(mf);
+
+   try
+   {
+      bool verbose = false;
+      if (strstr(file.c_str(), "ld-")) verbose = true;
+      SymtabTranslatorBin trans(st, file, sd_deserialize, verbose);
+      if (deserialize(*st, trans)) {
+         fprintf(stderr, "%s[%d]:  deserialized '%s' from cache\n", FILE__, __LINE__, file.c_str());
+         if (!st) fprintf(stderr, "%s[%d]:  FIXME:  no symtab\n", FILE__, __LINE__);
+         return st;
+      }
+   }
+
+   catch (const SerializerError &err)
+   {
+      fprintf(stderr, "%s[%d]: %s\n\tfrom: %s[%d]\n", FILE__, __LINE__,
+            err.what(), err.file().c_str(), err.line());
+   }
+
+
+   fprintf(stderr, "%s[%d]:  error doing binary deserialization\n", __FILE__, __LINE__);
+   delete st;
+   return NULL;
+}
+
 bool Symtab::openFile(Symtab *&obj, std::string filename)
 {
-    bool err = false;
+   bool err = false;
 #if defined(TIMED_PARSE)
-    struct timeval starttime;
-    gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
-    unsigned numSymtabs = allSymtabs.size();
-	  
-    // AIX: it's possible that we're reparsing a file with better information
-    // about it. If so, yank the old one out of the allSymtabs std::vector -- replace
-    // it, basically.
-    if(filename.find("/proc") == std::string::npos)
-    {
-        for (unsigned u=0; u<numSymtabs; u++) {
-	  assert(allSymtabs[u]);
+   unsigned numSymtabs = allSymtabs.size();
+
+   // AIX: it's possible that we're reparsing a file with better information
+   // about it. If so, yank the old one out of the allSymtabs std::vector -- replace
+   // it, basically.
+   if(filename.find("/proc") == std::string::npos)
+   {
+      for (unsigned u=0; u<numSymtabs; u++) {
+         assert(allSymtabs[u]);
             if (filename == allSymtabs[u]->file()) {
                 // return it
                 obj = allSymtabs[u];
@@ -2692,6 +2788,16 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
             }
         }   
     }
+#if defined (cap_serialization)
+    obj = importBin(filename);
+    if (!obj) { 
+       fprintf(stderr, "%s[%d]:  importBin failed\n", FILE__, __LINE__);
+    }
+    else {
+       return true;
+    }
+#endif
+
     obj = new Symtab(filename, err);
 #if defined(TIMED_PARSE)
     struct timeval endtime;
@@ -2707,6 +2813,14 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
         if(filename.find("/proc") == std::string::npos)
             allSymtabs.push_back(obj);
         obj->setupTypes();	
+#if defined (cap_serialization)
+        fprintf(stderr, "%s[%d]:  doing bin-serialize for %s\n", FILE__, __LINE__, filename.c_str());
+        if (!obj->exportBin(filename))
+        {
+           fprintf(stderr, "%s[%d]:  failed to export symtab\n", FILE__, __LINE__);
+        }
+#endif
+
     }
     else
     {
@@ -2912,7 +3026,6 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
     if(loadable)
     {
         sec = new Region(newSectionInsertPoint, name, vaddr, dataSize, vaddr, dataSize, (char *)data, Region::RP_R, rType_);
-        sec->setLoadable(true);
         regions_.insert(regions_.begin()+newSectionInsertPoint, sec);
         for(i = newSectionInsertPoint+1; i < regions_.size(); i++)
             regions_[i]->setRegionNumber(regions_[i]->getRegionNumber() + 1);
@@ -2922,15 +3035,7 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
         sec = new Region(regions_.size()+1, name, vaddr, dataSize, 0, 0, (char *)data, Region::RP_R, rType_);
         regions_.push_back(sec);
     }	
-    if((sec->getRegionType() == Region::RT_TEXT) || (sec->getRegionType() == Region::RT_TEXTDATA)){
-        codeRegions_.push_back(sec);
-        std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
-    }
-    if((sec->getRegionType() == Region::RT_DATA) || (sec->getRegionType() == Region::RT_TEXTDATA)){
-        dataRegions_.push_back(sec);
-        std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
-    }
-    Annotatable<Region *, user_regions_a> &urA = *this;
+    Annotatable<Region *, user_regions_a, true> &urA = *this;
     urA.addAnnotation(sec);
     std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
     return true;
@@ -2938,17 +3043,8 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
 
 bool Symtab::addRegion(Region *sec)
 {
-    if((sec->getRegionType() == Region::RT_TEXT) || (sec->getRegionType() == Region::RT_TEXTDATA)){
-        codeRegions_.push_back(sec);
-        std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
-    }
-    if((sec->getRegionType() == Region::RT_DATA) || (sec->getRegionType() == Region::RT_TEXTDATA)){
-        dataRegions_.push_back(sec);
-        std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
-    }
     regions_.push_back(sec);
-    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
-    Annotatable<Region *, user_regions_a> &urA = *this;
+    Annotatable<Region *, user_regions_a, true> &urA = *this;
     urA.addAnnotation(sec);
     return true;
 }
@@ -3074,7 +3170,7 @@ void Symtab::parseTypes()
 
 bool Symtab::addType(Type *type)
 {
-   Annotatable<Type *, user_types_a> &utA = *this;
+   Annotatable<Type *, user_types_a, true> &utA = *this;
    utA.addAnnotation(type);
    typeCollection *globaltypes = typeCollection::getGlobalTypeCollection();
    globaltypes->addType(type);
@@ -3141,6 +3237,7 @@ bool Symtab::setDefaultNamespacePrefix(string &str){
 // This functions generates the XML document for all the data in Symtab.
 ********************************************************************************/
 
+#if 0
 bool Symtab::exportXML(std::string file)
 {
     int rc;
@@ -3732,7 +3829,7 @@ bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods
     }
     return true;
 }
-
+#endif
 DLLEXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, unsigned flag)
 {
     // Add the undefined dynamic symbols so that they are added when emitting the binary
@@ -3824,7 +3921,7 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size)
             newSectionInsertPoint = i+1;
             highWaterMark = end;
         }
-        if ((i <= (regions_.size() - 1)) &&
+        if ((i <= (regions_.size()-1)) &&
                ((end + size) < regions_[i+1]->getRegionAddr())) {
             /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
                     i, i+1);
@@ -3940,15 +4037,12 @@ DLLEXPORT Region::Region(unsigned regnum, std::string name, Offset diskOff,
     memSize_(memSize), rawDataPtr_(rawDataPtr), permissions_(perms), rType_(regType), 
     isDirty_(false), buffer_(NULL)
 {
-    if(memOff)
-        isLoadable_ = true;
 }
 
 DLLEXPORT Region::Region(const Region &reg) : regNum_(reg.regNum_), name_(reg.name_),
                     diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
                     memSize_(reg.memSize_), rawDataPtr_(reg.rawDataPtr_), permissions_(reg.permissions_),
-                    rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_),
-                    isLoadable_(reg.isLoadable_)
+                    rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_)
 {
 }
 
@@ -3965,7 +4059,6 @@ DLLEXPORT Region& Region::operator=(const Region &reg){
     isDirty_ = reg.isDirty_;
     rels_ = reg.rels_;
     buffer_ = reg.buffer_;
-    isLoadable_ = reg.isLoadable_;
 
     return *this;
 }
@@ -3981,8 +4074,7 @@ DLLEXPORT bool Region::operator==(const Region &reg){
             (permissions_ == reg.permissions_) &&
             (rType_ == reg.rType_) &&
             (isDirty_ == reg.isDirty_) &&
-            (buffer_ == reg.buffer_) &&
-            (isLoadable_ == reg.isLoadable_));
+            (buffer_ == reg.buffer_));
 }
 
 DLLEXPORT ostream& Region::operator<< (ostream &os) 
@@ -4079,7 +4171,7 @@ DLLEXPORT bool Region::isOffsetInRegion(const Offset &offset) const {
 }
 
 DLLEXPORT bool Region::isLoadable() const{
-    return isLoadable_;
+    return (memOff_ != 0);
 }
 
 DLLEXPORT bool Region::isDirty() const{
@@ -4115,11 +4207,6 @@ DLLEXPORT bool Region::setRegionPermissions(Region::perm_t newPerms){
 
 DLLEXPORT Region::region_t Region::getRegionType() const {
     return rType_;
-}
-
-DLLEXPORT bool Region::setLoadable(bool isLoadable){
-    isLoadable_ = isLoadable;
-    return true;
 }
 
 #if 0

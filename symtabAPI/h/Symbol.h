@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.12 2008/04/18 17:07:25 jaw Exp $
+ * $Id: Symbol.h,v 1.13 2008/04/22 04:39:27 jaw Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -51,6 +51,10 @@
 #include "Type.h"
 
 #include "Annotatable.h"
+#ifndef CASE_RETURN_STR
+#define CASE_RETURN_STR(x) case x: return #x
+#endif
+
 
 typedef struct {} symbol_file_name_a;
 typedef struct {} symbol_version_names_a;
@@ -68,10 +72,13 @@ class localVarCollection;
  * class Symbol
 ************************************************************************/
 
-class Symbol : public Annotatable <std::string, symbol_file_name_a>,
-               public Annotatable <std::vector<std::string>, symbol_version_names_a> {
+class Symbol : public Annotatable <std::string, symbol_file_name_a, false>,
+               public Annotatable <std::vector<std::string>, symbol_version_names_a, false> {
     friend class typeCommon;
     friend class Symtab;
+    friend class SymtabTranslatorBase;
+    friend class SymtabTranslatorBin;
+
     friend std::string parseStabString(Module *, int linenum, char *, int, 
                               typeCommon *);
 public:
@@ -83,36 +90,66 @@ public:
 	ST_NOTYPE
     };
 
+    static char *symbolType2Str(SymbolType t) {
+       switch(t) {
+          CASE_RETURN_STR(ST_UNKNOWN);
+          CASE_RETURN_STR(ST_FUNCTION);
+          CASE_RETURN_STR(ST_OBJECT);
+          CASE_RETURN_STR(ST_MODULE);
+          CASE_RETURN_STR(ST_NOTYPE);
+       }
+       return "invalid symbol type";
+    }
+
     enum SymbolLinkage {
-        SL_UNKNOWN,
-        SL_GLOBAL,
-        SL_LOCAL,
+       SL_UNKNOWN,
+       SL_GLOBAL,
+       SL_LOCAL,
 	SL_WEAK
     };
 
+    static char *symbolLinkage2Str(SymbolLinkage t) {
+       switch(t) {
+          CASE_RETURN_STR(SL_UNKNOWN);
+          CASE_RETURN_STR(SL_GLOBAL);
+          CASE_RETURN_STR(SL_LOCAL);
+          CASE_RETURN_STR(SL_WEAK);
+       }
+       return "invalid symbol linkage";
+    }
+
     enum SymbolTag {
-        TAG_UNKNOWN,
-        TAG_USER,
-        TAG_LIBRARY,
-        TAG_INTERNAL
+       TAG_UNKNOWN,
+       TAG_USER,
+       TAG_LIBRARY,
+       TAG_INTERNAL
     };
+
+    static char *symbolTag2Str(SymbolTag t) {
+       switch(t) {
+          CASE_RETURN_STR(TAG_UNKNOWN);
+          CASE_RETURN_STR(TAG_USER);
+          CASE_RETURN_STR(TAG_LIBRARY);
+          CASE_RETURN_STR(TAG_INTERNAL);
+       }
+       return "invalid symbol tag";
+    }
 
     DLLEXPORT Symbol (); // note: this ctor is called surprisingly often!
     DLLEXPORT Symbol (unsigned);
-    DLLEXPORT Symbol (const std::string name,const std::string modulename, 
-          SymbolType, SymbolLinkage,
-             Offset, Region *sec = NULL, unsigned size = 0,  
-             bool isInDynsymtab_ = false, bool isInSymtab_ = true);
+    DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
+          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false, 
+          bool isInSymtab_ = true);
     DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
-             Offset, Region *sec = NULL, unsigned size = 0,  bool isInDynsymtab_ = false,
-             bool isInSymtab_ = true);
+          Offset, Region *sec = NULL, unsigned size = 0, bool isInDynsymtab_ = false,
+          bool isInSymtab_ = true);
 #if 0
     DLLEXPORT Symbol (const std::string name,const std::string modulename, SymbolType, SymbolLinkage,
-             Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false, 
-             bool isInSymtab_ = true);
+          Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false, 
+          bool isInSymtab_ = true);
     DLLEXPORT Symbol (const std::string name,Module *module, SymbolType, SymbolLinkage,
-             Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false,
-             bool isInSymtab_ = true);
+          Offset, Region *sec = NULL, unsigned size = 0, void *upPtr = NULL, bool isInDynsymtab_ = false,
+          bool isInSymtab_ = true);
 #endif
     DLLEXPORT Symbol (const Symbol &);
     DLLEXPORT ~Symbol();
@@ -215,6 +252,13 @@ public:
     localVarCollection *params_;
 };
 
+inline
+Symbol::Symbol(unsigned)
+   : //name_("*bad-symbol*"), module_("*bad-module*"),
+    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
+    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_(""), 
+    vars_(NULL), params_(NULL) {
+}
 #if 0
 inline
 Symbol::Symbol(unsigned)
@@ -225,13 +269,6 @@ Symbol::Symbol(unsigned)
 }
 #endif
 
-inline
-Symbol::Symbol(unsigned)
-   : //name_("*bad-symbol*"), module_("*bad-module*"),
-    module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
-    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_(""), 
-    vars_(NULL), params_(NULL) {
-}
 inline
 bool
 Symbol::operator==(const Symbol& s) const {

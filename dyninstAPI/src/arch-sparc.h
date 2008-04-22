@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.54 2008/04/18 17:07:24 jaw Exp $
+// $Id: arch-sparc.h,v 1.55 2008/04/22 04:39:26 jaw Exp $
 
 #include "common/h/Vector.h"
 // TUGRUL

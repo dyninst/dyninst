@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.324 2008/04/18 17:07:24 jaw Exp $
+ // $Id: symtab.C,v 1.325 2008/04/22 04:39:26 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -589,10 +589,10 @@ bool image::symbolsToFunctions(vector<Symbol *> &mods,
               return false;
           }      
           image_func *main_pdf = makeOneFunction(mods, lookUp);
+          //lookUp->setUpPtr((void *)main_pdf);	// set the back ptr in the symbol;
           assert(main_pdf);
           annotate(lookUp, main_pdf, std::string("image_func_ptr"));
 
-		  //lookUp->setUpPtr((void *)main_pdf);	// set the back ptr in the symbol;
           raw_funcs->push_back(main_pdf);
       }
       else {
@@ -641,7 +641,6 @@ bool image::symbolsToFunctions(vector<Symbol *> &mods,
     {
         image_func *new_func = makeOneFunction(mods, lookUp);
 		//new_func->symbol()->setUpPtr(new_func);
-
 		//lookUp->setUpPtr((void *)new_func);
         if (!new_func)
             fprintf(stderr, "%s[%d]:  makeOneFunction failed\n", FILE__, __LINE__);
@@ -649,6 +648,7 @@ bool image::symbolsToFunctions(vector<Symbol *> &mods,
             raw_funcs->push_back(new_func);
             annotate(lookUp, new_func, std::string("image_func_ptr"));
         }
+
     }
   }  
 
@@ -1506,9 +1506,9 @@ image_func *image::addFunctionStub(Address functionEntryAddr, char *fName)
      // create function stub, update datastructures
      linkedFile->addSymbol( funcSym );
      image_func *func = new image_func(funcSym, mod, this);
+     //func->symbol()->setUpPtr(func);
      annotate(func->symbol(), func, std::string("image_func_ptr"));
 
-     //func->symbol()->setUpPtr(func);
      func->addSymTabName( funcName ); 
      func->addPrettyName( funcName );
      funcsByEntryAddr[func->getOffset()] = func;
@@ -1634,7 +1634,6 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
     linkedFile->findSymbolByType(syms,name.c_str(),Symbol::ST_FUNCTION);
     for(unsigned index=0; index<syms.size(); index++)
     {
-
        Symbol *sym = syms[index];
        std::vector<image_func *> *image_funcs 
           = getAnnotations<Symbol, image_func *>(sym, std::string("image_func_ptr"));
@@ -1642,10 +1641,13 @@ const pdvector<image_func *> *image::findFuncVectorByPretty(const std::string &n
           if (image_funcs->size() > 1) {
              fprintf(stderr, "%s[%d]:  WARNING:  %d image_func annotations for symbol\n", FILE__, __LINE__, image_funcs->size());
           }
-          image_func *image_func = (*image_funcs)[0];
-          res->push_back(image_func);
+          //  the most correct thing to do here is to return them all, but this is probably
+          //  closest to the legacy implementation (choosing the last one on the list)
+          image_func *imf = (*image_funcs)[image_funcs->size() -1];
+          res->push_back(imf);
        }
-    	//if(syms[index]->getUpPtr())
+
+          //if(syms[index]->getUpPtr())
 	   // res->push_back((image_func *)syms[index]->getUpPtr());
     }		
     if(res->size())	
@@ -1680,18 +1682,19 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const std::string 
     for(unsigned index=0; index<syms.size(); index++)
     {
        Symbol *sym = syms[index];
-       std::vector<image_func *> *image_funcs 
+       std::vector<image_func *> *image_funcs
           = getAnnotations<Symbol, image_func *>(sym, std::string("image_func_ptr"));
        if (image_funcs->size()) {
           if (image_funcs->size() > 1) {
-             fprintf(stderr, "%s[%d]:  WARNING:  %d image_func annotations for symbol\n", 
+             fprintf(stderr, "%s[%d]:  WARNING:  %d image_func annotations for symbol\n",
                    FILE__, __LINE__, image_funcs->size());
           }
-          image_func *image_func = (*image_funcs)[0];
-          res->push_back(image_func);
+          image_func *imf = (*image_funcs)[image_funcs->size() -1];
+          res->push_back(imf);
        }
-    	//if(syms[index]->getUpPtr())				//Every Symbol might not have a corresponding image_func
-    	//    res->push_back((image_func *)syms[index]->getUpPtr());
+
+          //if(syms[index]->getUpPtr())				//Every Symbol might not have a corresponding image_func
+          //    res->push_back((image_func *)syms[index]->getUpPtr());
     }	    
     if(res->size()) 
 	return res;	    
@@ -1718,14 +1721,15 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const std::strin
           = getAnnotations<Symbol, image_variable *>(sym, std::string("image_variable_ptr"));
        if (image_vars->size()) {
           if (image_vars->size() > 1) {
-             fprintf(stderr, "%s[%d]:  WARNING:  %d image_variable annotations for symbol\n", 
+             fprintf(stderr, "%s[%d]:  WARNING:  %d image_variable annotations for symbol\n",
                    FILE__, __LINE__, image_vars->size());
           }
-          image_variable *image_var = (*image_vars)[0];
+          image_variable *image_var = (*image_vars)[image_vars->size() -1];
           res->push_back(image_var);
        }
-    	//if(syms[index]->getUpPtr())
-    	//    res->push_back((image_variable *)syms[index]->getUpPtr());
+
+          //if(syms[index]->getUpPtr())
+          //    res->push_back((image_variable *)syms[index]->getUpPtr());
     }	    
     if(res->size())	
 	return res;	    
@@ -1747,17 +1751,18 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
     for(unsigned index=0; index<syms.size(); index++)
     {
        Symbol *sym = syms[index];
-       std::vector<image_variable *> *image_vars 
+       std::vector<image_variable *> *image_vars
           = getAnnotations<Symbol, image_variable *>(sym, std::string("image_variable_ptr"));
        if (image_vars->size()) {
           if (image_vars->size() > 1) {
-             fprintf(stderr, "%s[%d]:  WARNING:  %d image_variable annotations for symbol\n", 
+             fprintf(stderr, "%s[%d]:  WARNING:  %d image_variable annotations for symbol\n",
                    FILE__, __LINE__, image_vars->size());
           }
-          image_variable *im_var = (*image_vars)[0];
+          image_variable *im_var = (*image_vars)[image_vars->size() -1];
           res->push_back(im_var);
        }
-    	//if(syms[index]->getUpPtr())
+
+       //if(syms[index]->getUpPtr())
     	//    res->push_back((image_variable *)syms[index]->getUpPtr());
     }	    
     if(res->size())	

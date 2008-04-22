@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.31 2008/04/18 17:07:24 jaw Exp $
+ * $Id: arch-sparc.C,v 1.32 2008/04/22 04:39:26 jaw Exp $
  */
 
 #include "common/h/Types.h"
@@ -844,17 +844,17 @@ int registerNumberDecoding(unsigned reg, int word_size) {
 //void instruction::get_register_operands(InsnRegister* reads,InsnRegister* writes)
 void instruction::get_register_operands()
 {
-
 #if 0
   unsigned i;
-  for (i=0; i<7; i++)
+
+  for(i=0; i<7; i++)
     reads[i] = InsnRegister();
 
-  for (i=0; i<5; i++)
+  for(i=0; i<5; i++)
     writes[i] = InsnRegister();
 #endif
 
-  if (!valid())
+  if(!valid())
      return;
 
   // mark the annotations
@@ -871,32 +871,12 @@ void instruction::get_register_operands()
   //  check to see if we already have made these register sets
   if (read_regs.size() || write_regs.size()) {
      //  yep, ...  just return them
-     for (unsigned int i = 0; i < read_regs.size(); ++i) {
+     for (unsigned int i = 0; i < 7; ++i) {
         reads[i] = read_regs[i];
-        if (i >= 7) {
-           fprintf(stderr, "%s[%d]:  FIXME: read_regs.size() = %d > 7\n", FILE__, __LINE__, read_regs.size());
-           break;
-        }
      }
-
-     //for (unsigned int i = 0; i < 7; ++i) {
-     //   if (read_regs.size() >= i) break;
-     //   reads[i] = read_regs[i];
-     //}
-
-     for (unsigned int i = 0; i < write_regs.size(); ++i) {
+     for (unsigned int i = 0; i < 5; ++i) {
         writes[i] = write_regs[i];
-        if (i >= 5) {
-           fprintf(stderr, "%s[%d]:  FIXME, write_regs.size() = %d > 5\n", FILE__, __LINE__, write_regs.size());
-           break;
-        }
      }
-
-     //for (unsigned int i = 0; i < 5; ++i) {
-      //  if (write_regs.size() >= i) break;
-      //  writes[i] = write_regs[i];
-    // }
-
      return;
   }
 #endif
@@ -1001,141 +981,141 @@ void instruction::get_register_operands()
                     case TSTATE: num = REG_TSTATE; break;
                     case TT: num = REG_TT; break;
                     case TICK_reg: num = REG_TICK; break;
-                    case TBA: num = REG_TBA; break;
-                    case PSTATE: num = REG_PSTATE; break;
-                    case TL: num = REG_TL; break;
-                    case PIL: num = REG_PIL; break;
-                    case CWP: num = REG_CWP; break;
-                    case CANSAVE: num = REG_CANSAVE; break;
-                    case CANRESTORE: num = REG_CANRESTORE; break;
-                    case CLEANWIN: num = REG_CLEANWIN; break;
-                    case OTHERWIN: num = REG_OTHERWIN; break;
-                    case WSTATE: num = REG_WSTATE; break;
-                 }
-                 if(num != 0)
-                    writes[0] = InsnRegister(1, InsnRegister::SpecialReg, num);
-              }
-              else if((firstTag == 0x30) && ((secondTag == 0xC) ||secondTag == 0xD)) { // SAVE, RESTORE
-                 reads[2] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANSAVE);
-                 if(!insn_.rest.i)
-                    reads[3] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE);
-                 else
-                    reads[1] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE);
-                 writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));			  
-                 writes[1] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANSAVE);
-                 writes[2] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE);
-              }
-              else if((firstTag == 0x30) && (secondTag == 0xA)) { // Tcc
-                 unsigned code = ((insn_.rest.unused >> 6) & 3)==0 ? ICC : XCC;
-                 if(!insn_.rest.i)
-                    reads[2] = InsnRegister(1, InsnRegister::SpecialReg,code);
-                 else
-                    reads[1] = InsnRegister(1, InsnRegister::SpecialReg,code);
-                 writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));
-              }
-              // else if((firstTag == 0x30) && (secondTag < 0x4))
-              //  *rd = InsnRegister(1, InsnRegister::SpecialReg, -1);// XXX
-              else if((firstTag != 0x30) || 
-                    (secondTag <= 0x8) || 
-                    (secondTag >= 0xc))
-                 writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));
-           }
-           else if((firstTag == 0x20) )//&& (secondTag >= 0x8))
-           {
-              if(secondTag == 0x8) {
-                 switch(insn_.rest.rs1) {
-                    case 0: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_Y_reg); break;
-                    case 2: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CCR); break;
-                    case 3: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_ASI); break;
-                    case 4: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TICK); break;
-                    case 5: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_PC_reg); break;
-                    case 6: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_FPRS); break;
-                    case 15: break; // STBAR or MEMBAR
-                 }
-                 writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
-                       (short)(insn_.restix.rd));
-              }
-              else if(secondTag == 0xA) { // RDPR
-                 switch(insn_.rest.rs1) {
-                    case 0: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TPC); break;
-                    case 1: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TNPC); break;
-                    case 2: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TSTATE); break;
-                    case 3: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TT); break;
-                    case 4: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TICK); break;
-                    case 5: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TBA); break;
-                    case 6: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_PSTATE); break;
-                    case 7: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TL); break;
-                    case 8: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_PIL); break;
-                    case 9: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CWP); break;
-                    case 10: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANSAVE); break;
-                    case 11: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE); break;
-                    case 12: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CLEANWIN); break;
-                    case 13: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_OTHERWIN); break;
-                    case 14: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_WSTATE); break;
-                    case 15: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_FQ); break;
-                    case 31: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_VER); break;
-                 }
-                 writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
-                       (short)(insn_.restix.rd));
-              }
-              else if(secondTag == 0xC) { // MOVcc
-                 //			int counter=0;
-                 unsigned cc1_cc0 = (insn_.rest.unused >> 11) & 0x03;
-                 unsigned all = ((insn_.rest.rs1 >> 2 ) & 0x04) + cc1_cc0;
-                 short cc = FCC0;
-                 switch(all) {
-                    case 0:
-                    case 1:
-                    case 2:
-                    case 3: cc += all; break;
-                    case 4: cc = ICC; break;
-                    case 6: cc = XCC;
-                 }
-                 if(insn_.resti.i == 0) {
-                    reads[0] = InsnRegister(1,InsnRegister::GlobalIntReg,
-                          (short)(insn_.rest.rs2));
-                    if((insn_.rest.rs1 & 0x07) != 0) { // if the cond field (last 4 bits of rs1:5) is 1000 or 0000 (meaning if last 3 bits of rs1 is 000), then move never or move always
-                       reads[1] = InsnRegister(1,InsnRegister::SpecialReg,cc);
+			  case TBA: num = REG_TBA; break;
+			  case PSTATE: num = REG_PSTATE; break;
+			  case TL: num = REG_TL; break;
+			  case PIL: num = REG_PIL; break;
+			  case CWP: num = REG_CWP; break;
+			  case CANSAVE: num = REG_CANSAVE; break;
+			  case CANRESTORE: num = REG_CANRESTORE; break;
+			  case CLEANWIN: num = REG_CLEANWIN; break;
+			  case OTHERWIN: num = REG_OTHERWIN; break;
+			  case WSTATE: num = REG_WSTATE; break;
+			  }
+			  if(num != 0)
+			    writes[0] = InsnRegister(1, InsnRegister::SpecialReg, num);
+			}
+			else if((firstTag == 0x30) && ((secondTag == 0xC) ||secondTag == 0xD)) { // SAVE, RESTORE
+			  reads[2] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANSAVE);
+			  if(!insn_.rest.i)
+			    reads[3] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE);
+			  else
+			    reads[1] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE);
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));			  
+			  writes[1] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANSAVE);
+			  writes[2] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE);
+			}
+			else if((firstTag == 0x30) && (secondTag == 0xA)) { // Tcc
+			  unsigned code = ((insn_.rest.unused >> 6) & 3)==0 ? ICC : XCC;
+			  if(!insn_.rest.i)
+			    reads[2] = InsnRegister(1, InsnRegister::SpecialReg,code);
+			  else
+			    reads[1] = InsnRegister(1, InsnRegister::SpecialReg,code);
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));
+			}
+			// else if((firstTag == 0x30) && (secondTag < 0x4))
+			//  *rd = InsnRegister(1, InsnRegister::SpecialReg, -1);// XXX
+			else if((firstTag != 0x30) || 
+				(secondTag <= 0x8) || 
+                                (secondTag >= 0xc))
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));
                     }
-                 }
-                 else{
-                    if((insn_.rest.rs1 & 0x07) != 0) { // if the cond field (last 4 bits of rs1:5) is 1000 or 0000 (meaning if last 3 bits of rs1 is 000), then move never or move always
-                       reads[0] = InsnRegister(1,InsnRegister::SpecialReg,cc);
-                    }
-                 }
-                 writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
-                       (short)(insn_.restix.rd));
-              }
-              else if(secondTag == 0xE) { // POPC = 0x2E = 46
-                 if(insn_.resti.rs1 == 0) {
-                    if(insn_.resti.i == 0) {
-                       reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,insn_.rest.rs2);
-                    }
-                    writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.restix.rd));
-                 }
-              }
-              else if(secondTag == 0xF) { // MOVr = 0x2F = 47
-                 // unsigned rcond = ((*i).rest.unused >> 5) & 0x07; // this is rcond:3, I need only the last 2 bits
-                 if(((insn_.rest.unused >> 5) & 0x03) != 0) {
-                    reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,insn_.rest.rs1);
-                    if(insn_.rest.i == 0)
-                       reads[1] = InsnRegister(1, InsnRegister::GlobalIntReg,insn_.rest.rs2);
-                    writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));
-                 }
-              }
-
-              reads[0] = InsnRegister(1, InsnRegister::SpecialReg, -1);
-              writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
-                    (short)(insn_.restix.rd));
-           }
-           else if((secondTag == 0x6) || (secondTag == 0x7)) // firstTag=0x30
-           {
-              reads[0] = InsnRegister(1, InsnRegister::CoProcReg,
-                    (short)(insn_.restix.rs1));
-              reads[1] = InsnRegister(1, InsnRegister::CoProcReg,
-                    (short)(insn_.restix.rs2));
-              writes[0] = InsnRegister(1, InsnRegister::CoProcReg,
-                    (short)(insn_.restix.rd));
+                else if((firstTag == 0x20) )//&& (secondTag >= 0x8))
+                    {
+		      if(secondTag == 0x8) {
+			switch(insn_.rest.rs1) {
+			case 0: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_Y_reg); break;
+			case 2: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CCR); break;
+			case 3: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_ASI); break;
+			case 4: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TICK); break;
+			case 5: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_PC_reg); break;
+			case 6: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_FPRS); break;
+			case 15: break; // STBAR or MEMBAR
+			}
+                        writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+					   (short)(insn_.restix.rd));
+		      }
+		      else if(secondTag == 0xA) { // RDPR
+			switch(insn_.rest.rs1) {
+			case 0: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TPC); break;
+			case 1: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TNPC); break;
+			case 2: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TSTATE); break;
+			case 3: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TT); break;
+			case 4: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TICK); break;
+			case 5: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TBA); break;
+			case 6: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_PSTATE); break;
+			case 7: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_TL); break;
+			case 8: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_PIL); break;
+			case 9: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CWP); break;
+			case 10: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANSAVE); break;
+			case 11: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CANRESTORE); break;
+			case 12: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_CLEANWIN); break;
+			case 13: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_OTHERWIN); break;
+			case 14: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_WSTATE); break;
+			case 15: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_FQ); break;
+			case 31: reads[0] = InsnRegister(1, InsnRegister::SpecialReg,REG_VER); break;
+			}
+                        writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+					   (short)(insn_.restix.rd));
+		      }
+		      else if(secondTag == 0xC) { // MOVcc
+			//			int counter=0;
+			unsigned cc1_cc0 = (insn_.rest.unused >> 11) & 0x03;
+			unsigned all = ((insn_.rest.rs1 >> 2 ) & 0x04) + cc1_cc0;
+		        short cc = FCC0;
+			switch(all) {
+			case 0:
+			case 1:
+			case 2:
+			case 3: cc += all; break;
+			case 4: cc = ICC; break;
+			case 6: cc = XCC;
+			}
+			if(insn_.resti.i == 0) {
+			  reads[0] = InsnRegister(1,InsnRegister::GlobalIntReg,
+					      (short)(insn_.rest.rs2));
+			  if((insn_.rest.rs1 & 0x07) != 0) { // if the cond field (last 4 bits of rs1:5) is 1000 or 0000 (meaning if last 3 bits of rs1 is 000), then move never or move always
+			    reads[1] = InsnRegister(1,InsnRegister::SpecialReg,cc);
+			  }
+			}
+			else{
+			  if((insn_.rest.rs1 & 0x07) != 0) { // if the cond field (last 4 bits of rs1:5) is 1000 or 0000 (meaning if last 3 bits of rs1 is 000), then move never or move always
+			    reads[0] = InsnRegister(1,InsnRegister::SpecialReg,cc);
+			  }
+			}
+			writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+					   (short)(insn_.restix.rd));
+		      }
+		      else if(secondTag == 0xE) { // POPC = 0x2E = 46
+			if(insn_.resti.rs1 == 0) {
+			  if(insn_.resti.i == 0) {
+			    reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,insn_.rest.rs2);
+			  }
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.restix.rd));
+			}
+		      }
+		      else if(secondTag == 0xF) { // MOVr = 0x2F = 47
+			// unsigned rcond = ((*i).rest.unused >> 5) & 0x07; // this is rcond:3, I need only the last 2 bits
+			if(((insn_.rest.unused >> 5) & 0x03) != 0) {
+			  reads[0] = InsnRegister(1, InsnRegister::GlobalIntReg,insn_.rest.rs1);
+			  if(insn_.rest.i == 0)
+			    reads[1] = InsnRegister(1, InsnRegister::GlobalIntReg,insn_.rest.rs2);
+			  writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,(short)(insn_.rest.rd));
+			}
+		      }
+		      
+		      reads[0] = InsnRegister(1, InsnRegister::SpecialReg, -1);
+		      writes[0] = InsnRegister(1, InsnRegister::GlobalIntReg,
+					 (short)(insn_.restix.rd));
+		    }
+                else if((secondTag == 0x6) || (secondTag == 0x7)) // firstTag=0x30
+                    {
+                        reads[0] = InsnRegister(1, InsnRegister::CoProcReg,
+                                            (short)(insn_.restix.rs1));
+                        reads[1] = InsnRegister(1, InsnRegister::CoProcReg,
+                                            (short)(insn_.restix.rs2));
+                        writes[0] = InsnRegister(1, InsnRegister::CoProcReg,
+                                           (short)(insn_.restix.rd));
                     }
                 else if((secondTag == 0x4) || (secondTag == 0x5)) // firstTag=0x30
                     {
@@ -1304,18 +1284,34 @@ void instruction::get_register_operands()
             break;
         }
 
+  if (reads.size() > 8)
+     fprintf(stderr, "%s[%d]:  WARNING:  unexpected size for read registers\n", FILE__, __LINE__, reads.size());
+
+  for (unsigned int i = 0; i < reads.size(); ++i) {
+     if (reads[i].getNumber() == -1)
+        break;
+     read_regs.addAnnotation(reads[i]);
+  }
+
+
+
+  if (writes.size() > 6)
+     fprintf(stderr, "%s[%d]:  WARNING:  unexpected size for write registers\n", FILE__, __LINE__, writes.size());
+
+  for (unsigned int i = 0; i < writes.size(); ++i) {
+     if (writes[i].getNumber() == -1)
+        break;
+     write_regs.addAnnotation(writes[i]);
+  }
+
 #if 0
-	// mark the annotations
+#if 0
+  // mark the annotations
 	read = createAnnotationType("ReadSet");
 	write = createAnnotationType("WriteSet");
 #endif
 
-   if (reads.size() > 8)
-      fprintf(stderr, "%s[%d]:  WARNING:  unexpected size for read registers\n", FILE__, __LINE__, reads.size());
-
-   for (unsigned int i = 0; i < reads.size(); ++i) {
-      if (reads[i].getNumber() == -1) 
-         break;
+	for(i=0; i<7; i++) {
       read_regs.addAnnotation(reads[i]);
 #if 0
 	  if(reads[i].getNumber() != -1) {
@@ -1325,14 +1321,8 @@ void instruction::get_register_operands()
 	    break;
 #endif
 	}
-
-   if (writes.size() > 6)
-      fprintf(stderr, "%s[%d]:  WARNING:  unexpected size for write registers\n", FILE__, __LINE__, writes.size());
-
-   for (unsigned int i = 0; i < writes.size(); ++i) {
-      if (writes[i].getNumber() == -1)
-         break;
-      write_regs.addAnnotation(writes[i]);
+	for(i=0; i<5; i++) {
+        write_regs.addAnnotation(writes[i]);
 #if 0
 	  if(writes[i].getNumber() != -1) {
 	    setAnnotation(write,new Annotation(&(writes[i])));
@@ -1341,8 +1331,8 @@ void instruction::get_register_operands()
 	    break;
 #endif
 	}
-	
-   return;
+#endif	
+        return;
 }
 
 

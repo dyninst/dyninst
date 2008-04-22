@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.7 2008/04/18 17:07:25 jaw Exp $
+// $Id: Annotatable.h,v 1.8 2008/04/22 04:39:27 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -202,7 +202,36 @@ class AnnotationSet {
 template< class T > hash_map<char *, hash_map<int, T*> >
 AnnotationSet< T >::sets_by_obj;
 
-template <class T, class ANNOTATION_NAME_T>
+#if 0
+class AnnotationTypeNameBase {
+   static hash_map<std::string, AnnotationTypeNameBase *> type_name_map;
+   std::string name;
+   public:
+   AnnotationTypeNameBase(std::string name_) :
+      name(name_) 
+   {
+      hash_map<std::string, AnnotationTypeNameBase *>::iterator iter;
+      iter = type_name_map.find(name);
+      if (iter != type_name_map.end()) {
+         fprintf(stderr, "%s[%d]:  WARNING:  already have entry for %s<->%p in map\n",
+               FILE__, __LINE__, name.c_str(), iter->second);
+      }
+      type_name_map[name] = this;
+   }
+};
+
+template <class T> 
+class AnnotationTypeName : public AnnotationTypeNameBase {
+   public:
+      AnnotationTypeName(std::string name) :
+         AnnotationTypeNameBase(name) 
+      {
+      }
+      
+};
+#endif
+
+template <class T, class ANNOTATION_NAME_T, bool SERIALIZABLE = false>
 class Annotatable : public AnnotatableBase
 {
    public:
@@ -214,7 +243,7 @@ class Annotatable : public AnnotatableBase
       {
       }
 
-      Annotatable(const Annotatable<T, ANNOTATION_NAME_T> &/*src*/) :
+      Annotatable(const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE> &/*src*/) :
          AnnotatableBase()
       {/*hrm deep copy here or no?*/}
 
@@ -272,6 +301,11 @@ class Annotatable : public AnnotatableBase
 
          v->push_back(it);
 
+#if defined (cap_serialization)
+         if (SERIALIZABLE) {
+            fprintf(stderr, "%s[%d]:  serializing annotation here for %s\n", FILE__, __LINE__, anno_name.c_str());
+         }
+#endif
          return true;
       }
 
@@ -299,9 +333,9 @@ class Annotatable : public AnnotatableBase
          }
 
          //  ahhh the things we do to get rid of constness
-         const Annotatable<T, ANNOTATION_NAME_T> *thc = this; 
-         Annotatable<T, ANNOTATION_NAME_T> *th  
-            = const_cast<Annotatable<T, ANNOTATION_NAME_T> *> (thc);
+         const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE> *thc = this; 
+         Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE> *th  
+            = const_cast<Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE> *> (thc);
          //fprintf(stderr, "%s[%d]: looking for annotation set for %p/%p\n", FILE__, __LINE__, this, th);
          v = AnnotationSet<Container_t>::findAnnotationSet((char *)th, anno_id);
          if (!v) {
@@ -346,9 +380,9 @@ class Annotatable : public AnnotatableBase
          }
 
          //  ahhh the things we do to get rid of constness
-         const Annotatable<T, ANNOTATION_NAME_T> *thc = this; 
-         Annotatable<T, ANNOTATION_NAME_T> *th  
-            = const_cast<Annotatable<T, ANNOTATION_NAME_T> *> (thc);
+         const Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE> *thc = this; 
+         Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE> *th  
+            = const_cast<Annotatable<T, ANNOTATION_NAME_T, SERIALIZABLE> *> (thc);
 
          v = AnnotationSet<Container_t>::findAnnotationSet((char *)th, anno_id);
          if (!v) {
