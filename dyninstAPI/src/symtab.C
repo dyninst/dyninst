@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.325 2008/04/22 04:39:26 jaw Exp $
+ // $Id: symtab.C,v 1.326 2008/04/25 20:51:56 roundy Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1511,7 +1511,7 @@ image_func *image::addFunctionStub(Address functionEntryAddr, char *fName)
 
      func->addSymTabName( funcName ); 
      func->addPrettyName( funcName );
-     funcsByEntryAddr[func->getOffset()] = func;
+     // funcsByEntryAddr[func->getOffset()] = func;
      everyUniqueFunction.push_back(func);
      createdFunctions.push_back(func);
      return func;
