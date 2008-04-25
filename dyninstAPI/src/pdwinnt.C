@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.183 2008/04/15 16:43:26 roundy Exp $
+// $Id: pdwinnt.C,v 1.184 2008/04/25 20:51:55 roundy Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -537,7 +537,7 @@ bool SignalGenerator::decodeException(EventRecord &ev)
          if (ev.what == EXCEPTION_ACCESS_VIOLATION 
              && ev.info.u.Exception.ExceptionRecord.ExceptionInformation[0] == 1) {
              Address violationAddr = ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1];
-             codeRange *range = findOrigByAddr(violationAddr);
+             codeRange *range = ev.proc->findOrigByAddr(violationAddr);
              if (range) {
                  fprintf(stderr,"%s[%d] Program attempted to overwrite code at 0x%x\n", __FILE__,__LINE__);
              }
@@ -600,7 +600,7 @@ bool SignalGeneratorCommon::decodeRTSignal_NP(EventRecord &ev,
     case DSE_snippetBreakpoint:
         ev.type = evtProcessStop;
         return true;
-    case DSE_StopThread: 
+    case DSE_stopThread: 
         ev.type = evtStopThread;
         return true; 
     default:
@@ -2247,7 +2247,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         }
         // cause callbacks registered for this event to be triggered, if any.
         if (((BPatch_process*)proc->up_ptr())->triggerSignalHandlerCB
-            (point, func, proc, ev.what, &handlers)) {
+            (point, func, ev.what, &handlers)) {
             return true;
         }
     }
