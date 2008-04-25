@@ -195,7 +195,7 @@ void SerDesXML::translate(int &param, const char *tag)
 
 void SerDesXML::translate(unsigned int &param, const char *tag)
 {   
-  translate( (int) param, tag);
+  translate( param, tag);
 }
 
 #if 0
