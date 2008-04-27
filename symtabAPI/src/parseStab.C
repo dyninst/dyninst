@@ -250,9 +250,18 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 		//bperr("adding local var with missing type %s, type = %d\n",
 		//      name, ID);
 	      }
+         Annotatable<localVarCollection, symbol_variables_a, true> &varA = *symt_current_func;
+         if (!varA.size()) {
+            localVarCollection newColl;
+            varA.addAnnotation(newColl);
+         }
+         localVarCollection &svars = varA[0];
+         svars.addLocalVar(locVar);
+#if 0
 	      if(!symt_current_func->vars_)
 	          symt_current_func->vars_ = new localVarCollection();
 	      symt_current_func->vars_->addLocalVar( locVar);
+#endif
 	  }
 	} else if (symt_current_func) {
 	  // Try to find the BPatch_Function
@@ -270,9 +279,16 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 	    ////bperr("adding local var with missing type %s, type = %d\n",
 	    //	     name, ID);
 	  }
+
+     if (!symt_current_func->addLocalVar(locVar)) {
+        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+     }
+
+#if 0
 	  if(!symt_current_func->vars_)
         symt_current_func->vars_ = new localVarCollection();
 	  symt_current_func->vars_->addLocalVar( locVar);
+#endif
 	}
     } else if (stabstr[cnt]) {
       std::vector<Symbol *> bpfv;
@@ -452,9 +468,14 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 	      param->addLocation(loc);
       
 	      if (symt_current_func) {
+            if (!symt_current_func->addParam(param)) {
+               fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+            }
+#if 0
             if(!symt_current_func->params_)
                symt_current_func->params_ = new localVarCollection();
             symt_current_func->params_->addLocalVar(param);
+#endif
 	      } else {
             //showInfoCallback(string("parameter without local function ") 
             //	 + string(stabstr) + "\n");
@@ -490,9 +511,14 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 		} else { // found function, add parameter
 	          fp = fpv[0];	
              symt_current_func = fp;
+            if (!symt_current_func->addParam(var)) {
+               fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+            }
+#if 0
              if(!fp->params_)
                 fp->params_= new localVarCollection();
              fp->params_->addLocalVar(var);
+#endif
 		}
 		fpv.clear();
 	      } else {
@@ -684,9 +710,14 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   loc->reg = -1;
                   locVar->addLocation(loc);
 
+                  if (!symt_current_func->addLocalVar(locVar)) {
+                     fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+                  }
+#if 0
                   if(!symt_current_func->vars_)
                       symt_current_func->vars_ = new localVarCollection();
                   symt_current_func->vars_->addLocalVar( locVar);
+#endif
               }
 	      }
 	      break;

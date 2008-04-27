@@ -73,8 +73,8 @@ class SymtabTranslatorBase {
       virtual void symbol_end(Symbol &, const char * = NULL) {}
       virtual void symtab_start(Symtab &, const char * = NULL) {}
       virtual void symtab_end(Symtab &, const char * = NULL) {}
-      //virtual void section_end(Section &, const char * = NULL) {}
-      //virtual void section_start(Section &, const char * = NULL) {}
+      //virtual void region_end(Section &, const char * = NULL) {}
+      //virtual void region_start(Section &, const char * = NULL) {}
       virtual void module_start(Module &, const char * = NULL) {}
       virtual void module_end(Module &, const char * = NULL) {}
       virtual void exception_start(ExceptionBlock &, const char * = NULL) {}
@@ -131,16 +131,19 @@ class SymtabTranslatorBase {
             symbol_start(param);
             translate(param.type_, "type");
             translate(param.linkage_, "linkage");
-#if 0 // FIXME
-            getSD().translate(param.tag_, "tag");
-#endif
             getSD().translate(param.addr_, "addr");
             getSD().translate(param.size_, "size");
-            //getSD().translate(param.created_flag, "created");
-            //getSD().translate(param.exported_flag, "exported");
+            getSD().translate(param.isInDynsymtab_, "isInDynsymtab");
+            getSD().translate(param.isInSymtab_, "isInSymtab");
             getSD().translate(param.prettyNames, "prettyNames", "prettyName");
             getSD().translate(param.mangledNames, "mangledNames", "mangledName");
             getSD().translate(param.typedNames, "typedNames", "typedName");
+#if 0 // FIXME
+            translate(param.tag_, "tag");
+#endif
+            getSD().translate(param.framePtrRegNum_, "framePtrRegNum");
+            //  Note:  have to deal with retType_ here?? Probably use type id.
+            getSD().translate(param.moduleName_, "moduleName");
             symbol_end(param);
          } SER_CATCH("Symbol")
       }

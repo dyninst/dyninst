@@ -1036,9 +1036,14 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr) {
 	// localVar->addField() TODO????
 	//fieldList[j]->getOffset()+(Offset) baseAddr, -1, storageAddr);
 	
+      if (!func->addLocalVar(locVar)) {
+         fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+      }
+#if 0
 	    if(!func->vars_)
 	        func->vars_ = new localVarCollection();
 	    func->vars_->addLocalVar(locVar);
+#endif
     }
 
     // look to see if the field list matches an existing block

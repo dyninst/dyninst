@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.13 2008/04/22 04:39:27 jaw Exp $
+ * $Id: Symbol.h,v 1.14 2008/04/27 06:54:23 jaw Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -58,6 +58,8 @@
 
 typedef struct {} symbol_file_name_a;
 typedef struct {} symbol_version_names_a;
+typedef struct {} symbol_variables_a;
+typedef struct {} symbol_parameters_a;
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -73,7 +75,9 @@ class localVarCollection;
 ************************************************************************/
 
 class Symbol : public Annotatable <std::string, symbol_file_name_a, false>,
-               public Annotatable <std::vector<std::string>, symbol_version_names_a, false> {
+               public Annotatable <std::vector<std::string>, symbol_version_names_a, false>,
+               public Annotatable <localVarCollection, symbol_variables_a, true>,
+               public Annotatable <localVarCollection, symbol_parameters_a, true> {
     friend class typeCommon;
     friend class Symtab;
     friend class SymtabTranslatorBase;
@@ -222,6 +226,10 @@ public:
 
 public:
     static std::string emptyString;
+
+    //  convenience functions, not really meant to be called outside symtabAPI
+    bool addLocalVar(localVar *);
+    bool addParam(localVar *);
     
 private:
     Module*       module_;
@@ -248,16 +256,19 @@ private:
     std::string moduleName_;  
 
 public:
+#if 0
     localVarCollection *vars_;
     localVarCollection *params_;
+#endif
 };
 
 inline
 Symbol::Symbol(unsigned)
    : //name_("*bad-symbol*"), module_("*bad-module*"),
     module_(NULL), type_(ST_UNKNOWN), linkage_(SL_UNKNOWN), addr_(0), sec_(NULL), size_(0), 
-    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_(""), 
-    vars_(NULL), params_(NULL) {
+    isInDynsymtab_(false), isInSymtab_(true), tag_(TAG_UNKNOWN), retType_(NULL), moduleName_("")
+    //vars_(NULL), params_(NULL) 
+{
 }
 #if 0
 inline
