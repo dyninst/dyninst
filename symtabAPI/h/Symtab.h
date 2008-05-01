@@ -109,6 +109,7 @@ class Region {
     DLLEXPORT bool isData() const;
     DLLEXPORT bool isOffsetInRegion(const Offset &offset) const;
     DLLEXPORT bool isLoadable() const;
+    DLLEXPORT bool setLoadable(bool isLoadable);
     DLLEXPORT bool isDirty() const;
     DLLEXPORT std::vector<relocationEntry> &getRelocations();
     DLLEXPORT bool patchData(Offset off, void *buf, unsigned size);
@@ -122,7 +123,7 @@ class Region {
   protected:                     
     DLLEXPORT Region(unsigned regnum, std::string name, Offset diskOff,
                     unsigned long diskSize, Offset memOff, unsigned long memSize,
-                    char *rawDataPtr, perm_t perms, region_t regType);
+                    char *rawDataPtr, perm_t perms, region_t regType, bool isLoadable = false);
   private:
     unsigned regNum_;
     std::string name_;
@@ -136,6 +137,7 @@ class Region {
     bool isDirty_;
     std::vector<relocationEntry> rels_;
     char *buffer_;  //To hold dirty data
+    bool isLoadable_;
 };
 
  
