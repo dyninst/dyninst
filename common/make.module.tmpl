@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.37 2008/04/25 20:51:53 roundy Exp $
+# $Id: make.module.tmpl,v 1.38 2008/05/07 19:46:37 roundy Exp $
 #
 
 SUITE_NAME	= common 
@@ -81,7 +81,8 @@ else
 SYSLIBS		+= -ldemangle
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I/usr/include/libxml2
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I$(LIBXML2_INC)
+
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
