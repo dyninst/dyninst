@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.87 2008/03/12 20:08:23 legendre Exp $
+# $Id: Makefile,v 1.88 2008/05/08 20:53:14 cooksey Exp $
 #
 
 TO_CORE = .
@@ -31,9 +31,18 @@ ParadynVC	= visi \
 
 subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
 SymtabAPI 	= ready common symtabAPI dynutil
-DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dyninstAPI/tests testsuite dyner codeCoverage dynutil
+DyninstAPI	= ready common symtabAPI dyninstAPI_RT dyninstAPI dyner codeCoverage dynutil
+
+testsuites = dyninstAPI/tests testsuite newtestsuite
 
 allSubdirs	= $(subSystems) common dyninstAPI/tests testsuite dyner codeCoverage dynutil
+allSubdirs_noinstall =
+
+# We're not building the new test suite on all platforms yet
+ifeq ($(DONT_BUILD_NEWTESTSUITE),false)
+testsuites += newtestsuite
+allSubdirs_noinstall += newtestsuite
+endif
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
@@ -157,7 +166,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-Paradyn ParadynD ParadynFE ParadynVC DyninstAPI SymtabAPI basicComps subSystems: 
+Paradyn ParadynD ParadynFE ParadynVC DyninstAPI SymtabAPI basicComps subSystems testsuites: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
@@ -166,7 +175,7 @@ Paradyn ParadynD ParadynFE ParadynVC DyninstAPI SymtabAPI basicComps subSystems:
 # Explicit specification of these rules permits better parallelization
 # than building subsystems using a for loop
 
-.PHONY: $(allSubdirs)
+.PHONY: $(allSubdirs) $(allSubdirs_noinstall)
 
 $(allSubdirs): 
 	@if [ -f $@/$(PLATFORM)/Makefile ]; then \
@@ -177,6 +186,31 @@ $(allSubdirs):
 		$(MAKE) -C $@ install; \
 	else \
 		echo $@ has no Makefile; \
+		false; \
+	fi
+
+$(allSubdirs_noinstall):
+	@echo "***allSubdirs_noinstall***"
+	+@if [ -f $@/$(PLATFORM)/Makefile ]; then \
+		$(MAKE) -C $@/$(PLATFORM); \
+	elif [ -f $@/Makefile ]; then \
+		$(MAKE) -C $@; \
+	else \
+		@echo $@ has no Makefile; \
+		false; \
+	fi
+
+# Generate targets of the form install_<target> for all directories in
+# allSubdirs_noinstall
+allSubdirs_explicitInstall = $(patsubst %,install_%,$(allSubdirs_noinstall))
+
+$(allSubdirs_explicitInstall): install_%: %
+	+@if [ -f $(@:install_%=%)/$(PLATFORM)/Makefile ]; then \
+		$(MAKE) -C $(@:install_%=%)/$(PLATFORM) install \
+	elif [ -f $(@:install_%=%)/Makefile ]; then \
+		$(MAKE) -C $(@:install_%=%) install; \
+	else \
+		@echo $(@:install_%=%) has no Makefile; \
 		false; \
 	fi
 
