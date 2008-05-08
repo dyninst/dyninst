@@ -80,7 +80,7 @@ int groupable_mutatee = @<groupable>@;
 
 /* SOLO_MUTATEE(@<testname>@); */
 mutatee_call_info_t mutatee_funcs[] = {
-  {"@<testname>@", @<testname>@_mutatee, SOLO}
+  {"@<testname>@", @<testname>@_mutatee, SOLO, "@<label>@"}
 };
 int runTest[1];
 int passedTest[1];

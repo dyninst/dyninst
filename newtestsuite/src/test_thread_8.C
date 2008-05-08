@@ -171,6 +171,7 @@ BPatch_process *test_thread_8_Mutator::getProcess()
                  __FILE__, __LINE__, filename);
          return NULL;
       }
+      registerPID(proc->getPid()); // Register for cleanup
    }
    else
    {
@@ -182,6 +183,8 @@ BPatch_process *test_thread_8_Mutator::getProcess()
          logerror("%s ", filename);
          perror("couldn't be started");
          return NULL;
+      } else if (pid > 0) {
+	registerPID(pid); // Register for cleanup
       }
 #if defined(os_windows)
       P_sleep(1);

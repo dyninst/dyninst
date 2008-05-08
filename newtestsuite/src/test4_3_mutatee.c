@@ -82,6 +82,7 @@ int test4_3_mutatee() {
        * the right function gets called for the test4b mutatee no matter what?
        * Yes there is: just replace any arguments to -run with test4_3b.  Duh
        */
+      /* FIXME this may screw up if there's more than one '-run' specified */
       if (strcmp(newArgv[i], "-run") == 0) {
 	newArgv[i + 1] = "test4_3b";
       }

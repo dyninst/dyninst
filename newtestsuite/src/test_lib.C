@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.2 2007/10/05 21:06:34 bernat Exp $
+// $Id: test_lib.C,v 1.3 2008/05/08 20:55:13 cooksey Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -97,6 +97,9 @@ int expectError = DYNINST_NO_ERROR;
 /* Control Debug printf statements */
 int debugPrint = 0;
 
+// New output logging system
+TestOutputDriver *output = NULL;
+
 // output logging
 FILE *outlog = NULL;
 FILE *errlog = NULL;
@@ -147,32 +150,18 @@ char *getErrorLogFilename() {
   return errlogname;
 }
 
-int logstatus(const char *fmt, ...) {
+void logstatus(const char *fmt, ...) {
   va_list args;
-  int retval;
   va_start(args, fmt);
-  if (outlog != NULL) {
-    retval = vfprintf(outlog, fmt, args);
-  } else {
-    retval = vprintf(fmt, args);
-  }
+  output->vlog(LOGINFO, fmt, args);
   va_end(args);
-  flushOutputLog();
-  return retval;
 }
 
-int logerror(const char *fmt, ...) {
+void logerror(const char *fmt, ...) {
   va_list args;
-  int retval;
   va_start(args, fmt);
-  if (errlog != NULL) {
-    retval = vfprintf(errlog, fmt, args);
-  } else {
-    retval = vfprintf(stderr, fmt, args);
-  }
+  output->vlog(LOGERR, fmt, args);
   va_end(args);
-  flushErrorLog();
-  return retval;
 }
 
 void flushOutputLog() {
@@ -186,15 +175,41 @@ void flushErrorLog() {
   }
 }
 
+// PID registration for mutatee cleanup
+// TODO Check if these make any sense on Windows.  I suspect I'll need to
+// change them.
+char *pidFilename = NULL;
+void setPIDFilename(char *pfn) {
+  pidFilename = pfn;
+}
+char *getPIDFilename() {
+  return pidFilename;
+}
+void registerPID(int pid) {
+  if (NULL == pidFilename) {
+    fprintf(stderr, "[%s:%u] - Error registering mutatee PID: no PID filename set\n", __FILE__, __LINE__);
+  } else {
+    FILE *pidFile = fopen(pidFilename, "a");
+    if (NULL == pidFile) {
+      fprintf(stderr, "[%s:%u] - Error registering mutatee PID: unable to open PID file\n", __FILE__, __LINE__);
+    } else {
+      fprintf(pidFile, "%d\n", pid);
+      fclose(pidFile);
+    }
+  }
+}
+
+
 //
 // Wait for the mutatee to stop.
 //
 int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
                       const char *testname)
 {
-    while (!appThread->isStopped() && !appThread->isTerminated())
+  while (!appThread->isStopped() && !appThread->isTerminated()) {
         bpatch->waitForStatusChange();
-    
+  }
+
     if (!appThread->isStopped()) {
         logerror("**Failed test #%d (%s)\n", testnum, testname);
         logerror("    process did not signal mutator via stop\n");
@@ -241,7 +256,6 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
 //
 bool signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
 {
-  //fprintf(stderr, "test_lib: in signalAttached()\n"); /* *DEBUG* */
     BPatch_variableExpr *isAttached = appImage->findVariable("isAttached");
     if (isAttached == NULL) {
 	logerror("*ERROR*: unable to start tests because variable \"isAttached\""
@@ -251,7 +265,6 @@ bool signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
 
     int yes = 1;
     isAttached->writeValue(&yes);
-    //fprintf(stderr, "test_lib: leaving signalAttached()\n"); /* *DEBUG* */
     return true;
 }
 
@@ -266,8 +279,6 @@ pid_t fork_mutatee() {
 }
 #else
 pid_t fork_mutatee() {
-  //fprintf(stderr, "[%s:%u] - Entering fork_mutatee\n", __FILE__, __LINE__); /*DEBUG*/
-
    /**
     * Perform a granchild fork.  This code forks off a child, that child
     * then forks off a granchild.  The original child then exits, making
@@ -292,7 +303,6 @@ pid_t fork_mutatee() {
    }
 
    if (child_pid) {
-     //fprintf(stderr, "[%s:%u] - fork_mutatee entering parent section\n", __FILE__, __LINE__); /*DEBUG*/
       //Read the grandchild pid from the child.
       do {
          result = read(filedes[0], &gchild_pid, sizeof(pid_t));
@@ -303,9 +313,7 @@ pid_t fork_mutatee() {
 
       int options = 0;
       do {
-	//fprintf(stderr, "[%s:%u] - fork_mutatee calling waitpid\n", __FILE__, __LINE__); /*DEBUG*/
          result = waitpid(child_pid, &status, options);
-	 //fprintf(stderr, "[%s:%u] - fork mutatee returned from waitpid\n", __FILE__, __LINE__); /*DEBUG*/
          if (result != child_pid) {
             perror("Couldn't join child");
             break;
@@ -313,7 +321,6 @@ pid_t fork_mutatee() {
       } while (!WIFEXITED(status));
       close(filedes[0]);
       close(filedes[1]);
-      //fprintf(stderr, "[%s:%u] - fork_mutatee: parent returning grandchild pid\n", __FILE__, __LINE__); /*DEBUG*/
       return gchild_pid;
    }
    //Child
@@ -327,14 +334,12 @@ pid_t fork_mutatee() {
       }         
       close(filedes[0]);
       close(filedes[1]);
-      //fprintf(stderr, "[%s:%u] - fork_mutatee: child exiting\n", __FILE__, __LINE__); /*DEBUG*/
       exit(0);
    }   
 
    //Granchild
    close(filedes[0]);
    close(filedes[1]);
-   //fprintf(stderr, "[%s:%u] - fork_mutatee: grandchild exiting\n", __FILE__, __LINE__); /*DEBUG*/
    return 0;
 }
 #endif
@@ -363,7 +368,6 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 //
 int startNewProcessForAttach(const char *pathname, const char *argv[],
 			     FILE *outlog, FILE *errlog) {
-  //fprintf(stderr, "[%s:%u] - Entering startNewProcessForAttach\n", __FILE__, __LINE__); /*DEBUG*/
 #if defined(os_windows)
       // TODO Fix Windows code to work with log file
        char child_args[1024];
@@ -473,7 +477,6 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 
        close( fds[0] ); // We're done with the pipe
 
-       //fprintf(stderr, "[%s:%u] - Sucessfully leaving startNewProcessForAttach\n", __FILE__, __LINE__); /*DEBUG*/
        return pid;
 #endif
 }
@@ -527,7 +530,6 @@ BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
             expectError = 100;
             for (i = 0; i < numchars; i++)
                 lowercase [i] = tolower (lowercase [i]);
-	    //fprintf(stderr, "[%s:%u] - Searching for variable '%s'\n", __FILE__, __LINE__, lowercase); /*DEBUG*/
             ret = appImage->findVariable (*(*point) [0], lowercase);
         if (!ret) {
             expectError = temp;
@@ -767,6 +769,7 @@ BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail)
 }
 
 // Build Architecture specific libname
+// FIXME Is this used any more?  Is it necessary?
 void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
 {
    int dest_len;
@@ -774,16 +777,23 @@ void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
    dest_len = strlen(dest);
 
    // Patch up alternate ABI filenames
+#if defined(rs6000_ibm_aix64)
+   if(psize == 4) {
+     strncat(dest, "_32", dest_max_len - dest_len);
+     dest_len += 3;
+   }
+#endif
+
 #if defined(arch_x86_64)
    if (psize == 4) {
       strncat(dest,"_m32", dest_max_len - dest_len);
-      dest_len += 3;   
+      dest_len += 4;   
    }
 #endif
 
 #if defined(mips_sgi_irix6_4)
    strncat(dest,"_n32", dest_max_len - dest_len);
-   dest_len += 3;
+   dest_len += 4;
 #endif
 
 #if defined(os_windows)
@@ -1100,11 +1110,7 @@ TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *app
          }
       }
    }
-   
-   dprintf("All threads terminated, deleting\n");
-   for (int i=0; i < *threadCount; i++) {
-     delete mythreads[i];
-   }
+
    *threadCount = 0;
 }
 
@@ -1679,7 +1685,6 @@ int letOriginalMutateeFinish(BPatch_thread *appThread){
 
 	if(appThread->terminationStatus() == ExitedNormally) {
 		retVal = appThread->getExitCode();
-		//fprintf(stderr, "[%s:%u] - retVal == %d\n", __FILE__, __LINE__, retVal); /*DEBUG*/
 	} else if(appThread->terminationStatus() == ExitedViaSignal) {
 		int signalNum = appThread->getExitSignal();
 		if (signalNum){

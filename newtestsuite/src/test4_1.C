@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_1.C,v 1.1 2007/09/24 16:39:49 cooksey Exp $
+// $Id: test4_1.C,v 1.2 2008/05/08 20:54:37 cooksey Exp $
 /*
  * #Name: test4_1
  * #Desc: Exit Callback
@@ -135,7 +135,7 @@ static void execFunc(BPatch_thread *thread)
 
 test_results_t test4_1_Mutator::mutatorTest() {
     int n = 0;
-    const char *child_argv[MAX_TEST+5];
+    const char *child_argv[MAX_TEST+7];
 	
     dprintf("in mutatorTest1\n");
 
@@ -144,6 +144,10 @@ test_results_t test4_1_Mutator::mutatorTest() {
 
     child_argv[n++] = const_cast<char*>("-run");
     child_argv[n++] = const_cast<char*>("test4_1");
+    if (getPIDFilename() != NULL) {
+      child_argv[n++] = const_cast<char *>("-pidfile");
+      child_argv[n++] = getPIDFilename();
+    }
     child_argv[n] = NULL;
 
     // Start the mutatee
@@ -155,6 +159,8 @@ test_results_t test4_1_Mutator::mutatorTest() {
 	logerror("Unable to run test program.\n");
         return FAILED;
     }
+    // Register for cleanup
+    registerPID(appThread->getProcess()->getPid());
 
     contAndWaitForAllThreads(bpatch, appThread, mythreads, &threadCount);
 

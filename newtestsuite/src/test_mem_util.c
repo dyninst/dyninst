@@ -1,3 +1,7 @@
+/* FIXME Remove assert() calls from this file, then remove this #include */
+#include <assert.h>
+#include <string.h>
+
 #include "test_mem_util.h"
 #include "mutatee_util.h"
 
@@ -371,6 +375,7 @@ double dfvard;
 long double dfvart;
 char dlarge[512] = "keep the interface small and easy to understand.";
 
+/* FIXME Remove calls to assert() from this function */
 void init_test_data()
 {
   int i;
@@ -471,10 +476,11 @@ void init_test_data()
 
 #ifdef ia64_unknown_linux2_4
 unsigned int bcExp[] = { 8, 8, 8,  8, 8, 8,  8, 16, 16, 0, 0, 0 };
-unsigned int bcExpCC[] = { 8, 8, 8,  8, 8, 8,  8, 16, 16, 0, 0, 0 };
+unsigned int bcExpCC_init[] = { 8, 8, 8,  8, 8, 8,  8, 16, 16, 0, 0, 0 };
 
 void init_test_data()
 {
+  memcpy(bcExpCC, bcExpCC_init, sizeof (bcExpCC_init));
 }
 #endif /* defined(ia64_unknown_linux2_4) */
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_41.C,v 1.2 2008/01/23 14:45:52 jaw Exp $
+// $Id: test1_41.C,v 1.3 2008/05/08 20:54:23 cooksey Exp $
 /*
  * #Name: test1_41
  * #Desc: Tests whether we lose line information running a mutatee twice
@@ -53,7 +53,6 @@
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 #include "BPatch_statement.h"
-
 
 #include "test_lib.h"
 
@@ -96,7 +95,6 @@ test_results_t test1_41_Mutator::execute() {
     // Run the mutatee twice, querying line info each time & store the info
     for (n = 0; n < iterations; n++) {
         dprintf("Starting \"%s\"\n", pathname);
-        //fprintf(stderr, "[%s:%u] - Starting \"%s\"\n", __FILE__, __LINE__, pathname); /*DEBUG*/
 	BPatch_thread *thread = bpatch->createProcess(pathname, child_argv,
 						      NULL);
         if (!thread) {
@@ -105,6 +103,7 @@ test_results_t test1_41_Mutator::execute() {
             return FAILED;
         }
         dprintf("Mutatee started, pid=%d\n", n, thread->getPid());
+	registerPID(thread->getProcess()->getPid()); // register for cleanup
 
 	BPatch_image *image = thread->getImage();
 	if (!image) {

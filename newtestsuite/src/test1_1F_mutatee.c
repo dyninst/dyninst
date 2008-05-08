@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1_1F_mutatee.c,v 1.1 2007/09/24 16:37:14 cooksey Exp $ */
+/* $Id: test1_1F_mutatee.c,v 1.2 2008/05/08 20:54:12 cooksey Exp $ */
 
 #include <stdlib.h>
 #include "mutatee_util.h"
@@ -85,21 +85,17 @@ int test1_1F_mutatee() {
      * I'm not sure how to get them to print to the log file other than by
      * changing the stdout fd to point to the log file instead.
      */
-    printf("presetup\n"); /*DEBUG*/
     if (setupFortranOutput()) {
       logerror("Error directing Fortran component output to log file\n");
     }
-    printf("postsetup\n"); /*DEBUG*/
 
     test1_1f_init_globals();
 
     test1_1_func1_1();
 
-    printf("precleanup\n"); /*DEBUG*/
     if (cleanupFortranOutput()) {
       logerror("Error restoring output to stdout\n");
     }
-    printf("postcleanup\n"); /*DEBUG*/
 
     /* Combine fortran passedTest with C passedTest */
     if (test1_1f_globals.passedTest_) {

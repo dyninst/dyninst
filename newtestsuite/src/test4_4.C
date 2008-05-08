@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_4.C,v 1.1 2007/09/24 16:39:56 cooksey Exp $
+// $Id: test4_4.C,v 1.2 2008/05/08 20:54:43 cooksey Exp $
 /*
  * #Name: test4_4
  * #Desc: Fork and Exec Callback
@@ -131,7 +131,6 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        // code goes into child after in-exec in this test.
 
        test4Child = child;
-       //fprintf(stderr, "[%s:%u] - leaving %d -> %d fork callback\n", __FILE__, __LINE__, parent->getPid(), child->getPid()); /*DEBUG*/
 }
 
 static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
@@ -230,23 +229,30 @@ test_results_t test4_4_Mutator::mutatorTest() {
 #else
 
     int n = 0;
-    const char *child_argv[MAX_TEST+5];
+    const char *child_argv[MAX_TEST+7];
 
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
     child_argv[n++] = const_cast<char*>("-run");
     child_argv[n++] = const_cast<char*>("test4_4");
+    if (getPIDFilename() != NULL) {
+      child_argv[n++] = const_cast<char *>("-pidfile");
+      child_argv[n++] = getPIDFilename();
+    }
     child_argv[n] = NULL;
 
     // Start the mutatee
     logerror("Starting \"%s\"\n", pathname);
 
-    test4Parent = bpatch->createProcess(pathname, child_argv,NULL);
+    test4Parent = bpatch->createProcess(pathname, child_argv);
     if (test4Parent == NULL) {
 	logerror("Unable to run test program: %s.\n", pathname);
         return FAILED;
     }
+
+    // Register for cleanup
+    registerPID(test4Parent->getProcess()->getPid());
 
     contAndWaitForAllThreads(bpatch, test4Parent, mythreads, &threadCount);
 

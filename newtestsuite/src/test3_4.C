@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_4.C,v 1.1 2007/09/24 16:39:41 cooksey Exp $
+// $Id: test3_4.C,v 1.2 2008/05/08 20:54:33 cooksey Exp $
 /*
  * #Name: test3_4
  * #Desc: sequential multiple-process management - exit
@@ -104,6 +104,8 @@ test_results_t test3_4_Mutator::execute() {
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
+	// Register for cleanup
+	registerPID(appThread->getProcess()->getPid());
 
         appThread->continueExecution();
 
@@ -122,7 +124,6 @@ test_results_t test3_4_Mutator::execute() {
            if (signalNum || debugPrint)
                dprintf("Mutatee %d exited from signal 0x%d\n", n, signalNum);
         }
-	delete appThread;
     }
 
     logerror("Passed Test #4 (sequential multiple-process management - exit)\n");

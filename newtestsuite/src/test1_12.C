@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_12.C,v 1.1 2007/09/24 16:36:28 cooksey Exp $
+// $Id: test1_12.C,v 1.2 2008/05/08 20:54:11 cooksey Exp $
 /*
  * #Name: test1_12
  * #Desc: Mutator Side - Insert/Remove and Malloc/Free
@@ -172,6 +172,13 @@ int test1_12_Mutator::mutatorTestb() {
         return -1;
     }
     appThread->free(*varExpr12_1);
+
+    // Try removing NULL as a snippet
+    if (appThread->deleteSnippet(NULL)) {
+      logerror("**Failed test #12 (insert/remove and malloc/free)\n");
+      logerror("    deleteSnippet returned success when deleting NULL\n");
+      return -1;
+    }
 
     // continue process
     appThread->continueExecution();

@@ -29,14 +29,27 @@
 
 using namespace std;
 
+// fills the buffer with the name of a file to use for PID
+// registration for mutatee cleanup
+void initPIDFilename(char *buffer, size_t len);
+
+// Kills any remaining mutatee processes that are listed in the PID file
+void cleanupMutatees(char *pidFilename);
+
+int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+	    string logfile, int testLimit, vector<char *> child_argv,
+	    char *pidFilename);
+
 bool isRegFile(const string& filename);
 
 bool isDir(const string& filename); 
 
 void getInput(const char *filename, string& output);
 
-void generateTestString(bool resume, bool useLog, bool staticTests, string &logfile,
-      int testLimit, vector<char *>& child_argv, string& shellString);
+void generateTestString(bool resume, bool useLog, bool staticTests,
+			string &logfile, int testLimit,
+			vector<char *>& child_argv, string& shellString,
+			char *pidFilename);
 
 char *setResumeEnv();
 

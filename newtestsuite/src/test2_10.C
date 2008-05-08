@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_10.C,v 1.1 2007/09/24 16:39:11 cooksey Exp $
+// $Id: test2_10.C,v 1.2 2008/05/08 20:54:25 cooksey Exp $
 /*
  * #Name: test2_10
  * #Desc: Dump image
@@ -82,7 +82,8 @@ test_results_t test2_10_Mutator::preExecution() {
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(mips_sgi_irix6_4) \
  && !defined(alpha_dec_osf4_0) \
- && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+ && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */ \
+ && !defined(ppc32_linux) 
   // Looks like it runs on everything but Windows - Greg
 
     logerror("Skipping test #10 (dump image)\n");
@@ -136,28 +137,3 @@ test_results_t test2_10_Mutator::preExecution() {
     }
 #endif
 }
-
-// extern "C" TEST_DLL_EXPORT int test2_10_mutatorMAIN(ParameterDict &param)
-// {
-//     bool useAttach = param["useAttach"]->getInt();
-//     BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
-
-//     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-//     // Read the program's image and get an associated image object
-//     BPatch_image *appImage = appThread->getImage();
-
-//     // Get log file pointers
-//     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//     setOutputLog(outlog);
-//     setErrorLog(errlog);
-
-//     // Signal the child that we've attached
-//     if (useAttach) {
-// 	signalAttached(appThread, appImage);
-//     }
-
-//     // This calls the actual test to instrument the mutatee
-//     return mutatorTest(appThread, appImage);
-// }

@@ -26,4 +26,5 @@ unsigned int test4_1_global1 = 0xdeadbeef;
 int test4_1_mutatee() {
   test4_1_global1 = 1000001;
   exit((int) getpid());
+  return 0; /* Unreachable, but stops some compilers from complaining */
 }

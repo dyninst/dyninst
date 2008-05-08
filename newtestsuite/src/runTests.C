@@ -5,10 +5,16 @@
 #include <stdio.h>
 #include <vector>
 
+#include <string.h>
+#include <errno.h>
+#include <signal.h>
+#include <unistd.h>
+
 #include "runTests-utils.h"
 #include "error.h"
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <cstring>
 
 // To prevent run away never run test_driver more the MAX_ITER times
 #define MAX_ITER 1000
@@ -145,59 +151,60 @@ string ReplaceAllWith(const string &in, const string &replace, const string &wit
    
 }
 
-// SimpleShellEscape:
-// Escapes some characters in the input string 
-string SimpleShellEscape(string &str)
-{
-   string tmp;
-   tmp = ReplaceAllWith(str, "*", "\\*");
-   tmp = ReplaceAllWith(tmp, "?", "\\?");
-   return tmp;
-}
-
-// RunTest:
-// Sets up the command string to run a single test
-int RunTest(unsigned int iteration)
-{
-   string shellString;
-
-   generateTestString(iteration > 0, useLog, staticTests, logfile,
-                      testLimit, child_argv, shellString);
-
-   int ret = system(SimpleShellEscape(shellString).c_str());
-
-   return WEXITSTATUS(ret);
-}
-
 int main(int argc, char *argv[])
 {
    parseParameters(argc, argv);
    setupVars(useLog, logfile);
 
    setLibPath();
-   
 
    int result = 0;
    int invocation = 0;
 
-   // result == 2 indicates that there are no more tests to run
-   while ( result != NOTESTS && invocation < MAX_ITER )
-   {
-      result = RunTest(invocation);
-      invocation++;
-   }
-
+   // Remove a stale resumelog, if it exists
    if ( getenv("RESUMELOG") && isRegFile(string(getenv("RESUMELOG"))) )
    {
-      unlink(getenv("RESUMELOG"));
+     unlink(getenv("RESUMELOG"));
    } else if (isRegFile(string(DEFAULT_RESUMELOG))) {
      unlink(DEFAULT_RESUMELOG);
    }
 
+   // Remove a stale crashlog, if it exists
    if (getenv("CRASHLOG") && isRegFile(string(getenv("CRASHLOG")))) {
      unlink(getenv("CRASHLOG"));
    } else if (isRegFile(string(DEFAULT_CRASHLOG))) {
      unlink(DEFAULT_CRASHLOG);
    }
-   
+
+   // Create a PIDs file, to track mutatee PIDs
+   char pidFilename[32];
+   initPIDFilename(pidFilename, 32);
+   if (isRegFile(string(pidFilename))) {
+     unlink(pidFilename); // Ensure that the file doesn't already exist
+   }
+
+   // result == 2 indicates that there are no more tests to run
+   while ( result != NOTESTS && invocation < MAX_ITER )
+   {
+      result = RunTest(invocation, useLog, staticTests, logfile, testLimit,
+		       child_argv, pidFilename);
+      invocation++;
+      // I want to kill any remaining mutatees now, to clean up.  I should also
+      // set a timer in RunTest in case something goes weird with test_driver.
+      // (I think we'd be better off moving away from timer.pl)
+      cleanupMutatees(pidFilename);
+      if (-3 == result) {
+	// User interrupted the test run; allow them a couple of seconds to do
+	// it again and kill runTests
+	// TODO Make sure this is portable to Windows
+	sleep(2);
+      }
+   }
+
+   // Remove the PID file, now that we're done with it
+   if (isRegFile(string(pidFilename))) {
+     unlink(pidFilename);
+   }
+
+   return 0;
 }

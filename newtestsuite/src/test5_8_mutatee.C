@@ -28,7 +28,6 @@ static int inst_called = false;
 
 void decl_test::func_cpp()
 {
-  //fprintf(stderr, "[%s:%u] - in decl_test::func_cpp()\n", __FILE__, __LINE__); /*DEBUG*/
    int CPP_DEFLT_ARG = 8;
 
    if ( 8 != CPP_DEFLT_ARG )
@@ -37,7 +36,6 @@ void decl_test::func_cpp()
      logerror("::CPP_DEFLT_ARG init value wrong\n");
    if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
      logerror("cpp_test_util::CPP_TEST_UTIL_VAR int value wrong\n");
-   //fprintf(stderr, "[%s:%u] - leaving decl_test::func_cpp()\n", __FILE__, __LINE__); /*DEBUG*/
 }
 
 // A call to this is inserted by the mutator when its analysis succeeds (test
@@ -45,7 +43,6 @@ void decl_test::func_cpp()
 void decl_test::call_cpp(int test)
 {
   inst_called = true;
-  //fprintf(stderr, "[%s:%u] - in decl_test::call_cpp()\n", __FILE__, __LINE__); /*DEBUG*/
    if (test != 8) {
      logerror("**Failed** test #8 (C++ argument pass)\n");
      logerror("    Pass in an incorrect parameter value\n");
@@ -58,14 +55,7 @@ void decl_test::call_cpp(int test)
 }
 
 int test5_8_mutatee() {
-#if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
-    logerror("Skipped test #8 (declaration)\n");
-    logerror("\t- not implemented on this platform\n");
-    return 0;
-#else
   test8.func_cpp();
-  // FIXME Make sure the error reporting works
-  // I need to have this guy call test_passes(testname) if the test passes..
   if (1 == passed) {
     // Test passed
     logstatus("Passed test #8 (declaration)\n");
@@ -79,5 +69,4 @@ int test5_8_mutatee() {
     // Test failed
     return -1;
   }
-#endif
 }

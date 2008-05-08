@@ -14,7 +14,8 @@ test_init(Platform) :- nonvar(Platform),
 % current_platform(?Platform)
 % This predicate is true if Platform can be unified with the current platform
 % name, as previously specified by test_init/1
-current_platform(Platform) :- g_read(platform_name, Platform).
+current_platform(Platform) :-
+    g_read(platform_name, Platform).
 
 % Simple tuple rules.  I'll need more complex rules to generate the output that
 % actually goes to the makefile generator: it will need to have the correct
@@ -26,7 +27,7 @@ current_platform(Platform) :- g_read(platform_name, Platform).
 % Platform, ObjSuffix, LibPrefix, and LibSuffix are strings
 % AuxCompilers is a map from language names to compiler names
 platform_tuple(Platform, ObjSuffix, LibPrefix, LibSuffix, AuxCompilers,
-	           ABIs) :-
+               ABIs) :-
     platform(_, _, _, Platform),
     object_suffix(Platform, ObjSuffix),
     library_prefix(Platform, LibPrefix),
@@ -38,8 +39,8 @@ platform_tuple(Platform, ObjSuffix, LibPrefix, LibSuffix, AuxCompilers,
                  aux_compiler_for_platform(Platform, L, C),
                  AuxCompilers)
     ),
-	findall(A, platform_abi(Platform, A), ABIs_t),
-	sort(ABIs_t, ABIs).
+    findall(A, platform_abi(Platform, A), ABIs_t),
+    sort(ABIs_t, ABIs).
 
 compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings,
                ParmStrings, Languages, StdFlags, ABIFlags) :-
@@ -69,14 +70,14 @@ compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings,
         comp_mutatee_flags_str(Name, MutFlagsStr)
     ),
     StdFlags = [StdFlagsStr, MutFlagsStr, LinkFlagsStr],
-	% Need ABIFlags
-	% [Platform, ABI, ABIFlagStr]
-	findall([P, A, F], compiler_platform_abi_s(Name, P, A, F), ABIFlags),
-	(
-		\+ compiler_presence_def(Name, _) -> PresenceVar = 'true';
-		compiler_presence_def(Name, PresenceVar)
-	),
-	true.
+    % Need ABIFlags
+    % [Platform, ABI, ABIFlagStr]
+    findall([P, A, F], compiler_platform_abi_s(Name, P, A, F), ABIFlags),
+    (
+        \+ compiler_presence_def(Name, _) -> PresenceVar = 'true';
+        compiler_presence_def(Name, PresenceVar)
+    ),
+    true.
 
 % Tuples for language specifications.
 % Right now it just maps language names to filename extensions
@@ -108,16 +109,16 @@ mutator_tuple_s([Name, Sources, Libraries, Platform, Compiler],
 % write_tuples.
 mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
               ABI, Compiler, Optimization_level, Groupable) :-
-	test(TestName, _, Name),
-	test_platform(TestName, Platform),
-	test_platform_abi(TestName, Platform, ABI),
+    test(TestName, _, Name),
+    test_platform(TestName, Platform),
+    test_platform_abi(TestName, Platform, ABI),
     % This mutatee is groupable if any of the tests that use it are groupable
     % FIXME This is assuming a one-to-one relation between mutators and
     % mutatees.  This should still work as long as the mutatee is only used
     % in either groupable tests or non-groupable tests.
     (
-		groupable_test(TestName) -> Groupable = 'true';
-		Groupable = 'false'
+        groupable_test(TestName) -> Groupable = 'true';
+        Groupable = 'false'
     ),
     mutatee(Name, PreprocessedSources, S2),
     forall_mutatees(S3),
@@ -130,14 +131,14 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
         \+ optimization_for_mutatee(Name, _, _) ->
             compiler_opt_trans(Compiler, Optimization_level, _);
         (optimization_for_mutatee(Name, Compiler, Optimization_level),
-     	 compiler_opt_trans(Compiler, Optimization_level, _))
+         compiler_opt_trans(Compiler, Optimization_level, _))
     ).
 
 % This one handles peers
 mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
               ABI, Compiler, Optimization_level, Groupable) :-
     mutatee(M1, _, _),
-	test(TestName, _, M1),
+    test(TestName, _, M1),
     test_platform(TestName, Platform),
     mutatee_peer(M1, Name),
     mutatee(Name, PreprocessedSources, RS1),
@@ -151,9 +152,9 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
         \+ optimization_for_mutatee(Name, _, _) ->
             compiler_opt_trans(Compiler, Optimization_level, _);
         (optimization_for_mutatee(Name, Compiler, Optimization_level),
-	     compiler_opt_trans(Compiler, Optimization_level, _))
+         compiler_opt_trans(Compiler, Optimization_level, _))
     ),
-	test_platform_abi(TestName, Platform, ABI),
+    test_platform_abi(TestName, Platform, ABI),
     % FIXME This is assuming a one-to-one relation between mutators and
     % mutatees.  This should still work as long as the mutatee is only used
     % in either groupable tests or non-groupable tests.
@@ -184,19 +185,34 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
         \+ optimization_for_mutatee(Mutatee, _, _) ->
             compiler_opt_trans(Compiler, Optimization, _);
         (optimization_for_mutatee(Mutatee, Compiler, Optimization),
-	 compiler_opt_trans(Compiler, Optimization, _))
+         compiler_opt_trans(Compiler, Optimization, _))
     ),
-	platform_abi(Platform, ABI),
+    platform_abi(Platform, ABI),
     member(RunMode, ['createProcess', 'useAttach']),
     member(StartState, ['stopped', 'running', 'selfstart']),
     member(Groupable, ['true', 'false']),
-    findall(T, (test(T, _, Mutatee),
-	            test_platform(T, Platform),
-				test_platform_abi(T, Platform, ABI),
-			    test_runmode(T, RunMode), test_start_state(T, StartState),
-			    ((groupable_test(T), Groupable = true);
-			     (\+ groupable_test(T), Groupable = false))),
-            Ts),
+    (
+        % Rungroups for the 'none' mutatee should only contain a single test
+        Mutatee = 'none' ->
+            (
+                test(T, _, Mutatee),
+                test_platform(T, Platform),
+                test_platform_abi(T, Platform, ABI),
+                test_runmode(T, RunMode),
+                test_start_state(T, StartState),
+                ((groupable_test(T), Groupable = true);
+                 (\+ groupable_test(T), Groupable = false)),
+                Ts = [T]
+            );
+        % Rungroups for other mutatees may contain a number of tests
+        findall(T, (test(T, _, Mutatee),
+                    test_platform(T, Platform),
+                    test_platform_abi(T, Platform, ABI),
+                    test_runmode(T, RunMode), test_start_state(T, StartState),
+                    ((groupable_test(T), Groupable = true);
+                     (\+ groupable_test(T), Groupable = false))),
+                    Ts)
+    ),
     sort(Ts, Ts_q),
     Ts_q \= [],
     Tests = Ts_q.
@@ -215,14 +231,14 @@ write_tuples(Filename, Platform) :-
     nonvar(Filename), nonvar(Platform), % Sanity check
     open(Filename, write, Stream),
     findall([P, OS, LP, LS, AC, As], platform_tuple(P, OS, LP, LS, AC, As),
-	        Platforms),
+            Platforms),
     write_term(Stream, Platforms, [quoted(true)]),
     write(Stream, '\n'),
     findall([L, E], language_tuple(L, E), Languages),
     write_term(Stream, Languages, [quoted(true)]),
     write(Stream, '\n'),
     findall([N, E, D, P, PV, O, PS, L, F, As],
-	        compiler_tuple(N, E, D, P, PV, O, PS, L, F, As),
+            compiler_tuple(N, E, D, P, PV, O, PS, L, F, As),
             Compilers),
     write_term(Stream, Compilers, [quoted(true)]),
     write(Stream, '\n'),
@@ -232,7 +248,7 @@ write_tuples(Filename, Platform) :-
     write(Stream, '\n'),
     findall([N, PS, RS, L, Platform, A, C, O, G],
             mutatee_tuple(N, PS, RS, L, Platform, A, C, O, G), Mutatees_t),
-	sort(Mutatees_t, Mutatees),
+    sort(Mutatees_t, Mutatees),
     write_term(Stream, Mutatees, [quoted(true)]),
     write(Stream, '\n'),
     findall([T, Mr, Me, G],
@@ -251,7 +267,7 @@ write_tuples(Filename, Platform) :-
 %     findall([F, ET, PN, Ps], exception_tuple(F, ET, PN, Ps), Exceptions),
 %     write_term(Stream, Exceptions, [quoted(true)]),
 %     write(Stream, '\n'),
-    findall([M, C, S, D, F], spec_object_file(M, C, S, D, F), ObjectFiles),
-	write_term(Stream, ObjectFiles, [quoted(true)]),
-	write(Stream, '\n'),
+    findall([M, C, S, IS, D, F], spec_object_file(M, C, S, IS, D, F), ObjectFiles),
+    write_term(Stream, ObjectFiles, [quoted(true)]),
+    write(Stream, '\n'),
     close(Stream), !.

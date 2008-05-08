@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_callback_2.C,v 1.1 2007/09/24 16:40:27 cooksey Exp $
+// $Id: test_callback_2.C,v 1.2 2008/05/08 20:54:52 cooksey Exp $
 /*
  * #Name: test12_7
  * #Desc: user defined message callback -- st
@@ -95,13 +95,11 @@ static BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc,
 
   if (!pts) {
     FAIL_MES(TESTNAME, TESTDESC);
-    //logerror("%s[%d]:  no points matching requested location\n", __FILE__, __LINE__); /*DEBUG*/
     return NULL;
   }
 
   if (pts->size() != 1) {
       FAIL_MES(TESTNAME, TESTDESC);
-      //logerror("%s[%d]:  %d points matching requested location, not 1\n", __FILE__, __LINE__, pts->size()); /*DEBUG*/
       return NULL;
   }
 

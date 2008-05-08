@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_6.C,v 1.1 2007/09/24 16:39:45 cooksey Exp $
+// $Id: test3_6.C,v 1.2 2008/05/08 20:54:35 cooksey Exp $
 /*
  * #Name: test3_6
  * #Desc: Create processes (via standard OS methods, not BPatch::createProcess), process events, and kill them, no instrumentation
@@ -124,6 +124,9 @@ static int forkNewMutatee(const char *filename, const char *child_argv[])
     //  fork error, fail test
     logerror("%s[%d]:  fork failed: %s\n", __FILE__, __LINE__, strerror(errno));
     return -1;
+  } else {
+    // Parent; register child for cleanup
+    registerPID(pid);
   }
 
   return pid;
@@ -142,6 +145,7 @@ static bool grandparentForkMutatees(int num, int *pids, const char *filename, co
     int childpid = fork();
     if (childpid > 0) {
       //parent -- read grandchild pids
+      registerPID(childpid); // Register for cleanup
       for (unsigned int i = 0; i < num; ++i) {
         result = 0;
         do {
@@ -276,7 +280,6 @@ test_results_t test3_6_Mutator::execute() {
         dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
 #endif
         numTerminated++;
-	delete appThread[n];
     }
 
     if (numTerminated == Mutatees) {

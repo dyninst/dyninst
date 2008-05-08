@@ -62,7 +62,8 @@ int test1_24_mutatee() {
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(os_linux) /* Use OS #define instead of platform - Greg */
 
     logerror("Skipped test #24 (array variables)\n");
     logerror("\t- not implemented on this platform\n");

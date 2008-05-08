@@ -4,7 +4,8 @@
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_solaris2_5) \
  || defined(ia64_unknown_linux2_4) \
- || defined(os_aix)
+ || defined(os_aix) \
+ || defined(os_linux) /* better off using os #defines than whole platforms */
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -73,15 +74,15 @@ void printSysError(unsigned errNo) {
 		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		  buf, 1000, NULL);
     if (!result) {
-        fprintf(stderr, "Couldn't print error message\n");
+        output->log(STDERR, "Couldn't print error message\n");
     }
-    fprintf(stderr, "%s\n", buf);
+    output->log(STDERR, "%s\n", buf);
 }
 
 void *loadDynamicLibrary(char *name) {
   void *result = (void *) LoadLibrary(name);
   if (!result) {
-      fprintf(stderr, "[%s:%u] - The mutatee could not load %s\n", __FILE__, __LINE__);
+      output->log(STDERR, "[%s:%u] - The mutatee could not load %s\n", __FILE__, __LINE__);
       printSysError(GetLastError());
   }
   return result;
@@ -90,13 +91,13 @@ void *loadDynamicLibrary(char *name) {
 void *getFuncFromDLL(void *libhandle, char *func_name) {
     void *result;
     if (!libhandle || !func_name) {
-        fprintf(stderr, "[%s:%u] - Test error - getFuncFromDLL passed NULL "
+        output->log(STDERR, "[%s:%u] - Test error - getFuncFromDLL passed NULL "
                 "parameter\n", __FILE__, __LINE__);
         return NULL;            
     }
     result = GetProcAddress((HMODULE) libhandle, func_name);
     if (!result) {
-        fprintf(stderr, "[%s:%u] - Couldn't load symbol %s\n", __FILE__, __LINE__, func_name);
+        output->log(STDERR, "[%s:%u] - Couldn't load symbol %s\n", __FILE__, __LINE__, func_name);
         printSysError(GetLastError());
     }
     return result;
@@ -127,11 +128,11 @@ void *getFuncFromDLL(void *libhandle, char *func_name) {
 
 int test1_22_mutatee()
 {
+    int retval = 0;
 #if defined(os_solaris) \
  || defined(alpha_dec_osf4_0) \
  || defined(os_linux) \
  || defined(os_windows)
-    int retval = 0;
     /* libtestA.so should already be loaded (by the mutator), but we
        need to use the dl interface to get pointers to the functions
        it defines. */

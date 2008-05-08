@@ -54,6 +54,8 @@ static int call_counter = 0;
 
 /* Test #40 (monitor dynamic function calls) */
 
+/* FIXME Remove all this condition compilation crud & replace with correct
+ * specifications */
 int test1_40_mutatee(void) {
 #ifdef __XLC__
   /*  xlc does not produce dynamic inst points with this example, 
@@ -63,12 +65,10 @@ int test1_40_mutatee(void) {
    logerror("\t- not implemented for mutatees compiled with xlc \n");
    test_passes(testname);
    return 0; /* Test "passed" */
-#endif
-   
-#if !defined(alpha_dec_osf4_0) \
- && !defined(ia64_unknown_linux2_4) \
- && !defined(mips_sgi_irix6_4) \
- && !defined(os_windows)
+#elif !defined(alpha_dec_osf4_0) \
+   && !defined(ia64_unknown_linux2_4) \
+   && !defined(mips_sgi_irix6_4) \
+   && !defined(os_windows)
 
    int failed = FALSE;
 

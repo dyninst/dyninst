@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_1.C,v 1.1 2007/09/24 16:39:35 cooksey Exp $
+// $Id: test3_1.C,v 1.2 2008/05/08 20:54:30 cooksey Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -123,6 +123,8 @@ test_results_t test3_1_Mutator::execute() {
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
+	// Register mutatee for cleanup
+	registerPID(appThread[n]->getProcess()->getPid());
     }
 
     dprintf("Letting mutatee processes run a short while (5s).\n");
@@ -131,7 +133,7 @@ test_results_t test3_1_Mutator::execute() {
     P_sleep(5);
     dprintf("Terminating mutatee processes.\n");
 
-    appThread[0]->getProcess();
+    appThread[0]->getProcess(); // ???
     unsigned int numTerminated=0;
     for (n=0; n<Mutatees; n++) {
         bool dead = appThread[n]->terminateExecution();
@@ -148,7 +150,6 @@ test_results_t test3_1_Mutator::execute() {
         int signalNum = appThread[n]->getExitSignal();
         dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
         numTerminated++;
-	delete appThread[n];
     }
 
     if (numTerminated == Mutatees) {

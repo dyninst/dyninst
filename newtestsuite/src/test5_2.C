@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_2.C,v 1.1 2007/09/24 16:40:01 cooksey Exp $
+// $Id: test5_2.C,v 1.2 2008/05/08 20:54:45 cooksey Exp $
 /*
  * #Name: test5_2
  * #Desc: Overload Functions
@@ -69,10 +69,6 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_2_factory() {
 // 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_2_Mutator::preExecution() {
-
-#if defined(sparc_sun_solaris2_4) \
-    || defined(os_linux) \
-    || defined(os_windows)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "overload_func_test::func_cpp";
@@ -185,23 +181,7 @@ test_results_t test5_2_Mutator::preExecution() {
     BPatch_funcCallExpr call2Expr(*call2_func, call2_args);
 
     checkCost(call2Expr);
-    appThread->insertSnippet(call2Expr, *point2_3);
+    if (appThread->insertSnippet(call2Expr, *point2_3) == NULL) {
+    }
     return PASSED;
-#else // Skipped on unsupported platforms
-    return SKIPPED;
-#endif
 }
-
-// External Interface
-// extern "C" TEST_DLL_EXPORT int test5_2_mutatorMAIN(ParameterDict &param)
-// {
-//     BPatch *bpatch;
-//     bpatch = (BPatch *)(param["bpatch"]->getPtr());
-//     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-//     // Read the program's image and get an associated image object
-//     BPatch_image *appImage = appThread->getImage();
-
-//     // Run mutator code
-//     return mutatorTest(appThread, appImage);
-// }

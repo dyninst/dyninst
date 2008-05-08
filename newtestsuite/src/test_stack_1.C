@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_stack_1.C,v 1.1 2007/09/24 16:41:22 cooksey Exp $
+// $Id: test_stack_1.C,v 1.2 2008/05/08 20:55:28 cooksey Exp $
 /*
  * #Name: test8_1
  * #Desc: getCallStack
@@ -109,7 +109,6 @@ test_results_t test_stack_1_Mutator::execute() {
     while (!appThread->getProcess()->isTerminated()) {
       bpatch->waitForStatusChange();
     }
-    //fprintf(stderr, "[%s:%u] - mutator continued mutatee\n", __FILE__, __LINE__); /*DEBUG*/
 
     return PASSED;
 }

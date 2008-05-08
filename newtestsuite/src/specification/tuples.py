@@ -29,7 +29,7 @@ def find_matching_close(search_string):
 		if (count == 0):
 			return index
 
-# FIXME This function assumes that string elements do not contain commas...
+# FIXME This function assumes that string elements do not contain single quotes
 def parse_list(list):
 	elements = []
 	start = 0
@@ -41,6 +41,11 @@ def parse_list(list):
 			matching_close = find_matching_close(list[start:])
 			elements.append(parse_element(list[start:start+matching_close]))
 			start = start + matching_close + 1
+		elif list[start:start + 1] == "'":
+			# First element in the list is within quotes
+			matching_quote = list[start+1:].find("'") + 1
+			elements.append(parse_qstring(list[start:start+matching_quote+1]))
+			start = start + matching_quote + 2
 		else:
 			# Find the comma that signifies the end of this element
 			next_element = list[start:].find(',')
@@ -156,6 +161,7 @@ def parse_exceptions(tuplestring):
 
 def parse_object_files(tuplestring):
 	object_list = parse_pllist(tuplestring)
-	object_labels = ('object', 'compiler', 'sources', 'dependencies',
+	object_labels = ('object', 'compiler', 'sources', 'intermediate_sources',
+					 'dependencies',
 					 'flags')
 	return map(lambda o: dict(zip(object_labels, o)), object_list)

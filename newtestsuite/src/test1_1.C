@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_1.C,v 1.1 2007/09/24 16:36:17 cooksey Exp $
+// $Id: test1_1.C,v 1.2 2008/05/08 20:54:10 cooksey Exp $
 /*
  *
  * #Name: test1_1
@@ -111,8 +111,8 @@ test_results_t test1_1_Mutator::preExecution() {
   BPatch_Vector<BPatch_snippet *> call1_args;
   BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
 
-  dprintf("Inserted snippet\n");
   checkCost(call1Expr);
   appThread->insertSnippet(call1Expr, *point1_1);
+  dprintf("Inserted snippet\n");
   return PASSED;
 } // test1_1_Mutator::preExecution()

@@ -90,20 +90,23 @@ int test4_4_mutatee()
       execvp(newArgv[0], newArgv);
       perror("execvp");
     } else {
-        test4_4_func2();
+      if (pid > 0) {
+	registerPID(pid); /* Register for cleanup */
+      }
+      test4_4_func2();
 #if defined(rs6000_ibm_aix4_1)
-        /* On AIX the child dies when the parent exits, so wait */
-	/* and the parent needs to wake up occasionally to keep dyninst happy*/
-	dprintf("%d SLEEPING\n",getpid());
-        sleep(10);
-	dprintf("%d SLEEP MORE\n",getpid());
-	sleep(2);
-	dprintf("%d SLEEP MORE\n",getpid());
-	sleep(5);
-	dprintf("%d DONE SLEEPING\n",getpid());
+      /* On AIX the child dies when the parent exits, so wait */
+      /* and the parent needs to wake up occasionally to keep dyninst happy*/
+      dprintf("%d SLEEPING\n",getpid());
+      sleep(10);
+      dprintf("%d SLEEP MORE\n",getpid());
+      sleep(2);
+      dprintf("%d SLEEP MORE\n",getpid());
+      sleep(5);
+      dprintf("%d DONE SLEEPING\n",getpid());
 
 #endif
-        exit(getpid());
+      exit(getpid());
     }
 #endif
     return 0;

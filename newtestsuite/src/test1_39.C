@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_39.C,v 1.1 2007/09/24 16:38:27 cooksey Exp $
+// $Id: test1_39.C,v 1.2 2008/05/08 20:54:19 cooksey Exp $
 /*
  * #Name: test1_39
  * #Desc: Regex search
@@ -80,7 +80,8 @@ test_results_t test1_39_Mutator::preExecution() {
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) \
  || defined(mips_sgi_irix6_4) \
- || defined(rs6000_ibm_aix4_1)
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(os_linux) /* Use OS #define instead of platform - Greg */
 
   // ^^^ Not Windows
 

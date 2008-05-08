@@ -28,7 +28,7 @@ static int dummyVal = 0;
 
 /* Function definitions follow */
 
-void test_fork_6_func1() { 
+void test_fork_6_func1() {
   dummyVal += 10;
 }
 
@@ -50,6 +50,7 @@ int test_fork_6_mutatee()
     test_fork_6_func1();
     dprintf("Child: done with tests, exiting\n");
   } else if(pid > 0) {
+    registerPID(pid); /* Register for cleanup */
     dprintf("Parent: starting tests\n");
     test_fork_6_func1();
     dprintf("Parent: done with tests, exiting\n");

@@ -30,7 +30,6 @@ static int globalVariable1_1 = 0;
 void test_stack_1_func3() {
     globalVariable1_1++;
     do_dyninst_breakpoint();
-    /* fprintf(stderr, "[%s:%u] - Mutatee continued after breakpoint\n", __FILE__, __LINE__); /*DEBUG*/
 }
 
 void test_stack_1_func2() {
@@ -47,6 +46,5 @@ int test_stack_1_mutatee() {
   test_stack_1_func1();
   /* If the mutatee passed the test, set passedTest[0] to TRUE, and return 0 */
   test_passes(testname);
-  /* fprintf(stderr, "[%s:%u] - Mutatee function exiting\n", __FILE__, __LINE__); /*DEBUG*/
   return 0; /* Return code for this mutatee is not checked */
 }

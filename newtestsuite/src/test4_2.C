@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_2.C,v 1.1 2007/09/24 16:39:51 cooksey Exp $
+// $Id: test4_2.C,v 1.2 2008/05/08 20:54:39 cooksey Exp $
 /*char *
  * #Name: test4_2
  * #Desc: Fork Callback
@@ -133,7 +133,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     BPatch_function *func2_parent = bpfv[0];
     BPatch_Vector<BPatch_point *> *point2 = func2_parent->findPoint(BPatch_exit);
     assert(point2);
-    
+
     parent->insertSnippet(callExpr2, *point2);
 
     dprintf("MUTATEE:  after insert in fork of %d to %d\n", parent->getPid(), child->getPid());
@@ -185,10 +185,11 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
         logerror("Failed test #2 (fork callback)\n");
         logerror("    a process terminated via signal %d\n",
                thread->getExitSignal());
-        exited = 0;            
+        exited = 0;
     } else if (thread->getPid() != exitCode) {
         logerror("Failed test #2 (fork callback)\n");
-        logerror("    exit code was not equal to pid (%d != %d)\n", thread->getPid(), exitCode);            
+        logerror("    exit code was not equal to pid (%d != %d)\n",
+		 thread->getPid(), exitCode);
         exited = 0;
     } else {
         dprintf("test #2, pid %d exited\n", exitCode);
@@ -200,21 +201,17 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
             !verifyChildMemory(test2Child, "test4_2_global1", 2000003)) {
             failedTest = true;
         }
-        
+
         // See if all the processes are done
         if (exited == 2) {
             if (!failedTest) {
-	      //fprintf(stderr, "[%s:%u] - passed test #2\n", __FILE__, __LINE__); /*DEBUG*/
                 logerror("Passed test #2 (fork callback)\n");
                 passedTest = true;
             } else {
-	      //fprintf(stderr, "[%s:%u] - failed test #2\n", __FILE__, __LINE__); /*DEBUG*/
                 logerror("Failed test #2 (fork callback)\n");
             }
 	    // exited = 0; // For the next time through..
-        } else {
-	  //fprintf(stderr, "[%s:%u] - exited != 2\n", __FILE__, __LINE__); /*DEBUG*/
-	}
+        }
     }
 }
 
@@ -232,15 +229,18 @@ test_results_t test4_2_Mutator::mutatorTest() {
 #else
 
     int n = 0;
-    const char *child_argv[MAX_TEST+5];
-	
-    dprintf("in mutatorTest2\n");
+    const char *child_argv[MAX_TEST+7];
 
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
     child_argv[n++] = const_cast<char*>("-run");
     child_argv[n++] = const_cast<char*>("test4_2");
+    /* TODO I'd like to automate this part, or wrap it somehow.. */
+    if (getPIDFilename() != NULL) {
+      child_argv[n++] = const_cast<char *>("-pidfile");
+      child_argv[n++] = getPIDFilename();
+    }
     child_argv[n] = NULL;
 
     // Start the mutatee
@@ -252,6 +252,8 @@ test_results_t test4_2_Mutator::mutatorTest() {
 	logerror("Unable to run test program.\n");
         return FAILED;
     }
+    // Register for cleanup
+    registerPID(appThread->getProcess()->getPid());
 
     contAndWaitForAllThreads(bpatch, appThread, mythreads, &threadCount);
 
@@ -268,7 +270,6 @@ test_results_t test4_2_Mutator::mutatorTest() {
 }
 
 test_results_t test4_2_Mutator::execute() {
-  //fprintf(stderr, "[%s:%u] - setting passedTest = false\n", __FILE__, __LINE__); /*DEBUG*/
   passedTest = false;
   threadCount = 0;
   exited = 0;

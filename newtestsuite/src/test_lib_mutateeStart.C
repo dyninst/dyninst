@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_mutateeStart.C,v 1.1 2007/09/24 16:40:56 cooksey Exp $
+// $Id: test_lib_mutateeStart.C,v 1.2 2008/05/08 20:55:15 cooksey Exp $
 // Functions Dealing with mutatee Startup
 
 #include "test_lib.h"
@@ -48,28 +48,8 @@
 
 BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach)
 {
-  //fprintf(stderr, "[%s:%u] - in startMutateeTestGeneric pathname = '%s'\n", __FILE__, __LINE__, pathname); /*DEBUG*/
-  // BEGIN *DEBUG*
-//   for (const char **arg = child_argv; *arg != NULL; arg++) {
-//     fprintf(stderr, "\targ: '%s'\n", *arg);
-//   }
-  // END *DEBUG*
-
    BPatch_thread *appThread;
     if (useAttach) {
-      //fprintf(stderr, "[%s:%u] - useAttach case\n", __FILE__, __LINE__); /*DEBUG*/
-      // I think I can skip all this log file prologue stuff since the log and
-      // humanlog file names are passed to the mutatee in child_argv.
-//         FILE *outlog = stdout;
-// 	FILE *errlog = stderr;
-//         if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
-// 	   outlog = fopen(logfilename, "a");
-// 	   if (outlog == NULL) {
-// 	     outlog = stdout;
-// 	   } else {
-// 	     errlog = outlog;
-// 	   }
-//         }
 	// I should be able to remove the outlog and errlog parameters from
 	// startNewProcessForAttach without harming anything.
 	int pid = startNewProcessForAttach(pathname, child_argv,
@@ -79,36 +59,21 @@ BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const cha
             return NULL;
         } else {
             dprintf("New mutatee process pid %d started; attaching...\n", pid);
+	    registerPID(pid); // Register PID for cleanup
 	}
         P_sleep(1); // let the mutatee catch its breath for a moment
         dprintf("Attaching to process: %s, %d\n", pathname, pid);
-        //fprintf(stderr, "[%s:%u] - Attaching to process: %s, %d\n", __FILE__, __LINE__, pathname, pid); /*DEBUG*/
 	appThread = bpatch->attachProcess(pathname, pid);
         dprintf("Attached to process\n");
 	dprintf("appThread == %lu\n", (unsigned long) appThread);
-        //fprintf(stderr, "[%s:%u] - Attached to process\n", __FILE__, __LINE__); /*DEBUG*/
-	// TODO Remove this log file epilogue stuff once I've removed the other
-	// log file junk from this function
-	// Is it safe to close the files now?
-// 	if ((outlog != NULL) && (outlog != stdout)) {
-// 	  fclose(outlog);
-// 	}
     } else {
-      //fprintf(stderr, "[%s:%u] - createProcess case\n", __FILE__, __LINE__); /*DEBUG*/
-      //fprintf(stderr, "before createProcess, bpatch %x, %s\n", bpatch, pathname); /*DEBUG*/
-      // BEGIN *DEBUG*
-//       for ( int i = 0; child_argv[i] != NULL; i++)
-//         {
-// 	  fprintf(stderr, "%s ", child_argv[i]);
-//         }
-//       fprintf(stderr, "\n");
-      // END *DEBUG*
-
       appThread = bpatch->createProcess(pathname, child_argv, NULL);
-      //fprintf(stderr, "[%s:%u] - returned from createProcess: %0#10lx\n", __FILE__, __LINE__, (unsigned long) appThread); /*DEBUG*/
+      if (appThread != NULL) {
+	int pid = appThread->getProcess()->getPid();
+	registerPID(pid); // Register PID for cleanup
+      }
     }
 
-    //fprintf(stderr, "[%s:%u] - leaving startMutateeTestGeneric\n", __FILE__, __LINE__); /*DEBUG*/
     return appThread;
 }
 
@@ -116,18 +81,18 @@ BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const cha
 BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
 				ProcessList &procList, char *logfilename,
 				char *humanlogname, bool verboseFormat,
-				bool printLabels, int debugPrint)
+				bool printLabels, int debugPrint,
+				char *pidfilename)
 {
-  //fprintf(stderr, "[%s:%u] - entering startMutateeTest(Bpatch *, RunGroup *, ProcessList &, char *, char *)\n", __FILE__, __LINE__); /*DEBUG*/
    BPatch_thread *result = startMutateeTest(bpatch, group, logfilename,
 					    humanlogname, verboseFormat,
-					    printLabels, debugPrint);
+					    printLabels, debugPrint,
+					    pidfilename);
    if ( result != NULL )
    {
       procList.insertThread(result);
    }
 
-   //fprintf(stderr, "[%s:%u] - leaving startMutateeTest(Bpatch *, RunGroup *, ProcessList &, char *, char *)\n", __FILE__, __LINE__); /*DEBUG*/
    return result;
 }
 
@@ -170,7 +135,9 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, char *mutatee, char *testname,
 				bool useAttach, char *logfilename,
 				char *humanlogname)
 {
-  const char **child_argv = new const char *[8];
+  std::vector<std::string> mutateeArgs;
+  output->getMutateeArgs(*&mutateeArgs); // mutateeArgs is an output parameter
+  const char **child_argv = new const char *[8 + mutateeArgs.size()];
   if (NULL == child_argv) {
     return NULL;
   }
@@ -190,6 +157,9 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, char *mutatee, char *testname,
   }
   child_argv[n++] = const_cast<char *>("-run");
   child_argv[n++] = testname;
+  for (int i = 0; i < mutateeArgs.size(); i++) {
+    child_argv[n++] = mutateeArgs[i].c_str();
+  }
   child_argv[n] = NULL;
 
   BPatch_thread *retval = startMutateeTestGeneric(bpatch, mutatee, child_argv,
@@ -201,10 +171,13 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, char *mutatee, char *testname,
 BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
 				char *logfilename, char *humanlogname,
 				bool verboseFormat, bool printLabels,
-				int debugPrint)
+				int debugPrint, char *pidfilename)
 {
+  std::vector<std::string> mutateeArgs;
+  output->getMutateeArgs(*&mutateeArgs); // mutateeArgs is an output parameter
    BPatch_thread *appThread;
-   const char **child_argv = new const char *[10 + (4 * group->tests.size())];
+   const char **child_argv = new const char *[12 + (4 * group->tests.size())
+					      + mutateeArgs.size()];
    if (NULL == child_argv) {
      return NULL;
    }
@@ -231,6 +204,10 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
    if (debugPrint != 0) {
      child_argv[n++] = const_cast<char *>("-verbose");
    }
+   if (pidfilename != NULL) {
+     child_argv[n++] = const_cast<char *>("-pidfile");
+     child_argv[n++] = pidfilename;
+   }
    for (int i = 0; i < group->tests.size(); i++) {
      child_argv[n++] = const_cast<char*>("-run");
      child_argv[n++] = group->tests[i]->name;
@@ -241,6 +218,9 @@ BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
        child_argv[n++] = group->tests[i]->label;
      }
      child_argv[n++] = const_cast<char *>("-print-labels");
+   }
+   for (int i = 0; i < mutateeArgs.size(); i++) {
+     child_argv[n++] = mutateeArgs[i].c_str();
    }
    child_argv[n] = NULL;
    

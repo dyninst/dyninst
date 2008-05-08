@@ -73,6 +73,8 @@ typedef pthread_t thread_t;
 
 #endif
 
+#include <stdarg.h>
+
 #define TRUE 1
 #define FALSE 0
 
@@ -107,12 +109,58 @@ extern mutatee_info_t g_info;
 extern int gargc;
 extern char **gargv;
 
+/* New logging system */
+typedef enum {
+  STDOUT,
+  STDERR,
+  LOGINFO,
+  LOGERR,
+  HUMAN
+} output_stream_t;
+typedef void (*log_f)(output_stream_t, const char *, ...);
+typedef void (*vlog_f)(output_stream_t, const char *, va_list);
+typedef void (*log_result_f)(test_results_t);
+typedef void (*redirect_stream_f)(output_stream_t, const char *);
+typedef void (*set_testname_f)(const char *);
+typedef struct {
+  log_f log;
+  vlog_f vlog;
+  redirect_stream_f redirectStream;
+  log_result_f logResult;
+  set_testname_f setTestName;
+} output_t;
+extern output_t *output;
+
+/* This guy initializes the output object with pointers to the correct
+ * functions
+ */
+extern void initOutputDriver();
+extern void stdOutputLog(output_stream_t stream, const char *fmt, ...);
+extern void stdOutputVLog(output_stream_t stream, const char *fmt, va_list args);
+extern void redirectStream(output_stream_t stream, const char *filename);
+extern void setTestName(const char *name);
+
+/* Support functions for the database output driver */
+extern void initDatabaseOutputDriver();
+extern void dbOutputLog(output_stream_t stream, const char *fmt, ...);
+extern void dbOutputVLog(output_stream_t stream, const char *fmt, va_list args);
+extern void dbRedirectStream(output_stream_t stream, const char *filename);
+extern void dbLogResult(test_results_t result);
+extern void dbSetTestName(const char *name);
+extern void closeDatabaseOutputDriver();
+
 extern FILE *outlog;
 extern FILE *errlog;
-extern int logstatus(const char *fmt, ...);
-extern int logerror(const char *fmt, ...);
+extern void logstatus(const char *fmt, ...);
+extern void logerror(const char *fmt, ...);
 extern void flushOutputLog();
 extern void flushErrorLog();
+
+/* Mutatee cleanup: PID registration */
+extern void setPIDFilename(char *pfn);
+extern char *getPIDFilename();
+extern void registerPID(int pid);
+
 
 extern int setupFortranOutput();
 extern int cleanupFortranOutput();

@@ -44,7 +44,8 @@ static unsigned long globalVariable30_2 = 0;
  || defined(i386_unknown_nt4_0) \
  || defined(rs6000_ibm_aix4_1) \
  || defined(alpha_dec_osf4_0) \
- || defined(ia64_unknown_linux2_4)
+ || defined(ia64_unknown_linux2_4) \
+ || defined(os_linux) /* Use OS #define instead of platform - Greg */
 
 /* this function has to be only 1 line for test30 to pass */
 /* these two lines have to be together otherwise test30 will fail */

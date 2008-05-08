@@ -264,7 +264,6 @@ BPatch_process *test_thread_6_Mutator::getProcess()
   int n = 0;
    args[n++] = filename;
 
-   //fprintf(stderr, "[%s:%u] - logfilename = '%s'\n", __FILE__, __LINE__, logfilename); /*DEBUG*/
    if (NULL == logfilename) {
      args[n++] = "-log";
      args[n++] = "-";
@@ -286,6 +285,8 @@ BPatch_process *test_thread_6_Mutator::getProcess()
                  __FILE__, __LINE__, filename);
          return NULL;
       }
+      // FIXME(?) Is this call thread-safe?
+      registerPID(proc->getPid()); // Register for cleanup
    }
    else
      { // useAttach
@@ -296,11 +297,13 @@ BPatch_process *test_thread_6_Mutator::getProcess()
       int pid = startNewProcessForAttach(filename, (const char **) args,
 					 getOutputLog(),
 					 getErrorLog());
-      if (pid < 0)
-      {
+      if (pid < 0) {
+	logerror("%s couldn't be started\n", filename);
          fprintf(stderr, "%s ", filename);
          fprintf(stderr, "couldn't be started");
          return NULL;
+      } else if (pid > 0) {
+	registerPID(pid); // Register for cleanup
       }
 
 #if defined(os_windows)
@@ -308,22 +311,16 @@ BPatch_process *test_thread_6_Mutator::getProcess()
 #endif
 
       dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
-      //fprintf(stderr, "filename = %s, pid = %d\n", filename, pid);
       fflush(stderr);
-      //fprintf(stderr, "[%s:%u] - Attaching to process\n", __FILE__, __LINE__);
+
       proc = bpatch->processAttach(filename, pid);  
-      //fprintf(stderr, "test13_1: returned from processAttach()\n"); /* *DEBUG* */
-      //fflush(stderr);
       if(proc == NULL) {
          logerror("%s[%d]: processAttach(%s, %d) failed\n", 
                  __FILE__, __LINE__, filename, pid);
          return NULL;
       }
-      //fprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
       BPatch_image *appimg = proc->getImage();
-      //fprintf(stderr, "test13_1: calling signalAttached()\n"); /* *DEBUG* */
       signalAttached(NULL, appimg);    
-      //fprintf(stderr, "test13_1: called signalAttached()\n"); /* *DEBUG* */
    }
    return proc;
 }

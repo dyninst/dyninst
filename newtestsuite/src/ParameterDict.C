@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParameterDict.C,v 1.1 2007/09/24 16:35:43 cooksey Exp $
+// $Id: ParameterDict.C,v 1.2 2008/05/08 20:54:00 cooksey Exp $
 #include "ParameterDict.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 // Parameter -
 Parameter::Parameter()

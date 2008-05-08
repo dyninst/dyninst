@@ -91,6 +91,9 @@ volatile int isAttached = 0;
 #include "solo_driver.h"
 #endif
 
+/* Pointer size variable, for multiple-ABI platforms */
+int pointerSize = sizeof (void *);
+
 /* Global copies of argc and argv, for tests that require them */
 int gargc;
 char **gargv;
@@ -105,16 +108,14 @@ void setRunTest(const char *testname) {
     return;
   }
 
-  /* fprintf(stderr, "[%s:%u] - mutatee contains %u tests\n", __FILE__, __LINE__, info->size); /*DEBUG*/
   for (i = 0; i < MAX_TEST; i++) {
-    /* fprintf(stderr, "[%s:%u] - comparing '%s' to target '%s'\n", __FILE__, __LINE__, info->funcs[i].testname, testname); /*DEBUG*/
     if (!strcmp(testname, mutatee_funcs[i].testname)) {
       runTest[i] = TRUE;
       break;
     }
   }
   if (i >= MAX_TEST) {
-    fprintf(stderr, "%s is not a valid test for this mutatee\n", testname);
+    output->log(STDERR, "%s is not a valid test for this mutatee\n", testname);
   }
 } /* setRunTest() */
 
@@ -135,7 +136,7 @@ void updateResumeLog(const char *resumelogname, const char *testname) {
     fprintf(resumelog, "%s\n", testname);
     fclose(resumelog);
   } else {
-    fprintf(stderr, "Error opening mutatee resumelog: %s\n",
+    output->log(STDERR, "Error opening mutatee resumelog: %s\n",
 	    strerror(errno));
   }
 }
@@ -147,7 +148,7 @@ void updateResumeLogCompleted(const char *resumelogname) {
     fprintf(resumelog, "+\n");
     fclose(resumelog);
   } else {
-    fprintf(stderr, "Error opening mutatee resumelog: %s\n",
+    output->log(STDERR, "Error opening mutatee resumelog: %s\n",
 	    strerror(errno));
   }
 }
@@ -155,7 +156,7 @@ void updateResumeLogCompleted(const char *resumelogname) {
 void setLabel(unsigned int label_ndx, char *label) {
   /* TODO Fix me so group mutatees work */
   if (MAX_TEST > 1) {
-    fprintf(stderr, "Group mutatees not enabled yet\n");
+    output->log(STDERR, "Group mutatees not enabled yet\n");
     return;
   }
 
@@ -181,11 +182,7 @@ int main(int iargc, char *argv[])
     gargc = argc;
     gargv = argv;
 
-    /* Begin *DEBUG* */
-/*     for (i = 0; i < argc; i++) { */
-/*       fprintf(stderr, "[%s:%u] - argv[%u]: '%s'\n", __FILE__, __LINE__, i, argv[i]); */
-/*     } */
-    /* End *DEBUG* */
+    initOutputDriver();
 
     /* Extract the name of the mutatee binary from argv[0] */
     /* Find the last '/' in argv[0]; we want everything after that */
@@ -198,13 +195,6 @@ int main(int iargc, char *argv[])
       mutatee_name += 1; /* Skip past the '/' */
       setExecutableName(mutatee_name);
     }
-    /* fprintf(stderr, "[%s:%u] - mutatee name: '%s'\n", __FILE__, __LINE__, mutatee_name); /*DEBUG*/
-
-    /* Initialize the test structure for this mutatee */
-/*     if (init_tests(&g_info)) { */
-/*       fprintf(stderr, "[%s:%u] - Error initializing mutatee tests!\n", __FILE__, __LINE__); */
-/*       return -1; */
-/*     } */
 
     for (j=0; j < MAX_TEST; j++) {
       runTest[j] = FALSE;
@@ -215,22 +205,19 @@ int main(int iargc, char *argv[])
         if (!strcmp(argv[i], "-verbose")) {
             debugPrint = 1;
 	} else if (!strcmp(argv[i], "-log")) {
-	  /* fprintf(stderr, "[%s:%u] - parsing log parameter\n", __FILE__, __LINE__); /*DEBUG*/
 	  /* Read the log file name so we can set it up later */
 	  if ((i + 1) >= argc) {
-	    /* fprintf(stderr, "[%s:%u] - No log file name?\n", __FILE__, __LINE__); /*DEBUG*/
-	    fprintf(stderr, "Missing log file name\n");
+	    output->log(STDERR, "Missing log file name\n");
 	    exit(-1);
 	  }
 	  i += 1;
-	  /* fprintf(stderr, "[%s:%u] - Setting log file name to '%s'\n", __FILE__, __LINE__, argv[i]); /*DEBUG*/
 	  logfilename = argv[i];
         } else if (!strcmp(argv[i], "-attach")) {
             useAttach = TRUE;
 #ifndef i386_unknown_nt4_0
 	    if (++i >= argc) {
-		fprintf(stderr, "attach usage\n");
-		fprintf(stderr, "%s\n", USAGE);
+		output->log(STDERR, "attach usage\n");
+		output->log(STDERR, "%s\n", USAGE);
 		exit(-1);
 	    }
 	    pfd = atoi(argv[i]);
@@ -240,7 +227,7 @@ int main(int iargc, char *argv[])
 	  char *name;
 
 	  if (i + 1 >= argc) {
-	    fprintf(stderr, "-run must be followed by a test name\n");
+	    output->log(STDERR, "-run must be followed by a test name\n");
 	    exit(-1);
 	  }
 	  i += 1;
@@ -257,7 +244,7 @@ int main(int iargc, char *argv[])
 	  free(tests);
 	} else if (!strcmp(argv[i], "-label")) {
 	  if (i + 1 >= argc) {
-	    fprintf(stderr, "-label must be followed by a label string\n");
+	    output->log(STDERR, "-label must be followed by a label string\n");
 	    exit(-1);
 	  }
 	  i += 1;
@@ -267,45 +254,51 @@ int main(int iargc, char *argv[])
 	  print_labels = TRUE;
 	} else if (!strcmp(argv[i], "-humanlog")) {
 	  if (i + 1 >= argc) {
-	    fprintf(stderr, "-humanlog must be followed by a file name or '-'\n");
+	    output->log(STDERR, "-humanlog must be followed by a file name or '-'\n");
 	    exit(-1);
 	  }
 	  i += 1;
 	  setHumanLog(argv[i]);
+	} else if (strcmp(argv[i], "-pidfile") == 0) {
+	  if (i + 1 >= argc) {
+	    output->log(STDERR, "-pidfile must be followed by a file name\n");
+	    exit(-1);
+	  }
+	  i += 1;
+	  setPIDFilename(argv[i]);
 	} else if (!strcmp(argv[i], "-runall")) {
 	  for (j = 0; j < MAX_TEST; j++) {
 	    runTest[j] = TRUE;
 	  }
 	} else if (!strcmp(argv[i], "-fast")) {
 	  fastAndLoose = 1;
+	} else if (!strcmp(argv[i], "-dboutput")) {
+	  /* Set up database output */
+	  initDatabaseOutputDriver();
         } else {
 	  /* Let's just ignore unrecognized parameters.  They might be
-	   * important to a specific test.  Well, not ignore.  I'll print
-	   * a warning.
+	   * important to a specific test.
 	   */
-	  /* fprintf(stderr, "WARNING: unexpected parameter '%s'\n", argv[i]); */
-            /* fprintf(stderr, "%s\n", USAGE); */
-            /* exit(-1); */
         }
     }
 
     if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
       /* Set up the log file */
-      /* fprintf(stderr, "[%s:%u] - Opening log file '%s'\n", __FILE__, __LINE__, logfilename); /*DEBUG*/
+      redirectStream(LOGINFO, logfilename);
+      redirectStream(LOGERR, logfilename);
       outlog = fopen(logfilename, "a");
       if (NULL == outlog) {
-	fprintf(stderr, "Error opening log file %s\n", logfilename);
+	output->log(STDERR, "Error opening log file %s\n", logfilename);
 	exit(-1);
       }
       errlog = outlog;
     } else {
-      /* fprintf(stderr, "[%s:%u] - Logging to default file\n", __FILE__, __LINE__); /*DEBUG*/
       outlog = stdout;
       errlog = stderr;
     }
 
     if ((argc==1) || debugPrint)
-        logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+        logstatus("Mutatee %s [%s]:\"%s\"\n", argv[0],
 		  mutateeCplusplus ? "C++" : "C", Builder_id);
     if (argc==1) exit(0);
 
@@ -314,7 +307,7 @@ int main(int iargc, char *argv[])
 #ifndef i386_unknown_nt4_0
 	char ch = 'T';
 	if (write(pfd, &ch, sizeof(char)) != sizeof(char)) {
-	    fprintf(stderr, "*ERROR*: Writing to pipe\n");
+	    output->log(STDERR, "*ERROR*: Writing to pipe\n");
 	    exit(-1);
 	}
 	close(pfd);
@@ -325,7 +318,6 @@ int main(int iargc, char *argv[])
       while (!checkIfAttached()) {
 	/* Do nothing */
       }
-      /* fprintf(stderr, "[%s:%u] - Mutator attached\n", __FILE__, __LINE__); /*DEBUG*/
       fflush(stderr);
       logstatus("Mutator attached.  Mutatee continuing.\n");
     } else {
@@ -342,10 +334,10 @@ int main(int iargc, char *argv[])
     for (i = 0; i < MAX_TEST; i++) {
       if (runTest[i]) {
 	updateResumeLog(resumelog_name, mutatee_funcs[i].testname);
-	/* fprintf(stderr, "[%s:%u] - calling %s_mutateeTest()\n", __FILE__, __LINE__, g_info.funcs[i].testname); /*DEBUG*/
 	if (print_labels && (mutatee_funcs[i].testlabel != NULL)) {
 	  logstatus("%s\n", mutatee_funcs[i].testlabel);
 	}
+	output->setTestName(mutatee_funcs[i].testname);
 	mutatee_funcs[i].func();
 	updateResumeLogCompleted(resumelog_name);
 	/* TODO Do I need to print out a success message here for groupable
@@ -356,13 +348,13 @@ int main(int iargc, char *argv[])
 	   * shouldn't be running skipped tests in the first place, so it
 	   * should be okay.
 	   */
-	  printResultHumanLog(mutatee_funcs[i].testname, PASSED);
+	  output->logResult(PASSED);
 	}
 	if (!passedTest[i]) {
 	  if (groupable_mutatee) {
 	    /* Only print test failure messages from the mutatee for group
 	     * mutatees */
-	    printResultHumanLog(mutatee_funcs[i].testname, FAILED);
+	    output->logResult(FAILED);
 	  }
 	  allTestsPassed = FALSE;
 	}
@@ -384,6 +376,5 @@ int main(int iargc, char *argv[])
       fclose(outlog);
     }
 
-    /* fprintf(stderr, "[%s:%u] - Mutatee driver exiting\n", __FILE__, __LINE__); /*DEBUG*/
     return retval;
 }

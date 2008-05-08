@@ -80,37 +80,227 @@ extern unsigned int MAX_TEST;
 static long long int  beginFP;
 #endif
 
-/* global variable that stores mutatee information */
-/* mutatee_info_t g_info; */
+/* New output driver system */
+output_t *output = NULL;
+char *loginfofn = "-";
+char *logerrfn = "-";
+char *stdoutfn = "-";
+char *stderrfn = "-";
+char *humanfn = "-";
+static char *od_testname = NULL;
+
+void warningLogResult(test_results_t result) {
+  fprintf(stderr, "[%s:%u] - WARNING: output object not properly initialized\n", __FILE__, __LINE__);
+}
+
+void nullSetTestName(const char *testname) {
+}
+
+void stdLogResult(test_results_t result);
+void stdSetTestName(const char *testname);
+
+void initOutputDriver() {
+  output = (output_t *) malloc(sizeof (*output));
+  if (NULL == output) {
+    /* This is a nasty error, and the mutatee can't function any more */
+    fprintf(stderr, "[%s:%u] - Error allocating output driver object\n", __FILE__, __LINE__);
+    abort(); /* Is this the right thing to do? */
+  }
+  output->log = stdOutputLog;
+  output->vlog = stdOutputVLog;
+  output->redirectStream = redirectStream;
+  output->logResult = stdLogResult;
+  output->setTestName = stdSetTestName;
+}
+
+/* I want to store *copies* of the filenames */
+/* I also want to maintain "-" as a constant, so I know I don't need to free it
+ * if it's what's being used.
+ */
+void redirectStream(output_stream_t stream, const char *filename) {
+  size_t length;
+
+  if ((filename != NULL) && (strcmp(filename, "-") != 0)) {
+    length = strlen(filename) + 1;
+  }
+
+  switch (stream) {
+  case STDOUT:
+    if ((stdoutfn != NULL) && (strcmp(stdoutfn, "-") != 0)) {
+      free(stdoutfn);
+    }
+    if (NULL == filename) {
+      stdoutfn = NULL;
+    } else if (strcmp(filename, "-") == 0) {
+      stdoutfn = "-";
+    } else {
+      stdoutfn = (char *) malloc(length * sizeof (*stdoutfn));
+      if (stdoutfn != NULL) {
+	strncpy(stdoutfn, filename, length);
+      }
+    }
+    break;
+
+  case STDERR:
+    if ((stderrfn != NULL) && (strcmp(stderrfn, "-") != 0)) {
+      free(stderrfn);
+    }
+    if (NULL == filename) {
+      stderrfn = NULL;
+    } else if (strcmp(filename, "-") == 0) {
+      stderrfn = "-";
+    } else {
+      stderrfn = (char *) malloc(length * sizeof (*stderrfn));
+      if (stderrfn != NULL) {
+	strncpy(stderrfn, filename, length);
+      }
+    }
+    break;
+
+  case LOGINFO:
+    if ((loginfofn != NULL) && (strcmp(loginfofn, "-") != 0)) {
+      free(loginfofn);
+    }
+    if (NULL == filename) {
+      loginfofn = NULL;
+    } else if (strcmp(filename, "-") == 0) {
+      loginfofn = "-";
+    } else {
+      loginfofn = (char *) malloc(length * sizeof (*loginfofn));
+      if (loginfofn != NULL) {
+	strncpy(loginfofn, filename, length);
+      }
+    }
+    break;
+
+  case LOGERR:
+    if ((logerrfn != NULL) && (strcmp(logerrfn, "-") != 0)) {
+      free(logerrfn);
+    }
+    if (NULL == filename) {
+      logerrfn = NULL;
+    } else if (strcmp(filename, "-") == 0) {
+      logerrfn = "-";
+    } else {
+      logerrfn = (char *) malloc(length * sizeof (*logerrfn));
+      if (logerrfn != NULL) {
+	strncpy(logerrfn, filename, length);
+      }
+    }
+    break;
+
+  case HUMAN:
+    if ((humanfn != NULL) && (strcmp(humanfn, "-") != 0)) {
+      free(humanfn);
+    }
+    if (NULL == filename) {
+      humanfn = NULL;
+    } else if (strcmp(filename, "-") == 0) {
+      humanfn = "-";
+    } else {
+      humanfn = (char *) malloc(length * sizeof (*humanfn));
+      if (humanfn != NULL) {
+	strncpy(humanfn, filename, length);
+      }
+    }
+    break;
+  }
+}
+
+void stdOutputLog(output_stream_t stream, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  stdOutputVLog(stream, fmt, args);
+  va_end(args);
+}
+
+void stdOutputVLog(output_stream_t stream, const char *fmt, va_list args) {
+  char *logfn = NULL;
+  switch (stream) {
+  case STDOUT:
+    logfn = stdoutfn;
+    break;
+
+  case STDERR:
+    logfn = stderrfn;
+    break;
+
+  case LOGINFO:
+    logfn = loginfofn;
+    break;
+
+  case LOGERR:
+    logfn = logerrfn;
+    break;
+
+  case HUMAN:
+    logfn = humanfn;
+    break;
+  }
+
+  if (logfn != NULL) { /* Print nothing if it is NULL */
+    FILE *out = NULL;
+    if (strcmp(logfn, "-") == 0) { /* Default output */
+      switch (stream) {
+      case STDOUT:
+      case LOGINFO:
+      case HUMAN:
+	out = stdout;
+	break;
+
+      case STDERR:
+      case LOGERR:
+	out = stderr;
+	break;
+      }
+    } else { /* Specified output */
+      out = fopen(logfn, "a");
+      if (NULL == out) {
+	fprintf(stderr, "[%s:%u] - Error opening log output file '%s'\n", __FILE__, __LINE__, logfn);
+      }
+    }
+
+    if (out != NULL) {
+      vfprintf(out, fmt, args);
+      if ((out != stdout) && (out != stderr)) {
+	fclose(out);
+      }
+    }
+  }
+} /* stdOutputVLog() */
+
+void stdLogResult(test_results_t result) {
+  printResultHumanLog(od_testname, result);
+} /* stdLogResult() */
+
+void stdSetTestName(const char *testname) {
+  if (NULL == testname) {
+    if (od_testname != NULL) {
+      free(od_testname);
+    }
+    od_testname = NULL;
+  } else {
+    size_t len = strlen(testname) + 1;
+    od_testname = (char *) malloc(len * sizeof (char));
+    strncpy(od_testname, testname, len);
+  }
+}
+
 
 /* Provide standard output functions that respect the specified output files */
 FILE *outlog = NULL;
 FILE *errlog = NULL;
-int logstatus(const char *fmt, ...) {
-  int retval;
+void logstatus(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  if (outlog != NULL) {
-    retval = vfprintf(outlog, fmt, args);
-  } else {
-    retval = vprintf(fmt, args);
-  }
+  stdOutputVLog(LOGINFO, fmt, args);
   va_end(args);
-  flushOutputLog();
-  return retval;
 }
-int logerror(const char *fmt, ...) {
-  int retval;
+void logerror(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  if (errlog != NULL) {
-    retval = vfprintf(errlog, fmt, args);
-  } else {
-    retval = vfprintf(stderr, fmt, args);
-  }
+  stdOutputVLog(LOGERR, fmt, args);
   va_end(args);
-  flushErrorLog();
-  return retval;
 }
 void flushOutputLog() {
   if (outlog != NULL) {
@@ -120,6 +310,172 @@ void flushOutputLog() {
 void flushErrorLog() {
   if (errlog != NULL) {
     fflush(errlog);
+  }
+}
+
+/************************************************/
+/* Support functions for database output driver */
+/************************************************/
+
+static const char *temp_logfilename = "mutatee_dblog";
+static char *dblog_filename = NULL;
+
+/* Redirect all output to a file, so test_driver can pick it up when it's
+ * time to report results to the database server
+ */
+void initDatabaseOutputDriver() {
+  output = (output_t *) malloc(sizeof (*output));
+  if (output != NULL) {
+    output->log = dbOutputLog;
+    output->vlog = dbOutputVLog;
+    output->redirectStream = dbRedirectStream;
+    output->logResult = dbLogResult;
+    output->setTestName = dbSetTestName;
+  } else {
+    fprintf(stderr, "[%s:%u] - Out of memory allocating output object\n", __FILE__, __LINE__);
+    exit(-1); /* This is very bad */
+  }
+}
+
+/* Sets the current test name, which controls the file we log to */
+void dbSetTestName(const char *testname) {
+  size_t len; /* For string allocation */
+  FILE *pretestLog;
+
+  if (NULL == testname) {
+    /* TODO Handle error */
+    return;
+  }
+
+  len = strlen("dblog.") + strlen(testname) + 1;
+  dblog_filename = (char *) realloc(dblog_filename, len * sizeof (char));
+  if (NULL == dblog_filename) {
+    fprintf(stderr, "[%s:%u] - Out of memory allocating mutatee database log file name\n", __FILE__, __LINE__);
+    return;
+  }
+
+  snprintf(dblog_filename, len, "dblog.%s", testname);
+
+  /* Copy contents of temp log file into the dblog file, if there's
+   * anything there.
+   */
+  pretestLog = fopen(temp_logfilename, "r");
+  if (pretestLog != NULL) {
+    /* Copy the file */
+    size_t count;
+    char *buffer[4096]; /* FIXME Magic number */
+    FILE *out = fopen(dblog_filename, "a");
+    if (out != NULL) {
+      do {
+	count = fread(buffer, sizeof (char), 4096, pretestLog);
+	fwrite(buffer, sizeof (char), count, out);
+      } while (4096 == count); /* FIXME Magic number */
+    }
+  } else if (errno != ENOENT) {
+    /* It's not a problem is there is no pretest log file */
+    fprintf(stderr, "[%s:%u] - Error opening pretest log: '%s'\n", __FILE__, __LINE__, strerror(errno));
+  }
+}
+
+void warningRedirectStream(output_stream_t stream, const char *filename) {
+  fprintf(stderr, "[%s:%u] - WARNING: output object not properly initialized\n", __FILE__, __LINE__);
+}
+
+void warningVLog(output_stream_t stream, const char *fmt, va_list args) {
+  fprintf(stderr, "[%s:%u] - WARNING: output object not properly initialized\n", __FILE__, __LINE__);
+}
+
+void warningLog(output_stream_t stream, const char *fmt, ...) {
+  fprintf(stderr, "[%s:%u] - WARNING: output object not properly initialized\n", __FILE__, __LINE__);
+}
+
+void warningSetTestName(const char *testname) {
+  fprintf(stderr, "[%s:%u] - WARNING: output object not properly initialized\n", __FILE__, __LINE__);
+}
+
+void closeDatabaseOutputDriver() {
+  if (dblog_filename != NULL) {
+    free(dblog_filename);
+  }
+  output->log = warningLog;
+  output->vlog = warningVLog;
+  output->redirectStream = warningRedirectStream;
+  output->logResult = warningLogResult;
+  output->setTestName = warningSetTestName;
+}
+
+/* What do I do with output I receive before the output file name has been
+ * set?  I need to store it in a temp. file or something.
+ */
+void dbOutputLog(output_stream_t stream, const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  dbOutputVLog(stream, fmt, args);
+  va_end(args);
+}
+
+void dbOutputVLog(output_stream_t stream,
+		  const char *fmt, va_list args) {
+  FILE *out;
+
+  if (NULL == dblog_filename) {
+    out = fopen(temp_logfilename, "a");
+  } else {
+    out = fopen(dblog_filename, "a");
+  }
+
+  if (NULL == out) {
+    fprintf(stderr, "[%s:%u] - Error opening log file '%s'\n", __FILE__, __LINE__, (dblog_filename) ? dblog_filename : temp_logfilename);
+    return;
+  }
+
+  vfprintf(out, fmt, args);
+  fclose(out);
+}
+
+void dbRedirectStream(output_stream_t stream, const char *filename) {
+  /* This doesn't do anything */
+}
+
+void dbLogResult(test_results_t result) {
+  FILE *out;
+
+  if (NULL == dblog_filename) {
+    /* TODO Handle error */
+  }
+
+  out = fopen(dblog_filename, "a");
+  if (NULL == out) {
+    /* TODO Handle error */
+  }
+
+  fprintf(out, "RESULT: %d\n\n", result);
+  fclose(out);
+}
+
+
+/*********************************************************/
+/* Support for cleaning up mutatees after a test crashes */
+/*********************************************************/
+
+static char *pidFilename = NULL;
+void setPIDFilename(char *pfn) {
+  pidFilename = pfn;
+}
+char *getPIDFilename() {
+  return pidFilename;
+}
+void registerPID(int pid) {
+  if (NULL == pidFilename) {
+    logerror("[%d:%u] - Error registering mutatee PID: pid file not set\n", __FILE__, __LINE__);
+  } else {
+    FILE *pidFile = fopen(pidFilename, "a");
+    if (NULL == pidFile) {
+      logerror("[%s:%u] - Error registering mutatee PID: error opening pid file\n", __FILE__, __LINE__);
+    } else {
+      fprintf(pidFile, "%d\n", pid);
+      fclose(pidFile);
+    }
   }
 }
 
@@ -197,7 +553,8 @@ void setHumanLog(const char *new_name) {
   } else {
     use_humanlog = TRUE;
   } 
-  humanlog_name = (char *) new_name;
+  /* humanlog_name = (char *) new_name; */
+  redirectStream(HUMAN, new_name);
 }
 
 /* Print out single line message reporting whether a test passed, failed, was
@@ -212,31 +569,31 @@ void printResultHumanLog(const char *testname, test_results_t result)
   } else {
     human = fopen(humanlog_name, "a");
     if (NULL == human) {
-      fprintf(stderr, "Error opening human log file '%s': %s\n",
+      output->log(STDERR, "Error opening human log file '%s': %s\n",
 	      humanlog_name, strerror(errno));
       human = stdout;
     }
   }
 
-  fprintf(human, "%s: mutatee: %s create_mode: ", testname,
+  output->log(HUMAN, "%s: mutatee: %s create_mode: ", testname,
 	  (NULL == executable_name) ? "(unknown)" : executable_name);
   if (use_attach) {
-    fprintf(human, "attach");
+    output->log(HUMAN, "attach");
   } else {
-    fprintf(human, "create");
+    output->log(HUMAN, "create");
   }
-  fprintf(human, "\tresult: ");
+  output->log(HUMAN, "\tresult: ");
   switch (result) {
   case PASSED:
-    fprintf(human, "PASSED\n");
+    output->log(HUMAN, "PASSED\n");
     break;
 
   case SKIPPED:
-    fprintf(human, "SKIPPED\n");
+    output->log(HUMAN, "SKIPPED\n");
     break;
 
   case FAILED:
-    fprintf(human, "FAILED\n");
+    output->log(HUMAN, "FAILED\n");
     break;
   }
 
@@ -245,6 +602,7 @@ void printResultHumanLog(const char *testname, test_results_t result)
   } else {
     fclose(human);
   }
+
 }
 
 #ifdef DETACH_ON_THE_FLY
@@ -272,14 +630,14 @@ dotf_stop_process()
 	  /* Obtain the name of the runtime library linked with this process */
 	  rtlib = getenv("DYNINSTAPI_RT_LIB");
 	  if (!rtlib) {
-	       fprintf(stderr, "ERROR: Mutatee can't find the runtime library pathname\n");
+	       output->log(STDERR, "ERROR: Mutatee can't find the runtime library pathname\n");
 	       assert(0);
 	  }
 
 	  /* Obtain a handle for the runtime library */
 	  h = dlopen(rtlib, RTLD_LAZY); /* It should already be loaded */
 	  if (!h) {
-	       fprintf(stderr, "ERROR: Mutatee can't find its runtime library: %s\n",
+	       output->log(STDERR, "ERROR: Mutatee can't find its runtime library: %s\n",
 		       dlerror());
 	       assert(0);
 	  }
@@ -287,7 +645,7 @@ dotf_stop_process()
 	  /* Obtain a pointer to the function DYNINSTsigill in the runtime library */
 	  DYNINSTsigill = (void(*)()) dlsym(h, "DYNINSTsigill");
 	  if (!DYNINSTsigill) {
-	       fprintf(stderr, "ERROR: Mutatee can't find DYNINSTsigill in the runtime library: %s\n",
+	       output->log(STDERR, "ERROR: Mutatee can't find DYNINSTsigill in the runtime library: %s\n",
 		       dlerror());
 	       assert(0);
 	  }

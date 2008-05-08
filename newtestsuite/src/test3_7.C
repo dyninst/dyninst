@@ -39,10 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_7.C,v 1.1 2007/09/24 16:39:47 cooksey Exp $
+// $Id: test3_7.C,v 1.2 2008/05/08 20:54:36 cooksey Exp $
 /*
- * #Name: test3_1
- * #Desc: Create processes, process events, and kill them, no instrumentation
+ * #Name: test3_7
+ * #Desc: Tests asynchronous one-time codes
  * #Dep: 
  * #Arch:
  * #Notes:useAttach does not apply
@@ -137,6 +137,8 @@ test_results_t test3_7_Mutator::execute() {
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
+	// Register for cleanup
+	registerPID(appThread[n]->getProcess()->getPid());
     }
 
 	// Register a callback that we will use to check for done-ness
@@ -220,7 +222,6 @@ test_results_t test3_7_Mutator::execute() {
         int signalNum = appThread[n]->getExitSignal();
         dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
         numTerminated++;
-        delete appThread[n];
     }
 
     if (numTerminated == Mutatees && !test7err) {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_3.C,v 1.1 2007/09/24 16:39:39 cooksey Exp $
+// $Id: test3_3.C,v 1.2 2008/05/08 20:54:32 cooksey Exp $
 /*
  * #Name: test3_3
  * #Desc: instrument multiple processes
@@ -136,6 +136,7 @@ test_results_t test3_3_Mutator::execute() {
         }
         pid[n] = appThread[n]->getPid();
         dprintf("Mutatee %d started, pid=%d\n", n, pid[n]);
+	registerPID(pid[n]); // Register for cleanup
     }
 
     // Instrument mutatees
@@ -234,7 +235,6 @@ test_results_t test3_3_Mutator::execute() {
                         dprintf("Mutatee %d exited from signal 0x%d\n", n,
                                 signalNum);
                 }
-                delete appThread[n];
 		terminated[n]=true;
                 numTerminated++;
             }

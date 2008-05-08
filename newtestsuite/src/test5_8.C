@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_8.C,v 1.1 2007/09/24 16:40:13 cooksey Exp $
+// $Id: test5_8.C,v 1.2 2008/05/08 20:54:49 cooksey Exp $
 /*
  * #Name: test5_8
  * #Desc: Declaration
@@ -67,10 +67,7 @@ extern "C" TEST_DLL_EXPORT TestMutator *test5_8_factory() {
 //
 // Start Test Case #8 - (declaration)
 //   
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test5_8_Mutator::preExecution() {
-#if defined(os_solaris) || defined(os_windows) || defined(os_linux)
-
   // Find the exit point to the procedure "func_cpp"
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "decl_test::func_cpp";
@@ -86,12 +83,6 @@ test_results_t test5_8_Mutator::preExecution() {
     logerror( "Unable to find point decl_test::func_cpp - exit.\n");
     return FAILED;
   }
-
-  // Begin *DEBUG*
-//   if (point8_1->size() > 1) {
-//     fprintf(stderr, "[%s:%u] - point8_1->size() == %d\n", __FILE__, __LINE__, point8_1->size());
-//   }
-  // End *DEBUG*/
 
   bpfv.clear();
   char *fn2 = "main";
@@ -153,18 +144,13 @@ test_results_t test5_8_Mutator::preExecution() {
 
     unsigned int index = 0;
     while ( index < fields->size() ) {
-      //fprintf(stderr, "[%s:%u] - checking field #%d\n", __FILE__, __LINE__, index); /*DEBUG*/
 	char fieldName[100];
 	strcpy(fieldName, (*fields)[index]->getName());
        if ( !strcmp("CPP_TEST_UTIL_VAR", (*fields)[index]->getName()) ) {
            dprintf("Inserted snippet2\n");
            checkCost(call8Expr);
-	   //fprintf(stderr, "[%s:%u] - inserting snippet\n", __FILE__, __LINE__); /*DEBUG*/
 	   BPatchSnippetHandle *handle;
            handle = appThread->insertSnippet(call8Expr, *point8_1);
-	   if (NULL == handle) { /*DEBUG*/
-	     //fprintf(stderr, "[%s:%u] - snippet handle == NULL\n", __FILE__, __LINE__); /*DBEUG*/
-	   } /*DEBUG*/
            return PASSED;
        }
        index ++;
@@ -172,28 +158,4 @@ test_results_t test5_8_Mutator::preExecution() {
     logerror( "**Failed** test #8 (declaration)\n");
     logerror( "    Can't find inherited class member variables\n");
     return FAILED;
-#else
-    // Unsupported platform
-    return SKIPPED;
-#endif
 }
-
-// External Interface
-// extern "C" TEST_DLL_EXPORT int test5_8_mutatorMAIN(ParameterDict &param)
-// {
-//     BPatch *bpatch;
-//     bpatch = (BPatch *)(param["bpatch"]->getPtr());
-//     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-//     // Get log file pointers
-//     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//     setOutputLog(outlog);
-//     setErrorLog(errlog);
-
-//     // Read the program's image and get an associated image object
-//     BPatch_image *appImage = appThread->getImage();
-
-//     // Run mutator code
-//     return mutatorTest(appThread, appImage);
-// }

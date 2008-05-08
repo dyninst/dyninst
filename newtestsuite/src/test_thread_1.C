@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_thread_1.C,v 1.1 2007/09/24 16:41:32 cooksey Exp $
+// $Id: test_thread_1.C,v 1.2 2008/05/08 20:55:30 cooksey Exp $
 /*
  * #Name: test12_1
  * #Desc: rtlib spinlocks
@@ -111,7 +111,6 @@ test_results_t test_thread_1_Mutator::execute() {
      }
    }
    if (proc->isTerminated()) {
-     //fprintf(stderr, "[%s:%u] - mutatee terminated\n", __FILE__, __LINE__); /*DEBUG*/
      switch(proc->terminationStatus()) {
        case ExitedNormally:
          {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.1 2007/09/24 16:40:29 cooksey Exp $
+// $Id: test_driver.C,v 1.2 2008/05/08 20:54:53 cooksey Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -64,6 +64,9 @@
 #include "Callbacks.h"
 #include "error.h"
 #include "BPatch.h"
+
+#include "TestOutputDriver.h"
+#include "StdOutputDriver.h"
 
 #if defined(STATIC_TEST_DRIVER)
 #include "static_test.h"
@@ -117,6 +120,7 @@ int errorPrint = 0;
 /* */
 
 enum resume_stage_t {
+  PRESETUP = -1,
   SETUP,
   PREEXECUTION,
   EXECUTION,
@@ -187,7 +191,7 @@ int runScript(const char *name, ...)
 }
 #else
 int runScript(const char *name, ...) {
-  fprintf(stderr, "runScript not implemented on Windows\n");
+  output->log(STDERR, "runScript not implemented on Windows\n");
   assert(0);
   return -1;
 }
@@ -256,12 +260,12 @@ int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, Process
 	if(appThread->terminationStatus() == ExitedNormally) {
 	  int exitCode = appThread->getExitCode();
 	  if (exitCode || debugPrint)
-	    logstatus("Mutatee exit code 0x%x\n", exitCode);
+	    output->log(LOGINFO, "Mutatee exit code 0x%x\n", exitCode);
 	  retVal = exitCode;
 	} else if(appThread->terminationStatus() == ExitedViaSignal) {
 	  int signalNum = appThread->getExitSignal();
 	  if (signalNum || debugPrint)
-	    logstatus("Mutatee exited from signal 0x%x\n", signalNum);
+	    output->log(LOGINFO, "Mutatee exited from signal 0x%x\n", signalNum);
 
 	  retVal = signalNum;
 	}
@@ -315,10 +319,10 @@ void executeSaveTheWorld(BPatch_thread *appThread, int saveTheWorld, char *pathn
     dirName = appThread->dumpPatchedImage(mutatedName);
     delete mutatedName;
     if(dirName){
-      logstatus(" The mutated binary is stored in: %s\n",dirName);
+      output->log(LOGINFO, " The mutated binary is stored in: %s\n",dirName);
       delete [] dirName;
     }else{
-      logstatus("Error: No directory name returned\n");
+      output->log(LOGINFO, "Error: No directory name returned\n");
     }
     //appThread->detach(false);
   }
@@ -331,7 +335,7 @@ void printLogTestHeader(char *name)
   flushOutputLog();
   flushErrorLog();
   // Test Header
-  logstatus("*** dyninstAPI %s...\n", name);
+  output->log(LOGINFO, "*** dyninstAPI %s...\n", name);
   flushOutputLog();
   flushErrorLog();
 }
@@ -343,7 +347,7 @@ void printLogMutateeHeader(char *mutatee)
   // Mutatee Description
   // Mutatee Info
   if ( (mutatee != NULL) && (strcmp(mutatee, "") != 0) ) {
-    logstatus("[Tests with %s]\n", mutatee);
+    output->log(LOGINFO, "[Tests with %s]\n", mutatee);
 #if !defined(os_windows)
     if ( pdscrdir ) {
       runScript("ls -lLF %s", mutatee);
@@ -351,10 +355,10 @@ void printLogMutateeHeader(char *mutatee)
     }
 #endif
   } else {
-    logstatus("[Tests with none]\n");
+    output->log(LOGINFO, "[Tests with none]\n");
   }
 
-  logstatus("\n");
+  output->log(LOGINFO, "\n");
   flushOutputLog();
   flushErrorLog();
 }
@@ -364,7 +368,7 @@ void printLogOptionHeader(TestInfo *tinfo)
   flushOutputLog();
   flushErrorLog();
   // Full test description
-  logstatus("test-info: %s\n", tinfo->label);
+  output->log(LOGINFO, "test-info: %s\n", tinfo->label);
   flushOutputLog();
   flushErrorLog();
 }
@@ -374,16 +378,16 @@ void printHumanTestHeader(test_data_t &test, char *mutatee, bool useAttach)
   flushOutputLog();
   flushErrorLog();
   // Test Header
-  logstatus("Running: %s", test.name);
+  output->log(LOGINFO, "Running: %s", test.name);
   if ( strcmp(mutatee, "") != 0 )
   {
-    logstatus(" with mutatee: %s", mutatee);
+    output->log(LOGINFO, " with mutatee: %s", mutatee);
   }
   if ( useAttach )
   {
-    logstatus(" in attach mode");
+    output->log(LOGINFO, " in attach mode");
   }
-  logstatus(".\n");
+  output->log(LOGINFO, ".\n");
 
 
   flushOutputLog();
@@ -434,7 +438,7 @@ int runStaticTest(test_data_t &test, ParameterDict &param) {
     int (*mutatorMAIN)(ParameterDict &) = static_mutators[i].mutator;
     result = mutatorMAIN(param);
   } else {
-    fprintf(stderr, "Error finding function: %s\n", test.name);
+    output->log(STDERR, "Error finding function: %s\n", test.name);
   }
   return result;
 }
@@ -490,15 +494,15 @@ void printCrashHumanLog(std::vector<RunGroup *> &tests, int groupnum,
 
   formatStrings &outputFormat = useVerbose ? verboseStrings : compactStrings;
 
-  fprintf(human, outputFormat.testNameFormatStr.c_str(),
+  output->log(HUMAN, outputFormat.testNameFormatStr.c_str(),
 	  tests[groupnum]->tests[testnum]->name, tests[groupnum]->mutatee);
 
   if (CREATE == tests[groupnum]->useAttach) {
-    fprintf(human, outputFormat.createStr.c_str());
+    output->log(HUMAN, outputFormat.createStr.c_str());
   } else {
-    fprintf(human, outputFormat.attachStr.c_str());
+    output->log(HUMAN, outputFormat.attachStr.c_str());
   }
-  fprintf(human, outputFormat.crashStr.c_str());
+  output->log(HUMAN, outputFormat.crashStr.c_str());
   failureInfo myCrash;
   myCrash.testName += tests[groupnum]->tests[testnum]->name;
   myCrash.testName += ": mutatee : ";
@@ -527,25 +531,25 @@ void printResultHumanLog(RunGroup *group, const char *testname,
 
   formatStrings &outputFormat = useVerbose ? verboseStrings : compactStrings;
 
-  fprintf(human, outputFormat.testNameFormatStr.c_str(), testname,
+  output->log(HUMAN, outputFormat.testNameFormatStr.c_str(), testname,
 	  group->mutatee);
 	  
   if (CREATE == group->useAttach) {
-    fprintf(human, outputFormat.createStr.c_str());
+    output->log(HUMAN, outputFormat.createStr.c_str());
   } else {
-    fprintf(human, outputFormat.attachStr.c_str());
+    output->log(HUMAN, outputFormat.attachStr.c_str());
   }
   switch (result) {
   case PASSED:
-    fprintf(human, outputFormat.passStr.c_str());
+    output->log(HUMAN, outputFormat.passStr.c_str());
     break;
 
   case SKIPPED:
-    fprintf(human, outputFormat.skipStr.c_str());
+    output->log(HUMAN, outputFormat.skipStr.c_str());
     break;
 
   case FAILED:
-    fprintf(human, outputFormat.failStr.c_str());
+    output->log(HUMAN, outputFormat.failStr.c_str());
     failureInfo myFailure;
     myFailure.testName += testname;
     myFailure.testName += ": mutatee : ";
@@ -562,6 +566,7 @@ void printResultHumanLog(RunGroup *group, const char *testname,
   } else {
     fclose(human);
   } 
+
 }
 
 void updateResumeLog(int groupnum, int testnum, resume_stage_t stage)
@@ -581,14 +586,13 @@ void updateResumeLogCompleted() {
   FILE *resume;
   resume = fopen(resumelog_name, "a");
   if (NULL == resume) {
-    fprintf(stderr, "Failed to update the resume log");
+    output->log(STDERR, "Failed to update the resume log");
     return;
   }
   fprintf(resume, "+\n");
   fclose(resume);
 }
 
-// FIXME This doesn't work
 int getResumeLog(std::vector<RunGroup *> &tests, bool verboseFormat) {
   FILE *resume;
   FILE *crashlog;
@@ -597,34 +601,25 @@ int getResumeLog(std::vector<RunGroup *> &tests, bool verboseFormat) {
   resume_stage_t stage;
   bool disable_rungroup = false;
 
-  //fprintf(stderr, "[%s:%u] - Opening resume log '%s'\n", __FILE__, __LINE__, resumelog_name); /*DEBUG*/
   resume = fopen(resumelog_name, "r");
   if (!resume) {
     return -1;
   }
 
-  //fprintf(stderr, "Reading test line\n"); /*DEBUG*/
   if ((fscanf(resume, "%d,%d,%d\n", &groupnum, &testnum, &stage) != 3)
       || (groupnum >= tests.size())
       || (testnum >= tests[groupnum]->tests.size())
       || (stage > TEARDOWN)) {
-    fprintf(stderr, "Unable to parse entry in the resume log\n");
+    output->log(STDERR, "Unable to parse entry in the resume log\n");
     exit(NOTESTS);
   }
-  //fprintf(stderr, "Read test line: (%d, %d, %d)\n", groupnum, testnum, stage); /*DEBUG*/
 
   // Disable all groups up to groupnum
   for (int g = 0; g < groupnum; g++) {
     for (int t = 0; t < tests[g]->tests.size(); t++) {
-      // 	  fprintf(stderr, "[%s:%u] - Disabling test %s(%d).%s\n", /*DEBUG*/
-      //                __FILE__, __LINE__,               /*DEBUG*/
-      // 		  tests[g]->mutatee,                /*DEBUG*/
-      // 		  tests[g]->useAttach,              /*DEBUG*/
-      // 		  tests[g]->tests[t]->name);        /*DEBUG*/
       tests[g]->tests[t]->disabled = true;
     }
   }
-  //fprintf(stderr, "[%s:%u] - Disabled groups up to %d\n", __FILE__, __LINE__, groupnum); /*DEBUG*/
 
   char completed = '\0';
   if (fscanf(resume, "%c\n", &completed) != 1) {
@@ -667,10 +662,9 @@ int getResumeLog(std::vector<RunGroup *> &tests, bool verboseFormat) {
     } // Crash during EXECUTION stage
 
     // Mark test (groupnum, testnum) as having crashed
-    //fprintf(stderr, "[%s:%u] - Logging crash of %s(%d).%s to '%s'\n", __FILE__, __LINE__, tests[groupnum]->mutatee, tests[groupnum]->useAttach, tests[groupnum]->tests[testnum]->name, crashlog_name); /*DEBUG*/
     crashlog = fopen(crashlog_name, "a");
     if (NULL == crashlog) {
-      fprintf(stderr, "Error opening crashlog: %s\n", strerror(errno));
+      output->log(STDERR, "Error opening crashlog: %s\n", strerror(errno));
       exit(NOTESTS);
     }
     if (disable_rungroup) {
@@ -696,7 +690,6 @@ int getResumeLog(std::vector<RunGroup *> &tests, bool verboseFormat) {
 
       // Disable all tests in group #groupnum up through testnum
       for (int t = 0; t <= testnum; t++) {
-	//fprintf(stderr, "[%s:%u] - Disabling test %s(%d).%s\n", __FILE__, __LINE__, tests[groupnum]->mutatee, tests[groupnum]->useAttach, tests[groupnum]->tests[t]->name); /*DEBUG*/
 	tests[groupnum]->tests[t]->disabled = true;
       }
       // If that was the last test in group #groupnum, then we need to
@@ -708,7 +701,7 @@ int getResumeLog(std::vector<RunGroup *> &tests, bool verboseFormat) {
 	//tests[groupnum]->tests[testnum]->enabled = false;
       }
     } else {
-      fprintf(stderr,
+      output->log(STDERR,
 	      "Unable to parse (completed) entry in the resume log: '%c'\n",
 	      completed);
     }
@@ -718,20 +711,17 @@ int getResumeLog(std::vector<RunGroup *> &tests, bool verboseFormat) {
   // Disable any crashed tests
   crashlog = fopen(crashlog_name, "r");
   if ((NULL == crashlog) && (errno != ENOENT)) {
-    fprintf(stderr, "Error opening crashlog: %s\n", strerror(errno));
+    output->log(STDERR, "Error opening crashlog: %s\n", strerror(errno));
     exit(NOTESTS);
   }
   // FIXME Need to deal with no crashlog yet
   if (crashlog != NULL) {
-    //fprintf(stderr, "[%s:%u] - Opened crashlog\n", __FILE__, __LINE__); /*DEBUG*/
     if (feof(crashlog)) {
-      //fprintf(stderr, "[%s:%u] - crashlog at EOF before I read anything?\n", __FILE__, __LINE__); /*DEBUG*/
     }
     while (!feof(crashlog)) {
       // Disable all the tests that have crashed
-      // TODO Check fscanf return code for errors
+      // FIXME Check fscanf return code for errors
       fscanf(crashlog, "%d,%d\n", &groupnum, &testnum);
-      //fprintf(stderr, "[%s:%u] - Disabling %s(%d).%s\n", __FILE__, __LINE__, tests[groupnum]->mutatee, tests[groupnum]->useAttach, tests[groupnum]->tests[testnum]->name); /*DEBUG*/
       tests[groupnum]->tests[testnum]->disabled = true;
     }
     fclose(crashlog);
@@ -777,7 +767,6 @@ bool enableIntersectingTests(std::vector<TestInfo *> &testsv,
   bool match_found = false;
 
   if (runAllTests) {
-    //fprintf(stderr, "[%s:%u] - runAllTests set, so skipping intersection test\n", __FILE__, __LINE__); /*DEBUG*/
      for (size_t i = 0; i < testsv.size(); i++) {
        if (false == testsv[i]->disabled) {
 	 testsv[i]->enabled = true;
@@ -809,11 +798,14 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
 		    bool resumeLog, int groupnum, bool verboseFormat,
 		    bool printLabels)
 {
-  //fprintf(stderr, "[%s:%u] - executeRunGroup called for group w/ mutatee '%s'\n", __FILE__, __LINE__, group->mutatee); /*DEBUG*/
 
   BPatch_thread *appThread = NULL;
   ProcessList proc_list;
   int retval;
+
+  test_results_t result;
+  int mutatee_retval = 0;
+  bool mutateeExitedViaSignal = false;
 
   if (group->customExecution) {
     executeRunGroupCustomExecutionPath(bpatch, group, param, resumeLog,
@@ -844,22 +836,6 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
     ParamPtr bp_appThread;
     param["appThread"] = &bp_appThread;
 
-    if (NULL == group->mutatee) {
-      appThread = NULL;
-    } else {
-      if (group->state != SELFSTART) {
-	// If test requires mutatee, start it up for the test
-	// The mutatee doesn't need to print a test label for complex tests
-	appThread = startMutateeTest(bpatch, group, proc_list, logfilename,
-				     (useHumanLog) ? humanlog_name : NULL,
-				     verboseFormat, false, debugPrint);
-	if (NULL == appThread) {
-	  logerror("Unable to run test program: %s\n", group->mutatee);
-	  return -1;
-	}
-      }
-    } // group->mutatee != NULL
-
     // Get a list of all the tests (TestInfo objects) we're going to run in
     // RunGroup.  getMutatorsForRunGroup also creates TestMutator objects and
     // sets a pointer in the TestInfo object to point to the TestMutator for
@@ -868,6 +844,50 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
     if (getMutatorsForRunGroup(group, *&group_tests)) {
       // TODO Handle error getting list of test mutators
     }
+
+    if (NULL == group->mutatee) {
+      appThread = NULL;
+    } else {
+      if (group->state != SELFSTART) {
+	// If test requires mutatee, start it up for the test
+	// The mutatee doesn't need to print a test label for complex tests
+	if (resumeLog) {
+	  updateResumeLog(group->index, 0, PRESETUP);
+	}
+	appThread = startMutateeTest(bpatch, group, proc_list, logfilename,
+				     (useHumanLog) ? humanlog_name : NULL,
+				     verboseFormat, false, debugPrint,
+				     getPIDFilename());
+	if (resumeLog) {
+	  updateResumeLogCompleted();
+	}
+	if (NULL == appThread) {
+	  // DyninstAPI failed to launch the mutatee program; mark all tests
+	  // in this group as failed
+	  output->log(LOGERR, "Unable to run test program: %s\n", group->mutatee);
+	  // FIXME This needs to mark the test as a failure.
+	  // TODO Mark all tests in group as FAILED
+	  for (unsigned int i = 0; i < group_tests.size(); i++) {
+	    std::map<std::string, std::string> *attrs;
+	    attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+	    output->startNewTest(*attrs);
+	    delete attrs;
+	    output->logResult(FAILED);
+	    output->finalizeOutput();
+	    if (resumeLog) {
+	      // FIXME What do I send to the resume log before the completed mark?
+	      updateResumeLog(group->index, group_tests[i]->index, SETUP);
+	      updateResumeLogCompleted();
+	    }
+	    delete group_tests[i]->mutator;
+	    group_tests[i]->mutator = NULL;
+	    group_tests.erase(group_tests.begin() + i);
+	    i -= 1;
+	  }
+	  return -1; // What is the significance of this return value?
+	}
+      }
+    } // group->mutatee != NULL
 
     if (testLimit > 0) {
       // We want to increment the number of tests run here because we'll erase
@@ -889,13 +909,11 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
 #if defined(PROFILE_MEM_USAGE)
     // Let's try to profile memory usage
     void *mem_usage = sbrk(0);
-    logstatus("pre %s: sbrk %p\n", test.soname, mem_usage);
+    output->log(LOGINFO, "pre %s: sbrk %p\n", test.soname, mem_usage);
 #endif
 
-    test_results_t result;
-    int mutatee_retval = 0;
-
     // Initialize each test
+    bool someSetupPassed = false;
     for (int i = 0; i < group_tests.size(); i++) {
       param["pathname"]->setString(group->mutatee);
       param["appThread"]->setPtr(appThread);
@@ -907,22 +925,30 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
       }
       param["logfilename"]->setString(logfilename);
 
+      // Inform output driver that we're starting a new test
+      std::map<std::string, std::string> *attrs;
+      attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+      output->startNewTest(*attrs);
+      if (attrs != NULL) {
+	delete attrs;
+      }
+
       // Print mutator log header
       printLogOptionHeader(group_tests[i]);
       if (resumeLog) {
 	updateResumeLog(group->index, group_tests[i]->index, SETUP);
       }
       if (printLabels) {
-	logstatus("%s\n", group_tests[i]->label);
+	output->log(LOGINFO, "1: %s\n", group_tests[i]->label);
       }
       result = group_tests[i]->mutator->setup(param);
-      if (result != PASSED) {
+      if (PASSED == result) {
+	someSetupPassed = true;
+      } else {
 	// This test either failed or is being skipped; print out a message
 	// to that effect and remove the test from the list of tests we're
 	// running.
-	if (useHumanLog) {
-	  printResultHumanLog(group, group_tests[i]->name, result, verboseFormat);
-	}
+	output->logResult(result);
 	delete group_tests[i]->mutator;
 	group_tests[i]->mutator = NULL;
 	group_tests.erase(group_tests.begin() + i);
@@ -930,6 +956,7 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
 	if (resumeLog) {
 	  updateResumeLogCompleted(); // Don't mistake this failure for a crash
 	}
+	output->finalizeOutput();
 	continue;
       }
       if (resumeLog) {
@@ -940,28 +967,117 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
     // Up to here everything works about the same for group vs. non-group
     // mutatees
 
-    if (result != FAILED) {
+    // FIXME I think this condition is wrong.  It's just checking the result
+    // of the last test in the group's setup()
+    if (someSetupPassed) {
       // group_tests.size() is almost certainly 1.
+      // This is not true for the 'none' mutatee.  Should that one use the
+      // simple execution path instead?
+      assert (group_tests.size() == 1);
+
       for (size_t i = 0; i < group_tests.size(); i++) {
+
+	// Set up output driver for this test
+	std::map<std::string, std::string> *attrs;
+	attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+	output->startNewTest(*attrs);
+	delete attrs;
+
 	if (group_tests[i]->mutator->hasCustomExecutionPath()) {
 	  if (resumeLog) {
 	    updateResumeLog(group->index, group_tests[i]->index, EXECUTION);
 	  }
 	  result = group_tests[i]->mutator->execute();
-	  if (useHumanLog) {
-	    printResultHumanLog(group, group_tests[i]->name, result, verboseFormat);
-	  }
+	  output->logResult(result);
 	  if (resumeLog) {
 	    updateResumeLogCompleted();
 	  }
 	  delete group_tests[i]->mutator;
 	  group_tests[i]->mutator = NULL;
-	}
-      }
-    }
+	  output->finalizeOutput();
+	} else { // non-group simple execution path
+
+	  // TODO Group has customExecution flag set, but mutator doesn't
+	  // These are non-group mutatees with standard execution path mutators
+	  // I've got the mutator already
+	  // 1. run mutator->preExecution()
+	  if (resumeLog) {
+	    updateResumeLog(group->index, group_tests[i]->index, PREEXECUTION);
+	  }
+
+	  result = group_tests[i]->mutator->preExecution();
+	  if (resumeLog) {
+	    updateResumeLogCompleted();
+	  }
+	  if (result != PASSED) {
+	    // Deal with failure.  The mutatee will not be printing result
+	    // codes
+	    output->logResult(result);
+	    output->finalizeOutput();
+	    delete group_tests[i]->mutator;
+	    group_tests[i]->mutator = NULL;
+	    i -= 1;
+	  } else { // preExecution passed
+	    // TODO 2. run mutatee
+	    dprintf("starting program execution.\n");
+	    if (resumeLog) {
+	      updateResumeLog(group->index, 0, EXECUTION);
+	    }
+
+	    do {
+	      appThread->continueExecution();
+	      bpatch->waitForStatusChange();
+	    } while (!appThread->isTerminated());
+
+	    // TODO 3. check results
+	    if (appThread->terminationStatus() == ExitedNormally) {
+	      int exitCode = appThread->getExitCode();
+	      if (exitCode || debugPrint) {
+		output->log(LOGINFO, "Mutatee exit code 0x%x\n", exitCode);
+	      }
+	      mutatee_retval = exitCode;
+	    } else if (appThread->terminationStatus() == ExitedViaSignal) {
+	      mutateeExitedViaSignal = true;
+	      int signalNum = appThread->getExitSignal();
+	      if (signalNum || debugPrint) {
+		output->log(LOGINFO, "Mutatee exited from signal 0x%x\n", signalNum);
+	      }
+	      mutatee_retval = signalNum;
+	    }
+
+	    if (0 == mutatee_retval) {
+	      // Test was successful
+	      output->logResult(PASSED);
+	    } else {
+	      // Test failed
+	      output->logResult(FAILED);
+	    }
+	    output->finalizeOutput();
+
+	    if (resumeLog) {
+	      updateResumeLogCompleted();
+	    }
+
+	    // Clean up TestInfo, mutator, etc.
+	    delete group_tests[i]->mutator;
+	    group_tests[i]->mutator = NULL;
+	    group_tests.erase(group_tests.begin() + i);
+	    i -= 1;
+
+	  } // if (preExecution passed)
+	} // if (non-group simple execution path)
+      } // for (all tests in group)
+    } // if (setup for all tests in group passed)
 
     retval = 0; // FIXME Make this the correct return value
   } else { // Standard execution path
+
+    // ************************************************************
+    // ************************************************************
+    // *** BEGIN Standard execution path                        ***
+    // ************************************************************
+    // ************************************************************
+
     // Set up runtime library if necessary
 #if defined(m_abi)
     if (isMutateeMABI32(group->mutatee)) {
@@ -988,22 +1104,51 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
     ParamPtr bp_appThread;
     param["appThread"] = &bp_appThread;
 
-    // If test requires mutatee, start it up for the test
-    appThread = startMutateeTest(bpatch, group, proc_list, logfilename,
-				 (useHumanLog) ? humanlog_name : NULL,
-				 verboseFormat, printLabels, debugPrint);
-    if (NULL == appThread) {
-      logerror("Unable to run test program: %s\n", group->mutatee);
-      return -1;
-    }
-
     // Get a list of all the tests (TestInfo objects) we're going to run in
     // RunGroup.  getMutatorsForRunGroup also creates TestMutator objects and
     // sets a pointer in the TestInfo object to point to the TestMutator for
     // each test.
+    // We're doing this before we start the mutatee because if we fail to start
+    // the mutatee, we want to report all of these tests as FAILED
     std::vector<TestInfo *> group_tests;
+
     if (getMutatorsForRunGroup(group, *&group_tests)) {
       // TODO Handle error getting list of test mutators
+    }
+
+    // If test requires mutatee, start it up for the test
+    if (resumeLog) {
+      updateResumeLog(group->index, 0, PRESETUP);
+    }
+    appThread = startMutateeTest(bpatch, group, proc_list, logfilename,
+				 (useHumanLog) ? humanlog_name : NULL,
+				 verboseFormat, printLabels, debugPrint,
+				 getPIDFilename());
+    if (resumeLog) {
+      updateResumeLogCompleted();
+    }
+    if (NULL == appThread) {
+      output->log(LOGERR, "Unable to run test program: %s\n", group->mutatee);
+      // FIXME This needs to mark the test as a failure.
+      // TODO Mark all tests in group as FAILED
+      for (unsigned int i = 0; i < group_tests.size(); i++) {
+	std::map<std::string, std::string> *attrs;
+	attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+	output->startNewTest(*attrs);
+	delete attrs;
+	output->logResult(FAILED);
+	output->finalizeOutput();
+	if (resumeLog) {
+	  // FIXME What do I send to the resume log before the completed mark?
+	  updateResumeLog(group->index, group_tests[i]->index, SETUP);
+	  updateResumeLogCompleted();
+	}
+	delete group_tests[i]->mutator;
+	group_tests[i]->mutator = NULL;
+	group_tests.erase(group_tests.begin() + i);
+	i -= 1;
+      }
+      return -1; // What is the significance of this return value?
     }
 
     if (testLimit > 0) {
@@ -1023,15 +1168,16 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
     // Let's try to profile memory usage
 #if defined(PROFILE_MEM_USAGE)
     void *mem_usage = sbrk(0);
-    logstatus("pre %s: sbrk %p\n", test.soname, mem_usage);
+    output->log(LOGINFO, "pre %s: sbrk %p\n", test.soname, mem_usage);
 #endif
-
-    test_results_t result;
-    int mutatee_retval = 0;
 
     TestInfo *lastLabelFrom = NULL;
 
-    //fprintf(stderr, "[%s:%u] - About to run %d tests\n", __FILE__, __LINE__, group_tests.size()); /*DEBUG*/
+    // The failed_preExecution list holds tests that failed before the mutatee
+    // was run.  If all tests fail before the mutatee is run, then the test
+    // driver needs to print failure messages for them
+    std::vector<TestInfo *> failed_preExecution;
+
     // Initialize each test
     for (int i = 0; i < group_tests.size(); i++) {
       param["pathname"]->setString(group->mutatee);
@@ -1051,18 +1197,18 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
       }
       if (printLabels) {
 	lastLabelFrom = group_tests[i];
-	logstatus("%s\n", group_tests[i]->label);
+	output->log(LOGINFO, "2: %s\n", group_tests[i]->label);
       }
+      std::map<std::string, std::string> *attrs;
+      attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+      output->startNewTest(*attrs);
+      delete attrs;
       result = group_tests[i]->mutator->setup(param);
       if (result != PASSED) {
 	// This test either failed or is being skipped; print out a message
 	// to that effect and remove the test from the list of tests we're
 	// running.
-	if (useHumanLog) {
-	  printResultHumanLog(group, group_tests[i]->name, result, verboseFormat);
-	}
-	delete group_tests[i]->mutator;
-	group_tests[i]->mutator = NULL;
+	failed_preExecution.push_back(group_tests[i]);
 	group_tests.erase(group_tests.begin() + i);
 	i -= 1;
 	if (resumeLog) {
@@ -1087,25 +1233,21 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
       if (resumeLog) {
 	updateResumeLog(group->index, group_tests[i]->index, PREEXECUTION);
       }
+      std::map<std::string, std::string> *attrs;
+      attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+      output->startNewTest(*attrs);
+      delete attrs;
       if (printLabels && (lastLabelFrom != group_tests[i])) {
 	lastLabelFrom = group_tests[i];
-	logstatus("%s\n", group_tests[i]->label);
+	output->log(LOGINFO, "3: %s\n", group_tests[i]->label);
       }
       result = group_tests[i]->mutator->preExecution();
       if (PASSED == result) {
-	//fprintf(stderr, "[%s:%u] - test '%s' preExecution() passed\n", __FILE__, __LINE__, group_tests[i]->name); /*DEBUG*/
 	allFailedOrSkipped = false;
       } else {
-	if (useHumanLog) {
-	  //fprintf(stderr, "[%s:%u] - '%s' preExecution() failed (or skipped); printing human log\n", __FILE__, __LINE__, group_tests[i]->name); /*DEBUG*/
-	  // I need to call this here because I'm removing this test from the
-	  // list of tests to run in the mutatee.
-	  printResultHumanLog(group, group_tests[i]->name, result, verboseFormat);
-	} else {
-	  //fprintf(stderr, "[%s:%u] - '%s' preExecution() failed (or skipped)\n", __FILE__, __LINE__, group_tests[i]->name); /*DEBUG*/
-	}
-	delete group_tests[i]->mutator;
-	group_tests[i]->mutator = NULL;
+	// preExecution failed; save this test's info in case we need to print
+	// a failure message from the test driver
+	failed_preExecution.push_back(group_tests[i]);
 	group_tests.erase(group_tests.begin() + i);
 	i -= 1;
 	if (resumeLog) {
@@ -1117,23 +1259,16 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
 	// Update resume log
 	updateResumeLogCompleted();
       }
-      //fprintf(stderr, "[%s:%u] - '%s' preExecution() passed\n", __FILE__, __LINE__, group_tests[i]->name); /*DEBUG*/
 
-      flushOutputLog();
-      flushErrorLog();
     }
 
     // Run the mutatee
-    // FIXME I only want to abort if all the tests in the rungroup failed
-    // already
     if (false == allFailedOrSkipped) {
-      // Execute save the world
-      executeSaveTheWorld(appThread, saveTheWorld, group->mutatee);
-   
       // SELFSTART tests are, by definition, custom execution paths so I don't
       // need to worry about them here
       dprintf("starting program execution.\n");
       // TODO Modify this loop to allow for tests to do things in mid-execution
+      // No, don't do that.
       do {
 	if (resumeLog) {
 	  updateResumeLog(group->index, 0, EXECUTION);
@@ -1143,22 +1278,30 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
 	appThread->continueExecution();
 	bpatch->waitForStatusChange();
 	if (!appThread->isTerminated()) {
-	  //fprintf(stderr, "[%s:%u] - appThread not terminated\n", __FILE__, __LINE__); /*DEBUG*/
 	  // I think I can insert a call to TestMutator::inExecution() here..
+	  // TODO Remove call to inExecution
 	  for (int i = 0; i < group_tests.size(); i++) {
 	    if (resumeLog) {
-	      updateResumeLog(group->index, group_tests[i]->index, 
+	      updateResumeLog(group->index, group_tests[i]->index,
 			      INEXECUTION);
 	    }
+	    std::map<std::string, std::string> *attrs;
+	    attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+	    output->startNewTest(*attrs);
+	    delete attrs;
 	    if (printLabels && (lastLabelFrom != group_tests[i])) {
 	      lastLabelFrom = group_tests[i];
-	      logstatus("%s\n", group_tests[i]->label);
+	      output->log(LOGINFO, "4: %s\n", group_tests[i]->label);
 	    }
 	    result = group_tests[i]->mutator->inExecution();
 	    if (result != PASSED) {
-	      if (useHumanLog) {
-		//printResultHumanLog(group, group_tests[i]->name, result);
-	      }
+	      std::map<std::string, std::string> *attrs;
+	      attrs = TestOutputDriver::getAttributesMap(group_tests[i],
+							 group);
+	      output->startNewTest(*attrs);
+	      delete attrs;
+	      // The mutatee has provided us with the output to finalize
+	      output->finalizeOutput();
 	      delete group_tests[i]->mutator;
 	      group_tests[i]->mutator = NULL;
 	      group_tests.erase(group_tests.begin() + i);
@@ -1178,17 +1321,21 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
 	  }
 	} // endif !appThread->isTerminated()
       } while (!appThread->isTerminated());
-      // fprintf(stderr, "[%s:%u] - appThread terminated\n", __FILE__, __LINE__);
+
+      if (resumeLog) {
+	updateResumeLogCompleted(); // Completed mutatee execution
+      }
 
       if (appThread->terminationStatus() == ExitedNormally) {
 	int exitCode = appThread->getExitCode();
 	if (exitCode || debugPrint)
-	  logstatus("Mutatee exit code 0x%x\n", exitCode);
+	  output->log(LOGINFO, "Mutatee exit code 0x%x\n", exitCode);
 	mutatee_retval = exitCode;
       } else if(appThread->terminationStatus() == ExitedViaSignal) {
+	mutateeExitedViaSignal = true;
 	int signalNum = appThread->getExitSignal();
 	if (signalNum || debugPrint)
-	  logstatus("Mutatee exited from signal 0x%x\n", signalNum);
+	  output->log(LOGINFO, "Mutatee exited from signal 0x%x\n", signalNum);
 	mutatee_retval = signalNum;
       }
 
@@ -1200,74 +1347,90 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
       // abnormally or with a non-zero error code..
 
       if (0 == mutatee_retval) {
-	// Run mutator postExecutions
 	for (int i = 0; i < group_tests.size(); i++) {
-	  if (resumeLog) {
-	    updateResumeLog(group->index, group_tests[i]->index, POSTEXECUTION);
-	  }
+	    // Here I'm printing the final batch of mutatee output for a
+	    // non-crashing mutatee run
+	  std::map<std::string, std::string> *attrs;
+	  attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+	  output->startNewTest(*attrs);
+	  delete attrs;
 	  if (printLabels && (lastLabelFrom != group_tests[i])) {
 	    lastLabelFrom = group_tests[i];
-	    logstatus("%s\n", group_tests[i]->label);
+	    output->log(LOGINFO, "6: %s\n", group_tests[i]->label);
 	  }
-	  result = group_tests[i]->mutator->postExecution();
-	  if (result != PASSED) {
-	    if (useHumanLog) {
-	      //printResultHumanLog(group, group_tests[i]->name, result);
-	    }
-	    delete group_tests[i]->mutator;
-	    group_tests[i]->mutator = NULL;
-	    group_tests.erase(group_tests.begin() + i);
-	    i -= 1;
-	    if (resumeLog) {
-	      updateResumeLogCompleted(); // Don't mistake failure for crash
-	    }
-	    continue;
-	  }
-	  if (resumeLog) {
-	    // Update resume log
-	    updateResumeLogCompleted();
-	  }
+	  output->finalizeOutput();
+	  delete group_tests[i]->mutator;
+	  group_tests[i]->mutator = NULL;
+	  group_tests.erase(group_tests.begin() + i);
+	  i -= 1;
 
-	  flushOutputLog();
-	  flushErrorLog();
-	}
-
-	// Run mutator teardowns
-	if (result != FAILED) {
-	  for (int i = 0; i < group_tests.size(); i++) {
-	    if (resumeLog) {
-	      updateResumeLog(group->index, group_tests[i]->index,
-			      TEARDOWN);
-	    }
-	    if (printLabels && (lastLabelFrom != group_tests[i])) {
-	      lastLabelFrom = group_tests[i];
-	      logstatus("%s\n", group_tests[i]->label);
-	    }
-	    result = group_tests[i]->mutator->teardown();
-	    // Final test output for standard output path is handled by the
-	    // mutatee driver
-	    if (resumeLog) {
-	      updateResumeLogCompleted();
-	    }
-	    delete group_tests[i]->mutator;
-	    group_tests[i]->mutator = NULL;
-
-	    flushOutputLog();
-	    flushErrorLog();
-	  }
 	}
       } else { // mutatee_retval != 0
 	// Some test has failed.  Nothing to do here but update that we've run
 	// the tests.  The mutatee driver prints the test results output.
+	// FIXME If the mutatee driver exits via a signal, it most likely
+	// didn't print any results.
+	if (mutateeExitedViaSignal && useHumanLog) {
+	  // TODO Print failed message for any tests that were left to run?
+	  // Here is where I'd like to have a functioning mutatee crashlog
+	  for (int i = 0; i < group_tests.size(); i++) {
+	    std::map<std::string, std::string> *attrs;
+	    attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+	    output->startNewTest(*attrs);
+	    delete attrs;
+	    output->logResult(FAILED);
+	    output->finalizeOutput();
+	  }
+	} else {
+	  // I need to finish logging tests where the mutatee didn't fail
+	  for (int i = 0; i < group_tests.size(); i++) {
+	    std::map<std::string, std::string> *attrs;
+	    attrs = TestOutputDriver::getAttributesMap(group_tests[i], group);
+	    output->startNewTest(*attrs);
+	    delete attrs;
+	    // This should hopefully pick up the test result from what the
+	    // mutatee's written into the log
+	    output->finalizeOutput();
+	    delete group_tests[i]->mutator;
+	    group_tests[i]->mutator = NULL;
+	    group_tests.erase(group_tests.begin() + i);
+	    i -= 1;
+	  }
+	}
 	if (resumeLog) {
 	  updateResumeLogCompleted();
 	}
+      }
+
+      // Delete the list of tests that failed before we executed the mutatee
+      //for (unsigned int i = 0; i < failed_preExecution.size(); i++) {
+      while (failed_preExecution.size() > 0) {
+	delete failed_preExecution[0]->mutator;
+	failed_preExecution[0]->mutator = NULL;
+	failed_preExecution.erase(failed_preExecution.begin());
       }
     } else {
       // All tests failed or skipped in preExecution(), so I didn't execute the
       // mutatee.  I should kill it so it doesn't run in attach mode
       if (appThread != NULL) {
 	appThread->getProcess()->terminateExecution();
+      }
+      // FIXME I also need to print failure messages for all the tests that I
+      // would have run if they hadn't already failed so I skipped running the
+      // mutatee
+      // FIXME Don't use group_tests here; it's empty
+      for (int i = 0; i < failed_preExecution.size(); i++) {
+	std::map<std::string, std::string> *attrs;
+	attrs = TestOutputDriver::getAttributesMap(failed_preExecution[i],
+						   group);
+	output->startNewTest(*attrs);
+	delete attrs;
+	output->logResult(FAILED);
+	output->finalizeOutput();
+	delete failed_preExecution[i]->mutator;
+	failed_preExecution[i]->mutator = NULL;
+	failed_preExecution.erase(failed_preExecution.begin() + i);
+	i -= 1;
       }
     } // if !(false == allTestsFailedOrSkipped)
     if (appThread != NULL) {
@@ -1277,15 +1440,19 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
 
     flushOutputLog();
     flushErrorLog();
+
+    // FIXME I think I can remove the stuff below..  I need to make sure about
+    // the mutatee exit code stuff first.
+
     if (enableLogging && (mutatee_retval != 0)) {
       int pos_result = mutatee_retval;
       if ( mutatee_retval < 0 )
 	{
           pos_result = -mutatee_retval;
 	}
-      logstatus("=========================================================\n");
-      logstatus("=== Exit code 0x%02x: %s\n", pos_result, group->mutatee);
-      logstatus("=========================================================\n");
+      output->log(LOGINFO, "=========================================================\n");
+      output->log(LOGINFO, "=== Exit code 0x%02x: %s\n", pos_result, group->mutatee);
+      output->log(LOGINFO, "=========================================================\n");
       flushOutputLog();
       flushErrorLog();
     }
@@ -1295,7 +1462,7 @@ int executeRunGroup(BPatch *bpatch, RunGroup *group, ParameterDict &param,
     if ( enableLogging && (result != FAILED) && (mutatee_retval == 0) ) {
       flushOutputLog();
       flushErrorLog();
-      logstatus("All tests passed\n");
+      output->log(LOGINFO, "All tests passed\n");
       flushOutputLog();
       flushErrorLog();
     }
@@ -1310,7 +1477,6 @@ int startTest(std::vector<RunGroup *> &tests,
 	      std::vector<char *> mutatee_list, bool verboseFormat,
 	      bool printLabels)
 {
-  //fprintf(stderr, "[%s:%u] - Starting startTest\n", __FILE__, __LINE__); /*DEBUG*/
 
     BPatch *bpatch;
     // Create an instance of the BPatch library
@@ -1340,7 +1506,7 @@ int startTest(std::vector<RunGroup *> &tests,
     // if ( enableLogging && skipToTest == 0 && skipToMutatee == 0 && skipToOption == 0 ) {
     // TODO Figure out a way to print the header only on new runs of the test
     // suite
-    logstatus("Commencing DyninstAPI test(s) ...\n");
+    output->log(LOGINFO, "Commencing DyninstAPI test(s) ...\n");
 #if !defined(os_windows)
     if ( pdscrdir )
       {
@@ -1348,15 +1514,13 @@ int startTest(std::vector<RunGroup *> &tests,
 	runScript("uname -a");
       }
 #endif
-    logstatus("TESTDIR=%s\n", getenv("PWD"));
+    output->log(LOGINFO, "TESTDIR=%s\n", getenv("PWD"));
     // }
 
     // Build list of run groups that we're going to execute.  It should include
     // only those run groups that involve a mutatee in mutatee_list and include
     // a test in test_list.  It should also include all of those run groups.
     std::vector<RunGroup *> to_run;
-    // I should maybe use an iterator below, but I don't know how..
-    //fprintf(stderr, "[%s:%u] - Finding groups to run\n", __FILE__, __LINE__); /*DEBUG*/
     for (size_t i = 0; i < tests.size(); i++) {
       if ((BOTH == tests[i]->useAttach)
 	  || runAllOptions
@@ -1371,15 +1535,6 @@ int startTest(std::vector<RunGroup *> &tests,
 	}
       }
     }
-    //fprintf(stderr, "[%s:%u] - Found %u groups to run\n", __FILE__, __LINE__, to_run.size()); /*DEBUG*/
-    // Begin *DEBUG*
-//     for (size_t i = 0; i < to_run.size(); i++) {
-//       for (size_t j = 0; j < to_run[i]->tests.size(); j++) {
-// 	if (to_run[i]->tests[j]->enabled)
-// 	  fprintf(stderr, "rungroup %u: ('%s', '%s', %d)\n", i, to_run[i]->tests[j]->name, to_run[i]->mutatee, to_run[i]->useAttach);
-//       }
-//     }
-    // End *DEBUG*
 
     if (to_run.size() == 0) {
       // Figure out why and print an error message, then return to main()
@@ -1405,9 +1560,9 @@ int startTest(std::vector<RunGroup *> &tests,
 	    if ((strcmp(logfilename, "NUL") == 0)
 		|| (strcmp(logfilename, "/dev/null") == 0)) {
 	      // We still want to print this message if logging is off
-	      fprintf(stderr, "Error: test '%s' does not exist or is not enabled for this platform\n", test_list[tl_ndx]);
+	      output->log(STDERR, "Error: test '%s' does not exist or is not enabled for this platform\n", test_list[tl_ndx]);
 	    } else {
-	      logerror("Error: test '%s' does not exist or is not enabled for this platform\n", test_list[tl_ndx]);
+	      output->log(LOGERR, "Error: test '%s' does not exist or is not enabled for this platform\n", test_list[tl_ndx]);
 	    }
 	  }
 	}
@@ -1428,9 +1583,9 @@ int startTest(std::vector<RunGroup *> &tests,
 	    // No match found for this mutatee; print error message
 	    if ((strcmp(logfilename, "NUL") == 0)
 		|| (strcmp(logfilename, "/dev/null") == 0)) {
-	      fprintf(stderr, "Error: mutatee '%s' does not exist or is not enabled for this platform\n", mutatee_list[ml_ndx]);
+	      output->log(STDERR, "Error: mutatee '%s' does not exist or is not enabled for this platform\n", mutatee_list[ml_ndx]);
 	    } else {
-	      logerror("Error: mutatee '%s' does not exist or is not enabled for this platform\n", mutatee_list[ml_ndx]);
+	      output->log(LOGERR, "Error: mutatee '%s' does not exist or is not enabled for this platform\n", mutatee_list[ml_ndx]);
 	    }
 	  }
 	}
@@ -1442,29 +1597,24 @@ int startTest(std::vector<RunGroup *> &tests,
     for (size_t i = 0; i < to_run.size(); i++) {
       if (enableLogging) {
 	// Print mutatee (run group) header
-	//fprintf(stderr, "[%s:%u] - Printing log header\n", __FILE__, __LINE__); /*DEBUG*/
 	printLogMutateeHeader(to_run[i]->mutatee);
-	//fprintf(stderr, "[%s:%u] - Printed log header\n", __FILE__, __LINE__); /*DEBUG*/
       }
       // TODO Notice the return code from executeRunGroup and do something
       // useful with it
-      //fprintf(stderr, "[%s:%u] - Running group %u\n", __FILE__, __LINE__, i); /*DEBUG*/
       executeRunGroup(bpatch, to_run[i], param, resumeLog, i, verboseFormat,
 		      printLabels);
 
       if ((testLimit > 0) && (testsRun >= testLimit)) {
-	//fprintf(stderr, "[%s:%u] - Test limit reached, exiting\n", __FILE__, __LINE__); /*DEBUG*/
 	return 0; // FIXME Is this the right return value?
       }
 
-      //fprintf(stderr, "[%s:%u] - Ran group %u\n", __FILE__, __LINE__, i); /*DEBUG*/
     }
     
     return 0;
 } // startTest()
 
 void DebugPause() {
-  fprintf(stderr, "Waiting for attach by debugger\n");
+  output->log(STDERR, "Waiting for attach by debugger\n");
 #if defined(i386_unknown_nt4_0)
   DebugBreak();
 #else
@@ -1481,8 +1631,7 @@ void setPDScriptDir(bool skip_warning)
   pdscrdir = getenv("PDSCRDIR");
   if ( pdscrdir == NULL )
   {
-#if defined(i386_unknown_nt4_0)
-#else
+#if !defined(os_windows)
     // Environment variable not set, try default wisc/umd directories
     DIR *dir;
     dir = opendir(uw_pdscrdir);
@@ -1504,9 +1653,9 @@ void setPDScriptDir(bool skip_warning)
     if (NULL == basedir) {
       // DYNINST_ROOT not set.  Print a warning, and default it to "../../.."
       if (!skip_warning) {
-	fprintf(stderr, "** WARNING: DYNINST_ROOT not set.  Please set the environment variable\n");
-	fprintf(stderr, "\tto the path for the top of the Dyninst library installation.\n");
-	fprintf(stderr, "\tUsing default: '../../..'\n");
+	output->log(STDERR, "** WARNING: DYNINST_ROOT not set.  Please set the environment variable\n");
+	output->log(STDERR, "\tto the path for the top of the Dyninst library installation.\n");
+	output->log(STDERR, "\tUsing default: '../../..'\n");
       }
       basedir = "../../..";
     }
@@ -1517,6 +1666,13 @@ void setPDScriptDir(bool skip_warning)
     pdscrdir = new char[pdscrdir_len];
     strncpy(pdscrdir, basedir, basedir_len + 1);
     strcat(pdscrdir, "/scripts");
+
+    dir = opendir(pdscrdir);
+    if (!dir) {
+      pdscrdir = NULL;
+    } else {
+      closedir(dir);
+    }
 
 #endif
   }
@@ -1599,9 +1755,9 @@ int main(unsigned int argc, char *argv[]) {
   bool quietFormat = false;
   bool printLabels = false;
 
-  //fprintf(stderr, "[%s:%u] - starting test_driver\n", __FILE__, __LINE__); /*DEBUG*/
-
   updateSearchPaths(argv[0]);
+
+  output = new StdOutputDriver();
 
   for (i=1; i < argc; i++ )
   {
@@ -1614,9 +1770,11 @@ int main(unsigned int argc, char *argv[]) {
       debugPrint = 1;
     else if (strcmp(argv[i], "-q") == 0)
     {
+      output->log(STDERR, "[%s:%u] - Quiet format not yet enabled\n");
       quietFormat = true;
     }
     else if ( strcmp(argv[i], "-skipTo")==0)
+      // TODO Remove this option
       {
 	// skip to test i+1
 	skipToTest = atoi(argv[++i]);
@@ -1624,11 +1782,27 @@ int main(unsigned int argc, char *argv[]) {
     else if ( strcmp(argv[i], "-log")==0)
       {
 	enableLogging = true;
+	bool logfile_found = false;
+	if ((i + 1) < argc) {
+	  // Check whether the next argument is a filename to log to
+	  if ((argv[i + 1][0] != '-') || (argv[i + 1][1] == '\0')) {
+	    // It either doesn't start with '-' or is exactly "-"
+	    i += 1;
+	    logfilename = argv[i];
+	    logfile_found = true;
+	  }
+	}
+
+	if (!logfile_found) {
+	  output->log(STDERR, "Missing log file name; defaulting to standard output\n");
+	  logfilename = "-";
+	}
       }
     else if ( strcmp(argv[i], "-logfile") == 0) {
+      output->log(STDERR, "WARNING: -logfile is a deprecated option; use -log instead\n");
       /* Store the log file name */
       if ((i + 1) >= argc) {
-	fprintf(stderr, "Missing log file name\n");
+	output->log(STDERR, "Missing log file name\n");
 	exit(NOTESTS);
       }
       i += 1;
@@ -1646,13 +1820,13 @@ int main(unsigned int argc, char *argv[]) {
 	runAllTests = false;
 	if ( i + 1 >= argc )
           {
-	    fprintf(stderr, "-test must be followed by a testname\n");
+	    output->log(STDERR, "-test must be followed by a testname\n");
 	    exit(NOTESTS);
           }
 
 	tests = strdup(argv[++i]);
 
-	name = strtok(tests, ",");
+	name = strtok(tests, ","); // FIXME Use strtok_r()
 	test_list.push_back(name);
 	while ( name != NULL )
           {
@@ -1671,13 +1845,13 @@ int main(unsigned int argc, char *argv[]) {
 	runAllMutatees = false;
 	if ( i + 1 >= argc )
           {
-	    fprintf(stderr, "-mutatee must be followed by mutatee names\n");
+	    output->log(STDERR, "-mutatee must be followed by mutatee names\n");
 	    exit(NOTESTS);
           }
 
 	mutatees = strdup(argv[++i]);
 
-	name = strtok(mutatees, ",");
+	name = strtok(mutatees, ","); // FIXME Use strtok_r()
 	if (NULL == name) {
 	  // Special handling for a "" mutatee specified on the command line
 	  mutatee_list.push_back("");
@@ -1686,7 +1860,7 @@ int main(unsigned int argc, char *argv[]) {
 	}
 	while ( name != NULL )
           {
-	    name = strtok(NULL, ",");
+	    name = strtok(NULL, ","); // FIXME Use strtok_r()
 	    if ( name != NULL )
 	      {
                 mutatee_list.push_back(name);
@@ -1712,6 +1886,7 @@ int main(unsigned int argc, char *argv[]) {
           }
 	i = j - 1;
       }
+    // TODO -attach and -create are DyninstAPI specific
     else if ( strcmp(argv[i], "-attach") == 0 )
       {
 	runAllOptions = false;
@@ -1728,12 +1903,12 @@ int main(unsigned int argc, char *argv[]) {
       useResume = true;
     } else if ( strcmp(argv[i], "-limit") == 0 ) {
       if ( i + 1 >= argc ) {
-	fprintf(stderr, "-limit must be followed by an integer limit\n");
+	output->log(STDERR, "-limit must be followed by an integer limit\n");
 	exit(NOTESTS);
       }
       testLimit = strtol(argv[++i], NULL, 10);
       if ((0 == testLimit) && (EINVAL == errno)) {
-	fprintf(stderr, "-limit must be followed by an integer limit\n");
+	output->log(STDERR, "-limit must be followed by an integer limit\n");
 	exit(NOTESTS);
       }
     }
@@ -1741,7 +1916,7 @@ int main(unsigned int argc, char *argv[]) {
       // Verify that the following argument exists
       if ( i + 1 >= argc )
 	{
-	  fprintf(stderr, "-humanlog must by followed by a filename\n");
+	  output->log(STDERR, "-humanlog must by followed by a filename\n");
 	  exit(NOTESTS);
 	}
 
@@ -1750,27 +1925,48 @@ int main(unsigned int argc, char *argv[]) {
     } else if (strcmp(argv[i], "-under-runtests") == 0) {
       called_from_runTests = true;
     }
-    else if ( strcmp(argv[i], "-help") == 0)
-      {
-	printf("Usage: %s [-skipTo <test_num>] [-humanlog filename] [-verbose]\n", argv[0]);
-	printf("       [-log] [-test <name> ...]\n", argv[0]);
-	exit(SUCCESS);
-      } else if (strcmp(argv[i], "-fast") == 0) {
-	fastAndLoose = true;
-      }
+    else if ( strcmp(argv[i], "-help") == 0) {
+      output->log(STDOUT, "Usage: %s [-skipTo <test_num>] [-humanlog filename] [-verbose]\n", argv[0]);
+      output->log(STDOUT, "       [-log] [-test <name> ...]\n", argv[0]);
+      exit(SUCCESS);
+    }
+    else if (strcmp(argv[i], "-fast") == 0) {
+      fastAndLoose = true;
+    }
     else if (strcmp(argv[i], "-print-labels") == 0) {
       printLabels = true;
     }
+    else if (strcmp(argv[i], "-pidfile") == 0) {
+      char *pidFilename = NULL;
+      if (i + 1 >= argc) {
+	output->log(STDERR, "-pidfile must be followed by a filename\n");
+	exit(NOTESTS);
+      }
+      i += 1;
+      pidFilename = argv[i];
+      setPIDFilename(pidFilename);
+    }
+    else if (strcmp(argv[i], "-dboutput") == 0) {
+      // TODO Try to load DatabaseOutputDriver library
+      TestOutputDriver *newoutput = loadOutputDriver("DatabaseOutputDriver");
+      if (newoutput != NULL) {
+	if (output != NULL) {
+	  delete output;
+	}
+	output = newoutput;
+      }
+    }
     else
       {
-	printf("Unrecognized option: '%s'\n", argv[i]);
+	output->log(STDOUT, "Unrecognized option: '%s'\n", argv[i]);
 	exit(NOTESTS);
       }
   }
 
   // Set up mutatees
   std::vector<RunGroup *> tests;
-  initialize_mutatees(*&tests);
+  initialize_mutatees(*&tests);  // Fill in tests vector with lists of tests
+                                 // to run
 
   // Set the script dir if we require scripts
   if ( enableLogging )
@@ -1782,7 +1978,7 @@ int main(unsigned int argc, char *argv[]) {
   if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
     outlog = fopen(logfilename, "a");
     if (NULL == outlog) {
-      fprintf(stderr, "Error opening log file '%s'\n", logfilename);
+      output->log(STDERR, "Error opening log file '%s'\n", logfilename);
       exit(NOTESTS);
     }
     errlog = outlog;
@@ -1795,12 +1991,23 @@ int main(unsigned int argc, char *argv[]) {
   setOutputLogFilename(logfilename);
   setErrorLogFilename(logfilename);
 
+  if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+    output->redirectStream(LOGINFO, logfilename);
+    output->redirectStream(LOGERR, logfilename);
+  }
+  if (useHumanLog) {
+    output->redirectStream(HUMAN, humanlog_name);
+  } else {
+    output->redirectStream(HUMAN, NULL);
+  }
+  // I don't think I need to redirect stdout and stderr
+
   if (test_list.empty()) {
-    logstatus("WARNING: No tests specified\n");
+    output->log(LOGINFO, "WARNING: No tests specified\n");
   }
 
   if (mutatee_list.empty()) {
-    logstatus("WARNING: No mutatees specified\n");
+    output->log(LOGINFO, "WARNING: No mutatees specified\n");
   }
 
   // Set the resume log name
@@ -1814,7 +2021,6 @@ int main(unsigned int argc, char *argv[]) {
 
   // Set the initial test to the value in the resume log
   if ( useResume ) {
-    //fprintf(stderr, "Calling getResumeLog()\n"); /*DEBUG*/
     getResumeLog(*&tests, !quietFormat);
   }
 
@@ -1826,7 +2032,7 @@ int main(unsigned int argc, char *argv[]) {
     strncpy(libRTname, temp, len);
     libRTname[len] = '\0';
   } else {
-    fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
+    output->log(STDERR, "Environment variable DYNINSTAPI_RT_LIB undefined:\n"
 #if defined(i386_unknown_nt4_0)
 	    "    using standard search strategy for libdyninstAPI_RT.dll\n");
 #else
@@ -1843,8 +2049,8 @@ int main(unsigned int argc, char *argv[]) {
     strncpy(libRTname_m_abi, temp, len);
     libRTname_m_abi[len] = '\0';
   } else {
-    fprintf(stderr,"Warning: Environment variable DYNINSTAPI_RT_LIB_MABI undefined:\n"
-	    "32 mutatees will not run\n");
+    output->log(STDERR, "Warning: Environment variable DYNINSTAPI_RT_LIB_MABI undefined:\n"
+	    "32 bit mutatees will not run\n");
   }
 #endif
 

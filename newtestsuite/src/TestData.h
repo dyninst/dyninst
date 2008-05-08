@@ -28,7 +28,7 @@ enum cleanup_mode_t {
    // The test contains it's own cleanup code
    NONE,
 };
-      
+
 enum enabled_t {
    DISABLED = 0,
    ENABLED = 1,

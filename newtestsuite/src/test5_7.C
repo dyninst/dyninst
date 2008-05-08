@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_7.C,v 1.1 2007/09/24 16:40:11 cooksey Exp $
+// $Id: test5_7.C,v 1.2 2008/05/08 20:54:48 cooksey Exp $
 /*
  * #Name: test5_7
  * #Desc: Template
@@ -90,7 +90,6 @@ test_results_t test5_7_Mutator::preExecution() {
    BPatch_variableExpr *content7_1;
    BPatch_variableExpr *content7_2;
 
-   //fprintf(stderr, "[%s:%u] - index = %d, bound = %d\n", __FILE__, __LINE__, index, bound); /*DEBUG*/
    while (index < bound) {
      if ((func = (*point7_1)[index]->getCalledFunction()) == NULL) {
         logerror("**Failed** test #7 (template)\n");
@@ -99,10 +98,7 @@ test_results_t test5_7_Mutator::preExecution() {
      }
 
      char fn[256];
-     func->getName(fn, 256); /*DEBUG*/
-     //fprintf(stderr, "[%s:%u] - call to function '%s' found\n", __FILE__, __LINE__, fn); /*DEBUG*/
      if (!strcmp("sample_template<int>::content", func->getName(fn, 256))) {
-       //fprintf(stderr, "[%s:%u] - found sample_template<int>::content() call\n", __FILE__, __LINE__); /*DEBUG*/
          BPatch_Vector<BPatch_point *> *point7_2 = func->findPoint(BPatch_entry);
          assert(point7_2);
 
@@ -114,7 +110,6 @@ test_results_t test5_7_Mutator::preExecution() {
          }
          flag++;
      } else if (!strcmp("sample_template<char>::content", func->getName(fn, 256))) {
-       //fprintf(stderr, "[%s:%u] - found sample_template<char>::content() call\n", __FILE__, __LINE__); /*DEBUG*/
        BPatch_Vector<BPatch_point *> *point7_3 = func->findPoint(BPatch_entry);
        assert(point7_3);
 
@@ -177,7 +172,6 @@ test_results_t test5_7_Mutator::preExecution() {
    return PASSED;
 #else
    // Test skipped on unsupported platforms
-   fprintf(stderr, "[%s:%u] - skipping test\n", __FILE__, __LINE__); /*DEBUG*/
    return SKIPPED;
 #endif
 }

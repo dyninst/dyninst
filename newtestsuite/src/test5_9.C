@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_9.C,v 1.1 2007/09/24 16:40:15 cooksey Exp $
+// $Id: test5_9.C,v 1.2 2008/05/08 20:54:51 cooksey Exp $
 /*
  * #Name: test5_9
  * #Desc: Derivation
@@ -118,7 +118,6 @@ test_results_t test5_9_Mutator::preExecution() {
 
    int index = 0;
    while ( index < fields->size() ) {
-     //fprintf(stderr, "[%s:%u] - field #%d: '%s'\n", __FILE__, __LINE__, index, (*fields)[index]->getName()); /*DEBUG*/
        if ( !strcmp("call_cpp", (*fields)[index]->getName()) ||
            !strcmp("cpp_test_util::call_cpp", (*fields)[index]->getName())) {
           found = true;

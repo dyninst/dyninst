@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_6.C,v 1.1 2007/09/24 16:39:26 cooksey Exp $
+// $Id: test2_6.C,v 1.2 2008/05/08 20:54:26 cooksey Exp $
 /*
  * #Name: test2_6
  * #Desc: Load a dynamically linked library from the mutatee
@@ -118,41 +118,10 @@ test_results_t test2_6_Mutator::execute() {
 
 // extern "C" TEST_DLL_EXPORT int test2_6_mutatorMAIN(ParameterDict &param)
 test_results_t test2_6_Mutator::setup(ParameterDict &param) {
-
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(mips_sgi_irix6_4) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(rs6000_ibm_aix4_1) \
- && !defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-
-    logerror("Skipping test #6 (load a dynamically linked library from the mutatee)\n");
-    logerror("    feature not implemented on this platform\n");
-    return SKIPPED;
-#else
-
-    bool useAttach = param["useAttach"]->getInt();
+  test_results_t retval = TestMutator::setup(param);
+  if (PASSED == retval) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
+  }
 
-    appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-    // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
-
-    // Get log file pointers
-//     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//     setOutputLog(outlog);
-//     setErrorLog(errlog);
-
-    // Signal the child that we've attached
-    if (useAttach) {
-	signalAttached(appThread, appImage);
-    }
-
-    // This calls the actual test to instrument the mutatee
-    return PASSED;
-#endif
+  return retval;
 }

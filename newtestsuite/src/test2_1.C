@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_1.C,v 1.1 2007/09/24 16:39:10 cooksey Exp $
+// $Id: test2_1.C,v 1.2 2008/05/08 20:54:24 cooksey Exp $
 /*
  * #Name: test2_1
  * #Desc: Run an executable that does not exist
@@ -78,15 +78,12 @@ extern "C" TEST_DLL_EXPORT TestMutator *test2_1_factory() {
 // static int mutatorTest(BPatch *bpatch, bool useAttach)
 test_results_t test2_1_Mutator::execute() {
 
-  fprintf(stderr, "[%s:%u] - in test2_1_Mutator::execute()\n", __FILE__, __LINE__); /*DEBUG*/
-   
     if (useAttach) {
 	logerror("Skipping test #1 (run an executable that does not exist)\n");
 	logerror("    not relevant with -attach option\n");
         return SKIPPED;
     } else {
 	// try to run a program that does not exist
-        
         clearError();
 	BPatch_thread *ret = startMutateeTest(bpatch, "./noSuchFile", "test2_1", useAttach, NULL, NULL);
         bool gotError = getError();
@@ -108,12 +105,6 @@ test_results_t test2_1_Mutator::execute() {
 test_results_t test2_1_Mutator::setup(ParameterDict &param) {
   useAttach = param["useAttach"]->getInt();
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
-  
-  // Get log file pointers
-//   FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//   FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//   setOutputLog(outlog);
-//   setErrorLog(errlog);
 
   if (useAttach) {
     logerror("Skipping test #1 (run an executable that does not exist)\n");

@@ -39,23 +39,50 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_soExecution.C,v 1.1 2007/09/24 16:40:57 cooksey Exp $
+// $Id: test_lib_soExecution.C,v 1.2 2008/05/08 20:55:16 cooksey Exp $
 
+#include <sstream>
+
+#include <dlfcn.h>
 #include <stdio.h>
 
 #include "test_lib.h"
 #include "ParameterDict.h"
-#include "dlfcn.h"
 
+#include "TestOutputDriver.h"
 #include "TestMutator.h"
 #include "test_info_new.h"
+
+TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname) {
+  std::stringstream fname;
+  fname << odname << ".so";
+
+  void *odhandle = dlopen(fname.str().c_str(), RTLD_NOW);
+  if (NULL == odhandle) {
+    fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, dlerror());
+    return NULL;
+  }
+
+  TestOutputDriver *(*factory)();
+  dlerror();
+  factory = (TestOutputDriver *(*)()) dlsym(odhandle, "outputDriver_factory");
+  char *errmsg = dlerror();
+  if (errmsg != NULL) {
+    // TODO Handle error
+    fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, errmsg);
+    return NULL;
+  }
+
+  TestOutputDriver *retval = factory();
+
+  return retval; // FIXME Return the correct value
+}
 
 bool getMutatorsForRunGroup(RunGroup *group,
 			    std::vector<TestInfo *> &group_tests)
 {
   for (int i = 0; i < group->tests.size(); i++) {
     if (false == group->tests[i]->enabled) {
-      //fprintf(stderr, "[%s:%u] - Skipping disabled test '%s'\n", __FILE__, __LINE__, group->tests[i]->name); /*DEBUG*/
       // Skip disabled tests
       continue;
     }
@@ -68,7 +95,6 @@ bool getMutatorsForRunGroup(RunGroup *group,
 #else
     TestInfo *test = group->tests[i];
     const char *soname = test->soname;
-    //fprintf(stderr, "[%s:%u] - Searching for library '%s'\n", __FILE__, __LINE__, soname); /*DEBUG*/
     fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), soname);
 #endif
     if (!fullSoPath) {
@@ -103,12 +129,10 @@ bool getMutatorsForRunGroup(RunGroup *group,
       fprintf(stderr, "Error creating new TestMutator for test %s\n",
 	      test->name);
     } else {
-      //fprintf(stderr, "[%s:%u] - found mutator, adding it to list\n", __FILE__, __LINE__); /*DEBUG*/
       test->mutator = mutator;
       group_tests.push_back(test);
     }
   }
-  //fprintf(stderr, "[%s:%u] - returning successfully from getMutatorsForRunGroup\n", __FILE__, __LINE__); /*DEBUG*/
   return false; // No error
 } // getMutatorsForRunGroup
 

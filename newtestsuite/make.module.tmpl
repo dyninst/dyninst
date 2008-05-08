@@ -59,7 +59,7 @@ COMPILER2_NATIVE_CXX = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CXX))
 COMPILER_NATIVE_CXX = $(subst $(RPAREN),_,$(COMPILER2_NATIVE_CXX))
 MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
 
-TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs_new
+TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs_new2
 LIB_DEST = $(TO_CORE)/$(LIBRARY_DEST)
 
 #######################################################################
@@ -87,7 +87,9 @@ SRCS_LIBTESTSUITE = test_lib.C \
                     ParameterDict.C \
                     Callbacks.C \
                     TestData.C \
-                    TestMutator.C
+                    TestMutator.C \
+                    TestOutputDriver.C \
+                    StdOutputDriver.C
 
 SRCS_TEMPLATES = test_driver_templates.C 
 
@@ -100,20 +102,88 @@ else
 LIBTESTSUITE = libtestSuite.so
 endif
 
+
+######################################################################
+### Main target
+######################################################################
+
+all: testlibs mutators mutatees drivers
+
+
+######################################################################
+###  Generate and include automatically generated sub-makefiles
+######################################################################
+
+# These rules should build the specification-generated files if necessary
+#TO_SPEC = ../src/specification
+#TO_SRC ?= ../src
+
+#PROLOG_STRING := $(shell which gprolog)
+#PROLOG_FOUND := $(findstring /gprolog,$(PROLOG_STRING))
+#ifeq ($(PROLOG_FOUND),/gprolog)
+# We found prolog, so we'll deal with it
+#PROLOG_FILES = spec.pl test.pl util.pl
+
+#$(PROLOG_FILES): %: $(TO_SPEC)/%
+#	cp -f $(TO_SPEC)/$* .
+
+#tuples: $(PROLOG_FILES)
+#	gprolog --entry-goal "['spec.pl']" \
+#		--entry-goal "test_init('$(PLATFORM)')" \
+#		--entry-goal "write_tuples('tuples', '$(PLATFORM)')" \
+#		--entry-goal "halt"
+#else
+#PROLOG_FILES =
+#endif
+
+#PYTHON_STRING :=$(shell which python)
+#PYTHON_FOUND :=$(findstring /python,$(PYTHON_STRING))
+#ifeq ($(PYTHON_FOUND),/python)
+#PYTHON_FILES =$(TO_SPEC)/makemake.py $(TO_SPEC)/tuples.py
+#.PHONY: gen
+#gen: make.mutators.gen make.solo_mutatee.gen test_info_new.gen.C
+
+#make.mutators.gen: $(PYTHON_FILES) tuples
+#	python -c "import sys; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_mutators_gen('make.mutators.gen', 'tuples')"
+
+#make.solo_mutatee.gen: $(PYTHON_FILES) tuples
+#	python -c "import sys; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_make_solo_mutatee_gen('make.solo_mutatee.gen', 'tuples')"
+
+# Generate the lists of tests to run in test_info_new.gen.C
+#test_info_new.gen.C: $(PYTHON_FILES) tuples
+#	python -c "import sys; sys.path.append('$(TO_SPEC)'); import makemake; makemake.write_test_info_new_gen('test_info_new.gen.C', 'tuples')"
+
+#else
+#PYTHON_FILES =
+#endif
+
+include make.solo_mutatee.gen
+
+mutatees: $(SOLO_MUTATEES)
+
+# test_info_new.gen.o is special-cased because it makes use of the
+# COMPILER_CONTROL_DEFS to determine which mutatees to enable for compilers
+# that are not present at all sites.
+test_info_new.gen.o: test_info_new.gen.C
+	$(CXX) -c -o $@ $(CXXFLAGS) $(COMPILER_CONTROL_DEFS) -I../src/ test_info_new.gen.C
+
+# FIXME The following rule is temporary
+# all: solo_mutatees
+
 #######################################################################
 ###  A list of all the targets we're building, for install purposes
 #######################################################################
 
 ALL_TARGETS			= $(MUTATORS_SO)
-# ALL_TARGETS                     += $(MUTATEES_GCC) $(MUTATEES_GXX)
+ALL_TARGETS			+= $(SOLO_MUTATEES)
 ALL_TARGETS			+= $(TESTLIBS)
-#ALL_TARGETS			+= libTest12.so
+ALL_TARGETS			+= libTest12.so
 #ALL_TARGETS			+= test11
 ALL_TARGETS                     += runTests
 ALL_TARGETS                     += test_driver
 
 ALL_TARGETS_DEST		= $(addprefix $(TEST_DEST)/,$(ALL_TARGETS))
-LIBTESTSUITE_DEST               = $(addprefix $(LIB_DEST)/,$(LIBTESTSUITE))
+LIBTESTSUITE_DEST               = $(addprefix $(TEST_DEST)/,$(LIBTESTSUITE))
 
 #######################################################################
 ###  Some pattern rules
@@ -123,52 +193,43 @@ CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
 #CXXTFLAGS += -fimplicit-templates
 
 #%_$(NATIVE_CC).o : %.c
-#	echo zzrule 1zz
 #	$(NATIVE_CC) -c $< $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -o $@
 #%_$(NATIVE_CXX).o : %.c
-#	echo zzrule 2zz
 #	$(NATIVE_CXX) -c $< $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -o $@
 
 #%_gcc.o: %.c
-#	echo zzrule 3zz
 #	$(M_GCC) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@
 #%_g++.o: %.c 
-#	echo zzrule 4zz
 #	$(M_GXX) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 #%_g++.o: %.C 
-#	echo zzrule 5zz
 #	$(M_GXX) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 
 #ifdef M_ABI
 #%_gcc_$(M_ABI).o: %.c
-#	echo zzrule 6zz
 #	$(M_GCC) $(M_ABI_FLAG) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@
 #%_g++_$(M_ABI).o: %.c
-#	echo zzrule 7zz
 #	$(M_GXX) $(M_ABI_FLAG) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 #%_g++_$(M_ABI).o: %.C
-#	echo zzrule 8zz
 #	$(M_GXX) $(M_ABI_FLAG) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 #endif
 
 #.C.o:
-#	echo zzrule 9zz
 #	$(CXX) -c $< $(CXXFLAGS) $(MUTATOR_CXXFLAGS) -o $@
 
-$(TEST_DEST)/%: %
+$(TEST_DEST)/%: % $(TEST_DEST)
 	echo Skipping test copy
 #	-$(CP) $< $(TEST_DEST)
 #	-$(CHMOD) 750 $(TEST_DEST)/$<
 
-$(LIB_DEST)/%: %
+$(LIB_DEST)/%: % $(LIB_DEST)
 	echo Skipping lib copy
 #	-$(CP) $< $(LIB_DEST)
 #	-$(CHMOD) 750 $(LIB_DEST)/$<
 
-$(TEST_DEST_LN)/%: %
+$(TEST_DEST_LN)/%: % $(TEST_DEST)
 	-$(LN) $< $(TEST_DEST)
 
-$(LIB_DEST_LN)/%: %
+$(LIB_DEST_LN)/%: % $(LIB_DEST)
 	-$(LN) $< $(LIB_DEST)
 
 
@@ -181,11 +242,9 @@ MUTATOR_SO_LDFLAGS = $(filter-out -liberty, $(MUTATOR_LDFLAGS))
 
 
 # all: testlibs mutators mutatees drivers
-all: testlibs mutators drivers
 # See also an addition to the 'all' rule at the end of the file
 
-### Automatically generated variables; generated by makegen.py
-# TODO Have makegen.py create this file
+### Automatically generated variables; generated by makemake.py
 include make.mutators.gen
 
 echo:
@@ -195,11 +254,20 @@ echo:
         echo "MUTATORS = $(MUTATORS)" ; \
 	echo "MUTATEES_GCC_ABI = $(MUTATEES_GCC_ABI)"
 
-# *DEBUG* install disabled for now
-#install: $(TEST_DEST) $(ALL_TARGETS_DEST) $(LIB_DEST) $(LIBTESTSUITE_DEST)
-#	@echo "install completed"
-install:
-	@echo "install skipped"
+# FIXME The snippet of shell code in the info message probably won't work on
+# Windows
+install: $(TEST_DEST) $(ALL_TARGETS_DEST) $(LIB_DEST) $(LIBTESTSUITE_DEST)
+	@echo
+	@echo "**********************************************************************"
+	@echo "*** IMPORTANT:"
+	@echo "***"
+	@echo "*** To run the new test suite, you must ensure that the current"
+	@echo "*** directory ('.') occurs in your library path before"
+	@echo "***" $(shell cd $(LIB_DEST);pwd)
+	@echo "***"
+	@echo "**********************************************************************"
+	@echo
+	@echo "install completed"
 
 symlink: $(TEST_DEST) $(LIBTESTSUITE_DEST) $(ALL_TARGETS)
 	@for i in $(ALL_TARGETS); do \
@@ -214,8 +282,8 @@ symlink: $(TEST_DEST) $(LIBTESTSUITE_DEST) $(ALL_TARGETS)
 clean: clean_solo_mutatees
 	$(RM) *.da *.bb. *.bbg 
 	$(RM) $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) test_driver runTests libTest12.so
-	$(RM) $(MUTATORS_SO) $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI) $(MUTATEES_G77) $(MUTATEES_GXX_ONLY)
-	$(RM) *.o $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_OMP) $(MUTATEES_NATIVE_CXX_ONLY)
+	$(RM) $(MUTATORS_SO)
+	$(RM) *.o
 	$(RM) test11
 	$(RM) imagefile
 	$(RM) core core.*
@@ -230,7 +298,7 @@ distclean: clean
          fi
 
 specclean:
-	$(RM) *.gen *.pl tuples
+	$(RM) *.gen *.pl tuples test_info_new.gen.C
 
 ifdef M_ABI
 $(CALL35_1_OBJ_ABI): $(CALL35_1_SRC_ABI)
@@ -239,9 +307,9 @@ endif
 
 
 #mutators: $(MUTATORS_SO) test11
-mutatees: gnu_mutatees native_mutatees
-gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
-native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_OMP) $(MUTATEES_NATIVE_CXX_ONLY)
+# mutatees: gnu_mutatees native_mutatees
+# gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
+# native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_OMP) $(MUTATEES_NATIVE_CXX_ONLY)
 testlibs: $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE) libTest12.so
 
 drivers: test_driver runTests
@@ -533,9 +601,9 @@ $(OBJS_ALL_MUTATORS): %.o : %.C $(DEPENDDIR)/%.dep
 # Generic build rule for generated files.  I'm not real happy with this, but
 # I certainly don't want to put them in the main source directory, and we need
 # to find them somehow.
-%.gen.o: %.gen.C
-	echo "***%.gen.o***"
-	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ $*.gen.C
+# %.gen.o: %.gen.C
+# 	echo "***%.gen.o***"
+# 	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ $*.gen.C
 
 MUTATEE_DEFS := -Dgnu_cc=_gcc -Dgnu_cxx=_g++
 
@@ -578,8 +646,8 @@ test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(LIBTESTSUITE_DEST) $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o $(MUTATOR_LDFLAGS) $(LIBS) 
+test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o $(MUTATOR_LDFLAGS) $(LIBS)
 
 #$(MUTATORS_SO): test%.so : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep $(LIBTESTSUITE)
 #	echo "*** Building mutator $<"
@@ -589,6 +657,24 @@ test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(LIBTEST
 #	$(STRIP_SO) $@
 #endif
 #endif
+
+
+######################################################################
+### Output Drivers
+######################################################################
+
+DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOutputDriver.dep
+	@echo "***Using DatabaseOutputDriver rule***"
+	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../../../mysql-$(PLATFORM)/include ../src/$*.C
+
+DatabaseOutputDriver.so: DatabaseOutputDriver.o # $(DEPENDDIR)/DatabaseOutputDriver.dep
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -L../../../mysql-$(PLATFORM)/lib -lmysqlclient -lz
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
 
 #######################################################################
 ###  Depends
@@ -643,9 +729,11 @@ $(DEPENDDIR)/test_driver_static.dep: test_driver.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) -DSTATIC_TEST_DRIVER $(DEPENDFLAGS) $*.o > $@
 
-$(DEPS_MUTATORS): $(DEPENDDIR)/%.dep : %.C 
+# FIXME Change the -I...mysql stuff to something more general
+$(DEPS_MUTATORS): $(DEPENDDIR)/%.dep : %.C
+	@echo "***Using deps_mutators rule***"
 	@mkdir -p $(DEPENDDIR)
-	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) -I../../../mysql-$(PLATFORM)/include $(DEPENDFLAGS) $*.o > $@
 
 $(DEPS_MUTATEES_GCC): $(DEPENDDIR)/test%.mutatee_gcc.dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
@@ -729,56 +817,3 @@ endif
 endif
 endif
 endif
-
-
-######################################################################
-# Generate and include automatically generated sub-makefiles
-######################################################################
-
-# These rules should build the specification-generated files if necessary
-TO_SPEC = ../src/specification
-TO_SRC ?= ../src
-
-PROLOG_STRING := $(shell which gprolog)
-PROLOG_FOUND := $(findstring /gprolog,$(PROLOG_STRING))
-
-ifeq ($(PROLOG_FOUND),/gprolog)
-# We found prolog, so we'll deal with it
-PROLOG_FILES = spec.pl test.pl util.pl
-
-$(PROLOG_FILES): %: $(TO_SPEC)/%
-	cp -f $(TO_SPEC)/$* .
-
-tuples: $(PROLOG_FILES)
-	gprolog --entry-goal "['spec.pl']" \
-		--entry-goal "test_init('$(PLATFORM)')" \
-		--entry-goal "write_tuples('tuples', '$(PLATFORM)')" \
-		--entry-goal "halt"
-else
-PROLOG_FILES =
-endif
-
-PYTHON_FILES = $(TO_SPEC)/makemake.py $(TO_SPEC)/tuples.py
-
-PYTHONPATH += $(TO_SPEC)
-
-.PHONY: gen
-gen: make.mutators.gen make.solo_mutatee.gen test_info_new.gen.C
-
-make.mutators.gen: $(PYTHON_FILES) tuples
-	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_make_mutators_gen('make.mutators.gen', 'tuples')"
-
-make.solo_mutatee.gen: $(PYTHON_FILES) tuples
-	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_make_solo_mutatee_gen('make.solo_mutatee.gen', 'tuples')"
-
-include make.solo_mutatee.gen
-
-# FIXME The following rule is temporary
-all: solo_mutatees
-
-# Generate the lists of tests to run in src/test_info_new.gen.C
-test_info_new.gen.C: $(PYTHON_FILES) tuples
-	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_test_info_new_gen('test_info_new.gen.C', 'tuples')"
-
-#$(TO_SRC)/solo_mutatee_init.gen.c: $(PYTHON_FILES) tuples
-#	env PYTHONPATH=$(PYTHONPATH) python -c "import makemake; makemake.write_solo_mutatee_init_gen('$(TO_SRC)/solo_mutatee_init.gen.c', 'tuples')"

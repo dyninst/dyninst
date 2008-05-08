@@ -67,6 +67,7 @@
 
 #include "test_results.h"
 #include "TestMutator.h"
+#include "TestOutputDriver.h"
 
 #define RETURNONFAIL(x) if ( x < 0 ) return FAILED;
 #define RETURNONNULL(x) if ( x == NULL ) return FAILED;
@@ -94,6 +95,12 @@ TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage,
 
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 
+// New logging system
+/* TESTLIB_DLL_EXPORT (?) */ extern TestOutputDriver *output;
+// loadOutputDriver loads an output driver plug-in and returns a pointer to
+// the output driver implemented by it.
+TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname);
+
 // Set up the log files for test library output
 TESTLIB_DLL_EXPORT void setOutputLog(FILE *log_fp);
 TESTLIB_DLL_EXPORT void setErrorLog(FILE *log_fp);
@@ -104,10 +111,29 @@ TESTLIB_DLL_EXPORT void setErrorLogFilename(char *log_fn);
 TESTLIB_DLL_EXPORT char *getOutputLogFilename();
 TESTLIB_DLL_EXPORT char *getErrorLogFilename();
 // Functions to print messages to the log files
-TESTLIB_DLL_EXPORT int logstatus(const char *fmt, ...);
-TESTLIB_DLL_EXPORT int logerror(const char *fmt, ...);
+TESTLIB_DLL_EXPORT void logstatus(const char *fmt, ...);
+TESTLIB_DLL_EXPORT void logerror(const char *fmt, ...);
 TESTLIB_DLL_EXPORT void flushOutputLog();
 TESTLIB_DLL_EXPORT void flushErrorLog();
+
+// Functions used for redirecting output e.g. to a temp file for entering into
+// the database after running a test
+TESTLIB_DLL_EXPORT int printout(char *fmt, ...);
+TESTLIB_DLL_EXPORT int printerr(char *fmt, ...);
+TESTLIB_DLL_EXPORT int printhuman(char *fmt, ...);
+
+// Functions related to database output
+TESTLIB_DLL_EXPORT void enableDBLog(TestInfo *test, RunGroup *runGroup);
+TESTLIB_DLL_EXPORT void clearDBLog();
+
+
+// Mutatee PID registration, for cleaning up hung mutatees
+// TODO Check if these make any sense on Windows.  I suspect I'll need to
+// change them.
+void setPIDFilename(char *pfn);
+char *getPIDFilename();
+void registerPID(int pid);
+
 
 //
 //
@@ -257,9 +283,9 @@ TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestAll(BPatch *bpatch, char *path
 
 TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *mutatee, char *testname, bool useAttach, char *logfilename, char *humanlogname);
 
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint);
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
 
-TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, ProcessList &procList, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint);
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, ProcessList &procList, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
 
 // TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTestSet(BPatch *bpatch, char *pathname, 
 // 				   test_data_t tests[],

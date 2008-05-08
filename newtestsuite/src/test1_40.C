@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_40.C,v 1.1 2007/09/24 16:38:34 cooksey Exp $
+// $Id: test1_40.C,v 1.2 2008/05/08 20:54:21 cooksey Exp $
 /*
  * #Name: test1_40
  * #Desc: Verify that we can monitor call sites
@@ -85,17 +85,30 @@ static BPatch_function *findFunction40(const char *fname,
   return bpfv[0];
 }
 
-static int setVar40(const char *vname, void *addr, BPatch_image *appImage)
+static int setVar40(const char *vname, void *value, BPatch_image *appImage)
 {
    BPatch_variableExpr *v;
-   void *buf = addr;
+   void *buf = value;
    if (NULL == (v = appImage->findVariable(vname))) {
       logerror("**Failed test #40 (monitor call sites)\n");
       logerror("  cannot find variable %s\n", vname);
       return -1;
    }
 
-   if (! v->writeValue(&buf, sizeof(unsigned int),false)) {
+   // Get around endianness on cross address-width mutators.
+   // Note: Can't use reinterpret_cast here.  G++ produces an error:
+   //   reinterpret_cast from `void*' to `unsigned int' loses precision
+   unsigned long longAddr = (unsigned long)(value);
+   unsigned int shortAddr = (unsigned  int)(unsigned int)(value);
+
+   switch (v->getSize()) {
+	case 4: buf = reinterpret_cast<void *>(&shortAddr); break;
+	case 8: buf = reinterpret_cast<void *>(&longAddr);  break;
+	default: assert(0 && "Invalid size of mutatee address variable");
+   }
+
+   // Done silly casting magic.  Write the value.
+   if (! v->writeValue(buf, sizeof(unsigned int),false)) {
       logerror("**Failed test #40 (monitor call sites)\n");
       logerror("  failed to write call site var to mutatee\n");
       return -1;
@@ -112,12 +125,6 @@ static int setVar40(const char *vname, void *addr, BPatch_image *appImage)
 // static int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 // {
 test_results_t test1_40_Mutator::preExecution() {
-
-#if !defined(alpha_dec_osf4_0) \
-   && !defined(ia64_unknown_linux2_4) \
-   && !defined(mips_sgi_irix6_4) \
-   && !defined(os_windows)
-
    const char *monitorFuncName = "test1_40_monitorFunc";
    const char *callSiteAddrVarName = "test1_40_callsite5_addr";
 
@@ -178,9 +185,6 @@ test_results_t test1_40_Mutator::preExecution() {
    }
 
    return PASSED;
-#else // ia64 Linux or Windows
-   return SKIPPED;
-#endif
 }
 
 // External Interface

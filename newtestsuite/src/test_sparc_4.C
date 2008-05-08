@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_9.C,v 1.2 2008/05/08 20:54:28 cooksey Exp $
+// $Id: test_sparc_4.C,v 1.1 2008/05/08 20:55:26 cooksey Exp $
 /*
- * #Name: test2_9
- * #Desc: dump core but do not terminate
+ * #Name: test10_4
+ * #Desc: ?
  * #Dep: 
- * #Arch: (sparc_sun_sunos4_1_3,sparc_sun_solaris2_4)
+ * #Arch: ?
  * #Notes:
  */
 
@@ -54,51 +54,26 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
-#include "Callbacks.h"
 
 #include "TestMutator.h"
-class test2_9_Mutator : public TestMutator {
+
+class test_sparc_4_Mutator : public TestMutator {
 public:
   virtual test_results_t preExecution();
 };
-extern "C" TEST_DLL_EXPORT TestMutator *test2_9_factory() {
-  return new test2_9_Mutator();
+extern "C" TEST_DLL_EXPORT TestMutator *test_sparc_4_factory() {
+  return new test_sparc_4_Mutator();
 }
 
 //
-// Test #9 - dump core but do not terminate
-//	This test dumps the core file from the mutatee process, without having
-//	the process terminate exuection.  It looks for the creation of the file
-//	"mycore" in the current directory.
-//      
-// static int mutatorTest(BPatch_thread *appThread, BPatch_image * /*appImage*/)
-test_results_t test2_9_Mutator::preExecution() {
-    // dump core, but do not terminate.
-    // this doesn't seem to do anything - jkh 7/12/97
-    if (access("mycore", F_OK) == 0) {
-        dprintf("File \"mycore\" exists.  Deleting it.\n");
-	if (unlink("mycore") != 0) {
-	    fprintf(stderr, "Couldn't delete the file \"mycore\".  Exiting.\n");
-	    // Get rid of this exit() call and replace it with something
-	    // that makes more sense
-	    return FAILED;
-	}
-    }
-
-    clearError();
-    appThread->dumpCore("mycore", true); // FIXME deprecated function; also, true should terminate the process(?)
-    bool coreExists = (access("mycore", F_OK) == 0);
-    int gotError = getError();
-    if (gotError || !coreExists) {
-	logerror("**Failed** test #9 (dump core but do not terminate)\n");
-	if (gotError)
-	    logerror("    error reported by dumpCore\n");
-	if (!coreExists)
-	    logerror("    the core file wasn't written\n");
-        return FAILED;
-    } else {
-	unlink("mycore");
-    	logerror("Passed test #9 (dump core but do not terminate)\n");
-        return PASSED;
-    }
+// Start Test Case #4 
+//
+//static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+test_results_t test_sparc_4_Mutator::preExecution() {
+  if (instrumentToCallZeroArg(appThread, appImage, "test_sparc_4_func",
+			      "test_sparc_4_call", 4, "test_sparc_4") != 0) {
+    return FAILED;
+  } else {
+    return PASSED;
+  }
 }

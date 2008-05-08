@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_23.C,v 1.1 2007/09/24 16:37:26 cooksey Exp $
+// $Id: test1_23.C,v 1.2 2008/05/08 20:54:14 cooksey Exp $
 /*
  * #Name: test1_23
  * #Desc: Local Variables
@@ -70,12 +70,6 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_23_factory() {
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
 test_results_t test1_23_Mutator::preExecution() {
-// #if !defined(mips_sgi_irix6_4)
-  if (isMutateeFortran(appImage)) {
-    return SKIPPED;
-  }
-  // if (!mutateeFortran) {
-
   const char *funcName = "test1_23_call1";
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction(funcName, found_funcs, 1)) 
@@ -83,7 +77,7 @@ test_results_t test1_23_Mutator::preExecution() {
     logerror("    Unable to find function %s\n", funcName);
     return FAILED;
   }
-        
+
   if (1 < found_funcs.size()) {
     logerror("%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
 	     __FILE__, __LINE__, found_funcs.size(), funcName);
@@ -96,6 +90,7 @@ test_results_t test1_23_Mutator::preExecution() {
     logerror("  Unable to find point %s - subroutine calls\n", funcName);
     return FAILED;
   }
+
   /* We only want the first one... */
   BPatch_Vector<BPatch_point *> point23_1;
   point23_1.push_back((*point23_calls)[0]);
@@ -136,7 +131,6 @@ test_results_t test1_23_Mutator::preExecution() {
   //BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
     
   appThread->insertSnippet(allParts, point23_1);
-  // }
-// #endif
+
     return PASSED;
 }

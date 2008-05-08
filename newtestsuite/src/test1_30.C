@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_30.C,v 1.1 2007/09/24 16:37:54 cooksey Exp $
+// $Id: test1_30.C,v 1.2 2008/05/08 20:54:17 cooksey Exp $
 /*
  * #Name: test1_30
  * #Desc: Line Information
@@ -81,7 +81,8 @@ test_results_t test1_30_Mutator::preExecution() {
  || defined(ia64_unknown_linux2_4) \
  || defined(i386_unknown_nt4_0) \
  || defined(rs6000_ibm_aix4_1) \
- || defined(alpha_dec_osf4_0)
+ || defined(alpha_dec_osf4_0) \
+ || defined(os_linux) /* Use OS #define instead of platform - Greg */
 
   unsigned long n;
   unsigned long baseAddr,lastAddr;

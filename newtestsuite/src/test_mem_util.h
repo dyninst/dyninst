@@ -85,7 +85,12 @@ extern float dfvars;
 extern double dfvard;
 
 extern void* gettoc();
+#ifdef rs6000_ibm_aix4_1
+/* Had trouble with this one */
+extern void *getsp(int, int, int);
+#else
 extern void* getsp();
+#endif
 
 #ifdef __GNUC__
 #define _inline inline

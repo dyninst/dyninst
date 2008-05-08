@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_24.C,v 1.1 2007/09/24 16:37:28 cooksey Exp $
+// $Id: test1_24.C,v 1.2 2008/05/08 20:54:15 cooksey Exp $
 /*
  * #Name: test1_24
  * #Desc: Mutator Side - Array Variables
@@ -72,8 +72,6 @@ extern "C" TEST_DLL_EXPORT TestMutator *test1_24_factory() {
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // {
 test_results_t test1_24_Mutator::preExecution() {
-// MIPS is no longer supported, so we don't need to test for it
-// #if !defined(mips_sgi_irix6_4)
   if(isMutateeFortran(appImage)) {
     return SKIPPED;
   }
@@ -86,12 +84,11 @@ test_results_t test1_24_Mutator::preExecution() {
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(os_linux) /* Use OS #define instead of platform - Greg */
   return SKIPPED;
 #endif
 
-  // if (!mutateeFortran) {
-  
   //     First verify that we can find function call24_1
       BPatch_Vector<BPatch_function *> bpfv;
       char *fn = "test1_24_call1";
@@ -106,7 +103,7 @@ test_results_t test1_24_Mutator::preExecution() {
       BPatch_Vector<BPatch_point *> *temp = call24_1_func->findPoint(BPatch_subroutine);
       
       //     Then verify that we can find a local variable in call24_1
-      if (!temp) {
+      if (!temp || (temp->size() == 0)) {
             logerror("**Failed** test #24 (array variables)\n");
             logerror("  can't find function %s\n", fn);
             return FAILED;
@@ -121,7 +118,19 @@ test_results_t test1_24_Mutator::preExecution() {
 	BPatch_Vector<BPatch_point *> *point24_2 = call24_1_func->findPoint(BPatch_exit);
 	BPatch_Vector<BPatch_point *> *point24_3 = call24_1_func->findPoint(BPatch_entry);
  
-	assert(point24_1 && point24_2 && point24_3);
+	if (!point24_1 || !point24_2 || !point24_3) {
+	  logerror("**Failed** test #24 (array variables)\n");
+	  if (!point24_1) {
+	    logerror("    can't find subroutine instrumentation point\n");
+	  }
+	  if (!point24_2) {
+	    logerror("    can't find exit instrumentation point\n");
+	  }
+	  if (!point24_3) {
+	    logerror("    can't find entry instrumentation point\n");
+	  }
+	  return FAILED;
+	}
 
         BPatch_variableExpr *lvar;
         BPatch_variableExpr *gvar[10];
@@ -214,37 +223,6 @@ test_results_t test1_24_Mutator::preExecution() {
             BPatch_constExpr(7)), BPatch_constExpr(9)));
       if (!appThread->insertSnippet(assignment10, *point24_1))
          return FAILED;
-  // } // !mutateeFortran
-// #endif // !defined(MIPS)
 
     return PASSED;
 }
-
-// External Interface
-// extern "C" TEST_DLL_EXPORT int test1_24_mutatorMAIN(ParameterDict &param)
-// {
-//     BPatch *bpatch;
-//     bool useAttach = param["useAttach"]->getInt();
-//     bpatch = (BPatch *)(param["bpatch"]->getPtr());
-//     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-//     // Get log file pointers
-//     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//     setOutputLog(outlog);
-//     setErrorLog(errlog);
-
-//     // Read the program's image and get an associated image object
-//     BPatch_image *appImage = appThread->getImage();
-
-//     if ( useAttach )
-//     {
-//       if ( ! signalAttached(appThread, appImage) )
-//          return -1;
-//     }
-
-//     mutateeFortran = isMutateeFortran(appImage);
-
-//     // Run mutator code
-//     return mutatorTest(appThread, appImage);
-// }

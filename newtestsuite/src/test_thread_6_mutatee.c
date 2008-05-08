@@ -34,18 +34,13 @@ int test_thread_6_mutatee() {
    char c = 'T';
 #endif
 
-   /* *DEBUG* */
-   /*fprintf(stderr, "test_thread_6.mutatee: in main()\n"); /* *DEBUG* */
-
    /* initThreads() has an empty function body? */
    initThreads();
-   /* fprintf(stderr, "test13.mutatee: initialized threads\n"); /* *DEBUG* */
 
    for (i=0; i<NTHRD; i++)  {
        threads[i] = spawnNewThread((void *) init_func, (void *) i);
    }
-   /* fprintf(stderr, "test13.mutatee: spawned threads\n"); /* *DEBUG* */
-   
+
    while (!startedall) {
       for (i=0; i<NTHRD; i++) {
          startedall = 1;
@@ -56,7 +51,6 @@ int test_thread_6_mutatee() {
          }
       }
    }
-   /* fprintf(stderr, "test13.mutatee: threads now running\n"); /* *DEBUG* */
 
    /* Hmm..  So in attach mode we create all the threads before waiting for
     * the mutator to attach, but in create mode we (by necessity) create all
@@ -65,32 +59,26 @@ int test_thread_6_mutatee() {
     * I'm going to strip out this attach mode handling and see if it works
     * alright when I let the mutatee driver handle it.
     */
-
+   /* FIXME Remove this cruft */
 #if 0
 #ifndef os_windows
    if (attached_fd) {
-      /* fprintf(stderr, "test13.mutatee: writing to pipe\n"); /* *DEBUG* */
       if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
-         fprintf(stderr, "*ERROR*: Writing to pipe\n");
+         output->log(STDERR, "*ERROR*: Writing to pipe\n");
          exit(-1);
       }
-      /* fprintf(stderr, "test13.mutatee: closing pipe\n"); /* *DEBUG* */
       close(attached_fd);
-      /* fprintf(stderr, "test13.mutatee: closed pipe\n"); /* *DEBUG* */
       while (!checkIfAttached()) {
          usleep(1);
       }
    }
-   /* fprintf(stderr, "test13.mutatee: wrote to pipe\n"); /* *DEBUG* */
 #else
    if (attached_fd)
       while (!checkIfAttached());
 #endif
 #endif
 
-   /* fprintf(stderr, "test13.mutatee: logging status\n"); /* *DEBUG* */
    logstatus("[%s:%d]: stage 1 - all threads created\n", __FILE__, __LINE__);
-   /* fprintf(stderr, "test13.mutatee: logged status\n"); /* *DEBUG* */
    while (proc_current_state == 0) {
      /* Do nothing */
    }

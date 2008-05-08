@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_4.C,v 1.1 2007/09/24 16:40:05 cooksey Exp $
+// $Id: test5_4.C,v 1.2 2008/05/08 20:54:47 cooksey Exp $
 /*
  * #Name: test5_4
  * #Desc: Static Member
@@ -90,10 +90,8 @@ test_results_t test5_4_Mutator::preExecution() {
   int bound = point4_1->size();
   BPatch_Vector<BPatch_variableExpr *> vect4_1;
   
-  //fprintf(stderr, "[%s:%u] - index = %d, bound = %d, vect4_1.size() = %u\n", __FILE__, __LINE__, index, bound, vect4_1.size()); /*DEBUG*/
   while ((index < bound) && (vect4_1.size() < 2)) {
     // Iterating over function calls in static_test::func_cpp()
-    //fprintf(stderr, "[%s:%u] - iterating over function calls in static_test::func_cpp()\n", __FILE__, __LINE__); /*DEBUG*/
     if ((func = (*point4_1)[index]->getCalledFunction()) == NULL) {
       logerror("**Failed** test #4 (static member)\n");
       logerror("    Can't find the invoked function\n");
@@ -102,7 +100,6 @@ test_results_t test5_4_Mutator::preExecution() {
 
     char fn[256];
     if (!strcmp("static_test::call_cpp", func->getName(fn, 256))) {
-      //fprintf(stderr, "[%s:%u] - found static_test::call_cpp()\n", __FILE__, __LINE__); /*DEBUG*/
       BPatch_Vector<BPatch_point *> *point4_2 = func->findPoint(BPatch_exit);
       assert(point4_2);
       
@@ -115,10 +112,7 @@ test_results_t test5_4_Mutator::preExecution() {
 	logerror("  Can't find static variable count\n");
 	return FAILED;
       }
-      //fprintf(stderr, "[%s:%u] - found count variable\n", __FILE__, __LINE__); /*DEBUG*/
       vect4_1.push_back(var4_1);
-    } else {
-      //fprintf(stderr, "[%s:%u] - found function '%s'\n", __FILE__, __LINE__, fn); /*DEBUG*/
     }
 
     index ++;

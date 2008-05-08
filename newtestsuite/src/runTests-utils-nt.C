@@ -6,11 +6,50 @@
 
 using namespace std;
 
-void generateTestString(bool resume, bool useLog, bool staticTests, string &logfile,
-      int testLimit, vector<char *>& child_argv, string& shellString)
+void initPIDFilename(char *buffer, size_t len) {
+  // FIXME Make this produce a name that is more likely to be unique to this
+  // execution of runTests
+  sprintf(buffer, len, "pids.windows");
+}
+
+void cleanupMutatees(char *pidFilename) {
+  // TODO Fill this function in
+}
+
+// SimpleShellEscape:
+// Escapes some characters in the input string 
+string SimpleShellEscape(string &str)
+{
+   string tmp;
+   tmp = ReplaceAllWith(str, "*", "\\*");
+   tmp = ReplaceAllWith(tmp, "?", "\\?");
+   return tmp;
+}
+
+// RunTest:
+// Sets up the command string to run the tests and executes test_driver
+int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+	    string logfile, int testLimit, vector<char *> child_argv,
+	    char *pidFilename) {
+  string shellString;
+
+  generateTestString(iteration > 0, useLog, staticTests, logfile,
+		     testLimit, child_argv, shellString, pidFilename);
+
+  int ret = executeTests(shellString);
+  int ret = system(SimpleShellEscape(shellString).c_str());
+
+  return WEXITSTATUS(ret);
+}
+
+void generateTestString(bool resume, bool useLog, bool staticTests,
+			string &logfile, int testLimit,
+			vector<char *>& child_argv, string& shellString,
+			char *pidFilename)
 {
    stringstream testString;
    testString << "test_driver.exe -under-runtests -enable-resume -limit " << testLimit;
+   testString << " -pidfile " << pidFilename;
 
    if ( resume )
    {
@@ -27,11 +66,6 @@ void generateTestString(bool resume, bool useLog, bool staticTests, string &logf
       testString << " " << child_argv[i];
    }
    
-
-//    if ( useLog )
-//    {
-//       testString << " >> " << logfile << " 2>&1";
-//    }
 
    shellString = testString.str();
 }

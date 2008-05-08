@@ -155,25 +155,6 @@ int test_thread_8_mutatee() {
       }
    }
 
-/* This stuff is handled by the mutatee driver */
-#if 0
-#ifndef os_windows
-   if (attached_fd) {
-      if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
-         fprintf(stderr, "*ERROR*: Writing to pipe\n");
-         exit(-1);
-      }
-      close(attached_fd);
-      logstatus("Waiting for mutator to attach...\n");
-      while (!checkIfAttached()) ;
-      logstatus("Mutator attached.  Mutatee continuing.\n");
-   }
-#else
-   if (attached_fd)
-      while (!checkIfAttached());
-#endif
-#endif
-
    /* give time for workers to run thr_loop */
    while(thr_exits == 0)
       schedYield();

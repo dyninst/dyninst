@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_2.C,v 1.1 2007/09/24 16:39:37 cooksey Exp $
+// $Id: test3_2.C,v 1.2 2008/05/08 20:54:31 cooksey Exp $
 /*
  * #Name: test3_2
  * #Desc: simultaneous multiple-process management - exit
@@ -107,6 +107,8 @@ test_results_t test3_2_Mutator::execute() {
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
+	// Register for mutatee cleanup
+	registerPID(appThread[n]->getProcess()->getPid());
     }
     dprintf("Letting %d mutatee processes run.\n", Mutatees);
     for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
@@ -134,7 +136,6 @@ test_results_t test3_2_Mutator::execute() {
                                 signalNum);
                 }
                 terminated[n]=true;
-		delete appThread[n];
                 numTerminated++;
             }
             else if (!terminated[n] && (appThread[n]->isStopped())) {

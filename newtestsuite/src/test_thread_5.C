@@ -226,11 +226,9 @@ static void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
   last_event[index] = what;
 
   if (what == mutex_destroy) {
-    //fprintf(stderr, "[%s:%u] - Incrementing destroy_counter\n", __FILE__, __LINE__); /*DEBUG*/
      destroy_counter++;
   }
   if (destroy_counter == TEST8_THREADS) {
-    //fprintf(stderr, "[%s:%u] - Resetting destroy_counter\n", __FILE__, __LINE__); /*DEBUG*/
     destroy_counter = 0;
     test8done = true;
   }

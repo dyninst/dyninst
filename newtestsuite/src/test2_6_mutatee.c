@@ -25,7 +25,7 @@ void func1();
 
 /* Function definitions follow */
 
-/* TODO stop_process() should probably be moved into mutatee_util.h */
+/* TODO stop_process() should probably be moved into mutatee_util */
 /*
  * Stop the process (in order to wait for the mutator to finish what it's
  * doing and restart us).
@@ -58,14 +58,14 @@ int test2_6_mutatee() {
 }
 
 void func1() {
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(mips_sgi_irix6_4) \
- || defined(alpha_dec_osf4_0) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(ia64_unknown_linux2_4)
+/* #if defined(sparc_sun_solaris2_4) \ */
+/*  || defined(i386_unknown_solaris2_5) \ */
+/*  || defined(i386_unknown_linux2_0) \ */
+/*  || defined(x86_64_unknown_linux2_4) /\* Blind duplication - Ray *\/ \ */
+/*  || defined(mips_sgi_irix6_4) \ */
+/*  || defined(alpha_dec_osf4_0) \ */
+/*  || defined(rs6000_ibm_aix4_1) \ */
+/*  || defined(ia64_unknown_linux2_4) */
 
     void *ref;
     /* now use the dlopen interface to force an object to load. */
@@ -78,5 +78,5 @@ void func1() {
     if (!ref) {
 	logerror("%s[%d]: %s\n", __FILE__, __LINE__, dlerror() );
     }
-#endif
+/* #endif */
 }
