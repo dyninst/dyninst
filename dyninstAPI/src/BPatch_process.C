@@ -385,9 +385,12 @@ BPatch_process::BPatch_process(process *nProc)
    instp_map = new BPatch_instpMap();
 
    // Create an initial thread
-   dyn_thread *dynthr = llproc->getInitialThread();
-   BPatch_thread *initial_thread = new BPatch_thread(this, dynthr);
-   threads.push_back(initial_thread);
+   for (unsigned i=0; i<llproc->threads.size(); i++) {
+      dyn_thread *dynthr = llproc->threads[i];
+      BPatch_thread *thrd = new BPatch_thread(this, dynthr);
+      threads.push_back(thrd);
+      BPatch::bpatch->registerThreadCreate(this, thrd);
+   }
 
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
@@ -470,7 +473,7 @@ void BPatch_process::BPatch_process_dtor()
  */
 bool BPatch_process::stopExecutionInt()
 {
-    if (isTerminated()) return true;
+    if (statusIsTerminated()) return false;
 
     if (isVisiblyStopped) return true;
 
@@ -504,8 +507,8 @@ bool BPatch_process::stopExecutionInt()
  */
 bool BPatch_process::continueExecutionInt()
 {
-    if (isTerminated()) {
-        return true;
+    if (statusIsTerminated()) {
+        return false;
     }
     
     if (!llproc->reachedBootstrapState(bootstrapped_bs)) {
@@ -628,7 +631,17 @@ bool BPatch_process::statusIsTerminated()
  */
 bool BPatch_process::isTerminatedInt()
 {
+    // USER LEVEL CALL! BPatch_process should use
+    // statusIsTerminated.
+    
+    // This call considers a process terminated if it has reached
+    // or passed the entry to exit. The process may still exist,
+    // but we no longer let the user modify it; hence, terminated.
+
     getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+    if (exitedNormally || exitedViaSignal) return true;
+
     // First see if we've already terminated to avoid 
     // checking process status too often.
     if (reportedExit)
@@ -1225,7 +1238,7 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
        
        for (int j = one_stack.size()-1; j >= 0; j--) {
            // Are we in the "Active" (executing) frame?
-           bool active = (j == (int)(one_stack.size()-1)) ? true : false;
+           bool active = (j == (unsigned)(one_stack.size()-1)) ? true : false;
 
            Frame &frame = one_stack[j];
 
@@ -1895,8 +1908,6 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    return true;
 }
 
-
-
 /* 
  *	this function sets a flag in process that 
  *	forces the collection of data for saveworld.
@@ -2076,28 +2087,10 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
   if (!llproc && proc_) llproc = proc_;
   BPatch_thread *newthr = 
       createOrUpdateBPThread(lwpid, threadid, index, stack_top, start_pc);
-  if (newthr->reported_to_user) {
-     async_printf("%s[%d]:  NOT ISSUING CALLBACK:  thread %lu exists\n", 
-                  FILE__, __LINE__, (long) threadid);
+
+  bool result = BPatch::bpatch->registerThreadCreate(this, newthr);
+  if (!result)
      return newthr;
-  }
-
-  BPatch::bpatch->signalNotificationFD();
-
-  pdvector<CallbackBase *> cbs;
-  getCBManager()->dispenseCallbacksMatching(evtThreadCreate, cbs);
-  
-  for (unsigned int i = 0; i < cbs.size(); ++i) {
-
-     AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
-     async_printf("%s[%d]:  before issuing thread create callback: tid %lu\n", 
-                 FILE__, __LINE__, newthr->getTid());
-     cb(this, newthr);
-  }
-
-  newthr->reported_to_user = true;
-  BPatch::bpatch->mutateeStatusChange = true;
-  llproc->sh->signalEvent(evtThreadCreate);
 
   if (newthr->isDeadOnArrival()) {
     //  thread was created, yes, but it also already exited...  set up and 

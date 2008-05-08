@@ -43,6 +43,9 @@
 #include "LineInformation.h"
 #include "Annotatable.h"
 
+#include <stdarg.h>
+int symtab_printf(const char *format, ...);
+
 typedef struct {} user_funcs_a;
 typedef struct {} user_regions_a;
 typedef struct {} user_types_a;
@@ -140,7 +143,6 @@ class Region {
     bool isLoadable_;
 };
 
- 
 class LookupInterface {
  public:
   	DLLEXPORT LookupInterface();

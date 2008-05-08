@@ -183,6 +183,7 @@ BPatch_Vector<BPatch_field *> *BPatch_type::getComponents() const{
     }
     if(typedeftype)
         return getConstituentType()->getComponents();
+    return NULL;
 }
 
 BPatch_Vector<BPatch_cblock *> *BPatch_type::getCblocks() const {

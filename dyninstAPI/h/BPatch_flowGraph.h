@@ -218,7 +218,7 @@ public:
 
   void dfsPrintLoops(BPatch_loopTreeNode *n);
 
-  void createEdges();
+  void createBackEdges();
   void createLoops();
 
   void dump();

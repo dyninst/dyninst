@@ -189,12 +189,13 @@ public:
     void registerForkingProcess(int forkingPid, process *proc);
 
     void registerExecExit(process *proc);
-    void registerExecEntry(process *proc, char *arg0);
+    void registerExecCleanup(process *proc, char *arg0);
 
     void registerNormalExit(process *proc, int exitcode);
     void registerSignalExit(process *proc, int signalnum);
 
     void registerThreadExit(process *proc, long tid, bool exiting);
+    bool registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr);
 
     void registerProcess(BPatch_process *process, int pid=0);
     void unRegisterProcess(int pid, BPatch_process *proc);

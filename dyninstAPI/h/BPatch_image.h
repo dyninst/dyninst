@@ -54,6 +54,7 @@
 #include "BPatch_process.h"
 #include "BPatch_binaryEdit.h"
 #include "BPatch_parRegion.h"
+#include "dyntypes.h"
 
 #include <vector>
 
@@ -326,6 +327,17 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     //  a list of all such call targets
     API_EXPORT(Int, (), 
     BPatch_Vector<BPatch_point *> *,getUnresolvedControlFlow, ());
+
+
+    //
+    //  Reads a string from the target process
+    API_EXPORT(Int, (addr, str, size_limit),
+               bool, readString,(Dyninst::Address addr, std::string &str, 
+                                 unsigned size_limit = 0));
+
+    API_EXPORT(Int, (expr, str, size_limit),
+               bool, readString,(BPatch_variableExpr *expr, std::string &str, 
+                                 unsigned size_limit = 0));
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Ptr, (name, funcs, showError, regex_case_sensitive, incUninstrumentable),

@@ -103,7 +103,7 @@ void BPatch_edge::BPatch_edgeInt(BPatch_basicBlock *s,
  
 void BPatch_edge::BPatch_edge_dtor()
 {
-    fprintf(stderr,"~BPatch_edge\n");
+    //fprintf(stderr,"~BPatch_edge\n");
 }
 
 

@@ -429,7 +429,7 @@ void BPatch_flowGraph::getLoopsByNestingLevel(BPatch_Vector<BPatch_loop*>& lbb,
 {
    if (!loops) {
       fillDominatorInfo();
-      createEdges();
+      createBackEdges();
       createLoops();
    }
     
@@ -490,12 +490,35 @@ BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 bool BPatch_flowGraph::createBasicBlocks()
 { 
     assert(ll_func());
+    // create blocks from int_basicBlocks
     const std::vector< int_basicBlock* > &iblocks	= ll_func()->blocks();
     for( unsigned int i = 0; i < iblocks.size(); i++ )
     {
        BPatch_basicBlock *newblock = new BPatch_basicBlock(iblocks[i], this);
        allBlocks += newblock;
     }
+
+    // create edges from target & source block lists in int_basicBlock
+    BPatch_Set<BPatch_basicBlock*, BPatch_basicBlock::compare>::iterator 
+        bIter = allBlocks.begin();
+    while(bIter != allBlocks.end()) {
+        pdvector<int_basicBlock *> sourceBlocks, targetBlocks; 
+        (*bIter)->lowlevel_block()->getSources(sourceBlocks);
+        (*bIter)->lowlevel_block()->getTargets(targetBlocks);
+        for (unsigned sidx =0; sidx < sourceBlocks.size(); sidx++) {
+            (*bIter)->incomingEdges.insert
+                (new BPatch_edge((BPatch_basicBlock*)
+                                 (sourceBlocks[sidx]->getHighLevelBlock()), 
+                                 *bIter, this));
+        }
+        for (unsigned tidx =0; tidx < targetBlocks.size(); tidx++) {
+            (*bIter)->outgoingEdges.insert
+                (new BPatch_edge(*bIter, (BPatch_basicBlock*)
+                                 (targetBlocks[tidx]->getHighLevelBlock()), this));
+        }
+        bIter++;
+    }
+
     return true;
 }
 
@@ -596,12 +619,10 @@ void BPatch_flowGraph::fillPostDominatorInfoInt()
   domcfg.calcPostDominators();
 }
 
-
-// Add each back edge in the flow graph to the given set. A back edge
+// Adds each back edge in the flow graph to the given set. A back edge
 // in a flow graph is an edge whose head dominates its tail. 
-void BPatch_flowGraph::createEdges()
+void BPatch_flowGraph::createBackEdges()
 {
-   BPatch_Vector<BPatch_basicBlock *> targs;
    /*
     * Indirect jumps are NOT currently handled correctly
     */
@@ -613,9 +634,9 @@ void BPatch_flowGraph::createEdges()
    for (unsigned i = 0; i < allBlocks.size(); i++) {
       BPatch_basicBlock *source = blks[i];
 
-      targs.clear();
-      source->getTargets(targs);
-      unsigned numTargs = targs.size();
+      BPatch_Vector<BPatch_edge *> outEdges;
+      blks[i]->getOutgoingEdges(outEdges);
+      unsigned numTargs = outEdges.size();
 
       // create edges
 
@@ -626,43 +647,43 @@ void BPatch_flowGraph::createEdges()
       }
 
       if (numTargs == 1) {
-         BPatch_edge *edge;
-         edge = new BPatch_edge(source, targs[0], this);
+         //         BPatch_edge *edge = blks[i]->incomingEdges.find();
+         //         edge = new BPatch_edge(source, targs[0], this);
 
-         targs[0]->incomingEdges += edge;
-         source->outgoingEdges += edge;
+         //         targs[0]->incomingEdges += edge;
+         //         source->outgoingEdges += edge;
 
          //             fprintf(stderr, "t1 %2d %2d\n",source->blockNo(),
          //                     targs[0]->blockNo());
-         if (targs[0]->dominates(source))
-            backEdges += edge;
+         if (outEdges[0]->getTarget()->dominates(source))
+            backEdges += outEdges[0];
       }
       else if (numTargs == 2) {
          //XXX could be an indirect jump with two targets
 
          // conditional jumps create two edges from a block
-         BPatch_edge *edge0 = 
-            new BPatch_edge(source, targs[0], this); 
+         //         BPatch_edge *edge0 = 
+         //            new BPatch_edge(source, targs[0], this); 
 
-         BPatch_edge *edge1 = 
-            new BPatch_edge(source, targs[1], this); 
+         //         BPatch_edge *edge1 = 
+         //            new BPatch_edge(source, targs[1], this); 
 
          //             fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),
          //                     targs[0]->blockNo());
          // 	    fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),
          //                     targs[1]->blockNo());
 
-         source->outgoingEdges += edge0;
-         source->outgoingEdges += edge1;
+         //         source->outgoingEdges += edge0;
+         //         source->outgoingEdges += edge1;
 
-         targs[0]->incomingEdges += edge0;
-         targs[1]->incomingEdges += edge1;
+         //         targs[0]->incomingEdges += edge0;
+         //         targs[1]->incomingEdges += edge1;
 
-         if (targs[0]->dominates(source))
-            backEdges += edge0;
+         if (outEdges[0]->getTarget()->dominates(source))
+            backEdges += outEdges[0];
 
-         if (targs[1]->dominates(source))
-            backEdges += edge1;
+         if (outEdges[1]->getTarget()->dominates(source))
+            backEdges += outEdges[1];
 
          // taken and fall-through edge should not both be back edges
          // 	    if (targs[0]->dominates(source) && targs[1]->dominates(source)) {
@@ -679,17 +700,17 @@ void BPatch_flowGraph::createEdges()
 	// 7 Dec 06, tugrul
 	// create edges for each target even if there are more than two
 	// the last instruction of this block is an indirect jump (such as a switch statement)
-	BPatch_edge *edge;
+        //	BPatch_edge *edge;
 	for(unsigned j=0; j<numTargs; j++) {
 	  // create edge between source and this target
-	  edge = new BPatch_edge(source, targs[j], this);
+          //	  edge = new BPatch_edge(source, targs[j], this);
 	  
-	  targs[j]->incomingEdges += edge;
-	  source->outgoingEdges += edge;
+          //	  targs[j]->incomingEdges += edge;
+          //	  source->outgoingEdges += edge;
 
 	  // update backEdges if target already dominates source
-	  if (targs[j]->dominates(source))
-	    backEdges += edge;
+	  if (outEdges[j]->getTarget()->dominates(source))
+	    backEdges += outEdges[j];
 	}
       }
    }

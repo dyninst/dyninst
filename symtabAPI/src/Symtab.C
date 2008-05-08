@@ -98,9 +98,6 @@ bool generateXMLforExcps(xmlTextWriterPtr &writer, std::vector<ExceptionBlock *>
 bool generateXMLforRelocations(xmlTextWriterPtr &writer, std::vector<relocationEntry> &fbt);
 bool generateXMLforModules(xmlTextWriterPtr &writer, std::vector<Module *> &mods);
 #endif
-#include <stdarg.h>
-int symtab_printf(const char *format, ...);
-
 
 static SymtabError serr;
 
@@ -765,11 +762,10 @@ Module *Symtab::getOrCreateModule(const std::string &modName,
    else
       nameToUse = "DEFAULT_MODULE";
 
-   Module *fm = new Module();
+   Module *fm = NULL;
    if (findModule(fm, nameToUse)) {
         return fm;
     }
-    delete fm;
 
     const char *str = nameToUse.c_str();
     int len = nameToUse.length();
@@ -1021,10 +1017,11 @@ bool Symtab::addSymbolInt(Symbol *newSym,bool from_user,  bool isDynamic)
     }
 #endif
 
-    Module *newMod = getOrCreateModule(newSym->getModuleName(), newSym->getAddr());
-    if(newSym->getModule())
-        delete(newSym->getModule());
+    if( ! newSym->getModule()) {
+        Module *newMod = getOrCreateModule
+            (newSym->getModuleName(), newSym->getAddr());
     newSym->setModule(newMod);
+    }
 
     if (newSym->getAllPrettyNames().size() == 0)
         unmangledName = P_cplus_demangle(sname.c_str(), nativeCompiler,false);
@@ -3931,7 +3928,7 @@ DLLEXPORT Offset Symtab::getFreeOffset(unsigned size)
             newSectionInsertPoint = i+1;
             highWaterMark = end;
         }
-        if ((i < (regions_.size()-1)) &&
+        if ((i < (regions_.size()-2)) &&
                ((end + size) < regions_[i+1]->getRegionAddr())) {
             /*      fprintf(stderr, "Found a hole between sections %d and %d\n",
                     i, i+1);

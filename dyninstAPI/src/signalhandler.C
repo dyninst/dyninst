@@ -210,6 +210,7 @@ bool SignalHandler::notifyBPatchOfStop(EventRecord &ev, bool & /*contHint*/) {
     if (bproc) {
         setBPatchProcessSignal(bproc, ev.what);
         bproc->isVisiblyStopped = true;
+        BPatch::bpatch->signalNotificationFD();
         sg->overrideSyncContinueState(stopRequest);
     }
 

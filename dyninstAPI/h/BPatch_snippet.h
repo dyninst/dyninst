@@ -454,8 +454,10 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet
                         BPatch_point *scp = NULL);
     */
 
+ public:
     BPatch_variableExpr(BPatch_addressSpace *in_addSpace, void *in_address,
                         int in_size);
+ private:
     BPatch_variableExpr(char *in_name, 
                         BPatch_addressSpace *in_addSpace,
                         AstNodePtr *ast_wrapper_,

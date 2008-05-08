@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.116 2008/04/16 17:02:37 roundy Exp $
+// $Id: BPatch_image.C,v 1.117 2008/05/08 21:52:13 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -1017,7 +1017,7 @@ bool BPatch_image::getAddressRangesInt( const char * lineSource,
       return true; 
    }
 
-   fprintf(stderr, "%s[%d]:  getAddressRanges failing\n", FILE__, __LINE__);
+   dwarf_printf("%s[%d]:  getAddressRanges failing\n", FILE__, __LINE__);
    return false;
 } 
 
@@ -1478,4 +1478,117 @@ void BPatch_image::removeModule(BPatch_module *mod)
 #endif
    mod->handleUnload();
 }
+
+bool BPatch_image::readStringInt(BPatch_variableExpr *expr, std::string &str,
+                                 unsigned size_limit)
+{
+   const BPatch_type *type = expr->getType();
+   if (!type) {
+      bperr("String read attempted on variable with no type information");
+      return false;
+   }
+   
+   Address addr = 0x0;
+   if (type->getDataClass() == BPatch_dataPointer) {
+      void *value;
+      expr->readValue(&value);
+      addr = (Address) value;
+   }
+   else if (type->getDataClass() == BPatch_dataArray) {
+      addr = (Address) expr->getBaseAddr();
+   }
+   else {
+      bperr("String read failed on variable with unexpected type");
+      return false;
+   }
+
+   return readString(addr, str, size_limit);
+}
+
+
+bool BPatch_image::readStringInt(Address addr, std::string &str, unsigned size_limit)
+{
+   char *buffer = NULL;
+   unsigned buffer_offset = 0;
+   unsigned buffer_size = 0;
+   bool result;
+   bool should_continue = false;
+
+   BPatch_process *proc = dynamic_cast<BPatch_process *>(getAddressSpace());
+   if (proc && !proc->isStoppedInt()) {
+      should_continue = true;
+      proc->stopExecution();
+   }
+
+   AddressSpace *as = getAddressSpace()->getAS();;
+   assert(as);
+
+   unsigned word_size = as->getAddressWidth();
+   assert(word_size == 4 || word_size == 8);
+   
+   Address start_word = (word_size == 4) ? (addr & ~0x3) : (addr & ~0x7);
+   unsigned start_offset = addr - start_word;
+
+   for (;;) {
+      if (!buffer) {
+         buffer_size = 256;
+         buffer = (char *) malloc(buffer_size);
+         assert(buffer);
+      }
+      if (buffer_offset + word_size + 1 > buffer_size) {
+         buffer_size *= 2;
+         buffer = (char *) realloc(buffer, buffer_size);
+         assert(buffer);
+      }
+
+      result = as->readDataSpace((void *) (start_word + buffer_offset), word_size, 
+                                 buffer + buffer_offset, false);
+      if (!result) {
+         signal_printf("[%s:%u] - ERROR reading address %x for string\n",
+                       FILE__, __LINE__, start_word + buffer_offset);
+         bperr("Error reading from target process");
+         goto done;
+      }
+
+      buffer_offset += word_size;
+
+      if (size_limit && 
+          size_limit < buffer_offset - start_offset) {
+         buffer[size_limit + start_offset] = '\0';
+         signal_printf("[%s:%u] - WARN string read at %x exceeded size limit of %d",
+                       FILE__, __LINE__, addr, size_limit);
+         bpwarn("String read exceeded size limit");
+         break;
+      }
+
+      bool done = false;
+      for (unsigned i=1; i<=word_size; i++) {
+         if (buffer_offset-i < addr-start_word)
+            continue;
+         if (buffer[buffer_offset-i] == '\0') {
+            done = true;
+            break;
+         }
+      }
+      if (done)
+         break;
+   }
+
+   str = buffer + start_offset;
+   result = true;
+
+ done:
+   if (buffer)
+      free(buffer);
+   if (should_continue) {
+      assert(proc);
+      proc->continueExecution();
+   }
+   
+   return result;
+}
+
+
+
+
 

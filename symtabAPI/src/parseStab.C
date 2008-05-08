@@ -971,7 +971,8 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
             if(newType) { newType2 = moduleTypes->addOrUpdateType(newType); }
             if(!newType2) {
                 //bperr(" Can't Allocate new type ");
-                exit(-1);
+                symtab_printf("%s[%d]: parse-cross reference: unable to allocate new type\n", FILE__, __LINE__);
+                //exit(-1);
             } else if(newType2 != newType)
                 newType->decrRefCount();
         }         
@@ -1084,7 +1085,9 @@ static Type *parseArrayDef(Module *mod, const char *name,
                 newType->decrRefCount();
         } else {
             //bperr( " Could not create newType Array\n");
-            exit(-1);
+            symtab_printf("%s[%d]: parse array reference: could not create new type array\n", FILE__, __LINE__);
+            newType2 = NULL;
+            //exit(-1);
         }
     }
 	    
@@ -1499,7 +1502,8 @@ static char *parseRefType(Module *mod, const char *name,
         mod->getModuleTypes()->addOrUpdateType(newType);
     } else {
         //bperr(" Can't Allocate new type ");
-        exit(-1);
+        symtab_printf("%s[%d]: parseRefType: can't allocate new type\n", FILE__, __LINE__);
+        //exit(-1);
     }
     
     return(&(stabstr[cnt]));
@@ -1960,7 +1964,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         if (newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
         if(!newType2) {
             //bpfatal(" Can't Allocate newType ");
-            exit(-1);
+                symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                //exit(-1);
         } else if(newType2 != newType)
             newType->decrRefCount();
     } else if (stabstr[cnt] == '=') {
@@ -1985,7 +1990,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         if(newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
         if(!newType2) {
             //bpfatal(" Can't Allocate newType ");
-            exit(-1);
+                symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                //exit(-1);
         } else if(newType2 != newType)
             newType->decrRefCount();
     }
@@ -2011,7 +2017,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    if(newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
 	    if(!newType2) {
 		//bpfatal(" Can't Allocate new type ");
-		exit(-1);
+                        symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                        //exit(-1);
 	    } else if(newType2 != newType)
             newType->decrRefCount();
 
@@ -2049,7 +2056,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                    }
                    if (!newFunction2) {
                       //bpfatal(" Can't Allocate new type ");
-                      exit(-1);
+                            symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                            //exit(-1);
                    }
                    
                    while ((stabstr[cnt] != '#') &&  (stabstr[cnt])) {
@@ -2080,7 +2088,8 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		if (newType) { newType2 = mod->getModuleTypes()->addOrUpdateType(newType); }
 		if (!newType2) {
 		  //bpfatal(" Can't Allocate new type ");
-		  exit(-1);
+                        symtab_printf("%s[%d]: parseTypeDef: unable to allocate newType\n", FILE__, __LINE__);
+                        //exit(-1);
 		} else if(newType2 != newType)
             newType->decrRefCount();
 

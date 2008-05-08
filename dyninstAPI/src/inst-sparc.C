@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.203 2008/04/14 20:44:24 bernat Exp $
+// $Id: inst-sparc.C,v 1.204 2008/05/08 21:52:24 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -1472,6 +1472,10 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 	    // fp is in dest, just add the offset
 	    instruction::generateImm(gen, ADDop3, dest, offset, dest);
 	}
+    } else if(op == loadRegRelativeAddr) {
+      int offset = (int) src1;
+      instruction::generateLoad(gen, src2, offset, dest);
+      
     } else {
         abort();       // unexpected op for this emit!
     }

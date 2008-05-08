@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.185 2008/04/15 16:42:58 roundy Exp $
+// $Id: BPatch.C,v 1.186 2008/05/08 21:52:09 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1041,16 +1041,19 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
 
 
 /*
- * BPatch::registerExecEntry
+ * BPatch::registerExecCleanup
  *
  * Register a process that has just entered exec
  *
  * Gives us some cleanup time
  */
 
-void BPatch::registerExecEntry(process *p, char *) {
+void BPatch::registerExecCleanup(process *p, char *) {
     BPatch_process *execing = getProcessByPid(p->getPid());
     assert(execing);
+
+    for (unsigned i=0; i<execing->threads.size(); i++)
+       registerThreadExit(p, execing->threads[i]->getTid(), false);
 
     // tell the async that the process went away
     getAsync()->cleanupProc(execing);
@@ -1075,24 +1078,25 @@ void BPatch::registerExecExit(process *proc)
       process->image->removeAllModules();
    process->image = new BPatch_image(process);
 
-   // The async pipe should be gone... handled in registerExecEntry
+   // The async pipe should be gone... handled in registerExecCleanup
 
    signalNotificationFD();
 
-   for (unsigned i=1; i<process->threads.size(); i++)
-     process->threads[i]->deleteThread(false);
-   
-   dyn_thread *dynthr = proc->getInitialThread();
-   process->threads[0]->setDynThread(dynthr);
-   
-   BPatch_thread *initial_thread = new BPatch_thread(process, dynthr);
-   process->threads.push_back(initial_thread);
+   //   for (unsigned i=0; i<process->threads.size(); i++)
+   //   process->deleteBPThread(process->threads[i]);
 
+#if defined(cap_async_events)
+   if (!getAsync()->connectToProcess(process)) {
+      bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+   } 
+   else
+      asyncActive = true;
+#endif
+   process->updateThreadInfo();
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-
         ExecCallback *cb = dynamic_cast<ExecCallback *>(cbs[i]);
         if (cb)
             (*cb)(process->threads[0]);
@@ -1200,13 +1204,43 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    // We now run the process out; set its state to terminated. Really, the user shouldn't
    // try to do anything else with this, but we can get that happening.
    BPatch_process *stillAround = getProcessByPid(pid);
-   if (stillAround)
-       stillAround->terminated = true;
+   if (stillAround) {
+      stillAround->reportedExit = true;
+      stillAround->terminated = true;
+   }
 
    // We need to clean this up... but the user still has pointers
    // into this code. Ugh.
    // Do not continue at this point; process is already gone.
 
+}
+
+bool BPatch::registerThreadCreate(BPatch_process *proc, BPatch_thread *newthr)
+{
+   if (newthr->reported_to_user) {
+      async_printf("%s[%d]:  NOT ISSUING CALLBACK:  thread %lu exists\n", 
+                   FILE__, __LINE__, (long) newthr->getTid());
+      return false;
+   }
+
+   signalNotificationFD();
+
+   pdvector<CallbackBase *> cbs;
+   getCBManager()->dispenseCallbacksMatching(evtThreadCreate, cbs);
+  
+   for (unsigned int i = 0; i < cbs.size(); ++i) {
+      
+      AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
+      async_printf("%s[%d]:  before issuing thread create callback: tid %lu\n", 
+                   FILE__, __LINE__, newthr->getTid());
+      cb(proc, newthr);
+   }
+
+   newthr->reported_to_user = true;
+   BPatch::bpatch->mutateeStatusChange = true;
+   proc->llproc->sh->signalEvent(evtThreadCreate);
+
+   return true;
 }
 
 
@@ -1253,10 +1287,18 @@ void BPatch::registerThreadExit(process *proc, long tid, bool exiting)
 
         AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
         mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
-        if (cb)
+        if (cb) {
+            cb->set_synchronous(true);
             (*cb)(bpprocess, thrd);
+            cb->set_synchronous(false);
+        }
     }
-    if (!exiting) bpprocess->deleteBPThread(thrd);
+    if (exiting) 
+       return;
+    if (proc->execing())
+       thrd->deleteThread(false);
+    else
+       thrd->deleteThread();
 }
 
 
@@ -1677,7 +1719,7 @@ bool BPatch::waitForStatusChangeInt()
     return true;
   }
   //  we waited for a change, but didn't get it
-  fprintf(stderr, "%s[%d]:  Error in status change reporting\n", FILE__, __LINE__);
+  signal_printf("%s[%d]:  Error in status change reporting\n", FILE__, __LINE__);
   return false;
 }
 

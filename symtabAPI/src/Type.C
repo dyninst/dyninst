@@ -201,7 +201,7 @@ typeRef *Type::getRefType(){
 }
 
 bool Type::isCompatible(Type * oType){
-        return size_ == oType->size_;
+   return true;
 }
 
 /*
@@ -257,6 +257,8 @@ bool typeEnum::addConstant(const std::string &constName, int value){
 }
 
 bool typeEnum::isCompatible(Type *otype) {
+   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+       return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
    if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
 
@@ -352,6 +354,8 @@ bool typePointer::setPtr(Type *ptr) {
 }
 
 bool typePointer::isCompatible(Type *otype) {
+   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+       return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
    if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
 
@@ -429,6 +433,8 @@ std::vector<Type *> &typeFunction::getParams(){
 }
 
 bool typeFunction::isCompatible(Type *otype) {
+   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+       return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
    if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
 
@@ -517,6 +523,8 @@ typeSubrange *typeSubrange::create(std::string &name, int size, int low, int hi,
 }
 
 bool typeSubrange::isCompatible(Type *otype) {
+   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+       return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
    if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
 
@@ -621,6 +629,8 @@ void typeArray::updateSize()
 }
 
 bool typeArray::isCompatible(Type *otype) {
+   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+       return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
    if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
 
@@ -753,6 +763,8 @@ void typeStruct::postFieldInsert(int nsize) {
 
 bool typeStruct::isCompatible(Type *otype) 
 {
+   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+       return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
    if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
 
@@ -887,6 +899,8 @@ void typeUnion::postFieldInsert(int nsize) {
 }
 
 bool typeUnion::isCompatible(Type *otype) {
+   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+       return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
    if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
 
@@ -959,6 +973,8 @@ bool typeScalar::isSigned(){
 }
 
 bool typeScalar::isCompatible(Type *otype) {
+   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+       return true;
    bool ret = false;
    const typeTypedef *otypedef = dynamic_cast<const typeTypedef *>(otype);
    if (otypedef != NULL)  {
@@ -1197,6 +1213,8 @@ bool typeRef::operator==(const Type &otype) const {
 }
 
 bool typeRef::isCompatible(Type *otype) {
+   if((otype->getDataClass() == dataUnknownType) || (otype->getDataClass() == dataNullType))
+       return true;
    typeTypedef *otypedef = dynamic_cast<typeTypedef *>(otype);
    if (otypedef != NULL) return isCompatible(otypedef->getConstituentType());
 

@@ -1666,16 +1666,27 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
                dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
-               /* Look up the referenced type. */
-               //parsing_printf("%s/%d: %s/%d\n",
-               //			   __FILE__, __LINE__, definedName, typeOffset);
                referencedType = module->getModuleTypes()->findOrCreateType( typeOffset );
             }
+            string tName;
+            if(!definedName) {
+               switch(dieTag){
+                  case DW_TAG_const_type:
+                     tName = "const " + referencedType->getName();
+                     break;
+                  case DW_TAG_packed_type:
+                     tName = "packed " + referencedType->getName();
+                     break;
+                  case DW_TAG_volatile_type:
+                     tName = "volatile " + referencedType->getName();
+                     break;
+               }
+            }
+            else {
+               tName = convertCharToString(definedName);
+            }
 
-            /* Add the typedef to our collection. */
-            // //bperr ( "Adding typedef: '%s' as %lu (pointing to %lu)\n", definedName, (unsigned long)dieOffset, (unsigned long)typeOffset );
-            std::string dName = convertCharToString(definedName);
-            Type * typedefType = new typeTypedef( dieOffset, referencedType, dName);
+            Type * typedefType = new typeTypedef( dieOffset, referencedType, tName);
             typedefType = module->getModuleTypes()->addOrUpdateType( typedefType );
 
             /* Sanity check: typedefs should not have children. */

@@ -308,19 +308,21 @@ class AsyncThreadEventCallback : public SyncCallback
   public:
    AsyncThreadEventCallback(BPatchAsyncThreadEventCallback callback) : 
       SyncCallback(), 
-      cb(callback), proc(NULL), thr(NULL) {}
+      cb(callback), proc(NULL), thr(NULL), override_to_sync(false) {}
    AsyncThreadEventCallback(AsyncThreadEventCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL), thr(NULL) {}
+      cb(src.cb), proc(NULL), thr(NULL), override_to_sync(false) {}
    ~AsyncThreadEventCallback() {}
 
    CallbackBase *copy() { return new AsyncThreadEventCallback(*this);}
    bool execute_real(void); 
    bool operator()(BPatch_process *process, BPatch_thread *thread);
    BPatchAsyncThreadEventCallback getFunc() {return cb;}
+   void set_synchronous(bool b) { override_to_sync = b; }
   private:    
    BPatchAsyncThreadEventCallback cb;    
    BPatch_process *proc;
    BPatch_thread *thr;
+   bool override_to_sync;
 };
 
 typedef void (*internalThreadExitCallback)(BPatch_process *, BPatch_thread *,

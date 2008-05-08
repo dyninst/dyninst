@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.84 2008/04/11 23:30:11 legendre Exp $
+// $Id: arch-x86.C,v 1.85 2008/05/08 21:52:19 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3874,14 +3874,8 @@ bool insn_hasDisp32(unsigned ModRMbyte){
     return (Mod == 0 && RM == 5) || (Mod == 2);
 }
 
-// haven't made this ready for 64-bit yet - gq
-bool isFunctionPrologue( instruction& insn1 )
+bool isAlternativePreamble( instruction & insn1 )
 {
-    if( insn1.size() != 1 )
-        return false;
-    if( isStackFramePreamble( insn1 ) )
-        return true;
-
     instruction insn2, insn3;
     insn2.setInstruction( insn1.ptr() + insn1.size() );       
     insn3.setInstruction( insn2.ptr() + insn2.size() );
@@ -3958,6 +3952,23 @@ bool isStackFramePreamble( instruction& insn1 )
             return true;
     }
     
+    return false;
+}
+
+// haven't made this ready for 64-bit yet - gq
+bool isFunctionPrologue( instruction& insn1 )
+{
+    if( insn1.size() != 1 )
+        return false;
+    if( isStackFramePreamble( insn1 ) )
+        return true;
+
+    // This code produces many false positives on GCC-compiled binaries
+    // at the least, and is currently considered harmful. Until we figure
+    // out why this particular pattern-based heuristic was introduced and
+    // how it can be fixed, I'm taking it out. --nate
+    //return isAlternativePreamble( insn1 );
+
     return false;
 }
 

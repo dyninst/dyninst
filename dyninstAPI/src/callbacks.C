@@ -368,7 +368,7 @@ bool AsyncThreadEventCallback::operator()(BPatch_process *process, BPatch_thread
 
    proc = process;
    thr = thread;
-   synchronous = false;
+   synchronous = override_to_sync;
 
    return do_it();
 }

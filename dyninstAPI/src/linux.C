@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.273 2008/04/15 16:43:23 roundy Exp $
+// $Id: linux.C,v 1.274 2008/05/08 21:52:25 legendre Exp $
 
 #include <fstream>
 
@@ -417,7 +417,7 @@ pid_t SignalGenerator::waitpid_kludge(pid_t /*pid_arg*/,
   } while (ret == 0 || (ret == -1 && errno == EINTR));
 
   if (ret == -1)
-    fprintf(stderr, "%s[%d]: waitpid_kludge got -1\n", FILE__, __LINE__);
+     signal_printf("%s[%d]: waitpid_kludge got -1\n", FILE__, __LINE__);
   return ret; 
 }
 
@@ -975,7 +975,10 @@ terminateProcStatus_t process::terminateProc_()
     else
       return terminateFailed;
   }
-  else
+
+  if (status() == stopped)
+     continueProc(SIGCONT);
+
     return terminateSucceeded;
 }
 

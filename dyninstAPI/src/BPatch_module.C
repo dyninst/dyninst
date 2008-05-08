@@ -2322,7 +2322,6 @@ bool BPatch_module::getLineToAddrInt( unsigned int lineNo,
 
    std::vector< std::pair< Address, Address > > ranges;
    if ( ! getAddressRangesInt( NULL, lineNo, ranges ) ) { 
-      fprintf(stderr, "%s[%d]:  getAddressRanges failed!\n", FILE__, __LINE__);
       return false; 
    }
 

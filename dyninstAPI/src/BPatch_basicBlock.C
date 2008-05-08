@@ -54,6 +54,7 @@
 #include "InstrucIter.h"
 #include "BPatch_instruction.h"
 #include "BPatch_libInfo.h"
+#include "BPatch_edge.h"
 
 int bpatch_basicBlock_count = 0;
 
@@ -88,6 +89,18 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
 		delete sourceBlocks;
         if (instructions)
                 delete instructions;
+
+        BPatch_Set<BPatch_edge *>::iterator eIter;
+        eIter = incomingEdges.begin();
+        while (eIter != incomingEdges.end()) {
+            delete (*eIter);
+            eIter++;
+        }
+        eIter = outgoingEdges.begin();
+        while (eIter != outgoingEdges.end()) {
+            delete (*eIter);
+            eIter++;
+        }
 	return;
 }
 
@@ -412,20 +425,20 @@ unsigned BPatch_basicBlock::sizeInt() CONST_EXPORT
 
 void BPatch_basicBlock::getIncomingEdgesInt(BPatch_Vector<BPatch_edge*>& inc)
 {
-    BPatch_edge **elements = new BPatch_edge*[incomingEdges.size()];
-    incomingEdges.elements(elements);
-    for(unsigned i = 0; i < incomingEdges.size(); i++)
-        inc.push_back(elements[i]);
-    delete[] elements;
+    BPatch_Set<BPatch_edge*>::iterator incIter = incomingEdges.begin();
+    while (incIter != incomingEdges.end()) {
+        inc.push_back(*incIter);
+        incIter++;
+    }
 }
         
 void BPatch_basicBlock::getOutgoingEdgesInt(BPatch_Vector<BPatch_edge*>& out)
 {
-    BPatch_edge **elements = new BPatch_edge*[outgoingEdges.size()];
-    outgoingEdges.elements(elements);
-    for(unsigned i = 0; i < outgoingEdges.size(); i++)
-        out.push_back(elements[i]);
-    delete[] elements;
+    BPatch_Set<BPatch_edge*>::iterator outIter = outgoingEdges.begin();
+    while (outIter != outgoingEdges.end()) {
+        out.push_back(*outIter);
+        outIter++;
+    }
 }
 
 int BPatch_basicBlock::blockNo() const

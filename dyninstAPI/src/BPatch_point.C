@@ -245,13 +245,11 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
        BPatch_process *proc = dynamic_cast<BPatch_process *>(addSpace);
        mapped_object *obj = func->getModule()->lowlevel_mod()->obj();
        if (proc->lowlevel_process()->mappedObjIsDeleted(obj)) {
-       fprintf(stderr, "%s[%d]:  WARN, object is deleted\n", FILE__, __LINE__);
            return NULL;
    }
    }
 
    if (point->getPointType() != callSite) {
-       fprintf(stderr, "%s[%d]:  WARN, asked for called function at non-call-site\n", FILE__, __LINE__);
       return NULL;
       }
    

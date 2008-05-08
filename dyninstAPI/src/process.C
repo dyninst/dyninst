@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.715 2008/04/16 20:59:25 roundy Exp $
+// $Id: process.C,v 1.716 2008/05/08 21:52:27 legendre Exp $
 
 #include <ctype.h>
 
@@ -1819,6 +1819,13 @@ bool process::prepareExec(fileDescriptor &desc)
     assert(theRpcMgr == NULL);
     assert(dyn == NULL);
     theRpcMgr = new rpcMgr(this);
+
+    dictionary_hash<unsigned, dyn_lwp *>::iterator lwp_iter = real_lwps.begin();
+    for (; lwp_iter != real_lwps.end(); lwp_iter++) 
+       theRpcMgr->addLWP(*lwp_iter);
+    if (representativeLWP)
+       theRpcMgr->addLWP(representativeLWP);
+
     dyn = new dynamic_linking(this);
 
     startup_printf("%s[%d]: exec exit, setting a.out to %s:%s\n",
@@ -4190,8 +4197,6 @@ bool process::handleExecEntry(char *arg0)
         execPathArg = temp;
     // /* DEBUG */ cerr << "Exec path arg is " << execPathArg << endl;
 
-    BPatch::bpatch->registerExecEntry(this, arg0);
-
    return true;
 
     // We now wait for exec to finish. We often see very many exec
@@ -4213,6 +4218,7 @@ bool process::handleExecExit(fileDescriptor &desc)
 
    // Should probably be renamed to clearProcess... deletes anything
    // unnecessary
+    BPatch::bpatch->registerExecCleanup(this, NULL);
    deleteProcess();
 
    prepareExec(desc);
@@ -4916,6 +4922,7 @@ void process::deleteThread(dynthread_t tid)
         delete thr;
         
         //Delete the lwp below the thread
+        if (!execing() || lwp != representativeLWP)
         deleteLWP(lwp);
         
         break;
@@ -5329,8 +5336,8 @@ void process::recognize_threads(process *parent)
          BPatch_thread *bpthrd = NULL;
          // Wait for the thread to show up...
          int timeout = 0;
-	 startup_printf("[%s:%u] - Waiting for thread for LWP %d\n", FILE__, __LINE__, 
-			ret_lwps[i]);
+         startup_printf("[%s:%u] - Waiting for thread for LWP %d\n", FILE__, 
+                        __LINE__, ret_lwps[i]);
          while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
              startup_printf("%s[%d]: waiting for bp thread at index %d\n", FILE__, __LINE__, ret_indexes[i]);
             // getMailbox()->executeCallbacks(FILE__, __LINE__);

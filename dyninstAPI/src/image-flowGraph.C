@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.50 2008/04/15 16:43:16 roundy Exp $
+ * $Id: image-flowGraph.C,v 1.51 2008/05/08 21:52:22 legendre Exp $
  */
 
 #include <stdio.h>
@@ -197,7 +197,7 @@ bool image::analyzeImage()
 
 #if defined(cap_stripped_binaries)
   if (parseGaps_) {
-
+     mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
     // Sort functions to find gaps
     VECTOR_SORT(everyUniqueFunction, addrfunccmp);
 

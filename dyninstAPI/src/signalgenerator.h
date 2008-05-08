@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.19 2008/04/15 16:43:34 roundy Exp $
+/* $Id: signalgenerator.h,v 1.20 2008/05/08 21:52:30 legendre Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -114,6 +114,8 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    bool signalActiveProcess();
    // and the go to sleep...
    bool belayActiveProcess();
+   // Check if we should belay
+   bool checkActiveProcess();
 
    // Continue methods; we need to have agreement between the signalHandler
    // threads and the BPatch layer. The SH's use the async call, which basically says

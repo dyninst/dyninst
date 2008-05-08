@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.21 2008/04/15 16:43:25 roundy Exp $
+// $Id: mapped_object.h,v 1.22 2008/05/08 21:52:26 legendre Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -113,7 +113,11 @@ class mapped_object : public codeRange {
     // We need a way to check for errors; hence a "get" method
     static mapped_object *createMappedObject(fileDescriptor &desc,
                                              AddressSpace *p,
+#if defined (os_windows)
                                              bool parseGaps = false);
+#else 
+                                             bool parseGaps = true);
+#endif
 
     // Copy constructor: for forks
     mapped_object(const mapped_object *par_obj, process *child);

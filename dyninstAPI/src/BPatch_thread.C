@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.174 2007/09/13 20:12:59 legendre Exp $
+// $Id: BPatch_thread.C,v 1.175 2008/05/08 21:52:17 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -488,7 +488,7 @@ void BPatch_thread::deleteThread(bool cleanup)
 
    dynthread_t thr = getTid();
    if (thr == 0) {
-       fprintf(stderr, "%s[%d]:  WARN:  skipping deleteThread(0)\n", FILE__, __LINE__);
+      signal_printf("%s[%d]:  WARN:  skipping deleteThread(0)\n", FILE__, __LINE__);
    }
    else if (cleanup)
      proc->llproc->deleteThread(thr);

@@ -218,12 +218,7 @@ void SignalGeneratorCommon::main() {
 
         getEvents(events);
 
-#if !defined(os_linux)
-        // independent lwp control... going into waitpid too often is okay on linux,
-        // but really a bad idea on AIX and Solaris (as you'll get the last thing again, and
-        // again, and again, and again...)
-        activeProcessSignalled_ = false;
-#endif            
+        checkActiveProcess();
 
         if (exitRequested()) {
             signal_printf("%s[%d]: exit request (post-getEvent)\n", FILE__, __LINE__);
@@ -774,6 +769,7 @@ bool SignalGeneratorCommon::signalActiveProcess()
 
 bool SignalGeneratorCommon::belayActiveProcess()  {
     activationLock->_Lock(FILE__, __LINE__);
+    signal_printf("%s[%d]: belayActiveProcess\n", FILE__, __LINE__);
     activeProcessSignalled_ = false;
     activationLock->_Unlock(FILE__, __LINE__);
     return true;
@@ -2019,7 +2015,7 @@ bool SignalGeneratorCommon::continueRequired()
 
   for (unsigned i = 0; i < handlers.size(); i++) {
       if (handlers[i]->processing()) {
-          signal_printf("%s[%d]: continueRequired: handler %s active, returning true\n",
+          signal_printf("%s[%d]: continueRequired: handler %s active, returning false\n",
                         FILE__, __LINE__, getThreadStr(handlers[i]->getThreadID()));
           // Active handler == no run-y.
           return false;
@@ -2131,7 +2127,7 @@ void SignalGeneratorCommon::setContinueSig(int signalToContinueWith)
 {
     if ((continueSig_ != -1) &&
         (signalToContinueWith != continueSig_)) {
-        fprintf(stderr, "%s[%d]: WARNING: conflict in signal to continue with: previous %d, new %d\n",
+       signal_printf("%s[%d]: WARNING: conflict in signal to continue with: previous %d, new %d\n",
                 FILE__, __LINE__, continueSig_,  signalToContinueWith);
     }
 
@@ -2225,4 +2221,58 @@ void SignalGeneratorCommon::MONITOR_EXIT() {
     }
 }
 
+bool SignalGeneratorCommon::checkActiveProcess()
+{
+   if (!activeProcessSignalled_)
+      return true;
+#if !defined(os_linux)
+   // independent lwp control... going into waitpid too often is okay on linux,
+   // but really a bad idea on AIX and Solaris (as you'll get the last thing again, and
+   // again, and again, and again...)
+   activeProcessSignalled_ = false;
+   return true;
+#endif
+
+   bool found_running_sh = false;
+   for (unsigned i=0; i<handlers.size(); i++) {
+      SignalHandler *sh = handlers[i];
+      if (!sh->idle()) {
+         signal_printf("[%s]%u: checkActiveProcess - %s is not idle\n",
+                       FILE__, __LINE__, sh->getName());
+         found_running_sh = true;
+         break;
+      }
+      else {
+         signal_printf("[%s]%u: checkActiveProcess - %s is idle\n", 
+                       FILE__, __LINE__, sh->getName());
+      }
+   }
+   if (!found_running_sh) {
+      signal_printf("[%s]%u: All SH are idle, belaying\n", FILE__, __LINE__);
+      belayActiveProcess();
+      return true;
+   }
    
+   if (proc->threads.size() == 1) {
+      signal_printf("[%s]%u: Only one thread in mutatee, belaying.\n",
+                    FILE__, __LINE__);
+      belayActiveProcess();
+      return true;
+   }
+   /*   
+   bool all_stopped = true;
+   for (unsigned i=0; i<proc->threads.size(); i++) {
+      if (proc->threads[i]->get_lwp()->status() != stopped) {
+         all_stopped = false;
+         break;
+      }
+   }
+   if (all_stopped) {
+      signal_printf("[%s]%u: All threads are stopped, belaying.\n",
+                    FILE__, __LINE__);
+      belayActiveProcess();
+      return true;
+   }
+*/
+   return true;
+}

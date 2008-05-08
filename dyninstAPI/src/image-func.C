@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.55 2008/04/22 04:39:26 jaw Exp $
+// $Id: image-func.C,v 1.56 2008/05/08 21:52:23 legendre Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -162,15 +162,19 @@ image_func::image_func(const std::string &symbol,
     Region * sec = NULL;
     Symtab * st = i->getObject();
     if(st)
-        st->findRegion(sec, ".text");
-     sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
-	  		     								offset, sec, symTabSize);
-     //i->getObject()->addSymbol(sym_);								
-     //sym_->setUpPtr(this);
-     //symTabNames_.push_back(symbol);
-     image_func *th = this;
-     annotate<Symbol, image_func *>(sym_, th, std::string("image_func_ptr"));
+       st->findRegion(sec, ".text");
+    sym_ = new Symbol(symbol.c_str(), m->fileName(), Symbol::ST_FUNCTION , Symbol:: SL_GLOBAL, 
+                      offset, sec, symTabSize);
+    std::vector<Module *> mods;
+    st->getAllModules(mods);
+    if (mods.size())
+        sym_->setModule(mods[0]);
 
+    //i->getObject()->addSymbol(sym_);								
+    //sym_->setUpPtr(this);
+    //symTabNames_.push_back(symbol);
+    image_func *th = this;
+    annotate<Symbol, image_func *>(sym_, th, std::string("image_func_ptr"));
 }
 
 image_func::image_func(Symbol *symbol, pdmodule *m, image *i):
@@ -268,14 +272,14 @@ bool image_func::addSymTabName(std::string name, bool isPrimary) {
 
 // Two-copy version... can't really do better.
 bool image_func::addPrettyName(std::string name, bool isPrimary) {
-    if (sym_->addPrettyName(name.c_str(), isPrimary)) {
-        // Add to image class...
-//        image_->addFunctionName(this, name, false);
-	return true;
-    }
-
-    // Bool: true if the name is new; AKA !found
-    return false;
+   if (sym_->addPrettyName(name.c_str(), isPrimary)) {
+      // Add to image class...
+      //        image_->addFunctionName(this, name, false);
+      return true;
+   }
+   
+   // Bool: true if the name is new; AKA !found
+   return false;
  
 #if 0 
     pdvector<std::string> newPrettyName;
@@ -286,23 +290,23 @@ bool image_func::addPrettyName(std::string name, bool isPrimary) {
 
     bool found = false;
     for (unsigned i = 0; i < prettyNames_.size(); i++) {
-        if (prettyNames_[i] == name) {
-            found = true;
-        }
-        else {
-            newPrettyName.push_back(prettyNames_[i]);
-        }
+       if (prettyNames_[i] == name) {
+          found = true;
+       }
+       else {
+          newPrettyName.push_back(prettyNames_[i]);
+       }
     }
     if (!isPrimary)
-        newPrettyName.push_back(name);
+       newPrettyName.push_back(name);
 
     prettyNames_ = newPrettyName;
-
+    
     if (!found) {
-        // Add to image class...
-        image_->addFunctionName(this, name, false);
+       // Add to image class...
+       image_->addFunctionName(this, name, false);
     }
-
+    
     // Bool: true if the name is new; AKA !found
     return (!found);
 #endif

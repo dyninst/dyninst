@@ -537,9 +537,13 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
     if (existsActiveIRPC()) {
       // Be sure that we keep consuming events on other threads,
       // even if we're paused in this one...
+       signal_printf("%s[%d]: Active RPC, signaling active process\n",
+                     FILE__, __LINE__);
       ev.proc->sh->signalActiveProcess();
     }
     else {
+       signal_printf("%s[%d]: No active RPC, belaying active process\n",
+                     FILE__, __LINE__);
       ev.proc->sh->belayActiveProcess();
     }
   }
