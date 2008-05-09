@@ -45,6 +45,7 @@
 
 #define VECTOR_APPEND(l1, l2) 	{ for (unsigned int _i=0; _i < (l2).size(); _i++) (l1).push_back((l2)[_i]); }
 #define VECTOR_SORT(l1, f) 	l1.sort((qsort_cmpfunc_t)f);
+#define VECTOR_ERASE(vec, start, finish) vec.erase(start,finish)
 
 #ifdef _KERNEL
 #include <sys/types.h>

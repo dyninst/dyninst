@@ -30,7 +30,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.34 2008/02/19 23:50:05 legendre Exp $
+ * $Id: Types.h,v 1.35 2008/05/09 00:25:37 jaw Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -76,7 +76,8 @@ WindowsNT    nonexistant
    typedef __int32 int32_t;
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
-#elif defined(arch_power) && defined(os_aix)
+#elif defined(os_aix)  
+#if defined (arch_power)
 #  if defined(rs6000_ibm_aix64)
 #       define TYPE64BIT
 #  endif
@@ -94,6 +95,7 @@ WindowsNT    nonexistant
         typedef long long int64_t;
         typedef unsigned long long uint64_t;
 #    endif
+#  endif // defined (arch_power)
 #  endif
 
 #elif defined(arch_alpha)
@@ -174,7 +176,7 @@ WindowsNT    nonexistant
 #define UI32_MAX UINT32_MAX
 #endif
 
-typedef int64_t time64;
+//typedef int64_t time64;
 
 #if defined(__cplusplus)
 #include "dynutil/h/dyntypes.h"

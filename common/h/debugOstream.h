@@ -35,6 +35,7 @@
 #ifndef _DEBUG_OSTREAM_H_
 #define _DEBUG_OSTREAM_H_
 
+#if 0
 #if !defined(DLLEXPORT)
 #if defined (_MSC_VER)
 /* If we're on Windows, we need to explicetely export these functions: */
@@ -102,6 +103,6 @@ class DLLEXPORT debug_ostream {
    debug_ostream& operator<<(relTimeStamp  ts);
 #endif
 };
-
+#endif
 #endif
 

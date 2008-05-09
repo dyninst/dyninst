@@ -39,10 +39,10 @@
 #include <stdio.h>
 #include <libxml/xmlwriter.h>
 
-#include "headers.h"
-#include "Types.h"
-#include "sha1.h"
-#include "pathName.h"
+#include "common/h/headers.h"
+#include "common/h/Types.h"
+#include "common/h/sha1.h"
+#include "common/h/pathName.h"
 
 #define CACHE_DIR_VAR "DYNINST_CACHE_DIR"
 #define DEFAULT_DYNINST_DIR ".dyninstAPI"
@@ -50,13 +50,17 @@
 #define CACHE_MAGIC 0x555
 #define CACHE_PREFIX "cache_"
 
-extern bool dyn_debug_serializer;
+#ifndef PATH_MAX
+#define PATH_MAX 512
+#endif
 
+
+DLLEXPORT bool &serializer_debug_flag();
 //  SER_ERR("msg") -- an attempt at "graceful" failure.  If debug flag is set
 //  it will assert, otherwise it throws...  leaving the "graceful" aspect
 //  to the next (hopefully top-level) exception handler.
 
-#define SER_ERR(cmsg) if (dyn_debug_serializer) assert (0 && cmsg); \
+#define SER_ERR(cmsg) if (serializer_debug_flag()) assert (0 && cmsg); \
                       else throw SerializerError(FILE__, __LINE__, std::string(cmsg))
 
 //  SER_CATCH("string") is mostly for debugging...  it is just a default catch-block
@@ -70,7 +74,7 @@ extern bool dyn_debug_serializer;
             err.what(), err.file().c_str(), err.line()); \
    SER_ERR(x); }
 
-void serialize_debug_init();
+void DLLEXPORT serialize_debug_init();
 
 typedef enum {sd_serialize, sd_deserialize} iomode_t;
 
@@ -97,7 +101,7 @@ class SerializerError : public std::runtime_error {
   int line() const {return line__;}
 };
 
-class SerDes {
+class DLLEXPORT SerDes {
    //  SerDes is a base class that provides generic serialization/deserialization
    //  access primitives and a common interface, (a toolbox, if you will).
    //  It is specialized (currently) by SerDesBin and SerDesXML, which implement the 
@@ -148,7 +152,7 @@ class SerDes {
     bool noisy;
 };
 
-class SerDesXML : public SerDes {
+class DLLEXPORT SerDesXML : public SerDes {
   public:
 
     SerDesXML(std::string fname, iomode_t mode, bool verbose = false);
@@ -182,7 +186,7 @@ class SerDesXML : public SerDes {
 };
 
 
-class SerDesBin : public SerDes {
+class DLLEXPORT SerDesBin : public SerDes {
 
   typedef struct {
      unsigned int cache_magic;
@@ -295,7 +299,7 @@ void translate_vector(S *ser, std::vector<T *> &vec,
 
 template <class S, class K, class V, class CMP>
 void translate_multimap(S *ser, std::multimap<K, V, CMP> &mm, 
-      const char *tag = NULL, const char *key_tag = NULL, const char *value_tag)
+      const char *tag = NULL, const char *key_tag = NULL, const char *value_tag = NULL)
 {
    unsigned int nelem = mm.size();
    ser->multimap_start(nelem, tag);

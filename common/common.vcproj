@@ -21,7 +21,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".."
+				AdditionalIncludeDirectories="..;../../i386-unknown-nt4.0/include"
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;DLL_BUILD"
 				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="0"
@@ -243,6 +243,51 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\serialize-bin.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\serialize-xml.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\sha1.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\String.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -392,6 +437,12 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\pathName.h">
+			</File>
+			<File
+				RelativePath=".\h\serialize.h">
+			</File>
+			<File
+				RelativePath=".\h\sha1.h">
 			</File>
 			<File
 				RelativePath=".\h\std_namesp.h">

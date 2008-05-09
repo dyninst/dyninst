@@ -169,6 +169,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     friend class AstOperatorNode;
     friend class AstMemoryNode;
     friend class rpcMgr;
+    friend class EventRecord;
+    friend bool handleThreadCreate(BPatch_process *, EventRecord &, unsigned, int, dynthread_t, unsigned long, unsigned long);
 
     public:
     void PDSEP_updateObservedCostAddr(unsigned long a);

@@ -90,7 +90,7 @@ typedef unsigned int uint32_t;
 #endif
 #endif
 
-#include "sha1.h"
+#include "common/h/sha1.h"
 /* #include <process.h> */	/* prototype for exit() - JHB */
 /* Using return() instead of exit() - SWR */
 

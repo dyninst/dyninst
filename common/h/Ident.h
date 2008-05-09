@@ -31,7 +31,7 @@
 
 /************************************************************************
  * Ident.h: build identification functions (for POSIX systems)
- * $Id: Ident.h,v 1.8 2007/05/30 19:19:39 legendre Exp $
+ * $Id: Ident.h,v 1.9 2008/05/09 00:25:37 jaw Exp $
 ************************************************************************/
 
 
@@ -81,7 +81,7 @@ class Ident {
     pdstring Time () const { return pdstring (time_); }
     pdstring Builder () const { return pdstring (builder_); }
 
-    friend ostream& operator<< (ostream &os, const Ident &Id);  // output
+    //friend ostream& operator<< (ostream &os, const Ident &Id);  // output
 
   private:
     bool ok_;                   

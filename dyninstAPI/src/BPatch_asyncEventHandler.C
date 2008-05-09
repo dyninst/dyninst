@@ -127,7 +127,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
          //  when processes are created and terminated rapidly.
          //fprintf(stderr,"%s[%d]:  duplicate request to connect to process %d\n",
          //      FILE__, __LINE__, p->getPid());
-         process_fds.erase(i,i);
+         VECTOR_ERASE(process_fds,i,i);
          //return false;
       }
    } 
@@ -181,7 +181,7 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
       if (process_fds[i].process == p) {
          //fprintf(stderr, "%s[%d]:  removing process %d\n", FILE__, __LINE__, p->getPid());
          targetfd  = process_fds[i].fd;
-         process_fds.erase(i,i);
+         VECTOR_ERASE(process_fds,i,i);
          break;
       }
    } 
@@ -413,7 +413,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     //ev = event_queue[event_queue.size() - 1];
     //event_queue.pop_back();
     ev = event_queue[0];
-    event_queue.erase(0,0);
+    VECTOR_ERASE(event_queue,0,0);
     bool found = false;
     for (unsigned i=0; i<process_fds.size(); i++) {
        if (process_fds[i].process &&
@@ -510,8 +510,8 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
      //  do a (blocking) read so that we can get the pid associated with
      //  this connection.
      EventRecord pid_ev;
-     asyncReadReturnValue_t result = readEvent(new_fd, pid_ev);
-     if (result != REsuccess) {
+     readReturnValue_t result = readEvent(new_fd, pid_ev);
+     if (result != RRVsuccess) {
          async_printf("%s[%d]:  READ ERROR\n", FILE__, __LINE__);
          return false;
      }
@@ -542,18 +542,18 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     // Read event
     EventRecord new_ev;
     
-    asyncReadReturnValue_t result = readEvent(process_fds[j].fd, new_ev);
-    if (result != REsuccess) {
+    readReturnValue_t result = readEvent(process_fds[j].fd, new_ev);
+    if (result != RRVsuccess) {
         switch(result) {
-        case REillegalProcess:
-        case REinsufficientData:
-        case REreadError:
-        case REerror:
+        //case RRVillegalProcess:
+        case RRVinsufficientData:
+        case RRVreadError:
+        case RRVerror:
             async_printf("%s[%d]: READ ERROR readEvent returned error code %d\n",
                          FILE__, __LINE__, result);
             continue;
             break;
-        case REnoData:
+        case RRVnoData:
             //  This read can fail if the mutatee has exited.  Just note that this
             //  fd is no longer valid, and keep quiet.
             //if (process_fds[j].process->isTerminated()) {
@@ -615,6 +615,29 @@ void threadExitWrapper(BPatch_process *p, BPatch_thread *t,
           (*cb)(p,t);
   }
   threadDeleteWrapper(p,t);
+}
+
+bool handleThreadCreate(BPatch_process *p, EventRecord &ev, unsigned index, int lwpid, dynthread_t tid, unsigned long stack_addr, unsigned long start_pc)
+{
+   bool thread_exists = (p->getThread(tid) != NULL);
+
+   //Create the new BPatch_thread object
+   async_printf("%s[%d]:  before createOrUpdateBPThread: pid = %d, " \
+         "start_pc = %p, addr = %p, tid = %lu, index = %d, " \
+         "lwp = %d\n", 
+         FILE__, __LINE__, ev.proc->getPid(), (void *) start_pc, 
+         (void *) stack_addr, tid, index, lwpid);
+
+   BPatch_thread *thr = p->handleThreadCreate(index, lwpid, tid, stack_addr, start_pc);
+   if (!thr) {
+      async_printf("%s[%d]: handleThreadCreate failed!\n", FILE__, __LINE__);
+   }
+   else {
+      if (thr->getTid() != tid) {
+         fprintf(stderr, "%s[%d]:  thr->getTid(): %lu, tid %lu\n", FILE__, __LINE__, thr->getTid(), tid);
+      }
+   }
+   return (NULL != thr);
 }
 
 bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
@@ -694,72 +717,57 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             //  Read details of new thread from fd 
             async_printf("%s[%d]: reading event from fd %d\n",
                   FILE__, __LINE__, ev.fd);
-            BPatch_newThreadEventRecord call_rec;
-            asyncReadReturnValue_t retval;
 
             int lock_depth = eventlock->depth();
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Unlock(FILE__, __LINE__);
             }
 
-            //is the mutatee 32 or 64 bit?
+            BPatch_newThreadEventRecord call_rec;
+            readReturnValue_t retval;
+
 #if defined(x86_64_unknown_linux2_4)
-            if( appProc->getAddressWidth() == 4){//32 bit
+            //is the mutatee 32 or 64 bit?
+            if ( appProc->getAddressWidth() == 4){//32 bit
                BPatch_newThreadEventRecord32 call_rec_32;
-               retval = readEvent(ev.fd/*fd*/, 
-                     (void *) &call_rec_32, 
-                     sizeof(BPatch_newThreadEventRecord32));
+               retval = P_socketRead<BPatch_newThreadEventRecord32>(ev.fd, call_rec_32);
+               
                call_rec.ppid=call_rec_32.ppid;
                call_rec.tid=(void*)call_rec_32.tid;
                call_rec.lwp=call_rec_32.lwp;
                call_rec.index=call_rec_32.index;
                call_rec.stack_addr=(void*)call_rec_32.stack_addr;
                call_rec.start_pc=(void*)call_rec_32.start_pc;
-            }else
+            } else {
+               retval = P_socketRead<BPatch_newThreadEventRecord>(ev.fd, call_rec);
+            }
+#else
+            retval = P_socketRead<BPatch_newThreadEventRecord>(ev.fd, call_rec);
 #endif
-               retval = readEvent(ev.fd/*fd*/, 
-                     (void *) &call_rec, 
-                     sizeof(BPatch_newThreadEventRecord));
 
             async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
             }
 
-            if (retval != REsuccess) {
+            if (retval != RRVsuccess) {
                bperr("%s[%d]:  failed to read thread event call record\n",
                      FILE__, __LINE__);
                return false;
             }
 
-            BPatch_process *p = (BPatch_process *) appProc;
+            bool ret;
             unsigned long start_pc = (unsigned long) call_rec.start_pc;
             unsigned long stack_addr = (unsigned long) call_rec.stack_addr;
             unsigned index = (unsigned) call_rec.index;
             int lwpid = call_rec.lwp;
             dynthread_t tid = (dynthread_t) call_rec.tid;
-            bool thread_exists = (p->getThread(tid) != NULL);
+            ret = handleThreadCreate(appProc, ev, index, lwpid, tid, stack_addr, start_pc);
 
-            //Create the new BPatch_thread object
-            async_printf("%s[%d]:  before createOrUpdateBPThread: pid = %d, " \
-                  "start_pc = %p, addr = %p, tid = %lu, index = %d, " \
-                  "lwp = %d\n", 
-                  FILE__, __LINE__, ev.proc->getPid(), (void *) start_pc, 
-                  (void *) stack_addr, tid, index, lwpid);
-
-            BPatch_thread *thr = p->handleThreadCreate(index, lwpid, tid, stack_addr, start_pc);
-            if (!thr) {
-               async_printf("%s[%d]: handleThreadCreate failed!\n", FILE__, __LINE__);
-            }
-            else {
-               if (thr->getTid() != tid) {
-                  fprintf(stderr, "%s[%d]:  thr->getTid(): %lu, tid %lu\n", FILE__, __LINE__, thr->getTid(), tid);
-               }
-            }
             async_printf("%s[%d]: signalling event...\n", FILE__, __LINE__);
             ev.proc->sh->signalEvent(evtThreadCreate);
-            async_printf("%s[%d]: done signalling event, returning %d\n", FILE__, __LINE__, (thr != NULL));
-            return (thr != NULL);
+            async_printf("%s[%d]: done signalling event, returning %d\n", FILE__, __LINE__, ret);
+            return ret;
          }
       case evtThreadExit: 
          {
@@ -768,15 +776,18 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Unlock(FILE__, __LINE__);
             }
+#if 0
             asyncReadReturnValue_t retval = readEvent(ev.fd/*fd*/, 
                   (void *) &rec, 
                   sizeof(BPatch_deleteThreadEventRecord));
+#endif
+            readReturnValue_t retval = P_socketRead<BPatch_deleteThreadEventRecord>(ev.fd, rec);
             async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
             }
 
-            if (retval != REsuccess) {
+            if (retval != RRVsuccess) {
                bperr("%s[%d]:  failed to read thread event call record\n",
                      FILE__, __LINE__);
                return false;
@@ -811,7 +822,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             //  Read auxilliary packet with dyn call info
 
             BPatch_dynamicCallRecord call_rec;
-            asyncReadReturnValue_t retval ;
+            readReturnValue_t retval ;
 
             int lock_depth = eventlock->depth();
             for (int i = 0; i < lock_depth; i++) {
@@ -823,22 +834,28 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             if( appProc->getAddressWidth() == 4 ){
                BPatch_dynamicCallRecord32 call_rec_32;
 
+#if 0
                retval = readEvent(ev.fd/*fd*/, 
                      (void *) &call_rec_32, 
                      sizeof(BPatch_dynamicCallRecord32));
+#endif
+               retval = P_socketRead<BPatch_dynamicCallRecord32>(ev.fd, call_rec_32);
                call_rec.call_site_addr = (void*)call_rec_32.call_site_addr;
                call_rec.call_target = (void*)call_rec_32.call_target;
             }else
 #endif
+#if 0
                retval = readEvent(ev.fd/*fd*/, 
                      (void *) &call_rec, 
                      sizeof(BPatch_dynamicCallRecord));
+#endif
+            retval = P_socketRead<BPatch_dynamicCallRecord>(ev.fd, call_rec);
             async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
             }
 
-            if (retval != REsuccess) {
+            if (retval != RRVsuccess) {
                bperr("%s[%d]:  failed to read dynamic call record\n",
                      FILE__, __LINE__);
                return false;
@@ -895,18 +912,21 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          {
 #if !defined (os_windows)
             assert(ev.info > 0);
-            int *userbuf = new int[ev.info];
+            char *userbuf = new char[ev.info];
 
             int lock_depth = eventlock->depth();
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Unlock(FILE__, __LINE__);
             }
             //  Read auxilliary packet with user specifiedbuffer
+#if 0
             asyncReadReturnValue_t retval = readEvent(ev.what, (void *) userbuf, ev.info);
+#endif
+            readReturnValue_t retval = P_socketRead<char>(ev.what, *userbuf, ev.info);
             for (int i = 0; i < lock_depth; i++) {
                eventlock->_Lock(FILE__, __LINE__);
             }
-            if (retval != REsuccess) {
+            if (retval != RRVsuccess) {
                bperr("%s[%d]:  failed to read user specified data\n",
                      FILE__, __LINE__);
                delete [] userbuf;
@@ -982,7 +1002,7 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
    for (int i = (int) process_fds.size() -1; i >= 0; i--) {
       if (process_fds[i].process->llproc->status() == exited) {
          //  fprintf(stderr, "%s[%d]:  Process %d has terminated, cleaning up\n", FILE__, __LINE__, process_fds[i].process->getPid());
-         process_fds.erase(i,i);
+         VECTOR_ERASE(process_fds,i,i);
          ret = true;
       }
    }
@@ -996,7 +1016,7 @@ bool BPatch_asyncEventHandler::cleanupProc(BPatch_process *p)
    for (int i = (int) process_fds.size() -1; i >= 0; i--) {
       if (process_fds[i].process == p) {
          //fprintf(stderr, "%s[%d]: Cleaning up process %d\n", FILE__, __LINE__, process_fds[i].process->getPid());
-         process_fds.erase(i,i);
+         VECTOR_ERASE(process_fds,i,i);
          ret = true;
       }
    }
@@ -1020,11 +1040,14 @@ eventType rt2EventType(rtBPatch_asyncEventType t)
 }         
 
 
-asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, EventRecord &ev)
+readReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, EventRecord &ev)
 {
    rtBPatch_asyncEventRecord rt_ev;
+#if 0
    asyncReadReturnValue_t retval = readEvent(fd, &rt_ev, sizeof(rtBPatch_asyncEventRecord));
-   if (retval != REsuccess) {
+#endif
+   readReturnValue_t retval = P_socketRead<rtBPatch_asyncEventRecord>(fd, rt_ev);
+   if (retval != RRVsuccess) {
       async_printf("%s[%d]:  read failed\n", FILE__, __LINE__);
       return retval;
    }
@@ -1033,7 +1056,8 @@ asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, EventRec
       // Message failed... I've seen this before when we get garbage
       // over the FD (juniper, first runs'll do it) --bernat
       async_printf("%s[%d]:  read failed, incorrect pid\n", FILE__, __LINE__);
-      return REillegalProcess;
+      return RRVerror;
+      //return REillegalProcess;
    }
    ev.what = rt_ev.event_fd;
    ev.fd = fd;
@@ -1043,9 +1067,10 @@ asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, EventRec
 #endif
    async_printf("%s[%d]: read event, proc = %d, fd = %d\n", FILE__, __LINE__,
          ev.proc->getPid(), ev.fd);
-   return REsuccess;
+   return RRVsuccess;
 }
 
+#if 0
 #if !defined(os_windows)
 asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, void *ev, ssize_t sz)
 {
@@ -1104,6 +1129,7 @@ asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, void *ev
 
    return REsuccess;
 }
+#endif
 #endif
 
 

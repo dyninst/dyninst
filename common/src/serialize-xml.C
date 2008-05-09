@@ -30,7 +30,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "serialize.h"
+#include "common/h/serialize.h"
 
 #if !defined(os_windows)
 #include "common/h/pathName.h"
@@ -68,10 +68,10 @@ SerDesXML::SerDesXML(std::string fname, iomode_t mode, bool verbose) :
    hXML = LoadLibrary(LPCSTR("../../../i386-unknown-nt4.0/lib/libxml2.dll"));
    if(hXML == NULL){
       char buf[1000];
-      bool result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(),
+      DWORD result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(),
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         buf, 1000, NULL);
-      SER_ERR(std::string(buf));
+      SER_ERR(buf);
     }
     my_xmlNewTextWriterFilename = (xmlTextWriterPtr(*)(const char *,int))GetProcAddress(hXML,"xmlNewTextWriterFilename");
     my_xmlTextWriterStartDocument = (int(*)(xmlTextWriterPtr, const char *, const char *, const char * ))GetProcAddress(hXML,"xmlTextWriterStartDocument");

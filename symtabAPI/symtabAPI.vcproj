@@ -222,6 +222,24 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\src\serialize-bin.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\serialize-xml.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -264,7 +282,13 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\Type.h">
 			</File>
 			<File
+				RelativePath=".\src\serialize.h">
+			</File>
+			<File
 				RelativePath="..\dynutil\h\util.h">
+			</File>
+			<File
+				RelativePath="..\dynutil\h\Annotatable.h">
 			</File>
 		</Filter>
 		<Filter

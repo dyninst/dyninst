@@ -63,6 +63,8 @@
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 
+#define PDSOCKET_ERROR (-1)
+typedef int PDSOCKET;
 typedef int (*P_xdrproc_t)(XDR*, ...);
 /* Not going to use on Linux Platform - already declared in /usr/include/errno.h
 extern const char *sys_errlist[];

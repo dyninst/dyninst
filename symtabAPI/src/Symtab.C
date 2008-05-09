@@ -2695,20 +2695,26 @@ pattern_match( const char *p, const char *s, bool checkCase ) {
 
 bool Symtab::exportXML(string file)
 {
+#if defined (cap_serialization)
    try {
       SymtabTranslatorXML trans(this, file);
-      if ( serialize(*this, trans));
-      return true;
+      if ( serialize(*this, trans))
+         return true;
    } catch (const SerializerError &err) {
       fprintf(stderr, "%s[%d]: error serializing xml: %s\n", FILE__, __LINE__, err.what());
       return false;
    }
 
    return false;
+#else
+   fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
+   return false;
+#endif
 }
 
 bool Symtab::exportBin(string file)
 {
+#if defined (cap_serialization)
    try
    {
       bool verbose = false;
@@ -2726,10 +2732,15 @@ bool Symtab::exportBin(string file)
 
    fprintf(stderr, "%s[%d]:  error doing binary serialization\n", __FILE__, __LINE__);
    return false;
+#else
+   fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
+   return false;
+#endif
 }
 
 Symtab *Symtab::importBin(std::string file)
 {
+#if defined (cap_serialization)
    MappedFile *mf= MappedFile::createMappedFile(file);
    if (!mf) {
       fprintf(stderr, "%s[%d]:  failed to map file %s\n", FILE__, __LINE__, file.c_str());
@@ -2760,6 +2771,10 @@ Symtab *Symtab::importBin(std::string file)
    fprintf(stderr, "%s[%d]:  error doing binary deserialization\n", __FILE__, __LINE__);
    delete st;
    return NULL;
+#else
+   fprintf(stderr, "%s[%d]:  WARNING:  serialization not available\n", FILE__, __LINE__);
+   return NULL;
+#endif
 }
 
 bool Symtab::openFile(Symtab *&obj, std::string filename)

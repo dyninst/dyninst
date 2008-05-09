@@ -30,7 +30,7 @@
  */
 
 
-// $Id: ntHeaders.h,v 1.26 2008/01/16 22:01:08 legendre Exp $
+// $Id: ntHeaders.h,v 1.27 2008/05/09 00:25:37 jaw Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -91,6 +91,9 @@ extern "C" {
 #ifndef alloca
 #define alloca _alloca
 #endif
+
+#define PDSOCKET_ERROR SOCKET_ERROR
+typedef SOCKET PDSOCKET;
 
 /* compatiblity typedefs */
 typedef int pid_t;

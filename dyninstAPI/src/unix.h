@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: unix.h,v 1.4 2008/04/15 16:43:42 roundy Exp $
+/* $Id: unix.h,v 1.5 2008/05/09 00:25:38 jaw Exp $
  */
 
 #ifndef _UNIX_H_
@@ -132,11 +132,9 @@ typedef pthread_cond_t EventCond_t;
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <pthread.h>
-typedef int PDSOCKET;
 
 #define PDSOCKET_ERRNO errno
 #define INVALID_PDSOCKET (-1)
-#define PDSOCKET_ERROR (-1)
 #define SOCKET_TYPE PF_UNIX
 #define THREAD_RETURN void *
 #define DO_THREAD_RETURN return NULL

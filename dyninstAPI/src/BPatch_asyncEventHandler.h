@@ -61,6 +61,7 @@
 #include "common/h/Pair.h"
 #include "common/h/Vector.h"
 
+#if 0
 typedef enum {
     REsuccess,
     REnoData,
@@ -69,6 +70,7 @@ typedef enum {
     REillegalProcess,
     REerror
 } asyncReadReturnValue_t;
+#endif
 
 typedef struct {
     pdvector<BPatch_function *> *mutatee_side_cbs;
@@ -132,8 +134,8 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
 
     //  BPatch_asyncEventHandler::readEvent()
     //  Reads from the async fd connection to the mutatee
-    static asyncReadReturnValue_t readEvent(PDSOCKET fd, void *ev, ssize_t sz);
-    static asyncReadReturnValue_t readEvent(PDSOCKET fd, EventRecord &ev);
+    //static asyncReadReturnValue_t readEvent(PDSOCKET fd, void *ev, ssize_t sz);
+    static readReturnValue_t readEvent(PDSOCKET fd, EventRecord &ev);
 
     //  BPatch_asyncEventHandler::mutateeDetach()
     //  use oneTimeCode to call a function in the mutatee to handle

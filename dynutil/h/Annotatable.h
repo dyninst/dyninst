@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Annotatable.h,v 1.8 2008/04/22 04:39:27 jaw Exp $
+// $Id: Annotatable.h,v 1.9 2008/05/09 00:25:38 jaw Exp $
 
 #ifndef _ANNOTATABLE_
 #define _ANNOTATABLE_
@@ -52,7 +52,7 @@
 #include "dyntypes.h"
 #include "util.h"
 
-class AnnotatableBase;
+class DLLEXPORT_COMMON AnnotatableBase;
 
 #if !defined(_MSC_VER)
 namespace __gnu_cxx {
@@ -68,22 +68,22 @@ namespace __gnu_cxx {
 using std::vector;
 
 
-class AnnotatableBase
+class DLLEXPORT_COMMON AnnotatableBase
 {
    protected:
       AnnotatableBase();
       ~AnnotatableBase() {
       }
       static int number;
-      static DLLEXPORT hash_map<std::string, int> annotationTypes;
-      static DLLEXPORT hash_map<std::string, int> metadataTypes;
+      static hash_map<std::string, int> annotationTypes;
+      static hash_map<std::string, int> metadataTypes;
       static int metadataNum;
 
    public:
 
-      static DLLEXPORT int createAnnotationType(std::string &name);
-      static DLLEXPORT int getAnnotationType(std::string &name);
-      static DLLEXPORT int getOrCreateAnnotationType(std::string &anno_name) {
+      static int createAnnotationType(std::string &name);
+      static int getAnnotationType(std::string &name);
+      static int getOrCreateAnnotationType(std::string &anno_name) {
          int anno_type = getAnnotationType(anno_name);
          if (anno_type == -1) {
             anno_type = createAnnotationType(anno_name);

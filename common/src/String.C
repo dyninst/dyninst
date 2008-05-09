@@ -30,7 +30,7 @@
  */
 
 
-// $Id: String.C,v 1.36 2008/02/19 19:43:51 mlam Exp $
+// $Id: String.C,v 1.37 2008/05/09 00:25:38 jaw Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -645,7 +645,7 @@ string_ll::regexEquiv( const char *s, bool checkCase ) const {
 	if( err != 0 && err != REG_NOMATCH ) {
 		char errbuf[80];
 		regerror( err, &r, errbuf, 80 );
-		cerr << "string_ll::regexEquiv -- " << errbuf << endl;
+		//cerr << "string_ll::regexEquiv -- " << errbuf << endl;
 	}
 
 	// Free the pattern buffer
@@ -657,11 +657,13 @@ string_ll::regexEquiv( const char *s, bool checkCase ) const {
 }
 
 
+#if 0
 ostream& operator<< (ostream &os, const string_ll &s) {
    if(s.str_ != NULL)
       os << s.str_;
    return os;
 }
+#endif
 
 //debug_ostream& operator<< (debug_ostream &os, const string_ll &s) {
 //   if(s.str_ != NULL)

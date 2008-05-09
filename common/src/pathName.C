@@ -297,6 +297,7 @@ std::string extract_pathname_tail(const std::string &path)
   return ret;
 }
 
+#if !defined (os_windows)
 char *resolve_file_path(const char *fname, char *resolved_path)
 {
    // (1)  use realpath() to resolve any . or ..'s, or symbolic links
@@ -327,4 +328,13 @@ char *resolve_file_path(const char *fname, char *resolved_path)
 
    return resolved_path;
 }
+#else
+char *resolve_file_path(const char *fname, char *resolved_path) 
+{
+   //  hrm.
+   //... windows has no realpath()?
+   fprintf(stderr, "%s[%d]:  IMPLEMENT ME: %s\n", FILE__, __LINE__, fname);
+   return "bogus_path";
+}
+#endif
 

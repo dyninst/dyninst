@@ -85,6 +85,8 @@ extern int vfork();
 };
 #endif /* defined(__cplusplus) */
 
+#define PDSOCKET_ERROR (-1)
+typedef int PDSOCKET;
 extern char *sys_errlist[];
 
 /* POSIX */

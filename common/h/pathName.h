@@ -69,5 +69,5 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 DLLEXPORT pdstring extract_pathname_tail(const pdstring &path);
 DLLEXPORT string extract_pathname_tail(const string &path);
 
-char *resolve_file_path(const char *fname, char *resolved_name);
+DLLEXPORT char *resolve_file_path(const char *fname, char *resolved_name);
 #endif

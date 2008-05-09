@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.716 2008/05/08 21:52:27 legendre Exp $
+// $Id: process.C,v 1.717 2008/05/09 00:25:38 jaw Exp $
 
 #include <ctype.h>
 
@@ -5082,7 +5082,7 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
     dyninst_thread_t doublecheck;
     
     if (!readThreadStruct(thread_struct_addr, doublecheck)) {
-      fprintf(stderr, "Error: failed to read thread structure\n");
+      fprintf(stderr, "%s[%d]: Error: failed to read thread structure\n", FILE__, __LINE__);
         goto done;
     }
 

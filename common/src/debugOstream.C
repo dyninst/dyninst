@@ -31,6 +31,7 @@
 
 // debugOstream.C
 
+#if 0
 #include "common/h/debugOstream.h"
 #include "common/h/Time.h"
 #include "common/h/int64iostream.h"
@@ -157,4 +158,5 @@ debug_ostream& debug_ostream::operator<<(relTimeStamp rts) {
   if(on)  actual_ostream << rts;
   return *this;
 }
+#endif
 #endif

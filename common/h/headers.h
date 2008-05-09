@@ -30,7 +30,7 @@
  */
 
 
-// $Id: headers.h,v 1.27 2008/02/07 16:07:54 jaw Exp $
+// $Id: headers.h,v 1.28 2008/05/09 00:25:37 jaw Exp $
 
 #ifndef KLUDGES_H
 #define KLUDGES_H
@@ -72,5 +72,137 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 #include "common/h/irixHeaders.h"
 
 #endif  /* architecture specific */
+
+typedef enum {
+   RRVsuccess,
+   RRVnoData,
+   RRVinsufficientData,
+   RRVreadError,
+   RRVerror
+} readReturnValue_t;
+
+
+#if 0
+template<class T>
+readReturnValue_t P_socketRead(PDSOCKET fd, T &it, size_t sz)
+{
+   ssize_t bytes_read = 0;
+#if defined (os_windows)
+   bytes_read = recv( fd, (char *)&it, sz, 0 );
+#else
+try_again:
+   bytes_read = read(fd, &it, sz);
+#endif
+
+   if ( (ssize_t)PDSOCKET_ERROR == bytes_read ) {
+#if defined (os_windows)
+      if (errno != 0) {
+         fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
+               strerror(errno), errno);
+         return REreadError;
+      }
+#else
+      if (errno == EAGAIN || errno == EINTR)
+         goto try_again;
+
+      fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
+            strerror(errno), errno);
+      return REreadError;
+#endif
+   }
+
+   if (0 == bytes_read) {
+      //  fd closed on other end (most likely)
+      //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
+      return REnoData;
+   }
+#if defined (os_windows)
+   if ((PDSOCKET_ERROR == bytes_read) && (errno == 0)) {
+      //  fd closed on other end (most likely)
+      //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
+      return REnoData;
+   }
+#endif
+
+   if (bytes_read != sz) {
+      fprintf(stderr, "%s[%d]:  read wrong number of bytes! %d, not %d\n",
+            FILE__, __LINE__, bytes_read, sz);
+      fprintf(stderr, "FIXME:  Need better logic to handle incomplete reads\n");
+      return REinsufficientData;
+   }
+
+   return REsuccess;
+
+}
+#endif
+
+#if !defined(os_windows)
+template <class T>
+readReturnValue_t P_socketRead(PDSOCKET fd, T &it, ssize_t sz)
+{
+   ssize_t bytes_read = 0;
+try_again:
+   bytes_read = read(fd, (char *)&it, sz);
+
+   if ( (ssize_t)-1 == bytes_read ) {
+      if (errno == EAGAIN || errno == EINTR) 
+         goto try_again;
+
+      fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
+            strerror(errno), errno);
+      return RRVreadError;
+   }
+
+   if (0 == bytes_read) {
+      //  fd closed on other end (most likely)
+      //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
+      return RRVnoData;
+   }
+   if (bytes_read != sz) {
+      bperr("%s[%d]:  read wrong number of bytes! %d, not %d\n", 
+            FILE__, __LINE__, bytes_read, sz);
+      bperr("FIXME:  Need better logic to handle incomplete reads\n");
+      return RRVinsufficientData;
+   }
+
+   return RRVsuccess;
+}
+#else
+
+#define ssize_t int
+template <class T>
+readReturnValue_t P_socketRead(PDSOCKET fd, T &it, ssize_t sz)
+{
+   ssize_t bytes_read = 0;
+
+   bytes_read = recv( fd, (char *)&it, sz, 0 );
+
+   if ( PDSOCKET_ERROR == bytes_read && errno != 0 ) {
+      fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
+            strerror(errno), errno);
+      return RRVreadError;
+   }
+
+   if (0 == bytes_read || (PDSOCKET_ERROR == bytes_read && errno == 0)) {
+      //  fd closed on other end (most likely)
+      //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
+      return RRVnoData;
+   }
+
+   if (bytes_read != sz) {
+      bperr("%s[%d]:  read wrong number of bytes!\n", FILE__, __LINE__);
+      bperr("FIXME:  Need better logic to handle incomplete reads\n");
+      return RRVinsufficientData;
+   }
+
+   return RRVsuccess;
+}
+#endif
+
+template<class T>
+readReturnValue_t P_socketRead(PDSOCKET fd, T &it)
+{
+   return P_socketRead<T>(fd, it, sizeof(T));
+}
 
 #endif /* KLUDGES_H */

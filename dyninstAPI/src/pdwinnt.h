@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.20 2008/04/15 16:43:27 roundy Exp $
+// $Id: pdwinnt.h,v 1.21 2008/05/09 00:25:38 jaw Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -97,11 +97,9 @@ typedef CRITICAL_SECTION EventLock_t;
 typedef HANDLE EventCond_t;
 
 #define ssize_t int
-typedef SOCKET PDSOCKET;
 #define DYNINST_ASYNC_PORT 28003
 #define PDSOCKET_ERRNO WSAGetLastError()
 #define INVALID_PDSOCKET (INVALID_SOCKET)
-#define PDSOCKET_ERROR SOCKET_ERROR
 #define SOCKET_TYPE PF_INET
 #define THREAD_RETURN void
 #define DO_THREAD_RETURN return

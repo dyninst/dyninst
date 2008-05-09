@@ -61,6 +61,8 @@
 #include <rpc/types.h>
 #include <rpc/xdr.h>
 
+#define PDSOCKET_ERROR (-1)
+typedef int PDSOCKET;
 typedef int (*P_xdrproc_t)(XDR*, ...);
 extern const char *sys_errlist[];
 

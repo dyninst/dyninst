@@ -31,9 +31,15 @@
  */
 
 #include <stdio.h>
-#include "serialize.h"
+#include "common/h/serialize.h"
 
 bool dyn_debug_serializer = false;
+bool &serializer_debug_flag()
+{
+   //  This function exists to get around problems with exporting the variable
+   //  across library boundaries on windows...   there's probably a better way to do this...
+   return dyn_debug_serializer;
+}
 
 void serialize_debug_init()
 {
@@ -132,11 +138,19 @@ bool SerDesBin::getDefaultCacheDir(std::string &path)
     struct stat statbuf;
     if (0 != stat(dot_dyninst_dir.c_str(), &statbuf)) {
        if (errno == ENOENT) {
+#if defined (os_windows)
+         if (0 != mkdir(dot_dyninst_dir.c_str())) {
+            fprintf(stderr, "%s[%d]:  failed to make %s\n", FILE__, __LINE__, 
+                  dot_dyninst_dir.c_str(), strerror(errno));
+            return false;
+         } 
+#else
          if (0 != mkdir(dot_dyninst_dir.c_str(), S_IRWXU)) {
             fprintf(stderr, "%s[%d]:  failed to make %s\n", FILE__, __LINE__, 
                   dot_dyninst_dir.c_str(), strerror(errno));
             return false;
          } 
+#endif
        }
        else {
           fprintf(stderr, "%s[%d]:  stat(%s) failed: %s\n", FILE__, __LINE__, 
@@ -145,23 +159,35 @@ bool SerDesBin::getDefaultCacheDir(std::string &path)
        }
     }
     else {
+#if !defined (os_windows)
        //  sanity check that its a dir
        if (!S_ISDIR(statbuf.st_mode)) {
           fprintf(stderr, "%s[%d]:  ERROR:  %s is not a dir\n", FILE__, __LINE__, 
                 dot_dyninst_dir.c_str());
           return false;
        }
+#else
+       //  windows equiv to S_ISDIR??
+#endif
     }
 
     path = dot_dyninst_dir + std::string("/") + std::string(DEFAULT_CACHE_DIR);
 
     if (0 != stat(path.c_str(), &statbuf)) {
        if (errno == ENOENT) {
+#if defined (os_windows)
+         if (0 != mkdir(path.c_str())) {
+            fprintf(stderr, "%s[%d]:  failed to make %s\n", FILE__, __LINE__, 
+                  path.c_str(), strerror(errno));
+            return false;
+         } 
+#else
          if (0 != mkdir(path.c_str(), S_IRWXU)) {
             fprintf(stderr, "%s[%d]:  failed to make %s\n", FILE__, __LINE__, 
                   path.c_str(), strerror(errno));
             return false;
          } 
+#endif
        }
        else {
           fprintf(stderr, "%s[%d]:  stat(%s) failed: %s\n", FILE__, __LINE__, 
@@ -170,12 +196,16 @@ bool SerDesBin::getDefaultCacheDir(std::string &path)
        }
     }
     else {
+#if !defined (os_windows)
        //  sanity check that its a dir
        if (!S_ISDIR(statbuf.st_mode)) {
           fprintf(stderr, "%s[%d]:  ERROR:  %s is not a dir\n", FILE__, __LINE__, 
                 path.c_str());
           return false;
        }
+#else
+       //  windows equiv to S_ISDIR??
+#endif
     }
     fprintf(stderr, "%s[%d]:  using default cache dir: %s\n", FILE__, __LINE__, path.c_str());
   return true;

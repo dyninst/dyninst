@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 			     
-// $Id: Object-nt.C,v 1.26 2008/04/15 16:43:46 roundy Exp $
+// $Id: Object-nt.C,v 1.27 2008/05/09 00:25:38 jaw Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -972,15 +972,27 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
 
     //Store the variable as a local or parameter appropriately
    if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_PARAMETER) {
+      if (!func->addParam(newvar)) {
+         fprintf(stderr, "%s[%d]:  addParam failed\n", FILE__, __LINE__);
+         return false;
+      }
+#if 0
 		if(!func->params_)
 			func->params_ = new localVarCollection();
       func->params_->addLocalVar(newvar);
+#endif
       paramType = "parameter";
    }
    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_LOCAL) {
+      if (!func->addLocalVar(newvar)) {
+         fprintf(stderr, "%s[%d]:  addLocalVar failed\n", FILE__, __LINE__);
+         return false;
+      }
+#if 0
       if(!func->vars_)
          func->vars_ = new localVarCollection();
       func->vars_->addLocalVar(newvar);
+#endif
       paramType = "local";
    }
    else {
